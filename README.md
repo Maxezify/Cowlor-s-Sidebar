@@ -343,12 +343,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1428 Ko | 551 Ko | 3 785 → **2** |
+| `content.js` | 1529 Ko | 604 Ko | 3 987 → **2** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
-| `panneau.js` | 106 Ko | 50 Ko | 148 → **0** |
+| `panneau.js` | 107 Ko | 51 Ko | 149 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
-| `background.js` | 9 Ko | 2 Ko | 21 → **0** |
-| **les cinq** | **1682 Ko** | **707 Ko** | **−58 %** |
+| `background.js` | 9 Ko | 2 Ko | 22 → **0** |
+| **les cinq** | **1784 Ko** | **760 Ko** | **−57 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
@@ -2623,6 +2623,3379 @@ Un sous-test qui modélisait un cas impossible — un direct qui rajeunit sans
 changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'il
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
+
+## Le multistream sur toutes les branches (v4.24.0.26)
+
+La demande, après la 4.24.0.25 : « feu vert pour les autres branches ». Le
+multistream quitte les branches `-multi` : `claude/chrome` et la branche
+d'audit les rejoignent, `claude/firefox-multi` reçoit les versions 4.24.0.11
+à 4.24.0.26 et `claude/firefox` la rejoint, puis les deux paquets de
+production sont refaits.
+
+### Ce que le portage a trouvé
+
+Le calage n'entend que ce que `captureStream()` rend du lecteur de chaque
+tuile. Les données de compatibilité de MDN et les notes de version de
+Firefox le disent : **Firefox ne l'a que depuis la 149** — la capture du son
+brut, sans le volume de l'élément, comme la spécification l'exige et comme
+Chromium le fait ; sa `mozCaptureStream` d'avant coupait le son de
+l'élément, et le pont ne s'en sert pas. Or le manifeste Firefox admet la
+140 (l'ESR) : avant la 149, l'écoute ne rendrait jamais rien — et le calage
+retirait quand même, à l'ouverture, la faible latence de chaque tuile.
+Pour rien.
+
+| | avant | désormais |
+| --- | --- | --- |
+| un navigateur sans `captureStream()` | le calage démarre, retire la faible latence de chaque tuile, et attend un son qui ne viendra pas | il ne démarre pas : « indisponible : ce navigateur ne capture pas le son d'un lecteur (captureStream) » au rapport et au journal, la faible latence gardée, rien d'écouté |
+| Chrome, Firefox 149 et plus | — | rien ne change : la même capture, le même calage |
+
+La page et ses tuiles sont du même navigateur : ce qui manque à l'une manque
+aux autres, et la page le sait avant d'avoir rien retiré.
+
+### L'erreur du cache avant/arrière, revenue
+
+Rapportée pendant ce portage, depuis la liste d'erreurs de l'extension :
+
+> Unchecked runtime.lastError: The page keeping the extension port is moved
+> into back/forward cache, so the message channel is closed.
+
+La même qu'à la 4.4.0, qui avait fait lire la cause au pont (`bridge.js`) et
+l'avait fait se débrancher à `pagehide`. Mais quand une page entre dans ce
+cache, Chrome ferme le canal et prévient **l'autre bout** — le service worker
+(`background.js`) —, dont l'écouteur de déconnexion ne lisait pas
+`runtime.lastError` ; et le débranchement du pont à `pagehide` n'est pas
+ordonné avec la mise en cache : la fermeture arrive parfois la première.
+Le worker lit désormais la cause, sans agir — un port qui tombe est le cas
+normal, le pont se rebranche au retour (`pageshow`). Rien d'autre ne change :
+c'était une ligne dans une liste d'erreurs, pas une panne.
+
+### Sous Firefox, à vérifier
+
+Cet environnement n'a pas de Gecko : le banc de la branche Firefox tourne
+sous Chromium, comme aux portages précédents. Sous Firefox 149 et plus, le
+calage tourne donc tel qu'il a été éprouvé sous Chrome, sans avoir été
+mesuré. Ce qu'un premier essai doit regarder : que la tuile qui a le son
+reste audible une fois l'écoute lancée (l'ancienne capture de Firefox
+coupait la sortie de l'élément) ; puis, au rapport, la ligne `ecoute` de
+chaque tuile (`running`, `worklet` ou `script`, `blocs N/10 s`) et
+`calage.chronologie`.
+
+### Ce que le banc mesure
+
+- **73** — la page entre dans le cache avant/arrière, et c'est Chrome qui
+  ferme le canal : le fond lit la cause, et oublie le port.
+- **191** — un navigateur sans `captureStream()`, dans la page comme dans
+  les tuiles : `auto()` refuse et dit pourquoi ; « india » garde sa faible
+  latence, aucun ordre ne lui part, rien n'écoute ; la salle, elle, est là.
+
+### Ce que le contrôle Firefox a trouvé
+
+Le premier contrôle complet de la branche Firefox — même code, même banc
+que Chrome, sous Chromium — a compté **quatre échecs**, dans deux
+scénarios qui passaient à chaque fois sous Chrome :
+
+- **190** : au retour du son de « mike », « foxtrot », la tuile sans son
+  commun qui faisait calculer chaque tour, a tiré un faux verdict près de
+  zéro et reculé avec elle. Mesurée quatre minutes, la paire ne donne
+  qu'un calcul net sur quarante-sept, à une position quelconque : un
+  tirage rare — mais un scénario ne doit pas dépendre d'une paire qui
+  peut décider. C'est désormais « papa », un écho : quarante-sept nets
+  sur quarante-sept, tous à 1 090 ms, que la règle de l'écho ne décide
+  jamais. Ses deux mutants restent pris ;
+- **188** : « lima », un salon de trois voix, est restée lue « source
+  seule » plus de deux cents secondes — ses premiers pics tous sur la
+  même voix —, et n'a été décidée qu'après le rechargement. Un tirage du
+  faux son, de même.
+
+Rejoués deux fois chacun sur le même arbre : verts, toutes assertions. Le
+second contrôle complet de la branche Firefox : vert.
+
+| mutant | ce qui tombe |
+| --- | --- |
+| le calage qui démarre sans capture (1) | 191 : « india retirée à +1 s · le lecteur dit non », et « son — » jusqu'au bout |
+| le fond qui ne lit pas la cause d'un port fermé (1) | 73 : la fermeture par le cache, et pas une lecture de `lastError` |
+
+Deux mutants, deux pris.
+
+## Le calage au plus tôt (v4.24.0.25)
+
+La demande, après l'audit : « optimiser le système de calage pour qu'il se
+fasse le plus tôt possible. Investigue à fond et fais les ajouts, si
+possible, avec rigueur ». Publiée sur `claude/chrome-multi` seulement.
+
+### Où passait le temps
+
+Une décision du calage demande : du son des deux côtés depuis le dernier
+changement de la paire ; six secondes de son commun pour un premier calcul ;
+un calcul toutes les cinq secondes ; huit calculs nets (z ≥ 5) ; une voix —
+deux premiers pics au même endroit — et, si elle est seule et loin de zéro,
+une seconde ; puis un second verdict qui redit le premier.
+
+Les deux rapports réels faits sous la 4.24.0.22, refaits calcul par calcul :
+l'historique de chaque paire, la règle extraite du code, l'heure de chaque
+calcul retrouvée au compte des tours — un toutes les cinq secondes, un de
+perdu après chaque déplacement.
+
+| | deux streams | trois streams, la première paire |
+| --- | --- | --- |
+| le premier calcul | +15 s | +15 s |
+| la mesure rouverte | +9,2 et +11,0 s : la faible latence retirée à +5,2 s, l'estimation des deux lecteurs saute de quatre à six secondes | +5,1 s : la faible latence retirée |
+| le premier calcul **compté** | **+35 s** | **+30 s** |
+| la seconde voix établie — avant, « une source seule, loin : un écho, peut-être » | au dixième calcul | au huitième |
+| la décision | +75 s | +70 s |
+
+Ainsi reconstitué, l'historique redonne les deux décisions réelles à la
+seconde près. Deux choses les retenaient :
+
+1. **Vingt secondes après chaque mesure rouverte.** Un calcul ne compte que
+   s'il commence après le changement de la paire ; or l'enveloppe de la
+   tuile gardait ses vingt secondes d'avant, et la fenêtre devait s'en vider
+   — vingt-deux à vingt-sept secondes avant le premier calcul compté. Un
+   déplacement, lui, vidait l'enveloppe depuis la 4.24.0.17 : un saut, une
+   chute, un rechargement, la fin d'un rattrapage, une pause, la faible
+   latence retirée, non.
+2. **Huit calculs nets exigés.**
+
+Le reste tient au son lui-même : une voix seule loin de zéro attend sa
+seconde voix. Un écho réel a été vu à 1,05, 1,18 et 2,37 s ; des voix vraies,
+de 0,87 à 1,94 s : rien, dans le son seul, ne les sépare plus tôt.
+
+### Ce qui change
+
+| | avant | désormais |
+| --- | --- | --- |
+| **La mesure rouverte** — saut, chute, rechargement, fin d'un rattrapage, pause, faible latence retirée | l'enveloppe gardée : le premier calcul compté vingt-deux à vingt-sept secondes après | l'enveloppe vidée, comme après un déplacement : six secondes de son, et on calcule — huit à treize secondes après |
+| **L'exigence** | huit calculs nets | **six** |
+| **Une tuile dont le son n'arrive plus** — un lecteur figé, une capture tarie | sa fenêtre s'arrête avec elle, refaite à chaque tour et comptée chaque fois : six d'affilée font un verdict, deux verdicts pareils une décision — sur vingt secondes de son entendues une fois | moins d'un demi-tour de son nouveau depuis le dernier calcul — deux secondes et demie —, rien n'est compté ; et une paire sans calcul neuf ne juge pas : deux verdicts qui s'accordent, c'est un verdict qui a tenu un tour d'écoute de plus |
+
+### Le seuil, balayé sur le réel
+
+Six, et pas cinq ni quatre : la règle entière, rejouée à chaque calcul, sur
+les neuf écoutes réelles gardées — vingt-trois segments, quinze décisions à
+huit.
+
+| calculs nets | les mêmes décisions, à 80 ms | plus tôt | calculs gagnés | une autre | de plus, où huit ne décidaient rien |
+| --- | --- | --- | --- | --- | --- |
+| 8 | 15 | — | — | — | — |
+| **6** | **14** | **8** | **26** — 2 min 18 s | 1 : −70 ms au lieu de +190, plus près de ce que la paire a fini par dire (−40) | 1, à −10 ms |
+| 5 | 14 | 8 | 34 | la même | 3 |
+| 4 | 13 | 7 | 28 | 2, dont une **à contresens** : −200 ms, la paire finie à +190 | 3 |
+| 3 | 12 | 6 | 32 | 3 | 3 |
+
+À quatre, une décision à contresens : six en garde deux crans.
+
+### Ce que ça donne
+
+**Au banc** (190), « kappa » perd sa faible latence, et son estimation saute
+de 4,4 s cinq secondes plus tard :
+
+| | l'enveloppe gardée (mutant) | vidée |
+| --- | --- | --- |
+| le premier calcul compté, après le saut | 23 à 27 s | **12 à 13 s** |
+| la décision, après le saut | 38 à 42 s | **27 à 28 s** |
+
+**Les rapports réels**, refaits à la règle nouvelle — à supposer que les
+fenêtres plus courtes d'après une mesure rouverte disent ce qu'ont dit les
+entières :
+
+| | sous la 4.24.0.24 | désormais |
+| --- | --- | --- |
+| deux streams, la première décision | +75 s | **+65 s** — le premier calcul compté à +20 s |
+| trois streams, la première décision | +70 s | **+55 s** — le premier calcul compté à +15 s |
+| deux streams, calée | au treizième calcul après la correction | **au onzième** |
+| trois streams, la seconde décision | au dixième calcul après la correction | **au huitième** |
+| le rapport de la 4.24.0.21, les deux tuiles calées | aux treizième et vingt-troisième calculs après la correction | **aux neuvième et treizième** |
+
+Les premières décisions, c'est l'enveloppe vidée — elles attendaient leur
+seconde voix au même calcul, à huit comme à six ; les suivantes, c'est le
+seuil.
+
+### Ce que le rapport dit de plus
+
+- `calage.chronologie` — par tuile, l'heure de chaque étape : son premier son
+  entendu ; la dernière fois que la mesure de sa paire a été rouverte — par
+  elle ou par la référence — et pourquoi ; le premier calcul compté depuis ;
+  son premier verdict, sa première correction, la première fois calée.
+  « son +3 s · rouverte +8 s (saut (estimation)) · calcul +20 s · verdict
+  +30 s · correction +35 s · calée +55 s » ;
+- `calage.salleCalee` — la salle entière calée, la première fois ;
+- `ecoute.sansSonNouveau` — par paire, les tours sans son nouveau, pas
+  comptés.
+
+### Ce qui n'a pas bougé
+
+La règle de l'écho, la tenue, la cible — la plus haute voix —, les gestes,
+le seuil d'un calcul net (z ≥ 5), l'accord de deux verdicts : c'est lui qui
+écarte un verdict tiré d'un calcul isolé, et il ne coûte qu'un tour. La
+cadence des tours aussi : un calcul par paire dès qu'elle a son nouveau
+gagnerait deux secondes et demie en moyenne, mais à trois streams les
+verdicts ne viendraient plus au même pas — et la référence reculerait pour
+l'une sans emmener l'autre (cf. 4.24.0.23).
+
+### Ce que le banc mesure
+
+- **190** — le calage au plus tôt. La faible latence retirée, l'estimation
+  de « kappa » saute : le premier calcul compté vient dans les dix-sept
+  secondes, la décision suit, la salle est calée, et la chronologie dit
+  chaque étape. L'écoute allumée d'abord, la faible latence retirée seule —
+  le rapport à trois streams : de même. Le son de « mike » coupé à son
+  premier verdict, « papa » — un écho, jamais décidé — faisant calculer
+  chaque tour : rien n'est compté, rien n'est décidé ; le son revenu, la
+  décision vient.
+- **185** — les rapports réels rejoués, à six calculs nets : les mêmes
+  décisions, plus tôt — le quatorzième au quarante et unième calcul au lieu
+  du quarante-troisième, le neuvième au septième au lieu du neuvième, le
+  douzième au quinzième au lieu du dix-septième, sur deux voix du salon, la
+  troisième établie au suivant.
+
+### Ce que l'enquête a corrigé en route
+
+- **Un son qui semblait tarder.** Compté sans les tours perdus après chaque
+  déplacement, l'historique plaçait le premier calcul à +25 et +30 s — un
+  son qui aurait tardé vingt secondes. Avec eux : +15 s, et le premier calcul
+  compté à +35 et +30 s redonne les décisions réelles à la seconde. Ce
+  n'était pas le son : c'était l'enveloppe gardée.
+- **Un banc qui mesurait autre chose.** Le premier 190 mesurait l'heure de
+  la décision, sur un salon de trois voix d'égal poids : à l'échelle du banc,
+  trois calculs nets seulement, et le verdict tardait de quinze secondes pour
+  une raison sans rapport. Il mesure désormais l'heure du premier calcul
+  compté — ce que la coupure change —, sur une voix seule.
+- **Une voix de moins.** Le douzième rapport rejoué attendait les trois voix
+  du salon ; à six calculs nets, la décision vient sur deux — la même voix,
+  1 175 ms au lieu de 1 170.
+
+| mutants | ce qui tombe |
+| --- | --- |
+| la mesure rouverte sans vider l'enveloppe (1) | 190 : le premier calcul compté 27 s après le saut, 24 après la faible latence retirée seule |
+| la faible latence retirée qui ne rouvre que la mesure, comme avant (1) | 190 : rien de rouvert à son retrait, au rapport ni dans l'enveloppe |
+| la même fenêtre comptée à chaque tour (1) | 190 : le son de « mike » coupé, sa fenêtre recomptée — et la référence recule pour elle |
+| le verdict d'une paire sans calcul neuf, qui s'accorde avec lui-même (1) | 190 : au tour suivant, sur les mêmes calculs, la référence recule |
+| la chronologie jamais tenue (1) | 190 : « verdict — · correction — · calée — » d'une tuile calée |
+| huit calculs nets, comme avant ; quatre (2) | 185 : les quarante-troisième, neuvième et dix-septième calculs ; à quatre, une source seule décidée à −220 ms au quatorzième, avant tout déplacement |
+
+Sept mutants, sept pris.
+
+### Pour le prochain rapport
+
+1. Une salle ouverte par le nœud, dix minutes.
+2. `calage.chronologie` : où passe le temps, tuile par tuile.
+3. `calage.salleCalee` : l'heure à comparer — +145 s à deux streams, +225 s à
+   trois, aux derniers rapports.
+
+## L'audit du multistream (v4.24.0.24)
+
+La demande, après la 4.24.0.23 : « un audit complet de cette partie
+multistream […] vérifier que tout est ok, bien optimisé, pas de code mort,
+bonne performance, debug détaillé […] solide techniquement, sans casser la
+moindre fonctionnalité actuelle, car tout a l'air de bien fonctionner là ».
+Avant de la porter sur les autres branches. Publiée sur `claude/chrome-multi`
+seulement.
+
+### Ce qui a été lu
+
+Tout ce que le multistream fait tourner : le pont des lecteurs (dans chaque
+tuile), la salle — grille, son, chats, relevés, écoute, calage, rapport,
+console —, le nœud de la barre, la feuille, les locales, les réglages. Et,
+outillé plutôt qu'à l'œil : chaque identifiant déclaré, et ses lectures
+(aucun jamais lu) ; chaque champ d'objet, écrit et lu (trois écrits pour
+personne) ; chaque clé de locale (toutes servies) ; le coût de la
+corrélation, mesuré.
+
+### Ce que l'audit a trouvé
+
+| constat | la preuve | ce qui change |
+| --- | --- | --- |
+| **Une tuile sortie de la grille revenait « calée »** | la fenêtre rétrécit, une tuile part au banc — son lecteur est détruit ; la fenêtre revenue, un lecteur neuf, d'une autre position et d'une autre latence : le calage la croyait calée, et mesurait le nouveau sur l'historique de l'ancien | sortie de la grille — au banc, ou remplacée —, elle est oubliée du calage comme une tuile partie hors ligne : son état, sa paire, sa mesure ; un lecteur neuf ne se mesure que sur ce qu'on a entendu de lui |
+| **L'onglet caché ne déliait rien** | les tuiles muettes y sont mises en pause ; reprises, elles repartent d'où elles étaient, ou du direct si le lecteur recharge — leur relation à la référence n'est plus connue, et elles gardaient leur « calée » | la pause et la reprise délient la tuile, comme un rechargement ; et l'écoute ne corrèle rien tant que l'onglet est caché — aucune paire ne s'y mesure |
+| **L'avertissement de contenu restait à l'écran** | l'aperçu lève l'écran d'acquittement de Twitch depuis la 3.55 ; la salle, jamais : une tuile dont la chaîne porte un label de classification restait sans image ni son, et la prise posée sur toute tuile muette prenait le clic de l'utilisateur | levé dans la salle comme dans l'aperçu — le même bouton, un clic par bouton, cinq au plus —, noté au journal et au rapport |
+| **La sonde de phase 0, dormante** | `tse.sonde` et le rôle « sonde » du pont (4.24.0.3 à 4.24.0.5) : ses questions — pubs, son, points, charge, Chat partagé — sont tranchées depuis la 4.24.0.6, et plus aucun rapport ne s'en est servi | retirée — module, rôle du pont, réglage du banc, bloc du rapport et du panneau, scénario 174. Ce qu'elle seule mesurait et qui sert encore — débit, images perdues, tâches longues, avertissement de contenu — passe au rapport de la salle |
+| **L'horloge à 50 Hz, pour le rapport seul** | depuis la 4.24.0.21, l'horloge de la tête de lecture (`getSyncTime`, relevée toutes les 20 ms dans chaque tuile tant que l'écoute tourne) ne déplace plus rien ; elle s'était trompée de 4,6 s au quatorzième rapport réel | retirée : cinquante minuteries par seconde et par tuile de moins. `getSyncTime` reste lu une fois par relevé, au rapport |
+| **La corrélation des niveaux, pour une ligne** | un second calcul complet par paire, depuis la 4.24.0.11, « que le vrai son départagera » : vingt rapports réels, et rien n'a jamais décidé sur lui | retirée : la moitié du coût de l'écoute |
+| **La corrélation, une somme par décalage** | 2 000 points fois 1 201 décalages par paire, toutes les cinq secondes : à six streams, au banc, 55 ms d'un bloc au pire, même sans les niveaux — une tâche longue | les mêmes sommes, toutes à la fois, par la transformée de Fourier : éprouvée contre l'ancienne sur 2 985 enveloppes, aucun pic différent ; 0,73 ms au lieu de 3,36 sur une fenêtre de vingt secondes |
+| **Des données que personne ne lisait** | la position avant et après un déplacement, relevée par le pont ; le champ `gel` du calage, créé, jamais servi | la position sert désormais : « fin de recul · position 49,964 → 48,112 en 0,5 s : −2,352 s » — ce que le déplacement a obtenu ; `gel` retiré |
+| **Des commentaires d'avant** | « c'est elle qui affiche la pub » (la pastille partie en 4.24.0.23) ; « deux commandes S3, S4 » (parties en 4.24.0.21) | dits comme le code est |
+
+### Ce que ça coûte, mesuré
+
+La corrélation d'une paire — vingt secondes d'enveloppe, ±6 s cherchées,
+2 000 points × 1 201 décalages —, même code, même moteur V8, hors
+navigateur : **3,98 ms pour les variations, 3,69 ms pour les niveaux** ; par
+la transformée de Fourier, **0,73 ms** — préparation comprise.
+
+Et dans le navigateur, au banc, la même salle avant et après : six streams,
+l'écoute allumée, quatre-vingt-dix secondes mesurées après trente de mise en
+route, le temps de script relevé par le navigateur lui-même.
+
+| | 4.24.0.23 | 4.24.0.24 |
+| --- | --- | --- |
+| tâches longues de la page | **5**, de 51 à 91 ms | **aucune** |
+| un calcul de l'écoute (cinq paires) | 29 ms en moyenne, 55 au pire, mesurés sans les niveaux — qui les doublaient | **10 ms** en moyenne, 22 au pire |
+| temps de script, 90 s | 4,39 s | 3,74 s |
+| l'horloge | 50 relevés par seconde et par tuile | aucun |
+| onglet caché | l'écoute corrèle | rien |
+
+Le temps de script comprend celui des six faux lecteurs du banc, qui
+fabriquent leur son : la part de la salle y est petite, et c'est elle qui a
+fondu.
+
+`content.js` perd **471 lignes** — 798 retirées, 327 écrites, la transformée de Fourier comprise ; `panneau.js` son bloc de la sonde.
+
+### Ce que le rapport dit de plus
+
+Le debug, demandé détaillé, l'est là où il servira : sur la machine de
+l'utilisateur, avec trois streams ou plus.
+
+- `charge.pas`, `charge.ecoute` — la durée des pas de la salle et de son
+  écoute, moyenne et pire, **par paire** pour l'écoute : ce que la salle
+  coûte vraiment, plus une estimation ;
+- `charge.tachesLongues` — les tâches de plus de 50 ms pendant qu'elle est
+  ouverte, par coupable : la page (la salle comprise), les lecteurs, les
+  chats ;
+- `charge.sorties` — les tuiles sorties de la grille, et oubliées du calage ;
+- par tuile, `debitKbps` et `imagesPerdues` — la machine suit-elle tant de
+  streams ? ; `avertissement` — vu, levé, en combien de clics ; dans
+  `ecoute`, `blocs N/10 s` — la fréquence sur 1024, fois dix : 431 à
+  44,1 kHz, 469 à 48 ; moins, la capture a faim ;
+- au journal, la position obtenue à chaque fin de déplacement, une tuile
+  sortie de la grille, un avertissement levé.
+
+Partis : `serie.horloge`, `instant.ecartHorloge`, « sync » dans chaque
+calcul, « niveaux » dans chaque paire, et le bloc `SONDE DE LA SALLE`.
+
+### Ce qui n'a pas bougé
+
+Les règles du calage — mesurer, accorder, tenir, suivre la référence,
+corriger —, la grille, le son tenu, les chats, la page dessous, le nœud. Pas
+une assertion sur leur comportement n'a été touchée : les rapports réels
+rejoués (185) disent les mêmes décisions aux mêmes calculs.
+
+### Ce que le banc mesure
+
+- **189** — l'audit : la corrélation par la transformée de Fourier, jugée
+  sur le code même contre la somme directe — trois cents enveloppes, pas un
+  pic différent, deux fois plus vite au moins. Le rapport porte le coût, les
+  tâches longues, la charge de chaque lecteur et le recul obtenu ; plus de
+  sonde, d'horloge ni de niveaux. « mike » calée, la fenêtre rétrécit : elle sort de la grille, est
+  oubliée ; revenue, son lecteur neuf est libre, puis se recale sans un
+  geste. L'onglet caché la délie, et pas un calcul du son tant qu'il l'est.
+  Un clic sur le banc fait sortir la tuile remplacée, oubliée de même.
+  L'avertissement de contenu levé d'un clic ; un écran têtu, cinq clics au
+  plus.
+- **178**, **180** — la corrélation des niveaux et l'horloge parties : le
+  décalage retrouvé par les variations seules ; au bord des ±6 s, la
+  latence seule décide de garder un pic.
+- **70** — le rapport du panneau : plus de bloc de la sonde ; la charge de
+  la salle y passe, ligne à ligne.
+- **174** — retiré, avec la sonde. Les gardes du pont — un site tiers qui
+  nomme ses cadres comme nous, Firefox compris — restent éprouvées par le 175.
+
+### Ce que le banc a trouvé
+
+- **Une tâche longue que la lecture n'avait pas vue.** L'audit comptait
+  38 ms toutes les cinq secondes à six streams, 20 sans les niveaux — mesuré
+  hors navigateur. Dans le navigateur du banc, avec six lecteurs qui
+  tournent : 29 ms en moyenne, **55 au pire**, et cinq tâches longues en
+  quatre-vingt-dix secondes. D'où la transformée de Fourier, qui n'était pas
+  au plan.
+- **Une ligne lue à la lettre.** Le 186 lit la ligne d'écoute de chaque
+  tuile en entier ; les blocs, glissés au milieu, la faisaient échouer. Ils
+  sont à sa fin.
+- **Une sonde que la recherche n'avait pas trouvée.** Le 70 nourrissait le
+  rapport du panneau d'une sonde factice, sans jamais écrire `tse.sonde` :
+  le premier contrôle complet l'a fait tomber, seul échec sur 1 596. Il
+  éprouve désormais l'inverse — le bloc parti, la charge de la salle venue.
+- **Un budget trop court.** Au deuxième contrôle complet, le 182 a pris sa
+  voie lente — décidé sur la voix du milieu à +128 s, monté vers la plus
+  haute à +278 s — et sa vérification courait encore quand son attente de
+  300 s a pris fin : la plus haute voix à −31 ms, deux corrections, rien de
+  faux. Rejoué seul, deux fois : la voie directe, calée à +73 et +138 s.
+  L'attente va désormais jusqu'à 450 s, et s'arrête dès que c'est calé.
+
+| mutants | ce qui tombe |
+| --- | --- |
+| la tuile sortie de la grille jamais oubliée (1) | 189 : revenue, « mike » est « calée » d'emblée, l'historique de l'ancien lecteur dans sa paire |
+| la tuile remplacée depuis le banc jamais oubliée (1) | 189 : « lima » remplacée sans un mot au journal, sa sortie pas comptée |
+| la pause qui laisse la tuile « calée » (1) | 189 : onglet caché, « mike » toujours « calée » |
+| les calculs qui continuent onglet caché (1) | 189 : trois calculs de plus en douze secondes cachées |
+| l'avertissement jamais levé ; les clics sans borne (2) | 189 : « gate » et « tetu » à l'écran, zéro clic ; « tetu », neuf clics en neuf secondes |
+| le coût jamais compté ; la position d'un essai jamais lue (2) | 189 : `charge.pas` vide ; « fin de recul » sans ce qu'il a obtenu |
+| la transformée trop courte ; le conjugué oublié (2) | 189 : les décalages repliés, 89 enveloppes sur 298 aux pics faux ; une convolution, 272 sur 298 |
+| le bloc de la sonde resté au panneau (1) | 70 : « SONDE DE LA SALLE » au rapport |
+
+Onze mutants, onze pris.
+
+### Pour le prochain rapport
+
+1. Une salle à trois streams ou plus, ouverte par le nœud ; dix minutes.
+2. `charge` : la durée des pas et de l'écoute, et les tâches longues — ce que
+   la salle coûte sur votre machine.
+3. Par tuile, `imagesPerdues` : au-delà de quelques pour cent, la machine ne
+   suit plus tant de streams.
+
+## Trois streams : ce qui est calé suit la référence (v4.24.0.23)
+
+Trois rapports réels sur la 4.24.0.22, ouverts par le nœud. Deux streams,
+douze minutes : « très satisfait, je ne vois aucun décalage au niveau des
+lèvres ». Trois streams, dix minutes : l'un décalé au début, puis calé avec
+la référence au bout de quelques minutes — « dommage que le troisième reste
+sur l'ensemble du rapport à 1 voire 2 secondes d'avance » ; puis, la même
+salle à vingt-deux minutes : « les trois streams semblent parfaitement
+calés ». Et la consigne : « il faudrait voir si à trois streamers, voire
+plus, le calage puisse bien fonctionner pour tout le monde ». Deux demandes
+de plus : au-dessus d'un chat partagé, dire où est le son plutôt que
+« Chat de … » ; et plus rien sur les lecteurs — « le lecteur avec le son est
+entouré en violet, ce qui est suffisant ». Publiée sur `claude/chrome-multi`
+seulement.
+
+### Ce que les rapports établissent
+
+**1. L'AudioWorklet passe sur le vrai Twitch.** Chaque tuile des trois
+rapports dit `worklet · pistes 1` : le lecteur de Twitch accepte le module,
+l'avertissement « ScriptProcessorNode is deprecated » ne revient pas. Et pas
+un changement de source dans ces sessions — une piste chacune.
+
+**2. Deux streams : calés.** La faible latence retirée aux deux (« le lecteur
+dit non ») ; à +75 s, la muette 0,50 s en retard — la référence recule de
+0,38 s ; calée à +145 s. À +680 s, une voix plus haute apparue, à +0,20 s :
+la muette recule de 0,08 s ; calée à +740 s. Le chat, partagé, prouvé par
+ses messages (98, dont 48 en commun).
+
+**3. Trois streams : la tuile laissée derrière par la référence.** **A**, la
+référence ; **B** et **C**, muettes.
+
+| quand | ce qui s'est passé |
+| --- | --- |
+| +5 s | faible latence retirée à B et C |
+| avant +70 s | B : « une source seule, à −1,94 s — un écho, peut-être » : rien ne bouge — c'est le décalage que l'œil a vu au début |
+| +70 s | C en retard de 0,56 s → **A recule de 0,44 s** ; C vérifiée |
+| +125 s | B en retard de 1,35 s → **A recule de 1,23 s** — et C, sans verdict à ce calcul-là (cinq calculs nets sur les huit exigés depuis le recul d'avant), **reste où elle est : 1,4 s d'avance** |
+| +130 → +590 s | C : « une source seule, à 1,4 s — un écho, peut-être : rien ne bouge », **81 calculs sur 82** |
+| +295 s | B en avance de 0,19 s → B recule de 0,07 s |
+| +590 s | une seconde voix de C, assez lourde enfin : C en avance de 1,69 s → C recule de 1,57 s |
+| +640 → +1335 s | calée ; plus rien, onze minutes durant |
+
+La règle de l'écho n'est pas fausse : un écho n'a jamais été vu à moins
+d'une seconde, et une source seule à 1,4 s en est un candidat. Mais ce
+décalage-là, c'est **le calage lui-même qui l'avait créé**, en reculant la
+référence sans emmener ce qui était déjà calé avec elle. À deux streams, il
+n'y a rien à emmener ; à trois et plus, la référence recule une fois par
+tuile en retard, et chaque fois tout ce qui était calé restait derrière.
+
+### Ce que fait cette version
+
+1. **Ce qui est calé suit la référence.** Calée ou vérifiée, une tuile a une
+   relation connue à la référence — à zéro près. Quand la référence recule
+   pour une autre, une telle tuile sans verdict à ce calcul recule avec
+   elle, du même pas, dans le même geste — « (suit la référence) » au
+   journal —, puis se vérifie : chaque lecteur cale un peu à sa façon. Une
+   tuile libre — dont on ne sait rien — reste, et se mesure de nouveau.
+2. **Une relation que la lecture a changée n'est plus connue.** Un
+   rechargement, une chute, un saut, la fin d'un rattrapage : la tuile
+   redevient libre — elle ne suivrait plus la référence sur la foi d'une
+   relation qui n'est plus. Si c'est la référence, toutes.
+3. **Trois corrections au plus, par relation.** Comptées à la tuile dont la
+   relation à la référence change — qu'elle bouge, ou que la référence
+   vienne à elle —, plus à la tuile qui bouge. À trois streams et plus, la
+   référence recule pour chacune : la compter elle-même l'aurait arrêtée
+   avant d'avoir rejoint la dernière.
+4. **Au-dessus d'un chat partagé, où est le son.** « Son : X » au lieu de
+   « Chat de X » — Twitch y pose déjà son bandeau « Chat partagé » —, et
+   l'en-tête suit le son. Le chat, lui, reste quand le son change : c'est le
+   même pour tous, le recharger lui coûtait ses messages pour afficher les
+   mêmes. Sans chat partagé, chaque colonne garde « Chat de X ». Au rapport :
+   `chatTitre`.
+5. **Rien sur les lecteurs.** Plus d'étiquette « 1 · chaîne · Son », plus de
+   pastille « Pub » posées sur l'image : le contour violet désigne la tuile
+   qui a le son, Twitch dit sa pub — le rapport la compte toujours. Les
+   touches 1 à 6 donnent toujours le son, dans l'ordre de lecture de la
+   grille. Reste la prise, transparente, qui reçoit le clic.
+
+### À trois streams et plus, à quoi s'attendre
+
+La première décision d'une tuile demande une minute environ d'écoute : huit
+calculs nets, deux verdicts d'accord. La référence peut reculer une fois par
+tuile en retard — et chaque fois, ce qui était calé la suit au lieu de
+rester derrière. Une tuile n'entendant de commun qu'une source seule, loin,
+reste tenue pour un écho possible : elle ne bouge pas, et le rapport le
+dit.
+
+### Ce que le banc mesure
+
+- **188** — trois streams : « mike », une voix 0,3 s en retard, décidée la
+  première — la référence recule — ; elle se tait ; « lima », un salon
+  2,9 à 3,2 s derrière, décidée ensuite : la référence recule de 2,44 s, et
+  « mike », vérifiée et sans verdict, du même pas dans le même geste ; deux
+  corrections ; le son revenu, tout est calé, les voix vraiment à zéro,
+  sans « source seule » au journal — la référence lisant sa position un
+  instant en retard, comme un vrai lecteur, sans un rechargement compté.
+  Puis le lecteur de « mike » recharge :
+  libre, remesurée, recalée sans un geste.
+- **185** — le rapport à trois streams rejoué, à l'exigence entière : la
+  paire laissée en avance est « une source seule » 81 calculs sur 82, et
+  décidée au 114ᵉ seulement — ce que 188 empêche désormais.
+- **177** — au-dessus du chat partagé : « Son : sa », puis « Son : sb »
+  quand le son passe à l'autre tuile, le chat gardé sans rechargement ;
+  sans partage, « Chat de … » de chaque côté.
+- **175** — les tuiles ne portent que leur lecteur et leur prise, pub
+  comprise ; la pub toujours vue et comptée.
+
+### Ce que le banc a trouvé
+
+- **Un recul pris pour un rechargement.** Au 182, au premier tour, la
+  référence a reculé de 4 s ; son lecteur a rendu sa position un instant
+  en retard, et la sonde y a lu un rechargement (49,96 → 46,74 s) — un faux
+  positif d'avant cette version, sans conséquence jusque-là : la mesure
+  repartait, comme après tout recul. Un rechargement délie désormais les
+  tuiles : la tuile vérifiée a perdu sa tenue, et la salle est redescendue
+  vers la voix d'en dessous, trois corrections pour une. La sonde ne lit
+  plus de rechargement dans un recul voulu de moins de 2,5 s, quand la
+  position n'a pas reculé de plus que le recul demandé, plus une seconde.
+  Et le faux lecteur sait désormais rendre sa position en retard, comme un
+  vrai (`__seekLent`) : au 188, l'ancienne règle y compte un rechargement
+  de la référence.
+- **Des attentes trop étroites.** Le 183 voulait « xray en retard de
+  0,5–0,6 s » ; le premier message est venu sur une autre voix du même
+  salon, 0,46 s. Le 188 n'admettait la montée d'une voix de « lima » qu'en
+  tête de ligne ; elle vient après « mike avec la référence ». Les deux
+  jugent désormais ce qui compte.
+- **Une chute d'une seconde, sur une voix seule.** Au premier essai du 188,
+  « mike », une seule voix, a perdu 1 s de lecture : à −0,97 s, une source
+  seule — la règle de l'écho n'y touche pas, à bon droit. Le 188 délie
+  désormais par un rechargement, qui ne déplace rien.
+
+| mutants | ce qui tombe |
+| --- | --- |
+| la tuile calée laissée là (1) | 188 : « lima » décidée, la référence recule seule ; « mike », le son revenu : « une source seule, à 1620 ms — un écho, peut-être : rien ne bouge » — le rapport à trois streams, rejoué |
+| une tuile libre emmenée aussi (1) | 188 : « lima », muette et inconnue, reculée avec la référence pour « mike » |
+| les corrections comptées à la tuile qui bouge, la référence comprise (1) | 188 : cinq corrections pour deux relations |
+| le rechargement qui laisse la tuile « calée » (1) | 188 : « mike » jamais libre après son rechargement |
+| le recul de la référence pris pour un rechargement (1) | 188 : un rechargement compté sur la référence — et tout délié |
+| l'en-tête « Chat de … » au-dessus du chat partagé ; le chat rechargé quand le son change (2) | 177 : « Chat de sa » ; le chat de « sb » rechargé, ses messages perdus |
+| une étiquette remise sur les lecteurs (1) | 175 : trois tuiles qui portent plus que leur lecteur et leur prise |
+
+Huit mutants, huit pris ; le recul pris pour un rechargement, seulement
+depuis que le faux lecteur rend sa position en retard — au 182, il ne
+tombait que selon l'instant du relevé.
+
+### Pour le prochain rapport
+
+1. Une salle à trois streams ou plus, ouverte par le nœud ; dix minutes.
+2. Au journal du calage, les gestes « (suit la référence) », et
+   `calage.tuiles` : calée, vérification ou libre.
+3. Sur un chat partagé, l'en-tête — et `chatTitre` au rapport.
+
+## La capture qui suit la piste, et le stream qui s'arrête (v4.24.0.22)
+
+Deux rapports réels sur la 4.24.0.21, ouverts par le nœud, l'un après
+l'autre. Le premier, trois streams : « très satisfaisant, très peu de
+décalage ». Le second, deux streams : « 2 voire 3 secondes de décalage tout
+le long du test. Est-ce que le système de calage se réinitialise lorsqu'on
+va sur un autre multistream ? » Deux demandes : un stream qui passe hors
+ligne quitte la salle, trois devenant deux ; de deux, la salle disparaît, et
+l'on est sur la page de celui qui reste. Et une erreur, à la page des
+extensions de Chrome : « The ScriptProcessorNode is deprecated. Use
+AudioWorkletNode instead. » Publiée sur `claude/chrome-multi` seulement.
+
+### Oui, le calage repart de zéro à chaque salle
+
+Chaque salle a le sien : il commence à l'ouverture — « +0 s · début ·
+référence … (la tuile qui a le son) » au journal des deux rapports —, retire
+la faible latence de chaque tuile, et ne garde rien des salles d'avant. Le
+second rapport ne manquait pas d'un recommencement : **son calage n'a
+jamais rien entendu de la tuile muette.**
+
+### Le premier rapport : trois streams, calés
+
+**A**, la référence (le son) ; **B** et **C**, muettes.
+
+| quand | ce que le son a dit | le geste |
+| --- | --- | --- |
+| +4 s | — | faible latence retirée aux trois — « le lecteur dit non » : elle est partie, sur le vrai Twitch, mesuré pour la première fois |
+| +100 s | B en avance de 0,87 s, C en retard de 1,70 s | A recule de 1,58 s, B de 2,45 s — C, la plus en retard, est le point de rencontre |
+| +175 s | B à +10 ms | calée |
+| +225 s | C à −10 ms | calée |
+| +305 s | C en avance de 0,19 s | C recule de 0,07 s |
+
+Trois corrections en dix minutes, et l'œil d'accord. Une chose de plus, à la
+fin : la référence à **91 % de silence**, et la quinzaine de derniers calculs
+de chaque paire — les quatre-vingts dernières secondes — n'étaient plus que
+du bruit : z sous 5, des pics de −5,9 à +5,9 s. Rien n'a bougé pour autant :
+du bruit ne fait pas deux verdicts d'accord. Pas de rechargement, pas de
+saut ; deux coupures d'arrivée de la référence juste avant (+587, +605 s).
+Un streamer qui se tait, ou la panne du second rapport : celui-ci ne pouvait
+pas le dire. Le prochain le pourra (`pistes N`, plus bas).
+
+### Le second rapport : deux streams, pas un calcul
+
+**A**, la référence ; **B**, muette.
+
+- `ecoute.calculs 0` en 702 s ; `calage.mesures` de B : « en attente : 0
+  calculs nets sur 8 ». Le calage n'a rien décidé, faute de rien entendre ;
+  les 2 à 3 s que l'œil voyait sont restées.
+- `tuiles.B.ecoute` : `running · 48000 Hz · silence 100 % · reliée 1` ; A,
+  silence 0 %. La capture de B n'a pas entendu un seul bloc en 702 s — pas
+  même de quoi commencer une enveloppe : sans elle, aucun calcul, même faux.
+- **La cause, mesurée sous Chromium** — et gardée au banc (186) :
+
+  | sur un élément nourri par un fichier, comme un lecteur MSE | ce que fait sa capture |
+  | --- | --- |
+  | la source change | elle **gagne une piste** ; l'ancienne reste « live », à −8 — le silence numérique —, la nouvelle porte le son |
+  | `load()` sur la même source | ses pistes finies, une nouvelle |
+  | une seconde capture du même élément | la première devient muette |
+  | les pistes d'une capture arrêtées après qu'une autre a été prise | celle-ci devient muette — arrêtées avant, elle entend |
+  | (un `srcObject` qui change) | (rien de tout cela — d'où une imitation au banc) |
+
+  La 4.24.0.21 restait sur sa piste tant qu'elle était « live » : elle l'est
+  restée, muette, jusqu'au bout. La capture de B est prise à l'ouverture de
+  la salle, une seconde après le chargement de sa tuile ; son lecteur a
+  changé de source ensuite — en démarrant, à la qualité choisie par la
+  salle, à la faible latence retirée à +3 s : le rapport ne dit pas lequel,
+  et la correction n'a pas à le savoir. Rien ne la réservait à la tuile
+  muette : la référence pouvait tomber de même.
+- Un autre trait de B : cinquante « coupures d'arrivée », une toutes les
+  quatre secondes, son tampon en dents de scie de 9 à 5,5 s, jamais plus bas
+  — un flux qui arrive par blocs, pas une coupure qui gêne. Elles ont rempli
+  le journal de la salle, soixante événements, qui avait perdu tout ce qui
+  précédait +453 s ; celui du calage, à part, a tout gardé.
+
+### Ce que fait cette version
+
+1. **La capture suit la piste courante.** Une seule capture par élément —
+   une seconde rendrait la première muette —, branchée sur sa piste vivante
+   la plus récente ; à chaque relevé, si une piste plus récente est
+   apparue, l'écoute s'y relie. On ne recapture que si l'élément a changé,
+   ou si plus aucune piste n'est vivante — les anciennes arrêtées d'abord.
+   Le rapport dit les pistes vues : `pistes N`, une de plus à chaque
+   changement de source.
+2. **L'AudioWorklet.** Le `ScriptProcessorNode` est déprécié, et Chrome
+   l'inscrivait aux erreurs de l'extension. La mesure — le niveau de chaque
+   bloc de 1024 échantillons, daté — passe dans un `AudioWorkletNode`, son
+   module chargé d'un blob ; le rang du bloc vient de `currentFrame`, le
+   compte exact du contexte, plutôt que d'un rang compté à la main. Si la
+   page refuse le module, ou si le navigateur n'a pas d'AudioWorklet,
+   l'ancien nœud reste — et l'avertissement avec lui. Le rapport dit la
+   voie : `worklet`, ou `script (module refusé : …)`.
+3. **Le stream qui s'arrête.** Chaque membre est relu toutes les trente
+   secondes par la requête anonyme qui tient la barre à jour, groupée avec
+   elle — une entrée fraîche est servie sans requête. Hors ligne deux fois,
+   à vingt-cinq secondes d'écart au moins — deux relevés, pas deux lectures
+   du même —, il quitte la salle : sa tuile part, le son passe à la première
+   tuile s'il l'avait, la grille et le titre se refont ; le calage oublie
+   ses paires et ses états, et repart sur la nouvelle référence si c'était
+   elle. De deux, la salle se ferme, et l'on va sur la page de celui qui
+   reste. « On ne sait pas » — réseau coupé, réponse inexploitable,
+   extinction de masse écartée — ne compte pour rien ; un streamer qui
+   revient en direct entre-temps reste. Jamais le lecteur pour preuve : les
+   rapports réels sont pleins de lecteurs qui calent, rechargent, restent
+   deux secondes sans image, et pas un de ces streams n'était fini. Du
+   moment où Twitch le dit hors ligne au retrait : trente secondes à une
+   minute et demie, selon où tombent les relevés. Au rapport : `retirees`
+   (« chaîne à +N s ») et `horsLigne` (un premier constat, à confirmer).
+
+### Ce que le banc mesure
+
+- **186** — le témoin de Chromium, mesuré au banc même : un changement de
+  source ajoute une piste à la capture, l'ancienne « live » et muette, la
+  dernière porte le son ; une seconde capture rend la première muette.
+  « kilo » imite cette capture — le faux lecteur, nourri d'un `srcObject`,
+  ne le ferait pas — ; la page de « november » refuse le module.
+  L'AudioWorklet mesure, le repli aussi, et le rapport dit lequel et
+  pourquoi ; « kilo » change de source : reliée 2, pistes 2, pas muette, et
+  la paire calcule encore, nette, à zéro.
+- **187** — trois membres que Twitch omet : demandés par la requête de la
+  barre, personne n'est dit hors ligne. Tous en direct, le calage lancé, la
+  référence s'arrête : retirée au second relevé, 0,8 s au moins après le
+  premier — sa tuile, son son, sa référence ; le titre et la grille à
+  deux ; le calage repart sur la nouvelle référence, et l'écoute ne garde
+  que la paire qui reste. Une tuile dite hors ligne une fois, puis le réseau
+  tombe : relire le cache n'est pas un second relevé, elle reste ; revenue
+  en direct, elle reste, et le constat s'efface. De deux, un : la salle se
+  ferme, et la page est celle de celui qui reste.
+- **178** — « bravo », dont le contexte démarre suspendu, se mesure par le
+  worklet comme il se mesurait par l'ancien nœud.
+
+### Ce que le banc a trouvé
+
+- **Un plantage au lieu d'un échec.** Au premier tour des mutants, deux
+  règles fautives — l'inconnu pris pour hors ligne, un seul relevé —
+  fermaient la salle trop tôt, et le 187 levait une exception au lieu de
+  dire ce qui manquait : au banc complet, elle aurait arrêté tous les
+  scénarios suivants. Il ne lève plus : la page peut naviguer, l'assertion
+  le dit.
+- **Une règle que le banc ne jugeait pas.** Compter deux lectures du même
+  relevé pour deux relevés passait le 187 : relue toutes les secondes et
+  demie, la salle tombait toujours au bout de la pause d'erreur (une
+  seconde et demie aussi), jamais dedans — elle ne relisait jamais
+  l'entrée du cache. Au vrai, les deux durent trente secondes, et elle y
+  tombe. Relue chaque seconde au banc, elle y tombe aussi, et la règle
+  fautive retire « upsilon ».
+
+| mutants | ce qui tombe |
+| --- | --- |
+| la capture laissée sur sa première piste ; sur sa piste « live » d'avant — la règle de la 4.24.0.21 (2) | 186 : « kilo » muette après son changement de source, plus un calcul — le second rapport, rejoué |
+| recapturer à chaque relevé (1) | 186 : « kilo » reliée 90 fois en une minute et demie ; « xray » et « november », recapturés après l'arrêt de leurs pistes, n'ont plus de piste du tout |
+| le worklet jamais tenté ; le module refusé sans repli (2) | 186 : `script (sans worklet)` partout ; « november » arrêtée à « module », sans une mesure |
+| l'inconnu pris pour hors ligne (1) | 187 : les trois membres retirés, la salle fermée avant d'avoir servi |
+| un seul relevé hors ligne ; deux lectures du même prises pour deux relevés (2) | 187 : « upsilon » retirée pendant que le réseau est tombé, et l'on part sur la page de « phi » |
+| le retour en direct qui n'efface rien (1) | 187 : « upsilon » toujours « à confirmer », revenue en direct |
+| la tuile qui avait le son gardée ; une tuile retirée gardée dans la grille (2) | 187 : « tau » toujours là, et « phi » sortie à sa place |
+| le calage qui n'oublie pas (1) | 187 : sa référence partie, pas de « référence nouvelle » ; la paire de « tau » au rapport |
+| la salle fermée sans redirection (1) | 187 : on reste sur `/directory` |
+
+Treize mutants, treize pris ; « deux lectures du même », seulement depuis
+que le banc relit sous la pause d'erreur.
+
+### Ce que cette version ne sait pas encore
+
+- **Si le lecteur de Twitch accepte le module.** Sa politique de sécurité
+  n'a pas pu être lue d'ici. Le rapport le dira — `worklet`, ou `script
+  (module refusé : …)` ; refusé, l'avertissement de Chrome reviendrait, et
+  il faudrait servir le module comme un fichier de l'extension.
+- **Ce qui fait changer de source un lecteur** : `pistes N` dira combien de
+  fois, et `reliée N` combien de fois l'écoute a suivi.
+- **Une minute et demie au plus** entre le « hors ligne » de Twitch et le
+  retrait : deux relevés à vingt-cinq secondes d'écart, relus toutes les
+  trente. Sur un seul relevé, une réponse de Twitch qui omet un direct un
+  instant — la barre exige deux réponses pour la même raison — sortirait un
+  stream qui n'a pas fini.
+
+### Pour le prochain rapport
+
+1. Une salle ouverte par le nœud, dix minutes ; puis une autre.
+2. Au rapport, pour chaque tuile, la ligne `ecoute` : la voie (`worklet` ou
+   `script (…)`), `pistes`, `reliée`, et le silence.
+3. Si un stream s'arrête pendant ce temps : `retirees` et `horsLigne`, et
+   la page où l'on arrive.
+
+## Le calage par le son, et rien d'autre (v4.24.0.21)
+
+Un rapport réel sur la 4.24.0.20, deux streams, quatorze minutes, ouvert
+par le nœud. Ce que l'œil a vu : calés dans les toutes premières secondes,
+calés de nouveau dans les premières minutes — « je me suis dit c'est bon » —,
+puis environ quatre secondes d'écart sur les trois quarts du rapport. Et la
+consigne : « simplifier drastiquement son fonctionnement, que ce soit
+efficace, t'assurer que ça fonctionne vraiment. […] J'exige de la rigueur,
+du pragmatisme, du réalisme. » Publiée sur `claude/chrome-multi` seulement.
+
+Les tuiles, ici : **A**, celle qui a le son — la référence ; **B**, l'autre,
+en faible latence.
+
+### Ce que le quatorzième rapport établit
+
+**1. L'horloge se trompait de 4,6 secondes, d'un bout à l'autre.** Le son
+mesurait la paire A~B toutes les 5,3 s ; l'horloge (`getSyncTime`) aussi.
+Leur différence, calcul après calcul, sur onze minutes : −4,5 à −4,7 s pour
+une voix, −5,1 à −5,3 pour l'autre — **constante**, à travers quatre
+alignements, douze coupures d'arrivée et un saut. L'horloge date l'image à son arrivée
+chez Twitch, pas au moment où le streamer l'a jouée : un délai côté
+diffuseur, probablement, qu'elle ne peut pas voir. Le son, lui, était
+d'accord avec l'œil — à chaque fois.
+
+**2. Ce qui s'est passé, et ce que l'œil en a vu.**
+
+| quand | le pilote | l'horloge disait | le son disait |
+| --- | --- | --- | --- |
+| avant +28 s | rien encore | 5,06 s d'écart | 0 à −0,4 s (déduit) — **calés**, la première observation |
+| +28 s | recule B de 4,94 s, puis l'avance de 0,34 | 0,27 s | B ≈ 4,7 s en retard (déduit) ; −3,76 s à +63 s |
+| +29 → +175 s | — | — | le lecteur de B, en faible latence, reprend le recul à 1,03 pendant 146 s |
+| +175 → +215 s | — | 4,4 s | **−0,20 à −0,24 s, z jusqu'à 10,5 — calés**, la seconde observation |
+| +215 s | « rattrapage (B) » : **avance A de 4,01 s** | 0,79 s | **B 3,84 s en retard** |
+| +215 → +840 s | deux alignements de plus (+462, +812 s), par l'horloge | 0,66 à 0,90 s | B 3,85 à 4,2 s en retard ; 2,1 s après un saut de A |
+
+Le « avant +28 s » ne se lit pas directement — l'historique garde les 150
+derniers calculs sur 162 —, il se déduit : B reculé de 4,60 s net, repris à
+3 % depuis +29 s, entendu à −3,76 s au premier calcul gardé (+63 s) ;
+0 à −0,4 s avant tout geste. **Les deux fois où l'œil les a vus calés, ils
+l'étaient ; les deux fois, l'horloge disait 4 à 5 s d'écart, et le pilote
+l'a crue.**
+
+**3. Ce que l'avance de A a coûté.** 4 s de tampon. A avait déjà des
+coupures d'arrivée, toutes les cent secondes environ : avant l'avance, elles
+la laissaient à 4,4 s de tampon ; après, à 0,3–0,4 s — cinq fois au bord du
+gel.
+
+**4. La règle de la 4.24.0.20 n'avait plus rien à viser.** La carte du son,
+relative à l'horloge : −4610 · −4808 · −5075 · −5228 ms — « rien près de
+l'horloge, écho probable ». Les deux voix du salon, rejetées parce que
+l'horloge était loin.
+
+**5. Le geste juste.** B en retard de 3,84 s sur A ; B en faible latence ne
+tient pas un recul ; A, elle, le tenait (« recul tenu ») : **reculer A de
+3,7 s**. Pas une avance — elle mange le tampon.
+
+### Ce qui a été retiré
+
+Tout ce qui alignait sur l'horloge, ou avait été construit pour
+l'expérience : l'alignement par l'horloge (`aligner()`, ses passes, ses
+vérifications, sa troisième passe) ; le pilote qui réalignait à chaque
+événement, sa garde, sa dérive durable, ses retards ; la carte du son
+relative à l'horloge et sa cible ; « le son revoit » ; le protocole
+d'essais et ses phases ; les leviers de vitesse et de pause, et les
+commandes qui allaient avec (`aligner`, `essais`, `vitesse`, `pause`,
+`leviers`). **content.js perd 1 209 lignes.** Restent à la console : `auto`,
+`recul`, `avance`, `ecoute`, `rapport`.
+
+### Ce que fait cette version
+
+Un instrument, un geste, cinq règles.
+
+1. **Le son seul décide.** L'horloge et la latence restent au rapport ;
+   elles ne déplacent plus rien.
+2. **Sur ce qu'il a entendu depuis le dernier changement** de la paire — un
+   déplacement, un rechargement, une chute, un saut, la fin d'un
+   rattrapage : les 30 derniers calculs nets (z ≥ 5), 8 au moins, et une
+   décision quand deux verdicts de suite s'accordent à 80 ms. Une minute à
+   une minute et demie d'écoute après chaque changement.
+3. **La cible : la plus haute voix du salon.** Les pics se groupent à 80 ms
+   près ; une voix en a deux premiers au moins ; des voix à 700 ms au plus
+   l'une de la suivante font une grappe ; une grappe dont la deuxième voix a
+   le quart au moins des pics de la première est un **salon** — la voix de
+   la référence chez la tuile, le jeu, la voix de la tuile chez la
+   référence. Sa voix la plus haute met les lèvres de la tuile sur sa voix
+   telle qu'on l'entend (4.24.0.20). **Une source seule** — sans salon —
+   est un écho possible : elle ne déplace rien au-delà de 0,5 s.
+4. **Le geste : reculer la tuile en avance.** Le point de rencontre est la
+   tuile la plus en retard. La **faible latence** est retirée, une fois, à
+   chaque tuile qui l'a (`setLiveLowLatencyEnabled(false)`) : son lecteur
+   défait tout recul. Si elle tient quand même, la tuile ne recule pas, et
+   c'est l'autre qui avance — seulement si son tampon garde 2 s après
+   l'avance ; sinon rien, et le journal dit pourquoi.
+5. **Corrigée, une tuile ne redescend pas** tant qu'une voix de sa grappe
+   est à moins de 0,4 s : un salon en a trois, à 0,2–0,3 s l'une de
+   l'autre, et la plus haute — la cible — se tait quand son streamer ne
+   parle pas ; viser alors celle d'en dessous ferait osciller la salle. Elle
+   **monte**, en revanche, vers une voix plus haute de 0,15 s : la décision
+   a pu venir avant que la plus haute ne soit établie. Deux corrections, au
+   plus, pour un décalage. **Trois corrections au plus** par tuile en dix
+   minutes ; au-delà, elle est laissée là.
+
+Rien ne bouge sans son commun : le rapport dit « en attente », et pourquoi.
+
+### Rejoué sur quatre écoutes réelles
+
+La règle, extraite du code tel qu'il est livré, rejouée calcul après calcul
+sur l'historique de chaque rapport — rien que des nombres — depuis le
+dernier déplacement du pilote d'avant (scénario 185) :
+
+| rapport | ce qu'on y entend | cette règle |
+| --- | --- | --- |
+| quatorzième | un salon, −4490 · −3840 ms ; l'horloge à 4,6 s de lui | **−3840 ms au 43ᵉ calcul**, 80 s après l'avance de A — reculer A de 3,72 s ; puis rien d'autre |
+| huitième | une source seule, 1040 puis 2370 ms ; la paire juste à l'œil | « une source seule, à 1040 ms — un écho, peut-être » : **jamais une décision** |
+| neuvième | un salon, −300 · 40 ms ; une source à 1,1 s, plus lourde | **40 ms**, puis 20 ; la source à 1,1 s jamais |
+| douzième | un salon, 660 · 880 · 1170 ms | **1170 ms**, la plus haute, au 17ᵉ calcul — le pilote d'avant calait sur 634, la voix de A |
+
+Au quatorzième, avant l'avance de A, la règle n'avait pas encore ses huit
+calculs nets — la reprise de B étalait les pics, z sous 5 — : elle n'aurait
+**rien** fait, là où le pilote d'avant a reculé B de 4,9 s puis avancé A de
+4 s.
+
+### Ce que le banc mesure
+
+**Le lecteur factice** : « quebec », un salon aux voix 4,47 · 4,18 · 3,87 s
+plus tard que la référence, que l'horloge dit à 2 s ; « india » et
+« juliett », un salon 0,6 · 0,48 · 0,35 s plus tôt, en faible latence — la
+première la rend quand on la lui retire, la seconde non ; « uniform »,
+3,5 s de tampon. Et le banc lit, dans chaque faux lecteur, où est vraiment
+la plus haute voix : le son ne l'entend pas toujours.
+
+- **182** — l'horloge se trompe de deux secondes, le son seul décide :
+  « xray » recule — en une correction, ou en deux si la voix du milieu
+  s'établit la première —, et la plus haute voix est à zéro. Calée, elle ne
+  bouge plus : l'horloge la dit à 1,9 s, sa voix la plus haute se tait une
+  minute — une voix de sa grappe reste à 0,3 s, elle tient. Une chute de
+  1,5 s rouvre la mesure — « en attente » au calcul suivant —, et la paire
+  est recalée.
+- **183** — la faible latence : retirée, « india » recule et tient, sans
+  rattrapage ; gardée, « juliett » ne recule pas, et « xray », 1,8 s de
+  tampon, n'avance pas — rien ne bouge, le journal dit pourquoi ; face à
+  « uniform », c'est elle qui avance.
+- **184** — un écho seul à 1,1 s et un stream sans son commun ne déplacent
+  rien ; une source seule à 0,3 s, si, une fois. Un salon qui saute recule à
+  chaque fois ; à la troisième correction en cinq minutes (l'échelle 0,5),
+  il est laissé là, et le journal le dit.
+- **185** — la règle rejouée sur les quatorzième, huitième, neuvième et
+  douzième rapports (ci-dessus), au calcul près ; et la tenue, extraite du
+  code, jugée sur six verdicts posés : corrigée, une tuile qui n'entend plus
+  que la voix d'en dessous ne redescend pas ; vers une plus haute, elle
+  monte ; libre, elle se corrige ; la grappe entière descendue, elle
+  redescend. Déterministe.
+- **124, 176, 178–181** réécrits : `rapport.calage` à la place de
+  l'alignement, du pilote et du protocole ; `recul` et `avance` à la
+  console, celle du panneau comprise.
+
+### Ce que le banc a trouvé
+
+- **La tuile qui redescendait.** Au premier tour, « india », corrigée sur
+  sa plus haute voix (+580 ms), n'a plus entendu au calcul suivant que celle
+  d'en dessous, à −280 — l'autre s'était tue dans cette fenêtre —, et la
+  salle a reculé l'autre tuile de 0,13 s : trois corrections pour un seul
+  décalage, l'oscillation même que le quatorzième rapport reprochait.
+  « yankee » de même. Désormais, une tuile corrigée ne redescend pas tant
+  qu'une voix de sa grappe est à moins de 0,4 s ; vers une voix plus
+  haute, elle monte.
+- **La première décision sur la voix du milieu.** À l'échelle du banc —
+  trois calculs nets au lieu de huit —, « quebec » a été décidée sur −4180,
+  la voix du milieu, avant que la plus haute ne soit établie ; la
+  vérification l'a vue au-dessus, à +340, et la paire y est montée. C'est
+  permis, et c'est ce que le banc vérifie : deux corrections au plus, la
+  plus haute voix à zéro à la fin. Sur les écoutes réelles, à l'exigence
+  entière, la première décision a toujours été la plus haute (185).
+- **« Calée », une tuile que rien n'avait rejointe.** Face à « juliett »,
+  qui garde sa faible latence, « uniform » n'a pas pu avancer — et le
+  journal disait pourtant « calée : juliett en avance de 0,36 s ». Une
+  tuile n'est calée qu'à 0,15 s de la référence.
+- **Un faux lecteur impossible.** « uniform » avait 3,5 s de tampon sous
+  2,2 s de latence : la sonde écarte un tampon plus long que la latence,
+  comme au vrai, et l'avance restait refusée, « tampon inconnu ». C'est le
+  faux qui était faux : 4,5 s de latence désormais.
+- **Des tests qui jugeaient un chemin.** Écrits pour une correction exacte
+  — « xray recule de 3,75 s », « trois sauts, trois corrections » —, ils
+  échouaient sur des chemins justes : deux corrections pour un décalage ;
+  une limite comptée dans sa fenêtre — à l'échelle 0,3, trois minutes, à
+  peine plus que trois corrections : il n'y était pas toujours laissé. Ils
+  jugent désormais l'arrivée, à l'échelle 0,5 pour la limite. Et l'ancienne
+  boucle de « yankee » faisait sauter le son deux fois de suite.
+- **La plus haute voix, quatre minutes sans un mot.** Au banc complet,
+  « quebec » bien calé sur sa plus haute voix, le son n'a plus entendu que
+  celle du milieu — tenue, comme il se doit —, et le test, qui attendait
+  de la mesurer à zéro, a expiré. Il lit désormais, dans le faux lecteur,
+  la latence que chaque tuile a prise : la plus haute voix y est à zéro, ou
+  non. Et « juliett », qui n'avait que deux voix, n'en a fait entendre
+  qu'une, 0,6 s, quatre minutes : une source seule, tenue pour un écho —
+  rien n'a bougé, à bon droit. Elle a désormais un salon de trois sons.
+- **Deux règles que le direct ne jugeait qu'au hasard.** Retirer l'accord
+  de deux verdicts ne faisait tomber le 182 qu'une fois, la plus haute voix
+  absente de la dernière fenêtre ; rendre la tenue d'avant passait le 183
+  quand le tirage faisait entendre la plus haute voix à temps. Les deux
+  règles sont désormais des fonctions à part, `accorde` et `tient`, que le
+  185 extrait du code et juge sur les écoutes réelles et sur des verdicts
+  posés.
+
+| mutants | ce qui tombe |
+| --- | --- |
+| l'horloge prise pour le son (1) | 182 : la paire « calée » par l'horloge, le son l'entendant à −2,16 s — le quatorzième rapport, rejoué au banc |
+| la fenêtre prise depuis le début de l'écoute, pas depuis le dernier changement (1) | 182 : « xray » reculé de 37 s, puis de 100 — chaque correction jugée sur les calculs d'avant elle |
+| la chute qui ne rouvre pas la mesure (1) | 182 : pas d'« en attente » après la chute |
+| la plus basse voix ; les voix liées à 450 ms (2) | 185 : −4490 au quatorzième, −300 au neuvième, 660 — la voix de A — au douzième ; au quatorzième, « une source seule, à −4490 ms », rien |
+| la source seule suivie jusqu'à 5 s ; l'équilibre du salon à zéro (2) | 185 : au huitième, l'écho décidé à 1040 ms ; au neuvième, l'écho à 1110 |
+| l'accord de deux verdicts retiré (1) | 185 : décidé au 42ᵉ calcul au lieu du 43ᵉ, au 8ᵉ, au 16ᵉ — sur un seul verdict |
+| pas de tenue ; la tenue d'avant, la seule tuile calée, dans les deux sens (2) | 185 : une tuile vérifiée redescend vers la voix d'en dessous, une calée ne monte plus ; 182, sans tenue : sa plus haute voix tue, la paire descend vers celle d'en dessous, 0,16 s puis 0,14 |
+| la faible latence jamais retirée ; la tuile en faible latence reculée quand même ; l'avance sans la marge du tampon (3) | 183 : « india » ne recule jamais ; « juliett » reculée de 1,1 s, que son lecteur reprend ; « xray » avancé de 0,68 s sur 1,8 s de tampon |
+| pas de limite (1) | 184 : cinq corrections en cinq minutes, jamais « laissée là » |
+
+Quatorze mutants, quatorze pris. Au premier tour, deux ne l'étaient que
+par le tirage — l'accord retiré, par une fenêtre où manquait la plus haute
+voix ; la tenue d'avant, pas du tout au 183 : ils le sont désormais au 185,
+à chaque fois, la règle extraite du code et jugée sur des verdicts posés.
+Les mutants du 182 et du 183 ont été rejoués sur la version finale de ces
+tests : les mêmes tombent, sauf ces deux-là, que le 185 prend.
+
+### Ce que cette version ne sait pas encore
+
+- **`setLiveLowLatencyEnabled(false)`** est dans l'API de l'instance (le
+  rapport la liste), mais son effet sur le vrai Twitch n'est pas mesuré.
+  Le rapport le dira : `calage.faibleLatence` — « le lecteur dit non » si
+  elle est partie, « oui » sinon.
+- **Une minute à une minute et demie** d'écoute avant la première
+  décision, et après chaque changement : huit calculs nets, deux verdicts
+  d'accord — 45 à 80 s sur les rapports rejoués.
+- **Sans son commun, rien ne bouge** — deux streams sans rien à entendre de
+  l'autre restent où ils sont.
+- **Une source seule au-delà de 0,5 s ne déplace jamais rien** : c'est peut-être
+  un vrai décalage, sans salon pour le confirmer. Les seuils de l'écho
+  viennent de cinq rapports réels.
+
+### Pour le prochain rapport
+
+1. La même salle si possible, ouverte par le nœud ; dix minutes.
+2. Regarder les lèvres, et noter quand l'œil voit un changement.
+3. Au rapport : `calage.etat`, `calage.mesures`, `calage.journal` — chaque
+   geste et sa mesure —, `calage.faibleLatence`, et les `rattrapages` de
+   chaque tuile.
+
+## Les lèvres : la grappe des voix (v4.24.0.20)
+
+Deux rapports réels sur la 4.24.0.19, ouverts par le nœud : deux streams,
+puis trois. Et la consigne : « C'est bon pour la qualité des streams. Je
+veux que ce soit les lèvres. Soit rigoureux. » Publiée sur
+`claude/chrome-multi` seulement.
+
+Les tuiles, ici : **A**, l'ancre — celle qu'on entend —, à 1,7 s de latence
+au douzième rapport, 2,6 au treizième ; **B**, à 2,3 puis 3,1 s ; **C**, au
+treizième seulement, à 2,7 s.
+
+### Ce que les deux rapports établissent
+
+**1. La qualité** : à deux, des tuiles de 627 px — 1080p, la source ; à
+trois, 551 px — 720p. « C'est bon. »
+
+**2. Le pilote est calme.** Deux alignements à deux, trois à trois ; pas un
+rattrapage, pas une pause, une coupure d'arrivée.
+
+**3. Mais il calait B sur la voix de A.** La carte du son de la paire A~B :
+
+| rapport | composantes, en ms par rapport à l'horloge (premiers pics · part du poids) |
+| --- | --- |
+| douzième, deux streams | 634 (47 · 45 %) · 853 (32 · 30 %) · **1138** (17 · 20 %) |
+| treizième, trois streams | 583 (35 · 27 %) · 697 (4 · 5 %) · 840 (40 · 29 %) · **1064** (32 · 26 %) · 1204 (5 · 6 %) |
+
+Trois composantes, à 220–290 ms l'une de l'autre : un salon vocal. Chaque
+son commun tombe à Δ + pA − pT : en bas, la voix de A dans le stream de B
+(Δ − d') ; au milieu, le jeu (Δ) ; en haut, **la voix de B dans le stream de
+A** (Δ + d) — d' = 219 et 257 ms, d = 285 et 224. Les lèvres de B tombent
+sur sa voix telle qu'on l'entend : 1138, 1064. La règle de la 4.24.0.18
+tenait pour écho toute composante à plus de 0,8 s de l'horloge : elle a
+jeté 853 et 1138, et pris 634 — **la voix de A** — pour « la dominante ».
+B était calé là, et bien calé : le son le voyait à +10 ms, sur 35 calculs.
+**Ses lèvres étaient 0,50 s en avance sur sa voix** ; au treizième, 0,52 s.
+
+**4. Pourquoi l'horloge était si loin.** Elle dit quand Twitch a reçu
+l'image, pas quand le streamer l'a jouée. Le jeu — le milieu de la grappe —
+était à 0,84–0,85 s d'elle dans les deux rapports : les chaînes d'encodage de
+A et de B ne se valent pas. Au dixième rapport, 0,36–0,38 s. Une borne
+mesurée depuis l'horloge ne peut pas dire ce qui est un écho.
+
+**5. Un micro, un salon.** Au treizième, la voix de A arrive chez B en 257
+ms, chez C en 258 — la même, comme il se doit : la lecture tient. Chez C,
+−239 (la voix de A) et 19 (le jeu) ; sa propre voix, entendue dans A, ne
+pèse presque rien — 253 ms, cinq premiers pics, 6 % : pas établie. Le pilote
+garde 19 ; si C parle peu dans le salon, ses lèvres peuvent rester 0,2 s
+en avance, et le rapport le dira quand elle sera établie.
+
+**6. Une tuile tenue à −160 ms.** Le son voyait la cible de C à −160 ms, sur
+46 calculs, l'horloge disant +0,081 s : elle tient chaque tuile à 0,2 s
+près, trois contrôles de suite — pour ne pas réaligner sur son propre bruit,
+±70 ms. Pour des lèvres, c'est trop.
+
+### Ce que fait cette version
+
+**1. La grappe des voix.** Les composantes se rangent en grappes — moins de
+0,6 s de l'une à la suivante : un salon vocal n'en sépare pas deux de plus.
+- **Une source qui saute** — deux composantes établies à plus de 0,6 s, l'une
+  après l'autre dans le temps — n'est pas une voix : c'est un écho, que la
+  latence du lecteur de celui qui regarde déplace. Écartée.
+- **La grappe retenue** est la plus proche de l'horloge : à 1,5 s au plus
+  si elle a deux voix établies et mêlées — la signature d'un salon —, à 0,8 s
+  si elle n'en a qu'une — une composante seule et loin, c'est le live de
+  l'autre rejoué. Deux grappes à moins de 0,3 s de distance l'une de
+  l'autre : ambigu. Le reste : « écho probable ».
+- **La cible** : la plus haute composante établie de la grappe, mêlée à une
+  autre — la voix de la tuile dans l'ancre. Une seule établie, si elle pèse
+  plus du double du reste de sa grappe ; sinon, « en attente » : au douzième
+  rapport, la voix de A s'établissait seule, la première.
+
+Rejoués :
+
+| rapport | avant | maintenant |
+| --- | --- | --- |
+| huitième | rien près de l'horloge | « ambigu : une source a sauté, 1117 → 2460 ms » — rien ne bouge |
+| neuvième | 44 ms | 44 ms ; la grappe 1020 · 1168 en écho |
+| dixième | −115 et 568 ms | −115 et 568 ms |
+| douzième | 634 ms, « la dominante » | **1138 ms**, la plus haute de la grappe |
+| treizième | 583 ms ; 19 | **1064 ms** ; 19 |
+
+Les huitième, neuvième et douzième sont rejoués au banc (186), sur leur
+historique, par le code même ; les dixième et treizième, dont le rapport ne
+donne que la carte, l'ont été sur elle, à la main.
+
+Au neuvième, la grappe 1020 · 1168 est plus loin de l'horloge que l'autre :
+écho probable, comme en 4.24.0.18 — mais ce n'est plus une certitude,
+l'horloge pouvant se tromper de 0,85 s. Si les lèvres y paraissaient encore
+à une seconde, c'est elle qu'il faudrait viser ; le rapport le montrerait.
+
+**2. Le son revoit.** Quand le son voit la cible d'une tuile à 0,1 s ou plus,
+sur six pics au moins depuis le dernier déplacement, et que l'horloge va dans
+le même sens, la tuile est réalignée — « son revu » au journal —, l'écart en
+deçà duquel elle ne bouge pas ramené à 0,05 s pour cet alignement. Pas une
+tuile dont l'écart est accepté, ni une qu'il faudrait reculer et qui ne le
+tient pas.
+
+**3. Au rapport**, `ecoute.cible` et `auto.son` disent « la plus haute de la
+grappe », « la seule voix », « en attente : … seule établie dans sa
+grappe », « ambigu : deux grappes … à même distance de l'horloge », « ambigu
+: une source a sauté, a → b ms », « ambigu : une voix qui saute » ; et
+« source qui saute : a → b ms » à côté des échos. Toute ambiguïté vaut, pour
+le pilote, ce qu'elle valait : deux contrôles de suite, et le son se dédit.
+Et « vue à … » se lit depuis le dernier déplacement, comme le pilote la lit
+— « pas encore revue » à la fin d'un alignement.
+
+### Ce que le banc mesure
+
+**Le lecteur factice** : une troisième source, à 880 Hz — le jeu — ; une
+latence qui glisse (`__glisser`), l'horloge et le son avec elle.
+
+- **185**, nouveau. « yankee » passe les trois sons de « xray » 900, 1150 et
+  1420 ms plus tôt : une grappe, la plus proche à 0,9 s de l'horloge ; la
+  cible, 1420 — « yankee » recule de 1,42 s, en un déplacement ou en deux,
+  jamais sur 900, et le son la revoit à 0.
+  « zulu » : sa seule voix, la cible, puis son son saute de 1,2 s — « une
+  source a sauté », le son se dédit, retour à l'horloge. « mike » : sa
+  latence glisse de 0,14 s ; l'horloge seule n'atteindrait jamais 0,2 s —
+  « son revu », il avance — « pas encore revue » à la fin de l'alignement —,
+  et le son le revoit à 0.
+- **183** : « mike », « la seule voix » ; « oscar » commence sa première voix
+  tue — la seconde, seule, est la cible ; la première arrive : ambigu, le son
+  se dédit. **182** : « lima », la voix qui saute — « ambigu », « en
+  attente » ou « la seule voix », jamais un déplacement. **180** : « duo2 »,
+  « la plus haute de la grappe ».
+- **186**, nouveau : la règle rejouée sur trois écoutes réelles — `carteSon`
+  et `cibleSon` extraites du code tel qu'il est livré, l'historique des
+  huitième, neuvième et douzième rapports, rien que des nombres —, calcul
+  après calcul, à l'exigence entière. Au douzième, « en attente : 645 ms »
+  au vingt-septième calcul — la voix de A, établie seule —, 1155 au
+  vingt-neuvième, 1138 à la fin : jamais en dessous de 1000. Au huitième,
+  « une source a sauté » dès que la carte parle. Au neuvième, 44, la grappe
+  1020 · 1168 en écho, jamais une autre cible. Déterministe : au banc en
+  direct, l'ordre dans lequel les voix s'établissent se tire au hasard.
+
+### Ce que le banc a trouvé
+
+- **La voix de l'ancre, établie la première.** Rejouée sur le douzième
+  rapport, la première écriture de la règle prenait, au vingt-septième
+  calcul, 645 ms pour « la seule voix » — la voix de A, qui s'établit avant
+  les autres. Deux calculs plus tard la grappe était là, et le pilote, qui
+  attend deux contrôles de suite à vingt secondes l'un de l'autre, n'aurait
+  sans doute pas bougé ; une voix de tuile plus rare, et B était calé sur
+  celle de A. Une voix seule doit désormais peser plus du double du reste de
+  sa grappe : là, « en attente ».
+- **Un mutant pris par hasard.** Au premier tour, « une voix seule prise
+  sans peser le reste de sa grappe » tombait au 185 — mais le même test
+  tombait aussi sous deux mutants qui ne le touchaient en rien : « yankee »
+  avait vu 900 et 1150 établies avant 1420, et reculé de 1,15 s, puis de
+  0,27. Le pilote du banc décide sur un quart de l'exigence — deux premiers
+  pics par voix —, et l'ordre dans lequel les voix s'établissent se tire au
+  hasard. Le test exigeait un seul déplacement ; il juge désormais la fin
+  — 1420, jamais 900. Au second tour, sous un autre mutant sans rapport, le
+  pilote visait déjà 1422 que la carte ne montrait pas encore le jeu : le
+  test attend que les trois voix y paraissent. La voix seule s'éprouve au
+  186, à chaque fois.
+- **Une vue qui mêlait l'avant et l'après.** Trois tours du 185 non muté,
+  deux échecs de « mike » : « son revu » l'avançait bien — l'horloge de
+  0,140 à 0,001 s —, puis le rapport disait la cible « vue à −150 ms ».
+  Une sonde, relevant toutes les cinq secondes la latence vraie du lecteur
+  factice, l'a montré : la vue se lisait depuis la mise en place de la
+  cible, pas depuis le dernier déplacement, et mêlait les pics d'avant la
+  correction à ceux d'après. Le pilote, lui, la lisait bien. Corrigé au
+  rapport. La sonde a montré autre chose : pendant que la latence glisse, le
+  son ne voit rien — le pic d'un calcul s'étale sur sa fenêtre, z de 3,3 à
+  4,2, sous le seuil de 5 —, et il voit l'écart dès qu'elle s'arrête. Une
+  dérive lente, le son la rattrape après coup.
+- **Une voix qui se tait trente secondes est une source qui saute.**
+  L'ancien test de « oscar » faisait taire sa première voix en cours de
+  route : la seconde, seule, venait ensuite, l'une après l'autre — le banc
+  n'y trouvait plus de cible, à bon droit. Il commence désormais sa
+  première voix tue.
+- **Un test du 182 qui mesurait l'écart de la salle** — il compte aussi le
+  reste d'une autre tuile : 0,300 s un tour, 0,2xx le précédent. Il lit
+  désormais l'écart de la tuile qui dérive, elle seule.
+
+| mutants | ce qui tombe |
+| --- | --- |
+| où est la grappe : chaque composante à plus de 0,8 s tenue pour un écho (la règle d'avant) ; la grappe bornée à 0,8 s (2) | au douzième rejoué, 626 ms, « la seule voix » — la voix de A ; « yankee » sans cible, « rien près de l'horloge » ; « zulu » qui ne se dédit pas |
+| une seule grappe pour tout, au 185 et au 183 (2) | au huitième, « rien près de l'horloge » au lieu de la source qui saute ; au neuvième, 1144 ms pour cible ; « zulu », « une voix qui saute » ; « oscar » calé à +0,71 s |
+| la cible : la plus basse de la grappe ; une voix seule prise sans peser le reste de sa grappe (2) | au douzième, 645 ms — la voix de A — ; « yankee » calé sur 902 ; au vingt-septième calcul, « 645 ms, la seule voix » au lieu de « en attente » |
+| la source qui saute jamais vue (1) | au huitième, « rien près de l'horloge » ; « zulu » ne se dédit pas |
+| une voix seule retenue jusqu'à 1,5 s ; deux grappes à même distance sans ambiguïté (2) | « papa » calé à +1,12 s sur l'écho ; « oscar » reste sur l'une de ses deux voix |
+| le son revoit : jamais ; la vue lue depuis la mise en place (2) | « mike » jamais réaligné ; à la fin de l'avance, la vue d'avant la correction au lieu de « pas encore revue » |
+
+Onze mutants, onze pris. Le 186 en prend six, à coup sûr, sur les écoutes
+réelles ; le 185 et le 183, les autres. Au premier tour, « une voix seule
+sans peser sa grappe » semblait pris au 185 : c'était le hasard du tirage
+(cf. ci-dessus). Il l'est désormais au 186.
+
+### Pour le prochain rapport
+
+1. La même salle si possible, à deux puis à trois, ouverte par le nœud ; dix
+   minutes.
+2. **Regarder les lèvres de B** — la tuile qui était 0,5 s en avance —, sa
+   voix telle qu'on l'entend dans A.
+3. Au rapport : `ecoute.carte`, `ecoute.cible`, et `auto.son` — sa cible, la
+   garde, « vue à … » ; les « son revu » de `auto.journal`.
+
+## Le lecteur qui reprend le recul, et la qualité d'un cran au-dessus (v4.24.0.19)
+
+Deux rapports réels sur la 4.24.0.18, une même salle de trois streams — une
+partie à trois, un salon vocal —, ouverte par le nœud ; le second quelques
+minutes après avoir donné le son à une autre tuile. Et une demande : « en
+disposition à 3, peux-tu mettre la qualité au-dessus ? de 480 à 720. Je
+trouve que ça pixellise. Fais +1 en qualité pour chaque disposition
+actuelle. » Publiée sur `claude/chrome-multi` seulement.
+
+Les trois tuiles, ici : **A**, l'ancre — celle qu'on entend d'abord —, 3,8 s
+de latence et 3,3 s de tampon ; **R**, en faible latence, autour de 3,1 s ;
+**S**, servie par segments, autour de 3,7 s.
+
+### La qualité, un cran au-dessus
+
+La salle à trois avait des tuiles de 551 px : 480p était la plus proche, en
+proportion, dans l'échelle de chaque chaîne. Le pont prend désormais la
+hauteur **suivante** de cette échelle — 720p —, et l'adresse du lecteur aussi,
+pour son démarrage. Dans toutes les dispositions :
+
+| la plus proche | posée désormais |
+| --- | --- |
+| 160p | 360p |
+| 360p | 480p |
+| 480p | 720p |
+| 720p | 1080p |
+| 1080p, la plus haute | 1080p — rien au-dessus |
+
+À hauteur égale, la plus fluide (720p60 plutôt que 720p30). Trois 720p60,
+c'est environ trois fois 6 Mb/s.
+
+### Ce que les deux rapports établissent
+
+**1. Le son voit, cette fois, trois composantes par paire — et c'est le
+modèle même.** Repérées par rapport à l'horloge, sur toute l'écoute :
+
+| paire | composantes (premiers pics · part du poids) |
+| --- | --- |
+| A~S | −655 ms (59 · 45 %) · −383 (22 · 18 %) · **−115** (38 · 31 %) |
+| A~R | 89 ms (57 · 47 %) · 358 (33 · 33 %) · **568** (15 · 13 %) |
+
+Symétriques : −383 ± 270, et 358 − 269, 358 + 210. Chaque son commun tombe à
+Δ + pA − pT : en dessous, la voix de A dans le stream de l'autre ; au milieu,
+le son que les deux ont en même temps — le jeu, partagé par les trois, ou la
+voix du troisième, qui passe par le salon des deux côtés — : le vrai décalage
+Δ ; au-dessus, la voix de l'autre dans le stream de A. Le salon se lit de
+même : la voix de A arrive chez les autres en 270 ms, celle de S chez A en
+268, celle de R en 210. Et Δ vaut −383 ms pour S, +358 pour R : **cette
+fois, l'horloge se trompait de 0,36 à 0,38 s sur le jeu** — les chaînes
+d'encodage des streamers ne se valent pas ; au neuvième rapport, 44 ms.
+
+La cible du pilote, la plus haute — la voix de la tuile telle qu'on
+l'entend dans A, sur laquelle tombent ses lèvres — : −115 pour S, +568 pour
+R. S y a été mise et tenue : le son l'y voyait à −15 ms, sur 44 calculs.
+Le prix, qu'il faut dire : le jeu de S est alors à 0,27 s de celui de A,
+celui de R à 0,21 s. Les lèvres ou le jeu — pas les deux, tant que le salon
+a son délai.
+
+**2. R ne tient pas un recul.** Son lecteur, en faible latence, garde sa
+latence vers 3,0–3,2 s. Pour ses lèvres, le son voulait R 0,563 s derrière
+A par l'horloge — or R, d'elle-même, est 0,7 s devant : 1,26 s de latence de
+plus que son lecteur n'en garde. À +364 s, R recule de 0,168 s ; son lecteur
+repart aussitôt à 1,03, **125 s durant**, « latence 4,104 → 3,183 · après un
+déplacement ». La vérification revoit l'écart et recule encore — 0,224,
+puis 0,705 s : l'alignement finit à 0,504 s, plus loin qu'il n'avait
+commencé (0,288).
+
+**3. Le pilote en pause, la tuile à 1,46 s.** Six réalignements en dix
+minutes — l'ouverture, une dérive, le son de R et trois coupures de S —, et
+la pause de dix minutes à +535 s. Pendant ce temps, R a repris son
+recul : au rapport, −0,899 s pour une relation de +0,563 — 1,46 s d'écart —,
+et le son voyait sa cible à +1405 ms.
+
+**4. S coupe, et son tampon est en dents de scie.** Une coupure d'arrivée
+toutes les 112 à 140 s — « au moins 2 s sans vidéo », le tampon de 2,3 à
+0,3 s —, quatre, puis sept : chacune un événement, chacune un réalignement
+de toute la salle. Et d'un relevé à l'autre, son tampon passait de 1,3 à 2,3
+s et retour : un lecteur servi par segments — pas en faible latence.
+
+**5. Le son donné à R.** La pause finie, à +1135 s, R reculée de 1,28 +
+0,23 + 0,51 s. Puis l'ancre a suivi le son — « l'ancre suit le son : A → R »
+—, les relations se sont réécrites sur elle (A −0,563, S −0,688), la carte
+est repartie de zéro. Mais R, l'ancre, ne pouvait rester en place : S ne
+pouvait pas avancer jusqu'à elle. S, la plus en retard, est devenue la
+référence ; R a reculé de 1,36 + 0,24 + 0,53 s, l'a repris en 81 s, et
+rebelote à +1346 s : trois fois en quatre minutes.
+
+**6. L'ouverture** : 3,986 → 0,846 s en trois passes. Ses détails sont sortis
+du journal de la salle, qui garde soixante lignes ; le même rattrapage est
+probable, pas établi.
+
+### Ce que fait cette version
+
+**1. La qualité, un cran au-dessus** — ci-dessus.
+
+**2. Un lecteur qui reprend le recul est repéré.** Un rattrapage — la vitesse
+du lecteur au-dessus de 1, sans qu'on l'ait demandée — parti dans les
+trente secondes d'un recul qu'on lui a fait faire : la tuile est marquée, «
+le lecteur reprend le recul … : la tuile ne sera plus reculée » au journal,
+`tuiles.*.recul` au rapport. Elle ne recule plus : une passe qui le lui
+demanderait la laisse — « rien (… ne tient pas un recul : son lecteur le
+rattrape) ».
+
+**3. La référence qui laisse le moins d'écart.** Chaque tuile a sa portée :
+avancer de ce que son tampon donne, calage déduit, en gardant sa seconde ;
+reculer sans limite, sauf si elle est marquée. Pour chaque tuile prise pour
+référence, chacune va au plus près d'elle, et ce qui lui reste, **face à
+l'ancre** — la tuile qu'on entend : c'est sur elle que tout se juge —,
+s'additionne. La référence qui en laisse le moins ; à 0,1 s près, l'ancre,
+puis la plus en retard — sans tuile marquée ni tampon trop court, c'est la
+règle d'avant. Au rapport, `alignement.couts`.
+
+**4. Une avance bornée au tampon.** Celle qui entamerait la seconde de marge
+s'arrête à elle — « borné au tampon » ; et jamais une avance qui ne gagne
+pas plus que son calage : la lecture le reperdrait.
+
+**5. Le tampon lu au creux** : le plus bas des cinq derniers relevés, plus
+leur médiane, qui tombait sur l'une ou l'autre dent de la scie.
+
+**6. Le pilote attend la fin d'un rattrapage** — trois minutes au plus :
+réaligner une tuile qui file viserait une cible qui bouge. Sa fin est un
+événement, qui réaligne.
+
+**7. L'écart hors d'atteinte est accepté.** Après un alignement borné, l'écart
+qui reste est mesuré une fois, sur la première fenêtre entière d'après — pas
+sur une tuile qui rattrape encore —, puis la dérive se compte à partir de
+lui : « hors d'atteinte : tampon » ou « : recul repris » à `auto.retards`.
+
+**Ce que cette version aurait fait du dixième rapport.** À +364 s, R recule
+de 0,168 s ; son lecteur repart : R est marquée, la vérification ne la
+poursuit pas, le pilote attend les deux minutes de rattrapage. Puis : l'ancre
+en place laisserait R à 1,26 s ; R pour référence, A avance de 1,26 s — ses
+3,3 s de tampon en donnent 2,2 —, et S, qui n'a que 0,2 s à donner au creux
+de 1,3 s, reste à 1,05 s. 1,05 contre 1,26 : R est la référence, l'écart de
+S est accepté, et rien ne bouge plus. **Avec ces trois streams, aucune
+position ne les met tous trois justes** : le lecteur de R ne garde pas plus
+de 3,2 s de latence, S ne descend pas sous 3,5 s sans entamer sa seconde
+de marge,
+et le son veut R 0,56 s derrière A. L'une reste à une seconde à peu près —
+désormais dite, mesurée et tenue immobile, au lieu de six réalignements et
+d'une pause. Au onzième, le son sur R : R est l'ancre et ne recule pas, A
+avance jusqu'à elle, S reste en arrière, son écart accepté.
+
+### Ce que le banc mesure
+
+**Le lecteur factice** : « romeo » et « victor » repartent d'eux-mêmes à
+1,05 dès qu'on les pousse 0,3 s au-delà de leur latence ; « romeo »,
+« sierra », « tango », « victor » et « whiskey » ont un tampon qui suit la
+latence — un recul l'allonge, une avance le raccourcit, un rattrapage le
+consomme —, jamais plus grand qu'elle ; celui de « sierra » en dents de
+scie, une seconde de plus deux relevés sur trois.
+
+- **175, 177** : la qualité un cran au-dessus. 368 px : 480p, et 720p pour
+  « alpha », qui n'a pas de 360p ; l'adresse, 480p. 308 px : 720p pour
+  « alpha », 480p pour « charlie », sans nouvelle pose. 504 px : 720p. À
+  une densité de 1,5 : 1080p ; à 2,5 : 1080p, le sommet, qui reste.
+- **184** : l'ouverture aux valeurs du dixième rapport — « tango » à 3,8 s,
+  3,3 s de tampon ; « romeo » à 3 ; « sierra » à 3,8, 1,6 s au creux.
+  L'ancre en place, « romeo » recule, son lecteur repart : marquée, la
+  vérification ne la recule plus. Le pilote attend — « rattrapage en cours
+  (romeo) » —, puis « romeo » est la référence, « tango » y avance,
+  « sierra » « borné au tampon », une passe ; quarante-cinq secondes sans
+  réalignement, l'écart de « sierra » « hors d'atteinte : tampon ». Puis
+  « whiskey », une ancre sans tampon à donner, et « victor » : l'ancre
+  reste, « victor » « rien (… ne tient pas un recul) », son écart « recul
+  repris » accepté — pas de réalignements vides.
+
+### Ce que le banc a trouvé
+
+- **Un écart que le pilote ne savait pas accepter.** Au premier jet, seul
+  l'écart borné par le tampon l'était. Quand l'ancre restait la référence,
+  la tuile marquée gardait le sien… et le pilote « réalignait » sans rien
+  bouger — quatre « dérive » en vingt-cinq secondes, « 1 passe en 0 s ». L'écart
+  d'un recul repris est accepté comme l'autre, et sur toutes les tuiles
+  quand c'est l'ancre qui est bornée — une fois, après l'alignement : une
+  dérive venue ensuite n'est pas un écart hors d'atteinte.
+- **Un tampon plus grand que la latence.** Le premier lecteur factice en
+  donnait 3,3 s sous 2,2 s de latence ; la sonde, à bon droit, l'écartait
+  comme impossible, et l'ancre paraissait ne rien pouvoir donner. Le banc
+  suit désormais le rapport réel.
+- **Un aléa du 180.** Une fois, sur les quatre derniers tours, `aligner('son')` n'a pas
+  trouvé de cible en deux minutes — la carte « −148 (38 premiers pics) ·
+  −548 (4) » ; rejoué, il passe. Le banc garde désormais le dernier refus,
+  pour dire pourquoi s'il revient.
+
+| mutants | ce qui tombe |
+| --- | --- |
+| la qualité : sans le cran ; l'adresse sans le cran ; rien de posé au sommet de l'échelle ; le cran le plus haut au lieu du suivant (4) | 360p, 480p et 720p restés à la plus proche ; l'adresse à 360p ; à une densité de 2,5, aucune qualité ; « alpha » en 1080p à 368 px |
+| le recul repris : jamais marqué ; les passes qui reculent quand même (2) | « romeo » reculé de nouveau dès l'ouverture, et à chaque réalignement |
+| la référence : la tuile marquée prise pour une autre ; l'ancre toujours (2) | « tango » gardée, « romeo » à 0,75 s |
+| l'avance : sans borne ; le tampon lu à sa médiane ; l'avance qui ne gagne rien (3) | « sierra » avancée de tout son écart, ou d'une seconde passe pour rien |
+| le pilote : sans attendre la fin d'un rattrapage ; l'écart restant compté pour une dérive ; seul celui du tampon accepté (3) | pas de « rattrapage en cours » ; des réalignements vides, en boucle |
+
+Quatorze mutants, quatorze pris, au premier tour.
+
+### Pour le prochain rapport
+
+1. La même salle à trois si possible, ouverte par le nœud ; dix minutes.
+2. **Regarder R**, la tuile en faible latence : plus de va-et-vient ; et la
+   salle ne devrait plus se mettre en pause. Au rapport : `tuiles.*.recul`,
+   `alignement.couts`, `auto.retards` et ses « hors d'atteinte »,
+   `auto.journal`.
+3. **La qualité** : est-ce net à 720p ? Des coupures en plus
+   (`tuiles.*.serie.coupures`) ?
+4. **Les lèvres ou le jeu** : avec un salon vocal, on ne peut caler les deux
+   — ici 0,21 à 0,27 s d'écart. Le pilote vise les lèvres ; dire si le jeu
+   compte plus.
+
+## Le son calibre, l'horloge aligne et garde (v4.24.0.18)
+
+Deux rapports réels sur la 4.24.0.17, chacun en deux temps. Le huitième :
+trois streams ouverts par le nœud, alignés par l'horloge à l'ouverture —
+« les trois streams étaient calés exactement ». Le neuvième : deux streams,
+et l'œil a vu l'un d'eux **« environ une seconde » en retard sur l'autre,
+« surtout par rapport aux lèvres »** — l'horloge le disant aligné. La
+demande : « un mix horloge et son pour bien calibrer », « soit rigoureux,
+optimise et fix le procédé automatique, également le levier ». Publiée sur
+`claude/chrome-multi` seulement.
+
+### Ce que les deux rapports établissent
+
+**1. L'ouverture par l'horloge fait ce qu'on attend d'elle.** Huitième :
+1,332 → 0,072 s en deux passes et 42 s, sur trois tuiles. Neuvième : 0,146
+→ 0,005 s. Les reculs ont calé de 0,105, 0,104 et 0,079 s, puis 0,109 :
+le calage prévu de 0,13 dépassait de 25 à 50 ms.
+
+**2. Mais la tuile qu'on écoute a sauté.** La plus en retard servait de
+référence, chaque autre reculait jusqu'à elle — l'ancre comprise : au
+huitième, dès l'ouverture, la tuile du son a reculé de 0,29 s ; au
+neuvième, après une chute de la cible, de 1,17 s, et la salle entière a pris
+1,17 s de latence de plus.
+
+**3. Une chute que rien n'a vue.** Vers la cinquième minute du neuvième, la
+cible a perdu 1,19 s de lecture — sa latence a monté d'autant, sans saut ni
+coupure au journal. Le pilote ne l'a vue qu'en dérive, trois contrôles plus
+tard (+359 s). Et après l'essai des leviers (point 6), une lecture arrêtée,
+la latence de 2,7 à 6,7 s : rien non plus — le saut ne se juge pas quand la
+vitesse change, et le lecteur s'était mis à rattraper.
+
+**4. Le son, repéré par l'horloge.** Au neuvième, quand la cible a chuté
+de 1,19 s, son pic principal est passé de +1190 à −10 ms, et l'horloge de 0
+à −1141 : leur différence est restée entre +1131 et +1214 ms. Un son commun
+est fixe **par rapport à l'horloge**, quoi que fasse la lecture. Sur les
+cent cinquante calculs de chaque rapport, ainsi repérés :
+
+| rapport | composantes, en ms par rapport à l'horloge (premiers pics · part du poids) |
+| --- | --- |
+| huitième, l'ancre et la tuile reculée de 1,4 s | **+2460** (27 · 66 %) · +1117 (7 · 17 %) |
+| neuvième | **+1168** (48 · 50 %) · +44 (13 · 14 %) · −496 (11 · 12 %) · +1020 (7 · 8 %) · −291 (6 · 6 %) |
+
+**5. Les échos.** Au huitième, la composante dominante est passée en cours
+de session de 1045 à 2370 ms — un saut de 1,3 s : c'est ainsi que bouge la
+latence d'un lecteur de Twitch, jamais un salon vocal. Un streamer qui
+regarde le live de l'autre, le son ouvert, rejoue dans son stream **tout**
+celui de l'autre, une latence de Twitch plus tard : une composante seule,
+forte — elle porte tout le son — et loin de l'horloge. Sur cette paire que
+l'œil voyait juste, la suivre aurait décalé la tuile de 2,46 s. Au neuvième,
++1168 a la même signature : seule, la moitié des calculs, loin. Dessous,
+trois composantes près de l'horloge, qui alternent au fil des minutes : +44,
+−291 et −496 — les voix d'un salon vocal.
+
+**6. Ce que l'œil a vu, au neuvième.** Chaque son commun fait une composante
+c = Δ + pA − pT : Δ, le vrai décalage, pA et pT les chemins du son jusque
+dans le stream de l'ancre et dans celui de la cible. Une voix née chez la
+cible tombe au-dessus de Δ, une voix née chez l'ancre en dessous. +44, la
+plus haute : la voix de la cible dans le stream de l'ancre ; −291 et −496,
+celle de l'ancre dans le stream de la cible — par deux chemins, ou deux
+délais du salon ; Δ entre les deux, −0,12 à −0,23 s. La voix de la
+cible, telle qu'on l'entend par le salon, tombe donc à **44 ms** de ses
+lèvres : l'horloge avait raison. Par l'écho, elle tombe 1,17 s après —
+**la seconde que l'œil a vue, très probablement**. Le sens importe peu à
+l'œil, sur une seconde : on voit des lèvres qui ne collent pas. Ce que
+l'extension ne peut pas faire : retirer un écho d'un stream — les
+spectateurs de l'ancre l'entendent aussi. Se caler dessus mettrait tout le
+reste — les gestes, le jeu — 1,2 s à côté, comme au huitième.
+
+**7. Le levier.** Aux deux rapports, setLiveMaxLatency a été dit « ok », et
+la console du lecteur a écrit : « UnboundTypeError: Cannot call
+MediaPlayer.setLiveMaxLatency due to unbound types: N6twitch9MediaTimeE ».
+L'instance n'est qu'un relais : l'appel part au lecteur, dans un autre fil,
+et c'est là qu'il échoue — il attend un type que JavaScript ne sait pas
+construire, aucune valeur ne passe. Au neuvième, dans les cinq secondes, le
+tampon de la cible a fondu de 2,30 à 0,17 s, sa latence est restée figée
+cinq relevés à 2,732 puis a sauté à 6,73 s, et le lecteur a rattrapé à 1,03
+— encore 5,68 s au rapport. setLiveSpeedUpRate(1,1), lui, n'a rien fait de
+visible : le rattrapage du lecteur s'est fait à 1,03.
+
+**8. getBufferedRanges** rend un objet que la 4.24.0.17 ne savait pas lire
+— « forme object » sur toutes les tuiles. Le tampon en arrière, par
+l'élément : 28,7 à 31,5 s partout.
+
+**9. L'horloge « ±580 ms » du neuvième** n'est pas un bruit : c'est la
+dispersion de tous ses passages, déplacements compris — 1,17 s de recul sur
+l'ancre, 1,19 s de chute sur la cible. Au huitième, ±66 à ±71 ms.
+
+### Ce que fait cette version
+
+**1. La carte du son.** Chaque paire — l'ancre, la tuile qu'on entend, face
+à chaque autre — repère ses composantes **par rapport à l'horloge** : le pic
+d'un calcul moins la relation d'horloge de ce calcul. Un déplacement, une
+chute n'y changent rien : la carte se nourrit de toute l'écoute, cent
+cinquante calculs, et plus de la seule minute d'après le dernier
+déplacement. Une composante : autour de la valeur la plus entourée, tout ce
+qui tombe à 80 ms près — l'horloge erre de ±50 ms d'un calcul à l'autre —,
+sa médiane ; un premier pic pèse 1, un second 0,5. Au rapport,
+`ecoute.carte`.
+
+**2. La cible.** La composante qui doit tomber à 0, au rapport
+`ecoute.cible` :
+- **jamais un écho** : au-delà de 0,8 s de l'horloge — un chemin direct n'a
+  jamais dépassé 0,5 s aux rapports, un écho jamais moins d'une seconde —,
+  une composante est dite « écho probable », et rien de plus ;
+- près de l'horloge, sur deux minutes de calculs qui tiennent (un poids de
+  24) : **une paire** — la plus haute des composantes établies qui en a une
+  autre 100 à 1000 ms plus bas, mêlée à elle dans le temps : la voix de la
+  tuile telle qu'on l'entend dans l'ancre. Pas leur milieu, comme en
+  4.24.0.16 : il laissait les lèvres en avance du délai du salon, 0,1 à
+  0,3 s, à la limite de ce qui se voit ;
+- sinon **une dominante** : plus de deux fois le poids de la suivante, et
+  le poids minimal à elle seule — une seule voix commune ;
+- sinon **ambigu** : rien ne bouge, et le rapport dit pourquoi.
+
+Établie : le premier pic de six calculs au moins, un dixième du poids près
+de l'horloge. Mêlées : sur toutes les paires d'un calcul de chacune, un
+dixième au moins dans chaque ordre — sur toute l'écoute, de vraies voix
+alternent par plages de plusieurs minutes ; une voix qui saute, deux époques
+l'une après l'autre, reste vers 0,02.
+
+**3. Le pilote : le son calibre, l'horloge aligne et garde.**
+- À l'ouverture, par l'horloge, comme avant.
+- **La cible de chaque paire, stable à 40 ms près d'un contrôle au suivant,
+  devient la relation que la tuile garde sur l'ancre**, dès qu'elle s'écarte
+  de 0,05 s de la précédente — « calibré par le son » au journal. L'horloge
+  y amène la tuile, en vingt secondes, et la vérifie ; le son dit ensuite où
+  il voit la cible — à 0, s'il a dit vrai. Plus de passes mesurées au son,
+  qui attendaient ses calculs jusqu'à deux minutes et se perdaient sur trois
+  composantes.
+- **Le son se dédit** : une relation qu'il a donnée — une voix seule,
+  dominante un temps — et que la carte dit « ambiguë » deux contrôles de
+  suite, l'autre voix revenue, est retirée : la tuile revient à l'horloge,
+  « le son s'est dédit » au rapport. Faute de calculs, elle reste.
+- **L'ancre ne bouge plus quand les autres peuvent venir à elle** : chaque
+  tuile plus en retard qu'elle avance jusqu'à elle, si elle garde ensuite
+  une seconde de tampon ; sinon, comme avant, la plus en retard sert de
+  référence. Une tuile tombée en arrière avance de nouveau, au lieu que
+  toute la salle recule.
+- **L'ancre suit le son** : passé à une autre tuile depuis quinze secondes,
+  elle devient l'ancre ; chaque relation gardée se réécrit sur elle — rien
+  ne bouge —, et l'écoute repart, pour que la carte se refasse sur ce qu'on
+  entend désormais.
+- La relation d'une tuile ne dépend plus de sa première minute d'après :
+  elle vient de la carte, entière.
+
+**4. Les chutes de lecture.** D'un relevé au suivant, la position avance du
+temps écoulé, à la vitesse de la vidéo ; moins, la lecture a perdu la
+différence. Plus de 0,15 s perdues à chaque relevé, 0,4 s en tout, sans
+essai, rechargement ni pause qui l'explique : une chute, au journal de la
+salle, à la série de la tuile (`chutes`, `chutesDetail`), et un événement
+pour le pilote — six secondes de passages d'après lui, à l'échelle du banc,
+vingt en vrai, au lieu d'une minute de dérive.
+
+**5. Le levier, réparé.** setLiveMaxLatency n'est plus jamais appelé.
+`tse.salle.leviers()` n'essaie plus que setLiveSpeedUpRate(1,1), « envoyé »
+— l'appel est parti, sans plus — et jamais pendant un alignement. Le bloc
+`essaiLeviers` dit en plus le tampon au plus bas et ce qui a calé pendant
+l'essai : un levier qui ferait fondre le tampon se verrait.
+
+**6. getBufferedRanges, décrit.** Son constructeur et ses clés, chacune avec
+son type (`tuiles.*.plagesForme`) ; et si l'une d'elles — « video »
+d'abord — tient un tableau de plages, il est lu.
+
+**7. Le calage d'un recul se prévoit à 0,12 s**, la moyenne des onze reculs
+réels.
+
+**8. `aligner('son')`** : l'écoute allumée, une cible sur chaque paire —
+sinon le refus dit laquelle manque, et pourquoi —, puis l'horloge y va, l'ancre
+en place si elle le peut.
+
+**9. Le réglage** dit désormais : « les streams sont mis à la même heure par
+l'horloge ; le son commun les cale ensuite — les lèvres de chaque stream sur
+sa voix telle qu'on l'entend — et l'horloge les y tient », dans les douze
+langues.
+
+### Ce que le banc mesure
+
+**Le lecteur factice** sait caler sa lecture sans pause (`__caler`) — la
+position s'arrête, la latence monte d'autant ; il compte les appels à
+setLiveMaxLatency, qu'il ne doit jamais recevoir, et accepte
+setLiveSpeedUpRate sans effet ; ses plages se rendent sous trois formes —
+des {start, end}, rangées sous « video » et « audio » (« charlie »), un
+objet opaque (« alpha ») ; et trois voix de plus, face à « duo1 » : « mike »,
+la première 300 ms plus tard, seule ; « papa », 1,1 s plus tôt, seule — un
+écho ; « oscar », la première 700 ms plus tôt et la seconde 700 plus tard.
+
+- **180** : S10 au calage de 0,12. La carte au rapport, repérée par
+  l'horloge : −550 et −150 pour « duo1~duo2 » ; 0 pour « hotel », 5,5 s plus
+  tard au son ET à l'horloge — le son dit que l'horloge a raison. À
+  quatorze calculs, la cible du rapport : « trop peu de calculs (poids … sur
+  24) ». `aligner('son')` refuse cette salle en nommant « foxtrot » et
+  « golf », et refuse sans écoute ; sur « duo1 » et « duo2 » seules, il vise
+  −150 — la plus haute des deux voix, pas leur milieu —, « duo1 », l'ancre,
+  reste en place, « duo2 » avance par l'horloge, en une passe, et le son
+  revoit sa cible à 0, à 70 ms près.
+- **182** : l'horloge seule — « bravo » et « charlie » se taisent. À
+  l'ouverture, l'ancre « alpha » ne bouge pas : « bravo » et « charlie »
+  avancent jusqu'à elle, une passe. Le saut de « bravo » ramené à 0,6 s —
+  avancée à 2 s de latence, un saut d'une seconde la mettrait sous son
+  tampon, et la sonde n'y verrait, à bon droit, qu'une latence incohérente.
+  Le levier : refusé pendant un alignement ; setLiveSpeedUpRate « envoyé »,
+  setLiveMaxLatency jamais appelé, rien qui cale, le tampon tel quel ; les
+  plages sous leurs trois formes, l'objet opaque décrit. « kilo » et
+  « lima » : la voix qui saute fait deux composantes l'une après l'autre —
+  jamais une paire ; selon l'instant, l'ancienne domine encore, ou c'est
+  « ambigu » —, et rien ne bouge.
+- **183** : le son calibre, l'horloge aligne et garde. Sur « duo1 » et
+  « duo2 » : au premier contrôle qui voit la cible, rien ne bouge ; au
+  second, la relation de « duo2 » devient −0,150 s, « calibré par le son »,
+  et « duo2 » avance, l'ancre en place ; le son revoit la cible à 0. Une
+  chute de 0,5 s : vue, au journal et à la série, un événement, et « duo2 »
+  avance de nouveau en gardant sa relation ; la carte n'a pas bougé. Une
+  chute de 1,2 s, trop grande pour son tampon : elle devient la référence,
+  l'ancre recule. Le son passé à « duo2 » : l'ancre le suit, la relation de
+  « duo1 » se réécrit (+0,150 s), puis la carte refaite vise +550 — la voix
+  de « duo1 » dans « duo2 » — et « duo1 » recule. « mike » : une dominante,
+  et il avance de 0,3 s. « papa » : « rien près de l'horloge · écho
+  probable : 1100 ms », rien ne bouge. « oscar » : sa première voix se tait
+  trente secondes ; la seconde, seule, devient la dominante, et « oscar »
+  s'y cale de 0,7 s. La première revient : deux composantes établies, à
+  1,4 s l'une de l'autre, « ambigu » — le son se dédit, et « oscar » revient
+  à l'horloge.
+
+### Ce que le banc a trouvé — et le neuvième rapport, rejoué
+
+- **Le mélange à un cinquième, sur le neuvième rapport.** Rejouée sur son
+  historique, la règle de la 4.24.0.17 — un cinquième dans chaque ordre —
+  ne trouvait pas les voix du salon mêlées : 0,18 et 0,16, elles alternent
+  par plages de plusieurs minutes. La paire retenue aurait été −291 et
+  −496, et la cible avancée de 0,3 s, ses lèvres 0,34 s avant sa voix. À un
+  dixième : la paire +44 et −291, la cible à +44 — rien ne bouge. Ce seuil
+  ne se voit qu'au rapport réel : les voix du lecteur factice se mêlent à
+  chaque calcul.
+
+- **La règle de la dominante, sur le huitième rapport.** La première écriture
+  visait la composante la plus forte, où qu'elle soit — elle aurait suivi
+  l'écho du neuvième rapport. Passée sur l'historique du huitième, elle
+  aurait décalé de 2,46 s une paire que l'œil voyait juste : d'où la borne
+  de l'écho.
+- **Une composante absente lue.** L'ambiguïté se disait avec la seconde
+  composante — absente, quand la seule qu'il y avait ne pesait pas encore le
+  poids minimal : une exception, et le contrôle du pilote s'arrêtait là. Le
+  saut du 182 est passé pour une dérive. La nouvelle règle compte le poids
+  près de l'horloge d'abord.
+- **Deux fois tout juste n'est pas une dominante** : deux voix de même
+  force, l'une toujours premier pic et l'autre toujours second, font
+  exactement le double.
+- **Une chute exclue comme « juste après un essai ».** L'essai s'écartait
+  à la cadence de la latence, comme pour le saut ; or la latence du lecteur
+  factice, constante entre deux événements, faisait une cadence de vingt
+  secondes, et une chute de 1,2 s, cinq secondes après une avance, passait
+  inaperçue. La position se lit à chaque relevé : deux secondes et demie
+  suffisent.
+- **L'ancre en place change le reste.** Avancée jusqu'à l'ancre, « bravo »
+  est à 2 s de latence ; son saut d'une seconde la mettait sous son tampon
+  de 1,8 s, et la sonde, à bon droit, n'y voyait qu'une latence incohérente :
+  le saut du 182 est ramené à 0,6 s. Et le 182 fait taire le son commun de
+  « bravo » et « charlie » : il n'y était qu'à 150 et 200 ms de l'horloge —
+  leurs latences de départ —, et le pilote l'aurait calibré.
+- **Une relation que plus rien ne soutenait.** Pour qu'une seconde voix
+  d'« oscar » soit établie, le banc a fait taire la première un temps : la
+  seconde, seule, est devenue la dominante, et le pilote y a calé « oscar »
+  de 0,7 s — à bon droit, c'est tout ce qu'il entendait. Puis la première
+  est revenue, la carte s'est dite « ambiguë »… et la relation restait :
+  seule une cible nouvelle la réécrivait, jamais un refus. Au neuvième
+  rapport, les voix du salon alternent par plages de minutes : une voix
+  seule au début d'une salle, et la tuile serait restée décalée sur elle.
+  D'où **le son se dédit**.
+
+| mutants | ce qui tombe |
+| --- | --- |
+| la carte : le pic sans l'horloge du calcul ; la cible du rapport à l'exigence du pilote (2) | « hotel » à 5,5 s au lieu de 0 ; une cible au rapport à quatorze calculs |
+| la cible : la plus basse des deux voix ; leur milieu ; la paire sans le mélange dans le temps ; la paire sans borne d'une seconde (4) | « duo2 » visé à −558 ms, à −337 ; « lima » visé sur la voix qui a sauté ; « oscar » calé à +0,69 s, la plus haute d'une « paire » de 1,4 s |
+| l'écho et la dominante : l'écho sans borne ; la dominante toujours ; jamais (3) | « papa » calé de 1,1 s sur l'écho ; « oscar » laissé à −0,7 s sur une de ses deux voix ; le rapport qui plante sur une composante seule |
+| le pilote : le son jamais regardé ; sans stabilité ; la relation remise à zéro ; l'ancre jamais gardée, au 182 et au 183 ; `aligner('son')` sans l'ancre ; la marge du tampon ignorée (7) | aucun calibrage ; la relation dès le premier contrôle ; « duo2 » ramené à 0, pas à sa relation ; « alpha », « duo1 » reculés ; la référence qui n'est plus l'ancre ; « duo2 », tombée de 1,2 s, avancée au-delà de son tampon |
+| le son qui se dédit : jamais ; la relation gardée en se dédisant (2) | « oscar » laissé à −0,7 s sur une carte ambiguë ; « le son s'est dédit », la garde restée à −0,7 s |
+| l'ancre qui suit le son : jamais ; sans réécrire la relation (2) | aucune relation réécrite ; « duo1 +0.078 (garde +0.000) » |
+| les chutes : jamais vues ; vues sans événement (2) | les deux chutes du 183 |
+| le levier : setLiveMaxLatency rappelé ; « ok » pour « envoyé » ; pendant un alignement ; la forme jamais décrite ; les plages sous une clé ignorées (5) | l'appel compté par le lecteur factice ; « ok » ; l'essai accepté pendant l'ouverture ; pas de forme pour « alpha » ; pas de plages pour « charlie » |
+| le calage d'un recul à 0,13 s (1) | S10 au 180 |
+
+Vingt-huit mutants, vingt-huit pris — en deux tours :
+
+- **un survivant au premier, la paire sans borne d'une seconde.** « oscar »
+  passe deux voix de « duo1 », à +700 et −700 ms : la seconde, toujours
+  second pic, n'était jamais établie, et la règle de la paire n'avait rien
+  à départager — avec ou sans borne. Le 183 fait taire la première voix
+  trente secondes : la seconde devient premier pic à son tour, et le
+  banc exige les deux composantes établies. C'est là qu'est apparu le défaut
+  que corrige « le son se dédit » : la voix seule, dominante, calait
+  « oscar », et la relation restait. Rejoué contre le 183 réécrit, le mutant
+  prend les deux voix pour une paire de 1,4 s, cale « oscar » sur la plus
+  haute, à +0,69 s, et tombe ;
+- **la dominante jamais reconnue fait planter le rapport** : sans elle,
+  l'ambiguïté se dit avec une seconde composante qui n'existe pas — le
+  défaut que la nouvelle règle a corrigé, décrit plus haut. Le banc échoue :
+  pris.
+
+### Pour le prochain rapport
+
+1. La même paire que le neuvième rapport, si possible, ouverte par le nœud —
+   sans rien taper. Dix minutes de salle.
+2. **Écouter l'ancre** — la tuile qui a le son : la voix de l'autre
+   streamer s'y entend-elle deux fois, une seconde d'écart ? C'est l'écho.
+3. Au rapport : `ecoute.carte` et `ecoute.cible` — la cible près de
+   l'horloge, et l'« écho probable » s'il y en a un —, le bloc `auto`, et
+   `tuiles.*.plagesForme`.
+4. Puis **cliquer sur l'autre tuile** pour lui donner le son : l'ancre le
+   suit au bout de quinze secondes, la carte se refait, et trois à quatre
+   minutes plus tard la relation se recale sur ce qu'on entend désormais.
+   Ses lèvres, et celles de l'autre, collent-elles ? Reprendre le rapport.
+
+## L'alignement automatique, dès l'entrée (v4.24.0.17)
+
+À la demande : « que lorsqu'on rentre dans un multistream, quel que soit le
+nombre de streams, on puisse avoir un alignement parfait ». Le septième
+rapport réel portait deux sessions sur la même paire, l'une alignée par
+l'horloge (le protocole 4), l'autre par le son (`aligner('son')`) — **et les
+deux ont paru justes**. Cette version les enchaîne toute seule, pour toutes
+les tuiles, et les tient. Publiée sur `claude/chrome-multi` seulement.
+
+### Ce que le septième rapport établit
+
+**1. Par l'horloge, la passe par la position a fait son travail.** 1,085 s →
+0,006 s en deux passes et 23,5 s. Le recul a calé de 0,056 s, pas des
+0,175 prévus : la position l'a vu, et la deuxième passe a demandé 0,063 s au
+calage mesuré — 0,144 obtenus (calage 0,081). Il restait −0,025 s par la
+position, +0,006 par l'horloge. Les phases figées tiennent : la phase A a
+58 relevés (3 au rapport précédent).
+
+**2. Toutes les mesures du déplacement concordent.** B − A : position
++1110 ms, horloge +1103, milieu des deux voix +1080, pic +1050 ; la latence,
++1181.
+
+**3. L'horloge erre, sans que rien ne bouge.** Au suivi : 0,006 → 0,133 →
+0,123 → 0,044 → 0,043 s. Ses passages s'étalent de ±89 ms sur la tuile qui
+n'a pas bougé, ±80 à la seconde session — ±120 sur celle qui a bougé,
+déplacement compris.
+
+**4. Par le son, la vérification a sauvé l'alignement, de justesse.** 1,275 s
+→ 0,135 → −0,010 s en deux passes. Selon la position, il ne restait que
+0,028 s après la première ; la vérification a trouvé 0,135. Elle a mis deux
+minutes — au vingt-cinquième et dernier essai : 29 calculs sur 60 étaient
+trop faibles (z < 5). Sur le premier déplacement, son et position
+divergent de 107 ms (1,140 contre 1,247) ; sur le second, de 2 ms (0,145
+contre 0,147).
+
+**5. Trois composantes, de même poids.**
+
+| moment | composantes du son (valeurs) |
+| --- | --- |
+| entre les deux reculs | −17 (3) · 170 (3) · 290 (3) |
+| après le second | −174 (11) · −30 (13) · 152 (12) |
+
+Les vérifications ont pris la paire extérieure (demi-écart ~165 ms) ; la fin
+de session, −30 et 145 (demi-écart 88, comme les 90 de la première
+session). Le milieu glisse de quelque 70 ms selon la paire, et rien ne dit
+laquelle est la bonne. L'historique gardait 60 calculs sur 86 — tout
+l'avant-alignement perdu —, et le rapport ne disait pas quelles voix chaque
+mesure avait prises.
+
+**6. L'horloge contre le son, sur trois rapports.**
+
+| rapport | horloge − son (la cible en avance selon l'horloge) |
+| --- | --- |
+| sixième (autre paire) | +0,07 à +0,09 s |
+| septième, 1re session | +0,14 s |
+| septième, 2e session | +0,18 à +0,27 s, selon la paire de voix |
+
+Même signe, ampleur selon la paire. Et **la latence moins la latence
+d'horloge vaut 2,153 et 2,154 s sur les deux tuiles** (2,07 et 2,19 à la
+seconde session) : l'horloge et la latence partagent la référence de
+Twitch, et aucune ne voit ce qui se passe chez chaque streamer avant
+Twitch — capture, encodage, envoi. Le son, si. C'est très probablement
+l'origine de l'écart ; je ne sais pas en séparer la part du streamer de
+celle d'un salon vocal asymétrique.
+
+**7. À l'œil, sur cette paire, les deux alignements se valent** : 0,15 à
+0,25 s d'écart entre l'horloge et le son ne s'y voient pas.
+
+### Ce que fait l'alignement automatique
+
+Réglage **« Alignement automatique »**, dans le groupe Multistream du
+panneau, **allumé par défaut**. Dans une salle ouverte par le nœud :
+
+1. **À l'ouverture, par l'horloge** : huit secondes pour que les lecteurs
+   s'installent (leur qualité se pose vers 4 à 7 s aux rapports), vingt de
+   passages, puis les passes de S10 — toutes les tuiles, la plus en retard
+   en référence. L'horloge marche même sans son commun. **Les déplacements
+   commencent vers 28 s après l'ouverture ; aligné vers 50 s — 75 s s'il
+   faut une troisième passe.**
+2. **Par le son ensuite.** Il allume l'écoute pour lui. Quand une paire a
+   deux voix nettes depuis le dernier déplacement, et que leur milieu —
+   0,05 s au moins — tient à 40 ms près d'un contrôle au suivant : la tuile
+   du son (l'**ancre**) ne bouge pas, l'autre recule — ou avance, si son
+   tampon le permet. Les tuiles sans voix nettes restent alignées par
+   l'horloge. Une tuile alignée par le son ne l'est qu'une fois : l'horloge
+   garde ensuite sa relation.
+3. **En veille**, un contrôle toutes les vingt secondes : le retard de chaque
+   tuile sur l'ancre, par l'horloge, face à celui qu'elle doit **garder** —
+   0 pour une tuile alignée par l'horloge ; pour une tuile alignée par le
+   son, celui de sa première minute d'après. Réaligné :
+   - après un **événement** — rechargement, coupure d'arrivée, rattrapage,
+     saut de la lecture, tuile nouvelle — dès que vingt secondes de
+     passages d'après le disent à 0,1 s ou plus ;
+   - sur une **dérive** de 0,2 s ou plus, trois contrôles de suite —
+     l'horloge erre seule de ±0,13 s — et une minute au moins après le
+     précédent ;
+   - chaque fois par l'horloge, **en gardant les retards** : un
+     réalignement ne défait pas ce que le son a réglé.
+4. **Au plus six réalignements en dix minutes** — au-delà, une pause de dix
+   minutes : une mesure faussée ne doit pas faire sauter les tuiles sans
+   fin. Deux alignements par le son qui n'ont rien pu déplacer sur une
+   tuile : il ne le retente plus pour elle.
+
+Il s'efface devant le protocole, un alignement à la main et
+`aligner(false)` ; le réglage coupé l'arrête, l'écoute avec. La console
+reste l'établi : `tse.salle.auto()` le lance dans une salle qu'elle a
+ouverte, `auto(0.1)` en accéléré, `auto(false)` l'arrête.
+
+Au rapport, bloc **`auto`** : l'état, l'ancre, le journal — quand, pourquoi,
+par quoi, l'écart avant → après, le nombre de passes —, et au dernier
+contrôle le retard de chaque tuile sur l'ancre (positif : en retard) avec
+celui qu'elle garde, sa dérive, les deux voix nettes vues et l'événement en
+attente.
+
+### Les mesures, corrigées
+
+- **Le calage d'un recul se prévoit à 0,13 s** : la moyenne des sept reculs
+  réels — 0,218 · 0,099 · 0,207 · 0,056 · 0,081 · 0,147 · 0,097. Le calage
+  mesuré, repris sur la même tuile, s'est trompé de 25 et 50 ms ; la
+  moyenne, de 48 et 32 : rien ne justifie d'en changer la règle.
+- **La vérification par le son recale.** Chaque mesure retient le motif de
+  sa paire — ses composantes, son milieu ; la suivante cherche de combien
+  tout le motif a glissé : deux composantes retrouvées à 40 ms près, et à
+  égalité le glissement le plus proche de ce que les déplacements obtenus
+  ont fait — jamais à plus de 150 ms de lui : au banc, une composante de
+  passage en a fait gagner un faux, et une tuile a avancé de 0,19 s de
+  trop ; son et position n'ont jamais divergé de plus de 107 ms sur un
+  déplacement réel. Plus besoin de deux voix nettes après un déplacement : une
+  troisième composante ne gêne plus, et deux calculs suffisent. Et plus de
+  repli sur deux voix nettes quand le recalage manque : **le banc l'a pris
+  en défaut** — sur trois composantes, les premiers calculs d'après n'en
+  voyaient que deux, « nettes » mais pas les mêmes voix, et leur milieu a
+  fait avancer une tuile de 0,31 s de trop, en se disant aligné. Sans
+  recalage, on attend ; au bout de deux minutes, on finit par l'horloge, en
+  le disant — au journal, l'écart d'après « par l'horloge ».
+- **Une tuile alignée par le son ne l'est qu'une fois** — le banc l'a pris
+  en défaut deux fois de plus, une troisième composante plus forte que les
+  voix aidant. Après l'avance de « duo2 », elle faisait avec la première
+  voix deux voix « nettes » : 10 et 12 valeurs, la vraie seconde voix n'en
+  ayant que 2. Leur milieu, −275 ms, quand la vraie paire disait +40 : deux
+  contrôles plus tard, le pilote aurait fait avancer « duo2 » de 0,27 s de
+  trop. Et quand la vraie seconde voix restait trop rare pour le recalage,
+  deux minutes durant, la vérification impossible comptait pour un échec :
+  le pilote reprenait le son, sur les deux voix fausses, et a fait avancer
+  « duo2 » de 0,30 s de trop. Il ne regarde plus le son d'une tuile que le
+  son a déplacée — vérifiée ou non : au rapport, « par le son non
+  vérifiée » ; l'horloge garde sa relation. Seul un alignement qui n'a rien
+  pu déplacer compte pour un échec.
+- **Deux voix nettes se mêlent dans le temps** — le banc l'a pris en défaut
+  une troisième fois, sans qu'on le cherche : cinq minutes de pilote sur
+  trois tuiles, et la seule voix que « charlie » partage avec « alpha » a
+  sauté de 290 à 410 ms d'un calcul à l'autre, l'horloge de 20 ms. Deux
+  groupes, sept valeurs puis trois : « deux voix nettes » au milieu de
+  350 ms, et le pilote a aligné « charlie » dessus. Deux vraies voix se
+  montrent ensemble, souvent dans le même calcul ; deux époques d'une même
+  voix, l'une après l'autre. Il faut désormais, sur toutes les paires d'une
+  valeur de chaque groupe, au moins une sur cinq dans chaque ordre — un
+  même calcul comptant pour moitié dans chacun. La règle vaut partout où
+  l'on lit deux voix : le pilote, `aligner('son')`, les phases du
+  protocole, le rapport.
+- **Après un déplacement, l'enveloppe du son de la tuile repart de zéro.**
+  Une fenêtre qui l'enjambait mêlait deux décalages ; les calculs d'après
+  n'attendent plus vingt secondes — six suffisent.
+- **L'historique de l'écoute garde 150 calculs**, douze minutes et demie.
+- Au rapport, **chaque mesure par le son dit ce qui l'a donnée** — « deux
+  voix » ou « recalé de +387 ms » — et les composantes vues.
+
+### Ce qu'on ne sait pas encore — et que le rapport mesure désormais
+
+- **Jusqu'où un recul peut aller.** Aucun n'a dépassé 1,4 s aux rapports ;
+  une salle qui mêle faible latence et latence normale en demanderait 3 à
+  5. Par tuile : `serie.arriere` (l'élément vidéo), `serie.arriereLecteur`
+  et `plages` (getBufferedRanges, telles quelles).
+- **Les leviers de rattrapage.** `tse.salle.leviers()` appelle, sur la tuile
+  muette, setLiveSpeedUpRate(1,1) et setLiveMaxLatency(sa latence moins une
+  seconde) ; le bloc `essaiLeviers` dit ce que chaque appel a répondu, la
+  latence, les vitesses vues et les rattrapages — et le champ `leviers`
+  dit déjà, avant tout essai, si l'instance a ces fonctions. S'ils font
+  rattraper le lecteur, on tiendrait un levier sans saut. La tuile garde ces réglages
+  jusqu'à la fermeture de la salle : leurs valeurs d'origine ne se lisent
+  nulle part.
+
+### Ce que le banc mesure
+
+**Le lecteur factice** : les « duo » calent de 0,05 s — le plus petit
+calage réel ; il sait rattraper quand on lui pose une latence maximale, à
+la vitesse posée, tel qu'on le suppose du vrai ; ses plages gardent douze
+secondes derrière la lecture ; son horloge peut tarder, une de ses voix se
+taire et reprendre, tout son son sauter sans que la lecture bouge ; et
+« duo3 » passe les deux voix 750 ms après « duo1 ».
+
+- **176** : ouverte par le nœud, la salle lance l'automatique ; réglage
+  coupé, pas de pilote ; rallumé, il démarre ; recoupé, il s'arrête,
+  l'écoute avec.
+- **178** : la liste des leviers dit aussi setLiveSpeedUpRate,
+  setLiveMaxLatency et getBufferedRanges.
+- **180** : S10 au calage de 0,13 ; par le son, « duo1 » recule par le son
+  puis par la position (0,05 s demandés, 0,10 obtenus), et la vérification
+  recale : les composantes ont glissé de ce que les déplacements ont fait,
+  à 40 ms près. Quand ce bruit pousse la vérification à 0,05 s ou plus —
+  le recul dépasse de 0,02, lu à ±35 ms —, une troisième passe, une avance
+  qui dépasse à son tour, et le rapport dit ce qui reste (vu au banc :
+  0,119 au son, 0,07 à la position) : le banc admet ce chemin. Le milieu
+  des deux voix est tenu à ±45 ms : l'ancre du son
+  du lecteur factice le déplace de −315 à −380 selon les passages, pour
+  −350 — ±30 ne passait qu'au hasard.
+- **181** : le protocole 4 au calage de 0,13 — trois passes, comme avant.
+  Le pic de la phase A est tenu à ±60 ms, S10 à ±70 : l'ancre du contexte
+  audio de « bravo », qui démarre suspendu, le laisse de −330 à −400 selon
+  les passages, pour −350 — ±30 et ±40 ne passaient qu'au hasard.
+- **182** : l'automatique sur trois tuiles, à l'échelle 0,1. L'ouverture
+  attend l'horloge de « charlie », qui tarde de douze secondes — « sans
+  horloge : charlie » au rapport —, puis aligne par l'horloge, en trois
+  passes ; un saut de « bravo », réaligné sur six secondes de passages
+  d'après lui — sept au moins entre les deux au journal de la salle ; la
+  dérive de « charlie », comptée « 2 de suite » sans que rien ne bouge,
+  réalignée au troisième contrôle ; `aligner(false)`, un alignement à la
+  main et le protocole, qui l'arrêtent ; les leviers essayés sur « bravo »
+  — un rattrapage à 1,1 — et le tampon en arrière, douze secondes. Enfin
+  « kilo » et « lima », dont la voix commune saute de 300 ms sans que la
+  lecture bouge : deux groupes l'un après l'autre, pas deux voix nettes, et
+  le pilote n'en fait rien.
+- **183** : par le son, sur « duo1 » et « duo2 ». L'ouverture n'a rien à
+  corriger ; au premier contrôle qui voit les deux voix, rien ne bouge ; au
+  second, stables, « duo2 » avance vers l'ancre. Sitôt la passe lancée,
+  une troisième composante de même poids entre, et la vraie seconde voix
+  se tait quarante-cinq secondes : d'abord une paire nette, fausse — le
+  recalage attend ; puis une copie de la première voix, qui refait le
+  motif sous un faux glissement, à 220 ms de l'attendu — écarté ; la voix
+  revenue et la copie tue, il recale.
+  Le calcul d'après le déplacement tient sur moins de vingt secondes. La
+  seconde voix se tait de nouveau : deux voix « nettes », fausses, que le
+  pilote ne regarde pas. La relation que le son a donnée, calibrée, est
+  gardée quand l'ancre saute et que le pilote réaligne par l'horloge ;
+  `auto(false)` éteint l'écoute. Dans une autre salle, tout le son de
+  « duo2 » se tait sitôt l'alignement lancé : deux minutes, la fin par
+  l'horloge en le disant, et « duo2 » « par le son non vérifiée ». Puis
+  « duo3 », à 750 ms : le pilote voit ses deux voix et les laisse ; à la
+  main, `aligner('son')` fait reculer « duo1 », une voix de « duo3 » se
+  tait — une seule composante après le déplacement, et la vérification
+  attend sans conclure.
+
+| mutants | ce qui tombe |
+| --- | --- |
+| l'ouverture : le pilote jamais lancé ; l'écoute pas allumée ; l'ouverture sans attendre l'horloge de chaque tuile ; la salle du nœud sans lui ; le réglage qui ne le coupe pas, ou ne le relance pas (6) | quatre assertions du 182 sur cinq ; l'écoute éteinte ; « sans horloge : charlie » jamais au rapport ; l'automatique absent, ou qui tourne encore, au 176 |
+| la veille : le saut jamais signalé ; vérifié sur des passages d'avant lui ; la dérive dès un contrôle ; au seuil de l'horloge (4) | le saut réaligné comme une dérive ; six secondes entre le saut et le réalignement, pas sept ; « charlie » réaligné avant « 2 de suite » |
+| ce qui l'arrête : le protocole, la main, `aligner(false)` qui le laissent tourner ; `auto(false)` qui laisse l'écoute (4) | « actif » au lieu d'« arrêté : … » ; l'écoute toujours allumée |
+| le son : jamais regardé ; sans stabilité ; au-delà d'une demi-seconde ; l'ancre déplacée ; la tuile alignée par le son regardée de nouveau ; la vérification impossible comptée pour un échec ; les voix pas exigées mêlées dans le temps (7) | aucun alignement par le son ; l'alignement dès le premier contrôle ; « duo3 » aligné à 750 ms ; une référence qui n'est plus l'ancre ; « duo2 » réaligné sur les voix fausses ; pas de « par le son non vérifiée » ; « lima » aligné sur sa voix qui a sauté |
+| la vérification : le repli sur deux voix nettes ; le recalage sur une composante ; sans borne autour de l'attendu ; l'enveloppe gardée (4) | la paire fausse prise pour la vraie ; un recalage sans la seconde voix, et « duo3 » vérifié sur une composante ; « duo2 » recalé sur le faux glissement, et avancé de trop ; aucun calcul sous vingt secondes |
+| ce que l'horloge garde du son : la relation remise à zéro ; jamais calibrée (2) | « duo2 » réaligné sur 0 ; « garde +0.000 … à calibrer » |
+| les mesures : le calage de 0,175 ; un appel des leviers oublié ; les plages jamais relues ; l'historique à 60 calculs (4) | S10 et le son du 180 ; l'appel manquant au rapport ; pas de plages ; **survit** — cf. plus bas |
+
+Trente et un mutants, trente pris — en trois tours, et le premier a
+surtout servi à corriger le banc, puis le pilote :
+
+- au 182, deux survivaient : l'événement vérifié sur des passages d'avant
+  lui, et l'ouverture sans attendre l'horloge de chaque tuile. Le banc lit
+  désormais, au journal de la salle, l'écart entre le saut et le
+  réalignement — sept secondes au moins, six sous le mutant —, et fait
+  tarder l'horloge de « charlie » de douze secondes ;
+- au 183, deux survivaient — le recalage sur une composante, la borne
+  d'une demi-seconde — et trois chutes ne tenaient qu'à une assertion
+  fausse : « plus de deux voix nettes » une fois la troisième composante
+  entrée. Rejouée, elle échouait sur le code d'origine ; c'est en lisant
+  pourquoi que le banc a trouvé les deux défauts du pilote décrits plus
+  haut. Le 183 a été réécrit pour que chaque mécanisme y soit certain, pas
+  tiré au sort — la seconde voix qui se tait puis revient, les voix fausses
+  nettes à coup sûr, la vérification impossible, « duo3 » —, et ses treize
+  mutants, les deux des correctifs compris, rejoués contre lui ;
+- en relisant la chute d'un mutant du 182, un « son (charlie) » au journal,
+  là où « charlie » n'a qu'une voix en commun : cinq minutes de pilote l'ont
+  reproduit, et c'est la règle des voix mêlées dans le temps. Le 182 la
+  rend certaine avec « kilo » et « lima », et son mutant tombe ;
+- le banc complet a pris un faux recalage — une composante de passage, et
+  « duo2 » avancé de 0,19 s de trop : d'où la borne de 150 ms, et le 183 à
+  deux pièges l'un après l'autre. Au troisième tour, la borne, le repli, la
+  tuile regardée de nouveau et le recalage sur une composante, rejoués
+  contre lui, tombent ;
+- il a pris aussi deux fautes hors de tout mutant : le bloc
+  de l'essai des leviers s'appelait `leviers` au rapport, et effaçait le
+  champ du même nom — ce que l'instance offre, depuis la 4.24.0.11 — : le
+  178 l'a vu, l'essai est désormais `essaiLeviers` ; et la fonction qui
+  retient les motifs du son s'appelait `retenir`, comme l'écriture du mémo
+  de chapitres que le 88 lit dans le code par ce nom : renommée ;
+- **un survivant, l'historique ramené à soixante calculs** : soixante
+  calculs, c'est cinq minutes d'écoute, et le banc n'en tient pas autant —
+  il n'a de sens qu'au rapport réel. Qu'il survive au second tour dit aussi
+  que le 183 ne tombe plus au hasard : c'est un témoin de plus.
+
+### Pour le prochain rapport
+
+1. Ouvrir la salle par le nœud, sur deux streams ou plus qui partagent du
+   son — sans rien taper.
+2. Regarder : l'alignement par l'horloge vient dans la première minute ;
+   par le son ensuite, s'il y a deux voix nettes. Dix minutes de salle.
+3. Prendre le rapport (bloc `auto`), et dire ce que vous avez vu.
+4. Puis, à la console : `tse.salle.leviers()`, trente secondes, et reprendre
+   le rapport (bloc `essaiLeviers`).
+
+## L'alignement tient, mesuré plus juste — et par le son s'il le faut (v4.24.0.16)
+
+Le sixième rapport réel est le premier du protocole 4 : deux streams qui
+partagent du son, la cible alignée sur la référence par l'horloge, puis
+trois minutes de suivi. **L'alignement tient** — mais il s'est arrêté à
+0,19 s de son but, pour deux raisons qu'on voit au chiffre près. Cette
+version les corrige, et ajoute l'alignement par le son. Publiée sur
+`claude/chrome-multi` seulement.
+
+### Ce que le rapport établit
+
+**1. Toutes les mesures s'accordent sur le déplacement.** Écart
+référence~cible, phase B moins phase A :
+
+| mesure | B − A |
+| --- | --- |
+| position (déplacements obtenus) | −1302 ms |
+| horloge | −1291 ms |
+| son, composante 1 (1670 → 390) | −1280 ms |
+| son, composante 2 (1080 → −200) | −1280 ms |
+| latence du lecteur | −1328 ms |
+
+**2. L'alignement tient trois minutes, sans dériver.** Aucun rattrapage,
+aucune coupure, aucun rechargement. L'horloge, pendant le suivi : 0,217 ·
+0,154 · 0,104 · 0,151 s. Le son, lui, n'a pas bougé : 390 ms ±10 ms sur
+trente calculs, −200 ms ±15 ms sur vingt-trois. **C'est l'horloge qui erre,
+de ±40 ms**, même sur vingt secondes ; le décalage réel est resté en place.
+
+**3. Pourquoi 0,19 s au lieu de 0.** L'écart initial était de 1,504 s ; les
+deux passes ont obtenu 1,302 s ; il restait 0,202 s, et la mesure finale a
+dit 0,190 — les mesures sont cohérentes. C'est la seconde passe qui s'est
+trompée, deux fois :
+
+- sa **mesure** de cinq secondes a vu −0,157 s, quand la position prévoyait
+  −0,087 : 70 ms d'erreur de l'horloge ;
+- son **calage** : l'avance a pris celui du recul (0,207 s) quand le sien
+  valait 0,075. Les six déplacements réels le disent : un recul cale de
+  0,218 · 0,099 · 0,207 s (0,175 en moyenne), une avance de 0,083 · 0,103 ·
+  0,075 (0,087).
+
+Par la position et au bon calage, elle aurait demandé 0,17 s au lieu de
+0,364, et fini près de zéro.
+
+**4. Deux voix, symétriques.** Avant l'alignement, deux composantes du son
+commun à 1080 et 1670 ms ; après, à −200 et 390 ms : **demi-écart de 295 ms
+les deux fois**. C'est la signature d'un salon vocal — chacun passe sa voix
+dans son stream, et celle de l'autre avec le délai du salon. Leur milieu est
+le décalage réel : 1375 ms avant, **+95 ms après**. Il se tient 70 à 90 ms
+sous l'horloge, avant comme après : même horloges alignées, la cible restait
+en avance de 95 ms. Sur la paire du cinquième rapport, le son avait trois
+composantes : aucun milieu n'y avait de sens.
+
+**5. La phase A n'avait que trois relevés.** La série en garde trois cents
+(cinq minutes) ; la salle en avait duré six, et le rapport, pris à la fin, ne
+trouvait plus ceux du début. L'horloge et le son de A n'en souffraient pas.
+
+**6. Le reste.** Les `ratechange` datés : notre 0,95 à 11 ms, son écho par
+le lecteur à 30 ms (0,949999988 — sa valeur en simple précision), le retour
+à 1 à 141 ms : le lecteur impose sa vitesse. La référence est restée six
+minutes à 3,4 s de latence sans jamais rattraper : le 3,1 s du quatrième
+rapport n'était pas un seuil. Et l'horloge des deux tuiles a perdu ensemble
+une centaine de millisecondes en trois minutes — l'horloge du PC, selon
+toute vraisemblance ; elle s'annule dans l'écart.
+
+### Ce que l'alignement fait désormais
+
+1. **L'écart initial sur vingt secondes de passages**, au lieu de huit.
+2. **La deuxième passe par la position** : l'écart moins le déplacement
+   obtenu, que la position donne à 20 ms près — plus de nouvelle mesure de
+   l'horloge à ce moment-là.
+3. **Un calage par sens** : 0,175 s pour un recul, 0,087 pour une avance ;
+   celui mesuré sur une tuile ne resert qu'au même sens.
+4. **Une vérification**, vingt secondes de passages après le dernier
+   déplacement, et **une troisième passe** si l'écart y dépasse encore le
+   seuil — trois passes au plus.
+
+Au rapport, bloc `alignement` : `passe1` à `passe3`, chacune avec sa base
+(« par l'horloge », « par la position », « après vérification »),
+`verifications`, `apres`, et `apresAutre` — les deux voix après un
+alignement par l'horloge. Le suivi y ajoute le milieu des deux voix quand
+il est net.
+
+### Les deux voix, et l'alignement par le son
+
+**Au rapport**, `ecoute.voix` : pour chaque paire où deux voix sont
+**nettes** — deux groupes de pics d'au moins trois valeurs, écartés de 100 à
+1500 ms, sans troisième qui pèse plus du tiers du second —, leur milieu,
+leur demi-écart, le nombre de valeurs de chacune et la distance du milieu à
+l'horloge. Les phases du protocole le portent aussi, et `S10son` le
+déplacement du milieu.
+
+```
+tse.salle.aligner('son')   // vise le milieu des deux voix
+```
+
+Mesure et vérification par le son, au seuil de **0,05 s** — le son tient à
+±15 ms, l'horloge à ±40 ; la deuxième passe, toujours par la position. Il
+lui faut l'écoute allumée, et deux voix nettes sur chaque paire : sinon il
+refuse, en nommant les tuiles. Sur la paire du sixième rapport, il aurait
+retardé la cible d'environ 95 ms de plus que l'horloge. `aligner()` reste
+par l'horloge, qui marche même sans son commun ; le protocole 4 aussi.
+
+**Les phases sont figées à leur fin** : A au début de l'alignement, B à la
+fin du protocole.
+
+### Ce que le banc mesure
+
+**Le lecteur factice** cale désormais selon le sens — 0,15 s pour un recul,
+0,08 pour une avance, et « alpha », qui cale bien plus, 0,3 et 0,25.
+
+- **179** : le protocole 4 à l'échelle 0,1, sa durée annoncée (~34 s), la
+  première passe notée « par l'horloge ».
+- **180** : `aligner()` seul, sur trois tuiles très décalées : « charlie »
+  aligné du premier coup ; « alpha » reculé par l'horloge, avancé par la
+  position au calage d'une avance (0,087), qui ne suffit pas (il en cale
+  0,25) ; la vérification le voit, et la troisième passe l'avance au calage
+  mesuré — à 0 près de 30 ms ensuite, tout le suivi. Les deux voix au rapport,
+  pour « duo » seulement, et à leur première apparition, trois valeurs
+  chacune ; `aligner('son')` refusé sans elles ou sans écoute ; puis, sur
+  « duo1 » et « duo2 », que l'horloge dit alignées et le son dit à 350 ms :
+  trois passes par le son et la position, le milieu ramené sous 50 ms, et
+  l'horloge qui dit désormais l'écart des déplacements.
+- **181** : le protocole 4 à l'échelle 0,6 — trois passes, par l'horloge, par
+  la position, après vérification —, les deux voix de la phase B (milieu −60,
+  demi-écart 210), et **les phases figées** : l'écoute rallumée, qui efface
+  l'historique et l'horloge, n'y change rien.
+
+| mutants | ce qui tombe |
+| --- | --- |
+| l'alignement : le calage d'un sens pris à l'autre ; un calage unique de 0,12 s ; pas de passe par la position ; pas de troisième passe (4) | l'avance de « alpha » calée comme un recul ; sa deuxième passe qui attend l'horloge ; « alpha » laissé à 0,16 s du but, « duo1 » à 0,075 |
+| les deux voix et `aligner('son')` : nettes dès une valeur ; le milieu pris à la voix basse ; l'écoute pas exigée ; la mesure prise à l'horloge ; le seuil de l'horloge (5) | deux voix « nettes » à 1 et 1 valeurs ; un milieu à −560 au lieu de −350 ; un refus qui ne dit pas qu'il faut l'écoute ; « duo1 » jamais déplacé, ou laissé à 0,075 s |
+| le protocole : la phase A, ou B, jamais figée ; leurs deux voix oubliées ; la durée annoncée à l'ancienne formule (4) | des phases qui changent quand l'écoute repart ; « ~36 s » au lieu de ~34 |
+
+Treize mutants, treize pris — au second regard. Au premier tour, les treize
+tombaient ; en relisant chaque chute, trois ne tenaient qu'à des assertions
+fragiles du banc, que les mutants ne touchaient pas :
+
+- le test de l'alignement par l'horloge exigeait « charlie » sous 0,1 s à la
+  fin. Or sa dérive de −3 ms/s, lue au pas de 20 ms de l'horloge factice, l'y
+  amène à +0,06 ou +0,08 s (six répétitions), à un pas du seuil — et la
+  troisième passe faite, il n'y en a plus. Le test dit désormais la règle :
+  la fin est la dernière vérification, « charlie » laissé tel quel à la
+  première, sa dérive de l'une à l'autre bornée ;
+- les tests de l'alignement par le son et du protocole exigeaient le texte
+  « calage prévu 0.1 », ou « 0.25 », d'un calage mesuré — qui valait 0,101 à
+  une répétition. Ils disent désormais la règle : le calage prévu d'une passe
+  est celui que la passe d'avant a mesuré, au même sens.
+
+Le mutant « deux voix nettes dès une valeur » ne tombait que par la seconde
+fragilité : rejoué, il survivait. **Le rapport dit désormais combien de
+valeurs portent chaque voix**, et le banc vérifie qu'à leur première
+apparition il y en a trois au moins — sous le mutant, « 1 et 1 valeurs ».
+Le milieu, réécrit pour cela, et les deux mutants que seul le test par le son
+prenait ont été rejoués sur le banc final : pris tous les trois.
+
+### Pour le prochain rapport
+
+1. Ouvrir la salle par le nœud, sur deux streams qui partagent du son.
+2. F12, n'importe quel contexte de la salle : `tse.salle.essais()`.
+3. Ne plus toucher à la salle pendant environ 4 min 30 (le journal dit
+   « protocole · fin »).
+4. Prendre le rapport.
+5. Puis, si le rapport montre deux voix nettes : `tse.salle.ecoute()`,
+   une minute d'écoute, `tse.salle.aligner('son')`, attendre « alignement ·
+   fin du suivi » (environ 4 min), et reprendre le rapport.
+
+## Deux rapports, une horloge qui tient, et l'alignement (v4.24.0.15)
+
+Le protocole 3 a été joué deux fois en entier, sur deux paires : l'une sans
+aucun son en commun (quatrième rapport réel), l'autre avec — la paire du
+troisième rapport (cinquième rapport réel). Chacun a reculé la cible d'une
+seconde, puis l'a avancée d'une seconde, l'écoute tournant tout du long.
+Ensemble, ils établissent que **l'horloge de la tête de lecture suit chaque
+déplacement à 10–15 ms près**, que le son commun le suit aussi, et que la
+sonde lisait encore mal six choses. Cette version en tire **l'alignement par
+l'horloge** (S10) et le protocole 4, qui l'éprouve. Publiée sur
+`claude/chrome-multi` seulement.
+
+### Ce que les deux rapports établissent
+
+**1. L'horloge suit la lecture, à 10–15 ms près, par des décalages connus.**
+Les phases relues sur les seules fenêtres qui tombent entièrement dedans
+(huit calculs chacune, sauf mention), médiane de l'écart par l'horloge :
+
+| rapport | déplacement | obtenu (position) | horloge | latence |
+| --- | --- | --- | --- | --- |
+| 4ᵉ | recul de la cible (C − B) | −1218 ms | **−1218** | −1244 |
+| 4ᵉ | avance de la cible (D − C) | +917 ms | **+928** | +986 |
+| 5ᵉ | recul de la cible (C − A) | −1099 ms | **−1086** | −1097 |
+| 5ᵉ | son passé à la cible (B − A) | 0 | −89 | −57 |
+
+À l'intérieur d'une phase, l'horloge varie de ±25 à ±45 ms (écart-type des
+médianes sur 20 s) ; la latence du lecteur, de ±20 à ±80 ms. Au cinquième
+rapport, elle a dérivé de −89 ms entre A et B **sans que rien ne bouge** — le
+son commun, lui, est resté au même pic. C'est sa limite : une dizaine de
+millisecondes sur un déplacement, plusieurs dizaines sur une minute.
+
+**2. Le son commun suit la tête de lecture, lui aussi — et ne dépend pas de
+la tuile qui l'a.** Au cinquième rapport, le pic principal était à
+**1210 ms dans les huit calculs de la phase A** ; en B, le son passé à la
+cible, quatre des cinq calculs qui tiennent l'y trouvent encore (le
+cinquième, à 1960 : cf. 3). S6 : +0 ms. Le biais de capture, troisième
+lecture du rapport précédent, est écarté. Au recul, le pic est passé à
+120–140 ms (−1080, pour −1099 obtenus) ; après l'avance, deux calculs le
+trouvent à 1040 ms — sans tenir (z 3,5 et 4,2) —, soit +900 pour +897.
+
+**3. Ce son commun a trois composantes, qui bougent ensemble.**
+
+| phase | composante 1 | 2 | 3 | horloge |
+| --- | --- | --- | --- | --- |
+| A | 1210 | 1640 | 1950 | 1150 |
+| C (après le recul) | 130 | 550–560 | 860–870 | 64 |
+| D (après l'avance et un calage de la référence) | 1640–1650 | 2070 | 2350–2370 | 1506 |
+
+Écarts constants : +430 et +730 ms environ, à 15 ms près. Chacune a suivi
+chaque déplacement : trois sources distinctes, à des délais fixes l'une de
+l'autre — des voix passant par un salon vocal, d'un côté ou de l'autre, s'y
+prêtent. Au troisième rapport, sur la même paire : 745, puis +415 et +585 à
++615. **La première, la plus forte, se tient 50 à 135 ms après l'horloge** ;
+laquelle est « le » décalage, le son seul ne peut pas le dire. L'horloge,
+elle, compare ce que chaque diffuseur a envoyé au même instant.
+
+**4. Sans son commun, le son ne dit rien — et le disait mal.** Au quatrième
+rapport, six calculs sur quarante-sept tenaient (z ≥ 5), dont cinq à plus de
+5 s, au bord des ±6 s cherchées ; vingt pics principaux sur quarante-sept y
+étaient, trente à plus de 4 s. Aucun n'a suivi le recul. Et la sonde
+annonçait pourtant « deux pics stables : 5100 ms (3) et 5590 ms (2) » : trois
+calculs de suite, qui partageaient les trois quarts de leur son.
+
+**5. La vitesse : remise à 1 entre 60 et 250 ms.** Relue à 61 ms, elle valait
+déjà 1 au quatrième rapport ; à 62 ms, encore 0,95 au cinquième ; 1 à 250 ms
+les deux fois, avec trois `ratechange`.
+
+**6. Chaque déplacement cale un peu.** Obtenu moins demandé : +0,218 et
++0,099 s aux reculs, −0,083 et −0,103 s aux avances — la lecture perd 0,08 à
+0,22 s de plus. Une avance d'1 s n'en donne que 0,9 ; un recul d'1 s, 1,1 à
+1,2. Rien n'a rechargé, et les deux déplacements ont tenu leur minute.
+
+**7. Le lecteur rattrape parfois de lui-même — pas après un déplacement.**
+Au quatrième rapport, la référence est passée à **1,03 pendant 13,6 s**
+(latence 3,10 → 2,83 s), une seule fois. La cible, reculée d'1,2 s, est
+restée une minute à 3,5 s de latence — plus haut que la référence quand elle
+a rattrapé — sans jamais le faire. Les deux tuiles annonçaient le mode faible
+latence. Une seule observation : le protocole 4 les compte.
+
+**8. La référence du cinquième rapport recevait encore sa vidéo par à-coups**
+(deux coupures, 209 s d'intervalle), et la seconde, pendant la phase D, l'a
+fait caler d'environ 0,55 s (référence +0,56 s à la tenue). C'est ce que
+l'horloge a vu en D − C : +1442 ms, soit l'avance obtenue (+897) **plus** ce
+calage ; la latence, +1446 ; la première composante du son, +1515. Le
+protocole 3 ne comptait que les déplacements de la cible : il annonçait
+« prévu +897 » — et « pic +1940 » (cf. plus bas).
+
+**9. `getSyncTime` vaut 0 avant la première image.** La série du cinquième
+rapport remontait à l'ouverture de la salle (292 relevés) : ces zéros
+donnaient à `sync` une pente de 384 millions par seconde.
+
+### Ce que la sonde lisait mal, et lit désormais
+
+- **Les phases sans le son.** Une phase ne prenait l'attendu et l'horloge que
+  dans ses calculs qui tenaient : au quatrième rapport, aucun en A et en D —
+  phases vides, écarts « — ». Désormais, l'attendu vient des **relevés** de la
+  phase et l'horloge de **ses passages**, à partir de deux secondes après son
+  début ; le son s'y ajoute quand il tient.
+- **Le même pic de part et d'autre.** Au cinquième rapport, le groupe le plus
+  nombreux était la composante 1 en C, la 2 en D : « pic +1940 » au lieu de
+  +1515. Le pic d'après est désormais, parmi les groupes de la phase, **le
+  plus proche du pic d'avant déplacé de ce que l'horloge a vu**. Il a
+  **suivi** s'il en est à 150 ms au plus — jugé seulement pour un
+  déplacement de 0,2 s au moins.
+- **Les pics stables, sur des fenêtres disjointes** — deux calculs voisins
+  partagent quinze secondes de son —, choisies depuis la dernière, à un quart
+  de seconde de recouvrement près ; **pas au bord** — un pic à plus de 5 s
+  est écarté et compté, sauf à moins d'une seconde de ce que l'horloge (à
+  défaut, la latence) attend : un vrai décalage de 5,5 s, une chaîne en
+  latence normale face à une en faible latence, reste ; et **depuis le
+  dernier déplacement** : « deux pics
+  stables : 140 et 1210 → milieu 675 » réunissait l'avant et l'après d'un
+  recul.
+- **Le son commun, en un mot** (`ecoute.commun`) : la part des calculs qui
+  tiennent hors du bord — la moitié au moins, « oui » ; moins d'un cinquième,
+  « non » ; entre les deux, « incertain » ; et « non » si le pic n'a pas suivi
+  un déplacement connu. Au quatrième rapport : 1 sur 47, « non » ; au
+  cinquième : 36 sur 46, « oui ».
+- **Aucun saut jugé sur une latence incohérente.** Les quatre « sauts » de la
+  référence au cinquième rapport étaient les deux plongées de son estimation
+  pendant les coupures, aller et retour — des latences déjà reconnues fausses.
+- **La fenêtre d'après un essai, à la cadence de la tuile** : sa cadence plus
+  une demi-seconde, 2,5 s au moins. Une chaîne du quatrième rapport ne
+  remettait sa latence à jour que toutes les quatre secondes, à un instant
+  qui ne doit rien aux relevés : l'effet d'un recul pouvait n'y paraître que
+  3,5 s après la fin de l'essai. La cadence elle-même se lit désormais sur la
+  moitié de deux écarts successifs : un relevé tombé juste avant ou juste
+  après une mise à jour fait alterner 1 et 3 s pour une cadence de 2.
+- **Chaque `ratechange` daté** (« 3 changements (0 ms → 0.95, 58 ms → 1, …) »).
+- **Les rattrapages du lecteur** (`rattrapages`, `rattrapagesDetail`) : leur
+  durée, leur vitesse, la latence avant et après, ce que la vitesse devait
+  faire perdre, et « après déplacement » si la tuile avait été reculée ou
+  avancée avant. Au journal : « rattrapage du lecteur : 13.6 s à 1.03, latence
+  3.104 → 2.833 (attendu −0.41 s) ».
+- **`getSyncTime` à 0** n'est plus une mesure, comme la latence à 0.
+
+### L'alignement par l'horloge (S10)
+
+```
+tse.salle.aligner()        // dix à quinze secondes de passes, trois minutes de suivi
+tse.salle.aligner(false)   // l'arrêter
+```
+
+1. L'horloge de chaque tuile, sur ses huit dernières secondes (elle s'allume
+   d'elle-même si l'écoute ne tourne pas, cinq secondes d'abord).
+2. **La tuile la plus en retard sert de référence, et ne bouge pas.** Chaque
+   autre **recule** de son écart avec elle, moins le calage attendu
+   (0,12 s, entre la médiane — 0,10 — et la moyenne — 0,13 — des quatre
+   déplacements réels).
+3. Cinq secondes après, on remesure, sur les passages d'après. Un écart
+   restant de plus de 0,1 s est corrigé par un second déplacement — reculer
+   encore, ou avancer de ce qu'on a trop reculé —, au calage **mesuré** sur
+   cette tuile au premier (obtenu moins demandé).
+4. Puis le **suivi**, sans rien toucher : l'écart à +30, +60, +120 et +180 s.
+   Le lecteur rattrape-t-il ? Une coupure fait-elle caler une tuile ?
+
+On ne fait que retarder : une tuile retardée a un tampon plus grand, donc
+plus sûr — et l'avance de la seconde passe ne fait que rendre ce qu'on avait
+pris de trop, dans ce tampon agrandi, sous la garde d'une demi-seconde.
+
+Au rapport, bloc `alignement` : `reference` (« … (la plus en retard) »),
+`avant` et `apres` (« … 1.387 · … 0.377 · écart 1.010 s · … +1.010 » —
+chaque horloge, puis l'avance de chaque tuile sur la référence), `passe1` et
+`passe2` (demandé, écart, calage prévu, obtenu, calage mesuré, voie),
+`deplacements` (la latence prise par chaque tuile), `suivi`.
+
+**Ce qu'il ne fait pas** : l'horloge ne voit que la tête de lecture, pas la
+part du diffuseur. Sur la paire du cinquième rapport, il reculerait la cible
+d'environ 1,0 s, et laisserait la première composante du son à 50–135 ms,
+les autres à +430 et +730 ms de plus — aucun réglage ne peut aligner à la
+fois des voix qui passent par un salon vocal.
+
+### Le protocole 4
+
+```
+tse.salle.essais()        // 4 min environ
+tse.salle.essais(false)   // l'arrêter, l'alignement avec
+```
+
+| temps | phase | ce qu'on doit voir |
+| --- | --- | --- |
+| 0 s | A — l'écoute allumée ; la vitesse de l'élément relue sur la cible, chaque `ratechange` daté | l'écart avant, par le son, la latence et l'horloge |
+| 60 s | l'alignement : deux passes | la référence, les reculs, les calages |
+| ~72 s | B — aligné ; le suivi à +30, +60, +120, +180 s | l'écart tient-il ? le son a-t-il bougé de ce que l'horloge a vu ? |
+| ~4 min 12 | fin | |
+
+Au rapport, bloc `protocole` : `S3relecture` ; `phases` (A, B : relevés,
+attendu, horloge, calculs, pics) ; `S10son` (B − A : le pic, l'attendu,
+l'horloge, le prévu — les déplacements obtenus —, et si le pic a suivi) ;
+`sonCommun` ; `rattrapages`, `rechargements` et `coupures` de chaque tuile
+pendant le protocole ; `S9`. Et le bloc `alignement`.
+
+On ne touche toujours pas à `setLiveMaxLatency`, `setLiveSpeedUpRate` ni
+`setInitialBufferDuration`.
+
+### Ce que le banc mesure
+
+**Le lecteur factice** cale désormais à chaque déplacement — 0,15 s, et
+0,3 s pour « alpha », que la seconde passe doive corriger —, rend 0 par
+`getSyncTime` avant de jouer, sait **rattraper** de lui-même (`__rattraper`),
+et « delta » ne remet sa latence à jour que toutes les cinq secondes : le
+pire cas d'une cadence de quatre, quand la mise à jour ne tombe pas au
+relevé. « foxtrot » n'a aucun son en commun ; « golf » et « hotel » passent
+le son 5,5 s plus tard, l'un sans que sa latence le dise, l'autre avec ; et
+une **source de plus** peut s'ajouter en cours de route (`__ajouterVoix`).
+
+- **179** : le protocole 4 à l'échelle 0,1 — la suite seulement : la
+  relecture et ses deux `ratechange` datés, l'alignement lancé, son suivi
+  raccourci, les phases lues aux relevés et à l'horloge sans aucun calcul ;
+  un alignement à la main refusé avant le sien comme pendant ; arrêté pendant
+  le suivi, il arrête l'alignement ; la salle fermée, tous deux. `aligner`
+  relayé par la console d'une tuile et par celle du panneau ; `getSyncTime` à
+  0 hors de la pente.
+- **180** : **`aligner()` seul**, l'écoute éteinte — c'est lui qui allume
+  l'horloge. Têtes de lecture à 4,513, 4,813 et 2,133 s : « bravo », la plus
+  en retard, en référence ; « alpha » recule de 0,18 s, en obtient 0,48
+  (calage mesuré 0,3), et la seconde passe l'avance de 0,48 (0,181 obtenus) ;
+  « charlie » recule de 2,56 s (2,711 obtenus) et n'a plus rien à corriger :
+  écart final **0,000 s** — puis 0,058 s au bout du suivi, la dérive de
+  « charlie ». `aligner(false)` l'arrête, la salle fermée aussi. Le duo, en
+  fenêtres disjointes ; « foxtrot », « non » ; au bord, « golf » (5,5 s par
+  le son seul) écarté, « hotel » (5,5 s par le son et la latence) gardé.
+- **181** : la coupure d'arrivée, sans aucun saut ; un recul juste après une
+  mise à jour de la latence, toutes les deux ou cinq secondes, qui n'en est
+  pas un ; deux rattrapages, dont un « après déplacement » ; et **le
+  protocole 4 à l'échelle 0,6** (156 s) : « bravo » en référence, « alpha »
+  reculé de 0,38 s (0,68 obtenus), avancé de 0,48 (0,18 obtenus), l'écart
+  ramené sous 40 ms et tenu tout le suivi ; A : pic −350, attendu et horloge
+  −500 ; B : 0, pic +150 — et une source de plus, plus forte, à −270 ; B − A :
+  +500 par le son, la latence, l'horloge et le prévu, le pic a suivi ; le son
+  commun, « oui » ; les pics stables, depuis le dernier déplacement.
+
+| mutants | ce qui tombe |
+| --- | --- |
+| l'alignement : la référence la plus en avance ; le calage attendu jamais retiré ; le calage mesuré à l'envers, ou ignoré à la seconde passe ; pas de seconde passe ; un seuil de 0,5 s ; l'horloge jamais allumée hors de l'écoute ; la salle fermée qui l'oublie (8) | des tuiles laissées à 0,18 s, ou 0,3 s trop loin |
+| le protocole 4 : l'alignement jamais lancé, ou jamais attendu ; arrêté sans lui ; un alignement à la main avant le sien ; l'attendu des phases pris aux calculs ; le pic d'après pris au groupe le plus nombreux ; le prévu au mauvais signe, ou à la paire retournée ; les `ratechange` non datés (9) | des phases vides sans son ; « pic +1940 » au lieu de +1515 |
+| le son : les pics d'avant le déplacement comptés ; le déplacement jamais vu ; les fenêtres qui se chevauchent ; le verdict « non » oublié ; le bord jamais écarté, ou toujours (6) | « 140 et 1210 → milieu 675 » ; « 5100 (3) » ; un vrai décalage de 5,5 s perdu |
+| la sonde : un saut jugé sur une latence incohérente ; la fenêtre fixe à 2,5 s ; un rattrapage jamais fini, ou d'attendu inversé ; la tuile déplacée jamais marquée ; `getSyncTime` à 0 compté (6) | les quatre faux sauts du cinquième rapport ; sa pente de 384 millions par seconde |
+| la console : `aligner` absent de la salle, ou du relais des tuiles (2) | une commande qui ne répond pas |
+
+Trente-deux mutants, trente et un pris. Au premier tour, vingt-huit sur
+trente et un ; deux survivants ont montré deux faiblesses. Le banc n'avait
+aucun pic au bord — et, en y regardant, la règle elle-même écartait un vrai
+décalage de 5,5 s : elle tient désormais compte de l'horloge, et « golf » et
+« hotel » l'éprouvent dans les deux sens. Et avec la source ajoutée en
+route, les pics d'avant l'alignement n'entraient jamais dans les deux groupes
+retenus, coupés ou non : le banc borne désormais le nombre de fenêtres.
+**Un survivant, assumé** : mesurer la seconde passe sur des passages d'avant
+le déplacement. La mesure est plafonnée à huit secondes ; cinq secondes après
+le déplacement, elle en garde trois d'avant pour cinq d'après, et la médiane
+retombe sur ceux d'après — à cette cadence, le mutant ne change rien.
+
+### Pour le prochain rapport
+
+1. Ouvrir la salle par le nœud, sur deux streams qui partagent du son — la
+   paire du cinquième rapport, par exemple.
+2. F12, n'importe quel contexte de la salle : `tse.salle.essais()`.
+3. Ne plus toucher à la salle pendant 4 min 15 (le journal dit « protocole ·
+   fin » à la fin).
+4. Prendre le rapport.
+
+## Le recul tient, la vitesse ne se pose pas, et le protocole 3 éprouve la mesure (v4.24.0.14)
+
+Le troisième essai réel a joué le protocole 2 en entier : 322 s de salle,
+deux streams (chat non partagé, mais du son en commun), 300 relevés par
+tuile, les étapes sur la tuile muette, l'autre en référence. Deux résultats
+nets, une mesure qui se confirme, et quatre choses que la sonde lisait mal.
+Cette version en tire le protocole 3, qui éprouve la mesure par des
+décalages connus. Publiée sur `claude/chrome-multi` seulement.
+
+### Ce que le rapport établit
+
+**1. La vitesse ne se pose pas, même sur l'élément vidéo.** L'essai a bien eu
+lieu — « vitesse-video 0.95 · video » au journal —, mais aucun des soixante
+relevés du ralenti n'a lu autre chose que 1 : « vidéo 1–1 · lecteur 1–1 ».
+La latence a pris +0,13 s au lieu de +3,00 s, dans le bruit de ±0,13 s. Le
+lecteur remet donc la vitesse à 1 en moins d'une seconde. Avec la voie de
+l'instance, écartée au rapport précédent, aucun levier de vitesse ne marche
+de l'extérieur.
+
+**2. Le recul dans le tampon marche, et il tient.**
+
+| mesure | valeur |
+| --- | --- |
+| recul demandé / obtenu | 1,00 s / 1,104 s (position 156,256 → 155,652 en 0,5 s) |
+| latence, 5 s après | +0,92 s (référence +0,03) |
+| latence, 30 s après | +1,15 s (référence +0,01) |
+| latence, 2 min après | 3,0075 contre 1,898 avant, soit +1,11 s |
+| tampon de la cible | d'environ 1,4 s à 2,44–2,51 s |
+| rechargements, pente | 0 ; −0,1 ms/s |
+
+Le lecteur n'a pas rattrapé en 2 min 40, ni rechargé. Et ce recul a
+rapproché les deux tuiles : leur écart est passé d'environ 1,8 s à 0,74 s.
+**C'est le levier d'un moteur de synchronisation : retarder les tuiles en
+avance.** Retarder une tuile agrandit son tampon, ce qui la rend plus sûre.
+
+**3. `getSyncTime` suit la lecture : ce n'est pas une heure murale.** La
+perte de pente de ses valeurs sur les 300 relevés, comparée à ce que
+produirait un palier (moindres carrés : `6 h f(1 − f) / T`) :
+
+| tuile | événement | déficit prédit | `getSyncTime` | `getPosition` |
+| --- | --- | --- | --- | --- |
+| cible | recul de 1,104 s à +160 s | 5,5 ms/s | 4,9 | 6,0 |
+| référence | calage de 2,2 s à +52 s | 4,0 ms/s | 3,6 | 3,0 |
+
+Une heure murale garderait 1000/s. Ses valeurs, …612000 et …613000, sont
+arrondies à la seconde et placent la référence 1 s derrière — ce qui colle
+avec ses 0,74 s de latence en plus. C'est, selon toute vraisemblance,
+l'heure de l'image jouée.
+
+**4. La référence recevait sa vidéo par à-coups : quatre coupures, toutes
+les 76 à 80 s** (+52, +128, +206, +286 s).
+
+- Pendant chaque coupure, le tampon fond d'exactement 1,000 s par seconde
+  (3,246 → 2,248 → 1,248 → 0,248), puis se remplit d'un coup (+2,965 s) :
+  trois secondes sans rien recevoir, la lecture continuant.
+- À la première, le tampon ne faisait qu'environ 1,1 s : la lecture a calé
+  (tampon à 0,049), la latence est passée de 1,5 à 3,7 s et y est restée —
+  ce que confirment les pentes des deux horloges. Les trois suivantes ont été
+  absorbées par un tampon d'environ 3,2 s.
+- Pendant ces coupures, `getLiveLatency` plonge (3,7 → 1,0 ou 1,6), puis
+  remonte : le lecteur semble calculer sa latence à partir des données qu'il
+  a reçues (environ tampon + 0,4 s). Sa valeur est fausse tant que la vidéo
+  tarde.
+- Sur les dix « sauts » comptés, seul celui de +52 s était un vrai calage ;
+  les autres, l'estimation qui plongeait. Et les onze « tampons aberrants »
+  étaient en réalité des latences fausses : la règle accusait le tampon.
+- **Pour un moteur : ne jamais avancer une tuile dans sa marge, réaligner
+  quand un lecteur relève sa latence de lui-même, et ne pas se fier à
+  `getLiveLatency` pendant une coupure.**
+
+**5. Le son : un pic stable à 745 ms sur dix calculs (z de 6,8 à 8,7),
+quand la latence attendait 686 ms (médiane).** Écart pic − attendu : +50 ms
+(σ 51 ms, erreur-type 16 ms). **Ici, la différence de latence prédit le
+décalage réel à 50 ms près.**
+
+Des valeurs secondaires sortent aussi — 1330–1360 et 1160, au début et dans
+les deux derniers calculs, z de 5,7 au plus. Au rapport précédent, la seconde
+valeur se trouvait à attendu + 620 ms ; ici, à attendu + 650–670 ms. Trois
+lectures restent possibles :
+
+- **deux voix** passant par un salon vocal : le vrai décalage serait alors
+  d'environ 1040 ms (délai du salon d'environ 300 ms), contre 775 ms la fois
+  précédente. Mais il faudrait qu'une même avance d'environ 370 ms, invisible
+  pour la latence, se retrouve dans deux paires sans rapport, et dans le même
+  sens : c'est suspect ;
+- **le pic dominant est le vrai décalage** (+50 ms ici, +170 ms la dernière
+  fois), l'autre un écho ou une autre source ;
+- **un biais de la capture lié à la tuile qui a le son** : les deux fois, la
+  référence était la tuile sonore.
+
+Le rapport ne peut pas trancher — et l'écoute ayant commencé 30 s après le
+recul, on ne voit pas le son avant et après. D'où le protocole 3.
+
+**6. Le reste.** La dent de scie tient (±0,138 s sur la cible) ; sa pente,
+−0,1 ms/s, n'a plus rien des −3 ms/s du premier rapport. L'écart initial
+entre les tuiles venait encore du tampon.
+
+### Ce que la sonde lisait mal, et lit désormais
+
+- **Un faux saut juste après le recul** (1,812 → 2,813) : l'effet du recul
+  n'apparaît qu'à la mise à jour suivante de la latence, jusqu'à deux
+  secondes plus tard. **Aucun saut n'est plus jugé dans les 2,5 s qui suivent
+  le début ou la fin d'un essai.**
+- **La faute du tampon impossible** : quand le tampon dépasse la latence de
+  plus d'une demi-seconde, elle va désormais à celle des deux valeurs qui
+  s'écarte le plus de sa médiane sur les dix derniers relevés — le tampon au
+  deuxième rapport (174,42 s), la latence au troisième. Un tampon négatif ou
+  de plus de 60 s reste faux d'office. Le tampon faux est écarté
+  (`aberrants`) ; la latence fausse reste dans la série, mais sort de l'amont
+  et de l'attendu (`latencesIncoherentes`).
+- **Les sauts, lus à la position** : avancée d'autant que le temps écoulé, la
+  lecture a continué — c'est l'**estimation** qui a bougé ; moins, la lecture
+  a **calé** ; plus, elle a sauté en **avant** (à 0,3 s près). Au journal —
+  « saut de latence 3.737 → 1.6 · estimation » — et au rapport, `sautsNature`.
+- **Les coupures d'arrivée** : un tampon qui fond au rythme de la lecture (70
+  à 130 % du temps écoulé) deux relevés de suite au moins, puis se remplit
+  d'un coup. Au journal — « coupure d'arrivée : au moins 3 s sans vidéo » —
+  et au rapport, `coupures` et `coupuresDetail` (durées, intervalles).
+- **Le journal dans l'ordre** : « 10 » est une clé numérique, que JavaScript
+  range avant « 01 » ; les clés ont désormais trois chiffres. Et les
+  latences au millième (« 1.8980000000000001 »).
+
+### L'horloge de la tête de lecture
+
+`getSyncTime`, arrondie à la seconde, ne dit rien sous la seconde ; mais
+l'**instant** où elle passe à la suivante, si : la tête de lecture est alors
+exactement à cette heure-là. Pendant l'écoute, chaque tuile la relève toutes
+les 20 ms, et chaque passage donne `maintenant − heure` : la latence de la
+tête de lecture, à 20 ms près, **sans l'estimation du lecteur** qui plonge
+pendant les coupures. Seuls comptent les passages du pas le plus fréquent
+(1000 ms) : un autre pas, c'est un saut de la lecture.
+
+Au rapport : par tuile, `horloge` (« 2.873 s · ±12 ms · 58 passages de 1000 ms
+· lecteur 2.861 s ») ; pour la salle, `instant.ecartHorloge` ; pour chaque
+calcul d'écoute, l'écart par l'horloge sur sa fenêtre même (« … att 686 sync
+690 »).
+
+C'est une hypothèse de travail, tirée des pentes : le protocole 3 dira si
+cette horloge bouge d'exactement ce que bouge la lecture.
+
+### Le protocole 3
+
+```
+tse.salle.essais()        // 4 min
+tse.salle.essais(false)   // l'arrêter
+```
+
+L'écoute tourne tout du long, le sens de sa paire figé à l'allumage.
+
+| temps | phase | ce qu'on doit voir |
+| --- | --- | --- |
+| 0 s | A — la vitesse de l'élément relue : 0,95 posé, puis relu à 0, 50, 250 et 1000 ms, avec le nombre de `ratechange` | en combien de temps le lecteur la remet à 1 |
+| 60 s | B — **le son passe à la cible** | si le décalage ne bouge pas, la capture ne dépend pas de la tuile audible ; s'il bouge, on mesure ce biais |
+| 120 s | C — le son revient ; **recul d'1 s** de la cible | chaque pic, l'attendu et l'horloge doivent bouger d'exactement le recul obtenu |
+| 180 s | D — **avance d'1 s** de la cible, dans son tampon agrandi | le lecteur la garde-t-il ? |
+| 240 s | fin | |
+
+Une phase ne retient que les calculs dont le pic tient (z ≥ 5) et dont la
+fenêtre de vingt secondes commence deux secondes au moins après son début et
+finit avant la suivante : sept ou huit par phase — davantage en A, où
+l'écoute vient de s'allumer et les premières fenêtres sont plus courtes.
+
+Au rapport, bloc `protocole` :
+
+- `S3relecture` : « 0.95 posé · relu 0 ms 0.95 · 50 ms 1 · … · 2 changements » ;
+- `phases` : pour chaque paire et chaque phase, le nombre de calculs, les pics
+  groupés, l'attendu et l'horloge ;
+- `S6bascule` (B − A), `S5son` (C − A), `S7son` (D − C) : l'écart du pic, de
+  l'attendu et de l'horloge, et le **prévu** — 0 pour la bascule, ∓ le recul
+  ou l'avance obtenus selon le sens de la paire ;
+- `S5recul`, `S5position`, `S5tenue` ; `S7avance`, `S7position`, `S7tenue` ;
+- `rechargements`, `coupures` pendant le protocole ; `S9`.
+
+La phase B, tu entends l'autre stream pendant une minute. Arrêté,
+`essais(false)` rend le son à la référence et éteint l'écoute ; un recul ou
+une avance déjà faits restent faits.
+
+**Une commande de plus à la console** : `tse.salle.avance(1)`, de 0,2 à 5 s —
+refusée à moins d'une demi-seconde du bout du tampon, faute de quoi la tuile
+calerait.
+
+On ne touche toujours pas à `setLiveMaxLatency`, `setLiveSpeedUpRate` ni
+`setInitialBufferDuration`.
+
+### Ce que le banc mesure
+
+**Le lecteur factice** imite ce que les rapports ont montré : sa latence lue
+figée en pause ; la vitesse posée par l'instance acceptée sans effet, **celle
+de l'élément remise à 1 aussitôt** (une microtâche, avec ses « ratechange ») ;
+**`getSyncTime`, l'heure de l'image jouée, arrondie à la seconde** ; une
+**coupure d'arrivée** qui vide le tampon puis fait plonger l'estimation. Et
+**son son suit la tête de lecture** : un recul, une pause, un saut le
+déplacent d'autant — sans quoi le protocole 3 ne pourrait rien éprouver.
+
+- **178** : S3 réécrit (l'élément remis à 1, aucun relevé ne lit 0,8) ; le
+  saut reconnu comme un saut en avant ; S9 attend le décalage des têtes de
+  lecture, pause et saut compris.
+- **179** : le protocole 3 à l'échelle 0,1 — la suite seulement : relecture,
+  bascule et retour du son, recul et avance obtenus et tenus, aucune phase
+  retenue à cette échelle ; arrêté en pleine bascule, il rend le son.
+- **180** : `avance` à la console d'une tuile, refusée à 2 s pour 1,8 s de
+  tampon, accordée à 1 s.
+- **181, neuf** : une coupure d'arrivée vue au tampon, sa plongée de latence
+  tenue pour incohérente, ses deux sauts lus comme de l'estimation, l'amont
+  sans elle ; un recul lancé juste après une mise à jour de latence, qui
+  n'est pas un saut ; le journal dans l'ordre ; **le protocole 3 à l'échelle
+  0,6** (144 s) — rien à la bascule, une seconde perdue au recul et regagnée
+  à l'avance, par le son, la latence et l'horloge, et l'horloge de chaque
+  tuile à 20 ms près.
+
+| mutants | ce qui tombe |
+| --- | --- |
+| l'horloge : jamais relevée ; son écart entre deux tuiles à l'envers ; l'écart de la salle absent (3) | la tête de lecture sans horloge, ou à rebours |
+| la sonde : la faute toujours au tampon ; l'amont avec la latence incohérente ; la coupure jamais vue ; la fenêtre après l'essai oubliée ; la nature des sauts ignorée ; le journal à deux chiffres (6) | les onze tampons justes écartés du rapport réel, ses faux sauts, son journal dans le désordre |
+| le protocole 3 : le sens de la paire qui suit le son ; les phases sans borne de fin ; le prévu au mauvais signe ; l'historique trop court ; la relecture absente, lue avant de poser, ou sans ses changements ; la bascule oubliée ; le son jamais rendu, ni à la fin ni à l'arrêt ; l'avance obtenue à l'envers (11) | une phase qui mélange deux régimes ; un écart jugé contre un prévu faux ; la tuile laissée sur l'autre son |
+| l'avance : sans garde, à l'envers, absente de la console ou de son relais (4) | une tuile qui entre dans sa marge et cale |
+
+Vingt-cinq mutants, vingt-quatre pris. Au premier tour, vingt et un ; trois
+survivants ont montré trois faiblesses du banc, corrigées : le recul qui
+devait éprouver la fenêtre après l'essai tombait au mauvais moment de la
+cadence de « charlie » — la règle d'avant ne l'aurait pas compté non plus ;
+un calcul qui suit de peu la fin de la phase B y compte encore, et masquait
+une paire retournée — le banc exige désormais qu'elle ne se retourne
+jamais ; à l'échelle 0,6, un historique de 24 calculs perdait trop peu de la
+phase A pour qu'on le voie — le banc exige qu'il garde tout le protocole.
+**Un survivant, assumé** : l'arrondi des latences du journal. Seules les
+médianes du protocole en produisent de bruitées — (1,897 + 1,899) / 2 =
+1.8980000000000001, le cas même du rapport —, et les latences exactes du
+lecteur factice n'en produisent aucune.
+
+### Pour le prochain rapport
+
+1. Ouvrir la salle par le nœud, sur deux streams qui partagent du son.
+2. F12, n'importe quel contexte de la salle : `tse.salle.essais()`.
+3. Ne plus toucher à la salle pendant 4 min — une minute sur l'autre son au
+   milieu (le journal dit « protocole · fin » à la fin).
+4. Prendre le rapport.
+
+## Ce que le second rapport a appris : un lecteur qui recharge, deux voix, et le protocole 2 (v4.24.0.13)
+
+Cette fois, le protocole est allé au bout : 374 s de salle, deux
+co-streamers en Chat partagé, 300 relevés par tuile, les quatre étapes
+jouées sur la tuile muette, l'autre en référence. Il a répondu à ses deux
+questions — et pas comme prévu —, et montré trois choses que la sonde lisait
+mal. Cette version corrige la sonde, change de leviers, et consigne le
+reste. Publiée sur `claude/chrome-multi` seulement.
+
+### Ce que le protocole a mesuré
+
+| étape | attendu | mesuré (cible) | référence |
+| --- | --- | --- | --- |
+| S3 : vitesse 0,95 par l'instance, 60 s | +3,00 s | −0,02 s | −0,02 s |
+| S3 : retour à 1, 30 s | — | +0,10 s | −0,03 s |
+| S4 : pause de 3 s, juste après | +3,00 s | −0,15 s | +0,07 s |
+| S4 : trente secondes après | +3,00 s | −0,08 s | +0,09 s |
+| S9 : l'écoute, 60 s, dix calculs | 378 ms (latences) | 530 · 560 · 560 · 560 · 560 · 560 · 550 · 1010 · 1000 · 1000 ms | |
+
+1. **La vitesse posée par l'instance n'a rien fait.** `setPlaybackRate(0.95)`
+   a été accepté — sans erreur, noté « vitesse 0.95 · instance » —, mais la
+   vitesse lue est restée à 1 du premier au dernier relevé, sur le lecteur
+   (`getPlaybackRate`) comme sur la vidéo, et la latence n'a pas bougé
+   (−0,02 s, comme la référence). Le lecteur en faible latence règle sans
+   doute sa vitesse lui-même — c'est une hypothèse. Le protocole 2 pose la
+   vitesse sur l'**élément** vidéo, sans passer par le lecteur.
+2. **La pause a fait RECHARGER le lecteur.** Tout est au rapport :
+   - pendant la pause, la latence est restée **figée** à 1,596 — la sonde
+     l'attendait croissante d'une seconde par seconde, et y a vu trois faux
+     « sauts de latence 1.596 → 1.596 » ;
+   - à la reprise, la qualité est passée à 1080p60 (source) puis revenue à
+     720p60 une seconde plus tard : la salle réimposant sa qualité à un
+     lecteur neuf ;
+   - `getPosition` valait 192,66 sur la cible contre 368,62 sur la
+     référence, avec une pente de 0,203/s sur la série : elle est **repartie
+     de zéro** à la reprise — 374 − 181 = 193 s, le temps écoulé depuis ;
+   - le tampon a été lu une fois à **174,42 s** (et l'« amont » à −172,8) :
+     impossible, ci-dessous ;
+   - après : la latence est revenue au direct (−0,15 s au lieu de +3,00).
+
+   La pause n'est donc pas un levier : le lecteur reprend au direct. Le
+   protocole 2 la remplace par un **recul dans le tampon**.
+3. **L'écoute a donné deux valeurs, et une seule à la fois** : 530–560 ms
+   sept fois, puis 1000–1010 ms trois fois, quand la latence en attendait
+   378 au dernier calcul — le seul dont l'attendu soit au rapport ; aucun
+   événement au journal pendant cette minute — ni saut, ni changement de
+   qualité. Deux lectures possibles :
+   - **deux voix.** Les co-streamers se parlent par un salon vocal : la voix
+     de A passe dans le stream de B après le délai d du salon, et celle de B
+     dans celui de A. Si Δ est le vrai décalage entre les tuiles, la voix de
+     A donne un pic à Δ − d, celle de B à Δ + d. Avec 550 et 1000 : **Δ ≈ 775
+     ms, d ≈ 225 ms** — un délai de salon vocal plausible. Le passage de l'un
+     à l'autre dirait qui parlait ;
+   - **un vrai changement de décalage** de 450 ms, sans que la latence ne
+     bouge : moins probable, pas exclu.
+
+   Si ce sont deux voix, le vrai décalage (775 ms) s'écarte de la latence
+   (378 ms) de 400 ms : la part du chemin que `getLiveLatency` ne voit pas —
+   l'encodage et l'envoi de chaque streamer. C'est exactement pour cela que
+   S9 existe. Mais l'historique ne gardait que le premier pic de chaque
+   calcul : impossible de trancher. La 4.24.0.13 garde les deux, leur poids,
+   le z et l'attendu de chaque calcul, et écoute 90 s.
+4. **La série, de nouveau (S2).** Latences médianes 1,963 et 1,584 s — 0,38
+   s d'écart ; tampons 1,458 et 1,10 ; amont 0,501 et 0,49 : **l'écart venait
+   encore du tampon**. Toujours une mise à jour toutes les deux secondes et
+   l'alternance de ±0,13 s, mais une pente de −0,5 et −0,1 ms/s, contre −3
+   la fois précédente : la dent de scie n'a pas de pente fixe.
+5. **Les deux horloges du lecteur.** `getSyncTime` : 1790791934000 dans les
+   deux tuiles, pente 999,998 et 1000,116 par seconde — une heure murale en
+   millisecondes, la même partout, et qui finit par 000 : rien, là, pour
+   aligner deux tuiles sous la seconde. `getPosition` : le temps de lecture
+   de la session, remis à zéro par un rechargement — ce qui en fait le
+   détecteur.
+
+### Ce que la sonde lisait mal, et lit désormais
+
+- **Un rechargement se voit à la position** : si elle recule de plus d'une
+  seconde (hors recul voulu), le journal note « rechargement du lecteur
+  (position X → Y) », la tuile compte ses `rechargements`, et la seconde
+  n'est pas jugée. La pente de la position est prise depuis le dernier
+  rechargement.
+- **Un tampon impossible n'est pas une mesure** : le tampon, c'est la vidéo
+  téléchargée devant la lecture, et rien n'existe au-delà du direct — il ne
+  peut pas dépasser la latence. Au-delà de la latence et d'une demi-seconde
+  (ou de 60 s sans latence connue), ou négatif, le relevé est écarté et
+  compté (`aberrants`).
+- **Pas de saut en pause** : on ne juge que les secondes où les deux relevés
+  sont en lecture — en pause, le lecteur fige sa latence, et on ne sait pas
+  quelle loi elle suit. La vitesse attendue est celle de la vidéo, du
+  lecteur à défaut.
+- **L'historique de l'écoute, calcul par calcul** : le pic, le second et son
+  poids face au premier, le z, l'attendu — `-560 (-160 68 %) z 7.1 att 0`.
+  Et une lecture, `pics` : les calculs dont le pic tient (z ≥ 5), leur
+  premier pic et le second s'il pèse 60 % du premier, groupés à 80 ms ; deux
+  groupes d'au moins deux valeurs donnent leur **milieu** (le décalage, si
+  ce sont deux voix) et leur **demi-écart** (le délai du salon). C'est une
+  lecture, pas une preuve : un vrai changement de décalage donnerait aussi
+  deux groupes, et l'attendu de chaque calcul dit alors si la latence a
+  bougé d'autant.
+
+### L'écoute entendait son propre démarrage
+
+Le banc a trouvé ce que le rapport ne pouvait pas montrer. Deux voix, à −550
+et −150 ms : l'écoute rendait **un seul pic, à 0 ms**, r 0,62, z 15.
+
+- **La cause** : l'écoute démarre dans toutes les tuiles au même ordre, donc
+  au même instant, et chaque capture commence par un bloc muet (−8, le
+  plancher) avant le son. Un saut de 7,5 unités, commun à toutes les tuiles,
+  qui pèse plus, une fois les variations réduites, que tout le reste du
+  signal. Recalculée hors navigateur sur les enveloppes capturées, la
+  corrélation des variations donne 0,62 à 0 ms ; celle des niveaux, qui ne
+  voit pas le saut, donne −550 et −150. **Une capture ne compte plus qu'une
+  seconde après son premier son.** Au rapport réel, rien n'indique qu'il ait
+  pesé — aucun calcul à 0, et le vrai son a bien plus d'attaques que le
+  banc —, mais les calculs des vingt premières secondes de chaque écoute le
+  contenaient.
+- **`playbackTime` n'est plus l'heure des blocs.** Sous Chromium, l'heure
+  audio que le `ScriptProcessor` donne à chaque bloc tremble de ±4 ms — des
+  pas de 17 à 32 ms pour une période de 23,22 —, et d'un tremblement
+  IDENTIQUE dans toutes les tuiles, au dixième de milliseconde près. Un bloc
+  dure exactement 1024 échantillons : il est daté par son **rang**, ramené à
+  l'heure commune par la même ancre qu'avant ; `playbackTime` ne sert plus
+  qu'à compter un bloc perdu. Il n'était pas la cause du pic à 0 ms — l'amorce
+  l'était —, mais sur le banc à deux voix, amorce écartée, six passes datées
+  par lui ont donné trois calculs sur trente-six avec un pic parasite (à
+  −10 ms, z 16,5 ; à −2 580 ms), et neuf passes datées par le rang aucun sur
+  cinquante-quatre. Un indice, pas une preuve : des parasites tombés au
+  hasard seraient tous trois du même côté six fois sur cent. Le rang, lui,
+  est exact par construction.
+
+### Deux voix d'égale force, deux pics inégaux
+
+Le premier son factice — des tranches de 100 ms d'amplitude tirée entre 0
+et 1 — ne lisait les deux voix qu'une fois sur trois. Une simulation hors
+navigateur (l'enveloppe du faux son, bloc par bloc, et la corrélation de la
+salle, recopiée) sur des milliers de tirages a dit pourquoi :
+
+- **deux voix d'égale force donnent souvent des pics inégaux** : le second
+  sous 60 % du premier dans 15 % des fenêtres de 20 s avec ce son-là, 3 %
+  avec des tranches de 30 ms, 0,7 % avec, en plus, des amplitudes de 0,25
+  à 1. Les variations d'une enveloppe logarithmique ont des queues lourdes :
+  quelques gros événements font l'essentiel de la corrélation ;
+- **sur 90 s d'écoute (dix-huit calculs), la lecture des pics a vu juste aux
+  quarante essais de chaque cas**, une voix comme deux ; sur trois calculs,
+  elle manque la seconde voix quand elle est trop faible dans trop de
+  calculs.
+
+D'où, dans la sonde, le second pic **toujours** à l'historique avec son
+poids — on ne perd plus rien à l'analyse —, et, au banc, un son factice en
+tranches de 30 ms et d'amplitudes de 0,25 à 1, sur six calculs : 3 999 fois
+sur 4 000 en simulation. Essayés et écartés : une suite périodique (des
+marges au seuil pour certaines phases), des voix décalées d'une
+demi-tranche (aucun gain), des tours de parole (périodiques, donc des pics
+périodiques).
+
+### Le protocole 2
+
+```
+tse.salle.essais()        // 4 min
+tse.salle.essais(false)   // l'arrêter
+```
+
+| temps | étape |
+| --- | --- |
+| 0 s | début |
+| 30 s | S3 bis : vitesse 0,95 sur l'**élément** vidéo, sans le lecteur |
+| 90 s | retour à 1 |
+| 120 s | S5 : **recul d'une seconde** dans le tampon (`seekTo` sur l'instance, `currentTime` à défaut) |
+| 150 s | S9 : l'écoute, **90 s** |
+| 240 s | fin |
+
+Au rapport, bloc `protocole` :
+
+- `S3video` : attendu +3,00 s, mesuré, référence ;
+- `S3vitessesLues` : les vitesses lues pendant le ralenti, vidéo et lecteur
+  — le lecteur remet-il l'élément à 1 ?
+- `S3retour` : la latence garde-t-elle son retard ?
+- `S5recul` : attendu +1,00 s, mesuré cinq secondes après ;
+- `S5position` : la position avant, une demi-seconde après, et le **recul
+  obtenu** (la lecture ayant continué entre les deux) ;
+- `S5tenue` : trente secondes après — le lecteur rattrape-t-il ?
+- `rechargements` : ceux de la cible pendant le protocole ;
+- `S9` : les paires de l'écoute, et leurs pics stables.
+
+Deux commandes de plus à la console, bornées comme les autres :
+`tse.salle.vitesseVideo(0.95)` et `tse.salle.recul(1)` (0,2 à 5 s).
+
+**Rien n'est essayé sur `setLiveMaxLatency`, `setLiveSpeedUpRate` ni
+`setInitialBufferDuration`** : un levier à la fois.
+
+### Ce que le banc mesure
+
+**Le lecteur factice** imite ce que le rapport a montré : il fige sa
+latence en pause ; la vitesse posée par l'instance est acceptée, **sans
+effet** ; sa latence suit la vitesse de l'élément ; il a `getPosition` et
+`seekTo` ; il sait recharger (position à zéro, un tampon de 174,42 s lu
+pendant 1,2 s) ; et « duo1 » et « duo2 » portent deux voix.
+
+- **178**, S3 réécrit : par l'instance, 0,8 noté mais sans effet ; par
+  l'élément, 0,2 s de latence par seconde, sans saut ; revenue à 1, plus
+  rien.
+- **179** : le protocole 2, dix fois plus vite — la vitesse posée sur
+  l'élément et lue « vidéo 0.95–0.95 · lecteur 1–1 », le recul d'une seconde
+  obtenu à 0,05 s près par l'instance, la tenue, aucun rechargement, l'écoute
+  de neuf secondes allumée puis éteinte, la vitesse remise — et remise aussi
+  quand on l'arrête en plein ralenti.
+- **180, neuf** : un rechargement vu à la position, compté, noté, son tampon
+  impossible écarté, la pente prise depuis ; `vitesseVideo` et `recul` tapés
+  dans la console d'une tuile, relayés, bornés — et trois secondes de recul
+  qui ne sont pas un rechargement ; une pause à la main dont la reprise n'est
+  pas un saut ; deux voix — deux pics stables à −550 et −150 ms (30 ms de
+  tolérance, 10 ms d'écart observé), leur milieu à −350, pas 0, huit valeurs
+  au moins dans les deux groupes, et l'historique complet de six calculs.
+
+| mutants | ce qui tombe |
+| --- | --- |
+| l'écoute : l'amorce comptée ; l'ancre des blocs datés par leur rang perdue (2) | le pic à 0 ms de retour ; un décalage faux de la durée d'un contexte suspendu |
+| le rechargement : jamais vu ; le recul voulu pris pour lui ; son compte absent du rapport ; la pente de la position prise à travers la remise à zéro (4) | un lecteur rechargé qui passe inaperçu, ou vu là où il n'est pas |
+| le tampon impossible gardé (1) | 174,42 s dans les chiffres |
+| les sauts jugés en pause (1) | la reprise d'une pause prise pour un saut |
+| l'historique et les pics : le second pic et son poids, l'attendu, le second pic ignoré par la lecture, les groupes mal coupés, le milieu faux (5) | deux voix illisibles, ou un décalage faux |
+| les leviers : la vitesse de l'élément passée par le lecteur (au pont, puis dans le relais de la console), celle de l'instance posée sur la vidéo seule, le recul à l'envers, le recul sans bornes (5) | un essai qui ne fait pas ce qu'il dit |
+| le protocole 2 : le recul absent ; les vitesses lues, les rechargements absents du rapport ; l'écoute écourtée ; l'arrêt qui laisse l'élément ralenti (5) | une mesure manquante ; une tuile laissée ralentie |
+
+Vingt-trois mutants. Au premier tour, vingt pris ; les trois survivants ont
+montré trois trous du banc, comblés : le relais de `vitesseVideo` depuis une
+tuile jamais emprunté ; un lecteur factice dont l'instance ralentissait
+aussi l'élément — le vrai ne fait rien, et un arrêt qui passerait par elle
+laisserait la tuile ralentie ; une pause à la main jamais jouée. Au second
+tour, les trois pris, et le mutant « essai jamais noté » de la 4.24.0.11,
+rejoué sur le S3 réécrit, toujours pris.
+
+### Pour le prochain rapport
+
+1. Ouvrir la salle par le nœud, sur deux co-streamers qui se parlent.
+2. F12, n'importe quel contexte de la salle : `tse.salle.essais()`.
+3. Ne plus toucher à la salle pendant 4 min (le journal dit « protocole ·
+   fin »).
+4. Prendre le rapport.
+
+## La console partout, le protocole en une commande, et ce que la série a montré (v4.24.0.12)
+
+Le premier essai réel de la sonde s'est arrêté à la première commande :
+`tse.salle.vitesse('<chaîne>', 0.95)` → `ReferenceError: tse is not
+defined`. Le rapport pris juste avant, lui, portait cinq minutes de série
+(S2). Cette version corrige la console, remplace cinq commandes par une, et
+consigne ce que la série a appris. Publiée sur `claude/chrome-multi`
+seulement.
+
+### « tse is not defined » : deux causes
+
+**`window.tse` n'existait que dans la page de Twitch elle-même** — le
+contexte « top » de la console, monde MAIN. Or une page où la salle est
+ouverte compte bien d'autres documents : une iframe `player.twitch.tv` par
+tuile, un ou deux chats, le panneau incrusté (une page d'extension), et le
+monde isolé de l'extension. Un clic droit → **Inspecter** sur une tuile, un
+chat ou le panneau met la console dans ce document-là, où `tse` n'existe
+pas : c'est exactement l'erreur reçue. L'autre explication — `window.tse`
+jamais posé — est exclue par le rapport lui-même : un échec de la pose est
+consigné au journal d'erreurs, et le journal était vide, la salle
+fonctionnant par ailleurs.
+
+**Et l'exemple était recopié tel quel.** `'<chaîne>'` était mon exemple, pas
+un nom de chaîne ; même dans le bon contexte, la commande aurait répondu
+« tuile inconnue ». Les instructions étaient mal conçues.
+
+### La console partout
+
+| où la console se trouve | ce que `tse.salle` y fait |
+| --- | --- |
+| la page (« top ») | comme avant |
+| une **tuile** (`player.twitch.tv`) | relaie la commande à la salle par `postMessage` ; elle s'exécute **sur cette tuile** si la commande n'en nomme pas, et la réponse s'affiche dans la console de la tuile |
+| un **chat** de la salle | c'est le `tse` de la page : même origine |
+| le **panneau** incrusté | relaie par le chemin de ses autres demandes ; la page n'y sert que `essais`, `vitesse`, `pause`, `ecoute`, `rapport` |
+
+Le monde isolé de l'extension (« Cowlor's Sidebar » dans le menu des
+contextes) n'est pas couvert : on n'y arrive pas par « Inspecter ».
+
+**Garde-fous.** La salle n'accepte une commande relayée que de ses propres
+tuiles (la source du message est comparée à leurs fenêtres) ; les commandes
+restent bornées (vitesse 0,5–1,5, pause 0,2–10 s) ; le panneau ne peut rien
+demander d'autre — une commande hors liste répond « commande inconnue ».
+
+**Plus besoin de nom.**
+
+```
+tse.salle.vitesse(0.95)             // la tuile d'où l'on tape, sinon la première muette
+tse.salle.vitesse('chaine', 0.95)   // par son nom
+tse.salle.vitesse(2, 0.95)          // par son numéro, celui de sa touche
+```
+
+Un nom inconnu fait lister les tuiles, numéros compris.
+
+### Le protocole en une commande
+
+```
+tse.salle.essais()        // environ 3 min 30
+tse.salle.essais(false)   // l'arrêter
+```
+
+Il enchaîne sur la tuile muette (ou celle d'où l'on tape), l'autre servant de
+**référence** — elle dit ce que la latence fait d'elle-même pendant ce temps :
+
+| temps | étape |
+| --- | --- |
+| 0 s | début |
+| 30 s | S3 : vitesse 0,95 |
+| 90 s | retour à 1 |
+| 120 s | S4 : pause de 3 s |
+| 150 s | S9 : l'écoute, une minute |
+| 210 s | fin |
+
+À chaque étape, la latence des deux tuiles est prise : la médiane des quatre
+dernières secondes, parce que le lecteur ne la remet à jour que toutes les
+deux secondes (ci-dessous). Le rapport porte un bloc `protocole` :
+`S3ralenti` (attendu +3,00 s, mesuré, référence), `S3retour` (la latence
+garde-t-elle son retard ?), `S4pause` (juste après), `S4tenue` (trente
+secondes après), `S9` (les paires de l'écoute). Arrêté, ou la salle fermée,
+il remet la vitesse à 1 et éteint l'écoute s'il l'a allumée.
+
+**L'écoute a besoin d'un geste dans la page** : après la redirection, Chrome
+compte le clic sur le nœud — la tuile du son a bien eu son son dans le
+rapport. Si une tuile dit `suspended`, un clic sur le titre de la salle suffit.
+
+### Ce que la série a montré (S2)
+
+Deux co-streamers en Chat partagé, 352 s de salle, 300 relevés par tuile :
+
+| | tuile du son | tuile muette |
+| --- | --- | --- |
+| latence (min · méd · max) | 1,822 · 1,963 · 2,099 | 2,085 · 2,24 · 2,383 |
+| tampon (min · méd · max) | 1,332 · 1,432 · 1,512 | 1,652 · 1,743 · 1,787 |
+| latence − tampon (médianes) | ≈ 0,53 | ≈ 0,50 |
+| vitesse (vidéo, lecteur) | 1 · 1 | 1 · 1 |
+
+1. **Le lecteur ne remet sa latence à jour que toutes les deux secondes.**
+   Sur les soixante dernières valeurs de chaque tuile, les trente paires sont
+   des paires : chaque valeur tient deux relevés. C'est la durée d'un segment
+   chez Twitch.
+2. **Chaque mise à jour monte ou descend de 0,13 s**, en alternance
+   (0,132 et 0,131 en moyenne) : une valeur isolée porte ±0,07 s de bruit.
+3. **Lissée sur quatre secondes, la latence est une dent de scie.** Elle
+   baisse lentement — −3,0 et −3,1 ms/s —, puis remonte d'un coup de
+   0,13 s : à 32 s pour l'une, à 2 s et 36 s pour l'autre — un intervalle
+   observé de 34 s, quand 0,13 s à −3 ms/s en laisserait attendre une
+   quarantaine. Et ce, à vitesse 1 de bout en bout, sur la vidéo comme sur le
+   lecteur.
+4. **Une hypothèse, pas une mesure.** Le lecteur en faible latence rattraperait
+   un peu plus vite que le temps réel jusqu'à ce que son tampon soit trop
+   mince, puis céderait d'un cran. L'API a bien un `setLiveSpeedUpRate`, et ce
+   rattrapage ne passerait pas par la vitesse lisible. 0,133 s, c'est aussi
+   huit images à 60 i/s : la coïncidence est notée, pas interprétée.
+5. **L'écart entre les tuiles** : 0,287 s de médiane sur les 300 tours, mais
+   des creux à 0,01 quand les alternances des deux tuiles se croisent. Lissé sur quatre
+   secondes : 0,28 à 0,31, avec des creux à 0,14–0,16 pendant les quelques
+   secondes où une tuile a fait son cran et pas l'autre. **Un moteur devra
+   comparer des moyennes sur quatre secondes, et compter avec ±0,07 s de
+   gigue propre à chaque lecteur**, à moins d'apprivoiser sa régulation.
+6. **Cette fois, l'écart venait du tampon.** Les parts d'amont se valent
+   (≈ 0,53 et 0,50) ; les tampons diffèrent de 0,31 s. Au premier rapport,
+   c'était l'inverse : 0,35 s d'écart d'amont, 0,19 s de tampon. Il n'y a
+   pas de règle : les deux varient.
+7. **La tuile en retard était la muette** : la tuile du son aurait dû
+   ralentir, doucement. Mais l'étude disait « jamais avancée » : c'était trop
+   strict. Une tuile peut avancer **dans son propre tampon** — ici 1,74 s —,
+   tant qu'elle y garde une marge : jamais au-delà du direct, mais pas
+   seulement en arrière. À mesurer : le lecteur reconstitue-t-il son tampon ?
+8. **Relevés simultanés, estimations non.** Les réponses d'un tour arrivent à
+   0–1 ms d'intervalle, mais chaque latence peut dater de deux secondes. À
+   −3 ms/s, cela fait moins de 10 ms : négligeable devant l'alternance.
+9. **Les « sauts de latence 0 → 0 » de l'ouverture étaient faux** : avant de
+   jouer, le lecteur rend 0. Une latence nulle compte désormais comme « pas
+   encore mesurée ». Restent deux vrais mouvements à l'ouverture (+0,50 puis
+   −0,51 s en un peu plus d'une seconde, sur la tuile du son) : sans doute
+   le changement de qualité — une hypothèse.
+
+**Ce que le lecteur offre : 89 fonctions**, et tous les leviers cherchés sont
+là. Plusieurs n'étaient pas prévus : `setLiveSpeedUpRate` (le rattrapage
+lui-même, sans doute), `setLiveMaxLatency`, `setInitialBufferDuration`,
+`getSyncTime`, `getBufferedRanges`, `getSinkBufferedRanges`. Les deux
+premières pourraient empêcher le lecteur de défaire un alignement ; rien
+n'est essayé sur elles, seulement noté.
+
+### Ce que le rapport porte en plus
+
+Par tuile, dans `serie` :
+
+- `amont` : latence − tampon, relevé par relevé ;
+- `majS` : les secondes entre deux mises à jour de la latence ;
+- `penteMsS` : sa pente sur la dernière minute ;
+- `tampons` : les soixante derniers tampons, comme les latences ;
+- `sync` et `position` : `getSyncTime` et `getPosition`, lus tels quels, avec
+  leur pente par seconde, qui dira leur nature.
+
+Et `instant.ecart4s` : l'écart lissé sur quatre secondes.
+
+### Ce que le banc mesure
+
+**Le lecteur factice** des scénarios 178 et 179 imite désormais ce que le
+rapport a montré : une latence de 0 avant de jouer ; « charlie » tient sa
+latence deux secondes et dérive de −3 ms/s ; `getSyncTime` et
+`getPosition`.
+
+**Le 179, neuf :**
+
+- la latence nulle n'est pas une mesure, et les nouveaux relevés sont justes :
+  cadence de 2 s et pente de −3 ms/s sur « charlie », amont, pentes des deux
+  horloges ;
+- dans la console d'une tuile, `tse.salle` relaie, sur cette tuile — même
+  celle du son —, et la réponse revient s'afficher ;
+- dans la console d'un chat, `tse` est celui de la page ;
+- le panneau relaie les commandes de la sonde, et seulement elles ;
+- sans nom, la tuile muette ; par numéro ; l'exemple recopié fait lister les
+  tuiles ;
+- le protocole, dix fois plus vite : S3, S4, l'écoute allumée puis éteinte,
+  attendu contre mesuré, la vitesse remise ;
+- arrêté, il remet la vitesse ; la salle fermée, il s'arrête avec elle.
+
+**Le 124** vérifie la moitié « panneau » du relais : `tse.salle` existe dans
+le document du panneau et y envoie la demande `salle`.
+
+| mutants | ce qui tombe |
+| --- | --- |
+| la console : aucun relais dans les tuiles, la tuile appelante ignorée, rien dans les chats, rien dans le panneau (4) | « tse is not defined » de retour, ou la commande qui tombe sur une autre tuile |
+| la page, côté panneau : l'action absente ; une commande hors liste servie (2) | un panneau sans voie ; une porte ouverte à autre chose que la sonde |
+| la tuile désignée : le nom exigé, le numéro ignoré, l'erreur sans la liste des tuiles (3) | l'erreur du premier essai réel, telle quelle |
+| les relevés : le 0 compté comme mesure ; la cadence, la pente, l'amont, l'horloge de synchronisation, les tampons, l'écart lissé faux (7) | des sauts « 0 → 0 » ; des chiffres qui ne disent plus la dent de scie |
+| le protocole : le retour à 1 oublié, la référence absente, l'écoute laissée allumée, l'arrêt qui laisse la tuile ralentie, les minuteurs qui survivent à la salle, l'attendu faux, deux protocoles à la fois (7) | une tuile laissée ralentie ; une mesure sans point de comparaison ; une salle fermée qui agit encore |
+
+Vingt-trois mutants, vingt-trois pris, au premier tour.
+
+### Pour le prochain rapport
+
+1. Ouvrir la salle par le nœud, sur deux co-streamers qui se parlent.
+2. F12 : n'importe quel contexte de la salle convient désormais.
+3. Taper `tse.salle.essais()`, puis ne plus toucher à la salle pendant
+   3 min 30 (le journal du rapport dit « protocole · fin »).
+4. Prendre le rapport.
+
+## La sonde du même instant, et le décalage mesuré par le son (v4.24.0.11)
+
+Une version-sonde pour l'étude du même instant : des relevés simultanés, ce
+que le lecteur de Twitch offre vraiment, deux essais tapés à la console. Et la
+piste S9, poussée jusqu'à une mesure qui marche au banc : **le décalage réel
+entre deux tuiles, mesuré par leur son**. Publiée sur `claude/chrome-multi`
+seulement.
+
+### Ce que le premier rapport réel a dit
+
+Une salle de deux co-streamers, ouverte depuis le nœud, 83 s après
+l'ouverture :
+
+| | latence | tampon | latence − tampon |
+| --- | --- | --- | --- |
+| tuile du son | 2,53 | 2,10 | 0,43 |
+| tuile muette | 1,99 | 1,91 | 0,08 |
+| écart | **0,54** | 0,19 | 0,35 |
+
+- **L'unité est la seconde** : 2,53, pas 2530. La moitié de S1 est tranchée ;
+  reste à confronter le chiffre au « Latency To Broadcaster » de Twitch.
+- **La lecture marche** sur le vrai Twitch : l'instance est trouvée dans les
+  deux tuiles, et elle répond.
+- **Deux tampons voisins de deux secondes, deux latences qui ne se rejoignent
+  pas.** Le lecteur semble viser une durée de tampon plutôt qu'une latence
+  commune. L'essentiel de l'écart vient alors d'amont (0,35 s sur 0,54). Pour
+  s'aligner, il faudrait que le tampon de la tuile muette monte d'environ
+  0,5 s. S3 se reformule : le lecteur le tolère-t-il ?
+- **Ce que le rapport ne permettait pas de dire** : une seule valeur par
+  tuile, lue à des instants différents — chaque pont envoyait son état à son
+  rythme, et le rapport gardait le dernier. D'où cette version.
+
+### Des relevés simultanés (S2)
+
+**La salle demande, les tuiles répondent sur-le-champ.** À chaque pas (une
+seconde), la salle envoie à toutes ses tuiles d'un coup une demande
+numérotée ; chacune répond aussitôt, avec l'heure de sa réponse. L'écart d'un
+tour se calcule sur les réponses de CE tour, et le rapport dit de combien
+elles se sont écartées dans le temps.
+
+Au rapport, dans `instant` :
+
+| champ | ce qu'il dit |
+| --- | --- |
+| `releves`, `tours` | les demandes envoyées, et les tours d'au moins deux réponses |
+| `simultaneiteMs` | l'écart entre les heures des réponses d'un tour : médiane · max |
+| `ecart` | l'écart de latence, tour par tour : min · médiane · max · dernier |
+| `ecartSerie` | les soixante derniers écarts, un par seconde |
+| `evenements` | le journal des tuiles (ci-dessous) |
+
+`ecartLatence` est désormais celui du dernier tour. Et par tuile, dans
+`serie` : le nombre de relevés, la latence et le tampon (min · médiane · max),
+la vitesse de la vidéo et celle du lecteur (min · max), les sauts, et les
+soixante dernières latences telles quelles. Cinq minutes de relevés sont
+gardées ; la latence est lue au millième.
+
+`tse.salle.series()` rend, à la console, les séries entières.
+
+### Ce que le lecteur de Twitch offre vraiment
+
+`lecteurApi` donne les noms des fonctions de l'instance — les siennes, et
+celles de ses prototypes, là où vivent les méthodes d'une classe —, lus par
+leurs descripteurs, sans jamais appeler un accesseur. `leviers` en tire la
+présence (✓) ou l'absence (✗) de ceux qu'un moteur utiliserait :
+`getLiveLatency`, `getBufferDuration`, `isLiveLowLatency`,
+`setLiveLowLatencyEnabled`, `getPlaybackRate`, `setPlaybackRate`, `pause`,
+`play`, `seekTo`, `getPosition`, `setRebufferToLive`. Et chaque tuile dit si
+elle est en faible latence (`faibleLatence`).
+
+### Deux essais à la console (S3, S4)
+
+```
+tse.salle.vitesse('chaine', 0.95)   // S3 : de 0,5 à 1,5
+tse.salle.pause('chaine', 3)        // S4 : de 0,2 à 10 s
+```
+
+Par l'instance du lecteur quand elle le permet — le chemin qu'un moteur
+prendrait —, par la vidéo sinon ; `essai` dit laquelle. Les bornes sont
+tenues dans la salle ET dans le pont.
+
+**Le journal** (`instant.evenements`) date depuis l'ouverture, avec la
+latence du moment : chaque essai et la fin d'une pause ; une vitesse changée
+SANS commande (le lecteur qui rattrape) ; un changement de qualité ; le
+début et la fin d'une pub ; l'onglet caché et revenu ; et les **sauts**.
+
+**Un saut n'est pas une latence qui bouge.** C'est une latence qui s'écarte
+de plus d'une demi-seconde de ce que la seconde écoulée laissait attendre :
+rien à vitesse 1, (1 − vitesse) par seconde sinon, une seconde par seconde en
+pause. On ne juge que les secondes sans changement de régime — même état de
+lecture, même vitesse, aucun essai commencé ni fini entre les deux relevés.
+Sinon on ne sait pas quelle part de la seconde a eu quel régime. Le premier
+jet ne le faisait pas : la fin d'une pause y passait pour un saut, et le banc
+l'a pris.
+
+**Une collision, trouvée par le banc.** Les deux commandes s'appelaient
+d'abord « vitesse » et « pause » ; or « pause » est déjà l'ordre que la salle
+envoie à ses tuiles muettes quand l'onglet se cache. Le pont interceptait
+l'un pour l'autre, et le scénario 175 a vu les tuiles jouer onglet caché. Les
+deux ordres de la sonde s'appellent désormais `essai-vitesse` et
+`essai-pause`.
+
+**Pour S3**, sur une tuile muette : laisser la salle ouverte une minute, taper
+`tse.salle.vitesse('<chaîne>', 0.95)`, attendre une minute, remettre `1`,
+attendre trente secondes, puis prendre le rapport. **Pour S4** :
+`tse.salle.pause('<chaîne>', 3)`, trente secondes, le rapport. **Pour S2**,
+rien à taper : cinq minutes de salle ouverte suffisent.
+
+### S9 — le décalage mesuré par le son
+
+**L'idée.** Deux co-streamers qui se parlent diffusent chacun la voix de
+l'autre : le même son passe dans les deux streams. Comparer les deux sons
+donne le décalage là où l'œil le voit, **part des diffuseurs comprise** — ce
+que la latence du lecteur ne voit pas.
+
+**Mesuré sous Chromium avant d'être écrit.** Trois expériences, avec le
+Chromium du banc, dans une iframe `player.twitch.tv` :
+
+| capture du son d'un `<video>` | puissance moyenne relevée |
+| --- | --- |
+| `captureStream()`, élément non muet | 0,177 |
+| `captureStream()`, élément **muet** | 0,173 |
+| `captureStream()`, élément à **volume 0** | 0,177 |
+| `createMediaElementSource()`, élément muet | **0** |
+| `createMediaElementSource()`, élément non muet | 0,185 |
+
+1. **`captureStream()` rend le son d'un lecteur muet**, tel quel. Or toutes
+   les tuiles sauf une sont muettes. `createMediaElementSource()`, lui, rend
+   du silence pour un élément muet, et détourne en plus la sortie du lecteur.
+   D'où la capture.
+2. **Un AudioContext d'iframe démarre suspendu**, et `resume()` reste en
+   attente sans échouer. Il n'aboutit qu'après un vrai clic dans la page
+   **parente**, et seulement si l'iframe porte `allow="autoplay"` — ce que
+   les tuiles portent. Sans l'attribut, il reste suspendu. Au passage, un
+   `frame.evaluate` de Playwright donne lui-même un geste à l'iframe : la
+   première version de l'expérience était faussée par là, et elle a été
+   refaite sans.
+3. **La chaîne complète, sur un prototype** : deux iframes jouent la même
+   suite de salves, liée à l'horloge, l'une en retard connu sur l'autre, dans
+   un élément muet. Retards trouvés : −399 ms pour −400, +303 pour +300,
+   −1237 pour −1230, +71 pour +70, 0 pour 0. Sept millisecondes au pire,
+   corrélation de 0,80 à 1.
+
+**Comment ça marche.**
+
+- **Dans chaque tuile**, le son capturé passe dans un AudioContext, qui en
+  tire une **enveloppe** : le niveau moyen de chaque bloc de 1024
+  échantillons, soit ~21 ms à 48 kHz. Rien d'autre. Chaque bloc est daté par
+  l'horloge audio (`playbackTime`), continue et exacte au sein d'une tuile.
+  Cette heure est ramenée à l'heure commune par le plus petit écart observé
+  entre l'heure du rappel et celle du bloc, sur les dix à vingt dernières
+  secondes : un rappel peut être en retard, jamais en avance, et le plus
+  petit retard est la meilleure ancre.
+- **Dans la salle**, toutes les cinq secondes, les enveloppes de la tuile du
+  son et de chaque autre sont ramenées sur une grille de 10 ms, sur les vingt
+  dernières secondes communes. On compare leurs **variations** (centrées,
+  réduites) : ce sont les attaques — une syllabe, un bruit — qui s'alignent,
+  pas le niveau moyen. Pour chaque décalage de −6 à +6 s, leur corrélation ;
+  le plus haut pic donne le décalage, au pas de 10 ms.
+- **Les niveaux aussi, à côté.** Le banc ne départage pas les deux : son
+  signal réussit aux deux, et un mutant qui corrélait les niveaux au lieu des
+  variations a survécu. Plutôt que d'affirmer un choix que le banc ne prouve
+  pas, le rapport donne les deux ; c'est le vrai son qui dira lequel tient.
+  Au banc, les variations se détachent plus nettement du bruit (z de 14,6
+  contre 6,6 pour les niveaux, au même passage).
+- **Au rapport**, pour chaque paire `a~b` : le décalage, sa corrélation `r`,
+  son écart au bruit des autres décalages `z`, le second pic, l'**attendu**
+  — la médiane de `latence(a) − latence(b)` sur les mêmes relevés —, et le
+  décalage selon les niveaux ; avec l'historique des douze derniers
+  décalages. **Un décalage positif veut dire
+  que le même son passe plus tard sur `a`.**
+
+**Ce qu'il faut savoir pour lire un résultat.**
+
+- **Deux voix qui se croisent donnent deux pics.** La voix de A passe dans le
+  stream de A directement, et dans celui de B par leur salon vocal, avec son
+  délai `d`. Les pics tombent vers Δ − d et Δ + d : c'est pourquoi le second
+  pic est au rapport. Leur milieu estime Δ quand les deux voix parlent.
+- **Un pic à 0 ms peut venir de la machine.** Au banc, un second pic revient
+  à 0 ms alors qu'aucun son n'y est commun : un fil d'exécution bloqué
+  perturbe toutes les tuiles au même instant. Il ne dit rien des streams.
+- **Sans son commun, pas de mesure.** Un `z` faible, des décalages qui
+  changent d'un calcul à l'autre : il n'y a rien à aligner.
+
+**Choix, et limites.**
+
+- **`ScriptProcessorNode`, déprécié**, plutôt qu'un AudioWorklet. Celui-ci
+  demanderait de charger un module depuis une adresse, que ce pont n'a pas et
+  que la politique de sécurité de la page du lecteur pourrait refuser — non
+  vérifié. `ScriptProcessorNode` ne demande rien. Chrome l'avertit dans la
+  console de la tuile.
+- **Allumée à la demande**, jamais seule : `tse.salle.ecoute()`, puis
+  `tse.salle.ecoute(false)`. Éteinte, ses derniers résultats restent au
+  rapport. Chaque tuile dit son état : `running`, `suspended` (il faut un clic
+  dans la page), `sans-piste`, `indisponible`.
+- **Le coût** : un AudioContext par tuile, 43 à 47 blocs par seconde selon
+  la fréquence de l'appareil, et toutes les cinq secondes environ quatre
+  millions de multiplications par paire (deux corrélations).
+- **Rien ne quitte la page** : ni le son, ni l'enveloppe. Le rapport ne porte
+  que les décalages calculés. Aucun micro, aucune permission.
+- **Firefox n'a que `mozCaptureStream`**, préfixée, qui peut couper le son de
+  l'élément : elle n'est jamais appelée. D'où, entre autres, cette version
+  sur Chrome seulement.
+
+**Pour S9** : une salle de deux co-streamers qui se parlent (même salon
+vocal) ; un clic dans la page ; `tse.salle.ecoute()` ; une minute ; le
+rapport ; `tse.salle.ecoute(false)`.
+
+### Ce que le banc mesure
+
+Un scénario neuf, le **178**, avec un lecteur factice. C'est une classe,
+comme celui de Twitch (ses méthodes sur le prototype). Sa latence obéit à ce
+qu'on lui fait : (1 − vitesse) par seconde, une seconde par seconde en pause.
+Son son est lié à l'horloge, « bravo » 350 ms après « alpha ». « bravo » a
+en plus un AudioContext qui démarre vraiment suspendu — horloge arrêtée — et
+que `resume()` ne relance qu'au bout de 2,5 s : son horloge audio part en
+retard sur celle d'« alpha », et seule l'ancre rattrape ce retard.
+
+- des relevés simultanés : simultanéité de 0 à 2 ms au banc, l'écart juste à
+  chaque tour ;
+- la série, le mode faible latence, l'API lue jusque dans le prototype, les
+  leviers ;
+- S3 : 0,8 par l'instance, 0,2 s de latence par seconde, noté au journal,
+  sans saut ; à 1, plus rien ;
+- S4 : une pause de 1,5 s, 1,5 s de latence, la lecture reprise, pas de saut ;
+- un vrai saut, noté et compté ;
+- les bornes de la console ;
+- S9 : **−350 ms retrouvés à 30 ms près**, par les variations et par les
+  niveaux, tuile muette comprise, le contexte suspendu relancé (quatre
+  passages : −350, −340, −350, −350) ;
+- l'écoute éteinte, ses résultats gardés.
+
+La vitesse que le 178 lit est celle du lecteur (`getPlaybackRate`) : sous
+Chromium, un élément nourri d'un MediaStream, comme la vidéo factice, garde
+sa vitesse de lecture à 1. Sur le vrai Twitch, le rapport dira si la vidéo
+suit la vitesse posée par l'instance : `vitesse` et `vitesseLecteur` sont
+relevées toutes les deux.
+
+| mutants | ce qui tombe |
+| --- | --- |
+| les relevés : l'heure des réponses jamais comparée (1) | une simultanéité inconnue |
+| l'API : les propriétés propres seulement ; le mode faible latence jamais lu (2) | un lecteur sans méthodes ; `faibleLatence` vide |
+| les essais : la vitesse posée sur la vidéo seule, la pause jamais levée, la borne de la console retirée, l'essai jamais noté (4) | `video` au lieu d'`instance`, et une latence qui ne bouge pas ; une tuile restée en pause ; une vitesse de 3 acceptée ; un journal muet |
+| les sauts : jugés même aux changements de régime ; jamais vus (2) | la fin d'une pause prise pour un saut ; le retour au direct manqué |
+| l'écoute : le signe inversé (1) | +350 au lieu de −350 |
+| l'écoute : l'heure des blocs sans ancre (1) | **2640 ms au lieu de −350, avec un z de 8** : un pic net n'est pas une preuve, si les horloges ne sont pas ramenées ensemble |
+| l'écoute : le contexte jamais relancé, ou relancé une seule fois (2) | « bravo » resté suspendu, aucune mesure |
+| l'écoute : tout compté comme silence ; jamais éteinte (2) | 100 % de silence ; des contextes qui tournent encore |
+
+Quinze mutants, quinze pris, au second tour. Au premier, deux avaient
+échappé :
+
+- **l'ancre.** Au banc, les deux AudioContext partaient au même relevé, et
+  leurs horloges coïncidaient : l'ancre n'y servait à rien. Le faux « bravo »
+  est désormais vraiment suspendu et part 2,5 s en retard, comme un contexte
+  relancé plus tard sur le vrai Twitch ;
+- **les niveaux au lieu des variations.** Le signal du banc réussit aux deux :
+  le rapport donne désormais les deux, plutôt qu'un choix que rien ne
+  prouve.
+
+Les scénarios 175 à 177 passent sans changement, et l'un d'eux a trouvé la
+collision des ordres « pause ».
 
 ## La salle : toute la hauteur aux lecteurs, la qualité à leur taille, et l'étude du même instant (v4.24.0.10)
 
@@ -13823,7 +17196,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le manifeste Firefox : les invariants du dépôt, **puis** l'`addons-linter` de Mozilla — celui qu'AMO applique à la soumission |
-| `npm test` | le harnais Playwright : 177 scénarios, 1552 assertions |
+| `npm test` | le harnais Playwright : 190 scénarios, 1603 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
