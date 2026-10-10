@@ -2266,6 +2266,32 @@ scénarios qui passaient à chaque fois sous Chrome :
 Rejoués deux fois chacun sur le même arbre : verts, toutes assertions. Le
 second contrôle complet de la branche Firefox : vert.
 
+### Et ce que la publication Firefox a montré
+
+Le banc complet que `tests/prod.mjs` fait tourner avant de publier
+`firefox-prod` a compté **deux échecs**, au **180** — l'écoute seule, sans
+calage —, et il a refusé de publier ; la seconde tentative est passée.
+Cette fois le rapport dit la cause : dans **toutes** les paires du
+scénario, son commun ou non, quatre calculs de suite avec un pic à
+**0 ms, z ≈ 15** — plus fort que les vraies voix (12 à 13) —, puis plus
+rien. Un événement commun à toutes les tuiles au même instant : un à-coup
+de la machine, qui interrompt ensemble les sons que les faux lecteurs
+fabriquent dans le même navigateur. C'est très probablement lui, et non un
+tirage, qui a donné à « foxtrot » son faux verdict près de zéro au 190 ;
+pour le 188, rien ne le prouve.
+
+**Et sous un vrai navigateur ?** Le même mécanisme y est possible : une
+machine qui peine à décoder six streams peut interrompre en même temps le
+son de toutes les tuiles, et l'écoute verrait le même pic à 0 ms dans
+chaque paire. Quatre calculs nets à 0 ms suffiraient, dans une paire en
+retard de moins de 0,7 s, à faire une voix « avec la référence » — la plus
+haute d'un salon —, et à déclarer calée une tuile qui ne l'est pas, le
+temps que les trente calculs de la fenêtre s'en vident. Rien dans les
+rapports réels ne l'a montré jusqu'ici. C'est la prochaine chose à
+éprouver : reconnaître l'événement commun — un même silence dans toutes
+les tuiles au même instant, ou un même pic à 0 ms dans toutes les paires —
+et écarter ses fenêtres.
+
 | mutant | ce qui tombe |
 | --- | --- |
 | le calage qui démarre sans capture (1) | 191 : « india retirée à +1 s · le lecteur dit non », et « son — » jusqu'au bout |
