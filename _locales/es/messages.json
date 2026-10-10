@@ -385,13 +385,13 @@
     "message": "Los co-streams"
   },
   "guideCostreamTexte": {
-    "message": "Un punto morado en la esquina del avatar, con el número de participantes: ese canal emite acompañado. Visible en la lista, sin pasar el ratón por nada.\n• Una insignia morada dice entonces quién recibe y quién es invitado, y con quién.\n• Un orden propio los agrupa arriba de la lista (capítulo $1)."
+    "message": "Un punto morado en la esquina del avatar, con el número de participantes: ese canal emite acompañado. Visible en la lista, sin pasar el ratón por nada.\n• Una insignia morada dice entonces quién recibe y quién es invitado, y con quién.\n• Un orden propio los agrupa arriba de la lista (capítulo $1).\n• Cuando varios participantes van seguidos en la lista, sus barras forman una sola, y sobre ella se posa un botón «▶»: un clic los abre juntos en la página, en la sala multistream. Un clic en un recuadro le da el sonido, y el chat lo sigue; con dos streams sin chat compartido, los dos chats enmarcan los reproductores cuando hay sitio. La tecla Esc, o un segundo clic en el botón, cierra la sala."
   },
   "guideDebutTitre": {
     "message": "Los comienzos y las vueltas"
   },
   "guideDebutTexte": {
-    "message": "Una barra morada aparece en el borde izquierdo de una tarjeta: ese directo empezó hace menos de diez minutos. Se apaga sola al cumplirse el décimo minuto.\n• Si el streamer pierde la conexión y vuelve antes de diez minutos, la barra morada no se enciende otra vez — y su contador tampoco vuelve a cero: sigue contando el directo entero, corte incluido.\n• La vista previa dice además cuántas veces se cortó y dibuja las interrupciones en la franja — y una insignia avisa de lo que pasó."
+    "message": "Una barra roja aparece en el borde izquierdo de una tarjeta: ese directo empezó hace menos de diez minutos. Se apaga sola al cumplirse el décimo minuto.\n• Si el streamer pierde la conexión y vuelve antes de diez minutos, la barra roja no se enciende otra vez — y su contador tampoco vuelve a cero: sigue contando el directo entero, corte incluido.\n• La vista previa dice además cuántas veces se cortó y dibuja las interrupciones en la franja — y una insignia avisa de lo que pasó."
   },
   "guideAboTitre": {
     "message": "Tus suscripciones, en oro"
@@ -525,6 +525,9 @@
   "optGrpCarte": {
     "message": "La tarjeta en la barra lateral"
   },
+  "optGrpMultistream": {
+    "message": "Multistream"
+  },
   "optDuree": {
     "message": "Duración del directo"
   },
@@ -536,6 +539,18 @@
   },
   "optCollab": {
     "message": "Punto de colaboración"
+  },
+  "optSalle": {
+    "message": "Sala multistream"
+  },
+  "optDescSalle": {
+    "message": "Un botón «▶» sobre la barra de un co-stream abre sus streams juntos, en la página. Desactivado: ni botón ni sala."
+  },
+  "optSalleAuto": {
+    "message": "Alineación automática"
+  },
+  "optDescSalleAuto": {
+    "message": "Los streams se sincronizan por su sonido compartido —los labios de cada stream sobre su voz tal como se oye—. Hace falta alrededor de un minuto de escucha; sin sonido compartido, nada se mueve. Desactivado: nada se mueve solo."
   },
   "optAbonnes": {
     "message": "El oro de las suscripciones"
@@ -679,7 +694,7 @@
     "message": "¿Restablecer todos los ajustes?"
   },
   "optResetText": {
-    "message": "Los veinte ajustes de esta página volverán a su valor original. Tus datos —visitas, suscripciones, canales seguidos— no se tocan."
+    "message": "Los veintidós ajustes de esta página volverán a su valor original. Tus datos —visitas, suscripciones, canales seguidos— no se tocan."
   },
   "optValPlein": {
     "message": "Completo"

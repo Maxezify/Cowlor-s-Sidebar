@@ -385,13 +385,13 @@
     "message": "Co-streamy"
   },
   "guideCostreamTexte": {
-    "message": "Fioletowa kropka w rogu awatara, z liczbą uczestników: ten kanał nadaje w kilka osób. Widać to na liście, bez najeżdżania na cokolwiek.\n• Fioletowa odznaka mówi wtedy, kto gości, a kto jest gościem — i z kim.\n• Osobne sortowanie grupuje je na górze listy (rozdział $1)."
+    "message": "Fioletowa kropka w rogu awatara, z liczbą uczestników: ten kanał nadaje w kilka osób. Widać to na liście, bez najeżdżania na cokolwiek.\n• Fioletowa odznaka mówi wtedy, kto gości, a kto jest gościem — i z kim.\n• Osobne sortowanie grupuje je na górze listy (rozdział $1).\n• Gdy kilku uczestników stoi na liście jeden pod drugim, ich paski łączą się w jeden, a na nim pojawia się przycisk „▶”: kliknięcie otwiera ich razem na stronie, w sali multistream. Kliknięcie kafelka daje mu dźwięk, a czat podąża za nim; przy dwóch streamach bez wspólnego czatu oba czaty otaczają odtwarzacze, gdy jest miejsce. Klawisz Esc albo drugie kliknięcie przycisku zamyka salę."
   },
   "guideDebutTitre": {
     "message": "Początki i powroty"
   },
   "guideDebutTexte": {
-    "message": "Fioletowy pasek pojawia się przy lewej krawędzi karty: ta transmisja zaczęła się mniej niż dziesięć minut temu. Gaśnie sam z upływem dziesiątej minuty.\n• Jeśli streamer straci połączenie i wróci w ciągu dziesięciu minut, fioletowy pasek nie zapala się ponownie — i licznik nie rusza od zera: liczy dalej całą transmisję, razem z przerwą.\n• Podgląd mówi dodatkowo, ile razy nastąpiła przerwa, i rysuje przerwy na pasku — a odznaka uprzedza, co się stało."
+    "message": "Czerwony pasek pojawia się przy lewej krawędzi karty: ta transmisja zaczęła się mniej niż dziesięć minut temu. Gaśnie sam z upływem dziesiątej minuty.\n• Jeśli streamer straci połączenie i wróci w ciągu dziesięciu minut, czerwony pasek nie zapala się ponownie — i licznik nie rusza od zera: liczy dalej całą transmisję, razem z przerwą.\n• Podgląd mówi dodatkowo, ile razy nastąpiła przerwa, i rysuje przerwy na pasku — a odznaka uprzedza, co się stało."
   },
   "guideAboTitre": {
     "message": "Twoje subskrypcje, na złoto"
@@ -525,6 +525,9 @@
   "optGrpCarte": {
     "message": "Karta na pasku bocznym"
   },
+  "optGrpMultistream": {
+    "message": "Multistream"
+  },
   "optDuree": {
     "message": "Czas trwania transmisji"
   },
@@ -536,6 +539,18 @@
   },
   "optCollab": {
     "message": "Kropka współpracy"
+  },
+  "optSalle": {
+    "message": "Sala multistream"
+  },
+  "optDescSalle": {
+    "message": "Przycisk „▶” na pasku co-streamu otwiera jego streamy razem, na stronie. Wyłączone: ani przycisku, ani sali."
+  },
+  "optSalleAuto": {
+    "message": "Automatyczne wyrównanie"
+  },
+  "optDescSalleAuto": {
+    "message": "Streamy są synchronizowane według wspólnego dźwięku — usta każdego streamu do jego głosu, tak jak go słychać. Potrzeba około minuty słuchania; bez wspólnego dźwięku nic się nie przesuwa. Wyłączone: nic nie przesuwa się samo."
   },
   "optAbonnes": {
     "message": "Złoto subskrypcji"
@@ -679,7 +694,7 @@
     "message": "Przywrócić wszystkie ustawienia domyślne?"
   },
   "optResetText": {
-    "message": "Wszystkie dwadzieścia ustawień na tej stronie wrócą do wartości pierwotnych. Twoje dane — wizyty, subskrypcje, obserwowane kanały — pozostają nietknięte."
+    "message": "Na tej stronie dwadzieścia dwa ustawienia wrócą do wartości pierwotnych. Twoje dane — wizyty, subskrypcje, obserwowane kanały — pozostają nietknięte."
   },
   "optValPlein": {
     "message": "Pełne"

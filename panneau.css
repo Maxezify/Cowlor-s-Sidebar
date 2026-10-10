@@ -43,6 +43,10 @@ html[data-vue="incruste"] body { width: 100%; height: 100%; }
   --texte-faible:#7d7d8a;
   --violet:      #9147ff;
   --violet-doux: rgba(145, 71, 255, 0.5);
+  /* Le rouge du direct de Twitch : celui de la barre d'un direct qui vient
+     de commencer (4.24.0). Le même dans les deux thèmes — Twitch ne
+     l'assombrit pas, et une barre n'a pas de contraste de texte à tenir. */
+  --direct:      #eb0400;
   --or:          #ffc45c;
   --or-clair:    #fff6d6;
   --rouge:       #ec4c4c;
@@ -440,10 +444,10 @@ html, body {
 .d-uptime--fini { color: var(--texte-faible); font-weight: 400; font-style: italic; }
 
 /* Le direct qui vient de commencer : fond dégradé et barre qui respire, la
-   même que dans la barre latérale, à la même cadence. */
+   même que dans la barre latérale, à la même cadence, au même rouge. */
 .d-carte--frais {
   background: linear-gradient(90deg,
-    rgba(145, 71, 255, 0.18) 0%, rgba(145, 71, 255, 0.06) 40%, transparent 100%);
+    rgba(235, 4, 0, 0.18) 0%, rgba(235, 4, 0, 0.06) 40%, transparent 100%);
 }
 /* Recopiée de content.js, amplitude comprise : le battement y a été renforcé
    parce qu'on le voyait à peine, et une maquette restée à l'ancienne amplitude
@@ -451,14 +455,14 @@ html, body {
 .d-carte--frais::before {
   content: '';
   position: absolute; left: 0; top: 3px; bottom: 3px;
-  width: 3px; border-radius: 0 3px 3px 0; background: var(--violet);
+  width: 3px; border-radius: 0 3px 3px 0; background: var(--direct);
   transform-origin: left center;
   animation: d-respire 1.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 @keyframes d-respire {
-  0%, 100% { opacity: 0.3; transform: scaleX(1); box-shadow: 0 0 4px var(--violet); }
+  0%, 100% { opacity: 0.3; transform: scaleX(1); box-shadow: 0 0 4px var(--direct); }
   50%      { opacity: 1;   transform: scaleX(2);
-             box-shadow: 0 0 18px var(--violet), 0 0 8px var(--violet); }
+             box-shadow: 0 0 18px var(--direct), 0 0 8px var(--direct); }
 }
 /* L'abonnement : or sur le pseudo, or sur la catégorie, anneau d'or autour de
    l'avatar. Le reflet lent de la vraie carte n'est pas repris — il court sur

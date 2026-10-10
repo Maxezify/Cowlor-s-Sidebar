@@ -385,13 +385,13 @@
     "message": "Co-streams"
   },
   "guideCostreamTexte": {
-    "message": "Ein violetter Punkt an der Ecke des Avatars, mit der Zahl der Beteiligten: Dieser Kanal sendet zu mehreren. In der Liste sichtbar, ohne etwas zu überfahren.\n• Ein violettes Abzeichen sagt dann, wer Gastgeber und wer Gast ist — und mit wem.\n• Eine eigene Sortierung gruppiert sie oben in der Liste (Kapitel $1)."
+    "message": "Ein violetter Punkt an der Ecke des Avatars, mit der Zahl der Beteiligten: Dieser Kanal sendet zu mehreren. In der Liste sichtbar, ohne etwas zu überfahren.\n• Ein violettes Abzeichen sagt dann, wer Gastgeber und wer Gast ist — und mit wem.\n• Eine eigene Sortierung gruppiert sie oben in der Liste (Kapitel $1).\n• Stehen mehrere Beteiligte in der Liste untereinander, werden ihre Balken zu einem, und eine Schaltfläche „▶“ sitzt darauf: Ein Klick öffnet sie gemeinsam auf der Seite, im Multistream-Raum. Ein Klick auf eine Kachel gibt ihr den Ton, und der Chat folgt; bei zwei Streams ohne geteilten Chat rahmen beide Chats die Player ein, wenn Platz ist. Die Esc-Taste oder ein zweiter Klick auf die Schaltfläche schließt den Raum."
   },
   "guideDebutTitre": {
     "message": "Starts und Rückkehr"
   },
   "guideDebutTexte": {
-    "message": "Ein violetter Balken erscheint am linken Rand einer Karte: Dieser Stream hat vor weniger als zehn Minuten begonnen. Er erlischt von selbst mit der zehnten Minute.\n• Verliert der Streamer seine Verbindung und kommt binnen zehn Minuten zurück, leuchtet der violette Balken nicht erneut — und sein Zähler startet auch nicht wieder bei null: er zählt den ganzen Stream weiter, Abbruch eingeschlossen.\n• Die Vorschau sagt zusätzlich, wie oft es abgebrochen ist, und zeichnet die Unterbrechungen in den Verlauf — und ein Abzeichen sagt, was passiert ist."
+    "message": "Ein roter Balken erscheint am linken Rand einer Karte: Dieser Stream hat vor weniger als zehn Minuten begonnen. Er erlischt von selbst mit der zehnten Minute.\n• Verliert der Streamer seine Verbindung und kommt binnen zehn Minuten zurück, leuchtet der rote Balken nicht erneut — und sein Zähler startet auch nicht wieder bei null: er zählt den ganzen Stream weiter, Abbruch eingeschlossen.\n• Die Vorschau sagt zusätzlich, wie oft es abgebrochen ist, und zeichnet die Unterbrechungen in den Verlauf — und ein Abzeichen sagt, was passiert ist."
   },
   "guideAboTitre": {
     "message": "Deine Abos, in Gold"
@@ -525,6 +525,9 @@
   "optGrpCarte": {
     "message": "Die Karte in der Seitenleiste"
   },
+  "optGrpMultistream": {
+    "message": "Multistream"
+  },
   "optDuree": {
     "message": "Streamdauer"
   },
@@ -536,6 +539,18 @@
   },
   "optCollab": {
     "message": "Kollaborations-Punkt"
+  },
+  "optSalle": {
+    "message": "Multistream-Raum"
+  },
+  "optDescSalle": {
+    "message": "Eine Schaltfläche „▶“ auf dem Balken eines Co-Streams öffnet seine Streams gemeinsam auf der Seite. Aus: keine Schaltfläche, kein Raum."
+  },
+  "optSalleAuto": {
+    "message": "Automatische Ausrichtung"
+  },
+  "optDescSalleAuto": {
+    "message": "Die Streams werden über ihren gemeinsamen Ton abgestimmt — die Lippen jedes Streams auf seine Stimme, so wie man sie hört. Das dauert etwa eine Minute; ohne gemeinsamen Ton bewegt sich nichts. Aus: Nichts bewegt sich von selbst."
   },
   "optAbonnes": {
     "message": "Gold der Abonnements"
@@ -679,7 +694,7 @@
     "message": "Alle Einstellungen zurücksetzen?"
   },
   "optResetText": {
-    "message": "Alle zwanzig Einstellungen dieser Seite kehren zu ihrem ursprünglichen Wert zurück. Deine Daten — Besuche, Abonnements, gefolgte Kanäle — bleiben unberührt."
+    "message": "Alle zweiundzwanzig Einstellungen dieser Seite kehren zu ihrem ursprünglichen Wert zurück. Deine Daten — Besuche, Abonnements, gefolgte Kanäle — bleiben unberührt."
   },
   "optValPlein": {
     "message": "Voll"

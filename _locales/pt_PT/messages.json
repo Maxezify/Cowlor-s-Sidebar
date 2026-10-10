@@ -385,13 +385,13 @@
     "message": "Os co-streams"
   },
   "guideCostreamTexte": {
-    "message": "Um ponto roxo ao canto do avatar, com o número de participantes: este canal transmite acompanhado. Visível na lista, sem passar o rato por nada.\n• Um emblema roxo diz então quem recebe e quem é convidado, e com quem.\n• Uma ordenação própria agrupa-os no topo da lista (capítulo $1)."
+    "message": "Um ponto roxo ao canto do avatar, com o número de participantes: este canal transmite acompanhado. Visível na lista, sem passar o rato por nada.\n• Um emblema roxo diz então quem recebe e quem é convidado, e com quem.\n• Uma ordenação própria agrupa-os no topo da lista (capítulo $1).\n• Quando vários participantes aparecem seguidos na lista, as barras deles tornam-se uma só, e um botão «▶» fica sobre ela: um clique abre-os juntos na página, na sala multistream. Um clique num quadro dá-lhe o som, e o chat acompanha; com duas transmissões sem chat partilhado, os dois chats ladeiam os leitores quando há espaço. A tecla Esc, ou um segundo clique no botão, fecha a sala."
   },
   "guideDebutTitre": {
     "message": "Os começos e os regressos"
   },
   "guideDebutTexte": {
-    "message": "Uma barra roxa aparece na margem esquerda de um cartão: essa transmissão começou há menos de dez minutos. Apaga-se sozinha ao fim do décimo minuto.\n• Se o streamer perder a ligação e voltar em menos de dez minutos, a barra roxa não se acende outra vez — e o contador dele não recomeça do zero: continua a contar a transmissão inteira, queda incluída.\n• A pré-visualização diz ainda quantas vezes caiu e desenha as quedas na faixa — e um emblema avisa o que aconteceu."
+    "message": "Uma barra vermelha aparece na margem esquerda de um cartão: essa transmissão começou há menos de dez minutos. Apaga-se sozinha ao fim do décimo minuto.\n• Se o streamer perder a ligação e voltar em menos de dez minutos, a barra vermelha não se acende outra vez — e o contador dele não recomeça do zero: continua a contar a transmissão inteira, queda incluída.\n• A pré-visualização diz ainda quantas vezes caiu e desenha as quedas na faixa — e um emblema avisa o que aconteceu."
   },
   "guideAboTitre": {
     "message": "As suas inscrições, a ouro"
@@ -525,6 +525,9 @@
   "optGrpCarte": {
     "message": "O cartão na barra lateral"
   },
+  "optGrpMultistream": {
+    "message": "Multistream"
+  },
   "optDuree": {
     "message": "Duração da emissão"
   },
@@ -536,6 +539,18 @@
   },
   "optCollab": {
     "message": "Ponto de colaboração"
+  },
+  "optSalle": {
+    "message": "Sala multistream"
+  },
+  "optDescSalle": {
+    "message": "Um botão «▶» na barra de um co-stream abre as transmissões juntas, na página. Desligado: nem botão, nem sala."
+  },
+  "optSalleAuto": {
+    "message": "Alinhamento automático"
+  },
+  "optDescSalleAuto": {
+    "message": "As transmissões são sincronizadas pelo som em comum — os lábios de cada transmissão na sua voz tal como se ouve. Demora cerca de um minuto de escuta; sem som em comum, nada se mexe. Desligado: nada se mexe sozinho."
   },
   "optAbonnes": {
     "message": "O ouro das subscrições"
@@ -679,7 +694,7 @@
     "message": "Repor todas as definições?"
   },
   "optResetText": {
-    "message": "As vinte definições desta página voltam ao valor original. Os teus dados — visitas, subscrições, canais seguidos — não são tocados."
+    "message": "As vinte e duas definições desta página voltam ao valor original. Os teus dados — visitas, subscrições, canais seguidos — não são tocados."
   },
   "optValPlein": {
     "message": "Completo"
