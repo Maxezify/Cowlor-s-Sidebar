@@ -484,13 +484,13 @@
     "message": "Co-streams"
   },
   "guideCostreamTexte": {
-    "message": "A purple dot in the corner of the avatar, with the number of participants: this channel is streaming with others. Visible in the list, with nothing to hover.\n• A purple badge then says who is hosting and who is a guest, and with whom.\n• A sort of its own groups them at the top of the list (chapter $1)."
+    "message": "A purple dot in the corner of the avatar, with the number of participants: this channel is streaming with others. Visible in the list, with nothing to hover.\n• A purple badge then says who is hosting and who is a guest, and with whom.\n• A sort of its own groups them at the top of the list (chapter $1).\n• When several members follow each other in the list, their bars become one, and a “▶” button sits on it: one click opens them together on the page, in the multistream room. A click on a tile gives it the sound, and the chat follows; with two streams and no Shared Chat, both chats frame the players when there is room. The Escape key, or a second click on the button, closes the room."
   },
   "guideDebutTitre": {
     "message": "Starts, and comebacks"
   },
   "guideDebutTexte": {
-    "message": "A purple bar appears on the left edge of a card: that stream started less than ten minutes ago. It goes out on its own at the tenth minute.\n• If the streamer loses their connection and comes back within ten minutes, the purple bar does not light up again — and their counter does not restart from zero: it keeps counting the whole stream, outage included.\n• The preview also says how many times it cut out, and draws the outages on the timeline — and a badge tells you what happened."
+    "message": "A red bar appears on the left edge of a card: that stream started less than ten minutes ago. It goes out on its own at the tenth minute.\n• If the streamer loses their connection and comes back within ten minutes, the red bar does not light up again — and their counter does not restart from zero: it keeps counting the whole stream, outage included.\n• The preview also says how many times it cut out, and draws the outages on the timeline — and a badge tells you what happened."
   },
   "guideAboTitre": {
     "message": "Your subscriptions, in gold"
@@ -639,6 +639,9 @@
   "optGrpCarte": {
     "message": "The card in the sidebar"
   },
+  "optGrpMultistream": {
+    "message": "Multistream"
+  },
   "optDuree": {
     "message": "Stream uptime"
   },
@@ -650,6 +653,18 @@
   },
   "optCollab": {
     "message": "Collaboration pill"
+  },
+  "optSalle": {
+    "message": "Multistream room"
+  },
+  "optDescSalle": {
+    "message": "A “▶” button on a co-stream's bar opens its streams together, on the page. Off: no button, no room."
+  },
+  "optSalleAuto": {
+    "message": "Automatic alignment"
+  },
+  "optDescSalleAuto": {
+    "message": "The streams are synced by their shared sound — each stream's lips on its voice as you hear it. It takes about a minute of listening; without shared sound, nothing moves. Off: nothing moves on its own."
   },
   "optAbonnes": {
     "message": "Subscription gold"
@@ -793,7 +808,7 @@
     "message": "Reset every setting to its default?"
   },
   "optResetText": {
-    "message": "All twenty settings on this page will return to their original value. Your data — visits, subscriptions, followed channels — is untouched."
+    "message": "All twenty-two settings on this page will return to their original value. Your data — visits, subscriptions, followed channels — is untouched."
   },
   "optValPlein": {
     "message": "Full"

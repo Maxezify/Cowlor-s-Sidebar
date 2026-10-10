@@ -16,17 +16,20 @@
  *   partageaient un fichier.
  *
  *  PORTÉE D'EXÉCUTION :
- *   Le module ne s'active QUE dans les iframes (notre iframe d'aperçu
- *   sur player.twitch.tv). Sur le stream principal, il se met en
- *   retrait. Pour un anti-pub global, installer vaft en externe : le
- *   handshake twitchAdSolutionsVersion gère la cohabitation, et c'est
- *   d'ailleurs lui qui fait que l'un des deux se retire proprement.
+ *   Le module ne s'active QUE dans notre iframe d'aperçu : un lecteur
+ *   player.twitch.tv qui porte le nom que content.js lui donne
+ *   (« tse-apercu »), posé par une page twitch.tv. Sur le stream
+ *   principal, il se met en retrait ; dans un lecteur Twitch intégré à
+ *   un autre site, ou dans tout autre lecteur sans ce nom, aussi. Pour
+ *   un anti-pub global, installer vaft en externe : le handshake
+ *   twitchAdSolutionsVersion gère la cohabitation, et c'est d'ailleurs
+ *   lui qui fait que l'un des deux se retire proprement.
  *
  *  LES HUIT ADAPTATIONS (toutes marquées « ADAPTATION » dans le code) :
  *   a) préfixe de log « [VAFT2] » → « [TSE-AdBlock] », pour distinguer
  *      nos lignes de celles d'un vaft installé en externe ;
  *   b) interrupteur TSE_ADBLOCK_ENABLED ;
- *   c) garde iframe-only (cf. ci-dessus) ;
+ *   c) garde « iframe d'aperçu seulement » (cf. ci-dessus) ;
  *   d) GM_info remplacé par la version en dur — cette API appartient aux
  *      gestionnaires de userscripts et n'existe pas dans une extension ;
  *   e) bannière de démarrage retirée (l'iframe renaît à chaque survol) ;
@@ -58,6 +61,12 @@ const TSE_ADBLOCK_ENABLED = true;
 
     try {
         if (window.top === window) return;
+    } catch {   }
+
+    if (window.name !== 'tse-apercu') return;
+    try {
+        const a = location.ancestorOrigins;
+        if (a && a.length && a[0] !== 'https://www.twitch.tv' && a[0] !== 'https://twitch.tv') return;
     } catch {   }
 
     if (window.self !== window.top) {

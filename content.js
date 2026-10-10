@@ -6,6 +6,17 @@ const TSE_PREVIEW_GATE_MSG = 'tse:preview-gate';
 
 const TSE_PREVIEW_HELLO_MSG = 'tse:preview-hello';
 
+const TSE_PREVIEW_FRAME_NAME = 'tse-apercu';
+
+const TSE_PREVIEW_PARENTS = ['https://www.twitch.tv', 'https://twitch.tv'];
+
+const tseOrigineParent = () => {
+  try {
+    const a = location.ancestorOrigins;
+    return a && a.length ? a[0] : null;
+  } catch { return null; }
+};
+
 const TSE_GATE_ENABLED = true;
 
 const TSE_GATE_BUTTON =
@@ -21,14 +32,13 @@ const TSE_GATE_MAX_CLICKS = 5;
   try {
     if (window.top === window) return;
     if (location.hostname !== 'player.twitch.tv') return;
+    if (window.name !== TSE_PREVIEW_FRAME_NAME) return;
   } catch { return; }
 
-  let targets;
-  try {
-    const a = location.ancestorOrigins;
-    targets = a && a.length ? [a[0]] : null;
-  } catch { targets = null; }
-  if (!targets) targets = ['https://www.twitch.tv', 'https://twitch.tv'];
+  const parentConnu = tseOrigineParent();
+
+  if (parentConnu && !TSE_PREVIEW_PARENTS.includes(parentConnu)) return;
+  const targets = parentConnu ? [parentConnu] : TSE_PREVIEW_PARENTS;
 
   const poster = (quoi) => {
     for (const origin of targets) {
@@ -104,6 +114,580 @@ const TSE_GATE_MAX_CLICKS = 5;
     mo.observe(root, { childList: true, subtree: true });
     setTimeout(() => mo.disconnect(), 15_000);
   }
+})();
+
+const TSE_SALLE_FRAME_NAME = 'tse-salle';
+const TSE_SALLE_ETAT_MSG = 'tse:salle-etat';
+const TSE_SALLE_ORDRE_MSG = 'tse:salle-ordre';
+
+const TSE_SALLE_RELEVE_MSG = 'tse:salle-releve';
+
+const TSE_SALLE_CONSOLE_MSG = 'tse:salle-console';
+const TSE_SALLE_CONSOLE_REPONSE = 'tse:salle-console-reponse';
+const TSE_SALLE_CHAT_NAME = 'tse-salle-chat';
+
+const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video-ad-countdown"], '
+  + '[data-test-selector="ad-banner-default-text"]';
+
+(() => {
+  'use strict';
+
+  try {
+    if (window.top === window) return;
+    if (location.hostname !== 'player.twitch.tv') return;
+    if (window.name !== TSE_SALLE_FRAME_NAME) return;
+  } catch { return; }
+  const parentConnu = tseOrigineParent();
+  if (parentConnu && !TSE_PREVIEW_PARENTS.includes(parentConnu)) return;
+  const cibles = parentConnu ? [parentConnu] : TSE_PREVIEW_PARENTS;
+
+  const BOUTON_SON = 'button[data-a-target="player-mute-unmute-button"]';
+  const BOUTON_LECTURE = 'button[data-a-target="player-play-pause-button"]';
+  let ordre = null;
+  let numeroOrdre = 0;
+
+  let gestes = 0;
+  const compterGeste = (e) => { if (e.isTrusted) gestes += 1; };
+  window.addEventListener('pointerdown', compterGeste, true);
+  window.addEventListener('keydown', compterGeste, true);
+
+  const leves = new WeakSet();
+  let avertissementVu = false, avertissementClics = 0;
+  const leverAvertissement = () => {
+
+    const visible = (b) => { if (!b) return null; const r = b.getBoundingClientRect(); return r.width > 0 && r.height > 0 ? b : null; };
+    const zone = document.querySelector(TSE_GATE_ZONE);
+    const bouton = visible(document.querySelector(TSE_GATE_BUTTON)) || (zone ? visible(zone.querySelector('button')) : null);
+    if (!bouton) return false;
+    avertissementVu = true;
+    if (!TSE_GATE_ENABLED || avertissementClics >= TSE_GATE_MAX_CLICKS || leves.has(bouton)) return true;
+    leves.add(bouton);
+    avertissementClics += 1;
+    try { bouton.click(); } catch {   }
+    return true;
+  };
+
+  let instanceLecteur = null;
+
+  let rechercheDepuis = 0;
+  const lecteurTwitch = () => {
+    if (instanceLecteur) return instanceLecteur;
+    if (!rechercheDepuis) rechercheDepuis = Date.now();
+    else if (Date.now() - rechercheDepuis > 60_000) return null;
+    try {
+      const racine = document.getElementById('root');
+      if (!racine) return null;
+      let fibre = racine._reactRootContainer?._internalRoot?.current || null;
+      if (!fibre) {
+        const cle = Object.keys(racine).find((k) => k.startsWith('__reactContainer'));
+        fibre = cle ? racine[cle] : null;
+      }
+      if (!fibre) return null;
+
+      const file = [fibre];
+      for (let i = 0; i < file.length && i < 20_000; i++) {
+        const n = file[i];
+        const inst = n.stateNode && n.stateNode.props && n.stateNode.props.mediaPlayerInstance;
+        if (inst && n.stateNode.setPlayerActive) {
+          instanceLecteur = inst.playerInstance || inst;
+          return instanceLecteur;
+        }
+        if (n.child) file.push(n.child);
+        if (n.sibling) file.push(n.sibling);
+      }
+    } catch {   }
+    return null;
+  };
+
+  let hauteurVoulue = null;
+  let qualiteEssais = 0;
+  let qualiteT = 0;
+
+  const meilleureA = (echelle, hauteur) => echelle.filter((q) => q && q.height === hauteur)
+    .reduce((p, q) => (!p || (q.framerate || 0) > (p.framerate || 0) ? q : p), null);
+  const choisirQualite = (echelle, h) => {
+    let meilleure = null;
+    for (const q of echelle) {
+      if (!q || !Number.isFinite(q.height)) continue;
+      const ecart = Math.abs(Math.log(q.height / h));
+      if (!meilleure || ecart < meilleure.ecart
+        || (ecart === meilleure.ecart && (q.height > meilleure.q.height
+          || (q.height === meilleure.q.height && (q.framerate || 0) > (meilleure.q.framerate || 0))))) {
+        meilleure = { q, ecart };
+      }
+    }
+    if (!meilleure) return null;
+    const dessus = echelle.filter((q) => q && Number.isFinite(q.height) && q.height > meilleure.q.height)
+      .reduce((p, q) => (p === null || q.height < p ? q.height : p), null);
+    return dessus === null ? meilleure.q : meilleureA(echelle, dessus);
+  };
+  const tenirQualite = () => {
+    if (!hauteurVoulue || qualiteEssais >= 5 || Date.now() - qualiteT < 3000) return;
+    const lecteur = lecteurTwitch();
+    if (!lecteur || typeof lecteur.setQuality !== 'function') return;
+    let echelle = [];
+    try { echelle = lecteur.getQualities() || []; } catch { return; }
+    const cible = choisirQualite(echelle, hauteurVoulue);
+    if (!cible) return;
+    let actuelle = null, auto = null;
+    try { actuelle = lecteur.getQuality && lecteur.getQuality(); } catch {   }
+    try { auto = lecteur.isAutoQualityMode ? lecteur.isAutoQualityMode() : null; } catch {   }
+    if (actuelle && actuelle.name === cible.name && auto === false) return;
+    try {
+      lecteur.setQuality(cible);
+      qualiteEssais += 1;
+      qualiteT = Date.now();
+    } catch { qualiteEssais += 1; qualiteT = Date.now(); }
+  };
+
+  const releveLecteur = () => {
+    const lecteur = lecteurTwitch();
+    if (!lecteur) return { lecteur: false };
+    const lire = (f) => { try { const x = f(); return Number.isFinite(x) ? Math.round(x * 100) / 100 : null; } catch { return null; } };
+    let nom = null, auto = null;
+    try { nom = lecteur.getQuality ? (lecteur.getQuality() || {}).name || null : null; } catch {   }
+    try { auto = lecteur.isAutoQualityMode ? !!lecteur.isAutoQualityMode() : null; } catch {   }
+    return {
+      lecteur: true, qualite: nom, auto,
+      latence: lecteur.getLiveLatency ? lire(() => lecteur.getLiveLatency()) : null,
+      tampon: lecteur.getBufferDuration ? lire(() => lecteur.getBufferDuration()) : null,
+    };
+  };
+
+  const etatSalle = () => {
+    const v = document.querySelector('video');
+    tenirQualite();
+    const avertissement = leverAvertissement();
+
+    const q = v && typeof v.getVideoPlaybackQuality === 'function' ? v.getVideoPlaybackQuality() : null;
+    return {
+      ...releveLecteur(),
+      qualiteVoulue: hauteurVoulue,
+      vitesse: v ? v.playbackRate : null,
+      video: !!v,
+      lecture: !!v && !v.paused,
+      muet: v ? v.muted : null,
+
+      volume: v ? Math.round(v.volume * 100) / 100 : null,
+      images: q ? q.totalVideoFrames : null,
+      perdues: q ? q.droppedVideoFrames : null,
+      octets: v && typeof v.webkitVideoDecodedByteCount === 'number'
+        ? v.webkitVideoDecodedByteCount + (Number(v.webkitAudioDecodedByteCount) || 0) : null,
+      pub: [...document.querySelectorAll(TSE_PUB_REPERES)].some((el) => el.getClientRects().length > 0),
+      boutonSon: !!document.querySelector(BOUTON_SON),
+      avertissement, avertissementVu, avertissementClics,
+      gestes,
+      ordre,
+    };
+  };
+
+  const lireNombre = (f, chiffres = 3) => {
+    try {
+      const x = f();
+      const p = 10 ** chiffres;
+      return Number.isFinite(x) ? Math.round(x * p) / p : null;
+    } catch { return null; }
+  };
+
+  const lireApi = (lecteur) => {
+    const noms = new Set();
+    for (let o = lecteur; o && o !== Object.prototype; o = Object.getPrototypeOf(o)) {
+      for (const k of Object.getOwnPropertyNames(o)) {
+        if (k === 'constructor') continue;
+        const d = Object.getOwnPropertyDescriptor(o, k);
+        if (d && typeof d.value === 'function') noms.add(k);
+      }
+    }
+    return [...noms].sort();
+  };
+
+  let essai = null;
+  let numeroEssai = 0;
+
+  const deplacer = (s, sens = 1) => {
+    const lecteur = lecteurTwitch();
+    const v = document.querySelector('video');
+    const type = sens > 0 ? 'recul' : 'avance';
+    if (sens < 0) {
+      const tampon = lecteur && typeof lecteur.getBufferDuration === 'function' ? lireNombre(() => lecteur.getBufferDuration()) : null;
+      if (tampon !== null && tampon < s + 0.5) {
+        essai = { n: ++numeroEssai, type, valeur: s, voie: `refusé : tampon ${tampon} s`, t: Date.now(), fin: Date.now(),
+                  avant: null, apres: null };
+        return;
+      }
+    }
+    let voie = null, avant = null;
+    const t0 = performance.now();
+    if (lecteur && typeof lecteur.seekTo === 'function' && typeof lecteur.getPosition === 'function') {
+      try { avant = lecteur.getPosition(); lecteur.seekTo(avant - sens * s); voie = 'instance'; } catch {   }
+    }
+    if (!voie && v) { avant = v.currentTime; v.currentTime = avant - sens * s; voie = 'video'; }
+    const e = { n: ++numeroEssai, type, valeur: s, voie: voie || 'sans-video', t: Date.now(), fin: null,
+                avant: Number.isFinite(avant) ? Math.round(avant * 1000) / 1000 : null, apres: null };
+    essai = e;
+    if (!voie) return;
+    setTimeout(() => {
+      const p = voie === 'instance' ? lireNombre(() => lecteur.getPosition()) : (v ? v.currentTime : null);
+      e.apres = Number.isFinite(p) ? Math.round(p * 1000) / 1000 : null;
+
+      e.ecouleS = Math.round(performance.now() - t0) / 1000;
+      e.fin = Date.now();
+    }, 500);
+  };
+
+  const retirerFaibleLatence = () => {
+    const lecteur = lecteurTwitch();
+    let voie;
+    if (!lecteur || typeof lecteur.setLiveLowLatencyEnabled !== 'function') voie = 'absent';
+    else {
+      try { lecteur.setLiveLowLatencyEnabled(false); voie = 'instance'; } catch (err) { voie = `refusé : ${(err && err.name) || 'erreur'}`; }
+    }
+    essai = { n: ++numeroEssai, type: 'faible-latence', valeur: false, voie, t: Date.now(), fin: Date.now() };
+  };
+
+  const arriereElement = (v) => {
+    try {
+      if (!v || !v.buffered || !Number.isFinite(v.currentTime)) return null;
+      for (let i = 0; i < v.buffered.length; i++) {
+        const s = v.buffered.start(i), e = v.buffered.end(i);
+        if (v.currentTime >= s && v.currentTime <= e + 0.1) return Math.round((v.currentTime - s) * 1000) / 1000;
+      }
+    } catch {   }
+    return null;
+  };
+
+  const formeDe = (r) => {
+    if (!r || typeof r !== 'object') return `forme ${r === null ? 'null' : typeof r}`;
+    const proto = Object.getPrototypeOf(r);
+    const nom = proto && proto.constructor && proto.constructor.name;
+    const cles = [];
+    for (const k in r) {
+      if (cles.length >= 6) break;
+      const v = r[k];
+      cles.push(`${k}:${Array.isArray(v) ? `tableau ${v.length}` : typeof v}`);
+    }
+    return (`forme ${Array.isArray(r) ? 'tableau' : 'object'}${nom && nom !== 'Object' && nom !== 'Array' ? ` ${nom}` : ''}`
+      + ` · ${cles.length ? cles.join(', ') : 'aucune clé'}`).slice(0, 160);
+  };
+  const lirePlages = (lecteur) => {
+    let r;
+    try { r = lecteur.getBufferedRanges(); } catch { return { plages: 'erreur', forme: null }; }
+    const paire = (x) => (Array.isArray(x) && x.length >= 2 ? [x[0], x[1]]
+      : x && typeof x === 'object' && 'start' in x && 'end' in x ? [x.start, x.end] : null);
+    let l = null;
+    if (Array.isArray(r)) l = r.map(paire);
+    else if (r && typeof r.length === 'number' && typeof r.start === 'function') {
+      l = [];
+      try { for (let i = 0; i < Math.min(r.length, 8); i++) l.push([r.start(i), r.end(i)]); } catch { return { plages: 'erreur', forme: formeDe(r) }; }
+    } else if (r && typeof r === 'object') {
+      let cles = [];
+      try { cles = ['video', ...Object.keys(r)]; } catch {   }
+      const tab = cles.map((k) => r[k]).find((v) => Array.isArray(v) && v.length && paire(v[0]));
+      if (tab) l = tab.map(paire);
+    }
+    const forme = Array.isArray(r) || r === undefined || r === null ? null : formeDe(r);
+    if (!l) return { plages: r === undefined || r === null ? null : forme, forme };
+    return { plages: l.slice(0, 8).map((x) => (x && x.every(Number.isFinite) ? x.map((y) => Math.round(y * 1000) / 1000) : null)), forme };
+  };
+
+  const MODULE_ENVELOPPE = `registerProcessor('tse-enveloppe', class extends AudioWorkletProcessor {
+  constructor() { super(); this.s = 0; this.n = 0; }
+  process(entrees) {
+    const x = entrees[0] && entrees[0][0];
+    const q = x ? x.length : 128;
+    if (x) for (let i = 0; i < q; i++) this.s += x[i] * x[i];
+    this.n += q;
+    if (this.n >= 1024) { this.port.postMessage([currentFrame + q, this.s / this.n]); this.s = 0; this.n = 0; }
+    return true;
+  }
+});`;
+  const ecoute = (() => {
+    const B = 1024;
+    let actif = false, ac = null, proc = null, nul = null, source = null, flux = null, video = null, piste = null;
+    let etat = 'inactive', reliaisons = 0, sr = null, voie = null;
+    let ancreCour = Infinity, ancrePrec = Infinity, ancreT = 0;
+
+    let rang = -1, dernierPt = null;
+
+    let sonVu = false, amorce = 0;
+    let lot = [];
+
+    let secondes = [], blocs = 0, muets = 0;
+
+    const debrancher = () => {
+      try { if (source) source.disconnect(); } catch {   }
+      source = null; piste = null;
+    };
+
+    const detacher = () => {
+      debrancher();
+      if (flux) for (const p of flux.getTracks()) { try { p.stop(); } catch {   } }
+      flux = null; video = null;
+    };
+    const relier = () => {
+      const v = document.querySelector('video');
+      if (!v) { etat = 'sans-video'; return; }
+      if (typeof v.captureStream !== 'function') { etat = 'indisponible'; return; }
+
+      if (!proc) return;
+      if (v !== video) {
+        detacher();
+        try { flux = v.captureStream(); } catch (e) { etat = `erreur:${(e && e.name) || 'capture'}`; return; }
+        video = v;
+      }
+      const vivantes = flux.getAudioTracks().filter((p) => p.readyState === 'live');
+      const derniere = vivantes[vivantes.length - 1] || null;
+      if (!derniere) {
+
+        detacher();
+        etat = 'sans-piste';
+        return;
+      }
+      if (derniere === piste && source) return;
+      debrancher();
+      try {
+        source = ac.createMediaStreamSource(new MediaStream([derniere]));
+        source.connect(proc);
+        piste = derniere;
+        reliaisons += 1;
+        sonVu = false; amorce = Math.ceil(sr / B);
+      } catch (e) { etat = `erreur:${(e && e.name) || 'source'}`; source = null; piste = null; }
+    };
+
+    const surFin = (finMs, puissance, mur) => {
+      if (mur - ancreT > 10_000) { ancrePrec = ancreCour; ancreCour = Infinity; ancreT = mur; }
+      ancreCour = Math.min(ancreCour, mur - finMs);
+      const ancre = Math.min(ancreCour, ancrePrec);
+
+      const niveau = Math.log10(puissance + 1e-8);
+      blocs += 1;
+      if (niveau < -7) muets += 1;
+      if (!sonVu) { if (niveau < -7) return; sonVu = true; }
+      if (amorce > 0) { amorce -= 1; return; }
+
+      lot.push([Math.round((ancre + finMs - ((B / sr) * 1000) / 2) * 10) / 10, Math.round(niveau * 1000) / 1000]);
+
+      if (lot.length > 600) lot.splice(0, lot.length - 600);
+    };
+
+    const surBloc = (e) => {
+      const mur = Date.now();
+      const periode = (B / sr) * 1000;
+      rang += dernierPt === null ? 1 : Math.max(1, Math.round(((e.playbackTime - dernierPt) * 1000) / periode));
+      dernierPt = e.playbackTime;
+      const x = e.inputBuffer.getChannelData(0);
+      let s = 0;
+      for (let i = 0; i < x.length; i++) s += x[i] * x[i];
+      surFin((rang + 1) * periode, s / x.length, mur);
+    };
+    const demarrer = () => {
+      actif = true;
+      voie = null;
+      const AC = window.AudioContext;
+      if (!AC) { etat = 'indisponible'; return; }
+      let ctx;
+      try {
+        ctx = ac = new AC();
+        sr = ac.sampleRate;
+        nul = ac.createGain();
+        nul.gain.value = 0;
+        nul.connect(ac.destination);
+      } catch (e) { etat = `erreur:${(e && e.name) || 'contexte'}`; ac = null; return; }
+      const parScript = (pourquoi) => {
+        if (ac !== ctx) return;
+        try {
+          proc = ac.createScriptProcessor(B, 1, 1);
+          proc.onaudioprocess = surBloc;
+          proc.connect(nul);
+        } catch (e) { etat = `erreur:${(e && e.name) || 'processeur'}`; proc = null; return; }
+        voie = pourquoi ? `script (${pourquoi})` : 'script';
+        relier();
+      };
+      if (!ac.audioWorklet || typeof AudioWorkletNode !== 'function') { parScript('sans worklet'); return; }
+
+      etat = 'module';
+      let url = null;
+      try { url = URL.createObjectURL(new Blob([MODULE_ENVELOPPE], { type: 'application/javascript' })); } catch { parScript('sans blob'); return; }
+      ac.audioWorklet.addModule(url).then(() => {
+        if (ac !== ctx) return;
+        try {
+          proc = new AudioWorkletNode(ac, 'tse-enveloppe', { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1],
+                                                              channelCount: 1, channelCountMode: 'explicit' });
+          proc.port.onmessage = (m) => { const [fin, puissance] = m.data; surFin((fin / sr) * 1000, puissance, Date.now()); };
+          proc.connect(nul);
+        } catch (e) { proc = null; parScript(`nœud refusé : ${(e && e.name) || 'erreur'}`); return; }
+        voie = 'worklet';
+        relier();
+      }).catch((e) => parScript(`module refusé : ${(e && e.name) || 'erreur'}`))
+        .finally(() => { try { URL.revokeObjectURL(url); } catch {   } });
+    };
+    const arreter = () => {
+      actif = false;
+      detacher();
+      try {
+        if (proc) {
+          if (proc.port) proc.port.onmessage = null;
+          else proc.onaudioprocess = null;
+          proc.disconnect();
+        }
+      } catch {   }
+      try { if (nul) nul.disconnect(); } catch {   }
+      try { if (ac) ac.close(); } catch {   }
+      ac = null; proc = null; nul = null; lot = []; secondes = []; blocs = 0; muets = 0;
+      ancreCour = Infinity; ancrePrec = Infinity; ancreT = 0; rang = -1; dernierPt = null;
+      sonVu = false; amorce = 0;
+      etat = 'inactive';
+    };
+
+    const tenir = (voulu) => {
+      if (voulu && !actif) demarrer();
+      else if (!voulu && actif) arreter();
+      if (!actif || !ac) return;
+      if (ac.state === 'suspended') ac.resume().catch(() => {});
+      relier();
+      if (source) etat = ac.state;
+      secondes.push([blocs, muets]);
+      if (secondes.length > 10) secondes.shift();
+      blocs = 0; muets = 0;
+    };
+    const bilan = () => {
+      if (!actif) return { etat };
+      const b = secondes.reduce((x, y) => x + y[0], 0);
+      const m = secondes.reduce((x, y) => x + y[1], 0);
+      return { etat, sr, reliaisons, voie, pistes: flux ? flux.getAudioTracks().length : 0,
+               blocs: b, silence: b ? Math.round((m / b) * 100) / 100 : null };
+    };
+    const prendre = () => { const l = lot; lot = []; return l; };
+    return { tenir, bilan, prendre };
+  })();
+
+  const repondreReleve = (d) => {
+    ecoute.tenir(d.ecoute === true);
+    const lecteur = lecteurTwitch();
+    const v = document.querySelector('video');
+    const f = (nom) => lecteur && typeof lecteur[nom] === 'function';
+    const r = {
+      tse: TSE_SALLE_RELEVE_MSG,
+      n: d.n,
+      t: Date.now(),
+      latence: f('getLiveLatency') ? lireNombre(() => lecteur.getLiveLatency()) : null,
+      tampon: f('getBufferDuration') ? lireNombre(() => lecteur.getBufferDuration()) : null,
+      vitesse: v ? v.playbackRate : null,
+      vitesseLecteur: f('getPlaybackRate') ? lireNombre(() => lecteur.getPlaybackRate()) : null,
+
+      sync: f('getSyncTime') ? lireNombre(() => lecteur.getSyncTime()) : null,
+      position: f('getPosition') ? lireNombre(() => lecteur.getPosition()) : null,
+
+      arriere: arriereElement(v),
+      ...(f('getBufferedRanges') ? (() => { const x = lirePlages(lecteur); return { plages: x.plages, plagesForme: x.forme }; })()
+        : { plages: null, plagesForme: null }),
+      lecture: !!v && !v.paused,
+      faibleLatence: f('isLiveLowLatency') ? (() => { try { return !!lecteur.isLiveLowLatency(); } catch { return null; } })() : null,
+      essai,
+      ecoute: ecoute.bilan(),
+      env: ecoute.prendre(),
+    };
+    if (d.api === true && lecteur) r.api = lireApi(lecteur);
+    for (const o of cibles) {
+      try { window.parent.postMessage(r, o); } catch {   }
+    }
+  };
+
+  let numeroConsole = 0;
+  const simple = (x) => (x === null || x === undefined || ['number', 'string', 'boolean'].includes(typeof x) ? x : String(x));
+  const relayer = (commande) => (...args) => {
+    const n = ++numeroConsole;
+    for (const o of cibles) {
+      try {
+        window.parent.postMessage({ tse: TSE_SALLE_CONSOLE_MSG, n, commande, args: args.slice(0, 3).map(simple) }, o);
+      } catch {   }
+    }
+    return `[tse] ${commande} → envoyé à la salle / sent to the room`;
+  };
+  try {
+    Object.defineProperty(window, 'tse', {
+      value: Object.freeze({ salle: Object.freeze(Object.fromEntries(
+        ['auto', 'recul', 'avance', 'ecoute', 'rapport'].map((c) => [c, relayer(c)]))) }),
+      writable: false, configurable: false,
+    });
+  } catch {   }
+
+  const poster = () => {
+    const e = etatSalle();
+    for (const o of cibles) {
+      try { window.parent.postMessage({ tse: TSE_SALLE_ETAT_MSG, etat: e }, o); } catch {   }
+    }
+  };
+
+  const ORDRES = ['son', 'muet', 'pause', 'lecture'];
+  window.addEventListener('message', (e) => {
+    if (e.source !== window.parent || !TSE_PREVIEW_PARENTS.includes(e.origin)) return;
+    const d = e.data;
+
+    if (d && d.tse === TSE_SALLE_ORDRE_MSG && d.ordre === 'qualite') {
+      const h = Math.round(Number(d.hauteur));
+      if (h >= 100 && h <= 4320 && h !== hauteurVoulue) {
+        hauteurVoulue = h; qualiteEssais = 0; qualiteT = 0; tenirQualite();
+      }
+      return;
+    }
+
+    if (d && d.tse === TSE_SALLE_CONSOLE_REPONSE) {
+      console.info(`[tse] ${d.commande} →`, d.resultat);
+      return;
+    }
+
+    if (d && d.tse === TSE_SALLE_ORDRE_MSG && ['releve', 'essai-recul', 'essai-avance', 'faible-latence'].includes(d.ordre)) {
+      if (d.ordre === 'releve' && Number.isFinite(d.n)) repondreReleve(d);
+      else if (d.ordre === 'faible-latence') retirerFaibleLatence();
+      else {
+
+        const s = Number(d.duree);
+        if (s >= 0.05 && s <= 10) deplacer(s, d.ordre === 'essai-recul' ? 1 : -1);
+      }
+      return;
+    }
+    if (!d || d.tse !== TSE_SALLE_ORDRE_MSG || !ORDRES.includes(d.ordre)) return;
+    const v = document.querySelector('video');
+    let voie = 'deja';
+    if (!v) voie = 'sans-video';
+    else if (d.ordre === 'son' || d.ordre === 'muet') {
+      const veutSon = d.ordre === 'son';
+      if (v.muted === veutSon) {
+        const b = document.querySelector(BOUTON_SON);
+        if (b) { b.click(); voie = 'bouton'; } else { v.muted = !veutSon; voie = 'video'; }
+      }
+    } else {
+      const veutLecture = d.ordre === 'lecture';
+      if (v.paused === veutLecture) {
+        const b = document.querySelector(BOUTON_LECTURE);
+        if (b) { b.click(); voie = 'bouton'; }
+        else { if (veutLecture) v.play().catch(() => {}); else v.pause(); voie = 'video'; }
+      }
+    }
+
+    ordre = { n: ++numeroOrdre, ordre: d.ordre, voie, apres: null };
+    const courant = ordre;
+    setTimeout(() => {
+      courant.apres = v ? { muet: v.muted, lecture: !v.paused } : null;
+      poster();
+    }, 1500);
+  });
+
+  poster();
+
+  setInterval(poster, 1000);
+})();
+
+(() => {
+  'use strict';
+  try {
+    if (window.top === window) return;
+    if (window.name !== TSE_SALLE_CHAT_NAME) return;
+    const haut = window.top;
+    if (haut.location.origin !== location.origin) return;
+    Object.defineProperty(window, 'tse', { get: () => haut.tse, configurable: false });
+  } catch {   }
 })();
 
 (() => {
@@ -217,6 +801,19 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiBulleTitre:              'Merci d\'avoir installé Cowlor\'s Sidebar !',
       uiBulleTexte:              'Apprenez à utiliser l\'extension, personnalisez et regardez toutes vos données stockées ici.',
       uiFermer:                  'Fermer',
+
+      uiSalleTitre:              (n) => `Salle · ${n} stream${n > 1 ? 's' : ''}`,
+      uiSalleSonPour:            (nom) => `Donner le son à ${nom}`,
+      uiSalleChat:               (nom) => `Chat de ${nom}`,
+      uiSalleChatSon:            (nom) => `Son : ${nom}`,
+      uiSalleChatMasque:         'Chat masqué : fenêtre trop étroite',
+      uiSallePoints:             'Pas de points de chaîne dans la salle',
+      uiSalleBanc:               (nom) => `Mettre ${nom} dans la grille`,
+      uiSalleChatAfficher:       'Afficher le chat',
+      uiSalleChatMasquer:        'Masquer le chat',
+
+      uiNoeudRegarder:           (n) => `Regarder les ${n}`,
+      uiNoeudAria:               (noms) => `Regarder ${noms} ensemble`,
       uiGlobalEmpty:             'Aucune chaîne en direct avec ce filtre',
       uiUptimeEnded:             'Terminé',
       uiPreviewUnavailable:      'Aperçu indisponible',
@@ -308,6 +905,17 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiBulleTitre:              'Thanks for installing Cowlor\'s Sidebar!',
       uiBulleTexte:              'Learn how to use the extension, customise it and see all the data it stores, right here.',
       uiFermer:                  'Close',
+      uiSalleTitre:              (n) => `Room · ${n} stream${n > 1 ? 's' : ''}`,
+      uiSalleSonPour:            (nom) => `Give the sound to ${nom}`,
+      uiSalleChat:               (nom) => `${nom}'s chat`,
+      uiSalleChatSon:            (nom) => `Sound: ${nom}`,
+      uiSalleChatMasque:         'Chat hidden: window too narrow',
+      uiSallePoints:             'No channel points in the room',
+      uiSalleBanc:               (nom) => `Put ${nom} in the grid`,
+      uiSalleChatAfficher:       'Show the chat',
+      uiSalleChatMasquer:        'Hide the chat',
+      uiNoeudRegarder:           (n) => `Watch all ${n}`,
+      uiNoeudAria:               (noms) => `Watch ${noms} together`,
       uiGlobalEmpty:             'No live channel matches this filter',
       uiUptimeEnded:             'Ended',
       uiPreviewUnavailable:      'Preview unavailable',
@@ -397,6 +1005,17 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiBulleTitre:              'Danke, dass du Cowlor\'s Sidebar installiert hast!',
       uiBulleTexte:              'Lerne die Erweiterung kennen, passe sie an und sieh dir hier alle gespeicherten Daten an.',
       uiFermer:                  'Schließen',
+      uiSalleTitre:              (n) => `Raum · ${n} Stream${n > 1 ? 's' : ''}`,
+      uiSalleSonPour:            (nom) => `Ton für ${nom} einschalten`,
+      uiSalleChat:               (nom) => `Chat von ${nom}`,
+      uiSalleChatSon:            (nom) => `Ton: ${nom}`,
+      uiSalleChatMasque:         'Chat ausgeblendet: Fenster zu schmal',
+      uiSallePoints:             'Keine Kanalpunkte im Raum',
+      uiSalleBanc:               (nom) => `${nom} ins Raster holen`,
+      uiSalleChatAfficher:       'Chat einblenden',
+      uiSalleChatMasquer:        'Chat ausblenden',
+      uiNoeudRegarder:           (n) => `Alle ${n} ansehen`,
+      uiNoeudAria:               (noms) => `${noms} zusammen ansehen`,
       uiGlobalEmpty:             'Kein Live-Kanal passt zu diesem Filter',
       uiUptimeEnded:             'Beendet',
       uiPreviewUnavailable:      'Vorschau nicht verfügbar',
@@ -486,6 +1105,17 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiBulleTitre:              '¡Gracias por instalar Cowlor\'s Sidebar!',
       uiBulleTexte:              'Aprende a usar la extensión, personalízala y consulta aquí todos tus datos guardados.',
       uiFermer:                  'Cerrar',
+      uiSalleTitre:              (n) => `Sala · ${n} stream${n > 1 ? 's' : ''}`,
+      uiSalleSonPour:            (nom) => `Dar el sonido a ${nom}`,
+      uiSalleChat:               (nom) => `Chat de ${nom}`,
+      uiSalleChatSon:            (nom) => `Sonido: ${nom}`,
+      uiSalleChatMasque:         'Chat oculto: ventana demasiado estrecha',
+      uiSallePoints:             'Sin puntos de canal en la sala',
+      uiSalleBanc:               (nom) => `Poner a ${nom} en la cuadrícula`,
+      uiSalleChatAfficher:       'Mostrar el chat',
+      uiSalleChatMasquer:        'Ocultar el chat',
+      uiNoeudRegarder:           (n) => `Ver los ${n}`,
+      uiNoeudAria:               (noms) => `Ver a ${noms} juntos`,
       uiGlobalEmpty:             'Ningún canal en directo con este filtro',
       uiUptimeEnded:             'Finalizado',
       uiPreviewUnavailable:      'Vista previa no disponible',
@@ -575,6 +1205,17 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiBulleTitre:              'Obrigado por instalares a Cowlor\'s Sidebar!',
       uiBulleTexte:              'Aprende a usar a extensão, personaliza-a e vê aqui todos os teus dados guardados.',
       uiFermer:                  'Fechar',
+      uiSalleTitre:              (n) => `Sala · ${n} stream${n > 1 ? 's' : ''}`,
+      uiSalleSonPour:            (nom) => `Dar o som a ${nom}`,
+      uiSalleChat:               (nom) => `Chat de ${nom}`,
+      uiSalleChatSon:            (nom) => `Som: ${nom}`,
+      uiSalleChatMasque:         'Chat oculto: janela estreita demais',
+      uiSallePoints:             'Sem pontos do canal na sala',
+      uiSalleBanc:               (nom) => `Colocar ${nom} na grade`,
+      uiSalleChatAfficher:       'Mostrar o chat',
+      uiSalleChatMasquer:        'Ocultar o chat',
+      uiNoeudRegarder:           (n) => `Ver os ${n}`,
+      uiNoeudAria:               (noms) => `Assistir ${noms} juntos`,
       uiGlobalEmpty:             'Nenhum canal ao vivo com este filtro',
       uiUptimeEnded:             'Encerrado',
       uiPreviewUnavailable:      'Pré-visualização indisponível',
@@ -664,6 +1305,17 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiBulleTitre:              'Grazie per aver installato Cowlor\'s Sidebar!',
       uiBulleTexte:              'Impara a usare l\'estensione, personalizzala e guarda qui tutti i tuoi dati memorizzati.',
       uiFermer:                  'Chiudi',
+      uiSalleTitre:              (n) => `Sala · ${n} stream`,
+      uiSalleSonPour:            (nom) => `Dai l'audio a ${nom}`,
+      uiSalleChat:               (nom) => `Chat di ${nom}`,
+      uiSalleChatSon:            (nom) => `Audio: ${nom}`,
+      uiSalleChatMasque:         'Chat nascosta: finestra troppo stretta',
+      uiSallePoints:             'Niente punti canale nella sala',
+      uiSalleBanc:               (nom) => `Metti ${nom} nella griglia`,
+      uiSalleChatAfficher:       'Mostra la chat',
+      uiSalleChatMasquer:        'Nascondi la chat',
+      uiNoeudRegarder:           (n) => `Guarda tutti e ${n}`,
+      uiNoeudAria:               (noms) => `Guarda ${noms} insieme`,
       uiGlobalEmpty:             'Nessun canale in diretta con questo filtro',
       uiUptimeEnded:             'Terminato',
       uiPreviewUnavailable:      'Anteprima non disponibile',
@@ -753,6 +1405,17 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiBulleTitre:              'Dzięki za zainstalowanie Cowlor\'s Sidebar!',
       uiBulleTexte:              'Naucz się korzystać z rozszerzenia, dostosuj je i zobacz tutaj wszystkie swoje zapisane dane.',
       uiFermer:                  'Zamknij',
+      uiSalleTitre:              (n) => `Sala · streamy: ${n}`,
+      uiSalleSonPour:            (nom) => `Włącz dźwięk: ${nom}`,
+      uiSalleChat:               (nom) => `Czat: ${nom}`,
+      uiSalleChatSon:            (nom) => `Dźwięk: ${nom}`,
+      uiSalleChatMasque:         'Czat ukryty: okno jest za wąskie',
+      uiSallePoints:             'Brak punktów kanału w sali',
+      uiSalleBanc:               (nom) => `Przenieś ${nom} do siatki`,
+      uiSalleChatAfficher:       'Pokaż czat',
+      uiSalleChatMasquer:        'Ukryj czat',
+      uiNoeudRegarder:           (n) => `Oglądaj ${n} naraz`,
+      uiNoeudAria:               (noms) => `Oglądaj razem: ${noms}`,
       uiGlobalEmpty:             'Brak kanałów na żywo dla tego filtra',
       uiUptimeEnded:             'Zakończono',
       uiPreviewUnavailable:      'Podgląd niedostępny',
@@ -842,6 +1505,17 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiBulleTitre:              'Спасибо за установку Cowlor\'s Sidebar!',
       uiBulleTexte:              'Узнайте, как пользоваться расширением, настройте его и посмотрите здесь все сохранённые данные.',
       uiFermer:                  'Закрыть',
+      uiSalleTitre:              (n) => `Зал · трансляций: ${n}`,
+      uiSalleSonPour:            (nom) => `Включить звук: ${nom}`,
+      uiSalleChat:               (nom) => `Чат: ${nom}`,
+      uiSalleChatSon:            (nom) => `Звук: ${nom}`,
+      uiSalleChatMasque:         'Чат скрыт: окно слишком узкое',
+      uiSallePoints:             'В зале баллы канала не начисляются',
+      uiSalleBanc:               (nom) => `Поместить ${nom} в сетку`,
+      uiSalleChatAfficher:       'Показать чат',
+      uiSalleChatMasquer:        'Скрыть чат',
+      uiNoeudRegarder:           (n) => `Смотреть все ${n}`,
+      uiNoeudAria:               (noms) => `Смотреть вместе: ${noms}`,
       uiGlobalEmpty:             'Нет каналов в эфире с этим фильтром',
       uiUptimeEnded:             'Завершено',
       uiPreviewUnavailable:      'Предпросмотр недоступен',
@@ -931,6 +1605,17 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiBulleTitre:              'Cowlor\'s Sidebar のインストール、ありがとうございます！',
       uiBulleTexte:              '使い方を学び、カスタマイズし、保存されているデータをここですべて確認できます。',
       uiFermer:                  '閉じる',
+      uiSalleTitre:              (n) => `ルーム · ${n} 配信`,
+      uiSalleSonPour:            (nom) => `${nom} の音声に切り替え`,
+      uiSalleChat:               (nom) => `${nom} のチャット`,
+      uiSalleChatSon:            (nom) => `音声：${nom}`,
+      uiSalleChatMasque:         'チャット非表示：ウィンドウが狭すぎます',
+      uiSallePoints:             'ルームではチャンネルポイントは貯まりません',
+      uiSalleBanc:               (nom) => `${nom} をグリッドに表示`,
+      uiSalleChatAfficher:       'チャットを表示',
+      uiSalleChatMasquer:        'チャットを非表示',
+      uiNoeudRegarder:           (n) => `${n} 人をまとめて見る`,
+      uiNoeudAria:               (noms) => `${noms} をまとめて見る`,
       uiGlobalEmpty:             'この条件で配信中のチャンネルはありません',
       uiUptimeEnded:             '終了',
       uiPreviewUnavailable:      'プレビューを利用できません',
@@ -1018,6 +1703,17 @@ const TSE_GATE_MAX_CLICKS = 5;
       uiBulleTitre:              '感谢你安装 Cowlor\'s Sidebar！',
       uiBulleTexte:              '在这里了解如何使用本扩展、进行个性化设置，并查看所有已保存的数据。',
       uiFermer:                  '关闭',
+      uiSalleTitre:              (n) => `放映室 · ${n} 个直播`,
+      uiSalleSonPour:            (nom) => `切换到 ${nom} 的声音`,
+      uiSalleChat:               (nom) => `${nom} 的聊天`,
+      uiSalleChatSon:            (nom) => `声音：${nom}`,
+      uiSalleChatMasque:         '聊天已隐藏：窗口太窄',
+      uiSallePoints:             '放映室内不获得频道积分',
+      uiSalleBanc:               (nom) => `将 ${nom} 放入网格`,
+      uiSalleChatAfficher:       '显示聊天',
+      uiSalleChatMasquer:        '隐藏聊天',
+      uiNoeudRegarder:           (n) => `一起观看 ${n} 个`,
+      uiNoeudAria:               (noms) => `一起观看 ${noms}`,
       uiGlobalEmpty:             '没有符合此筛选条件的直播频道',
       uiUptimeEnded:             '已结束',
       uiPreviewUnavailable:      '预览不可用',
@@ -1425,6 +2121,42 @@ const TSE_GATE_MAX_CLICKS = 5;
 
     PREVIEW_GATE_TIMEOUT_MS: 2_500,
 
+    SALLE_HAUT_PX:   50,
+    SALLE_TETE_PX:   40,
+    SALLE_BANC_PX:   68,
+    SALLE_CHAT_PX:   340,
+    SALLE_MARGE_PX:  8,
+    SALLE_ECART_PX:  4,
+
+    SALLE_MAX:       6,
+
+    SALLE_PAS_MS:    1_000,
+
+    SALLE_SON_RELANCE_MS: 2_000,
+    SALLE_SON_ESSAIS:     5,
+    SALLE_SON_TENU_MS:    3_000,
+
+    SALLE_PARTAGE_MIN:     4,
+    SALLE_DISTINCTS_MIN:   12,
+
+    SALLE_PAGE:            '/directory',
+    SALLE_ATTENTE_MS:      20_000,
+
+    SALLE_DIRECTS_MS:      30_000,
+    SALLE_HORS_LIGNE_MS:   25_000,
+
+    SALLE_SERIE_N:         300,
+    SALLE_SAUT_S:          0.5,
+
+    SALLE_APRES_ESSAI_MS:  2_500,
+    SALLE_EVENEMENTS_MAX:  60,
+
+    SALLE_ECOUTE_PAS_MS:     10,
+    SALLE_ECOUTE_FENETRE_MS: 20_000,
+    SALLE_ECOUTE_MAX_MS:     6_000,
+    SALLE_ECOUTE_TOUS:       5,
+    SALLE_ECOUTE_MIN_MS:     6_000,
+
     CATEGORY_SWITCH_TTL: 10 * 60_000,
 
     CATEGORY_SWITCH_MAX: 200,
@@ -1479,6 +2211,10 @@ const TSE_GATE_MAX_CLICKS = 5;
     dureeFormat:     { defaut: 'hm',      type: 'choix', valeurs: ['hm', 'colon', 'min'] },
     fresh:           { defaut: true,      type: 'bool', css: true },
     collab:          { defaut: true,      type: 'bool', css: true },
+
+    salle:           { defaut: true,      type: 'bool', css: true },
+
+    salleAuto:       { defaut: true,      type: 'bool' },
     abonnes:         { defaut: 'plein',   type: 'choix',
                        valeurs: ['plein', 'discret', 'aucun'], css: true },
     subathonJour:    { defaut: true,      type: 'bool', css: true },
@@ -1671,6 +2407,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       
       --tse-encre:        255, 255, 255;
       
+      --tse-frais:        var(--tse-direct, #eb0400);
+      
       --tse-surface:      var(--color-background-alt, #18181b);
       --tse-surface-2:    var(--color-background-alt-2, #1f1f23);
       --tse-voile-fond:   #26262c;
@@ -1833,10 +2571,10 @@ const TSE_GATE_MAX_CLICKS = 5;
     }
 
     
-    [data-a-target*="hype-train" i],
-    [data-test-selector*="hype-train" i],
-    [class*="hype-train" i],
-    [class*="HypeTrain"] { display: none !important; }
+    ${DOM.sidebarRoot} [data-a-target*="hype-train" i],
+    ${DOM.sidebarRoot} [data-test-selector*="hype-train" i],
+    ${DOM.sidebarRoot} [class*="hype-train" i],
+    ${DOM.sidebarRoot} [class*="HypeTrain"] { display: none !important; }
 
     
     .side-nav-card [data-tse-extra-row="true"] { display: none !important; }
@@ -2022,8 +2760,8 @@ const TSE_GATE_MAX_CLICKS = 5;
       isolation: isolate;
       background: linear-gradient(
         90deg,
-        rgba(145, 71, 255, 0.18) 0%,
-        rgba(145, 71, 255, 0.06) 40%,
+        color-mix(in srgb, var(--tse-frais) 18%, transparent) 0%,
+        color-mix(in srgb, var(--tse-frais) 6%, transparent) 40%,
         transparent 100%
       );
       border-radius: 4px;
@@ -2033,7 +2771,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       position: absolute;
       left: 0; top: 4px; bottom: 4px;
       width: 3px;
-      background: ${CFG.PURPLE};
+      background: var(--tse-frais);
       border-radius: 0 3px 3px 0;
       
       transform-origin: left center;
@@ -2046,12 +2784,12 @@ const TSE_GATE_MAX_CLICKS = 5;
       0%, 100% {
         opacity: 0.3;
         transform: scaleX(1);
-        box-shadow: 0 0 4px ${CFG.PURPLE}, 0 0 1px ${CFG.PURPLE};
+        box-shadow: 0 0 4px var(--tse-frais), 0 0 1px var(--tse-frais);
       }
       50% {
         opacity: 1;
         transform: scaleX(2);
-        box-shadow: 0 0 18px ${CFG.PURPLE}, 0 0 8px ${CFG.PURPLE};
+        box-shadow: 0 0 18px var(--tse-frais), 0 0 8px var(--tse-frais);
       }
     }
 
@@ -2082,11 +2820,11 @@ const TSE_GATE_MAX_CLICKS = 5;
     
     .side-nav-card.tse-fresh.tse-costream { background-image: linear-gradient(
         90deg,
-        rgba(145, 71, 255, 0.18) 0%,
-        rgba(145, 71, 255, 0.06) 40%,
+        color-mix(in srgb, var(--tse-frais) 18%, transparent) 0%,
+        color-mix(in srgb, var(--tse-frais) 6%, transparent) 40%,
         transparent 100%
       ); }
-    .side-nav-card.tse-fresh.tse-costream::before { background: ${CFG.PURPLE}; }
+    .side-nav-card.tse-fresh.tse-costream::before { background: var(--tse-frais); }
     
     .side-nav-card.tse-costream.tse-costream-join-bottom::before {
       bottom: var(--tse-costream-jb, -8px);
@@ -2096,6 +2834,39 @@ const TSE_GATE_MAX_CLICKS = 5;
       top: var(--tse-costream-jt, -8px);
       border-top-right-radius: 0;
     }
+
+    
+    #tse-noeuds { position: relative; height: 0; margin: 0; padding: 0; z-index: 5; }
+    .tse-noeud {
+      position: absolute; transform: translateY(-50%);
+      display: flex; align-items: center; justify-content: center;
+      width: 12px; height: 12px; margin: 0; padding: 0; box-sizing: border-box;
+      border: 2px solid var(--tse-decoupe); border-radius: 50%;
+      background: var(--tse-noeud-couleur, #9147ff); color: #0e0e10;
+      font-family: inherit; font-size: 11px; font-weight: 700; line-height: 1;
+      white-space: nowrap; cursor: pointer;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+    }
+    
+    .tse-noeud__symbole { display: flex; align-items: center; margin-left: 1px; }
+    .tse-noeud svg { width: 4px; height: 5px; fill: currentColor; }
+    .tse-noeud__etiquette {
+      display: none; position: absolute; left: calc(100% + 6px); top: 50%;
+      transform: translateY(-50%); padding: 3px 8px; border-radius: 4px;
+      background: var(--tse-noeud-couleur, #9147ff); color: #0e0e10;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35); pointer-events: none;
+    }
+    .tse-noeud:hover .tse-noeud__etiquette,
+    .tse-noeud:focus-visible .tse-noeud__etiquette { display: block; }
+    .tse-noeud:focus-visible { outline: 2px solid var(--tse-texte); outline-offset: 1px; }
+    
+    .tse-noeud[aria-pressed="true"] {
+      box-shadow: 0 0 0 2px var(--tse-noeud-couleur, #9147ff), 0 1px 3px rgba(0, 0, 0, 0.35);
+    }
+    
+    .tse-noeud--reduit:hover .tse-noeud__etiquette,
+    .tse-noeud--reduit:focus-visible .tse-noeud__etiquette { display: none; }
+    html[data-tse-off~="salle"] #tse-noeuds { display: none !important; }
 
     
     @property --tse-sub-angle {
@@ -2738,7 +3509,8 @@ const TSE_GATE_MAX_CLICKS = 5;
     }
     
     body.tse-global-ready .side-nav-card:not([data-tse-global="true"]) { display: none !important; }
-    body.tse-global-ready ${DOM.showMoreStableSelector} { display: none !important; }
+    
+    ${DOM.showMoreStableSelector.split(',').map((s) => `body.tse-global-ready ${DOM.sidebarRoot} ${s.trim()}`).join(',\n    ')} { display: none !important; }
     body.tse-global-mode #tse-sort-row { display: none; }
 
     
@@ -3195,6 +3967,100 @@ const TSE_GATE_MAX_CLICKS = 5;
     
     html[data-tse-apercu="petit"] .tse-preview { width: 360px; }
     html[data-tse-apercu="grand"] .tse-preview { width: 620px; }
+
+    
+    #tse-salle {
+      position: fixed; top: ${CFG.SALLE_HAUT_PX}px; right: 0; bottom: 0;
+      z-index: 8000;
+      display: flex; flex-direction: column;
+      background: var(--color-background-base, #0e0e10);
+      color: var(--tse-texte);
+      font-size: 13px; line-height: 1.4;
+    }
+    html[data-tse-theme="light"] #tse-salle { background: var(--color-background-base, #f7f7f8); }
+    html[data-tse-force][data-tse-theme="dark"] #tse-salle { background: #0e0e10; }
+    html[data-tse-force][data-tse-theme="light"] #tse-salle { background: #f7f7f8; }
+    
+    .tse-salle__tete {
+      position: absolute; top: ${CFG.SALLE_MARGE_PX}px; right: ${CFG.SALLE_MARGE_PX}px; z-index: 3;
+      display: flex; align-items: center; gap: 10px; padding: 4px 4px 4px 10px;
+      border-radius: 6px; background: rgba(14, 14, 16, 0.82); color: #efeff1;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+    }
+    .tse-salle__tete .tse-salle__note { display: none; }
+    .tse-salle__tete[hidden], .tse-salle__haut[hidden] { display: none; }
+    
+    .tse-salle__haut {
+      flex: 0 0 auto; height: ${CFG.SALLE_TETE_PX}px; box-sizing: border-box;
+      display: flex; align-items: center; gap: 10px; padding: 0 10px;
+      border-bottom: 1px solid rgba(var(--tse-encre), 0.08);
+    }
+    .tse-salle__titre-bloc {
+      flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 12px;
+    }
+    .tse-salle__commandes { flex: 0 0 auto; margin-left: auto; display: flex; align-items: center; gap: 8px; }
+    .tse-salle__titre { font-weight: 600; white-space: nowrap; }
+    .tse-salle__note {
+      color: var(--tse-texte-faible); font-size: 12px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
+    }
+    .tse-salle__bouton-chat {
+      flex: 0 0 auto;
+      padding: 4px 10px; border: 0; border-radius: 4px; cursor: pointer;
+      background: rgba(var(--tse-encre), 0.1); color: var(--tse-texte); font: inherit; font-weight: 600;
+    }
+    .tse-salle__bouton-chat:hover { background: rgba(var(--tse-encre), 0.16); }
+    .tse-salle__tete .tse-salle__bouton-chat { background: #9147ff; color: #fff; }
+    .tse-salle__tete .tse-salle__bouton-chat:hover { background: #772ce8; }
+    .tse-salle__corps { flex: 1 1 auto; display: flex; min-height: 0; }
+    .tse-salle__gauche { flex: 1 1 auto; display: flex; flex-direction: column; min-width: 0; }
+    .tse-salle__scene { position: relative; flex: 1 1 auto; min-height: 0; overflow: auto; }
+    .tse-salle__tuile {
+      position: absolute; box-sizing: border-box;
+      background: #000; border-radius: 4px; overflow: hidden;
+      box-shadow: 0 0 0 2px transparent;
+    }
+    
+    .tse-salle__tuile--son { box-shadow: 0 0 0 2px #9147ff; }
+    .tse-salle__tuile iframe { display: block; width: 100%; height: 100%; border: 0; }
+    
+    .tse-salle__prise {
+      position: absolute; inset: 0; z-index: 1;
+      margin: 0; padding: 0; border: 0; background: transparent; cursor: pointer;
+    }
+    .tse-salle__prise:hover, .tse-salle__prise:focus-visible { background: rgba(145, 71, 255, 0.12); outline: none; }
+    .tse-salle__banc {
+      flex: 0 0 auto; height: ${CFG.SALLE_BANC_PX}px; box-sizing: border-box;
+      display: flex; gap: 8px; padding: 8px ${CFG.SALLE_MARGE_PX}px; overflow-x: auto; overflow-y: hidden;
+      border-top: 1px solid rgba(var(--tse-encre), 0.08);
+    }
+    
+    .tse-salle__remplacant {
+      position: relative; flex: 0 0 auto; width: 92px; height: 52px;
+      margin: 0; padding: 0; border: 0; border-radius: 4px; overflow: hidden;
+      background: rgba(var(--tse-encre), 0.08); cursor: pointer;
+    }
+    .tse-salle__remplacant img { display: block; width: 100%; height: 100%; object-fit: cover; }
+    .tse-salle__remplacant span {
+      position: absolute; left: 0; right: 0; bottom: 0; padding: 1px 5px;
+      background: rgba(0, 0, 0, 0.62); color: #fff; font-size: 11px; font-weight: 600;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .tse-salle__remplacant:hover, .tse-salle__remplacant:focus-visible { box-shadow: 0 0 0 2px #9147ff; outline: none; }
+    
+    .tse-salle__chat {
+      flex: 0 0 ${CFG.SALLE_CHAT_PX}px; display: flex; flex-direction: column; min-height: 0; min-width: 0;
+      border-left: 1px solid rgba(var(--tse-encre), 0.08);
+    }
+    
+    .tse-salle__chat--gauche { border-left: 0; border-right: 1px solid rgba(var(--tse-encre), 0.08); }
+    .tse-salle__chat[hidden], .tse-salle__banc[hidden] { display: none; }
+    .tse-salle__chat-tete {
+      flex: 0 0 auto; padding: 6px 12px; font-weight: 600;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      border-bottom: 1px solid rgba(var(--tse-encre), 0.08);
+    }
+    .tse-salle__chat iframe { flex: 1 1 auto; width: 100%; border: 0; }
   `;
 
   const injectCSS = () => {
@@ -6320,6 +7186,1992 @@ const TSE_GATE_MAX_CLICKS = 5;
     }
   };
 
+  const salle = (() => {
+    const RE_LOGIN = /^[a-z0-9_]{2,25}$/;
+
+    const MIN_L = 400, MIN_H = 300;
+    let courante = null;
+    let derniere = null;
+
+    let auChangement = null;
+
+    const grille = (n, W, H) => {
+      const e = CFG.SALLE_ECART_PX;
+      let meilleure = null;
+      for (let cols = 1; cols <= n; cols++) {
+        const rangs = Math.ceil(n / cols);
+        const l = Math.floor(Math.min((W - (cols - 1) * e) / cols, ((H - (rangs - 1) * e) / rangs) * 16 / 9));
+        const h = Math.floor((l * 9) / 16);
+        if (l < MIN_L || h < MIN_H) continue;
+        if (!meilleure || l > meilleure.l) meilleure = { n, cols, rangs, l, h };
+      }
+      return meilleure;
+    };
+    const capacite = (voulus, W, H) => {
+      for (let n = voulus; n >= 1; n--) { const g = grille(n, W, H); if (g) return g; }
+      return null;
+    };
+
+    const essai = (voulus, largeur, hauteur, chat) => {
+      const m = CFG.SALLE_MARGE_PX;
+      const W = largeur - (chat ? CFG.SALLE_CHAT_PX + 1 : 0) - 2 * m;
+
+      let H = hauteur - 2 * m;
+      let g = capacite(voulus, W, H);
+      if (g && g.n < voulus) {
+        H = hauteur - CFG.SALLE_BANC_PX - 2 * m;
+        g = capacite(voulus, W, H);
+      }
+      return g ? { ...g, chat, W, H, deborde: false } : null;
+    };
+
+    const disposer = (voulus, largeur, hauteur, voulu = null) => {
+      const avec = voulu === false ? null : essai(voulus, largeur, hauteur, true);
+      const sans = voulu === true ? null : essai(voulus, largeur, hauteur, false);
+      const d = !avec ? sans : !sans ? avec : sans.n > avec.n ? sans : avec;
+      if (d) return d;
+      const l = Math.ceil((MIN_H * 16) / 9);
+      return { n: 1, cols: 1, rangs: 1, l, h: MIN_H, chat: false, W: l, H: MIN_H, deborde: true };
+    };
+    const zone = () => {
+      const nav = document.querySelector(DOM.sidebarRoot);
+      const gauche = nav ? Math.max(0, Math.round(nav.getBoundingClientRect().right)) : 0;
+      return {
+        gauche,
+        largeur: window.innerWidth - gauche,
+        hauteur: window.innerHeight - CFG.SALLE_HAUT_PX,
+        cle: `${gauche}|${window.innerWidth}|${window.innerHeight}`,
+      };
+    };
+
+    const issue = (o) => {
+      const a = o.apres;
+      if (!a) return null;
+      if (o.ordre === 'son') return !a.muet && a.lecture ? 'ok' : !a.muet ? 'pause' : 'sans-effet';
+      if (o.ordre === 'muet') return a.muet ? 'ok' : 'sans-effet';
+      if (o.ordre === 'pause') return a.lecture ? 'sans-effet' : 'ok';
+      return a.lecture ? 'ok' : 'sans-effet';
+    };
+    const envoyer = (t, ordre, plus = null) => {
+      try {
+        t.cadre.contentWindow.postMessage({ tse: TSE_SALLE_ORDRE_MSG, ordre, ...(plus || {}) }, 'https://player.twitch.tv');
+      } catch {   }
+    };
+
+    const QUALITES_USUELLES = [[160, '160p30'], [360, '360p30'], [480, '480p30'], [720, '720p60'], [1080, '1080p60']];
+    const hauteurCible = () => {
+      const d = courante && courante.disposition;
+      return d && d.h ? Math.round(d.h * (window.devicePixelRatio || 1)) : null;
+    };
+
+    const qualiteUsuelle = (h) => {
+      let i = 0;
+      QUALITES_USUELLES.forEach((q, k) => {
+        if (Math.abs(Math.log(q[0] / h)) <= Math.abs(Math.log(QUALITES_USUELLES[i][0] / h))) i = k;
+      });
+      return QUALITES_USUELLES[Math.min(i + 1, QUALITES_USUELLES.length - 1)][1];
+    };
+    const tenirQualite = (t) => {
+      const h = hauteurCible();
+      if (!h || t.qualiteEnvoyee === h) return;
+      envoyer(t, 'qualite', { hauteur: h });
+      t.qualiteEnvoyee = h;
+    };
+
+    const creerTuile = (chaine) => {
+      const el = document.createElement('div');
+      el.className = 'tse-salle__tuile';
+      el.dataset.tseSalleChaine = chaine;
+      const cadre = document.createElement('iframe');
+
+      cadre.name = TSE_SALLE_FRAME_NAME;
+      cadre.title = chaine;
+      const h = hauteurCible();
+      cadre.src = `https://player.twitch.tv/?${new URLSearchParams({
+        channel: chaine, parent: location.hostname, muted: 'true', autoplay: 'true',
+        ...(h ? { quality: qualiteUsuelle(h) } : {}) })}`;
+      cadre.setAttribute('allow', 'autoplay; fullscreen; encrypted-media; picture-in-picture');
+      const prise = document.createElement('button');
+      prise.type = 'button';
+      prise.className = 'tse-salle__prise';
+      prise.setAttribute('aria-label', S.uiSalleSonPour(chaine));
+      prise.title = S.uiSalleSonPour(chaine);
+      prise.addEventListener('click', () => donnerSon(chaine));
+
+      el.append(cadre, prise);
+
+      return { chaine, el, cadre, prise, etat: null, messages: 0, pubs: 0, changement: Date.now(),
+               pubAvant: false, dernierSon: 0, pauseCachee: false,
+               sonEssais: 0, sonEnvoiT: 0, sonDepuis: 0, sonTenu: false, gestesAuDon: 0, qualiteEnvoyee: null,
+               ordreCompte: 0, dernierOrdre: null,
+
+               serie: [], sauts: 0, api: null, apiTotal: null, faibleLatence: null,
+               aberrants: 0, rechargements: 0,
+
+               latencesIncoherentes: 0, sautsNature: { estimation: 0, calage: 0, avance: 0, inconnue: 0 },
+               vidange: null, coupures: [],
+
+               rattrapages: [], rattrapage: null, deplacee: false,
+
+               retientPas: null,
+
+               chutes: [], chute: null,
+               essai: null, essaiVu: 0, essaiFinVu: 0, ecouteEtat: null, env: [], envDes: 0,
+
+               plages: null,
+
+               octets: 0, octetsAvant: null, octetsT0: null, octetsT: null,
+
+               premierSon: null, rouverte: null };
+    };
+
+    const creerCoteChat = (cote) => {
+      const bloc = document.createElement('div');
+      bloc.className = `tse-salle__chat tse-salle__chat--${cote}`;
+      bloc.hidden = true;
+
+      const haut = document.createElement('div');
+      haut.className = 'tse-salle__haut';
+      haut.hidden = true;
+      const tete = document.createElement('div');
+      tete.className = 'tse-salle__chat-tete';
+      bloc.append(haut, tete);
+      return { bloc, haut, tete, cadre: null, chaine: null };
+    };
+    const poserChat = (cote, chaine) => {
+      if (cote.chaine === chaine) return;
+      cote.chaine = chaine;
+      if (cote.cadre) cote.cadre.remove();
+      cote.cadre = null;
+      cote.bloc.hidden = !chaine;
+      if (!chaine) return;
+      const f = document.createElement('iframe');
+      f.name = TSE_SALLE_CHAT_NAME;
+      f.title = S.uiSalleChat(chaine);
+      f.src = `${location.origin}/embed/${encodeURIComponent(chaine)}/chat?`
+        + `${new URLSearchParams({ parent: location.hostname })}${themeTwitch() === 'dark' ? '&darkpopout' : ''}`;
+      cote.bloc.appendChild(f);
+      cote.cadre = f;
+    };
+    const titrerChat = (cote, texte) => { if (cote.tete.textContent !== texte) cote.tete.textContent = texte; };
+
+    const majChat = () => {
+      const c = courante;
+      const d = c.disposition;
+      if (!d || !d.chat) { poserChat(c.chatD, null); poserChat(c.chatG, null); }
+      else if (c.deuxChats) {
+        const droite = c.membres.includes(c.chatD.chaine) ? c.chatD.chaine : c.son;
+        poserChat(c.chatD, droite);
+        poserChat(c.chatG, c.membres.find((m) => m !== droite) || null);
+      } else {
+        poserChat(c.chatG, null);
+
+        poserChat(c.chatD, c.partage === true && c.membres.includes(c.chatD.chaine) ? c.chatD.chaine : c.son);
+      }
+
+      const partage = c.partage === true && !c.deuxChats;
+      titrerChat(c.chatD, !c.chatD.chaine ? '' : partage ? S.uiSalleChatSon(c.son) : S.uiSalleChat(c.chatD.chaine));
+      titrerChat(c.chatG, c.chatG.chaine ? S.uiSalleChat(c.chatG.chaine) : '');
+    };
+
+    const MAX_TEXTES = 300;
+    const lireChat = (cote) => {
+      let doc = null;
+      try { doc = cote.cadre && cote.cadre.contentDocument; } catch {   }
+      if (!doc) return;
+      const ensemble = courante.textes.get(cote.chaine) || new Set();
+      courante.textes.set(cote.chaine, ensemble);
+      for (const ligne of doc.querySelectorAll('.chat-line__message')) {
+        if (ensemble.size >= MAX_TEXTES) break;
+        const t = (ligne.textContent || '').replace(/\s+/g, ' ').trim();
+        if (t) ensemble.add(t);
+      }
+    };
+    const comparerChats = () => {
+      const c = courante;
+      if (!c || !c.deuxChats || c.partage !== null || !c.chatD.cadre || !c.chatG.cadre) return;
+      lireChat(c.chatD);
+      lireChat(c.chatG);
+      const a = c.textes.get(c.chatD.chaine) || new Set();
+      const b = c.textes.get(c.chatG.chaine) || new Set();
+      const base = Math.min(a.size, b.size);
+      let communs = 0;
+      for (const t of a) if (b.has(t)) communs += 1;
+      c.comparaison = { messages: a.size + b.size, communs };
+      if (base >= CFG.SALLE_PARTAGE_MIN && communs * 2 >= base) c.partage = true;
+      else if (base >= CFG.SALLE_DISTINCTS_MIN && communs * 5 <= base) c.partage = false;
+      if (c.partage === null) return;
+      c.textes.clear();
+      if (c.partage) disposerSalle();
+    };
+
+    const tenirSon = (t, et) => {
+      if (!et || !et.video || t.sonTenu) return;
+      if (t.sonEssais > 0 && (et.gestes || 0) > t.gestesAuDon) { t.sonTenu = true; return; }
+      const maintenant = Date.now();
+      if (et.muet === false) {
+        if (!t.sonDepuis) t.sonDepuis = maintenant;
+        if (maintenant - t.sonDepuis >= CFG.SALLE_SON_TENU_MS) t.sonTenu = true;
+        return;
+      }
+      t.sonDepuis = 0;
+      if (t.sonEssais >= CFG.SALLE_SON_ESSAIS) return;
+      if (t.sonEssais > 0 && maintenant - t.sonEnvoiT < CFG.SALLE_SON_RELANCE_MS) return;
+      envoyer(t, 'son');
+      t.sonEssais += 1;
+      t.sonEnvoiT = maintenant;
+    };
+
+    const donnerSon = (chaine) => {
+      const c = courante;
+      if (!c || !c.tuiles.some((t) => t.chaine === chaine)) return false;
+      c.son = chaine;
+      c.sonsDonnes += 1;
+      for (const t of c.tuiles) {
+        const a = t.chaine === chaine;
+        t.el.classList.toggle('tse-salle__tuile--son', a);
+        t.prise.hidden = a;
+        if (a) {
+          t.dernierSon = Date.now();
+          t.sonEssais = 0; t.sonDepuis = 0; t.sonTenu = false;
+          t.gestesAuDon = (t.etat && t.etat.gestes) || 0;
+
+          tenirSon(t, t.etat);
+        } else if (t.etat && t.etat.video) envoyer(t, 'muet');
+      }
+      majChat();
+      return true;
+    };
+
+    const remplacer = (chaine) => {
+      const c = courante;
+      if (!c || !c.membres.includes(chaine) || c.tuiles.some((t) => t.chaine === chaine)) return;
+      const muettes = c.tuiles.filter((t) => t.chaine !== c.son);
+      const cible = muettes.length ? muettes.reduce((a, b) => (b.dernierSon < a.dernierSon ? b : a)) : c.tuiles[0];
+      if (!cible) return;
+      const t = creerTuile(chaine);
+      cible.el.replaceWith(t.el);
+      c.tuiles[c.tuiles.indexOf(cible)] = t;
+      c.remplacements += 1;
+      disposerSalle();
+      donnerSon(chaine);
+      oublierTuile(c, cible.chaine);
+    };
+
+    const creerRemplacant = (chaine) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'tse-salle__remplacant';
+      b.dataset.tseSalleChaine = chaine;
+      b.title = S.uiSalleBanc(chaine);
+      const img = document.createElement('img');
+      img.alt = '';
+      img.src = buildThumbUrl(chaine);
+      const nom = document.createElement('span');
+      nom.textContent = chaine;
+      b.append(img, nom);
+      b.addEventListener('click', () => remplacer(chaine));
+      return b;
+    };
+
+    const disposerSalle = () => {
+      const c = courante;
+      if (!c) return;
+      const z = zone();
+      c.zoneCle = z.cle;
+      c.boite.style.left = `${z.gauche}px`;
+      const d = disposer(c.membres.length, z.largeur, z.hauteur, c.chatVoulu);
+      c.disposition = d;
+      const dedans = [];
+
+      if (c.son && c.membres.includes(c.son) && c.tuiles.some((t) => t.chaine === c.son)) dedans.push(c.son);
+      for (const t of c.tuiles) {
+        if (dedans.length < d.n && c.membres.includes(t.chaine) && !dedans.includes(t.chaine)) dedans.push(t.chaine);
+      }
+      for (const m of c.membres) if (dedans.length < d.n && !dedans.includes(m)) dedans.push(m);
+      const sorties = [];
+      for (const t of [...c.tuiles]) {
+        if (dedans.includes(t.chaine)) continue;
+        t.el.remove();
+        c.tuiles.splice(c.tuiles.indexOf(t), 1);
+        sorties.push(t.chaine);
+      }
+      for (const ch of dedans) {
+        if (c.tuiles.some((t) => t.chaine === ch)) continue;
+        const t = creerTuile(ch);
+        c.scene.appendChild(t.el);
+        c.tuiles.push(t);
+      }
+      const e = CFG.SALLE_ECART_PX, m = CFG.SALLE_MARGE_PX;
+
+      const occupe = d.cols * d.l + (d.cols - 1) * e;
+      c.deuxChats = !!d.chat && d.n === 2 && c.membres.length === 2 && c.partage !== true
+        && d.W - occupe >= CFG.SALLE_CHAT_PX + 1;
+
+      const libre = Math.max(0, d.W - occupe);
+      let gPx = 0, dPx = 0, x0;
+      if (d.chat) {
+        if (c.deuxChats) {
+          const reste = libre - (CFG.SALLE_CHAT_PX + 1);
+          gPx = CFG.SALLE_CHAT_PX + Math.floor(reste / 2);
+          dPx = CFG.SALLE_CHAT_PX + reste - Math.floor(reste / 2);
+        } else dPx = CFG.SALLE_CHAT_PX + libre;
+        x0 = m;
+      } else x0 = m + Math.floor(libre / 2);
+      c.chatsPx = d.chat ? `${gPx} · ${dPx}` : null;
+      c.chatG.bloc.style.flex = `0 0 ${gPx}px`;
+      c.chatD.bloc.style.flex = `0 0 ${dPx}px`;
+      const y0 = m + Math.max(0, Math.floor((d.H - (d.rangs * d.h + (d.rangs - 1) * e)) / 2));
+
+      const derniere = c.tuiles.length - (d.rangs - 1) * d.cols;
+      const decalage = derniere > 0 && derniere < d.cols ? Math.floor(((d.cols - derniere) * (d.l + e)) / 2) : 0;
+      c.tuiles.forEach((t, i) => {
+        const col = i % d.cols, rang = Math.floor(i / d.cols);
+        t.el.style.left = `${x0 + col * (d.l + e) + (rang === d.rangs - 1 ? decalage : 0)}px`;
+        t.el.style.top = `${y0 + rang * (d.h + e)}px`;
+        t.el.style.width = `${d.l}px`;
+        t.el.style.height = `${d.h}px`;
+      });
+      const dehors = c.membres.filter((ch) => !dedans.includes(ch));
+      const cleBanc = dehors.join(' ');
+      if (cleBanc !== c.cleBanc) {
+        c.cleBanc = cleBanc;
+        c.banc.replaceChildren(...dehors.map(creerRemplacant));
+      }
+      c.banc.hidden = !dehors.length;
+      placerTete(c, d);
+      c.boutonChat.textContent = d.chat ? S.uiSalleChatMasquer : S.uiSalleChatAfficher;
+
+      c.note.textContent = d.chat || c.chatVoulu === false ? S.uiSallePoints
+        : `${S.uiSallePoints} · ${S.uiSalleChatMasque}`;
+
+      if (!c.son || !c.tuiles.some((t) => t.chaine === c.son)) donnerSon(c.tuiles[0].chaine);
+      else majChat();
+
+      for (const ch of sorties) oublierTuile(c, ch);
+    };
+
+    const placerTete = (c, d) => {
+      const pourTitre = !d.chat ? c.tete : c.deuxChats ? c.chatG.haut : c.chatD.haut;
+      const pourCommandes = !d.chat ? c.tete : c.chatD.haut;
+      if (pourTitre === pourCommandes) {
+        if (c.titreBloc.parentElement !== pourTitre || c.titreBloc.nextElementSibling !== c.commandes) {
+          pourTitre.append(c.titreBloc, c.commandes);
+        }
+      } else {
+        if (c.titreBloc.parentElement !== pourTitre) pourTitre.appendChild(c.titreBloc);
+        if (c.commandes.parentElement !== pourCommandes) pourCommandes.appendChild(c.commandes);
+      }
+      c.tete.hidden = !!d.chat;
+      c.chatG.haut.hidden = !(d.chat && c.deuxChats);
+      c.chatD.haut.hidden = !d.chat;
+    };
+
+    const fini = (x) => (typeof x === 'number' && Number.isFinite(x) ? x : null);
+    const mediane = (l) => {
+      if (!l.length) return null;
+      const s = [...l].sort((a, b) => a - b);
+      const m = Math.floor(s.length / 2);
+      return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+    };
+    const r3 = (x) => (x === null ? null : Math.round(x * 1000) / 1000);
+
+    const noter = (c, chaine, texte, latence = null) => {
+      c.evenementsTotal += 1;
+      c.evenements.push({ t: Date.now() - c.t0, chaine, texte, latence: r3(latence) });
+      if (c.evenements.length > CFG.SALLE_EVENEMENTS_MAX) c.evenements.shift();
+    };
+
+    const nouveauCout = () => ({ n: 0, total: 0, max: 0, paires: 0 });
+    const compter = (o, ms, paires = 0) => {
+      o.n += 1; o.total += ms; o.paires += paires;
+      if (ms > o.max) o.max = ms;
+    };
+    const texteCout = (o) => (!o.n ? null : `${(o.total / o.n).toFixed(1)} ms en moyenne · ${o.max.toFixed(1)} au plus · ${o.n} fois`
+      + (o.paires ? ` · ${(o.total / o.paires).toFixed(1)} ms par paire` : ''));
+
+    const COUPABLES = ['page', 'lecteurs', 'chats', 'autres'];
+    const coupable = (x) => {
+      if (x.name === 'self') return 'page';
+      const nom = x.attribution && x.attribution[0] ? x.attribution[0].containerName : '';
+      return nom === TSE_SALLE_FRAME_NAME ? 'lecteurs' : nom === TSE_SALLE_CHAT_NAME ? 'chats' : 'autres';
+    };
+    const observerTaches = (c) => {
+      try {
+        const l = Object.fromEntries(COUPABLES.map((k) => [k, { n: 0, ms: 0 }]));
+        const obs = new PerformanceObserver((liste) => {
+          for (const x of liste.getEntries()) { const k = l[coupable(x)]; k.n += 1; k.ms += Math.round(x.duration); }
+        });
+        obs.observe({ type: 'longtask' });
+        c.longues = l; c.obsLongues = obs;
+      } catch { c.longues = null; c.obsLongues = null; }
+    };
+    const texteTaches = (l) => (!l ? null : COUPABLES.map((k) => `${k} ${l[k].n} · ${l[k].ms} ms`).join(' ; '));
+
+    const natureSaut = (prec, ech, dt) => {
+      if (prec.po === null || ech.po === null) return 'inconnue';
+      const e = (ech.po - prec.po) - dt * (ech.v ?? 1);
+      return e < -0.3 ? 'calage' : e > 0.3 ? 'avance' : 'estimation';
+    };
+    const demanderReleves = (c) => {
+
+      if (c.releveN) {
+        const n = c.releveN;
+        const reponses = c.tuiles.map((t) => t.serie.find((s) => s.n === n)).filter(Boolean);
+        const lats = reponses.map((s) => s.l).filter((x) => x !== null);
+        if (lats.length >= 2) {
+          const heures = reponses.map((s) => s.t).filter((x) => x !== null);
+          c.ecarts.push({ n, e: r3(Math.max(...lats) - Math.min(...lats)),
+                          s: heures.length ? Math.max(...heures) - Math.min(...heures) : null });
+          if (c.ecarts.length > CFG.SALLE_SERIE_N) c.ecarts.shift();
+        }
+      }
+      c.releveN += 1;
+      for (const t of c.tuiles) {
+        envoyer(t, 'releve', { n: c.releveN, api: !t.api, ecoute: c.ecoute.actif });
+      }
+    };
+
+    const RETIENT_MS = 30_000;
+    const surReleve = (c, t, d) => {
+      if (!Number.isFinite(d.n)) return;
+
+      const lat = fini(d.latence);
+
+      const sy = fini(d.sync);
+      const ech = { n: d.n, t: fini(d.t), l: lat !== null && lat > 0 ? lat : null, b: fini(d.tampon), v: fini(d.vitesse),
+                    vl: fini(d.vitesseLecteur), lecture: d.lecture === true, sy: sy !== null && sy > 0 ? sy : null, po: fini(d.position),
+                    redemarrage: false, lIncoherente: false, ar: fini(d.arriere), arL: null };
+
+      if (Array.isArray(d.plages)) {
+        t.plages = d.plages.slice(0, 8).map((x) => (Array.isArray(x) && x.length === 2 && x.every(Number.isFinite) ? x : null));
+        const dedans = ech.po === null ? null : t.plages.find((x) => x && ech.po >= x[0] && ech.po <= x[1] + 0.1);
+        if (dedans) ech.arL = r3(ech.po - dedans[0]);
+      } else if (typeof d.plages === 'string') t.plages = d.plages.slice(0, 160);
+
+      t.plagesForme = typeof d.plagesForme === 'string' ? d.plagesForme.slice(0, 160) : null;
+
+      const recente = (k) => mediane(t.serie.slice(-10).filter((x) => !(k === 'l' && x.lIncoherente))
+        .map((x) => x[k]).filter((x) => x !== null));
+      if (ech.b !== null && (ech.b < 0 || ech.b > 60)) {
+        ech.b = null;
+        t.aberrants += 1;
+      } else if (ech.b !== null && ech.l !== null && ech.b > ech.l + 0.5) {
+        const mL = recente('l'), mB = recente('b');
+        if (mL !== null && mB !== null && Math.abs(ech.l - mL) > Math.abs(ech.b - mB)) {
+          ech.lIncoherente = true;
+          t.latencesIncoherentes += 1;
+        } else {
+          ech.b = null;
+          t.aberrants += 1;
+        }
+      }
+      const prec = t.serie[t.serie.length - 1];
+      const es = d.essai && typeof d.essai === 'object' ? d.essai : null;
+
+      const recule = !!(es && es.type === 'recul' && prec && prec.t !== null && Number.isFinite(es.t)
+        && es.t > prec.t - CFG.SALLE_APRES_ESSAI_MS && prec.po !== null && ech.po !== null
+        && prec.po - ech.po <= (Number(es.valeur) || 5) + 1);
+      if (prec && prec.po !== null && ech.po !== null && ech.po < prec.po - 1 && !recule) {
+        ech.redemarrage = true;
+        t.rechargements += 1;
+        noter(c, t.chaine, `rechargement du lecteur (position ${prec.po} → ${ech.po})`, ech.l);
+        signaler(c, t.chaine, 'rechargement');
+      }
+
+      const suivis = prec && prec.n === ech.n - 1 && prec.t !== null && ech.t !== null && ech.t > prec.t;
+      if (suivis && prec.b !== null && ech.b !== null && prec.lecture && ech.lecture) {
+        const perte = prec.b - ech.b;
+        const rythme = ((ech.t - prec.t) / 1000) * (ech.v ?? 1);
+        if (perte >= 0.7 * rythme && perte <= 1.3 * rythme) {
+          if (!t.vidange) t.vidange = { b0: prec.b, bmin: ech.b, n: 0 };
+          t.vidange.n += 1;
+          t.vidange.bmin = ech.b;
+        } else {
+          if (t.vidange && t.vidange.n >= 2 && ech.b - prec.b > 0.5) {
+            const duree = Math.round((t.vidange.b0 - t.vidange.bmin) * 10) / 10;
+            t.coupures.push({ t: ech.t, duree });
+            if (t.coupures.length > 50) t.coupures.shift();
+            noter(c, t.chaine, `coupure d'arrivée : au moins ${duree} s sans vidéo (tampon ${t.vidange.b0} → ${t.vidange.bmin})`, ech.l);
+            signaler(c, t.chaine, 'coupure');
+          }
+          t.vidange = null;
+        }
+      } else t.vidange = null;
+      t.serie.push(ech);
+      if (t.serie.length > CFG.SALLE_SERIE_N) t.serie.shift();
+      if (Array.isArray(d.api)) {
+        t.apiTotal = d.api.length;
+        t.api = d.api.filter((x) => typeof x === 'string').slice(0, 250);
+      }
+      t.faibleLatence = typeof d.faibleLatence === 'boolean' ? d.faibleLatence : null;
+      t.ecouteEtat = d.ecoute && typeof d.ecoute === 'object' ? d.ecoute : null;
+      if (Array.isArray(d.env) && d.env.length) {
+        for (const p of d.env) {
+
+          if (Array.isArray(p) && Number.isFinite(p[0]) && Number.isFinite(p[1]) && p[0] >= t.envDes) t.env.push(p);
+        }
+        if (t.env.length && t.premierSon === null) t.premierSon = t.env[0][0];
+        if (t.env.length) {
+
+          const limite = t.env[t.env.length - 1][0] - 2 * CFG.SALLE_ECOUTE_FENETRE_MS;
+          let i = 0;
+          while (i < t.env.length && t.env[i][0] < limite) i++;
+          if (i) t.env.splice(0, i);
+        }
+      }
+      if (es && Number.isFinite(es.n) && es.n !== t.essaiVu) {
+        t.essaiVu = es.n;
+        noter(c, t.chaine, `${es.type} ${es.valeur} · ${es.voie}`, ech.l);
+
+        if ((es.type === 'recul' || es.type === 'avance') && (es.voie === 'instance' || es.voie === 'video')) {
+          t.deplacee = true;
+          if (Number.isFinite(es.t)) c.ecoute.coupe = Math.max(c.ecoute.coupe || 0, es.t);
+
+          if (Number.isFinite(es.t)) { t.env = []; t.envDes = es.t + 1_000; }
+        }
+      }
+      if (es && es.fin && t.essaiFinVu !== es.n) {
+        t.essaiFinVu = es.n;
+
+        const obtenu = [es.avant, es.apres, es.ecouleS].every(Number.isFinite) ? r3(es.apres - es.avant - es.ecouleS) : null;
+        noter(c, t.chaine, `fin de ${es.type}${obtenu === null ? ''
+          : ` · position ${es.avant} → ${es.apres} en ${es.ecouleS} s : ${obtenu > 0 ? '+' : ''}${obtenu} s`}`, ech.l);
+      }
+      t.essai = es;
+
+      const apresEssai = Math.max(CFG.SALLE_APRES_ESSAI_MS, ((cadence(t.serie) ?? 2) + 0.5) * 1000);
+      const dans = (x) => Number.isFinite(x) && x > prec.t - apresEssai && x <= ech.t;
+      if (prec && prec.n === ech.n - 1 && prec.l !== null && ech.l !== null && prec.t !== null && ech.t !== null
+        && prec.lecture && ech.lecture && prec.v === ech.v && prec.vl === ech.vl && !ech.redemarrage
+        && !prec.lIncoherente && !ech.lIncoherente
+        && !(es && (dans(es.t) || dans(es.fin)))) {
+        const dt = (ech.t - prec.t) / 1000;
+        const attendu = (1 - (ech.v ?? ech.vl ?? 1)) * dt;
+        if (Math.abs(ech.l - prec.l - attendu) > CFG.SALLE_SAUT_S) {
+          const nature = natureSaut(prec, ech, dt);
+          t.sauts += 1;
+          t.sautsNature[nature] += 1;
+          noter(c, t.chaine, `saut de latence ${prec.l} → ${ech.l} · ${nature === 'inconnue' ? 'position inconnue' : nature}`, ech.l);
+
+          signaler(c, t.chaine, `saut (${nature})`);
+        }
+      }
+
+      const essaiRecent = (x) => Number.isFinite(x) && x > prec.t - CFG.SALLE_APRES_ESSAI_MS && x <= ech.t;
+      const perdu = prec && suivis && prec.po !== null && ech.po !== null && prec.lecture && ech.lecture && !ech.redemarrage
+        && !(es && (essaiRecent(es.t) || essaiRecent(es.fin))) ? ((ech.t - prec.t) / 1000) * (prec.v ?? 1) - (ech.po - prec.po) : null;
+      if (perdu !== null && perdu > 0.15) {
+        if (!t.chute) t.chute = { t: prec.t, perdu: 0, l: prec.lIncoherente ? null : prec.l };
+        t.chute.perdu += perdu;
+      } else if (t.chute) {
+        const k = t.chute;
+        t.chute = null;
+        if (k.perdu >= 0.4) {
+          const x = { t: k.t, perdu: Math.round(k.perdu * 100) / 100, avant: k.l, apres: ech.lIncoherente ? null : ech.l };
+          t.chutes.push(x);
+          if (t.chutes.length > 50) t.chutes.shift();
+          noter(c, t.chaine, `chute de lecture : ${x.perdu} s perdues (latence ${x.avant ?? '—'} → ${x.apres ?? '—'})`, ech.l);
+          signaler(c, t.chaine, 'chute');
+        }
+      }
+
+      if (prec && prec.v !== null && ech.v !== null && prec.v !== ech.v && !(es && ech.t - es.t < 2_000)) {
+        noter(c, t.chaine, `vitesse ${prec.v} → ${ech.v} (lecteur)`, ech.l);
+      }
+
+      const r = t.rattrapage;
+
+      if (r && suivis && prec.v !== null) r.attendu -= (prec.v - 1) * ((ech.t - prec.t) / 1000);
+      if (ech.v !== null && ech.v !== 1 && ech.t !== null) {
+        if (!r) {
+          t.rattrapage = { t: ech.t, l: prec && prec.l !== null && !prec.lIncoherente ? prec.l : ech.l,
+                           v: ech.v, attendu: 0, apresDeplacement: t.deplacee };
+
+          if (ech.v > 1 && es && es.type === 'recul' && (es.voie === 'instance' || es.voie === 'video')
+            && Number.isFinite(es.t) && ech.t - es.t <= RETIENT_MS) {
+            if (!t.retientPas) noter(c, t.chaine, `le lecteur reprend le recul, à ${ech.v} : la tuile ne sera plus reculée`, ech.l);
+            t.retientPas = { t: t.retientPas ? t.retientPas.t : ech.t, n: (t.retientPas ? t.retientPas.n : 0) + 1 };
+          }
+        } else if (Math.abs(ech.v - 1) > Math.abs(r.v - 1)) r.v = ech.v;
+      } else if (r && ech.v === 1) {
+        t.rattrapage = null;
+        const x = { t: r.t, duree: Math.round((ech.t - r.t) / 100) / 10, v: Math.round(r.v * 1000) / 1000,
+                    avant: r.l, apres: ech.lIncoherente ? null : ech.l, attendu: Math.round(r.attendu * 1000) / 1000,
+                    apresDeplacement: r.apresDeplacement };
+        t.rattrapages.push(x);
+        if (t.rattrapages.length > 50) t.rattrapages.shift();
+        noter(c, t.chaine, `${x.v > 1 ? 'rattrapage' : 'ralenti'} du lecteur : ${x.duree} s à ${x.v}, latence ${x.avant ?? '—'} → ${x.apres ?? '—'}`
+          + ` (attendu ${x.attendu >= 0 ? '+' : ''}${x.attendu} s)${x.apresDeplacement ? ' · après un déplacement' : ''}`, ech.l);
+        signaler(c, t.chaine, x.v > 1 ? 'rattrapage' : 'ralenti');
+      }
+    };
+
+    const variations = (env, t0, n) => {
+      const pas = CFG.SALLE_ECOUTE_PAS_MS;
+      const x = new Float64Array(n);
+      let j = 0;
+      for (let i = 0; i < n; i++) {
+        const tt = t0 + i * pas;
+        while (j < env.length - 2 && env[j + 1][0] < tt) j++;
+        const a = env[j], b = env[j + 1];
+        const f = b[0] > a[0] ? Math.min(1, Math.max(0, (tt - a[0]) / (b[0] - a[0]))) : 0;
+        x[i] = a[1] + f * (b[1] - a[1]);
+      }
+      const d = new Float64Array(n - 1);
+      let m = 0;
+      for (let i = 1; i < n; i++) { d[i - 1] = x[i] - x[i - 1]; m += d[i - 1]; }
+      m /= d.length;
+      let v = 0;
+      for (let i = 0; i < d.length; i++) v += (d[i] - m) ** 2;
+      const et = Math.sqrt(v / d.length) || 1;
+      for (let i = 0; i < d.length; i++) d[i] = (d[i] - m) / et;
+      return d;
+    };
+
+    const fft = (re, im, inverse) => {
+      const N = re.length;
+      for (let i = 1, j = 0; i < N; i++) {
+        let bit = N >> 1;
+        for (; j & bit; bit >>= 1) j ^= bit;
+        j ^= bit;
+        if (i < j) { let x = re[i]; re[i] = re[j]; re[j] = x; x = im[i]; im[i] = im[j]; im[j] = x; }
+      }
+      for (let len = 2; len <= N; len <<= 1) {
+        const angle = ((inverse ? 2 : -2) * Math.PI) / len, wr = Math.cos(angle), wi = Math.sin(angle), demi = len / 2;
+        for (let i = 0; i < N; i += len) {
+          let cr = 1, ci = 0;
+          for (let k = 0; k < demi; k++) {
+            const p = i + k, q = p + demi;
+            const vr = re[q] * cr - im[q] * ci, vi = re[q] * ci + im[q] * cr;
+            re[q] = re[p] - vr; im[q] = im[p] - vi;
+            re[p] += vr; im[p] += vi;
+            const x = cr * wr - ci * wi; ci = cr * wi + ci * wr; cr = x;
+          }
+        }
+      }
+      if (inverse) for (let i = 0; i < N; i++) { re[i] /= N; im[i] /= N; }
+    };
+    const plat = (x) => x.every((v) => v === 0);
+
+    const sommes = (a, b, maxL) => {
+      let N = 1;
+      while (N < a.length + maxL) N <<= 1;
+      const ar = new Float64Array(N), ai = new Float64Array(N), br = new Float64Array(N), bi = new Float64Array(N);
+      if (plat(a) || plat(b)) return ar;
+      ar.set(a); br.set(b);
+      fft(ar, ai, false); fft(br, bi, false);
+
+      for (let k = 0; k < N; k++) {
+        const x = ar[k] * br[k] + ai[k] * bi[k];
+        ai[k] = ai[k] * br[k] - ar[k] * bi[k];
+        ar[k] = x;
+      }
+      fft(ar, ai, true);
+      return ar;
+    };
+    const correler = (ea, eb) => {
+      if (ea.length < 3 || eb.length < 3) return null;
+      const A = [...ea].sort((p, q) => p[0] - q[0]);
+      const Bv = [...eb].sort((p, q) => p[0] - q[0]);
+      const pas = CFG.SALLE_ECOUTE_PAS_MS;
+      const fin = Math.min(A[A.length - 1][0], Bv[Bv.length - 1][0]);
+      const debut = Math.max(A[0][0], Bv[0][0], fin - CFG.SALLE_ECOUTE_FENETRE_MS);
+      if (fin - debut < CFG.SALLE_ECOUTE_MIN_MS) return null;
+      const n = Math.floor((fin - debut) / pas) + 1;
+      const a = variations(A, debut, n), b = variations(Bv, debut, n);
+      const maxL = Math.round(CFG.SALLE_ECOUTE_MAX_MS / pas);
+      const S = sommes(a, b, maxL);
+      const rs = [];
+      for (let L = -maxL; L <= maxL; L++) {
+
+        const k = Math.min(a.length, b.length + L) - Math.max(0, L);
+        rs.push(k >= a.length / 2 ? S[(L + S.length) % S.length] / k : NaN);
+      }
+      const valides = rs.filter((r) => !Number.isNaN(r));
+      if (!valides.length) return null;
+      const moy = valides.reduce((x, y) => x + y, 0) / valides.length;
+      const et = Math.sqrt(valides.reduce((x, y) => x + (y - moy) ** 2, 0) / valides.length) || 1;
+
+      const pics = [];
+      for (let i = 0; i < rs.length; i++) {
+        const r = rs[i];
+        if (Number.isNaN(r)) continue;
+        if ((i === 0 || !(rs[i - 1] > r)) && (i === rs.length - 1 || !(rs[i + 1] > r))) pics.push({ ms: (i - maxL) * pas, r });
+      }
+      pics.sort((p, q) => q.r - p.r);
+      const p1 = pics[0];
+      const p2 = pics.find((p) => Math.abs(p.ms - p1.ms) >= 50) || null;
+      return { ms: p1.ms, r: p1.r, z: (p1.r - moy) / et, ms2: p2 ? p2.ms : null, r2: p2 ? p2.r : null,
+               secondes: Math.round((fin - debut) / 100) / 10, debut, fin };
+    };
+
+    const attenduEntre = (ta, tb) => {
+      const parN = new Map(tb.serie.map((s) => [s.n, s.lIncoherente ? null : s.l]));
+      const diffs = ta.serie.slice(-Math.ceil(CFG.SALLE_ECOUTE_FENETRE_MS / 1000))
+        .filter((s) => s.l !== null && !s.lIncoherente && parN.get(s.n) !== null && parN.has(s.n))
+        .map((s) => s.l - parN.get(s.n));
+      const m = mediane(diffs);
+      return m === null ? null : Math.round(m * 1000);
+    };
+
+    const depuisPaire = (c, ref, t) => Math.max(c.ecoute.depuis || 0, ref.changement || 0, t.changement || 0) + 1_000;
+    const ecouter = (c) => {
+      if (!c.ecoute.actif || c.releveN % CFG.SALLE_ECOUTE_TOUS) return;
+
+      if (document.hidden) return;
+
+      const ref = c.tuiles.find((t) => t.chaine === c.ecoute.ref) || c.tuiles.find((t) => t.chaine === c.son) || c.tuiles[0];
+      if (!ref) return;
+      const t0 = performance.now();
+      let paires = 0;
+      for (const t of c.tuiles) {
+        if (t === ref) continue;
+        const res = correler(ref.env, t.env);
+        if (!res) continue;
+        paires += 1;
+        const cle = `${ref.chaine}~${t.chaine}`;
+
+        const connue = c.ecoute.paires[cle];
+        if (connue && res.fin - connue.dernier.fin < (CFG.SALLE_ECOUTE_TOUS * CFG.SALLE_PAS_MS) / 2) {
+          connue.sansNouveau += 1;
+          continue;
+        }
+        const p = connue || (c.ecoute.paires[cle] = { dernier: null, historique: [], sansNouveau: 0 });
+        p.dernier = { ...res, attendu: attenduEntre(ref, t) };
+
+        p.historique.push({ ms: res.ms, r: res.r, z: res.z, ms2: res.ms2, r2: res.r2, attendu: p.dernier.attendu,
+                            debut: res.debut, fin: res.fin });
+        if (p.historique.length > 150) p.historique.shift();
+
+        const depuis = depuisPaire(c, ref, t);
+        if (res.debut >= depuis && (!p.compte || p.compte.depuis !== depuis)) p.compte = { depuis, t: Date.now() };
+        c.ecoute.calculs += 1;
+      }
+      if (paires) compter(c.cout.ecoute, performance.now() - t0, paires);
+    };
+    const sonder = (c) => {
+      demanderReleves(c);
+      ecouter(c);
+    };
+
+    const surMessage = (e) => {
+      const c = courante;
+      if (!c || !e.data || ![TSE_SALLE_ETAT_MSG, TSE_SALLE_RELEVE_MSG, TSE_SALLE_CONSOLE_MSG].includes(e.data.tse)) return;
+
+      const t = c.tuiles.find((x) => x.cadre.contentWindow === e.source);
+      if (!t) return;
+      if (e.data.tse === TSE_SALLE_RELEVE_MSG) { surReleve(c, t, e.data); return; }
+
+      if (e.data.tse === TSE_SALLE_CONSOLE_MSG) {
+        const args = Array.isArray(e.data.args) ? e.data.args.slice(0, 3) : [];
+        const resultat = commande(String(e.data.commande || ''), args, t);
+        try {
+          t.cadre.contentWindow.postMessage({ tse: TSE_SALLE_CONSOLE_REPONSE, n: e.data.n,
+            commande: e.data.commande, resultat }, 'https://player.twitch.tv');
+        } catch {   }
+        return;
+      }
+      const et = e.data.etat || {};
+      t.messages += 1;
+      if (t.etat && et.qualite && t.etat.qualite && et.qualite !== t.etat.qualite) {
+        noter(c, t.chaine, `qualité ${t.etat.qualite} → ${et.qualite}`, fini(et.latence));
+      }
+
+      const o8 = fini(et.octets);
+      if (o8 !== null) {
+        const maintenant = Date.now();
+        if (t.octetsAvant === null) t.octetsT0 = maintenant;
+        else t.octets += o8 >= t.octetsAvant ? o8 - t.octetsAvant : o8;
+        t.octetsAvant = o8;
+        t.octetsT = maintenant;
+      }
+      if (et.avertissementVu && !(t.etat && t.etat.avertissementVu)) {
+        noter(c, t.chaine, `avertissement de contenu à l'écran${TSE_GATE_ENABLED ? ' — levé, comme dans l\'aperçu' : ''}`);
+      }
+      t.etat = et;
+      if (et.pub && !t.pubAvant) t.pubs += 1;
+      if (!!et.pub !== t.pubAvant) noter(c, t.chaine, et.pub ? 'début de pub' : 'fin de pub', fini(et.latence));
+      t.pubAvant = !!et.pub;
+      if (t.chaine === c.son) tenirSon(t, et);
+      if (et.video) tenirQualite(t);
+      const o = et.ordre;
+      if (o && o.apres && o.n !== t.ordreCompte) {
+        t.ordreCompte = o.n;
+        t.dernierOrdre = `${o.ordre} · ${o.voie} · ${issue(o)}`;
+      }
+    };
+
+    const surVisibilite = () => {
+      const c = courante;
+      if (!c) return;
+      noter(c, null, document.hidden ? 'onglet caché' : 'onglet revenu');
+      for (const t of c.tuiles) {
+        if (document.hidden) {
+          if (t.chaine === c.son || !t.etat || !t.etat.lecture) continue;
+          envoyer(t, 'pause');
+          t.pauseCachee = true;
+          c.pausesCachees += 1;
+          signaler(c, t.chaine, 'pause');
+        } else if (t.pauseCachee) {
+          envoyer(t, 'lecture');
+          t.pauseCachee = false;
+          signaler(c, t.chaine, 'reprise');
+        }
+      }
+    };
+
+    const surTouche = (e) => {
+      const c = courante;
+      if (!c || e.altKey || e.ctrlKey || e.metaKey) return;
+      const cible = e.target;
+      if (cible && (cible.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(cible.tagName || ''))) return;
+      if (e.key === 'Escape') {
+        e.preventDefault(); e.stopPropagation();
+        fermer('echap');
+        return;
+      }
+      const k = /^[1-6]$/.test(e.key) ? Number(e.key) - 1 : -1;
+      if (k < 0 || !c.tuiles[k]) return;
+      e.preventDefault(); e.stopPropagation();
+      donnerSon(c.tuiles[k].chaine);
+    };
+
+    const surRedim = () => { if (courante) disposerSalle(); };
+
+    const surveillerDirects = (c) => {
+      const maintenant = Date.now();
+      if (maintenant - c.directsT < CFG.SALLE_DIRECTS_MS) return;
+      c.directsT = maintenant;
+      for (const login of c.membres) {
+        const frais = getFreshChannel(login);
+        (frais ? Promise.resolve(frais) : fetchChannel(login))
+          .then((e) => jugerDirect(c, login, e)).catch(() => {});
+      }
+    };
+    const jugerDirect = (c, login, e) => {
+      if (courante !== c || !c.membres.includes(login)) return;
+      if (!e || e === UPTIME_UNKNOWN || !Number.isFinite(e.ts)) return;
+      if (e.stream) { c.horsLigne.delete(login); return; }
+      const premier = c.horsLigne.get(login);
+      if (premier === undefined) {
+        c.horsLigne.set(login, e.ts);
+        noter(c, login, 'hors ligne selon Twitch — à confirmer');
+        return;
+      }
+      if (e.ts - premier >= CFG.SALLE_HORS_LIGNE_MS) retirerMembre(c, login);
+    };
+
+    const oublierAuCalage = (c, login) => {
+      for (const cle of Object.keys(c.ecoute.paires)) {
+        if (cle.split('~').includes(login)) delete c.ecoute.paires[cle];
+      }
+      const k = c.calage;
+      if (k) for (const m of [k.vus, k.lus, k.etats, k.coups, k.faible, k.dits, k.deplacements, k.premieres]) delete m[login];
+      if (c.ecoute.ref === login && c.ecoute.actif) {
+
+        ecoute(false); ecoute(true);
+        if (k) {
+          repartir(k); k.sonAilleurs = null;
+          if (k.etat === 'actif') journaliser(c, k, `référence nouvelle : ${c.ecoute.ref || '—'} (la tuile qui a le son), tout se remesure`);
+        }
+      }
+    };
+
+    const oublierTuile = (c, login) => {
+      const k = c.calage;
+      const connue = !!c.ecoute.paires[`${c.ecoute.ref}~${login}`] || !!(k && (k.etats[login] || k.vus[login]));
+
+      if (c.membres.includes(login)) {
+        c.sorties += 1;
+        noter(c, login, 'sortie de la grille — son lecteur détruit, sa mesure repart de zéro');
+        if (connue && k && k.etat === 'actif') journaliser(c, k, `${login} : sortie de la grille — oubliée`);
+      }
+      oublierAuCalage(c, login);
+    };
+    const retirerMembre = (c, login) => {
+      c.horsLigne.delete(login);
+      c.membres = c.membres.filter((m) => m !== login);
+      c.retirees.push({ chaine: login, t: Date.now() });
+      noter(c, login, 'hors ligne — retirée de la salle');
+      if (c.calage && c.calage.etat === 'actif') journaliser(c, c.calage, `${login} : hors ligne — retirée de la salle`);
+
+      if (c.membres.length <= 1) {
+        const restant = c.membres[0] || null;
+        fermer('hors-ligne');
+        if (restant) location.assign(`/${encodeURIComponent(restant)}`);
+        return;
+      }
+      c.titre.textContent = S.uiSalleTitre(c.membres.length);
+      c.boite.setAttribute('aria-label', S.uiSalleTitre(c.membres.length));
+
+      c.partage = null; c.textes.clear(); c.comparaison = null;
+      disposerSalle();
+      oublierAuCalage(c, login);
+      if (auChangement) auChangement();
+    };
+
+    const pas = () => {
+      const c = courante;
+      if (!c) return;
+
+      if (location.pathname !== c.chemin) { fermer('navigation'); return; }
+      const t0 = performance.now();
+      if (zone().cle !== c.zoneCle) disposerSalle();
+      comparerChats();
+      surveillerDirects(c);
+      sonder(c);
+      caler(c);
+
+      for (const v of c.pausees) {
+        if (v.isConnected && !v.paused) { try { v.pause(); } catch {   } c.repauses += 1; }
+      }
+      compter(c.cout.pas, performance.now() - t0);
+    };
+
+    const penteParS = (pts) => {
+      const p = pts.filter(([x, y]) => x !== null && y !== null);
+      if (p.length < 3) return null;
+      const mx = p.reduce((a, [x]) => a + x, 0) / p.length, my = p.reduce((a, [, y]) => a + y, 0) / p.length;
+      let num = 0, den = 0;
+      for (const [x, y] of p) { num += (x - mx) * (y - my); den += (x - mx) ** 2; }
+      return den ? (num / den) * 1000 : null;
+    };
+    const pente = (pts) => { const x = penteParS(pts); return x === null ? null : Math.round(x * 10000) / 10; };
+    const suite = (pts) => {
+      const p = pts.filter(([, y]) => y !== null);
+      if (!p.length) return null;
+      const x = penteParS(p);
+      return `${p[p.length - 1][1]} · ${x === null ? '—' : `${Math.round(x * 1000) / 1000}/s`}`;
+    };
+
+    const cadence = (s) => {
+      const changes = [];
+      for (let i = 1; i < s.length; i++) {
+        if (s[i].l !== null && s[i - 1].l !== null && s[i].l !== s[i - 1].l && s[i].t !== null) changes.push(s[i].t);
+      }
+      const ecarts = changes.slice(2).map((x, i) => (x - changes[i]) / 2000);
+      const m = mediane(ecarts);
+      return m === null ? null : Math.round(m * 10) / 10;
+    };
+
+    const trois = (l) => {
+      const v = l.filter((x) => x !== null);
+      return v.length ? `${r3(Math.min(...v))} · ${r3(mediane(v))} · ${r3(Math.max(...v))}` : null;
+    };
+    const bilanSerie = (t) => {
+      const s = t.serie;
+      if (!s.length) return null;
+      const vs = s.map((x) => x.v).filter((x) => x !== null);
+      const vls = s.map((x) => x.vl).filter((x) => x !== null);
+      return {
+        n: s.length,
+        latence: trois(s.map((x) => x.l)),
+        tampon: trois(s.map((x) => x.b)),
+        vitesse: vs.length ? `${Math.min(...vs)} · ${Math.max(...vs)}` : null,
+        vitesseLecteur: vls.length ? `${Math.min(...vls)} · ${Math.max(...vls)}` : null,
+        sauts: t.sauts,
+
+        sautsNature: Object.entries(t.sautsNature).map(([k, n]) => `${k} ${n}`).join(' · '),
+
+        rechargements: t.rechargements,
+        aberrants: t.aberrants,
+        latencesIncoherentes: t.latencesIncoherentes,
+
+        coupures: t.coupures.length,
+        coupuresDetail: t.coupures.length ? `au moins ${t.coupures.map((x) => x.duree).join(' ')} s`
+          + (t.coupures.length > 1 ? ` · intervalles ${t.coupures.slice(1).map((x, i) => Math.round((x.t - t.coupures[i].t) / 1000)).join(' ')} s` : '') : null,
+
+        chutes: t.chutes.length + (t.chute ? 1 : 0),
+        chutesDetail: t.chutes.length || t.chute ? [...t.chutes.map((x) => `${x.perdu} s · ${x.avant ?? '—'} → ${x.apres ?? '—'}`),
+          ...(t.chute ? [`en cours, ${Math.round(t.chute.perdu * 100) / 100} s`] : [])].join(' ; ') : null,
+
+        rattrapages: t.rattrapages.length + (t.rattrapage ? 1 : 0),
+        rattrapagesDetail: t.rattrapages.length || t.rattrapage ? [
+          ...t.rattrapages.map((x) => `${x.duree} s à ${x.v} · ${x.avant ?? '—'} → ${x.apres ?? '—'}`
+            + ` (attendu ${x.attendu >= 0 ? '+' : ''}${x.attendu} s)${x.apresDeplacement ? ' · après déplacement' : ''}`),
+          ...(t.rattrapage ? [`en cours à ${Math.round(t.rattrapage.v * 1000) / 1000} depuis ${t.rattrapage.l ?? '—'}`
+            + `${t.rattrapage.apresDeplacement ? ' · après déplacement' : ''}`] : []),
+        ].join(' ; ') : null,
+        deplacee: t.deplacee,
+
+        arriere: trois(s.map((x) => x.ar ?? null)),
+        arriereLecteur: trois(s.map((x) => x.arL ?? null)),
+
+        amont: trois(s.map((x) => (x.l !== null && x.b !== null && !x.lIncoherente ? x.l - x.b : null))),
+        majS: cadence(s),
+        penteMsS: pente(s.slice(-60).map((x) => [x.t, x.l])),
+
+        sync: suite(s.map((x) => [x.t, x.sy])),
+
+        position: suite(s.slice(Math.max(0, s.map((x) => x.redemarrage).lastIndexOf(true))).map((x) => [x.t, x.po])),
+
+        valeurs: s.slice(-60).map((x) => (x.l === null ? '—' : x.l)).join(' '),
+        tampons: s.slice(-60).map((x) => (x.b === null ? '—' : x.b)).join(' '),
+      };
+    };
+    const bilanInstant = (c) => {
+      const e = c.ecarts;
+      const simult = e.map((x) => x.s).filter((x) => x !== null);
+      return {
+        releves: c.releveN,
+        tours: e.length,
+        simultaneiteMs: simult.length ? `${mediane(simult)} · ${Math.max(...simult)}` : null,
+        ecart: e.length ? `${trois(e.map((x) => x.e))} · ${e[e.length - 1].e}` : null,
+        ecartSerie: e.slice(-60).map((x) => x.e).join(' ') || null,
+
+        ecart4s: e.length >= 4 ? trois(e.slice(3).map((x, i) => (e[i].e + e[i + 1].e + e[i + 2].e + x.e) / 4)) : null,
+        evenementsTotal: c.evenementsTotal,
+
+        evenements: Object.fromEntries(c.evenements.map((v, i) => [String(i + 1).padStart(3, '0'),
+          `+${(v.t / 1000).toFixed(1)} s · ${v.chaine || 'salle'} · ${v.texte}${v.latence !== null ? ` · latence ${v.latence}` : ''}`])),
+      };
+    };
+
+    const LEVIERS = ['getLiveLatency', 'getBufferDuration', 'isLiveLowLatency', 'setLiveLowLatencyEnabled',
+      'getPlaybackRate', 'setPlaybackRate', 'pause', 'play', 'seekTo', 'getPosition', 'setRebufferToLive',
+      'setLiveSpeedUpRate', 'setLiveMaxLatency', 'getBufferedRanges'];
+    const bilanApi = (c) => {
+      const t = c.tuiles.find((x) => x.api);
+      if (!t) return { lecteurApi: null, leviers: null };
+      return {
+        lecteurApi: t.api,
+        lecteurApiTotal: t.apiTotal,
+        leviers: LEVIERS.map((n) => `${n} ${t.api.includes(n) ? '✓' : '✗'}`).join(' · '),
+      };
+    };
+
+    const FORT = 0.6;
+    const ligneCalcul = (h) => `${h.ms}`
+      + (h.ms2 !== null && h.r > 0 ? ` (${h.ms2} ${Math.round((100 * h.r2) / h.r)} %)` : '')
+      + ` z ${h.z.toFixed(1)}${h.attendu !== null ? ` att ${h.attendu}` : ''}`;
+
+    const BORD_MS = CFG.SALLE_ECOUTE_MAX_MS - 1_000;
+    const auBord = (h, ms) => Math.abs(ms) > BORD_MS && !(Number.isFinite(h.attendu) && Math.abs(ms - h.attendu) <= 1_000);
+
+    const RECOUVREMENT_MS = 250;
+    const disjoints = (hist) => {
+      const out = [];
+      let limite = Infinity;
+      for (let i = hist.length - 1; i >= 0; i--) {
+        const h = hist[i];
+        if (!(h.z >= 5) || !Number.isFinite(h.debut) || !(h.fin <= limite + RECOUVREMENT_MS)) continue;
+        out.push(h);
+        limite = h.debut;
+      }
+      return out.reverse();
+    };
+
+    const picsDe = (h) => [h.ms, h.ms2 !== null && h.r2 >= FORT * h.r ? h.ms2 : null]
+      .filter((ms) => ms !== null && !auBord(h, ms));
+
+    const grouper = (vals, cle = (x) => x) => {
+      const v = [...vals].sort((x, y) => cle(x) - cle(y));
+      const groupes = v.length ? [[v[0]]] : [];
+      for (const x of v.slice(1)) {
+        const g = groupes[groupes.length - 1];
+        if (cle(x) - cle(g[g.length - 1]) > 80) groupes.push([x]); else g.push(x);
+      }
+      return groupes;
+    };
+    const lirePics = (hist) => {
+      const fenetres = disjoints(hist);
+      if (!fenetres.length) return null;
+      const vals = fenetres.flatMap(picsDe);
+      const bord = fenetres.reduce((n, h) => n + [h.ms, h.ms2 !== null && h.r2 >= FORT * h.r ? h.ms2 : null]
+        .filter((ms) => ms !== null && auBord(h, ms)).length, 0);
+      const fin = ` · ${fenetres.length} fenêtre${fenetres.length > 1 ? 's' : ''} disjointe${fenetres.length > 1 ? 's' : ''}`
+        + (bord ? ` · ${bord} au bord écarté${bord > 1 ? 's' : ''}` : '');
+      const stables = grouper(vals).filter((g) => g.length >= 2).sort((a, b) => b.length - a.length);
+      if (!stables.length) return `aucun pic stable${fin}`;
+      const med = (g) => Math.round(mediane(g));
+      if (stables.length === 1) return `un pic stable : ${med(stables[0])} ms (${stables[0].length})${fin}`;
+      const [a, b] = [stables[0], stables[1]].sort((x, y) => med(x) - med(y));
+      return `deux pics stables : ${med(a)} ms (${a.length}) et ${med(b)} ms (${b.length})`
+        + ` → milieu ${Math.round((med(a) + med(b)) / 2)} ms, demi-écart ${Math.round((med(b) - med(a)) / 2)} ms${fin}`;
+    };
+
+    const partCommune = (hist) => {
+      const k = hist.filter((h) => h.z >= 5 && !auBord(h, h.ms)).length;
+      return { k, n: hist.length, part: hist.length ? k / hist.length : null };
+    };
+    const verdictSon = ({ part }, suivi = null) => (part === null ? null
+      : suivi === false || part < 0.2 ? 'non' : part >= 0.5 ? 'oui' : 'incertain');
+    const bilanEcoute = (c) => {
+      const e = c.ecoute;
+      if (!e.actif && !e.calculs) return { actif: false };
+      const paires = {}, historique = {}, stables = {}, commun = {};
+      for (const [cle, p] of Object.entries(e.paires)) {
+        const d = p.dernier;
+        paires[cle] = `décalage ${d.ms} ms · r ${d.r.toFixed(2)} · z ${d.z.toFixed(1)}`
+          + (d.ms2 !== null ? ` · 2e pic ${d.ms2} ms (r ${d.r2.toFixed(2)})` : '')
+          + ` · attendu ${d.attendu === null ? '—' : `${d.attendu} ms`} · ${d.secondes} s`;
+        historique[cle] = p.historique.map(ligneCalcul).join(' · ');
+
+        const apres = e.coupe ? p.historique.filter((h) => h.debut >= e.coupe) : p.historique;
+        const pics = lirePics(apres);
+        if (pics) stables[cle] = e.coupe ? `${pics} · depuis le dernier déplacement` : pics;
+        const part = partCommune(p.historique);
+        commun[cle] = `${verdictSon(part)} · ${part.k} calculs sur ${part.n} tiennent hors du bord`;
+      }
+      return { actif: e.actif, depuisS: e.depuis ? Math.round((Date.now() - e.depuis) / 1000) : null,
+               calculs: e.calculs, paires, historique, pics: stables, commun,
+
+               sansSonNouveau: Object.entries(e.paires).filter(([, p]) => p.sansNouveau)
+                 .map(([cle, p]) => `${cle} ${p.sansNouveau}`).join(' · ') || null };
+    };
+
+    const bilan = () => {
+      const c = courante;
+      if (!c) return derniere || { ouverte: false };
+      const d = c.disposition || {};
+      return {
+        ouverte: true,
+        depuisS: Math.round((Date.now() - c.t0) / 1000),
+        origine: c.origine,
+
+        arriveeMs: c.arriveeMs,
+        empilement: c.empilement,
+        membres: c.membres.length,
+
+        retirees: c.retirees.map((r) => `${r.chaine} à +${Math.round((r.t - c.t0) / 1000)} s`).join(' · ') || null,
+        horsLigne: [...c.horsLigne.keys()].join(' ') || null,
+        grille: d.n ? `${d.cols}×${d.rangs} · ${d.l}×${d.h}` : null,
+        deborde: !!d.deborde,
+        banc: c.membres.filter((m) => !c.tuiles.some((t) => t.chaine === m)).join(' ') || null,
+        son: c.son,
+        chat: c.chatD.chaine,
+
+        chatTitre: c.chatD.tete.textContent || null,
+
+        chatGauche: c.chatG.chaine,
+
+        chatsPx: c.chatsPx,
+
+        qualiteCible: hauteurCible(),
+
+        ecartLatence: c.ecarts.length ? Math.round(c.ecarts[c.ecarts.length - 1].e * 100) / 100 : (() => {
+          const l = c.tuiles.map((t) => t.etat && t.etat.latence).filter((x) => Number.isFinite(x));
+          return l.length >= 2 ? Math.round((Math.max(...l) - Math.min(...l)) * 100) / 100 : null;
+        })(),
+
+        instant: bilanInstant(c),
+
+        ...bilanApi(c),
+
+        ecoute: bilanEcoute(c),
+
+        calage: bilanCalage(c),
+
+        charge: {
+          pas: texteCout(c.cout.pas),
+          ecoute: texteCout(c.cout.ecoute),
+          tachesLongues: texteTaches(c.longues),
+          sorties: c.sorties,
+        },
+        chatPartage: c.partage,
+        chatsCompares: c.comparaison ? `${c.comparaison.messages} messages · ${c.comparaison.communs} communs` : null,
+        chatMasque: !d.chat,
+        chatVoulu: c.chatVoulu === null ? 'auto' : c.chatVoulu ? 'oui' : 'non',
+        sonsDonnes: c.sonsDonnes,
+        remplacements: c.remplacements,
+        pagePausee: c.pausees.length,
+        repauses: c.repauses,
+        pausesCachees: c.pausesCachees,
+        tuiles: Object.fromEntries(c.tuiles.map((t) => [t.chaine, {
+          pont: t.messages > 0,
+          video: t.etat ? t.etat.video : null,
+          lecture: t.etat ? t.etat.lecture : null,
+          muet: t.etat ? t.etat.muet : null,
+          volume: t.etat ? t.etat.volume ?? null : null,
+
+          lecteur: t.etat ? t.etat.lecteur ?? null : null,
+          qualite: t.etat ? t.etat.qualite ?? null : null,
+          auto: t.etat ? t.etat.auto ?? null : null,
+
+          debitKbps: t.octetsT > t.octetsT0 ? Math.round((8 * t.octets) / (t.octetsT - t.octetsT0)) : null,
+          imagesPerdues: t.etat && Number.isFinite(t.etat.images) && t.etat.images > 0
+            ? `${Math.round((1000 * (t.etat.perdues || 0)) / t.etat.images) / 10} % de ${t.etat.images}` : null,
+
+          avertissement: !t.etat || !t.etat.avertissementVu ? null
+            : `${t.etat.avertissement ? 'à l\'écran' : 'levé'} · ${t.etat.avertissementClics || 0} clic(s)`,
+
+          latence: t.etat ? t.etat.latence ?? null : null,
+          tampon: t.etat ? t.etat.tampon ?? null : null,
+          vitesse: t.etat ? t.etat.vitesse ?? null : null,
+
+          faibleLatence: t.faibleLatence,
+
+          recul: t.retientPas ? `repris par le lecteur ${t.retientPas.n} fois, la première à +${Math.round((t.retientPas.t - c.t0) / 1000)} s`
+            + ' : la tuile n\'est plus reculée' : 'tenu',
+          serie: bilanSerie(t),
+          essai: t.essai ? `${t.essai.type} ${t.essai.valeur} · ${t.essai.voie}${t.essai.fin ? ' · fini' : ''}` : null,
+
+          plages: Array.isArray(t.plages) ? t.plages.map((x) => (x ? `${x[0]}–${x[1]}` : '?')).join(' · ') || null : t.plages,
+
+          plagesForme: t.plagesForme ?? null,
+          ecoute: t.ecouteEtat ? [t.ecouteEtat.etat, t.ecouteEtat.sr ? `${t.ecouteEtat.sr} Hz` : null,
+            Number.isFinite(t.ecouteEtat.silence) ? `silence ${Math.round(t.ecouteEtat.silence * 100)} %` : null,
+            Number.isFinite(t.ecouteEtat.reliaisons) ? `reliée ${t.ecouteEtat.reliaisons}` : null,
+
+            typeof t.ecouteEtat.voie === 'string' ? t.ecouteEtat.voie : null,
+            Number.isFinite(t.ecouteEtat.pistes) ? `pistes ${t.ecouteEtat.pistes}` : null,
+
+            Number.isFinite(t.ecouteEtat.blocs) ? `blocs ${t.ecouteEtat.blocs}/10 s` : null]
+            .filter(Boolean).join(' · ') : null,
+
+          sonEssais: t.sonEssais,
+          sonTenu: t.chaine === c.son ? t.sonTenu : null,
+          pub: t.etat ? t.etat.pub : null,
+          pubsVues: t.pubs,
+          ordre: t.dernierOrdre,
+        }])),
+      };
+    };
+
+    const fermer = (raison = 'api') => {
+      const c = courante;
+      if (!c) return { fermee: false };
+      arreterCalage(c, 'arrêté : salle fermée');
+      derniere = { ...bilan(), ouverte: false, fermeture: raison };
+      clearInterval(c.minuteur);
+      if (c.obsLongues) c.obsLongues.disconnect();
+      window.removeEventListener('message', surMessage);
+      window.removeEventListener('resize', surRedim);
+      document.removeEventListener('keydown', surTouche, true);
+      document.removeEventListener('visibilitychange', surVisibilite);
+      c.boite.remove();
+      courante = null;
+
+      for (const v of c.pausees) {
+        if (v.isConnected && v.paused) { try { v.play().catch(() => {}); } catch {   } }
+      }
+      if (auChangement) auChangement();
+      return { fermee: true };
+    };
+
+    options.surChangement(() => { if (courante && !options.get('salle')) fermer('reglage'); });
+
+    options.surChangement(() => {
+      const c = courante;
+      if (!c) return;
+      if (!options.get('salleAuto')) arreterCalage(c, 'arrêté : réglage', true);
+
+      else if (c.origine === 'noeud' && (!c.calage || c.calage.etat === 'arrêté : réglage')) demarrerCalage(c, 1, 'reglage');
+    });
+
+    const creeEmpilement = (cs, parent) => {
+      if (cs.zIndex !== 'auto' && (cs.position !== 'static'
+        || (parent && /flex|grid/.test(getComputedStyle(parent).display)))) return Number(cs.zIndex) || 0;
+      if (cs.position === 'fixed' || cs.position === 'sticky' || Number(cs.opacity) < 1
+        || cs.transform !== 'none' || cs.filter !== 'none' || cs.isolation === 'isolate') return 0;
+      return null;
+    };
+    const niveau = (el) => {
+      let z = 0;
+      for (let x = el; x && x !== document.documentElement; x = x.parentElement) {
+        const n = creeEmpilement(getComputedStyle(x), x.parentElement);
+        if (n !== null) z = n;
+      }
+      return z;
+    };
+    const barreDuHaut = () => {
+      const reperee = document.querySelector('[data-a-target="top-nav-container"]');
+      if (reperee) return { el: reperee, voie: 'repere' };
+
+      let barre = null;
+      for (let x = document.elementFromPoint(Math.round(window.innerWidth / 2), Math.round(CFG.SALLE_HAUT_PX / 2));
+        x && x !== document.body && x !== document.documentElement; x = x.parentElement) {
+        const r = x.getBoundingClientRect();
+        if (r.top <= 1 && r.bottom <= CFG.SALLE_HAUT_PX + 2 && r.width >= window.innerWidth * 0.8) barre = x;
+      }
+      return barre ? { el: barre, voie: 'bande' } : null;
+    };
+    const decrire = (el) => {
+      if (!el) return null;
+      const cls = typeof el.className === 'string' ? el.className.trim().split(/\s+/)[0] : '';
+      return el.localName + (el.id ? `#${el.id}` : '') + (cls ? `.${cls}` : '');
+    };
+    const empiler = (boite) => {
+      const barre = barreDuHaut();
+      const zBarre = barre ? niveau(barre.el) : null;
+      const z = zBarre === null ? 8000 : Math.min(8000, Math.max(1, zBarre - 1));
+      boite.style.zIndex = String(z);
+      return { z, barre: zBarre, voie: barre ? barre.voie : null, couverte: null, _barre: barre ? barre.el : null };
+    };
+    const verifierEmpilement = (boite, e) => {
+      const barre = e._barre;
+      delete e._barre;
+      if (e.z === 8000) return;
+      const r = boite.getBoundingClientRect();
+      for (const fx of [0.3, 0.5, 0.7, 0.9]) {
+        for (const fy of [0.2, 0.5, 0.8]) {
+          const x = Math.round(r.left + r.width * fx), y = Math.round(r.top + r.height * fy);
+          const el = document.elementFromPoint(x, y);
+          if (!el || boite.contains(el) || (barre && barre.contains(el))) continue;
+
+          if (el.closest('.tse-preview, .tse-bulle, .tse-incruste, .tse-loading-overlay')) continue;
+          e.couverte = decrire(el);
+          e.z = 8000;
+          boite.style.zIndex = '8000';
+          return;
+        }
+      }
+    };
+
+    const CLE_ATTENTE = 'tse:salle-attente';
+    const ouvrirDepuisBarre = (membres) => {
+
+      if (!options.get('salle')) return { erreur: 'salle coupée / room disabled' };
+      if (location.pathname === CFG.SALLE_PAGE) return ouvrir(membres, { origine: 'noeud' });
+      try {
+        sessionStorage.setItem(CLE_ATTENTE, JSON.stringify({ membres, t: Date.now() }));
+      } catch {
+
+        return ouvrir(membres, { origine: 'noeud' });
+      }
+      location.assign(CFG.SALLE_PAGE);
+      return { redirigee: true };
+    };
+
+    const reprendre = () => {
+      let attente = null;
+      try {
+        attente = JSON.parse(sessionStorage.getItem(CLE_ATTENTE) || 'null');
+        sessionStorage.removeItem(CLE_ATTENTE);
+      } catch { return; }
+      if (!attente || !Array.isArray(attente.membres) || !Number.isFinite(attente.t)) return;
+      if (!options.get('salle')) return;
+      if (Date.now() - attente.t > CFG.SALLE_ATTENTE_MS || Date.now() < attente.t) return;
+      const t0 = Date.now();
+      const essayer = () => {
+        if (!document.querySelector(DOM.sidebarRoot) && Date.now() - t0 < 10_000) { setTimeout(essayer, 100); return; }
+        ouvrir(attente.membres, { origine: 'noeud', arriveeMs: Date.now() - attente.t });
+      };
+      essayer();
+    };
+
+    const ouvrir = (...demandees) => {
+      const opts = demandees.length && demandees[demandees.length - 1]
+        && typeof demandees[demandees.length - 1] === 'object' && !Array.isArray(demandees[demandees.length - 1])
+        ? demandees.pop() : {};
+      const logins = demandees.flat().map((x) => String(x).trim().toLowerCase()).filter(Boolean);
+      const faux = logins.filter((x) => !RE_LOGIN.test(x));
+      if (!logins.length) return { erreur: 'aucune chaîne / no channel' };
+      if (faux.length) return { erreur: `chaîne(s) invalide(s) / invalid channel(s) : ${faux.join(', ')}` };
+      fermer('remplacee');
+      const uniques = [...new Set(logins)];
+      const membres = uniques.slice(0, CFG.SALLE_MAX);
+
+      const boite = document.createElement('div');
+      boite.id = 'tse-salle';
+      boite.setAttribute('role', 'region');
+      boite.setAttribute('aria-label', S.uiSalleTitre(membres.length));
+      const tete = document.createElement('div');
+      tete.className = 'tse-salle__tete';
+      const titre = document.createElement('span');
+      titre.className = 'tse-salle__titre';
+      titre.textContent = S.uiSalleTitre(membres.length);
+      const note = document.createElement('span');
+      note.className = 'tse-salle__note';
+
+      const boutonChat = document.createElement('button');
+      boutonChat.type = 'button';
+      boutonChat.className = 'tse-salle__bouton-chat';
+      boutonChat.addEventListener('click', () => {
+        const c = courante;
+        if (!c) return;
+        c.chatVoulu = !(c.disposition && c.disposition.chat);
+        disposerSalle();
+      });
+
+      const titreBloc = document.createElement('div');
+      titreBloc.className = 'tse-salle__titre-bloc';
+      titreBloc.append(titre, note);
+      const commandes = document.createElement('div');
+      commandes.className = 'tse-salle__commandes';
+      commandes.append(boutonChat);
+      tete.append(titreBloc, commandes);
+      const corps = document.createElement('div');
+      corps.className = 'tse-salle__corps';
+      const gauche = document.createElement('div');
+      gauche.className = 'tse-salle__gauche';
+      const scene = document.createElement('div');
+      scene.className = 'tse-salle__scene';
+      const banc = document.createElement('div');
+      banc.className = 'tse-salle__banc';
+      banc.hidden = true;
+      gauche.append(scene, banc);
+      const chatG = creerCoteChat('gauche');
+      const chatD = creerCoteChat('droite');
+      corps.append(chatG.bloc, gauche, chatD.bloc);
+      boite.append(tete, corps);
+
+      const pausees = [...document.querySelectorAll('video')].filter((v) => !v.paused);
+      for (const v of pausees) { try { v.pause(); } catch {   } }
+
+      const empilement = empiler(boite);
+      document.body.appendChild(boite);
+      courante = {
+        t0: Date.now(), origine: opts.origine || 'console', chemin: location.pathname,
+        arriveeMs: Number.isFinite(opts.arriveeMs) ? opts.arriveeMs : null, empilement,
+        membres, tuiles: [], son: null, boite, scene, banc, cleBanc: null, note,
+        chatG, chatD, deuxChats: false, partage: null, textes: new Map(), comparaison: null,
+        tete, titreBloc, commandes, chatsPx: null,
+        chatVoulu: null, boutonChat,
+        disposition: null, zoneCle: null,
+        pausees, repauses: 0, pausesCachees: 0, sonsDonnes: 0, remplacements: 0, minuteur: null,
+
+        releveN: 0, ecarts: [], evenements: [], evenementsTotal: 0,
+        ecoute: { actif: false, depuis: null, calculs: 0, paires: {}, ref: null, coupe: null },
+
+        calage: null,
+
+        titre, directsT: 0, horsLigne: new Map(), retirees: [],
+
+        cout: { pas: nouveauCout(), ecoute: nouveauCout() }, longues: null, obsLongues: null,
+
+        sorties: 0,
+      };
+      observerTaches(courante);
+      window.addEventListener('message', surMessage);
+      window.addEventListener('resize', surRedim);
+      document.addEventListener('keydown', surTouche, true);
+      document.addEventListener('visibilitychange', surVisibilite);
+      courante.minuteur = setInterval(pas, CFG.SALLE_PAS_MS);
+      disposerSalle();
+
+      verifierEmpilement(boite, empilement);
+
+      if (courante.origine === 'noeud' && options.get('salleAuto')) demarrerCalage(courante, 1, 'ouverture');
+      if (auChangement) auChangement();
+      return {
+        ouverte: true,
+        membres,
+        ...(uniques.length > CFG.SALLE_MAX ? { ignorees: uniques.slice(CFG.SALLE_MAX) } : {}),
+      };
+    };
+
+    const son = (i) => {
+      const c = courante;
+      if (!c || !c.tuiles[i]) return { erreur: 'tuile inconnue / unknown tile' };
+      donnerSon(c.tuiles[i].chaine);
+      return { son: c.tuiles[i].chaine };
+    };
+
+    const designer = (brut, appelante) => {
+      const c = courante;
+      if (!c) return { erreur: 'aucune salle ouverte / no open room' };
+      const args = [...brut];
+      while (args.length && args[args.length - 1] === undefined) args.pop();
+      const aide = `tuiles / tiles : ${c.tuiles.map((t, i) => `${i + 1} ${t.chaine}`).join(', ')}`;
+      if (args.length < 2) {
+        const t = appelante || c.tuiles.find((x) => x.chaine !== c.son) || null;
+        return t ? { t, valeur: args[0] } : { erreur: `aucune tuile muette / no muted tile — ${aide}` };
+      }
+      const [qui, valeur] = args;
+      const nom = String(qui).trim().toLowerCase();
+      const t = c.tuiles.find((x) => x.chaine === nom)
+        || (/^[1-9]$/.test(nom) ? c.tuiles[Number(nom) - 1] || null : null);
+      return t ? { t, valeur } : { erreur: `tuile inconnue « ${qui} » / unknown tile — ${aide}` };
+    };
+
+    const reculSur = (args, appelante = null) => {
+      const d = designer(args, appelante);
+      if (d.erreur) return { erreur: d.erreur };
+      const x = Number(d.valeur);
+      if (!(x >= 0.2 && x <= 5)) return { erreur: 'recul hors de 0.2–5 s / rewind outside 0.2–5 s' };
+      envoyer(d.t, 'essai-recul', { duree: x });
+      return { envoye: 'recul', chaine: d.t.chaine, secondes: x };
+    };
+
+    const avanceSur = (args, appelante = null) => {
+      const d = designer(args, appelante);
+      if (d.erreur) return { erreur: d.erreur };
+      const x = Number(d.valeur);
+      if (!(x >= 0.2 && x <= 5)) return { erreur: 'avance hors de 0.2–5 s / skip outside 0.2–5 s' };
+      envoyer(d.t, 'essai-avance', { duree: x });
+      return { envoye: 'avance', chaine: d.t.chaine, secondes: x };
+    };
+    const ecoute = (actif = true) => {
+      const c = courante;
+      if (!c) return { erreur: 'aucune salle ouverte / no open room' };
+
+      if (actif && !c.ecoute.actif) { c.ecoute.paires = {}; c.ecoute.calculs = 0; c.ecoute.ref = c.son; c.ecoute.coupe = null; }
+      c.ecoute.actif = !!actif;
+      c.ecoute.depuis = c.ecoute.actif ? Date.now() : null;
+      for (const t of c.tuiles) t.env = [];
+      noter(c, null, c.ecoute.actif ? 'écoute allumée' : 'écoute éteinte');
+      return { ecoute: c.ecoute.actif };
+    };
+    const series = () => {
+      const c = courante;
+      if (!c) return null;
+      return {
+        ecarts: c.ecarts.map((x) => ({ ...x })),
+        tuiles: Object.fromEntries(c.tuiles.map((t) => [t.chaine, t.serie.map((x) => ({ ...x }))])),
+        evenements: c.evenements.map((x) => ({ ...x })),
+      };
+    };
+
+    const CALAGE = Object.freeze({
+      NETS: 6, FENETRE: 30, GROUPE_MS: 80, LIEN_MS: 700, EQUILIBRE: 0.25, SEULE_MS: 500,
+      SEUIL_S: 0.15, TENUE_S: 0.4,
+
+      RECUL_S: 0.12, AVANCE_S: 0.087, MARGE_S: 2,
+      MAX_N: 3, MAX_MS: 600_000, ANCRE_MS: 15_000,
+    });
+    const tuileDe = (c, nom) => c.tuiles.find((x) => x.chaine === nom) || null;
+
+    const rouvrir = (t, quoi, quand = Date.now()) => {
+      t.changement = quand;
+      t.rouverte = { t: quand, quoi };
+      t.env = [];
+      t.envDes = quand + 1_000;
+    };
+    const signaler = (c, chaine, quoi) => {
+      const t = tuileDe(c, chaine);
+      if (!t || quoi === 'coupure') return;
+      rouvrir(t, quoi);
+
+      const k = c.calage;
+      if (!k) return;
+      for (const n of chaine === c.ecoute.ref ? Object.keys(k.etats) : [chaine]) {
+        if (k.etats[n] && k.etats[n] !== 'libre') k.etats[n] = 'libre';
+      }
+    };
+
+    const tamponDe = (t) => {
+      const l = t.serie.slice(-5).map((x) => x.b).filter((x) => x !== null);
+      return l.length ? Math.min(...l) : null;
+    };
+
+    const peutReculer = (t) => t.faibleLatence !== true && !t.retientPas;
+
+    const pointsDe = (h) => [[h.ms, 1], [h.ms2 !== null && h.r2 >= FORT * h.r ? h.ms2 : null, 0.5]]
+      .filter(([ms]) => ms !== null && Math.abs(ms) <= BORD_MS).map(([ms, w]) => ({ ms, w }));
+    const enchainer = (voix) => {
+      const grappes = [];
+      for (const g of voix) {
+        const d = grappes[grappes.length - 1];
+        if (d && g.ms - d[d.length - 1].ms <= CALAGE.LIEN_MS) d.push(g); else grappes.push([g]);
+      }
+      return grappes;
+    };
+    const premiersDe = (gr) => gr.reduce((s, g) => s + g.n1, 0);
+    const estSalon = (gr) => {
+      const n = gr.map((g) => g.n1).sort((a, b) => b - a);
+      return n.length >= 2 && n[1] >= CALAGE.EQUILIBRE * n[0];
+    };
+    const mesurerSon = (hist, depuis, f = 1) => {
+      const nMin = Math.max(3, Math.round(CALAGE.NETS * f));
+      const nets = hist.filter((h) => h.z >= 5 && Number.isFinite(h.debut) && h.debut >= depuis)
+        .slice(-Math.max(nMin, Math.round(CALAGE.FENETRE * f)));
+      if (nets.length < nMin) return { refus: `${nets.length} calculs nets sur ${nMin}`, n: nets.length };
+      const voix = grouper(nets.flatMap(pointsDe), (p) => p.ms)
+        .map((g) => ({ ms: Math.round(mediane(g.map((p) => p.ms))), n1: g.filter((p) => p.w === 1).length }))
+        .filter((g) => g.n1 >= 2);
+      if (!voix.length) return { refus: 'aucune voix nette', n: nets.length };
+      const grappes = enchainer(voix);
+      const salons = grappes.filter(estSalon);
+      let grappe, seule = false;
+      if (salons.length) {
+        const plus = Math.max(...salons.map((gr) => gr.length));
+        const choix = salons.filter((gr) => gr.length === plus);
+        if (choix.length > 1) return { refus: `ambigu : deux salons, autour de ${choix.map((gr) => gr[0].ms).join(' et ')} ms`, n: nets.length };
+        grappe = choix[0];
+      } else {
+        grappe = grappes.reduce((a, b) => (premiersDe(b) > premiersDe(a) ? b : a));
+        seule = true;
+      }
+      const ms = seule ? grappe.reduce((a, b) => (b.n1 > a.n1 ? b : a)).ms : grappe[grappe.length - 1].ms;
+      if (seule && Math.abs(ms) > CALAGE.SEULE_MS) {
+        return { refus: `une source seule, à ${ms} ms — un écho, peut-être : rien ne bouge`, n: nets.length };
+      }
+      return { ms, voix: grappe.map((g) => ({ ms: g.ms, n1: g.n1 })), n: nets.length, seule };
+    };
+
+    const accorde = (avant, v) => !v.refus && !!avant && !avant.refus && Math.abs(avant.ms - v.ms) <= CALAGE.GROUPE_MS;
+
+    const tient = (etat, v) => (etat === 'vérification' || etat === 'calée')
+      && v.ms < CALAGE.SEUIL_S * 1000 && v.voix.some((g) => Math.abs(g.ms) < CALAGE.TENUE_S * 1000);
+    const signeMs = (x) => `${x > 0 ? '+' : x < 0 ? '−' : ''}${Math.abs(x)}`;
+    const secondes = (x) => `${(Math.round(Math.abs(x) * 100) / 100).toFixed(2)} s`;
+
+    const texteMesure = (v, nom) => (v.refus ? `en attente : ${v.refus}`
+      : `${Math.abs(v.ms) < CALAGE.SEUIL_S * 1000 ? 'avec la référence' : `${v.ms > 0 ? 'en avance' : 'en retard'} de ${secondes(v.ms / 1000)}`}`
+        + ` (${signeMs(v.ms)} ms) · voix ${v.voix.map((g) => `${signeMs(g.ms)} (${g.n1})`).join(' · ')} · ${v.n} calculs nets`);
+    const journaliser = (c, k, texte) => {
+      k.journal.push({ t: Date.now(), texte });
+      if (k.journal.length > 60) k.journal.shift();
+      noter(c, null, `calage · ${texte}`);
+    };
+
+    const repartir = (k) => { k.vus = {}; k.lus = {}; k.etats = {}; k.calculsVus = -1; };
+
+    const premiere = (k, n, etape, quand) => {
+      const x = k.premieres[n] || (k.premieres[n] = {});
+      if (x[etape] === undefined) x[etape] = quand;
+    };
+
+    const peutCapturer = () => typeof window.HTMLMediaElement === 'function'
+      && typeof window.HTMLMediaElement.prototype.captureStream === 'function';
+    const demarrerCalage = (c, e = 1, origine = 'console') => {
+      if (c.calage && c.calage.etat === 'actif') return { erreur: 'le calage tourne déjà — auto(false) l\'arrête / already running' };
+      const capture = peutCapturer();
+      const k = { etat: capture ? 'actif' : 'indisponible : ce navigateur ne capture pas le son d\'un lecteur (captureStream)',
+                  echelle: e, origine, t0: Date.now(), ecouteAllumee: false, attente: null, journal: [],
+                  vus: {}, lus: {}, etats: {}, coups: {}, faible: {}, dits: {}, deplacements: {}, premieres: {}, salleCalee: null,
+                  calculsVus: -1, sonAilleurs: null };
+      c.calage = k;
+      if (!capture) {
+        journaliser(c, k, `${k.etat} — rien ne bouge, la faible latence est gardée`);
+        return { erreur: 'calage par le son indisponible : ce navigateur ne capture pas le son d\'un lecteur'
+          + ' / sound sync unavailable: this browser cannot capture a player\'s sound (captureStream)' };
+      }
+      if (!c.ecoute.actif) { ecoute(true); k.ecouteAllumee = true; }
+      journaliser(c, k, `début · référence ${c.ecoute.ref || '—'} (la tuile qui a le son)`);
+      return { auto: 'démarré / started', echelle: e };
+    };
+    const arreterCalage = (c, raison, eteindre = false) => {
+      const k = c.calage;
+      if (!k || k.etat !== 'actif') return false;
+      k.etat = raison;
+
+      if (eteindre && k.ecouteAllumee && c.ecoute.actif) ecoute(false);
+      journaliser(c, k, raison);
+      return true;
+    };
+
+    const direUneFois = (c, k, nom, texte) => {
+      if (k.dits[nom] === texte) return;
+      k.dits[nom] = texte;
+      journaliser(c, k, texte);
+    };
+
+    const caler = (c) => {
+      const k = c.calage;
+      if (!k || k.etat !== 'actif') return;
+      const e = k.echelle, maintenant = Date.now();
+      if (c.tuiles.length < 2) { k.attente = 'une seule tuile'; return; }
+      if (!c.ecoute.actif) { ecoute(true); k.ecouteAllumee = true; repartir(k); }
+
+      if (c.son && c.son !== c.ecoute.ref && tuileDe(c, c.son)) {
+        if (!k.sonAilleurs || k.sonAilleurs.chaine !== c.son) k.sonAilleurs = { chaine: c.son, t: maintenant };
+        else if (maintenant - k.sonAilleurs.t >= CALAGE.ANCRE_MS * e) {
+          ecoute(false); ecoute(true);
+          repartir(k);
+          k.sonAilleurs = null;
+          journaliser(c, k, `le son passe à ${c.ecoute.ref} : référence nouvelle, tout se remesure`);
+        }
+      } else k.sonAilleurs = null;
+      for (const t of c.tuiles) {
+        if (t.faibleLatence !== true || k.faible[t.chaine]) continue;
+        k.faible[t.chaine] = maintenant;
+        rouvrir(t, 'faible latence retirée', maintenant);
+        envoyer(t, 'faible-latence', { actif: false });
+        journaliser(c, k, `${t.chaine} : faible latence retirée — son lecteur défait tout recul`);
+      }
+      if (c.ecoute.calculs === k.calculsVus) return;
+      k.calculsVus = c.ecoute.calculs;
+      const ref = tuileDe(c, c.ecoute.ref);
+      if (!ref) return;
+
+      const avances = { [ref.chaine]: 0 };
+      const verdicts = {}, tenues = {};
+      for (const t of c.tuiles) {
+        if (t === ref) continue;
+        const p = c.ecoute.paires[`${ref.chaine}~${t.chaine}`];
+        const depuis = depuisPaire(c, ref, t);
+        const v = mesurerSon(p ? p.historique : [], depuis, Math.max(0.25, e));
+        const avant = k.vus[t.chaine];
+        k.vus[t.chaine] = v;
+
+        const dernier = p ? p.dernier : null;
+        if (k.lus[t.chaine] === dernier) continue;
+        k.lus[t.chaine] = dernier;
+        if (!v.refus) premiere(k, t.chaine, 'verdict', maintenant);
+        if (!accorde(avant, v)) continue;
+        verdicts[t.chaine] = v;
+        const tenue = tient(k.etats[t.chaine], v);
+
+        if (tenue && v.ms <= -CALAGE.SEUIL_S * 1000) tenues[t.chaine] = true;
+        avances[t.chaine] = tenue ? 0 : v.ms / 1000;
+      }
+
+      if (!Object.keys(verdicts).length) { if (!k.attente) k.attente = 'le son ne s\'est pas encore prononcé'; return; }
+
+      const suiveuses = [];
+      for (const t of c.tuiles) {
+        if (t === ref || avances[t.chaine] !== undefined) continue;
+        if (k.etats[t.chaine] === 'calée' || k.etats[t.chaine] === 'vérification') { avances[t.chaine] = 0; suiveuses.push(t.chaine); }
+      }
+
+      const fenetreMax = CALAGE.MAX_MS * e;
+      for (const n of Object.keys(verdicts)) {
+        k.coups[n] = (k.coups[n] || []).filter((x) => maintenant - x < fenetreMax);
+        if (Math.abs(avances[n]) < CALAGE.SEUIL_S || k.coups[n].length < CALAGE.MAX_N) continue;
+        direUneFois(c, k, n, `${n} : ${CALAGE.MAX_N} corrections en ${Math.round(fenetreMax / 60_000)} min — laissée là`);
+        delete avances[n];
+      }
+      const noms = Object.keys(avances);
+
+      const fixes = noms.filter((n) => !peutReculer(tuileDe(c, n)));
+      const rdv = fixes.length ? Math.max(...fixes.map((n) => avances[n])) : Math.min(...noms.map((n) => avances[n]));
+      const gestes = [];
+      for (const n of noms) {
+        const t = tuileDe(c, n);
+        const d = r3(avances[n] - rdv);
+        if (Math.abs(d) < CALAGE.SEUIL_S) continue;
+        if (d > 0) {
+          if (peutReculer(t)) gestes.push({ t, type: 'recul', s: Math.min(10, Math.max(0.05, r3(d - CALAGE.RECUL_S))), d });
+          else direUneFois(c, k, n, `${n} en avance de ${secondes(d)}, mais ${t.retientPas ? 'son lecteur reprend chaque recul' : 'toujours en faible latence'} : rien à faire`);
+        } else {
+          const s = r3(-d + CALAGE.AVANCE_S);
+          const b = tamponDe(t);
+          if (b !== null && b - s >= CALAGE.MARGE_S) gestes.push({ t, type: 'avance', s: Math.min(10, s), d });
+          else direUneFois(c, k, n, `${n} en retard de ${secondes(d)} sur une tuile qui ne peut pas reculer, et ${b === null ? 'son tampon est inconnu' : `${b} s de tampon`} : rien à faire`);
+        }
+      }
+      const mesure = Object.entries(verdicts).map(([n, v]) => `${n} ${texteMesure(v, n).split(' · voix')[0]}`).join(' ; ');
+      if (!gestes.length) {
+
+        for (const n of Object.keys(verdicts)) {
+          if (Math.abs(avances[n] ?? Infinity) >= CALAGE.SEUIL_S || k.etats[n] === 'calée') continue;
+          k.etats[n] = 'calée';
+          premiere(k, n, 'calee', maintenant);
+          journaliser(c, k, `calée : ${n} ${texteMesure(verdicts[n], n).split(' · voix')[0]}`
+            + (tenues[n] ? ' — sa voix la plus haute pas revue, une autre à moins de 0,4 s : elle tient' : ''));
+        }
+
+        k.attente = c.tuiles.every((t) => t === ref || k.etats[t.chaine] === 'calée') ? 'calée' : 'en écoute';
+        if (k.attente === 'calée' && k.salleCalee === null) k.salleCalee = maintenant;
+        return;
+      }
+      for (const g of gestes) {
+        envoyer(g.t, `essai-${g.type}`, { duree: g.s });
+        g.t.changement = maintenant;
+        g.t.rouverte = { t: maintenant, quoi: g.type };
+        k.deplacements[g.t.chaine] = r3((k.deplacements[g.t.chaine] || 0) + (g.type === 'recul' ? g.s : -g.s));
+        delete k.dits[g.t.chaine];
+      }
+
+      const pas = Object.fromEntries(gestes.map((g) => [g.t.chaine, g.type === 'recul' ? g.s : -g.s]));
+      for (const t of c.tuiles) {
+        const n = t.chaine;
+        if (t === ref) continue;
+        if ((pas[n] || 0) === (pas[ref.chaine] || 0)) {
+          if (pas[n] && k.etats[n] === 'calée') k.etats[n] = 'vérification';
+          continue;
+        }
+        if (!verdicts[n] || avances[n] === undefined) { k.etats[n] = 'libre'; continue; }
+        k.etats[n] = k.etats[n] === 'vérification' ? 'calée' : 'vérification';
+        k.coups[n].push(maintenant);
+        premiere(k, n, 'correction', maintenant);
+        if (k.etats[n] === 'calée') premiere(k, n, 'calee', maintenant);
+      }
+      k.attente = 'vérification';
+      journaliser(c, k, `${mesure} → ${gestes.map((g) => `${g.t.chaine} ${g.type === 'recul' ? 'recule' : 'avance'} de ${g.s} s`
+        + (suiveuses.includes(g.t.chaine) ? ' (suit la référence)' : '')).join(' · ')}`);
+    };
+
+    const auto = (x) => {
+      const c = courante;
+      if (!c) return { erreur: 'aucune salle ouverte / no open room' };
+      if (x === false) return arreterCalage(c, 'arrêté', true) ? { auto: 'arrêté / stopped' } : { auto: 'aucun en cours / none running' };
+      const e = x === undefined || x === null || x === true ? 1 : Number(x);
+      if (!(e >= 0.05 && e <= 1)) return { erreur: 'échelle hors de 0.05–1 / scale outside 0.05–1' };
+      return demarrerCalage(c, e, 'console');
+    };
+    const bilanCalage = (c) => {
+      const k = c.calage;
+      if (!k) return null;
+      const ref = c.ecoute.ref;
+      const a = (x) => (Number.isFinite(x) ? `${x < k.t0 ? '−' : '+'}${Math.abs(Math.round((x - k.t0) / 1000))} s` : '—');
+      return {
+        etat: k.etat !== 'actif' ? k.etat : `actif · ${k.attente || 'en écoute'}`,
+        echelle: k.echelle,
+        origine: k.origine,
+        reference: ref,
+        corrections: Object.values(k.coups).reduce((s, l) => s + l.length, 0),
+        mesures: Object.fromEntries(Object.entries(k.vus).map(([n, v]) => [n, texteMesure(v, n)])),
+        tuiles: Object.fromEntries(c.tuiles.filter((t) => t.chaine !== ref).map((t) => [t.chaine, k.etats[t.chaine] || 'libre'])),
+        deplacements: Object.entries(k.deplacements).map(([n, s]) => `${n} ${s >= 0 ? 'recul' : 'avance'} ${Math.abs(s)} s`).join(' · ') || null,
+        faibleLatence: Object.keys(k.faible).length ? Object.entries(k.faible).map(([n, t]) => {
+          const x = tuileDe(c, n);
+          return `${n} retirée à +${Math.round((t - k.t0) / 1000)} s · le lecteur dit ${x && x.faibleLatence === false ? 'non' : x && x.faibleLatence ? 'oui' : '—'}`;
+        }).join(' · ') : null,
+        journal: Object.fromEntries(k.journal.map((j, i) => [String(i + 1).padStart(3, '0'), `+${Math.round((j.t - k.t0) / 1000)} s · ${j.texte}`])),
+
+        chronologie: Object.fromEntries(c.tuiles.map((t) => {
+          if (t.chaine === ref) return [t.chaine, `son ${a(t.premierSon)} · référence`];
+          const x = k.premieres[t.chaine] || {}, r = tuileDe(c, ref), p = c.ecoute.paires[`${ref}~${t.chaine}`];
+          const o = [t.rouverte, r && r.rouverte && { ...r.rouverte, quoi: `${ref} : ${r.rouverte.quoi}` }].filter(Boolean)
+            .reduce((u, v) => (!u || v.t > u.t ? v : u), null);
+          const compte = r && p && p.compte && p.compte.depuis === depuisPaire(c, r, t) ? p.compte.t : null;
+          return [t.chaine, [`son ${a(t.premierSon)}`, o ? `rouverte ${a(o.t)} (${o.quoi})` : null, `calcul ${a(compte)}`,
+            `verdict ${a(x.verdict)}`, `correction ${a(x.correction)}`, `calée ${a(x.calee)}`].filter(Boolean).join(' · ')];
+        })),
+        salleCalee: k.salleCalee === null ? null : a(k.salleCalee),
+      };
+    };
+
+    const commande = (nom, args = [], appelante = null) => {
+      switch (nom) {
+        case 'auto': return auto(args[0]);
+        case 'recul': return reculSur(args, appelante);
+        case 'avance': return avanceSur(args, appelante);
+        case 'ecoute': return ecoute(args[0] === undefined ? true : args[0]);
+        case 'rapport': return bilan();
+        default: return { erreur: `commande inconnue / unknown command : ${nom}` };
+      }
+    };
+
+    return {
+      ouvrir, son, fermer: (raison = 'api') => fermer(raison), rapport: bilan, ecoute, series,
+      recul: (...a) => reculSur(a), avance: (...a) => avanceSur(a), auto: (x) => auto(x), commande,
+      ouvrirDepuisBarre, reprendre,
+
+      membres: () => (courante ? [...courante.membres] : null),
+      surChangement: (fn) => { auChangement = fn; },
+    };
+  })();
+
+  const noeudsSalle = (() => {
+    const TRIANGLE = '<svg viewBox="0 0 8 10" aria-hidden="true"><path d="M0 0v10l8-5z"/></svg>';
+    const parCle = new Map();
+    let voulues = new Map();
+    let couche = null;
+    let veille = null;
+    let suivie = null;
+    let clics = 0;
+
+    const cleDe = (membres) => [...membres].sort().join(' ');
+    const listeNoms = (noms) => {
+      try { return new Intl.ListFormat(S.locale, { type: 'conjunction' }).format(noms); }
+      catch { return noms.join(', '); }
+    };
+
+    const marquer = () => {
+      const ouverte = salle.membres();
+      const cle = ouverte ? cleDe(ouverte) : null;
+      for (const [k, n] of parCle) {
+        const v = String(k === cle);
+        if (n.getAttribute('aria-pressed') !== v) n.setAttribute('aria-pressed', v);
+      }
+    };
+
+    const ordonner = (b, membres) => {
+      const ordre = membres.join(' ');
+      if (b.dataset.tseNoeud === ordre) return;
+      b.dataset.tseNoeud = ordre;
+      b.setAttribute('aria-label', S.uiNoeudAria(listeNoms(membres)));
+      b.title = S.uiNoeudAria(listeNoms(membres));
+    };
+
+    const creer = (cle, membres) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'tse-noeud';
+      b.setAttribute('aria-pressed', 'false');
+      const symbole = document.createElement('span');
+      symbole.className = 'tse-noeud__symbole';
+      symbole.appendChild(noeudStatique(TRIANGLE));
+      const etiquette = document.createElement('span');
+      etiquette.className = 'tse-noeud__etiquette';
+      etiquette.textContent = S.uiNoeudRegarder(membres.length);
+      b.append(symbole, etiquette);
+      ordonner(b, membres);
+      b.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        clics += 1;
+        const ouverte = salle.membres();
+        if (ouverte && cleDe(ouverte) === cle) salle.fermer('noeud');
+        else salle.ouvrirDepuisBarre(b.dataset.tseNoeud.split(' '));
+      });
+      return b;
+    };
+    const poserStyle = (el, prop, v) => { if (el.style.getPropertyValue(prop) !== v) el.style.setProperty(prop, v); };
+
+    const barreGauche = () => {
+      const nav = document.querySelector(DOM.sidebarRoot);
+      return nav ? nav.getBoundingClientRect().left : 0;
+    };
+    const placer = () => {
+      if (!couche || !couche.isConnected) return;
+      const origine = couche.getBoundingClientRect();
+      for (const [cle, { barre }] of voulues) {
+        const n = parCle.get(cle);
+
+        if (!n || !barre.every((c) => c.isConnected)) continue;
+        const haut = barre[0].getBoundingClientRect();
+        const bas = barre[barre.length - 1].getBoundingClientRect();
+
+        const couleur = getComputedStyle(barre[0], '::before').backgroundColor;
+        poserStyle(n, 'top', `${Math.round((haut.top + bas.bottom) / 2 - origine.top)}px`);
+
+        const bord = barreGauche();
+        const gauche = Math.max(haut.left + 1.5 - n.offsetWidth / 2, bord);
+        poserStyle(n, 'left', `${Math.round(gauche - origine.left)}px`);
+        poserStyle(n, '--tse-noeud-couleur', couleur);
+        n.classList.toggle('tse-noeud--reduit', sidebarCollapsed);
+      }
+    };
+    const suivre = (section) => {
+      if (suivie === section) return;
+      if (veille) veille.disconnect();
+      suivie = section;
+      if (!section || typeof ResizeObserver !== 'function') return;
+      veille = veille || new ResizeObserver(placer);
+      veille.observe(section);
+    };
+
+    const maj = (barres) => {
+      voulues = new Map();
+      for (const barre of barres || []) {
+        const membres = [...new Set(barre.map((c) => c.dataset.tseLogin).filter(Boolean))];
+        if (membres.length >= 2) voulues.set(cleDe(membres), { barre, membres });
+      }
+      for (const [cle, n] of [...parCle]) {
+        if (voulues.has(cle) && n.isConnected) continue;
+        n.remove();
+        parCle.delete(cle);
+      }
+      const premiere = voulues.values().next().value;
+      const section = premiere ? premiere.barre[0].closest('.side-nav-section') : null;
+      if (!section) { voulues = new Map(); suivre(null); return; }
+      if (!couche || couche.parentElement !== section) {
+        couche = couche || Object.assign(document.createElement('div'), { id: 'tse-noeuds' });
+        section.prepend(couche);
+      }
+      for (const [cle, { membres }] of voulues) {
+        let n = parCle.get(cle);
+        if (!n) { n = creer(cle, membres); parCle.set(cle, n); }
+        else ordonner(n, membres);
+        if (n.parentElement !== couche) couche.appendChild(n);
+      }
+      placer();
+      marquer();
+      suivre(section);
+    };
+    salle.surChangement(marquer);
+
+    const bilan = () => {
+      const out = { affiches: parCle.size, clics };
+
+      let suivant = couche && couche.isConnected ? couche.nextElementSibling : null;
+      while (suivant && !suivant.getClientRects().length) suivant = suivant.nextElementSibling;
+      if (suivant) {
+        const cs = getComputedStyle(couche.parentElement);
+        out.section = `${cs.display} · gap ${cs.rowGap}`;
+        out.ecart = Math.round(suivant.getBoundingClientRect().top - couche.getBoundingClientRect().bottom);
+      }
+      return out;
+    };
+    return { maj, bilan };
+  })();
+
   const tseApi = {
     scores(limit = Infinity) {
       const report = buildScoresReport().slice(0, limit);
@@ -6644,8 +9496,10 @@ const TSE_GATE_MAX_CLICKS = 5;
             const anims = document.getAnimations().filter(
               a => a.effect && a.effect.pseudoElement === '::before'
                 && a.effect.target && a.effect.target.classList.contains('tse-fresh'));
+
             return { fraiches: fraiches.length, animations: anims.length,
-                     etat: anims.length ? anims[0].playState : null };
+                     etat: anims.length ? anims[0].playState : null,
+                     rouge: document.documentElement.style.getPropertyValue('--tse-direct') || null };
           })(),
           theme: themeTwitch(),
 
@@ -6739,6 +9593,94 @@ const TSE_GATE_MAX_CLICKS = 5;
               ? r1(Math.max(0, g - tris[0].left, tris[tris.length - 1].right - d)) : null,
           };
         })(),
+
+        lecteur: (() => {
+          const videos = [...document.querySelectorAll('video')];
+          if (!videos.length) return { videos: 0 };
+          const aire = (x) => x.clientWidth * x.clientHeight;
+          const v = videos.reduce((a, b) => (aire(b) > aire(a) ? b : a));
+          const nom = (e) => e.tagName.toLowerCase()
+            + [...e.classList].slice(0, 3).map((k) => '.' + k).join('');
+          const feuille = document.getElementById('tse-css')?.sheet;
+          const cachantes = feuille ? [...feuille.cssRules].filter((r) => r.selectorText
+            && /display:\s*none|visibility:\s*hidden|opacity:\s*0(?![.\d])/.test(r.style?.cssText || '')) : [];
+          const cache = (e) => {
+            const cs = getComputedStyle(e);
+            return cs.display === 'none' ? 'display:none'
+              : cs.visibility === 'hidden' ? 'visibility:hidden'
+              : parseFloat(cs.opacity) === 0 ? 'opacity:0' : null;
+          };
+          let masquePar = null, regle = null;
+          const marques = new Set();
+          for (let e = v; e && e !== document.documentElement; e = e.parentElement) {
+            for (const at of e.getAttributeNames()) if (at.startsWith('data-tse')) marques.add(at);
+            if (masquePar) continue;
+            let comment = cache(e);
+            if (!comment) continue;
+
+            if (comment === 'visibility:hidden') {
+              while (e.parentElement && e.parentElement !== document.documentElement
+                     && getComputedStyle(e.parentElement).visibility === 'hidden') e = e.parentElement;
+              comment = cache(e);
+            }
+            masquePar = `${nom(e)} ${comment}`;
+            const trouvee = cachantes.find((r) => { try { return e.matches(r.selectorText); } catch { return false; } });
+            regle = trouvee ? trouvee.selectorText : null;
+          }
+
+          const r = v.getBoundingClientRect();
+          const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+          const couvre = (e) => {
+            const cs = getComputedStyle(e);
+            if (cs.visibility === 'hidden' || parseFloat(cs.opacity) < 0.5) return null;
+            if (/^(img|iframe|canvas|video)$/.test(e.localName)) return e.localName;
+            if (cs.backgroundImage && cs.backgroundImage !== 'none') return 'image de fond';
+            const m = /^rgba?\(([^)]+)\)$/.exec(cs.backgroundColor || '');
+            const alpha = m ? Number(m[1].split(/[\s,/]+/)[3] ?? 1) : 0;
+            return alpha >= 0.5 ? `fond ${cs.backgroundColor}` : null;
+          };
+          const estNotre = (e) => {
+            for (let x = e; x && x !== document.body && x !== document.documentElement; x = x.parentElement) {
+              if (x.id.startsWith('tse') || [...x.classList].some((k) => k.startsWith('tse'))
+                  || x.getAttributeNames().some((a) => a.startsWith('data-tse'))) return true;
+            }
+            return false;
+          };
+          let dessus = null, dessusNous = null;
+          if (!r.width || !r.height || cx < 0 || cy < 0 || cx >= window.innerWidth || cy >= window.innerHeight) {
+            dessus = 'hors écran';
+          } else {
+            for (const e of document.elementsFromPoint(cx, cy)) {
+              if (e === v) break;
+              const raison = couvre(e);
+              if (!raison) continue;
+              dessus = `${nom(e)}${e.id ? '#' + e.id : ''} ${raison}`;
+              dessusNous = estNotre(e);
+              break;
+            }
+          }
+          const q = typeof v.getVideoPlaybackQuality === 'function' ? v.getVideoPlaybackQuality() : null;
+          return {
+            videos: videos.length,
+            taillePx: `${v.clientWidth}x${v.clientHeight}`,
+
+            position: `${Math.round(r.left)},${Math.round(r.top)}`,
+            image: `${v.videoWidth}x${v.videoHeight}`,
+            etat: v.readyState,
+            enPause: v.paused,
+            tempsS: Math.round(v.currentTime),
+
+            images: q ? q.totalVideoFrames : null,
+            erreur: v.error ? v.error.code : null,
+            masquePar,
+            regle,
+            marques: [...marques].join(' ') || null,
+            dessus,
+            dessusNous,
+          };
+        })(),
+
+        salle: { ...salle.rapport(), noeuds: noeudsSalle.bilan() },
 
         stories: (() => {
           const r = rangeeStories();
@@ -6996,6 +9938,11 @@ const TSE_GATE_MAX_CLICKS = 5;
         const r = await subsPage.refresh(true);
         return { fait: r !== null, chaines: Array.isArray(r) ? r.length : 0 };
       },
+
+      salle(arg) {
+        const args = Array.isArray(arg && arg.args) ? arg.args.slice(0, 3) : [];
+        return salle.commande(String((arg && arg.commande) || ''), args);
+      },
       async globalOn()  { state.globalMode = true;  await globalChannels.warm();
                           return { actif: true }; },
       globalOff()       { state.globalMode = false; globalChannels.reset();
@@ -7010,6 +9957,21 @@ const TSE_GATE_MAX_CLICKS = 5;
   };
 
   tseApi.panneau.rapport = () => panneau.rapport();
+
+  tseApi.salle = Object.freeze({
+    ouvrir: (...chaines) => salle.ouvrir(...chaines),
+    son: (i) => salle.son(i),
+    fermer: () => salle.fermer(),
+    rapport: () => salle.rapport(),
+
+    ecoute: (actif = true) => salle.ecoute(actif),
+    series: () => salle.series(),
+
+    recul: (...a) => salle.recul(...a),
+    avance: (...a) => salle.avance(...a),
+
+    auto: (x) => salle.auto(x),
+  });
 
   servirPanneau = (d, repondre) => {
 
@@ -9241,6 +12203,8 @@ const TSE_GATE_MAX_CLICKS = 5;
 
       const iframe = document.createElement('iframe');
       iframe.className = 'tse-preview__iframe';
+
+      iframe.name = TSE_PREVIEW_FRAME_NAME;
       iframe.src = buildIframeUrl(login);
       iframe.setAttribute('allow', 'autoplay; encrypted-media');
 
@@ -9488,6 +12452,8 @@ const TSE_GATE_MAX_CLICKS = 5;
     let lastMouseX = -1;
     let lastMouseY = -1;
 
+    let dernierSurvol = null;
+
     const resolveCard = (node) => {
       let card = node.closest('.side-nav-card');
       if (!card) return null;
@@ -9503,6 +12469,7 @@ const TSE_GATE_MAX_CLICKS = 5;
         lastMouseX = e.clientX;
         lastMouseY = e.clientY;
       }, { passive: true, capture: true });
+      document.addEventListener('mouseover', (e) => { dernierSurvol = e.target; }, { passive: true, capture: true });
 
       document.addEventListener('mouseenter', (e) => {
         const t = e.target;
@@ -9533,7 +12500,9 @@ const TSE_GATE_MAX_CLICKS = 5;
 
           if (card !== currentCard && card !== pendingCard) return;
           const under = document.elementFromPoint(lastMouseX, lastMouseY);
-          if (under && card.contains(under)) {
+          const horsCarte = !!dernierSurvol && dernierSurvol.localName === 'iframe'
+            && dernierSurvol.isConnected && !card.contains(dernierSurvol);
+          if (under && card.contains(under) && !horsCarte) {
 
             return;
           }
@@ -9917,6 +12886,15 @@ const TSE_GATE_MAX_CLICKS = 5;
     wireDropdown(wrap.querySelector(`#${CAT_DD_ID}`));
     wireDropdown(wrap.querySelector(`#${LANG_DD_ID}`));
     bindDropdownsGlobal();
+  }
+
+  function mesurerRougeDirect() {
+    const pastille = document.querySelector(`${DOM.sidebarRoot} .side-nav-card ${DOM.liveIndicator}`);
+    if (!pastille) return;
+    if (pastille.getAnimations().some((a) => a.transitionProperty === 'background-color')) return;
+    const c = getComputedStyle(pastille).backgroundColor;
+    if (!/^rgb\(\d+, \d+, \d+\)$/.test(c)) return;
+    document.documentElement.style.setProperty('--tse-direct', c);
   }
 
   function alignerBloc() {
@@ -10374,22 +13352,32 @@ const TSE_GATE_MAX_CLICKS = 5;
   const STORIES_RE = /stories/i;
   const classOf = (el) => el?.getAttribute?.('class') || '';
 
+  const dansLaColonne = (el, nav) => {
+    if (el.querySelector('video, iframe')) return false;
+    const r = el.getBoundingClientRect(), n = nav.getBoundingClientRect();
+    return r.left >= n.left - 8 && r.right <= n.right + 8;
+  };
+
   function tagStoriesRow() {
     const nav = document.querySelector(DOM.sidebarRoot);
     if (!nav) return;
 
     const root = nav.parentElement || nav;
     if (root.querySelector('[data-tse-stories="row"]')) return;
-    let el = [...root.querySelectorAll(DOM.storiesSelector)]
-      .find((x) => !x.closest(`.side-nav-card, #${FILTER_ID}`));
-    if (!el) return;
 
-    while (el.parentElement && el.parentElement !== root
-           && STORIES_RE.test(classOf(el.parentElement))) {
-      el = el.parentElement;
+    const candidats = [...root.querySelectorAll(DOM.storiesSelector)]
+      .filter((x) => !x.closest(`.side-nav-card, #${FILTER_ID}`));
+    for (let el of candidats) {
+
+      while (el.parentElement && el.parentElement !== root
+             && STORIES_RE.test(classOf(el.parentElement))) {
+        el = el.parentElement;
+      }
+      if (el === nav || el.contains(nav) || el.querySelector('.side-nav-card')) continue;
+      if (!dansLaColonne(el, nav)) continue;
+      el.setAttribute('data-tse-stories', 'row');
+      return;
     }
-    if (el === nav || el.contains(nav) || el.querySelector('.side-nav-card')) return;
-    el.setAttribute('data-tse-stories', 'row');
   }
 
   const SERIE_MARQUE = 'data-tse-ligne-serie';
@@ -10408,7 +13396,8 @@ const TSE_GATE_MAX_CLICKS = 5;
   const lignesSerie = () => {
     const nav = document.querySelector(DOM.sidebarRoot);
     const racine = nav?.parentElement || nav;
-    return racine ? [...racine.querySelectorAll(DOM.serieSelector)] : [];
+    return racine ? [...racine.querySelectorAll(DOM.serieSelector)]
+      .filter((l) => dansLaColonne(l, nav)) : [];
   };
   const construirePuce = () => {
     const a = document.createElement('a');
@@ -11309,7 +14298,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       const key = a.dataset.tseCostreamKey;
       if (key && key === b.dataset.tseCostreamKey) pairs.push([a, b]);
     }
-    if (!pairs.length) return;
+    if (!pairs.length) return [];
 
     const joins = [];
     for (const [a, b] of pairs) {
@@ -11330,6 +14319,15 @@ const TSE_GATE_MAX_CLICKS = 5;
       mark(a, 'tse-costream-join-bottom', '--tse-costream-jb', ext);
       mark(b, 'tse-costream-join-top', '--tse-costream-jt', ext);
     }
+
+    const jointeAvant = new Set(joins.map(([, b]) => b));
+    const barres = [];
+    let courante = null;
+    for (const c of visible) {
+      if (courante && jointeAvant.has(c)) courante.push(c);
+      else { courante = [c]; barres.push(courante); }
+    }
+    return barres.filter((b) => b.length >= 2);
   }
 
   function snapshotTwitchOrder() {
@@ -11905,6 +14903,7 @@ const TSE_GATE_MAX_CLICKS = 5;
     tagStoriesRow();
     syncStories();
     alignerBloc();
+    mesurerRougeDirect();
     ensureGlobalBanner();
     ensureGlobalEmpty();
     hideNativeFollowedHeader();
@@ -11915,7 +14914,8 @@ const TSE_GATE_MAX_CLICKS = 5;
     const costreamGroups = detectCoStreams();
     updateSortButtonsState({ costreamGroups });
     applySorting();
-    applyCostreamJoins();
+
+    noeudsSalle.maj(applyCostreamJoins());
     autoExpandFollowed();
 
     const hadOfflineActivity = offlineTransitionsThisScan > 0;
@@ -12229,6 +15229,7 @@ const TSE_GATE_MAX_CLICKS = 5;
       preview.init();
       startObserver();
       startTimers();
+      salle.reprendre();
       jalon('pret');
     };
     if (document.body) ready();

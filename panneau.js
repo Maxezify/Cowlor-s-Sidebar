@@ -599,6 +599,20 @@ const demander = async (charge, essai = 0, trace = []) => {
   return { ...(r || { ok: false, erreur: 'absent' }), trace };
 };
 
+try {
+  const relayer = (commande) => async (...args) => {
+    const r = await demander({ action: 'salle', arg: { commande, args: args.slice(0, 3) } });
+    const resultat = r && r.ok ? r.data : { erreur: (r && r.erreur) || 'absent' };
+    console.info(`[tse] ${commande} →`, resultat);
+    return resultat;
+  };
+  Object.defineProperty(window, 'tse', {
+    value: Object.freeze({ salle: Object.freeze(Object.fromEntries(
+      ['auto', 'recul', 'avance', 'ecoute', 'rapport'].map((c) => [c, relayer(c)]))) }),
+    writable: false, configurable: false,
+  });
+} catch {   }
+
 const $ = (id) => document.getElementById(id);
 let courante = SECTIONS[0].id;
 
@@ -619,6 +633,8 @@ const montrerMessage = (cle, bouton, detail) => {
 
 const GROUPES_OPT = [
   ['optGrpApercu',  ['apercu', 'apercuVideo', 'apercuQualite', 'apercuTaille']],
+
+  ['optGrpMultistream', ['salle', 'salleAuto']],
   ['optGrpBadges',  ['badges']],
   ['optGrpCarte',   ['duree', 'dureeFormat', 'fresh', 'collab', 'abonnes', 'subathonJour']],
   ['optGrpListe',   ['tris', 'filtreCategorie', 'filtreLangue', 'topOnglet', 'topN']],
@@ -1096,12 +1112,15 @@ const construireRapport = (r, transport, fond) => {
     `Cowlor's Sidebar — rapport de diagnostic / diagnostic report`,
     `généré / generated : ${d.toISOString()}`,
     '',
+
     `CE FICHIER NE CONTIENT AUCUNE LISTE PERSONNELLE : ni les chaînes visitées,`,
-    `ni les abonnements, ni le roster — seulement leurs COMPTES. Il porte en`,
-    `revanche tout le diagnostic technique. Relisez-le avant de l'envoyer.`,
+    `ni les abonnements, ni le roster — seulement leurs COMPTES. Il nomme en`,
+    `revanche les chaînes ouvertes dans cette page par l'aperçu ou la salle, et`,
+    `porte tout le diagnostic technique. Relisez-le avant de l'envoyer.`,
     '',
     `THIS FILE CONTAINS NO PERSONAL LISTS: not the channels you visit, not your`,
-    `subscriptions, not the roster — only their COUNTS. It does carry the full`,
+    `subscriptions, not the roster — only their COUNTS. It does name the channels`,
+    `opened in this page by the preview or the room, and carries the full`,
     `technical diagnostic. Read it before sending it.`,
     '',
   ];
@@ -1192,6 +1211,10 @@ const construireRapport = (r, transport, fond) => {
   L.push(...bloc('RANGÉE DES STORIES / STORIES ROW', aplatir(r.stories)));
 
   L.push(...bloc('ALIGNEMENT DU BLOC / BLOCK ALIGNMENT', aplatir(r.alignement)));
+
+  L.push(...bloc('LECTEUR PRINCIPAL / MAIN PLAYER', aplatir(r.lecteur)));
+
+  L.push(...bloc('SALLE MULTISTREAM / MULTISTREAM ROOM', aplatir(r.salle)));
 
   L.push(...bloc('SUBATHONS', aplatir(r.subathons)));
 

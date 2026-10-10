@@ -23,6 +23,8 @@ chrome.runtime.onConnect.addListener((port) => {
   ports.set(tabId, port);
 
   port.onDisconnect.addListener(() => {
+
+    void chrome.runtime.lastError;
     if (ports.get(tabId) === port) ports.delete(tabId);
   });
 

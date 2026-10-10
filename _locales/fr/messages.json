@@ -385,13 +385,13 @@
     "message": "Les co-streams"
   },
   "guideCostreamTexte": {
-    "message": "Une pastille violette au coin de l'avatar, avec le nombre de participants : cette chaîne diffuse à plusieurs. Visible dans la liste, sans rien survoler.\n• Un badge violet dit alors qui reçoit et qui est invité, et avec qui.\n• Un tri dédié les regroupe en tête de liste (chapitre $1)."
+    "message": "Une pastille violette au coin de l'avatar, avec le nombre de participants : cette chaîne diffuse à plusieurs. Visible dans la liste, sans rien survoler.\n• Un badge violet dit alors qui reçoit et qui est invité, et avec qui.\n• Un tri dédié les regroupe en tête de liste (chapitre $1).\n• Quand plusieurs membres se suivent dans la liste, leurs barres n'en font qu'une, et un bouton « ▶ » s'y pose : un clic les ouvre ensemble sur la page, dans la salle multistream. Un clic sur une tuile lui donne le son, et le chat suit ; à deux streams sans Chat partagé, les deux chats encadrent les lecteurs quand la place le permet. La touche Échap, ou un second clic sur le bouton, referme la salle."
   },
   "guideDebutTitre": {
     "message": "Les débuts, et les reprises"
   },
   "guideDebutTexte": {
-    "message": "Une barre violette apparaît sur le bord gauche d'une carte : ce live a commencé il y a moins de dix minutes. Elle s'éteint d'elle-même au bout de la dixième minute.\n• Si le streamer perd sa connexion et revient dans les dix minutes, la barre violette ne se rallume pas — et son compteur ne repart pas de zéro : il continue de compter le direct entier, coupure comprise.\n• L'aperçu dit en plus combien de fois ça a coupé, et dessine les interruptions sur la frise — et un badge prévient ce qui s'est passé."
+    "message": "Une barre rouge apparaît sur le bord gauche d'une carte : ce live a commencé il y a moins de dix minutes. Elle s'éteint d'elle-même au bout de la dixième minute.\n• Si le streamer perd sa connexion et revient dans les dix minutes, la barre rouge ne se rallume pas — et son compteur ne repart pas de zéro : il continue de compter le direct entier, coupure comprise.\n• L'aperçu dit en plus combien de fois ça a coupé, et dessine les interruptions sur la frise — et un badge prévient ce qui s'est passé."
   },
   "guideAboTitre": {
     "message": "Vos abonnements, en or"
@@ -525,6 +525,9 @@
   "optGrpCarte": {
     "message": "La carte dans la barre"
   },
+  "optGrpMultistream": {
+    "message": "Multistream"
+  },
   "optDuree": {
     "message": "Durée du direct"
   },
@@ -536,6 +539,18 @@
   },
   "optCollab": {
     "message": "Pastille de collaboration"
+  },
+  "optSalle": {
+    "message": "Salle multistream"
+  },
+  "optDescSalle": {
+    "message": "Un bouton « ▶ » sur la barre d'un co-stream ouvre ses streams ensemble, sur la page. Coupé : ni bouton, ni salle."
+  },
+  "optSalleAuto": {
+    "message": "Alignement automatique"
+  },
+  "optDescSalleAuto": {
+    "message": "Les streams sont calés par leur son commun — les lèvres de chaque stream sur sa voix telle qu'on l'entend. Il faut environ une minute d'écoute ; sans son commun, rien ne bouge. Coupé : rien ne bouge seul."
   },
   "optAbonnes": {
     "message": "L'or des abonnements"
@@ -679,7 +694,7 @@
     "message": "Remettre tous les réglages par défaut ?"
   },
   "optResetText": {
-    "message": "Les vingt réglages de cette page reviendront à leur valeur d'origine. Vos données — visites, abonnements, chaînes suivies — ne sont pas touchées."
+    "message": "Les vingt-deux réglages de cette page reviendront à leur valeur d'origine. Vos données — visites, abonnements, chaînes suivies — ne sont pas touchées."
   },
   "optValPlein": {
     "message": "Complet"
