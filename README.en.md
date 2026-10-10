@@ -2573,6 +2573,30 @@ passed every time under Chrome:
 Replayed twice each on the same tree: green, every assertion. The second
 full check of the Firefox branch: green.
 
+### And what the Firefox publication showed
+
+The full bench that `tests/prod.mjs` runs before publishing `firefox-prod`
+counted **two failures**, in **180** — listening alone, no calibration —,
+and refused to publish; the second attempt passed. This time the report
+tells the cause: in **every** pair of the scenario, common sound or not,
+four computations in a row with a peak at **0 ms, z ≈ 15** — stronger than
+the real voices (12 to 13) —, then nothing. An event common to all tiles at
+the same instant: a hiccup of the machine, interrupting together the
+sounds the fake players make in the same browser. It is very likely this,
+and not a draw, that gave "foxtrot" its false verdict near zero in 190; for
+188, nothing proves it.
+
+**And in a real browser?** The same mechanism is possible there: a machine
+struggling to decode six streams can interrupt the sound of every tile at
+once, and listening would see the same 0 ms peak in every pair. Four clean
+computations at 0 ms would be enough, in a pair less than 0.7 s behind, to
+make a voice "with the reference" — the highest of a voice chat —, and to
+declare in sync a tile that is not, until the window's thirty computations
+have flushed them. Nothing in the real reports has shown it so far. It is
+the next thing to test: recognising the common event — the same silence in
+every tile at the same instant, or the same 0 ms peak in every pair — and
+setting its windows aside.
+
 | mutant | what falls |
 | --- | --- |
 | calibration starting without capture (1) | 191: "india retirée à +1 s · le lecteur dit non", and "son —" to the end |
