@@ -2059,6 +2059,216 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## Ads at any moment, the place taken back, and the chosen chat (v4.24.0.27)
+
+The request: "make sure the calibration system is well optimised so that
+ads can arrive at any moment. That no bug can happen because of it"; remove
+the purple outline from the tile that has the sound, and read "Sound
+from …" above the chat instead of "… 's chat"; without a shared chat, be
+able to choose a streamer's chat without changing the room's sound. Then,
+during the work, a real report with ads: "the stream of [the third tile] is
+about 20 seconds behind after its ad". Published on `claude/chrome-multi`
+only.
+
+### What the real report showed
+
+Three streams, 34 minutes, three ads counted, the room in sync at +300 s.
+At the end, two tiles far from the reference, and nothing correcting them:
+
+| tile | what happened | latency | buffer |
+| --- | --- | --- | --- |
+| the third | at +1368 s, all at once, playback continuing (an "estimation" jump) | 7.6 → 30.7 s, held ten minutes | 29 to 30 s, held likewise |
+| the second | around +1720 s, **with no ad** | 11.1 → 19.7 s | ~9.9 → ~15.9 s |
+| the reference | coming out of its 98 s ad (+1789 → +1887 s) | 10.17 → 13.18 s | ~8.5 → ~11.4 s |
+
+The buffer says it was not the estimate: playback really was further from
+live, everything missing already downloaded ahead of it. And the player,
+its low latency removed by the calibration, never comes back on its own.
+At the end, the second tile is 5.6 s behind the reference — the sound says
+so (−5,390 and −5,770 ms, z up to 11.9), but the calibration discards any
+peak beyond 5 s: "no clean voice"; the third, 17.6 s behind according to
+the latencies — listening only searches ±6 s: nothing.
+
+What the report does not say: **when** the third tile's ad played. The
+journal keeps only sixty events, and it was full of "arrival gaps" — "at
+least 2 s without video (buffer 30.24 → 28.24)" every minute — which are
+only the cadence of two-second segments: 28 s of buffer remained. Its only
+counted ad predates +1346 s; the +1368 s jump came 22 s after a 2.28 s
+rewind requested by the calibration, whose position showed nothing within
+half a second (+0.04 s obtained). An ad the markers did not see, or a
+player that reloaded far behind: the report cannot tell. What is certain is
+the measurement: latency and buffer agreeing, 23 s.
+
+### Ads, at any moment
+
+An ad does three things to the calibration if left alone: its sound is not
+the live sound — two tiles playing the same ad, the same advertiser served
+to the same viewer, make a common voice at the offset of their two starts,
+which nothing distinguishes from a real one; playback resuming afterwards
+may no longer be where it was; a move requested during the ad aims at the
+ad. From now on:
+
+| | what happens |
+| --- | --- |
+| a tile in an ad | not listened to — its envelope is discarded reading by reading —, not judged, not moved, not dragged along when the reference rewinds. Its measurement is reopened at the start and at the end of the ad, its relation becomes free again |
+| the reference in an ad | the calibration waits: "la référence est en pub", in the report and for each pair. Its end unbinds everything, like a reload |
+| low latency still to remove | waits for the end of the ad |
+| a move order that arrives anyway | the bridge refuses it: "refusé : pub". The second guard, for an order sent just before the ad started |
+| quality to hold | the bridge waits for the end of the ad: the picture there is the ad's, and the five attempts of a request were used up on it |
+| an ad hidden by a blocker | it is an ad. The markers count by their **presence**, no longer by their visibility: in the third probe's journal, they only existed during the ad, never left hidden between two breaks |
+
+The ad is read from two sources that cross-check: the state each player
+sends every second, and the reading, which carries the envelope — the
+latter is discarded from the reading that sees the ad.
+
+### The place taken back
+
+The report's three cases are the same thing: a tile that **falls back**
+behind live. A tile's **place** is the median latency and buffer of ten
+quiet readings in a row — playing, speed 1, no ad, coherent latency, within
+0.8 s. Six quiet readings that move away from it by at least 1.5 s, **the
+buffer agreeing** — in the same direction, at least half, within 2.5 s
+(30 % beyond 8 s) —: the tile has fallen back, and it takes its place back,
+skipping ahead in its buffer, which contains exactly what it fell behind;
+rewinding, if it went ahead and what it keeps behind allows. Two seconds of
+buffer always remain; three takebacks at most in ten minutes; then the
+sound checks, the measurement reopened. The reference too: the sound one
+listens to skips by as much, once — the price of a room that stays close to
+live, instead of making every other tile rewind.
+
+- The place is relearnt after every move of the room — as soon as the
+  order leaves, four seconds, fifteen for low latency removed, whose
+  estimate jumps afterwards — and after what the player does on its own:
+  reload, catch-up, pause. **Not** after a jump, a stall or an ad: those
+  are what one falls back from.
+- **The estimate alone** jumping, the buffer still — what two real players
+  did after low latency was removed ("kappa", in 190) — moves nothing;
+  held twenty seconds, it is the new place.
+
+From the report's figures, worked out by hand: the reference would have
+skipped about 3.1 s ahead coming out of its ad, keeping 8 s of buffer; the
+second tile, 8.7 s (6.7 s kept); the third, 23.2 s (5 s kept) — if its
+place had been relearnt since the rewind of +1346 s, otherwise by the wide
+gap below. This is not a replay: the report does not carry the envelopes.
+
+### The wide gap
+
+When there is no place to fall back from — at opening, or when taking it
+back could not be done —, two tiles can be further apart than listening
+searches. The sound says nothing about it; their latencies do. **Beyond
+5 s**, over ten common quiet readings within 1 s, the buffer agreeing
+within 3 s (upstream of the buffer, channels differ by about 2 s in the
+real report), held twenty seconds, and **with no verdict from the sound**
+for the pair — if it has one, it decides: the one behind skips ahead by the
+gap, if its buffer allows. The reference only skips ahead if **all** the
+others are far ahead of it; otherwise the tile rewinds, if it can. The gap
+counts as a correction, and the sound finishes the job: latency was wrong
+by 4.6 s in the fourteenth real report — which is why nothing goes below
+5 s.
+
+The bridge now accepts a move of up to 60 s (10 before); the console stays
+bounded to 0.2–5 s.
+
+### The report
+
+- Per tile: `pub`, `pubCachee` (markers present, none visible),
+  `pubsVues`, `pubS`, and `pubsDetail` — each ad, and the place before and
+  after: "+1789→+1887 s · avant 10.17 s (tampon 8.5) · après 13.18 s
+  (tampon 11.4)"; `place`, `retombees`, `placeRebases`.
+- In the calibration: `reprises`; in the chronology, each tile's ads.
+- In the journal, an arrival gap is only noted if it left less than one
+  second of buffer. All remain counted (`serie.coupures`).
+
+### The sound, above the chat
+
+**No more outline** on the tile that has the sound. **The chat header says
+"Son de X"** (FR; "Sound from X" in English), a speaker in front. With two
+chats in the margins, each column names its chat — "Chat de Y" —, and the
+one of the stream that has the sound says "Son de X". Without a chat, the
+pill at the top right says it. A click on a tile still gives it the sound;
+keys 1 to 6 as well.
+
+### The chosen chat
+
+**Tabs above the chat**, one per stream of the room, in the room's order —
+stable: a replaced tile does not move them. Chosen over a drop-down list:
+one click instead of two, and every stream visible at once; on several
+lines rather than hidden at the end of a scroll. The one of the displayed
+chat is underlined in Twitch's purple.
+
+- **The chat follows the sound as long as no tab has been chosen** — what
+  it did until now, and what one expects without touching anything. Once
+  chosen, it stays where it was put: the sound moving from one tile to
+  another no longer reloads it. "Hide" then "Show the chat" gives it back
+  as is; a stream leaving the room gives the chat back to the sound.
+- **On the keyboard, like tabs**: a tab list, a single one in the tab
+  order; the arrows, Home and End move from one to the other without
+  loading anything — a chat reloads, one does not do it in passing —, Enter
+  or Space chooses.
+- **When they do not appear**: with two chats (both are there), on a
+  proven Shared Chat (all show the same one), without a chat.
+- **With three streams or more, they stay even on a Shared Chat**: the room
+  cannot prove it with a single chat loaded (the proof is comparing the
+  messages of two chats loaded together), and a Shared Chat may gather only
+  part of the room. A tab of a shared chat shows the same chat, nothing
+  more.
+- The console: `tse.salle.chat('channel')`. In the report: `onglets` (the
+  displayed chat in brackets), `chatChoisi`, `chatsChoisis`,
+  `chatTitreGauche`.
+
+### What remains
+
+- **The common 0 ms event** (cf. 4.24.0.26): the same silence in every
+  tile at the same instant would make a voice "with the reference". An ad
+  no longer does — its windows are set aside —, a struggling machine still
+  can. To be tested.
+- **Why the report's third tile fell back 23 s**: the next report will
+  tell, its journal no longer drowned. The room now puts it back in its
+  place whatever the cause.
+- **A Shared Chat with three streams or more** cannot be proven with a
+  single chat loaded: the tabs stay.
+
+### To check on real Twitch
+
+| point | what will tell |
+| --- | --- |
+| a mid-roll ad: does the tile fall back, and take its place back? | `pubsDetail` (before, after), the calibration journal ("retombée … elle reprend sa place") |
+| an ad's markers under a blocker | `pubCachee` |
+| the report's third tile: unseen ad, or reload? | `pubsDetail`, and the journal, now readable |
+| tabs on a three-stream Shared Chat: bothersome? | the eye — to be said |
+
+### What the bench measures
+
+- **175** — no more outline on the tile that has the sound; "Son de alpha",
+  the speaker in front; the tabs, the displayed chat's one selected; a tab
+  changing the chat without touching the sound; once chosen, the chat
+  staying — the same one, not reloaded — when the sound moves to another
+  tile; the keyboard (arrows, Home, End without loading anything, Enter),
+  the accessible tab list, `tse.salle.chat()`; without a chat, the sound in
+  the pill; "Show the chat" giving back the chosen chat. Its ad is now
+  placed then removed, as on real Twitch, no longer hidden.
+- **177** — with two chats, "Son de tardif" on the right then "Son de
+  calme" on the left when the sound moves there; a single chat of a
+  distinct duo, its two tabs; above a Shared Chat, "Son de sa" then "Son de
+  sb", no tab.
+- **192** — the same ad on the reference and on a tile, 300 ms apart:
+  nothing listened to or judged, the calibration waiting and saying so,
+  then everything syncs on the real sound; a synced tile in an ad, not
+  dragged along when the reference rewinds for another, and nothing sent
+  to the ad; coming out of its ad 8 s further from live, its buffer with
+  it, it takes its place back by skipping ahead; an ad hidden by a blocker,
+  and the console as well as the bridge refusing to move it; the low
+  latency of a tile in an ad, removed only once the ad is over.
+- **193** — the estimate alone jumping by 6 s, the buffer still: nothing
+  moves; a tile falling back 20 s, with no ad, taking its place back; an
+  arrival gap leaving more than a second, counted and not noted; the wide
+  gap at opening, 7 s: the one behind skips ahead — and, with the reference
+  behind all the others, it is the reference.
+
+The fake player gained its ad (`__pub`: the three markers, the live sound
+cut, the ad's in its place, on the clock's time), the tile that falls back
+(`__retomber`, its buffer with it), and the estimate alone (`__estimer`).
+
 ## Multistream on every branch (v4.24.0.26)
 
 The request, after 4.24.0.25: "green light for the other branches". The
@@ -16247,7 +16457,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 190 scenarios, 1603 assertions |
+| `npm test` | the Playwright harness: 192 scenarios, 1616 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -16267,7 +16477,7 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1529 KB | 604 KB | 3,987 → **2** |
+| `content.js` | 1570 KB | 626 KB | 4,040 → **2** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
 | `panneau.js` | 107 KB | 51 KB | 149 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |

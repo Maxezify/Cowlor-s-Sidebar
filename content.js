@@ -438,7 +438,12 @@ const TSE_SALLE_CONSOLE_REPONSE = 'tse:salle-console-reponse';
 const TSE_SALLE_CHAT_NAME = 'tse-salle-chat';
 /* Les repères d'une pub, RELEVÉS sur le vrai Twitch par la troisième sonde
    (4.24.0.5) : ils paraissent ensemble au début d'une pub et partent
-   ensemble à sa fin. Ce ne sont plus des mots cherchés, ce sont des noms. */
+   ensemble à sa fin. Ce ne sont plus des mots cherchés, ce sont des noms.
+   LEUR PRÉSENCE, ET NON PLUS LEUR VISIBILITÉ (4.24.0.27) : au journal de
+   cette sonde, ils n'existaient que pendant la pub — jamais restés cachés
+   entre deux coupures, sur deux pubs de 189 s en quatorze minutes. Un
+   bloqueur qui les CACHE par une règle d'affichage laisse la pub jouer, et
+   la visibilité seule ne la voyait plus. */
 const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video-ad-countdown"], '
   + '[data-test-selector="ad-banner-default-text"]';
 
@@ -456,6 +461,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
 
   const BOUTON_SON = 'button[data-a-target="player-mute-unmute-button"]';
   const BOUTON_LECTURE = 'button[data-a-target="player-play-pause-button"]';
+  const enPub = () => document.querySelector(TSE_PUB_REPERES) !== null;
   let ordre = null;
   let numeroOrdre = 0;
 
@@ -570,8 +576,12 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       .reduce((p, q) => (p === null || q.height < p ? q.height : p), null);
     return dessus === null ? meilleure.q : meilleureA(echelle, dessus);
   };
+  /* PAS PENDANT UNE PUB (4.24.0.27) : le lecteur y joue l'image de la pub —
+     1920 × 1080 au relevé réel, quelle que soit la qualité posée —, et
+     chaque essai usé là manquerait après : une pub d'entrée de quatorze
+     secondes prenait les cinq, à trois secondes l'un de l'autre. */
   const tenirQualite = () => {
-    if (!hauteurVoulue || qualiteEssais >= 5 || Date.now() - qualiteT < 3000) return;
+    if (!hauteurVoulue || qualiteEssais >= 5 || Date.now() - qualiteT < 3000 || enPub()) return;
     const lecteur = lecteurTwitch();
     if (!lecteur || typeof lecteur.setQuality !== 'function') return;
     let echelle = [];
@@ -626,7 +636,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       perdues: q ? q.droppedVideoFrames : null,
       octets: v && typeof v.webkitVideoDecodedByteCount === 'number'
         ? v.webkitVideoDecodedByteCount + (Number(v.webkitAudioDecodedByteCount) || 0) : null,
-      pub: [...document.querySelectorAll(TSE_PUB_REPERES)].some((el) => el.getClientRects().length > 0),
+      // Présente, la pub (4.24.0.27) ; visible, au rapport seulement — un bloqueur peut la cacher.
+      pub: enPub(),
+      pubVisible: [...document.querySelectorAll(TSE_PUB_REPERES)].some((el) => el.getClientRects().length > 0),
       boutonSon: !!document.querySelector(BOUTON_SON),
       avertissement, avertissementVu, avertissementClics,
       gestes,
@@ -683,6 +695,15 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     const lecteur = lecteurTwitch();
     const v = document.querySelector('video');
     const type = sens > 0 ? 'recul' : 'avance';
+    /* JAMAIS PENDANT UNE PUB (4.24.0.27). La salle n'en demande pas (cf.
+       caler) ; ceci est la seconde garde, pour un ordre parti juste avant le
+       début de la pub. Déplacer la pub ne cale rien — elle n'est pas le
+       direct —, et ce que le lecteur en ferait n'a jamais été mesuré. */
+    if (enPub()) {
+      essai = { n: ++numeroEssai, type, valeur: s, voie: 'refusé : pub', t: Date.now(), fin: Date.now(),
+                avant: null, apres: null };
+      return;
+    }
     if (sens < 0) {
       const tampon = lecteur && typeof lecteur.getBufferDuration === 'function' ? lireNombre(() => lecteur.getBufferDuration()) : null;
       if (tampon !== null && tampon < s + 0.5) {
@@ -1043,6 +1064,10 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       faibleLatence: f('isLiveLowLatency') ? (() => { try { return !!lecteur.isLiveLowLatency(); } catch { return null; } })() : null,
       essai,
       ecoute: ecoute.bilan(),
+      /* LA PUB, AVEC L'ENVELOPPE QU'ELLE ACCOMPAGNE (4.24.0.27) : la salle
+         écarte celle-ci dès le relevé qui la voit, sans attendre l'état de
+         la seconde. */
+      pub: enPub(),
       env: ecoute.prendre(),
     };
     if (d.api === true && lecteur) r.api = lireApi(lecteur);
@@ -1115,12 +1140,13 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       if (d.ordre === 'releve' && Number.isFinite(d.n)) repondreReleve(d);
       else if (d.ordre === 'faible-latence') retirerFaibleLatence();
       else {
-        /* De 0,05 à 10 s : le calage recule d'un écart entre tuiles —
-           parfois plus de 5 s —, et ses corrections descendent à 0,05 s. La
-           console, elle, reste bornée à 0,2–5 s par la salle ; l'avance, par
-           son tampon. */
+        /* De 0,05 à 60 s : le calage recule d'un écart entre tuiles —
+           parfois plus de 5 s —, et ses corrections descendent à 0,05 s ; une
+           tuile retombée de 23 s derrière le direct reprend sa place d'un
+           geste (4.24.0.27). La console, elle, reste bornée à 0,2–5 s par la
+           salle ; l'avance, par son tampon. */
         const s = Number(d.duree);
-        if (s >= 0.05 && s <= 10) deplacer(s, d.ordre === 'essai-recul' ? 1 : -1);
+        if (s >= 0.05 && s <= 60) deplacer(s, d.ordre === 'essai-recul' ? 1 : -1);
       }
       return;
     }
@@ -1445,7 +1471,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiSalleTitre:              (n) => `Salle · ${n} stream${n > 1 ? 's' : ''}`,
       uiSalleSonPour:            (nom) => `Donner le son à ${nom}`,
       uiSalleChat:               (nom) => `Chat de ${nom}`,
-      uiSalleChatSon:            (nom) => `Son : ${nom}`,
+      uiSalleChatSon:            (nom) => `Son de ${nom}`,
+      uiSalleOnglets:            'Choisir le chat',
+      uiSalleOnglet:             (nom) => `Afficher le chat de ${nom}, sans changer le son`,
       uiSalleChatMasque:         'Chat masqué : fenêtre trop étroite',
       uiSallePoints:             'Pas de points de chaîne dans la salle',
       uiSalleBanc:               (nom) => `Mettre ${nom} dans la grille`,
@@ -1555,7 +1583,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiSalleTitre:              (n) => `Room · ${n} stream${n > 1 ? 's' : ''}`,
       uiSalleSonPour:            (nom) => `Give the sound to ${nom}`,
       uiSalleChat:               (nom) => `${nom}'s chat`,
-      uiSalleChatSon:            (nom) => `Sound: ${nom}`,
+      uiSalleChatSon:            (nom) => `Sound from ${nom}`,
+      uiSalleOnglets:            'Choose the chat',
+      uiSalleOnglet:             (nom) => `Show ${nom}'s chat, without changing the sound`,
       uiSalleChatMasque:         'Chat hidden: window too narrow',
       uiSallePoints:             'No channel points in the room',
       uiSalleBanc:               (nom) => `Put ${nom} in the grid`,
@@ -1655,7 +1685,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiSalleTitre:              (n) => `Raum · ${n} Stream${n > 1 ? 's' : ''}`,
       uiSalleSonPour:            (nom) => `Ton für ${nom} einschalten`,
       uiSalleChat:               (nom) => `Chat von ${nom}`,
-      uiSalleChatSon:            (nom) => `Ton: ${nom}`,
+      uiSalleChatSon:            (nom) => `Ton von ${nom}`,
+      uiSalleOnglets:            'Chat auswählen',
+      uiSalleOnglet:             (nom) => `Chat von ${nom} anzeigen, ohne den Ton zu wechseln`,
       uiSalleChatMasque:         'Chat ausgeblendet: Fenster zu schmal',
       uiSallePoints:             'Keine Kanalpunkte im Raum',
       uiSalleBanc:               (nom) => `${nom} ins Raster holen`,
@@ -1755,7 +1787,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiSalleTitre:              (n) => `Sala · ${n} stream${n > 1 ? 's' : ''}`,
       uiSalleSonPour:            (nom) => `Dar el sonido a ${nom}`,
       uiSalleChat:               (nom) => `Chat de ${nom}`,
-      uiSalleChatSon:            (nom) => `Sonido: ${nom}`,
+      uiSalleChatSon:            (nom) => `Sonido de ${nom}`,
+      uiSalleOnglets:            'Elegir el chat',
+      uiSalleOnglet:             (nom) => `Mostrar el chat de ${nom}, sin cambiar el sonido`,
       uiSalleChatMasque:         'Chat oculto: ventana demasiado estrecha',
       uiSallePoints:             'Sin puntos de canal en la sala',
       uiSalleBanc:               (nom) => `Poner a ${nom} en la cuadrícula`,
@@ -1855,7 +1889,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiSalleTitre:              (n) => `Sala · ${n} stream${n > 1 ? 's' : ''}`,
       uiSalleSonPour:            (nom) => `Dar o som a ${nom}`,
       uiSalleChat:               (nom) => `Chat de ${nom}`,
-      uiSalleChatSon:            (nom) => `Som: ${nom}`,
+      uiSalleChatSon:            (nom) => `Som de ${nom}`,
+      uiSalleOnglets:            'Escolher o chat',
+      uiSalleOnglet:             (nom) => `Mostrar o chat de ${nom}, sem trocar o som`,
       uiSalleChatMasque:         'Chat oculto: janela estreita demais',
       uiSallePoints:             'Sem pontos do canal na sala',
       uiSalleBanc:               (nom) => `Colocar ${nom} na grade`,
@@ -1955,7 +1991,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiSalleTitre:              (n) => `Sala · ${n} stream`,
       uiSalleSonPour:            (nom) => `Dai l'audio a ${nom}`,
       uiSalleChat:               (nom) => `Chat di ${nom}`,
-      uiSalleChatSon:            (nom) => `Audio: ${nom}`,
+      uiSalleChatSon:            (nom) => `Audio di ${nom}`,
+      uiSalleOnglets:            'Scegli la chat',
+      uiSalleOnglet:             (nom) => `Mostra la chat di ${nom}, senza cambiare l'audio`,
       uiSalleChatMasque:         'Chat nascosta: finestra troppo stretta',
       uiSallePoints:             'Niente punti canale nella sala',
       uiSalleBanc:               (nom) => `Metti ${nom} nella griglia`,
@@ -2056,6 +2094,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiSalleSonPour:            (nom) => `Włącz dźwięk: ${nom}`,
       uiSalleChat:               (nom) => `Czat: ${nom}`,
       uiSalleChatSon:            (nom) => `Dźwięk: ${nom}`,
+      uiSalleOnglets:            'Wybierz czat',
+      uiSalleOnglet:             (nom) => `Pokaż czat: ${nom}, bez zmiany dźwięku`,
       uiSalleChatMasque:         'Czat ukryty: okno jest za wąskie',
       uiSallePoints:             'Brak punktów kanału w sali',
       uiSalleBanc:               (nom) => `Przenieś ${nom} do siatki`,
@@ -2156,6 +2196,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiSalleSonPour:            (nom) => `Включить звук: ${nom}`,
       uiSalleChat:               (nom) => `Чат: ${nom}`,
       uiSalleChatSon:            (nom) => `Звук: ${nom}`,
+      uiSalleOnglets:            'Выбрать чат',
+      uiSalleOnglet:             (nom) => `Показать чат: ${nom}, не меняя звук`,
       uiSalleChatMasque:         'Чат скрыт: окно слишком узкое',
       uiSallePoints:             'В зале баллы канала не начисляются',
       uiSalleBanc:               (nom) => `Поместить ${nom} в сетку`,
@@ -2256,6 +2298,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiSalleSonPour:            (nom) => `${nom} の音声に切り替え`,
       uiSalleChat:               (nom) => `${nom} のチャット`,
       uiSalleChatSon:            (nom) => `音声：${nom}`,
+      uiSalleOnglets:            'チャットを選ぶ',
+      uiSalleOnglet:             (nom) => `${nom} のチャットを表示（音声はそのまま）`,
       uiSalleChatMasque:         'チャット非表示：ウィンドウが狭すぎます',
       uiSallePoints:             'ルームではチャンネルポイントは貯まりません',
       uiSalleBanc:               (nom) => `${nom} をグリッドに表示`,
@@ -2354,6 +2398,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiSalleSonPour:            (nom) => `切换到 ${nom} 的声音`,
       uiSalleChat:               (nom) => `${nom} 的聊天`,
       uiSalleChatSon:            (nom) => `声音：${nom}`,
+      uiSalleOnglets:            '选择聊天室',
+      uiSalleOnglet:             (nom) => `显示 ${nom} 的聊天（不切换声音）`,
       uiSalleChatMasque:         '聊天已隐藏：窗口太窄',
       uiSallePoints:             '放映室内不获得频道积分',
       uiSalleBanc:               (nom) => `将 ${nom} 放入网格`,
@@ -7075,13 +7121,13 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     .tse-salle__corps { flex: 1 1 auto; display: flex; min-height: 0; }
     .tse-salle__gauche { flex: 1 1 auto; display: flex; flex-direction: column; min-width: 0; }
     .tse-salle__scene { position: relative; flex: 1 1 auto; min-height: 0; overflow: auto; }
+    /* PLUS DE CONTOUR SUR LA TUILE QUI A LE SON (4.24.0.27), à la demande :
+       l'en-tête du chat le dit (« Son de … »), la pastille sans chat aussi.
+       La classe --son reste, sans style : l'état, pas un trait. */
     .tse-salle__tuile {
       position: absolute; box-sizing: border-box;
       background: #000; border-radius: 4px; overflow: hidden;
-      box-shadow: 0 0 0 2px transparent;
     }
-    /* La tuile qui a le son : le violet de Twitch, qui désigne. */
-    .tse-salle__tuile--son { box-shadow: 0 0 0 2px #9147ff; }
     .tse-salle__tuile iframe { display: block; width: 100%; height: 100%; border: 0; }
     /* Sur une tuile muette, une prise transparente reçoit le clic qui donne
        le son : sans elle, le clic irait au lecteur, dans une iframe d'une
@@ -7123,10 +7169,37 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     .tse-salle__chat--gauche { border-left: 0; border-right: 1px solid rgba(var(--tse-encre), 0.08); }
     .tse-salle__chat[hidden], .tse-salle__banc[hidden] { display: none; }
     .tse-salle__chat-tete {
-      flex: 0 0 auto; padding: 6px 12px; font-weight: 600;
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      flex: 0 0 auto; display: flex; align-items: center; gap: 6px; min-width: 0;
+      padding: 6px 12px; font-weight: 600;
       border-bottom: 1px solid rgba(var(--tse-encre), 0.08);
     }
+    .tse-salle__chat-texte, .tse-salle__son-texte { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    /* Le haut-parleur : devant « Son de … », jamais devant « Chat de … ». */
+    .tse-salle__icone-son { flex: 0 0 auto; display: none; color: #9147ff; }
+    .tse-salle__icone-son svg { display: block; width: 14px; height: 14px; fill: currentColor; }
+    .tse-salle__chat-tete--son .tse-salle__icone-son, .tse-salle__son .tse-salle__icone-son { display: block; }
+    /* Sans chat, le son dans la pastille ; avec, l'en-tête du chat le dit. */
+    .tse-salle__son { display: none; align-items: center; gap: 5px; min-width: 0; font-size: 12px; font-weight: 600; }
+    .tse-salle__tete .tse-salle__son { display: flex; }
+    .tse-salle__tete .tse-salle__icone-son { color: #bf94ff; }
+    /* LES ONGLETS DU CHAT (4.24.0.27) : un par stream, au-dessus du chat —
+       sur plusieurs lignes plutôt que cachés au bout d'un défilement. Celui
+       du chat affiché souligné du violet de Twitch, comme ses propres
+       onglets. */
+    .tse-salle__onglets {
+      flex: 0 0 auto; display: flex; flex-wrap: wrap; gap: 0 2px; padding: 2px 8px 0;
+      border-bottom: 1px solid rgba(var(--tse-encre), 0.08);
+    }
+    .tse-salle__onglets[hidden] { display: none; }
+    .tse-salle__onglet {
+      flex: 0 1 auto; min-width: 0; max-width: 160px; margin: 0; padding: 5px 8px 4px;
+      border: 0; border-bottom: 2px solid transparent; border-radius: 4px 4px 0 0;
+      background: none; color: var(--tse-texte-faible); font: inherit; font-size: 12px; font-weight: 600;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer;
+    }
+    .tse-salle__onglet:hover { color: var(--tse-texte); background: rgba(var(--tse-encre), 0.06); }
+    .tse-salle__onglet[aria-selected="true"] { color: var(--tse-texte); border-bottom-color: #9147ff; }
+    .tse-salle__onglet:focus-visible { outline: 2px solid #9147ff; outline-offset: -2px; }
     .tse-salle__chat iframe { flex: 1 1 auto; width: 100%; border: 0; }
   `;
 
@@ -13562,15 +13635,18 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       prise.title = S.uiSalleSonPour(chaine);
       prise.addEventListener('click', () => donnerSon(chaine));
       /* RIEN SUR LE LECTEUR (4.24.0.23), à la demande : plus d'étiquette
-         « 1 · chaîne · Son » ni de pastille « Pub » posées sur l'image. Le
-         contour violet dit la tuile qui a le son ; Twitch dit sa pub, et le
-         rapport la compte. Les touches 1 à 6 suivent l'ordre de lecture de
-         la grille. Reste la prise, transparente. */
+         « 1 · chaîne · Son » ni de pastille « Pub » posées sur l'image ; et
+         plus de contour (4.24.0.27) — l'en-tête du chat dit « Son de … ».
+         Twitch dit sa pub, et le rapport la compte. Les touches 1 à 6
+         suivent l'ordre de lecture de la grille. Reste la prise,
+         transparente. */
       el.append(cadre, prise);
       /* `changement` dès la création (4.24.0.24) : un lecteur neuf ; rien de
          ce que le son a entendu avant lui ne le mesure (cf. mesurerSon). */
-      return { chaine, el, cadre, prise, etat: null, messages: 0, pubs: 0, changement: Date.now(),
-               pubAvant: false, dernierSon: 0, pauseCachee: false,
+      return { chaine, el, cadre, prise, etat: null, messages: 0, changement: Date.now(),
+               // La pub (4.24.0.27, cf. suivrePub) : en cours ou non, depuis quand, combien, combien de temps.
+               enPub: false, pubDebut: null, pubs: 0, pubMs: 0,
+               dernierSon: 0, pauseCachee: false,
                sonEssais: 0, sonEnvoiT: 0, sonDepuis: 0, sonTenu: false, gestesAuDon: 0, qualiteEnvoyee: null,
                ordreCompte: 0, dernierOrdre: null,
                // La sonde du même instant (4.24.0.11).
@@ -13592,13 +13668,33 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
                // 4.24.0.24 : les octets décodés, cumulés — d'où le débit.
                octets: 0, octetsAvant: null, octetsT0: null, octetsT: null,
                // 4.24.0.25 : l'heure de son premier son entendu, et de la dernière mesure rouverte (cf. rouvrir).
-               premierSon: null, rouverte: null };
+               premierSon: null, rouverte: null,
+               /* 4.24.0.27 : sa place — latence et tampon d'une lecture
+                  tranquille —, d'où elle se réapprend, et ce qui l'en a fait
+                  tomber (cf. tenirPlace) ; le détail de ses pubs. */
+               place: null, placeDes: 0, placeDecalee: null, retombee: null, retombees: 0, rebases: 0,
+               pubsDetail: [] };
     };
 
     /* UN CÔTÉ DE CHAT : sa colonne, son en-tête, son iframe. Le chat intégré
        de Twitch, de même origine que la page, connecté ; nommé, pour que ses
        tâches longues soient reconnues comme les siennes. Un côté ne recharge
        son chat que si sa chaîne change. */
+    // Le haut-parleur de l'en-tête « Son de … » et de la pastille (4.24.0.27).
+    const HAUT_PARLEUR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9.5v5h3.6L12 19V5L6.6 9.5H3Z"/>'
+      + '<path d="M15.5 8.6a4.6 4.6 0 0 1 0 6.8M18 6.2a8 8 0 0 1 0 11.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+    // L'icône et le texte : une ligne qui dit le son, ou le chat.
+    const ligneSon = (classe, classeTexte) => {
+      const el = document.createElement(classe === 'tse-salle__son' ? 'span' : 'div');
+      el.className = classe;
+      const icone = document.createElement('span');
+      icone.className = 'tse-salle__icone-son';
+      icone.appendChild(noeudStatique(HAUT_PARLEUR));
+      const texte = document.createElement('span');
+      texte.className = classeTexte;
+      el.append(icone, texte);
+      return { el, texte };
+    };
     const creerCoteChat = (cote) => {
       const bloc = document.createElement('div');
       bloc.className = `tse-salle__chat tse-salle__chat--${cote}`;
@@ -13608,10 +13704,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       const haut = document.createElement('div');
       haut.className = 'tse-salle__haut';
       haut.hidden = true;
-      const tete = document.createElement('div');
-      tete.className = 'tse-salle__chat-tete';
+      const { el: tete, texte } = ligneSon('tse-salle__chat-tete', 'tse-salle__chat-texte');
       bloc.append(haut, tete);
-      return { bloc, haut, tete, cadre: null, chaine: null };
+      return { cote, bloc, haut, tete, texte, cadre: null, chaine: null };
     };
     const poserChat = (cote, chaine) => {
       if (cote.chaine === chaine) return;
@@ -13622,21 +13717,42 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       if (!chaine) return;
       const f = document.createElement('iframe');
       f.name = TSE_SALLE_CHAT_NAME;
+      // Ce que les onglets commandent (4.24.0.27, cf. majOnglets).
+      f.id = `tse-salle-chat-${cote.cote}`;
       f.title = S.uiSalleChat(chaine);
       f.src = `${location.origin}/embed/${encodeURIComponent(chaine)}/chat?`
         + `${new URLSearchParams({ parent: location.hostname })}${themeTwitch() === 'dark' ? '&darkpopout' : ''}`;
       cote.bloc.appendChild(f);
       cote.cadre = f;
     };
-    const titrerChat = (cote, texte) => { if (cote.tete.textContent !== texte) cote.tete.textContent = texte; };
-    /* UN SEUL CHAT, celui de la tuile qui a le son — c'est la règle, et la
-       phase 0 l'a fondée : ce sont les chats qui pèsent sur la page.
+    const titrerChat = (cote, texte, son = false) => {
+      if (cote.texte.textContent !== texte) cote.texte.textContent = texte;
+      cote.tete.classList.toggle('tse-salle__chat-tete--son', son && !!texte);
+    };
+    /* UN SEUL CHAT — c'est la règle, et la phase 0 l'a fondée : ce sont les
+       chats qui pèsent sur la page. Celui de la tuile qui a le son, tant que
+       l'utilisateur n'en a pas choisi un autre.
 
        SAUF À DEUX STREAMS SANS CHAT PARTAGÉ (4.24.0.8), à la demande : le
        chat de l'autre stream prend la marge de gauche, que la grille laisse
        vide, sans rien coûter aux tuiles (cf. disposerSalle). Chacun reste
        alors à sa place : le son ne les déplace plus — les recharger à chaque
-       changement de son coûterait leurs messages. */
+       changement de son coûterait leurs messages.
+
+       LE CHAT CHOISI (4.24.0.27), à la demande : « choisir le chat d'un
+       streamer sans devoir changer le son de la salle ». Un onglet par
+       stream, au-dessus du chat (cf. majOnglets) : le chat suit le son tant
+       qu'aucun n'a été choisi — ce qu'il faisait jusqu'ici, et ce qu'on
+       attend sans y avoir touché ; choisi, il reste où on l'a mis, et le son
+       qui passe d'une tuile à l'autre ne le recharge plus. Un stream qui
+       quitte la salle rend le chat au son. */
+    const chatVoulu = (c) => {
+      const choisi = c.chatChoisi && c.membres.includes(c.chatChoisi) ? c.chatChoisi : null;
+      /* Partagé, le chat est celui de tous : le son passé à une autre
+         tuile, on le garde — le recharger lui coûterait ses messages pour
+         afficher les mêmes (4.24.0.23). */
+      return c.partage === true && c.membres.includes(c.chatD.chaine) ? c.chatD.chaine : choisi || c.son;
+    };
     const majChat = () => {
       const c = courante;
       const d = c.disposition;
@@ -13647,20 +13763,75 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         poserChat(c.chatG, c.membres.find((m) => m !== droite) || null);
       } else {
         poserChat(c.chatG, null);
-        /* Partagé, le chat est celui de tous : le son passé à une autre
-           tuile, on le garde — le recharger lui coûterait ses messages pour
-           afficher les mêmes (4.24.0.23). */
-        poserChat(c.chatD, c.partage === true && c.membres.includes(c.chatD.chaine) ? c.chatD.chaine : c.son);
+        poserChat(c.chatD, chatVoulu(c));
       }
-      /* L'EN-TÊTE DIT OÙ EST LE SON, AU-DESSUS D'UN CHAT PARTAGÉ (4.24.0.23),
-         à la demande : « Chat de X » au-dessus d'un chat qui est celui de
-         tous ne disait rien d'utile — Twitch y pose déjà son bandeau
-         « Chat partagé ». Le chat restant est celui de la tuile qui a le son
-         (cf. plus haut) : l'en-tête la nomme, et la suit. Ailleurs, chaque
-         colonne garde le nom de son chat. */
-      const partage = c.partage === true && !c.deuxChats;
-      titrerChat(c.chatD, !c.chatD.chaine ? '' : partage ? S.uiSalleChatSon(c.son) : S.uiSalleChat(c.chatD.chaine));
-      titrerChat(c.chatG, c.chatG.chaine ? S.uiSalleChat(c.chatG.chaine) : '');
+      /* L'EN-TÊTE DIT LE SON DE LA SALLE (4.24.0.27), à la demande : « Son
+         de X » au-dessus du chat, et plus de contour sur la tuile — au
+         4.24.0.23, au-dessus d'un chat partagé seulement. Le chat affiché,
+         ce sont les onglets qui le disent. À deux chats, il n'y a pas
+         d'onglet : chaque colonne nomme le sien, et celle du stream qui a le
+         son dit « Son de X ». Sans chat, c'est la pastille qui le dit. */
+      const sonD = !c.deuxChats || c.chatD.chaine === c.son;
+      titrerChat(c.chatD, !c.chatD.chaine ? '' : sonD ? S.uiSalleChatSon(c.son) : S.uiSalleChat(c.chatD.chaine), sonD);
+      const sonG = c.deuxChats && c.chatG.chaine === c.son;
+      titrerChat(c.chatG, !c.chatG.chaine ? '' : sonG ? S.uiSalleChatSon(c.son) : S.uiSalleChat(c.chatG.chaine), sonG);
+      const texteSon = c.son ? S.uiSalleChatSon(c.son) : '';
+      if (c.sonTexte.textContent !== texteSon) c.sonTexte.textContent = texteSon;
+      majOnglets(c);
+    };
+    /* LES ONGLETS (4.24.0.27). Visibles quand ils servent : un seul chat
+       affiché, qu'on ne sait pas partagé — à deux chats, les deux sont là ;
+       partagé, tous montrent le même. À trois streams et plus, la salle ne
+       sait pas prouver un Chat partagé (cf. comparerChats : il faut deux
+       chats chargés ensemble) : ils restent — un onglet d'un chat partagé
+       montre le même chat, rien de plus. Dans l'ordre de la salle, stable :
+       une tuile remplacée ne les déplace pas. Le clavier comme pour des
+       onglets : les flèches, Début et Fin vont de l'un à l'autre ; Entrée ou
+       Espace choisit — un chat se recharge, on ne le fait pas en passant. */
+    const majOnglets = (c) => {
+      const d = c.disposition || {};
+      const voir = !!d.chat && !c.deuxChats && c.partage !== true && c.membres.length >= 2;
+      c.onglets.hidden = !voir;
+      if (!voir) return;
+      const cle = c.membres.join(' ');
+      if (c.cleOnglets !== cle) {
+        c.cleOnglets = cle;
+        c.onglets.replaceChildren(...c.membres.map((m) => {
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'tse-salle__onglet';
+          b.setAttribute('role', 'tab');
+          b.setAttribute('aria-controls', 'tse-salle-chat-droite');
+          b.dataset.tseSalleChaine = m;
+          b.textContent = m;
+          b.title = S.uiSalleOnglet(m);
+          b.addEventListener('click', () => choisirChat(m));
+          return b;
+        }));
+      }
+      for (const b of c.onglets.children) {
+        const actif = b.dataset.tseSalleChaine === c.chatD.chaine;
+        if (b.getAttribute('aria-selected') !== String(actif)) b.setAttribute('aria-selected', String(actif));
+        b.tabIndex = actif ? 0 : -1;
+      }
+    };
+    const choisirChat = (chaine) => {
+      const c = courante;
+      if (!c || !c.membres.includes(chaine)) return false;
+      if (c.chatChoisi !== chaine) c.chatsChoisis += 1;
+      c.chatChoisi = chaine;
+      majChat();
+      return true;
+    };
+    const surToucheOnglets = (e) => {
+      const l = [...e.currentTarget.children];
+      const i = l.indexOf(document.activeElement);
+      if (i < 0) return;
+      const j = e.key === 'ArrowRight' ? (i + 1) % l.length : e.key === 'ArrowLeft' ? (i - 1 + l.length) % l.length
+        : e.key === 'Home' ? 0 : e.key === 'End' ? l.length - 1 : -1;
+      if (j < 0) return;
+      e.preventDefault();
+      l[j].focus();
     };
 
     /* LE CHAT PARTAGÉ SE PROUVE PAR SES MESSAGES — la seule preuve mesurée :
@@ -13986,6 +14157,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     const RETIENT_MS = 30_000;
     const surReleve = (c, t, d) => {
       if (!Number.isFinite(d.n)) return;
+      // La pub d'abord (4.24.0.27) : l'enveloppe de ce relevé en dépend.
+      if (typeof d.pub === 'boolean') suivrePub(c, t, d.pub);
       /* UNE LATENCE DE 0, C'EST « PAS ENCORE MESURÉE » (4.24.0.12) : le
          lecteur la rend avant d'avoir joué, et le premier rapport réel y a vu
          des sauts « 0 → 0 ». Une vraie latence de direct n'est jamais nulle. */
@@ -13996,7 +14169,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       const sy = fini(d.sync);
       const ech = { n: d.n, t: fini(d.t), l: lat !== null && lat > 0 ? lat : null, b: fini(d.tampon), v: fini(d.vitesse),
                     vl: fini(d.vitesseLecteur), lecture: d.lecture === true, sy: sy !== null && sy > 0 ? sy : null, po: fini(d.position),
-                    redemarrage: false, lIncoherente: false, ar: fini(d.arriere), arL: null };
+                    redemarrage: false, lIncoherente: false, ar: fini(d.arriere), arL: null,
+                    // En pub à ce relevé (4.24.0.27) : il ne dit rien de la place de la tuile (cf. tenirPlace).
+                    pub: t.enPub };
       /* Le tampon en arrière (4.24.0.17) : les plages de l'instance telles
          quelles, et, si l'une contient la position, ce qu'elle garde derrière. */
       if (Array.isArray(d.plages)) {
@@ -14076,7 +14251,17 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
             const duree = Math.round((t.vidange.b0 - t.vidange.bmin) * 10) / 10;
             t.coupures.push({ t: ech.t, duree });
             if (t.coupures.length > 50) t.coupures.shift();
-            noter(c, t.chaine, `coupure d'arrivée : au moins ${duree} s sans vidéo (tampon ${t.vidange.b0} → ${t.vidange.bmin})`, ech.l);
+            /* NOTÉE SI ELLE A PRESQUE VIDÉ LE TAMPON (4.24.0.27). Au rapport
+               réel de la 4.24.0.26, trois tuiles à 10 et 30 s de tampon en ont
+               « vu » une toutes les minutes — « au moins 2 s sans vidéo
+               (tampon 30,24 → 28,24) » : la cadence des segments de deux
+               secondes, pas une vidéo qui manque. Elles ont rempli les
+               soixante lignes du journal, et en ont chassé les pubs d'une
+               tuile. Comptées toutes (`serie.coupures`) ; au journal, celles
+               qui ont laissé moins d'une seconde. */
+            if (t.vidange.bmin < 1) {
+              noter(c, t.chaine, `coupure d'arrivée : au moins ${duree} s sans vidéo (tampon ${t.vidange.b0} → ${t.vidange.bmin})`, ech.l);
+            }
             signaler(c, t.chaine, 'coupure');
           }
           t.vidange = null;
@@ -14090,7 +14275,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       }
       t.faibleLatence = typeof d.faibleLatence === 'boolean' ? d.faibleLatence : null;
       t.ecouteEtat = d.ecoute && typeof d.ecoute === 'object' ? d.ecoute : null;
-      if (Array.isArray(d.env) && d.env.length) {
+      // Rien pendant une pub (4.24.0.27, cf. suivrePub) : son son n'est pas celui du direct.
+      if (Array.isArray(d.env) && d.env.length && !t.enPub) {
         for (const p of d.env) {
           // Rien d'avant le dernier déplacement (4.24.0.17, cf. plus bas).
           if (Array.isArray(p) && Number.isFinite(p[0]) && Number.isFinite(p[1]) && p[0] >= t.envDes) t.env.push(p);
@@ -14107,6 +14293,13 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       if (es && Number.isFinite(es.n) && es.n !== t.essaiVu) {
         t.essaiVu = es.n;
         noter(c, t.chaine, `${es.type} ${es.valeur} · ${es.voie}`, ech.l);
+        /* Un geste de la salle déplace la place de la tuile : elle se
+           réapprend, une fois la latence remise à jour — quinze secondes
+           pour la faible latence retirée, dont l'estimation saute après
+           coup (cf. le 190) (4.24.0.27, cf. tenirPlace). */
+        const quand = Number.isFinite(es.t) ? es.t : Date.now();
+        if (es.type === 'faible-latence') oublierPlace(t, quand + PLACE.LATENCE_MS);
+        else if (!/^refusé/.test(es.voie || '')) oublierPlace(t, quand + PLACE.APRES_MS);
         /* Un déplacement : la tuile est marquée, et l'écoute sait que ses
            pics d'avant ne sont plus ceux d'après (cf. lirePics). */
         if ((es.type === 'recul' || es.type === 'avance') && (es.voie === 'instance' || es.voie === 'video')) {
@@ -14250,6 +14443,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
           + ` (attendu ${x.attendu >= 0 ? '+' : ''}${x.attendu} s)${x.apresDeplacement ? ' · après un déplacement' : ''}`, ech.l);
         signaler(c, t.chaine, x.v > 1 ? 'rattrapage' : 'ralenti');
       }
+      tenirPlace(c, t);
     };
 
     /* ── L'ÉCOUTE (S9), CÔTÉ SALLE : LA CORRÉLATION ──────────────────────────
@@ -14406,11 +14600,14 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
          le son à ce moment-là. Le protocole 3 passe le son à l'autre tuile
          pendant une minute ; la paire ne doit pas se retourner avec lui. */
       const ref = c.tuiles.find((t) => t.chaine === c.ecoute.ref) || c.tuiles.find((t) => t.chaine === c.son) || c.tuiles[0];
-      if (!ref) return;
+      /* Une tuile en pub n'est pas écoutée ; la référence en pub, aucune
+         (4.24.0.27, cf. suivrePub). Leur enveloppe est déjà vide : c'est dit
+         ici aussi, pour que rien n'en dépende. */
+      if (!ref || ref.enPub) return;
       const t0 = performance.now();
       let paires = 0;
       for (const t of c.tuiles) {
-        if (t === ref) continue;
+        if (t === ref || t.enPub) continue;
         const res = correler(ref.env, t.env);
         if (!res) continue;
         paires += 1;
@@ -14493,9 +14690,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         noter(c, t.chaine, `avertissement de contenu à l'écran${TSE_GATE_ENABLED ? ' — levé, comme dans l\'aperçu' : ''}`);
       }
       t.etat = et;
-      if (et.pub && !t.pubAvant) t.pubs += 1;
-      if (!!et.pub !== t.pubAvant) noter(c, t.chaine, et.pub ? 'début de pub' : 'fin de pub', fini(et.latence));
-      t.pubAvant = !!et.pub;
+      suivrePub(c, t, !!et.pub);
       if (t.chaine === c.son) tenirSon(t, et);
       if (et.video) tenirQualite(t);
       const o = et.ordre;
@@ -14594,7 +14789,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         if (cle.split('~').includes(login)) delete c.ecoute.paires[cle];
       }
       const k = c.calage;
-      if (k) for (const m of [k.vus, k.lus, k.etats, k.coups, k.faible, k.dits, k.deplacements, k.premieres]) delete m[login];
+      if (k) for (const m of [k.vus, k.lus, k.etats, k.coups, k.faible, k.dits, k.deplacements, k.premieres, k.reprises, k.grands]) delete m[login];
       if (c.ecoute.ref === login && c.ecoute.actif) {
         // L'écoute repart sur celle qui a désormais le son.
         ecoute(false); ecoute(true);
@@ -14640,6 +14835,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       c.boite.setAttribute('aria-label', S.uiSalleTitre(c.membres.length));
       // Les chats se comparent de nouveau : la paire n'est peut-être plus la même.
       c.partage = null; c.textes.clear(); c.comparaison = null;
+      // Son chat choisi part avec lui : le chat revient au son (4.24.0.27).
+      if (c.chatChoisi === login) c.chatChoisi = null;
       disposerSalle();
       oublierAuCalage(c, login);
       if (auChangement) auChangement();
@@ -14947,8 +15144,17 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         banc: c.membres.filter((m) => !c.tuiles.some((t) => t.chaine === m)).join(' ') || null,
         son: c.son,
         chat: c.chatD.chaine,
-        // Ce que dit l'en-tête du chat : « Chat de X », ou, partagé, où est le son (4.24.0.23).
-        chatTitre: c.chatD.tete.textContent || null,
+        /* Ce que dit l'en-tête du chat : « Son de X » (4.24.0.27) — à deux
+           chats, « Chat de Y » au-dessus de celui qui n'a pas le son. */
+        chatTitre: c.chatD.texte.textContent || null,
+        chatTitreGauche: c.chatG.chaine ? c.chatG.texte.textContent || null : null,
+        /* LES ONGLETS DU CHAT (4.24.0.27) : leurs chaînes, celle du chat
+           affiché entre crochets — null, ils sont cachés ; le chat choisi, ou
+           null s'il suit le son ; et combien de fois on en a choisi un. */
+        onglets: c.onglets.hidden ? null : [...c.onglets.children]
+          .map((b) => (b.getAttribute('aria-selected') === 'true' ? `[${b.dataset.tseSalleChaine}]` : b.dataset.tseSalleChaine)).join(' '),
+        chatChoisi: c.chatChoisi,
+        chatsChoisis: c.chatsChoisis,
         // À deux streams sans Chat partagé : le chat de gauche, et ce que la
         // comparaison a tranché (oui, non, ou null tant qu'elle compte).
         chatGauche: c.chatG.chaine,
@@ -15044,8 +15250,23 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
           // Les ordres « son » envoyés depuis qu'elle l'a reçu, et s'il a tenu.
           sonEssais: t.sonEssais,
           sonTenu: t.chaine === c.son ? t.sonTenu : null,
-          pub: t.etat ? t.etat.pub : null,
+          /* LA PUB (4.24.0.27) : en cours ; cachée — un bloqueur, qui la laisse
+             jouer — ou non ; combien ; et combien de temps en tout. */
+          pub: t.enPub,
+          pubCachee: t.enPub && t.etat ? t.etat.pubVisible === false : null,
           pubsVues: t.pubs,
+          pubS: Math.round(dureePub(t) / 1000),
+          /* Chaque pub, et la place de la tuile avant et après — ce qui a
+             manqué au rapport réel de la 4.24.0.26, dont le journal avait
+             perdu les pubs d'une tuile (4.24.0.27). */
+          pubsDetail: t.pubsDetail.length ? t.pubsDetail.map((p) => `+${Math.round((p.debut - c.t0) / 1000)}`
+            + `→${p.fin === null ? 'en cours' : `+${Math.round((p.fin - c.t0) / 1000)} s`}`
+            + (p.avant ? ` · avant ${p.avant.l} s (tampon ${p.avant.b})` : '')
+            + (p.apres ? ` · après ${p.apres.l} s (tampon ${p.apres.b})` : '')).join(' ; ') : null,
+          // Sa place (4.24.0.27, cf. tenirPlace) : d'où elle retombe, combien de fois, et les places reprises sur l'estimation seule.
+          place: t.place ? `latence ${t.place.l} s · tampon ${t.place.b} s` : null,
+          retombees: t.retombees,
+          placeRebases: t.rebases,
           ordre: t.dernierOrdre,
         }])),
       };
@@ -15252,7 +15473,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
          toute la hauteur va aux lecteurs. */
       const titreBloc = document.createElement('div');
       titreBloc.className = 'tse-salle__titre-bloc';
-      titreBloc.append(titre, note);
+      // Le son, dans la pastille sans chat (4.24.0.27) ; avec un chat, son en-tête le dit.
+      const { el: sonLigne, texte: sonTexte } = ligneSon('tse-salle__son', 'tse-salle__son-texte');
+      titreBloc.append(titre, sonLigne, note);
       const commandes = document.createElement('div');
       commandes.className = 'tse-salle__commandes';
       commandes.append(boutonChat);
@@ -15269,6 +15492,14 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       gauche.append(scene, banc);
       const chatG = creerCoteChat('gauche');
       const chatD = creerCoteChat('droite');
+      // Les onglets du chat (4.24.0.27), entre son en-tête et lui (cf. majOnglets).
+      const onglets = document.createElement('div');
+      onglets.className = 'tse-salle__onglets';
+      onglets.setAttribute('role', 'tablist');
+      onglets.setAttribute('aria-label', S.uiSalleOnglets);
+      onglets.hidden = true;
+      onglets.addEventListener('keydown', surToucheOnglets);
+      chatD.bloc.appendChild(onglets);
       corps.append(chatG.bloc, gauche, chatD.bloc);
       boite.append(tete, corps);
 
@@ -15283,6 +15514,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         arriveeMs: Number.isFinite(opts.arriveeMs) ? opts.arriveeMs : null, empilement,
         membres, tuiles: [], son: null, boite, scene, banc, cleBanc: null, note,
         chatG, chatD, deuxChats: false, partage: null, textes: new Map(), comparaison: null,
+        // Le chat choisi par un onglet, ou null : il suit le son (4.24.0.27, cf. majChat).
+        chatChoisi: null, chatsChoisis: 0, onglets, cleOnglets: null, sonTexte,
         tete, titreBloc, commandes, chatsPx: null,
         chatVoulu: null, boutonChat,
         disposition: null, zoneCle: null,
@@ -15329,6 +15562,14 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       donnerSon(c.tuiles[i].chaine);
       return { son: c.tuiles[i].chaine };
     };
+    // Le chat d'une chaîne de la salle, à la console (4.24.0.27) : ce que fait son onglet.
+    const chat = (nom) => {
+      const c = courante;
+      if (!c) return { erreur: 'aucune salle ouverte / no open room' };
+      const x = String(nom ?? '').trim().toLowerCase();
+      return choisirChat(x) ? { chat: x }
+        : { erreur: `chaîne absente de la salle / channel not in the room : ${nom} — ${c.membres.join(', ')}` };
+    };
 
     /* LA SONDE DU MÊME INSTANT, À LA CONSOLE (4.24.0.11). Deux essais sur UNE
        tuile — S3 : le lecteur laisse-t-il une tuile ralentie prendre du
@@ -15360,9 +15601,12 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       return t ? { t, valeur } : { erreur: `tuile inconnue « ${qui} » / unknown tile — ${aide}` };
     };
     // Le recul dans le tampon, de 0,2 à 5 s (4.24.0.13).
+    // Rien ne se déplace dans une pub (4.24.0.27) — le pont le refuserait aussi.
+    const ENPUB = (t) => ({ erreur: `${t.chaine} est en pub : rien ne se déplace / ${t.chaine} is showing an ad: nothing moves` });
     const reculSur = (args, appelante = null) => {
       const d = designer(args, appelante);
       if (d.erreur) return { erreur: d.erreur };
+      if (d.t.enPub) return ENPUB(d.t);
       const x = Number(d.valeur);
       if (!(x >= 0.2 && x <= 5)) return { erreur: 'recul hors de 0.2–5 s / rewind outside 0.2–5 s' };
       envoyer(d.t, 'essai-recul', { duree: x });
@@ -15373,6 +15617,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     const avanceSur = (args, appelante = null) => {
       const d = designer(args, appelante);
       if (d.erreur) return { erreur: d.erreur };
+      if (d.t.enPub) return ENPUB(d.t);
       const x = Number(d.valeur);
       if (!(x >= 0.2 && x <= 5)) return { erreur: 'avance hors de 0.2–5 s / skip outside 0.2–5 s' };
       envoyer(d.t, 'essai-avance', { duree: x });
@@ -15462,7 +15707,14 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       // Ce qu'un recul cale en plus — la moyenne des onze reculs réels —, ce qu'une avance perd.
       RECUL_S: 0.12, AVANCE_S: 0.087, MARGE_S: 2,
       MAX_N: 3, MAX_MS: 600_000, ANCRE_MS: 15_000,
+      // Ce qu'une place reprise ou un grand écart déplace au plus (4.24.0.27) : le pont l'accepte jusque-là.
+      REPRISE_MAX_S: 60,
     });
+    const ATTENTE_PUB = 'la référence est en pub';
+    // Le grand écart (4.24.0.27, cf. grandEcart).
+    const GRAND = Object.freeze({ S: 5, ACCORD_S: 3, ECART_S: 1, TENU_MS: 20_000, N: 10 });
+    // Le temps passé en pub, la pub en cours comprise (4.24.0.27), en ms.
+    const dureePub = (t) => t.pubMs + (t.pubDebut !== null ? Date.now() - t.pubDebut : 0);
     const tuileDe = (c, nom) => c.tuiles.find((x) => x.chaine === nom) || null;
     /* CE QUI CHANGE LA PAIRE (cf. surReleve) : un rechargement, une chute,
        un saut, la fin d'un rattrapage, la pause de l'onglet caché et sa
@@ -15493,6 +15745,11 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       const t = tuileDe(c, chaine);
       if (!t || quoi === 'coupure') return;
       rouvrir(t, quoi);
+      /* Ce que le lecteur a fait de lui-même — recharger, rattraper, la
+         pause et la reprise — lui donne une autre place, voulue : elle se
+         réapprend. Un saut, une chute, une pub, non : c'est d'eux qu'elle
+         retombe (4.24.0.27, cf. tenirPlace). */
+      if (PLACE_PERDUE.includes(quoi)) oublierPlace(t, Date.now() + PLACE.APRES_MS);
       /* ET LA RELATION N'EST PLUS CONNUE (4.24.0.23) : calée ou vérifiée, la
          tuile suivait la référence quand celle-ci reculait (cf. caler) — sur
          la foi d'une relation que sa lecture vient de changer d'on ne sait
@@ -15502,6 +15759,142 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       for (const n of chaine === c.ecoute.ref ? Object.keys(k.etats) : [chaine]) {
         if (k.etats[n] && k.etats[n] !== 'libre') k.etats[n] = 'libre';
       }
+    };
+    /* LA PUB, À TOUT MOMENT (4.24.0.27) — à l'ouverture comme au milieu, sur
+       une tuile, sur deux à la fois, sur la référence. Ce qu'elle ferait au
+       calage, laissée faire :
+         — son son n'est pas celui du direct. Deux tuiles qui passent la même
+           pub — le même annonceur, servi au même spectateur ; au rapport réel
+           de la 4.24.0.5, deux pubs d'entrée à deux secondes l'une de
+           l'autre — font une voix commune au décalage de leurs deux débuts,
+           que rien ne distingue d'une vraie : seule, elle déplace une tuile
+           de ce décalage ; mêlée au vrai son, elle fait un salon dont la
+           plus haute voix est la sienne ;
+         — la lecture qui reprend après la pub n'est peut-être plus où elle
+           était ;
+         — un déplacement demandé pendant la pub vise la pub.
+       Une tuile en pub n'est donc ni écoutée — son enveloppe est écartée,
+       relevé par relevé —, ni jugée, ni déplacée, ni entraînée par la
+       référence ; sa mesure est rouverte au début et à la fin de la pub, et
+       sa relation redevient libre (cf. signaler). La référence en pub : le
+       calage attend, et sa fin délie tout, comme un rechargement. Les deux
+       sources se recoupent : l'état de chaque seconde, et le relevé, qui
+       porte l'enveloppe. */
+    const suivrePub = (c, t, oui) => {
+      if (oui === t.enPub) return;
+      const maintenant = Date.now();
+      t.enPub = oui;
+      if (oui) { t.pubs += 1; t.pubDebut = maintenant; }
+      else if (t.pubDebut !== null) { t.pubMs += maintenant - t.pubDebut; t.pubDebut = null; }
+      noter(c, t.chaine, oui ? 'début de pub' : 'fin de pub', fini(t.etat && t.etat.latence));
+      signaler(c, t.chaine, oui ? 'pub' : 'fin de pub');
+      // Le détail, au rapport : quand, et sa place avant — celle d'après, à son premier relevé tranquille (cf. tenirPlace).
+      if (oui) {
+        t.pubsDetail.push({ debut: maintenant, fin: null, avant: t.place ? { l: t.place.l, b: t.place.b } : null, apres: null });
+        if (t.pubsDetail.length > 10) t.pubsDetail.shift();
+      } else if (t.pubsDetail.length) t.pubsDetail[t.pubsDetail.length - 1].fin = maintenant;
+      const k = c.calage;
+      if (k && k.etat === 'actif') {
+        journaliser(c, k, oui ? `${t.chaine} : en pub — ni écoutée, ni jugée, ni déplacée${t.chaine === c.ecoute.ref ? ' ; référence : tout attend' : ''}`
+          : `${t.chaine} : fin de pub — sa mesure repart${t.chaine === c.ecoute.ref ? ', et celle de toutes' : ''}`);
+      }
+    };
+
+    /* ── LA PLACE D'UNE TUILE, ET CE QUI L'EN FAIT TOMBER (4.24.0.27) ───────
+       LE RAPPORT RÉEL DE LA 4.24.0.26 — trois streams, trente-quatre minutes,
+       trois pubs vues : la salle calée à +300 s, et à la fin une tuile 17 s
+       derrière la référence, une autre 5,6 s. Ni l'une ni l'autre ne se
+       corrigeait : l'écoute ne cherche qu'à ±6 s, et le calage écarte tout
+       pic au-delà de 5 s. Ce qui s'était passé, le rapport le dit :
+         — la troisième tuile, à +1368 s : sa latence de 7,6 à 30,7 s d'un coup,
+           la lecture continuant (un saut « estimation ») — et son TAMPON à
+           29–30 s, tenu dix minutes. Ce n'était pas l'estimation : la
+           lecture était vraiment 23 s plus loin du direct, tout ce qui
+           manquait déjà téléchargé devant elle ;
+         — la deuxième, vers +1720 s, sans pub : 11,1 → 19,7 s, son
+           tampon de 9,9 à 15,9 ;
+         — la référence elle-même, au sortir de sa pub (98 s) : 10,17 → 13,18
+           s, son tampon de ~8,5 à ~11,4.
+       Les trois sont la même chose : une tuile qui RETOMBE derrière le direct
+       — une pub qui a décalé sa lecture au lieu de la remplacer, ou ce que
+       son lecteur a fait d'autre — et dont le lecteur, la faible latence
+       retirée, ne revient jamais. La preuve que c'est la lecture et non
+       l'estimation : le tampon a pris ce que la latence a pris, à moins de
+       2,5 s près (l'estimation seule qui saute, sans le tampon, cf. le
+       190 : on ne bouge pas).
+
+       LA PLACE : la latence et le tampon médians de dix relevés tranquilles
+       de suite — en lecture, vitesse 1, hors pub, latence cohérente, à
+       0,8 s près. Elle se réapprend après chaque geste de la salle (quatre
+       secondes après ; quinze pour la faible latence retirée), et après ce
+       que le lecteur fait de lui-même — rechargement, rattrapage, pause.
+       PAS après un saut, une chute ou une pub : c'est d'eux qu'on retombe.
+       Six relevés tranquilles qui s'en écartent de 1,5 s au moins, le tampon
+       d'accord : la tuile a retombé, et le calage (cf. reprendrePlace) lui
+       fait reprendre sa place — en avançant dans son tampon, qui contient
+       ce qu'elle a pris de retard ; en reculant, dans ce qu'elle garde
+       derrière, si elle est passée devant. Puis le son vérifie. */
+    const PLACE = Object.freeze({ N: 10, RECENTS: 6, ECART_S: 0.8, SEUIL_S: 1.5, ACCORD_S: 2.5,
+                                  APRES_MS: 4_000, LATENCE_MS: 15_000, DECALEE_MS: 20_000 });
+    const PLACE_PERDUE = ['rechargement', 'rattrapage', 'ralenti', 'pause', 'reprise'];
+    /* LE TAMPON D'ACCORD AVEC LA LATENCE : dans le même sens, la moitié au
+       moins, et à 2,5 s près — à 30 % près au-delà de 8 s. L'estimation qui
+       saute seule (cf. le 190, « kappa ») n'a pas le tampon avec elle. */
+    const daccord = (dl, db, tol) => dl * db > 0 && Math.abs(db) >= Math.abs(dl) / 2
+      && Math.abs(db - dl) <= Math.max(tol, Math.abs(dl) * 0.3);
+    const oublierPlace = (t, des) => {
+      t.place = null; t.placeDecalee = null; t.retombee = null;
+      t.placeDes = Math.max(t.placeDes || 0, des);
+    };
+    // Les n derniers relevés, s'ils disent une lecture tranquille : leur latence et leur tampon médians.
+    const fenetrePlace = (t, n) => {
+      const l = t.serie.slice(-n);
+      if (l.length < n || !l.every((x) => x.t !== null && x.t >= t.placeDes && x.lecture && !x.pub && x.l !== null
+        && !x.lIncoherente && x.b !== null && (x.v ?? 1) === 1)) return null;
+      const ls = l.map((x) => x.l);
+      if (Math.max(...ls) - Math.min(...ls) > PLACE.ECART_S) return null;
+      return { l: r3(mediane(ls)), b: r3(mediane(l.map((x) => x.b))) };
+    };
+    const tenirPlace = (c, t) => {
+      const actif = !!c.calage && c.calage.etat === 'actif';
+      // Le calage arrêté avant qu'elle ait repris sa place : c'est sa place désormais.
+      if (t.retombee && !actif) { t.place = { l: t.retombee.apres.l, b: t.retombee.apres.b, t: Date.now() }; t.retombee = null; }
+      if (t.enPub || t.retombee) return;
+      const f = fenetrePlace(t, PLACE.RECENTS);
+      /* La place au sortir d'une pub, au rapport : la première fenêtre
+         tranquille d'après — aucun de ses relevés n'est en pub, elle est donc
+         tout entière après la pub. */
+      const pub = t.pubsDetail[t.pubsDetail.length - 1];
+      if (f && pub && pub.fin !== null && !pub.apres) pub.apres = { l: f.l, b: f.b };
+      if (!t.place) {
+        const p = fenetrePlace(t, PLACE.N);
+        if (p) t.place = { l: p.l, b: p.b, t: Date.now() };
+        return;
+      }
+      if (!f) return;
+      const dl = r3(f.l - t.place.l), db = r3(f.b - t.place.b);
+      if (Math.abs(dl) < PLACE.SEUIL_S) { t.placeDecalee = null; return; }
+      /* La latence a bougé, pas le tampon : l'estimation, pas la lecture.
+         Rien ne bouge ; tenu vingt secondes, c'est la nouvelle place — sans
+         quoi la suivante se mesurerait de travers. */
+      if (!daccord(dl, db, PLACE.ACCORD_S)) {
+        if (t.placeDecalee === null) t.placeDecalee = Date.now();
+        else if (Date.now() - t.placeDecalee >= PLACE.DECALEE_MS) {
+          t.place = { l: f.l, b: f.b, t: Date.now() }; t.placeDecalee = null; t.rebases += 1;
+        }
+        return;
+      }
+      t.retombees += 1;
+      noter(c, t.chaine, `retombée ${dl > 0 ? 'derrière' : 'devant'} sa place de ${Math.abs(dl)} s — latence ${t.place.l} → ${f.l}, `
+        + `tampon ${t.place.b} → ${f.b}`, f.l);
+      // Sans calage, rien ne bouge : c'est sa place, désormais.
+      if (!actif) { t.place = { l: f.l, b: f.b, t: Date.now() }; return; }
+      t.retombee = { dl, avant: t.place, apres: f };
+    };
+    // Ce qu'elle garde derrière sa lecture : le plus bas des cinq derniers relevés, par l'instance ou l'élément.
+    const arriereDe = (t) => {
+      const l = t.serie.slice(-5).map((x) => x.arL ?? x.ar).filter((x) => x !== null);
+      return l.length ? Math.min(...l) : null;
     };
     // Le tampon devant la lecture : le plus bas des cinq derniers relevés (4.24.0.19), en s.
     const tamponDe = (t) => {
@@ -15625,6 +16018,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       const k = { etat: capture ? 'actif' : 'indisponible : ce navigateur ne capture pas le son d\'un lecteur (captureStream)',
                   echelle: e, origine, t0: Date.now(), ecouteAllumee: false, attente: null, journal: [],
                   vus: {}, lus: {}, etats: {}, coups: {}, faible: {}, dits: {}, deplacements: {}, premieres: {}, salleCalee: null,
+                  // 4.24.0.27 : les places reprises, par tuile ; les grands écarts en cours d'observation (cf. grandEcart).
+                  reprises: {}, grands: {},
                   calculsVus: -1, sonAilleurs: null };
       c.calage = k;
       if (!capture) {
@@ -15651,6 +16046,108 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       k.dits[nom] = texte;
       journaliser(c, k, texte);
     };
+    /* REPRENDRE SA PLACE (4.24.0.27, cf. tenirPlace). Derrière : la tuile
+       avance de ce qu'elle a pris — plus ce qu'une avance perd —, si son
+       tampon en garde deux secondes ; devant : elle recule, si elle peut
+       reculer et que ce qu'elle garde derrière le permet. Trois reprises au
+       plus en dix minutes, comme les corrections. Impossible, elle reste où
+       elle est, et c'est sa place désormais : le grand écart et le son
+       feront ce qu'ils peuvent. Sa mesure est rouverte, sa relation libre :
+       le son vérifie. */
+    const reprendrePlace = (c, k, t, maintenant) => {
+      const x = t.retombee;
+      t.retombee = null;
+      const n = t.chaine;
+      k.reprises[n] = (k.reprises[n] || []).filter((q) => maintenant - q < CALAGE.MAX_MS * k.echelle);
+      const derriere = x.dl > 0;
+      const s = r3(derriere ? x.dl + CALAGE.AVANCE_S : -x.dl - CALAGE.RECUL_S);
+      const quoi = `${n} : retombée ${derriere ? 'derrière' : 'devant'} sa place de ${secondes(x.dl)} — latence ${x.avant.l} → ${x.apres.l} s,`
+        + ` tampon ${x.avant.b} → ${x.apres.b} s`;
+      let refus = null;
+      if (k.reprises[n].length >= CALAGE.MAX_N) refus = `${CALAGE.MAX_N} reprises en ${Math.round((CALAGE.MAX_MS * k.echelle) / 60_000)} min`;
+      else if (s > CALAGE.REPRISE_MAX_S) refus = `plus de ${CALAGE.REPRISE_MAX_S} s`;
+      else if (derriere) {
+        const b = tamponDe(t);
+        if (b === null || b - s < CALAGE.MARGE_S) refus = b === null ? 'son tampon est inconnu' : `${b} s de tampon`;
+      } else {
+        const a = arriereDe(t);
+        if (!peutReculer(t)) refus = t.retientPas ? 'son lecteur reprend chaque recul' : 'toujours en faible latence';
+        else if (a === null || a - s < CALAGE.MARGE_S) refus = a === null ? 'ce qu\'elle garde derrière est inconnu' : `${a} s gardées derrière`;
+      }
+      if (refus) {
+        t.place = { l: x.apres.l, b: x.apres.b, t: maintenant };
+        journaliser(c, k, `${quoi} : rien à faire (${refus}) — c'est sa place désormais`);
+        return;
+      }
+      envoyer(t, `essai-${derriere ? 'avance' : 'recul'}`, { duree: s });
+      // Sa place se réapprend dès l'ordre parti — pas au relevé qui le verra : d'ici là, elle aurait « retombé » encore.
+      oublierPlace(t, maintenant + PLACE.APRES_MS);
+      k.reprises[n].push(maintenant);
+      k.deplacements[n] = r3((k.deplacements[n] || 0) + (derriere ? -s : s));
+      delete k.dits[n];
+      signaler(c, n, 'place reprise');
+      journaliser(c, k, `${quoi} → elle reprend sa place : ${derriere ? 'avance' : 'recule'} de ${s} s`);
+    };
+    /* LE GRAND ÉCART (4.24.0.27) : deux tuiles plus loin l'une de l'autre que
+       l'écoute ne cherche — au-delà de 5 s —, sans place d'où l'une aurait
+       retombé : à l'ouverture, ou quand reprendre sa place n'a pas pu se
+       faire. Le son n'en dit rien ; leurs latences, si : leur écart, sur dix
+       relevés communs tranquilles, à 1 s près — et le TAMPON d'accord à 3 s
+       près, la preuve que c'est la lecture et non l'estimation (les canaux
+       diffèrent de 2 s environ en amont du tampon, au rapport réel). Tenu
+       vingt secondes, et sans verdict du son pour la paire — s'il en a un,
+       c'est lui qui décide. Alors celle qui est DERRIÈRE avance de l'écart,
+       si son tampon le permet : c'est elle qui a, téléchargé devant elle, ce
+       qu'elle a de retard. La référence n'avance que si TOUTES les autres
+       sont loin devant elle — sinon, c'est la tuile qui recule, si elle le
+       peut. L'écart compte pour une correction ; à l'arrivée, le son
+       reprend. La latence s'est trompée de 4,6 s au quatorzième rapport
+       réel : c'est pour cela que le son finit le travail, et qu'on ne
+       descend pas sous 5 s. */
+    const ecartDe = (a, b) => {
+      const par = new Map(b.serie.map((x) => [x.n, x]));
+      const ok = (x, t) => x && x.t !== null && x.t >= t.placeDes && x.lecture && !x.pub && x.l !== null && !x.lIncoherente
+        && x.b !== null && (x.v ?? 1) === 1;
+      const l = a.serie.slice(-GRAND.N).map((x) => [x, par.get(x.n)]).filter(([x, y]) => ok(x, a) && ok(y, b));
+      if (l.length < GRAND.N) return null;
+      const dl = l.map(([x, y]) => x.l - y.l);
+      if (Math.max(...dl) - Math.min(...dl) > GRAND.ECART_S) return null;
+      return { l: r3(mediane(dl)), b: r3(mediane(l.map(([x, y]) => x.b - y.b))) };
+    };
+    const grandEcart = (c, k, ref, t, maintenant) => {
+      const n = t.chaine;
+      const v = k.vus[n];
+      const e = ref.enPub || t.enPub || ref.retombee || t.retombee || (v && !v.refus) ? null : ecartDe(ref, t);
+      if (!e || Math.abs(e.l) < GRAND.S || !daccord(e.l, e.b, GRAND.ACCORD_S)) { delete k.grands[n]; return; }
+      const g = k.grands[n];
+      if (!g || Math.abs(g.l - e.l) > GRAND.ECART_S) { k.grands[n] = { l: e.l, t: maintenant }; return; }
+      if (maintenant - g.t < GRAND.TENU_MS * k.echelle) return;
+      delete k.grands[n];
+      k.coups[n] = (k.coups[n] || []).filter((q) => maintenant - q < CALAGE.MAX_MS * k.echelle);
+      // e.l = latence(référence) − latence(tuile) : négatif, la tuile est derrière.
+      const quoi = `${n} ${e.l < 0 ? 'derrière' : 'devant'} la référence de ${secondes(e.l)}, au-delà de ce que le son entend`
+        + ` — latences et tampons d'accord (${signeMs(Math.round(e.l * 1000))} · ${signeMs(Math.round(e.b * 1000))} ms)`;
+      if (k.coups[n].length >= CALAGE.MAX_N) { direUneFois(c, k, n, `${quoi} : ${CALAGE.MAX_N} corrections déjà — laissée là`); return; }
+      const autresDevant = c.tuiles.every((u) => u === ref || u.enPub || ((ecartDe(ref, u) || { l: 0 }).l >= GRAND.S));
+      let geste = null;
+      if (e.l < 0) geste = { u: t, type: 'avance', s: r3(-e.l + CALAGE.AVANCE_S) };
+      else if (autresDevant) geste = { u: ref, type: 'avance', s: r3(e.l + CALAGE.AVANCE_S) };
+      else geste = { u: t, type: 'recul', s: r3(e.l - CALAGE.RECUL_S) };
+      const b = geste.type === 'avance' ? tamponDe(geste.u) : arriereDe(geste.u);
+      const refus = geste.s > CALAGE.REPRISE_MAX_S ? `plus de ${CALAGE.REPRISE_MAX_S} s`
+        : geste.type === 'recul' && !peutReculer(geste.u) ? 'elle ne peut pas reculer'
+          : b === null || b - geste.s < CALAGE.MARGE_S ? `${b === null ? 'tampon inconnu' : `${b} s ${geste.type === 'avance' ? 'de tampon' : 'gardées derrière'}`}`
+            : null;
+      if (refus) { direUneFois(c, k, n, `${quoi} : rien à faire (${geste.u.chaine}, ${refus})`); return; }
+      envoyer(geste.u, `essai-${geste.type}`, { duree: geste.s });
+      oublierPlace(geste.u, maintenant + PLACE.APRES_MS);
+      k.coups[n].push(maintenant);
+      k.deplacements[geste.u.chaine] = r3((k.deplacements[geste.u.chaine] || 0) + (geste.type === 'recul' ? geste.s : -geste.s));
+      delete k.dits[n];
+      premiere(k, n, 'correction', maintenant);
+      signaler(c, geste.u.chaine, 'grand écart');
+      journaliser(c, k, `${quoi} → ${geste.u.chaine} ${geste.type === 'avance' ? 'avance' : 'recule'} de ${geste.s} s`);
+    };
     // À chaque pas de la salle ; ne décide qu'à un calcul du son nouveau.
     const caler = (c) => {
       const k = c.calage;
@@ -15669,15 +16166,28 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         }
       } else k.sonAilleurs = null;
       for (const t of c.tuiles) {
-        if (t.faibleLatence !== true || k.faible[t.chaine]) continue;
+        // Pas pendant une pub (4.24.0.27) : à sa fin, sa mesure repart de toute façon.
+        if (t.faibleLatence !== true || k.faible[t.chaine] || t.enPub) continue;
         k.faible[t.chaine] = maintenant;
         rouvrir(t, 'faible latence retirée', maintenant);
         envoyer(t, 'faible-latence', { actif: false });
+        oublierPlace(t, maintenant + PLACE.LATENCE_MS);
         journaliser(c, k, `${t.chaine} : faible latence retirée — son lecteur défait tout recul`);
       }
+      // Une tuile retombée reprend sa place (4.24.0.27) — la référence comprise : sa place, c'est sa relation à toutes.
+      for (const t of c.tuiles) if (t.retombee && !t.enPub) reprendrePlace(c, k, t, maintenant);
+      const ref = tuileDe(c, c.ecoute.ref);
+      /* LA RÉFÉRENCE EN PUB (4.24.0.27) : rien à quoi comparer — chaque paire
+         en a besoin. Le calage attend, et le rapport le dit, paire par paire. */
+      if (ref && ref.enPub) {
+        k.attente = ATTENTE_PUB;
+        for (const t of c.tuiles) if (t !== ref) k.vus[t.chaine] = { refus: ATTENTE_PUB, n: 0 };
+        return;
+      }
+      if (k.attente === ATTENTE_PUB) k.attente = null;
+      if (ref) for (const t of [...c.tuiles]) if (t !== ref) grandEcart(c, k, ref, t, maintenant);
       if (c.ecoute.calculs === k.calculsVus) return;
       k.calculsVus = c.ecoute.calculs;
-      const ref = tuileDe(c, c.ecoute.ref);
       if (!ref) return;
       /* Chaque paire, depuis son dernier changement ; ne compte qu'un
          verdict qui redit le précédent à 80 ms près. */
@@ -15685,6 +16195,10 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       const verdicts = {}, tenues = {};
       for (const t of c.tuiles) {
         if (t === ref) continue;
+        /* EN PUB, PAS JUGÉE (4.24.0.27) : son verdict d'avant ne vaut plus
+           rien — sa mesure est rouverte —, et ne doit pas s'accorder avec le
+           premier d'après. */
+        if (t.enPub) { k.vus[t.chaine] = { refus: 'en pub', n: 0 }; continue; }
         const p = c.ecoute.paires[`${ref.chaine}~${t.chaine}`];
         const depuis = depuisPaire(c, ref, t);
         const v = mesurerSon(p ? p.historique : [], depuis, Math.max(0.25, e));
@@ -15720,7 +16234,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
          sait rien d'elle : elle reste, et se mesure de nouveau. */
       const suiveuses = [];
       for (const t of c.tuiles) {
-        if (t === ref || avances[t.chaine] !== undefined) continue;
+        // En pub, elle ne suit pas (4.24.0.27) : libre depuis son début, et rien ne s'envoie à une pub.
+        if (t === ref || avances[t.chaine] !== undefined || t.enPub) continue;
         if (k.etats[t.chaine] === 'calée' || k.etats[t.chaine] === 'vérification') { avances[t.chaine] = 0; suiveuses.push(t.chaine); }
       }
       /* TROIS CORRECTIONS AU PLUS PAR TUILE, en dix minutes : celles qui
@@ -15776,6 +16291,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       }
       for (const g of gestes) {
         envoyer(g.t, `essai-${g.type}`, { duree: g.s });
+        oublierPlace(g.t, maintenant + PLACE.APRES_MS);
         g.t.changement = maintenant;
         g.t.rouverte = { t: maintenant, quoi: g.type };
         k.deplacements[g.t.chaine] = r3((k.deplacements[g.t.chaine] || 0) + (g.type === 'recul' ? g.s : -g.s));
@@ -15828,6 +16344,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         mesures: Object.fromEntries(Object.entries(k.vus).map(([n, v]) => [n, texteMesure(v, n)])),
         tuiles: Object.fromEntries(c.tuiles.filter((t) => t.chaine !== ref).map((t) => [t.chaine, k.etats[t.chaine] || 'libre'])),
         deplacements: Object.entries(k.deplacements).map(([n, s]) => `${n} ${s >= 0 ? 'recul' : 'avance'} ${Math.abs(s)} s`).join(' · ') || null,
+        // Les places reprises (4.24.0.27), par tuile.
+        reprises: Object.entries(k.reprises).filter(([, l]) => l.length).map(([n, l]) => `${n} ${l.length}`).join(' · ') || null,
         faibleLatence: Object.keys(k.faible).length ? Object.entries(k.faible).map(([n, t]) => {
           const x = tuileDe(c, n);
           return `${n} retirée à +${Math.round((t - k.t0) / 1000)} s · le lecteur dit ${x && x.faibleLatence === false ? 'non' : x && x.faibleLatence ? 'oui' : '—'}`;
@@ -15840,12 +16358,14 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
            depuis ; la PREMIÈRE fois qu'elle a eu un verdict, une correction,
            qu'elle a été calée. Et la salle entière, calée. */
         chronologie: Object.fromEntries(c.tuiles.map((t) => {
-          if (t.chaine === ref) return [t.chaine, `son ${a(t.premierSon)} · référence`];
+          // Et ses pubs (4.24.0.27) : combien, combien de temps — la fin de la dernière, à « rouverte ».
+          const pubs = t.pubs ? `pubs ${t.pubs} · ${Math.round(dureePub(t) / 1000)} s${t.enPub ? ' · en pub' : ''}` : null;
+          if (t.chaine === ref) return [t.chaine, [`son ${a(t.premierSon)}`, pubs, 'référence'].filter(Boolean).join(' · ')];
           const x = k.premieres[t.chaine] || {}, r = tuileDe(c, ref), p = c.ecoute.paires[`${ref}~${t.chaine}`];
           const o = [t.rouverte, r && r.rouverte && { ...r.rouverte, quoi: `${ref} : ${r.rouverte.quoi}` }].filter(Boolean)
             .reduce((u, v) => (!u || v.t > u.t ? v : u), null);
           const compte = r && p && p.compte && p.compte.depuis === depuisPaire(c, r, t) ? p.compte.t : null;
-          return [t.chaine, [`son ${a(t.premierSon)}`, o ? `rouverte ${a(o.t)} (${o.quoi})` : null, `calcul ${a(compte)}`,
+          return [t.chaine, [`son ${a(t.premierSon)}`, pubs, o ? `rouverte ${a(o.t)} (${o.quoi})` : null, `calcul ${a(compte)}`,
             `verdict ${a(x.verdict)}`, `correction ${a(x.correction)}`, `calée ${a(x.calee)}`].filter(Boolean).join(' · ')];
         })),
         salleCalee: k.salleCalee === null ? null : a(k.salleCalee),
@@ -15867,7 +16387,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     };
 
     return {
-      ouvrir, son, fermer: (raison = 'api') => fermer(raison), rapport: bilan, ecoute, series,
+      ouvrir, son, chat, fermer: (raison = 'api') => fermer(raison), rapport: bilan, ecoute, series,
       recul: (...a) => reculSur(a), avance: (...a) => avanceSur(a), auto: (x) => auto(x), commande,
       ouvrirDepuisBarre, reprendre,
       // Pour le nœud seulement — la console n'en reçoit rien (cf. tseApi).
@@ -17281,6 +17801,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
   tseApi.salle = Object.freeze({
     ouvrir: (...chaines) => salle.ouvrir(...chaines),
     son: (i) => salle.son(i),
+    // Le chat d'une chaîne, sans toucher au son (4.24.0.27).
+    chat: (nom) => salle.chat(nom),
     fermer: () => salle.fermer(),
     rapport: () => salle.rapport(),
     // L'écoute du son (S9) et les relevés entiers (4.24.0.11).

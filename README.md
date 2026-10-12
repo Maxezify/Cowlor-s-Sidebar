@@ -2180,6 +2180,220 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## Les pubs à tout moment, la place reprise, et le chat choisi (v4.24.0.27)
+
+La demande : « que le système de calage soit bien optimisé à ce qu'il puisse
+y avoir des publicités qui arrivent à n'importe quel moment. Qu'aucun bug
+puisse arriver à cause de ça » ; retirer le contour violet de la tuile qui a
+le son, et lire « Son de … » au-dessus du chat au lieu de « Chat de … » ;
+sans chat partagé, pouvoir choisir le chat d'un streamer sans changer le son
+de la salle. Puis, pendant le travail, un rapport réel avec des pubs : « le
+stream de [la troisième tuile] est décalé de 20 secondes environ après sa
+pub ». Publiée sur `claude/chrome-multi` seulement.
+
+### Ce que le rapport réel a montré
+
+Trois streams, 34 minutes, trois pubs comptées, la salle calée à +300 s. À
+la fin, deux tuiles loin de la référence, et rien qui les corrigeait :
+
+| tuile | ce qui s'est passé | latence | tampon |
+| --- | --- | --- | --- |
+| la troisième | à +1368 s, d'un coup, la lecture continuant (un saut « estimation ») | 7,6 → 30,7 s, tenue dix minutes | 29 à 30 s, tenu de même |
+| la deuxième | vers +1720 s, **sans pub** | 11,1 → 19,7 s | ~9,9 → ~15,9 s |
+| la référence | au sortir de sa pub de 98 s (+1789 → +1887 s) | 10,17 → 13,18 s | ~8,5 → ~11,4 s |
+
+Le tampon dit que ce n'était pas l'estimation : la lecture était vraiment
+plus loin du direct, tout ce qui manquait déjà téléchargé devant elle. Et
+le lecteur, la faible latence retirée par le calage, n'y revient jamais de
+lui-même. À la fin, la deuxième tuile est 5,6 s derrière la référence — le
+son le dit (−5 390 et −5 770 ms, z jusqu'à 11,9), mais le calage écarte
+tout pic au-delà de 5 s : « aucune voix nette » ; la troisième, 17,6 s
+derrière selon les latences — l'écoute ne cherche qu'à ±6 s : rien.
+
+Ce que le rapport ne dit pas : **quand** la pub de la troisième tuile est
+passée. Le journal ne garde que soixante événements, et il était plein de
+« coupures d'arrivée » — « au moins 2 s sans vidéo (tampon 30,24 → 28,24) »
+toutes les minutes — qui ne sont que la cadence des segments de deux
+secondes : 28 s de tampon restaient. Sa seule pub comptée est antérieure à
++1346 s ; le saut de +1368 s est venu 22 s après un recul de 2,28 s demandé
+par le calage, dont la position n'a rien montré dans la demi-seconde
+(+0,04 s obtenu). Pub que les repères n'ont pas vue, ou lecteur qui a
+rechargé loin derrière : le rapport ne permet pas de trancher. Ce qui est
+sûr, c'est la mesure : latence et tampon d'accord, 23 s.
+
+### Les pubs, à tout moment
+
+Une pub fait trois choses au calage, si on la laisse faire : son son n'est
+pas celui du direct — deux tuiles qui passent la même pub, le même
+annonceur servi au même spectateur, font une voix commune au décalage de
+leurs deux débuts, que rien ne distingue d'une vraie ; la lecture qui
+reprend après n'est peut-être plus où elle était ; un déplacement demandé
+pendant la pub vise la pub. Désormais :
+
+| | ce qui se passe |
+| --- | --- |
+| une tuile en pub | ni écoutée — son enveloppe est écartée relevé par relevé —, ni jugée, ni déplacée, ni entraînée quand la référence recule. Sa mesure est rouverte au début et à la fin de la pub, sa relation redevient libre |
+| la référence en pub | le calage attend : « la référence est en pub », au rapport et pour chaque paire. Sa fin délie tout, comme un rechargement |
+| la faible latence à retirer | attend la fin de la pub |
+| un ordre de déplacement qui arrive quand même | le pont le refuse : « refusé : pub ». La seconde garde, pour un ordre parti juste avant le début de la pub |
+| la qualité à tenir | le pont attend la fin de la pub : l'image y est celle de la pub, et les cinq essais d'une demande s'y usaient |
+| une pub cachée par un bloqueur | c'est une pub. Les repères comptent à leur **présence**, et non plus à leur visibilité : au journal de la troisième sonde, ils n'existaient que pendant la pub, jamais restés cachés entre deux coupures |
+
+La pub se lit à deux sources qui se recoupent : l'état que chaque lecteur
+envoie toutes les secondes, et le relevé, qui porte l'enveloppe — celle-ci
+est écartée dès le relevé qui voit la pub.
+
+### La place reprise
+
+Les trois cas du rapport sont la même chose : une tuile qui **retombe**
+derrière le direct. La **place** d'une tuile, c'est la latence et le tampon
+médians de dix relevés tranquilles de suite — en lecture, vitesse 1, hors
+pub, latence cohérente, à 0,8 s près. Six relevés tranquilles qui s'en
+écartent de 1,5 s au moins, **le tampon d'accord** — dans le même sens, la
+moitié au moins, à 2,5 s près (30 % au-delà de 8 s) — : la tuile a retombé,
+et elle reprend sa place, en avançant dans son tampon, qui contient
+justement ce qu'elle a pris de retard ; en reculant, si elle est passée
+devant et que ce qu'elle garde derrière le permet. Deux secondes de tampon
+restent toujours ; trois reprises au plus en dix minutes ; puis le son
+vérifie, la mesure rouverte. La référence aussi : le son qu'on écoute saute
+d'autant, une fois — le prix d'une salle qui reste près du direct, au lieu
+de faire reculer toutes les autres.
+
+- La place se réapprend après chaque geste de la salle — dès l'ordre parti,
+  quatre secondes, quinze pour la faible latence retirée, dont l'estimation
+  saute après coup — et après ce que le lecteur fait de lui-même :
+  rechargement, rattrapage, pause. **Pas** après un saut, une chute ou une
+  pub : c'est d'eux qu'on retombe.
+- **L'estimation seule** qui saute, le tampon immobile — ce que deux
+  lecteurs réels ont fait après la faible latence retirée (« kappa », au
+  190) — ne bouge rien ; tenue vingt secondes, c'est la nouvelle place.
+
+D'après les chiffres du rapport, refaits à la main : la référence aurait
+avancé d'environ 3,1 s au sortir de sa pub, gardant 8 s de tampon ; la
+deuxième tuile, de 8,7 s (6,7 s gardées) ; la troisième, de 23,2 s (5 s
+gardées) — si sa place s'était réapprise depuis le recul de +1346 s, sinon
+par le grand écart, plus bas. Ce n'est pas un rejeu : le rapport ne porte
+pas les enveloppes.
+
+### Le grand écart
+
+Quand il n'y a pas de place d'où retomber — à l'ouverture, ou quand la
+reprendre n'a pas pu se faire —, deux tuiles peuvent être plus loin l'une
+de l'autre que l'écoute ne cherche. Le son n'en dit rien ; leurs latences,
+si. **Au-delà de 5 s**, sur dix relevés communs tranquilles à 1 s près, le
+tampon d'accord à 3 s près (en amont du tampon, les chaînes diffèrent
+d'environ 2 s au rapport réel), tenu vingt secondes, et **sans verdict du
+son** pour la paire — s'il en a un, c'est lui qui décide : celle qui est
+derrière avance de l'écart, si son tampon le permet. La référence n'avance
+que si **toutes** les autres sont loin devant elle ; sinon, c'est la tuile
+qui recule, si elle le peut. L'écart compte pour une correction, et le son
+finit le travail : la latence s'est trompée de 4,6 s au quatorzième rapport
+réel — c'est pour cela qu'on ne descend pas sous 5 s.
+
+Le pont accepte désormais un déplacement jusqu'à 60 s (10 auparavant) ; la
+console reste bornée à 0,2–5 s.
+
+### Le rapport
+
+- Par tuile : `pub`, `pubCachee` (des repères présents, aucun visible),
+  `pubsVues`, `pubS`, et `pubsDetail` — chaque pub, et la place avant et
+  après : « +1789→+1887 s · avant 10.17 s (tampon 8.5) · après 13.18 s
+  (tampon 11.4) » ; `place`, `retombees`, `placeRebases`.
+- Au calage : `reprises` ; à la chronologie, les pubs de chaque tuile.
+- Au journal, une coupure d'arrivée n'est plus notée que si elle a laissé
+  moins d'une seconde de tampon. Toutes restent comptées
+  (`serie.coupures`).
+
+### Le son, au-dessus du chat
+
+**Plus de contour** sur la tuile qui a le son. **L'en-tête du chat dit
+« Son de X »**, un haut-parleur devant. À deux chats dans les marges, chaque
+colonne nomme son chat — « Chat de Y » —, et celle du stream qui a le son
+dit « Son de X ». Sans chat, la pastille posée en haut à droite le dit. Un
+clic sur une tuile lui donne toujours le son ; les touches 1 à 6 aussi.
+
+### Le chat choisi
+
+**Des onglets au-dessus du chat**, un par stream de la salle, dans l'ordre
+de la salle — stable : une tuile remplacée ne les déplace pas. Choisis
+plutôt qu'une liste déroulante : un clic au lieu de deux, et tous les
+streams visibles d'un coup ; sur plusieurs lignes plutôt que cachés au bout
+d'un défilement. Celui du chat affiché est souligné du violet de Twitch.
+
+- **Le chat suit le son tant qu'aucun onglet n'a été choisi** — ce qu'il
+  faisait jusqu'ici, et ce qu'on attend sans y avoir touché. Choisi, il
+  reste où on l'a mis : le son qui passe d'une tuile à l'autre ne le
+  recharge plus. « Masquer » puis « Afficher le chat » le rend tel quel ;
+  un stream qui quitte la salle rend le chat au son.
+- **Au clavier, comme des onglets** : une liste d'onglets, un seul dans
+  l'ordre de tabulation ; les flèches, Début et Fin vont de l'un à l'autre
+  sans rien charger — un chat se recharge, on ne le fait pas en passant —,
+  Entrée ou Espace choisit.
+- **Quand ils n'apparaissent pas** : à deux chats (les deux sont là), sur
+  un Chat partagé prouvé (tous montrent le même), sans chat.
+- **À trois streams et plus, ils restent même sur un Chat partagé** : la
+  salle ne sait pas le prouver avec un seul chat chargé (la preuve est la
+  comparaison des messages de deux chats chargés ensemble), et un Chat
+  partagé peut ne réunir qu'une partie de la salle. Un onglet d'un chat
+  partagé montre le même chat, rien de plus.
+- La console : `tse.salle.chat('chaîne')`. Au rapport : `onglets` (le chat
+  affiché entre crochets), `chatChoisi`, `chatsChoisis`, `chatTitreGauche`.
+
+### Ce qui reste
+
+- **L'événement commun à 0 ms** (cf. la 4.24.0.26) : un même silence dans
+  toutes les tuiles au même instant ferait une voix « avec la référence ».
+  Une pub ne le fait plus — ses fenêtres sont écartées —, une machine qui
+  peine, toujours. À éprouver.
+- **Pourquoi la troisième tuile du rapport a retombé de 23 s** : le
+  prochain rapport le dira, son journal n'étant plus noyé. La salle,
+  désormais, la remet à sa place quelle qu'en soit la cause.
+- **Un Chat partagé à trois streams et plus** ne se prouve pas avec un
+  seul chat chargé : les onglets restent.
+
+### À vérifier sur le vrai Twitch
+
+| point | ce qui le dira |
+| --- | --- |
+| une pub au milieu : la tuile retombe-t-elle, et reprend-elle sa place ? | `pubsDetail` (avant, après), le journal du calage (« retombée … elle reprend sa place ») |
+| les repères d'une pub sous un bloqueur | `pubCachee` |
+| la troisième tuile du rapport : pub non vue, ou rechargement ? | `pubsDetail`, et le journal, désormais lisible |
+| des onglets sur un Chat partagé à trois streams : gênant ? | l'œil — à dire |
+
+### Ce que le banc mesure
+
+- **175** — plus de contour sur la tuile qui a le son ; « Son de alpha »,
+  le haut-parleur devant ; les onglets, celui du chat affiché choisi ; un
+  onglet qui change le chat sans toucher au son ; choisi, le chat qui reste
+  — le même, pas rechargé — quand le son passe à une autre tuile ; le
+  clavier (flèches, Début, Fin sans rien charger, Entrée), la liste
+  d'onglets accessible, `tse.salle.chat()` ; sans chat, le son dans la
+  pastille ; « Afficher le chat » qui rend le chat choisi. Sa pub est
+  désormais posée puis retirée, comme sur le vrai Twitch, et non plus
+  cachée.
+- **177** — à deux chats, « Son de tardif » à droite puis « Son de calme »
+  à gauche quand le son y passe ; un seul chat d'un duo distinct, ses deux
+  onglets ; au-dessus d'un Chat partagé, « Son de sa » puis « Son de sb »,
+  sans onglet.
+- **192** — la même pub sur la référence et une tuile, à 300 ms : rien
+  d'écouté ni de jugé, le calage qui attend et le dit, puis tout se cale
+  sur le vrai son ; une tuile calée en pub, pas entraînée quand la
+  référence recule pour une autre, et rien ne s'envoie à la pub ; sortie
+  de sa pub 8 s plus loin du direct, son tampon avec elle, elle reprend sa
+  place en avançant ; une pub cachée par un bloqueur, et la console comme
+  le pont qui refusent de la déplacer ; la faible latence d'une tuile en
+  pub, retirée à la fin de la pub seulement.
+- **193** — l'estimation seule qui saute de 6 s, le tampon immobile : rien
+  ne bouge ; une tuile qui retombe de 20 s, sans pub, qui reprend sa place ;
+  une coupure qui laisse plus d'une seconde, comptée et pas notée ; le
+  grand écart à l'ouverture, 7 s : celle qui est derrière avance — et, la
+  référence derrière toutes les autres, c'est elle.
+
+Le faux lecteur a gagné sa pub (`__pub` : les trois repères, le son du
+direct coupé, celui de la pub à sa place, à l'heure de l'horloge), la tuile
+qui retombe (`__retomber`, le tampon avec elle), et l'estimation seule
+(`__estimer`).
+
 ## Le multistream sur toutes les branches (v4.24.0.26)
 
 La demande, après la 4.24.0.25 : « feu vert pour les autres branches ». Le
@@ -16776,7 +16990,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 190 scénarios, 1603 assertions |
+| `npm test` | le harnais Playwright : 192 scénarios, 1616 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -16797,7 +17011,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1529 Ko | 604 Ko | 3 987 → **2** |
+| `content.js` | 1570 Ko | 626 Ko | 4 040 → **2** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
 | `panneau.js` | 107 Ko | 51 Ko | 149 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
