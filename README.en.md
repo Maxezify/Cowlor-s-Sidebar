@@ -2269,6 +2269,26 @@ The fake player gained its ad (`__pub`: the three markers, the live sound
 cut, the ad's in its place, on the clock's time), the tile that falls back
 (`__retomber`, its buffer with it), and the estimate alone (`__estimer`).
 
+| mutant | what fails |
+| --- | --- |
+| an ad's envelope listened to (1) | 192: six computations during the ads, where none is allowed |
+| listened to, judged, the reference in an ad not waiting (1) | 192: "omega en retard de 0.30 s (−300 ms) → xray recule de 0.18 s" — the gap between the two ads, taken for a delay |
+| the reference in an ad not waiting (1) | 192: "le son ne s'est pas encore prononcé" instead of "la référence est en pub" |
+| the tile in an ad dragged along — kept synced, follower (1) | 192: "omega recule de 0.31 s (suit la référence)" — which the bridge refuses, second guard —, and its place never taken back |
+| the bridge moving an ad (1) | 192: "recul 1 · instance" inside a hidden ad |
+| the ad read by its visibility (1) | 192: the ad hidden by a blocker not seen, and the console moving it |
+| low latency removed during the ad (1) | 192: "india retirée à +0 s", in the middle of the ad |
+| the place never taken back (2) | 192 and 193: the tile left 8 s, then 20 s, behind live |
+| the place relearnt at the reading, not at the order (1) | 192: two takebacks instead of one — it was still "falling back" until the order showed |
+| the place after the ad never noted (1) | 192: `pubsDetail` without "après" |
+| the place taken back on latency alone (1) | 193: the estimate jumping 6 s taken for a fall |
+| the wide gap never made; the reference behind never skipped ahead (2) | 193: "psi" left 7 s behind; the reference — or nothing — not catching up |
+| the harmless arrival gap noted (1) | 193: "coupure d'arrivée" in the journal, 1.3 s of buffer left |
+| the outline back; "Chat de …" back; the speaker forgotten; the tabs never shown; the tab also giving the sound; the chat still following the sound once chosen; the arrows loading in passing; the tabindex not following; the console accepting an absent channel; the pill silent about the sound (10) | 175 |
+| the tabs on a Shared Chat; "Son de …" stuck on the right (2) | 177 |
+
+Twenty-seven mutants, twenty-seven caught.
+
 ## Multistream on every branch (v4.24.0.26)
 
 The request, after 4.24.0.25: "green light for the other branches". The

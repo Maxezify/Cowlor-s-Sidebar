@@ -2394,6 +2394,26 @@ direct coupé, celui de la pub à sa place, à l'heure de l'horloge), la tuile
 qui retombe (`__retomber`, le tampon avec elle), et l'estimation seule
 (`__estimer`).
 
+| mutant | ce qui tombe |
+| --- | --- |
+| l'enveloppe d'une pub écoutée (1) | 192 : six calculs pendant les pubs, quand il n'en faut aucun |
+| écoutée, jugée, la référence en pub qui n'attend pas (1) | 192 : « omega en retard de 0.30 s (−300 ms) → xray recule de 0.18 s » — l'écart entre les deux pubs, pris pour un retard |
+| la référence en pub qui n'attend pas (1) | 192 : « le son ne s'est pas encore prononcé » au lieu de « la référence est en pub » |
+| la tuile en pub entraînée — gardée calée, suiveuse (1) | 192 : « omega recule de 0.31 s (suit la référence) » — que le pont refuse, seconde garde —, et sa place jamais reprise |
+| le pont qui déplace une pub (1) | 192 : « recul 1 · instance » dans une pub cachée |
+| la pub lue à sa visibilité (1) | 192 : la pub cachée par un bloqueur pas vue, et la console qui la déplace |
+| la faible latence retirée pendant la pub (1) | 192 : « india retirée à +0 s », en pleine pub |
+| la place jamais reprise (2) | 192 et 193 : la tuile restée 8 s, puis 20 s, derrière le direct |
+| la place réapprise au relevé, pas à l'ordre (1) | 192 : deux reprises au lieu d'une — elle « retombait » encore le temps que l'ordre se voie |
+| la place d'après la pub jamais notée (1) | 192 : `pubsDetail` sans « après » |
+| la place reprise sur la latence seule (1) | 193 : l'estimation qui saute de 6 s prise pour une retombée |
+| le grand écart jamais fait ; la référence derrière jamais avancée (2) | 193 : « psi » laissée 7 s derrière ; la référence — ou rien — qui ne rattrape pas |
+| la coupure sans conséquence notée (1) | 193 : « coupure d'arrivée » au journal, 1,3 s de tampon restant |
+| le contour remis ; « Chat de … » revenu ; le haut-parleur oublié ; les onglets jamais montrés ; l'onglet qui donne aussi le son ; le chat qui suit encore le son une fois choisi ; les flèches qui chargent en passant ; le tabindex qui ne suit pas ; la console qui accepte une chaîne absente ; la pastille muette sur le son (10) | 175 |
+| les onglets sur un Chat partagé ; « Son de … » figé à droite (2) | 177 |
+
+Vingt-sept mutants, vingt-sept pris.
+
 ## Le multistream sur toutes les branches (v4.24.0.26)
 
 La demande, après la 4.24.0.25 : « feu vert pour les autres branches ». Le

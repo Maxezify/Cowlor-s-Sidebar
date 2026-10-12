@@ -24788,7 +24788,7 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
     return { role: l.getAttribute('role'), label: l.getAttribute('aria-label'),
              tabs: [...l.children].map((b) => `${b.getAttribute('role')}:${b.getAttribute('aria-selected')}:${b.tabIndex}:${b.getAttribute('aria-controls')}`),
              cible: !!document.getElementById(l.children[0].getAttribute('aria-controls')) };
-  });
+  }).catch(() => ({ tabs: [] }));
   const consoleChat = await page.evaluate(() => ({ faux: window.tse.salle.chat('personne'), bon: window.tse.salle.chat('Charlie') }));
   await wait(page, 300);
   const o4 = { salle: await lireSalle(), rapport: await etatDe() };
