@@ -24469,7 +24469,6 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
     <video id="v" autoplay muted playsinline style="width:320px;height:180px"></video>
     <button data-a-target="player-mute-unmute-button">son</button>
     <button data-a-target="player-play-pause-button">lecture</button>
-    <div data-a-target="video-ad-label" style="display:none;width:40px;height:10px">Pub</div>
     <div id="root"></div>
     <script>
       /* L'INSTANCE DU LECTEUR DE TWITCH, IMITÉE (4.24.0.10) : là où le pont
@@ -24517,11 +24516,17 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
       document.querySelector('[data-a-target="player-play-pause-button"]').addEventListener('click', () => {
         window.__clics.lecture++; if (v.paused) v.play().catch(() => {}); else v.pause();
       });
-      if (canal === 'charlie') {
-        const pub = document.querySelector('[data-a-target="video-ad-label"]');
-        setTimeout(() => { pub.style.display = 'block'; }, 300);
-        setTimeout(() => { pub.style.display = 'none'; }, 4300);
-      }
+      /* LA PUB POSÉE, PUIS RETIRÉE (4.24.0.27) — et non plus cachée : au
+         journal de la troisième sonde, ses repères n'existent que pendant
+         elle. Posée quand le banc le dit. */
+      window.__pubPoser = (ms) => {
+        const pub = document.createElement('div');
+        pub.dataset.aTarget = 'video-ad-label';
+        pub.style.cssText = 'width:40px;height:10px';
+        pub.textContent = 'Pub';
+        document.body.appendChild(pub);
+        setTimeout(() => pub.remove(), ms);
+      };
     </script>
     <script src="/adblock.test.js"></script>
     <script src="/content.test.js"></script>
@@ -24589,6 +24594,8 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
               u.searchParams.get('autoplay'), u.searchParams.get('controls')].join('|'),
         allow: f.getAttribute('allow'),
         son: t.classList.contains('tse-salle__tuile--son'),
+        // Plus de contour sur la tuile qui a le son (4.24.0.27).
+        trait: `${getComputedStyle(t).boxShadow}|${getComputedStyle(t).outlineStyle}`,
         prise: !t.querySelector('.tse-salle__prise').hidden,
         // Rien sur le lecteur (4.24.0.23) : son iframe et sa prise, rien d'autre.
         enfants: [...t.children].map((e) => e.localName + (e.className ? `.${e.className}` : '')).join('|'),
@@ -24601,6 +24608,20 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
       tuiles, chats,
       banc: [...boite.querySelectorAll('.tse-salle__remplacant')].map((x) => x.dataset.tseSalleChaine),
       chatVisible: !boite.querySelector('.tse-salle__chat--droite').hidden,
+      /* L'en-tête du chat, et s'il porte le haut-parleur ; les onglets à
+         l'écran — le chat affiché entre crochets ; le son dans la pastille,
+         s'il s'y montre (4.24.0.27). */
+      tete: boite.querySelector('.tse-salle__chat--droite .tse-salle__chat-tete')?.textContent ?? null,
+      teteSon: !!boite.querySelector('.tse-salle__chat--droite .tse-salle__chat-tete--son .tse-salle__icone-son svg'),
+      onglets: (() => {
+        const l = boite.querySelector('.tse-salle__onglets');
+        if (!l || l.hidden || getComputedStyle(l).display === 'none') return null;
+        return [...l.querySelectorAll('[role="tab"]')].map((b) => (b.getAttribute('aria-selected') === 'true' ? `[${b.textContent}]` : b.textContent)).join(' ');
+      })(),
+      pastilleSon: (() => {
+        const e = boite.querySelector('.tse-salle__tete .tse-salle__son');
+        return e && getComputedStyle(e).display !== 'none' && e.getBoundingClientRect().width > 0 ? e.textContent : null;
+      })(),
       videoPage: document.getElementById('video-page').paused,
       // La ligne d'en-tête, et où vivent le titre et les commandes (4.24.0.9).
       ligneTete: !boite.querySelector('.tse-salle__tete').hidden,
@@ -24666,6 +24687,17 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
      && s2.tuiles[0].son && !s2.tuiles[0].prise && s2.tuiles.slice(1).every((t) => !t.son && t.prise)
      && s2.chats.join() === 'https://www.twitch.tv/embed/alpha/chat' && r1.chat === 'alpha',
      JSON.stringify({ r1, tuiles: s2.tuiles.map((t) => [t.chaine, t.son, t.prise]), chats: s2.chats }));
+  /* PLUS DE CONTOUR SUR LA TUILE QUI A LE SON (4.24.0.27), à la demande :
+     c'est l'en-tête du chat qui le dit — « Son de alpha », le haut-parleur
+     devant —, au-dessus des onglets d'un chat qu'on ne sait pas partagé,
+     celui affiché choisi. Mutants — le contour remis ; « Chat de … »
+     revenu ; le haut-parleur oublié ; les onglets jamais montrés. */
+  ok('plus de contour violet : l\'en-tête du chat dit « Son de alpha », et les onglets sont là, celui du chat affiché choisi',
+     s2.tuiles.every((t) => t.trait === 'none|none') && s2.tete === 'Son de alpha' && s2.teteSon === true
+     && s2.onglets === '[alpha] bravo charlie' && r1.chatTitre === 'Son de alpha' && r1.onglets === '[alpha] bravo charlie'
+     && r1.chatChoisi === null,
+     JSON.stringify({ traits: s2.tuiles.map((t) => [t.chaine, t.trait]), tete: s2.tete, son: s2.teteSon, onglets: s2.onglets,
+                      rapport: [r1.chatTitre, r1.onglets, r1.chatChoisi] }));
 
   // Un vrai clic sur la tuile de « bravo ».
   await cliquer('#tse-salle [data-tse-salle-chaine="bravo"] .tse-salle__prise');
@@ -24675,10 +24707,11 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
   const s3 = await lireSalle();
   /* Mutants — la prise qui ne donne rien, le silence oublié aux autres, le
      chat qui reste sur l'ancienne tuile ou qui s'ajoute au lieu de changer. */
-  ok('un clic sur une tuile muette lui donne le son, rend les autres muettes, et le chat la suit',
+  ok('un clic sur une tuile muette lui donne le son, rend les autres muettes, et le chat la suit — aucun onglet choisi encore',
      r2.son === 'bravo' && r2.tuiles.bravo.muet === false && r2.tuiles.alpha.muet === true
-     && s3.chats.join() === 'https://www.twitch.tv/embed/bravo/chat',
-     JSON.stringify({ r2, chats: s3.chats }));
+     && s3.chats.join() === 'https://www.twitch.tv/embed/bravo/chat'
+     && s3.tete === 'Son de bravo' && s3.onglets === 'alpha [bravo] charlie',
+     JSON.stringify({ r2, chats: s3.chats, tete: s3.tete, onglets: s3.onglets }));
 
   // La touche 3, puis une touche frappée dans un champ, qui ne compte pas.
   await page.keyboard.press('3');
@@ -24699,9 +24732,85 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
      r3.son === 'charlie' && r3.tuiles.charlie.muet === false && r4.son === 'charlie',
      JSON.stringify({ r3: r3.son, r4: r4.son }));
 
+  // ── LE CHAT CHOISI, SANS TOUCHER AU SON (4.24.0.27) ─────────────────────────
+  /* À la demande : « choisir le chat d'un streamer sans devoir changer le
+     son de la salle ». Un vrai clic sur l'onglet de « alpha » : son chat,
+     et le son reste à « charlie ». Puis la touche 2 donne le son à
+     « bravo » : le chat choisi reste — le MÊME, pas rechargé. Mutants —
+     l'onglet qui donne aussi le son ; le chat qui suit encore le son une
+     fois choisi ; l'onglet du chat affiché pas marqué. */
+  const idChat = (marquer = false) => page.evaluate((m) => {
+    const f = document.querySelector('#tse-salle iframe[name="tse-salle-chat"]');
+    if (!f) return null;
+    try { if (m) f.contentWindow.__marque = Math.random(); return f.contentWindow.__marque ?? null; } catch { return null; }
+  }, marquer);
+  await idChat(true);
+  await cliquer('#tse-salle .tse-salle__onglet[data-tse-salle-chaine="alpha"]');
+  await wait(page, 400);
+  const o1 = { salle: await lireSalle(), rapport: await etatDe() };
+  const marqueAlpha = await idChat(true);
+  await page.keyboard.press('2');
+  await attendre(page, () => window.tse.salle.rapport().son === 'bravo', 8000);
+  await wait(page, 400);
+  const o2 = { salle: await lireSalle(), rapport: await etatDe(), marque: await idChat() };
+  ok('un onglet change le chat sans toucher au son ; choisi, le chat reste quand le son passe à une autre tuile — le même, pas rechargé',
+     o1.salle.chats.join() === 'https://www.twitch.tv/embed/alpha/chat' && o1.rapport.son === 'charlie'
+     && o1.rapport.tuiles.charlie.muet === false && o1.salle.tete === 'Son de charlie'
+     && o1.salle.onglets === '[alpha] bravo charlie' && o1.rapport.chatChoisi === 'alpha' && o1.rapport.chatsChoisis === 1
+     && o2.rapport.son === 'bravo' && o2.salle.chats.join() === 'https://www.twitch.tv/embed/alpha/chat'
+     && marqueAlpha !== null && o2.marque === marqueAlpha && o2.salle.tete === 'Son de bravo'
+     && o2.salle.onglets === '[alpha] bravo charlie',
+     JSON.stringify({ o1: [o1.salle.chats, o1.rapport.son, o1.salle.tete, o1.salle.onglets, o1.rapport.chatChoisi, o1.rapport.chatsChoisis],
+                      o2: [o2.rapport.son, o2.salle.chats, o2.salle.tete, o2.salle.onglets], marques: [marqueAlpha, o2.marque] }));
+  /* LE CLAVIER, COMME DES ONGLETS : une liste d'onglets, un seul dans
+     l'ordre de tabulation — celui du chat affiché —, les flèches, Début et
+     Fin de l'un à l'autre SANS rien charger ; Entrée choisit. Et la console :
+     tse.salle.chat(). Mutants — les flèches qui chargent en passant ; le
+     tabindex qui ne suit pas ; la console qui accepte une chaîne absente. */
+  const focus = () => page.evaluate(() => document.activeElement?.dataset?.tseSalleChaine ?? null);
+  await page.focus('#tse-salle .tse-salle__onglet[aria-selected="true"]').catch(() => {});
+  const f0 = await focus();
+  await page.keyboard.press('ArrowRight');
+  const f1 = await focus();
+  const chatF1 = (await lireSalle()).chats.join();
+  await page.keyboard.press('End');
+  const f2 = await focus();
+  await page.keyboard.press('ArrowRight');
+  const f3 = await focus();
+  await page.keyboard.press('ArrowLeft');
+  await page.keyboard.press('ArrowLeft');
+  const f4 = await focus();
+  await page.keyboard.press('Enter');
+  await wait(page, 400);
+  const o3 = { salle: await lireSalle(), rapport: await etatDe() };
+  const aria = await page.evaluate(() => {
+    const l = document.querySelector('#tse-salle .tse-salle__onglets');
+    return { role: l.getAttribute('role'), label: l.getAttribute('aria-label'),
+             tabs: [...l.children].map((b) => `${b.getAttribute('role')}:${b.getAttribute('aria-selected')}:${b.tabIndex}:${b.getAttribute('aria-controls')}`),
+             cible: !!document.getElementById(l.children[0].getAttribute('aria-controls')) };
+  });
+  const consoleChat = await page.evaluate(() => ({ faux: window.tse.salle.chat('personne'), bon: window.tse.salle.chat('Charlie') }));
+  await wait(page, 300);
+  const o4 = { salle: await lireSalle(), rapport: await etatDe() };
+  ok('les onglets au clavier — flèches, Début, Fin sans rien charger, Entrée pour choisir —, en liste d\'onglets accessible ; et tse.salle.chat()',
+     f0 === 'alpha' && f1 === 'bravo' && chatF1 === 'https://www.twitch.tv/embed/alpha/chat' && f2 === 'charlie' && f3 === 'alpha'
+     && f4 === 'bravo' && o3.salle.chats.join() === 'https://www.twitch.tv/embed/bravo/chat' && o3.rapport.chatChoisi === 'bravo'
+     && o3.rapport.son === 'bravo' && aria.role === 'tablist' && aria.label === 'Choisir le chat' && aria.cible
+     && aria.tabs.join() === 'tab:false:-1:tse-salle-chat-droite,tab:true:0:tse-salle-chat-droite,tab:false:-1:tse-salle-chat-droite'
+     && !!consoleChat.faux.erreur && consoleChat.bon.chat === 'charlie'
+     && o4.salle.chats.join() === 'https://www.twitch.tv/embed/charlie/chat' && o4.salle.onglets === 'alpha bravo [charlie]'
+     && o4.rapport.son === 'bravo' && o4.rapport.chatsChoisis === 3,
+     JSON.stringify({ focus: [f0, f1, f2, f3, f4], chatF1, o3: [o3.salle.chats, o3.rapport.chatChoisi], aria, consoleChat,
+                      o4: [o4.salle.chats, o4.salle.onglets, o4.rapport.son, o4.rapport.chatsChoisis] }));
+  // Le son rendu à « charlie », pour la suite.
+  await page.keyboard.press('3');
+  await attendre(page, () => window.tse.salle.rapport().son === 'charlie', 8000);
+
   // ── La pub, par les repères relevés sur le vrai Twitch ────────────────────
   // Vue pendant qu'elle passe — pas seulement comptée après coup —, et rien
   // posé pour autant sur le lecteur (4.24.0.23) : Twitch la dit lui-même.
+  await page.frames().find((f) => f.url().includes('channel=charlie') && !f.isDetached())
+    ?.evaluate(() => window.__pubPoser(4000)).catch(() => null);
   await attendre(page, () => {
     const r = window.tse.salle.rapport().tuiles?.charlie;
     if (r?.pub === true) {
@@ -24801,10 +24910,14 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
      haut » restait quand on retirait le chat. Le titre et « Afficher le chat »
      vont dans une pastille posée sur la scène ; la scène part du haut.
      Mutants — la pastille jamais montrée, la ligne revenue. */
-  ok('sans chat, plus de ligne non plus : le titre et « Afficher le chat » dans une pastille, la scène dès le haut',
+  /* Et le son, sans chat pour le dire, dans la pastille (4.24.0.27). Mutant —
+     la pastille muette sur le son. */
+  ok('sans chat, plus de ligne non plus : le titre, le son et « Afficher le chat » dans une pastille, la scène dès le haut',
      s7.ligneTete === true && s7.titreDans === 'tete' && s7.boutonDans === 'tete'
-     && s7.boutonTexte === 'Afficher le chat' && s7.scene.y === 50,
-     JSON.stringify({ pastille: s7.ligneTete, titre: s7.titreDans, bouton: [s7.boutonDans, s7.boutonTexte], scene: s7.scene }));
+     && s7.boutonTexte === 'Afficher le chat' && s7.scene.y === 50 && s7.pastilleSon === `Son de ${r7.son}`
+     && s1.pastilleSon === null,
+     JSON.stringify({ pastille: s7.ligneTete, titre: s7.titreDans, bouton: [s7.boutonDans, s7.boutonTexte], scene: s7.scene,
+                      son: [s7.pastilleSon, r7.son, s1.pastilleSon] }));
   /* LA PLUS PROCHE EN PROPORTION (4.24.0.10). Tuiles de 549 × 308 : pour
      alpha (160, 480, 720, 1080), 160p est à 148 px et 480p à 172 — mais 160p
      serait agrandie près de deux fois, 480p réduite d'un tiers. 480p, et un
@@ -24870,12 +24983,14 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
   const avecChat = { salle: await lireSalle(), rapport: await etatDe() };
   /* Mutants — le bouton qui ne fait rien, ou dont le choix est écrasé par le
      calcul automatique ; le chat retiré mais laissé chargé. */
-  ok('« Masquer le chat » retire le chat — déchargé, pas seulement caché —, « Afficher le chat » le remet sur la tuile qui a le son',
+  // Remis sur le chat choisi plus haut (4.24.0.27) — sur celui du son, si aucun ne l'est.
+  ok('« Masquer le chat » retire le chat — déchargé, pas seulement caché —, « Afficher le chat » le remet sur le chat choisi',
      avantBouton.tuiles.length === 3 && avantBouton.chatVisible === true
      && sansChat.salle.chatVisible === false && sansChat.salle.chats.length === 0 && sansChat.rapport.chatVoulu === 'non'
      && sansChat.salle.tuiles.length === 3 && grilleSaine(sansChat.salle)
      && avecChat.salle.chatVisible === true && avecChat.rapport.chatVoulu === 'oui'
-     && avecChat.salle.chats.join() === `https://www.twitch.tv/embed/${avecChat.rapport.son}/chat`,
+     && avecChat.salle.chats.join() === `https://www.twitch.tv/embed/${avecChat.rapport.chatChoisi || avecChat.rapport.son}/chat`
+     && avecChat.rapport.chatChoisi === 'charlie',
      JSON.stringify({ sansChat: { v: sansChat.salle.chatVisible, n: sansChat.salle.chats.length, c: sansChat.rapport.chatVoulu },
                       avecChat: { v: avecChat.salle.chatVisible, chats: avecChat.salle.chats, son: avecChat.rapport.son } }));
 
@@ -25592,7 +25707,8 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
   ok('deux streams, deux chats distincts : l\'autre chat dans la marge de gauche, les tuiles dans la scène',
      !!deux && deux.chats === 2 && deux.gauche.visible && deux.droite.visible
      && deux.droite.chaine === 'tardif' && deux.gauche.chaine === 'calme'
-     && deux.droite.tete === 'Chat de tardif' && deux.gauche.tete === 'Chat de calme'
+     // 4.24.0.27 : la colonne du stream qui a le son dit « Son de … », l'autre nomme son chat.
+     && deux.droite.tete === 'Son de tardif' && deux.gauche.tete === 'Chat de calme' && deux.rapport.onglets === null
      && deux.gauche.droite <= deux.scene.x && dansScene(deux)
      && deux.rapport.chatPartage === false && /^\d+ messages · 0 communs$/.test(deux.rapport.chatsCompares || ''),
      JSON.stringify(deux && { gauche: deux.gauche, droite: deux.droite, scene: deux.scene, tuiles: deux.tuiles,
@@ -25622,9 +25738,13 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
   const apresSon = await lireSalle();
   /* Mutant — le chat de droite qui suit encore le son : les deux se
      rechargeraient à chaque changement, et perdraient leurs messages. */
-  ok('…et le son qui change de tuile ne déplace ni ne recharge aucun des deux',
+  /* …et « Son de … » passe à la colonne de « calme » (4.24.0.27). Mutant —
+     l'en-tête du son figé à droite. */
+  ok('…et le son qui change de tuile ne déplace ni ne recharge aucun des deux ; « Son de calme » passe à gauche',
      apresSon?.rapport.son === 'calme' && apresSon.droite.chaine === 'tardif' && apresSon.gauche.chaine === 'calme'
-     && apresSon.droite.id === deux.droite.id && apresSon.gauche.id === deux.gauche.id,
+     && apresSon.droite.id === deux.droite.id && apresSon.gauche.id === deux.gauche.id
+     && apresSon.gauche.tete === 'Son de calme' && apresSon.droite.tete === 'Chat de tardif'
+     && apresSon.rapport.chatTitreGauche === 'Son de calme' && apresSon.rapport.chatTitre === 'Chat de tardif',
      JSON.stringify(apresSon && { son: apresSon.rapport.son, g: [apresSon.gauche.chaine, apresSon.gauche.id === deux.gauche.id],
                                   d: [apresSon.droite.chaine, apresSon.droite.id === deux.droite.id] }));
   /* SANS CHAT, PLUS DE LIGNE NON PLUS (4.24.0.10). « Masquer le chat » : les
@@ -25689,8 +25809,11 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
   await wait(page, 3500);
   const haute = await lireSalle();
   /* Mutant — la marge jamais mesurée : le second chat rognerait les tuiles. */
-  ok('sans marge assez large, un seul chat ; la marge revenue, le second aussi — et la qualité suit la taille des tuiles',
+  /* Un seul chat d'un duo qu'on sait distinct : les deux onglets
+     (4.24.0.27), celui du chat affiché — le son — choisi. */
+  ok('sans marge assez large, un seul chat, et ses deux onglets ; la marge revenue, le second aussi — et la qualité suit la taille des tuiles',
      basse?.chats === 1 && !basse.gauche.visible && dansScene(basse)
+     && basse.rapport.onglets === 'tardif [calme]' && basse.droite.tete === 'Son de calme' && haute.rapport.onglets === null
      && haute?.chats === 2 && haute.gauche.visible && dansScene(haute)
      // La qualité suit la taille des tuiles : 368 px → 360p, 504 px → 480p — un cran au-dessus, 480p et 720p.
      && basse.rapport.tuiles.tardif?.qualite === '480p30' && haute.rapport.tuiles.tardif?.qualite === '720p60',
@@ -25729,9 +25852,11 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
   await attendre(page, () => window.tse.salle.rapport().son === 'sb', 8000);
   await wait(page, 1500);
   const partage2 = await lireSalle();
-  ok('au-dessus du chat partagé, l\'en-tête dit où est le son, et le suit — « Son : sa », puis « Son : sb » —, le chat gardé sans rechargement',
-     partage?.droite.tete === 'Son : sa' && partage.rapport.chatTitre === 'Son : sa'
-     && partage2?.droite.tete === 'Son : sb' && partage2.rapport.chatTitre === 'Son : sb'
+  /* « Son de … » (4.24.0.27), et pas d'onglet : partagé, le chat est celui
+     de tous. Mutant — les onglets montrés sur un chat partagé. */
+  ok('au-dessus du chat partagé, l\'en-tête dit où est le son, et le suit — « Son de sa », puis « Son de sb » —, sans onglet, le chat gardé sans rechargement',
+     partage?.droite.tete === 'Son de sa' && partage.rapport.chatTitre === 'Son de sa' && partage.rapport.onglets === null
+     && partage2?.droite.tete === 'Son de sb' && partage2.rapport.chatTitre === 'Son de sb' && partage2.rapport.onglets === null
      && partage2.droite.chaine === 'sa' && partage2.droite.id != null && partage2.droite.id === partage.droite.id
      && partage2.chats === 1 && partage2.rapport.chatPartage === true,
      JSON.stringify({ avant: partage && [partage.droite.tete, partage.rapport.chatTitre, partage.droite.id],
@@ -25886,9 +26011,16 @@ const S_LECTEUR_SONDE = () => {
         const v = document.getElementById('v');
         class FauxLecteur {
           constructor() {
-            this.L = ({ alpha: 2, bravo: 2.5, echo: 3.6, hotel: 7.7, romeo: 3, sierra: 3.8, tango: 3.8, victor: 1.4, quebec: 4.2, uniform: 4.5 })[ch] ?? 2.2;
+            this.L = ({ alpha: 2, bravo: 2.5, echo: 3.6, hotel: 7.7, romeo: 3, sierra: 3.8, tango: 3.8, victor: 1.4, quebec: 4.2, uniform: 4.5,
+                        omega: 4.5, psi: 11.5 })[ch] ?? 2.2;
             this.t = Date.now(); this.t0 = this.t;
-            this.L0 = this.L; this.B = ch === 'echo' ? 3.2 : ch === 'uniform' ? 3.5 : 1.8; this.coupure = null;
+            this.L0 = this.L; this.B = ({ echo: 3.2, uniform: 3.5, omega: 3.5, psi: 10.5 })[ch] ?? 1.8; this.coupure = null;
+            /* LE TAMPON QUI SUIT LA LECTURE (4.24.0.27) : « psi » est 7 s
+               derrière « uniform », et ces 7 s sont téléchargées devant elle —
+               ce que montre le rapport réel de la 4.24.0.26. Une avance les
+               consomme, un recul les rend. Une tuile qui « retombe »
+               (__retomber) fait de même. */
+            this.suitTampon = ch === 'psi';
             /* LA FAIBLE LATENCE (4.24.0.21) : « india » et « juliett » l'ont, et
                leur lecteur reprend tout recul — à 1,05 ici, 1,03 au
                quatorzième rapport réel, 4,4 s en 146 secondes. « india » la
@@ -25995,7 +26127,7 @@ const S_LECTEUR_SONDE = () => {
               if (tranche !== this.tranche) { this.tranche = tranche; this.tenue = this.L; }
               return this.tenue;
             }
-            return this.L + (Date.now() >= (this.estimeDes ?? Infinity) ? 4.4 : 0);
+            return this.L + (Date.now() >= (this.estimeDes ?? Infinity) ? 4.4 : 0) + (this.estime || 0);
           }
           /* L'HEURE DE L'IMAGE JOUÉE, arrondie à la seconde (4.24.0.14) : au
              troisième rapport réel, getSyncTime a perdu ce que la lecture a
@@ -26033,6 +26165,10 @@ const S_LECTEUR_SONDE = () => {
             this.seekT = Date.now(); this.posAvant = this.pos;
             this.pos = p - cale;
             this.L += d + cale;
+            if (this.suitTampon) this.B += d + cale;
+            // Les déplacements reçus, et ceux reçus pendant une pub (4.24.0.27) : le pont n'en laisse passer aucun.
+            this.seeks = (this.seeks || 0) + 1;
+            if (document.querySelector('[data-a-target="video-ad-label"]')) this.seeksEnPub = (this.seeksEnPub || 0) + 1;
           }
           getBufferDuration() {
             // Un rechargement : une lecture aberrante du tampon, comme au rapport
@@ -26080,6 +26216,13 @@ const S_LECTEUR_SONDE = () => {
         window.__caler = (D) => { window.__lecteur.maj(); window.__lecteur.cale = { t0: Date.now(), D }; };
         // Un rechargement : la position repart de zéro, le tampon lu une fois aberrant.
         window.__recharger = () => { window.__lecteur.maj(); window.__lecteur.pos = 0; window.__lecteur.aberrantJusqua = Date.now() + 1200; };
+        /* LA TUILE QUI RETOMBE (4.24.0.27) : sa lecture x secondes plus loin du
+           direct, d'un coup, la position continuant — et le tampon avec elle,
+           ce qui manque déjà téléchargé ; le son aussi, qui suit la latence.
+           Le rapport réel de la 4.24.0.26 : 7,6 → 30,7 s, le tampon à 30. */
+        window.__retomber = (x) => { const l = window.__lecteur; l.maj(); l.L += x; l.B += x; l.suitTampon = true; };
+        // L'estimation seule qui saute, ni la lecture ni le tampon (cf. « kappa ») : x secondes de plus, lues.
+        window.__estimer = (x) => { window.__lecteur.estime = (window.__lecteur.estime || 0) + x; };
         document.getElementById('root').__reactContainer$faux = { stateNode: null, sibling: null,
           child: { stateNode: { setPlayerActive() {}, props: { mediaPlayerInstance: window.__lecteur } },
                    child: null, sibling: null } };
@@ -26145,7 +26288,9 @@ const S_LECTEUR_SONDE = () => {
                         quebec: [[0, 4470], [8, 4180, 880], [1, 3870]], india: [[0, -600], [8, -480, 880], [1, -350]], juliett: [[0, -600], [8, -480, 880], [1, -350]],
                         uniform: [[0, 0], [1, 0], [8, 0, 880]], kilo: [[0, 0], [1, 0], [8, 0, 880]],
                         november: [[0, 0], [1, 0], [8, 0, 880]], lima: [[0, 3200], [8, 3050, 880], [1, 2900]],
-                        kappa: [[0, 400]] })[ch] || [[0, 0]];
+                        kappa: [[0, 400]],
+                        // 4.24.0.27 : « omega », les trois sons de « xray », au même instant ; « psi », 7 s plus tard.
+                        omega: [[0, 0], [1, 0], [8, 0, 880]], psi: [[0, 7000], [1, 7000], [8, 7000, 880]] })[ch] || [[0, 0]];
         const v = document.getElementById('v');
         const c = document.createElement('canvas');
         c.width = 32; c.height = 18;
@@ -26171,14 +26316,14 @@ const S_LECTEUR_SONDE = () => {
         const dest = gen.createMediaStreamDestination();
         // La sortie courante du son : la première, puis celle d'un changement de source (4.24.0.22).
         let sortie = dest;
-        const piste = (voix, D, hz = voix ? 660 : 440, poids = 1) => {
+        const piste = (voix, D, hz = voix ? 660 : 440, poids = 1, fixe = false) => {
           const osc = gen.createOscillator();
           osc.frequency.value = hz;
           const g = gen.createGain();
           g.gain.value = 0;
           osc.connect(g).connect(sortie);
           osc.start();
-          return { voix, D, g, poids, prochaine: 0, dec: 0 };
+          return { voix, D, g, poids, prochaine: 0, dec: 0, fixe };
         };
         const pistes = VOIX.map(([voix, D, hz]) => piste(voix, D, hz));
         /* UNE SOURCE DE PLUS, en cours de route (4.24.0.15) : la même voix,
@@ -26213,6 +26358,39 @@ const S_LECTEUR_SONDE = () => {
           v.srcObject = new MediaStream([image, d2.stream.getAudioTracks()[0]]);
           v.play().catch(() => {});
           for (const f of captures) f.addTrack(d2.stream.getAudioTracks()[0].clone());
+        };
+        /* UNE PUB (4.24.0.27), le temps de ms : les trois repères relevés sur
+           le vrai Twitch posés dans le lecteur — cachés, comme par un
+           bloqueur, si on le dit —, le son du direct coupé, et celui de la pub
+           à sa place : une voix à elle (9), décalée de D ms, à l'heure de
+           l'horloge et non de la lecture — la même pub, servie à deux tuiles
+           à 300 ms d'écart, fait une voix commune à 300 ms. À la fin, les
+           repères partent, le direct revient ; « apres » : la lecture
+           retombée d'autant derrière le direct (cf. __retomber). */
+        let enPubFaux = false;
+        window.__pub = (ms, o = {}) => {
+          if (enPubFaux) return;
+          enPubFaux = true;
+          const marques = [['data-a-target', 'video-ad-label'], ['data-a-target', 'video-ad-countdown'],
+                           ['data-test-selector', 'ad-banner-default-text']].map(([a, v]) => {
+            const e = document.createElement('div');
+            e.setAttribute(a, v);
+            e.textContent = 'Pub';
+            if (o.cachee) e.style.display = 'none';
+            document.body.appendChild(e);
+            return e;
+          });
+          const poids = pistes.map((p) => p.poids);
+          for (let i = 0; i < pistes.length; i++) window.__taireVoix(i, 0);
+          const pub = piste(o.voix ?? 9, o.D ?? 0, 1320, 1, true);
+          pistes.push(pub);
+          setTimeout(() => {
+            for (const e of marques) e.remove();
+            window.__taireVoix(pistes.indexOf(pub), 0);
+            poids.forEach((w, i) => window.__taireVoix(i, w));
+            if (o.apres) window.__retomber(o.apres);
+            enPubFaux = false;
+          }, ms);
         };
         // Tout le son de la tuile qui saute de ms, la lecture ne bougeant pas (4.24.0.17).
         window.__decalerSon = (ms) => {
@@ -26260,10 +26438,11 @@ const S_LECTEUR_SONDE = () => {
           const mur = Date.now(), ctx = gen.currentTime;
           const dec = decalage();
           for (const p of pistes) {
-            // La tête de lecture a bougé : ce qui était prévu ne vaut plus.
-            if (Math.abs(dec - p.dec) > 2) { p.g.gain.cancelScheduledValues(ctx); p.prochaine = 0; }
-            p.dec = dec;
-            const D = p.D + dec;
+            // La tête de lecture a bougé : ce qui était prévu ne vaut plus. Le son d'une pub, lui, ne la suit pas.
+            const de = p.fixe ? 0 : dec;
+            if (Math.abs(de - p.dec) > 2) { p.g.gain.cancelScheduledValues(ctx); p.prochaine = 0; }
+            p.dec = de;
+            const D = p.D + de;
             const k0 = Math.floor((mur - D) / TRANCHE);
             for (let k = Math.max(p.prochaine, k0); k < k0 + 20; k++) {
               const t = ctx + ((k * TRANCHE + D) - mur) / 1000;
@@ -28499,6 +28678,284 @@ const S_LECTEUR_SONDE = () => {
      && r.calage?.faibleLatence === null && r.tuiles?.india?.faibleLatence === true && r.tuiles?.india?.essai === null
      && r.ecoute?.actif === false && Object.keys(r.tuiles || {}).length === 2,
      JSON.stringify({ sansCapture, reponse, calage: r.calage, india: [r.tuiles?.india?.faibleLatence, r.tuiles?.india?.essai], ecoute: r.ecoute?.actif }));
+  await page.close();
+}
+
+/* ═════════ LA PUB, À TOUT MOMENT (4.24.0.27) ══════════════════════════════
+   À la demande : « que le système de calage soit bien optimisé à ce qu'il
+   puisse y avoir des publicités qui arrivent à n'importe quel moment ». Les
+   pubs vues sur le vrai Twitch (4.24.0.5) : une pub d'entrée de 14 s sur
+   deux lecteurs à la fois, 378 s en deux coupures sur un troisième. Celles du
+   rapport réel de la 4.24.0.26 : trois, dont une sur la référence, qui en
+   est sortie 3 s plus loin du direct. Le faux lecteur fait la sienne : les
+   trois repères posés, le son du direct coupé et celui de la pub à sa place
+   (cf. __pub). Ici, à l'échelle 0,1 du calage : « xray », la référence ;
+   « omega », ses trois sons au même instant ; « mike », une voix 0,3 s
+   derrière. */
+{
+  titre('192. La pub, à tout moment — ni écoutée, ni jugée, ni déplacée ; la référence en pub, tout attend ; après, la place reprise');
+  const page = await freshTwitch(S_LECTEUR_SONDE(), [], '/directory', () => {
+    localStorage.setItem('tse:roue', 'vu');
+    document.addEventListener('DOMContentLoaded', () => {
+      const st = document.createElement('style');
+      st.textContent = '#side-nav { width: 240px; }';
+      document.head.appendChild(st);
+    });
+  });
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  const rapport = () => page.evaluate(() => window.tse.salle.rapport()).catch(() => ({}));
+  const cadre = (ch) => page.frames().find((f) => f.url().includes('channel=' + ch) && !f.isDetached());
+  const journal = (r) => Object.values(r.calage?.journal || {});
+  const gestes = (r) => journal(r).filter((x) => / → /.test(x)).map((x) => x.replace(/^\+\d+ s · /, ''));
+  const tant = (fn, ms, arg = null) => page.waitForFunction(fn, arg, { timeout: ms, polling: 500 }).then(() => true).catch(() => false);
+  const pub = (ch, ms, o = {}) => cadre(ch)?.evaluate(([m, x]) => window.__pub(m, x), [ms, o]).catch(() => null);
+  const seeks = (ch) => cadre(ch)?.evaluate(() => [window.__lecteur.seeks || 0, window.__lecteur.seeksEnPub || 0]).catch(() => null);
+  // Où sont vraiment les sons, lu dans les faux lecteurs (cf. le 188). En ms, positif : en avance.
+  const prise = (ch) => cadre(ch)?.evaluate(() => { const l = window.__lecteur; l.maj(); return (l.L - l.L0) * 1000; }).catch(() => null);
+  const vraie = async (ch, D) => {
+    const t = await prise(ch), r = await prise('xray');
+    return t == null || r == null ? null : Math.round(-(D + t - r));
+  };
+  // « mike » passe sa voix 300 ms après la référence — 750 une fois décalée, plus bas.
+  const calees = async (ms, dMike = 300) => {
+    for (const t0 = Date.now(); Date.now() - t0 < ms; await wait(page, 2_000)) {
+      const k = (await rapport()).calage;
+      if (k?.etat === 'actif · calée' && k?.tuiles?.omega === 'calée' && k?.tuiles?.mike === 'calée'
+        && Math.abs(await vraie('omega', 0) ?? 1e9) < 150 && Math.abs(await vraie('mike', dMike) ?? 1e9) < 150) return true;
+    }
+    return false;
+  };
+
+  /* LA MÊME PUB SUR LA RÉFÉRENCE ET SUR « omega », 300 ms plus tard sur
+     elle, quarante secondes, dès l'ouverture — le cas des pubs d'entrée
+     réelles. Laissée à l'écoute, elle ferait une voix commune à 300 ms, que
+     rien ne distingue d'une vraie : « omega » déplacée de 0,3 s pour une pub.
+     Mais la référence est en pub : rien n'est calculé, rien n'est jugé, le
+     calage attend et le dit, paire par paire. Mutants — l'enveloppe d'une
+     pub écoutée ; la référence en pub qui n'attend pas. */
+  await page.evaluate(() => window.tse.salle.ouvrir('xray', 'omega', 'mike'));
+  await attendre(page, () => (window.tse.salle.rapport().instant?.tours || 0) >= 4, 20_000);
+  await pub('xray', 40_000, { D: 0 });
+  await pub('omega', 40_000, { D: 300 });
+  await page.evaluate(() => window.tse.salle.auto(0.1)).catch(() => {});
+  const vuesA = await tant(() => {
+    const r = window.tse.salle.rapport();
+    return r.tuiles?.xray?.pub === true && r.tuiles?.omega?.pub === true && r.calage?.etat === 'actif · la référence est en pub';
+  }, 15_000);
+  const calculsA = (await rapport()).ecoute?.calculs;
+  await wait(page, 25_000);
+  const rA = await rapport();
+  ok('la référence et une tuile en pub, la même, à 300 ms : rien n\'est écouté ni jugé — le calage attend, et le dit',
+     vuesA && rA.tuiles?.xray?.pub === true && rA.tuiles?.omega?.pub === true && rA.ecoute?.calculs === calculsA
+     && gestes(rA).length === 0 && rA.calage?.etat === 'actif · la référence est en pub'
+     && rA.calage?.mesures?.omega === 'en attente : la référence est en pub' && rA.calage?.mesures?.mike === 'en attente : la référence est en pub'
+     && journal(rA).some((x) => /xray : en pub — ni écoutée, ni jugée, ni déplacée ; référence : tout attend$/.test(x))
+     && journal(rA).some((x) => /omega : en pub — ni écoutée, ni jugée, ni déplacée$/.test(x))
+     && rA.tuiles.xray.pubS >= 20 && rA.tuiles.xray.pubCachee === false,
+     JSON.stringify({ vuesA, calculs: [calculsA, rA.ecoute?.calculs], gestes: gestes(rA), etat: rA.calage?.etat, mesures: rA.calage?.mesures,
+                      journal: journal(rA), xray: [rA.tuiles?.xray?.pub, rA.tuiles?.xray?.pubS, rA.tuiles?.xray?.pubCachee] }));
+
+  /* Les pubs finies, leur mesure rouverte : tout se cale, sur le vrai son —
+     « omega » à zéro, « mike » à 0,3 s. Au rapport : chaque pub, et sa fin. */
+  const calA = await calees(240_000);
+  const rA2 = await rapport();
+  ok('…les pubs finies, leur mesure repart : tout se cale sur le vrai son, et le rapport dit chaque pub',
+     calA && rA2.tuiles?.xray?.pubsVues === 1 && rA2.tuiles?.omega?.pubsVues === 1 && rA2.tuiles?.mike?.pubsVues === 0
+     && /^\+\d+→\+\d+ s/.test(rA2.tuiles?.omega?.pubsDetail || '') && rA2.tuiles.omega.pubS >= 38 && rA2.tuiles.omega.pubS <= 42
+     && journal(rA2).some((x) => /xray : fin de pub — sa mesure repart, et celle de toutes$/.test(x))
+     && /^son \+\d+ s · pubs 1 · \d+ s · référence$/.test(rA2.calage?.chronologie?.xray || '')
+     && /pubs 1 · \d+ s · rouverte/.test(rA2.calage?.chronologie?.omega || ''),
+     JSON.stringify({ calA, pubs: ['xray', 'omega', 'mike'].map((n) => [n, rA2.tuiles?.[n]?.pubsVues, rA2.tuiles?.[n]?.pubS, rA2.tuiles?.[n]?.pubsDetail]),
+                      chrono: rA2.calage?.chronologie, gestes: gestes(rA2), vraies: [await vraie('omega', 0), await vraie('mike', 300)] }));
+
+  /* UNE PUB AU MILIEU, SUR UNE TUILE CALÉE — et elle en sort 8 s plus loin
+     du direct, comme la référence du rapport réel en est sortie 3 s plus
+     loin. Pendant la pub, « mike » prend 0,45 s de retard : la référence
+     recule pour elle — et « omega », en pub, ne la suit pas : rien ne
+     s'envoie à une pub. Après, « omega » a retombé de 8 s derrière sa
+     place, son tampon aussi : elle la reprend en avançant, et le son finit.
+     Mutants — la tuile en pub entraînée par la référence ; la place jamais
+     reprise. */
+  const avantB = await seeks('omega');
+  const nB = gestes(await rapport()).length;
+  await pub('omega', 80_000, { D: 0, apres: 8 });
+  await tant(() => window.tse.salle.rapport().tuiles?.omega?.pub === true, 10_000);
+  await cadre('mike')?.evaluate(() => window.__decalerSon(450)).catch(() => null);
+  const suit = await tant((n) => Object.values(window.tse.salle.rapport().calage?.journal || {})
+    .filter((x) => / → /.test(x)).slice(n).some((x) => /mike en retard de .* → xray recule de /.test(x)), 75_000, nB);
+  const rB1 = await rapport();
+  const pendant = await seeks('omega');
+  const geste = gestes(rB1).slice(nB).find((x) => /mike en retard de .* → xray recule de /.test(x)) || '';
+  ok('une tuile calée en pub n\'est pas entraînée : la référence recule pour une autre, et rien ne s\'envoie à la pub',
+     suit && rB1.tuiles?.omega?.pub === true && !/omega/.test(geste) && rB1.calage?.tuiles?.omega === 'libre'
+     && !!avantB && !!pendant && pendant[0] === avantB[0] && pendant[1] === 0,
+     JSON.stringify({ suit, geste, pub: rB1.tuiles?.omega?.pub, etat: rB1.calage?.tuiles?.omega, seeks: [avantB, pendant] }));
+  const reprise = await tant(() => Object.values(window.tse.salle.rapport().calage?.journal || {})
+    .some((x) => /omega : retombée derrière sa place de [78]\.\d+ s — .* → elle reprend sa place : avance de [78]\.\d+ s$/.test(x)), 90_000);
+  const calB = await calees(240_000, 750);
+  const rB2 = await rapport();
+  const detail = /avant (\d+\.?\d*) s \(tampon [\d.]+\) · après (\d+\.?\d*) s/.exec((rB2.tuiles?.omega?.pubsDetail || '').split(' ; ')[1] || '');
+  ok('…et elle sort de sa pub 8 s plus loin du direct, son tampon avec elle : elle reprend sa place en avançant, et tout se recale',
+     reprise && calB && !!detail && Math.abs(Number(detail[2]) - Number(detail[1]) - 8) < 0.6
+     && rB2.tuiles.omega.retombees >= 1 && /omega 1/.test(rB2.calage?.reprises || '') && rB2.tuiles.omega.pubsVues === 2,
+     JSON.stringify({ reprise, calB, detail: rB2.tuiles?.omega?.pubsDetail, retombees: rB2.tuiles?.omega?.retombees, reprises: rB2.calage?.reprises,
+                      journal: journal(rB2).slice(-12), mesures: rB2.calage?.mesures, etats: rB2.calage?.tuiles, coups: rB2.calage?.corrections,
+                      vraies: [await vraie('omega', 0), await vraie('mike', 750)] }));
+
+  /* UNE PUB CACHÉE — par un bloqueur, qui laisse la pub jouer : ses repères
+     sont là, pas visibles. C'est une pub. Et rien ne s'y déplace : la
+     console refuse, et le pont refuse un ordre qui arriverait quand même.
+     Mutants — la pub lue à sa visibilité ; le pont qui déplace une pub. */
+  await pub('mike', 15_000, { cachee: true });
+  const vueC = await tant(() => window.tse.salle.rapport().tuiles?.mike?.pub === true, 10_000);
+  const rC = await rapport();
+  const refusConsole = await page.evaluate(() => window.tse.salle.recul('mike', 1)).catch((e) => ({ exception: String(e) }));
+  const avantC = await seeks('mike');
+  await page.evaluate(() => {
+    const f = [...document.querySelectorAll('#tse-salle iframe[name="tse-salle"]')].find((x) => x.title === 'mike');
+    f?.contentWindow.postMessage({ tse: 'tse:salle-ordre', ordre: 'essai-recul', duree: 1 }, 'https://player.twitch.tv');
+  });
+  await wait(page, 2_500);
+  const rC2 = await rapport();
+  const apresC = await seeks('mike');
+  ok('une pub cachée par un bloqueur reste une pub ; rien ne s\'y déplace — la console refuse, le pont aussi',
+     vueC && rC.tuiles?.mike?.pubCachee === true && /mike est en pub : rien ne se déplace/.test(refusConsole?.erreur || '')
+     && rC2.tuiles?.mike?.essai === 'recul 1 · refusé : pub · fini' && !!avantC && !!apresC && apresC[0] === avantC[0],
+     JSON.stringify({ vueC, mike: [rC.tuiles?.mike?.pub, rC.tuiles?.mike?.pubCachee], refusConsole, essai: rC2.tuiles?.mike?.essai, seeks: [avantC, apresC] }));
+
+  /* LA FAIBLE LATENCE D'UNE TUILE EN PUB attend la fin de la pub : rien ne
+     s'envoie à une pub. « india », en faible latence, en pub d'entrée vingt
+     secondes. Mutant — la faible latence retirée pendant la pub. */
+  await page.evaluate(() => window.tse.salle.ouvrir('xray', 'india'));
+  await attendre(page, () => (window.tse.salle.rapport().instant?.tours || 0) >= 3, 20_000);
+  await pub('india', 20_000);
+  await tant(() => window.tse.salle.rapport().tuiles?.india?.pub === true, 10_000);
+  await page.evaluate(() => window.tse.salle.auto(0.1)).catch(() => {});
+  const pendantD = await (async () => { await wait(page, 8_000); return rapport(); })();
+  const retiree = await tant(() => /india retirée à \+\d+ s/.test(window.tse.salle.rapport().calage?.faibleLatence || ''), 40_000);
+  const rD = await rapport();
+  const jD = journal(rD);
+  const iFin = jD.findIndex((x) => /india : fin de pub/.test(x)), iLL = jD.findIndex((x) => /india : faible latence retirée/.test(x));
+  ok('la faible latence d\'une tuile en pub n\'est retirée qu\'à la fin de la pub',
+     pendantD.tuiles?.india?.pub === true && pendantD.tuiles?.india?.faibleLatence === true && pendantD.tuiles?.india?.essai === null
+     && pendantD.calage?.faibleLatence === null && retiree && iFin >= 0 && iLL > iFin,
+     JSON.stringify({ pendant: [pendantD.tuiles?.india?.pub, pendantD.tuiles?.india?.faibleLatence, pendantD.tuiles?.india?.essai, pendantD.calage?.faibleLatence],
+                      retiree, journal: jD }));
+  await page.close();
+}
+
+/* ═════════ LA TUILE QUI RETOMBE, ET LE GRAND ÉCART (4.24.0.27) ═══════════
+   Le rapport réel de la 4.24.0.26 : une tuile passée de 7,6 à 30,7 s de
+   latence d'un coup, son tampon à 30 s — sa lecture 23 s plus loin du
+   direct, tout ce qui manquait téléchargé devant elle ; une autre de 11,1 à
+   19,7, son tampon de 9,9 à 15,9. L'écoute ne cherche qu'à ±6 s : rien ne
+   les corrigeait. Ici, à l'échelle 0,1 : une tuile qui retombe de 20 s ;
+   l'estimation seule qui saute de 6 s, le tampon immobile — on ne bouge
+   pas ; et, à l'ouverture, « psi », 7 s derrière, latence et tampon
+   d'accord — le grand écart. */
+{
+  titre('193. La tuile qui retombe derrière le direct reprend sa place ; l\'estimation seule ne bouge rien ; le grand écart, au-delà de l\'écoute');
+  const page = await freshTwitch(S_LECTEUR_SONDE(), [], '/directory', () => {
+    localStorage.setItem('tse:roue', 'vu');
+    document.addEventListener('DOMContentLoaded', () => {
+      const st = document.createElement('style');
+      st.textContent = '#side-nav { width: 240px; }';
+      document.head.appendChild(st);
+    });
+  });
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  const rapport = () => page.evaluate(() => window.tse.salle.rapport()).catch(() => ({}));
+  const cadre = (ch) => page.frames().find((f) => f.url().includes('channel=' + ch) && !f.isDetached());
+  const journal = (r) => Object.values(r.calage?.journal || {});
+  const gestes = (r) => journal(r).filter((x) => / → /.test(x)).map((x) => x.replace(/^\+\d+ s · /, ''));
+  const tant = (fn, ms, arg = null) => page.waitForFunction(fn, arg, { timeout: ms, polling: 500 }).then(() => true).catch(() => false);
+  const prise = (ch) => cadre(ch)?.evaluate(() => { const l = window.__lecteur; l.maj(); return (l.L - l.L0) * 1000; }).catch(() => null);
+  // Le décalage vrai de « b » face à « a », dont le son passe D ms plus tard : positif, en avance.
+  const vraie = async (a, b, D) => {
+    const t = await prise(b), r = await prise(a);
+    return t == null || r == null ? null : Math.round(-(D + t - r));
+  };
+  const calee = async (ref, n, D, ms) => {
+    for (const t0 = Date.now(); Date.now() - t0 < ms; await wait(page, 2_000)) {
+      const k = (await rapport()).calage;
+      if (k?.etat === 'actif · calée' && k?.tuiles?.[n] === 'calée' && Math.abs(await vraie(ref, n, D) ?? 1e9) < 150) return true;
+    }
+    return false;
+  };
+
+  await page.evaluate(() => window.tse.salle.ouvrir('xray', 'omega'));
+  await attendre(page, () => (window.tse.salle.rapport().instant?.tours || 0) >= 4, 20_000);
+  await page.evaluate(() => window.tse.salle.auto(0.1)).catch(() => {});
+  const cal0 = await calee('xray', 'omega', 0, 200_000);
+  await tant(() => !!window.tse.salle.rapport().tuiles?.omega?.place, 30_000);
+
+  /* L'ESTIMATION SEULE : la latence lue de « omega » prend 6 s, ni sa
+     lecture ni son tampon ne bougent — ce qu'ont fait deux lecteurs réels
+     après la faible latence retirée. Rien ne bouge ; tenu vingt secondes,
+     c'est sa nouvelle place. Mutant — le tampon jamais consulté : elle
+     « reprendrait » 6 s qu'elle n'a pas perdues. */
+  const g0 = gestes(await rapport()).length;
+  await cadre('omega')?.evaluate(() => window.__estimer(6)).catch(() => null);
+  const rebase = await tant(() => window.tse.salle.rapport().tuiles?.omega?.placeRebases >= 1, 60_000);
+  const rE = await rapport();
+  ok('l\'estimation seule qui saute, le tampon immobile : rien ne bouge, et c\'est sa nouvelle place',
+     cal0 && rebase && rE.tuiles?.omega?.retombees === 0 && gestes(rE).slice(g0).every((x) => !/omega (avance|recule)|elle reprend/.test(x))
+     && Math.abs(await vraie('xray', 'omega', 0) ?? 1e9) < 150,
+     JSON.stringify({ cal0, rebase, place: rE.tuiles?.omega?.place, retombees: rE.tuiles?.omega?.retombees, gestes: gestes(rE).slice(g0),
+                      vraie: await vraie('xray', 'omega', 0) }));
+
+  /* LA TUILE QUI RETOMBE de 20 s, sans pub : sa lecture, son son et son
+     tampon. L'écoute n'y peut rien ; sa place, si : elle avance de ce
+     qu'elle a pris, et le son finit. Une coupure qui laisse plus d'une
+     seconde de tampon, en passant : comptée, plus notée au journal.
+     Mutants — la place jamais reprise ; la reprise qui avance de la latence
+     seule ; la coupure sans conséquence notée. */
+  const coupuresAvant = (await rapport()).tuiles?.omega?.serie?.coupures ?? null;
+  await cadre('omega')?.evaluate(() => window.__coupure(2.2)).catch(() => null);
+  await wait(page, 6_000);
+  const rK = await rapport();
+  await cadre('omega')?.evaluate(() => window.__retomber(20)).catch(() => null);
+  const repriseR = await tant(() => Object.values(window.tse.salle.rapport().calage?.journal || {})
+    .some((x) => /omega : retombée derrière sa place de (19\.[5-9]|20\.[0-4])\d* s — latence [\d.]+ → [\d.]+ s, tampon [\d.]+ → [\d.]+ s → elle reprend sa place : avance de 20\.\d+ s$/.test(x)), 60_000);
+  const calR = await calee('xray', 'omega', 0, 200_000);
+  const rR = await rapport();
+  ok('une tuile qui retombe de 20 s derrière le direct, son tampon avec elle : elle reprend sa place, et le son la recale',
+     repriseR && calR && rR.tuiles?.omega?.retombees === 1
+     && rK.tuiles?.omega?.serie?.coupures === coupuresAvant + 1
+     && !Object.values(rK.instant?.evenements || {}).some((x) => /omega · coupure d'arrivée/.test(x)),
+     JSON.stringify({ repriseR, calR, retombees: rR.tuiles?.omega?.retombees, coupures: [coupuresAvant, rK.tuiles?.omega?.serie?.coupures],
+                      journal: journal(rR).slice(-6), vraie: await vraie('xray', 'omega', 0) }));
+
+  /* LE GRAND ÉCART, À L'OUVERTURE : « psi » 7 s derrière la référence —
+     au-delà des ±6 s que l'écoute cherche —, sa latence et son tampon
+     d'accord. Sans verdict du son, celle qui est derrière avance de
+     l'écart ; le son finit. Puis la même salle, « psi » en référence :
+     c'est elle qui est derrière TOUTES les autres — elle avance. La
+     référence est « uniform », les trois sons de « xray » et 3,5 s de
+     tampon : arrivée à sa hauteur, « psi » en garde autant — sous deux
+     secondes, rien ne s'avance. Mutants — le grand écart jamais fait ; la
+     référence derrière, et la tuile qu'on recule de 7 s au lieu de
+     l'avancer, elle. */
+  await page.evaluate(() => window.tse.salle.ouvrir('uniform', 'psi'));
+  await attendre(page, () => (window.tse.salle.rapport().instant?.tours || 0) >= 4, 20_000);
+  await page.evaluate(() => window.tse.salle.auto(0.1)).catch(() => {});
+  const ecartG = await tant(() => Object.values(window.tse.salle.rapport().calage?.journal || {})
+    .some((x) => /psi derrière la référence de 7\.\d\d s, au-delà de ce que le son entend — latences et tampons d'accord \([−-]7\d{3} · [−-][67]\d{3} ms\) → psi avance de 7\.\d+ s$/.test(x)), 90_000);
+  const calG = await calee('uniform', 'psi', 7000, 200_000);
+  const rG = await rapport();
+  ok('le grand écart : 7 s, au-delà de l\'écoute, latence et tampon d\'accord — celle qui est derrière avance, et le son la recale',
+     ecartG && calG && rG.calage?.corrections >= 1,
+     JSON.stringify({ ecartG, calG, journal: journal(rG), vraie: await vraie('uniform', 'psi', 7000) }));
+  await page.evaluate(() => window.tse.salle.ouvrir('psi', 'uniform'));
+  await attendre(page, () => (window.tse.salle.rapport().instant?.tours || 0) >= 4, 20_000);
+  await page.evaluate(() => window.tse.salle.auto(0.1)).catch(() => {});
+  const ecartR = await tant(() => Object.values(window.tse.salle.rapport().calage?.journal || {})
+    .some((x) => /uniform devant la référence de 7\.\d\d s, au-delà de ce que le son entend — .* → psi avance de 7\.\d+ s$/.test(x)), 90_000);
+  const calRf = await calee('psi', 'uniform', -7000, 200_000);
+  const rRf = await rapport();
+  ok('…et la référence derrière toutes les autres : c\'est elle qui avance',
+     ecartR && calRf && !gestes(rRf).some((x) => /uniform recule de [67]\./.test(x)),
+     JSON.stringify({ ecartR, calRf, journal: journal(rRf), vraie: await vraie('psi', 'uniform', -7000) }));
   await page.close();
 }
 
