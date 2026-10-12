@@ -2180,6 +2180,96 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## Des boutons qui se voient, et rien qui reste pendant la salle (v4.24.0.29)
+
+Deux retours sur la 4.24.0.28, captures à l'appui. D'abord : « le "Regarder
+les 2" reste quand on est dans ce salon. J'aimerais que tu le retires pendant
+que je suis sur ce salon. Ça cache une partie de la carte. » Ensuite : « Les 4
+suivis | Tout le co-stream · 6 », « on dirait pas que ce sont des éléments
+cliquables. C'est pareil pour "Regarder les 2" : il faudrait que l'on
+comprenne direct qu'il faut passer la souris dessus pour choisir ou
+cliquer. » Publiée sur `claude/chrome-multi` seulement.
+
+### Pourquoi « Regarder les 2 » restait
+
+La capture le montre : le « ▶ » agrandi, cerclé d'un anneau clair, son
+étiquette ouverte — l'allure du **focus clavier**, pas celle du survol.
+Chromium donne le focus au bouton qu'on clique ; ouverte sur place, la salle
+se règle ensuite au clavier (les touches 1 à 6 donnent le son), et la
+première touche rend le bouton qui a le focus `:focus-visible` : étiquette,
+anneau et taille agrandie s'affichaient, et restaient. Le choix de la barre
+avait le même défaut par `:focus-within` : cliqué à la souris, il restait
+ouvert sur la carte pendant toute la salle.
+
+- **Un clic de souris ne laisse plus le focus** au bouton — au nœud, au
+  « ▶ », aux deux choix. Au clavier (Entrée, Espace), il reste où on l'a mis.
+- **Pendant sa salle, plus d'étiquette du tout** — même survolé : le « ▶ »
+  d'une carte seule, comme le nœud d'une barre sans choix. Elle invitait à
+  ouvrir ce qui l'est déjà. Le choix de la barre, lui, reste au survol : il
+  passe des suivis à tout le co-stream.
+
+### ▶ pour ouvrir, ■ pour arrêter
+
+Une salle ouverte change le symbole de ce qui la referme : le nœud, le « ▶ »
+d'une carte seule, et le choix qui l'a ouverte portent un **■**. Le code des
+lecteurs, qu'on lit sans étiquette : le clic arrêtera. L'autre choix garde son
+▶ — il ouvrira l'autre salle.
+
+### Des boutons, et non des étiquettes
+
+« Les 4 suivis | Tout le co-stream · 6 » était un aplat coupé en deux par un
+trait : un libellé, rien d'un bouton. Ils prennent les marques qu'on
+reconnaît sans les lire :
+
+| | avant | maintenant |
+| --- | --- | --- |
+| la forme | une bande, deux moitiés | **deux boutons l'un sous l'autre**, séparés ; en colonne, ils tiennent dans la largeur de la barre latérale, même dans les langues longues |
+| le relief | une ombre floue | **une arête claire en haut, une ombre franche dessous, un bord** : ils sortent de la carte au lieu de s'y peindre |
+| le symbole | aucun | **▶ devant chacun** — ce qu'il lance ; ■ quand sa salle est ouverte |
+| sous la souris | à peine plus clair | **plus clair et soulevé d'un pixel** ; enfoncé au clic |
+| le rond | rien au survol | **un anneau clair** dès qu'on le survole, avant même le choix |
+| « Regarder les 2 », « Regarder les 3 » | des étiquettes transparentes à la souris : seul le rond se cliquait | **des boutons** au même relief, qui se cliquent eux-mêmes ; un pont de six pixels les relie à leur rond |
+
+**Plus d'infobulle sur le rond, barre étendue.** Celle du navigateur s'ouvrait
+sous la souris et recouvrait le second choix (la seconde capture). Les
+chaînes passent dans l'infobulle de chaque choix — et, sur « Tout le
+co-stream », le raccourci Maj+clic ; sur l'étiquette d'un « ▶ ». En barre
+réduite, où il n'y a ni étiquette ni choix, l'infobulle du rond reste : elle
+y est seule à nommer les chaînes et le raccourci. Le nom accessible, lui, ne
+change pas.
+
+### À vérifier sur le vrai Twitch
+
+| point | ce qui le dira |
+| --- | --- |
+| les deux boutons, sur la carte du milieu de la barre : se lisent-ils comme des boutons ? | l'œil — à dire |
+| une salle ouverte depuis la page « Parcourir », puis les touches 1 à 6 : plus rien ne s'affiche sur la carte | l'œil |
+
+### Ce que le banc mesure
+
+- **194**, repris : pas d'infobulle sur le rond en barre étendue ; les deux
+  choix l'un sous l'autre, chacun en relief (trois ombres), arrondi, la main,
+  le ▶ ; sous la souris, plus clair et soulevé, l'autre non ; le rond cerclé
+  au survol ; le raccourci dans l'infobulle de « tout » ; salle ouverte, ■
+  sur le rond et sur « tout », ▶ sur « suivis » ; cliqué à la souris, le choix
+  sans le focus, refermé dès que la souris part — et rien qui s'ouvre là où
+  il dort ; « Regarder les 6 », un bouton, cliqué sur l'étiquette ; dans sa
+  salle, plus d'étiquette même survolé, ■, ni focus ni `:focus-visible`
+  après une touche ; en barre réduite, l'infobulle à la place. 21
+  assertions.
+
+| mutant | ce qui tombe |
+| --- | --- |
+| l'étiquette montrée sur un « ▶ » enfoncé (1) | 194 : « Regarder les 6 » au survol, la salle ouverte |
+| le focus laissé au bouton après un clic de souris (1) | 194 : le choix gardé ouvert par `:focus-within` ; le « ▶ » focalisé |
+| pas de ■ (1) | 194 : le triangle sur le rond, sur « tout », sur le « ▶ » enfoncés |
+| les choix côte à côte ; sans relief ; le survol sans réponse ; le rond sans anneau ; le raccourci perdu (5) | 194 : « ce sont des boutons » |
+| les étiquettes transparentes à la souris (1) | 194 : « Regarder les 6 » cliqué sans effet — neuf assertions |
+| l'infobulle du rond toujours ; jamais (2) | 194 : barre étendue, elle couvre le choix ; réduite, plus rien ne nomme les chaînes |
+| les boutons du choix masqué qui reçoivent la souris (1) | 194 : le choix rouvert par la souris arrivée d'ailleurs que du rond |
+
+Douze mutants, douze pris.
+
 ## Tout le co-stream depuis la barre, et le « ▶ » à la place de la pastille (v4.24.0.28)
 
 Le signalement, sur une capture : quatre chaînes suivies en barre, « Regarder
@@ -17190,7 +17280,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 193 scénarios, 1634 assertions |
+| `npm test` | le harnais Playwright : 193 scénarios, 1637 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -17211,12 +17301,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1591 Ko | 639 Ko | 4 059 → **2** |
+| `content.js` | 1597 Ko | 642 Ko | 4 064 → **2** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
 | `panneau.js` | 107 Ko | 51 Ko | 149 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 22 → **0** |
-| **les cinq** | **1847 Ko** | **796 Ko** | **−57 %** |
+| **les cinq** | **1853 Ko** | **799 Ko** | **−57 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se

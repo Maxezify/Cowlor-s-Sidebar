@@ -5021,20 +5021,84 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
        sa boîte, et centré géométriquement il paraît penché vers la gauche. */
     .tse-noeud__symbole { display: flex; align-items: center; margin-left: 1px; }
     .tse-noeud svg { width: 4px; height: 5px; fill: currentColor; }
-    .tse-noeud__etiquette {
+    /* ▶ POUR OUVRIR, ■ POUR ARRÊTER (4.24.0.29) : une salle ouverte change le
+       symbole de ce qui la referme — le nœud, le « ▶ » d'une carte seule, le
+       choix qui l'a ouverte. Le code des lecteurs : on lit sans étiquette ce
+       que fera le clic. Le carré n'a pas le décalage du triangle. */
+    #tse-noeuds .tse-icone-arret { display: none; }
+    #tse-noeuds [aria-pressed="true"] .tse-icone-lecture { display: none; }
+    #tse-noeuds [aria-pressed="true"] .tse-icone-arret { display: block; }
+    #tse-noeuds [aria-pressed="true"] > .tse-noeud__symbole { margin-left: 0; }
+    /* LE SURVOL DU ROND SE VOIT (4.24.0.29) : un anneau clair, avant même
+       l'étiquette — le rond est un bouton, et il le dit sous la souris. */
+    .tse-noeud:hover { box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.75), 0 1px 3px rgba(0, 0, 0, 0.35); }
+
+    /* === Ce qu'on clique à côté du rond : des BOUTONS (4.24.0.29) ===
+       SIGNALÉ : « Les 4 suivis | Tout le co-stream · 6 », « Regarder les 2 » —
+       « on dirait pas que ce sont des éléments cliquables ». C'étaient des
+       étiquettes : un aplat, un texte, rien d'un bouton. Ils en prennent les
+       marques, celles qu'on reconnaît sans les lire :
+         — UN RELIEF : une arête claire en haut, une ombre franche dessous, un
+           bord ; ils sortent de la carte au lieu de s'y peindre ;
+         — UNE RÉPONSE À LA SOURIS : plus clairs et soulevés d'un pixel au
+           survol, enfoncés au clic ;
+         — LE SYMBOLE DE CE QU'ILS FONT : ▶ devant chaque choix (■ quand sa
+           salle est ouverte) ;
+         — SÉPARÉS : deux boutons l'un sous l'autre, et non une bande coupée en
+           deux, qui se lisait comme un seul libellé. En colonne, ils tiennent
+           aussi dans la largeur de la barre latérale, même dans les langues
+           longues.
+       L'étiquette d'un nœud sans choix (« Regarder les 3 ») et celle du « ▶ »
+       d'une carte seule (« Regarder les 2 ») SONT désormais cliquables : elles
+       font partie de leur bouton, un pont de six pixels les y relie. */
+    .tse-noeud__etiquette,
+    .tse-noeud__option,
+    .tse-pastille-salle__etiquette {
+      margin: 0; padding: 4px 9px; border-radius: 6px; box-sizing: border-box;
+      border: 1px solid rgba(0, 0, 0, 0.3);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 2px 0 rgba(0, 0, 0, 0.45),
+                  0 4px 10px rgba(0, 0, 0, 0.4);
+      font-family: inherit; font-size: 11px; font-weight: 700; line-height: 1;
+      white-space: nowrap; cursor: pointer; pointer-events: auto;
+      transition: filter 80ms ease, transform 80ms ease, box-shadow 80ms ease;
+    }
+    .tse-noeud__etiquette,
+    .tse-noeud__option { background: var(--tse-noeud-couleur, #9147ff); color: #0e0e10; }
+    .tse-pastille-salle__etiquette { background: ${CFG.PURPLE}; color: #fff; }
+    /* Les étiquettes : à droite de leur rond, centrées sur lui. Le ::before est
+       le pont — il appartient au bouton, la souris qui le traverse ne quitte
+       pas le survol. */
+    .tse-noeud__etiquette,
+    .tse-pastille-salle__etiquette {
       display: none; position: absolute; left: calc(100% + 6px); top: 50%;
-      transform: translateY(-50%); padding: 3px 8px; border-radius: 4px;
-      background: var(--tse-noeud-couleur, #9147ff); color: #0e0e10;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35); pointer-events: none;
+      transform: translateY(-50%);
+    }
+    .tse-noeud__etiquette::before,
+    .tse-pastille-salle__etiquette::before {
+      content: ''; position: absolute; right: 100%; top: -1px; bottom: -1px; width: 8px;
     }
     .tse-noeud:hover .tse-noeud__etiquette,
     .tse-noeud:focus-visible .tse-noeud__etiquette { display: block; }
+    .tse-noeud__etiquette:hover,
+    .tse-pastille-salle__etiquette:hover { filter: brightness(1.12); transform: translateY(calc(-50% - 1px)); }
+    .tse-noeud__etiquette:active,
+    .tse-pastille-salle__etiquette:active {
+      transform: translateY(calc(-50% + 1px));
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 0 0 rgba(0, 0, 0, 0);
+    }
     .tse-noeud:focus-visible { outline: 2px solid var(--tse-texte); outline-offset: 1px; }
     /* Sa salle est ouverte : un anneau de la couleur de la barre, au-delà du
        liseré — le nœud enfoncé se lit de loin. */
     .tse-noeud[aria-pressed="true"] {
       box-shadow: 0 0 0 2px var(--tse-noeud-couleur, #9147ff), 0 1px 3px rgba(0, 0, 0, 0.35);
     }
+    /* PENDANT SA SALLE, PLUS D'ÉTIQUETTE (4.24.0.29). SIGNALÉ : « "Regarder
+       les 2" reste quand on est dans ce salon […] ça cache une partie de la
+       carte ». Elle invitait à ouvrir ce qui l'est déjà ; le ■ dit ce que
+       fera le clic. Le choix, lui, reste : il passe des suivis à tout le
+       co-stream. */
+    #tse-noeuds [aria-pressed="true"] > .tse-noeud__etiquette,
+    #tse-noeuds [aria-pressed="true"] > .tse-pastille-salle__etiquette { display: none !important; }
     /* Barre réduite : le symbole seul, même au survol — il n'y a pas la
        place d'écrire l'étiquette à côté d'un avatar. */
     .tse-noeud--reduit:hover .tse-noeud__etiquette,
@@ -5044,7 +5108,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     /* === Le choix : les suivis, ou tout le co-stream (4.24.0.28) ===
        Quand la session compte des membres qui diffusent hors de la barre —
        ceux qu'on ne suit pas —, l'étiquette devient deux boutons : « Les 4
-       suivis » | « Tout le co-stream · 6 ». Pas DANS le nœud : un bouton ne
+       suivis » et « Tout le co-stream · 6 ». Pas DANS le nœud : un bouton ne
        contient pas de boutons. Juste après lui, collé à son bord droit ; la
        marge intérieure de gauche est le PONT que la souris traverse du rond
        aux choix sans les perdre. Au clavier, ils suivent le nœud dans l'ordre
@@ -5052,10 +5116,12 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
        MASQUÉS PAR L'OPACITÉ, ET NON PAR « display » : un bouton sans boîte ne
        prend pas le focus, et la tabulation qui quitte le nœud — l'instant où
        il n'a plus le focus et où le choix ne l'a pas encore — trouvait le
-       choix sans boîte : le focus tombait sur la page. Mesuré au banc. */
+       choix sans boîte : le focus tombait sur la page. Mesuré au banc.
+       L'UN SOUS L'AUTRE depuis la 4.24.0.29 (cf. plus haut). */
     .tse-noeud--choix .tse-noeud__etiquette { display: none !important; }
     .tse-noeud__choix {
-      display: flex; position: absolute; transform: translateY(-50%);
+      display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
+      position: absolute; transform: translateY(-50%);
       padding-left: 6px; z-index: 1; white-space: nowrap;
       font-family: inherit; font-size: 11px; font-weight: 700; line-height: 1;
       opacity: 0; pointer-events: none;
@@ -5064,22 +5130,24 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     .tse-noeud:focus-visible + .tse-noeud__choix,
     .tse-noeud__choix:hover,
     .tse-noeud__choix:focus-within { opacity: 1; pointer-events: auto; }
+    /* Masqué, aucun de ses boutons ne reçoit la souris — pas même par héritage. */
+    .tse-noeud__choix .tse-noeud__option { pointer-events: inherit; }
     /* Barre réduite : pas la place d'écrire — Maj+clic sur le rond. */
     .tse-noeud--reduit + .tse-noeud__choix { display: none !important; }
-    .tse-noeud__option {
-      margin: 0; padding: 3px 8px; border: 0;
-      background: var(--tse-noeud-couleur, #9147ff); color: #0e0e10;
-      font: inherit; cursor: pointer;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+    .tse-noeud__option { display: flex; align-items: center; gap: 5px; }
+    .tse-noeud__option svg { width: 6px; height: 7px; fill: currentColor; flex: none; }
+    .tse-noeud__option .tse-icone-arret { width: 6px; height: 6px; }
+    .tse-noeud__option:hover { filter: brightness(1.12); transform: translateY(-1px); }
+    .tse-noeud__option:active {
+      transform: translateY(1px);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 0 0 rgba(0, 0, 0, 0);
     }
-    .tse-noeud__option:first-child { border-radius: 4px 0 0 4px; }
-    .tse-noeud__option:last-child {
-      border-radius: 0 4px 4px 0; border-left: 1px solid rgba(14, 14, 16, 0.35);
-    }
-    .tse-noeud__option:hover { filter: brightness(1.15); }
     .tse-noeud__option:focus-visible { outline: 2px solid var(--tse-texte); outline-offset: 1px; }
-    /* La salle de ce choix est ouverte : un trait sombre à l'intérieur. */
-    .tse-noeud__option[aria-pressed="true"] { box-shadow: inset 0 0 0 2px #0e0e10, 0 1px 3px rgba(0, 0, 0, 0.35); }
+    /* La salle de ce choix est ouverte : un trait sombre à l'intérieur, et ■. */
+    .tse-noeud__option[aria-pressed="true"] {
+      box-shadow: inset 0 0 0 2px rgba(14, 14, 16, 0.85), 0 2px 0 rgba(0, 0, 0, 0.45),
+                  0 4px 10px rgba(0, 0, 0, 0.4);
+    }
 
     /* === Le « ▶ » à la place de la pastille (4.24.0.28) ===
        Une chaîne seule de son co-stream dans la liste, dont d'autres membres
@@ -5104,7 +5172,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       transition: transform 120ms ease;
     }
     .tse-pastille-salle .tse-noeud__symbole { position: relative; transition: transform 120ms ease; }
-    .tse-pastille-salle svg { width: 5px; height: 6px; fill: currentColor; }
+    .tse-pastille-salle .tse-noeud__symbole svg { width: 5px; height: 6px; fill: currentColor; }
+    .tse-pastille-salle .tse-noeud__symbole .tse-icone-arret { width: 5px; height: 5px; }
     .tse-pastille-salle:hover::before,
     .tse-pastille-salle:focus-visible::before,
     .tse-pastille-salle:hover .tse-noeud__symbole,
@@ -5113,18 +5182,15 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     .tse-pastille-salle[aria-pressed="true"]::before {
       box-shadow: 0 0 0 2px var(--color-background-base, #0e0e10), 0 0 0 4px ${CFG.PURPLE};
     }
-    .tse-pastille-salle__etiquette {
-      display: none; position: absolute; left: calc(100% + 6px); top: 50%;
-      transform: translateY(-50%); padding: 3px 8px; border-radius: 4px;
-      background: ${CFG.PURPLE}; color: #fff;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35); pointer-events: none;
-    }
     .tse-pastille-salle:hover .tse-pastille-salle__etiquette,
     .tse-pastille-salle:focus-visible .tse-pastille-salle__etiquette { display: block; }
     .tse-pastille-salle--reduit .tse-pastille-salle__etiquette { display: none !important; }
     @media (prefers-reduced-motion: reduce) {
       .tse-pastille-salle::before,
-      .tse-pastille-salle .tse-noeud__symbole { transition: none; }
+      .tse-pastille-salle .tse-noeud__symbole,
+      .tse-noeud__etiquette,
+      .tse-noeud__option,
+      .tse-pastille-salle__etiquette { transition: none; }
     }
 
     /* === Chaîne dont on est ABONNÉ ===
@@ -16554,7 +16620,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
      chaîne seule de son co-stream, sur son avatar. Ce qu'ils ouvrent, et
      pourquoi : cf. entreesSalle. */
   const noeudsSalle = (() => {
-    const TRIANGLE = '<svg viewBox="0 0 8 10" aria-hidden="true"><path d="M0 0v10l8-5z"/></svg>';
+    const TRIANGLE = '<svg class="tse-icone-lecture" viewBox="0 0 8 10" aria-hidden="true"><path d="M0 0v10l8-5z"/></svg>';
+    // ■ : la salle est ouverte, le clic l'arrête (4.24.0.29, cf. la feuille).
+    const CARRE = '<svg class="tse-icone-arret" viewBox="0 0 8 8" aria-hidden="true"><path d="M0 0h8v8H0z"/></svg>';
     const parCle = new Map();     // les logins de la barre → le nœud
     const choixDe = new Map();    // les logins de la barre → son choix « suivis | tout »
     const parCarte = new Map();   // le login d'une carte seule → son « ▶ »
@@ -16627,15 +16695,33 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       if (ordreTous) b.dataset.tseTous = ordreTous; else delete b.dataset.tseTous;
       const nom = S.uiNoeudAria(listeNoms(membres));
       b.setAttribute('aria-label', nom);
-      b.title = tous ? `${nom}\n${S.uiNoeudMaj(tous.length)}` : nom;
+      b.dataset.tseTitre = tous ? `${nom}\n${S.uiNoeudMaj(tous.length)}` : nom;
       b.classList.toggle('tse-noeud--choix', !!tous);
+    };
+    /* L'INFOBULLE, EN BARRE RÉDUITE SEULEMENT (4.24.0.29). Étendue, l'étiquette
+       ou le choix disent déjà ce que fait le rond, et l'infobulle du
+       navigateur, qui s'ouvre sous la souris, recouvrait le second choix. Le
+       nom accessible, lui, reste en toutes circonstances. */
+    const titrer = (el) => {
+      const t = sidebarCollapsed ? (el.dataset.tseTitre || '') : '';
+      if (t) { if (el.title !== t) el.title = t; }
+      else if (el.hasAttribute('title')) el.removeAttribute('title');
     };
     const symbole = () => {
       const s = document.createElement('span');
       s.className = 'tse-noeud__symbole';
-      s.appendChild(noeudStatique(TRIANGLE));
+      s.append(noeudStatique(TRIANGLE), noeudStatique(CARRE));
       return s;
     };
+    /* UN CLIC DE SOURIS NE LAISSE PAS LE FOCUS SUR LE BOUTON (4.24.0.29).
+       SIGNALÉ, CAPTURE À L'APPUI : « "Regarder les 2" reste quand on est
+       dans ce salon ». Chromium donne le focus au bouton cliqué ; ouverte sur
+       place, la salle se règle ensuite au clavier — les touches 1 à 6 — et
+       le premier appui rend le bouton :focus-visible : son étiquette, son
+       anneau, sa taille agrandie s'affichaient et restaient. Le choix, lui,
+       restait ouvert par :focus-within. Au clavier (`detail` à 0), le focus
+       reste où on l'a mis. */
+    const lacher = (e, el) => { if (e.detail > 0) el.blur(); };
     /* UN CLIC OUVRE LA SALLE DE LA BARRE ; UN SECOND LA REFERME — celle de
        la barre comme celle de tout le co-stream. MAJ+CLIC (4.24.0.28) : tout
        le co-stream, ceux qu'on ne suit pas compris ; c'est le seul chemin
@@ -16652,6 +16738,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       b.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
+        lacher(e, b);
         clics += 1;
         const tous = liste(b.dataset.tseTous);
         if (e.shiftKey && tous) { agir(tous, true); return; }
@@ -16673,9 +16760,14 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         o.type = 'button';
         o.className = `tse-noeud__option ${classe}`;
         o.setAttribute('aria-pressed', 'false');
+        // ▶ devant le texte (■ quand sa salle est ouverte) : un bouton qui lance.
+        const texte = document.createElement('span');
+        texte.className = 'tse-noeud__texte';
+        o.append(noeudStatique(TRIANGLE), noeudStatique(CARRE), texte);
         o.addEventListener('click', (e) => {
           e.preventDefault();
           e.stopPropagation();
+          lacher(e, o);
           clics += 1;
           const n = parCle.get(cle);
           const membres = n ? liste(versTous ? n.dataset.tseTous : n.dataset.tseNoeud) : null;
@@ -16689,13 +16781,15 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       return { boite, suivis, tous };
     };
     /* Le texte visible EST le nom du bouton — « Les 4 suivis » se dit comme il
-       se lit, et se commande à la voix de même ; les chaînes, dans le titre.
+       se lit, et se commande à la voix de même ; les chaînes, dans le titre —
+       et, sur « tout », le raccourci qui l'ouvre depuis le rond.
        En Top Chaînes, la barre n'est pas « suivie » : « Regarder les 4 ». */
     const garnirChoix = (c, membres, tous, classement) => {
-      ecrire(c.suivis, classement ? S.uiNoeudRegarder(membres.length) : S.uiNoeudSuivis(membres.length));
-      ecrire(c.tous, S.uiNoeudTous(tous.length));
+      ecrire(c.suivis.querySelector('.tse-noeud__texte'),
+             classement ? S.uiNoeudRegarder(membres.length) : S.uiNoeudSuivis(membres.length));
+      ecrire(c.tous.querySelector('.tse-noeud__texte'), S.uiNoeudTous(tous.length));
       const a = S.uiNoeudAria(listeNoms(membres));
-      const t = S.uiNoeudAria(listeNoms(tous));
+      const t = `${S.uiNoeudAria(listeNoms(tous))}\n${S.uiNoeudMaj(tous.length)}`;
       if (c.suivis.title !== a) c.suivis.title = a;
       if (c.tous.title !== t) c.tous.title = t;
     };
@@ -16711,6 +16805,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       b.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
+        lacher(e, b);
         clicsPastilles += 1;
         const membres = liste(b.dataset.tseNoeud);
         if (membres) agir(membres);
@@ -16723,8 +16818,11 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       p.dataset.tseNoeud = ordre;
       const nom = S.uiNoeudAria(listeNoms(membres));
       p.setAttribute('aria-label', nom);
-      p.title = nom;
-      ecrire(p.querySelector('.tse-pastille-salle__etiquette'), S.uiNoeudRegarder(membres.length));
+      // Les chaînes : sur le rond en barre réduite (cf. titrer), sur l'étiquette sinon.
+      p.dataset.tseTitre = nom;
+      const etiquette = p.querySelector('.tse-pastille-salle__etiquette');
+      ecrire(etiquette, S.uiNoeudRegarder(membres.length));
+      etiquette.title = nom;
     };
     const poserStyle = (el, prop, v) => { if (el.style.getPropertyValue(prop) !== v) el.style.setProperty(prop, v); };
 
@@ -16759,6 +16857,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         poserStyle(n, 'left', `${gauche}px`);
         poserStyle(n, '--tse-noeud-couleur', couleur);
         n.classList.toggle('tse-noeud--reduit', sidebarCollapsed);
+        titrer(n);
         // Le choix, collé au bord droit du rond, à sa hauteur, à sa couleur.
         const c = choixDe.get(cle);
         if (c) {
@@ -16778,6 +16877,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         poserStyle(p, 'left', `${Math.round(r.right - 5 - origine.left)}px`);
         poserStyle(p, 'top', `${Math.round(r.bottom - 5 - origine.top)}px`);
         p.classList.toggle('tse-pastille-salle--reduit', sidebarCollapsed);
+        titrer(p);
       }
     };
     const suivre = (section) => {

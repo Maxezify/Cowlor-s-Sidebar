@@ -2059,6 +2059,94 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## Buttons that look like buttons, and nothing left over during the room (v4.24.0.29)
+
+Two pieces of feedback on 4.24.0.28, with screenshots. First: "the 'Watch all
+2' stays while I am in this room. I would like you to remove it while I am in
+this room. It hides part of the card." Then: "'4 followed | Whole co-stream ·
+6' does not look like clickable elements. Same for 'Watch all 2': one should
+understand right away that you hover it to choose or click." Published on
+`claude/chrome-multi` only.
+
+### Why "Watch all 2" stayed
+
+The screenshot shows it: the "▶" enlarged, circled by a light ring, its label
+open — the look of **keyboard focus**, not of hover. Chromium gives focus to
+the clicked button; opened in place, the room is then handled with the
+keyboard (keys 1 to 6 give the sound), and the first key press makes the
+focused button `:focus-visible`: label, ring and enlarged size showed, and
+stayed. The bar's choice had the same flaw through `:focus-within`: clicked
+with the mouse, it stayed open on the card for the whole room.
+
+- **A mouse click no longer leaves focus** on the button — the node, the
+  "▶", the two choices. With the keyboard (Enter, Space), focus stays where
+  it was put.
+- **During its room, no label at all** — even on hover: a lone card's "▶",
+  like the node of a bar without a choice. It invited to open what is already
+  open. The bar's choice still shows on hover: it switches between the
+  followed ones and the whole co-stream.
+
+### ▶ to open, ■ to stop
+
+An open room changes the symbol of what closes it: the node, a lone card's
+"▶", and the choice that opened it carry a **■**. The players' code, read
+without a label: the click will stop. The other choice keeps its ▶ — it will
+open the other room.
+
+### Buttons, not labels
+
+"4 followed | Whole co-stream · 6" was a flat band cut in two by a line: a
+label, nothing of a button. They take the marks one recognises without
+reading:
+
+| | before | now |
+| --- | --- | --- |
+| the shape | one band, two halves | **two buttons, one under the other**, separate; in a column, they fit the sidebar's width, even in long languages |
+| the depth | a blurred shadow | **a light top edge, a sharp shadow underneath, a border**: they stand out from the card instead of being painted on it |
+| the symbol | none | **▶ in front of each** — what it starts; ■ when its room is open |
+| under the mouse | barely lighter | **lighter and lifted by one pixel**; pressed down on click |
+| the round | nothing on hover | **a light ring** as soon as it is hovered, before the choice even shows |
+| "Watch all 2", "Watch all 3" | labels the mouse went through: only the round could be clicked | **buttons** with the same depth, clickable themselves; a six-pixel bridge links them to their round |
+
+**No more tooltip on the round, expanded sidebar.** The browser's opened
+under the mouse and covered the second choice (the second screenshot). The
+channels move to each choice's tooltip — and, on "Whole co-stream", the
+Shift+click shortcut; to the label of a "▶". On the collapsed sidebar, with
+neither label nor choice, the round's tooltip stays: it alone names the
+channels and the shortcut there. The accessible name does not change.
+
+### To check on real Twitch
+
+| point | what will tell |
+| --- | --- |
+| the two buttons, over the bar's middle card: do they read as buttons? | the eye — to be said |
+| a room opened from the "Browse" page, then keys 1 to 6: nothing shows on the card any more | the eye |
+
+### What the bench measures
+
+- **194**, revisited: no tooltip on the round on the expanded sidebar; the
+  two choices one under the other, each with depth (three shadows), rounded,
+  the hand, the ▶; under the mouse, lighter and lifted, the other not; the
+  round ringed on hover; the shortcut in "whole"'s tooltip; room open, ■ on
+  the round and on "whole", ▶ on "followed"; clicked with the mouse, the
+  choice without focus, closed as soon as the mouse leaves — and nothing
+  opening where it sleeps; "Watch all 6", a button, clicked on its label; in
+  its room, no label even on hover, ■, neither focus nor `:focus-visible`
+  after a key press; on the collapsed sidebar, the tooltip instead. 21
+  assertions.
+
+| mutant | what falls |
+| --- | --- |
+| the label shown on a pressed "▶" (1) | 194: "Watch all 6" on hover, the room open |
+| focus left on the button after a mouse click (1) | 194: the choice kept open by `:focus-within`; the "▶" focused |
+| no ■ (1) | 194: the triangle on the pressed round, "whole" and "▶" |
+| the choices side by side; no depth; hover without response; the round without a ring; the shortcut lost (5) | 194: "these are buttons" |
+| labels the mouse goes through (1) | 194: "Watch all 6" clicked to no effect — nine assertions |
+| the round's tooltip always; never (2) | 194: expanded, it covers the choice; collapsed, nothing names the channels any more |
+| the hidden choice's buttons receiving the mouse (1) | 194: the choice reopened by the mouse arriving from elsewhere than the round |
+
+Twelve mutants, twelve caught.
+
 ## The whole co-stream from the bar, and the "▶" in place of the pill (v4.24.0.28)
 
 The report, on a screenshot: four followed channels in a bar, "Watch all 4"
@@ -16653,7 +16741,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 193 scenarios, 1634 assertions |
+| `npm test` | the Playwright harness: 193 scenarios, 1637 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -16673,12 +16761,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1591 KB | 639 KB | 4,059 → **2** |
+| `content.js` | 1597 KB | 642 KB | 4,064 → **2** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
 | `panneau.js` | 107 KB | 51 KB | 149 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
 | `background.js` | 9 KB | 2 KB | 22 → **0** |
-| **all five** | **1847 KB** | **796 KB** | **−57 %** |
+| **all five** | **1853 KB** | **799 KB** | **−57 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are
