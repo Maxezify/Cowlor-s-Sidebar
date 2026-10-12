@@ -484,7 +484,7 @@
     "message": "Co-streams"
   },
   "guideCostreamTexte": {
-    "message": "A purple dot in the corner of the avatar, with the number of participants: this channel is streaming with others. Visible in the list, with nothing to hover.\n• A purple badge then says who is hosting and who is a guest, and with whom.\n• A sort of its own groups them at the top of the list (chapter $1).\n• When several members follow each other in the list, their bars become one, and a “▶” button sits on it: one click opens them together on the page, in the multistream room. A click on a tile gives it the sound, and the chat follows; with two streams and no Shared Chat, both chats frame the players when there is room. The Escape key, or a second click on the button, closes the room."
+    "message": "A purple dot in the corner of the avatar, with the number of participants: this channel is streaming with others. Visible in the list, with nothing to hover.\n• A purple badge then says who is hosting and who is a guest, and with whom.\n• A sort of its own groups them at the top of the list (chapter $1).\n• When several members follow each other in the list, their bars become one, and a “▶” button sits on it, in place of their dots: one click opens them together on the page, in the multistream room. On hover, “Whole co-stream” adds those you do not follow — Shift+click too. Alone from its co-stream in the list, a channel wears that “▶” instead of its dot. A click on a tile gives it the sound, and the chat follows; with two streams and no Shared Chat, both chats frame the players when there is room. The Escape key, or a second click on the button, closes the room."
   },
   "guideDebutTitre": {
     "message": "Starts, and comebacks"
@@ -654,11 +654,14 @@
   "optCollab": {
     "message": "Collaboration pill"
   },
+  "optDescCollab": {
+    "message": "On the avatar, how many streamers the channel is co-streaming with. Hidden in Top Channels, and wherever the multistream room puts its “▶” — on the bar, or in its place. Off: no number pill at all; the “▶” stays, it belongs to the room."
+  },
   "optSalle": {
     "message": "Multistream room"
   },
   "optDescSalle": {
-    "message": "A “▶” button on a co-stream's bar opens its streams together, on the page. Off: no button, no room."
+    "message": "A “▶” button opens a co-stream's streams together, on the page: on its bar, or on the avatar of a channel alone from its co-stream. On the bar, on hover or with Shift+click: the whole co-stream, including those you don't follow. Off: no button, no room, and the pills are numbers again."
   },
   "optSalleAuto": {
     "message": "Automatic alignment"

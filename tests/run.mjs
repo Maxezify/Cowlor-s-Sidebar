@@ -28959,6 +28959,483 @@ const S_LECTEUR_SONDE = () => {
   await page.close();
 }
 
+/* ═════════ TOUT LE CO-STREAM DEPUIS LA BARRE, ET LE « ▶ » DE LA CARTE SEULE ══
+   LE SIGNALEMENT (4.24.0.28), sur une capture : quatre chaînes suivies en
+   barre, « Regarder les 4 » — et six personnes dans le co-stream, dont deux
+   qu'on ne suit pas. Demandé : regarder les quatre, ou les six, d'un geste,
+   depuis la barre latérale. Puis, dans la foulée : la pastille d'une chaîne
+   seule de son co-stream devient le nœud ; plus de pastille en Top Chaînes,
+   ni sur une barre ; agrandie au survol ; des nombres quand le multistream est
+   coupé ; et le réglage de la pastille, indépendant de celui de la salle.
+
+   LE DÉCOR rejoue la capture, et ce qu'elle ne montrait pas :
+     — « aube », « brume », « cime », « dune » suivies, en barre ; « ecume » et
+       « flot » dans la session, non suivies, qui diffusent ; « givre », invité
+       qui ne diffuse pas sur sa chaîne — rien à ouvrir pour lui ;
+     — « hale », seule suivie d'une session de huit : six qui diffusent hors
+       d'elle (la salle n'en prend que six en tout), et « jade » qui ne
+       diffuse pas ;
+     — « kilo », dont le seul camarade ne diffuse pas : sa pastille reste un
+       nombre ;
+     — « solo » : un « +2 » de Twitch et aucune session connue — un nombre.
+   Les constantes de production, comme au 176 : un balayage de trop doit se
+   remarquer. */
+{
+  titre('194. Tout le co-stream depuis la barre, et le « ▶ » à la place de la pastille');
+  const { page, ratees } = await pageVariante([
+    [/REFRESH_TICK:\s*100\b/, 'REFRESH_TICK:   5_000'],
+    [/LIVE_TTL:\s*600\b/, 'LIVE_TTL:       30_000'],
+    [/SUBS_PAGE_TTL:\s*4_000\b/, 'SUBS_PAGE_TTL: 6 * 60 * 60_000'],
+  ], null, '/directory');
+  ok('la variante porte le réveil, la fraîcheur et le relevé de production',
+     ratees.length === 0, JSON.stringify(ratees));
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.route('https://player.twitch.tv/**', (route) => route.fulfill({
+    contentType: 'text/html; charset=utf-8', body: '<!doctype html><html><body style="margin:0;background:#000"></body></html>' }));
+  await page.route('https://www.twitch.tv/embed/**', (route) => route.fulfill({
+    contentType: 'text/html; charset=utf-8', body: '<!doctype html><html><body></body></html>' }));
+  /* La bulle de bienvenue, qui s'ouvre quand elle veut, passerait devant un
+     « ▶ » de la barre réduite : elle n'est pas le sujet, elle est rangée. */
+  await page.addStyleTag({ content: '#side-nav { width: 240px; overflow-x: hidden; }'
+    + ' #root.side-nav--collapsed #side-nav { width: 50px; } #tse-bulle { display: none !important; }' });
+  /* LES DÉBUTS SONT CHOISIS POUR LE TRI PAR DURÉE, plus bas : « dune » a
+     démarré bien après les autres, et « kilo » se glissera entre elle et sa
+     barre — elle s'en détachera. Ceux qu'on ne suit pas ont leur fiche : la
+     salle demande à Twitch si les streams qu'elle montre sont en direct. */
+  await page.evaluate(() => {
+    const il = (min) => new Date(Date.now() - min * 60_000).toISOString();
+    const c = (id, v, min) => ({ id, createdAt: il(min), viewers: v, game: 'Valheim', tags: [] });
+    window.__fx = {
+      solo: c('9401', 50000, 180),
+      aube: c('9411', 9000, 60), brume: c('9412', 8900, 59), cime: c('9413', 8800, 58), dune: c('9414', 8700, 20),
+      ecume: c('9415', 700, 61), flot: c('9416', 600, 62),
+      hale: c('9421', 5000, 120), iris: c('9422', 20000, 130), kaki: c('9423', 900, 131), lilas: c('9424', 800, 132),
+      mauve: c('9425', 700, 133), nacre: c('9426', 600, 134), ocre: c('9427', 500, 135),
+      kilo: c('9431', 3000, 40),
+    };
+    const m = (id, login, viewers, combined, sansStream) =>
+      ({ id, login, viewers, combined, ...(sansStream ? { sansStream: true } : {}) });
+    // L'ordre de la session : celui que Twitch rendrait, et que « tout » suit.
+    const sept = [m('9411', 'aube', 9000, 40000), m('9412', 'brume', 8900, 40000), m('9415', 'ecume', 700, 40000),
+                  m('9413', 'cime', 8800, 40000), m('9417', 'givre', 0, null, true), m('9416', 'flot', 600, 40000),
+                  m('9414', 'dune', 8700, 40000)];
+    const huit = [m('9422', 'iris', 20000, 30000), m('9421', 'hale', 5000, 30000), m('9428', 'jade', 0, null, true),
+                  m('9423', 'kaki', 900, 30000), m('9424', 'lilas', 800, 30000), m('9425', 'mauve', 700, 30000),
+                  m('9426', 'nacre', 600, 30000), m('9427', 'ocre', 500, 30000)];
+    const deux = [m('9431', 'kilo', 3000, 3500), m('9432', 'lune', 0, null, true)];
+    window.__gs = {};
+    for (const g of sept) window.__gs[g.id] = { hostId: '9411', hostLogin: 'aube', guests: sept };
+    for (const g of huit) window.__gs[g.id] = { hostId: '9422', hostLogin: 'iris', guests: huit };
+    for (const g of deux) window.__gs[g.id] = { hostId: '9431', hostLogin: 'kilo', guests: deux };
+    for (const [l, v] of [['solo', '50 k'], ['aube', '40 k'], ['brume', '40 k'], ['cime', '40 k'], ['dune', '40 k'],
+                          ['hale', '30 k'], ['kilo', '3,5 k']]) {
+      const carte = window.__addCard(l, 'Valheim', v);
+      if (l === 'solo') {
+        const sp = document.createElement('span');
+        sp.textContent = '+2';
+        carte.querySelector('[data-a-target="side-nav-card-metadata"]').appendChild(sp);
+      }
+    }
+  });
+  await attendre(page, () => !document.body.classList.contains('tse-loading')
+    && document.querySelectorAll('.side-nav-card.tse-costream').length === 4
+    && !!document.querySelector('#tse-noeuds .tse-noeud__choix')
+    && !!document.querySelector('#tse-noeuds .tse-pastille-salle'), 15_000);
+  await wait(page, 300);
+
+  const lire = () => page.evaluate(() => {
+    const carte = (l) => document.querySelector(`.side-nav-card[data-tse-login="${l}"]`);
+    const pastille = (l) => {
+      const c = carte(l);
+      const b = c ? c.querySelector('.tse-collab-badge') : null;
+      return { marque: c ? (c.dataset.tsePastille ?? null) : null, texte: b ? b.textContent : null,
+               vue: !!b && b.getClientRects().length > 0 };
+    };
+    const n = document.querySelector('#tse-noeuds .tse-noeud');
+    const choix = n && n.nextElementSibling && n.nextElementSibling.classList.contains('tse-noeud__choix')
+      ? n.nextElementSibling : null;
+    const opt = (sel) => {
+      const o = choix ? choix.querySelector(sel) : null;
+      if (!o) return null;
+      const r = o.getBoundingClientRect();
+      return { texte: o.textContent, presse: o.getAttribute('aria-pressed'), titre: o.title,
+               nom: o.getAttribute('aria-label'), x: r.left + r.width / 2, y: r.top + r.height / 2 };
+    };
+    const rn = n ? n.getBoundingClientRect() : null;
+    const pastilles = [...document.querySelectorAll('#tse-noeuds .tse-pastille-salle')].map((p) => {
+      const membres = p.dataset.tseNoeud.split(' ');
+      const av = carte(membres[0])?.querySelector('.tse-collab-host');
+      const ra = av ? av.getBoundingClientRect() : null;
+      const r = p.getBoundingClientRect();
+      const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+      const touche = document.elementFromPoint(cx, cy);
+      return { membres, aria: p.getAttribute('aria-label'), presse: p.getAttribute('aria-pressed'),
+               etiquette: getComputedStyle(p.querySelector('.tse-pastille-salle__etiquette')).display,
+               texte: p.querySelector('.tse-pastille-salle__etiquette').textContent,
+               // Au centre exact de la pastille qu'il remplace (16 px, 3 px de débord).
+               dx: ra ? Math.round((cx - (ra.right - 5)) * 10) / 10 : null,
+               dy: ra ? Math.round((cy - (ra.bottom - 5)) * 10) / 10 : null,
+               w: Math.round(r.width * 10) / 10, echelle: getComputedStyle(p, '::before').transform,
+               reduit: p.classList.contains('tse-pastille-salle--reduit'),
+               dessus: !!touche && (touche === p || p.contains(touche)), x: cx, y: cy };
+    });
+    const cartes = {};
+    for (const l of ['solo', 'aube', 'brume', 'cime', 'dune', 'hale', 'kilo']) cartes[l] = pastille(l);
+    const couche = document.getElementById('tse-noeuds');
+    return {
+      noeud: n ? { barre: n.dataset.tseNoeud, tous: n.dataset.tseTous ?? null, aria: n.getAttribute('aria-label'),
+                   titre: n.title, presse: n.getAttribute('aria-pressed'),
+                   etiquette: getComputedStyle(n.querySelector('.tse-noeud__etiquette')).display,
+                   reduit: n.classList.contains('tse-noeud--reduit'),
+                   x: rn.left + rn.width / 2, y: rn.top + rn.height / 2, droite: rn.right } : null,
+      noeuds: document.querySelectorAll('#tse-noeuds .tse-noeud').length,
+      // Montré : une boîte, opaque, qui reçoit la souris (masqué, il garde sa boîte pour le focus).
+      choix: choix ? { affiche: getComputedStyle(choix).display !== 'none' && getComputedStyle(choix).opacity === '1'
+                         && getComputedStyle(choix).pointerEvents !== 'none' ? 'montre' : 'masque',
+                       gauche: Math.round(choix.getBoundingClientRect().left * 10) / 10,
+                       suivis: opt('.tse-noeud__option--barre'), tous: opt('.tse-noeud__option--tous') } : null,
+      choixTotal: document.querySelectorAll('#tse-noeuds .tse-noeud__choix').length,
+      pastilles, cartes, calque: couche ? getComputedStyle(couche).display : null,
+      focus: document.activeElement?.className || null,
+      selection: String(getSelection()),
+      apercu: !!document.querySelector('.tse-preview[data-tse-visible="true"]'),
+    };
+  });
+  const salle = () => page.evaluate(() => ({
+    ouverte: !!document.getElementById('tse-salle'),
+    chaines: [...document.querySelectorAll('#tse-salle .tse-salle__tuile, #tse-salle .tse-salle__remplacant')]
+      .map((t) => t.dataset.tseSalleChaine).join(),
+    origine: window.tse.salle.rapport().origine, fermeture: window.tse.salle.rapport().fermeture,
+    chemin: location.pathname,
+  }));
+  const pastilleDe = (e, l) => e.pastilles.find((p) => p.membres[0] === l);
+  const vers = async (p) => { if (p && Number.isFinite(p.x)) await page.mouse.move(p.x, p.y); };
+  const clic = async (p, maj = false) => {
+    if (!p || !Number.isFinite(p.x)) return;
+    if (maj) await page.keyboard.down('Shift');
+    await page.mouse.click(p.x, p.y);
+    if (maj) await page.keyboard.up('Shift');
+    await wait(page, 300);
+  };
+  const loin = async () => { await page.mouse.move(900, 700); await wait(page, 200); };
+
+  const e1 = await lire();
+  /* Mutants — l'invité qui ne diffuse pas compté ; ceux qu'on ne suit pas
+     oubliés (pas de choix) ; le titre sans le raccourci. */
+  ok('la barre des quatre suivis garde son nœud ; tout le co-stream y ajoute les deux qu\'on ne suit pas — pas l\'invité qui ne diffuse pas',
+     e1.noeuds === 1 && e1.noeud?.barre === 'aube brume cime dune'
+     && e1.noeud?.tous === 'aube brume cime dune ecume flot' && e1.choixTotal === 1
+     && e1.choix?.affiche === 'masque' && e1.noeud?.etiquette === 'none'
+     && /aube/.test(e1.noeud?.aria) && /dune/.test(e1.noeud?.aria) && !/ecume/.test(e1.noeud?.aria)
+     && e1.noeud?.titre.includes('Maj+clic : tout le co-stream (6)'),
+     JSON.stringify({ noeud: e1.noeud, choix: e1.choix, n: e1.choixTotal }));
+  /* Mutants — la règle de la feuille retirée (les nombres restent sous la
+     barre et sous le « ▶ ») ; l'élément retiré au lieu d'être masqué (la
+     détection de secours et le rapport ne le liraient plus) ; le « ▶ » posé
+     sur une carte dont le seul camarade ne diffuse pas, ou sans session. */
+  const vus = (e) => Object.fromEntries(Object.entries(e.cartes).map(([l, p]) => [l, [p.marque, p.texte, p.vue]]));
+  ok('les pastilles : effacées sur la barre et sous le « ▶ », toujours là dans la carte ; un nombre pour « kilo » et « solo »',
+     ['aube', 'brume', 'cime', 'dune'].every((l) => e1.cartes[l].marque === 'barre' && e1.cartes[l].texte === '6' && !e1.cartes[l].vue)
+     && e1.cartes.hale.marque === 'seule' && e1.cartes.hale.texte === '7' && !e1.cartes.hale.vue
+     && e1.cartes.kilo.marque === null && e1.cartes.kilo.texte === '1' && e1.cartes.kilo.vue
+     && e1.cartes.solo.marque === null && e1.cartes.solo.texte === '2' && e1.cartes.solo.vue,
+     JSON.stringify(vus(e1)));
+  const h1 = pastilleDe(e1, 'hale');
+  /* Mutants — le « ▶ » décalé du coin de l'avatar ; les six de la salle
+     dépassés (la session en a sept qui diffusent avec elle) ; « jade » compté. */
+  ok('« hale », seule de son co-stream : un « ▶ » au coin exact de l\'avatar, qui ouvrira elle et cinq autres — la salle en prend six',
+     e1.pastilles.length === 1 && !!h1 && h1.membres.join() === 'hale,iris,kaki,lilas,mauve,nacre'
+     && Math.abs(h1.dx) <= 1 && Math.abs(h1.dy) <= 1 && h1.w === 16 && h1.dessus && h1.presse === 'false'
+     && h1.etiquette === 'none' && /hale/.test(h1.aria) && /nacre/.test(h1.aria) && !/jade|ocre/.test(h1.aria),
+     JSON.stringify(e1.pastilles));
+
+  // ── Le choix, à la souris ─────────────────────────────────────────────────
+  await vers(e1.noeud);
+  await wait(page, 900);
+  const e2 = await lire();
+  /* LE PONT : de la souris, le rond puis le bouton « tout », en douze pas —
+     le choix ne doit pas se refermer en chemin. Mutant — la marge de gauche
+     retirée (un trou de six pixels entre le rond et les choix). */
+  if (e2.choix?.tous) await page.mouse.move(e2.choix.tous.x, e2.choix.tous.y, { steps: 12 });
+  await wait(page, 200);
+  const e3 = await lire();
+  ok('survolé, le nœud ouvre son choix, collé à son bord : « Les 4 suivis » | « Tout le co-stream · 6 » ; il reste ouvert jusqu\'au bouton, l\'aperçu fermé',
+     e2.choix?.affiche === 'montre' && e2.noeud?.etiquette === 'none'
+     && e2.choix?.suivis?.texte === 'Les 4 suivis' && e2.choix?.tous?.texte === 'Tout le co-stream · 6'
+     && Math.abs(e2.choix.gauche - e2.noeud.droite) <= 1
+     && /aube/.test(e2.choix.suivis.titre) && !/ecume/.test(e2.choix.suivis.titre)
+     && /ecume/.test(e2.choix.tous.titre) && /flot/.test(e2.choix.tous.titre) && !/givre/.test(e2.choix.tous.titre)
+     && e2.choix.suivis.nom === null && e3.choix?.affiche === 'montre' && !e2.apercu && !e3.apercu,
+     JSON.stringify({ e2: e2.choix, noeud: e2.noeud, e3: e3.choix?.affiche, apercu: [e2.apercu, e3.apercu] }));
+  await clic(e3.choix?.tous);
+  const o1 = await salle();
+  const e4 = await lire();
+  /* Mutants — le choix qui ouvre la barre ; l'ordre de la session perdu. */
+  ok('« Tout le co-stream » ouvre les six, la barre d\'abord ; le nœud et ce choix-là enfoncés',
+     o1.ouverte && o1.chaines === 'aube,brume,cime,dune,ecume,flot' && o1.origine === 'noeud' && o1.chemin === '/directory'
+     && e4.noeud?.presse === 'true' && e4.choix?.tous?.presse === 'true' && e4.choix?.suivis?.presse === 'false',
+     JSON.stringify({ o1, presses: [e4.noeud?.presse, e4.choix?.suivis?.presse, e4.choix?.tous?.presse] }));
+  await loin();
+  await clic(e4.noeud);
+  const o2 = await salle();
+  const e5 = await lire();
+  // Mutant — le nœud enfoncé pour sa barre seulement : il rouvrirait les quatre.
+  ok('un clic sur le nœud enfoncé referme la salle de tout le co-stream, et tout se relève',
+     !o2.ouverte && o2.fermeture === 'noeud' && e5.noeud?.presse === 'false'
+     && e5.choix?.tous?.presse === 'false' && e5.choix?.suivis?.presse === 'false',
+     JSON.stringify({ o2, presses: [e5.noeud?.presse, e5.choix?.suivis?.presse, e5.choix?.tous?.presse] }));
+
+  await vers(e5.noeud);
+  await wait(page, 300);
+  const e6 = await lire();
+  if (e6.choix?.suivis) await page.mouse.move(e6.choix.suivis.x, e6.choix.suivis.y, { steps: 6 });
+  await clic(e6.choix?.suivis);
+  const o3 = await salle();
+  const e7 = await lire();
+  await loin();
+  /* UNE ANCRE DE SÉLECTION dans la liste, comme après un clic dans un texte :
+     Maj+clic aurait de quoi étendre la sélection jusqu'au nœud. Chromium ne
+     le fait pas sur un bouton — c'est ce que la ligne mesure, sans garde. */
+  await page.evaluate(() => {
+    const t = document.querySelector('.side-nav-card[data-tse-login="solo"] [data-a-target="side-nav-card-metadata"]');
+    if (t) getSelection().collapse(t, 0);
+  });
+  await clic(e7.noeud, true);
+  const o4 = await salle();
+  const e8 = await lire();
+  await clic(e8.noeud, true);
+  const o5 = await salle();
+  await page.evaluate(() => getSelection().removeAllRanges());
+  /* Mutants — Maj+clic ignoré (il refermerait la salle des quatre) ; le
+     second Maj+clic qui rouvre. */
+  ok('« Les 4 suivis » ouvre la barre ; Maj+clic sur le rond passe à tout le co-stream, un second Maj+clic referme — sans rien sélectionner',
+     o3.ouverte && o3.chaines === 'aube,brume,cime,dune' && e7.choix?.suivis?.presse === 'true' && e7.choix?.tous?.presse === 'false'
+     && o4.ouverte && o4.chaines === 'aube,brume,cime,dune,ecume,flot' && e8.choix?.tous?.presse === 'true'
+     && e8.selection === '' && !o5.ouverte && o5.fermeture === 'noeud',
+     JSON.stringify({ o3, o4, o5, sel: e8.selection }));
+
+  // ── Au clavier ────────────────────────────────────────────────────────────
+  /* Le nœud atteint À LA TABULATION — c'est ce qui le rend :focus-visible —,
+     quarante pas au plus depuis le début de la page. LA SOURIS LOIN : restée
+     sur le rond, son survol montrerait le choix à la place du focus. */
+  await loin();
+  await page.evaluate(() => { document.activeElement?.blur(); window.scrollTo(0, 0); });
+  let pas = 0;
+  while (pas < 40 && !(await page.evaluate(() => document.activeElement?.classList.contains('tse-noeud')))) {
+    await page.keyboard.press('Tab');
+    pas += 1;
+  }
+  const k1 = await lire();
+  await page.keyboard.press('Tab');
+  const k2 = await lire();
+  await page.keyboard.press('Tab');
+  const k3 = await lire();
+  await page.keyboard.press('Enter');
+  await wait(page, 300);
+  const o6 = await salle();
+  await page.evaluate(() => window.tse.salle.fermer());
+  await wait(page, 200);
+  /* Mutant — le choix masqué au focus (la tabulation le sauterait). */
+  ok('au clavier : le nœud ouvre son choix, la tabulation y entre — « suivis », puis « tout » —, Entrée ouvre les six',
+     /(^| )tse-noeud( |$)/.test(k1.focus || '') && k1.choix?.affiche === 'montre'
+     && /tse-noeud__option--barre/.test(k2.focus || '') && k2.choix?.affiche === 'montre'
+     && /tse-noeud__option--tous/.test(k3.focus || '') && k3.choix?.affiche === 'montre'
+     && o6.ouverte && o6.chaines === 'aube,brume,cime,dune,ecume,flot',
+     JSON.stringify({ pas, k1: [k1.focus, k1.choix?.affiche], k2: [k2.focus, k2.choix?.affiche],
+                      k3: [k3.focus, k3.choix?.affiche], o6 }));
+
+  // ── Le « ▶ » de la carte seule ────────────────────────────────────────────
+  await page.evaluate(() => document.activeElement?.blur());
+  const e9 = await lire();
+  await vers(pastilleDe(e9, 'hale'));
+  await wait(page, 900);
+  const e10 = await lire();
+  const h10 = pastilleDe(e10, 'hale');
+  /* Mutants — l'étiquette jamais montrée ; le survol qui ne grandit pas ; le
+     « ▶ » dans la carte (son survol ouvrirait l'aperçu). */
+  ok('survolé, le « ▶ » de « hale » grandit et dit « Regarder les 6 » ; l\'aperçu reste fermé',
+     h10?.etiquette === 'block' && h10?.texte === 'Regarder les 6' && /^matrix\(1\.25, 0, 0, 1\.25/.test(h10?.echelle || '')
+     && pastilleDe(e9, 'hale')?.echelle === 'none' && !e10.apercu,
+     JSON.stringify({ h10, avant: pastilleDe(e9, 'hale')?.echelle, apercu: e10.apercu }));
+  await clic(h10);
+  const o7 = await salle();
+  const e11 = await lire();
+  await clic(pastilleDe(e11, 'hale'));
+  const o8 = await salle();
+  const e12 = await lire();
+  /* Mutants — le clic qui suit le lien de la carte ; l'interrupteur absent. */
+  ok('un clic sur le « ▶ » ouvre « hale » et cinq de sa session ; enfoncé, un second clic referme',
+     o7.ouverte && o7.chaines === 'hale,iris,kaki,lilas,mauve,nacre' && o7.chemin === '/directory'
+     && pastilleDe(e11, 'hale')?.presse === 'true' && e11.noeud?.presse === 'false'
+     && !o8.ouverte && o8.fermeture === 'noeud' && pastilleDe(e12, 'hale')?.presse === 'false',
+     JSON.stringify({ o7, o8, presse: [pastilleDe(e11, 'hale')?.presse, pastilleDe(e12, 'hale')?.presse] }));
+  await loin();
+
+  // ── Rien qui boucle ───────────────────────────────────────────────────────
+  const calme = await page.evaluate(async () => {
+    const lireB = () => window.tse.panneau.rapport().page.balayages.total;
+    const t0 = Date.now();
+    let dernier = lireB(), depuis = Date.now();
+    while (Date.now() - t0 < 10_000 && Date.now() - depuis < 1_500) {
+      await new Promise((r) => setTimeout(r, 100));
+      const n = lireB();
+      if (n !== dernier) { dernier = n; depuis = Date.now(); }
+    }
+    return { atteint: Date.now() - depuis >= 1_500, apresMs: Date.now() - t0 };
+  });
+  const b0 = await page.evaluate(() => window.tse.panneau.rapport().page.balayages.total);
+  await wait(page, 2500);
+  const b1 = await page.evaluate(() => window.tse.panneau.rapport().page.balayages.total);
+  /* Mutants — le choix replacé après son nœud, ou le texte d'un choix
+     réécrit, à chaque balayage : chaque fois un enfant qui change. */
+  ok('posés, le choix et le « ▶ » n\'entretiennent aucun balayage',
+     calme.atteint && b1 - b0 <= 1, JSON.stringify({ calme, balayages: b1 - b0 }));
+
+  // ── Un tri détache « dune » ───────────────────────────────────────────────
+  await page.evaluate(() => document.querySelector('#tse-sort-row [data-tse-sort-mode="uptime"]')?.click());
+  await attendre(page, () => document.querySelector('#tse-noeuds .tse-noeud')?.dataset.tseNoeud === 'cime brume aube'
+    && document.querySelectorAll('#tse-noeuds .tse-pastille-salle').length === 2, 6000);
+  await wait(page, 300);
+  const t1 = await lire();
+  await vers(t1.noeud);
+  await wait(page, 300);
+  const t2 = await lire();
+  await loin();
+  const d1 = pastilleDe(t1, 'dune');
+  /* LES SUIVIS D'ABORD : « dune », suivie, passe avant « ecume » et « flot »
+     dans tout le co-stream, bien que la session la nomme en dernier ; et son
+     « ▶ » ouvre ses trois suivies avant les deux autres. Mutants — l'ordre
+     de la session seul ; le « ▶ » qui oublie les suivies détachées. */
+  ok('un tri détache « dune » : la barre en compte trois, « dune » d\'abord dans tout le co-stream ; « dune » prend un « ▶ », ses suivies en tête',
+     t1.noeud?.tous === 'cime brume aube dune ecume flot' && t2.choix?.suivis?.texte === 'Les 3 suivis'
+     && t2.choix?.tous?.texte === 'Tout le co-stream · 6'
+     && d1?.membres.join() === 'dune,aube,brume,cime,ecume,flot' && Math.abs(d1.dx) <= 1 && Math.abs(d1.dy) <= 1
+     && t1.cartes.dune.marque === 'seule' && !t1.cartes.dune.vue && t1.cartes.aube.marque === 'barre',
+     JSON.stringify({ noeud: t1.noeud, choix: [t2.choix?.suivis?.texte, t2.choix?.tous?.texte], dune: d1, cartes: vus(t1) }));
+
+  // ── Les deux réglages ─────────────────────────────────────────────────────
+  const poser = (id, v) => page.evaluate(([i, x]) => window.tse.options.poser(i, x), [id, v]);
+  await poser('salle', false);
+  await wait(page, 300);
+  const r1 = await lire();
+  // Un clic qui atteindrait quand même le choix masqué n'ouvre rien, et ne compte pas pour tout le co-stream.
+  const masque = await page.evaluate(async () => {
+    document.querySelector('#tse-noeuds .tse-noeud__option--tous')?.click();
+    await new Promise((r) => setTimeout(r, 300));
+    return { ouverte: !!document.getElementById('tse-salle'), chemin: location.pathname };
+  });
+  await poser('salle', true);
+  await poser('collab', false);
+  await wait(page, 300);
+  const r2 = await lire();
+  await poser('salle', false);
+  await wait(page, 300);
+  const r3 = await lire();
+  await poser('salle', true);
+  await poser('collab', true);
+  await wait(page, 300);
+  const r4 = await lire();
+  const tousVus = (e, v) => Object.values(e.cartes).every((p) => p.vue === v);
+  /* Mutants — la règle de la barre posée sans condition (multistream coupé,
+     les nombres ne reviendraient pas) ; le « ▶ » rangé sous la pastille (le
+     réglage de la pastille l'emporterait). */
+  ok('multistream coupé : plus de nœud ni de « ▶ », les nombres reviennent partout ; pastille coupée : plus aucun nombre, le « ▶ » reste ; les deux : rien',
+     r1.calque === 'none' && tousVus(r1, true) && r1.cartes.aube.texte === '6' && r1.cartes.hale.texte === '7'
+     && r2.calque !== 'none' && tousVus(r2, false) && pastilleDe(r2, 'hale')?.dessus === true
+     && r3.calque === 'none' && tousVus(r3, false)
+     && r4.calque !== 'none' && r4.cartes.kilo.vue && !r4.cartes.hale.vue && pastilleDe(r4, 'hale')?.dessus === true
+     && !masque.ouverte && masque.chemin === '/directory',
+     JSON.stringify({ masque, r1: [r1.calque, vus(r1)], r2: [r2.calque, vus(r2), pastilleDe(r2, 'hale')?.dessus],
+                      r3: [r3.calque, vus(r3)], r4: [r4.calque, vus(r4)] }));
+  const lignes = await page.evaluate(() => window.tse.panneau.rapport().lignes);
+  ok('le rapport compte les pastilles posées et celles qui se voient',
+     lignes.pastilles === 7 && lignes.pastillesVues === 2, JSON.stringify(lignes));
+  const bilan = await page.evaluate(() => window.tse.panneau.rapport().salle.noeuds);
+
+  // ── La barre réduite ──────────────────────────────────────────────────────
+  await page.evaluate(() => {
+    document.getElementById('root').classList.add('side-nav--collapsed');
+    const d = document.createElement('div');
+    document.getElementById('cards').appendChild(d);
+    d.remove();
+  });
+  await attendre(page, () => !document.body.classList.contains('tse-loading')
+    && !!document.querySelector('#tse-noeuds .tse-noeud.tse-noeud--reduit')
+    && document.querySelectorAll('#tse-noeuds .tse-pastille-salle.tse-pastille-salle--reduit').length === 2, 8000);
+  await wait(page, 300);
+  const c1 = await lire();
+  await vers(c1.noeud);
+  await wait(page, 300);
+  const c2 = await lire();
+  await vers(pastilleDe(c1, 'hale'));
+  await wait(page, 300);
+  const c3 = await lire();
+  await loin();
+  await clic(c1.noeud, true);
+  const o9 = await salle();
+  await page.evaluate(() => window.tse.salle.fermer());
+  await wait(page, 200);
+  /* Mutants — le choix montré dans une barre large d'un avatar ; le « ▶ »
+     qui ne suit pas l'avatar réduit. */
+  ok('barre réduite : ni choix ni étiquette au survol — Maj+clic ouvre tout le co-stream ; les « ▶ » au coin de l\'avatar',
+     c1.noeud?.reduit && c2.choix?.affiche === 'masque'
+     && c1.pastilles.every((p) => p.reduit && Math.abs(p.dx) <= 1 && Math.abs(p.dy) <= 1 && p.dessus)
+     && pastilleDe(c3, 'hale')?.etiquette === 'none'
+     && o9.ouverte && o9.chaines === 'cime,brume,aube,dune,ecume,flot',
+     JSON.stringify({ noeud: c1.noeud, choix: c2.choix?.affiche, pastilles: c1.pastilles, survol: pastilleDe(c3, 'hale'), o9 }));
+  await page.evaluate(() => {
+    document.getElementById('root').classList.remove('side-nav--collapsed');
+    const d = document.createElement('div');
+    document.getElementById('cards').appendChild(d);
+    d.remove();
+  });
+  await attendre(page, () => !document.body.classList.contains('tse-loading')
+    && !!document.querySelector('#tse-noeuds .tse-noeud:not(.tse-noeud--reduit)'), 8000);
+
+  // ── Top Chaînes ───────────────────────────────────────────────────────────
+  await page.evaluate(() => {
+    const v = (login, viewers) => ({ login, viewers });
+    window.__cats = [{ name: 'Valheim', viewers: 400000, streams: [
+      v('solo', 50000), v('aube', 40000), v('brume', 40000), v('ecume', 40000), v('cime', 40000), v('flot', 40000),
+      v('dune', 40000), v('hale', 30000), v('kilo', 3500)] }];
+    window.tse.global.on();
+  });
+  await attendre(page, () => document.body.classList.contains('tse-global-ready')
+    && document.querySelectorAll('.side-nav-card[data-tse-global="true"] .tse-collab-badge').length >= 2, 15_000);
+  await wait(page, 600);
+  const g1 = await page.evaluate(() => {
+    const top = [...document.querySelectorAll('.side-nav-card[data-tse-global="true"]')];
+    const badges = top.map((c) => c.querySelector('.tse-collab-badge')).filter(Boolean);
+    return { cartes: top.length, badges: badges.length, vus: badges.filter((b) => b.getClientRects().length).length,
+             fleches: document.querySelectorAll('#tse-noeuds .tse-pastille-salle').length,
+             hale: top.find((c) => c.dataset.tseLogin === 'hale')?.dataset.tsePastille ?? null,
+             completee: top.some((c) => c.dataset.tseLogin === 'iris'),
+             lignes: window.tse.panneau.rapport().lignes.pastillesVues };
+  });
+  await page.evaluate(() => window.tse.global.off());
+  /* LE RÉPERTOIRE DU DÉCOR NE REND AUCUN CAMARADE DE « hale » : Top Chaînes
+     complète sa place quand même (cf. `completer`), avec le même critère que
+     le « ▶ » — qui diffuse. Elle y est donc en barre, jamais seule : la garde
+     qui refuse le « ▶ » aux cartes du classement ne se mesure pas ici, elle
+     ne fait que dire la demande. Mutant — la règle du classement retirée. */
+  ok('Top Chaînes : aucune pastille ne se voit, aucun « ▶ » ; la place de « hale », complétée, fait une barre',
+     g1.cartes >= 10 && g1.badges >= 2 && g1.vus === 0 && g1.fleches === 0 && g1.lignes === 0
+     && g1.completee && g1.hale === 'barre', JSON.stringify(g1));
+
+  // ── Le rapport ────────────────────────────────────────────────────────────
+  /* Avant la barre réduite : une barre à choix, deux « ▶ » ; sept clics sur
+     le nœud et ses choix (tout, le rond, suivis, deux Maj+clic, Entrée, et
+     celui qui atteint le choix masqué), deux sur le « ▶ » ; trois salles de
+     tout le co-stream (le bouton, Maj+clic, Entrée — le second Maj+clic
+     referme, le choix masqué n'ouvre rien). Mutants — les clics du « ▶ »
+     comptés avec ceux du nœud ; une salle refusée comptée comme ouverte. */
+  ok('le rapport compte les choix, les « ▶ », leurs clics, et les salles ouvertes sur tout le co-stream',
+     bilan?.affiches === 1 && bilan?.choix === 1 && bilan?.pastilles === 2 && bilan?.clics === 7
+     && bilan?.clicsPastilles === 2 && bilan?.tous === 3,
+     JSON.stringify(bilan));
+  await page.close();
+}
+
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════
    Les deux README annoncent la taille de ce banc. Ils ne peuvent pas la
    connaître : ils la recopient. Résultat, avant cette ligne, un même fichier

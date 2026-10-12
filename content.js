@@ -1483,6 +1483,11 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       // survol, et ce qu'il dit à un lecteur d'écran.
       uiNoeudRegarder:           (n) => `Regarder les ${n}`,
       uiNoeudAria:               (noms) => `Regarder ${noms} ensemble`,
+      // Le choix sur la barre (4.24.0.28) : ses suivis, ou tout le co-stream —
+      // ceux qu'on ne suit pas compris ; et le raccourci que le titre rappelle.
+      uiNoeudSuivis:             (n) => `Les ${n} suivis`,
+      uiNoeudTous:               (n) => `Tout le co-stream · ${n}`,
+      uiNoeudMaj:                (n) => `Maj+clic : tout le co-stream (${n})`,
       uiGlobalEmpty:             'Aucune chaîne en direct avec ce filtre',
       uiUptimeEnded:             'Terminé',
       uiPreviewUnavailable:      'Aperçu indisponible',
@@ -1593,6 +1598,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiSalleChatMasquer:        'Hide the chat',
       uiNoeudRegarder:           (n) => `Watch all ${n}`,
       uiNoeudAria:               (noms) => `Watch ${noms} together`,
+      uiNoeudSuivis:             (n) => `${n} followed`,
+      uiNoeudTous:               (n) => `Whole co-stream · ${n}`,
+      uiNoeudMaj:                (n) => `Shift+click: whole co-stream (${n})`,
       uiGlobalEmpty:             'No live channel matches this filter',
       uiUptimeEnded:             'Ended',
       uiPreviewUnavailable:      'Preview unavailable',
@@ -1695,6 +1703,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiSalleChatMasquer:        'Chat ausblenden',
       uiNoeudRegarder:           (n) => `Alle ${n} ansehen`,
       uiNoeudAria:               (noms) => `${noms} zusammen ansehen`,
+      uiNoeudSuivis:             (n) => `Die ${n} gefolgten`,
+      uiNoeudTous:               (n) => `Ganzer Co-stream · ${n}`,
+      uiNoeudMaj:                (n) => `Umschalt+Klick: ganzer Co-stream (${n})`,
       uiGlobalEmpty:             'Kein Live-Kanal passt zu diesem Filter',
       uiUptimeEnded:             'Beendet',
       uiPreviewUnavailable:      'Vorschau nicht verfügbar',
@@ -1797,6 +1808,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiSalleChatMasquer:        'Ocultar el chat',
       uiNoeudRegarder:           (n) => `Ver los ${n}`,
       uiNoeudAria:               (noms) => `Ver a ${noms} juntos`,
+      uiNoeudSuivis:             (n) => `Los ${n} seguidos`,
+      uiNoeudTous:               (n) => `Todo el co-stream · ${n}`,
+      uiNoeudMaj:                (n) => `Mayús+clic: todo el co-stream (${n})`,
       uiGlobalEmpty:             'Ningún canal en directo con este filtro',
       uiUptimeEnded:             'Finalizado',
       uiPreviewUnavailable:      'Vista previa no disponible',
@@ -1899,6 +1913,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiSalleChatMasquer:        'Ocultar o chat',
       uiNoeudRegarder:           (n) => `Ver os ${n}`,
       uiNoeudAria:               (noms) => `Assistir ${noms} juntos`,
+      uiNoeudSuivis:             (n) => `Os ${n} seguidos`,
+      uiNoeudTous:               (n) => `Todo o co-stream · ${n}`,
+      uiNoeudMaj:                (n) => `Shift+clique: todo o co-stream (${n})`,
       uiGlobalEmpty:             'Nenhum canal ao vivo com este filtro',
       uiUptimeEnded:             'Encerrado',
       uiPreviewUnavailable:      'Pré-visualização indisponível',
@@ -2001,6 +2018,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiSalleChatMasquer:        'Nascondi la chat',
       uiNoeudRegarder:           (n) => `Guarda tutti e ${n}`,
       uiNoeudAria:               (noms) => `Guarda ${noms} insieme`,
+      uiNoeudSuivis:             (n) => `I ${n} seguiti`,
+      uiNoeudTous:               (n) => `Tutto il co-stream · ${n}`,
+      uiNoeudMaj:                (n) => `Maiusc+clic: tutto il co-stream (${n})`,
       uiGlobalEmpty:             'Nessun canale in diretta con questo filtro',
       uiUptimeEnded:             'Terminato',
       uiPreviewUnavailable:      'Anteprima non disponibile',
@@ -2103,6 +2123,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiSalleChatMasquer:        'Ukryj czat',
       uiNoeudRegarder:           (n) => `Oglądaj ${n} naraz`,
       uiNoeudAria:               (noms) => `Oglądaj razem: ${noms}`,
+      uiNoeudSuivis:             (n) => `Obserwowani (${n})`,
+      uiNoeudTous:               (n) => `Cały co-stream · ${n}`,
+      uiNoeudMaj:                (n) => `Shift+klik: cały co-stream (${n})`,
       uiGlobalEmpty:             'Brak kanałów na żywo dla tego filtra',
       uiUptimeEnded:             'Zakończono',
       uiPreviewUnavailable:      'Podgląd niedostępny',
@@ -2205,6 +2228,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiSalleChatMasquer:        'Скрыть чат',
       uiNoeudRegarder:           (n) => `Смотреть все ${n}`,
       uiNoeudAria:               (noms) => `Смотреть вместе: ${noms}`,
+      uiNoeudSuivis:             (n) => `Отслеживаемые (${n})`,
+      uiNoeudTous:               (n) => `Весь ко-стрим · ${n}`,
+      uiNoeudMaj:                (n) => `Shift+клик: весь ко-стрим (${n})`,
       uiGlobalEmpty:             'Нет каналов в эфире с этим фильтром',
       uiUptimeEnded:             'Завершено',
       uiPreviewUnavailable:      'Предпросмотр недоступен',
@@ -2307,6 +2333,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiSalleChatMasquer:        'チャットを非表示',
       uiNoeudRegarder:           (n) => `${n} 人をまとめて見る`,
       uiNoeudAria:               (noms) => `${noms} をまとめて見る`,
+      uiNoeudSuivis:             (n) => `フォロー中の${n}人`,
+      uiNoeudTous:               (n) => `コラボ配信の全員 · ${n}`,
+      uiNoeudMaj:                (n) => `Shift+クリック：コラボ配信の全員（${n}）`,
       uiGlobalEmpty:             'この条件で配信中のチャンネルはありません',
       uiUptimeEnded:             '終了',
       uiPreviewUnavailable:      'プレビューを利用できません',
@@ -2407,6 +2436,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiSalleChatMasquer:        '隐藏聊天',
       uiNoeudRegarder:           (n) => `一起观看 ${n} 个`,
       uiNoeudAria:               (noms) => `一起观看 ${noms}`,
+      uiNoeudSuivis:             (n) => `关注的 ${n} 位`,
+      uiNoeudTous:               (n) => `整个联合直播 · ${n}`,
+      uiNoeudMaj:                (n) => `Shift+点击：整个联合直播（${n}）`,
       uiGlobalEmpty:             '没有符合此筛选条件的直播频道',
       uiUptimeEnded:             '已结束',
       uiPreviewUnavailable:      '预览不可用',
@@ -4428,6 +4460,16 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       pointer-events: none; z-index: 2;
       font-variant-numeric: tabular-nums;
     }
+    /* OÙ ELLE S'EFFACE (4.24.0.28), et l'élément reste : la détection de
+       secours (cardHasCollab, getCardCollabCount) et le rapport la lisent.
+       — EN TOP CHAÎNES, toujours : « inutile vu qu'on voit tout le co-stream
+         tout le temps ».
+       — SUR UNE BARRE ET SOUS UN « ▶ », tant que la salle multistream est
+         là : la barre et son nœud disent déjà le co-stream, et la carte seule
+         porte le « ▶ » à sa place (cf. entreesSalle). Salle coupée, le nombre
+         revient. */
+    .side-nav-card[data-tse-global="true"] .tse-collab-badge,
+    html:not([data-tse-off~="salle"]) .side-nav-card[data-tse-pastille] .tse-collab-badge { display: none !important; }
 
     /* === Masquages divers ===
        LES HYPE TRAINS DE LA BARRE, ET D'ELLE SEULE (4.24.0.2). Cette règle
@@ -4998,6 +5040,92 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     .tse-noeud--reduit:hover .tse-noeud__etiquette,
     .tse-noeud--reduit:focus-visible .tse-noeud__etiquette { display: none; }
     html[data-tse-off~="salle"] #tse-noeuds { display: none !important; }
+
+    /* === Le choix : les suivis, ou tout le co-stream (4.24.0.28) ===
+       Quand la session compte des membres qui diffusent hors de la barre —
+       ceux qu'on ne suit pas —, l'étiquette devient deux boutons : « Les 4
+       suivis » | « Tout le co-stream · 6 ». Pas DANS le nœud : un bouton ne
+       contient pas de boutons. Juste après lui, collé à son bord droit ; la
+       marge intérieure de gauche est le PONT que la souris traverse du rond
+       aux choix sans les perdre. Au clavier, ils suivent le nœud dans l'ordre
+       de tabulation, et restent ouverts tant que l'un d'eux a le focus.
+       MASQUÉS PAR L'OPACITÉ, ET NON PAR « display » : un bouton sans boîte ne
+       prend pas le focus, et la tabulation qui quitte le nœud — l'instant où
+       il n'a plus le focus et où le choix ne l'a pas encore — trouvait le
+       choix sans boîte : le focus tombait sur la page. Mesuré au banc. */
+    .tse-noeud--choix .tse-noeud__etiquette { display: none !important; }
+    .tse-noeud__choix {
+      display: flex; position: absolute; transform: translateY(-50%);
+      padding-left: 6px; z-index: 1; white-space: nowrap;
+      font-family: inherit; font-size: 11px; font-weight: 700; line-height: 1;
+      opacity: 0; pointer-events: none;
+    }
+    .tse-noeud:hover + .tse-noeud__choix,
+    .tse-noeud:focus-visible + .tse-noeud__choix,
+    .tse-noeud__choix:hover,
+    .tse-noeud__choix:focus-within { opacity: 1; pointer-events: auto; }
+    /* Barre réduite : pas la place d'écrire — Maj+clic sur le rond. */
+    .tse-noeud--reduit + .tse-noeud__choix { display: none !important; }
+    .tse-noeud__option {
+      margin: 0; padding: 3px 8px; border: 0;
+      background: var(--tse-noeud-couleur, #9147ff); color: #0e0e10;
+      font: inherit; cursor: pointer;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+    }
+    .tse-noeud__option:first-child { border-radius: 4px 0 0 4px; }
+    .tse-noeud__option:last-child {
+      border-radius: 0 4px 4px 0; border-left: 1px solid rgba(14, 14, 16, 0.35);
+    }
+    .tse-noeud__option:hover { filter: brightness(1.15); }
+    .tse-noeud__option:focus-visible { outline: 2px solid var(--tse-texte); outline-offset: 1px; }
+    /* La salle de ce choix est ouverte : un trait sombre à l'intérieur. */
+    .tse-noeud__option[aria-pressed="true"] { box-shadow: inset 0 0 0 2px #0e0e10, 0 1px 3px rgba(0, 0, 0, 0.35); }
+
+    /* === Le « ▶ » à la place de la pastille (4.24.0.28) ===
+       Une chaîne seule de son co-stream dans la liste, dont d'autres membres
+       diffusent : sa pastille devient le nœud. Même calque que les nœuds —
+       le survoler n'ouvre pas l'aperçu, le cliquer n'ouvre pas la chaîne —,
+       posé au pixel sur le coin de l'avatar où était le nombre (cf.
+       .tse-collab-badge : 16 px, débordant de 3 px en bas à droite). AGRANDI
+       AU SURVOL, à la demande : le rond et le triangle, pas la bulle — un
+       ::before porte le rond, pour que l'étiquette ne grossisse pas avec. */
+    .tse-pastille-salle {
+      position: absolute; transform: translate(-50%, -50%);
+      display: flex; align-items: center; justify-content: center;
+      width: 16px; height: 16px; margin: 0; padding: 0; box-sizing: border-box;
+      border: 0; border-radius: 50%; background: transparent; color: #fff;
+      font-family: inherit; font-size: 11px; font-weight: 700; line-height: 1;
+      white-space: nowrap; cursor: pointer;
+    }
+    .tse-pastille-salle::before {
+      content: ''; position: absolute; inset: 0; border-radius: 50%;
+      background: ${CFG.PURPLE};
+      box-shadow: 0 0 0 2px var(--color-background-base, #0e0e10);
+      transition: transform 120ms ease;
+    }
+    .tse-pastille-salle .tse-noeud__symbole { position: relative; transition: transform 120ms ease; }
+    .tse-pastille-salle svg { width: 5px; height: 6px; fill: currentColor; }
+    .tse-pastille-salle:hover::before,
+    .tse-pastille-salle:focus-visible::before,
+    .tse-pastille-salle:hover .tse-noeud__symbole,
+    .tse-pastille-salle:focus-visible .tse-noeud__symbole { transform: scale(1.25); }
+    .tse-pastille-salle:focus-visible { outline: 2px solid var(--tse-texte); outline-offset: 3px; }
+    .tse-pastille-salle[aria-pressed="true"]::before {
+      box-shadow: 0 0 0 2px var(--color-background-base, #0e0e10), 0 0 0 4px ${CFG.PURPLE};
+    }
+    .tse-pastille-salle__etiquette {
+      display: none; position: absolute; left: calc(100% + 6px); top: 50%;
+      transform: translateY(-50%); padding: 3px 8px; border-radius: 4px;
+      background: ${CFG.PURPLE}; color: #fff;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35); pointer-events: none;
+    }
+    .tse-pastille-salle:hover .tse-pastille-salle__etiquette,
+    .tse-pastille-salle:focus-visible .tse-pastille-salle__etiquette { display: block; }
+    .tse-pastille-salle--reduit .tse-pastille-salle__etiquette { display: none !important; }
+    @media (prefers-reduced-motion: reduce) {
+      .tse-pastille-salle::before,
+      .tse-pastille-salle .tse-noeud__symbole { transition: none; }
+    }
 
     /* === Chaîne dont on est ABONNÉ ===
        Le nom de la chaîne passe à l'or, et une lueur circule dans le FOND de
@@ -16419,68 +16547,184 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
 
      UN INTERRUPTEUR : un second clic referme la salle qu'il a ouverte, et il
      reste enfoncé tant qu'elle l'est (la salle le prévient). Il SUIT SA BARRE
-     sans balayage quand la section change de taille (ResizeObserver). */
+     sans balayage quand la section change de taille (ResizeObserver).
+
+     LE CHOIX ET LE « ▶ » DE LA CARTE SEULE (4.24.0.28) : tout le co-stream,
+     ceux qu'on ne suit pas compris, depuis la barre ; et la salle depuis une
+     chaîne seule de son co-stream, sur son avatar. Ce qu'ils ouvrent, et
+     pourquoi : cf. entreesSalle. */
   const noeudsSalle = (() => {
     const TRIANGLE = '<svg viewBox="0 0 8 10" aria-hidden="true"><path d="M0 0v10l8-5z"/></svg>';
     const parCle = new Map();     // les logins de la barre → le nœud
+    const choixDe = new Map();    // les logins de la barre → son choix « suivis | tout »
+    const parCarte = new Map();   // le login d'une carte seule → son « ▶ »
     let voulues = new Map();      // les barres du dernier balayage, par clé
+    let seules = new Map();       // les cartes seules du dernier balayage, par login
     let couche = null;
     let veille = null;            // ResizeObserver de la section
     let suivie = null;
     let clics = 0;
+    let clicsPastilles = 0;
+    let tousOuverts = 0;          // salles ouvertes sur tout le co-stream
 
     const cleDe = (membres) => [...membres].sort().join(' ');
+    const liste = (ordre) => (ordre ? ordre.split(' ') : null);
     const listeNoms = (noms) => {
       try { return new Intl.ListFormat(S.locale, { type: 'conjunction' }).format(noms); }
       catch { return noms.join(', '); }
     };
+    // Un texte qui ne change pas ne se réécrit pas : réécrit, il remplacerait
+    // son nœud texte, et l'observateur de la barre verrait un enfant changer.
+    const ecrire = (el, texte) => { if (el.textContent !== texte) el.textContent = texte; };
+    const enfoncer = (el, oui) => {
+      const v = String(oui);
+      if (el.getAttribute('aria-pressed') !== v) el.setAttribute('aria-pressed', v);
+    };
     /* ENFONCÉ QUAND SA SALLE EST OUVERTE — les mêmes chaînes, dans n'importe
        quel ordre. Relu à chaque ouverture et fermeture de la salle, par où
-       qu'elle passe : Échap, un changement de page, le réglage. */
+       qu'elle passe : Échap, un changement de page, le réglage. Le nœud d'une
+       barre l'est pour sa barre comme pour tout son co-stream ; chacun de ses
+       deux choix, pour le sien ; un « ▶ », pour ses chaînes. */
     const marquer = () => {
       const ouverte = salle.membres();
       const cle = ouverte ? cleDe(ouverte) : null;
       for (const [k, n] of parCle) {
-        const v = String(k === cle);
-        if (n.getAttribute('aria-pressed') !== v) n.setAttribute('aria-pressed', v);
+        const tous = liste(n.dataset.tseTous);
+        const cleTous = tous ? cleDe(tous) : null;
+        enfoncer(n, cle !== null && (k === cle || cleTous === cle));
+        const c = choixDe.get(k);
+        if (c) {
+          enfoncer(c.suivis, cle !== null && k === cle);
+          enfoncer(c.tous, cle !== null && cleTous === cle);
+        }
       }
+      for (const p of parCarte.values()) {
+        const membres = liste(p.dataset.tseNoeud);
+        enfoncer(p, cle !== null && !!membres && cleDe(membres) === cle);
+      }
+    };
+    /* UN CLIC OUVRE CES CHAÎNES ; LE MÊME, SUR LEUR SALLE OUVERTE, LA REFERME.
+       Rouvrir la même salle rechargerait tous ses lecteurs et perdrait le son
+       choisi : un nœud d'une salle ouverte est un interrupteur, pas un
+       raccourci. */
+    const agir = (membres, versTous) => {
+      const ouverte = salle.membres();
+      if (ouverte && cleDe(ouverte) === cleDe(membres)) { salle.fermer('noeud'); return; }
+      const r = salle.ouvrirDepuisBarre(membres);
+      if (versTous && !(r && r.erreur)) tousOuverts += 1;
     };
     /* L'ORDRE DE LA BARRE, et le nom qui le dit. Une barre garde sa clé —
        les mêmes chaînes — quand un tri la retourne : le nœud reste, mais il
        ouvrira la salle dans le NOUVEL ordre, et le dira. Des attributs, que
-       l'observateur de la barre ne regarde pas. */
-    const ordonner = (b, membres) => {
+       l'observateur de la barre ne regarde pas. `tous` (4.24.0.28) : tout le
+       co-stream, quand il ajoute quelqu'un à la barre — et le titre rappelle
+       alors le raccourci, Maj+clic. */
+    const ordonner = (b, membres, tous) => {
       const ordre = membres.join(' ');
-      if (b.dataset.tseNoeud === ordre) return;
+      const ordreTous = tous ? tous.join(' ') : '';
+      if (b.dataset.tseNoeud === ordre && (b.dataset.tseTous || '') === ordreTous) return;
       b.dataset.tseNoeud = ordre;
-      b.setAttribute('aria-label', S.uiNoeudAria(listeNoms(membres)));
-      b.title = S.uiNoeudAria(listeNoms(membres));
+      if (ordreTous) b.dataset.tseTous = ordreTous; else delete b.dataset.tseTous;
+      const nom = S.uiNoeudAria(listeNoms(membres));
+      b.setAttribute('aria-label', nom);
+      b.title = tous ? `${nom}\n${S.uiNoeudMaj(tous.length)}` : nom;
+      b.classList.toggle('tse-noeud--choix', !!tous);
     };
-    /* UN CLIC OUVRE LA SALLE DE LA BARRE ; UN SECOND LA REFERME. Rouvrir
-       la même salle rechargerait tous ses lecteurs et perdrait le son choisi :
-       le nœud d'une salle ouverte est un interrupteur, pas un raccourci. */
+    const symbole = () => {
+      const s = document.createElement('span');
+      s.className = 'tse-noeud__symbole';
+      s.appendChild(noeudStatique(TRIANGLE));
+      return s;
+    };
+    /* UN CLIC OUVRE LA SALLE DE LA BARRE ; UN SECOND LA REFERME — celle de
+       la barre comme celle de tout le co-stream. MAJ+CLIC (4.24.0.28) : tout
+       le co-stream, ceux qu'on ne suit pas compris ; c'est le seul chemin
+       vers eux dans la barre réduite, où les choix n'ont pas la place. */
     const creer = (cle, membres) => {
       const b = document.createElement('button');
       b.type = 'button';
       b.className = 'tse-noeud';
       b.setAttribute('aria-pressed', 'false');
-      const symbole = document.createElement('span');
-      symbole.className = 'tse-noeud__symbole';
-      symbole.appendChild(noeudStatique(TRIANGLE));
       const etiquette = document.createElement('span');
       etiquette.className = 'tse-noeud__etiquette';
       etiquette.textContent = S.uiNoeudRegarder(membres.length);
-      b.append(symbole, etiquette);
-      ordonner(b, membres);
+      b.append(symbole(), etiquette);
       b.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
         clics += 1;
+        const tous = liste(b.dataset.tseTous);
+        if (e.shiftKey && tous) { agir(tous, true); return; }
         const ouverte = salle.membres();
-        if (ouverte && cleDe(ouverte) === cle) salle.fermer('noeud');
-        else salle.ouvrirDepuisBarre(b.dataset.tseNoeud.split(' '));
+        const o = ouverte ? cleDe(ouverte) : null;
+        if (o !== null && (o === cle || (tous && o === cleDe(tous)))) salle.fermer('noeud');
+        else salle.ouvrirDepuisBarre(liste(b.dataset.tseNoeud));
       });
       return b;
+    };
+    /* LE CHOIX, deux boutons à côté du rond (cf. la feuille) : ses suivis,
+       ou tout le co-stream. Chacun relit son nœud au clic — l'ordre a pu
+       changer depuis. */
+    const creerChoix = (cle) => {
+      const boite = document.createElement('div');
+      boite.className = 'tse-noeud__choix';
+      const option = (classe, versTous) => {
+        const o = document.createElement('button');
+        o.type = 'button';
+        o.className = `tse-noeud__option ${classe}`;
+        o.setAttribute('aria-pressed', 'false');
+        o.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          clics += 1;
+          const n = parCle.get(cle);
+          const membres = n ? liste(versTous ? n.dataset.tseTous : n.dataset.tseNoeud) : null;
+          if (membres) agir(membres, versTous);
+        });
+        return o;
+      };
+      const suivis = option('tse-noeud__option--barre', false);
+      const tous = option('tse-noeud__option--tous', true);
+      boite.append(suivis, tous);
+      return { boite, suivis, tous };
+    };
+    /* Le texte visible EST le nom du bouton — « Les 4 suivis » se dit comme il
+       se lit, et se commande à la voix de même ; les chaînes, dans le titre.
+       En Top Chaînes, la barre n'est pas « suivie » : « Regarder les 4 ». */
+    const garnirChoix = (c, membres, tous, classement) => {
+      ecrire(c.suivis, classement ? S.uiNoeudRegarder(membres.length) : S.uiNoeudSuivis(membres.length));
+      ecrire(c.tous, S.uiNoeudTous(tous.length));
+      const a = S.uiNoeudAria(listeNoms(membres));
+      const t = S.uiNoeudAria(listeNoms(tous));
+      if (c.suivis.title !== a) c.suivis.title = a;
+      if (c.tous.title !== t) c.tous.title = t;
+    };
+    /* LE « ▶ » D'UNE CARTE SEULE, à la place de sa pastille. */
+    const creerPastille = () => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'tse-pastille-salle';
+      b.setAttribute('aria-pressed', 'false');
+      const etiquette = document.createElement('span');
+      etiquette.className = 'tse-pastille-salle__etiquette';
+      b.append(symbole(), etiquette);
+      b.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        clicsPastilles += 1;
+        const membres = liste(b.dataset.tseNoeud);
+        if (membres) agir(membres);
+      });
+      return b;
+    };
+    const garnirPastille = (p, membres) => {
+      const ordre = membres.join(' ');
+      if (p.dataset.tseNoeud === ordre) return;
+      p.dataset.tseNoeud = ordre;
+      const nom = S.uiNoeudAria(listeNoms(membres));
+      p.setAttribute('aria-label', nom);
+      p.title = nom;
+      ecrire(p.querySelector('.tse-pastille-salle__etiquette'), S.uiNoeudRegarder(membres.length));
     };
     const poserStyle = (el, prop, v) => { if (el.style.getPropertyValue(prop) !== v) el.style.setProperty(prop, v); };
 
@@ -16504,16 +16748,36 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         // La couleur de la barre telle qu'elle est PEINTE : celle du groupe,
         // ou le rouge d'un direct qui vient de démarrer, qui l'emporte.
         const couleur = getComputedStyle(barre[0], '::before').backgroundColor;
-        poserStyle(n, 'top', `${Math.round((haut.top + bas.bottom) / 2 - origine.top)}px`);
+        const milieu = `${Math.round((haut.top + bas.bottom) / 2 - origine.top)}px`;
+        poserStyle(n, 'top', milieu);
         /* CENTRÉ SUR LE TRAIT (4.24.0.10), large de trois pixels au bord gauche
            de la carte — mais jamais hors de la barre latérale, qui le
            rognerait : sur Twitch, elle commence au bord de la fenêtre, et le
            rond s'y appuie alors, au plus près du trait. */
         const bord = barreGauche();
-        const gauche = Math.max(haut.left + 1.5 - n.offsetWidth / 2, bord);
-        poserStyle(n, 'left', `${Math.round(gauche - origine.left)}px`);
+        const gauche = Math.round(Math.max(haut.left + 1.5 - n.offsetWidth / 2, bord) - origine.left);
+        poserStyle(n, 'left', `${gauche}px`);
         poserStyle(n, '--tse-noeud-couleur', couleur);
         n.classList.toggle('tse-noeud--reduit', sidebarCollapsed);
+        // Le choix, collé au bord droit du rond, à sa hauteur, à sa couleur.
+        const c = choixDe.get(cle);
+        if (c) {
+          poserStyle(c.boite, 'top', milieu);
+          poserStyle(c.boite, 'left', `${gauche + n.offsetWidth}px`);
+          poserStyle(c.boite, '--tse-noeud-couleur', couleur);
+        }
+      }
+      /* LE « ▶ » AU COIN DE L'AVATAR, au centre exact de la pastille qu'il
+         remplace : 16 px débordant de 3 px en bas à droite, soit 5 px en
+         deçà des deux bords. */
+      for (const [login, { carte }] of seules) {
+        const p = parCarte.get(login);
+        const avatar = p && carte.isConnected ? avatarOf(carte) : null;
+        if (!avatar) continue;
+        const r = avatar.getBoundingClientRect();
+        poserStyle(p, 'left', `${Math.round(r.right - 5 - origine.left)}px`);
+        poserStyle(p, 'top', `${Math.round(r.bottom - 5 - origine.top)}px`);
+        p.classList.toggle('tse-pastille-salle--reduit', sidebarCollapsed);
       }
     };
     const suivre = (section) => {
@@ -16525,31 +16789,63 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       veille.observe(section);
     };
 
-    /* Les barres de ce balayage → les nœuds. `barres` : les suites de cartes
-       jointes (au moins deux), dans l'ordre d'affichage. */
-    const maj = (barres) => {
+    /* Les entrées de ce balayage (cf. entreesSalle) → les nœuds. `barres` :
+       les suites de cartes jointes (au moins deux), dans l'ordre d'affichage,
+       chacune avec ses membres et, s'il ajoute quelqu'un, tout son co-stream ;
+       `seules` : les cartes seules de leur co-stream, avec leurs chaînes. */
+    const maj = ({ barres = [], seules: cartesSeules = [] } = {}) => {
       voulues = new Map();
-      for (const barre of barres || []) {
-        const membres = [...new Set(barre.map((c) => c.dataset.tseLogin).filter(Boolean))];
-        if (membres.length >= 2) voulues.set(cleDe(membres), { barre, membres });
+      for (const { barre, membres, tous, classement } of barres) {
+        if (membres.length >= 2) voulues.set(cleDe(membres), { barre, membres, tous, classement });
+      }
+      seules = new Map();
+      for (const s of cartesSeules) {
+        const login = s.carte.dataset.tseLogin;
+        if (login && s.membres.length >= 2) seules.set(login, s);
       }
       for (const [cle, n] of [...parCle]) {
         if (voulues.has(cle) && n.isConnected) continue;
         n.remove();
         parCle.delete(cle);
       }
+      // Un choix part avec son nœud, ou quand tout le co-stream n'ajoute plus personne.
+      for (const [cle, c] of [...choixDe]) {
+        if (voulues.get(cle)?.tous && parCle.has(cle) && c.boite.isConnected) continue;
+        c.boite.remove();
+        choixDe.delete(cle);
+      }
+      for (const [login, p] of [...parCarte]) {
+        if (seules.has(login) && p.isConnected) continue;
+        p.remove();
+        parCarte.delete(login);
+      }
       const premiere = voulues.values().next().value;
-      const section = premiere ? premiere.barre[0].closest('.side-nav-section') : null;
-      if (!section) { voulues = new Map(); suivre(null); return; }
+      const seule = seules.values().next().value;
+      const ancre = premiere ? premiere.barre[0] : seule ? seule.carte : null;
+      const section = ancre ? ancre.closest('.side-nav-section') : null;
+      if (!section) { voulues = new Map(); seules = new Map(); suivre(null); return; }
       if (!couche || couche.parentElement !== section) {
         couche = couche || Object.assign(document.createElement('div'), { id: 'tse-noeuds' });
         section.prepend(couche);
       }
-      for (const [cle, { membres }] of voulues) {
+      for (const [cle, { membres, tous, classement }] of voulues) {
         let n = parCle.get(cle);
         if (!n) { n = creer(cle, membres); parCle.set(cle, n); }
-        else ordonner(n, membres);
+        ordonner(n, membres, tous);
         if (n.parentElement !== couche) couche.appendChild(n);
+        let c = choixDe.get(cle);
+        if (tous && !c) { c = creerChoix(cle); choixDe.set(cle, c); }
+        if (c) {
+          garnirChoix(c, membres, tous, classement);
+          // Juste après son nœud : c'est ce que la feuille suit (« + »).
+          if (n.nextElementSibling !== c.boite) n.after(c.boite);
+        }
+      }
+      for (const [login, { membres }] of seules) {
+        let p = parCarte.get(login);
+        if (!p) { p = creerPastille(); parCarte.set(login, p); }
+        garnirPastille(p, membres);
+        if (p.parentElement !== couche) couche.appendChild(p);
       }
       placer();
       marquer();
@@ -16560,9 +16856,13 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
        section suivie est une boîte ordinaire. Si elle devenait une grille ou
        une colonne flex avec un `gap`, ce calque de hauteur nulle y ajouterait
        un écart — le rapport le dit : l'affichage de la section, et l'écart
-       mesuré entre le calque et ce qui le suit (0 attendu). */
+       mesuré entre le calque et ce qui le suit (0 attendu). Et depuis la
+       4.24.0.28 : combien de barres offrent tout le co-stream (`choix`),
+       combien de « ▶ » (`pastilles`) et leurs clics, combien de salles
+       ouvertes sur tout le co-stream (`tous`). */
     const bilan = () => {
-      const out = { affiches: parCle.size, clics };
+      const out = { affiches: parCle.size, clics, choix: choixDe.size,
+                    pastilles: parCarte.size, clicsPastilles, tous: tousOuverts };
       // Le prochain élément RENDU : Twitch garde dans la section des blocs
       // masqués (son en-tête, sous le nôtre), qui n'ont pas de place.
       let suivant = couche && couche.isConnected ? couche.nextElementSibling : null;
@@ -17144,11 +17444,16 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
                          combien portent notre pastille (« pastilles »), et si le
                          réglage l'éteint (le jeton « collab » est déjà au rapport).
                          Zéro et zéro veut dire qu'aucune collab n'est à l'antenne ;
-                         du « plus » sans pastille veut dire que c'est nous. */
-                      plus: 0, pastilles: 0 };
+                         du « plus » sans pastille veut dire que c'est nous.
+                         Depuis la 4.24.0.28, une pastille posée peut être
+                         effacée (Top Chaînes, barre, « ▶ ») : « pastillesVues »
+                         compte celles qui se voient. */
+                      plus: 0, pastilles: 0, pastillesVues: 0 };
           for (const c of vues) {
             if (c.querySelector('p[data-a-target="side-nav-title"]')) r.crochet++;
-            if (c.querySelector('.tse-collab-badge')) r.pastilles++;
+            const pastille = c.querySelector('.tse-collab-badge');
+            if (pastille) r.pastilles++;
+            if (pastille && pastille.getClientRects().length) r.pastillesVues++;
             if (/\+\d+/.test(c.textContent || '')) r.plus++;
             /* LES DEUX BOÎTES, ET NON PLUS UNE SEULE. La première rédaction ne
                comptait que le groupe `.side-nav-card__metadata`, et son « une
@@ -26217,6 +26522,75 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     return barres.filter((b) => b.length >= 2);
   }
 
+  /* ── LES ENTRÉES DE LA SALLE (4.24.0.28) ────────────────────────────────
+     SIGNALÉ SUR UNE CAPTURE : quatre chaînes suivies en barre, « Regarder
+     les 4 » — et six personnes dans le co-stream, dont deux qu'on ne suit
+     pas. Demandé : un moyen simple de regarder les quatre, ou les six, et
+     le choix sur la barre latérale, là où il est déjà.
+
+     LA SESSION LE SAIT, LA BARRE NE LE MONTRE PAS. Guest Star nomme tous
+     les membres (cf. `mates`) et dit lesquels diffusent sur leur propre
+     chaîne (`enLigne`). Un invité qui ne diffuse pas n'a pas de lecteur à
+     ouvrir : il ne compte pas. `null` — l'hôte, jamais sondé — compte : on
+     ne sait pas, donc on ne retire pas, comme partout ailleurs.
+
+     DEUX ENTRÉES, rendues au nœud :
+       — UNE BARRE : ses membres, dans son ordre ; et `tous` — eux d'abord,
+         puis les autres membres qui diffusent : ceux qu'on suit (une carte
+         qu'un tri a détachée) avant ceux qu'on ne suit pas, dans l'ordre de
+         la session ; six au plus, comme la salle. `null` quand il n'ajoute
+         personne, ou que la barre remplit déjà la salle.
+       — UNE CARTE SEULE de son co-stream, hors Top Chaînes, dont d'autres
+         membres diffusent : sa pastille devient le nœud, « ▶ ». Elle d'abord,
+         puis les autres, dans le même ordre. Personne d'autre ne diffuse, ou
+         la session est inconnue : la pastille reste un nombre.
+     ET LA PASTILLE DE NOMBRE S'EFFACE sur les cartes de l'une et de l'autre
+     (`data-tse-pastille`), par une règle de la feuille qui la rend quand la
+     salle est coupée. Un attribut : l'observateur de la barre ne le voit
+     pas. Rien n'est demandé à Twitch : tout est déjà dans le cache. */
+  function entreesSalle(barres) {
+    const section = followedSection();
+    const cartes = section
+      ? [...section.querySelectorAll('.side-nav-card')].filter((c) => !c.parentElement?.closest('.side-nav-card'))
+      : [];
+    const suivies = new Set();
+    for (const c of cartes) {
+      if (c.dataset.tseLogin && c.dataset.tseGlobal !== 'true') suivies.add(c.dataset.tseLogin);
+    }
+    const quiDiffusent = (login) => getGuestStarMates(login)
+      .filter((m) => m.enLigne !== false).map((m) => m.login);
+    // Ceux qu'on suit d'abord ; le tri est stable, l'ordre de la session tient.
+    const suiviesDabord = (logins) => logins.sort((a, b) => Number(suivies.has(b)) - Number(suivies.has(a)));
+    const marques = new Map();
+    const sortie = { barres: [], seules: [] };
+    for (const barre of barres || []) {
+      const membres = [...new Set(barre.map((c) => c.dataset.tseLogin).filter(Boolean))];
+      const autres = [];
+      for (const l of membres) {
+        for (const m of quiDiffusent(l)) if (!membres.includes(m) && !autres.includes(m)) autres.push(m);
+      }
+      const tous = autres.length && membres.length < CFG.SALLE_MAX
+        ? [...membres, ...suiviesDabord(autres)].slice(0, CFG.SALLE_MAX)
+        : null;
+      sortie.barres.push({ barre, membres, tous, classement: barre[0].dataset.tseGlobal === 'true' });
+      for (const c of barre) marques.set(c, 'barre');
+    }
+    for (const c of cartes) {
+      if (marques.has(c) || c.dataset.tseGlobal === 'true' || !cardShown(c)) continue;
+      const login = c.dataset.tseLogin;
+      if (!login) continue;
+      const autres = quiDiffusent(login).filter((m) => m !== login);
+      if (!autres.length) continue;
+      sortie.seules.push({ carte: c, membres: [login, ...suiviesDabord(autres)].slice(0, CFG.SALLE_MAX) });
+      marques.set(c, 'seule');
+    }
+    for (const c of document.querySelectorAll('.side-nav-card[data-tse-pastille]')) {
+      if (!marques.has(c)) delete c.dataset.tsePastille;
+    }
+    for (const [c, v] of marques) if (c.dataset.tsePastille !== v) c.dataset.tsePastille = v;
+    return sortie;
+  }
+
   /* ============================================================
    *  ORDRE TWITCH ORIGINAL + TRI CUSTOM
    *  -------------------------------------------------------------
@@ -27291,8 +27665,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     updateSortButtonsState({ costreamGroups });
     applySorting();
     // Après le tri : fusionne les barres des voisins du même co-stream, et pose
-    // sur chacune le nœud de la salle multistream.
-    noeudsSalle.maj(applyCostreamJoins());
+    // sur chacune le nœud de la salle multistream — avec, depuis la 4.24.0.28,
+    // tout le co-stream, et le « ▶ » des cartes seules.
+    noeudsSalle.maj(entreesSalle(applyCostreamJoins()));
     autoExpandFollowed();
 
     // Ce scan a-t-il masqué de nouvelles cartes "Déconnecté(e)" ?
