@@ -29054,12 +29054,25 @@ const S_LECTEUR_SONDE = () => {
     const n = document.querySelector('#tse-noeuds .tse-noeud');
     const choix = n && n.nextElementSibling && n.nextElementSibling.classList.contains('tse-noeud__choix')
       ? n.nextElementSibling : null;
+    /* CE QUI FAIT UN BOUTON (4.24.0.29) : le relief (plusieurs ombres, dont
+       une franche dessous), l'arrondi, la main, le symbole de l'action, et la
+       réponse au survol — plus clair, soulevé. */
+    const allure = (el) => {
+      const cs = getComputedStyle(el);
+      return { ombres: cs.boxShadow === 'none' ? 0 : cs.boxShadow.split(/,(?![^(]*\))/).length,
+               rayon: cs.borderTopLeftRadius, curseur: cs.cursor, souris: cs.pointerEvents,
+               transform: cs.transform, filtre: cs.filter };
+    };
+    const icones = (el) => ({
+      lecture: el.querySelector('.tse-icone-lecture') ? getComputedStyle(el.querySelector('.tse-icone-lecture')).display : null,
+      arret: el.querySelector('.tse-icone-arret') ? getComputedStyle(el.querySelector('.tse-icone-arret')).display : null });
     const opt = (sel) => {
       const o = choix ? choix.querySelector(sel) : null;
       if (!o) return null;
       const r = o.getBoundingClientRect();
       return { texte: o.textContent, presse: o.getAttribute('aria-pressed'), titre: o.title,
-               nom: o.getAttribute('aria-label'), x: r.left + r.width / 2, y: r.top + r.height / 2 };
+               nom: o.getAttribute('aria-label'), x: r.left + r.width / 2, y: r.top + r.height / 2,
+               haut: r.top, bas: r.bottom, droite: r.right, ...allure(o), ...icones(o) };
     };
     const rn = n ? n.getBoundingClientRect() : null;
     const pastilles = [...document.querySelectorAll('#tse-noeuds .tse-pastille-salle')].map((p) => {
@@ -29069,9 +29082,15 @@ const S_LECTEUR_SONDE = () => {
       const r = p.getBoundingClientRect();
       const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
       const touche = document.elementFromPoint(cx, cy);
+      const et = p.querySelector('.tse-pastille-salle__etiquette');
+      const re = et.getBoundingClientRect();
       return { membres, aria: p.getAttribute('aria-label'), presse: p.getAttribute('aria-pressed'),
-               etiquette: getComputedStyle(p.querySelector('.tse-pastille-salle__etiquette')).display,
-               texte: p.querySelector('.tse-pastille-salle__etiquette').textContent,
+               etiquette: getComputedStyle(et).display, texte: et.textContent, titre: p.title,
+               /* Le point visé : le début de l'étiquette. Dans ce décor, l'avatar est
+                  à DROITE de la carte, et la fin de l'étiquette sort de la barre
+                  latérale, qui la rogne ; sur Twitch, il est à gauche. */
+               pilule: { titre: et.title, x: re.left + 12, y: re.top + re.height / 2, ...allure(et) },
+               focus: document.activeElement === p, focusVisible: p.matches(':focus-visible'), ...icones(p),
                // Au centre exact de la pastille qu'il remplace (16 px, 3 px de débord).
                dx: ra ? Math.round((cx - (ra.right - 5)) * 10) / 10 : null,
                dy: ra ? Math.round((cy - (ra.bottom - 5)) * 10) / 10 : null,
@@ -29086,6 +29105,7 @@ const S_LECTEUR_SONDE = () => {
       noeud: n ? { barre: n.dataset.tseNoeud, tous: n.dataset.tseTous ?? null, aria: n.getAttribute('aria-label'),
                    titre: n.title, presse: n.getAttribute('aria-pressed'),
                    etiquette: getComputedStyle(n.querySelector('.tse-noeud__etiquette')).display,
+                   ombre: getComputedStyle(n).boxShadow, ...icones(n),
                    reduit: n.classList.contains('tse-noeud--reduit'),
                    x: rn.left + rn.width / 2, y: rn.top + rn.height / 2, droite: rn.right } : null,
       noeuds: document.querySelectorAll('#tse-noeuds .tse-noeud').length,
@@ -29121,13 +29141,14 @@ const S_LECTEUR_SONDE = () => {
 
   const e1 = await lire();
   /* Mutants — l'invité qui ne diffuse pas compté ; ceux qu'on ne suit pas
-     oubliés (pas de choix) ; le titre sans le raccourci. */
+     oubliés (pas de choix). Pas d'infobulle sur le rond, barre étendue
+     (4.24.0.29) : celle du navigateur recouvrait le second choix. */
   ok('la barre des quatre suivis garde son nœud ; tout le co-stream y ajoute les deux qu\'on ne suit pas — pas l\'invité qui ne diffuse pas',
      e1.noeuds === 1 && e1.noeud?.barre === 'aube brume cime dune'
      && e1.noeud?.tous === 'aube brume cime dune ecume flot' && e1.choixTotal === 1
      && e1.choix?.affiche === 'masque' && e1.noeud?.etiquette === 'none'
      && /aube/.test(e1.noeud?.aria) && /dune/.test(e1.noeud?.aria) && !/ecume/.test(e1.noeud?.aria)
-     && e1.noeud?.titre.includes('Maj+clic : tout le co-stream (6)'),
+     && e1.noeud?.titre === '',
      JSON.stringify({ noeud: e1.noeud, choix: e1.choix, n: e1.choixTotal }));
   /* Mutants — la règle de la feuille retirée (les nombres restent sous la
      barre et sous le « ▶ ») ; l'élément retiré au lieu d'être masqué (la
@@ -29167,15 +29188,55 @@ const S_LECTEUR_SONDE = () => {
      && /ecume/.test(e2.choix.tous.titre) && /flot/.test(e2.choix.tous.titre) && !/givre/.test(e2.choix.tous.titre)
      && e2.choix.suivis.nom === null && e3.choix?.affiche === 'montre' && !e2.apercu && !e3.apercu,
      JSON.stringify({ e2: e2.choix, noeud: e2.noeud, e3: e3.choix?.affiche, apercu: [e2.apercu, e3.apercu] }));
+  /* SIGNALÉ (4.24.0.29) : « on dirait pas que ce sont des éléments
+     cliquables ». Ce qui fait un bouton se mesure : deux boutons l'un sous
+     l'autre, chacun en relief (trois ombres, dont une franche dessous),
+     arrondi, la main au survol, le ▶ de ce qu'il lance ; sous la souris,
+     plus clair et soulevé d'un pixel — l'autre, non ; le rond lui-même cerclé
+     de clair au survol ; le raccourci dans l'infobulle de « tout ». Mutants —
+     les choix côte à côte ; le relief retiré ; le survol sans réponse ; le
+     symbole retiré ; le rond sans anneau de survol ; le raccourci perdu. */
+  const bouton = (o) => !!o && o.ombres >= 3 && o.rayon === '6px' && o.curseur === 'pointer' && o.lecture !== 'none'
+    && o.arret === 'none';
+  ok('ce sont des boutons : l\'un sous l\'autre, en relief, le ▶ devant ; sous la souris, plus clair et soulevé ; le rond cerclé au survol',
+     bouton(e2.choix?.suivis) && bouton(e2.choix?.tous) && e2.choix.tous.haut >= e2.choix.suivis.bas
+     && e2.choix.suivis.transform === 'none' && e2.choix.tous.transform === 'none'
+     && e3.choix?.tous?.transform === 'matrix(1, 0, 0, 1, 0, -1)' && e3.choix?.tous?.filtre === 'brightness(1.12)'
+     && e3.choix?.suivis?.transform === 'none' && /rgba\(255, 255, 255, 0\.75\)/.test(e2.noeud?.ombre || '')
+     && !/rgba\(255, 255, 255/.test(e1.noeud?.ombre || '')
+     && e2.choix.tous.titre.includes('Maj+clic : tout le co-stream (6)'),
+     JSON.stringify({ suivis: e2.choix?.suivis, tous: e2.choix?.tous, survol: e3.choix?.tous, rond: [e1.noeud?.ombre, e2.noeud?.ombre] }));
   await clic(e3.choix?.tous);
   const o1 = await salle();
   const e4 = await lire();
+  await loin();
+  const e4b = await lire();
+  /* LÀ OÙ DORT LE CHOIX MASQUÉ, la souris arrivée d'ailleurs que du rond :
+     rien ne s'ouvre, la carte dessous garde la main. */
+  if (e2.choix?.suivis) await page.mouse.move(e2.choix.suivis.x, e2.choix.suivis.y);
+  await wait(page, 200);
+  const e4c = await lire();
+  await loin();
   /* Mutants — le choix qui ouvre la barre ; l'ordre de la session perdu. */
   ok('« Tout le co-stream » ouvre les six, la barre d\'abord ; le nœud et ce choix-là enfoncés',
      o1.ouverte && o1.chaines === 'aube,brume,cime,dune,ecume,flot' && o1.origine === 'noeud' && o1.chemin === '/directory'
      && e4.noeud?.presse === 'true' && e4.choix?.tous?.presse === 'true' && e4.choix?.suivis?.presse === 'false',
      JSON.stringify({ o1, presses: [e4.noeud?.presse, e4.choix?.suivis?.presse, e4.choix?.tous?.presse] }));
-  await loin();
+  /* ▶ POUR OUVRIR, ■ POUR ARRÊTER : la salle ouverte, le rond et « tout »
+     portent le carré — « suivis », encore le triangle. ET LE CLIC DE SOURIS
+     NE GARDE PAS LE FOCUS : la souris partie, le choix se referme — gardé
+     par :focus-within, il restait sur la carte pendant toute la salle.
+     Mutants — le symbole qui ne change pas ; le focus laissé au bouton ; les
+     boutons du choix masqué qui reçoivent quand même la souris (et le
+     rouvrent par :hover, sans passer par le rond). */
+  ok('salle ouverte : ■ sur le rond et sur « tout », ▶ sur « suivis » ; cliqué à la souris, le choix ne garde pas le focus et se referme',
+     e4.noeud?.arret === 'block' && e4.noeud?.lecture === 'none'
+     && e4.choix?.tous?.arret === 'block' && e4.choix?.tous?.lecture === 'none'
+     && e4.choix?.suivis?.arret === 'none' && e4.choix?.suivis?.lecture !== 'none'
+     && !/tse-noeud__option/.test(e4.focus || '') && e4b.choix?.affiche === 'masque' && e4c.choix?.affiche === 'masque',
+     JSON.stringify({ noeud: [e4.noeud?.lecture, e4.noeud?.arret], tous: [e4.choix?.tous?.lecture, e4.choix?.tous?.arret],
+                      suivis: [e4.choix?.suivis?.lecture, e4.choix?.suivis?.arret], focus: e4.focus,
+                      apres: e4b.choix?.affiche, dessous: e4c.choix?.affiche }));
   await clic(e4.noeud);
   const o2 = await salle();
   const e5 = await lire();
@@ -29253,21 +29314,49 @@ const S_LECTEUR_SONDE = () => {
   const h10 = pastilleDe(e10, 'hale');
   /* Mutants — l'étiquette jamais montrée ; le survol qui ne grandit pas ; le
      « ▶ » dans la carte (son survol ouvrirait l'aperçu). */
-  ok('survolé, le « ▶ » de « hale » grandit et dit « Regarder les 6 » ; l\'aperçu reste fermé',
+  /* « Regarder les 6 » EST UN BOUTON (4.24.0.29) : en relief, arrondi, la
+     main ; il reçoit la souris, et les chaînes sont dans son infobulle — pas
+     sur le rond, barre étendue. Mutant — l'étiquette transparente à la
+     souris. */
+  ok('survolé, le « ▶ » de « hale » grandit et dit « Regarder les 6 », un bouton ; l\'aperçu reste fermé',
      h10?.etiquette === 'block' && h10?.texte === 'Regarder les 6' && /^matrix\(1\.25, 0, 0, 1\.25/.test(h10?.echelle || '')
-     && pastilleDe(e9, 'hale')?.echelle === 'none' && !e10.apercu,
+     && pastilleDe(e9, 'hale')?.echelle === 'none' && !e10.apercu
+     && h10.pilule.ombres >= 3 && h10.pilule.rayon === '6px' && h10.pilule.curseur === 'pointer' && h10.pilule.souris === 'auto'
+     && /nacre/.test(h10.pilule.titre) && h10.titre === '',
      JSON.stringify({ h10, avant: pastilleDe(e9, 'hale')?.echelle, apercu: e10.apercu }));
-  await clic(h10);
+  // Le clic sur l'ÉTIQUETTE, et non sur le rond : elle fait partie du bouton.
+  await clic(h10?.pilule);
   const o7 = await salle();
   const e11 = await lire();
-  await clic(pastilleDe(e11, 'hale'));
+  await vers(pastilleDe(e11, 'hale'));
+  await wait(page, 300);
+  const e11b = await lire();
+  // Une touche de la salle — la première tuile prend le son —, comme on règle une salle.
+  await page.keyboard.press('1');
+  await wait(page, 300);
+  const e11c = await lire();
+  const s11 = pastilleDe(e11b, 'hale'), s11c = pastilleDe(e11c, 'hale');
+  /* SIGNALÉ, CAPTURE À L'APPUI : « "Regarder les 2" reste quand on est dans
+     ce salon […] ça cache une partie de la carte ». Deux causes, deux
+     mesures : le bouton gardait le focus après le clic, et la première
+     touche de la salle le rendait :focus-visible — étiquette, anneau et
+     taille agrandie restaient ; et l'étiquette s'affichait sur un « ▶ » dont
+     la salle est déjà ouverte. Mutants — le focus laissé ; l'étiquette
+     montrée sur un « ▶ » enfoncé. */
+  ok('dans la salle du « ▶ » : plus d\'étiquette, même survolé ; ■ ; ni focus ni :focus-visible après une touche',
+     o7.ouverte && o7.chaines === 'hale,iris,kaki,lilas,mauve,nacre'
+     && s11?.presse === 'true' && s11?.etiquette === 'none' && s11?.arret === 'block' && s11?.lecture === 'none'
+     && !pastilleDe(e11, 'hale')?.focus && !s11c?.focus && !s11c?.focusVisible && s11c?.etiquette === 'none',
+     JSON.stringify({ o7, survol: s11, apresTouche: s11c, focus: e11c.focus }));
+  await clic(pastilleDe(e11c, 'hale'));
   const o8 = await salle();
   const e12 = await lire();
   /* Mutants — le clic qui suit le lien de la carte ; l'interrupteur absent. */
   ok('un clic sur le « ▶ » ouvre « hale » et cinq de sa session ; enfoncé, un second clic referme',
      o7.ouverte && o7.chaines === 'hale,iris,kaki,lilas,mauve,nacre' && o7.chemin === '/directory'
      && pastilleDe(e11, 'hale')?.presse === 'true' && e11.noeud?.presse === 'false'
-     && !o8.ouverte && o8.fermeture === 'noeud' && pastilleDe(e12, 'hale')?.presse === 'false',
+     && !o8.ouverte && o8.fermeture === 'noeud' && pastilleDe(e12, 'hale')?.presse === 'false'
+     && pastilleDe(e12, 'hale')?.lecture !== 'none',
      JSON.stringify({ o7, o8, presse: [pastilleDe(e11, 'hale')?.presse, pastilleDe(e12, 'hale')?.presse] }));
   await loin();
 
@@ -29376,10 +29465,12 @@ const S_LECTEUR_SONDE = () => {
   await page.evaluate(() => window.tse.salle.fermer());
   await wait(page, 200);
   /* Mutants — le choix montré dans une barre large d'un avatar ; le « ▶ »
-     qui ne suit pas l'avatar réduit. */
-  ok('barre réduite : ni choix ni étiquette au survol — Maj+clic ouvre tout le co-stream ; les « ▶ » au coin de l\'avatar',
+     qui ne suit pas l'avatar réduit ; l'infobulle retirée aussi en barre
+     réduite, où elle est seule à nommer les chaînes et le raccourci. */
+  ok('barre réduite : ni choix ni étiquette au survol, l\'infobulle à la place — Maj+clic ouvre tout le co-stream ; les « ▶ » au coin de l\'avatar',
      c1.noeud?.reduit && c2.choix?.affiche === 'masque'
-     && c1.pastilles.every((p) => p.reduit && Math.abs(p.dx) <= 1 && Math.abs(p.dy) <= 1 && p.dessus)
+     && c1.noeud?.titre.includes('Maj+clic : tout le co-stream (6)') && /cime/.test(c1.noeud?.titre)
+     && c1.pastilles.every((p) => p.reduit && Math.abs(p.dx) <= 1 && Math.abs(p.dy) <= 1 && p.dessus && /ensemble/.test(p.titre))
      && pastilleDe(c3, 'hale')?.etiquette === 'none'
      && o9.ouverte && o9.chaines === 'cime,brume,aube,dune,ecume,flot',
      JSON.stringify({ noeud: c1.noeud, choix: c2.choix?.affiche, pastilles: c1.pastilles, survol: pastilleDe(c3, 'hale'), o9 }));
