@@ -2180,6 +2180,186 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## Tout le co-stream depuis la barre, et le « ▶ » à la place de la pastille (v4.24.0.28)
+
+Le signalement, sur une capture : quatre chaînes suivies en barre, « Regarder
+les 4 » au survol du nœud — et six personnes dans le co-stream, dont deux
+qu'on ne suit pas. La demande : « un moyen simple, intuitif pour faire un
+multistream avec les 4, ou alors avec tout le monde directement, les 6 », le
+choix restant sur la barre latérale. Puis, une fois les pistes posées : que la
+pastille d'une chaîne seule de son co-stream devienne le nœud ; « dans "Top
+Chaînes", retirer totalement la pastille » ; qu'elle « disparaisse » sur une
+barre, « car il y a la barre avec le nœud » ; qu'elle grandisse un peu au
+survol ; des nombres quand le multistream est coupé, et « la possibilité de
+retirer totalement les pastilles, en plus de pouvoir désactiver le
+multistream ». Publiée sur `claude/chrome-multi` seulement.
+
+### Ce que la session sait, et que la barre ne montre pas
+
+Une barre relie les chaînes **suivies** d'un même direct, et rien d'autre :
+une chaîne qu'on ne suit pas n'a pas de carte. Mais Guest Star nomme tous les
+membres de la session, et dit pour chacun s'il diffuse sur sa propre chaîne
+(`enLigne`, cf. v4.21). C'est tout ce qu'il fallait : rien n'est demandé à
+Twitch de plus, tout est déjà dans le cache.
+
+- **Un invité qui ne diffuse pas** n'a pas de lecteur à ouvrir : il n'est
+  compté nulle part ici. La pastille, elle, le compte toujours — elle dit
+  avec combien de personnes la chaîne est en co-stream.
+- **L'hôte jamais sondé** (`enLigne` à `null`, quand Twitch ne le nomme pas
+  aussi parmi ses invités) compte : on ne sait pas, donc on ne retire pas,
+  comme partout ailleurs.
+- **Six au plus**, comme la salle : la barre d'abord, puis ceux qu'on suit
+  (une carte qu'un tri a détachée de sa barre), puis ceux qu'on ne suit pas,
+  dans l'ordre de la session.
+
+### Sur la barre : les suivis, ou tout le co-stream
+
+Quand la session compte des membres qui diffusent hors de la barre,
+l'étiquette du nœud devient deux boutons, au survol :
+
+| | ce qu'il ouvre |
+| --- | --- |
+| **« Les 4 suivis »** | les chaînes de la barre, dans son ordre — ce que le nœud ouvrait déjà |
+| **« Tout le co-stream · 6 »** | la barre, puis les autres membres qui diffusent |
+| un clic sur le rond | la barre, inchangé |
+| **Maj+clic sur le rond** | tout le co-stream — et le titre du nœud le rappelle : « Maj+clic : tout le co-stream (6) » |
+
+Sans personne à ajouter — tout le co-stream est déjà dans la barre, ou la
+barre remplit déjà les six places —, l'étiquette reste « Regarder les 4 ».
+C'est le cas en Top Chaînes, qui complète la place d'un co-stream avec tous
+ceux qui diffusent (v4.18) : la barre y a déjà tout le monde.
+
+- **Les deux boutons sont collés au rond**, à sa droite, à la couleur de la
+  barre ; une marge de six pixels à leur gauche est le pont que la souris
+  traverse du rond aux boutons sans les perdre. Ils ne sont pas *dans* le
+  nœud : un bouton ne contient pas de boutons.
+- **Un interrupteur, toujours** : le rond est enfoncé quand la salle de sa
+  barre **ou** de tout son co-stream est ouverte, et un clic la referme ;
+  chaque bouton l'est pour la sienne. Maj+clic sur une salle de tout le
+  co-stream ouverte la referme ; sur celle de la barre, il passe à tout le
+  co-stream.
+- **Au clavier**, ils suivent le nœud dans l'ordre de tabulation : le nœud
+  atteint montre le choix, Tab y entre, Entrée ouvre. Le texte visible est
+  le nom du bouton — il se dit comme il se lit, et se commande à la voix de
+  même ; les chaînes sont dans le titre.
+- **Masqué par l'opacité, et non retiré de la page** : c'est un mutant qui
+  l'a appris. Masqué par `display`, le choix n'avait plus de boîte à
+  l'instant où la tabulation quitte le nœud — lui n'a plus le focus, le choix
+  ne l'a pas encore —, et le focus tombait sur la page.
+- **Barre réduite** : pas la place d'écrire, ni l'étiquette ni le choix —
+  Maj+clic sur le rond.
+
+### Le « ▶ » à la place de la pastille
+
+Une chaîne **seule de son co-stream** dans la liste — pas de barre —, dont
+d'autres membres diffusent : sa pastille devient le nœud. Un « ▶ » blanc
+sur le violet de la pastille, à sa place exacte, au coin de l'avatar.
+
+- Au survol, **il grandit** (×1,25, le rond et le triangle, pas la bulle) et
+  dit **« Regarder les M »** : elle, puis les autres membres qui diffusent,
+  six au plus. Un clic ouvre la salle, un second la referme ; enfoncé tant
+  qu'elle est ouverte.
+- Il vit dans le même calque que les nœuds : le survoler n'ouvre pas
+  l'aperçu, le cliquer ne suit pas le lien de la carte.
+- **Personne d'autre ne diffuse**, ou la session est inconnue (Guest Star en
+  panne, ou le « +N » de Twitch seul) : la pastille reste un nombre — il n'y
+  a rien à regarder ensemble, mais le co-stream existe.
+- **Barre réduite** : le « ▶ » reste, au coin de l'avatar ; le nom des
+  chaînes au survol, en info-bulle.
+
+### Où la pastille s'efface
+
+L'élément reste dans la carte, seule sa vue change : la détection de secours
+du co-stream (le « +N » quand Guest Star ne répond pas) et le rapport le
+lisent.
+
+| où | multistream allumé | multistream coupé |
+| --- | --- | --- |
+| Top Chaînes | rien — on y voit le co-stream entier | rien |
+| une carte d'une barre | rien : la barre et son nœud le disent | le nombre |
+| une carte seule, d'autres membres qui diffusent | le « ▶ » | le nombre |
+| une carte seule, personne d'autre qui diffuse, ou session inconnue | le nombre | le nombre |
+
+### Les deux réglages
+
+Deux interrupteurs, indépendants :
+
+| | Salle multistream allumée | Salle multistream coupée |
+| --- | --- | --- |
+| **Pastille de collaboration allumée** | nœuds, choix, « ▶ » ; des nombres là où il n'y a rien à ouvrir | des nombres partout (sauf Top Chaînes) |
+| **Pastille de collaboration coupée** | nœuds, choix, « ▶ » ; plus aucun nombre | rien |
+
+Le « ▶ » relève de la salle, pas de la pastille : il est le nœud d'une
+chaîne seule, et le couper avec la pastille retirerait le seul chemin vers sa
+salle. Le panneau le dit, sous chacun des deux réglages ; le mode d'emploi
+aussi, au chapitre des co-streams. Dix langues pour les boutons, douze pour
+le panneau.
+
+### Le rapport
+
+- `salle.noeuds` : `choix` (les barres qui offrent tout le co-stream),
+  `pastilles` (les « ▶ »), `clicsPastilles`, et `tous` (les salles ouvertes
+  sur tout le co-stream), à côté de `affiches` et `clics`.
+- `lignes.pastillesVues` : les pastilles qui se voient, à côté de celles qui
+  sont posées (`pastilles`).
+
+### À vérifier sur le vrai Twitch
+
+| point | ce qui le dira |
+| --- | --- |
+| le choix, à côté du rond, sur l'avatar de la carte du milieu : lisible, pas gênant ? | l'œil — à dire |
+| un hôte qui ne diffuse pas sur sa chaîne, et que Twitch ne nomme pas parmi ses invités : compté (on ne sait pas) — une tuile vide dans la salle ? | la salle, et le rapport (`chaines`) |
+| le « ▶ » au coin de l'avatar, au pixel | l'œil — le banc le mesure sur son décor |
+
+### Ce que le banc mesure
+
+- **194** — le co-stream du signalement : quatre suivies en barre, deux qu'on
+  ne suit pas, et un invité qui ne diffuse pas ; une chaîne seule d'une
+  session de huit ; une dont le seul camarade ne diffuse pas ; un « +2 »
+  sans session. Le nœud, « tout » sans l'invité ; les pastilles effacées sur
+  la barre et sous le « ▶ », toujours là dans la carte, des nombres pour les
+  deux autres ; le « ▶ » au coin exact de l'avatar, six chaînes au plus ; le
+  choix au survol, collé au rond, ouvert jusqu'au bouton par la souris ;
+  « tout » qui ouvre les six, le rond enfoncé qui referme ; « Les 4 suivis »,
+  puis Maj+clic qui passe à tout le co-stream, sans rien sélectionner, et
+  referme ; au clavier, le choix, Tab, Entrée ; le « ▶ » qui grandit, dit
+  « Regarder les 6 », ouvre et referme, l'aperçu fermé ; rien qui boucle ; un
+  tri qui détache un membre : « Les 3 suivis », la suivie détachée d'abord
+  dans tout le co-stream, et son propre « ▶ » ; les deux réglages, dans leurs
+  quatre combinaisons ; la barre réduite ; Top Chaînes, qui complète la place
+  d'une chaîne dont le répertoire ne rend aucun camarade, et n'y montre ni
+  pastille ni « ▶ » ; le rapport.
+
+| mutant | ce qui tombe |
+| --- | --- |
+| la règle de la feuille retirée (1) | 194 : « 6 » sous la barre, « 7 » sous le « ▶ », et `pastillesVues 7` au rapport |
+| la règle du classement retirée (1) | 194 : deux nombres en Top Chaînes |
+| la règle de la barre posée sans condition (1) | 194 : multistream coupé, les nombres ne reviennent ni sous la barre ni sous le « ▶ » |
+| l'invité qui ne diffuse pas compté (1) | 194 : « givre » dans tout le co-stream, « jade » sous le « ▶ » — treize assertions |
+| jamais de choix (1) | 194 : neuf assertions |
+| l'ordre de la session seul, sans les suivies d'abord (1) | 194 : « dune » après « ecume » et « flot » |
+| la carte seule sans plafond (1) | 194 : sept chaînes pour une salle de six |
+| le « ▶ » décalé de trois pixels (1) | 194 : hors du coin de l'avatar, en étendu comme en réduit |
+| le pont retiré (1) | 194 : le choix refermé en chemin vers « tout » |
+| le choix sans `:focus-within` ; masqué par `display` (2) | 194 : la tabulation qui quitte le nœud le perd |
+| le titre sans Maj+clic ; Maj+clic ignoré ; le nœud enfoncé pour sa barre seule ; pas d'interrupteur (4) | 194 |
+| une salle refusée comptée ; les clics du « ▶ » comptés au nœud (2) | 194 : le rapport |
+| le choix replacé, ou son texte réécrit, à chaque balayage (2) | 194 : un balayage entretenu |
+| pas d'agrandissement ; le choix montré en barre réduite ; le « ▶ » rangé sous le réglage de la pastille (3) | 194 |
+
+Vingt-trois mutants, vingt-deux pris. **Le survivant** : la garde qui refuse
+le « ▶ » aux cartes de Top Chaînes. Elle ne se mesure pas, et le banc dit
+pourquoi : Top Chaînes complète la place d'un co-stream avec le même critère
+que le « ▶ » — qui diffuse —, si bien qu'une carte du classement n'y est
+jamais seule de sa session ; même quand le répertoire n'en rend qu'une, ses
+camarades arrivent et la barre se forme. La garde reste : elle dit la
+demande (« retirer totalement la pastille » en Top Chaînes), et tient si la
+complétion change un jour. **Une garde retirée** : Maj+clic aurait pu
+étendre la sélection du texte jusqu'au nœud ; le mutant qui l'enlevait a
+survécu — Chromium ne le fait pas sur un bouton, ancre posée ou non. Plutôt
+qu'une garde sans preuve, le banc mesure le résultat : rien n'est
+sélectionné.
+
 ## Les pubs à tout moment, la place reprise, et le chat choisi (v4.24.0.27)
 
 La demande : « que le système de calage soit bien optimisé à ce qu'il puisse
@@ -17010,7 +17190,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 192 scénarios, 1616 assertions |
+| `npm test` | le harnais Playwright : 193 scénarios, 1634 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -17031,12 +17211,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1570 Ko | 626 Ko | 4 040 → **2** |
+| `content.js` | 1591 Ko | 639 Ko | 4 059 → **2** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
 | `panneau.js` | 107 Ko | 51 Ko | 149 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 22 → **0** |
-| **les cinq** | **1784 Ko** | **760 Ko** | **−57 %** |
+| **les cinq** | **1847 Ko** | **796 Ko** | **−57 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se

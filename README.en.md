@@ -2059,6 +2059,182 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The whole co-stream from the bar, and the "▶" in place of the pill (v4.24.0.28)
+
+The report, on a screenshot: four followed channels in a bar, "Watch all 4"
+when hovering the node — and six people in the co-stream, two of whom are not
+followed. The request: "a simple, intuitive way to do a multistream with the
+4, or with everyone directly, the 6", the choice staying on the sidebar. Then,
+once the options were laid out: the pill of a channel alone from its
+co-stream should become the node; "in Top Channels, remove the pill
+entirely"; it should "disappear" on a bar, "because there is the bar with the
+node"; it should grow slightly on hover; numbers when the multistream is
+off, and "the possibility to remove the pills entirely, on top of being able
+to turn the multistream off". Published on `claude/chrome-multi` only.
+
+### What the session knows, and the bar does not show
+
+A bar links the **followed** channels of one live, and nothing else: a
+channel you do not follow has no card. But Guest Star names every member of
+the session, and says for each whether they stream on their own channel
+(`enLigne`, see v4.21). That is all it took: nothing more is asked of Twitch,
+everything is already in the cache.
+
+- **A guest who does not stream** has no player to open: they are counted
+  nowhere here. The pill still counts them — it says how many people the
+  channel is co-streaming with.
+- **The host never probed** (`enLigne` at `null`, when Twitch does not also
+  list them among the guests) counts: we do not know, so we do not remove,
+  as everywhere else.
+- **Six at most**, like the room: the bar first, then those you follow (a
+  card a sort detached from its bar), then those you do not, in the
+  session's order.
+
+### On the bar: the followed ones, or the whole co-stream
+
+When the session has members streaming outside the bar, the node's label
+becomes two buttons, on hover:
+
+| | what it opens |
+| --- | --- |
+| **"4 followed"** | the bar's channels, in its order — what the node already opened |
+| **"Whole co-stream · 6"** | the bar, then the other members who stream |
+| a click on the round | the bar, unchanged |
+| **Shift+click on the round** | the whole co-stream — and the node's title says so: "Shift+click: whole co-stream (6)" |
+
+With nobody to add — the whole co-stream is already in the bar, or the bar
+already fills the six places —, the label stays "Watch all 4". That is the
+case in Top Channels, which completes a co-stream's place with everyone who
+streams (v4.18): the bar there already has everyone.
+
+- **The two buttons are stuck to the round**, on its right, in the bar's
+  colour; a six-pixel margin on their left is the bridge the mouse crosses
+  from the round to the buttons without losing them. They are not *in* the
+  node: a button does not contain buttons.
+- **A toggle, always**: the round is pressed when the room of its bar **or**
+  of its whole co-stream is open, and a click closes it; each button is
+  pressed for its own. Shift+click on an open whole-co-stream room closes
+  it; on the bar's, it switches to the whole co-stream.
+- **On the keyboard**, they follow the node in tab order: the node reached
+  shows the choice, Tab enters it, Enter opens. The visible text is the
+  button's name — it is said as it reads, and voice-controlled the same way;
+  the channels are in the title.
+- **Hidden by opacity, not removed from the page**: a mutant taught it.
+  Hidden with `display`, the choice had no box at the instant tabbing leaves
+  the node — the node no longer has focus, the choice does not have it yet —,
+  and focus fell onto the page.
+- **Collapsed sidebar**: no room to write, neither the label nor the choice
+  — Shift+click on the round.
+
+### The "▶" in place of the pill
+
+A channel **alone from its co-stream** in the list — no bar —, whose other
+members stream: its pill becomes the node. A white "▶" on the pill's purple,
+in its exact place, at the corner of the avatar.
+
+- On hover, **it grows** (×1.25, the round and the triangle, not the bubble)
+  and says **"Watch all M"**: the channel, then the other members who
+  stream, six at most. A click opens the room, a second closes it; pressed
+  while it is open.
+- It lives in the same layer as the nodes: hovering it does not open the
+  preview, clicking it does not follow the card's link.
+- **Nobody else streams**, or the session is unknown (Guest Star down, or
+  Twitch's "+N" alone): the pill stays a number — there is nothing to watch
+  together, but the co-stream exists.
+- **Collapsed sidebar**: the "▶" stays, at the corner of the avatar; the
+  channels' names on hover, as a tooltip.
+
+### Where the pill disappears
+
+The element stays in the card, only its view changes: the co-stream's
+fallback detection (the "+N" when Guest Star does not answer) and the report
+read it.
+
+| where | multistream on | multistream off |
+| --- | --- | --- |
+| Top Channels | nothing — the whole co-stream is visible there | nothing |
+| a card of a bar | nothing: the bar and its node say it | the number |
+| a card alone, other members streaming | the "▶" | the number |
+| a card alone, nobody else streaming, or session unknown | the number | the number |
+
+### The two settings
+
+Two independent switches:
+
+| | Multistream room on | Multistream room off |
+| --- | --- | --- |
+| **Collaboration pill on** | nodes, choice, "▶"; numbers where there is nothing to open | numbers everywhere (except Top Channels) |
+| **Collaboration pill off** | nodes, choice, "▶"; no number at all | nothing |
+
+The "▶" belongs to the room, not to the pill: it is the node of a channel
+alone, and turning it off with the pill would remove the only way to its
+room. The panel says so, under each of the two settings; the guide too, in
+the co-streams chapter. Ten languages for the buttons, twelve for the panel.
+
+### The report
+
+- `salle.noeuds`: `choix` (the bars offering the whole co-stream),
+  `pastilles` (the "▶"), `clicsPastilles`, and `tous` (the rooms opened on
+  the whole co-stream), next to `affiches` and `clics`.
+- `lignes.pastillesVues`: the pills that can be seen, next to those that are
+  set (`pastilles`).
+
+### To check on real Twitch
+
+| point | what will tell |
+| --- | --- |
+| the choice, next to the round, over the middle card's avatar: readable, not in the way? | the eye — to be said |
+| a host who does not stream on their channel, and whom Twitch does not list among the guests: counted (we do not know) — an empty tile in the room? | the room, and the report (`chaines`) |
+| the "▶" at the corner of the avatar, to the pixel | the eye — the bench measures it on its own set |
+
+### What the bench measures
+
+- **194** — the reported co-stream: four followed in a bar, two not
+  followed, and a guest who does not stream; a channel alone from a session
+  of eight; one whose only mate does not stream; a "+2" without a session.
+  The node, "whole" without the guest; the pills hidden on the bar and under
+  the "▶", still in the card, numbers for the two others; the "▶" at the
+  avatar's exact corner, six channels at most; the choice on hover, stuck to
+  the round, kept open by the mouse up to the button; "whole" opening the
+  six, the pressed round closing; "4 followed", then Shift+click switching to
+  the whole co-stream, selecting nothing, and closing; on the keyboard, the
+  choice, Tab, Enter; the "▶" growing, saying "Watch all 6", opening and
+  closing, the preview closed; nothing looping; a sort detaching a member:
+  "3 followed", the detached followed channel first in the whole co-stream,
+  and its own "▶"; the two settings, in their four combinations; the
+  collapsed sidebar; Top Channels, which completes the place of a channel
+  whose directory returns none of its mates, and shows neither pill nor "▶"
+  there; the report.
+
+| mutant | what falls |
+| --- | --- |
+| the stylesheet rule removed (1) | 194: "6" under the bar, "7" under the "▶", and `pastillesVues 7` in the report |
+| the Top Channels rule removed (1) | 194: two numbers in Top Channels |
+| the bar rule set unconditionally (1) | 194: multistream off, the numbers come back neither under the bar nor under the "▶" |
+| the guest who does not stream counted (1) | 194: "givre" in the whole co-stream, "jade" under the "▶" — thirteen assertions |
+| never a choice (1) | 194: nine assertions |
+| the session's order alone, without the followed ones first (1) | 194: "dune" after "ecume" and "flot" |
+| the lone card without a cap (1) | 194: seven channels for a six-seat room |
+| the "▶" three pixels off (1) | 194: off the avatar's corner, expanded and collapsed |
+| the bridge removed (1) | 194: the choice closing on the way to "whole" |
+| the choice without `:focus-within`; hidden with `display` (2) | 194: tabbing out of the node loses it |
+| the title without Shift+click; Shift+click ignored; the node pressed for its bar only; no toggle (4) | 194 |
+| a refused room counted; the "▶" clicks counted as the node's (2) | 194: the report |
+| the choice moved, or its text rewritten, on every scan (2) | 194: a scan kept alive |
+| no growing; the choice shown on the collapsed sidebar; the "▶" placed under the pill setting (3) | 194 |
+
+Twenty-three mutants, twenty-two caught. **The survivor**: the guard that
+refuses the "▶" to Top Channels cards. It cannot be measured, and the bench
+says why: Top Channels completes a co-stream's place with the same criterion
+as the "▶" — who streams —, so a ranked card is never alone from its session
+there; even when the directory returns only one, its mates arrive and the
+bar forms. The guard stays: it states the request ("remove the pill
+entirely" in Top Channels), and holds if the completion ever changes. **A
+guard removed**: Shift+click could have extended the text selection up to
+the node; the mutant removing the guard survived — Chromium does not do it
+on a button, anchor set or not. Rather than a guard without proof, the bench
+measures the outcome: nothing is selected.
+
 ## Ads at any moment, the place taken back, and the chosen chat (v4.24.0.27)
 
 The request: "make sure the calibration system is well optimised so that
@@ -16477,7 +16653,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 192 scenarios, 1616 assertions |
+| `npm test` | the Playwright harness: 193 scenarios, 1634 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -16497,12 +16673,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1570 KB | 626 KB | 4,040 → **2** |
+| `content.js` | 1591 KB | 639 KB | 4,059 → **2** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
 | `panneau.js` | 107 KB | 51 KB | 149 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
 | `background.js` | 9 KB | 2 KB | 22 → **0** |
-| **all five** | **1784 KB** | **760 KB** | **−57 %** |
+| **all five** | **1847 KB** | **796 KB** | **−57 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are
