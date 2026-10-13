@@ -2059,6 +2059,215 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## No more pill: the bar, and the "▶" redrawn (v4.24.0.33)
+
+The request: "Make the two fixes […] But don't do the older rules. Also, for
+the sake of consistency, I would like to have no pill at all. And so put
+instead a single coloured bar on the co-streaming streamer who is the only one
+we follow. With the round "▶" in the middle of the coloured bar. Could this
+round "▶" be redesigned? I don't find it very pretty, small, barely visible
+and not well integrated into the coloured bar. Stay within this kind of
+structure, but do professional work on the CSS. Be rigorous." Published on
+`claude/chrome-multi` first.
+
+### The common event's mask: the common part, and only it
+
+The two defects the real reports of 4.24.0.32 brought to light:
+
+- **The mask took the union of the two silences**, when their intersection
+  is enough — the only peak a shared silence can make lies in what both tiles
+  keep quiet together. A tile muted 21 to 28 % of the time, in those
+  reports, saw its long silences take seconds of real reference sound out of
+  the correlation. Now, for each pair of silences that overlap within 50 ms,
+  only their common part is set aside, with its 50 ms of edge on each side.
+- **The count capped at a hundred, and lied beyond**: it read the size of
+  the memory that deduplicates silences from one computation to the next,
+  bounded at a hundred. It is now kept apart, and also says how much sound
+  was set aside: `ecoute.silencesCommuns`, per pair, "xray~omega 3 · 0.8 s".
+
+**Not the older rules**, as asked: the number of catch-ups after an ad and
+the latency of the taken-back place, against the buffer, are unchanged.
+
+### No pill at all
+
+The purple number in the corner of the avatar is no longer seen
+**anywhere** — on a bar, on a lone channel, in Top Channels, with the
+multistream room off as with it on. It already faded under a bar or a "▶"
+since 4.24.0.28: the bar is what says co-stream.
+
+- **The element stays**, never shown: the fallback detection (same category
+  and same counter) reads its number, and the report counts the pills laid
+  (`lignes.pastilles`). `lignes.pastillesVues` must say zero there: any
+  other number would say that a Twitch rule beats ours.
+- **The "Collaboration pill" setting went with it**: there is no pill left to
+  turn off. Twenty-one settings instead of twenty-two — the panel, the
+  sentence that resets everything and the twelve Store listings take back,
+  word for word, those of 4.24.0.16. A value left in storage or in an export
+  is an unknown key, ignored like all of them. The language flag it also
+  turned off stays, like the bar.
+- **The guide** shows the card as it is: its bar, and the "▶" tab in the
+  middle, no more pill.
+
+### A bar for the channel alone from its co-stream
+
+A shown card in a co-stream — Twitch writes its "+N" on it, or Guest Star
+knows its session — that no drawn group takes has **its own bar**, one card
+long, in its session's colour.
+
+- **In each section**: alone in the followed list with two mates in "Live
+  channels", it has the colour of their bar; alone in both lists, both bars
+  have the same one.
+- **Not in Top Channels**, where the pill was already not shown: the ranking
+  places the whole co-stream that is streaming, and a card left alone there
+  would have no one to show.
+- **Not as long as no one knows its session** — neither its Guest Star
+  answer nor its mates' index: a guessed colour, then its session's, would
+  change before your eyes at start-up. Twitch's "+1" is there as soon as the
+  card arrives, its id a fraction of a second later, the answer after that;
+  the bar waits for the answer. The fallback detection only waits for the
+  answer of a card whose id is known — that same rule, applied here, made on
+  the bench a yellow bar at 54 ms, nothing at 107 ms, and its session's green
+  one at 3.45 s.
+- **No group key**: the "co-streams first" sort arranges groups, the join
+  links neighbours, and a lone card is neither. It keeps its place, and its
+  bar never joins a neighbour's.
+- **The palette** serves groups first, lone cards next. It has six colours:
+  beyond six co-streams on screen, a colour comes back — it was already so
+  for groups, and lone cards now use them too.
+- **The node in the middle** when other members are streaming and the room is
+  on: it opens it with them, six at most, those you follow first — "Watch all
+  6", and the channels in the label's tooltip. With no one else to open (a
+  guest without a stream, or a "+N" without a session), the bar without a
+  node. A node is only ever laid on a bar.
+- **The member a sort detaches from its bar** keeps its group's colour, and
+  has its own bar, with its node in the middle.
+
+In the report: `coStream.seules` (the followed list) and
+`coStream.recommandations.seules`; `salle.noeuds.seules`, the nodes of
+one-card bars, apart from `affiches` — `pastilles` and `clicsPastilles` no
+longer exist, their clicks are in `clics`.
+
+### The "▶" redrawn: a tab
+
+**Why the round did not work.** Twelve pixels, a four-by-five triangle:
+barely visible. And it was a circle centred on a stroke running along the
+edge of the window: the list would have clipped half of it, and `placer`
+pushed it to the right of the stroke — laid beside it, not on it.
+
+**The test bench.** Four shapes, rendered side by side on Twitch-sized cards,
+expanded and collapsed, dark and light: the former round; an 18-pixel round
+pearl, which covered the stroke and eight pixels of avatar; a necklace, the
+stroke widened up to a pearl; and the tab. It is the one that "belongs" to
+the bar:
+
+- **what a circle centred on that edge can be without being cut by it**: a
+  straight left edge, laid on the stroke, in its colour and with the same
+  shadows — the stroke widens, it does not carry an object; a half-circle
+  right edge;
+- **fifteen pixels by twenty-two**, the triangle at seven by eight, rounded
+  corners like the players', half a pixel into the round part;
+- **cut out from the avatar** by a two-pixel crescent in the background
+  colour — a shadow shifted to the right, which does not cut the stroke above
+  and below as the round's rim did. It bites five pixels into the avatar,
+  which starts at ten: a notch rather than an overlap. On a lone card, the
+  stroke — the card less four pixels at the top and bottom — goes past it
+  above and below;
+- **starting from the card's left edge**, where the bar is painted, wherever
+  the card is: `placer` no longer centres it.
+
+**Its states**: on hover or from the keyboard, it steps forward — enlarged by
+12 % from its left edge, which stays on the stroke —, lights up and glows,
+the symbol with it; pressed in on click; with its room open, a second
+crescent in the bar's colour beyond the first, and the ■; the keyboard
+outline follows its shape. The tab is the button's `::before`, not the
+button: hovering enlarges it without enlarging the label that comes out of
+it. No animation under "reduced motion".
+
+**The ink follows the bar** — Twitch's black or white, whichever contrasts
+most (WCAG contrast):
+
+| colour | black | white | ink |
+| --- | --- | --- | --- |
+| yellow, green, turquoise | 10.4 to 11.8 | 1.6 to 1.9 | black |
+| blue (the palette's darkest) | 6.0 | 3.2 | black |
+| purple, pink | 7.2 · 7.7 | 2.7 · 2.5 | black |
+| red of a stream that just started | 4.2 | **4.6** | **white** |
+
+Labels and choices follow the same ink: "Watch all 2" in black on red was at
+4.2:1.
+
+**In the list's order, from the keyboard too** — a defect as old as the
+nodes, which lone cards make frequent. Tabbing follows the order of the nodes
+in their layer, and a node went in when it was created, then never moved. A
+sort that reorders the cards left them in the former order — on the bench,
+after the sort by duration: "vif, dune, the bar, hale" on screen, "hale,
+vif, the bar, dune" when tabbing —, and a lone card whose Guest Star answer
+arrives before those of the neighbouring bar came before it. They are
+arranged in their bars' order, each choice behind its node — only when the
+order has changed, each move being a child the bar's observer sees.
+
+### What the bench measures
+
+- **196** — two more assertions: a 2.5 s silence in "duo1" alone, which
+  overlaps a common silence, does not take "foxtrot"'s sound with it — as
+  much sound set aside in each pair, less than 1.6 s; then a hundred and ten
+  common silences of 60 ms, and the count says them all.
+- **194**, rewritten — the set adds "vif", which just started: no pill is
+  seen, the element stays; four lone-card bars, in their session's colour,
+  with neither key nor join; "hale"'s node in the middle of its bar, a tab;
+  black ink on the palette, white on the red; the nodes in their bars'
+  order; the tab stepping forward on hover, its crescent when pressed;
+  "dune", detached by a sort, with its bar and its node; room off, the eight
+  bars stay and nothing comes back; "collab" refused; no lone-card bar in Top
+  Channels; the nodes in the new order after the sort; and a card whose Guest
+  Star answers only after three seconds, its colour read every 50 ms: no bar
+  before the answer, then a single colour.
+- **195** — "seulf" and "seul1", alone from their session in two lists: each
+  its bar, of the same colour, with no key, and its node in the middle.
+- **176** — the tab, fifteen by twenty-two, painted on its `::before`, in the
+  bar's colour, black ink; it follows the card when the list shifts it;
+  "cirrus", detached, has its node on its bar.
+- **96** — the guide's mock-up: the bar, the tab in the middle, no more pill.
+- **17**, **129** — the pill laid is not seen; **117**, **120** — twenty-one
+  settings, and the twelve sentences that say so.
+
+The full bench, on the same machine: 1658 assertions in 195 scenarios, all
+green, at the first run.
+
+| mutant | what catches it |
+| --- | --- |
+| the pill made visible (1) | 194: five assertions, among them "no pill is seen any more" |
+| the lone card's bar never painted (1) | 194, 195: thirteen |
+| the group key laid on the lone card (1) | 194: "with neither group key nor join" |
+| the lone-card bar allowed in Top Channels (1) | 194: "kilo" gets a bar there |
+| the Guest Star wait removed (1) | 194: a yellow bar at 55 ms, the green one at 3.45 s |
+| the wait kept to cards whose id is known (1) | 194: yellow at 54 ms, nothing at 107 ms, green at 3.45 s |
+| the colour taken outside the session (1) | 195: "seulf" and "seul1" in two colours |
+| the node allowed without a bar (1) | **survives** — equivalent, below |
+| the tab centred on the stroke, like the round (1) | 176, 194: nine |
+| the twelve-pixel round (1) | 176: two |
+| the tab painted on the button (1) | 176: two |
+| black ink everywhere (1) | 194: black on "vif"'s red |
+| the still hover (1) | 194: two |
+| pressed by the node's key, not its channels (1) | 194: two |
+| the switch removed (1) | 194: three |
+| the nodes left in the order they were born (1) | 194: after the sort, "hale, vif, the bar, dune" |
+| lone-card nodes counted with the bars' (1) | 176, 194 |
+| the channels' tooltip lost (1) | 194 |
+| the report silent about lone bars (1) | 194, 195 |
+| the "collab" setting kept (1) | 117, 194: three |
+| pressed without its second crescent (1) | 194 |
+| the guide's mock-up with neither bar nor tab (1) | 96 |
+| the mask at the union (1) | 196: "and only their common part" |
+| the count capped at a hundred (1) | 196: "and more than a hundred" |
+
+Twenty-four mutants, twenty-three caught. **The survivor** is the guard that
+keeps the node to cards that have a bar. No state tells it apart: the mates
+it would open and the bar are read from the same source — the Guest Star
+answer, then its mates' index —, Top Channels has a guard of its own, and as
+long as no one knows the session, there is neither bar nor mate. It stays, to
+state the invariant: a node is laid on a bar.
+
 ## The common event, set aside (v4.24.0.32)
 
 The request: "Fix the common event, be rigorous. Then a 100 % green bench on
@@ -17161,7 +17370,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 195 scenarios, 1651 assertions |
+| `npm test` | the Playwright harness: 195 scenarios, 1658 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -17181,9 +17390,9 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1611 KB | 646 KB | 4,103 → **2** |
+| `content.js` | 1611 KB | 646 KB | 4,110 → **2** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
-| `panneau.js` | 107 KB | 51 KB | 149 → **0** |
+| `panneau.js` | 107 KB | 51 KB | 150 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
 | `background.js` | 9 KB | 2 KB | 22 → **0** |
 | **all five** | **1866 KB** | **803 KB** | **−57 %** |

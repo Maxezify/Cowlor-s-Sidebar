@@ -604,16 +604,27 @@ const badgeDemo = (mod, cle) =>
   elt('span', 'd-badge' + (mod ? ' d-badge--' + mod : ''), T(cle));
 
 /* LA CARTE DE LA BARRE LATÉRALE, EN PETIT. Six chapitres en montrent une, et
-   chacun n'en change qu'un détail : la durée, la pastille de jour, le compteur
-   de collab, la barre violette, l'or de l'abonnement. Une seule maquette
-   paramétrée plutôt que six recopiées — sans quoi la cinquième aurait fini par
-   ne plus ressembler aux quatre autres. */
+   chacun n'en change qu'un détail : la durée, la pastille de jour, la barre du
+   co-stream et son « ▶ », la barre rouge, l'or de l'abonnement. Une seule
+   maquette paramétrée plutôt que six recopiées — sans quoi la cinquième aurait
+   fini par ne plus ressembler aux quatre autres. */
 const demoCarte = (o) => {
   const carte = div('d-carte' + (o.frais ? ' d-carte--frais' : '')
-                              + (o.or ? ' d-carte--or' : ''));
-  const avatar = div('d-avatar');
-  if (o.collab) avatar.appendChild(elt('span', 'd-collab', o.collab));
-  carte.appendChild(avatar);
+                              + (o.or ? ' d-carte--or' : '')
+                              + (o.costream ? ' d-carte--costream' : ''));
+  /* LE CO-STREAM, depuis la 4.24.0.33 : plus de pastille sur l'avatar, la
+     barre de la carte, et au milieu la languette « ▶ » de la salle — une
+     chaîne seule de son co-stream dans la liste, comme celle que la carte
+     réelle montre. Le triangle est celui de content.js, coins arrondis. */
+  if (o.costream) {
+    const noeud = div('d-noeud');
+    const svg = svgEl('svg', { viewBox: '0 0 10 12', 'aria-hidden': 'true' });
+    svg.appendChild(svgEl('path', { d: 'M2 1.9v8.2L8.6 6z', stroke: 'currentColor',
+                                    'stroke-width': '1.8', 'stroke-linejoin': 'round' }));
+    noeud.appendChild(svg);
+    carte.appendChild(noeud);
+  }
+  carte.appendChild(div('d-avatar'));
 
   const texte = div('d-carte-texte');
   const nom = div('d-nom');
@@ -759,7 +770,7 @@ const GUIDE = [
      par `renvoi`, et le prochain remaniement le corrigera tout seul. */
   { titre: 'guideCostreamTitre', texte: 'guideCostreamTexte', renvoi: 'guideTriTitre',
     demo: () => carteEtBadge(
-      demoCarte({ nom: 'Korbek', cat: 'Valorant', vues: 962, duree: '1h47', collab: '3' }),
+      demoCarte({ nom: 'Korbek', cat: 'Valorant', vues: 962, duree: '1h47', costream: true }),
       'squad', 'guideBadgeSquad') },
   { titre: 'guideSubathonTitre', texte: 'guideSubathonTexte',
     demo: () => carteEtBadge(
@@ -1068,7 +1079,7 @@ const GROUPES_OPT = [
   // Le système multistream a son groupe (4.24.0.9), pour qu'on le trouve.
   ['optGrpMultistream', ['salle', 'salleAuto']],
   ['optGrpBadges',  ['badges']],
-  ['optGrpCarte',   ['duree', 'dureeFormat', 'fresh', 'collab', 'abonnes', 'subathonJour']],
+  ['optGrpCarte',   ['duree', 'dureeFormat', 'fresh', 'abonnes', 'subathonJour']],
   ['optGrpListe',   ['tris', 'filtreCategorie', 'filtreLangue', 'topOnglet', 'topN']],
   ['optGrpTwitch',  ['stories', 'serie']],
   ['optGrpAbos',    ['abosPeriode']],
@@ -1283,7 +1294,7 @@ const groupeEchange = () => {
   bExp.type = 'button';
   bExp.addEventListener('click', () => {
     /* On n'exporte QUE les écarts, comme le stockage : un fichier qui
-       contiendrait les vingt-deux valeurs figerait les défauts du jour de
+       contiendrait les vingt et une valeurs figerait les défauts du jour de
        l'export chez celui qui l'importera six versions plus tard. */
     const ecarts = {};
     for (const id of etatOpt.modifies) ecarts[id] = etatOpt.valeurs[id];
@@ -1549,7 +1560,7 @@ const charger = async (id) => {
     b.className = 'bouton bouton--fantome';
     b.textContent = T(a.cle);
     /* « Tout remettre par défaut » est irréversible autant que « tout
-       effacer » : vingt-deux choix disparaissent d’un clic, sans annulation.
+       effacer » : vingt et un choix disparaissent d’un clic, sans annulation.
        La table porte donc un champ « confirme », et les actions qui l'ont
        passent par la même boîte que la purge. */
     b.addEventListener('click', () => (a.confirme

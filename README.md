@@ -2180,6 +2180,221 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## Plus de pastille : la barre, et le « ▶ » redessiné (v4.24.0.33)
+
+La demande : « Fais les deux correctifs […] Mais ne fais pas les règles plus
+anciennes. Également dans un souci de cohérence, j'aimerais ne plus avoir de
+pastille du tout. Et du coup mettre à la place une seule barre colorée sur le
+streamer en costream qui est le seul que l'on suit. Avec le rond "▶", au
+milieu de la barre colorée. Possibilité de redesign ce rond "▶" ? Je le
+trouve pas très beau, petit, à peine visible et pas bien intégré à la barre
+colorée. Reste dans ce type de structure, mais fais un travail pro sur le
+css. Sois rigoureux. » Publiée sur `claude/chrome-multi` d'abord.
+
+### Le masque de l'événement commun : la partie commune, et elle seule
+
+Les deux défauts que les rapports réels de la 4.24.0.32 ont fait voir :
+
+- **Le masque prenait l'union des deux silences**, alors que leur
+  intersection suffit — le seul pic qu'un silence partagé peut faire tient
+  dans ce que les deux tuiles taisent ensemble. Une tuile muette 21 à 28 %
+  du temps, dans ces rapports, voyait ses longs silences écarter de la
+  corrélation des secondes de vrai son de la référence. Désormais, pour
+  chaque paire de silences qui se chevauchent à 50 ms près, seule leur
+  partie commune est écartée, avec ses 50 ms de bord de chaque côté.
+- **Le compte plafonnait à cent, et mentait au-delà** : il lisait la taille
+  de la mémoire qui dédoublonne les silences d'un calcul à l'autre, bornée à
+  cent. Il est désormais tenu à part, et dit aussi combien de son a été
+  écarté : `ecoute.silencesCommuns`, par paire, « xray~omega 3 · 0.8 s ».
+
+**Pas les règles plus anciennes**, à la demande : le nombre de rattrapages
+après une pub et la latence de la place reprise, face à la mémoire tampon,
+sont inchangés.
+
+### Plus de pastille du tout
+
+Le nombre violet au coin de l'avatar ne se voit plus **nulle part** — sur une
+barre, sur une chaîne seule, en Top Chaînes, salle multistream coupée comme
+allumée. Il s'effaçait déjà sous une barre ou un « ▶ » depuis la 4.24.0.28 :
+c'est la barre qui dit le co-stream.
+
+- **L'élément reste**, jamais affiché : la détection de secours (catégorie et
+  compteur identiques) lit son nombre, et le rapport compte les pastilles
+  posées (`lignes.pastilles`). `lignes.pastillesVues` doit y dire zéro : un
+  autre nombre dirait qu'une règle de Twitch l'emporte sur la nôtre.
+- **Le réglage « Pastille de collaboration » est parti avec elle** : il n'y a
+  plus de pastille à éteindre. Vingt et un réglages au lieu de vingt-deux —
+  le panneau, la phrase qui remet tout par défaut et les douze fiches du
+  Store reprennent mot pour mot celles de la 4.24.0.16. Une valeur restée au
+  stockage ou dans un export est une clé inconnue, ignorée comme toutes. Le
+  drapeau de langue qu'il éteignait aussi reste, comme la barre.
+- **Le mode d'emploi** montre la carte telle qu'elle est : sa barre, et la
+  languette « ▶ » au milieu, plus de pastille.
+
+### Une barre pour la chaîne seule de son co-stream
+
+Une carte affichée en co-stream — Twitch y écrit son « +N », ou Guest Star
+connaît sa session — qu'aucun groupe dessiné ne prend a **sa barre**, d'une
+carte, à la couleur de sa session.
+
+- **Dans chaque section** : seule dans la liste suivie avec deux camarades
+  dans « Chaînes live », elle a la couleur de leur barre ; seule dans les
+  deux listes, les deux barres ont la même.
+- **Pas en Top Chaînes**, où la pastille ne se montrait déjà plus : le
+  classement place tout le co-stream qui diffuse, et une carte qui y resterait
+  seule n'aurait personne à montrer.
+- **Pas tant que personne ne sait sa session** — ni sa réponse Guest Star, ni
+  l'index de ses camarades : une couleur supposée, puis celle de sa session,
+  changerait sous les yeux au démarrage. Le « +1 » de Twitch est là dès
+  l'arrivée de la carte, son identifiant une fraction de seconde après, la
+  réponse ensuite ; la barre attend la réponse. La détection de secours, elle,
+  n'attend que celle d'une carte dont l'identifiant est connu — la même règle,
+  posée ici, faisait au banc une barre jaune à 54 ms, plus rien à 107 ms, et
+  la verte de sa session à 3,45 s.
+- **Pas de clé de groupe** : le tri « co-stream en tête » range des groupes,
+  la jonction relie des voisins, et une carte seule n'est ni l'un ni
+  l'autre. Elle garde sa place, et sa barre ne se joint jamais à celle d'une
+  voisine.
+- **La palette** sert les groupes d'abord, les cartes seules ensuite. Elle a
+  six couleurs : au-delà de six co-streams à l'écran, une couleur revient —
+  c'était déjà le cas des groupes, et les cartes seules en consomment
+  désormais aussi.
+- **Le nœud au milieu** quand d'autres membres diffusent, et que la salle est
+  allumée : il l'ouvre avec eux, six au plus, ceux qu'on suit d'abord —
+  « Regarder les 6 », et les chaînes dans l'infobulle de l'étiquette. Sans
+  personne d'autre à ouvrir (un invité sans stream, ou un « +N » sans
+  session), la barre sans nœud. Un nœud ne se pose que sur une barre.
+- **Le membre qu'un tri détache de sa barre** garde la couleur de son groupe,
+  et a la sienne, avec son nœud au milieu.
+
+Au rapport : `coStream.seules` (la liste suivie) et
+`coStream.recommandations.seules` ; `salle.noeuds.seules`, les nœuds des
+barres d'une carte, à part de `affiches` — `pastilles` et `clicsPastilles`
+n'existent plus, leurs clics sont dans `clics`.
+
+### Le « ▶ » redessiné : une languette
+
+**Pourquoi le rond n'allait pas.** Douze pixels, un triangle de quatre sur
+cinq : à peine visible. Et c'était un cercle centré sur un trait qui longe le
+bord de la fenêtre : la liste en aurait rogné la moitié, et `placer` le
+poussait à droite du trait — posé à côté de lui, pas dessus.
+
+**Le banc d'essai.** Quatre formes, rendues côte à côte sur des cartes à la
+taille de Twitch, étendues et réduites, en sombre et en clair : le rond
+d'avant ; une perle ronde de dix-huit pixels, qui couvrait le trait et huit
+pixels d'avatar ; un collier, le trait élargi jusqu'à une perle ; et la
+languette. C'est elle qui « fait partie » de la barre :
+
+- **ce qu'un cercle centré sur ce bord peut être sans y être coupé** : bord
+  gauche droit, posé sur le trait, à sa couleur et avec les mêmes ombres —
+  le trait s'élargit, il ne porte pas un objet ; bord droit en demi-cercle ;
+- **quinze pixels sur vingt-deux**, le triangle à sept sur huit, coins
+  arrondis comme ceux des lecteurs, un demi-pixel dans la partie ronde ;
+- **détourée de l'avatar** par un croissant de deux pixels à la couleur du
+  fond — une ombre décalée vers la droite, qui ne coupe pas le trait
+  au-dessus et au-dessous comme le liseré du rond le coupait. Elle mord de
+  cinq pixels sur l'avatar, qui commence à dix : un cran plutôt qu'un
+  recouvrement. Sur une carte seule, le trait — la carte moins quatre pixels
+  en haut et en bas — la dépasse au-dessus et au-dessous ;
+- **partant du bord gauche de la carte**, là où la barre est peinte, où que
+  soit la carte : `placer` ne la centre plus.
+
+**Ses états** : au survol ou au clavier, elle s'avance — agrandie de 12 %
+depuis son bord gauche, qui reste sur le trait —, s'éclaire et rayonne, le
+symbole avec elle ; enfoncée au clic ; sa salle ouverte, un second croissant
+de la couleur de la barre au-delà du premier, et le ■ ; le contour du clavier
+épouse sa forme. La languette est le `::before` du bouton, et non le bouton :
+le survol l'agrandit sans agrandir l'étiquette qui en sort. Sans animation
+sous « mouvement réduit ».
+
+**L'encre suit la barre** — le noir de Twitch ou le blanc, celui des deux qui
+contraste le plus (contraste WCAG) :
+
+| couleur | noir | blanc | encre |
+| --- | --- | --- | --- |
+| jaune, vert, turquoise | 10,4 à 11,8 | 1,6 à 1,9 | noire |
+| bleu (le plus sombre de la palette) | 6,0 | 3,2 | noire |
+| violet, rose | 7,2 · 7,7 | 2,7 · 2,5 | noire |
+| rouge d'un direct qui vient de démarrer | 4,2 | **4,6** | **blanche** |
+
+Les étiquettes et les choix suivent la même encre : « Regarder les 2 » en
+noir sur rouge était à 4,2:1.
+
+**Dans l'ordre de la liste, aussi au clavier** — un défaut aussi vieux que
+les nœuds, que les cartes seules rendent fréquent. La tabulation suit l'ordre
+des nœuds dans leur calque, et un nœud y entrait à sa création, puis n'en
+bougeait plus. Un tri qui réordonne les cartes les laissait dans l'ordre
+d'avant — au banc, après le tri par durée : « vif, dune, la barre, hale » à
+l'écran, « hale, vif, la barre, dune » à la tabulation —, et une carte seule
+dont la réponse Guest Star arrive avant celles de la barre voisine passait
+avant elle. Ils sont rangés dans l'ordre de leurs barres, chaque choix
+derrière son nœud — seulement quand l'ordre a changé, chaque déplacement
+étant un enfant que l'observateur de la barre voit.
+
+### Ce que le banc mesure
+
+- **196** — deux assertions de plus : un long silence de 2,5 s dans « duo1 »
+  seule, qui chevauche un silence commun, n'emporte pas le son de
+  « foxtrot » — autant de son écarté dans chaque paire, moins de 1,6 s ; puis
+  cent dix silences communs de 60 ms, et le compte les dit tous.
+- **194**, réécrit — le décor ajoute « vif », qui vient de démarrer : aucune
+  pastille ne se voit, l'élément reste ; quatre barres de cartes seules, à la
+  couleur de leur session, sans clé ni jonction ; le nœud de « hale » au
+  milieu de la sienne, une languette ; l'encre noire sur la palette, blanche
+  sur le rouge ; les nœuds dans l'ordre de leurs barres ; la languette qui
+  s'avance au survol, son croissant enfoncée ; « dune », détachée par un tri,
+  avec sa barre et son nœud ; salle coupée, les huit barres restent et rien
+  ne revient ; « collab » refusé ; pas de barre de carte seule en Top Chaînes ;
+  les nœuds dans le nouvel ordre après le tri ; et une carte dont Guest Star
+  ne répond qu'au bout de trois secondes, sa couleur relevée toutes les 50 ms :
+  pas de barre avant la réponse, puis une seule couleur.
+- **195** — « seulf » et « seul1 », seules de leur session dans deux listes :
+  chacune sa barre, de la même couleur, sans clé, et son nœud au milieu.
+- **176** — la languette, quinze sur vingt-deux, peinte sur son `::before`,
+  à la couleur de la barre, l'encre noire ; elle suit la carte quand la liste
+  la décale ; « cirrus », détachée, a son nœud sur sa barre.
+- **96** — la maquette du mode d'emploi : la barre, la languette au milieu,
+  plus de pastille.
+- **17**, **129** — la pastille posée ne se voit pas ; **117**, **120** —
+  vingt et un réglages, et les douze phrases qui le disent.
+
+Le banc complet, sur la même machine : 1658 assertions dans 195 scénarios,
+toutes vertes, du premier coup.
+
+| mutant | ce qui tombe |
+| --- | --- |
+| la pastille rendue visible (1) | 194 : cinq assertions, dont « aucune pastille ne se voit plus » |
+| la barre de la carte seule jamais peinte (1) | 194, 195 : treize |
+| la clé de groupe posée sur la carte seule (1) | 194 : « sans clé de groupe ni jonction » |
+| la barre de carte seule permise en Top Chaînes (1) | 194 : « kilo » y prend une barre |
+| l'attente de Guest Star retirée (1) | 194 : une barre jaune à 55 ms, la verte à 3,45 s |
+| l'attente réservée à une carte dont l'identifiant est connu (1) | 194 : jaune à 54 ms, rien à 107 ms, vert à 3,45 s |
+| la couleur prise hors de la session (1) | 195 : « seulf » et « seul1 » de deux couleurs |
+| le nœud permis sans barre (1) | **survit** — équivalent, ci-dessous |
+| la languette centrée sur le trait, comme le rond (1) | 176, 194 : neuf |
+| le rond de douze pixels (1) | 176 : deux |
+| la languette peinte sur le bouton (1) | 176 : deux |
+| l'encre noire partout (1) | 194 : noir sur le rouge de « vif » |
+| le survol immobile (1) | 194 : deux |
+| enfoncé selon la clé du nœud, et non ses chaînes (1) | 194 : deux |
+| l'interrupteur absent (1) | 194 : trois |
+| les nœuds laissés dans l'ordre de leur naissance (1) | 194 : après le tri, « hale, vif, la barre, dune » |
+| les nœuds des cartes seules comptés avec ceux des barres (1) | 176, 194 |
+| l'infobulle des chaînes perdue (1) | 194 |
+| le rapport muet sur les barres seules (1) | 194, 195 |
+| le réglage « collab » gardé (1) | 117, 194 : trois |
+| enfoncée sans son second croissant (1) | 194 |
+| la maquette du mode d'emploi sans barre ni languette (1) | 96 |
+| le masque à l'union (1) | 196 : « seulement leur partie commune » |
+| le compte plafonné à cent (1) | 196 : « plus de cent » |
+
+Vingt-quatre mutants, vingt-trois pris. **Le survivant** est la garde qui
+réserve le nœud aux cartes qui ont une barre. Aucun état ne la distingue :
+les camarades qu'il ouvrirait et la barre se lisent à la même source — la
+réponse Guest Star, puis l'index de ses camarades —, Top Chaînes a sa garde à
+lui, et tant que personne ne sait la session, il n'y a ni barre ni camarade.
+Elle reste, pour dire l'invariant : un nœud se pose sur une barre.
+
 ## L'événement commun, écarté (v4.24.0.32)
 
 La demande : « Corrige l'événement commun, soit rigoureux. Puis passage du
@@ -17711,7 +17926,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 195 scénarios, 1651 assertions |
+| `npm test` | le harnais Playwright : 195 scénarios, 1658 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -17732,9 +17947,9 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1611 Ko | 646 Ko | 4 103 → **2** |
+| `content.js` | 1611 Ko | 646 Ko | 4 110 → **2** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
-| `panneau.js` | 107 Ko | 51 Ko | 149 → **0** |
+| `panneau.js` | 107 Ko | 51 Ko | 150 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 22 → **0** |
 | **les cinq** | **1866 Ko** | **803 Ko** | **−57 %** |

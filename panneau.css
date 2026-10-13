@@ -411,17 +411,30 @@ html, body {
   width: 30px; height: 30px; border-radius: 50%;
   background: linear-gradient(135deg, #3a3a44, #26262c);
 }
-/* La pastille de collab, posée au coin de l'avatar comme sur la vraie carte :
-   son anneau est de la couleur du FOND, ce qui la détache du visage sans
-   dessiner de contour. */
-.d-collab {
-  position: absolute; bottom: -3px; right: -3px;
-  min-width: 15px; height: 15px; padding: 0 4px; box-sizing: border-box;
-  background: var(--violet); color: #fff;
-  font-size: 9.5px; font-weight: 700; line-height: 15px; text-align: center;
-  border-radius: 999px; box-shadow: 0 0 0 2px var(--fond);
-  font-variant-numeric: tabular-nums;
+/* LE CO-STREAM (4.24.0.33) : plus de pastille sur l'avatar — la barre de la
+   carte, à la première couleur de la palette, et la languette « ▶ » de la
+   salle au milieu, recopiées de content.js : même trait, même lueur, même
+   forme, quinze pixels sur vingt-deux, et son croissant de la couleur du
+   fond qui la détoure de l'avatar, comme l'anneau de l'ancienne pastille. Rien n'y répond au survol : c'est une
+   image. */
+.d-carte--costream {
+  background: linear-gradient(90deg,
+    rgba(245, 197, 24, 0.18) 0%, rgba(245, 197, 24, 0.06) 40%, transparent 100%);
 }
+.d-carte--costream::before {
+  content: '';
+  position: absolute; left: 0; top: 4px; bottom: 4px;
+  width: 3px; border-radius: 0 3px 3px 0; background: #f5c518;
+  box-shadow: 0 0 6px #f5c518, 0 0 2px #f5c518;
+}
+.d-noeud {
+  position: absolute; left: 0; top: 50%; transform: translateY(-50%); z-index: 1;
+  display: flex; align-items: center; justify-content: center;
+  width: 15px; height: 22px; padding-left: 1px; box-sizing: border-box;
+  border-radius: 0 11px 11px 0; background: #f5c518; color: #0e0e10;
+  box-shadow: 2px 0 0 0 var(--fond), 0 0 6px #f5c518, 0 0 2px #f5c518;
+}
+.d-noeud svg { display: block; width: 7px; height: 8px; fill: currentColor; }
 .d-carte-texte { flex: 1 1 auto; min-width: 0; }
 .d-nom {
   display: flex; align-items: center; gap: 5px;

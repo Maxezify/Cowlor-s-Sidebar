@@ -64,8 +64,8 @@ _______________________________
 
 _______________________________
 
-➤ 🎯 LAS COLABORACIONES, MARCADAS EN EL AVATAR
-Aparece un pequeño punto morado abajo a la derecha del avatar de los streamers que alojan un co-stream, con el número de participantes. Sin pasar el ratón, visible directamente en la barra. Limpio, discreto, y te dice al instante «ah, mira, este está colaborando con otros 2».
+➤ 🎯 LOS CO-STREAMS, SEÑALADOS CON UNA BARRA DE COLOR
+Una barra de color recorre el borde izquierdo de la tarjeta de cada streamer en co-stream, un color por co-stream — incluso cuando es el único que sigues. ¿Varios participantes seguidos en la lista? Sus barras forman una sola. Sin pasar el ratón, visible directamente en la barra lateral, y ya ningún número pegado al avatar. Limpio, discreto, y te dice al instante «ah, mira, estos están emitiendo juntos».
 
 _______________________________
 
@@ -199,7 +199,7 @@ Twitch tiene un tema claro. La extensión lo detecta y cambia con él: sin recar
 _______________________________
 
 ➤ ⚙️ Y SI QUIERES ELEGIR
-Todo está activo desde el principio y no hay nada que configurar. Pero una pestaña «Opciones» en el panel te devuelve el mando sobre veintidós ajustes.
+Todo está activo desde el principio y no hay nada que configurar. Pero una pestaña «Opciones» en el panel te devuelve el mando sobre veintiún ajustes.
 
 - ★ LO QUE VES ★ Cada insignia, la duración del directo y su formato, la barra «acaba de empezar», el oro de las suscripciones, los filtros, los botones de orden: todo se enciende y se apaga con una casilla.
 - ★ LO QUE SE CARGA ★ La vista previa puede prescindir del vídeo y conservar sus insignias, su línea de tiempo y su miniatura, o simplemente bajar de calidad. Lo justo para aligerarla sin perderla.

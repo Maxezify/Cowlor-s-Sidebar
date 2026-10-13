@@ -385,7 +385,7 @@
     "message": "I co-stream"
   },
   "guideCostreamTexte": {
-    "message": "Un pallino viola all'angolo dell'avatar, con il numero di partecipanti: questo canale trasmette in compagnia. Visibile nell'elenco, senza passare sopra niente.\n• Un badge viola dice allora chi ospita e chi è invitato, e con chi.\n• Un ordinamento apposito li raggruppa in cima all'elenco (capitolo $1).\n• Quando più partecipanti si susseguono nell'elenco, le loro barre diventano una sola, e un pulsante «▶» ci si posa sopra, al posto dei loro pallini: un clic li apre insieme sulla pagina, nella sala multistream. Al passaggio del mouse, «Tutto il co-stream» aggiunge chi non segui — anche Maiusc+clic. Se un canale è l'unico del suo co-stream nell'elenco, porta quel «▶» al posto del pallino. Un clic su un riquadro gli dà l'audio, e la chat lo segue; con due stream senza chat condivisa, le due chat incorniciano i player quando c'è spazio. Il tasto Esc, o un secondo clic sul pulsante, chiude la sala."
+    "message": "Una barra colorata sul bordo della scheda, un colore per co-stream: questo canale trasmette in compagnia. Visibile nell'elenco, senza passare sopra niente.\n• Un badge viola dice allora chi ospita e chi è invitato, e con chi.\n• Un ordinamento apposito li raggruppa in cima all'elenco (capitolo $1).\n• Quando più partecipanti si susseguono nell'elenco, le loro barre diventano una sola; se un canale è l'unico del suo co-stream nell'elenco, ha la sua. Al centro si posa un pulsante «▶» quando altri partecipanti trasmettono: un clic li apre insieme sulla pagina, nella sala multistream. Al passaggio del mouse, «Tutto il co-stream» aggiunge chi non segui — anche Maiusc+clic. Un clic su un riquadro gli dà l'audio, e la chat lo segue; con due stream senza chat condivisa, le due chat incorniciano i player quando c'è spazio. Il tasto Esc, o un secondo clic sul pulsante, chiude la sala."
   },
   "guideDebutTitre": {
     "message": "Gli inizi, e i ritorni"
@@ -537,17 +537,11 @@
   "optFresh": {
     "message": "Barra «appena iniziata»"
   },
-  "optCollab": {
-    "message": "Pallino di collaborazione"
-  },
-  "optDescCollab": {
-    "message": "Sull'avatar, con quanti streamer il canale è in co-stream. Nascosto in Canali di punta, e dove la sala multistream mette il suo «▶»: sulla barra, o al suo posto. Disattivato: nessun pallino con il numero; il «▶» resta, è quello della sala."
-  },
   "optSalle": {
     "message": "Sala multistream"
   },
   "optDescSalle": {
-    "message": "Un pulsante «▶» apre insieme, sulla pagina, gli stream di un co-stream: sulla sua barra, o sull'avatar di un canale che è l'unico del suo co-stream nell'elenco. Sulla barra, al passaggio del mouse o con Maiusc+clic: tutto il co-stream, compresi quelli che non segui. Disattivato: niente pulsante, niente sala, e i pallini tornano numeri."
+    "message": "Un pulsante «▶», al centro della barra di un co-stream, apre insieme i suoi stream, sulla pagina — sulla barra di più canali come su quella di un canale che è l'unico del suo co-stream nell'elenco. Al passaggio del mouse o con Maiusc+clic: tutto il co-stream, compresi quelli che non segui. Disattivato: niente pulsante, niente sala; le barre restano."
   },
   "optSalleAuto": {
     "message": "Allineamento automatico"
@@ -697,7 +691,7 @@
     "message": "Ripristinare tutte le impostazioni?"
   },
   "optResetText": {
-    "message": "Le ventidue impostazioni di questa pagina torneranno al loro valore originale. I tuoi dati — visite, abbonamenti, canali seguiti — non vengono toccati."
+    "message": "Le ventuno impostazioni di questa pagina torneranno al loro valore originale. I tuoi dati — visite, abbonamenti, canali seguiti — non vengono toccati."
   },
   "optValPlein": {
     "message": "Completo"

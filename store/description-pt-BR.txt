@@ -64,8 +64,8 @@ Não precisa mais entrar na live! A extensão mostra o tempo de transmissão dir
 
 _______________________________
 
-➤ 🎯 AS COLABS MARCADAS NO AVATAR
-Um pontinho roxo aparece embaixo à direita do avatar dos streamers que hospedam um co-stream, com o número de participantes. Sem precisar passar o mouse, visível direto na barra. Limpo, discreto, e te diz na hora «ah, esse aí está colaborando com mais 2».
+➤ 🎯 OS CO-STREAMS MARCADOS POR UMA BARRA COLORIDA
+Uma barra colorida corre pela borda esquerda do cartão de cada streamer em co-stream, uma cor por co-stream — mesmo quando é o único que você segue. Vários participantes seguidos na lista? As barras deles viram uma só. Sem precisar passar o mouse, visível direto na barra lateral, e nenhum número grudado no avatar. Limpo, discreto, e te diz na hora «ah, esses aí estão transmitindo juntos».
 
 _______________________________
 
@@ -199,7 +199,7 @@ A Twitch tem um tema claro. A extensão percebe e muda junto — sem recarregar,
 _______________________________
 
 ➤ ⚙️ E SE VOCÊ QUISER ESCOLHER
-Tudo já vem ativo e não há nada para configurar. Mas uma aba «Opções» no painel devolve a você o controle sobre vinte e duas configurações.
+Tudo já vem ativo e não há nada para configurar. Mas uma aba «Opções» no painel devolve a você o controle sobre vinte e uma configurações.
 
 - ★ O QUE VOCÊ VÊ ★ Cada selo, a duração da live e o seu formato, a barra «acabou de começar», o ouro das assinaturas, os filtros, os botões de ordenação: tudo liga e desliga numa caixinha.
 - ★ O QUE É CARREGADO ★ A prévia pode dispensar o vídeo e manter os selos, a linha do tempo e a miniatura — ou simplesmente baixar a qualidade. O suficiente para deixá-la leve sem perdê-la.

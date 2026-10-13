@@ -385,7 +385,7 @@
     "message": "Os co-streams"
   },
   "guideCostreamTexte": {
-    "message": "Um ponto roxo no canto do avatar, com o número de participantes: esse canal transmite acompanhado. Visível na lista, sem passar o mouse por nada.\n• Um emblema roxo diz então quem recebe e quem é convidado, e com quem.\n• Uma ordenação própria agrupa todos no topo da lista (capítulo $1).\n• Quando vários participantes aparecem seguidos na lista, as barras deles viram uma só, e um botão «▶» fica sobre ela, no lugar dos pontos: um clique abre todos juntos na página, na sala multistream. Ao passar o mouse, «Todo o co-stream» acrescenta quem você não segue — Shift+clique também. Se um canal é o único do seu co-stream na lista, ele leva esse «▶» no lugar do ponto. Um clique em um quadro dá a ele o som, e o chat acompanha; com duas transmissões sem chat compartilhado, os dois chats ladeiam os players quando há espaço. A tecla Esc, ou um segundo clique no botão, fecha a sala."
+    "message": "Uma barra colorida na borda do cartão, uma cor por co-stream: esse canal transmite acompanhado. Visível na lista, sem passar o mouse por nada.\n• Um emblema roxo diz então quem recebe e quem é convidado, e com quem.\n• Uma ordenação própria agrupa todos no topo da lista (capítulo $1).\n• Quando vários participantes aparecem seguidos na lista, as barras deles viram uma só; se um canal é o único do seu co-stream na lista, ele tem a sua. No meio fica um botão «▶» quando outros participantes transmitem: um clique abre todos juntos na página, na sala multistream. Ao passar o mouse, «Todo o co-stream» acrescenta quem você não segue — Shift+clique também. Um clique em um quadro dá a ele o som, e o chat acompanha; com duas transmissões sem chat compartilhado, os dois chats ladeiam os players quando há espaço. A tecla Esc, ou um segundo clique no botão, fecha a sala."
   },
   "guideDebutTitre": {
     "message": "Os começos e os regressos"
@@ -537,17 +537,11 @@
   "optFresh": {
     "message": "Barra «acabou de começar»"
   },
-  "optCollab": {
-    "message": "Ponto de colaboração"
-  },
-  "optDescCollab": {
-    "message": "No avatar, com quantos streamers o canal está em co-stream. Oculto em Top Canais, e onde a sala multistream põe o seu «▶»: na barra, ou no lugar dele. Desligado: nenhum ponto com número; o «▶» fica, ele é da sala."
-  },
   "optSalle": {
     "message": "Sala multistream"
   },
   "optDescSalle": {
-    "message": "Um botão «▶» abre juntas, na página, as transmissões de um co-stream: na barra dele, ou no avatar de um canal que é o único do seu co-stream na lista. Na barra, ao passar o mouse ou com Shift+clique: todo o co-stream, inclusive quem você não segue. Desligado: nem botão, nem sala, e os pontos voltam a ser números."
+    "message": "Um botão «▶», no meio da barra de um co-stream, abre juntas, na página, as transmissões dele — na barra de vários canais como na de um canal que é o único do seu co-stream na lista. Ao passar o mouse ou com Shift+clique: todo o co-stream, inclusive quem você não segue. Desligado: nem botão, nem sala; as barras ficam."
   },
   "optSalleAuto": {
     "message": "Alinhamento automático"
@@ -697,7 +691,7 @@
     "message": "Redefinir todas as configurações?"
   },
   "optResetText": {
-    "message": "As vinte e duas configurações desta página voltam ao valor original. Os seus dados — visitas, assinaturas, canais seguidos — não são tocados."
+    "message": "As vinte e uma configurações desta página voltam ao valor original. Os seus dados — visitas, assinaturas, canais seguidos — não são tocados."
   },
   "optValPlein": {
     "message": "Completo"
