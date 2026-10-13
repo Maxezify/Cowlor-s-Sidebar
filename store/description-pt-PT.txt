@@ -64,8 +64,8 @@ Já não precisas de entrar na emissão! A extensão mostra a duração do direc
 
 _______________________________
 
-➤ 🎯 AS COLABORAÇÕES ASSINALADAS NO AVATAR
-Aparece um pequeno ponto roxo em baixo à direita do avatar dos streamers que alojam um co-stream, com o número de participantes. Sem passar por cima, visível directamente na barra. Limpo, discreto, e diz-te logo «ah, este está a colaborar com mais 2».
+➤ 🎯 OS CO-STREAMS ASSINALADOS POR UMA BARRA COLORIDA
+Uma barra colorida percorre o bordo esquerdo do cartão de cada streamer em co-stream, uma cor por co-stream — mesmo quando é o único que segues. Vários participantes seguidos na lista? As barras deles tornam-se uma só. Sem passar por cima, visível directamente na barra lateral, e nenhum número colado ao avatar. Limpo, discreto, e diz-te logo «ah, estes estão a transmitir juntos».
 
 _______________________________
 
@@ -199,7 +199,7 @@ A Twitch tem um tema claro. A extensão dá por isso e muda com ele — sem reca
 _______________________________
 
 ➤ ⚙️ E SE QUISERES ESCOLHER
-Tudo já vem ativo e não há nada para configurar. Mas um separador «Opções» no painel devolve-te o comando sobre vinte e duas definições.
+Tudo já vem ativo e não há nada para configurar. Mas um separador «Opções» no painel devolve-te o comando sobre vinte e uma definições.
 
 - ★ O QUE VÊS ★ Cada distintivo, a duração da emissão e o seu formato, a barra «acabou de começar», o ouro das subscrições, os filtros, os botões de ordenação: tudo liga e desliga numa caixa.
 - ★ O QUE É CARREGADO ★ A pré-visualização pode dispensar o vídeo e manter os distintivos, a linha temporal e a miniatura — ou simplesmente baixar a qualidade. O suficiente para a aliviar sem a perder.

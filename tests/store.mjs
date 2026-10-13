@@ -175,6 +175,11 @@ const PROMESSES = [
      le navigateur, pas par nous. » Et elle vise le nombre du CADRE, celui qui
      la rend vraie aujourd'hui. */
   ['a toolbar popup is capped by the browser', 'INCRUSTE_W:             1100'],
+  /* LA BARRE D'UNE CHAÎNE SEULE, ENTRÉE AVEC ELLE À LA 4.24.0.33. La pastille
+     de l'avatar est partie, et les douze fiches promettent une barre « même
+     quand c'est le seul que vous suivez ». La marque est la boucle qui la
+     peint, pas un commentaire qui en parle. */
+  ['even when it is the only one you follow', 'for (const [card, key] of seules) {'],
 ];
 const tenues = PROMESSES.flatMap(([phrase, marque]) => {
   const dansFiche = en.includes(phrase);

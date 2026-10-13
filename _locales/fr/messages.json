@@ -385,7 +385,7 @@
     "message": "Les co-streams"
   },
   "guideCostreamTexte": {
-    "message": "Une pastille violette au coin de l'avatar, avec le nombre de participants : cette chaîne diffuse à plusieurs. Visible dans la liste, sans rien survoler.\n• Un badge violet dit alors qui reçoit et qui est invité, et avec qui.\n• Un tri dédié les regroupe en tête de liste (chapitre $1).\n• Quand plusieurs membres se suivent dans la liste, leurs barres n'en font qu'une, et un bouton « ▶ » s'y pose, à la place de leurs pastilles : un clic les ouvre ensemble sur la page, dans la salle multistream. Au survol, « Tout le co-stream » y ajoute ceux que vous ne suivez pas — Maj+clic aussi. Seule de son co-stream dans la liste, une chaîne porte ce « ▶ » en guise de pastille. Un clic sur une tuile lui donne le son, et le chat suit ; à deux streams sans Chat partagé, les deux chats encadrent les lecteurs quand la place le permet. La touche Échap, ou un second clic sur le bouton, referme la salle."
+    "message": "Une barre colorée au bord de la carte, une couleur par co-stream : cette chaîne diffuse à plusieurs. Visible dans la liste, sans rien survoler.\n• Un badge violet dit alors qui reçoit et qui est invité, et avec qui.\n• Un tri dédié les regroupe en tête de liste (chapitre $1).\n• Quand plusieurs membres se suivent dans la liste, leurs barres n'en font qu'une ; seule de son co-stream dans la liste, une chaîne a la sienne. Au milieu se pose un bouton « ▶ », quand d'autres membres diffusent : un clic les ouvre ensemble sur la page, dans la salle multistream. Au survol, « Tout le co-stream » y ajoute ceux que vous ne suivez pas — Maj+clic aussi. Un clic sur une tuile lui donne le son, et le chat suit ; à deux streams sans Chat partagé, les deux chats encadrent les lecteurs quand la place le permet. La touche Échap, ou un second clic sur le bouton, referme la salle."
   },
   "guideDebutTitre": {
     "message": "Les débuts, et les reprises"
@@ -537,17 +537,11 @@
   "optFresh": {
     "message": "Barre « vient de démarrer »"
   },
-  "optCollab": {
-    "message": "Pastille de collaboration"
-  },
-  "optDescCollab": {
-    "message": "Sur l'avatar, le nombre de streamers avec qui la chaîne est en co-stream. Effacée en Top Chaînes, et là où la salle multistream pose son « ▶ » — sur la barre, ou à sa place. Coupé : plus aucune pastille de nombre ; le « ▶ » reste, c'est celui de la salle."
-  },
   "optSalle": {
     "message": "Salle multistream"
   },
   "optDescSalle": {
-    "message": "Un bouton « ▶ » ouvre les streams d'un co-stream ensemble, sur la page : sur sa barre, ou sur l'avatar d'une chaîne seule de son co-stream. Sur la barre, au survol ou par Maj+clic : tout le co-stream, ceux que vous ne suivez pas compris. Coupé : ni bouton, ni salle, et les pastilles redeviennent des nombres."
+    "message": "Un bouton « ▶ », au milieu de la barre d'un co-stream, ouvre ses streams ensemble, sur la page — sur la barre de plusieurs chaînes comme sur celle d'une chaîne seule de son co-stream dans la liste. Au survol ou par Maj+clic : tout le co-stream, ceux que vous ne suivez pas compris. Coupé : ni bouton, ni salle ; les barres restent."
   },
   "optSalleAuto": {
     "message": "Alignement automatique"
@@ -697,7 +691,7 @@
     "message": "Remettre tous les réglages par défaut ?"
   },
   "optResetText": {
-    "message": "Les vingt-deux réglages de cette page reviendront à leur valeur d'origine. Vos données — visites, abonnements, chaînes suivies — ne sont pas touchées."
+    "message": "Les vingt et un réglages de cette page reviendront à leur valeur d'origine. Vos données — visites, abonnements, chaînes suivies — ne sont pas touchées."
   },
   "optValPlein": {
     "message": "Complet"

@@ -64,8 +64,8 @@ Non serve più andare sulla diretta! L'estensione mostra la durata della live di
 
 _______________________________
 
-➤ 🎯 COLLABORAZIONI SEGNALATE SULL'AVATAR
-Un puntino viola compare in basso a destra sull'avatar degli streamer che ospitano un co-stream, con il numero dei partecipanti. Nessun passaggio del mouse necessario, si vede direttamente nella barra laterale. Pulito, discreto, e ti dice subito «ah, questo sta collaborando con altri 2».
+➤ 🎯 CO-STREAM SEGNALATI DA UNA BARRA COLORATA
+Una barra colorata corre lungo il bordo sinistro della scheda di ogni streamer in co-stream, un colore per co-stream — anche quando è l'unico che segui. Più partecipanti uno dopo l'altro nell'elenco? Le loro barre diventano una sola. Nessun passaggio del mouse necessario, si vede direttamente nella barra laterale, e nessun numero appiccicato all'avatar. Pulito, discreto, e ti dice subito «ah, questi stanno trasmettendo insieme».
 
 _______________________________
 
@@ -199,7 +199,7 @@ Twitch ha un tema chiaro. L'estensione se ne accorge e cambia insieme a lui — 
 _______________________________
 
 ➤ ⚙️ E SE VUOI SCEGLIERE
-Tutto è attivo fin da subito e non c'è nulla da impostare. Ma una scheda «Opzioni» nel pannello ti restituisce il comando su ventidue impostazioni.
+Tutto è attivo fin da subito e non c'è nulla da impostare. Ma una scheda «Opzioni» nel pannello ti restituisce il comando su ventuno impostazioni.
 
 - ★ CIÒ CHE VEDI ★ Ogni badge, la durata della diretta e il suo formato, la barra «appena iniziata», l'oro degli abbonamenti, i filtri, i pulsanti di ordinamento: tutto si accende e si spegne con una casella.
 - ★ CIÒ CHE VIENE CARICATO ★ L'anteprima può fare a meno del video e conservare badge, linea del tempo e miniatura — oppure semplicemente scendere di qualità. Quanto basta per alleggerirla senza perderla.

@@ -64,8 +64,8 @@ Kein Besuch des Streams mehr nötig! Die Erweiterung zeigt die Live-Dauer direkt
 
 _______________________________
 
-➤ 🎯 COLLABS AM AVATAR MARKIERT
-Ein kleiner violetter Punkt erscheint unten rechts am Avatar der Streamer, die einen Co-Stream hosten, samt Teilnehmerzahl. Kein Überfahren nötig, direkt in der Sidebar sichtbar. Sauber, dezent, und du weißt sofort: „aha, der macht was mit 2 anderen zusammen".
+➤ 🎯 CO-STREAMS AN EINEM FARBIGEN BALKEN ERKENNBAR
+Ein farbiger Balken läuft am linken Rand der Karte jedes Streamers im Co-Stream entlang, eine Farbe pro Co-Stream — auch wenn er der Einzige ist, dem du folgst. Mehrere Beteiligte direkt untereinander in der Liste? Ihre Balken werden zu einem. Kein Überfahren nötig, direkt in der Sidebar sichtbar, und keine Zahl mehr auf dem Avatar. Sauber, dezent, und du weißt sofort: „aha, die streamen zusammen".
 
 _______________________________
 
@@ -199,7 +199,7 @@ Twitch hat ein helles Design. Die Erweiterung merkt es und wechselt mit — ohne
 _______________________________
 
 ➤ ⚙️ UND WENN DU WÄHLEN WILLST
-Alles ist von Anfang an aktiv und nichts muss eingestellt werden. Aber ein Tab „Optionen“ im Panel gibt dir zweiundzwanzig Einstellungen in die Hand.
+Alles ist von Anfang an aktiv und nichts muss eingestellt werden. Aber ein Tab „Optionen“ im Panel gibt dir einundzwanzig Einstellungen in die Hand.
 
 - ★ WAS DU SIEHST ★ Jedes Abzeichen, die Streamdauer und ihr Format, der Balken „gerade gestartet“, das Gold der Abonnements, die Filter, die Sortierschaltflächen: alles lässt sich per Häkchen ein- und ausschalten.
 - ★ WAS GELADEN WIRD ★ Die Vorschau kann auf das Video verzichten und Abzeichen, Zeitleiste und Miniaturbild behalten — oder einfach in der Qualität heruntergehen. Genug, um sie leicht zu machen, ohne sie zu verlieren.

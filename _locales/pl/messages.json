@@ -385,7 +385,7 @@
     "message": "Co-streamy"
   },
   "guideCostreamTexte": {
-    "message": "Fioletowa kropka w rogu awatara, z liczbą uczestników: ten kanał nadaje w kilka osób. Widać to na liście, bez najeżdżania na cokolwiek.\n• Fioletowa odznaka mówi wtedy, kto gości, a kto jest gościem — i z kim.\n• Osobne sortowanie grupuje je na górze listy (rozdział $1).\n• Gdy kilku uczestników stoi na liście jeden pod drugim, ich paski łączą się w jeden, a na nim, zamiast ich kropek, pojawia się przycisk „▶”: kliknięcie otwiera ich razem na stronie, w sali multistream. Po najechaniu „Cały co-stream” dodaje tych, których nie obserwujesz — Shift+klik też. Kanał, który jako jedyny ze swojego co-streamu jest na liście, ma ten „▶” zamiast kropki. Kliknięcie kafelka daje mu dźwięk, a czat podąża za nim; przy dwóch streamach bez wspólnego czatu oba czaty otaczają odtwarzacze, gdy jest miejsce. Klawisz Esc albo drugie kliknięcie przycisku zamyka salę."
+    "message": "Kolorowy pasek przy krawędzi karty, jeden kolor na co-stream: ten kanał nadaje w kilka osób. Widać to na liście, bez najeżdżania na cokolwiek.\n• Fioletowa odznaka mówi wtedy, kto gości, a kto jest gościem — i z kim.\n• Osobne sortowanie grupuje je na górze listy (rozdział $1).\n• Gdy kilku uczestników stoi na liście jeden pod drugim, ich paski łączą się w jeden; kanał, który jako jedyny ze swojego co-streamu jest na liście, ma własny. Na środku pojawia się przycisk „▶”, gdy nadają inni uczestnicy: kliknięcie otwiera ich razem na stronie, w sali multistream. Po najechaniu „Cały co-stream” dodaje tych, których nie obserwujesz — Shift+klik też. Kliknięcie kafelka daje mu dźwięk, a czat podąża za nim; przy dwóch streamach bez wspólnego czatu oba czaty otaczają odtwarzacze, gdy jest miejsce. Klawisz Esc albo drugie kliknięcie przycisku zamyka salę."
   },
   "guideDebutTitre": {
     "message": "Początki i powroty"
@@ -537,17 +537,11 @@
   "optFresh": {
     "message": "Pasek „właśnie ruszyła”"
   },
-  "optCollab": {
-    "message": "Kropka współpracy"
-  },
-  "optDescCollab": {
-    "message": "Na awatarze: z iloma streamerami kanał jest w co-streamie. Ukryta w Najpopularniejszych kanałach i tam, gdzie sala multistream stawia swój „▶” — na pasku albo zamiast niej. Wyłączone: żadnej kropki z liczbą; „▶” zostaje, należy do sali."
-  },
   "optSalle": {
     "message": "Sala multistream"
   },
   "optDescSalle": {
-    "message": "Przycisk „▶” otwiera razem, na stronie, streamy co-streamu: na jego pasku albo na awatarze kanału, który jako jedyny ze swojego co-streamu jest na liście. Na pasku, po najechaniu lub przez Shift+klik: cały co-stream, także ci, których nie obserwujesz. Wyłączone: ani przycisku, ani sali, a kropki znów pokazują liczby."
+    "message": "Przycisk „▶” na środku paska co-streamu otwiera razem, na stronie, jego streamy — na pasku kilku kanałów tak samo jak na pasku kanału, który jako jedyny ze swojego co-streamu jest na liście. Po najechaniu lub przez Shift+klik: cały co-stream, także ci, których nie obserwujesz. Wyłączone: ani przycisku, ani sali; paski zostają."
   },
   "optSalleAuto": {
     "message": "Automatyczne wyrównanie"
@@ -697,7 +691,7 @@
     "message": "Przywrócić wszystkie ustawienia domyślne?"
   },
   "optResetText": {
-    "message": "Na tej stronie dwadzieścia dwa ustawienia wrócą do wartości pierwotnych. Twoje dane — wizyty, subskrypcje, obserwowane kanały — pozostają nietknięte."
+    "message": "Na tej stronie dwadzieścia jeden ustawień wróci do wartości pierwotnych. Twoje dane — wizyty, subskrypcje, obserwowane kanały — pozostają nietknięte."
   },
   "optValPlein": {
     "message": "Pełne"

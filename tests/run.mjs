@@ -933,13 +933,14 @@ titre('17. Badge collab — le pré-filtre ne change rien au comportement');
     return {
       solo: badge('solo'), duo: badge('duo'), trio: badge('trio'),
       duoHidden: [...get('duo').querySelectorAll('span')].some(s => s.textContent === '+3' && s.style.display === 'none'),
-      duoHost: !!get('duo').querySelector('.tse-collab-host')
+      // Posée, elle ne se voit plus (4.24.0.33) : la barre dit le co-stream.
+      duoVue: get('duo').querySelector('.tse-collab-badge')?.getClientRects().length ?? null
     };
   });
   ok('aucun badge sur une carte sans collab', r.solo === null, String(r.solo));
   ok('badge « 3 » détecté sur la forme élément', r.duo === '3', String(r.duo));
   ok('le « +3 » d\'origine est masqué', r.duoHidden === true);
-  ok('l\'avatar porte le marqueur hôte', r.duoHost === true);
+  ok('…posé, il ne se voit pas : plus de pastille, la barre dit le co-stream', r.duoVue === 0, String(r.duoVue));
   // Forme TEXTE : le code d'origine consomme le « +N » (il tronque le nœud
   // texte), si bien que le badge n'est visible qu'au premier passage. Bug
   // PRÉEXISTANT, vérifié identique avant/après optimisation par cmp.mjs — on
@@ -961,11 +962,9 @@ titre('17. Badge collab — le pré-filtre ne change rien au comportement');
   await wait(page, 1200);
   const after = await page.evaluate(() => {
     const d = [...document.querySelectorAll('.side-nav-card')].find(c => c.dataset.tseLogin === 'duo');
-    return { badge: d.querySelector('.tse-collab-badge')?.textContent ?? null,
-             host: !!d.querySelector('.tse-collab-host') };
+    return { badge: d.querySelector('.tse-collab-badge')?.textContent ?? null };
   });
   ok('badge nettoyé quand le collab disparaît', after.badge === null, String(after.badge));
-  ok('marqueur hôte retiré', after.host === false);
   await page.close();
 }
 
@@ -13032,6 +13031,27 @@ titre('96. Le mode d\'emploi — la première vue, et la seule qui n\'ait besoin
      && rougeMaquette.lavis.includes('rgba(235, 4, 0, 0.18) 0%')
      && rougeMaquette.lavis.includes('rgba(235, 4, 0, 0.06) 40%'),
      JSON.stringify(rougeMaquette));
+  /* LE CO-STREAM COMME LE PRODUIT (4.24.0.33) : plus de pastille sur
+     l'avatar ; la barre de la carte et, au milieu, la languette « ▶ » — la
+     forme, la couleur et la lueur de celle de la barre latérale. Une maquette
+     qui garderait la pastille expliquerait ce qui n'est plus. */
+  const coMaquette = await page.evaluate(() => {
+    const e = document.querySelector('#guide .d-carte--costream');
+    const n = e?.querySelector('.d-noeud');
+    if (!e || !n) return { carte: !!e, noeud: !!n, pastilles: document.querySelectorAll('#guide .d-collab').length };
+    const rc = e.getBoundingClientRect(), rn = n.getBoundingClientRect(), cs = getComputedStyle(n);
+    return { carte: true, noeud: true, pastilles: document.querySelectorAll('#guide .d-collab').length,
+             barre: getComputedStyle(e, '::before').backgroundColor, fond: cs.backgroundColor,
+             forme: `${rn.width}×${rn.height} ${cs.borderTopLeftRadius} ${cs.borderTopRightRadius}`,
+             gauche: rn.left - rc.left, milieu: (rn.top + rn.bottom) / 2 - (rc.top + rc.bottom) / 2,
+             triangle: !!n.querySelector('svg path') };
+  });
+  ok('…et le co-stream s\'y montre comme dans la barre : sa barre, la languette « ▶ » au milieu, plus de pastille',
+     coMaquette.carte && coMaquette.noeud && coMaquette.pastilles === 0
+     && coMaquette.barre === 'rgb(245, 197, 24)' && coMaquette.fond === coMaquette.barre
+     && coMaquette.forme === '15×22 0px 11px' && Math.abs(coMaquette.gauche) <= 0.5
+     && Math.abs(coMaquette.milieu) <= 0.5 && coMaquette.triangle,
+     JSON.stringify(coMaquette));
   await page.emulateMedia({ reducedMotion: 'reduce' });
 
   /* ── 7. L'ARC-EN-CIEL COURT VRAIMENT ──────────────────────────────────────
@@ -15940,7 +15960,7 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
     return { n: Object.keys(defs).length, horsListe, jeuxNonVides,
              cle: localStorage.getItem('tse:options') };
   });
-  ok('la table porte ses vingt-deux réglages', table.n === 22, String(table.n));
+  ok('la table porte ses vingt et un réglages', table.n === 21, String(table.n));
   /* CELUI-CI A UNE CIBLE PRÉCISE : trois défauts sont lus dans CFG plutôt que
      recopiés — apercuQualite, abosPeriode et topN. Changer une de ces trois
      constantes sans toucher à la liste des valeurs permises rendrait le
@@ -15958,23 +15978,25 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
      dans la fiche polonaise, et le mutant qui remettait « dix-neuf » dans la
      phrase des réglages survivait. */
   /* Vingt et un depuis la 4.24.0.7 (le compteur de la salle), vingt-deux
-     depuis la 4.24.0.17 (l'alignement automatique). En russe et en
-     polonais, le nom s'accorde au nombre — « две настройки », « dwa
-     ustawienia » — et la phrase est tournée pour que le même mot se lise
-     dans les deux. */
-  const VINGT_DEUX = { de: 'zweiundzwanzig Einstellungen', en: 'twenty-two settings',
-                       es: 'veintidós ajustes', es_419: 'veintidós ajustes', fr: 'vingt-deux réglages',
-                       it: 'ventidue impostazioni', ja: '22 個の設定', pl: 'dwadzieścia dwa ustawienia',
-                       pt_BR: 'vinte e duas configurações', pt_PT: 'vinte e duas definições',
-                       ru: 'двадцать две настройки', zh_CN: '二十二项设置' };
-  const muettes = Object.entries(VINGT_DEUX).flatMap(([loc, mot]) => [
+     depuis la 4.24.0.17 (l'alignement automatique), vingt et un de nouveau
+     depuis la 4.24.0.33 (la pastille de collaboration, partie avec elle) :
+     les phrases de la 4.24.0.16, reprises mot pour mot. En russe et en
+     polonais, le nom s'accorde au nombre — « одна настройка », « jeden
+     ustawień » — et la phrase est tournée pour que le même mot se lise dans
+     les deux. */
+  const VINGT_ET_UN = { de: 'einundzwanzig Einstellungen', en: 'twenty-one settings',
+                        es: 'veintiún ajustes', es_419: 'veintiún ajustes', fr: 'vingt et un réglages',
+                        it: 'ventuno impostazioni', ja: '21 個の設定', pl: 'dwadzieścia jeden ustawień',
+                        pt_BR: 'vinte e uma configurações', pt_PT: 'vinte e uma definições',
+                        ru: 'двадцать одна настройка', zh_CN: '二十一项设置' };
+  const muettes = Object.entries(VINGT_ET_UN).flatMap(([loc, mot]) => [
     JSON.parse(readFileSync(join(ICI, '..', '_locales', loc, 'messages.json'), 'utf8'))
       .optResetText.message.includes(mot) ? null : `panneau ${loc}`,
     readFileSync(join(ICI, '..', 'store', `description-${loc.replace('_', '-')}.txt`), 'utf8')
       .includes(mot) ? null : `fiche ${loc}`,
   ]).filter(Boolean);
   ok('…et le panneau comme la fiche du Store en annoncent autant, dans les douze langues',
-     table.n === 22 && muettes.length === 0, muettes.join(', ') || String(table.n));
+     table.n === 21 && muettes.length === 0, muettes.join(', ') || String(table.n));
   /* CELLE-CI SE LIT SUR LE FICHIER SOURCE, et c'est le fond du sujet : la
      constante de production vaut six heures, mais tests/build.mjs la réécrit à
      quatre secondes pour que le relevé des abonnements soit éprouvable. La
@@ -16416,8 +16438,8 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
       duree: { defaut: true, type: 'bool' },
       dureeFormat: { defaut: 'hm', type: 'choix', valeurs: ['hm', 'colon', 'min'] },
       fresh: { defaut: true, type: 'bool' },
-      collab: { defaut: true, type: 'bool' },
       salle: { defaut: true, type: 'bool' },
+      salleAuto: { defaut: true, type: 'bool' },
       abonnes: { defaut: 'plein', type: 'choix', valeurs: ['plein', 'discret', 'aucun'] },
       subathonJour: { defaut: true, type: 'bool' },
       stories: { defaut: 'integree', type: 'choix', valeurs: ['twitch', 'integree', 'masquee'] },
@@ -16513,7 +16535,7 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
              fantomes: peints.filter((id) => !table.includes(id)) };
   }, vue.peints);
 
-  ok('les vingt-deux réglages de la page ont chacun leur ligne',
+  ok('les vingt et un réglages de la page ont chacun leur ligne',
      contrat.oublies.length === 0, contrat.oublies.join(', '));
   ok('…et aucune ligne fantôme : l\'ordre du panneau couvre exactement la table',
      contrat.fantomes.length === 0, contrat.fantomes.join(', '));
@@ -17935,14 +17957,16 @@ addEventListener('message', (e) => {
     return { fabriquee: c?.dataset.tseSynthetic === 'true',
              plus: /\+\s*\d/.test(c?.textContent || ''),
              badge: c?.querySelector('.tse-collab-badge')?.textContent ?? null,
-             hote: !!c?.querySelector('.tse-collab-host') };
+             vue: c?.querySelector('.tse-collab-badge')?.getClientRects().length ?? null };
   });
   ok('la carte du classement est bien fabriquée, et ne porte aucun « +N »',
      top.fabriquee === true && top.plus === false, JSON.stringify(top));
   ok('…et elle porte pourtant la pastille, comptée sur Guest Star',
      top.badge === '1', JSON.stringify(top));
-  ok('…posée sur l\'avatar, comme celle que Twitch fournit',
-     top.hote === true, JSON.stringify(top));
+  /* UNE DONNÉE, PLUS UNE IMAGE (4.24.0.33) : la détection la lit, personne
+     ne la voit — ni ici, ni nulle part. */
+  ok('…une donnée, qui ne se voit pas, comme toutes depuis la 4.24.0.33',
+     top.vue === 0, JSON.stringify(top));
   await page.close();
 }
 
@@ -25176,18 +25200,31 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
     // Le prochain élément RENDU : l'en-tête de Twitch, masqué, n'a pas de place.
     let suivant = couche ? couche.nextElementSibling : null;
     while (suivant && !suivant.getClientRects().length) suivant = suivant.nextElementSibling;
+    /* SA BARRE : la suite de cartes jointes qui part de sa première chaîne —
+       une seule carte pour le nœud d'une carte seule (4.24.0.33), dont les
+       autres chaînes ne sont pas sur la barre. */
+    const affichees = [...document.querySelectorAll('.side-nav-card')]
+      .filter((c) => getComputedStyle(c).display !== 'none' && !c.parentElement.closest('.side-nav-card'));
+    const barreDe = (premiere) => {
+      const run = [premiere];
+      for (let i = affichees.indexOf(premiere); i >= 0 && affichees[i].classList.contains('tse-costream-join-bottom')
+           && affichees[i + 1]; i++) run.push(affichees[i + 1]);
+      return run;
+    };
     const noeuds = [...document.querySelectorAll('#tse-noeuds .tse-noeud')].map((n) => {
       const membres = n.dataset.tseNoeud.split(' ');
-      const cartes = [carte(membres[0]), carte(membres[membres.length - 1])];
       // Une carte partie — un nœud en retard sur sa barre : rien à mesurer.
-      if (!cartes[0] || !cartes[1]) return { membres, orpheline: true };
+      if (!carte(membres[0])) return { membres, orpheline: true };
+      const run = barreDe(carte(membres[0]));
+      const cartes = [run[0], run[run.length - 1]];
       const haut = cartes[0].getBoundingClientRect();
       const bas = cartes[1].getBoundingClientRect();
       const r = n.getBoundingClientRect();
+      const cs = getComputedStyle(n);
       const cy = (r.top + r.bottom) / 2;
       const touche = document.elementFromPoint(r.left + 3, cy);
       return {
-        membres,
+        membres, logins: run.map((c) => c.dataset.tseLogin),
         // Ce que la capsule MONTRE au repos : le symbole seul (4.24.0.8), aucun
         // texte — innerText ne lit pas l'étiquette masquée.
         visible: n.innerText.trim(),
@@ -25198,14 +25235,16 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
         milieu: Math.round((cy - (haut.top + bas.bottom) / 2) * 10) / 10,
         gauche: Math.round((r.left - haut.left) * 10) / 10,
         entier: (touche === n || n.contains(touche)) && r.left >= nav.left && r.right <= nav.right,
-        fond: getComputedStyle(n).backgroundColor,
+        // La languette est le ::before (4.24.0.33) : le bouton, lui, est transparent.
+        fond: getComputedStyle(n, '::before').backgroundColor,
+        bouton: cs.backgroundColor,
+        encre: cs.color,
         barre: getComputedStyle(cartes[0], '::before').backgroundColor,
         reduit: n.classList.contains('tse-noeud--reduit'),
-        // Un rond parfait (4.24.0.9) : largeur et hauteur égales, rayon 50 %.
-        rond: Math.abs(r.width - r.height) < 0.5 && getComputedStyle(n).borderTopLeftRadius === '50%',
-        diametre: Math.round(r.width * 10) / 10,
-        // Le centre du rond, rapporté au centre du trait (3 px au bord gauche).
-        centreTrait: Math.round((r.left + r.width / 2 - (haut.left + 1.5)) * 10) / 10,
+        /* LA LANGUETTE (4.24.0.33) : quinze pixels sur vingt-deux, le bord
+           gauche droit — sur le trait —, le droit en demi-cercle. */
+        forme: `${Math.round(r.width * 10) / 10}×${Math.round(r.height * 10) / 10} `
+          + [cs.borderTopLeftRadius, cs.borderTopRightRadius, cs.borderBottomRightRadius, cs.borderBottomLeftRadius].join(' '),
         x: r.left + r.width / 2, y: cy, haut: Math.round(cy),
       };
     });
@@ -25219,7 +25258,8 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
         .filter((c) => getComputedStyle(c).display !== 'none').map((c) => c.dataset.tseLogin),
     };
   });
-  const noeud = (e, chaine) => e.noeuds.find((n) => n.membres.includes(chaine));
+  // Le nœud de la barre où est la chaîne (pas celui d'une carte seule qui l'ouvrirait aussi).
+  const noeud = (e, chaine) => e.noeuds.find((n) => (n.logins || []).includes(chaine));
   // Les gestes ne lèvent jamais : un nœud absent est un échec d'assertion,
   // pas une exception qui emporterait le scénario.
   const vers = async (n) => { if (n && Number.isFinite(n.x)) await page.mouse.move(n.x, n.y); };
@@ -25228,14 +25268,17 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
   /* Mutants — le milieu pris sur la première carte seule, le bord gauche
      décalé hors de la liste (rogné), la couleur par défaut au lieu de celle
      de la barre, le calque qui prend de la hauteur ; le nombre remis dans la
-     capsule (4.24.0.8 : le symbole seul, à la demande) ; la capsule revenue
-     à la place du rond (4.24.0.9). */
-  ok('un nœud par barre, au milieu de la barre et sur son bord gauche, entier, à sa couleur, le symbole seul dans un rond',
+     capsule (4.24.0.8 : le symbole seul, à la demande) ; le rond de douze
+     pixels revenu à la place de la languette (4.24.0.33), ou la languette
+     peinte sur le bouton (son étiquette grandirait avec elle au survol).
+     L'ENCRE : le noir de Twitch sur ces deux couleurs de la palette. */
+  const languette = (n) => !!n && n.forme === '15×22 0px 11px 11px 0px' && n.bouton === 'rgba(0, 0, 0, 0)';
+  ok('un nœud par barre, au milieu de la barre et sur son bord gauche, entier, à sa couleur, le symbole seul sur une languette',
      e1.calques === 1 && e1.noeuds.length === 2 && !!t1 && !!d1
      && t1.membres.join() === 'astra,boreal,cirrus' && d1.membres.join() === 'delta,eole'
-     && t1.visible === '' && d1.visible === '' && t1.rond && d1.rond && t1.diametre <= 12
+     && t1.visible === '' && d1.visible === '' && languette(t1) && languette(d1)
      && e1.noeuds.every((n) => Math.abs(n.milieu) <= 1 && Math.abs(n.gauche) <= 0.5 && n.entier
-       && n.fond === n.barre && n.presse === 'false' && n.etiquette === 'none' && n.svg !== 'none')
+       && n.fond === n.barre && n.encre === 'rgb(14, 14, 16)' && n.presse === 'false' && n.etiquette === 'none' && n.svg !== 'none')
      && t1.fond !== d1.fond && e1.calque.h === 0 && e1.calque.ecart === 0,
      JSON.stringify(e1));
   /* Ce que lit un lecteur d'écran : les chaînes, en toutes lettres. */
@@ -25243,21 +25286,21 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
      /astra/.test(t1?.aria) && /boreal/.test(t1?.aria) && /cirrus/.test(t1?.aria) && /ensemble/.test(t1?.aria),
      t1?.aria);
 
-  /* PLUS PETIT, ET CENTRÉ SUR LE TRAIT (4.24.0.10). Au bord de la barre
-     latérale, le rond s'y appuie (au-dessus : sa gauche est celle de la
-     carte). Quand la liste laisse de la place à gauche de la carte, il se
-     centre sur le trait. Une marge intérieure de 10 px dans la barre du décor
-     la lui donne. Mutant — le rond posé au bord de la carte quoi qu'il
-     arrive. */
+  /* SUR LE TRAIT, OÙ QU'IL SOIT (4.24.0.33). Le rond de la 4.24.0.10 se
+     centrait sur le trait quand la liste lui laissait de la place à gauche de
+     la carte, et s'appuyait sinon sur le bord de la liste. La languette part
+     du trait, toujours : une marge intérieure de 10 px dans la barre du décor
+     décale la carte, et elle la suit. Mutant — l'ancien placement, centré sur
+     le trait (six pixels hors de la carte ici). */
   // Un style ne relance pas de balayage : on en demande un, qui replace.
   await page.evaluate(() => { document.getElementById('side-nav').style.paddingLeft = '10px'; window.tse.rescan(); });
   await wait(page, 600);
   const decale = await lire();
   await page.evaluate(() => { document.getElementById('side-nav').style.removeProperty('padding-left'); window.tse.rescan(); });
   await wait(page, 600);
-  ok('le rond, douze pixels, se centre sur le trait quand la liste lui en laisse la place',
-     decale.noeuds.length === 2 && decale.noeuds.every((n) => n.diametre <= 12 && Math.abs(n.centreTrait) <= 0.5 && n.entier),
-     JSON.stringify(decale.noeuds.map((n) => [n.membres[0], n.diametre, n.centreTrait, n.entier])));
+  ok('la languette part du trait, et le suit quand la liste décale la carte',
+     decale.noeuds.length === 2 && decale.noeuds.every((n) => Math.abs(n.gauche) <= 0.5 && n.entier && languette(n)),
+     JSON.stringify(decale.noeuds.map((n) => [n.membres[0], n.forme, n.gauche, n.entier])));
 
   // ── Le survol : l'étiquette, et pas l'aperçu ──────────────────────────────
   await vers(t1);
@@ -25416,19 +25459,26 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
   // ── Un tri détache un membre, un autre retourne une barre ─────────────────
   await page.evaluate(() => document.querySelector('#tse-sort-row [data-tse-sort-mode="uptime"]')?.click());
   await attendre(page, () => [...document.querySelectorAll('.tse-noeud')]
-    .some((n) => n.dataset.tseNoeud === 'boreal astra'), 5000);
+    .some((n) => n.dataset.tseNoeud === 'boreal astra')
+    && [...document.querySelectorAll('.tse-noeud')].some((n) => n.dataset.tseNoeud.startsWith('cirrus ')), 5000);
   await wait(page, 300);
   const e5 = await lire();
-  const e5duo = noeud(e5, 'delta');
+  const e5duo = noeud(e5, 'delta'), e5c = noeud(e5, 'cirrus');
   /* Mutants — le nœud d'une barre disparue jamais retiré (il dirait encore
      « 3 » et ouvrirait une chaîne partie) ; le nœud gardé dans son ancien
-     ordre (il ouvrirait la salle à l'envers de la barre). */
-  ok('un tri détache « cirrus » : son ancien nœud part, la barre restante en compte deux ; le duo retourné suit son nouvel ordre',
+     ordre (il ouvrirait la salle à l'envers de la barre). « cirrus »,
+     DÉTACHÉE, A SA BARRE — d'une carte, à la couleur de son groupe — ET SON
+     NŒUD au milieu (4.24.0.33 ; un « ▶ » sur l'avatar depuis la 4.24.0.28),
+     qui l'ouvre avec ceux qui diffusent de sa session. */
+  ok('un tri détache « cirrus » : son ancien nœud part, la barre restante en compte deux ; le duo retourné suit son nouvel ordre ; « cirrus » a le sien sur sa barre',
      e5.ordre.slice(0, 5).join() === 'cirrus,eole,delta,boreal,astra'
-     && e5.noeuds.length === 2 && e5.noeuds.every((n) => !n.membres.includes('cirrus') && Math.abs(n.milieu) <= 1)
+     && e5.noeuds.length === 3 && e5.noeuds.every((n) => Math.abs(n.milieu) <= 1 && Math.abs(n.gauche) <= 0.5)
+     && !e5.noeuds.some((n) => n.membres.length === 3 && n.logins.length === 3)
      && noeud(e5, 'astra')?.texte === 'Regarder les 2' && noeud(e5, 'astra')?.membres.join() === 'boreal,astra'
-     && e5duo?.membres.join() === 'eole,delta' && /eole.*delta/.test(e5duo?.aria),
-     JSON.stringify({ ordre: e5.ordre, noeuds: e5.noeuds.map((n) => [n.membres, n.texte, n.milieu, n.aria]) }));
+     && e5duo?.membres.join() === 'eole,delta' && /eole.*delta/.test(e5duo?.aria)
+     && e5c?.logins.join() === 'cirrus' && e5c?.membres.join() === 'cirrus,astra,boreal' && e5c?.texte === 'Regarder les 3'
+     && e5c?.fond === noeud(e5, 'astra')?.fond,
+     JSON.stringify({ ordre: e5.ordre, noeuds: e5.noeuds.map((n) => [n.membres, n.logins, n.texte, n.milieu, n.gauche, n.fond, n.aria]) }));
 
   // ── Le réglage : le système multistream (4.24.0.9) ────────────────────────
   // Une salle ouverte au moment où on le coupe : elle se ferme avec lui.
@@ -25453,7 +25503,7 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
      coupe.calque?.affiche === 'none' && coupe.noeuds.every((n) => !n.entier)
      && salleCoupee.ouverte === false && salleCoupee.fermeture === 'reglage'
      && clicMasque.ouverte === false && clicMasque.chemin === '/directory'
-     && !!remis.calque && remis.calque.affiche !== 'none' && remis.noeuds.length === 2 && remis.noeuds.every((n) => n.entier),
+     && !!remis.calque && remis.calque.affiche !== 'none' && remis.noeuds.length === 3 && remis.noeuds.every((n) => n.entier),
      JSON.stringify({ coupe: coupe.calque, salleCoupee, clicMasque, remis: remis.noeuds.map((n) => n.entier) }));
 
   // ── La barre réduite ──────────────────────────────────────────────────────
@@ -25467,7 +25517,7 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
   });
   // La bascule relance un cycle, voile compris : on attend qu'il se lève.
   await attendre(page, () => !document.body.classList.contains('tse-loading')
-    && [...document.querySelectorAll('.tse-noeud')].length === 2
+    && [...document.querySelectorAll('.tse-noeud')].length === 3
     && [...document.querySelectorAll('.tse-noeud')].every((n) => n.classList.contains('tse-noeud--reduit')), 8000);
   await wait(page, 300);
   const e6 = await lire();
@@ -25478,7 +25528,7 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
   /* Mutants — le mode réduit ignoré (l'étiquette déborderait d'une barre
      large d'un avatar). */
   ok('barre réduite : le symbole seul, sans étiquette même au survol, entier et sur sa barre',
-     e6.noeuds.length === 2 && e6.noeuds.every((n) => n.reduit && n.svg !== 'none' && n.visible === '' && n.entier
+     e6.noeuds.length === 3 && e6.noeuds.every((n) => n.reduit && n.svg !== 'none' && n.visible === '' && n.entier
        && Math.abs(n.milieu) <= 1 && Math.abs(n.gauche) <= 0.5)
      && noeud(e7, 'astra')?.etiquette === 'none',
      JSON.stringify({ e6: e6.noeuds, survol: noeud(e7, 'astra')?.etiquette }));
@@ -25492,7 +25542,7 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
   /* Et ce qui dira, sur le vrai Twitch, si le calque décale la liste : la
      section du décor est une boîte ordinaire, l'écart est nul. */
   ok('le rapport compte les nœuds posés et les clics reçus, et mesure l\'écart du calque',
-     rap.noeuds?.affiches === 2 && rap.noeuds?.clics === 7 && rap.ouverte === false && rap.fermeture === 'reglage'
+     rap.noeuds?.affiches === 2 && rap.noeuds?.seules === 1 && rap.noeuds?.clics === 7 && rap.ouverte === false && rap.fermeture === 'reglage'
      && /^block · gap /.test(rap.noeuds?.section) && rap.noeuds?.ecart === 0,
      JSON.stringify(rap.noeuds));
   await page.close();
@@ -26442,7 +26492,17 @@ const S_LECTEUR_SONDE = () => {
            un service audio qui manque son rendez-vous. Posés plus d'une
            demi-seconde à l'avance : les tranches ne sont prévues qu'à 600 ms. */
         let silences = [];
-        window.__silences = (L) => { silences = L.map(([a, b]) => [a, b]); };
+        /* FUSIONNÉS (4.24.0.33) : deux fenêtres qui se chevauchent n'en font
+           qu'une. La coupure ne suit que la première qui touche une tranche :
+           une courte posée dans une longue rendait le son à sa fin, et la
+           longue se trouvait coupée en deux par un éclat de 30 ms. */
+        window.__silences = (L) => {
+          silences = [];
+          for (const [a, b] of [...L].sort((x, y) => x[0] - y[0])) {
+            const der = silences[silences.length - 1];
+            if (der && a <= der[1]) der[1] = Math.max(der[1], b); else silences.push([a, b]);
+          }
+        };
         let relie = false;
         const tenir = () => {
           if (gen.state !== 'running') { gen.resume().catch(() => {}); return; }
@@ -29105,8 +29165,16 @@ const S_LECTEUR_SONDE = () => {
        (GROUPE_MS), bien moins que les 150 ms sous lesquelles rien ne bouge ;
      — et le rapport compte, par paire, les silences communs écartés : les
        mêmes partout — celui de « duo1 » seule n'en est pas un.
+   LEUR PARTIE COMMUNE SEULEMENT (4.24.0.33). « duo1 » se tait aussi 2,5 s
+   d'affilée autour du troisième silence commun — ce que fait une voix
+   coupée par un filtre, au premier rapport réel de la 4.24.0.32 —, et le
+   rapport dit le son écarté : pour « foxtrot~duo1 », pas plus que pour les
+   autres paires. Écarter l'union des deux silences en aurait retiré les
+   2,5 s, du son de « foxtrot » compris. Et le compte n'a plus de plafond :
+   cent dix silences de plus, tous comptés.
    Mutants — rien d'écarté ; tout silence écarté, commun ou non ; le
-   rapport muet. */
+   rapport muet ; l'union au lieu de l'intersection ; le compte plafonné à
+   la mémoire. */
 {
   titre('196. L\'événement commun — un même silence dans toutes les tuiles, écarté de la corrélation');
   const page = await freshTwitch(S_LECTEUR_SONDE(), [], '/directory', () => {
@@ -29130,7 +29198,7 @@ const S_LECTEUR_SONDE = () => {
   await attendre(page, () => (window.tse.salle.rapport().ecoute?.calculs || 0) >= 6, 60_000);
   const t0 = await page.evaluate(() => Date.now() + 1_500);
   const communs = [[0, 60], [4_000, 90], [8_000, 150], [12_000, 60]].map(([d, ms]) => [t0 + d, t0 + d + ms]);
-  const seul = [[t0 + 6_000, t0 + 6_090]];
+  const seul = [[t0 + 6_000, t0 + 6_090], [t0 + 7_000, t0 + 9_500]];
   for (const ch of ['foxtrot', 'duo1', 'rho', 'sigma']) {
     await cadre(ch)?.evaluate((L) => window.__silences(L), ch === 'duo1' ? [...communs, ...seul] : communs).catch(() => null);
   }
@@ -29153,17 +29221,42 @@ const S_LECTEUR_SONDE = () => {
   ok('…et le rapport compte les silences communs écartés : les mêmes dans chaque paire, quatre au moins — celui de « duo1 » seule n\'en est pas un',
      comptes.every((n) => n >= 4) && new Set(comptes).size === 1,
      JSON.stringify({ silencesCommuns: rB.ecoute?.silencesCommuns, comptes }));
+  const ecarte = (cle) => Number((new RegExp(`${cle} \\d+ · ([\\d.]+) s`).exec(rB.ecoute?.silencesCommuns || '') || [])[1]);
+  const ecartes = PAIRES.map(ecarte);
+  ok('…et seulement leur partie commune : le long silence de « duo1 » seule n\'emporte pas le son de « foxtrot » — autant de son écarté dans chaque paire, et moins de 1,6 s',
+     ecartes.every((x) => x > 0 && x < 1.6) && Math.max(...ecartes) - Math.min(...ecartes) <= 0.4,
+     JSON.stringify({ silencesCommuns: rB.ecoute?.silencesCommuns, ecartes }));
+  /* PLUS DE CENT (4.24.0.33) : cent dix silences communs de 60 ms, toutes les
+     300 ms, dans toutes les tuiles. Le compte les dit tous : il ne s'arrête
+     plus aux cent que la mémoire garde pour les dédoublonner. */
+  const t1 = await page.evaluate(() => Date.now() + 1_500);
+  const rafale = Array.from({ length: 110 }, (_, i) => [t1 + i * 300, t1 + i * 300 + 60]);
+  for (const ch of ['foxtrot', 'duo1', 'rho', 'sigma']) {
+    await cadre(ch)?.evaluate((L) => window.__silences(L), rafale).catch(() => null);
+  }
+  await page.waitForFunction((t) => Date.now() > t, t1 + 110 * 300 + 8_000, { timeout: 90_000 });
+  const rC = await rapport();
+  const comptesC = PAIRES.map((cle) => Number((new RegExp(`${cle} (\\d+)`).exec(rC.ecoute?.silencesCommuns || '') || [])[1]));
+  ok('…et plus de cent : cent dix silences communs de plus, et le compte les dit tous — il ne plafonne plus à cent',
+     comptesC.every((n, i) => n >= comptes[i] + 110),
+     JSON.stringify({ silencesCommuns: rC.ecoute?.silencesCommuns, avant: comptes, apres: comptesC }));
   await page.close();
 }
 
-/* ═════════ TOUT LE CO-STREAM DEPUIS LA BARRE, ET LE « ▶ » DE LA CARTE SEULE ══
+/* ═════════ TOUT LE CO-STREAM DEPUIS LA BARRE, ET LA BARRE D'UNE CHAÎNE SEULE ═
    LE SIGNALEMENT (4.24.0.28), sur une capture : quatre chaînes suivies en
    barre, « Regarder les 4 » — et six personnes dans le co-stream, dont deux
    qu'on ne suit pas. Demandé : regarder les quatre, ou les six, d'un geste,
    depuis la barre latérale. Puis, dans la foulée : la pastille d'une chaîne
-   seule de son co-stream devient le nœud ; plus de pastille en Top Chaînes,
-   ni sur une barre ; agrandie au survol ; des nombres quand le multistream est
-   coupé ; et le réglage de la pastille, indépendant de celui de la salle.
+   seule de son co-stream devenait le « ▶ ».
+   ET DEPUIS LA 4.24.0.33, DEMANDÉ : « plus de pastille du tout […] une seule
+   barre colorée sur le streamer en costream qui est le seul que l'on suit,
+   avec le rond "▶" au milieu » — et ce rond redessiné, « petit, à peine
+   visible et pas bien intégré à la barre colorée ». Aucune pastille ne se
+   voit plus, nulle part, salle coupée comme allumée ; une chaîne seule de
+   son co-stream a SA barre, à la couleur de sa session, et le nœud au milieu
+   quand d'autres membres diffusent ; le nœud est une languette, la barre qui
+   s'élargit ; le réglage de la pastille est parti avec elle.
 
    LE DÉCOR rejoue la capture, et ce qu'elle ne montrait pas :
      — « aube », « brume », « cime », « dune » suivies, en barre ; « ecume » et
@@ -29172,13 +29265,15 @@ const S_LECTEUR_SONDE = () => {
      — « hale », seule suivie d'une session de huit : six qui diffusent hors
        d'elle (la salle n'en prend que six en tout), et « jade » qui ne
        diffuse pas ;
-     — « kilo », dont le seul camarade ne diffuse pas : sa pastille reste un
-       nombre ;
-     — « solo » : un « +2 » de Twitch et aucune session connue — un nombre.
+     — « kilo », dont le seul camarade ne diffuse pas : sa barre, sans nœud ;
+     — « solo » : un « +2 » de Twitch et aucune session connue — sa barre, sans
+       nœud ;
+     — « vif », qui vient de démarrer — sa barre est rouge —, et « vif2 »
+       qu'on ne suit pas : l'encre du nœud passe au blanc.
    Les constantes de production, comme au 176 : un balayage de trop doit se
    remarquer. */
 {
-  titre('194. Tout le co-stream depuis la barre, et le « ▶ » à la place de la pastille');
+  titre('194. Tout le co-stream depuis la barre, et la barre d\'une chaîne seule — plus de pastille');
   const { page, ratees } = await pageVariante([
     [/REFRESH_TICK:\s*100\b/, 'REFRESH_TICK:   5_000'],
     [/LIVE_TTL:\s*600\b/, 'LIVE_TTL:       30_000'],
@@ -29192,7 +29287,7 @@ const S_LECTEUR_SONDE = () => {
   await page.route('https://www.twitch.tv/embed/**', (route) => route.fulfill({
     contentType: 'text/html; charset=utf-8', body: '<!doctype html><html><body></body></html>' }));
   /* La bulle de bienvenue, qui s'ouvre quand elle veut, passerait devant un
-     « ▶ » de la barre réduite : elle n'est pas le sujet, elle est rangée. */
+     nœud de la barre réduite : elle n'est pas le sujet, elle est rangée. */
   await page.addStyleTag({ content: '#side-nav { width: 240px; overflow-x: hidden; }'
     + ' #root.side-nav--collapsed #side-nav { width: 50px; } #tse-bulle { display: none !important; }' });
   /* LES DÉBUTS SONT CHOISIS POUR LE TRI PAR DURÉE, plus bas : « dune » a
@@ -29209,6 +29304,7 @@ const S_LECTEUR_SONDE = () => {
       hale: c('9421', 5000, 120), iris: c('9422', 20000, 130), kaki: c('9423', 900, 131), lilas: c('9424', 800, 132),
       mauve: c('9425', 700, 133), nacre: c('9426', 600, 134), ocre: c('9427', 500, 135),
       kilo: c('9431', 3000, 40),
+      vif: c('9441', 1000, 3), vif2: c('9442', 400, 4),
     };
     const m = (id, login, viewers, combined, sansStream) =>
       ({ id, login, viewers, combined, ...(sansStream ? { sansStream: true } : {}) });
@@ -29220,12 +29316,14 @@ const S_LECTEUR_SONDE = () => {
                   m('9423', 'kaki', 900, 30000), m('9424', 'lilas', 800, 30000), m('9425', 'mauve', 700, 30000),
                   m('9426', 'nacre', 600, 30000), m('9427', 'ocre', 500, 30000)];
     const deux = [m('9431', 'kilo', 3000, 3500), m('9432', 'lune', 0, null, true)];
+    const vifs = [m('9441', 'vif', 1000, 1400), m('9442', 'vif2', 400, 1400)];
     window.__gs = {};
     for (const g of sept) window.__gs[g.id] = { hostId: '9411', hostLogin: 'aube', guests: sept };
     for (const g of huit) window.__gs[g.id] = { hostId: '9422', hostLogin: 'iris', guests: huit };
     for (const g of deux) window.__gs[g.id] = { hostId: '9431', hostLogin: 'kilo', guests: deux };
+    for (const g of vifs) window.__gs[g.id] = { hostId: '9441', hostLogin: 'vif', guests: vifs };
     for (const [l, v] of [['solo', '50 k'], ['aube', '40 k'], ['brume', '40 k'], ['cime', '40 k'], ['dune', '40 k'],
-                          ['hale', '30 k'], ['kilo', '3,5 k']]) {
+                          ['hale', '30 k'], ['kilo', '3,5 k'], ['vif', '1,4 k']]) {
       const carte = window.__addCard(l, 'Valheim', v);
       if (l === 'solo') {
         const sp = document.createElement('span');
@@ -29235,20 +29333,25 @@ const S_LECTEUR_SONDE = () => {
     }
   });
   await attendre(page, () => !document.body.classList.contains('tse-loading')
-    && document.querySelectorAll('.side-nav-card.tse-costream').length === 4
+    && document.querySelectorAll('.side-nav-card.tse-costream').length === 8
     && !!document.querySelector('#tse-noeuds .tse-noeud__choix')
-    && !!document.querySelector('#tse-noeuds .tse-pastille-salle'), 15_000);
+    && document.querySelectorAll('#tse-noeuds .tse-noeud').length === 3, 15_000);
   await wait(page, 300);
 
   const lire = () => page.evaluate(() => {
     const carte = (l) => document.querySelector(`.side-nav-card[data-tse-login="${l}"]`);
-    const pastille = (l) => {
+    // Ce que porte une carte : sa pastille (une donnée), et sa barre.
+    const decor = (l) => {
       const c = carte(l);
       const b = c ? c.querySelector('.tse-collab-badge') : null;
-      return { marque: c ? (c.dataset.tsePastille ?? null) : null, texte: b ? b.textContent : null,
-               vue: !!b && b.getClientRects().length > 0 };
+      return { texte: b ? b.textContent : null, vue: !!b && b.getClientRects().length > 0,
+               barre: !!c && c.classList.contains('tse-costream'), cle: c ? (c.dataset.tseCostreamKey ?? null) : null,
+               couleur: c ? getComputedStyle(c, '::before').backgroundColor : null,
+               jointe: !!c && (c.classList.contains('tse-costream-join-top') || c.classList.contains('tse-costream-join-bottom')) };
     };
-    const n = document.querySelector('#tse-noeuds .tse-noeud');
+    const tous = [...document.querySelectorAll('#tse-noeuds .tse-noeud')];
+    // Celui de la barre : le seul qui offre tout le co-stream.
+    const n = tous.find((x) => x.classList.contains('tse-noeud--choix')) || null;
     const choix = n && n.nextElementSibling && n.nextElementSibling.classList.contains('tse-noeud__choix')
       ? n.nextElementSibling : null;
     /* CE QUI FAIT UN BOUTON (4.24.0.29) : le relief (plusieurs ombres, dont
@@ -29258,7 +29361,7 @@ const S_LECTEUR_SONDE = () => {
       const cs = getComputedStyle(el);
       return { ombres: cs.boxShadow === 'none' ? 0 : cs.boxShadow.split(/,(?![^(]*\))/).length,
                rayon: cs.borderTopLeftRadius, curseur: cs.cursor, souris: cs.pointerEvents,
-               transform: cs.transform, filtre: cs.filter };
+               transform: cs.transform, filtre: cs.filter, encre: cs.color };
     };
     const icones = (el) => ({
       lecture: el.querySelector('.tse-icone-lecture') ? getComputedStyle(el.querySelector('.tse-icone-lecture')).display : null,
@@ -29272,47 +29375,53 @@ const S_LECTEUR_SONDE = () => {
                haut: r.top, bas: r.bottom, droite: r.right, ...allure(o), ...icones(o) };
     };
     const rn = n ? n.getBoundingClientRect() : null;
-    const pastilles = [...document.querySelectorAll('#tse-noeuds .tse-pastille-salle')].map((p) => {
+    /* LES NŒUDS DES CARTES SEULES (4.24.0.33) : sur LEUR barre — au milieu de
+       la carte, à son bord gauche —, à sa couleur, une languette. */
+    const seules = tous.filter((x) => x !== n).map((p) => {
       const membres = p.dataset.tseNoeud.split(' ');
-      const av = carte(membres[0])?.querySelector('.tse-collab-host');
-      const ra = av ? av.getBoundingClientRect() : null;
+      const c = carte(membres[0]);
+      const rc = c ? c.getBoundingClientRect() : null;
       const r = p.getBoundingClientRect();
+      const cs = getComputedStyle(p);
       const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
       const touche = document.elementFromPoint(cx, cy);
-      const et = p.querySelector('.tse-pastille-salle__etiquette');
+      const et = p.querySelector('.tse-noeud__etiquette');
       const re = et.getBoundingClientRect();
       return { membres, aria: p.getAttribute('aria-label'), presse: p.getAttribute('aria-pressed'),
                etiquette: getComputedStyle(et).display, texte: et.textContent, titre: p.title,
-               /* Le point visé : le début de l'étiquette. Dans ce décor, l'avatar est
-                  à DROITE de la carte, et la fin de l'étiquette sort de la barre
-                  latérale, qui la rogne ; sur Twitch, il est à gauche. */
                pilule: { titre: et.title, x: re.left + 12, y: re.top + re.height / 2, ...allure(et) },
                focus: document.activeElement === p, focusVisible: p.matches(':focus-visible'), ...icones(p),
-               // Au centre exact de la pastille qu'il remplace (16 px, 3 px de débord).
-               dx: ra ? Math.round((cx - (ra.right - 5)) * 10) / 10 : null,
-               dy: ra ? Math.round((cy - (ra.bottom - 5)) * 10) / 10 : null,
-               w: Math.round(r.width * 10) / 10, echelle: getComputedStyle(p, '::before').transform,
-               reduit: p.classList.contains('tse-pastille-salle--reduit'),
+               milieu: rc ? Math.round((cy - (rc.top + rc.bottom) / 2) * 10) / 10 : null,
+               gauche: rc ? Math.round((r.left - rc.left) * 10) / 10 : null,
+               forme: `${Math.round(r.width * 10) / 10}×${Math.round(r.height * 10) / 10} `
+                 + [cs.borderTopLeftRadius, cs.borderTopRightRadius, cs.borderBottomRightRadius, cs.borderBottomLeftRadius].join(' '),
+               fond: getComputedStyle(p, '::before').backgroundColor, encre: cs.color,
+               barre: c ? getComputedStyle(c, '::before').backgroundColor : null,
+               echelle: getComputedStyle(p, '::before').transform,
+               reduit: p.classList.contains('tse-noeud--reduit'),
                dessus: !!touche && (touche === p || p.contains(touche)), x: cx, y: cy };
     });
     const cartes = {};
-    for (const l of ['solo', 'aube', 'brume', 'cime', 'dune', 'hale', 'kilo']) cartes[l] = pastille(l);
+    for (const l of ['solo', 'aube', 'brume', 'cime', 'dune', 'hale', 'kilo', 'vif']) cartes[l] = decor(l);
     const couche = document.getElementById('tse-noeuds');
     return {
       noeud: n ? { barre: n.dataset.tseNoeud, tous: n.dataset.tseTous ?? null, aria: n.getAttribute('aria-label'),
                    titre: n.title, presse: n.getAttribute('aria-pressed'),
                    etiquette: getComputedStyle(n.querySelector('.tse-noeud__etiquette')).display,
-                   ombre: getComputedStyle(n).boxShadow, ...icones(n),
+                   echelle: getComputedStyle(n, '::before').transform, ...icones(n),
+                   // Le second croissant, de la couleur de la barre : la languette enfoncée.
+                   anneau: / 4px 0px 0px 0px/.test(getComputedStyle(n, '::before').boxShadow),
                    reduit: n.classList.contains('tse-noeud--reduit'),
                    x: rn.left + rn.width / 2, y: rn.top + rn.height / 2, droite: rn.right } : null,
-      noeuds: document.querySelectorAll('#tse-noeuds .tse-noeud').length,
+      noeuds: tous.length,
       // Montré : une boîte, opaque, qui reçoit la souris (masqué, il garde sa boîte pour le focus).
       choix: choix ? { affiche: getComputedStyle(choix).display !== 'none' && getComputedStyle(choix).opacity === '1'
                          && getComputedStyle(choix).pointerEvents !== 'none' ? 'montre' : 'masque',
                        gauche: Math.round(choix.getBoundingClientRect().left * 10) / 10,
                        suivis: opt('.tse-noeud__option--barre'), tous: opt('.tse-noeud__option--tous') } : null,
       choixTotal: document.querySelectorAll('#tse-noeuds .tse-noeud__choix').length,
-      pastilles, cartes, calque: couche ? getComputedStyle(couche).display : null,
+      seules, cartes, calque: couche ? getComputedStyle(couche).display : null,
+      pastillesVues: [...document.querySelectorAll('.tse-collab-badge')].filter((b) => b.getClientRects().length).length,
       focus: document.activeElement?.className || null,
       selection: String(getSelection()),
       apercu: !!document.querySelector('.tse-preview[data-tse-visible="true"]'),
@@ -29325,7 +29434,7 @@ const S_LECTEUR_SONDE = () => {
     origine: window.tse.salle.rapport().origine, fermeture: window.tse.salle.rapport().fermeture,
     chemin: location.pathname,
   }));
-  const pastilleDe = (e, l) => e.pastilles.find((p) => p.membres[0] === l);
+  const seuleDe = (e, l) => e.seules.find((p) => p.membres[0] === l);
   const vers = async (p) => { if (p && Number.isFinite(p.x)) await page.mouse.move(p.x, p.y); };
   const clic = async (p, maj = false) => {
     if (!p || !Number.isFinite(p.x)) return;
@@ -29335,37 +29444,74 @@ const S_LECTEUR_SONDE = () => {
     await wait(page, 300);
   };
   const loin = async () => { await page.mouse.move(900, 700); await wait(page, 200); };
+  const languette = (p) => !!p && p.forme === '15×22 0px 11px 11px 0px';
 
   const e1 = await lire();
   /* Mutants — l'invité qui ne diffuse pas compté ; ceux qu'on ne suit pas
      oubliés (pas de choix). Pas d'infobulle sur le rond, barre étendue
      (4.24.0.29) : celle du navigateur recouvrait le second choix. */
   ok('la barre des quatre suivis garde son nœud ; tout le co-stream y ajoute les deux qu\'on ne suit pas — pas l\'invité qui ne diffuse pas',
-     e1.noeuds === 1 && e1.noeud?.barre === 'aube brume cime dune'
+     e1.noeud?.barre === 'aube brume cime dune'
      && e1.noeud?.tous === 'aube brume cime dune ecume flot' && e1.choixTotal === 1
      && e1.choix?.affiche === 'masque' && e1.noeud?.etiquette === 'none'
      && /aube/.test(e1.noeud?.aria) && /dune/.test(e1.noeud?.aria) && !/ecume/.test(e1.noeud?.aria)
      && e1.noeud?.titre === '',
      JSON.stringify({ noeud: e1.noeud, choix: e1.choix, n: e1.choixTotal }));
-  /* Mutants — la règle de la feuille retirée (les nombres restent sous la
-     barre et sous le « ▶ ») ; l'élément retiré au lieu d'être masqué (la
-     détection de secours et le rapport ne le liraient plus) ; le « ▶ » posé
-     sur une carte dont le seul camarade ne diffuse pas, ou sans session. */
-  const vus = (e) => Object.fromEntries(Object.entries(e.cartes).map(([l, p]) => [l, [p.marque, p.texte, p.vue]]));
-  ok('les pastilles : effacées sur la barre et sous le « ▶ », toujours là dans la carte ; un nombre pour « kilo » et « solo »',
-     ['aube', 'brume', 'cime', 'dune'].every((l) => e1.cartes[l].marque === 'barre' && e1.cartes[l].texte === '6' && !e1.cartes[l].vue)
-     && e1.cartes.hale.marque === 'seule' && e1.cartes.hale.texte === '7' && !e1.cartes.hale.vue
-     && e1.cartes.kilo.marque === null && e1.cartes.kilo.texte === '1' && e1.cartes.kilo.vue
-     && e1.cartes.solo.marque === null && e1.cartes.solo.texte === '2' && e1.cartes.solo.vue,
+  /* PLUS DE PASTILLE DU TOUT (4.24.0.33) : sur la barre, sur une carte seule,
+     sur celle dont personne d'autre ne diffuse, sur un « +2 » de Twitch sans
+     session. L'ÉLÉMENT RESTE, son nombre dedans : la détection de secours et
+     le rapport le lisent. Mutants — la règle de la feuille rendue
+     conditionnelle (salle allumée seulement, ou sous une barre seulement) ;
+     l'élément retiré au lieu d'être masqué. */
+  const vus = (e) => Object.fromEntries(Object.entries(e.cartes).map(([l, p]) => [l, [p.texte, p.vue, p.barre, p.cle, p.couleur]]));
+  ok('aucune pastille ne se voit plus — sur la barre, sur une carte seule, sans session ; l\'élément reste, son nombre dedans',
+     e1.pastillesVues === 0 && Object.values(e1.cartes).every((p) => !p.vue)
+     && ['aube', 'brume', 'cime', 'dune'].every((l) => e1.cartes[l].texte === '6')
+     && e1.cartes.hale.texte === '7' && e1.cartes.kilo.texte === '1' && e1.cartes.solo.texte === '2' && e1.cartes.vif.texte === '1',
      JSON.stringify(vus(e1)));
-  const h1 = pastilleDe(e1, 'hale');
-  /* Mutants — le « ▶ » décalé du coin de l'avatar ; les six de la salle
-     dépassés (la session en a sept qui diffusent avec elle) ; « jade » compté. */
-  ok('« hale », seule de son co-stream : un « ▶ » au coin exact de l\'avatar, qui ouvrira elle et cinq autres — la salle en prend six',
-     e1.pastilles.length === 1 && !!h1 && h1.membres.join() === 'hale,iris,kaki,lilas,mauve,nacre'
-     && Math.abs(h1.dx) <= 1 && Math.abs(h1.dy) <= 1 && h1.w === 16 && h1.dessus && h1.presse === 'false'
-     && h1.etiquette === 'none' && /hale/.test(h1.aria) && /nacre/.test(h1.aria) && !/jade|ocre/.test(h1.aria),
-     JSON.stringify(e1.pastilles));
+  /* UNE SEULE BARRE COLORÉE SUR LE STREAMER EN CO-STREAM QUI EST LE SEUL QUE
+     L'ON SUIT. « hale », « kilo », « solo », « vif » : chacune la sienne, à la
+     couleur de sa session — cinq sessions, cinq couleurs —, sans clé de
+     groupe (le tri « co-stream » et la jonction ne la prennent pas), jamais
+     jointe à sa voisine. Mutants — la carte seule laissée sans barre ; la
+     clé de groupe posée sur elle (elle rejoindrait un groupe au tri) ; la
+     couleur prise sans réserve (deux sessions de même couleur). */
+  const couleurs = ['aube', 'hale', 'kilo', 'solo'].map((l) => e1.cartes[l].couleur);
+  ok('chaque chaîne seule de son co-stream a sa barre, à la couleur de sa session, sans clé de groupe ni jonction',
+     ['aube', 'brume', 'cime', 'dune'].every((l) => e1.cartes[l].barre && e1.cartes[l].cle === 'gs:9411'
+       && e1.cartes[l].couleur === e1.cartes.aube.couleur)
+     && ['hale', 'kilo', 'solo', 'vif'].every((l) => e1.cartes[l].barre && e1.cartes[l].cle === null && !e1.cartes[l].jointe)
+     && new Set(couleurs).size === 4 && couleurs.every((x) => /^rgb\(/.test(x || '')),
+     JSON.stringify(vus(e1)));
+  const h1 = seuleDe(e1, 'hale'), v1 = seuleDe(e1, 'vif');
+  /* LE NŒUD AU MILIEU DE LA BARRE SEULE, une languette. Mutants — le nœud au
+     coin de l'avatar, comme le « ▶ » de la 4.24.0.28 ; les six de la salle
+     dépassés (la session en a sept qui diffusent avec elle) ; « jade »
+     compté ; un nœud posé sur une barre sans personne à ouvrir (« kilo »,
+     « solo »). */
+  ok('« hale », seule de son co-stream : le nœud au milieu de sa barre, une languette à sa couleur, qui ouvrira elle et cinq autres — la salle en prend six',
+     e1.noeuds === 3 && e1.seules.length === 2 && !!h1 && h1.membres.join() === 'hale,iris,kaki,lilas,mauve,nacre'
+     && Math.abs(h1.milieu) <= 1 && Math.abs(h1.gauche) <= 0.5 && languette(h1) && h1.fond === h1.barre
+     && h1.dessus && h1.presse === 'false' && h1.etiquette === 'none'
+     && /hale/.test(h1.aria) && /nacre/.test(h1.aria) && !/jade|ocre/.test(h1.aria)
+     && !seuleDe(e1, 'kilo') && !seuleDe(e1, 'solo'),
+     JSON.stringify(e1.seules));
+  /* L'ENCRE SUIT LA BARRE (4.24.0.33) : le noir de Twitch sur la palette, le
+     blanc sur le rouge d'un direct qui vient de démarrer — 4,6:1 contre 4,2:1.
+     Mutant — l'encre noire partout. */
+  ok('l\'encre suit la barre : noire sur la couleur de « hale », blanche sur le rouge de « vif », qui vient de démarrer',
+     h1?.encre === 'rgb(14, 14, 16)' && !!v1 && v1.encre === 'rgb(255, 255, 255)' && v1.fond === v1.barre
+     && /^rgb\((2[0-9]{2}), ([0-9]{1,2}), ([0-9]{1,2})\)$/.test(v1.fond || '') && languette(v1)
+     && Math.abs(v1.milieu) <= 1 && Math.abs(v1.gauche) <= 0.5 && v1.membres.join() === 'vif,vif2',
+     JSON.stringify({ hale: [h1?.encre, h1?.fond], vif: v1 }));
+  /* DANS L'ORDRE DE LA LISTE, AUSSI AU CLAVIER (4.24.0.33) : la tabulation
+     suit l'ordre des nœuds dans leur calque. Le choix suit toujours son
+     nœud. (L'ordre après un tri, plus bas.) */
+  const ordreCalque = () => page.evaluate(() => [...document.getElementById('tse-noeuds').children]
+    .map((c) => (c.classList.contains('tse-noeud__choix') ? 'choix' : c.dataset.tseNoeud.split(' ')[0])));
+  const ordre1 = await ordreCalque();
+  ok('les nœuds sont rangés dans l\'ordre de leurs barres, le choix derrière le sien — l\'ordre de la tabulation',
+     ordre1.join() === 'aube,choix,hale,vif', ordre1.join());
 
   // ── Le choix, à la souris ─────────────────────────────────────────────────
   await vers(e1.noeud);
@@ -29389,20 +29535,21 @@ const S_LECTEUR_SONDE = () => {
      cliquables ». Ce qui fait un bouton se mesure : deux boutons l'un sous
      l'autre, chacun en relief (trois ombres, dont une franche dessous),
      arrondi, la main au survol, le ▶ de ce qu'il lance ; sous la souris,
-     plus clair et soulevé d'un pixel — l'autre, non ; le rond lui-même cerclé
-     de clair au survol ; le raccourci dans l'infobulle de « tout ». Mutants —
-     les choix côte à côte ; le relief retiré ; le survol sans réponse ; le
-     symbole retiré ; le rond sans anneau de survol ; le raccourci perdu. */
+     plus clair et soulevé d'un pixel — l'autre, non ; la languette qui
+     s'avance au survol (4.24.0.33 ; un anneau clair cerclait le rond) ; le
+     raccourci dans l'infobulle de « tout ». Mutants — les choix côte à côte ;
+     le relief retiré ; le survol sans réponse ; le symbole retiré ; la
+     languette immobile au survol ; le raccourci perdu. */
   const bouton = (o) => !!o && o.ombres >= 3 && o.rayon === '6px' && o.curseur === 'pointer' && o.lecture !== 'none'
     && o.arret === 'none';
-  ok('ce sont des boutons : l\'un sous l\'autre, en relief, le ▶ devant ; sous la souris, plus clair et soulevé ; le rond cerclé au survol',
+  ok('ce sont des boutons : l\'un sous l\'autre, en relief, le ▶ devant ; sous la souris, plus clair et soulevé ; la languette s\'avance au survol',
      bouton(e2.choix?.suivis) && bouton(e2.choix?.tous) && e2.choix.tous.haut >= e2.choix.suivis.bas
      && e2.choix.suivis.transform === 'none' && e2.choix.tous.transform === 'none'
      && e3.choix?.tous?.transform === 'matrix(1, 0, 0, 1, 0, -1)' && e3.choix?.tous?.filtre === 'brightness(1.12)'
-     && e3.choix?.suivis?.transform === 'none' && /rgba\(255, 255, 255, 0\.75\)/.test(e2.noeud?.ombre || '')
-     && !/rgba\(255, 255, 255/.test(e1.noeud?.ombre || '')
+     && e3.choix?.suivis?.transform === 'none' && /^matrix\(1\.12, 0, 0, 1\.12/.test(e2.noeud?.echelle || '')
+     && e1.noeud?.echelle === 'none'
      && e2.choix.tous.titre.includes('Maj+clic : tout le co-stream (6)'),
-     JSON.stringify({ suivis: e2.choix?.suivis, tous: e2.choix?.tous, survol: e3.choix?.tous, rond: [e1.noeud?.ombre, e2.noeud?.ombre] }));
+     JSON.stringify({ suivis: e2.choix?.suivis, tous: e2.choix?.tous, survol: e3.choix?.tous, languette: [e1.noeud?.echelle, e2.noeud?.echelle] }));
   await clic(e3.choix?.tous);
   const o1 = await salle();
   const e4 = await lire();
@@ -29425,9 +29572,10 @@ const S_LECTEUR_SONDE = () => {
      par :focus-within, il restait sur la carte pendant toute la salle.
      Mutants — le symbole qui ne change pas ; le focus laissé au bouton ; les
      boutons du choix masqué qui reçoivent quand même la souris (et le
-     rouvrent par :hover, sans passer par le rond). */
-  ok('salle ouverte : ■ sur le rond et sur « tout », ▶ sur « suivis » ; cliqué à la souris, le choix ne garde pas le focus et se referme',
-     e4.noeud?.arret === 'block' && e4.noeud?.lecture === 'none'
+     rouvrent par :hover, sans passer par le rond) ; la languette enfoncée
+     sans son second croissant (4.24.0.33). */
+  ok('salle ouverte : ■ sur la languette, enfoncée, et sur « tout », ▶ sur « suivis » ; cliqué à la souris, le choix ne garde pas le focus et se referme',
+     e4.noeud?.arret === 'block' && e4.noeud?.lecture === 'none' && e4.noeud?.anneau && !e1.noeud?.anneau
      && e4.choix?.tous?.arret === 'block' && e4.choix?.tous?.lecture === 'none'
      && e4.choix?.suivis?.arret === 'none' && e4.choix?.suivis?.lecture !== 'none'
      && !/tse-noeud__option/.test(e4.focus || '') && e4b.choix?.affiche === 'masque' && e4c.choix?.affiche === 'masque',
@@ -29475,11 +29623,13 @@ const S_LECTEUR_SONDE = () => {
   // ── Au clavier ────────────────────────────────────────────────────────────
   /* Le nœud atteint À LA TABULATION — c'est ce qui le rend :focus-visible —,
      quarante pas au plus depuis le début de la page. LA SOURIS LOIN : restée
-     sur le rond, son survol montrerait le choix à la place du focus. */
+     sur le rond, son survol montrerait le choix à la place du focus. CELUI DE
+     LA BARRE, celui qui a un choix : depuis la 4.24.0.33, ceux des cartes
+     seules sont des nœuds aussi, et la tabulation repart du dernier clic. */
   await loin();
   await page.evaluate(() => { document.activeElement?.blur(); window.scrollTo(0, 0); });
   let pas = 0;
-  while (pas < 40 && !(await page.evaluate(() => document.activeElement?.classList.contains('tse-noeud')))) {
+  while (pas < 40 && !(await page.evaluate(() => document.activeElement?.classList.contains('tse-noeud--choix')))) {
     await page.keyboard.press('Tab');
     pas += 1;
   }
@@ -29502,59 +29652,61 @@ const S_LECTEUR_SONDE = () => {
      JSON.stringify({ pas, k1: [k1.focus, k1.choix?.affiche], k2: [k2.focus, k2.choix?.affiche],
                       k3: [k3.focus, k3.choix?.affiche], o6 }));
 
-  // ── Le « ▶ » de la carte seule ────────────────────────────────────────────
+  // ── Le nœud de la carte seule ─────────────────────────────────────────────
   await page.evaluate(() => document.activeElement?.blur());
   const e9 = await lire();
-  await vers(pastilleDe(e9, 'hale'));
+  await vers(seuleDe(e9, 'hale'));
   await wait(page, 900);
   const e10 = await lire();
-  const h10 = pastilleDe(e10, 'hale');
-  /* Mutants — l'étiquette jamais montrée ; le survol qui ne grandit pas ; le
-     « ▶ » dans la carte (son survol ouvrirait l'aperçu). */
+  const h10 = seuleDe(e10, 'hale');
+  /* Mutants — l'étiquette jamais montrée ; la languette qui ne s'avance pas
+     au survol ; le nœud dans la carte (son survol ouvrirait l'aperçu). */
   /* « Regarder les 6 » EST UN BOUTON (4.24.0.29) : en relief, arrondi, la
      main ; il reçoit la souris, et les chaînes sont dans son infobulle — pas
      sur le rond, barre étendue. Mutant — l'étiquette transparente à la
-     souris. */
-  ok('survolé, le « ▶ » de « hale » grandit et dit « Regarder les 6 », un bouton ; l\'aperçu reste fermé',
-     h10?.etiquette === 'block' && h10?.texte === 'Regarder les 6' && /^matrix\(1\.25, 0, 0, 1\.25/.test(h10?.echelle || '')
-     && pastilleDe(e9, 'hale')?.echelle === 'none' && !e10.apercu
+     souris ; l'infobulle des chaînes perdue avec le « ▶ » de la 4.24.0.28. */
+  ok('survolé, le nœud de « hale » s\'avance et dit « Regarder les 6 », un bouton ; l\'aperçu reste fermé',
+     h10?.etiquette === 'block' && h10?.texte === 'Regarder les 6' && /^matrix\(1\.12, 0, 0, 1\.12/.test(h10?.echelle || '')
+     && seuleDe(e9, 'hale')?.echelle === 'none' && !e10.apercu
      && h10.pilule.ombres >= 3 && h10.pilule.rayon === '6px' && h10.pilule.curseur === 'pointer' && h10.pilule.souris === 'auto'
-     && /nacre/.test(h10.pilule.titre) && h10.titre === '',
-     JSON.stringify({ h10, avant: pastilleDe(e9, 'hale')?.echelle, apercu: e10.apercu }));
-  // Le clic sur l'ÉTIQUETTE, et non sur le rond : elle fait partie du bouton.
+     && /nacre/.test(h10.pilule.titre) && h10.titre === '' && h10.pilule.encre === 'rgb(14, 14, 16)',
+     JSON.stringify({ h10, avant: seuleDe(e9, 'hale')?.echelle, apercu: e10.apercu }));
+  // Le clic sur l'ÉTIQUETTE, et non sur la languette : elle fait partie du bouton.
   await clic(h10?.pilule);
   const o7 = await salle();
   const e11 = await lire();
-  await vers(pastilleDe(e11, 'hale'));
+  await vers(seuleDe(e11, 'hale'));
   await wait(page, 300);
   const e11b = await lire();
   // Une touche de la salle — la première tuile prend le son —, comme on règle une salle.
   await page.keyboard.press('1');
   await wait(page, 300);
   const e11c = await lire();
-  const s11 = pastilleDe(e11b, 'hale'), s11c = pastilleDe(e11c, 'hale');
+  const s11 = seuleDe(e11b, 'hale'), s11c = seuleDe(e11c, 'hale');
   /* SIGNALÉ, CAPTURE À L'APPUI : « "Regarder les 2" reste quand on est dans
      ce salon […] ça cache une partie de la carte ». Deux causes, deux
      mesures : le bouton gardait le focus après le clic, et la première
      touche de la salle le rendait :focus-visible — étiquette, anneau et
-     taille agrandie restaient ; et l'étiquette s'affichait sur un « ▶ » dont
+     taille agrandie restaient ; et l'étiquette s'affichait sur un nœud dont
      la salle est déjà ouverte. Mutants — le focus laissé ; l'étiquette
-     montrée sur un « ▶ » enfoncé. */
-  ok('dans la salle du « ▶ » : plus d\'étiquette, même survolé ; ■ ; ni focus ni :focus-visible après une touche',
+     montrée sur un nœud enfoncé. */
+  ok('dans la salle du nœud de « hale » : plus d\'étiquette, même survolé ; ■ ; ni focus ni :focus-visible après une touche',
      o7.ouverte && o7.chaines === 'hale,iris,kaki,lilas,mauve,nacre'
      && s11?.presse === 'true' && s11?.etiquette === 'none' && s11?.arret === 'block' && s11?.lecture === 'none'
-     && !pastilleDe(e11, 'hale')?.focus && !s11c?.focus && !s11c?.focusVisible && s11c?.etiquette === 'none',
+     && !seuleDe(e11, 'hale')?.focus && !s11c?.focus && !s11c?.focusVisible && s11c?.etiquette === 'none',
      JSON.stringify({ o7, survol: s11, apresTouche: s11c, focus: e11c.focus }));
-  await clic(pastilleDe(e11c, 'hale'));
+  await clic(seuleDe(e11c, 'hale'));
   const o8 = await salle();
   const e12 = await lire();
-  /* Mutants — le clic qui suit le lien de la carte ; l'interrupteur absent. */
-  ok('un clic sur le « ▶ » ouvre « hale » et cinq de sa session ; enfoncé, un second clic referme',
+  /* Mutants — le clic qui suit le lien de la carte ; l'interrupteur absent
+     (la clé d'une carte seule est la carte : comparée aux chaînes de la
+     salle, elle ne la reconnaîtrait jamais). */
+  ok('un clic sur le nœud de « hale » l\'ouvre avec cinq de sa session ; enfoncé, un second clic referme',
      o7.ouverte && o7.chaines === 'hale,iris,kaki,lilas,mauve,nacre' && o7.chemin === '/directory'
-     && pastilleDe(e11, 'hale')?.presse === 'true' && e11.noeud?.presse === 'false'
-     && !o8.ouverte && o8.fermeture === 'noeud' && pastilleDe(e12, 'hale')?.presse === 'false'
-     && pastilleDe(e12, 'hale')?.lecture !== 'none',
-     JSON.stringify({ o7, o8, presse: [pastilleDe(e11, 'hale')?.presse, pastilleDe(e12, 'hale')?.presse] }));
+     && seuleDe(e11, 'hale')?.presse === 'true' && e11.noeud?.presse === 'false'
+     && !o8.ouverte && o8.fermeture === 'noeud' && seuleDe(e12, 'hale')?.presse === 'false'
+     && seuleDe(e12, 'hale')?.lecture !== 'none',
+     JSON.stringify({ o7, o8, presse: [seuleDe(e11, 'hale')?.presse, seuleDe(e12, 'hale')?.presse] }));
   await loin();
 
   // ── Rien qui boucle ───────────────────────────────────────────────────────
@@ -29574,32 +29726,44 @@ const S_LECTEUR_SONDE = () => {
   const b1 = await page.evaluate(() => window.tse.panneau.rapport().page.balayages.total);
   /* Mutants — le choix replacé après son nœud, ou le texte d'un choix
      réécrit, à chaque balayage : chaque fois un enfant qui change. */
-  ok('posés, le choix et le « ▶ » n\'entretiennent aucun balayage',
+  ok('posés, le choix et les nœuds des cartes seules n\'entretiennent aucun balayage',
      calme.atteint && b1 - b0 <= 1, JSON.stringify({ calme, balayages: b1 - b0 }));
 
   // ── Un tri détache « dune » ───────────────────────────────────────────────
   await page.evaluate(() => document.querySelector('#tse-sort-row [data-tse-sort-mode="uptime"]')?.click());
-  await attendre(page, () => document.querySelector('#tse-noeuds .tse-noeud')?.dataset.tseNoeud === 'cime brume aube'
-    && document.querySelectorAll('#tse-noeuds .tse-pastille-salle').length === 2, 6000);
+  await attendre(page, () => [...document.querySelectorAll('#tse-noeuds .tse-noeud')]
+    .some((n) => n.dataset.tseNoeud === 'cime brume aube')
+    && document.querySelectorAll('#tse-noeuds .tse-noeud').length === 4, 6000);
   await wait(page, 300);
   const t1 = await lire();
+  const ordre2 = await ordreCalque();
   await vers(t1.noeud);
   await wait(page, 300);
   const t2 = await lire();
   await loin();
-  const d1 = pastilleDe(t1, 'dune');
+  const d1 = seuleDe(t1, 'dune');
   /* LES SUIVIS D'ABORD : « dune », suivie, passe avant « ecume » et « flot »
      dans tout le co-stream, bien que la session la nomme en dernier ; et son
-     « ▶ » ouvre ses trois suivies avant les deux autres. Mutants — l'ordre
-     de la session seul ; le « ▶ » qui oublie les suivies détachées. */
-  ok('un tri détache « dune » : la barre en compte trois, « dune » d\'abord dans tout le co-stream ; « dune » prend un « ▶ », ses suivies en tête',
+     nœud ouvre ses trois suivies avant les deux autres. DÉTACHÉE, ELLE GARDE
+     SA CLÉ ET SA COULEUR — celles de son groupe —, et sa barre, d'une carte,
+     porte son nœud au milieu. Mutants — l'ordre de la session seul ; le nœud
+     qui oublie les suivies détachées ; le nœud de la carte détachée posé
+     ailleurs que sur sa barre. */
+  ok('un tri détache « dune » : la barre en compte trois, « dune » d\'abord dans tout le co-stream ; « dune » a son nœud au milieu de sa barre, ses suivies en tête',
      t1.noeud?.tous === 'cime brume aube dune ecume flot' && t2.choix?.suivis?.texte === 'Les 3 suivis'
      && t2.choix?.tous?.texte === 'Tout le co-stream · 6'
-     && d1?.membres.join() === 'dune,aube,brume,cime,ecume,flot' && Math.abs(d1.dx) <= 1 && Math.abs(d1.dy) <= 1
-     && t1.cartes.dune.marque === 'seule' && !t1.cartes.dune.vue && t1.cartes.aube.marque === 'barre',
+     && d1?.membres.join() === 'dune,aube,brume,cime,ecume,flot' && Math.abs(d1.milieu) <= 1 && Math.abs(d1.gauche) <= 0.5
+     && languette(d1) && d1.dessus && d1.fond === t1.cartes.aube.couleur
+     && t1.cartes.dune.cle === 'gs:9411' && !t1.cartes.dune.jointe && !t1.cartes.dune.vue,
      JSON.stringify({ noeud: t1.noeud, choix: [t2.choix?.suivis?.texte, t2.choix?.tous?.texte], dune: d1, cartes: vus(t1) }));
+  /* LE TRI RÉORDONNE LES CARTES, ET LES NŒUDS AVEC ELLES : « vif » (trois
+     minutes), « dune » (vingt), la barre, « hale » (deux heures). Un nœud
+     restait où il était né — la tabulation aurait suivi l'ordre d'avant.
+     Mutant — les nœuds laissés dans l'ordre où ils sont nés. */
+  ok('après le tri, les nœuds suivent le nouvel ordre de la liste — la tabulation aussi',
+     ordre2.join() === 'vif,dune,cime,choix,hale', ordre2.join());
 
-  // ── Les deux réglages ─────────────────────────────────────────────────────
+  // ── Le réglage, et celui qui n'est plus ───────────────────────────────────
   const poser = (id, v) => page.evaluate(([i, x]) => window.tse.options.poser(i, x), [id, v]);
   await poser('salle', false);
   await wait(page, 300);
@@ -29610,33 +29774,36 @@ const S_LECTEUR_SONDE = () => {
     await new Promise((r) => setTimeout(r, 300));
     return { ouverte: !!document.getElementById('tse-salle'), chemin: location.pathname };
   });
-  await poser('salle', true);
-  await poser('collab', false);
+  // « collab », la pastille, n'est plus un réglage : refusé, sans rien toucher.
+  const collab = await poser('collab', false);
   await wait(page, 300);
   const r2 = await lire();
-  await poser('salle', false);
+  const off = await page.evaluate(() => document.documentElement.getAttribute('data-tse-off') || '');
+  await poser('salle', true);
   await wait(page, 300);
   const r3 = await lire();
-  await poser('salle', true);
-  await poser('collab', true);
-  await wait(page, 300);
-  const r4 = await lire();
-  const tousVus = (e, v) => Object.values(e.cartes).every((p) => p.vue === v);
-  /* Mutants — la règle de la barre posée sans condition (multistream coupé,
-     les nombres ne reviendraient pas) ; le « ▶ » rangé sous la pastille (le
-     réglage de la pastille l'emporterait). */
-  ok('multistream coupé : plus de nœud ni de « ▶ », les nombres reviennent partout ; pastille coupée : plus aucun nombre, le « ▶ » reste ; les deux : rien',
-     r1.calque === 'none' && tousVus(r1, true) && r1.cartes.aube.texte === '6' && r1.cartes.hale.texte === '7'
-     && r2.calque !== 'none' && tousVus(r2, false) && pastilleDe(r2, 'hale')?.dessus === true
-     && r3.calque === 'none' && tousVus(r3, false)
-     && r4.calque !== 'none' && r4.cartes.kilo.vue && !r4.cartes.hale.vue && pastilleDe(r4, 'hale')?.dessus === true
+  const barres = (e) => Object.values(e.cartes).filter((p) => p.barre).length;
+  /* Mutants — la règle de la feuille rendue au multistream (les nombres
+     reviendraient, salle coupée, comme jusqu'à la 4.24.0.32) ; la barre de la
+     carte seule rangée sous le réglage de la salle ; le réglage de la
+     pastille gardé. */
+  ok('multistream coupé : plus de nœud, les huit barres restent — celles des cartes seules comprises —, aucune pastille ne revient ; « collab » n\'est plus un réglage',
+     r1.calque === 'none' && barres(r1) === 8 && r1.pastillesVues === 0
+     && collab === false && !/collab/.test(off) && r2.pastillesVues === 0
+     && r3.calque !== 'none' && barres(r3) === 8 && r3.pastillesVues === 0 && seuleDe(r3, 'hale')?.dessus === true
      && !masque.ouverte && masque.chemin === '/directory',
-     JSON.stringify({ masque, r1: [r1.calque, vus(r1)], r2: [r2.calque, vus(r2), pastilleDe(r2, 'hale')?.dessus],
-                      r3: [r3.calque, vus(r3)], r4: [r4.calque, vus(r4)] }));
-  const lignes = await page.evaluate(() => window.tse.panneau.rapport().lignes);
-  ok('le rapport compte les pastilles posées et celles qui se voient',
-     lignes.pastilles === 7 && lignes.pastillesVues === 2, JSON.stringify(lignes));
-  const bilan = await page.evaluate(() => window.tse.panneau.rapport().salle.noeuds);
+     JSON.stringify({ masque, collab, off, r1: [r1.calque, vus(r1)], r3: [r3.calque, barres(r3), seuleDe(r3, 'hale')?.dessus] }));
+  const rapport = await page.evaluate(() => {
+    const r = window.tse.panneau.rapport();
+    return { lignes: r.lignes, seules: r.coStream?.seules, noeuds: r.salle.noeuds };
+  });
+  /* Le rapport : les pastilles posées (huit, l'élément reste), aucune qui se
+     voie ; les barres des cartes seules de la section suivie — « hale »,
+     « kilo », « solo », « vif » ; « dune », détachée, est d'un groupe. */
+  ok('le rapport compte les pastilles posées, aucune qui se voie, et les barres des cartes seules',
+     rapport.lignes.pastilles === 8 && rapport.lignes.pastillesVues === 0 && rapport.seules === 4,
+     JSON.stringify({ lignes: rapport.lignes, seules: rapport.seules }));
+  const bilan = rapport.noeuds;
 
   // ── La barre réduite ──────────────────────────────────────────────────────
   await page.evaluate(() => {
@@ -29646,14 +29813,13 @@ const S_LECTEUR_SONDE = () => {
     d.remove();
   });
   await attendre(page, () => !document.body.classList.contains('tse-loading')
-    && !!document.querySelector('#tse-noeuds .tse-noeud.tse-noeud--reduit')
-    && document.querySelectorAll('#tse-noeuds .tse-pastille-salle.tse-pastille-salle--reduit').length === 2, 8000);
+    && document.querySelectorAll('#tse-noeuds .tse-noeud.tse-noeud--reduit').length === 4, 8000);
   await wait(page, 300);
   const c1 = await lire();
   await vers(c1.noeud);
   await wait(page, 300);
   const c2 = await lire();
-  await vers(pastilleDe(c1, 'hale'));
+  await vers(seuleDe(c1, 'hale'));
   await wait(page, 300);
   const c3 = await lire();
   await loin();
@@ -29661,16 +29827,18 @@ const S_LECTEUR_SONDE = () => {
   const o9 = await salle();
   await page.evaluate(() => window.tse.salle.fermer());
   await wait(page, 200);
-  /* Mutants — le choix montré dans une barre large d'un avatar ; le « ▶ »
-     qui ne suit pas l'avatar réduit ; l'infobulle retirée aussi en barre
-     réduite, où elle est seule à nommer les chaînes et le raccourci. */
-  ok('barre réduite : ni choix ni étiquette au survol, l\'infobulle à la place — Maj+clic ouvre tout le co-stream ; les « ▶ » au coin de l\'avatar',
+  /* Mutants — le choix montré dans une barre large d'un avatar ; le nœud
+     d'une carte seule qui ne suit pas sa barre réduite ; l'infobulle retirée
+     aussi en barre réduite, où elle est seule à nommer les chaînes et le
+     raccourci. */
+  ok('barre réduite : ni choix ni étiquette au survol, l\'infobulle à la place — Maj+clic ouvre tout le co-stream ; les nœuds des cartes seules au milieu de leur barre',
      c1.noeud?.reduit && c2.choix?.affiche === 'masque'
      && c1.noeud?.titre.includes('Maj+clic : tout le co-stream (6)') && /cime/.test(c1.noeud?.titre)
-     && c1.pastilles.every((p) => p.reduit && Math.abs(p.dx) <= 1 && Math.abs(p.dy) <= 1 && p.dessus && /ensemble/.test(p.titre))
-     && pastilleDe(c3, 'hale')?.etiquette === 'none'
+     && c1.seules.length === 3 && c1.seules.every((p) => p.reduit && Math.abs(p.milieu) <= 1 && Math.abs(p.gauche) <= 0.5
+       && languette(p) && p.dessus && /ensemble/.test(p.titre))
+     && seuleDe(c3, 'hale')?.etiquette === 'none'
      && o9.ouverte && o9.chaines === 'cime,brume,aube,dune,ecume,flot',
-     JSON.stringify({ noeud: c1.noeud, choix: c2.choix?.affiche, pastilles: c1.pastilles, survol: pastilleDe(c3, 'hale'), o9 }));
+     JSON.stringify({ noeud: c1.noeud, choix: c2.choix?.affiche, seules: c1.seules, survol: seuleDe(c3, 'hale'), o9 }));
   await page.evaluate(() => {
     document.getElementById('root').classList.remove('side-nav--collapsed');
     const d = document.createElement('div');
@@ -29694,34 +29862,78 @@ const S_LECTEUR_SONDE = () => {
   const g1 = await page.evaluate(() => {
     const top = [...document.querySelectorAll('.side-nav-card[data-tse-global="true"]')];
     const badges = top.map((c) => c.querySelector('.tse-collab-badge')).filter(Boolean);
+    const de = (l) => top.find((c) => c.dataset.tseLogin === l);
     return { cartes: top.length, badges: badges.length, vus: badges.filter((b) => b.getClientRects().length).length,
-             fleches: document.querySelectorAll('#tse-noeuds .tse-pastille-salle').length,
-             hale: top.find((c) => c.dataset.tseLogin === 'hale')?.dataset.tsePastille ?? null,
+             // Une barre sans clé de groupe : celle d'une carte seule.
+             seules: top.filter((c) => c.classList.contains('tse-costream') && !c.dataset.tseCostreamKey).map((c) => c.dataset.tseLogin),
+             kilo: !!de('kilo')?.querySelector('.tse-collab-badge') && !de('kilo').classList.contains('tse-costream'),
+             hale: de('hale')?.dataset.tseCostreamKey ?? null,
              completee: top.some((c) => c.dataset.tseLogin === 'iris'),
              lignes: window.tse.panneau.rapport().lignes.pastillesVues };
   });
   await page.evaluate(() => window.tse.global.off());
   /* LE RÉPERTOIRE DU DÉCOR NE REND AUCUN CAMARADE DE « hale » : Top Chaînes
      complète sa place quand même (cf. `completer`), avec le même critère que
-     le « ▶ » — qui diffuse. Elle y est donc en barre, jamais seule : la garde
-     qui refuse le « ▶ » aux cartes du classement ne se mesure pas ici, elle
-     ne fait que dire la demande. Mutant — la règle du classement retirée. */
-  ok('Top Chaînes : aucune pastille ne se voit, aucun « ▶ » ; la place de « hale », complétée, fait une barre',
-     g1.cartes >= 10 && g1.badges >= 2 && g1.vus === 0 && g1.fleches === 0 && g1.lignes === 0
-     && g1.completee && g1.hale === 'barre', JSON.stringify(g1));
+     le nœud — qui diffuse. Elle y est donc en barre, jamais seule. « kilo »,
+     dont le camarade ne diffuse pas, y reste seule de sa session : pas de
+     barre en Top Chaînes, qui place déjà tout ce qui diffuse. Mutant — la
+     garde du classement retirée de la barre d'une carte seule. */
+  ok('Top Chaînes : aucune pastille ne se voit, aucune barre de carte seule ; la place de « hale », complétée, fait une barre',
+     g1.cartes >= 10 && g1.badges >= 2 && g1.vus === 0 && g1.seules.length === 0 && g1.kilo && g1.lignes === 0
+     && g1.completee && g1.hale === 'gs:9422', JSON.stringify(g1));
 
   // ── Le rapport ────────────────────────────────────────────────────────────
-  /* Avant la barre réduite : une barre à choix, deux « ▶ » ; sept clics sur
-     le nœud et ses choix (tout, le rond, suivis, deux Maj+clic, Entrée, et
-     celui qui atteint le choix masqué), deux sur le « ▶ » ; trois salles de
-     tout le co-stream (le bouton, Maj+clic, Entrée — le second Maj+clic
-     referme, le choix masqué n'ouvre rien). Mutants — les clics du « ▶ »
-     comptés avec ceux du nœud ; une salle refusée comptée comme ouverte. */
-  ok('le rapport compte les choix, les « ▶ », leurs clics, et les salles ouvertes sur tout le co-stream',
-     bilan?.affiches === 1 && bilan?.choix === 1 && bilan?.pastilles === 2 && bilan?.clics === 7
-     && bilan?.clicsPastilles === 2 && bilan?.tous === 3,
+  /* Avant la barre réduite : une barre à choix, deux nœuds de cartes seules
+     au départ, trois après le tri ; neuf clics sur les nœuds et le choix
+     (tout, le rond, suivis, deux Maj+clic, Entrée, celui qui atteint le
+     choix masqué, et les deux sur celui de « hale ») ; trois salles de tout
+     le co-stream (le bouton, Maj+clic, Entrée — le second Maj+clic referme,
+     le choix masqué n'ouvre rien). Mutants — les nœuds des cartes seules
+     comptés avec ceux des barres ; une salle refusée comptée comme ouverte. */
+  ok('le rapport compte les nœuds des barres et ceux des cartes seules, les choix, les clics, et les salles ouvertes sur tout le co-stream',
+     bilan?.affiches === 1 && bilan?.seules === 3 && bilan?.choix === 1 && bilan?.clics === 9 && bilan?.tous === 3
+     && !('pastilles' in (bilan || {})),
      JSON.stringify(bilan));
   await page.close();
+
+  /* PAS DE COULEUR QUI CHANGE AU DÉMARRAGE (4.24.0.33). Une carte qui porte
+     le « +1 » de Twitch dès son arrivée, et dont Guest Star ne répond qu'au
+     bout de trois secondes : tant qu'il n'a pas répondu, elle n'a pas de
+     barre — elle aurait la couleur d'une session supposée, puis celle de la
+     vraie. Sa couleur, relevée toutes les 50 ms pendant huit secondes, ne
+     change qu'une fois : de rien à celle de sa session. Mutant — l'attente
+     retirée. */
+  const p3 = await fresh();
+  await p3.evaluate(() => {
+    window.__retardOp = { TseGuestStar: 3000, GuestStarBatchCollaborationQuery: 3000 };
+    const h = new Date(Date.now() - 60 * 60_000).toISOString();
+    const c = (id, v) => ({ id, createdAt: h, viewers: v, game: 'Rust', tags: [] });
+    window.__fx = { lent: c('9701', 900), lent2: c('9702', 400) };
+    const G = [{ id: '9702', login: 'lent2', viewers: 400, combined: 1300 }, { id: '9701', login: 'lent', viewers: 900, combined: 1300 }];
+    window.__gs = { 9701: { hostId: '9702', hostLogin: 'lent2', guests: G } };
+    const carte = window.__addCard('lent', 'Rust', '1,3 k');
+    const sp = document.createElement('span');
+    sp.textContent = '+1';
+    carte.querySelector('[data-a-target="side-nav-card-metadata"]').appendChild(sp);
+    window.__couleurs = [];
+    const t0 = Date.now();
+    const id = setInterval(() => {
+      const k = document.querySelector('.side-nav-card[data-tse-login="lent"]');
+      const v = k && k.classList.contains('tse-costream') ? k.style.getPropertyValue('--tse-costream-color') : '';
+      const der = window.__couleurs[window.__couleurs.length - 1];
+      if (!der || der[1] !== v) window.__couleurs.push([Date.now() - t0, v]);
+      if (Date.now() - t0 > 8000) clearInterval(id);
+    }, 50);
+  });
+  await wait(p3, 8500);
+  const demarrage = await p3.evaluate(() => ({ couleurs: window.__couleurs,
+    gs: window.__calls.filter((c) => c.op === 'TseGuestStar').length }));
+  await p3.close();
+  const teintes = demarrage.couleurs.map(([, v]) => v).filter(Boolean);
+  ok('pas de couleur qui change au démarrage : sans réponse de Guest Star, pas de barre ; puis celle de sa session, une seule fois',
+     demarrage.gs >= 1 && teintes.length === 1 && demarrage.couleurs[demarrage.couleurs.length - 1][1] === teintes[0]
+     && demarrage.couleurs.filter(([, v]) => v).every(([t]) => t >= 2500),
+     JSON.stringify(demarrage));
 }
 
 /* ═════════ LA BARRE ENTIÈRE EN TOP CHAÎNES, ET « CHAÎNES LIVE » ═════════════
@@ -29735,6 +29947,9 @@ const S_LECTEUR_SONDE = () => {
        sert pas pour lui-même — était dans la place et hors de la barre ;
      — DANS « CHAÎNES LIVE », deux membres voisins d'un même co-stream avec
        chacun sa pastille : la logique de la liste suivie doit s'y appliquer.
+   DEPUIS LA 4.24.0.33, plus de pastille : une chaîne seule de son co-stream
+   dans sa section a SA barre, à la couleur de sa session, et son nœud au
+   milieu — dans la liste suivie comme dans « Chaînes live ».
    LE DÉCOR :
      — suivies : « solo » ; « tete », « ami », « amie », d'une même session
        dont « tete » est l'hôte, SANS réponse à son nom ; dans la session aussi
@@ -29796,9 +30011,8 @@ const S_LECTEUR_SONDE = () => {
   });
   const live = '.side-nav-section[aria-label="Chaînes live"]';
   await attendre(page, () => !document.body.classList.contains('tse-loading')
-    && document.querySelectorAll('#tse-noeuds .tse-noeud').length === 1
-    && document.querySelectorAll('.side-nav-section[aria-label="Chaînes live"] .tse-noeud').length === 2
-    && document.querySelectorAll('.side-nav-section[aria-label="Chaînes live"] .tse-pastille-salle').length === 1, 20_000);
+    && document.querySelectorAll('#tse-noeuds .tse-noeud').length === 2
+    && document.querySelectorAll('.side-nav-section[aria-label="Chaînes live"] .tse-noeud').length === 3, 20_000);
   await wait(page, 400);
 
   const lire = () => page.evaluate((live) => {
@@ -29810,8 +30024,7 @@ const S_LECTEUR_SONDE = () => {
       return c ? { barre: c.classList.contains('tse-costream'), cle: c.dataset.tseCostreamKey ?? null,
                    jointe: c.classList.contains('tse-costream-join-top') || c.classList.contains('tse-costream-join-bottom'),
                    couleur: c.style.getPropertyValue('--tse-costream-color') || null,
-                   marque: c.dataset.tsePastille ?? null, pastille: b ? b.textContent : null,
-                   pastilleVue: !!b && b.getClientRects().length > 0 } : null;
+                   pastille: b ? b.textContent : null, pastilleVue: !!b && b.getClientRects().length > 0 } : null;
     };
     const noeud = (n) => {
       if (!n) return null;
@@ -29823,17 +30036,30 @@ const S_LECTEUR_SONDE = () => {
                suivis: txt('.tse-noeud__option--barre'), toutTexte: txt('.tse-noeud__option--tous'),
                section: n.closest('.side-nav-section')?.getAttribute('aria-label') };
     };
-    const fleches = (racine) => [...racine.querySelectorAll('.tse-pastille-salle')].map((p) => {
+    /* Les nœuds des cartes seules (4.24.0.33) : sur la barre de leur carte —
+       au milieu, au bord gauche —, à sa couleur. */
+    const seules = (racine) => [...racine.querySelectorAll('.tse-noeud')].filter((p) => {
+      const l = p.dataset.tseNoeud.split(' ')[0];
+      return ['seulf', 'seul1'].includes(l);
+    }).map((p) => {
       const r = p.getBoundingClientRect();
+      const c = carte(p.dataset.tseNoeud.split(' ')[0]);
+      const rc = c ? c.getBoundingClientRect() : null;
       return { membres: p.dataset.tseNoeud, vue: r.width > 0, x: r.left + r.width / 2, y: r.top + r.height / 2,
+               milieu: rc ? Math.round(((r.top + r.bottom) / 2 - (rc.top + rc.bottom) / 2) * 10) / 10 : null,
+               gauche: rc ? Math.round((r.left - rc.left) * 10) / 10 : null,
+               fond: getComputedStyle(p, '::before').backgroundColor,
+               barre: c ? getComputedStyle(c, '::before').backgroundColor : null,
                section: p.closest('.side-nav-section')?.getAttribute('aria-label') };
     });
+    const parMembre = (racine, l) => [...(racine?.querySelectorAll('.tse-noeud') || [])]
+      .find((n) => n.dataset.tseNoeud.split(' ').includes(l) && !['seulf', 'seul1'].includes(n.dataset.tseNoeud.split(' ')[0]));
     const r = window.tse.panneau.rapport();
     return {
-      suivie: noeud(document.querySelector('#tse-noeuds .tse-noeud')),
-      live: noeud([...(sec?.querySelectorAll('.tse-noeud') || [])].find((n) => n.dataset.tseNoeud.includes('rouge'))),
-      liveLoin: noeud([...(sec?.querySelectorAll('.tse-noeud') || [])].find((n) => n.dataset.tseNoeud.includes('loin'))),
-      flechesLive: sec ? fleches(sec) : [], flechesSuivies: fleches(document.getElementById('tse-noeuds') || document.body),
+      suivie: noeud(parMembre(document.getElementById('tse-noeuds'), 'ami')),
+      live: noeud(parMembre(sec, 'rouge1')),
+      liveLoin: noeud(parMembre(sec, 'loin')),
+      seulesLive: sec ? seules(sec) : [], seulesSuivies: seules(document.getElementById('tse-noeuds') || document.body),
       calques: [...document.querySelectorAll('.tse-noeuds')].map((c) => [c.id || '-', c.parentElement?.getAttribute('aria-label')]),
       cartes: Object.fromEntries(['solo', 'tete', 'ami', 'amie', 'seulf', 'loin', 'loin2', 'rouge1', 'rouge2', 'seul1'].map((l) => [l, etat(l)])),
       jointures: Object.fromEntries(['amie', 'loin'].map((l) => {
@@ -29845,7 +30071,7 @@ const S_LECTEUR_SONDE = () => {
       derniereSuivie: [...(document.querySelector('.side-nav-section[aria-label="Chaînes suivies"]')?.querySelectorAll('.side-nav-card') || [])]
         .filter((c) => getComputedStyle(c).display !== 'none').map((c) => c.dataset.tseLogin).pop() ?? null,
       rattachees: r.coStream?.rattachees, recommandations: r.coStream?.recommandations,
-      groupes: r.coStream?.groupes, noeuds: r.salle?.noeuds,
+      groupes: r.coStream?.groupes, noeuds: r.salle?.noeuds, seules: r.coStream?.seules,
     };
   }, live);
   const fl = (liste, premier) => liste.find((p) => p.membres.split(' ')[0] === premier);
@@ -29857,16 +30083,16 @@ const S_LECTEUR_SONDE = () => {
 
   const e1 = await lire();
   /* L'HÔTE SANS RÉPONSE À SON NOM, RELIÉ PAR CE QUE SES CAMARADES DISENT :
-     la barre des trois suivies, et sa pastille comptée sur l'index (cinq
-     camarades, « muet » compris : elle dit avec combien de personnes). « tout »
-     ajoute « loin » et « loin2 », pas « muet », sans stream. Mutants — la
-     barre sur la seule réponse de la carte ; la pastille de l'hôte sur sa
-     seule réponse. */
+     la barre des trois suivies, et sa pastille — une donnée, qui ne se voit
+     plus — comptée sur l'index (cinq camarades, « muet » compris : elle dit
+     avec combien de personnes). « tout » ajoute « loin » et « loin2 », pas
+     « muet », sans stream. Mutants — la barre sur la seule réponse de la
+     carte ; la pastille de l'hôte sur sa seule réponse. */
   ok('l\'hôte que sa propre réponse ne dit pas en session rejoint la barre de ses camarades ; « tout » sans l\'invité muet',
      e1.suivie?.barre?.split(' ').sort().join() === 'ami,amie,tete'
      && e1.suivie?.tous?.split(' ').slice(3).join() === 'loin,loin2'
      && e1.suivie?.suivis === 'Les 3 suivis' && e1.suivie?.toutTexte === 'Tout le co-stream · 5'
-     && e1.cartes.tete?.barre && e1.cartes.tete?.marque === 'barre' && e1.cartes.tete?.pastille === '5'
+     && e1.cartes.tete?.barre && e1.cartes.tete?.cle === 'gs:9511' && e1.cartes.tete?.pastille === '5' && !e1.cartes.tete?.pastilleVue
      && e1.rattachees?.horsSession >= 1 && e1.rattachees?.total >= 1,
      JSON.stringify({ suivie: e1.suivie, tete: e1.cartes.tete, rattachees: e1.rattachees }));
   /* « CHAÎNES LIVE », LA MÊME LOGIQUE : la barre des deux voisines, son nœud
@@ -29874,40 +30100,48 @@ const S_LECTEUR_SONDE = () => {
      2 » — elles ne sont pas « suivies » — | « Tout le co-stream · 3 » : sans
      « rouge4 », sans stream, et sans l'hôte « rouge0 », dont on ne sait pas
      s'il diffuse mais dont la carte est hors ligne ; leurs pastilles
-     effacées, toujours dans la carte ; « seul1 », seule de sa session, un
-     « ▶ ». Mutants — les sections de recommandation ignorées ; un seul
-     calque ; « Les 2 suivis » ; leurs cartes seules oubliées ; l'hôte hors
-     ligne compté. */
-  ok('« Chaînes live » : la barre des deux voisines, son nœud dans son calque, « Regarder les 2 » | « Tout le co-stream · 3 » ; « seul1 » prend un « ▶ »',
+     invisibles, toujours dans la carte ; « seul1 », seule de sa session, sa
+     barre et son nœud au milieu. Mutants — les sections de recommandation
+     ignorées ; un seul calque ; « Les 2 suivis » ; leurs cartes seules
+     oubliées ; l'hôte hors ligne compté. */
+  ok('« Chaînes live » : la barre des deux voisines, son nœud dans son calque, « Regarder les 2 » | « Tout le co-stream · 3 » ; « seul1 », sa barre et son nœud',
      e1.live?.barre === 'rouge1 rouge2' && e1.live?.tous === 'rouge1 rouge2 rouge3'
      && e1.live?.section === 'Chaînes live' && e1.live?.calque === 'tse-noeuds'
      && e1.live?.suivis === 'Regarder les 2' && e1.live?.toutTexte === 'Tout le co-stream · 3'
-     && e1.cartes.rouge1?.barre && e1.cartes.rouge1?.jointe && e1.cartes.rouge1?.marque === 'barre'
+     && e1.cartes.rouge1?.barre && e1.cartes.rouge1?.jointe && e1.cartes.rouge1?.cle === 'gs:9520'
      && e1.cartes.rouge1?.pastille === '4' && !e1.cartes.rouge1?.pastilleVue && !e1.cartes.rouge2?.pastilleVue
-     && fl(e1.flechesLive, 'seul1')?.membres === 'seul1 seulf seul2' && fl(e1.flechesLive, 'seul1')?.vue
+     && fl(e1.seulesLive, 'seul1')?.membres === 'seul1 seulf seul2' && fl(e1.seulesLive, 'seul1')?.vue
+     && Math.abs(fl(e1.seulesLive, 'seul1')?.milieu) <= 1 && Math.abs(fl(e1.seulesLive, 'seul1')?.gauche) <= 0.5
+     && fl(e1.seulesLive, 'seul1')?.fond === fl(e1.seulesLive, 'seul1')?.barre
      && JSON.stringify(e1.calques) === JSON.stringify([['tse-noeuds', 'Chaînes suivies'], ['-', 'Chaînes live']])
-     && e1.noeuds?.calques === 2 && e1.recommandations?.groupes === 2,
-     JSON.stringify({ live: e1.live, rouge1: e1.cartes.rouge1, fleches: e1.flechesLive, calques: e1.calques, rec: e1.recommandations }));
+     && e1.noeuds?.calques === 2 && e1.recommandations?.groupes === 2 && e1.recommandations?.seules === 1,
+     JSON.stringify({ live: e1.live, rouge1: e1.cartes.rouge1, seules: e1.seulesLive, calques: e1.calques, rec: e1.recommandations }));
   /* DEUX SECTIONS NE SE RELIENT PAS. « loin » et « loin2 », de la même
      session que la barre suivie, ouvrent « Chaînes live » juste sous elle, de
      l'autre côté de l'en-tête : deux barres, une par section, à la MÊME
      couleur (la session), et rien qui passe d'une liste à l'autre — « amie »,
      au bas de la sienne, ne se prolonge pas vers « loin ». « seulf », suivie,
      seule de sa session dans la liste suivie, et « seul1 », seule dans
-     « Chaînes live » : chacune son « ▶ », ni l'une ni l'autre colorée.
-     Mutants — la jointure par-dessus l'en-tête ; un groupe formé à cheval sur
-     deux sections (qui colorerait « seulf » et « seul1 » et leur ôterait leur
-     « ▶ »). */
-  ok('deux sections ne se relient pas : une barre par section, à la couleur de la session ; chacune des deux seules, son « ▶ »',
+     « Chaînes live » : chacune SA barre, à la couleur de leur session — la
+     même —, sans clé de groupe, et son nœud. Mutants — la jointure
+     par-dessus l'en-tête ; un groupe formé à cheval sur deux sections (qui
+     donnerait une clé à « seulf » et « seul1 ») ; la couleur de la carte
+     seule prise hors de sa session. */
+  ok('deux sections ne se relient pas : une barre par section, à la couleur de la session ; chacune des deux seules, sa barre et son nœud',
      e1.liveLoin?.barre === 'loin loin2' && e1.liveLoin?.section === 'Chaînes live'
      && e1.liveLoin?.suivis === 'Regarder les 2' && e1.liveLoin?.tous?.split(' ').slice(2).join() === 'tete,ami,amie'
      && e1.cartes.loin?.barre && e1.cartes.loin?.couleur === e1.cartes.amie?.couleur
      && e1.derniereSuivie === 'amie' && e1.jointures.amie?.[1] === false && e1.jointures.loin?.[0] === false
-     && !e1.cartes.seulf?.barre && e1.cartes.seulf?.marque === 'seule' && !e1.cartes.seul1?.barre
-     && fl(e1.flechesSuivies, 'seulf')?.membres === 'seulf seul1 seul2'
+     && e1.cartes.seulf?.barre && e1.cartes.seul1?.barre && e1.cartes.seulf?.cle === null && e1.cartes.seul1?.cle === null
+     && !e1.cartes.seulf?.jointe && !e1.cartes.seul1?.jointe
+     && !!e1.cartes.seulf?.couleur && e1.cartes.seulf.couleur === e1.cartes.seul1?.couleur
+     && e1.cartes.seulf.couleur !== e1.cartes.amie?.couleur && e1.cartes.seulf.couleur !== e1.cartes.rouge1?.couleur
+     && fl(e1.seulesSuivies, 'seulf')?.membres === 'seulf seul1 seul2'
+     && Math.abs(fl(e1.seulesSuivies, 'seulf')?.milieu) <= 1 && Math.abs(fl(e1.seulesSuivies, 'seulf')?.gauche) <= 0.5
+     && e1.seules === 1
      && e1.cartes.amie?.couleur && e1.cartes.rouge1?.couleur && e1.cartes.amie.couleur !== e1.cartes.rouge1.couleur,
      JSON.stringify({ liveLoin: e1.liveLoin, loin: e1.cartes.loin, amie: e1.cartes.amie, jointures: e1.jointures,
-                      seulf: e1.cartes.seulf, flechesSuivies: e1.flechesSuivies }));
+                      seulf: e1.cartes.seulf, seul1: e1.cartes.seul1, seulesSuivies: e1.seulesSuivies, seules: e1.seules }));
 
   /* L'APERÇU D'UNE CARTE DE « CHAÎNES LIVE » : le bleu (« de cette liste »)
      nomme « loin2 », sa voisine de barre ; le violet, ceux qui diffusent
@@ -29931,13 +30165,13 @@ const S_LECTEUR_SONDE = () => {
      && /tete/i.test(apercu.violet || '') && /amie/i.test(apercu.violet || ''),
      JSON.stringify(apercu));
 
-  // La salle depuis « Chaînes live », le nœud puis le « ▶ ».
+  // La salle depuis « Chaînes live », le nœud de la barre puis celui de la carte seule.
   if (e1.live) await page.mouse.click(e1.live.x, e1.live.y);
   await wait(page, 400);
   const o1 = await salle();
   await page.evaluate(() => window.tse.salle.fermer());
   await wait(page, 300);
-  const s1 = fl(e1.flechesLive, 'seul1');
+  const s1 = fl(e1.seulesLive, 'seul1');
   if (s1) await page.mouse.click(s1.x, s1.y);
   await wait(page, 400);
   const o2 = await salle();
@@ -29945,7 +30179,7 @@ const S_LECTEUR_SONDE = () => {
   await page.mouse.move(900, 700);
   await wait(page, 300);
   // Mutant — le calque de la section suivie seul : le nœud de « Chaînes live » placé ailleurs que sur sa barre.
-  ok('depuis « Chaînes live », le nœud ouvre ses deux voisines, le « ▶ » « seul1 » et ses camarades',
+  ok('depuis « Chaînes live », le nœud de la barre ouvre ses deux voisines, celui de « seul1 » elle et ses camarades',
      o1.ouverte && o1.chaines === 'rouge1,rouge2' && o2.ouverte && o2.chaines === 'seul1,seulf,seul2',
      JSON.stringify({ o1, o2 }));
 
@@ -29957,12 +30191,12 @@ const S_LECTEUR_SONDE = () => {
   const f1 = await lire();
   await page.evaluate(() => document.querySelector('#tse-cat-dd .tse-dd-opt[data-value=""]')?.click());
   await wait(page, 600);
-  /* Mutant — les sections masquées parcourues : des nœuds et des « ▶ »
-     posés pour des cartes qu'on ne voit pas. */
-  ok('un filtre masque « Chaînes live » : ni nœud ni « ▶ » n\'y restent, la liste suivie garde les siens',
-     !f1.liveVisible && !f1.live && f1.flechesLive.length === 0 && f1.suivie?.barre?.split(' ').length === 3
-     && f1.recommandations?.cartes === 0,
-     JSON.stringify({ live: f1.live, fleches: f1.flechesLive, suivie: f1.suivie, rec: f1.recommandations }));
+  /* Mutant — les sections masquées parcourues : des nœuds et des barres
+     seules posés pour des cartes qu'on ne voit pas. */
+  ok('un filtre masque « Chaînes live » : aucun nœud n\'y reste, la liste suivie garde les siens',
+     !f1.liveVisible && !f1.live && f1.seulesLive.length === 0 && f1.suivie?.barre?.split(' ').length === 3
+     && f1.recommandations?.cartes === 0 && f1.recommandations?.seules === 0,
+     JSON.stringify({ live: f1.live, seules: f1.seulesLive, suivie: f1.suivie, rec: f1.recommandations }));
 
   // ── Top Chaînes : la place entière, la barre entière, pas de « tout » ─────
   await page.evaluate(() => {
@@ -29986,7 +30220,9 @@ const S_LECTEUR_SONDE = () => {
     const noeuds = [...document.querySelectorAll('.tse-noeud')].map((n) => ({ barre: n.dataset.tseNoeud, tous: n.dataset.tseTous ?? null }));
     const r = window.tse.panneau.rapport();
     return { ordre: top.map((c) => c.dataset.tseLogin), barres: top.filter((c) => c.classList.contains('tse-costream')).map((c) => c.dataset.tseLogin),
-             noeuds, choix: document.querySelectorAll('.tse-noeud__choix').length, fleches: document.querySelectorAll('.tse-pastille-salle').length,
+             noeuds, choix: document.querySelectorAll('.tse-noeud__choix').length,
+             // Une barre sans clé de groupe : celle d'une carte seule — jamais en Top Chaînes.
+             seules: top.filter((c) => c.classList.contains('tse-costream') && !c.dataset.tseCostreamKey).map((c) => c.dataset.tseLogin),
              incomplet: r.salle?.noeuds?.classementIncomplet, rattachees: r.coStream?.rattachees };
   });
   await page.evaluate(() => window.tse.global.off());
@@ -30001,7 +30237,7 @@ const S_LECTEUR_SONDE = () => {
   ok('Top Chaînes : la place de l\'hôte sans réponse propre, reliée entière par sa barre — pas de « Tout le co-stream »',
      ['tete', 'ami', 'amie', 'loin'].every((l) => g1.barres.includes(l))
      && placeT?.barre.split(' ').sort().join() === 'ami,amie,loin,loin2,tete' && placeT?.tous === null
-     && g1.choix === 0 && g1.fleches === 0 && g1.incomplet === 0 && g1.rattachees?.horsSession >= 1
+     && g1.choix === 0 && g1.seules.length === 0 && g1.incomplet === 0 && g1.rattachees?.horsSession >= 1
      && !g1.ordre.includes('rouge0'),
      JSON.stringify(g1));
   await page.close();

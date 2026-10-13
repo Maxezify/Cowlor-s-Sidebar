@@ -64,8 +64,8 @@ Plus besoin d'aller sur le stream ! L'extension affiche la durée du direct dire
 
 _______________________________
 
-➤ 🎯 LES COLLABS SIGNALÉES SUR L'AVATAR
-Une petite pastille violette apparaît en bas à droite de l'avatar des streamers qui hébergent un co-stream, avec le nombre de participants. Pas besoin de survoler, c'est visible directement dans la barre. Propre, discret, et ça vous dit tout de suite « ah tiens, celui-là collabore avec 2 autres ».
+➤ 🎯 LES CO-STREAMS SIGNALÉS PAR UNE BARRE DE COULEUR
+Une barre de couleur longe le bord gauche de la carte de chaque streamer en co-stream, une couleur par co-stream — même quand c'est le seul que vous suivez. Plusieurs membres à la suite dans la liste ? Leurs barres n'en font qu'une. Pas besoin de survoler, c'est visible directement dans la barre latérale, et plus aucun nombre collé sur l'avatar. Propre, discret, et ça vous dit tout de suite « ah tiens, ceux-là streament ensemble ».
 
 _______________________________
 
@@ -199,7 +199,7 @@ Twitch a un thème clair. L'extension le voit et bascule avec lui — sans recha
 _______________________________
 
 ➤ ⚙️ ET SI VOUS VOULEZ CHOISIR
-Tout est actif d'emblée et il n'y a rien à régler. Mais un onglet « Options » dans le panneau vous rend la main sur vingt-deux réglages.
+Tout est actif d'emblée et il n'y a rien à régler. Mais un onglet « Options » dans le panneau vous rend la main sur vingt et un réglages.
 
 - ★ CE QUE VOUS VOYEZ ★ Chaque badge, la durée du direct et son format, la barre « vient de démarrer », l'or des abonnements, les filtres, les boutons de tri : tout s'allume et s'éteint à la case.
 - ★ CE QUI SE CHARGE ★ L'aperçu peut se passer de la vidéo et garder ses badges, sa frise et sa miniature — ou simplement descendre en qualité. De quoi l'alléger sans le perdre.
