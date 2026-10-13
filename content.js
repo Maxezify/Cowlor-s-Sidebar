@@ -14699,7 +14699,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
        latence(b)`, que le rapport met en regard (« attendu »).
        Deux voix qui se croisent donnent deux pics, décalés du délai de leur
        salon vocal de part et d'autre : le second pic est au rapport aussi. */
-    const variations = (env, t0, n) => {
+    const variations = (env, t0, n, masques = null) => {
       const pas = CFG.SALLE_ECOUTE_PAS_MS;
       const x = new Float64Array(n);
       let j = 0;
@@ -14711,14 +14711,60 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         x[i] = a[1] + f * (b[1] - a[1]);
       }
       const d = new Float64Array(n - 1);
-      let m = 0;
-      for (let i = 1; i < n; i++) { d[i - 1] = x[i] - x[i - 1]; m += d[i - 1]; }
-      m /= d.length;
+      // Les pas d'un silence commun (4.24.0.32, cf. silencesCommuns) : hors de la moyenne et de l'écart, puis à zéro.
+      const garde = new Uint8Array(n - 1).fill(1);
+      for (const [m0, m1] of masques || []) {
+        const i1 = Math.min(n - 2, Math.ceil((m1 - t0) / pas));
+        for (let i = Math.max(0, Math.floor((m0 - t0) / pas) - 1); i <= i1; i++) garde[i] = 0;
+      }
+      let m = 0, k = 0;
+      for (let i = 1; i < n; i++) { d[i - 1] = x[i] - x[i - 1]; if (garde[i - 1]) { m += d[i - 1]; k += 1; } }
+      m /= k || 1;
       let v = 0;
-      for (let i = 0; i < d.length; i++) v += (d[i] - m) ** 2;
-      const et = Math.sqrt(v / d.length) || 1;
-      for (let i = 0; i < d.length; i++) d[i] = (d[i] - m) / et;
+      for (let i = 0; i < d.length; i++) if (garde[i]) v += (d[i] - m) ** 2;
+      const et = Math.sqrt(v / (k || 1)) || 1;
+      for (let i = 0; i < d.length; i++) d[i] = garde[i] ? (d[i] - m) / et : 0;
       return d;
+    };
+    /* L'ÉVÉNEMENT COMMUN (4.24.0.32). Un SILENCE NUMÉRIQUE — des blocs au
+       plancher, sous −7 — au même instant dans deux tuiles fait un pic à
+       0 ms, qu'elles partagent un son ou non. Rejoué hors navigateur sur deux
+       enveloppes réelles du banc, sans rien en commun : un seul bloc au
+       plancher dans les deux donne z 16, trois à six blocs z 9 à 10 — les z
+       des échecs, de la publication de la 4.24.0.26 aux bancs de la
+       4.24.0.31 ; un creux de −1 ou −2, un palier, un trou dans les
+       relevés, presque rien. Le mécanisme de l'amorce de la capture
+       (4.24.0.13), en plein son : un service audio qui manque son
+       rendez-vous, et des tuiles qui se taisent ensemble.
+       Un silence présent dans les DEUX enveloppes d'une paire, à 50 ms près,
+       est donc écarté de sa corrélation, du dernier point sonore d'avant au
+       premier d'après — là où le niveau tombe et remonte —, dans les deux.
+       Le seul pic qu'il pouvait faire est à 0 ms. Une paire qui n'est pas
+       calée n'y perd qu'un faux pic ; une paire calée, les bords d'un
+       silence qu'elle partage, et tout le reste de ses vingt secondes pour
+       se dire à 0 ms — au pire, elle ne se prononce pas : jamais un faux
+       geste. Le silence d'une seule tuile n'est jamais touché. */
+    const SILENCE = -7, COMMUN_MS = 50;
+    const silencesDe = (E) => {
+      const L = [];
+      for (let i = 0; i < E.length; i++) {
+        if (!(E[i][1] < SILENCE)) continue;
+        let j = i;
+        while (j + 1 < E.length && E[j + 1][1] < SILENCE) j++;
+        L.push([E[Math.max(0, i - 1)][0], E[Math.min(E.length - 1, j + 1)][0]]);
+        i = j;
+      }
+      return L;
+    };
+    // A et B triés par l'heure.
+    const silencesCommuns = (A, B) => {
+      const a = silencesDe(A), b = silencesDe(B), m = [];
+      let j = 0;
+      for (const x of a) {
+        while (j < b.length && b[j][1] < x[0] - COMMUN_MS) j++;
+        for (let k = j; k < b.length && b[k][0] <= x[1] + COMMUN_MS; k++) m.push([Math.min(x[0], b[k][0]), Math.max(x[1], b[k][1])]);
+      }
+      return m;
     };
     /* LA TRANSFORMÉE DE FOURIER (4.24.0.24, à l'audit). Les sommes de la
        corrélation — pour chaque décalage L, Σ a[i]·b[i − L] — se calculaient
@@ -14783,7 +14829,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       const debut = Math.max(A[0][0], Bv[0][0], fin - CFG.SALLE_ECOUTE_FENETRE_MS);
       if (fin - debut < CFG.SALLE_ECOUTE_MIN_MS) return null;
       const n = Math.floor((fin - debut) / pas) + 1;
-      const a = variations(A, debut, n), b = variations(Bv, debut, n);
+      const masques = silencesCommuns(A, Bv).filter(([m0, m1]) => m1 >= debut && m0 <= fin);
+      const a = variations(A, debut, n, masques), b = variations(Bv, debut, n, masques);
       const maxL = Math.round(CFG.SALLE_ECOUTE_MAX_MS / pas);
       const S = sommes(a, b, maxL);
       const rs = [];
@@ -14809,7 +14856,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       const p1 = pics[0];
       const p2 = pics.find((p) => Math.abs(p.ms - p1.ms) >= 50) || null;
       return { ms: p1.ms, r: p1.r, z: (p1.r - moy) / et, ms2: p2 ? p2.ms : null, r2: p2 ? p2.r : null,
-               secondes: Math.round((fin - debut) / 100) / 10, debut, fin };
+               secondes: Math.round((fin - debut) / 100) / 10, debut, fin, silences: masques.map(([m0]) => Math.round(m0)) };
     };
     // La latence attendue entre deux tuiles, sur les mêmes relevés : la
     // médiane de latence(a) − latence(b), en ms, sur la fenêtre écoutée —
@@ -14862,8 +14909,11 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
           connue.sansNouveau += 1;
           continue;
         }
-        const p = connue || (c.ecoute.paires[cle] = { dernier: null, historique: [], sansNouveau: 0 });
+        const p = connue || (c.ecoute.paires[cle] = { dernier: null, historique: [], sansNouveau: 0, silences: [] });
         p.dernier = { ...res, attendu: attenduEntre(ref, t) };
+        // Les silences communs écartés (4.24.0.32), chacun une fois — d'une fenêtre à l'autre, le même début.
+        for (const t0 of res.silences) if (!p.silences.includes(t0)) p.silences.push(t0);
+        if (p.silences.length > 100) p.silences.splice(0, p.silences.length - 100);
         /* CHAQUE CALCUL EN ENTIER (4.24.0.13) : au second rapport réel, les
            décalages sont passés de ~550 à ~1000 ms sans que la latence ne
            bouge, et l'historique ne gardait que le premier pic. Deux voix
@@ -15364,7 +15414,10 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
                calculs: e.calculs, paires, historique, pics: stables, commun,
                // Les tours sans son nouveau d'une paire, pas comptés (4.24.0.25, cf. ecouter).
                sansSonNouveau: Object.entries(e.paires).filter(([, p]) => p.sansNouveau)
-                 .map(([cle, p]) => `${cle} ${p.sansNouveau}`).join(' · ') || null };
+                 .map(([cle, p]) => `${cle} ${p.sansNouveau}`).join(' · ') || null,
+               // Les silences communs écartés de la corrélation, par paire (4.24.0.32, cf. silencesCommuns).
+               silencesCommuns: Object.entries(e.paires).filter(([, p]) => p.silences && p.silences.length)
+                 .map(([cle, p]) => `${cle} ${p.silences.length}`).join(' · ') || null };
     };
 
     const bilan = () => {

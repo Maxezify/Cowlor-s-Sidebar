@@ -2180,6 +2180,114 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## L'événement commun, écarté (v4.24.0.32)
+
+La demande : « Corrige l'événement commun, soit rigoureux. Puis passage du
+banc 100 % vert d'abord sur `claude/multi`. Puis si c'est OK, on passe sur
+les autres branches. » Publiée sur `claude/chrome-multi` d'abord.
+
+### Ce qu'il est
+
+Un **silence numérique** — des blocs au plancher, sous −7 (≈ −70 dBFS), le
+« muet » de l'écoute — au même instant dans deux tuiles fait un pic à 0 ms
+dans leur corrélation, qu'elles partagent un son ou non. C'est le mécanisme
+de l'amorce de la capture (4.24.0.13), en plein son.
+
+### Ce que les mesures ont montré
+
+Hors navigateur, deux enveloppes réelles du banc qui ne partagent rien
+(« duo1 », « foxtrot »), et un artefact posé au même instant dans les deux :
+
+| artefact | z à 0 ms |
+| --- | --- |
+| rien | −0,4 |
+| un bloc au plancher | **16,4** |
+| trois blocs au plancher | **9,6** |
+| six blocs au plancher | **9,2** |
+| un creux de −1 sur un bloc | 0,4 |
+| un creux de −2 sur deux blocs | 2,5 |
+| un creux de −3 sur deux blocs | 5,5 |
+| un palier de +1, de +3 | 0,2 · 3,6 |
+| aucun bloc pendant 100, 200, 500 ms | −0,5 · −0,4 · −0,5 |
+
+Les z des échecs — 15 à la publication de la 4.24.0.26, 9 à 10 aux bancs de
+la 4.24.0.31 — sont ceux d'un à six blocs au plancher. Ni un creux partiel,
+ni un palier, ni un trou dans les relevés n'y arrivent.
+
+**Les à-coups ordinaires ne le font pas.** Dix passes du 180 seul, un banc
+complet instrumenté, une passe sous six fils qui saturent les quatre cœurs :
+les marches de l'horloge d'écoute arrivent au même relevé dans les cinq
+tuiles (jusqu'à 170 ms), et pas un bloc au plancher, z à 0 ms jamais plus de
+1,7. L'événement est rare : il a frappé deux des quatre bancs complets de la
+4.24.0.31 (au 180, puis au 182), le contrôle Firefox de la nuit (z 13 à 14
+dans toutes les paires du 180) et la publication de la 4.24.0.26 — quand
+l'hyperviseur prenait le processeur par à-coups —, et aucune capture ne l'a
+revu depuis que la machine s'est calmée.
+
+**Dans le vrai navigateur**, posé par le décor (196) — quatre silences de
+60 à 150 ms, à l'heure de l'horloge, dans toutes les tuiles —, sans le
+correctif :
+
+| paire | ce qu'elle a vraiment | ce que l'écoute disait |
+| --- | --- | --- |
+| « foxtrot~duo1 » | rien en commun | 0 à 20 ms, z 9 à 16, à chaque calcul ; son commun « oui » |
+| « foxtrot~sigma » | le même son, 600 ms plus tard | **0 à 10 ms, z 9,5 à 12, à chaque calcul** |
+| « foxtrot~rho » | le même son, au même instant | −20 ms |
+
+La deuxième ligne est la plus grave : une tuile décalée de 600 ms aurait été
+dite calée.
+
+### Ce qui change
+
+Un silence présent dans les **deux** enveloppes d'une paire, à 50 ms près,
+est écarté de sa corrélation — du dernier point sonore d'avant au premier
+d'après, là où le niveau tombe et remonte, dans les deux enveloppes, et hors
+de la moyenne et de l'écart de leurs variations.
+
+- Le seul pic qu'un tel silence peut faire est à 0 ms. Une paire qui n'est
+  pas calée n'y perd qu'un faux pic.
+- Une paire calée y perd les bords d'un silence qu'elle partage, et garde
+  tout le reste de ses vingt secondes pour se dire à 0 ms. Au pire, elle ne
+  se prononce pas : jamais un faux geste.
+- Le silence d'une seule tuile n'est jamais touché.
+- Pourquoi pas tous les creux : un creux partiel ne fait presque rien
+  (z 2,5 au plus à −2), et l'écarter effacerait les vrais traits d'une paire
+  calée.
+
+Au rapport : `ecoute.silencesCommuns`, par paire, le nombre de silences
+communs écartés (« xray~omega 3 »), `null` s'il n'y en a pas.
+
+**Ce que cela ne couvre pas** : une paire dont le seul son commun serait une
+voix coupée par un filtre de bruit — ses silences sont alors ses traits. Ses
+bords à 0 ms sont écartés, et elle peut ne pas se dire calée. Rien ne bouge
+à tort pour autant.
+
+### Ce que le banc mesure
+
+- **196** — le décor pose des silences à l'heure de l'horloge dans chaque
+  tuile (`__silences`) : 60, 90, 150 et 60 ms, toutes les quatre secondes,
+  plus un dans « duo1 » seule. « foxtrot~duo1 » n'a pas un calcul à 0 ms
+  (ses pics, z 3,2 à 3,7, au hasard) et reste « non » ; « foxtrot~rho » est
+  dite à 0 ms (z 13 à 16), « foxtrot~sigma » à −600 ms (z 13 à 16), à 50 ms
+  près — moins que les 80 ms où deux verdicts s'accordent : le son du décor
+  glisse de 20 à 30 ms d'une tuile à l'autre sur cette machine, masque ou
+  non. Le rapport compte quatre silences communs dans chaque paire — pas
+  celui de « duo1 » seule.
+- **189** — la somme directe, contre laquelle on juge la transformée de
+  Fourier, écarte les mêmes silences.
+
+Sur la même machine, les scénarios du calage — 178, 180, 182, 184, 188,
+190, 192 et 193 — : 39 sur 39 ; 189 et 196 : 10 sur 10.
+
+| mutant | ce qui tombe |
+| --- | --- |
+| rien d'écarté (1) | 196 : « foxtrot~duo1 » à 0–20 ms, z 9 à 16, « oui » ; « foxtrot~sigma » lue à 0 ms |
+| tout silence écarté, commun ou non (1) | 196 : 9, 8 et 9 silences comptés — celui de « duo1 » seule parmi eux |
+| écarté d'une seule enveloppe (1) | 189 : 41 cas sur 298 où la transformée ne rend plus les pics de la somme directe |
+| le rapport muet (1) | 196 : `silencesCommuns` vide |
+
+Quatre mutants, quatre pris.
+
 ## L'horloge audio qui saute (v4.24.0.31)
 
 Le feu vert donné pour toutes les branches, `claude/chrome`, la branche
@@ -2336,7 +2444,8 @@ fabrique ce creux, et l'écoute l'entend fidèlement. Sous un vrai navigateur,
 des lecteurs dont le rendu manque son tour ensemble le feraient aussi.
 L'écarter — reconnaître un même creux dans toutes les tuiles au même
 instant — reste la prochaine chose à éprouver, et ne se fait pas à la hâte :
-une paire déjà calée a son vrai pic à 0 ms. Un tampon de rendu plus grand
+une paire déjà calée a son vrai pic à 0 ms. (Fait à la 4.24.0.32, ci-dessus :
+c'est un silence numérique, et il est écarté.) Un tampon de rendu plus grand
 pour le générateur (`latencyHint: 'playback'`) a été essayé : il fait pire
 (r 0,75 à 0,9 par fenêtre, au lieu de 0,95 à 1).
 
@@ -17602,7 +17711,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 194 scénarios, 1648 assertions |
+| `npm test` | le harnais Playwright : 195 scénarios, 1651 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -17623,7 +17732,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1611 Ko | 646 Ko | 4 098 → **2** |
+| `content.js` | 1611 Ko | 646 Ko | 4 103 → **2** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
 | `panneau.js` | 107 Ko | 51 Ko | 149 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
