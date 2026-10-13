@@ -2059,6 +2059,170 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The audio clock that skips (v4.24.0.31)
+
+With the green light given for every branch, `claude/chrome`, the audit
+branch and `claude/firefox-multi` received versions 4.24.0.27 to 4.24.0.30.
+Then publishing `chrome-prod` refused, twice: the bench that
+`tests/prod.mjs` runs on the shipped code counted **four failures** on each
+attempt, all in sound alignment (182, 184, 188), and the full check of the
+Firefox branch two in 180 — replayed green, as in 4.24.0.26. The same code
+had just passed three full benches. In between, the machine had restarted.
+
+Nothing was published by force. What follows says why the bench refused,
+and what that revealed about listening itself.
+
+### What the machine does to sound
+
+Measured under the bench's Chromium, without the extension: an
+`AudioContext`'s time (`currentTime`) against the clock's, read every
+100 ms.
+
+| | |
+| --- | --- |
+| on average | audio time **loses 1 to 1.5 s per minute** against the clock |
+| its shape | **steps**, not a slope: over 90 s, 1,613 ms lost in nineteen steps over 15 ms, up to 319 ms within one second |
+| between two steps | audio time is exact: 58 seconds out of 90 where the smallest gap moves by no more than 2 ms |
+| the cause | the host takes the processor in bursts of 30 to 50 ms: four threads sleeping 5 ms wake at 33–49 ms, once or twice in 20 s. Without a sound card, Chromium renders sound on a timer; what the measurements show is that a missed deadline is **skipped**, not caught up |
+
+Then a test page that makes a sound tied to the clock — 30 ms slices, like
+the bench's set — and listens to it with the extension's envelope module,
+behind a video element and its capture. At each step of the listening
+context, **the content stays on time**: the gap between a block's arrival
+time and its audio time jumps by the whole step, and the true time of its
+content — found by correlation with the known sequence of slices — jumps
+with it, to the millisecond.
+
+### What the anchor made of it
+
+Listening dates each block by its rank, brought back to the clock by the
+smallest gap seen over the last ten to twenty seconds: a callback can only
+be late, and the smallest delay is the best anchor (4.24.0.13). But a step
+makes the gap **grow**, and the smallest keeps the old one: for ten to
+twenty seconds, the tile dated its sound too early by the whole step. The
+correlation window lasts twenty seconds; it saw nearly all of it. The
+doubled voices, the "single source" readings, the verdicts that never came:
+that was it.
+
+Replayed outside the browser on the 90 s of recorded blocks, each anchor's
+dating error against the true time of the content:
+
+| anchor | median | 90 % | 99 % | blocks off by more than 30 ms |
+| --- | --- | --- | --- | --- |
+| smallest gap over 10–20 s (until now) | 171 ms | 601 ms | 641 ms | 71 % |
+| follows a step after two seconds | 25 ms | 118 ms | 381 ms | 31 % |
+| **follows a step after one second** (kept) | **21 ms** | **49 ms** | 379 ms | **27 %** |
+
+The rest is not the anchor: the test page's sound is made by a context that
+skips too, and its delay through the chain — context, element, capture —
+jumps with it. The threshold (10, 15, 20 or 30 ms) makes almost no
+difference.
+
+### What changes
+
+**One full second** whose smallest gap exceeds the anchor by more than
+**15 ms**: that is a step, and the anchor takes that smallest gap. Small
+steps that add up end up crossing the threshold, since the comparison is
+made against the anchor, not against the previous second. A **long task**
+on the main thread does not look like one: the second before it has its
+blocks on time, and the queue it held back drains down to the most recent
+block, on time as well.
+
+In the report, each tile states the steps followed: `horloge` reads "sans
+marche", or for instance "3 marches suivies : +40 · +260 · +55 ms" (the
+last four).
+
+**And in a real browser?** Nothing proves or rules it out. A sound card
+paces rendering, but a rendering thread that misses its turn on a loaded
+machine — six streams to decode — could cause the same loss. The `horloge`
+line will tell. When nothing skips, the correction costs nothing: it never
+wakes.
+
+**The common event at 0 ms** of 4.24.0.26 most likely finds its cause here:
+the fake players' sounds are rendered by the same audio service of the same
+browser, and a skipped deadline interrupts them **together** — seen in both
+contexts of the test page, at the same instant.
+
+### What the bench measures
+
+- **178** — the set can remove samples from the count the envelope module
+  sends (`__perdreTrames`): a step, with the sound staying on time. At each
+  tile reply, the age of its most recent block is read — a few tens of ms.
+  A 3 s long task in the page: the age stays the same, and no step of a
+  second is followed. Then "bravo" loses 2 s: its sound is dated 2 s too
+  early at the next reply (2,036 ms), the anchor follows at the end of the
+  first full second, and the age is back before 3.5 s; the report says
+  "+2010 ms"; "alpha" saw nothing. The machine's real steps add to it
+  (+20 to +70 ms): only those over a second are counted.
+- **193** — its 2.2 s cut now starts at a known phase of the readings. A
+  cut is seen by two readings in a row whose buffer drains at the playback
+  rate; at 2.2 s and one reading per second, one time in two depending on
+  the phase — and this scenario, by its own cadence, placed it on the edge:
+  0.69 to 0.72 s. The third full bench missed it; replayed three times:
+  0.694 and 0.697 missed, 0.722 seen. Started 150 ms after a reading of
+  "omega", the next reading falls at 0.85 s: seen three times out of three.
+
+On the same machine, the sound-alignment scenarios (180, 182, 184, 188), two
+passes each:
+
+| | pass 1 | pass 2 | duration of both |
+| --- | --- | --- | --- |
+| 4.24.0.30 | 11 of 14 — 180 twice, 188 | 13 of 14 — 180 | 25 min 40 s · 23 min 55 s |
+| **4.24.0.31** | **14 of 14** | **14 of 14** | 18 min 45 s · 21 min 45 s |
+
+And decisions come sooner: nine minutes less over the two passes.
+
+In 178 itself, S9 — the offset between two tiles found by sound, to within
+30 ms —, five passes on each side: the largest error is **40 ms** before (one
+failure), **10 ms** after. Correlation itself does not change (r 0.69 and
+0.71 on average): it also depends on the sound the set makes, whose context
+skips like the others. The first full bench of 4.24.0.31 saw S9 drop once to
+r 0.26 — offset right, z 5.5 —, in the middle of a burst of steps.
+
+| mutant | what catches it |
+| --- | --- |
+| the step never followed (1) | 178: the age stays at 2 s well past 3.5 s |
+| the step judged on the second's first block, not on the smallest gap (1) | 178: the long task taken for a step — "+2998 ms" —, its piled-up blocks counted as a clock going back |
+| the silent report (1) | 178: "3 marches suivies", without their ms |
+| the old anchor kept (1) | 178: the anchor follows, but the earlier smallest gap still wins |
+| the threshold reversed (1) | 178: the step never followed |
+
+Five mutants, five caught.
+
+### What remains: the common event, now explained
+
+The second full bench of 4.24.0.31 saw 180 fail, twice — "the common sound"
+and "at the ±6 s edge": in the pair with no common sound at all, four
+computations in a row at −20 ms, z 9 to 10. This is the common event of
+4.24.0.26, and its mechanism is measured this time.
+
+- Instrumented, the sound generators of 180's five tiles see their clock
+  jump **at the same instant**: for instance 98, 123, 132, 110 and 84 ms,
+  within the same second. No main thread freezes: not one tick of the set
+  over 300 ms.
+- Over the 90 s of recorded blocks, nine of the envelope's eleven dips — a
+  block under 30 % of the expected power — fall within 400 ms of a generator
+  jump.
+
+The same dip, at the same instant, in every tile: a peak at 0 ms in every
+pair, common sound or not. The anchor has nothing to do with it — the set
+makes this dip, and listening hears it faithfully. In a real browser,
+players whose rendering misses its turn together would do the same.
+Discarding it — recognising the same dip in every tile at the same instant —
+remains the next thing to test, and is not done in a hurry: a pair already
+aligned has its true peak at 0 ms. A larger render buffer for the generator
+(`latencyHint: 'playback'`) was tried: it does worse (r 0.75 to 0.9 per
+window, instead of 0.95 to 1).
+
+**A cut shorter than three seconds**, for its part, is only seen depending
+on the phase of the readings (cf. 193): the rule — two readings in a row —
+comes from 4.24.0.14, built on real three-second cuts. To revisit if a real
+report shows shorter ones.
+
+The first three full benches of 4.24.0.31, on this machine: 1,647 of 1,648
+(S9), 1,646 of 1,648 (180) — both from the common event —, then 1,647 of
+1,648 (193, the scenario fragility above).
+
 ## The whole bar in Top Channels, and the co-stream in "Live channels" (v4.24.0.30)
 
 Two pieces of feedback, with screenshots. First, in Top Channels: "you can
@@ -16890,7 +17054,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 194 scenarios, 1646 assertions |
+| `npm test` | the Playwright harness: 194 scenarios, 1648 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -16910,7 +17074,7 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1611 KB | 646 KB | 4,094 → **2** |
+| `content.js` | 1611 KB | 646 KB | 4,098 → **2** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
 | `panneau.js` | 107 KB | 51 KB | 149 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |

@@ -2180,6 +2180,176 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## L'horloge audio qui saute (v4.24.0.31)
+
+Le feu vert donné pour toutes les branches, `claude/chrome`, la branche
+d'audit et `claude/firefox-multi` ont reçu les versions 4.24.0.27 à
+4.24.0.30. Puis la publication de `chrome-prod` a refusé, deux fois : le
+banc que `tests/prod.mjs` fait tourner sur le code livré comptait **quatre
+échecs** à chaque tentative, tous au calage par le son (182, 184, 188), et
+le contrôle complet de la branche Firefox, deux au 180 — rejoués verts,
+comme à la 4.24.0.26. Le même code venait de passer trois bancs complets.
+Entre les deux, la machine avait redémarré.
+
+Rien n'a été publié de force. Ce qui suit dit pourquoi le banc refusait, et
+ce que cela a révélé de l'écoute elle-même.
+
+### Ce que la machine fait au son
+
+Mesuré sous le Chromium du banc, sans l'extension : l'heure d'un
+`AudioContext` (`currentTime`) face à celle de l'horloge, relevée toutes les
+100 ms.
+
+| | |
+| --- | --- |
+| en moyenne | l'heure audio **perd 1 à 1,5 s par minute** sur l'horloge |
+| sa forme | des **marches**, pas une pente : sur 90 s, 1 613 ms perdues en dix-neuf marches de plus de 15 ms, jusqu'à 319 ms dans la même seconde |
+| entre deux marches | l'heure audio est exacte : 58 secondes sur 90 où le plus petit écart ne bouge pas de plus de 2 ms |
+| la cause | l'hôte prend le processeur par à-coups de 30 à 50 ms : quatre fils qui dorment 5 ms se réveillent à 33–49 ms, une ou deux fois en 20 s. Sans carte son, Chromium rend le son au rythme d'une minuterie ; ce que les mesures montrent, c'est qu'une échéance manquée est **sautée**, pas rattrapée |
+
+Puis une page d'essai qui fabrique un son lié à l'horloge — des tranches de
+30 ms, comme le décor du banc — et l'écoute avec le module d'enveloppe de
+l'extension, derrière un élément vidéo et sa capture. À chaque marche de
+l'écoute, **le contenu reste à l'heure** : l'écart entre l'heure d'arrivée
+d'un bloc et son heure audio saute de toute la marche, et l'heure vraie de
+son contenu — retrouvée par corrélation avec la suite connue des tranches —
+saute avec lui, à la milliseconde.
+
+### Ce que l'ancre en faisait
+
+L'écoute date chaque bloc par son rang, ramené à l'horloge par le plus
+petit écart vu sur les dix à vingt dernières secondes : un rappel ne peut
+qu'être en retard, et le plus petit retard est la meilleure ancre
+(4.24.0.13). Mais une marche fait **grandir** l'écart, et le plus petit
+garde l'ancien : pendant dix à vingt secondes, la tuile datait son son trop
+tôt de toute la marche. La fenêtre de corrélation dure vingt secondes ; elle
+le voyait presque entière. Les voix dédoublées, les « source seule », les
+verdicts qui ne venaient pas : c'était cela.
+
+Rejouée hors navigateur sur les 90 s de blocs relevés, l'erreur de datage
+de chaque ancre face à l'heure vraie du contenu :
+
+| ancre | médiane | 90 % | 99 % | blocs à plus de 30 ms |
+| --- | --- | --- | --- | --- |
+| le plus petit écart sur 10–20 s (jusqu'ici) | 171 ms | 601 ms | 641 ms | 71 % |
+| qui suit une marche après deux secondes | 25 ms | 118 ms | 381 ms | 31 % |
+| **qui suit une marche après une seconde** (retenue) | **21 ms** | **49 ms** | 379 ms | **27 %** |
+
+Le reste n'est pas l'ancre : le son de la page d'essai est fabriqué par un
+contexte qui saute lui aussi, et son retard dans la chaîne — contexte,
+élément, capture — saute avec lui. Le seuil (10, 15, 20 ou 30 ms) n'y
+change presque rien.
+
+### Ce qui change
+
+**Une seconde pleine** dont le plus petit écart dépasse l'ancre de plus de
+**15 ms** : c'est une marche, et l'ancre prend ce plus petit écart. De
+petites marches qui s'additionnent finissent par dépasser le seuil, puisque
+la comparaison se fait à l'ancre et non à la seconde d'avant. Une **tâche longue** du fil
+principal n'y ressemble pas : la seconde qui la précède a ses blocs à
+l'heure, et la file qu'elle a retenue se vide jusqu'au plus récent, à
+l'heure lui aussi.
+
+Au rapport, chaque tuile dit les marches suivies : `horloge` vaut « sans
+marche », ou par exemple « 3 marches suivies : +40 · +260 · +55 ms » (les
+quatre dernières).
+
+**Et sous un vrai navigateur ?** Rien ne le prouve ni ne l'exclut. Une carte
+son cadence le rendu, mais un fil de rendu qui manque son tour sur une
+machine chargée — six streams à décoder — pourrait produire la même perte.
+La ligne `horloge` le dira. Quand rien ne saute, la correction ne coûte
+rien : elle ne s'éveille pas.
+
+**L'événement commun à 0 ms** de la 4.24.0.26 trouve ici, très
+probablement, sa cause : les sons des faux lecteurs sont rendus par le même
+service audio du même navigateur, et une échéance sautée les interrompt
+**ensemble** — vu dans les deux contextes de la page d'essai, au même
+instant.
+
+### Ce que le banc mesure
+
+- **178** — le décor sait retirer des échantillons au compte que le module
+  d'enveloppe envoie (`__perdreTrames`) : une marche, le son restant à
+  l'heure. On lit, à chaque réponse d'une tuile, l'âge de son bloc le plus
+  récent — quelques dizaines de ms. Une tâche longue de 3 s dans la page :
+  l'âge reste le même, et aucune marche d'une seconde n'est suivie. Puis
+  « bravo » perd 2 s : son son est daté 2 s trop tôt à la réponse suivante
+  (2 036 ms), l'ancre suit à la fin de la première seconde pleine, et l'âge
+  est revenu avant 3,5 s ; le rapport dit « +2010 ms » ; « alpha » n'a rien
+  vu. Les marches vraies de la machine s'y ajoutent (+20 à +70 ms) : on ne
+  compte que celles de plus d'une seconde.
+- **193** — sa coupure de 2,2 s part désormais à une phase connue des
+  relevés. Une coupure se voit à deux relevés de suite dont le tampon fond
+  au rythme de la lecture ; à 2,2 s et un relevé par seconde, une fois sur
+  deux selon la phase — et ce scénario la posait, par sa propre cadence, au
+  bord : 0,69 à 0,72 s. Le troisième banc complet l'a manquée ; rejouée trois
+  fois : 0,694 et 0,697 manquées, 0,722 vue. Partie 150 ms après un relevé
+  de « omega », le relevé suivant tombe à 0,85 s : vue trois fois sur trois.
+
+Sur la même machine, les scénarios du calage par le son (180, 182, 184,
+188), deux passes chacun :
+
+| | passe 1 | passe 2 | durée des deux |
+| --- | --- | --- | --- |
+| 4.24.0.30 | 11 sur 14 — 180 deux fois, 188 | 13 sur 14 — 180 | 25 min 40 s · 23 min 55 s |
+| **4.24.0.31** | **14 sur 14** | **14 sur 14** | 18 min 45 s · 21 min 45 s |
+
+Et les décisions viennent plus tôt : neuf minutes de moins sur les deux
+passes.
+
+Au 178 même, S9 — le décalage entre deux tuiles retrouvé par le son, à
+30 ms près —, cinq passes de chaque côté : l'erreur la plus grande est de
+**40 ms** avant (un échec), de **10 ms** après. La corrélation, elle, ne
+change pas (r 0,69 et 0,71 en moyenne) : elle dépend aussi du son que le
+décor fabrique, et son contexte saute comme les autres. Le premier banc
+complet de la 4.24.0.31 a vu S9 tomber une fois à r 0,26 — décalage juste,
+z 5,5 —, en pleine rafale de marches.
+
+| mutant | ce qui tombe |
+| --- | --- |
+| la marche jamais suivie (1) | 178 : l'âge reste à 2 s bien après 3,5 s |
+| la marche jugée sur le premier bloc de la seconde, et non sur le plus petit écart (1) | 178 : la tâche longue prise pour une marche — « +2998 ms » —, ses blocs entassés comptés pour une horloge qui recule |
+| le rapport muet (1) | 178 : « 3 marches suivies », sans leurs ms |
+| l'ancienne ancre gardée (1) | 178 : l'ancre suit, mais le plus petit écart d'avant l'emporte encore |
+| le seuil à l'envers (1) | 178 : la marche jamais suivie |
+
+Cinq mutants, cinq pris.
+
+### Ce qui reste : l'événement commun, désormais expliqué
+
+Le second banc complet de la 4.24.0.31 a vu tomber le 180, deux fois — « le
+son commun » et « au bord des ±6 s » : dans la paire sans aucun son commun,
+quatre calculs de suite à −20 ms, z 9 à 10. C'est l'événement commun de la
+4.24.0.26, et son mécanisme est cette fois mesuré.
+
+- Instrumentés, les générateurs de son des cinq tuiles du 180 voient leur
+  horloge sauter **au même instant** : par exemple 98, 123, 132, 110 et
+  84 ms, dans la même seconde. Aucun fil principal ne gèle : pas un tour du
+  décor à plus de 300 ms.
+- Sur les 90 s de blocs relevés, neuf des onze creux de l'enveloppe — un
+  bloc à moins de 30 % de la puissance attendue — tombent à moins de 400 ms
+  d'un saut du générateur.
+
+Un même creux, au même instant, dans toutes les tuiles : un pic à 0 ms dans
+toutes les paires, son commun ou non. L'ancre n'y est pour rien — le décor
+fabrique ce creux, et l'écoute l'entend fidèlement. Sous un vrai navigateur,
+des lecteurs dont le rendu manque son tour ensemble le feraient aussi.
+L'écarter — reconnaître un même creux dans toutes les tuiles au même
+instant — reste la prochaine chose à éprouver, et ne se fait pas à la hâte :
+une paire déjà calée a son vrai pic à 0 ms. Un tampon de rendu plus grand
+pour le générateur (`latencyHint: 'playback'`) a été essayé : il fait pire
+(r 0,75 à 0,9 par fenêtre, au lieu de 0,95 à 1).
+
+**Une coupure de moins de trois secondes** n'est vue, elle, que selon la
+phase des relevés (cf. 193) : la règle — deux relevés de suite — vient de
+la 4.24.0.14, faite sur des coupures réelles de trois secondes. À revoir si
+un rapport réel en montre de plus courtes.
+
+Les trois premiers bancs complets de la 4.24.0.31, sur cette machine :
+1 647 sur 1 648 (S9), 1 646 sur 1 648 (le 180) — tous deux de l'événement
+commun —, puis 1 647 sur 1 648 (le 193, la fragilité du scénario
+ci-dessus).
+
 ## La barre entière en Top Chaînes, et le co-stream dans « Chaînes live » (v4.24.0.30)
 
 Deux retours, captures à l'appui. D'abord, en Top Chaînes : « on peut voir
@@ -17432,7 +17602,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 194 scénarios, 1646 assertions |
+| `npm test` | le harnais Playwright : 194 scénarios, 1648 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -17453,7 +17623,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1611 Ko | 646 Ko | 4 094 → **2** |
+| `content.js` | 1611 Ko | 646 Ko | 4 098 → **2** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
 | `panneau.js` | 107 Ko | 51 Ko | 149 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
