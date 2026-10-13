@@ -331,7 +331,7 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1611 KB | 646 KB | 4,098 → **2** |
+| `content.js` | 1611 KB | 646 KB | 4,103 → **2** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
 | `panneau.js` | 107 KB | 51 KB | 149 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
@@ -2489,6 +2489,112 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The common event, set aside (v4.24.0.32)
+
+The request: "Fix the common event, be rigorous. Then a 100 % green bench on
+`claude/multi` first. Then, if it is OK, on to the other branches."
+Published on `claude/chrome-multi` first.
+
+### What it is
+
+A **digital silence** — blocks at the floor, below −7 (≈ −70 dBFS), the
+listening's "mute" — at the same instant in two tiles makes a peak at 0 ms in
+their correlation, whether or not they share a sound. It is the mechanism of
+the capture's priming (4.24.0.13), in the middle of the sound.
+
+### What the measurements showed
+
+Outside the browser, two real bench envelopes that share nothing ("duo1",
+"foxtrot"), and an artefact placed at the same instant in both:
+
+| artefact | z at 0 ms |
+| --- | --- |
+| nothing | −0.4 |
+| one block at the floor | **16.4** |
+| three blocks at the floor | **9.6** |
+| six blocks at the floor | **9.2** |
+| a −1 dip over one block | 0.4 |
+| a −2 dip over two blocks | 2.5 |
+| a −3 dip over two blocks | 5.5 |
+| a +1, a +3 step | 0.2 · 3.6 |
+| no block for 100, 200, 500 ms | −0.5 · −0.4 · −0.5 |
+
+The failures' z — 15 when 4.24.0.26 was published, 9 to 10 in the 4.24.0.31
+benches — are those of one to six blocks at the floor. Neither a partial
+dip, nor a step, nor a gap in the readings gets there.
+
+**Ordinary hiccups do not cause it.** Ten passes of 180 alone, an
+instrumented full bench, one pass under six threads saturating the four
+cores: the listening clock's steps arrive in the same reading in all five
+tiles (up to 170 ms), and not one block at the floor, z at 0 ms never above
+1.7. The event is rare: it hit two of the four full benches of 4.24.0.31 (in
+180, then in 182), the overnight Firefox check (z 13 to 14 in every pair of
+180) and the publication of 4.24.0.26 — while the hypervisor was taking the
+processor in bursts —, and no capture has seen it again since the machine
+calmed down.
+
+**In the real browser**, placed by the set (196) — four silences of 60 to
+150 ms, on the clock, in every tile —, without the fix:
+
+| pair | what it really has | what listening said |
+| --- | --- | --- |
+| "foxtrot~duo1" | nothing in common | 0 to 20 ms, z 9 to 16, at every computation; common sound "oui" |
+| "foxtrot~sigma" | the same sound, 600 ms later | **0 to 10 ms, z 9.5 to 12, at every computation** |
+| "foxtrot~rho" | the same sound, at the same instant | −20 ms |
+
+The second line is the worst: a tile 600 ms off would have been called
+aligned.
+
+### What changes
+
+A silence present in **both** envelopes of a pair, within 50 ms, is set aside
+from its correlation — from the last sounding point before it to the first
+one after, where the level drops and rises, in both envelopes, and out of the
+mean and spread of their variations.
+
+- The only peak such a silence can make is at 0 ms. A pair that is not
+  aligned only loses a fake peak.
+- An aligned pair loses the edges of a silence it shares, and keeps all the
+  rest of its twenty seconds to say 0 ms. At worst, it does not decide: never
+  a wrong move.
+- A silence in one tile only is never touched.
+- Why not every dip: a partial dip does almost nothing (z 2.5 at most at
+  −2), and setting it aside would erase an aligned pair's real features.
+
+In the report: `ecoute.silencesCommuns`, per pair, the number of common
+silences set aside ("xray~omega 3"), `null` when there are none.
+
+**What it does not cover**: a pair whose only common sound would be a voice
+cut by a noise gate — its silences are then its features. Their edges at
+0 ms are set aside, and it may not call itself aligned. Nothing moves wrongly
+for all that.
+
+### What the bench measures
+
+- **196** — the set places silences on the clock in every tile
+  (`__silences`): 60, 90, 150 and 60 ms, every four seconds, plus one in
+  "duo1" alone. "foxtrot~duo1" has not one computation at 0 ms (its peaks,
+  z 3.2 to 3.7, anywhere) and stays "non"; "foxtrot~rho" is said at 0 ms
+  (z 13 to 16), "foxtrot~sigma" at −600 ms (z 13 to 16), within 50 ms — less
+  than the 80 ms within which two verdicts agree: the set's sound slides by
+  20 to 30 ms from one tile to another on this machine, mask or not. The
+  report counts four common silences in each pair — not the one in "duo1"
+  alone.
+- **189** — the direct sum, against which the Fourier transform is judged,
+  sets aside the same silences.
+
+On the same machine, the sound-alignment scenarios — 178, 180, 182, 184,
+188, 190, 192 and 193 —: 39 of 39; 189 and 196: 10 of 10.
+
+| mutant | what catches it |
+| --- | --- |
+| nothing set aside (1) | 196: "foxtrot~duo1" at 0–20 ms, z 9 to 16, "oui"; "foxtrot~sigma" read at 0 ms |
+| every silence set aside, common or not (1) | 196: 9, 8 and 9 silences counted — the one in "duo1" alone among them |
+| set aside from one envelope only (1) | 189: 41 cases out of 298 where the transform no longer gives the direct sum's peaks |
+| the silent report (1) | 196: `silencesCommuns` empty |
+
+Four mutants, four caught.
+
 ## The audio clock that skips (v4.24.0.31)
 
 With the green light given for every branch, `claude/chrome`, the audit
@@ -2640,7 +2746,8 @@ makes this dip, and listening hears it faithfully. In a real browser,
 players whose rendering misses its turn together would do the same.
 Discarding it — recognising the same dip in every tile at the same instant —
 remains the next thing to test, and is not done in a hurry: a pair already
-aligned has its true peak at 0 ms. A larger render buffer for the generator
+aligned has its true peak at 0 ms. (Done in 4.24.0.32, above: it is a digital
+silence, and it is set aside.) A larger render buffer for the generator
 (`latencyHint: 'playback'`) was tried: it does worse (r 0.75 to 0.9 per
 window, instead of 0.95 to 1).
 
@@ -17485,7 +17592,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the Firefox manifest: this repository's invariants, **then** Mozilla's `addons-linter` — the one AMO runs on submission |
-| `npm test` | the Playwright harness: 194 scenarios, 1648 assertions |
+| `npm test` | the Playwright harness: 195 scenarios, 1651 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
