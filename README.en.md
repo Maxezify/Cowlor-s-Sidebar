@@ -2059,6 +2059,155 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The whole bar in Top Channels, and the co-stream in "Live channels" (v4.24.0.30)
+
+Two pieces of feedback, with screenshots. First, in Top Channels: "you can
+see 'Whole co-stream', normally that is not possible, we should have every
+card of the co-streams visible on the sidebar in 'Top Channels'. Investigate
+and fix rigorously." The screenshot: five cards linked by the bar, "Watch all
+5" | "Whole co-stream · 6" — and a sixth just above, at the same combined
+count, in the same category, without a bar. Then: "apply this logic of the
+pills, co-stream etc. in the 'Live channels' part" — two neighbouring members
+of one co-stream each carried their "5" pill there. Published on
+`claude/chrome-multi` only.
+
+### Why the sixth card stayed out of the bar
+
+**Two sources, and they disagreed.** Since 4.18, a co-stream's *place* in
+the ranking is formed from the session **index**: what the Guest Star
+answer of *any* member says about the session. The sixth channel was in it,
+at its rank — which is why it sat just above. The *bar*, though, only linked
+a card from **its own** answer. A channel its mates name, but whose own
+answer does not return the session, was therefore in the place and out of
+the bar. And the bar of five, seeing a sixth member streaming outside it,
+offered "Whole co-stream".
+
+Why its own answer did not say so, the report could not tell: three reasons
+lead to the same gap — Twitch does not return the session on its channel
+(the host, perhaps), its answer was still pending, or its channel id not yet
+learned. The report will now say (`coStream.rattachees`: `horsSession`,
+`inconnue`, `sansId`).
+
+The bench had it in front of it without seeing it: in scenario 135, a member
+the set never queries for itself was in the place and out of the bar —
+"three grouped rows" was the defect, written down as a fact.
+
+### What changes in Top Channels
+
+- **The bar follows the same source as the place**, as a fallback: the
+  channel's own answer, when it names a session, stays the most authoritative;
+  when it names none, the index decides. A channel that left the session is no
+  longer named by its mates at their next answer, and its entry expires within
+  a minute — the same as the place. *A tie-break on the answers' dates was
+  written then removed*: answers do not all leave in the same batch, and the
+  card would have left its bar and come back every cycle.
+- **Never "Whole co-stream" in the ranking.** Its place is completed with
+  everyone who streams, its bar links them all: a ranking bar *is* the whole
+  co-stream. If a member were still missing, that would be a defect, not a
+  choice to offer: the report names it (`salle.noeuds.classementIncomplet`,
+  and the channels concerned).
+- **Nor a member its own record says is offline.** Completion lets an unknown
+  `enLigne` through (the host Twitch does not list among the guests); the
+  completed card then asks for its record, and if Twitch answers "no stream",
+  the place no longer keeps it. Otherwise it stayed at "0 viewers" — and,
+  linked to the bar, its room would have opened it.
+- **Its pill and its "▶"** follow the same source: a channel its own answer
+  does not show in a session takes its mates from the index.
+
+### "Live channels", like the followed list
+
+Twitch's recommendation sections — "Live channels", "Viewers of X also
+watch" — now have the followed list's co-streams: the coloured bar linking
+two neighbouring members, its node, the "Watch all 2" | "Whole co-stream · N"
+choice (they are not "followed"), the "▶" of a card alone from its session,
+and the pills hidden.
+
+- **Their order stays Twitch's**: they are not sorted. Two members nothing
+  separates are linked; the others each carry a "▶".
+- **Guest Star is queried for them at scan time**, like for the followed list
+  — in the same batch, with no extra request. Until now, only on hover, for
+  the preview.
+- **One bar per section.** One session can have members in the followed list
+  *and* in "Live channels": two bars, one in each list, **in the same
+  colour** — the session's. Nothing links across a section header, and a
+  member alone from its session in its list gets no colour there: it gets a
+  "▶".
+- **One layer per section** for the nodes and the "▶": a section that grows
+  only shifts its own, a hidden section (a filter, Top Channels) takes them
+  with it. Nothing is set for cards one does not see.
+- **The preview's blue badge** ("Co-stream with …") keeps its rule (see
+  scenario 150): "from this list" is read in the hovered card's section. It
+  still read the followed list hard-coded in one place, which "Live
+  channels"'s co-stream keys revealed.
+- **The "co-stream" sort** only counts the followed list: that is what it
+  sorts.
+
+### And what the bar already knows
+
+A channel whose card is reported offline does not stream, whatever `enLigne`
+says: it no longer counts in "Whole co-stream" nor in the "▶". That is the
+case of the never-probed host ("counted for lack of knowing", 4.24.0.28's
+caveat) once Twitch has said it is off.
+
+### The report
+
+- `coStream.rattachees`: the cards linked by the index alone, and why
+  (`horsSession`, `inconnue`, `sansId`);
+- `coStream.recommandations`: the cards and groups of the recommendation
+  sections (`groupes` stays the followed list's);
+- `salle.noeuds.calques` (one per section) and `classementIncomplet` (zero
+  expected), with `classementManquants` if any.
+
+### To check on real Twitch
+
+| point | what will tell |
+| --- | --- |
+| the screenshot's sixth card, linked to its bar, without "Whole co-stream" | the eye, and `coStream.rattachees` — which will say which of the three reasons it was |
+| the co-streams of "Live channels": bars, nodes, "▶" | the eye, and `coStream.recommandations` |
+
+### What the bench measures
+
+- **195** — a host its own answer does not show in a session, linked to its
+  mates' bar, its pill counted from the index, "whole" without the muted
+  guest; "Live channels": a bar of two neighbours, its node in its own
+  layer, "Watch all 2" | "Whole co-stream · 3" — without the unknown host
+  whose card is offline —, a lone card and its "▶"; one session in both
+  lists: one bar per section, the same colour, nothing crossing the header; a
+  followed card alone from its session, its "▶", no colour; the preview of a
+  "Live channels" card — its bar neighbour in blue, the followed ones in
+  purple; the room opened
+  from "Live channels"; a filter hiding "Live channels" and leaving nothing
+  there; Top Channels: the host's place completed, linked whole, without
+  "whole", without a missing member, and without the host its record says is
+  off; the "co-stream" sort unavailable when only "Live channels" has a
+  co-stream.
+- **135**, revisited: four grouped rows and no longer three — the member the
+  set never queries for itself joins the bar.
+
+| mutant | what falls |
+| --- | --- |
+| the bar from the card's own answer alone (1) | 195: the host out of its bar, in the ranking too — the screenshot; 135: three grouped rows |
+| the join across a section header (1) | 195: "amie", at the bottom of the followed list, extended towards "loin" |
+| a group straddling two sections (1) | 195: "seulf" and "seul1" coloured, without a "▶"; the "co-stream" sort available with no followed co-stream |
+| the recommendation sections ignored; their lone cards forgotten (2) | 195 |
+| a single layer (1) | 195: the "Live channels" node in the followed list's layer |
+| "followed" everywhere (1) | 195: "2 followed" under "Live channels" |
+| the blue badge read in the followed list (1) | 195: the three followed ones in blue, from "loin" |
+| the offline card counted (1) | 195: "Whole co-stream · 4", the switched-off host included |
+| completion without the record (1) | 195: the switched-off host in the ranking |
+| the pill from the card's own answer alone (1) | 195, 135 |
+| the linked cards never counted (1) | 195: the report |
+| detection, or entries, under a hidden section (2) | 195: under a filter, "Live channels" cards counted, or their "▶" set |
+| the sort counting every section (1) | 195: available when only "Live channels" has a co-stream |
+
+Sixteen mutants, fifteen caught. **The survivor**: "Whole co-stream"
+offered in the ranking. It cannot show, and that is the point: the ranking
+completes its places with the choice's very criterion — who streams, and
+whose record does not say otherwise —, and its bar links them all; nobody is
+left to offer. The rule states the request, and holds if completion ever
+falls short: the report would then name the missing member
+(`classementIncomplet`).
+
 ## Buttons that look like buttons, and nothing left over during the room (v4.24.0.29)
 
 Two pieces of feedback on 4.24.0.28, with screenshots. First: "the 'Watch all
@@ -16741,7 +16890,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 193 scenarios, 1637 assertions |
+| `npm test` | the Playwright harness: 194 scenarios, 1646 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -16761,12 +16910,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1597 KB | 642 KB | 4,064 → **2** |
+| `content.js` | 1611 KB | 646 KB | 4,094 → **2** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
 | `panneau.js` | 107 KB | 51 KB | 149 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
 | `background.js` | 9 KB | 2 KB | 22 → **0** |
-| **all five** | **1853 KB** | **799 KB** | **−57 %** |
+| **all five** | **1866 KB** | **803 KB** | **−57 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are

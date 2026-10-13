@@ -5006,7 +5006,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
        le porte n'a pas de hauteur : il ne déplace rien dans la liste. Le nœud
        part du bord de la carte, là où la barre est peinte : un pixel plus à
        gauche et la liste, qui ne déborde pas, le rognerait. */
-    #tse-noeuds { position: relative; height: 0; margin: 0; padding: 0; z-index: 5; }
+    .tse-noeuds { position: relative; height: 0; margin: 0; padding: 0; z-index: 5; }
     .tse-noeud {
       position: absolute; transform: translateY(-50%);
       display: flex; align-items: center; justify-content: center;
@@ -5025,10 +5025,10 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
        symbole de ce qui la referme — le nœud, le « ▶ » d'une carte seule, le
        choix qui l'a ouverte. Le code des lecteurs : on lit sans étiquette ce
        que fera le clic. Le carré n'a pas le décalage du triangle. */
-    #tse-noeuds .tse-icone-arret { display: none; }
-    #tse-noeuds [aria-pressed="true"] .tse-icone-lecture { display: none; }
-    #tse-noeuds [aria-pressed="true"] .tse-icone-arret { display: block; }
-    #tse-noeuds [aria-pressed="true"] > .tse-noeud__symbole { margin-left: 0; }
+    .tse-noeuds .tse-icone-arret { display: none; }
+    .tse-noeuds [aria-pressed="true"] .tse-icone-lecture { display: none; }
+    .tse-noeuds [aria-pressed="true"] .tse-icone-arret { display: block; }
+    .tse-noeuds [aria-pressed="true"] > .tse-noeud__symbole { margin-left: 0; }
     /* LE SURVOL DU ROND SE VOIT (4.24.0.29) : un anneau clair, avant même
        l'étiquette — le rond est un bouton, et il le dit sous la souris. */
     .tse-noeud:hover { box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.75), 0 1px 3px rgba(0, 0, 0, 0.35); }
@@ -5097,13 +5097,13 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
        carte ». Elle invitait à ouvrir ce qui l'est déjà ; le ■ dit ce que
        fera le clic. Le choix, lui, reste : il passe des suivis à tout le
        co-stream. */
-    #tse-noeuds [aria-pressed="true"] > .tse-noeud__etiquette,
-    #tse-noeuds [aria-pressed="true"] > .tse-pastille-salle__etiquette { display: none !important; }
+    .tse-noeuds [aria-pressed="true"] > .tse-noeud__etiquette,
+    .tse-noeuds [aria-pressed="true"] > .tse-pastille-salle__etiquette { display: none !important; }
     /* Barre réduite : le symbole seul, même au survol — il n'y a pas la
        place d'écrire l'étiquette à côté d'un avatar. */
     .tse-noeud--reduit:hover .tse-noeud__etiquette,
     .tse-noeud--reduit:focus-visible .tse-noeud__etiquette { display: none; }
-    html[data-tse-off~="salle"] #tse-noeuds { display: none !important; }
+    html[data-tse-off~="salle"] .tse-noeuds { display: none !important; }
 
     /* === Le choix : les suivis, ou tout le co-stream (4.24.0.28) ===
        Quand la session compte des membres qui diffusent hors de la barre —
@@ -9473,6 +9473,15 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
            réponse. Un écart sur la fausseté rayait alors l'hôte de sa propre
            session dès qu'il ne reparaissait pas parmi ses invités. */
         if (m.enLigne === false) continue;
+        /* ── NI CELUI QUE SA PROPRE FICHE DIT HORS LIGNE (4.24.0.30) ───────
+           `null` laisse passer, faute de savoir — et la carte complétée
+           demande alors sa fiche à Twitch. Si elle répond « pas de stream »,
+           on SAIT : la place ne le garde pas. Sans quoi un hôte que Twitch ne
+           nomme pas parmi ses invités, et qui ne diffuse pas, restait au
+           classement à « 0 spectateur » — et, relié à sa barre depuis que la
+           barre suit l'index (cf. `sessionSelonLesAutres`), sa salle l'aurait
+           ouvert. Une fiche absente, elle, ne dit rien : on garde. */
+        if (getFreshChannel(l)?.stream === null) continue;
         vus.add(l);
         out.push({
           login: l,
@@ -16628,9 +16637,15 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     const parCarte = new Map();   // le login d'une carte seule → son « ▶ »
     let voulues = new Map();      // les barres du dernier balayage, par clé
     let seules = new Map();       // les cartes seules du dernier balayage, par login
-    let couche = null;
-    let veille = null;            // ResizeObserver de la section
-    let suivie = null;
+    /* UN CALQUE PAR SECTION (4.24.0.30) : la suivie, et depuis cette version
+       les sections de recommandation (« Chaînes live »…). Chacun en tête de
+       la sienne, ses nœuds placés par rapport à lui : une section masquée
+       emporte ses nœuds, une section qui grandit ne décale que les siens. Le
+       calque de la section suivie garde l'identifiant `tse-noeuds`. */
+    const couches = new Map();    // section → son calque
+    let veille = null;            // ResizeObserver des sections
+    const veillees = new Set();
+    let incomplets = [];          // barres du classement à qui manque un membre (cf. entreesSalle)
     let clics = 0;
     let clicsPastilles = 0;
     let tousOuverts = 0;          // salles ouvertes sur tout le co-stream
@@ -16783,10 +16798,11 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     /* Le texte visible EST le nom du bouton — « Les 4 suivis » se dit comme il
        se lit, et se commande à la voix de même ; les chaînes, dans le titre —
        et, sur « tout », le raccourci qui l'ouvre depuis le rond.
-       En Top Chaînes, la barre n'est pas « suivie » : « Regarder les 4 ». */
-    const garnirChoix = (c, membres, tous, classement) => {
+       Hors de la section suivie (« Chaînes live »), la barre n'est pas
+       « suivie » : « Regarder les 2 ». */
+    const garnirChoix = (c, membres, tous, suivie) => {
       ecrire(c.suivis.querySelector('.tse-noeud__texte'),
-             classement ? S.uiNoeudRegarder(membres.length) : S.uiNoeudSuivis(membres.length));
+             suivie ? S.uiNoeudSuivis(membres.length) : S.uiNoeudRegarder(membres.length));
       ecrire(c.tous.querySelector('.tse-noeud__texte'), S.uiNoeudTous(tous.length));
       const a = S.uiNoeudAria(listeNoms(membres));
       const t = `${S.uiNoeudAria(listeNoms(tous))}\n${S.uiNoeudMaj(tous.length)}`;
@@ -16835,12 +16851,20 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       return nav ? nav.getBoundingClientRect().left : 0;
     };
     const placer = () => {
-      if (!couche || !couche.isConnected) return;
-      const origine = couche.getBoundingClientRect();
+      // L'origine de chaque calque, lue une fois par passe.
+      const origines = new Map();
+      const origineDe = (el) => {
+        const couche = el.parentElement;
+        if (!couche || !couche.isConnected) return null;
+        if (!origines.has(couche)) origines.set(couche, couche.getBoundingClientRect());
+        return origines.get(couche);
+      };
       for (const [cle, { barre }] of voulues) {
         const n = parCle.get(cle);
         // Une carte partie entre deux balayages : le suivant tranchera.
         if (!n || !barre.every((c) => c.isConnected)) continue;
+        const origine = origineDe(n);
+        if (!origine) continue;
         const haut = barre[0].getBoundingClientRect();
         const bas = barre[barre.length - 1].getBoundingClientRect();
         // La couleur de la barre telle qu'elle est PEINTE : celle du groupe,
@@ -16872,7 +16896,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       for (const [login, { carte }] of seules) {
         const p = parCarte.get(login);
         const avatar = p && carte.isConnected ? avatarOf(carte) : null;
-        if (!avatar) continue;
+        const origine = avatar ? origineDe(p) : null;
+        if (!origine) continue;
         const r = avatar.getBoundingClientRect();
         poserStyle(p, 'left', `${Math.round(r.right - 5 - origine.left)}px`);
         poserStyle(p, 'top', `${Math.round(r.bottom - 5 - origine.top)}px`);
@@ -16880,28 +16905,50 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         titrer(p);
       }
     };
-    const suivre = (section) => {
-      if (suivie === section) return;
-      if (veille) veille.disconnect();
-      suivie = section;
-      if (!section || typeof ResizeObserver !== 'function') return;
-      veille = veille || new ResizeObserver(placer);
-      veille.observe(section);
+    const suivre = (sections) => {
+      if (typeof ResizeObserver !== 'function') return;
+      for (const sec of [...veillees]) {
+        if (sections.has(sec)) continue;
+        veille.unobserve(sec);
+        veillees.delete(sec);
+      }
+      for (const sec of sections) {
+        if (veillees.has(sec)) continue;
+        veille = veille || new ResizeObserver(placer);
+        veille.observe(sec);
+        veillees.add(sec);
+      }
+    };
+    /* Le calque d'une section, posé en tête une fois — et rattaché seulement
+       s'il ne l'est plus (Twitch a pu reconstruire la section). */
+    const coucheDe = (section) => {
+      let couche = couches.get(section);
+      if (!couche) {
+        couche = document.createElement('div');
+        couche.className = 'tse-noeuds';
+        if (section === followedSection()) couche.id = 'tse-noeuds';
+        couches.set(section, couche);
+      }
+      if (couche.parentElement !== section) section.prepend(couche);
+      return couche;
     };
 
     /* Les entrées de ce balayage (cf. entreesSalle) → les nœuds. `barres` :
        les suites de cartes jointes (au moins deux), dans l'ordre d'affichage,
        chacune avec ses membres et, s'il ajoute quelqu'un, tout son co-stream ;
        `seules` : les cartes seules de leur co-stream, avec leurs chaînes. */
-    const maj = ({ barres = [], seules: cartesSeules = [] } = {}) => {
+    const maj = ({ barres = [], seules: cartesSeules = [], classementIncomplet = [] } = {}) => {
+      incomplets = classementIncomplet;
       voulues = new Map();
-      for (const { barre, membres, tous, classement } of barres) {
-        if (membres.length >= 2) voulues.set(cleDe(membres), { barre, membres, tous, classement });
+      for (const { barre, membres, tous, suivie } of barres) {
+        const section = barre[0].closest('.side-nav-section');
+        if (membres.length >= 2 && section) voulues.set(cleDe(membres), { barre, membres, tous, suivie, section });
       }
       seules = new Map();
       for (const s of cartesSeules) {
         const login = s.carte.dataset.tseLogin;
-        if (login && s.membres.length >= 2) seules.set(login, s);
+        const section = s.carte.closest('.side-nav-section');
+        if (login && s.membres.length >= 2 && section) seules.set(login, { ...s, section });
       }
       for (const [cle, n] of [...parCle]) {
         if (voulues.has(cle) && n.isConnected) continue;
@@ -16919,16 +16966,14 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         p.remove();
         parCarte.delete(login);
       }
-      const premiere = voulues.values().next().value;
-      const seule = seules.values().next().value;
-      const ancre = premiere ? premiere.barre[0] : seule ? seule.carte : null;
-      const section = ancre ? ancre.closest('.side-nav-section') : null;
-      if (!section) { voulues = new Map(); seules = new Map(); suivre(null); return; }
-      if (!couche || couche.parentElement !== section) {
-        couche = couche || Object.assign(document.createElement('div'), { id: 'tse-noeuds' });
-        section.prepend(couche);
+      // Les calques d'une section disparue partent avec elle ; on les oublie.
+      for (const [sec, couche] of [...couches]) {
+        if (!sec.isConnected) { couche.remove(); couches.delete(sec); }
       }
-      for (const [cle, { membres, tous, classement }] of voulues) {
+      const sections = new Set();
+      for (const [cle, { membres, tous, suivie, section }] of voulues) {
+        const couche = coucheDe(section);
+        sections.add(section);
         let n = parCle.get(cle);
         if (!n) { n = creer(cle, membres); parCle.set(cle, n); }
         ordonner(n, membres, tous);
@@ -16936,12 +16981,14 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         let c = choixDe.get(cle);
         if (tous && !c) { c = creerChoix(cle); choixDe.set(cle, c); }
         if (c) {
-          garnirChoix(c, membres, tous, classement);
+          garnirChoix(c, membres, tous, suivie);
           // Juste après son nœud : c'est ce que la feuille suit (« + »).
           if (n.nextElementSibling !== c.boite) n.after(c.boite);
         }
       }
-      for (const [login, { membres }] of seules) {
+      for (const [login, { membres, section }] of seules) {
+        const couche = coucheDe(section);
+        sections.add(section);
         let p = parCarte.get(login);
         if (!p) { p = creerPastille(); parCarte.set(login, p); }
         garnirPastille(p, membres);
@@ -16949,7 +16996,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       }
       placer();
       marquer();
-      suivre(section);
+      suivre(sections);
     };
     salle.surChangement(marquer);
     /* LE CALQUE NE DOIT RIEN DÉPLACER, et c'est une hypothèse sur Twitch : sa
@@ -16962,7 +17009,15 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
        ouvertes sur tout le co-stream (`tous`). */
     const bilan = () => {
       const out = { affiches: parCle.size, clics, choix: choixDe.size,
-                    pastilles: parCarte.size, clicsPastilles, tous: tousOuverts };
+                    pastilles: parCarte.size, clicsPastilles, tous: tousOuverts,
+                    // 4.24.0.30 : les calques posés (un par section qui a des nœuds),
+                    // et les barres de Top Chaînes à qui il manquerait un membre
+                    // qui diffuse — zéro attendu : le classement complète ses places.
+                    calques: [...couches.values()].filter((c) => c.isConnected).length,
+                    classementIncomplet: incomplets.length,
+                    ...(incomplets.length ? { classementManquants: incomplets.slice(0, 5) } : {}) };
+      // L'écart, mesuré sous le calque de la section suivie.
+      const couche = document.getElementById('tse-noeuds');
       // Le prochain élément RENDU : Twitch garde dans la section des blocs
       // masqués (son en-tête, sous le nôtre), qui n'ont pas de place.
       let suivant = couche && couche.isConnected ? couche.nextElementSibling : null;
@@ -19068,7 +19123,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
      seule. La pastille, elle, parle d'une chaîne, pas d'un ensemble. */
   const pastilleDepuisGuestStar = (card) => {
     const login = card.dataset.tseLogin;
-    const mates = login ? getGuestStarMates(login) : [];
+    const mates = login ? camaradesDe(login) : [];
     if (!mates.length) { clearCollabBadge(card); return; }
     poserPastille(card, String(mates.length));
   };
@@ -21305,13 +21360,19 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
 
     // Lit les co-streamers à partir des cartes de la sidebar qui partagent
     // la même clé tseCostreamKey. Retourne les logins des AUTRES membres
-    // (pas du streamer courant). Heuristique basée sur catégorie + viewers,
-    // limitée à la section "Chaînes suivies".
+    // (pas du streamer courant).
+    /* DANS LA SECTION DE LA CARTE, ET ELLE SEULE (4.24.0.30). Les sections de
+       recommandation portent désormais leurs clés de co-stream (cf.
+       detectCoStreams) — les mêmes que la liste suivie pour une même session.
+       Lue dans la liste suivie en dur, une carte de « Chaînes live » y
+       trouvait ses camarades suivis et les mettait au badge bleu, « de cette
+       liste » : exactement ce que le scénario 150 interdit (cf.
+       `estDansLaBarre`, même règle). */
     const getCostreamMates = (card) => {
       const key = card.dataset.tseCostreamKey;
       if (!key) return [];
       const myLogin = card.dataset.tseLogin;
-      const section = followedSection();
+      const section = card.closest('.side-nav-section') || followedSection();
       if (!section) return [];
       const mates = [];
       section.querySelectorAll(`.side-nav-card[data-tse-costream-key]`).forEach(c => {
@@ -22920,7 +22981,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       positionPopup(card);
 
       // Badge "En live avec" (Guest Star) hors section "suivis" (Chaînes live,
-      // "regardent aussi") : le scan n'y déclenche aucun fetch Guest Star. On le
+      // "regardent aussi") : le scan les interroge depuis la 4.24.0.30, mais la
+      // réponse peut manquer encore (section qui vient d'apparaître). On le
       // demande donc à l'ouverture de la popup puis on insère le badge dès que
       // la donnée arrive. Idempotent : requestGuestStar dédoublonne, et
       // updateLiveWithBadge porte sa propre garde anti-race.
@@ -25917,9 +25979,11 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
   };
 
   // Garantit une résolution Guest Star pour `channelId` puis tient la promesse
-  // (avec l'entrée de cache, ou null en échec/cooldown). Sert aux sections hors
-  // "suivis" (Chaînes live, "regardent aussi") où le scan ne déclenche aucun
-  // fetch : la popup la demande à la volée à son ouverture.
+  // (avec l'entrée de cache, ou null en échec/cooldown). La popup la demande à
+  // son ouverture : la carte survolée peut appartenir à une section que le
+  // scan ne parcourt pas — masquée, ou pas encore vue. Depuis la 4.24.0.30, le
+  // scan interroge aussi les sections de recommandation visibles (cf.
+  // detectCoStreams), et la réponse est alors souvent déjà là.
   const requestGuestStar = (channelId) => new Promise(resolve => {
     if (!channelId) return resolve(null);
     const hit = gsCache.get(channelId);
@@ -26052,6 +26116,38 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     if (!hit || Date.now() - hit.ts >= INDEX_SESSION_MAX) return null;
     return hit.cle;
   };
+  /* ── LA SESSION D'UNE CARTE QUE SA PROPRE RÉPONSE NE DIT PAS (4.24.0.30) ──
+     SIGNALÉ EN TOP CHAÎNES, CAPTURE À L'APPUI : cinq cartes reliées par la
+     barre, « Regarder les 5 » | « Tout le co-stream · 6 » — et une sixième,
+     juste au-dessus, au même compteur combiné, dans la même catégorie, sans
+     barre. Or Top Chaînes promet le co-stream entier, et il était là.
+
+     DEUX SOURCES, ET ELLES DIVERGEAIENT. La place du classement range une
+     chaîne d'après l'INDEX — ce que la réponse de N'IMPORTE QUEL membre dit
+     de la session (cf. `placeDeRec`) : la sixième était donc dans la place,
+     à son rang. La barre, elle, ne reliait une carte que d'après SA PROPRE
+     réponse (`getHostId`). Une chaîne que ses camarades nomment mais dont la
+     réponse à elle ne rend pas la session restait dans la place et hors de
+     la barre. Le rapport dira laquelle des trois raisons c'était (cf.
+     `bilanCostream.rattachees`) : sa réponse « hors session », sa réponse
+     encore attendue, ou son identifiant de chaîne pas encore appris.
+
+     LA BARRE SUIT DÉSORMAIS LA MÊME SOURCE QUE LA PLACE, en repli seulement :
+     la réponse de la chaîne elle-même, quand elle nomme une session, reste la
+     plus autorisée. Quand elle n'en nomme pas, l'index tranche, avec sa
+     fraîcheur à lui : une chaîne qui a quitté la session n'est plus nommée
+     par ses camarades à leur réponse suivante, et son entrée s'éteint après
+     INDEX_SESSION_MAX — la même minute que la place du classement.
+     PAS DE DÉPARTAGE PAR LA DATE DES RÉPONSES, et il a été écrit puis
+     retiré : « sa propre réponse "hors session", plus récente que la
+     dernière qui la nommait, l'emporte » faisait battre la barre. Les
+     réponses ne partent pas toutes du même lot ; celle d'une chaîne
+     interrogée après les autres périme après elles, revient après elles,
+     et la carte serait sortie de sa barre puis rentrée à chaque cycle. */
+  const sessionSelonLesAutres = (login) => {
+    const cle = sessionDuMembre(login);
+    return typeof cle === 'string' && cle.startsWith('gs:') ? cle : null;
+  };
   /* Les membres d'une session, ou []. Même fraîcheur que le reste : une
      composition périmée ne doit plus rien faire apparaître. */
   const membresDeLaSession = (cle) => {
@@ -26072,6 +26168,17 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     const hit = gsCache.get(id);
     if (!hit || !Array.isArray(hit.mates)) return [];
     return hit.mates.filter(m => m.login !== login);
+  };
+  /* Ses camarades, et, quand sa propre réponse n'en nomme aucun, ceux que
+     l'index lui connaît (4.24.0.30, cf. `sessionSelonLesAutres`) : la même
+     source que sa barre et que sa place du classement. Sans ce repli, la
+     chaîne que ses camarades nomment, reliée à leur barre, n'aurait ni « ▶ »
+     ni pastille seule de son co-stream. */
+  const camaradesDe = (login) => {
+    const propres = getGuestStarMates(login);
+    if (propres.length || !login) return propres;
+    const l = String(login).toLowerCase();
+    return membresDeLaSession(sessionSelonLesAutres(l)).filter((m) => m?.login && m.login !== l);
   };
 
   /* ============================================================
@@ -26262,6 +26369,38 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     // dernier alternatif).
     const section = followedSection();
     const cards = section ? section.querySelectorAll('.side-nav-card') : [];
+    /* ── ET LES SECTIONS DE RECOMMANDATION (4.24.0.30) ──────────────────────
+       DEMANDÉ, CAPTURE À L'APPUI : dans « Chaînes live », deux cartes voisines
+       du même co-stream, chacune avec sa pastille « 5 » — « ce n'est pas
+       vraiment bon ». La logique de la section suivie s'y applique désormais :
+       la barre qui les relie, son nœud, le « ▶ » d'une carte seule, les
+       pastilles effacées. Toutes les sections de Twitch hors de la suivie —
+       « Chaînes live », « Les spectateurs de X regardent aussi » —, sauf
+       celles qu'un filtre ou Top Chaînes masque (cf.
+       updateSectionsVisibility) : on n'y relie rien de ce qu'on ne voit pas.
+       Leur ordre reste celui de Twitch ; deux membres que rien ne sépare s'y
+       relient, les autres y portent chacun un « ▶ ». LE BILAN, plus bas, ne
+       compte que la section suivie : il parle de ce que le classement et la
+       liste suivie montrent. */
+    const autres = [];
+    /* UN GROUPE PAR SECTION. Une même session peut avoir des membres dans la
+       liste suivie ET dans « Chaînes live » ; la barre ne relie que des
+       voisins, et deux sections ne sont jamais voisines. Un groupe se forme
+       donc dans chaque section à partir de DEUX de ses cartes — sinon un
+       membre suivi, seul de sa session dans la liste, aurait pris la couleur
+       d'un groupe que rien ne dessine à côté de lui. La clé de groupe porte sa
+       section (`gs:…@1`) ; la clé posée sur la carte, et la COULEUR, restent
+       celles de la session : un même co-stream a la même couleur partout. */
+    const rangSection = new Map(section ? [[section, 0]] : []);
+    for (const sec of document.querySelectorAll(`${DOM.sidebarRoot} .side-nav-section`)) {
+      if (sec === section || sec.classList.contains('tse-section-hidden')) continue;
+      rangSection.set(sec, rangSection.size + (section ? 0 : 1));
+      autres.push(...sec.querySelectorAll('.side-nav-card'));
+    }
+    const toutes = [...cards, ...autres];
+    const suiviesSet = new Set(cards);
+    const groupeDe = (cle, card) => `${cle}@${rangSection.get(card.closest('.side-nav-section')) ?? 0}`;
+    const sessionDeGroupe = (g) => g.slice(0, g.lastIndexOf('@'));
     const now = Date.now();
     const gsUsable = now >= gsCooldownUntil; // Guest Star opérationnel (hors cooldown)
 
@@ -26279,16 +26418,26 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     // il ne reste rien à relier, et la colorer isolément afficherait un
     // co-stream dont l'utilisateur ne voit qu'un membre. La remise à zéro des
     // marqueurs (§5), elle, continue de passer sur TOUTES les cartes.
-    cards.forEach(card => {
+    /* Les cartes que l'index range dans une session que leur propre réponse
+       ne dit pas (cf. `sessionSelonLesAutres`), et pourquoi — au bilan. */
+    const rattachees = [];
+    toutes.forEach(card => {
       if (!cardShown(card)) return;
       const login = card.dataset.tseLogin;
       if (!login) return;
-      const hostId = getHostId(getChannelId(login));
+      const id = getChannelId(login);
+      const hostId = getHostId(id);
       hostByCard.set(card, hostId);
-      if (typeof hostId !== 'string') return; // null (pas de co-stream) / undefined (inconnu)
-      const key = `gs:${hostId}`;
-      if (!groups.has(key)) groups.set(key, []);
-      groups.get(key).push(card);
+      // null (pas de co-stream) / undefined (inconnu) : l'index, en repli.
+      let key = typeof hostId === 'string' ? `gs:${hostId}` : null;
+      if (!key) {
+        key = sessionSelonLesAutres(login);
+        if (key) rattachees.push({ card, key: groupeDe(key, card), raison: !id ? 'sansId' : hostId === undefined ? 'inconnue' : 'horsSession' });
+      }
+      if (!key) return;
+      const g = groupeDe(key, card);
+      if (!groups.has(g)) groups.set(g, []);
+      groups.get(g).push(card);
     });
     // Un groupe Guest Star ne "couvre" ses membres (et ne les soustrait à
     // l'heuristique) qu'à partir de 2 membres suivis visibles : c'est ce qui
@@ -26307,7 +26456,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     // pour cette carte (host.id undefined + ID connu), on n'applique PAS
     // l'heuristique : on attend la vérité (~1s) → aucune transition de couleur
     // au démarrage.
-    cards.forEach(card => {
+    toutes.forEach(card => {
       if (!cardShown(card)) return;
       if (gsHandled.has(card)) return;
       if (gsUsable && hostByCard.get(card) === undefined && getChannelId(card.dataset.tseLogin)) return;
@@ -26321,7 +26470,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       // faire échouer un regroupement que Twitch affiche comme identique.
       const viewers = getCardViewersText(card);
       if (!viewers) return;
-      const key = `vh:${cat}|||${viewers}`;
+      const key = groupeDe(`vh:${cat}|||${viewers}`, card);
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key).push(card);
     });
@@ -26358,14 +26507,16 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     // (b) la dérive d'un compteur monotone. L'indice est le PLUS PETIT libre
     // parmi les couleurs encore réservées (déterministe, sans collision entre
     // groupes simultanés).
-    for (const key of activeKeys) {
+    // La couleur est celle de la SESSION, toutes sections confondues.
+    const sessionsActives = new Set([...activeKeys].map(sessionDeGroupe));
+    for (const key of sessionsActives) {
       const slot = costreamColorByKey.get(key);
       if (slot) slot.lastActiveTs = now;
     }
     // Purge des réservations dont la collaboration est réellement terminée
     // (inactives au-delà du délai de grâce).
     for (const [key, slot] of [...costreamColorByKey]) {
-      if (!activeKeys.has(key) && now - slot.lastActiveTs > CFG.COSTREAM_COLOR_GRACE) {
+      if (!sessionsActives.has(key) && now - slot.lastActiveTs > CFG.COSTREAM_COLOR_GRACE) {
         costreamColorByKey.delete(key);
       }
     }
@@ -26375,7 +26526,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       for (let i = 0; i < COSTREAM_PALETTE.length; i++) if (!reserved.has(i)) return i;
       return costreamColorByKey.size % COSTREAM_PALETTE.length; // palette saturée : recyclage
     };
-    for (const key of activeKeys) {
+    for (const key of sessionsActives) {
       if (!costreamColorByKey.has(key)) {
         const idx = pickIdx();
         reserved.add(idx);
@@ -26384,7 +26535,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     }
 
     // === 5) Reset des marqueurs, puis ré-application sur les actifs ======
-    cards.forEach(card => {
+    toutes.forEach(card => {
       card.classList.remove('tse-costream');
       card.style.removeProperty('--tse-costream-color');
       card.style.removeProperty('--tse-costream-bg');
@@ -26392,9 +26543,10 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       delete card.dataset.tseCostreamKey;
     });
 
-    for (const key of activeKeys) {
+    for (const g of activeKeys) {
+      const key = sessionDeGroupe(g);
       const palette = COSTREAM_PALETTE[costreamColorByKey.get(key).idx];
-      for (const card of groups.get(key)) {
+      for (const card of groups.get(g)) {
         card.classList.add('tse-costream');
         card.style.setProperty('--tse-costream-color',   palette.color);
         card.style.setProperty('--tse-costream-bg',      palette.bg);
@@ -26437,13 +26589,30 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     bilanCostream = { sessions: 0, groupes: 0, membres: 0, affiches: 0,
                       horsClassement: 0, horsClassementConnus: 0,
                         classesNonAffichees: 0, sousLaCoupe: 0,
-                        sousLaCoupeAvecCombine: 0 };
+                        sousLaCoupeAvecCombine: 0,
+                        /* 4.24.0.30 : les cartes reliées par l'index seul, et
+                           pourquoi leur propre réponse ne suffisait pas ; et
+                           les groupes des sections de recommandation, comptés
+                           à part — `groupes` reste celui de la section suivie. */
+                        rattachees: { total: 0, horsSession: 0, inconnue: 0, sansId: 0 },
+                        recommandations: { cartes: 0, groupes: 0 } };
     const parLogin = new Map();
     for (const card of cards) {
       const l = card.dataset.tseLogin;
       if (l && !parLogin.has(l)) parLogin.set(l, card);
     }
-    for (const key of activeKeys) if (key.startsWith('gs:')) bilanCostream.groupes += 1;
+    for (const g of activeKeys) {
+      const membres = groups.get(g) || [];
+      if (g.startsWith('gs:') && membres.some((c) => suiviesSet.has(c))) bilanCostream.groupes += 1;
+      if (membres.some((c) => !suiviesSet.has(c))) bilanCostream.recommandations.groupes += 1;
+    }
+    for (const c of autres) if (cardShown(c) && c.dataset.tseLogin) bilanCostream.recommandations.cartes += 1;
+    // Une carte rattachée compte si elle est bien entrée dans un groupe dessiné.
+    for (const { key, raison } of rattachees) {
+      if (!activeKeys.has(key)) continue;
+      bilanCostream.rattachees.total += 1;
+      bilanCostream.rattachees[raison] += 1;
+    }
 
     /* Une session se reconnaît à son hôte quand Twitch le nomme, et sinon à sa
        LISTE DE MEMBRES — deux cartes de la même session en rendent la même, et
@@ -26537,7 +26706,10 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       }
     }
 
-    return activeKeys.size; // nb de groupes co-stream détectés (Guest Star + repli)
+    // Nb de groupes co-stream détectés (Guest Star + repli) DANS LA LISTE
+    // SUIVIE : c'est elle que le tri « co-stream » range (4.24.0.30 : les
+    // groupes des sections de recommandation n'y comptent pas).
+    return [...activeKeys].filter((g) => g.endsWith('@0')).length;
   }
 
   // Fusion visuelle des barres co-stream : marque les cartes co-stream VISIBLES
@@ -26573,11 +26745,17 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       !c.parentElement?.closest('.side-nav-card')  // exclut le <a> interne (mode réduit)
     );
     // 1) Repère les paires voisines à joindre (même clé), sans lire le layout.
+    /* DANS UNE MÊME SECTION (4.24.0.30) : depuis que les sections de
+       recommandation ont leurs co-streams, la dernière carte suivie et la
+       première de « Chaînes live » peuvent porter la même clé — un co-stream
+       à cheval sur les deux listes. Deux sections ne se relient pas : leur
+       en-tête est entre elles. */
     const pairs = [];
     for (let i = 0; i < visible.length - 1; i++) {
       const a = visible[i], b = visible[i + 1];
       const key = a.dataset.tseCostreamKey;
-      if (key && key === b.dataset.tseCostreamKey) pairs.push([a, b]);
+      if (key && key === b.dataset.tseCostreamKey
+          && a.closest('.side-nav-section') === b.closest('.side-nav-section')) pairs.push([a, b]);
     }
     if (!pairs.length) return [];
     // 2) Mesure l'interstice de chaque paire (lectures groupées) et ÉCARTE
@@ -26644,38 +26822,73 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
          membres diffusent : sa pastille devient le nœud, « ▶ ». Elle d'abord,
          puis les autres, dans le même ordre. Personne d'autre ne diffuse, ou
          la session est inconnue : la pastille reste un nombre.
+     LES SECTIONS DE RECOMMANDATION (4.24.0.30) — « Chaînes live »… — ont les
+     mêmes entrées : leurs barres, et leurs cartes seules.
      ET LA PASTILLE DE NOMBRE S'EFFACE sur les cartes de l'une et de l'autre
      (`data-tse-pastille`), par une règle de la feuille qui la rend quand la
      salle est coupée. Un attribut : l'observateur de la barre ne le voit
      pas. Rien n'est demandé à Twitch : tout est déjà dans le cache. */
   function entreesSalle(barres) {
     const section = followedSection();
-    const cartes = section
-      ? [...section.querySelectorAll('.side-nav-card')].filter((c) => !c.parentElement?.closest('.side-nav-card'))
-      : [];
+    const canoniques = (sec) => [...sec.querySelectorAll('.side-nav-card')]
+      .filter((c) => !c.parentElement?.closest('.side-nav-card'));
+    const cartes = section ? canoniques(section) : [];
+    /* Les sections de recommandation qu'on voit (4.24.0.30, cf.
+       detectCoStreams) : leurs barres arrivent avec les autres, leurs cartes
+       seules y prennent un « ▶ » comme dans la section suivie. */
+    const recommandees = [];
+    for (const sec of document.querySelectorAll(`${DOM.sidebarRoot} .side-nav-section`)) {
+      if (sec === section || sec.classList.contains('tse-section-hidden')) continue;
+      recommandees.push(...canoniques(sec));
+    }
     const suivies = new Set();
     for (const c of cartes) {
       if (c.dataset.tseLogin && c.dataset.tseGlobal !== 'true') suivies.add(c.dataset.tseLogin);
     }
-    const quiDiffusent = (login) => getGuestStarMates(login)
-      .filter((m) => m.enLigne !== false).map((m) => m.login);
+    /* ET CE QUE LA BARRE SAIT DÉJÀ (4.24.0.30) : une chaîne dont la carte
+       est donnée hors ligne ne diffuse pas, quoi que dise `enLigne`. C'est le
+       cas de l'hôte jamais sondé (`null`, compté faute de savoir) que Top
+       Chaînes a complété : sa carte arrive, se révèle hors ligne, et il ne
+       doit plus compter — ni dans « tout », ni comme membre manquant. */
+    /* Le login par le lien quand la carte n'en porte pas : une carte que
+       Twitch rend déjà hors ligne sort de processCard avant qu'on le lui
+       pose. */
+    const horsLigne = new Set([...document.querySelectorAll('.side-nav-card[data-tse-offline="true"]')]
+      .map((c) => c.dataset.tseLogin || loginFromHref(c.querySelector(DOM.cardLinkSelector)?.getAttribute('href')))
+      .filter(Boolean));
+    const quiDiffusent = (login) => camaradesDe(login)
+      .filter((m) => m.enLigne !== false && !horsLigne.has(m.login)).map((m) => m.login);
     // Ceux qu'on suit d'abord ; le tri est stable, l'ordre de la session tient.
     const suiviesDabord = (logins) => logins.sort((a, b) => Number(suivies.has(b)) - Number(suivies.has(a)));
     const marques = new Map();
-    const sortie = { barres: [], seules: [] };
+    const sortie = { barres: [], seules: [], classementIncomplet: [] };
     for (const barre of barres || []) {
       const membres = [...new Set(barre.map((c) => c.dataset.tseLogin).filter(Boolean))];
       const autres = [];
       for (const l of membres) {
         for (const m of quiDiffusent(l)) if (!membres.includes(m) && !autres.includes(m)) autres.push(m);
       }
-      const tous = autres.length && membres.length < CFG.SALLE_MAX
+      /* ── EN TOP CHAÎNES, JAMAIS DE « TOUT » (4.24.0.30) ───────────────────
+         SIGNALÉ : « on peut voir "Tout le co-stream", normalement ce n'est
+         pas possible, on devrait avoir toutes les cartes des co-streams
+         visibles ». C'est la promesse du classement : sa place est complétée
+         avec tous ceux qui diffusent (cf. `completer`), et sa barre les relie
+         tous (cf. `sessionSelonLesAutres`). Une barre du classement EST donc
+         tout le co-stream, et le choix n'y a pas de sens. Si un membre y
+         manquait quand même, ce serait un défaut, pas un choix à offrir : le
+         rapport le nomme (`classementIncomplet`). */
+      const classement = barre[0].dataset.tseGlobal === 'true';
+      if (classement && autres.length) sortie.classementIncomplet.push(`${membres.join(' ')} → ${autres.join(' ')}`);
+      const tous = !classement && autres.length && membres.length < CFG.SALLE_MAX
         ? [...membres, ...suiviesDabord(autres)].slice(0, CFG.SALLE_MAX)
         : null;
-      sortie.barres.push({ barre, membres, tous, classement: barre[0].dataset.tseGlobal === 'true' });
+      /* « Les 4 suivis » ne se dit que d'une barre de la section suivie ; en
+         « Chaînes live », « Regarder les 2 ». */
+      const suivie = !classement && !!section && section.contains(barre[0]);
+      sortie.barres.push({ barre, membres, tous, suivie });
       for (const c of barre) marques.set(c, 'barre');
     }
-    for (const c of cartes) {
+    for (const c of [...cartes, ...recommandees]) {
       if (marques.has(c) || c.dataset.tseGlobal === 'true' || !cardShown(c)) continue;
       const login = c.dataset.tseLogin;
       if (!login) continue;

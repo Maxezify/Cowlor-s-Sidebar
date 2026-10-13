@@ -18485,9 +18485,15 @@ addEventListener('message', (e) => {
   }));
 
   /* LE DÉCOR JOUE BIEN LE CAS : la pastille annonce plus de participants qu'il
-     n'y a de lignes groupées — la contradiction même du rapport de terrain. */
+     n'y a de lignes groupées — la contradiction même du rapport de terrain.
+     QUATRE LIGNES DEPUIS LA 4.24.0.30, ET NON PLUS TROIS : « petit », que ce
+     décor n'interroge pas pour lui-même (pas d'entrée Guest Star à son nom),
+     était dans la place du classement — l'index de ses camarades — et hors de
+     la barre. C'était, sans qu'on l'ait vu, le défaut signalé en Top Chaînes
+     (cf. 195) ; il rejoint désormais la barre. L'hôte, sans fiche, reste
+     hors ligne : cinq participants, quatre lignes. */
   ok('la pastille annonce plus de participants que la liste n\'en montre',
-     vu.pastilles.length === 3 && vu.pastilles.every((x) => x === '4'),
+     vu.pastilles.length === 4 && vu.pastilles.every((x) => x === '4'),
      JSON.stringify(vu.pastilles));
   /* ── CE QUE LA 4.15.7 A RENVERSÉ ICI, ET POURQUOI C'EST JUSTE ───────────
      CETTE ASSERTION EXIGEAIT LE CONTRAIRE : que « absent », membre de session
@@ -29525,6 +29531,313 @@ const S_LECTEUR_SONDE = () => {
      && bilan?.clicsPastilles === 2 && bilan?.tous === 3,
      JSON.stringify(bilan));
   await page.close();
+}
+
+/* ═════════ LA BARRE ENTIÈRE EN TOP CHAÎNES, ET « CHAÎNES LIVE » ═════════════
+   DEUX SIGNALEMENTS (4.24.0.30), captures à l'appui :
+     — EN TOP CHAÎNES, « Regarder les 5 » | « Tout le co-stream · 6 », et la
+       sixième carte juste au-dessus, au même compteur, sans barre. « Ce n'est
+       pas possible : on devrait avoir toutes les cartes des co-streams. »
+       La place du classement lisait l'INDEX de session (ce que n'importe quel
+       membre en dit), la barre la seule réponse de la carte : une chaîne que
+       sa propre réponse ne dit pas en session — ici l'hôte, que le décor ne
+       sert pas pour lui-même — était dans la place et hors de la barre ;
+     — DANS « CHAÎNES LIVE », deux membres voisins d'un même co-stream avec
+       chacun sa pastille : la logique de la liste suivie doit s'y appliquer.
+   LE DÉCOR :
+     — suivies : « solo » ; « tete », « ami », « amie », d'une même session
+       dont « tete » est l'hôte, SANS réponse à son nom ; dans la session aussi
+       « loin » (qu'on ne suit pas, qui diffuse) et « muet » (invité sans
+       stream) ;
+     — « Chaînes live » : « loin » et « loin2 » d'abord — même session que la
+       barre suivie, juste sous elle, de l'autre côté de l'en-tête —, puis « rouge1 »
+       et « rouge2 », d'une session dont « rouge3 » diffuse sans carte,
+       « rouge4 » n'a pas de stream, et dont l'hôte « rouge0 » — que Twitch ne
+       nomme pas parmi ses invités, `enLigne` inconnu — est une chaîne suivie
+       HORS LIGNE ; puis « seul1 », dont un camarade, « seulf », est une
+       chaîne suivie, et l'autre, « seul2 », diffuse sans carte. */
+{
+  titre('195. La barre entière en Top Chaînes, et le co-stream dans « Chaînes live »');
+  const { page, ratees } = await pageVariante([
+    [/REFRESH_TICK:\s*100\b/, 'REFRESH_TICK:   5_000'],
+    [/LIVE_TTL:\s*600\b/, 'LIVE_TTL:       30_000'],
+    [/SUBS_PAGE_TTL:\s*4_000\b/, 'SUBS_PAGE_TTL: 6 * 60 * 60_000'],
+  ], null, '/directory');
+  ok('la variante porte le réveil, la fraîcheur et le relevé de production',
+     ratees.length === 0, JSON.stringify(ratees));
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.route('https://player.twitch.tv/**', (route) => route.fulfill({
+    contentType: 'text/html; charset=utf-8', body: '<!doctype html><html><body style="margin:0;background:#000"></body></html>' }));
+  await page.route('https://www.twitch.tv/embed/**', (route) => route.fulfill({
+    contentType: 'text/html; charset=utf-8', body: '<!doctype html><html><body></body></html>' }));
+  await page.addStyleTag({ content: '#side-nav { width: 240px; overflow-x: hidden; } #tse-bulle { display: none !important; }' });
+  await page.evaluate(() => {
+    const il = (min) => new Date(Date.now() - min * 60_000).toISOString();
+    const c = (id, v, min) => ({ id, createdAt: il(min), viewers: v, game: 'Rust', tags: [] });
+    window.__fx = {
+      solo: c('9501', 9000, 100), tete: c('9511', 2000, 90), ami: c('9512', 1500, 80), amie: c('9513', 1400, 70),
+      loin: c('9514', 100, 60), loin2: c('9517', 90, 61), rouge0: null, seulf: c('9533', 300, 25),
+      rouge1: c('9521', 3000, 50), rouge2: c('9522', 2900, 40), rouge3: c('9523', 100, 30),
+      seul1: c('9531', 800, 20), seul2: c('9532', 100, 10),
+    };
+    const m = (id, login, viewers, combined, sansStream) =>
+      ({ id, login, viewers, combined, ...(sansStream ? { sansStream: true } : {}) });
+    const G = [m('9511', 'tete', 2000, 5000), m('9512', 'ami', 1500, 5000), m('9513', 'amie', 1400, 5000),
+               m('9514', 'loin', 100, 5000), m('9517', 'loin2', 90, 5000), m('9515', 'muet', 0, null, true)];
+    const R = [m('9521', 'rouge1', 3000, 6000), m('9522', 'rouge2', 2900, 6000), m('9523', 'rouge3', 100, 6000),
+               m('9524', 'rouge4', 0, null, true)];
+    // Un combiné de 7 k : « seulf » se range AU-DESSUS de la barre suivie, qui
+    // finit donc la liste — juste au-dessus de « Chaînes live ».
+    const Sx = [m('9531', 'seul1', 800, 7000), m('9533', 'seulf', 300, 7000), m('9532', 'seul2', 100, 7000)];
+    window.__gs = {};
+    // « tete », l'hôte, n'a PAS d'entrée à son nom : sa propre réponse ne dit pas la session.
+    for (const id of ['9512', '9513', '9514', '9517']) window.__gs[id] = { hostId: '9511', hostLogin: 'tete', guests: G };
+    // L'hôte « rouge0 » n'est pas parmi les invités : son `enLigne` reste inconnu.
+    for (const id of ['9521', '9522']) window.__gs[id] = { hostId: '9520', hostLogin: 'rouge0', guests: R };
+    for (const id of ['9531', '9533']) window.__gs[id] = { hostId: '9531', hostLogin: 'seul1', guests: Sx };
+    for (const [l, v] of [['solo', '9 k'], ['tete', '5 k'], ['ami', '5 k'], ['amie', '5 k'], ['seulf', '7 k']]) {
+      window.__addCard(l, 'Rust', v);
+    }
+    window.__addCard('rouge0', 'Rust', '', false);
+    for (const [l, v] of [['loin', '5 k'], ['loin2', '5 k'], ['rouge1', '6 k'], ['rouge2', '6 k'], ['seul1', '7 k']]) {
+      window.__addReco(l, 'Rust', v);
+    }
+  });
+  const live = '.side-nav-section[aria-label="Chaînes live"]';
+  await attendre(page, () => !document.body.classList.contains('tse-loading')
+    && document.querySelectorAll('#tse-noeuds .tse-noeud').length === 1
+    && document.querySelectorAll('.side-nav-section[aria-label="Chaînes live"] .tse-noeud').length === 2
+    && document.querySelectorAll('.side-nav-section[aria-label="Chaînes live"] .tse-pastille-salle').length === 1, 20_000);
+  await wait(page, 400);
+
+  const lire = () => page.evaluate((live) => {
+    const sec = document.querySelector(live);
+    const carte = (l) => document.querySelector(`.side-nav-card[data-tse-login="${l}"]`);
+    const etat = (l) => {
+      const c = carte(l);
+      const b = c?.querySelector('.tse-collab-badge');
+      return c ? { barre: c.classList.contains('tse-costream'), cle: c.dataset.tseCostreamKey ?? null,
+                   jointe: c.classList.contains('tse-costream-join-top') || c.classList.contains('tse-costream-join-bottom'),
+                   couleur: c.style.getPropertyValue('--tse-costream-color') || null,
+                   marque: c.dataset.tsePastille ?? null, pastille: b ? b.textContent : null,
+                   pastilleVue: !!b && b.getClientRects().length > 0 } : null;
+    };
+    const noeud = (n) => {
+      if (!n) return null;
+      const r = n.getBoundingClientRect();
+      const choix = n.nextElementSibling?.classList.contains('tse-noeud__choix') ? n.nextElementSibling : null;
+      const txt = (sel) => choix?.querySelector(sel)?.textContent ?? null;
+      return { barre: n.dataset.tseNoeud, tous: n.dataset.tseTous ?? null, presse: n.getAttribute('aria-pressed'),
+               calque: n.parentElement?.id || n.parentElement?.className, x: r.left + r.width / 2, y: r.top + r.height / 2,
+               suivis: txt('.tse-noeud__option--barre'), toutTexte: txt('.tse-noeud__option--tous'),
+               section: n.closest('.side-nav-section')?.getAttribute('aria-label') };
+    };
+    const fleches = (racine) => [...racine.querySelectorAll('.tse-pastille-salle')].map((p) => {
+      const r = p.getBoundingClientRect();
+      return { membres: p.dataset.tseNoeud, vue: r.width > 0, x: r.left + r.width / 2, y: r.top + r.height / 2,
+               section: p.closest('.side-nav-section')?.getAttribute('aria-label') };
+    });
+    const r = window.tse.panneau.rapport();
+    return {
+      suivie: noeud(document.querySelector('#tse-noeuds .tse-noeud')),
+      live: noeud([...(sec?.querySelectorAll('.tse-noeud') || [])].find((n) => n.dataset.tseNoeud.includes('rouge'))),
+      liveLoin: noeud([...(sec?.querySelectorAll('.tse-noeud') || [])].find((n) => n.dataset.tseNoeud.includes('loin'))),
+      flechesLive: sec ? fleches(sec) : [], flechesSuivies: fleches(document.getElementById('tse-noeuds') || document.body),
+      calques: [...document.querySelectorAll('.tse-noeuds')].map((c) => [c.id || '-', c.parentElement?.getAttribute('aria-label')]),
+      cartes: Object.fromEntries(['solo', 'tete', 'ami', 'amie', 'seulf', 'loin', 'loin2', 'rouge1', 'rouge2', 'seul1'].map((l) => [l, etat(l)])),
+      jointures: Object.fromEntries(['amie', 'loin'].map((l) => {
+        const c = document.querySelector(`.side-nav-card[data-tse-login="${l}"]`);
+        return [l, c ? [c.classList.contains('tse-costream-join-top'), c.classList.contains('tse-costream-join-bottom')] : null];
+      })),
+      liveVisible: !!sec && getComputedStyle(sec).display !== 'none',
+      // La dernière carte AFFICHÉE de la liste suivie : la voisine, par-dessus l'en-tête, de la première de « Chaînes live ».
+      derniereSuivie: [...(document.querySelector('.side-nav-section[aria-label="Chaînes suivies"]')?.querySelectorAll('.side-nav-card') || [])]
+        .filter((c) => getComputedStyle(c).display !== 'none').map((c) => c.dataset.tseLogin).pop() ?? null,
+      rattachees: r.coStream?.rattachees, recommandations: r.coStream?.recommandations,
+      groupes: r.coStream?.groupes, noeuds: r.salle?.noeuds,
+    };
+  }, live);
+  const fl = (liste, premier) => liste.find((p) => p.membres.split(' ')[0] === premier);
+  const salle = () => page.evaluate(() => ({
+    ouverte: !!document.getElementById('tse-salle'),
+    chaines: [...document.querySelectorAll('#tse-salle .tse-salle__tuile, #tse-salle .tse-salle__remplacant')]
+      .map((t) => t.dataset.tseSalleChaine).join(),
+  }));
+
+  const e1 = await lire();
+  /* L'HÔTE SANS RÉPONSE À SON NOM, RELIÉ PAR CE QUE SES CAMARADES DISENT :
+     la barre des trois suivies, et sa pastille comptée sur l'index (cinq
+     camarades, « muet » compris : elle dit avec combien de personnes). « tout »
+     ajoute « loin » et « loin2 », pas « muet », sans stream. Mutants — la
+     barre sur la seule réponse de la carte ; la pastille de l'hôte sur sa
+     seule réponse. */
+  ok('l\'hôte que sa propre réponse ne dit pas en session rejoint la barre de ses camarades ; « tout » sans l\'invité muet',
+     e1.suivie?.barre?.split(' ').sort().join() === 'ami,amie,tete'
+     && e1.suivie?.tous?.split(' ').slice(3).join() === 'loin,loin2'
+     && e1.suivie?.suivis === 'Les 3 suivis' && e1.suivie?.toutTexte === 'Tout le co-stream · 5'
+     && e1.cartes.tete?.barre && e1.cartes.tete?.marque === 'barre' && e1.cartes.tete?.pastille === '5'
+     && e1.rattachees?.horsSession >= 1 && e1.rattachees?.total >= 1,
+     JSON.stringify({ suivie: e1.suivie, tete: e1.cartes.tete, rattachees: e1.rattachees }));
+  /* « CHAÎNES LIVE », LA MÊME LOGIQUE : la barre des deux voisines, son nœud
+     dans un calque à elle (et non celui de la liste suivie), « Regarder les
+     2 » — elles ne sont pas « suivies » — | « Tout le co-stream · 3 » : sans
+     « rouge4 », sans stream, et sans l'hôte « rouge0 », dont on ne sait pas
+     s'il diffuse mais dont la carte est hors ligne ; leurs pastilles
+     effacées, toujours dans la carte ; « seul1 », seule de sa session, un
+     « ▶ ». Mutants — les sections de recommandation ignorées ; un seul
+     calque ; « Les 2 suivis » ; leurs cartes seules oubliées ; l'hôte hors
+     ligne compté. */
+  ok('« Chaînes live » : la barre des deux voisines, son nœud dans son calque, « Regarder les 2 » | « Tout le co-stream · 3 » ; « seul1 » prend un « ▶ »',
+     e1.live?.barre === 'rouge1 rouge2' && e1.live?.tous === 'rouge1 rouge2 rouge3'
+     && e1.live?.section === 'Chaînes live' && e1.live?.calque === 'tse-noeuds'
+     && e1.live?.suivis === 'Regarder les 2' && e1.live?.toutTexte === 'Tout le co-stream · 3'
+     && e1.cartes.rouge1?.barre && e1.cartes.rouge1?.jointe && e1.cartes.rouge1?.marque === 'barre'
+     && e1.cartes.rouge1?.pastille === '4' && !e1.cartes.rouge1?.pastilleVue && !e1.cartes.rouge2?.pastilleVue
+     && fl(e1.flechesLive, 'seul1')?.membres === 'seul1 seulf seul2' && fl(e1.flechesLive, 'seul1')?.vue
+     && JSON.stringify(e1.calques) === JSON.stringify([['tse-noeuds', 'Chaînes suivies'], ['-', 'Chaînes live']])
+     && e1.noeuds?.calques === 2 && e1.recommandations?.groupes === 2,
+     JSON.stringify({ live: e1.live, rouge1: e1.cartes.rouge1, fleches: e1.flechesLive, calques: e1.calques, rec: e1.recommandations }));
+  /* DEUX SECTIONS NE SE RELIENT PAS. « loin » et « loin2 », de la même
+     session que la barre suivie, ouvrent « Chaînes live » juste sous elle, de
+     l'autre côté de l'en-tête : deux barres, une par section, à la MÊME
+     couleur (la session), et rien qui passe d'une liste à l'autre — « amie »,
+     au bas de la sienne, ne se prolonge pas vers « loin ». « seulf », suivie,
+     seule de sa session dans la liste suivie, et « seul1 », seule dans
+     « Chaînes live » : chacune son « ▶ », ni l'une ni l'autre colorée.
+     Mutants — la jointure par-dessus l'en-tête ; un groupe formé à cheval sur
+     deux sections (qui colorerait « seulf » et « seul1 » et leur ôterait leur
+     « ▶ »). */
+  ok('deux sections ne se relient pas : une barre par section, à la couleur de la session ; chacune des deux seules, son « ▶ »',
+     e1.liveLoin?.barre === 'loin loin2' && e1.liveLoin?.section === 'Chaînes live'
+     && e1.liveLoin?.suivis === 'Regarder les 2' && e1.liveLoin?.tous?.split(' ').slice(2).join() === 'tete,ami,amie'
+     && e1.cartes.loin?.barre && e1.cartes.loin?.couleur === e1.cartes.amie?.couleur
+     && e1.derniereSuivie === 'amie' && e1.jointures.amie?.[1] === false && e1.jointures.loin?.[0] === false
+     && !e1.cartes.seulf?.barre && e1.cartes.seulf?.marque === 'seule' && !e1.cartes.seul1?.barre
+     && fl(e1.flechesSuivies, 'seulf')?.membres === 'seulf seul1 seul2'
+     && e1.cartes.amie?.couleur && e1.cartes.rouge1?.couleur && e1.cartes.amie.couleur !== e1.cartes.rouge1.couleur,
+     JSON.stringify({ liveLoin: e1.liveLoin, loin: e1.cartes.loin, amie: e1.cartes.amie, jointures: e1.jointures,
+                      seulf: e1.cartes.seulf, flechesSuivies: e1.flechesSuivies }));
+
+  /* L'APERÇU D'UNE CARTE DE « CHAÎNES LIVE » : le bleu (« de cette liste »)
+     nomme « loin2 », sa voisine de barre ; le violet, ceux qui diffusent
+     ailleurs — les trois suivies. Mutant — les camarades lus dans la liste
+     suivie : « tete », « ami », « amie » au bleu, puisqu'ils portent la même
+     clé de session. */
+  await page.evaluate(() => document.querySelector('.side-nav-card[data-tse-login="loin"]')
+    ?.dispatchEvent(new MouseEvent('mouseenter', { bubbles: false })));
+  await attendre(page, () => !!document.querySelector('.tse-preview__badge--costream'), 6000);
+  await wait(page, 400);
+  const apercu = await page.evaluate(() => {
+    const t = (sel) => document.querySelector(sel)?.textContent?.trim() || null;
+    return { bleu: t('.tse-preview__badge--costream'), violet: t('.tse-preview__badge--squad') };
+  });
+  await page.mouse.move(900, 700);
+  await page.evaluate(() => document.querySelector('.side-nav-card[data-tse-login="loin"]')
+    ?.dispatchEvent(new MouseEvent('mouseleave', { bubbles: false })));
+  await wait(page, 400);
+  ok('l\'aperçu d\'une carte de « Chaînes live » : le bleu nomme sa voisine de barre, le violet les suivies',
+     /loin2/i.test(apercu.bleu || '') && !/tete|ami/i.test(apercu.bleu || '')
+     && /tete/i.test(apercu.violet || '') && /amie/i.test(apercu.violet || ''),
+     JSON.stringify(apercu));
+
+  // La salle depuis « Chaînes live », le nœud puis le « ▶ ».
+  if (e1.live) await page.mouse.click(e1.live.x, e1.live.y);
+  await wait(page, 400);
+  const o1 = await salle();
+  await page.evaluate(() => window.tse.salle.fermer());
+  await wait(page, 300);
+  const s1 = fl(e1.flechesLive, 'seul1');
+  if (s1) await page.mouse.click(s1.x, s1.y);
+  await wait(page, 400);
+  const o2 = await salle();
+  await page.evaluate(() => window.tse.salle.fermer());
+  await page.mouse.move(900, 700);
+  await wait(page, 300);
+  // Mutant — le calque de la section suivie seul : le nœud de « Chaînes live » placé ailleurs que sur sa barre.
+  ok('depuis « Chaînes live », le nœud ouvre ses deux voisines, le « ▶ » « seul1 » et ses camarades',
+     o1.ouverte && o1.chaines === 'rouge1,rouge2' && o2.ouverte && o2.chaines === 'seul1,seulf,seul2',
+     JSON.stringify({ o1, o2 }));
+
+  // ── Un filtre de catégorie masque « Chaînes live » : rien n'y reste ───────
+  await page.evaluate(() => [...document.querySelectorAll('#tse-cat-dd .tse-dd-opt')]
+    .find((x) => x.dataset.value === 'Rust')?.click());
+  await attendre(page, () => getComputedStyle(document.querySelector('.side-nav-section[aria-label="Chaînes live"]')).display === 'none', 6000);
+  await wait(page, 600);
+  const f1 = await lire();
+  await page.evaluate(() => document.querySelector('#tse-cat-dd .tse-dd-opt[data-value=""]')?.click());
+  await wait(page, 600);
+  /* Mutant — les sections masquées parcourues : des nœuds et des « ▶ »
+     posés pour des cartes qu'on ne voit pas. */
+  ok('un filtre masque « Chaînes live » : ni nœud ni « ▶ » n\'y restent, la liste suivie garde les siens',
+     !f1.liveVisible && !f1.live && f1.flechesLive.length === 0 && f1.suivie?.barre?.split(' ').length === 3
+     && f1.recommandations?.cartes === 0,
+     JSON.stringify({ live: f1.live, fleches: f1.flechesLive, suivie: f1.suivie, rec: f1.recommandations }));
+
+  // ── Top Chaînes : la place entière, la barre entière, pas de « tout » ─────
+  await page.evaluate(() => {
+    /* La carte hors ligne de « rouge0 » quitte la liste, comme Twitch finit
+       par retirer ses cartes « Déconnecté(e) » : Top Chaînes complète sa place
+       avec une carte à lui, qui se découvre hors ligne. */
+    document.querySelector('.side-nav-card[data-tse-login="rouge0"]')?.remove();
+    const v = (login, viewers) => ({ login, viewers });
+    window.__cats = [{ name: 'Rust', viewers: 100000, streams: [
+      v('solo', 9000), v('rouge1', 6000), v('rouge2', 6000), v('ami', 5000), v('amie', 5000), v('loin', 5000),
+      v('loin2', 5000), v('seul1', 7000)] }];
+    window.tse.global.on();
+  });
+  await attendre(page, () => document.body.classList.contains('tse-global-ready')
+    && [...document.querySelectorAll('.side-nav-card[data-tse-global="true"]')].some((c) => c.dataset.tseLogin === 'tete')
+    && !!document.querySelector('#tse-noeuds .tse-noeud'), 20_000);
+  await wait(page, 1200);
+  const g1 = await page.evaluate(() => {
+    const top = [...document.querySelectorAll('.side-nav-card[data-tse-global="true"]')]
+      .filter((c) => getComputedStyle(c).display !== 'none');
+    const noeuds = [...document.querySelectorAll('.tse-noeud')].map((n) => ({ barre: n.dataset.tseNoeud, tous: n.dataset.tseTous ?? null }));
+    const r = window.tse.panneau.rapport();
+    return { ordre: top.map((c) => c.dataset.tseLogin), barres: top.filter((c) => c.classList.contains('tse-costream')).map((c) => c.dataset.tseLogin),
+             noeuds, choix: document.querySelectorAll('.tse-noeud__choix').length, fleches: document.querySelectorAll('.tse-pastille-salle').length,
+             incomplet: r.salle?.noeuds?.classementIncomplet, rattachees: r.coStream?.rattachees };
+  });
+  await page.evaluate(() => window.tse.global.off());
+  /* LE SIGNALEMENT, REJOUÉ : la place de la session — l'hôte « tete », que
+     le répertoire du décor ne rend même pas, complété — et la barre qui la
+     relie ENTIÈRE ; aucun choix « tout » en Top Chaînes ; aucun membre qui
+     diffuse ne manque à une barre du classement. Mutants — la barre sur la
+     seule réponse de la carte (« tete » hors barre, « Regarder les 3 » |
+     « Tout le co-stream · 4 », exactement la capture) ; « tout » offert au
+     classement. */
+  const placeT = g1.noeuds.find((n) => n.barre.split(' ').includes('ami'));
+  ok('Top Chaînes : la place de l\'hôte sans réponse propre, reliée entière par sa barre — pas de « Tout le co-stream »',
+     ['tete', 'ami', 'amie', 'loin'].every((l) => g1.barres.includes(l))
+     && placeT?.barre.split(' ').sort().join() === 'ami,amie,loin,loin2,tete' && placeT?.tous === null
+     && g1.choix === 0 && g1.fleches === 0 && g1.incomplet === 0 && g1.rattachees?.horsSession >= 1
+     && !g1.ordre.includes('rouge0'),
+     JSON.stringify(g1));
+  await page.close();
+
+  /* LE TRI « CO-STREAM » NE COMPTE QUE LA LISTE SUIVIE : il range les
+     cartes suivies, et une liste suivie sans co-stream le dit — même quand
+     « Chaînes live » en montre un. Mutant — les groupes de toutes les
+     sections comptés. */
+  const p2 = await fresh();
+  await p2.evaluate(() => {
+    const h = new Date(Date.now() - 60 * 60_000).toISOString();
+    const c = (id, v) => ({ id, createdAt: h, viewers: v, game: 'Rust', tags: [] });
+    window.__fx = { solo: c('9601', 900), r1: c('9611', 600), r2: c('9612', 500) };
+    const R = [{ id: '9611', login: 'r1', viewers: 600, combined: 1100 }, { id: '9612', login: 'r2', viewers: 500, combined: 1100 }];
+    window.__gs = { 9611: { hostId: '9611', hostLogin: 'r1', guests: R }, 9612: { hostId: '9611', hostLogin: 'r1', guests: R } };
+    window.__addCard('solo', 'Rust', '900');
+    window.__addReco('r1', 'Rust', '1,1 k');
+    window.__addReco('r2', 'Rust', '1,1 k');
+  });
+  await attendre(p2, () => document.querySelectorAll('#reco .side-nav-card.tse-costream').length === 2, 12_000);
+  await wait(p2, 400);
+  const tri = await p2.evaluate(() => ({
+    bouton: document.querySelector('#tse-sort-row [data-tse-sort-mode="costream"]')?.disabled ?? null,
+    noeud: !!document.querySelector('.side-nav-section[aria-label="Chaînes live"] .tse-noeud') }));
+  await p2.close();
+  ok('le tri « co-stream » reste indisponible quand seule « Chaînes live » en montre un',
+     tri.bouton === true && tri.noeud === true, JSON.stringify(tri));
 }
 
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════

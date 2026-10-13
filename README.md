@@ -2180,6 +2180,158 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## La barre entière en Top Chaînes, et le co-stream dans « Chaînes live » (v4.24.0.30)
+
+Deux retours, captures à l'appui. D'abord, en Top Chaînes : « on peut voir
+"Tout le co-stream", normalement ce n'est pas possible, on devrait avoir
+toutes les cartes des co-streams visibles sur la sidebar dans "Top Chaînes".
+Investigue et fix rigoureusement. » La capture : cinq cartes reliées par la
+barre, « Regarder les 5 » | « Tout le co-stream · 6 » — et une sixième juste
+au-dessus, au même compteur combiné, dans la même catégorie, sans barre.
+Ensuite : « applique cette logique des pastilles, co-stream etc. dans la
+partie "Chaînes live" » — deux membres voisins d'un même co-stream y portaient
+chacun leur pastille « 5 ». Publiée sur `claude/chrome-multi` seulement.
+
+### Pourquoi la sixième carte restait hors de la barre
+
+**Deux sources, et elles divergeaient.** Depuis la 4.18, la *place* d'un
+co-stream au classement se forme d'après l'**index** de session : ce que la
+réponse Guest Star de *n'importe quel* membre dit de la session. La sixième
+chaîne y était, à son rang — c'est pour ça qu'elle était juste au-dessus. La
+*barre*, elle, ne reliait une carte que d'après **sa propre** réponse. Une
+chaîne que ses camarades nomment, mais dont la réponse à elle ne rend pas la
+session, était donc dans la place et hors de la barre. Et la barre des cinq,
+voyant un sixième membre qui diffuse hors d'elle, offrait « Tout le
+co-stream ».
+
+Pourquoi sa propre réponse ne la disait pas, le rapport ne permettait pas de
+le savoir : trois raisons mènent au même écart — Twitch ne rend pas la
+session sur sa chaîne (l'hôte, peut-être), sa réponse était encore attendue,
+ou son identifiant de chaîne pas encore appris. Le rapport le dira désormais
+(`coStream.rattachees` : `horsSession`, `inconnue`, `sansId`).
+
+Le banc l'avait sous les yeux sans le voir : au scénario 135, un membre que
+le décor n'interroge pas pour lui-même était dans la place et hors de la
+barre — « trois lignes groupées » était le défaut, écrit comme un fait.
+
+### Ce qui change en Top Chaînes
+
+- **La barre suit la même source que la place**, en repli : la réponse de la
+  chaîne elle-même, quand elle nomme une session, reste la plus autorisée ;
+  quand elle n'en nomme pas, l'index tranche. Une chaîne qui a quitté la
+  session n'est plus nommée par ses camarades à leur réponse suivante, et son
+  entrée s'éteint en une minute — la même que la place. *Un départage par la
+  date des réponses a été écrit puis retiré* : les réponses ne partent pas
+  toutes du même lot, et la carte serait sortie de sa barre puis rentrée à
+  chaque cycle.
+- **Jamais de « Tout le co-stream » au classement.** Sa place est complétée
+  avec tous ceux qui diffusent, sa barre les relie tous : une barre du
+  classement *est* tout le co-stream. Si un membre y manquait quand même, ce
+  serait un défaut, pas un choix à offrir : le rapport le nomme
+  (`salle.noeuds.classementIncomplet`, et les chaînes en cause).
+- **Ni un membre que sa propre fiche dit hors ligne.** La complétion laisse
+  passer un `enLigne` inconnu (l'hôte que Twitch ne nomme pas parmi ses
+  invités) ; la carte complétée demande alors sa fiche, et si Twitch répond
+  « pas de stream », la place ne le garde plus. Sans quoi il restait à
+  « 0 spectateur » — et, relié à la barre, sa salle l'aurait ouvert.
+- **Sa pastille et son « ▶ »** suivent la même source : une chaîne que sa
+  propre réponse ne dit pas en session prend ses camarades dans l'index.
+
+### « Chaînes live », comme la liste suivie
+
+Les sections de recommandation de Twitch — « Chaînes live », « Les
+spectateurs de X regardent aussi » — ont désormais les co-streams de la liste
+suivie : la barre colorée qui relie deux membres voisins, son nœud, le choix
+« Regarder les 2 » | « Tout le co-stream · N » (elles ne sont pas
+« suivies »), le « ▶ » d'une carte seule de sa session, et les pastilles
+effacées.
+
+- **Leur ordre reste celui de Twitch** : on ne les trie pas. Deux membres que
+  rien ne sépare s'y relient ; les autres y portent chacun un « ▶ ».
+- **Guest Star y est interrogé au balayage**, comme pour la liste suivie —
+  dans le même lot, sans requête de plus. Jusqu'ici, il ne l'était qu'au
+  survol, pour l'aperçu.
+- **Une barre par section.** Une même session peut avoir des membres dans la
+  liste suivie *et* dans « Chaînes live » : deux barres, une dans chaque
+  liste, **à la même couleur** — celle de la session. Rien ne se relie
+  par-dessus l'en-tête d'une section, et un membre seul de sa session dans sa
+  liste n'y prend pas de couleur : il prend un « ▶ ».
+- **Un calque par section** pour les nœuds et les « ▶ » : une section qui
+  grandit ne décale que les siens, une section masquée (un filtre, Top
+  Chaînes) les emporte. Rien n'y est posé pour des cartes qu'on ne voit pas.
+- **Le badge bleu de l'aperçu** (« Co-stream avec … ») garde sa règle (cf.
+  scénario 150) : « de cette liste » se lit dans la section de la carte
+  survolée. Il lisait encore la liste suivie en dur à un endroit, que les
+  clés de co-stream de « Chaînes live » ont révélé.
+- **Le tri « co-stream »** ne compte que la liste suivie : c'est elle qu'il
+  range.
+
+### Et ce que la barre sait déjà
+
+Une chaîne dont la carte est donnée hors ligne ne diffuse pas, quoi que dise
+`enLigne` : elle ne compte plus dans « Tout le co-stream » ni dans le « ▶ ».
+C'est le cas de l'hôte jamais sondé (« compté faute de savoir », la réserve
+de la 4.24.0.28) quand Twitch a déjà dit qu'il était éteint.
+
+### Le rapport
+
+- `coStream.rattachees` : les cartes reliées par l'index seul, et pourquoi
+  (`horsSession`, `inconnue`, `sansId`) ;
+- `coStream.recommandations` : les cartes et les groupes des sections de
+  recommandation (`groupes` reste celui de la liste suivie) ;
+- `salle.noeuds.calques` (un par section) et `classementIncomplet`
+  (zéro attendu), avec `classementManquants` s'il y en a.
+
+### À vérifier sur le vrai Twitch
+
+| point | ce qui le dira |
+| --- | --- |
+| la sixième carte de la capture, reliée à sa barre, sans « Tout le co-stream » | l'œil, et `coStream.rattachees` — qui dira laquelle des trois raisons c'était |
+| les co-streams de « Chaînes live » : barres, nœuds, « ▶ » | l'œil, et `coStream.recommandations` |
+
+### Ce que le banc mesure
+
+- **195** — un hôte que sa propre réponse ne dit pas en session, relié à la
+  barre de ses camarades, sa pastille comptée sur l'index, « tout » sans
+  l'invité muet ; « Chaînes live » : une barre de deux voisines, son nœud
+  dans son calque, « Regarder les 2 » | « Tout le co-stream · 3 » — sans
+  l'hôte inconnu dont la carte est hors ligne —, une carte seule et son
+  « ▶ » ; une même session dans les deux listes : une barre par section, la
+  même couleur, rien qui passe l'en-tête ; une suivie seule de sa session,
+  son « ▶ », sans couleur ; l'aperçu d'une carte de « Chaînes live » — au
+  bleu sa voisine de barre, au violet les suivies ; la salle ouverte depuis
+  « Chaînes live » ; un
+  filtre qui masque « Chaînes live » et n'y laisse rien ; Top Chaînes : la
+  place de l'hôte complétée, reliée entière, sans « tout », sans membre
+  manquant, et sans l'hôte que sa fiche dit éteint ; le tri « co-stream »
+  indisponible quand seule « Chaînes live » a un co-stream.
+- **135**, repris : quatre lignes groupées et non plus trois — le membre que
+  le décor n'interroge pas pour lui-même rejoint la barre.
+
+| mutant | ce qui tombe |
+| --- | --- |
+| la barre sur la seule réponse de la carte (1) | 195 : l'hôte hors de sa barre, au classement aussi — la capture ; 135 : trois lignes groupées |
+| la jointure par-dessus l'en-tête d'une section (1) | 195 : « amie », au bas de la liste suivie, prolongée vers « loin » |
+| un groupe à cheval sur deux sections (1) | 195 : « seulf » et « seul1 » colorées, sans « ▶ » ; le tri « co-stream » disponible sans co-stream suivi |
+| les sections de recommandation ignorées ; leurs cartes seules oubliées (2) | 195 |
+| un seul calque (1) | 195 : le nœud de « Chaînes live » dans le calque de la liste suivie |
+| « suivis » partout (1) | 195 : « Les 2 suivis » sous « Chaînes live » |
+| le badge bleu lu dans la liste suivie (1) | 195 : les trois suivies au bleu, depuis « loin » |
+| la carte hors ligne comptée (1) | 195 : « Tout le co-stream · 4 », l'hôte éteint compris |
+| la complétion sans la fiche (1) | 195 : l'hôte éteint au classement |
+| la pastille sur la seule réponse (1) | 195, 135 |
+| les rattachées jamais comptées (1) | 195 : le rapport |
+| la détection, ou les entrées, sous une section masquée (2) | 195 : sous filtre, des cartes de « Chaînes live » comptées, ou leurs « ▶ » posés |
+| le tri compté sur toutes les sections (1) | 195 : disponible quand seule « Chaînes live » a un co-stream |
+
+Seize mutants, quinze pris. **Le survivant** : « Tout le co-stream » offert
+au classement. Il ne peut pas se montrer, et c'est le but : le classement
+complète ses places avec le critère même du choix — qui diffuse, et dont la
+fiche ne dit pas le contraire —, et sa barre les relie tous ; il ne reste
+personne à offrir. La règle dit la demande, et tient si la complétion manque
+un jour : le rapport nommerait alors le membre manquant
+(`classementIncomplet`).
+
 ## Des boutons qui se voient, et rien qui reste pendant la salle (v4.24.0.29)
 
 Deux retours sur la 4.24.0.28, captures à l'appui. D'abord : « le "Regarder
@@ -17280,7 +17432,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 193 scénarios, 1637 assertions |
+| `npm test` | le harnais Playwright : 194 scénarios, 1646 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -17301,12 +17453,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1597 Ko | 642 Ko | 4 064 → **2** |
+| `content.js` | 1611 Ko | 646 Ko | 4 094 → **2** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
 | `panneau.js` | 107 Ko | 51 Ko | 149 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 22 → **0** |
-| **les cinq** | **1853 Ko** | **799 Ko** | **−57 %** |
+| **les cinq** | **1866 Ko** | **803 Ko** | **−57 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
