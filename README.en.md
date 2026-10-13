@@ -331,12 +331,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1529 KB | 604 KB | 3,987 → **2** |
+| `content.js` | 1611 KB | 646 KB | 4,094 → **2** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
 | `panneau.js` | 107 KB | 51 KB | 149 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
 | `background.js` | 9 KB | 2 KB | 22 → **0** |
-| **all five** | **1784 KB** | **760 KB** | **−57 %** |
+| **all five** | **1866 KB** | **803 KB** | **−57 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are
@@ -2488,6 +2488,649 @@ A sub-test that modelled an impossible case — a stream growing younger without
 changing id — was replaced along the way by the ordinary case that was actually
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
+
+## The whole bar in Top Channels, and the co-stream in "Live channels" (v4.24.0.30)
+
+Two pieces of feedback, with screenshots. First, in Top Channels: "you can
+see 'Whole co-stream', normally that is not possible, we should have every
+card of the co-streams visible on the sidebar in 'Top Channels'. Investigate
+and fix rigorously." The screenshot: five cards linked by the bar, "Watch all
+5" | "Whole co-stream · 6" — and a sixth just above, at the same combined
+count, in the same category, without a bar. Then: "apply this logic of the
+pills, co-stream etc. in the 'Live channels' part" — two neighbouring members
+of one co-stream each carried their "5" pill there. Published on
+`claude/chrome-multi` only.
+
+### Why the sixth card stayed out of the bar
+
+**Two sources, and they disagreed.** Since 4.18, a co-stream's *place* in
+the ranking is formed from the session **index**: what the Guest Star
+answer of *any* member says about the session. The sixth channel was in it,
+at its rank — which is why it sat just above. The *bar*, though, only linked
+a card from **its own** answer. A channel its mates name, but whose own
+answer does not return the session, was therefore in the place and out of
+the bar. And the bar of five, seeing a sixth member streaming outside it,
+offered "Whole co-stream".
+
+Why its own answer did not say so, the report could not tell: three reasons
+lead to the same gap — Twitch does not return the session on its channel
+(the host, perhaps), its answer was still pending, or its channel id not yet
+learned. The report will now say (`coStream.rattachees`: `horsSession`,
+`inconnue`, `sansId`).
+
+The bench had it in front of it without seeing it: in scenario 135, a member
+the set never queries for itself was in the place and out of the bar —
+"three grouped rows" was the defect, written down as a fact.
+
+### What changes in Top Channels
+
+- **The bar follows the same source as the place**, as a fallback: the
+  channel's own answer, when it names a session, stays the most authoritative;
+  when it names none, the index decides. A channel that left the session is no
+  longer named by its mates at their next answer, and its entry expires within
+  a minute — the same as the place. *A tie-break on the answers' dates was
+  written then removed*: answers do not all leave in the same batch, and the
+  card would have left its bar and come back every cycle.
+- **Never "Whole co-stream" in the ranking.** Its place is completed with
+  everyone who streams, its bar links them all: a ranking bar *is* the whole
+  co-stream. If a member were still missing, that would be a defect, not a
+  choice to offer: the report names it (`salle.noeuds.classementIncomplet`,
+  and the channels concerned).
+- **Nor a member its own record says is offline.** Completion lets an unknown
+  `enLigne` through (the host Twitch does not list among the guests); the
+  completed card then asks for its record, and if Twitch answers "no stream",
+  the place no longer keeps it. Otherwise it stayed at "0 viewers" — and,
+  linked to the bar, its room would have opened it.
+- **Its pill and its "▶"** follow the same source: a channel its own answer
+  does not show in a session takes its mates from the index.
+
+### "Live channels", like the followed list
+
+Twitch's recommendation sections — "Live channels", "Viewers of X also
+watch" — now have the followed list's co-streams: the coloured bar linking
+two neighbouring members, its node, the "Watch all 2" | "Whole co-stream · N"
+choice (they are not "followed"), the "▶" of a card alone from its session,
+and the pills hidden.
+
+- **Their order stays Twitch's**: they are not sorted. Two members nothing
+  separates are linked; the others each carry a "▶".
+- **Guest Star is queried for them at scan time**, like for the followed list
+  — in the same batch, with no extra request. Until now, only on hover, for
+  the preview.
+- **One bar per section.** One session can have members in the followed list
+  *and* in "Live channels": two bars, one in each list, **in the same
+  colour** — the session's. Nothing links across a section header, and a
+  member alone from its session in its list gets no colour there: it gets a
+  "▶".
+- **One layer per section** for the nodes and the "▶": a section that grows
+  only shifts its own, a hidden section (a filter, Top Channels) takes them
+  with it. Nothing is set for cards one does not see.
+- **The preview's blue badge** ("Co-stream with …") keeps its rule (see
+  scenario 150): "from this list" is read in the hovered card's section. It
+  still read the followed list hard-coded in one place, which "Live
+  channels"'s co-stream keys revealed.
+- **The "co-stream" sort** only counts the followed list: that is what it
+  sorts.
+
+### And what the bar already knows
+
+A channel whose card is reported offline does not stream, whatever `enLigne`
+says: it no longer counts in "Whole co-stream" nor in the "▶". That is the
+case of the never-probed host ("counted for lack of knowing", 4.24.0.28's
+caveat) once Twitch has said it is off.
+
+### The report
+
+- `coStream.rattachees`: the cards linked by the index alone, and why
+  (`horsSession`, `inconnue`, `sansId`);
+- `coStream.recommandations`: the cards and groups of the recommendation
+  sections (`groupes` stays the followed list's);
+- `salle.noeuds.calques` (one per section) and `classementIncomplet` (zero
+  expected), with `classementManquants` if any.
+
+### To check on real Twitch
+
+| point | what will tell |
+| --- | --- |
+| the screenshot's sixth card, linked to its bar, without "Whole co-stream" | the eye, and `coStream.rattachees` — which will say which of the three reasons it was |
+| the co-streams of "Live channels": bars, nodes, "▶" | the eye, and `coStream.recommandations` |
+
+### What the bench measures
+
+- **195** — a host its own answer does not show in a session, linked to its
+  mates' bar, its pill counted from the index, "whole" without the muted
+  guest; "Live channels": a bar of two neighbours, its node in its own
+  layer, "Watch all 2" | "Whole co-stream · 3" — without the unknown host
+  whose card is offline —, a lone card and its "▶"; one session in both
+  lists: one bar per section, the same colour, nothing crossing the header; a
+  followed card alone from its session, its "▶", no colour; the preview of a
+  "Live channels" card — its bar neighbour in blue, the followed ones in
+  purple; the room opened
+  from "Live channels"; a filter hiding "Live channels" and leaving nothing
+  there; Top Channels: the host's place completed, linked whole, without
+  "whole", without a missing member, and without the host its record says is
+  off; the "co-stream" sort unavailable when only "Live channels" has a
+  co-stream.
+- **135**, revisited: four grouped rows and no longer three — the member the
+  set never queries for itself joins the bar.
+
+| mutant | what falls |
+| --- | --- |
+| the bar from the card's own answer alone (1) | 195: the host out of its bar, in the ranking too — the screenshot; 135: three grouped rows |
+| the join across a section header (1) | 195: "amie", at the bottom of the followed list, extended towards "loin" |
+| a group straddling two sections (1) | 195: "seulf" and "seul1" coloured, without a "▶"; the "co-stream" sort available with no followed co-stream |
+| the recommendation sections ignored; their lone cards forgotten (2) | 195 |
+| a single layer (1) | 195: the "Live channels" node in the followed list's layer |
+| "followed" everywhere (1) | 195: "2 followed" under "Live channels" |
+| the blue badge read in the followed list (1) | 195: the three followed ones in blue, from "loin" |
+| the offline card counted (1) | 195: "Whole co-stream · 4", the switched-off host included |
+| completion without the record (1) | 195: the switched-off host in the ranking |
+| the pill from the card's own answer alone (1) | 195, 135 |
+| the linked cards never counted (1) | 195: the report |
+| detection, or entries, under a hidden section (2) | 195: under a filter, "Live channels" cards counted, or their "▶" set |
+| the sort counting every section (1) | 195: available when only "Live channels" has a co-stream |
+
+Sixteen mutants, fifteen caught. **The survivor**: "Whole co-stream"
+offered in the ranking. It cannot show, and that is the point: the ranking
+completes its places with the choice's very criterion — who streams, and
+whose record does not say otherwise —, and its bar links them all; nobody is
+left to offer. The rule states the request, and holds if completion ever
+falls short: the report would then name the missing member
+(`classementIncomplet`).
+
+## Buttons that look like buttons, and nothing left over during the room (v4.24.0.29)
+
+Two pieces of feedback on 4.24.0.28, with screenshots. First: "the 'Watch all
+2' stays while I am in this room. I would like you to remove it while I am in
+this room. It hides part of the card." Then: "'4 followed | Whole co-stream ·
+6' does not look like clickable elements. Same for 'Watch all 2': one should
+understand right away that you hover it to choose or click." Published on
+`claude/chrome-multi` only.
+
+### Why "Watch all 2" stayed
+
+The screenshot shows it: the "▶" enlarged, circled by a light ring, its label
+open — the look of **keyboard focus**, not of hover. Chromium gives focus to
+the clicked button; opened in place, the room is then handled with the
+keyboard (keys 1 to 6 give the sound), and the first key press makes the
+focused button `:focus-visible`: label, ring and enlarged size showed, and
+stayed. The bar's choice had the same flaw through `:focus-within`: clicked
+with the mouse, it stayed open on the card for the whole room.
+
+- **A mouse click no longer leaves focus** on the button — the node, the
+  "▶", the two choices. With the keyboard (Enter, Space), focus stays where
+  it was put.
+- **During its room, no label at all** — even on hover: a lone card's "▶",
+  like the node of a bar without a choice. It invited to open what is already
+  open. The bar's choice still shows on hover: it switches between the
+  followed ones and the whole co-stream.
+
+### ▶ to open, ■ to stop
+
+An open room changes the symbol of what closes it: the node, a lone card's
+"▶", and the choice that opened it carry a **■**. The players' code, read
+without a label: the click will stop. The other choice keeps its ▶ — it will
+open the other room.
+
+### Buttons, not labels
+
+"4 followed | Whole co-stream · 6" was a flat band cut in two by a line: a
+label, nothing of a button. They take the marks one recognises without
+reading:
+
+| | before | now |
+| --- | --- | --- |
+| the shape | one band, two halves | **two buttons, one under the other**, separate; in a column, they fit the sidebar's width, even in long languages |
+| the depth | a blurred shadow | **a light top edge, a sharp shadow underneath, a border**: they stand out from the card instead of being painted on it |
+| the symbol | none | **▶ in front of each** — what it starts; ■ when its room is open |
+| under the mouse | barely lighter | **lighter and lifted by one pixel**; pressed down on click |
+| the round | nothing on hover | **a light ring** as soon as it is hovered, before the choice even shows |
+| "Watch all 2", "Watch all 3" | labels the mouse went through: only the round could be clicked | **buttons** with the same depth, clickable themselves; a six-pixel bridge links them to their round |
+
+**No more tooltip on the round, expanded sidebar.** The browser's opened
+under the mouse and covered the second choice (the second screenshot). The
+channels move to each choice's tooltip — and, on "Whole co-stream", the
+Shift+click shortcut; to the label of a "▶". On the collapsed sidebar, with
+neither label nor choice, the round's tooltip stays: it alone names the
+channels and the shortcut there. The accessible name does not change.
+
+### To check on real Twitch
+
+| point | what will tell |
+| --- | --- |
+| the two buttons, over the bar's middle card: do they read as buttons? | the eye — to be said |
+| a room opened from the "Browse" page, then keys 1 to 6: nothing shows on the card any more | the eye |
+
+### What the bench measures
+
+- **194**, revisited: no tooltip on the round on the expanded sidebar; the
+  two choices one under the other, each with depth (three shadows), rounded,
+  the hand, the ▶; under the mouse, lighter and lifted, the other not; the
+  round ringed on hover; the shortcut in "whole"'s tooltip; room open, ■ on
+  the round and on "whole", ▶ on "followed"; clicked with the mouse, the
+  choice without focus, closed as soon as the mouse leaves — and nothing
+  opening where it sleeps; "Watch all 6", a button, clicked on its label; in
+  its room, no label even on hover, ■, neither focus nor `:focus-visible`
+  after a key press; on the collapsed sidebar, the tooltip instead. 21
+  assertions.
+
+| mutant | what falls |
+| --- | --- |
+| the label shown on a pressed "▶" (1) | 194: "Watch all 6" on hover, the room open |
+| focus left on the button after a mouse click (1) | 194: the choice kept open by `:focus-within`; the "▶" focused |
+| no ■ (1) | 194: the triangle on the pressed round, "whole" and "▶" |
+| the choices side by side; no depth; hover without response; the round without a ring; the shortcut lost (5) | 194: "these are buttons" |
+| labels the mouse goes through (1) | 194: "Watch all 6" clicked to no effect — nine assertions |
+| the round's tooltip always; never (2) | 194: expanded, it covers the choice; collapsed, nothing names the channels any more |
+| the hidden choice's buttons receiving the mouse (1) | 194: the choice reopened by the mouse arriving from elsewhere than the round |
+
+Twelve mutants, twelve caught.
+
+## The whole co-stream from the bar, and the "▶" in place of the pill (v4.24.0.28)
+
+The report, on a screenshot: four followed channels in a bar, "Watch all 4"
+when hovering the node — and six people in the co-stream, two of whom are not
+followed. The request: "a simple, intuitive way to do a multistream with the
+4, or with everyone directly, the 6", the choice staying on the sidebar. Then,
+once the options were laid out: the pill of a channel alone from its
+co-stream should become the node; "in Top Channels, remove the pill
+entirely"; it should "disappear" on a bar, "because there is the bar with the
+node"; it should grow slightly on hover; numbers when the multistream is
+off, and "the possibility to remove the pills entirely, on top of being able
+to turn the multistream off". Published on `claude/chrome-multi` only.
+
+### What the session knows, and the bar does not show
+
+A bar links the **followed** channels of one live, and nothing else: a
+channel you do not follow has no card. But Guest Star names every member of
+the session, and says for each whether they stream on their own channel
+(`enLigne`, see v4.21). That is all it took: nothing more is asked of Twitch,
+everything is already in the cache.
+
+- **A guest who does not stream** has no player to open: they are counted
+  nowhere here. The pill still counts them — it says how many people the
+  channel is co-streaming with.
+- **The host never probed** (`enLigne` at `null`, when Twitch does not also
+  list them among the guests) counts: we do not know, so we do not remove,
+  as everywhere else.
+- **Six at most**, like the room: the bar first, then those you follow (a
+  card a sort detached from its bar), then those you do not, in the
+  session's order.
+
+### On the bar: the followed ones, or the whole co-stream
+
+When the session has members streaming outside the bar, the node's label
+becomes two buttons, on hover:
+
+| | what it opens |
+| --- | --- |
+| **"4 followed"** | the bar's channels, in its order — what the node already opened |
+| **"Whole co-stream · 6"** | the bar, then the other members who stream |
+| a click on the round | the bar, unchanged |
+| **Shift+click on the round** | the whole co-stream — and the node's title says so: "Shift+click: whole co-stream (6)" |
+
+With nobody to add — the whole co-stream is already in the bar, or the bar
+already fills the six places —, the label stays "Watch all 4". That is the
+case in Top Channels, which completes a co-stream's place with everyone who
+streams (v4.18): the bar there already has everyone.
+
+- **The two buttons are stuck to the round**, on its right, in the bar's
+  colour; a six-pixel margin on their left is the bridge the mouse crosses
+  from the round to the buttons without losing them. They are not *in* the
+  node: a button does not contain buttons.
+- **A toggle, always**: the round is pressed when the room of its bar **or**
+  of its whole co-stream is open, and a click closes it; each button is
+  pressed for its own. Shift+click on an open whole-co-stream room closes
+  it; on the bar's, it switches to the whole co-stream.
+- **On the keyboard**, they follow the node in tab order: the node reached
+  shows the choice, Tab enters it, Enter opens. The visible text is the
+  button's name — it is said as it reads, and voice-controlled the same way;
+  the channels are in the title.
+- **Hidden by opacity, not removed from the page**: a mutant taught it.
+  Hidden with `display`, the choice had no box at the instant tabbing leaves
+  the node — the node no longer has focus, the choice does not have it yet —,
+  and focus fell onto the page.
+- **Collapsed sidebar**: no room to write, neither the label nor the choice
+  — Shift+click on the round.
+
+### The "▶" in place of the pill
+
+A channel **alone from its co-stream** in the list — no bar —, whose other
+members stream: its pill becomes the node. A white "▶" on the pill's purple,
+in its exact place, at the corner of the avatar.
+
+- On hover, **it grows** (×1.25, the round and the triangle, not the bubble)
+  and says **"Watch all M"**: the channel, then the other members who
+  stream, six at most. A click opens the room, a second closes it; pressed
+  while it is open.
+- It lives in the same layer as the nodes: hovering it does not open the
+  preview, clicking it does not follow the card's link.
+- **Nobody else streams**, or the session is unknown (Guest Star down, or
+  Twitch's "+N" alone): the pill stays a number — there is nothing to watch
+  together, but the co-stream exists.
+- **Collapsed sidebar**: the "▶" stays, at the corner of the avatar; the
+  channels' names on hover, as a tooltip.
+
+### Where the pill disappears
+
+The element stays in the card, only its view changes: the co-stream's
+fallback detection (the "+N" when Guest Star does not answer) and the report
+read it.
+
+| where | multistream on | multistream off |
+| --- | --- | --- |
+| Top Channels | nothing — the whole co-stream is visible there | nothing |
+| a card of a bar | nothing: the bar and its node say it | the number |
+| a card alone, other members streaming | the "▶" | the number |
+| a card alone, nobody else streaming, or session unknown | the number | the number |
+
+### The two settings
+
+Two independent switches:
+
+| | Multistream room on | Multistream room off |
+| --- | --- | --- |
+| **Collaboration pill on** | nodes, choice, "▶"; numbers where there is nothing to open | numbers everywhere (except Top Channels) |
+| **Collaboration pill off** | nodes, choice, "▶"; no number at all | nothing |
+
+The "▶" belongs to the room, not to the pill: it is the node of a channel
+alone, and turning it off with the pill would remove the only way to its
+room. The panel says so, under each of the two settings; the guide too, in
+the co-streams chapter. Ten languages for the buttons, twelve for the panel.
+
+### The report
+
+- `salle.noeuds`: `choix` (the bars offering the whole co-stream),
+  `pastilles` (the "▶"), `clicsPastilles`, and `tous` (the rooms opened on
+  the whole co-stream), next to `affiches` and `clics`.
+- `lignes.pastillesVues`: the pills that can be seen, next to those that are
+  set (`pastilles`).
+
+### To check on real Twitch
+
+| point | what will tell |
+| --- | --- |
+| the choice, next to the round, over the middle card's avatar: readable, not in the way? | the eye — to be said |
+| a host who does not stream on their channel, and whom Twitch does not list among the guests: counted (we do not know) — an empty tile in the room? | the room, and the report (`chaines`) |
+| the "▶" at the corner of the avatar, to the pixel | the eye — the bench measures it on its own set |
+
+### What the bench measures
+
+- **194** — the reported co-stream: four followed in a bar, two not
+  followed, and a guest who does not stream; a channel alone from a session
+  of eight; one whose only mate does not stream; a "+2" without a session.
+  The node, "whole" without the guest; the pills hidden on the bar and under
+  the "▶", still in the card, numbers for the two others; the "▶" at the
+  avatar's exact corner, six channels at most; the choice on hover, stuck to
+  the round, kept open by the mouse up to the button; "whole" opening the
+  six, the pressed round closing; "4 followed", then Shift+click switching to
+  the whole co-stream, selecting nothing, and closing; on the keyboard, the
+  choice, Tab, Enter; the "▶" growing, saying "Watch all 6", opening and
+  closing, the preview closed; nothing looping; a sort detaching a member:
+  "3 followed", the detached followed channel first in the whole co-stream,
+  and its own "▶"; the two settings, in their four combinations; the
+  collapsed sidebar; Top Channels, which completes the place of a channel
+  whose directory returns none of its mates, and shows neither pill nor "▶"
+  there; the report.
+
+| mutant | what falls |
+| --- | --- |
+| the stylesheet rule removed (1) | 194: "6" under the bar, "7" under the "▶", and `pastillesVues 7` in the report |
+| the Top Channels rule removed (1) | 194: two numbers in Top Channels |
+| the bar rule set unconditionally (1) | 194: multistream off, the numbers come back neither under the bar nor under the "▶" |
+| the guest who does not stream counted (1) | 194: "givre" in the whole co-stream, "jade" under the "▶" — thirteen assertions |
+| never a choice (1) | 194: nine assertions |
+| the session's order alone, without the followed ones first (1) | 194: "dune" after "ecume" and "flot" |
+| the lone card without a cap (1) | 194: seven channels for a six-seat room |
+| the "▶" three pixels off (1) | 194: off the avatar's corner, expanded and collapsed |
+| the bridge removed (1) | 194: the choice closing on the way to "whole" |
+| the choice without `:focus-within`; hidden with `display` (2) | 194: tabbing out of the node loses it |
+| the title without Shift+click; Shift+click ignored; the node pressed for its bar only; no toggle (4) | 194 |
+| a refused room counted; the "▶" clicks counted as the node's (2) | 194: the report |
+| the choice moved, or its text rewritten, on every scan (2) | 194: a scan kept alive |
+| no growing; the choice shown on the collapsed sidebar; the "▶" placed under the pill setting (3) | 194 |
+
+Twenty-three mutants, twenty-two caught. **The survivor**: the guard that
+refuses the "▶" to Top Channels cards. It cannot be measured, and the bench
+says why: Top Channels completes a co-stream's place with the same criterion
+as the "▶" — who streams —, so a ranked card is never alone from its session
+there; even when the directory returns only one, its mates arrive and the
+bar forms. The guard stays: it states the request ("remove the pill
+entirely" in Top Channels), and holds if the completion ever changes. **A
+guard removed**: Shift+click could have extended the text selection up to
+the node; the mutant removing the guard survived — Chromium does not do it
+on a button, anchor set or not. Rather than a guard without proof, the bench
+measures the outcome: nothing is selected.
+
+## Ads at any moment, the place taken back, and the chosen chat (v4.24.0.27)
+
+The request: "make sure the calibration system is well optimised so that
+ads can arrive at any moment. That no bug can happen because of it"; remove
+the purple outline from the tile that has the sound, and read "Sound
+from …" above the chat instead of "… 's chat"; without a shared chat, be
+able to choose a streamer's chat without changing the room's sound. Then,
+during the work, a real report with ads: "the stream of [the third tile] is
+about 20 seconds behind after its ad". Published on `claude/chrome-multi`
+only.
+
+### What the real report showed
+
+Three streams, 34 minutes, three ads counted, the room in sync at +300 s.
+At the end, two tiles far from the reference, and nothing correcting them:
+
+| tile | what happened | latency | buffer |
+| --- | --- | --- | --- |
+| the third | at +1368 s, all at once, playback continuing (an "estimation" jump) | 7.6 → 30.7 s, held ten minutes | 29 to 30 s, held likewise |
+| the second | around +1720 s, **with no ad** | 11.1 → 19.7 s | ~9.9 → ~15.9 s |
+| the reference | coming out of its 98 s ad (+1789 → +1887 s) | 10.17 → 13.18 s | ~8.5 → ~11.4 s |
+
+The buffer says it was not the estimate: playback really was further from
+live, everything missing already downloaded ahead of it. And the player,
+its low latency removed by the calibration, never comes back on its own.
+At the end, the second tile is 5.6 s behind the reference — the sound says
+so (−5,390 and −5,770 ms, z up to 11.9), but the calibration discards any
+peak beyond 5 s: "no clean voice"; the third, 17.6 s behind according to
+the latencies — listening only searches ±6 s: nothing.
+
+What the report does not say: **when** the third tile's ad played. The
+journal keeps only sixty events, and it was full of "arrival gaps" — "at
+least 2 s without video (buffer 30.24 → 28.24)" every minute — which are
+only the cadence of two-second segments: 28 s of buffer remained. Its only
+counted ad predates +1346 s; the +1368 s jump came 22 s after a 2.28 s
+rewind requested by the calibration, whose position showed nothing within
+half a second (+0.04 s obtained). An ad the markers did not see, or a
+player that reloaded far behind: the report cannot tell. What is certain is
+the measurement: latency and buffer agreeing, 23 s.
+
+### Ads, at any moment
+
+An ad does three things to the calibration if left alone: its sound is not
+the live sound — two tiles playing the same ad, the same advertiser served
+to the same viewer, make a common voice at the offset of their two starts,
+which nothing distinguishes from a real one; playback resuming afterwards
+may no longer be where it was; a move requested during the ad aims at the
+ad. From now on:
+
+| | what happens |
+| --- | --- |
+| a tile in an ad | not listened to — its envelope is discarded reading by reading —, not judged, not moved, not dragged along when the reference rewinds. Its measurement is reopened at the start and at the end of the ad, its relation becomes free again |
+| the reference in an ad | the calibration waits: "la référence est en pub", in the report and for each pair. Its end unbinds everything, like a reload |
+| low latency still to remove | waits for the end of the ad |
+| a move order that arrives anyway | the bridge refuses it: "refusé : pub". The second guard, for an order sent just before the ad started |
+| quality to hold | the bridge waits for the end of the ad: the picture there is the ad's, and the five attempts of a request were used up on it |
+| an ad hidden by a blocker | it is an ad. The markers count by their **presence**, no longer by their visibility: in the third probe's journal, they only existed during the ad, never left hidden between two breaks |
+
+The ad is read from two sources that cross-check: the state each player
+sends every second, and the reading, which carries the envelope — the
+latter is discarded from the reading that sees the ad.
+
+### The place taken back
+
+The report's three cases are the same thing: a tile that **falls back**
+behind live. A tile's **place** is the median latency and buffer of ten
+quiet readings in a row — playing, speed 1, no ad, coherent latency, within
+0.8 s. Six quiet readings that move away from it by at least 1.5 s, **the
+buffer agreeing** — in the same direction, at least half, within 2.5 s
+(30 % beyond 8 s) —: the tile has fallen back, and it takes its place back,
+skipping ahead in its buffer, which contains exactly what it fell behind;
+rewinding, if it went ahead and what it keeps behind allows. Two seconds of
+buffer always remain; three takebacks at most in ten minutes; then the
+sound checks, the measurement reopened. The reference too: the sound one
+listens to skips by as much, once — the price of a room that stays close to
+live, instead of making every other tile rewind.
+
+- The place is relearnt after every move of the room — as soon as the
+  order leaves, four seconds, fifteen for low latency removed, whose
+  estimate jumps afterwards — and after what the player does on its own:
+  reload, catch-up, pause. **Not** after a jump, a stall or an ad: those
+  are what one falls back from.
+- **The estimate alone** jumping, the buffer still — what two real players
+  did after low latency was removed ("kappa", in 190) — moves nothing;
+  held twenty seconds, it is the new place.
+
+From the report's figures, worked out by hand: the reference would have
+skipped about 3.1 s ahead coming out of its ad, keeping 8 s of buffer; the
+second tile, 8.7 s (6.7 s kept); the third, 23.2 s (5 s kept) — if its
+place had been relearnt since the rewind of +1346 s, otherwise by the wide
+gap below. This is not a replay: the report does not carry the envelopes.
+
+### The wide gap
+
+When there is no place to fall back from — at opening, or when taking it
+back could not be done —, two tiles can be further apart than listening
+searches. The sound says nothing about it; their latencies do. **Beyond
+5 s**, over ten common quiet readings within 1 s, the buffer agreeing
+within 3 s (upstream of the buffer, channels differ by about 2 s in the
+real report), held twenty seconds, and **with no verdict from the sound**
+for the pair — if it has one, it decides: the one behind skips ahead by the
+gap, if its buffer allows. The reference only skips ahead if **all** the
+others are far ahead of it; otherwise the tile rewinds, if it can. The gap
+counts as a correction, and the sound finishes the job: latency was wrong
+by 4.6 s in the fourteenth real report — which is why nothing goes below
+5 s.
+
+The bridge now accepts a move of up to 60 s (10 before); the console stays
+bounded to 0.2–5 s.
+
+### The report
+
+- Per tile: `pub`, `pubCachee` (markers present, none visible),
+  `pubsVues`, `pubS`, and `pubsDetail` — each ad, and the place before and
+  after: "+1789→+1887 s · avant 10.17 s (tampon 8.5) · après 13.18 s
+  (tampon 11.4)"; `place`, `retombees`, `placeRebases`.
+- In the calibration: `reprises`; in the chronology, each tile's ads.
+- In the journal, an arrival gap is only noted if it left less than one
+  second of buffer. All remain counted (`serie.coupures`).
+
+### The sound, above the chat
+
+**No more outline** on the tile that has the sound. **The chat header says
+"Son de X"** (FR; "Sound from X" in English), a speaker in front. With two
+chats in the margins, each column names its chat — "Chat de Y" —, and the
+one of the stream that has the sound says "Son de X". Without a chat, the
+pill at the top right says it. A click on a tile still gives it the sound;
+keys 1 to 6 as well.
+
+### The chosen chat
+
+**Tabs above the chat**, one per stream of the room, in the room's order —
+stable: a replaced tile does not move them. Chosen over a drop-down list:
+one click instead of two, and every stream visible at once; on several
+lines rather than hidden at the end of a scroll. The one of the displayed
+chat is underlined in Twitch's purple.
+
+- **The chat follows the sound as long as no tab has been chosen** — what
+  it did until now, and what one expects without touching anything. Once
+  chosen, it stays where it was put: the sound moving from one tile to
+  another no longer reloads it. "Hide" then "Show the chat" gives it back
+  as is; a stream leaving the room gives the chat back to the sound.
+- **On the keyboard, like tabs**: a tab list, a single one in the tab
+  order; the arrows, Home and End move from one to the other without
+  loading anything — a chat reloads, one does not do it in passing —, Enter
+  or Space chooses.
+- **When they do not appear**: with two chats (both are there), on a
+  proven Shared Chat (all show the same one), without a chat.
+- **With three streams or more, they stay even on a Shared Chat**: the room
+  cannot prove it with a single chat loaded (the proof is comparing the
+  messages of two chats loaded together), and a Shared Chat may gather only
+  part of the room. A tab of a shared chat shows the same chat, nothing
+  more.
+- The console: `tse.salle.chat('channel')`. In the report: `onglets` (the
+  displayed chat in brackets), `chatChoisi`, `chatsChoisis`,
+  `chatTitreGauche`.
+
+### What remains
+
+- **The common 0 ms event** (cf. 4.24.0.26): the same silence in every
+  tile at the same instant would make a voice "with the reference". An ad
+  no longer does — its windows are set aside —, a struggling machine still
+  can. To be tested.
+- **Why the report's third tile fell back 23 s**: the next report will
+  tell, its journal no longer drowned. The room now puts it back in its
+  place whatever the cause.
+- **A Shared Chat with three streams or more** cannot be proven with a
+  single chat loaded: the tabs stay.
+
+### To check on real Twitch
+
+| point | what will tell |
+| --- | --- |
+| a mid-roll ad: does the tile fall back, and take its place back? | `pubsDetail` (before, after), the calibration journal ("retombée … elle reprend sa place") |
+| an ad's markers under a blocker | `pubCachee` |
+| the report's third tile: unseen ad, or reload? | `pubsDetail`, and the journal, now readable |
+| tabs on a three-stream Shared Chat: bothersome? | the eye — to be said |
+
+### What the bench measures
+
+- **175** — no more outline on the tile that has the sound; "Son de alpha",
+  the speaker in front; the tabs, the displayed chat's one selected; a tab
+  changing the chat without touching the sound; once chosen, the chat
+  staying — the same one, not reloaded — when the sound moves to another
+  tile; the keyboard (arrows, Home, End without loading anything, Enter),
+  the accessible tab list, `tse.salle.chat()`; without a chat, the sound in
+  the pill; "Show the chat" giving back the chosen chat. Its ad is now
+  placed then removed, as on real Twitch, no longer hidden.
+- **177** — with two chats, "Son de tardif" on the right then "Son de
+  calme" on the left when the sound moves there; a single chat of a
+  distinct duo, its two tabs; above a Shared Chat, "Son de sa" then "Son de
+  sb", no tab.
+- **192** — the same ad on the reference and on a tile, 300 ms apart:
+  nothing listened to or judged, the calibration waiting and saying so,
+  then everything syncs on the real sound; a synced tile in an ad, not
+  dragged along when the reference rewinds for another, and nothing sent
+  to the ad; coming out of its ad 8 s further from live, its buffer with
+  it, it takes its place back by skipping ahead; an ad hidden by a blocker,
+  and the console as well as the bridge refusing to move it; the low
+  latency of a tile in an ad, removed only once the ad is over.
+- **193** — the estimate alone jumping by 6 s, the buffer still: nothing
+  moves; a tile falling back 20 s, with no ad, taking its place back; an
+  arrival gap leaving more than a second, counted and not noted; the wide
+  gap at opening, 7 s: the one behind skips ahead — and, with the reference
+  behind all the others, it is the reference.
+
+The fake player gained its ad (`__pub`: the three markers, the live sound
+cut, the ad's in its place, on the clock's time), the tile that falls back
+(`__retomber`, its buffer with it), and the estimate alone (`__estimer`).
+
+| mutant | what fails |
+| --- | --- |
+| an ad's envelope listened to (1) | 192: six computations during the ads, where none is allowed |
+| listened to, judged, the reference in an ad not waiting (1) | 192: "omega en retard de 0.30 s (−300 ms) → xray recule de 0.18 s" — the gap between the two ads, taken for a delay |
+| the reference in an ad not waiting (1) | 192: "le son ne s'est pas encore prononcé" instead of "la référence est en pub" |
+| the tile in an ad dragged along — kept synced, follower (1) | 192: "omega recule de 0.31 s (suit la référence)" — which the bridge refuses, second guard —, and its place never taken back |
+| the bridge moving an ad (1) | 192: "recul 1 · instance" inside a hidden ad |
+| the ad read by its visibility (1) | 192: the ad hidden by a blocker not seen, and the console moving it |
+| low latency removed during the ad (1) | 192: "india retirée à +0 s", in the middle of the ad |
+| the place never taken back (2) | 192 and 193: the tile left 8 s, then 20 s, behind live |
+| the place relearnt at the reading, not at the order (1) | 192: two takebacks instead of one — it was still "falling back" until the order showed |
+| the place after the ad never noted (1) | 192: `pubsDetail` without "après" |
+| the place taken back on latency alone (1) | 193: the estimate jumping 6 s taken for a fall |
+| the wide gap never made; the reference behind never skipped ahead (2) | 193: "psi" left 7 s behind; the reference — or nothing — not catching up |
+| the harmless arrival gap noted (1) | 193: "coupure d'arrivée" in the journal, 1.3 s of buffer left |
+| the outline back; "Chat de …" back; the speaker forgotten; the tabs never shown; the tab also giving the sound; the chat still following the sound once chosen; the arrows loading in passing; the tabindex not following; the console accepting an absent channel; the pill silent about the sound (10) | 175 |
+| the tabs on a Shared Chat; "Son de …" stuck on the right (2) | 177 |
+
+Twenty-seven mutants, twenty-seven caught.
 
 ## Multistream on every branch (v4.24.0.26)
 
@@ -16678,7 +17321,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the Firefox manifest: this repository's invariants, **then** Mozilla's `addons-linter` — the one AMO runs on submission |
-| `npm test` | the Playwright harness: 190 scenarios, 1603 assertions |
+| `npm test` | the Playwright harness: 194 scenarios, 1646 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has

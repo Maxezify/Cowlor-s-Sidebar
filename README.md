@@ -343,12 +343,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1529 Ko | 604 Ko | 3 987 → **2** |
+| `content.js` | 1611 Ko | 646 Ko | 4 094 → **2** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
 | `panneau.js` | 107 Ko | 51 Ko | 149 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 22 → **0** |
-| **les cinq** | **1784 Ko** | **760 Ko** | **−57 %** |
+| **les cinq** | **1866 Ko** | **803 Ko** | **−57 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
@@ -2623,6 +2623,662 @@ Un sous-test qui modélisait un cas impossible — un direct qui rajeunit sans
 changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'il
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
+
+## La barre entière en Top Chaînes, et le co-stream dans « Chaînes live » (v4.24.0.30)
+
+Deux retours, captures à l'appui. D'abord, en Top Chaînes : « on peut voir
+"Tout le co-stream", normalement ce n'est pas possible, on devrait avoir
+toutes les cartes des co-streams visibles sur la sidebar dans "Top Chaînes".
+Investigue et fix rigoureusement. » La capture : cinq cartes reliées par la
+barre, « Regarder les 5 » | « Tout le co-stream · 6 » — et une sixième juste
+au-dessus, au même compteur combiné, dans la même catégorie, sans barre.
+Ensuite : « applique cette logique des pastilles, co-stream etc. dans la
+partie "Chaînes live" » — deux membres voisins d'un même co-stream y portaient
+chacun leur pastille « 5 ». Publiée sur `claude/chrome-multi` seulement.
+
+### Pourquoi la sixième carte restait hors de la barre
+
+**Deux sources, et elles divergeaient.** Depuis la 4.18, la *place* d'un
+co-stream au classement se forme d'après l'**index** de session : ce que la
+réponse Guest Star de *n'importe quel* membre dit de la session. La sixième
+chaîne y était, à son rang — c'est pour ça qu'elle était juste au-dessus. La
+*barre*, elle, ne reliait une carte que d'après **sa propre** réponse. Une
+chaîne que ses camarades nomment, mais dont la réponse à elle ne rend pas la
+session, était donc dans la place et hors de la barre. Et la barre des cinq,
+voyant un sixième membre qui diffuse hors d'elle, offrait « Tout le
+co-stream ».
+
+Pourquoi sa propre réponse ne la disait pas, le rapport ne permettait pas de
+le savoir : trois raisons mènent au même écart — Twitch ne rend pas la
+session sur sa chaîne (l'hôte, peut-être), sa réponse était encore attendue,
+ou son identifiant de chaîne pas encore appris. Le rapport le dira désormais
+(`coStream.rattachees` : `horsSession`, `inconnue`, `sansId`).
+
+Le banc l'avait sous les yeux sans le voir : au scénario 135, un membre que
+le décor n'interroge pas pour lui-même était dans la place et hors de la
+barre — « trois lignes groupées » était le défaut, écrit comme un fait.
+
+### Ce qui change en Top Chaînes
+
+- **La barre suit la même source que la place**, en repli : la réponse de la
+  chaîne elle-même, quand elle nomme une session, reste la plus autorisée ;
+  quand elle n'en nomme pas, l'index tranche. Une chaîne qui a quitté la
+  session n'est plus nommée par ses camarades à leur réponse suivante, et son
+  entrée s'éteint en une minute — la même que la place. *Un départage par la
+  date des réponses a été écrit puis retiré* : les réponses ne partent pas
+  toutes du même lot, et la carte serait sortie de sa barre puis rentrée à
+  chaque cycle.
+- **Jamais de « Tout le co-stream » au classement.** Sa place est complétée
+  avec tous ceux qui diffusent, sa barre les relie tous : une barre du
+  classement *est* tout le co-stream. Si un membre y manquait quand même, ce
+  serait un défaut, pas un choix à offrir : le rapport le nomme
+  (`salle.noeuds.classementIncomplet`, et les chaînes en cause).
+- **Ni un membre que sa propre fiche dit hors ligne.** La complétion laisse
+  passer un `enLigne` inconnu (l'hôte que Twitch ne nomme pas parmi ses
+  invités) ; la carte complétée demande alors sa fiche, et si Twitch répond
+  « pas de stream », la place ne le garde plus. Sans quoi il restait à
+  « 0 spectateur » — et, relié à la barre, sa salle l'aurait ouvert.
+- **Sa pastille et son « ▶ »** suivent la même source : une chaîne que sa
+  propre réponse ne dit pas en session prend ses camarades dans l'index.
+
+### « Chaînes live », comme la liste suivie
+
+Les sections de recommandation de Twitch — « Chaînes live », « Les
+spectateurs de X regardent aussi » — ont désormais les co-streams de la liste
+suivie : la barre colorée qui relie deux membres voisins, son nœud, le choix
+« Regarder les 2 » | « Tout le co-stream · N » (elles ne sont pas
+« suivies »), le « ▶ » d'une carte seule de sa session, et les pastilles
+effacées.
+
+- **Leur ordre reste celui de Twitch** : on ne les trie pas. Deux membres que
+  rien ne sépare s'y relient ; les autres y portent chacun un « ▶ ».
+- **Guest Star y est interrogé au balayage**, comme pour la liste suivie —
+  dans le même lot, sans requête de plus. Jusqu'ici, il ne l'était qu'au
+  survol, pour l'aperçu.
+- **Une barre par section.** Une même session peut avoir des membres dans la
+  liste suivie *et* dans « Chaînes live » : deux barres, une dans chaque
+  liste, **à la même couleur** — celle de la session. Rien ne se relie
+  par-dessus l'en-tête d'une section, et un membre seul de sa session dans sa
+  liste n'y prend pas de couleur : il prend un « ▶ ».
+- **Un calque par section** pour les nœuds et les « ▶ » : une section qui
+  grandit ne décale que les siens, une section masquée (un filtre, Top
+  Chaînes) les emporte. Rien n'y est posé pour des cartes qu'on ne voit pas.
+- **Le badge bleu de l'aperçu** (« Co-stream avec … ») garde sa règle (cf.
+  scénario 150) : « de cette liste » se lit dans la section de la carte
+  survolée. Il lisait encore la liste suivie en dur à un endroit, que les
+  clés de co-stream de « Chaînes live » ont révélé.
+- **Le tri « co-stream »** ne compte que la liste suivie : c'est elle qu'il
+  range.
+
+### Et ce que la barre sait déjà
+
+Une chaîne dont la carte est donnée hors ligne ne diffuse pas, quoi que dise
+`enLigne` : elle ne compte plus dans « Tout le co-stream » ni dans le « ▶ ».
+C'est le cas de l'hôte jamais sondé (« compté faute de savoir », la réserve
+de la 4.24.0.28) quand Twitch a déjà dit qu'il était éteint.
+
+### Le rapport
+
+- `coStream.rattachees` : les cartes reliées par l'index seul, et pourquoi
+  (`horsSession`, `inconnue`, `sansId`) ;
+- `coStream.recommandations` : les cartes et les groupes des sections de
+  recommandation (`groupes` reste celui de la liste suivie) ;
+- `salle.noeuds.calques` (un par section) et `classementIncomplet`
+  (zéro attendu), avec `classementManquants` s'il y en a.
+
+### À vérifier sur le vrai Twitch
+
+| point | ce qui le dira |
+| --- | --- |
+| la sixième carte de la capture, reliée à sa barre, sans « Tout le co-stream » | l'œil, et `coStream.rattachees` — qui dira laquelle des trois raisons c'était |
+| les co-streams de « Chaînes live » : barres, nœuds, « ▶ » | l'œil, et `coStream.recommandations` |
+
+### Ce que le banc mesure
+
+- **195** — un hôte que sa propre réponse ne dit pas en session, relié à la
+  barre de ses camarades, sa pastille comptée sur l'index, « tout » sans
+  l'invité muet ; « Chaînes live » : une barre de deux voisines, son nœud
+  dans son calque, « Regarder les 2 » | « Tout le co-stream · 3 » — sans
+  l'hôte inconnu dont la carte est hors ligne —, une carte seule et son
+  « ▶ » ; une même session dans les deux listes : une barre par section, la
+  même couleur, rien qui passe l'en-tête ; une suivie seule de sa session,
+  son « ▶ », sans couleur ; l'aperçu d'une carte de « Chaînes live » — au
+  bleu sa voisine de barre, au violet les suivies ; la salle ouverte depuis
+  « Chaînes live » ; un
+  filtre qui masque « Chaînes live » et n'y laisse rien ; Top Chaînes : la
+  place de l'hôte complétée, reliée entière, sans « tout », sans membre
+  manquant, et sans l'hôte que sa fiche dit éteint ; le tri « co-stream »
+  indisponible quand seule « Chaînes live » a un co-stream.
+- **135**, repris : quatre lignes groupées et non plus trois — le membre que
+  le décor n'interroge pas pour lui-même rejoint la barre.
+
+| mutant | ce qui tombe |
+| --- | --- |
+| la barre sur la seule réponse de la carte (1) | 195 : l'hôte hors de sa barre, au classement aussi — la capture ; 135 : trois lignes groupées |
+| la jointure par-dessus l'en-tête d'une section (1) | 195 : « amie », au bas de la liste suivie, prolongée vers « loin » |
+| un groupe à cheval sur deux sections (1) | 195 : « seulf » et « seul1 » colorées, sans « ▶ » ; le tri « co-stream » disponible sans co-stream suivi |
+| les sections de recommandation ignorées ; leurs cartes seules oubliées (2) | 195 |
+| un seul calque (1) | 195 : le nœud de « Chaînes live » dans le calque de la liste suivie |
+| « suivis » partout (1) | 195 : « Les 2 suivis » sous « Chaînes live » |
+| le badge bleu lu dans la liste suivie (1) | 195 : les trois suivies au bleu, depuis « loin » |
+| la carte hors ligne comptée (1) | 195 : « Tout le co-stream · 4 », l'hôte éteint compris |
+| la complétion sans la fiche (1) | 195 : l'hôte éteint au classement |
+| la pastille sur la seule réponse (1) | 195, 135 |
+| les rattachées jamais comptées (1) | 195 : le rapport |
+| la détection, ou les entrées, sous une section masquée (2) | 195 : sous filtre, des cartes de « Chaînes live » comptées, ou leurs « ▶ » posés |
+| le tri compté sur toutes les sections (1) | 195 : disponible quand seule « Chaînes live » a un co-stream |
+
+Seize mutants, quinze pris. **Le survivant** : « Tout le co-stream » offert
+au classement. Il ne peut pas se montrer, et c'est le but : le classement
+complète ses places avec le critère même du choix — qui diffuse, et dont la
+fiche ne dit pas le contraire —, et sa barre les relie tous ; il ne reste
+personne à offrir. La règle dit la demande, et tient si la complétion manque
+un jour : le rapport nommerait alors le membre manquant
+(`classementIncomplet`).
+
+## Des boutons qui se voient, et rien qui reste pendant la salle (v4.24.0.29)
+
+Deux retours sur la 4.24.0.28, captures à l'appui. D'abord : « le "Regarder
+les 2" reste quand on est dans ce salon. J'aimerais que tu le retires pendant
+que je suis sur ce salon. Ça cache une partie de la carte. » Ensuite : « Les 4
+suivis | Tout le co-stream · 6 », « on dirait pas que ce sont des éléments
+cliquables. C'est pareil pour "Regarder les 2" : il faudrait que l'on
+comprenne direct qu'il faut passer la souris dessus pour choisir ou
+cliquer. » Publiée sur `claude/chrome-multi` seulement.
+
+### Pourquoi « Regarder les 2 » restait
+
+La capture le montre : le « ▶ » agrandi, cerclé d'un anneau clair, son
+étiquette ouverte — l'allure du **focus clavier**, pas celle du survol.
+Chromium donne le focus au bouton qu'on clique ; ouverte sur place, la salle
+se règle ensuite au clavier (les touches 1 à 6 donnent le son), et la
+première touche rend le bouton qui a le focus `:focus-visible` : étiquette,
+anneau et taille agrandie s'affichaient, et restaient. Le choix de la barre
+avait le même défaut par `:focus-within` : cliqué à la souris, il restait
+ouvert sur la carte pendant toute la salle.
+
+- **Un clic de souris ne laisse plus le focus** au bouton — au nœud, au
+  « ▶ », aux deux choix. Au clavier (Entrée, Espace), il reste où on l'a mis.
+- **Pendant sa salle, plus d'étiquette du tout** — même survolé : le « ▶ »
+  d'une carte seule, comme le nœud d'une barre sans choix. Elle invitait à
+  ouvrir ce qui l'est déjà. Le choix de la barre, lui, reste au survol : il
+  passe des suivis à tout le co-stream.
+
+### ▶ pour ouvrir, ■ pour arrêter
+
+Une salle ouverte change le symbole de ce qui la referme : le nœud, le « ▶ »
+d'une carte seule, et le choix qui l'a ouverte portent un **■**. Le code des
+lecteurs, qu'on lit sans étiquette : le clic arrêtera. L'autre choix garde son
+▶ — il ouvrira l'autre salle.
+
+### Des boutons, et non des étiquettes
+
+« Les 4 suivis | Tout le co-stream · 6 » était un aplat coupé en deux par un
+trait : un libellé, rien d'un bouton. Ils prennent les marques qu'on
+reconnaît sans les lire :
+
+| | avant | maintenant |
+| --- | --- | --- |
+| la forme | une bande, deux moitiés | **deux boutons l'un sous l'autre**, séparés ; en colonne, ils tiennent dans la largeur de la barre latérale, même dans les langues longues |
+| le relief | une ombre floue | **une arête claire en haut, une ombre franche dessous, un bord** : ils sortent de la carte au lieu de s'y peindre |
+| le symbole | aucun | **▶ devant chacun** — ce qu'il lance ; ■ quand sa salle est ouverte |
+| sous la souris | à peine plus clair | **plus clair et soulevé d'un pixel** ; enfoncé au clic |
+| le rond | rien au survol | **un anneau clair** dès qu'on le survole, avant même le choix |
+| « Regarder les 2 », « Regarder les 3 » | des étiquettes transparentes à la souris : seul le rond se cliquait | **des boutons** au même relief, qui se cliquent eux-mêmes ; un pont de six pixels les relie à leur rond |
+
+**Plus d'infobulle sur le rond, barre étendue.** Celle du navigateur s'ouvrait
+sous la souris et recouvrait le second choix (la seconde capture). Les
+chaînes passent dans l'infobulle de chaque choix — et, sur « Tout le
+co-stream », le raccourci Maj+clic ; sur l'étiquette d'un « ▶ ». En barre
+réduite, où il n'y a ni étiquette ni choix, l'infobulle du rond reste : elle
+y est seule à nommer les chaînes et le raccourci. Le nom accessible, lui, ne
+change pas.
+
+### À vérifier sur le vrai Twitch
+
+| point | ce qui le dira |
+| --- | --- |
+| les deux boutons, sur la carte du milieu de la barre : se lisent-ils comme des boutons ? | l'œil — à dire |
+| une salle ouverte depuis la page « Parcourir », puis les touches 1 à 6 : plus rien ne s'affiche sur la carte | l'œil |
+
+### Ce que le banc mesure
+
+- **194**, repris : pas d'infobulle sur le rond en barre étendue ; les deux
+  choix l'un sous l'autre, chacun en relief (trois ombres), arrondi, la main,
+  le ▶ ; sous la souris, plus clair et soulevé, l'autre non ; le rond cerclé
+  au survol ; le raccourci dans l'infobulle de « tout » ; salle ouverte, ■
+  sur le rond et sur « tout », ▶ sur « suivis » ; cliqué à la souris, le choix
+  sans le focus, refermé dès que la souris part — et rien qui s'ouvre là où
+  il dort ; « Regarder les 6 », un bouton, cliqué sur l'étiquette ; dans sa
+  salle, plus d'étiquette même survolé, ■, ni focus ni `:focus-visible`
+  après une touche ; en barre réduite, l'infobulle à la place. 21
+  assertions.
+
+| mutant | ce qui tombe |
+| --- | --- |
+| l'étiquette montrée sur un « ▶ » enfoncé (1) | 194 : « Regarder les 6 » au survol, la salle ouverte |
+| le focus laissé au bouton après un clic de souris (1) | 194 : le choix gardé ouvert par `:focus-within` ; le « ▶ » focalisé |
+| pas de ■ (1) | 194 : le triangle sur le rond, sur « tout », sur le « ▶ » enfoncés |
+| les choix côte à côte ; sans relief ; le survol sans réponse ; le rond sans anneau ; le raccourci perdu (5) | 194 : « ce sont des boutons » |
+| les étiquettes transparentes à la souris (1) | 194 : « Regarder les 6 » cliqué sans effet — neuf assertions |
+| l'infobulle du rond toujours ; jamais (2) | 194 : barre étendue, elle couvre le choix ; réduite, plus rien ne nomme les chaînes |
+| les boutons du choix masqué qui reçoivent la souris (1) | 194 : le choix rouvert par la souris arrivée d'ailleurs que du rond |
+
+Douze mutants, douze pris.
+
+## Tout le co-stream depuis la barre, et le « ▶ » à la place de la pastille (v4.24.0.28)
+
+Le signalement, sur une capture : quatre chaînes suivies en barre, « Regarder
+les 4 » au survol du nœud — et six personnes dans le co-stream, dont deux
+qu'on ne suit pas. La demande : « un moyen simple, intuitif pour faire un
+multistream avec les 4, ou alors avec tout le monde directement, les 6 », le
+choix restant sur la barre latérale. Puis, une fois les pistes posées : que la
+pastille d'une chaîne seule de son co-stream devienne le nœud ; « dans "Top
+Chaînes", retirer totalement la pastille » ; qu'elle « disparaisse » sur une
+barre, « car il y a la barre avec le nœud » ; qu'elle grandisse un peu au
+survol ; des nombres quand le multistream est coupé, et « la possibilité de
+retirer totalement les pastilles, en plus de pouvoir désactiver le
+multistream ». Publiée sur `claude/chrome-multi` seulement.
+
+### Ce que la session sait, et que la barre ne montre pas
+
+Une barre relie les chaînes **suivies** d'un même direct, et rien d'autre :
+une chaîne qu'on ne suit pas n'a pas de carte. Mais Guest Star nomme tous les
+membres de la session, et dit pour chacun s'il diffuse sur sa propre chaîne
+(`enLigne`, cf. v4.21). C'est tout ce qu'il fallait : rien n'est demandé à
+Twitch de plus, tout est déjà dans le cache.
+
+- **Un invité qui ne diffuse pas** n'a pas de lecteur à ouvrir : il n'est
+  compté nulle part ici. La pastille, elle, le compte toujours — elle dit
+  avec combien de personnes la chaîne est en co-stream.
+- **L'hôte jamais sondé** (`enLigne` à `null`, quand Twitch ne le nomme pas
+  aussi parmi ses invités) compte : on ne sait pas, donc on ne retire pas,
+  comme partout ailleurs.
+- **Six au plus**, comme la salle : la barre d'abord, puis ceux qu'on suit
+  (une carte qu'un tri a détachée de sa barre), puis ceux qu'on ne suit pas,
+  dans l'ordre de la session.
+
+### Sur la barre : les suivis, ou tout le co-stream
+
+Quand la session compte des membres qui diffusent hors de la barre,
+l'étiquette du nœud devient deux boutons, au survol :
+
+| | ce qu'il ouvre |
+| --- | --- |
+| **« Les 4 suivis »** | les chaînes de la barre, dans son ordre — ce que le nœud ouvrait déjà |
+| **« Tout le co-stream · 6 »** | la barre, puis les autres membres qui diffusent |
+| un clic sur le rond | la barre, inchangé |
+| **Maj+clic sur le rond** | tout le co-stream — et le titre du nœud le rappelle : « Maj+clic : tout le co-stream (6) » |
+
+Sans personne à ajouter — tout le co-stream est déjà dans la barre, ou la
+barre remplit déjà les six places —, l'étiquette reste « Regarder les 4 ».
+C'est le cas en Top Chaînes, qui complète la place d'un co-stream avec tous
+ceux qui diffusent (v4.18) : la barre y a déjà tout le monde.
+
+- **Les deux boutons sont collés au rond**, à sa droite, à la couleur de la
+  barre ; une marge de six pixels à leur gauche est le pont que la souris
+  traverse du rond aux boutons sans les perdre. Ils ne sont pas *dans* le
+  nœud : un bouton ne contient pas de boutons.
+- **Un interrupteur, toujours** : le rond est enfoncé quand la salle de sa
+  barre **ou** de tout son co-stream est ouverte, et un clic la referme ;
+  chaque bouton l'est pour la sienne. Maj+clic sur une salle de tout le
+  co-stream ouverte la referme ; sur celle de la barre, il passe à tout le
+  co-stream.
+- **Au clavier**, ils suivent le nœud dans l'ordre de tabulation : le nœud
+  atteint montre le choix, Tab y entre, Entrée ouvre. Le texte visible est
+  le nom du bouton — il se dit comme il se lit, et se commande à la voix de
+  même ; les chaînes sont dans le titre.
+- **Masqué par l'opacité, et non retiré de la page** : c'est un mutant qui
+  l'a appris. Masqué par `display`, le choix n'avait plus de boîte à
+  l'instant où la tabulation quitte le nœud — lui n'a plus le focus, le choix
+  ne l'a pas encore —, et le focus tombait sur la page.
+- **Barre réduite** : pas la place d'écrire, ni l'étiquette ni le choix —
+  Maj+clic sur le rond.
+
+### Le « ▶ » à la place de la pastille
+
+Une chaîne **seule de son co-stream** dans la liste — pas de barre —, dont
+d'autres membres diffusent : sa pastille devient le nœud. Un « ▶ » blanc
+sur le violet de la pastille, à sa place exacte, au coin de l'avatar.
+
+- Au survol, **il grandit** (×1,25, le rond et le triangle, pas la bulle) et
+  dit **« Regarder les M »** : elle, puis les autres membres qui diffusent,
+  six au plus. Un clic ouvre la salle, un second la referme ; enfoncé tant
+  qu'elle est ouverte.
+- Il vit dans le même calque que les nœuds : le survoler n'ouvre pas
+  l'aperçu, le cliquer ne suit pas le lien de la carte.
+- **Personne d'autre ne diffuse**, ou la session est inconnue (Guest Star en
+  panne, ou le « +N » de Twitch seul) : la pastille reste un nombre — il n'y
+  a rien à regarder ensemble, mais le co-stream existe.
+- **Barre réduite** : le « ▶ » reste, au coin de l'avatar ; le nom des
+  chaînes au survol, en info-bulle.
+
+### Où la pastille s'efface
+
+L'élément reste dans la carte, seule sa vue change : la détection de secours
+du co-stream (le « +N » quand Guest Star ne répond pas) et le rapport le
+lisent.
+
+| où | multistream allumé | multistream coupé |
+| --- | --- | --- |
+| Top Chaînes | rien — on y voit le co-stream entier | rien |
+| une carte d'une barre | rien : la barre et son nœud le disent | le nombre |
+| une carte seule, d'autres membres qui diffusent | le « ▶ » | le nombre |
+| une carte seule, personne d'autre qui diffuse, ou session inconnue | le nombre | le nombre |
+
+### Les deux réglages
+
+Deux interrupteurs, indépendants :
+
+| | Salle multistream allumée | Salle multistream coupée |
+| --- | --- | --- |
+| **Pastille de collaboration allumée** | nœuds, choix, « ▶ » ; des nombres là où il n'y a rien à ouvrir | des nombres partout (sauf Top Chaînes) |
+| **Pastille de collaboration coupée** | nœuds, choix, « ▶ » ; plus aucun nombre | rien |
+
+Le « ▶ » relève de la salle, pas de la pastille : il est le nœud d'une
+chaîne seule, et le couper avec la pastille retirerait le seul chemin vers sa
+salle. Le panneau le dit, sous chacun des deux réglages ; le mode d'emploi
+aussi, au chapitre des co-streams. Dix langues pour les boutons, douze pour
+le panneau.
+
+### Le rapport
+
+- `salle.noeuds` : `choix` (les barres qui offrent tout le co-stream),
+  `pastilles` (les « ▶ »), `clicsPastilles`, et `tous` (les salles ouvertes
+  sur tout le co-stream), à côté de `affiches` et `clics`.
+- `lignes.pastillesVues` : les pastilles qui se voient, à côté de celles qui
+  sont posées (`pastilles`).
+
+### À vérifier sur le vrai Twitch
+
+| point | ce qui le dira |
+| --- | --- |
+| le choix, à côté du rond, sur l'avatar de la carte du milieu : lisible, pas gênant ? | l'œil — à dire |
+| un hôte qui ne diffuse pas sur sa chaîne, et que Twitch ne nomme pas parmi ses invités : compté (on ne sait pas) — une tuile vide dans la salle ? | la salle, et le rapport (`chaines`) |
+| le « ▶ » au coin de l'avatar, au pixel | l'œil — le banc le mesure sur son décor |
+
+### Ce que le banc mesure
+
+- **194** — le co-stream du signalement : quatre suivies en barre, deux qu'on
+  ne suit pas, et un invité qui ne diffuse pas ; une chaîne seule d'une
+  session de huit ; une dont le seul camarade ne diffuse pas ; un « +2 »
+  sans session. Le nœud, « tout » sans l'invité ; les pastilles effacées sur
+  la barre et sous le « ▶ », toujours là dans la carte, des nombres pour les
+  deux autres ; le « ▶ » au coin exact de l'avatar, six chaînes au plus ; le
+  choix au survol, collé au rond, ouvert jusqu'au bouton par la souris ;
+  « tout » qui ouvre les six, le rond enfoncé qui referme ; « Les 4 suivis »,
+  puis Maj+clic qui passe à tout le co-stream, sans rien sélectionner, et
+  referme ; au clavier, le choix, Tab, Entrée ; le « ▶ » qui grandit, dit
+  « Regarder les 6 », ouvre et referme, l'aperçu fermé ; rien qui boucle ; un
+  tri qui détache un membre : « Les 3 suivis », la suivie détachée d'abord
+  dans tout le co-stream, et son propre « ▶ » ; les deux réglages, dans leurs
+  quatre combinaisons ; la barre réduite ; Top Chaînes, qui complète la place
+  d'une chaîne dont le répertoire ne rend aucun camarade, et n'y montre ni
+  pastille ni « ▶ » ; le rapport.
+
+| mutant | ce qui tombe |
+| --- | --- |
+| la règle de la feuille retirée (1) | 194 : « 6 » sous la barre, « 7 » sous le « ▶ », et `pastillesVues 7` au rapport |
+| la règle du classement retirée (1) | 194 : deux nombres en Top Chaînes |
+| la règle de la barre posée sans condition (1) | 194 : multistream coupé, les nombres ne reviennent ni sous la barre ni sous le « ▶ » |
+| l'invité qui ne diffuse pas compté (1) | 194 : « givre » dans tout le co-stream, « jade » sous le « ▶ » — treize assertions |
+| jamais de choix (1) | 194 : neuf assertions |
+| l'ordre de la session seul, sans les suivies d'abord (1) | 194 : « dune » après « ecume » et « flot » |
+| la carte seule sans plafond (1) | 194 : sept chaînes pour une salle de six |
+| le « ▶ » décalé de trois pixels (1) | 194 : hors du coin de l'avatar, en étendu comme en réduit |
+| le pont retiré (1) | 194 : le choix refermé en chemin vers « tout » |
+| le choix sans `:focus-within` ; masqué par `display` (2) | 194 : la tabulation qui quitte le nœud le perd |
+| le titre sans Maj+clic ; Maj+clic ignoré ; le nœud enfoncé pour sa barre seule ; pas d'interrupteur (4) | 194 |
+| une salle refusée comptée ; les clics du « ▶ » comptés au nœud (2) | 194 : le rapport |
+| le choix replacé, ou son texte réécrit, à chaque balayage (2) | 194 : un balayage entretenu |
+| pas d'agrandissement ; le choix montré en barre réduite ; le « ▶ » rangé sous le réglage de la pastille (3) | 194 |
+
+Vingt-trois mutants, vingt-deux pris. **Le survivant** : la garde qui refuse
+le « ▶ » aux cartes de Top Chaînes. Elle ne se mesure pas, et le banc dit
+pourquoi : Top Chaînes complète la place d'un co-stream avec le même critère
+que le « ▶ » — qui diffuse —, si bien qu'une carte du classement n'y est
+jamais seule de sa session ; même quand le répertoire n'en rend qu'une, ses
+camarades arrivent et la barre se forme. La garde reste : elle dit la
+demande (« retirer totalement la pastille » en Top Chaînes), et tient si la
+complétion change un jour. **Une garde retirée** : Maj+clic aurait pu
+étendre la sélection du texte jusqu'au nœud ; le mutant qui l'enlevait a
+survécu — Chromium ne le fait pas sur un bouton, ancre posée ou non. Plutôt
+qu'une garde sans preuve, le banc mesure le résultat : rien n'est
+sélectionné.
+
+## Les pubs à tout moment, la place reprise, et le chat choisi (v4.24.0.27)
+
+La demande : « que le système de calage soit bien optimisé à ce qu'il puisse
+y avoir des publicités qui arrivent à n'importe quel moment. Qu'aucun bug
+puisse arriver à cause de ça » ; retirer le contour violet de la tuile qui a
+le son, et lire « Son de … » au-dessus du chat au lieu de « Chat de … » ;
+sans chat partagé, pouvoir choisir le chat d'un streamer sans changer le son
+de la salle. Puis, pendant le travail, un rapport réel avec des pubs : « le
+stream de [la troisième tuile] est décalé de 20 secondes environ après sa
+pub ». Publiée sur `claude/chrome-multi` seulement.
+
+### Ce que le rapport réel a montré
+
+Trois streams, 34 minutes, trois pubs comptées, la salle calée à +300 s. À
+la fin, deux tuiles loin de la référence, et rien qui les corrigeait :
+
+| tuile | ce qui s'est passé | latence | tampon |
+| --- | --- | --- | --- |
+| la troisième | à +1368 s, d'un coup, la lecture continuant (un saut « estimation ») | 7,6 → 30,7 s, tenue dix minutes | 29 à 30 s, tenu de même |
+| la deuxième | vers +1720 s, **sans pub** | 11,1 → 19,7 s | ~9,9 → ~15,9 s |
+| la référence | au sortir de sa pub de 98 s (+1789 → +1887 s) | 10,17 → 13,18 s | ~8,5 → ~11,4 s |
+
+Le tampon dit que ce n'était pas l'estimation : la lecture était vraiment
+plus loin du direct, tout ce qui manquait déjà téléchargé devant elle. Et
+le lecteur, la faible latence retirée par le calage, n'y revient jamais de
+lui-même. À la fin, la deuxième tuile est 5,6 s derrière la référence — le
+son le dit (−5 390 et −5 770 ms, z jusqu'à 11,9), mais le calage écarte
+tout pic au-delà de 5 s : « aucune voix nette » ; la troisième, 17,6 s
+derrière selon les latences — l'écoute ne cherche qu'à ±6 s : rien.
+
+Ce que le rapport ne dit pas : **quand** la pub de la troisième tuile est
+passée. Le journal ne garde que soixante événements, et il était plein de
+« coupures d'arrivée » — « au moins 2 s sans vidéo (tampon 30,24 → 28,24) »
+toutes les minutes — qui ne sont que la cadence des segments de deux
+secondes : 28 s de tampon restaient. Sa seule pub comptée est antérieure à
++1346 s ; le saut de +1368 s est venu 22 s après un recul de 2,28 s demandé
+par le calage, dont la position n'a rien montré dans la demi-seconde
+(+0,04 s obtenu). Pub que les repères n'ont pas vue, ou lecteur qui a
+rechargé loin derrière : le rapport ne permet pas de trancher. Ce qui est
+sûr, c'est la mesure : latence et tampon d'accord, 23 s.
+
+### Les pubs, à tout moment
+
+Une pub fait trois choses au calage, si on la laisse faire : son son n'est
+pas celui du direct — deux tuiles qui passent la même pub, le même
+annonceur servi au même spectateur, font une voix commune au décalage de
+leurs deux débuts, que rien ne distingue d'une vraie ; la lecture qui
+reprend après n'est peut-être plus où elle était ; un déplacement demandé
+pendant la pub vise la pub. Désormais :
+
+| | ce qui se passe |
+| --- | --- |
+| une tuile en pub | ni écoutée — son enveloppe est écartée relevé par relevé —, ni jugée, ni déplacée, ni entraînée quand la référence recule. Sa mesure est rouverte au début et à la fin de la pub, sa relation redevient libre |
+| la référence en pub | le calage attend : « la référence est en pub », au rapport et pour chaque paire. Sa fin délie tout, comme un rechargement |
+| la faible latence à retirer | attend la fin de la pub |
+| un ordre de déplacement qui arrive quand même | le pont le refuse : « refusé : pub ». La seconde garde, pour un ordre parti juste avant le début de la pub |
+| la qualité à tenir | le pont attend la fin de la pub : l'image y est celle de la pub, et les cinq essais d'une demande s'y usaient |
+| une pub cachée par un bloqueur | c'est une pub. Les repères comptent à leur **présence**, et non plus à leur visibilité : au journal de la troisième sonde, ils n'existaient que pendant la pub, jamais restés cachés entre deux coupures |
+
+La pub se lit à deux sources qui se recoupent : l'état que chaque lecteur
+envoie toutes les secondes, et le relevé, qui porte l'enveloppe — celle-ci
+est écartée dès le relevé qui voit la pub.
+
+### La place reprise
+
+Les trois cas du rapport sont la même chose : une tuile qui **retombe**
+derrière le direct. La **place** d'une tuile, c'est la latence et le tampon
+médians de dix relevés tranquilles de suite — en lecture, vitesse 1, hors
+pub, latence cohérente, à 0,8 s près. Six relevés tranquilles qui s'en
+écartent de 1,5 s au moins, **le tampon d'accord** — dans le même sens, la
+moitié au moins, à 2,5 s près (30 % au-delà de 8 s) — : la tuile a retombé,
+et elle reprend sa place, en avançant dans son tampon, qui contient
+justement ce qu'elle a pris de retard ; en reculant, si elle est passée
+devant et que ce qu'elle garde derrière le permet. Deux secondes de tampon
+restent toujours ; trois reprises au plus en dix minutes ; puis le son
+vérifie, la mesure rouverte. La référence aussi : le son qu'on écoute saute
+d'autant, une fois — le prix d'une salle qui reste près du direct, au lieu
+de faire reculer toutes les autres.
+
+- La place se réapprend après chaque geste de la salle — dès l'ordre parti,
+  quatre secondes, quinze pour la faible latence retirée, dont l'estimation
+  saute après coup — et après ce que le lecteur fait de lui-même :
+  rechargement, rattrapage, pause. **Pas** après un saut, une chute ou une
+  pub : c'est d'eux qu'on retombe.
+- **L'estimation seule** qui saute, le tampon immobile — ce que deux
+  lecteurs réels ont fait après la faible latence retirée (« kappa », au
+  190) — ne bouge rien ; tenue vingt secondes, c'est la nouvelle place.
+
+D'après les chiffres du rapport, refaits à la main : la référence aurait
+avancé d'environ 3,1 s au sortir de sa pub, gardant 8 s de tampon ; la
+deuxième tuile, de 8,7 s (6,7 s gardées) ; la troisième, de 23,2 s (5 s
+gardées) — si sa place s'était réapprise depuis le recul de +1346 s, sinon
+par le grand écart, plus bas. Ce n'est pas un rejeu : le rapport ne porte
+pas les enveloppes.
+
+### Le grand écart
+
+Quand il n'y a pas de place d'où retomber — à l'ouverture, ou quand la
+reprendre n'a pas pu se faire —, deux tuiles peuvent être plus loin l'une
+de l'autre que l'écoute ne cherche. Le son n'en dit rien ; leurs latences,
+si. **Au-delà de 5 s**, sur dix relevés communs tranquilles à 1 s près, le
+tampon d'accord à 3 s près (en amont du tampon, les chaînes diffèrent
+d'environ 2 s au rapport réel), tenu vingt secondes, et **sans verdict du
+son** pour la paire — s'il en a un, c'est lui qui décide : celle qui est
+derrière avance de l'écart, si son tampon le permet. La référence n'avance
+que si **toutes** les autres sont loin devant elle ; sinon, c'est la tuile
+qui recule, si elle le peut. L'écart compte pour une correction, et le son
+finit le travail : la latence s'est trompée de 4,6 s au quatorzième rapport
+réel — c'est pour cela qu'on ne descend pas sous 5 s.
+
+Le pont accepte désormais un déplacement jusqu'à 60 s (10 auparavant) ; la
+console reste bornée à 0,2–5 s.
+
+### Le rapport
+
+- Par tuile : `pub`, `pubCachee` (des repères présents, aucun visible),
+  `pubsVues`, `pubS`, et `pubsDetail` — chaque pub, et la place avant et
+  après : « +1789→+1887 s · avant 10.17 s (tampon 8.5) · après 13.18 s
+  (tampon 11.4) » ; `place`, `retombees`, `placeRebases`.
+- Au calage : `reprises` ; à la chronologie, les pubs de chaque tuile.
+- Au journal, une coupure d'arrivée n'est plus notée que si elle a laissé
+  moins d'une seconde de tampon. Toutes restent comptées
+  (`serie.coupures`).
+
+### Le son, au-dessus du chat
+
+**Plus de contour** sur la tuile qui a le son. **L'en-tête du chat dit
+« Son de X »**, un haut-parleur devant. À deux chats dans les marges, chaque
+colonne nomme son chat — « Chat de Y » —, et celle du stream qui a le son
+dit « Son de X ». Sans chat, la pastille posée en haut à droite le dit. Un
+clic sur une tuile lui donne toujours le son ; les touches 1 à 6 aussi.
+
+### Le chat choisi
+
+**Des onglets au-dessus du chat**, un par stream de la salle, dans l'ordre
+de la salle — stable : une tuile remplacée ne les déplace pas. Choisis
+plutôt qu'une liste déroulante : un clic au lieu de deux, et tous les
+streams visibles d'un coup ; sur plusieurs lignes plutôt que cachés au bout
+d'un défilement. Celui du chat affiché est souligné du violet de Twitch.
+
+- **Le chat suit le son tant qu'aucun onglet n'a été choisi** — ce qu'il
+  faisait jusqu'ici, et ce qu'on attend sans y avoir touché. Choisi, il
+  reste où on l'a mis : le son qui passe d'une tuile à l'autre ne le
+  recharge plus. « Masquer » puis « Afficher le chat » le rend tel quel ;
+  un stream qui quitte la salle rend le chat au son.
+- **Au clavier, comme des onglets** : une liste d'onglets, un seul dans
+  l'ordre de tabulation ; les flèches, Début et Fin vont de l'un à l'autre
+  sans rien charger — un chat se recharge, on ne le fait pas en passant —,
+  Entrée ou Espace choisit.
+- **Quand ils n'apparaissent pas** : à deux chats (les deux sont là), sur
+  un Chat partagé prouvé (tous montrent le même), sans chat.
+- **À trois streams et plus, ils restent même sur un Chat partagé** : la
+  salle ne sait pas le prouver avec un seul chat chargé (la preuve est la
+  comparaison des messages de deux chats chargés ensemble), et un Chat
+  partagé peut ne réunir qu'une partie de la salle. Un onglet d'un chat
+  partagé montre le même chat, rien de plus.
+- La console : `tse.salle.chat('chaîne')`. Au rapport : `onglets` (le chat
+  affiché entre crochets), `chatChoisi`, `chatsChoisis`, `chatTitreGauche`.
+
+### Ce qui reste
+
+- **L'événement commun à 0 ms** (cf. la 4.24.0.26) : un même silence dans
+  toutes les tuiles au même instant ferait une voix « avec la référence ».
+  Une pub ne le fait plus — ses fenêtres sont écartées —, une machine qui
+  peine, toujours. À éprouver.
+- **Pourquoi la troisième tuile du rapport a retombé de 23 s** : le
+  prochain rapport le dira, son journal n'étant plus noyé. La salle,
+  désormais, la remet à sa place quelle qu'en soit la cause.
+- **Un Chat partagé à trois streams et plus** ne se prouve pas avec un
+  seul chat chargé : les onglets restent.
+
+### À vérifier sur le vrai Twitch
+
+| point | ce qui le dira |
+| --- | --- |
+| une pub au milieu : la tuile retombe-t-elle, et reprend-elle sa place ? | `pubsDetail` (avant, après), le journal du calage (« retombée … elle reprend sa place ») |
+| les repères d'une pub sous un bloqueur | `pubCachee` |
+| la troisième tuile du rapport : pub non vue, ou rechargement ? | `pubsDetail`, et le journal, désormais lisible |
+| des onglets sur un Chat partagé à trois streams : gênant ? | l'œil — à dire |
+
+### Ce que le banc mesure
+
+- **175** — plus de contour sur la tuile qui a le son ; « Son de alpha »,
+  le haut-parleur devant ; les onglets, celui du chat affiché choisi ; un
+  onglet qui change le chat sans toucher au son ; choisi, le chat qui reste
+  — le même, pas rechargé — quand le son passe à une autre tuile ; le
+  clavier (flèches, Début, Fin sans rien charger, Entrée), la liste
+  d'onglets accessible, `tse.salle.chat()` ; sans chat, le son dans la
+  pastille ; « Afficher le chat » qui rend le chat choisi. Sa pub est
+  désormais posée puis retirée, comme sur le vrai Twitch, et non plus
+  cachée.
+- **177** — à deux chats, « Son de tardif » à droite puis « Son de calme »
+  à gauche quand le son y passe ; un seul chat d'un duo distinct, ses deux
+  onglets ; au-dessus d'un Chat partagé, « Son de sa » puis « Son de sb »,
+  sans onglet.
+- **192** — la même pub sur la référence et une tuile, à 300 ms : rien
+  d'écouté ni de jugé, le calage qui attend et le dit, puis tout se cale
+  sur le vrai son ; une tuile calée en pub, pas entraînée quand la
+  référence recule pour une autre, et rien ne s'envoie à la pub ; sortie
+  de sa pub 8 s plus loin du direct, son tampon avec elle, elle reprend sa
+  place en avançant ; une pub cachée par un bloqueur, et la console comme
+  le pont qui refusent de la déplacer ; la faible latence d'une tuile en
+  pub, retirée à la fin de la pub seulement.
+- **193** — l'estimation seule qui saute de 6 s, le tampon immobile : rien
+  ne bouge ; une tuile qui retombe de 20 s, sans pub, qui reprend sa place ;
+  une coupure qui laisse plus d'une seconde, comptée et pas notée ; le
+  grand écart à l'ouverture, 7 s : celle qui est derrière avance — et, la
+  référence derrière toutes les autres, c'est elle.
+
+Le faux lecteur a gagné sa pub (`__pub` : les trois repères, le son du
+direct coupé, celui de la pub à sa place, à l'heure de l'horloge), la tuile
+qui retombe (`__retomber`, le tampon avec elle), et l'estimation seule
+(`__estimer`).
+
+| mutant | ce qui tombe |
+| --- | --- |
+| l'enveloppe d'une pub écoutée (1) | 192 : six calculs pendant les pubs, quand il n'en faut aucun |
+| écoutée, jugée, la référence en pub qui n'attend pas (1) | 192 : « omega en retard de 0.30 s (−300 ms) → xray recule de 0.18 s » — l'écart entre les deux pubs, pris pour un retard |
+| la référence en pub qui n'attend pas (1) | 192 : « le son ne s'est pas encore prononcé » au lieu de « la référence est en pub » |
+| la tuile en pub entraînée — gardée calée, suiveuse (1) | 192 : « omega recule de 0.31 s (suit la référence) » — que le pont refuse, seconde garde —, et sa place jamais reprise |
+| le pont qui déplace une pub (1) | 192 : « recul 1 · instance » dans une pub cachée |
+| la pub lue à sa visibilité (1) | 192 : la pub cachée par un bloqueur pas vue, et la console qui la déplace |
+| la faible latence retirée pendant la pub (1) | 192 : « india retirée à +0 s », en pleine pub |
+| la place jamais reprise (2) | 192 et 193 : la tuile restée 8 s, puis 20 s, derrière le direct |
+| la place réapprise au relevé, pas à l'ordre (1) | 192 : deux reprises au lieu d'une — elle « retombait » encore le temps que l'ordre se voie |
+| la place d'après la pub jamais notée (1) | 192 : `pubsDetail` sans « après » |
+| la place reprise sur la latence seule (1) | 193 : l'estimation qui saute de 6 s prise pour une retombée |
+| le grand écart jamais fait ; la référence derrière jamais avancée (2) | 193 : « psi » laissée 7 s derrière ; la référence — ou rien — qui ne rattrape pas |
+| la coupure sans conséquence notée (1) | 193 : « coupure d'arrivée » au journal, 1,3 s de tampon restant |
+| le contour remis ; « Chat de … » revenu ; le haut-parleur oublié ; les onglets jamais montrés ; l'onglet qui donne aussi le son ; le chat qui suit encore le son une fois choisi ; les flèches qui chargent en passant ; le tabindex qui ne suit pas ; la console qui accepte une chaîne absente ; la pastille muette sur le son (10) | 175 |
+| les onglets sur un Chat partagé ; « Son de … » figé à droite (2) | 177 |
+
+Vingt-sept mutants, vingt-sept pris.
 
 ## Le multistream sur toutes les branches (v4.24.0.26)
 
@@ -17222,7 +17878,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le manifeste Firefox : les invariants du dépôt, **puis** l'`addons-linter` de Mozilla — celui qu'AMO applique à la soumission |
-| `npm test` | le harnais Playwright : 190 scénarios, 1603 assertions |
+| `npm test` | le harnais Playwright : 194 scénarios, 1646 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
