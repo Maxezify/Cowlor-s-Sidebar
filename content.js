@@ -143,6 +143,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
 
   const BOUTON_SON = 'button[data-a-target="player-mute-unmute-button"]';
   const BOUTON_LECTURE = 'button[data-a-target="player-play-pause-button"]';
+  const enPub = () => document.querySelector(TSE_PUB_REPERES) !== null;
   let ordre = null;
   let numeroOrdre = 0;
 
@@ -221,8 +222,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       .reduce((p, q) => (p === null || q.height < p ? q.height : p), null);
     return dessus === null ? meilleure.q : meilleureA(echelle, dessus);
   };
+
   const tenirQualite = () => {
-    if (!hauteurVoulue || qualiteEssais >= 5 || Date.now() - qualiteT < 3000) return;
+    if (!hauteurVoulue || qualiteEssais >= 5 || Date.now() - qualiteT < 3000 || enPub()) return;
     const lecteur = lecteurTwitch();
     if (!lecteur || typeof lecteur.setQuality !== 'function') return;
     let echelle = [];
@@ -273,7 +275,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       perdues: q ? q.droppedVideoFrames : null,
       octets: v && typeof v.webkitVideoDecodedByteCount === 'number'
         ? v.webkitVideoDecodedByteCount + (Number(v.webkitAudioDecodedByteCount) || 0) : null,
-      pub: [...document.querySelectorAll(TSE_PUB_REPERES)].some((el) => el.getClientRects().length > 0),
+
+      pub: enPub(),
+      pubVisible: [...document.querySelectorAll(TSE_PUB_REPERES)].some((el) => el.getClientRects().length > 0),
       boutonSon: !!document.querySelector(BOUTON_SON),
       avertissement, avertissementVu, avertissementClics,
       gestes,
@@ -308,6 +312,12 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     const lecteur = lecteurTwitch();
     const v = document.querySelector('video');
     const type = sens > 0 ? 'recul' : 'avance';
+
+    if (enPub()) {
+      essai = { n: ++numeroEssai, type, valeur: s, voie: 'refusé : pub', t: Date.now(), fin: Date.now(),
+                avant: null, apres: null };
+      return;
+    }
     if (sens < 0) {
       const tampon = lecteur && typeof lecteur.getBufferDuration === 'function' ? lireNombre(() => lecteur.getBufferDuration()) : null;
       if (tampon !== null && tampon < s + 0.5) {
@@ -407,6 +417,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     let etat = 'inactive', reliaisons = 0, sr = null, voie = null;
     let ancreCour = Infinity, ancrePrec = Infinity, ancreT = 0;
 
+    const MARCHE_MS = 15;
+    let secMin = Infinity, secT = 0, marches = 0, marchesMs = [];
+
     let rang = -1, dernierPt = null;
 
     let sonVu = false, amorce = 0;
@@ -455,8 +468,21 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     };
 
     const surFin = (finMs, puissance, mur) => {
+      const ecart = mur - finMs;
+
+      if (mur - secT >= 1_000) {
+        const avant = Math.min(ancreCour, ancrePrec);
+        if (secT && secMin - avant > MARCHE_MS) {
+          marches += 1;
+          marchesMs.push(Math.round(secMin - avant));
+          if (marchesMs.length > 4) marchesMs.shift();
+          ancreCour = secMin; ancrePrec = Infinity; ancreT = mur;
+        }
+        secMin = Infinity; secT = mur;
+      }
+      secMin = Math.min(secMin, ecart);
       if (mur - ancreT > 10_000) { ancrePrec = ancreCour; ancreCour = Infinity; ancreT = mur; }
-      ancreCour = Math.min(ancreCour, mur - finMs);
+      ancreCour = Math.min(ancreCour, ecart);
       const ancre = Math.min(ancreCour, ancrePrec);
 
       const niveau = Math.log10(puissance + 1e-8);
@@ -535,6 +561,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       try { if (ac) ac.close(); } catch {   }
       ac = null; proc = null; nul = null; lot = []; secondes = []; blocs = 0; muets = 0;
       ancreCour = Infinity; ancrePrec = Infinity; ancreT = 0; rang = -1; dernierPt = null;
+      secMin = Infinity; secT = 0; marches = 0; marchesMs = [];
       sonVu = false; amorce = 0;
       etat = 'inactive';
     };
@@ -555,7 +582,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       const b = secondes.reduce((x, y) => x + y[0], 0);
       const m = secondes.reduce((x, y) => x + y[1], 0);
       return { etat, sr, reliaisons, voie, pistes: flux ? flux.getAudioTracks().length : 0,
-               blocs: b, silence: b ? Math.round((m / b) * 100) / 100 : null };
+               blocs: b, silence: b ? Math.round((m / b) * 100) / 100 : null, marches, marchesMs: [...marchesMs] };
     };
     const prendre = () => { const l = lot; lot = []; return l; };
     return { tenir, bilan, prendre };
@@ -585,6 +612,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       faibleLatence: f('isLiveLowLatency') ? (() => { try { return !!lecteur.isLiveLowLatency(); } catch { return null; } })() : null,
       essai,
       ecoute: ecoute.bilan(),
+
+      pub: enPub(),
       env: ecoute.prendre(),
     };
     if (d.api === true && lecteur) r.api = lireApi(lecteur);
@@ -643,7 +672,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       else {
 
         const s = Number(d.duree);
-        if (s >= 0.05 && s <= 10) deplacer(s, d.ordre === 'essai-recul' ? 1 : -1);
+        if (s >= 0.05 && s <= 60) deplacer(s, d.ordre === 'essai-recul' ? 1 : -1);
       }
       return;
     }
@@ -805,7 +834,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiSalleTitre:              (n) => `Salle · ${n} stream${n > 1 ? 's' : ''}`,
       uiSalleSonPour:            (nom) => `Donner le son à ${nom}`,
       uiSalleChat:               (nom) => `Chat de ${nom}`,
-      uiSalleChatSon:            (nom) => `Son : ${nom}`,
+      uiSalleChatSon:            (nom) => `Son de ${nom}`,
+      uiSalleOnglets:            'Choisir le chat',
+      uiSalleOnglet:             (nom) => `Afficher le chat de ${nom}, sans changer le son`,
       uiSalleChatMasque:         'Chat masqué : fenêtre trop étroite',
       uiSallePoints:             'Pas de points de chaîne dans la salle',
       uiSalleBanc:               (nom) => `Mettre ${nom} dans la grille`,
@@ -814,6 +845,10 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
 
       uiNoeudRegarder:           (n) => `Regarder les ${n}`,
       uiNoeudAria:               (noms) => `Regarder ${noms} ensemble`,
+
+      uiNoeudSuivis:             (n) => `Les ${n} suivis`,
+      uiNoeudTous:               (n) => `Tout le co-stream · ${n}`,
+      uiNoeudMaj:                (n) => `Maj+clic : tout le co-stream (${n})`,
       uiGlobalEmpty:             'Aucune chaîne en direct avec ce filtre',
       uiUptimeEnded:             'Terminé',
       uiPreviewUnavailable:      'Aperçu indisponible',
@@ -908,7 +943,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiSalleTitre:              (n) => `Room · ${n} stream${n > 1 ? 's' : ''}`,
       uiSalleSonPour:            (nom) => `Give the sound to ${nom}`,
       uiSalleChat:               (nom) => `${nom}'s chat`,
-      uiSalleChatSon:            (nom) => `Sound: ${nom}`,
+      uiSalleChatSon:            (nom) => `Sound from ${nom}`,
+      uiSalleOnglets:            'Choose the chat',
+      uiSalleOnglet:             (nom) => `Show ${nom}'s chat, without changing the sound`,
       uiSalleChatMasque:         'Chat hidden: window too narrow',
       uiSallePoints:             'No channel points in the room',
       uiSalleBanc:               (nom) => `Put ${nom} in the grid`,
@@ -916,6 +953,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiSalleChatMasquer:        'Hide the chat',
       uiNoeudRegarder:           (n) => `Watch all ${n}`,
       uiNoeudAria:               (noms) => `Watch ${noms} together`,
+      uiNoeudSuivis:             (n) => `${n} followed`,
+      uiNoeudTous:               (n) => `Whole co-stream · ${n}`,
+      uiNoeudMaj:                (n) => `Shift+click: whole co-stream (${n})`,
       uiGlobalEmpty:             'No live channel matches this filter',
       uiUptimeEnded:             'Ended',
       uiPreviewUnavailable:      'Preview unavailable',
@@ -1008,7 +1048,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiSalleTitre:              (n) => `Raum · ${n} Stream${n > 1 ? 's' : ''}`,
       uiSalleSonPour:            (nom) => `Ton für ${nom} einschalten`,
       uiSalleChat:               (nom) => `Chat von ${nom}`,
-      uiSalleChatSon:            (nom) => `Ton: ${nom}`,
+      uiSalleChatSon:            (nom) => `Ton von ${nom}`,
+      uiSalleOnglets:            'Chat auswählen',
+      uiSalleOnglet:             (nom) => `Chat von ${nom} anzeigen, ohne den Ton zu wechseln`,
       uiSalleChatMasque:         'Chat ausgeblendet: Fenster zu schmal',
       uiSallePoints:             'Keine Kanalpunkte im Raum',
       uiSalleBanc:               (nom) => `${nom} ins Raster holen`,
@@ -1016,6 +1058,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiSalleChatMasquer:        'Chat ausblenden',
       uiNoeudRegarder:           (n) => `Alle ${n} ansehen`,
       uiNoeudAria:               (noms) => `${noms} zusammen ansehen`,
+      uiNoeudSuivis:             (n) => `Die ${n} gefolgten`,
+      uiNoeudTous:               (n) => `Ganzer Co-stream · ${n}`,
+      uiNoeudMaj:                (n) => `Umschalt+Klick: ganzer Co-stream (${n})`,
       uiGlobalEmpty:             'Kein Live-Kanal passt zu diesem Filter',
       uiUptimeEnded:             'Beendet',
       uiPreviewUnavailable:      'Vorschau nicht verfügbar',
@@ -1108,7 +1153,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiSalleTitre:              (n) => `Sala · ${n} stream${n > 1 ? 's' : ''}`,
       uiSalleSonPour:            (nom) => `Dar el sonido a ${nom}`,
       uiSalleChat:               (nom) => `Chat de ${nom}`,
-      uiSalleChatSon:            (nom) => `Sonido: ${nom}`,
+      uiSalleChatSon:            (nom) => `Sonido de ${nom}`,
+      uiSalleOnglets:            'Elegir el chat',
+      uiSalleOnglet:             (nom) => `Mostrar el chat de ${nom}, sin cambiar el sonido`,
       uiSalleChatMasque:         'Chat oculto: ventana demasiado estrecha',
       uiSallePoints:             'Sin puntos de canal en la sala',
       uiSalleBanc:               (nom) => `Poner a ${nom} en la cuadrícula`,
@@ -1116,6 +1163,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiSalleChatMasquer:        'Ocultar el chat',
       uiNoeudRegarder:           (n) => `Ver los ${n}`,
       uiNoeudAria:               (noms) => `Ver a ${noms} juntos`,
+      uiNoeudSuivis:             (n) => `Los ${n} seguidos`,
+      uiNoeudTous:               (n) => `Todo el co-stream · ${n}`,
+      uiNoeudMaj:                (n) => `Mayús+clic: todo el co-stream (${n})`,
       uiGlobalEmpty:             'Ningún canal en directo con este filtro',
       uiUptimeEnded:             'Finalizado',
       uiPreviewUnavailable:      'Vista previa no disponible',
@@ -1208,7 +1258,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiSalleTitre:              (n) => `Sala · ${n} stream${n > 1 ? 's' : ''}`,
       uiSalleSonPour:            (nom) => `Dar o som a ${nom}`,
       uiSalleChat:               (nom) => `Chat de ${nom}`,
-      uiSalleChatSon:            (nom) => `Som: ${nom}`,
+      uiSalleChatSon:            (nom) => `Som de ${nom}`,
+      uiSalleOnglets:            'Escolher o chat',
+      uiSalleOnglet:             (nom) => `Mostrar o chat de ${nom}, sem trocar o som`,
       uiSalleChatMasque:         'Chat oculto: janela estreita demais',
       uiSallePoints:             'Sem pontos do canal na sala',
       uiSalleBanc:               (nom) => `Colocar ${nom} na grade`,
@@ -1216,6 +1268,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiSalleChatMasquer:        'Ocultar o chat',
       uiNoeudRegarder:           (n) => `Ver os ${n}`,
       uiNoeudAria:               (noms) => `Assistir ${noms} juntos`,
+      uiNoeudSuivis:             (n) => `Os ${n} seguidos`,
+      uiNoeudTous:               (n) => `Todo o co-stream · ${n}`,
+      uiNoeudMaj:                (n) => `Shift+clique: todo o co-stream (${n})`,
       uiGlobalEmpty:             'Nenhum canal ao vivo com este filtro',
       uiUptimeEnded:             'Encerrado',
       uiPreviewUnavailable:      'Pré-visualização indisponível',
@@ -1308,7 +1363,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiSalleTitre:              (n) => `Sala · ${n} stream`,
       uiSalleSonPour:            (nom) => `Dai l'audio a ${nom}`,
       uiSalleChat:               (nom) => `Chat di ${nom}`,
-      uiSalleChatSon:            (nom) => `Audio: ${nom}`,
+      uiSalleChatSon:            (nom) => `Audio di ${nom}`,
+      uiSalleOnglets:            'Scegli la chat',
+      uiSalleOnglet:             (nom) => `Mostra la chat di ${nom}, senza cambiare l'audio`,
       uiSalleChatMasque:         'Chat nascosta: finestra troppo stretta',
       uiSallePoints:             'Niente punti canale nella sala',
       uiSalleBanc:               (nom) => `Metti ${nom} nella griglia`,
@@ -1316,6 +1373,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiSalleChatMasquer:        'Nascondi la chat',
       uiNoeudRegarder:           (n) => `Guarda tutti e ${n}`,
       uiNoeudAria:               (noms) => `Guarda ${noms} insieme`,
+      uiNoeudSuivis:             (n) => `I ${n} seguiti`,
+      uiNoeudTous:               (n) => `Tutto il co-stream · ${n}`,
+      uiNoeudMaj:                (n) => `Maiusc+clic: tutto il co-stream (${n})`,
       uiGlobalEmpty:             'Nessun canale in diretta con questo filtro',
       uiUptimeEnded:             'Terminato',
       uiPreviewUnavailable:      'Anteprima non disponibile',
@@ -1409,6 +1469,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiSalleSonPour:            (nom) => `Włącz dźwięk: ${nom}`,
       uiSalleChat:               (nom) => `Czat: ${nom}`,
       uiSalleChatSon:            (nom) => `Dźwięk: ${nom}`,
+      uiSalleOnglets:            'Wybierz czat',
+      uiSalleOnglet:             (nom) => `Pokaż czat: ${nom}, bez zmiany dźwięku`,
       uiSalleChatMasque:         'Czat ukryty: okno jest za wąskie',
       uiSallePoints:             'Brak punktów kanału w sali',
       uiSalleBanc:               (nom) => `Przenieś ${nom} do siatki`,
@@ -1416,6 +1478,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiSalleChatMasquer:        'Ukryj czat',
       uiNoeudRegarder:           (n) => `Oglądaj ${n} naraz`,
       uiNoeudAria:               (noms) => `Oglądaj razem: ${noms}`,
+      uiNoeudSuivis:             (n) => `Obserwowani (${n})`,
+      uiNoeudTous:               (n) => `Cały co-stream · ${n}`,
+      uiNoeudMaj:                (n) => `Shift+klik: cały co-stream (${n})`,
       uiGlobalEmpty:             'Brak kanałów na żywo dla tego filtra',
       uiUptimeEnded:             'Zakończono',
       uiPreviewUnavailable:      'Podgląd niedostępny',
@@ -1509,6 +1574,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiSalleSonPour:            (nom) => `Включить звук: ${nom}`,
       uiSalleChat:               (nom) => `Чат: ${nom}`,
       uiSalleChatSon:            (nom) => `Звук: ${nom}`,
+      uiSalleOnglets:            'Выбрать чат',
+      uiSalleOnglet:             (nom) => `Показать чат: ${nom}, не меняя звук`,
       uiSalleChatMasque:         'Чат скрыт: окно слишком узкое',
       uiSallePoints:             'В зале баллы канала не начисляются',
       uiSalleBanc:               (nom) => `Поместить ${nom} в сетку`,
@@ -1516,6 +1583,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiSalleChatMasquer:        'Скрыть чат',
       uiNoeudRegarder:           (n) => `Смотреть все ${n}`,
       uiNoeudAria:               (noms) => `Смотреть вместе: ${noms}`,
+      uiNoeudSuivis:             (n) => `Отслеживаемые (${n})`,
+      uiNoeudTous:               (n) => `Весь ко-стрим · ${n}`,
+      uiNoeudMaj:                (n) => `Shift+клик: весь ко-стрим (${n})`,
       uiGlobalEmpty:             'Нет каналов в эфире с этим фильтром',
       uiUptimeEnded:             'Завершено',
       uiPreviewUnavailable:      'Предпросмотр недоступен',
@@ -1609,6 +1679,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiSalleSonPour:            (nom) => `${nom} の音声に切り替え`,
       uiSalleChat:               (nom) => `${nom} のチャット`,
       uiSalleChatSon:            (nom) => `音声：${nom}`,
+      uiSalleOnglets:            'チャットを選ぶ',
+      uiSalleOnglet:             (nom) => `${nom} のチャットを表示（音声はそのまま）`,
       uiSalleChatMasque:         'チャット非表示：ウィンドウが狭すぎます',
       uiSallePoints:             'ルームではチャンネルポイントは貯まりません',
       uiSalleBanc:               (nom) => `${nom} をグリッドに表示`,
@@ -1616,6 +1688,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiSalleChatMasquer:        'チャットを非表示',
       uiNoeudRegarder:           (n) => `${n} 人をまとめて見る`,
       uiNoeudAria:               (noms) => `${noms} をまとめて見る`,
+      uiNoeudSuivis:             (n) => `フォロー中の${n}人`,
+      uiNoeudTous:               (n) => `コラボ配信の全員 · ${n}`,
+      uiNoeudMaj:                (n) => `Shift+クリック：コラボ配信の全員（${n}）`,
       uiGlobalEmpty:             'この条件で配信中のチャンネルはありません',
       uiUptimeEnded:             '終了',
       uiPreviewUnavailable:      'プレビューを利用できません',
@@ -1707,6 +1782,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiSalleSonPour:            (nom) => `切换到 ${nom} 的声音`,
       uiSalleChat:               (nom) => `${nom} 的聊天`,
       uiSalleChatSon:            (nom) => `声音：${nom}`,
+      uiSalleOnglets:            '选择聊天室',
+      uiSalleOnglet:             (nom) => `显示 ${nom} 的聊天（不切换声音）`,
       uiSalleChatMasque:         '聊天已隐藏：窗口太窄',
       uiSallePoints:             '放映室内不获得频道积分',
       uiSalleBanc:               (nom) => `将 ${nom} 放入网格`,
@@ -1714,6 +1791,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiSalleChatMasquer:        '隐藏聊天',
       uiNoeudRegarder:           (n) => `一起观看 ${n} 个`,
       uiNoeudAria:               (noms) => `一起观看 ${noms}`,
+      uiNoeudSuivis:             (n) => `关注的 ${n} 位`,
+      uiNoeudTous:               (n) => `整个联合直播 · ${n}`,
+      uiNoeudMaj:                (n) => `Shift+点击：整个联合直播（${n}）`,
       uiGlobalEmpty:             '没有符合此筛选条件的直播频道',
       uiUptimeEnded:             '已结束',
       uiPreviewUnavailable:      '预览不可用',
@@ -2569,6 +2649,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       pointer-events: none; z-index: 2;
       font-variant-numeric: tabular-nums;
     }
+    
+    .side-nav-card[data-tse-global="true"] .tse-collab-badge,
+    html:not([data-tse-off~="salle"]) .side-nav-card[data-tse-pastille] .tse-collab-badge { display: none !important; }
 
     
     ${DOM.sidebarRoot} [data-a-target*="hype-train" i],
@@ -2836,7 +2919,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     }
 
     
-    #tse-noeuds { position: relative; height: 0; margin: 0; padding: 0; z-index: 5; }
+    .tse-noeuds { position: relative; height: 0; margin: 0; padding: 0; z-index: 5; }
     .tse-noeud {
       position: absolute; transform: translateY(-50%);
       display: flex; align-items: center; justify-content: center;
@@ -2850,23 +2933,129 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     
     .tse-noeud__symbole { display: flex; align-items: center; margin-left: 1px; }
     .tse-noeud svg { width: 4px; height: 5px; fill: currentColor; }
-    .tse-noeud__etiquette {
+    
+    .tse-noeuds .tse-icone-arret { display: none; }
+    .tse-noeuds [aria-pressed="true"] .tse-icone-lecture { display: none; }
+    .tse-noeuds [aria-pressed="true"] .tse-icone-arret { display: block; }
+    .tse-noeuds [aria-pressed="true"] > .tse-noeud__symbole { margin-left: 0; }
+    
+    .tse-noeud:hover { box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.75), 0 1px 3px rgba(0, 0, 0, 0.35); }
+
+    
+    .tse-noeud__etiquette,
+    .tse-noeud__option,
+    .tse-pastille-salle__etiquette {
+      margin: 0; padding: 4px 9px; border-radius: 6px; box-sizing: border-box;
+      border: 1px solid rgba(0, 0, 0, 0.3);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 2px 0 rgba(0, 0, 0, 0.45),
+                  0 4px 10px rgba(0, 0, 0, 0.4);
+      font-family: inherit; font-size: 11px; font-weight: 700; line-height: 1;
+      white-space: nowrap; cursor: pointer; pointer-events: auto;
+      transition: filter 80ms ease, transform 80ms ease, box-shadow 80ms ease;
+    }
+    .tse-noeud__etiquette,
+    .tse-noeud__option { background: var(--tse-noeud-couleur, #9147ff); color: #0e0e10; }
+    .tse-pastille-salle__etiquette { background: ${CFG.PURPLE}; color: #fff; }
+    
+    .tse-noeud__etiquette,
+    .tse-pastille-salle__etiquette {
       display: none; position: absolute; left: calc(100% + 6px); top: 50%;
-      transform: translateY(-50%); padding: 3px 8px; border-radius: 4px;
-      background: var(--tse-noeud-couleur, #9147ff); color: #0e0e10;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35); pointer-events: none;
+      transform: translateY(-50%);
+    }
+    .tse-noeud__etiquette::before,
+    .tse-pastille-salle__etiquette::before {
+      content: ''; position: absolute; right: 100%; top: -1px; bottom: -1px; width: 8px;
     }
     .tse-noeud:hover .tse-noeud__etiquette,
     .tse-noeud:focus-visible .tse-noeud__etiquette { display: block; }
+    .tse-noeud__etiquette:hover,
+    .tse-pastille-salle__etiquette:hover { filter: brightness(1.12); transform: translateY(calc(-50% - 1px)); }
+    .tse-noeud__etiquette:active,
+    .tse-pastille-salle__etiquette:active {
+      transform: translateY(calc(-50% + 1px));
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 0 0 rgba(0, 0, 0, 0);
+    }
     .tse-noeud:focus-visible { outline: 2px solid var(--tse-texte); outline-offset: 1px; }
     
     .tse-noeud[aria-pressed="true"] {
       box-shadow: 0 0 0 2px var(--tse-noeud-couleur, #9147ff), 0 1px 3px rgba(0, 0, 0, 0.35);
     }
     
+    .tse-noeuds [aria-pressed="true"] > .tse-noeud__etiquette,
+    .tse-noeuds [aria-pressed="true"] > .tse-pastille-salle__etiquette { display: none !important; }
+    
     .tse-noeud--reduit:hover .tse-noeud__etiquette,
     .tse-noeud--reduit:focus-visible .tse-noeud__etiquette { display: none; }
-    html[data-tse-off~="salle"] #tse-noeuds { display: none !important; }
+    html[data-tse-off~="salle"] .tse-noeuds { display: none !important; }
+
+    
+    .tse-noeud--choix .tse-noeud__etiquette { display: none !important; }
+    .tse-noeud__choix {
+      display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
+      position: absolute; transform: translateY(-50%);
+      padding-left: 6px; z-index: 1; white-space: nowrap;
+      font-family: inherit; font-size: 11px; font-weight: 700; line-height: 1;
+      opacity: 0; pointer-events: none;
+    }
+    .tse-noeud:hover + .tse-noeud__choix,
+    .tse-noeud:focus-visible + .tse-noeud__choix,
+    .tse-noeud__choix:hover,
+    .tse-noeud__choix:focus-within { opacity: 1; pointer-events: auto; }
+    
+    .tse-noeud__choix .tse-noeud__option { pointer-events: inherit; }
+    
+    .tse-noeud--reduit + .tse-noeud__choix { display: none !important; }
+    .tse-noeud__option { display: flex; align-items: center; gap: 5px; }
+    .tse-noeud__option svg { width: 6px; height: 7px; fill: currentColor; flex: none; }
+    .tse-noeud__option .tse-icone-arret { width: 6px; height: 6px; }
+    .tse-noeud__option:hover { filter: brightness(1.12); transform: translateY(-1px); }
+    .tse-noeud__option:active {
+      transform: translateY(1px);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 0 0 rgba(0, 0, 0, 0);
+    }
+    .tse-noeud__option:focus-visible { outline: 2px solid var(--tse-texte); outline-offset: 1px; }
+    
+    .tse-noeud__option[aria-pressed="true"] {
+      box-shadow: inset 0 0 0 2px rgba(14, 14, 16, 0.85), 0 2px 0 rgba(0, 0, 0, 0.45),
+                  0 4px 10px rgba(0, 0, 0, 0.4);
+    }
+
+    
+    .tse-pastille-salle {
+      position: absolute; transform: translate(-50%, -50%);
+      display: flex; align-items: center; justify-content: center;
+      width: 16px; height: 16px; margin: 0; padding: 0; box-sizing: border-box;
+      border: 0; border-radius: 50%; background: transparent; color: #fff;
+      font-family: inherit; font-size: 11px; font-weight: 700; line-height: 1;
+      white-space: nowrap; cursor: pointer;
+    }
+    .tse-pastille-salle::before {
+      content: ''; position: absolute; inset: 0; border-radius: 50%;
+      background: ${CFG.PURPLE};
+      box-shadow: 0 0 0 2px var(--color-background-base, #0e0e10);
+      transition: transform 120ms ease;
+    }
+    .tse-pastille-salle .tse-noeud__symbole { position: relative; transition: transform 120ms ease; }
+    .tse-pastille-salle .tse-noeud__symbole svg { width: 5px; height: 6px; fill: currentColor; }
+    .tse-pastille-salle .tse-noeud__symbole .tse-icone-arret { width: 5px; height: 5px; }
+    .tse-pastille-salle:hover::before,
+    .tse-pastille-salle:focus-visible::before,
+    .tse-pastille-salle:hover .tse-noeud__symbole,
+    .tse-pastille-salle:focus-visible .tse-noeud__symbole { transform: scale(1.25); }
+    .tse-pastille-salle:focus-visible { outline: 2px solid var(--tse-texte); outline-offset: 3px; }
+    .tse-pastille-salle[aria-pressed="true"]::before {
+      box-shadow: 0 0 0 2px var(--color-background-base, #0e0e10), 0 0 0 4px ${CFG.PURPLE};
+    }
+    .tse-pastille-salle:hover .tse-pastille-salle__etiquette,
+    .tse-pastille-salle:focus-visible .tse-pastille-salle__etiquette { display: block; }
+    .tse-pastille-salle--reduit .tse-pastille-salle__etiquette { display: none !important; }
+    @media (prefers-reduced-motion: reduce) {
+      .tse-pastille-salle::before,
+      .tse-pastille-salle .tse-noeud__symbole,
+      .tse-noeud__etiquette,
+      .tse-noeud__option,
+      .tse-pastille-salle__etiquette { transition: none; }
+    }
 
     
     @property --tse-sub-angle {
@@ -4015,13 +4204,11 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     .tse-salle__corps { flex: 1 1 auto; display: flex; min-height: 0; }
     .tse-salle__gauche { flex: 1 1 auto; display: flex; flex-direction: column; min-width: 0; }
     .tse-salle__scene { position: relative; flex: 1 1 auto; min-height: 0; overflow: auto; }
+    
     .tse-salle__tuile {
       position: absolute; box-sizing: border-box;
       background: #000; border-radius: 4px; overflow: hidden;
-      box-shadow: 0 0 0 2px transparent;
     }
-    
-    .tse-salle__tuile--son { box-shadow: 0 0 0 2px #9147ff; }
     .tse-salle__tuile iframe { display: block; width: 100%; height: 100%; border: 0; }
     
     .tse-salle__prise {
@@ -4056,10 +4243,34 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     .tse-salle__chat--gauche { border-left: 0; border-right: 1px solid rgba(var(--tse-encre), 0.08); }
     .tse-salle__chat[hidden], .tse-salle__banc[hidden] { display: none; }
     .tse-salle__chat-tete {
-      flex: 0 0 auto; padding: 6px 12px; font-weight: 600;
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      flex: 0 0 auto; display: flex; align-items: center; gap: 6px; min-width: 0;
+      padding: 6px 12px; font-weight: 600;
       border-bottom: 1px solid rgba(var(--tse-encre), 0.08);
     }
+    .tse-salle__chat-texte, .tse-salle__son-texte { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    
+    .tse-salle__icone-son { flex: 0 0 auto; display: none; color: #9147ff; }
+    .tse-salle__icone-son svg { display: block; width: 14px; height: 14px; fill: currentColor; }
+    .tse-salle__chat-tete--son .tse-salle__icone-son, .tse-salle__son .tse-salle__icone-son { display: block; }
+    
+    .tse-salle__son { display: none; align-items: center; gap: 5px; min-width: 0; font-size: 12px; font-weight: 600; }
+    .tse-salle__tete .tse-salle__son { display: flex; }
+    .tse-salle__tete .tse-salle__icone-son { color: #bf94ff; }
+    
+    .tse-salle__onglets {
+      flex: 0 0 auto; display: flex; flex-wrap: wrap; gap: 0 2px; padding: 2px 8px 0;
+      border-bottom: 1px solid rgba(var(--tse-encre), 0.08);
+    }
+    .tse-salle__onglets[hidden] { display: none; }
+    .tse-salle__onglet {
+      flex: 0 1 auto; min-width: 0; max-width: 160px; margin: 0; padding: 5px 8px 4px;
+      border: 0; border-bottom: 2px solid transparent; border-radius: 4px 4px 0 0;
+      background: none; color: var(--tse-texte-faible); font: inherit; font-size: 12px; font-weight: 600;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer;
+    }
+    .tse-salle__onglet:hover { color: var(--tse-texte); background: rgba(var(--tse-encre), 0.06); }
+    .tse-salle__onglet[aria-selected="true"] { color: var(--tse-texte); border-bottom-color: #9147ff; }
+    .tse-salle__onglet:focus-visible { outline: 2px solid #9147ff; outline-offset: -2px; }
     .tse-salle__chat iframe { flex: 1 1 auto; width: 100%; border: 0; }
   `;
 
@@ -4939,6 +5150,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         if (!l || vus.has(l)) continue;
 
         if (m.enLigne === false) continue;
+
+        if (getFreshChannel(l)?.stream === null) continue;
         vus.add(l);
         out.push({
           login: l,
@@ -7300,8 +7513,10 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
 
       el.append(cadre, prise);
 
-      return { chaine, el, cadre, prise, etat: null, messages: 0, pubs: 0, changement: Date.now(),
-               pubAvant: false, dernierSon: 0, pauseCachee: false,
+      return { chaine, el, cadre, prise, etat: null, messages: 0, changement: Date.now(),
+
+               enPub: false, pubDebut: null, pubs: 0, pubMs: 0,
+               dernierSon: 0, pauseCachee: false,
                sonEssais: 0, sonEnvoiT: 0, sonDepuis: 0, sonTenu: false, gestesAuDon: 0, qualiteEnvoyee: null,
                ordreCompte: 0, dernierOrdre: null,
 
@@ -7322,9 +7537,26 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
 
                octets: 0, octetsAvant: null, octetsT0: null, octetsT: null,
 
-               premierSon: null, rouverte: null };
+               premierSon: null, rouverte: null,
+
+               place: null, placeDes: 0, placeDecalee: null, retombee: null, retombees: 0, rebases: 0,
+               pubsDetail: [] };
     };
 
+    const HAUT_PARLEUR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9.5v5h3.6L12 19V5L6.6 9.5H3Z"/>'
+      + '<path d="M15.5 8.6a4.6 4.6 0 0 1 0 6.8M18 6.2a8 8 0 0 1 0 11.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+
+    const ligneSon = (classe, classeTexte) => {
+      const el = document.createElement(classe === 'tse-salle__son' ? 'span' : 'div');
+      el.className = classe;
+      const icone = document.createElement('span');
+      icone.className = 'tse-salle__icone-son';
+      icone.appendChild(noeudStatique(HAUT_PARLEUR));
+      const texte = document.createElement('span');
+      texte.className = classeTexte;
+      el.append(icone, texte);
+      return { el, texte };
+    };
     const creerCoteChat = (cote) => {
       const bloc = document.createElement('div');
       bloc.className = `tse-salle__chat tse-salle__chat--${cote}`;
@@ -7333,10 +7565,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       const haut = document.createElement('div');
       haut.className = 'tse-salle__haut';
       haut.hidden = true;
-      const tete = document.createElement('div');
-      tete.className = 'tse-salle__chat-tete';
+      const { el: tete, texte } = ligneSon('tse-salle__chat-tete', 'tse-salle__chat-texte');
       bloc.append(haut, tete);
-      return { bloc, haut, tete, cadre: null, chaine: null };
+      return { cote, bloc, haut, tete, texte, cadre: null, chaine: null };
     };
     const poserChat = (cote, chaine) => {
       if (cote.chaine === chaine) return;
@@ -7347,14 +7578,24 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       if (!chaine) return;
       const f = document.createElement('iframe');
       f.name = TSE_SALLE_CHAT_NAME;
+
+      f.id = `tse-salle-chat-${cote.cote}`;
       f.title = S.uiSalleChat(chaine);
       f.src = `${location.origin}/embed/${encodeURIComponent(chaine)}/chat?`
         + `${new URLSearchParams({ parent: location.hostname })}${themeTwitch() === 'dark' ? '&darkpopout' : ''}`;
       cote.bloc.appendChild(f);
       cote.cadre = f;
     };
-    const titrerChat = (cote, texte) => { if (cote.tete.textContent !== texte) cote.tete.textContent = texte; };
+    const titrerChat = (cote, texte, son = false) => {
+      if (cote.texte.textContent !== texte) cote.texte.textContent = texte;
+      cote.tete.classList.toggle('tse-salle__chat-tete--son', son && !!texte);
+    };
 
+    const chatVoulu = (c) => {
+      const choisi = c.chatChoisi && c.membres.includes(c.chatChoisi) ? c.chatChoisi : null;
+
+      return c.partage === true && c.membres.includes(c.chatD.chaine) ? c.chatD.chaine : choisi || c.son;
+    };
     const majChat = () => {
       const c = courante;
       const d = c.disposition;
@@ -7365,13 +7606,62 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         poserChat(c.chatG, c.membres.find((m) => m !== droite) || null);
       } else {
         poserChat(c.chatG, null);
-
-        poserChat(c.chatD, c.partage === true && c.membres.includes(c.chatD.chaine) ? c.chatD.chaine : c.son);
+        poserChat(c.chatD, chatVoulu(c));
       }
 
-      const partage = c.partage === true && !c.deuxChats;
-      titrerChat(c.chatD, !c.chatD.chaine ? '' : partage ? S.uiSalleChatSon(c.son) : S.uiSalleChat(c.chatD.chaine));
-      titrerChat(c.chatG, c.chatG.chaine ? S.uiSalleChat(c.chatG.chaine) : '');
+      const sonD = !c.deuxChats || c.chatD.chaine === c.son;
+      titrerChat(c.chatD, !c.chatD.chaine ? '' : sonD ? S.uiSalleChatSon(c.son) : S.uiSalleChat(c.chatD.chaine), sonD);
+      const sonG = c.deuxChats && c.chatG.chaine === c.son;
+      titrerChat(c.chatG, !c.chatG.chaine ? '' : sonG ? S.uiSalleChatSon(c.son) : S.uiSalleChat(c.chatG.chaine), sonG);
+      const texteSon = c.son ? S.uiSalleChatSon(c.son) : '';
+      if (c.sonTexte.textContent !== texteSon) c.sonTexte.textContent = texteSon;
+      majOnglets(c);
+    };
+
+    const majOnglets = (c) => {
+      const d = c.disposition || {};
+      const voir = !!d.chat && !c.deuxChats && c.partage !== true && c.membres.length >= 2;
+      c.onglets.hidden = !voir;
+      if (!voir) return;
+      const cle = c.membres.join(' ');
+      if (c.cleOnglets !== cle) {
+        c.cleOnglets = cle;
+        c.onglets.replaceChildren(...c.membres.map((m) => {
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'tse-salle__onglet';
+          b.setAttribute('role', 'tab');
+          b.setAttribute('aria-controls', 'tse-salle-chat-droite');
+          b.dataset.tseSalleChaine = m;
+          b.textContent = m;
+          b.title = S.uiSalleOnglet(m);
+          b.addEventListener('click', () => choisirChat(m));
+          return b;
+        }));
+      }
+      for (const b of c.onglets.children) {
+        const actif = b.dataset.tseSalleChaine === c.chatD.chaine;
+        if (b.getAttribute('aria-selected') !== String(actif)) b.setAttribute('aria-selected', String(actif));
+        b.tabIndex = actif ? 0 : -1;
+      }
+    };
+    const choisirChat = (chaine) => {
+      const c = courante;
+      if (!c || !c.membres.includes(chaine)) return false;
+      if (c.chatChoisi !== chaine) c.chatsChoisis += 1;
+      c.chatChoisi = chaine;
+      majChat();
+      return true;
+    };
+    const surToucheOnglets = (e) => {
+      const l = [...e.currentTarget.children];
+      const i = l.indexOf(document.activeElement);
+      if (i < 0) return;
+      const j = e.key === 'ArrowRight' ? (i + 1) % l.length : e.key === 'ArrowLeft' ? (i - 1 + l.length) % l.length
+        : e.key === 'Home' ? 0 : e.key === 'End' ? l.length - 1 : -1;
+      if (j < 0) return;
+      e.preventDefault();
+      l[j].focus();
     };
 
     const MAX_TEXTES = 300;
@@ -7636,12 +7926,16 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     const surReleve = (c, t, d) => {
       if (!Number.isFinite(d.n)) return;
 
+      if (typeof d.pub === 'boolean') suivrePub(c, t, d.pub);
+
       const lat = fini(d.latence);
 
       const sy = fini(d.sync);
       const ech = { n: d.n, t: fini(d.t), l: lat !== null && lat > 0 ? lat : null, b: fini(d.tampon), v: fini(d.vitesse),
                     vl: fini(d.vitesseLecteur), lecture: d.lecture === true, sy: sy !== null && sy > 0 ? sy : null, po: fini(d.position),
-                    redemarrage: false, lIncoherente: false, ar: fini(d.arriere), arL: null };
+                    redemarrage: false, lIncoherente: false, ar: fini(d.arriere), arL: null,
+
+                    pub: t.enPub };
 
       if (Array.isArray(d.plages)) {
         t.plages = d.plages.slice(0, 8).map((x) => (Array.isArray(x) && x.length === 2 && x.every(Number.isFinite) ? x : null));
@@ -7692,7 +7986,10 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
             const duree = Math.round((t.vidange.b0 - t.vidange.bmin) * 10) / 10;
             t.coupures.push({ t: ech.t, duree });
             if (t.coupures.length > 50) t.coupures.shift();
-            noter(c, t.chaine, `coupure d'arrivée : au moins ${duree} s sans vidéo (tampon ${t.vidange.b0} → ${t.vidange.bmin})`, ech.l);
+
+            if (t.vidange.bmin < 1) {
+              noter(c, t.chaine, `coupure d'arrivée : au moins ${duree} s sans vidéo (tampon ${t.vidange.b0} → ${t.vidange.bmin})`, ech.l);
+            }
             signaler(c, t.chaine, 'coupure');
           }
           t.vidange = null;
@@ -7706,7 +8003,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       }
       t.faibleLatence = typeof d.faibleLatence === 'boolean' ? d.faibleLatence : null;
       t.ecouteEtat = d.ecoute && typeof d.ecoute === 'object' ? d.ecoute : null;
-      if (Array.isArray(d.env) && d.env.length) {
+
+      if (Array.isArray(d.env) && d.env.length && !t.enPub) {
         for (const p of d.env) {
 
           if (Array.isArray(p) && Number.isFinite(p[0]) && Number.isFinite(p[1]) && p[0] >= t.envDes) t.env.push(p);
@@ -7723,6 +8021,10 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       if (es && Number.isFinite(es.n) && es.n !== t.essaiVu) {
         t.essaiVu = es.n;
         noter(c, t.chaine, `${es.type} ${es.valeur} · ${es.voie}`, ech.l);
+
+        const quand = Number.isFinite(es.t) ? es.t : Date.now();
+        if (es.type === 'faible-latence') oublierPlace(t, quand + PLACE.LATENCE_MS);
+        else if (!/^refusé/.test(es.voie || '')) oublierPlace(t, quand + PLACE.APRES_MS);
 
         if ((es.type === 'recul' || es.type === 'avance') && (es.voie === 'instance' || es.voie === 'video')) {
           t.deplacee = true;
@@ -7805,9 +8107,10 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
           + ` (attendu ${x.attendu >= 0 ? '+' : ''}${x.attendu} s)${x.apresDeplacement ? ' · après un déplacement' : ''}`, ech.l);
         signaler(c, t.chaine, x.v > 1 ? 'rattrapage' : 'ralenti');
       }
+      tenirPlace(c, t);
     };
 
-    const variations = (env, t0, n) => {
+    const variations = (env, t0, n, masques = null) => {
       const pas = CFG.SALLE_ECOUTE_PAS_MS;
       const x = new Float64Array(n);
       let j = 0;
@@ -7819,14 +8122,43 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         x[i] = a[1] + f * (b[1] - a[1]);
       }
       const d = new Float64Array(n - 1);
-      let m = 0;
-      for (let i = 1; i < n; i++) { d[i - 1] = x[i] - x[i - 1]; m += d[i - 1]; }
-      m /= d.length;
+
+      const garde = new Uint8Array(n - 1).fill(1);
+      for (const [m0, m1] of masques || []) {
+        const i1 = Math.min(n - 2, Math.ceil((m1 - t0) / pas));
+        for (let i = Math.max(0, Math.floor((m0 - t0) / pas) - 1); i <= i1; i++) garde[i] = 0;
+      }
+      let m = 0, k = 0;
+      for (let i = 1; i < n; i++) { d[i - 1] = x[i] - x[i - 1]; if (garde[i - 1]) { m += d[i - 1]; k += 1; } }
+      m /= k || 1;
       let v = 0;
-      for (let i = 0; i < d.length; i++) v += (d[i] - m) ** 2;
-      const et = Math.sqrt(v / d.length) || 1;
-      for (let i = 0; i < d.length; i++) d[i] = (d[i] - m) / et;
+      for (let i = 0; i < d.length; i++) if (garde[i]) v += (d[i] - m) ** 2;
+      const et = Math.sqrt(v / (k || 1)) || 1;
+      for (let i = 0; i < d.length; i++) d[i] = garde[i] ? (d[i] - m) / et : 0;
       return d;
+    };
+
+    const SILENCE = -7, COMMUN_MS = 50;
+    const silencesDe = (E) => {
+      const L = [];
+      for (let i = 0; i < E.length; i++) {
+        if (!(E[i][1] < SILENCE)) continue;
+        let j = i;
+        while (j + 1 < E.length && E[j + 1][1] < SILENCE) j++;
+        L.push([E[Math.max(0, i - 1)][0], E[Math.min(E.length - 1, j + 1)][0]]);
+        i = j;
+      }
+      return L;
+    };
+
+    const silencesCommuns = (A, B) => {
+      const a = silencesDe(A), b = silencesDe(B), m = [];
+      let j = 0;
+      for (const x of a) {
+        while (j < b.length && b[j][1] < x[0] - COMMUN_MS) j++;
+        for (let k = j; k < b.length && b[k][0] <= x[1] + COMMUN_MS; k++) m.push([Math.min(x[0], b[k][0]), Math.max(x[1], b[k][1])]);
+      }
+      return m;
     };
 
     const fft = (re, im, inverse) => {
@@ -7879,7 +8211,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       const debut = Math.max(A[0][0], Bv[0][0], fin - CFG.SALLE_ECOUTE_FENETRE_MS);
       if (fin - debut < CFG.SALLE_ECOUTE_MIN_MS) return null;
       const n = Math.floor((fin - debut) / pas) + 1;
-      const a = variations(A, debut, n), b = variations(Bv, debut, n);
+      const masques = silencesCommuns(A, Bv).filter(([m0, m1]) => m1 >= debut && m0 <= fin);
+      const a = variations(A, debut, n, masques), b = variations(Bv, debut, n, masques);
       const maxL = Math.round(CFG.SALLE_ECOUTE_MAX_MS / pas);
       const S = sommes(a, b, maxL);
       const rs = [];
@@ -7903,7 +8236,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       const p1 = pics[0];
       const p2 = pics.find((p) => Math.abs(p.ms - p1.ms) >= 50) || null;
       return { ms: p1.ms, r: p1.r, z: (p1.r - moy) / et, ms2: p2 ? p2.ms : null, r2: p2 ? p2.r : null,
-               secondes: Math.round((fin - debut) / 100) / 10, debut, fin };
+               secondes: Math.round((fin - debut) / 100) / 10, debut, fin, silences: masques.map(([m0]) => Math.round(m0)) };
     };
 
     const attenduEntre = (ta, tb) => {
@@ -7922,11 +8255,12 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       if (document.hidden) return;
 
       const ref = c.tuiles.find((t) => t.chaine === c.ecoute.ref) || c.tuiles.find((t) => t.chaine === c.son) || c.tuiles[0];
-      if (!ref) return;
+
+      if (!ref || ref.enPub) return;
       const t0 = performance.now();
       let paires = 0;
       for (const t of c.tuiles) {
-        if (t === ref) continue;
+        if (t === ref || t.enPub) continue;
         const res = correler(ref.env, t.env);
         if (!res) continue;
         paires += 1;
@@ -7937,8 +8271,11 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
           connue.sansNouveau += 1;
           continue;
         }
-        const p = connue || (c.ecoute.paires[cle] = { dernier: null, historique: [], sansNouveau: 0 });
+        const p = connue || (c.ecoute.paires[cle] = { dernier: null, historique: [], sansNouveau: 0, silences: [] });
         p.dernier = { ...res, attendu: attenduEntre(ref, t) };
+
+        for (const t0 of res.silences) if (!p.silences.includes(t0)) p.silences.push(t0);
+        if (p.silences.length > 100) p.silences.splice(0, p.silences.length - 100);
 
         p.historique.push({ ms: res.ms, r: res.r, z: res.z, ms2: res.ms2, r2: res.r2, attendu: p.dernier.attendu,
                             debut: res.debut, fin: res.fin });
@@ -7990,9 +8327,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         noter(c, t.chaine, `avertissement de contenu à l'écran${TSE_GATE_ENABLED ? ' — levé, comme dans l\'aperçu' : ''}`);
       }
       t.etat = et;
-      if (et.pub && !t.pubAvant) t.pubs += 1;
-      if (!!et.pub !== t.pubAvant) noter(c, t.chaine, et.pub ? 'début de pub' : 'fin de pub', fini(et.latence));
-      t.pubAvant = !!et.pub;
+      suivrePub(c, t, !!et.pub);
       if (t.chaine === c.son) tenirSon(t, et);
       if (et.video) tenirQualite(t);
       const o = et.ordre;
@@ -8067,7 +8402,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         if (cle.split('~').includes(login)) delete c.ecoute.paires[cle];
       }
       const k = c.calage;
-      if (k) for (const m of [k.vus, k.lus, k.etats, k.coups, k.faible, k.dits, k.deplacements, k.premieres]) delete m[login];
+      if (k) for (const m of [k.vus, k.lus, k.etats, k.coups, k.faible, k.dits, k.deplacements, k.premieres, k.reprises, k.grands]) delete m[login];
       if (c.ecoute.ref === login && c.ecoute.actif) {
 
         ecoute(false); ecoute(true);
@@ -8106,6 +8441,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       c.boite.setAttribute('aria-label', S.uiSalleTitre(c.membres.length));
 
       c.partage = null; c.textes.clear(); c.comparaison = null;
+
+      if (c.chatChoisi === login) c.chatChoisi = null;
       disposerSalle();
       oublierAuCalage(c, login);
       if (auChangement) auChangement();
@@ -8158,6 +8495,14 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     const trois = (l) => {
       const v = l.filter((x) => x !== null);
       return v.length ? `${r3(Math.min(...v))} · ${r3(mediane(v))} · ${r3(Math.max(...v))}` : null;
+    };
+
+    const horlogeDe = (e) => {
+      if (!e || !Number.isFinite(e.marches)) return null;
+      if (!e.marches) return 'sans marche';
+      const ms = Array.isArray(e.marchesMs) ? e.marchesMs.filter(Number.isFinite) : [];
+      const s = e.marches > 1 ? 's' : '';
+      return `${e.marches} marche${s} suivie${s}${ms.length ? ` : ${ms.map((x) => `+${x}`).join(' · ')} ms` : ''}`;
     };
     const bilanSerie = (t) => {
       const s = t.serie;
@@ -8318,7 +8663,10 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
                calculs: e.calculs, paires, historique, pics: stables, commun,
 
                sansSonNouveau: Object.entries(e.paires).filter(([, p]) => p.sansNouveau)
-                 .map(([cle, p]) => `${cle} ${p.sansNouveau}`).join(' · ') || null };
+                 .map(([cle, p]) => `${cle} ${p.sansNouveau}`).join(' · ') || null,
+
+               silencesCommuns: Object.entries(e.paires).filter(([, p]) => p.silences && p.silences.length)
+                 .map(([cle, p]) => `${cle} ${p.silences.length}`).join(' · ') || null };
     };
 
     const bilan = () => {
@@ -8342,7 +8690,13 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         son: c.son,
         chat: c.chatD.chaine,
 
-        chatTitre: c.chatD.tete.textContent || null,
+        chatTitre: c.chatD.texte.textContent || null,
+        chatTitreGauche: c.chatG.chaine ? c.chatG.texte.textContent || null : null,
+
+        onglets: c.onglets.hidden ? null : [...c.onglets.children]
+          .map((b) => (b.getAttribute('aria-selected') === 'true' ? `[${b.dataset.tseSalleChaine}]` : b.dataset.tseSalleChaine)).join(' '),
+        chatChoisi: c.chatChoisi,
+        chatsChoisis: c.chatsChoisis,
 
         chatGauche: c.chatG.chaine,
 
@@ -8420,10 +8774,24 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
             Number.isFinite(t.ecouteEtat.blocs) ? `blocs ${t.ecouteEtat.blocs}/10 s` : null]
             .filter(Boolean).join(' · ') : null,
 
+          horloge: horlogeDe(t.ecouteEtat),
+
           sonEssais: t.sonEssais,
           sonTenu: t.chaine === c.son ? t.sonTenu : null,
-          pub: t.etat ? t.etat.pub : null,
+
+          pub: t.enPub,
+          pubCachee: t.enPub && t.etat ? t.etat.pubVisible === false : null,
           pubsVues: t.pubs,
+          pubS: Math.round(dureePub(t) / 1000),
+
+          pubsDetail: t.pubsDetail.length ? t.pubsDetail.map((p) => `+${Math.round((p.debut - c.t0) / 1000)}`
+            + `→${p.fin === null ? 'en cours' : `+${Math.round((p.fin - c.t0) / 1000)} s`}`
+            + (p.avant ? ` · avant ${p.avant.l} s (tampon ${p.avant.b})` : '')
+            + (p.apres ? ` · après ${p.apres.l} s (tampon ${p.apres.b})` : '')).join(' ; ') : null,
+
+          place: t.place ? `latence ${t.place.l} s · tampon ${t.place.b} s` : null,
+          retombees: t.retombees,
+          placeRebases: t.rebases,
           ordre: t.dernierOrdre,
         }])),
       };
@@ -8587,7 +8955,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
 
       const titreBloc = document.createElement('div');
       titreBloc.className = 'tse-salle__titre-bloc';
-      titreBloc.append(titre, note);
+
+      const { el: sonLigne, texte: sonTexte } = ligneSon('tse-salle__son', 'tse-salle__son-texte');
+      titreBloc.append(titre, sonLigne, note);
       const commandes = document.createElement('div');
       commandes.className = 'tse-salle__commandes';
       commandes.append(boutonChat);
@@ -8604,6 +8974,14 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       gauche.append(scene, banc);
       const chatG = creerCoteChat('gauche');
       const chatD = creerCoteChat('droite');
+
+      const onglets = document.createElement('div');
+      onglets.className = 'tse-salle__onglets';
+      onglets.setAttribute('role', 'tablist');
+      onglets.setAttribute('aria-label', S.uiSalleOnglets);
+      onglets.hidden = true;
+      onglets.addEventListener('keydown', surToucheOnglets);
+      chatD.bloc.appendChild(onglets);
       corps.append(chatG.bloc, gauche, chatD.bloc);
       boite.append(tete, corps);
 
@@ -8617,6 +8995,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         arriveeMs: Number.isFinite(opts.arriveeMs) ? opts.arriveeMs : null, empilement,
         membres, tuiles: [], son: null, boite, scene, banc, cleBanc: null, note,
         chatG, chatD, deuxChats: false, partage: null, textes: new Map(), comparaison: null,
+
+        chatChoisi: null, chatsChoisis: 0, onglets, cleOnglets: null, sonTexte,
         tete, titreBloc, commandes, chatsPx: null,
         chatVoulu: null, boutonChat,
         disposition: null, zoneCle: null,
@@ -8659,6 +9039,14 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       return { son: c.tuiles[i].chaine };
     };
 
+    const chat = (nom) => {
+      const c = courante;
+      if (!c) return { erreur: 'aucune salle ouverte / no open room' };
+      const x = String(nom ?? '').trim().toLowerCase();
+      return choisirChat(x) ? { chat: x }
+        : { erreur: `chaîne absente de la salle / channel not in the room : ${nom} — ${c.membres.join(', ')}` };
+    };
+
     const designer = (brut, appelante) => {
       const c = courante;
       if (!c) return { erreur: 'aucune salle ouverte / no open room' };
@@ -8676,9 +9064,11 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       return t ? { t, valeur } : { erreur: `tuile inconnue « ${qui} » / unknown tile — ${aide}` };
     };
 
+    const ENPUB = (t) => ({ erreur: `${t.chaine} est en pub : rien ne se déplace / ${t.chaine} is showing an ad: nothing moves` });
     const reculSur = (args, appelante = null) => {
       const d = designer(args, appelante);
       if (d.erreur) return { erreur: d.erreur };
+      if (d.t.enPub) return ENPUB(d.t);
       const x = Number(d.valeur);
       if (!(x >= 0.2 && x <= 5)) return { erreur: 'recul hors de 0.2–5 s / rewind outside 0.2–5 s' };
       envoyer(d.t, 'essai-recul', { duree: x });
@@ -8688,6 +9078,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     const avanceSur = (args, appelante = null) => {
       const d = designer(args, appelante);
       if (d.erreur) return { erreur: d.erreur };
+      if (d.t.enPub) return ENPUB(d.t);
       const x = Number(d.valeur);
       if (!(x >= 0.2 && x <= 5)) return { erreur: 'avance hors de 0.2–5 s / skip outside 0.2–5 s' };
       envoyer(d.t, 'essai-avance', { duree: x });
@@ -8720,7 +9111,14 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
 
       RECUL_S: 0.12, AVANCE_S: 0.087, MARGE_S: 2,
       MAX_N: 3, MAX_MS: 600_000, ANCRE_MS: 15_000,
+
+      REPRISE_MAX_S: 60,
     });
+    const ATTENTE_PUB = 'la référence est en pub';
+
+    const GRAND = Object.freeze({ S: 5, ACCORD_S: 3, ECART_S: 1, TENU_MS: 20_000, N: 10 });
+
+    const dureePub = (t) => t.pubMs + (t.pubDebut !== null ? Date.now() - t.pubDebut : 0);
     const tuileDe = (c, nom) => c.tuiles.find((x) => x.chaine === nom) || null;
 
     const rouvrir = (t, quoi, quand = Date.now()) => {
@@ -8734,11 +9132,90 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       if (!t || quoi === 'coupure') return;
       rouvrir(t, quoi);
 
+      if (PLACE_PERDUE.includes(quoi)) oublierPlace(t, Date.now() + PLACE.APRES_MS);
+
       const k = c.calage;
       if (!k) return;
       for (const n of chaine === c.ecoute.ref ? Object.keys(k.etats) : [chaine]) {
         if (k.etats[n] && k.etats[n] !== 'libre') k.etats[n] = 'libre';
       }
+    };
+
+    const suivrePub = (c, t, oui) => {
+      if (oui === t.enPub) return;
+      const maintenant = Date.now();
+      t.enPub = oui;
+      if (oui) { t.pubs += 1; t.pubDebut = maintenant; }
+      else if (t.pubDebut !== null) { t.pubMs += maintenant - t.pubDebut; t.pubDebut = null; }
+      noter(c, t.chaine, oui ? 'début de pub' : 'fin de pub', fini(t.etat && t.etat.latence));
+      signaler(c, t.chaine, oui ? 'pub' : 'fin de pub');
+
+      if (oui) {
+        t.pubsDetail.push({ debut: maintenant, fin: null, avant: t.place ? { l: t.place.l, b: t.place.b } : null, apres: null });
+        if (t.pubsDetail.length > 10) t.pubsDetail.shift();
+      } else if (t.pubsDetail.length) t.pubsDetail[t.pubsDetail.length - 1].fin = maintenant;
+      const k = c.calage;
+      if (k && k.etat === 'actif') {
+        journaliser(c, k, oui ? `${t.chaine} : en pub — ni écoutée, ni jugée, ni déplacée${t.chaine === c.ecoute.ref ? ' ; référence : tout attend' : ''}`
+          : `${t.chaine} : fin de pub — sa mesure repart${t.chaine === c.ecoute.ref ? ', et celle de toutes' : ''}`);
+      }
+    };
+
+    const PLACE = Object.freeze({ N: 10, RECENTS: 6, ECART_S: 0.8, SEUIL_S: 1.5, ACCORD_S: 2.5,
+                                  APRES_MS: 4_000, LATENCE_MS: 15_000, DECALEE_MS: 20_000 });
+    const PLACE_PERDUE = ['rechargement', 'rattrapage', 'ralenti', 'pause', 'reprise'];
+
+    const daccord = (dl, db, tol) => dl * db > 0 && Math.abs(db) >= Math.abs(dl) / 2
+      && Math.abs(db - dl) <= Math.max(tol, Math.abs(dl) * 0.3);
+    const oublierPlace = (t, des) => {
+      t.place = null; t.placeDecalee = null; t.retombee = null;
+      t.placeDes = Math.max(t.placeDes || 0, des);
+    };
+
+    const fenetrePlace = (t, n) => {
+      const l = t.serie.slice(-n);
+      if (l.length < n || !l.every((x) => x.t !== null && x.t >= t.placeDes && x.lecture && !x.pub && x.l !== null
+        && !x.lIncoherente && x.b !== null && (x.v ?? 1) === 1)) return null;
+      const ls = l.map((x) => x.l);
+      if (Math.max(...ls) - Math.min(...ls) > PLACE.ECART_S) return null;
+      return { l: r3(mediane(ls)), b: r3(mediane(l.map((x) => x.b))) };
+    };
+    const tenirPlace = (c, t) => {
+      const actif = !!c.calage && c.calage.etat === 'actif';
+
+      if (t.retombee && !actif) { t.place = { l: t.retombee.apres.l, b: t.retombee.apres.b, t: Date.now() }; t.retombee = null; }
+      if (t.enPub || t.retombee) return;
+      const f = fenetrePlace(t, PLACE.RECENTS);
+
+      const pub = t.pubsDetail[t.pubsDetail.length - 1];
+      if (f && pub && pub.fin !== null && !pub.apres) pub.apres = { l: f.l, b: f.b };
+      if (!t.place) {
+        const p = fenetrePlace(t, PLACE.N);
+        if (p) t.place = { l: p.l, b: p.b, t: Date.now() };
+        return;
+      }
+      if (!f) return;
+      const dl = r3(f.l - t.place.l), db = r3(f.b - t.place.b);
+      if (Math.abs(dl) < PLACE.SEUIL_S) { t.placeDecalee = null; return; }
+
+      if (!daccord(dl, db, PLACE.ACCORD_S)) {
+        if (t.placeDecalee === null) t.placeDecalee = Date.now();
+        else if (Date.now() - t.placeDecalee >= PLACE.DECALEE_MS) {
+          t.place = { l: f.l, b: f.b, t: Date.now() }; t.placeDecalee = null; t.rebases += 1;
+        }
+        return;
+      }
+      t.retombees += 1;
+      noter(c, t.chaine, `retombée ${dl > 0 ? 'derrière' : 'devant'} sa place de ${Math.abs(dl)} s — latence ${t.place.l} → ${f.l}, `
+        + `tampon ${t.place.b} → ${f.b}`, f.l);
+
+      if (!actif) { t.place = { l: f.l, b: f.b, t: Date.now() }; return; }
+      t.retombee = { dl, avant: t.place, apres: f };
+    };
+
+    const arriereDe = (t) => {
+      const l = t.serie.slice(-5).map((x) => x.arL ?? x.ar).filter((x) => x !== null);
+      return l.length ? Math.min(...l) : null;
     };
 
     const tamponDe = (t) => {
@@ -8822,6 +9299,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       const k = { etat: capture ? 'actif' : 'indisponible : ce navigateur ne capture pas le son d\'un lecteur (captureStream)',
                   echelle: e, origine, t0: Date.now(), ecouteAllumee: false, attente: null, journal: [],
                   vus: {}, lus: {}, etats: {}, coups: {}, faible: {}, dits: {}, deplacements: {}, premieres: {}, salleCalee: null,
+
+                  reprises: {}, grands: {},
                   calculsVus: -1, sonAilleurs: null };
       c.calage = k;
       if (!capture) {
@@ -8849,6 +9328,86 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       journaliser(c, k, texte);
     };
 
+    const reprendrePlace = (c, k, t, maintenant) => {
+      const x = t.retombee;
+      t.retombee = null;
+      const n = t.chaine;
+      k.reprises[n] = (k.reprises[n] || []).filter((q) => maintenant - q < CALAGE.MAX_MS * k.echelle);
+      const derriere = x.dl > 0;
+      const s = r3(derriere ? x.dl + CALAGE.AVANCE_S : -x.dl - CALAGE.RECUL_S);
+      const quoi = `${n} : retombée ${derriere ? 'derrière' : 'devant'} sa place de ${secondes(x.dl)} — latence ${x.avant.l} → ${x.apres.l} s,`
+        + ` tampon ${x.avant.b} → ${x.apres.b} s`;
+      let refus = null;
+      if (k.reprises[n].length >= CALAGE.MAX_N) refus = `${CALAGE.MAX_N} reprises en ${Math.round((CALAGE.MAX_MS * k.echelle) / 60_000)} min`;
+      else if (s > CALAGE.REPRISE_MAX_S) refus = `plus de ${CALAGE.REPRISE_MAX_S} s`;
+      else if (derriere) {
+        const b = tamponDe(t);
+        if (b === null || b - s < CALAGE.MARGE_S) refus = b === null ? 'son tampon est inconnu' : `${b} s de tampon`;
+      } else {
+        const a = arriereDe(t);
+        if (!peutReculer(t)) refus = t.retientPas ? 'son lecteur reprend chaque recul' : 'toujours en faible latence';
+        else if (a === null || a - s < CALAGE.MARGE_S) refus = a === null ? 'ce qu\'elle garde derrière est inconnu' : `${a} s gardées derrière`;
+      }
+      if (refus) {
+        t.place = { l: x.apres.l, b: x.apres.b, t: maintenant };
+        journaliser(c, k, `${quoi} : rien à faire (${refus}) — c'est sa place désormais`);
+        return;
+      }
+      envoyer(t, `essai-${derriere ? 'avance' : 'recul'}`, { duree: s });
+
+      oublierPlace(t, maintenant + PLACE.APRES_MS);
+      k.reprises[n].push(maintenant);
+      k.deplacements[n] = r3((k.deplacements[n] || 0) + (derriere ? -s : s));
+      delete k.dits[n];
+      signaler(c, n, 'place reprise');
+      journaliser(c, k, `${quoi} → elle reprend sa place : ${derriere ? 'avance' : 'recule'} de ${s} s`);
+    };
+
+    const ecartDe = (a, b) => {
+      const par = new Map(b.serie.map((x) => [x.n, x]));
+      const ok = (x, t) => x && x.t !== null && x.t >= t.placeDes && x.lecture && !x.pub && x.l !== null && !x.lIncoherente
+        && x.b !== null && (x.v ?? 1) === 1;
+      const l = a.serie.slice(-GRAND.N).map((x) => [x, par.get(x.n)]).filter(([x, y]) => ok(x, a) && ok(y, b));
+      if (l.length < GRAND.N) return null;
+      const dl = l.map(([x, y]) => x.l - y.l);
+      if (Math.max(...dl) - Math.min(...dl) > GRAND.ECART_S) return null;
+      return { l: r3(mediane(dl)), b: r3(mediane(l.map(([x, y]) => x.b - y.b))) };
+    };
+    const grandEcart = (c, k, ref, t, maintenant) => {
+      const n = t.chaine;
+      const v = k.vus[n];
+      const e = ref.enPub || t.enPub || ref.retombee || t.retombee || (v && !v.refus) ? null : ecartDe(ref, t);
+      if (!e || Math.abs(e.l) < GRAND.S || !daccord(e.l, e.b, GRAND.ACCORD_S)) { delete k.grands[n]; return; }
+      const g = k.grands[n];
+      if (!g || Math.abs(g.l - e.l) > GRAND.ECART_S) { k.grands[n] = { l: e.l, t: maintenant }; return; }
+      if (maintenant - g.t < GRAND.TENU_MS * k.echelle) return;
+      delete k.grands[n];
+      k.coups[n] = (k.coups[n] || []).filter((q) => maintenant - q < CALAGE.MAX_MS * k.echelle);
+
+      const quoi = `${n} ${e.l < 0 ? 'derrière' : 'devant'} la référence de ${secondes(e.l)}, au-delà de ce que le son entend`
+        + ` — latences et tampons d'accord (${signeMs(Math.round(e.l * 1000))} · ${signeMs(Math.round(e.b * 1000))} ms)`;
+      if (k.coups[n].length >= CALAGE.MAX_N) { direUneFois(c, k, n, `${quoi} : ${CALAGE.MAX_N} corrections déjà — laissée là`); return; }
+      const autresDevant = c.tuiles.every((u) => u === ref || u.enPub || ((ecartDe(ref, u) || { l: 0 }).l >= GRAND.S));
+      let geste = null;
+      if (e.l < 0) geste = { u: t, type: 'avance', s: r3(-e.l + CALAGE.AVANCE_S) };
+      else if (autresDevant) geste = { u: ref, type: 'avance', s: r3(e.l + CALAGE.AVANCE_S) };
+      else geste = { u: t, type: 'recul', s: r3(e.l - CALAGE.RECUL_S) };
+      const b = geste.type === 'avance' ? tamponDe(geste.u) : arriereDe(geste.u);
+      const refus = geste.s > CALAGE.REPRISE_MAX_S ? `plus de ${CALAGE.REPRISE_MAX_S} s`
+        : geste.type === 'recul' && !peutReculer(geste.u) ? 'elle ne peut pas reculer'
+          : b === null || b - geste.s < CALAGE.MARGE_S ? `${b === null ? 'tampon inconnu' : `${b} s ${geste.type === 'avance' ? 'de tampon' : 'gardées derrière'}`}`
+            : null;
+      if (refus) { direUneFois(c, k, n, `${quoi} : rien à faire (${geste.u.chaine}, ${refus})`); return; }
+      envoyer(geste.u, `essai-${geste.type}`, { duree: geste.s });
+      oublierPlace(geste.u, maintenant + PLACE.APRES_MS);
+      k.coups[n].push(maintenant);
+      k.deplacements[geste.u.chaine] = r3((k.deplacements[geste.u.chaine] || 0) + (geste.type === 'recul' ? geste.s : -geste.s));
+      delete k.dits[n];
+      premiere(k, n, 'correction', maintenant);
+      signaler(c, geste.u.chaine, 'grand écart');
+      journaliser(c, k, `${quoi} → ${geste.u.chaine} ${geste.type === 'avance' ? 'avance' : 'recule'} de ${geste.s} s`);
+    };
+
     const caler = (c) => {
       const k = c.calage;
       if (!k || k.etat !== 'actif') return;
@@ -8866,21 +9425,35 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         }
       } else k.sonAilleurs = null;
       for (const t of c.tuiles) {
-        if (t.faibleLatence !== true || k.faible[t.chaine]) continue;
+
+        if (t.faibleLatence !== true || k.faible[t.chaine] || t.enPub) continue;
         k.faible[t.chaine] = maintenant;
         rouvrir(t, 'faible latence retirée', maintenant);
         envoyer(t, 'faible-latence', { actif: false });
+        oublierPlace(t, maintenant + PLACE.LATENCE_MS);
         journaliser(c, k, `${t.chaine} : faible latence retirée — son lecteur défait tout recul`);
       }
+
+      for (const t of c.tuiles) if (t.retombee && !t.enPub) reprendrePlace(c, k, t, maintenant);
+      const ref = tuileDe(c, c.ecoute.ref);
+
+      if (ref && ref.enPub) {
+        k.attente = ATTENTE_PUB;
+        for (const t of c.tuiles) if (t !== ref) k.vus[t.chaine] = { refus: ATTENTE_PUB, n: 0 };
+        return;
+      }
+      if (k.attente === ATTENTE_PUB) k.attente = null;
+      if (ref) for (const t of [...c.tuiles]) if (t !== ref) grandEcart(c, k, ref, t, maintenant);
       if (c.ecoute.calculs === k.calculsVus) return;
       k.calculsVus = c.ecoute.calculs;
-      const ref = tuileDe(c, c.ecoute.ref);
       if (!ref) return;
 
       const avances = { [ref.chaine]: 0 };
       const verdicts = {}, tenues = {};
       for (const t of c.tuiles) {
         if (t === ref) continue;
+
+        if (t.enPub) { k.vus[t.chaine] = { refus: 'en pub', n: 0 }; continue; }
         const p = c.ecoute.paires[`${ref.chaine}~${t.chaine}`];
         const depuis = depuisPaire(c, ref, t);
         const v = mesurerSon(p ? p.historique : [], depuis, Math.max(0.25, e));
@@ -8903,7 +9476,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
 
       const suiveuses = [];
       for (const t of c.tuiles) {
-        if (t === ref || avances[t.chaine] !== undefined) continue;
+
+        if (t === ref || avances[t.chaine] !== undefined || t.enPub) continue;
         if (k.etats[t.chaine] === 'calée' || k.etats[t.chaine] === 'vérification') { avances[t.chaine] = 0; suiveuses.push(t.chaine); }
       }
 
@@ -8950,6 +9524,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       }
       for (const g of gestes) {
         envoyer(g.t, `essai-${g.type}`, { duree: g.s });
+        oublierPlace(g.t, maintenant + PLACE.APRES_MS);
         g.t.changement = maintenant;
         g.t.rouverte = { t: maintenant, quoi: g.type };
         k.deplacements[g.t.chaine] = r3((k.deplacements[g.t.chaine] || 0) + (g.type === 'recul' ? g.s : -g.s));
@@ -8997,6 +9572,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         mesures: Object.fromEntries(Object.entries(k.vus).map(([n, v]) => [n, texteMesure(v, n)])),
         tuiles: Object.fromEntries(c.tuiles.filter((t) => t.chaine !== ref).map((t) => [t.chaine, k.etats[t.chaine] || 'libre'])),
         deplacements: Object.entries(k.deplacements).map(([n, s]) => `${n} ${s >= 0 ? 'recul' : 'avance'} ${Math.abs(s)} s`).join(' · ') || null,
+
+        reprises: Object.entries(k.reprises).filter(([, l]) => l.length).map(([n, l]) => `${n} ${l.length}`).join(' · ') || null,
         faibleLatence: Object.keys(k.faible).length ? Object.entries(k.faible).map(([n, t]) => {
           const x = tuileDe(c, n);
           return `${n} retirée à +${Math.round((t - k.t0) / 1000)} s · le lecteur dit ${x && x.faibleLatence === false ? 'non' : x && x.faibleLatence ? 'oui' : '—'}`;
@@ -9004,12 +9581,14 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         journal: Object.fromEntries(k.journal.map((j, i) => [String(i + 1).padStart(3, '0'), `+${Math.round((j.t - k.t0) / 1000)} s · ${j.texte}`])),
 
         chronologie: Object.fromEntries(c.tuiles.map((t) => {
-          if (t.chaine === ref) return [t.chaine, `son ${a(t.premierSon)} · référence`];
+
+          const pubs = t.pubs ? `pubs ${t.pubs} · ${Math.round(dureePub(t) / 1000)} s${t.enPub ? ' · en pub' : ''}` : null;
+          if (t.chaine === ref) return [t.chaine, [`son ${a(t.premierSon)}`, pubs, 'référence'].filter(Boolean).join(' · ')];
           const x = k.premieres[t.chaine] || {}, r = tuileDe(c, ref), p = c.ecoute.paires[`${ref}~${t.chaine}`];
           const o = [t.rouverte, r && r.rouverte && { ...r.rouverte, quoi: `${ref} : ${r.rouverte.quoi}` }].filter(Boolean)
             .reduce((u, v) => (!u || v.t > u.t ? v : u), null);
           const compte = r && p && p.compte && p.compte.depuis === depuisPaire(c, r, t) ? p.compte.t : null;
-          return [t.chaine, [`son ${a(t.premierSon)}`, o ? `rouverte ${a(o.t)} (${o.quoi})` : null, `calcul ${a(compte)}`,
+          return [t.chaine, [`son ${a(t.premierSon)}`, pubs, o ? `rouverte ${a(o.t)} (${o.quoi})` : null, `calcul ${a(compte)}`,
             `verdict ${a(x.verdict)}`, `correction ${a(x.correction)}`, `calée ${a(x.calee)}`].filter(Boolean).join(' · ')];
         })),
         salleCalee: k.salleCalee === null ? null : a(k.salleCalee),
@@ -9028,7 +9607,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     };
 
     return {
-      ouvrir, son, fermer: (raison = 'api') => fermer(raison), rapport: bilan, ecoute, series,
+      ouvrir, son, chat, fermer: (raison = 'api') => fermer(raison), rapport: bilan, ecoute, series,
       recul: (...a) => reculSur(a), avance: (...a) => avanceSur(a), auto: (x) => auto(x), commande,
       ouvrirDepuisBarre, reprendre,
 
@@ -9038,59 +9617,180 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
   })();
 
   const noeudsSalle = (() => {
-    const TRIANGLE = '<svg viewBox="0 0 8 10" aria-hidden="true"><path d="M0 0v10l8-5z"/></svg>';
+    const TRIANGLE = '<svg class="tse-icone-lecture" viewBox="0 0 8 10" aria-hidden="true"><path d="M0 0v10l8-5z"/></svg>';
+
+    const CARRE = '<svg class="tse-icone-arret" viewBox="0 0 8 8" aria-hidden="true"><path d="M0 0h8v8H0z"/></svg>';
     const parCle = new Map();
+    const choixDe = new Map();
+    const parCarte = new Map();
     let voulues = new Map();
-    let couche = null;
+    let seules = new Map();
+
+    const couches = new Map();
     let veille = null;
-    let suivie = null;
+    const veillees = new Set();
+    let incomplets = [];
     let clics = 0;
+    let clicsPastilles = 0;
+    let tousOuverts = 0;
 
     const cleDe = (membres) => [...membres].sort().join(' ');
+    const liste = (ordre) => (ordre ? ordre.split(' ') : null);
     const listeNoms = (noms) => {
       try { return new Intl.ListFormat(S.locale, { type: 'conjunction' }).format(noms); }
       catch { return noms.join(', '); }
+    };
+
+    const ecrire = (el, texte) => { if (el.textContent !== texte) el.textContent = texte; };
+    const enfoncer = (el, oui) => {
+      const v = String(oui);
+      if (el.getAttribute('aria-pressed') !== v) el.setAttribute('aria-pressed', v);
     };
 
     const marquer = () => {
       const ouverte = salle.membres();
       const cle = ouverte ? cleDe(ouverte) : null;
       for (const [k, n] of parCle) {
-        const v = String(k === cle);
-        if (n.getAttribute('aria-pressed') !== v) n.setAttribute('aria-pressed', v);
+        const tous = liste(n.dataset.tseTous);
+        const cleTous = tous ? cleDe(tous) : null;
+        enfoncer(n, cle !== null && (k === cle || cleTous === cle));
+        const c = choixDe.get(k);
+        if (c) {
+          enfoncer(c.suivis, cle !== null && k === cle);
+          enfoncer(c.tous, cle !== null && cleTous === cle);
+        }
+      }
+      for (const p of parCarte.values()) {
+        const membres = liste(p.dataset.tseNoeud);
+        enfoncer(p, cle !== null && !!membres && cleDe(membres) === cle);
       }
     };
 
-    const ordonner = (b, membres) => {
-      const ordre = membres.join(' ');
-      if (b.dataset.tseNoeud === ordre) return;
-      b.dataset.tseNoeud = ordre;
-      b.setAttribute('aria-label', S.uiNoeudAria(listeNoms(membres)));
-      b.title = S.uiNoeudAria(listeNoms(membres));
+    const agir = (membres, versTous) => {
+      const ouverte = salle.membres();
+      if (ouverte && cleDe(ouverte) === cleDe(membres)) { salle.fermer('noeud'); return; }
+      const r = salle.ouvrirDepuisBarre(membres);
+      if (versTous && !(r && r.erreur)) tousOuverts += 1;
     };
+
+    const ordonner = (b, membres, tous) => {
+      const ordre = membres.join(' ');
+      const ordreTous = tous ? tous.join(' ') : '';
+      if (b.dataset.tseNoeud === ordre && (b.dataset.tseTous || '') === ordreTous) return;
+      b.dataset.tseNoeud = ordre;
+      if (ordreTous) b.dataset.tseTous = ordreTous; else delete b.dataset.tseTous;
+      const nom = S.uiNoeudAria(listeNoms(membres));
+      b.setAttribute('aria-label', nom);
+      b.dataset.tseTitre = tous ? `${nom}\n${S.uiNoeudMaj(tous.length)}` : nom;
+      b.classList.toggle('tse-noeud--choix', !!tous);
+    };
+
+    const titrer = (el) => {
+      const t = sidebarCollapsed ? (el.dataset.tseTitre || '') : '';
+      if (t) { if (el.title !== t) el.title = t; }
+      else if (el.hasAttribute('title')) el.removeAttribute('title');
+    };
+    const symbole = () => {
+      const s = document.createElement('span');
+      s.className = 'tse-noeud__symbole';
+      s.append(noeudStatique(TRIANGLE), noeudStatique(CARRE));
+      return s;
+    };
+
+    const lacher = (e, el) => { if (e.detail > 0) el.blur(); };
 
     const creer = (cle, membres) => {
       const b = document.createElement('button');
       b.type = 'button';
       b.className = 'tse-noeud';
       b.setAttribute('aria-pressed', 'false');
-      const symbole = document.createElement('span');
-      symbole.className = 'tse-noeud__symbole';
-      symbole.appendChild(noeudStatique(TRIANGLE));
       const etiquette = document.createElement('span');
       etiquette.className = 'tse-noeud__etiquette';
       etiquette.textContent = S.uiNoeudRegarder(membres.length);
-      b.append(symbole, etiquette);
-      ordonner(b, membres);
+      b.append(symbole(), etiquette);
       b.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
+        lacher(e, b);
         clics += 1;
+        const tous = liste(b.dataset.tseTous);
+        if (e.shiftKey && tous) { agir(tous, true); return; }
         const ouverte = salle.membres();
-        if (ouverte && cleDe(ouverte) === cle) salle.fermer('noeud');
-        else salle.ouvrirDepuisBarre(b.dataset.tseNoeud.split(' '));
+        const o = ouverte ? cleDe(ouverte) : null;
+        if (o !== null && (o === cle || (tous && o === cleDe(tous)))) salle.fermer('noeud');
+        else salle.ouvrirDepuisBarre(liste(b.dataset.tseNoeud));
       });
       return b;
+    };
+
+    const creerChoix = (cle) => {
+      const boite = document.createElement('div');
+      boite.className = 'tse-noeud__choix';
+      const option = (classe, versTous) => {
+        const o = document.createElement('button');
+        o.type = 'button';
+        o.className = `tse-noeud__option ${classe}`;
+        o.setAttribute('aria-pressed', 'false');
+
+        const texte = document.createElement('span');
+        texte.className = 'tse-noeud__texte';
+        o.append(noeudStatique(TRIANGLE), noeudStatique(CARRE), texte);
+        o.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          lacher(e, o);
+          clics += 1;
+          const n = parCle.get(cle);
+          const membres = n ? liste(versTous ? n.dataset.tseTous : n.dataset.tseNoeud) : null;
+          if (membres) agir(membres, versTous);
+        });
+        return o;
+      };
+      const suivis = option('tse-noeud__option--barre', false);
+      const tous = option('tse-noeud__option--tous', true);
+      boite.append(suivis, tous);
+      return { boite, suivis, tous };
+    };
+
+    const garnirChoix = (c, membres, tous, suivie) => {
+      ecrire(c.suivis.querySelector('.tse-noeud__texte'),
+             suivie ? S.uiNoeudSuivis(membres.length) : S.uiNoeudRegarder(membres.length));
+      ecrire(c.tous.querySelector('.tse-noeud__texte'), S.uiNoeudTous(tous.length));
+      const a = S.uiNoeudAria(listeNoms(membres));
+      const t = `${S.uiNoeudAria(listeNoms(tous))}\n${S.uiNoeudMaj(tous.length)}`;
+      if (c.suivis.title !== a) c.suivis.title = a;
+      if (c.tous.title !== t) c.tous.title = t;
+    };
+
+    const creerPastille = () => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'tse-pastille-salle';
+      b.setAttribute('aria-pressed', 'false');
+      const etiquette = document.createElement('span');
+      etiquette.className = 'tse-pastille-salle__etiquette';
+      b.append(symbole(), etiquette);
+      b.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        lacher(e, b);
+        clicsPastilles += 1;
+        const membres = liste(b.dataset.tseNoeud);
+        if (membres) agir(membres);
+      });
+      return b;
+    };
+    const garnirPastille = (p, membres) => {
+      const ordre = membres.join(' ');
+      if (p.dataset.tseNoeud === ordre) return;
+      p.dataset.tseNoeud = ordre;
+      const nom = S.uiNoeudAria(listeNoms(membres));
+      p.setAttribute('aria-label', nom);
+
+      p.dataset.tseTitre = nom;
+      const etiquette = p.querySelector('.tse-pastille-salle__etiquette');
+      ecrire(etiquette, S.uiNoeudRegarder(membres.length));
+      etiquette.title = nom;
     };
     const poserStyle = (el, prop, v) => { if (el.style.getPropertyValue(prop) !== v) el.style.setProperty(prop, v); };
 
@@ -9099,66 +9799,153 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       return nav ? nav.getBoundingClientRect().left : 0;
     };
     const placer = () => {
-      if (!couche || !couche.isConnected) return;
-      const origine = couche.getBoundingClientRect();
+
+      const origines = new Map();
+      const origineDe = (el) => {
+        const couche = el.parentElement;
+        if (!couche || !couche.isConnected) return null;
+        if (!origines.has(couche)) origines.set(couche, couche.getBoundingClientRect());
+        return origines.get(couche);
+      };
       for (const [cle, { barre }] of voulues) {
         const n = parCle.get(cle);
 
         if (!n || !barre.every((c) => c.isConnected)) continue;
+        const origine = origineDe(n);
+        if (!origine) continue;
         const haut = barre[0].getBoundingClientRect();
         const bas = barre[barre.length - 1].getBoundingClientRect();
 
         const couleur = getComputedStyle(barre[0], '::before').backgroundColor;
-        poserStyle(n, 'top', `${Math.round((haut.top + bas.bottom) / 2 - origine.top)}px`);
+        const milieu = `${Math.round((haut.top + bas.bottom) / 2 - origine.top)}px`;
+        poserStyle(n, 'top', milieu);
 
         const bord = barreGauche();
-        const gauche = Math.max(haut.left + 1.5 - n.offsetWidth / 2, bord);
-        poserStyle(n, 'left', `${Math.round(gauche - origine.left)}px`);
+        const gauche = Math.round(Math.max(haut.left + 1.5 - n.offsetWidth / 2, bord) - origine.left);
+        poserStyle(n, 'left', `${gauche}px`);
         poserStyle(n, '--tse-noeud-couleur', couleur);
         n.classList.toggle('tse-noeud--reduit', sidebarCollapsed);
+        titrer(n);
+
+        const c = choixDe.get(cle);
+        if (c) {
+          poserStyle(c.boite, 'top', milieu);
+          poserStyle(c.boite, 'left', `${gauche + n.offsetWidth}px`);
+          poserStyle(c.boite, '--tse-noeud-couleur', couleur);
+        }
+      }
+
+      for (const [login, { carte }] of seules) {
+        const p = parCarte.get(login);
+        const avatar = p && carte.isConnected ? avatarOf(carte) : null;
+        const origine = avatar ? origineDe(p) : null;
+        if (!origine) continue;
+        const r = avatar.getBoundingClientRect();
+        poserStyle(p, 'left', `${Math.round(r.right - 5 - origine.left)}px`);
+        poserStyle(p, 'top', `${Math.round(r.bottom - 5 - origine.top)}px`);
+        p.classList.toggle('tse-pastille-salle--reduit', sidebarCollapsed);
+        titrer(p);
       }
     };
-    const suivre = (section) => {
-      if (suivie === section) return;
-      if (veille) veille.disconnect();
-      suivie = section;
-      if (!section || typeof ResizeObserver !== 'function') return;
-      veille = veille || new ResizeObserver(placer);
-      veille.observe(section);
+    const suivre = (sections) => {
+      if (typeof ResizeObserver !== 'function') return;
+      for (const sec of [...veillees]) {
+        if (sections.has(sec)) continue;
+        veille.unobserve(sec);
+        veillees.delete(sec);
+      }
+      for (const sec of sections) {
+        if (veillees.has(sec)) continue;
+        veille = veille || new ResizeObserver(placer);
+        veille.observe(sec);
+        veillees.add(sec);
+      }
     };
 
-    const maj = (barres) => {
+    const coucheDe = (section) => {
+      let couche = couches.get(section);
+      if (!couche) {
+        couche = document.createElement('div');
+        couche.className = 'tse-noeuds';
+        if (section === followedSection()) couche.id = 'tse-noeuds';
+        couches.set(section, couche);
+      }
+      if (couche.parentElement !== section) section.prepend(couche);
+      return couche;
+    };
+
+    const maj = ({ barres = [], seules: cartesSeules = [], classementIncomplet = [] } = {}) => {
+      incomplets = classementIncomplet;
       voulues = new Map();
-      for (const barre of barres || []) {
-        const membres = [...new Set(barre.map((c) => c.dataset.tseLogin).filter(Boolean))];
-        if (membres.length >= 2) voulues.set(cleDe(membres), { barre, membres });
+      for (const { barre, membres, tous, suivie } of barres) {
+        const section = barre[0].closest('.side-nav-section');
+        if (membres.length >= 2 && section) voulues.set(cleDe(membres), { barre, membres, tous, suivie, section });
+      }
+      seules = new Map();
+      for (const s of cartesSeules) {
+        const login = s.carte.dataset.tseLogin;
+        const section = s.carte.closest('.side-nav-section');
+        if (login && s.membres.length >= 2 && section) seules.set(login, { ...s, section });
       }
       for (const [cle, n] of [...parCle]) {
         if (voulues.has(cle) && n.isConnected) continue;
         n.remove();
         parCle.delete(cle);
       }
-      const premiere = voulues.values().next().value;
-      const section = premiere ? premiere.barre[0].closest('.side-nav-section') : null;
-      if (!section) { voulues = new Map(); suivre(null); return; }
-      if (!couche || couche.parentElement !== section) {
-        couche = couche || Object.assign(document.createElement('div'), { id: 'tse-noeuds' });
-        section.prepend(couche);
+
+      for (const [cle, c] of [...choixDe]) {
+        if (voulues.get(cle)?.tous && parCle.has(cle) && c.boite.isConnected) continue;
+        c.boite.remove();
+        choixDe.delete(cle);
       }
-      for (const [cle, { membres }] of voulues) {
+      for (const [login, p] of [...parCarte]) {
+        if (seules.has(login) && p.isConnected) continue;
+        p.remove();
+        parCarte.delete(login);
+      }
+
+      for (const [sec, couche] of [...couches]) {
+        if (!sec.isConnected) { couche.remove(); couches.delete(sec); }
+      }
+      const sections = new Set();
+      for (const [cle, { membres, tous, suivie, section }] of voulues) {
+        const couche = coucheDe(section);
+        sections.add(section);
         let n = parCle.get(cle);
         if (!n) { n = creer(cle, membres); parCle.set(cle, n); }
-        else ordonner(n, membres);
+        ordonner(n, membres, tous);
         if (n.parentElement !== couche) couche.appendChild(n);
+        let c = choixDe.get(cle);
+        if (tous && !c) { c = creerChoix(cle); choixDe.set(cle, c); }
+        if (c) {
+          garnirChoix(c, membres, tous, suivie);
+
+          if (n.nextElementSibling !== c.boite) n.after(c.boite);
+        }
+      }
+      for (const [login, { membres, section }] of seules) {
+        const couche = coucheDe(section);
+        sections.add(section);
+        let p = parCarte.get(login);
+        if (!p) { p = creerPastille(); parCarte.set(login, p); }
+        garnirPastille(p, membres);
+        if (p.parentElement !== couche) couche.appendChild(p);
       }
       placer();
       marquer();
-      suivre(section);
+      suivre(sections);
     };
     salle.surChangement(marquer);
 
     const bilan = () => {
-      const out = { affiches: parCle.size, clics };
+      const out = { affiches: parCle.size, clics, choix: choixDe.size,
+                    pastilles: parCarte.size, clicsPastilles, tous: tousOuverts,
+
+                    calques: [...couches.values()].filter((c) => c.isConnected).length,
+                    classementIncomplet: incomplets.length,
+                    ...(incomplets.length ? { classementManquants: incomplets.slice(0, 5) } : {}) };
+
+      const couche = document.getElementById('tse-noeuds');
 
       let suivant = couche && couche.isConnected ? couche.nextElementSibling : null;
       while (suivant && !suivant.getClientRects().length) suivant = suivant.nextElementSibling;
@@ -9527,10 +10314,12 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
                       b0: 0, b1: 0, b2: 0, b3: 0,
                       nomHorsGroupe: 0, toutesTitrees: 0, nomTitre: 0, sansNom: 0,
 
-                      plus: 0, pastilles: 0 };
+                      plus: 0, pastilles: 0, pastillesVues: 0 };
           for (const c of vues) {
             if (c.querySelector('p[data-a-target="side-nav-title"]')) r.crochet++;
-            if (c.querySelector('.tse-collab-badge')) r.pastilles++;
+            const pastille = c.querySelector('.tse-collab-badge');
+            if (pastille) r.pastilles++;
+            if (pastille && pastille.getClientRects().length) r.pastillesVues++;
             if (/\+\d+/.test(c.textContent || '')) r.plus++;
 
             const g = c.querySelector('.side-nav-card__metadata');
@@ -9961,6 +10750,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
   tseApi.salle = Object.freeze({
     ouvrir: (...chaines) => salle.ouvrir(...chaines),
     son: (i) => salle.son(i),
+
+    chat: (nom) => salle.chat(nom),
     fermer: () => salle.fermer(),
     rapport: () => salle.rapport(),
 
@@ -10408,7 +11199,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
 
   const pastilleDepuisGuestStar = (card) => {
     const login = card.dataset.tseLogin;
-    const mates = login ? getGuestStarMates(login) : [];
+    const mates = login ? camaradesDe(login) : [];
     if (!mates.length) { clearCollabBadge(card); return; }
     poserPastille(card, String(mates.length));
   };
@@ -11511,7 +12302,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       const key = card.dataset.tseCostreamKey;
       if (!key) return [];
       const myLogin = card.dataset.tseLogin;
-      const section = followedSection();
+      const section = card.closest('.side-nav-section') || followedSection();
       if (!section) return [];
       const mates = [];
       section.querySelectorAll(`.side-nav-card[data-tse-costream-key]`).forEach(c => {
@@ -14005,6 +14796,11 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     return hit.cle;
   };
 
+  const sessionSelonLesAutres = (login) => {
+    const cle = sessionDuMembre(login);
+    return typeof cle === 'string' && cle.startsWith('gs:') ? cle : null;
+  };
+
   const membresDeLaSession = (cle) => {
     if (!cle) return [];
     const hit = membresDeSession.get(cle);
@@ -14019,6 +14815,13 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     const hit = gsCache.get(id);
     if (!hit || !Array.isArray(hit.mates)) return [];
     return hit.mates.filter(m => m.login !== login);
+  };
+
+  const camaradesDe = (login) => {
+    const propres = getGuestStarMates(login);
+    if (propres.length || !login) return propres;
+    const l = String(login).toLowerCase();
+    return membresDeLaSession(sessionSelonLesAutres(l)).filter((m) => m?.login && m.login !== l);
   };
 
   // ── Drapeaux SVG inline (jeu OpenMoji, licence CC BY-SA 4.0) ───────────
@@ -14125,6 +14928,19 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
 
     const section = followedSection();
     const cards = section ? section.querySelectorAll('.side-nav-card') : [];
+
+    const autres = [];
+
+    const rangSection = new Map(section ? [[section, 0]] : []);
+    for (const sec of document.querySelectorAll(`${DOM.sidebarRoot} .side-nav-section`)) {
+      if (sec === section || sec.classList.contains('tse-section-hidden')) continue;
+      rangSection.set(sec, rangSection.size + (section ? 0 : 1));
+      autres.push(...sec.querySelectorAll('.side-nav-card'));
+    }
+    const toutes = [...cards, ...autres];
+    const suiviesSet = new Set(cards);
+    const groupeDe = (cle, card) => `${cle}@${rangSection.get(card.closest('.side-nav-section')) ?? 0}`;
+    const sessionDeGroupe = (g) => g.slice(0, g.lastIndexOf('@'));
     const now = Date.now();
     const gsUsable = now >= gsCooldownUntil;
 
@@ -14132,23 +14948,31 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     const gsHandled = new Set();
     const hostByCard = new Map();
 
-    cards.forEach(card => {
+    const rattachees = [];
+    toutes.forEach(card => {
       if (!cardShown(card)) return;
       const login = card.dataset.tseLogin;
       if (!login) return;
-      const hostId = getHostId(getChannelId(login));
+      const id = getChannelId(login);
+      const hostId = getHostId(id);
       hostByCard.set(card, hostId);
-      if (typeof hostId !== 'string') return;
-      const key = `gs:${hostId}`;
-      if (!groups.has(key)) groups.set(key, []);
-      groups.get(key).push(card);
+
+      let key = typeof hostId === 'string' ? `gs:${hostId}` : null;
+      if (!key) {
+        key = sessionSelonLesAutres(login);
+        if (key) rattachees.push({ card, key: groupeDe(key, card), raison: !id ? 'sansId' : hostId === undefined ? 'inconnue' : 'horsSession' });
+      }
+      if (!key) return;
+      const g = groupeDe(key, card);
+      if (!groups.has(g)) groups.set(g, []);
+      groups.get(g).push(card);
     });
 
     for (const [, members] of groups) {
       if (members.length >= 2) members.forEach(c => gsHandled.add(c));
     }
 
-    cards.forEach(card => {
+    toutes.forEach(card => {
       if (!cardShown(card)) return;
       if (gsHandled.has(card)) return;
       if (gsUsable && hostByCard.get(card) === undefined && getChannelId(card.dataset.tseLogin)) return;
@@ -14158,7 +14982,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
 
       const viewers = getCardViewersText(card);
       if (!viewers) return;
-      const key = `vh:${cat}|||${viewers}`;
+      const key = groupeDe(`vh:${cat}|||${viewers}`, card);
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key).push(card);
     });
@@ -14177,13 +15001,14 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       activeKeys.add(key);
     }
 
-    for (const key of activeKeys) {
+    const sessionsActives = new Set([...activeKeys].map(sessionDeGroupe));
+    for (const key of sessionsActives) {
       const slot = costreamColorByKey.get(key);
       if (slot) slot.lastActiveTs = now;
     }
 
     for (const [key, slot] of [...costreamColorByKey]) {
-      if (!activeKeys.has(key) && now - slot.lastActiveTs > CFG.COSTREAM_COLOR_GRACE) {
+      if (!sessionsActives.has(key) && now - slot.lastActiveTs > CFG.COSTREAM_COLOR_GRACE) {
         costreamColorByKey.delete(key);
       }
     }
@@ -14193,7 +15018,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       for (let i = 0; i < COSTREAM_PALETTE.length; i++) if (!reserved.has(i)) return i;
       return costreamColorByKey.size % COSTREAM_PALETTE.length;
     };
-    for (const key of activeKeys) {
+    for (const key of sessionsActives) {
       if (!costreamColorByKey.has(key)) {
         const idx = pickIdx();
         reserved.add(idx);
@@ -14201,7 +15026,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       }
     }
 
-    cards.forEach(card => {
+    toutes.forEach(card => {
       card.classList.remove('tse-costream');
       card.style.removeProperty('--tse-costream-color');
       card.style.removeProperty('--tse-costream-bg');
@@ -14209,9 +15034,10 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       delete card.dataset.tseCostreamKey;
     });
 
-    for (const key of activeKeys) {
+    for (const g of activeKeys) {
+      const key = sessionDeGroupe(g);
       const palette = COSTREAM_PALETTE[costreamColorByKey.get(key).idx];
-      for (const card of groups.get(key)) {
+      for (const card of groups.get(g)) {
         card.classList.add('tse-costream');
         card.style.setProperty('--tse-costream-color',   palette.color);
         card.style.setProperty('--tse-costream-bg',      palette.bg);
@@ -14224,13 +15050,27 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     bilanCostream = { sessions: 0, groupes: 0, membres: 0, affiches: 0,
                       horsClassement: 0, horsClassementConnus: 0,
                         classesNonAffichees: 0, sousLaCoupe: 0,
-                        sousLaCoupeAvecCombine: 0 };
+                        sousLaCoupeAvecCombine: 0,
+
+                        rattachees: { total: 0, horsSession: 0, inconnue: 0, sansId: 0 },
+                        recommandations: { cartes: 0, groupes: 0 } };
     const parLogin = new Map();
     for (const card of cards) {
       const l = card.dataset.tseLogin;
       if (l && !parLogin.has(l)) parLogin.set(l, card);
     }
-    for (const key of activeKeys) if (key.startsWith('gs:')) bilanCostream.groupes += 1;
+    for (const g of activeKeys) {
+      const membres = groups.get(g) || [];
+      if (g.startsWith('gs:') && membres.some((c) => suiviesSet.has(c))) bilanCostream.groupes += 1;
+      if (membres.some((c) => !suiviesSet.has(c))) bilanCostream.recommandations.groupes += 1;
+    }
+    for (const c of autres) if (cardShown(c) && c.dataset.tseLogin) bilanCostream.recommandations.cartes += 1;
+
+    for (const { key, raison } of rattachees) {
+      if (!activeKeys.has(key)) continue;
+      bilanCostream.rattachees.total += 1;
+      bilanCostream.rattachees[raison] += 1;
+    }
 
     const sessions = new Map();
     for (const card of cards) {
@@ -14277,7 +15117,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       }
     }
 
-    return activeKeys.size;
+    return [...activeKeys].filter((g) => g.endsWith('@0')).length;
   }
 
   function applyCostreamJoins() {
@@ -14296,7 +15136,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     for (let i = 0; i < visible.length - 1; i++) {
       const a = visible[i], b = visible[i + 1];
       const key = a.dataset.tseCostreamKey;
-      if (key && key === b.dataset.tseCostreamKey) pairs.push([a, b]);
+      if (key && key === b.dataset.tseCostreamKey
+          && a.closest('.side-nav-section') === b.closest('.side-nav-section')) pairs.push([a, b]);
     }
     if (!pairs.length) return [];
 
@@ -14328,6 +15169,64 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       else { courante = [c]; barres.push(courante); }
     }
     return barres.filter((b) => b.length >= 2);
+  }
+
+  function entreesSalle(barres) {
+    const section = followedSection();
+    const canoniques = (sec) => [...sec.querySelectorAll('.side-nav-card')]
+      .filter((c) => !c.parentElement?.closest('.side-nav-card'));
+    const cartes = section ? canoniques(section) : [];
+
+    const recommandees = [];
+    for (const sec of document.querySelectorAll(`${DOM.sidebarRoot} .side-nav-section`)) {
+      if (sec === section || sec.classList.contains('tse-section-hidden')) continue;
+      recommandees.push(...canoniques(sec));
+    }
+    const suivies = new Set();
+    for (const c of cartes) {
+      if (c.dataset.tseLogin && c.dataset.tseGlobal !== 'true') suivies.add(c.dataset.tseLogin);
+    }
+
+    const horsLigne = new Set([...document.querySelectorAll('.side-nav-card[data-tse-offline="true"]')]
+      .map((c) => c.dataset.tseLogin || loginFromHref(c.querySelector(DOM.cardLinkSelector)?.getAttribute('href')))
+      .filter(Boolean));
+    const quiDiffusent = (login) => camaradesDe(login)
+      .filter((m) => m.enLigne !== false && !horsLigne.has(m.login)).map((m) => m.login);
+
+    const suiviesDabord = (logins) => logins.sort((a, b) => Number(suivies.has(b)) - Number(suivies.has(a)));
+    const marques = new Map();
+    const sortie = { barres: [], seules: [], classementIncomplet: [] };
+    for (const barre of barres || []) {
+      const membres = [...new Set(barre.map((c) => c.dataset.tseLogin).filter(Boolean))];
+      const autres = [];
+      for (const l of membres) {
+        for (const m of quiDiffusent(l)) if (!membres.includes(m) && !autres.includes(m)) autres.push(m);
+      }
+
+      const classement = barre[0].dataset.tseGlobal === 'true';
+      if (classement && autres.length) sortie.classementIncomplet.push(`${membres.join(' ')} → ${autres.join(' ')}`);
+      const tous = !classement && autres.length && membres.length < CFG.SALLE_MAX
+        ? [...membres, ...suiviesDabord(autres)].slice(0, CFG.SALLE_MAX)
+        : null;
+
+      const suivie = !classement && !!section && section.contains(barre[0]);
+      sortie.barres.push({ barre, membres, tous, suivie });
+      for (const c of barre) marques.set(c, 'barre');
+    }
+    for (const c of [...cartes, ...recommandees]) {
+      if (marques.has(c) || c.dataset.tseGlobal === 'true' || !cardShown(c)) continue;
+      const login = c.dataset.tseLogin;
+      if (!login) continue;
+      const autres = quiDiffusent(login).filter((m) => m !== login);
+      if (!autres.length) continue;
+      sortie.seules.push({ carte: c, membres: [login, ...suiviesDabord(autres)].slice(0, CFG.SALLE_MAX) });
+      marques.set(c, 'seule');
+    }
+    for (const c of document.querySelectorAll('.side-nav-card[data-tse-pastille]')) {
+      if (!marques.has(c)) delete c.dataset.tsePastille;
+    }
+    for (const [c, v] of marques) if (c.dataset.tsePastille !== v) c.dataset.tsePastille = v;
+    return sortie;
   }
 
   function snapshotTwitchOrder() {
@@ -14915,7 +15814,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     updateSortButtonsState({ costreamGroups });
     applySorting();
 
-    noeudsSalle.maj(applyCostreamJoins());
+    noeudsSalle.maj(entreesSalle(applyCostreamJoins()));
     autoExpandFollowed();
 
     const hadOfflineActivity = offlineTransitionsThisScan > 0;
