@@ -26472,6 +26472,30 @@ const S_LECTEUR_SONDE = () => {
       if (new URLSearchParams(location.search).get('channel') === 'november') {
         AudioWorklet.prototype.addModule = () => Promise.reject(new DOMException('module refusé par la page', 'AbortError'));
       }
+      /* L'HORLOGE QUI SAUTE (4.24.0.31) : __perdreTrames(ms) retire ms
+         d'échantillons au compte que le module d'enveloppe envoie — ce que
+         fait un contexte dont le fil a manqué son rendez-vous : son heure
+         audio recule face à l'horloge, et le son, lui, reste à l'heure.
+         Mesuré sous Chromium, sur une machine dont le processeur est pris
+         par à-coups (cf. README). */
+      {
+        const NoeudVrai = window.AudioWorkletNode;
+        const noeuds = [];
+        if (NoeudVrai) {
+          const d = Object.getOwnPropertyDescriptor(MessagePort.prototype, 'onmessage');
+          window.AudioWorkletNode = class extends NoeudVrai {
+            constructor(...a) {
+              super(...a);
+              const port = this.port, n = { perdues: 0, sr: this.context.sampleRate };
+              noeuds.push(n);
+              let h0 = null;
+              Object.defineProperty(port, 'onmessage', { configurable: true, get: () => h0,
+                set: (h) => { h0 = h; d.set.call(port, h ? (m) => h({ data: [m.data[0] - n.perdues, m.data[1]] }) : null); } });
+            }
+          };
+        }
+        window.__perdreTrames = (ms) => { for (const n of noeuds) n.perdues += Math.round((ms * n.sr) / 1000); return noeuds.length; };
+      }
       if (new URLSearchParams(location.search).get('channel') === 'bravo') {
         const Vrai = window.AudioContext;
         window.AudioContext = class extends Vrai {
@@ -26641,6 +26665,67 @@ const S_LECTEUR_SONDE = () => {
      && silence('alpha') < 50 && silence('bravo') < 50,
      JSON.stringify({ prevu, ecoute: r5.ecoute, alpha: r5.tuiles.alpha?.ecoute, bravo: r5.tuiles.bravo?.ecoute,
                       muets: [r5.tuiles.alpha?.muet, r5.tuiles.bravo?.muet] }));
+
+  /* L'HORLOGE QUI SAUTE (4.24.0.31). Une horloge audio perd des
+     échantillons quand son fil manque son rendez-vous — mesuré sous
+     Chromium, cf. README : des marches de 10 à 300 ms, plusieurs par
+     minute, sur une machine prise par à-coups —, et le son, lui, reste à
+     l'heure. L'ancre, le plus petit écart sur dix à vingt secondes, gardait
+     l'ancien : la tuile datait son son trop tôt d'autant pendant tout ce
+     temps. On lit l'âge du bloc le plus récent de chaque tuile à chaque
+     réponse — l'heure de la réponse moins celle que l'écoute lui donne :
+     quelques dizaines de ms. D'abord UNE TÂCHE LONGUE de 3 s dans la page :
+     les blocs s'y entassent, puis arrivent d'un coup — ce n'est pas une
+     marche, aucune n'est suivie. Puis « bravo » perd 2 s d'échantillons :
+     son son est daté 2 s trop tôt, l'ancre suit à la fin de la première
+     seconde pleine qui suit, et l'âge est revenu avant 3,5 s ; le rapport
+     dit la marche suivie. Les marches vraies de la machine peuvent s'y
+     ajouter : on ne compte que celles de plus d'une seconde. Mutants — la
+     marche jamais suivie ; jugée sur le premier bloc de la seconde, et non
+     sur le plus petit écart ; le rapport muet. */
+  await page.evaluate(() => {
+    window.__ages = { alpha: [], bravo: [] };
+    window.addEventListener('message', (e) => {
+      const d = e.data;
+      if (d?.tse !== 'tse:salle-releve' || !Array.isArray(d.env) || !d.env.length || !Number.isFinite(d.t)) return;
+      for (const ch of ['alpha', 'bravo']) {
+        const f = document.querySelector(`.tse-salle__tuile[data-tse-salle-chaine="${ch}"] iframe`);
+        if (f && e.source === f.contentWindow) window.__ages[ch].push([Date.now(), d.t - d.env[d.env.length - 1][0]]);
+      }
+    });
+  });
+  const ages = () => page.evaluate(() => window.__ages);
+  const grandes = (h) => (/: (.*) ms$/.exec(h || '') || [, ''])[1].split(' · ').map((x) => Number(x)).filter((x) => x >= 1000);
+  await wait(page, 3000);
+  const tLongue = await page.evaluate(() => Date.now());
+  await cadre('bravo')?.evaluate(() => { const t = Date.now(); while (Date.now() - t < 3000); }).catch(() => null);
+  await wait(page, 4000);
+  const r7 = await rapport();
+  const a7 = await ages();
+  const avantLongue = a7.bravo.filter(([t]) => t < tLongue);
+  const apresLongue = a7.bravo.filter(([t]) => t >= tLongue + 5000);
+  const formeHorloge = /^(sans marche|\d+ marches? suivies? : \+\d+( · \+\d+){0,3} ms)$/;
+  ok('une tâche longue de 3 s dans la page n\'est pas une marche : l\'âge des blocs reste de quelques dizaines de ms, et aucune marche d\'une seconde n\'est suivie',
+     avantLongue.length >= 2 && avantLongue.every(([, a]) => a >= 0 && a < 500) && apresLongue.length >= 1 && apresLongue.every(([, a]) => a >= 0 && a < 500)
+     && formeHorloge.test(r7.tuiles.bravo?.horloge || '') && formeHorloge.test(r7.tuiles.alpha?.horloge || '')
+     && !grandes(r7.tuiles.bravo.horloge).length && !grandes(r7.tuiles.alpha.horloge).length,
+     JSON.stringify({ avantLongue: avantLongue.slice(-4), apresLongue, horloge: [r7.tuiles.alpha?.horloge, r7.tuiles.bravo?.horloge] }));
+
+  const nNoeuds = await cadre('bravo')?.evaluate(() => window.__perdreTrames(2000)).catch(() => null);
+  const tMarche = await page.evaluate(() => Date.now());
+  await wait(page, 6000);
+  const r8 = await rapport();
+  const a8 = await ages();
+  // Pour le détail : les réponses de la seconde qui suit, datées 2 s trop tôt tant que l'ancre n'a pas suivi.
+  const juste = a8.bravo.filter(([t]) => t > tMarche && t <= tMarche + 1500);
+  const ensuite = a8.bravo.filter(([t]) => t >= tMarche + 3500);
+  const alphaEnsuite = a8.alpha.filter(([t]) => t >= tMarche);
+  const marcheVue = grandes(r8.tuiles.bravo?.horloge);
+  ok('l\'horloge audio de « bravo » perd 2 s : l\'ancre suit la marche, et son son est de nouveau daté à l\'heure avant 3,5 s — le rapport la dit, « alpha » n\'a rien vu',
+     nNoeuds === 1 && ensuite.length >= 1 && ensuite.every(([, a]) => a >= 0 && a < 500)
+     && marcheVue.length === 1 && marcheVue[0] >= 1950 && marcheVue[0] <= 2100
+     && alphaEnsuite.length >= 1 && alphaEnsuite.every(([, a]) => a >= 0 && a < 500) && !grandes(r8.tuiles.alpha?.horloge).length,
+     JSON.stringify({ nNoeuds, juste, ensuite, alphaEnsuite: alphaEnsuite.slice(-3), horloge: [r8.tuiles.alpha?.horloge, r8.tuiles.bravo?.horloge] }));
 
   /* ÉTEINTE, elle s'arrête dans chaque lecteur, et ses derniers résultats
      restent au rapport. Mutant — l'écoute qui ne s'éteint pas. */
@@ -28916,7 +29001,21 @@ const S_LECTEUR_SONDE = () => {
      seconde de tampon, en passant : comptée, plus notée au journal.
      Mutants — la place jamais reprise ; la reprise qui avance de la latence
      seule ; la coupure sans conséquence notée. */
+  /* À UNE PHASE CONNUE DES RELEVÉS (4.24.0.31). Une coupure se voit à deux
+     relevés de suite dont le tampon fond au rythme de la lecture (70 % au
+     moins). Les relevés tombent chaque seconde ; une coupure de 2,2 s n'en
+     offre deux que si le premier relevé qui la suit tombe à 0,7 s au moins
+     de son début, ou à moins de 0,2 s — une fois sur deux. Ce scénario la
+     posait, par sa propre cadence, à 0,69–0,72 s : vue ou manquée selon
+     quelques ms de charge (rejoué trois fois : 0,694, 0,722, 0,697). Elle
+     part désormais 150 ms après un relevé de « omega » : le suivant tombe à
+     0,85 s, au milieu de ce qui la voit. */
   const coupuresAvant = (await rapport()).tuiles?.omega?.serie?.coupures ?? null;
+  const phase = await page.evaluate(() => {
+    const s = window.tse.salle.series()?.tuiles?.omega || [];
+    return s.length ? (((s[s.length - 1].t + 150 - Date.now()) % 1000) + 1000) % 1000 : 0;
+  });
+  await wait(page, phase);
   await cadre('omega')?.evaluate(() => window.__coupure(2.2)).catch(() => null);
   await wait(page, 6_000);
   const rK = await rapport();

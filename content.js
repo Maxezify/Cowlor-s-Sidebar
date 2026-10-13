@@ -824,7 +824,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
      commune par le plus petit écart observé entre l'heure du rappel et la
      fin du bloc, sur les dix à vingt dernières secondes : un rappel ne peut
      qu'être en retard, jamais en avance, et le plus petit retard est la
-     meilleure ancre. Ni le son ni l'enveloppe ne quittent la page ; le
+     meilleure ancre — tant que l'horloge audio ne saute pas (4.24.0.31, cf.
+     MARCHE_MS). Ni le son ni l'enveloppe ne quittent la page ; le
      rapport ne porte que le décalage calculé.
 
      PAS `playbackTime` (4.24.0.13). Il datait les blocs jusqu'ici, et le banc
@@ -879,6 +880,24 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     let actif = false, ac = null, proc = null, nul = null, source = null, flux = null, video = null, piste = null;
     let etat = 'inactive', reliaisons = 0, sr = null, voie = null;
     let ancreCour = Infinity, ancrePrec = Infinity, ancreT = 0;
+    /* L'HORLOGE QUI SAUTE (4.24.0.31). Le plus petit écart ne suivait une
+       heure audio qui PERD du temps qu'au renouvellement de sa fenêtre, dix
+       à vingt secondes plus tard : il gardait l'ancien. Or une horloge audio
+       perd des échantillons quand son fil manque son rendez-vous — mesuré
+       sous Chromium (cf. README) : des marches de 10 à 300 ms, plusieurs par
+       minute, sur une machine dont le processeur est pris par à-coups —, et
+       le CONTENU, lui, reste à l'heure : derrière la marche, le vrai écart
+       est le nouveau. Pendant ces vingt secondes, la tuile datait son son
+       trop tôt d'autant, et la fenêtre de corrélation, de vingt secondes
+       elle aussi, le voyait presque entière. Désormais : UNE seconde pleine
+       dont le plus petit écart dépasse l'ancre de plus de MARCHE_MS — sans
+       marche, il ne bouge que d'une ou deux ms d'une seconde à l'autre —,
+       et l'ancre le prend. Une tâche longue du fil principal n'y ressemble
+       pas : la seconde qui la précède a ses blocs à l'heure, et la file
+       qu'elle a retenue se vide jusqu'au plus récent, à l'heure lui aussi.
+       Les marches suivies vont au rapport (`horloge`). */
+    const MARCHE_MS = 15;
+    let secMin = Infinity, secT = 0, marches = 0, marchesMs = [];
     // Le rang du bloc, et l'heure audio du précédent pour compter les pertes
     // (l'ancien nœud seulement : le worklet sait son rang).
     let rang = -1, dernierPt = null;
@@ -931,8 +950,21 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     };
     // Un bloc de 1024 échantillons fini : `finMs`, sa fin en ms d'horloge audio.
     const surFin = (finMs, puissance, mur) => {
+      const ecart = mur - finMs;
+      // La seconde écoulée : son plus petit écart, face à l'ancre d'alors.
+      if (mur - secT >= 1_000) {
+        const avant = Math.min(ancreCour, ancrePrec);
+        if (secT && secMin - avant > MARCHE_MS) {
+          marches += 1;
+          marchesMs.push(Math.round(secMin - avant));
+          if (marchesMs.length > 4) marchesMs.shift();
+          ancreCour = secMin; ancrePrec = Infinity; ancreT = mur;
+        }
+        secMin = Infinity; secT = mur;
+      }
+      secMin = Math.min(secMin, ecart);
       if (mur - ancreT > 10_000) { ancrePrec = ancreCour; ancreCour = Infinity; ancreT = mur; }
-      ancreCour = Math.min(ancreCour, mur - finMs);
+      ancreCour = Math.min(ancreCour, ecart);
       const ancre = Math.min(ancreCour, ancrePrec);
       // log10 de la puissance moyenne : -8 est le plancher, -7 ≈ -70 dBFS.
       const niveau = Math.log10(puissance + 1e-8);
@@ -1011,6 +1043,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       try { if (ac) ac.close(); } catch { /* ignore */ }
       ac = null; proc = null; nul = null; lot = []; secondes = []; blocs = 0; muets = 0;
       ancreCour = Infinity; ancrePrec = Infinity; ancreT = 0; rang = -1; dernierPt = null;
+      secMin = Infinity; secT = 0; marches = 0; marchesMs = [];
       sonVu = false; amorce = 0;
       etat = 'inactive';
     };
@@ -1032,7 +1065,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       const b = secondes.reduce((x, y) => x + y[0], 0);
       const m = secondes.reduce((x, y) => x + y[1], 0);
       return { etat, sr, reliaisons, voie, pistes: flux ? flux.getAudioTracks().length : 0,
-               blocs: b, silence: b ? Math.round((m / b) * 100) / 100 : null };
+               blocs: b, silence: b ? Math.round((m / b) * 100) / 100 : null, marches, marchesMs: [...marchesMs] };
     };
     const prendre = () => { const l = lot; lot = []; return l; };
     return { tenir, bilan, prendre };
@@ -15102,6 +15135,15 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       const v = l.filter((x) => x !== null);
       return v.length ? `${r3(Math.min(...v))} · ${r3(mediane(v))} · ${r3(Math.max(...v))}` : null;
     };
+    /* Les marches de l'horloge audio d'une tuile (4.24.0.31, cf. ecoute) :
+       « sans marche », ou leur nombre et les quatre dernières, en ms. */
+    const horlogeDe = (e) => {
+      if (!e || !Number.isFinite(e.marches)) return null;
+      if (!e.marches) return 'sans marche';
+      const ms = Array.isArray(e.marchesMs) ? e.marchesMs.filter(Number.isFinite) : [];
+      const s = e.marches > 1 ? 's' : '';
+      return `${e.marches} marche${s} suivie${s}${ms.length ? ` : ${ms.map((x) => `+${x}`).join(' · ')} ms` : ''}`;
+    };
     const bilanSerie = (t) => {
       const s = t.serie;
       if (!s.length) return null;
@@ -15450,6 +15492,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
                1024, fois dix : 431 à 44,1 kHz, 469 à 48 ; moins, la capture a faim. */
             Number.isFinite(t.ecouteEtat.blocs) ? `blocs ${t.ecouteEtat.blocs}/10 s` : null]
             .filter(Boolean).join(' · ') : null,
+          // 4.24.0.31 : les marches de l'horloge audio que l'ancre a suivies, et les quatre dernières (cf. ecoute).
+          horloge: horlogeDe(t.ecouteEtat),
           // Les ordres « son » envoyés depuis qu'elle l'a reçu, et s'il a tenu.
           sonEssais: t.sonEssais,
           sonTenu: t.chaine === c.son ? t.sonTenu : null,
