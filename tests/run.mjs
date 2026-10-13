@@ -26296,7 +26296,9 @@ const S_LECTEUR_SONDE = () => {
                         november: [[0, 0], [1, 0], [8, 0, 880]], lima: [[0, 3200], [8, 3050, 880], [1, 2900]],
                         kappa: [[0, 400]],
                         // 4.24.0.27 : « omega », les trois sons de « xray », au même instant ; « psi », 7 s plus tard.
-                        omega: [[0, 0], [1, 0], [8, 0, 880]], psi: [[0, 7000], [1, 7000], [8, 7000, 880]] })[ch] || [[0, 0]];
+                        omega: [[0, 0], [1, 0], [8, 0, 880]], psi: [[0, 7000], [1, 7000], [8, 7000, 880]],
+                        // 4.24.0.32 : « rho », le son de « foxtrot » au même instant ; « sigma », 600 ms plus tard.
+                        rho: [[2, 0]], sigma: [[2, 600]] })[ch] || [[0, 0]];
         const v = document.getElementById('v');
         const c = document.createElement('canvas');
         c.width = 32; c.height = 18;
@@ -26433,6 +26435,14 @@ const S_LECTEUR_SONDE = () => {
           l.maj();
           return Math.round((l.L - l.L0) * 1000);
         };
+        /* DES SILENCES À L'HEURE DE L'HORLOGE (4.24.0.32) : __silences([[début,
+           fin], …]), en ms d'horloge. Toutes les voix de la tuile se taisent,
+           à la milliseconde, et reprennent où elles en sont — posés dans
+           chaque tuile, un même silence au même instant partout : ce que fait
+           un service audio qui manque son rendez-vous. Posés plus d'une
+           demi-seconde à l'avance : les tranches ne sont prévues qu'à 600 ms. */
+        let silences = [];
+        window.__silences = (L) => { silences = L.map(([a, b]) => [a, b]); };
         let relie = false;
         const tenir = () => {
           if (gen.state !== 'running') { gen.resume().catch(() => {}); return; }
@@ -26452,7 +26462,15 @@ const S_LECTEUR_SONDE = () => {
             const k0 = Math.floor((mur - D) / TRANCHE);
             for (let k = Math.max(p.prochaine, k0); k < k0 + 20; k++) {
               const t = ctx + ((k * TRANCHE + D) - mur) / 1000;
-              if (t > ctx) p.g.gain.setValueAtTime(amp(k, p.voix) * p.poids, t);
+              if (t > ctx) {
+                const v = amp(k, p.voix) * p.poids;
+                // Un silence qui tombe dans la tranche : elle est coupée, à l'heure de l'horloge.
+                const w0 = k * TRANCHE + D, w1 = w0 + TRANCHE;
+                const sil = silences.find(([a, b]) => a < w1 && b > w0);
+                p.g.gain.setValueAtTime(sil && sil[0] <= w0 ? 0 : v, t);
+                if (sil && sil[0] > w0) p.g.gain.setValueAtTime(0, ctx + (sil[0] - mur) / 1000);
+                if (sil && sil[1] < w1) p.g.gain.setValueAtTime(v, ctx + (sil[1] - mur) / 1000);
+              }
               p.prochaine = k + 1;
             }
           }
@@ -28357,12 +28375,15 @@ const S_LECTEUR_SONDE = () => {
      différent, r à 10⁻⁹ près ; et sur vingt secondes, au moins deux fois
      plus vite. Mutants — la transformée trop courte (les décalages se
      replient) ; le conjugué oublié. (Le silence, lui, transformé ou non,
-     donne des sommes nulles exactement : le sauter n'est qu'une économie.) */
+     donne des sommes nulles exactement : le sauter n'est qu'une économie.)
+     DEPUIS LA 4.24.0.32, la somme directe écarte les mêmes silences communs
+     que la corrélation (silencesCommuns) : c'est la transformée qu'on juge
+     ici, pas ce qu'on lui donne. */
   const srcCorr = readFileSync(join(ICI, '..', 'content.js'), 'utf8');
   const corr = (() => {
-    const i = srcCorr.indexOf('    const variations = (env, t0, n) => {'), j = srcCorr.indexOf('    // La latence attendue entre deux tuiles');
+    const i = srcCorr.indexOf('    const variations = (env, t0, n, masques = null) => {'), j = srcCorr.indexOf('    // La latence attendue entre deux tuiles');
     try {
-      return new Function('CFG', `${srcCorr.slice(i, j)}\nreturn { correler, variations };`)(
+      return new Function('CFG', `${srcCorr.slice(i, j)}\nreturn { correler, variations, silencesCommuns };`)(
         { SALLE_ECOUTE_PAS_MS: 10, SALLE_ECOUTE_FENETRE_MS: 20_000, SALLE_ECOUTE_MAX_MS: 6_000, SALLE_ECOUTE_MIN_MS: 6_000 });
     } catch (e) { return { erreur: String(e) }; }
   })();
@@ -28371,7 +28392,8 @@ const S_LECTEUR_SONDE = () => {
     const A = [...ea].sort((p, q) => p[0] - q[0]), B = [...eb].sort((p, q) => p[0] - q[0]);
     const fin = Math.min(A[A.length - 1][0], B[B.length - 1][0]), debut = Math.max(A[0][0], B[0][0], fin - 20_000);
     if (fin - debut < 6_000) return null;
-    const n = Math.floor((fin - debut) / 10) + 1, a = corr.variations(A, debut, n), b = corr.variations(B, debut, n), rs = [];
+    const m = corr.silencesCommuns(A, B).filter(([m0, m1]) => m1 >= debut && m0 <= fin);
+    const n = Math.floor((fin - debut) / 10) + 1, a = corr.variations(A, debut, n, m), b = corr.variations(B, debut, n, m), rs = [];
     for (let L = -600; L <= 600; L++) {
       let s = 0, k = 0;
       for (let i = Math.max(0, L); i < Math.min(a.length, b.length + L); i++) { s += a[i] * b[i - L]; k++; }
@@ -29061,6 +29083,76 @@ const S_LECTEUR_SONDE = () => {
   ok('…et la référence derrière toutes les autres : c\'est elle qui avance',
      ecartR && calRf && !gestes(rRf).some((x) => /uniform recule de [67]\./.test(x)),
      JSON.stringify({ ecartR, calRf, journal: journal(rRf), vraie: await vraie('psi', 'uniform', -7000) }));
+  await page.close();
+}
+
+/* ═════════ L'ÉVÉNEMENT COMMUN, ÉCARTÉ (4.24.0.32) ═══════════════════════════
+   UN MÊME SILENCE, AU MÊME INSTANT, DANS TOUTES LES TUILES. Aux bancs de la
+   4.24.0.31, sur une machine dont le processeur est pris par à-coups : au
+   180, quatre calculs de suite à −20 ms, z 9 à 10, dans une paire qui ne
+   partage rien ; au 182, une voix à 0 ms quand la seule voix à 0 ms s'était
+   tue. Rejoué hors navigateur sur des enveloppes du banc : un seul bloc au
+   plancher dans les deux tuiles suffit, z 16. Le décor pose désormais ces
+   silences lui-même, à l'heure de l'horloge, dans chaque tuile : 60, 90,
+   150 et 60 ms, toutes les quatre secondes ; plus un, dans « duo1 » seule.
+     — « foxtrot » et « duo1 » ne partagent rien : pas un calcul à 0 ms ;
+     — « rho » a le son de « foxtrot » au même instant : chaque calcul la dit
+       à 0 ms — le silence partagé écarté, le reste suffit ;
+     — « sigma » l'a 600 ms plus tard : chaque calcul à −600 ms.
+       À 50 ms près, l'un et l'autre : sur une machine prise par à-coups, le
+       son du décor glisse de 20 à 30 ms d'une tuile à l'autre, masque ou
+       non ; 50 ms, c'est moins que les 80 ms où deux verdicts s'accordent
+       (GROUPE_MS), bien moins que les 150 ms sous lesquelles rien ne bouge ;
+     — et le rapport compte, par paire, les silences communs écartés : les
+       mêmes partout — celui de « duo1 » seule n'en est pas un.
+   Mutants — rien d'écarté ; tout silence écarté, commun ou non ; le
+   rapport muet. */
+{
+  titre('196. L\'événement commun — un même silence dans toutes les tuiles, écarté de la corrélation');
+  const page = await freshTwitch(S_LECTEUR_SONDE(), [], '/directory', () => {
+    localStorage.setItem('tse:roue', 'vu');
+    document.addEventListener('DOMContentLoaded', () => {
+      const st = document.createElement('style');
+      st.textContent = '#side-nav { width: 240px; }';
+      document.head.appendChild(st);
+    });
+  });
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  const rapport = () => page.evaluate(() => window.tse.salle.rapport());
+  const cadre = (ch) => page.frames().find((f) => f.url().includes('channel=' + ch) && !f.isDetached());
+  const PAIRES = ['foxtrot~duo1', 'foxtrot~rho', 'foxtrot~sigma'];
+  // L'historique d'une paire, calcul par calcul : [décalage, z].
+  const calculs = (r, cle) => String(r.ecoute?.historique?.[cle] || '').split(' · ').filter(Boolean)
+    .map((h) => [Number((/^(-?\d+) /.exec(h) || [])[1]), Number((/ z ([\d.]+) /.exec(h) || [])[1])]);
+  await page.evaluate(() => window.tse.salle.ouvrir('foxtrot', 'duo1', 'rho', 'sigma'));
+  await attendre(page, () => (window.tse.salle.rapport().instant?.tours || 0) >= 3, 20_000);
+  await page.evaluate(() => window.tse.salle.ecoute());
+  await attendre(page, () => (window.tse.salle.rapport().ecoute?.calculs || 0) >= 6, 60_000);
+  const t0 = await page.evaluate(() => Date.now() + 1_500);
+  const communs = [[0, 60], [4_000, 90], [8_000, 150], [12_000, 60]].map(([d, ms]) => [t0 + d, t0 + d + ms]);
+  const seul = [[t0 + 6_000, t0 + 6_090]];
+  for (const ch of ['foxtrot', 'duo1', 'rho', 'sigma']) {
+    await cadre(ch)?.evaluate((L) => window.__silences(L), ch === 'duo1' ? [...communs, ...seul] : communs).catch(() => null);
+  }
+  // Les calculs faits entre le premier silence et trente secondes après : tous en voient un au moins.
+  await page.waitForFunction((t) => Date.now() > t, t0 + 2_000);
+  const rA = await rapport();
+  await page.waitForFunction((t) => Date.now() > t, t0 + 30_000, { timeout: 60_000 });
+  const rB = await rapport();
+  const pendant = Object.fromEntries(PAIRES.map((cle) => [cle, calculs(rB, cle).slice(calculs(rA, cle).length)]));
+  const nets = (cle, f) => pendant[cle].length >= 4 && pendant[cle].every(([ms, z]) => f(ms) && z >= 5);
+  ok('un même silence dans toutes les tuiles : la paire qui ne partage rien n\'a pas un calcul à 0 ms, et son son commun reste « non »',
+     pendant['foxtrot~duo1'].length >= 4 && !pendant['foxtrot~duo1'].some(([ms, z]) => Math.abs(ms) <= 50 && z >= 5)
+     && /^non · /.test(rB.ecoute?.commun?.['foxtrot~duo1'] || ''),
+     JSON.stringify({ pendant: pendant['foxtrot~duo1'], commun: rB.ecoute?.commun?.['foxtrot~duo1'], silences: rB.ecoute?.silencesCommuns }));
+  ok('…la paire qui partage son son au même instant reste dite à 0 ms, celle qui l\'a 600 ms plus tard à −600 ms, à chaque calcul',
+     nets('foxtrot~rho', (ms) => Math.abs(ms) <= 50) && nets('foxtrot~sigma', (ms) => Math.abs(ms + 600) <= 50),
+     JSON.stringify({ rho: pendant['foxtrot~rho'], sigma: pendant['foxtrot~sigma'] }));
+  const compte = (cle) => Number((new RegExp(`${cle} (\\d+)`).exec(rB.ecoute?.silencesCommuns || '') || [])[1]);
+  const comptes = PAIRES.map(compte);
+  ok('…et le rapport compte les silences communs écartés : les mêmes dans chaque paire, quatre au moins — celui de « duo1 » seule n\'en est pas un',
+     comptes.every((n) => n >= 4) && new Set(comptes).size === 1,
+     JSON.stringify({ silencesCommuns: rB.ecoute?.silencesCommuns, comptes }));
   await page.close();
 }
 
