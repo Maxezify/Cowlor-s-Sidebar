@@ -385,7 +385,7 @@
     "message": "Co-streamy"
   },
   "guideCostreamTexte": {
-    "message": "Kolorowy pasek przy krawędzi karty, jeden kolor na co-stream: ten kanał nadaje w kilka osób. Widać to na liście, bez najeżdżania na cokolwiek.\n• Fioletowa odznaka mówi wtedy, kto gości, a kto jest gościem — i z kim.\n• Osobne sortowanie grupuje je na górze listy (rozdział $1).\n• Gdy kilku uczestników stoi na liście jeden pod drugim, ich paski łączą się w jeden; kanał, który jako jedyny ze swojego co-streamu jest na liście, ma własny. Na środku pojawia się przycisk „▶”, gdy nadają inni uczestnicy: kliknięcie otwiera ich razem na stronie, w sali multistream. Po najechaniu „Cały co-stream” dodaje tych, których nie obserwujesz — Shift+klik też. Kliknięcie kafelka daje mu dźwięk, a czat podąża za nim; przy dwóch streamach bez wspólnego czatu oba czaty otaczają odtwarzacze, gdy jest miejsce. Klawisz Esc albo drugie kliknięcie przycisku zamyka salę."
+    "message": "Kolorowy pasek przy krawędzi karty, jeden kolor na co-stream: ten kanał nadaje w kilka osób. Widać to na liście, bez najeżdżania na cokolwiek.\n• Fioletowa odznaka mówi wtedy, kto gości, a kto jest gościem — i z kim.\n• Osobne sortowanie grupuje je na górze listy (rozdział $1).\n• Gdy kilku uczestników stoi na liście jeden pod drugim, ich paski łączą się w jeden; kanał, który jako jedyny ze swojego co-streamu jest na liście, ma własny. Na środku pojawia się mały kursor „▶”, gdy nadają inni uczestnicy: po najechaniu wydłuża się i mówi, co otworzy; kliknięcie otwiera ich razem na stronie, w sali multistream. Ci, których nie obserwujesz, pojawiają się obok jako twarze: najedź na nich, aby ich dodać — Shift+klik też. Kliknięcie kafelka daje mu dźwięk, a czat podąża za nim; przy dwóch streamach bez wspólnego czatu oba czaty otaczają odtwarzacze, gdy jest miejsce. Klawisz Esc albo drugie kliknięcie kursora zamyka salę."
   },
   "guideDebutTitre": {
     "message": "Początki i powroty"
@@ -541,7 +541,7 @@
     "message": "Sala multistream"
   },
   "optDescSalle": {
-    "message": "Przycisk „▶” na środku paska co-streamu otwiera razem, na stronie, jego streamy — na pasku kilku kanałów tak samo jak na pasku kanału, który jako jedyny ze swojego co-streamu jest na liście. Po najechaniu lub przez Shift+klik: cały co-stream, także ci, których nie obserwujesz. Wyłączone: ani przycisku, ani sali; paski zostają."
+    "message": "Kursor „▶” na środku paska co-streamu otwiera razem, na stronie, jego streamy — na pasku kilku kanałów tak samo jak na pasku kanału, który jako jedyny ze swojego co-streamu jest na liście. Po najechaniu wydłuża się i mówi, co otworzy; obok pojawiają się twarze tych, których nie obserwujesz — najedź na nie albo Shift+klik: cały co-stream. Wyłączone: ani kursora, ani sali; paski zostają."
   },
   "optSalleAuto": {
     "message": "Automatyczne wyrównanie"

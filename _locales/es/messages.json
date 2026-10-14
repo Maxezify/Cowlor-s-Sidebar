@@ -385,7 +385,7 @@
     "message": "Los co-streams"
   },
   "guideCostreamTexte": {
-    "message": "Una barra de color en el borde de la tarjeta, un color por co-stream: ese canal emite acompañado. Visible en la lista, sin pasar el ratón por nada.\n• Una insignia morada dice entonces quién recibe y quién es invitado, y con quién.\n• Un orden propio los agrupa arriba de la lista (capítulo $1).\n• Cuando varios participantes van seguidos en la lista, sus barras forman una sola; si un canal es el único de su co-stream en la lista, tiene la suya. En el centro se posa un botón «▶» cuando otros participantes emiten: un clic los abre juntos en la página, en la sala multistream. Al pasar el ratón, «Todo el co-stream» añade a quienes no sigues — Mayús+clic también. Un clic en un recuadro le da el sonido, y el chat lo sigue; con dos streams sin chat compartido, los dos chats enmarcan los reproductores cuando hay sitio. La tecla Esc, o un segundo clic en el botón, cierra la sala."
+    "message": "Una barra de color en el borde de la tarjeta, un color por co-stream: ese canal emite acompañado. Visible en la lista, sin pasar el ratón por nada.\n• Una insignia morada dice entonces quién recibe y quién es invitado, y con quién.\n• Un orden propio los agrupa arriba de la lista (capítulo $1).\n• Cuando varios participantes van seguidos en la lista, sus barras forman una sola; si un canal es el único de su co-stream en la lista, tiene la suya. En el centro se posa un pequeño cursor «▶» cuando otros participantes emiten: al pasar el ratón, se estira y dice lo que abre; un clic los abre juntos en la página, en la sala multistream. Quienes no sigues aparecen a su lado con su cara: ve hacia ellos para añadirlos — Mayús+clic también. Un clic en un recuadro le da el sonido, y el chat lo sigue; con dos streams sin chat compartido, los dos chats enmarcan los reproductores cuando hay sitio. La tecla Esc, o un segundo clic en el cursor, cierra la sala."
   },
   "guideDebutTitre": {
     "message": "Los comienzos y las vueltas"
@@ -541,7 +541,7 @@
     "message": "Sala multistream"
   },
   "optDescSalle": {
-    "message": "Un botón «▶», en el centro de la barra de un co-stream, abre juntos sus streams, en la página — en la barra de varios canales como en la de un canal que es el único de su co-stream en la lista. Al pasar el ratón o con Mayús+clic: todo el co-stream, incluidos los que no sigues. Desactivado: ni botón ni sala; las barras se quedan."
+    "message": "Un cursor «▶», en el centro de la barra de un co-stream, abre juntos sus streams, en la página — en la barra de varios canales como en la de un canal que es el único de su co-stream en la lista. Al pasar el ratón, se estira y dice lo que abre; a su lado aparecen las caras de quienes no sigues — ve hacia ellas, o Mayús+clic: todo el co-stream. Desactivado: ni cursor ni sala; las barras se quedan."
   },
   "optSalleAuto": {
     "message": "Alineación automática"

@@ -2059,6 +2059,274 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The track cursor (v4.24.0.34)
+
+The request, in three steps. First: "suggest other ideas for the 'redrawn ▶'.
+With animations on it too, I want it to feel high-quality. I want it to stay
+visible but not omnipresent." Then, track C chosen: "the animation of the
+button arriving when the mouse hovers the track cursor, yes an opening
+animation and yes a closing animation, for every co-stream there is. I want
+it every time." Finally, for the two buttons: "OK for track 3. […] Show all
+the faces, no +N. If five must be shown, show five." Published on
+`claude/chrome-multi` only, as asked.
+
+### Before the code: three boards
+
+- **The bar's "▶"**: four tracks, each playable, timed and compared. Track C,
+  **the track cursor** — the bar is a track, the button its cursor —, was
+  chosen.
+- **The track cursor**: its levels, its seven sequences on a timeline, its
+  edge cases — and what the welcome hint means.
+- **The cursor's two buttons**: the split (a second pill sliding out from
+  under the first) set aside — it covered the card below, read as a menu, and
+  did not say who was being added —, and four other ways; the third, **the
+  faces that drop in**, chosen.
+
+### Three levels of presence
+
+| level | when | what you see |
+| --- | --- | --- |
+| **rest** | always | a 9 × 18 px capsule on the line, half-rounded corners, a 5 × 6 ▶, no glow — the avatar starts at 10 px, it does not touch it |
+| **wake** | the pointer on **a card of the co-stream** | 13 × 22, a 6 × 7 ▶, the bar's glow |
+| **intent** | the pointer **held 150 ms** on the capsule, or keyboard focus | the pill "▶ Watch all 3", as long as its text |
+
+A pointer sweeping the list wakes the capsules as it passes and stretches
+none. Wake follows the co-stream, not the cursor: a single delegated listener
+reads the card under the pointer and its cursor's key. On the capsule, a move
+re-arms the delay — after a click, a pointer left on it does not enter it
+again.
+
+**Durations and curves** are the dossier's, read by the test bench from
+computed styles:
+
+| movement | duration | curve |
+| --- | --- | --- |
+| wake | 160 ms | out — `cubic-bezier(.22, 1, .36, 1)`, what opens decelerates |
+| the pill stretches | 200 ms; the text 60 ms later | out |
+| grace before folding | 80 ms | — |
+| the pill folds | 140 ms; with a bubble, 100 ms after it | accelerate — `cubic-bezier(.55, 0, 1, .45)` |
+| ▶ ↔ ■ | 220 ms | morph — `cubic-bezier(.65, 0, .35, 1)` |
+| the bubble pops out | 280 ms, 120 ms after the pill | spring — `cubic-bezier(.34, 1.56, .64, 1)`, overshoots 7 % and settles |
+| birth | 340 ms, 40 ms apart | spring |
+
+**The pill's length** is measured when it stretches — the text in the current
+language, the font loaded — and set as a variable: an `auto` width does not
+animate. Nothing measurable (hidden layer): no pill rather than a wrong one.
+
+**The grab area** extends six pixels above and below, along the line, never
+over the avatar: a nine-pixel target is easy to miss. The button does not clip
+what overflows — its body clips the text —, otherwise that extension would
+receive nothing.
+
+### Opening, closing — every time
+
+- **The click**: the pill folds, a quarter of ink travels around the capsule
+  — the ring, a conic gradient whose angle is a registered property —, and
+  the ▶ waits. **The room ready** — its first tile playing, as the player's
+  bridge reports, or three seconds gone —, the ring fades, ▶ becomes ■ and a
+  bounce greets it (1 → 1.08 → 1, 260 ms); an inner line of ink says its room
+  is open.
+- **Anywhere but "Browse"**, the room opens through a real navigation: the
+  ring turns until the page leaves.
+- **A click during the ring cancels**: a room opened in place closes again,
+  the ▶ stays. A page already leaving cannot be held back.
+- **Switching** from the followed ones to the whole co-stream keeps its ■ and
+  its line — a room is open throughout —, and the bounce greets the new one.
+- **Closing** — a second click, Escape, a page change, the setting: ■ turns
+  back into ▶, the line goes out, the capsule falls asleep.
+- **Each pill says what its click will do**: ■ on the one whose room is open,
+  ▶ on the other, which switches to it without closing. At rest, the capsule
+  closes its room, whichever it is.
+
+In the report: `salle.prete`, for instance "délai · 3001 ms" or
+"lecture · 412 ms" — what stopped the ring, and when.
+
+### The faces that drop in
+
+When the co-stream has members streaming outside the bar, the pill says
+"▶ 4 followed", and at its end, four pixels away, a bubble pops out: "+" and
+**their faces, all of them** — one face per person added, never a "+N"; the
+room takes six, so four at most.
+
+- **Moving onto them brings them in**: the gap closes, the bubble welds onto
+  the end of the pill, which says "▶ All 6" — and its accessible name, the
+  six. Moving back onto the pill lets them out. A click opens what the pill
+  says at that moment.
+- **Aiming does not follow the picture.** Welded, the bubble moves back to
+  the left: aiming taken from the elements handed control back to the pill as
+  soon as the bubble's end left the pointer, which unwelded it, which came
+  back under it — a flicker, seen on the mock-up before a line was written. A
+  fixed, transparent zone covers the pill and its bubble during intent, split
+  in the middle of the gap; left in place after a click until the pointer
+  leaves it, it keeps its toggle role for the second click, and does not hand
+  the card below the hover that would open its preview. It starts no
+  selection: Shift+click on a box extended the selection up to it — measured
+  on the bench —, where a button does not.
+- **With the keyboard**: Tab stretches the capsule, with no delay; the next
+  Tab moves to the bubble, which welds; Enter opens the six, and folds
+  nothing — focus does not stay on a bubble that has turned invisible, and it
+  says, ■ or ▶, what the next key will do. **Shift+click**
+  still opens the whole co-stream, and it is the only way in a collapsed
+  sidebar.
+- **The avatars.** A channel with a card already has one: `TseChannels`
+  returns it. For those you do not follow, a separate anonymous request that
+  asks for them only — `TseVisages`: `users(logins:)` and its `login`,
+  `displayName`, `profileImageURL(width: 70)`, the very root and fields of
+  `TseChannels`. Once per channel per page; a refused batch is retried a
+  minute later. **Not in the Guest Star request**, which all co-stream
+  detection depends on: a field refused there would have taken the bars down
+  for a face. **It could not be played against the real Twitch from here** —
+  this machine's outbound policy refuses `gql.twitch.tv`; its fields are those
+  of a request that was. Refused, the initials stay, and nothing else moves.
+- **Without an avatar**, the initial, on a hue drawn from the channel. The
+  image is there from the start, with no address and hidden: an avatar that
+  arrives is only an attribute, and no added child triggers a scan.
+
+In the report, `salle.noeuds`: `visages` (placed), `avatars` (those with an
+address), `lotsVisages` (requests sent).
+
+### Birth, the welcome hint
+
+- **Birth**: at every page load, and every time a co-stream forms, the
+  capsules thicken out of the line, top to bottom, forty milliseconds apart,
+  six at most offset.
+- **The welcome hint**, once per install: the first time a cursor appears —
+  sidebar expanded, on screen, no room open —, it plays on its own what
+  hovering will do: it wakes 600 ms after its birth, stretches, says "Watch
+  all 2" for two and a half seconds, and folds. Then never again, even after
+  a restart: the `tse:indice` key remembers it, as `tse:roue` does the wheel.
+  Read when it is about to play, not at start-up — another tab may have
+  shown it meanwhile; written before playing; refused storage counts as
+  "already seen". A hand
+  that arrives takes over. In the report: `salle.noeuds.indice` — "à
+  montrer", "joué", "vu".
+
+### Light theme, reduced motion, forced colours
+
+- **In light theme**, the bar and its capsule take a deepened tone of their
+  colour — the same hue, darkened to three times Twitch's light background
+  (#efeff1), the contrast WCAG asks of what is seen without being text — and
+  lose their glow. Black ink holds 5.5:1 on them. The fresh-live red already
+  passes (4:1): it stays its own. A theme switch — Twitch's toggle, the
+  setting — repaints the capsule at once, without waiting for a scan.
+
+  | colour | dark | light | on the light background |
+  | --- | --- | --- | --- |
+  | yellow | #f5c518 | #a78507 | 1.4 → 3.05 |
+  | green | #7ee081 | #269f2a | 1.4 → 3.01 |
+  | turquoise | #26d4c8 | #1c9a91 | 1.6 → 3.01 |
+  | blue | #4d8cff | #4385ff | 2.8 → 3.03 |
+  | violet | #c77dff | #b95dff | 2.3 → 3.01 |
+  | pink | #ff7a8a | #ff3e55 | 2.2 → 3.01 |
+
+- **Reduced motion**: 120 ms fades instead of stretches, slides and scales;
+  the ring is solid, it does not turn.
+- **Forced colours**: the system removes backgrounds; a one-pixel outline,
+  and the symbol in the button-text colour.
+- **Collapsed sidebar**: the capsule only, the tooltip naming the channels and
+  the shortcut, Shift+click.
+
+### Elsewhere
+
+- **The user guide** shows the resting capsule on its card's bar.
+- **The texts**, in the panel's twelve languages: the co-stream guide and the
+  description of the "Multistream room" setting describe the cursor, its faces
+  and Shift+click; "All 6" in the interface's ten.
+- **Nothing in the layer can be selected**: a selection across the list does
+  not take a folded pill's text with it.
+
+### What the bench measures
+
+- **197**, new — the cursor read from its styles: the three levels, their
+  durations and curves; nothing at 40 ms, the pill at 320 ms, as long as its
+  text; a 50 ms sweep stretches nothing; out for 30 ms and back, nothing
+  folds; gone, the pill folds after 80 ms, in 140 ms, 100 ms after the bubble;
+  the four faces, no "+N", their avatars, "x3" its initial, a request that
+  asked for them only, and not Guest Star; the ring, then ■ and the bounce at
+  three seconds; Escape; a click on the capsule, then a move that reopens the
+  pill; a click during the ring that cancels; a tile playing makes the room
+  ready at once; two co-streams born together, 0 and 40 ms; a sort that
+  reorders unchanged bars, and the cursors following; light theme, switched
+  without a scan; reduced motion and forced colours; the welcome hint, its
+  timings, and the reloaded page that does not replay it.
+- **194**, rewritten for the bubble — the bubble waiting, two faces; the pill
+  "4 followed" and its bubble four pixels away; the weld, "All 6"; aiming
+  that does not flicker, twenty samples at the spot the bubble left; the
+  ring, then ■; "4 followed", Shift+click, a second Shift+click, selecting
+  nothing; Tab moving to the bubble and welding it; "dune", detached, first
+  in the bubble; the faces in the report.
+- **176**, **195** — the capsule instead of the tab; the pill on hover; "All
+  5", "All 3" and their faces in "Live channels".
+- **29** — each palette colour has its light-theme tone: same hue within one
+  degree, 3:1, readable ink.
+- **96** — the user guide's mock-up: the resting capsule, its cut-out ▶.
+- **The bench itself**: the welcome hint is declared seen in every new page
+  — it would stretch under every scenario's measurements —, **after** it has
+  loaded, before any card arrives; 197 removes the key the same way. The
+  first attempt set it through an init script, as each document opened, in
+  all its iframes: storage no longer always read back, after a reload, what
+  the previous page had just written — 11, 166 and 167, one failure each over
+  two full passes, none in the passes before —, and the same-origin iframe
+  rewrote the key 197 had just removed: a hint that never writes it passed
+  for having written it. A mutant showed it.
+
+The full bench: 1676 assertions in 196 scenarios, all green.
+
+| mutant | what fails |
+| --- | --- |
+| wake on hovering the cursor only, not the co-stream (1) | 197: two |
+| intent with no delay (1) | 197: three, the sweep among them |
+| grace removed (1) | 197 |
+| folding with the opening's durations (1) | 197 |
+| the pill folding together with the bubble (1) | 197 |
+| a fixed-length pill (1) | 197 |
+| the pill's text visible at rest (1) | 176: three |
+| the bubble visible at rest (1) | 194 |
+| the bubble never welding (1) | 194: two |
+| aiming taken from the bubble's picture (1) | 194: twenty samples, a flicker |
+| two faces and a "+2" (1) | 197 |
+| the initial hidden under an empty image (1) | 197 |
+| faces requested again on every scan (1) | 197 |
+| faces of followed channels requested too (1) | 194 |
+| the avatar requested from Guest Star (1) | 197 |
+| no ring (1) | 194, 197: three |
+| an endless ring (1) | 197 |
+| ■ before the room is ready (1) | 194, 197: two |
+| bounce forgotten (1) | 197 |
+| a playing tile ignored (1) | 197 |
+| the click ignored during the ring (1) | 197: two |
+| birth forgotten (1) | 197 |
+| birth without cascade (1) | 197 |
+| the birth class left on (1) | 197: four |
+| the hint never played (1) | 197 |
+| the hint's key never written (1) | 197, after the bench fix above |
+| an endless hint (1) | 197 |
+| light tone forgotten (1) | 197 |
+| glow kept in light theme (1) | 197 |
+| reduced motion forgotten (1) | 197 |
+| forced colours forgotten (1) | 197 |
+| collapsed sidebar ignored (1) | 176, 194: two |
+| keyboard focus without the pill (1) | 194: three |
+| the bubble out of the tab order (1) | 194: four |
+| the aiming zone never set (1) | 194: eight |
+| the layer selectable (1) | 194: Shift+click selects |
+| the delay armed on entry only (1) | 197 |
+| no toggle (1) | 176, 194: seven |
+| black ink everywhere (1) | 194 |
+| reordering only when the count changes (1) | 197, by the sort added for it |
+| a wrong light tone in the palette (1) | 29 |
+| focus left on a folded bubble (1) | 194 |
+| theme switch without repainting the capsule (1) | 197 |
+| the mock-up left as a tab (1) | 96 |
+
+Forty-four mutants, all caught — three only on the second pass. **The hint's
+key never written** survived the bench defect described above. **Reordering
+only when the count changes** survived because, in the bench, every sort that
+reordered the bars also changed their number: 197 got a sort that reorders
+unchanged bars. **Shift+click selecting** targeted a guard set on the zone
+that was redundant — the layer is already unselectable, and that is enough:
+the guard is removed, and the mutant now targets the layer.
+
 ## No more pill: the bar, and the "▶" redrawn (v4.24.0.33)
 
 The request: "Make the two fixes […] But don't do the older rules. Also, for
@@ -17370,7 +17638,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 195 scenarios, 1658 assertions |
+| `npm test` | the Playwright harness: 196 scenarios, 1676 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -17390,12 +17658,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1611 KB | 646 KB | 4,110 → **2** |
+| `content.js` | 1644 KB | 665 KB | 4,136 → **2** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
 | `panneau.js` | 107 KB | 51 KB | 150 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
 | `background.js` | 9 KB | 2 KB | 22 → **0** |
-| **all five** | **1866 KB** | **803 KB** | **−57 %** |
+| **all five** | **1900 KB** | **822 KB** | **−57 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are

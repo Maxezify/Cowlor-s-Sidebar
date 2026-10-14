@@ -2180,6 +2180,279 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## Le curseur de la piste (v4.24.0.34)
+
+La demande, en trois temps. D'abord : « propose-moi d'autres idées pour le
+"▶ redessiné". Avec animations dessus également, je veux que ça fasse quali.
+Je veux que ça reste visible mais pas omniprésent. » Puis, la piste C
+retenue : « l'animation entre l'arrivée du bouton au survol de la souris sur
+le curseur de piste, oui animation ouverture et oui animation fermeture, pour
+tous les costreams présents. Je veux l'avoir à chaque fois. » Enfin, pour les
+deux boutons : « Ok pour la piste 3. […] Il faut montrer tous les visages,
+pas de +N. S'il faut en montrer 5, montre-en 5. » Publiée sur
+`claude/chrome-multi` seulement, à la demande.
+
+### Avant le code : trois planches
+
+- **Le « ▶ » de la barre** : quatre pistes, chacune jouable, chronométrée et
+  comparée. La C, **le curseur de piste** — la barre est une piste, le bouton
+  son curseur —, a été choisie.
+- **Le curseur de piste** : ses paliers, ses sept séquences au chronogramme,
+  ses cas limites — et ce que veut dire l'indice d'accueil.
+- **Les deux boutons du curseur** : le dédoublement (une seconde pilule
+  glissant sous la première) écarté — il couvrait la carte du dessous, se
+  lisait comme un menu, ne disait pas qui on ajoutait —, et quatre autres
+  façons ; la troisième, **les visages qui s'invitent**, retenue.
+
+### Trois niveaux de présence
+
+| palier | quand | ce qu'on voit |
+| --- | --- | --- |
+| **repos** | toujours | une gélule de 9 × 18 px sur le trait, coins arrondis de moitié, ▶ de 5 × 6, sans lueur — l'avatar commence à 10 px, elle ne le touche pas |
+| **éveil** | le pointeur sur **une carte du co-stream** | 13 × 22, ▶ de 6 × 7, la lueur de la barre |
+| **intention** | le pointeur **tenu 150 ms** sur la gélule, ou le focus du clavier | la pilule « ▶ Regarder les 3 », longue de son texte |
+
+Un pointeur qui balaie la liste éveille les gélules au passage et n'en étire
+aucune. L'éveil suit le co-stream, pas le curseur : un seul écouteur, délégué,
+lit la carte sous le pointeur et la clé de son curseur. Sur la gélule, un
+mouvement réarme le délai — après un clic, le pointeur resté dessus n'y entre
+pas de nouveau.
+
+**Les durées et les courbes** sont celles du dossier, lues au banc sur les
+styles calculés :
+
+| mouvement | durée | courbe |
+| --- | --- | --- |
+| éveil | 160 ms | sortie — `cubic-bezier(.22, 1, .36, 1)`, ce qui s'ouvre décélère |
+| la pilule s'étire | 200 ms ; le texte 60 ms après | sortie |
+| grâce avant le repli | 80 ms | — |
+| la pilule se replie | 140 ms ; avec une bulle, 100 ms après elle | accélère — `cubic-bezier(.55, 0, 1, .45)` |
+| ▶ ↔ ■ | 220 ms | morphose — `cubic-bezier(.65, 0, .35, 1)` |
+| la bulle éclot | 280 ms, 120 ms après la pilule | ressort — `cubic-bezier(.34, 1.56, .64, 1)`, dépasse de 7 % et se pose |
+| la naissance | 340 ms, 40 ms d'écart | ressort |
+
+**La longueur de la pilule** est mesurée au moment de s'étirer — le texte dans
+la langue du moment, la police chargée — et posée en variable : une largeur
+`auto` ne s'anime pas. Rien de mesurable (calque masqué) : pas de pilule,
+plutôt qu'une pilule fausse.
+
+**La zone qui se saisit** est prolongée de six pixels au-dessus et au-dessous,
+le long du trait, jamais sur l'avatar : une cible de neuf pixels se manque. Le
+bouton ne rogne pas ce qui dépasse — c'est son corps qui rogne le texte —,
+sans quoi ce prolongement ne recevrait rien.
+
+### L'ouverture, la fermeture — à chaque fois
+
+- **Le clic** : la pilule rentre, un quart d'encre fait le tour de la gélule —
+  l'anneau, un dégradé conique dont l'angle est une propriété enregistrée —,
+  et le ▶ attend. **La salle prête** — sa première tuile qui joue, que le pont
+  du lecteur annonce, ou trois secondes passées —, l'anneau s'efface, ▶
+  devient ■ et un rebond la salue (1 → 1,08 → 1, 260 ms) ; un filet d'encre
+  dit, à l'intérieur, que sa salle est ouverte.
+- **Ailleurs que sur « Parcourir »**, la salle s'ouvre par une vraie
+  navigation : l'anneau tourne jusqu'au départ de la page.
+- **Un clic pendant l'anneau annule** : la salle ouverte sur place se
+  referme, le ▶ reste. Une page qui part déjà, elle, ne se retient pas.
+- **La bascule** des suivis à tout le co-stream garde son ■ et son filet —
+  une salle est ouverte tout du long —, et le rebond salue la nouvelle.
+- **La fermeture** — un second clic, Échap, un changement de page, le
+  réglage : ■ redevient ▶, le filet s'éteint, la gélule se rendort.
+- **Chaque pilule dit ce que fera son clic** : ■ sur celle dont la salle est
+  ouverte, ▶ sur l'autre, qui bascule vers elle sans refermer. Au repos, la
+  gélule referme sa salle, quelle qu'elle soit.
+
+Au rapport : `salle.prete`, « délai · 3001 ms » ou « lecture · 412 ms » — ce
+qui a arrêté l'anneau, et quand.
+
+### Les visages qui s'invitent
+
+Quand le co-stream compte des membres qui diffusent hors de la barre, la
+pilule dit « ▶ Les 4 suivis », et à son bout, quatre pixels plus loin, une
+bulle éclot : « + » et **leurs visages, tous** — un visage par personne
+ajoutée, jamais de « +N » ; la salle en prend six, donc quatre au plus.
+
+- **Aller vers eux les fait entrer** : l'écart se ferme, la bulle se soude au
+  bout de la pilule, qui dit « ▶ Tous les 6 » — et son nom accessible, les
+  six. Revenir sur la pilule les fait ressortir. Un clic ouvre ce que la
+  pilule dit à cet instant.
+- **La visée ne suit pas l'image.** Soudée, la bulle recule vers la gauche :
+  une visée prise sur les éléments rendait la main à la pilule dès que le
+  bout de la bulle quittait le pointeur, qui la décollait, qui revenait sous
+  lui — un va-et-vient, vu à la maquette avant d'écrire une ligne. Une zone
+  transparente, fixe, couvre la pilule et sa bulle pendant l'intention,
+  coupée au milieu de l'écart ; restée après un clic tant que le pointeur ne
+  l'a pas quittée, elle garde au second clic son rôle d'interrupteur, et ne
+  rend pas à la carte dessous le survol qui ouvrirait son aperçu. Elle ne
+  démarre aucune sélection : Maj+clic sur une boîte étendait la sélection
+  jusqu'à elle — mesuré au banc —, quand un bouton ne le fait pas.
+- **Au clavier** : la tabulation étire la gélule, sans délai ; la suivante
+  passe à la bulle, qui se soude ; Entrée ouvre les six, et ne replie rien —
+  le focus ne reste pas sur une bulle devenue invisible, et elle dit, ■ ou ▶,
+  ce que fera la touche suivante. **Maj+clic** ouvre
+  toujours tout le co-stream, et c'est le seul chemin en barre réduite.
+- **Les avatars.** Celui d'une chaîne qui a une carte est déjà là :
+  `TseChannels` le rend. Pour ceux qu'on ne suit pas, une requête à part,
+  anonyme, qui ne demande qu'eux — `TseVisages` : `users(logins:)` et ses
+  `login`, `displayName`, `profileImageURL(width: 70)`, la racine et les
+  champs mêmes de `TseChannels`. Une fois par chaîne et par page ; un lot
+  refusé se retente une minute plus tard. **Pas dans la requête Guest Star**,
+  dont toute la détection des co-streams dépend : un champ refusé là aurait
+  emporté les barres pour un visage. **Elle n'a pas pu être jouée contre le
+  vrai Twitch d'ici** — la sortie de cette machine refuse `gql.twitch.tv` ;
+  ses champs sont ceux d'une requête qui l'a été. Refusée, les initiales
+  restent, et rien d'autre ne bouge.
+- **Sans avatar**, l'initiale, sur une teinte tirée de la chaîne. L'image est
+  là dès la création, sans adresse et masquée : l'avatar qui arrive n'est
+  qu'un attribut, et aucun enfant ajouté ne relance un balayage.
+
+Au rapport, `salle.noeuds` : `visages` (posés), `avatars` (ceux qui ont leur
+adresse), `lotsVisages` (les requêtes parties).
+
+### La naissance, l'indice d'accueil
+
+- **La naissance** : à chaque chargement de la page, et chaque fois qu'un
+  co-stream se forme, les gélules s'épaississent depuis le trait, de haut en
+  bas, quarante millisecondes d'écart, six au plus décalées.
+- **L'indice d'accueil**, une fois par installation : la première fois qu'un
+  curseur paraît — barre étendue, à l'écran, sans salle ouverte —, il joue
+  seul ce que le survol fera : il s'éveille 600 ms après sa naissance,
+  s'étire, dit « Regarder les 2 » pendant deux secondes et demie, et se
+  replie. Puis plus jamais, même après un redémarrage : la clé `tse:indice`
+  le retient, comme `tse:roue` la roue. Lue au moment de jouer, et non au
+  démarrage — un autre onglet a pu le montrer entre-temps ; écrite avant de
+  jouer ; un stockage refusé vaut « déjà vu ». La main qui arrive reprend tout. Au rapport :
+  `salle.noeuds.indice` — « à montrer », « joué », « vu ».
+
+### Le thème clair, le mouvement réduit, le contraste forcé
+
+- **En clair**, la barre et sa gélule prennent un ton approfondi de leur
+  couleur — la même teinte, assombrie jusqu'à trois fois le fond clair de
+  Twitch (#efeff1), le contraste que le WCAG demande à ce qui se voit sans
+  être du texte — et perdent leur lueur. L'encre noire y tient 5,5:1. Le
+  rouge du direct frais passe déjà (4:1) : il reste le sien. Le thème qui
+  bascule — l'interrupteur de Twitch, le réglage — repeint la gélule tout de
+  suite, sans attendre un balayage.
+
+  | couleur | sombre | clair | sur le fond clair |
+  | --- | --- | --- | --- |
+  | jaune | #f5c518 | #a78507 | 1,4 → 3,05 |
+  | vert | #7ee081 | #269f2a | 1,4 → 3,01 |
+  | turquoise | #26d4c8 | #1c9a91 | 1,6 → 3,01 |
+  | bleu | #4d8cff | #4385ff | 2,8 → 3,03 |
+  | violet | #c77dff | #b95dff | 2,3 → 3,01 |
+  | rose | #ff7a8a | #ff3e55 | 2,2 → 3,01 |
+
+- **Mouvement réduit** : des fondus de 120 ms à la place des étirements, des
+  glissements et des échelles ; l'anneau est plein, il ne tourne pas.
+- **Contraste forcé** : le système retire les fonds ; un contour d'un pixel,
+  et le symbole à la couleur du texte des boutons.
+- **Barre réduite** : la gélule seule, l'infobulle qui nomme les chaînes et
+  le raccourci, Maj+clic.
+
+### Ailleurs
+
+- **Le mode d'emploi** montre la gélule au repos sur la barre de sa carte.
+- **Les textes**, dans les douze langues du panneau : le guide du co-stream
+  et la description du réglage « Salle multistream » disent le curseur, ses
+  visages et Maj+clic ; « Tous les 6 » dans les dix de l'interface.
+- **Rien du calque ne se sélectionne** : une sélection qui traverse la liste
+  n'emporte pas le texte d'une pilule repliée.
+
+### Ce que le banc mesure
+
+- **197**, nouveau — le curseur lu sur ses styles : les trois paliers, leurs
+  durées et leurs courbes ; rien à 40 ms, la pilule à 320 ms, longue de son
+  texte ; un balayage de 50 ms n'étire rien ; sorti 30 ms et revenu, rien ne
+  rentre ; parti, la pilule rentre au bout de 80 ms, en 140 ms, 100 ms après
+  la bulle ; les quatre visages, sans « +N », leurs avatars, « x3 » son
+  initiale, une requête qui n'a demandé qu'eux, et pas Guest Star ;
+  l'anneau, puis ■ et le rebond à trois secondes ; Échap ; un clic sur la
+  gélule, puis un mouvement qui rouvre la pilule ; un clic pendant l'anneau
+  qui annule ; une tuile qui joue rend la salle prête aussitôt ; deux
+  co-streams qui naissent ensemble, 0 et 40 ms ; un tri qui réordonne des
+  barres inchangées, et les curseurs qui suivent ; le thème clair, basculé
+  sans balayage ; le mouvement réduit et le contraste forcé ; l'indice
+  d'accueil, ses instants, et la page rechargée qui ne le rejoue pas.
+- **194**, réécrit pour la bulle — la bulle qui attend, deux visages ; la
+  pilule « Les 4 suivis » et sa bulle à quatre pixels ; la soudure, « Tous
+  les 6 » ; la visée qui ne clignote pas, vingt relevés au bout d'où la bulle
+  est partie ; l'anneau, puis ■ ; « Les 4 suivis », Maj+clic, un second
+  Maj+clic, sans rien sélectionner ; la tabulation qui passe à la bulle et la
+  soude ; « dune », détachée, en tête de la bulle ; le rapport des visages.
+- **176**, **195** — la gélule au lieu de la languette ; la pilule au survol ;
+  « Tous les 5 », « Tous les 3 » et leurs visages en « Chaînes live ».
+- **29** — chaque couleur de la palette a son ton du thème clair : même teinte
+  à un degré près, 3:1, l'encre lisible.
+- **96** — la maquette du mode d'emploi : la gélule au repos, son ▶ découpé.
+- **Le banc lui-même** : l'indice d'accueil y est déclaré vu dans toute page
+  neuve — il s'étirerait sous les mesures de chaque scénario —, **après** son
+  chargement, avant qu'aucune carte n'arrive ; le 197 retire la clé de même.
+  Le premier essai la posait par un script d'amorce, à l'ouverture de chaque
+  document, dans toutes ses iframes : le stockage ne relisait plus toujours,
+  après un rechargement, ce que la page d'avant venait d'écrire — 11, 166 et
+  167, un échec chacun sur deux passages complets, aucun dans les passages
+  d'avant —, et l'iframe de même origine réécrivait la clé que le 197
+  venait de retirer : un indice qui ne l'écrit jamais passait pour l'avoir
+  écrite. Un mutant l'a montré.
+
+Le banc complet : 1676 assertions dans 196 scénarios, toutes vertes.
+
+| mutant | ce qui tombe |
+| --- | --- |
+| l'éveil au seul survol du curseur, pas du co-stream (1) | 197 : deux |
+| l'intention sans délai (1) | 197 : trois, dont le balayage |
+| la grâce retirée (1) | 197 |
+| le repli aux durées de l'ouverture (1) | 197 |
+| la pilule qui rentre avec la bulle (1) | 197 |
+| une pilule de longueur fixe (1) | 197 |
+| le texte de la pilule visible au repos (1) | 176 : trois |
+| la bulle visible au repos (1) | 194 |
+| la bulle jamais soudée (1) | 194 : deux |
+| la visée prise sur l'image de la bulle (1) | 194 : vingt relevés, un clignotement |
+| deux visages et un « +2 » (1) | 197 |
+| l'initiale cachée sous une image vide (1) | 197 |
+| les visages redemandés à chaque balayage (1) | 197 |
+| les visages de ceux qu'on suit demandés aussi (1) | 194 |
+| l'avatar demandé à Guest Star (1) | 197 |
+| l'anneau absent (1) | 194, 197 : trois |
+| l'anneau sans fin (1) | 197 |
+| le ■ avant la salle prête (1) | 194, 197 : deux |
+| le rebond oublié (1) | 197 |
+| la tuile qui joue ignorée (1) | 197 |
+| le clic ignoré pendant l'anneau (1) | 197 : deux |
+| la naissance oubliée (1) | 197 |
+| la naissance sans cascade (1) | 197 |
+| la classe de naissance laissée (1) | 197 : quatre |
+| l'indice jamais joué (1) | 197 |
+| la clé de l'indice jamais écrite (1) | 197, après la correction du banc ci-dessus |
+| l'indice sans fin (1) | 197 |
+| le ton clair oublié (1) | 197 |
+| la lueur gardée en clair (1) | 197 |
+| le mouvement réduit oublié (1) | 197 |
+| le contraste forcé oublié (1) | 197 |
+| la barre réduite ignorée (1) | 176, 194 : deux |
+| le focus du clavier sans pilule (1) | 194 : trois |
+| la bulle hors de la tabulation (1) | 194 : quatre |
+| la zone de visée jamais posée (1) | 194 : huit |
+| le calque sélectionnable (1) | 194 : Maj+clic sélectionne |
+| le délai réarmé à l'entrée seulement (1) | 197 |
+| l'interrupteur absent (1) | 176, 194 : sept |
+| l'encre noire partout (1) | 194 |
+| le rangement refait seulement quand le nombre change (1) | 197, par le tri ajouté pour lui |
+| un ton clair faux dans la palette (1) | 29 |
+| le focus laissé sur une bulle repliée (1) | 194 |
+| le thème qui bascule sans repeindre la gélule (1) | 197 |
+| la maquette restée en languette (1) | 96 |
+
+Quarante-quatre mutants, tous pris — trois au second passage seulement.
+**La clé de l'indice jamais écrite** survivait au défaut du banc décrit
+plus haut. **Le rangement refait seulement quand le nombre change**
+survivait parce que, dans le banc, chaque tri qui réordonnait les barres en
+changeait aussi le nombre : le 197 a reçu un tri qui réordonne des barres
+inchangées. **Maj+clic qui sélectionne** visait un empêchement posé sur la
+zone, redondant — le calque est déjà non sélectionnable, et cela suffit :
+l'empêchement est retiré, et le mutant vise désormais le calque.
+
 ## Plus de pastille : la barre, et le « ▶ » redessiné (v4.24.0.33)
 
 La demande : « Fais les deux correctifs […] Mais ne fais pas les règles plus
@@ -17926,7 +18199,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 195 scénarios, 1658 assertions |
+| `npm test` | le harnais Playwright : 196 scénarios, 1676 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -17947,12 +18220,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1611 Ko | 646 Ko | 4 110 → **2** |
+| `content.js` | 1644 Ko | 665 Ko | 4 136 → **2** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
 | `panneau.js` | 107 Ko | 51 Ko | 150 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
 | `background.js` | 9 Ko | 2 Ko | 22 → **0** |
-| **les cinq** | **1866 Ko** | **803 Ko** | **−57 %** |
+| **les cinq** | **1900 Ko** | **822 Ko** | **−57 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
