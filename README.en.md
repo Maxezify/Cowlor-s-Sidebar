@@ -2059,6 +2059,203 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The second voice, and the place taken back together (v4.24.0.35)
+
+The report: "Here is the report, with ads, on the latest version. I thought I
+saw a few minutes of waiting at the start for the sync, there were ads at the
+very start of the stream." Then the request: "Do fix A (recommended) and fix
+B. Only claude/chrome-multi. Be rigorous." Published on `claude/chrome-multi`
+only.
+
+### What the report showed
+
+Two streams, seventeen minutes, a 14 s ad on the reference from +6 s.
+
+- **The ad cost twenty-five seconds, no more.** Its end reopens every tile's
+  measurement (+20 s); low latency removed (+21 s) and a catch-up by the
+  player (+22 s) reopen it again; the first counted computation comes at
+  about +30 s.
+- **What waited six and a half minutes is the echo rule.** From there until
+  +405 s, every computation said "a single source, at 1510 ms — an echo,
+  perhaps: nothing moves". Yet two voices: 1510 ms — twenty-four first peaks
+  out of thirty — and ~1000 ms, two to six. A voice chat required the second
+  to weigh a quarter of the first; it stayed just under, until it reached
+  exactly that at +410 s (6 out of 24): verdict, a 1.39 s step back at
+  +415 s, synced at −20 ms at +480 s. The target was right: synced, the pair
+  kept its two voices, at −550 and −20 ms, the same 530 ms apart — a voice
+  chat where one microphone dominates, not an echo.
+- **A second defect, at +795 s.** Both tiles fell behind their place at the
+  same moment — the reference by 4.59 s, the other by 2.40. The reference
+  could not take its place back: 6.343 s of buffer, 6.673 were needed (the
+  skip and its two seconds of margin). The other took its own back, 2.488 s —
+  but its place only held against the reference's old place: from 1.9 s
+  ahead of it, it went to **4.3 s**, for forty seconds, until the 4.19 s step
+  back the sound decided at +835 s.
+- `salle.prete` says "délai · 3039 ms": no tile was playing yet at three
+  seconds — their quality changes, at +4.2 and +4.5 s, show players barely
+  starting. The bridge reports its state every second; the ring stopped at
+  the planned ceiling. Nothing to fix.
+
+### The unbalanced voice chat
+
+What separates an echo from a voice chat, in the six real listenings kept:
+
+| real listening | the cluster | gap to the heaviest | what it was |
+| --- | --- | --- | --- |
+| eighth | 1040 alone, then 2370 alone | — | an echo — the eye saw the pair right |
+| ninth | 1110 (21 first peaks) and 1000 (4) | 110 ms | an echo, above a voice chat at 40 ms |
+| three streams | 1410–1460 (24) and 1690 (2 to 6) | 230 to 280 ms | a real offset, created by the sync |
+| 4.24.0.34 | 1510 (24) and 1000 (2 to 6) | 510 ms | a real offset, at opening |
+
+An echo is **the whole** other stream replayed: a single offset, spread over a
+tenth of a second. A voice chat is **distinct** voices — each person's voice
+by two paths, the microphone's and the voice chat's —, at least 0.2 s apart in
+every real report.
+
+**The rule**: a source far from zero — beyond 0.5 s — whose cluster has an
+**established second voice** (two first peaks at least) **at least 0.2 s from
+the heaviest** is an unbalanced voice chat; its highest voice is the target,
+as for any voice chat. Nothing else changes: a truly single source, or one
+whose second voice sticks to the first, still waits; near zero, a single
+source is still judged on its heaviest voice. In the report, the verdict says
+so: "en avance de 1.51 s (+1510 ms, un salon déséquilibré)".
+
+**Replayed** on the six listenings, computation after computation (185):
+
+| listening | up to 4.24.0.34 | now |
+| --- | --- | --- |
+| fourteenth | −3840 decided at the 41st computation | the same, computation for computation |
+| eighth | never a decision | the same |
+| ninth | the voice chat at 40 ms at the 7th, the echo never | the same |
+| twelfth | 1175, the highest voice, at the 15th | the same |
+| three streams | 1690 at the 114th computation | 1690 at the **34th**, seven minutes earlier |
+| 4.24.0.34 | "single source" up to the 75th computation; 1510 at the 76th (+410 s) | each of the twenty refused computations the report keeps decides 1510 |
+
+The start of the 4.24.0.34 listening — from +30 to +250 s — is not in the
+report: the history keeps the last hundred and fifty computations, the session
+made a hundred and ninety-four. Everywhere else, the voices have the same
+shape: the decision would **probably** have come within the minute after the
+ad, which this report cannot prove. Its three other segments — after the step
+back, the skip and the second step back — decide what the pilot decided: −20
+to −30 ms, 4310 ms, 40 to 50 ms.
+
+**The threshold, swept from 90 to 600 ms** over the six: at 110 ms and below,
+the ninth's echo is followed; from 120 to 230 ms, the same first decision
+everywhere; beyond 300 ms, the three-stream listening gains nothing, beyond
+510 ms neither does the 4.24.0.34 one. **200 ms** — the low end of a voice
+chat's spacing, which the code already stated ("0.2–0.3 s") —, 90 ms above the
+echo.
+
+**What this does not cover**: an echo spread over more than 0.2 s, with two
+first peaks at its edge, would be followed — never seen, the ninth's spreads
+over 0.11 s. And an echo linked in the same cluster to a voice chat's upper
+voice — less than 0.7 s between them — already was, with a heavy enough second
+voice, before 4.24.0.35: the unbalanced voice chat extends that case to light
+voices, it does not create it. The echoes seen were more than a second from
+their voice chat.
+
+### The place taken back together
+
+A place is a **relation to all the others**: taking it back alone, when
+another tile could not take its own back, breaks that relation. Now the
+fallen tiles — and those that did not fall — go **together** to the same lag
+behind their place:
+
+- each can go from `dl − av` to `dl + re` — its lag behind its place, minus
+  what its buffer lets it take back towards live (two seconds kept, what a
+  skip loses counted), plus what it keeps behind it to step back (if it can:
+  neither in low latency, nor a player that undoes every step back); three
+  takebacks already in ten minutes, nothing;
+- **the common lag**: zero if all can reach it — each takes its whole place
+  back, as before, word for word; otherwise the closest to zero all can
+  reach. The most constrained takes back what it can, the others join it
+  there, those that did not fall included;
+- **with no common point** — one cannot skip far enough, another cannot step
+  back —, nothing moves: each fall becomes its place, and the wide gap and
+  the sound will do what they can;
+- **a tile still falling** — its last reading at least 1.5 s from its place,
+  the buffer agreeing, before the six quiet readings that will say so — is
+  waited for, **ten seconds at most**: moving it now would be onto a place it
+  no longer has. The report showed the shape of it: the two tiles' latencies
+  had jumped twelve seconds apart;
+- joining another is a takeback, and counts among the three.
+
+The real report, replayed by the code (198): the reference skips 4.343 s —
+it takes back 4.26 of its 4.59, two seconds of buffer kept —, the other
+2.158 s instead of 2.488. Together, 0.33 s from their places; what is left for
+the sound is how wrong the latencies are, about 0.3 s, instead of 4.3 s for
+forty seconds.
+
+In the log:
+
+```
+alpha : retombée derrière sa place de 4.59 s — latence 6.209 → 10.795 s, tampon 3.972 → 7.778 s → elle n'en reprend que 4.26 s (6.343 s de tampon) : avance de 4.343 s — 0.33 s derrière sa place, où les autres la rejoignent
+```
+
+### What the bench measures
+
+- **185**, on six real listenings — the 4.24.0.34 one added, its moves taken
+  from the log, for lack of a clock relation: the twenty computations the
+  pilot refused decide 1510, as an unbalanced voice chat; the two with a
+  single voice stay "a single source"; its three other segments decide what
+  the pilot decided. The three-stream listening is decided at the 34th
+  computation, on 1690. The four others, unchanged. And the unbalanced voice
+  chat at its edges, on thirty posed computations: a second voice at 0.25 s
+  and at exactly 0.2 s, decided, the highest voice targeted, and the verdict
+  says so; at 0.19 s, with a single first peak, or near zero, nothing
+  changed.
+- **198**, new — the takeback rule, extracted from the code as shipped, on
+  posed states: the real report, replayed to the digit; each tile that can,
+  as before, word for word; no common point; a fall ahead of its place;
+  three takebacks already; another tile still falling, waited for and then
+  no longer after ten seconds, and not waited for when its buffer has not
+  moved; the ad. Then live, at scale 0.1, "xray" and "omega" synced: fallen
+  together, "xray" short of buffer; one three seconds after the other;
+  "omega" not fallen, stepping back to "xray". Each time, two seconds later,
+  the pair is where it was — before the sound has heard anything again.
+- **The fake player**: `__retomber(x, b)` gives the buffer a tile has after
+  its fall, if it did not take it all.
+
+On the same machine, the neighbouring sync scenarios — 183, 184, 188, 190,
+192 and 193 —: 23 out of 23.
+
+The full bench: 1688 assertions in 197 scenarios, all green.
+
+| mutant | what fails |
+| --- | --- |
+| the old rule, no unbalanced voice chat (1) | 185: three — the three-stream listening, the 4.24.0.34 one, the edges |
+| the distinct second voice at 100 ms (1) | 185: three — the ninth's echo followed |
+| the distinct second voice at 300 ms (1) | 185: two — the three-stream listening, the edges |
+| exactly 200 ms excluded (1) | 185: the edges |
+| the heaviest voice targeted, not the highest (1) | 185: two |
+| the unbalanced voice chat near zero too (1) | 185: two — the 4.24.0.34 listening, the edges |
+| the second voice taken from another cluster (1) | 185: two — the eighth's and ninth's echoes followed |
+| the verdict that does not say so (1) | 185: the edges |
+| each for itself, the old takeback (1) | 198: nine, the three live ones included |
+| no partial takeback (1) | 198: four |
+| a tile that did not fall, left there (1) | 198: four, "omega" not following among them |
+| no waiting (1) | 198: three — live, "omega" 2.54 s behind "xray" |
+| endless waiting (1) | 198: the posed wait |
+| waiting without the buffer (1) | 198: the posed wait |
+| the common lag never brought back to zero (1) | 198: two |
+| no common point, a move anyway (1) | 198 |
+| the tile in an ad counted (1) | 198 |
+| the fall during an ad taken back (1) | 198 |
+| the reason for the other direction (1) | 198 |
+| following, without counting the takeback (1) | 198 |
+| the measurement not reopened (1) | 198 |
+| the place not forgotten after the move (1) | 198 |
+| the most constrained not stated first (1) | 198 |
+| the two seconds of margin forgotten (1) | 198: four |
+| what a skip loses, forgotten (1) | 198: three |
+| low latency stepped back anyway (1) | 198 |
+| the fall without its time (1) | 198: two, live |
+
+Twenty-seven mutants, all caught on the first pass. **The common lag never
+brought back to zero** breaks nothing in 193: the reference there has less
+than two seconds of buffer, nothing to take back towards live, and the common
+lag is zero by itself. The posed states of 198 catch it.
+
 ## The track cursor (v4.24.0.34)
 
 The request, in three steps. First: "suggest other ideas for the 'redrawn ▶'.
@@ -17638,7 +17835,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 196 scenarios, 1676 assertions |
+| `npm test` | the Playwright harness: 197 scenarios, 1688 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -17658,12 +17855,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1644 KB | 665 KB | 4,136 → **2** |
+| `content.js` | 1651 KB | 668 KB | 4,147 → **2** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
 | `panneau.js` | 107 KB | 51 KB | 150 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
-| `background.js` | 9 KB | 2 KB | 22 → **0** |
-| **all five** | **1900 KB** | **822 KB** | **−57 %** |
+| `background.js` | 10 KB | 2 KB | 22 → **0** |
+| **all five** | **1907 KB** | **825 KB** | **−57 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are

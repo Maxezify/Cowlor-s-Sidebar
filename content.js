@@ -16090,6 +16090,14 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
        premières décisions, à huit comme à six. */
     const CALAGE = Object.freeze({
       NETS: 6, FENETRE: 30, GROUPE_MS: 80, LIEN_MS: 700, EQUILIBRE: 0.25, SEULE_MS: 500,
+      /* LA SECONDE VOIX DISTINCTE d'un salon déséquilibré (4.24.0.35, cf.
+         mesurerSon) : le bas de l'écart d'un salon. Balayé de 90 à 600 ms
+         sur les six écoutes réelles gardées : à 110 et moins, l'écho du
+         neuvième rapport est suivi ; de 120 à 230, la même première décision
+         partout ; au-delà de 300, l'écoute à trois streams n'y gagne plus
+         rien, au-delà de 510, celle de la 4.24.0.34 non plus. 200 : 90 ms
+         au-dessus de l'écho. */
+      DISTINCTE_MS: 200,
       SEUIL_S: 0.15, TENUE_S: 0.4,
       // Ce qu'un recul cale en plus — la moyenne des onze reculs réels —, ce qu'une avance perd.
       RECUL_S: 0.12, AVANCE_S: 0.087, MARGE_S: 2,
@@ -16217,12 +16225,13 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
        que le lecteur fait de lui-même — rechargement, rattrapage, pause.
        PAS après un saut, une chute ou une pub : c'est d'eux qu'on retombe.
        Six relevés tranquilles qui s'en écartent de 1,5 s au moins, le tampon
-       d'accord : la tuile a retombé, et le calage (cf. reprendrePlace) lui
+       d'accord : la tuile a retombé, et le calage (cf. reprendrePlaces) lui
        fait reprendre sa place — en avançant dans son tampon, qui contient
        ce qu'elle a pris de retard ; en reculant, dans ce qu'elle garde
        derrière, si elle est passée devant. Puis le son vérifie. */
+    // ENSEMBLE_MS (4.24.0.35) : ce qu'une reprise attend une autre tuile qui retombe encore (cf. reprendrePlaces).
     const PLACE = Object.freeze({ N: 10, RECENTS: 6, ECART_S: 0.8, SEUIL_S: 1.5, ACCORD_S: 2.5,
-                                  APRES_MS: 4_000, LATENCE_MS: 15_000, DECALEE_MS: 20_000 });
+                                  APRES_MS: 4_000, LATENCE_MS: 15_000, DECALEE_MS: 20_000, ENSEMBLE_MS: 10_000 });
     const PLACE_PERDUE = ['rechargement', 'rattrapage', 'ralenti', 'pause', 'reprise'];
     /* LE TAMPON D'ACCORD AVEC LA LATENCE : dans le même sens, la moitié au
        moins, et à 2,5 s près — à 30 % près au-delà de 8 s. L'estimation qui
@@ -16276,7 +16285,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         + `tampon ${t.place.b} → ${f.b}`, f.l);
       // Sans calage, rien ne bouge : c'est sa place, désormais.
       if (!actif) { t.place = { l: f.l, b: f.b, t: Date.now() }; return; }
-      t.retombee = { dl, avant: t.place, apres: f };
+      // L'heure : une autre qui retombe encore est attendue, dix secondes au plus (4.24.0.35, cf. reprendrePlaces).
+      t.retombee = { dl, avant: t.place, apres: f, t: Date.now() };
     };
     // Ce qu'elle garde derrière sa lecture : le plus bas des cinq derniers relevés, par l'instance ou l'élément.
     const arriereDe = (t) => {
@@ -16312,12 +16322,24 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
            ms, sa deuxième voix au sixième de la première, au-dessus d'un
            salon vu à 40 ms. Une source seule ne déplace rien au-delà de
            0,5 s : un écho n'a jamais été vu à moins d'une seconde.
+         — UN SALON DÉSÉQUILIBRÉ (4.24.0.35) : l'un des deux micros parle
+           bien plus que l'autre. Au rapport réel de la 4.24.0.34, deux voix
+           à 1510 et 1000 ms — vingt-quatre premiers pics pour l'une, deux à
+           six pour l'autre, sous le quart — : « une source seule, un écho »
+           six minutes et demie durant, jusqu'à ce que la seconde l'atteigne ;
+           calée, la paire a gardé ses deux voix, à −550 et −20 ms. Un écho,
+           c'est tout l'autre stream rejoué : UN décalage, étalé d'un dixième
+           de seconde — 1110 et 1000 ms au neuvième. Un salon, ce sont des
+           voix DISTINCTES, à 0,2 s au moins l'une de l'autre à tous les
+           rapports réels. Loin de zéro, une source dont la grappe a une
+           seconde voix à 0,2 s au moins de la plus lourde est donc un salon.
        LA CIBLE : dans un salon, la plus haute voix — elle met les lèvres de
-       la tuile sur sa voix telle qu'on l'entend (4.24.0.20) ; une source
-       seule, sa voix la plus lourde. L'horloge n'y est pour rien : elle
-       s'est trompée de 4,6 s, et tremble de ±150 ms d'un calcul à l'autre.
-       Rejouée sur les huitième, neuvième, douzième et quatorzième rapports
-       réels (cf. le banc).
+       la tuile sur sa voix telle qu'on l'entend (4.24.0.20) —, déséquilibré
+       ou non ; une source seule, sa voix la plus lourde. L'horloge n'y est
+       pour rien : elle s'est trompée de 4,6 s, et tremble de ±150 ms d'un
+       calcul à l'autre. Rejouée sur les huitième, neuvième, douzième et
+       quatorzième rapports réels, celui à trois streams et celui de la
+       4.24.0.34 (cf. le banc).
        En ms : positif, le son passe plus tard sur la référence — la tuile est
        en avance d'autant. `f` : l'exigence — les calculs exigés, la fenêtre
        —, un quart au moins au banc. */
@@ -16357,11 +16379,14 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         grappe = grappes.reduce((a, b) => (premiersDe(b) > premiersDe(a) ? b : a));
         seule = true;
       }
-      const ms = seule ? grappe.reduce((a, b) => (b.n1 > a.n1 ? b : a)).ms : grappe[grappe.length - 1].ms;
+      let ms = seule ? grappe.reduce((a, b) => (b.n1 > a.n1 ? b : a)).ms : grappe[grappe.length - 1].ms;
+      // Le salon déséquilibré (4.24.0.35, cf. plus haut) : loin de zéro, une seconde voix distincte de la plus lourde.
+      const desequilibre = seule && Math.abs(ms) > CALAGE.SEULE_MS && grappe.some((g) => Math.abs(g.ms - ms) >= CALAGE.DISTINCTE_MS);
+      if (desequilibre) { seule = false; ms = grappe[grappe.length - 1].ms; }
       if (seule && Math.abs(ms) > CALAGE.SEULE_MS) {
         return { refus: `une source seule, à ${ms} ms — un écho, peut-être : rien ne bouge`, n: nets.length };
       }
-      return { ms, voix: grappe.map((g) => ({ ms: g.ms, n1: g.n1 })), n: nets.length, seule };
+      return { ms, voix: grappe.map((g) => ({ ms: g.ms, n1: g.n1 })), n: nets.length, seule, desequilibre };
     };
     // Une décision : un verdict qui redit le précédent à 80 ms près — rejouée au banc (185).
     const accorde = (avant, v) => !v.refus && !!avant && !avant.refus && Math.abs(avant.ms - v.ms) <= CALAGE.GROUPE_MS;
@@ -16373,10 +16398,11 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       && v.ms < CALAGE.SEUIL_S * 1000 && v.voix.some((g) => Math.abs(g.ms) < CALAGE.TENUE_S * 1000);
     const signeMs = (x) => `${x > 0 ? '+' : x < 0 ? '−' : ''}${Math.abs(x)}`;
     const secondes = (x) => `${(Math.round(Math.abs(x) * 100) / 100).toFixed(2)} s`;
-    // Un verdict, en clair : « quebec en retard de 3.87 s · voix −4470 (6) · −3870 (9) · 15 calculs nets ».
+    /* Un verdict, en clair : « quebec en retard de 3.87 s · voix −4470 (6) · −3870 (9) · 15 calculs nets » ;
+       un salon déséquilibré le dit (4.24.0.35) : « (+1510 ms, un salon déséquilibré) ». */
     const texteMesure = (v, nom) => (v.refus ? `en attente : ${v.refus}`
       : `${Math.abs(v.ms) < CALAGE.SEUIL_S * 1000 ? 'avec la référence' : `${v.ms > 0 ? 'en avance' : 'en retard'} de ${secondes(v.ms / 1000)}`}`
-        + ` (${signeMs(v.ms)} ms) · voix ${v.voix.map((g) => `${signeMs(g.ms)} (${g.n1})`).join(' · ')} · ${v.n} calculs nets`);
+        + ` (${signeMs(v.ms)} ms${v.desequilibre ? ', un salon déséquilibré' : ''}) · voix ${v.voix.map((g) => `${signeMs(g.ms)} (${g.n1})`).join(' · ')} · ${v.n} calculs nets`);
     const journaliser = (c, k, texte) => {
       k.journal.push({ t: Date.now(), texte });
       if (k.journal.length > 60) k.journal.shift();
@@ -16437,43 +16463,115 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
        avance de ce qu'elle a pris — plus ce qu'une avance perd —, si son
        tampon en garde deux secondes ; devant : elle recule, si elle peut
        reculer et que ce qu'elle garde derrière le permet. Trois reprises au
-       plus en dix minutes, comme les corrections. Impossible, elle reste où
-       elle est, et c'est sa place désormais : le grand écart et le son
-       feront ce qu'ils peuvent. Sa mesure est rouverte, sa relation libre :
-       le son vérifie. */
-    const reprendrePlace = (c, k, t, maintenant) => {
-      const x = t.retombee;
-      t.retombee = null;
+       plus en dix minutes, comme les corrections — suivre celle d'une autre
+       en est une (4.24.0.35). Sa mesure est rouverte, sa relation libre : le
+       son vérifie.
+       ENSEMBLE (4.24.0.35). Au rapport réel de la 4.24.0.34, les deux tuiles
+       ont retombé au même instant — la référence de 4,59 s, l'autre de
+       2,40 — : la référence n'a pas pu reprendre sa place, son tampon y
+       manquant de 0,33 s ; l'autre a repris la sienne, qui ne valait qu'en
+       face de l'ancienne place de la référence — de 1,9 s devant elle, la
+       voilà à 4,3 s, quarante secondes durant, jusqu'à ce que le son la
+       recule. Une place, c'est une relation à toutes : les tuiles vont donc
+       ENSEMBLE au même retard sur leur place — zéro si chacune le peut ;
+       sinon le plus proche de zéro que la plus empêchée atteigne : elle
+       reprend ce que son tampon permet, ou ce qu'elle garde derrière, et
+       les autres l'y rejoignent, celles qui n'ont pas retombé comprises. Ici
+       la référence aurait avancé de 4,34 s, l'autre de 2,16 et non de 2,49 :
+       ensemble, à 0,33 s de leurs places. Sans point commun — l'une ne
+       peut avancer assez, une autre ne peut reculer —, rien ne bouge :
+       chacune a sa place désormais, et le grand écart et le son feront ce
+       qu'ils peuvent. Une tuile QUI RETOMBE ENCORE — son dernier relevé loin
+       de sa place, le tampon d'accord, avant les six relevés tranquilles
+       qui le diront — est attendue, dix secondes au plus : la déplacer
+       maintenant, ce serait sur une place qu'elle n'a déjà plus. */
+    // Ce qu'une tuile peut reprendre, en secondes de lecture : vers le direct (av), dans son tampon ; loin de lui (re), dans ce qu'elle garde derrière.
+    const marges = (k, t, maintenant) => {
       const n = t.chaine;
       k.reprises[n] = (k.reprises[n] || []).filter((q) => maintenant - q < CALAGE.MAX_MS * k.echelle);
-      const derriere = x.dl > 0;
-      const s = r3(derriere ? x.dl + CALAGE.AVANCE_S : -x.dl - CALAGE.RECUL_S);
-      const quoi = `${n} : retombée ${derriere ? 'derrière' : 'devant'} sa place de ${secondes(x.dl)} — latence ${x.avant.l} → ${x.apres.l} s,`
-        + ` tampon ${x.avant.b} → ${x.apres.b} s`;
-      let refus = null;
-      if (k.reprises[n].length >= CALAGE.MAX_N) refus = `${CALAGE.MAX_N} reprises en ${Math.round((CALAGE.MAX_MS * k.echelle) / 60_000)} min`;
-      else if (s > CALAGE.REPRISE_MAX_S) refus = `plus de ${CALAGE.REPRISE_MAX_S} s`;
-      else if (derriere) {
-        const b = tamponDe(t);
-        if (b === null || b - s < CALAGE.MARGE_S) refus = b === null ? 'son tampon est inconnu' : `${b} s de tampon`;
-      } else {
-        const a = arriereDe(t);
-        if (!peutReculer(t)) refus = t.retientPas ? 'son lecteur reprend chaque recul' : 'toujours en faible latence';
-        else if (a === null || a - s < CALAGE.MARGE_S) refus = a === null ? 'ce qu\'elle garde derrière est inconnu' : `${a} s gardées derrière`;
+      if (k.reprises[n].length >= CALAGE.MAX_N) {
+        const r = `${CALAGE.MAX_N} reprises en ${Math.round((CALAGE.MAX_MS * k.echelle) / 60_000)} min`;
+        return { av: 0, re: 0, pourAv: r, pourRe: r };
       }
-      if (refus) {
-        t.place = { l: x.apres.l, b: x.apres.b, t: maintenant };
-        journaliser(c, k, `${quoi} : rien à faire (${refus}) — c'est sa place désormais`);
+      // L'ordre, puis le geste qu'il fait : une avance perd AVANCE_S, un recul cale RECUL_S de plus.
+      const b = tamponDe(t), a = arriereDe(t);
+      const ordreAv = b === null ? 0 : Math.min(b - CALAGE.MARGE_S, CALAGE.REPRISE_MAX_S);
+      const ordreRe = !peutReculer(t) || a === null ? 0 : Math.min(a - CALAGE.MARGE_S, CALAGE.REPRISE_MAX_S);
+      const plus = `plus de ${CALAGE.REPRISE_MAX_S} s`;
+      return {
+        av: ordreAv > CALAGE.AVANCE_S ? r3(ordreAv - CALAGE.AVANCE_S) : 0,
+        re: ordreRe > 0 ? r3(ordreRe + CALAGE.RECUL_S) : 0,
+        pourAv: b === null ? 'son tampon est inconnu' : ordreAv === CALAGE.REPRISE_MAX_S ? plus : `${b} s de tampon`,
+        pourRe: t.retientPas ? 'son lecteur reprend chaque recul' : t.faibleLatence === true ? 'toujours en faible latence'
+          : a === null ? 'ce qu\'elle garde derrière est inconnu' : ordreRe === CALAGE.REPRISE_MAX_S ? plus : `${a} s gardées derrière`,
+      };
+    };
+    // Une tuile qui retombe encore (cf. plus haut) : son dernier relevé à 1,5 s de sa place au moins, le tampon d'accord.
+    const enChute = (t) => {
+      const x = t.serie[t.serie.length - 1];
+      if (!t.place || t.retombee || t.enPub || !x || x.l === null || x.lIncoherente || x.b === null) return false;
+      const dl = x.l - t.place.l;
+      return Math.abs(dl) >= PLACE.SEUIL_S && daccord(dl, x.b - t.place.b, PLACE.ACCORD_S);
+    };
+    const reprendrePlaces = (c, k, maintenant) => {
+      const tombees = c.tuiles.filter((t) => t.retombee && !t.enPub);
+      if (!tombees.length) return;
+      // Rien ne s'envoie à une pub : une tuile en pub n'est ni du calcul, ni du geste.
+      const ici = c.tuiles.filter((t) => !t.enPub);
+      if (ici.some(enChute) && maintenant - Math.min(...tombees.map((t) => t.retombee.t)) < PLACE.ENSEMBLE_MS) return;
+      /* Le retard commun, `dl` positif derrière : chacune peut aller de
+         dl − av à dl + re ; leur intersection, et dans elle, le plus proche
+         de zéro. */
+      const plan = ici.map((t) => ({ t, x: t.retombee, dl: t.retombee ? t.retombee.dl : 0, ...marges(k, t, maintenant) }));
+      const bas = plan.reduce((p, q) => (q.dl - q.av > p.dl - p.av ? q : p));
+      const haut = plan.reduce((p, q) => (q.dl + q.re < p.dl + p.re ? q : p));
+      const lo = r3(bas.dl - bas.av), hi = r3(haut.dl + haut.re);
+      for (const t of tombees) t.retombee = null;
+      const quoi = (p) => `${p.t.chaine} : retombée ${p.dl > 0 ? 'derrière' : 'devant'} sa place de ${secondes(p.dl)}`
+        + ` — latence ${p.x.avant.l} → ${p.x.apres.l} s, tampon ${p.x.avant.b} → ${p.x.apres.b} s`;
+      const garder = (p) => { p.t.place = { l: p.x.apres.l, b: p.x.apres.b, t: maintenant }; };
+      if (lo > hi) {
+        const pourquoi = `pas de point commun — ${bas.t.chaine} : ${bas.pourAv} ; ${haut.t.chaine} : ${haut.pourRe}`;
+        for (const p of plan) {
+          if (!p.x) continue;
+          garder(p);
+          journaliser(c, k, `${quoi(p)} : rien à faire (${pourquoi}) — c'est sa place désormais`);
+        }
         return;
       }
-      envoyer(t, `essai-${derriere ? 'avance' : 'recul'}`, { duree: s });
-      // Sa place se réapprend dès l'ordre parti — pas au relevé qui le verra : d'ici là, elle aurait « retombé » encore.
-      oublierPlace(t, maintenant + PLACE.APRES_MS);
-      k.reprises[n].push(maintenant);
-      k.deplacements[n] = r3((k.deplacements[n] || 0) + (derriere ? -s : s));
-      delete k.dits[n];
-      signaler(c, n, 'place reprise');
-      journaliser(c, k, `${quoi} → elle reprend sa place : ${derriere ? 'avance' : 'recule'} de ${s} s`);
+      const L = lo > 0 ? lo : hi < 0 ? hi : 0;
+      // Celle qui fixe le retard commun, quand il n'est pas nul : elle se dit d'abord.
+      const ancre = L > 0 ? bas : L < 0 ? haut : null;
+      const ou = `${secondes(L)} ${L > 0 ? 'derrière' : 'devant'} sa place`;
+      const bougent = plan.filter((p) => Math.abs(r3(p.dl - L)) >= CALAGE.SEUIL_S);
+      for (const p of [...plan].sort((u, v) => (v === ancre) - (u === ancre))) {
+        const n = p.t.chaine;
+        // Positif : vers le direct, une avance ; négatif : loin de lui, un recul.
+        const m = r3(p.dl - L);
+        if (!bougent.includes(p)) {
+          if (!p.x) continue;
+          garder(p);
+          journaliser(c, k, p === ancre
+            ? `${quoi(p)} : rien à faire (${L > 0 ? p.pourAv : p.pourRe}) — c'est sa place désormais${bougent.length ? ', les autres l\'y rejoignent' : ''}`
+            : `${quoi(p)} : déjà là où ${ancre.t.chaine} la veut, ${ou} — c'est sa place désormais`);
+          continue;
+        }
+        const avance = m > 0;
+        const s = avance ? r3(m + CALAGE.AVANCE_S) : Math.max(0.05, r3(-m - CALAGE.RECUL_S));
+        envoyer(p.t, `essai-${avance ? 'avance' : 'recul'}`, { duree: s });
+        // Sa place se réapprend dès l'ordre parti — pas au relevé qui le verra : d'ici là, elle aurait « retombé » encore.
+        oublierPlace(p.t, maintenant + PLACE.APRES_MS);
+        k.reprises[n].push(maintenant);
+        k.deplacements[n] = r3((k.deplacements[n] || 0) + (avance ? -s : s));
+        delete k.dits[n];
+        signaler(c, n, 'place reprise');
+        const geste = `${avance ? 'avance' : 'recule'} de ${s} s`;
+        journaliser(c, k, !ancre ? `${quoi(p)} → elle reprend sa place : ${geste}`
+          : p === ancre ? `${quoi(p)} → elle n'en reprend que ${secondes(m)} (${L > 0 ? p.pourAv : p.pourRe}) : ${geste} — ${ou}`
+            + (bougent.length > 1 ? ', où les autres la rejoignent' : '')
+            : p.x ? `${quoi(p)} → elle reprend sa place à ${secondes(L)} près, avec ${ancre.t.chaine} : ${geste}`
+              : `${n} rejoint ${ancre.t.chaine}, ${ou} comme elle : ${geste}`);
+      }
     };
     /* LE GRAND ÉCART (4.24.0.27) : deux tuiles plus loin l'une de l'autre que
        l'écoute ne cherche — au-delà de 5 s —, sans place d'où l'une aurait
@@ -16561,8 +16659,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         oublierPlace(t, maintenant + PLACE.LATENCE_MS);
         journaliser(c, k, `${t.chaine} : faible latence retirée — son lecteur défait tout recul`);
       }
-      // Une tuile retombée reprend sa place (4.24.0.27) — la référence comprise : sa place, c'est sa relation à toutes.
-      for (const t of c.tuiles) if (t.retombee && !t.enPub) reprendrePlace(c, k, t, maintenant);
+      // Les tuiles retombées reprennent leur place (4.24.0.27), ensemble (4.24.0.35) — la référence comprise : sa place, c'est sa relation à toutes.
+      reprendrePlaces(c, k, maintenant);
       const ref = tuileDe(c, c.ecoute.ref);
       /* LA RÉFÉRENCE EN PUB (4.24.0.27) : rien à quoi comparer — chaque paire
          en a besoin. Le calage attend, et le rapport le dit, paire par paire. */

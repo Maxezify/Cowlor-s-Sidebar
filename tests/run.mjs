@@ -26313,7 +26313,10 @@ const S_LECTEUR_SONDE = () => {
            direct, d'un coup, la position continuant — et le tampon avec elle,
            ce qui manque déjà téléchargé ; le son aussi, qui suit la latence.
            Le rapport réel de la 4.24.0.26 : 7,6 → 30,7 s, le tampon à 30. */
-        window.__retomber = (x) => { const l = window.__lecteur; l.maj(); l.L += x; l.B += x; l.suitTampon = true; };
+        /* « b » (4.24.0.35) : le tampon qu'elle a ensuite, s'il n'a pas pris
+           tout ce que la lecture a perdu — au rapport réel de la 4.24.0.34, la
+           référence retombée de 4,59 s, son tampon de 3,81 seulement. */
+        window.__retomber = (x, b) => { const l = window.__lecteur; l.maj(); l.L += x; l.B = b === undefined ? l.B + x : b; l.suitTampon = true; };
         // L'estimation seule qui saute, ni la lecture ni le tampon (cf. « kappa ») : x secondes de plus, lues.
         window.__estimer = (x) => { window.__lecteur.estime = (window.__lecteur.estime || 0) + x; };
         document.getElementById('root').__reactContainer$faux = { stateNode: null, sibling: null,
@@ -27600,17 +27603,17 @@ const S_LECTEUR_SONDE = () => {
 
 /* ═════════ LE CALAGE PAR LE SON, REJOUÉ (4.24.0.21) ═════════════════════════
    La règle du calage — mesurerSon, extraite du code tel qu'il est livré —
-   sur quatre écoutes réelles : l'historique des calculs d'une paire, rien
+   sur six écoutes réelles : l'historique des calculs d'une paire, rien
    que des nombres, tel que le rapport l'écrit. Rejouées calcul après
    calcul, à l'exigence entière — celle du vrai —, comme le pilote les
    voit : depuis le dernier déplacement de la paire (là où la relation
    d'horloge saute de plus de 0,3 s), et une décision quand deux verdicts
    de suite s'accordent à 80 ms. Un calcul dure 5,3 s. */
 {
-  titre('185. La règle du calage, rejouée sur quatre écoutes réelles');
+  titre('185. La règle du calage, rejouée sur six écoutes réelles');
   /* Les historiques des quatorzième, huitième, neuvième et douzième rapports
-     réels : le pic, le second et son poids, z, l'attendu, la relation
-     d'horloge. */
+     réels, de celui à trois streams et de celui de la 4.24.0.34 : le pic, le
+     second et son poids, z, l'attendu, la relation d'horloge. */
   const ECOUTES_REELLES = {
     quatorzieme: [
       '-3760 (800 80 %) z 4.5 att 1353 sync 1291', '-3760 (-2580 85 %) z 4.3 att 1480 sync 1512',
@@ -27966,6 +27969,87 @@ const S_LECTEUR_SONDE = () => {
       '1690 (5690 70 %) z 5.0 att 2136 sync 2170', '1240 (1680 66 %) z 5.7 att 2126 sync 2179',
       '-240 (-1870 45 %) z 7.1 att 2053 sync 594', '-240 (-4170 46 %) z 7.5 att 690 sync 620',
     ].join(' · '),
+    /* Le rapport de la 4.24.0.34 (4.24.0.35), une pub au début : les cent
+       cinquante derniers calculs d'une session de cent quatre-vingt-quatorze
+       — le premier gardé, vers +250 s. Sans relation d'horloge : ses
+       déplacements sont ceux du journal (cf. plus bas). */
+    salonDesequilibre: [
+      '1520 (980 45 %) z 6.8 att 529', '1530 (980 42 %) z 7.0 att 474',
+      '1530 (990 48 %) z 6.9 att 473', '1510 (4600 31 %) z 8.4 att 427',
+      '1510 (960 46 %) z 7.6 att 526', '1000 (1510 72 %) z 6.5 att 540',
+      '1510 (1000 79 %) z 6.0 att 540', '1000 (-5780 64 %) z 5.3 att 537',
+      '1510 (1000 98 %) z 4.4 att 531', '1510 (5350 50 %) z 8.6 att 483',
+      '1510 (-4800 48 %) z 6.2 att 477', '1510 (980 45 %) z 6.4 att 486',
+      '1520 (980 72 %) z 4.4 att 482', '1510 (5940 46 %) z 6.5 att 495',
+      '1510 (-2900 36 %) z 7.0 att 500', '1510 (-5570 51 %) z 6.6 att 497',
+      '1510 (4800 40 %) z 7.3 att 543', '1520 (980 60 %) z 5.4 att 543',
+      '1530 (230 32 %) z 8.3 att 486', '1530 (-1200 27 %) z 9.3 att 434',
+      '1530 (1680 28 %) z 9.1 att 421', '1530 (1680 33 %) z 9.0 att 425',
+      '1520 (5440 46 %) z 7.1 att 490', '1510 (4800 43 %) z 7.7 att 540',
+      '1510 (5460 44 %) z 7.9 att 536', '1510 (-2090 31 %) z 9.5 att 491',
+      '1510 (990 34 %) z 8.2 att 436', '1510 (1000 58 %) z 7.1 att 428',
+      '1000 (-2350 49 %) z 5.7 att 431', '1000 (3710 47 %) z 7.1 att 525',
+      '990 (-1970 56 %) z 5.4 att 546', '980 (1520 79 %) z 5.0 att 553',
+      '1520 (980 50 %) z 6.8 att 546', '-550 (-30 100 %) z 4.1 att 293',
+      '-550 (-20 87 %) z 4.9 att -1025', '-20 (-550 99 %) z 4.7 att -1063',
+      '-550 (-10 96 %) z 4.4 att -1080', '-20 (-5120 48 %) z 5.7 att -1070',
+      '-20 (3860 48 %) z 6.5 att -1070', '-20 (2710 64 %) z 6.5 att -1073',
+      '-20 (2710 69 %) z 4.6 att -1071', '-20 (170 46 %) z 6.5 att -1064',
+      '-30 (-1410 41 %) z 7.3 att -1077', '-30 (-1410 43 %) z 8.0 att -1070',
+      '-30 (-1410 33 %) z 8.6 att -1077', '-30 (-4250 33 %) z 8.7 att -1092',
+      '-30 (4990 33 %) z 7.9 att -1107', '-30 (-3010 33 %) z 8.2 att -1110',
+      '-30 (-3010 24 %) z 9.0 att -1109', '-30 (3800 32 %) z 8.2 att -984',
+      '-30 (-190 29 %) z 8.6 att -980', '-30 (5760 30 %) z 9.5 att -993',
+      '-20 (-4500 49 %) z 6.9 att -998', '-30 (-580 41 %) z 7.8 att -1022',
+      '-20 (-4480 39 %) z 8.0 att -1029', '-10 (5070 58 %) z 6.2 att -1078',
+      '-10 (-1960 54 %) z 7.2 att -1080', '-10 (-540 53 %) z 6.7 att -1009',
+      '-20 (-540 68 %) z 6.2 att -996', '-20 (-540 68 %) z 6.1 att -996',
+      '-20 (-540 48 %) z 7.6 att -1004', '-20 (-540 38 %) z 8.4 att -1058',
+      '-20 (-570 28 %) z 9.2 att -1089', '-20 (-5190 29 %) z 9.5 att -1088',
+      '-20 (-580 50 %) z 7.2 att -1083', '-10 (-560 66 %) z 6.4 att -1062',
+      '-560 (-10 99 %) z 6.6 att -1058', '-10 (-560 88 %) z 6.2 att -1050',
+      '-560 (-10 77 %) z 6.4 att -1049', '-560 (-20 100 %) z 5.3 att -1049',
+      '-20 (-560 77 %) z 5.8 att -1045', '-560 (-20 83 %) z 6.3 att -1042',
+      '-20 (-5930 35 %) z 9.0 att -1035', '-20 (-570 50 %) z 7.4 att -1026',
+      '-20 (-570 46 %) z 6.9 att -1024', '-20 (-550 48 %) z 7.5 att -1030',
+      '-20 (-560 96 %) z 5.0 att -1030', '-20 (-560 65 %) z 6.6 att -1031',
+      '-20 (-2840 58 %) z 6.4 att -1035', '-20 (-2840 49 %) z 7.4 att -1034',
+      '-10 (-2840 39 %) z 8.1 att -1037', '-10 (-4230 34 %) z 9.2 att -1039',
+      '0 (-4230 51 %) z 7.0 att -1037', '-40 (-580 50 %) z 6.7 att -1034',
+      '-40 (-570 61 %) z 6.1 att -1031', '-30 (-570 70 %) z 6.2 att -1038',
+      '-30 (-560 63 %) z 6.4 att -1043', '-20 (-560 53 %) z 7.5 att -1038',
+      '-20 (-4150 29 %) z 9.3 att -1038', '-20 (-6000 32 %) z 8.2 att -1035',
+      '-30 (-560 35 %) z 8.6 att -1032', '-30 (-550 75 %) z 6.8 att -1037',
+      '-550 (-20 79 %) z 5.9 att -1032', '-30 (-560 77 %) z 6.2 att -1032',
+      '-550 (-10 77 %) z 6.4 att -1030', '-560 (-30 92 %) z 5.4 att -1025',
+      '-560 (-30 77 %) z 6.7 att -1029', '-560 (-10 53 %) z 8.1 att -1025',
+      '-560 (-20 58 %) z 8.2 att -1030', '-560 (5930 30 %) z 10.3 att -1035',
+      '-560 (-5010 41 %) z 8.9 att -1029', '-560 (4500 52 %) z 7.9 att -1045',
+      '-560 (-10 60 %) z 7.2 att -1035', '-580 (0 81 %) z 5.3 att -1029',
+      '2550 (-3920 80 %) z 4.2 att 285', '3780 (-870 54 %) z 6.3 att 1584',
+      '4310 (3780 65 %) z 6.2 att 3282', '3780 (4310 78 %) z 6.7 att 3286',
+      '3780 (4310 96 %) z 6.4 att 3286', '4310 (3780 78 %) z 7.5 att 3278',
+      '4310 (3760 28 %) z 10.5 att 3274', '4310 (-4990 22 %) z 10.9 att 3274',
+      '60 (3750 92 %) z 3.9 att 3222', '60 (3750 46 %) z 6.4 att -799',
+      '50 (3750 41 %) z 7.0 att -824', '60 (-1410 38 %) z 7.3 att -1062',
+      '40 (-1410 30 %) z 9.8 att -1063', '50 (-5720 66 %) z 7.0 att -1063',
+      '60 (-5720 45 %) z 9.2 att -1063', '50 (-5720 35 %) z 8.6 att -1056',
+      '50 (190 38 %) z 7.6 att -944', '40 (190 42 %) z 7.7 att -937',
+      '40 (-470 42 %) z 8.6 att -1057', '-510 (5650 27 %) z 9.3 att -1056',
+      '-510 (4180 39 %) z 8.3 att -1056', '-480 (40 47 %) z 6.9 att -1057',
+      '-490 (40 49 %) z 6.9 att -1051', '-470 (40 77 %) z 6.6 att -1035',
+      '-490 (40 61 %) z 7.6 att -1021', '-490 (-5010 37 %) z 8.4 att -1020',
+      '-490 (-5010 33 %) z 8.9 att -1024', '-490 (-5530 33 %) z 8.7 att -1025',
+      '-490 (-5530 51 %) z 5.5 att -1043', '20 (-500 52 %) z 6.8 att -1039',
+      '20 (-4930 46 %) z 6.4 att -1031', '20 (4310 34 %) z 8.5 att -1032',
+      '20 (-4890 30 %) z 9.0 att -1027', '20 (-1500 47 %) z 7.4 att -1026',
+      '20 (-500 77 %) z 6.3 att -1022', '-500 (40 86 %) z 6.1 att -1026',
+      '40 (-510 87 %) z 6.1 att -1031', '-510 (40 90 %) z 6.7 att -1036',
+      '40 (-510 52 %) z 8.0 att -1036', '40 (-510 67 %) z 6.6 att -1036',
+      '40 (-500 71 %) z 5.6 att -1026', '40 (-170 51 %) z 7.3 att -1026',
+      '20 (-170 68 %) z 6.2 att -1009', '40 (-1500 71 %) z 5.5 att -1006',
+      '50 (830 73 %) z 4.9 att -1014', '-480 (-1500 96 %) z 3.9 att -1018',
+    ].join(' · '),
   };
   const src = readFileSync(join(ICI, 'content.test.js'), 'utf8');
   // Une déclaration du calage : une ligne, ou un bloc jusqu'à son accolade fermante.
@@ -27977,10 +28061,10 @@ const S_LECTEUR_SONDE = () => {
     return src.slice(i + 1, fin);
   };
   const code = ['mediane', 'FORT', 'BORD_MS', 'grouper', 'CALAGE', 'pointsDe', 'enchainer', 'premiersDe', 'estSalon', 'mesurerSon', 'accorde',
-                'tient'].map(decl).join('\n');
+                'tient', 'signeMs', 'secondes', 'texteMesure'].map(decl).join('\n');
   const CFG = { SALLE_ECOUTE_MAX_MS: Number((/SALLE_ECOUTE_MAX_MS:\s*([\d_]+)/.exec(src) || [, 'NaN'])[1].replace(/_/g, '')) };
   let regle = null;
-  try { regle = new Function('CFG', `${code}\nreturn { mesurerSon, accorde, tient };`)(CFG); } catch (e) { regle = { erreur: String(e) }; }
+  try { regle = new Function('CFG', `${code}\nreturn { mesurerSon, accorde, tient, texteMesure };`)(CFG); } catch (e) { regle = { erreur: String(e) }; }
   // Un calcul, tel que le rapport l'écrit : « 1180 (1400 93 %) z 4.3 att -187 sync -102 ».
   const RX = /^(-?\d+)(?: \((-?\d+) (\d+) %\))? z ([\d.]+)(?: att (-?\d+))?(?: sync (-?\d+))?$/;
   const lire = (txt) => txt.split(' · ').map((e, i) => {
@@ -27990,11 +28074,12 @@ const S_LECTEUR_SONDE = () => {
   });
   /* Ce que le calage dit à chaque calcul : son verdict, et s'il décide —
      l'accord de deux verdicts, tel que le code le juge. Le segment : depuis
-     le dernier déplacement du pilote d'avant. */
-  const rejouer = (txt) => {
+     le dernier déplacement du pilote d'avant — là où la relation d'horloge
+     saute, ou, sans elle, aux calculs que le journal dit (`coupes`). */
+  const rejouer = (txt, coupes = null) => {
     if (!regle.mesurerSon) return [];
     const h = lire(txt);
-    const ruptures = h.map((x, i) => (i && Math.abs(x.sync - h[i - 1].sync) > 300 ? i : 0)).filter(Boolean);
+    const ruptures = coupes || h.map((x, i) => (i && Math.abs(x.sync - h[i - 1].sync) > 300 ? i : 0)).filter(Boolean);
     let avant = null;
     return h.map((_, k) => {
       const seg = Math.max(0, ...ruptures.filter((r) => r <= k));
@@ -28062,23 +28147,81 @@ const S_LECTEUR_SONDE = () => {
 
   /* LE RAPPORT À TROIS STREAMS (4.24.0.23) : la tuile calée à −560 ms,
      puis laissée là quand la référence a reculé de 1,23 s pour la
-     troisième (calcul 23). Ce que la règle a fait de ce qui suivait, à
-     l'exigence entière : « une source seule, à 1,4 s — un écho, peut-être »,
-     calcul après calcul, jusqu'au cent-treizième ; au cent-quatorzième
-     seulement, une seconde voix assez lourde, 1690 décidé. Ce n'est pas la
-     règle de l'écho qui est fausse — un écho n'a jamais été vu à moins
-     d'une seconde, celui-ci était à 1,4 s — : c'est le calage qui avait
-     créé ce décalage-là, en reculant la référence sans elle. D'où, en
-     4.24.0.23, la tuile calée qui suit la référence (188). */
+     troisième (calcul 23). Ce que la règle en a fait jusqu'à la 4.24.0.34 :
+     « une source seule, à 1,4 s — un écho, peut-être », quatre-vingts
+     calculs durant ; au cent-quatorzième seulement, une seconde voix assez
+     lourde, 1690 décidé. C'était le calage qui avait créé ce décalage-là, en
+     reculant la référence sans elle — d'où, en 4.24.0.23, la tuile calée qui
+     suit la référence (188). Mais la seconde voix était là dès le
+     trente-troisième calcul : à 1690, 0,28 s au-dessus de la plus lourde —
+     un salon déséquilibré (4.24.0.35), décidé au trente-quatrième, sur la
+     même voix. Restent « une source seule » les cinq calculs d'avant elle,
+     et les huit où elle n'a plus qu'un premier pic. */
   const d3 = rejouer(ECOUTES_REELLES.troisStreams);
   const apres3 = d3.filter((x) => x.seg === 22);
-  const seule3 = apres3.filter((x) => x.k >= 31 && x.k <= 112);
   const s3 = decisions(apres3);
-  ok('le rapport à trois streams rejoué : laissée 1,4 s en avance par la référence, la tuile est « une source seule » quatre-vingts calculs durant, décidée au cent-quatorzième seulement',
+  ok('le rapport à trois streams rejoué : laissée 1,4 s en avance par la référence, la tuile — 1410 ms, une seconde voix à 1690 — est un salon déséquilibré, décidé au trente-quatrième calcul et non plus au cent-quatorzième',
      d3.length === 116 && decisions(d3.filter((x) => x.seg === 0)).every((x) => x.v.ms >= -700 && x.v.ms <= -500)
-     && seule3.length === 82 && seule3.filter((x) => /^une source seule, à 1[34]\d\d ms/.test(x.v.refus || '')).length >= 75
-     && s3.length > 0 && s3[0].k === 114 && s3[0].v.ms === 1_690,
+     && s3.length === 72 && s3[0].k === 34 && s3[0].v.ms === 1_690 && s3[0].v.desequilibre === true
+     && s3.every((x) => x.v.ms >= 1_690 && x.v.ms <= 1_695)
+     && apres3.filter((x) => /^une source seule, à 14\d\d ms/.test(x.v.refus || '')).length === 13,
      regle.erreur || suite(d3));
+
+  /* LE RAPPORT DE LA 4.24.0.34 (4.24.0.35), une pub au début. Deux voix,
+     1510 et 1000 ms — vingt-quatre premiers pics pour l'une, deux à six
+     pour l'autre, sous le quart : « une source seule, un écho » de la
+     première minute après la pub à +405 s ; décidé au soixante-seizième
+     calcul de la session (+410 s), quand la seconde a atteint le quart
+     pile, 6 sur 24. Rejoué ici depuis le quarante-cinquième, le premier gardé :
+     ses calculs 12 à 31 sont les vingt que le pilote refusait, ses 32 et 33
+     ceux qui ont décidé. Désormais, chacun des vingt décide 1510 — la même
+     voix —, en salon déséquilibré ; deux calculs à une seule voix restent
+     « une source seule » ; et ses trois autres segments — après le recul
+     de +416 s, l'avance de +796 s, le recul de +836 s (calculs 34, 105,
+     113) — décident ce que le pilote a décidé : −20 à −30 ms, 4310 ms au
+     cent-douzième (+835 s), 40 à 50 ms.
+     Mutants — l'ancienne règle ; la seconde voix distincte à 100 ms ou à
+     300 ; la plus lourde visée au lieu de la plus haute ; le salon
+     déséquilibré près de zéro aussi ; le verdict qui ne le dit pas. */
+  const dS = rejouer(ECOUTES_REELLES.salonDesequilibre, [33, 104, 112]);
+  const sS = (seg) => decisions(dS.filter((x) => x.seg === seg));
+  const s34 = dS.filter((x) => x.seg === 0);
+  ok('le rapport de la 4.24.0.34 rejoué : 1510 et 1000 ms, la seconde voix sous le quart — un salon déséquilibré, décidé à chacun des vingt calculs que le pilote refusait comme un écho',
+     dS.length === 150 && s34.length === 33
+     && s34.slice(11, 31).every((x) => x.decide && x.v.ms === 1_510 && x.v.desequilibre === true)
+     && s34.slice(5, 7).every((x) => /^une source seule, à 151\d ms — un écho, peut-être : rien ne bouge$/.test(x.v.refus || ''))
+     && s34.slice(31).every((x) => x.decide && x.v.ms === 1_510 && x.v.desequilibre === false)
+     && sS(0).every((x) => x.v.ms === 1_510) && sS(0).filter((x) => x.v.desequilibre).length === 20
+     && sS(33).length === 60 && sS(33).every((x) => x.v.ms >= -30 && x.v.ms <= -20 && !x.v.desequilibre)
+     && sS(104).length === 1 && sS(104)[0].k === 112 && sS(104)[0].v.ms === 4_310 && !sS(104)[0].v.desequilibre
+     && sS(112).length === 31 && sS(112).every((x) => x.v.ms >= 40 && x.v.ms <= 50 && !x.v.desequilibre),
+     regle.erreur || suite(dS));
+
+  /* LE SALON DÉSÉQUILIBRÉ, AUX BORDS (4.24.0.35). Trente calculs posés, z 6 :
+     une voix lourde à 1400 ms (vingt-sept premiers pics), une seconde à
+     trois. À 1650, 0,25 s au-dessus : décidé, la plus haute — et le verdict
+     le dit ; à 1600, 0,2 s pile : décidé ; à 1590 : « une source seule ». À
+     1000, en dessous : décidé, 1400 — la plus haute, ici la plus lourde. Une
+     seconde voix d'un seul premier pic n'en est pas une. Près de zéro, rien
+     ne change : 300 et 550, une source seule — la plus lourde, 300. */
+  const pose = (...voix) => voix.flatMap(([ms, n]) => Array.from({ length: n }, () => ms))
+    .map((ms, i) => ({ ms, ms2: null, r: 1, r2: 0, z: 6, debut: i * 5_300 }));
+  const bords = regle.mesurerSon ? [
+    [[1_400, 27], [1_650, 3]], [[1_400, 27], [1_600, 3]], [[1_400, 27], [1_590, 3]],
+    [[1_400, 27], [1_000, 3]], [[1_400, 28], [1_650, 1]], [[300, 27], [550, 3]],
+  ].map((v) => regle.mesurerSon(pose(...v), 0, 1)) : [];
+  const [b1650, b1600, b1590, b1000, bSeul, bZero] = bords;
+  ok('le salon déséquilibré aux bords : une seconde voix à 0,2 s au moins de la plus lourde, loin de zéro — la plus haute visée ; à 0,19 s, d\'un seul pic, ou près de zéro, rien de changé',
+     bords.length === 6
+     && b1650.ms === 1_650 && b1650.desequilibre === true
+     && regle.texteMesure(b1650) === 'en avance de 1.65 s (+1650 ms, un salon déséquilibré) · voix +1400 (27) · +1650 (3) · 30 calculs nets'
+     && b1600.ms === 1_600 && b1600.desequilibre === true
+     && b1590.refus === 'une source seule, à 1400 ms — un écho, peut-être : rien ne bouge'
+     && b1000.ms === 1_400 && b1000.desequilibre === true
+     && bSeul.refus === 'une source seule, à 1400 ms — un écho, peut-être : rien ne bouge'
+     && bZero.ms === 300 && bZero.seule === true && bZero.desequilibre === false
+     && regle.texteMesure(bZero) === 'en avance de 0.30 s (+300 ms) · voix +300 (27) · +550 (3) · 30 calculs nets',
+     regle.erreur || JSON.stringify(bords.map((v) => (v.refus ? v.refus : { ms: v.ms, d: v.desequilibre, t: regle.texteMesure(v) }))));
 
   /* LA TENUE, SUR DES VERDICTS POSÉS. Au banc en direct, qu'une fenêtre
      n'entende pas la plus haute voix juste après une correction dépend du
@@ -29277,6 +29420,326 @@ const S_LECTEUR_SONDE = () => {
   ok('…et plus de cent : cent dix silences communs de plus, et le compte les dit tous — il ne plafonne plus à cent',
      comptesC.every((n, i) => n >= comptes[i] + 110),
      JSON.stringify({ silencesCommuns: rC.ecoute?.silencesCommuns, avant: comptes, apres: comptesC }));
+  await page.close();
+}
+
+/* ═════════ LA PLACE REPRISE ENSEMBLE (4.24.0.35) ═══════════════════════════
+   LE RAPPORT RÉEL DE LA 4.24.0.34 : les deux tuiles retombées au même
+   instant — la référence de 4,59 s, l'autre de 2,40 —, la référence à court
+   de tampon de 0,33 s. Elle est restée ; l'autre a repris sa place : de
+   1,9 s devant la référence, la voilà à 4,3 s, quarante secondes durant.
+   Désormais les tuiles vont ensemble au même retard sur leur place.
+   D'abord la règle, jugée par le code — reprendrePlaces extraite du code
+   tel qu'il est livré, sur des états posés : ses ordres, son journal, ses
+   places. Puis, à l'échelle 0,1, « xray » en référence et « omega »,
+   calées :
+     — ensemble : « xray » retombe de 4,6 s, son tampon de 3,8 seulement ;
+       « omega » de 2,4. « xray » reprend ce que son tampon permet — deux
+       secondes gardées —, « omega » la rejoint : à 1,09 s de leurs places,
+       elles restent calées sans que le son ait rien à faire ;
+     — l'une après l'autre : « omega » retombe trois secondes après
+       « xray » ; la reprise l'attend, et se fait pour les deux ;
+     — « omega » n'a pas retombé : « xray » retombe seule, à court de
+       tampon, et « omega » recule jusqu'à elle.
+   Mutants — chacune pour soi (la reprise d'avant) ; pas de reprise
+   partielle ; celles qui n'ont pas retombé laissées là ; aucune attente ;
+   une attente sans fin ; l'attente sans le tampon ; le retard commun
+   jamais ramené à zéro ; sans point commun, quand même un geste ; la
+   tuile en pub comptée ; la raison de l'autre sens ; le geste de qui suit,
+   pas compté. */
+{
+  titre('198. La place reprise ensemble — le même retard pour toutes : la plus empêchée reprend ce qu\'elle peut, les autres la rejoignent');
+  const src = readFileSync(join(ICI, 'content.test.js'), 'utf8');
+  // Une déclaration : une ligne, ou un bloc jusqu'à son accolade fermante (cf. 185).
+  const decl = (nom) => {
+    const i = src.indexOf(`\n    const ${nom} = `);
+    if (i < 0) return `throw new Error('introuvable : ${nom}');`;
+    const l0 = src.slice(i + 1).split('\n')[0].trimEnd();
+    const fin = l0.endsWith('({') ? src.indexOf('\n    });', i) + 8 : l0.endsWith('{') ? src.indexOf('\n    };', i) + 7 : src.indexOf(';\n', i) + 1;
+    return src.slice(i + 1, fin);
+  };
+  const code = ['r3', 'CALAGE', 'PLACE', 'daccord', 'secondes', 'arriereDe', 'tamponDe', 'peutReculer', 'marges', 'enChute',
+                'reprendrePlaces'].map(decl).join('\n');
+  // Ce que la règle fait au-dehors : un ordre aux tuiles, une place oubliée, une mesure rouverte, une ligne au journal.
+  const ordres = [], signaux = [];
+  let regle = null;
+  try {
+    regle = new Function('envoyer', 'oublierPlace', 'signaler', 'journaliser', `${code}\nreturn { reprendrePlaces };`)(
+      (t, ordre, plus) => ordres.push(`${t.chaine} ${ordre} ${plus.duree}`),
+      (t) => { t.place = null; t.retombee = null; },
+      (c, n, quoi) => signaux.push(`${n} ${quoi}`),
+      (c, k, texte) => k.journal.push(texte));
+  } catch (e) { regle = { erreur: String(e) }; }
+  const T0 = Date.now();
+  /* Une tuile posée : sa place, son tampon devant (b) et ce qu'elle garde
+     derrière (a) aux cinq derniers relevés, sa retombée s'il y en a une, et
+     un dernier relevé à part si l'on veut qu'elle retombe encore. */
+  const tuile = (chaine, { place = { l: 5, b: 3 }, b = 3, a = 12, retombee = null, dernier = null, faible = false, pub = false } = {}) => ({
+    chaine, place, enPub: pub, faibleLatence: faible, retientPas: null,
+    retombee: retombee && { t: T0, ...retombee },
+    serie: [...Array.from({ length: 5 }, () => ({ l: place.l, b, ar: a, arL: a, lIncoherente: false })), ...(dernier ? [dernier] : [])],
+  });
+  const tombee = (dl, avant, apres) => ({ dl, avant, apres });
+  const jouer = (tuiles, maintenant = T0, reprises = {}) => {
+    ordres.length = 0; signaux.length = 0;
+    const k = { echelle: 1, reprises, deplacements: {}, dits: {}, journal: [] };
+    if (regle.reprendrePlaces) regle.reprendrePlaces({ tuiles }, k, maintenant);
+    return { k, ordres: [...ordres], journal: k.journal, signaux: [...signaux], tuiles };
+  };
+  const dire = (u) => JSON.stringify({ erreur: regle.erreur, ordres: u.ordres, journal: u.journal, signaux: u.signaux,
+                                       places: u.tuiles.map((t) => [t.chaine, t.place, !!t.retombee]) });
+
+  /* LE RAPPORT RÉEL, REJOUÉ : la référence ne reprend que 4,26 de ses
+     4,59 s, deux secondes de tampon gardées ; l'autre avance de 2,158 s et
+     non de 2,488. Ensemble, à 0,33 s de leurs places. La plus empêchée se
+     dit d'abord ; chacune a sa mesure rouverte, et sa reprise comptée. */
+  const u1 = jouer([
+    tuile('alpha', { place: { l: 6.209, b: 3.972 }, b: 6.343, a: 30, retombee: tombee(4.586, { l: 6.209, b: 3.972 }, { l: 10.795, b: 7.778 }) }),
+    tuile('bravo', { place: { l: 7.363, b: 5.789 }, b: 7.823, a: 30, retombee: tombee(2.401, { l: 7.363, b: 5.789 }, { l: 9.764, b: 7.823 }) }),
+  ]);
+  ok('le rapport réel rejoué : la référence reprend ce que son tampon permet, l\'autre la rejoint — 0,33 s derrière leurs places, ensemble',
+     u1.ordres.join(' | ') === 'alpha essai-avance 4.343 | bravo essai-avance 2.158' && u1.journal.length === 2
+     && u1.journal[0] === 'alpha : retombée derrière sa place de 4.59 s — latence 6.209 → 10.795 s, tampon 3.972 → 7.778 s'
+       + ' → elle n\'en reprend que 4.26 s (6.343 s de tampon) : avance de 4.343 s — 0.33 s derrière sa place, où les autres la rejoignent'
+     && u1.journal[1] === 'bravo : retombée derrière sa place de 2.40 s — latence 7.363 → 9.764 s, tampon 5.789 → 7.823 s'
+       + ' → elle reprend sa place à 0.33 s près, avec alpha : avance de 2.158 s'
+     && u1.signaux.join(' | ') === 'alpha place reprise | bravo place reprise'
+     && u1.k.reprises.alpha.length === 1 && u1.k.reprises.bravo.length === 1 && u1.tuiles.every((t) => !t.retombee && !t.place),
+     dire(u1));
+
+  /* CHACUNE LE PEUT : chacune reprend toute sa place, comme avant la
+     4.24.0.35, mot pour mot — derrière, en avançant ; devant, en reculant ;
+     celle qui n'a pas retombé ne bouge pas. */
+  const u2 = jouer([
+    tuile('alpha', { place: { l: 3, b: 2 }, b: 8, retombee: tombee(3, { l: 3, b: 2 }, { l: 6, b: 5 }) }),
+    tuile('bravo', { place: { l: 6, b: 3 }, b: 1.5, retombee: tombee(-2, { l: 6, b: 3 }, { l: 4, b: 1.5 }) }),
+    tuile('charlie'),
+  ]);
+  ok('chacune peut reprendre toute sa place : elle le fait, comme avant — et qui n\'a pas retombé ne bouge pas',
+     u2.ordres.join(' | ') === 'alpha essai-avance 3.087 | bravo essai-recul 1.88'
+     && u2.journal.join(' | ') === 'alpha : retombée derrière sa place de 3.00 s — latence 3 → 6 s, tampon 2 → 5 s → elle reprend sa place : avance de 3.087 s'
+       + ' | bravo : retombée devant sa place de 2.00 s — latence 6 → 4 s, tampon 3 → 1.5 s → elle reprend sa place : recule de 1.88 s'
+     && u2.tuiles[2].place?.l === 5,
+     dire(u2));
+
+  /* SANS POINT COMMUN : la référence ne peut reprendre que 3,51 de ses
+     4,6 s, et l'autre, en faible latence, ne peut pas reculer jusqu'à elle.
+     Rien ne bouge ; la retombée est sa place désormais. */
+  const u3 = jouer([
+    tuile('alpha', { place: { l: 2.2, b: 1.8 }, b: 5.6, retombee: tombee(4.6, { l: 2.2, b: 1.8 }, { l: 6.8, b: 5.6 }) }),
+    tuile('bravo', { faible: true }),
+  ]);
+  ok('sans point commun — l\'une ne peut avancer assez, l\'autre ne peut reculer — rien ne bouge, et la retombée est sa place',
+     u3.ordres.length === 0 && u3.signaux.length === 0
+     && u3.journal.join(' | ') === 'alpha : retombée derrière sa place de 4.60 s — latence 2.2 → 6.8 s, tampon 1.8 → 5.6 s'
+       + ' : rien à faire (pas de point commun — alpha : 5.6 s de tampon ; bravo : toujours en faible latence) — c\'est sa place désormais'
+     && u3.tuiles[0].place?.l === 6.8 && u3.tuiles[0].place?.b === 5.6 && !u3.tuiles[0].retombee && u3.tuiles[1].place?.l === 5,
+     dire(u3));
+
+  /* DEVANT : la tuile retombée DEVANT sa place de 3 s ne garde derrière elle
+     que 3,5 s — un recul de 1,5 s, deux secondes gardées. L'autre avance
+     jusqu'à elle, dans son tampon : à 1,38 s devant leurs places. La plus
+     empêchée se dit d'abord, même seconde dans la salle ; sa raison est
+     celle du sens où elle va. */
+  const u4 = jouer([
+    tuile('bravo', { b: 6 }),
+    tuile('alpha', { place: { l: 5, b: 3 }, a: 3.5, retombee: tombee(-3, { l: 5, b: 3 }, { l: 2, b: 1 }) }),
+  ]);
+  ok('retombée devant sa place, sans assez derrière elle : elle recule de ce qu\'elle peut, l\'autre avance jusqu\'à elle',
+     u4.ordres.join(' | ') === 'alpha essai-recul 1.5 | bravo essai-avance 1.467'
+     && u4.journal.join(' | ') === 'alpha : retombée devant sa place de 3.00 s — latence 5 → 2 s, tampon 3 → 1 s'
+       + ' → elle n\'en reprend que 1.62 s (3.5 s gardées derrière) : recule de 1.5 s — 1.38 s devant sa place, où les autres la rejoignent'
+       + ' | bravo rejoint alpha, 1.38 s devant sa place comme elle : avance de 1.467 s',
+     dire(u4));
+
+  /* TROIS REPRISES DÉJÀ, EN DIX MINUTES : elle ne bouge plus — c'est sa
+     place —, et l'autre recule jusqu'à elle ; suivre, c'est une reprise, et
+     elle compte. */
+  const u5 = jouer([
+    tuile('alpha', { b: 10, retombee: tombee(2, { l: 5, b: 3 }, { l: 7, b: 5 }) }),
+    tuile('bravo'),
+  ], T0, { alpha: [T0 - 1_000, T0 - 2_000, T0 - 3_000] });
+  ok('trois reprises déjà : elle reste, c\'est sa place, et l\'autre la rejoint — une reprise, comptée',
+     u5.ordres.join(' | ') === 'bravo essai-recul 1.88'
+     && u5.journal.join(' | ') === 'alpha : retombée derrière sa place de 2.00 s — latence 5 → 7 s, tampon 3 → 5 s'
+       + ' : rien à faire (3 reprises en 10 min) — c\'est sa place désormais, les autres l\'y rejoignent'
+       + ' | bravo rejoint alpha, 2.00 s derrière sa place comme elle : recule de 1.88 s'
+     && u5.tuiles[0].place?.l === 7 && u5.k.reprises.bravo.length === 1 && u5.k.reprises.alpha.length === 3,
+     dire(u5));
+
+  /* UNE AUTRE QUI RETOMBE ENCORE : son dernier relevé 2,5 s plus loin de sa
+     place, son tampon avec lui. Trois secondes après la retombée de la
+     première, rien ne part — elle est attendue ; dix secondes après, la
+     reprise se fait sans elle. Son tampon resté où il était : ce n'est que
+     l'estimation, elle n'est pas attendue. */
+  const enCours = (b) => [
+    tuile('alpha', { place: { l: 2.2, b: 1.8 }, b: 5.6, retombee: tombee(4.6, { l: 2.2, b: 1.8 }, { l: 6.8, b: 5.6 }) }),
+    tuile('bravo', { place: { l: 4.5, b: 3.5 }, b: 3.5, dernier: { l: 7, b, ar: 12, arL: 12, lIncoherente: false } }),
+  ];
+  const u6a = jouer(enCours(6), T0 + 3_000);
+  const u6b = jouer(enCours(6), T0 + 10_000);
+  const u6c = jouer(enCours(3.5), T0 + 3_000);
+  ok('une autre qui retombe encore est attendue — dix secondes au plus ; son tampon resté en place, elle ne l\'est pas',
+     u6a.ordres.length === 0 && u6a.journal.length === 0 && !!u6a.tuiles[0].retombee
+     && u6b.ordres.join(' | ') === 'alpha essai-avance 3.6 | bravo essai-recul 0.967'
+     && u6c.ordres.join(' | ') === 'alpha essai-avance 3.6 | bravo essai-recul 0.967',
+     JSON.stringify({ a: dire(u6a), b: dire(u6b), c: dire(u6c) }));
+
+  /* LA PUB : rien ne s'envoie à une tuile en pub. L'autre en pub, la tuile
+     retombée reprend seule ce qu'elle peut — personne à rejoindre, le
+     journal ne le dit pas ; elle-même en pub, elle attend sa fin. */
+  const u7a = jouer([
+    tuile('alpha', { place: { l: 2.2, b: 1.8 }, b: 5.6, retombee: tombee(4.6, { l: 2.2, b: 1.8 }, { l: 6.8, b: 5.6 }) }),
+    tuile('bravo', { pub: true }),
+  ]);
+  const u7b = jouer([
+    tuile('alpha', { pub: true, b: 9, retombee: tombee(3, { l: 5, b: 3 }, { l: 8, b: 6 }) }),
+    tuile('bravo'),
+  ]);
+  ok('la pub : l\'autre en pub, la tuile reprend seule ce qu\'elle peut ; elle-même en pub, rien ne part',
+     u7a.ordres.join(' | ') === 'alpha essai-avance 3.6'
+     && u7a.journal.join(' | ') === 'alpha : retombée derrière sa place de 4.60 s — latence 2.2 → 6.8 s, tampon 1.8 → 5.6 s'
+       + ' → elle n\'en reprend que 3.51 s (5.6 s de tampon) : avance de 3.6 s — 1.09 s derrière sa place'
+     && u7b.ordres.length === 0 && u7b.journal.length === 0 && !!u7b.tuiles[0].retombee,
+     JSON.stringify({ a: dire(u7a), b: dire(u7b) }));
+
+  /* ── EN DIRECT ─────────────────────────────────────────────────────────── */
+  const page = await freshTwitch(S_LECTEUR_SONDE(), [], '/directory', () => {
+    localStorage.setItem('tse:roue', 'vu');
+    document.addEventListener('DOMContentLoaded', () => {
+      const st = document.createElement('style');
+      st.textContent = '#side-nav { width: 240px; }';
+      document.head.appendChild(st);
+    });
+  });
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  const rapport = () => page.evaluate(() => window.tse.salle.rapport()).catch(() => ({}));
+  const cadre = (ch) => page.frames().find((f) => f.url().includes('channel=' + ch) && !f.isDetached());
+  const lecteur = (ch, f, arg) => cadre(ch)?.evaluate(f, arg).catch(() => null);
+  const journal = (r) => Object.values(r.calage?.journal || {});
+  const tant = (fn, ms, arg = null) => page.waitForFunction(fn, arg, { timeout: ms, polling: 500 }).then(() => true).catch(() => false);
+  const prise = (ch) => lecteur(ch, () => { const l = window.__lecteur; l.maj(); return (l.L - l.L0) * 1000; });
+  // Le décalage vrai de « omega » face à « xray », qui passent les mêmes sons au même instant : positif, en avance.
+  const vraie = async () => {
+    const t = await prise('omega'), r = await prise('xray');
+    return t == null || r == null ? null : Math.round(-(t - r));
+  };
+  const calee = async (ms) => {
+    for (const t0 = Date.now(); Date.now() - t0 < ms; await wait(page, 2_000)) {
+      const k = (await rapport()).calage;
+      if (k?.etat === 'actif · calée' && k?.tuiles?.omega === 'calée' && Math.abs(await vraie() ?? 1e9) < 150) return true;
+    }
+    return false;
+  };
+  // Les deux places apprises — après chaque geste, quatre secondes et dix relevés tranquilles.
+  const places = () => tant(() => { const t = window.tse.salle.rapport().tuiles || {}; return !!t.xray?.place && !!t.omega?.place; }, 60_000);
+  // 150 ms après un relevé de « xray » : ce qui part ensuite tombe entre deux relevés (cf. 193).
+  const apresReleve = async () => {
+    const phase = await page.evaluate(() => {
+      const s = window.tse.salle.series()?.tuiles?.xray || [];
+      return s.length ? (((s[s.length - 1].t + 150 - Date.now()) % 1000) + 1000) % 1000 : 0;
+    });
+    await wait(page, phase);
+  };
+  // Les lignes du journal à partir de la n-ième, sans leur heure ; et l'heure de celles d'une reprise.
+  const lignes = (r, n) => journal(r).slice(n).map((x) => x.replace(/^\+\d+ s · /, ''));
+  const heures = (r, n) => journal(r).slice(n).filter((x) => / : retombée |rejoint/.test(x)).map((x) => (/^\+(\d+) s/.exec(x) || [])[1]);
+  const nombre = (x) => (x === undefined ? NaN : Number(x));
+  const RX_ANCRE = (n, dl, sens) => new RegExp(`^${n} : retombée derrière sa place de ${dl} s — latence [\\d.]+ → [\\d.]+ s, tampon [\\d.]+ → [\\d.]+ s`
+    + ` → elle n'en reprend que (\\d+\\.\\d\\d) s \\((\\d+(?:\\.\\d+)?) s de tampon\\) : avance de (\\d+(?:\\.\\d+)?) s — (\\d+\\.\\d\\d) s derrière sa place${sens}$`);
+  const RX_AVEC = (dl) => new RegExp(`^omega : retombée derrière sa place de ${dl} s — latence [\\d.]+ → [\\d.]+ s, tampon [\\d.]+ → [\\d.]+ s`
+    + ' → elle reprend sa place à (\\d+\\.\\d\\d) s près, avec xray : avance de (\\d+(?:\\.\\d+)?) s$');
+
+  await page.evaluate(() => window.tse.salle.ouvrir('xray', 'omega'));
+  await attendre(page, () => (window.tse.salle.rapport().instant?.tours || 0) >= 4, 20_000);
+  await page.evaluate(() => window.tse.salle.auto(0.1)).catch(() => {});
+  const cal0 = await calee(200_000);
+  const pl0 = await places();
+
+  /* ENSEMBLE. Le tampon de « xray » ne prend que 3,8 de ses 4,6 s : son
+     ordre, ce tampon moins deux secondes ; ce qu'elle reprend, l'ordre moins
+     ce qu'une avance perd (0,087 s) ; le retard commun, le reste. « omega »
+     avance de son retard moins celui-là. Deux secondes après, avant que le
+     son n'ait rien réentendu, la paire est où elle était. */
+  const n1 = journal(await rapport()).length;
+  const v1 = await vraie();
+  const b1 = await lecteur('xray', () => window.__lecteur.B);
+  await apresReleve();
+  const t1 = Date.now();
+  await lecteur('xray', (b) => window.__retomber(4.6, b + 3.8), b1);
+  await lecteur('omega', () => window.__retomber(2.4));
+  const fait1 = await tant((n) => Object.values(window.tse.salle.rapport().calage?.journal || {}).slice(n)
+    .some((x) => / : retombée derrière sa place de 2\.\d\d s .* avec xray/.test(x)), 40_000, n1);
+  await wait(page, 2_000);
+  const v1b = await vraie();
+  const r1 = await rapport();
+  const l1 = lignes(r1, n1).filter((x) => / : retombée /.test(x));
+  const a1 = RX_ANCRE('xray', '4\\.[56]\\d', ', où les autres la rejoignent').exec(l1[0] || '') || [];
+  const o1 = RX_AVEC('2\\.[34]\\d').exec(l1[1] || '') || [];
+  const [, pris1, tampon1, ordre1, retard1] = a1.map(nombre);
+  ok('ensemble : « xray », à court de tampon, reprend ce qu\'il lui permet, « omega » la rejoint — la paire reste calée, sans le son',
+     cal0 && pl0 && fait1 && l1.length === 2 && a1.length === 5 && o1.length === 3
+     && Math.abs(tampon1 - (b1 + 3.8)) < 0.01 && Math.abs(ordre1 - (tampon1 - 2)) < 0.002 && Math.abs(pris1 - (ordre1 - 0.087)) < 0.006
+     && Math.abs(retard1 - (4.6 - pris1)) < 0.03 && nombre(o1[1]) === retard1 && Math.abs(nombre(o1[2]) - (2.4 - retard1 + 0.087)) < 0.03
+     && heures(r1, n1).length === 2 && new Set(heures(r1, n1)).size === 1
+     && Math.abs(v1b - v1) < 150,
+     JSON.stringify({ cal0, pl0, fait1, b1, v1, v1b, lignes: lignes(r1, n1), heures: heures(r1, n1) }));
+
+  /* L'UNE APRÈS L'AUTRE : « omega » retombe trois secondes après « xray ».
+     Sa retombée vue, « xray » attend qu'« omega » le soit aussi : les deux
+     lignes à la même seconde, « omega » reprend sa place avec elle, et la
+     paire est où elle était. Mutant — aucune attente : « omega » suivrait
+     « xray » sans avoir pris sa chute en compte, 2,5 s derrière elle. */
+  const pl2 = await places();
+  const n2 = journal(await rapport()).length;
+  const v2 = await vraie();
+  const b2 = await lecteur('xray', () => window.__lecteur.B);
+  await apresReleve();
+  const t2 = Date.now();
+  await lecteur('xray', (b) => window.__retomber(4, b + 3.2), b2);
+  await wait(page, 3_000);
+  await lecteur('omega', () => window.__retomber(2.5));
+  const fait2 = await tant((n) => Object.values(window.tse.salle.rapport().calage?.journal || {}).slice(n)
+    .some((x) => / : retombée derrière sa place de 2\.\d\d s .* avec xray/.test(x)), 40_000, n2);
+  await wait(page, 2_000);
+  const v2b = await vraie();
+  const r2 = await rapport();
+  const l2 = lignes(r2, n2).filter((x) => / : retombée /.test(x));
+  const a2 = RX_ANCRE('xray', '(?:3\\.9\\d|4\\.0\\d)', ', où les autres la rejoignent').exec(l2[0] || '') || [];
+  const o2 = RX_AVEC('2\\.[45]\\d').exec(l2[1] || '') || [];
+  ok('l\'une après l\'autre : « xray » retombée attend qu\'« omega » le soit aussi, et leurs places se reprennent ensemble',
+     pl2 && fait2 && l2.length === 2 && a2.length === 5 && o2.length === 3 && nombre(o2[1]) === nombre(a2[4])
+     && heures(r2, n2).length === 2 && new Set(heures(r2, n2)).size === 1 && !lignes(r2, n2).some((x) => /^omega rejoint/.test(x))
+     && Math.abs(v2b - v2) < 150,
+     JSON.stringify({ pl2, fait2, b2, v2, v2b, attendu: Date.now() - t2, lignes: lignes(r2, n2), heures: heures(r2, n2) }));
+
+  /* QUI N'A PAS RETOMBÉ SUIT : « xray » retombe seule de 3 s, son tampon de
+     2 s seulement ; « omega » recule jusqu'à elle — son ordre, le retard
+     commun moins ce qu'un recul cale en plus (0,12 s). Puis le son la dit
+     calée, sans rien corriger. */
+  const pl3 = await places();
+  const n3 = journal(await rapport()).length;
+  const v3 = await vraie();
+  const b3 = await lecteur('xray', () => window.__lecteur.B);
+  await apresReleve();
+  await lecteur('xray', (b) => window.__retomber(3, b + 2), b3);
+  const fait3 = await tant((n) => Object.values(window.tse.salle.rapport().calage?.journal || {}).slice(n)
+    .some((x) => /^\+\d+ s · omega rejoint xray/.test(x)), 40_000, n3);
+  await wait(page, 2_000);
+  const v3b = await vraie();
+  const r3 = await rapport();
+  const l3 = lignes(r3, n3).filter((x) => / : retombée |rejoint/.test(x));
+  const a3 = RX_ANCRE('xray', '(?:2\\.9\\d|3\\.0\\d)', ', où les autres la rejoignent').exec(l3[0] || '') || [];
+  const o3 = /^omega rejoint xray, (\d+\.\d\d) s derrière sa place comme elle : recule de (\d+(?:\.\d+)?) s$/.exec(l3[1] || '') || [];
+  const corr3 = (await rapport()).calage?.corrections;
+  const cal3 = await calee(120_000);
+  const r3b = await rapport();
+  ok('qui n\'a pas retombé suit : « xray » retombée seule, à court de tampon, « omega » recule jusqu\'à elle — et le son la dit calée, sans rien corriger',
+     pl3 && fait3 && l3.length === 2 && a3.length === 5 && o3.length === 3 && nombre(o3[1]) === nombre(a3[4])
+     && Math.abs(nombre(o3[2]) - Math.max(0.05, nombre(o3[1]) - 0.12)) < 0.006
+     && Math.abs(v3b - v3) < 150 && cal3 && r3b.calage?.corrections === corr3 && /omega \d/.test(r3b.calage?.reprises || ''),
+     JSON.stringify({ pl3, fait3, b3, v3, v3b, cal3, corrections: [corr3, r3b.calage?.corrections], reprises: r3b.calage?.reprises,
+                      lignes: lignes(r3b, n3) }));
   await page.close();
 }
 

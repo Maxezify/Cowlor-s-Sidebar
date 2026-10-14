@@ -2180,6 +2180,202 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## La seconde voix, et la place reprise ensemble (v4.24.0.35)
+
+Le rapport : « Voici le rapport, avec pub, sur la dernière version. J'ai cru
+voir quelques minutes d'attente au début pour le calage, il y a eu de la pub
+au tout début de stream. » Puis la demande : « Fais Correctif A (recommandé)
+et Correctif B. Seulement claude/chrome-multi. Soit rigoureux. » Publiée sur
+`claude/chrome-multi` seulement.
+
+### Ce que le rapport a montré
+
+Deux streams, dix-sept minutes, une pub de 14 s sur la référence dès +6 s.
+
+- **La pub a coûté vingt-cinq secondes, pas plus.** Sa fin rouvre la mesure
+  de toutes les tuiles (+20 s) ; la faible latence retirée (+21 s) et un
+  rattrapage du lecteur (+22 s) la rouvrent encore ; le premier calcul
+  compté vient vers +30 s.
+- **Ce qui a attendu six minutes et demie, c'est la règle de l'écho.** De
+  là jusqu'à +405 s, chaque calcul a dit « une source seule, à 1510 ms — un
+  écho, peut-être : rien ne bouge ». Deux voix pourtant : 1510 ms —
+  vingt-quatre premiers pics sur trente — et ~1000 ms, deux à six. Un salon
+  vocal exigeait que la seconde pèse le quart de la première ; elle est
+  restée juste en dessous, jusqu'à l'atteindre pile à +410 s (6 sur 24) :
+  verdict, recul de 1,39 s à +415 s, calée à −20 ms à +480 s. La cible était
+  juste : calée, la paire a gardé ses deux voix, à −550 et −20 ms, le même
+  écart de 530 ms — un salon où un micro domine, pas un écho.
+- **Un second défaut, à +795 s.** Les deux tuiles sont retombées derrière
+  leur place au même instant — la référence de 4,59 s, l'autre de 2,40. La
+  référence n'a pas pu reprendre la sienne : 6,343 s de tampon, il en fallait
+  6,673 (l'avance et ses deux secondes de marge). L'autre a repris la sienne,
+  2,488 s — mais sa place ne valait qu'en face de l'ancienne place de la
+  référence : de 1,9 s devant elle, la voilà à **4,3 s**, quarante secondes
+  durant, jusqu'au recul de 4,19 s que le son a décidé à +835 s.
+- `salle.prete` dit « délai · 3039 ms » : aucune tuile ne jouait encore à
+  trois secondes — leurs changements de qualité, à +4,2 et +4,5 s, montrent
+  des lecteurs qui démarraient à peine. Le pont dit son état chaque seconde ;
+  l'anneau s'est arrêté au plafond prévu. Rien à corriger.
+
+### Le salon déséquilibré
+
+Ce qui sépare un écho d'un salon, aux six écoutes réelles gardées :
+
+| écoute réelle | la grappe | écart à la plus lourde | ce que c'était |
+| --- | --- | --- | --- |
+| huitième | 1040 seule, puis 2370 seule | — | un écho — l'œil voyait la paire juste |
+| neuvième | 1110 (21 premiers pics) et 1000 (4) | 110 ms | un écho, au-dessus d'un salon à 40 ms |
+| à trois streams | 1410–1460 (24) et 1690 (2 à 6) | 230 à 280 ms | un vrai décalage, que le calage avait créé |
+| 4.24.0.34 | 1510 (24) et 1000 (2 à 6) | 510 ms | un vrai décalage, à l'ouverture |
+
+Un écho, c'est **tout** l'autre stream rejoué : un seul décalage, étalé d'un
+dixième de seconde. Un salon, ce sont des voix **distinctes** — la voix de
+chacun par deux chemins, celui du micro et celui du salon vocal —, à 0,2 s au
+moins l'une de l'autre à tous les rapports réels.
+
+**La règle** : une source loin de zéro — au-delà de 0,5 s — dont la grappe a
+une **seconde voix établie** (deux premiers pics au moins) **à 0,2 s au moins
+de la plus lourde** est un salon déséquilibré ; on vise sa plus haute voix,
+comme pour tout salon. Rien d'autre ne change : une source vraiment seule, ou
+dont la seconde voix est collée à la première, attend toujours ; près de
+zéro, une source seule reste jugée sur sa voix la plus lourde. Au rapport, le
+verdict le dit : « en avance de 1.51 s (+1510 ms, un salon déséquilibré) ».
+
+**Rejouée** sur les six écoutes, calcul après calcul (185) :
+
+| écoute | jusqu'à la 4.24.0.34 | désormais |
+| --- | --- | --- |
+| quatorzième | −3840 décidé au 41ᵉ calcul | le même, calcul pour calcul |
+| huitième | jamais une décision | le même |
+| neuvième | le salon à 40 ms au 7ᵉ, l'écho jamais | le même |
+| douzième | 1175, la plus haute voix, au 15ᵉ | le même |
+| à trois streams | 1690 au 114ᵉ calcul | 1690 au **34ᵉ**, sept minutes plus tôt |
+| 4.24.0.34 | « source seule » jusqu'au 75ᵉ calcul ; 1510 au 76ᵉ (+410 s) | chacun des vingt calculs refusés que le rapport garde décide 1510 |
+
+Le début de la 4.24.0.34 — de +30 à +250 s — n'est pas au rapport :
+l'historique garde les cent cinquante derniers calculs, la session en a
+fait cent quatre-vingt-quatorze. Ailleurs, les voix ont partout la même
+forme : la décision serait **probablement** venue dans la minute qui suit la
+pub, ce que ce rapport ne peut pas prouver. Ses trois autres segments — après
+le recul, l'avance et le second recul — décident ce que le pilote a décidé :
+−20 à −30 ms, 4310 ms, 40 à 50 ms.
+
+**Le seuil, balayé de 90 à 600 ms** sur les six : à 110 ms et moins, l'écho du
+neuvième est suivi ; de 120 à 230 ms, la même première décision partout ;
+au-delà de 300 ms, l'écoute à trois streams n'y gagne plus rien, au-delà de
+510 ms celle de la 4.24.0.34 non plus. **200 ms** — le bas de l'écart d'un
+salon, que le code disait déjà (« 0,2–0,3 s ») —, 90 ms au-dessus de l'écho.
+
+**Ce que cela ne couvre pas** : un écho étalé de plus de 0,2 s, avec deux
+premiers pics à son bord, serait suivi — jamais vu, celui du neuvième l'est
+de 0,11 s. Et un écho lié dans la même grappe à la voix haute d'un salon —
+moins de 0,7 s entre eux — l'était déjà, la seconde voix assez lourde, avant
+la 4.24.0.35 : le salon déséquilibré étend ce cas aux voix légères, il ne le
+crée pas. Les échos vus étaient à plus d'une seconde de leur salon.
+
+### La place reprise ensemble
+
+Une place, c'est une **relation à toutes** : la reprendre seule, quand une
+autre n'a pas pu reprendre la sienne, défait cette relation. Désormais les
+tuiles retombées — et celles qui n'ont pas retombé — vont **ensemble** au même
+retard sur leur place :
+
+- chacune peut aller de `dl − av` à `dl + re` — son retard sur sa place, moins
+  ce que son tampon lui laisse reprendre vers le direct (deux secondes
+  gardées, ce qu'une avance perd compté), plus ce qu'elle garde derrière elle
+  pour reculer (si elle le peut : ni en faible latence, ni un lecteur qui
+  reprend chaque recul) ; trois reprises déjà en dix minutes, rien ;
+- **le retard commun** : zéro si toutes l'atteignent — chacune reprend toute
+  sa place, comme avant, mot pour mot ; sinon le plus proche de zéro que
+  toutes atteignent. La plus empêchée reprend ce qu'elle peut, les autres
+  l'y rejoignent, celles qui n'ont pas retombé comprises ;
+- **sans point commun** — l'une ne peut avancer assez, une autre ne peut
+  reculer —, rien ne bouge : chaque retombée devient sa place, et le grand
+  écart et le son feront ce qu'ils peuvent ;
+- **une tuile qui retombe encore** — son dernier relevé à 1,5 s de sa place
+  au moins, le tampon d'accord, avant les six relevés tranquilles qui le
+  diront — est attendue, **dix secondes au plus** : la déplacer maintenant,
+  ce serait sur une place qu'elle n'a déjà plus. Le rapport en montrait la
+  forme : les latences des deux tuiles avaient sauté à douze secondes
+  d'écart ;
+- rejoindre une autre est une reprise, et compte dans les trois.
+
+Le rapport réel, rejoué par le code (198) : la référence avance de 4,343 s
+— elle en reprend 4,26 sur 4,59, deux secondes de tampon gardées —, l'autre
+de 2,158 s et non plus de 2,488. Ensemble, à 0,33 s de leurs places ; il
+reste au son ce que les latences se trompent, environ 0,3 s, au lieu de
+4,3 s pendant quarante secondes.
+
+Au journal :
+
+```
+alpha : retombée derrière sa place de 4.59 s — latence 6.209 → 10.795 s, tampon 3.972 → 7.778 s → elle n'en reprend que 4.26 s (6.343 s de tampon) : avance de 4.343 s — 0.33 s derrière sa place, où les autres la rejoignent
+```
+
+### Ce que le banc mesure
+
+- **185**, sur six écoutes réelles — celle de la 4.24.0.34 ajoutée, ses
+  déplacements pris au journal, faute de relation d'horloge : les vingt
+  calculs que le pilote refusait décident 1510, en salon déséquilibré ; les
+  deux à une seule voix restent « une source seule » ; ses trois autres
+  segments décident ce que le pilote a décidé. L'écoute à trois streams est
+  décidée au 34ᵉ calcul, sur 1690. Les quatre autres, inchangées. Et le
+  salon déséquilibré aux bords, sur trente calculs posés : une seconde voix
+  à 0,25 s et à 0,2 s pile, décidé, la plus haute visée, et le verdict le
+  dit ; à 0,19 s, d'un seul premier pic, ou près de zéro, rien de changé.
+- **198**, nouveau — la règle de la reprise, extraite du code tel qu'il est
+  livré, sur des états posés : le rapport réel, rejoué au chiffre près ;
+  chacune qui le peut, comme avant, mot pour mot ; sans point commun ; une
+  retombée devant sa place ; trois reprises déjà ; une autre qui retombe
+  encore, attendue puis plus après dix secondes, et pas attendue quand son
+  tampon n'a pas bougé ; la pub. Puis en direct, à l'échelle 0,1, « xray »
+  et « omega » calées : retombées ensemble, « xray » à court de tampon ;
+  l'une trois secondes après l'autre ; « omega » qui n'a pas retombé et
+  recule jusqu'à « xray ». À chaque fois, deux secondes après, la paire est
+  où elle était — avant que le son n'ait rien réentendu.
+- **Le faux lecteur** : `__retomber(x, b)` dit le tampon qu'une tuile a
+  après sa chute, s'il n'a pas tout pris.
+
+Sur la même machine, les scénarios du calage voisins — 183, 184, 188, 190,
+192 et 193 — : 23 sur 23.
+
+Le banc complet : 1688 assertions dans 197 scénarios, toutes vertes.
+
+| mutant | ce qui tombe |
+| --- | --- |
+| l'ancienne règle, sans salon déséquilibré (1) | 185 : trois — l'écoute à trois streams, celle de la 4.24.0.34, les bords |
+| la seconde voix distincte à 100 ms (1) | 185 : trois — l'écho du neuvième suivi |
+| la seconde voix distincte à 300 ms (1) | 185 : deux — l'écoute à trois streams, les bords |
+| 200 ms pile exclus (1) | 185 : les bords |
+| la plus lourde visée, et non la plus haute (1) | 185 : deux |
+| le salon déséquilibré près de zéro aussi (1) | 185 : deux — l'écoute de la 4.24.0.34, les bords |
+| la seconde voix prise dans une autre grappe (1) | 185 : deux — les échos des huitième et neuvième suivis |
+| le verdict qui ne le dit pas (1) | 185 : les bords |
+| chacune pour soi, la reprise d'avant (1) | 198 : neuf, les trois en direct comprises |
+| pas de reprise partielle (1) | 198 : quatre |
+| qui n'a pas retombé, laissée là (1) | 198 : quatre, dont « omega » qui ne suit pas |
+| aucune attente (1) | 198 : trois — en direct, « omega » 2,54 s derrière « xray » |
+| une attente sans fin (1) | 198 : l'attente posée |
+| l'attente sans le tampon (1) | 198 : l'attente posée |
+| le retard commun jamais ramené à zéro (1) | 198 : deux |
+| sans point commun, un geste quand même (1) | 198 |
+| la tuile en pub comptée (1) | 198 |
+| la retombée en pub reprise (1) | 198 |
+| la raison de l'autre sens (1) | 198 |
+| suivre, sans compter la reprise (1) | 198 |
+| la mesure pas rouverte (1) | 198 |
+| la place pas oubliée après le geste (1) | 198 |
+| la plus empêchée pas dite d'abord (1) | 198 |
+| les deux secondes de marge oubliées (1) | 198 : quatre |
+| ce qu'une avance perd, oublié (1) | 198 : trois |
+| la faible latence reculée quand même (1) | 198 |
+| la retombée sans son heure (1) | 198 : deux, en direct |
+
+Vingt-sept mutants, tous pris au premier passage. **Le retard commun jamais
+ramené à zéro** ne fait rien tomber au 193 : la référence y a moins de deux
+secondes de tampon, rien à reprendre vers le direct, et le retard commun y
+vaut zéro de lui-même. Ce sont les états posés du 198 qui le prennent.
+
 ## Le curseur de la piste (v4.24.0.34)
 
 La demande, en trois temps. D'abord : « propose-moi d'autres idées pour le
@@ -18199,7 +18395,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 196 scénarios, 1676 assertions |
+| `npm test` | le harnais Playwright : 197 scénarios, 1688 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -18220,12 +18416,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1644 Ko | 665 Ko | 4 136 → **2** |
+| `content.js` | 1651 Ko | 668 Ko | 4 147 → **2** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
 | `panneau.js` | 107 Ko | 51 Ko | 150 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
-| `background.js` | 9 Ko | 2 Ko | 22 → **0** |
-| **les cinq** | **1900 Ko** | **822 Ko** | **−57 %** |
+| `background.js` | 10 Ko | 2 Ko | 22 → **0** |
+| **les cinq** | **1907 Ko** | **825 Ko** | **−57 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
