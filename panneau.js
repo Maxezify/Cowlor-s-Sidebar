@@ -143,6 +143,8 @@ const COL = {
   ancien:    { cle: 'colFormer',    f: fmt.oui },
   origine:   { cle: 'colSource',    f: fmt.texte, classe: () => 'faible' },
   echeance:  { cle: 'colDue',       f: fmt.jour },
+  // L'échéance est une fin — un offert, un payé qu'on ne renouvelle plus —, et non un anniversaire (4.24.0.36).
+  fin:       { cle: 'colEnd',       f: fmt.oui },
   lag:       { cle: 'colLag',       f: fmt.duree, num: true },
   gain:      { cle: 'colGain',      f: fmt.duree, num: true },
   t:         { cle: 'colElapsed',   f: fmt.duree, num: true },
@@ -1887,6 +1889,16 @@ const construireRapport = (r, transport, fond) => {
     paire('prochain relevé dans / next sweep in',
           Number.isFinite(r.relevesAbonnements?.prochainDansMs)
             ? `${Math.round(r.relevesAbonnements.prochainDansMs / 60_000)} min` : '—'),
+    /* CE QUE LE DERNIER RELEVÉ DE CETTE PAGE A RENDU À LEUR PASSÉ (4.24.0.36) :
+       les chaînes des expirés qu'aucun onglet en cours ne listait. « non
+       jugé » quand un onglet en cours n'a pas été lu jusqu'au bout — le
+       relevé s'est alors gardé de conclure ; « — » quand cette page n'a pas
+       fait de relevé. */
+    paire('rendues à leur passé / moved to former',
+          !r.relevesAbonnements?.fini ? '—'
+            : r.relevesAbonnements.revolus === null || r.relevesAbonnements.revolus === undefined
+              ? 'non jugé — un onglet en cours n\'a pas été lu / not judged — a current tab was not read'
+              : r.relevesAbonnements.revolus),
     /* POURQUOI LA PAGE A ÉTÉ RECHARGÉE AU LIEU D'ÊTRE CLIQUÉE. La 4.19.2 se
        taisait là-dessus, et un rapport entier de « page » n'a rien dit de la
        barre d'onglets de Twitch — il a fallu la demander à la console. */

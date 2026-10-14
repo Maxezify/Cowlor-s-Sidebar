@@ -2180,6 +2180,159 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## La fin d'un abonnement, et l'ancien abonné (v4.24.0.36)
+
+La demande : « Concernant les abonnements, peux-tu vérifier que quand
+l'échéance est passée, on n'a plus le badge abonné, et on a le badge ancien
+abonné. J'ai l'impression que certains étaient considérés comme abonnés mais
+avec une échéance passée. Investigue, sois rigoureux et fix, seulement sur
+chrome-multi. » Publiée sur `claude/chrome-multi` seulement.
+
+### C'était vrai
+
+- **Le relevé n'écrivait jamais « non abonné ».** Il est additif, et c'est
+  voulu : il marque abonné ce qu'il trouve dans les onglets en cours, et une
+  absence ne prouve rien. Un abonnement qui finit quitte pourtant l'onglet
+  des offerts — ou des payés — pour celui des **expirés**, et cet onglet-là ne
+  touchait qu'à l'ancienneté. La chaîne restait donc abonnée pendant toute la
+  durée d'une observation, **cent vingt jours**, à moins d'ouvrir sa page :
+  le décor de la carte, le tri, la pastille et le badge « Abonné » avec.
+- **Entre deux relevés — trois à vingt-quatre heures —, rien ne regardait la
+  date.** Un abonnement offert expiré la veille restait abonné jusqu'au
+  relevé suivant, et au-delà pour la raison ci-dessus.
+- **Le tableau « Abonnements » du panneau le montrait** : « Abonné : oui » à
+  côté d'une échéance passée. Il recopiait l'état noté, sans rien en juger.
+- **Un payé qu'on ne renouvelle plus avait sa fin lue comme un
+  anniversaire.** Sa carte dit « Vos avantages arrivent à expiration le … »,
+  les mots d'un offert, là où un payé qui se renouvelle dit « Date de
+  renouvellement de l'abonnement » ; le badge disait « Prochain anniversaire
+  dans N jours ».
+
+Le nouveau scénario, rejoué sur la 4.24.0.35 : **sept assertions sur neuf
+échouent** — « Abonné • 1 MOIS » pour une chaîne que Twitch range dans les
+expirés, « Abonné • 2 MOIS » pour un offert expiré la veille.
+
+Le dernier rapport joint ne dit pas lesquelles : il ne porte que des comptes.
+Il en dit la forme : 16 abonnés notés, 19 échéances connues — au moins trois
+entrées gardaient l'échéance d'un abonnement que la visite de leur page avait
+déjà dit fini, la seule voie, jusqu'ici, vers « non abonné ».
+
+### Ce qui change
+
+- **Le relevé juge les révolus.** Une chaîne que l'onglet des expirés liste,
+  et qu'**aucun** des trois onglets en cours ne liste, n'est plus abonnée —
+  Twitch le dit lui-même ; son échéance part avec l'abonnement qu'elle datait.
+  Le jugement se rend à la fin du relevé, tous les onglets lus : une chaîne
+  réabonnée après une interruption figure dans les deux, et reste abonnée.
+  Il ne se rend que si **chaque onglet en cours a été lu jusqu'au bout** —
+  ses cartes, ou le message que Twitch écrit à leur place. Un onglet resté
+  blanc ne prouve pas qu'il est vide : rien n'est jugé, et le rapport le dit.
+  Une chaîne qu'aucun onglet ne nomme, ni en cours ni expiré, n'est pas
+  touchée : l'absence ne prouve toujours rien.
+- **La date d'une fin suffit.** L'expiration d'un offert, ou la fin d'un
+  payé ou d'un mobile qu'on ne renouvelle plus : dès le lendemain, la chaîne
+  n'est plus abonnée et l'aperçu dit « Ancien abonné • N MOIS », sans
+  attendre le relevé. Le jour même, l'abonnement court encore — Twitch
+  l'arrête dans la journée — et le badge dit « Expire aujourd'hui ».
+- **Une fin n'est pas un anniversaire.** L'étiquette de la date d'un offert,
+  la seule qui soit toujours une fin, s'apprend sur sa carte et se mémorise
+  (`tse:subfin`), sans un mot de français, comme celle de l'ancienneté.
+  Retrouvée sur une carte payée ou mobile, elle dit un abonnement qu'on ne
+  renouvelle plus : « Expire dans N jours », et la date qui compte est celle
+  qu'elle porte. Jugé à la fin du relevé, lui aussi : au premier, les payés
+  se lisent avant les offerts. **Sans aucun offert jamais vu**, rien ne se
+  compare : la date reste un anniversaire, et le relevé qui suit la fin la
+  constate — trois à vingt-quatre heures plus tard.
+- **Ce qui ne change pas** : un anniversaire passé est un renouvellement.
+  L'abonnement continue, le badge reste « Abonné » — son échéance se tait —,
+  et le relevé suivant apporte la date d'après.
+
+**Le tableau du panneau, et `tse.subs()`, disent ce que la barre montre** :
+« Abonné » et « Révolu » sont ceux de la barre et de l'aperçu, et une
+colonne « Fin » dit, en douze langues, si l'échéance est une fin ou un
+anniversaire. `tse.subs()` garde aussi `finie` — la fin est passée — et
+`note` — ce que la mémoire a noté. Au rapport : `compteurs.abonnes` compte ce
+que la barre montre, `compteurs.finies` les abonnements notés en cours dont la
+fin est passée — ceux qui attendent le relevé ; et, dans le relevé de la page,
+« rendues à leur passé », le nombre de chaînes jugées — ou « non jugé », et
+pourquoi. La mémoire, un septième champ facultatif, la fin ; une mémoire
+d'avant reste lue telle quelle, un offert sans ce champ restant une fin.
+
+### Ce que le banc mesure
+
+- **199**, nouveau :
+  - **le relevé** rend à leur passé les deux chaînes que seuls les expirés
+    listent — leur carte perd le décor d'abonné, leur aperçu dit « Ancien
+    abonné » —, garde la réabonnée, son anniversaire relu, et celle qu'aucun
+    onglet ne nomme ;
+  - **un onglet en cours resté blanc** : rien n'est jugé, « non jugé » ;
+  - **sans relevé**, la date : un offert expiré hier et un payé non renouvelé
+    dont la fin est passée sont d'anciens abonnés ; « Expire aujourd'hui » le
+    jour même, « Expire dans 5 jours » avant ; un anniversaire passé, toujours
+    abonné ; `tse.subs()` — le tableau du panneau — et le compte au rapport ;
+  - **l'étiquette de fin**, apprise sur un offert et retrouvée sur une carte
+    payée au tout premier relevé — « Expire dans 8 jours » ; sans offert,
+    l'anniversaire.
+- **70** — la ligne « rendues à leur passé » du rapport, et « non jugé ».
+- **69** — la colonne « Fin » est connue du panneau, comme toute colonne que
+  la page lui envoie.
+- **Le décor** : `__subsPayeFin`, une carte payée qui ne se renouvelle plus,
+  avec les mots du relevé du 31/08/2026 ; `__subsBlancOnglets`, des onglets
+  qui restent blancs pendant que les autres rendent leurs cartes.
+- **Le banc lui-même, trouvé en passant** : la rafale du 196 (4.24.0.33) pose
+  ses cent dix silences communs de 120 ms, et non plus de 60. Chaque tuile du
+  décor les pose à l'heure de sa propre correspondance entre l'horloge et son
+  son, et sous la charge d'un banc complet elle glisse de quelques dizaines de
+  millisecondes : un silence de 60 ms n'avait plus, entre deux tuiles, les
+  50 ms d'un silence commun. Un sur cent dix manquait — trois une fois —, dans
+  les trois paires de « foxtrot » à la fois. Mesuré en alternant les deux
+  versions sur le 196 seul : une passe sur neuf de la 4.24.0.35 échoue, deux
+  sur treize de celle-ci — le défaut n'était pas le sien. Le compte au-delà de
+  cent, qui est ce que le 196 mesure, n'y change rien : rejoué, le compte
+  plafonné à la mémoire tombe toujours — cent, là où il en faut cent
+  quatorze. Dix passes du 196 seul, dix vertes.
+
+Les dix-sept autres scénarios des abonnements — 42, 44 à 46, 48 à 51, 53 à
+55, 57, 75, 127, 137, 141, 157 — : 174 sur 174 ; 158, 70, 43 et 147 avec le
+199 : 78 sur 78.
+
+Le banc complet : 1698 assertions dans 198 scénarios, toutes vertes.
+
+| mutant | ce qui tombe |
+| --- | --- |
+| les révolus jamais jugés (1) | 199 : deux — les deux révolues restent abonnées, et dorées |
+| un onglet blanc compté pour lu (1) | 199 : « non jugé » ne vient plus |
+| la réabonnée rendue à son passé (1) | 199 : deux |
+| l'échéance des révolus gardée (1) | 199 |
+| la fin passée ignorée (1) | 199 : l'offert expiré hier, le payé fini, toujours abonnés |
+| le jour même déjà fini (1) | 199 : deux — « Expire aujourd'hui » perdu |
+| l'anniversaire passé pris pour une fin (1) | 199 : trois |
+| la fin passée sans « Ancien abonné » (1) | 199 |
+| la fin d'un payé jugée à la lecture de la carte (1) | 199 : au premier relevé, l'anniversaire reste |
+| le septième champ jamais relu (1) | 199 : trois |
+| le septième champ jamais écrit (1) | 199 |
+| le compte au rapport (1) | 199 |
+| l'étiquette de fin jamais apprise (1) | 199 |
+| l'étiquette prise avec ses chiffres (1) | 199 |
+| la fin d'un payé dite anniversaire au badge (1) | 199 : deux |
+| l'offert noté sans fin (1) | 199 |
+| un onglet aux cartes jamais dit lu (1) | 199 : trois |
+| seul l'onglet des payés exigé (1) | 199 : l'onglet blanc ne retient plus rien |
+| la ligne du rapport retirée (1) | 70 |
+| le tableau avec l'abonné noté, et non celui de la barre (1) | 199 |
+| le tableau avec le révolu noté (1) | 199 |
+| la colonne « Fin » absente du panneau (1) | 69 |
+| le jugement sans nouveau balayage (1) | **survit** |
+
+Vingt-trois mutants, vingt-deux pris. **Le jugement sans nouveau balayage**
+survit, et ce n'est pas faute d'avoir cherché : le 199 lit le décor des
+cartes avant tout survol — un survol rebalaie la barre — et joue l'ordre des
+onglets de tous les jours, les expirés en dernier, pour que rien d'autre ne
+rebalaie après le jugement. Mais au banc, le rafraîchissement accéléré
+rebalaie la barre toutes les 600 ms : il passe toujours avant la lecture.
+En vrai, c'est toutes les trente secondes au plus. Le balayage demandé reste
+donc, pas éprouvé : c'est lui qui rend le changement visible tout de suite.
+
 ## La seconde voix, et la place reprise ensemble (v4.24.0.35)
 
 Le rapport : « Voici le rapport, avec pub, sur la dernière version. J'ai cru
@@ -18286,9 +18439,10 @@ Tout ce que l'extension mémorise est **100 % local**, stocké dans le
 | `tse:visits` | dates de vos visites par chaîne | tri « Mes plus visités » |
 | `tse:roster` | chaînes suivies aperçues dans la sidebar | poser une carte avant Twitch |
 | `tse:livelag` | retards mesurés de Twitch | `tse.lag()` |
-| `tse:subs` | abonnements repérés (visite + relevé de `/subscriptions`), leur ancienneté en mois, le passé d'abonné et leur échéance (anniversaire ou expiration) | tri « Mes abonnements en tête », style de carte, badge d'aperçu |
+| `tse:subs` | abonnements repérés (visite + relevé de `/subscriptions`), leur ancienneté en mois, le passé d'abonné et leur échéance (anniversaire ou fin) | tri « Mes abonnements en tête », style de carte, badge d'aperçu |
 | `tse:substs` | date du dernier relevé complet, précédée du numéro du lecteur qui l'a produit | espacer les relevés de 6 h, et périmer d'office ceux d'une version antérieure |
 | `tse:submois` | libellé de l'ancienneté, appris sur la page | lire le nombre de mois sans dépendre de la langue |
+| `tse:subfin` | libellé de la date d'une fin, appris sur une carte offerte | reconnaître un abonnement payé qu'on ne renouvelle plus, sans dépendre de la langue |
 | `tse:sondes` | ce que Twitch a répondu aux sondes de reprise, par identifiant de direct, 48 h au plus | ne pas redemander au rechargement ce qui est déjà tranché |
 
 `tse.reset()` les efface toutes à tout moment ; vider les données de site de
@@ -18395,7 +18549,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 197 scénarios, 1688 assertions |
+| `npm test` | le harnais Playwright : 198 scénarios, 1698 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -18416,12 +18570,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1651 Ko | 668 Ko | 4 147 → **2** |
+| `content.js` | 1660 Ko | 671 Ko | 4 166 → **2** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
-| `panneau.js` | 107 Ko | 51 Ko | 150 → **0** |
+| `panneau.js` | 108 Ko | 51 Ko | 152 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
 | `background.js` | 10 Ko | 2 Ko | 22 → **0** |
-| **les cinq** | **1907 Ko** | **825 Ko** | **−57 %** |
+| **les cinq** | **1917 Ko** | **828 Ko** | **−57 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se

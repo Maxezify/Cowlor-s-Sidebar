@@ -2059,6 +2059,157 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The end of a subscription, and the former subscriber (v4.24.0.36)
+
+The request: "About subscriptions, can you check that when the due date has
+passed, we no longer have the subscriber badge, and we have the former
+subscriber badge. I have the feeling some were considered subscribed but with
+a past due date. Investigate, be rigorous and fix, only on chrome-multi."
+Published on `claude/chrome-multi` only.
+
+### It was true
+
+- **The sweep never wrote "not subscribed".** It is additive, on purpose: it
+  marks subscribed what it finds in the current tabs, and an absence proves
+  nothing. Yet a subscription that ends leaves the gifted tab — or the paid
+  one — for the **expired** tab, and that tab only touched the tenure. The
+  channel therefore stayed subscribed for the whole life of an observation,
+  **a hundred and twenty days**, unless its page was opened: the card's
+  decoration, the sort, the dot and the "Subscribed" badge with it.
+- **Between two sweeps — three to twenty-four hours —, nothing looked at the
+  date.** A gifted subscription that expired the day before stayed subscribed
+  until the next sweep, and beyond it for the reason above.
+- **The panel's "Subscriptions" table showed it**: "Subscribed: yes" next to
+  a past due date. It copied the noted state, judging nothing.
+- **A paid subscription no longer renewing had its end read as an
+  anniversary.** Its card says "Your benefits expire on …" ("Vos avantages
+  arrivent à expiration le …"), a gift's words, where a renewing one says
+  "Subscription renewal date"; the badge said "Next anniversary in N days".
+
+The new scenario, replayed on 4.24.0.35: **seven assertions out of nine
+fail** — "Subscribed • 1 MONTH" for a channel Twitch files under expired,
+"Subscribed • 2 MONTHS" for a gift that expired the day before.
+
+The last attached report does not say which ones: it carries counts only. It
+does show the shape of it: 16 noted subscribed, 19 known due dates — at least
+three entries kept the due date of a subscription that a visit to their page
+had already called over, the only path, until now, to "not subscribed".
+
+### What changes
+
+- **The sweep judges the lapsed.** A channel the expired tab lists, and that
+  **none** of the three current tabs lists, is no longer subscribed — Twitch
+  says so itself; its due date goes with the subscription it dated. The
+  judgement comes at the end of the sweep, every tab read: a channel
+  resubscribed after a break appears in both, and stays subscribed. It only
+  comes if **each current tab was read to the end** — its cards, or the
+  message Twitch writes in their place. A tab left blank does not prove it is
+  empty: nothing is judged, and the report says so. A channel no tab names,
+  current or expired, is not touched: an absence still proves nothing.
+- **An end date is enough.** A gift's expiry, or the end of a paid or mobile
+  subscription no longer renewing: from the next day, the channel is no
+  longer subscribed and the preview says "Former sub • N MONTHS", without
+  waiting for the sweep. On the day itself, the subscription still runs —
+  Twitch stops it during the day — and the badge says "Expires today".
+- **An end is not an anniversary.** The label of a gift's date, the only one
+  that is always an end, is learned on its card and remembered
+  (`tse:subfin`), without a word of French, like the tenure's. Found again on
+  a paid or mobile card, it means a subscription no longer renewing: "Expires
+  in N days", and the date that counts is the one it carries. Judged at the
+  end of the sweep too: on the first one, paid cards are read before gifts.
+  **With no gift ever seen**, nothing compares: the date stays an
+  anniversary, and the sweep after the end notices it — three to twenty-four
+  hours later.
+- **What does not change**: a past anniversary is a renewal. The
+  subscription goes on, the badge stays "Subscribed" — its due date falls
+  silent —, and the next sweep brings the following date.
+
+**The panel's table, and `tse.subs()`, say what the bar shows**:
+"Subscribed" and "Former" are those of the bar and the preview, and an "Ends"
+column says, in twelve languages, whether the due date is an end or an
+anniversary. `tse.subs()` also keeps `finie` — the end has passed — and `note`
+— what the memory noted. In the report: `compteurs.abonnes` counts what the
+bar shows, `compteurs.finies` the subscriptions noted current whose end has
+passed — those waiting for the sweep; and, in the page's sweep, "moved to
+former", the number of channels judged — or "not judged", and why. The
+memory, an optional seventh field, the end; an older memory is still read as
+it is, a gift without that field remaining an end.
+
+### What the bench measures
+
+- **199**, new:
+  - **the sweep** moves the two channels only the expired tab lists to their
+    past — their card loses the subscriber decoration, their preview says
+    "Former sub" —, keeps the resubscribed one, its anniversary read again,
+    and the one no tab names;
+  - **a current tab left blank**: nothing is judged, "not judged";
+  - **with no sweep**, the date: a gift expired yesterday and a paid
+    subscription no longer renewing whose end has passed are former subs;
+    "Expires today" on the day, "Expires in 5 days" before; a past
+    anniversary, still subscribed; `tse.subs()` — the panel's table — and the
+    report's count;
+  - **the end label**, learned on a gift and found again on a paid card on the
+    very first sweep — "Expires in 8 days"; with no gift, the anniversary.
+- **70** — the report's "moved to former" line, and "not judged".
+- **69** — the "Ends" column is known to the panel, like every column the
+  page sends it.
+- **The fixture**: `__subsPayeFin`, a paid card that no longer renews, with
+  the words of the 31/08/2026 sweep; `__subsBlancOnglets`, tabs that stay
+  blank while the others render their cards.
+- **The bench itself, found on the way**: the burst of 196 (4.24.0.33) lays
+  its hundred and ten common silences of 120 ms, no longer of 60. Each tile of
+  the fixture lays them at the time of its own mapping between the clock and
+  its sound, and under a full bench's load it drifts by a few tens of
+  milliseconds: a 60 ms silence no longer had, between two tiles, the 50 ms of
+  a common silence. One in a hundred and ten went missing — three once —, in
+  all three of "foxtrot"'s pairs at once. Measured by alternating both
+  versions on 196 alone: one pass in nine of 4.24.0.35 fails, two in thirteen
+  of this one — the defect was not its own. The count beyond a hundred, which
+  is what 196 measures, is unchanged: replayed, the count capped at the memory
+  still fails — a hundred, where a hundred and fourteen are needed. Ten passes
+  of 196 alone, ten green.
+
+The seventeen other subscription scenarios — 42, 44 to 46, 48 to 51, 53 to
+55, 57, 75, 127, 137, 141, 157 —: 174 out of 174; 158, 70, 43 and 147 with
+199: 78 out of 78.
+
+The full bench: 1698 assertions in 198 scenarios, all green.
+
+| mutant | what fails |
+| --- | --- |
+| the lapsed never judged (1) | 199: two — both lapsed channels stay subscribed, and golden |
+| a blank tab counted as read (1) | 199: "not judged" no longer comes |
+| the resubscribed one moved to its past (1) | 199: two |
+| the lapsed keeping their due date (1) | 199 |
+| a passed end ignored (1) | 199: the gift expired yesterday, the ended paid one, still subscribed |
+| the day itself already over (1) | 199: two — "Expires today" lost |
+| a past anniversary taken for an end (1) | 199: three |
+| a passed end without "Former sub" (1) | 199 |
+| a paid end judged when reading the card (1) | 199: on the first sweep, the anniversary stays |
+| the seventh field never read (1) | 199: three |
+| the seventh field never written (1) | 199 |
+| the report's count (1) | 199 |
+| the end label never learned (1) | 199 |
+| the label taken with its digits (1) | 199 |
+| a paid end called an anniversary on the badge (1) | 199: two |
+| the gift noted without an end (1) | 199 |
+| a tab with cards never marked read (1) | 199: three |
+| only the paid tab required (1) | 199: the blank tab no longer holds anything back |
+| the report line removed (1) | 70 |
+| the table with the noted subscriber, not the bar's (1) | 199 |
+| the table with the noted former flag (1) | 199 |
+| the "Ends" column missing from the panel (1) | 69 |
+| the judgement without a new scan (1) | **survives** |
+
+Twenty-three mutants, twenty-two caught. **The judgement without a new scan**
+survives, and not for lack of trying: 199 reads the cards' decoration before
+any hover — a hover rescans the bar — and plays the everyday tab order, the
+expired tab last, so that nothing else rescans after the judgement. But on the
+bench, the accelerated refresh rescans the bar every 600 ms: it always comes
+before the reading. For real, it is every thirty seconds at most. The
+requested scan therefore stays, untested: it is what makes the change visible
+at once.
+
 ## The second voice, and the place taken back together (v4.24.0.35)
 
 The report: "Here is the report, with ads, on the latest version. I thought I
@@ -17729,9 +17880,10 @@ Everything the extension memorises is **100 % local**, stored in your browser's
 | `tse:visits` | your visit dates per channel | "Most visited" sort |
 | `tse:roster` | followed channels seen in the sidebar | posting a card before Twitch |
 | `tse:livelag` | measured Twitch lag samples | `tse.lag()` |
-| `tse:subs` | subscriptions spotted (visits + `/subscriptions` scan), their tenure in months, the former-subscriber flag and their due date (anniversary or expiry) | "My subscriptions first" sort, card styling, preview badge |
+| `tse:subs` | subscriptions spotted (visits + `/subscriptions` scan), their tenure in months, the former-subscriber flag and their due date (anniversary or end) | "My subscriptions first" sort, card styling, preview badge |
 | `tse:substs` | date of the last full scan, prefixed by the reader version that produced it | spacing scans 6 h apart, and expiring those of an earlier version outright |
 | `tse:submois` | the tenure label, learned from the page | reading the month count without depending on the language |
+| `tse:subfin` | the label of an end date, learned on a gifted card | recognising a paid subscription no longer renewing, without depending on the language |
 | `tse:sondes` | what Twitch answered the reconnection probes, per stream identifier, 48 h at most | not asking again on reload what is already settled |
 
 `tse.reset()` wipes them all at any time; clearing `twitch.tv`'s site data from
@@ -17835,7 +17987,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 197 scenarios, 1688 assertions |
+| `npm test` | the Playwright harness: 198 scenarios, 1698 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -17855,12 +18007,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1651 KB | 668 KB | 4,147 → **2** |
+| `content.js` | 1660 KB | 671 KB | 4,166 → **2** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
-| `panneau.js` | 107 KB | 51 KB | 150 → **0** |
+| `panneau.js` | 108 KB | 51 KB | 152 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
 | `background.js` | 10 KB | 2 KB | 22 → **0** |
-| **all five** | **1907 KB** | **825 KB** | **−57 %** |
+| **all five** | **1917 KB** | **828 KB** | **−57 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are

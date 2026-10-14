@@ -164,6 +164,10 @@
     "message": "Due",
     "description": "Colonne : anniversaire d'un abonnement payé, expiration d'un abonnement offert"
   },
+  "colEnd": {
+    "message": "Ends",
+    "description": "Colonne : l'échéance est une fin (abonnement offert, ou payé non renouvelé), et non un anniversaire"
+  },
   "colLag": {
     "message": "Delay",
     "description": "Colonne : retard mesuré"
