@@ -3354,11 +3354,13 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     // apparence. Bornée court — on veut une phrase, pas une page.
     SUBS_PAGE_TEXTE_MAX:  200,
     SUBS_PAGE_TABS:       ['paid', 'gifts', 'mobile'],
-    // Onglet des abonnements RÉVOLUS. Lu à part, et jamais versé dans l'état
-    // d'abonnement : il ne sert qu'à l'ancienneté et au « anciennement
-    // abonné » du badge d'aperçu. Lu EN PREMIER, parce que c'est sur ses
-    // cartes — les plus simples — que se lit sans ambiguïté l'étiquette du
-    // nombre de mois (cf. subsPage.mois).
+    // Onglet des abonnements RÉVOLUS. Lu à part, et jamais versé comme
+    // abonnement : il sert à l'ancienneté, au « anciennement abonné » du
+    // badge d'aperçu — et, depuis la 4.24.0.36, à rendre à son passé une
+    // chaîne qu'il liste et qu'aucun onglet en cours ne liste plus, tous lus
+    // (cf. subsPage.refresh). Lu EN PREMIER tant que l'étiquette du nombre de
+    // mois n'est pas connue : c'est sur ses cartes — les plus simples — qu'elle
+    // se lit sans ambiguïté (cf. subsPage.mois).
     SUBS_PAGE_TABS_PAST:  ['expired'],
     SUBS_PAGE_TTL:        6 * 60 * 60_000,   // 6 h entre deux relevés
     SUBS_PAGE_TIMEOUT:    25_000,            // abandon si la page ne rend rien
@@ -3482,6 +3484,12 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     // l'ordre n'a plus d'importance : les onglets peuvent partir ensemble, et
     // le relevé passe d'une vingtaine de secondes à la durée du plus lent.
     SUBS_LABEL_KEY:       'tse:submois',
+    /* L'étiquette d'une FIN (4.24.0.36) — « Vos avantages arrivent à
+       expiration le » —, apprise sur les cartes offertes, où la date est
+       toujours une fin, puis MÉMORISÉE. Retrouvée sur une carte payée ou
+       mobile, elle dit un abonnement qu'on ne renouvelle plus : sa date est
+       une fin, et non un anniversaire (cf. subsPage.lireCarte). */
+    SUBS_END_LABEL_KEY:   'tse:subfin',
     // Jusqu'où chercher la date d'expiration d'un abonnement offert, en jours.
     // Twitch offre au plus douze mois d'un coup : quatre cents jours couvrent
     // le plus long, avec de la marge (cf. subsPage.lireCarte).
@@ -12038,10 +12046,21 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
    *  nombre de jours : un compte relevé il y a six heures serait faux, une
    *  date se recompte à l'affichage.
    *
+   *  UNE FIN N'EST PAS UN ANNIVERSAIRE (4.24.0.36). Un abonnement offert
+   *  expire à sa date ; un payé ou un mobile qu'on ne renouvelle plus aussi —
+   *  sa carte le dit avec les mots de l'offert, « Vos avantages arrivent à
+   *  expiration le » (cf. subsPage.lireCarte). `fin` le retient. Passée, une
+   *  fin rend la chaîne À SON PASSÉ dès le lendemain, sans attendre le
+   *  relevé : elle n'est plus abonnée, elle l'a été. Un anniversaire passé,
+   *  lui, est un renouvellement — l'abonnement continue, et le relevé suivant
+   *  apporte la date d'après.
+   *
    *  Stockage : localStorage (clé SUBS_STORAGE_KEY), { login: [sub, ts]
-   *  ou [sub, ts, m, ex, src] ou [sub, ts, m, ex, src, ech] }. Les formes
+   *  ou [sub, ts, m, ex, src] ou [sub, ts, m, ex, src, ech] ou
+   *  [sub, ts, m, ex, src, ech, 1] — ce dernier champ, la fin }. Les formes
    *  courtes restent lues telles quelles — une mémoire écrite par une
-   *  version antérieure ne se perd pas.
+   *  version antérieure ne se perd pas : un offert sans septième champ reste
+   *  une fin, comme il l'était.
    *  Effaçable par tse.reset(), comme le reste.
    * ============================================================ */
   /* Minuit local d'un instant, et l'écart en jours de calendrier jusqu'à une
@@ -12072,6 +12091,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
           if (typeof v[4] === 'string' && v[4]) e.src = v[4];
           const ech = Number(v[5]);
           if (Number.isFinite(ech) && ech > 0) e.ech = ech;
+          if (e.ech && v[6]) e.fin = true;
           this.map.set(login, e);
         }
         this.prune();
@@ -12086,7 +12106,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         for (const [login, e] of this.map) {
           // La forme longue n'est écrite que si elle porte quelque chose :
           // inutile d'alourdir chaque entrée de deux zéros.
-          if (e.ech) obj[login] = [e.sub ? 1 : 0, e.ts, e.m || 0, e.ex ? 1 : 0, e.src || '', e.ech];
+          if (e.ech && e.fin) obj[login] = [e.sub ? 1 : 0, e.ts, e.m || 0, e.ex ? 1 : 0, e.src || '', e.ech, 1];
+          else if (e.ech) obj[login] = [e.sub ? 1 : 0, e.ts, e.m || 0, e.ex ? 1 : 0, e.src || '', e.ech];
           else if (e.src) obj[login] = [e.sub ? 1 : 0, e.ts, e.m || 0, e.ex ? 1 : 0, e.src];
           else if (e.m || e.ex) obj[login] = [e.sub ? 1 : 0, e.ts, e.m || 0, e.ex ? 1 : 0];
           else obj[login] = [e.sub ? 1 : 0, e.ts];
@@ -12133,6 +12154,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       if (avant?.ex) e.ex = avant.ex;
       if (avant?.src) e.src = avant.src;
       if (avant?.ech) e.ech = avant.ech;
+      if (avant?.fin) e.fin = true;
       this.map.set(login, e);
       if (avant && avant.sub === sub) return false;   // rien de neuf
       // `differer` sert au relevé, qui enregistre une rafale d'abonnements
@@ -12147,8 +12169,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
      *
      * Ne touche JAMAIS à `sub`. Une chaîne peut figurer dans les expirés pour
      * une période révolue tout en étant réabonnée aujourd'hui ; en déduire un
-     * « non abonné » dépendrait de l'ordre de lecture des onglets. L'état
-     * d'abonnement reste donc gouverné par record(), et lui seul.
+     * « non abonné » ICI dépendrait de l'ordre de lecture des onglets. C'est
+     * donc la fin du relevé qui en juge, tous les onglets lus (4.24.0.36, cf.
+     * subsPage.refresh), et record() qui l'écrit.
      */
     noteMonths(login, mois, ancien, differer = false) {
       if (!login) return false;
@@ -12201,27 +12224,42 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
      * quand la carte n'en porte plus : une échéance qu'on ne lit plus ne doit
      * pas survivre à la carte qui la portait. Appelée par le relevé juste
      * après noteSource, pour la chaîne qu'il vient de créer ou de compléter.
+     * `fin` (4.24.0.36) : la date est celle où l'abonnement prend fin — un
+     * offert, ou un payé qu'on ne renouvelle plus —, pas un anniversaire.
      */
-    noteEcheance(login, ech, differer = false) {
+    noteEcheance(login, ech, fin = false, differer = false) {
       const avant = login ? this.map.get(login) : null;
-      if (!avant || (avant.ech || 0) === (ech || 0)) return false;
+      const f = ech > 0 && !!fin;
+      if (!avant || ((avant.ech || 0) === (ech || 0) && !!avant.fin === f)) return false;
       const e = { ...avant };
       if (ech > 0) e.ech = ech; else delete e.ech;
+      if (f) e.fin = true; else delete e.fin;
       this.map.set(login, e);
       if (!differer) this.flush();
       return true;
+    },
+
+    /* LA FIN EST-ELLE PASSÉE (4.24.0.36) ? Une échéance qui est une fin —
+       l'expiration d'un offert, ou d'un payé qu'on ne renouvelle plus — et
+       dont le jour est derrière nous. Le jour même, l'abonnement court
+       encore : Twitch l'arrête dans la journée, à l'heure où il avait
+       commencé, et le badge dit « Expire aujourd'hui ». Un offert d'une
+       mémoire antérieure, sans le septième champ, reste une fin. */
+    finie(e) {
+      return !!(e && e.ech && (e.fin || e.src === 'gifts') && joursJusqua(e.ech) < 0);
     },
 
     /* Jours jusqu'à l'échéance, comptés en DATES LOCALES — c'est ainsi que
        Twitch compte ses « (dans 4 jours) » : relevé à minuit passé le 25/09,
        « 29 sept. 2026 (dans 4 jours) » — et ce qu'elle est. Rien quand elle
        est inconnue ou passée : le relevé suivant la remplacera, et d'ici là
-       le badge se tait plutôt que de compter à rebours sous zéro. */
+       le badge se tait plutôt que de compter à rebours sous zéro. `fin` dit
+       si c'est une fin ou un anniversaire (cf. noteEcheance). */
     echeanceFor(login) {
       const e = login ? this.map.get(login) : null;
       if (!e?.ech) return null;
       const jours = joursJusqua(e.ech);
-      return jours >= 0 ? { jours, offert: e.src === 'gifts' } : null;
+      return jours >= 0 ? { jours, fin: !!e.fin || e.src === 'gifts' } : null;
     },
 
     // Nombre total de mois d'abonnement relevé, ou 0. Sert au badge de
@@ -12234,18 +12272,21 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     // A été abonné par le passé, et ne l'est plus. Le « ne l'est plus » est
     // relu au moment de la question : une chaîne des expirés à laquelle on se
     // réabonne redevient un abonnement ordinaire, sans qu'il faille effacer
-    // quoi que ce soit.
+    // quoi que ce soit. Un abonnement dont la fin est passée l'a été aussi
+    // (4.24.0.36), avant même que l'onglet des expirés ne le dise.
     wasSub(login) {
       const e = login ? this.map.get(login) : null;
-      return !!(e && e.ex && !this.isSub(login));
+      return !!(e && (e.ex || (e.sub && this.finie(e))) && !this.isSub(login));
     },
 
     // Abonné à cette chaîne, pour autant qu'on le sache. Une observation
     // périmée ne vaut plus rien : prune() l'a déjà retirée, mais on reteste
-    // ici pour ne pas dépendre du moment où prune a tourné.
+    // ici pour ne pas dépendre du moment où prune a tourné. Une fin passée
+    // non plus (4.24.0.36, cf. finie) : le relevé la confirmera, la date
+    // suffit à la dire.
     isSub(login) {
       const e = login ? this.map.get(login) : null;
-      if (!e || !e.sub) return false;
+      if (!e || !e.sub || this.finie(e)) return false;
       return Date.now() - e.ts < CFG.SUBS_TTL_DAYS * 24 * 60 * 60 * 1000;
     },
 
@@ -12257,11 +12298,19 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       return n;
     },
 
+    /* CE QUE LA BARRE MONTRE, ET CE QU'ON A NOTÉ (4.24.0.36). `sub` et
+       `ancien` sont ceux de la barre — isSub, wasSub : le tableau du panneau
+       disait « abonné : oui » à côté d'une échéance passée, quand la fin d'un
+       offert ne comptait pas encore. `note` garde ce que le relevé ou la
+       visite a noté ; `fin`, l'échéance est une fin ; `finie`, elle est
+       passée. */
     entries() {
       return [...this.map.entries()]
-        .map(([login, e]) => ({ login, sub: e.sub, ts: e.ts, mois: e.m || 0,
-                                ancien: !!e.ex, origine: e.src || '',
-                                echeance: e.ech || 0 }))
+        .map(([login, e]) => ({ login, sub: this.isSub(login), ts: e.ts, mois: e.m || 0,
+                                ancien: this.wasSub(login), origine: e.src || '',
+                                echeance: e.ech || 0,
+                                fin: !!e.fin || (!!e.ech && e.src === 'gifts'),
+                                finie: this.finie(e), note: !!e.sub }))
         .sort((a, b) => (b.sub - a.sub) || (b.ts - a.ts));
     },
 
@@ -12273,9 +12322,10 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       // pendant six heures — un tse.reset() qui laisse la sidebar sans
       // abonnements jusqu'au lendemain n'est pas une remise à zéro.
       oublier(CFG.SUBS_PAGE_STAMP_KEY, 'horodatage du relevé');
-      // Et l'étiquette apprise : elle vient de la même lecture, elle doit
-      // repartir avec elle.
+      // Et les étiquettes apprises : elles viennent de la même lecture, elles
+      // doivent repartir avec elle.
       oublier(CFG.SUBS_LABEL_KEY, 'étiquette d\'ancienneté');
+      oublier(CFG.SUBS_END_LABEL_KEY, 'étiquette de fin');
     }
   };
 
@@ -12328,13 +12378,26 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
    *  et conclure d'une absence retirerait à tort le style d'un abonnement
    *  bien réel. La correction d'un désabonnement reste au relevé de
    *  visite, qui, lui, observe la chaîne elle-même.
+   *
+   *  SAUF UNE PREUVE, ET ELLE N'EST PAS UNE ABSENCE (4.24.0.36). Une chaîne
+   *  que l'onglet des EXPIRÉS liste, et qu'aucun des trois onglets en cours
+   *  ne liste — chacun lu jusqu'au bout, cartes ou message à leur place —,
+   *  n'est plus abonnée : Twitch le dit lui-même. Jusque-là, un abonnement
+   *  offert venu à son terme restait « abonné » cent vingt jours — la durée
+   *  d'une observation —, à moins d'ouvrir la chaîne. Le jugement se rend à
+   *  la FIN du relevé, tous les onglets lus : une chaîne réabonnée après une
+   *  interruption figure dans les deux, et l'ordre de lecture ne doit rien y
+   *  changer.
    * ============================================================ */
   const subsPage = (() => {
     let running = false;
     /* Ce que le DERNIER relevé a vu, onglet par onglet. Remis à neuf à chaque
        relevé : un bilan qui empilerait deux passes ne décrirait plus aucune
        des deux. */
-    let bilan = { onglets: [], fini: 0, bascule: '' };
+    /* `revolus` (4.24.0.36) : les chaînes que ce relevé a rendues à leur
+       passé — `null` quand il n'a pas pu en juger, un onglet en cours n'ayant
+       pas été lu jusqu'au bout. */
+    let bilan = { onglets: [], fini: 0, bascule: '', revolus: null };
     /* LES REPORTS SE COMPTENT À PART DU BILAN, et ce n'est pas un détail de
        rangement : un report veut dire qu'AUCUN relevé n'a eu lieu, alors que
        le bilan décrit un relevé qui a eu lieu. Les loger ensemble obligeait à
@@ -12378,6 +12441,16 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       etiquette = t;
       try { localStorage.setItem(CFG.SUBS_LABEL_KEY, t); }
       catch (e) { erreurs.noter('stockage', 'étiquette : ' + ((e && e.name) || e)); }
+    };
+    // L'étiquette d'une fin (cf. CFG.SUBS_END_LABEL_KEY), apprise puis mémorisée de même.
+    let etiquetteFin = (() => {
+      try { return localStorage.getItem(CFG.SUBS_END_LABEL_KEY) || ''; }
+      catch { return ''; }
+    })();
+    const retenirFin = (t) => {
+      etiquetteFin = t;
+      try { localStorage.setItem(CFG.SUBS_END_LABEL_KEY, t); }
+      catch (e) { erreurs.noter('stockage', 'étiquette de fin : ' + ((e && e.name) || e)); }
     };
 
     // Feuilles porteuses de texte d'une carte, dans l'ordre du document,
@@ -12497,31 +12570,58 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       return 0;
     };
 
+    /* L'ÉTIQUETTE D'UNE DATE (4.24.0.36), sans la comprendre : le texte qui
+       la précède dans son paragraphe — « Vos avantages arrivent à expiration
+       le » —, sans chiffres. Sur la carte, la date est un <span> DANS ce
+       paragraphe, suivi de « (dans N jours) » : c'est ce qui suit qui change
+       d'un jour à l'autre, jamais ce qui précède. Une date posée hors de tout
+       texte prend celui de la feuille d'avant. */
+    const sansChiffres = (t) => normaliser(t.replace(/\d+/g, ''));
+    const etiquetteDe = (el, avant) => {
+      const p = el.parentElement;
+      const morceaux = [];
+      for (const n of p ? p.childNodes : []) {
+        if (n === el) break;
+        if (n.nodeType === 3) morceaux.push(n.textContent);
+      }
+      return sansChiffres(morceaux.join(' ')) || sansChiffres(avant || '');
+    };
+    // La date ÉCRITE après l'ancienneté, et son étiquette : { ms, etiquette } ou null.
+    const dateEcrite = (f, i, langue) => {
+      for (let k = i + 1; k < f.length; k++) {
+        if (!/\d{4}/.test(f[k].t)) continue;    // pas d'année, pas de date
+        const ms = dateDans(f[k].t, datesEcrites(langue));
+        if (ms) return { ms, etiquette: etiquetteDe(f[k].el, f[k - 1]?.t) };
+      }
+      return null;
+    };
+
     /**
      * Ancienneté et échéance d'une carte : { mois, ech }, `ech` en minuit
      * local ou 0. `offert` choisit l'échéance que le badge dira — la date
      * d'expiration d'un abonnement offert, l'anniversaire sinon. `langue`
      * est celle de la page lue, dans laquelle Twitch a écrit ses dates.
+     * Une carte offerte apprend l'étiquette de sa date, qui est une fin
+     * (4.24.0.36) ; une carte payée ou mobile rend AUSSI sa date écrite et
+     * son étiquette, `ecrite`, que la fin du relevé compare à celle-là.
      */
     const lireCarte = (carte, passe, offert, langue) => {
       const f = feuilles(carte);
       const m = mois(f, passe);
       const i = passe || !etiquette ? -1 : f.findIndex((x) => x.t === etiquette);
       if (i < 0) return { mois: m, ech: 0 };
+      const ecrite = dateEcrite(f, i, langue);
       if (offert) {
-        for (const x of f.slice(i + 1)) {
-          if (!/\d{4}/.test(x.t)) continue;      // pas d'année, pas de date
-          const ms = dateDans(x.t, datesEcrites(langue));
-          if (ms) return { mois: m, ech: ms };
-        }
-        return { mois: m, ech: 0 };
+        if (!ecrite) return { mois: m, ech: 0 };
+        if (ecrite.etiquette && ecrite.etiquette !== etiquetteFin) retenirFin(ecrite.etiquette);
+        return { mois: m, ech: ecrite.ms };
       }
       const u = unite(f[i + 1]?.t || '');
       const v = f.slice(0, i).find((x) => (x.t.match(/\d+/g) || []).length === 1 && unite(x.t) !== u);
-      if (!v) return { mois: m, ech: 0 };
+      if (!v) return { mois: m, ech: 0, ecrite };
       const d = new Date(minuitLocal(Date.now()));
       d.setDate(d.getDate() + parseInt(/\d+/.exec(v.t)[0], 10));
-      return { mois: m, ech: d.getTime() };
+      return { mois: m, ech: d.getTime(), ecrite };
     };
 
     /* L'horodatage porte la VERSION DU LECTEUR qui l'a produit, pas seulement
@@ -12740,6 +12840,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
                de l'onglet, ce nombre répond seul. Rien pour les expirés, qui
                n'en portent aucune. */
             if (!passe) vu.echeances = trouve.filter((x) => x.ech > 0).length;
+            // LU JUSQU'AU BOUT (4.24.0.36) : le relevé ne juge des révolus que sur des onglets lus.
+            vu.lu = true;
             return finir(trouve);
           }
         }
@@ -12760,7 +12862,10 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
                est vide pour la plupart des gens, et un journal qui le
                répéterait à chaque rapport apprendrait à l'ignorer. Le verdict
                se rend à la FIN du relevé, quand on sait ce que les AUTRES
-               onglets ont donné (cf. la fin de refresh()). */
+               onglets ont donné (cf. la fin de refresh()). Lu jusqu'au
+               bout s'il a écrit quelque chose à la place des cartes : un
+               panneau resté blanc ne prouve pas qu'il n'y en a aucune. */
+            vu.lu = vu.panneau;
             return finir([]);
           }
         }
@@ -12803,7 +12908,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
          la phrase qu'elle affiche à leur place. `voie` dit comment l'onglet a
          été atteint : une page chargée pour lui, ou un clic dans la page. */
       const vu = { onglet, voie: 'page', charge: false, noeuds: 0, barre: false, cartes: 0,
-                   logins: 0, liens: 0, texte: '', panneau: false, blanc: false, expire: false };
+                   logins: 0, liens: 0, texte: '', panneau: false, blanc: false, expire: false, lu: false };
       bilan.onglets.push(vu);
       const finir = (logins, garde = garder) => {
         if (sondeur) { clearInterval(sondeur); sondeur = null; }
@@ -12892,7 +12997,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       if (!cible.bouton) return abandon(cible.raison);
       const vu = { onglet, voie: 'bascule', preuve: '', charge: false, noeuds: 0, barre: false,
                    cartes: 0, logins: 0, liens: 0, texte: '', panneau: false, blanc: false,
-                   expire: false };
+                   expire: false, lu: false };
       bilan.onglets.push(vu);
       let sondeur = null, limite = null, delai = null;
       const finir = (logins) => {
@@ -12997,7 +13102,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
          prise de bail, écrit par la page d'à côté, et « est-ce le tout premier
          relevé ? » doit se répondre à l'entrée, pas au milieu. */
       const premier = !!horodatage();
-      bilan = { onglets: [], fini: 0, bascule: '' };
+      bilan = { onglets: [], fini: 0, bascule: '', revolus: null };
       const trouves = [];
       try {
         /* LA PRISE DE BAIL EN TROIS TEMPS : on regarde, on écrit, on relit.
@@ -13015,8 +13120,11 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         }
         let touche = false;
         const servies = new Set();   // chaînes dont un onglet de CE relevé a posé l'origine
+        const passes = [];           // chaînes que l'onglet des expirés a listées (4.24.0.36)
+        const ecrites = [];          // dates écrites des cartes payées ou mobiles qu'un onglet a servies
         const verserPasse = (liste) => {
           for (const { login, mois: m } of liste) {
+            if (!passes.includes(login)) passes.push(login);
             touche = subs.noteMonths(login, m, true, true) || touche;
           }
         };
@@ -13025,7 +13133,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         // sans attendre les onglets vides — qui n'apportent rien à voir.
         const verserCourant = (onglet) => (liste) => {
           if (!liste.length) return;
-          for (const { login, mois: m, ech } of liste) {
+          for (const { login, mois: m, ech, ecrite } of liste) {
             if (!trouves.includes(login)) trouves.push(login);
             touche = subs.noteMonths(login, m, false, true) || touche;
             /* L'origine avant l'état : record() la conserve, mais elle doit
@@ -13040,7 +13148,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
             if (!servies.has(login)) {
               servies.add(login);
               touche = subs.noteSource(login, onglet, true) || touche;
-              touche = subs.noteEcheance(login, ech, true) || touche;
+              // Un offert expire à sa date : c'est une fin (4.24.0.36).
+              touche = subs.noteEcheance(login, ech, onglet === 'gifts', true) || touche;
+              if (onglet !== 'gifts' && ecrite) ecrites.push({ login, ...ecrite });
             }
             touche = subs.record(login, true, true) || touche;
           }
@@ -13116,7 +13226,32 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         } finally {
           if (cadre) cadre.remove();
         }
-        if (touche) subs.flush();   // ce que les onglets d'expirés ont apporté
+        /* LES FINS ÉCRITES SUR LES CARTES PAYÉES (4.24.0.36). Un payé ou un
+           mobile qu'on ne renouvelle plus porte, à la place de « Date de
+           renouvellement », l'étiquette de la date d'un offert : sa date est
+           une FIN. Jugé ICI, et non à la lecture de la carte : la première
+           fois, l'étiquette s'apprend sur l'onglet des offerts, lu APRÈS celui
+           des payés. Sans offert jamais vu, rien ne se compare : la date reste
+           un anniversaire, et le relevé qui suivra la fin la constatera. */
+        for (const x of ecrites) {
+          if (etiquetteFin && x.etiquette === etiquetteFin) touche = subs.noteEcheance(x.login, x.ms, true, true) || touche;
+        }
+        /* LES RÉVOLUS (4.24.0.36, cf. l'en-tête) : listés par l'onglet des
+           expirés, listés par AUCUN onglet en cours, chacun de ceux-ci lu
+           jusqu'au bout. Ils ne sont plus abonnés, et leur échéance part avec
+           l'abonnement qu'elle datait ; leur passé, lui, vient d'être noté. */
+        const courantsLus = CFG.SUBS_PAGE_TABS.every((o) => bilan.onglets.some((v) => v.onglet === o && v.lu));
+        bilan.revolus = courantsLus ? 0 : null;
+        if (courantsLus) {
+          for (const login of passes) {
+            if (trouves.includes(login) || !subs.map.get(login)?.sub) continue;
+            touche = subs.record(login, false, true) || touche;
+            touche = subs.noteEcheance(login, 0, false, true) || touche;
+            bilan.revolus += 1;
+          }
+        }
+        // Ce que les onglets d'expirés, les fins et les révolus ont apporté.
+        if (touche) { subs.flush(); scheduleScan(); }
         // Horodaté APRÈS l'enregistrement : l'horodatage veut dire « un relevé
         // est allé à son terme », et quiconque le lit doit trouver le résultat
         // déjà en mémoire. Marqué même à vide, en revanche — un compte sans
@@ -17876,7 +18011,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       },
       subs() {
         const lignes = subs.entries();
-        return { colonnes: ['login', 'sub', 'ts', 'mois', 'ancien', 'origine', 'echeance'], lignes,
+        return { colonnes: ['login', 'sub', 'ts', 'mois', 'ancien', 'origine', 'echeance', 'fin'], lignes,
                  resume: { chaines: lignes.length,
                            abonnees: lignes.filter(e => e.sub).length,
                            // 0 = aucun relevé complet encore fait. Le panneau
@@ -18590,6 +18725,12 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
           abonnes:     abonnements.filter(e => e.sub).length,
           // Celles dont on connaît l'échéance — anniversaire ou fin (4.21.0).
           echeances:   abonnements.filter(e => e.echeance > 0).length,
+          /* Notées abonnées, et leur fin est passée (4.24.0.36) : la sidebar
+             les dit déjà anciennes ; le prochain relevé les rendra à leur
+             passé. Un nombre qui reste après un relevé dirait une fin que
+             l'onglet des expirés ne confirme pas. `abonnes`, lui, compte ce
+             que la barre montre (cf. subs.entries). */
+          finies:      abonnements.filter(e => e.note && e.finie).length,
           roster:      roster.entries().length,
           mesures:     mesures.length,
           bascules:    [...basculements.keys()].filter(l => basculementFrais(l)).length,
@@ -23184,12 +23325,13 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         if (subs.isSub(login)) {
           /* L'ÉCHÉANCE À LA SUITE, DANS LE MÊME BADGE — demandé ainsi : « Abonné
              • 51 MOIS • Prochain anniversaire dans 9 jours » pour un abonnement
-             payé, « Abonné • 1 MOIS • Expire dans 8 jours » pour un offert.
-             Comptée ICI, à l'affichage, depuis une date : le relevé a pu avoir
-             lieu six heures plus tôt. */
+             payé, « Abonné • 1 MOIS • Expire dans 8 jours » pour un offert —
+             et pour un payé qu'on ne renouvelle plus (4.24.0.36) : sa date est
+             une fin, pas un anniversaire. Comptée ICI, à l'affichage, depuis
+             une date : le relevé a pu avoir lieu six heures plus tôt. */
           const ech = subs.echeanceFor(login);
           badges.push(badgeNoeud('tse-preview__badge--sub', S.uiBadgeSubMonths(moisAbo) + (ech
-            ? ' • ' + (ech.offert ? S.uiBadgeSubExpire(ech.jours) : S.uiBadgeSubAnniv(ech.jours))
+            ? ' • ' + (ech.fin ? S.uiBadgeSubExpire(ech.jours) : S.uiBadgeSubAnniv(ech.jours))
             : '')));
         } else if (subs.wasSub(login)) {
           badges.push(badgeNoeud('tse-preview__badge--exsub', S.uiBadgeExSubMonths(moisAbo)));

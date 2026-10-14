@@ -7132,8 +7132,10 @@ titre('70. Panneau — la page rendue, mesurée');
                                     imagesPerdues: '0.4 % de 36000' } },
                fermeture: 'echap', noeuds: { affiches: 2, clics: 4 } },
       /* Une bascule abandonnée ET un onglet lu par bascule : les deux lignes
-         que la 4.20.0 ajoute, et qu'aucun rapport réel n'a encore portées. */
-      relevesAbonnements: { horodatage: 0, enAttente: false,
+         que la 4.20.0 ajoute, et qu'aucun rapport réel n'a encore portées. Et
+         un relevé allé à son terme qui n'a pas pu juger des révolus
+         (4.24.0.36) : un onglet en cours n'a pas été lu jusqu'au bout. */
+      relevesAbonnements: { horodatage: 0, enAttente: false, fini: 1, revolus: null,
                             bascule: '7 onglet(s) dans la page, 6 attendus',
                             onglets: [{ onglet: 'gifts', voie: 'bascule', preuve: 'aria-selected',
                                         charge: true, noeuds: 900, barre: true, cartes: 2,
@@ -7513,6 +7515,12 @@ titre('70. Panneau — la page rendue, mesurée');
      && contient('7 onglet(s) dans la page, 6 attendus')
      && contient('bascule (aria-selected) · affiché'),
      JSON.stringify((vue.texte.match(/bascule[^\n]*/g) || [])));
+  /* LES RÉVOLUS, ET POURQUOI IL N'Y EN A PAS (4.24.0.36). Mutant — la ligne
+     retirée du panneau — : un relevé qui s'est gardé de conclure ressemblerait
+     à un relevé qui n'a rien trouvé à rendre. */
+  ok('…ce que le relevé a rendu à leur passé — ou pourquoi il ne l\'a pas jugé',
+     /rendues à leur passé \/ moved to former\s+non jugé — un onglet en cours n'a pas été lu/.test(vue.texte),
+     JSON.stringify((vue.texte.match(/rendues à leur passé[^\n]*/) || [])[0]));
   /* LES ÉCHÉANCES LUES, RAPPORTÉES AUX CHAÎNES DE L'ONGLET (4.21.0). Mutant —
      la ligne sans ce compte — : le rapport ne dit plus si les dates de Twitch
      se lisent. */
@@ -21534,6 +21542,258 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
   }
 }
 
+/* ═════════ LA FIN PASSÉE : PLUS ABONNÉ, ANCIEN ABONNÉ (4.24.0.36) ══════════
+   DEMANDÉ AINSI : « vérifie que quand l'échéance est passée, on n'a plus le
+   badge abonné, et on a le badge ancien abonné. J'ai l'impression que
+   certains étaient considérés comme abonnés mais avec une échéance passée. »
+   C'ÉTAIT VRAI. Le relevé, additif, n'écrivait jamais « non abonné » : un
+   abonnement offert venu à son terme quittait l'onglet des offerts pour celui
+   des expirés, qui ne touchait qu'à l'ancienneté — et la chaîne restait
+   « abonnée » cent vingt jours, le filet doré et le badge avec, à moins
+   d'ouvrir sa page. Entre deux relevés, rien ne regardait la date non plus.
+
+   CE QUI SE MESURE :
+     a) le relevé rend à leur passé les chaînes que l'onglet des expirés liste
+        et qu'aucun onglet en cours ne liste — pas celle qui figure dans les
+        deux (réabonnée), pas celle qui n'est nulle part (l'absence ne prouve
+        rien) ;
+     b) un onglet en cours resté blanc, et le relevé ne juge de rien ;
+     c) sans relevé, la date suffit : un offert expiré hier, un payé qu'on ne
+        renouvelle plus et dont la fin est passée, sont d'anciens abonnés ; le
+        jour même, « Expire aujourd'hui » ; un anniversaire passé, lui, est un
+        renouvellement ;
+     d) le relevé apprend l'étiquette d'une fin sur les cartes offertes et la
+        retrouve sur une carte payée — même au premier relevé, où les payés
+        se lisent AVANT les offerts ; sans offert, rien à comparer.
+   Mutants — les révolus jamais jugés ; jugés sur un onglet blanc ; la
+   chaîne réabonnée rendue à son passé ; leur échéance gardée ; la fin passée
+   ignorée ; le jour même déjà fini ; l'anniversaire passé pris pour une fin ;
+   la fin passée sans « ancien abonné » ; la fin d'un payé jugée à la lecture
+   de la carte ; le septième champ jamais relu ; le compte au rapport. */
+{
+  titre('199. Abonnements — la fin passée : plus abonné, ancien abonné');
+  const PLAYER = '<!doctype html><html><body>x</body></html>';
+  const CHAINES = ['omofficial', 'roicheese', 'etoiles', 'clem_mlrt', 'zerator', 'jenfirer', 'antoinedaniel', 'kameto'];
+  const poser = (page) => page.evaluate((ch) => {
+    const h = new Date(Date.now() - 60 * 60_000).toISOString();
+    window.__fx = {};
+    ch.forEach((l, i) => {
+      window.__fx[l] = { id: String(i + 1), createdAt: h, viewers: 500 - i, game: 'G', tags: [] };
+      window.__addCard(l, 'G', String(500 - i));
+    });
+  }, CHAINES);
+  // Le texte des deux badges d'abonnement de l'aperçu, au survol de la chaîne.
+  const badges = async (page, login) => {
+    await hoverLogin(page, login);
+    await wait(page, 500);
+    const t = await page.evaluate(() => ({
+      sub: document.querySelector('.tse-preview__badge--sub')?.textContent.trim() ?? null,
+      ex: document.querySelector('.tse-preview__badge--exsub')?.textContent.trim() ?? null,
+    }));
+    await unhoverCard(page, 0);
+    await wait(page, 200);
+    return t;
+  };
+  // Les chaînes dont la carte porte le décor d'abonné.
+  const dorees = (page) => page.evaluate(() => [...document.querySelectorAll('.side-nav-card.tse-sub')]
+    .map((c) => c.dataset.tseLogin).filter(Boolean).sort().join(','));
+  const dans = (page, j) => page.evaluate((n) => {
+    const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + n); return d.getTime();
+  }, j);
+  const memoire = (page) => page.evaluate(() => JSON.parse(localStorage.getItem('tse:subs') || '{}'));
+  const releve = (page) => attendre(page, () => /^2:\d+$/.test(localStorage.getItem('tse:substs') || ''), 30_000);
+  const bilan = (page) => page.evaluate(() => {
+    const r = window.tse.panneau.rapport();
+    return { revolus: r.relevesAbonnements?.revolus,
+             lus: Object.fromEntries((r.relevesAbonnements?.onglets || []).map((o) => [o.onglet, !!o.lu])),
+             finies: r.compteurs?.finies };
+  });
+  /* Une mémoire d'avant ce relevé : quatre chaînes notées abonnées.
+       — « jenfirer », payé, l'anniversaire passé il y a trois jours : les
+         expirés seuls la listent — elle ne s'est pas renouvelée ;
+       — « antoinedaniel », une entrée de l'ancienne forme, sans échéance :
+         les expirés seuls la listent ;
+       — « etoiles », dans les expirés ET dans les payés : réabonnée ;
+       — « kameto », dans aucun onglet : l'absence ne prouve rien.
+     Le script d'amorce tourne dans CHAQUE document, l'iframe du relevé
+     comprise : la mémoire ne s'écrit que dans la page du haut — l'iframe la
+     réécrirait sous le relevé —, le décor de la page des abonnements se
+     règle partout (`__subsBlancOnglets`, au b). Écrit en TEXTE : la page ne
+     reçoit que la source du script, sans les variables d'ici.
+     L'ÉTIQUETTE DE L'ANCIENNETÉ EST DÉJÀ CONNUE, comme après tout premier
+     relevé : les onglets se lisent alors dans l'ordre de tous les jours —
+     payés, offerts, mobiles, PUIS les expirés —, et le jugement des révolus
+     suit le dernier onglet lu, qui n'a rien rebalayé. Sur une page neuve,
+     les expirés passent d'abord, et le balayage différé du dernier onglet en
+     cours couvrait un jugement qui n'aurait pas rebalayé la barre lui-même. */
+  const AVANT = (blancs) => new Function(`
+    ${blancs ? `window.__subsBlancOnglets = ${JSON.stringify(blancs)};` : ''}
+    if (window.top !== window) return;
+    const minuit = (j) => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + j); return d.getTime(); };
+    try {
+      localStorage.setItem('tse:submois', 'Nombre total de mois abonné :');
+      localStorage.setItem('tse:subs', JSON.stringify({
+        jenfirer:      [1, Date.now() - 2 * 86400000, 1, 0, 'paid', minuit(-3)],
+        antoinedaniel: [1, Date.now() - 5 * 86400000, 29, 0],
+        etoiles:       [1, Date.now() - 86400000, 12, 0, 'paid', minuit(1)],
+        kameto:        [1, Date.now(), 3, 0, 'paid', minuit(5)],
+      }));
+    } catch { /* stockage refusé : le test échouera, et c'est correct */ }
+  `);
+
+  // ── a) le relevé rend à leur passé les chaînes des expirés ───────────────
+  {
+    const page = await freshTwitch(PLAYER, [], '/', AVANT(null));
+    await poser(page);
+    const fait = await releve(page);
+    /* LE DÉCOR, LU AVANT TOUT SURVOL : un survol rebalaie la barre, et
+       couvrirait un jugement qui ne la ferait pas rebalayer lui-même. Le
+       relevé fini, la barre doit suivre d'elle-même. Mutant — le jugement
+       sans nouveau balayage — : les deux révolues gardent leur décor. */
+    await wait(page, 300);
+    const d = await dorees(page);
+    await wait(page, 300);
+    const mem = await memoire(page);
+    const b = await bilan(page);
+    /* Rendues à leur passé : plus abonnées, anciennes, sans l'échéance de
+       l'abonnement fini. Restées : la réabonnée — son anniversaire relu — et
+       celle qu'aucun onglet ne nomme. Mutants — les révolus jamais jugés ;
+       la réabonnée rendue à son passé ; l'échéance gardée. */
+    ok('le relevé rend à leur passé les chaînes que seuls les expirés listent — ni la réabonnée, ni celle qu\'aucun onglet ne nomme',
+       fait && JSON.stringify(mem.jenfirer?.slice(2)) === '[1,1,"paid"]' && mem.jenfirer?.[0] === 0
+       && JSON.stringify(mem.antoinedaniel?.slice(2)) === '[29,1]' && mem.antoinedaniel?.[0] === 0
+       && mem.etoiles?.[0] === 1 && mem.etoiles?.[3] === 1 && mem.etoiles?.[5] === await dans(page, 1)
+       && mem.kameto?.[0] === 1
+       && b.revolus === 2 && b.lus.paid && b.lus.gifts && b.lus.mobile,
+       JSON.stringify({ fait, mem, b }));
+    /* Ce qui se voit : le décor d'abonné quitte les deux révolues, le badge
+       devient « Ancien abonné ». */
+    const vuJ = await badges(page, 'jenfirer');
+    const vuE = await badges(page, 'etoiles');
+    ok('…leur carte perd le décor d\'abonné, leur aperçu dit « Ancien abonné », la réabonnée reste abonnée',
+       !d.split(',').includes('jenfirer') && !d.split(',').includes('antoinedaniel')
+       && d.split(',').includes('etoiles') && d.split(',').includes('kameto')
+       && vuJ.sub === null && vuJ.ex === 'Ancien abonné • 1 MOIS'
+       && vuE.sub === 'Abonné • 12 MOIS • Prochain anniversaire dans 1 jour' && vuE.ex === null,
+       JSON.stringify({ d, vuJ, vuE }));
+    await page.close();
+  }
+
+  // ── b) un onglet en cours resté blanc : rien n'est jugé ──────────────────
+  /* « mobile » se montre et ne rend RIEN dessous, pas même son message : on
+     ne sait pas s'il est vide. Une chaîne qu'il listerait passerait pour
+     révolue — on ne juge donc de rien. Mutant — un onglet blanc compté pour
+     lu. */
+  {
+    const page = await freshTwitch(PLAYER, [], '/', AVANT(['mobile']));
+    await poser(page);
+    const fait = await releve(page);
+    await wait(page, 600);
+    const mem = await memoire(page);
+    const b = await bilan(page);
+    ok('un onglet en cours resté blanc, et le relevé ne juge de rien : « non jugé »',
+       fait && b.revolus === null && b.lus.paid && b.lus.gifts && b.lus.mobile === false
+       && mem.jenfirer?.[0] === 1 && mem.antoinedaniel?.[0] === 1 && mem.etoiles?.[0] === 1
+       && (await dorees(page)).split(',').includes('jenfirer'),
+       JSON.stringify({ fait, b, mem }));
+    await page.close();
+  }
+
+  // ── c) sans relevé, la date suffit ───────────────────────────────────────
+  /* La page des abonnements coupée, la mémoire posée à la main :
+       — « clem_mlrt », offert, expiré hier ;
+       — « zerator », offert, expire aujourd'hui ;
+       — « roicheese », payé qu'on ne renouvelle plus (le septième champ), sa
+         fin passée avant-hier ;
+       — « omofficial », payé qu'on ne renouvelle plus, fin dans cinq jours ;
+       — « etoiles », payé, l'anniversaire passé hier : un renouvellement.
+     Mutants — la fin passée ignorée ; le jour même déjà fini ; l'anniversaire
+     passé pris pour une fin ; la fin sans « ancien abonné » ; le septième
+     champ jamais relu ; le compte au rapport. */
+  {
+    const POSEE = () => {
+      window.__noSubsPage = true;
+      const minuit = (j) => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + j); return d.getTime(); };
+      try {
+        localStorage.setItem('tse:subs', JSON.stringify({
+          clem_mlrt:  [1, Date.now(), 2, 0, 'gifts', minuit(-1)],
+          zerator:    [1, Date.now(), 7, 0, 'gifts', minuit(0)],
+          roicheese:  [1, Date.now(), 4, 0, 'paid', minuit(-2), 1],
+          omofficial: [1, Date.now(), 1, 0, 'paid', minuit(5), 1],
+          etoiles:    [1, Date.now(), 12, 0, 'paid', minuit(-1)],
+        }));
+        localStorage.setItem('tse:substs', '2:' + Date.now());
+      } catch { /* stockage refusé : le test échouera, et c'est correct */ }
+    };
+    const page = await freshTwitch(PLAYER, [], '/', POSEE);
+    await poser(page);
+    await wait(page, 600);
+    const d = (await dorees(page)).split(',');
+    const vus = {};
+    for (const l of ['clem_mlrt', 'zerator', 'roicheese', 'omofficial', 'etoiles']) vus[l] = await badges(page, l);
+    /* Le tableau du panneau dit ce que la barre montre : `sub` et `ancien` —
+       « abonné : oui » à côté d'une échéance passée, c'est ce qui se voyait.
+       `note` garde ce que la mémoire a noté. Mutant — le `sub` noté, et non
+       celui de la barre. */
+    const lignes = await page.evaluate(() => Object.fromEntries((window.tse.subs() || [])
+      .map((e) => [e.login, `${e.fin ? 'fin' : '-'}/${e.finie ? 'finie' : '-'}/${e.sub ? 'abonné' : '-'}`
+        + `/${e.ancien ? 'révolu' : '-'}/${e.note ? 'noté' : '-'}`])));
+    const b = await bilan(page);
+    ok('un offert expiré hier, un payé non renouvelé dont la fin est passée : plus de décor d\'abonné, « Ancien abonné » à l\'aperçu',
+       !d.includes('clem_mlrt') && !d.includes('roicheese')
+       && vus.clem_mlrt.sub === null && vus.clem_mlrt.ex === 'Ancien abonné • 2 MOIS'
+       && vus.roicheese.sub === null && vus.roicheese.ex === 'Ancien abonné • 4 MOIS',
+       JSON.stringify({ d, vus }));
+    ok('le jour même, encore abonné : « Expire aujourd\'hui » ; une fin à venir : « Expire dans 5 jours »',
+       d.includes('zerator') && vus.zerator.sub === 'Abonné • 7 MOIS • Expire aujourd\'hui'
+       && d.includes('omofficial') && vus.omofficial.sub === 'Abonné • 1 MOIS • Expire dans 5 jours',
+       JSON.stringify({ d, vus }));
+    ok('un anniversaire passé est un renouvellement : toujours abonné, l\'échéance se tait',
+       d.includes('etoiles') && vus.etoiles.sub === 'Abonné • 12 MOIS' && vus.etoiles.ex === null,
+       JSON.stringify(vus.etoiles));
+    ok('tse.subs() et le tableau du panneau disent ce que la barre montre, la fin et la fin passée ; le rapport compte celles qui attendent le relevé',
+       lignes.clem_mlrt === 'fin/finie/-/révolu/noté' && lignes.roicheese === 'fin/finie/-/révolu/noté'
+       && lignes.zerator === 'fin/-/abonné/-/noté' && lignes.omofficial === 'fin/-/abonné/-/noté'
+       && lignes.etoiles === '-/-/abonné/-/noté' && b.finies === 2,
+       JSON.stringify({ lignes, finies: b.finies }));
+    await page.close();
+  }
+
+  // ── d) le relevé apprend la fin d'un payé ────────────────────────────────
+  /* « roicheese » ne renouvelle plus son abonnement payé : sa carte porte
+     l'étiquette de la date d'un offert. Au tout premier relevé, les expirés
+     d'abord, puis les payés, puis les offerts : l'étiquette s'apprend APRÈS
+     la carte qu'elle doit juger. Mutant — la fin jugée à la lecture de la
+     carte — : roicheese garde son anniversaire. Puis sans aucun offert : rien
+     à comparer, la date reste un anniversaire. */
+  {
+    const page = await freshTwitch(PLAYER, [], '/', () => { window.__subsPayeFin = ['roicheese']; });
+    await poser(page);
+    const fait = await releve(page);
+    await wait(page, 600);
+    const mem = await memoire(page);
+    const fin = await page.evaluate(() => localStorage.getItem('tse:subfin'));
+    const vu = await badges(page, 'roicheese');
+    ok('le relevé retrouve sur une carte payée l\'étiquette de fin d\'un offert : « Expire dans 8 jours »',
+       fait && mem.roicheese?.[4] === 'paid' && mem.roicheese?.[5] === await dans(page, 8) && mem.roicheese?.[6] === 1
+       && mem.omofficial?.[6] === undefined && mem.clem_mlrt?.[6] === 1
+       && fin === 'vos avantages arrivent à expiration le'
+       && vu.sub === 'Abonné • 4 MOIS • Expire dans 8 jours',
+       JSON.stringify({ fait, roicheese: mem.roicheese, omofficial: mem.omofficial, clem: mem.clem_mlrt, fin, vu }));
+    await page.close();
+    const sans = await freshTwitch(PLAYER, [], '/', () => { window.__subsPayeFin = ['roicheese']; window.__subsVides = ['gifts']; });
+    await poser(sans);
+    const fait2 = await releve(sans);
+    await wait(sans, 600);
+    const mem2 = await memoire(sans);
+    ok('…sans offert jamais vu, rien à comparer : la date reste un anniversaire',
+       fait2 && mem2.roicheese?.[5] === await dans(sans, 9) && mem2.roicheese?.[6] === undefined
+       && (await sans.evaluate(() => localStorage.getItem('tse:subfin'))) === null,
+       JSON.stringify({ fait2, roicheese: mem2.roicheese }));
+    await sans.close();
+  }
+}
+
 /* ═════════ UN VERDICT DE TWITCH SURVIT AU RECHARGEMENT ═══════════════════
    LE RAPPORT DE TERRAIN : 191 sondes, 7 origines trouvées, 64 refus. Les 184
    autres n'ont rien trouvé — le cas normal d'un direct sans coupure — et
@@ -29406,11 +29666,20 @@ const S_LECTEUR_SONDE = () => {
   ok('…et seulement leur partie commune : le long silence de « duo1 » seule n\'emporte pas le son de « foxtrot » — autant de son écarté dans chaque paire, et moins de 1,6 s',
      ecartes.every((x) => x > 0 && x < 1.6) && Math.max(...ecartes) - Math.min(...ecartes) <= 0.4,
      JSON.stringify({ silencesCommuns: rB.ecoute?.silencesCommuns, ecartes }));
-  /* PLUS DE CENT (4.24.0.33) : cent dix silences communs de 60 ms, toutes les
-     300 ms, dans toutes les tuiles. Le compte les dit tous : il ne s'arrête
-     plus aux cent que la mémoire garde pour les dédoublonner. */
+  /* PLUS DE CENT (4.24.0.33) : cent dix silences communs, toutes les 300 ms,
+     dans toutes les tuiles. Le compte les dit tous : il ne s'arrête plus aux
+     cent que la mémoire garde pour les dédoublonner.
+     DE 120 MS, ET NON PLUS DE 60 (4.24.0.36). Chaque tuile du décor pose ses
+     silences à l'heure de SA propre correspondance entre l'horloge et son son,
+     refaite à chaque tour de son minuteur ; sous la charge d'un banc complet,
+     elle glisse de quelques dizaines de millisecondes d'une tuile à l'autre,
+     et un silence de 60 ms n'avait plus, entre deux tuiles, les 50 ms qui font
+     un silence commun. Un sur cent dix manquait — trois une fois —, dans les
+     trois paires de « foxtrot » à la fois : sur la 4.24.0.35 comme après, une
+     passe sur neuf environ. Ce qui se mesure ici est le compte au-delà de
+     cent, pas la longueur d'un silence. */
   const t1 = await page.evaluate(() => Date.now() + 1_500);
-  const rafale = Array.from({ length: 110 }, (_, i) => [t1 + i * 300, t1 + i * 300 + 60]);
+  const rafale = Array.from({ length: 110 }, (_, i) => [t1 + i * 300, t1 + i * 300 + 120]);
   for (const ch of ['foxtrot', 'duo1', 'rho', 'sigma']) {
     await cadre(ch)?.evaluate((L) => window.__silences(L), rafale).catch(() => null);
   }

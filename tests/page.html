@@ -1020,8 +1020,14 @@ if (location.pathname === '/subscriptions' && !window.__noSubsPage) {
        est alors une date candidate, plus proche, et elle se lit DANS
        « 12 nov. » à qui ne borne pas ses correspondances. */
     const fin = offert ? EXPIRATION() : j - 1;
-    const date = offert
-      ? '<p>Vos avantages arrivent à expiration le <span>' + DATE(fin) + '</span> (dans ' + fin + ' jours)</p>'
+    /* __subsPayeFin (4.24.0.36) : les chaînes dont l'abonnement PAYÉ ne se
+       renouvelle plus. Leur carte dit, à la place de la date de
+       renouvellement, ce que dit celle d'un offert — la carte payée du relevé
+       du 31/08/2026 : « Vos avantages arrivent à expiration le 9 sept. 2026 ». */
+    const payeFin = !offert && (window.__subsPayeFin || []).includes(login);
+    const date = offert || payeFin
+      ? '<p>Vos avantages arrivent à expiration le <span>' + DATE(Math.max(0, fin)) + '</span> (dans ' +
+        Math.max(0, fin) + ' jours)</p>'
       : '<p>Date de renouvellement de l\'abonnement : <span>' + DATE(Math.max(0, fin)) +
         '</span> (dans ' + Math.max(0, fin) + ' jours)</p>';
     /* __subsDatesTardives : { login: ms } — la ligne de la date arrive APRÈS
@@ -1068,8 +1074,10 @@ if (location.pathname === '/subscriptions' && !window.__noSubsPage) {
     if (messageEnAttente) { clearTimeout(messageEnAttente); messageEnAttente = null; }
     panneau.replaceChildren();
     /* __subsBlanc : la page se montre, barre et onglets compris, et ne rend
-       JAMAIS rien dessous. C'est ce que le relevé a vu le 24/09/2026. */
-    if (window.__subsBlanc) return;
+       JAMAIS rien dessous. C'est ce que le relevé a vu le 24/09/2026.
+       __subsBlancOnglets (4.24.0.36) : les seuls onglets qui restent blancs —
+       les autres rendent leurs cartes. */
+    if (window.__subsBlanc || (window.__subsBlancOnglets || []).includes(tab)) return;
     /* __subsMessage : ce que Twitch affiche quand SA PROPRE requête échoue
        (« Impossible d'afficher vos abonnements pour le moment » — « failed
        integrity check » en console). __subsMessageRetard le fait arriver
