@@ -613,15 +613,13 @@ const demoCarte = (o) => {
                               + (o.or ? ' d-carte--or' : '')
                               + (o.costream ? ' d-carte--costream' : ''));
   /* LE CO-STREAM, depuis la 4.24.0.33 : plus de pastille sur l'avatar, la
-     barre de la carte, et au milieu la languette « ▶ » de la salle — une
-     chaîne seule de son co-stream dans la liste, comme celle que la carte
-     réelle montre. Le triangle est celui de content.js, coins arrondis. */
+     barre de la carte, et au milieu le curseur de la salle — une chaîne
+     seule de son co-stream dans la liste, comme celle que la carte réelle
+     montre. La gélule au repos depuis la 4.24.0.34, son ▶ découpé comme
+     dans content.js. */
   if (o.costream) {
     const noeud = div('d-noeud');
-    const svg = svgEl('svg', { viewBox: '0 0 10 12', 'aria-hidden': 'true' });
-    svg.appendChild(svgEl('path', { d: 'M2 1.9v8.2L8.6 6z', stroke: 'currentColor',
-                                    'stroke-width': '1.8', 'stroke-linejoin': 'round' }));
-    noeud.appendChild(svg);
+    noeud.appendChild(elt('span', ''));
     carte.appendChild(noeud);
   }
   carte.appendChild(div('d-avatar'));

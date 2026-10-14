@@ -385,7 +385,7 @@
     "message": "Les co-streams"
   },
   "guideCostreamTexte": {
-    "message": "Une barre colorée au bord de la carte, une couleur par co-stream : cette chaîne diffuse à plusieurs. Visible dans la liste, sans rien survoler.\n• Un badge violet dit alors qui reçoit et qui est invité, et avec qui.\n• Un tri dédié les regroupe en tête de liste (chapitre $1).\n• Quand plusieurs membres se suivent dans la liste, leurs barres n'en font qu'une ; seule de son co-stream dans la liste, une chaîne a la sienne. Au milieu se pose un bouton « ▶ », quand d'autres membres diffusent : un clic les ouvre ensemble sur la page, dans la salle multistream. Au survol, « Tout le co-stream » y ajoute ceux que vous ne suivez pas — Maj+clic aussi. Un clic sur une tuile lui donne le son, et le chat suit ; à deux streams sans Chat partagé, les deux chats encadrent les lecteurs quand la place le permet. La touche Échap, ou un second clic sur le bouton, referme la salle."
+    "message": "Une barre colorée au bord de la carte, une couleur par co-stream : cette chaîne diffuse à plusieurs. Visible dans la liste, sans rien survoler.\n• Un badge violet dit alors qui reçoit et qui est invité, et avec qui.\n• Un tri dédié les regroupe en tête de liste (chapitre $1).\n• Quand plusieurs membres se suivent dans la liste, leurs barres n'en font qu'une ; seule de son co-stream dans la liste, une chaîne a la sienne. Au milieu se pose un petit curseur « ▶ », quand d'autres membres diffusent : au survol, il s'étire et dit ce qu'il ouvre ; un clic les ouvre ensemble sur la page, dans la salle multistream. Ceux que vous ne suivez pas s'y invitent par leurs visages : allez vers eux pour les ajouter — Maj+clic aussi. Un clic sur une tuile lui donne le son, et le chat suit ; à deux streams sans Chat partagé, les deux chats encadrent les lecteurs quand la place le permet. La touche Échap, ou un second clic sur le curseur, referme la salle."
   },
   "guideDebutTitre": {
     "message": "Les débuts, et les reprises"
@@ -541,7 +541,7 @@
     "message": "Salle multistream"
   },
   "optDescSalle": {
-    "message": "Un bouton « ▶ », au milieu de la barre d'un co-stream, ouvre ses streams ensemble, sur la page — sur la barre de plusieurs chaînes comme sur celle d'une chaîne seule de son co-stream dans la liste. Au survol ou par Maj+clic : tout le co-stream, ceux que vous ne suivez pas compris. Coupé : ni bouton, ni salle ; les barres restent."
+    "message": "Un curseur « ▶ », au milieu de la barre d'un co-stream, ouvre ses streams ensemble, sur la page — sur la barre de plusieurs chaînes comme sur celle d'une chaîne seule de son co-stream dans la liste. Au survol, il s'étire et dit ce qu'il ouvre ; les visages de ceux que vous ne suivez pas s'y invitent — allez vers eux, ou Maj+clic : tout le co-stream. Coupé : ni curseur, ni salle ; les barres restent."
   },
   "optSalleAuto": {
     "message": "Alignement automatique"

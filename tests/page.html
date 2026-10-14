@@ -880,6 +880,19 @@ window.fetch = async (url, opt) => {
         } })) }
       } } };
     }
+    /* TseVisages (4.24.0.34) : le nom et l'avatar des membres qu'on ne suit
+       pas — la bulle des visages du curseur de la salle. Tout login a les
+       siens, servis par le CDN de Twitch (un PNG 1x1 au banc) ; ceux de
+       `__sansVisage` rendent un avatar nul ; `__visages = 'erreur'` → 200
+       porteur d'erreurs GraphQL, ce que rendrait un champ refusé. */
+    if (o.operationName === 'TseVisages') {
+      if (window.__visages === 'erreur') return { errors: [{ message: 'Cannot query field "profileImageURL"' }] };
+      const sans = window.__sansVisage || [];
+      return { data: { users: (o.variables?.logins || []).map(l => ({
+        login: l, displayName: l.charAt(0).toUpperCase() + l.slice(1),
+        profileImageURL: sans.includes(l) ? null
+          : 'https://static-cdn.jtvnw.net/jtv_user_pictures/' + l + '-profile_image-70x70.png' })) } };
+    }
     if (o.operationName !== 'TseChannels') return { data: {} };
     let users = (o.variables.logins || []).map(mk).filter(Boolean);
     // Twitch ne garantit pas l'ordre : on le mélange pour que le code soit

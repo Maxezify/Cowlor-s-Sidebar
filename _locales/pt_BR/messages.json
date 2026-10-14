@@ -385,7 +385,7 @@
     "message": "Os co-streams"
   },
   "guideCostreamTexte": {
-    "message": "Uma barra colorida na borda do cartão, uma cor por co-stream: esse canal transmite acompanhado. Visível na lista, sem passar o mouse por nada.\n• Um emblema roxo diz então quem recebe e quem é convidado, e com quem.\n• Uma ordenação própria agrupa todos no topo da lista (capítulo $1).\n• Quando vários participantes aparecem seguidos na lista, as barras deles viram uma só; se um canal é o único do seu co-stream na lista, ele tem a sua. No meio fica um botão «▶» quando outros participantes transmitem: um clique abre todos juntos na página, na sala multistream. Ao passar o mouse, «Todo o co-stream» acrescenta quem você não segue — Shift+clique também. Um clique em um quadro dá a ele o som, e o chat acompanha; com duas transmissões sem chat compartilhado, os dois chats ladeiam os players quando há espaço. A tecla Esc, ou um segundo clique no botão, fecha a sala."
+    "message": "Uma barra colorida na borda do cartão, uma cor por co-stream: esse canal transmite acompanhado. Visível na lista, sem passar o mouse por nada.\n• Um emblema roxo diz então quem recebe e quem é convidado, e com quem.\n• Uma ordenação própria agrupa todos no topo da lista (capítulo $1).\n• Quando vários participantes aparecem seguidos na lista, as barras deles viram uma só; se um canal é o único do seu co-stream na lista, ele tem a sua. No meio fica um pequeno cursor «▶» quando outros participantes transmitem: ao passar o mouse, ele se estica e diz o que abre; um clique abre todos juntos na página, na sala multistream. Quem você não segue aparece ao lado, pelo rosto: vá até eles para acrescentá-los — Shift+clique também. Um clique em um quadro dá a ele o som, e o chat acompanha; com duas transmissões sem chat compartilhado, os dois chats ladeiam os players quando há espaço. A tecla Esc, ou um segundo clique no cursor, fecha a sala."
   },
   "guideDebutTitre": {
     "message": "Os começos e os regressos"
@@ -541,7 +541,7 @@
     "message": "Sala multistream"
   },
   "optDescSalle": {
-    "message": "Um botão «▶», no meio da barra de um co-stream, abre juntas, na página, as transmissões dele — na barra de vários canais como na de um canal que é o único do seu co-stream na lista. Ao passar o mouse ou com Shift+clique: todo o co-stream, inclusive quem você não segue. Desligado: nem botão, nem sala; as barras ficam."
+    "message": "Um cursor «▶», no meio da barra de um co-stream, abre juntas, na página, as transmissões dele — na barra de vários canais como na de um canal que é o único do seu co-stream na lista. Ao passar o mouse, ele se estica e diz o que abre; ao lado aparecem os rostos de quem você não segue — vá até eles, ou Shift+clique: todo o co-stream. Desligado: nem cursor, nem sala; as barras ficam."
   },
   "optSalleAuto": {
     "message": "Alinhamento automático"

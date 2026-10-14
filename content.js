@@ -1512,14 +1512,15 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiSalleBanc:               (nom) => `Mettre ${nom} dans la grille`,
       uiSalleChatAfficher:       'Afficher le chat',
       uiSalleChatMasquer:        'Masquer le chat',
-      // Le nœud sur la barre des co-streams (4.24.0.7) : son étiquette au
-      // survol, et ce qu'il dit à un lecteur d'écran.
+      // Le curseur sur la barre des co-streams (4.24.0.7) : sa pilule, et ce
+      // qu'il dit à un lecteur d'écran.
       uiNoeudRegarder:           (n) => `Regarder les ${n}`,
       uiNoeudAria:               (noms) => `Regarder ${noms} ensemble`,
       // Le choix sur la barre (4.24.0.28) : ses suivis, ou tout le co-stream —
-      // ceux qu'on ne suit pas compris ; et le raccourci que le titre rappelle.
+      // ceux qu'on ne suit pas compris, la pilule soudée à leurs visages
+      // (4.24.0.34) ; et le raccourci que le titre rappelle.
       uiNoeudSuivis:             (n) => `Les ${n} suivis`,
-      uiNoeudTous:               (n) => `Tout le co-stream · ${n}`,
+      uiNoeudTous:               (n) => `Tous les ${n}`,
       uiNoeudMaj:                (n) => `Maj+clic : tout le co-stream (${n})`,
       uiGlobalEmpty:             'Aucune chaîne en direct avec ce filtre',
       uiUptimeEnded:             'Terminé',
@@ -1632,7 +1633,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiNoeudRegarder:           (n) => `Watch all ${n}`,
       uiNoeudAria:               (noms) => `Watch ${noms} together`,
       uiNoeudSuivis:             (n) => `${n} followed`,
-      uiNoeudTous:               (n) => `Whole co-stream · ${n}`,
+      uiNoeudTous:               (n) => `All ${n}`,
       uiNoeudMaj:                (n) => `Shift+click: whole co-stream (${n})`,
       uiGlobalEmpty:             'No live channel matches this filter',
       uiUptimeEnded:             'Ended',
@@ -1737,7 +1738,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiNoeudRegarder:           (n) => `Alle ${n} ansehen`,
       uiNoeudAria:               (noms) => `${noms} zusammen ansehen`,
       uiNoeudSuivis:             (n) => `Die ${n} gefolgten`,
-      uiNoeudTous:               (n) => `Ganzer Co-stream · ${n}`,
+      uiNoeudTous:               (n) => `Alle ${n}`,
       uiNoeudMaj:                (n) => `Umschalt+Klick: ganzer Co-stream (${n})`,
       uiGlobalEmpty:             'Kein Live-Kanal passt zu diesem Filter',
       uiUptimeEnded:             'Beendet',
@@ -1842,7 +1843,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiNoeudRegarder:           (n) => `Ver los ${n}`,
       uiNoeudAria:               (noms) => `Ver a ${noms} juntos`,
       uiNoeudSuivis:             (n) => `Los ${n} seguidos`,
-      uiNoeudTous:               (n) => `Todo el co-stream · ${n}`,
+      uiNoeudTous:               (n) => `Todos los ${n}`,
       uiNoeudMaj:                (n) => `Mayús+clic: todo el co-stream (${n})`,
       uiGlobalEmpty:             'Ningún canal en directo con este filtro',
       uiUptimeEnded:             'Finalizado',
@@ -1947,7 +1948,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiNoeudRegarder:           (n) => `Ver os ${n}`,
       uiNoeudAria:               (noms) => `Assistir ${noms} juntos`,
       uiNoeudSuivis:             (n) => `Os ${n} seguidos`,
-      uiNoeudTous:               (n) => `Todo o co-stream · ${n}`,
+      uiNoeudTous:               (n) => `Todos os ${n}`,
       uiNoeudMaj:                (n) => `Shift+clique: todo o co-stream (${n})`,
       uiGlobalEmpty:             'Nenhum canal ao vivo com este filtro',
       uiUptimeEnded:             'Encerrado',
@@ -2052,7 +2053,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiNoeudRegarder:           (n) => `Guarda tutti e ${n}`,
       uiNoeudAria:               (noms) => `Guarda ${noms} insieme`,
       uiNoeudSuivis:             (n) => `I ${n} seguiti`,
-      uiNoeudTous:               (n) => `Tutto il co-stream · ${n}`,
+      uiNoeudTous:               (n) => `Tutti e ${n}`,
       uiNoeudMaj:                (n) => `Maiusc+clic: tutto il co-stream (${n})`,
       uiGlobalEmpty:             'Nessun canale in diretta con questo filtro',
       uiUptimeEnded:             'Terminato',
@@ -2157,7 +2158,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiNoeudRegarder:           (n) => `Oglądaj ${n} naraz`,
       uiNoeudAria:               (noms) => `Oglądaj razem: ${noms}`,
       uiNoeudSuivis:             (n) => `Obserwowani (${n})`,
-      uiNoeudTous:               (n) => `Cały co-stream · ${n}`,
+      uiNoeudTous:               (n) => `Wszyscy (${n})`,
       uiNoeudMaj:                (n) => `Shift+klik: cały co-stream (${n})`,
       uiGlobalEmpty:             'Brak kanałów na żywo dla tego filtra',
       uiUptimeEnded:             'Zakończono',
@@ -2262,7 +2263,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiNoeudRegarder:           (n) => `Смотреть все ${n}`,
       uiNoeudAria:               (noms) => `Смотреть вместе: ${noms}`,
       uiNoeudSuivis:             (n) => `Отслеживаемые (${n})`,
-      uiNoeudTous:               (n) => `Весь ко-стрим · ${n}`,
+      uiNoeudTous:               (n) => `Все ${n}`,
       uiNoeudMaj:                (n) => `Shift+клик: весь ко-стрим (${n})`,
       uiGlobalEmpty:             'Нет каналов в эфире с этим фильтром',
       uiUptimeEnded:             'Завершено',
@@ -2367,7 +2368,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiNoeudRegarder:           (n) => `${n} 人をまとめて見る`,
       uiNoeudAria:               (noms) => `${noms} をまとめて見る`,
       uiNoeudSuivis:             (n) => `フォロー中の${n}人`,
-      uiNoeudTous:               (n) => `コラボ配信の全員 · ${n}`,
+      uiNoeudTous:               (n) => `全員（${n}人）`,
       uiNoeudMaj:                (n) => `Shift+クリック：コラボ配信の全員（${n}）`,
       uiGlobalEmpty:             'この条件で配信中のチャンネルはありません',
       uiUptimeEnded:             '終了',
@@ -2470,7 +2471,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiNoeudRegarder:           (n) => `一起观看 ${n} 个`,
       uiNoeudAria:               (noms) => `一起观看 ${noms}`,
       uiNoeudSuivis:             (n) => `关注的 ${n} 位`,
-      uiNoeudTous:               (n) => `整个联合直播 · ${n}`,
+      uiNoeudTous:               (n) => `全部 ${n} 位`,
       uiNoeudMaj:                (n) => `Shift+点击：整个联合直播（${n}）`,
       uiGlobalEmpty:             '没有符合此筛选条件的直播频道',
       uiUptimeEnded:             '已结束',
@@ -3652,6 +3653,17 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     // l'arrivée dans l'onglet (sessionStorage), vingt secondes au plus.
     SALLE_PAGE:            '/directory',
     SALLE_ATTENTE_MS:      20_000,
+    // LA SALLE PRÊTE (4.24.0.34) : la première tuile qui joue, ou ce délai —
+    // l'anneau du curseur ne tourne pas plus longtemps.
+    SALLE_PRETE_MAX_MS:    3_000,
+    /* LE CURSEUR DE LA BARRE (4.24.0.34) : le pointeur tenu sur la gélule
+       avant qu'elle s'étire — un pointeur qui balaie la liste ne s'y tient
+       pas — ; le temps qu'il a pour revenir avant le repli ; et l'indice
+       d'accueil — son attente après la naissance, sa tenue. */
+    NOEUD_INTENTION_MS:    150,
+    NOEUD_GRACE_MS:        80,
+    NOEUD_INDICE_ATTENTE_MS: 600,
+    NOEUD_INDICE_TENUE_MS: 2_400,
     // LE STREAM QUI S'ARRÊTE (4.24.0.22) : chaque membre relu toutes les
     // trente secondes auprès de Twitch ; hors ligne deux fois, à vingt-cinq
     // secondes d'écart au moins, il quitte la salle.
@@ -3818,6 +3830,11 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
        LA CLÉ PORTE LE NOM DU SIGNAL, pas celui d'un état de l'utilisateur —
        voir le module plus bas pour ce que cette nuance a coûté. */
     ROUE_KEY:               'tse:roue',
+
+    /* === L'indice d'accueil du curseur (4.24.0.34) ===
+       « vu » dès qu'il a joué, une fois par installation ; absent, il jouera
+       la première fois qu'un curseur paraît. */
+    INDICE_KEY:             'tse:indice',
 
     /* === Le panneau incrusté ===
        LES DEUX NOMBRES SONT CEUX DE LA POPUP DE BARRE D'OUTILS (cf. la borne
@@ -4995,6 +5012,16 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         transparent 100%
       ); }
     .side-nav-card.tse-fresh.tse-costream::before { background: var(--tse-frais); }
+    /* EN CLAIR (4.24.0.34) : la barre prend le ton approfondi de sa couleur
+       — trois fois plus sombre que le fond de Twitch au moins, le contraste
+       que le WCAG demande à ce qui se voit sans être du texte —, et perd sa
+       lueur. Le jaune de la palette tombait à 1,4:1 sur le fond clair, la
+       gélule posée dessus de même. Le rouge du direct frais, lui, passe
+       (4:1) : il reste le sien. */
+    html[data-tse-theme="light"] .side-nav-card.tse-costream:not(.tse-fresh)::before {
+      background: var(--tse-costream-color-clair, var(--tse-costream-color, #ffffff));
+    }
+    html[data-tse-theme="light"] .side-nav-card.tse-costream::before { box-shadow: none; }
     /* Jonction de barres : deux cartes co-stream VISIBLES adjacentes du même
        groupe (classes posées en JS par applyCostreamJoins) → leurs barres
        latérales fusionnent en une seule. On prolonge la barre au-delà du bord
@@ -5013,205 +5040,235 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       border-top-right-radius: 0;
     }
 
-    /* === Le nœud de la salle multistream, sur la barre (4.24.0.7) ===
-       Un bouton « ▶ » à la couleur de la barre, posé au milieu du groupe. Le
-       symbole seul depuis la 4.24.0.8 : le nombre de streams ne s'y lisait
-       pas mieux que sur la barre elle-même, et l'étiquette le dit au survol.
-       UN ROND PARFAIT depuis la 4.24.0.9, à la demande : largeur et hauteur
-       égales ; l'étiquette sort en bulle à côté, sans le déformer. PLUS
-       PETIT depuis la 4.24.0.10 — douze pixels, pour ne plus couvrir
-       l'avatar — et CENTRÉ SUR LE TRAIT autant que le bord de la liste le
-       permet (cf. placer).
-       Le calque qui le porte n'a pas de hauteur : il ne déplace rien dans la
-       liste.
-
-       LA BARRE QUI S'ÉLARGIT, depuis la 4.24.0.33. DEMANDÉ : « ce rond "▶" […]
-       je le trouve pas très beau, petit, à peine visible et pas bien intégré à
-       la barre colorée ». Le rond était un cercle centré sur un trait qui
-       longe le bord de la fenêtre : la liste en aurait rogné la moitié, et
-       placer le poussait à droite du trait, posé à côté de lui plutôt que
-       dessus. Il devient ce qu'un cercle centré sur ce bord peut être sans y
-       être coupé — une LANGUETTE :
-         — bord gauche droit, sur le trait, de sa couleur et de sa lueur (les
-           mêmes ombres que la barre) : le trait s'élargit, il ne porte pas
-           un objet ;
-         — bord droit en demi-cercle, détouré de la carte par un croissant de
-           deux pixels à la couleur du fond — une ombre décalée de deux
-           pixels vers la droite, qui ne coupe pas le trait au-dessus et
-           au-dessous comme le liseré du rond le coupait ;
-         — quinze pixels sur vingt-deux : le triangle y fait sept sur huit,
-           au lieu de quatre sur cinq ; il mord de cinq pixels sur l'avatar,
-           qui commence à dix, et le croissant en fait un cran plutôt qu'un
-           recouvrement. Sur une carte seule, le trait — la carte moins
-           quatre pixels en haut et en bas — la dépasse au-dessus et
-           au-dessous ;
-         — l'ENCRE suit la barre : le noir de Twitch, ou le blanc sur le rouge
-           d'un direct qui vient de démarrer (cf. encreSur) ;
-         — le triangle et le carré aux coins arrondis, comme les lecteurs.
-       La languette est le ::before, et non le bouton : le survol l'agrandit
-       sans agrandir l'étiquette qui en sort. */
-    .tse-noeuds { position: relative; height: 0; margin: 0; padding: 0; z-index: 5; }
+    /* === Le curseur de la salle multistream, sur la barre (4.24.0.34) ===
+       DE LA 4.24.0.7 À LA 4.24.0.33, UN BOUTON POSÉ SUR LA BARRE : un rond,
+       puis une languette, et à côté une étiquette ou deux boutons en colonne.
+       DEMANDÉ : « visible mais pas omniprésent », avec des animations
+       « quali » ; parmi quatre pistes, la C — LA BARRE EST UNE PISTE, LE
+       BOUTON SON CURSEUR. Trois niveaux de présence :
+         — AU REPOS, une gélule de neuf pixels sur dix-huit, posée sur le
+           trait : on la voit sans qu'elle couvre l'avatar, qui commence à
+           dix ;
+         — L'ÉVEIL, quand le pointeur entre dans le co-stream (une de ses
+           cartes) : treize sur vingt-deux, et la lueur de la barre ;
+         — L'INTENTION, le pointeur tenu 150 ms sur la gélule : elle s'étire
+           en pilule, « ▶ Regarder les 3 ». Un pointeur qui balaie la liste
+           n'ouvre jamais rien.
+       CE QUI S'OUVRE DÉCÉLÈRE, CE QUI SE REPLIE ACCÉLÈRE, et plus vite : 200 ms
+       pour s'étirer, 140 pour rentrer. Rien ne boucle, hors l'anneau d'une
+       salle qui s'ouvre. Les courbes, nommées comme au dossier de la piste :
+       sortie, ressort (dépasse de 7 % et se pose), morphose (symétrique),
+       accélère.
+       Le calque qui les porte n'a pas de hauteur : il ne déplace rien dans la
+       liste. */
+    /* Rien du calque ne se sélectionne : une sélection qui traverse la liste
+       n'emporte pas le texte d'une pilule repliée, et Maj+clic sur la zone de
+       visée — une boîte, pas un bouton — n'étend pas jusqu'à elle celle qui
+       est ancrée dans la liste. Mesuré au banc. */
+    .tse-noeuds {
+      position: relative; height: 0; margin: 0; padding: 0; z-index: 5; user-select: none;
+      --tse-e-sortie:  cubic-bezier(.22, 1, .36, 1);
+      --tse-e-ressort: cubic-bezier(.34, 1.56, .64, 1);
+      --tse-e-morph:   cubic-bezier(.65, 0, .35, 1);
+      --tse-e-accel:   cubic-bezier(.55, 0, 1, .45);
+    }
     .tse-noeud {
-      position: absolute; transform: translateY(-50%);
-      display: flex; align-items: center; justify-content: center;
-      width: 15px; height: 22px; margin: 0; padding: 0 0 0 1px; box-sizing: border-box;
-      border: 0; border-radius: 0 11px 11px 0; background: transparent;
-      color: var(--tse-noeud-encre, #0e0e10);
-      font-family: inherit; font-size: 11px; font-weight: 700; line-height: 1;
-      white-space: nowrap; cursor: pointer;
-    }
-    .tse-noeud::before {
-      content: ''; position: absolute; inset: 0; border-radius: inherit;
-      background: var(--tse-noeud-couleur, #9147ff);
-      box-shadow: 2px 0 0 0 var(--tse-decoupe),
-                  0 0 6px var(--tse-noeud-couleur, #9147ff), 0 0 2px var(--tse-noeud-couleur, #9147ff);
-      transform-origin: 0 50%;
-      transition: transform 120ms ease, box-shadow 120ms ease, filter 120ms ease;
-    }
-    /* Le symbole au-dessus de la languette (positionné, il se peint après
-       elle), dans sa partie ronde : le pixel de marge à gauche du bouton l'y
-       pousse d'un demi-pixel. */
-    .tse-noeud__symbole { position: relative; display: flex; align-items: center;
-                          transition: transform 120ms ease; }
-    .tse-noeud svg { display: block; width: 7px; height: 8px; fill: currentColor; }
-    .tse-noeud .tse-icone-arret { width: 7px; height: 7px; }
-    /* ▶ POUR OUVRIR, ■ POUR ARRÊTER (4.24.0.29) : une salle ouverte change le
-       symbole de ce qui la referme — le nœud, le choix qui l'a ouverte. Le
-       code des lecteurs : on lit sans étiquette ce que fera le clic. */
-    .tse-noeuds .tse-icone-arret { display: none; }
-    .tse-noeuds [aria-pressed="true"] .tse-icone-lecture { display: none; }
-    .tse-noeuds [aria-pressed="true"] .tse-icone-arret { display: block; }
-    /* LE SURVOL SE VOIT (4.24.0.29) : la languette s'avance — agrandie depuis
-       son bord gauche, qui reste sur le trait —, s'éclaire et rayonne ; le
-       symbole la suit. Enfoncée au clic. */
-    .tse-noeud:hover::before,
-    .tse-noeud:focus-visible::before {
-      transform: scale(1.12); filter: brightness(1.08);
-      box-shadow: 2px 0 0 0 var(--tse-decoupe),
-                  0 0 10px 1px var(--tse-noeud-couleur, #9147ff), 0 0 3px var(--tse-noeud-couleur, #9147ff);
-    }
-    .tse-noeud:hover > .tse-noeud__symbole,
-    .tse-noeud:focus-visible > .tse-noeud__symbole { transform: translateX(1px) scale(1.12); }
-    .tse-noeud:active::before { transform: scale(0.96); filter: brightness(0.94); }
-    .tse-noeud:active > .tse-noeud__symbole { transform: scale(0.96); }
-
-    /* === Ce qu'on clique à côté du rond : des BOUTONS (4.24.0.29) ===
-       SIGNALÉ : « Les 4 suivis | Tout le co-stream · 6 », « Regarder les 2 » —
-       « on dirait pas que ce sont des éléments cliquables ». C'étaient des
-       étiquettes : un aplat, un texte, rien d'un bouton. Ils en prennent les
-       marques, celles qu'on reconnaît sans les lire :
-         — UN RELIEF : une arête claire en haut, une ombre franche dessous, un
-           bord ; ils sortent de la carte au lieu de s'y peindre ;
-         — UNE RÉPONSE À LA SOURIS : plus clairs et soulevés d'un pixel au
-           survol, enfoncés au clic ;
-         — LE SYMBOLE DE CE QU'ILS FONT : ▶ devant chaque choix (■ quand sa
-           salle est ouverte) ;
-         — SÉPARÉS : deux boutons l'un sous l'autre, et non une bande coupée en
-           deux, qui se lisait comme un seul libellé. En colonne, ils tiennent
-           aussi dans la largeur de la barre latérale, même dans les langues
-           longues.
-       L'étiquette d'un nœud sans choix (« Regarder les 3 », « Regarder les 2 »
-       sur une carte seule) EST cliquable : elle fait partie de son bouton, un
-       pont de six pixels l'y relie. L'ENCRE, depuis la 4.24.0.33, est celle de
-       la languette (cf. encreSur). */
-    .tse-noeud__etiquette,
-    .tse-noeud__option {
-      margin: 0; padding: 4px 9px; border-radius: 6px; box-sizing: border-box;
-      border: 1px solid rgba(0, 0, 0, 0.3);
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 2px 0 rgba(0, 0, 0, 0.45),
-                  0 4px 10px rgba(0, 0, 0, 0.4);
+      position: absolute; box-sizing: border-box; margin: 0; padding: 0; border: 0;
+      width: 9px; height: 18px; border-radius: 4.5px;
       background: var(--tse-noeud-couleur, #9147ff); color: var(--tse-noeud-encre, #0e0e10);
       font-family: inherit; font-size: 11px; font-weight: 700; line-height: 1;
-      white-space: nowrap; cursor: pointer; pointer-events: auto;
-      transition: filter 80ms ease, transform 80ms ease, box-shadow 80ms ease;
+      white-space: nowrap; cursor: pointer; -webkit-tap-highlight-color: transparent;
+      transform: translateY(-50%) scale(var(--tse-s, 1)); transform-origin: 0 50%;
+      --tse-gw: 5px; --tse-gh: 6px;
+      transition-property: width, height, border-radius, box-shadow, transform, filter;
+      transition-duration: 140ms, 112ms, 140ms, 112ms, 80ms, 120ms;
+      transition-timing-function: var(--tse-e-accel), var(--tse-e-accel), var(--tse-e-accel),
+                                  linear, var(--tse-e-sortie), linear;
     }
-    /* L'étiquette : à droite de la languette, centrée sur elle. Le ::before est
-       le pont — il appartient au bouton, la souris qui le traverse ne quitte
-       pas le survol. */
+    /* LA LUEUR EST CELLE DE LA BARRE, en sombre. En clair, pas de lueur : une
+       couleur pâle qui rayonne sur du blanc ne se voit pas, elle salit. */
+    .tse-noeud, .tse-noeud__bulle { --tse-noeud-lueur: var(--tse-noeud-couleur, #9147ff); }
+    html[data-tse-theme="light"] .tse-noeud,
+    html[data-tse-theme="light"] .tse-noeud__bulle { --tse-noeud-lueur: transparent; }
+    /* LA ZONE QUI SE SAISIT, prolongée de six pixels le long du trait, jamais
+       sur l'avatar : une cible de neuf pixels de large se manque. Le bouton
+       ne rogne pas ce qui dépasse — c'est son corps qui le fait —, sans quoi
+       ce prolongement ne recevrait rien. */
+    .tse-noeud::after { content: ''; position: absolute; left: 0; right: 0; top: -6px; bottom: -6px; }
+    .tse-noeud__corps {
+      position: absolute; inset: 0; display: flex; align-items: center; overflow: hidden;
+      border-radius: inherit; padding-left: 2px;
+      transition: padding-left 112ms var(--tse-e-accel);
+    }
+    /* Le symbole : ▶ pour ouvrir, ■ pour fermer — le code des lecteurs —, l'un
+       devenant l'autre par morphose (deux sommets confondus à la pointe du
+       triangle s'écartent en coin de carré). */
+    .tse-noeud__symbole {
+      flex: none; width: var(--tse-gw); height: var(--tse-gh); background: currentColor;
+      clip-path: polygon(16% 6%, 96% 50%, 96% 50%, 16% 94%);
+      transition: clip-path 220ms var(--tse-e-morph), width 160ms var(--tse-e-sortie), height 160ms var(--tse-e-sortie);
+    }
+    .tse-noeud--arret .tse-noeud__symbole { clip-path: polygon(10% 10%, 90% 10%, 90% 90%, 10% 90%); width: 6px; height: 6px; }
+    /* Le texte de la pilule : elle le dit, et rien ne le lit à la souris. */
     .tse-noeud__etiquette {
-      display: none; position: absolute; left: calc(100% + 6px); top: 50%;
-      transform: translateY(-50%);
+      flex: none; margin-left: 5px; padding-right: 10px; pointer-events: none;
+      opacity: 0; transform: translateX(-4px);
+      transition: opacity 120ms var(--tse-e-sortie), transform 160ms var(--tse-e-sortie);
     }
-    .tse-noeud__etiquette::before {
-      content: ''; position: absolute; right: 100%; top: -1px; bottom: -1px; width: 8px;
+    .tse-noeud__etiquette--tous { position: absolute; left: 14.5px; margin-left: 0; padding-right: 8px; }
+
+    .tse-noeud--eveil {
+      width: 13px; height: 22px; border-radius: 6.5px; --tse-gw: 6px; --tse-gh: 7px;
+      box-shadow: 0 0 9px var(--tse-noeud-lueur);
+      transition-duration: 160ms, 160ms, 160ms, 160ms, 80ms, 120ms;
+      transition-timing-function: var(--tse-e-sortie), var(--tse-e-sortie), var(--tse-e-sortie),
+                                  var(--tse-e-sortie), var(--tse-e-sortie), linear;
     }
-    .tse-noeud:hover .tse-noeud__etiquette,
-    .tse-noeud:focus-visible .tse-noeud__etiquette { display: block; }
-    .tse-noeud__etiquette:hover { filter: brightness(1.12); transform: translateY(calc(-50% - 1px)); }
-    .tse-noeud__etiquette:active {
-      transform: translateY(calc(-50% + 1px));
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 0 0 rgba(0, 0, 0, 0);
+    .tse-noeud--eveil .tse-noeud__corps { padding-left: 3.5px; transition: padding-left 160ms var(--tse-e-sortie); }
+    /* L'INTENTION : la pilule, à la longueur de son texte (mesurée, posée en
+       variable — une largeur « auto » ne s'anime pas). */
+    .tse-noeud--eveil.tse-noeud--intention {
+      width: var(--tse-pilule-a, 13px); border-radius: 11px;
+      transition-duration: 200ms, 160ms, 200ms, 160ms, 80ms, 120ms;
     }
-    /* Le contour du clavier épouse la languette — le bouton a son arrondi —,
-       au-delà du croissant de détourage. */
-    .tse-noeud:focus-visible { outline: 2px solid var(--tse-texte); outline-offset: 3px; }
-    /* SA SALLE EST OUVERTE : un second croissant, de la couleur de la barre,
-       au-delà du premier — la languette enfoncée se lit de loin, avec son ■. */
-    .tse-noeud[aria-pressed="true"]::before {
-      box-shadow: 2px 0 0 0 var(--tse-decoupe), 4px 0 0 0 var(--tse-noeud-couleur, #9147ff),
-                  0 0 8px var(--tse-noeud-couleur, #9147ff), 0 0 2px var(--tse-noeud-couleur, #9147ff);
+    .tse-noeud--intention .tse-noeud__etiquette--barre { opacity: 1; transform: none; transition-delay: 60ms; }
+    /* LE REPLI : 140 ms, en accélérant — que la gélule reste éveillée (le
+       pointeur sur une carte du co-stream) ou se rendorme du même geste. Avec
+       une bulle, le dernier sorti rentre le premier : la pilule attend
+       qu'elle soit rentrée (100 ms). */
+    .tse-noeud--repli:not(.tse-noeud--intention) {
+      transition-duration: 140ms, 112ms, 140ms, 112ms, 80ms, 120ms;
+      transition-timing-function: var(--tse-e-accel), var(--tse-e-accel), var(--tse-e-accel),
+                                  linear, var(--tse-e-sortie), linear;
     }
-    /* PENDANT SA SALLE, PLUS D'ÉTIQUETTE (4.24.0.29). SIGNALÉ : « "Regarder
-       les 2" reste quand on est dans ce salon […] ça cache une partie de la
-       carte ». Elle invitait à ouvrir ce qui l'est déjà ; le ■ dit ce que
-       fera le clic. Le choix, lui, reste : il passe des suivis à tout le
-       co-stream. */
-    .tse-noeuds [aria-pressed="true"] > .tse-noeud__etiquette { display: none !important; }
-    /* Barre réduite : le symbole seul, même au survol — il n'y a pas la
-       place d'écrire l'étiquette à côté d'un avatar. */
-    .tse-noeud--reduit:hover .tse-noeud__etiquette,
-    .tse-noeud--reduit:focus-visible .tse-noeud__etiquette { display: none; }
+    .tse-noeud--choix.tse-noeud--repli:not(.tse-noeud--intention) {
+      transition-delay: 100ms, 100ms, 100ms, 0s, 0s, 0s;
+    }
+    .tse-noeud--appui, .tse-noeud__bulle--appui { --tse-s: .96; }
+    .tse-noeud:focus-visible, .tse-noeud__bulle:focus-visible { outline: 2px solid var(--tse-texte); outline-offset: 3px; }
+    /* SA SALLE EST OUVERTE : un filet d'encre à l'intérieur, et ■. */
+    .tse-noeud--salle, .tse-noeud__bulle[aria-pressed="true"] {
+      box-shadow: 0 0 9px var(--tse-noeud-lueur),
+                  inset 0 0 0 1.5px color-mix(in srgb, var(--tse-noeud-encre, #0e0e10) 32%, transparent);
+    }
+    /* L'ANNEAU : la salle s'ouvre. Un quart d'encre fait le tour de la gélule
+       jusqu'à ce que la salle soit prête — sa première tuile qui joue, trois
+       secondes au plus —, puis ▶ devient ■ avec un rebond. */
+    @property --tse-tour { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+    .tse-noeud__anneau {
+      position: absolute; inset: 0; border-radius: inherit; padding: 1.5px; opacity: 0; pointer-events: none;
+      background: conic-gradient(from var(--tse-tour), var(--tse-noeud-encre, #0e0e10) 0 28%, transparent 28% 100%);
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor;
+      mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+      transition: opacity 120ms linear;
+    }
+    .tse-noeud--charge .tse-noeud__anneau { opacity: .9; animation: tse-tour 900ms linear infinite; }
+    @keyframes tse-tour { to { --tse-tour: 360deg; } }
+    .tse-noeud--pop { animation: tse-noeud-pop 260ms var(--tse-e-sortie); }
+    @keyframes tse-noeud-pop {
+      0%   { transform: translateY(-50%) scale(1); }
+      40%  { transform: translateY(-50%) scale(1.08); }
+      100% { transform: translateY(-50%) scale(1); }
+    }
+    /* LA NAISSANCE : à chaque chargement de la page, et chaque fois qu'un
+       co-stream se forme, la gélule s'épaissit depuis le trait — en cascade de
+       haut en bas, 40 ms d'écart, six au plus décalées. */
+    .tse-noeud--naissance { animation: tse-noeud-naissance 340ms var(--tse-e-ressort) backwards; animation-delay: var(--tse-d, 0s); }
+    @keyframes tse-noeud-naissance {
+      from { transform: translateY(-50%) scale(.34, .6); }
+      to   { transform: translateY(-50%) scale(1, 1); }
+    }
+
+    /* === Les visages qui s'invitent (4.24.0.34) ===
+       QUAND LE CO-STREAM COMPTE DES MEMBRES QUI DIFFUSENT HORS DE LA BARRE —
+       ceux qu'on ne suit pas —, la pilule dit « Les 3 suivis » et une bulle
+       éclot à son bout : « + » et LEURS VISAGES, tous — demandé : « pas de
+       +N ; s'il faut en montrer cinq, montre-en cinq ». Aller vers eux les fait
+       entrer : l'écart se ferme, la bulle se soude à la pilule, qui dit
+       « Tous les 5 ». Revenir les fait ressortir. Un clic ouvre ce que la
+       pilule dit à cet instant. Elle remplace les deux boutons en colonne de
+       la 4.24.0.29, qui couvraient la carte du dessous et ne disaient pas qui
+       on ajoutait. */
+    .tse-noeud__bulle {
+      position: absolute; box-sizing: border-box; margin: 0; border: 0; z-index: 1;
+      display: flex; align-items: center; height: 22px; padding: 0 6px 0 7px; border-radius: 11px; overflow: hidden;
+      left: calc(var(--tse-x, 0px) + var(--tse-pilule-a, 13px) + 4px);
+      background: var(--tse-noeud-couleur, #9147ff); color: var(--tse-noeud-encre, #0e0e10);
+      font-family: inherit; font-size: 13px; font-weight: 700; line-height: 1; cursor: pointer;
+      transform: translateY(-50%) scale(.6); transform-origin: 0 50%; opacity: 0; pointer-events: none;
+      transition: transform 140ms var(--tse-e-accel), opacity 140ms linear, left 160ms var(--tse-e-accel),
+                  border-radius 160ms var(--tse-e-accel), padding-left 160ms var(--tse-e-accel), box-shadow 120ms linear;
+    }
+    .tse-noeud__bulle--sortie {
+      transform: translateY(-50%) scale(var(--tse-s, 1)); opacity: 1; box-shadow: 0 0 9px var(--tse-noeud-lueur);
+      transition: transform 280ms var(--tse-e-ressort) 120ms, opacity 120ms linear 120ms, left 200ms var(--tse-e-sortie),
+                  border-radius 200ms var(--tse-e-sortie), padding-left 200ms var(--tse-e-sortie), box-shadow 120ms linear;
+    }
+    .tse-noeud__bulle--sortie.tse-noeud__bulle--appui { transition-delay: 0s; }
+    /* SOUDÉE : collée au bout de la pilule « Tous les 5 », le coin commun droit. */
+    .tse-noeud__bulle--soudee { left: calc(var(--tse-x, 0px) + var(--tse-pilule-b, 13px)); border-radius: 0 11px 11px 0; padding-left: 4px; }
+    .tse-noeud--eveil.tse-noeud--intention.tse-noeud--tous { width: var(--tse-pilule-b, 13px); border-radius: 11px 0 0 11px; }
+    .tse-noeud--intention.tse-noeud--tous .tse-noeud__etiquette--barre {
+      opacity: 0; transform: translateX(-4px); transition-delay: 0s; transition-duration: 100ms;
+    }
+    .tse-noeud--intention.tse-noeud--tous .tse-noeud__etiquette--tous { opacity: 1; transform: none; transition-delay: 60ms; }
+    .tse-noeud__plus {
+      flex: none; width: 9px; overflow: hidden;
+      transition: opacity 120ms linear 60ms, width 200ms var(--tse-e-sortie);
+    }
+    .tse-noeud__bulle--soudee .tse-noeud__plus { opacity: 0; width: 0; transition: opacity 100ms linear, width 200ms var(--tse-e-sortie); }
+    /* UN VISAGE : l'avatar de Twitch, ou l'initiale sur une couleur tirée de
+       la chaîne tant qu'il n'est pas là. Cerclé de la couleur de la barre,
+       qui les détache l'un de l'autre. */
+    .tse-noeud__visage {
+      position: relative; flex: none; width: 16px; height: 16px; border-radius: 50%; overflow: hidden;
+      display: grid; place-items: center; background: var(--tse-visage-fond, #53535f); color: #ffffff;
+      box-shadow: 0 0 0 1.5px var(--tse-noeud-couleur, #9147ff);
+      font-size: 8.5px; font-weight: 700;
+      opacity: 0; transform: translateX(-4px);
+      transition: opacity 100ms linear, transform 100ms var(--tse-e-accel);
+    }
+    .tse-noeud__visage + .tse-noeud__visage { margin-left: -5px; }
+    .tse-noeud__visage img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    /* Pas encore chargée, ou refusée : l'initiale dessous, quoi qu'une feuille
+       de la page dise des images. */
+    .tse-noeud__visage img[hidden] { display: none !important; }
+    .tse-noeud__bulle--sortie .tse-noeud__visage {
+      opacity: 1; transform: none;
+      transition: opacity 160ms var(--tse-e-sortie) var(--tse-dv, 180ms), transform 160ms var(--tse-e-sortie) var(--tse-dv, 180ms);
+    }
+    /* LA VISÉE NE SUIT PAS L'IMAGE : une zone fixe, transparente, posée sur la
+       pilule et sa bulle pendant l'intention, coupée au milieu de l'écart. La
+       soudure tire la bulle vers la gauche ; sans cette zone, le bout de la
+       bulle partait sous le pointeur, qui revenait sur la pilule, qui la
+       décollait — un va-et-vient. Mesuré à la maquette. Restée après un clic
+       tant que le pointeur ne l'a pas quittée : la carte dessous ne reçoit
+       pas le survol que le clic vient de lui rendre. */
+    .tse-noeud__zone {
+      position: absolute; z-index: 6; height: 34px; transform: translateY(-50%);
+      pointer-events: none; cursor: pointer;
+    }
+    .tse-noeud__zone--active { pointer-events: auto; }
     html[data-tse-off~="salle"] .tse-noeuds { display: none !important; }
 
-    /* === Le choix : les suivis, ou tout le co-stream (4.24.0.28) ===
-       Quand la session compte des membres qui diffusent hors de la barre —
-       ceux qu'on ne suit pas —, l'étiquette devient deux boutons : « Les 4
-       suivis » et « Tout le co-stream · 6 ». Pas DANS le nœud : un bouton ne
-       contient pas de boutons. Juste après lui, collé à son bord droit ; la
-       marge intérieure de gauche est le PONT que la souris traverse du rond
-       aux choix sans les perdre. Au clavier, ils suivent le nœud dans l'ordre
-       de tabulation, et restent ouverts tant que l'un d'eux a le focus.
-       MASQUÉS PAR L'OPACITÉ, ET NON PAR « display » : un bouton sans boîte ne
-       prend pas le focus, et la tabulation qui quitte le nœud — l'instant où
-       il n'a plus le focus et où le choix ne l'a pas encore — trouvait le
-       choix sans boîte : le focus tombait sur la page. Mesuré au banc.
-       L'UN SOUS L'AUTRE depuis la 4.24.0.29 (cf. plus haut). */
-    .tse-noeud--choix .tse-noeud__etiquette { display: none !important; }
-    .tse-noeud__choix {
-      display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
-      position: absolute; transform: translateY(-50%);
-      padding-left: 6px; z-index: 1; white-space: nowrap;
-      font-family: inherit; font-size: 11px; font-weight: 700; line-height: 1;
-      opacity: 0; pointer-events: none;
-    }
-    .tse-noeud:hover + .tse-noeud__choix,
-    .tse-noeud:focus-visible + .tse-noeud__choix,
-    .tse-noeud__choix:hover,
-    .tse-noeud__choix:focus-within { opacity: 1; pointer-events: auto; }
-    /* Masqué, aucun de ses boutons ne reçoit la souris — pas même par héritage. */
-    .tse-noeud__choix .tse-noeud__option { pointer-events: inherit; }
-    /* Barre réduite : pas la place d'écrire — Maj+clic sur le rond. */
-    .tse-noeud--reduit + .tse-noeud__choix { display: none !important; }
-    .tse-noeud__option { display: flex; align-items: center; gap: 5px; }
-    .tse-noeud__option svg { width: 6px; height: 7px; fill: currentColor; flex: none; }
-    .tse-noeud__option .tse-icone-arret { width: 6px; height: 6px; }
-    .tse-noeud__option:hover { filter: brightness(1.12); transform: translateY(-1px); }
-    .tse-noeud__option:active {
-      transform: translateY(1px);
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 0 0 rgba(0, 0, 0, 0);
-    }
-    .tse-noeud__option:focus-visible { outline: 2px solid var(--tse-texte); outline-offset: 1px; }
-    /* La salle de ce choix est ouverte : un trait sombre à l'intérieur, et ■. */
-    .tse-noeud__option[aria-pressed="true"] {
-      box-shadow: inset 0 0 0 2px rgba(14, 14, 16, 0.85), 0 2px 0 rgba(0, 0, 0, 0.45),
-                  0 4px 10px rgba(0, 0, 0, 0.4);
-    }
-
+    /* MOUVEMENT RÉDUIT : des fondus de 120 ms à la place des étirements, des
+       glissements, des échelles et de l'anneau tournant — un anneau plein. */
     @media (prefers-reduced-motion: reduce) {
-      .tse-noeud::before,
-      .tse-noeud__symbole,
-      .tse-noeud__etiquette,
-      .tse-noeud__option { transition: none; }
+      .tse-noeud, .tse-noeud__corps, .tse-noeud__symbole, .tse-noeud__etiquette,
+      .tse-noeud__bulle, .tse-noeud__plus, .tse-noeud__visage {
+        transition: opacity 120ms linear !important; animation: none !important;
+      }
+      .tse-noeud, .tse-noeud__bulle { --tse-s: 1 !important; }
+      .tse-noeud__bulle { transform: translateY(-50%) !important; }
+      .tse-noeud__etiquette, .tse-noeud__visage { transform: none !important; }
+      .tse-noeud--charge .tse-noeud__anneau { animation: none; background: var(--tse-noeud-encre, #0e0e10); }
+    }
+    /* CONTRASTE FORCÉ (Windows) : le système retire les fonds. Un contour, et
+       le symbole à la couleur du texte des boutons. */
+    @media (forced-colors: active) {
+      .tse-noeud, .tse-noeud__bulle { border: 1px solid ButtonText; }
+      .tse-noeud__symbole { forced-color-adjust: none; background: ButtonText; }
     }
 
     /* === Chaîne dont on est ABONNÉ ===
@@ -14983,6 +15040,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         noter(c, t.chaine, `avertissement de contenu à l'écran${TSE_GATE_ENABLED ? ' — levé, comme dans l\'aperçu' : ''}`);
       }
       t.etat = et;
+      // La première tuile qui joue : la salle est prête (4.24.0.34, cf. prete).
+      if (!c.prete && et.lecture === true) marquerPrete(c, 'lecture');
       suivrePub(c, t, !!et.pub);
       if (t.chaine === c.son) tenirSon(t, et);
       if (et.video) tenirQualite(t);
@@ -15440,6 +15499,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         // Le temps entre le clic sur le nœud et la salle, quand elle a dû
         // changer de page pour s'ouvrir (4.24.0.8).
         arriveeMs: c.arriveeMs,
+        /* Ce qui a arrêté l'anneau du curseur (4.24.0.34) : la première tuile
+           qui joue, ou le délai — et au bout de combien. */
+        prete: c.prete ? `${c.prete} · ${c.preteMs} ms` : null,
         empilement: c.empilement,
         membres: c.membres.length,
         // Les streams partis hors ligne, retirés de la salle (4.24.0.22), et
@@ -15581,9 +15643,21 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       };
     };
 
+    /* LA SALLE PRÊTE (4.24.0.34) : ce qui arrête l'anneau du curseur. Sa
+       première tuile qui joue — le pont le dit —, ou CFG.SALLE_PRETE_MAX_MS
+       passées : un lecteur qui ne dit rien ne fait pas tourner l'anneau
+       indéfiniment. Une fois, et le curseur en est prévenu. */
+    const marquerPrete = (c, comment) => {
+      if (c.prete) return;
+      c.prete = comment;
+      c.preteMs = Date.now() - c.t0;
+      clearTimeout(c.preteT);
+      if (c === courante && auChangement) auChangement();
+    };
     const fermer = (raison = 'api') => {
       const c = courante;
       if (!c) return { fermee: false };
+      clearTimeout(c.preteT);
       arreterCalage(c, 'arrêté : salle fermée');
       derniere = { ...bilan(), ouverte: false, fermeture: raison };
       clearInterval(c.minuteur);
@@ -15841,6 +15915,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         cout: { pas: nouveauCout(), ecoute: nouveauCout() }, longues: null, obsLongues: null,
         // Les tuiles sorties de la grille, et ce que le calage en a oublié (4.24.0.24).
         sorties: 0,
+        // Prête, et comment (4.24.0.34, cf. marquerPrete).
+        prete: null, preteMs: null, preteT: null,
       };
       observerTaches(courante);
       window.addEventListener('message', surMessage);
@@ -15848,6 +15924,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       document.addEventListener('keydown', surTouche, true);
       document.addEventListener('visibilitychange', surVisibilite);
       courante.minuteur = setInterval(pas, CFG.SALLE_PAS_MS);
+      const ouverte = courante;
+      ouverte.preteT = setTimeout(() => marquerPrete(ouverte, 'délai'), CFG.SALLE_PRETE_MAX_MS);
       disposerSalle();
       /* APRÈS la première disposition, pas avant : avant elle, la salle n'a
          pas encore sa gauche, et ne mesure que la largeur de son contenu,
@@ -16701,71 +16779,70 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       ouvrirDepuisBarre, reprendre,
       // Pour le nœud seulement — la console n'en reçoit rien (cf. tseApi).
       membres: () => (courante ? [...courante.membres] : null),
+      prete: () => !!(courante && courante.prete),
       surChangement: (fn) => { auChangement = fn; },
     };
   })();
 
-  /* ── LE NŒUD SUR LA BARRE (4.24.0.7, phase 1 du multistream) ──────────
+  /* ── LE CURSEUR SUR LA BARRE (4.24.0.7, phase 1 du multistream) ─────────
      L'IDÉE DE DÉPART DE LA SALLE, prise au mot : « une sorte d'emoji au
      milieu de la barrière colorée de co-stream qui, lorsqu'on clique dessus,
      permet de se mettre en multistream avec les streams de cette barrière ».
-     Le choix s'est porté sur le COMPTEUR : un petit bouton « ▶ 3 », à la
-     couleur de la barre, au milieu du groupe ; « Regarder les 3 » au survol.
-     LE SYMBOLE SEUL depuis la 4.24.0.8, à la demande : « ▶ », et le nombre
-     dans l'étiquette du survol seulement.
+     Un rond, puis une languette (4.24.0.33) ; depuis la 4.24.0.34, LE
+     CURSEUR DE LA PISTE : une gélule sur le trait, qui s'éveille quand le
+     pointeur entre dans le co-stream et s'étire en pilule quand il s'y tient
+     (cf. la feuille).
 
      IL VIT DANS SON PROPRE CALQUE, hors des cartes : le survoler n'ouvre pas
      l'aperçu, le cliquer n'ouvre pas la chaîne. Le calque est une boîte de
-     hauteur nulle posée en tête de la section suivie ; les nœuds s'y placent
-     au pixel, sur les rectangles que applyCostreamJoins vient de mesurer, et
+     hauteur nulle posée en tête de la section ; les curseurs s'y placent au
+     pixel, sur les rectangles que applyCostreamJoins vient de mesurer, et
      défilent avec la liste.
 
      RIEN QUI BOUCLE : l'observateur de la barre relance un balayage à chaque
-     enfant ajouté ou retiré. Un nœud n'est donc créé que pour une barre
+     enfant ajouté ou retiré. Un curseur n'est donc créé que pour une barre
      nouvelle, retiré que pour une barre disparue, rattaché seulement s'il ne
-     l'est pas ; le reste du temps, seuls sa position, sa couleur et son ordre
-     changent — des styles et des attributs, que l'observateur ne regarde pas.
+     l'est pas ; le reste du temps — et TOUTE l'animation, survol, pilule,
+     bulle, anneau —, seuls des classes, des styles et des attributs
+     changent, que l'observateur ne regarde pas.
 
-     UN INTERRUPTEUR : un second clic referme la salle qu'il a ouverte, et il
-     reste enfoncé tant qu'elle l'est (la salle le prévient). Il SUIT SA BARRE
-     sans balayage quand la section change de taille (ResizeObserver).
+     UN INTERRUPTEUR : un second clic referme la salle qu'il a ouverte, et le
+     symbole le dit (■). Il SUIT SA BARRE sans balayage quand la section change
+     de taille (ResizeObserver).
 
-     LE CHOIX (4.24.0.28) : tout le co-stream, ceux qu'on ne suit pas
-     compris, depuis la barre. Ce qu'il ouvre, et pourquoi : cf. entreesSalle.
+     TOUT LE CO-STREAM (4.24.0.28), ceux qu'on ne suit pas compris : depuis la
+     4.24.0.34, leurs visages dans une bulle au bout de la pilule (cf. la
+     feuille). Ce qu'il ouvre, et pourquoi : cf. entreesSalle.
 
      LA CARTE SEULE (4.24.0.33) : seule de son co-stream dans sa section, elle
-     a sa barre à elle (cf. detectCoStreams), et son nœud au milieu — le même
-     bouton, la même place, la même languette. Il remplace le « ▶ » que la
-     4.24.0.28 posait au coin de son avatar, à la place de la pastille :
-     DEMANDÉ, « plus de pastille du tout […] une seule barre colorée sur le
-     streamer en costream qui est le seul que l'on suit, avec le rond "▶" au
-     milieu ». */
+     a sa barre à elle (cf. detectCoStreams), et son curseur au milieu. */
   const noeudsSalle = (() => {
-    // Les coins arrondis, comme ceux des lecteurs (4.24.0.33).
-    const TRIANGLE = '<svg class="tse-icone-lecture" viewBox="0 0 10 12" aria-hidden="true">'
-      + '<path d="M2 1.9v8.2L8.6 6z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>';
-    // ■ : la salle est ouverte, le clic l'arrête (4.24.0.29, cf. la feuille).
-    const CARRE = '<svg class="tse-icone-arret" viewBox="0 0 10 10" aria-hidden="true"><rect x="1" y="1" width="8" height="8" rx="1.8"/></svg>';
-    /* LA CLÉ D'UN NŒUD : les logins de sa barre ; pour une carte seule, LA
-       CARTE elle-même — ses chaînes changent quand un membre démarre ou
-       s'arrête, et une même chaîne peut être seule dans deux sections. */
-    const parCle = new Map();     // la clé → le nœud
-    const choixDe = new Map();    // les logins de la barre → son choix « suivis | tout »
+    /* L'ÉTAT D'UN CURSEUR, par clé — les logins de sa barre ; pour une carte
+       seule, LA CARTE elle-même : ses chaînes changent quand un membre démarre
+       ou s'arrête, et une même chaîne peut être seule dans deux sections.
+       Ses éléments (la gélule ; la bulle et son second texte quand tout le
+       co-stream ajoute quelqu'un ; la zone de visée), ses chaînes, et ce que
+       le pointeur et le clavier en font. */
+    const parCle = new Map();
     let voulues = new Map();      // les barres du dernier balayage, par clé
-    /* UN CALQUE PAR SECTION (4.24.0.30) : la suivie, et depuis cette version
-       les sections de recommandation (« Chaînes live »…). Chacun en tête de
-       la sienne, ses nœuds placés par rapport à lui : une section masquée
-       emporte ses nœuds, une section qui grandit ne décale que les siens. Le
-       calque de la section suivie garde l'identifiant `tse-noeuds`. */
+    /* UN CALQUE PAR SECTION (4.24.0.30) : la suivie, et les sections de
+       recommandation (« Chaînes live »…). Chacun en tête de la sienne, ses
+       curseurs placés par rapport à lui. Celui de la section suivie garde
+       l'identifiant `tse-noeuds`. */
     const couches = new Map();    // section → son calque
     let veille = null;            // ResizeObserver des sections
     const veillees = new Set();
     let incomplets = [];          // barres du classement à qui manque un membre (cf. entreesSalle)
     let clics = 0;
     let tousOuverts = 0;          // salles ouvertes sur tout le co-stream
+    let naissances = 0;
+    /* L'ÉVEIL suit le pointeur DANS LE CO-STREAM — sur une de ses cartes —,
+       et non sur le curseur seul : c'est ce qui le rend visible avant qu'on
+       le vise. Chaque carte d'une barre mène à sa clé. */
+    const carteVers = new Map();
+    let proche = null;            // la clé du co-stream que le pointeur survole
 
     const cleDe = (membres) => [...membres].sort().join(' ');
-    const liste = (ordre) => (ordre ? ordre.split(' ') : null);
     const listeNoms = (noms) => {
       try { return new Intl.ListFormat(S.locale, { type: 'conjunction' }).format(noms); }
       catch { return noms.join(', '); }
@@ -16777,167 +16854,433 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       const v = String(oui);
       if (el.getAttribute('aria-pressed') !== v) el.setAttribute('aria-pressed', v);
     };
-    /* ENFONCÉ QUAND SA SALLE EST OUVERTE — les mêmes chaînes, dans n'importe
-       quel ordre. Relu à chaque ouverture et fermeture de la salle, par où
-       qu'elle passe : Échap, un changement de page, le réglage. Le nœud d'une
-       barre l'est pour sa barre comme pour tout son co-stream ; chacun de ses
-       deux choix, pour le sien ; celui d'une carte seule, pour ses chaînes.
-       Les chaînes du nœud, et non sa clé : celle d'une carte seule est la
-       carte (4.24.0.33). */
-    const marquer = () => {
-      const ouverte = salle.membres();
-      const cle = ouverte ? cleDe(ouverte) : null;
-      for (const [k, n] of parCle) {
-        const siennes = cleDe(liste(n.dataset.tseNoeud) || []);
-        const tous = liste(n.dataset.tseTous);
-        const cleTous = tous ? cleDe(tous) : null;
-        enfoncer(n, cle !== null && (siennes === cle || cleTous === cle));
-        const c = choixDe.get(k);
-        if (c) {
-          enfoncer(c.suivis, cle !== null && siennes === cle);
-          enfoncer(c.tous, cle !== null && cleTous === cle);
-        }
+    const poserStyle = (el, prop, v) => { if (el.style.getPropertyValue(prop) !== v) el.style.setProperty(prop, v); };
+    const elt = (tag, classe) => { const x = document.createElement(tag); x.className = classe; return x; };
+    const basculer = (el, classe, oui) => el.classList.toggle(classe, !!oui);
+    const survole = (st) => [st.n, st.zone, st.bulle].some((x) => x && x.matches(':hover'));
+
+    /* ── LES VISAGES ────────────────────────────────────────────────────────
+       L'avatar d'une chaîne qui a une carte est déjà là : `TseChannels` le
+       rend pour chacune (cf. le cache). Pour un membre qu'on ne suit pas, une
+       requête à part, anonyme comme les autres, qui ne demande que lui :
+       `users(logins:)` et ses `login`, `displayName`, `profileImageURL(width:
+       70)` — la racine et les champs mêmes de `TseChannels`. PAS DANS LA
+       REQUÊTE GUEST STAR, dont toute la détection des co-streams dépend : un
+       champ qu'elle refuserait aurait emporté les barres pour un visage. Une
+       fois par chaîne et par page ; un lot refusé se retente une minute plus
+       tard, au balayage suivant. Sans avatar, l'initiale sur une couleur
+       tirée de la chaîne. */
+    const TSE_VISAGES_QUERY = 'query TseVisages($logins: [String!]) {'
+      + '  users(logins: $logins) { login displayName profileImageURL(width: 70) }'
+      + '}';
+    const visages = new Map();    // login → { url, nom } rendus par TseVisages
+    const aDemander = new Set();
+    const enVol = new Set();
+    let lotVisages = null;
+    let pauseVisages = 0;
+    let lotsVisages = 0;
+    const avatarDe = (login) => cache.get(login)?.avatar || visages.get(login)?.url || null;
+    const nomDe = (login) => cache.get(login)?.name || visages.get(login)?.nom || login;
+    const envoyerVisages = async () => {
+      lotVisages = null;
+      const lot = [...aDemander].slice(0, 50);
+      for (const l of lot) { aDemander.delete(l); enVol.add(l); }
+      if (!lot.length) return;
+      lotsVisages += 1;
+      const res = await post([{ operationName: 'TseVisages', variables: { logins: lot }, query: TSE_VISAGES_QUERY }]);
+      for (const l of lot) enVol.delete(l);
+      const users = isResultsUnusable(res) ? null : res[0]?.data?.users;
+      if (!Array.isArray(users)) {
+        pauseVisages = Date.now() + 60_000;
+        for (const l of lot) aDemander.add(l);
+        return;
+      }
+      for (const u of users) {
+        const l = typeof u?.login === 'string' ? u.login.toLowerCase() : null;
+        if (!l || !lot.includes(l)) continue;
+        visages.set(l, { url: typeof u.profileImageURL === 'string' && /^https:\/\//.test(u.profileImageURL) ? u.profileImageURL : null,
+                         nom: typeof u.displayName === 'string' && u.displayName.trim() ? u.displayName.trim() : null });
+      }
+      // Un login que Twitch omet ne se redemande pas : il n'a rien à dire de lui.
+      for (const l of lot) if (!visages.has(l)) visages.set(l, { url: null, nom: null });
+      for (const st of parCle.values()) poserVisages(st);
+    };
+    const demanderVisages = () => {
+      for (const st of parCle.values()) {
+        for (const l of st.ajoutes) if (!avatarDe(l) && !visages.has(l) && !enVol.has(l)) aDemander.add(l);
+      }
+      if (!aDemander.size || lotVisages || Date.now() < Math.max(pauseVisages, gqlCooldownUntil)) return;
+      lotVisages = setTimeout(envoyerVisages, 0);
+    };
+    // Une teinte par chaîne, stable : l'initiale d'un visage absent garde sa couleur.
+    const teinte = (login) => {
+      let h = 0;
+      for (const ch of login) h = (h * 31 + ch.codePointAt(0)) % 360;
+      return `hsl(${h} 45% 38%)`;
+    };
+    /* L'IMAGE EST LÀ DÈS LA CRÉATION, sans adresse et masquée : l'avatar qui
+       arrive ensuite n'est qu'un attribut — aucun enfant ajouté, aucun
+       balayage —, et elle ne se montre que chargée. L'initiale est dessous. */
+    const creerVisage = (login, i) => {
+      const v = elt('span', 'tse-noeud__visage');
+      v.dataset.tseLogin = login;
+      v.style.setProperty('--tse-visage-fond', teinte(login));
+      v.style.setProperty('--tse-dv', `${180 + i * 40}ms`);
+      v.appendChild(document.createTextNode(''));
+      const img = document.createElement('img');
+      img.alt = '';
+      img.decoding = 'async';
+      img.draggable = false;
+      img.hidden = true;
+      img.addEventListener('load', () => { img.hidden = false; });
+      img.addEventListener('error', () => { img.hidden = true; });
+      v.appendChild(img);
+      return v;
+    };
+    const poserVisages = (st) => {
+      if (!st.bulle) return;
+      for (const v of st.bulle.querySelectorAll('.tse-noeud__visage')) {
+        const l = v.dataset.tseLogin;
+        const initiale = [...nomDe(l)][0]?.toLocaleUpperCase(S.locale) || '';
+        if (v.firstChild.nodeValue !== initiale) v.firstChild.nodeValue = initiale;
+        const url = avatarDe(l);
+        const img = v.querySelector('img');
+        if (url && img.getAttribute('src') !== url) img.src = url;
       }
     };
-    /* UN CLIC OUVRE CES CHAÎNES ; LE MÊME, SUR LEUR SALLE OUVERTE, LA REFERME.
-       Rouvrir la même salle rechargerait tous ses lecteurs et perdrait le son
-       choisi : un nœud d'une salle ouverte est un interrupteur, pas un
-       raccourci. */
-    const agir = (membres, versTous) => {
+    // Les visages ne se refont que si les chaînes changent.
+    const garnirVisages = (st) => {
+      const cle = st.ajoutes.join(' ');
+      if (st.bulle.dataset.tseVisages === cle) { poserVisages(st); return; }
+      st.bulle.dataset.tseVisages = cle;
+      for (const v of [...st.bulle.querySelectorAll('.tse-noeud__visage')]) v.remove();
+      st.ajoutes.forEach((l, i) => st.bulle.appendChild(creerVisage(l, i)));
+      st.largBulle = 0;
+      poserVisages(st);
+    };
+
+    /* ── CE QUE LE CURSEUR MONTRE ───────────────────────────────────────────
+       Une seule fonction pose les classes, d'après l'état et la salle : le
+       pointeur, le clavier, l'indice d'accueil et la salle n'écrivent que
+       l'état, et la redemandent. ■ dit ce que fera le clic : au repos, la
+       gélule referme sa salle, quelle qu'elle soit ; étirée, la pilule et la
+       bulle disent chacune la leur — ■ sur celle qui est ouverte, ▶ sur
+       l'autre, qui bascule vers elle sans refermer. L'ANNEAU tourne tant
+       qu'une salle s'ouvre : la page qui part vers elle, ou sa salle ouverte
+       et pas encore prête (cf. salle.prete). */
+    const peindre = (st) => {
+      const { n, bulle, zone } = st;
       const ouverte = salle.membres();
-      if (ouverte && cleDe(ouverte) === cleDe(membres)) { salle.fermer('noeud'); return; }
+      const o = ouverte ? cleDe(ouverte) : null;
+      const salleBarre = o !== null && o === cleDe(st.membres);
+      const salleTous = o !== null && !!st.tous && o === cleDe(st.tous);
+      const sienne = salleBarre || salleTous;
+      const charge = st.navigue || (sienne && !salle.prete());
+      const tous = st.intent && st.versTous;
+      const vise = st.intent ? (tous ? salleTous : salleBarre) : sienne;
+      /* PENDANT L'ANNEAU, LE SYMBOLE ATTEND : ▶ tourne jusqu'à la salle prête,
+         puis devient ■ avec le rebond. Une bascule des suivis à tout le
+         co-stream garde son ■ et son filet — une salle est ouverte tout du
+         long. Le nom accessible, lui, dit déjà la salle ouverte. */
+      if (!charge) st.montre = { arret: vise, salle: sienne };
+      basculer(n, 'tse-noeud--eveil', st.prox || st.dedans || st.focus || st.intent || st.indice === 'eveil' || sienne || charge);
+      basculer(n, 'tse-noeud--intention', st.intent);
+      basculer(n, 'tse-noeud--tous', tous);
+      basculer(n, 'tse-noeud--arret', st.montre.arret);
+      basculer(n, 'tse-noeud--salle', st.montre.salle);
+      basculer(n, 'tse-noeud--charge', charge);
+      basculer(n, 'tse-noeud--repli', st.repli);
+      basculer(n, 'tse-noeud--choix', !!bulle);
+      basculer(n, 'tse-noeud--reduit', sidebarCollapsed);
+      enfoncer(n, vise);
+      const nom = tous ? st.nomTous : st.nom;
+      if (n.getAttribute('aria-label') !== nom) n.setAttribute('aria-label', nom);
+      if (bulle) {
+        basculer(bulle, 'tse-noeud__bulle--sortie', st.intent);
+        basculer(bulle, 'tse-noeud__bulle--soudee', tous);
+        const ti = st.intent ? 0 : -1;
+        if (bulle.tabIndex !== ti) bulle.tabIndex = ti;
+        enfoncer(bulle, salleTous);
+      }
+      basculer(zone, 'tse-noeud__zone--active', st.intent || st.retenu);
+      // Le rebond salue la salle prête : la fin de l'anneau, sur une salle ouverte.
+      if (st.chargeAvant && !charge && sienne) rebondir(st);
+      st.chargeAvant = charge;
+    };
+    const rebondir = (st) => {
+      st.n.classList.remove('tse-noeud--pop');
+      void st.n.offsetWidth;
+      st.n.classList.add('tse-noeud--pop');
+      clearTimeout(st.popT);
+      st.popT = setTimeout(() => st.n.classList.remove('tse-noeud--pop'), 300);
+    };
+    const marquer = () => { for (const st of parCle.values()) peindre(st); };
+
+    /* LA LONGUEUR DE LA PILULE, mesurée au moment de s'étirer : le texte dans
+       la langue du moment, la police chargée. Rien de mesurable — calque
+       masqué, police absente — : pas de pilule, plutôt qu'une pilule fausse.
+       La zone de visée couvre la pilule et sa bulle, soudée ou non ; la coupe,
+       au milieu de l'écart, ne bouge pas avec elles. */
+    const mesurer = (st) => {
+      const a = st.etqA.offsetWidth;
+      if (!a) return false;
+      st.largA = 14.5 + a;
+      st.largB = st.etqB ? 14.5 + st.etqB.offsetWidth : st.largA;
+      if (st.bulle && !st.bulle.classList.contains('tse-noeud__bulle--soudee')) st.largBulle = st.bulle.offsetWidth;
+      for (const x of [st.n, st.bulle]) {
+        if (!x) continue;
+        poserStyle(x, '--tse-pilule-a', `${st.largA}px`);
+        poserStyle(x, '--tse-pilule-b', `${st.largB}px`);
+      }
+      st.coupe = st.bulle ? st.largA + 2 : Infinity;
+      const larg = st.bulle ? Math.max(st.largA + 4, st.largB) + (st.largBulle || 0) : st.largA;
+      poserStyle(st.zone, 'width', `${Math.ceil(larg)}px`);
+      return true;
+    };
+    /* L'INTENTION, ou le repli. Barre réduite : pas de pilule — la place d'un
+       avatar ; l'infobulle et Maj+clic (cf. titrer). */
+    const viser = (st, v) => {
+      const peut = !!v && !sidebarCollapsed && options.get('salle') && st.n.isConnected && mesurer(st);
+      if (!peut && st.intent) {
+        st.repli = true;
+        clearTimeout(st.repliT);
+        st.repliT = setTimeout(() => { st.repli = false; peindre(st); }, 420);
+      }
+      st.intent = peut;
+      if (!peut) { st.versTous = false; desarmer(st); }
+      peindre(st);
+    };
+    const cibler = (st, tous) => {
+      const v = !!tous && !!st.bulle && st.intent;
+      if (st.versTous === v) return;
+      st.versTous = v;
+      peindre(st);
+    };
+    /* LE POINTEUR : tenu CFG.NOEUD_INTENTION_MS sur la gélule, il l'étire ;
+       parti, il a CFG.NOEUD_GRACE_MS pour revenir — le temps de traverser un
+       pixel de rien — avant qu'elle se replie. Ce qui est survolé se relit à
+       l'échéance (`:hover`) : la zone qui se pose sous un pointeur immobile
+       ne dit pas toujours son entrée avant la sortie de la gélule. */
+    const entrer = (st) => {
+      clearTimeout(st.grace);
+      st.indice = null;           // la main reprend : l'indice d'accueil s'efface devant elle
+      st.dedans = true;
+      peindre(st);
+      armer(st);
+    };
+    /* LE DÉLAI D'INTENTION, armé à l'entrée — et réarmé par un mouvement sur
+       la gélule qui ne l'est plus : après un clic, le pointeur resté dessus
+       n'y entre pas de nouveau, et la pilule ne reviendrait qu'en sortant. */
+    const armer = (st) => {
+      if (st.intent || st.dwell) return;
+      st.dwell = setTimeout(() => { st.dwell = null; viser(st, true); }, CFG.NOEUD_INTENTION_MS);
+    };
+    const desarmer = (st) => { clearTimeout(st.dwell); st.dwell = null; };
+    const sortir = (st) => {
+      desarmer(st);
+      clearTimeout(st.grace);
+      st.grace = setTimeout(() => {
+        if (survole(st)) return;
+        st.dedans = false;
+        if (st.focus) peindre(st); else viser(st, false);
+      }, CFG.NOEUD_GRACE_MS);
+    };
+    const appuyer = (st, versBulle) => {
+      const el = versBulle && st.bulle ? st.bulle : st.n;
+      const classe = el === st.n ? 'tse-noeud--appui' : 'tse-noeud__bulle--appui';
+      el.classList.add(classe);
+      setTimeout(() => el.classList.remove(classe), 80);
+    };
+    /* UN CLIC DE SOURIS NE LAISSE PAS LE FOCUS SUR LE BOUTON (4.24.0.29).
+       Chromium donne le focus au bouton cliqué ; la salle se règle ensuite au
+       clavier — les touches 1 à 6 — et le premier appui le rendait
+       :focus-visible, pilule et anneau de focus compris. Au clavier (`detail`
+       à 0), le focus reste où on l'a mis. */
+    const lacher = (e, el) => { if (e.detail > 0) el.blur(); };
+    /* LE CLIC. `versTous` : la bulle, la zone du côté des visages, Maj+clic.
+       Sans pilule — la gélule au repos, en barre réduite —, un clic referme
+       la salle de ce curseur, quelle qu'elle soit, ou ouvre sa barre ; la
+       pilule et la bulle referment la leur, ou basculent vers elle. Un clic
+       pendant que la salle s'ouvre sur place la referme : l'annulation. Une
+       page qui part déjà vers la salle, elle, ne se retient pas. AU CLAVIER,
+       la pilule reste étirée : le focus ne demeure pas sur une bulle devenue
+       invisible, et elle dit, ■ ou ▶, ce que fera la touche suivante. */
+    const cliquer = (st, versTous, clavier = false) => {
+      clics += 1;
+      if (st.navigue) return;
+      const membres = versTous ? st.tous : st.membres;
+      if (!membres || membres.length < 2) return;
+      const ouverte = salle.membres();
+      const o = ouverte ? cleDe(ouverte) : null;
+      const refermer = o !== null && (st.intent || versTous
+        ? o === cleDe(membres)
+        : (o === cleDe(st.membres) || (!!st.tous && o === cleDe(st.tous))));
+      if (!clavier) viser(st, false);
+      if (refermer) { salle.fermer('noeud'); return; }
       const r = salle.ouvrirDepuisBarre(membres);
       if (versTous && !(r && r.erreur)) tousOuverts += 1;
+      if (r && r.redirigee) {
+        st.navigue = true;
+        clearTimeout(st.navigueT);
+        st.navigueT = setTimeout(() => { st.navigue = false; peindre(st); }, 10_000);
+      }
+      peindre(st);
+    };
+    const perdre = (st, e) => {
+      if (e.relatedTarget && (e.relatedTarget === st.n || e.relatedTarget === st.bulle)) return;
+      st.focus = false;
+      if (survole(st)) peindre(st); else viser(st, false);
+    };
+
+    /* ── LES ÉLÉMENTS D'UN CURSEUR ──────────────────────────────────────────
+       LA GÉLULE, un bouton : son corps (le symbole, le texte de la pilule), et
+       l'anneau. Elle reçoit la souris tant qu'elle n'est pas étirée ; étirée,
+       c'est la zone. MAJ+CLIC (4.24.0.28) : tout le co-stream — le seul chemin
+       vers lui en barre réduite. */
+    const creerNoeud = (st) => {
+      const n = elt('button', 'tse-noeud');
+      n.type = 'button';
+      n.setAttribute('aria-pressed', 'false');
+      const corps = elt('span', 'tse-noeud__corps');
+      const g = elt('span', 'tse-noeud__symbole');
+      g.setAttribute('aria-hidden', 'true');
+      const a = elt('span', 'tse-noeud__etiquette tse-noeud__etiquette--barre');
+      corps.append(g, a);
+      n.append(corps, elt('span', 'tse-noeud__anneau'));
+      n.addEventListener('pointerenter', () => entrer(st));
+      n.addEventListener('pointerleave', () => sortir(st));
+      n.addEventListener('pointermove', () => armer(st));
+      n.addEventListener('pointerdown', () => appuyer(st, false));
+      // Au clavier, pas de délai : la tabulation dit l'intention.
+      n.addEventListener('focus', () => {
+        if (!n.matches(':focus-visible')) return;
+        st.focus = true;
+        st.indice = null;
+        viser(st, true);
+        cibler(st, false);
+      });
+      n.addEventListener('blur', (e) => perdre(st, e));
+      n.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        lacher(e, n);
+        cliquer(st, e.shiftKey && !!st.tous, e.detail === 0);
+      });
+      Object.assign(st, { n, corps, etqA: a });
+    };
+    /* LA BULLE : « + » et les visages. Un bouton, pour le clavier — la
+       tabulation y passe depuis la pilule, et la soude — ; la souris passe
+       par la zone. Son nom dit tout le co-stream. */
+    const creerBulle = (st) => {
+      const b = elt('button', 'tse-noeud__bulle');
+      b.type = 'button';
+      b.tabIndex = -1;
+      b.setAttribute('aria-pressed', 'false');
+      const plus = elt('span', 'tse-noeud__plus');
+      plus.textContent = '+';
+      plus.setAttribute('aria-hidden', 'true');
+      b.appendChild(plus);
+      b.addEventListener('focus', () => {
+        st.focus = true;
+        if (!st.intent) viser(st, true);
+        cibler(st, true);
+      });
+      b.addEventListener('blur', (e) => perdre(st, e));
+      b.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        lacher(e, b);
+        cliquer(st, true, e.detail === 0);
+      });
+      return b;
+    };
+    /* LA ZONE DE VISÉE (cf. la feuille) : fixe pendant que l'image bouge. Le
+       côté des visages commence au milieu de l'écart ; sans bulle, tout est
+       la pilule. */
+    const creerZone = (st) => {
+      const z = elt('div', 'tse-noeud__zone');
+      z.setAttribute('aria-hidden', 'true');
+      const cote = (e) => !!st.bulle && e.clientX - z.getBoundingClientRect().left >= st.coupe;
+      z.addEventListener('pointerenter', () => entrer(st));
+      z.addEventListener('pointerleave', () => { st.retenu = false; sortir(st); peindre(st); });
+      z.addEventListener('pointermove', (e) => { if (st.intent) cibler(st, cote(e)); });
+      z.addEventListener('pointerdown', (e) => appuyer(st, cote(e)));
+      z.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        st.retenu = true;
+        cliquer(st, (e.shiftKey && !!st.tous) || cote(e));
+      });
+      st.zone = z;
+    };
+    const nouvelEtat = (cle) => {
+      const st = { cle, membres: [], tous: null, ajoutes: [], nom: '', nomTous: '', bulle: null, etqB: null,
+                   prox: false, dedans: false, focus: false, intent: false, versTous: false, retenu: false,
+                   repli: false, navigue: false, indice: null, chargeAvant: false, montre: { arret: false, salle: false },
+                   largA: 0, largB: 0, largBulle: 0, coupe: Infinity };
+      creerNoeud(st);
+      creerZone(st);
+      return st;
+    };
+    const detruire = (st) => {
+      for (const t of [st.dwell, st.grace, st.repliT, st.popT, st.navigueT, st.naissanceT, ...(st.indiceT || [])]) clearTimeout(t);
+      for (const x of [st.n, st.bulle, st.zone]) if (x) x.remove();
     };
     /* L'ORDRE DE LA BARRE, et le nom qui le dit. Une barre garde sa clé —
-       les mêmes chaînes — quand un tri la retourne : le nœud reste, mais il
+       les mêmes chaînes — quand un tri la retourne : le curseur reste, mais il
        ouvrira la salle dans le NOUVEL ordre, et le dira. Des attributs, que
-       l'observateur de la barre ne regarde pas. `tous` (4.24.0.28) : tout le
-       co-stream, quand il ajoute quelqu'un à la barre — et le titre rappelle
-       alors le raccourci, Maj+clic. L'étiquette compte les chaînes : celles
-       d'une carte seule changent sans que son nœud change (4.24.0.33) ; et
-       elle les nomme dans son infobulle, comme le faisait le « ▶ » de la
-       carte seule — ses camarades, eux, ne sont pas dans la liste. */
-    const ordonner = (b, membres, tous) => {
-      const etiquette = b.querySelector('.tse-noeud__etiquette');
-      ecrire(etiquette, S.uiNoeudRegarder(membres.length));
+       l'observateur de la barre ne regarde pas. « Les 4 suivis » ne se dit
+       que d'une barre de la section suivie qui offre tout le co-stream ;
+       ailleurs, « Regarder les 4 ». */
+    const garnir = (st, { membres, tous, suivie }) => {
+      st.membres = membres;
+      st.tous = tous || null;
+      st.ajoutes = tous ? tous.filter((l) => !membres.includes(l)) : [];
+      ecrire(st.etqA, tous && suivie ? S.uiNoeudSuivis(membres.length) : S.uiNoeudRegarder(membres.length));
       const ordre = membres.join(' ');
       const ordreTous = tous ? tous.join(' ') : '';
-      if (b.dataset.tseNoeud === ordre && (b.dataset.tseTous || '') === ordreTous) return;
-      b.dataset.tseNoeud = ordre;
-      if (ordreTous) b.dataset.tseTous = ordreTous; else delete b.dataset.tseTous;
-      const nom = S.uiNoeudAria(listeNoms(membres));
-      b.setAttribute('aria-label', nom);
-      etiquette.title = nom;
-      b.dataset.tseTitre = tous ? `${nom}\n${S.uiNoeudMaj(tous.length)}` : nom;
-      b.classList.toggle('tse-noeud--choix', !!tous);
+      if (st.n.dataset.tseNoeud !== ordre) st.n.dataset.tseNoeud = ordre;
+      if ((st.n.dataset.tseTous || '') !== ordreTous) {
+        if (ordreTous) st.n.dataset.tseTous = ordreTous; else delete st.n.dataset.tseTous;
+      }
+      st.nom = S.uiNoeudAria(listeNoms(membres));
+      st.nomTous = tous ? S.uiNoeudAria(listeNoms(tous)) : st.nom;
+      st.n.dataset.tseTitre = tous ? `${st.nom}\n${S.uiNoeudMaj(tous.length)}` : st.nom;
+      // La bulle et le second texte : là quand tout le co-stream ajoute quelqu'un.
+      if (tous && !st.bulle) {
+        st.bulle = creerBulle(st);
+        st.etqB = elt('span', 'tse-noeud__etiquette tse-noeud__etiquette--tous');
+        st.corps.appendChild(st.etqB);
+      } else if (!tous && st.bulle) {
+        st.bulle.remove();
+        st.etqB.remove();
+        st.bulle = null;
+        st.etqB = null;
+        st.versTous = false;
+      }
+      if (st.bulle) {
+        ecrire(st.etqB, S.uiNoeudTous(tous.length));
+        if (st.bulle.getAttribute('aria-label') !== st.nomTous) st.bulle.setAttribute('aria-label', st.nomTous);
+        garnirVisages(st);
+      }
     };
-    /* L'INFOBULLE, EN BARRE RÉDUITE SEULEMENT (4.24.0.29). Étendue, l'étiquette
-       ou le choix disent déjà ce que fait le rond, et l'infobulle du
-       navigateur, qui s'ouvre sous la souris, recouvrait le second choix. Le
-       nom accessible, lui, reste en toutes circonstances. */
+    /* L'INFOBULLE, EN BARRE RÉDUITE SEULEMENT (4.24.0.29). Étendue, la pilule
+       dit ce que fait le curseur, et l'infobulle du navigateur, qui s'ouvre
+       sous la souris, couvrirait la carte. Le nom accessible, lui, reste en
+       toutes circonstances. */
     const titrer = (el) => {
       const t = sidebarCollapsed ? (el.dataset.tseTitre || '') : '';
       if (t) { if (el.title !== t) el.title = t; }
       else if (el.hasAttribute('title')) el.removeAttribute('title');
     };
-    const symbole = () => {
-      const s = document.createElement('span');
-      s.className = 'tse-noeud__symbole';
-      s.append(noeudStatique(TRIANGLE), noeudStatique(CARRE));
-      return s;
-    };
-    /* UN CLIC DE SOURIS NE LAISSE PAS LE FOCUS SUR LE BOUTON (4.24.0.29).
-       SIGNALÉ, CAPTURE À L'APPUI : « "Regarder les 2" reste quand on est
-       dans ce salon ». Chromium donne le focus au bouton cliqué ; ouverte sur
-       place, la salle se règle ensuite au clavier — les touches 1 à 6 — et
-       le premier appui rend le bouton :focus-visible : son étiquette, son
-       anneau, sa taille agrandie s'affichaient et restaient. Le choix, lui,
-       restait ouvert par :focus-within. Au clavier (`detail` à 0), le focus
-       reste où on l'a mis. */
-    const lacher = (e, el) => { if (e.detail > 0) el.blur(); };
-    /* UN CLIC OUVRE LA SALLE DE LA BARRE ; UN SECOND LA REFERME — celle de
-       la barre comme celle de tout le co-stream. MAJ+CLIC (4.24.0.28) : tout
-       le co-stream, ceux qu'on ne suit pas compris ; c'est le seul chemin
-       vers eux dans la barre réduite, où les choix n'ont pas la place. */
-    const creer = () => {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'tse-noeud';
-      b.setAttribute('aria-pressed', 'false');
-      const etiquette = document.createElement('span');
-      etiquette.className = 'tse-noeud__etiquette';
-      b.append(symbole(), etiquette);
-      b.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        lacher(e, b);
-        clics += 1;
-        const tous = liste(b.dataset.tseTous);
-        if (e.shiftKey && tous) { agir(tous, true); return; }
-        const membres = liste(b.dataset.tseNoeud);
-        if (!membres) return;
-        const ouverte = salle.membres();
-        const o = ouverte ? cleDe(ouverte) : null;
-        if (o !== null && (o === cleDe(membres) || (tous && o === cleDe(tous)))) salle.fermer('noeud');
-        else salle.ouvrirDepuisBarre(membres);
-      });
-      return b;
-    };
-    /* LE CHOIX, deux boutons à côté du rond (cf. la feuille) : ses suivis,
-       ou tout le co-stream. Chacun relit son nœud au clic — l'ordre a pu
-       changer depuis. */
-    const creerChoix = (cle) => {
-      const boite = document.createElement('div');
-      boite.className = 'tse-noeud__choix';
-      const option = (classe, versTous) => {
-        const o = document.createElement('button');
-        o.type = 'button';
-        o.className = `tse-noeud__option ${classe}`;
-        o.setAttribute('aria-pressed', 'false');
-        // ▶ devant le texte (■ quand sa salle est ouverte) : un bouton qui lance.
-        const texte = document.createElement('span');
-        texte.className = 'tse-noeud__texte';
-        o.append(noeudStatique(TRIANGLE), noeudStatique(CARRE), texte);
-        o.addEventListener('click', (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          lacher(e, o);
-          clics += 1;
-          const n = parCle.get(cle);
-          const membres = n ? liste(versTous ? n.dataset.tseTous : n.dataset.tseNoeud) : null;
-          if (membres) agir(membres, versTous);
-        });
-        return o;
-      };
-      const suivis = option('tse-noeud__option--barre', false);
-      const tous = option('tse-noeud__option--tous', true);
-      boite.append(suivis, tous);
-      return { boite, suivis, tous };
-    };
-    /* Le texte visible EST le nom du bouton — « Les 4 suivis » se dit comme il
-       se lit, et se commande à la voix de même ; les chaînes, dans le titre —
-       et, sur « tout », le raccourci qui l'ouvre depuis le rond.
-       Hors de la section suivie (« Chaînes live »), la barre n'est pas
-       « suivie » : « Regarder les 2 ». */
-    const garnirChoix = (c, membres, tous, suivie) => {
-      ecrire(c.suivis.querySelector('.tse-noeud__texte'),
-             suivie ? S.uiNoeudSuivis(membres.length) : S.uiNoeudRegarder(membres.length));
-      ecrire(c.tous.querySelector('.tse-noeud__texte'), S.uiNoeudTous(tous.length));
-      const a = S.uiNoeudAria(listeNoms(membres));
-      const t = `${S.uiNoeudAria(listeNoms(tous))}\n${S.uiNoeudMaj(tous.length)}`;
-      if (c.suivis.title !== a) c.suivis.title = a;
-      if (c.tous.title !== t) c.tous.title = t;
-    };
-    const poserStyle = (el, prop, v) => { if (el.style.getPropertyValue(prop) !== v) el.style.setProperty(prop, v); };
 
-    /* L'ENCRE DU SYMBOLE ET DES ÉTIQUETTES (4.24.0.33) : le noir de Twitch ou
-       le blanc, celui des deux qui contraste le plus avec la couleur PEINTE —
-       le contraste du WCAG, sur la luminance relative. Le noir sur toute la
-       palette des co-streams (6:1 sur le bleu, le plus sombre) ; le blanc sur
-       le rouge d'un direct qui vient de démarrer, qui l'emporte sur la barre
-       (4,6:1, contre 4,2:1 au noir qu'il avait jusque-là). Une couleur
-       illisible — elle ne vient que de getComputedStyle — garde le noir. */
+    /* L'ENCRE DU SYMBOLE ET DU TEXTE (4.24.0.33) : le noir de Twitch ou le
+       blanc, celui des deux qui contraste le plus avec la couleur PEINTE — le
+       contraste du WCAG, sur la luminance relative. Le noir sur toute la
+       palette, et sur ses tons approfondis du thème clair (5,5:1) ; le blanc
+       sur le rouge d'un direct qui vient de démarrer (4,6:1, contre 4,2:1 au
+       noir). Une couleur illisible — elle ne vient que de getComputedStyle —
+       garde le noir. */
     const LUM_NOIR = 0.00445;     // #0e0e10
     const encreSur = (couleur) => {
       const m = /^rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)/.exec(couleur || '');
@@ -16949,10 +17292,11 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       const l = 0.2126 * r + 0.7152 * g + 0.0722 * b;
       return (l + 0.05) / (LUM_NOIR + 0.05) >= 1.05 / (l + 0.05) ? '#0e0e10' : '#ffffff';
     };
-    /* LA PLACE, au pixel : au milieu de la barre, sur son bord gauche. Rejouée
-       à chaque balayage ET quand la section change de taille sans balayage —
-       une image qui se charge, une carte qui grandit : l'observateur de la
-       barre ne voit pas ces changements-là, et le nœud glisserait du fil. */
+    /* LA PLACE, au pixel : au milieu de la barre, sur son bord gauche — là où
+       le trait est peint. Rejouée à chaque balayage ET quand la section change
+       de taille sans balayage — une image qui se charge, une carte qui
+       grandit : l'observateur de la barre ne voit pas ces changements-là, et
+       le curseur glisserait du fil. La bulle et la zone suivent la gélule. */
     const placer = () => {
       // L'origine de chaque calque, lue une fois par passe.
       const origines = new Map();
@@ -16963,37 +17307,30 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         return origines.get(couche);
       };
       for (const [cle, { barre }] of voulues) {
-        const n = parCle.get(cle);
+        const st = parCle.get(cle);
         // Une carte partie entre deux balayages : le suivant tranchera.
-        if (!n || !barre.every((c) => c.isConnected)) continue;
-        const origine = origineDe(n);
+        if (!st || !barre.every((c) => c.isConnected)) continue;
+        const origine = origineDe(st.n);
         if (!origine) continue;
         const haut = barre[0].getBoundingClientRect();
         const bas = barre[barre.length - 1].getBoundingClientRect();
         // La couleur de la barre telle qu'elle est PEINTE : celle du groupe,
-        // ou le rouge d'un direct qui vient de démarrer, qui l'emporte.
+        // son ton approfondi en clair, ou le rouge d'un direct qui vient de
+        // démarrer, qui l'emporte.
         const couleur = getComputedStyle(barre[0], '::before').backgroundColor;
         const encre = encreSur(couleur);
         const milieu = `${Math.round((haut.top + bas.bottom) / 2 - origine.top)}px`;
-        poserStyle(n, 'top', milieu);
-        /* SUR LE TRAIT : la languette part du bord gauche de la carte, là où
-           la barre est peinte (4.24.0.33). Le rond, lui, devait y être centré
-           (4.24.0.10) et s'en écartait vers la droite pour ne pas sortir de
-           la liste, qui l'aurait rogné. */
-        const gauche = Math.round(haut.left - origine.left);
-        poserStyle(n, 'left', `${gauche}px`);
-        poserStyle(n, '--tse-noeud-couleur', couleur);
-        poserStyle(n, '--tse-noeud-encre', encre);
-        n.classList.toggle('tse-noeud--reduit', sidebarCollapsed);
-        titrer(n);
-        // Le choix, collé au bord droit de la languette, à sa hauteur, à sa couleur.
-        const c = choixDe.get(cle);
-        if (c) {
-          poserStyle(c.boite, 'top', milieu);
-          poserStyle(c.boite, 'left', `${gauche + n.offsetWidth}px`);
-          poserStyle(c.boite, '--tse-noeud-couleur', couleur);
-          poserStyle(c.boite, '--tse-noeud-encre', encre);
+        const gauche = `${Math.round(haut.left - origine.left)}px`;
+        for (const x of [st.n, st.bulle, st.zone]) {
+          if (!x) continue;
+          poserStyle(x, 'top', milieu);
+          if (x === st.bulle) poserStyle(x, '--tse-x', gauche); else poserStyle(x, 'left', gauche);
+          if (x === st.zone) continue;
+          poserStyle(x, '--tse-noeud-couleur', couleur);
+          poserStyle(x, '--tse-noeud-encre', encre);
         }
+        titrer(st.n);
+        peindre(st);
       }
     };
     const suivre = (sections) => {
@@ -17023,8 +17360,80 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       if (couche.parentElement !== section) section.prepend(couche);
       return couche;
     };
+    /* LA NAISSANCE (cf. la feuille) : les curseurs nés d'un même balayage, de
+       haut en bas, 40 ms d'écart, six au plus décalés. */
+    const naitre = (nes) => {
+      const tries = nes.filter((st) => st.n.isConnected)
+        .map((st) => ({ st, y: st.n.getBoundingClientRect().top }))
+        .sort((a, b) => a.y - b.y);
+      tries.forEach(({ st }, i) => {
+        const d = Math.min(i, 5) * 40;
+        st.n.style.setProperty('--tse-d', `${d}ms`);
+        st.n.classList.add('tse-noeud--naissance');
+        naissances += 1;
+        st.naissanceT = setTimeout(() => st.n.classList.remove('tse-noeud--naissance'), d + 360);
+      });
+    };
 
-    /* Les entrées de ce balayage (cf. entreesSalle) → les nœuds. `barres` :
+    /* ── L'ÉVEIL, AU SURVOL DU CO-STREAM ────────────────────────────────────
+       Un seul écouteur, délégué : la carte sous le pointeur, et la clé de son
+       curseur. */
+    const approcher = (cle) => {
+      if (cle === proche) return;
+      const avant = proche !== null ? parCle.get(proche) : null;
+      proche = cle;
+      if (avant) { avant.prox = false; peindre(avant); }
+      const st = cle !== null ? parCle.get(cle) : null;
+      if (st) { st.prox = true; peindre(st); }
+    };
+    document.addEventListener('pointerover', (e) => {
+      let c = e.target instanceof Element ? e.target.closest('.side-nav-card') : null;
+      while (c && !carteVers.has(c)) c = c.parentElement ? c.parentElement.closest('.side-nav-card') : null;
+      approcher(c ? carteVers.get(c) : null);
+    }, { capture: true, passive: true });
+    document.documentElement.addEventListener('pointerleave', () => approcher(null));
+
+    /* ── L'INDICE D'ACCUEIL ─────────────────────────────────────────────────
+       UNE FOIS PAR INSTALLATION : la première fois qu'un curseur paraît,
+       étendu, à l'écran, et sans salle ouverte, il joue seul ce que le survol
+       fera — il s'éveille, s'étire, dit « Regarder les 2 » pendant
+       CFG.NOEUD_INDICE_TENUE_MS, et se replie. Puis plus jamais, même après un
+       redémarrage : la clé le retient, comme celle de la roue. LUE AU MOMENT
+       DE JOUER, et non au démarrage : un autre onglet a pu le montrer
+       entre-temps. Écrite avant de jouer — un rechargement en plein indice ne
+       le rejoue pas. Un stockage refusé vaut « déjà vu » : mieux vaut ne pas
+       montrer que montrer à chaque page. La main qui arrive reprend tout. */
+    let indice = null;            // 'joue' dans cette page, 'vu' avant elle
+    const indiceVu = () => { try { return localStorage.getItem(CFG.INDICE_KEY) === 'vu'; } catch { return true; } };
+    const tenterIndice = () => {
+      if (indice || sidebarCollapsed || document.hidden || !options.get('salle') || salle.membres()) return;
+      let st = null;
+      let haut = Infinity;
+      for (const x of parCle.values()) {
+        if (!x.n.isConnected) continue;
+        const r = x.n.getBoundingClientRect();
+        if (!r.height || r.top < 0 || r.bottom > window.innerHeight || r.top >= haut) continue;
+        st = x;
+        haut = r.top;
+      }
+      if (!st) return;
+      if (indiceVu()) { indice = 'vu'; return; }
+      indice = 'joue';
+      try { localStorage.setItem(CFG.INDICE_KEY, 'vu'); } catch { /* stockage refusé */ }
+      st.indice = 'attente';
+      const pas = (ms, f) => setTimeout(() => { if (st.indice && parCle.get(st.cle) === st) f(); }, ms);
+      const t0 = CFG.NOEUD_INDICE_ATTENTE_MS;
+      const t1 = t0 + 160;
+      const t2 = t1 + CFG.NOEUD_INDICE_TENUE_MS;
+      st.indiceT = [
+        pas(t0, () => { st.indice = 'eveil'; peindre(st); }),
+        pas(t1, () => viser(st, true)),
+        pas(t2, () => { if (!survole(st) && !st.focus) viser(st, false); }),
+        pas(t2 + 140, () => { st.indice = null; peindre(st); }),
+      ];
+    };
+
+    /* Les entrées de ce balayage (cf. entreesSalle) → les curseurs. `barres` :
        les suites de cartes jointes (au moins deux), dans l'ordre d'affichage,
        chacune avec ses membres et, s'il ajoute quelqu'un, tout son co-stream ;
        `seules` : les cartes seules de leur co-stream, avec leurs chaînes —
@@ -17042,82 +17451,89 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
           voulues.set(carte, { barre: [carte], membres, tous: null, suivie: false, section, seule: true });
         }
       }
-      for (const [cle, n] of [...parCle]) {
-        if (voulues.has(cle) && n.isConnected) continue;
-        n.remove();
+      for (const [cle, st] of [...parCle]) {
+        if (voulues.has(cle) && st.n.isConnected) continue;
+        detruire(st);
         parCle.delete(cle);
-      }
-      // Un choix part avec son nœud, ou quand tout le co-stream n'ajoute plus personne.
-      for (const [cle, c] of [...choixDe]) {
-        if (voulues.get(cle)?.tous && parCle.has(cle) && c.boite.isConnected) continue;
-        c.boite.remove();
-        choixDe.delete(cle);
       }
       // Les calques d'une section disparue partent avec elle ; on les oublie.
       for (const [sec, couche] of [...couches]) {
         if (!sec.isConnected) { couche.remove(); couches.delete(sec); }
       }
+      carteVers.clear();
       const sections = new Set();
-      for (const [cle, { membres, tous, suivie, section }] of voulues) {
-        const couche = coucheDe(section);
-        sections.add(section);
-        let n = parCle.get(cle);
-        if (!n) { n = creer(); parCle.set(cle, n); }
-        ordonner(n, membres, tous);
-        if (n.parentElement !== couche) couche.appendChild(n);
-        let c = choixDe.get(cle);
-        if (tous && !c) { c = creerChoix(cle); choixDe.set(cle, c); }
-        if (c) {
-          garnirChoix(c, membres, tous, suivie);
-          // Juste après son nœud : c'est ce que la feuille suit (« + »).
-          if (n.nextElementSibling !== c.boite) n.after(c.boite);
-        }
+      const nes = [];
+      for (const [cle, v] of voulues) {
+        const couche = coucheDe(v.section);
+        sections.add(v.section);
+        let st = parCle.get(cle);
+        if (!st) { st = nouvelEtat(cle); parCle.set(cle, st); nes.push(st); }
+        garnir(st, v);
+        if (st.n.parentElement !== couche) couche.appendChild(st.n);
+        for (const c of v.barre) carteVers.set(c, cle);
       }
       /* L'ORDRE DE LA LISTE, AUSSI AU CLAVIER (4.24.0.33). La tabulation suit
-         l'ordre des nœuds dans leur calque, et un nœud y entrait à sa
-         création, puis n'en bougeait plus. Un tri qui réordonne les cartes
-         les laissait donc dans l'ordre d'avant — mesuré au banc (194) : après
-         le tri par durée, « vif, dune, la barre, hale » à l'écran, « la
-         barre, hale, vif, dune » à la tabulation ; et une carte seule dont
-         la réponse Guest Star arrive avant celles de la barre voisine passe
-         avant elle. Ils sont rangés dans l'ordre de leurs barres, chaque
-         choix derrière son nœud — et SEULEMENT quand l'ordre a changé :
-         chaque déplacement est un enfant que l'observateur de la barre voit,
-         et un balayage de plus le retrouve en ordre. */
+         l'ordre des curseurs dans leur calque : ils y sont rangés dans l'ordre
+         de leurs barres — chacun suivi de sa bulle et de sa zone —, et
+         SEULEMENT quand l'ordre a changé : chaque déplacement est un enfant
+         que l'observateur de la barre voit, et un balayage de plus le
+         retrouve en ordre. */
       const parCouche = new Map();
       for (const [cle, { barre }] of voulues) {
-        const n = parCle.get(cle);
-        if (!n || !n.parentElement) continue;
-        if (!parCouche.has(n.parentElement)) parCouche.set(n.parentElement, []);
-        parCouche.get(n.parentElement).push({ cle, n, carte: barre[0] });
+        const st = parCle.get(cle);
+        if (!st || !st.n.parentElement) continue;
+        if (!parCouche.has(st.n.parentElement)) parCouche.set(st.n.parentElement, []);
+        parCouche.get(st.n.parentElement).push({ st, carte: barre[0] });
       }
       for (const [couche, entrees] of parCouche) {
         entrees.sort((a, b) => (a.carte.compareDocumentPosition(b.carte) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1));
-        const voulu = entrees.flatMap(({ cle, n }) => (choixDe.has(cle) ? [n, choixDe.get(cle).boite] : [n]));
+        const voulu = entrees.flatMap(({ st }) => [st.n, st.bulle, st.zone].filter(Boolean));
         const actuel = [...couche.children];
         if (voulu.length !== actuel.length || voulu.some((el, i) => el !== actuel[i])) couche.append(...voulu);
       }
+      // Le pointeur déjà sur une carte d'une barre qui vient de naître.
+      if (proche !== null && !parCle.has(proche)) proche = null;
       placer();
-      marquer();
       suivre(sections);
+      naitre(nes);
+      demanderVisages();
+      tenterIndice();
     };
     salle.surChangement(marquer);
+    /* LE THÈME QUI CHANGE — l'interrupteur de Twitch, le réglage — repeint la
+       barre sans balayage : la gélule relit la couleur peinte, et son encre. */
+    new MutationObserver(placer).observe(document.documentElement,
+      { attributes: true, attributeFilter: ['data-tse-theme'] });
     /* LE CALQUE NE DOIT RIEN DÉPLACER, et c'est une hypothèse sur Twitch : sa
        section suivie est une boîte ordinaire. Si elle devenait une grille ou
        une colonne flex avec un `gap`, ce calque de hauteur nulle y ajouterait
        un écart — le rapport le dit : l'affichage de la section, et l'écart
-       mesuré entre le calque et ce qui le suit (0 attendu). Et depuis la
-       4.24.0.28 : combien de barres offrent tout le co-stream (`choix`),
-       combien de salles ouvertes sur tout le co-stream (`tous`). Depuis la
-       4.24.0.33, les nœuds des barres d'une carte (`seules`) sont comptés à
-       part de ceux des barres de plusieurs (`affiches`), et leurs clics avec
-       les autres (`clics`). */
+       mesuré entre le calque et ce qui le suit (0 attendu). Les curseurs des
+       barres d'une carte (`seules`) sont comptés à part de ceux des barres de
+       plusieurs (`affiches`) ; `choix`, les barres qui offrent tout le
+       co-stream ; `tous`, les salles ouvertes sur lui. Depuis la 4.24.0.34 :
+       les visages posés et ceux qui ont leur avatar, les lots de la requête
+       des visages, les naissances, et l'indice d'accueil — « à montrer »,
+       « joué » dans cette page, « vu » avant elle. */
     const bilan = () => {
       let nSeules = 0;
-      for (const cle of parCle.keys()) if (typeof cle !== 'string') nSeules += 1;
-      const out = { affiches: parCle.size - nSeules, seules: nSeules, clics, choix: choixDe.size,
+      let choix = 0;
+      let nVisages = 0;
+      let avecAvatar = 0;
+      for (const [cle, st] of parCle) {
+        if (typeof cle !== 'string') nSeules += 1;
+        if (!st.bulle) continue;
+        choix += 1;
+        for (const img of st.bulle.querySelectorAll('.tse-noeud__visage img')) {
+          nVisages += 1;
+          if (img.getAttribute('src')) avecAvatar += 1;
+        }
+      }
+      const out = { affiches: parCle.size - nSeules, seules: nSeules, clics, choix,
                     tous: tousOuverts,
-                    // 4.24.0.30 : les calques posés (un par section qui a des nœuds),
+                    visages: nVisages, avatars: avecAvatar, lotsVisages, naissances,
+                    indice: indice === 'joue' ? 'joué' : indice || (indiceVu() ? 'vu' : 'à montrer'),
+                    // 4.24.0.30 : les calques posés (un par section qui a des curseurs),
                     // et les barres de Top Chaînes à qui il manquerait un membre
                     // qui diffuse — zéro attendu : le classement complète ses places.
                     calques: [...couches.values()].filter((c) => c.isConnected).length,
@@ -25624,13 +26040,17 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
    * plein et sombre qui BAT, contre un rose pâle immobile ; et sur une carte
    * qui cumule les deux, le rouge l'emporte (cf. .tse-fresh.tse-costream).
    */
+  /* `clair` (4.24.0.34) : la même teinte, assombrie dans son espace TSL
+     jusqu'à 3:1 contre le fond clair de Twitch (#efeff1) — la barre et sa
+     gélule en thème clair. L'encre noire y tient 5,5:1. Le harnais vérifie
+     la teinte et le contraste. */
   const COSTREAM_PALETTE = [
-    { color: '#f5c518', bg: 'rgba(245, 197, 24, 0.18)',  fade: 'rgba(245, 197, 24, 0.06)'  }, // jaune      47°
-    { color: '#7ee081', bg: 'rgba(126, 224, 129, 0.18)', fade: 'rgba(126, 224, 129, 0.06)' }, // vert      122°
-    { color: '#26d4c8', bg: 'rgba(38, 212, 200, 0.18)',  fade: 'rgba(38, 212, 200, 0.06)'  }, // turquoise 176°
-    { color: '#4d8cff', bg: 'rgba(77, 140, 255, 0.18)',  fade: 'rgba(77, 140, 255, 0.06)'  }, // bleu      219°
-    { color: '#c77dff', bg: 'rgba(199, 125, 255, 0.18)', fade: 'rgba(199, 125, 255, 0.06)' }, // violet    274°
-    { color: '#ff7a8a', bg: 'rgba(255, 122, 138, 0.18)', fade: 'rgba(255, 122, 138, 0.06)' }, // rose      353°
+    { color: '#f5c518', bg: 'rgba(245, 197, 24, 0.18)',  fade: 'rgba(245, 197, 24, 0.06)',  clair: '#a78507' }, // jaune      47°
+    { color: '#7ee081', bg: 'rgba(126, 224, 129, 0.18)', fade: 'rgba(126, 224, 129, 0.06)', clair: '#269f2a' }, // vert      122°
+    { color: '#26d4c8', bg: 'rgba(38, 212, 200, 0.18)',  fade: 'rgba(38, 212, 200, 0.06)',  clair: '#1c9a91' }, // turquoise 176°
+    { color: '#4d8cff', bg: 'rgba(77, 140, 255, 0.18)',  fade: 'rgba(77, 140, 255, 0.06)',  clair: '#4385ff' }, // bleu      219°
+    { color: '#c77dff', bg: 'rgba(199, 125, 255, 0.18)', fade: 'rgba(199, 125, 255, 0.06)', clair: '#b95dff' }, // violet    274°
+    { color: '#ff7a8a', bg: 'rgba(255, 122, 138, 0.18)', fade: 'rgba(255, 122, 138, 0.06)', clair: '#ff3e55' }, // rose      353°
   ];
 
   // clé de groupe -> { idx: indice de palette, lastActiveTs: dernier scan actif }
@@ -26689,6 +27109,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     toutes.forEach(card => {
       card.classList.remove('tse-costream');
       card.style.removeProperty('--tse-costream-color');
+      card.style.removeProperty('--tse-costream-color-clair');
       card.style.removeProperty('--tse-costream-bg');
       card.style.removeProperty('--tse-costream-bg-fade');
       delete card.dataset.tseCostreamKey;
@@ -26700,6 +27121,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       for (const card of groups.get(g)) {
         card.classList.add('tse-costream');
         card.style.setProperty('--tse-costream-color',   palette.color);
+        card.style.setProperty('--tse-costream-color-clair', palette.clair);
         card.style.setProperty('--tse-costream-bg',      palette.bg);
         card.style.setProperty('--tse-costream-bg-fade', palette.fade);
         // La clé est exposée pour permettre au tri "co-stream" de
@@ -26712,6 +27134,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       const palette = COSTREAM_PALETTE[costreamColorByKey.get(key).idx];
       card.classList.add('tse-costream');
       card.style.setProperty('--tse-costream-color',   palette.color);
+      card.style.setProperty('--tse-costream-color-clair', palette.clair);
       card.style.setProperty('--tse-costream-bg',      palette.bg);
       card.style.setProperty('--tse-costream-bg-fade', palette.fade);
     }

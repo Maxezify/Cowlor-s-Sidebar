@@ -484,7 +484,7 @@
     "message": "Co-streams"
   },
   "guideCostreamTexte": {
-    "message": "A coloured bar along the edge of the card, one colour per co-stream: this channel is streaming with others. Visible in the list, with nothing to hover.\n• A purple badge then says who is hosting and who is a guest, and with whom.\n• A sort of its own groups them at the top of the list (chapter $1).\n• When several members follow each other in the list, their bars become one; alone from its co-stream in the list, a channel has its own. A “▶” button sits in the middle when other members are streaming: one click opens them together on the page, in the multistream room. On hover, “Whole co-stream” adds those you do not follow — Shift+click too. A click on a tile gives it the sound, and the chat follows; with two streams and no Shared Chat, both chats frame the players when there is room. The Escape key, or a second click on the button, closes the room."
+    "message": "A coloured bar along the edge of the card, one colour per co-stream: this channel is streaming with others. Visible in the list, with nothing to hover.\n• A purple badge then says who is hosting and who is a guest, and with whom.\n• A sort of its own groups them at the top of the list (chapter $1).\n• When several members follow each other in the list, their bars become one; alone from its co-stream in the list, a channel has its own. A small “▶” cursor sits in the middle when other members are streaming: on hover, it stretches and says what it opens; one click opens them together on the page, in the multistream room. Those you do not follow show up beside it as faces: move onto them to add them — Shift+click too. A click on a tile gives it the sound, and the chat follows; with two streams and no Shared Chat, both chats frame the players when there is room. The Escape key, or a second click on the cursor, closes the room."
   },
   "guideDebutTitre": {
     "message": "Starts, and comebacks"
@@ -655,7 +655,7 @@
     "message": "Multistream room"
   },
   "optDescSalle": {
-    "message": "A “▶” button, in the middle of a co-stream's bar, opens its streams together, on the page — on the bar of several channels as on that of a channel alone from its co-stream in the list. On hover or with Shift+click: the whole co-stream, including those you don't follow. Off: no button, no room; the bars stay."
+    "message": "A “▶” cursor, in the middle of a co-stream's bar, opens its streams together, on the page — on the bar of several channels as on that of a channel alone from its co-stream in the list. On hover, it stretches and says what it opens; the faces of those you don't follow appear beside it — move onto them, or Shift+click: the whole co-stream. Off: no cursor, no room; the bars stay."
   },
   "optSalleAuto": {
     "message": "Automatic alignment"

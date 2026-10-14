@@ -385,7 +385,7 @@
     "message": "I co-stream"
   },
   "guideCostreamTexte": {
-    "message": "Una barra colorata sul bordo della scheda, un colore per co-stream: questo canale trasmette in compagnia. Visibile nell'elenco, senza passare sopra niente.\n• Un badge viola dice allora chi ospita e chi è invitato, e con chi.\n• Un ordinamento apposito li raggruppa in cima all'elenco (capitolo $1).\n• Quando più partecipanti si susseguono nell'elenco, le loro barre diventano una sola; se un canale è l'unico del suo co-stream nell'elenco, ha la sua. Al centro si posa un pulsante «▶» quando altri partecipanti trasmettono: un clic li apre insieme sulla pagina, nella sala multistream. Al passaggio del mouse, «Tutto il co-stream» aggiunge chi non segui — anche Maiusc+clic. Un clic su un riquadro gli dà l'audio, e la chat lo segue; con due stream senza chat condivisa, le due chat incorniciano i player quando c'è spazio. Il tasto Esc, o un secondo clic sul pulsante, chiude la sala."
+    "message": "Una barra colorata sul bordo della scheda, un colore per co-stream: questo canale trasmette in compagnia. Visibile nell'elenco, senza passare sopra niente.\n• Un badge viola dice allora chi ospita e chi è invitato, e con chi.\n• Un ordinamento apposito li raggruppa in cima all'elenco (capitolo $1).\n• Quando più partecipanti si susseguono nell'elenco, le loro barre diventano una sola; se un canale è l'unico del suo co-stream nell'elenco, ha la sua. Al centro si posa un piccolo cursore «▶» quando altri partecipanti trasmettono: al passaggio del mouse si allunga e dice cosa apre; un clic li apre insieme sulla pagina, nella sala multistream. Chi non segui compare accanto con il suo volto: vai verso di loro per aggiungerli — anche Maiusc+clic. Un clic su un riquadro gli dà l'audio, e la chat lo segue; con due stream senza chat condivisa, le due chat incorniciano i player quando c'è spazio. Il tasto Esc, o un secondo clic sul cursore, chiude la sala."
   },
   "guideDebutTitre": {
     "message": "Gli inizi, e i ritorni"
@@ -541,7 +541,7 @@
     "message": "Sala multistream"
   },
   "optDescSalle": {
-    "message": "Un pulsante «▶», al centro della barra di un co-stream, apre insieme i suoi stream, sulla pagina — sulla barra di più canali come su quella di un canale che è l'unico del suo co-stream nell'elenco. Al passaggio del mouse o con Maiusc+clic: tutto il co-stream, compresi quelli che non segui. Disattivato: niente pulsante, niente sala; le barre restano."
+    "message": "Un cursore «▶», al centro della barra di un co-stream, apre insieme i suoi stream, sulla pagina — sulla barra di più canali come su quella di un canale che è l'unico del suo co-stream nell'elenco. Al passaggio del mouse si allunga e dice cosa apre; accanto compaiono i volti di chi non segui — vai verso di loro, o Maiusc+clic: tutto il co-stream. Disattivato: niente cursore, niente sala; le barre restano."
   },
   "optSalleAuto": {
     "message": "Allineamento automatico"
