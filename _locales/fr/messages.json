@@ -30,7 +30,7 @@
     "message": "Mode d'emploi"
   },
   "descGuide": {
-    "message": "Tout ce que l'extension ajoute à votre barre latérale, avec des exemples. Rien à régler : c'est déjà actif."
+    "message": "Ce que l'extension ajoute à Twitch, et comment s'en servir. Rien à régler : c'est déjà actif."
   },
   "navScores": {
     "message": "Scores de popularité"
@@ -127,6 +127,9 @@
   },
   "colDue": {
     "message": "Échéance"
+  },
+  "colEnd": {
+    "message": "Fin"
   },
   "colLag": {
     "message": "Retard"
@@ -349,85 +352,91 @@
     "message": "Fermer"
   },
   "guideIntro": {
-    "message": "Ce chapitre décrit ce que l'extension ajoute à Twitch, dans l'ordre où vous allez le rencontrer. Tout fonctionne dès le rechargement d'une page Twitch, sans rien configurer — et tout se règle, ou s'éteint, depuis « Réglages », juste en dessous."
+    "message": "Ce guide dit ce que l'extension ajoute à Twitch et comment vous en servir, dans l'ordre où vous allez le rencontrer. Tout fonctionne dès le rechargement d'une page Twitch, sans rien configurer — et tout se règle, ou s'éteint, depuis « Réglages », juste en dessous."
   },
   "guideHoverTitre": {
     "message": "L'aperçu au survol"
   },
   "guideHoverTexte": {
-    "message": "Posez le pointeur sur une chaîne et laissez-le un instant : une fenêtre s'ouvre à côté, avec la vidéo en direct — pas une miniature figée —, le titre complet, et des badges qui résument le contexte."
+    "message": "Laissez le pointeur un instant sur une chaîne : une fenêtre s'ouvre à côté, avec le direct en vidéo, le titre complet, des badges et la frise de ce qui s'est passé avant.\n• Ça marche partout dans la barre : chaînes suivies, recommandations, Top Chaînes.\n• Pas de publicité dans l'aperçu. Le stream que vous ouvrez ensuite, lui, n'est pas touché.\n• Trop lourd ? Dans « Réglages » : sa largeur, la qualité du flux, ou l'aperçu sans vidéo."
   },
   "guideDureeTitre": {
     "message": "Depuis combien de temps il diffuse"
   },
   "guideDureeTexte": {
-    "message": "Sous le nombre de spectateurs, chaque carte porte la durée du direct. Elle se met à jour toute seule, sans que vous ayez à ouvrir la chaîne."
+    "message": "Sous le nombre de spectateurs, chaque carte porte la durée du direct, tenue à jour sans ouvrir la chaîne.\n• Un direct qui s'arrête affiche « Terminé » le temps que sa carte quitte la liste.\n• Trois formats au choix dans « Réglages » : 4h19, 4:19 ou 259 min."
   },
   "guideBadgesTitre": {
     "message": "Les badges de l'aperçu"
   },
   "guideBadgesTexte": {
-    "message": "Dans l'aperçu, des pastilles colorées disent le contexte d'un coup d'œil. Les voici TOUTES : chaque couleur appartient à un seul type, et deux badges ne se ressemblent jamais.\n• Les deux verts sont des NOUVELLES, pas des états : ils s'effacent au bout de dix minutes.\n• Le rouge reprend les étiquettes officielles de Twitch (jeux matures, violence explicite, jeux d'argent…) : vous savez avant de regarder.\n• L'or dit depuis combien de temps vous soutenez la chaîne ; sa version pâle dit un abonnement révolu.\n• Le bleu dit « Co-stream de … » côté invité et « Stream Hôte » côté organisateur ; le violet dit « En live avec … ».\n• La pastille sans couleur reprend telle quelle une mention ajoutée par Twitch, que l'extension ne traduit pas.\n• Le subathon n'a pas de couleur : il les traverse toutes."
+    "message": "Dans l'aperçu, les badges disent le contexte d'un coup d'œil. Les voici tous ; chaque couleur a un seul sens.\n• Rouge : les étiquettes de contenu de Twitch — jeux matures, violence, jeux d'argent… Vous savez avant de regarder.\n• Vert citron : une nouvelle — la chaîne vient de changer de catégorie, ou de reprendre après une coupure. Elle s'efface au bout de dix minutes.\n• Bleu, violet, gris : le co-stream — qui l'organise, qui d'autre est en direct, qui en fait partie sans diffuser.\n• Or : votre abonnement, et ce qui vient ; or pâle : un abonnement fini.\n• Vert, orange, rose : le sponsor du stream, un Hype Train en cours, un abonnement à prix réduit.\n• Sans couleur : une mention de Twitch, reprise telle quelle.\n• Arc-en-ciel : un subathon, et son jour."
   },
   "guideFriseTitre": {
     "message": "Précédemment sur ce live"
   },
   "guideFriseTexte": {
-    "message": "Vous arrivez au milieu d'un direct de huit heures : que s'est-il passé avant ? L'aperçu le montre — un ruban, une couleur par catégorie, et la liste dessous.\n• Chaque bande est à l'échelle du temps réel : un coup d'œil dit comment la soirée s'est passée.\n• « ×3 » veut dire que le streamer est revenu trois fois sur cette catégorie.\n• Une chaîne qui n'archive pas ses directs ? La frise est reconstruite à partir des clips, et elle le dit.\n• Quand l'heure exacte d'un passage n'est pas connue, la couleur s'estompe au lieu de couper net et la durée porte un « ~ ». Jamais un chiffre inventé."
+    "message": "Vous arrivez au milieu d'un direct de huit heures ? La frise de l'aperçu montre ce qui s'est passé avant : une bande par catégorie, à l'échelle du temps, et la liste dessous.\n• « ×3 » : le streamer est revenu trois fois sur cette catégorie.\n• Une chaîne qui n'archive pas ses directs ? La frise se reconstruit d'après les clips, et le dit.\n• Un « ~ » devant une durée, une couleur qui s'estompe : l'heure exacte n'est pas connue. Rien n'est inventé."
   },
   "guideSubathonTitre": {
     "message": "Les subathons"
   },
   "guideSubathonTexte": {
-    "message": "Un subathon est ce direct que les abonnements prolongent sans fin — des jours, parfois des semaines.\n• Une pastille à droite du pseudo donne le jour en cours : vous savez tout de suite où en est l'événement."
+    "message": "Un subathon est ce direct que les abonnements prolongent sans fin — des jours, parfois des semaines.\n• Une pastille à droite du pseudo dit le jour où en est l'événement ; le badge de l'aperçu le répète."
   },
   "guideCostreamTitre": {
     "message": "Les co-streams"
   },
   "guideCostreamTexte": {
-    "message": "Une pastille violette au coin de l'avatar, avec le nombre de participants : cette chaîne diffuse à plusieurs. Visible dans la liste, sans rien survoler.\n• Un badge violet dit alors qui reçoit et qui est invité, et avec qui.\n• Un tri dédié les regroupe en tête de liste (chapitre $1).\n• Quand plusieurs membres se suivent dans la liste, leurs barres n'en font qu'une, et un bouton « ▶ » s'y pose, à la place de leurs pastilles : un clic les ouvre ensemble sur la page, dans la salle multistream. Au survol, « Tout le co-stream » y ajoute ceux que vous ne suivez pas — Maj+clic aussi. Seule de son co-stream dans la liste, une chaîne porte ce « ▶ » en guise de pastille. Un clic sur une tuile lui donne le son, et le chat suit ; à deux streams sans Chat partagé, les deux chats encadrent les lecteurs quand la place le permet. La touche Échap, ou un second clic sur le bouton, referme la salle."
+    "message": "Une barre de couleur fixe au bord gauche de la carte : cette chaîne diffuse à plusieurs, une couleur par co-stream. Plusieurs membres à la suite dans la liste partagent une seule barre.\n• Au survol, le badge bleu dit qui organise — « Stream Hôte », ou « Co-stream de … » ; le violet nomme les membres en direct hors de votre liste ; le gris, ceux qui en font partie sans diffuser.\n• Un tri les regroupe en tête de liste (chapitre $1).\n• Le petit curseur « ▶ » posé sur la barre ouvre leurs streams ensemble, dans la salle multistream — chapitre suivant."
+  },
+  "guideSalleTitre": {
+    "message": "La salle multistream"
+  },
+  "guideSalleTexte": {
+    "message": "Le curseur « ▶ » posé sur la barre d'un co-stream ouvre ses streams côte à côte, sur la page.\n• Survolez-le : il dit ce qu'il ouvre — « Regarder les 3 ». Des visages à son bout ? Des membres que vous ne suivez pas : allez vers eux pour les ajouter. Maj+clic ouvre directement tout le co-stream.\n• Un clic sur une tuile lui donne le son — les touches 1 à 6 aussi —, et le chat suit le son. Sans Chat partagé, des onglets au-dessus du chat en affichent un autre sans changer le son.\n• Six streams au plus à l'écran : les autres attendent dessous, un clic les fait entrer.\n• Les streams se calent seuls sur leur son commun, en une minute d'écoute environ ; sans son commun, rien ne bouge. « Alignement automatique » se coupe dans « Réglages ».\n• La salle ne fait pas gagner de points de chaîne, et les publicités de Twitch y passent comme ailleurs.\n• Pour la refermer : Échap, ou un clic sur le curseur, devenu « ■ »."
   },
   "guideDebutTitre": {
     "message": "Les débuts, et les reprises"
   },
   "guideDebutTexte": {
-    "message": "Une barre rouge apparaît sur le bord gauche d'une carte : ce live a commencé il y a moins de dix minutes. Elle s'éteint d'elle-même au bout de la dixième minute.\n• Si le streamer perd sa connexion et revient dans les dix minutes, la barre rouge ne se rallume pas — et son compteur ne repart pas de zéro : il continue de compter le direct entier, coupure comprise.\n• L'aperçu dit en plus combien de fois ça a coupé, et dessine les interruptions sur la frise — et un badge prévient ce qui s'est passé."
+    "message": "Une barre rouge qui bat au bord gauche d'une carte : ce direct a commencé il y a moins de dix minutes. Elle s'éteint d'elle-même.\n• Le streamer coupe et revient dans les dix minutes ? La barre ne se rallume pas, et la durée continue de compter le direct entier, coupure comprise.\n• Son aperçu dit alors « Reprise après coupure » pendant dix minutes, et sa frise montre où le direct a coupé."
   },
   "guideAboTitre": {
     "message": "Vos abonnements, en or"
   },
   "guideAboTexte": {
-    "message": "Les chaînes que vous soutenez ne ressemblent plus aux autres : pseudo doré, catégorie dorée, anneau d'or autour de l'avatar et un reflet lent sur la carte.\n• Un badge apparaît et dit depuis combien de temps, puis le prochain anniversaire — ou, pour un abonnement offert, le jour où il prend fin.\n• Les trois formes d'abonnement comptent : payant, offert, mobile."
+    "message": "Les chaînes auxquelles vous êtes abonné sont en or dans la liste.\n• Rien à faire : tant que vous êtes connecté à Twitch, l'extension relit votre page d'abonnements toutes les six heures par défaut. Un abonnement tout neuf ? Ouvrez la chaîne, ou cliquez « Relever maintenant » dans « Vos données », section « Abonnements ».\n• Au survol, le badge dit depuis combien de mois vous soutenez la chaîne, puis la suite : « Prochain anniversaire » s'il se renouvelle, « Expire dans … » s'il va prendre fin — un abonnement offert, ou un abonnement que vous ne renouvelez plus.\n• Une fois l'abonnement fini, l'or s'éteint et le badge dit « Ancien abonné ».\n• Payant, offert ou mobile : les trois comptent."
   },
   "guideTriTitre": {
     "message": "Trier et filtrer"
   },
   "guideTriTexte": {
-    "message": "Six boutons en haut de la liste la réorganisent à la volée :\n• Par spectateurs — le tri de Twitch, propre.\n• Mes abonnements en tête — avec le total de mes abonnements actuels (même ceux hors-ligne) sur une pastille.\n• Par popularité personnelle — d'après vos propres visites, gardées sur votre machine.\n• Par durée du direct — les plus récents en tête, pour attraper les débuts.\n• Par pseudo — l'ordre alphabétique.\n• Les co-streams en tête — pour ne plus rater une collaboration.\nDeux filtres suivent, juste dessous : la catégorie et la langue. Les deux listes ne proposent que ce que vos chaînes diffusent réellement à cet instant."
+    "message": "Six boutons en haut de la liste la réordonnent :\n• Spectateurs — l'ordre de Twitch.\n• Abonnements — les vôtres en tête, et leur nombre, hors ligne compris, sur une pastille.\n• Popularité perso — d'après vos propres visites, gardées sur votre machine.\n• Durée de stream — les directs les plus récents en tête, pour attraper les débuts.\n• Alphabétique — par pseudo.\n• Co-streams — regroupés en tête.\nDessous, deux filtres : la catégorie et la langue. Ils ne proposent que ce que vos chaînes diffusent à cet instant.\n• Les boutons dont vous ne vous servez pas se retirent dans « Réglages »."
   },
   "guideTopTitre": {
     "message": "Top Chaînes"
   },
   "guideTopTexte": {
-    "message": "Un onglet en haut de la barre latérale, un clic, et elle bascule : à la place de vos chaînes suivies, les trente chaînes les plus regardées de Twitch, en direct.\n• Par catégorie ou par langue — un vrai top 30 pour chacune.\nUn clic pour y aller, un clic pour revenir. Vos chaînes suivies ne bougent pas d'un pixel."
+    "message": "L'onglet « Top Chaînes », en haut de la barre latérale, remplace vos chaînes suivies par les chaînes les plus regardées de tout Twitch, en direct — trente par défaut, dix ou cinquante au choix.\n• Choisissez une catégorie ou une langue dans les filtres : vous obtenez son vrai classement.\n• Aperçu, durée, badges, co-streams : ce sont des cartes comme les autres.\n« Chaînes suivies » vous ramène ; votre liste n'a pas bougé."
   },
   "guideViteTitre": {
     "message": "Plus rapide que Twitch, et plus propre"
   },
   "guideViteTexte": {
-    "message": "Twitch rafraîchit sa barre latérale rarement : une chaîne qui démarre met deux à quatre minutes à y apparaître, et une qui s'arrête y traîne cinq à dix. L'extension la rafraîchit elle-même toutes les trente secondes — spectateurs, catégorie, langue, durée, arrivées et départs.\n• La liste complète est dépliée à chaque chargement : plus de « Voir plus » à cliquer.\n• Hype trains encombrants, bandeaux de réduction, sections vides, bannières de sponsor : retirés. L'information n'est pas perdue pour autant — elle revient dans l'aperçu, en badge."
+    "message": "Twitch met deux à quatre minutes à montrer une chaîne qui démarre, et garde cinq à dix minutes celle qui s'arrête. L'extension rafraîchit la barre latérale elle-même, toutes les trente secondes : spectateurs, catégorie, durée, arrivées et départs.\n• Vos chaînes suivies sont toujours dépliées en entier : plus de « Voir plus » à cliquer.\n• Hype trains, bandeaux de réduction, bannières de sponsor et sections vides quittent la barre ; ce qu'ils disaient revient en badge dans l'aperçu (chapitre $1).\n• Votre série de visionnage et les stories de Twitch se rangent dans le bloc des filtres, en haut de la liste. Vous les préférez comme Twitch les affiche, ou masquées ? C'est dans « Réglages »."
   },
   "guidePanneauTitre": {
     "message": "Ce panneau"
   },
   "guidePanneauTexte": {
-    "message": "Cinq groupes, à gauche.\n• « Bien démarrer » — ce chapitre. Il s'affiche toujours, même sans onglet Twitch ouvert.\n• « Réglages » — tout ce que l'extension laisse choisir.\n• « Vos données » — ce qu'elle a retenu : vos chaînes les plus visitées, vos heures d'écoute dessinées en semaine, les abonnements repérés.\n• « Diagnostic » — ne sert que le jour où quelque chose cloche, et se masque depuis les réglages.\n• « Top Chaînes » — l'état du classement mondial et de ses catégories.\nToutes ces sections, sauf celle-ci, lisent l'onglet Twitch au premier plan : s'il n'y en a pas, elles le disent.\n• « Exporter un rapport » écrit un texte que vous pouvez relire avant de l'envoyer. Il ne contient aucune liste personnelle — ni vos chaînes, ni vos abonnements — seulement des comptes.\n• « Effacer l'historique » remet tout à zéro, définitivement."
+    "message": "Cinq groupes, à gauche :\n• « Bien démarrer » — ce guide, lisible même sans onglet Twitch ouvert.\n• « Réglages » — tout ce que l'extension laisse choisir.\n• « Vos données » — ce qu'elle a retenu : les chaînes que vous visitez le plus, à quelles heures, vos abonnements, les chaînes connues.\n• « Diagnostic » — ne sert que si quelque chose cloche ; se masque dans les réglages.\n• « Top Chaînes » — l'état du classement et de ses catégories.\nLes sections autres que ce guide lisent l'onglet Twitch au premier plan ; sans lui, elles le disent.\n• Un problème ? « Exporter un rapport » écrit un texte à relire avant de l'envoyer : des comptes, aucune liste — ni vos chaînes, ni vos abonnements.\n• « Effacer l'historique » efface tout ce que l'extension a retenu, définitivement ; vos réglages restent."
   },
   "guideVieTitre": {
     "message": "Vie privée, en clair"
   },
   "guideVieTexte": {
-    "message": "• Aucun serveur tiers. L'extension ne parle qu'à l'API publique de Twitch, celle que la page utilise déjà pour s'afficher.\n• Ces appels sont anonymes : aucun jeton de session, aucun cookie n'y est joint. Ils ne peuvent pas être rattachés à votre compte.\n• Une exception, dite tout haut : pour connaître vos abonnements, l'extension ouvre VOTRE page twitch.tv/subscriptions dans un cadre invisible, au plus une fois toutes les six heures, et jamais si vous êtes déconnecté. Votre navigateur l'authentifie avec ses propres cookies, comme si vous aviez cliqué le lien ; l'extension ne lit ni ne transmet votre jeton.\n• Vos visites, vos abonnements et leur ancienneté restent dans le stockage local de votre navigateur. Effacez les données du site twitch.tv et il n'en reste rien.\n• Aucune permission demandée, aucun traceur, aucune télémétrie. L'extension ne tourne que sur twitch.tv."
+    "message": "• Aucun serveur tiers : l'extension ne parle qu'à Twitch, par l'API publique que la page utilise déjà.\n• Ces appels sont anonymes : ni jeton de session, ni cookie. Ils ne peuvent pas être rattachés à votre compte.\n• Une exception, dite tout haut : pour connaître vos abonnements, l'extension ouvre VOTRE page twitch.tv/subscriptions dans un cadre invisible — au plus une fois toutes les six heures, ou selon votre réglage, et jamais si vous êtes déconnecté. Votre navigateur l'authentifie comme si vous aviez cliqué le lien ; l'extension ne lit ni ne transmet votre jeton.\n• Vos visites, vos abonnements et leur ancienneté restent dans votre navigateur. Effacez les données du site twitch.tv, et il n'en reste rien.\n• Aucune permission demandée, aucun traceur, aucune télémétrie. L'extension ne tourne que sur twitch.tv."
   },
   "guideBadgeCcl": {
     "message": "Jeux matures"
@@ -443,6 +452,9 @@
   },
   "guideBadgeSquad": {
     "message": "En live avec Korbek et 3 autres"
+  },
+  "guideBadgeMuet": {
+    "message": "Dans la session, sans diffuser : Velmoria"
   },
   "guideBadgeSub": {
     "message": "Abonné • 9 MOIS"
@@ -537,17 +549,11 @@
   "optFresh": {
     "message": "Barre « vient de démarrer »"
   },
-  "optCollab": {
-    "message": "Pastille de collaboration"
-  },
-  "optDescCollab": {
-    "message": "Sur l'avatar, le nombre de streamers avec qui la chaîne est en co-stream. Effacée en Top Chaînes, et là où la salle multistream pose son « ▶ » — sur la barre, ou à sa place. Coupé : plus aucune pastille de nombre ; le « ▶ » reste, c'est celui de la salle."
-  },
   "optSalle": {
     "message": "Salle multistream"
   },
   "optDescSalle": {
-    "message": "Un bouton « ▶ » ouvre les streams d'un co-stream ensemble, sur la page : sur sa barre, ou sur l'avatar d'une chaîne seule de son co-stream. Sur la barre, au survol ou par Maj+clic : tout le co-stream, ceux que vous ne suivez pas compris. Coupé : ni bouton, ni salle, et les pastilles redeviennent des nombres."
+    "message": "Un curseur « ▶ », au milieu de la barre d'un co-stream, ouvre ses streams ensemble, sur la page — sur la barre de plusieurs chaînes comme sur celle d'une chaîne seule de son co-stream dans la liste. Au survol, il s'étire et dit ce qu'il ouvre ; les visages de ceux que vous ne suivez pas s'y invitent — allez vers eux, ou Maj+clic : tout le co-stream. Coupé : ni curseur, ni salle ; les barres restent."
   },
   "optSalleAuto": {
     "message": "Alignement automatique"
@@ -697,7 +703,7 @@
     "message": "Remettre tous les réglages par défaut ?"
   },
   "optResetText": {
-    "message": "Les vingt-deux réglages de cette page reviendront à leur valeur d'origine. Vos données — visites, abonnements, chaînes suivies — ne sont pas touchées."
+    "message": "Les vingt et un réglages de cette page reviendront à leur valeur d'origine. Vos données — visites, abonnements, chaînes suivies — ne sont pas touchées."
   },
   "optValPlein": {
     "message": "Complet"
@@ -754,12 +760,12 @@
     "message": "La roue, et ce panneau"
   },
   "guideRoueTexte": {
-    "message": "Une roue ⚙️ est posée juste à droite du titre de la barre latérale. Un clic dessus ouvre ce panneau par-dessus Twitch, sans quitter la page.\n• L'icône de l'extension, en haut à droite du navigateur, ouvre exactement le même panneau.\n• Pour le refermer : la touche Échap, ou un clic en dehors du cadre.\n• Au tout premier lancement, la roue bat quelques secondes et une bulle la désigne. Elle ne revient plus ensuite."
+    "message": "Une roue ⚙️ est posée à droite du titre de la barre latérale. Un clic ouvre ce panneau par-dessus Twitch, sans quitter la page.\n• L'icône de l'extension, dans la barre d'outils du navigateur, ouvre le même panneau.\n• Pour le refermer : la touche Échap, ou un clic en dehors."
   },
   "guideReglagesTitre": {
     "message": "Tout se règle, et tout se coupe"
   },
   "guideReglagesTexte": {
-    "message": "« Réglages » commande chacune des décorations décrites ici. Rien n'est imposé : ce qui vous gêne s'éteint.\n• L'aperçu au survol : sa largeur, la qualité du flux, ou la vidéo seule — coupée, il garde sa miniature, ses badges et sa frise.\n• Les badges s'affichent ou non, un par un.\n• L'or des abonnements a un mode discret : il garde la couleur et retire le chatoiement.\n• Le relevé des abonnements se fait au plus une fois toutes les 3, 6, 12 ou 24 heures, à votre choix.\n• Vos réglages s'exportent et se réimportent ; un bouton les remet tous d'origine."
+    "message": "« Réglages » commande tout ce que ce guide présente. Rien n'est imposé : ce qui vous gêne s'éteint, et un point violet marque ce que vous avez changé.\n• Un aperçu trop lourd ? Baissez la qualité, ou coupez la vidéo : il garde sa miniature, ses badges et sa frise.\n• L'or trop voyant ? « Discret » garde la couleur et retire le reflet.\n• La salle multistream et son alignement automatique s'éteignent chacun de leur côté.\n• Le relevé des abonnements peut s'espacer jusqu'à une fois par jour.\n• Chaque mémoire — visites, abonnements, chaînes connues — s'efface à part.\n• Vos réglages s'exportent et s'importent ; un bouton les remet tous d'origine."
   }
 }

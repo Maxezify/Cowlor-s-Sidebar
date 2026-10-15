@@ -847,7 +847,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiNoeudAria:               (noms) => `Regarder ${noms} ensemble`,
 
       uiNoeudSuivis:             (n) => `Les ${n} suivis`,
-      uiNoeudTous:               (n) => `Tout le co-stream · ${n}`,
+      uiNoeudTous:               (n) => `Tous les ${n}`,
       uiNoeudMaj:                (n) => `Maj+clic : tout le co-stream (${n})`,
       uiGlobalEmpty:             'Aucune chaîne en direct avec ce filtre',
       uiUptimeEnded:             'Terminé',
@@ -954,7 +954,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiNoeudRegarder:           (n) => `Watch all ${n}`,
       uiNoeudAria:               (noms) => `Watch ${noms} together`,
       uiNoeudSuivis:             (n) => `${n} followed`,
-      uiNoeudTous:               (n) => `Whole co-stream · ${n}`,
+      uiNoeudTous:               (n) => `All ${n}`,
       uiNoeudMaj:                (n) => `Shift+click: whole co-stream (${n})`,
       uiGlobalEmpty:             'No live channel matches this filter',
       uiUptimeEnded:             'Ended',
@@ -1059,7 +1059,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiNoeudRegarder:           (n) => `Alle ${n} ansehen`,
       uiNoeudAria:               (noms) => `${noms} zusammen ansehen`,
       uiNoeudSuivis:             (n) => `Die ${n} gefolgten`,
-      uiNoeudTous:               (n) => `Ganzer Co-stream · ${n}`,
+      uiNoeudTous:               (n) => `Alle ${n}`,
       uiNoeudMaj:                (n) => `Umschalt+Klick: ganzer Co-stream (${n})`,
       uiGlobalEmpty:             'Kein Live-Kanal passt zu diesem Filter',
       uiUptimeEnded:             'Beendet',
@@ -1164,7 +1164,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiNoeudRegarder:           (n) => `Ver los ${n}`,
       uiNoeudAria:               (noms) => `Ver a ${noms} juntos`,
       uiNoeudSuivis:             (n) => `Los ${n} seguidos`,
-      uiNoeudTous:               (n) => `Todo el co-stream · ${n}`,
+      uiNoeudTous:               (n) => `Todos los ${n}`,
       uiNoeudMaj:                (n) => `Mayús+clic: todo el co-stream (${n})`,
       uiGlobalEmpty:             'Ningún canal en directo con este filtro',
       uiUptimeEnded:             'Finalizado',
@@ -1269,7 +1269,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiNoeudRegarder:           (n) => `Ver os ${n}`,
       uiNoeudAria:               (noms) => `Assistir ${noms} juntos`,
       uiNoeudSuivis:             (n) => `Os ${n} seguidos`,
-      uiNoeudTous:               (n) => `Todo o co-stream · ${n}`,
+      uiNoeudTous:               (n) => `Todos os ${n}`,
       uiNoeudMaj:                (n) => `Shift+clique: todo o co-stream (${n})`,
       uiGlobalEmpty:             'Nenhum canal ao vivo com este filtro',
       uiUptimeEnded:             'Encerrado',
@@ -1374,7 +1374,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiNoeudRegarder:           (n) => `Guarda tutti e ${n}`,
       uiNoeudAria:               (noms) => `Guarda ${noms} insieme`,
       uiNoeudSuivis:             (n) => `I ${n} seguiti`,
-      uiNoeudTous:               (n) => `Tutto il co-stream · ${n}`,
+      uiNoeudTous:               (n) => `Tutti e ${n}`,
       uiNoeudMaj:                (n) => `Maiusc+clic: tutto il co-stream (${n})`,
       uiGlobalEmpty:             'Nessun canale in diretta con questo filtro',
       uiUptimeEnded:             'Terminato',
@@ -1479,7 +1479,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiNoeudRegarder:           (n) => `Oglądaj ${n} naraz`,
       uiNoeudAria:               (noms) => `Oglądaj razem: ${noms}`,
       uiNoeudSuivis:             (n) => `Obserwowani (${n})`,
-      uiNoeudTous:               (n) => `Cały co-stream · ${n}`,
+      uiNoeudTous:               (n) => `Wszyscy (${n})`,
       uiNoeudMaj:                (n) => `Shift+klik: cały co-stream (${n})`,
       uiGlobalEmpty:             'Brak kanałów na żywo dla tego filtra',
       uiUptimeEnded:             'Zakończono',
@@ -1584,7 +1584,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiNoeudRegarder:           (n) => `Смотреть все ${n}`,
       uiNoeudAria:               (noms) => `Смотреть вместе: ${noms}`,
       uiNoeudSuivis:             (n) => `Отслеживаемые (${n})`,
-      uiNoeudTous:               (n) => `Весь ко-стрим · ${n}`,
+      uiNoeudTous:               (n) => `Все ${n}`,
       uiNoeudMaj:                (n) => `Shift+клик: весь ко-стрим (${n})`,
       uiGlobalEmpty:             'Нет каналов в эфире с этим фильтром',
       uiUptimeEnded:             'Завершено',
@@ -1689,7 +1689,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiNoeudRegarder:           (n) => `${n} 人をまとめて見る`,
       uiNoeudAria:               (noms) => `${noms} をまとめて見る`,
       uiNoeudSuivis:             (n) => `フォロー中の${n}人`,
-      uiNoeudTous:               (n) => `コラボ配信の全員 · ${n}`,
+      uiNoeudTous:               (n) => `全員（${n}人）`,
       uiNoeudMaj:                (n) => `Shift+クリック：コラボ配信の全員（${n}）`,
       uiGlobalEmpty:             'この条件で配信中のチャンネルはありません',
       uiUptimeEnded:             '終了',
@@ -1792,7 +1792,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       uiNoeudRegarder:           (n) => `一起观看 ${n} 个`,
       uiNoeudAria:               (noms) => `一起观看 ${noms}`,
       uiNoeudSuivis:             (n) => `关注的 ${n} 位`,
-      uiNoeudTous:               (n) => `整个联合直播 · ${n}`,
+      uiNoeudTous:               (n) => `全部 ${n} 位`,
       uiNoeudMaj:                (n) => `Shift+点击：整个联合直播（${n}）`,
       uiGlobalEmpty:             '没有符合此筛选条件的直播频道',
       uiUptimeEnded:             '已结束',
@@ -2150,6 +2150,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
 
     SUBS_LABEL_KEY:       'tse:submois',
 
+    SUBS_END_LABEL_KEY:   'tse:subfin',
+
     SUBS_DUE_HORIZON_DAYS: 400,
 
     SUBS_STORAGE_KEY:     'tse:subs',
@@ -2222,6 +2224,13 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     SALLE_PAGE:            '/directory',
     SALLE_ATTENTE_MS:      20_000,
 
+    SALLE_PRETE_MAX_MS:    3_000,
+
+    NOEUD_INTENTION_MS:    150,
+    NOEUD_GRACE_MS:        80,
+    NOEUD_INDICE_ATTENTE_MS: 600,
+    NOEUD_INDICE_TENUE_MS: 2_400,
+
     SALLE_DIRECTS_MS:      30_000,
     SALLE_HORS_LIGNE_MS:   25_000,
 
@@ -2269,6 +2278,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
 
     ROUE_KEY:               'tse:roue',
 
+    INDICE_KEY:             'tse:indice',
+
     INCRUSTE_W:             1100,
     INCRUSTE_H:             760
   });
@@ -2290,7 +2301,6 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     duree:           { defaut: true,      type: 'bool', css: true },
     dureeFormat:     { defaut: 'hm',      type: 'choix', valeurs: ['hm', 'colon', 'min'] },
     fresh:           { defaut: true,      type: 'bool', css: true },
-    collab:          { defaut: true,      type: 'bool', css: true },
 
     salle:           { defaut: true,      type: 'bool', css: true },
 
@@ -2637,21 +2647,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     }
 
     
-    .tse-collab-host { position: relative !important; }
-    .tse-collab-badge {
-      position: absolute; bottom: -3px; right: -3px;
-      min-width: 16px; height: 16px; padding: 0 4px;
-      box-sizing: border-box;
-      background: ${CFG.PURPLE}; color: #fff;
-      font-size: 10px; font-weight: 700; line-height: 16px;
-      border-radius: 999px; text-align: center;
-      box-shadow: 0 0 0 2px var(--color-background-base, #0e0e10);
-      pointer-events: none; z-index: 2;
-      font-variant-numeric: tabular-nums;
-    }
-    
-    .side-nav-card[data-tse-global="true"] .tse-collab-badge,
-    html:not([data-tse-off~="salle"]) .side-nav-card[data-tse-pastille] .tse-collab-badge { display: none !important; }
+    .tse-collab-badge { display: none !important; }
 
     
     ${DOM.sidebarRoot} [data-a-target*="hype-train" i],
@@ -2909,6 +2905,11 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       ); }
     .side-nav-card.tse-fresh.tse-costream::before { background: var(--tse-frais); }
     
+    html[data-tse-theme="light"] .side-nav-card.tse-costream:not(.tse-fresh)::before {
+      background: var(--tse-costream-color-clair, var(--tse-costream-color, #ffffff));
+    }
+    html[data-tse-theme="light"] .side-nav-card.tse-costream::before { box-shadow: none; }
+    
     .side-nav-card.tse-costream.tse-costream-join-bottom::before {
       bottom: var(--tse-costream-jb, -8px);
       border-bottom-right-radius: 0;
@@ -2919,142 +2920,177 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     }
 
     
-    .tse-noeuds { position: relative; height: 0; margin: 0; padding: 0; z-index: 5; }
+    
+    .tse-noeuds {
+      position: relative; height: 0; margin: 0; padding: 0; z-index: 5; user-select: none;
+      --tse-e-sortie:  cubic-bezier(.22, 1, .36, 1);
+      --tse-e-ressort: cubic-bezier(.34, 1.56, .64, 1);
+      --tse-e-morph:   cubic-bezier(.65, 0, .35, 1);
+      --tse-e-accel:   cubic-bezier(.55, 0, 1, .45);
+    }
     .tse-noeud {
-      position: absolute; transform: translateY(-50%);
-      display: flex; align-items: center; justify-content: center;
-      width: 12px; height: 12px; margin: 0; padding: 0; box-sizing: border-box;
-      border: 2px solid var(--tse-decoupe); border-radius: 50%;
-      background: var(--tse-noeud-couleur, #9147ff); color: #0e0e10;
+      position: absolute; box-sizing: border-box; margin: 0; padding: 0; border: 0;
+      width: 9px; height: 18px; border-radius: 4.5px;
+      background: var(--tse-noeud-couleur, #9147ff); color: var(--tse-noeud-encre, #0e0e10);
       font-family: inherit; font-size: 11px; font-weight: 700; line-height: 1;
-      white-space: nowrap; cursor: pointer;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+      white-space: nowrap; cursor: pointer; -webkit-tap-highlight-color: transparent;
+      transform: translateY(-50%) scale(var(--tse-s, 1)); transform-origin: 0 50%;
+      --tse-gw: 5px; --tse-gh: 6px;
+      transition-property: width, height, border-radius, box-shadow, transform, filter;
+      transition-duration: 140ms, 112ms, 140ms, 112ms, 80ms, 120ms;
+      transition-timing-function: var(--tse-e-accel), var(--tse-e-accel), var(--tse-e-accel),
+                                  linear, var(--tse-e-sortie), linear;
     }
     
-    .tse-noeud__symbole { display: flex; align-items: center; margin-left: 1px; }
-    .tse-noeud svg { width: 4px; height: 5px; fill: currentColor; }
+    .tse-noeud, .tse-noeud__bulle { --tse-noeud-lueur: var(--tse-noeud-couleur, #9147ff); }
+    html[data-tse-theme="light"] .tse-noeud,
+    html[data-tse-theme="light"] .tse-noeud__bulle { --tse-noeud-lueur: transparent; }
     
-    .tse-noeuds .tse-icone-arret { display: none; }
-    .tse-noeuds [aria-pressed="true"] .tse-icone-lecture { display: none; }
-    .tse-noeuds [aria-pressed="true"] .tse-icone-arret { display: block; }
-    .tse-noeuds [aria-pressed="true"] > .tse-noeud__symbole { margin-left: 0; }
+    .tse-noeud::after { content: ''; position: absolute; left: 0; right: 0; top: -6px; bottom: -6px; }
+    .tse-noeud__corps {
+      position: absolute; inset: 0; display: flex; align-items: center; overflow: hidden;
+      border-radius: inherit; padding-left: 2px;
+      transition: padding-left 112ms var(--tse-e-accel);
+    }
     
-    .tse-noeud:hover { box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.75), 0 1px 3px rgba(0, 0, 0, 0.35); }
+    .tse-noeud__symbole {
+      flex: none; width: var(--tse-gw); height: var(--tse-gh); background: currentColor;
+      clip-path: polygon(16% 6%, 96% 50%, 96% 50%, 16% 94%);
+      transition: clip-path 220ms var(--tse-e-morph), width 160ms var(--tse-e-sortie), height 160ms var(--tse-e-sortie);
+    }
+    .tse-noeud--arret .tse-noeud__symbole { clip-path: polygon(10% 10%, 90% 10%, 90% 90%, 10% 90%); width: 6px; height: 6px; }
+    
+    .tse-noeud__etiquette {
+      flex: none; margin-left: 5px; padding-right: 10px; pointer-events: none;
+      opacity: 0; transform: translateX(-4px);
+      transition: opacity 120ms var(--tse-e-sortie), transform 160ms var(--tse-e-sortie);
+    }
+    .tse-noeud__etiquette--tous { position: absolute; left: 14.5px; margin-left: 0; padding-right: 8px; }
+
+    .tse-noeud--eveil {
+      width: 13px; height: 22px; border-radius: 6.5px; --tse-gw: 6px; --tse-gh: 7px;
+      box-shadow: 0 0 9px var(--tse-noeud-lueur);
+      transition-duration: 160ms, 160ms, 160ms, 160ms, 80ms, 120ms;
+      transition-timing-function: var(--tse-e-sortie), var(--tse-e-sortie), var(--tse-e-sortie),
+                                  var(--tse-e-sortie), var(--tse-e-sortie), linear;
+    }
+    .tse-noeud--eveil .tse-noeud__corps { padding-left: 3.5px; transition: padding-left 160ms var(--tse-e-sortie); }
+    
+    .tse-noeud--eveil.tse-noeud--intention {
+      width: var(--tse-pilule-a, 13px); border-radius: 11px;
+      transition-duration: 200ms, 160ms, 200ms, 160ms, 80ms, 120ms;
+    }
+    .tse-noeud--intention .tse-noeud__etiquette--barre { opacity: 1; transform: none; transition-delay: 60ms; }
+    
+    .tse-noeud--repli:not(.tse-noeud--intention) {
+      transition-duration: 140ms, 112ms, 140ms, 112ms, 80ms, 120ms;
+      transition-timing-function: var(--tse-e-accel), var(--tse-e-accel), var(--tse-e-accel),
+                                  linear, var(--tse-e-sortie), linear;
+    }
+    .tse-noeud--choix.tse-noeud--repli:not(.tse-noeud--intention) {
+      transition-delay: 100ms, 100ms, 100ms, 0s, 0s, 0s;
+    }
+    .tse-noeud--appui, .tse-noeud__bulle--appui { --tse-s: .96; }
+    .tse-noeud:focus-visible, .tse-noeud__bulle:focus-visible { outline: 2px solid var(--tse-texte); outline-offset: 3px; }
+    
+    .tse-noeud--salle, .tse-noeud__bulle[aria-pressed="true"] {
+      box-shadow: 0 0 9px var(--tse-noeud-lueur),
+                  inset 0 0 0 1.5px color-mix(in srgb, var(--tse-noeud-encre, #0e0e10) 32%, transparent);
+    }
+    
+    @property --tse-tour { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+    .tse-noeud__anneau {
+      position: absolute; inset: 0; border-radius: inherit; padding: 1.5px; opacity: 0; pointer-events: none;
+      background: conic-gradient(from var(--tse-tour), var(--tse-noeud-encre, #0e0e10) 0 28%, transparent 28% 100%);
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor;
+      mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+      transition: opacity 120ms linear;
+    }
+    .tse-noeud--charge .tse-noeud__anneau { opacity: .9; animation: tse-tour 900ms linear infinite; }
+    @keyframes tse-tour { to { --tse-tour: 360deg; } }
+    .tse-noeud--pop { animation: tse-noeud-pop 260ms var(--tse-e-sortie); }
+    @keyframes tse-noeud-pop {
+      0%   { transform: translateY(-50%) scale(1); }
+      40%  { transform: translateY(-50%) scale(1.08); }
+      100% { transform: translateY(-50%) scale(1); }
+    }
+    
+    .tse-noeud--naissance { animation: tse-noeud-naissance 340ms var(--tse-e-ressort) backwards; animation-delay: var(--tse-d, 0s); }
+    @keyframes tse-noeud-naissance {
+      from { transform: translateY(-50%) scale(.34, .6); }
+      to   { transform: translateY(-50%) scale(1, 1); }
+    }
 
     
-    .tse-noeud__etiquette,
-    .tse-noeud__option,
-    .tse-pastille-salle__etiquette {
-      margin: 0; padding: 4px 9px; border-radius: 6px; box-sizing: border-box;
-      border: 1px solid rgba(0, 0, 0, 0.3);
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 2px 0 rgba(0, 0, 0, 0.45),
-                  0 4px 10px rgba(0, 0, 0, 0.4);
-      font-family: inherit; font-size: 11px; font-weight: 700; line-height: 1;
-      white-space: nowrap; cursor: pointer; pointer-events: auto;
-      transition: filter 80ms ease, transform 80ms ease, box-shadow 80ms ease;
+    .tse-noeud__bulle {
+      position: absolute; box-sizing: border-box; margin: 0; border: 0; z-index: 1;
+      display: flex; align-items: center; height: 22px; padding: 0 6px 0 7px; border-radius: 11px; overflow: hidden;
+      left: calc(var(--tse-x, 0px) + var(--tse-pilule-a, 13px) + 4px);
+      background: var(--tse-noeud-couleur, #9147ff); color: var(--tse-noeud-encre, #0e0e10);
+      font-family: inherit; font-size: 13px; font-weight: 700; line-height: 1; cursor: pointer;
+      transform: translateY(-50%) scale(.6); transform-origin: 0 50%; opacity: 0; pointer-events: none;
+      transition: transform 140ms var(--tse-e-accel), opacity 140ms linear, left 160ms var(--tse-e-accel),
+                  border-radius 160ms var(--tse-e-accel), padding-left 160ms var(--tse-e-accel), box-shadow 120ms linear;
     }
-    .tse-noeud__etiquette,
-    .tse-noeud__option { background: var(--tse-noeud-couleur, #9147ff); color: #0e0e10; }
-    .tse-pastille-salle__etiquette { background: ${CFG.PURPLE}; color: #fff; }
+    .tse-noeud__bulle--sortie {
+      transform: translateY(-50%) scale(var(--tse-s, 1)); opacity: 1; box-shadow: 0 0 9px var(--tse-noeud-lueur);
+      transition: transform 280ms var(--tse-e-ressort) 120ms, opacity 120ms linear 120ms, left 200ms var(--tse-e-sortie),
+                  border-radius 200ms var(--tse-e-sortie), padding-left 200ms var(--tse-e-sortie), box-shadow 120ms linear;
+    }
+    .tse-noeud__bulle--sortie.tse-noeud__bulle--appui { transition-delay: 0s; }
     
-    .tse-noeud__etiquette,
-    .tse-pastille-salle__etiquette {
-      display: none; position: absolute; left: calc(100% + 6px); top: 50%;
-      transform: translateY(-50%);
+    .tse-noeud__bulle--soudee { left: calc(var(--tse-x, 0px) + var(--tse-pilule-b, 13px)); border-radius: 0 11px 11px 0; padding-left: 4px; }
+    .tse-noeud--eveil.tse-noeud--intention.tse-noeud--tous { width: var(--tse-pilule-b, 13px); border-radius: 11px 0 0 11px; }
+    .tse-noeud--intention.tse-noeud--tous .tse-noeud__etiquette--barre {
+      opacity: 0; transform: translateX(-4px); transition-delay: 0s; transition-duration: 100ms;
     }
-    .tse-noeud__etiquette::before,
-    .tse-pastille-salle__etiquette::before {
-      content: ''; position: absolute; right: 100%; top: -1px; bottom: -1px; width: 8px;
+    .tse-noeud--intention.tse-noeud--tous .tse-noeud__etiquette--tous { opacity: 1; transform: none; transition-delay: 60ms; }
+    .tse-noeud__plus {
+      flex: none; width: 9px; overflow: hidden;
+      transition: opacity 120ms linear 60ms, width 200ms var(--tse-e-sortie);
     }
-    .tse-noeud:hover .tse-noeud__etiquette,
-    .tse-noeud:focus-visible .tse-noeud__etiquette { display: block; }
-    .tse-noeud__etiquette:hover,
-    .tse-pastille-salle__etiquette:hover { filter: brightness(1.12); transform: translateY(calc(-50% - 1px)); }
-    .tse-noeud__etiquette:active,
-    .tse-pastille-salle__etiquette:active {
-      transform: translateY(calc(-50% + 1px));
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 0 0 rgba(0, 0, 0, 0);
-    }
-    .tse-noeud:focus-visible { outline: 2px solid var(--tse-texte); outline-offset: 1px; }
+    .tse-noeud__bulle--soudee .tse-noeud__plus { opacity: 0; width: 0; transition: opacity 100ms linear, width 200ms var(--tse-e-sortie); }
     
-    .tse-noeud[aria-pressed="true"] {
-      box-shadow: 0 0 0 2px var(--tse-noeud-couleur, #9147ff), 0 1px 3px rgba(0, 0, 0, 0.35);
+    .tse-noeud__visage {
+      position: relative; flex: none; width: 16px; height: 16px; border-radius: 50%; overflow: hidden;
+      display: grid; place-items: center; background: var(--tse-visage-fond, #53535f); color: #ffffff;
+      box-shadow: 0 0 0 1.5px var(--tse-noeud-couleur, #9147ff);
+      font-size: 8.5px; font-weight: 700;
+      opacity: 0; transform: translateX(-4px);
+      transition: opacity 100ms linear, transform 100ms var(--tse-e-accel);
+    }
+    .tse-noeud__visage + .tse-noeud__visage { margin-left: -5px; }
+    .tse-noeud__visage img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    
+    .tse-noeud__visage img[hidden] { display: none !important; }
+    .tse-noeud__bulle--sortie .tse-noeud__visage {
+      opacity: 1; transform: none;
+      transition: opacity 160ms var(--tse-e-sortie) var(--tse-dv, 180ms), transform 160ms var(--tse-e-sortie) var(--tse-dv, 180ms);
     }
     
-    .tse-noeuds [aria-pressed="true"] > .tse-noeud__etiquette,
-    .tse-noeuds [aria-pressed="true"] > .tse-pastille-salle__etiquette { display: none !important; }
-    
-    .tse-noeud--reduit:hover .tse-noeud__etiquette,
-    .tse-noeud--reduit:focus-visible .tse-noeud__etiquette { display: none; }
+    .tse-noeud__zone {
+      position: absolute; z-index: 6; height: 34px; transform: translateY(-50%);
+      pointer-events: none; cursor: pointer;
+    }
+    .tse-noeud__zone--active { pointer-events: auto; }
     html[data-tse-off~="salle"] .tse-noeuds { display: none !important; }
 
     
-    .tse-noeud--choix .tse-noeud__etiquette { display: none !important; }
-    .tse-noeud__choix {
-      display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
-      position: absolute; transform: translateY(-50%);
-      padding-left: 6px; z-index: 1; white-space: nowrap;
-      font-family: inherit; font-size: 11px; font-weight: 700; line-height: 1;
-      opacity: 0; pointer-events: none;
-    }
-    .tse-noeud:hover + .tse-noeud__choix,
-    .tse-noeud:focus-visible + .tse-noeud__choix,
-    .tse-noeud__choix:hover,
-    .tse-noeud__choix:focus-within { opacity: 1; pointer-events: auto; }
-    
-    .tse-noeud__choix .tse-noeud__option { pointer-events: inherit; }
-    
-    .tse-noeud--reduit + .tse-noeud__choix { display: none !important; }
-    .tse-noeud__option { display: flex; align-items: center; gap: 5px; }
-    .tse-noeud__option svg { width: 6px; height: 7px; fill: currentColor; flex: none; }
-    .tse-noeud__option .tse-icone-arret { width: 6px; height: 6px; }
-    .tse-noeud__option:hover { filter: brightness(1.12); transform: translateY(-1px); }
-    .tse-noeud__option:active {
-      transform: translateY(1px);
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 0 0 rgba(0, 0, 0, 0);
-    }
-    .tse-noeud__option:focus-visible { outline: 2px solid var(--tse-texte); outline-offset: 1px; }
-    
-    .tse-noeud__option[aria-pressed="true"] {
-      box-shadow: inset 0 0 0 2px rgba(14, 14, 16, 0.85), 0 2px 0 rgba(0, 0, 0, 0.45),
-                  0 4px 10px rgba(0, 0, 0, 0.4);
-    }
-
-    
-    .tse-pastille-salle {
-      position: absolute; transform: translate(-50%, -50%);
-      display: flex; align-items: center; justify-content: center;
-      width: 16px; height: 16px; margin: 0; padding: 0; box-sizing: border-box;
-      border: 0; border-radius: 50%; background: transparent; color: #fff;
-      font-family: inherit; font-size: 11px; font-weight: 700; line-height: 1;
-      white-space: nowrap; cursor: pointer;
-    }
-    .tse-pastille-salle::before {
-      content: ''; position: absolute; inset: 0; border-radius: 50%;
-      background: ${CFG.PURPLE};
-      box-shadow: 0 0 0 2px var(--color-background-base, #0e0e10);
-      transition: transform 120ms ease;
-    }
-    .tse-pastille-salle .tse-noeud__symbole { position: relative; transition: transform 120ms ease; }
-    .tse-pastille-salle .tse-noeud__symbole svg { width: 5px; height: 6px; fill: currentColor; }
-    .tse-pastille-salle .tse-noeud__symbole .tse-icone-arret { width: 5px; height: 5px; }
-    .tse-pastille-salle:hover::before,
-    .tse-pastille-salle:focus-visible::before,
-    .tse-pastille-salle:hover .tse-noeud__symbole,
-    .tse-pastille-salle:focus-visible .tse-noeud__symbole { transform: scale(1.25); }
-    .tse-pastille-salle:focus-visible { outline: 2px solid var(--tse-texte); outline-offset: 3px; }
-    .tse-pastille-salle[aria-pressed="true"]::before {
-      box-shadow: 0 0 0 2px var(--color-background-base, #0e0e10), 0 0 0 4px ${CFG.PURPLE};
-    }
-    .tse-pastille-salle:hover .tse-pastille-salle__etiquette,
-    .tse-pastille-salle:focus-visible .tse-pastille-salle__etiquette { display: block; }
-    .tse-pastille-salle--reduit .tse-pastille-salle__etiquette { display: none !important; }
     @media (prefers-reduced-motion: reduce) {
-      .tse-pastille-salle::before,
-      .tse-pastille-salle .tse-noeud__symbole,
-      .tse-noeud__etiquette,
-      .tse-noeud__option,
-      .tse-pastille-salle__etiquette { transition: none; }
+      .tse-noeud, .tse-noeud__corps, .tse-noeud__symbole, .tse-noeud__etiquette,
+      .tse-noeud__bulle, .tse-noeud__plus, .tse-noeud__visage {
+        transition: opacity 120ms linear !important; animation: none !important;
+      }
+      .tse-noeud, .tse-noeud__bulle { --tse-s: 1 !important; }
+      .tse-noeud__bulle { transform: translateY(-50%) !important; }
+      .tse-noeud__etiquette, .tse-noeud__visage { transform: none !important; }
+      .tse-noeud--charge .tse-noeud__anneau { animation: none; background: var(--tse-noeud-encre, #0e0e10); }
+    }
+    
+    @media (forced-colors: active) {
+      .tse-noeud, .tse-noeud__bulle { border: 1px solid ButtonText; }
+      .tse-noeud__symbole { forced-color-adjust: none; background: ButtonText; }
     }
 
     
@@ -3368,7 +3404,6 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     
     .side-nav-card:not([data-tse-subathon-day]) .tse-lang-mark { margin-left: 4px; }
     
-    html[data-tse-off~="collab"] .tse-lang-mark { display: none !important; }
 
     .tse-flag { display: inline-flex; }
     .tse-flag svg { display: block; width: 20px; height: 20px; }
@@ -4067,7 +4102,6 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       background: none !important;
       background-image: none !important;
     }
-    html[data-tse-off~="collab"] .tse-collab-badge { display: none !important; }
     html[data-tse-off~="subathonJour"] .tse-subathon-jour { display: none !important; }
 
     
@@ -6413,6 +6447,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
           if (typeof v[4] === 'string' && v[4]) e.src = v[4];
           const ech = Number(v[5]);
           if (Number.isFinite(ech) && ech > 0) e.ech = ech;
+          if (e.ech && v[6]) e.fin = true;
           this.map.set(login, e);
         }
         this.prune();
@@ -6426,7 +6461,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         const obj = {};
         for (const [login, e] of this.map) {
 
-          if (e.ech) obj[login] = [e.sub ? 1 : 0, e.ts, e.m || 0, e.ex ? 1 : 0, e.src || '', e.ech];
+          if (e.ech && e.fin) obj[login] = [e.sub ? 1 : 0, e.ts, e.m || 0, e.ex ? 1 : 0, e.src || '', e.ech, 1];
+          else if (e.ech) obj[login] = [e.sub ? 1 : 0, e.ts, e.m || 0, e.ex ? 1 : 0, e.src || '', e.ech];
           else if (e.src) obj[login] = [e.sub ? 1 : 0, e.ts, e.m || 0, e.ex ? 1 : 0, e.src];
           else if (e.m || e.ex) obj[login] = [e.sub ? 1 : 0, e.ts, e.m || 0, e.ex ? 1 : 0];
           else obj[login] = [e.sub ? 1 : 0, e.ts];
@@ -6455,6 +6491,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       if (avant?.ex) e.ex = avant.ex;
       if (avant?.src) e.src = avant.src;
       if (avant?.ech) e.ech = avant.ech;
+      if (avant?.fin) e.fin = true;
       this.map.set(login, e);
       if (avant && avant.sub === sub) return false;
 
@@ -6496,21 +6533,27 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       return true;
     },
 
-    noteEcheance(login, ech, differer = false) {
+    noteEcheance(login, ech, fin = false, differer = false) {
       const avant = login ? this.map.get(login) : null;
-      if (!avant || (avant.ech || 0) === (ech || 0)) return false;
+      const f = ech > 0 && !!fin;
+      if (!avant || ((avant.ech || 0) === (ech || 0) && !!avant.fin === f)) return false;
       const e = { ...avant };
       if (ech > 0) e.ech = ech; else delete e.ech;
+      if (f) e.fin = true; else delete e.fin;
       this.map.set(login, e);
       if (!differer) this.flush();
       return true;
+    },
+
+    finie(e) {
+      return !!(e && e.ech && (e.fin || e.src === 'gifts') && joursJusqua(e.ech) < 0);
     },
 
     echeanceFor(login) {
       const e = login ? this.map.get(login) : null;
       if (!e?.ech) return null;
       const jours = joursJusqua(e.ech);
-      return jours >= 0 ? { jours, offert: e.src === 'gifts' } : null;
+      return jours >= 0 ? { jours, fin: !!e.fin || e.src === 'gifts' } : null;
     },
 
     monthsFor(login) {
@@ -6520,12 +6563,12 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
 
     wasSub(login) {
       const e = login ? this.map.get(login) : null;
-      return !!(e && e.ex && !this.isSub(login));
+      return !!(e && (e.ex || (e.sub && this.finie(e))) && !this.isSub(login));
     },
 
     isSub(login) {
       const e = login ? this.map.get(login) : null;
-      if (!e || !e.sub) return false;
+      if (!e || !e.sub || this.finie(e)) return false;
       return Date.now() - e.ts < CFG.SUBS_TTL_DAYS * 24 * 60 * 60 * 1000;
     },
 
@@ -6537,9 +6580,11 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
 
     entries() {
       return [...this.map.entries()]
-        .map(([login, e]) => ({ login, sub: e.sub, ts: e.ts, mois: e.m || 0,
-                                ancien: !!e.ex, origine: e.src || '',
-                                echeance: e.ech || 0 }))
+        .map(([login, e]) => ({ login, sub: this.isSub(login), ts: e.ts, mois: e.m || 0,
+                                ancien: this.wasSub(login), origine: e.src || '',
+                                echeance: e.ech || 0,
+                                fin: !!e.fin || (!!e.ech && e.src === 'gifts'),
+                                finie: this.finie(e), note: !!e.sub }))
         .sort((a, b) => (b.sub - a.sub) || (b.ts - a.ts));
     },
 
@@ -6550,13 +6595,14 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       oublier(CFG.SUBS_PAGE_STAMP_KEY, 'horodatage du relevé');
 
       oublier(CFG.SUBS_LABEL_KEY, 'étiquette d\'ancienneté');
+      oublier(CFG.SUBS_END_LABEL_KEY, 'étiquette de fin');
     }
   };
 
   const subsPage = (() => {
     let running = false;
 
-    let bilan = { onglets: [], fini: 0, bascule: '' };
+    let bilan = { onglets: [], fini: 0, bascule: '', revolus: null };
 
     let differes = 0;
 
@@ -6568,6 +6614,16 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       etiquette = t;
       try { localStorage.setItem(CFG.SUBS_LABEL_KEY, t); }
       catch (e) { erreurs.noter('stockage', 'étiquette : ' + ((e && e.name) || e)); }
+    };
+
+    let etiquetteFin = (() => {
+      try { return localStorage.getItem(CFG.SUBS_END_LABEL_KEY) || ''; }
+      catch { return ''; }
+    })();
+    const retenirFin = (t) => {
+      etiquetteFin = t;
+      try { localStorage.setItem(CFG.SUBS_END_LABEL_KEY, t); }
+      catch (e) { erreurs.noter('stockage', 'étiquette de fin : ' + ((e && e.name) || e)); }
     };
 
     const feuilles = (carte) => {
@@ -6639,25 +6695,43 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       return 0;
     };
 
+    const sansChiffres = (t) => normaliser(t.replace(/\d+/g, ''));
+    const etiquetteDe = (el, avant) => {
+      const p = el.parentElement;
+      const morceaux = [];
+      for (const n of p ? p.childNodes : []) {
+        if (n === el) break;
+        if (n.nodeType === 3) morceaux.push(n.textContent);
+      }
+      return sansChiffres(morceaux.join(' ')) || sansChiffres(avant || '');
+    };
+
+    const dateEcrite = (f, i, langue) => {
+      for (let k = i + 1; k < f.length; k++) {
+        if (!/\d{4}/.test(f[k].t)) continue;
+        const ms = dateDans(f[k].t, datesEcrites(langue));
+        if (ms) return { ms, etiquette: etiquetteDe(f[k].el, f[k - 1]?.t) };
+      }
+      return null;
+    };
+
     const lireCarte = (carte, passe, offert, langue) => {
       const f = feuilles(carte);
       const m = mois(f, passe);
       const i = passe || !etiquette ? -1 : f.findIndex((x) => x.t === etiquette);
       if (i < 0) return { mois: m, ech: 0 };
+      const ecrite = dateEcrite(f, i, langue);
       if (offert) {
-        for (const x of f.slice(i + 1)) {
-          if (!/\d{4}/.test(x.t)) continue;
-          const ms = dateDans(x.t, datesEcrites(langue));
-          if (ms) return { mois: m, ech: ms };
-        }
-        return { mois: m, ech: 0 };
+        if (!ecrite) return { mois: m, ech: 0 };
+        if (ecrite.etiquette && ecrite.etiquette !== etiquetteFin) retenirFin(ecrite.etiquette);
+        return { mois: m, ech: ecrite.ms };
       }
       const u = unite(f[i + 1]?.t || '');
       const v = f.slice(0, i).find((x) => (x.t.match(/\d+/g) || []).length === 1 && unite(x.t) !== u);
-      if (!v) return { mois: m, ech: 0 };
+      if (!v) return { mois: m, ech: 0, ecrite };
       const d = new Date(minuitLocal(Date.now()));
       d.setDate(d.getDate() + parseInt(/\d+/.exec(v.t)[0], 10));
-      return { mois: m, ech: d.getTime() };
+      return { mois: m, ech: d.getTime(), ecrite };
     };
 
     const LECTEUR = 2;
@@ -6791,6 +6865,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
             if (refuser(trouve, Date.now() - stableDepuis)) return;
 
             if (!passe) vu.echeances = trouve.filter((x) => x.ech > 0).length;
+
+            vu.lu = true;
             return finir(trouve);
           }
         }
@@ -6803,6 +6879,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
           if (exigerPanneau && !vu.panneau) return;
           if (debout && Date.now() - debout > CFG.SUBS_PAGE_SETTLE) {
 
+            vu.lu = vu.panneau;
             return finir([]);
           }
         }
@@ -6822,7 +6899,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       let sondeur = null, limite = null;
 
       const vu = { onglet, voie: 'page', charge: false, noeuds: 0, barre: false, cartes: 0,
-                   logins: 0, liens: 0, texte: '', panneau: false, blanc: false, expire: false };
+                   logins: 0, liens: 0, texte: '', panneau: false, blanc: false, expire: false, lu: false };
       bilan.onglets.push(vu);
       const finir = (logins, garde = garder) => {
         if (sondeur) { clearInterval(sondeur); sondeur = null; }
@@ -6887,7 +6964,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       if (!cible.bouton) return abandon(cible.raison);
       const vu = { onglet, voie: 'bascule', preuve: '', charge: false, noeuds: 0, barre: false,
                    cartes: 0, logins: 0, liens: 0, texte: '', panneau: false, blanc: false,
-                   expire: false };
+                   expire: false, lu: false };
       bilan.onglets.push(vu);
       let sondeur = null, limite = null, delai = null;
       const finir = (logins) => {
@@ -6945,7 +7022,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       running = true;
 
       const premier = !!horodatage();
-      bilan = { onglets: [], fini: 0, bascule: '' };
+      bilan = { onglets: [], fini: 0, bascule: '', revolus: null };
       const trouves = [];
       try {
 
@@ -6956,22 +7033,27 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         }
         let touche = false;
         const servies = new Set();
+        const passes = [];
+        const ecrites = [];
         const verserPasse = (liste) => {
           for (const { login, mois: m } of liste) {
+            if (!passes.includes(login)) passes.push(login);
             touche = subs.noteMonths(login, m, true, true) || touche;
           }
         };
 
         const verserCourant = (onglet) => (liste) => {
           if (!liste.length) return;
-          for (const { login, mois: m, ech } of liste) {
+          for (const { login, mois: m, ech, ecrite } of liste) {
             if (!trouves.includes(login)) trouves.push(login);
             touche = subs.noteMonths(login, m, false, true) || touche;
 
             if (!servies.has(login)) {
               servies.add(login);
               touche = subs.noteSource(login, onglet, true) || touche;
-              touche = subs.noteEcheance(login, ech, true) || touche;
+
+              touche = subs.noteEcheance(login, ech, onglet === 'gifts', true) || touche;
+              if (onglet !== 'gifts' && ecrite) ecrites.push({ login, ...ecrite });
             }
             touche = subs.record(login, true, true) || touche;
           }
@@ -7022,7 +7104,23 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         } finally {
           if (cadre) cadre.remove();
         }
-        if (touche) subs.flush();
+
+        for (const x of ecrites) {
+          if (etiquetteFin && x.etiquette === etiquetteFin) touche = subs.noteEcheance(x.login, x.ms, true, true) || touche;
+        }
+
+        const courantsLus = CFG.SUBS_PAGE_TABS.every((o) => bilan.onglets.some((v) => v.onglet === o && v.lu));
+        bilan.revolus = courantsLus ? 0 : null;
+        if (courantsLus) {
+          for (const login of passes) {
+            if (trouves.includes(login) || !subs.map.get(login)?.sub) continue;
+            touche = subs.record(login, false, true) || touche;
+            touche = subs.noteEcheance(login, 0, false, true) || touche;
+            bilan.revolus += 1;
+          }
+        }
+
+        if (touche) { subs.flush(); scheduleScan(); }
 
         const rienVu = !bilan.onglets.some(o => o.cartes > 0);
         marquer(rienVu ? videsDeSuite() + 1 : 0);
@@ -8156,7 +8254,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       let j = 0;
       for (const x of a) {
         while (j < b.length && b[j][1] < x[0] - COMMUN_MS) j++;
-        for (let k = j; k < b.length && b[k][0] <= x[1] + COMMUN_MS; k++) m.push([Math.min(x[0], b[k][0]), Math.max(x[1], b[k][1])]);
+        for (let k = j; k < b.length && b[k][0] <= x[1] + COMMUN_MS; k++) {
+          m.push([Math.max(x[0], b[k][0]) - COMMUN_MS, Math.min(x[1], b[k][1]) + COMMUN_MS]);
+        }
       }
       return m;
     };
@@ -8236,7 +8336,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       const p1 = pics[0];
       const p2 = pics.find((p) => Math.abs(p.ms - p1.ms) >= 50) || null;
       return { ms: p1.ms, r: p1.r, z: (p1.r - moy) / et, ms2: p2 ? p2.ms : null, r2: p2 ? p2.r : null,
-               secondes: Math.round((fin - debut) / 100) / 10, debut, fin, silences: masques.map(([m0]) => Math.round(m0)) };
+               secondes: Math.round((fin - debut) / 100) / 10, debut, fin,
+               silences: masques.map(([m0, m1]) => [Math.round(m0), Math.round(m1)]) };
     };
 
     const attenduEntre = (ta, tb) => {
@@ -8271,11 +8372,16 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
           connue.sansNouveau += 1;
           continue;
         }
-        const p = connue || (c.ecoute.paires[cle] = { dernier: null, historique: [], sansNouveau: 0, silences: [] });
+        const p = connue || (c.ecoute.paires[cle] = { dernier: null, historique: [], sansNouveau: 0,
+                                                      silences: new Map(), silencesN: 0, silencesMs: 0 });
         p.dernier = { ...res, attendu: attenduEntre(ref, t) };
 
-        for (const t0 of res.silences) if (!p.silences.includes(t0)) p.silences.push(t0);
-        if (p.silences.length > 100) p.silences.splice(0, p.silences.length - 100);
+        for (const [d, f] of res.silences) {
+          const vu = p.silences.get(d);
+          if (vu === undefined) { p.silences.set(d, f); p.silencesN += 1; p.silencesMs += f - d; }
+          else if (f > vu) { p.silences.set(d, f); p.silencesMs += f - vu; }
+        }
+        while (p.silences.size > 100) p.silences.delete(p.silences.keys().next().value);
 
         p.historique.push({ ms: res.ms, r: res.r, z: res.z, ms2: res.ms2, r2: res.r2, attendu: p.dernier.attendu,
                             debut: res.debut, fin: res.fin });
@@ -8327,6 +8433,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         noter(c, t.chaine, `avertissement de contenu à l'écran${TSE_GATE_ENABLED ? ' — levé, comme dans l\'aperçu' : ''}`);
       }
       t.etat = et;
+
+      if (!c.prete && et.lecture === true) marquerPrete(c, 'lecture');
       suivrePub(c, t, !!et.pub);
       if (t.chaine === c.son) tenirSon(t, et);
       if (et.video) tenirQualite(t);
@@ -8665,8 +8773,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
                sansSonNouveau: Object.entries(e.paires).filter(([, p]) => p.sansNouveau)
                  .map(([cle, p]) => `${cle} ${p.sansNouveau}`).join(' · ') || null,
 
-               silencesCommuns: Object.entries(e.paires).filter(([, p]) => p.silences && p.silences.length)
-                 .map(([cle, p]) => `${cle} ${p.silences.length}`).join(' · ') || null };
+               silencesCommuns: Object.entries(e.paires).filter(([, p]) => p.silencesN)
+                 .map(([cle, p]) => `${cle} ${p.silencesN} · ${(p.silencesMs / 1000).toFixed(1)} s`).join(' · ') || null };
     };
 
     const bilan = () => {
@@ -8679,6 +8787,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         origine: c.origine,
 
         arriveeMs: c.arriveeMs,
+
+        prete: c.prete ? `${c.prete} · ${c.preteMs} ms` : null,
         empilement: c.empilement,
         membres: c.membres.length,
 
@@ -8797,9 +8907,17 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       };
     };
 
+    const marquerPrete = (c, comment) => {
+      if (c.prete) return;
+      c.prete = comment;
+      c.preteMs = Date.now() - c.t0;
+      clearTimeout(c.preteT);
+      if (c === courante && auChangement) auChangement();
+    };
     const fermer = (raison = 'api') => {
       const c = courante;
       if (!c) return { fermee: false };
+      clearTimeout(c.preteT);
       arreterCalage(c, 'arrêté : salle fermée');
       derniere = { ...bilan(), ouverte: false, fermeture: raison };
       clearInterval(c.minuteur);
@@ -9012,6 +9130,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         cout: { pas: nouveauCout(), ecoute: nouveauCout() }, longues: null, obsLongues: null,
 
         sorties: 0,
+
+        prete: null, preteMs: null, preteT: null,
       };
       observerTaches(courante);
       window.addEventListener('message', surMessage);
@@ -9019,6 +9139,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       document.addEventListener('keydown', surTouche, true);
       document.addEventListener('visibilitychange', surVisibilite);
       courante.minuteur = setInterval(pas, CFG.SALLE_PAS_MS);
+      const ouverte = courante;
+      ouverte.preteT = setTimeout(() => marquerPrete(ouverte, 'délai'), CFG.SALLE_PRETE_MAX_MS);
       disposerSalle();
 
       verifierEmpilement(boite, empilement);
@@ -9107,6 +9229,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
 
     const CALAGE = Object.freeze({
       NETS: 6, FENETRE: 30, GROUPE_MS: 80, LIEN_MS: 700, EQUILIBRE: 0.25, SEULE_MS: 500,
+
+      DISTINCTE_MS: 200,
       SEUIL_S: 0.15, TENUE_S: 0.4,
 
       RECUL_S: 0.12, AVANCE_S: 0.087, MARGE_S: 2,
@@ -9162,7 +9286,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     };
 
     const PLACE = Object.freeze({ N: 10, RECENTS: 6, ECART_S: 0.8, SEUIL_S: 1.5, ACCORD_S: 2.5,
-                                  APRES_MS: 4_000, LATENCE_MS: 15_000, DECALEE_MS: 20_000 });
+                                  APRES_MS: 4_000, LATENCE_MS: 15_000, DECALEE_MS: 20_000, ENSEMBLE_MS: 10_000 });
     const PLACE_PERDUE = ['rechargement', 'rattrapage', 'ralenti', 'pause', 'reprise'];
 
     const daccord = (dl, db, tol) => dl * db > 0 && Math.abs(db) >= Math.abs(dl) / 2
@@ -9210,7 +9334,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         + `tampon ${t.place.b} → ${f.b}`, f.l);
 
       if (!actif) { t.place = { l: f.l, b: f.b, t: Date.now() }; return; }
-      t.retombee = { dl, avant: t.place, apres: f };
+
+      t.retombee = { dl, avant: t.place, apres: f, t: Date.now() };
     };
 
     const arriereDe = (t) => {
@@ -9261,11 +9386,14 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         grappe = grappes.reduce((a, b) => (premiersDe(b) > premiersDe(a) ? b : a));
         seule = true;
       }
-      const ms = seule ? grappe.reduce((a, b) => (b.n1 > a.n1 ? b : a)).ms : grappe[grappe.length - 1].ms;
+      let ms = seule ? grappe.reduce((a, b) => (b.n1 > a.n1 ? b : a)).ms : grappe[grappe.length - 1].ms;
+
+      const desequilibre = seule && Math.abs(ms) > CALAGE.SEULE_MS && grappe.some((g) => Math.abs(g.ms - ms) >= CALAGE.DISTINCTE_MS);
+      if (desequilibre) { seule = false; ms = grappe[grappe.length - 1].ms; }
       if (seule && Math.abs(ms) > CALAGE.SEULE_MS) {
         return { refus: `une source seule, à ${ms} ms — un écho, peut-être : rien ne bouge`, n: nets.length };
       }
-      return { ms, voix: grappe.map((g) => ({ ms: g.ms, n1: g.n1 })), n: nets.length, seule };
+      return { ms, voix: grappe.map((g) => ({ ms: g.ms, n1: g.n1 })), n: nets.length, seule, desequilibre };
     };
 
     const accorde = (avant, v) => !v.refus && !!avant && !avant.refus && Math.abs(avant.ms - v.ms) <= CALAGE.GROUPE_MS;
@@ -9277,7 +9405,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
 
     const texteMesure = (v, nom) => (v.refus ? `en attente : ${v.refus}`
       : `${Math.abs(v.ms) < CALAGE.SEUIL_S * 1000 ? 'avec la référence' : `${v.ms > 0 ? 'en avance' : 'en retard'} de ${secondes(v.ms / 1000)}`}`
-        + ` (${signeMs(v.ms)} ms) · voix ${v.voix.map((g) => `${signeMs(g.ms)} (${g.n1})`).join(' · ')} · ${v.n} calculs nets`);
+        + ` (${signeMs(v.ms)} ms${v.desequilibre ? ', un salon déséquilibré' : ''}) · voix ${v.voix.map((g) => `${signeMs(g.ms)} (${g.n1})`).join(' · ')} · ${v.n} calculs nets`);
     const journaliser = (c, k, texte) => {
       k.journal.push({ t: Date.now(), texte });
       if (k.journal.length > 60) k.journal.shift();
@@ -9328,39 +9456,90 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       journaliser(c, k, texte);
     };
 
-    const reprendrePlace = (c, k, t, maintenant) => {
-      const x = t.retombee;
-      t.retombee = null;
+    const marges = (k, t, maintenant) => {
       const n = t.chaine;
       k.reprises[n] = (k.reprises[n] || []).filter((q) => maintenant - q < CALAGE.MAX_MS * k.echelle);
-      const derriere = x.dl > 0;
-      const s = r3(derriere ? x.dl + CALAGE.AVANCE_S : -x.dl - CALAGE.RECUL_S);
-      const quoi = `${n} : retombée ${derriere ? 'derrière' : 'devant'} sa place de ${secondes(x.dl)} — latence ${x.avant.l} → ${x.apres.l} s,`
-        + ` tampon ${x.avant.b} → ${x.apres.b} s`;
-      let refus = null;
-      if (k.reprises[n].length >= CALAGE.MAX_N) refus = `${CALAGE.MAX_N} reprises en ${Math.round((CALAGE.MAX_MS * k.echelle) / 60_000)} min`;
-      else if (s > CALAGE.REPRISE_MAX_S) refus = `plus de ${CALAGE.REPRISE_MAX_S} s`;
-      else if (derriere) {
-        const b = tamponDe(t);
-        if (b === null || b - s < CALAGE.MARGE_S) refus = b === null ? 'son tampon est inconnu' : `${b} s de tampon`;
-      } else {
-        const a = arriereDe(t);
-        if (!peutReculer(t)) refus = t.retientPas ? 'son lecteur reprend chaque recul' : 'toujours en faible latence';
-        else if (a === null || a - s < CALAGE.MARGE_S) refus = a === null ? 'ce qu\'elle garde derrière est inconnu' : `${a} s gardées derrière`;
+      if (k.reprises[n].length >= CALAGE.MAX_N) {
+        const r = `${CALAGE.MAX_N} reprises en ${Math.round((CALAGE.MAX_MS * k.echelle) / 60_000)} min`;
+        return { av: 0, re: 0, pourAv: r, pourRe: r };
       }
-      if (refus) {
-        t.place = { l: x.apres.l, b: x.apres.b, t: maintenant };
-        journaliser(c, k, `${quoi} : rien à faire (${refus}) — c'est sa place désormais`);
+
+      const b = tamponDe(t), a = arriereDe(t);
+      const ordreAv = b === null ? 0 : Math.min(b - CALAGE.MARGE_S, CALAGE.REPRISE_MAX_S);
+      const ordreRe = !peutReculer(t) || a === null ? 0 : Math.min(a - CALAGE.MARGE_S, CALAGE.REPRISE_MAX_S);
+      const plus = `plus de ${CALAGE.REPRISE_MAX_S} s`;
+      return {
+        av: ordreAv > CALAGE.AVANCE_S ? r3(ordreAv - CALAGE.AVANCE_S) : 0,
+        re: ordreRe > 0 ? r3(ordreRe + CALAGE.RECUL_S) : 0,
+        pourAv: b === null ? 'son tampon est inconnu' : ordreAv === CALAGE.REPRISE_MAX_S ? plus : `${b} s de tampon`,
+        pourRe: t.retientPas ? 'son lecteur reprend chaque recul' : t.faibleLatence === true ? 'toujours en faible latence'
+          : a === null ? 'ce qu\'elle garde derrière est inconnu' : ordreRe === CALAGE.REPRISE_MAX_S ? plus : `${a} s gardées derrière`,
+      };
+    };
+
+    const enChute = (t) => {
+      const x = t.serie[t.serie.length - 1];
+      if (!t.place || t.retombee || t.enPub || !x || x.l === null || x.lIncoherente || x.b === null) return false;
+      const dl = x.l - t.place.l;
+      return Math.abs(dl) >= PLACE.SEUIL_S && daccord(dl, x.b - t.place.b, PLACE.ACCORD_S);
+    };
+    const reprendrePlaces = (c, k, maintenant) => {
+      const tombees = c.tuiles.filter((t) => t.retombee && !t.enPub);
+      if (!tombees.length) return;
+
+      const ici = c.tuiles.filter((t) => !t.enPub);
+      if (ici.some(enChute) && maintenant - Math.min(...tombees.map((t) => t.retombee.t)) < PLACE.ENSEMBLE_MS) return;
+
+      const plan = ici.map((t) => ({ t, x: t.retombee, dl: t.retombee ? t.retombee.dl : 0, ...marges(k, t, maintenant) }));
+      const bas = plan.reduce((p, q) => (q.dl - q.av > p.dl - p.av ? q : p));
+      const haut = plan.reduce((p, q) => (q.dl + q.re < p.dl + p.re ? q : p));
+      const lo = r3(bas.dl - bas.av), hi = r3(haut.dl + haut.re);
+      for (const t of tombees) t.retombee = null;
+      const quoi = (p) => `${p.t.chaine} : retombée ${p.dl > 0 ? 'derrière' : 'devant'} sa place de ${secondes(p.dl)}`
+        + ` — latence ${p.x.avant.l} → ${p.x.apres.l} s, tampon ${p.x.avant.b} → ${p.x.apres.b} s`;
+      const garder = (p) => { p.t.place = { l: p.x.apres.l, b: p.x.apres.b, t: maintenant }; };
+      if (lo > hi) {
+        const pourquoi = `pas de point commun — ${bas.t.chaine} : ${bas.pourAv} ; ${haut.t.chaine} : ${haut.pourRe}`;
+        for (const p of plan) {
+          if (!p.x) continue;
+          garder(p);
+          journaliser(c, k, `${quoi(p)} : rien à faire (${pourquoi}) — c'est sa place désormais`);
+        }
         return;
       }
-      envoyer(t, `essai-${derriere ? 'avance' : 'recul'}`, { duree: s });
+      const L = lo > 0 ? lo : hi < 0 ? hi : 0;
 
-      oublierPlace(t, maintenant + PLACE.APRES_MS);
-      k.reprises[n].push(maintenant);
-      k.deplacements[n] = r3((k.deplacements[n] || 0) + (derriere ? -s : s));
-      delete k.dits[n];
-      signaler(c, n, 'place reprise');
-      journaliser(c, k, `${quoi} → elle reprend sa place : ${derriere ? 'avance' : 'recule'} de ${s} s`);
+      const ancre = L > 0 ? bas : L < 0 ? haut : null;
+      const ou = `${secondes(L)} ${L > 0 ? 'derrière' : 'devant'} sa place`;
+      const bougent = plan.filter((p) => Math.abs(r3(p.dl - L)) >= CALAGE.SEUIL_S);
+      for (const p of [...plan].sort((u, v) => (v === ancre) - (u === ancre))) {
+        const n = p.t.chaine;
+
+        const m = r3(p.dl - L);
+        if (!bougent.includes(p)) {
+          if (!p.x) continue;
+          garder(p);
+          journaliser(c, k, p === ancre
+            ? `${quoi(p)} : rien à faire (${L > 0 ? p.pourAv : p.pourRe}) — c'est sa place désormais${bougent.length ? ', les autres l\'y rejoignent' : ''}`
+            : `${quoi(p)} : déjà là où ${ancre.t.chaine} la veut, ${ou} — c'est sa place désormais`);
+          continue;
+        }
+        const avance = m > 0;
+        const s = avance ? r3(m + CALAGE.AVANCE_S) : Math.max(0.05, r3(-m - CALAGE.RECUL_S));
+        envoyer(p.t, `essai-${avance ? 'avance' : 'recul'}`, { duree: s });
+
+        oublierPlace(p.t, maintenant + PLACE.APRES_MS);
+        k.reprises[n].push(maintenant);
+        k.deplacements[n] = r3((k.deplacements[n] || 0) + (avance ? -s : s));
+        delete k.dits[n];
+        signaler(c, n, 'place reprise');
+        const geste = `${avance ? 'avance' : 'recule'} de ${s} s`;
+        journaliser(c, k, !ancre ? `${quoi(p)} → elle reprend sa place : ${geste}`
+          : p === ancre ? `${quoi(p)} → elle n'en reprend que ${secondes(m)} (${L > 0 ? p.pourAv : p.pourRe}) : ${geste} — ${ou}`
+            + (bougent.length > 1 ? ', où les autres la rejoignent' : '')
+            : p.x ? `${quoi(p)} → elle reprend sa place à ${secondes(L)} près, avec ${ancre.t.chaine} : ${geste}`
+              : `${n} rejoint ${ancre.t.chaine}, ${ou} comme elle : ${geste}`);
+      }
     };
 
     const ecartDe = (a, b) => {
@@ -9434,7 +9613,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         journaliser(c, k, `${t.chaine} : faible latence retirée — son lecteur défait tout recul`);
       }
 
-      for (const t of c.tuiles) if (t.retombee && !t.enPub) reprendrePlace(c, k, t, maintenant);
+      reprendrePlaces(c, k, maintenant);
       const ref = tuileDe(c, c.ecoute.ref);
 
       if (ref && ref.enPub) {
@@ -9612,30 +9791,28 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       ouvrirDepuisBarre, reprendre,
 
       membres: () => (courante ? [...courante.membres] : null),
+      prete: () => !!(courante && courante.prete),
       surChangement: (fn) => { auChangement = fn; },
     };
   })();
 
   const noeudsSalle = (() => {
-    const TRIANGLE = '<svg class="tse-icone-lecture" viewBox="0 0 8 10" aria-hidden="true"><path d="M0 0v10l8-5z"/></svg>';
 
-    const CARRE = '<svg class="tse-icone-arret" viewBox="0 0 8 8" aria-hidden="true"><path d="M0 0h8v8H0z"/></svg>';
     const parCle = new Map();
-    const choixDe = new Map();
-    const parCarte = new Map();
     let voulues = new Map();
-    let seules = new Map();
 
     const couches = new Map();
     let veille = null;
     const veillees = new Set();
     let incomplets = [];
     let clics = 0;
-    let clicsPastilles = 0;
     let tousOuverts = 0;
+    let naissances = 0;
+
+    const carteVers = new Map();
+    let proche = null;
 
     const cleDe = (membres) => [...membres].sort().join(' ');
-    const liste = (ordre) => (ordre ? ordre.split(' ') : null);
     const listeNoms = (noms) => {
       try { return new Intl.ListFormat(S.locale, { type: 'conjunction' }).format(noms); }
       catch { return noms.join(', '); }
@@ -9646,43 +9823,353 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       const v = String(oui);
       if (el.getAttribute('aria-pressed') !== v) el.setAttribute('aria-pressed', v);
     };
+    const poserStyle = (el, prop, v) => { if (el.style.getPropertyValue(prop) !== v) el.style.setProperty(prop, v); };
+    const elt = (tag, classe) => { const x = document.createElement(tag); x.className = classe; return x; };
+    const basculer = (el, classe, oui) => el.classList.toggle(classe, !!oui);
+    const survole = (st) => [st.n, st.zone, st.bulle].some((x) => x && x.matches(':hover'));
 
-    const marquer = () => {
-      const ouverte = salle.membres();
-      const cle = ouverte ? cleDe(ouverte) : null;
-      for (const [k, n] of parCle) {
-        const tous = liste(n.dataset.tseTous);
-        const cleTous = tous ? cleDe(tous) : null;
-        enfoncer(n, cle !== null && (k === cle || cleTous === cle));
-        const c = choixDe.get(k);
-        if (c) {
-          enfoncer(c.suivis, cle !== null && k === cle);
-          enfoncer(c.tous, cle !== null && cleTous === cle);
-        }
+    const TSE_VISAGES_QUERY = 'query TseVisages($logins: [String!]) {'
+      + '  users(logins: $logins) { login displayName profileImageURL(width: 70) }'
+      + '}';
+    const visages = new Map();
+    const aDemander = new Set();
+    const enVol = new Set();
+    let lotVisages = null;
+    let pauseVisages = 0;
+    let lotsVisages = 0;
+    const avatarDe = (login) => cache.get(login)?.avatar || visages.get(login)?.url || null;
+    const nomDe = (login) => cache.get(login)?.name || visages.get(login)?.nom || login;
+    const envoyerVisages = async () => {
+      lotVisages = null;
+      const lot = [...aDemander].slice(0, 50);
+      for (const l of lot) { aDemander.delete(l); enVol.add(l); }
+      if (!lot.length) return;
+      lotsVisages += 1;
+      const res = await post([{ operationName: 'TseVisages', variables: { logins: lot }, query: TSE_VISAGES_QUERY }]);
+      for (const l of lot) enVol.delete(l);
+      const users = isResultsUnusable(res) ? null : res[0]?.data?.users;
+      if (!Array.isArray(users)) {
+        pauseVisages = Date.now() + 60_000;
+        for (const l of lot) aDemander.add(l);
+        return;
       }
-      for (const p of parCarte.values()) {
-        const membres = liste(p.dataset.tseNoeud);
-        enfoncer(p, cle !== null && !!membres && cleDe(membres) === cle);
+      for (const u of users) {
+        const l = typeof u?.login === 'string' ? u.login.toLowerCase() : null;
+        if (!l || !lot.includes(l)) continue;
+        visages.set(l, { url: typeof u.profileImageURL === 'string' && /^https:\/\//.test(u.profileImageURL) ? u.profileImageURL : null,
+                         nom: typeof u.displayName === 'string' && u.displayName.trim() ? u.displayName.trim() : null });
+      }
+
+      for (const l of lot) if (!visages.has(l)) visages.set(l, { url: null, nom: null });
+      for (const st of parCle.values()) poserVisages(st);
+    };
+    const demanderVisages = () => {
+      for (const st of parCle.values()) {
+        for (const l of st.ajoutes) if (!avatarDe(l) && !visages.has(l) && !enVol.has(l)) aDemander.add(l);
+      }
+      if (!aDemander.size || lotVisages || Date.now() < Math.max(pauseVisages, gqlCooldownUntil)) return;
+      lotVisages = setTimeout(envoyerVisages, 0);
+    };
+
+    const teinte = (login) => {
+      let h = 0;
+      for (const ch of login) h = (h * 31 + ch.codePointAt(0)) % 360;
+      return `hsl(${h} 45% 38%)`;
+    };
+
+    const creerVisage = (login, i) => {
+      const v = elt('span', 'tse-noeud__visage');
+      v.dataset.tseLogin = login;
+      v.style.setProperty('--tse-visage-fond', teinte(login));
+      v.style.setProperty('--tse-dv', `${180 + i * 40}ms`);
+      v.appendChild(document.createTextNode(''));
+      const img = document.createElement('img');
+      img.alt = '';
+      img.decoding = 'async';
+      img.draggable = false;
+      img.hidden = true;
+      img.addEventListener('load', () => { img.hidden = false; });
+      img.addEventListener('error', () => { img.hidden = true; });
+      v.appendChild(img);
+      return v;
+    };
+    const poserVisages = (st) => {
+      if (!st.bulle) return;
+      for (const v of st.bulle.querySelectorAll('.tse-noeud__visage')) {
+        const l = v.dataset.tseLogin;
+        const initiale = [...nomDe(l)][0]?.toLocaleUpperCase(S.locale) || '';
+        if (v.firstChild.nodeValue !== initiale) v.firstChild.nodeValue = initiale;
+        const url = avatarDe(l);
+        const img = v.querySelector('img');
+        if (url && img.getAttribute('src') !== url) img.src = url;
       }
     };
 
-    const agir = (membres, versTous) => {
+    const garnirVisages = (st) => {
+      const cle = st.ajoutes.join(' ');
+      if (st.bulle.dataset.tseVisages === cle) { poserVisages(st); return; }
+      st.bulle.dataset.tseVisages = cle;
+      for (const v of [...st.bulle.querySelectorAll('.tse-noeud__visage')]) v.remove();
+      st.ajoutes.forEach((l, i) => st.bulle.appendChild(creerVisage(l, i)));
+      st.largBulle = 0;
+      poserVisages(st);
+    };
+
+    const peindre = (st) => {
+      const { n, bulle, zone } = st;
       const ouverte = salle.membres();
-      if (ouverte && cleDe(ouverte) === cleDe(membres)) { salle.fermer('noeud'); return; }
+      const o = ouverte ? cleDe(ouverte) : null;
+      const salleBarre = o !== null && o === cleDe(st.membres);
+      const salleTous = o !== null && !!st.tous && o === cleDe(st.tous);
+      const sienne = salleBarre || salleTous;
+      const charge = st.navigue || (sienne && !salle.prete());
+      const tous = st.intent && st.versTous;
+      const vise = st.intent ? (tous ? salleTous : salleBarre) : sienne;
+
+      if (!charge) st.montre = { arret: vise, salle: sienne };
+      basculer(n, 'tse-noeud--eveil', st.prox || st.dedans || st.focus || st.intent || st.indice === 'eveil' || sienne || charge);
+      basculer(n, 'tse-noeud--intention', st.intent);
+      basculer(n, 'tse-noeud--tous', tous);
+      basculer(n, 'tse-noeud--arret', st.montre.arret);
+      basculer(n, 'tse-noeud--salle', st.montre.salle);
+      basculer(n, 'tse-noeud--charge', charge);
+      basculer(n, 'tse-noeud--repli', st.repli);
+      basculer(n, 'tse-noeud--choix', !!bulle);
+      basculer(n, 'tse-noeud--reduit', sidebarCollapsed);
+      enfoncer(n, vise);
+      const nom = tous ? st.nomTous : st.nom;
+      if (n.getAttribute('aria-label') !== nom) n.setAttribute('aria-label', nom);
+      if (bulle) {
+        basculer(bulle, 'tse-noeud__bulle--sortie', st.intent);
+        basculer(bulle, 'tse-noeud__bulle--soudee', tous);
+        const ti = st.intent ? 0 : -1;
+        if (bulle.tabIndex !== ti) bulle.tabIndex = ti;
+        enfoncer(bulle, salleTous);
+      }
+      basculer(zone, 'tse-noeud__zone--active', st.intent || st.retenu);
+
+      if (st.chargeAvant && !charge && sienne) rebondir(st);
+      st.chargeAvant = charge;
+    };
+    const rebondir = (st) => {
+      st.n.classList.remove('tse-noeud--pop');
+      void st.n.offsetWidth;
+      st.n.classList.add('tse-noeud--pop');
+      clearTimeout(st.popT);
+      st.popT = setTimeout(() => st.n.classList.remove('tse-noeud--pop'), 300);
+    };
+    const marquer = () => { for (const st of parCle.values()) peindre(st); };
+
+    const mesurer = (st) => {
+      const a = st.etqA.offsetWidth;
+      if (!a) return false;
+      st.largA = 14.5 + a;
+      st.largB = st.etqB ? 14.5 + st.etqB.offsetWidth : st.largA;
+      if (st.bulle && !st.bulle.classList.contains('tse-noeud__bulle--soudee')) st.largBulle = st.bulle.offsetWidth;
+      for (const x of [st.n, st.bulle]) {
+        if (!x) continue;
+        poserStyle(x, '--tse-pilule-a', `${st.largA}px`);
+        poserStyle(x, '--tse-pilule-b', `${st.largB}px`);
+      }
+      st.coupe = st.bulle ? st.largA + 2 : Infinity;
+      const larg = st.bulle ? Math.max(st.largA + 4, st.largB) + (st.largBulle || 0) : st.largA;
+      poserStyle(st.zone, 'width', `${Math.ceil(larg)}px`);
+      return true;
+    };
+
+    const viser = (st, v) => {
+      const peut = !!v && !sidebarCollapsed && options.get('salle') && st.n.isConnected && mesurer(st);
+      if (!peut && st.intent) {
+        st.repli = true;
+        clearTimeout(st.repliT);
+        st.repliT = setTimeout(() => { st.repli = false; peindre(st); }, 420);
+      }
+      st.intent = peut;
+      if (!peut) { st.versTous = false; desarmer(st); }
+      peindre(st);
+    };
+    const cibler = (st, tous) => {
+      const v = !!tous && !!st.bulle && st.intent;
+      if (st.versTous === v) return;
+      st.versTous = v;
+      peindre(st);
+    };
+
+    const entrer = (st) => {
+      clearTimeout(st.grace);
+      st.indice = null;
+      st.dedans = true;
+      peindre(st);
+      armer(st);
+    };
+
+    const armer = (st) => {
+      if (st.intent || st.dwell) return;
+      st.dwell = setTimeout(() => { st.dwell = null; viser(st, true); }, CFG.NOEUD_INTENTION_MS);
+    };
+    const desarmer = (st) => { clearTimeout(st.dwell); st.dwell = null; };
+    const sortir = (st) => {
+      desarmer(st);
+      clearTimeout(st.grace);
+      st.grace = setTimeout(() => {
+        if (survole(st)) return;
+        st.dedans = false;
+        if (st.focus) peindre(st); else viser(st, false);
+      }, CFG.NOEUD_GRACE_MS);
+    };
+    const appuyer = (st, versBulle) => {
+      const el = versBulle && st.bulle ? st.bulle : st.n;
+      const classe = el === st.n ? 'tse-noeud--appui' : 'tse-noeud__bulle--appui';
+      el.classList.add(classe);
+      setTimeout(() => el.classList.remove(classe), 80);
+    };
+
+    const lacher = (e, el) => { if (e.detail > 0) el.blur(); };
+
+    const cliquer = (st, versTous, clavier = false) => {
+      clics += 1;
+      if (st.navigue) return;
+      const membres = versTous ? st.tous : st.membres;
+      if (!membres || membres.length < 2) return;
+      const ouverte = salle.membres();
+      const o = ouverte ? cleDe(ouverte) : null;
+      const refermer = o !== null && (st.intent || versTous
+        ? o === cleDe(membres)
+        : (o === cleDe(st.membres) || (!!st.tous && o === cleDe(st.tous))));
+      if (!clavier) viser(st, false);
+      if (refermer) { salle.fermer('noeud'); return; }
       const r = salle.ouvrirDepuisBarre(membres);
       if (versTous && !(r && r.erreur)) tousOuverts += 1;
+      if (r && r.redirigee) {
+        st.navigue = true;
+        clearTimeout(st.navigueT);
+        st.navigueT = setTimeout(() => { st.navigue = false; peindre(st); }, 10_000);
+      }
+      peindre(st);
+    };
+    const perdre = (st, e) => {
+      if (e.relatedTarget && (e.relatedTarget === st.n || e.relatedTarget === st.bulle)) return;
+      st.focus = false;
+      if (survole(st)) peindre(st); else viser(st, false);
     };
 
-    const ordonner = (b, membres, tous) => {
+    const creerNoeud = (st) => {
+      const n = elt('button', 'tse-noeud');
+      n.type = 'button';
+      n.setAttribute('aria-pressed', 'false');
+      const corps = elt('span', 'tse-noeud__corps');
+      const g = elt('span', 'tse-noeud__symbole');
+      g.setAttribute('aria-hidden', 'true');
+      const a = elt('span', 'tse-noeud__etiquette tse-noeud__etiquette--barre');
+      corps.append(g, a);
+      n.append(corps, elt('span', 'tse-noeud__anneau'));
+      n.addEventListener('pointerenter', () => entrer(st));
+      n.addEventListener('pointerleave', () => sortir(st));
+      n.addEventListener('pointermove', () => armer(st));
+      n.addEventListener('pointerdown', () => appuyer(st, false));
+
+      n.addEventListener('focus', () => {
+        if (!n.matches(':focus-visible')) return;
+        st.focus = true;
+        st.indice = null;
+        viser(st, true);
+        cibler(st, false);
+      });
+      n.addEventListener('blur', (e) => perdre(st, e));
+      n.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        lacher(e, n);
+        cliquer(st, e.shiftKey && !!st.tous, e.detail === 0);
+      });
+      Object.assign(st, { n, corps, etqA: a });
+    };
+
+    const creerBulle = (st) => {
+      const b = elt('button', 'tse-noeud__bulle');
+      b.type = 'button';
+      b.tabIndex = -1;
+      b.setAttribute('aria-pressed', 'false');
+      const plus = elt('span', 'tse-noeud__plus');
+      plus.textContent = '+';
+      plus.setAttribute('aria-hidden', 'true');
+      b.appendChild(plus);
+      b.addEventListener('focus', () => {
+        st.focus = true;
+        if (!st.intent) viser(st, true);
+        cibler(st, true);
+      });
+      b.addEventListener('blur', (e) => perdre(st, e));
+      b.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        lacher(e, b);
+        cliquer(st, true, e.detail === 0);
+      });
+      return b;
+    };
+
+    const creerZone = (st) => {
+      const z = elt('div', 'tse-noeud__zone');
+      z.setAttribute('aria-hidden', 'true');
+      const cote = (e) => !!st.bulle && e.clientX - z.getBoundingClientRect().left >= st.coupe;
+      z.addEventListener('pointerenter', () => entrer(st));
+      z.addEventListener('pointerleave', () => { st.retenu = false; sortir(st); peindre(st); });
+      z.addEventListener('pointermove', (e) => { if (st.intent) cibler(st, cote(e)); });
+      z.addEventListener('pointerdown', (e) => appuyer(st, cote(e)));
+      z.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        st.retenu = true;
+        cliquer(st, (e.shiftKey && !!st.tous) || cote(e));
+      });
+      st.zone = z;
+    };
+    const nouvelEtat = (cle) => {
+      const st = { cle, membres: [], tous: null, ajoutes: [], nom: '', nomTous: '', bulle: null, etqB: null,
+                   prox: false, dedans: false, focus: false, intent: false, versTous: false, retenu: false,
+                   repli: false, navigue: false, indice: null, chargeAvant: false, montre: { arret: false, salle: false },
+                   largA: 0, largB: 0, largBulle: 0, coupe: Infinity };
+      creerNoeud(st);
+      creerZone(st);
+      return st;
+    };
+    const detruire = (st) => {
+      for (const t of [st.dwell, st.grace, st.repliT, st.popT, st.navigueT, st.naissanceT, ...(st.indiceT || [])]) clearTimeout(t);
+      for (const x of [st.n, st.bulle, st.zone]) if (x) x.remove();
+    };
+
+    const garnir = (st, { membres, tous, suivie }) => {
+      st.membres = membres;
+      st.tous = tous || null;
+      st.ajoutes = tous ? tous.filter((l) => !membres.includes(l)) : [];
+      ecrire(st.etqA, tous && suivie ? S.uiNoeudSuivis(membres.length) : S.uiNoeudRegarder(membres.length));
       const ordre = membres.join(' ');
       const ordreTous = tous ? tous.join(' ') : '';
-      if (b.dataset.tseNoeud === ordre && (b.dataset.tseTous || '') === ordreTous) return;
-      b.dataset.tseNoeud = ordre;
-      if (ordreTous) b.dataset.tseTous = ordreTous; else delete b.dataset.tseTous;
-      const nom = S.uiNoeudAria(listeNoms(membres));
-      b.setAttribute('aria-label', nom);
-      b.dataset.tseTitre = tous ? `${nom}\n${S.uiNoeudMaj(tous.length)}` : nom;
-      b.classList.toggle('tse-noeud--choix', !!tous);
+      if (st.n.dataset.tseNoeud !== ordre) st.n.dataset.tseNoeud = ordre;
+      if ((st.n.dataset.tseTous || '') !== ordreTous) {
+        if (ordreTous) st.n.dataset.tseTous = ordreTous; else delete st.n.dataset.tseTous;
+      }
+      st.nom = S.uiNoeudAria(listeNoms(membres));
+      st.nomTous = tous ? S.uiNoeudAria(listeNoms(tous)) : st.nom;
+      st.n.dataset.tseTitre = tous ? `${st.nom}\n${S.uiNoeudMaj(tous.length)}` : st.nom;
+
+      if (tous && !st.bulle) {
+        st.bulle = creerBulle(st);
+        st.etqB = elt('span', 'tse-noeud__etiquette tse-noeud__etiquette--tous');
+        st.corps.appendChild(st.etqB);
+      } else if (!tous && st.bulle) {
+        st.bulle.remove();
+        st.etqB.remove();
+        st.bulle = null;
+        st.etqB = null;
+        st.versTous = false;
+      }
+      if (st.bulle) {
+        ecrire(st.etqB, S.uiNoeudTous(tous.length));
+        if (st.bulle.getAttribute('aria-label') !== st.nomTous) st.bulle.setAttribute('aria-label', st.nomTous);
+        garnirVisages(st);
+      }
     };
 
     const titrer = (el) => {
@@ -9690,114 +10177,19 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       if (t) { if (el.title !== t) el.title = t; }
       else if (el.hasAttribute('title')) el.removeAttribute('title');
     };
-    const symbole = () => {
-      const s = document.createElement('span');
-      s.className = 'tse-noeud__symbole';
-      s.append(noeudStatique(TRIANGLE), noeudStatique(CARRE));
-      return s;
-    };
 
-    const lacher = (e, el) => { if (e.detail > 0) el.blur(); };
-
-    const creer = (cle, membres) => {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'tse-noeud';
-      b.setAttribute('aria-pressed', 'false');
-      const etiquette = document.createElement('span');
-      etiquette.className = 'tse-noeud__etiquette';
-      etiquette.textContent = S.uiNoeudRegarder(membres.length);
-      b.append(symbole(), etiquette);
-      b.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        lacher(e, b);
-        clics += 1;
-        const tous = liste(b.dataset.tseTous);
-        if (e.shiftKey && tous) { agir(tous, true); return; }
-        const ouverte = salle.membres();
-        const o = ouverte ? cleDe(ouverte) : null;
-        if (o !== null && (o === cle || (tous && o === cleDe(tous)))) salle.fermer('noeud');
-        else salle.ouvrirDepuisBarre(liste(b.dataset.tseNoeud));
+    const LUM_NOIR = 0.00445;
+    const encreSur = (couleur) => {
+      const m = /^rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)/.exec(couleur || '');
+      if (!m) return '#0e0e10';
+      const [r, g, b] = m.slice(1, 4).map((x) => {
+        const c = Math.min(Number(x), 255) / 255;
+        return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
       });
-      return b;
+      const l = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+      return (l + 0.05) / (LUM_NOIR + 0.05) >= 1.05 / (l + 0.05) ? '#0e0e10' : '#ffffff';
     };
 
-    const creerChoix = (cle) => {
-      const boite = document.createElement('div');
-      boite.className = 'tse-noeud__choix';
-      const option = (classe, versTous) => {
-        const o = document.createElement('button');
-        o.type = 'button';
-        o.className = `tse-noeud__option ${classe}`;
-        o.setAttribute('aria-pressed', 'false');
-
-        const texte = document.createElement('span');
-        texte.className = 'tse-noeud__texte';
-        o.append(noeudStatique(TRIANGLE), noeudStatique(CARRE), texte);
-        o.addEventListener('click', (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          lacher(e, o);
-          clics += 1;
-          const n = parCle.get(cle);
-          const membres = n ? liste(versTous ? n.dataset.tseTous : n.dataset.tseNoeud) : null;
-          if (membres) agir(membres, versTous);
-        });
-        return o;
-      };
-      const suivis = option('tse-noeud__option--barre', false);
-      const tous = option('tse-noeud__option--tous', true);
-      boite.append(suivis, tous);
-      return { boite, suivis, tous };
-    };
-
-    const garnirChoix = (c, membres, tous, suivie) => {
-      ecrire(c.suivis.querySelector('.tse-noeud__texte'),
-             suivie ? S.uiNoeudSuivis(membres.length) : S.uiNoeudRegarder(membres.length));
-      ecrire(c.tous.querySelector('.tse-noeud__texte'), S.uiNoeudTous(tous.length));
-      const a = S.uiNoeudAria(listeNoms(membres));
-      const t = `${S.uiNoeudAria(listeNoms(tous))}\n${S.uiNoeudMaj(tous.length)}`;
-      if (c.suivis.title !== a) c.suivis.title = a;
-      if (c.tous.title !== t) c.tous.title = t;
-    };
-
-    const creerPastille = () => {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'tse-pastille-salle';
-      b.setAttribute('aria-pressed', 'false');
-      const etiquette = document.createElement('span');
-      etiquette.className = 'tse-pastille-salle__etiquette';
-      b.append(symbole(), etiquette);
-      b.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        lacher(e, b);
-        clicsPastilles += 1;
-        const membres = liste(b.dataset.tseNoeud);
-        if (membres) agir(membres);
-      });
-      return b;
-    };
-    const garnirPastille = (p, membres) => {
-      const ordre = membres.join(' ');
-      if (p.dataset.tseNoeud === ordre) return;
-      p.dataset.tseNoeud = ordre;
-      const nom = S.uiNoeudAria(listeNoms(membres));
-      p.setAttribute('aria-label', nom);
-
-      p.dataset.tseTitre = nom;
-      const etiquette = p.querySelector('.tse-pastille-salle__etiquette');
-      ecrire(etiquette, S.uiNoeudRegarder(membres.length));
-      etiquette.title = nom;
-    };
-    const poserStyle = (el, prop, v) => { if (el.style.getPropertyValue(prop) !== v) el.style.setProperty(prop, v); };
-
-    const barreGauche = () => {
-      const nav = document.querySelector(DOM.sidebarRoot);
-      return nav ? nav.getBoundingClientRect().left : 0;
-    };
     const placer = () => {
 
       const origines = new Map();
@@ -9808,43 +10200,28 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         return origines.get(couche);
       };
       for (const [cle, { barre }] of voulues) {
-        const n = parCle.get(cle);
+        const st = parCle.get(cle);
 
-        if (!n || !barre.every((c) => c.isConnected)) continue;
-        const origine = origineDe(n);
+        if (!st || !barre.every((c) => c.isConnected)) continue;
+        const origine = origineDe(st.n);
         if (!origine) continue;
         const haut = barre[0].getBoundingClientRect();
         const bas = barre[barre.length - 1].getBoundingClientRect();
 
         const couleur = getComputedStyle(barre[0], '::before').backgroundColor;
+        const encre = encreSur(couleur);
         const milieu = `${Math.round((haut.top + bas.bottom) / 2 - origine.top)}px`;
-        poserStyle(n, 'top', milieu);
-
-        const bord = barreGauche();
-        const gauche = Math.round(Math.max(haut.left + 1.5 - n.offsetWidth / 2, bord) - origine.left);
-        poserStyle(n, 'left', `${gauche}px`);
-        poserStyle(n, '--tse-noeud-couleur', couleur);
-        n.classList.toggle('tse-noeud--reduit', sidebarCollapsed);
-        titrer(n);
-
-        const c = choixDe.get(cle);
-        if (c) {
-          poserStyle(c.boite, 'top', milieu);
-          poserStyle(c.boite, 'left', `${gauche + n.offsetWidth}px`);
-          poserStyle(c.boite, '--tse-noeud-couleur', couleur);
+        const gauche = `${Math.round(haut.left - origine.left)}px`;
+        for (const x of [st.n, st.bulle, st.zone]) {
+          if (!x) continue;
+          poserStyle(x, 'top', milieu);
+          if (x === st.bulle) poserStyle(x, '--tse-x', gauche); else poserStyle(x, 'left', gauche);
+          if (x === st.zone) continue;
+          poserStyle(x, '--tse-noeud-couleur', couleur);
+          poserStyle(x, '--tse-noeud-encre', encre);
         }
-      }
-
-      for (const [login, { carte }] of seules) {
-        const p = parCarte.get(login);
-        const avatar = p && carte.isConnected ? avatarOf(carte) : null;
-        const origine = avatar ? origineDe(p) : null;
-        if (!origine) continue;
-        const r = avatar.getBoundingClientRect();
-        poserStyle(p, 'left', `${Math.round(r.right - 5 - origine.left)}px`);
-        poserStyle(p, 'top', `${Math.round(r.bottom - 5 - origine.top)}px`);
-        p.classList.toggle('tse-pastille-salle--reduit', sidebarCollapsed);
-        titrer(p);
+        titrer(st.n);
+        peindre(st);
       }
     };
     const suivre = (sections) => {
@@ -9874,72 +10251,143 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       return couche;
     };
 
-    const maj = ({ barres = [], seules: cartesSeules = [], classementIncomplet = [] } = {}) => {
+    const naitre = (nes) => {
+      const tries = nes.filter((st) => st.n.isConnected)
+        .map((st) => ({ st, y: st.n.getBoundingClientRect().top }))
+        .sort((a, b) => a.y - b.y);
+      tries.forEach(({ st }, i) => {
+        const d = Math.min(i, 5) * 40;
+        st.n.style.setProperty('--tse-d', `${d}ms`);
+        st.n.classList.add('tse-noeud--naissance');
+        naissances += 1;
+        st.naissanceT = setTimeout(() => st.n.classList.remove('tse-noeud--naissance'), d + 360);
+      });
+    };
+
+    const approcher = (cle) => {
+      if (cle === proche) return;
+      const avant = proche !== null ? parCle.get(proche) : null;
+      proche = cle;
+      if (avant) { avant.prox = false; peindre(avant); }
+      const st = cle !== null ? parCle.get(cle) : null;
+      if (st) { st.prox = true; peindre(st); }
+    };
+    document.addEventListener('pointerover', (e) => {
+      let c = e.target instanceof Element ? e.target.closest('.side-nav-card') : null;
+      while (c && !carteVers.has(c)) c = c.parentElement ? c.parentElement.closest('.side-nav-card') : null;
+      approcher(c ? carteVers.get(c) : null);
+    }, { capture: true, passive: true });
+    document.documentElement.addEventListener('pointerleave', () => approcher(null));
+
+    let indice = null;
+    const indiceVu = () => { try { return localStorage.getItem(CFG.INDICE_KEY) === 'vu'; } catch { return true; } };
+    const tenterIndice = () => {
+      if (indice || sidebarCollapsed || document.hidden || !options.get('salle') || salle.membres()) return;
+      let st = null;
+      let haut = Infinity;
+      for (const x of parCle.values()) {
+        if (!x.n.isConnected) continue;
+        const r = x.n.getBoundingClientRect();
+        if (!r.height || r.top < 0 || r.bottom > window.innerHeight || r.top >= haut) continue;
+        st = x;
+        haut = r.top;
+      }
+      if (!st) return;
+      if (indiceVu()) { indice = 'vu'; return; }
+      indice = 'joue';
+      try { localStorage.setItem(CFG.INDICE_KEY, 'vu'); } catch {   }
+      st.indice = 'attente';
+      const pas = (ms, f) => setTimeout(() => { if (st.indice && parCle.get(st.cle) === st) f(); }, ms);
+      const t0 = CFG.NOEUD_INDICE_ATTENTE_MS;
+      const t1 = t0 + 160;
+      const t2 = t1 + CFG.NOEUD_INDICE_TENUE_MS;
+      st.indiceT = [
+        pas(t0, () => { st.indice = 'eveil'; peindre(st); }),
+        pas(t1, () => viser(st, true)),
+        pas(t2, () => { if (!survole(st) && !st.focus) viser(st, false); }),
+        pas(t2 + 140, () => { st.indice = null; peindre(st); }),
+      ];
+    };
+
+    const maj = ({ barres = [], seules = [], classementIncomplet = [] } = {}) => {
       incomplets = classementIncomplet;
       voulues = new Map();
       for (const { barre, membres, tous, suivie } of barres) {
         const section = barre[0].closest('.side-nav-section');
         if (membres.length >= 2 && section) voulues.set(cleDe(membres), { barre, membres, tous, suivie, section });
       }
-      seules = new Map();
-      for (const s of cartesSeules) {
-        const login = s.carte.dataset.tseLogin;
-        const section = s.carte.closest('.side-nav-section');
-        if (login && s.membres.length >= 2 && section) seules.set(login, { ...s, section });
+      for (const { carte, membres } of seules) {
+        const section = carte.closest('.side-nav-section');
+        if (membres.length >= 2 && section) {
+          voulues.set(carte, { barre: [carte], membres, tous: null, suivie: false, section, seule: true });
+        }
       }
-      for (const [cle, n] of [...parCle]) {
-        if (voulues.has(cle) && n.isConnected) continue;
-        n.remove();
+      for (const [cle, st] of [...parCle]) {
+        if (voulues.has(cle) && st.n.isConnected) continue;
+        detruire(st);
         parCle.delete(cle);
-      }
-
-      for (const [cle, c] of [...choixDe]) {
-        if (voulues.get(cle)?.tous && parCle.has(cle) && c.boite.isConnected) continue;
-        c.boite.remove();
-        choixDe.delete(cle);
-      }
-      for (const [login, p] of [...parCarte]) {
-        if (seules.has(login) && p.isConnected) continue;
-        p.remove();
-        parCarte.delete(login);
       }
 
       for (const [sec, couche] of [...couches]) {
         if (!sec.isConnected) { couche.remove(); couches.delete(sec); }
       }
+      carteVers.clear();
       const sections = new Set();
-      for (const [cle, { membres, tous, suivie, section }] of voulues) {
-        const couche = coucheDe(section);
-        sections.add(section);
-        let n = parCle.get(cle);
-        if (!n) { n = creer(cle, membres); parCle.set(cle, n); }
-        ordonner(n, membres, tous);
-        if (n.parentElement !== couche) couche.appendChild(n);
-        let c = choixDe.get(cle);
-        if (tous && !c) { c = creerChoix(cle); choixDe.set(cle, c); }
-        if (c) {
-          garnirChoix(c, membres, tous, suivie);
+      const nes = [];
+      for (const [cle, v] of voulues) {
+        const couche = coucheDe(v.section);
+        sections.add(v.section);
+        let st = parCle.get(cle);
+        if (!st) { st = nouvelEtat(cle); parCle.set(cle, st); nes.push(st); }
+        garnir(st, v);
+        if (st.n.parentElement !== couche) couche.appendChild(st.n);
+        for (const c of v.barre) carteVers.set(c, cle);
+      }
 
-          if (n.nextElementSibling !== c.boite) n.after(c.boite);
-        }
+      const parCouche = new Map();
+      for (const [cle, { barre }] of voulues) {
+        const st = parCle.get(cle);
+        if (!st || !st.n.parentElement) continue;
+        if (!parCouche.has(st.n.parentElement)) parCouche.set(st.n.parentElement, []);
+        parCouche.get(st.n.parentElement).push({ st, carte: barre[0] });
       }
-      for (const [login, { membres, section }] of seules) {
-        const couche = coucheDe(section);
-        sections.add(section);
-        let p = parCarte.get(login);
-        if (!p) { p = creerPastille(); parCarte.set(login, p); }
-        garnirPastille(p, membres);
-        if (p.parentElement !== couche) couche.appendChild(p);
+      for (const [couche, entrees] of parCouche) {
+        entrees.sort((a, b) => (a.carte.compareDocumentPosition(b.carte) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1));
+        const voulu = entrees.flatMap(({ st }) => [st.n, st.bulle, st.zone].filter(Boolean));
+        const actuel = [...couche.children];
+        if (voulu.length !== actuel.length || voulu.some((el, i) => el !== actuel[i])) couche.append(...voulu);
       }
+
+      if (proche !== null && !parCle.has(proche)) proche = null;
       placer();
-      marquer();
       suivre(sections);
+      naitre(nes);
+      demanderVisages();
+      tenterIndice();
     };
     salle.surChangement(marquer);
 
+    new MutationObserver(placer).observe(document.documentElement,
+      { attributes: true, attributeFilter: ['data-tse-theme'] });
+
     const bilan = () => {
-      const out = { affiches: parCle.size, clics, choix: choixDe.size,
-                    pastilles: parCarte.size, clicsPastilles, tous: tousOuverts,
+      let nSeules = 0;
+      let choix = 0;
+      let nVisages = 0;
+      let avecAvatar = 0;
+      for (const [cle, st] of parCle) {
+        if (typeof cle !== 'string') nSeules += 1;
+        if (!st.bulle) continue;
+        choix += 1;
+        for (const img of st.bulle.querySelectorAll('.tse-noeud__visage img')) {
+          nVisages += 1;
+          if (img.getAttribute('src')) avecAvatar += 1;
+        }
+      }
+      const out = { affiches: parCle.size - nSeules, seules: nSeules, clics, choix,
+                    tous: tousOuverts,
+                    visages: nVisages, avatars: avecAvatar, lotsVisages, naissances,
+                    indice: indice === 'joue' ? 'joué' : indice || (indiceVu() ? 'vu' : 'à montrer'),
 
                     calques: [...couches.values()].filter((c) => c.isConnected).length,
                     classementIncomplet: incomplets.length,
@@ -10117,7 +10565,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       },
       subs() {
         const lignes = subs.entries();
-        return { colonnes: ['login', 'sub', 'ts', 'mois', 'ancien', 'origine', 'echeance'], lignes,
+        return { colonnes: ['login', 'sub', 'ts', 'mois', 'ancien', 'origine', 'echeance', 'fin'], lignes,
                  resume: { chaines: lignes.length,
                            abonnees: lignes.filter(e => e.sub).length,
 
@@ -10580,6 +11028,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
           abonnes:     abonnements.filter(e => e.sub).length,
 
           echeances:   abonnements.filter(e => e.echeance > 0).length,
+
+          finies:      abonnements.filter(e => e.note && e.finie).length,
           roster:      roster.entries().length,
           mesures:     mesures.length,
           bascules:    [...basculements.keys()].filter(l => basculementFrais(l)).length,
@@ -11180,13 +11630,11 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     const avatar = avatarOf(card);
     if (!avatar) return;
     avatar.querySelector(':scope > .tse-collab-badge')?.remove();
-    avatar.classList.remove('tse-collab-host');
   };
 
   const poserPastille = (card, count) => {
     const avatar = avatarOf(card);
     if (!avatar) return false;
-    avatar.classList.add('tse-collab-host');
     let badge = avatar.querySelector(':scope > .tse-collab-badge');
     if (!badge) {
       badge = document.createElement('span');
@@ -12900,7 +13348,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
 
           const ech = subs.echeanceFor(login);
           badges.push(badgeNoeud('tse-preview__badge--sub', S.uiBadgeSubMonths(moisAbo) + (ech
-            ? ' • ' + (ech.offert ? S.uiBadgeSubExpire(ech.jours) : S.uiBadgeSubAnniv(ech.jours))
+            ? ' • ' + (ech.fin ? S.uiBadgeSubExpire(ech.jours) : S.uiBadgeSubAnniv(ech.jours))
             : '')));
         } else if (subs.wasSub(login)) {
           badges.push(badgeNoeud('tse-preview__badge--exsub', S.uiBadgeExSubMonths(moisAbo)));
@@ -14523,12 +14971,12 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
   }
 
   const COSTREAM_PALETTE = [
-    { color: '#f5c518', bg: 'rgba(245, 197, 24, 0.18)',  fade: 'rgba(245, 197, 24, 0.06)'  },
-    { color: '#7ee081', bg: 'rgba(126, 224, 129, 0.18)', fade: 'rgba(126, 224, 129, 0.06)' },
-    { color: '#26d4c8', bg: 'rgba(38, 212, 200, 0.18)',  fade: 'rgba(38, 212, 200, 0.06)'  },
-    { color: '#4d8cff', bg: 'rgba(77, 140, 255, 0.18)',  fade: 'rgba(77, 140, 255, 0.06)'  },
-    { color: '#c77dff', bg: 'rgba(199, 125, 255, 0.18)', fade: 'rgba(199, 125, 255, 0.06)' },
-    { color: '#ff7a8a', bg: 'rgba(255, 122, 138, 0.18)', fade: 'rgba(255, 122, 138, 0.06)' },
+    { color: '#f5c518', bg: 'rgba(245, 197, 24, 0.18)',  fade: 'rgba(245, 197, 24, 0.06)',  clair: '#a78507' },
+    { color: '#7ee081', bg: 'rgba(126, 224, 129, 0.18)', fade: 'rgba(126, 224, 129, 0.06)', clair: '#269f2a' },
+    { color: '#26d4c8', bg: 'rgba(38, 212, 200, 0.18)',  fade: 'rgba(38, 212, 200, 0.06)',  clair: '#1c9a91' },
+    { color: '#4d8cff', bg: 'rgba(77, 140, 255, 0.18)',  fade: 'rgba(77, 140, 255, 0.06)',  clair: '#4385ff' },
+    { color: '#c77dff', bg: 'rgba(199, 125, 255, 0.18)', fade: 'rgba(199, 125, 255, 0.06)', clair: '#b95dff' },
+    { color: '#ff7a8a', bg: 'rgba(255, 122, 138, 0.18)', fade: 'rgba(255, 122, 138, 0.06)', clair: '#ff3e55' },
   ];
 
   const costreamColorByKey = new Map();
@@ -15001,7 +15449,21 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       activeKeys.add(key);
     }
 
-    const sessionsActives = new Set([...activeKeys].map(sessionDeGroupe));
+    const dansUnGroupe = new Set();
+    for (const g of activeKeys) for (const c of groups.get(g)) dansUnGroupe.add(c);
+    const seules = new Map();
+    toutes.forEach(card => {
+      if (!cardShown(card) || card.dataset.tseGlobal === 'true') return;
+      if (dansUnGroupe.has(card) || !cardHasCollab(card)) return;
+      const login = card.dataset.tseLogin;
+      if (!login) return;
+      const hostId = hostByCard.get(card);
+      const cle = typeof hostId === 'string' ? `gs:${hostId}` : sessionSelonLesAutres(login);
+      if (!cle && gsUsable && hostId === undefined) return;
+      seules.set(card, cle || `seule:${login}`);
+    });
+
+    const sessionsActives = new Set([...[...activeKeys].map(sessionDeGroupe), ...seules.values()]);
     for (const key of sessionsActives) {
       const slot = costreamColorByKey.get(key);
       if (slot) slot.lastActiveTs = now;
@@ -15029,6 +15491,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     toutes.forEach(card => {
       card.classList.remove('tse-costream');
       card.style.removeProperty('--tse-costream-color');
+      card.style.removeProperty('--tse-costream-color-clair');
       card.style.removeProperty('--tse-costream-bg');
       card.style.removeProperty('--tse-costream-bg-fade');
       delete card.dataset.tseCostreamKey;
@@ -15040,11 +15503,21 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       for (const card of groups.get(g)) {
         card.classList.add('tse-costream');
         card.style.setProperty('--tse-costream-color',   palette.color);
+        card.style.setProperty('--tse-costream-color-clair', palette.clair);
         card.style.setProperty('--tse-costream-bg',      palette.bg);
         card.style.setProperty('--tse-costream-bg-fade', palette.fade);
 
         card.dataset.tseCostreamKey = key;
       }
+    }
+
+    for (const [card, key] of seules) {
+      const palette = COSTREAM_PALETTE[costreamColorByKey.get(key).idx];
+      card.classList.add('tse-costream');
+      card.style.setProperty('--tse-costream-color',   palette.color);
+      card.style.setProperty('--tse-costream-color-clair', palette.clair);
+      card.style.setProperty('--tse-costream-bg',      palette.bg);
+      card.style.setProperty('--tse-costream-bg-fade', palette.fade);
     }
 
     bilanCostream = { sessions: 0, groupes: 0, membres: 0, affiches: 0,
@@ -15053,7 +15526,13 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
                         sousLaCoupeAvecCombine: 0,
 
                         rattachees: { total: 0, horsSession: 0, inconnue: 0, sansId: 0 },
-                        recommandations: { cartes: 0, groupes: 0 } };
+                        recommandations: { cartes: 0, groupes: 0, seules: 0 },
+
+                        seules: 0 };
+    for (const c of seules.keys()) {
+      if (suiviesSet.has(c)) bilanCostream.seules += 1;
+      else bilanCostream.recommandations.seules += 1;
+    }
     const parLogin = new Map();
     for (const card of cards) {
       const l = card.dataset.tseLogin;
@@ -15194,7 +15673,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       .filter((m) => m.enLigne !== false && !horsLigne.has(m.login)).map((m) => m.login);
 
     const suiviesDabord = (logins) => logins.sort((a, b) => Number(suivies.has(b)) - Number(suivies.has(a)));
-    const marques = new Map();
+    const dejaPrises = new Set();
     const sortie = { barres: [], seules: [], classementIncomplet: [] };
     for (const barre of barres || []) {
       const membres = [...new Set(barre.map((c) => c.dataset.tseLogin).filter(Boolean))];
@@ -15211,21 +15690,17 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
 
       const suivie = !classement && !!section && section.contains(barre[0]);
       sortie.barres.push({ barre, membres, tous, suivie });
-      for (const c of barre) marques.set(c, 'barre');
+      for (const c of barre) dejaPrises.add(c);
     }
     for (const c of [...cartes, ...recommandees]) {
-      if (marques.has(c) || c.dataset.tseGlobal === 'true' || !cardShown(c)) continue;
+      if (dejaPrises.has(c) || c.dataset.tseGlobal === 'true' || !cardShown(c)) continue;
+      if (!c.classList.contains('tse-costream')) continue;
       const login = c.dataset.tseLogin;
       if (!login) continue;
       const autres = quiDiffusent(login).filter((m) => m !== login);
       if (!autres.length) continue;
       sortie.seules.push({ carte: c, membres: [login, ...suiviesDabord(autres)].slice(0, CFG.SALLE_MAX) });
-      marques.set(c, 'seule');
     }
-    for (const c of document.querySelectorAll('.side-nav-card[data-tse-pastille]')) {
-      if (!marques.has(c)) delete c.dataset.tsePastille;
-    }
-    for (const [c, v] of marques) if (c.dataset.tsePastille !== v) c.dataset.tsePastille = v;
     return sortie;
   }
 

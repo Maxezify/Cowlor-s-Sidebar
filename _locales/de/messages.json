@@ -30,7 +30,7 @@
     "message": "Anleitung"
   },
   "descGuide": {
-    "message": "Alles, was die Erweiterung deiner Sidebar hinzufügt, mit Beispielen. Nichts einzustellen — es läuft bereits."
+    "message": "Was die Erweiterung zu Twitch hinzufügt, und wie du es nutzt. Nichts einzustellen — es läuft bereits."
   },
   "navScores": {
     "message": "Beliebtheitswerte"
@@ -127,6 +127,9 @@
   },
   "colDue": {
     "message": "Fällig"
+  },
+  "colEnd": {
+    "message": "Endet"
   },
   "colLag": {
     "message": "Verzögerung"
@@ -349,85 +352,91 @@
     "message": "Schließen"
   },
   "guideIntro": {
-    "message": "Dieses Kapitel beschreibt, was die Erweiterung zu Twitch hinzufügt – in der Reihenfolge, in der du es antreffen wirst. Alles läuft, sobald du eine Twitch-Seite neu lädst, ohne Einrichtung – und alles lässt sich unter „Einstellungen“ direkt darunter anpassen oder abschalten."
+    "message": "Dieser Leitfaden zeigt, was die Erweiterung zu Twitch hinzufügt und wie du es nutzt — in der Reihenfolge, in der du es antriffst. Alles läuft, sobald du eine Twitch-Seite neu lädst, ohne Einrichtung — und alles lässt sich unter „Einstellungen“ direkt darunter anpassen oder abschalten."
   },
   "guideHoverTitre": {
     "message": "Die Vorschau beim Überfahren"
   },
   "guideHoverTexte": {
-    "message": "Halte den Zeiger einen Moment auf einem Kanal: Daneben öffnet sich ein Fenster mit dem Live-Video — kein eingefrorenes Vorschaubild —, dem vollständigen Titel und Abzeichen, die den Kontext zusammenfassen."
+    "message": "Halte den Zeiger einen Moment auf einem Kanal: Daneben öffnet sich ein Fenster mit dem Live-Video, dem vollständigen Titel, Abzeichen und der Zeitleiste dessen, was vorher geschah.\n• Das klappt überall in der Seitenleiste: gefolgte Kanäle, Empfehlungen, Top-Kanäle.\n• Keine Werbung in der Vorschau. Der Stream, den du danach öffnest, bleibt unberührt.\n• Zu schwer? Unter „Einstellungen“: ihre Breite, die Streamqualität oder die Vorschau ohne Video."
   },
   "guideDureeTitre": {
     "message": "Wie lange er schon sendet"
   },
   "guideDureeTexte": {
-    "message": "Unter der Zuschauerzahl trägt jede Karte die Dauer des Streams. Sie aktualisiert sich von selbst, ohne dass du den Kanal öffnen musst."
+    "message": "Unter der Zuschauerzahl zeigt jede Karte, wie lange der Stream schon läuft — aktuell gehalten, ohne den Kanal zu öffnen.\n• Ein Stream, der endet, zeigt „Beendet“, während seine Karte die Liste verlässt.\n• Drei Formate zur Wahl unter „Einstellungen“: 4h19, 4:19 oder 259 min."
   },
   "guideBadgesTitre": {
     "message": "Die Abzeichen der Vorschau"
   },
   "guideBadgesTexte": {
-    "message": "In der Vorschau nennen farbige Plaketten den Kontext auf einen Blick. Hier sind sie ALLE: jede Farbe gehört zu genau einem Typ, und keine zwei Badges sehen gleich aus.\n• Die beiden Grüntöne sind NEUIGKEITEN, keine Zustände: sie verschwinden nach zehn Minuten.\n• Das Rot übernimmt Twitchs eigene Inhaltskennzeichnungen (Spiele ab 18, explizite Gewalt, Glücksspiel…): Sie wissen es, bevor Sie zusehen.\n• Das Gold sagt, wie lange Sie den Kanal schon unterstützen; seine blasse Variante steht für ein beendetes Abo.\n• Das Blau sagt „Co-stream von …“ auf Gastseite und „Host-Stream“ auf Veranstalterseite; das Violett sagt „Live mit …“.\n• Die farblose Plakette übernimmt wörtlich einen Hinweis, den Twitch hinzufügt und den die Erweiterung nicht übersetzt.\n• Der Subathon hat keine eigene Farbe: er durchläuft alle."
+    "message": "In der Vorschau sagen Abzeichen den Kontext auf einen Blick. Hier sind alle; jede Farbe hat genau eine Bedeutung.\n• Rot: die Inhaltskennzeichnungen von Twitch — Spiele ab 18, Gewalt, Glücksspiel … Du weißt es, bevor du zusiehst.\n• Limettengrün: eine Neuigkeit — der Kanal hat gerade die Kategorie gewechselt oder ist nach einem Abbruch zurück. Sie verschwindet nach zehn Minuten.\n• Blau, Violett, Grau: der Co-stream — wer ihn veranstaltet, wer sonst live ist, wer dabei ist, ohne zu senden.\n• Gold: dein Abo und was als Nächstes kommt; blasses Gold: ein beendetes Abo.\n• Grün, Orange, Rosa: der Sponsor des Streams, ein laufender Hype Train, ein vergünstigtes Abo.\n• Ohne Farbe: ein Hinweis von Twitch, unverändert übernommen.\n• Regenbogen: ein Subathon und sein Tag."
   },
   "guideFriseTitre": {
     "message": "Vorher in diesem Stream"
   },
   "guideFriseTexte": {
-    "message": "Du kommst mitten in einen achtstündigen Stream: Was war vorher? Die Vorschau zeigt es — ein Band, eine Farbe je Kategorie, und darunter die Liste.\n• Jeder Streifen ist auf echte Zeit skaliert: Ein Blick sagt, wie der Abend verlaufen ist.\n• „×3“ heißt, dass der Streamer dreimal zu dieser Kategorie zurückgekehrt ist.\n• Ein Kanal, der seine Streams nicht archiviert? Der Verlauf wird aus den Clips rekonstruiert — und die Erweiterung sagt es.\n• Ist der genaue Zeitpunkt eines Wechsels unbekannt, läuft die Farbe aus, statt scharf zu schneiden, und die Dauer trägt ein „~“. Nie eine erfundene Zahl."
+    "message": "Du kommst mitten in einen achtstündigen Stream? Die Zeitleiste der Vorschau zeigt, was vorher war: ein Streifen pro Kategorie, maßstabsgetreu, und darunter die Liste.\n• „×3“: Der Streamer ist dreimal zu dieser Kategorie zurückgekehrt.\n• Ein Kanal, der seine Streams nicht archiviert? Die Zeitleiste wird aus den Clips rekonstruiert, und sie sagt es.\n• Ein „~“ vor einer Dauer, eine Farbe, die ausläuft: Der genaue Zeitpunkt ist unbekannt. Nichts ist erfunden."
   },
   "guideSubathonTitre": {
     "message": "Subathons"
   },
   "guideSubathonTexte": {
-    "message": "Ein Subathon ist der Stream, den Abos ohne Ende verlängern — Tage, manchmal Wochen.\n• Eine Plakette rechts neben dem Namen nennt den laufenden Tag: Du weißt sofort, wo das Ereignis steht."
+    "message": "Ein Subathon ist der Stream, den Abos ohne Ende verlängern — Tage, manchmal Wochen.\n• Eine Plakette rechts neben dem Namen nennt den Tag, an dem das Ereignis steht; das Abzeichen der Vorschau wiederholt ihn."
   },
   "guideCostreamTitre": {
     "message": "Co-streams"
   },
   "guideCostreamTexte": {
-    "message": "Ein violetter Punkt an der Ecke des Avatars, mit der Zahl der Beteiligten: Dieser Kanal sendet zu mehreren. In der Liste sichtbar, ohne etwas zu überfahren.\n• Ein violettes Abzeichen sagt dann, wer Gastgeber und wer Gast ist — und mit wem.\n• Eine eigene Sortierung gruppiert sie oben in der Liste (Kapitel $1).\n• Stehen mehrere Beteiligte in der Liste untereinander, werden ihre Balken zu einem, und eine Schaltfläche „▶“ sitzt darauf, anstelle ihrer Punkte: Ein Klick öffnet sie gemeinsam auf der Seite, im Multistream-Raum. Beim Überfahren fügt „Ganzer Co-stream“ die hinzu, denen Sie nicht folgen — Umschalt+Klick ebenso. Steht ein Kanal als Einziger seines Co-streams in der Liste, trägt er dieses „▶“ anstelle seines Punkts. Ein Klick auf eine Kachel gibt ihr den Ton, und der Chat folgt; bei zwei Streams ohne geteilten Chat rahmen beide Chats die Player ein, wenn Platz ist. Die Esc-Taste oder ein zweiter Klick auf die Schaltfläche schließt den Raum."
+    "message": "Ein ruhiger farbiger Balken am linken Rand der Karte: Dieser Kanal sendet mit anderen, eine Farbe pro Co-stream. Mehrere Beteiligte nacheinander in der Liste teilen sich einen Balken.\n• Beim Überfahren sagt das blaue Abzeichen, wer veranstaltet — „Host-Stream“ oder „Co-stream von …“; das violette nennt Beteiligte, die außerhalb deiner Liste live sind; das graue jene, die dabei sind, ohne zu senden.\n• Eine Sortierung stellt sie an den Anfang der Liste (Kapitel $1).\n• Der kleine „▶“-Regler auf dem Balken öffnet ihre Streams gemeinsam, im Multistream-Raum — nächstes Kapitel."
+  },
+  "guideSalleTitre": {
+    "message": "Der Multistream-Raum"
+  },
+  "guideSalleTexte": {
+    "message": "Der „▶“-Regler auf dem Balken eines Co-streams öffnet seine Streams nebeneinander, auf der Seite.\n• Fahr darüber: Er sagt, was er öffnet — „Alle 3 ansehen“. Gesichter an seinem Ende? Beteiligte, denen du nicht folgst: Fahr zu ihnen, um sie hinzuzufügen. Umschalt+Klick öffnet direkt den ganzen Co-stream.\n• Ein Klick auf eine Kachel gibt ihr den Ton — die Tasten 1 bis 6 ebenso —, und der Chat folgt dem Ton. Ohne geteilten Chat zeigen Reiter über dem Chat einen anderen an, ohne den Ton zu wechseln.\n• Höchstens sechs Streams auf dem Bildschirm: Die anderen warten darunter, ein Klick holt sie herein.\n• Die Streams richten sich selbst an ihrem gemeinsamen Ton aus, nach etwa einer Minute Zuhören; ohne gemeinsamen Ton bewegt sich nichts. „Automatische Ausrichtung“ lässt sich unter „Einstellungen“ abschalten.\n• Der Raum bringt keine Kanalpunkte, und die Werbung von Twitch läuft dort wie überall.\n• Zum Schließen: Esc oder ein Klick auf den Regler, der jetzt ein „■“ ist."
   },
   "guideDebutTitre": {
     "message": "Starts und Rückkehr"
   },
   "guideDebutTexte": {
-    "message": "Ein roter Balken erscheint am linken Rand einer Karte: Dieser Stream hat vor weniger als zehn Minuten begonnen. Er erlischt von selbst mit der zehnten Minute.\n• Verliert der Streamer seine Verbindung und kommt binnen zehn Minuten zurück, leuchtet der rote Balken nicht erneut — und sein Zähler startet auch nicht wieder bei null: er zählt den ganzen Stream weiter, Abbruch eingeschlossen.\n• Die Vorschau sagt zusätzlich, wie oft es abgebrochen ist, und zeichnet die Unterbrechungen in den Verlauf — und ein Abzeichen sagt, was passiert ist."
+    "message": "Ein pulsierender roter Balken am linken Rand einer Karte: Dieser Stream hat vor weniger als zehn Minuten begonnen. Er erlischt von selbst.\n• Die Verbindung bricht ab, und der Streamer ist binnen zehn Minuten zurück? Der Balken leuchtet nicht wieder auf, und die Dauer zählt den ganzen Stream weiter, Abbruch eingeschlossen.\n• Seine Vorschau sagt dann zehn Minuten lang „Zurück nach Abbruch“, und ihre Zeitleiste zeigt, wo der Stream abgebrochen ist."
   },
   "guideAboTitre": {
     "message": "Deine Abos, in Gold"
   },
   "guideAboTexte": {
-    "message": "Die Kanäle, die du unterstützt, sehen nicht mehr aus wie alle anderen: goldener Name, goldene Kategorie, ein goldener Ring um den Avatar und ein langsamer Schimmer über der Karte.\n• Ein Abzeichen erscheint und sagt, seit wann, dann das nächste Jubiläum — oder, bei einem geschenkten Abo, den Tag, an dem es endet.\n• Alle drei Abo-Arten zählen: bezahlt, geschenkt, mobil."
+    "message": "Die Kanäle, die du abonniert hast, sind in der Liste golden.\n• Nichts zu tun: Solange du bei Twitch angemeldet bist, liest die Erweiterung deine Abo-Seite standardmäßig alle sechs Stunden. Ein ganz neues Abo? Öffne den Kanal oder klicke „Jetzt erfassen“ unter „Deine Daten“, Abschnitt „Abonnements“.\n• Beim Überfahren sagt das Abzeichen, seit wie vielen Monaten du den Kanal unterstützt, und was als Nächstes kommt: „Nächstes Jubiläum“, wenn es sich verlängert, „Läuft in … ab“, wenn es endet — ein geschenktes Abo oder eines, das du nicht mehr verlängerst.\n• Ist das Abo vorbei, erlischt das Gold, und das Abzeichen sagt „Ehemals abonniert“.\n• Bezahlt, geschenkt oder mobil: Alle drei zählen."
   },
   "guideTriTitre": {
     "message": "Sortieren und filtern"
   },
   "guideTriTexte": {
-    "message": "Sechs Schaltflächen über der Liste ordnen sie im Handumdrehen neu:\n• Nach Zuschauern — Twitchs eigene Sortierung, sauber.\n• Meine Abos zuerst — mit der Gesamtzahl meiner laufenden Abos (auch der offline) auf einer Plakette.\n• Nach persönlicher Beliebtheit — aus deinen eigenen Besuchen, die auf deinem Rechner bleiben.\n• Nach Stream-Dauer — die jüngsten oben, um Anfänge zu erwischen.\n• Nach Kanalname — alphabetisch.\n• Co-streams zuerst — nie wieder eine Kollaboration verpassen.\nDirekt darunter zwei Filter: Kategorie und Sprache. Beide Listen bieten nur, was deine Kanäle in diesem Moment wirklich senden."
+    "message": "Sechs Schaltflächen über der Liste ordnen sie neu:\n• Zuschauer — die Reihenfolge von Twitch.\n• Abonnements — deine zuerst, mit ihrer Anzahl, offline eingeschlossen, auf einer Plakette.\n• Persönliche Beliebtheit — aus deinen eigenen Besuchen, die auf deinem Rechner bleiben.\n• Streamdauer — die jüngsten Streams zuerst, um Anfänge zu erwischen.\n• Alphabetisch — nach Kanalname.\n• Co-Streams — oben gruppiert.\nDarunter zwei Filter: Kategorie und Sprache. Sie bieten nur, was deine Kanäle gerade senden.\n• Schaltflächen, die du nicht nutzt, lassen sich unter „Einstellungen“ entfernen."
   },
   "guideTopTitre": {
     "message": "Top-Kanäle"
   },
   "guideTopTexte": {
-    "message": "Ein Reiter oben in der Sidebar, ein Klick, und sie kippt: statt deiner gefolgten Kanäle die dreißig meistgesehenen Kanäle auf Twitch, live.\n• Nach Kategorie oder Sprache — eine echte Top 30 für jede.\nEin Klick hin, ein Klick zurück. Deine gefolgten Kanäle rühren sich nicht um einen Pixel."
+    "message": "Der Reiter „Top-Kanäle“ oben in der Seitenleiste ersetzt deine gefolgten Kanäle durch die meistgesehenen Kanäle von ganz Twitch, live — standardmäßig dreißig, auf Wunsch zehn oder fünfzig.\n• Wähle in den Filtern eine Kategorie oder eine Sprache: Du bekommst ihre echte Rangliste.\n• Vorschau, Dauer, Abzeichen, Co-streams: Es sind Karten wie alle anderen.\n„Gefolgte Kanäle“ bringt dich zurück; deine Liste hat sich nicht bewegt."
   },
   "guideViteTitre": {
     "message": "Schneller als Twitch, und aufgeräumter"
   },
   "guideViteTexte": {
-    "message": "Twitch aktualisiert seine Sidebar selten: Ein Kanal, der startet, braucht zwei bis vier Minuten, bis er erscheint, und einer, der aufhört, bleibt fünf bis zehn Minuten stehen. Die Erweiterung aktualisiert sie selbst, alle dreißig Sekunden — Zuschauer, Kategorie, Sprache, Dauer, Kommen und Gehen.\n• Die vollständige Liste wird bei jedem Laden ausgeklappt: kein „Mehr anzeigen“ mehr.\n• Sperrige Hype Trains, Rabattbanner, leere Abschnitte, Sponsorenleisten: entfernt. Die Information geht deshalb nicht verloren — sie kommt in der Vorschau als Abzeichen zurück."
+    "message": "Twitch braucht zwei bis vier Minuten, um einen Kanal zu zeigen, der live geht, und behält einen, der aufhört, noch fünf bis zehn Minuten. Die Erweiterung aktualisiert die Seitenleiste selbst, alle dreißig Sekunden: Zuschauer, Kategorie, Dauer, Kommen und Gehen.\n• Deine gefolgten Kanäle sind immer ganz ausgeklappt: kein „Mehr anzeigen“ mehr.\n• Hype Trains, Rabattbanner, Sponsorenleisten und leere Abschnitte verschwinden aus der Seitenleiste; was sie sagten, kommt als Abzeichen in der Vorschau zurück (Kapitel $1).\n• Deine Zuschauerserie und die Stories-Zeile von Twitch wandern in den Filterblock oben in der Liste. Lieber so, wie Twitch sie zeigt, oder ausgeblendet? Das steht unter „Einstellungen“."
   },
   "guidePanneauTitre": {
     "message": "Dieses Fenster"
   },
   "guidePanneauTexte": {
-    "message": "Fünf Gruppen, links.\n• „Erste Schritte“ – dieses Kapitel. Es zeigt sich immer, auch ohne offenen Twitch-Tab.\n• „Einstellungen“ – alles, was die Erweiterung zur Wahl stellt.\n• „Deine Daten“ – was sie behalten hat: deine meistbesuchten Kanäle, deine Sehzeiten über die Woche gezeichnet, die erkannten Abos.\n• „Diagnose“ – nur nützlich, wenn etwas klemmt, und über die Einstellungen ausblendbar.\n• „Top-Kanäle“ – der Stand der weltweiten Rangliste und ihrer Kategorien.\nAlle Abschnitte außer diesem lesen den vordersten Twitch-Tab: Gibt es keinen, sagen sie es.\n• „Bericht exportieren“ schreibt einen Text, den du vor dem Senden lesen kannst. Er enthält keine persönliche Liste – weder deine Kanäle noch deine Abos – nur Zahlen.\n• „Verlauf löschen“ setzt alles zurück, endgültig."
+    "message": "Fünf Gruppen, links:\n• „Erste Schritte“ — dieser Leitfaden, lesbar auch ohne offenen Twitch-Tab.\n• „Einstellungen“ — alles, was die Erweiterung zur Wahl stellt.\n• „Deine Daten“ — was sie behalten hat: die Kanäle, die du am häufigsten besuchst, zu welchen Zeiten, deine Abos, die bekannten Kanäle.\n• „Diagnose“ — nur nützlich, wenn etwas klemmt; lässt sich in den Einstellungen ausblenden.\n• „Top-Kanäle“ — der Stand der Rangliste und ihrer Kategorien.\nAlle Abschnitte außer diesem Leitfaden lesen den vordersten Twitch-Tab; ohne ihn sagen sie es.\n• Etwas stimmt nicht? „Bericht exportieren“ schreibt einen Text, den du vor dem Senden liest: Zahlen, keine Listen — weder deine Kanäle noch deine Abos.\n• „Verlauf löschen“ löscht alles, was die Erweiterung behalten hat, endgültig; deine Einstellungen bleiben."
   },
   "guideVieTitre": {
     "message": "Datenschutz, im Klartext"
   },
   "guideVieTexte": {
-    "message": "• Kein fremder Server. Die Erweiterung spricht nur mit Twitchs eigener öffentlicher API — genau der, die die Seite ohnehin für ihre Anzeige nutzt.\n• Diese Aufrufe sind anonym: kein Sitzungs-Token, kein Cookie hängt daran. Sie lassen sich nicht deinem Konto zuordnen.\n• Eine Ausnahme, laut gesagt: Um deine Abos zu kennen, öffnet die Erweiterung DEINE Seite twitch.tv/subscriptions in einem unsichtbaren Rahmen, höchstens einmal alle sechs Stunden und nie, wenn du abgemeldet bist. Dein Browser authentifiziert sie mit seinen eigenen Cookies, genau als hättest du den Link geklickt; die Erweiterung liest dein Token nie und gibt es nie weiter.\n• Deine Besuche, deine Abos und deren Dauer bleiben im lokalen Speicher deines Browsers. Lösche die Websitedaten von twitch.tv, und nichts davon bleibt übrig.\n• Keine Berechtigung angefragt, kein Tracker, keine Telemetrie. Die Erweiterung läuft nur auf twitch.tv."
+    "message": "• Kein fremder Server: Die Erweiterung spricht nur mit Twitch, über die öffentliche API, die die Seite ohnehin nutzt.\n• Diese Aufrufe sind anonym: kein Sitzungs-Token, kein Cookie. Sie lassen sich nicht deinem Konto zuordnen.\n• Eine Ausnahme, laut gesagt: Um deine Abos zu kennen, öffnet die Erweiterung DEINE Seite twitch.tv/subscriptions in einem unsichtbaren Rahmen — höchstens alle sechs Stunden oder so, wie du es eingestellt hast, und nie, wenn du abgemeldet bist. Dein Browser authentifiziert sie, als hättest du den Link geklickt; die Erweiterung liest dein Token nicht und gibt es nicht weiter.\n• Deine Besuche, deine Abos und ihre Dauer bleiben in deinem Browser. Lösche die Websitedaten von twitch.tv, und nichts davon bleibt übrig.\n• Keine Berechtigung angefragt, kein Tracker, keine Telemetrie. Die Erweiterung läuft nur auf twitch.tv."
   },
   "guideBadgeCcl": {
     "message": "Spiel ab 18"
@@ -443,6 +452,9 @@
   },
   "guideBadgeSquad": {
     "message": "Live mit Korbek und 3 weiteren"
+  },
+  "guideBadgeMuet": {
+    "message": "In der Session, ohne zu streamen: Velmoria"
   },
   "guideBadgeSub": {
     "message": "Abonniert • 9 MONATE"
@@ -537,17 +549,11 @@
   "optFresh": {
     "message": "Balken „gerade gestartet“"
   },
-  "optCollab": {
-    "message": "Kollaborations-Punkt"
-  },
-  "optDescCollab": {
-    "message": "Auf dem Avatar, mit wie vielen Streamern der Kanal im Co-stream ist. Ausgeblendet in Top-Kanäle und dort, wo der Multistream-Raum sein „▶“ setzt — auf dem Balken oder an seiner Stelle. Aus: kein Zahlenpunkt mehr; das „▶“ bleibt, es gehört zum Raum."
-  },
   "optSalle": {
     "message": "Multistream-Raum"
   },
   "optDescSalle": {
-    "message": "Eine Schaltfläche „▶“ öffnet die Streams eines Co-streams gemeinsam auf der Seite: auf seinem Balken oder auf dem Avatar eines Kanals, der als Einziger seines Co-streams in der Liste steht. Auf dem Balken, beim Überfahren oder mit Umschalt+Klick: der ganze Co-stream, auch die, denen Sie nicht folgen. Aus: keine Schaltfläche, kein Raum, und die Punkte zeigen wieder Zahlen."
+    "message": "Ein „▶“-Regler in der Mitte des Balkens eines Co-streams öffnet seine Streams gemeinsam auf der Seite — auf dem Balken mehrerer Kanäle wie auf dem eines Kanals, der als Einziger seines Co-streams in der Liste steht. Beim Überfahren streckt er sich und sagt, was er öffnet; daneben erscheinen die Gesichter derer, denen Sie nicht folgen — zu ihnen fahren oder Umschalt+Klick: der ganze Co-stream. Aus: kein Regler, kein Raum; die Balken bleiben."
   },
   "optSalleAuto": {
     "message": "Automatische Ausrichtung"
@@ -697,7 +703,7 @@
     "message": "Alle Einstellungen zurücksetzen?"
   },
   "optResetText": {
-    "message": "Alle zweiundzwanzig Einstellungen dieser Seite kehren zu ihrem ursprünglichen Wert zurück. Deine Daten — Besuche, Abonnements, gefolgte Kanäle — bleiben unberührt."
+    "message": "Alle einundzwanzig Einstellungen dieser Seite kehren zu ihrem ursprünglichen Wert zurück. Deine Daten — Besuche, Abonnements, gefolgte Kanäle — bleiben unberührt."
   },
   "optValPlein": {
     "message": "Voll"
@@ -754,12 +760,12 @@
     "message": "Das Zahnrad und dieses Panel"
   },
   "guideRoueTexte": {
-    "message": "Ein ⚙️ sitzt direkt rechts neben dem Titel der Seitenleiste. Ein Klick öffnet dieses Panel über Twitch, ohne die Seite zu verlassen.\n• Das Symbol der Erweiterung oben rechts im Browser öffnet genau dasselbe Panel.\n• Zum Schließen: die Esc-Taste oder ein Klick außerhalb des Rahmens.\n• Beim allerersten Start pulsiert das Zahnrad einige Sekunden und eine Sprechblase zeigt darauf. Danach kommt sie nicht wieder."
+    "message": "Ein Zahnrad ⚙️ sitzt rechts neben dem Titel der Seitenleiste. Ein Klick öffnet dieses Panel über Twitch, ohne die Seite zu verlassen.\n• Das Symbol der Erweiterung in der Symbolleiste des Browsers öffnet dasselbe Panel.\n• Zum Schließen: die Esc-Taste oder ein Klick daneben."
   },
   "guideReglagesTitre": {
     "message": "Alles einstellbar, alles abschaltbar"
   },
   "guideReglagesTexte": {
-    "message": "„Einstellungen“ steuert jede hier beschriebene Verzierung. Nichts ist aufgezwungen: Was stört, wird abgeschaltet.\n• Die Vorschau beim Überfahren: ihre Breite, die Streamqualität oder nur das Video – abgeschaltet behält sie Vorschaubild, Badges und Verlauf.\n• Badges erscheinen oder nicht, einzeln.\n• Das Gold der Abos hat einen dezenten Modus: Farbe bleibt, das Schimmern geht.\n• Die Abo-Erhebung läuft höchstens alle 3, 6, 12 oder 24 Stunden — Sie wählen.\n• Deine Einstellungen lassen sich exportieren und wieder einlesen; ein Knopf setzt alle zurück."
+    "message": "„Einstellungen“ steuert alles, was dieser Leitfaden zeigt. Nichts ist aufgezwungen: Was stört, wird abgeschaltet, und ein violetter Punkt markiert, was du geändert hast.\n• Vorschau zu schwer? Senke die Qualität oder schalte das Video ab: Sie behält Vorschaubild, Abzeichen und Zeitleiste.\n• Gold zu auffällig? „Dezent“ behält die Farbe und nimmt das Schimmern weg.\n• Der Multistream-Raum und seine automatische Ausrichtung lassen sich getrennt abschalten.\n• Die Abo-Erfassung lässt sich bis auf einmal am Tag strecken.\n• Jeder Speicher — Besuche, Abos, bekannte Kanäle — lässt sich einzeln löschen.\n• Deine Einstellungen lassen sich exportieren und importieren; ein Knopf setzt alle zurück."
   }
 }
