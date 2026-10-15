@@ -1,6 +1,6 @@
 import { chromium, firefox } from 'playwright';
 import { pathToFileURL, fileURLToPath } from 'node:url';
-import { readFileSync, writeFileSync, rmSync } from 'node:fs';
+import { readFileSync, writeFileSync, rmSync, readdirSync } from 'node:fs';
 import { createContext, runInContext } from 'node:vm';
 import { dirname, join } from 'node:path';
 import { degraisser, degraisserJs, memeCode, compterCommentaires,
@@ -12801,7 +12801,7 @@ titre('96. Le mode d\'emploi — la première vue, et la seule qui n\'ait besoin
   ok('…sans interroger le navigateur, et sans réclamer d\'onglet Twitch',
      q.n === 0 && q.message === false, JSON.stringify(q));
 
-  /* ── 3. LES QUINZE CHAPITRES ─────────────────────────────────────────────── */
+  /* ── 3. LES SEIZE CHAPITRES (la salle a le sien depuis la 4.24.0.37) ───── */
   const plan = await page.evaluate(() => {
     const chaps = [...document.querySelectorAll('#guide .guide-chapitre')];
     return {
@@ -12813,9 +12813,9 @@ titre('96. Le mode d\'emploi — la première vue, et la seule qui n\'ait besoin
       intro: (document.querySelector('#guide .guide-intro') || {}).textContent || '',
     };
   });
-  ok('quinze chapitres, numérotés de 1 à 15, chacun avec un titre et du texte',
-     plan.n === 15
-     && plan.nums.join(',') === Array.from({ length: 15 }, (_, i) => i + 1).join(',')
+  ok('seize chapitres, numérotés de 1 à 16, chacun avec un titre et du texte',
+     plan.n === 16
+     && plan.nums.join(',') === Array.from({ length: 16 }, (_, i) => i + 1).join(',')
      && plan.titres.every(t => t.length > 2)
      && plan.sansCorps === 0
      && plan.intro.length > 40,
@@ -12851,7 +12851,7 @@ titre('96. Le mode d\'emploi — la première vue, et la seule qui n\'ait besoin
      puces » — leur nombre change à chaque relecture du guide, et une borne
      serrée se contenterait de casser le banc au premier paragraphe retiré.
      Ce qu'il attrape, c'est ZÉRO : le jour où la grammaire des corps cesse
-     d'être appliquée, il n'y a plus une seule puce dans les quinze chapitres. */
+     d'être appliquée, il n'y a plus une seule puce dans les seize chapitres. */
   ok('les puces sont devenues des éléments de liste, marqueur retiré',
      puces.items >= 20 && puces.paraAvecPuce === 0 && puces.itemAvecPuce === 0
      && puces.vides === 0,
@@ -12925,10 +12925,66 @@ titre('96. Le mode d\'emploi — la première vue, et la seule qui n\'ait besoin
   ok('…et le renvoi des co-streams tombe sur le chapitre des tris',
      tri >= 1 && renvois.vus.some((r) => r.vers === tri),
      JSON.stringify({ triEstAuRang: tri, renvois: renvois.vus }));
+  /* LE SECOND RENVOI, ET LA SALLE À SA PLACE (4.24.0.37). Le chapitre de la
+     vitesse dit que ce que la barre retire revient en badge, et renvoie au
+     chapitre des badges ; celui des co-streams renvoie à la salle par
+     « chapitre suivant », sans numéro — le dire n'est vrai que si elle le
+     suit. */
+  const rangs = await page.evaluate(() => {
+    const t = [...document.querySelectorAll('#guide .guide-chapitre .guide-titre')]
+      .map((h) => h.textContent.replace(/^\d+/, '').trim());
+    return { badges: t.findIndex((x) => /badge/i.test(x)) + 1,
+             vite: t.findIndex((x) => /quicker/i.test(x)) + 1,
+             costream: t.findIndex((x) => /^co-streams$/i.test(x)) + 1,
+             salle: t.findIndex((x) => /room/i.test(x)) + 1,
+             bleu: !!document.querySelectorAll('#guide .guide-chapitre')[t.findIndex((x) => /^co-streams$/i.test(x))]
+               ?.querySelector('.d-cadre .d-badge--costream'),
+             violet: !!document.querySelectorAll('#guide .guide-chapitre')[t.findIndex((x) => /^co-streams$/i.test(x))]
+               ?.querySelector('.d-cadre .d-badge--squad') };
+  });
+  ok('…celui de la vitesse tombe sur les badges, et la salle suit les co-streams qui l\'ouvrent',
+     rangs.badges >= 1 && rangs.vite >= 1
+     && renvois.vus.some((r) => r.depuis === rangs.vite && r.vers === rangs.badges)
+     && rangs.costream >= 1 && rangs.salle === rangs.costream + 1,
+     JSON.stringify({ rangs, renvois: renvois.vus }));
+  ok('…et la maquette du co-stream porte le badge bleu, plus « En live avec » sur la carte du même streamer',
+     rangs.bleu && !rangs.violet, JSON.stringify(rangs));
+
+  /* ── 5 quater. LE GUIDE NOMME CE QU'ON VOIT, AU MOT PRÈS (4.24.0.37) ──────
+     TROUVÉ EN RELISANT LES DOUZE FICHES : le chapitre du panneau disait
+     « Clear history » à côté d'un bouton « Erase history », « Limpar o
+     histórico » à côté d'« Apagar o histórico », « Esporta un rapporto » à
+     côté d'« Esporta un report » ; le portugais d'Europe renvoyait à des
+     « Configurações » que son rail appelle « Definições ». Une traduction
+     juste d'un libellé qu'on ne trouve pas à l'écran n'aide personne.
+     Les libellés sont désormais repris des fiches elles-mêmes, et chaque
+     chapitre qui cite un bouton, un groupe ou un tri doit le citer tel quel. */
+  const CITES = {
+    guidePanneauTexte: ['grpGuide', 'grpOptions', 'grpData', 'grpDiag', 'grpGlobal', 'btnReport', 'btnReset'],
+    guideAboTexte: ['btnRefreshSubs', 'grpData', 'navSubs'],
+    guideSalleTexte: ['optSalleAuto', 'grpOptions'],
+    guideReglagesTexte: ['grpOptions', 'optValDiscret'],
+    guideTriTexte: ['optTriViewers', 'optTriSubs', 'optTriPopular', 'optTriUptime', 'optTriAlpha', 'optTriCostream'],
+    guideTopTexte: ['grpGlobal', 'guideDemoSuivies'],
+    guideIntro: ['grpOptions'],
+  };
+  const absents = [];
+  for (const loc of readdirSync(join(ICI, '..', '_locales'))) {
+    const f = fiche(loc);
+    for (const [cle, libelles] of Object.entries(CITES)) {
+      for (const l of libelles) {
+        if (!f[cle].message.includes(f[l].message)) absents.push(`${loc} ${cle} → « ${f[l].message} »`);
+      }
+    }
+  }
+  ok('dans les douze fiches, le guide cite chaque groupe, bouton et tri par son libellé exact',
+     absents.length === 0, absents.slice(0, 12).join(' · '));
 
   /* ── 6. LA PALETTE DES BADGES ─────────────────────────────────────────────
-     Douze badges, ONZE modificateurs, DIX couleurs, et les deux exceptions
-     sont le sujet de l'assertion.
+     Treize badges, DOUZE modificateurs, ONZE couleurs, et les deux exceptions
+     sont le sujet de l'assertion. Le treizième (4.24.0.37) est le gris de ceux
+     qui sont de la session sans diffuser : il manquait au chapitre qui
+     promet de les montrer tous.
      Chaque type de badge a sa teinte, choisie par un calcul qui cherche le
      créneau libre le plus large — les recopier ici sans les distinguer
      donnerait une maquette monochrome qui n'explique plus rien. Mais
@@ -12973,26 +13029,26 @@ titre('96. Le mode d\'emploi — la première vue, et la seule qui n\'ait besoin
   delete teintes.__nu;
   const mods = Object.keys(teintes);
   const distinctes = new Set(Object.values(teintes));
-  ok('onze modificateurs, dix couleurs, aucune par défaut — et « reprise » porte celle du basculement',
-     mods.length === 11 && distinctes.size === 10
+  ok('douze modificateurs, onze couleurs, aucune par défaut — et « reprise » porte celle du basculement',
+     mods.length === 12 && distinctes.size === 11
      && teintes['d-badge--reprise'] === teintes['d-badge--switch']
      && !Object.values(teintes).includes(nu),
      JSON.stringify({ mods: mods.length, distinctes: distinctes.size, nu, teintes }));
-  /* ── LE DOUZIÈME BADGE EST CELUI QUI N'A PAS DE COULEUR ──────────────────
+  /* ── LE BADGE NEUTRE EST CELUI QUI N'A PAS DE COULEUR ────────────────────
      Le mode d'emploi n'en montrait que dix, et un utilisateur a demandé « tous
      les badges possibles ». Il en manquait deux : l'ancien abonné — même or,
      désaturé — et le NEUTRE, celui qui reprend telle quelle une mention
      ajoutée par Twitch. Le neutre se définit par l'ABSENCE de modificateur ;
      lui en donner un le trahirait, et c'est pourquoi il faut l'asserter
      autrement : il doit porter exactement la couleur par défaut, celle-là même
-     qu'aucun des onze autres n'a le droit d'avoir. */
+     qu'aucun des douze autres n'a le droit d'avoir. */
   const neutre = await page.evaluate(() => {
     const b = [...document.querySelectorAll('#guide .d-badge')]
       .find(x => ![...x.classList].some(c => c.startsWith('d-badge--')));
     return b ? { texte: (b.textContent || '').trim(), couleur: getComputedStyle(b).color }
              : null;
   });
-  ok('…et le douzième, le badge neutre, porte la couleur par défaut et aucun modificateur',
+  ok('…et le badge neutre porte la couleur par défaut et aucun modificateur',
      !!neutre && neutre.couleur === nu && neutre.texte.length > 0,
      JSON.stringify({ neutre, nu }));
   /* L'ANCIEN ABONNÉ PARTAGE LA TEINTE DE L'ABONNÉ SANS LA COPIER : c'est la
@@ -13002,6 +13058,41 @@ titre('96. Le mode d\'emploi — la première vue, et la seule qui n\'ait besoin
      teintes['d-badge--exsub'] !== teintes['d-badge--sub']
      && !!teintes['d-badge--exsub'],
      JSON.stringify({ sub: teintes['d-badge--sub'], exsub: teintes['d-badge--exsub'] }));
+
+  /* ── « AUTO » PEINT COMME LE THÈME QU'IL SUIT (4.24.0.37) ─────────────────
+     TROUVÉ EN REGARDANT LE GUIDE, PAS EN LISANT LE CODE : au réglage par
+     défaut, sur un système clair, le fond suivait prefers-color-scheme et
+     les badges non — ils ne lisaient que data-theme, qu'un choix explicite
+     pose seul. Le chapitre des badges montrait « Jeux matures » en rose pâle
+     sur du blanc. Les teintes d'« Auto » doivent être celles du thème qu'il
+     suit, badge par badge ; l'arc-en-ciel, son animation. */
+  const paletteSous = async (schema, theme) => {
+    await page.emulateMedia({ colorScheme: schema });
+    return page.evaluate((t) => {
+      const h = document.documentElement;
+      const avant = h.getAttribute('data-theme');
+      if (t) h.setAttribute('data-theme', t); else h.removeAttribute('data-theme');
+      const out = {};
+      for (const b of document.querySelectorAll('#guide .d-badge')) {
+        const mod = [...b.classList].find((c) => c.startsWith('d-badge--'));
+        if (!mod || mod in out) continue;
+        const cs = getComputedStyle(b);
+        out[mod] = mod === 'd-badge--subathon' ? cs.animationName : cs.color;
+      }
+      if (avant) h.setAttribute('data-theme', avant); else h.removeAttribute('data-theme');
+      return out;
+    }, theme);
+  };
+  const autoClair = await paletteSous('light', null);
+  const clair = await paletteSous('dark', 'light');
+  const autoSombre = await paletteSous('dark', null);
+  const sombre = await paletteSous('light', 'dark');
+  await page.emulateMedia({ colorScheme: 'light' });
+  const egales = (a, b) => Object.keys(a).length === 12 && JSON.stringify(a) === JSON.stringify(b);
+  ok('thème « Auto » : sur un système clair, les badges prennent les teintes du clair ; sur un sombre, celles du sombre',
+     egales(autoClair, clair) && egales(autoSombre, sombre)
+     && autoClair['d-badge--costream'] === 'rgb(0, 69, 209)' && autoSombre['d-badge--costream'] === 'rgb(127, 179, 255)',
+     JSON.stringify({ autoClair, clair, autoSombre, sombre }));
 
   /* ── LA MAQUETTE MONTRE CE QUE LE PRODUIT FAIT, Y COMPRIS ICI ───────────
      DEUX TOURS POUR CETTE ASSERTION, ET LA MÊME LEÇON À CHAQUE FOIS. Au
@@ -13162,7 +13253,7 @@ titre('96. Le mode d\'emploi — la première vue, et la seule qui n\'ait besoin
   }));
   ok('une autre section le range et demande la page ; y revenir le repose intact',
      parti.guide === true && parti.message === true && parti.queries > 0
-     && revenu.guide === true && revenu.chapitres === 15 && revenu.message === false,
+     && revenu.guide === true && revenu.chapitres === 16 && revenu.message === false,
      JSON.stringify({ parti, revenu }));
   await page.close();
 
@@ -13186,7 +13277,7 @@ titre('96. Le mode d\'emploi — la première vue, et la seule qui n\'ait besoin
              largeur: document.documentElement.scrollWidth };
   });
   ok('le mode d\'emploi se rend aussi en japonais, sans clé nue ni débordement',
-     rendJa.titre === ja.navGuide.message && rendJa.chapitres === 15
+     rendJa.titre === ja.navGuide.message && rendJa.chapitres === 16
      && rendJa.items >= 20 && rendJa.puces === 0 && rendJa.largeur <= 760
      && !Object.keys(ja).some(k => rendJa.texte.includes(k)),
      JSON.stringify({ titre: rendJa.titre, chapitres: rendJa.chapitres,
@@ -29649,9 +29740,21 @@ const S_LECTEUR_SONDE = () => {
   const rB = await rapport();
   const pendant = Object.fromEntries(PAIRES.map((cle) => [cle, calculs(rB, cle).slice(calculs(rA, cle).length)]));
   const nets = (cle, f) => pendant[cle].length >= 4 && pendant[cle].every(([ms, z]) => f(ms) && z >= 5);
-  ok('un même silence dans toutes les tuiles : la paire qui ne partage rien n\'a pas un calcul à 0 ms, et son son commun reste « non »',
+  /* JAMAIS « OUI », ET NON PLUS TOUJOURS « NON » (4.24.0.37). Au banc
+     complet de la 4.24.0.37, la paire qui ne partage rien a dit
+     « incertain · 2 calculs sur 8 » : un pic de bruit à −4140 ms, z 5,2
+     puis 5,1, retrouvé par deux calculs dont les fenêtres se recouvrent.
+     Six passes du 196 seul, aussitôt : les pics de cette paire tombent
+     n'importe où — 5890, −5570, −3650, −4280 ms… —, à z 3 à 5,8. Le verdict
+     n'est qu'une statistique du rapport (cf. partCommune) : la part des
+     calculs à z ≥ 5 hors du bord, « incertain » dès deux sur huit. Deux vrais
+     streams sans rien en commun en tenaient six sur quarante-sept au
+     quatrième rapport réel (4.24.0.15). Exiger « non » pariait sur le bruit ;
+     ce que l'événement commun ferait — un pic à 0 ms — est la première
+     moitié de l'assertion, et le verdict ne doit jamais dire « oui ». */
+  ok('un même silence dans toutes les tuiles : la paire qui ne partage rien n\'a pas un calcul à 0 ms, et son son commun n\'est jamais « oui »',
      pendant['foxtrot~duo1'].length >= 4 && !pendant['foxtrot~duo1'].some(([ms, z]) => Math.abs(ms) <= 50 && z >= 5)
-     && /^non · /.test(rB.ecoute?.commun?.['foxtrot~duo1'] || ''),
+     && /^(non|incertain) · /.test(rB.ecoute?.commun?.['foxtrot~duo1'] || ''),
      JSON.stringify({ pendant: pendant['foxtrot~duo1'], commun: rB.ecoute?.commun?.['foxtrot~duo1'], silences: rB.ecoute?.silencesCommuns }));
   ok('…la paire qui partage son son au même instant reste dite à 0 ms, celle qui l\'a 600 ms plus tard à −600 ms, à chaque calcul',
      nets('foxtrot~rho', (ms) => Math.abs(ms) <= 50) && nets('foxtrot~sigma', (ms) => Math.abs(ms + 600) <= 50),

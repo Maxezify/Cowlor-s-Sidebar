@@ -2059,6 +2059,128 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The guide, read against the product (v4.24.0.37)
+
+The request, with the green light for the other branches: "Take the
+opportunity to go through the guide as well, and make sure it is up to date
+and explains the extension perfectly. Be rigorous." Then: "Once again,
+explaining does not mean describing. Some things do not need to be known.
+And others are essential to know how to use the extension well."
+
+Every sentence of the fifteen chapters was checked against the code —
+`content.js`, `panneau.js`, the settings table — then each was rewritten
+around a single question: what do you need to know to use it? Published on
+`claude/chrome-multi`, then on the other branches.
+
+### What was wrong
+
+- **Subscriptions ignored 4.24.0.36.** Nothing about "Expires in …", nor
+  the gold going out at the end, nor "Former sub"; nothing either about what
+  it takes for the gold to appear — being signed in to Twitch — nor about
+  "Sweep now" right after subscribing.
+- **"A purple badge says who is hosting and who is a guest."** That is the
+  blue one ("Host Stream", "Co-stream of …"); the purple one names members
+  live outside the list. And the grey one — session members who are not
+  streaming — was nowhere, in a chapter that promises to show **all** the
+  badges.
+- **The co-stream mock-up** put "Live with Korbek" on Korbek's own card: a
+  streamer live with himself.
+- **"At most once every six hours"**, for the sweep: that is the default;
+  the setting goes from three to twenty-four hours.
+- **"The thirty most-watched channels"**: ten, thirty or fifty.
+- **"Erase history resets everything"**: your settings stay.
+- **"Your listening hours"**: the "Rhythm" section says itself that it is a
+  rhythm, not a watch time.
+- **"The two greens are news"**: there are three greens, and the sponsor's
+  is not news.
+- **Buttons that do not exist under that name.** English said "Clear
+  history" next to an "Erase history" button, Brazilian Portuguese "Limpar o
+  histórico" for "Apagar o histórico", Italian "Esporta un rapporto" for
+  "Esporta un report"; European Portuguese pointed to "Configurações" that
+  its panel calls "Definições". German switched from "du" to "Sie" within a
+  single chapter.
+- **With the "Auto" theme on a light system** — the default — the mock-ups
+  showed the badges in their dark-theme shades: "Mature-rated game" in pale
+  pink on white. The background followed the system; the badges only read
+  the explicit choice. Found by looking at the rendered guide, not by reading
+  the code.
+
+### What was missing to use it
+
+- **The multistream room** fitted in one sentence at the end of co-streams.
+  It has its own chapter, right after them: the sound on a tile or on keys 1
+  to 6, the chat following the sound, the tabs that show another one, six
+  streams at most and the ones waiting below, the alignment — a minute of
+  listening, a common sound, a setting —, no channel points, Twitch's ads
+  playing there, Escape to leave.
+- **The preview has no ads**, and it alone.
+- **The watch streak and the stories** from Twitch, tucked into the filter
+  block: people looked for them.
+- **The three uptime formats**, and "Ended" — which the mock-up showed
+  without the text saying so.
+- **The two bars on the left edge**: the red one beats, the co-stream one is
+  steady.
+
+### What went
+
+What can be seen without being explained: the gold ring, the slow shimmer,
+the first-run bubble, the two chats framing the players, the stages of the
+cursor.
+
+### The prose is bound to the product
+
+- **Quoted labels come from each language's own file.** The text of the
+  twelve languages carries markers — the "Settings" group, the "Export a
+  report" button, the six sorts… — replaced by the label of its own locale:
+  the guide can no longer name a button that does not exist.
+- **Two cross-references**: the speed chapter points to the badges, where
+  what the sidebar removes comes back; the co-streams chapter to the sorts,
+  and to the room as "next chapter".
+- **The grey badge** joins the mock-up, in the product's grey in both
+  themes. The Store listings say "sixteen chapters".
+
+### What the bench measures
+
+**96**, four more assertions, and three revised:
+
+- the speed chapter points to the badges, and the room follows co-streams;
+- the co-stream mock-up carries the blue badge, no longer the purple one;
+- in the twelve locales, the guide quotes every group, button and sort by
+  its exact label;
+- with the "Auto" theme, the badges take the shades of the theme the system
+  follows, badge by badge;
+- revised: sixteen chapters instead of fifteen, twelve modifiers for eleven
+  colours instead of eleven for ten, and the neutral badge is no longer the
+  twelfth.
+
+**The bench itself, found on the way**: on this version's first full bench,
+the pair of 196 that shares nothing said "incertain · 2 calculs sur 8"
+instead of "non" — a noise peak at −4140 ms, z 5.2 then 5.1, found again by
+two calculations whose windows overlap. The first time in forty-two passes;
+`content.js` had not changed since 4.24.0.36. Six passes of 196 alone, right
+away: this pair's peaks fall anywhere, from −5570 to 5890 ms, at z 3 to 5.8.
+That verdict is only a report statistic, which drives no move, and two real
+streams with nothing in common had already beaten it — six calculations out
+of forty-seven at z ≥ 5, in the fourth real report (4.24.0.15). The
+assertion now requires that it never says "oui"; the false peak at 0 ms it
+guards against, it still requires absent. Replayed, "nothing masked" fails:
+z 9 to 10.5 at 0 ms, and "oui".
+
+The full bench: 1702 assertions in 198 scenarios, all green.
+
+| mutant | what fails |
+| --- | --- |
+| the speed cross-reference removed (1) | 96 |
+| the room at the end of the guide (1) | 96 |
+| "Clear history" instead of the button (1) | 96 |
+| the grey badge missing from the mock-up (1) | 96 |
+| the grey without its rule (1) | 96 |
+| the co-stream mock-up back to purple (1) | 96 |
+| the "Auto" theme without its light shades (1) | 96 |
+| nothing masked from the common silence, replayed on the revised assertion (1) | 196: both pairs at 0 ms, "oui" |
+
+Eight mutants, eight caught.
+
 ## The end of a subscription, and the former subscriber (v4.24.0.36)
 
 The request: "About subscriptions, can you check that when the due date has
@@ -17987,7 +18109,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 198 scenarios, 1698 assertions |
+| `npm test` | the Playwright harness: 198 scenarios, 1702 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -18009,10 +18131,10 @@ the assembled code:
 | --- | --- | --- | --- |
 | `content.js` | 1660 KB | 671 KB | 4,166 → **2** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
-| `panneau.js` | 108 KB | 51 KB | 152 → **0** |
+| `panneau.js` | 109 KB | 51 KB | 156 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
 | `background.js` | 10 KB | 2 KB | 22 → **0** |
-| **all five** | **1917 KB** | **828 KB** | **−57 %** |
+| **all five** | **1918 KB** | **828 KB** | **−57 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are

@@ -2180,6 +2180,130 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## Le mode d'emploi, relu contre le produit (v4.24.0.37)
+
+La demande, avec le feu vert pour les autres branches : « Profites-en
+également pour faire un tour sur le Mode d'emploi, et assure-toi qu'il est
+bien à jour et qu'il explique parfaitement l'extension. Sois rigoureux. »
+Puis : « Encore une fois, expliquer ne veut pas dire décrire. Certaines
+choses ne sont pas obligées d'être sues. Et d'autres sont primordiales pour
+savoir comment bien utiliser l'extension. »
+
+Chaque phrase des quinze chapitres a été confrontée au code — `content.js`,
+`panneau.js`, la table des réglages — puis chacun a été réécrit sur une seule
+question : qu'est-ce qu'il faut savoir pour s'en servir ? Publiée sur
+`claude/chrome-multi`, puis sur les autres branches.
+
+### Ce qui était faux
+
+- **Les abonnements ignoraient la 4.24.0.36.** Rien sur « Expire dans … »,
+  ni sur l'or qui s'éteint à la fin, ni sur « Ancien abonné » ; rien non plus
+  sur ce qu'il faut pour que l'or paraisse — être connecté à Twitch — ni sur
+  « Relever maintenant » quand on vient de s'abonner.
+- **« Un badge violet dit qui reçoit et qui est invité. »** C'est le bleu
+  (« Stream Hôte », « Co-stream de … ») ; le violet nomme les membres en
+  direct hors de la liste. Et le gris — ceux de la session qui ne diffusent
+  pas — n'était nulle part, dans un chapitre qui promet de montrer **tous**
+  les badges.
+- **La maquette du co-stream** posait « En live avec Korbek » sur la carte de
+  Korbek : un streamer en direct avec lui-même.
+- **« Au plus une fois toutes les six heures »**, pour le relevé : c'est le
+  défaut, le réglage va de trois à vingt-quatre heures.
+- **« Les trente chaînes les plus regardées »** : dix, trente ou cinquante.
+- **« Effacer l'historique remet tout à zéro »** : vos réglages restent.
+- **« Vos heures d'écoute »** : la section « Rythme » dit elle-même que c'est
+  un rythme, pas un temps de visionnage.
+- **« Les deux verts sont des nouvelles »** : il y a trois verts, et celui du
+  sponsor n'en est pas une.
+- **Des boutons qui n'existent pas sous ce nom.** L'anglais disait « Clear
+  history » à côté d'un bouton « Erase history », le portugais du Brésil
+  « Limpar o histórico » pour « Apagar o histórico », l'italien « Esporta un
+  rapporto » pour « Esporta un report » ; le portugais d'Europe renvoyait à
+  des « Configurações » que son panneau appelle « Definições ». L'allemand
+  passait du « du » au « Sie » dans le même chapitre.
+- **Au thème « Auto », sur un système clair** — le réglage par défaut —, les
+  maquettes montraient les badges aux teintes du sombre : « Jeux matures » en
+  rose pâle sur du blanc. Le fond suivait le système ; les badges ne lisaient
+  que le choix explicite. Trouvé en regardant le guide rendu, pas en lisant le
+  code.
+
+### Ce qui manquait pour s'en servir
+
+- **La salle multistream** tenait en une phrase au bout des co-streams. Elle
+  a son chapitre, juste après eux : le son à la tuile ou aux touches 1 à 6,
+  le chat qui suit le son, les onglets qui en montrent un autre, six streams
+  au plus et ceux qui attendent dessous, l'alignement — une minute d'écoute,
+  un son commun, un réglage —, pas de points de chaîne, les publicités de
+  Twitch qui y passent, Échap pour sortir.
+- **L'aperçu est sans publicité**, et lui seul.
+- **La série de visionnage et les stories** de Twitch, rangées dans le bloc
+  des filtres : on les cherchait.
+- **Les trois formats de la durée**, et « Terminé » — que la maquette
+  montrait sans que le texte le dise.
+- **Les deux barres du bord gauche** : la rouge bat, celle du co-stream est
+  fixe.
+
+### Ce qui est parti
+
+Ce qui se voit sans qu'on l'explique : l'anneau d'or, le reflet lent, la bulle
+du premier lancement, les deux chats qui encadrent les lecteurs, les étapes du
+curseur.
+
+### La prose se lie au produit
+
+- **Les libellés cités viennent de la fiche de chaque langue.** Le texte des
+  douze langues porte des repères — le groupe « Réglages », le bouton « Exporter
+  un rapport », les six tris… — remplacés par le libellé de sa propre fiche :
+  le guide ne peut plus nommer un bouton qui n'existe pas.
+- **Deux renvois** : le chapitre de la vitesse renvoie aux badges, où revient
+  ce que la barre retire ; celui des co-streams aux tris, et à la salle par
+  « chapitre suivant ».
+- **Le badge gris** rejoint la maquette, au gris du produit dans les deux
+  thèmes. Les fiches du Store disent « seize chapitres ».
+
+### Ce que le banc mesure
+
+**96**, quatre assertions de plus, et trois revues :
+
+- le chapitre de la vitesse renvoie aux badges, et la salle suit les
+  co-streams ;
+- la maquette du co-stream porte le badge bleu, plus le violet ;
+- dans les douze fiches, le guide cite chaque groupe, bouton et tri par son
+  libellé exact ;
+- au thème « Auto », les badges prennent les teintes du thème que suit le
+  système, badge par badge ;
+- revues : seize chapitres au lieu de quinze, douze modificateurs pour onze
+  couleurs au lieu de onze pour dix, et le badge neutre n'est plus le
+  douzième.
+
+**Le banc lui-même, trouvé en passant** : au premier banc complet de cette
+version, la paire du 196 qui ne partage rien a dit « incertain · 2 calculs sur
+8 » au lieu de « non » — un pic de bruit à −4140 ms, z 5,2 puis 5,1, retrouvé
+par deux calculs dont les fenêtres se recouvrent. La première fois sur
+quarante-deux passes ; `content.js` n'avait pas changé depuis la 4.24.0.36.
+Six passes du 196 seul, aussitôt : les pics de cette paire tombent n'importe
+où, de −5570 à 5890 ms, à z 3 à 5,8. Ce verdict n'est qu'une statistique du
+rapport, qui ne commande aucun geste, et deux vrais streams sans rien en commun
+l'avaient déjà déjoué — six calculs sur quarante-sept à z ≥ 5, au quatrième
+rapport réel (4.24.0.15). L'assertion exige désormais qu'il ne dise jamais
+« oui » ; le faux pic à 0 ms qu'elle garde, elle l'exige toujours absent.
+Rejoué, « rien d'écarté » tombe : z 9 à 10,5 à 0 ms, et « oui ».
+
+Le banc complet : 1702 assertions dans 198 scénarios, toutes vertes.
+
+| mutant | ce qui tombe |
+| --- | --- |
+| le renvoi de la vitesse retiré (1) | 96 |
+| la salle en fin de guide (1) | 96 |
+| « Clear history » à la place du bouton (1) | 96 |
+| le badge gris absent de la maquette (1) | 96 |
+| le gris sans sa règle (1) | 96 |
+| la maquette du co-stream au violet (1) | 96 |
+| le thème « Auto » sans ses teintes claires (1) | 96 |
+| rien d'écarté du silence commun, rejoué sur l'assertion revue (1) | 196 : les deux paires à 0 ms, « oui » |
+
+Huit mutants, huit pris.
+
 ## La fin d'un abonnement, et l'ancien abonné (v4.24.0.36)
 
 La demande : « Concernant les abonnements, peux-tu vérifier que quand
@@ -18549,7 +18673,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 198 scénarios, 1698 assertions |
+| `npm test` | le harnais Playwright : 198 scénarios, 1702 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -18572,10 +18696,10 @@ assemblé :
 | --- | --- | --- | --- |
 | `content.js` | 1660 Ko | 671 Ko | 4 166 → **2** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
-| `panneau.js` | 108 Ko | 51 Ko | 152 → **0** |
+| `panneau.js` | 109 Ko | 51 Ko | 156 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
 | `background.js` | 10 Ko | 2 Ko | 22 → **0** |
-| **les cinq** | **1917 Ko** | **828 Ko** | **−57 %** |
+| **les cinq** | **1918 Ko** | **828 Ko** | **−57 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
