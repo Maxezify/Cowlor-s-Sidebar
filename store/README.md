@@ -52,8 +52,8 @@ se saisit pas ici : elle vient du manifeste, clé `extDescription` de
 
 ## Ce qui doit rester vrai
 
-Les douze fiches se tiennent par leur structure : **25 sections `➤`**, **26
-séparateurs**, **94 puces** et **130 étoiles**. C'est le profil de la fiche
+Les douze fiches se tiennent par leur structure : **26 sections `➤`**, **27
+séparateurs**, **99 puces** et **140 étoiles**. C'est le profil de la fiche
 anglaise, et `npm run store` le compare à celui des onze autres : une section
 oubliée en traduisant se voit à ce compte-là, immédiatement. Ces nombres ne se
 recopient pas : le script les DÉDUIT de la fiche anglaise, si bien qu'ajouter
@@ -63,7 +63,7 @@ les recopie quand même : ces quatre nombres annonçaient 85 puces et 112 étoil
 alors que les fiches en portaient 86 et 114, parce que rien ne relie la phrase
 au compteur. Le script, lui, ne s'est jamais trompé — il mesure.
 
-Onze affirmations sont **vérifiables dans le code**, et doivent changer le jour
+Douze affirmations sont **vérifiables dans le code**, et doivent changer le jour
 où le code change :
 
 1. **« Six façons de trier »** — `getSortButtons()` en rend six. C'était cinq
@@ -90,7 +90,14 @@ où le code change :
    `twitch.tv/subscriptions` dans une iframe, et cette page-là est authentifiée
    par le navigateur. Le point 4 ne la couvre pas ; c'est pourquoi la fiche la
    nomme séparément, juste après lui, au lieu de la laisser passer sous
-   « anonyme ». Voir la section « Vie privée » du README principal.
+   « anonyme ». Voir la section « Vie privée » du README principal. Sa
+   fréquence se dit exactement depuis la 4.24.0.38 : toutes les six heures
+   PAR DÉFAUT (`abosPeriode`, 3, 6, 12 ou 24), plus tôt seulement après un
+   relevé qui n'a rien trouvé (`SUBS_PAGE_EMPTY_RETRY`) ou sur « Relever
+   maintenant ». Les fiches disaient « au plus une fois toutes les six
+   heures » : la période était devenue un réglage sans qu'elles suivent. Les
+   deux moitiés de la phrase sont au contrat `PROMESSES`, et le bouton est
+   cité sous le libellé de chaque langue (voir le point 11).
 6. **« Le blocage de pub reste à sa place »** — `adblock.js` ne s'active que
    dans l'aperçu que l'extension ouvre elle-même : une iframe nommée
    `tse-apercu`, posée par une page twitch.tv. Le lecteur principal n'est
@@ -136,10 +143,15 @@ où le code change :
    fait : le mouvement cesse, le signal continue (scénarios 113, 114 et 116).
    Le contrôle `PROMESSES` de `tests/store.mjs` relie ces deux phrases-là au
    code, comme `CITES` le fait pour les libellés.
-11. **« Un onglet Options … vingt-deux réglages »** — la table `OPT_DEFS` de
-   `content.js` en porte vingt-deux depuis la 4.24.0.17 (l'alignement
-   automatique de la salle), vingt et un depuis la 4.24.0.7 (le compteur de
-   la salle multistream), vingt depuis la 4.22.0. Le scénario 117 compte la
+11. **« Réglages … vingt et un réglages »** — la table `OPT_DEFS` de
+   `content.js` en porte vingt et un depuis la 4.24.0.33 (la pastille de
+   collaboration, partie avec elle), vingt-deux depuis la 4.24.0.17
+   (l'alignement automatique de la salle), vingt et un depuis la 4.24.0.7 (le
+   compteur de la salle multistream), vingt depuis la 4.22.0. Jusqu'à la
+   4.24.0.38, les fiches l'appelaient « un onglet Options » : rien ne porte ce
+   nom dans le panneau, qui affiche « Réglages ». `npm run store` exige
+   désormais que chaque fiche cite, entre guillemets, le libellé que SA langue
+   affiche pour cette section et pour « Relever maintenant ». Le scénario 117 compte la
    table ET relit le mot dans les douze fiches et dans la phrase du panneau
    qui remet tout par défaut : la 4.22.0 a ajouté un réglage, et ces
    vingt-quatre phrases disaient encore « dix-neuf » sans que rien ne le
@@ -161,6 +173,13 @@ où le code change :
    C'est la faute que `CITES` empêche dans l'autre sens — promettre ce qui
    n'existe pas ENCORE — et elle n'était couverte par rien. Les deux phrases
    réécrites sont maintenant au contrat.
+12. **« La salle multistream »** — entrée dans les fiches à la 4.24.0.38 ;
+   elle existait depuis des versions sans qu'aucune n'en dise un mot. Elle
+   promet deux chiffres, tenus au contrat `PROMESSES` là où ils se décident :
+   six streams au plus (`SALLE_MAX`) et les touches 1 à 6 (le gestionnaire de
+   clavier de la salle). Le reste — le calage sur le son commun, pas de points
+   de chaîne, les publicités — est le chapitre « La salle multistream » du
+   mode d'emploi, dit avec les mêmes mots.
 
 ## Images
 

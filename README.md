@@ -2180,6 +2180,158 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## Une chaîne, une carte (v4.24.0.38)
+
+La demande : « De temps en temps, j'ai un doublon de carte de streamer,
+j'aimerais que tu investigues rigoureusement et que tu fixes. » Une capture :
+la même chaîne deux fois, côte à côte — même catégorie, mêmes spectateurs,
+même durée. Puis : « Il y a eu une coupure pour cette chaîne, peut-être ça
+qui a créé le bug » — et une seconde capture, sept minutes plus tard : le
+doublon toujours là, l'aperçu disant « 1 coupure ». Publiée sur
+`claude/chrome-multi`.
+
+### Ce qui se passait
+
+**Le tri déplaçait des cartes.** Il les rangeait toutes dans le parent de la
+première. Si chaque carte a son enveloppe — un bloc que React rend pour chaque
+entrée d'une liste, et qu'il retire avec elle —, chaque carte sortait de la
+sienne, qui restait vide à sa place. Une coupure fait sortir la chaîne de la
+liste des directs : React retirait l'enveloppe VIDE, et la carte, qu'il ne
+voyait plus, restait — masquée tant que la chaîne était hors ligne, rendue par
+le cache à son retour, à côté de la carte neuve que Twitch venait de poser, et
+décorée comme elle : mêmes spectateurs, même durée, puisque les deux lisent la
+même réponse. Rien ne la retirait plus jamais.
+
+**Ce qui n'est pas connu d'ici, et ce qui le dira.** Le banc ne joint pas
+twitch.tv, et aucun rapport ne disait la forme de la liste autour des cartes :
+son décor les posait sœurs, et c'est pourquoi il n'avait rien vu. Le mécanisme
+est reproduit sur un décor où chaque carte a son enveloppe, et il donne
+exactement la capture : l'orpheline masquée pendant la coupure, puis rendue,
+puis en double. Le rapport porte désormais la forme de la liste suivie
+(`page.liste` : cartes, enveloppées, profondeur, parents) — le prochain
+rapport réel tranchera.
+
+**Deux autres chemins y menaient**, plus courts : une carte fabriquée « en
+avance » survivait un balayage à la carte de Twitch qui la rendait inutile,
+quand React venait de recycler une carte pour sa chaîne — `syncAheadCards` lit
+le pseudo avant que `processCard` ne le remette à jour, et le lisait sur la
+marque du balayage d'avant ; et rien n'empêchait Twitch de rendre lui-même deux
+fois la même entrée.
+
+**En mode réduit, le tri d'avant faisait pire** : Twitch y pose aussi la
+classe `side-nav-card` sur le `<a>` interne, et le tri, qui la prenait pour une
+carte, sortait ce lien de sa carte. Vu au banc, sur son décor.
+
+### Ce qui change
+
+- **Le tri range des entrées** (`entreesDe`) : l'entrée d'une carte est son
+  plus haut ancêtre qui ne contient qu'elle — la carte même, quand les cartes
+  sont sœurs —, et chacune est rangée DANS SON PARENT. Le tri ne change plus
+  un nœud de parent, quelle que soit la forme de la liste ; le `<a>` interne du
+  mode réduit n'est plus une carte.
+- **Les cartes fabriquées entrent au rang des entrées** — celles d'avance
+  comme celles de Top Chaînes —, sœurs des enveloppes de Twitch, et non plus
+  dans l'enveloppe du modèle, avec qui elles seraient parties.
+- **Le pseudo d'une carte de Twitch se lit sur son lien**, que Twitch vient
+  d'écrire, avant la marque.
+- **Le filet : une chaîne, une carte** (`dedoublonner`, à chaque balayage,
+  après `processCard`). Dans une section, une chaîne n'a qu'une carte visible.
+  On garde celle que l'aperçu survole, puis une carte de Twitch plutôt qu'une
+  des nôtres, puis celle qui était déjà gardée, puis la première. Les nôtres en
+  trop sont retirées ; celles de Twitch sont masquées — on ne retire pas un
+  nœud que React gère —, et le masque tombe quand le doublon cesse. Un doublon
+  masqué ne compte ni dans le filtre des catégories ni dans une barre de
+  co-stream. Le pseudo comparé est celui que `processCard` vient de lire sur le
+  lien, et lui seul : le repli sur un titre lisait, sur le `<a>` interne du
+  mode réduit, la catégorie — trois chaînes du même jeu y faisaient un
+  « doublon ».
+- **Au rapport**, `page.doublons` : les doublons de Twitch masqués et les nôtres
+  retirés depuis le démarrage, et ceux masqués à l'instant. Des comptes, jamais
+  un pseudo. Zéro attendu partout : le filet ne devrait plus servir.
+
+### Les fiches du Store, et le mode d'emploi
+
+- **Le relevé des abonnements.** Les douze fiches disaient « au plus une fois
+  toutes les six heures » : six heures est le défaut, le réglage dit trois,
+  six, douze ou vingt-quatre, et « au plus » était faux aussi — un relevé qui
+  ne trouve rien se refait plus tôt (quinze minutes, puis le double), et
+  « Relever maintenant » relève sur-le-champ. Les fiches le disent, avec le
+  bouton sous le libellé de chaque langue ; le chapitre « Vie privée » du mode
+  d'emploi, qui disait encore « au plus », le dit aussi, dans les douze langues.
+- **La salle multistream** n'était dans aucune fiche. Elle a sa section, après
+  les barres de co-stream : le curseur « ▶ », ce qu'il dit, Maj+clic, le son à
+  la tuile ou aux touches 1 à 6, le calage sur le son commun, six streams au
+  plus, pas de points de chaîne, les publicités de Twitch comme ailleurs,
+  Échap. Et une ligne dans « C'est pour qui ? ».
+- **« Un onglet Options »** : rien ne s'appelle ainsi dans le panneau, qui
+  affiche « Réglages ». Corrigé dans les douze langues.
+- **`npm run store` le tient** : quatre promesses de plus au contrat — six
+  streams (`SALLE_MAX`), les touches 1 à 6, le relevé par défaut
+  (`abosPeriode`), la relance après un relevé vide (`SUBS_PAGE_EMPTY_RETRY`) —
+  et chaque fiche doit citer, entre guillemets, « Réglages » et « Relever
+  maintenant » tels que sa langue les affiche. Le README du dossier `store/`
+  suit : 26 sections, douze affirmations vérifiables.
+
+### Ce que le banc mesure
+
+Le décor apprend l'enveloppe : `__enveloppes` pose chaque carte dans la sienne,
+et `__retirerEntree` retire l'enveloppe comme React — avec ce qu'elle contient
+À CET INSTANT.
+
+- **200**, nouveau :
+  - a) chaque carte dans son enveloppe : le tri range les enveloppes et aucune
+    carte n'en sort ; une coupure — l'entrée retirée, puis une neuve — ne
+    laisse pas d'orpheline, sans que le filet serve ; retirer une entrée ne
+    retire qu'elle ; une carte fabriquée entre au rang des entrées et s'y
+    range ; le rapport dit quatre cartes, quatre enveloppes à deux niveaux, un
+    parent ;
+  - b) deux cartes de Twitch pour une chaîne : une seule se voit, la première ;
+    l'autre est masquée, pas retirée ; elle ne compte ni dans le filtre ni
+    dans une barre ; le masque tombe quand la gardée part ; une troisième
+    arrivée en tête pendant qu'on lit l'aperçu ne prend pas la place de la
+    carte lue, ni pendant, ni après ;
+  - c) une carte que React recycle pour la chaîne d'une carte fabriquée la
+    retire dans le balayage même — pas le filet ;
+  - d) en mode réduit, le `<a>` interne reste dans sa carte, rien n'est masqué,
+    trois cartes au rapport ;
+  - e) en Top Chaînes, les cartes du classement entrent au rang des entrées,
+    rangées par spectateurs.
+
+**Le banc lui-même, trouvé en passant** : le premier jet du c) retirait la
+carte « Déconnecté » de Twitch par son lien — et trouvait d'abord la carte
+fabriquée, qui porte le même lien et que le tri range devant. Le test retirait
+lui-même ce qu'il devait voir disparaître : le mutant du pseudo lu sur la
+marque a survécu, et c'est lui qui l'a montré. Le c) vise désormais la carte
+de Twitch, et vérifie qu'il y avait bien une carte fabriquée avant.
+
+**Au premier banc complet, 1713 sur 1714** : S9, au 178, est tombé à r 0,30
+pour un seuil de 0,3 — décalage juste à 20 ms près, z 6,8. Le même aléa que
+la 4.24.0.31 avait vu une fois (r 0,26) ; l'écoute de la salle n'a pas changé
+d'une ligne. Rejoué seul trois fois, vert ; puis le banc entier.
+
+Le banc complet : 1714 assertions dans 199 scénarios, toutes vertes.
+
+| mutant | ce qui tombe |
+| --- | --- |
+| le tri d'avant, sur toutes les cartes (1) | 200 : sept assertions — l'orpheline après la coupure, les cartes dans l'enveloppe de la première, le `<a>` interne sorti de sa carte en mode réduit, Top Chaînes |
+| le tri d'avant, sur les seules cartes canoniques (1) | 200 : six |
+| la carte fabriquée dans l'enveloppe du modèle (1) | 200 : a |
+| les cartes du classement dans l'enveloppe du modèle (1) | 200 : e |
+| aucun masque (1) | 200 : trois |
+| le masque qui ne tombe pas (1) | 200 : la gardée partie, plus rien |
+| le doublon compté par le filtre (1) | 200 : « 3 \| » au lieu de « 2 \| » |
+| le doublon dans une barre de co-stream (1) | 200 |
+| la survolée non préférée (1) | 200 : la carte lue masquée sous le pointeur |
+| la gardée non préférée (1) | 200 : deux |
+| le pseudo lu sur la marque (1) | 200 : le filet a servi |
+| le pseudo lu sur un titre (1) | 200 : deux cartes masquées en mode réduit |
+| le `<a>` interne compté pour une carte (1) | 200 : six cartes au rapport |
+| « Options » remis, « au plus » remis, le bouton renommé (3) | `npm run store` |
+
+Seize mutants, seize pris. Un dix-septième a survécu — ne pas retoucher un
+parent déjà dans l'ordre : le contrôle global qui le précède suffisait. Ce code
+est parti.
+
 ## Le mode d'emploi, relu contre le produit (v4.24.0.37)
 
 La demande, avec le feu vert pour les autres branches : « Profites-en
@@ -18673,7 +18825,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 198 scénarios, 1702 assertions |
+| `npm test` | le harnais Playwright : 199 scénarios, 1714 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -18694,7 +18846,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1660 Ko | 671 Ko | 4 166 → **2** |
+| `content.js` | 1660 Ko | 671 Ko | 4 183 → **2** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
 | `panneau.js` | 109 Ko | 51 Ko | 156 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |

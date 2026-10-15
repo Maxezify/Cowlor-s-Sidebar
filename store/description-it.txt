@@ -69,6 +69,19 @@ Una barra colorata corre lungo il bordo sinistro della scheda di ogni streamer i
 
 _______________________________
 
+➤ 🎬 LA SALA MULTISTREAM: TUTTO IL CO-STREAM, FIANCO A FIANCO
+Un co-stream sono più sguardi sullo stesso momento. Il cursore «▶» sulla sua barra colorata li apre tutti insieme, fianco a fianco, senza lasciare la pagina.
+
+- ★ DICE COSA APRE ★ Passaci sopra: «Guarda tutti e 3». Partecipanti che non segui? I loro volti compaiono in fondo: vai verso di loro per aggiungerli, oppure Maiusc+clic per aprire tutto il co-stream in un colpo.
+- ★ L'AUDIO DOVE VUOI ★ Un clic su un riquadro gli dà l'audio — anche i tasti da 1 a 6 —, e la chat segue l'audio.
+- ★ ALLINEATI SULLO STESSO ISTANTE ★ Ogni stream arriva con il suo ritardo: l'estensione li allinea da sola sul loro audio comune, in circa un minuto di ascolto. Senza audio comune, non tocca nulla.
+- ★ SEI SULLO SCHERMO ★ Al massimo sei stream; gli altri aspettano sotto, e un clic li fa entrare.
+- ★ SENZA NASCONDERE NIENTE ★ La sala non fa guadagnare punti canale, e le pubblicità di Twitch vi passano come altrove.
+
+Esc la chiude — oppure un clic sul cursore, diventato «■».
+
+_______________________________
+
 ➤ 💜 I TUOI ABBONAMENTI, IN ORO
 I canali che sostieni davvero non dovrebbero sembrare uguali a tutti gli altri. Ora non lo sono più:
 
@@ -199,7 +212,7 @@ Twitch ha un tema chiaro. L'estensione se ne accorge e cambia insieme a lui — 
 _______________________________
 
 ➤ ⚙️ E SE VUOI SCEGLIERE
-Tutto è attivo fin da subito e non c'è nulla da impostare. Ma una scheda «Opzioni» nel pannello ti restituisce il comando su ventuno impostazioni.
+Tutto è attivo fin da subito e non c'è nulla da impostare. Ma «Impostazioni», nel pannello, ti restituisce il comando su ventuno impostazioni.
 
 - ★ CIÒ CHE VEDI ★ Ogni badge, la durata della diretta e il suo formato, la barra «appena iniziata», l'oro degli abbonamenti, i filtri, i pulsanti di ordinamento: tutto si accende e si spegne con una casella.
 - ★ CIÒ CHE VIENE CARICATO ★ L'anteprima può fare a meno del video e conservare badge, linea del tempo e miniatura — oppure semplicemente scendere di qualità. Quanto basta per alleggerirla senza perderla.
@@ -232,7 +245,7 @@ _______________________________
 
 - ★ Nessun server di terze parti ★ L'estensione parla solo con l'API pubblica di Twitch — proprio quella che la pagina usa già per mostrarsi. Nient'altro, da nessuna parte.
 - ★ Chiamate anonime ★ Nessun token di sessione, nessun cookie viene mai inviato: quelle richieste non possono essere ricondotte al tuo account.
-- ★ Un'eccezione, detta ad alta voce ★ Per sapere a quali canali sei abbonato, l'estensione apre LA TUA pagina twitch.tv/subscriptions in un riquadro invisibile, al massimo una volta ogni sei ore, e mai quando non hai effettuato l'accesso. Il tuo browser autentica quella pagina con i propri cookie, esattamente come se avessi cliccato il link: l'estensione non legge mai il tuo token e non lo trasmette mai. Ciò che conserva — nomi dei canali e una durata in mesi — resta nel tuo browser.
+- ★ Un'eccezione, detta ad alta voce ★ Per sapere a quali canali sei abbonato, l'estensione apre LA TUA pagina twitch.tv/subscriptions in un riquadro invisibile, ogni sei ore per impostazione predefinita (oppure tre, dodici o ventiquattro, a tua scelta), prima solo se la rilevazione precedente non ha trovato nulla o se clicchi «Rileva ora», e mai quando non hai effettuato l'accesso. Il tuo browser autentica quella pagina con i propri cookie, esattamente come se avessi cliccato il link: l'estensione non legge mai il tuo token e non lo trasmette mai. Ciò che conserva — nomi dei canali e una durata in mesi — resta nel tuo browser.
 - ★ Nessun tracciante, nessun pixel, nessuna telemetria ★
 - ★ Nessun permesso losco ★ L'estensione funziona SOLO su twitch.tv.
 - ★ Il blocco pubblicità resta al suo posto ★ Si applica alla miniatura dell'anteprima al passaggio del mouse e a nient'altro. La diretta che stai davvero guardando non viene toccata.
@@ -245,7 +258,7 @@ _______________________________
 
 - ★ SEGUI 50 STREAMER? ★ Vedi a colpo d'occhio chi è in diretta da un pezzo e chi ha appena iniziato.
 - ★ SEI ABBONATO A UNA DECINA DI CANALI? ★ Sono in oro, raggruppati in cima, con il numero di mesi che sei con loro.
-- ★ TI PERDI SEMPRE I CO-STREAM? ★ Un ordinamento dedicato li porta in cima, e un'etichetta ti dice chi gioca con chi.
+- ★ TI PERDI SEMPRE I CO-STREAM? ★ Un ordinamento dedicato li porta in cima, un'etichetta ti dice chi gioca con chi, e la sala multistream li apre tutti fianco a fianco.
 - ★ ODI IL DISORDINE VISIVO? ★ Niente più Hype Train che occupano la barra laterale, niente più banner pubblicitari, niente più sezioni vuote.
 - ★ AMI SEMPLICEMENTE TWITCH? ★ Questa estensione è fatta per te!
 

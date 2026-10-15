@@ -69,6 +69,19 @@ Une barre de couleur longe le bord gauche de la carte de chaque streamer en co-s
 
 _______________________________
 
+➤ 🎬 LA SALLE MULTISTREAM : TOUT LE CO-STREAM, CÔTE À CÔTE
+Un co-stream, c'est plusieurs regards sur le même moment. Le curseur « ▶ » posé sur sa barre de couleur les ouvre tous ensemble, côte à côte, sans quitter la page.
+
+- ★ IL DIT CE QU'IL OUVRE ★ Survolez-le : « Regarder les 3 ». Des membres que vous ne suivez pas ? Leurs visages s'affichent à son bout : allez vers eux pour les ajouter, ou Maj+clic pour ouvrir tout le co-stream d'un coup.
+- ★ LE SON OÙ VOUS VOULEZ ★ Un clic sur une tuile lui donne le son — les touches 1 à 6 aussi —, et le chat suit le son.
+- ★ CALÉS SUR LE MÊME INSTANT ★ Chaque stream arrive avec son propre retard : l'extension les cale toute seule sur leur son commun, en une minute d'écoute environ. Sans son commun, elle ne touche à rien.
+- ★ SIX À L'ÉCRAN ★ Six streams au plus ; les autres attendent dessous, un clic les fait entrer.
+- ★ SANS RIEN CACHER ★ La salle ne fait pas gagner de points de chaîne, et les publicités de Twitch y passent comme ailleurs.
+
+Échap pour la refermer — ou un clic sur le curseur, devenu « ■ ».
+
+_______________________________
+
 ➤ 💜 VOS ABONNEMENTS, EN OR
 Les chaînes que vous soutenez vraiment ne devraient pas ressembler à toutes les autres. Maintenant, c'est réglé :
 
@@ -199,7 +212,7 @@ Twitch a un thème clair. L'extension le voit et bascule avec lui — sans recha
 _______________________________
 
 ➤ ⚙️ ET SI VOUS VOULEZ CHOISIR
-Tout est actif d'emblée et il n'y a rien à régler. Mais un onglet « Options » dans le panneau vous rend la main sur vingt et un réglages.
+Tout est actif d'emblée et il n'y a rien à régler. Mais « Réglages », dans le panneau, vous rend la main sur vingt et un réglages.
 
 - ★ CE QUE VOUS VOYEZ ★ Chaque badge, la durée du direct et son format, la barre « vient de démarrer », l'or des abonnements, les filtres, les boutons de tri : tout s'allume et s'éteint à la case.
 - ★ CE QUI SE CHARGE ★ L'aperçu peut se passer de la vidéo et garder ses badges, sa frise et sa miniature — ou simplement descendre en qualité. De quoi l'alléger sans le perdre.
@@ -232,7 +245,7 @@ _______________________________
 
 - ★ Aucun serveur tiers ★ L'extension ne parle qu'à l'API publique de Twitch — celle-là même que la page utilise déjà pour s'afficher. Rien d'autre, nulle part.
 - ★ Des appels anonymes ★ Aucun jeton de session, aucun cookie n'est envoyé : ces requêtes ne peuvent pas être rattachées à votre compte.
-- ★ Une exception, dite tout haut ★ Pour savoir à quelles chaînes vous êtes abonné, l'extension ouvre VOTRE page twitch.tv/subscriptions dans un cadre invisible, au plus une fois toutes les six heures, et jamais si vous êtes déconnecté. C'est votre navigateur qui authentifie cette page avec ses propres cookies, exactement comme si vous aviez cliqué sur le lien : l'extension ne lit jamais votre jeton et ne le transmet jamais. Ce qu'elle en retient — des noms de chaînes et une ancienneté en mois — reste dans votre navigateur.
+- ★ Une exception, dite tout haut ★ Pour savoir à quelles chaînes vous êtes abonné, l'extension ouvre VOTRE page twitch.tv/subscriptions dans un cadre invisible, toutes les six heures par défaut (trois, douze ou vingt-quatre selon votre réglage), plus tôt seulement si le relevé précédent n'a rien trouvé ou si vous cliquez « Relever maintenant », et jamais si vous êtes déconnecté. C'est votre navigateur qui authentifie cette page avec ses propres cookies, exactement comme si vous aviez cliqué sur le lien : l'extension ne lit jamais votre jeton et ne le transmet jamais. Ce qu'elle en retient — des noms de chaînes et une ancienneté en mois — reste dans votre navigateur.
 - ★ Aucun traqueur, aucun pixel, aucune télémétrie ★
 - ★ Aucune permission louche ★ L'extension ne tourne QUE sur twitch.tv.
 - ★ Le blocage de pub reste à sa place ★ Il s'applique à la vignette d'aperçu au survol, et à rien d'autre. Le stream que vous regardez vraiment n'est pas touché.
@@ -245,7 +258,7 @@ _______________________________
 
 - ★ VOUS SUIVEZ 50 STREAMERS ? ★ Voyez d'un coup d'œil qui est en live depuis longtemps et qui vient de commencer.
 - ★ VOUS ÊTES ABONNÉ À UNE DIZAINE DE CHAÎNES ? ★ Elles sont en or, regroupées en tête, avec le nombre de mois où vous les soutenez.
-- ★ VOUS RATEZ TOUJOURS LES CO-STREAMS ? ★ Un tri dédié les remonte en haut, et un badge vous dit qui joue avec qui.
+- ★ VOUS RATEZ TOUJOURS LES CO-STREAMS ? ★ Un tri dédié les remonte en haut, un badge vous dit qui joue avec qui, et la salle multistream les ouvre tous côte à côte.
 - ★ VOUS DÉTESTEZ LE FOUILLIS VISUEL ? ★ Fini les Hype Trains qui squattent la barre, les bandeaux de pub, les sections vides.
 - ★ VOUS AIMEZ JUSTE TWITCH ? ★ Cette extension est faite pour vous !
 

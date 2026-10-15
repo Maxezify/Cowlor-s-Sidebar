@@ -337,8 +337,30 @@ window.__addCard = (login, cat, viewersText, live = true) => {
         '</div></div></div>' +
       '</div></div>' +
     '</a>';
+  /* __enveloppes (4.24.0.38) : chaque carte dans SON enveloppe — un bloc et
+     un nœud sans classe —, comme React peut rendre une entrée de liste. C'est
+     l'enveloppe qu'il retire quand l'entrée s'en va (`__retirerEntree`), où
+     que soit la carte à ce moment-là : une carte sortie de la sienne y
+     survit. Sans le réglage, les cartes restent sœurs, comme partout ici. */
+  if (window.__enveloppes) {
+    const env = document.createElement('div');
+    env.className = 'tw-transition';
+    env.appendChild(document.createElement('div')).appendChild(d);
+    document.getElementById('cards').appendChild(env);
+    (window.__entrees[login] = window.__entrees[login] || []).push(env);
+    return d;
+  }
   document.getElementById('cards').appendChild(d);
   return d;
+};
+window.__entrees = {};
+// L'entrée la plus ancienne de `login` retirée comme React la retire : son
+// enveloppe, et ce qu'elle contient À CET INSTANT.
+window.__retirerEntree = (login) => {
+  const env = (window.__entrees[login] || []).shift();
+  if (!env) return false;
+  env.remove();
+  return true;
 };
 
 // Une carte SPONSORISÉE, au balisage relevé sur Twitch (classes hachées

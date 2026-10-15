@@ -69,6 +69,19 @@ Uma barra colorida percorre o bordo esquerdo do cartão de cada streamer em co-s
 
 _______________________________
 
+➤ 🎬 A SALA MULTISTREAM: O CO-STREAM INTEIRO, LADO A LADO
+Um co-stream são vários olhares sobre o mesmo momento. O cursor «▶» na barra colorida abre-os todos juntos, lado a lado, sem sair da página.
+
+- ★ DIZ O QUE ABRE ★ Passa o rato por cima: «Ver os 3». Participantes que não segues? Os rostos deles aparecem na ponta: vai até eles para os acrescentar, ou Shift+clique para abrir o co-stream inteiro de uma vez.
+- ★ O SOM ONDE QUISERES ★ Um clique num quadro dá-lhe o som — as teclas de 1 a 6 também —, e o chat segue o som.
+- ★ ALINHADOS NO MESMO INSTANTE ★ Cada transmissão chega com o seu próprio atraso: a extensão alinha-as sozinha pelo som em comum, em cerca de um minuto de escuta. Sem som em comum, não mexe em nada.
+- ★ SEIS NO ECRÃ ★ No máximo seis transmissões; as outras esperam por baixo, e um clique fá-las entrar.
+- ★ SEM ESCONDER NADA ★ A sala não dá pontos do canal, e os anúncios do Twitch passam lá como em qualquer lado.
+
+Esc fecha-a — ou um clique no cursor, que passou a «■».
+
+_______________________________
+
 ➤ 💜 AS TUAS SUBSCRIÇÕES, A OURO
 Os canais que realmente apoias não deviam parecer-se com todos os outros. Já não se parecem:
 
@@ -199,7 +212,7 @@ A Twitch tem um tema claro. A extensão dá por isso e muda com ele — sem reca
 _______________________________
 
 ➤ ⚙️ E SE QUISERES ESCOLHER
-Tudo já vem ativo e não há nada para configurar. Mas um separador «Opções» no painel devolve-te o comando sobre vinte e uma definições.
+Tudo já vem ativo e não há nada para configurar. Mas «Definições», no painel, devolve-te o comando sobre vinte e uma definições.
 
 - ★ O QUE VÊS ★ Cada distintivo, a duração da emissão e o seu formato, a barra «acabou de começar», o ouro das subscrições, os filtros, os botões de ordenação: tudo liga e desliga numa caixa.
 - ★ O QUE É CARREGADO ★ A pré-visualização pode dispensar o vídeo e manter os distintivos, a linha temporal e a miniatura — ou simplesmente baixar a qualidade. O suficiente para a aliviar sem a perder.
@@ -232,7 +245,7 @@ _______________________________
 
 - ★ Nenhum servidor de terceiros ★ A extensão só fala com a API pública do próprio Twitch — a mesma que a página já usa para se montar. Nada além disso, em lado nenhum.
 - ★ Chamadas anónimas ★ Nenhum token de sessão, nenhum cookie é alguma vez enviado: essas chamadas não podem ser ligadas à tua conta.
-- ★ Uma excepção, dita em voz alta ★ Para saber a que canais estás subscrito, a extensão abre a TUA própria página twitch.tv/subscriptions num quadro invisível, no máximo uma vez a cada seis horas, e nunca se tiveres a sessão terminada. É o teu navegador que autentica essa página com os próprios cookies, exactamente como se tivesses clicado no link: a extensão nunca lê o teu token e nunca o passa a ninguém. O que guarda — nomes de canais e um tempo em meses — fica no teu navegador.
+- ★ Uma excepção, dita em voz alta ★ Para saber a que canais estás subscrito, a extensão abre a TUA própria página twitch.tv/subscriptions num quadro invisível, a cada seis horas por predefinição (três, doze ou vinte e quatro, conforme a tua definição), mais cedo só se o levantamento anterior não tiver encontrado nada ou se clicares em «Levantar agora», e nunca se tiveres a sessão terminada. É o teu navegador que autentica essa página com os próprios cookies, exactamente como se tivesses clicado no link: a extensão nunca lê o teu token e nunca o passa a ninguém. O que guarda — nomes de canais e um tempo em meses — fica no teu navegador.
 - ★ Nenhum rastreador, nenhum pixel, nenhuma telemetria ★
 - ★ Nenhuma permissão suspeita ★ A extensão corre APENAS em twitch.tv.
 - ★ O bloqueio de publicidade não sai da sua faixa ★ Aplica-se à miniatura da pré-visualização e a mais nada. A emissão que estás mesmo a ver fica intacta.
@@ -245,7 +258,7 @@ _______________________________
 
 - ★ SEGUES 50 STREAMERS? ★ Vê num relance quem está em directo há muito e quem acabou de começar.
 - ★ ESTÁS SUBSCRITO A UMA DÚZIA DE CANAIS? ★ Estão a ouro, agrupados no topo, com os meses que lá estás.
-- ★ PERDES SEMPRE OS CO-STREAMS? ★ Uma ordenação dedicada leva-os para o topo, e um distintivo diz-te quem joga com quem.
+- ★ PERDES SEMPRE OS CO-STREAMS? ★ Uma ordenação dedicada leva-os para o topo, um distintivo diz-te quem joga com quem, e a sala multistream abre-os todos lado a lado.
 - ★ DETESTAS DESARRUMAÇÃO VISUAL? ★ Acabaram-se os Hype Trains a ocupar a barra, as faixas de publicidade, as secções vazias.
 - ★ SIMPLESMENTE ADORAS O TWITCH? ★ Esta extensão foi feita para ti!
 

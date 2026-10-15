@@ -31632,6 +31632,322 @@ const S_LECTEUR_SONDE = () => {
      JSON.stringify({ i1, i2: [i2.evts, i2.cle, i2.rapport] }));
 }
 
+/* ═════════ 200. Une chaîne, une carte ═════════
+   SIGNALÉ PAR UNE CAPTURE : la même chaîne deux fois, côte à côte, sept
+   minutes au moins, après une coupure de cette chaîne.
+
+   LE TRI DÉPLAÇAIT DES CARTES, et c'était le défaut. Il les rangeait dans le
+   parent de la première : si chaque carte a son enveloppe — un bloc que React
+   rend pour une entrée de liste, et qu'il retire avec elle —, la carte en
+   sortait, et l'enveloppe restait vide. Une coupure retire l'entrée : React
+   retirait l'enveloppe vide, et la carte, qu'il ne voyait plus, restait,
+   masquée hors ligne, rendue par le cache au retour, à côté de la neuve.
+
+   CE QUI SE MESURE :
+     a) chaque carte dans son enveloppe : le tri range les enveloppes et
+        aucune carte n'en sort ; une coupure — l'entrée retirée, puis une
+        neuve — ne laisse pas d'orpheline ; retirer une entrée ne retire
+        qu'elle ; une carte fabriquée entre au rang des entrées ; au rapport,
+        la forme de la liste ;
+     b) deux cartes de Twitch pour une chaîne : une seule se voit, l'autre est
+        masquée, pas retirée ; elle ne compte ni dans le filtre ni dans une
+        barre de co-stream ; le masque tombe quand la gardée part ; la carte
+        survolée reste, et elle reste gardée quand l'aperçu se ferme ;
+     c) une carte que React recycle pour la chaîne d'une carte fabriquée la
+        retire dans le balayage même — pas le filet ;
+     d) en mode réduit, le <a> interne qui porte aussi la classe ne sort pas
+        de sa carte au tri — le tri d'avant l'en sortait —, rien n'y est
+        masqué, et il n'est pas compté pour une carte ;
+     e) en Top Chaînes, les cartes du classement entrent au rang des entrées.
+   Mutants — le tri d'avant, sur toutes les cartes et sur les seules
+   canoniques ; la carte fabriquée posée dans l'enveloppe du modèle, et
+   celles du classement ; aucun masque ; le masque qui ne tombe pas ; le
+   doublon compté par le filtre ; le doublon dans une barre ; la survolée
+   non préférée ; la gardée non préférée ; le pseudo lu sur la marque ; le
+   pseudo lu sur un titre ; le <a> interne compté pour une carte. */
+{
+  titre('200. Une chaîne, une carte — le tri range des entrées, une coupure ne laisse pas d\'orpheline, un doublon se masque');
+  const h = new Date(Date.now() - 60 * 60_000).toISOString();
+  const rapport = (page) => page.evaluate(() => window.tse.panneau.rapport().page);
+  const vues = (page) => page.evaluate(() => [...document.querySelectorAll('#cards .side-nav-card')]
+    .filter((c) => !c.parentElement.closest('.side-nav-card') && getComputedStyle(c).display !== 'none')
+    .map((c) => c.dataset.tseLogin || '?').join(','));
+
+  // ── a) chaque carte dans son enveloppe ────────────────────────────────────
+  {
+    const page = await fresh();
+    await page.evaluate((h) => {
+      window.__enveloppes = true;
+      window.__fx = {
+        gamma: { id: '3', createdAt: h, viewers: 100, game: 'G', tags: [] },
+        alpha: { id: '1', createdAt: h, viewers: 300, game: 'G', tags: [] },
+        beta:  { id: '2', createdAt: h, viewers: 200, game: 'G', tags: [] },
+        delta: { id: '4', createdAt: h, viewers: 50, game: 'G', tags: [] },
+      };
+      // Pas dans l'ordre des spectateurs : le tri a quelque chose à faire.
+      for (const [l, v] of [['gamma', '100'], ['alpha', '300'], ['beta', '200'], ['delta', '50']]) window.__addCard(l, 'G', v);
+    }, h);
+    await attendre(page, () => [...document.querySelectorAll('#cards .side-nav-card')]
+      .map((c) => c.dataset.tseLogin).join(',') === 'alpha,beta,gamma,delta', 8000);
+    // Chaque enveloppe encore enfant de la liste, et ne contenant que SA carte.
+    const chezElles = () => page.evaluate(() => {
+      const L = document.getElementById('cards');
+      return Object.entries(window.__entrees).every(([l, envs]) => envs.every((e) =>
+        e.parentElement === L && e.querySelectorAll('.side-nav-card').length === 1
+        && e.querySelector('a[href]').getAttribute('href') === '/' + l));
+    });
+    const f1 = { vues: await vues(page), chezElles: await chezElles(), liste: (await rapport(page)).liste };
+    /* Mutant — le tri qui range les cartes dans le parent de la première :
+       l'ordre est le même, mais toutes sont dans l'enveloppe de « gamma ». */
+    ok('le tri range les enveloppes : l\'ordre des spectateurs, et chaque carte restée dans la sienne',
+       f1.vues === 'alpha,beta,gamma,delta' && f1.chezElles, JSON.stringify(f1));
+    ok('au rapport, la forme de la liste : quatre cartes, quatre enveloppes à deux niveaux, un seul parent',
+       JSON.stringify(f1.liste) === '{"cartes":4,"enveloppees":4,"niveaux":2,"parents":1}', JSON.stringify(f1.liste));
+
+    /* LA COUPURE, comme Twitch la rend : l'entrée d'« alpha » s'en va pendant
+       qu'elle est hors ligne, puis une entrée NEUVE arrive à son retour. */
+    await page.evaluate(() => { window.__fx.alpha = null; window.__retirerEntree('alpha'); });
+    await wait(page, 1500);
+    const pendant = await page.evaluate(() => [...document.querySelectorAll('.side-nav-card')]
+      .filter((c) => c.querySelector('a[href="/alpha"]')).length);
+    await page.evaluate((t) => {
+      window.__fx.alpha = { id: '1b', createdAt: t, viewers: 310, game: 'G', tags: [] };
+      window.__addCard('alpha', 'G', '310');
+    }, new Date(Date.now() - 60_000).toISOString());
+    await attendre(page, () => [...document.querySelectorAll('#cards .side-nav-card')]
+      .map((c) => c.dataset.tseLogin).join(',') === 'alpha,beta,gamma,delta', 8000);
+    await wait(page, 1500);   // des balayages : un doublon aurait le temps de paraître
+    const apres = await page.evaluate(() => {
+      const a = [...document.querySelectorAll('.side-nav-card')].filter((c) => c.querySelector('a[href="/alpha"]'));
+      return { dom: a.length, visibles: a.filter((c) => getComputedStyle(c).display !== 'none').length };
+    });
+    const d1 = (await rapport(page)).doublons;
+    /* Mutant — le même : la carte d'« alpha » survit à son enveloppe, masquée
+       pendant la coupure, rendue au retour à côté de la neuve ; le filet la
+       masque, et le rapport le dit. */
+    ok('une coupure ne laisse pas d\'orpheline : l\'entrée retirée emporte sa carte, la neuve est la seule — sans le filet',
+       pendant === 0 && apres.dom === 1 && apres.visibles === 1 && d1.natifs === 0 && d1.masques === 0 && await chezElles(),
+       JSON.stringify({ pendant, apres, d1 }));
+
+    /* Retirer une entrée ne retire qu'elle — « gamma » était la première. La
+       chaîne s'arrête : en direct, sa carte serait fabriquée à sa place. */
+    await page.evaluate(() => { window.__fx.gamma = null; window.__retirerEntree('gamma'); });
+    await wait(page, 800);
+    const sans = await vues(page);
+    ok('retirer une entrée ne retire que sa chaîne', sans === 'alpha,beta,delta', sans);
+
+    /* UNE CARTE FABRIQUÉE ENTRE AU RANG DES ENTRÉES : « tardif » reprend
+       alors que Twitch la dit encore hors ligne. Mutant — la carte posée dans
+       l'enveloppe du modèle : elle partirait avec elle. */
+    await page.evaluate((h) => {
+      window.__fx.tardif = { id: '9', createdAt: h, viewers: 250, game: 'G', tags: [] };
+      window.__addCard('tardif', 'G', 'Déconnecté', false);
+    }, h);
+    await attendre(page, () => !!document.querySelector('.side-nav-card[data-tse-synthetic="true"]'), 8000);
+    await wait(page, 800);
+    const fab = await page.evaluate(() => {
+      const c = document.querySelector('.side-nav-card[data-tse-synthetic="true"]');
+      return { parent: c?.parentElement?.id || c?.parentElement?.className || null };
+    });
+    const fv = await vues(page);
+    ok('une carte fabriquée entre au rang des entrées de Twitch, et s\'y range',
+       fab.parent === 'cards' && fv === 'alpha,tardif,beta,delta', JSON.stringify({ fab, fv }));
+    await page.close();
+  }
+
+  // ── b) deux cartes de Twitch pour une chaîne ──────────────────────────────
+  {
+    const page = await fresh();
+    await page.evaluate((h) => {
+      window.__fx = {
+        alpha: { id: '1', createdAt: h, viewers: 300, game: 'G', tags: [] },
+        beta:  { id: '2', createdAt: h, viewers: 200, game: 'G', tags: [] },
+        gamma: { id: '3', createdAt: h, viewers: 100, game: 'H', tags: [] },
+      };
+      const Q = [{ id: '1', login: 'alpha', viewers: 300, combined: 500 }, { id: '2', login: 'beta', viewers: 200, combined: 500 }];
+      window.__gs = { 1: { hostId: '1', hostLogin: 'alpha', guests: Q }, 2: { hostId: '1', hostLogin: 'alpha', guests: Q } };
+      window.__addCard('alpha', 'G', '300').setAttribute('data-premiere', '');
+      window.__addCard('beta', 'G', '200');
+      window.__addCard('gamma', 'H', '100');
+      window.__addCard('alpha', 'G', '300');   // la même entrée, rendue deux fois
+    }, h);
+    await attendre(page, () => document.querySelectorAll('.side-nav-card[data-tse-doublon="true"]').length === 1
+      && document.querySelectorAll('.side-nav-card.tse-costream').length >= 2
+      && !!document.querySelector('#tse-cat-dd .tse-dd-opt[data-value="G"] .tse-dd-n'), 8000);
+    await wait(page, 600);
+    const b1 = await page.evaluate(() => {
+      const a = [...document.querySelectorAll('.side-nav-card')].filter((c) => c.dataset.tseLogin === 'alpha');
+      const masquee = a.find((c) => c.dataset.tseDoublon === 'true');
+      return {
+        dom: a.length,
+        gardee: a.find((c) => getComputedStyle(c).display !== 'none')?.hasAttribute('data-premiere'),
+        g: document.querySelector('#tse-cat-dd .tse-dd-opt[data-value="G"] .tse-dd-n')?.textContent,
+        barre: masquee ? [...masquee.classList].filter((k) => k.startsWith('tse-costream')).join(' ') : null,
+      };
+    });
+    const v1 = await vues(page);
+    const d1 = (await rapport(page)).doublons;
+    /* Mutant — aucun masque : « alpha » deux fois. */
+    ok('deux cartes de Twitch pour une chaîne : une seule se voit, la première ; l\'autre est masquée, pas retirée',
+       v1 === 'alpha,beta,gamma' && b1.dom === 2 && b1.gardee === true
+       && JSON.stringify(d1) === '{"natifs":1,"fabriques":0,"masques":1}', JSON.stringify({ v1, b1, d1 }));
+    /* Mutants — le doublon compté par le filtre (« 3 » chaînes en G) ; le
+       doublon dans une barre de co-stream. */
+    ok('le doublon masqué ne compte pas : deux chaînes dans la catégorie, et aucune barre de co-stream sur lui',
+       nz(b1.g).trim() === '2 |' && b1.barre === '', JSON.stringify(b1));
+
+    // La gardée s'en va : le masque tombe.
+    await page.evaluate(() => document.querySelector('.side-nav-card[data-premiere]').remove());
+    await attendre(page, () => !document.querySelector('.side-nav-card[data-tse-doublon="true"]'), 5000);
+    const v2 = await vues(page);
+    ok('la carte gardée partie, l\'autre se montre', v2 === 'alpha,beta,gamma'
+       && (await rapport(page)).doublons.masques === 0, v2);
+
+    /* LA CARTE SURVOLÉE RESTE : une troisième carte arrive EN TÊTE pendant
+       qu'on lit l'aperçu. Puis l'aperçu se ferme : elle reste gardée. Mutants
+       — la survolée non préférée (masquée sous le pointeur) ; la gardée non
+       préférée (masquée à la fermeture, la nouvelle étant la première). */
+    await page.evaluate(() => {
+      document.querySelector('.side-nav-card:not([data-premiere])[data-tse-login="alpha"]')?.setAttribute('data-lue', '');
+    });
+    await hoverLogin(page, 'alpha');
+    await attendre(page, () => !!document.querySelector('.tse-preview__iframe'), 4000);
+    await page.evaluate(() => {
+      const d = window.__addCard('alpha', 'G', '300');
+      d.setAttribute('data-neuve', '');
+      document.getElementById('cards').prepend(d);
+    });
+    await attendre(page, () => document.querySelector('.side-nav-card[data-neuve]')?.dataset.tseDoublon === 'true', 4000);
+    const lue = () => page.evaluate(() => ({
+      lue: getComputedStyle(document.querySelector('.side-nav-card[data-lue]')).display !== 'none',
+      neuve: document.querySelector('.side-nav-card[data-neuve]').dataset.tseDoublon === 'true',
+    }));
+    const pendantLecture = await lue();
+    await page.evaluate(() => document.querySelector('.side-nav-card[data-lue]')
+      .dispatchEvent(new MouseEvent('mouseleave', { bubbles: false })));
+    await attendre(page, () => !document.querySelector('.tse-preview__iframe'), 6000);
+    await wait(page, 1200);
+    const apresLecture = await lue();
+    ok('la carte qu\'on lit reste sous le pointeur, et reste la gardée quand l\'aperçu se ferme',
+       pendantLecture.lue && pendantLecture.neuve && apresLecture.lue && apresLecture.neuve,
+       JSON.stringify({ pendantLecture, apresLecture }));
+    await page.close();
+  }
+
+  // ── c) la carte recyclée par React ────────────────────────────────────────
+  {
+    const page = await fresh();
+    await page.evaluate((h) => {
+      window.__fx = {
+        alpha:  { id: '1', createdAt: h, viewers: 300, game: 'G', tags: [] },
+        beta:   { id: '2', createdAt: h, viewers: 200, game: 'G', tags: [] },
+        tardif: { id: '9', createdAt: h, viewers: 250, game: 'G', tags: [] },
+      };
+      window.__addCard('alpha', 'G', '300');
+      window.__addCard('beta', 'G', '200');
+      window.__addCard('tardif', 'G', 'Déconnecté', false);
+    }, h);
+    await attendre(page, () => !!document.querySelector('.side-nav-card[data-tse-synthetic="true"]'), 8000);
+    await wait(page, 600);
+    /* React rend la carte d'« alpha » pour « tardif » : même nœud, autre lien,
+       et le compteur réécrit — l'enfant qui change, et que l'observateur voit.
+       La carte « Déconnecté » de « tardif » s'en va. */
+    const avant = await page.evaluate(() => document.querySelectorAll('.side-nav-card[data-tse-synthetic="true"]').length);
+    await page.evaluate(() => {
+      window.__fx.alpha = null;
+      // LA carte de Twitch : la nôtre porte le même lien, et le tri la range devant.
+      [...document.querySelectorAll('.side-nav-card')]
+        .find((x) => x.querySelector('a[href="/tardif"]') && x.dataset.tseSynthetic !== 'true').remove();
+      const c = [...document.querySelectorAll('.side-nav-card')].find((x) => x.dataset.tseLogin === 'alpha' && x.dataset.tseSynthetic !== 'true');
+      const a = c.querySelector('a');
+      a.setAttribute('href', '/tardif');
+      a.id = 'nav-tardif';
+      c.querySelector('.side-nav-card__live-status > div > div').innerHTML =
+        '<span class="tw-channel-status-indicator"></span><span aria-hidden="true">250</span><p class="sr-only">250 spectateurs</p>';
+    });
+    await attendre(page, () => !document.querySelector('.side-nav-card[data-tse-synthetic="true"]'), 8000);
+    const c1 = { avant, fab: await page.evaluate(() => document.querySelectorAll('.side-nav-card[data-tse-synthetic="true"]').length),
+                 d: (await rapport(page)).doublons };
+    /* Mutant — le pseudo lu sur la marque : la carte fabriquée survit au
+       balayage, et c'est le filet qui la retire. */
+    ok('une carte recyclée pour la chaîne d\'une carte fabriquée la retire dans le balayage même — pas le filet',
+       c1.avant === 1 && c1.fab === 0 && c1.d.fabriques === 0 && c1.d.natifs === 0, JSON.stringify(c1));
+    await page.close();
+  }
+
+  // ── d) le mode réduit ─────────────────────────────────────────────────────
+  {
+    const page = await fresh();
+    await page.evaluate((h) => {
+      document.getElementById('root').classList.add('side-nav--collapsed');
+      window.__fx = {
+        alpha: { id: '1', createdAt: h, viewers: 100, game: 'G', tags: [] },
+        beta:  { id: '2', createdAt: h, viewers: 300, game: 'G', tags: [] },
+        gamma: { id: '3', createdAt: h, viewers: 200, game: 'G', tags: [] },
+      };
+      // En réduit, Twitch pose aussi la classe sur le <a> interne.
+      for (const [l, v] of [['alpha', '100'], ['beta', '300'], ['gamma', '200']]) {
+        window.__addCard(l, 'G', v).querySelector('a').classList.add('side-nav-card');
+      }
+    }, h);
+    await attendre(page, () => [...document.querySelectorAll('#cards > .side-nav-card')]
+      .map((c) => c.dataset.tseLogin).join(',') === 'beta,gamma,alpha', 8000);
+    await wait(page, 600);
+    const r = await page.evaluate(() => {
+      const L = document.getElementById('cards');
+      return {
+        ordre: [...L.children].map((c) => c.dataset.tseLogin || c.tagName).join(','),
+        dedans: [...L.children].every((c) => c.querySelector(':scope > a.side-nav-card')),
+        masques: document.querySelectorAll('.side-nav-card[data-tse-doublon="true"]').length,
+      };
+    });
+    const liste = (await rapport(page)).liste;
+    /* Mutants — le tri d'avant, qui rangeait aussi le <a> interne : il sortait
+       de sa carte ; le pseudo lu sur un titre : la catégorie commune masquait
+       deux cartes ; le <a> interne compté pour une carte. */
+    ok('en mode réduit, le tri range les cartes et le <a> interne reste dans la sienne ; rien n\'est masqué ; trois cartes au rapport',
+       r.ordre === 'beta,gamma,alpha' && r.dedans && r.masques === 0
+       && JSON.stringify(liste) === '{"cartes":3,"enveloppees":0,"niveaux":0,"parents":1}', JSON.stringify({ r, liste }));
+    await page.close();
+  }
+
+  // ── e) Top Chaînes, chaque carte suivie dans son enveloppe ────────────────
+  {
+    const page = await fresh();
+    await page.evaluate((h) => {
+      window.__enveloppes = true;
+      window.__fx = {
+        suivi1: { id: 's1', createdAt: h, viewers: 400, game: 'G', tags: [] },
+        suivi2: { id: 's2', createdAt: h, viewers: 300, game: 'G', tags: [] },
+      };
+      window.__addCard('suivi1', 'G', '400');
+      window.__addCard('suivi2', 'G', '300');
+      window.__cats = [{ name: 'c0', viewers: 50_000, streams:
+        [2000, 6000, 4000, 1000, 5000, 3000].map((v, i) => ({ login: 'top' + i, viewers: v })) }];
+    }, h);
+    await wait(page, 1500);
+    await page.evaluate(() => document.querySelector('#tse-mode-row [data-tse-mode="global"]').click());
+    await attendre(page, () => document.querySelectorAll('.side-nav-card[data-tse-global="true"]').length === 6, 10_000);
+    await wait(page, 1200);
+    const g = await page.evaluate(() => {
+      const L = document.getElementById('cards');
+      const gl = [...document.querySelectorAll('.side-nav-card[data-tse-global="true"]')];
+      return {
+        ordre: gl.filter((c) => getComputedStyle(c).display !== 'none').map((c) => c.dataset.tseLogin).join(','),
+        auRang: gl.every((c) => c.parentElement === L),
+        chezElles: Object.entries(window.__entrees).every(([l, envs]) => envs.every((e) =>
+          e.parentElement === L && e.querySelectorAll('.side-nav-card').length === 1
+          && e.querySelector('a[href]').getAttribute('href') === '/' + l)),
+      };
+    });
+    /* Mutant — les cartes du classement posées dans l'enveloppe du modèle :
+       elles y sont toutes, et partiraient avec elle. */
+    ok('Top Chaînes : les cartes du classement entrent au rang des entrées, rangées par spectateurs ; les cartes suivies restent dans leur enveloppe',
+       g.ordre === 'top1,top4,top2,top5,top0,top3' && g.auRang && g.chezElles, JSON.stringify(g));
+    await page.close();
+  }
+}
+
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════
    Les deux README annoncent la taille de ce banc. Ils ne peuvent pas la
    connaître : ils la recopient. Résultat, avant cette ligne, un même fichier

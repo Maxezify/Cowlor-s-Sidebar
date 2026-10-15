@@ -69,6 +69,19 @@ Kolorowy pasek biegnie wzdłuż lewej krawędzi karty każdego streamera w co-st
 
 _______________________________
 
+➤ 🎬 SALA MULTISTREAM: CAŁY CO-STREAM, OBOK SIEBIE
+Co-stream to kilka spojrzeń na tę samą chwilę. Kursor „▶” na jego kolorowym pasku otwiera je wszystkie razem, obok siebie, bez wychodzenia ze strony.
+
+- ★ MÓWI, CO OTWORZY ★ Najedź na niego: „Oglądaj 3 naraz”. Uczestnicy, których nie obserwujesz? Ich twarze pojawiają się na jego końcu: najedź na nich, aby ich dodać, albo użyj Shift+klik, by otworzyć cały co-stream naraz.
+- ★ DŹWIĘK TAM, GDZIE CHCESZ ★ Kliknięcie kafelka daje mu dźwięk — klawisze od 1 do 6 też — a czat podąża za dźwiękiem.
+- ★ WYRÓWNANE DO TEJ SAMEJ CHWILI ★ Każda transmisja ma własne opóźnienie: rozszerzenie samo wyrównuje je do wspólnego dźwięku, po mniej więcej minucie słuchania. Bez wspólnego dźwięku niczego nie rusza.
+- ★ SZEŚĆ NA EKRANIE ★ Najwyżej sześć transmisji; pozostałe czekają pod spodem, a kliknięcie je wprowadza.
+- ★ BEZ UKRYWANIA ★ Sala nie daje punktów kanału, a reklamy Twitcha lecą w niej jak wszędzie.
+
+Esc ją zamyka — albo kliknięcie kursora, który zmienił się w „■”.
+
+_______________________________
+
 ➤ 💜 TWOJE SUBSKRYPCJE, W ZŁOCIE
 Kanały, które naprawdę wspierasz, nie powinny wyglądać jak wszystkie inne. Teraz już nie wyglądają:
 
@@ -199,7 +212,7 @@ Twitch ma jasny motyw. Rozszerzenie to zauważa i przełącza się razem z nim �
 _______________________________
 
 ➤ ⚙️ A JEŚLI CHCESZ WYBIERAĆ
-Wszystko działa od razu i nie trzeba niczego ustawiać. Ale zakładka „Opcje” w panelu oddaje Ci dwadzieścia jeden ustawień.
+Wszystko działa od razu i nie trzeba niczego ustawiać. Ale sekcja „Ustawienia” w panelu oddaje Ci dwadzieścia jeden ustawień.
 
 - ★ TO, CO WIDZISZ ★ Każda odznaka, czas trwania transmisji i jego format, pasek „właśnie ruszyła”, złoto subskrypcji, filtry, przyciski sortowania: wszystko włącza się i wyłącza jednym polem.
 - ★ TO, CO SIĘ WCZYTUJE ★ Podgląd może zrezygnować z wideo i zachować odznaki, oś czasu i miniaturę — albo po prostu zejść z jakością. Tyle, by go odciążyć, nie tracąc go.
@@ -232,7 +245,7 @@ _______________________________
 
 - ★ Żadnego serwera zewnętrznego ★ Rozszerzenie rozmawia wyłącznie z publicznym API samego Twitcha — dokładnie tym, którego strona już używa, by się wyświetlić. Nic więcej, nigdzie.
 - ★ Anonimowe wywołania ★ Żaden token sesji, żadne ciasteczko nigdy nie jest wysyłane: tych zapytań nie da się powiązać z Twoim kontem.
-- ★ Jeden wyjątek, powiedziany na głos ★ Żeby wiedzieć, które kanały subskrybujesz, rozszerzenie otwiera TWOJĄ własną stronę twitch.tv/subscriptions w niewidocznej ramce, najwyżej raz na sześć godzin i nigdy, gdy jesteś wylogowany. Twoja przeglądarka uwierzytelnia tę stronę własnymi ciasteczkami, dokładnie tak, jakbyś kliknął link: rozszerzenie nigdy nie czyta Twojego tokenu i nigdy go nie przekazuje. To, co zachowuje — nazwy kanałów i staż w miesiącach — zostaje w Twojej przeglądarce.
+- ★ Jeden wyjątek, powiedziany na głos ★ Żeby wiedzieć, które kanały subskrybujesz, rozszerzenie otwiera TWOJĄ własną stronę twitch.tv/subscriptions w niewidocznej ramce, domyślnie co sześć godzin (albo co trzy, dwanaście lub dwadzieścia cztery — według Twojego ustawienia), wcześniej tylko wtedy, gdy poprzedni odczyt niczego nie znalazł albo gdy klikniesz „Odczytaj teraz”, i nigdy, gdy jesteś wylogowany. Twoja przeglądarka uwierzytelnia tę stronę własnymi ciasteczkami, dokładnie tak, jakbyś kliknął link: rozszerzenie nigdy nie czyta Twojego tokenu i nigdy go nie przekazuje. To, co zachowuje — nazwy kanałów i staż w miesiącach — zostaje w Twojej przeglądarce.
 - ★ Żadnego trackera, żadnego piksela, żadnej telemetrii ★
 - ★ Żadnych podejrzanych uprawnień ★ Rozszerzenie działa WYŁĄCZNIE na twitch.tv.
 - ★ Blokowanie reklam trzyma się swojego miejsca ★ Dotyczy miniatury podglądu po najechaniu i niczego więcej. Transmisja, którą naprawdę oglądasz, pozostaje nietknięta.
@@ -245,7 +258,7 @@ _______________________________
 
 - ★ OBSERWUJESZ 50 STREAMERÓW? ★ Zobacz od razu, kto jest na żywo od dawna, a kto dopiero zaczął.
 - ★ SUBSKRYBUJESZ KILKANAŚCIE KANAŁÓW? ★ Są w złocie, zgrupowane na górze, z liczbą miesięcy, od których tam jesteś.
-- ★ ZAWSZE PRZEGAPIASZ CO-STREAMY? ★ Dedykowane sortowanie wynosi je na górę, a etykieta mówi, kto z kim gra.
+- ★ ZAWSZE PRZEGAPIASZ CO-STREAMY? ★ Dedykowane sortowanie wynosi je na górę, etykieta mówi, kto z kim gra, a sala multistream otwiera je wszystkie obok siebie.
 - ★ NIENAWIDZISZ WIZUALNEGO BAŁAGANU? ★ Koniec z Hype Trainami okupującymi panel, koniec z banerami reklamowymi, koniec z pustymi sekcjami.
 - ★ PO PROSTU KOCHASZ TWITCHA? ★ To rozszerzenie jest dla Ciebie!
 

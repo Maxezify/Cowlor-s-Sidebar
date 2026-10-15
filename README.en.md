@@ -2059,6 +2059,152 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## One channel, one card (v4.24.0.38)
+
+The request: "Every now and then I get a duplicate streamer card; I'd like you
+to investigate rigorously and fix it." A screenshot: the same channel twice,
+side by side — same category, same viewers, same duration. Then: "There was a
+drop for that channel, maybe that's what caused the bug" — and a second
+screenshot, seven minutes later: the duplicate still there, the preview saying
+"1 drop". Published on `claude/chrome-multi`.
+
+### What was happening
+
+**Sorting moved cards.** It put them all in the parent of the first one. If
+each card has its wrapper — a block React renders for each entry of a list,
+and removes with it — every card left its own, which stayed behind empty. A
+drop takes the channel out of the live list: React removed the EMPTY wrapper,
+and the card, which it no longer saw, stayed — hidden while the channel was
+offline, brought back by the cache when it returned, next to the fresh card
+Twitch had just placed, and decorated like it: same viewers, same duration,
+since both read the same response. Nothing ever removed it.
+
+**What cannot be known from here, and what will tell.** The bench cannot reach
+twitch.tv, and no report said what the list looks like around the cards: its
+set placed them as siblings, which is why it had seen nothing. The mechanism
+is reproduced on a set where each card has its wrapper, and it gives exactly
+the screenshot: the orphan hidden during the drop, then shown again, then
+doubled. The report now carries the shape of the followed list (`page.liste`:
+cards, wrapped, depth, parents) — the next real report will settle it.
+
+**Two other paths led there**, shorter ones: a card made "ahead" outlived by
+one scan the Twitch card that made it useless, when React had just recycled a
+card for its channel — `syncAheadCards` reads the login before `processCard`
+updates it, and read it from the previous scan's mark; and nothing stopped
+Twitch from rendering the same entry twice itself.
+
+**In collapsed mode, the old sort did worse**: Twitch also puts the
+`side-nav-card` class on the inner `<a>` there, and the sort, taking it for a
+card, pulled that link out of its card. Seen on the bench, on its set.
+
+### What changes
+
+- **Sorting arranges entries** (`entreesDe`): a card's entry is its highest
+  ancestor that contains only it — the card itself when cards are siblings —
+  and each one is arranged INSIDE ITS OWN PARENT. Sorting no longer moves a
+  node to another parent, whatever the shape of the list; the inner `<a>` of
+  collapsed mode is no longer a card.
+- **Cards we make join at the level of the entries** — the ahead cards as well
+  as the Top Channels ones —, siblings of Twitch's wrappers, and no longer
+  inside the template's wrapper, with which they would have gone.
+- **A Twitch card's login is read from its link**, which Twitch has just
+  written, before the mark.
+- **The safety net: one channel, one card** (`dedoublonner`, on every scan,
+  after `processCard`). Within a section, a channel has only one visible card.
+  We keep the one the preview is hovering, then a Twitch card rather than one
+  of ours, then the one already kept, then the first. Extra cards of ours are
+  removed; Twitch's are hidden — we do not remove a node React manages — and
+  the mask lifts when the duplicate ends. A hidden duplicate counts neither in
+  the category filter nor in a co-stream bar. The login compared is the one
+  `processCard` has just read from the link, and only that: the fallback to a
+  title read, on the inner `<a>` of collapsed mode, the category — three
+  channels of the same game made a "duplicate" there.
+- **In the report**, `page.doublons`: Twitch duplicates hidden and ours removed
+  since start-up, and those hidden right now. Counts, never a login. Zero
+  expected everywhere: the net should no longer be needed.
+
+### The Store listings, and the guide
+
+- **The subscription sweep.** All twelve listings said "at most once every
+  six hours": six hours is the default, the setting says three, six, twelve or
+  twenty-four, and "at most" was wrong too — a sweep that finds nothing is
+  redone sooner (fifteen minutes, then double), and "Sweep now" sweeps on the
+  spot. The listings say so, naming the button by each language's label; the
+  "Privacy" chapter of the guide, which still said "at most", says so too, in
+  all twelve languages.
+- **The multistream room** was in no listing. It has its section, after the
+  co-stream bars: the "▶" cursor, what it says, Shift+click, the sound on the
+  tile or on keys 1 to 6, the alignment on the common sound, six streams at
+  most, no channel points, Twitch's ads as anywhere else, Escape. And a line
+  in "Who is it for?".
+- **"An Options tab"**: nothing in the panel is called that; it shows
+  "Settings". Fixed in all twelve languages.
+- **`npm run store` holds it**: four more promises in the contract — six
+  streams (`SALLE_MAX`), keys 1 to 6, the default sweep (`abosPeriode`), the
+  retry after an empty sweep (`SUBS_PAGE_EMPTY_RETRY`) — and each listing must
+  quote "Settings" and "Sweep now" as its own language shows them. The
+  `store/` folder README follows: 26 sections, twelve checkable claims.
+
+### What the bench measures
+
+The set learns about wrappers: `__enveloppes` puts each card in its own, and
+`__retirerEntree` removes the wrapper the way React does — with whatever it
+contains AT THAT MOMENT.
+
+- **200**, new:
+  - a) each card in its wrapper: sorting arranges the wrappers and no card
+    leaves one; a drop — the entry removed, then a fresh one — leaves no
+    orphan, without the net being needed; removing an entry removes only that
+    one; a card we make joins at the level of the entries and is sorted
+    there; the report says four cards, four wrappers two levels deep, one
+    parent;
+  - b) two Twitch cards for one channel: only one shows, the first; the other
+    is hidden, not removed; it counts neither in the filter nor in a bar; the
+    mask lifts when the kept one leaves; a third one arriving at the top while
+    the preview is being read does not take the place of the card being read,
+    neither during nor after;
+  - c) a card React recycles for the channel of a card we made removes it in
+    that very scan — not the net;
+  - d) in collapsed mode, the inner `<a>` stays in its card, nothing is hidden,
+    three cards in the report;
+  - e) in Top Channels, the ranking's cards join at the level of the entries,
+    sorted by viewers.
+
+**The bench itself, found on the way**: the first draft of c) removed Twitch's
+"Offline" card by its link — and found the card we made first, which carries
+the same link and which sorting puts ahead. The test itself removed what it
+was meant to see disappear: the "login read from the mark" mutant survived,
+and that is what showed it. c) now targets the Twitch card, and checks there
+was indeed a card we made beforehand.
+
+**On the first full bench, 1713 out of 1714**: S9, in 178, fell at r 0.30 for
+a 0.3 threshold — offset right to within 20 ms, z 6.8. The same hazard
+4.24.0.31 had seen once (r 0.26); the room's listening has not changed by a
+line. Replayed alone three times, green; then the whole bench.
+
+The full bench: 1714 assertions in 199 scenarios, all green.
+
+| mutant | what fails |
+| --- | --- |
+| the old sort, on all cards (1) | 200: seven assertions — the orphan after the drop, the cards inside the first one's wrapper, the inner `<a>` pulled out of its card in collapsed mode, Top Channels |
+| the old sort, on canonical cards only (1) | 200: six |
+| the card we make inside the template's wrapper (1) | 200: a |
+| the ranking's cards inside the template's wrapper (1) | 200: e |
+| no mask (1) | 200: three |
+| the mask that never lifts (1) | 200: the kept one gone, nothing left |
+| the duplicate counted by the filter (1) | 200: "3 \|" instead of "2 \|" |
+| the duplicate in a co-stream bar (1) | 200 |
+| the hovered card not preferred (1) | 200: the card being read hidden under the pointer |
+| the kept card not preferred (1) | 200: two |
+| the login read from the mark (1) | 200: the net was needed |
+| the login read from a title (1) | 200: two cards hidden in collapsed mode |
+| the inner `<a>` counted as a card (1) | 200: six cards in the report |
+| "Options" put back, "at most" put back, the button renamed (3) | `npm run store` |
+
+Sixteen mutants, sixteen caught. A seventeenth survived — not touching a
+parent already in order: the global check before it was enough. That code is
+gone.
+
 ## The guide, read against the product (v4.24.0.37)
 
 The request, with the green light for the other branches: "Take the
@@ -18109,7 +18255,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 198 scenarios, 1702 assertions |
+| `npm test` | the Playwright harness: 199 scenarios, 1714 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -18129,7 +18275,7 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1660 KB | 671 KB | 4,166 → **2** |
+| `content.js` | 1660 KB | 671 KB | 4,183 → **2** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
 | `panneau.js` | 109 KB | 51 KB | 156 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
