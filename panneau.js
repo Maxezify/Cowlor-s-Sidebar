@@ -66,6 +66,8 @@ const COL = {
   ancien:    { cle: 'colFormer',    f: fmt.oui },
   origine:   { cle: 'colSource',    f: fmt.texte, classe: () => 'faible' },
   echeance:  { cle: 'colDue',       f: fmt.jour },
+
+  fin:       { cle: 'colEnd',       f: fmt.oui },
   lag:       { cle: 'colLag',       f: fmt.duree, num: true },
   gain:      { cle: 'colGain',      f: fmt.duree, num: true },
   t:         { cle: 'colElapsed',   f: fmt.duree, num: true },
@@ -342,10 +344,15 @@ const badgeDemo = (mod, cle) =>
 
 const demoCarte = (o) => {
   const carte = div('d-carte' + (o.frais ? ' d-carte--frais' : '')
-                              + (o.or ? ' d-carte--or' : ''));
-  const avatar = div('d-avatar');
-  if (o.collab) avatar.appendChild(elt('span', 'd-collab', o.collab));
-  carte.appendChild(avatar);
+                              + (o.or ? ' d-carte--or' : '')
+                              + (o.costream ? ' d-carte--costream' : ''));
+
+  if (o.costream) {
+    const noeud = div('d-noeud');
+    noeud.appendChild(elt('span', ''));
+    carte.appendChild(noeud);
+  }
+  carte.appendChild(div('d-avatar'));
 
   const texte = div('d-carte-texte');
   const nom = div('d-nom');
@@ -382,6 +389,8 @@ const BADGES_DEMO = [
   ['switch',   'guideBadgeSwitch'],
   ['costream', 'guideBadgeCostream'],
   ['squad',    'guideBadgeSquad'],
+
+  ['muet',     'guideBadgeMuet'],
   ['sub',      'guideBadgeSub'],
   ['exsub',    'guideBadgeExsub'],
   ['sponsor',  'guideBadgeSponsor'],
@@ -441,7 +450,8 @@ const carteEtBadge = (carte, mod, cle) => {
 
 const GUIDE = [
   { titre: 'guideRoueTitre',     texte: 'guideRoueTexte' },
-  { titre: 'guideViteTitre',     texte: 'guideViteTexte' },
+
+  { titre: 'guideViteTitre',     texte: 'guideViteTexte', renvoi: 'guideBadgesTitre' },
   { titre: 'guideDureeTitre',    texte: 'guideDureeTexte',
     demo: () => {
       const hote = div('d-pile');
@@ -460,8 +470,10 @@ const GUIDE = [
 
   { titre: 'guideCostreamTitre', texte: 'guideCostreamTexte', renvoi: 'guideTriTitre',
     demo: () => carteEtBadge(
-      demoCarte({ nom: 'Korbek', cat: 'Valorant', vues: 962, duree: '1h47', collab: '3' }),
-      'squad', 'guideBadgeSquad') },
+      demoCarte({ nom: 'Korbek', cat: 'Valorant', vues: 962, duree: '1h47', costream: true }),
+      'costream', 'guideBadgeCostream') },
+
+  { titre: 'guideSalleTitre',    texte: 'guideSalleTexte' },
   { titre: 'guideSubathonTitre', texte: 'guideSubathonTexte',
     demo: () => carteEtBadge(
       demoCarte({ nom: 'Velmoria', cat: 'Minecraft', vues: 4820, duree: '61h04', jour: true }),
@@ -636,7 +648,7 @@ const GROUPES_OPT = [
 
   ['optGrpMultistream', ['salle', 'salleAuto']],
   ['optGrpBadges',  ['badges']],
-  ['optGrpCarte',   ['duree', 'dureeFormat', 'fresh', 'collab', 'abonnes', 'subathonJour']],
+  ['optGrpCarte',   ['duree', 'dureeFormat', 'fresh', 'abonnes', 'subathonJour']],
   ['optGrpListe',   ['tris', 'filtreCategorie', 'filtreLangue', 'topOnglet', 'topN']],
   ['optGrpTwitch',  ['stories', 'serie']],
   ['optGrpAbos',    ['abosPeriode']],
@@ -1232,6 +1244,12 @@ const construireRapport = (r, transport, fond) => {
     paire('prochain relevé dans / next sweep in',
           Number.isFinite(r.relevesAbonnements?.prochainDansMs)
             ? `${Math.round(r.relevesAbonnements.prochainDansMs / 60_000)} min` : '—'),
+
+    paire('rendues à leur passé / moved to former',
+          !r.relevesAbonnements?.fini ? '—'
+            : r.relevesAbonnements.revolus === null || r.relevesAbonnements.revolus === undefined
+              ? 'non jugé — un onglet en cours n\'a pas été lu / not judged — a current tab was not read'
+              : r.relevesAbonnements.revolus),
 
     paire('bascule abandonnée / tab switch dropped',
           r.relevesAbonnements?.bascule || 'non / no'),

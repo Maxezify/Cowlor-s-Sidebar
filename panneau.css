@@ -411,16 +411,30 @@ html, body {
   width: 30px; height: 30px; border-radius: 50%;
   background: linear-gradient(135deg, #3a3a44, #26262c);
 }
-/* La pastille de collab, posée au coin de l'avatar comme sur la vraie carte :
-   son anneau est de la couleur du FOND, ce qui la détache du visage sans
-   dessiner de contour. */
-.d-collab {
-  position: absolute; bottom: -3px; right: -3px;
-  min-width: 15px; height: 15px; padding: 0 4px; box-sizing: border-box;
-  background: var(--violet); color: #fff;
-  font-size: 9.5px; font-weight: 700; line-height: 15px; text-align: center;
-  border-radius: 999px; box-shadow: 0 0 0 2px var(--fond);
-  font-variant-numeric: tabular-nums;
+/* LE CO-STREAM (4.24.0.33) : plus de pastille sur l'avatar — la barre de la
+   carte, à la première couleur de la palette, et au milieu le curseur de la
+   salle, recopiés de content.js : même trait, même lueur ; depuis la
+   4.24.0.34, la gélule au repos, neuf pixels sur dix-huit, son ▶ de cinq sur
+   six. Rien n'y répond au survol : c'est une image. */
+.d-carte--costream {
+  background: linear-gradient(90deg,
+    rgba(245, 197, 24, 0.18) 0%, rgba(245, 197, 24, 0.06) 40%, transparent 100%);
+}
+.d-carte--costream::before {
+  content: '';
+  position: absolute; left: 0; top: 4px; bottom: 4px;
+  width: 3px; border-radius: 0 3px 3px 0; background: #f5c518;
+  box-shadow: 0 0 6px #f5c518, 0 0 2px #f5c518;
+}
+.d-noeud {
+  position: absolute; left: 0; top: 50%; transform: translateY(-50%); z-index: 1;
+  display: flex; align-items: center;
+  width: 9px; height: 18px; padding-left: 2px; box-sizing: border-box;
+  border-radius: 4.5px; background: #f5c518; color: #0e0e10;
+}
+.d-noeud span {
+  display: block; width: 5px; height: 6px; background: currentColor;
+  clip-path: polygon(16% 6%, 96% 50%, 96% 50%, 16% 94%);
 }
 .d-carte-texte { flex: 1 1 auto; min-width: 0; }
 .d-nom {
@@ -527,6 +541,9 @@ html, body {
 .d-badge--discount { background: rgba(255, 56, 219, 0.20);  color: #ffa3ee; }
 .d-badge--costream { background: rgba(31, 105, 255, 0.25);  color: #7fb3ff; }
 .d-badge--squad    { background: rgba(145, 71, 255, 0.25);  color: #d1b3ff; }
+/* Ceux de la session qui ne diffusent pas (4.24.0.37) : le gris du produit,
+   « présent, mais éteint ». Il manquait au chapitre qui promet tous les badges. */
+.d-badge--muet     { background: rgba(255, 255, 255, 0.10); color: #adadb8; }
 .d-badge--sponsor  { background: rgba(0, 184, 90, 0.22);    color: #6bdb9d; }
 .d-badge--sub      { background: rgba(255, 201, 102, 0.22); color: #ffd591; }
 /* Ancien abonné : le MÊME or, désaturé. Un fait révolu ne doit pas briller
@@ -544,6 +561,7 @@ html[data-theme="light"] .d-badge--hype     { color: #993d00; }
 html[data-theme="light"] .d-badge--discount { color: #a8008a; }
 html[data-theme="light"] .d-badge--costream { color: #0045d1; }
 html[data-theme="light"] .d-badge--squad    { color: #6000f0; }
+html[data-theme="light"] .d-badge--muet     { color: #53535f; }
 html[data-theme="light"] .d-badge--sponsor  { color: #006b34; }
 html[data-theme="light"] .d-badge--sub      { color: #8a5900; }
 html[data-theme="light"] .d-badge--exsub    { color: #7c6b4b; }
@@ -565,6 +583,29 @@ html[data-theme="light"] .d-jour {
   75%    { color: #7320cb; background-color: rgba(111, 31, 196, 0.18); }
   87.5%  { color: #a3007a; background-color: rgba(236, 0, 177, 0.18); }
   100%   { color: #ad0000; background-color: rgba(214, 0, 0, 0.18); }
+}
+/* LE THÈME « AUTO » SUR UN SYSTÈME CLAIR (4.24.0.37). Les jetons du fond
+   suivent prefers-color-scheme ; les badges, eux, ne lisaient que data-theme,
+   que seul un choix explicite pose. Le mode d'emploi montrait donc, au
+   réglage par défaut, des badges aux teintes du sombre sur un fond clair —
+   « Jeux matures » en rose pâle sur du blanc. Mêmes valeurs qu'au-dessus. */
+@media (prefers-color-scheme: light) {
+  html:not([data-theme="dark"]):not([data-theme="light"]) .d-badge--hype     { color: #993d00; }
+  html:not([data-theme="dark"]):not([data-theme="light"]) .d-badge--discount { color: #a8008a; }
+  html:not([data-theme="dark"]):not([data-theme="light"]) .d-badge--costream { color: #0045d1; }
+  html:not([data-theme="dark"]):not([data-theme="light"]) .d-badge--squad    { color: #6000f0; }
+  html:not([data-theme="dark"]):not([data-theme="light"]) .d-badge--muet     { color: #53535f; }
+  html:not([data-theme="dark"]):not([data-theme="light"]) .d-badge--sponsor  { color: #006b34; }
+  html:not([data-theme="dark"]):not([data-theme="light"]) .d-badge--sub      { color: #8a5900; }
+  html:not([data-theme="dark"]):not([data-theme="light"]) .d-badge--exsub    { color: #7c6b4b; }
+  html:not([data-theme="dark"]):not([data-theme="light"]) .d-badge--ccl      { color: #9a1320; }
+  html:not([data-theme="dark"]):not([data-theme="light"]) .d-badge--switch,
+  html:not([data-theme="dark"]):not([data-theme="light"]) .d-badge--reprise  { color: #386e17; }
+  html:not([data-theme="dark"]):not([data-theme="light"]) .d-badge--subathon,
+  html:not([data-theme="dark"]):not([data-theme="light"]) .d-jour {
+    color: #00686b;
+    animation-name: d-arcenciel-clair;
+  }
 }
 .d-badge--ccl      { background: rgba(200, 25, 42, 0.26);   color: #ff868c; }
 .d-badge--switch,
