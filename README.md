@@ -343,12 +343,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1611 Ko | 646 Ko | 4 103 → **2** |
+| `content.js` | 1660 Ko | 671 Ko | 4 166 → **2** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
-| `panneau.js` | 107 Ko | 51 Ko | 149 → **0** |
+| `panneau.js` | 109 Ko | 51 Ko | 156 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
-| `background.js` | 9 Ko | 2 Ko | 22 → **0** |
-| **les cinq** | **1866 Ko** | **803 Ko** | **−57 %** |
+| `background.js` | 10 Ko | 2 Ko | 22 → **0** |
+| **les cinq** | **1918 Ko** | **828 Ko** | **−57 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
@@ -2623,6 +2623,967 @@ Un sous-test qui modélisait un cas impossible — un direct qui rajeunit sans
 changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'il
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
+
+## Le mode d'emploi, relu contre le produit (v4.24.0.37)
+
+La demande, avec le feu vert pour les autres branches : « Profites-en
+également pour faire un tour sur le Mode d'emploi, et assure-toi qu'il est
+bien à jour et qu'il explique parfaitement l'extension. Sois rigoureux. »
+Puis : « Encore une fois, expliquer ne veut pas dire décrire. Certaines
+choses ne sont pas obligées d'être sues. Et d'autres sont primordiales pour
+savoir comment bien utiliser l'extension. »
+
+Chaque phrase des quinze chapitres a été confrontée au code — `content.js`,
+`panneau.js`, la table des réglages — puis chacun a été réécrit sur une seule
+question : qu'est-ce qu'il faut savoir pour s'en servir ? Publiée sur
+`claude/chrome-multi`, puis sur les autres branches.
+
+### Ce qui était faux
+
+- **Les abonnements ignoraient la 4.24.0.36.** Rien sur « Expire dans … »,
+  ni sur l'or qui s'éteint à la fin, ni sur « Ancien abonné » ; rien non plus
+  sur ce qu'il faut pour que l'or paraisse — être connecté à Twitch — ni sur
+  « Relever maintenant » quand on vient de s'abonner.
+- **« Un badge violet dit qui reçoit et qui est invité. »** C'est le bleu
+  (« Stream Hôte », « Co-stream de … ») ; le violet nomme les membres en
+  direct hors de la liste. Et le gris — ceux de la session qui ne diffusent
+  pas — n'était nulle part, dans un chapitre qui promet de montrer **tous**
+  les badges.
+- **La maquette du co-stream** posait « En live avec Korbek » sur la carte de
+  Korbek : un streamer en direct avec lui-même.
+- **« Au plus une fois toutes les six heures »**, pour le relevé : c'est le
+  défaut, le réglage va de trois à vingt-quatre heures.
+- **« Les trente chaînes les plus regardées »** : dix, trente ou cinquante.
+- **« Effacer l'historique remet tout à zéro »** : vos réglages restent.
+- **« Vos heures d'écoute »** : la section « Rythme » dit elle-même que c'est
+  un rythme, pas un temps de visionnage.
+- **« Les deux verts sont des nouvelles »** : il y a trois verts, et celui du
+  sponsor n'en est pas une.
+- **Des boutons qui n'existent pas sous ce nom.** L'anglais disait « Clear
+  history » à côté d'un bouton « Erase history », le portugais du Brésil
+  « Limpar o histórico » pour « Apagar o histórico », l'italien « Esporta un
+  rapporto » pour « Esporta un report » ; le portugais d'Europe renvoyait à
+  des « Configurações » que son panneau appelle « Definições ». L'allemand
+  passait du « du » au « Sie » dans le même chapitre.
+- **Au thème « Auto », sur un système clair** — le réglage par défaut —, les
+  maquettes montraient les badges aux teintes du sombre : « Jeux matures » en
+  rose pâle sur du blanc. Le fond suivait le système ; les badges ne lisaient
+  que le choix explicite. Trouvé en regardant le guide rendu, pas en lisant le
+  code.
+
+### Ce qui manquait pour s'en servir
+
+- **La salle multistream** tenait en une phrase au bout des co-streams. Elle
+  a son chapitre, juste après eux : le son à la tuile ou aux touches 1 à 6,
+  le chat qui suit le son, les onglets qui en montrent un autre, six streams
+  au plus et ceux qui attendent dessous, l'alignement — une minute d'écoute,
+  un son commun, un réglage —, pas de points de chaîne, les publicités de
+  Twitch qui y passent, Échap pour sortir.
+- **L'aperçu est sans publicité**, et lui seul.
+- **La série de visionnage et les stories** de Twitch, rangées dans le bloc
+  des filtres : on les cherchait.
+- **Les trois formats de la durée**, et « Terminé » — que la maquette
+  montrait sans que le texte le dise.
+- **Les deux barres du bord gauche** : la rouge bat, celle du co-stream est
+  fixe.
+
+### Ce qui est parti
+
+Ce qui se voit sans qu'on l'explique : l'anneau d'or, le reflet lent, la bulle
+du premier lancement, les deux chats qui encadrent les lecteurs, les étapes du
+curseur.
+
+### La prose se lie au produit
+
+- **Les libellés cités viennent de la fiche de chaque langue.** Le texte des
+  douze langues porte des repères — le groupe « Réglages », le bouton « Exporter
+  un rapport », les six tris… — remplacés par le libellé de sa propre fiche :
+  le guide ne peut plus nommer un bouton qui n'existe pas.
+- **Deux renvois** : le chapitre de la vitesse renvoie aux badges, où revient
+  ce que la barre retire ; celui des co-streams aux tris, et à la salle par
+  « chapitre suivant ».
+- **Le badge gris** rejoint la maquette, au gris du produit dans les deux
+  thèmes. Les fiches du Store disent « seize chapitres ».
+
+### Ce que le banc mesure
+
+**96**, quatre assertions de plus, et trois revues :
+
+- le chapitre de la vitesse renvoie aux badges, et la salle suit les
+  co-streams ;
+- la maquette du co-stream porte le badge bleu, plus le violet ;
+- dans les douze fiches, le guide cite chaque groupe, bouton et tri par son
+  libellé exact ;
+- au thème « Auto », les badges prennent les teintes du thème que suit le
+  système, badge par badge ;
+- revues : seize chapitres au lieu de quinze, douze modificateurs pour onze
+  couleurs au lieu de onze pour dix, et le badge neutre n'est plus le
+  douzième.
+
+**Le banc lui-même, trouvé en passant** : au premier banc complet de cette
+version, la paire du 196 qui ne partage rien a dit « incertain · 2 calculs sur
+8 » au lieu de « non » — un pic de bruit à −4140 ms, z 5,2 puis 5,1, retrouvé
+par deux calculs dont les fenêtres se recouvrent. La première fois sur
+quarante-deux passes ; `content.js` n'avait pas changé depuis la 4.24.0.36.
+Six passes du 196 seul, aussitôt : les pics de cette paire tombent n'importe
+où, de −5570 à 5890 ms, à z 3 à 5,8. Ce verdict n'est qu'une statistique du
+rapport, qui ne commande aucun geste, et deux vrais streams sans rien en commun
+l'avaient déjà déjoué — six calculs sur quarante-sept à z ≥ 5, au quatrième
+rapport réel (4.24.0.15). L'assertion exige désormais qu'il ne dise jamais
+« oui » ; le faux pic à 0 ms qu'elle garde, elle l'exige toujours absent.
+Rejoué, « rien d'écarté » tombe : z 9 à 10,5 à 0 ms, et « oui ».
+
+Le banc complet : 1702 assertions dans 198 scénarios, toutes vertes.
+
+| mutant | ce qui tombe |
+| --- | --- |
+| le renvoi de la vitesse retiré (1) | 96 |
+| la salle en fin de guide (1) | 96 |
+| « Clear history » à la place du bouton (1) | 96 |
+| le badge gris absent de la maquette (1) | 96 |
+| le gris sans sa règle (1) | 96 |
+| la maquette du co-stream au violet (1) | 96 |
+| le thème « Auto » sans ses teintes claires (1) | 96 |
+| rien d'écarté du silence commun, rejoué sur l'assertion revue (1) | 196 : les deux paires à 0 ms, « oui » |
+
+Huit mutants, huit pris.
+
+## La fin d'un abonnement, et l'ancien abonné (v4.24.0.36)
+
+La demande : « Concernant les abonnements, peux-tu vérifier que quand
+l'échéance est passée, on n'a plus le badge abonné, et on a le badge ancien
+abonné. J'ai l'impression que certains étaient considérés comme abonnés mais
+avec une échéance passée. Investigue, sois rigoureux et fix, seulement sur
+chrome-multi. » Publiée sur `claude/chrome-multi` seulement.
+
+### C'était vrai
+
+- **Le relevé n'écrivait jamais « non abonné ».** Il est additif, et c'est
+  voulu : il marque abonné ce qu'il trouve dans les onglets en cours, et une
+  absence ne prouve rien. Un abonnement qui finit quitte pourtant l'onglet
+  des offerts — ou des payés — pour celui des **expirés**, et cet onglet-là ne
+  touchait qu'à l'ancienneté. La chaîne restait donc abonnée pendant toute la
+  durée d'une observation, **cent vingt jours**, à moins d'ouvrir sa page :
+  le décor de la carte, le tri, la pastille et le badge « Abonné » avec.
+- **Entre deux relevés — trois à vingt-quatre heures —, rien ne regardait la
+  date.** Un abonnement offert expiré la veille restait abonné jusqu'au
+  relevé suivant, et au-delà pour la raison ci-dessus.
+- **Le tableau « Abonnements » du panneau le montrait** : « Abonné : oui » à
+  côté d'une échéance passée. Il recopiait l'état noté, sans rien en juger.
+- **Un payé qu'on ne renouvelle plus avait sa fin lue comme un
+  anniversaire.** Sa carte dit « Vos avantages arrivent à expiration le … »,
+  les mots d'un offert, là où un payé qui se renouvelle dit « Date de
+  renouvellement de l'abonnement » ; le badge disait « Prochain anniversaire
+  dans N jours ».
+
+Le nouveau scénario, rejoué sur la 4.24.0.35 : **sept assertions sur neuf
+échouent** — « Abonné • 1 MOIS » pour une chaîne que Twitch range dans les
+expirés, « Abonné • 2 MOIS » pour un offert expiré la veille.
+
+Le dernier rapport joint ne dit pas lesquelles : il ne porte que des comptes.
+Il en dit la forme : 16 abonnés notés, 19 échéances connues — au moins trois
+entrées gardaient l'échéance d'un abonnement que la visite de leur page avait
+déjà dit fini, la seule voie, jusqu'ici, vers « non abonné ».
+
+### Ce qui change
+
+- **Le relevé juge les révolus.** Une chaîne que l'onglet des expirés liste,
+  et qu'**aucun** des trois onglets en cours ne liste, n'est plus abonnée —
+  Twitch le dit lui-même ; son échéance part avec l'abonnement qu'elle datait.
+  Le jugement se rend à la fin du relevé, tous les onglets lus : une chaîne
+  réabonnée après une interruption figure dans les deux, et reste abonnée.
+  Il ne se rend que si **chaque onglet en cours a été lu jusqu'au bout** —
+  ses cartes, ou le message que Twitch écrit à leur place. Un onglet resté
+  blanc ne prouve pas qu'il est vide : rien n'est jugé, et le rapport le dit.
+  Une chaîne qu'aucun onglet ne nomme, ni en cours ni expiré, n'est pas
+  touchée : l'absence ne prouve toujours rien.
+- **La date d'une fin suffit.** L'expiration d'un offert, ou la fin d'un
+  payé ou d'un mobile qu'on ne renouvelle plus : dès le lendemain, la chaîne
+  n'est plus abonnée et l'aperçu dit « Ancien abonné • N MOIS », sans
+  attendre le relevé. Le jour même, l'abonnement court encore — Twitch
+  l'arrête dans la journée — et le badge dit « Expire aujourd'hui ».
+- **Une fin n'est pas un anniversaire.** L'étiquette de la date d'un offert,
+  la seule qui soit toujours une fin, s'apprend sur sa carte et se mémorise
+  (`tse:subfin`), sans un mot de français, comme celle de l'ancienneté.
+  Retrouvée sur une carte payée ou mobile, elle dit un abonnement qu'on ne
+  renouvelle plus : « Expire dans N jours », et la date qui compte est celle
+  qu'elle porte. Jugé à la fin du relevé, lui aussi : au premier, les payés
+  se lisent avant les offerts. **Sans aucun offert jamais vu**, rien ne se
+  compare : la date reste un anniversaire, et le relevé qui suit la fin la
+  constate — trois à vingt-quatre heures plus tard.
+- **Ce qui ne change pas** : un anniversaire passé est un renouvellement.
+  L'abonnement continue, le badge reste « Abonné » — son échéance se tait —,
+  et le relevé suivant apporte la date d'après.
+
+**Le tableau du panneau, et `tse.subs()`, disent ce que la barre montre** :
+« Abonné » et « Révolu » sont ceux de la barre et de l'aperçu, et une
+colonne « Fin » dit, en douze langues, si l'échéance est une fin ou un
+anniversaire. `tse.subs()` garde aussi `finie` — la fin est passée — et
+`note` — ce que la mémoire a noté. Au rapport : `compteurs.abonnes` compte ce
+que la barre montre, `compteurs.finies` les abonnements notés en cours dont la
+fin est passée — ceux qui attendent le relevé ; et, dans le relevé de la page,
+« rendues à leur passé », le nombre de chaînes jugées — ou « non jugé », et
+pourquoi. La mémoire, un septième champ facultatif, la fin ; une mémoire
+d'avant reste lue telle quelle, un offert sans ce champ restant une fin.
+
+### Ce que le banc mesure
+
+- **199**, nouveau :
+  - **le relevé** rend à leur passé les deux chaînes que seuls les expirés
+    listent — leur carte perd le décor d'abonné, leur aperçu dit « Ancien
+    abonné » —, garde la réabonnée, son anniversaire relu, et celle qu'aucun
+    onglet ne nomme ;
+  - **un onglet en cours resté blanc** : rien n'est jugé, « non jugé » ;
+  - **sans relevé**, la date : un offert expiré hier et un payé non renouvelé
+    dont la fin est passée sont d'anciens abonnés ; « Expire aujourd'hui » le
+    jour même, « Expire dans 5 jours » avant ; un anniversaire passé, toujours
+    abonné ; `tse.subs()` — le tableau du panneau — et le compte au rapport ;
+  - **l'étiquette de fin**, apprise sur un offert et retrouvée sur une carte
+    payée au tout premier relevé — « Expire dans 8 jours » ; sans offert,
+    l'anniversaire.
+- **70** — la ligne « rendues à leur passé » du rapport, et « non jugé ».
+- **69** — la colonne « Fin » est connue du panneau, comme toute colonne que
+  la page lui envoie.
+- **Le décor** : `__subsPayeFin`, une carte payée qui ne se renouvelle plus,
+  avec les mots du relevé du 31/08/2026 ; `__subsBlancOnglets`, des onglets
+  qui restent blancs pendant que les autres rendent leurs cartes.
+- **Le banc lui-même, trouvé en passant** : la rafale du 196 (4.24.0.33) pose
+  ses cent dix silences communs de 120 ms, et non plus de 60. Chaque tuile du
+  décor les pose à l'heure de sa propre correspondance entre l'horloge et son
+  son, et sous la charge d'un banc complet elle glisse de quelques dizaines de
+  millisecondes : un silence de 60 ms n'avait plus, entre deux tuiles, les
+  50 ms d'un silence commun. Un sur cent dix manquait — trois une fois —, dans
+  les trois paires de « foxtrot » à la fois. Mesuré en alternant les deux
+  versions sur le 196 seul : une passe sur neuf de la 4.24.0.35 échoue, deux
+  sur treize de celle-ci — le défaut n'était pas le sien. Le compte au-delà de
+  cent, qui est ce que le 196 mesure, n'y change rien : rejoué, le compte
+  plafonné à la mémoire tombe toujours — cent, là où il en faut cent
+  quatorze. Dix passes du 196 seul, dix vertes.
+
+Les dix-sept autres scénarios des abonnements — 42, 44 à 46, 48 à 51, 53 à
+55, 57, 75, 127, 137, 141, 157 — : 174 sur 174 ; 158, 70, 43 et 147 avec le
+199 : 78 sur 78.
+
+Le banc complet : 1698 assertions dans 198 scénarios, toutes vertes.
+
+| mutant | ce qui tombe |
+| --- | --- |
+| les révolus jamais jugés (1) | 199 : deux — les deux révolues restent abonnées, et dorées |
+| un onglet blanc compté pour lu (1) | 199 : « non jugé » ne vient plus |
+| la réabonnée rendue à son passé (1) | 199 : deux |
+| l'échéance des révolus gardée (1) | 199 |
+| la fin passée ignorée (1) | 199 : l'offert expiré hier, le payé fini, toujours abonnés |
+| le jour même déjà fini (1) | 199 : deux — « Expire aujourd'hui » perdu |
+| l'anniversaire passé pris pour une fin (1) | 199 : trois |
+| la fin passée sans « Ancien abonné » (1) | 199 |
+| la fin d'un payé jugée à la lecture de la carte (1) | 199 : au premier relevé, l'anniversaire reste |
+| le septième champ jamais relu (1) | 199 : trois |
+| le septième champ jamais écrit (1) | 199 |
+| le compte au rapport (1) | 199 |
+| l'étiquette de fin jamais apprise (1) | 199 |
+| l'étiquette prise avec ses chiffres (1) | 199 |
+| la fin d'un payé dite anniversaire au badge (1) | 199 : deux |
+| l'offert noté sans fin (1) | 199 |
+| un onglet aux cartes jamais dit lu (1) | 199 : trois |
+| seul l'onglet des payés exigé (1) | 199 : l'onglet blanc ne retient plus rien |
+| la ligne du rapport retirée (1) | 70 |
+| le tableau avec l'abonné noté, et non celui de la barre (1) | 199 |
+| le tableau avec le révolu noté (1) | 199 |
+| la colonne « Fin » absente du panneau (1) | 69 |
+| le jugement sans nouveau balayage (1) | **survit** |
+
+Vingt-trois mutants, vingt-deux pris. **Le jugement sans nouveau balayage**
+survit, et ce n'est pas faute d'avoir cherché : le 199 lit le décor des
+cartes avant tout survol — un survol rebalaie la barre — et joue l'ordre des
+onglets de tous les jours, les expirés en dernier, pour que rien d'autre ne
+rebalaie après le jugement. Mais au banc, le rafraîchissement accéléré
+rebalaie la barre toutes les 600 ms : il passe toujours avant la lecture.
+En vrai, c'est toutes les trente secondes au plus. Le balayage demandé reste
+donc, pas éprouvé : c'est lui qui rend le changement visible tout de suite.
+
+## La seconde voix, et la place reprise ensemble (v4.24.0.35)
+
+Le rapport : « Voici le rapport, avec pub, sur la dernière version. J'ai cru
+voir quelques minutes d'attente au début pour le calage, il y a eu de la pub
+au tout début de stream. » Puis la demande : « Fais Correctif A (recommandé)
+et Correctif B. Seulement claude/chrome-multi. Soit rigoureux. » Publiée sur
+`claude/chrome-multi` seulement.
+
+### Ce que le rapport a montré
+
+Deux streams, dix-sept minutes, une pub de 14 s sur la référence dès +6 s.
+
+- **La pub a coûté vingt-cinq secondes, pas plus.** Sa fin rouvre la mesure
+  de toutes les tuiles (+20 s) ; la faible latence retirée (+21 s) et un
+  rattrapage du lecteur (+22 s) la rouvrent encore ; le premier calcul
+  compté vient vers +30 s.
+- **Ce qui a attendu six minutes et demie, c'est la règle de l'écho.** De
+  là jusqu'à +405 s, chaque calcul a dit « une source seule, à 1510 ms — un
+  écho, peut-être : rien ne bouge ». Deux voix pourtant : 1510 ms —
+  vingt-quatre premiers pics sur trente — et ~1000 ms, deux à six. Un salon
+  vocal exigeait que la seconde pèse le quart de la première ; elle est
+  restée juste en dessous, jusqu'à l'atteindre pile à +410 s (6 sur 24) :
+  verdict, recul de 1,39 s à +415 s, calée à −20 ms à +480 s. La cible était
+  juste : calée, la paire a gardé ses deux voix, à −550 et −20 ms, le même
+  écart de 530 ms — un salon où un micro domine, pas un écho.
+- **Un second défaut, à +795 s.** Les deux tuiles sont retombées derrière
+  leur place au même instant — la référence de 4,59 s, l'autre de 2,40. La
+  référence n'a pas pu reprendre la sienne : 6,343 s de tampon, il en fallait
+  6,673 (l'avance et ses deux secondes de marge). L'autre a repris la sienne,
+  2,488 s — mais sa place ne valait qu'en face de l'ancienne place de la
+  référence : de 1,9 s devant elle, la voilà à **4,3 s**, quarante secondes
+  durant, jusqu'au recul de 4,19 s que le son a décidé à +835 s.
+- `salle.prete` dit « délai · 3039 ms » : aucune tuile ne jouait encore à
+  trois secondes — leurs changements de qualité, à +4,2 et +4,5 s, montrent
+  des lecteurs qui démarraient à peine. Le pont dit son état chaque seconde ;
+  l'anneau s'est arrêté au plafond prévu. Rien à corriger.
+
+### Le salon déséquilibré
+
+Ce qui sépare un écho d'un salon, aux six écoutes réelles gardées :
+
+| écoute réelle | la grappe | écart à la plus lourde | ce que c'était |
+| --- | --- | --- | --- |
+| huitième | 1040 seule, puis 2370 seule | — | un écho — l'œil voyait la paire juste |
+| neuvième | 1110 (21 premiers pics) et 1000 (4) | 110 ms | un écho, au-dessus d'un salon à 40 ms |
+| à trois streams | 1410–1460 (24) et 1690 (2 à 6) | 230 à 280 ms | un vrai décalage, que le calage avait créé |
+| 4.24.0.34 | 1510 (24) et 1000 (2 à 6) | 510 ms | un vrai décalage, à l'ouverture |
+
+Un écho, c'est **tout** l'autre stream rejoué : un seul décalage, étalé d'un
+dixième de seconde. Un salon, ce sont des voix **distinctes** — la voix de
+chacun par deux chemins, celui du micro et celui du salon vocal —, à 0,2 s au
+moins l'une de l'autre à tous les rapports réels.
+
+**La règle** : une source loin de zéro — au-delà de 0,5 s — dont la grappe a
+une **seconde voix établie** (deux premiers pics au moins) **à 0,2 s au moins
+de la plus lourde** est un salon déséquilibré ; on vise sa plus haute voix,
+comme pour tout salon. Rien d'autre ne change : une source vraiment seule, ou
+dont la seconde voix est collée à la première, attend toujours ; près de
+zéro, une source seule reste jugée sur sa voix la plus lourde. Au rapport, le
+verdict le dit : « en avance de 1.51 s (+1510 ms, un salon déséquilibré) ».
+
+**Rejouée** sur les six écoutes, calcul après calcul (185) :
+
+| écoute | jusqu'à la 4.24.0.34 | désormais |
+| --- | --- | --- |
+| quatorzième | −3840 décidé au 41ᵉ calcul | le même, calcul pour calcul |
+| huitième | jamais une décision | le même |
+| neuvième | le salon à 40 ms au 7ᵉ, l'écho jamais | le même |
+| douzième | 1175, la plus haute voix, au 15ᵉ | le même |
+| à trois streams | 1690 au 114ᵉ calcul | 1690 au **34ᵉ**, sept minutes plus tôt |
+| 4.24.0.34 | « source seule » jusqu'au 75ᵉ calcul ; 1510 au 76ᵉ (+410 s) | chacun des vingt calculs refusés que le rapport garde décide 1510 |
+
+Le début de la 4.24.0.34 — de +30 à +250 s — n'est pas au rapport :
+l'historique garde les cent cinquante derniers calculs, la session en a
+fait cent quatre-vingt-quatorze. Ailleurs, les voix ont partout la même
+forme : la décision serait **probablement** venue dans la minute qui suit la
+pub, ce que ce rapport ne peut pas prouver. Ses trois autres segments — après
+le recul, l'avance et le second recul — décident ce que le pilote a décidé :
+−20 à −30 ms, 4310 ms, 40 à 50 ms.
+
+**Le seuil, balayé de 90 à 600 ms** sur les six : à 110 ms et moins, l'écho du
+neuvième est suivi ; de 120 à 230 ms, la même première décision partout ;
+au-delà de 300 ms, l'écoute à trois streams n'y gagne plus rien, au-delà de
+510 ms celle de la 4.24.0.34 non plus. **200 ms** — le bas de l'écart d'un
+salon, que le code disait déjà (« 0,2–0,3 s ») —, 90 ms au-dessus de l'écho.
+
+**Ce que cela ne couvre pas** : un écho étalé de plus de 0,2 s, avec deux
+premiers pics à son bord, serait suivi — jamais vu, celui du neuvième l'est
+de 0,11 s. Et un écho lié dans la même grappe à la voix haute d'un salon —
+moins de 0,7 s entre eux — l'était déjà, la seconde voix assez lourde, avant
+la 4.24.0.35 : le salon déséquilibré étend ce cas aux voix légères, il ne le
+crée pas. Les échos vus étaient à plus d'une seconde de leur salon.
+
+### La place reprise ensemble
+
+Une place, c'est une **relation à toutes** : la reprendre seule, quand une
+autre n'a pas pu reprendre la sienne, défait cette relation. Désormais les
+tuiles retombées — et celles qui n'ont pas retombé — vont **ensemble** au même
+retard sur leur place :
+
+- chacune peut aller de `dl − av` à `dl + re` — son retard sur sa place, moins
+  ce que son tampon lui laisse reprendre vers le direct (deux secondes
+  gardées, ce qu'une avance perd compté), plus ce qu'elle garde derrière elle
+  pour reculer (si elle le peut : ni en faible latence, ni un lecteur qui
+  reprend chaque recul) ; trois reprises déjà en dix minutes, rien ;
+- **le retard commun** : zéro si toutes l'atteignent — chacune reprend toute
+  sa place, comme avant, mot pour mot ; sinon le plus proche de zéro que
+  toutes atteignent. La plus empêchée reprend ce qu'elle peut, les autres
+  l'y rejoignent, celles qui n'ont pas retombé comprises ;
+- **sans point commun** — l'une ne peut avancer assez, une autre ne peut
+  reculer —, rien ne bouge : chaque retombée devient sa place, et le grand
+  écart et le son feront ce qu'ils peuvent ;
+- **une tuile qui retombe encore** — son dernier relevé à 1,5 s de sa place
+  au moins, le tampon d'accord, avant les six relevés tranquilles qui le
+  diront — est attendue, **dix secondes au plus** : la déplacer maintenant,
+  ce serait sur une place qu'elle n'a déjà plus. Le rapport en montrait la
+  forme : les latences des deux tuiles avaient sauté à douze secondes
+  d'écart ;
+- rejoindre une autre est une reprise, et compte dans les trois.
+
+Le rapport réel, rejoué par le code (198) : la référence avance de 4,343 s
+— elle en reprend 4,26 sur 4,59, deux secondes de tampon gardées —, l'autre
+de 2,158 s et non plus de 2,488. Ensemble, à 0,33 s de leurs places ; il
+reste au son ce que les latences se trompent, environ 0,3 s, au lieu de
+4,3 s pendant quarante secondes.
+
+Au journal :
+
+```
+alpha : retombée derrière sa place de 4.59 s — latence 6.209 → 10.795 s, tampon 3.972 → 7.778 s → elle n'en reprend que 4.26 s (6.343 s de tampon) : avance de 4.343 s — 0.33 s derrière sa place, où les autres la rejoignent
+```
+
+### Ce que le banc mesure
+
+- **185**, sur six écoutes réelles — celle de la 4.24.0.34 ajoutée, ses
+  déplacements pris au journal, faute de relation d'horloge : les vingt
+  calculs que le pilote refusait décident 1510, en salon déséquilibré ; les
+  deux à une seule voix restent « une source seule » ; ses trois autres
+  segments décident ce que le pilote a décidé. L'écoute à trois streams est
+  décidée au 34ᵉ calcul, sur 1690. Les quatre autres, inchangées. Et le
+  salon déséquilibré aux bords, sur trente calculs posés : une seconde voix
+  à 0,25 s et à 0,2 s pile, décidé, la plus haute visée, et le verdict le
+  dit ; à 0,19 s, d'un seul premier pic, ou près de zéro, rien de changé.
+- **198**, nouveau — la règle de la reprise, extraite du code tel qu'il est
+  livré, sur des états posés : le rapport réel, rejoué au chiffre près ;
+  chacune qui le peut, comme avant, mot pour mot ; sans point commun ; une
+  retombée devant sa place ; trois reprises déjà ; une autre qui retombe
+  encore, attendue puis plus après dix secondes, et pas attendue quand son
+  tampon n'a pas bougé ; la pub. Puis en direct, à l'échelle 0,1, « xray »
+  et « omega » calées : retombées ensemble, « xray » à court de tampon ;
+  l'une trois secondes après l'autre ; « omega » qui n'a pas retombé et
+  recule jusqu'à « xray ». À chaque fois, deux secondes après, la paire est
+  où elle était — avant que le son n'ait rien réentendu.
+- **Le faux lecteur** : `__retomber(x, b)` dit le tampon qu'une tuile a
+  après sa chute, s'il n'a pas tout pris.
+
+Sur la même machine, les scénarios du calage voisins — 183, 184, 188, 190,
+192 et 193 — : 23 sur 23.
+
+Le banc complet : 1688 assertions dans 197 scénarios, toutes vertes.
+
+| mutant | ce qui tombe |
+| --- | --- |
+| l'ancienne règle, sans salon déséquilibré (1) | 185 : trois — l'écoute à trois streams, celle de la 4.24.0.34, les bords |
+| la seconde voix distincte à 100 ms (1) | 185 : trois — l'écho du neuvième suivi |
+| la seconde voix distincte à 300 ms (1) | 185 : deux — l'écoute à trois streams, les bords |
+| 200 ms pile exclus (1) | 185 : les bords |
+| la plus lourde visée, et non la plus haute (1) | 185 : deux |
+| le salon déséquilibré près de zéro aussi (1) | 185 : deux — l'écoute de la 4.24.0.34, les bords |
+| la seconde voix prise dans une autre grappe (1) | 185 : deux — les échos des huitième et neuvième suivis |
+| le verdict qui ne le dit pas (1) | 185 : les bords |
+| chacune pour soi, la reprise d'avant (1) | 198 : neuf, les trois en direct comprises |
+| pas de reprise partielle (1) | 198 : quatre |
+| qui n'a pas retombé, laissée là (1) | 198 : quatre, dont « omega » qui ne suit pas |
+| aucune attente (1) | 198 : trois — en direct, « omega » 2,54 s derrière « xray » |
+| une attente sans fin (1) | 198 : l'attente posée |
+| l'attente sans le tampon (1) | 198 : l'attente posée |
+| le retard commun jamais ramené à zéro (1) | 198 : deux |
+| sans point commun, un geste quand même (1) | 198 |
+| la tuile en pub comptée (1) | 198 |
+| la retombée en pub reprise (1) | 198 |
+| la raison de l'autre sens (1) | 198 |
+| suivre, sans compter la reprise (1) | 198 |
+| la mesure pas rouverte (1) | 198 |
+| la place pas oubliée après le geste (1) | 198 |
+| la plus empêchée pas dite d'abord (1) | 198 |
+| les deux secondes de marge oubliées (1) | 198 : quatre |
+| ce qu'une avance perd, oublié (1) | 198 : trois |
+| la faible latence reculée quand même (1) | 198 |
+| la retombée sans son heure (1) | 198 : deux, en direct |
+
+Vingt-sept mutants, tous pris au premier passage. **Le retard commun jamais
+ramené à zéro** ne fait rien tomber au 193 : la référence y a moins de deux
+secondes de tampon, rien à reprendre vers le direct, et le retard commun y
+vaut zéro de lui-même. Ce sont les états posés du 198 qui le prennent.
+
+## Le curseur de la piste (v4.24.0.34)
+
+La demande, en trois temps. D'abord : « propose-moi d'autres idées pour le
+"▶ redessiné". Avec animations dessus également, je veux que ça fasse quali.
+Je veux que ça reste visible mais pas omniprésent. » Puis, la piste C
+retenue : « l'animation entre l'arrivée du bouton au survol de la souris sur
+le curseur de piste, oui animation ouverture et oui animation fermeture, pour
+tous les costreams présents. Je veux l'avoir à chaque fois. » Enfin, pour les
+deux boutons : « Ok pour la piste 3. […] Il faut montrer tous les visages,
+pas de +N. S'il faut en montrer 5, montre-en 5. » Publiée sur
+`claude/chrome-multi` seulement, à la demande.
+
+### Avant le code : trois planches
+
+- **Le « ▶ » de la barre** : quatre pistes, chacune jouable, chronométrée et
+  comparée. La C, **le curseur de piste** — la barre est une piste, le bouton
+  son curseur —, a été choisie.
+- **Le curseur de piste** : ses paliers, ses sept séquences au chronogramme,
+  ses cas limites — et ce que veut dire l'indice d'accueil.
+- **Les deux boutons du curseur** : le dédoublement (une seconde pilule
+  glissant sous la première) écarté — il couvrait la carte du dessous, se
+  lisait comme un menu, ne disait pas qui on ajoutait —, et quatre autres
+  façons ; la troisième, **les visages qui s'invitent**, retenue.
+
+### Trois niveaux de présence
+
+| palier | quand | ce qu'on voit |
+| --- | --- | --- |
+| **repos** | toujours | une gélule de 9 × 18 px sur le trait, coins arrondis de moitié, ▶ de 5 × 6, sans lueur — l'avatar commence à 10 px, elle ne le touche pas |
+| **éveil** | le pointeur sur **une carte du co-stream** | 13 × 22, ▶ de 6 × 7, la lueur de la barre |
+| **intention** | le pointeur **tenu 150 ms** sur la gélule, ou le focus du clavier | la pilule « ▶ Regarder les 3 », longue de son texte |
+
+Un pointeur qui balaie la liste éveille les gélules au passage et n'en étire
+aucune. L'éveil suit le co-stream, pas le curseur : un seul écouteur, délégué,
+lit la carte sous le pointeur et la clé de son curseur. Sur la gélule, un
+mouvement réarme le délai — après un clic, le pointeur resté dessus n'y entre
+pas de nouveau.
+
+**Les durées et les courbes** sont celles du dossier, lues au banc sur les
+styles calculés :
+
+| mouvement | durée | courbe |
+| --- | --- | --- |
+| éveil | 160 ms | sortie — `cubic-bezier(.22, 1, .36, 1)`, ce qui s'ouvre décélère |
+| la pilule s'étire | 200 ms ; le texte 60 ms après | sortie |
+| grâce avant le repli | 80 ms | — |
+| la pilule se replie | 140 ms ; avec une bulle, 100 ms après elle | accélère — `cubic-bezier(.55, 0, 1, .45)` |
+| ▶ ↔ ■ | 220 ms | morphose — `cubic-bezier(.65, 0, .35, 1)` |
+| la bulle éclot | 280 ms, 120 ms après la pilule | ressort — `cubic-bezier(.34, 1.56, .64, 1)`, dépasse de 7 % et se pose |
+| la naissance | 340 ms, 40 ms d'écart | ressort |
+
+**La longueur de la pilule** est mesurée au moment de s'étirer — le texte dans
+la langue du moment, la police chargée — et posée en variable : une largeur
+`auto` ne s'anime pas. Rien de mesurable (calque masqué) : pas de pilule,
+plutôt qu'une pilule fausse.
+
+**La zone qui se saisit** est prolongée de six pixels au-dessus et au-dessous,
+le long du trait, jamais sur l'avatar : une cible de neuf pixels se manque. Le
+bouton ne rogne pas ce qui dépasse — c'est son corps qui rogne le texte —,
+sans quoi ce prolongement ne recevrait rien.
+
+### L'ouverture, la fermeture — à chaque fois
+
+- **Le clic** : la pilule rentre, un quart d'encre fait le tour de la gélule —
+  l'anneau, un dégradé conique dont l'angle est une propriété enregistrée —,
+  et le ▶ attend. **La salle prête** — sa première tuile qui joue, que le pont
+  du lecteur annonce, ou trois secondes passées —, l'anneau s'efface, ▶
+  devient ■ et un rebond la salue (1 → 1,08 → 1, 260 ms) ; un filet d'encre
+  dit, à l'intérieur, que sa salle est ouverte.
+- **Ailleurs que sur « Parcourir »**, la salle s'ouvre par une vraie
+  navigation : l'anneau tourne jusqu'au départ de la page.
+- **Un clic pendant l'anneau annule** : la salle ouverte sur place se
+  referme, le ▶ reste. Une page qui part déjà, elle, ne se retient pas.
+- **La bascule** des suivis à tout le co-stream garde son ■ et son filet —
+  une salle est ouverte tout du long —, et le rebond salue la nouvelle.
+- **La fermeture** — un second clic, Échap, un changement de page, le
+  réglage : ■ redevient ▶, le filet s'éteint, la gélule se rendort.
+- **Chaque pilule dit ce que fera son clic** : ■ sur celle dont la salle est
+  ouverte, ▶ sur l'autre, qui bascule vers elle sans refermer. Au repos, la
+  gélule referme sa salle, quelle qu'elle soit.
+
+Au rapport : `salle.prete`, « délai · 3001 ms » ou « lecture · 412 ms » — ce
+qui a arrêté l'anneau, et quand.
+
+### Les visages qui s'invitent
+
+Quand le co-stream compte des membres qui diffusent hors de la barre, la
+pilule dit « ▶ Les 4 suivis », et à son bout, quatre pixels plus loin, une
+bulle éclot : « + » et **leurs visages, tous** — un visage par personne
+ajoutée, jamais de « +N » ; la salle en prend six, donc quatre au plus.
+
+- **Aller vers eux les fait entrer** : l'écart se ferme, la bulle se soude au
+  bout de la pilule, qui dit « ▶ Tous les 6 » — et son nom accessible, les
+  six. Revenir sur la pilule les fait ressortir. Un clic ouvre ce que la
+  pilule dit à cet instant.
+- **La visée ne suit pas l'image.** Soudée, la bulle recule vers la gauche :
+  une visée prise sur les éléments rendait la main à la pilule dès que le
+  bout de la bulle quittait le pointeur, qui la décollait, qui revenait sous
+  lui — un va-et-vient, vu à la maquette avant d'écrire une ligne. Une zone
+  transparente, fixe, couvre la pilule et sa bulle pendant l'intention,
+  coupée au milieu de l'écart ; restée après un clic tant que le pointeur ne
+  l'a pas quittée, elle garde au second clic son rôle d'interrupteur, et ne
+  rend pas à la carte dessous le survol qui ouvrirait son aperçu. Elle ne
+  démarre aucune sélection : Maj+clic sur une boîte étendait la sélection
+  jusqu'à elle — mesuré au banc —, quand un bouton ne le fait pas.
+- **Au clavier** : la tabulation étire la gélule, sans délai ; la suivante
+  passe à la bulle, qui se soude ; Entrée ouvre les six, et ne replie rien —
+  le focus ne reste pas sur une bulle devenue invisible, et elle dit, ■ ou ▶,
+  ce que fera la touche suivante. **Maj+clic** ouvre
+  toujours tout le co-stream, et c'est le seul chemin en barre réduite.
+- **Les avatars.** Celui d'une chaîne qui a une carte est déjà là :
+  `TseChannels` le rend. Pour ceux qu'on ne suit pas, une requête à part,
+  anonyme, qui ne demande qu'eux — `TseVisages` : `users(logins:)` et ses
+  `login`, `displayName`, `profileImageURL(width: 70)`, la racine et les
+  champs mêmes de `TseChannels`. Une fois par chaîne et par page ; un lot
+  refusé se retente une minute plus tard. **Pas dans la requête Guest Star**,
+  dont toute la détection des co-streams dépend : un champ refusé là aurait
+  emporté les barres pour un visage. **Elle n'a pas pu être jouée contre le
+  vrai Twitch d'ici** — la sortie de cette machine refuse `gql.twitch.tv` ;
+  ses champs sont ceux d'une requête qui l'a été. Refusée, les initiales
+  restent, et rien d'autre ne bouge.
+- **Sans avatar**, l'initiale, sur une teinte tirée de la chaîne. L'image est
+  là dès la création, sans adresse et masquée : l'avatar qui arrive n'est
+  qu'un attribut, et aucun enfant ajouté ne relance un balayage.
+
+Au rapport, `salle.noeuds` : `visages` (posés), `avatars` (ceux qui ont leur
+adresse), `lotsVisages` (les requêtes parties).
+
+### La naissance, l'indice d'accueil
+
+- **La naissance** : à chaque chargement de la page, et chaque fois qu'un
+  co-stream se forme, les gélules s'épaississent depuis le trait, de haut en
+  bas, quarante millisecondes d'écart, six au plus décalées.
+- **L'indice d'accueil**, une fois par installation : la première fois qu'un
+  curseur paraît — barre étendue, à l'écran, sans salle ouverte —, il joue
+  seul ce que le survol fera : il s'éveille 600 ms après sa naissance,
+  s'étire, dit « Regarder les 2 » pendant deux secondes et demie, et se
+  replie. Puis plus jamais, même après un redémarrage : la clé `tse:indice`
+  le retient, comme `tse:roue` la roue. Lue au moment de jouer, et non au
+  démarrage — un autre onglet a pu le montrer entre-temps ; écrite avant de
+  jouer ; un stockage refusé vaut « déjà vu ». La main qui arrive reprend tout. Au rapport :
+  `salle.noeuds.indice` — « à montrer », « joué », « vu ».
+
+### Le thème clair, le mouvement réduit, le contraste forcé
+
+- **En clair**, la barre et sa gélule prennent un ton approfondi de leur
+  couleur — la même teinte, assombrie jusqu'à trois fois le fond clair de
+  Twitch (#efeff1), le contraste que le WCAG demande à ce qui se voit sans
+  être du texte — et perdent leur lueur. L'encre noire y tient 5,5:1. Le
+  rouge du direct frais passe déjà (4:1) : il reste le sien. Le thème qui
+  bascule — l'interrupteur de Twitch, le réglage — repeint la gélule tout de
+  suite, sans attendre un balayage.
+
+  | couleur | sombre | clair | sur le fond clair |
+  | --- | --- | --- | --- |
+  | jaune | #f5c518 | #a78507 | 1,4 → 3,05 |
+  | vert | #7ee081 | #269f2a | 1,4 → 3,01 |
+  | turquoise | #26d4c8 | #1c9a91 | 1,6 → 3,01 |
+  | bleu | #4d8cff | #4385ff | 2,8 → 3,03 |
+  | violet | #c77dff | #b95dff | 2,3 → 3,01 |
+  | rose | #ff7a8a | #ff3e55 | 2,2 → 3,01 |
+
+- **Mouvement réduit** : des fondus de 120 ms à la place des étirements, des
+  glissements et des échelles ; l'anneau est plein, il ne tourne pas.
+- **Contraste forcé** : le système retire les fonds ; un contour d'un pixel,
+  et le symbole à la couleur du texte des boutons.
+- **Barre réduite** : la gélule seule, l'infobulle qui nomme les chaînes et
+  le raccourci, Maj+clic.
+
+### Ailleurs
+
+- **Le mode d'emploi** montre la gélule au repos sur la barre de sa carte.
+- **Les textes**, dans les douze langues du panneau : le guide du co-stream
+  et la description du réglage « Salle multistream » disent le curseur, ses
+  visages et Maj+clic ; « Tous les 6 » dans les dix de l'interface.
+- **Rien du calque ne se sélectionne** : une sélection qui traverse la liste
+  n'emporte pas le texte d'une pilule repliée.
+
+### Ce que le banc mesure
+
+- **197**, nouveau — le curseur lu sur ses styles : les trois paliers, leurs
+  durées et leurs courbes ; rien à 40 ms, la pilule à 320 ms, longue de son
+  texte ; un balayage de 50 ms n'étire rien ; sorti 30 ms et revenu, rien ne
+  rentre ; parti, la pilule rentre au bout de 80 ms, en 140 ms, 100 ms après
+  la bulle ; les quatre visages, sans « +N », leurs avatars, « x3 » son
+  initiale, une requête qui n'a demandé qu'eux, et pas Guest Star ;
+  l'anneau, puis ■ et le rebond à trois secondes ; Échap ; un clic sur la
+  gélule, puis un mouvement qui rouvre la pilule ; un clic pendant l'anneau
+  qui annule ; une tuile qui joue rend la salle prête aussitôt ; deux
+  co-streams qui naissent ensemble, 0 et 40 ms ; un tri qui réordonne des
+  barres inchangées, et les curseurs qui suivent ; le thème clair, basculé
+  sans balayage ; le mouvement réduit et le contraste forcé ; l'indice
+  d'accueil, ses instants, et la page rechargée qui ne le rejoue pas.
+- **194**, réécrit pour la bulle — la bulle qui attend, deux visages ; la
+  pilule « Les 4 suivis » et sa bulle à quatre pixels ; la soudure, « Tous
+  les 6 » ; la visée qui ne clignote pas, vingt relevés au bout d'où la bulle
+  est partie ; l'anneau, puis ■ ; « Les 4 suivis », Maj+clic, un second
+  Maj+clic, sans rien sélectionner ; la tabulation qui passe à la bulle et la
+  soude ; « dune », détachée, en tête de la bulle ; le rapport des visages.
+- **176**, **195** — la gélule au lieu de la languette ; la pilule au survol ;
+  « Tous les 5 », « Tous les 3 » et leurs visages en « Chaînes live ».
+- **29** — chaque couleur de la palette a son ton du thème clair : même teinte
+  à un degré près, 3:1, l'encre lisible.
+- **96** — la maquette du mode d'emploi : la gélule au repos, son ▶ découpé.
+- **Le banc lui-même** : l'indice d'accueil y est déclaré vu dans toute page
+  neuve — il s'étirerait sous les mesures de chaque scénario —, **après** son
+  chargement, avant qu'aucune carte n'arrive ; le 197 retire la clé de même.
+  Le premier essai la posait par un script d'amorce, à l'ouverture de chaque
+  document, dans toutes ses iframes : le stockage ne relisait plus toujours,
+  après un rechargement, ce que la page d'avant venait d'écrire — 11, 166 et
+  167, un échec chacun sur deux passages complets, aucun dans les passages
+  d'avant —, et l'iframe de même origine réécrivait la clé que le 197
+  venait de retirer : un indice qui ne l'écrit jamais passait pour l'avoir
+  écrite. Un mutant l'a montré.
+
+Le banc complet : 1676 assertions dans 196 scénarios, toutes vertes.
+
+| mutant | ce qui tombe |
+| --- | --- |
+| l'éveil au seul survol du curseur, pas du co-stream (1) | 197 : deux |
+| l'intention sans délai (1) | 197 : trois, dont le balayage |
+| la grâce retirée (1) | 197 |
+| le repli aux durées de l'ouverture (1) | 197 |
+| la pilule qui rentre avec la bulle (1) | 197 |
+| une pilule de longueur fixe (1) | 197 |
+| le texte de la pilule visible au repos (1) | 176 : trois |
+| la bulle visible au repos (1) | 194 |
+| la bulle jamais soudée (1) | 194 : deux |
+| la visée prise sur l'image de la bulle (1) | 194 : vingt relevés, un clignotement |
+| deux visages et un « +2 » (1) | 197 |
+| l'initiale cachée sous une image vide (1) | 197 |
+| les visages redemandés à chaque balayage (1) | 197 |
+| les visages de ceux qu'on suit demandés aussi (1) | 194 |
+| l'avatar demandé à Guest Star (1) | 197 |
+| l'anneau absent (1) | 194, 197 : trois |
+| l'anneau sans fin (1) | 197 |
+| le ■ avant la salle prête (1) | 194, 197 : deux |
+| le rebond oublié (1) | 197 |
+| la tuile qui joue ignorée (1) | 197 |
+| le clic ignoré pendant l'anneau (1) | 197 : deux |
+| la naissance oubliée (1) | 197 |
+| la naissance sans cascade (1) | 197 |
+| la classe de naissance laissée (1) | 197 : quatre |
+| l'indice jamais joué (1) | 197 |
+| la clé de l'indice jamais écrite (1) | 197, après la correction du banc ci-dessus |
+| l'indice sans fin (1) | 197 |
+| le ton clair oublié (1) | 197 |
+| la lueur gardée en clair (1) | 197 |
+| le mouvement réduit oublié (1) | 197 |
+| le contraste forcé oublié (1) | 197 |
+| la barre réduite ignorée (1) | 176, 194 : deux |
+| le focus du clavier sans pilule (1) | 194 : trois |
+| la bulle hors de la tabulation (1) | 194 : quatre |
+| la zone de visée jamais posée (1) | 194 : huit |
+| le calque sélectionnable (1) | 194 : Maj+clic sélectionne |
+| le délai réarmé à l'entrée seulement (1) | 197 |
+| l'interrupteur absent (1) | 176, 194 : sept |
+| l'encre noire partout (1) | 194 |
+| le rangement refait seulement quand le nombre change (1) | 197, par le tri ajouté pour lui |
+| un ton clair faux dans la palette (1) | 29 |
+| le focus laissé sur une bulle repliée (1) | 194 |
+| le thème qui bascule sans repeindre la gélule (1) | 197 |
+| la maquette restée en languette (1) | 96 |
+
+Quarante-quatre mutants, tous pris — trois au second passage seulement.
+**La clé de l'indice jamais écrite** survivait au défaut du banc décrit
+plus haut. **Le rangement refait seulement quand le nombre change**
+survivait parce que, dans le banc, chaque tri qui réordonnait les barres en
+changeait aussi le nombre : le 197 a reçu un tri qui réordonne des barres
+inchangées. **Maj+clic qui sélectionne** visait un empêchement posé sur la
+zone, redondant — le calque est déjà non sélectionnable, et cela suffit :
+l'empêchement est retiré, et le mutant vise désormais le calque.
+
+## Plus de pastille : la barre, et le « ▶ » redessiné (v4.24.0.33)
+
+La demande : « Fais les deux correctifs […] Mais ne fais pas les règles plus
+anciennes. Également dans un souci de cohérence, j'aimerais ne plus avoir de
+pastille du tout. Et du coup mettre à la place une seule barre colorée sur le
+streamer en costream qui est le seul que l'on suit. Avec le rond "▶", au
+milieu de la barre colorée. Possibilité de redesign ce rond "▶" ? Je le
+trouve pas très beau, petit, à peine visible et pas bien intégré à la barre
+colorée. Reste dans ce type de structure, mais fais un travail pro sur le
+css. Sois rigoureux. » Publiée sur `claude/chrome-multi` d'abord.
+
+### Le masque de l'événement commun : la partie commune, et elle seule
+
+Les deux défauts que les rapports réels de la 4.24.0.32 ont fait voir :
+
+- **Le masque prenait l'union des deux silences**, alors que leur
+  intersection suffit — le seul pic qu'un silence partagé peut faire tient
+  dans ce que les deux tuiles taisent ensemble. Une tuile muette 21 à 28 %
+  du temps, dans ces rapports, voyait ses longs silences écarter de la
+  corrélation des secondes de vrai son de la référence. Désormais, pour
+  chaque paire de silences qui se chevauchent à 50 ms près, seule leur
+  partie commune est écartée, avec ses 50 ms de bord de chaque côté.
+- **Le compte plafonnait à cent, et mentait au-delà** : il lisait la taille
+  de la mémoire qui dédoublonne les silences d'un calcul à l'autre, bornée à
+  cent. Il est désormais tenu à part, et dit aussi combien de son a été
+  écarté : `ecoute.silencesCommuns`, par paire, « xray~omega 3 · 0.8 s ».
+
+**Pas les règles plus anciennes**, à la demande : le nombre de rattrapages
+après une pub et la latence de la place reprise, face à la mémoire tampon,
+sont inchangés.
+
+### Plus de pastille du tout
+
+Le nombre violet au coin de l'avatar ne se voit plus **nulle part** — sur une
+barre, sur une chaîne seule, en Top Chaînes, salle multistream coupée comme
+allumée. Il s'effaçait déjà sous une barre ou un « ▶ » depuis la 4.24.0.28 :
+c'est la barre qui dit le co-stream.
+
+- **L'élément reste**, jamais affiché : la détection de secours (catégorie et
+  compteur identiques) lit son nombre, et le rapport compte les pastilles
+  posées (`lignes.pastilles`). `lignes.pastillesVues` doit y dire zéro : un
+  autre nombre dirait qu'une règle de Twitch l'emporte sur la nôtre.
+- **Le réglage « Pastille de collaboration » est parti avec elle** : il n'y a
+  plus de pastille à éteindre. Vingt et un réglages au lieu de vingt-deux —
+  le panneau, la phrase qui remet tout par défaut et les douze fiches du
+  Store reprennent mot pour mot celles de la 4.24.0.16. Une valeur restée au
+  stockage ou dans un export est une clé inconnue, ignorée comme toutes. Le
+  drapeau de langue qu'il éteignait aussi reste, comme la barre.
+- **Le mode d'emploi** montre la carte telle qu'elle est : sa barre, et la
+  languette « ▶ » au milieu, plus de pastille.
+
+### Une barre pour la chaîne seule de son co-stream
+
+Une carte affichée en co-stream — Twitch y écrit son « +N », ou Guest Star
+connaît sa session — qu'aucun groupe dessiné ne prend a **sa barre**, d'une
+carte, à la couleur de sa session.
+
+- **Dans chaque section** : seule dans la liste suivie avec deux camarades
+  dans « Chaînes live », elle a la couleur de leur barre ; seule dans les
+  deux listes, les deux barres ont la même.
+- **Pas en Top Chaînes**, où la pastille ne se montrait déjà plus : le
+  classement place tout le co-stream qui diffuse, et une carte qui y resterait
+  seule n'aurait personne à montrer.
+- **Pas tant que personne ne sait sa session** — ni sa réponse Guest Star, ni
+  l'index de ses camarades : une couleur supposée, puis celle de sa session,
+  changerait sous les yeux au démarrage. Le « +1 » de Twitch est là dès
+  l'arrivée de la carte, son identifiant une fraction de seconde après, la
+  réponse ensuite ; la barre attend la réponse. La détection de secours, elle,
+  n'attend que celle d'une carte dont l'identifiant est connu — la même règle,
+  posée ici, faisait au banc une barre jaune à 54 ms, plus rien à 107 ms, et
+  la verte de sa session à 3,45 s.
+- **Pas de clé de groupe** : le tri « co-stream en tête » range des groupes,
+  la jonction relie des voisins, et une carte seule n'est ni l'un ni
+  l'autre. Elle garde sa place, et sa barre ne se joint jamais à celle d'une
+  voisine.
+- **La palette** sert les groupes d'abord, les cartes seules ensuite. Elle a
+  six couleurs : au-delà de six co-streams à l'écran, une couleur revient —
+  c'était déjà le cas des groupes, et les cartes seules en consomment
+  désormais aussi.
+- **Le nœud au milieu** quand d'autres membres diffusent, et que la salle est
+  allumée : il l'ouvre avec eux, six au plus, ceux qu'on suit d'abord —
+  « Regarder les 6 », et les chaînes dans l'infobulle de l'étiquette. Sans
+  personne d'autre à ouvrir (un invité sans stream, ou un « +N » sans
+  session), la barre sans nœud. Un nœud ne se pose que sur une barre.
+- **Le membre qu'un tri détache de sa barre** garde la couleur de son groupe,
+  et a la sienne, avec son nœud au milieu.
+
+Au rapport : `coStream.seules` (la liste suivie) et
+`coStream.recommandations.seules` ; `salle.noeuds.seules`, les nœuds des
+barres d'une carte, à part de `affiches` — `pastilles` et `clicsPastilles`
+n'existent plus, leurs clics sont dans `clics`.
+
+### Le « ▶ » redessiné : une languette
+
+**Pourquoi le rond n'allait pas.** Douze pixels, un triangle de quatre sur
+cinq : à peine visible. Et c'était un cercle centré sur un trait qui longe le
+bord de la fenêtre : la liste en aurait rogné la moitié, et `placer` le
+poussait à droite du trait — posé à côté de lui, pas dessus.
+
+**Le banc d'essai.** Quatre formes, rendues côte à côte sur des cartes à la
+taille de Twitch, étendues et réduites, en sombre et en clair : le rond
+d'avant ; une perle ronde de dix-huit pixels, qui couvrait le trait et huit
+pixels d'avatar ; un collier, le trait élargi jusqu'à une perle ; et la
+languette. C'est elle qui « fait partie » de la barre :
+
+- **ce qu'un cercle centré sur ce bord peut être sans y être coupé** : bord
+  gauche droit, posé sur le trait, à sa couleur et avec les mêmes ombres —
+  le trait s'élargit, il ne porte pas un objet ; bord droit en demi-cercle ;
+- **quinze pixels sur vingt-deux**, le triangle à sept sur huit, coins
+  arrondis comme ceux des lecteurs, un demi-pixel dans la partie ronde ;
+- **détourée de l'avatar** par un croissant de deux pixels à la couleur du
+  fond — une ombre décalée vers la droite, qui ne coupe pas le trait
+  au-dessus et au-dessous comme le liseré du rond le coupait. Elle mord de
+  cinq pixels sur l'avatar, qui commence à dix : un cran plutôt qu'un
+  recouvrement. Sur une carte seule, le trait — la carte moins quatre pixels
+  en haut et en bas — la dépasse au-dessus et au-dessous ;
+- **partant du bord gauche de la carte**, là où la barre est peinte, où que
+  soit la carte : `placer` ne la centre plus.
+
+**Ses états** : au survol ou au clavier, elle s'avance — agrandie de 12 %
+depuis son bord gauche, qui reste sur le trait —, s'éclaire et rayonne, le
+symbole avec elle ; enfoncée au clic ; sa salle ouverte, un second croissant
+de la couleur de la barre au-delà du premier, et le ■ ; le contour du clavier
+épouse sa forme. La languette est le `::before` du bouton, et non le bouton :
+le survol l'agrandit sans agrandir l'étiquette qui en sort. Sans animation
+sous « mouvement réduit ».
+
+**L'encre suit la barre** — le noir de Twitch ou le blanc, celui des deux qui
+contraste le plus (contraste WCAG) :
+
+| couleur | noir | blanc | encre |
+| --- | --- | --- | --- |
+| jaune, vert, turquoise | 10,4 à 11,8 | 1,6 à 1,9 | noire |
+| bleu (le plus sombre de la palette) | 6,0 | 3,2 | noire |
+| violet, rose | 7,2 · 7,7 | 2,7 · 2,5 | noire |
+| rouge d'un direct qui vient de démarrer | 4,2 | **4,6** | **blanche** |
+
+Les étiquettes et les choix suivent la même encre : « Regarder les 2 » en
+noir sur rouge était à 4,2:1.
+
+**Dans l'ordre de la liste, aussi au clavier** — un défaut aussi vieux que
+les nœuds, que les cartes seules rendent fréquent. La tabulation suit l'ordre
+des nœuds dans leur calque, et un nœud y entrait à sa création, puis n'en
+bougeait plus. Un tri qui réordonne les cartes les laissait dans l'ordre
+d'avant — au banc, après le tri par durée : « vif, dune, la barre, hale » à
+l'écran, « hale, vif, la barre, dune » à la tabulation —, et une carte seule
+dont la réponse Guest Star arrive avant celles de la barre voisine passait
+avant elle. Ils sont rangés dans l'ordre de leurs barres, chaque choix
+derrière son nœud — seulement quand l'ordre a changé, chaque déplacement
+étant un enfant que l'observateur de la barre voit.
+
+### Ce que le banc mesure
+
+- **196** — deux assertions de plus : un long silence de 2,5 s dans « duo1 »
+  seule, qui chevauche un silence commun, n'emporte pas le son de
+  « foxtrot » — autant de son écarté dans chaque paire, moins de 1,6 s ; puis
+  cent dix silences communs de 60 ms, et le compte les dit tous.
+- **194**, réécrit — le décor ajoute « vif », qui vient de démarrer : aucune
+  pastille ne se voit, l'élément reste ; quatre barres de cartes seules, à la
+  couleur de leur session, sans clé ni jonction ; le nœud de « hale » au
+  milieu de la sienne, une languette ; l'encre noire sur la palette, blanche
+  sur le rouge ; les nœuds dans l'ordre de leurs barres ; la languette qui
+  s'avance au survol, son croissant enfoncée ; « dune », détachée par un tri,
+  avec sa barre et son nœud ; salle coupée, les huit barres restent et rien
+  ne revient ; « collab » refusé ; pas de barre de carte seule en Top Chaînes ;
+  les nœuds dans le nouvel ordre après le tri ; et une carte dont Guest Star
+  ne répond qu'au bout de trois secondes, sa couleur relevée toutes les 50 ms :
+  pas de barre avant la réponse, puis une seule couleur.
+- **195** — « seulf » et « seul1 », seules de leur session dans deux listes :
+  chacune sa barre, de la même couleur, sans clé, et son nœud au milieu.
+- **176** — la languette, quinze sur vingt-deux, peinte sur son `::before`,
+  à la couleur de la barre, l'encre noire ; elle suit la carte quand la liste
+  la décale ; « cirrus », détachée, a son nœud sur sa barre.
+- **96** — la maquette du mode d'emploi : la barre, la languette au milieu,
+  plus de pastille.
+- **17**, **129** — la pastille posée ne se voit pas ; **117**, **120** —
+  vingt et un réglages, et les douze phrases qui le disent.
+
+Le banc complet, sur la même machine : 1658 assertions dans 195 scénarios,
+toutes vertes, du premier coup.
+
+| mutant | ce qui tombe |
+| --- | --- |
+| la pastille rendue visible (1) | 194 : cinq assertions, dont « aucune pastille ne se voit plus » |
+| la barre de la carte seule jamais peinte (1) | 194, 195 : treize |
+| la clé de groupe posée sur la carte seule (1) | 194 : « sans clé de groupe ni jonction » |
+| la barre de carte seule permise en Top Chaînes (1) | 194 : « kilo » y prend une barre |
+| l'attente de Guest Star retirée (1) | 194 : une barre jaune à 55 ms, la verte à 3,45 s |
+| l'attente réservée à une carte dont l'identifiant est connu (1) | 194 : jaune à 54 ms, rien à 107 ms, vert à 3,45 s |
+| la couleur prise hors de la session (1) | 195 : « seulf » et « seul1 » de deux couleurs |
+| le nœud permis sans barre (1) | **survit** — équivalent, ci-dessous |
+| la languette centrée sur le trait, comme le rond (1) | 176, 194 : neuf |
+| le rond de douze pixels (1) | 176 : deux |
+| la languette peinte sur le bouton (1) | 176 : deux |
+| l'encre noire partout (1) | 194 : noir sur le rouge de « vif » |
+| le survol immobile (1) | 194 : deux |
+| enfoncé selon la clé du nœud, et non ses chaînes (1) | 194 : deux |
+| l'interrupteur absent (1) | 194 : trois |
+| les nœuds laissés dans l'ordre de leur naissance (1) | 194 : après le tri, « hale, vif, la barre, dune » |
+| les nœuds des cartes seules comptés avec ceux des barres (1) | 176, 194 |
+| l'infobulle des chaînes perdue (1) | 194 |
+| le rapport muet sur les barres seules (1) | 194, 195 |
+| le réglage « collab » gardé (1) | 117, 194 : trois |
+| enfoncée sans son second croissant (1) | 194 |
+| la maquette du mode d'emploi sans barre ni languette (1) | 96 |
+| le masque à l'union (1) | 196 : « seulement leur partie commune » |
+| le compte plafonné à cent (1) | 196 : « plus de cent » |
+
+Vingt-quatre mutants, vingt-trois pris. **Le survivant** est la garde qui
+réserve le nœud aux cartes qui ont une barre. Aucun état ne la distingue :
+les camarades qu'il ouvrirait et la barre se lisent à la même source — la
+réponse Guest Star, puis l'index de ses camarades —, Top Chaînes a sa garde à
+lui, et tant que personne ne sait la session, il n'y a ni barre ni camarade.
+Elle reste, pour dire l'invariant : un nœud se pose sur une barre.
 
 ## L'événement commun, écarté (v4.24.0.32)
 
@@ -18049,9 +19010,10 @@ Tout ce que l'extension mémorise est **100 % local**, stocké dans le
 | `tse:visits` | dates de vos visites par chaîne | tri « Mes plus visités » |
 | `tse:roster` | chaînes suivies aperçues dans la sidebar | poser une carte avant Twitch |
 | `tse:livelag` | retards mesurés de Twitch | `tse.lag()` |
-| `tse:subs` | abonnements repérés (visite + relevé de `/subscriptions`), leur ancienneté en mois, le passé d'abonné et leur échéance (anniversaire ou expiration) | tri « Mes abonnements en tête », style de carte, badge d'aperçu |
+| `tse:subs` | abonnements repérés (visite + relevé de `/subscriptions`), leur ancienneté en mois, le passé d'abonné et leur échéance (anniversaire ou fin) | tri « Mes abonnements en tête », style de carte, badge d'aperçu |
 | `tse:substs` | date du dernier relevé complet, précédée du numéro du lecteur qui l'a produit | espacer les relevés de 6 h, et périmer d'office ceux d'une version antérieure |
 | `tse:submois` | libellé de l'ancienneté, appris sur la page | lire le nombre de mois sans dépendre de la langue |
+| `tse:subfin` | libellé de la date d'une fin, appris sur une carte offerte | reconnaître un abonnement payé qu'on ne renouvelle plus, sans dépendre de la langue |
 | `tse:sondes` | ce que Twitch a répondu aux sondes de reprise, par identifiant de direct, 48 h au plus | ne pas redemander au rechargement ce qui est déjà tranché |
 
 `tse.reset()` les efface toutes à tout moment ; vider les données de site de
@@ -18157,7 +19119,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le manifeste Firefox : les invariants du dépôt, **puis** l'`addons-linter` de Mozilla — celui qu'AMO applique à la soumission |
-| `npm test` | le harnais Playwright : 195 scénarios, 1651 assertions |
+| `npm test` | le harnais Playwright : 198 scénarios, 1702 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il

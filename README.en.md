@@ -331,12 +331,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1611 KB | 646 KB | 4,103 → **2** |
+| `content.js` | 1660 KB | 671 KB | 4,166 → **2** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
-| `panneau.js` | 107 KB | 51 KB | 149 → **0** |
+| `panneau.js` | 109 KB | 51 KB | 156 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
-| `background.js` | 9 KB | 2 KB | 22 → **0** |
-| **all five** | **1866 KB** | **803 KB** | **−57 %** |
+| `background.js` | 10 KB | 2 KB | 22 → **0** |
+| **all five** | **1918 KB** | **828 KB** | **−57 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are
@@ -2488,6 +2488,953 @@ A sub-test that modelled an impossible case — a stream growing younger without
 changing id — was replaced along the way by the ordinary case that was actually
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
+
+## The guide, read against the product (v4.24.0.37)
+
+The request, with the green light for the other branches: "Take the
+opportunity to go through the guide as well, and make sure it is up to date
+and explains the extension perfectly. Be rigorous." Then: "Once again,
+explaining does not mean describing. Some things do not need to be known.
+And others are essential to know how to use the extension well."
+
+Every sentence of the fifteen chapters was checked against the code —
+`content.js`, `panneau.js`, the settings table — then each was rewritten
+around a single question: what do you need to know to use it? Published on
+`claude/chrome-multi`, then on the other branches.
+
+### What was wrong
+
+- **Subscriptions ignored 4.24.0.36.** Nothing about "Expires in …", nor
+  the gold going out at the end, nor "Former sub"; nothing either about what
+  it takes for the gold to appear — being signed in to Twitch — nor about
+  "Sweep now" right after subscribing.
+- **"A purple badge says who is hosting and who is a guest."** That is the
+  blue one ("Host Stream", "Co-stream of …"); the purple one names members
+  live outside the list. And the grey one — session members who are not
+  streaming — was nowhere, in a chapter that promises to show **all** the
+  badges.
+- **The co-stream mock-up** put "Live with Korbek" on Korbek's own card: a
+  streamer live with himself.
+- **"At most once every six hours"**, for the sweep: that is the default;
+  the setting goes from three to twenty-four hours.
+- **"The thirty most-watched channels"**: ten, thirty or fifty.
+- **"Erase history resets everything"**: your settings stay.
+- **"Your listening hours"**: the "Rhythm" section says itself that it is a
+  rhythm, not a watch time.
+- **"The two greens are news"**: there are three greens, and the sponsor's
+  is not news.
+- **Buttons that do not exist under that name.** English said "Clear
+  history" next to an "Erase history" button, Brazilian Portuguese "Limpar o
+  histórico" for "Apagar o histórico", Italian "Esporta un rapporto" for
+  "Esporta un report"; European Portuguese pointed to "Configurações" that
+  its panel calls "Definições". German switched from "du" to "Sie" within a
+  single chapter.
+- **With the "Auto" theme on a light system** — the default — the mock-ups
+  showed the badges in their dark-theme shades: "Mature-rated game" in pale
+  pink on white. The background followed the system; the badges only read
+  the explicit choice. Found by looking at the rendered guide, not by reading
+  the code.
+
+### What was missing to use it
+
+- **The multistream room** fitted in one sentence at the end of co-streams.
+  It has its own chapter, right after them: the sound on a tile or on keys 1
+  to 6, the chat following the sound, the tabs that show another one, six
+  streams at most and the ones waiting below, the alignment — a minute of
+  listening, a common sound, a setting —, no channel points, Twitch's ads
+  playing there, Escape to leave.
+- **The preview has no ads**, and it alone.
+- **The watch streak and the stories** from Twitch, tucked into the filter
+  block: people looked for them.
+- **The three uptime formats**, and "Ended" — which the mock-up showed
+  without the text saying so.
+- **The two bars on the left edge**: the red one beats, the co-stream one is
+  steady.
+
+### What went
+
+What can be seen without being explained: the gold ring, the slow shimmer,
+the first-run bubble, the two chats framing the players, the stages of the
+cursor.
+
+### The prose is bound to the product
+
+- **Quoted labels come from each language's own file.** The text of the
+  twelve languages carries markers — the "Settings" group, the "Export a
+  report" button, the six sorts… — replaced by the label of its own locale:
+  the guide can no longer name a button that does not exist.
+- **Two cross-references**: the speed chapter points to the badges, where
+  what the sidebar removes comes back; the co-streams chapter to the sorts,
+  and to the room as "next chapter".
+- **The grey badge** joins the mock-up, in the product's grey in both
+  themes. The Store listings say "sixteen chapters".
+
+### What the bench measures
+
+**96**, four more assertions, and three revised:
+
+- the speed chapter points to the badges, and the room follows co-streams;
+- the co-stream mock-up carries the blue badge, no longer the purple one;
+- in the twelve locales, the guide quotes every group, button and sort by
+  its exact label;
+- with the "Auto" theme, the badges take the shades of the theme the system
+  follows, badge by badge;
+- revised: sixteen chapters instead of fifteen, twelve modifiers for eleven
+  colours instead of eleven for ten, and the neutral badge is no longer the
+  twelfth.
+
+**The bench itself, found on the way**: on this version's first full bench,
+the pair of 196 that shares nothing said "incertain · 2 calculs sur 8"
+instead of "non" — a noise peak at −4140 ms, z 5.2 then 5.1, found again by
+two calculations whose windows overlap. The first time in forty-two passes;
+`content.js` had not changed since 4.24.0.36. Six passes of 196 alone, right
+away: this pair's peaks fall anywhere, from −5570 to 5890 ms, at z 3 to 5.8.
+That verdict is only a report statistic, which drives no move, and two real
+streams with nothing in common had already beaten it — six calculations out
+of forty-seven at z ≥ 5, in the fourth real report (4.24.0.15). The
+assertion now requires that it never says "oui"; the false peak at 0 ms it
+guards against, it still requires absent. Replayed, "nothing masked" fails:
+z 9 to 10.5 at 0 ms, and "oui".
+
+The full bench: 1702 assertions in 198 scenarios, all green.
+
+| mutant | what fails |
+| --- | --- |
+| the speed cross-reference removed (1) | 96 |
+| the room at the end of the guide (1) | 96 |
+| "Clear history" instead of the button (1) | 96 |
+| the grey badge missing from the mock-up (1) | 96 |
+| the grey without its rule (1) | 96 |
+| the co-stream mock-up back to purple (1) | 96 |
+| the "Auto" theme without its light shades (1) | 96 |
+| nothing masked from the common silence, replayed on the revised assertion (1) | 196: both pairs at 0 ms, "oui" |
+
+Eight mutants, eight caught.
+
+## The end of a subscription, and the former subscriber (v4.24.0.36)
+
+The request: "About subscriptions, can you check that when the due date has
+passed, we no longer have the subscriber badge, and we have the former
+subscriber badge. I have the feeling some were considered subscribed but with
+a past due date. Investigate, be rigorous and fix, only on chrome-multi."
+Published on `claude/chrome-multi` only.
+
+### It was true
+
+- **The sweep never wrote "not subscribed".** It is additive, on purpose: it
+  marks subscribed what it finds in the current tabs, and an absence proves
+  nothing. Yet a subscription that ends leaves the gifted tab — or the paid
+  one — for the **expired** tab, and that tab only touched the tenure. The
+  channel therefore stayed subscribed for the whole life of an observation,
+  **a hundred and twenty days**, unless its page was opened: the card's
+  decoration, the sort, the dot and the "Subscribed" badge with it.
+- **Between two sweeps — three to twenty-four hours —, nothing looked at the
+  date.** A gifted subscription that expired the day before stayed subscribed
+  until the next sweep, and beyond it for the reason above.
+- **The panel's "Subscriptions" table showed it**: "Subscribed: yes" next to
+  a past due date. It copied the noted state, judging nothing.
+- **A paid subscription no longer renewing had its end read as an
+  anniversary.** Its card says "Your benefits expire on …" ("Vos avantages
+  arrivent à expiration le …"), a gift's words, where a renewing one says
+  "Subscription renewal date"; the badge said "Next anniversary in N days".
+
+The new scenario, replayed on 4.24.0.35: **seven assertions out of nine
+fail** — "Subscribed • 1 MONTH" for a channel Twitch files under expired,
+"Subscribed • 2 MONTHS" for a gift that expired the day before.
+
+The last attached report does not say which ones: it carries counts only. It
+does show the shape of it: 16 noted subscribed, 19 known due dates — at least
+three entries kept the due date of a subscription that a visit to their page
+had already called over, the only path, until now, to "not subscribed".
+
+### What changes
+
+- **The sweep judges the lapsed.** A channel the expired tab lists, and that
+  **none** of the three current tabs lists, is no longer subscribed — Twitch
+  says so itself; its due date goes with the subscription it dated. The
+  judgement comes at the end of the sweep, every tab read: a channel
+  resubscribed after a break appears in both, and stays subscribed. It only
+  comes if **each current tab was read to the end** — its cards, or the
+  message Twitch writes in their place. A tab left blank does not prove it is
+  empty: nothing is judged, and the report says so. A channel no tab names,
+  current or expired, is not touched: an absence still proves nothing.
+- **An end date is enough.** A gift's expiry, or the end of a paid or mobile
+  subscription no longer renewing: from the next day, the channel is no
+  longer subscribed and the preview says "Former sub • N MONTHS", without
+  waiting for the sweep. On the day itself, the subscription still runs —
+  Twitch stops it during the day — and the badge says "Expires today".
+- **An end is not an anniversary.** The label of a gift's date, the only one
+  that is always an end, is learned on its card and remembered
+  (`tse:subfin`), without a word of French, like the tenure's. Found again on
+  a paid or mobile card, it means a subscription no longer renewing: "Expires
+  in N days", and the date that counts is the one it carries. Judged at the
+  end of the sweep too: on the first one, paid cards are read before gifts.
+  **With no gift ever seen**, nothing compares: the date stays an
+  anniversary, and the sweep after the end notices it — three to twenty-four
+  hours later.
+- **What does not change**: a past anniversary is a renewal. The
+  subscription goes on, the badge stays "Subscribed" — its due date falls
+  silent —, and the next sweep brings the following date.
+
+**The panel's table, and `tse.subs()`, say what the bar shows**:
+"Subscribed" and "Former" are those of the bar and the preview, and an "Ends"
+column says, in twelve languages, whether the due date is an end or an
+anniversary. `tse.subs()` also keeps `finie` — the end has passed — and `note`
+— what the memory noted. In the report: `compteurs.abonnes` counts what the
+bar shows, `compteurs.finies` the subscriptions noted current whose end has
+passed — those waiting for the sweep; and, in the page's sweep, "moved to
+former", the number of channels judged — or "not judged", and why. The
+memory, an optional seventh field, the end; an older memory is still read as
+it is, a gift without that field remaining an end.
+
+### What the bench measures
+
+- **199**, new:
+  - **the sweep** moves the two channels only the expired tab lists to their
+    past — their card loses the subscriber decoration, their preview says
+    "Former sub" —, keeps the resubscribed one, its anniversary read again,
+    and the one no tab names;
+  - **a current tab left blank**: nothing is judged, "not judged";
+  - **with no sweep**, the date: a gift expired yesterday and a paid
+    subscription no longer renewing whose end has passed are former subs;
+    "Expires today" on the day, "Expires in 5 days" before; a past
+    anniversary, still subscribed; `tse.subs()` — the panel's table — and the
+    report's count;
+  - **the end label**, learned on a gift and found again on a paid card on the
+    very first sweep — "Expires in 8 days"; with no gift, the anniversary.
+- **70** — the report's "moved to former" line, and "not judged".
+- **69** — the "Ends" column is known to the panel, like every column the
+  page sends it.
+- **The fixture**: `__subsPayeFin`, a paid card that no longer renews, with
+  the words of the 31/08/2026 sweep; `__subsBlancOnglets`, tabs that stay
+  blank while the others render their cards.
+- **The bench itself, found on the way**: the burst of 196 (4.24.0.33) lays
+  its hundred and ten common silences of 120 ms, no longer of 60. Each tile of
+  the fixture lays them at the time of its own mapping between the clock and
+  its sound, and under a full bench's load it drifts by a few tens of
+  milliseconds: a 60 ms silence no longer had, between two tiles, the 50 ms of
+  a common silence. One in a hundred and ten went missing — three once —, in
+  all three of "foxtrot"'s pairs at once. Measured by alternating both
+  versions on 196 alone: one pass in nine of 4.24.0.35 fails, two in thirteen
+  of this one — the defect was not its own. The count beyond a hundred, which
+  is what 196 measures, is unchanged: replayed, the count capped at the memory
+  still fails — a hundred, where a hundred and fourteen are needed. Ten passes
+  of 196 alone, ten green.
+
+The seventeen other subscription scenarios — 42, 44 to 46, 48 to 51, 53 to
+55, 57, 75, 127, 137, 141, 157 —: 174 out of 174; 158, 70, 43 and 147 with
+199: 78 out of 78.
+
+The full bench: 1698 assertions in 198 scenarios, all green.
+
+| mutant | what fails |
+| --- | --- |
+| the lapsed never judged (1) | 199: two — both lapsed channels stay subscribed, and golden |
+| a blank tab counted as read (1) | 199: "not judged" no longer comes |
+| the resubscribed one moved to its past (1) | 199: two |
+| the lapsed keeping their due date (1) | 199 |
+| a passed end ignored (1) | 199: the gift expired yesterday, the ended paid one, still subscribed |
+| the day itself already over (1) | 199: two — "Expires today" lost |
+| a past anniversary taken for an end (1) | 199: three |
+| a passed end without "Former sub" (1) | 199 |
+| a paid end judged when reading the card (1) | 199: on the first sweep, the anniversary stays |
+| the seventh field never read (1) | 199: three |
+| the seventh field never written (1) | 199 |
+| the report's count (1) | 199 |
+| the end label never learned (1) | 199 |
+| the label taken with its digits (1) | 199 |
+| a paid end called an anniversary on the badge (1) | 199: two |
+| the gift noted without an end (1) | 199 |
+| a tab with cards never marked read (1) | 199: three |
+| only the paid tab required (1) | 199: the blank tab no longer holds anything back |
+| the report line removed (1) | 70 |
+| the table with the noted subscriber, not the bar's (1) | 199 |
+| the table with the noted former flag (1) | 199 |
+| the "Ends" column missing from the panel (1) | 69 |
+| the judgement without a new scan (1) | **survives** |
+
+Twenty-three mutants, twenty-two caught. **The judgement without a new scan**
+survives, and not for lack of trying: 199 reads the cards' decoration before
+any hover — a hover rescans the bar — and plays the everyday tab order, the
+expired tab last, so that nothing else rescans after the judgement. But on the
+bench, the accelerated refresh rescans the bar every 600 ms: it always comes
+before the reading. For real, it is every thirty seconds at most. The
+requested scan therefore stays, untested: it is what makes the change visible
+at once.
+
+## The second voice, and the place taken back together (v4.24.0.35)
+
+The report: "Here is the report, with ads, on the latest version. I thought I
+saw a few minutes of waiting at the start for the sync, there were ads at the
+very start of the stream." Then the request: "Do fix A (recommended) and fix
+B. Only claude/chrome-multi. Be rigorous." Published on `claude/chrome-multi`
+only.
+
+### What the report showed
+
+Two streams, seventeen minutes, a 14 s ad on the reference from +6 s.
+
+- **The ad cost twenty-five seconds, no more.** Its end reopens every tile's
+  measurement (+20 s); low latency removed (+21 s) and a catch-up by the
+  player (+22 s) reopen it again; the first counted computation comes at
+  about +30 s.
+- **What waited six and a half minutes is the echo rule.** From there until
+  +405 s, every computation said "a single source, at 1510 ms — an echo,
+  perhaps: nothing moves". Yet two voices: 1510 ms — twenty-four first peaks
+  out of thirty — and ~1000 ms, two to six. A voice chat required the second
+  to weigh a quarter of the first; it stayed just under, until it reached
+  exactly that at +410 s (6 out of 24): verdict, a 1.39 s step back at
+  +415 s, synced at −20 ms at +480 s. The target was right: synced, the pair
+  kept its two voices, at −550 and −20 ms, the same 530 ms apart — a voice
+  chat where one microphone dominates, not an echo.
+- **A second defect, at +795 s.** Both tiles fell behind their place at the
+  same moment — the reference by 4.59 s, the other by 2.40. The reference
+  could not take its place back: 6.343 s of buffer, 6.673 were needed (the
+  skip and its two seconds of margin). The other took its own back, 2.488 s —
+  but its place only held against the reference's old place: from 1.9 s
+  ahead of it, it went to **4.3 s**, for forty seconds, until the 4.19 s step
+  back the sound decided at +835 s.
+- `salle.prete` says "délai · 3039 ms": no tile was playing yet at three
+  seconds — their quality changes, at +4.2 and +4.5 s, show players barely
+  starting. The bridge reports its state every second; the ring stopped at
+  the planned ceiling. Nothing to fix.
+
+### The unbalanced voice chat
+
+What separates an echo from a voice chat, in the six real listenings kept:
+
+| real listening | the cluster | gap to the heaviest | what it was |
+| --- | --- | --- | --- |
+| eighth | 1040 alone, then 2370 alone | — | an echo — the eye saw the pair right |
+| ninth | 1110 (21 first peaks) and 1000 (4) | 110 ms | an echo, above a voice chat at 40 ms |
+| three streams | 1410–1460 (24) and 1690 (2 to 6) | 230 to 280 ms | a real offset, created by the sync |
+| 4.24.0.34 | 1510 (24) and 1000 (2 to 6) | 510 ms | a real offset, at opening |
+
+An echo is **the whole** other stream replayed: a single offset, spread over a
+tenth of a second. A voice chat is **distinct** voices — each person's voice
+by two paths, the microphone's and the voice chat's —, at least 0.2 s apart in
+every real report.
+
+**The rule**: a source far from zero — beyond 0.5 s — whose cluster has an
+**established second voice** (two first peaks at least) **at least 0.2 s from
+the heaviest** is an unbalanced voice chat; its highest voice is the target,
+as for any voice chat. Nothing else changes: a truly single source, or one
+whose second voice sticks to the first, still waits; near zero, a single
+source is still judged on its heaviest voice. In the report, the verdict says
+so: "en avance de 1.51 s (+1510 ms, un salon déséquilibré)".
+
+**Replayed** on the six listenings, computation after computation (185):
+
+| listening | up to 4.24.0.34 | now |
+| --- | --- | --- |
+| fourteenth | −3840 decided at the 41st computation | the same, computation for computation |
+| eighth | never a decision | the same |
+| ninth | the voice chat at 40 ms at the 7th, the echo never | the same |
+| twelfth | 1175, the highest voice, at the 15th | the same |
+| three streams | 1690 at the 114th computation | 1690 at the **34th**, seven minutes earlier |
+| 4.24.0.34 | "single source" up to the 75th computation; 1510 at the 76th (+410 s) | each of the twenty refused computations the report keeps decides 1510 |
+
+The start of the 4.24.0.34 listening — from +30 to +250 s — is not in the
+report: the history keeps the last hundred and fifty computations, the session
+made a hundred and ninety-four. Everywhere else, the voices have the same
+shape: the decision would **probably** have come within the minute after the
+ad, which this report cannot prove. Its three other segments — after the step
+back, the skip and the second step back — decide what the pilot decided: −20
+to −30 ms, 4310 ms, 40 to 50 ms.
+
+**The threshold, swept from 90 to 600 ms** over the six: at 110 ms and below,
+the ninth's echo is followed; from 120 to 230 ms, the same first decision
+everywhere; beyond 300 ms, the three-stream listening gains nothing, beyond
+510 ms neither does the 4.24.0.34 one. **200 ms** — the low end of a voice
+chat's spacing, which the code already stated ("0.2–0.3 s") —, 90 ms above the
+echo.
+
+**What this does not cover**: an echo spread over more than 0.2 s, with two
+first peaks at its edge, would be followed — never seen, the ninth's spreads
+over 0.11 s. And an echo linked in the same cluster to a voice chat's upper
+voice — less than 0.7 s between them — already was, with a heavy enough second
+voice, before 4.24.0.35: the unbalanced voice chat extends that case to light
+voices, it does not create it. The echoes seen were more than a second from
+their voice chat.
+
+### The place taken back together
+
+A place is a **relation to all the others**: taking it back alone, when
+another tile could not take its own back, breaks that relation. Now the
+fallen tiles — and those that did not fall — go **together** to the same lag
+behind their place:
+
+- each can go from `dl − av` to `dl + re` — its lag behind its place, minus
+  what its buffer lets it take back towards live (two seconds kept, what a
+  skip loses counted), plus what it keeps behind it to step back (if it can:
+  neither in low latency, nor a player that undoes every step back); three
+  takebacks already in ten minutes, nothing;
+- **the common lag**: zero if all can reach it — each takes its whole place
+  back, as before, word for word; otherwise the closest to zero all can
+  reach. The most constrained takes back what it can, the others join it
+  there, those that did not fall included;
+- **with no common point** — one cannot skip far enough, another cannot step
+  back —, nothing moves: each fall becomes its place, and the wide gap and
+  the sound will do what they can;
+- **a tile still falling** — its last reading at least 1.5 s from its place,
+  the buffer agreeing, before the six quiet readings that will say so — is
+  waited for, **ten seconds at most**: moving it now would be onto a place it
+  no longer has. The report showed the shape of it: the two tiles' latencies
+  had jumped twelve seconds apart;
+- joining another is a takeback, and counts among the three.
+
+The real report, replayed by the code (198): the reference skips 4.343 s —
+it takes back 4.26 of its 4.59, two seconds of buffer kept —, the other
+2.158 s instead of 2.488. Together, 0.33 s from their places; what is left for
+the sound is how wrong the latencies are, about 0.3 s, instead of 4.3 s for
+forty seconds.
+
+In the log:
+
+```
+alpha : retombée derrière sa place de 4.59 s — latence 6.209 → 10.795 s, tampon 3.972 → 7.778 s → elle n'en reprend que 4.26 s (6.343 s de tampon) : avance de 4.343 s — 0.33 s derrière sa place, où les autres la rejoignent
+```
+
+### What the bench measures
+
+- **185**, on six real listenings — the 4.24.0.34 one added, its moves taken
+  from the log, for lack of a clock relation: the twenty computations the
+  pilot refused decide 1510, as an unbalanced voice chat; the two with a
+  single voice stay "a single source"; its three other segments decide what
+  the pilot decided. The three-stream listening is decided at the 34th
+  computation, on 1690. The four others, unchanged. And the unbalanced voice
+  chat at its edges, on thirty posed computations: a second voice at 0.25 s
+  and at exactly 0.2 s, decided, the highest voice targeted, and the verdict
+  says so; at 0.19 s, with a single first peak, or near zero, nothing
+  changed.
+- **198**, new — the takeback rule, extracted from the code as shipped, on
+  posed states: the real report, replayed to the digit; each tile that can,
+  as before, word for word; no common point; a fall ahead of its place;
+  three takebacks already; another tile still falling, waited for and then
+  no longer after ten seconds, and not waited for when its buffer has not
+  moved; the ad. Then live, at scale 0.1, "xray" and "omega" synced: fallen
+  together, "xray" short of buffer; one three seconds after the other;
+  "omega" not fallen, stepping back to "xray". Each time, two seconds later,
+  the pair is where it was — before the sound has heard anything again.
+- **The fake player**: `__retomber(x, b)` gives the buffer a tile has after
+  its fall, if it did not take it all.
+
+On the same machine, the neighbouring sync scenarios — 183, 184, 188, 190,
+192 and 193 —: 23 out of 23.
+
+The full bench: 1688 assertions in 197 scenarios, all green.
+
+| mutant | what fails |
+| --- | --- |
+| the old rule, no unbalanced voice chat (1) | 185: three — the three-stream listening, the 4.24.0.34 one, the edges |
+| the distinct second voice at 100 ms (1) | 185: three — the ninth's echo followed |
+| the distinct second voice at 300 ms (1) | 185: two — the three-stream listening, the edges |
+| exactly 200 ms excluded (1) | 185: the edges |
+| the heaviest voice targeted, not the highest (1) | 185: two |
+| the unbalanced voice chat near zero too (1) | 185: two — the 4.24.0.34 listening, the edges |
+| the second voice taken from another cluster (1) | 185: two — the eighth's and ninth's echoes followed |
+| the verdict that does not say so (1) | 185: the edges |
+| each for itself, the old takeback (1) | 198: nine, the three live ones included |
+| no partial takeback (1) | 198: four |
+| a tile that did not fall, left there (1) | 198: four, "omega" not following among them |
+| no waiting (1) | 198: three — live, "omega" 2.54 s behind "xray" |
+| endless waiting (1) | 198: the posed wait |
+| waiting without the buffer (1) | 198: the posed wait |
+| the common lag never brought back to zero (1) | 198: two |
+| no common point, a move anyway (1) | 198 |
+| the tile in an ad counted (1) | 198 |
+| the fall during an ad taken back (1) | 198 |
+| the reason for the other direction (1) | 198 |
+| following, without counting the takeback (1) | 198 |
+| the measurement not reopened (1) | 198 |
+| the place not forgotten after the move (1) | 198 |
+| the most constrained not stated first (1) | 198 |
+| the two seconds of margin forgotten (1) | 198: four |
+| what a skip loses, forgotten (1) | 198: three |
+| low latency stepped back anyway (1) | 198 |
+| the fall without its time (1) | 198: two, live |
+
+Twenty-seven mutants, all caught on the first pass. **The common lag never
+brought back to zero** breaks nothing in 193: the reference there has less
+than two seconds of buffer, nothing to take back towards live, and the common
+lag is zero by itself. The posed states of 198 catch it.
+
+## The track cursor (v4.24.0.34)
+
+The request, in three steps. First: "suggest other ideas for the 'redrawn ▶'.
+With animations on it too, I want it to feel high-quality. I want it to stay
+visible but not omnipresent." Then, track C chosen: "the animation of the
+button arriving when the mouse hovers the track cursor, yes an opening
+animation and yes a closing animation, for every co-stream there is. I want
+it every time." Finally, for the two buttons: "OK for track 3. […] Show all
+the faces, no +N. If five must be shown, show five." Published on
+`claude/chrome-multi` only, as asked.
+
+### Before the code: three boards
+
+- **The bar's "▶"**: four tracks, each playable, timed and compared. Track C,
+  **the track cursor** — the bar is a track, the button its cursor —, was
+  chosen.
+- **The track cursor**: its levels, its seven sequences on a timeline, its
+  edge cases — and what the welcome hint means.
+- **The cursor's two buttons**: the split (a second pill sliding out from
+  under the first) set aside — it covered the card below, read as a menu, and
+  did not say who was being added —, and four other ways; the third, **the
+  faces that drop in**, chosen.
+
+### Three levels of presence
+
+| level | when | what you see |
+| --- | --- | --- |
+| **rest** | always | a 9 × 18 px capsule on the line, half-rounded corners, a 5 × 6 ▶, no glow — the avatar starts at 10 px, it does not touch it |
+| **wake** | the pointer on **a card of the co-stream** | 13 × 22, a 6 × 7 ▶, the bar's glow |
+| **intent** | the pointer **held 150 ms** on the capsule, or keyboard focus | the pill "▶ Watch all 3", as long as its text |
+
+A pointer sweeping the list wakes the capsules as it passes and stretches
+none. Wake follows the co-stream, not the cursor: a single delegated listener
+reads the card under the pointer and its cursor's key. On the capsule, a move
+re-arms the delay — after a click, a pointer left on it does not enter it
+again.
+
+**Durations and curves** are the dossier's, read by the test bench from
+computed styles:
+
+| movement | duration | curve |
+| --- | --- | --- |
+| wake | 160 ms | out — `cubic-bezier(.22, 1, .36, 1)`, what opens decelerates |
+| the pill stretches | 200 ms; the text 60 ms later | out |
+| grace before folding | 80 ms | — |
+| the pill folds | 140 ms; with a bubble, 100 ms after it | accelerate — `cubic-bezier(.55, 0, 1, .45)` |
+| ▶ ↔ ■ | 220 ms | morph — `cubic-bezier(.65, 0, .35, 1)` |
+| the bubble pops out | 280 ms, 120 ms after the pill | spring — `cubic-bezier(.34, 1.56, .64, 1)`, overshoots 7 % and settles |
+| birth | 340 ms, 40 ms apart | spring |
+
+**The pill's length** is measured when it stretches — the text in the current
+language, the font loaded — and set as a variable: an `auto` width does not
+animate. Nothing measurable (hidden layer): no pill rather than a wrong one.
+
+**The grab area** extends six pixels above and below, along the line, never
+over the avatar: a nine-pixel target is easy to miss. The button does not clip
+what overflows — its body clips the text —, otherwise that extension would
+receive nothing.
+
+### Opening, closing — every time
+
+- **The click**: the pill folds, a quarter of ink travels around the capsule
+  — the ring, a conic gradient whose angle is a registered property —, and
+  the ▶ waits. **The room ready** — its first tile playing, as the player's
+  bridge reports, or three seconds gone —, the ring fades, ▶ becomes ■ and a
+  bounce greets it (1 → 1.08 → 1, 260 ms); an inner line of ink says its room
+  is open.
+- **Anywhere but "Browse"**, the room opens through a real navigation: the
+  ring turns until the page leaves.
+- **A click during the ring cancels**: a room opened in place closes again,
+  the ▶ stays. A page already leaving cannot be held back.
+- **Switching** from the followed ones to the whole co-stream keeps its ■ and
+  its line — a room is open throughout —, and the bounce greets the new one.
+- **Closing** — a second click, Escape, a page change, the setting: ■ turns
+  back into ▶, the line goes out, the capsule falls asleep.
+- **Each pill says what its click will do**: ■ on the one whose room is open,
+  ▶ on the other, which switches to it without closing. At rest, the capsule
+  closes its room, whichever it is.
+
+In the report: `salle.prete`, for instance "délai · 3001 ms" or
+"lecture · 412 ms" — what stopped the ring, and when.
+
+### The faces that drop in
+
+When the co-stream has members streaming outside the bar, the pill says
+"▶ 4 followed", and at its end, four pixels away, a bubble pops out: "+" and
+**their faces, all of them** — one face per person added, never a "+N"; the
+room takes six, so four at most.
+
+- **Moving onto them brings them in**: the gap closes, the bubble welds onto
+  the end of the pill, which says "▶ All 6" — and its accessible name, the
+  six. Moving back onto the pill lets them out. A click opens what the pill
+  says at that moment.
+- **Aiming does not follow the picture.** Welded, the bubble moves back to
+  the left: aiming taken from the elements handed control back to the pill as
+  soon as the bubble's end left the pointer, which unwelded it, which came
+  back under it — a flicker, seen on the mock-up before a line was written. A
+  fixed, transparent zone covers the pill and its bubble during intent, split
+  in the middle of the gap; left in place after a click until the pointer
+  leaves it, it keeps its toggle role for the second click, and does not hand
+  the card below the hover that would open its preview. It starts no
+  selection: Shift+click on a box extended the selection up to it — measured
+  on the bench —, where a button does not.
+- **With the keyboard**: Tab stretches the capsule, with no delay; the next
+  Tab moves to the bubble, which welds; Enter opens the six, and folds
+  nothing — focus does not stay on a bubble that has turned invisible, and it
+  says, ■ or ▶, what the next key will do. **Shift+click**
+  still opens the whole co-stream, and it is the only way in a collapsed
+  sidebar.
+- **The avatars.** A channel with a card already has one: `TseChannels`
+  returns it. For those you do not follow, a separate anonymous request that
+  asks for them only — `TseVisages`: `users(logins:)` and its `login`,
+  `displayName`, `profileImageURL(width: 70)`, the very root and fields of
+  `TseChannels`. Once per channel per page; a refused batch is retried a
+  minute later. **Not in the Guest Star request**, which all co-stream
+  detection depends on: a field refused there would have taken the bars down
+  for a face. **It could not be played against the real Twitch from here** —
+  this machine's outbound policy refuses `gql.twitch.tv`; its fields are those
+  of a request that was. Refused, the initials stay, and nothing else moves.
+- **Without an avatar**, the initial, on a hue drawn from the channel. The
+  image is there from the start, with no address and hidden: an avatar that
+  arrives is only an attribute, and no added child triggers a scan.
+
+In the report, `salle.noeuds`: `visages` (placed), `avatars` (those with an
+address), `lotsVisages` (requests sent).
+
+### Birth, the welcome hint
+
+- **Birth**: at every page load, and every time a co-stream forms, the
+  capsules thicken out of the line, top to bottom, forty milliseconds apart,
+  six at most offset.
+- **The welcome hint**, once per install: the first time a cursor appears —
+  sidebar expanded, on screen, no room open —, it plays on its own what
+  hovering will do: it wakes 600 ms after its birth, stretches, says "Watch
+  all 2" for two and a half seconds, and folds. Then never again, even after
+  a restart: the `tse:indice` key remembers it, as `tse:roue` does the wheel.
+  Read when it is about to play, not at start-up — another tab may have
+  shown it meanwhile; written before playing; refused storage counts as
+  "already seen". A hand
+  that arrives takes over. In the report: `salle.noeuds.indice` — "à
+  montrer", "joué", "vu".
+
+### Light theme, reduced motion, forced colours
+
+- **In light theme**, the bar and its capsule take a deepened tone of their
+  colour — the same hue, darkened to three times Twitch's light background
+  (#efeff1), the contrast WCAG asks of what is seen without being text — and
+  lose their glow. Black ink holds 5.5:1 on them. The fresh-live red already
+  passes (4:1): it stays its own. A theme switch — Twitch's toggle, the
+  setting — repaints the capsule at once, without waiting for a scan.
+
+  | colour | dark | light | on the light background |
+  | --- | --- | --- | --- |
+  | yellow | #f5c518 | #a78507 | 1.4 → 3.05 |
+  | green | #7ee081 | #269f2a | 1.4 → 3.01 |
+  | turquoise | #26d4c8 | #1c9a91 | 1.6 → 3.01 |
+  | blue | #4d8cff | #4385ff | 2.8 → 3.03 |
+  | violet | #c77dff | #b95dff | 2.3 → 3.01 |
+  | pink | #ff7a8a | #ff3e55 | 2.2 → 3.01 |
+
+- **Reduced motion**: 120 ms fades instead of stretches, slides and scales;
+  the ring is solid, it does not turn.
+- **Forced colours**: the system removes backgrounds; a one-pixel outline,
+  and the symbol in the button-text colour.
+- **Collapsed sidebar**: the capsule only, the tooltip naming the channels and
+  the shortcut, Shift+click.
+
+### Elsewhere
+
+- **The user guide** shows the resting capsule on its card's bar.
+- **The texts**, in the panel's twelve languages: the co-stream guide and the
+  description of the "Multistream room" setting describe the cursor, its faces
+  and Shift+click; "All 6" in the interface's ten.
+- **Nothing in the layer can be selected**: a selection across the list does
+  not take a folded pill's text with it.
+
+### What the bench measures
+
+- **197**, new — the cursor read from its styles: the three levels, their
+  durations and curves; nothing at 40 ms, the pill at 320 ms, as long as its
+  text; a 50 ms sweep stretches nothing; out for 30 ms and back, nothing
+  folds; gone, the pill folds after 80 ms, in 140 ms, 100 ms after the bubble;
+  the four faces, no "+N", their avatars, "x3" its initial, a request that
+  asked for them only, and not Guest Star; the ring, then ■ and the bounce at
+  three seconds; Escape; a click on the capsule, then a move that reopens the
+  pill; a click during the ring that cancels; a tile playing makes the room
+  ready at once; two co-streams born together, 0 and 40 ms; a sort that
+  reorders unchanged bars, and the cursors following; light theme, switched
+  without a scan; reduced motion and forced colours; the welcome hint, its
+  timings, and the reloaded page that does not replay it.
+- **194**, rewritten for the bubble — the bubble waiting, two faces; the pill
+  "4 followed" and its bubble four pixels away; the weld, "All 6"; aiming
+  that does not flicker, twenty samples at the spot the bubble left; the
+  ring, then ■; "4 followed", Shift+click, a second Shift+click, selecting
+  nothing; Tab moving to the bubble and welding it; "dune", detached, first
+  in the bubble; the faces in the report.
+- **176**, **195** — the capsule instead of the tab; the pill on hover; "All
+  5", "All 3" and their faces in "Live channels".
+- **29** — each palette colour has its light-theme tone: same hue within one
+  degree, 3:1, readable ink.
+- **96** — the user guide's mock-up: the resting capsule, its cut-out ▶.
+- **The bench itself**: the welcome hint is declared seen in every new page
+  — it would stretch under every scenario's measurements —, **after** it has
+  loaded, before any card arrives; 197 removes the key the same way. The
+  first attempt set it through an init script, as each document opened, in
+  all its iframes: storage no longer always read back, after a reload, what
+  the previous page had just written — 11, 166 and 167, one failure each over
+  two full passes, none in the passes before —, and the same-origin iframe
+  rewrote the key 197 had just removed: a hint that never writes it passed
+  for having written it. A mutant showed it.
+
+The full bench: 1676 assertions in 196 scenarios, all green.
+
+| mutant | what fails |
+| --- | --- |
+| wake on hovering the cursor only, not the co-stream (1) | 197: two |
+| intent with no delay (1) | 197: three, the sweep among them |
+| grace removed (1) | 197 |
+| folding with the opening's durations (1) | 197 |
+| the pill folding together with the bubble (1) | 197 |
+| a fixed-length pill (1) | 197 |
+| the pill's text visible at rest (1) | 176: three |
+| the bubble visible at rest (1) | 194 |
+| the bubble never welding (1) | 194: two |
+| aiming taken from the bubble's picture (1) | 194: twenty samples, a flicker |
+| two faces and a "+2" (1) | 197 |
+| the initial hidden under an empty image (1) | 197 |
+| faces requested again on every scan (1) | 197 |
+| faces of followed channels requested too (1) | 194 |
+| the avatar requested from Guest Star (1) | 197 |
+| no ring (1) | 194, 197: three |
+| an endless ring (1) | 197 |
+| ■ before the room is ready (1) | 194, 197: two |
+| bounce forgotten (1) | 197 |
+| a playing tile ignored (1) | 197 |
+| the click ignored during the ring (1) | 197: two |
+| birth forgotten (1) | 197 |
+| birth without cascade (1) | 197 |
+| the birth class left on (1) | 197: four |
+| the hint never played (1) | 197 |
+| the hint's key never written (1) | 197, after the bench fix above |
+| an endless hint (1) | 197 |
+| light tone forgotten (1) | 197 |
+| glow kept in light theme (1) | 197 |
+| reduced motion forgotten (1) | 197 |
+| forced colours forgotten (1) | 197 |
+| collapsed sidebar ignored (1) | 176, 194: two |
+| keyboard focus without the pill (1) | 194: three |
+| the bubble out of the tab order (1) | 194: four |
+| the aiming zone never set (1) | 194: eight |
+| the layer selectable (1) | 194: Shift+click selects |
+| the delay armed on entry only (1) | 197 |
+| no toggle (1) | 176, 194: seven |
+| black ink everywhere (1) | 194 |
+| reordering only when the count changes (1) | 197, by the sort added for it |
+| a wrong light tone in the palette (1) | 29 |
+| focus left on a folded bubble (1) | 194 |
+| theme switch without repainting the capsule (1) | 197 |
+| the mock-up left as a tab (1) | 96 |
+
+Forty-four mutants, all caught — three only on the second pass. **The hint's
+key never written** survived the bench defect described above. **Reordering
+only when the count changes** survived because, in the bench, every sort that
+reordered the bars also changed their number: 197 got a sort that reorders
+unchanged bars. **Shift+click selecting** targeted a guard set on the zone
+that was redundant — the layer is already unselectable, and that is enough:
+the guard is removed, and the mutant now targets the layer.
+
+## No more pill: the bar, and the "▶" redrawn (v4.24.0.33)
+
+The request: "Make the two fixes […] But don't do the older rules. Also, for
+the sake of consistency, I would like to have no pill at all. And so put
+instead a single coloured bar on the co-streaming streamer who is the only one
+we follow. With the round "▶" in the middle of the coloured bar. Could this
+round "▶" be redesigned? I don't find it very pretty, small, barely visible
+and not well integrated into the coloured bar. Stay within this kind of
+structure, but do professional work on the CSS. Be rigorous." Published on
+`claude/chrome-multi` first.
+
+### The common event's mask: the common part, and only it
+
+The two defects the real reports of 4.24.0.32 brought to light:
+
+- **The mask took the union of the two silences**, when their intersection
+  is enough — the only peak a shared silence can make lies in what both tiles
+  keep quiet together. A tile muted 21 to 28 % of the time, in those
+  reports, saw its long silences take seconds of real reference sound out of
+  the correlation. Now, for each pair of silences that overlap within 50 ms,
+  only their common part is set aside, with its 50 ms of edge on each side.
+- **The count capped at a hundred, and lied beyond**: it read the size of
+  the memory that deduplicates silences from one computation to the next,
+  bounded at a hundred. It is now kept apart, and also says how much sound
+  was set aside: `ecoute.silencesCommuns`, per pair, "xray~omega 3 · 0.8 s".
+
+**Not the older rules**, as asked: the number of catch-ups after an ad and
+the latency of the taken-back place, against the buffer, are unchanged.
+
+### No pill at all
+
+The purple number in the corner of the avatar is no longer seen
+**anywhere** — on a bar, on a lone channel, in Top Channels, with the
+multistream room off as with it on. It already faded under a bar or a "▶"
+since 4.24.0.28: the bar is what says co-stream.
+
+- **The element stays**, never shown: the fallback detection (same category
+  and same counter) reads its number, and the report counts the pills laid
+  (`lignes.pastilles`). `lignes.pastillesVues` must say zero there: any
+  other number would say that a Twitch rule beats ours.
+- **The "Collaboration pill" setting went with it**: there is no pill left to
+  turn off. Twenty-one settings instead of twenty-two — the panel, the
+  sentence that resets everything and the twelve Store listings take back,
+  word for word, those of 4.24.0.16. A value left in storage or in an export
+  is an unknown key, ignored like all of them. The language flag it also
+  turned off stays, like the bar.
+- **The guide** shows the card as it is: its bar, and the "▶" tab in the
+  middle, no more pill.
+
+### A bar for the channel alone from its co-stream
+
+A shown card in a co-stream — Twitch writes its "+N" on it, or Guest Star
+knows its session — that no drawn group takes has **its own bar**, one card
+long, in its session's colour.
+
+- **In each section**: alone in the followed list with two mates in "Live
+  channels", it has the colour of their bar; alone in both lists, both bars
+  have the same one.
+- **Not in Top Channels**, where the pill was already not shown: the ranking
+  places the whole co-stream that is streaming, and a card left alone there
+  would have no one to show.
+- **Not as long as no one knows its session** — neither its Guest Star
+  answer nor its mates' index: a guessed colour, then its session's, would
+  change before your eyes at start-up. Twitch's "+1" is there as soon as the
+  card arrives, its id a fraction of a second later, the answer after that;
+  the bar waits for the answer. The fallback detection only waits for the
+  answer of a card whose id is known — that same rule, applied here, made on
+  the bench a yellow bar at 54 ms, nothing at 107 ms, and its session's green
+  one at 3.45 s.
+- **No group key**: the "co-streams first" sort arranges groups, the join
+  links neighbours, and a lone card is neither. It keeps its place, and its
+  bar never joins a neighbour's.
+- **The palette** serves groups first, lone cards next. It has six colours:
+  beyond six co-streams on screen, a colour comes back — it was already so
+  for groups, and lone cards now use them too.
+- **The node in the middle** when other members are streaming and the room is
+  on: it opens it with them, six at most, those you follow first — "Watch all
+  6", and the channels in the label's tooltip. With no one else to open (a
+  guest without a stream, or a "+N" without a session), the bar without a
+  node. A node is only ever laid on a bar.
+- **The member a sort detaches from its bar** keeps its group's colour, and
+  has its own bar, with its node in the middle.
+
+In the report: `coStream.seules` (the followed list) and
+`coStream.recommandations.seules`; `salle.noeuds.seules`, the nodes of
+one-card bars, apart from `affiches` — `pastilles` and `clicsPastilles` no
+longer exist, their clicks are in `clics`.
+
+### The "▶" redrawn: a tab
+
+**Why the round did not work.** Twelve pixels, a four-by-five triangle:
+barely visible. And it was a circle centred on a stroke running along the
+edge of the window: the list would have clipped half of it, and `placer`
+pushed it to the right of the stroke — laid beside it, not on it.
+
+**The test bench.** Four shapes, rendered side by side on Twitch-sized cards,
+expanded and collapsed, dark and light: the former round; an 18-pixel round
+pearl, which covered the stroke and eight pixels of avatar; a necklace, the
+stroke widened up to a pearl; and the tab. It is the one that "belongs" to
+the bar:
+
+- **what a circle centred on that edge can be without being cut by it**: a
+  straight left edge, laid on the stroke, in its colour and with the same
+  shadows — the stroke widens, it does not carry an object; a half-circle
+  right edge;
+- **fifteen pixels by twenty-two**, the triangle at seven by eight, rounded
+  corners like the players', half a pixel into the round part;
+- **cut out from the avatar** by a two-pixel crescent in the background
+  colour — a shadow shifted to the right, which does not cut the stroke above
+  and below as the round's rim did. It bites five pixels into the avatar,
+  which starts at ten: a notch rather than an overlap. On a lone card, the
+  stroke — the card less four pixels at the top and bottom — goes past it
+  above and below;
+- **starting from the card's left edge**, where the bar is painted, wherever
+  the card is: `placer` no longer centres it.
+
+**Its states**: on hover or from the keyboard, it steps forward — enlarged by
+12 % from its left edge, which stays on the stroke —, lights up and glows,
+the symbol with it; pressed in on click; with its room open, a second
+crescent in the bar's colour beyond the first, and the ■; the keyboard
+outline follows its shape. The tab is the button's `::before`, not the
+button: hovering enlarges it without enlarging the label that comes out of
+it. No animation under "reduced motion".
+
+**The ink follows the bar** — Twitch's black or white, whichever contrasts
+most (WCAG contrast):
+
+| colour | black | white | ink |
+| --- | --- | --- | --- |
+| yellow, green, turquoise | 10.4 to 11.8 | 1.6 to 1.9 | black |
+| blue (the palette's darkest) | 6.0 | 3.2 | black |
+| purple, pink | 7.2 · 7.7 | 2.7 · 2.5 | black |
+| red of a stream that just started | 4.2 | **4.6** | **white** |
+
+Labels and choices follow the same ink: "Watch all 2" in black on red was at
+4.2:1.
+
+**In the list's order, from the keyboard too** — a defect as old as the
+nodes, which lone cards make frequent. Tabbing follows the order of the nodes
+in their layer, and a node went in when it was created, then never moved. A
+sort that reorders the cards left them in the former order — on the bench,
+after the sort by duration: "vif, dune, the bar, hale" on screen, "hale,
+vif, the bar, dune" when tabbing —, and a lone card whose Guest Star answer
+arrives before those of the neighbouring bar came before it. They are
+arranged in their bars' order, each choice behind its node — only when the
+order has changed, each move being a child the bar's observer sees.
+
+### What the bench measures
+
+- **196** — two more assertions: a 2.5 s silence in "duo1" alone, which
+  overlaps a common silence, does not take "foxtrot"'s sound with it — as
+  much sound set aside in each pair, less than 1.6 s; then a hundred and ten
+  common silences of 60 ms, and the count says them all.
+- **194**, rewritten — the set adds "vif", which just started: no pill is
+  seen, the element stays; four lone-card bars, in their session's colour,
+  with neither key nor join; "hale"'s node in the middle of its bar, a tab;
+  black ink on the palette, white on the red; the nodes in their bars'
+  order; the tab stepping forward on hover, its crescent when pressed;
+  "dune", detached by a sort, with its bar and its node; room off, the eight
+  bars stay and nothing comes back; "collab" refused; no lone-card bar in Top
+  Channels; the nodes in the new order after the sort; and a card whose Guest
+  Star answers only after three seconds, its colour read every 50 ms: no bar
+  before the answer, then a single colour.
+- **195** — "seulf" and "seul1", alone from their session in two lists: each
+  its bar, of the same colour, with no key, and its node in the middle.
+- **176** — the tab, fifteen by twenty-two, painted on its `::before`, in the
+  bar's colour, black ink; it follows the card when the list shifts it;
+  "cirrus", detached, has its node on its bar.
+- **96** — the guide's mock-up: the bar, the tab in the middle, no more pill.
+- **17**, **129** — the pill laid is not seen; **117**, **120** — twenty-one
+  settings, and the twelve sentences that say so.
+
+The full bench, on the same machine: 1658 assertions in 195 scenarios, all
+green, at the first run.
+
+| mutant | what catches it |
+| --- | --- |
+| the pill made visible (1) | 194: five assertions, among them "no pill is seen any more" |
+| the lone card's bar never painted (1) | 194, 195: thirteen |
+| the group key laid on the lone card (1) | 194: "with neither group key nor join" |
+| the lone-card bar allowed in Top Channels (1) | 194: "kilo" gets a bar there |
+| the Guest Star wait removed (1) | 194: a yellow bar at 55 ms, the green one at 3.45 s |
+| the wait kept to cards whose id is known (1) | 194: yellow at 54 ms, nothing at 107 ms, green at 3.45 s |
+| the colour taken outside the session (1) | 195: "seulf" and "seul1" in two colours |
+| the node allowed without a bar (1) | **survives** — equivalent, below |
+| the tab centred on the stroke, like the round (1) | 176, 194: nine |
+| the twelve-pixel round (1) | 176: two |
+| the tab painted on the button (1) | 176: two |
+| black ink everywhere (1) | 194: black on "vif"'s red |
+| the still hover (1) | 194: two |
+| pressed by the node's key, not its channels (1) | 194: two |
+| the switch removed (1) | 194: three |
+| the nodes left in the order they were born (1) | 194: after the sort, "hale, vif, the bar, dune" |
+| lone-card nodes counted with the bars' (1) | 176, 194 |
+| the channels' tooltip lost (1) | 194 |
+| the report silent about lone bars (1) | 194, 195 |
+| the "collab" setting kept (1) | 117, 194: three |
+| pressed without its second crescent (1) | 194 |
+| the guide's mock-up with neither bar nor tab (1) | 96 |
+| the mask at the union (1) | 196: "and only their common part" |
+| the count capped at a hundred (1) | 196: "and more than a hundred" |
+
+Twenty-four mutants, twenty-three caught. **The survivor** is the guard that
+keeps the node to cards that have a bar. No state tells it apart: the mates
+it would open and the bar are read from the same source — the Guest Star
+answer, then its mates' index —, Top Channels has a guard of its own, and as
+long as no one knows the session, there is neither bar nor mate. It stays, to
+state the invariant: a node is laid on a bar.
 
 ## The common event, set aside (v4.24.0.32)
 
@@ -17487,9 +18434,10 @@ Everything the extension memorises is **100 % local**, stored in your browser's
 | `tse:visits` | your visit dates per channel | "Most visited" sort |
 | `tse:roster` | followed channels seen in the sidebar | posting a card before Twitch |
 | `tse:livelag` | measured Twitch lag samples | `tse.lag()` |
-| `tse:subs` | subscriptions spotted (visits + `/subscriptions` scan), their tenure in months, the former-subscriber flag and their due date (anniversary or expiry) | "My subscriptions first" sort, card styling, preview badge |
+| `tse:subs` | subscriptions spotted (visits + `/subscriptions` scan), their tenure in months, the former-subscriber flag and their due date (anniversary or end) | "My subscriptions first" sort, card styling, preview badge |
 | `tse:substs` | date of the last full scan, prefixed by the reader version that produced it | spacing scans 6 h apart, and expiring those of an earlier version outright |
 | `tse:submois` | the tenure label, learned from the page | reading the month count without depending on the language |
+| `tse:subfin` | the label of an end date, learned on a gifted card | recognising a paid subscription no longer renewing, without depending on the language |
 | `tse:sondes` | what Twitch answered the reconnection probes, per stream identifier, 48 h at most | not asking again on reload what is already settled |
 
 `tse.reset()` wipes them all at any time; clearing `twitch.tv`'s site data from
@@ -17592,7 +18540,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the Firefox manifest: this repository's invariants, **then** Mozilla's `addons-linter` — the one AMO runs on submission |
-| `npm test` | the Playwright harness: 195 scenarios, 1651 assertions |
+| `npm test` | the Playwright harness: 198 scenarios, 1702 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
