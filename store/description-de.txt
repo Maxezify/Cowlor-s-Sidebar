@@ -69,6 +69,19 @@ Ein farbiger Balken läuft am linken Rand der Karte jedes Streamers im Co-Stream
 
 _______________________________
 
+➤ 🎬 DER MULTISTREAM-RAUM: DER GANZE CO-STREAM, NEBENEINANDER
+Ein Co-Stream, das sind mehrere Blicke auf denselben Moment. Der „▶“-Regler auf seinem farbigen Balken öffnet sie alle zusammen, nebeneinander, ohne die Seite zu verlassen.
+
+- ★ ER SAGT, WAS ER ÖFFNET ★ Fahr darüber: „Alle 3 ansehen“. Beteiligte, denen du nicht folgst? Ihre Gesichter erscheinen an seinem Ende: Fahr zu ihnen, um sie hinzuzufügen, oder öffne mit Umschalt+Klick den ganzen Co-Stream auf einmal.
+- ★ DER TON, WO DU WILLST ★ Ein Klick auf eine Kachel gibt ihr den Ton — die Tasten 1 bis 6 ebenso —, und der Chat folgt dem Ton.
+- ★ AUF DENSELBEN MOMENT AUSGERICHTET ★ Jeder Stream kommt mit seiner eigenen Verzögerung an: Die Erweiterung richtet sie selbst an ihrem gemeinsamen Ton aus, nach etwa einer Minute Zuhören. Ohne gemeinsamen Ton rührt sie nichts an.
+- ★ SECHS AUF DEM BILDSCHIRM ★ Höchstens sechs Streams; die anderen warten darunter, ein Klick holt sie herein.
+- ★ OHNE ETWAS ZU VERSCHWEIGEN ★ Der Raum bringt keine Kanalpunkte, und die Werbung von Twitch läuft dort wie überall.
+
+Esc schließt ihn — oder ein Klick auf den Regler, der jetzt ein „■“ ist.
+
+_______________________________
+
 ➤ 💜 DEINE ABOS, IN GOLD
 Die Kanäle, die du wirklich unterstützt, sollten nicht aussehen wie alle anderen. Ab jetzt tun sie das nicht mehr:
 
@@ -199,7 +212,7 @@ Twitch hat ein helles Design. Die Erweiterung merkt es und wechselt mit — ohne
 _______________________________
 
 ➤ ⚙️ UND WENN DU WÄHLEN WILLST
-Alles ist von Anfang an aktiv und nichts muss eingestellt werden. Aber ein Tab „Optionen“ im Panel gibt dir einundzwanzig Einstellungen in die Hand.
+Alles ist von Anfang an aktiv und nichts muss eingestellt werden. Aber der Bereich „Einstellungen“ im Panel gibt dir einundzwanzig Einstellungen in die Hand.
 
 - ★ WAS DU SIEHST ★ Jedes Abzeichen, die Streamdauer und ihr Format, der Balken „gerade gestartet“, das Gold der Abonnements, die Filter, die Sortierschaltflächen: alles lässt sich per Häkchen ein- und ausschalten.
 - ★ WAS GELADEN WIRD ★ Die Vorschau kann auf das Video verzichten und Abzeichen, Zeitleiste und Miniaturbild behalten — oder einfach in der Qualität heruntergehen. Genug, um sie leicht zu machen, ohne sie zu verlieren.
@@ -232,7 +245,7 @@ _______________________________
 
 - ★ Kein Drittserver ★ Die Erweiterung spricht nur mit Twitchs eigener öffentlicher API — genau der, die die Seite ohnehin schon nutzt, um sich aufzubauen. Sonst nichts, nirgends.
 - ★ Anonyme Aufrufe ★ Kein Sitzungstoken, kein Cookie wird je gesendet: diese Anfragen lassen sich nicht auf dein Konto zurückführen.
-- ★ Eine Ausnahme, laut ausgesprochen ★ Um zu wissen, welche Kanäle du abonniert hast, öffnet die Erweiterung DEINE eigene Seite twitch.tv/subscriptions in einem unsichtbaren Rahmen, höchstens alle sechs Stunden und nie, wenn du abgemeldet bist. Dein Browser authentifiziert diese Seite mit seinen eigenen Cookies, genau so, als hättest du den Link angeklickt: die Erweiterung liest dein Token nie und gibt es nie weiter. Was sie behält — Kanalnamen und eine Dauer in Monaten — bleibt in deinem Browser.
+- ★ Eine Ausnahme, laut ausgesprochen ★ Um zu wissen, welche Kanäle du abonniert hast, öffnet die Erweiterung DEINE eigene Seite twitch.tv/subscriptions in einem unsichtbaren Rahmen, standardmäßig alle sechs Stunden (drei, zwölf oder vierundzwanzig je nach deiner Einstellung), früher nur, wenn der vorige Durchgang nichts gefunden hat oder du auf „Jetzt erfassen“ klickst, und nie, wenn du abgemeldet bist. Dein Browser authentifiziert diese Seite mit seinen eigenen Cookies, genau so, als hättest du den Link angeklickt: die Erweiterung liest dein Token nie und gibt es nie weiter. Was sie behält — Kanalnamen und eine Dauer in Monaten — bleibt in deinem Browser.
 - ★ Kein Tracker, kein Pixel, keine Telemetrie ★
 - ★ Keine dubiosen Berechtigungen ★ Die Erweiterung läuft NUR auf twitch.tv.
 - ★ Werbeblockierung bleibt in ihrer Spur ★ Sie gilt für das Vorschaubild beim Überfahren und für sonst nichts. Der Stream, den du wirklich anschaust, bleibt unangetastet.
@@ -245,7 +258,7 @@ _______________________________
 
 - ★ DU FOLGST 50 STREAMERN? ★ Sieh auf einen Blick, wer schon lange live ist und wer gerade erst angefangen hat.
 - ★ DU HAST EIN DUTZEND ABOS? ★ Sie sind in Gold, oben gruppiert, mit der Zahl der Monate, die du schon dabei bist.
-- ★ DU VERPASST IMMER DIE CO-STREAMS? ★ Eine eigene Sortierung holt sie nach oben, und ein Abzeichen sagt dir, wer mit wem spielt.
+- ★ DU VERPASST IMMER DIE CO-STREAMS? ★ Eine eigene Sortierung holt sie nach oben, ein Abzeichen sagt dir, wer mit wem spielt, und der Multistream-Raum öffnet sie alle nebeneinander.
 - ★ DU HASST VISUELLES DURCHEINANDER? ★ Keine Hype Trains mehr, die die Sidebar besetzen, keine Werbebanner, keine leeren Abschnitte.
 - ★ DU LIEBST EINFACH TWITCH? ★ Diese Erweiterung ist für dich gemacht!
 

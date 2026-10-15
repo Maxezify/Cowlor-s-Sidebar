@@ -4831,6 +4831,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
        aurait été très difficile à relier à sa cause. */
 
     .side-nav-card[data-tse-offline="true"] { display: none !important; }
+    /* Une chaîne, une carte (4.24.0.38, cf. dedoublonner) : le doublon d'une
+       carte de Twitch se masque — on ne retire pas un nœud que React gère. */
+    .side-nav-card[data-tse-doublon="true"] { display: none !important; }
     .side-nav-section.tse-section-hidden { display: none !important; }
 
     /* Masquage des tooltips et panneaux d'aperçu NATIFS de Twitch
@@ -18255,6 +18258,34 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
           cartes: cartes.length,
           fabriquees: cartes.filter(isSynthetic).length,
           decorees: cartes.filter(c => c.dataset.tseLogin).length,
+          /* UNE CHAÎNE, UNE CARTE (4.24.0.38, cf. dedoublonner) : depuis le
+             démarrage, les doublons de Twitch masqués et les nôtres retirés ;
+             et ceux masqués à cet instant. Des comptes, jamais un pseudo. */
+          doublons: { natifs: bilanDoublons.natifs, fabriques: bilanDoublons.fabriques,
+                      masques: cartes.filter(c => c.dataset.tseDoublon === 'true').length },
+          /* LA FORME DE LA LISTE SUIVIE (4.24.0.38, cf. entreesDe) : ses
+             cartes, celles dont l'entrée est une enveloppe, la profondeur de
+             l'enveloppe, et le nombre de parents de ces entrées — 1 pour une
+             liste d'un seul tenant. Ce que le harnais suppose de Twitch, dit
+             par Twitch lui-même. */
+          liste: (() => {
+            const sec = followedSection();
+            if (!sec) return null;
+            const { cartes: cs, entree } = entreesDe(sec);
+            let enveloppees = 0;
+            let niveaux = 0;
+            const parents = new Set();
+            for (const c of cs) {
+              const e = entree.get(c);
+              parents.add(e.parentElement);
+              if (e === c) continue;
+              enveloppees += 1;
+              let n = 0;
+              for (let p = c; p !== e; p = p.parentElement) n += 1;
+              niveaux = Math.max(niveaux, n);
+            }
+            return { cartes: cs.length, enveloppees, niveaux, parents: parents.size };
+          })(),
           liens: nav ? nav.querySelectorAll('a[href^="/"]').length : 0,
           /* Le mode Top Chaînes CLONE ses cartes : sans modèle, il n'affiche
              rien, et c'est exactement le défaut qu'un utilisateur a signalé —
@@ -26140,6 +26171,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     const catLabel = new Map();
     section.querySelectorAll('.side-nav-card').forEach(card => {
       if (card.dataset.tseOffline === 'true') return;
+      if (card.dataset.tseDoublon === 'true') return;  // une chaîne, une voix (4.24.0.38)
       const login = card.dataset.tseLogin;
       if (!login) return;
       const resolved = langStore.getLangs(login); // lecture du cache TseChannels
@@ -26323,11 +26355,16 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
    * une centaine de cartes). Le harnais vérifie que les deux disent bien la
    * même chose ; toute modification de la règle doit passer ici aussi.
    */
-  const cardShown = (card) =>
+  /* QUATRE FAÇONS DEPUIS LA 4.24.0.38 : le doublon d'une chaîne, masqué par
+     `dedoublonner` (data-tse-doublon). `cardAffichee` dit ce que la carte
+     montrerait sans lui — c'est elle que le dédoublonnage compare ;
+     `cardShown`, ce qu'elle montre. */
+  const cardAffichee = (card) =>
     card.dataset.tseOffline !== 'true' &&
     card.style.display !== 'none' &&
     (card.dataset.tseGlobal === 'true' ||
      !document.body.classList.contains('tse-global-ready'));
+  const cardShown = (card) => card.dataset.tseDoublon !== 'true' && cardAffichee(card);
 
   // Lit le chiffre N dans le badge collab. Convention Twitch (rectifiée par
   // l'utilisateur) : N représente "autres streamers en plus de celui-ci",
@@ -27818,6 +27855,64 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     return p ? (p.getAttribute('title') || '').toLowerCase() : '';
   };
 
+  /* ============================================================
+   *  LA LISTE ET SES ENTRÉES (4.24.0.38)
+   *  -------------------------------------------------------------
+   *  UNE CARTE N'EST PAS FORCÉMENT UNE ENTRÉE DE LA LISTE. React
+   *  peut envelopper chacune — un bloc d'animation, un nœud sans
+   *  classe —, et c'est l'ENVELOPPE qu'il range, qu'il déplace et
+   *  qu'il retire. Le tri, lui, déplaçait la carte, dans le parent
+   *  de la première : chaque carte sortait de son enveloppe, qui
+   *  restait vide à sa place. Le jour où React retirait une entrée —
+   *  une chaîne qui coupe et revient, une liste repliée —, il
+   *  retirait l'enveloppe VIDE, et la carte, qu'il ne voyait plus,
+   *  restait : masquée tant que la chaîne était hors ligne, rendue
+   *  par le cache à son retour, à côté de la carte neuve que Twitch
+   *  venait de poser. Le doublon signalé après une coupure.
+   *
+   *  L'ENTRÉE D'UNE CARTE, c'est son plus haut ancêtre qui ne contient
+   *  qu'elle — la carte même, quand les cartes sont sœurs. Le tri
+   *  range des entrées, chacune dans SON parent : il ne change plus
+   *  un nœud de parent, quelle que soit la forme de la liste. Les
+   *  cartes fabriquées entrent au même niveau, sœurs des entrées de
+   *  Twitch, et se rangent avec elles.
+   *
+   *  UNE CARTE SEULE ne dit pas où est sa liste : tous ses ancêtres
+   *  ne contiennent qu'elle. On reprend alors le dernier conteneur
+   *  vu à plusieurs entrées, s'il est toujours dans la section ;
+   *  à défaut, son parent — ce qu'on faisait toujours.
+   * ============================================================ */
+  const conteneursVus = new WeakMap(); // section → dernier conteneur à plusieurs entrées
+  const entreesDe = (section) => {
+    const cartes = [...section.querySelectorAll('.side-nav-card')]
+      .filter((c) => !c.parentElement?.closest('.side-nav-card')); // pas le <a> interne (réduit)
+    const compte = new Map();
+    for (const c of cartes) {
+      for (let p = c.parentElement; p; p = p.parentElement) {
+        compte.set(p, (compte.get(p) || 0) + 1);
+        if (p === section) break;
+      }
+    }
+    const entree = new Map();
+    for (const c of cartes) {
+      let e = c;
+      while (e.parentElement && e.parentElement !== section && compte.get(e.parentElement) === 1) e = e.parentElement;
+      entree.set(c, e);
+      const p = e.parentElement;
+      if (p && compte.get(p) >= 2) conteneursVus.set(section, p);
+    }
+    return { cartes, entree, compte };
+  };
+  // Où poser une carte de plus, sœur des entrées de `carte`.
+  const conteneurDe = (carte, section) => {
+    if (!section || !section.contains(carte)) return carte.parentElement;
+    const { entree, compte } = entreesDe(section);
+    const p = entree.get(carte)?.parentElement;
+    if (p && compte.get(p) >= 2) return p;
+    const vu = conteneursVus.get(section);
+    return vu && vu.isConnected && section.contains(vu) ? vu : carte.parentElement;
+  };
+
   function applySorting() {
     const section = followedSection();
     if (!section) return;
@@ -27842,10 +27937,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
        et ni l'un ni l'autre ne fait bouger ce qui est au-dessus du pointeur. */
     if (preview.ouvert()) return;
 
-    const cards = [...section.querySelectorAll('.side-nav-card')];
+    // Les cartes canoniques et leur entrée dans la liste (cf. entreesDe).
+    const { cartes: cards, entree } = entreesDe(section);
     if (cards.length < 2) return;
-    const container = cards[0].parentElement;
-    if (!container) return;
 
     // En mode global, le mode de tri est imposé : un classement mondial n'a
     // pas de sens trié par popularité personnelle ou par ordre alphabétique.
@@ -27981,7 +28075,21 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       if (sorted[i] !== cards[i]) { changed = true; break; }
     }
     if (!changed) return;
-    sorted.forEach(c => container.appendChild(c));
+    /* DES ENTRÉES, CHACUNE DANS SON PARENT (4.24.0.38, cf. entreesDe). Une
+       liste d'un seul tenant — le cas de Twitch — se range entière ; si les
+       entrées se répartissaient entre plusieurs parents, chacun rangerait les
+       siennes, et aucune ne passerait chez le voisin. Le mode réduit en
+       profite aussi : la liste ne compte plus le <a> interne, qui porte la
+       même classe, et que l'ancien tri sortait de sa carte. */
+    const parParent = new Map();
+    for (const c of sorted) {
+      const e = entree.get(c);
+      const p = e?.parentElement;
+      if (!p) continue;
+      if (!parParent.has(p)) parParent.set(p, []);
+      parParent.get(p).push(e);
+    }
+    for (const [p, voulues] of parParent) voulues.forEach((e) => p.appendChild(e));
   }
 
   /* ============================================================
@@ -28285,11 +28393,15 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     // reviendrait à ne rien afficher. Deux replis ensuite : le parent d'une
     // carte encore présente, puis la section elle-même — moins fidèle à la
     // structure de Twitch, mais visible.
+    /* Le conteneur des ENTRÉES, depuis la 4.24.0.38 (cf. entreesDe) : une
+       carte posée dans l'enveloppe de son modèle partirait avec elle, et le
+       tri ne pourrait plus la ranger seule. */
+    const premiere = section.querySelector('.side-nav-card');
     const conteneurPour = (noeud, voie) => (voie === 'memoire'
       ? (globalContainer?.isConnected ? globalContainer : null)
-        || section.querySelector('.side-nav-card')?.parentElement
+        || (premiere && conteneurDe(premiere, section))
         || section
-      : noeud.parentElement);
+      : conteneurDe(noeud, section));
     /* `modeleVoie` NE S'ÉCRIT PAS ICI, et c'est délibéré. Il disait le candidat
        CHOISI ; une passe où toutes les cartes existent déjà n'en éprouve aucun,
        et le rapport annonçait alors un modèle qui n'avait rien fabriqué. Il ne
@@ -28676,7 +28788,13 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     let repliModele = null;
     for (const c of all) {
       if (isSynthetic(c) || !nativeCovers(c)) continue;
-      const l = c.dataset.tseLogin || getCardLogin(c);
+      /* LE LIEN D'ABORD, ET NON PLUS LA MARQUE (4.24.0.38). Ce passage précède
+         `processCard`, qui ne remet `data-tse-login` à jour qu'après : sur une
+         carte que React vient de recycler pour une autre chaîne, la marque
+         nommait encore la précédente, et la nouvelle ne « couvrait » pas sa
+         chaîne — dont la carte fabriquée restait, en double, jusqu'au
+         balayage suivant. Le lien, lui, est celui que Twitch vient d'écrire. */
+      const l = getCardLogin(c) || c.dataset.tseLogin;
       if (l) covered.add(l);
       /* Modèle de clonage : une carte native EN DIRECT et, de PRÉFÉRENCE,
          neutre. Le clonage copie le markup tel quel, décorations comprises —
@@ -28718,7 +28836,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     if (!template) return;
     if (document.body.classList.contains('tse-loading')) return;
 
-    const container = template.parentElement;
+    // Sœur des entrées de Twitch, et non dans l'enveloppe du modèle (cf. entreesDe).
+    const container = conteneurDe(template, section);
     if (!container) return;
 
     for (const [login] of roster.entries()) {
@@ -28731,6 +28850,74 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       container.appendChild(card);
       liveLag.noteAhead(hit.stream.id); // pour chiffrer l'avance prise sur Twitch
       live++;
+    }
+  };
+
+  /* ============================================================
+   *  UNE CHAÎNE, UNE CARTE (4.24.0.38)
+   *  -------------------------------------------------------------
+   *  SIGNALÉ PAR UNE CAPTURE : la même chaîne, deux fois, côte à
+   *  côte — même pseudo, même catégorie, mêmes spectateurs, même
+   *  durée —, sept minutes au moins, après une coupure de cette
+   *  chaîne. « De temps en temps ».
+   *
+   *  TROIS CHEMINS Y MÈNENT, deux étaient à nous et se ferment à
+   *  leur source :
+   *   • une carte de Twitch sortie de son entrée par le tri, que
+   *     React ne retire plus quand il retire l'entrée — la seule qui
+   *     dure, et celle d'une coupure (cf. entreesDe) ;
+   *   • une carte FABRIQUÉE qui survit, le temps d'un balayage, à la
+   *     carte de Twitch qui la rend inutile : `syncAheadCards` passe
+   *     avant `processCard`, et lisait le pseudo d'une carte de
+   *     Twitch sur sa marque, périmée sur une carte que React venait
+   *     de recycler (cf. syncAheadCards) ;
+   *   • deux cartes de TWITCH pour la même chaîne, si sa liste
+   *     rendait deux fois la même entrée — rien ne l'interdit, et
+   *     rien ne la retirait.
+   *  Celle-ci est le filet des trois, et de ceux qu'on ne connaît
+   *  pas encore : le rapport dit s'il a servi.
+   *
+   *  LA RÈGLE, À CHAQUE BALAYAGE, APRÈS `processCard` : dans une
+   *  section, une chaîne n'a qu'une carte visible. On garde, dans
+   *  l'ordre : celle que l'aperçu survole, une carte de Twitch plutôt
+   *  qu'une des nôtres, celle qui était déjà gardée, puis la première.
+   *  Les nôtres en trop sont retirées ; celles de Twitch, masquées
+   *  (data-tse-doublon) — on ne retire pas un nœud que React gère.
+   *  Chaque balayage refait le compte : le masque tombe quand le
+   *  doublon cesse. Au rapport, `page.doublons` — des comptes, jamais
+   *  un pseudo.
+   * ============================================================ */
+  const bilanDoublons = { natifs: 0, fabriques: 0 };
+  const dedoublonner = () => {
+    const nav = document.querySelector(DOM.sidebarRoot);
+    if (!nav) return;
+    const survolee = preview.ouvert() ? preview.carte() : null;
+    for (const section of nav.querySelectorAll('.side-nav-section')) {
+      const parLogin = new Map();
+      for (const c of section.querySelectorAll('.side-nav-card')) {
+        /* LE PSEUDO QUE `processCard` VIENT DE LIRE SUR LE LIEN, et lui seul.
+           Le repli de `getCardLogin` sur un titre (<p title>) n'est pas un
+           pseudo partout : le <a> interne du mode réduit, qui porte aussi la
+           classe, n'a pas de lien sous lui, et son titre est la catégorie —
+           trois chaînes du même jeu y faisaient un « doublon » (banc, 200 d). */
+        const l = c.dataset.tseLogin;
+        if (!l || !cardAffichee(c)) { delete c.dataset.tseDoublon; continue; }
+        const g = parLogin.get(l);
+        if (g) g.push(c); else parLogin.set(l, [c]);
+      }
+      for (const cartes of parLogin.values()) {
+        if (cartes.length === 1) { delete cartes[0].dataset.tseDoublon; continue; }
+        // Le rang le plus bas est gardé ; à rang égal, la première dans la section.
+        const rang = (c) => (c === survolee ? 0 : 4) + (isSynthetic(c) ? 2 : 0)
+          + (c.dataset.tseDoublon === 'true' ? 1 : 0);
+        const gardee = cartes.reduce((a, b) => (rang(b) < rang(a) ? b : a));
+        delete gardee.dataset.tseDoublon;
+        for (const c of cartes) {
+          if (c === gardee) continue;
+          if (isSynthetic(c)) { c.remove(); bilanDoublons.fabriques += 1; continue; }
+          if (c.dataset.tseDoublon !== 'true') { c.dataset.tseDoublon = 'true'; bilanDoublons.natifs += 1; }
+        }
+      }
     }
   };
 
@@ -28782,6 +28969,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     syncGlobalCards();     // pose/retire les cartes du classement mondial
     const cards = document.querySelectorAll('.side-nav-card');
     cards.forEach(processCard);
+    // APRÈS processCard, qui a reposé le pseudo et la visibilité de chaque carte.
+    dedoublonner();
     ensureFilterBar();
     ensureSortRow();
     ensureModeRow();

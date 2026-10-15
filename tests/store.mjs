@@ -180,6 +180,18 @@ const PROMESSES = [
      quand c'est le seul que vous suivez ». La marque est la boucle qui la
      peint, pas un commentaire qui en parle. */
   ['even when it is the only one you follow', 'for (const [card, key] of seules) {'],
+  /* LA SALLE MULTISTREAM, ENTRÉE DANS LES FICHES À LA 4.24.0.38 — elle
+     existait depuis des versions sans qu'aucune n'en dise un mot. Deux
+     chiffres qu'elle promet, visés là où ils se décident : le plafond de la
+     salle, et les touches qui donnent le son. */
+  ['Six streams at most', 'SALLE_MAX:       6,'],
+  ['keys 1 to 6 work too', '/^[1-6]$/.test(e.key)'],
+  /* LE RELEVÉ, DIT EXACTEMENT (4.24.0.38). Les fiches promettaient « au plus
+     une fois toutes les six heures » : la période est un réglage, et un
+     relevé qui ne trouve rien se refait plus tôt. Chaque moitié de la phrase
+     vise ce qui la rend vraie. */
+  ['every six hours by default', 'abosPeriode:     { defaut: 6,'],
+  ['sooner only if the previous sweep found nothing', 'SUBS_PAGE_EMPTY_RETRY: 15 * 60_000,'],
 ];
 const tenues = PROMESSES.flatMap(([phrase, marque]) => {
   const dansFiche = en.includes(phrase);
@@ -190,6 +202,25 @@ const tenues = PROMESSES.flatMap(([phrase, marque]) => {
 });
 ok('les comportements promis par la fiche sont dans content.js',
    tenues.length === 0, tenues.join(' | '));
+
+/* LES BOUTONS QUE LA FICHE NOMME (4.24.0.38). Les douze fiches parlaient
+   d'« un onglet « Options » » : le panneau affiche « Réglages », et rien
+   ne s'appelle « Options ». La faute que le mode d'emploi a corrigée à la
+   4.24.0.37 — un libellé cité qui n'existe pas. Chaque fiche cite deux
+   libellés du panneau ; ils se lisent ENTRE GUILLEMETS, dans la table de SA
+   langue — « 設定 » figure ailleurs dans la fiche japonaise, et le mot seul
+   ne prouverait rien. */
+const LIBELLES = ['grpOptions', 'btnRefreshSubs'];
+const echappe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const malNommes = fiches.flatMap((f) => {
+  const loc = f.replace(/^description-|\.txt$/g, '').replace('-', '_');
+  const m = JSON.parse(readFileSync(join(RACINE, '_locales', loc, 'messages.json'), 'utf8'));
+  return LIBELLES
+    .filter((k) => !new RegExp(`[«"„「“]\\s?${echappe(m[k].message)}\\s?[»"“”」]`).test(lu.get(f)))
+    .map((k) => `${f} : ${k} « ${m[k].message} »`);
+});
+ok('chaque fiche nomme les boutons du panneau tels que sa langue les affiche',
+   malNommes.length === 0, malNommes.join(' | '));
 
 /* ============================================================
  *  LES IMAGES DE PRÉSENTATION

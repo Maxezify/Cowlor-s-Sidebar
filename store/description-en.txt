@@ -69,6 +69,19 @@ A coloured bar runs down the left edge of the card of every streamer in a co-str
 
 _______________________________
 
+➤ 🎬 THE MULTISTREAM ROOM: THE WHOLE CO-STREAM, SIDE BY SIDE
+A co-stream is several views of the same moment. The "▶" cursor on its coloured bar opens them all together, side by side, without leaving the page.
+
+- ★ IT SAYS WHAT IT OPENS ★ Hover it: "Watch all 3". Members you don't follow? Their faces show at its end: move onto them to add them, or Shift+click to open the whole co-stream at once.
+- ★ THE SOUND WHERE YOU WANT IT ★ Click a tile to give it the sound — keys 1 to 6 work too — and the chat follows the sound.
+- ★ LINED UP ON THE SAME MOMENT ★ Each stream arrives with its own delay: the extension lines them up by itself on their common sound, in about a minute of listening. With no common sound, it leaves them alone.
+- ★ SIX ON SCREEN ★ Six streams at most; the others wait below, and a click brings them in.
+- ★ NOTHING HIDDEN ★ The room earns no channel points, and Twitch's ads play there as anywhere else.
+
+Escape closes it — or a click on the cursor, now a "■".
+
+_______________________________
+
 ➤ 💜 YOUR SUBSCRIPTIONS, IN GOLD
 The channels you actually support shouldn't look like all the others. Now they don't:
 
@@ -199,7 +212,7 @@ Twitch has a light theme. The extension notices and switches with it — no relo
 _______________________________
 
 ➤ ⚙️ AND IF YOU WANT TO CHOOSE
-Everything is on from the start and there is nothing to set up. But an "Options" tab in the panel hands you twenty-one settings.
+Everything is on from the start and there is nothing to set up. But the panel's "Settings" section hands you twenty-one settings.
 
 - ★ WHAT YOU SEE ★ Every badge, the stream uptime and its format, the "just went live" bar, the subscription gold, the filters, the sort buttons: all of it switches on and off with a checkbox.
 - ★ WHAT GETS LOADED ★ The preview can drop the video and keep its badges, its timeline and its thumbnail — or simply step down in quality. Enough to make it light without losing it.
@@ -232,7 +245,7 @@ _______________________________
 
 - ★ No third-party server ★ The extension only talks to Twitch's own public API — the very one the page already uses to render itself. Nothing else, nowhere.
 - ★ Anonymous calls ★ No session token, no cookie is ever sent: those requests cannot be tied back to your account.
-- ★ One exception, said out loud ★ To know which channels you subscribe to, the extension opens YOUR own twitch.tv/subscriptions page in an invisible frame, at most once every six hours, and never when you're signed out. Your browser authenticates that page with its own cookies, exactly as if you had clicked the link: the extension never reads your token and never passes it on. What it keeps — channel names and a tenure in months — stays in your browser.
+- ★ One exception, said out loud ★ To know which channels you subscribe to, the extension opens YOUR own twitch.tv/subscriptions page in an invisible frame, every six hours by default (three, twelve or twenty-four depending on your setting), sooner only if the previous sweep found nothing or if you click "Sweep now", and never when you're signed out. Your browser authenticates that page with its own cookies, exactly as if you had clicked the link: the extension never reads your token and never passes it on. What it keeps — channel names and a tenure in months — stays in your browser.
 - ★ No tracker, no pixel, no telemetry ★
 - ★ No shady permissions ★ The extension ONLY runs on twitch.tv.
 - ★ Ad blocking stays in its lane ★ It applies to the hover preview thumbnail and to nothing else. The stream you're actually watching is untouched.
@@ -245,7 +258,7 @@ _______________________________
 
 - ★ YOU FOLLOW 50 STREAMERS? ★ See at a glance who's been live for a while and who just started.
 - ★ YOU SUB TO A DOZEN CHANNELS? ★ They're in gold, grouped at the top, with the number of months you've been there.
-- ★ YOU ALWAYS MISS CO-STREAMS? ★ A dedicated sort brings them to the top, and a badge tells you who's playing with whom.
+- ★ YOU ALWAYS MISS CO-STREAMS? ★ A dedicated sort brings them to the top, a badge tells you who's playing with whom, and the multistream room opens them all side by side.
 - ★ YOU HATE VISUAL CLUTTER? ★ No more Hype Trains squatting the sidebar, no more ad banners, no more empty sections.
 - ★ YOU JUST LOVE TWITCH? ★ This extension is made for you!
 
