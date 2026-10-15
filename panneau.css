@@ -541,6 +541,9 @@ html, body {
 .d-badge--discount { background: rgba(255, 56, 219, 0.20);  color: #ffa3ee; }
 .d-badge--costream { background: rgba(31, 105, 255, 0.25);  color: #7fb3ff; }
 .d-badge--squad    { background: rgba(145, 71, 255, 0.25);  color: #d1b3ff; }
+/* Ceux de la session qui ne diffusent pas (4.24.0.37) : le gris du produit,
+   « présent, mais éteint ». Il manquait au chapitre qui promet tous les badges. */
+.d-badge--muet     { background: rgba(255, 255, 255, 0.10); color: #adadb8; }
 .d-badge--sponsor  { background: rgba(0, 184, 90, 0.22);    color: #6bdb9d; }
 .d-badge--sub      { background: rgba(255, 201, 102, 0.22); color: #ffd591; }
 /* Ancien abonné : le MÊME or, désaturé. Un fait révolu ne doit pas briller
@@ -558,6 +561,7 @@ html[data-theme="light"] .d-badge--hype     { color: #993d00; }
 html[data-theme="light"] .d-badge--discount { color: #a8008a; }
 html[data-theme="light"] .d-badge--costream { color: #0045d1; }
 html[data-theme="light"] .d-badge--squad    { color: #6000f0; }
+html[data-theme="light"] .d-badge--muet     { color: #53535f; }
 html[data-theme="light"] .d-badge--sponsor  { color: #006b34; }
 html[data-theme="light"] .d-badge--sub      { color: #8a5900; }
 html[data-theme="light"] .d-badge--exsub    { color: #7c6b4b; }
@@ -579,6 +583,29 @@ html[data-theme="light"] .d-jour {
   75%    { color: #7320cb; background-color: rgba(111, 31, 196, 0.18); }
   87.5%  { color: #a3007a; background-color: rgba(236, 0, 177, 0.18); }
   100%   { color: #ad0000; background-color: rgba(214, 0, 0, 0.18); }
+}
+/* LE THÈME « AUTO » SUR UN SYSTÈME CLAIR (4.24.0.37). Les jetons du fond
+   suivent prefers-color-scheme ; les badges, eux, ne lisaient que data-theme,
+   que seul un choix explicite pose. Le mode d'emploi montrait donc, au
+   réglage par défaut, des badges aux teintes du sombre sur un fond clair —
+   « Jeux matures » en rose pâle sur du blanc. Mêmes valeurs qu'au-dessus. */
+@media (prefers-color-scheme: light) {
+  html:not([data-theme="dark"]):not([data-theme="light"]) .d-badge--hype     { color: #993d00; }
+  html:not([data-theme="dark"]):not([data-theme="light"]) .d-badge--discount { color: #a8008a; }
+  html:not([data-theme="dark"]):not([data-theme="light"]) .d-badge--costream { color: #0045d1; }
+  html:not([data-theme="dark"]):not([data-theme="light"]) .d-badge--squad    { color: #6000f0; }
+  html:not([data-theme="dark"]):not([data-theme="light"]) .d-badge--muet     { color: #53535f; }
+  html:not([data-theme="dark"]):not([data-theme="light"]) .d-badge--sponsor  { color: #006b34; }
+  html:not([data-theme="dark"]):not([data-theme="light"]) .d-badge--sub      { color: #8a5900; }
+  html:not([data-theme="dark"]):not([data-theme="light"]) .d-badge--exsub    { color: #7c6b4b; }
+  html:not([data-theme="dark"]):not([data-theme="light"]) .d-badge--ccl      { color: #9a1320; }
+  html:not([data-theme="dark"]):not([data-theme="light"]) .d-badge--switch,
+  html:not([data-theme="dark"]):not([data-theme="light"]) .d-badge--reprise  { color: #386e17; }
+  html:not([data-theme="dark"]):not([data-theme="light"]) .d-badge--subathon,
+  html:not([data-theme="dark"]):not([data-theme="light"]) .d-jour {
+    color: #00686b;
+    animation-name: d-arcenciel-clair;
+  }
 }
 .d-badge--ccl      { background: rgba(200, 25, 42, 0.26);   color: #ff868c; }
 .d-badge--switch,

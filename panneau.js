@@ -562,13 +562,15 @@ const dessinLag = (paquet) => {
 /* ════════════════════════════════════════════════════════════════════════════
    LE MODE D'EMPLOI
    ────────────────────────────────────────────────────────────────────────────
-   Ce produit n'a pas de réglages : ni options, ni interrupteurs, ni compte.
-   Ce qui lui manquait n'était donc pas un écran de préférences, c'était la
-   LISTE DE CE QUI EXISTE — la moitié de ce qu'il ajoute ne se découvre qu'en
-   posant le pointeur au bon endroit, et rien nulle part ne disait de le faire.
+   Ce qui manquait n'était pas un écran de préférences — les réglages ont le
+   leur —, c'était la LISTE DE CE QUI EXISTE, et de quoi s'en servir : la
+   moitié de ce que le produit ajoute ne se découvre qu'en posant le pointeur
+   au bon endroit, et rien nulle part ne disait de le faire. EXPLIQUER N'EST
+   PAS DÉCRIRE (4.24.0.37) : chaque chapitre dit ce qu'on y fait et ce que ça
+   veut dire, pas comment c'est dessiné.
 
    IL NE DEMANDE RIEN À LA PAGE, et c'est ce qui le rend lisible le premier
-   jour. Les onze autres sections passent par le pont, donc par un onglet
+   jour. Les douze autres sections passent par le pont, donc par un onglet
    Twitch au premier plan ; celle-ci s'affiche toujours, y compris sur un
    navigateur qui n'a pas encore rouvert Twitch depuis l'installation.
 
@@ -605,7 +607,7 @@ const elt = (nom, classe, texte) => {
 const badgeDemo = (mod, cle) =>
   elt('span', 'd-badge' + (mod ? ' d-badge--' + mod : ''), T(cle));
 
-/* LA CARTE DE LA BARRE LATÉRALE, EN PETIT. Six chapitres en montrent une, et
+/* LA CARTE DE LA BARRE LATÉRALE, EN PETIT. Cinq chapitres en montrent une, et
    chacun n'en change qu'un détail : la durée, la pastille de jour, la barre du
    co-stream et son « ▶ », la barre rouge, l'or de l'abonnement. Une seule
    maquette paramétrée plutôt que six recopiées — sans quoi la cinquième aurait
@@ -674,6 +676,8 @@ const BADGES_DEMO = [
   ['switch',   'guideBadgeSwitch'],
   ['costream', 'guideBadgeCostream'],
   ['squad',    'guideBadgeSquad'],
+  // Le gris des membres qui ne diffusent pas (4.24.0.37) : le treizième, qui manquait à « tous ».
+  ['muet',     'guideBadgeMuet'],
   ['sub',      'guideBadgeSub'],
   ['exsub',    'guideBadgeExsub'],
   ['sponsor',  'guideBadgeSponsor'],
@@ -746,7 +750,8 @@ const carteEtBadge = (carte, mod, cle) => {
    le survol, les tris — puis vers ce qu'on règle. */
 const GUIDE = [
   { titre: 'guideRoueTitre',     texte: 'guideRoueTexte' },
-  { titre: 'guideViteTitre',     texte: 'guideViteTexte' },
+  // Ce que la barre retire revient en badge : le renvoi mène au chapitre qui les montre (4.24.0.37).
+  { titre: 'guideViteTitre',     texte: 'guideViteTexte', renvoi: 'guideBadgesTitre' },
   { titre: 'guideDureeTitre',    texte: 'guideDureeTexte',
     demo: () => {
       const hote = div('d-pile');
@@ -768,10 +773,18 @@ const GUIDE = [
      dans les douze langues d'un coup. Rien ne l'aurait dit : une traduction
      juste peut porter un renvoi faux. Il devient donc une substitution, servie
      par `renvoi`, et le prochain remaniement le corrigera tout seul. */
+  /* LE BADGE BLEU, ET NON PLUS LE VIOLET (4.24.0.37) : la maquette posait
+     « En live avec Korbek » sur la carte de Korbek — un streamer en direct avec
+     lui-même. Le bleu dit de qui c'est le co-stream, ce que la carte montre. */
   { titre: 'guideCostreamTitre', texte: 'guideCostreamTexte', renvoi: 'guideTriTitre',
     demo: () => carteEtBadge(
       demoCarte({ nom: 'Korbek', cat: 'Valorant', vues: 962, duree: '1h47', costream: true }),
-      'squad', 'guideBadgeSquad') },
+      'costream', 'guideBadgeCostream') },
+  /* LA SALLE A SON CHAPITRE (4.24.0.37), juste après les co-streams qui
+     l'ouvrent — leur chapitre dit « chapitre suivant ». Elle tenait en une
+     phrase au bout du leur : ni le son aux touches, ni le chat qu'on choisit,
+     ni l'alignement, ni les points de chaîne qu'on n'y gagne pas. */
+  { titre: 'guideSalleTitre',    texte: 'guideSalleTexte' },
   { titre: 'guideSubathonTitre', texte: 'guideSubathonTexte',
     demo: () => carteEtBadge(
       demoCarte({ nom: 'Velmoria', cat: 'Minecraft', vues: 4820, duree: '61h04', jour: true }),
@@ -1088,7 +1101,7 @@ const GROUPES_OPT = [
 
 /* LES MEMBRES D'UN JEU EMPRUNTENT LEURS LIBELLÉS AU MODE D'EMPLOI, et ce
    n'est pas une économie de clés : c'est une garantie. La case à cocher
-   affiche EXACTEMENT le badge que le chapitre 3 dessine et que la carte
+   affiche EXACTEMENT le badge que le chapitre des badges dessine et que la carte
    montre. Onze clés de plus auraient pu dériver de celles-là ; celles-là ne
    peuvent pas dériver d'elles-mêmes. */
 const LIBELLE_MEMBRE = {
