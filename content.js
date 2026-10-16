@@ -2787,6 +2787,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     
 
     .side-nav-card[data-tse-offline="true"] { display: none !important; }
+    
+    .side-nav-card[data-tse-doublon="true"] { display: none !important; }
     .side-nav-section.tse-section-hidden { display: none !important; }
 
     
@@ -6140,6 +6142,24 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
   };
 
   const bilanSection = { voie: null, vides: 0, parCartes: 0, aucune: 0 };
+
+  const presenceSection = { vue: false, absente: false, depuis: 0, disparitions: 0, retours: 0, absenteMs: 0 };
+  const noterPresenceSection = () => {
+    if (!document.querySelector(DOM.sidebarRoot)) return;
+    const t = Date.now();
+    if (followedSection()) {
+      if (presenceSection.absente) {
+        presenceSection.absente = false;
+        presenceSection.retours += 1;
+        presenceSection.absenteMs += t - presenceSection.depuis;
+      }
+      presenceSection.vue = true;
+    } else if (presenceSection.vue && !presenceSection.absente) {
+      presenceSection.absente = true;
+      presenceSection.depuis = t;
+      presenceSection.disparitions += 1;
+    }
+  };
 
   let bilanCostream = { sessions: 0, groupes: 0, membres: 0, affiches: 0,
                         horsClassement: 0, horsClassementConnus: 0,
@@ -10722,6 +10742,28 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
           cartes: cartes.length,
           fabriquees: cartes.filter(isSynthetic).length,
           decorees: cartes.filter(c => c.dataset.tseLogin).length,
+
+          doublons: { natifs: bilanDoublons.natifs, fabriques: bilanDoublons.fabriques,
+                      masques: cartes.filter(c => c.dataset.tseDoublon === 'true').length },
+
+          liste: (() => {
+            const sec = followedSection();
+            if (!sec) return null;
+            const { cartes: cs, entree } = entreesDe(sec);
+            let enveloppees = 0;
+            let niveaux = 0;
+            const parents = new Set();
+            for (const c of cs) {
+              const e = entree.get(c);
+              parents.add(e.parentElement);
+              if (e === c) continue;
+              enveloppees += 1;
+              let n = 0;
+              for (let p = c; p !== e; p = p.parentElement) n += 1;
+              niveaux = Math.max(niveaux, n);
+            }
+            return { cartes: cs.length, enveloppees, niveaux, parents: parents.size };
+          })(),
           liens: nav ? nav.querySelectorAll('a[href^="/"]').length : 0,
 
           mouvementReduit: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
@@ -11015,7 +11057,12 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
           return r;
         })(),
 
-        sectionSuivie: { ...bilanSection },
+        sectionSuivie: { ...bilanSection,
+                         disparitions: presenceSection.disparitions,
+                         retours: presenceSection.retours,
+                         absente: presenceSection.absente,
+                         absenteMs: presenceSection.absenteMs
+                           + (presenceSection.absente ? Date.now() - presenceSection.depuis : 0) },
         coStream: { ...bilanCostream, ...gsStats,
 
                     ...globalChannels.chutes() },
@@ -14894,6 +14941,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     const catLabel = new Map();
     section.querySelectorAll('.side-nav-card').forEach(card => {
       if (card.dataset.tseOffline === 'true') return;
+      if (card.dataset.tseDoublon === 'true') return;
       const login = card.dataset.tseLogin;
       if (!login) return;
       const resolved = langStore.getLangs(login);
@@ -14983,11 +15031,12 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
 
   const cardHasCollab = (card) => !!card.querySelector('.tse-collab-badge');
 
-  const cardShown = (card) =>
+  const cardAffichee = (card) =>
     card.dataset.tseOffline !== 'true' &&
     card.style.display !== 'none' &&
     (card.dataset.tseGlobal === 'true' ||
      !document.body.classList.contains('tse-global-ready'));
+  const cardShown = (card) => card.dataset.tseDoublon !== 'true' && cardAffichee(card);
 
   const getCardCollabCount = (card) => {
     const badge = card.querySelector('.tse-collab-badge');
@@ -15740,16 +15789,45 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     return p ? (p.getAttribute('title') || '').toLowerCase() : '';
   };
 
+  const conteneursVus = new WeakMap();
+  const entreesDe = (section) => {
+    const cartes = [...section.querySelectorAll('.side-nav-card')]
+      .filter((c) => !c.parentElement?.closest('.side-nav-card'));
+    const compte = new Map();
+    for (const c of cartes) {
+      for (let p = c.parentElement; p; p = p.parentElement) {
+        compte.set(p, (compte.get(p) || 0) + 1);
+        if (p === section) break;
+      }
+    }
+    const entree = new Map();
+    for (const c of cartes) {
+      let e = c;
+      while (e.parentElement && e.parentElement !== section && compte.get(e.parentElement) === 1) e = e.parentElement;
+      entree.set(c, e);
+      const p = e.parentElement;
+      if (p && compte.get(p) >= 2) conteneursVus.set(section, p);
+    }
+    return { cartes, entree, compte };
+  };
+
+  const conteneurDe = (carte, section) => {
+    if (!section || !section.contains(carte)) return carte.parentElement;
+    const { entree, compte } = entreesDe(section);
+    const p = entree.get(carte)?.parentElement;
+    if (p && compte.get(p) >= 2) return p;
+    const vu = conteneursVus.get(section);
+    return vu && vu.isConnected && section.contains(vu) ? vu : carte.parentElement;
+  };
+
   function applySorting() {
     const section = followedSection();
     if (!section) return;
 
     if (preview.ouvert()) return;
 
-    const cards = [...section.querySelectorAll('.side-nav-card')];
+    const { cartes: cards, entree } = entreesDe(section);
     if (cards.length < 2) return;
-    const container = cards[0].parentElement;
-    if (!container) return;
 
     const sortMode = state.globalMode ? 'viewers' : state.sortMode;
 
@@ -15846,7 +15924,16 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       if (sorted[i] !== cards[i]) { changed = true; break; }
     }
     if (!changed) return;
-    sorted.forEach(c => container.appendChild(c));
+
+    const parParent = new Map();
+    for (const c of sorted) {
+      const e = entree.get(c);
+      const p = e?.parentElement;
+      if (!p) continue;
+      if (!parParent.has(p)) parParent.set(p, []);
+      parParent.get(p).push(e);
+    }
+    for (const [p, voulues] of parParent) voulues.forEach((e) => p.appendChild(e));
   }
 
   const GLOBAL_BANNER_ID = 'tse-global-partial';
@@ -15992,11 +16079,12 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     if (globalTemplate) candidats.push([globalTemplate, 'memoire']);
     if (!candidats.length) { sortieGlobale = 'pas-de-modele'; return; }
 
+    const premiere = section.querySelector('.side-nav-card');
     const conteneurPour = (noeud, voie) => (voie === 'memoire'
       ? (globalContainer?.isConnected ? globalContainer : null)
-        || section.querySelector('.side-nav-card')?.parentElement
+        || (premiere && conteneurDe(premiere, section))
         || section
-      : noeud.parentElement);
+      : conteneurDe(noeud, section));
 
     let essai = 0;
     let template = candidats[0][0];
@@ -16201,7 +16289,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     let repliModele = null;
     for (const c of all) {
       if (isSynthetic(c) || !nativeCovers(c)) continue;
-      const l = c.dataset.tseLogin || getCardLogin(c);
+
+      const l = getCardLogin(c) || c.dataset.tseLogin;
       if (l) covered.add(l);
 
       if (!modeleUtilisable(c)) continue;
@@ -16226,7 +16315,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     if (!template) return;
     if (document.body.classList.contains('tse-loading')) return;
 
-    const container = template.parentElement;
+    const container = conteneurDe(template, section);
     if (!container) return;
 
     for (const [login] of roster.entries()) {
@@ -16239,6 +16328,36 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       container.appendChild(card);
       liveLag.noteAhead(hit.stream.id);
       live++;
+    }
+  };
+
+  const bilanDoublons = { natifs: 0, fabriques: 0 };
+  const dedoublonner = () => {
+    const nav = document.querySelector(DOM.sidebarRoot);
+    if (!nav) return;
+    const survolee = preview.ouvert() ? preview.carte() : null;
+    for (const section of nav.querySelectorAll('.side-nav-section')) {
+      const parLogin = new Map();
+      for (const c of section.querySelectorAll('.side-nav-card')) {
+
+        const l = c.dataset.tseLogin;
+        if (!l || !cardAffichee(c)) { delete c.dataset.tseDoublon; continue; }
+        const g = parLogin.get(l);
+        if (g) g.push(c); else parLogin.set(l, [c]);
+      }
+      for (const cartes of parLogin.values()) {
+        if (cartes.length === 1) { delete cartes[0].dataset.tseDoublon; continue; }
+
+        const rang = (c) => (c === survolee ? 0 : 4) + (isSynthetic(c) ? 2 : 0)
+          + (c.dataset.tseDoublon === 'true' ? 1 : 0);
+        const gardee = cartes.reduce((a, b) => (rang(b) < rang(a) ? b : a));
+        delete gardee.dataset.tseDoublon;
+        for (const c of cartes) {
+          if (c === gardee) continue;
+          if (isSynthetic(c)) { c.remove(); bilanDoublons.fabriques += 1; continue; }
+          if (c.dataset.tseDoublon !== 'true') { c.dataset.tseDoublon = 'true'; bilanDoublons.natifs += 1; }
+        }
+      }
     }
   };
 
@@ -16259,6 +16378,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
 
     refreshLanguage();
     refreshSidebarCollapsed();
+    noterPresenceSection();
     preview.closeIfDetached();
     offlineTransitionsThisScan = 0;
     snapshotTwitchOrder();
@@ -16270,6 +16390,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     syncGlobalCards();
     const cards = document.querySelectorAll('.side-nav-card');
     cards.forEach(processCard);
+
+    dedoublonner();
     ensureFilterBar();
     ensureSortRow();
     ensureModeRow();
