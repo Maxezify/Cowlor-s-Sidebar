@@ -2180,6 +2180,102 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## La section qui disparaissait (v4.24.0.39)
+
+La demande : « De temps en temps, la section "Chaînes suivies" disparaît
+complètement, et revient après un balayage — j'ai l'impression que des fois
+non. Il faudrait que cette section soit là tout le temps. Investigue avec
+rigueur et corrige. » Une capture : sous les filtres et les tris, plus une
+seule carte suivie, « Chaînes live » directement. Puis : « Cette capture a été
+prise avec la 4.24.0.37. » Publiée sur `claude/chrome-multi` seulement.
+
+### Ce qui se passait
+
+**Le défaut du doublon, vu par l'autre bout.** Jusqu'à la 4.24.0.37, le tri
+rangeait toutes les cartes dans le parent de la première. Si chaque carte a
+son enveloppe, il les en sortait. Or React tient chaque carte et la retrouve
+**par son parent**. Quand Twitch remplace une carte par une autre — la carte
+« en direct » par la carte « hors ligne », à une coupure —, React retire
+l'ancienne de SON parent : elle n'y était plus. Il lève alors *« Failed to
+execute 'removeChild' on 'Node': The node to be removed is not a child of this
+node »*, et la limite d'erreur qui entoure la section la démonte entière. Elle
+ne revient que lorsque Twitch remonte la section — d'où « des fois non ».
+
+Le même tri donnait donc deux symptômes, selon la façon dont Twitch rend la
+coupure :
+
+| Twitch, à la coupure | 4.24.0.37 | 4.24.0.38 |
+| --- | --- | --- |
+| retire l'entrée, puis en pose une neuve | la carte orpheline : le doublon | une carte |
+| remplace la carte par un autre gabarit | React lève, la section est démontée | rien ne lève |
+| (cartes sœurs, sans enveloppe) | rien | rien |
+
+**La 4.24.0.38 l'avait déjà corrigé** : le tri range des entrées, chacune dans
+son parent (`entreesDe`), et ne sort plus un nœud de chez lui. Cette version
+le prouve, et donne au rapport de quoi le confirmer sur Twitch.
+
+### Comment c'est établi
+
+twitch.tv n'est pas joignable d'ici. La section suivie a donc été rendue par
+**React 18 lui-même** (la version de production), sous une limite d'erreur,
+avec une enveloppe par entrée et deux composants — direct et hors ligne. C'est
+un modèle : il reproduit les deux captures, la coupure qui double une carte et
+la section qui disparaît.
+
+- **Le scénario de la coupure**, sur les deux versions : le tableau ci-dessus.
+- **Au hasard, 1 200 mises à jour façon Twitch** sur la 4.24.0.38 — quatre
+  graines, 150 opérations chacune, avec et sans enveloppes : réordonner,
+  basculer en direct ou hors ligne, retirer et rendre une entrée, changer un
+  compteur, une catégorie, un pseudo, un titre de subathon. Aucune erreur de
+  React, la section toujours là, aucun doublon — et le filet de la 4.24.0.38
+  n'a jamais servi. La 4.24.0.37, elle, perd sa section avant la fin de la
+  première passe dès que les cartes ont une enveloppe.
+- **Ce que l'extension fait d'autre aux nœuds de React**, relu : rien ne sort
+  un nœud de son parent. L'en-tête natif est masqué par un style, la rangée
+  des stories et la série par un attribut ; nos propres nœuds — le bloc des
+  filtres, le calque des curseurs, les cartes fabriquées — se posent à côté de
+  ceux de React, jamais à leur place. Un seul déplace un nœud de Twitch : la
+  pastille de subathon glisse le texte du pseudo dans une enveloppe, À
+  L'INTÉRIEUR de son `<p>`. React réécrit ce `<p>` par son texte entier, ce
+  qui la défait sans erreur — éprouvé au banc (201 d).
+
+### Ce que la 4.24.0.39 ajoute
+
+- **Un vrai React au banc.** `react` et `react-dom` 18.3.1, en dépendances de
+  développement exactes. Avec `?react`, `page.html` fait rendre la section
+  suivie par `tests/react-suivies.js` : le banc voit enfin ce que React voit.
+- **La section au rapport.** `sectionSuivie` compte désormais des ÉVÉNEMENTS :
+  `disparitions` (la section vue, puis plus là alors que la barre est là),
+  `retours`, `absente` et `absenteMs`. Le compteur `aucune` ne le pouvait pas :
+  il compte les appels sans résultat. Le tri d'avant le fait monter à 5 352 en
+  44 secondes ; le rapport réel de la 4.24.0.34 qui disait `aucune 29` ne
+  contenait donc que le démarrage.
+- **Rien d'autre ne change** dans le comportement : le correctif est celui de
+  la 4.24.0.38.
+
+### Ce que le banc mesure
+
+- **201**, nouveau, avec React aux commandes : a) le tri range les enveloppes,
+  chaque carte reste dans la sienne ; b) la coupure, rendue par un autre
+  gabarit, ne lève rien et la section reste ; c) le retour, puis Twitch qui
+  réordonne ses entrées : le tri tient ; d) la pastille de subathon posée, puis
+  le pseudo réécrit par React : rien ne lève, le pseudo neuf se lit ; e) une
+  entrée retirée puis rendue : une carte, et aucune disparition au rapport ;
+  f) sans enveloppe, la coupure et le retour ne lèvent rien ; g) React qui ne
+  rend plus la section : une disparition, absente ; rendue : un retour, et le
+  temps sans elle.
+
+Le banc complet : 1721 assertions dans 200 scénarios, toutes vertes.
+
+| mutant | ce qui tombe |
+| --- | --- |
+| le tri de la 4.24.0.37 (1) | 201 : cinq — React lève à la coupure, la section est démontée et ne revient pas ; le rapport dit une disparition |
+| le compteur muet (1) | 201 : g |
+| le retour jamais compté (1) | 201 : g |
+| la présence jamais relevée (1) | 201 : g |
+
+Quatre mutants, quatre pris.
+
 ## Une chaîne, une carte (v4.24.0.38)
 
 La demande : « De temps en temps, j'ai un doublon de carte de streamer,
@@ -18812,7 +18908,7 @@ jamais empaquetés.
 ## Vérification
 
 ```bash
-npm install                        # eslint + playwright + web-ext
+npm install                        # eslint + playwright + web-ext + react (le décor du 201)
 npx playwright install chromium    # une fois
 npm run check                      # lint + parité + paquet + harnais
 npm run package                    # le .zip à soumettre
@@ -18825,7 +18921,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 199 scénarios, 1714 assertions |
+| `npm test` | le harnais Playwright : 200 scénarios, 1721 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -18846,7 +18942,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1660 Ko | 671 Ko | 4 183 → **2** |
+| `content.js` | 1660 Ko | 671 Ko | 4 186 → **2** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
 | `panneau.js` | 109 Ko | 51 Ko | 156 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |

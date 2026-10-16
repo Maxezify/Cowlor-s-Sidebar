@@ -11545,6 +11545,38 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
      est donc consignée, et c'est le rapport qui la rendra. */
   const bilanSection = { voie: null, vides: 0, parCartes: 0, aucune: 0 };
 
+  /* ── LA SECTION QUI DISPARAÎT (4.24.0.39) ─────────────────────────────────
+     SIGNALÉ, CAPTURE À L'APPUI, SUR LA 4.24.0.37 : « de temps en temps, la
+     section "Chaînes suivies" disparaît complètement ». La cause est connue
+     (cf. entreesDe) : le tri sortait les cartes de leur enveloppe, et React,
+     qui ne les retrouvait plus sous leur parent, levait une erreur — la limite
+     d'erreur de Twitch démontait alors la section entière. `aucune`, au-dessus,
+     ne pouvait pas le dire : il compte les APPELS sans résultat, et le
+     démarrage en fait autant qu'une disparition.
+
+     ON COMPTE DONC DES ÉVÉNEMENTS : une section vue, puis plus là alors que
+     la barre, elle, est là. Combien de fois, combien de retours, et combien
+     de temps sans elle — le jour où un rapport en montre une, on saura que ce
+     n'était pas la seule cause. Rien n'est jugé sans barre (page plein écran,
+     barre remontée par React), ni avant la première section vue. */
+  const presenceSection = { vue: false, absente: false, depuis: 0, disparitions: 0, retours: 0, absenteMs: 0 };
+  const noterPresenceSection = () => {
+    if (!document.querySelector(DOM.sidebarRoot)) return;
+    const t = Date.now();
+    if (followedSection()) {
+      if (presenceSection.absente) {
+        presenceSection.absente = false;
+        presenceSection.retours += 1;
+        presenceSection.absenteMs += t - presenceSection.depuis;
+      }
+      presenceSection.vue = true;
+    } else if (presenceSection.vue && !presenceSection.absente) {
+      presenceSection.absente = true;
+      presenceSection.depuis = t;
+      presenceSection.disparitions += 1;
+    }
+  };
+
   /* Ce que la dernière détection de co-stream a vu (cf. detectCoStreams).
      Remis à zéro à chaque passe : c'est un instantané, pas un cumul — la
      question qu'il tranche porte sur l'état courant de la liste. */
@@ -18736,7 +18768,14 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
                n'est en ligne et anormal sinon ;
              • `parCartes` compte les rattrapages, `vides` les fois où il n'y
                en avait pas à faire. */
-        sectionSuivie: { ...bilanSection },
+        /* Et, depuis la 4.24.0.39, ses disparitions (cf. presenceSection) :
+           l'absence en cours compte dans `absenteMs` jusqu'à cet instant. */
+        sectionSuivie: { ...bilanSection,
+                         disparitions: presenceSection.disparitions,
+                         retours: presenceSection.retours,
+                         absente: presenceSection.absente,
+                         absenteMs: presenceSection.absenteMs
+                           + (presenceSection.absente ? Date.now() - presenceSection.depuis : 0) },
         coStream: { ...bilanCostream, ...gsStats,
                     /* LA MESURE QUI AURAIT DÉSIGNÉ LE CHEMIN DU PREMIER COUP.
                        « chutes » compte les fois où le classement a reçu, pour
@@ -28957,6 +28996,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     // initial était erroné (DOM Twitch pas encore prêt au boot).
     refreshLanguage();
     refreshSidebarCollapsed(); // état réduit/étendu, lu par les détections du scan
+    noterPresenceSection();    // la section suivie est-elle là ? (4.24.0.39)
     preview.closeIfDetached(); // ferme l'aperçu si sa carte d'ancrage a été retirée
     offlineTransitionsThisScan = 0; // remis à zéro avant le passage des cartes
     snapshotTwitchOrder(); // avant tout tri custom, on photographie l'ordre Twitch

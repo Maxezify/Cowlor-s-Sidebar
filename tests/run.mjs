@@ -31948,6 +31948,160 @@ const S_LECTEUR_SONDE = () => {
   }
 }
 
+/* ═════════ 201. La section que React possède ═════════
+   SIGNALÉ, CAPTURE À L'APPUI, SUR LA 4.24.0.37 : « de temps en temps, la
+   section "Chaînes suivies" disparaît complètement, et revient après un
+   balayage — des fois non ».
+
+   LE BANC NE POUVAIT PAS LE VOIR : ses cartes n'ont pas de propriétaire. Ce
+   scénario rend la section avec React 18 lui-même (`?react`, cf.
+   tests/react-suivies.js) — une enveloppe par entrée, deux composants pour
+   le direct et le hors-ligne, une limite d'erreur autour de la section. Le
+   tri d'avant y fait ce que la capture montre : il sort les cartes de leur
+   enveloppe ; à la coupure, React démonte la carte « en direct » pour poser
+   la carte « hors ligne », ne la trouve plus sous son parent — « The node to
+   be removed is not a child of this node » —, et la limite démonte toute la
+   section.
+
+   CE QUI SE MESURE, avec React aux commandes :
+     a) le tri range les enveloppes, chaque carte reste dans la sienne ;
+     b) la coupure — un autre gabarit — ne lève rien, la section reste ;
+     c) le retour, puis Twitch qui réordonne ses entrées : rien ne lève, le
+        tri de l'extension tient ;
+     d) la pastille de subathon, qui déplace le texte du pseudo dans son
+        enveloppe, puis React qui réécrit ce pseudo : rien ne lève, le
+        pseudo neuf se lit ;
+     e) une entrée retirée puis rendue : une seule carte, aucune erreur, et
+        le rapport ne compte aucune disparition ;
+     f) les mêmes coupure et retour sans enveloppe ;
+     g) le compteur : React qui ne rend plus la section — une disparition,
+        absente ; rendue — un retour, et la durée sans elle.
+   Mutants — le tri d'avant ; le compteur muet ; le retour jamais compté. */
+{
+  titre('201. La section que React possède — ni erreur, ni section démontée, à la coupure comme au retour');
+  const h = new Date(Date.now() - 60 * 60_000).toISOString();
+  const ouvrir = async () => {
+    const page = await browser.newPage();
+    page.on('pageerror', (e) => { fail++; console.log('  ✗ ERREUR PAGE:', e.message); });
+    await page.goto(URL_PAGE + '?react');
+    await page.evaluate(() => { try { localStorage.setItem('tse:indice', 'vu'); } catch { /* stockage refusé */ } });
+    return page;
+  };
+  const FX = (v) => ({ id: 'id' + v[0], createdAt: v[2] || h, viewers: v[1], game: 'G', tags: [], title: v[3] || 'Titre' });
+  // L'ordre de TWITCH, qui n'est pas celui des spectateurs : le tri agit.
+  const entrees = (vivants, ordre = ['gamma', 'alpha', 'beta', 'delta'], noms = {}) => ordre
+    .filter((l) => l in vivants)
+    .map((l) => ({ login: l, nom: noms[l] || l, cat: 'G', v: String(vivants[l]), live: vivants[l] > 0 }));
+  const poser = (page, fx, liste, env = true) => page.evaluate(({ fx, liste, env }) => {
+    window.__fx = fx;
+    window.__rx.set(liste, { enveloppes: env });
+  }, { fx, liste, env });
+  const etat = (page) => page.evaluate(() => {
+    const L = document.getElementById('rx-liste');
+    const cartes = L ? [...L.querySelectorAll('.side-nav-card')] : [];
+    return {
+      section: window.__rx.present(),
+      erreurs: window.__rxErreurs.slice(),
+      vues: cartes.filter((c) => getComputedStyle(c).display !== 'none').map((c) => c.dataset.tseLogin || '?').join(','),
+      // Chaque enveloppe ne contient que SA carte.
+      chezElles: !L || [...L.querySelectorAll('.tw-transition')].every((w) => w.querySelectorAll('.side-nav-card').length === 1),
+    };
+  });
+  const vuesSont = (page, attendu, ms = 8000) => attendre(page, (a) =>
+    [...(document.getElementById('rx-liste')?.querySelectorAll('.side-nav-card') || [])]
+      .filter((c) => getComputedStyle(c).display !== 'none').map((c) => c.dataset.tseLogin).join(',') === a, ms, attendu);
+  const fxDe = (o) => Object.fromEntries(Object.entries(o).map(([l, v]) => [l, v ? FX(v) : null]));
+
+  // ── a) à e) : une enveloppe par entrée ──────────────────────────────────
+  {
+    const page = await ouvrir();
+    const base = { gamma: ['3', 100], alpha: ['1', 300], beta: ['2', 200], delta: ['4', 50] };
+    await poser(page, fxDe(base), entrees({ gamma: 100, alpha: 300, beta: 200, delta: 50 }));
+    await vuesSont(page, 'alpha,beta,gamma,delta');
+    const a = await etat(page);
+    ok('a) avec React : le tri range les enveloppes, chaque carte reste dans la sienne',
+       a.vues === 'alpha,beta,gamma,delta' && a.chezElles && a.erreurs.length === 0, JSON.stringify(a));
+
+    /* LA COUPURE : Twitch rend la carte d'« alpha » hors ligne — un autre
+       composant. Mutant — le tri d'avant : React ne trouve plus la carte
+       qu'il démonte, et la section disparaît. */
+    await poser(page, fxDe({ ...base, alpha: null }), entrees({ gamma: 100, alpha: 0, beta: 200, delta: 50 }));
+    await vuesSont(page, 'beta,gamma,delta');
+    await wait(page, 800);
+    const b = await etat(page);
+    ok('b) la coupure, rendue par un autre gabarit : React ne lève rien, la section reste, la carte hors ligne est masquée',
+       b.section && b.erreurs.length === 0 && b.vues === 'beta,gamma,delta' && b.chezElles, JSON.stringify(b));
+
+    // LE RETOUR, puis Twitch qui réordonne ses entrées (React déplace les enveloppes).
+    const retour = { ...base, alpha: ['1', 310, new Date(Date.now() - 60_000).toISOString()] };
+    await poser(page, fxDe(retour), entrees({ gamma: 100, alpha: 310, beta: 200, delta: 50 }));
+    await vuesSont(page, 'alpha,beta,gamma,delta');
+    await poser(page, fxDe(retour), entrees({ gamma: 100, alpha: 310, beta: 200, delta: 50 }, ['delta', 'gamma', 'beta', 'alpha']));
+    await wait(page, 1200);
+    const c = await etat(page);
+    ok('c) le retour, puis Twitch qui réordonne : rien ne lève, le tri de l\'extension tient',
+       c.section && c.erreurs.length === 0 && c.vues === 'alpha,beta,gamma,delta' && c.chezElles, JSON.stringify(c));
+
+    /* LE SUBATHON : la pastille déplace le texte du pseudo dans son enveloppe
+       (cf. appliquerSubathon) ; puis React réécrit ce pseudo. */
+    const sub = { ...retour, beta: ['2', 200, h, 'SUBATHON JOUR 4'] };
+    await poser(page, fxDe(sub), entrees({ gamma: 100, alpha: 310, beta: 200, delta: 50 }, ['delta', 'gamma', 'beta', 'alpha']));
+    await attendre(page, () => !!document.querySelector('#rx-liste .side-nav-card[data-tse-login="beta"] .tse-subathon-jour'), 8000);
+    const pastille = await page.evaluate(() => !!document.querySelector('#rx-liste .side-nav-card[data-tse-login="beta"] .tse-subathon-jour'));
+    await poser(page, fxDe(sub), entrees({ gamma: 100, alpha: 310, beta: 200, delta: 50 }, ['delta', 'gamma', 'beta', 'alpha'], { beta: 'BETA' }));
+    await wait(page, 1200);
+    const d = { ...(await etat(page)), pastille,
+                pseudo: await page.evaluate(() => document.querySelector('#rx-liste .side-nav-card[data-tse-login="beta"] [data-a-target="side-nav-title"]')?.textContent || '') };
+    ok('d) la pastille de subathon posée, puis le pseudo réécrit par React : rien ne lève, le pseudo neuf se lit',
+       d.pastille && d.section && d.erreurs.length === 0 && /^BETA/.test(d.pseudo), JSON.stringify(d));
+
+    // UNE ENTRÉE RETIRÉE puis rendue.
+    await poser(page, fxDe({ ...sub, gamma: null }), entrees({ alpha: 310, beta: 200, delta: 50 }, ['delta', 'beta', 'alpha']));
+    await vuesSont(page, 'alpha,beta,delta');
+    await poser(page, fxDe({ ...sub, gamma: ['3', 120, new Date(Date.now() - 30_000).toISOString()] }),
+                entrees({ gamma: 120, alpha: 310, beta: 200, delta: 50 }, ['delta', 'gamma', 'beta', 'alpha']));
+    await vuesSont(page, 'alpha,beta,gamma,delta');
+    await wait(page, 800);
+    const e = { ...(await etat(page)), section: (await page.evaluate(() => window.tse.panneau.rapport().sectionSuivie)) };
+    ok('e) une entrée retirée puis rendue : une carte, aucune erreur ; le rapport ne compte aucune disparition',
+       e.erreurs.length === 0 && e.vues === 'alpha,beta,gamma,delta' && e.chezElles
+       && e.section.disparitions === 0 && e.section.absente === false, JSON.stringify(e));
+    await page.close();
+  }
+
+  // ── f) sans enveloppe ───────────────────────────────────────────────────
+  {
+    const page = await ouvrir();
+    const base = { gamma: ['3', 100], alpha: ['1', 300], beta: ['2', 200], delta: ['4', 50] };
+    await poser(page, fxDe(base), entrees({ gamma: 100, alpha: 300, beta: 200, delta: 50 }), false);
+    await vuesSont(page, 'alpha,beta,gamma,delta');
+    await poser(page, fxDe({ ...base, alpha: null }), entrees({ gamma: 100, alpha: 0, beta: 200, delta: 50 }), false);
+    await vuesSont(page, 'beta,gamma,delta');
+    await poser(page, fxDe({ ...base, alpha: ['1', 310, new Date(Date.now() - 60_000).toISOString()] }),
+                entrees({ gamma: 100, alpha: 310, beta: 200, delta: 50 }), false);
+    await vuesSont(page, 'alpha,beta,gamma,delta');
+    await wait(page, 800);
+    const f = await etat(page);
+    ok('f) sans enveloppe, les cartes sœurs : la coupure et le retour ne lèvent rien',
+       f.section && f.erreurs.length === 0 && f.vues === 'alpha,beta,gamma,delta', JSON.stringify(f));
+
+    /* g) LE COMPTEUR : React ne rend plus la section, puis la rend. Mutants —
+       le compteur muet ; le retour jamais compté. */
+    await page.evaluate(() => window.__rx.vider());
+    await attendre(page, () => window.tse.panneau.rapport().sectionSuivie.absente === true, 5000);
+    const g1 = await page.evaluate(() => window.tse.panneau.rapport().sectionSuivie);
+    await wait(page, 300);
+    await poser(page, fxDe(base), entrees({ gamma: 100, alpha: 300, beta: 200, delta: 50 }), false);
+    await attendre(page, () => window.tse.panneau.rapport().sectionSuivie.retours === 1, 5000);
+    const g2 = await page.evaluate(() => window.tse.panneau.rapport().sectionSuivie);
+    ok('g) au rapport, la section qui disparaît : une disparition, absente ; rendue : un retour, et le temps sans elle',
+       g1.disparitions === 1 && g1.absente === true && g1.retours === 0
+       && g2.disparitions === 1 && g2.retours === 1 && g2.absente === false && g2.absenteMs >= 300,
+       JSON.stringify({ g1, g2 }));
+    await page.close();
+  }
+}
+
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════
    Les deux README annoncent la taille de ce banc. Ils ne peuvent pas la
    connaître : ils la recopient. Résultat, avant cette ligne, un même fichier

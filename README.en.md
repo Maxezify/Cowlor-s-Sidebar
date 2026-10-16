@@ -2059,6 +2059,101 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The section that disappeared (v4.24.0.39)
+
+The request: "Every now and then the 'Followed Channels' section disappears
+completely, and comes back after a scan — I have the impression that
+sometimes it doesn't. This section should be there all the time. Investigate
+rigorously and fix it." A screenshot: under the filters and sorts, not a
+single followed card left, "Live channels" straight away. Then: "That
+screenshot was taken with 4.24.0.37." Published on `claude/chrome-multi` only.
+
+### What was happening
+
+**The duplicate's defect, seen from the other end.** Up to 4.24.0.37, sorting
+put every card in the parent of the first one. If each card has its wrapper,
+it pulled them out. Yet React holds each card and finds it again **by its
+parent**. When Twitch replaces one card with another — the "live" card with
+the "offline" card, during a drop — React removes the old one from ITS
+parent: it was no longer there. React then throws *"Failed to execute
+'removeChild' on 'Node': The node to be removed is not a child of this
+node"*, and the error boundary around the section unmounts it whole. It only
+comes back when Twitch remounts the section — hence "sometimes it doesn't".
+
+So the same sort gave two symptoms, depending on how Twitch renders the drop:
+
+| Twitch, during the drop | 4.24.0.37 | 4.24.0.38 |
+| --- | --- | --- |
+| removes the entry, then places a fresh one | the orphan card: the duplicate | one card |
+| replaces the card with another template | React throws, the section is unmounted | nothing throws |
+| (sibling cards, no wrapper) | nothing | nothing |
+
+**4.24.0.38 had already fixed it**: sorting arranges entries, each inside its
+own parent (`entreesDe`), and never takes a node out of its home again. This
+version proves it, and gives the report what it needs to confirm it on
+Twitch.
+
+### How it is established
+
+twitch.tv cannot be reached from here. The followed section was therefore
+rendered by **React 18 itself** (the production build), under an error
+boundary, with one wrapper per entry and two components — live and offline.
+It is a model: it reproduces both screenshots, the drop that doubles a card
+and the section that disappears.
+
+- **The drop scenario**, on both versions: the table above.
+- **At random, 1,200 Twitch-like updates** on 4.24.0.38 — four seeds, 150
+  operations each, with and without wrappers: reorder, switch live or offline,
+  remove and restore an entry, change a count, a category, a name, a subathon
+  title. No React error, the section always there, no duplicate — and the
+  4.24.0.38 safety net was never needed. 4.24.0.37 loses its section before
+  the end of the first pass as soon as cards have a wrapper.
+- **What else the extension does to React's nodes**, read again: nothing
+  takes a node out of its parent. The native header is hidden by a style, the
+  stories row and the streak by an attribute; our own nodes — the filter
+  block, the cursors' layer, the cards we make — are placed beside React's,
+  never in their place. Only one moves a Twitch node: the subathon chip slides
+  the name's text into a wrapper, INSIDE its own `<p>`. React rewrites that
+  `<p>` by its whole text, which undoes it without an error — tested on the
+  bench (201 d).
+
+### What 4.24.0.39 adds
+
+- **A real React on the bench.** `react` and `react-dom` 18.3.1, as exact
+  development dependencies. With `?react`, `page.html` has the followed
+  section rendered by `tests/react-suivies.js`: the bench finally sees what
+  React sees.
+- **The section in the report.** `sectionSuivie` now counts EVENTS:
+  `disparitions` (the section seen, then gone while the sidebar is there),
+  `retours`, `absente` and `absenteMs`. The `aucune` counter could not: it
+  counts calls without a result. The old sort sends it to 5,352 in 44 seconds;
+  the real 4.24.0.34 report that said `aucune 29` therefore held only the
+  start-up.
+- **Nothing else changes** in behaviour: the fix is 4.24.0.38's.
+
+### What the bench measures
+
+- **201**, new, with React in charge: a) sorting arranges the wrappers, each
+  card stays in its own; b) the drop, rendered by another template, throws
+  nothing and the section stays; c) the return, then Twitch reordering its
+  entries: the sort holds; d) the subathon chip placed, then the name
+  rewritten by React: nothing throws, the new name reads; e) an entry removed
+  then restored: one card, and no disappearance in the report; f) without
+  wrappers, the drop and the return throw nothing; g) React no longer
+  rendering the section: one disappearance, absent; rendered again: one
+  return, and the time without it.
+
+The full bench: 1721 assertions in 200 scenarios, all green.
+
+| mutant | what fails |
+| --- | --- |
+| 4.24.0.37's sort (1) | 201: five — React throws during the drop, the section is unmounted and does not come back; the report says one disappearance |
+| the silent counter (1) | 201: g |
+| the return never counted (1) | 201: g |
+| presence never checked (1) | 201: g |
+
+Four mutants, four caught.
+
 ## One channel, one card (v4.24.0.38)
 
 The request: "Every now and then I get a duplicate streamer card; I'd like you
@@ -18242,7 +18337,7 @@ cowlors-sidebar-for-twitch/
 ## Verification
 
 ```bash
-npm install                        # eslint + playwright + web-ext
+npm install                        # eslint + playwright + web-ext + react (the 201 set)
 npx playwright install chromium    # once
 npm run check                      # lint + parity + package + harness
 npm run package                    # the .zip to submit
@@ -18255,7 +18350,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 199 scenarios, 1714 assertions |
+| `npm test` | the Playwright harness: 200 scenarios, 1721 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -18275,7 +18370,7 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1660 KB | 671 KB | 4,183 → **2** |
+| `content.js` | 1660 KB | 671 KB | 4,186 → **2** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
 | `panneau.js` | 109 KB | 51 KB | 156 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
