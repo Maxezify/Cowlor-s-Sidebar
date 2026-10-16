@@ -1222,6 +1222,16 @@ if (window.__lateMount) {
 }
 </script>
 <!-- Ordre identique au manifeste : anti-pub d'abord, sidebar ensuite. -->
+<!-- LE DÉCOR REACT (4.24.0.39) : avec `?react`, la section suivie est rendue
+     par React 18 lui-même, qui possède ses nœuds — cf. react-suivies.js.
+     Chargé AVANT l'extension, comme Twitch. -->
+<script>
+if (new URLSearchParams(location.search).has('react')) {
+  document.write('<script src="../node_modules/react/umd/react.production.min.js"><\/script>'
+    + '<script src="../node_modules/react-dom/umd/react-dom.production.min.js"><\/script>'
+    + '<script src="./react-suivies.js"><\/script>');
+}
+</script>
 <script src="./adblock.test.js"></script>
 <script src="./content.test.js"></script>
 </body></html>
