@@ -536,7 +536,7 @@
     "message": "Privacy, in plain words"
   },
   "guideVieTexte": {
-    "message": "• No third-party server: the extension only talks to Twitch, through the public API the page already uses.\n• Those calls are anonymous: no session token, no cookie. They cannot be tied to your account.\n• One exception, said out loud: to know your subscriptions, the extension opens YOUR twitch.tv/subscriptions page in an invisible frame — at most once every six hours, or as your setting says, and never when you are signed out. Your browser authenticates it as if you had clicked the link; the extension neither reads nor passes on your token.\n• Your visits, your subscriptions and their tenure stay in your browser. Clear twitch.tv's site data, and nothing is left.\n• No permission requested, no tracker, no telemetry. The extension only runs on twitch.tv."
+    "message": "• No third-party server: the extension only talks to Twitch, through the public API the page already uses.\n• Those calls are anonymous: no session token, no cookie. They cannot be tied to your account.\n• One exception, said out loud: to know your subscriptions, the extension opens YOUR twitch.tv/subscriptions page in an invisible frame — every six hours by default, or as your setting says, sooner only after a sweep that found nothing or when you ask, and never when you are signed out. Your browser authenticates it as if you had clicked the link; the extension neither reads nor passes on your token.\n• Your visits, your subscriptions and their tenure stay in your browser. Clear twitch.tv's site data, and nothing is left.\n• No permission requested, no tracker, no telemetry. The extension only runs on twitch.tv."
   },
   "guideBadgeCcl": {
     "message": "Mature-rated game",
