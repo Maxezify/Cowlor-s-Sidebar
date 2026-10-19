@@ -214,6 +214,22 @@ const traduire = (nom) => {
 
 // ── Chaînes globales ────────────────────────────────────────────────
 // __cats : [{ name, viewers, streams:[{login, viewers, tags?}] }]
+/* LA CATÉGORIE DEMANDÉE, COMME TWITCH POURRAIT LA RÉSOUDRE (4.24.0.40).
+   Par identifiant — « gid-<nom> » dans ce décor — la résolution est exacte.
+   Par nom, elle l'est aussi, sauf __nomsSansCasse : le PREMIER jeu du décor
+   dont le nom coïncide sans la casse répond, comme si « SILENT HILL 2 »
+   (le remake) se résolvait en « Silent Hill 2 » (2001). On ne peut pas
+   vérifier d'ici ce que fait Twitch : le décor joue le pire cas.
+   __refusIdJeu : le schéma refuse la forme par identifiant. */
+window.__nomsSansCasse = false;
+window.__refusIdJeu = false;
+const jeuDemande = (o) => {
+  const v = o.variables || {};
+  const cats = window.__cats || [];
+  if (v.id != null) return cats.find(x => 'gid-' + x.name === v.id);
+  if (window.__nomsSansCasse) return cats.find(x => x.name.toLowerCase() === String(v.name).toLowerCase());
+  return cats.find(x => x.name === v.name);
+};
 //   `viewers` de la catégorie est LIBRE : les tests s'en servent pour
 //   fabriquer des cas où la somme des streams connus est très inférieure au
 //   total annoncé — exactement la situation réelle (une catégorie a des
@@ -518,8 +534,11 @@ window.fetch = async (url, opt) => {
                         // Noms de TOUTES les opérations du lot : c'est ce qui
                         // permet de compter le coût réel d'une passe globale.
                         names: body.map(o => o.operationName),
+                        // Par nom ou par identifiant (4.24.0.40) : le décor attribue
+                        // « gid-<nom> », le journal rend donc toujours le nom.
                         cats: body.filter(o => o.operationName === 'TseCategoryTop')
-                                  .map(o => o.variables?.name),
+                                  .map(o => o.variables?.name ?? String(o.variables?.id || '').replace(/^gid-/, '')),
+                        parId: body.filter(o => o.operationName === 'TseCategoryTop' && o.variables?.id != null).length,
                         firsts: body.filter(o => o.operationName === 'TseCategoryTop')
                                     .map(o => o.variables?.n),
                         // Même chose pour la voie du tag. Relevé parce que
@@ -826,7 +845,7 @@ window.fetch = async (url, opt) => {
         node: { viewersCount: x.viewers } })) } } };
     }
     if (o.operationName === 'TseCatLangCount') {
-      const c = (window.__cats || []).find(x => x.name === o.variables?.name);
+      const c = jeuDemande(o);
       if (!c) return { data: { game: null } };
       const m = /broadcasterLanguages:\s*\[(\w+)\]/.exec(o.query || '');
       const codeToTag = { FR: 'Français', EN: 'English', DE: 'Deutsch',
@@ -838,7 +857,7 @@ window.fetch = async (url, opt) => {
       const parle = (x) => x.lang ? x.lang === m[1] : (x.tags || []).includes(codeToTag[m[1]]);
       const tous = (c.streams || []).filter(parle)
         .sort((a, b) => b.viewers - a.viewers).slice(0, n);
-      return { data: { game: { streams: { edges: tous.map(x => ({
+      return { data: { game: { name: c.name, streams: { edges: tous.map(x => ({
         node: { viewersCount: x.viewers } })) } } } };
     }
     // ── Chaînes globales : sommet d'une catégorie ───────────────────────
@@ -846,7 +865,10 @@ window.fetch = async (url, opt) => {
     // l'API : le sommet est bien celui qu'on demande, mais il n'arrive pas
     // trié. Reproduire les deux moitiés est ce qui rend le test honnête.
     if (o.operationName === 'TseCategoryTop') {
-      const c = (window.__cats || []).find(x => x.name === o.variables?.name);
+      if (window.__refusIdJeu && /game\(id:/.test(o.query || '')) {
+        return { errors: [{ message: 'Unknown argument "id" on field "Query.game".' }] };
+      }
+      const c = jeuDemande(o);
       if (!c) return { data: { game: null } };
       const n = o.variables?.n ?? 10;
       // Filtre de langue : l'option est INTERPOLÉE dans la requête, pas

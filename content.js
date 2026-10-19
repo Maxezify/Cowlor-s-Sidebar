@@ -9066,9 +9066,27 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     // supposerait connaître le nom exact du type dans le schéma de Twitch. On
     // interpole donc l'énumération, dont la valeur ne vient JAMAIS de
     // l'extérieur — uniquement de LANG_API, une table close.
-    const catTopQuery = (code) =>
-      'query TseCategoryTop($name: String!, $n: Int!) {' +
-      '  game(name: $name) {' +
+    /* ── UNE CATÉGORIE SE DÉSIGNE PAR SON IDENTIFIANT (4.24.0.40) ─────────
+       SIGNALÉ, CAPTURE À L'APPUI : une chaîne à 11 630 spectateurs absente
+       du top trente, quand on y lisait des chaînes à 5 600. Sa catégorie
+       pesait deux fois le seuil : la descente la visitait. Ce qu'elle
+       visitait, c'était un NOM — « SILENT HILL 2 », le remake — et Twitch
+       en connaît un second qui ne diffère que par la casse, le jeu de 2001.
+       Si le serveur résout le nom sans la casse, la réponse décrit l'autre
+       jeu : ses streams, et son total, que la récolte prenait pour ceux de
+       la catégorie demandée. La chaîne n'y figurait pas, et rien ne le
+       disait.
+
+       ON NE PEUT PAS VOIR TWITCH D'ICI, et ce n'est donc pas une certitude
+       sur sa résolution des noms. Mais `games` rend l'identifiant de chaque
+       catégorie, et un identifiant ne se confond avec rien : la question
+       cesse de se poser. Le nom reste la forme de repli — catégorie dont on
+       n'a pas l'identifiant, ou forme refusée par le schéma (cf.
+       `idJeuRefuse`) — et dans les deux formes, la réponse doit nommer le jeu
+       demandé (cf. `harvest`). */
+    const catTopQuery = (code, parId = false) =>
+      `query TseCategoryTop(${parId ? '$id: ID!' : '$name: String!'}, $n: Int!) {` +
+      `  game(${parId ? 'id: $id' : 'name: $name'}) {` +
       '    id name viewersCount' +
       '    streams(first: $n, options: { sort: VIEWER_COUNT' +
       (code ? `, broadcasterLanguages: [${code}]` : '') + ' }) {' +
@@ -9089,7 +9107,13 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     // La forme sans langue n'est PAS réécrite à part : la dupliquer créerait
     // deux sources de vérité pour la même liste de champs, et un champ ajouté
     // d'un seul côté ferait diverger silencieusement le chemin filtré.
-    const CATEGORY_TOP_QUERY = catTopQuery(null);
+
+    /* La forme par identifiant, REFUSÉE PAR LE SCHÉMA : définitif pour la
+       session, comme la voie du tag. `game(id:)` et son type n'ont pas pu être
+       éprouvés contre Twitch d'ici ; s'ils ne passent pas, la récolte retombe
+       sur le nom — ce qu'elle faisait jusqu'ici — et le rapport le dit. Une
+       coupure réseau, elle, n'apprend rien. */
+    let idJeuRefuse = false;
 
     // ── État ────────────────────────────────────────────────────────────
     let categories    = [];    // top GLOBAL_CATEGORIES_MAX — classé par l'API
@@ -9155,7 +9179,16 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
                        donnait plus, ce qui signalerait un combiné périmé.
                        Les deux, parce qu'un compteur qui ne mesure qu'un sens
                        ne dit pas si le remède est pire que le mal. */
-                    repertoireBas: 0, repertoireHaut: 0, lastMs: 0 };
+                    repertoireBas: 0, repertoireHaut: 0,
+                    /* LES CATÉGORIES QUI N'ONT PAS RÉPONDU D'ELLES-MÊMES
+                       (4.24.0.40). « homonymes » : la réponse nommait un AUTRE
+                       jeu que celui demandé — un nom résolu vers son voisin.
+                       « sansJeu » : la réponse n'en nommait aucun. Les deux
+                       sont écartées au lieu de prêter leurs streams et leur
+                       total, et « nonLues » compte, à chaque marche, les
+                       catégories au-dessus du seuil restées sans lecture —
+                       une marche qui en a ne se dit plus complète. */
+                    homonymes: 0, sansJeu: 0, nonLues: 0, lastMs: 0 };
 
     /* ── LES CHAÎNES ÉCARTÉES, ET POURQUOI ON COMPTE DES CHAÎNES ────────────
        Une exclusion qu'on ne mesure pas est une exclusion dont on ne saura
@@ -9192,6 +9225,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       stats.ops += ops.length;
       const responses = await Promise.all(slices.map(s => post(s)));
       const out = [];
+      // Par opération : le serveur a-t-il répondu par une ERREUR ? C'est ce
+      // qui distingue un refus du schéma d'une réponse vide (4.24.0.40).
+      const erreurs = [];
       let transport = false;
       responses.forEach((rep, i) => {
         const size = slices[i].length;
@@ -9200,12 +9236,12 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         if (rep === NETWORK_ERROR || !Array.isArray(rep) || rep.length !== size) {
           stats.failedSlices += 1;
           transport = true;
-          for (let k = 0; k < size; k++) out.push(null);
+          for (let k = 0; k < size; k++) { out.push(null); erreurs.push(false); }
           return;
         }
-        rep.forEach(r => out.push(r?.errors ? null : (r?.data ?? null)));
+        rep.forEach(r => { out.push(r?.errors ? null : (r?.data ?? null)); erreurs.push(!!r?.errors); });
       });
-      return { out, transport };
+      return { out, transport, erreurs };
     };
 
     /* ══════════════════════════════════════════════════════════════════════
@@ -9660,18 +9696,49 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
          PLEINE, car une réponse plus courte que demandée est exhaustive. */
       const planchers = new Map();
       if (!cats.length) return { queried, seen, planchers, done: 0, transport: false };
-      const query = code ? catTopQuery(code) : CATEGORY_TOP_QUERY;
-      const ops = cats.map(c => ({
+      // Par identifiant quand on l'a et que le schéma ne l'a pas refusé ; par
+      // nom sinon (cf. catTopQuery).
+      const parId = (c) => !idJeuRefuse && c.id != null && c.id !== '';
+      const opDe = (c, avecId) => ({
         operationName: 'TseCategoryTop',
-        variables: { name: c.name, n: CFG.GLOBAL_STREAMS_MAX },
-        query
-      }));
-      const { out: data, transport } = await send(ops);
+        variables: avecId ? { id: String(c.id), n: CFG.GLOBAL_STREAMS_MAX }
+                          : { name: c.name, n: CFG.GLOBAL_STREAMS_MAX },
+        query: catTopQuery(code, avecId),
+      });
+      const formes = cats.map(parId);
+      const envoi = await send(cats.map((c, i) => opDe(c, formes[i])));
+      const data = envoi.out;
+      let transport = envoi.transport;
+      /* LA FORME PAR IDENTIFIANT REFUSÉE ? Toutes ses opérations en erreur, et
+         la même catégorie demandée par son nom qui répond. Les deux moitiés
+         comptent : un code de langue refusé fait aussi échouer TOUTES les
+         opérations, et ce refus-là n'a rien à voir avec l'identifiant — il se
+         traite plus haut (cf. `langApiRejected`). */
+      const parIdIdx = formes.flatMap((f, i) => (f ? [i] : []));
+      if (parIdIdx.length && !transport && parIdIdx.every((i) => envoi.erreurs[i])) {
+        const reprise = await send(parIdIdx.map((i) => opDe(cats[i], false)));
+        transport = transport || reprise.transport;
+        if (reprise.out.some((d) => d)) {
+          idJeuRefuse = true;
+          parIdIdx.forEach((i, k) => { data[i] = reprise.out[k]; formes[i] = false; });
+        }
+      }
       const now  = Date.now();
       let done = 0;
       data.forEach((d, i) => {
+        if (d && !d.game) { stats.sansJeu += 1; return; }
         const edges = d?.game?.streams?.edges;
         if (!Array.isArray(edges)) return;
+        /* ── LE JEU RÉPONDU DOIT ÊTRE CELUI DEMANDÉ (4.24.0.40) ─────────────
+           Une réponse qui nomme un autre jeu ne dit RIEN de la catégorie
+           demandée : ni ses streams, ni son total. Prise pour elle, elle
+           remplaçait le total du remake par celui du jeu de 2001 — et la
+           chaîne absente l'était sans que rien ne le trahisse. Écartée, la
+           catégorie n'est pas « regardée » : aucune absence n'y est comptée,
+           et la marche ne se dit pas complète (cf. `nonLues`). */
+        const g = d.game;
+        const sienne = formes[i] ? String(g.id) === String(cats[i].id) : g.name === cats[i].name;
+        if (!sienne) { stats.homonymes += 1; return; }
         done += 1;
         queried.add(cats[i].name);
         // Total de la catégorie tel que vu à l'instant de la réponse : plus
@@ -10286,6 +10353,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     const catLangCountQuery = (code) =>
       'query TseCatLangCount($name: String!, $n: Int!) {' +
       '  game(name: $name) {' +
+      // Le nom RÉPONDU, pour vérifier que c'est bien ce jeu (4.24.0.40, cf.
+      // catTopQuery) : un homonyme compterait les langues d'un autre.
+      '    name' +
       '    streams(first: $n, options: { sort: VIEWER_COUNT' +
       `, broadcasterLanguages: [${code}] }) {` +
       '      edges { node { viewersCount } }' +
@@ -10348,6 +10418,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         const { out, transport } = await send(ops);
         let servies = 0;
         out.forEach((d, i) => {
+          /* Un AUTRE jeu que celui demandé : ni une mesure, ni un refus de
+             code — on n'en apprend rien, et on le compte (4.24.0.40). */
+          if (categorie && d?.game && d.game.name !== categorie) { stats.homonymes += 1; return; }
           const edges = categorie ? d?.game?.streams?.edges : d?.streams?.edges;
           if (!Array.isArray(edges)) {
             bilanMesures.echecs++;
@@ -10507,6 +10580,11 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         langApiRejected.add(wl.lang);
         code = null;
         pool.clear();
+        /* `a` est LOCALE à la marche, et `running` comme `walkGen` interdisent
+           deux marches à la fois. La règle s'éveille depuis que la récolte
+           écrit un état de module (`idJeuRefuse`, 4.24.0.40) entre deux
+           attentes ; elle ne peut pas voir que rien d'autre n'écrit `a`. */
+        // eslint-disable-next-line require-atomic-updates
         a = await harvest(seed, pool);
       }
       if (!a.done) return { ok: false, complete: false };
@@ -10564,7 +10642,16 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       // par ce même test : si une catégorie de la fenêtre est passée sous T,
       // la dernière l'est aussi. Une seule règle, pas deux.
       windowFloor = cats[cats.length - 1].viewers;
-      complete = !truncated
+      /* ET CHAQUE CATÉGORIE AU-DESSUS DU SEUIL DOIT AVOIR ÉTÉ LUE (4.24.0.40).
+         La preuve de la descente dit : « sous T, aucune catégorie ne peut
+         abriter un membre du top ». Elle suppose que celles au-dessus ont été
+         LUES. Une tranche perdue, un jeu qui ne répond pas ou qui répond pour
+         un autre, et la catégorie qui portait la chaîne manquante passait
+         pour visitée : le classement se disait complet sans l'être. */
+      const nonLues = [...seed, ...todo]
+        .filter((c) => !(t > 0 && c.viewers <= t) && !a.queried.has(c.name) && !b.queried.has(c.name)).length;
+      stats.nonLues = nonLues;
+      complete = !truncated && nonLues === 0
         && (cats.length < CFG.GLOBAL_CATEGORIES_MAX || windowFloor <= threshold);
 
       // Langue finale calculée AVANT d'être publiée, et relue nulle part
@@ -10744,7 +10831,10 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       const started = Date.now();
       const frais = new Map();
       let applique = !!want.code;
-      let h = await harvest([{ name: want.name, viewers: 0 }], frais, want.code);
+      /* L'identifiant de la catégorie choisie, lu dans la liste `games` qui a
+         rempli le menu (cf. catTopQuery) ; le nom, à défaut. */
+      const cible = { name: want.name, id: categories.find((c) => c.name === want.name)?.id ?? null, viewers: 0 };
+      let h = await harvest([cible], frais, want.code);
       // Code de langue refusé par le schéma : la requête entière échoue. On
       // l'apprend, on le retire du jeu et on refait la passe SANS — le filtre
       // par pool reprendra la main. Une seule fois par langue, pas à chaque
@@ -10757,7 +10847,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         langApiRejected.add(want.lang);
         applique = false;
         frais.clear();
-        h = await harvest([{ name: want.name, viewers: 0 }], frais);
+        h = await harvest([cible], frais);
       }
       // Périmée pendant l'aller-retour : on jette. Ce n'est PAS un échec —
       // le compter comme tel déclencherait une pause et, au bout de trois,
@@ -11334,6 +11424,11 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
              si l'argument de filtre est le bon. Même dispositif que pour les
              chapitres de VOD, qui a tranché deux fois. */
           tags: { ...bilanTags, refuse: tagRefuse },
+          /* COMMENT LES CATÉGORIES SONT DÉSIGNÉES (4.24.0.40) : « id », ou
+             « nom » si le schéma a refusé la forme par identifiant — qui n'a
+             pas pu être éprouvée contre Twitch d'ici. Avec `homonymes`,
+             `sansJeu` et `nonLues`, plus bas. */
+          categoriesPar: idJeuRefuse ? 'nom' : 'id',
           /* LES MESURES QUI REMPLISSENT LES MENUS. `passes` compte les lots
              partis, `servies` les langues dont la somme est revenue. Un
              rapport où `servies` reste à zéro dirait que la requête de
