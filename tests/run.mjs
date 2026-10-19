@@ -20119,6 +20119,27 @@ addEventListener('message', (e) => {
   await page.close();
 }
 
+/* ═════════ SOUS LE VOILE DU DÉMARRAGE (4.24.0.40) ═════════════════════════
+   Le 145 et le 146 posent leurs cartes pendant le voile qui s'ouvre avec la
+   page — 1,2 s au banc — et ce qu'ils mesurent n'a de sens que sous lui. Au
+   banc complet de la 4.24.0.40, sous la charge, le 146 b) les a posées après
+   sa levée : « sousVoile 0 » sur quarante adoptions, quarante sondes étalées
+   sur six secondes, une pointe de douze — la croisière. Rejoué en posant les
+   cartes après la levée : la même signature, à 5 ms près ; seules, huit
+   passes par version les posaient de 200 à 460 ms après l'ouverture, sur la
+   4.24.0.39 comme sur la 4.24.0.40. Le décor pose donc ses cartes dans la
+   tâche même qui vérifie que le voile est là, et assez tôt — 700 ms au plus
+   après l'ouverture — pour que les sondes, qui en prennent moins de 420
+   seules, aient encore 500 ms devant elles. Sinon il rouvre la page ; à la troisième, il
+   pose quand même, et la prémisse du scénario dira ce qui manque. */
+async function sousLeVoileDuDemarrage(poser) {
+  for (let essai = 1; ; essai++) {
+    const page = await fresh();
+    if (await page.evaluate(poser, essai >= 3)) return page;
+    await page.close();
+  }
+}
+
 /* ═════════ UN REFUS DE TWITCH NE DOIT PAS COÛTER UNE MINUTE ══════════════
    RAPPORT DE TERRAIN, EN DEUX PHRASES : « le changement arrive au bout d'une
    minute ou 2 », et le rapport qui l'accompagne porte « reseau 11 » sur
@@ -20143,8 +20164,8 @@ addEventListener('message', (e) => {
 {
   titre('145. Un refus de Twitch ne coûte pas une minute sous le voile');
 
-  const page = await fresh();
-  await page.evaluate(() => {
+  const page = await sousLeVoileDuDemarrage((force) => {
+    if (!force && !(document.body.classList.contains('tse-loading') && performance.now() <= 700)) return false;
     const neuf  = new Date(Date.now() - 60_000).toISOString();
     const vieux = new Date(Date.now() - 5 * 3600_000).toISOString();
     window.__fx = {}; window.__vodRecent = {};
@@ -20169,6 +20190,7 @@ addEventListener('message', (e) => {
       }
       return vrai(url, opt);
     };
+    return true;
   });
   await attendre(page, () => {
     const cs = [...document.querySelectorAll('.side-nav-card')]
@@ -20227,8 +20249,8 @@ addEventListener('message', (e) => {
      Twitch refuse TOUT : il reste donc en permanence des chaînes à sonder, ce
      qui est exactement la condition qui reconduisait la borne. */
   {
-    const page = await fresh();
-    await page.evaluate(() => {
+    const page = await sousLeVoileDuDemarrage((force) => {
+      if (!force && !(document.body.classList.contains('tse-loading') && performance.now() <= 700)) return false;
       const neuf  = new Date(Date.now() - 60_000).toISOString();
       const vieux = new Date(Date.now() - 5 * 3600_000).toISOString();
       window.__fx = {}; window.__vodRecent = {};
@@ -20272,6 +20294,7 @@ addEventListener('message', (e) => {
           debut = null; dernier = null; enCycle = false;
         }
       }, 10);
+      return true;
     });
     await attendre(page, () => (window.__spans || []).length >= 1, 8000);
     const vu = await page.evaluate(() => {
@@ -20306,8 +20329,8 @@ addEventListener('message', (e) => {
      TOTALE, et c'est ce qui rend l'assertion de cadence honnête — elle ne
      peut pas être obtenue en sondant moins. */
   {
-    const page = await fresh();
-    await page.evaluate(() => {
+    const page = await sousLeVoileDuDemarrage((force) => {
+      if (!force && !(document.body.classList.contains('tse-loading') && performance.now() <= 700)) return false;
       const neuf  = new Date(Date.now() - 60_000).toISOString();
       const vieux = new Date(Date.now() - 5 * 3600_000).toISOString();
       window.__fx = {}; window.__vodRecent = {};
@@ -20330,6 +20353,7 @@ addEventListener('message', (e) => {
         }
         return vrai(url, opt);
       };
+      return true;
     });
     await attendre(page, () =>
       window.tse.panneau.rapport().reseau.chapitres.reprise.adoptees >= 40, 8000);
@@ -29695,7 +29719,9 @@ const S_LECTEUR_SONDE = () => {
        non ; 50 ms, c'est moins que les 80 ms où deux verdicts s'accordent
        (GROUPE_MS), bien moins que les 150 ms sous lesquelles rien ne bouge ;
      — et le rapport compte, par paire, les silences communs écartés : les
-       mêmes partout — celui de « duo1 » seule n'en est pas un.
+       mêmes partout — celui de « duo1 » seule n'en est pas un. Depuis la
+       4.24.0.40 : ceux que les deux tuiles ont entendus au même instant —
+       les posés, et ceux que la machine du banc fait elle-même (cf. plus bas).
    LEUR PARTIE COMMUNE SEULEMENT (4.24.0.33). « duo1 » se tait aussi 2,5 s
    d'affilée autour du troisième silence commun — ce que fait une voix
    coupée par un filtre, au premier rapport réel de la 4.24.0.32 —, et le
@@ -29705,7 +29731,8 @@ const S_LECTEUR_SONDE = () => {
    cent dix silences de plus, tous comptés.
    Mutants — rien d'écarté ; tout silence écarté, commun ou non ; le
    rapport muet ; l'union au lieu de l'intersection ; le compte plafonné à
-   la mémoire. */
+   la mémoire ; et, à l'oracle (4.24.0.40), chaque calcul qui recompte, la
+   tolérance à 150 ms. */
 {
   titre('196. L\'événement commun — un même silence dans toutes les tuiles, écarté de la corrélation');
   const page = await freshTwitch(S_LECTEUR_SONDE(), [], '/directory', () => {
@@ -29723,6 +29750,73 @@ const S_LECTEUR_SONDE = () => {
   // L'historique d'une paire, calcul par calcul : [décalage, z].
   const calculs = (r, cle) => String(r.ecoute?.historique?.[cle] || '').split(' · ').filter(Boolean)
     .map((h) => [Number((/^(-?\d+) /.exec(h) || [])[1]), Number((/ z ([\d.]+) /.exec(h) || [])[1])]);
+  /* L'ORACLE DU COMPTE : CE QUE LES TUILES ONT ENTENDU (4.24.0.40). Au banc
+     complet de la 4.24.0.40, « foxtrot~duo1 » et « foxtrot~rho » ont compté
+     cinq silences communs, « foxtrot~sigma » quatre ; douze passes de cette
+     première moitié, seule, dont six sous charge, avaient toutes dit quatre.
+     Le 196 suivant, relevé à côté de la salle, l'a dit : « foxtrot » et
+     « rho » s'étaient tues ensemble — un bloc de 23 ms, à 3 ms près, quatorze
+     secondes et demie après le premier silence posé. Le décor ne l'a pas
+     posé : c'est la machine du banc, l'événement commun même que l'écoute
+     écarte (cf. silencesCommuns). Elle l'avait compté, à raison ; l'assertion,
+     qui voulait le même compte partout, avait tort.
+     Le banc écoute donc les mêmes messages que la salle, à côté d'elle, et en
+     tire par la règle écrite — un silence sous −7 dans les deux enveloppes,
+     à 50 ms près, compté par le début de leur partie commune — les silences
+     communs de chaque paire. Le compte du rapport doit être celui-là : ni
+     plus — un silence d'une seule tuile —, ni moins. Ce qui commence dans
+     les dix dernières secondes peut ne pas être compté encore : un calcul
+     toutes les cinq. Et les silences posés doivent y être, dans chaque paire,
+     ceux de « duo1 » seule entendus par elle : sinon, c'est le décor qui a
+     manqué, et le détail le dit. */
+  await page.evaluate(() => {
+    const vus = window.__entendus = {};
+    window.addEventListener('message', (e) => {
+      const d = e.data;
+      if (!d || d.tse !== 'tse:salle-releve' || !Array.isArray(d.env)) return;
+      const f = [...document.querySelectorAll('iframe')].find((x) => x.contentWindow === e.source);
+      const ch = f && (/[?&]channel=([^&]+)/.exec(f.src) || [])[1];
+      if (ch) (vus[ch] = vus[ch] || []).push(...d.env.filter((x) => Array.isArray(x) && Number.isFinite(x[0]) && Number.isFinite(x[1])));
+    });
+  });
+  const SILENCE = -7, COMMUN_MS = 50;
+  // Les silences d'une enveloppe triée : de l'échantillon d'avant au premier d'après.
+  const silencesDe = (E) => {
+    const L = [];
+    for (let i = 0; i < E.length; i++) {
+      if (!(E[i][1] < SILENCE)) continue;
+      let j = i;
+      while (j + 1 < E.length && E[j + 1][1] < SILENCE) j++;
+      L.push([E[Math.max(0, i - 1)][0], E[Math.min(E.length - 1, j + 1)][0]]);
+      i = j;
+    }
+    return L;
+  };
+  const ecoutes = async () => {
+    const E = Object.fromEntries(Object.entries(await page.evaluate(() => window.__entendus))
+      .map(([ch, L]) => [ch, [...L].sort((x, y) => x[0] - y[0])]));
+    const S = Object.fromEntries(Object.entries(E).map(([ch, L]) => [ch, silencesDe(L)]));
+    // Les débuts des silences communs d'une paire, depuis que ses deux tuiles s'entendent, jusqu'à `borne`.
+    const communs = (cle, borne = Infinity) => {
+      const [r, a] = cle.split('~');
+      if (!E[r]?.length || !E[a]?.length) return [];
+      const debut = Math.max(E[r][0][0], E[a][0][0]), vus = new Set();
+      for (const x of S[r]) {
+        for (const y of S[a]) {
+          if (y[1] < x[0] - COMMUN_MS || y[0] > x[1] + COMMUN_MS) continue;
+          const m0 = Math.max(x[0], y[0]) - COMMUN_MS;
+          if (Math.min(x[1], y[1]) + COMMUN_MS >= debut && m0 <= borne) vus.add(Math.round(m0));
+        }
+      }
+      return [...vus];
+    };
+    // Les silences de chaque tuile entre `de` et `a`, dits depuis `o` : début+durée — ou leur nombre, au-delà de douze.
+    const dire = (de, a, o) => Object.entries(S).map(([ch, L]) => {
+      const M = L.filter(([d]) => d >= de && d <= a);
+      return `${ch} ${M.length > 12 ? `${M.length} silences` : M.map(([d, f]) => `${Math.round(d - o)}+${Math.round(f - d)}`).join(' ')}`;
+    }).join(' · ');
+    return { S, communs, dire };
+  };
   await page.evaluate(() => window.tse.salle.ouvrir('foxtrot', 'duo1', 'rho', 'sigma'));
   await attendre(page, () => (window.tse.salle.rapport().instant?.tours || 0) >= 3, 20_000);
   await page.evaluate(() => window.tse.salle.ecoute());
@@ -29737,7 +29831,9 @@ const S_LECTEUR_SONDE = () => {
   await page.waitForFunction((t) => Date.now() > t, t0 + 2_000);
   const rA = await rapport();
   await page.waitForFunction((t) => Date.now() > t, t0 + 30_000, { timeout: 60_000 });
+  const tB = await page.evaluate(() => Date.now());
   const rB = await rapport();
+  const oB = await ecoutes();
   const pendant = Object.fromEntries(PAIRES.map((cle) => [cle, calculs(rB, cle).slice(calculs(rA, cle).length)]));
   const nets = (cle, f) => pendant[cle].length >= 4 && pendant[cle].every(([ms, z]) => f(ms) && z >= 5);
   /* JAMAIS « OUI », ET NON PLUS TOUJOURS « NON » (4.24.0.37). Au banc
@@ -29761,9 +29857,15 @@ const S_LECTEUR_SONDE = () => {
      JSON.stringify({ rho: pendant['foxtrot~rho'], sigma: pendant['foxtrot~sigma'] }));
   const compte = (cle) => Number((new RegExp(`${cle} (\\d+)`).exec(rB.ecoute?.silencesCommuns || '') || [])[1]);
   const comptes = PAIRES.map(compte);
-  ok('…et le rapport compte les silences communs écartés : les mêmes dans chaque paire, quatre au moins — celui de « duo1 » seule n\'en est pas un',
-     comptes.every((n) => n >= 4) && new Set(comptes).size === 1,
-     JSON.stringify({ silencesCommuns: rB.ecoute?.silencesCommuns, comptes }));
+  // Ce que la salle doit avoir compté : au moins ce qui commence dix secondes avant le rapport, au plus tout ce qui a été entendu.
+  const attendus = PAIRES.map((cle) => [oB.communs(cle, tB - 10_000).length, oB.communs(cle).length]);
+  const poses = PAIRES.map((cle) => communs.filter(([p0]) => oB.communs(cle).some((m) => m >= p0 - 150 && m <= p0 + 100)).length);
+  const seuls = [(oB.S.duo1 || []).some(([d]) => Math.abs(d - seul[0][0]) <= 150),
+                 (oB.S.duo1 || []).some(([d, f]) => Math.abs(d - seul[1][0]) <= 150 && f - d >= 2_000)];
+  ok('…et le rapport compte les silences communs écartés : ceux que les deux tuiles de la paire ont entendus au même instant, ni plus ni moins — les quatre posés dans chaque paire, pas ceux de « duo1 » seule',
+     PAIRES.every((cle, i) => poses[i] === 4 && attendus[i][0] <= comptes[i] && comptes[i] <= attendus[i][1]) && seuls.every(Boolean),
+     JSON.stringify({ silencesCommuns: rB.ecoute?.silencesCommuns, comptes, attendus, poses, seuls,
+                      entendus: oB.dire(t0 - 20_000, tB, t0) }));
   const ecarte = (cle) => Number((new RegExp(`${cle} \\d+ · ([\\d.]+) s`).exec(rB.ecoute?.silencesCommuns || '') || [])[1]);
   const ecartes = PAIRES.map(ecarte);
   ok('…et seulement leur partie commune : le long silence de « duo1 » seule n\'emporte pas le son de « foxtrot » — autant de son écarté dans chaque paire, et moins de 1,6 s',
@@ -29780,18 +29882,30 @@ const S_LECTEUR_SONDE = () => {
      un silence commun. Un sur cent dix manquait — trois une fois —, dans les
      trois paires de « foxtrot » à la fois : sur la 4.24.0.35 comme après, une
      passe sur neuf environ. Ce qui se mesure ici est le compte au-delà de
-     cent, pas la longueur d'un silence. */
+     cent, pas la longueur d'un silence.
+     LE COMPTE DE L'ORACLE (4.24.0.40), comme plus haut : à 120 ms, un
+     silence sur cent dix manquait encore à une paire — au banc de
+     publication de la 4.24.0.39, puis une fois sur trois au 196 seul. Deux
+     horloges de tuile qui glissent de plus de 70 ms ne laissent plus les
+     50 ms d'un silence commun, et l'écoute a raison de ne pas le compter ;
+     la machine en ajoute aussi. Le compte doit être celui que les tuiles
+     ont entendu en commun, et plus de cent : ce que le plafond d'avant ne
+     pouvait pas rendre. */
   const t1 = await page.evaluate(() => Date.now() + 1_500);
   const rafale = Array.from({ length: 110 }, (_, i) => [t1 + i * 300, t1 + i * 300 + 120]);
   for (const ch of ['foxtrot', 'duo1', 'rho', 'sigma']) {
     await cadre(ch)?.evaluate((L) => window.__silences(L), rafale).catch(() => null);
   }
   await page.waitForFunction((t) => Date.now() > t, t1 + 110 * 300 + 8_000, { timeout: 90_000 });
+  const tC = await page.evaluate(() => Date.now());
   const rC = await rapport();
+  const oC = await ecoutes();
   const comptesC = PAIRES.map((cle) => Number((new RegExp(`${cle} (\\d+)`).exec(rC.ecoute?.silencesCommuns || '') || [])[1]));
-  ok('…et plus de cent : cent dix silences communs de plus, et le compte les dit tous — il ne plafonne plus à cent',
-     comptesC.every((n, i) => n >= comptes[i] + 110),
-     JSON.stringify({ silencesCommuns: rC.ecoute?.silencesCommuns, avant: comptes, apres: comptesC }));
+  const attendusC = PAIRES.map((cle) => [oC.communs(cle, tC - 10_000).length, oC.communs(cle).length]);
+  ok('…et plus de cent : cent dix silences communs de plus, et le compte dit tous ceux que les tuiles ont entendus — il ne plafonne plus à cent',
+     PAIRES.every((cle, i) => comptesC[i] > 100 && attendusC[i][0] <= comptesC[i] && comptesC[i] <= attendusC[i][1]),
+     JSON.stringify({ silencesCommuns: rC.ecoute?.silencesCommuns, comptes: comptesC, attendus: attendusC,
+                      entendus: oC.dire(t1 - 500, tC, t1) }));
   await page.close();
 }
 
@@ -32098,6 +32212,124 @@ const S_LECTEUR_SONDE = () => {
        g1.disparitions === 1 && g1.absente === true && g1.retours === 0
        && g2.disparitions === 1 && g2.retours === 1 && g2.absente === false && g2.absenteMs >= 300,
        JSON.stringify({ g1, g2 }));
+    await page.close();
+  }
+}
+
+/* ═════════ 202. Une catégorie se désigne par son identifiant ═════════
+   SIGNALÉ, CAPTURE À L'APPUI : en Top Chaînes, une chaîne à 11 630
+   spectateurs — « SILENT HILL 2 », le remake — absente d'un top trente qui
+   descendait jusqu'à 5 600. Sa catégorie pesait deux fois le seuil : la
+   descente la visitait. Mais elle la demandait par son NOM, et Twitch connaît
+   un second jeu qui ne diffère que par la casse, celui de 2001. Si le serveur
+   résout le nom sans la casse, la réponse décrit l'autre jeu — et la récolte
+   la prenait pour la catégorie demandée : ses streams, et son total.
+
+   CE QUE FAIT TWITCH D'UN TEL NOM NE SE VOIT PAS D'ICI : le décor joue le
+   pire cas (`__nomsSansCasse`), où le premier jeu dont le nom coïncide sans
+   la casse répond.
+
+   CE QUI SE MESURE :
+     a) résolution exacte : la vedette au classement, les catégories
+        demandées par identifiant, rien d'écarté, le classement complet ;
+     b) le pire cas : par identifiant, la vedette y est quand même ;
+     c) le pire cas, et la forme par identifiant refusée par le schéma : la
+        récolte retombe sur le nom, reconnaît que la réponse parle d'un autre
+        jeu, l'écarte et le compte — ni ses streams, ni son total ne passent
+        pour ceux du remake, et le classement ne se dit plus complet ;
+     d) la forme refusée, sans homonyme : le nom suffit, rien n'est perdu ;
+     e) le pire cas, la catégorie choisie au menu : sa vedette en tête, et
+        les comptes de langues de l'autre jeu ne passent pas pour les siens.
+   Mutants — la catégorie par son nom ; le jeu répondu jamais vérifié ; la
+   complétude sans les catégories non lues ; la portée par son nom ; le
+   comptage des langues sans vérification ; le repli jamais pris. */
+{
+  titre('202. Top Chaînes — une catégorie se désigne par son identifiant : l\'homonyme à la casse près ne cache plus sa vedette');
+  const decor = (page, { sansCasse = false, refusId = false } = {}) => page.evaluate(({ sansCasse, refusId }) => {
+    window.__nomsSansCasse = sansCasse;
+    window.__refusIdJeu = refusId;
+    const cats = [];
+    for (let i = 0; i < 10; i++) cats.push({ name: 'c' + i, viewers: 50_000 - i, streams: [] });
+    for (let k = 0; k < 40; k++) {
+      cats[k % 10].streams.push({ login: 's' + String(k).padStart(2, '0'), viewers: 4000 - k * 100 });
+    }
+    // Le jeu de 2001, PREMIER dans le décor : c'est lui qu'un nom résolu sans la casse rend.
+    cats.push({ name: 'Silent Hill 2', viewers: 120,
+                streams: [{ login: 'ancien', viewers: 120, tags: ['Deutsch'] }] });
+    // Le remake, et sa vedette, qui pèse deux fois le seuil.
+    cats.push({ name: 'SILENT HILL 2', viewers: 13_000,
+                streams: [{ login: 'vedette', viewers: 11_630, tags: ['English'] },
+                          { login: 'suivant', viewers: 1_370, tags: ['English'] }] });
+    window.__cats = cats;
+  }, { sansCasse, refusId });
+  const lire = (page) => page.evaluate(() => {
+    const r = window.tse.global.report();
+    return {
+      top: window.tse.global.top(30).map((x) => x.login),
+      remake: window.tse.global.cats(20).find((c) => c.canonique === 'SILENT HILL 2')?.viewers ?? null,
+      par: r.categoriesPar, homonymes: r.homonymes, sansJeu: r.sansJeu, nonLues: r.nonLues, complete: r.complete,
+      parId: window.__calls.reduce((n, c) => n + (c.parId || 0), 0),
+    };
+  });
+  const passe = async (opts) => {
+    const page = await fresh();
+    await decor(page, opts);
+    await page.evaluate(() => window.tse.global.on());
+    const r = await lire(page);
+    await page.close();
+    return r;
+  };
+
+  const a = await passe({});
+  ok('a) résolution exacte : la vedette en tête, les catégories demandées par identifiant, rien d\'écarté, le classement complet',
+     a.top[0] === 'vedette' && a.par === 'id' && a.parId > 0 && a.homonymes === 0 && a.sansJeu === 0
+     && a.nonLues === 0 && a.complete === true, JSON.stringify(a));
+
+  /* LE PIRE CAS. Mutant — la catégorie par son nom : le remake se résout en
+     jeu de 2001, et la vedette n'est nulle part. */
+  const b = await passe({ sansCasse: true });
+  ok('b) le nom résolu sans la casse : par identifiant, la vedette y est quand même, au total du remake',
+     b.top[0] === 'vedette' && !b.top.includes('ancien') && b.remake === 13_000 && b.homonymes === 0 && b.complete === true,
+     JSON.stringify(b));
+
+  /* LE PIRE CAS, ET LA FORME PAR IDENTIFIANT REFUSÉE. Mutants — le jeu
+     répondu jamais vérifié (le total du remake devient 120, la chaîne de
+     2001 entre au classement) ; la complétude sans les catégories non lues. */
+  const c = await passe({ sansCasse: true, refusId: true });
+  ok('c) la forme refusée et l\'homonyme : la récolte retombe sur le nom, écarte la réponse d\'un autre jeu, la compte, et ne se dit plus complète',
+     c.par === 'nom' && c.homonymes >= 1 && c.nonLues === 1 && c.complete === false
+     && !c.top.includes('ancien') && !c.top.includes('vedette') && c.remake === 13_000, JSON.stringify(c));
+
+  /* LA FORME REFUSÉE SANS HOMONYME. Mutant — le repli jamais pris : plus
+     aucune catégorie n'est lue. */
+  const d = await passe({ refusId: true });
+  ok('d) la forme par identifiant refusée, les noms exacts : le repli sur le nom suffit, rien n\'est perdu',
+     d.par === 'nom' && d.top[0] === 'vedette' && d.homonymes === 0 && d.complete === true, JSON.stringify(d));
+
+  // ── e) le pire cas, la catégorie choisie au menu ────────────────────────
+  {
+    const page = await fresh();
+    await decor(page, { sansCasse: true });
+    await page.evaluate(() => window.tse.global.on());
+    await wait(page, 800);
+    await page.evaluate(() => document.querySelector('#tse-mode-row [data-tse-mode="global"]').click());
+    await attendre(page, () => !!document.querySelector('#tse-cat-dd .tse-dd-opt[data-value="SILENT HILL 2"]'), 8000);
+    const avant = await page.evaluate(() => window.tse.global.report().homonymes);
+    await page.evaluate(() => document.querySelector('#tse-cat-dd .tse-dd-opt[data-value="SILENT HILL 2"]').click());
+    await attendre(page, () => (window.tse.global.report().scope || '').startsWith('SILENT HILL 2')
+      && window.tse.global.top(30).length > 0, 8000);
+    await wait(page, 1500);
+    const e = await page.evaluate(() => {
+      const r = window.tse.global.report();
+      return { top: window.tse.global.top(30).map((x) => x.login), homonymes: r.homonymes,
+               langues: [...document.querySelectorAll('#tse-lang-dd .tse-dd-opt')]
+                 .map((o) => `${o.dataset.value || '∅'}:${o.querySelector('.tse-dd-n')?.textContent.trim() || ''}`).join(' ') };
+    });
+    /* Mutants — la portée par son nom (« ancien » en tête) ; le comptage des
+       langues sans vérification (l'allemand de 2001 compté pour le remake). */
+    ok('e) la catégorie choisie au menu : sa vedette en tête ; les langues de l\'autre jeu ne passent pas pour les siennes',
+       e.top[0] === 'vedette' && !e.top.includes('ancien') && !/Deutsch:\s*120/.test(e.langues)
+       && e.homonymes > avant, JSON.stringify({ ...e, avant }));
     await page.close();
   }
 }

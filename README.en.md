@@ -2059,6 +2059,149 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## A category is named by its identifier (v4.24.0.40)
+
+The request: "In Top Channels, [a channel] isn't there, yet it has over 11k
+viewers. Why isn't it in the ranking? Investigate rigorously and fix it." The
+screenshot: the channel at 11,630 viewers, in "SILENT HILL 2"; the top thirty
+goes down to 5,600. Published on `claude/chrome-multi`.
+
+### What was happening
+
+**The ranking is built category by category.** `games` returns the top
+hundred, ranked; the descent asks each one for its first thirty streams, as
+long as the category weighs more than T, the thirtieth score. The channel's
+category weighed at least its 11,630 viewers, twice T: it was visited. What
+was visited was a **name** — `game(name: "SILENT HILL 2")` — even though
+`games` also returns the identifier.
+
+**Twitch knows two games that differ only by case**: "Silent Hill 2", from
+2001, and "SILENT HILL 2", the remake in the screenshot. If the server
+resolves a name without case, the response describes the other game. And the
+harvest took it for the requested category: its streams, and its **total** —
+the remake's replaced by the 2001 game's, which erased even the trace of the
+inconsistency. The channel was nowhere, and nothing said so: a category
+without a useful response passed for visited, and the ranking called itself
+complete.
+
+**What cannot be known from here.** twitch.tv cannot be reached from this
+machine: how Twitch resolves such a name could not be observed. It is the
+narrowest explanation — it touches this category and no other, which is what
+the screenshot shows — but it is not a certainty. The other possible cause is
+known and already handled: a category's response intermittently leaves out
+channels that should be in it (measured, four times out of six), and it takes
+three absences in a row for a channel to drop out.
+
+### What changes
+
+- **A category is requested by its identifier**, which `games` already
+  returns: an identifier cannot be confused with anything, the question no
+  longer arises. The name remains the fallback — a category whose identifier
+  we lack, or the `game(id:)` form refused by the schema, which could not be
+  tested against Twitch from here. A refusal is recognised when every request
+  by identifier fails while the same category, by name, answers; it is kept
+  for the session.
+- **The response must be about the requested game** — same identifier, or
+  same name, case included. Otherwise it is set aside and counted: neither its
+  streams nor its total pass for the category's, and no absence is counted
+  there. Likewise for the language count that fills the menu under a category.
+- **The ranking no longer calls itself complete** if a category above T was
+  not read — a response from another game, from no game, or a lost slice. The
+  descent's proof assumes everything weighing more than T was READ; it did
+  not check. The honesty banner then says so.
+- **In the report**, under Top Channels: `categoriesPar` ("id", or "nom" if
+  the schema refused), `homonymes`, `sansJeu`, and `nonLues` at the last walk.
+  If the channel is still missing, the report will say which of the two causes
+  is at work.
+
+### The bench itself
+
+Two assertions of 196 — the common event — assumed the bench machine never
+makes a silence of its own.
+
+- **The count per pair.** On this version's full bench, "foxtrot~duo1" and
+  "foxtrot~rho" counted five common silences, "foxtrot~sigma" four; the
+  assertion wanted the same count everywhere. Twelve passes of the first half
+  of 196 on its own, six of them under the load of four processes, had all
+  said four. The bench then listened, beside the room, to what each tile sends
+  it; the first full 196 reproduced the gap, and said why: "foxtrot" and "rho"
+  had gone quiet together — one 23 ms block, 3 ms apart, fourteen and a half
+  seconds after the first placed silence. The set had not placed it: it is
+  the machine, the very common event the listening must set aside. It had
+  counted it, rightly.
+- **The count beyond a hundred.** On the `claude/firefox-prod` publication
+  bench, then once in three on its own, one placed silence in a hundred and
+  ten was missing from a pair: two tile clocks drifting by more than 70 ms no
+  longer leave the 50 ms of a common silence, and the listening is right not
+  to count it.
+
+Both now have an **oracle**: the bench listens to the same messages as the
+room and derives from them, by the written rule — a silence below −7 in both
+envelopes, within 50 ms, counted by the start of their common part —, each
+pair's common silences. The report's count must be that one, no more and no
+less; what starts in the last ten seconds may not be counted yet, one
+computation every five. The four placed silences must be in it for every
+pair, "duo1"'s own heard by it, and, after the burst, more than a hundred.
+Four passes of 196: the count equals the oracle, 4, 4 and 4, then 114. The
+oracle catches a mutant the old burst assertion — a hundred and ten more, at
+least — would have let through: a 150 ms tolerance, which makes two silences
+of the burst touch and counts 119 to 159.
+
+**The start-up veil.** On the next full bench, 196 green, 146 b) saw its forty
+probes leave outside the veil: "sousVoile 0", spread over six seconds, a peak
+of twelve — cruise; the failure appears in none of the bench logs kept until
+then. 145 and 146 place their cards during the veil that opens with the page,
+1.2 s on the bench; under load, the page received them after it lifted.
+Replayed with the cards placed after the lift: the same signature, within
+5 ms. On their own, eight passes per version placed them 200 to 460 ms after
+opening, on 4.24.0.39 as on 4.24.0.40: the version has nothing to do with it.
+The set now places its cards in the very task that checks the veil is there,
+at most 700 ms after opening — the probes, which take under 420 on their own,
+still have 500 ms ahead of them; otherwise it reopens the page, tested by
+delaying the first attempt by a second and a half. The three mutants these
+scenarios caught still are.
+
+### What the bench measures
+
+The set learns two things: `__nomsSansCasse` makes a name answered by the
+first game that matches it without case — the worst case, since Twitch cannot
+be observed; `__refusIdJeu` makes the schema refuse the identifier form.
+
+- **202**, new, on ten ordinary categories and two games that differ only by
+  case, the remake carrying a star at 11,630: a) exact resolution — the star
+  on top, categories requested by identifier, nothing set aside, the ranking
+  complete; b) the worst case — by identifier, the star is there anyway, at
+  the remake's total; c) the worst case and the refused form — fallback to
+  the name, the other game's response set aside and counted, neither its total
+  nor its channel pass for the remake's, the ranking does not call itself
+  complete; d) the refused form without a homonym — the name suffices; e) the
+  worst case, the category chosen in the menu — its star on top, and the other
+  game's languages do not pass for its own.
+
+The full bench: 1726 assertions in 201 scenarios, all green.
+
+| mutant | what fails |
+| --- | --- |
+| the category by its name, as in 4.24.0.39 (1) | 202: all five — in the worst case, the top thirty without the star, the screenshot's symptom |
+| the answered game never checked (1) | 202: c — the 2001 game's channel in the ranking, the remake's total at 120 |
+| completeness without the unread categories (1) | 202: c — the ranking calls itself complete |
+| the scope by its name (1) | 202: e |
+| the language count without checking (1) | 202: e — "Deutsch: 120" under the remake |
+| the fallback never taken (1) | 202: c and d — no category read any more |
+| nothing set aside (1) | 196: all five |
+| every silence set aside, common or not (1) | 196: the count — 9, 8 and 8 instead of 4 —, the sound set aside, the burst |
+| the silent report (1) | 196: the count, the sound set aside, the burst |
+| the union instead of the intersection (1) | 196: the sound set aside — 3.1 s for "foxtrot~duo1" |
+| the count as the memory's size (1) | 196: the burst — "100" in all three pairs |
+| the count capped at a hundred (1) | 196: the burst — "100" in all three pairs |
+| every computation counts again (1) | 196: the count — 16 —, the sound set aside, the burst |
+| the tolerance at 150 ms (1) | 196: the burst — 119 to 159 instead of 114, which "a hundred and ten more, at least" would have let through |
+| the one-minute retry under the veil too (1) | 145: "sousVoile 5" out of eight adoptions |
+| the lock's deadline granted again (1) | 146 a: lock held 906 ms for 300 |
+| the veil's purse spent in one go (1) | 146 b: "pointe 40, etendueMs 2" |
+
+Seventeen mutants, seventeen caught.
+
 ## The section that disappeared (v4.24.0.39)
 
 The request: "Every now and then the 'Followed Channels' section disappears
@@ -18350,7 +18493,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 200 scenarios, 1721 assertions |
+| `npm test` | the Playwright harness: 201 scenarios, 1726 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -18370,7 +18513,7 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1660 KB | 671 KB | 4,186 → **2** |
+| `content.js` | 1660 KB | 671 KB | 4,203 → **2** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
 | `panneau.js` | 109 KB | 51 KB | 156 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |

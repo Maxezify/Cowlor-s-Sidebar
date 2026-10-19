@@ -2180,6 +2180,153 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## Une catégorie se désigne par son identifiant (v4.24.0.40)
+
+La demande : « Dans Top Chaînes, [une chaîne] n'est pas présente, pourtant
+elle a plus de 11 k de vues. Pourquoi n'est-elle pas dans le classement ?
+Investigue rigoureusement et corrige. » La capture : la chaîne à 11 630
+spectateurs, en « SILENT HILL 2 » ; le top trente descend jusqu'à 5 600.
+Publiée sur `claude/chrome-multi`.
+
+### Ce qui se passait
+
+**Le classement se fait catégorie par catégorie.** `games` rend les cent
+premières, classées ; la descente demande à chacune ses trente premiers
+streams, tant que la catégorie pèse plus que T, le trentième score. La
+catégorie de la chaîne pesait au moins ses 11 630 spectateurs, deux fois T :
+elle était visitée. Ce qu'on visitait, c'était un **nom** —
+`game(name: "SILENT HILL 2")` —, alors que `games` rend aussi l'identifiant.
+
+**Twitch connaît deux jeux qui ne diffèrent que par la casse** : « Silent Hill
+2 », de 2001, et « SILENT HILL 2 », le remake de la capture. Si le serveur
+résout un nom sans la casse, la réponse décrit l'autre jeu. Et la récolte la
+prenait pour la catégorie demandée : ses streams, et son **total** — celui
+du remake remplacé par celui du jeu de 2001, ce qui effaçait jusqu'à la trace
+de l'incohérence. La chaîne n'était nulle part, et rien ne le disait : une
+catégorie sans réponse utile passait pour visitée, et le classement se disait
+complet.
+
+**Ce qui n'est pas connu d'ici.** twitch.tv n'est pas joignable de ce poste :
+la façon dont Twitch résout un tel nom n'a pas pu être observée. C'est
+l'explication la plus étroite — elle touche cette catégorie et pas une autre,
+ce que la capture montre —, mais ce n'est pas une certitude. L'autre cause
+possible est connue et déjà tenue : la réponse d'une catégorie omet par
+intermittence des chaînes qui devraient y être (mesuré, quatre fois sur six),
+et il faut trois absences d'affilée pour qu'une chaîne sorte.
+
+### Ce qui change
+
+- **Une catégorie se demande par son identifiant**, que `games` rend déjà :
+  un identifiant ne se confond avec rien, la question cesse de se poser. Le
+  nom reste le repli — une catégorie dont on n'a pas l'identifiant, ou la
+  forme `game(id:)` refusée par le schéma, qui n'a pas pu être éprouvée contre
+  Twitch d'ici. Un refus se reconnaît à ce que toutes les demandes par
+  identifiant échouent quand la même catégorie, par son nom, répond ; il est
+  retenu pour la session.
+- **La réponse doit parler du jeu demandé** — même identifiant, ou même nom,
+  casse comprise. Sinon elle est écartée et comptée : ni ses streams, ni son
+  total ne passent pour ceux de la catégorie, et aucune absence n'y est
+  comptée. De même pour le comptage des langues qui remplit le menu, sous une
+  catégorie.
+- **Le classement ne se dit plus complet** si une catégorie au-dessus de T n'a
+  pas été lue — réponse d'un autre jeu, d'aucun jeu, ou tranche perdue. La
+  preuve de la descente suppose qu'on a LU tout ce qui pèse plus que T ; elle
+  ne le vérifiait pas. Le bandeau d'honnêteté le dit alors.
+- **Au rapport**, dans Top Chaînes : `categoriesPar` (« id », ou « nom » si
+  le schéma a refusé), `homonymes`, `sansJeu`, et `nonLues` à la dernière
+  marche. Si la chaîne manque encore, le rapport dira laquelle des deux causes
+  agit.
+
+### Le banc lui-même
+
+Deux assertions du 196 — l'événement commun — supposaient que la machine du
+banc ne fait jamais de silence elle-même.
+
+- **Le compte par paire.** Au banc complet de cette version, « foxtrot~duo1 »
+  et « foxtrot~rho » ont compté cinq silences communs, « foxtrot~sigma »
+  quatre ; l'assertion voulait le même compte partout. Douze passes de la
+  première moitié du 196, seule, dont six sous la charge de quatre processus,
+  avaient toutes dit quatre. Le banc a alors écouté, à côté de la salle, ce
+  que chaque tuile lui envoie ; le premier 196 complet a reproduit l'écart, et
+  dit pourquoi : « foxtrot » et « rho » s'étaient tues ensemble — un bloc de
+  23 ms, à 3 ms près, quatorze secondes et demie après le premier silence
+  posé. Le décor ne l'avait pas posé : c'est la machine, l'événement commun
+  même que l'écoute doit écarter. Elle l'avait compté, à raison.
+- **Le compte au-delà de cent.** Au banc de publication de
+  `claude/firefox-prod`, puis une fois sur trois seul, un silence posé sur
+  cent dix manquait à une paire : deux horloges de tuile qui glissent de plus
+  de 70 ms ne laissent plus les 50 ms d'un silence commun, et l'écoute a
+  raison de ne pas le compter.
+
+Les deux ont désormais un **oracle** : le banc écoute les mêmes messages que
+la salle et en tire, par la règle écrite — un silence sous −7 dans les deux
+enveloppes, à 50 ms près, compté par le début de leur partie commune —, les
+silences communs de chaque paire. Le compte du rapport doit être celui-là, ni
+plus ni moins ; ce qui commence dans les dix dernières secondes peut ne pas
+être compté encore, un calcul toutes les cinq. Les quatre silences posés
+doivent y être dans chaque paire, ceux de « duo1 » seule entendus par elle,
+et, après la rafale, plus de cent. Quatre passes du 196 : le compte égale
+l'oracle, 4, 4 et 4, puis 114. L'oracle prend un mutant que l'ancienne
+assertion de la rafale — cent dix de plus, au moins — aurait laissé passer :
+la tolérance à 150 ms, qui fait se toucher deux silences de la rafale et en
+compte 119 à 159.
+
+**Le voile du démarrage.** Au banc complet suivant, le 196 vert, le 146 b) a vu
+ses quarante sondes partir hors du voile : « sousVoile 0 », étalées sur six
+secondes, une pointe de douze — la croisière ; l'échec n'apparaît dans aucun
+des journaux de banc gardés jusque-là. Le 145 et le 146 posent leurs cartes
+pendant le voile qui s'ouvre avec la page, 1,2 s au banc ; sous la charge, la
+page les a reçues après sa levée. Rejoué en posant les cartes après la levée :
+la même signature, à 5 ms près. Seules, huit passes par version les posaient
+de 200 à 460 ms après l'ouverture, sur la 4.24.0.39 comme sur la 4.24.0.40 :
+la version n'y est pour rien. Le décor pose désormais ses cartes dans la tâche
+même qui vérifie que le voile est là, 700 ms au plus après l'ouverture — les
+sondes, qui en prennent moins de 420 seules, ont encore 500 ms devant elles ;
+sinon il rouvre la page, éprouvé en retardant le premier essai d'une seconde
+et demie. Les trois mutants que ces scénarios prenaient le sont encore.
+
+### Ce que le banc mesure
+
+Le décor apprend deux choses : `__nomsSansCasse` fait répondre, à un nom, le
+premier jeu qui coïncide sans la casse — le pire cas, puisqu'on ne peut pas
+observer Twitch ; `__refusIdJeu` fait refuser la forme par identifiant.
+
+- **202**, nouveau, sur dix catégories ordinaires et deux jeux qui ne
+  diffèrent que par la casse, dont le remake porte une vedette à 11 630 :
+  a) la résolution exacte — la vedette en tête, les catégories demandées par
+  identifiant, rien d'écarté, le classement complet ; b) le pire cas — par
+  identifiant, la vedette y est quand même, au total du remake ; c) le pire
+  cas et la forme refusée — repli sur le nom, la réponse de l'autre jeu
+  écartée et comptée, ni son total ni sa chaîne ne passent pour ceux du
+  remake, le classement ne se dit pas complet ; d) la forme refusée sans
+  homonyme — le nom suffit ; e) le pire cas, la catégorie choisie au menu —
+  sa vedette en tête, et les langues de l'autre jeu ne passent pas pour les
+  siennes.
+
+Le banc complet : 1726 assertions dans 201 scénarios, toutes vertes.
+
+| mutant | ce qui tombe |
+| --- | --- |
+| la catégorie par son nom, comme en 4.24.0.39 (1) | 202 : les cinq — au pire cas, le top trente sans la vedette, le symptôme de la capture |
+| le jeu répondu jamais vérifié (1) | 202 : c — la chaîne de 2001 au classement, le total du remake à 120 |
+| la complétude sans les catégories non lues (1) | 202 : c — le classement se dit complet |
+| la portée par son nom (1) | 202 : e |
+| le comptage des langues sans vérification (1) | 202 : e — « Deutsch : 120 » sous le remake |
+| le repli jamais pris (1) | 202 : c et d — plus aucune catégorie lue |
+| rien d'écarté (1) | 196 : les cinq |
+| tout silence écarté, commun ou non (1) | 196 : le compte — 9, 8 et 8 au lieu de 4 —, le son écarté, la rafale |
+| le rapport muet (1) | 196 : le compte, le son écarté, la rafale |
+| l'union au lieu de l'intersection (1) | 196 : le son écarté — 3,1 s pour « foxtrot~duo1 » |
+| le compte, la taille de la mémoire (1) | 196 : la rafale — « 100 » dans les trois paires |
+| le compte plafonné à cent (1) | 196 : la rafale — « 100 » dans les trois paires |
+| chaque calcul recompte (1) | 196 : le compte — 16 —, le son écarté, la rafale |
+| la tolérance à 150 ms (1) | 196 : la rafale — 119 à 159 au lieu de 114, que « cent dix de plus, au moins » aurait laissé passer |
+| la minute de report aussi sous le voile (1) | 145 : « sousVoile 5 » sur huit adoptions |
+| la borne du verrou reposée (1) | 146 a : verrou tenu 906 ms pour 300 |
+| la bourse du voile rendue d'un bloc (1) | 146 b : « pointe 40, etendueMs 2 » |
+
+Dix-sept mutants, dix-sept pris.
+
 ## La section qui disparaissait (v4.24.0.39)
 
 La demande : « De temps en temps, la section "Chaînes suivies" disparaît
@@ -18921,7 +19068,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 200 scénarios, 1721 assertions |
+| `npm test` | le harnais Playwright : 201 scénarios, 1726 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -18942,7 +19089,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1660 Ko | 671 Ko | 4 186 → **2** |
+| `content.js` | 1660 Ko | 671 Ko | 4 203 → **2** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
 | `panneau.js` | 109 Ko | 51 Ko | 156 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
