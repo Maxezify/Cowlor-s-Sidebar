@@ -1660,7 +1660,31 @@ const aplatir = (obj, prefixe = '') => {
    elle n'a pas fini de démarrer, elle en renvoie quand même ce qu'elle a — et
    c'est alors le seul contenu du rapport qui explique quoi que ce soit. Deux
    rédactions du même bloc auraient divergé au premier champ ajouté. */
-const blocErreurs = (liste, origine, bilan) => bloc(
+/* ── DEUX EXEMPLAIRES DANS LA MÊME PAGE (4.24.0.41) ─────────────────────────
+   Un rapport de terrain portait, à 193 ms : « Uncaught SyntaxError: Identifier
+   'TSE_PREVIEW_FIRST_FRAME_MSG' has already been declared — content.js:1 ».
+   content.js s'exécute dans le monde MAIN, où ses `const` de premier niveau
+   sont des globales de la page : une seconde évaluation dans la même page
+   échoue avant sa première ligne. Aucun code de l'extension ne l'injecte —
+   aucune permission, aucun `scripting` —, et Chrome n'injecte qu'une fois
+   les scripts déclarés d'un exemplaire : la copie qui échoue est celle d'un
+   AUTRE exemplaire installé et actif — une version du Store à côté d'un
+   dossier de développement, ou deux dossiers. Le même rapport le confirmait
+   sans le dire : le panneau était celui de la 4.24.0.40, les données de la
+   page n'avaient aucun des champs que la 4.24.0.40 ajoute.
+   La ligne d'erreur le dit désormais, en comparant l'identifiant de la copie
+   qui échoue à celui de la page (`exemplaire`, cf. content.js). */
+const doublonDe = (e, enPage) => {
+  if (!/has already been declared|redeclaration of/i.test(e?.message || '')) return null;
+  const m = /^(?:chrome|moz|safari-web)-extension:\/\/([^/]+)\/content\.js/.exec(e?.detail || '');
+  if (!m) return null;
+  if (enPage && m[1] === enPage) {
+    return `            ↳ content.js évalué deux fois par l'exemplaire de la page (${enPage}) / content.js evaluated twice by the page's copy`;
+  }
+  return `            ↳ la copie d'un second exemplaire (${m[1]}) n'a pas démarré : deux exemplaires de l'extension sont actifs — n'en garder qu'un / a second copy (${m[1]}) did not start: two copies of the extension are enabled — keep only one`;
+};
+
+const blocErreurs = (liste, origine, bilan, enPage = null) => bloc(
   `ERREURS / ERRORS (${(liste || []).length})${origine ? ' — ' + origine : ''}`,
   [
     /* LE BILAN EN TÊTE DU BLOC, avant les lignes. Le journal est borné à
@@ -1677,10 +1701,11 @@ const blocErreurs = (liste, origine, bilan) => bloc(
          '']
       : []),
     ...((liste || []).length
-      ? liste.map(e =>
+      ? liste.flatMap(e => [
           `  ${String(e.t).padStart(8)} ms  ${String(e.source).padEnd(10)}`
           + `${e.n > 1 ? ` ×${e.n}` : '   '}  ${e.message}${e.detail ? '  — ' + e.detail : ''}`
-          + (e.dernier && e.n > 1 ? `  (dernière : ${e.dernier} ms)` : ''))
+          + (e.dernier && e.n > 1 ? `  (dernière : ${e.dernier} ms)` : ''),
+          ...(doublonDe(e, enPage) ? [doublonDe(e, enPage)] : [])])
       : ['  (aucune / none)']),
   ]);
 
@@ -1712,6 +1737,16 @@ const construireRapport = (r, transport, fond) => {
 
   L.push(...bloc('ENVIRONNEMENT / ENVIRONMENT', [
     paire('extension', `${m.version} (${m.browser_specific_settings ? 'firefox' : 'chrome'})`),
+    /* L'IDENTIFIANT DU PANNEAU, ET CELUI DE LA PAGE (4.24.0.41). Deux
+       exemplaires actifs se partagent la page, et le panneau ouvert peut être
+       celui de l'un pendant que l'autre tourne : la version ci-dessus est
+       alors celle du panneau, pas celle du code qui a produit le reste. */
+    paire('identifiant / id', API.runtime?.id || '—'),
+    ...(r?.exemplaire ? [paire('page — exemplaire', r.exemplaire)] : []),
+    ...(r?.exemplaire && API.runtime?.id && r.exemplaire !== API.runtime.id
+      ? ['  ⚠ la page tourne sous un AUTRE exemplaire que ce panneau : deux exemplaires actifs — n\'en garder qu\'un',
+         '  ⚠ the page runs another copy than this panel: two copies enabled — keep only one']
+      : []),
     paire('page ouverte depuis', r ? `${Math.round((r.ancienneteMs || 0) / 1000)} s` : '—'),
     paire('démarrage / boot', r?.demarrage
       ? `${r.demarrage.etape} (${r.demarrage.dureeMs} ms)`
@@ -1854,6 +1889,9 @@ const construireRapport = (r, transport, fond) => {
   /* L'ALIGNEMENT DU BLOC SUR LE TITRE : zéro attendu partout, mesuré sur la
      vraie page, où le conteneur du bloc n'est pas celui du banc. */
   L.push(...bloc('ALIGNEMENT DU BLOC / BLOCK ALIGNMENT', aplatir(r.alignement)));
+  /* LE TITRE (4.24.0.41) : la taille que sa langue lui a laissée, et la ligne
+     qu'il partage — la flèche de Twitch telle que la vraie page la range. */
+  L.push(...bloc('TITRE / TITLE', aplatir(r.titre)));
   /* LE LECTEUR PRINCIPAL : sur une page de chaîne, ce qui cache la vidéo et
      la règle de l'extension qui le fait — null attendu aux deux. */
   L.push(...bloc('LECTEUR PRINCIPAL / MAIN PLAYER', aplatir(r.lecteur)));
@@ -1948,7 +1986,7 @@ const construireRapport = (r, transport, fond) => {
      section qu'on cherche quand on ouvre un rapport. « (aucune) » est une
      information à part entière — elle dit que le problème n'est pas une
      exception, ce qui écarte d'emblée toute une famille de causes. */
-  L.push(...blocErreurs(r.erreurs, '', r.bilanErreurs));
+  L.push(...blocErreurs(r.erreurs, '', r.bilanErreurs, r.exemplaire));
 
   /* Les sondes en tableau aligné : c'est la partie qu'on lit en premier quand
      quelque chose ne va pas, et une colonne qui glisse la rend illisible. */
