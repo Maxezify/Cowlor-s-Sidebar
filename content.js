@@ -18693,7 +18693,15 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
             langue: LANG,
             texte: (h3.textContent || '').trim(),
             natifPx: r1(mesureTitre.natifPx), posePx: r1(mesureTitre.posePx),
+            calculePx: r1(parseFloat(getComputedStyle(h3).fontSize)),
             placePx: r1(mesureTitre.placePx), textePx: r1(mesureTitre.textePx),
+            /* 4.24.0.42 : les deux mesures du texte, et ce qui borne la place —
+               « ligne » (rien que sa propre fin), « dessus » (un bouton de la
+               barre qui la croise), « sonde » (trouvé au bout de la ligne) —,
+               avec la distance de cet obstacle à l'entrée du titre. */
+            rangePx: r1(mesureTitre.rangePx), toilePx: r1(mesureTitre.toilePx),
+            voie: mesureTitre.voie ?? null, obstacle: mesureTitre.obstacle ?? null,
+            obstacleGauchePx: r1(mesureTitre.obstacleGauchePx),
             coupe: h3.scrollWidth > h3.clientWidth + 1,
             ligne: [...ligne.children].map((e) => `${e.tagName.toLowerCase()}${e.id ? '#' + e.id : ''}`
               + ` ${e.offsetWidth || 0}px ${getComputedStyle(e).position}`).join(' · '),
@@ -25813,45 +25821,126 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
   const TITRE_MIN_PX = 12;
   // Ce que le dernier réglage a mesuré, pour le rapport (cf. `titre`).
   let mesureTitre = { natifPx: null, posePx: null, placePx: null, textePx: null };
+  /* LE TEXTE SE MESURE AUSSI HORS DE LA PAGE (4.24.0.42), dans un canevas qui
+     n'est attaché à rien : `measureText` rend la largeur de la chaîne entière
+     à la taille demandée, quoi que l'ellipse fasse de sa boîte. La mesure par
+     `Range` reste, et la plus grande des deux l'emporte — un rendu qui ne
+     donnerait plus que la partie visible d'un titre coupé le dirait « tenu ». */
+  let toileTitre = null;
+  const largeurToile = (texte, cs, px, actuel) => {
+    try {
+      toileTitre = toileTitre || document.createElement('canvas').getContext('2d');
+      if (!toileTitre) return 0;
+      const petites = cs.fontVariantCaps === 'small-caps' ? 'small-caps ' : '';
+      toileTitre.font = `${cs.fontStyle} ${petites}${cs.fontWeight} ${px}px ${cs.fontFamily}`;
+      const t = cs.textTransform === 'uppercase' ? texte.toUpperCase()
+        : cs.textTransform === 'lowercase' ? texte.toLowerCase() : texte;
+      const espacement = cs.letterSpacing === 'normal' ? 0 : (parseFloat(cs.letterSpacing) || 0) * (px / actuel);
+      return toileTitre.measureText(t).width + espacement * [...t].length;
+    } catch { return 0; }
+  };
+  /* ── OÙ QUE TWITCH RANGE SA FLÈCHE (4.24.0.42) ───────────────────────────
+     RETOUR DE TERRAIN SUR LA 4.24.0.41 : « les titres n'ont pas changé ». Sur
+     les captures, le russe coupé à 18 px, la roue sur la flèche en russe et en
+     polonais. La place se comptait sur les ENFANTS de `.side-nav__title` ; la
+     flèche de Twitch n'en est pas un — posée par-dessus la ligne depuis
+     ailleurs dans la barre, elle n'entrait dans aucun compte, et le titre
+     « tenait » dans une place qui comprenait la sienne. Rejoué au banc, la
+     flèche sœur du bloc : la roue sur elle en russe, en polonais, en espagnol,
+     en anglais.
+     La place se lit maintenant de trois façons, et la plus étroite décide :
+       — ce que la ligne porte DANS SON FLUX — la roue, une flèche qui y serait
+         — y réserve sa largeur ;
+       — ce qui la COUPE À DROITE du titre, posé par-dessus, dans la ligne ou
+         ailleurs dans la barre — un bouton dont la boîte croise la ligne du
+         titre — l'arrête à son bord gauche ;
+       — faute de rien trouver dans la barre, et le voile levé, cinq sondages
+         au bout de la ligne (`elementFromPoint`) : un bouton venu d'ailleurs
+         dans la page compte aussi.
+     Rien de cela ne dépend de la taille du titre : la place est la même d'un
+     balayage à l'autre, et la taille voulue aussi. */
   function ajusterTitre() {
     const ligne = document.querySelector(`${DOM.sidebarRoot} .side-nav__title[data-tse-roue]`);
     const h3 = ligne?.querySelector(':scope > h3');
     if (!h3) return;
-    const largeur = ligne.clientWidth;
-    if (!largeur) return;                        // barre repliée, ou cachée : rien à régler
+    if (!ligne.clientWidth) return;              // barre repliée, ou cachée : rien à régler
     /* LA TAILLE NATIVE SE LIT TANT QUE NOUS N'EN AVONS POSÉ AUCUNE, à chaque
        passe — la feuille de Twitch peut arriver après notre premier balayage,
        et une valeur retenue trop tôt réglait le titre sur une taille qu'il
        n'avait plus. Elle ne se RETIENT que le temps où la nôtre la cache. */
-    const actuel = parseFloat(getComputedStyle(h3).fontSize) || 0;
+    const ch = getComputedStyle(h3);
+    const actuel = parseFloat(ch.fontSize) || 0;
     if (!h3.style.fontSize) h3.dataset.tseTitrePx = String(actuel);
     const natif = Number(h3.dataset.tseTitrePx) || actuel;
     if (!natif || !actuel) return;
     const r = document.createRange();
     r.selectNodeContents(h3);
-    const texte = (r.getBoundingClientRect().width * natif) / actuel;
+    const parRange = (r.getBoundingClientRect().width * natif) / actuel;
+    const parToile = largeurToile((h3.textContent || '').trim(), ch, natif, actuel);
+    const texte = Math.max(parRange, parToile);
+
     const cs = getComputedStyle(ligne);
     const ecart = parseFloat(cs.columnGap) || 0;
-    let place = largeur - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0);
-    /* La largeur de MISE EN PAGE, et non celle du rendu : la roue bat au
-       premier lancement (`transform: scale`), et sa boîte rendue changeait à
-       chaque image — la place avec elle, et le titre s'écrivait sans fin. */
+    const rh = h3.getBoundingClientRect();
+    /* DANS LE FLUX : la largeur de MISE EN PAGE, et non celle du rendu — la
+       roue bat au premier lancement (`transform: scale`), et sa boîte rendue
+       changeait à chaque image, la place avec elle (4.24.0.41). */
+    let reserve = 0;
+    const dansLeFlux = [];
     for (const el of ligne.children) {
       if (el === h3) continue;
+      const pos = getComputedStyle(el).position;
+      if (pos === 'absolute' || pos === 'fixed') continue;     // compté par son bord, plus bas
       const w = el.offsetWidth || 0;
-      if (w > 0) place -= w + ecart;
+      if (w > 0) { reserve += w + ecart; dansLeFlux.push(el); }
     }
+    const ecarte = (el) => !el || h3.contains(el) || el.contains(h3) || dansLeFlux.some((x) => x.contains(el));
+    const surLaLigne = (b) => b.width > 0 && b.height > 0 && b.top < rh.bottom && b.bottom > rh.top && b.left > rh.left;
+    let droite = ligne.getBoundingClientRect().right - (parseFloat(cs.paddingRight) || 0);
+    let obstacle = null, voie = 'ligne';
+    const retenir = (el, v) => {
+      const b = el.getBoundingClientRect();
+      if (b.left - ecart < droite) { droite = b.left - ecart; obstacle = el; voie = v; }
+    };
+    // PAR-DESSUS, dans la barre : un bouton qui croise la ligne du titre, à sa droite.
+    const barre = ligne.closest(DOM.sidebarRoot) || ligne.parentElement;
+    for (const el of barre.querySelectorAll('button, [role="button"]')) {
+      if (ecarte(el) || !surLaLigne(el.getBoundingClientRect())) continue;
+      if (getComputedStyle(el).visibility === 'hidden') continue;
+      retenir(el, 'dessus');
+    }
+    // VENU D'AILLEURS : quelques sondages au bout de la ligne, le voile levé — sous lui, rien n'est touchable.
+    if (!obstacle && !document.body.classList.contains('tse-loading')) {
+      const y = (rh.top + rh.bottom) / 2;
+      const bout = droite;
+      for (const dx of [4, 12, 20, 28, 36]) {
+        const vise = document.elementFromPoint(bout - dx, y)?.closest?.('button, [role="button"], a');
+        if (vise && !barre.contains(vise) && !ecarte(vise) && surLaLigne(vise.getBoundingClientRect())) retenir(vise, 'sonde');
+      }
+    }
+    const place = droite - rh.left - reserve;
     // Un pixel de marge : les largeurs mesurées sont fractionnaires, l'arrondi du rendu non.
     const voulu = texte <= place - 1 ? natif
       : Math.max(TITRE_MIN_PX, Math.floor(((natif * (place - 1)) / texte) * 2) / 2);
-    const style = voulu === natif ? '' : `${voulu}px`;
-    if (h3.style.fontSize !== style) h3.style.fontSize = style;
+    /* EN « !important », DANS LE STYLE EN LIGNE (4.24.0.42) : il l'emporte sur
+       toute feuille, celle de Twitch comprise s'il lui prenait d'en marquer
+       une. Le rapport dit la taille que le navigateur a retenue
+       (`calculePx`) à côté de celle voulue (`posePx`) : un écart nommerait
+       ce qui l'écrase. */
+    const poser = (prop, valeur) => {
+      if (h3.style.getPropertyValue(prop) === valeur && (!valeur || h3.style.getPropertyPriority(prop) === 'important')) return;
+      if (valeur) h3.style.setProperty(prop, valeur, 'important'); else h3.style.removeProperty(prop);
+    };
+    poser('font-size', voulu === natif ? '' : `${voulu}px`);
     /* SOUS LA TAILLE MINIMALE, LA LARGEUR AUSSI. Le titre ne se rétrécissait
        alors que par le jeu du flex, qui ignore une flèche posée par-dessus :
        la roue venait sur elle. Borné à la place, il s'ellipse avant la roue. */
-    const borne = (texte * voulu) / natif > place - 1 ? `${Math.max(0, Math.floor(place - 1))}px` : '';
-    if (h3.style.maxWidth !== borne) h3.style.maxWidth = borne;
-    mesureTitre = { natifPx: natif, posePx: voulu, placePx: place, textePx: texte };
+    poser('max-width', (texte * voulu) / natif > place - 1 ? `${Math.max(0, Math.floor(place - 1))}px` : '');
+    const nom = (el) => (el ? `${el.tagName.toLowerCase()}${el.id ? '#' + el.id : ''}`
+      + `${el.getAttribute('aria-label') ? `[${el.getAttribute('aria-label').slice(0, 40)}]` : ''}` : null);
+    mesureTitre = { natifPx: natif, posePx: voulu, placePx: place, textePx: texte,
+                    rangePx: parRange, toilePx: parToile, voie, obstacle: nom(obstacle),
+                    obstacleGauchePx: obstacle ? obstacle.getBoundingClientRect().left - rh.left : null };
   }
 
   /**

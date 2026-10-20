@@ -32524,43 +32524,93 @@ const S_LECTEUR_SONDE = () => {
    « フォロー中のチャンネル » aussi. Sur les captures, le russe passait à la
    ligne, la roue sous la flèche de repli ; le polonais menait la roue sur la
    flèche. Le décor rejoue la ligne de Twitch — Inter gras à 18 px, une barre
-   de 240 px — et sa flèche de deux façons : dans le flux, ou posée
-   par-dessus à droite. La seconde rend exactement les captures : la flèche
-   n'y prend pas de place, et le titre court dessous.
+   de 240 px — et sa flèche de plusieurs façons.
+   « LES TITRES N'ONT PAS CHANGÉ » (4.24.0.42), captures de la 4.24.0.41 à
+   l'appui : le russe coupé à 18 px, la roue sur la flèche en russe et en
+   polonais. La 4.24.0.41 comptait la place sur les enfants du bloc du
+   titre ; le décor y mettait la flèche, Twitch non. La flèche se joue donc
+   désormais de quatre façons : dans le flux de la ligne ; posée par-dessus,
+   enfant du bloc ; posée par-dessus, SŒUR du bloc — la 4.24.0.41 y rend
+   trait pour trait les captures ; posée par-dessus depuis HORS de la barre.
+   Et un moteur qui ne rendrait, d'un titre coupé, que sa partie visible :
+   on ne peut pas observer d'ici celui de l'utilisateur.
    CE QUI SE MESURE :
      a) les vingt titres — dix langues, deux modes — sur une ligne, entiers,
-        la roue après le titre et avant la flèche, dans les deux cas ;
+        la roue après le titre et avant la flèche, dans les quatre cas — la
+        flèche trouvée par son bord, dans la barre ou au bout de la ligne ;
      b) la taille de Twitch quand le titre tient, au pixel ; sinon juste ce
         qu'il faut de moins, jamais sous 12 px — et les cinq signalés réduits ;
+     g) le moteur qui coupe : les cinq signalés réduits et entiers quand même ;
+     h) une feuille qui marque sa taille « !important » : le titre se règle ;
      c) la langue qui change : le titre suit, et retrouve la taille de Twitch ;
      d) réglé, il ne s'écrit plus : aucune écriture de style ensuite ;
      e) trop étroit même à 12 px : une ligne et l'ellipse, la roue toujours
         devant la flèche ;
-     f) le rapport : la langue, les tailles, la place, la ligne.
+     f) le rapport : la langue, les tailles, les deux mesures, la place, ce
+        qui la borne, la ligne.
    Mutants — l'ajustement retiré ; la flèche par-dessus ignorée ; la roue
    oubliée dans la place ; la taille native retenue au premier balayage ; le
-   titre libre de passer à la ligne. */
+   titre libre de passer à la ligne ; la largeur non bornée ; la largeur
+   rendue ; et, en 4.24.0.42, la place comptée sur les seuls enfants du bloc,
+   les sondages retirés, la mesure par canevas retirée, la taille posée sans
+   « !important ». */
 {
-  titre('204. Le titre de la barre à la taille de sa langue — une ligne, entier, la roue devant la flèche');
+  titre('204. Le titre de la barre à la taille de sa langue — une ligne, entier, la roue devant la flèche, où qu\'elle soit');
   const LANGUES = ['fr-FR', 'en-US', 'de-DE', 'es-ES', 'pt-BR', 'it-IT', 'pl-PL', 'ru-RU', 'ja-JP', 'zh-CN'];
-  const ouvrir = async (lang, { dessus = false, largeur = 240 } = {}) => {
+  /* `fleche` : « flux » (dans la ligne), « dessus » (enfant du bloc, posée
+     par-dessus), « dehors » (sœur du bloc, posée par-dessus), « ailleurs »
+     (hors de la barre, fixée sur le bout de la ligne). `coupeRange` : le
+     moteur qui ne rend d'un titre coupé que sa partie visible. */
+  const ouvrir = async (lang, { fleche = 'flux', largeur = 240, coupeRange = false, important = false } = {}) => {
     const page = await browser.newPage();
     page.on('pageerror', e => { fail++; console.log('  ✗ ERREUR PAGE:', e.message); });
     await page.goto(URL_PAGE);
     // La feuille de la ligne arrive APRÈS les premiers balayages, comme celle de Twitch peut le faire.
-    await page.evaluate(([l, d, w]) => {
+    await page.evaluate(([l, f, w, c, imp]) => {
+      if (c) {
+        /* Ce qu'un moteur rendrait des seuls glyphes VISIBLES d'un titre coupé :
+           la boîte, moins la place de l'ellipse. Rendre la boîte entière ne
+           suffisait pas à jouer le cas — la marge d'un pixel y faisait encore
+           descendre le titre, d'un demi-pixel par balayage. */
+        const vrai = Range.prototype.getBoundingClientRect;
+        Range.prototype.getBoundingClientRect = function () {
+          const b = vrai.call(this);
+          const n = this.commonAncestorContainer;
+          const el = n.nodeType === 1 ? n : n.parentElement;
+          const vu = el?.clientWidth ?? b.width;
+          return new DOMRect(b.x, b.y, b.width > vu + 0.5 ? Math.max(0, vu - 12) : b.width, b.height);
+        };
+      }
       const st = document.createElement('style');
-      st.textContent = `#side-nav { width: ${w}px; } #side-nav .side-nav__title { padding: 0 10px; position: relative; }`
-        + ' #side-nav .side-nav__title h3 { font: 600 18px Inter, sans-serif; margin: 0; line-height: 24px; }'
+      st.textContent = `#side-nav { width: ${w}px; position: relative; } #side-nav .side-nav__title { padding: 0 10px; position: relative; }`
+        + ` #side-nav .side-nav__title h3 { font: 600 18px Inter, sans-serif${imp ? ' !important' : ''}; margin: 0; line-height: 24px; }`
         + ' #native-collapse { width: 30px; height: 30px; flex: 0 0 auto; }'
-        + (d ? ' #native-collapse { position: absolute; right: 10px; top: 0; }' : '');
+        + (f === 'dessus' || f === 'dehors' ? ' #native-collapse { position: absolute; right: 10px; top: 0; }' : '');
       document.head.appendChild(st);
+      const fl = document.getElementById('native-collapse');
+      const ligne = document.querySelector('#side-nav .side-nav__title');
+      if (f === 'dehors') ligne.after(fl);
+      if (f === 'ailleurs') {
+        // Hors de la barre, et qui SUIT la ligne, image par image, comme le ferait une vraie.
+        document.body.appendChild(fl);
+        const suivre = () => {
+          const r = document.querySelector('#side-nav .side-nav__title')?.getBoundingClientRect();
+          if (r) {
+            const css = `position: fixed; z-index: 50; left: ${r.right - 10 - 30}px; top: ${r.top}px; width: 30px; height: 30px;`;
+            if (fl.style.cssText !== css) fl.style.cssText = css;
+          }
+          requestAnimationFrame(suivre);
+        };
+        suivre();
+      }
       document.querySelector('.side-nav-section').removeAttribute('aria-label');
       document.documentElement.lang = l;
       window.__fx = { alpha: { id: '1', createdAt: new Date(Date.now() - 3600_000).toISOString(), viewers: 900, game: 'G', tags: [] } };
       window.__addCard('alpha', 'G', '900');
-    }, [lang, dessus, largeur]);
-    await wait(page, 1200);
+    }, [lang, fleche, largeur, coupeRange, important]);
+    // Le voile levé : sous lui, rien n'est touchable, et les sondages attendent.
+    await attendre(page, () => !document.body.classList.contains('tse-loading'), 5000);
+    await wait(page, 900);
     return page;
   };
   const mesurer = (page) => page.evaluate(() => {
@@ -32572,37 +32622,50 @@ const S_LECTEUR_SONDE = () => {
     sonde.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap;font:600 18px Inter, sans-serif';
     sonde.textContent = h3.textContent;
     document.body.appendChild(sonde);
-    const a18 = R(sonde).width;
+    const a18 = sonde.getBoundingClientRect().width;
     sonde.remove();
     return { texte: h3.textContent, px: parseFloat(getComputedStyle(h3).fontSize), a18,
              hauteur: R(h3).height, coupe: h3.scrollWidth > h3.clientWidth + 1,
              h3: [R(h3).left, R(h3).right], roue: [R(roue).left, R(roue).right], fleche: [R(fleche).left, R(fleche).right],
-             fin: R(ligne).right - 10 };
+             fin: R(ligne).right - 10, voie: window.tse.panneau.rapport().titre?.voie ?? null };
   });
   const juste = (m) => m.hauteur <= 24 * 1.5 && !m.coupe
     && m.roue[0] >= m.h3[1] - 0.5 && m.roue[1] <= m.fleche[0] + 0.5 && m.fleche[1] <= m.fin + 0.5;
-  const releves = { flux: [], dessus: [] };
-  for (const [nom, dessus] of [['flux', false], ['dessus', true]]) {
+  const FACONS = ['flux', 'dessus', 'dehors', 'ailleurs'];
+  const releves = Object.fromEntries(FACONS.map((f) => [f, []]));
+  for (const fleche of FACONS) {
     for (const lang of LANGUES) {
-      const page = await ouvrir(lang, { dessus });
-      releves[nom].push({ lang, mode: 'suivies', ...(await mesurer(page)) });
+      const page = await ouvrir(lang, { fleche });
+      releves[fleche].push({ lang, mode: 'suivies', ...(await mesurer(page)) });
       await page.evaluate(() => document.querySelector('#tse-mode-row [data-tse-mode="global"]')?.click());
       await wait(page, 600);
-      releves[nom].push({ lang, mode: 'top', ...(await mesurer(page)) });
+      /* Hors de la barre, la flèche suit la ligne une image APRÈS le balayage
+         qui l'a déplacée : c'est le suivant qui la retrouve. */
+      if (fleche === 'ailleurs') {
+        await attendre(page, () => window.tse.panneau.rapport().titre?.voie === 'sonde', 8000);
+        await wait(page, 300);
+      }
+      releves[fleche].push({ lang, mode: 'top', ...(await mesurer(page)) });
       await page.close();
     }
   }
-  const dire = (L) => L.map((m) => `${m.lang} ${m.mode} ${m.px}px${juste(m) ? '' : ' ✗'} « ${m.texte} »`).join(' · ');
+  const dire = (L) => L.map((m) => `${m.lang} ${m.mode} ${m.px}px ${m.voie}${juste(m) ? '' : ' ✗'} « ${m.texte} »`).join(' · ');
+  const voies = { flux: 'ligne', dessus: 'dessus', dehors: 'dessus', ailleurs: 'sonde' };
+  const enOrdre = (f) => releves[f].length === 20 && releves[f].every((m) => juste(m) && m.voie === voies[f]);
   ok('a) flèche dans le flux : les vingt titres sur une ligne, entiers, la roue après le titre et avant la flèche',
-     releves.flux.length === 20 && releves.flux.every(juste), dire(releves.flux.filter((m) => !juste(m))));
-  ok('a) flèche posée par-dessus, comme sur les captures : les vingt aussi',
-     releves.dessus.length === 20 && releves.dessus.every(juste), dire(releves.dessus.filter((m) => !juste(m))));
+     enOrdre('flux'), dire(releves.flux.filter((m) => !juste(m) || m.voie !== voies.flux)));
+  ok('a) flèche posée par-dessus, enfant du bloc du titre : les vingt aussi, la flèche trouvée par son bord',
+     enOrdre('dessus'), dire(releves.dessus.filter((m) => !juste(m) || m.voie !== voies.dessus)));
+  ok('a) flèche SŒUR du bloc, comme sur les captures de la 4.24.0.41 : les vingt aussi, la flèche trouvée dans la barre',
+     enOrdre('dehors'), dire(releves.dehors.filter((m) => !juste(m) || m.voie !== voies.dehors)));
+  ok('a) flèche venue de HORS de la barre : les vingt aussi, la flèche trouvée au bout de la ligne',
+     enOrdre('ailleurs'), dire(releves.ailleurs.filter((m) => !juste(m) || m.voie !== voies.ailleurs)));
   /* b) LA PLACE, mesurée sur la ligne et non lue dans le code : de l'entrée
      du titre au bord de la ligne, moins la roue, la flèche et leurs deux
      écarts. Un titre qui y tient à 18 px garde 18 px ; un autre descend, et
      n'en laisse pas plus que ce qu'arrondit le demi-pixel — un trente-sixième
      de sa largeur à 18 px — et la marge d'un. */
-  const tous = [...releves.flux, ...releves.dessus];
+  const tous = FACONS.flatMap((f) => releves[f]);
   const tailleJuste = (m) => {
     const place = m.fin - m.h3[0] - (m.roue[1] - m.roue[0]) - (m.fleche[1] - m.fleche[0]) - 2 * 6;
     if (m.a18 <= place - 1) return m.px === 18;
@@ -32615,11 +32678,35 @@ const S_LECTEUR_SONDE = () => {
      tous.every(tailleJuste) && tous.every((m) => m.px >= 12)
      && signales.every((l) => tous.filter((m) => m.lang === l && m.mode === 'suivies').every((m) => m.px < 18))
      && tous.filter((m) => m.lang === 'fr-FR').every((m) => m.px === 18),
-     tous.map((m) => `${m.lang}/${m.mode} ${m.px}px${tailleJuste(m) ? '' : ' ✗'}`).join(' · '));
+     tous.filter((m) => !tailleJuste(m)).map((m) => `${m.lang}/${m.mode} ${m.px}px ✗`).join(' · '));
+
+  /* g) LE MOTEUR QUI COUPE. Flèche dans le flux, c'est là qu'il mord : le
+     titre y prend la place exacte, et un texte coupé mesuré par sa partie
+     visible y paraît tenir — 18 px, coupé, pour toujours. Mutant — la mesure
+     par canevas retirée. */
+  const coupes = [];
+  for (const lang of signales) {
+    const page = await ouvrir(lang, { fleche: 'flux', coupeRange: true });
+    coupes.push({ lang, ...(await mesurer(page)) });
+    await page.close();
+  }
+  ok('g) un moteur qui ne rendrait d\'un titre coupé que sa partie visible : les cinq signalés réduits et entiers quand même',
+     coupes.every((m) => juste(m) && m.px < 18 && tailleJuste(m)), dire(coupes));
+
+  /* h) UNE FEUILLE QUI MARQUERAIT SA TAILLE « !important ». Rien ne dit que
+     Twitch ne le fera pas ; le style en ligne, lui, l'emporte s'il l'est
+     aussi. Mutant — la taille posée sans « !important ». */
+  {
+    const page = await ouvrir('ru-RU', { fleche: 'dehors', important: true });
+    const m = await mesurer(page);
+    ok('h) une feuille qui marque sa taille « !important » : le titre russe se règle quand même, entier, la roue devant la flèche',
+       juste(m) && m.px < 18 && tailleJuste(m), dire([{ lang: 'ru-RU', mode: 'suivies', ...m }]));
+    await page.close();
+  }
 
   // ── c) d) f) : une page, deux langues ─────────────────────────────────────
   {
-    const page = await ouvrir('ru-RU', { dessus: true });
+    const page = await ouvrir('ru-RU', { fleche: 'dehors' });
     const ru = await mesurer(page);
     // d) réglé : plus une écriture de style sur le titre, deux secondes durant.
     await page.evaluate(() => {
@@ -32640,17 +32727,19 @@ const S_LECTEUR_SONDE = () => {
        JSON.stringify({ ru: [ru.texte, ru.px], fr: [fr.texte, fr.px], inline }));
     ok('d) réglé une fois, le titre ne s\'écrit plus : aucune écriture de style en deux secondes',
        ecritures === 0, `${ecritures} écriture(s)`);
-    ok('f) au rapport : la langue, la taille native et celle posée, la place, ce que le texte demande, et la ligne — la flèche comprise',
+    ok('f) au rapport : la langue, la taille native et celle posée, les deux mesures du texte, la place, ce qui la borne — la flèche, nommée —, et la ligne',
        rapportRu?.langue === 'ru' && rapportRu.natifPx === 18 && rapportRu.posePx === ru.px && rapportRu.coupe === false
-       && rapportRu.placePx > 0 && rapportRu.textePx > rapportRu.placePx
-       && /button#tse-roue \d+px/.test(rapportRu.ligne || '') && /button#native-collapse 30px absolute/.test(rapportRu.ligne || ''),
+       && rapportRu.placePx > 0 && rapportRu.textePx > rapportRu.placePx && rapportRu.calculePx === rapportRu.posePx
+       && rapportRu.toilePx > 0 && Math.abs(rapportRu.toilePx - rapportRu.rangePx) < 2
+       && rapportRu.voie === 'dessus' && /^button#native-collapse\[/.test(rapportRu.obstacle || '') && rapportRu.obstacleGauchePx > 0
+       && /button#tse-roue \d+px/.test(rapportRu.ligne || ''),
        JSON.stringify(rapportRu));
     await page.close();
   }
 
   // ── e) trop étroit même à 12 px ───────────────────────────────────────────
   {
-    const page = await ouvrir('ru-RU', { dessus: true, largeur: 190 });
+    const page = await ouvrir('ru-RU', { fleche: 'dehors', largeur: 190 });
     const m = await mesurer(page);
     ok('e) trop étroit même à 12 px : le russe reste sur une ligne, à 12 px, coupé d\'une ellipse ; la roue toujours devant la flèche',
        m.px === 12 && m.coupe && m.hauteur <= 24 * 1.5 && m.roue[0] >= m.h3[1] - 0.5 && m.roue[1] <= m.fleche[0] + 0.5,

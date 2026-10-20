@@ -2059,6 +2059,85 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The title, where Twitch really puts its arrow (v4.24.0.42)
+
+The request, three screenshots of 4.24.0.41 attached — Russian, Polish,
+Spanish: "The titles haven't changed, that's not good. Investigate and fix in
+depth." Published on `claude/chrome-multi`.
+
+### What was happening
+
+In the screenshots, the Russian title holds one line, cut by an ellipsis at
+18 px: 4.24.0.41's rule therefore applied. The gear sits on the collapse
+arrow, in Russian as in Polish. The size fitting, for its part, had done
+nothing.
+
+- **The arrow is not where the bench put it.** 4.24.0.41 counted the room on
+  the children of `.side-nav__title`. The test set put the arrow there, on the
+  strength of a 4.12.1 field report; nothing had recorded it in the real DOM.
+  On Twitch, the arrow is not a child of that block: laid over the line from
+  elsewhere, it entered no count, and the title "fitted" in a room that
+  included the arrow's. Replayed on the bench with the arrow as the block's
+  sibling, 4.24.0.41 reproduces the screenshots line for line: the gear on the
+  arrow in Russian, Polish, Spanish and English.
+- **The text measurement could let itself be clipped.** It read the text's
+  width from its rendered box (`Range`). The forgotten arrow alone does not
+  explain a Russian title left at 18 px: the room it left would still have
+  reduced it by a fifth. An engine that returned only the visible glyphs of a
+  clipped title would explain it: the title seems to fit there, and stays
+  clipped. The bench's Chromium returns the whole text; the user's cannot be
+  observed from here. It is a hypothesis, which the report now settles
+  (`rangePx` next to `toilePx`).
+
+### What changes
+
+- **The room is read three ways, and the narrowest decides.** What the line
+  carries in its flow reserves its width there. A sidebar button crossing the
+  title's line, to its right, stops it at its left edge — in the block or
+  elsewhere. Failing anything, with the veil lifted, five probes at the end of
+  the line (`elementFromPoint`) find what would come from elsewhere in the
+  page. None of this depends on the title's size: the room is the same from
+  one scan to the next.
+- **The text is also measured in a canvas**, off the page: `measureText`
+  returns the whole string, whatever the ellipsis does to its box. The larger
+  of the two measurements wins.
+- **The size and the bound are written `!important`** in the inline style: no
+  stylesheet overrides them.
+- **In the report**, the `TITRE` block gives both measurements (`rangePx`,
+  `toilePx`), what bounds the room — `voie`: "ligne", "dessus" or "sonde";
+  `obstacle`, `obstacleGauchePx` — and the size the browser kept
+  (`calculePx`), next to the one wanted (`posePx`).
+
+### What the bench measures
+
+**204**, revised: the arrow now plays four ways — in the line's flow; laid
+over, a child of the block; laid over, a sibling of the block, the
+screenshots' configuration; from outside the sidebar, following the line. The
+twenty titles must hold in each, the arrow found by the right path. Added:
+g) an engine that returned only the visible glyphs of a clipped title, and
+h) a stylesheet marking its size `!important`. Four more assertions.
+
+The full bench: 1743 assertions in 203 scenarios, all green.
+
+| mutant | what fails |
+| --- | --- |
+| the room counted on the block's children only, as in 4.24.0.41 (1) | 204: a — the sibling arrow and the outside arrow —, b, c, e, f, h |
+| the probes removed (1) | 204: a — the outside arrow —, b |
+| the canvas measurement removed (2) | 204: g — the title clipped, at 18 px |
+| the size set without "!important" (1) | 204: h |
+| the fitting removed (1) | 204: all but d |
+| the arrow laid over ignored (1) | 204: a, b, c, e, f, h |
+| the gear forgotten in the room (1) | 204: a, b, c, f, g, h |
+| the native size kept from the first scan (1) | 204: a, b, c, f, g, h |
+| the title free to wrap (1) | 204: e |
+| the width unbounded below the minimum size (1) | 204: e |
+| the rendered width instead of the layout width (1) | 204: d |
+
+Eleven mutants, eleven caught. The canvas first survived: the fake engine
+returned the clipped title's whole box, and the one-pixel margin still brought
+the title down, half a pixel per scan. It now returns only the visible glyphs,
+the ellipsis excluded — and without the canvas the title stays stuck there.
+
 ## The chosen language holds, and the title holds its line (v4.24.0.41)
 
 The request: "Wandering through Top Channels from one language to another, I
@@ -18629,7 +18708,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 203 scenarios, 1739 assertions |
+| `npm test` | the Playwright harness: 203 scenarios, 1743 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -18649,7 +18728,7 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1660 KB | 671 KB | 4,217 → **2** |
+| `content.js` | 1660 KB | 671 KB | 4,224 → **2** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
 | `panneau.js` | 109 KB | 51 KB | 159 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |

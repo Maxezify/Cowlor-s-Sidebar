@@ -2180,6 +2180,87 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## Le titre, là où Twitch range vraiment sa flèche (v4.24.0.42)
+
+La demande, trois captures de la 4.24.0.41 à l'appui — russe, polonais,
+espagnol : « Les titres n'ont pas changé, ce n'est pas bon. Investigue et
+corrige en profondeur. » Publiée sur `claude/chrome-multi`.
+
+### Ce qui se passait
+
+Sur les captures, le russe tient sur une ligne, coupé d'une ellipse à 18 px :
+la règle de la 4.24.0.41 s'appliquait donc. La roue est posée sur la flèche de
+repli, en russe comme en polonais. L'ajustement de la taille, lui, n'avait
+rien fait.
+
+- **La flèche n'est pas là où le banc la mettait.** La 4.24.0.41 comptait la
+  place sur les enfants de `.side-nav__title`. Le décor de test y mettait la
+  flèche, sur la foi d'un retour de terrain de la 4.12.1 ; rien ne l'avait
+  relevé dans le vrai DOM. Sur Twitch, la flèche n'est pas un enfant de ce
+  bloc : posée par-dessus la ligne depuis ailleurs, elle n'entrait dans aucun
+  compte, et le titre « tenait » dans une place qui comprenait la sienne.
+  Rejoué au banc, la flèche sœur du bloc, la 4.24.0.41 rend les captures trait
+  pour trait : la roue sur la flèche en russe, en polonais, en espagnol et en
+  anglais.
+- **La mesure du texte pouvait se laisser couper.** Elle lisait la largeur du
+  texte dans sa boîte rendue (`Range`). La flèche oubliée ne suffit pas à
+  expliquer un russe resté à 18 px : la place qu'elle laissait l'aurait encore
+  réduit d'un cinquième. Un moteur qui ne rendrait d'un titre coupé que ses
+  glyphes visibles l'expliquerait : le titre y paraît tenir, et reste coupé.
+  Le Chromium du banc rend le texte entier ; celui de l'utilisateur ne
+  s'observe pas d'ici. C'est une hypothèse, que le rapport tranche désormais
+  (`rangePx` à côté de `toilePx`).
+
+### Ce qui change
+
+- **La place se lit de trois façons, et la plus étroite décide.** Ce que la
+  ligne porte dans son flux y réserve sa largeur. Un bouton de la barre qui
+  croise la ligne du titre, à sa droite, l'arrête à son bord gauche — dans le
+  bloc ou ailleurs. Faute de rien trouver, et le voile levé, cinq sondages au
+  bout de la ligne (`elementFromPoint`) trouvent ce qui viendrait d'ailleurs
+  dans la page. Rien de cela ne dépend de la taille du titre : la place est la
+  même d'un balayage à l'autre.
+- **Le texte se mesure aussi dans un canevas**, hors de la page :
+  `measureText` rend la chaîne entière, quoi que l'ellipse fasse de sa boîte.
+  La plus grande des deux mesures l'emporte.
+- **La taille et la borne s'écrivent en `!important`** dans le style en ligne :
+  aucune feuille ne les écrase.
+- **Au rapport**, le bloc `TITRE` dit les deux mesures (`rangePx`, `toilePx`),
+  ce qui borne la place — `voie` : « ligne », « dessus » ou « sonde » ;
+  `obstacle`, `obstacleGauchePx` — et la taille que le navigateur a retenue
+  (`calculePx`), à côté de celle voulue (`posePx`).
+
+### Ce que le banc mesure
+
+**204**, revu : la flèche s'y joue désormais de quatre façons — dans le flux
+de la ligne ; posée par-dessus, enfant du bloc ; posée par-dessus, sœur du
+bloc, la configuration des captures ; venue de hors de la barre, et qui suit la
+ligne. Les vingt titres doivent tenir dans chacune, la flèche trouvée par la
+bonne voie. S'y ajoutent g) un moteur qui ne rendrait que les glyphes visibles
+d'un titre coupé, et h) une feuille qui marquerait sa taille `!important`.
+Quatre assertions de plus.
+
+Le banc complet : 1743 assertions dans 203 scénarios, toutes vertes.
+
+| mutant | ce qui tombe |
+| --- | --- |
+| la place comptée sur les seuls enfants du bloc, comme en 4.24.0.41 (1) | 204 : a — la flèche sœur et la flèche d'ailleurs —, b, c, e, f, h |
+| les sondages retirés (1) | 204 : a — la flèche d'ailleurs —, b |
+| la mesure par canevas retirée (2) | 204 : g — le titre coupé, à 18 px |
+| la taille posée sans « !important » (1) | 204 : h |
+| l'ajustement retiré (1) | 204 : tout sauf d |
+| la flèche par-dessus ignorée (1) | 204 : a, b, c, e, f, h |
+| la roue oubliée dans la place (1) | 204 : a, b, c, f, g, h |
+| la taille native retenue au premier balayage (1) | 204 : a, b, c, f, g, h |
+| le titre libre de passer à la ligne (1) | 204 : e |
+| la largeur non bornée sous la taille minimale (1) | 204 : e |
+| la largeur rendue au lieu de la mise en page (1) | 204 : d |
+
+Onze mutants, onze pris. Le canevas a d'abord survécu : le faux moteur rendait
+la boîte entière du titre coupé, et la marge d'un pixel faisait encore
+descendre le titre, d'un demi-pixel par balayage. Il rend désormais les seuls
+glyphes visibles, l'ellipse exclue — et le titre y reste bloqué sans canevas.
+
 ## La langue choisie tient, et le titre tient sur sa ligne (v4.24.0.41)
 
 La demande : « En me baladant dans Top Chaînes entre les différentes langues,
@@ -19206,7 +19287,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 203 scénarios, 1739 assertions |
+| `npm test` | le harnais Playwright : 203 scénarios, 1743 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -19227,7 +19308,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1660 Ko | 671 Ko | 4 217 → **2** |
+| `content.js` | 1660 Ko | 671 Ko | 4 224 → **2** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
 | `panneau.js` | 109 Ko | 51 Ko | 159 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
