@@ -173,6 +173,11 @@ window.__vod = {};         // chapitres de VOD par login (cf. TseVodChapters)
 window.__vodRecent = {};   // archive récente par login (cf. TseVodRecent, le repli)
 window.__clips = {};       // clips par login (cf. TseClips, la troisième porte)
 window.__tagTop = {};      // classement par tag de langue (cf. TseTagTop)
+/* Des codes de langue de plus que le schéma simulé connaît (4.24.0.41), sous
+   la forme { SV: 'Svenska' }. Les cinq de base suffisent aux scénarios ; le
+   203 en visite huit, et le 38 comme le 39 comptent sur le refus de l'italien
+   — d'où un ajout explicite plutôt qu'une table élargie pour tous. */
+window.__codesEnPlus = null;
 window.__declarees = {};   // login -> code ISO de la langue déclarée (cf. TseLangCheck)
 window.__failNext = 0;     // nb de POST à faire échouer
 window.__httpStatus = 0;   // statut HTTP à rendre une fois (429, 503, …)
@@ -849,7 +854,7 @@ window.fetch = async (url, opt) => {
       if (!c) return { data: { game: null } };
       const m = /broadcasterLanguages:\s*\[(\w+)\]/.exec(o.query || '');
       const codeToTag = { FR: 'Français', EN: 'English', DE: 'Deutsch',
-                          CS: 'Čeština', ES: 'Español' };
+                          CS: 'Čeština', ES: 'Español', ...(window.__codesEnPlus || {}) };
       if (!m || !codeToTag[m[1]]) {
         return { errors: [{ message: 'Unknown enum value ' + (m ? m[1] : '?') }] };
       }
@@ -880,7 +885,7 @@ window.fetch = async (url, opt) => {
          décor. Cinq suffisent aux scénarios ; en ajouter un est le geste à
          faire le jour où l'un d'eux en demande un sixième. */
       const codeToTag = { FR: 'Français', EN: 'English', DE: 'Deutsch',
-                          CS: 'Čeština', ES: 'Español' };
+                          CS: 'Čeština', ES: 'Español', ...(window.__codesEnPlus || {}) };
       const wantTag = mLang ? codeToTag[mLang[1]] : null;
       if (mLang && !wantTag) {
         // Code inconnu du schéma simulé : l'API rejette la requête ENTIÈRE,

@@ -2626,6 +2626,20 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
    *  des centaines identiques et chasserait tout le reste du
    *  journal : les répétitions sont comptées, pas empilées.
    * ============================================================ */
+  /* L'EXEMPLAIRE QUI TOURNE (4.24.0.41) : l'identifiant de l'extension dont
+     ce fichier est la copie, lu dans sa propre pile — en monde MAIN, ni
+     `chrome.runtime` ni `document.currentScript` ne le donnent. Un rapport de
+     terrain portait le panneau d'une version et les données d'une autre :
+     deux exemplaires installés, dont le second échouait à sa première ligne
+     (cf. `doublonDe`, dans panneau.js). Le panneau compare cet identifiant au
+     sien, et à celui d'une copie qui échoue ; null hors d'une extension. */
+  const EXEMPLAIRE = (() => {
+    try {
+      const m = /(?:chrome|moz|safari-web)-extension:\/\/([^/\s)]+)\//.exec(new Error().stack || '');
+      return m ? m[1] : null;
+    } catch { return null; }
+  })();
+
   const erreurs = (() => {
     const MAX = 40;
     const liste = [];
@@ -6217,6 +6231,11 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
        titre. */
     ${DOM.sidebarRoot} .side-nav__title[data-tse-roue] > h3 {
       flex: 0 1 auto; min-width: 0;
+      /* SUR UNE LIGNE, TOUJOURS (4.24.0.41). Le russe passait à la ligne et
+         poussait la roue sous la flèche ; le polonais la menait sur la flèche.
+         La taille se règle à la place (cf. ajusterTitre) ; l'ellipse n'est
+         que le dernier recours, sous la taille minimale. */
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
     .tse-roue {
       flex: 0 0 auto;
@@ -10282,18 +10301,44 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
        catégorie : trois cents places s'épuisaient dès qu'on regardait deux
        langues, et les premières mesures disparaissaient sous les suivantes. */
     const CAT_LANGUE_MAX = 800;
+    /* ── LE MONDE À PART (4.24.0.41) ──────────────────────────────────────────
+       RAPPORT DE TERRAIN : en passant d'une langue à l'autre dans Top Chaînes,
+       le suédois choisi est retombé, quelques secondes après, sur « toutes
+       les langues » — le classement mondial affiché, le suédois sorti du
+       menu ; au rapport, `mesures.connues 800`, `language` vide.
+       Les mesures du MONDE — une par langue, celles qui font la liste du menu
+       langue — vivaient dans ce registre, avec les cent mesures que chaque
+       langue visitée ajoute pour le menu catégorie. Elles y étaient les plus
+       anciennes, et les langues visitées les chassaient : au banc, qui l'a
+       rejoué tel quel (scénario 203), la mesure de la huitième les emporte
+       toutes les trente et une — et la sélection n'avait plus de langue où
+       se tenir (cf. recomputeFilters).
+       Le monde a donc son registre : trente et une places au plus — une par
+       langue de LANG_SET, rien d'autre n'y écrit —, que rien n'évince. */
+    const mesuresMonde = new Map();       // langue → { v, ts }
+    let mesuresEvincees = 0;
 
-    /* `categorie` vaut la chaîne vide pour le MONDE. Une clé vide et une clé
-       absente ne se ressemblent qu'en apparence : le monde est une portée
-       comme une autre, et lui refuser sa case obligerait à tenir deux
-       registres qui finiraient par diverger. */
+    /* `categorie` vaut la chaîne vide pour le MONDE, rangé à part depuis la
+       4.24.0.41 (cf. plus haut) : appliquerMesures le lit sous la même clé
+       qu'avant, la catégorie vide, et personne d'autre n'a à le savoir. */
     const noterMesure = (categorie, langue, somme) => {
       if (categorie == null || !langue || !Number.isFinite(somme)) return;
+      if (categorie === '') { mesuresMonde.set(langue, { v: somme, ts: Date.now() }); return; }
       const cle = categorie + '\u0000' + langue;
       mesuresCatLangue.delete(cle);              // réinsertion : ordre = fraîcheur
       mesuresCatLangue.set(cle, { v: somme, ts: Date.now() });
       while (mesuresCatLangue.size > CAT_LANGUE_MAX) {
-        mesuresCatLangue.delete(mesuresCatLangue.keys().next().value);
+        const vieille = mesuresCatLangue.keys().next().value;
+        mesuresCatLangue.delete(vieille);
+        mesuresEvincees += 1;
+        /* UNE MESURE ÉVINCÉE REND SON RELEVÉ À REFAIRE (4.24.0.41). L'horloge
+           du relevé qui l'avait produite disait encore « frais » : revenir
+           sur cette langue, ou cette catégorie, laissait le menu sans chiffres
+           jusqu'à la fin de son TTL, cinq minutes. Les deux sens d'une même
+           clé repartent : c'est l'un ou l'autre qui l'avait écrite. */
+        const i = vieille.indexOf('\u0000');
+        mesuresTs.delete('C\u0000' + vieille.slice(0, i));
+        mesuresTs.delete('L\u0000' + vieille.slice(i + 1));
       }
     };
 
@@ -10301,6 +10346,10 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
        des deux moitiés de la clé sert de filtre, et laquelle sert d'entrée. */
     const appliquerMesures = (m, axe, valeur) => {
       const limite = Date.now() - CFG.GLOBAL_PRUNE_AGE;
+      if (axe === 'categorie' && valeur === '') {
+        for (const [lg, mes] of mesuresMonde) if (mes.ts >= limite) m.set(lg, mes.v);
+        return m;
+      }
       for (const [cle, mes] of mesuresCatLangue) {
         if (mes.ts < limite) continue;
         const i = cle.indexOf('\u0000');
@@ -11165,11 +11214,10 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
            catégorie pour une petite langue ne donne pas un ordre de grandeur,
            cela donne du bruit. Les couples mesurés sont ceux que l'utilisateur
            a lui-même demandés en choisissant une catégorie. */
-        const m = appliquerMesures(new Map(), 'langue', langue);
-        // La mesure MONDIALE de cette langue est rangée sous la catégorie
-        // vide : elle n'a pas sa place dans un menu de catégories.
-        m.delete('');
-        return m;
+        /* La mesure MONDIALE de cette langue n'y figure pas : elle vit dans
+           son propre registre depuis la 4.24.0.41, et n'a pas sa place dans
+           un menu de catégories. */
+        return appliquerMesures(new Map(), 'langue', langue);
       },
       cats(n = CFG.GLOBAL_CATEGORIES_MAX) {
         return categories.slice(0, n);
@@ -11434,7 +11482,11 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
              rapport où `servies` reste à zéro dirait que la requête de
              comptage est refusée — et le menu, lui, n'afficherait aucun
              chiffre, ce qui se verrait mais ne s'expliquerait pas. */
-          mesures: { ...bilanMesures, connues: mesuresCatLangue.size },
+          /* `connues` ne compte plus que le registre des couples ; `monde`, les
+             mesures de la liste du menu, rangées à part ; `evincees`, ce que
+             le plafond du premier a chassé depuis l'ouverture (4.24.0.41). */
+          mesures: { ...bilanMesures, connues: mesuresCatLangue.size,
+                     monde: mesuresMonde.size, evincees: mesuresEvincees },
           worldLang,
           language:   state.globalMode ? state.languageFilter : null,
           scope,
@@ -18366,7 +18418,11 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         /* Pas de numéro de version ICI. content.js tourne en monde MAIN, où
            chrome.runtime n'existe pas : il ne peut que recopier une constante,
            qui se périmerait au premier oubli. Le panneau, lui, lit le
-           manifeste — une seule source, et c'est la bonne. */
+           manifeste — une seule source, et c'est la bonne.
+           L'IDENTIFIANT, LUI, VOYAGE (4.24.0.41) : il ne se recopie pas, il se
+           lit (cf. EXEMPLAIRE), et c'est lui qui dit au panneau si la page
+           tourne sous le même exemplaire que lui. */
+        exemplaire: EXEMPLAIRE,
         page: {
           // Le CHEMIN seul : ni requête, ni ancre. « /domingo » dit qu'on
           // était sur une chaîne, ce qui compte ; le reste ne dit rien.
@@ -18620,6 +18676,27 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
             colonnePx: r1(d - g),
             trisDebordePx: tris.length
               ? r1(Math.max(0, g - tris[0].left, tris[tris.length - 1].right - d)) : null,
+          };
+        })(),
+        /* ── LE TITRE (4.24.0.41, cf. ajusterTitre) ───────────────────────
+           Sa langue, sa taille native et celle posée, la place et ce que le
+           texte demande à la taille native — et les éléments de sa ligne,
+           avec leur largeur et leur positionnement : la flèche de repli de
+           Twitch en fait partie, et le banc n'en connaît pas la vraie forme.
+           `coupe` : l'ellipse a servi, même la taille minimale ne tenait pas. */
+        titre: (() => {
+          const ligne = document.querySelector(`${DOM.sidebarRoot} .side-nav__title`);
+          const h3 = ligne?.querySelector(':scope > h3');
+          if (!h3 || sidebarCollapsed) return { texte: null };
+          const r1 = (v) => (Number.isFinite(v) ? Math.round(v * 10) / 10 : null);
+          return {
+            langue: LANG,
+            texte: (h3.textContent || '').trim(),
+            natifPx: r1(mesureTitre.natifPx), posePx: r1(mesureTitre.posePx),
+            placePx: r1(mesureTitre.placePx), textePx: r1(mesureTitre.textePx),
+            coupe: h3.scrollWidth > h3.clientWidth + 1,
+            ligne: [...ligne.children].map((e) => `${e.tagName.toLowerCase()}${e.id ? '#' + e.id : ''}`
+              + ` ${e.offsetWidth || 0}px ${getComputedStyle(e).position}`).join(' · '),
           };
         })(),
         /* ── LE LECTEUR PRINCIPAL (4.24.0.2) ──────────────────────────────
@@ -25711,6 +25788,72 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     root.dataset.tseRenamed = 'true';
   }
 
+  /* ============================================================
+   *  LE TITRE À LA TAILLE DE SA LANGUE (4.24.0.41)
+   *  -------------------------------------------------------------
+   *  DEMANDÉ, CAPTURES À L'APPUI : « Followed Channels » est long,
+   *  « Canales que sigues », « Obserwowane kanały », « Отслеживаемые
+   *  каналы », « フォロー中のチャンネル » aussi. Le titre garde la
+   *  taille de Twitch, et la ligne qu'il partage avec la roue et la
+   *  flèche de repli n'est pas extensible : le russe passait à la
+   *  ligne et descendait la roue sous la flèche, le polonais menait
+   *  la roue sur la flèche. Le français, lui, tient.
+   *
+   *  LA TAILLE SE RÈGLE À LA PLACE, et à elle seule. La place, c'est
+   *  la ligne moins la roue moins chaque autre élément qu'elle porte —
+   *  la flèche de Twitch, qu'elle soit dans le flux ou posée par-dessus
+   *  à droite : on n'a pas à savoir comment Twitch la range, seulement
+   *  qu'elle est là. Le texte se mesure à sa taille NATIVE, celle de la
+   *  feuille de Twitch : la taille voulue ne dépend donc jamais de
+   *  celle qu'on vient de poser, et deux balayages rendent la même —
+   *  pas d'oscillation, pas d'écriture pour rien. Un titre qui tient
+   *  garde la taille de Twitch, au pixel ; un titre trop long descend
+   *  d'autant qu'il dépasse, jusqu'à TITRE_MIN_PX, puis l'ellipse.
+   * ============================================================ */
+  const TITRE_MIN_PX = 12;
+  // Ce que le dernier réglage a mesuré, pour le rapport (cf. `titre`).
+  let mesureTitre = { natifPx: null, posePx: null, placePx: null, textePx: null };
+  function ajusterTitre() {
+    const ligne = document.querySelector(`${DOM.sidebarRoot} .side-nav__title[data-tse-roue]`);
+    const h3 = ligne?.querySelector(':scope > h3');
+    if (!h3) return;
+    const largeur = ligne.clientWidth;
+    if (!largeur) return;                        // barre repliée, ou cachée : rien à régler
+    /* LA TAILLE NATIVE SE LIT TANT QUE NOUS N'EN AVONS POSÉ AUCUNE, à chaque
+       passe — la feuille de Twitch peut arriver après notre premier balayage,
+       et une valeur retenue trop tôt réglait le titre sur une taille qu'il
+       n'avait plus. Elle ne se RETIENT que le temps où la nôtre la cache. */
+    const actuel = parseFloat(getComputedStyle(h3).fontSize) || 0;
+    if (!h3.style.fontSize) h3.dataset.tseTitrePx = String(actuel);
+    const natif = Number(h3.dataset.tseTitrePx) || actuel;
+    if (!natif || !actuel) return;
+    const r = document.createRange();
+    r.selectNodeContents(h3);
+    const texte = (r.getBoundingClientRect().width * natif) / actuel;
+    const cs = getComputedStyle(ligne);
+    const ecart = parseFloat(cs.columnGap) || 0;
+    let place = largeur - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0);
+    /* La largeur de MISE EN PAGE, et non celle du rendu : la roue bat au
+       premier lancement (`transform: scale`), et sa boîte rendue changeait à
+       chaque image — la place avec elle, et le titre s'écrivait sans fin. */
+    for (const el of ligne.children) {
+      if (el === h3) continue;
+      const w = el.offsetWidth || 0;
+      if (w > 0) place -= w + ecart;
+    }
+    // Un pixel de marge : les largeurs mesurées sont fractionnaires, l'arrondi du rendu non.
+    const voulu = texte <= place - 1 ? natif
+      : Math.max(TITRE_MIN_PX, Math.floor(((natif * (place - 1)) / texte) * 2) / 2);
+    const style = voulu === natif ? '' : `${voulu}px`;
+    if (h3.style.fontSize !== style) h3.style.fontSize = style;
+    /* SOUS LA TAILLE MINIMALE, LA LARGEUR AUSSI. Le titre ne se rétrécissait
+       alors que par le jeu du flex, qui ignore une flèche posée par-dessus :
+       la roue venait sur elle. Borné à la place, il s'ellipse avant la roue. */
+    const borne = (texte * voulu) / natif > place - 1 ? `${Math.max(0, Math.floor(place - 1))}px` : '';
+    if (h3.style.maxWidth !== borne) h3.style.maxWidth = borne;
+    mesureTitre = { natifPx: natif, posePx: voulu, placePx: place, textePx: texte };
+  }
+
   /**
    * Fallback JS pour masquer le header natif Twitch quand le sélecteur CSS
    * ne le couvre pas (renaming des classes hashées par Twitch). On identifie
@@ -26259,9 +26402,20 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       // La sélection n'est PAS validée contre les catégories connues : la
       // liste peut être vide au tout premier scan, et invalider le choix de
       // l'utilisateur à cet instant le lui ferait perdre sans raison.
-      const Lg = state.languageFilter && langsPresent.has(state.languageFilter)
+      /* NI CONTRE LES LANGUES QUE LE MENU CONNAÎT (4.24.0.41) — la même raison,
+         et elle a coûté un rapport. Le menu est une CONNAISSANCE : le pool, et
+         des mesures qui vieillissent ou qu'un plafond chasse. Le choix, lui,
+         est une DEMANDE, et toute langue de Twitch se demande : la descente en
+         langue rend ses chaînes, ou « aucune chaîne » si elle n'en a pas. La
+         validation d'avant laissait l'oubli du menu défaire le choix — le
+         suédois retombait sur « toutes les langues », le classement mondial à
+         l'écran, sans que personne n'ait rien touché. Seul ce qui n'est pas
+         une langue de LANG_SET est écarté ; et la langue choisie reste au
+         menu, choisie, même s'il ne sait plus ce qu'elle pèse. */
+      const Lg = state.languageFilter && LANG_SET.has(state.languageFilter)
         ? state.languageFilter : null;
       state.languageFilter = Lg;
+      if (Lg) langsPresent.add(Lg);
 
       /* L'ORDRE SUIT LES CHIFFRES AFFICHÉS, comme côté langue. Sous une
          langue, le classement mondial n'est plus celui qu'on montre : garder
@@ -29122,6 +29276,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
        écrit `textContent` sur le <h3>. La roue est posée à CÔTÉ du <h3>, dans
        le <div> qui l'entoure — posée dedans, chaque passe l'effacerait. */
     ensureRoue();
+    ajusterTitre();        // APRÈS la roue : sa largeur est retirée de la place du titre
     recomputeFilters();
     const costreamGroups = detectCoStreams();
     updateSortButtonsState({ costreamGroups });

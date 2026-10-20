@@ -2059,6 +2059,142 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The chosen language holds, and the title holds its line (v4.24.0.41)
+
+The request: "Wandering through Top Channels from one language to another, I
+landed on Swedish: right away, cards that aren't Swedish, and a few seconds
+later" — the screenshot: the world ranking, the language menu open, without
+Swedish. "Investigate and fix." Then: "adapt the sidebar better to the
+language: in English, the title "Followed Channels" is long, make it smaller"
+— likewise in Spanish, Polish, Russian and Japanese. A diagnostic report
+attached. Published on `claude/chrome-multi`.
+
+### What was happening — the language
+
+**The selection depended on what the menu knew.** The language menu's list
+comes from the world pool and from **measurements**: one per language, its
+total viewers. Those world measurements lived in the same register as the
+hundred that each visited language adds for the category menu's figures —
+eight hundred slots, the oldest evicted first. In the report:
+`mesures.connues 800`, the register full. Visited languages evicted the world
+measurements, the oldest; Swedish, absent from the world pool — its channels
+are far below the top —, had nothing left to keep it in the menu. And the
+selection was **validated against that menu**: Swedish fell back to "all
+languages", the world ranking showed, and the report carried an empty
+language.
+
+**Replayed on the bench as is**: seven languages visited, then Swedish. Its
+cards show; its measurement takes the register to its cap, the thirty-one
+world measurements go, and the language falls back, Swedish gone from the
+menu.
+
+**The second path, found while looking for the first**: a language chosen in
+the followed list, then Top Channels opened before the measurements arrive —
+undone at the first scan, for the same reason.
+
+### What changes — the language
+
+- **The choice holds.** Any Twitch language can be requested: the descent in
+  that language returns its channels, or "no channel" if it has none. Only
+  what is not a known language is dropped; the chosen language stays in the
+  menu, chosen, even when the menu no longer knows what it weighs.
+- **The world apart.** World measurements have their own register: thirty-one
+  slots, one per language, that nothing evicts.
+- **An evicted measurement is taken again.** When the cap evicts a category
+  measurement, its survey restarts at the next request instead of waiting for
+  its time-to-live, five minutes — coming back to a language brings its
+  figures back to the category menu.
+- **In the report**, under Top Channels: `mesures.monde` and
+  `mesures.evincees`.
+
+### A second copy in the page
+
+The report carried, at 193 ms: "Uncaught SyntaxError: Identifier
+'TSE_PREVIEW_FIRST_FRAME_MSG' has already been declared — content.js:1".
+content.js runs in the MAIN world, where its top-level `const`s are page
+globals: a second copy fails before its first line. Nothing in the extension
+injects it twice — no permission, no `scripting` —, and Chrome injects a
+copy's declared scripts only once: **two copies of the extension were
+installed and enabled**. The report confirmed it without saying so: its header
+was 4.24.0.40's, but the page's data had none of the fields 4.24.0.40 adds
+(`categoriesPar`, `homonymes`, `sansJeu`, `nonLues`). The page ran under the
+other, older copy; 4.24.0.40 did not run there.
+
+The report now says so: the panel's identifier, that of the copy running in
+the page (`page — exemplaire`, read by content.js from its own stack), a
+warning when they differ, and, under the error, the copy that did not start.
+The language defect is the same in both versions.
+
+### What was happening — the title
+
+The sidebar title keeps Twitch's size, on a line it shares with the gear and
+the collapse arrow, and that does not grow. In the screenshots, Russian
+wrapped and the gear dropped below the arrow; Polish took the gear onto the
+arrow. Twitch's arrow sits over the line: it takes no room in it, and the
+title runs underneath — the bench replays it that way, and reproduces the
+screenshots exactly.
+
+### What changes — the title
+
+- **One line, always, and the size fitted to the room**: the line, minus the
+  gear, minus every other element it carries — the arrow included, in the
+  flow or laid over it. A title that fits keeps Twitch's size, to the pixel; a
+  title too long goes down as much as it overflows, never below 12 px; past
+  that, the ellipsis, the width bounded before the gear. The text is measured
+  at Twitch's size, read on the page: two scans give the same size, and
+  nothing is rewritten.
+- **On the bench**, Inter bold at 18 px in a 240 px sidebar: French, German,
+  Portuguese, Italian and Chinese keep 18 px; English goes to 16.5, Spanish to
+  16, Polish to 14 or 14.5, Japanese to 13, Russian to 12 — and in Top Channels,
+  "Najpopularniejsze kanały" to 12. Twitch's real fonts and sidebar may move
+  these figures by half a pixel or two: the fitting measures on the page.
+- **A beating gear no longer moves the title.** On first launch the gear beats
+  (`transform: scale`); measured as rendered, its width changed every frame,
+  and the title was rewritten endlessly. The bench caught it: the room is
+  measured in layout widths.
+- **In the report**, the `TITRE` block: the language, the native size and the
+  one set, the room, what the text asks for, and the line's elements with
+  their width and positioning — enough to see how Twitch lays out its arrow.
+
+### What the bench measures
+
+- **203**, new: a) eight languages visited, the cap biting at the ninth;
+  b) Swedish, ninth, chosen at every sample for three seconds, and its cards
+  alone on screen; c) the menu keeping it, chosen, with the languages only the
+  world knows; d) French, revisited, its survey restarting and its figures
+  back; e) the second path, the language held and shown chosen before the
+  measurements. The set learns `__codesEnPlus`, more language codes for its
+  schema.
+- **204**, new: a) the twenty titles — ten languages, two modes — on one
+  line, whole, the gear between the title and the arrow, the arrow in the
+  flow then laid over; b) Twitch's size when the title fits, just as much less
+  as needed otherwise, and the five reported titles reduced; c) the language
+  changing, and the size coming back; d) no style write once fitted; e) too
+  narrow at 12 px: one line and the ellipsis; f) the report block.
+- **70**: one more assertion — two enabled copies, named.
+
+The full bench: 1739 assertions in 203 scenarios, all green.
+
+| mutant | what fails |
+| --- | --- |
+| the selection validated against what the menu knows, as in 4.24.0.40 (1) | 203: e — the language undone at the first scan |
+| the chosen language out of the menu (1) | 203: e — the menu does not show it before the measurements |
+| the world in the shared register (1) | 203: a — evicted at the eighth language |
+| an evicted measurement's clock kept (1) | 203: d — no survey, no figures |
+| the whole of 4.24.0.40 (1) | 203: all five — Swedish falls back, the world ranking on screen |
+| the fitting removed (1) | 204: a, b, c, e, f |
+| the arrow laid over ignored (1) | 204: a, b, c, e |
+| the gear forgotten in the room (1) | 204: a, b, c, e |
+| the native size kept from the first scan (1) | 204: a, b, c, f |
+| the title free to wrap (1) | 204: a, b, c, e, f |
+| the width unbounded below the minimum size (1) | 204: e — the gear on the arrow |
+| the rendered width instead of the layout width (1) | 204: d — four writes in two seconds |
+| the page's identifier silent (1) | 70 |
+| the duplicate copy not named (1) | 70 |
+| the two-copies warning silent (1) | 70 |
+
+Fifteen mutants, fifteen caught.
+
 ## A category is named by its identifier (v4.24.0.40)
 
 The request: "In Top Channels, [a channel] isn't there, yet it has over 11k
@@ -18493,7 +18629,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 201 scenarios, 1726 assertions |
+| `npm test` | the Playwright harness: 203 scenarios, 1739 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -18513,9 +18649,9 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1660 KB | 671 KB | 4,203 → **2** |
+| `content.js` | 1660 KB | 671 KB | 4,217 → **2** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
-| `panneau.js` | 109 KB | 51 KB | 156 → **0** |
+| `panneau.js` | 109 KB | 51 KB | 159 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
 | `background.js` | 10 KB | 2 KB | 22 → **0** |
 | **all five** | **1918 KB** | **828 KB** | **−57 %** |

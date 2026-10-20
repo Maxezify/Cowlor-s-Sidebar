@@ -7146,13 +7146,21 @@ titre('70. Panneau — la page rendue, mesurée');
       retards: { medianeMs: 90000, p90Ms: 210000 },
       ancienneteMs: 43000,
       demarrage: { etape: 'pret', dureeMs: 812 },
+      /* DEUX EXEMPLAIRES (4.24.0.41), tels qu'un rapport de terrain les
+         portait : la page tourne sous l'un, le panneau est celui de l'autre,
+         et la copie de content.js de ce dernier a échoué à sa première ligne. */
+      exemplaire: 'pagepagepagepagepagepagepagepage',
       erreurs: [{ t: 5120, source: 'stockage', message: 'visites : QuotaExceededError',
-                  detail: '', n: 3 }],
+                  detail: '', n: 3 },
+                { t: 193, source: 'exception',
+                  message: "Uncaught SyntaxError: Identifier 'TSE_PREVIEW_FIRST_FRAME_MSG' has already been declared",
+                  detail: 'chrome-extension://panopanopanopanopanopanopanopano/content.js:1', n: 1 }],
     };
     window.chrome = {
       i18n: { getMessage: T, getUILanguage: () => 'fr' },
       tabs: { query: () => Promise.resolve([{ id: 1 }]) },
       runtime: {
+        id: 'panopanopanopanopanopanopanopano',
         /* Le manifeste, tel que le rapport le lit. Sa forme compte autant que
            son contenu : c'est elle qui dit « chrome » ou « firefox » et quelle
            écriture du fond de tâche est déclarée — les deux premières lignes
@@ -7429,6 +7437,15 @@ titre('70. Panneau — la page rendue, mesurée');
   ok('le rapport porte le journal d\'erreurs, avec le compte des répétitions',
      contient('ERREURS') && contient('QuotaExceededError') && contient('×3'),
      JSON.stringify((vue.texte || '').slice(0, 60)));
+  /* DEUX EXEMPLAIRES ACTIFS (4.24.0.41). Le rapport de terrain les portait
+     sans les nommer : l'en-tête d'une version, les données d'une autre, et une
+     SyntaxError qu'il fallait savoir lire. Mutants — l'identifiant de la page
+     tu ; la copie en double non nommée. */
+  ok('…et il nomme deux exemplaires actifs : l\'identifiant du panneau, celui de la page, et la copie qui n\'a pas démarré',
+     /identifiant \/ id\s+panopano/.test(vue.texte) && /page — exemplaire\s+pagepage/.test(vue.texte)
+     && contient('la page tourne sous un AUTRE exemplaire que ce panneau')
+     && /has already been declared[^\n]*\n\s+↳ la copie d'un second exemplaire \(panopano/.test(vue.texte),
+     JSON.stringify((vue.texte || '').split('\n').filter((l) => /exemplaire|identifiant|declared|↳/.test(l))));
   ok('…l\'état du réseau et les quantiles de retard',
      contient('pauseGqlMs') && contient('12000') && contient('210000'),
      'pause GraphQL et p90');
@@ -32330,6 +32347,314 @@ const S_LECTEUR_SONDE = () => {
     ok('e) la catégorie choisie au menu : sa vedette en tête ; les langues de l\'autre jeu ne passent pas pour les siennes',
        e.top[0] === 'vedette' && !e.top.includes('ancien') && !/Deutsch:\s*120/.test(e.langues)
        && e.homonymes > avant, JSON.stringify({ ...e, avant }));
+    await page.close();
+  }
+}
+
+/* ═════════ 203. La langue choisie tient ═════════
+   SIGNALÉ, RAPPORT À L'APPUI : en passant d'une langue à l'autre dans Top
+   Chaînes, arrivé au suédois, des cartes qui ne sont pas suédoises, puis en
+   quelques secondes le classement mondial — le suédois sorti du menu ; au
+   rapport, `mesures.connues 800` et la langue vide. Rejoué sur la 4.24.0.40 :
+   sept langues visitées, puis le suédois — sa mesure portait le registre à
+   son plafond et en chassait les trente et une mesures du monde, qui font la
+   liste du menu langue ; la sélection, validée contre ce menu, retombait sur
+   « toutes les langues ». Le second chemin, trouvé en cherchant le premier :
+   une langue choisie dans la liste suivie, Top Chaînes ouvert avant que les
+   mesures n'arrivent — défaite au premier balayage.
+   CE QUI SE MESURE :
+     a) la prémisse : huit langues visitées, le plafond mord à la neuvième ;
+     b) le suédois, neuvième, tient : choisi à chaque relevé trois secondes
+        durant, et les cartes, une fois le voile levé, toutes suédoises ;
+     c) le menu le garde, choisi, et garde les langues que seul le monde
+        connaît — ni visitées ni au pool ;
+     d) une mesure évincée se refait : revenu au français, le premier visité,
+        ses chiffres du menu catégorie reviennent sans attendre cinq minutes ;
+     e) le second chemin : la langue tient, et le menu la montre choisie
+        avant même que les mesures n'arrivent ; ses cartes viennent ensuite.
+   Mutants — la sélection validée contre ce que le menu connaît ; la langue
+   choisie hors du menu ; le monde dans le registre commun ; l'horloge d'une
+   mesure évincée gardée. */
+{
+  titre('203. Top Chaînes — la langue choisie tient : ni le plafond des mesures, ni un menu en retard ne la défont');
+  // Clique la langue si le menu la propose ; rend false sinon, sans lever : l'assertion le dira.
+  const choisirLangue = (page, v) => page.evaluate((x) => {
+    const opt = [...document.querySelectorAll('#tse-lang-dd .tse-dd-opt')].find((o) => (o.dataset.value || '') === x);
+    if (!opt) return false;
+    opt.click();
+    return true;
+  }, v);
+  const menu = (page) => page.evaluate(() => {
+    const opts = [...document.querySelectorAll('#tse-lang-dd .tse-dd-opt')];
+    return { offertes: opts.map((o) => o.dataset.value).filter(Boolean),
+             choisie: opts.find((o) => o.getAttribute('aria-selected') === 'true')?.dataset.value || '' };
+  });
+  const cartes = (page) => page.evaluate(() =>
+    [...document.querySelectorAll('.side-nav-card[data-tse-global="true"]')].map((c) => c.dataset.tseLogin));
+
+  // ── a) à d) : le parcours du rapport ────────────────────────────────────
+  {
+    const VISITES = ['Français', 'Deutsch', 'Čeština', 'Español', 'Nederlands', 'Polski', 'Português', 'Italiano'];
+    const page = await fresh();
+    await page.evaluate((visites) => {
+      const h = new Date(Date.now() - 30 * 60_000).toISOString();
+      window.__fx = { suivi1: { id: 'id-suivi1', createdAt: h, viewers: 400, game: 'Just Chatting', tags: [] } };
+      window.__addCard('suivi1', 'Just Chatting', '400');
+      window.__codesEnPlus = { NL: 'Nederlands', PL: 'Polski', PT: 'Português', IT: 'Italiano', SV: 'Svenska' };
+      /* Cent catégories : la mesure d'une langue en prend cent places. Les dix
+         premières portent trente chaînes anglaises — tout le pool mondial —,
+         et chaque autre langue quatre chaînes plus bas, hors de ce pool. */
+      const cats = [];
+      for (let i = 0; i < 100; i++) {
+        const streams = [];
+        if (i < 10) for (let k = 0; k < 30; k++) streams.push({ login: `en${i}_${k}`, viewers: 50_000 - i * 1000 - k, tags: ['English'] });
+        cats.push({ name: 'c' + String(i).padStart(2, '0'), viewers: i < 10 ? 2_000_000 - i * 10_000 : 20_000 - i, streams });
+      }
+      // Les langues visitées, le suédois, et deux que seul le monde connaîtra.
+      [...visites, 'Svenska', 'Dansk', 'Norsk'].forEach((tag, j) => {
+        for (let k = 0; k < 4; k++) cats[10 + j * 4 + k].streams.push({ login: `l${j}_${k}`, viewers: 900 - k * 10, tags: [tag] });
+      });
+      window.__cats = cats;
+    }, VISITES);
+    await page.evaluate(() => document.querySelector('#tse-mode-row [data-tse-mode="global"]').click());
+    await attendre(page, () => window.tse.global.report().mesures.monde === 31, 15_000);
+    const visitees = [];
+    const proposee = (x) => [...document.querySelectorAll('#tse-lang-dd .tse-dd-opt')].some((o) => o.dataset.value === x);
+    for (const [i, L] of VISITES.entries()) {
+      await attendre(page, proposee, 8000, L);
+      visitees.push(await choisirLangue(page, L));
+      await attendre(page, (x) => window.tse.global.report().worldLang === x, 20_000, L);
+      await attendre(page, (n) => window.tse.global.report().mesures.connues >= n, 15_000, 100 * (i + 1));
+    }
+    const avant = await page.evaluate(() => window.tse.global.report().mesures);
+    await attendre(page, proposee, 3000, 'Svenska');
+    const menuAvant = await menu(page);
+    const suedois = await choisirLangue(page, 'Svenska');
+    const releves = [];
+    for (let i = 0; i < 30; i++) {
+      releves.push(await page.evaluate(() => ({
+        langue: window.tse.global.report().language,
+        voile: document.body.classList.contains('tse-loading'),
+        cartes: [...document.querySelectorAll('.side-nav-card[data-tse-global="true"]')].map((c) => c.dataset.tseLogin),
+      })));
+      await wait(page, 100);
+    }
+    const apres = await page.evaluate(() => window.tse.global.report().mesures);
+    /* LA PRÉMISSE. Sans elle, b et c passeraient sur un registre qui n'a rien
+       chassé. Mutant — le monde dans le registre commun : à la huitième
+       langue, il est chassé, et le suédois n'est plus au menu. */
+    ok('a) huit langues visitées, huit cents mesures ; le suédois au menu, et le plafond mord à la neuvième',
+       visitees.every(Boolean) && avant.connues === 800 && avant.monde === 31 && avant.evincees === 0
+       && menuAvant.offertes.includes('Svenska') && suedois === true && apres.evincees >= 100 && apres.connues === 800,
+       JSON.stringify({ visitees, avant, apres, menuAvant: menuAvant.offertes.length, suedois }));
+    const leves = releves.filter((r) => !r.voile);
+    ok('b) le suédois tient : choisi à chaque relevé, trois secondes durant ; à l\'écran, une fois le voile levé, rien que des chaînes suédoises',
+       releves.every((r) => r.langue === 'Svenska') && leves.length > 0
+       && leves.every((r) => r.cartes.length === 4 && r.cartes.every((l) => /^l8_/.test(l))),
+       JSON.stringify({ langues: [...new Set(releves.map((r) => r.langue))], leves: leves.length, cartes: leves.at(-1)?.cartes }));
+    const menuApres = await menu(page);
+    ok('c) le menu garde le suédois, choisi, et les langues que seul le monde connaît',
+       menuApres.choisie === 'Svenska' && ['Svenska', 'Dansk', 'Norsk'].every((l) => menuApres.offertes.includes(l)),
+       JSON.stringify(menuApres));
+    /* d) LE FRANÇAIS, PREMIER VISITÉ, a vu ses cent mesures chassées par le
+       suédois. Mutant — l'horloge gardée : son relevé ne repart qu'au bout
+       de cinq minutes, et le menu catégorie reste sans chiffres. */
+    const k = await page.evaluate(() => window.__calls.length);
+    await attendre(page, proposee, 8000, 'Français');
+    await choisirLangue(page, 'Français');
+    await attendre(page, () => window.tse.global.report().worldLang === 'Français', 20_000);
+    await attendre(page, () => !!document.querySelector('#tse-cat-dd .tse-dd-opt[data-value="c10"] .tse-dd-n'), 8000);
+    const d = await page.evaluate((k0) => ({
+      remesure: window.__calls.slice(k0).filter((c) => c.names.includes('TseCatLangCount'))
+        .flatMap((c) => c.langs).filter((l) => l === 'FR').length,
+      chiffre: document.querySelector('#tse-cat-dd .tse-dd-opt[data-value="c10"] .tse-dd-n')?.textContent || null,
+    }), k);
+    ok('d) une mesure chassée se refait : revenu au français, son relevé repart, et ses chiffres reviennent au menu catégorie',
+       d.remesure === 100 && !!d.chiffre, JSON.stringify(d));
+    await page.close();
+  }
+
+  // ── e) le second chemin : une langue choisie dans la liste suivie ─────────
+  {
+    const page = await fresh();
+    await page.evaluate(() => {
+      const h = new Date(Date.now() - 30 * 60_000).toISOString();
+      window.__fx = { suivi1: { id: 'id-suivi1', createdAt: h, viewers: 400, game: 'Just Chatting', tags: ['Suomi'] },
+                      suivi2: { id: 'id-suivi2', createdAt: h, viewers: 300, game: 'Just Chatting', tags: ['English'] } };
+      window.__addCard('suivi1', 'Just Chatting', '400');
+      window.__addCard('suivi2', 'Just Chatting', '300');
+      window.__codesEnPlus = { FI: 'Suomi' };
+      // Les mesures du monde arrivent tard, la descente aussi : le premier balayage de Top Chaînes ne sait rien.
+      window.__retardOp = { TseTagCount: 2000 };
+      window.__catDelay = 800;
+      const cats = [];
+      for (let i = 0; i < 12; i++) {
+        const streams = [];
+        for (let n = 0; n < 30; n++) streams.push({ login: `en${i}_${n}`, viewers: 50_000 - i * 1000 - n, tags: ['English'] });
+        if (i >= 10) for (let n = 0; n < 3; n++) streams.push({ login: `fi${i}_${n}`, viewers: 700 - n, tags: ['Suomi'] });
+        cats.push({ name: 'c' + i, viewers: 2_000_000 - i * 10_000, streams });
+      }
+      window.__cats = cats;
+    });
+    await attendre(page, () => !!document.querySelector('#tse-lang-dd .tse-dd-opt[data-value="Suomi"]'), 10_000);
+    const suivie = await choisirLangue(page, 'Suomi');
+    await wait(page, 400);
+    await page.evaluate(() => document.querySelector('#tse-mode-row [data-tse-mode="global"]').click());
+    await wait(page, 400);
+    const tot = await page.evaluate(() => ({ langue: window.tse.global.report().language,
+                                             monde: window.tse.global.report().mesures.monde }));
+    const menuTot = await menu(page);
+    await attendre(page, () => window.tse.global.top(30).length > 0, 10_000);
+    await wait(page, 300);
+    const fin = { langue: await page.evaluate(() => window.tse.global.report().language), cartes: await cartes(page) };
+    /* Mutants — la sélection validée contre ce que le menu connaît (défaite
+       au premier balayage) ; la langue choisie hors du menu (le menu ne la
+       montre pas avant que les mesures n'arrivent). */
+    ok('e) une langue choisie dans la liste suivie, Top Chaînes ouvert avant les mesures : elle tient, le menu la montre choisie, puis ses chaînes viennent',
+       suivie === true && tot.monde === 0 && tot.langue === 'Suomi' && menuTot.choisie === 'Suomi'
+       && fin.langue === 'Suomi' && fin.cartes.length === 6 && fin.cartes.every((l) => /^fi/.test(l)),
+       JSON.stringify({ suivie, tot, menuTot, fin }));
+    await page.close();
+  }
+}
+
+/* ═════════ 204. Le titre à la taille de sa langue ═════════
+   DEMANDÉ, CAPTURES À L'APPUI : « Followed Channels » est long ; « Canales
+   que sigues », « Obserwowane kanały », « Отслеживаемые каналы » et
+   « フォロー中のチャンネル » aussi. Sur les captures, le russe passait à la
+   ligne, la roue sous la flèche de repli ; le polonais menait la roue sur la
+   flèche. Le décor rejoue la ligne de Twitch — Inter gras à 18 px, une barre
+   de 240 px — et sa flèche de deux façons : dans le flux, ou posée
+   par-dessus à droite. La seconde rend exactement les captures : la flèche
+   n'y prend pas de place, et le titre court dessous.
+   CE QUI SE MESURE :
+     a) les vingt titres — dix langues, deux modes — sur une ligne, entiers,
+        la roue après le titre et avant la flèche, dans les deux cas ;
+     b) la taille de Twitch quand le titre tient, au pixel ; sinon juste ce
+        qu'il faut de moins, jamais sous 12 px — et les cinq signalés réduits ;
+     c) la langue qui change : le titre suit, et retrouve la taille de Twitch ;
+     d) réglé, il ne s'écrit plus : aucune écriture de style ensuite ;
+     e) trop étroit même à 12 px : une ligne et l'ellipse, la roue toujours
+        devant la flèche ;
+     f) le rapport : la langue, les tailles, la place, la ligne.
+   Mutants — l'ajustement retiré ; la flèche par-dessus ignorée ; la roue
+   oubliée dans la place ; la taille native retenue au premier balayage ; le
+   titre libre de passer à la ligne. */
+{
+  titre('204. Le titre de la barre à la taille de sa langue — une ligne, entier, la roue devant la flèche');
+  const LANGUES = ['fr-FR', 'en-US', 'de-DE', 'es-ES', 'pt-BR', 'it-IT', 'pl-PL', 'ru-RU', 'ja-JP', 'zh-CN'];
+  const ouvrir = async (lang, { dessus = false, largeur = 240 } = {}) => {
+    const page = await browser.newPage();
+    page.on('pageerror', e => { fail++; console.log('  ✗ ERREUR PAGE:', e.message); });
+    await page.goto(URL_PAGE);
+    // La feuille de la ligne arrive APRÈS les premiers balayages, comme celle de Twitch peut le faire.
+    await page.evaluate(([l, d, w]) => {
+      const st = document.createElement('style');
+      st.textContent = `#side-nav { width: ${w}px; } #side-nav .side-nav__title { padding: 0 10px; position: relative; }`
+        + ' #side-nav .side-nav__title h3 { font: 600 18px Inter, sans-serif; margin: 0; line-height: 24px; }'
+        + ' #native-collapse { width: 30px; height: 30px; flex: 0 0 auto; }'
+        + (d ? ' #native-collapse { position: absolute; right: 10px; top: 0; }' : '');
+      document.head.appendChild(st);
+      document.querySelector('.side-nav-section').removeAttribute('aria-label');
+      document.documentElement.lang = l;
+      window.__fx = { alpha: { id: '1', createdAt: new Date(Date.now() - 3600_000).toISOString(), viewers: 900, game: 'G', tags: [] } };
+      window.__addCard('alpha', 'G', '900');
+    }, [lang, dessus, largeur]);
+    await wait(page, 1200);
+    return page;
+  };
+  const mesurer = (page) => page.evaluate(() => {
+    const ligne = document.querySelector('#side-nav .side-nav__title');
+    const h3 = ligne.querySelector('h3'), roue = document.getElementById('tse-roue'), fleche = document.getElementById('native-collapse');
+    const R = (e) => e.getBoundingClientRect();
+    // Ce que le texte demanderait à la taille de Twitch, mesuré à part : une sonde, pas le titre lui-même.
+    const sonde = document.createElement('span');
+    sonde.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap;font:600 18px Inter, sans-serif';
+    sonde.textContent = h3.textContent;
+    document.body.appendChild(sonde);
+    const a18 = R(sonde).width;
+    sonde.remove();
+    return { texte: h3.textContent, px: parseFloat(getComputedStyle(h3).fontSize), a18,
+             hauteur: R(h3).height, coupe: h3.scrollWidth > h3.clientWidth + 1,
+             h3: [R(h3).left, R(h3).right], roue: [R(roue).left, R(roue).right], fleche: [R(fleche).left, R(fleche).right],
+             fin: R(ligne).right - 10 };
+  });
+  const juste = (m) => m.hauteur <= 24 * 1.5 && !m.coupe
+    && m.roue[0] >= m.h3[1] - 0.5 && m.roue[1] <= m.fleche[0] + 0.5 && m.fleche[1] <= m.fin + 0.5;
+  const releves = { flux: [], dessus: [] };
+  for (const [nom, dessus] of [['flux', false], ['dessus', true]]) {
+    for (const lang of LANGUES) {
+      const page = await ouvrir(lang, { dessus });
+      releves[nom].push({ lang, mode: 'suivies', ...(await mesurer(page)) });
+      await page.evaluate(() => document.querySelector('#tse-mode-row [data-tse-mode="global"]')?.click());
+      await wait(page, 600);
+      releves[nom].push({ lang, mode: 'top', ...(await mesurer(page)) });
+      await page.close();
+    }
+  }
+  const dire = (L) => L.map((m) => `${m.lang} ${m.mode} ${m.px}px${juste(m) ? '' : ' ✗'} « ${m.texte} »`).join(' · ');
+  ok('a) flèche dans le flux : les vingt titres sur une ligne, entiers, la roue après le titre et avant la flèche',
+     releves.flux.length === 20 && releves.flux.every(juste), dire(releves.flux.filter((m) => !juste(m))));
+  ok('a) flèche posée par-dessus, comme sur les captures : les vingt aussi',
+     releves.dessus.length === 20 && releves.dessus.every(juste), dire(releves.dessus.filter((m) => !juste(m))));
+  /* b) LA PLACE, mesurée sur la ligne et non lue dans le code : de l'entrée
+     du titre au bord de la ligne, moins la roue, la flèche et leurs deux
+     écarts. Un titre qui y tient à 18 px garde 18 px ; un autre descend, et
+     n'en laisse pas plus que ce qu'arrondit le demi-pixel — un trente-sixième
+     de sa largeur à 18 px — et la marge d'un. */
+  const tous = [...releves.flux, ...releves.dessus];
+  const tailleJuste = (m) => {
+    const place = m.fin - m.h3[0] - (m.roue[1] - m.roue[0]) - (m.fleche[1] - m.fleche[0]) - 2 * 6;
+    if (m.a18 <= place - 1) return m.px === 18;
+    if (m.px === 12) return true;
+    const reste = place - (m.h3[1] - m.h3[0]);
+    return m.px > 12 && m.px < 18 && reste >= -0.5 && reste <= 2 + m.a18 / 36;
+  };
+  const signales = ['en-US', 'es-ES', 'pl-PL', 'ru-RU', 'ja-JP'];
+  ok('b) la taille de Twitch quand le titre tient ; sinon juste ce qu\'il faut de moins, jamais sous 12 px — et les cinq signalés réduits, le français intact',
+     tous.every(tailleJuste) && tous.every((m) => m.px >= 12)
+     && signales.every((l) => tous.filter((m) => m.lang === l && m.mode === 'suivies').every((m) => m.px < 18))
+     && tous.filter((m) => m.lang === 'fr-FR').every((m) => m.px === 18),
+     tous.map((m) => `${m.lang}/${m.mode} ${m.px}px${tailleJuste(m) ? '' : ' ✗'}`).join(' · '));
+
+  // ── c) d) f) : une page, deux langues ─────────────────────────────────────
+  {
+    const page = await ouvrir('ru-RU', { dessus: true });
+    const ru = await mesurer(page);
+    // d) réglé : plus une écriture de style sur le titre, deux secondes durant.
+    await page.evaluate(() => {
+      window.__ecrituresTitre = 0;
+      new MutationObserver((l) => { window.__ecrituresTitre += l.length; })
+        .observe(document.querySelector('#side-nav .side-nav__title h3'), { attributes: true, attributeFilter: ['style'] });
+    });
+    await wait(page, 2000);
+    const ecritures = await page.evaluate(() => window.__ecrituresTitre);
+    const rapportRu = await page.evaluate(() => window.tse.panneau.rapport().titre);
+    await page.evaluate(() => { document.documentElement.lang = 'fr-FR'; });
+    await attendre(page, () => document.querySelector('#side-nav .side-nav__title h3')?.textContent === 'Chaînes suivies', 10_000);
+    await wait(page, 400);
+    const fr = await mesurer(page);
+    const inline = await page.evaluate(() => document.querySelector('#side-nav .side-nav__title h3').style.fontSize);
+    ok('c) la langue change : le titre russe, réduit, devient « Chaînes suivies » et retrouve la taille de Twitch, sans style à nous',
+       ru.px < 18 && juste(ru) && fr.texte === 'Chaînes suivies' && fr.px === 18 && inline === '' && juste(fr),
+       JSON.stringify({ ru: [ru.texte, ru.px], fr: [fr.texte, fr.px], inline }));
+    ok('d) réglé une fois, le titre ne s\'écrit plus : aucune écriture de style en deux secondes',
+       ecritures === 0, `${ecritures} écriture(s)`);
+    ok('f) au rapport : la langue, la taille native et celle posée, la place, ce que le texte demande, et la ligne — la flèche comprise',
+       rapportRu?.langue === 'ru' && rapportRu.natifPx === 18 && rapportRu.posePx === ru.px && rapportRu.coupe === false
+       && rapportRu.placePx > 0 && rapportRu.textePx > rapportRu.placePx
+       && /button#tse-roue \d+px/.test(rapportRu.ligne || '') && /button#native-collapse 30px absolute/.test(rapportRu.ligne || ''),
+       JSON.stringify(rapportRu));
+    await page.close();
+  }
+
+  // ── e) trop étroit même à 12 px ───────────────────────────────────────────
+  {
+    const page = await ouvrir('ru-RU', { dessus: true, largeur: 190 });
+    const m = await mesurer(page);
+    ok('e) trop étroit même à 12 px : le russe reste sur une ligne, à 12 px, coupé d\'une ellipse ; la roue toujours devant la flèche',
+       m.px === 12 && m.coupe && m.hauteur <= 24 * 1.5 && m.roue[0] >= m.h3[1] - 0.5 && m.roue[1] <= m.fleche[0] + 0.5,
+       JSON.stringify(m));
     await page.close();
   }
 }

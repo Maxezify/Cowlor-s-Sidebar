@@ -2180,6 +2180,144 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## La langue choisie tient, et le titre tient sur sa ligne (v4.24.0.41)
+
+La demande : « En me baladant dans Top Chaînes entre les différentes langues,
+je suis arrivé côté suédois : direct, des cartes visibles qui ne sont pas
+suédoises, et quelques secondes après » — la capture : le classement mondial,
+le menu des langues ouvert, sans le suédois. « Investigue et corrige. » Puis :
+« adapte mieux la barre selon la langue : en anglais, le titre "Followed
+Channels" est long, rends-le plus petit » — de même en espagnol, en polonais,
+en russe et en japonais. Un rapport de diagnostic joint. Publiée sur
+`claude/chrome-multi`.
+
+### Ce qui se passait — la langue
+
+**La sélection dépendait de ce que le menu savait.** La liste du menu langue
+vient du pool mondial et des **mesures** : une par langue, le total de ses
+spectateurs. Ces mesures du monde vivaient dans le même registre que les cent
+que chaque langue visitée ajoute pour les chiffres du menu catégorie — huit
+cents places, la plus ancienne chassée la première. Au rapport :
+`mesures.connues 800`, le registre plein. Les langues visitées chassaient les
+mesures du monde, les plus anciennes ; le suédois, absent du pool mondial — ses
+chaînes sont loin du sommet —, n'avait plus rien qui le portait au menu. Et la
+sélection était **validée contre ce menu** : le suédois retombait sur « toutes
+les langues », le classement mondial s'affichait, et le rapport portait une
+langue vide.
+
+**Rejoué au banc tel quel** : sept langues visitées, puis le suédois. Ses
+cartes s'affichent ; sa mesure porte le registre à son plafond, les trente et
+une mesures du monde partent, et la langue retombe, le suédois sorti du menu.
+
+**Le second chemin, trouvé en cherchant le premier** : une langue choisie dans
+la liste suivie, puis Top Chaînes ouvert avant que les mesures n'arrivent —
+défaite au premier balayage, pour la même raison.
+
+### Ce qui change — la langue
+
+- **Le choix tient.** Toute langue de Twitch se demande : la descente en
+  langue rend ses chaînes, ou « aucune chaîne » si elle n'en a pas. Seul ce qui
+  n'est pas une langue connue est écarté ; la langue choisie reste au menu,
+  choisie, même quand il ne sait plus ce qu'elle pèse.
+- **Le monde à part.** Les mesures du monde ont leur registre : trente et une
+  places, une par langue, que rien n'évince.
+- **Une mesure chassée se refait.** Quand le plafond chasse une mesure de
+  catégorie, son relevé repart à la prochaine demande au lieu d'attendre la
+  fin de son délai, cinq minutes — revenir sur une langue rend ses chiffres au
+  menu catégorie.
+- **Au rapport**, dans Top Chaînes : `mesures.monde` et `mesures.evincees`.
+
+### Un second exemplaire dans la page
+
+Le rapport portait, à 193 ms : « Uncaught SyntaxError: Identifier
+'TSE_PREVIEW_FIRST_FRAME_MSG' has already been declared — content.js:1 ».
+content.js s'exécute dans le monde MAIN, où ses `const` de premier niveau sont
+des globales de la page : une seconde copie échoue avant sa première ligne.
+Rien dans l'extension ne l'injecte deux fois — aucune permission, aucun
+`scripting` —, et Chrome n'injecte qu'une fois les scripts d'un exemplaire :
+**deux exemplaires de l'extension étaient installés et actifs**. Le rapport le
+confirmait sans le dire : son en-tête était celui de la 4.24.0.40, mais les
+données de la page n'avaient aucun des champs que la 4.24.0.40 ajoute
+(`categoriesPar`, `homonymes`, `sansJeu`, `nonLues`). La page tournait sous
+l'autre exemplaire, plus ancien ; la 4.24.0.40 n'y tournait pas.
+
+Le rapport le dit désormais : l'identifiant du panneau, celui de l'exemplaire
+qui tourne dans la page (`page — exemplaire`, lu par content.js dans sa propre
+pile), un avertissement s'ils diffèrent, et, sous l'erreur, la copie qui n'a
+pas démarré. Le défaut de la langue est le même dans les deux versions.
+
+### Ce qui se passait — le titre
+
+Le titre de la barre garde la taille de Twitch, sur une ligne qu'il partage
+avec la roue et la flèche de repli, et qui ne s'étend pas. Sur les captures,
+le russe passait à la ligne et la roue descendait sous la flèche ; le polonais
+menait la roue sur la flèche. La flèche de Twitch est posée par-dessus la
+ligne : elle n'y prend pas de place, et le titre court dessous — le banc le
+rejoue ainsi, et rend exactement les captures.
+
+### Ce qui change — le titre
+
+- **Une ligne, toujours, et la taille réglée à la place** : la ligne, moins la
+  roue, moins chaque autre élément qu'elle porte — la flèche comprise, dans le
+  flux ou posée par-dessus. Un titre qui tient garde la taille de Twitch, au
+  pixel ; un titre trop long descend d'autant qu'il dépasse, jamais sous
+  12 px ; en deçà, l'ellipse, la largeur bornée avant la roue. Le texte se
+  mesure à la taille de Twitch, lue sur la page : deux balayages rendent la
+  même taille, et rien ne se réécrit.
+- **Au banc**, Inter gras à 18 px dans une barre de 240 px : le français,
+  l'allemand, le portugais, l'italien et le chinois gardent 18 px ; l'anglais
+  passe à 16,5, l'espagnol à 16, le polonais à 14 ou 14,5, le japonais à 13, le
+  russe à 12 — et en Top Chaînes, « Najpopularniejsze kanały » à 12. Les polices
+  et la barre réelles peuvent déplacer ces chiffres d'un demi-pixel ou deux :
+  le réglage mesure sur la page.
+- **Une roue qui bat ne fait plus bouger le titre.** Au premier lancement, la
+  roue bat (`transform: scale`) ; mesurée telle qu'elle se rend, sa largeur
+  changeait à chaque image, et le titre se réécrivait sans fin. Le banc l'a
+  pris : la place se mesure en largeurs de mise en page.
+- **Au rapport**, le bloc `TITRE` : la langue, la taille native et celle posée,
+  la place, ce que le texte demande, et les éléments de la ligne avec leur
+  largeur et leur positionnement — de quoi voir comment Twitch range sa flèche.
+
+### Ce que le banc mesure
+
+- **203**, nouveau : a) huit langues visitées, le plafond qui mord à la
+  neuvième ; b) le suédois, neuvième, choisi à chaque relevé trois secondes
+  durant, et ses cartes seules à l'écran ; c) le menu qui le garde, choisi, avec
+  les langues que seul le monde connaît ; d) le français, revenu, dont le relevé
+  repart et les chiffres reviennent ; e) le second chemin, la langue tenue et
+  montrée choisie avant les mesures. Le décor apprend `__codesEnPlus`, des codes
+  de langue de plus pour son schéma.
+- **204**, nouveau : a) les vingt titres — dix langues, deux modes — sur une
+  ligne, entiers, la roue entre le titre et la flèche, celle-ci dans le flux
+  puis posée par-dessus ; b) la taille de Twitch quand le titre tient, juste ce
+  qu'il faut de moins sinon, et les cinq titres signalés réduits ; c) la langue
+  qui change, et la taille qui revient ; d) aucune écriture de style une fois
+  réglé ; e) trop étroit à 12 px : une ligne et l'ellipse ; f) le bloc du
+  rapport.
+- **70** : une assertion de plus — deux exemplaires actifs, nommés.
+
+Le banc complet : 1739 assertions dans 203 scénarios, toutes vertes.
+
+| mutant | ce qui tombe |
+| --- | --- |
+| la sélection validée contre ce que le menu connaît, comme en 4.24.0.40 (1) | 203 : e — la langue défaite au premier balayage |
+| la langue choisie hors du menu (1) | 203 : e — le menu ne la montre pas avant les mesures |
+| le monde dans le registre commun (1) | 203 : a — chassé à la huitième langue |
+| l'horloge d'une mesure chassée gardée (1) | 203 : d — aucun relevé, aucun chiffre |
+| la 4.24.0.40 entière (1) | 203 : les cinq — le suédois retombe, le classement mondial à l'écran |
+| l'ajustement retiré (1) | 204 : a, b, c, e, f |
+| la flèche posée par-dessus ignorée (1) | 204 : a, b, c, e |
+| la roue oubliée dans la place (1) | 204 : a, b, c, e |
+| la taille native retenue au premier balayage (1) | 204 : a, b, c, f |
+| le titre libre de passer à la ligne (1) | 204 : a, b, c, e, f |
+| la largeur non bornée sous la taille minimale (1) | 204 : e — la roue sur la flèche |
+| la largeur rendue au lieu de la mise en page (1) | 204 : d — quatre écritures en deux secondes |
+| l'identifiant de la page tu (1) | 70 |
+| la copie en double non nommée (1) | 70 |
+| l'avertissement des deux exemplaires tu (1) | 70 |
+
+Quinze mutants, quinze pris.
+
 ## Une catégorie se désigne par son identifiant (v4.24.0.40)
 
 La demande : « Dans Top Chaînes, [une chaîne] n'est pas présente, pourtant
@@ -19068,7 +19206,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 201 scénarios, 1726 assertions |
+| `npm test` | le harnais Playwright : 203 scénarios, 1739 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -19089,9 +19227,9 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1660 Ko | 671 Ko | 4 203 → **2** |
+| `content.js` | 1660 Ko | 671 Ko | 4 217 → **2** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
-| `panneau.js` | 109 Ko | 51 Ko | 156 → **0** |
+| `panneau.js` | 109 Ko | 51 Ko | 159 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
 | `background.js` | 10 Ko | 2 Ko | 22 → **0** |
 | **les cinq** | **1918 Ko** | **828 Ko** | **−57 %** |
