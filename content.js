@@ -1382,6 +1382,24 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
    * ============================================================ */
 
   /* ----- DOM matchers (multi-langues) ----- */
+  /* ── CE QUI SE LIT ENCORE DANS UNE LANGUE, ET CE QUI LE RATTRAPE (4.24.0.44) ──
+     Twitch parle une trentaine de langues ; tout ce qui se reconnaît à un
+     texte ne marche que dans celles qu'on a relevées. L'audit de la 4.24.0.44
+     a fait le compte. Restent liés à une langue, et chacun a un repli qui
+     n'en dépend pas :
+       — followedSelector / followedLabels : la classe d'en-tête, puis les
+         cartes marquées « suivies » (cf. followedSection) ;
+       — showMoreLabels / showLessLabels : les crochets d'automatisation,
+         consultés AVANT les libellés ;
+       — altCostreamHostSelector : l'organisateur GraphQL du co-stream ;
+       — guestsTotalRe : la session Guest Star, source première du badge
+         « En live avec » ; la phrase n'en donne que le compte, en repli ;
+       — detectLanguage : la langue de la page.
+     Un seul n'a PAS de repli : discountSelector, qui dit si une ligne
+     annexe est une réduction d'abonnement. Faute de relevé de cette ligne
+     hors du français, elle passe ailleurs pour une ligne quelconque — badge
+     neutre, que le réglage « réductions » ne masque pas. Ne rien inventer :
+     l'étiquette de Twitch ne se devine pas. */
   const DOM = Object.freeze({
     // Racine de la sidebar : ID structurel, indépendant de la langue de l'UI.
     // Conteneur de la section suivie, des cartes et de nos injections ; c'est
@@ -1431,7 +1449,23 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
        perdait son badge. L'adresse, elle, est celle des campagnes
        publicitaires de Twitch, la même dans toutes les langues. */
     sponsorLogoSelector:     'img[src*="sponsorships-campaign-assets"]',
+    /* L'HÔTE D'UN CO-STREAM, LU DANS L'ALT DU MINI-AVATAR : un RACCOURCI,
+       pour les quatre langues relevées. Partout ailleurs, le nom de l'hôte
+       vient de GraphQL (`costreamDetails.organizer`, cf. resolveCostreamInfo)
+       — quelques centaines de millisecondes plus tard, le même badge. Rien
+       d'autre ne doit dépendre de cet alt (cf. costreamMiniSelector). */
     altCostreamHostSelector: 'img[alt^="Co-stream d\'un stream de "], img[alt^="Co-stream from a stream by "], img[alt^="Co-stream aus einem Stream von "], img[alt^="Co-stream de um stream de "]',
+    /* LE CO-STREAMER PARTICIPANT, PAR SA STRUCTURE (4.24.0.44). Twitch pose
+       sur sa carte une pastille `iconContainer--primary` sur l'avatar, et un
+       mini-avatar DANS le bloc des métadonnées (cf. 4.2.0) — aucune carte
+       ordinaire relevée n'y porte d'image. Les deux se reconnaissaient par l'alt du
+       mini-avatar, en quatre langues : ailleurs — espagnol, italien, japonais
+       —, la carte passait pour neutre. Elle pouvait servir de modèle à Top
+       Chaînes, dont chaque carte fabriquée montrait alors l'avatar de l'hôte,
+       et de gabarit à la carte sponsorisée, qui prenait la hauteur de ses
+       trois lignes. */
+    costreamMiniSelector:    '[data-a-target="side-nav-card-metadata"] img',
+    costreamSelector:        '[class*="iconContainer--primary"], [data-a-target="side-nav-card-metadata"] img',
 
     followedLabels:          ['Chaînes suivies', 'Followed Channels', 'Kanäle, denen du folgst', 'Canales que sigues', 'Canais seguidos', 'Canais que segues'],
     showMoreLabels:          ['Afficher plus', 'Show More', 'Mehr anzeigen', 'Mostrar más', 'Mostrar mais'],
@@ -1467,7 +1501,6 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     subOfferSelector:        '[data-a-target="subscribe-button"]',
     showLessStableSelector:  '[data-a-target="side-nav-show-less-button"], [data-test-selector="ShowLess"]',
 
-    offlineRe:               /\b(?:déconnecté(?:e)?s?|offline|desconectad(?:o|a)s?)\b/i,
     costreamHostRe:          /^(?:Co-stream d'un stream de|Co-stream from a stream by|Co-stream aus einem Stream von|Co-stream de um stream de)\s+([A-Za-z0-9_]+)$/,
     // Phrase d'accessibilité du nombre total d'invités d'un squad :
     //   fr « X et N invité(s) » · en « X and N guest(s) » · de « X und N Gast/Gäste »
@@ -2598,6 +2631,30 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
 
   let LANG = detectLanguage();
   let S = STRINGS[LANG];
+
+  /* ── LA LANGUE DE TWITCH N'EST PAS CELLE DE L'EXTENSION (4.24.0.44) ──────
+     L'extension parle dix langues ; Twitch en parle trois fois plus. LANG dit
+     dans laquelle des dix on écrit NOS libellés — et retombe sur celle du
+     navigateur, ou sur l'anglais, quand Twitch est en suédois, en coréen ou
+     en turc. Mais ce que l'extension écrit À LA PLACE de Twitch — le nom
+     d'une catégorie, le compteur d'une carte — et ce qu'elle LIT de Twitch —
+     ce même compteur, avant que l'API réponde — doivent suivre la langue de
+     Twitch, et non la nôtre : un Twitch suédois affichait des catégories en
+     anglais et des compteurs au format américain, et lisait « 1,8 tn » comme
+     zéro. C'est la langue que Twitch déclare sur la page (`<html lang>`),
+     sa région comprise : « es-MX » n'écrit pas ses nombres comme « es ».
+
+     Tant qu'elle s'accorde à LANG, ou qu'elle désigne une langue que nous
+     n'avons pas, c'est elle ; sinon — un libellé natif a dit autre chose que
+     la page — on s'en tient à la nôtre, comme detectLanguage. */
+  const localeTwitch = () => {
+    let l = null;
+    try { l = Intl.getCanonicalLocales((document.documentElement.lang || '').trim())[0] || null; }
+    catch { l = null; }
+    if (!l) return S.locale;
+    const premiere = l.split('-')[0].toLowerCase();
+    return premiere === LANG || !STRINGS[premiere] ? l : S.locale;
+  };
   jalon('i18n');
 
   /* ============================================================
@@ -8440,8 +8497,10 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
      Twitch localise `game.displayName` d'après cet en-tête ; sans lui, le
      navigateur envoie le sien, celui de l'OS — et une personne dont le
      navigateur est en anglais mais Twitch en français lisait « Just Chatting »
-     sous une interface qui dit « Discussions ». On envoie donc la langue que
-     l'extension a DÉTECTÉE, c'est-à-dire celle de l'interface qu'on décore.
+     sous une interface qui dit « Discussions ». On envoie donc la langue de
+     l'interface qu'on décore : celle de TWITCH (cf. localeTwitch), et non
+     plus celle de nos libellés — un Twitch suédois recevait ses catégories en
+     anglais, faute de libellés suédois chez nous (4.24.0.44).
 
      C'est un en-tête « CORS-safelisted » : il ne s'ajoute pas à la liste du
      contrôle préalable et ne peut donc pas faire échouer une requête qui
@@ -8497,7 +8556,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     return fetch(CFG.GQL_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Client-ID': CFG.CLIENT_ID,
-                 'Accept-Language': S.locale },
+                 'Accept-Language': localeTwitch() },
       body: JSON.stringify(payload),
       credentials: 'omit',
       signal: controller.signal
@@ -18998,7 +19057,11 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
                        pouvait la montrer, et c'est pour ça qu'il a fallu deux
                        versions et deux captures d'écran pour la trouver. */
                     ...globalChannels.chutes() },
-        langue: { interface: S.locale, page: LANG },
+        /* `twitch` (4.24.0.44) : la langue dans laquelle on lit et écrit ce qui
+           est à Twitch — catégories, compteurs —, celle de la page, qui n'est
+           pas forcément une des dix de nos libellés (cf. localeTwitch). */
+        langue: { interface: S.locale, page: LANG, twitch: localeTwitch(),
+                  html: document.documentElement.lang || null },
         mode: { global: !!state.globalMode },
         sondes: runDiagnostics(),
         compteurs: {
@@ -19939,19 +20002,25 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
   let sidebarCollapsed = false;
   const refreshSidebarCollapsed = () => { sidebarCollapsed = detectSidebarCollapsed(); };
 
+  /* ── PLUS UN MOT DE LA CARTE (4.24.0.44) ─────────────────────────────────
+     Le premier signal était un LIBELLÉ : « déconnecté », « offline »,
+     « desconectado », cherché dans tout le texte de la carte. Trois langues
+     sur trente — les autres ne passaient que par la structure, ci-dessous,
+     qui suffit seule : l'avatar grisé dans les deux modes, l'indicateur de
+     direct absent en mode étendu. Et ce « tout le texte » comprenait le
+     titre du direct que Twitch peut écrire en troisième ligne : « going
+     offline soon » ou « déconnecté demain » masquait une chaîne EN DIRECT. */
   const isCardOffline = (card) => {
-    // 1) Libellé explicite "Déconnecté(e)/offline" — présent en mode étendu.
-    if (DOM.offlineRe.test(card.textContent || '')) return true;
-    // 2) Avatar grisé : signal hors-ligne FIABLE en mode étendu ET réduit
+    // 1) Avatar grisé : signal hors-ligne FIABLE en mode étendu ET réduit
     //    (Twitch pose --offline sur l'avatar des chaînes hors-ligne dans les
     //    deux états d'affichage).
     if (card.querySelector('.side-nav-card__avatar--offline')) return true;
-    // 3) En mode réduit, l'indicateur de live n'est jamais rendu (cartes
+    // 2) En mode réduit, l'indicateur de live n'est jamais rendu (cartes
     //    réduites au seul avatar). S'y fier classerait TOUTES les cartes
-    //    comme offline → sidebar vide. Les signaux fiables en mode réduit
-    //    sont (1) et (2) ; à défaut, la carte est considérée live.
+    //    comme offline → sidebar vide. Le signal fiable en mode réduit est
+    //    (1) ; à défaut, la carte est considérée live.
     if (sidebarCollapsed) return false;
-    // 4) Mode étendu : l'absence d'indicateur de live confirme le hors-ligne.
+    // 3) Mode étendu : l'absence d'indicateur de live confirme le hors-ligne.
     return !card.querySelector(DOM.liveIndicator);
   };
 
@@ -20496,20 +20565,25 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
   // construire et on formate ~100 cartes à chaque cycle.
   const viewerFormatters = new Map();
   const viewerFormatter = () => {
-    const key = `${S.locale}|${LANG}`;
-    let f = viewerFormatters.get(key);
+    const locale = localeTwitch();
+    let f = viewerFormatters.get(locale);
     if (!f) {
       // Rendu aligné sur celui de Twitch, locale par locale (formats vérifiés
       // sur DOM réel, cf. le commentaire de parseViewerCount) :
       //   de → nombre PLEIN à séparateur de milliers (« 29.339 ») ;
       //   fr/en/es/pt → abréviation à une décimale (« 67,3 k », « 67.3K »,
       //   « 3,7 mil »), ce que produit exactement la notation compacte.
-      const opts = LANG === 'de'
+      //   ja → « 17.9万 », relevé sur les captures de la 4.24.0.43 : la même.
+      /* DANS LA LANGUE DE TWITCH (4.24.0.44), et non dans celle de nos
+         libellés : le compteur remplace le sien, il doit s'écrire comme lui
+         — « 1,8 tn » sous un Twitch suédois, « 2,1 mil » sous un Twitch
+         d'Espagne et « 2.1 k » sous un Twitch mexicain. */
+      const opts = locale.toLowerCase().startsWith('de')
         ? {}
         : { notation: 'compact', maximumFractionDigits: 1 };
-      try { f = new Intl.NumberFormat(S.locale, opts); }
+      try { f = new Intl.NumberFormat(locale, opts); }
       catch { f = new Intl.NumberFormat(undefined, opts); }
-      viewerFormatters.set(key, f);
+      viewerFormatters.set(locale, f);
     }
     return f;
   };
@@ -20549,18 +20623,50 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
      ce qui est précisément le cas d'un co-stream.
 
      Sans nombre reconnaissable dans la phrase, on ne touche à rien : une
-     phrase intacte vaut mieux qu'une phrase abîmée. */
-  const NOMBRE_RE = /\d[\d\s.,  ]*\s*[kKmM]?/;
+     phrase intacte vaut mieux qu'une phrase abîmée.
+
+     LE NOMBRE ENTIER, SUFFIXE COMPRIS, DANS TOUTES LES LANGUES (4.24.0.44).
+     Le nombre se cherchait par une expression qui ne savait de suffixe que
+     « k » et « m » : sous un Twitch japonais, « 17.9万人の視聴者 » devenait
+     « 18万万人の視聴者 », et « 63,1 mil espectadores », « 63,1 milil… ».
+     On remplace donc, dans l'ordre, ce qu'on sait être le nombre : celui
+     qu'on y a écrit la fois d'avant, puis celui que Twitch affiche à côté —
+     la même chaîne, dans la même langue. À défaut seulement, un nombre et le
+     suffixe compact de la langue de Twitch qui le suit (cf. suffixesCompacts),
+     sans mordre sur un mot : « 810 members » garde son « m ». */
+  const NOMBRE_RE = /\d(?:[\d\s.,\u00a0\u202f]*\d)?/;
+  const LETTRE_RE = /[a-z\u00c0-\u024f\u0370-\u03ff\u0400-\u04ff]/i;
+  const ecritsAccessibles = new WeakMap();   // feuille → le nombre qu'on y a écrit
+  const remplacerNombre = (texte, voulu) => {
+    const m = NOMBRE_RE.exec(texte);
+    if (!m) return null;
+    let fin = m.index + m[0].length;
+    const blanc = /^[\s\u00a0\u202f]*/.exec(texte.slice(fin))[0];
+    const apres = texte.slice(fin + blanc.length).toLowerCase();
+    const suf = suffixesCompacts().find(([x]) => apres.startsWith(x)
+      && !(LETTRE_RE.test(x.slice(-1)) && LETTRE_RE.test(apres.charAt(x.length))));
+    if (suf) {
+      fin += blanc.length + suf[0].length;
+      if (texte.charAt(fin) === '.' && voulu.endsWith('.')) fin++;
+    }
+    return texte.slice(0, m.index) + voulu + texte.slice(fin);
+  };
   const recalerTexteAccessible = (card, shown) => {
     const host = liveStatusOf(card);
     if (!host) return;
+    const voulu = formatViewers(shown);
+    const natif = (nativeViewersEl(card)?.textContent || '').trim();
     for (const n of host.querySelectorAll('*')) {
       if (n.children.length) continue;                       // seulement les feuilles
       if (n.getAttribute('aria-hidden') === 'true') continue; // le visuel, pas l'annoncé
       if (n.className && String(n.className).includes('tse-')) continue; // les nôtres
       const texte = n.textContent || '';
-      if (!NOMBRE_RE.test(texte)) continue;
-      const neuf = texte.replace(NOMBRE_RE, formatViewers(shown));
+      const notre = ecritsAccessibles.get(n);
+      const neuf = notre && texte.includes(notre) ? texte.replace(notre, voulu)
+        : /\d/.test(natif) && texte.includes(natif) ? texte.replace(natif, voulu)
+        : remplacerNombre(texte, voulu);
+      if (neuf === null) continue;
+      ecritsAccessibles.set(n, voulu);
       if (neuf !== texte) setText(n, neuf);
     }
   };
@@ -24904,6 +25010,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
    * ============================================================ */
   function updateSectionsVisibility() {
     const sections = document.querySelectorAll('#side-nav .side-nav-section');
+    const suivie = followedSection();
     // Cohérent avec applyCardVisibility : en mode réduit les filtres
     // catégorie/langue sont neutralisés (illisibles + UI masquée), sinon les
     // sections live seraient masquées à tort.
@@ -24919,8 +25026,15 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       // La section suivie reste toujours visible (elle porte notre UI filtre/tri).
       // Identifiée de façon INDÉPENDANTE DE LA LANGUE par son header
       // `followed-side-nav-header` ; repli sur l'aria-label localisé.
+      /* ET D'ABORD PAR CE QUE followedSection() A RETENU (4.24.0.44) : son
+         dernier repli — la section qui porte les cartes marquées « suivies »
+         — ne dépend ni d'une classe d'en-tête ni d'une langue. Sans lui, un
+         Twitch qui retirerait la classe, dans une langue absente des
+         libellés, masquait toute la liste suivie dès qu'un filtre était
+         posé : elle passait pour une section de recommandations. */
       const label = section.getAttribute('aria-label') || '';
-      const isFollowed = !!section.querySelector(DOM.followedHeaderSelector) ||
+      const isFollowed = section === suivie ||
+                         !!section.querySelector(DOM.followedHeaderSelector) ||
                          DOM.followedLabels.includes(label);
       if (isFollowed) {
         section.classList.remove('tse-section-hidden');
@@ -26010,13 +26124,6 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
                     obstacleGauchePx: obstacle ? obstacle.getBoundingClientRect().left - rh.left : null };
   }
 
-  /**
-   * Fallback JS pour masquer le header natif Twitch quand le sélecteur CSS
-   * ne le couvre pas (renaming des classes hashées par Twitch). On identifie
-   * l'élément par son contenu textuel — il contient soit "Spectateurs", soit
-   * "Recommandées" — et on remonte au wrapper qui porte l'attribut
-   * aria-expanded (= le trigger du modal). Marquage idempotent via dataset.
-   */
   /**
    * Marque la rangée « Ouvrir les stories » pour que le CSS puisse la masquer
    * en mode Top Chaînes. On remonte du repère jusqu'au bloc de premier niveau
@@ -28245,7 +28352,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
   }
 
   /**
-   * Parse un compteur Twitch en nombre comparable, INDÉPENDAMMENT DE LA LANGUE.
+   * Parse un compteur Twitch en nombre comparable, dans la langue de Twitch.
    *
    * Twitch formate les viewers différemment selon la locale de l'UI :
    *   - fr : abréviation « 67,3 k » (virgule décimale + suffixe k) ;
@@ -28254,33 +28361,67 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
    *          MILLIERS, AUCUN suffixe) — sous 1000 : « 987 » ;
    *   - pt : abréviation « 3,7 mil » (×1000) / « 1,2 mi » (×1 000 000)
    *          (virgule décimale + suffixe « mil » / « mi ») — identique au
-   *          Brésil et au Portugal.
+   *          Brésil et au Portugal ;
+   *   - ja : « 17.9万 » (×10 000), relevé sur captures en 4.24.0.43.
    *
-   * Règle de désambiguïsation (sans dépendre de LANG, donc robuste même si la
-   * détection de langue est tardive ou fausse) :
-   *   • suffixe d'abréviation présent (mil / mi / mio / k / m) ⇒ le séparateur
-   *     restant est DÉCIMAL → on parse en flottant puis on multiplie ;
+   * Règle de désambiguïsation :
+   *   • suffixe d'abréviation présent ⇒ le séparateur restant est DÉCIMAL →
+   *     on parse en flottant puis on multiplie ;
    *   • aucun suffixe ⇒ « . », « , » et espaces sont des séparateurs de
    *     MILLIERS → on les retire et on parse en entier.
    *
    * Exemples : « 67,3 k »→67300 · « 67.3K »→67300 · « 29.339 »→29339 ·
    *            « 1.2M »→1200000 · « 3,7 mil »→3700 · « 1,2 mi »→1200000 ·
-   *            « 987 »→987 · « » →0.
+   *            « 17.9万 »→179000 · « 18,2 тыс. »→18200 · « 987 »→987 · « » →0.
    */
+  /* ── LES ABRÉVIATIONS DE TOUTES LES LANGUES, ET NON DE CINQ (4.24.0.44) ───
+     La lecture ne connaissait que « k », « m », « mil », « mi » et « mio » :
+     sous un Twitch japonais, « 17.9万 » valait zéro, comme « 18,2 тыс. » en
+     russe, « 18,2 tys. » en polonais, « 1,8 tn » en suédois ou « 1,2 Mln »
+     en italien. Tant que l'API n'avait pas répondu — ou si elle échouait —,
+     ces cartes se triaient comme si personne ne les regardait.
+
+     Twitch écrit ses compteurs comme la notation compacte d'`Intl` (cf.
+     viewerFormatter) : c'est donc `Intl` qui dit, pour la langue de Twitch,
+     quel suffixe vaut combien — « 万 » dix mille, « B » mille en turc mais un
+     milliard en anglais. La table se dresse une fois par langue, en
+     formatant les puissances de dix ; les cinq suffixes d'avant restent en
+     repli, sans jamais primer sur ceux de la langue. Le point final
+     (« тыс. », « mln. ») ne compte pas, ni les marques de sens de lecture. */
+  const SUFFIXES_DE_REPLI = [['mil', 1_000], ['mio', 1_000_000], ['mi', 1_000_000], ['k', 1_000], ['m', 1_000_000]];
+  const suffixesParLangue = new Map();
+  const compteurNu = (t) => t.replace(/[\s\u00a0\u202f\u200e\u200f]+/g, '').toLowerCase().replace(/\.+$/, '');
+  const suffixesCompacts = () => {
+    const locale = localeTwitch();
+    let table = suffixesParLangue.get(locale);
+    if (table) return table;
+    const vus = new Map();
+    try {
+      const f = new Intl.NumberFormat(locale, { notation: 'compact' });
+      for (let p = 3; p <= 12; p++) {
+        const parts = f.formatToParts(10 ** p);
+        const suffixe = compteurNu(parts.filter((x) => x.type === 'compact').map((x) => x.value).join(''));
+        const tete = Number(parts.filter((x) => x.type === 'integer').map((x) => x.value).join(''));
+        if (suffixe && tete > 0 && !vus.has(suffixe)) vus.set(suffixe, 10 ** p / tete);
+      }
+    } catch { /* langue inconnue d'Intl : le repli suffit */ }
+    for (const [x, m] of SUFFIXES_DE_REPLI) if (!vus.has(x)) vus.set(x, m);
+    // Le plus long d'abord : « mil » avant « mi », « mi » avant « m ».
+    table = [...vus].sort((a, b) => b[0].length - a[0].length);
+    suffixesParLangue.set(locale, table);
+    return table;
+  };
+
   const parseViewerCount = (txt) => {
     if (!txt) return 0;
-    // Normalise : retire espaces (normaux, insécables, fins) et passe en bas de casse.
-    const s = txt.replace(/[\s\u00a0\u202f]+/g, '').toLowerCase();
-    // Suffixe d'abréviation multi-langues (le plus long d'abord pour éviter
-    // qu'un préfixe ne capture à tort : « mil » avant « mi », « mi » avant « m ») :
-    //   millier → mil (pt) · k (fr/en) ;
-    //   million → mi (pt) · mio (de) · m (en).
-    const suf = s.match(/(mil|mio|mi|k|m)\.?$/);
+    // Normalise : retire espaces (normaux, insécables, fins), marques de sens et point final.
+    const s = compteurNu(txt);
+    const suf = suffixesCompacts().find(([x]) => s.length > x.length && s.endsWith(x));
     if (suf) {
-      // AVEC suffixe → le séparateur restant est DÉCIMAL (« 67,3 k », « 3,7mil »).
-      const mult = (suf[1] === 'k' || suf[1] === 'mil') ? 1_000 : 1_000_000;
-      const num = parseFloat(s.slice(0, suf.index).replace(',', '.'));
-      return Number.isFinite(num) ? Math.round(num * mult) : 0;
+      // AVEC suffixe → le séparateur restant est DÉCIMAL (« 67,3 k », « 3,7mil », « 17.9万 »).
+      const tete = s.slice(0, s.length - suf[0].length);
+      if (!/^\d+(?:[.,]\d+)?$/.test(tete)) return 0;
+      return Math.round(parseFloat(tete.replace(',', '.')) * suf[1]);
     }
     // SANS suffixe → « . » / « , » / espaces sont des séparateurs de MILLIERS
     // (« 4.089 » de, « 4,089 » en, « 4 089 » fr) ; les chiffres seuls suffisent.
@@ -29013,7 +29154,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
 
   const isPlainCard = (card) => {
     if (card.querySelector('[class*="promoted-followed-card__content"]')) return false; // sponsorisée
-    if (card.querySelector(DOM.altCostreamHostSelector)) return false;                  // co-stream
+    if (card.querySelector(DOM.costreamSelector)) return false;                         // co-stream
     if (card.querySelector('a[class*="--promoted-followed"], ' + DOM.sponsorLogoSelector)) return false; // sponsor, catégorie ou non
     if (card.querySelector('.tse-collab-badge')) return false;                          // badge collab posé
     if (PLUS_RE_PRESENT.test(card.textContent || '')) return false;                     // « +N » non encore traité
@@ -29080,7 +29221,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
        « Top Chaînes » entièrement vide, alors que le classement mondial était
        parfaitement connu (pool de 2 124 chaînes au rapport). Le modèle reste
        PRÉFÉRÉ neutre ; celui-ci n'est qu'un second choix, nettoyé pour de bon. */
-    el.querySelectorAll(DOM.altCostreamHostSelector + ', ' + DOM.sponsorLogoSelector
+    el.querySelectorAll(DOM.costreamMiniSelector + ', ' + DOM.sponsorLogoSelector
       + ', [class*="iconContainer--primary"], [class*="iconContainer--secondary"]'
       + ', .primary-with-small-avatar__mini-avatar')
       .forEach(n => n.remove());
