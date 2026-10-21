@@ -1096,7 +1096,17 @@ const aplatir = (obj, prefixe = '') => {
   return out;
 };
 
-const blocErreurs = (liste, origine, bilan) => bloc(
+const doublonDe = (e, enPage) => {
+  if (!/has already been declared|redeclaration of/i.test(e?.message || '')) return null;
+  const m = /^(?:chrome|moz|safari-web)-extension:\/\/([^/]+)\/content\.js/.exec(e?.detail || '');
+  if (!m) return null;
+  if (enPage && m[1] === enPage) {
+    return `            ↳ content.js évalué deux fois par l'exemplaire de la page (${enPage}) / content.js evaluated twice by the page's copy`;
+  }
+  return `            ↳ la copie d'un second exemplaire (${m[1]}) n'a pas démarré : deux exemplaires de l'extension sont actifs — n'en garder qu'un / a second copy (${m[1]}) did not start: two copies of the extension are enabled — keep only one`;
+};
+
+const blocErreurs = (liste, origine, bilan, enPage = null) => bloc(
   `ERREURS / ERRORS (${(liste || []).length})${origine ? ' — ' + origine : ''}`,
   [
 
@@ -1108,17 +1118,25 @@ const blocErreurs = (liste, origine, bilan) => bloc(
          '']
       : []),
     ...((liste || []).length
-      ? liste.map(e =>
+      ? liste.flatMap(e => [
           `  ${String(e.t).padStart(8)} ms  ${String(e.source).padEnd(10)}`
           + `${e.n > 1 ? ` ×${e.n}` : '   '}  ${e.message}${e.detail ? '  — ' + e.detail : ''}`
-          + (e.dernier && e.n > 1 ? `  (dernière : ${e.dernier} ms)` : ''))
+          + (e.dernier && e.n > 1 ? `  (dernière : ${e.dernier} ms)` : ''),
+          ...(doublonDe(e, enPage) ? [doublonDe(e, enPage)] : [])])
       : ['  (aucune / none)']),
   ]);
+
+const adressePanneau = () => {
+  try { return new URL(API.runtime.getURL('')).host || null; }
+  catch { return null; }
+};
 
 const construireRapport = (r, transport, fond) => {
 
   if (r?.page?.theme) appliquerThemePanneau(r.page.theme);
   const m = API.runtime.getManifest();
+  const adresse = adressePanneau();
+  const moi = adresse || API.runtime?.id || null;
   const d = new Date();
   const L = [
     `Cowlor's Sidebar — rapport de diagnostic / diagnostic report`,
@@ -1139,6 +1157,14 @@ const construireRapport = (r, transport, fond) => {
 
   L.push(...bloc('ENVIRONNEMENT / ENVIRONMENT', [
     paire('extension', `${m.version} (${m.browser_specific_settings ? 'firefox' : 'chrome'})`),
+
+    paire('identifiant / id', API.runtime?.id || '—'),
+    ...(adresse && adresse !== API.runtime?.id ? [paire('adresse / host', adresse)] : []),
+    ...(r?.exemplaire ? [paire('page — exemplaire', r.exemplaire)] : []),
+    ...(r?.exemplaire && moi && r.exemplaire !== moi
+      ? ['  ⚠ la page tourne sous un AUTRE exemplaire que ce panneau : deux exemplaires actifs — n\'en garder qu\'un',
+         '  ⚠ the page runs another copy than this panel: two copies enabled — keep only one']
+      : []),
     paire('page ouverte depuis', r ? `${Math.round((r.ancienneteMs || 0) / 1000)} s` : '—'),
     paire('démarrage / boot', r?.demarrage
       ? `${r.demarrage.etape} (${r.demarrage.dureeMs} ms)`
@@ -1224,6 +1250,8 @@ const construireRapport = (r, transport, fond) => {
 
   L.push(...bloc('ALIGNEMENT DU BLOC / BLOCK ALIGNMENT', aplatir(r.alignement)));
 
+  L.push(...bloc('TITRE / TITLE', aplatir(r.titre)));
+
   L.push(...bloc('LECTEUR PRINCIPAL / MAIN PLAYER', aplatir(r.lecteur)));
 
   L.push(...bloc('SALLE MULTISTREAM / MULTISTREAM ROOM', aplatir(r.salle)));
@@ -1273,7 +1301,7 @@ const construireRapport = (r, transport, fond) => {
   ]));
   L.push(...bloc('TOP CHAÎNES / TOP CHANNELS', aplatir(r.global)));
 
-  L.push(...blocErreurs(r.erreurs, '', r.bilanErreurs));
+  L.push(...blocErreurs(r.erreurs, '', r.bilanErreurs, r.exemplaire));
 
   L.push(...bloc(`SONDES / PROBES (${(r.sondes || []).length})`,
     (r.sondes || []).map(p =>
