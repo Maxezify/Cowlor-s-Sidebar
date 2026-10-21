@@ -2180,6 +2180,141 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## La langue de Twitch, partout (v4.24.0.44)
+
+La demande, après la 4.24.0.43 : « Oui, traite complètement les repères qui
+dépendent encore de la langue. Sois rigoureux. » Publiée sur
+`claude/chrome-multi`.
+
+### L'audit
+
+Tout ce que l'extension lit ou écrit dans la barre a été passé en revue,
+sélecteur par sélecteur et expression par expression. Il en est sorti deux
+familles.
+
+**Ce qui se lisait dans un texte traduit :**
+
+- **le co-streamer participant.** Le seul signe qu'une carte n'était pas
+  neutre était l'alt du mini-avatar de son hôte, « Co-stream d'un stream
+  de… », connu en quatre langues. Ailleurs — espagnol, italien, japonais… —,
+  la carte passait pour neutre. Deux défauts en découlaient :
+  - Top Chaînes pouvait la prendre pour modèle, et chaque carte fabriquée
+    montrait l'avatar de l'hôte ;
+  - la carte sponsorisée pouvait la prendre pour gabarit, et copier la mesure
+    d'une carte à trois lignes ;
+- **le libellé « déconnecté ».** Il était cherché dans TOUT le texte de la
+  carte, en trois langues. Ce texte comprend le titre du direct, que Twitch
+  écrit parfois en troisième ligne : « going offline soon » ou « déconnecté
+  demain » masquait une chaîne en direct ;
+- **les abréviations des compteurs.** Cinq étaient connues, « k », « m »,
+  « mil », « mi », « mio ». Tant que l'API n'avait pas répondu, ou si elle
+  échouait, « 17.9万 », « 18,2 тыс. », « 1,8 tn » ou « 1,2 Mln » valaient
+  zéro, et la chaîne la plus regardée finissait en bas de la liste ;
+- **le texte du lecteur d'écran.** Le nombre s'y remplaçait par une
+  expression qui ne connaissait de suffixe que « k » et « m » :
+  « 17.9万人の視聴者 » devenait « 18万万人の視聴者 », et
+  « 18,2 тыс. зрителей » devenait « 20,5 тыс.тыс. зрителей » ;
+- **la section suivie,** au masquage des sections. Elle y était reconnue à
+  sa classe d'en-tête ou à son libellé, en six langues. Sans la classe, et
+  dans une autre langue, un filtre posé la masquait tout entière. Ce défaut
+  restait latent tant que Twitch garde la classe.
+
+**Ce qui s'écrivait dans la langue de nos libellés, et non dans celle de
+Twitch.** L'extension parle dix langues, Twitch une trentaine. Ce qu'elle
+écrit À LA PLACE de Twitch suivait les nôtres, avec l'anglais à défaut :
+
+- **les catégories,** demandées à l'API dans cette langue ;
+- **les compteurs,** formatés de même.
+
+Un Twitch suédois, coréen ou turc recevait donc des catégories en anglais et
+des compteurs au format américain. Un Twitch d'Espagne recevait le format
+mexicain, « 2.1 k » au lieu de « 2,1 mil ».
+
+### Ce qui change
+
+- **La langue de Twitch** est celle que la page déclare (`<html lang>`), sa
+  région comprise. Elle décide de l'en-tête `Accept-Language`, du format des
+  compteurs et de leur lecture. Nos libellés restent dans la plus proche de
+  nos dix langues. Au rapport, le bloc `LANGUE` gagne `twitch` et `html`.
+- **Les compteurs se lisent par les suffixes que donne `Intl` pour cette
+  langue,** dressés en formatant les puissances de dix. Twitch écrit ses
+  compteurs comme la notation compacte d'`Intl` : « 万 » vaut dix mille ;
+  « B » vaut mille en turc, un milliard en anglais. Les cinq suffixes d'avant
+  restent en repli.
+- **Le texte du lecteur d'écran** remplace, dans l'ordre, le nombre qu'on y a
+  soi-même écrit, puis celui que Twitch affiche à côté. À défaut seulement,
+  il prend un nombre suivi du suffixe de la langue, sans mordre sur un mot.
+- **Le co-streamer se reconnaît à sa structure :** la pastille
+  `iconContainer--primary`, ou une image dans le bloc des métadonnées. Le nom
+  de son hôte reste lu dans l'alt, en raccourci, pour les quatre langues
+  relevées ; ailleurs, il vient de l'organisateur GraphQL, déjà en place.
+- **Une carte n'est hors ligne que par sa structure :** l'avatar grisé, ou
+  l'indicateur de direct absent en mode étendu.
+- **La section suivie est d'abord celle que `followedSection` retient,**
+  dont le dernier repli ne dépend d'aucune langue.
+- **Un commentaire orphelin est retiré.** Il décrivait une reconnaissance de
+  l'en-tête par son texte, « Spectateurs » ou « Recommandées », que plus
+  aucun code ne fait.
+
+### Ce qui reste lié à une langue
+
+Chacun de ces repères a désormais un repli qui ne dépend d'aucune langue :
+
+- le libellé de la section suivie ;
+- ceux des boutons « Afficher plus / moins », après les crochets
+  d'automatisation ;
+- l'alt du co-stream ;
+- la phrase « X et N invités », après la session Guest Star.
+
+Un seul n'a pas de repli : **la ligne « réduction d'abonnement »**,
+reconnue à son étiquette `aria-label`, en six langues. Faute d'un relevé de
+cette ligne dans une autre langue que le français, elle passe ailleurs pour
+une ligne quelconque :
+
+- son badge est neutre au lieu d'être rose ;
+- le réglage « réductions » ne le masque pas.
+
+L'étiquette de Twitch ne se devine pas ; le code le dit, à la table des
+sélecteurs.
+
+### Ce que le banc mesure
+
+**206**, nouveau, sept assertions :
+
+- a) le compteur s'écrit dans la langue de Twitch, sa région comprise :
+  suédois, coréen, turc, Espagne, Mexique, japonais ;
+- b) sans l'API, le japonais et le russe se trient par leurs compteurs ;
+- c) le texte du lecteur d'écran, dans cinq cas : japonais, puis mis à jour ;
+  russe ; anglais collé, comme le relevé l'écrit (« 859viewers »), puis mis à
+  jour ; suffixe espacé ; nombre plein ;
+- d) le co-streamer à l'alt inconnu : il n'est pas un gabarit, et ne prête
+  pas l'avatar de son hôte aux cartes fabriquées ;
+- e) un titre de direct qui dit « offline » ;
+- f) la section suivie, sans classe ni libellé, sous un filtre.
+
+**65**, revu : l'en-tête est celui de la page, et le suédois, le coréen, le
+turc et le mexicain demandent leur langue.
+
+Le banc complet : 1759 assertions dans 205 scénarios, toutes vertes.
+
+| mutant | ce qui tombe |
+| --- | --- |
+| la 4.24.0.43 telle quelle | 206 : a, b, c, d, d, e, f ; 65 : a, g |
+| la langue de nos libellés pour tout (1) | 206 : a ; 65 : a, g |
+| l'en-tête dans la langue de nos libellés (1) | 65 : a, g |
+| le compteur dans la langue de nos libellés (1) | 206 : a |
+| les cinq suffixes d'avant (1) | 206 : b, c |
+| l'expression d'avant pour le texte accessible (1) | 206 : c |
+| sans le nombre qu'on y a écrit (1) | 206 : c — « 250KKviewers » |
+| sans le nombre que Twitch affiche (1) | 206 : c |
+| le repli sans suffixe (1) | 206 : c — « 18万 万人の視聴者 » |
+| `isPlainCard` par l'alt du co-stream, comme avant (1) | 206 : d, d |
+| le nettoyage des clones par l'alt, comme avant (1) | 206 : d |
+| le libellé « déconnecté » rétabli (1) | 206 : e |
+| la section suivie à sa classe ou à son libellé (1) | 206 : f |
+
+Treize mutants, treize pris.
+
 ## Les cartes sponsorisées dans toutes les langues, et le titre prêt sous le voile (v4.24.0.43)
 
 La demande, captures à l'appui — japonais, espagnol, anglais, puis allemand
@@ -19418,7 +19553,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 204 scénarios, 1752 assertions |
+| `npm test` | le harnais Playwright : 205 scénarios, 1759 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -19439,7 +19574,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1660 Ko | 671 Ko | 4 235 → **2** |
+| `content.js` | 1660 Ko | 671 Ko | 4 242 → **2** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
 | `panneau.js` | 109 Ko | 51 Ko | 159 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |

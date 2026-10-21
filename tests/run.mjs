@@ -6104,10 +6104,14 @@ titre('65. Catégories — l\'identité décide, la traduction s\'affiche');
   };
 
   // ── a) l'en-tête, puisque c'est lui qui décide ──────────────────────────
+  /* LA LANGUE DE TWITCH, TELLE QUE LA PAGE LA DÉCLARE (4.24.0.44) : « fr »,
+     et non plus « fr-FR », la locale de nos libellés — qui n'existe pas pour
+     un Twitch suédois, et qui n'est pas la bonne région pour un Twitch
+     d'Espagne (cf. g). */
   const page = await monter('fr');
   const entete = await page.evaluate(() => window.__lastAcceptLanguage);
-  ok('la requête annonce la langue de l\'interface, pas celle du navigateur',
-     entete === 'fr-FR', String(entete));
+  ok('la requête annonce la langue de Twitch — celle de la page —, pas celle du navigateur',
+     entete === 'fr', String(entete));
 
   // ── b) ce que la carte montre, et ce qu'elle retient ────────────────────
   const fr = await cartes(page);
@@ -6194,8 +6198,13 @@ titre('65. Catégories — l\'identité décide, la traduction s\'affiche');
      n'a jamais écrits donnerait un test qui a l'air de connaître les
      traductions de Twitch, ce qu'aucune ligne d'ici ne peut savoir. Ce qu'on
      éprouve est le CHEMIN, langue par langue. */
-  const LOCALES = { fr: 'fr-FR', en: 'en-US', de: 'de-DE', es: 'es-MX', pt: 'pt-BR',
-                    it: 'it-IT', pl: 'pl-PL', ru: 'ru-RU', ja: 'ja-JP', zh: 'zh-CN' };
+  /* ET CELLES QUE NOS LIBELLÉS NE PARLENT PAS (4.24.0.44) : un Twitch
+     suédois, coréen ou turc demandait ses catégories en anglais — la langue
+     de nos libellés à défaut des leurs. La région compte aussi : « es-MX »
+     n'est pas « es ». La page déclare la langue, la requête la reprend. */
+  const LOCALES = { fr: 'fr', en: 'en', de: 'de', es: 'es', pt: 'pt',
+                    it: 'it', pl: 'pl', ru: 'ru', ja: 'ja', zh: 'zh',
+                    sv: 'sv-SE', ko: 'ko-KR', tr: 'tr', 'es-MX': 'es-MX' };
   const boiteux = [];
   for (const [lang, locale] of Object.entries(LOCALES)) {
     const p = await browser.newPage();
@@ -6205,12 +6214,12 @@ titre('65. Catégories — l\'identité décide, la traduction s\'affiche');
       document.querySelector('.side-nav-section').removeAttribute('aria-label');
       document.documentElement.lang = l;
       const t = {};
-      for (const x of langues) t[x] = 'témoin-' + x;
+      for (const x of langues) t[x.slice(0, 2)] = 'témoin-' + x.slice(0, 2);
       window.__i18nCats = { 'Catégorie témoin': t };
       window.__fx = { seul: { id: 's', createdAt: new Date(Date.now() - 3600_000).toISOString(),
                               viewers: 1000, game: 'Catégorie témoin', tags: [] } };
       window.__addCard('seul', 'Catégorie témoin', '1 k');
-    }, { l: lang, langues: Object.keys(LOCALES) });
+    }, { l: locale, langues: Object.keys(LOCALES) });
     await attendre(p, () => document.querySelectorAll('[data-tse-viewers]').length === 1);
     const vu = await p.evaluate(() => {
       const c = document.querySelector('.side-nav-card');
@@ -6220,12 +6229,12 @@ titre('65. Catégories — l\'identité décide, la traduction s\'affiche');
                identite: c.dataset.tseCategory ?? null };
     });
     await p.close();
-    if (vu.entete !== locale || vu.texte !== 'témoin-' + lang
+    if (vu.entete !== locale || vu.texte !== 'témoin-' + lang.slice(0, 2)
         || vu.identite !== 'Catégorie témoin') {
       boiteux.push(`${lang} → ${JSON.stringify(vu)}`);
     }
   }
-  ok('les dix langues demandent leur locale et affichent ce qu\'elle rend',
+  ok('les dix langues, et le suédois, le coréen, le turc, le mexicain, demandent la langue de Twitch et affichent ce qu\'elle rend',
      boiteux.length === 0, boiteux.join(' | '));
 }
 
@@ -33055,6 +33064,267 @@ const S_LECTEUR_SONDE = () => {
      premiere === 'brise' && top.fabriquees >= 10 && top.sponsorisees === 0 && top.modele === 'neutre',
      JSON.stringify({ premiere, ...top }));
   await p2.close();
+}
+
+/* ═════════ UN TWITCH DANS UNE LANGUE QUE L'EXTENSION NE PARLE PAS ══════════
+   DEMANDÉ APRÈS LA 4.24.0.43 : « traite complètement les repères qui
+   dépendent encore de la langue ». L'audit a trouvé deux familles.
+
+   CE QUI SE LISAIT DANS UN TEXTE TRADUIT : l'alt du mini-avatar d'un
+   co-streamer, seul signe qu'une carte n'était pas neutre ; le libellé
+   « déconnecté », cherché dans tout le texte de la carte, titre du direct
+   compris ; les abréviations des compteurs, cinq connues sur trente.
+
+   CE QUI S'ÉCRIVAIT DANS LA LANGUE DE NOS LIBELLÉS et non dans celle de
+   Twitch : les catégories (cf. 65) et les compteurs. Un Twitch suédois
+   recevait de l'anglais au format américain, un Twitch d'Espagne le format
+   mexicain.
+
+   Les attendus de format se calculent DANS LA PAGE, par l'`Intl` de Chromium
+   (cf. 64 : l'ICU de Node n'écrit pas toujours comme celle du navigateur). */
+{
+  titre('206. Un Twitch dans une langue que l\'extension ne parle pas — ses compteurs, son texte accessible, ses co-streams, ses titres');
+  const secouer = (page) => page.evaluate(() => {
+    const t = document.createElement('div');
+    document.getElementById('cards').appendChild(t);
+    t.remove();
+  });
+  const monter = async (lang, poser) => {
+    const page = await browser.newPage();
+    page.on('pageerror', e => { fail++; console.log('  ✗ ERREUR PAGE:', e.message); });
+    await page.goto(URL_PAGE);
+    await page.evaluate(() => { try { localStorage.setItem('tse:indice', 'vu'); } catch { /* refusé */ } });
+    await page.evaluate(([l, f]) => {
+      // Le libellé natif du décor est français, et gagnerait sur la page (cf. 64).
+      document.querySelector('.side-nav-section').removeAttribute('aria-label');
+      document.documentElement.lang = l;
+      window.__h = new Date(Date.now() - 3600_000).toISOString();
+      new Function(f)();
+    }, [lang, `(${poser})()`]);
+    return page;
+  };
+
+  /* a) LE COMPTEUR S'ÉCRIT COMME CELUI DE TWITCH. Suédois, coréen et turc
+     n'ont pas de libellés chez nous ; l'espagnol d'Espagne n'a pas le format
+     du mexicain ; le japonais sert de témoin. Mutant — la locale de nos
+     libellés. */
+  const formats = [];
+  for (const lang of ['sv-SE', 'ko-KR', 'tr', 'es-ES', 'es-MX', 'ja-JP']) {
+    const page = await monter(lang, () => {
+      window.__fx = { alpha: { id: '1', createdAt: window.__h, viewers: 18234, game: 'G', tags: [] } };
+      window.__addCard('alpha', 'G', '18234');
+    });
+    await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length === 1, 10_000);
+    await wait(page, 300);
+    formats.push(await page.evaluate((l) => ({
+      lang: l, vu: document.querySelector('.tse-viewers')?.textContent ?? null,
+      attendu: new Intl.NumberFormat(l, { notation: 'compact', maximumFractionDigits: 1 }).format(18234),
+      twitch: window.tse.panneau.rapport().langue?.twitch ?? null,
+    }), lang));
+    await page.close();
+  }
+  ok('a) le compteur s\'écrit dans la langue de Twitch, sa région comprise : suédois, coréen, turc, Espagne, Mexique, japonais',
+     formats.every((f) => f.vu === f.attendu && f.twitch === f.lang),
+     JSON.stringify(formats));
+
+  /* b) ET IL SE LIT DANS LA SIENNE, tant que l'API n'a pas répondu — ici,
+     jamais. Japonais par myriades, russe en toutes lettres : « 17.9万 » et
+     « 1,2 млн » valaient zéro, et la chaîne la plus regardée finissait en
+     bas de la liste. Mutant — les cinq suffixes d'avant. */
+  const lus = {};
+  for (const [lang, cartes, ordre] of [
+    ['ja-JP', [['un', '6286'], ['deux', '2.6万'], ['trois', '17.9万']], 'trois,deux,un'],
+    ['ru-RU', [['un', '9870'], ['deux', '18,2 тыс.'], ['trois', '1,2 млн']], 'trois,deux,un'],
+  ]) {
+    const page = await monter(lang, `() => {
+      window.__failNext = 9999;
+      for (const [l, v] of ${JSON.stringify(cartes)}) window.__addCard(l, 'G', v);
+    }`);
+    await wait(page, 2500);
+    lus[lang] = { ordre: await page.evaluate(() => [...document.querySelectorAll('.side-nav-card')]
+      .map((c) => c.dataset.tseLogin).filter(Boolean).join(',')), attendu: ordre };
+    await page.close();
+  }
+  ok('b) sans l\'API, les compteurs de Twitch se lisent dans sa langue : « 17.9万 » devant « 2.6万 » devant « 6286 », « 1,2 млн » devant « 18,2 тыс. »',
+     Object.values(lus).every((x) => x.ordre === x.attendu), JSON.stringify(lus));
+
+  /* c) LE TEXTE DU LECTEUR D'ÉCRAN : le nombre entier, suffixe compris.
+     « 17.9万人の視聴者 » devenait « 18万万人の視聴者 », « 18,2 тыс. зрителей »
+     « 20,5 тыс.тыс. зрителей ». Les cas, et ce que chacun éprouve :
+       — japonais et russe : le nombre que Twitch affiche à côté ;
+       — puis le nombre qu'on y a soi-même écrit, quand l'API change d'avis
+         sans que Twitch ait redessiné la carte — et la phrase COLLÉE, comme
+         le relevé anglais l'écrit (« 859viewers ») : « 180Kviewers » ;
+       — un suffixe écrit autrement qu'à côté (« 17.9 万 ») : le repli ;
+       — un nombre plein, dont l'espace qui suit ne doit pas tomber.
+     Mutants — l'expression d'avant ; chaque voie retirée. */
+  const accessibles = [];
+  for (const [lang, visuel, phrase, compte, puis] of [
+    ['ja-JP', '17.9万', '17.9万人の視聴者', 180000, 250000],
+    ['ru-RU', '18,2 тыс.', '18,2 тыс. зрителей', 20500, null],
+    ['en-US', '179K', '179Kviewers', 180000, 250000],
+    ['ja-JP', '17.9万', '17.9 万人の視聴者', 180000, null],
+    ['en-US', '179K', '179,000 viewers', 180000, null],
+  ]) {
+    const page = await monter(lang, `() => {
+      window.__fx = { alpha: { id: '1', createdAt: window.__h, viewers: ${compte}, game: 'G', tags: [] } };
+      const c = window.__addCard('alpha', 'G', ${JSON.stringify(visuel)});
+      c.querySelector('.sr-only').textContent = ${JSON.stringify(phrase)};
+    }`);
+    await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length === 1, 10_000);
+    await wait(page, 400);
+    const lire = () => page.evaluate((l) => ({
+      lang: l, texte: document.querySelector('.sr-only')?.textContent ?? null,
+      nombre: document.querySelector('.tse-viewers')?.textContent ?? null }), lang);
+    const r = await lire();
+    if (puis) {
+      await page.evaluate((v) => { window.__fx.alpha.viewers = v; }, puis);
+      await attendre(page, (v) => document.querySelector('[data-tse-viewers]')?.dataset.tseViewers === String(v), 10_000, puis);
+      await wait(page, 300);
+      r.ensuite = await lire();
+    }
+    accessibles.push(r);
+    await page.close();
+  }
+  const [ja, ru, colle, espace, plein] = accessibles;
+  ok('c) le texte du lecteur d\'écran prend le nombre entier, suffixe compris — japonais, russe, collé, espacé, plein',
+     ja.texte === `${ja.nombre}人の視聴者` && ja.ensuite?.texte === `${ja.ensuite?.nombre}人の視聴者`
+     && ja.ensuite?.nombre !== ja.nombre
+     && ru.texte === `${ru.nombre} зрителей`
+     && colle.texte === `${colle.nombre}viewers` && colle.ensuite?.texte === `${colle.ensuite?.nombre}viewers`
+     && colle.ensuite?.nombre !== colle.nombre
+     && espace.texte === `${espace.nombre}人の視聴者` && plein.texte === `${plein.nombre} viewers`,
+     JSON.stringify(accessibles));
+
+  /* d) LE CO-STREAMER, RECONNU À SA PLACE. L'alt de son mini-avatar est ici
+     dans une langue qu'aucune table ne connaît. Il ne sert pas de gabarit à
+     la carte sponsorisée, qui reste à la hauteur d'une carte ordinaire ; et
+     quand il est la SEULE carte en direct, les cartes que Top Chaînes en
+     fabrique ne portent pas l'avatar de son hôte. Mutants — l'alt rétabli
+     dans isPlainCard ; dans le nettoyage des clones. */
+  const pg = await monter('fr', () => {
+    // La carte ordinaire de Twitch, modélisée comme au 166.
+    const st = document.createElement('style');
+    st.textContent = `
+      #cards { width: 240px; }
+      .side-nav-card__link:not(.side-nav-card__link--promoted-followed) {
+        display: flex; align-items: center; box-sizing: border-box; height: 42px; padding: 0 10px; }
+      .side-nav-card__avatar { flex-shrink: 0; }
+      .side-nav-card__avatar .tw-avatar, .side-nav-card__avatar img { display: block; width: 30px; height: 30px; }
+      .mainblock { flex: 1; min-width: 0; padding-left: 10px; }
+      .mainblock .metacell { align-items: center; }
+      .metacell > [data-a-target="side-nav-card-metadata"] { min-width: 0; }
+      .side-nav-card__metadata p { font-family: Arial, sans-serif; }
+      .side-nav-card__metadata p[data-a-target="side-nav-title"] {
+        font-size: 14px; font-weight: 700; line-height: 17px; }
+      .side-nav-card__metadata p[title] { font-size: 13px; line-height: 17px; margin-top: 2px;
+                                           color: rgb(173, 173, 184); }
+      .metacell .side-nav-card__live-status { min-height: 0; margin-left: 6px; }`;
+    document.head.appendChild(st);
+    window.__fx = {
+      duo:    { id: 'd1', createdAt: window.__h, viewers: 9000, game: 'G', tags: [] },
+      soleil: { id: 'd2', createdAt: window.__h, viewers: 3100, game: 'Just Chatting', tags: [] },
+      etoile: { id: 'd3', createdAt: window.__h, viewers: 1200, game: 'G', tags: [] },
+    };
+    window.__costreamHost = { duo: 'hote' };
+    window.__addCard('duo', 'G', '9 000');
+    document.querySelector('.side-nav-card .tse-mini img').setAttribute('alt', 'Kunelsendo de hote');
+    window.__addPromotedCard('soleil', 'Discussions', '3,1 k', 'Savonia', 'xx');
+    window.__addCard('etoile', 'G', '1 200');
+  });
+  await attendre(pg, () => !!document.querySelector('.side-nav-card[data-tse-login="soleil"].tse-promu-gabarit'), 15_000);
+  await wait(pg, 500);
+  /* Le pseudo par rapport à son lien : c'est ce que le gabarit recopie. Sur
+     la carte du co-streamer, le mini-avatar ajoute une ligne et le pseudo
+     monte — la PRÉMISSE, sans quoi la carte ne serait pas un mauvais gabarit. */
+  const pseudos = await pg.evaluate(() => {
+    const pos = (l) => {
+      const c = document.querySelector(`.side-nav-card[data-tse-login="${l}"]`);
+      const a = c.querySelector('a').getBoundingClientRect(), n = c.querySelector('p.tse-nom').getBoundingClientRect();
+      return [Math.round((n.left - a.left) * 10) / 10, Math.round((n.top - a.top) * 10) / 10,
+              Math.round(a.height * 10) / 10];
+    };
+    return { duo: pos('duo'), soleil: pos('soleil'), etoile: pos('etoile') };
+  });
+  await pg.close();
+  const pareil = (u, v) => u.every((x, i) => Math.abs(x - v[i]) <= 1);
+  ok('d) le co-streamer à l\'alt inconnu ne sert pas de gabarit : la carte sponsorisée prend la mesure d\'une carte ordinaire',
+     pareil(pseudos.soleil, pseudos.etoile) && Math.abs(pseudos.duo[1] - pseudos.etoile[1]) > 2,
+     JSON.stringify(pseudos));
+
+  const p2 = await monter('fr', () => {
+    window.__fx = { duo: { id: 'e1', createdAt: window.__h, viewers: 9000, game: 'G', tags: [] } };
+    window.__costreamHost = { duo: 'hote' };
+    window.__addCard('duo', 'G', '9 000');
+    document.querySelector('.side-nav-card .tse-mini img').setAttribute('alt', 'Kunelsendo de hote');
+    const cats = [];
+    for (let i = 0; i < 2; i++) {
+      const streams = [];
+      for (let k = 0; k < 20; k++) streams.push({ login: `g${i}_${k}`, viewers: 5000 - k, tags: ['English'] });
+      cats.push({ name: 'c' + i, viewers: 400_000 - i, streams });
+    }
+    window.__cats = cats;
+  });
+  await attendre(p2, () => !!document.querySelector('.side-nav-card[data-tse-login="duo"] .tse-uptime'), 15_000);
+  await p2.evaluate(() => document.querySelector('#tse-mode-row [data-tse-mode="global"]').click());
+  await attendre(p2, () => document.querySelectorAll('.side-nav-card[data-tse-synthetic="true"]').length >= 10, 12_000);
+  await wait(p2, 900);
+  const top = await p2.evaluate(() => {
+    const faites = [...document.querySelectorAll('.side-nav-card[data-tse-synthetic="true"]')];
+    return { fabriquees: faites.length,
+             avatarsHote: faites.filter((c) => !!c.querySelector('[data-a-target="side-nav-card-metadata"] img')).length,
+             modele: window.tse.panneau.rapport().page.modele };
+  });
+  await p2.close();
+  ok('d) …et seul en direct, il sert de modèle sans prêter l\'avatar de son hôte aux cartes fabriquées',
+     top.fabriquees >= 10 && top.avatarsHote === 0 && top.modele === 'repli', JSON.stringify(top));
+
+  /* e) LE TITRE DU DIRECT N'EST PAS UN ÉTAT. Twitch écrit parfois le titre
+     en troisième ligne ; « going offline soon », « déconnecté demain » ou
+     « desconectado » y faisaient passer une chaîne EN DIRECT pour hors
+     ligne, et la masquaient. Mutant — le libellé d'avant. */
+  const p3 = await monter('fr', () => {
+    window.__fx = { titre: { id: 'f1', createdAt: window.__h, viewers: 900, game: 'G', tags: [] } };
+    const c = window.__addCard('titre', 'G', '900');
+    const ligne = document.createElement('div');
+    ligne.innerHTML = '<p>going offline soon — déconnecté demain</p>';
+    c.querySelector('[data-a-target="side-nav-card-metadata"]').appendChild(ligne);
+    window.__addCard('dort', 'G', 'Déconnecté', false);
+  });
+  await wait(p3, 2500);
+  const etats = await p3.evaluate(() => Object.fromEntries([...document.querySelectorAll('.side-nav-card')]
+    .map((c) => [(c.querySelector('a')?.getAttribute('href') || '').slice(1), c.dataset.tseOffline === 'true'])));
+  await p3.close();
+  ok('e) un titre de direct qui dit « offline » ne masque pas la chaîne ; la chaîne hors ligne, elle, l\'est toujours',
+     etats.titre === false && etats.dort === true, JSON.stringify(etats));
+
+  /* f) LA SECTION SUIVIE SANS SA CLASSE NI SON LIBELLÉ : followedSection la
+     retrouve par ses cartes, et le masquage des sections le sait désormais.
+     Un filtre posé ne la cache plus. Mutant — la section reconnue à sa seule
+     classe ou à son libellé. */
+  const p4 = await monter('sv-SE', () => {
+    // Plus une classe « followed-side-nav-header », ni sur l'en-tête ni sur ce qu'il contient.
+    for (const e of document.querySelectorAll('.side-nav-section [class*="followed-side-nav-header"]')) {
+      e.className = [...e.classList].filter((k) => !k.includes('followed-side-nav-header')).join(' ');
+    }
+    window.__fx = {
+      un:   { id: 'g1', createdAt: window.__h, viewers: 900, game: 'G', tags: [] },
+      deux: { id: 'g2', createdAt: window.__h, viewers: 800, game: 'H', tags: [] },
+    };
+    window.__addCard('un', 'G', '900');
+    window.__addCard('deux', 'H', '800');
+  });
+  await attendre(p4, () => !!document.querySelector('#tse-cat-dd .tse-dd-opt[data-value="G"]'), 10_000);
+  await p4.evaluate(() => document.querySelector('#tse-cat-dd .tse-dd-opt[data-value="G"]').click());
+  await wait(p4, 800);
+  const section = await p4.evaluate(() => {
+    const s = document.querySelector('#cards').closest('.side-nav-section');
+    return { masquee: s.classList.contains('tse-section-hidden'),
+             visibles: [...s.querySelectorAll('.side-nav-card')].filter((c) => c.getClientRects().length > 0).length };
+  });
+  await p4.close();
+  ok('f) sans classe d\'en-tête ni libellé connu, la section suivie reste visible sous un filtre',
+     !section.masquee && section.visibles === 1, JSON.stringify(section));
 }
 
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════
