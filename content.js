@@ -1422,7 +1422,15 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     // processCard() et preview.open().
     cardLinkSelector:        'a[data-a-target="side-nav-card"], a.side-nav-card__link, a[href^="/"]',
     discountSelector:        '[aria-label="Abonnement-cadeau"], [aria-label="Gift a Sub"], [aria-label="Abo verschenken"], [aria-label="Suscripción de Regalo"], [aria-label="Inscrição de presente"], [aria-label="Oferta de subscrição"]',
-    altLogoSelector:         'img[alt^="Logo de"], img[alt^="Logo of"], img[alt^="Logo von"]',
+    /* LE LOGO D'UNE MARQUE, PAR SON ADRESSE ET NON PAR SON ALT (4.24.0.43).
+       L'alt se traduit, et chaque langue le tourne à sa façon — relevés de
+       terrain : « Logo de X », « X Logo », « Logotipo de X », « Logo X »,
+       « Xのロゴ ». Trois préfixes le reconnaissaient — « Logo de », « Logo
+       of », « Logo von » — et ni l'anglais, ni l'espagnol, ni l'italien, ni le
+       japonais ne les emploient : le logo restait sur la carte, et l'aperçu
+       perdait son badge. L'adresse, elle, est celle des campagnes
+       publicitaires de Twitch, la même dans toutes les langues. */
+    sponsorLogoSelector:     'img[src*="sponsorships-campaign-assets"]',
     altCostreamHostSelector: 'img[alt^="Co-stream d\'un stream de "], img[alt^="Co-stream from a stream by "], img[alt^="Co-stream aus einem Stream von "], img[alt^="Co-stream de um stream de "]',
 
     followedLabels:          ['Chaînes suivies', 'Followed Channels', 'Kanäle, denen du folgst', 'Canales que sigues', 'Canais seguidos', 'Canais que segues'],
@@ -1465,7 +1473,6 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     //   fr « X et N invité(s) » · en « X and N guest(s) » · de « X und N Gast/Gäste »
     //   · es « X y N invitado(s) » · pt « X e N convidado(s) » (BR et PT).
     guestsTotalRe:           /\s(?:et|and|und|y|e)\s+(\d+)\s+(?:invité|guest|Gast|Gäste|invitado|convidado)/i,
-    sponsorLogoRe:           /^Logo\s+(?:de|of|von)\s+(.+)$/i,
   });
 
   /* ----- Libellés UI par langue ----- */
@@ -4584,20 +4591,23 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
        (cf. getSponsorInfo + renderPopup). */
     .side-nav-card .side-nav-promoted-followed-card__gradient,
     .side-nav-card .side-nav-promoted-followed-card__sponsorship,
-    /* Sélecteurs par alt dupliqués FR + EN + DE (« Logo de/of/von »),
-       indépendants de LANG ; l'espagnol « Logo de … » réutilise la variante
-       FR. La croix « collaboration » reste FR/EN (le masquage structurel
-       --promoted-followed couvre le reste de la mise en page quelle que
-       soit la langue). */
-    .side-nav-card img[alt="en collaboration avec"],
-    .side-nav-card img[alt="in collaboration with"],
-    .side-nav-card img[alt="em colaboração com"],
-    .side-nav-card img[alt^="Logo de"],
-    .side-nav-card img[alt^="Logo of"],
-    .side-nav-card img[alt^="Logo von"],
-    .side-nav-card a[class*="--promoted-followed"] div:has(> img[alt^="Logo de"]),
-    .side-nav-card a[class*="--promoted-followed"] div:has(> img[alt^="Logo of"]),
-    .side-nav-card a[class*="--promoted-followed"] div:has(> img[alt^="Logo von"]) {
+    /* ── LA CROIX ET LE LOGO, PAR LEUR PLACE ET NON PAR LEUR ALT (4.24.0.43) ──
+       SIGNALÉ SUR CAPTURES, en anglais, allemand, espagnol, italien,
+       portugais et japonais : « seul le français est nickel ». Ces deux
+       images étaient visées par leur texte alternatif, qui se traduit —
+       « en collaboration avec », « in collaboration with », « en colaboración
+       con », « 協力: »… —, et chaque langue absente des listes les laissait
+       dans la grille : la croix au-dessus de l'avatar, le logo sur le pseudo
+       ou sur la carte suivante. Elles se visent désormais par ce qui ne se
+       traduit pas : la croix est l'image posée à côté de l'avatar, le logo
+       vient des campagnes de Twitch (cf. DOM.sponsorLogoSelector). Et tout ce
+       que la grille recevrait sans être l'une de ses quatre pièces est marqué
+       par le JS (cf. mettreEnFormePromue) : une décoration que Twitch
+       ajouterait demain ne s'y glisserait pas davantage. */
+    .side-nav-card a[class*="--promoted-followed"] .tw-avatar ~ img,
+    .side-nav-card a[class*="--promoted-followed"] img[src*="sponsorships-campaign-assets"],
+    .side-nav-card a[class*="--promoted-followed"] div:has(> img[src*="sponsorships-campaign-assets"]),
+    .side-nav-card .tse-promu-decor {
       display: none !important;
     }
 
@@ -11920,6 +11930,15 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       }
       // Retire le flag body : la sidebar fade-in (CSS transition opacity).
       document.body.classList.remove('tse-loading');
+      /* LE TITRE SE RÈGLE À LA LEVÉE MÊME (4.24.0.43), dans la tâche qui
+         retire le voile : aucune image ne le montre entre les deux. Un
+         balayage ne naît que d'une mutation DANS la barre ; une flèche posée
+         d'ailleurs, qui arrive ou se déplace après le dernier, ne relance
+         rien, et le titre réglé sous le voile ne l'aurait vue qu'au premier
+         balayage venu — à la vue de tous. Protégé : ce qui suit retire le
+         calque, et rien ne doit l'en empêcher. */
+      try { ajusterTitre(); }
+      catch (e) { erreurs.noter('titre', 'réglage à la levée : ' + ((e && e.message) || e)); }
       if (!overlay || !overlay.isConnected) { overlay = null; spinner = null; return; }
       // Déclenche le fondu de l'overlay via data-attribute (transition CSS).
       // Les deux fondus (sidebar in / overlay out) sont synchronisés sur
@@ -18882,8 +18901,13 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         promues: (() => {
           const estPromue = (c) => !!c.querySelector('a[class*="--promoted-followed"]');
           const liste = cartes.filter(estPromue);
+          /* `decors` : ce que la mise en forme a écarté de la grille ; `intrus` :
+             ce que la grille montre et qui n'est pas une pièce — la croix ou le
+             logo d'une langue mal reconnue, à zéro quand tout va bien ;
+             `logos` : les logos trouvés par leur adresse (4.24.0.43). */
           const r = { cartes: liste.length, formees: 0, sansAvatar: 0, sansNom: 0, sansStatut: 0,
                       plats: 0, aplatis: 0, gabarits: 0, categorieSousAvatar: 0,
+                      decors: 0, intrus: 0, logos: 0,
                       ecartNomPx: null, ecartHauteurPx: null, squelette: {} };
           const gauche = (c, e) => e.getBoundingClientRect().left - c.getBoundingClientRect().left;
           const mediane = (v) => { const s = v.slice().sort((a, b) => a - b);
@@ -18899,6 +18923,14 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
             for (const p of c.querySelectorAll('.tse-promu-plat')) {
               r.plats++;
               if (getComputedStyle(p).display === 'contents') r.aplatis++;
+            }
+            r.decors += c.querySelectorAll('.tse-promu-decor').length;
+            if (c.querySelector(DOM.sponsorLogoSelector)) r.logos++;
+            const piece = (e) => /\btse-promu-(?:avatar|nom|cat|statut|plat)\b/.test(e.getAttribute('class') || '');
+            for (const hote of c.querySelectorAll('.tse-promu-grille, .tse-promu-plat')) {
+              for (const e of hote.children) {
+                if (!piece(e) && !estANous(e) && e.getClientRects().length > 0) r.intrus++;
+              }
             }
             if (av && cat && cat.getBoundingClientRect().top
                               >= av.getBoundingClientRect().bottom - 1) r.categorieSousAvatar++;
@@ -19692,15 +19724,30 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
      elles devient transparent. Le CSS ne connaît que ces marques, en
      « !important » : ni le nombre d'enrobages ni leurs classes hachées n'y
      entrent plus. Le décor publicitaire — bandeau « Sponsorisé », logo de la
-     marque, croix « en collaboration avec » — reste masqué par les règles
-     qui le nomment ; l'aperçu le rend déjà en badge.
+     marque, croix « en collaboration avec » — est masqué ; l'aperçu le rend
+     déjà en badge.
+
+     CE QUI N'EST PAS UNE PIÈCE N'ENTRE PAS DANS LA GRILLE (4.24.0.43). Un
+     enrobage aplati livre TOUS ses enfants à la grille, et non les seules
+     pièces : la croix et le logo, que la feuille ne reconnaissait qu'en
+     français, y devenaient des cases à part entière — la croix au-dessus de
+     l'avatar, le logo sur le pseudo, ou sur la carte suivante. Chaque enfant
+     de la grille ou d'un enrobage aplati qui n'est ni une pièce, ni un
+     enrobage, ni à nous, est donc marqué `tse-promu-decor`, et masqué. La
+     règle ne nomme rien : ni une langue, ni une classe de Twitch.
 
      Sans avatar, sans pseudo ou sans compteur, on ne sait pas quoi ranger
      où : la carte reste celle de Twitch plutôt qu'une grille fausse. Et rien
      ne se pose sidebar réduite : Twitch y reconstruit ses cartes, et
      une grille y déplierait ce qu'il replie. */
   const PROMU_CLASSES = ['tse-promu-grille', 'tse-promu-plat', 'tse-promu-lien', 'tse-promu-enveloppe',
-                         'tse-promu-avatar', 'tse-promu-nom', 'tse-promu-cat', 'tse-promu-statut'];
+                         'tse-promu-avatar', 'tse-promu-nom', 'tse-promu-cat', 'tse-promu-statut',
+                         'tse-promu-decor'];
+  /* Un nœud posé par l'extension : jamais pris pour un décor de Twitch. Les
+     marques de cette mise en forme n'en font pas un des nôtres — sans quoi un
+     décor marqué au balayage d'avant cesserait de l'être au suivant. */
+  const estANous = (e) => e.id.startsWith('tse-')
+    || [...e.classList].some((k) => k.startsWith('tse-') && !k.startsWith('tse-promu-'));
 
   /* ── LE GABARIT : UNE CARTE ORDINAIRE, MESURÉE (4.21.3) ───────────────────
      SECONDE CAPTURE, avec la grille en place : « c'est mieux mais pas
@@ -19804,6 +19851,13 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       voulu.set(e, 'tse-promu-' + role);
       for (let a = e.parentElement; a && a !== grille; a = a.parentElement) {
         voulu.set(a, 'tse-promu-plat');
+      }
+    }
+    // Ce que la grille et ses enrobages aplatis lui livreraient sans que ce soit une pièce.
+    for (const [hote, cl] of [...voulu]) {
+      if (cl !== 'tse-promu-grille' && cl !== 'tse-promu-plat') continue;
+      for (const enfant of hote.children) {
+        if (!voulu.has(enfant) && !estANous(enfant)) voulu.set(enfant, 'tse-promu-decor');
       }
     }
     /* Avec un gabarit, le LIEN et les enrobages AU-DESSUS de la grille sont
@@ -22473,39 +22527,46 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     //
     // Twitch structure ces cartes via la classe stable
     // side-nav-card__link--promoted-followed sur le <a>. À l'intérieur :
-    //   - <img alt="Logo de <Marque>" src="…">              → logo de la marque
+    //   - <img src="…/sponsorships-campaign-assets/…">      → logo de la marque
     //   - le wrapper parent porte un style="background-color: rgb(…)" inline
     //     correspondant à la couleur de la marque
     //   - <p title=" <Marque>"> dans .side-nav-card-promoted-bottom → nom
     //     de la marque (préfixé d'un espace dans le DOM Twitch, on trim).
     //
+    // RIEN NE SE LIT DANS UN TEXTE TRADUIT (4.24.0.43). Le logo se trouvait
+    // par son alt, et le nom s'en extrayait d'abord : « Logo de <Marque> ».
+    // Hors du français et de l'allemand, l'alt ne commence pas ainsi — « X
+    // Logo », « Logotipo de X », « Xのロゴ » —, le logo n'était pas trouvé, et
+    // l'aperçu perdait son badge. Le nom vient désormais du bandeau, dont le
+    // `title` porte la marque seule dans toutes les langues ; le logo, de son
+    // adresse, ou à défaut de sa place — une image dans un cadre coloré, hors
+    // de l'avatar. Une marque sans logo garde son badge, sans l'image.
+    //
     // Retourne :
     //   { name, logoUrl, bgColor } si carte sponsorisée
     //   null sinon
     const getSponsorInfo = (card) => {
-      if (!card.querySelector('a[class*="--promoted-followed"]')) return null;
-      const logoImg = card.querySelector(DOM.altLogoSelector);
-      if (!logoImg) return null;
-      const logoUrl = logoImg.getAttribute('src') || '';
-      // Nom : on essaye d'abord d'extraire depuis l'alt "Logo de <Marque>"
-      // (fiable), avec fallback sur le <p> du bandeau "Sponsorisé".
-      let name = '';
-      const m = DOM.sponsorLogoRe.exec((logoImg.getAttribute('alt') || '').trim());
-      if (m) name = m[1].trim();
-      if (!name) {
-        // Fallback : dernier <p> de .side-nav-card-promoted-bottom (avec
-        // espace en début dans le DOM Twitch, à trimmer).
-        const bottomPs = card.querySelectorAll('.side-nav-card-promoted-bottom p');
-        const lastP = bottomPs[bottomPs.length - 1];
-        name = (lastP?.getAttribute('title') || lastP?.textContent || '').trim();
-      }
+      const lien = card.querySelector('a[class*="--promoted-followed"]');
+      if (!lien) return null;
+      /* Le DERNIER <p> titré du bandeau : le mot « Sponsorisé » n'a pas de
+         `title`, la puce « • » en a un sur certaines cartes, la marque vient
+         après elle. */
+      const titres = [...lien.querySelectorAll('.side-nav-card-promoted-bottom p')]
+        .map((p) => (p.getAttribute('title') || '').trim()).filter((t) => t && t !== '•');
+      const textes = [...lien.querySelectorAll('.side-nav-card-promoted-bottom p')]
+        .map((p) => (p.textContent || '').trim()).filter((t) => t && t !== '•');
+      const name = titres[titres.length - 1] || (textes.length > 1 ? textes[textes.length - 1] : '');
       if (!name) return null;
+      const logoImg = lien.querySelector(DOM.sponsorLogoSelector)
+        || [...lien.querySelectorAll('img')].find((i) => !i.closest('.tw-avatar')
+             && !!i.parentElement?.style?.backgroundColor) || null;
+      const logoUrl = logoImg?.getAttribute('src') || '';
       // Le cadre coloré qui héberge le logo a un background-color inline.
       // On le récupère pour reproduire le rendu d'origine côté badge.
       // Validation : on ne garde que les formats CSS color attendus
       // (rgb/rgba/hsl/hsla/hex/transparent) pour éviter toute injection
       // CSS si Twitch venait à exposer une valeur inattendue.
-      const rawColor = (logoImg.parentElement?.style?.backgroundColor || '').trim();
+      const rawColor = (logoImg?.parentElement?.style?.backgroundColor || '').trim();
       const bgColor = /^(?:rgba?|hsla?)\([^)]+\)$|^#[0-9a-f]{3,8}$|^transparent$/i.test(rawColor)
         ? rawColor
         : 'transparent';
@@ -25854,9 +25915,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
        — ce qui la COUPE À DROITE du titre, posé par-dessus, dans la ligne ou
          ailleurs dans la barre — un bouton dont la boîte croise la ligne du
          titre — l'arrête à son bord gauche ;
-       — faute de rien trouver dans la barre, et le voile levé, cinq sondages
-         au bout de la ligne (`elementFromPoint`) : un bouton venu d'ailleurs
-         dans la page compte aussi.
+       — faute de rien trouver dans la barre, cinq sondages au bout de la
+         ligne (`elementFromPoint`), sous le voile comme après : un bouton
+         venu d'ailleurs dans la page compte aussi.
      Rien de cela ne dépend de la taille du titre : la place est la même d'un
      balayage à l'autre, et la taille voulue aussi. */
   function ajusterTitre() {
@@ -25909,8 +25970,14 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       if (getComputedStyle(el).visibility === 'hidden') continue;
       retenir(el, 'dessus');
     }
-    // VENU D'AILLEURS : quelques sondages au bout de la ligne, le voile levé — sous lui, rien n'est touchable.
-    if (!obstacle && !document.body.classList.contains('tse-loading')) {
+    /* VENU D'AILLEURS : quelques sondages au bout de la ligne — SOUS LE VOILE
+       AUSSI (4.24.0.43). Ils l'attendaient, au motif que rien n'y serait
+       touchable ; c'est faux de ce qu'ils cherchent. Le voile rend la seule
+       barre intouchable, et son calque l'est déjà : ce qui vient d'AILLEURS
+       se touche comme avant, et c'est tout ce que les sondages retiennent.
+       À attendre, le titre se réglait au premier balayage APRÈS la levée :
+       montré à la taille de Twitch, il rapetissait sous les yeux. Signalé. */
+    if (!obstacle) {
       const y = (rh.top + rh.bottom) / 2;
       const bout = droite;
       for (const dx of [4, 12, 20, 28, 36]) {
@@ -28947,7 +29014,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
   const isPlainCard = (card) => {
     if (card.querySelector('[class*="promoted-followed-card__content"]')) return false; // sponsorisée
     if (card.querySelector(DOM.altCostreamHostSelector)) return false;                  // co-stream
-    if (card.querySelector(DOM.altLogoSelector)) return false;                          // logo sponsor / squad
+    if (card.querySelector('a[class*="--promoted-followed"], ' + DOM.sponsorLogoSelector)) return false; // sponsor, catégorie ou non
     if (card.querySelector('.tse-collab-badge')) return false;                          // badge collab posé
     if (PLUS_RE_PRESENT.test(card.textContent || '')) return false;                     // « +N » non encore traité
     if (card.querySelector('[data-tse-extra-row]')) return false;                       // hype train, réduction…
@@ -29013,7 +29080,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
        « Top Chaînes » entièrement vide, alors que le classement mondial était
        parfaitement connu (pool de 2 124 chaînes au rapport). Le modèle reste
        PRÉFÉRÉ neutre ; celui-ci n'est qu'un second choix, nettoyé pour de bon. */
-    el.querySelectorAll(DOM.altCostreamHostSelector + ', ' + DOM.altLogoSelector
+    el.querySelectorAll(DOM.altCostreamHostSelector + ', ' + DOM.sponsorLogoSelector
       + ', [class*="iconContainer--primary"], [class*="iconContainer--secondary"]'
       + ', .primary-with-small-avatar__mini-avatar')
       .forEach(n => n.remove());

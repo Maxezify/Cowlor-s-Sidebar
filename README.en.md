@@ -2059,6 +2059,131 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## Sponsored cards in every language, and the title ready under the veil (v4.24.0.43)
+
+The request, screenshots attached — Japanese, Spanish, English, then German
+and Portuguese. First: "I have the impression the titles get smaller after
+the veil. Make the title the right size when the veil goes." Then: "the
+changes made when a card is sponsored are not well integrated for the other
+languages", with the markup of a sponsored card recorded in English,
+Spanish, Italian and Japanese; and: "only French is spot on". Published on
+`claude/chrome-multi`.
+
+### What was happening — sponsored cards
+
+- **The cross and the logo were targeted by their alternative text, which
+  Twitch translates.** Next to the avatar, a sponsored card carries a small
+  "in collaboration with" cross and the brand's logo in a coloured frame; the
+  extension hides them so the card looks like the others. The lists knew
+  three crosses — "en collaboration avec", "in collaboration with", "em
+  colaboração com" — and three logo openings: "Logo de", "Logo of", "Logo
+  von". Recorded on the attached cards: "en colaboración con", "in
+  collaborazione con", "協力:" for the cross; "<brand> Logo", "Logotipo de
+  <brand>", "Logo <brand>", "<brand>のロゴ" for the logo.
+- **What escaped the lists did not merely stay visible: it entered the
+  grid.** To lay the card out, the extension flattens its wrappers, and each
+  of their children becomes a cell. The cross and the logo landed wherever
+  they could: the cross above the avatar, the logo on the name or on the next
+  card. These are the screenshots, language by language: in English and
+  Portuguese, the logo on the name; in German, the cross; in Spanish and
+  Japanese, the cross and the logo, the latter on the card below.
+- **The preview lost its "Sponsored by" badge.** The brand was read from the
+  logo's alt; no logo found, no brand. Only French and German kept it.
+- **And Top Channels could copy a sponsored card.** Without a category, it
+  was recognised only by its logo, through the alt. In English it passed for
+  a neutral card, and became the model for fabricated cards. Replayed on the
+  bench, with that card at the top of the list: thirty fabricated cards, all
+  in the sponsored layout.
+
+### What was happening — the title
+
+- **The probes waited for the veil to lift.** 4.24.0.42 looks for the arrow
+  in three ways. The third, five probes at the end of the line, finds an
+  arrow placed outside the bar; it only acted once the veil was lifted, on
+  the grounds that nothing under it could be hit. Under the veil, the title
+  was therefore fitted without that arrow, at Twitch's size. It shrank at the
+  first scan after the lift, in plain view.
+- **The grounds were wrong.** The veil makes only the bar unhittable, and its
+  overlay already is: whatever comes from elsewhere is hit as before, and
+  that is all the probes keep.
+- **And a scan is only born of a mutation inside the bar.** An arrow placed
+  outside it, which arrives or moves after the last scan, restarts nothing.
+  The title would have seen it at the next scan, again after the lift.
+
+That is what the code explains of the symptom; the path actually taken on the
+page reads in the report, `TITRE` block (`voie`: "sonde" when the arrow comes
+from elsewhere).
+
+### What changes
+
+- **The cross and the logo are targeted by what does not translate.** The
+  cross is the image placed next to the avatar. The logo comes from the
+  address of Twitch's advertising campaigns (`sponsorships-campaign-assets`),
+  the same in every language.
+- **Nothing but the four pieces enters the grid.** Every child of the grid or
+  of a flattened wrapper that is neither a piece, nor a wrapper, nor the
+  extension's own is marked `tse-promu-decor` and hidden. A decoration
+  Twitch added tomorrow would not slip in either.
+- **The preview reads the brand from the banner** "Sponsored • <brand>",
+  whose `title` carries the name alone, in every language. The logo is read
+  from its address or, failing that, from its place in a coloured frame. A
+  brand without a logo keeps its badge.
+- **A sponsored card is never a cloning model**, with or without a category.
+- **The probes also work under the veil.** The title is moreover fitted one
+  last time at the lift itself, in the task that removes the veil: no frame
+  shows it in between.
+- **In the report**, the `CARTES SPONSORISÉES` block gains three values:
+  `decors`, what the grid set aside; `intrus`, what it shows without being a
+  piece (zero expected); `logos`, the logos found by their address.
+
+### What the bench measures
+
+**205**, new: six sponsored cards, one per language, in the recorded markup
+— French, English, Spanish, Italian, Japanese — and a language no table
+knows. That one carries a logo served from somewhere other than the
+campaigns, and a new decoration next to the avatar. Seven assertions:
+
+- a) the ordinary card to the pixel, neither cross nor logo;
+- b) the badge, with its logo and colour;
+- c) what the extension places is never set aside;
+- d) the report;
+- e) the collapsed bar, where the stylesheet works alone;
+- b bis) a brand without a logo;
+- f) Top Channels, with the English sponsored card without a category at
+  the top of the list.
+
+**204**, revised, two more assertions:
+
+- i) the title has its final size already under the veil, keeps it at the
+  lift, and is not written afterwards, in the four layouts and the ten
+  languages;
+- j) an arrow coming from elsewhere at the veil's last instant fits the title
+  at the lift itself.
+
+The gear is now measured by its layout. On first launch it pulses, up to
+1.18 times its size, and the room measured by the bench depended on the
+instant: a Japanese title fitting to within a pixel passed for too long one
+time in two.
+
+**166**, revised: the decoration is targeted by its place, as in the product.
+
+The full bench: 1752 assertions in 204 scenarios, all green.
+
+| mutant | what fails |
+| --- | --- |
+| 4.24.0.42 as it was | 205: a, b, b bis, d, e, f — in English the logo on the name; in Spanish, Italian and Japanese the cross and the logo; no badge outside French; thirty sponsored fabricated cards |
+| the stylesheet by alt, as before — the grid alone for the rest (1) | 205: e |
+| the grid's decorations left unmarked (1) | 205: a, d |
+| the "ours" guard removed (1) | 205: c |
+| the logo by its address only (1) | 205: b |
+| the logo required, and sought by alt, as before (1) | 205: b, b bis |
+| no logo, no badge (1) | 205: b bis |
+| `isPlainCard` by alt, as before (1) | 205: f |
+| the probes waiting for the lift (1) | 204: i — the title at Twitch's size under the veil |
+| the fitting at the lift removed (1) | 204: j — the title fitted at the first scan after the lift |
+
+Ten mutants, ten caught.
+
 ## The title, where Twitch really puts its arrow (v4.24.0.42)
 
 The request, three screenshots of 4.24.0.41 attached — Russian, Polish,
@@ -18708,7 +18833,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 203 scenarios, 1743 assertions |
+| `npm test` | the Playwright harness: 204 scenarios, 1752 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -18728,7 +18853,7 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1660 KB | 671 KB | 4,224 → **2** |
+| `content.js` | 1660 KB | 671 KB | 4,235 → **2** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
 | `panneau.js` | 109 KB | 51 KB | 159 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |

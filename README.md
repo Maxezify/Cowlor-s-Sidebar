@@ -2180,6 +2180,137 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## Les cartes sponsorisées dans toutes les langues, et le titre prêt sous le voile (v4.24.0.43)
+
+La demande, captures à l'appui — japonais, espagnol, anglais, puis allemand
+et portugais. D'abord : « J'ai l'impression que les titres deviennent plus
+petits après le voile. Fais en sorte que le titre soit à la bonne taille
+quand le voile part. » Puis : « les modifications lorsqu'une carte est
+sponso ne sont pas bien intégrées pour les autres langues », le balisage
+d'une carte sponsorisée relevé en anglais, en espagnol, en italien et en
+japonais ; et : « seul le français est nickel ». Publiée sur
+`claude/chrome-multi`.
+
+### Ce qui se passait — les cartes sponsorisées
+
+- **La croix et le logo se visaient par leur texte alternatif, que Twitch
+  traduit.** À côté de l'avatar, une carte sponsorisée porte une petite
+  croix « en collaboration avec » et le logo de la marque dans un cadre
+  coloré ; l'extension les masque pour que la carte ressemble aux autres.
+  Les listes connaissaient trois croix — « en collaboration avec », « in
+  collaboration with », « em colaboração com » — et trois débuts de logo :
+  « Logo de », « Logo of », « Logo von ». Relevés sur les cartes jointes :
+  « en colaboración con », « in collaborazione con », « 協力: » pour la
+  croix ; « <marque> Logo », « Logotipo de <marque> », « Logo <marque> »,
+  « <marque>のロゴ » pour le logo.
+- **Ce qui échappait aux listes ne restait pas seulement visible : il
+  entrait dans la grille.** Pour ranger la carte, l'extension aplatit ses
+  enrobages, et chacun de leurs enfants devient une case. La croix et le
+  logo s'y casaient à leur guise : la croix au-dessus de l'avatar, le logo
+  sur le pseudo ou sur la carte suivante. Ce sont les captures, langue par
+  langue : en anglais et en portugais, le logo sur le pseudo ; en allemand,
+  la croix ; en espagnol et en japonais, la croix et le logo, celui-ci sur
+  la carte d'en dessous.
+- **L'aperçu perdait son badge « Sponsorisé par ».** La marque se lisait
+  dans l'alt du logo ; logo introuvable, pas de marque. Seuls le français et
+  l'allemand le gardaient.
+- **Et Top Chaînes pouvait copier une carte sponsorisée.** Sans catégorie,
+  elle ne se reconnaissait qu'à son logo, par l'alt. En anglais, elle
+  passait pour une carte neutre, et devenait le modèle des cartes
+  fabriquées. Rejoué au banc, carte en tête de liste : trente cartes
+  fabriquées, toutes à la mise en page sponsorisée.
+
+### Ce qui se passait — le titre
+
+- **Les sondages attendaient la levée du voile.** La 4.24.0.42 cherche la
+  flèche de trois façons. La troisième, cinq sondages au bout de la ligne,
+  trouve une flèche posée d'ailleurs que de la barre ; elle n'agissait
+  qu'une fois le voile levé, au motif que rien n'y serait touchable. Sous le
+  voile, le titre se réglait donc sans cette flèche, à la taille de Twitch.
+  Il rapetissait au premier balayage après la levée, à la vue de tous.
+- **Le motif était faux.** Le voile rend la seule barre intouchable, et son
+  calque l'est déjà : ce qui vient d'ailleurs se touche comme avant, et
+  c'est tout ce que les sondages retiennent.
+- **Et un balayage ne naît que d'une mutation dans la barre.** Une flèche
+  posée hors d'elle, qui arrive ou bouge après le dernier balayage, ne
+  relance rien. Le titre l'aurait vue au premier balayage venu, là encore
+  après la levée.
+
+C'est ce que le code explique du symptôme ; la voie réellement suivie sur la
+page se lit au rapport, bloc `TITRE` (`voie` : « sonde » si la flèche vient
+d'ailleurs).
+
+### Ce qui change
+
+- **La croix et le logo se visent par ce qui ne se traduit pas.** La croix
+  est l'image posée à côté de l'avatar. Le logo vient de l'adresse des
+  campagnes publicitaires de Twitch (`sponsorships-campaign-assets`), la
+  même dans toutes les langues.
+- **Rien d'autre que les quatre pièces n'entre dans la grille.** Chaque
+  enfant de la grille ou d'un enrobage aplati qui n'est ni une pièce, ni un
+  enrobage, ni à l'extension, est marqué `tse-promu-decor` et masqué. Une
+  décoration que Twitch ajouterait demain ne s'y glisserait pas davantage.
+- **L'aperçu lit la marque dans le bandeau** « Sponsorisé • <marque> »,
+  dont le `title` porte le nom seul, dans toutes les langues. Le logo se
+  lit à son adresse, ou à défaut à sa place dans un cadre coloré. Une marque
+  sans logo garde son badge.
+- **Une carte sponsorisée n'est jamais un modèle de clonage**, avec ou sans
+  catégorie.
+- **Les sondages travaillent aussi sous le voile.** Le titre se règle en
+  outre une dernière fois à la levée même, dans la tâche qui retire le
+  voile : aucune image ne le montre entre les deux.
+- **Au rapport**, le bloc `CARTES SPONSORISÉES` gagne trois valeurs :
+  `decors`, ce que la grille a écarté ; `intrus`, ce qu'elle montre sans que
+  ce soit une pièce (zéro attendu) ; `logos`, les logos trouvés par leur
+  adresse.
+
+### Ce que le banc mesure
+
+**205**, nouveau : six cartes sponsorisées, une par langue, au balisage
+relevé — français, anglais, espagnol, italien, japonais — et une langue
+qu'aucune table ne connaît. Celle-ci porte un logo servi d'ailleurs que des
+campagnes, et une décoration inédite à côté de l'avatar. Sept assertions :
+
+- a) la carte ordinaire au pixel, ni croix ni logo ;
+- b) le badge, avec son logo et sa couleur ;
+- c) ce que l'extension pose n'est jamais écarté ;
+- d) le rapport ;
+- e) la barre réduite, où la feuille travaille seule ;
+- b bis) une marque sans logo ;
+- f) Top Chaînes, la carte sponsorisée anglaise sans catégorie en tête de
+  liste.
+
+**204**, revu, deux assertions de plus :
+
+- i) le titre a sa taille finale sous le voile déjà, la garde à la levée, et
+  ne s'écrit plus ensuite, dans les quatre façons et les dix langues ;
+- j) une flèche venue d'ailleurs au dernier instant du voile règle le titre à
+  la levée même.
+
+La roue s'y mesure désormais par sa mise en page. Au premier lancement elle
+bat, jusqu'à 1,18 fois sa taille, et la place mesurée par le banc dépendait
+de l'instant : un titre japonais qui tient à un pixel près passait pour trop
+long une fois sur deux.
+
+**166**, revu : le décor se vise par sa place, comme dans le produit.
+
+Le banc complet : 1752 assertions dans 204 scénarios, toutes vertes.
+
+| mutant | ce qui tombe |
+| --- | --- |
+| la 4.24.0.42 telle quelle | 205 : a, b, b bis, d, e, f — en anglais le logo sur le pseudo ; en espagnol, en italien et en japonais la croix et le logo ; aucun badge hors du français ; trente cartes fabriquées sponsorisées |
+| la feuille par l'alt, comme avant — la grille seule pour le reste (1) | 205 : e |
+| les décors de la grille non marqués (1) | 205 : a, d |
+| la garde « à nous » retirée (1) | 205 : c |
+| le logo par sa seule adresse (1) | 205 : b |
+| le logo exigé, et cherché par l'alt, comme avant (1) | 205 : b, b bis |
+| pas de logo, pas de badge (1) | 205 : b bis |
+| `isPlainCard` par l'alt, comme avant (1) | 205 : f |
+| les sondages qui attendent la levée (1) | 204 : i — le titre à la taille de Twitch sous le voile |
+| le réglage à la levée retiré (1) | 204 : j — le titre réglé au premier balayage après la levée |
+
+Dix mutants, dix pris.
+
 ## Le titre, là où Twitch range vraiment sa flèche (v4.24.0.42)
 
 La demande, trois captures de la 4.24.0.41 à l'appui — russe, polonais,
@@ -19287,7 +19418,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 203 scénarios, 1743 assertions |
+| `npm test` | le harnais Playwright : 204 scénarios, 1752 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -19308,7 +19439,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1660 Ko | 671 Ko | 4 224 → **2** |
+| `content.js` | 1660 Ko | 671 Ko | 4 235 → **2** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
 | `panneau.js` | 109 Ko | 51 Ko | 159 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
