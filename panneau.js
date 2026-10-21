@@ -1709,10 +1709,26 @@ const blocErreurs = (liste, origine, bilan, enPage = null) => bloc(
       : ['  (aucune / none)']),
   ]);
 
+/* ── L'EXEMPLAIRE DU PANNEAU, TEL QUE LA PAGE LE VOIT (4.24.0.45) ──────────
+   La page s'identifie par l'adresse de son script (`exemplaire`, cf.
+   content.js) : `chrome-extension://<id>/` sous Chrome, où l'adresse porte
+   `runtime.id` ; mais `moz-extension://<uuid>/` sous Firefox, où l'adresse
+   porte un identifiant propre à l'installation, et `runtime.id` l'identifiant
+   Gecko de l'extension. Comparés l'un à l'autre, ils ne coïncidaient jamais :
+   chaque rapport Firefox annonçait deux exemplaires actifs. Trouvé au
+   portage. C'est l'ADRESSE du panneau qui se compare à celle de la page ;
+   `runtime.id` reste le repli, le jour où `getURL` manquerait. */
+const adressePanneau = () => {
+  try { return new URL(API.runtime.getURL('')).host || null; }
+  catch { return null; }
+};
+
 const construireRapport = (r, transport, fond) => {
   // Le rapport est le seul endroit d'où cette page apprend le thème de Twitch.
   if (r?.page?.theme) appliquerThemePanneau(r.page.theme);
   const m = API.runtime.getManifest();
+  const adresse = adressePanneau();
+  const moi = adresse || API.runtime?.id || null;
   const d = new Date();
   const L = [
     `Cowlor's Sidebar — rapport de diagnostic / diagnostic report`,
@@ -1742,8 +1758,9 @@ const construireRapport = (r, transport, fond) => {
        celui de l'un pendant que l'autre tourne : la version ci-dessus est
        alors celle du panneau, pas celle du code qui a produit le reste. */
     paire('identifiant / id', API.runtime?.id || '—'),
+    ...(adresse && adresse !== API.runtime?.id ? [paire('adresse / host', adresse)] : []),
     ...(r?.exemplaire ? [paire('page — exemplaire', r.exemplaire)] : []),
-    ...(r?.exemplaire && API.runtime?.id && r.exemplaire !== API.runtime.id
+    ...(r?.exemplaire && moi && r.exemplaire !== moi
       ? ['  ⚠ la page tourne sous un AUTRE exemplaire que ce panneau : deux exemplaires actifs — n\'en garder qu\'un',
          '  ⚠ the page runs another copy than this panel: two copies enabled — keep only one']
       : []),

@@ -7455,6 +7455,49 @@ titre('70. Panneau — la page rendue, mesurée');
      && contient('la page tourne sous un AUTRE exemplaire que ce panneau')
      && /has already been declared[^\n]*\n\s+↳ la copie d'un second exemplaire \(panopano/.test(vue.texte),
      JSON.stringify((vue.texte || '').split('\n').filter((l) => /exemplaire|identifiant|declared|↳/.test(l))));
+
+  /* SOUS FIREFOX, L'ADRESSE N'EST PAS L'IDENTIFIANT (4.24.0.45). La page se
+     nomme par l'adresse de son script, `moz-extension://<uuid>/` ; `runtime.id`
+     y vaut l'identifiant Gecko. Comparés l'un à l'autre, chaque rapport
+     Firefox annonçait deux exemplaires actifs — trouvé au portage. Un seul
+     exemplaire : aucune alerte ; un second, à une autre adresse : l'alerte.
+     Mutant — la comparaison à `runtime.id`. */
+  const firefox = await browser.newPage({ viewport: { width: 760, height: 580 } });
+  firefox.on('pageerror', e => { fail++; console.log('  ✗ ERREUR PAGE:', e.message); });
+  await firefox.addInitScript(stub, messages);
+  await firefox.addInitScript(() => {
+    const rt = window.chrome.runtime;
+    const manifeste = rt.getManifest();
+    rt.id = 'cowlor@exemple.invalid';
+    rt.getURL = (c) => 'moz-extension://0f3c2b1a-9d8e-4f7a-b6c5-d4e3f2a1b0c9/' + c;
+    rt.getManifest = () => ({ ...manifeste, background: { scripts: ['background.js'] },
+                              browser_specific_settings: { gecko: { id: 'cowlor@exemple.invalid' } } });
+    window.__rapport.exemplaire = '0f3c2b1a-9d8e-4f7a-b6c5-d4e3f2a1b0c9';
+    window.__rapport.erreurs = [];
+  });
+  await firefox.goto(pathToFileURL(join(ICI, '..', 'panneau.html')).href);
+  await attendre(firefox, () => document.querySelectorAll('.rail-item').length > 0);
+  const lireRapport = () => firefox.evaluate(async () => {
+    document.getElementById('btn-rapport').click();
+    const zone = document.getElementById('rapport-zone');
+    for (let i = 0; i < 60 && !/SONDES/.test(zone.value); i++) await new Promise(r => setTimeout(r, 50));
+    const t = zone.value;
+    zone.value = '';
+    return t;
+  });
+  const seul = await lireRapport();
+  await firefox.evaluate(() => {
+    window.__rapport.exemplaire = 'a1b2c3d4-0000-4000-8000-000000000000';
+    document.getElementById('rapport-fermer')?.click();
+  });
+  const deux = await lireRapport();
+  await firefox.close();
+  const lignes = (t) => (t || '').split('\n').filter((l) => /extension|exemplaire|identifiant|adresse|⚠/.test(l));
+  ok('…et sous Firefox, où l\'adresse n\'est pas l\'identifiant : un seul exemplaire, aucune alerte ; un second, l\'alerte',
+     /extension\s+\S+ \(firefox\)/.test(seul) && /adresse \/ host\s+0f3c2b1a/.test(seul)
+     && /page — exemplaire\s+0f3c2b1a/.test(seul) && !seul.includes('AUTRE exemplaire')
+     && /page — exemplaire\s+a1b2c3d4/.test(deux) && deux.includes('la page tourne sous un AUTRE exemplaire'),
+     JSON.stringify({ seul: lignes(seul), deux: lignes(deux) }));
   ok('…l\'état du réseau et les quantiles de retard',
      contient('pauseGqlMs') && contient('12000') && contient('210000'),
      'pause GraphQL et p90');
