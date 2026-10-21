@@ -2180,6 +2180,46 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## L'exemplaire du panneau sous Firefox (v4.24.0.45)
+
+Trouvé en préparant le portage des versions 4.24.0.40 à 4.24.0.44 sur
+`claude/firefox-multi`, avant tout report. Publiée sur `claude/chrome-multi`.
+
+### Ce qui se passait
+
+La 4.24.0.41 fait dire au rapport si la page tourne sous un autre exemplaire
+de l'extension que le panneau ouvert : deux exemplaires actifs, c'est la
+copie de `content.js` qui échoue à sa première ligne. La page se nomme par
+l'adresse de son script (`exemplaire`), et le panneau se comparait par
+`runtime.id`.
+
+Sous Chrome, les deux coïncident : l'adresse est `chrome-extension://<id>/`.
+Sous Firefox, non. L'adresse est `moz-extension://<uuid>/`, un identifiant
+propre à l'installation, et `runtime.id` est l'identifiant Gecko de
+l'extension. Chaque rapport Firefox aurait annoncé « deux exemplaires
+actifs — n'en garder qu'un », avec un seul exemplaire installé. Le banc ne
+le voyait pas : son panneau simulé était celui de Chrome.
+
+### Ce qui change
+
+- **Le panneau se compare par son adresse** (`runtime.getURL('')`), comme
+  la page ; `runtime.id` reste le repli si `getURL` manquait.
+- **Quand l'adresse n'est pas l'identifiant,** le bloc `ENVIRONNEMENT` la
+  montre à côté : c'est le cas sous Firefox.
+
+### Ce que le banc mesure
+
+**70**, une assertion de plus : un panneau Firefox simulé, avec identifiant
+Gecko, adresse `moz-extension://` et manifeste Firefox. Avec un seul
+exemplaire, aucune alerte ; avec un second, à une autre adresse, l'alerte.
+
+Le banc complet : 1760 assertions dans 205 scénarios, toutes vertes.
+
+| mutant | ce qui tombe |
+| --- | --- |
+| la 4.24.0.44 telle quelle | 70 : l'alerte avec un seul exemplaire |
+| la comparaison à `runtime.id` (1) | 70 : l'alerte avec un seul exemplaire |
+
 ## La langue de Twitch, partout (v4.24.0.44)
 
 La demande, après la 4.24.0.43 : « Oui, traite complètement les repères qui
@@ -19553,7 +19593,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 205 scénarios, 1759 assertions |
+| `npm test` | le harnais Playwright : 205 scénarios, 1760 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -19576,7 +19616,7 @@ assemblé :
 | --- | --- | --- | --- |
 | `content.js` | 1660 Ko | 671 Ko | 4 242 → **2** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
-| `panneau.js` | 109 Ko | 51 Ko | 159 → **0** |
+| `panneau.js` | 113 Ko | 53 Ko | 160 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
 | `background.js` | 10 Ko | 2 Ko | 22 → **0** |
 | **les cinq** | **1918 Ko** | **828 Ko** | **−57 %** |

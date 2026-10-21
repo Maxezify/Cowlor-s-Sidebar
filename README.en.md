@@ -2059,6 +2059,47 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The panel's copy under Firefox (v4.24.0.45)
+
+Found while preparing the port of versions 4.24.0.40 to 4.24.0.44 to
+`claude/firefox-multi`, before anything was carried over. Published on
+`claude/chrome-multi`.
+
+### What was happening
+
+4.24.0.41 has the report say whether the page runs under another copy of the
+extension than the open panel: two enabled copies are what makes the copy of
+`content.js` fail on its first line. The page names itself by its script's
+address (`exemplaire`), and the panel compared itself through `runtime.id`.
+
+Under Chrome the two coincide: the address is `chrome-extension://<id>/`.
+Under Firefox they do not. The address is `moz-extension://<uuid>/`, an
+identifier specific to the installation, and `runtime.id` is the extension's
+Gecko identifier. Every Firefox report would have announced "two copies
+enabled — keep only one", with a single copy installed. The bench did not see
+it: its simulated panel was Chrome's.
+
+### What changes
+
+- **The panel compares itself by its address** (`runtime.getURL('')`), as
+  the page does; `runtime.id` remains the fallback should `getURL` be
+  missing.
+- **When the address is not the identifier,** the `ENVIRONNEMENT` block
+  shows it alongside: that is the case under Firefox.
+
+### What the bench measures
+
+**70**, one more assertion: a simulated Firefox panel, with a Gecko
+identifier, a `moz-extension://` address and a Firefox manifest. With a
+single copy, no alert; with a second one, at another address, the alert.
+
+The full bench: 1760 assertions in 205 scenarios, all green.
+
+| mutant | what fails |
+| --- | --- |
+| 4.24.0.44 as it was | 70: the alert with a single copy |
+| the comparison to `runtime.id` (1) | 70: the alert with a single copy |
+
 ## Twitch's language, everywhere (v4.24.0.44)
 
 The request, after 4.24.0.43: "Yes, deal completely with the markers that
@@ -18965,7 +19006,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 205 scenarios, 1759 assertions |
+| `npm test` | the Playwright harness: 205 scenarios, 1760 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -18987,7 +19028,7 @@ the assembled code:
 | --- | --- | --- | --- |
 | `content.js` | 1660 KB | 671 KB | 4,242 → **2** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
-| `panneau.js` | 109 KB | 51 KB | 159 → **0** |
+| `panneau.js` | 113 KB | 53 KB | 160 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
 | `background.js` | 10 KB | 2 KB | 22 → **0** |
 | **all five** | **1918 KB** | **828 KB** | **−57 %** |
