@@ -387,8 +387,34 @@ window.__retirerEntree = (login) => {
 // Une carte SPONSORISÉE, au balisage relevé sur Twitch (classes hachées
 // comprises) : avatar, croix « en collaboration avec » et logo de la marque
 // sur une rangée avec le compteur, puis le pseudo, la catégorie et le bandeau.
-// `cat` absent : pas de bloc de catégorie. Cf. scénario 166.
-window.__addPromotedCard = (login, cat, viewersText, marque) => {
+// `cat` absent : pas de bloc de catégorie. Cf. scénarios 166 et 205.
+//
+// `langue` : les textes que Twitch y écrit, RELEVÉS sur les cartes d'un
+// utilisateur (4.24.0.43) — alt de la croix et du logo, bandeau, « Live »,
+// compteur lu à voix haute, consigne de la flèche. Seuls ces textes changent
+// d'une langue à l'autre ; la structure, elle, est la même. « xx » est une
+// langue qu'aucune table ne connaît, au logo servi d'ailleurs que des
+// campagnes, et qui porte une décoration inédite à côté de l'avatar : ce que
+// Twitch pourrait poser demain.
+window.__promuLangues = {
+  fr: { croix: 'en collaboration avec', logo: (m) => 'Logo de ' + m, sponso: 'Sponsorisé', point: '•',
+        live: 'Live', spect: ' spectateurs', fleche: 'Utilisez la touche fléchée droite pour afficher plus d’informations.' },
+  en: { croix: 'in collaboration with', logo: (m) => m + ' Logo', sponso: 'Sponsored', point: null,
+        live: 'Live', spect: 'viewers', fleche: 'Use the Right Arrow Key to show more information.' },
+  es: { croix: 'en colaboración con', logo: (m) => 'Logotipo de ' + m, sponso: 'Patrocinado', point: null,
+        live: 'En directo', spect: 'espectadores',
+        fleche: 'Pulsa la flecha hacia la derecha para que se muestre más información sobre su perfil.' },
+  it: { croix: 'in collaborazione con', logo: (m) => 'Logo ' + m, sponso: 'Sponsorizzati', point: null,
+        live: 'Live', spect: 'spettatori', fleche: 'Usa il tasto freccia destra per visualizzare ulteriori informazioni.' },
+  ja: { croix: '協力:', logo: (m) => m + 'のロゴ', sponso: 'スポンサー済み', point: null,
+        live: 'ライブ', spect: '人の視聴者', fleche: '右矢印キーを押すと詳細情報を表示。' },
+  xx: { croix: 'kunlabore kun', logo: (m) => 'Emblemo ' + m, sponso: 'Sponsorita', point: null,
+        live: 'Viva', spect: ' spektantoj', fleche: 'Premu la dekstran sagon.', ailleurs: true, inedit: true },
+};
+window.__addPromotedCard = (login, cat, viewersText, marque, langue = 'fr') => {
+  const T = window.__promuLangues[langue];
+  const logoSrc = T.ailleurs ? 'https://cdn/marques/' + login + '.png'
+    : 'https://cdn/sponsorships-campaign-assets/C' + login + '/ASSET_TYPE_ADVERTISER_LOGO/A' + login;
   const d = document.createElement('div');
   d.className = 'Layout-sc-1xcs6mc-0 glFavL side-nav-card';
   d.innerHTML =
@@ -402,18 +428,20 @@ window.__addPromotedCard = (login, cat, viewersText, marque) => {
               '<div class="ScAvatar-sc-144b42z-0 jHuNIx tw-avatar">' +
                 '<img class="InjectLayout-sc-1i43xsx-0 ceDQrC tw-image-avatar" src="https://cdn/' + login +
                   '.png" alt="' + login + '"></div>' +
-              '<img alt="en collaboration avec" width="8" height="8" class="tw-image" src="https://cdn/x.svg">' +
+              '<img alt="' + T.croix + '" width="8" height="8" class="tw-image" ' +
+                'src="https://cdn/x-white.svg">' +
               '<div class="Layout-sc-1xcs6mc-0 kCPnxe" style="background-color: rgb(7, 21, 58);">' +
-                '<img alt="Logo de ' + marque + '" class="tw-image" src="https://cdn/logo.png"></div>' +
+                '<img alt="' + T.logo(marque) + '" class="tw-image" src="' + logoSrc + '"></div>' +
+              (T.inedit ? '<div class="Layout-sc-1xcs6mc-0 zQwErT"><span class="CoreText-sc-1txzju1-0 aBcDe">★</span></div>' : '') +
             '</div>' +
             '<div class="Layout-sc-1xcs6mc-0 NaOSo side-nav-card__live-status">' +
               '<div class="Layout-sc-1xcs6mc-0 bPLZqY">' +
                 '<div class="ScChannelStatusIndicator-sc-bjn067-0 fWOmHx tw-channel-status-indicator"></div>' +
-                '<p class="CoreText-sc-1txzju1-0 fJYwSz InjectLayout-sc-1i43xsx-0 hyrBH">Live</p>' +
+                '<p class="CoreText-sc-1txzju1-0 fJYwSz InjectLayout-sc-1i43xsx-0 hyrBH">' + T.live + '</p>' +
                 '<div class="Layout-sc-1xcs6mc-0 gdJMkN">' +
                   '<span aria-hidden="true" class="CoreText-sc-1txzju1-0 fUSHSk">' + viewersText + '</span>' +
                   '<p class="CoreText-sc-1txzju1-0 fJYwSz InjectLayout-sc-1i43xsx-0 hyrBH">' + viewersText +
-                    ' spectateurs</p>' +
+                    T.spect + '</p>' +
                 '</div>' +
               '</div>' +
             '</div>' +
@@ -424,16 +452,16 @@ window.__addPromotedCard = (login, cat, viewersText, marque) => {
                    '<p title="' + cat + '" class="CoreText-sc-1txzju1-0 cWEeTu">' + cat + '</p></div>' : '') +
           '<div class="Layout-sc-1xcs6mc-0 gIWswv side-nav-promoted-followed-card__sponsorship">' +
             '<div class="Layout-sc-1xcs6mc-0 kHgzIE side-nav-card-promoted-bottom">' +
-              '<p class="CoreText-sc-1txzju1-0 loWPjP">Sponsorisé</p>' +
-              '<p title="•" class="CoreText-sc-1txzju1-0 cWEeTu">•</p>' +
+              '<p class="CoreText-sc-1txzju1-0 loWPjP">' + T.sponso + '</p>' +
+              (T.point ? '<p title="•" class="CoreText-sc-1txzju1-0 cWEeTu">•</p>'
+                       : '<p class="CoreText-sc-1txzju1-0 loWPjP">•</p>') +
               '<p title=" ' + marque + '" class="CoreText-sc-1txzju1-0 cWEeTu"> ' + marque + '</p>' +
             '</div>' +
           '</div>' +
         '</div>' +
       '</div>' +
       '<div class="Layout-sc-1xcs6mc-0 side-nav-card__link__tooltip-arrow">' +
-        '<p class="CoreText-sc-1txzju1-0 fJYwSz InjectLayout-sc-1i43xsx-0 hyrBH">Utilisez la touche ' +
-          'fléchée droite pour afficher plus d’informations.</p>' +
+        '<p class="CoreText-sc-1txzju1-0 fJYwSz InjectLayout-sc-1i43xsx-0 hyrBH">' + T.fleche + '</p>' +
       '</div>' +
     '</a>';
   document.getElementById('cards').appendChild(d);

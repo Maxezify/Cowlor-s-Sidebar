@@ -22952,8 +22952,9 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
       typoNom: t(nom), typoCat: t(cat),
       tseNom: !!c.querySelector('[class*="promoted-followed-card__title"] p.tse-nom'),
       gabarit: c.classList.contains('tse-promu-gabarit'),
-      decor: vu('[class*="promoted-followed-card__sponsorship"]') || vu('img[alt^="Logo de"]')
-             || vu('img[alt="en collaboration avec"]'),
+      // Par leur place, comme le produit : l'alt se traduit (cf. 205).
+      decor: vu('[class*="promoted-followed-card__sponsorship"]') || vu('.tw-avatar ~ img')
+             || vu('.tw-avatar ~ div'),
     };
   }, login);
 
@@ -32564,6 +32565,41 @@ const S_LECTEUR_SONDE = () => {
   const ouvrir = async (lang, { fleche = 'flux', largeur = 240, coupeRange = false, important = false } = {}) => {
     const page = await browser.newPage();
     page.on('pageerror', e => { fail++; console.log('  ✗ ERREUR PAGE:', e.message); });
+    /* LE TITRE AUX TROIS INSTANTS DU VOILE (4.24.0.43) : SOUS lui — relevé
+       dans le retrait même de la classe, avant qu'il ait lieu —, À SA LEVÉE —
+       au premier microtâche après la tâche qui l'a retirée, donc avant toute
+       image —, puis les écritures de style qui suivent. `__avantLevee` est le
+       crochet de la flèche tardive : elle paraît dans ce même retrait, après
+       le dernier balayage, sans qu'aucune mutation de la barre ne la signale. */
+    await page.addInitScript(() => {
+      window.__sousVoile = null; window.__levee = null; window.__ecrituresApres = 0;
+      const lire = () => {
+        const h3 = document.querySelector('#side-nav .side-nav__title h3');
+        return h3 ? { px: parseFloat(getComputedStyle(h3).fontSize) } : null;
+      };
+      const vrai = DOMTokenList.prototype.remove;
+      DOMTokenList.prototype.remove = function (...noms) {
+        if (window.__sousVoile === null && noms.includes('tse-loading') && document.body
+            && this === document.body.classList && this.contains('tse-loading')) {
+          window.__sousVoile = lire();
+          window.__avantLevee?.();
+        }
+        return vrai.apply(this, noms);
+      };
+      const mo = new MutationObserver(() => {
+        if (window.__levee !== null || window.__sousVoile === null) return;
+        if (document.body.classList.contains('tse-loading')) return;
+        window.__levee = lire();
+        const h3 = document.querySelector('#side-nav .side-nav__title h3');
+        if (h3) new MutationObserver((l) => { window.__ecrituresApres += l.length; })
+          .observe(h3, { attributes: true, attributeFilter: ['style'] });
+      });
+      const armer = () => {
+        if (!document.documentElement) { setTimeout(armer, 0); return; }
+        mo.observe(document.documentElement, { attributes: true, subtree: true, attributeFilter: ['class'] });
+      };
+      armer();
+    });
     await page.goto(URL_PAGE);
     // La feuille de la ligne arrive APRÈS les premiers balayages, comme celle de Twitch peut le faire.
     await page.evaluate(([l, f, w, c, imp]) => {
@@ -32590,18 +32626,23 @@ const S_LECTEUR_SONDE = () => {
       const fl = document.getElementById('native-collapse');
       const ligne = document.querySelector('#side-nav .side-nav__title');
       if (f === 'dehors') ligne.after(fl);
+      // Hors de la barre, et qui SUIT la ligne, image par image, comme le ferait une vraie.
+      const suivre = () => {
+        const r = document.querySelector('#side-nav .side-nav__title')?.getBoundingClientRect();
+        if (r) {
+          const css = `position: fixed; z-index: 50; left: ${r.right - 10 - 30}px; top: ${r.top}px; width: 30px; height: 30px;`;
+          if (fl.style.cssText !== css) fl.style.cssText = css;
+        }
+        requestAnimationFrame(suivre);
+      };
       if (f === 'ailleurs') {
-        // Hors de la barre, et qui SUIT la ligne, image par image, comme le ferait une vraie.
         document.body.appendChild(fl);
-        const suivre = () => {
-          const r = document.querySelector('#side-nav .side-nav__title')?.getBoundingClientRect();
-          if (r) {
-            const css = `position: fixed; z-index: 50; left: ${r.right - 10 - 30}px; top: ${r.top}px; width: 30px; height: 30px;`;
-            if (fl.style.cssText !== css) fl.style.cssText = css;
-          }
-          requestAnimationFrame(suivre);
-        };
         suivre();
+      }
+      // La même, mais qui ne paraît qu'au dernier instant du voile.
+      if (f === 'tardive') {
+        fl.remove();
+        window.__avantLevee = () => { document.body.appendChild(fl); suivre(); };
       }
       document.querySelector('.side-nav-section').removeAttribute('aria-label');
       document.documentElement.lang = l;
@@ -32617,6 +32658,14 @@ const S_LECTEUR_SONDE = () => {
     const ligne = document.querySelector('#side-nav .side-nav__title');
     const h3 = ligne.querySelector('h3'), roue = document.getElementById('tse-roue'), fleche = document.getElementById('native-collapse');
     const R = (e) => e.getBoundingClientRect();
+    /* LA ROUE PAR SA MISE EN PAGE (4.24.0.43). Au premier lancement elle bat —
+       « transform: scale » jusqu'à 1,18, autour de son centre — et sa boîte
+       rendue va de 26 à 30,7 px selon l'instant : la place mesurée ici
+       dépendait de la phase du battement, et un titre japonais qui tient à
+       un pixel près passait pour trop long une fois sur deux. Le produit
+       compte la largeur de mise en page ; le banc aussi. */
+    const posee = (e) => { const b = R(e), c = (b.left + b.right) / 2, w = e.offsetWidth;
+                           return [c - w / 2, c + w / 2]; };
     // Ce que le texte demanderait à la taille de Twitch, mesuré à part : une sonde, pas le titre lui-même.
     const sonde = document.createElement('span');
     sonde.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap;font:600 18px Inter, sans-serif';
@@ -32626,8 +32675,10 @@ const S_LECTEUR_SONDE = () => {
     sonde.remove();
     return { texte: h3.textContent, px: parseFloat(getComputedStyle(h3).fontSize), a18,
              hauteur: R(h3).height, coupe: h3.scrollWidth > h3.clientWidth + 1,
-             h3: [R(h3).left, R(h3).right], roue: [R(roue).left, R(roue).right], fleche: [R(fleche).left, R(fleche).right],
-             fin: R(ligne).right - 10, voie: window.tse.panneau.rapport().titre?.voie ?? null };
+             h3: [R(h3).left, R(h3).right], roue: posee(roue), fleche: [R(fleche).left, R(fleche).right],
+             fin: R(ligne).right - 10, voie: window.tse.panneau.rapport().titre?.voie ?? null,
+             sousVoile: window.__sousVoile?.px ?? null, levee: window.__levee?.px ?? null,
+             ecrituresApres: window.__ecrituresApres };
   });
   const juste = (m) => m.hauteur <= 24 * 1.5 && !m.coupe
     && m.roue[0] >= m.h3[1] - 0.5 && m.roue[1] <= m.fleche[0] + 0.5 && m.fleche[1] <= m.fin + 0.5;
@@ -32678,7 +32729,46 @@ const S_LECTEUR_SONDE = () => {
      tous.every(tailleJuste) && tous.every((m) => m.px >= 12)
      && signales.every((l) => tous.filter((m) => m.lang === l && m.mode === 'suivies').every((m) => m.px < 18))
      && tous.filter((m) => m.lang === 'fr-FR').every((m) => m.px === 18),
-     tous.filter((m) => !tailleJuste(m)).map((m) => `${m.lang}/${m.mode} ${m.px}px ✗`).join(' · '));
+     tous.filter((m) => !tailleJuste(m)).map((m) => `${m.lang}/${m.mode} ${m.px}px ✗ (${m.voie}, texte à 18 px `
+       + `${Math.round(m.a18)}, place ${Math.round(m.fin - m.h3[0] - (m.roue[1] - m.roue[0]) - (m.fleche[1] - m.fleche[0]) - 12)})`).join(' · '));
+
+  /* i) LE TITRE EST PRÊT SOUS LE VOILE (4.24.0.43). Signalé sur captures :
+     « les titres deviennent plus petits après le voile ». Les sondages qui
+     trouvent une flèche venue d'ailleurs attendaient la levée : le titre se
+     montrait à la taille de Twitch, puis rapetissait au premier balayage
+     suivant. Les quatre façons, les dix langues : la taille relevée sous le
+     voile, celle de la levée et la finale sont la même, et rien ne s'écrit
+     après. Mutant — les sondages qui attendent la levée. */
+  const prets = FACONS.flatMap((f) => releves[f].filter((m) => m.mode === 'suivies').map((m) => ({ f, ...m })));
+  const pret = (m) => m.sousVoile === m.px && m.levee === m.px && m.ecrituresApres === 0;
+  ok('i) sous le voile déjà, le titre a sa taille finale — et la garde à sa levée, sans une écriture après : quatre façons, dix langues',
+     prets.length === 40 && prets.every(pret),
+     prets.filter((m) => !pret(m)).map((m) => `${m.f}/${m.lang} sous ${m.sousVoile} · levée ${m.levee}`
+       + ` · fin ${m.px} · ${m.ecrituresApres} écriture(s)`).join(' | '));
+
+  /* j) LA FLÈCHE QUI ARRIVE APRÈS LE DERNIER BALAYAGE. Hors de la barre,
+     elle ne déclenche rien : un balayage ne naît que d'une mutation DANS la
+     barre. Elle paraît ici dans le retrait même du voile — sous lui, le titre
+     était donc juste à la taille de Twitch, et c'est la levée qui doit le
+     régler, avant la première image. Puis un balayage forcé : rien ne
+     change. Mutant — le réglage à la levée retiré. */
+  const tardives = [];
+  for (const lang of ['en-US', 'ru-RU', 'ja-JP']) {
+    const page = await ouvrir(lang, { fleche: 'tardive' });
+    await page.evaluate(() => {
+      const t = document.createElement('div');
+      document.getElementById('cards').appendChild(t);
+      t.remove();
+    });
+    await wait(page, 600);
+    tardives.push({ lang, mode: 'tardive', ...(await mesurer(page)) });
+    await page.close();
+  }
+  ok('j) une flèche venue d\'ailleurs au dernier instant du voile : le titre réglé à sa levée même, et plus touché ensuite',
+     tardives.every((m) => m.sousVoile > m.levee && m.levee === m.px && juste(m) && tailleJuste(m)
+                         && m.voie === 'sonde' && m.ecrituresApres === 0),
+     tardives.map((m) => `${m.lang} sous ${m.sousVoile} · levée ${m.levee} · fin ${m.px} · ${m.voie}`
+       + ` · ${m.ecrituresApres} écriture(s)${juste(m) ? '' : ' ✗'}`).join(' | '));
 
   /* g) LE MOTEUR QUI COUPE. Flèche dans le flux, c'est là qu'il mord : le
      titre y prend la place exacte, et un texte coupé mesuré par sa partie
@@ -32746,6 +32836,225 @@ const S_LECTEUR_SONDE = () => {
        JSON.stringify(m));
     await page.close();
   }
+}
+
+/* ═════════ LA CARTE SPONSORISÉE, DANS TOUTES LES LANGUES ══════════════════
+   SIGNALÉ SUR CAPTURES (4.24.0.43), en anglais, allemand, espagnol, italien,
+   portugais et japonais, le balisage de quatre d'entre elles à l'appui :
+   « seul le français est nickel ». La croix « en collaboration avec » et le
+   logo de la marque se visaient par leur texte alternatif, que Twitch
+   traduit : selon la langue, la croix restait au-dessus de l'avatar, le logo
+   sur le pseudo ou sur la carte suivante, et l'aperçu perdait son badge
+   « Sponsorisé par ». Le 166 ne jouait que le français.
+
+   LE DÉCOR EST LE BALISAGE RELEVÉ, langue par langue (cf. __promuLangues),
+   noms inventés. S'y ajoute « xx » : une langue qu'aucune table ne connaît,
+   un logo servi d'ailleurs que des campagnes, et une décoration inédite à
+   côté de l'avatar — ce que Twitch pourrait poser demain. */
+{
+  titre('205. La carte sponsorisée dans toutes les langues — ni croix ni logo sur la carte, la marque dans l\'aperçu');
+  const CARTES = { fr: 'aurore', en: 'brise', es: 'cumulus', it: 'delta', ja: 'embrun', xx: 'flocon' };
+  const logoAttendu = (lg, l) => (lg === 'xx' ? `https://cdn/marques/${l}.png`
+    : `https://cdn/sponsorships-campaign-assets/C${l}/ASSET_TYPE_ADVERTISER_LOGO/A${l}`);
+  const secouer = (page) => page.evaluate(() => {
+    const t = document.createElement('div');
+    document.getElementById('cards').appendChild(t);
+    t.remove();
+  });
+  const page = await fresh();
+  await page.evaluate((C) => {
+    // La carte ordinaire, modélisée comme au 166 : c'est elle qui sert de gabarit.
+    const st = document.createElement('style');
+    st.textContent = `
+      #cards { width: 240px; }
+      .side-nav-card__link:not(.side-nav-card__link--promoted-followed) {
+        display: flex; align-items: center; box-sizing: border-box; height: 42px; padding: 0 10px; }
+      .side-nav-card__avatar { flex-shrink: 0; }
+      .side-nav-card__avatar .tw-avatar, .side-nav-card__avatar img { display: block; width: 30px; height: 30px; }
+      .mainblock { flex: 1; min-width: 0; padding-left: 10px; }
+      .mainblock .metacell { align-items: center; }
+      .metacell > [data-a-target="side-nav-card-metadata"] { min-width: 0; }
+      .side-nav-card__metadata p { font-family: Arial, sans-serif; }
+      .side-nav-card__metadata p[data-a-target="side-nav-title"] {
+        font-size: 14px; font-weight: 700; line-height: 17px; }
+      .side-nav-card__metadata p[title] { font-size: 13px; line-height: 17px; margin-top: 2px;
+                                           color: rgb(173, 173, 184); }
+      .metacell .side-nav-card__live-status { min-height: 0; margin-left: 6px; }`;
+    document.head.appendChild(st);
+    const h = new Date(Date.now() - 58 * 60_000).toISOString();
+    window.__fx = {};
+    let v = 9000;
+    for (const [lg, login] of Object.entries(C)) {
+      window.__fx[login] = { id: 'p' + login, createdAt: h, viewers: v, game: 'Just Chatting', tags: [] };
+      window.__addPromotedCard(login, 'Discussions', String(v), 'Savonia', lg);
+      v -= 500;
+    }
+    window.__fx.ordinaire = { id: 'po', createdAt: h, viewers: 500, game: 'Minecraft', tags: [] };
+    window.__addCard('ordinaire', 'Minecraft', '500');
+  }, CARTES);
+  await attendre(page, (C) => Object.values(C).concat('ordinaire').every((l) =>
+    !!document.querySelector(`.side-nav-card[data-tse-login="${l}"] .tse-uptime`))
+    && Object.values(C).every((l) =>
+      !!document.querySelector(`.side-nav-card[data-tse-login="${l}"].tse-promu-gabarit`)), 15_000, CARTES);
+  await attendre(page, () => !document.body.classList.contains('tse-loading'), 15_000);
+  await wait(page, 500);
+
+  /* Ce que montre chaque carte À CÔTÉ de son avatar — la croix, le cadre du
+     logo, la décoration inédite —, son bandeau, et sa géométrie contre celle
+     de la carte ordinaire : hauteur, position du pseudo. */
+  const lire = () => page.evaluate((C) => {
+    const geo = (c) => {
+      const lr = c.querySelector('a').getBoundingClientRect();
+      const n = c.querySelector('p.tse-nom').getBoundingClientRect();
+      return [lr.height, n.left - lr.left, n.top - lr.top];
+    };
+    const g0 = geo(document.querySelector('.side-nav-card[data-tse-login="ordinaire"]'));
+    const out = {};
+    for (const [lg, login] of Object.entries(C)) {
+      const c = document.querySelector(`.side-nav-card[data-tse-login="${login}"]`);
+      const av = c.querySelector('.tw-avatar');
+      out[lg] = {
+        vus: [...av.parentElement.children].filter((e) => e !== av && e.getClientRects().length > 0)
+          .map((e) => e.tagName.toLowerCase() + (e.querySelector('img') ? '>img' : '')),
+        bandeau: (c.querySelector('.side-nav-card-promoted-bottom')?.getClientRects().length ?? 0) > 0,
+        ecart: geo(c).map((x, i) => Math.round((x - g0[i]) * 10) / 10),
+      };
+    }
+    return out;
+  }, CARTES);
+  const cartes = await lire();
+  const propre = (m) => m && m.vus.length === 0 && !m.bandeau && m.ecart.every((x) => Math.abs(x) <= 1);
+  /* Mutant — les règles d'avant, par l'alt — en anglais le logo sur le
+     pseudo, en espagnol la croix au-dessus de l'avatar : les captures. */
+  ok('a) dans les six langues, la carte sponsorisée est une carte ordinaire : ni croix, ni logo, ni bandeau, et le pseudo à sa place au pixel',
+     Object.values(cartes).every(propre),
+     JSON.stringify(Object.fromEntries(Object.entries(cartes).filter(([, m]) => !propre(m)))));
+
+  /* b) LA MARQUE N'EST PAS PERDUE : l'aperçu la dit, avec son logo et sa
+     couleur, quelle que soit la langue de Twitch. Le nom vient du bandeau, le
+     logo de son adresse — ou, servi d'ailleurs, de sa place dans un cadre
+     coloré. Mutants — le logo cherché par son alt ; le cadre oublié. */
+  const badgeDe = async (login) => {
+    await attendre(page, () => !document.querySelector('.tse-preview[data-tse-visible="true"]'), 8000);
+    await hoverLogin(page, login);
+    await attendre(page, () => !!document.querySelector('.tse-preview[data-tse-visible="true"]'), 8000);
+    await wait(page, 300);
+    const b = await page.evaluate(() => {
+      const e = document.querySelector('.tse-preview[data-tse-visible="true"] .tse-preview__badge--sponsor');
+      return e ? { texte: e.textContent.trim(),
+                   logo: e.querySelector('.tse-preview__sponsor-logo img')?.getAttribute('src') ?? null,
+                   fond: e.querySelector('.tse-preview__sponsor-logo')?.style.background ?? null } : null;
+    });
+    await page.evaluate((l) => document.querySelector(`.side-nav-card[data-tse-login="${l}"]`)
+      ?.dispatchEvent(new MouseEvent('mouseleave', { bubbles: false })), login);
+    return b;
+  };
+  const badges = {};
+  for (const [lg, login] of Object.entries(CARTES)) badges[lg] = await badgeDe(login);
+  const badgeJuste = (lg) => badges[lg]?.texte === 'Sponsorisé par Savonia'
+    && badges[lg].logo === logoAttendu(lg, CARTES[lg]) && badges[lg].fond === 'rgb(7, 21, 58)';
+  ok('b) …et l\'aperçu dit qui sponsorise, dans les six langues : la marque, son logo et sa couleur',
+     Object.keys(CARTES).every(badgeJuste),
+     JSON.stringify(Object.fromEntries(Object.keys(CARTES).filter((lg) => !badgeJuste(lg)).map((lg) => [lg, badges[lg]]))));
+
+  /* c) CE QUE L'EXTENSION POSE n'est jamais pris pour un décor de Twitch,
+     même là où la grille écarte tout le reste. Mutant — la garde retirée. */
+  await page.evaluate((l) => {
+    const av = document.querySelector(`.side-nav-card[data-tse-login="${l}"] .tw-avatar`);
+    const n = document.createElement('span');
+    n.className = 'tse-banc-a-nous';
+    n.textContent = '•';
+    av.parentElement.appendChild(n);
+  }, CARTES.xx);
+  await secouer(page);
+  await wait(page, 600);
+  const aNous = await page.evaluate(() => {
+    const n = document.querySelector('.tse-banc-a-nous');
+    const r = { vu: !!n && n.getClientRects().length > 0, decor: !!n?.classList.contains('tse-promu-decor') };
+    n?.remove();
+    return r;
+  });
+  ok('c) ce que l\'extension pose à côté de l\'avatar n\'est jamais écarté comme un décor',
+     aNous.vu && !aNous.decor, JSON.stringify(aNous));
+  await secouer(page);
+  await wait(page, 400);
+
+  /* d) AU RAPPORT : les six cartes, rien de visible qui ne soit une pièce,
+     ce que la grille a écarté — croix, cadre et bandeau de chacune, et la
+     décoration inédite —, et les cinq logos trouvés par leur adresse. */
+  const rapport = await page.evaluate(() => window.tse.panneau.rapport().promues);
+  ok('d) au rapport : six cartes rangées, aucun intrus dans la grille, dix-neuf décors écartés, cinq logos par leur adresse',
+     rapport?.cartes === 6 && rapport.formees === 6 && rapport.intrus === 0 && rapport.decors === 19
+     && rapport.logos === 5,
+     JSON.stringify({ ...rapport, squelette: undefined }));
+
+  /* e) SIDEBAR RÉDUITE, la grille se défait (cf. 166) et ses marques avec
+     elle : la croix et le logo restent masqués par la feuille seule, dans
+     les cinq langues relevées. La PRÉMISSE se lit sur « xx », dont le logo
+     ne vient pas des campagnes : lui reparaît, preuve que rien d'autre ne
+     masque ce qui est à côté de l'avatar. Mutant — les règles de la feuille
+     retirées, la grille seule. */
+  await page.evaluate(() => document.body.classList.add('side-nav--collapsed'));
+  await secouer(page);
+  await attendre(page, () => !document.querySelector('[class*="tse-promu"]'), 8000);
+  const reduite = await lire();
+  await page.evaluate(() => document.body.classList.remove('side-nav--collapsed'));
+  ok('e) sidebar réduite, la grille défaite : ni croix ni logo pour les cinq langues relevées — et l\'inconnue montre ce que la feuille seule ne masque pas',
+     ['fr', 'en', 'es', 'it', 'ja'].every((lg) => reduite[lg].vus.length === 0)
+     && reduite.xx.vus.includes('div>img'),
+     JSON.stringify(Object.fromEntries(Object.entries(reduite).map(([lg, m]) => [lg, m.vus]))));
+  /* b) bis — UNE CARTE DONT LE LOGO MANQUE garde son badge : le nom vient du
+     bandeau, et rien ne dépend de l'image. Joué en dernier, le logo retiré ne
+     fausse aucun compte. Mutant — pas de logo, pas de badge. */
+  await page.evaluate((l) => document.querySelector(`.side-nav-card[data-tse-login="${l}"] .tw-avatar ~ div`)?.remove(),
+                      CARTES.it);
+  await secouer(page);
+  await wait(page, 400);
+  const sansLogo = await badgeDe(CARTES.it);
+  ok('b) …et une marque sans logo garde son badge, sans l\'image',
+     sansLogo?.texte === 'Sponsorisé par Savonia' && sansLogo.logo === null, JSON.stringify(sansLogo));
+  await page.close();
+
+  /* f) TOP CHAÎNES NE CLONE JAMAIS UNE CARTE SPONSORISÉE. Une carte « sans
+     décoration » sert de modèle aux cartes fabriquées ; la sponsorisée sans
+     catégorie ne se reconnaissait qu'à son logo, par l'alt — en anglais,
+     elle passait pour neutre, et c'est sa mise en page que chaque carte
+     fabriquée aurait copiée. Elle est ici la première de la liste, devant
+     une carte ordinaire. Mutant — l'alt rétabli dans isPlainCard. */
+  const p2 = await fresh();
+  await p2.evaluate(() => {
+    const h = new Date(Date.now() - 58 * 60_000).toISOString();
+    window.__fx = {
+      brise: { id: 'q1', createdAt: h, viewers: 9000, game: null, tags: [] },
+      ordinaire: { id: 'q2', createdAt: h, viewers: 500, game: 'Minecraft', tags: [] },
+    };
+    window.__addPromotedCard('brise', null, '9000', 'Savonia', 'en');
+    window.__addCard('ordinaire', 'Minecraft', '500');
+    const cats = [];
+    for (let i = 0; i < 2; i++) {
+      const streams = [];
+      for (let k = 0; k < 20; k++) streams.push({ login: `g${i}_${k}`, viewers: 5000 - k, tags: ['English'] });
+      cats.push({ name: 'c' + i, viewers: 400_000 - i, streams });
+    }
+    window.__cats = cats;
+  });
+  await attendre(p2, () => ['brise', 'ordinaire'].every((l) =>
+    !!document.querySelector(`.side-nav-card[data-tse-login="${l}"] .tse-uptime`)), 15_000);
+  const premiere = await p2.evaluate(() => document.querySelector('.side-nav-card')?.dataset.tseLogin ?? null);
+  await p2.evaluate(() => document.querySelector('#tse-mode-row [data-tse-mode="global"]').click());
+  await attendre(p2, () => document.querySelectorAll('.side-nav-card[data-tse-synthetic="true"]').length >= 10, 12_000);
+  await wait(p2, 900);
+  const top = await p2.evaluate(() => {
+    const faites = [...document.querySelectorAll('.side-nav-card[data-tse-synthetic="true"]')];
+    return { fabriquees: faites.length,
+             sponsorisees: faites.filter((c) => !!c.querySelector('a[class*="--promoted-followed"], '
+               + '[class*="promoted-followed-card__"], .side-nav-card-promoted-bottom')).length,
+             modele: window.tse.panneau.rapport().page.modele };
+  });
+  ok('f) Top Chaînes : la carte sponsorisée sans catégorie, en anglais et en tête, ne sert jamais de modèle',
+     premiere === 'brise' && top.fabriquees >= 10 && top.sponsorisees === 0 && top.modele === 'neutre',
+     JSON.stringify({ premiere, ...top }));
+  await p2.close();
 }
 
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════
