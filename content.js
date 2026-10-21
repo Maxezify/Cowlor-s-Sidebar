@@ -783,8 +783,13 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
 
     cardLinkSelector:        'a[data-a-target="side-nav-card"], a.side-nav-card__link, a[href^="/"]',
     discountSelector:        '[aria-label="Abonnement-cadeau"], [aria-label="Gift a Sub"], [aria-label="Abo verschenken"], [aria-label="Suscripción de Regalo"], [aria-label="Inscrição de presente"], [aria-label="Oferta de subscrição"]',
-    altLogoSelector:         'img[alt^="Logo de"], img[alt^="Logo of"], img[alt^="Logo von"]',
+
+    sponsorLogoSelector:     'img[src*="sponsorships-campaign-assets"]',
+
     altCostreamHostSelector: 'img[alt^="Co-stream d\'un stream de "], img[alt^="Co-stream from a stream by "], img[alt^="Co-stream aus einem Stream von "], img[alt^="Co-stream de um stream de "]',
+
+    costreamMiniSelector:    '[data-a-target="side-nav-card-metadata"] img',
+    costreamSelector:        '[class*="iconContainer--primary"], [data-a-target="side-nav-card-metadata"] img',
 
     followedLabels:          ['Chaînes suivies', 'Followed Channels', 'Kanäle, denen du folgst', 'Canales que sigues', 'Canais seguidos', 'Canais que segues'],
     showMoreLabels:          ['Afficher plus', 'Show More', 'Mehr anzeigen', 'Mostrar más', 'Mostrar mais'],
@@ -802,11 +807,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     subOfferSelector:        '[data-a-target="subscribe-button"]',
     showLessStableSelector:  '[data-a-target="side-nav-show-less-button"], [data-test-selector="ShowLess"]',
 
-    offlineRe:               /\b(?:déconnecté(?:e)?s?|offline|desconectad(?:o|a)s?)\b/i,
     costreamHostRe:          /^(?:Co-stream d'un stream de|Co-stream from a stream by|Co-stream aus einem Stream von|Co-stream de um stream de)\s+([A-Za-z0-9_]+)$/,
 
     guestsTotalRe:           /\s(?:et|and|und|y|e)\s+(\d+)\s+(?:invité|guest|Gast|Gäste|invitado|convidado)/i,
-    sponsorLogoRe:           /^Logo\s+(?:de|of|von)\s+(.+)$/i,
   });
 
   const plurielSlave = (n, [un, peu, beaucoup]) => {
@@ -1904,7 +1907,23 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
 
   let LANG = detectLanguage();
   let S = STRINGS[LANG];
+
+  const localeTwitch = () => {
+    let l = null;
+    try { l = Intl.getCanonicalLocales((document.documentElement.lang || '').trim())[0] || null; }
+    catch { l = null; }
+    if (!l) return S.locale;
+    const premiere = l.split('-')[0].toLowerCase();
+    return premiere === LANG || !STRINGS[premiere] ? l : S.locale;
+  };
   jalon('i18n');
+
+  const EXEMPLAIRE = (() => {
+    try {
+      const m = /(?:chrome|moz|safari-web)-extension:\/\/([^/\s)]+)\//.exec(new Error().stack || '');
+      return m ? m[1] : null;
+    } catch { return null; }
+  })();
 
   const erreurs = (() => {
     const MAX = 40;
@@ -2667,15 +2686,10 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     .side-nav-card .side-nav-promoted-followed-card__gradient,
     .side-nav-card .side-nav-promoted-followed-card__sponsorship,
     
-    .side-nav-card img[alt="en collaboration avec"],
-    .side-nav-card img[alt="in collaboration with"],
-    .side-nav-card img[alt="em colaboração com"],
-    .side-nav-card img[alt^="Logo de"],
-    .side-nav-card img[alt^="Logo of"],
-    .side-nav-card img[alt^="Logo von"],
-    .side-nav-card a[class*="--promoted-followed"] div:has(> img[alt^="Logo de"]),
-    .side-nav-card a[class*="--promoted-followed"] div:has(> img[alt^="Logo of"]),
-    .side-nav-card a[class*="--promoted-followed"] div:has(> img[alt^="Logo von"]) {
+    .side-nav-card a[class*="--promoted-followed"] .tw-avatar ~ img,
+    .side-nav-card a[class*="--promoted-followed"] img[src*="sponsorships-campaign-assets"],
+    .side-nav-card a[class*="--promoted-followed"] div:has(> img[src*="sponsorships-campaign-assets"]),
+    .side-nav-card .tse-promu-decor {
       display: none !important;
     }
 
@@ -3596,6 +3610,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     
     ${DOM.sidebarRoot} .side-nav__title[data-tse-roue] > h3 {
       flex: 0 1 auto; min-width: 0;
+      
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
     .tse-roue {
       flex: 0 0 auto;
@@ -4661,7 +4677,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     return fetch(CFG.GQL_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Client-ID': CFG.CLIENT_ID,
-                 'Accept-Language': S.locale },
+                 'Accept-Language': localeTwitch() },
       body: JSON.stringify(payload),
       credentials: 'omit',
       signal: controller.signal
@@ -4945,9 +4961,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       '  }' +
       '}';
 
-    const catTopQuery = (code) =>
-      'query TseCategoryTop($name: String!, $n: Int!) {' +
-      '  game(name: $name) {' +
+    const catTopQuery = (code, parId = false) =>
+      `query TseCategoryTop(${parId ? '$id: ID!' : '$name: String!'}, $n: Int!) {` +
+      `  game(${parId ? 'id: $id' : 'name: $name'}) {` +
       '    id name viewersCount' +
       '    streams(first: $n, options: { sort: VIEWER_COUNT' +
       (code ? `, broadcasterLanguages: [${code}]` : '') + ' }) {' +
@@ -4962,7 +4978,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       '  }' +
       '}';
 
-    const CATEGORY_TOP_QUERY = catTopQuery(null);
+    let idJeuRefuse = false;
 
     let categories    = [];
     let categoriesTs  = 0;
@@ -4988,7 +5004,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
 
                     chutes: 0, chuteMax: 0, chutesHorsEcran: 0,
 
-                    repertoireBas: 0, repertoireHaut: 0, lastMs: 0 };
+                    repertoireBas: 0, repertoireHaut: 0,
+
+                    homonymes: 0, sansJeu: 0, nonLues: 0, lastMs: 0 };
 
     const empileurs = new Set();
 
@@ -4998,6 +5016,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       stats.ops += ops.length;
       const responses = await Promise.all(slices.map(s => post(s)));
       const out = [];
+
+      const erreurs = [];
       let transport = false;
       responses.forEach((rep, i) => {
         const size = slices[i].length;
@@ -5005,12 +5025,12 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         if (rep === NETWORK_ERROR || !Array.isArray(rep) || rep.length !== size) {
           stats.failedSlices += 1;
           transport = true;
-          for (let k = 0; k < size; k++) out.push(null);
+          for (let k = 0; k < size; k++) { out.push(null); erreurs.push(false); }
           return;
         }
-        rep.forEach(r => out.push(r?.errors ? null : (r?.data ?? null)));
+        rep.forEach(r => { out.push(r?.errors ? null : (r?.data ?? null)); erreurs.push(!!r?.errors); });
       });
-      return { out, transport };
+      return { out, transport, erreurs };
     };
 
     const LANG_CHECK_QUERY =
@@ -5245,18 +5265,38 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
 
       const planchers = new Map();
       if (!cats.length) return { queried, seen, planchers, done: 0, transport: false };
-      const query = code ? catTopQuery(code) : CATEGORY_TOP_QUERY;
-      const ops = cats.map(c => ({
+
+      const parId = (c) => !idJeuRefuse && c.id != null && c.id !== '';
+      const opDe = (c, avecId) => ({
         operationName: 'TseCategoryTop',
-        variables: { name: c.name, n: CFG.GLOBAL_STREAMS_MAX },
-        query
-      }));
-      const { out: data, transport } = await send(ops);
+        variables: avecId ? { id: String(c.id), n: CFG.GLOBAL_STREAMS_MAX }
+                          : { name: c.name, n: CFG.GLOBAL_STREAMS_MAX },
+        query: catTopQuery(code, avecId),
+      });
+      const formes = cats.map(parId);
+      const envoi = await send(cats.map((c, i) => opDe(c, formes[i])));
+      const data = envoi.out;
+      let transport = envoi.transport;
+
+      const parIdIdx = formes.flatMap((f, i) => (f ? [i] : []));
+      if (parIdIdx.length && !transport && parIdIdx.every((i) => envoi.erreurs[i])) {
+        const reprise = await send(parIdIdx.map((i) => opDe(cats[i], false)));
+        transport = transport || reprise.transport;
+        if (reprise.out.some((d) => d)) {
+          idJeuRefuse = true;
+          parIdIdx.forEach((i, k) => { data[i] = reprise.out[k]; formes[i] = false; });
+        }
+      }
       const now  = Date.now();
       let done = 0;
       data.forEach((d, i) => {
+        if (d && !d.game) { stats.sansJeu += 1; return; }
         const edges = d?.game?.streams?.edges;
         if (!Array.isArray(edges)) return;
+
+        const g = d.game;
+        const sienne = formes[i] ? String(g.id) === String(cats[i].id) : g.name === cats[i].name;
+        if (!sienne) { stats.homonymes += 1; return; }
         done += 1;
         queried.add(cats[i].name);
 
@@ -5421,18 +5461,32 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
 
     const CAT_LANGUE_MAX = 800;
 
+    const mesuresMonde = new Map();
+    let mesuresEvincees = 0;
+
     const noterMesure = (categorie, langue, somme) => {
       if (categorie == null || !langue || !Number.isFinite(somme)) return;
+      if (categorie === '') { mesuresMonde.set(langue, { v: somme, ts: Date.now() }); return; }
       const cle = categorie + '\u0000' + langue;
       mesuresCatLangue.delete(cle);
       mesuresCatLangue.set(cle, { v: somme, ts: Date.now() });
       while (mesuresCatLangue.size > CAT_LANGUE_MAX) {
-        mesuresCatLangue.delete(mesuresCatLangue.keys().next().value);
+        const vieille = mesuresCatLangue.keys().next().value;
+        mesuresCatLangue.delete(vieille);
+        mesuresEvincees += 1;
+
+        const i = vieille.indexOf('\u0000');
+        mesuresTs.delete('C\u0000' + vieille.slice(0, i));
+        mesuresTs.delete('L\u0000' + vieille.slice(i + 1));
       }
     };
 
     const appliquerMesures = (m, axe, valeur) => {
       const limite = Date.now() - CFG.GLOBAL_PRUNE_AGE;
+      if (axe === 'categorie' && valeur === '') {
+        for (const [lg, mes] of mesuresMonde) if (mes.ts >= limite) m.set(lg, mes.v);
+        return m;
+      }
       for (const [cle, mes] of mesuresCatLangue) {
         if (mes.ts < limite) continue;
         const i = cle.indexOf('\u0000');
@@ -5454,6 +5508,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     const catLangCountQuery = (code) =>
       'query TseCatLangCount($name: String!, $n: Int!) {' +
       '  game(name: $name) {' +
+
+      '    name' +
       '    streams(first: $n, options: { sort: VIEWER_COUNT' +
       `, broadcasterLanguages: [${code}] }) {` +
       '      edges { node { viewersCount } }' +
@@ -5488,6 +5544,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         const { out, transport } = await send(ops);
         let servies = 0;
         out.forEach((d, i) => {
+
+          if (categorie && d?.game && d.game.name !== categorie) { stats.homonymes += 1; return; }
           const edges = categorie ? d?.game?.streams?.edges : d?.streams?.edges;
           if (!Array.isArray(edges)) {
             bilanMesures.echecs++;
@@ -5589,6 +5647,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         langApiRejected.add(wl.lang);
         code = null;
         pool.clear();
+
         a = await harvest(seed, pool);
       }
       if (!a.done) return { ok: false, complete: false };
@@ -5622,7 +5681,11 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       publish(pool);
 
       windowFloor = cats[cats.length - 1].viewers;
-      complete = !truncated
+
+      const nonLues = [...seed, ...todo]
+        .filter((c) => !(t > 0 && c.viewers <= t) && !a.queried.has(c.name) && !b.queried.has(c.name)).length;
+      stats.nonLues = nonLues;
+      complete = !truncated && nonLues === 0
         && (cats.length < CFG.GLOBAL_CATEGORIES_MAX || windowFloor <= threshold);
 
       const langFinal = code ? wl.lang : null;
@@ -5728,13 +5791,15 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       const started = Date.now();
       const frais = new Map();
       let applique = !!want.code;
-      let h = await harvest([{ name: want.name, viewers: 0 }], frais, want.code);
+
+      const cible = { name: want.name, id: categories.find((c) => c.name === want.name)?.id ?? null, viewers: 0 };
+      let h = await harvest([cible], frais, want.code);
 
       if (!h.done && want.code && !h.transport) {
         langApiRejected.add(want.lang);
         applique = false;
         frais.clear();
-        h = await harvest([{ name: want.name, viewers: 0 }], frais);
+        h = await harvest([cible], frais);
       }
 
       if (gen !== scopeGen) return { ok: true };
@@ -5908,10 +5973,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       catCounts(langue = null) {
         if (!langue) return new Map(categories.map(c => [c.name, c.viewers]));
 
-        const m = appliquerMesures(new Map(), 'langue', langue);
-
-        m.delete('');
-        return m;
+        return appliquerMesures(new Map(), 'langue', langue);
       },
       cats(n = CFG.GLOBAL_CATEGORIES_MAX) {
         return categories.slice(0, n);
@@ -6043,7 +6105,10 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
 
           tags: { ...bilanTags, refuse: tagRefuse },
 
-          mesures: { ...bilanMesures, connues: mesuresCatLangue.size },
+          categoriesPar: idJeuRefuse ? 'nom' : 'id',
+
+          mesures: { ...bilanMesures, connues: mesuresCatLangue.size,
+                     monde: mesuresMonde.size, evincees: mesuresEvincees },
           worldLang,
           language:   state.globalMode ? state.languageFilter : null,
           scope,
@@ -6269,6 +6334,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       }
 
       document.body.classList.remove('tse-loading');
+
+      try { ajusterTitre(); }
+      catch (e) { erreurs.noter('titre', 'réglage à la levée : ' + ((e && e.message) || e)); }
       if (!overlay || !overlay.isConnected) { overlay = null; spinner = null; return; }
 
       overlay.dataset.tseFading = 'true';
@@ -10726,6 +10794,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
           etapes: demarrage.etapes.slice(),
         },
 
+        exemplaire: EXEMPLAIRE,
         page: {
 
           chemin: location.pathname,
@@ -10873,6 +10942,27 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
           };
         })(),
 
+        titre: (() => {
+          const ligne = document.querySelector(`${DOM.sidebarRoot} .side-nav__title`);
+          const h3 = ligne?.querySelector(':scope > h3');
+          if (!h3 || sidebarCollapsed) return { texte: null };
+          const r1 = (v) => (Number.isFinite(v) ? Math.round(v * 10) / 10 : null);
+          return {
+            langue: LANG,
+            texte: (h3.textContent || '').trim(),
+            natifPx: r1(mesureTitre.natifPx), posePx: r1(mesureTitre.posePx),
+            calculePx: r1(parseFloat(getComputedStyle(h3).fontSize)),
+            placePx: r1(mesureTitre.placePx), textePx: r1(mesureTitre.textePx),
+
+            rangePx: r1(mesureTitre.rangePx), toilePx: r1(mesureTitre.toilePx),
+            voie: mesureTitre.voie ?? null, obstacle: mesureTitre.obstacle ?? null,
+            obstacleGauchePx: r1(mesureTitre.obstacleGauchePx),
+            coupe: h3.scrollWidth > h3.clientWidth + 1,
+            ligne: [...ligne.children].map((e) => `${e.tagName.toLowerCase()}${e.id ? '#' + e.id : ''}`
+              + ` ${e.offsetWidth || 0}px ${getComputedStyle(e).position}`).join(' · '),
+          };
+        })(),
+
         lecteur: (() => {
           const videos = [...document.querySelectorAll('video')];
           if (!videos.length) return { videos: 0 };
@@ -11008,8 +11098,10 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         promues: (() => {
           const estPromue = (c) => !!c.querySelector('a[class*="--promoted-followed"]');
           const liste = cartes.filter(estPromue);
+
           const r = { cartes: liste.length, formees: 0, sansAvatar: 0, sansNom: 0, sansStatut: 0,
                       plats: 0, aplatis: 0, gabarits: 0, categorieSousAvatar: 0,
+                      decors: 0, intrus: 0, logos: 0,
                       ecartNomPx: null, ecartHauteurPx: null, squelette: {} };
           const gauche = (c, e) => e.getBoundingClientRect().left - c.getBoundingClientRect().left;
           const mediane = (v) => { const s = v.slice().sort((a, b) => a - b);
@@ -11025,6 +11117,14 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
             for (const p of c.querySelectorAll('.tse-promu-plat')) {
               r.plats++;
               if (getComputedStyle(p).display === 'contents') r.aplatis++;
+            }
+            r.decors += c.querySelectorAll('.tse-promu-decor').length;
+            if (c.querySelector(DOM.sponsorLogoSelector)) r.logos++;
+            const piece = (e) => /\btse-promu-(?:avatar|nom|cat|statut|plat)\b/.test(e.getAttribute('class') || '');
+            for (const hote of c.querySelectorAll('.tse-promu-grille, .tse-promu-plat')) {
+              for (const e of hote.children) {
+                if (!piece(e) && !estANous(e) && e.getClientRects().length > 0) r.intrus++;
+              }
             }
             if (av && cat && cat.getBoundingClientRect().top
                               >= av.getBoundingClientRect().bottom - 1) r.categorieSousAvatar++;
@@ -11066,7 +11166,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         coStream: { ...bilanCostream, ...gsStats,
 
                     ...globalChannels.chutes() },
-        langue: { interface: S.locale, page: LANG },
+
+        langue: { interface: S.locale, page: LANG, twitch: localeTwitch(),
+                  html: document.documentElement.lang || null },
         mode: { global: !!state.globalMode },
         sondes: runDiagnostics(),
         compteurs: {
@@ -11446,7 +11548,11 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
   };
 
   const PROMU_CLASSES = ['tse-promu-grille', 'tse-promu-plat', 'tse-promu-lien', 'tse-promu-enveloppe',
-                         'tse-promu-avatar', 'tse-promu-nom', 'tse-promu-cat', 'tse-promu-statut'];
+                         'tse-promu-avatar', 'tse-promu-nom', 'tse-promu-cat', 'tse-promu-statut',
+                         'tse-promu-decor'];
+
+  const estANous = (e) => e.id.startsWith('tse-')
+    || [...e.classList].some((k) => k.startsWith('tse-') && !k.startsWith('tse-promu-'));
 
   let gabaritPromu = { scan: -1, valeurs: null };
   const mesurerGabaritPromu = () => {
@@ -11528,6 +11634,13 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       }
     }
 
+    for (const [hote, cl] of [...voulu]) {
+      if (cl !== 'tse-promu-grille' && cl !== 'tse-promu-plat') continue;
+      for (const enfant of hote.children) {
+        if (!voulu.has(enfant) && !estANous(enfant)) voulu.set(enfant, 'tse-promu-decor');
+      }
+    }
+
     const gabarit = mesurerGabaritPromu();
     const lien = card.querySelector('a[class*="--promoted-followed"]');
     if (gabarit && grille !== lien) {
@@ -11567,8 +11680,6 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
   const refreshSidebarCollapsed = () => { sidebarCollapsed = detectSidebarCollapsed(); };
 
   const isCardOffline = (card) => {
-
-    if (DOM.offlineRe.test(card.textContent || '')) return true;
 
     if (card.querySelector('.side-nav-card__avatar--offline')) return true;
 
@@ -11868,33 +11979,55 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
 
   const viewerFormatters = new Map();
   const viewerFormatter = () => {
-    const key = `${S.locale}|${LANG}`;
-    let f = viewerFormatters.get(key);
+    const locale = localeTwitch();
+    let f = viewerFormatters.get(locale);
     if (!f) {
 
-      const opts = LANG === 'de'
+      const opts = locale.toLowerCase().startsWith('de')
         ? {}
         : { notation: 'compact', maximumFractionDigits: 1 };
-      try { f = new Intl.NumberFormat(S.locale, opts); }
+      try { f = new Intl.NumberFormat(locale, opts); }
       catch { f = new Intl.NumberFormat(undefined, opts); }
-      viewerFormatters.set(key, f);
+      viewerFormatters.set(locale, f);
     }
     return f;
   };
 
   const formatViewers = (n) => viewerFormatter().format(n);
 
-  const NOMBRE_RE = /\d[\d\s.,  ]*\s*[kKmM]?/;
+  const NOMBRE_RE = /\d(?:[\d\s.,\u00a0\u202f]*\d)?/;
+  const LETTRE_RE = /[a-z\u00c0-\u024f\u0370-\u03ff\u0400-\u04ff]/i;
+  const ecritsAccessibles = new WeakMap();
+  const remplacerNombre = (texte, voulu) => {
+    const m = NOMBRE_RE.exec(texte);
+    if (!m) return null;
+    let fin = m.index + m[0].length;
+    const blanc = /^[\s\u00a0\u202f]*/.exec(texte.slice(fin))[0];
+    const apres = texte.slice(fin + blanc.length).toLowerCase();
+    const suf = suffixesCompacts().find(([x]) => apres.startsWith(x)
+      && !(LETTRE_RE.test(x.slice(-1)) && LETTRE_RE.test(apres.charAt(x.length))));
+    if (suf) {
+      fin += blanc.length + suf[0].length;
+      if (texte.charAt(fin) === '.' && voulu.endsWith('.')) fin++;
+    }
+    return texte.slice(0, m.index) + voulu + texte.slice(fin);
+  };
   const recalerTexteAccessible = (card, shown) => {
     const host = liveStatusOf(card);
     if (!host) return;
+    const voulu = formatViewers(shown);
+    const natif = (nativeViewersEl(card)?.textContent || '').trim();
     for (const n of host.querySelectorAll('*')) {
       if (n.children.length) continue;
       if (n.getAttribute('aria-hidden') === 'true') continue;
       if (n.className && String(n.className).includes('tse-')) continue;
       const texte = n.textContent || '';
-      if (!NOMBRE_RE.test(texte)) continue;
-      const neuf = texte.replace(NOMBRE_RE, formatViewers(shown));
+      const notre = ecritsAccessibles.get(n);
+      const neuf = notre && texte.includes(notre) ? texte.replace(notre, voulu)
+        : /\d/.test(natif) && texte.includes(natif) ? texte.replace(natif, voulu)
+        : remplacerNombre(texte, voulu);
+      if (neuf === null) continue;
+      ecritsAccessibles.set(n, voulu);
       if (neuf !== texte) setText(n, neuf);
     }
   };
@@ -12842,23 +12975,21 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     };
 
     const getSponsorInfo = (card) => {
-      if (!card.querySelector('a[class*="--promoted-followed"]')) return null;
-      const logoImg = card.querySelector(DOM.altLogoSelector);
-      if (!logoImg) return null;
-      const logoUrl = logoImg.getAttribute('src') || '';
+      const lien = card.querySelector('a[class*="--promoted-followed"]');
+      if (!lien) return null;
 
-      let name = '';
-      const m = DOM.sponsorLogoRe.exec((logoImg.getAttribute('alt') || '').trim());
-      if (m) name = m[1].trim();
-      if (!name) {
-
-        const bottomPs = card.querySelectorAll('.side-nav-card-promoted-bottom p');
-        const lastP = bottomPs[bottomPs.length - 1];
-        name = (lastP?.getAttribute('title') || lastP?.textContent || '').trim();
-      }
+      const titres = [...lien.querySelectorAll('.side-nav-card-promoted-bottom p')]
+        .map((p) => (p.getAttribute('title') || '').trim()).filter((t) => t && t !== '•');
+      const textes = [...lien.querySelectorAll('.side-nav-card-promoted-bottom p')]
+        .map((p) => (p.textContent || '').trim()).filter((t) => t && t !== '•');
+      const name = titres[titres.length - 1] || (textes.length > 1 ? textes[textes.length - 1] : '');
       if (!name) return null;
+      const logoImg = lien.querySelector(DOM.sponsorLogoSelector)
+        || [...lien.querySelectorAll('img')].find((i) => !i.closest('.tw-avatar')
+             && !!i.parentElement?.style?.backgroundColor) || null;
+      const logoUrl = logoImg?.getAttribute('src') || '';
 
-      const rawColor = (logoImg.parentElement?.style?.backgroundColor || '').trim();
+      const rawColor = (logoImg?.parentElement?.style?.backgroundColor || '').trim();
       const bgColor = /^(?:rgba?|hsla?)\([^)]+\)$|^#[0-9a-f]{3,8}$|^transparent$/i.test(rawColor)
         ? rawColor
         : 'transparent';
@@ -14053,6 +14184,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
 
   function updateSectionsVisibility() {
     const sections = document.querySelectorAll('#side-nav .side-nav-section');
+    const suivie = followedSection();
 
     const filterActive = !sidebarCollapsed &&
       (state.categoryFilter !== null || state.languageFilter !== null);
@@ -14062,7 +14194,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     sections.forEach(section => {
 
       const label = section.getAttribute('aria-label') || '';
-      const isFollowed = !!section.querySelector(DOM.followedHeaderSelector) ||
+      const isFollowed = section === suivie ||
+                         !!section.querySelector(DOM.followedHeaderSelector) ||
                          DOM.followedLabels.includes(label);
       if (isFollowed) {
         section.classList.remove('tse-section-hidden');
@@ -14635,6 +14768,97 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     root.dataset.tseRenamed = 'true';
   }
 
+  const TITRE_MIN_PX = 12;
+
+  let mesureTitre = { natifPx: null, posePx: null, placePx: null, textePx: null };
+
+  let toileTitre = null;
+  const largeurToile = (texte, cs, px, actuel) => {
+    try {
+      toileTitre = toileTitre || document.createElement('canvas').getContext('2d');
+      if (!toileTitre) return 0;
+      const petites = cs.fontVariantCaps === 'small-caps' ? 'small-caps ' : '';
+      toileTitre.font = `${cs.fontStyle} ${petites}${cs.fontWeight} ${px}px ${cs.fontFamily}`;
+      const t = cs.textTransform === 'uppercase' ? texte.toUpperCase()
+        : cs.textTransform === 'lowercase' ? texte.toLowerCase() : texte;
+      const espacement = cs.letterSpacing === 'normal' ? 0 : (parseFloat(cs.letterSpacing) || 0) * (px / actuel);
+      return toileTitre.measureText(t).width + espacement * [...t].length;
+    } catch { return 0; }
+  };
+
+  function ajusterTitre() {
+    const ligne = document.querySelector(`${DOM.sidebarRoot} .side-nav__title[data-tse-roue]`);
+    const h3 = ligne?.querySelector(':scope > h3');
+    if (!h3) return;
+    if (!ligne.clientWidth) return;
+
+    const ch = getComputedStyle(h3);
+    const actuel = parseFloat(ch.fontSize) || 0;
+    if (!h3.style.fontSize) h3.dataset.tseTitrePx = String(actuel);
+    const natif = Number(h3.dataset.tseTitrePx) || actuel;
+    if (!natif || !actuel) return;
+    const r = document.createRange();
+    r.selectNodeContents(h3);
+    const parRange = (r.getBoundingClientRect().width * natif) / actuel;
+    const parToile = largeurToile((h3.textContent || '').trim(), ch, natif, actuel);
+    const texte = Math.max(parRange, parToile);
+
+    const cs = getComputedStyle(ligne);
+    const ecart = parseFloat(cs.columnGap) || 0;
+    const rh = h3.getBoundingClientRect();
+
+    let reserve = 0;
+    const dansLeFlux = [];
+    for (const el of ligne.children) {
+      if (el === h3) continue;
+      const pos = getComputedStyle(el).position;
+      if (pos === 'absolute' || pos === 'fixed') continue;
+      const w = el.offsetWidth || 0;
+      if (w > 0) { reserve += w + ecart; dansLeFlux.push(el); }
+    }
+    const ecarte = (el) => !el || h3.contains(el) || el.contains(h3) || dansLeFlux.some((x) => x.contains(el));
+    const surLaLigne = (b) => b.width > 0 && b.height > 0 && b.top < rh.bottom && b.bottom > rh.top && b.left > rh.left;
+    let droite = ligne.getBoundingClientRect().right - (parseFloat(cs.paddingRight) || 0);
+    let obstacle = null, voie = 'ligne';
+    const retenir = (el, v) => {
+      const b = el.getBoundingClientRect();
+      if (b.left - ecart < droite) { droite = b.left - ecart; obstacle = el; voie = v; }
+    };
+
+    const barre = ligne.closest(DOM.sidebarRoot) || ligne.parentElement;
+    for (const el of barre.querySelectorAll('button, [role="button"]')) {
+      if (ecarte(el) || !surLaLigne(el.getBoundingClientRect())) continue;
+      if (getComputedStyle(el).visibility === 'hidden') continue;
+      retenir(el, 'dessus');
+    }
+
+    if (!obstacle) {
+      const y = (rh.top + rh.bottom) / 2;
+      const bout = droite;
+      for (const dx of [4, 12, 20, 28, 36]) {
+        const vise = document.elementFromPoint(bout - dx, y)?.closest?.('button, [role="button"], a');
+        if (vise && !barre.contains(vise) && !ecarte(vise) && surLaLigne(vise.getBoundingClientRect())) retenir(vise, 'sonde');
+      }
+    }
+    const place = droite - rh.left - reserve;
+
+    const voulu = texte <= place - 1 ? natif
+      : Math.max(TITRE_MIN_PX, Math.floor(((natif * (place - 1)) / texte) * 2) / 2);
+
+    const poser = (prop, valeur) => {
+      if (h3.style.getPropertyValue(prop) === valeur && (!valeur || h3.style.getPropertyPriority(prop) === 'important')) return;
+      if (valeur) h3.style.setProperty(prop, valeur, 'important'); else h3.style.removeProperty(prop);
+    };
+    poser('font-size', voulu === natif ? '' : `${voulu}px`);
+
+    poser('max-width', (texte * voulu) / natif > place - 1 ? `${Math.max(0, Math.floor(place - 1))}px` : '');
+    const nom = (el) => (el ? `${el.tagName.toLowerCase()}${el.id ? '#' + el.id : ''}`
+      + `${el.getAttribute('aria-label') ? `[${el.getAttribute('aria-label').slice(0, 40)}]` : ''}` : null);
+    mesureTitre = { natifPx: natif, posePx: voulu, placePx: place, textePx: texte,
+                    rangePx: parRange, toilePx: parToile, voie, obstacle: nom(obstacle),
+                    obstacleGauchePx: obstacle ? obstacle.getBoundingClientRect().left - rh.left : null };
+  }
+
   const STORIES_RE = /stories/i;
   const classOf = (el) => el?.getAttribute?.('class') || '';
 
@@ -14915,9 +15139,10 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         globalChannels.langs(state.categoryFilter || null);
       const langsPresent = new Set(langToutes.keys());
 
-      const Lg = state.languageFilter && langsPresent.has(state.languageFilter)
+      const Lg = state.languageFilter && LANG_SET.has(state.languageFilter)
         ? state.languageFilter : null;
       state.languageFilter = Lg;
+      if (Lg) langsPresent.add(Lg);
 
       const catNoms = state.languageFilter
         ? cats.map(c => c.name).sort(byCountDesc(catCount))
@@ -15764,17 +15989,40 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     });
   }
 
+  const SUFFIXES_DE_REPLI = [['mil', 1_000], ['mio', 1_000_000], ['mi', 1_000_000], ['k', 1_000], ['m', 1_000_000]];
+  const suffixesParLangue = new Map();
+  const compteurNu = (t) => t.replace(/[\s\u00a0\u202f\u200e\u200f]+/g, '').toLowerCase().replace(/\.+$/, '');
+  const suffixesCompacts = () => {
+    const locale = localeTwitch();
+    let table = suffixesParLangue.get(locale);
+    if (table) return table;
+    const vus = new Map();
+    try {
+      const f = new Intl.NumberFormat(locale, { notation: 'compact' });
+      for (let p = 3; p <= 12; p++) {
+        const parts = f.formatToParts(10 ** p);
+        const suffixe = compteurNu(parts.filter((x) => x.type === 'compact').map((x) => x.value).join(''));
+        const tete = Number(parts.filter((x) => x.type === 'integer').map((x) => x.value).join(''));
+        if (suffixe && tete > 0 && !vus.has(suffixe)) vus.set(suffixe, 10 ** p / tete);
+      }
+    } catch {   }
+    for (const [x, m] of SUFFIXES_DE_REPLI) if (!vus.has(x)) vus.set(x, m);
+
+    table = [...vus].sort((a, b) => b[0].length - a[0].length);
+    suffixesParLangue.set(locale, table);
+    return table;
+  };
+
   const parseViewerCount = (txt) => {
     if (!txt) return 0;
 
-    const s = txt.replace(/[\s\u00a0\u202f]+/g, '').toLowerCase();
-
-    const suf = s.match(/(mil|mio|mi|k|m)\.?$/);
+    const s = compteurNu(txt);
+    const suf = suffixesCompacts().find(([x]) => s.length > x.length && s.endsWith(x));
     if (suf) {
 
-      const mult = (suf[1] === 'k' || suf[1] === 'mil') ? 1_000 : 1_000_000;
-      const num = parseFloat(s.slice(0, suf.index).replace(',', '.'));
-      return Number.isFinite(num) ? Math.round(num * mult) : 0;
+      const tete = s.slice(0, s.length - suf[0].length);
+      if (!/^\d+(?:[.,]\d+)?$/.test(tete)) return 0;
+      return Math.round(parseFloat(tete.replace(',', '.')) * suf[1]);
     }
 
     const digits = s.replace(/[.,]/g, '');
@@ -16159,8 +16407,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
 
   const isPlainCard = (card) => {
     if (card.querySelector('[class*="promoted-followed-card__content"]')) return false;
-    if (card.querySelector(DOM.altCostreamHostSelector)) return false;
-    if (card.querySelector(DOM.altLogoSelector)) return false;
+    if (card.querySelector(DOM.costreamSelector)) return false;
+    if (card.querySelector('a[class*="--promoted-followed"], ' + DOM.sponsorLogoSelector)) return false;
     if (card.querySelector('.tse-collab-badge')) return false;
     if (PLUS_RE_PRESENT.test(card.textContent || '')) return false;
     if (card.querySelector('[data-tse-extra-row]')) return false;
@@ -16200,7 +16448,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     strip(el);
     el.querySelectorAll('*').forEach(strip);
 
-    el.querySelectorAll(DOM.altCostreamHostSelector + ', ' + DOM.altLogoSelector
+    el.querySelectorAll(DOM.costreamMiniSelector + ', ' + DOM.sponsorLogoSelector
       + ', [class*="iconContainer--primary"], [class*="iconContainer--secondary"]'
       + ', .primary-with-small-avatar__mini-avatar')
       .forEach(n => n.remove());
@@ -16406,6 +16654,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     renameRootTitle();
 
     ensureRoue();
+    ajusterTitre();
     recomputeFilters();
     const costreamGroups = detectCoStreams();
     updateSortButtonsState({ costreamGroups });
