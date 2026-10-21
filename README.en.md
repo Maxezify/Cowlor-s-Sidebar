@@ -331,9 +331,9 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1660 KB | 671 KB | 4,186 → **2** |
+| `content.js` | 1660 KB | 671 KB | 4,242 → **2** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
-| `panneau.js` | 109 KB | 51 KB | 156 → **0** |
+| `panneau.js` | 113 KB | 53 KB | 160 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
 | `background.js` | 10 KB | 2 KB | 22 → **0** |
 | **all five** | **1918 KB** | **828 KB** | **−57 %** |
@@ -2488,6 +2488,662 @@ A sub-test that modelled an impossible case — a stream growing younger without
 changing id — was replaced along the way by the ordinary case that was actually
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
+
+## The panel's copy under Firefox (v4.24.0.45)
+
+Found while preparing the port of versions 4.24.0.40 to 4.24.0.44 to
+`claude/firefox-multi`, before anything was carried over. Published on
+`claude/chrome-multi`.
+
+### What was happening
+
+4.24.0.41 has the report say whether the page runs under another copy of the
+extension than the open panel: two enabled copies are what makes the copy of
+`content.js` fail on its first line. The page names itself by its script's
+address (`exemplaire`), and the panel compared itself through `runtime.id`.
+
+Under Chrome the two coincide: the address is `chrome-extension://<id>/`.
+Under Firefox they do not. The address is `moz-extension://<uuid>/`, an
+identifier specific to the installation, and `runtime.id` is the extension's
+Gecko identifier. Every Firefox report would have announced "two copies
+enabled — keep only one", with a single copy installed. The bench did not see
+it: its simulated panel was Chrome's.
+
+### What changes
+
+- **The panel compares itself by its address** (`runtime.getURL('')`), as
+  the page does; `runtime.id` remains the fallback should `getURL` be
+  missing.
+- **When the address is not the identifier,** the `ENVIRONNEMENT` block
+  shows it alongside: that is the case under Firefox.
+
+### What the bench measures
+
+**70**, one more assertion: a simulated Firefox panel, with a Gecko
+identifier, a `moz-extension://` address and a Firefox manifest. With a
+single copy, no alert; with a second one, at another address, the alert.
+
+The full bench: 1760 assertions in 205 scenarios, all green.
+
+| mutant | what fails |
+| --- | --- |
+| 4.24.0.44 as it was | 70: the alert with a single copy |
+| the comparison to `runtime.id` (1) | 70: the alert with a single copy |
+
+## Twitch's language, everywhere (v4.24.0.44)
+
+The request, after 4.24.0.43: "Yes, deal completely with the markers that
+still depend on the language. Be rigorous." Published on
+`claude/chrome-multi`.
+
+### The audit
+
+Everything the extension reads or writes in the bar was reviewed, selector by
+selector and expression by expression. Two families came out of it.
+
+**What was read from translated text:**
+
+- **the participating co-streamer.** The only sign that a card was not
+  neutral was the alt of its host's mini-avatar, "Co-stream from a stream
+  by…", known in four languages. Elsewhere — Spanish, Italian, Japanese… —
+  the card passed for neutral. Two defects followed:
+  - Top Channels could take it as its model, and every fabricated card
+    showed the host's avatar;
+  - the sponsored card could take it as its template, and copy the
+    measurements of a three-line card;
+- **the "offline" label.** It was searched for in the card's WHOLE text, in
+  three languages. That text includes the stream title, which Twitch
+  sometimes writes on a third line: "going offline soon" or "déconnecté
+  demain" hid a channel that was live;
+- **the counters' abbreviations.** Five were known: "k", "m", "mil", "mi",
+  "mio". Until the API answered, or if it failed, "17.9万", "18,2 тыс.",
+  "1,8 tn" or "1,2 Mln" were worth zero, and the most-watched channel ended
+  up at the bottom of the list;
+- **the screen-reader text.** The number in it was replaced through an
+  expression that knew only the "k" and "m" suffixes: "17.9万人の視聴者"
+  became "18万万人の視聴者", and "18,2 тыс. зрителей" became
+  "20,5 тыс.тыс. зрителей";
+- **the followed section,** when sections are hidden. It was recognised
+  there by its header class or its label, in six languages. Without the
+  class, and in another language, a filter hid it entirely. The defect stays
+  latent as long as Twitch keeps the class.
+
+**What was written in our labels' language, not Twitch's.** The extension
+speaks ten languages, Twitch about thirty. What it writes IN PLACE of
+Twitch's own text followed ours, falling back to English:
+
+- **the categories,** requested from the API in that language;
+- **the counters,** formatted the same way.
+
+A Swedish, Korean or Turkish Twitch therefore received English categories and
+US-formatted counters. A Twitch from Spain received the Mexican format,
+"2.1 k" instead of "2,1 mil".
+
+### What changes
+
+- **Twitch's language** is the one the page declares (`<html lang>`),
+  region included. It decides the `Accept-Language` header, the counters'
+  format and how they are read. Our labels stay in the closest of our ten
+  languages. In the report, the `LANGUE` block gains `twitch` and `html`.
+- **Counters are read through the suffixes `Intl` gives for that
+  language,** built by formatting the powers of ten. Twitch writes its
+  counters the way `Intl`'s compact notation does: "万" is ten thousand; "B"
+  is a thousand in Turkish, a billion in English. The five former suffixes
+  remain as a fallback.
+- **The screen-reader text** replaces, in order, the number we wrote there
+  ourselves, then the one Twitch displays next to it. Only failing both does
+  it take a number followed by the language's suffix, without biting into a
+  word.
+- **The co-streamer is recognised by its structure:** the
+  `iconContainer--primary` badge, or an image in the metadata block. Its
+  host's name is still read from the alt, as a shortcut, for the four
+  recorded languages; elsewhere it comes from the GraphQL organizer, already
+  in place.
+- **A card is offline only by its structure:** the greyed avatar, or the
+  live indicator missing in expanded mode.
+- **The followed section is first the one `followedSection` retains,** whose
+  last fallback depends on no language.
+- **An orphan comment is removed.** It described recognising the header by
+  its text, "Spectateurs" or "Recommandées", which no code does any more.
+
+### What remains tied to a language
+
+Each of these markers now has a fallback that depends on no language:
+
+- the followed section's label;
+- those of the "Show more / less" buttons, after the automation hooks;
+- the co-stream alt;
+- the "X and N guests" sentence, after the Guest Star session.
+
+Only one has no fallback: **the "sub discount" row**, recognised by its
+`aria-label`, in six languages. Without a recording of that row in a language
+other than French, it passes elsewhere for an ordinary row:
+
+- its badge is neutral instead of pink;
+- the "discounts" setting does not hide it.
+
+Twitch's label cannot be guessed; the code says so, at the selector table.
+
+### What the bench measures
+
+**206**, new, seven assertions:
+
+- a) the counter is written in Twitch's language, region included: Swedish,
+  Korean, Turkish, Spain, Mexico, Japanese;
+- b) without the API, Japanese and Russian sort by their counters;
+- c) the screen-reader text, in five cases: Japanese, then updated; Russian;
+  English glued, as the recording writes it ("859viewers"), then updated;
+  spaced suffix; plain number;
+- d) the co-streamer with an unknown alt: it is not a template, and does not
+  lend its host's avatar to fabricated cards;
+- e) a stream title that says "offline";
+- f) the followed section, without class or label, under a filter.
+
+**65**, revised: the header is the page's, and Swedish, Korean, Turkish and
+Mexican request their language.
+
+The full bench: 1759 assertions in 205 scenarios, all green.
+
+| mutant | what fails |
+| --- | --- |
+| 4.24.0.43 as it was | 206: a, b, c, d, d, e, f; 65: a, g |
+| our labels' language for everything (1) | 206: a; 65: a, g |
+| the header in our labels' language (1) | 65: a, g |
+| the counter in our labels' language (1) | 206: a |
+| the five former suffixes (1) | 206: b, c |
+| the former expression for the accessible text (1) | 206: c |
+| without the number we wrote there (1) | 206: c — "250KKviewers" |
+| without the number Twitch displays (1) | 206: c |
+| the fallback without a suffix (1) | 206: c — "18万 万人の視聴者" |
+| `isPlainCard` by the co-stream alt, as before (1) | 206: d, d |
+| clone cleaning by the alt, as before (1) | 206: d |
+| the "offline" label restored (1) | 206: e |
+| the followed section by its class or label (1) | 206: f |
+
+Thirteen mutants, thirteen caught.
+
+## Sponsored cards in every language, and the title ready under the veil (v4.24.0.43)
+
+The request, screenshots attached — Japanese, Spanish, English, then German
+and Portuguese. First: "I have the impression the titles get smaller after
+the veil. Make the title the right size when the veil goes." Then: "the
+changes made when a card is sponsored are not well integrated for the other
+languages", with the markup of a sponsored card recorded in English,
+Spanish, Italian and Japanese; and: "only French is spot on". Published on
+`claude/chrome-multi`.
+
+### What was happening — sponsored cards
+
+- **The cross and the logo were targeted by their alternative text, which
+  Twitch translates.** Next to the avatar, a sponsored card carries a small
+  "in collaboration with" cross and the brand's logo in a coloured frame; the
+  extension hides them so the card looks like the others. The lists knew
+  three crosses — "en collaboration avec", "in collaboration with", "em
+  colaboração com" — and three logo openings: "Logo de", "Logo of", "Logo
+  von". Recorded on the attached cards: "en colaboración con", "in
+  collaborazione con", "協力:" for the cross; "<brand> Logo", "Logotipo de
+  <brand>", "Logo <brand>", "<brand>のロゴ" for the logo.
+- **What escaped the lists did not merely stay visible: it entered the
+  grid.** To lay the card out, the extension flattens its wrappers, and each
+  of their children becomes a cell. The cross and the logo landed wherever
+  they could: the cross above the avatar, the logo on the name or on the next
+  card. These are the screenshots, language by language: in English and
+  Portuguese, the logo on the name; in German, the cross; in Spanish and
+  Japanese, the cross and the logo, the latter on the card below.
+- **The preview lost its "Sponsored by" badge.** The brand was read from the
+  logo's alt; no logo found, no brand. Only French and German kept it.
+- **And Top Channels could copy a sponsored card.** Without a category, it
+  was recognised only by its logo, through the alt. In English it passed for
+  a neutral card, and became the model for fabricated cards. Replayed on the
+  bench, with that card at the top of the list: thirty fabricated cards, all
+  in the sponsored layout.
+
+### What was happening — the title
+
+- **The probes waited for the veil to lift.** 4.24.0.42 looks for the arrow
+  in three ways. The third, five probes at the end of the line, finds an
+  arrow placed outside the bar; it only acted once the veil was lifted, on
+  the grounds that nothing under it could be hit. Under the veil, the title
+  was therefore fitted without that arrow, at Twitch's size. It shrank at the
+  first scan after the lift, in plain view.
+- **The grounds were wrong.** The veil makes only the bar unhittable, and its
+  overlay already is: whatever comes from elsewhere is hit as before, and
+  that is all the probes keep.
+- **And a scan is only born of a mutation inside the bar.** An arrow placed
+  outside it, which arrives or moves after the last scan, restarts nothing.
+  The title would have seen it at the next scan, again after the lift.
+
+That is what the code explains of the symptom; the path actually taken on the
+page reads in the report, `TITRE` block (`voie`: "sonde" when the arrow comes
+from elsewhere).
+
+### What changes
+
+- **The cross and the logo are targeted by what does not translate.** The
+  cross is the image placed next to the avatar. The logo comes from the
+  address of Twitch's advertising campaigns (`sponsorships-campaign-assets`),
+  the same in every language.
+- **Nothing but the four pieces enters the grid.** Every child of the grid or
+  of a flattened wrapper that is neither a piece, nor a wrapper, nor the
+  extension's own is marked `tse-promu-decor` and hidden. A decoration
+  Twitch added tomorrow would not slip in either.
+- **The preview reads the brand from the banner** "Sponsored • <brand>",
+  whose `title` carries the name alone, in every language. The logo is read
+  from its address or, failing that, from its place in a coloured frame. A
+  brand without a logo keeps its badge.
+- **A sponsored card is never a cloning model**, with or without a category.
+- **The probes also work under the veil.** The title is moreover fitted one
+  last time at the lift itself, in the task that removes the veil: no frame
+  shows it in between.
+- **In the report**, the `CARTES SPONSORISÉES` block gains three values:
+  `decors`, what the grid set aside; `intrus`, what it shows without being a
+  piece (zero expected); `logos`, the logos found by their address.
+
+### What the bench measures
+
+**205**, new: six sponsored cards, one per language, in the recorded markup
+— French, English, Spanish, Italian, Japanese — and a language no table
+knows. That one carries a logo served from somewhere other than the
+campaigns, and a new decoration next to the avatar. Seven assertions:
+
+- a) the ordinary card to the pixel, neither cross nor logo;
+- b) the badge, with its logo and colour;
+- c) what the extension places is never set aside;
+- d) the report;
+- e) the collapsed bar, where the stylesheet works alone;
+- b bis) a brand without a logo;
+- f) Top Channels, with the English sponsored card without a category at
+  the top of the list.
+
+**204**, revised, two more assertions:
+
+- i) the title has its final size already under the veil, keeps it at the
+  lift, and is not written afterwards, in the four layouts and the ten
+  languages;
+- j) an arrow coming from elsewhere at the veil's last instant fits the title
+  at the lift itself.
+
+The gear is now measured by its layout. On first launch it pulses, up to
+1.18 times its size, and the room measured by the bench depended on the
+instant: a Japanese title fitting to within a pixel passed for too long one
+time in two.
+
+**166**, revised: the decoration is targeted by its place, as in the product.
+
+The full bench: 1752 assertions in 204 scenarios, all green.
+
+| mutant | what fails |
+| --- | --- |
+| 4.24.0.42 as it was | 205: a, b, b bis, d, e, f — in English the logo on the name; in Spanish, Italian and Japanese the cross and the logo; no badge outside French; thirty sponsored fabricated cards |
+| the stylesheet by alt, as before — the grid alone for the rest (1) | 205: e |
+| the grid's decorations left unmarked (1) | 205: a, d |
+| the "ours" guard removed (1) | 205: c |
+| the logo by its address only (1) | 205: b |
+| the logo required, and sought by alt, as before (1) | 205: b, b bis |
+| no logo, no badge (1) | 205: b bis |
+| `isPlainCard` by alt, as before (1) | 205: f |
+| the probes waiting for the lift (1) | 204: i — the title at Twitch's size under the veil |
+| the fitting at the lift removed (1) | 204: j — the title fitted at the first scan after the lift |
+
+Ten mutants, ten caught.
+
+## The title, where Twitch really puts its arrow (v4.24.0.42)
+
+The request, three screenshots of 4.24.0.41 attached — Russian, Polish,
+Spanish: "The titles haven't changed, that's not good. Investigate and fix in
+depth." Published on `claude/chrome-multi`.
+
+### What was happening
+
+In the screenshots, the Russian title holds one line, cut by an ellipsis at
+18 px: 4.24.0.41's rule therefore applied. The gear sits on the collapse
+arrow, in Russian as in Polish. The size fitting, for its part, had done
+nothing.
+
+- **The arrow is not where the bench put it.** 4.24.0.41 counted the room on
+  the children of `.side-nav__title`. The test set put the arrow there, on the
+  strength of a 4.12.1 field report; nothing had recorded it in the real DOM.
+  On Twitch, the arrow is not a child of that block: laid over the line from
+  elsewhere, it entered no count, and the title "fitted" in a room that
+  included the arrow's. Replayed on the bench with the arrow as the block's
+  sibling, 4.24.0.41 reproduces the screenshots line for line: the gear on the
+  arrow in Russian, Polish, Spanish and English.
+- **The text measurement could let itself be clipped.** It read the text's
+  width from its rendered box (`Range`). The forgotten arrow alone does not
+  explain a Russian title left at 18 px: the room it left would still have
+  reduced it by a fifth. An engine that returned only the visible glyphs of a
+  clipped title would explain it: the title seems to fit there, and stays
+  clipped. The bench's Chromium returns the whole text; the user's cannot be
+  observed from here. It is a hypothesis, which the report now settles
+  (`rangePx` next to `toilePx`).
+
+### What changes
+
+- **The room is read three ways, and the narrowest decides.** What the line
+  carries in its flow reserves its width there. A sidebar button crossing the
+  title's line, to its right, stops it at its left edge — in the block or
+  elsewhere. Failing anything, with the veil lifted, five probes at the end of
+  the line (`elementFromPoint`) find what would come from elsewhere in the
+  page. None of this depends on the title's size: the room is the same from
+  one scan to the next.
+- **The text is also measured in a canvas**, off the page: `measureText`
+  returns the whole string, whatever the ellipsis does to its box. The larger
+  of the two measurements wins.
+- **The size and the bound are written `!important`** in the inline style: no
+  stylesheet overrides them.
+- **In the report**, the `TITRE` block gives both measurements (`rangePx`,
+  `toilePx`), what bounds the room — `voie`: "ligne", "dessus" or "sonde";
+  `obstacle`, `obstacleGauchePx` — and the size the browser kept
+  (`calculePx`), next to the one wanted (`posePx`).
+
+### What the bench measures
+
+**204**, revised: the arrow now plays four ways — in the line's flow; laid
+over, a child of the block; laid over, a sibling of the block, the
+screenshots' configuration; from outside the sidebar, following the line. The
+twenty titles must hold in each, the arrow found by the right path. Added:
+g) an engine that returned only the visible glyphs of a clipped title, and
+h) a stylesheet marking its size `!important`. Four more assertions.
+
+The full bench: 1743 assertions in 203 scenarios, all green.
+
+| mutant | what fails |
+| --- | --- |
+| the room counted on the block's children only, as in 4.24.0.41 (1) | 204: a — the sibling arrow and the outside arrow —, b, c, e, f, h |
+| the probes removed (1) | 204: a — the outside arrow —, b |
+| the canvas measurement removed (2) | 204: g — the title clipped, at 18 px |
+| the size set without "!important" (1) | 204: h |
+| the fitting removed (1) | 204: all but d |
+| the arrow laid over ignored (1) | 204: a, b, c, e, f, h |
+| the gear forgotten in the room (1) | 204: a, b, c, f, g, h |
+| the native size kept from the first scan (1) | 204: a, b, c, f, g, h |
+| the title free to wrap (1) | 204: e |
+| the width unbounded below the minimum size (1) | 204: e |
+| the rendered width instead of the layout width (1) | 204: d |
+
+Eleven mutants, eleven caught. The canvas first survived: the fake engine
+returned the clipped title's whole box, and the one-pixel margin still brought
+the title down, half a pixel per scan. It now returns only the visible glyphs,
+the ellipsis excluded — and without the canvas the title stays stuck there.
+
+## The chosen language holds, and the title holds its line (v4.24.0.41)
+
+The request: "Wandering through Top Channels from one language to another, I
+landed on Swedish: right away, cards that aren't Swedish, and a few seconds
+later" — the screenshot: the world ranking, the language menu open, without
+Swedish. "Investigate and fix." Then: "adapt the sidebar better to the
+language: in English, the title "Followed Channels" is long, make it smaller"
+— likewise in Spanish, Polish, Russian and Japanese. A diagnostic report
+attached. Published on `claude/chrome-multi`.
+
+### What was happening — the language
+
+**The selection depended on what the menu knew.** The language menu's list
+comes from the world pool and from **measurements**: one per language, its
+total viewers. Those world measurements lived in the same register as the
+hundred that each visited language adds for the category menu's figures —
+eight hundred slots, the oldest evicted first. In the report:
+`mesures.connues 800`, the register full. Visited languages evicted the world
+measurements, the oldest; Swedish, absent from the world pool — its channels
+are far below the top —, had nothing left to keep it in the menu. And the
+selection was **validated against that menu**: Swedish fell back to "all
+languages", the world ranking showed, and the report carried an empty
+language.
+
+**Replayed on the bench as is**: seven languages visited, then Swedish. Its
+cards show; its measurement takes the register to its cap, the thirty-one
+world measurements go, and the language falls back, Swedish gone from the
+menu.
+
+**The second path, found while looking for the first**: a language chosen in
+the followed list, then Top Channels opened before the measurements arrive —
+undone at the first scan, for the same reason.
+
+### What changes — the language
+
+- **The choice holds.** Any Twitch language can be requested: the descent in
+  that language returns its channels, or "no channel" if it has none. Only
+  what is not a known language is dropped; the chosen language stays in the
+  menu, chosen, even when the menu no longer knows what it weighs.
+- **The world apart.** World measurements have their own register: thirty-one
+  slots, one per language, that nothing evicts.
+- **An evicted measurement is taken again.** When the cap evicts a category
+  measurement, its survey restarts at the next request instead of waiting for
+  its time-to-live, five minutes — coming back to a language brings its
+  figures back to the category menu.
+- **In the report**, under Top Channels: `mesures.monde` and
+  `mesures.evincees`.
+
+### A second copy in the page
+
+The report carried, at 193 ms: "Uncaught SyntaxError: Identifier
+'TSE_PREVIEW_FIRST_FRAME_MSG' has already been declared — content.js:1".
+content.js runs in the MAIN world, where its top-level `const`s are page
+globals: a second copy fails before its first line. Nothing in the extension
+injects it twice — no permission, no `scripting` —, and Chrome injects a
+copy's declared scripts only once: **two copies of the extension were
+installed and enabled**. The report confirmed it without saying so: its header
+was 4.24.0.40's, but the page's data had none of the fields 4.24.0.40 adds
+(`categoriesPar`, `homonymes`, `sansJeu`, `nonLues`). The page ran under the
+other, older copy; 4.24.0.40 did not run there.
+
+The report now says so: the panel's identifier, that of the copy running in
+the page (`page — exemplaire`, read by content.js from its own stack), a
+warning when they differ, and, under the error, the copy that did not start.
+The language defect is the same in both versions.
+
+### What was happening — the title
+
+The sidebar title keeps Twitch's size, on a line it shares with the gear and
+the collapse arrow, and that does not grow. In the screenshots, Russian
+wrapped and the gear dropped below the arrow; Polish took the gear onto the
+arrow. Twitch's arrow sits over the line: it takes no room in it, and the
+title runs underneath — the bench replays it that way, and reproduces the
+screenshots exactly.
+
+### What changes — the title
+
+- **One line, always, and the size fitted to the room**: the line, minus the
+  gear, minus every other element it carries — the arrow included, in the
+  flow or laid over it. A title that fits keeps Twitch's size, to the pixel; a
+  title too long goes down as much as it overflows, never below 12 px; past
+  that, the ellipsis, the width bounded before the gear. The text is measured
+  at Twitch's size, read on the page: two scans give the same size, and
+  nothing is rewritten.
+- **On the bench**, Inter bold at 18 px in a 240 px sidebar: French, German,
+  Portuguese, Italian and Chinese keep 18 px; English goes to 16.5, Spanish to
+  16, Polish to 14 or 14.5, Japanese to 13, Russian to 12 — and in Top Channels,
+  "Najpopularniejsze kanały" to 12. Twitch's real fonts and sidebar may move
+  these figures by half a pixel or two: the fitting measures on the page.
+- **A beating gear no longer moves the title.** On first launch the gear beats
+  (`transform: scale`); measured as rendered, its width changed every frame,
+  and the title was rewritten endlessly. The bench caught it: the room is
+  measured in layout widths.
+- **In the report**, the `TITRE` block: the language, the native size and the
+  one set, the room, what the text asks for, and the line's elements with
+  their width and positioning — enough to see how Twitch lays out its arrow.
+
+### What the bench measures
+
+- **203**, new: a) eight languages visited, the cap biting at the ninth;
+  b) Swedish, ninth, chosen at every sample for three seconds, and its cards
+  alone on screen; c) the menu keeping it, chosen, with the languages only the
+  world knows; d) French, revisited, its survey restarting and its figures
+  back; e) the second path, the language held and shown chosen before the
+  measurements. The set learns `__codesEnPlus`, more language codes for its
+  schema.
+- **204**, new: a) the twenty titles — ten languages, two modes — on one
+  line, whole, the gear between the title and the arrow, the arrow in the
+  flow then laid over; b) Twitch's size when the title fits, just as much less
+  as needed otherwise, and the five reported titles reduced; c) the language
+  changing, and the size coming back; d) no style write once fitted; e) too
+  narrow at 12 px: one line and the ellipsis; f) the report block.
+- **70**: one more assertion — two enabled copies, named.
+
+The full bench: 1739 assertions in 203 scenarios, all green.
+
+| mutant | what fails |
+| --- | --- |
+| the selection validated against what the menu knows, as in 4.24.0.40 (1) | 203: e — the language undone at the first scan |
+| the chosen language out of the menu (1) | 203: e — the menu does not show it before the measurements |
+| the world in the shared register (1) | 203: a — evicted at the eighth language |
+| an evicted measurement's clock kept (1) | 203: d — no survey, no figures |
+| the whole of 4.24.0.40 (1) | 203: all five — Swedish falls back, the world ranking on screen |
+| the fitting removed (1) | 204: a, b, c, e, f |
+| the arrow laid over ignored (1) | 204: a, b, c, e |
+| the gear forgotten in the room (1) | 204: a, b, c, e |
+| the native size kept from the first scan (1) | 204: a, b, c, f |
+| the title free to wrap (1) | 204: a, b, c, e, f |
+| the width unbounded below the minimum size (1) | 204: e — the gear on the arrow |
+| the rendered width instead of the layout width (1) | 204: d — four writes in two seconds |
+| the page's identifier silent (1) | 70 |
+| the duplicate copy not named (1) | 70 |
+| the two-copies warning silent (1) | 70 |
+
+Fifteen mutants, fifteen caught.
+
+## A category is named by its identifier (v4.24.0.40)
+
+The request: "In Top Channels, [a channel] isn't there, yet it has over 11k
+viewers. Why isn't it in the ranking? Investigate rigorously and fix it." The
+screenshot: the channel at 11,630 viewers, in "SILENT HILL 2"; the top thirty
+goes down to 5,600. Published on `claude/chrome-multi`.
+
+### What was happening
+
+**The ranking is built category by category.** `games` returns the top
+hundred, ranked; the descent asks each one for its first thirty streams, as
+long as the category weighs more than T, the thirtieth score. The channel's
+category weighed at least its 11,630 viewers, twice T: it was visited. What
+was visited was a **name** — `game(name: "SILENT HILL 2")` — even though
+`games` also returns the identifier.
+
+**Twitch knows two games that differ only by case**: "Silent Hill 2", from
+2001, and "SILENT HILL 2", the remake in the screenshot. If the server
+resolves a name without case, the response describes the other game. And the
+harvest took it for the requested category: its streams, and its **total** —
+the remake's replaced by the 2001 game's, which erased even the trace of the
+inconsistency. The channel was nowhere, and nothing said so: a category
+without a useful response passed for visited, and the ranking called itself
+complete.
+
+**What cannot be known from here.** twitch.tv cannot be reached from this
+machine: how Twitch resolves such a name could not be observed. It is the
+narrowest explanation — it touches this category and no other, which is what
+the screenshot shows — but it is not a certainty. The other possible cause is
+known and already handled: a category's response intermittently leaves out
+channels that should be in it (measured, four times out of six), and it takes
+three absences in a row for a channel to drop out.
+
+### What changes
+
+- **A category is requested by its identifier**, which `games` already
+  returns: an identifier cannot be confused with anything, the question no
+  longer arises. The name remains the fallback — a category whose identifier
+  we lack, or the `game(id:)` form refused by the schema, which could not be
+  tested against Twitch from here. A refusal is recognised when every request
+  by identifier fails while the same category, by name, answers; it is kept
+  for the session.
+- **The response must be about the requested game** — same identifier, or
+  same name, case included. Otherwise it is set aside and counted: neither its
+  streams nor its total pass for the category's, and no absence is counted
+  there. Likewise for the language count that fills the menu under a category.
+- **The ranking no longer calls itself complete** if a category above T was
+  not read — a response from another game, from no game, or a lost slice. The
+  descent's proof assumes everything weighing more than T was READ; it did
+  not check. The honesty banner then says so.
+- **In the report**, under Top Channels: `categoriesPar` ("id", or "nom" if
+  the schema refused), `homonymes`, `sansJeu`, and `nonLues` at the last walk.
+  If the channel is still missing, the report will say which of the two causes
+  is at work.
+
+### The bench itself
+
+Two assertions of 196 — the common event — assumed the bench machine never
+makes a silence of its own.
+
+- **The count per pair.** On this version's full bench, "foxtrot~duo1" and
+  "foxtrot~rho" counted five common silences, "foxtrot~sigma" four; the
+  assertion wanted the same count everywhere. Twelve passes of the first half
+  of 196 on its own, six of them under the load of four processes, had all
+  said four. The bench then listened, beside the room, to what each tile sends
+  it; the first full 196 reproduced the gap, and said why: "foxtrot" and "rho"
+  had gone quiet together — one 23 ms block, 3 ms apart, fourteen and a half
+  seconds after the first placed silence. The set had not placed it: it is
+  the machine, the very common event the listening must set aside. It had
+  counted it, rightly.
+- **The count beyond a hundred.** On the `claude/firefox-prod` publication
+  bench, then once in three on its own, one placed silence in a hundred and
+  ten was missing from a pair: two tile clocks drifting by more than 70 ms no
+  longer leave the 50 ms of a common silence, and the listening is right not
+  to count it.
+
+Both now have an **oracle**: the bench listens to the same messages as the
+room and derives from them, by the written rule — a silence below −7 in both
+envelopes, within 50 ms, counted by the start of their common part —, each
+pair's common silences. The report's count must be that one, no more and no
+less; what starts in the last ten seconds may not be counted yet, one
+computation every five. The four placed silences must be in it for every
+pair, "duo1"'s own heard by it, and, after the burst, more than a hundred.
+Four passes of 196: the count equals the oracle, 4, 4 and 4, then 114. The
+oracle catches a mutant the old burst assertion — a hundred and ten more, at
+least — would have let through: a 150 ms tolerance, which makes two silences
+of the burst touch and counts 119 to 159.
+
+**The start-up veil.** On the next full bench, 196 green, 146 b) saw its forty
+probes leave outside the veil: "sousVoile 0", spread over six seconds, a peak
+of twelve — cruise; the failure appears in none of the bench logs kept until
+then. 145 and 146 place their cards during the veil that opens with the page,
+1.2 s on the bench; under load, the page received them after it lifted.
+Replayed with the cards placed after the lift: the same signature, within
+5 ms. On their own, eight passes per version placed them 200 to 460 ms after
+opening, on 4.24.0.39 as on 4.24.0.40: the version has nothing to do with it.
+The set now places its cards in the very task that checks the veil is there,
+at most 700 ms after opening — the probes, which take under 420 on their own,
+still have 500 ms ahead of them; otherwise it reopens the page, tested by
+delaying the first attempt by a second and a half. The three mutants these
+scenarios caught still are.
+
+### What the bench measures
+
+The set learns two things: `__nomsSansCasse` makes a name answered by the
+first game that matches it without case — the worst case, since Twitch cannot
+be observed; `__refusIdJeu` makes the schema refuse the identifier form.
+
+- **202**, new, on ten ordinary categories and two games that differ only by
+  case, the remake carrying a star at 11,630: a) exact resolution — the star
+  on top, categories requested by identifier, nothing set aside, the ranking
+  complete; b) the worst case — by identifier, the star is there anyway, at
+  the remake's total; c) the worst case and the refused form — fallback to
+  the name, the other game's response set aside and counted, neither its total
+  nor its channel pass for the remake's, the ranking does not call itself
+  complete; d) the refused form without a homonym — the name suffices; e) the
+  worst case, the category chosen in the menu — its star on top, and the other
+  game's languages do not pass for its own.
+
+The full bench: 1726 assertions in 201 scenarios, all green.
+
+| mutant | what fails |
+| --- | --- |
+| the category by its name, as in 4.24.0.39 (1) | 202: all five — in the worst case, the top thirty without the star, the screenshot's symptom |
+| the answered game never checked (1) | 202: c — the 2001 game's channel in the ranking, the remake's total at 120 |
+| completeness without the unread categories (1) | 202: c — the ranking calls itself complete |
+| the scope by its name (1) | 202: e |
+| the language count without checking (1) | 202: e — "Deutsch: 120" under the remake |
+| the fallback never taken (1) | 202: c and d — no category read any more |
+| nothing set aside (1) | 196: all five |
+| every silence set aside, common or not (1) | 196: the count — 9, 8 and 8 instead of 4 —, the sound set aside, the burst |
+| the silent report (1) | 196: the count, the sound set aside, the burst |
+| the union instead of the intersection (1) | 196: the sound set aside — 3.1 s for "foxtrot~duo1" |
+| the count as the memory's size (1) | 196: the burst — "100" in all three pairs |
+| the count capped at a hundred (1) | 196: the burst — "100" in all three pairs |
+| every computation counts again (1) | 196: the count — 16 —, the sound set aside, the burst |
+| the tolerance at 150 ms (1) | 196: the burst — 119 to 159 instead of 114, which "a hundred and ten more, at least" would have let through |
+| the one-minute retry under the veil too (1) | 145: "sousVoile 5" out of eight adoptions |
+| the lock's deadline granted again (1) | 146 a: lock held 906 ms for 300 |
+| the veil's purse spent in one go (1) | 146 b: "pointe 40, etendueMs 2" |
+
+Seventeen mutants, seventeen caught.
 
 ## The section that disappeared (v4.24.0.39)
 
@@ -18781,7 +19437,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the Firefox manifest: this repository's invariants, **then** Mozilla's `addons-linter` — the one AMO runs on submission |
-| `npm test` | the Playwright harness: 200 scenarios, 1721 assertions |
+| `npm test` | the Playwright harness: 205 scenarios, 1760 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has

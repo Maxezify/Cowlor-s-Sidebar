@@ -343,9 +343,9 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1660 Ko | 671 Ko | 4 186 → **2** |
+| `content.js` | 1660 Ko | 671 Ko | 4 242 → **2** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
-| `panneau.js` | 109 Ko | 51 Ko | 156 → **0** |
+| `panneau.js` | 113 Ko | 53 Ko | 160 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
 | `background.js` | 10 Ko | 2 Ko | 22 → **0** |
 | **les cinq** | **1918 Ko** | **828 Ko** | **−57 %** |
@@ -2623,6 +2623,678 @@ Un sous-test qui modélisait un cas impossible — un direct qui rajeunit sans
 changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'il
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
+
+## L'exemplaire du panneau sous Firefox (v4.24.0.45)
+
+Trouvé en préparant le portage des versions 4.24.0.40 à 4.24.0.44 sur
+`claude/firefox-multi`, avant tout report. Publiée sur `claude/chrome-multi`.
+
+### Ce qui se passait
+
+La 4.24.0.41 fait dire au rapport si la page tourne sous un autre exemplaire
+de l'extension que le panneau ouvert : deux exemplaires actifs, c'est la
+copie de `content.js` qui échoue à sa première ligne. La page se nomme par
+l'adresse de son script (`exemplaire`), et le panneau se comparait par
+`runtime.id`.
+
+Sous Chrome, les deux coïncident : l'adresse est `chrome-extension://<id>/`.
+Sous Firefox, non. L'adresse est `moz-extension://<uuid>/`, un identifiant
+propre à l'installation, et `runtime.id` est l'identifiant Gecko de
+l'extension. Chaque rapport Firefox aurait annoncé « deux exemplaires
+actifs — n'en garder qu'un », avec un seul exemplaire installé. Le banc ne
+le voyait pas : son panneau simulé était celui de Chrome.
+
+### Ce qui change
+
+- **Le panneau se compare par son adresse** (`runtime.getURL('')`), comme
+  la page ; `runtime.id` reste le repli si `getURL` manquait.
+- **Quand l'adresse n'est pas l'identifiant,** le bloc `ENVIRONNEMENT` la
+  montre à côté : c'est le cas sous Firefox.
+
+### Ce que le banc mesure
+
+**70**, une assertion de plus : un panneau Firefox simulé, avec identifiant
+Gecko, adresse `moz-extension://` et manifeste Firefox. Avec un seul
+exemplaire, aucune alerte ; avec un second, à une autre adresse, l'alerte.
+
+Le banc complet : 1760 assertions dans 205 scénarios, toutes vertes.
+
+| mutant | ce qui tombe |
+| --- | --- |
+| la 4.24.0.44 telle quelle | 70 : l'alerte avec un seul exemplaire |
+| la comparaison à `runtime.id` (1) | 70 : l'alerte avec un seul exemplaire |
+
+## La langue de Twitch, partout (v4.24.0.44)
+
+La demande, après la 4.24.0.43 : « Oui, traite complètement les repères qui
+dépendent encore de la langue. Sois rigoureux. » Publiée sur
+`claude/chrome-multi`.
+
+### L'audit
+
+Tout ce que l'extension lit ou écrit dans la barre a été passé en revue,
+sélecteur par sélecteur et expression par expression. Il en est sorti deux
+familles.
+
+**Ce qui se lisait dans un texte traduit :**
+
+- **le co-streamer participant.** Le seul signe qu'une carte n'était pas
+  neutre était l'alt du mini-avatar de son hôte, « Co-stream d'un stream
+  de… », connu en quatre langues. Ailleurs — espagnol, italien, japonais… —,
+  la carte passait pour neutre. Deux défauts en découlaient :
+  - Top Chaînes pouvait la prendre pour modèle, et chaque carte fabriquée
+    montrait l'avatar de l'hôte ;
+  - la carte sponsorisée pouvait la prendre pour gabarit, et copier la mesure
+    d'une carte à trois lignes ;
+- **le libellé « déconnecté ».** Il était cherché dans TOUT le texte de la
+  carte, en trois langues. Ce texte comprend le titre du direct, que Twitch
+  écrit parfois en troisième ligne : « going offline soon » ou « déconnecté
+  demain » masquait une chaîne en direct ;
+- **les abréviations des compteurs.** Cinq étaient connues, « k », « m »,
+  « mil », « mi », « mio ». Tant que l'API n'avait pas répondu, ou si elle
+  échouait, « 17.9万 », « 18,2 тыс. », « 1,8 tn » ou « 1,2 Mln » valaient
+  zéro, et la chaîne la plus regardée finissait en bas de la liste ;
+- **le texte du lecteur d'écran.** Le nombre s'y remplaçait par une
+  expression qui ne connaissait de suffixe que « k » et « m » :
+  « 17.9万人の視聴者 » devenait « 18万万人の視聴者 », et
+  « 18,2 тыс. зрителей » devenait « 20,5 тыс.тыс. зрителей » ;
+- **la section suivie,** au masquage des sections. Elle y était reconnue à
+  sa classe d'en-tête ou à son libellé, en six langues. Sans la classe, et
+  dans une autre langue, un filtre posé la masquait tout entière. Ce défaut
+  restait latent tant que Twitch garde la classe.
+
+**Ce qui s'écrivait dans la langue de nos libellés, et non dans celle de
+Twitch.** L'extension parle dix langues, Twitch une trentaine. Ce qu'elle
+écrit À LA PLACE de Twitch suivait les nôtres, avec l'anglais à défaut :
+
+- **les catégories,** demandées à l'API dans cette langue ;
+- **les compteurs,** formatés de même.
+
+Un Twitch suédois, coréen ou turc recevait donc des catégories en anglais et
+des compteurs au format américain. Un Twitch d'Espagne recevait le format
+mexicain, « 2.1 k » au lieu de « 2,1 mil ».
+
+### Ce qui change
+
+- **La langue de Twitch** est celle que la page déclare (`<html lang>`), sa
+  région comprise. Elle décide de l'en-tête `Accept-Language`, du format des
+  compteurs et de leur lecture. Nos libellés restent dans la plus proche de
+  nos dix langues. Au rapport, le bloc `LANGUE` gagne `twitch` et `html`.
+- **Les compteurs se lisent par les suffixes que donne `Intl` pour cette
+  langue,** dressés en formatant les puissances de dix. Twitch écrit ses
+  compteurs comme la notation compacte d'`Intl` : « 万 » vaut dix mille ;
+  « B » vaut mille en turc, un milliard en anglais. Les cinq suffixes d'avant
+  restent en repli.
+- **Le texte du lecteur d'écran** remplace, dans l'ordre, le nombre qu'on y a
+  soi-même écrit, puis celui que Twitch affiche à côté. À défaut seulement,
+  il prend un nombre suivi du suffixe de la langue, sans mordre sur un mot.
+- **Le co-streamer se reconnaît à sa structure :** la pastille
+  `iconContainer--primary`, ou une image dans le bloc des métadonnées. Le nom
+  de son hôte reste lu dans l'alt, en raccourci, pour les quatre langues
+  relevées ; ailleurs, il vient de l'organisateur GraphQL, déjà en place.
+- **Une carte n'est hors ligne que par sa structure :** l'avatar grisé, ou
+  l'indicateur de direct absent en mode étendu.
+- **La section suivie est d'abord celle que `followedSection` retient,**
+  dont le dernier repli ne dépend d'aucune langue.
+- **Un commentaire orphelin est retiré.** Il décrivait une reconnaissance de
+  l'en-tête par son texte, « Spectateurs » ou « Recommandées », que plus
+  aucun code ne fait.
+
+### Ce qui reste lié à une langue
+
+Chacun de ces repères a désormais un repli qui ne dépend d'aucune langue :
+
+- le libellé de la section suivie ;
+- ceux des boutons « Afficher plus / moins », après les crochets
+  d'automatisation ;
+- l'alt du co-stream ;
+- la phrase « X et N invités », après la session Guest Star.
+
+Un seul n'a pas de repli : **la ligne « réduction d'abonnement »**,
+reconnue à son étiquette `aria-label`, en six langues. Faute d'un relevé de
+cette ligne dans une autre langue que le français, elle passe ailleurs pour
+une ligne quelconque :
+
+- son badge est neutre au lieu d'être rose ;
+- le réglage « réductions » ne le masque pas.
+
+L'étiquette de Twitch ne se devine pas ; le code le dit, à la table des
+sélecteurs.
+
+### Ce que le banc mesure
+
+**206**, nouveau, sept assertions :
+
+- a) le compteur s'écrit dans la langue de Twitch, sa région comprise :
+  suédois, coréen, turc, Espagne, Mexique, japonais ;
+- b) sans l'API, le japonais et le russe se trient par leurs compteurs ;
+- c) le texte du lecteur d'écran, dans cinq cas : japonais, puis mis à jour ;
+  russe ; anglais collé, comme le relevé l'écrit (« 859viewers »), puis mis à
+  jour ; suffixe espacé ; nombre plein ;
+- d) le co-streamer à l'alt inconnu : il n'est pas un gabarit, et ne prête
+  pas l'avatar de son hôte aux cartes fabriquées ;
+- e) un titre de direct qui dit « offline » ;
+- f) la section suivie, sans classe ni libellé, sous un filtre.
+
+**65**, revu : l'en-tête est celui de la page, et le suédois, le coréen, le
+turc et le mexicain demandent leur langue.
+
+Le banc complet : 1759 assertions dans 205 scénarios, toutes vertes.
+
+| mutant | ce qui tombe |
+| --- | --- |
+| la 4.24.0.43 telle quelle | 206 : a, b, c, d, d, e, f ; 65 : a, g |
+| la langue de nos libellés pour tout (1) | 206 : a ; 65 : a, g |
+| l'en-tête dans la langue de nos libellés (1) | 65 : a, g |
+| le compteur dans la langue de nos libellés (1) | 206 : a |
+| les cinq suffixes d'avant (1) | 206 : b, c |
+| l'expression d'avant pour le texte accessible (1) | 206 : c |
+| sans le nombre qu'on y a écrit (1) | 206 : c — « 250KKviewers » |
+| sans le nombre que Twitch affiche (1) | 206 : c |
+| le repli sans suffixe (1) | 206 : c — « 18万 万人の視聴者 » |
+| `isPlainCard` par l'alt du co-stream, comme avant (1) | 206 : d, d |
+| le nettoyage des clones par l'alt, comme avant (1) | 206 : d |
+| le libellé « déconnecté » rétabli (1) | 206 : e |
+| la section suivie à sa classe ou à son libellé (1) | 206 : f |
+
+Treize mutants, treize pris.
+
+## Les cartes sponsorisées dans toutes les langues, et le titre prêt sous le voile (v4.24.0.43)
+
+La demande, captures à l'appui — japonais, espagnol, anglais, puis allemand
+et portugais. D'abord : « J'ai l'impression que les titres deviennent plus
+petits après le voile. Fais en sorte que le titre soit à la bonne taille
+quand le voile part. » Puis : « les modifications lorsqu'une carte est
+sponso ne sont pas bien intégrées pour les autres langues », le balisage
+d'une carte sponsorisée relevé en anglais, en espagnol, en italien et en
+japonais ; et : « seul le français est nickel ». Publiée sur
+`claude/chrome-multi`.
+
+### Ce qui se passait — les cartes sponsorisées
+
+- **La croix et le logo se visaient par leur texte alternatif, que Twitch
+  traduit.** À côté de l'avatar, une carte sponsorisée porte une petite
+  croix « en collaboration avec » et le logo de la marque dans un cadre
+  coloré ; l'extension les masque pour que la carte ressemble aux autres.
+  Les listes connaissaient trois croix — « en collaboration avec », « in
+  collaboration with », « em colaboração com » — et trois débuts de logo :
+  « Logo de », « Logo of », « Logo von ». Relevés sur les cartes jointes :
+  « en colaboración con », « in collaborazione con », « 協力: » pour la
+  croix ; « <marque> Logo », « Logotipo de <marque> », « Logo <marque> »,
+  « <marque>のロゴ » pour le logo.
+- **Ce qui échappait aux listes ne restait pas seulement visible : il
+  entrait dans la grille.** Pour ranger la carte, l'extension aplatit ses
+  enrobages, et chacun de leurs enfants devient une case. La croix et le
+  logo s'y casaient à leur guise : la croix au-dessus de l'avatar, le logo
+  sur le pseudo ou sur la carte suivante. Ce sont les captures, langue par
+  langue : en anglais et en portugais, le logo sur le pseudo ; en allemand,
+  la croix ; en espagnol et en japonais, la croix et le logo, celui-ci sur
+  la carte d'en dessous.
+- **L'aperçu perdait son badge « Sponsorisé par ».** La marque se lisait
+  dans l'alt du logo ; logo introuvable, pas de marque. Seuls le français et
+  l'allemand le gardaient.
+- **Et Top Chaînes pouvait copier une carte sponsorisée.** Sans catégorie,
+  elle ne se reconnaissait qu'à son logo, par l'alt. En anglais, elle
+  passait pour une carte neutre, et devenait le modèle des cartes
+  fabriquées. Rejoué au banc, carte en tête de liste : trente cartes
+  fabriquées, toutes à la mise en page sponsorisée.
+
+### Ce qui se passait — le titre
+
+- **Les sondages attendaient la levée du voile.** La 4.24.0.42 cherche la
+  flèche de trois façons. La troisième, cinq sondages au bout de la ligne,
+  trouve une flèche posée d'ailleurs que de la barre ; elle n'agissait
+  qu'une fois le voile levé, au motif que rien n'y serait touchable. Sous le
+  voile, le titre se réglait donc sans cette flèche, à la taille de Twitch.
+  Il rapetissait au premier balayage après la levée, à la vue de tous.
+- **Le motif était faux.** Le voile rend la seule barre intouchable, et son
+  calque l'est déjà : ce qui vient d'ailleurs se touche comme avant, et
+  c'est tout ce que les sondages retiennent.
+- **Et un balayage ne naît que d'une mutation dans la barre.** Une flèche
+  posée hors d'elle, qui arrive ou bouge après le dernier balayage, ne
+  relance rien. Le titre l'aurait vue au premier balayage venu, là encore
+  après la levée.
+
+C'est ce que le code explique du symptôme ; la voie réellement suivie sur la
+page se lit au rapport, bloc `TITRE` (`voie` : « sonde » si la flèche vient
+d'ailleurs).
+
+### Ce qui change
+
+- **La croix et le logo se visent par ce qui ne se traduit pas.** La croix
+  est l'image posée à côté de l'avatar. Le logo vient de l'adresse des
+  campagnes publicitaires de Twitch (`sponsorships-campaign-assets`), la
+  même dans toutes les langues.
+- **Rien d'autre que les quatre pièces n'entre dans la grille.** Chaque
+  enfant de la grille ou d'un enrobage aplati qui n'est ni une pièce, ni un
+  enrobage, ni à l'extension, est marqué `tse-promu-decor` et masqué. Une
+  décoration que Twitch ajouterait demain ne s'y glisserait pas davantage.
+- **L'aperçu lit la marque dans le bandeau** « Sponsorisé • <marque> »,
+  dont le `title` porte le nom seul, dans toutes les langues. Le logo se
+  lit à son adresse, ou à défaut à sa place dans un cadre coloré. Une marque
+  sans logo garde son badge.
+- **Une carte sponsorisée n'est jamais un modèle de clonage**, avec ou sans
+  catégorie.
+- **Les sondages travaillent aussi sous le voile.** Le titre se règle en
+  outre une dernière fois à la levée même, dans la tâche qui retire le
+  voile : aucune image ne le montre entre les deux.
+- **Au rapport**, le bloc `CARTES SPONSORISÉES` gagne trois valeurs :
+  `decors`, ce que la grille a écarté ; `intrus`, ce qu'elle montre sans que
+  ce soit une pièce (zéro attendu) ; `logos`, les logos trouvés par leur
+  adresse.
+
+### Ce que le banc mesure
+
+**205**, nouveau : six cartes sponsorisées, une par langue, au balisage
+relevé — français, anglais, espagnol, italien, japonais — et une langue
+qu'aucune table ne connaît. Celle-ci porte un logo servi d'ailleurs que des
+campagnes, et une décoration inédite à côté de l'avatar. Sept assertions :
+
+- a) la carte ordinaire au pixel, ni croix ni logo ;
+- b) le badge, avec son logo et sa couleur ;
+- c) ce que l'extension pose n'est jamais écarté ;
+- d) le rapport ;
+- e) la barre réduite, où la feuille travaille seule ;
+- b bis) une marque sans logo ;
+- f) Top Chaînes, la carte sponsorisée anglaise sans catégorie en tête de
+  liste.
+
+**204**, revu, deux assertions de plus :
+
+- i) le titre a sa taille finale sous le voile déjà, la garde à la levée, et
+  ne s'écrit plus ensuite, dans les quatre façons et les dix langues ;
+- j) une flèche venue d'ailleurs au dernier instant du voile règle le titre à
+  la levée même.
+
+La roue s'y mesure désormais par sa mise en page. Au premier lancement elle
+bat, jusqu'à 1,18 fois sa taille, et la place mesurée par le banc dépendait
+de l'instant : un titre japonais qui tient à un pixel près passait pour trop
+long une fois sur deux.
+
+**166**, revu : le décor se vise par sa place, comme dans le produit.
+
+Le banc complet : 1752 assertions dans 204 scénarios, toutes vertes.
+
+| mutant | ce qui tombe |
+| --- | --- |
+| la 4.24.0.42 telle quelle | 205 : a, b, b bis, d, e, f — en anglais le logo sur le pseudo ; en espagnol, en italien et en japonais la croix et le logo ; aucun badge hors du français ; trente cartes fabriquées sponsorisées |
+| la feuille par l'alt, comme avant — la grille seule pour le reste (1) | 205 : e |
+| les décors de la grille non marqués (1) | 205 : a, d |
+| la garde « à nous » retirée (1) | 205 : c |
+| le logo par sa seule adresse (1) | 205 : b |
+| le logo exigé, et cherché par l'alt, comme avant (1) | 205 : b, b bis |
+| pas de logo, pas de badge (1) | 205 : b bis |
+| `isPlainCard` par l'alt, comme avant (1) | 205 : f |
+| les sondages qui attendent la levée (1) | 204 : i — le titre à la taille de Twitch sous le voile |
+| le réglage à la levée retiré (1) | 204 : j — le titre réglé au premier balayage après la levée |
+
+Dix mutants, dix pris.
+
+## Le titre, là où Twitch range vraiment sa flèche (v4.24.0.42)
+
+La demande, trois captures de la 4.24.0.41 à l'appui — russe, polonais,
+espagnol : « Les titres n'ont pas changé, ce n'est pas bon. Investigue et
+corrige en profondeur. » Publiée sur `claude/chrome-multi`.
+
+### Ce qui se passait
+
+Sur les captures, le russe tient sur une ligne, coupé d'une ellipse à 18 px :
+la règle de la 4.24.0.41 s'appliquait donc. La roue est posée sur la flèche de
+repli, en russe comme en polonais. L'ajustement de la taille, lui, n'avait
+rien fait.
+
+- **La flèche n'est pas là où le banc la mettait.** La 4.24.0.41 comptait la
+  place sur les enfants de `.side-nav__title`. Le décor de test y mettait la
+  flèche, sur la foi d'un retour de terrain de la 4.12.1 ; rien ne l'avait
+  relevé dans le vrai DOM. Sur Twitch, la flèche n'est pas un enfant de ce
+  bloc : posée par-dessus la ligne depuis ailleurs, elle n'entrait dans aucun
+  compte, et le titre « tenait » dans une place qui comprenait la sienne.
+  Rejoué au banc, la flèche sœur du bloc, la 4.24.0.41 rend les captures trait
+  pour trait : la roue sur la flèche en russe, en polonais, en espagnol et en
+  anglais.
+- **La mesure du texte pouvait se laisser couper.** Elle lisait la largeur du
+  texte dans sa boîte rendue (`Range`). La flèche oubliée ne suffit pas à
+  expliquer un russe resté à 18 px : la place qu'elle laissait l'aurait encore
+  réduit d'un cinquième. Un moteur qui ne rendrait d'un titre coupé que ses
+  glyphes visibles l'expliquerait : le titre y paraît tenir, et reste coupé.
+  Le Chromium du banc rend le texte entier ; celui de l'utilisateur ne
+  s'observe pas d'ici. C'est une hypothèse, que le rapport tranche désormais
+  (`rangePx` à côté de `toilePx`).
+
+### Ce qui change
+
+- **La place se lit de trois façons, et la plus étroite décide.** Ce que la
+  ligne porte dans son flux y réserve sa largeur. Un bouton de la barre qui
+  croise la ligne du titre, à sa droite, l'arrête à son bord gauche — dans le
+  bloc ou ailleurs. Faute de rien trouver, et le voile levé, cinq sondages au
+  bout de la ligne (`elementFromPoint`) trouvent ce qui viendrait d'ailleurs
+  dans la page. Rien de cela ne dépend de la taille du titre : la place est la
+  même d'un balayage à l'autre.
+- **Le texte se mesure aussi dans un canevas**, hors de la page :
+  `measureText` rend la chaîne entière, quoi que l'ellipse fasse de sa boîte.
+  La plus grande des deux mesures l'emporte.
+- **La taille et la borne s'écrivent en `!important`** dans le style en ligne :
+  aucune feuille ne les écrase.
+- **Au rapport**, le bloc `TITRE` dit les deux mesures (`rangePx`, `toilePx`),
+  ce qui borne la place — `voie` : « ligne », « dessus » ou « sonde » ;
+  `obstacle`, `obstacleGauchePx` — et la taille que le navigateur a retenue
+  (`calculePx`), à côté de celle voulue (`posePx`).
+
+### Ce que le banc mesure
+
+**204**, revu : la flèche s'y joue désormais de quatre façons — dans le flux
+de la ligne ; posée par-dessus, enfant du bloc ; posée par-dessus, sœur du
+bloc, la configuration des captures ; venue de hors de la barre, et qui suit la
+ligne. Les vingt titres doivent tenir dans chacune, la flèche trouvée par la
+bonne voie. S'y ajoutent g) un moteur qui ne rendrait que les glyphes visibles
+d'un titre coupé, et h) une feuille qui marquerait sa taille `!important`.
+Quatre assertions de plus.
+
+Le banc complet : 1743 assertions dans 203 scénarios, toutes vertes.
+
+| mutant | ce qui tombe |
+| --- | --- |
+| la place comptée sur les seuls enfants du bloc, comme en 4.24.0.41 (1) | 204 : a — la flèche sœur et la flèche d'ailleurs —, b, c, e, f, h |
+| les sondages retirés (1) | 204 : a — la flèche d'ailleurs —, b |
+| la mesure par canevas retirée (2) | 204 : g — le titre coupé, à 18 px |
+| la taille posée sans « !important » (1) | 204 : h |
+| l'ajustement retiré (1) | 204 : tout sauf d |
+| la flèche par-dessus ignorée (1) | 204 : a, b, c, e, f, h |
+| la roue oubliée dans la place (1) | 204 : a, b, c, f, g, h |
+| la taille native retenue au premier balayage (1) | 204 : a, b, c, f, g, h |
+| le titre libre de passer à la ligne (1) | 204 : e |
+| la largeur non bornée sous la taille minimale (1) | 204 : e |
+| la largeur rendue au lieu de la mise en page (1) | 204 : d |
+
+Onze mutants, onze pris. Le canevas a d'abord survécu : le faux moteur rendait
+la boîte entière du titre coupé, et la marge d'un pixel faisait encore
+descendre le titre, d'un demi-pixel par balayage. Il rend désormais les seuls
+glyphes visibles, l'ellipse exclue — et le titre y reste bloqué sans canevas.
+
+## La langue choisie tient, et le titre tient sur sa ligne (v4.24.0.41)
+
+La demande : « En me baladant dans Top Chaînes entre les différentes langues,
+je suis arrivé côté suédois : direct, des cartes visibles qui ne sont pas
+suédoises, et quelques secondes après » — la capture : le classement mondial,
+le menu des langues ouvert, sans le suédois. « Investigue et corrige. » Puis :
+« adapte mieux la barre selon la langue : en anglais, le titre "Followed
+Channels" est long, rends-le plus petit » — de même en espagnol, en polonais,
+en russe et en japonais. Un rapport de diagnostic joint. Publiée sur
+`claude/chrome-multi`.
+
+### Ce qui se passait — la langue
+
+**La sélection dépendait de ce que le menu savait.** La liste du menu langue
+vient du pool mondial et des **mesures** : une par langue, le total de ses
+spectateurs. Ces mesures du monde vivaient dans le même registre que les cent
+que chaque langue visitée ajoute pour les chiffres du menu catégorie — huit
+cents places, la plus ancienne chassée la première. Au rapport :
+`mesures.connues 800`, le registre plein. Les langues visitées chassaient les
+mesures du monde, les plus anciennes ; le suédois, absent du pool mondial — ses
+chaînes sont loin du sommet —, n'avait plus rien qui le portait au menu. Et la
+sélection était **validée contre ce menu** : le suédois retombait sur « toutes
+les langues », le classement mondial s'affichait, et le rapport portait une
+langue vide.
+
+**Rejoué au banc tel quel** : sept langues visitées, puis le suédois. Ses
+cartes s'affichent ; sa mesure porte le registre à son plafond, les trente et
+une mesures du monde partent, et la langue retombe, le suédois sorti du menu.
+
+**Le second chemin, trouvé en cherchant le premier** : une langue choisie dans
+la liste suivie, puis Top Chaînes ouvert avant que les mesures n'arrivent —
+défaite au premier balayage, pour la même raison.
+
+### Ce qui change — la langue
+
+- **Le choix tient.** Toute langue de Twitch se demande : la descente en
+  langue rend ses chaînes, ou « aucune chaîne » si elle n'en a pas. Seul ce qui
+  n'est pas une langue connue est écarté ; la langue choisie reste au menu,
+  choisie, même quand il ne sait plus ce qu'elle pèse.
+- **Le monde à part.** Les mesures du monde ont leur registre : trente et une
+  places, une par langue, que rien n'évince.
+- **Une mesure chassée se refait.** Quand le plafond chasse une mesure de
+  catégorie, son relevé repart à la prochaine demande au lieu d'attendre la
+  fin de son délai, cinq minutes — revenir sur une langue rend ses chiffres au
+  menu catégorie.
+- **Au rapport**, dans Top Chaînes : `mesures.monde` et `mesures.evincees`.
+
+### Un second exemplaire dans la page
+
+Le rapport portait, à 193 ms : « Uncaught SyntaxError: Identifier
+'TSE_PREVIEW_FIRST_FRAME_MSG' has already been declared — content.js:1 ».
+content.js s'exécute dans le monde MAIN, où ses `const` de premier niveau sont
+des globales de la page : une seconde copie échoue avant sa première ligne.
+Rien dans l'extension ne l'injecte deux fois — aucune permission, aucun
+`scripting` —, et Chrome n'injecte qu'une fois les scripts d'un exemplaire :
+**deux exemplaires de l'extension étaient installés et actifs**. Le rapport le
+confirmait sans le dire : son en-tête était celui de la 4.24.0.40, mais les
+données de la page n'avaient aucun des champs que la 4.24.0.40 ajoute
+(`categoriesPar`, `homonymes`, `sansJeu`, `nonLues`). La page tournait sous
+l'autre exemplaire, plus ancien ; la 4.24.0.40 n'y tournait pas.
+
+Le rapport le dit désormais : l'identifiant du panneau, celui de l'exemplaire
+qui tourne dans la page (`page — exemplaire`, lu par content.js dans sa propre
+pile), un avertissement s'ils diffèrent, et, sous l'erreur, la copie qui n'a
+pas démarré. Le défaut de la langue est le même dans les deux versions.
+
+### Ce qui se passait — le titre
+
+Le titre de la barre garde la taille de Twitch, sur une ligne qu'il partage
+avec la roue et la flèche de repli, et qui ne s'étend pas. Sur les captures,
+le russe passait à la ligne et la roue descendait sous la flèche ; le polonais
+menait la roue sur la flèche. La flèche de Twitch est posée par-dessus la
+ligne : elle n'y prend pas de place, et le titre court dessous — le banc le
+rejoue ainsi, et rend exactement les captures.
+
+### Ce qui change — le titre
+
+- **Une ligne, toujours, et la taille réglée à la place** : la ligne, moins la
+  roue, moins chaque autre élément qu'elle porte — la flèche comprise, dans le
+  flux ou posée par-dessus. Un titre qui tient garde la taille de Twitch, au
+  pixel ; un titre trop long descend d'autant qu'il dépasse, jamais sous
+  12 px ; en deçà, l'ellipse, la largeur bornée avant la roue. Le texte se
+  mesure à la taille de Twitch, lue sur la page : deux balayages rendent la
+  même taille, et rien ne se réécrit.
+- **Au banc**, Inter gras à 18 px dans une barre de 240 px : le français,
+  l'allemand, le portugais, l'italien et le chinois gardent 18 px ; l'anglais
+  passe à 16,5, l'espagnol à 16, le polonais à 14 ou 14,5, le japonais à 13, le
+  russe à 12 — et en Top Chaînes, « Najpopularniejsze kanały » à 12. Les polices
+  et la barre réelles peuvent déplacer ces chiffres d'un demi-pixel ou deux :
+  le réglage mesure sur la page.
+- **Une roue qui bat ne fait plus bouger le titre.** Au premier lancement, la
+  roue bat (`transform: scale`) ; mesurée telle qu'elle se rend, sa largeur
+  changeait à chaque image, et le titre se réécrivait sans fin. Le banc l'a
+  pris : la place se mesure en largeurs de mise en page.
+- **Au rapport**, le bloc `TITRE` : la langue, la taille native et celle posée,
+  la place, ce que le texte demande, et les éléments de la ligne avec leur
+  largeur et leur positionnement — de quoi voir comment Twitch range sa flèche.
+
+### Ce que le banc mesure
+
+- **203**, nouveau : a) huit langues visitées, le plafond qui mord à la
+  neuvième ; b) le suédois, neuvième, choisi à chaque relevé trois secondes
+  durant, et ses cartes seules à l'écran ; c) le menu qui le garde, choisi, avec
+  les langues que seul le monde connaît ; d) le français, revenu, dont le relevé
+  repart et les chiffres reviennent ; e) le second chemin, la langue tenue et
+  montrée choisie avant les mesures. Le décor apprend `__codesEnPlus`, des codes
+  de langue de plus pour son schéma.
+- **204**, nouveau : a) les vingt titres — dix langues, deux modes — sur une
+  ligne, entiers, la roue entre le titre et la flèche, celle-ci dans le flux
+  puis posée par-dessus ; b) la taille de Twitch quand le titre tient, juste ce
+  qu'il faut de moins sinon, et les cinq titres signalés réduits ; c) la langue
+  qui change, et la taille qui revient ; d) aucune écriture de style une fois
+  réglé ; e) trop étroit à 12 px : une ligne et l'ellipse ; f) le bloc du
+  rapport.
+- **70** : une assertion de plus — deux exemplaires actifs, nommés.
+
+Le banc complet : 1739 assertions dans 203 scénarios, toutes vertes.
+
+| mutant | ce qui tombe |
+| --- | --- |
+| la sélection validée contre ce que le menu connaît, comme en 4.24.0.40 (1) | 203 : e — la langue défaite au premier balayage |
+| la langue choisie hors du menu (1) | 203 : e — le menu ne la montre pas avant les mesures |
+| le monde dans le registre commun (1) | 203 : a — chassé à la huitième langue |
+| l'horloge d'une mesure chassée gardée (1) | 203 : d — aucun relevé, aucun chiffre |
+| la 4.24.0.40 entière (1) | 203 : les cinq — le suédois retombe, le classement mondial à l'écran |
+| l'ajustement retiré (1) | 204 : a, b, c, e, f |
+| la flèche posée par-dessus ignorée (1) | 204 : a, b, c, e |
+| la roue oubliée dans la place (1) | 204 : a, b, c, e |
+| la taille native retenue au premier balayage (1) | 204 : a, b, c, f |
+| le titre libre de passer à la ligne (1) | 204 : a, b, c, e, f |
+| la largeur non bornée sous la taille minimale (1) | 204 : e — la roue sur la flèche |
+| la largeur rendue au lieu de la mise en page (1) | 204 : d — quatre écritures en deux secondes |
+| l'identifiant de la page tu (1) | 70 |
+| la copie en double non nommée (1) | 70 |
+| l'avertissement des deux exemplaires tu (1) | 70 |
+
+Quinze mutants, quinze pris.
+
+## Une catégorie se désigne par son identifiant (v4.24.0.40)
+
+La demande : « Dans Top Chaînes, [une chaîne] n'est pas présente, pourtant
+elle a plus de 11 k de vues. Pourquoi n'est-elle pas dans le classement ?
+Investigue rigoureusement et corrige. » La capture : la chaîne à 11 630
+spectateurs, en « SILENT HILL 2 » ; le top trente descend jusqu'à 5 600.
+Publiée sur `claude/chrome-multi`.
+
+### Ce qui se passait
+
+**Le classement se fait catégorie par catégorie.** `games` rend les cent
+premières, classées ; la descente demande à chacune ses trente premiers
+streams, tant que la catégorie pèse plus que T, le trentième score. La
+catégorie de la chaîne pesait au moins ses 11 630 spectateurs, deux fois T :
+elle était visitée. Ce qu'on visitait, c'était un **nom** —
+`game(name: "SILENT HILL 2")` —, alors que `games` rend aussi l'identifiant.
+
+**Twitch connaît deux jeux qui ne diffèrent que par la casse** : « Silent Hill
+2 », de 2001, et « SILENT HILL 2 », le remake de la capture. Si le serveur
+résout un nom sans la casse, la réponse décrit l'autre jeu. Et la récolte la
+prenait pour la catégorie demandée : ses streams, et son **total** — celui
+du remake remplacé par celui du jeu de 2001, ce qui effaçait jusqu'à la trace
+de l'incohérence. La chaîne n'était nulle part, et rien ne le disait : une
+catégorie sans réponse utile passait pour visitée, et le classement se disait
+complet.
+
+**Ce qui n'est pas connu d'ici.** twitch.tv n'est pas joignable de ce poste :
+la façon dont Twitch résout un tel nom n'a pas pu être observée. C'est
+l'explication la plus étroite — elle touche cette catégorie et pas une autre,
+ce que la capture montre —, mais ce n'est pas une certitude. L'autre cause
+possible est connue et déjà tenue : la réponse d'une catégorie omet par
+intermittence des chaînes qui devraient y être (mesuré, quatre fois sur six),
+et il faut trois absences d'affilée pour qu'une chaîne sorte.
+
+### Ce qui change
+
+- **Une catégorie se demande par son identifiant**, que `games` rend déjà :
+  un identifiant ne se confond avec rien, la question cesse de se poser. Le
+  nom reste le repli — une catégorie dont on n'a pas l'identifiant, ou la
+  forme `game(id:)` refusée par le schéma, qui n'a pas pu être éprouvée contre
+  Twitch d'ici. Un refus se reconnaît à ce que toutes les demandes par
+  identifiant échouent quand la même catégorie, par son nom, répond ; il est
+  retenu pour la session.
+- **La réponse doit parler du jeu demandé** — même identifiant, ou même nom,
+  casse comprise. Sinon elle est écartée et comptée : ni ses streams, ni son
+  total ne passent pour ceux de la catégorie, et aucune absence n'y est
+  comptée. De même pour le comptage des langues qui remplit le menu, sous une
+  catégorie.
+- **Le classement ne se dit plus complet** si une catégorie au-dessus de T n'a
+  pas été lue — réponse d'un autre jeu, d'aucun jeu, ou tranche perdue. La
+  preuve de la descente suppose qu'on a LU tout ce qui pèse plus que T ; elle
+  ne le vérifiait pas. Le bandeau d'honnêteté le dit alors.
+- **Au rapport**, dans Top Chaînes : `categoriesPar` (« id », ou « nom » si
+  le schéma a refusé), `homonymes`, `sansJeu`, et `nonLues` à la dernière
+  marche. Si la chaîne manque encore, le rapport dira laquelle des deux causes
+  agit.
+
+### Le banc lui-même
+
+Deux assertions du 196 — l'événement commun — supposaient que la machine du
+banc ne fait jamais de silence elle-même.
+
+- **Le compte par paire.** Au banc complet de cette version, « foxtrot~duo1 »
+  et « foxtrot~rho » ont compté cinq silences communs, « foxtrot~sigma »
+  quatre ; l'assertion voulait le même compte partout. Douze passes de la
+  première moitié du 196, seule, dont six sous la charge de quatre processus,
+  avaient toutes dit quatre. Le banc a alors écouté, à côté de la salle, ce
+  que chaque tuile lui envoie ; le premier 196 complet a reproduit l'écart, et
+  dit pourquoi : « foxtrot » et « rho » s'étaient tues ensemble — un bloc de
+  23 ms, à 3 ms près, quatorze secondes et demie après le premier silence
+  posé. Le décor ne l'avait pas posé : c'est la machine, l'événement commun
+  même que l'écoute doit écarter. Elle l'avait compté, à raison.
+- **Le compte au-delà de cent.** Au banc de publication de
+  `claude/firefox-prod`, puis une fois sur trois seul, un silence posé sur
+  cent dix manquait à une paire : deux horloges de tuile qui glissent de plus
+  de 70 ms ne laissent plus les 50 ms d'un silence commun, et l'écoute a
+  raison de ne pas le compter.
+
+Les deux ont désormais un **oracle** : le banc écoute les mêmes messages que
+la salle et en tire, par la règle écrite — un silence sous −7 dans les deux
+enveloppes, à 50 ms près, compté par le début de leur partie commune —, les
+silences communs de chaque paire. Le compte du rapport doit être celui-là, ni
+plus ni moins ; ce qui commence dans les dix dernières secondes peut ne pas
+être compté encore, un calcul toutes les cinq. Les quatre silences posés
+doivent y être dans chaque paire, ceux de « duo1 » seule entendus par elle,
+et, après la rafale, plus de cent. Quatre passes du 196 : le compte égale
+l'oracle, 4, 4 et 4, puis 114. L'oracle prend un mutant que l'ancienne
+assertion de la rafale — cent dix de plus, au moins — aurait laissé passer :
+la tolérance à 150 ms, qui fait se toucher deux silences de la rafale et en
+compte 119 à 159.
+
+**Le voile du démarrage.** Au banc complet suivant, le 196 vert, le 146 b) a vu
+ses quarante sondes partir hors du voile : « sousVoile 0 », étalées sur six
+secondes, une pointe de douze — la croisière ; l'échec n'apparaît dans aucun
+des journaux de banc gardés jusque-là. Le 145 et le 146 posent leurs cartes
+pendant le voile qui s'ouvre avec la page, 1,2 s au banc ; sous la charge, la
+page les a reçues après sa levée. Rejoué en posant les cartes après la levée :
+la même signature, à 5 ms près. Seules, huit passes par version les posaient
+de 200 à 460 ms après l'ouverture, sur la 4.24.0.39 comme sur la 4.24.0.40 :
+la version n'y est pour rien. Le décor pose désormais ses cartes dans la tâche
+même qui vérifie que le voile est là, 700 ms au plus après l'ouverture — les
+sondes, qui en prennent moins de 420 seules, ont encore 500 ms devant elles ;
+sinon il rouvre la page, éprouvé en retardant le premier essai d'une seconde
+et demie. Les trois mutants que ces scénarios prenaient le sont encore.
+
+### Ce que le banc mesure
+
+Le décor apprend deux choses : `__nomsSansCasse` fait répondre, à un nom, le
+premier jeu qui coïncide sans la casse — le pire cas, puisqu'on ne peut pas
+observer Twitch ; `__refusIdJeu` fait refuser la forme par identifiant.
+
+- **202**, nouveau, sur dix catégories ordinaires et deux jeux qui ne
+  diffèrent que par la casse, dont le remake porte une vedette à 11 630 :
+  a) la résolution exacte — la vedette en tête, les catégories demandées par
+  identifiant, rien d'écarté, le classement complet ; b) le pire cas — par
+  identifiant, la vedette y est quand même, au total du remake ; c) le pire
+  cas et la forme refusée — repli sur le nom, la réponse de l'autre jeu
+  écartée et comptée, ni son total ni sa chaîne ne passent pour ceux du
+  remake, le classement ne se dit pas complet ; d) la forme refusée sans
+  homonyme — le nom suffit ; e) le pire cas, la catégorie choisie au menu —
+  sa vedette en tête, et les langues de l'autre jeu ne passent pas pour les
+  siennes.
+
+Le banc complet : 1726 assertions dans 201 scénarios, toutes vertes.
+
+| mutant | ce qui tombe |
+| --- | --- |
+| la catégorie par son nom, comme en 4.24.0.39 (1) | 202 : les cinq — au pire cas, le top trente sans la vedette, le symptôme de la capture |
+| le jeu répondu jamais vérifié (1) | 202 : c — la chaîne de 2001 au classement, le total du remake à 120 |
+| la complétude sans les catégories non lues (1) | 202 : c — le classement se dit complet |
+| la portée par son nom (1) | 202 : e |
+| le comptage des langues sans vérification (1) | 202 : e — « Deutsch : 120 » sous le remake |
+| le repli jamais pris (1) | 202 : c et d — plus aucune catégorie lue |
+| rien d'écarté (1) | 196 : les cinq |
+| tout silence écarté, commun ou non (1) | 196 : le compte — 9, 8 et 8 au lieu de 4 —, le son écarté, la rafale |
+| le rapport muet (1) | 196 : le compte, le son écarté, la rafale |
+| l'union au lieu de l'intersection (1) | 196 : le son écarté — 3,1 s pour « foxtrot~duo1 » |
+| le compte, la taille de la mémoire (1) | 196 : la rafale — « 100 » dans les trois paires |
+| le compte plafonné à cent (1) | 196 : la rafale — « 100 » dans les trois paires |
+| chaque calcul recompte (1) | 196 : le compte — 16 —, le son écarté, la rafale |
+| la tolérance à 150 ms (1) | 196 : la rafale — 119 à 159 au lieu de 114, que « cent dix de plus, au moins » aurait laissé passer |
+| la minute de report aussi sous le voile (1) | 145 : « sousVoile 5 » sur huit adoptions |
+| la borne du verrou reposée (1) | 146 a : verrou tenu 906 ms pour 300 |
+| la bourse du voile rendue d'un bloc (1) | 146 b : « pointe 40, etendueMs 2 » |
+
+Dix-sept mutants, dix-sept pris.
 
 ## La section qui disparaissait (v4.24.0.39)
 
@@ -19367,7 +20039,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le manifeste Firefox : les invariants du dépôt, **puis** l'`addons-linter` de Mozilla — celui qu'AMO applique à la soumission |
-| `npm test` | le harnais Playwright : 200 scénarios, 1721 assertions |
+| `npm test` | le harnais Playwright : 205 scénarios, 1760 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
