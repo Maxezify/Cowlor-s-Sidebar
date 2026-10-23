@@ -190,7 +190,7 @@ A página de programação de um canal, no Twitch, mostra um só canal. O grupo 
 - ★ A SEMANA, DIA A DIA ★ Abre no dia de hoje, com os dias passados acima: cada emissão passada com a gravação a um clique, as que estão em directo e as que os canais agendaram, cada uma no dia em que começou. Oito semanas para trás, duas para a frente.
 - ★ OFFLINE, MAS NÃO ESQUECIDOS ★ Cada canal seguido que não está em directo: primeiro os que têm uma emissão agendada, a mais próxima no topo, depois os outros, o mais recente primeiro — quando emitiu pela última vez, a gravação e a próxima emissão.
 - ★ UM CANAL OU TODOS ★ Um menu deixa só um, e «Semana do canal» leva logo à semana da sua última emissão.
-- ★ FRANCO SOBRE O QUE O TWITCH GUARDA ★ Uma gravação só existe se o canal guarda as emissões, e enquanto o Twitch as mantiver; uma última emissão sem gravação di-lo («Sem gravação»), e uma gravação só para subscritores também («Subscritores»), antes do clique.
+- ★ FRANCO SOBRE O QUE O TWITCH GUARDA ★ Uma gravação só existe se o canal guarda as emissões, e enquanto o Twitch as mantiver; uma última emissão sem gravação di-lo («Sem gravação»), e uma gravação que só se pode ver com subscrição também («Subscritores»), antes do clique.
 - ★ SÓ QUANDO OLHAS ★ Nada é pedido ao Twitch antes de o abrires, e nada é guardado: tudo vive no separador.
 
 _______________________________

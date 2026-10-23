@@ -190,7 +190,7 @@ La pagina del programma di un canale, su Twitch, mostra un solo canale. Il grupp
 - ★ LA SETTIMANA, GIORNO PER GIORNO ★ Si apre sul giorno di oggi, con i giorni passati sopra: ogni diretta passata con la sua replica a un clic, quelle in corso e quelle che i canali hanno programmato, ognuna nel giorno in cui è iniziata. Otto settimane indietro, due avanti.
 - ★ OFFLINE, MA NON DIMENTICATI ★ Ogni canale seguito che non è in diretta: prima quelli con una diretta programmata, la più vicina in cima, poi gli altri, il più recente per primo — quando ha trasmesso l'ultima volta, la sua replica e la sua prossima diretta.
 - ★ UN CANALE O TUTTI ★ Un menu ne tiene uno solo, e «La sua settimana» porta dritto alla settimana della sua ultima diretta.
-- ★ ONESTO SU CIÒ CHE TWITCH CONSERVA ★ Una replica esiste solo se il canale salva le sue dirette, e finché Twitch le tiene; un'ultima diretta che non ne ha una lo dice («Senza replica»), e una replica riservata agli abbonati pure («Solo abbonati»), prima del clic.
+- ★ ONESTO SU CIÒ CHE TWITCH CONSERVA ★ Una replica esiste solo se il canale salva le sue dirette, e finché Twitch le tiene; un'ultima diretta che non ne ha una lo dice («Senza replica»), e una replica che si può vedere solo da abbonati pure («Solo abbonati»), prima del clic.
 - ★ SOLO QUANDO GUARDI ★ Non viene chiesto nulla a Twitch prima che tu lo apra, e nulla viene salvato: tutto vive nella scheda.
 
 _______________________________

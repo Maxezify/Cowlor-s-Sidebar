@@ -1801,31 +1801,30 @@ const imageAgenda = (src, classe) => {
   return img;
 };
 
-/* LE CADENAS DES ABONNÉS (4.25.0.1). Une rediffusion réservée aux abonnés
-   porte une restriction que Twitch sert à tous, même sans compte : on la dit
-   avant le clic, plutôt que de laisser la page de la vidéo l'apprendre.
-   Ouvert quand la mémoire des abonnements vous sait abonné à la chaîne
-   (cf. ABONNEMENTS REPÉRÉS, content.js) ; elle ne sait que ce que vos visites
-   lui ont montré, d'où le cadenas fermé faute de savoir. */
-const cadenas = (ouvert) => {
+/* LE CADENAS DES ABONNÉS (4.25.0.1). Il ne dit qu'une chose, avant le clic :
+   cette rediffusion vous est FERMÉE (4.25.0.2). Une rediffusion qu'on peut
+   regarder ne porte rien ; 4.25.0.1 y mettait un cadenas ouvert quand la
+   mémoire des abonnements vous savait abonné, une pastille de plus pour dire
+   qu'il n'y avait rien à dire. Fermée : réservée aux abonnés — une
+   restriction nommée, ou l'accès refusé au visiteur que la page est pour
+   Twitch (cf. `video`, content.js) —, et la mémoire des abonnements
+   (cf. ABONNEMENTS REPÉRÉS) ne vous sait pas abonné. Elle ne sait que ce que
+   vos visites lui ont montré : faute de savoir, le cadenas est là. */
+const fermee = (v, abonne) => !!(v && v.restreinte) && abonne !== true;
+const pastilleAbonnes = () => {
+  const p = elt('span', 'ag-abo');
   const svg = svgEl('svg', { class: 'ag-cadenas', viewBox: '0 0 12 12', 'aria-hidden': 'true' });
   svg.append(
-    svgEl('path', { d: ouvert ? 'M3.5 5.5V3.75a2.5 2.5 0 0 1 4.9-.7' : 'M3.5 5.5V3.75a2.5 2.5 0 0 1 5 0V5.5',
+    svgEl('path', { d: 'M3.5 5.5V3.75a2.5 2.5 0 0 1 5 0V5.5',
                     fill: 'none', stroke: 'currentColor', 'stroke-width': 1.4, 'stroke-linecap': 'round' }),
     svgEl('rect', { x: 2, y: 5.5, width: 8, height: 5.5, rx: 1.2, fill: 'currentColor' }));
-  return svg;
-};
-const pastilleAbonnes = (abonne) => {
-  const p = elt('span', 'ag-abo' + (abonne ? ' ag-abo--ouvert' : ''));
-  p.append(cadenas(abonne), document.createTextNode(T('valSubOnly')));
-  p.title = T(abonne ? 'valSubOnlyOpen' : 'valSubOnlyLocked');
+  p.append(svg, document.createTextNode(T('valSubOnly')));
+  p.title = T('valSubOnlyLocked');
   return p;
 };
 
 const MARQUE = { direct: 'valLive', prevu: 'valPlanned', sansRediffusion: 'valNoReplay' };
 const plageHoraire = (e) => {
-  // Un direct sans rediffusion n'a que sa fin : « – 00:21 », pas un début qui mentirait.
-  if (e.finSeule) return `– ${HEURE.format(e.fin)}`;
   const de = HEURE.format(e.debut);
   if (e.type === 'direct') return `${de} – ${T('valOngoing')}`;
   return e.fin > e.debut ? `${de} – ${HEURE.format(e.fin)}` : de;
@@ -1850,7 +1849,7 @@ const entreeAgenda = (e, nom) => {
   l1.appendChild(elt('span', 'ag-heure', plageHoraire(e)));
   const l2 = div('ag-l2');
   l2.appendChild(elt('span', 'ag-titre', e.titre || '—'));
-  if (e.type === 'rediffusion' && e.restreinte) l2.appendChild(pastilleAbonnes(e.abonne === true));
+  if (e.type === 'rediffusion' && fermee(e, e.abonne)) l2.appendChild(pastilleAbonnes());
   if (e.type === 'rediffusion' && Number.isFinite(e.vues)) {
     l2.appendChild(elt('span', 'ag-meta', vuesTexte(e.vues)));
   } else if (e.type === 'direct' && Number.isFinite(e.spectateurs)) {
@@ -1861,7 +1860,7 @@ const entreeAgenda = (e, nom) => {
   const corps = div('ag-corps');
   corps.append(l1, l2);
   el.append(vig, corps);
-  el.title = [e.titre, (e.finSeule ? '– ' : '') + DATE_COMPLETE.format(e.debut)].filter(Boolean).join('\n');
+  el.title = [e.titre, DATE_COMPLETE.format(e.debut)].filter(Boolean).join('\n');
   return el;
 };
 
@@ -2073,8 +2072,8 @@ const listeSemaine = (data, suivant) => {
 };
 
 /* « Sa semaine » : celle du dernier direct, pour cette chaîne seule, posée sur
-   son jour — celui de son début quand sa rediffusion le donne, celui de sa fin
-   sinon, comme la semaine le range. */
+   son jour — celui de son début quand on le connaît. Sinon celui de sa fin :
+   la semaine ne le montre pas, faute de début, mais c'est là qu'il a fini. */
 const voirSemaineDe = (l) => {
   const t = l.dernier ? (l.dernier.debut ?? l.dernier.t) : null;
   etatAgenda.chaine = l.login;
@@ -2085,17 +2084,26 @@ const voirSemaineDe = (l) => {
 
 /* HORS LIGNE : une ligne par chaîne, dans l'ordre de la page — les prochains
    directs programmés d'abord, le plus proche en tête, puis les autres, la plus
-   récemment partie d'abord ; un filet sépare les deux. « Revoir » n'apparaît
-   que si la dernière rediffusion EST le dernier direct — sinon le bouton
-   mènerait, sans le dire, à un direct plus ancien. */
+   récemment partie d'abord, et celles que Twitch ne sert plus ; un filet
+   sépare les groupes. « Revoir » n'apparaît que si la dernière rediffusion
+   EST le dernier direct — sinon le bouton mènerait, sans le dire, à un direct
+   plus ancien. Une chaîne indisponible (4.25.0.2) ne dit que cela, et depuis
+   quand : son nom, et rien sur quoi cliquer qui mènerait à une page fermée. */
 const ligneHorsLigne = (l, quand) => {
-  const ligne = div('hl-ligne');
+  const ligne = div('hl-ligne' + (l.indisponible ? ' hl-ligne--indisponible' : ''));
   const avatar = imageAgenda(l.avatar, 'hl-avatar') || div('hl-avatar');
   const corps = div('hl-corps');
   const l1 = div('hl-l1');
   l1.appendChild(elt('span', 'hl-nom', l.nom));
   const q = elt('span', 'hl-quand', quand);
-  // Le début n'est connu que par la rediffusion ; sans elle, la fin seule.
+  if (l.indisponible) {
+    q.title = T('valUnavailableTip', DATE_COMPLETE.format(l.indisponible));
+    l1.appendChild(q);
+    corps.appendChild(l1);
+    ligne.append(avatar, corps);
+    return ligne;
+  }
+  // Le début n'est connu que par la rediffusion, ou parce qu'on l'a vu en cours ; sinon, la fin seule.
   if (l.dernier) {
     q.title = l.dernier.debut !== null
       ? `${DATE_COMPLETE.format(l.dernier.debut)} – ${HEURE.format(l.dernier.t)}`
@@ -2115,7 +2123,7 @@ const ligneHorsLigne = (l, quand) => {
   }
   const actions = div('hl-actions');
   if (revoir && /^\d+$/.test(l.derniere.id || '')) {
-    if (l.derniere.restreinte) actions.appendChild(pastilleAbonnes(l.abonne === true));
+    if (fermee(l.derniere, l.abonne)) actions.appendChild(pastilleAbonnes());
     const a = elt('a', 'bouton bouton--fantome', T('btnReplay'));
     poserLien(a, `https://www.twitch.tv/videos/${l.derniere.id}`);
     a.title = [l.derniere.titre, dureeHms(l.derniere.duree)].filter(Boolean).join(' · ');
@@ -2132,12 +2140,14 @@ const listeHorsLigne = (data, suivant) => {
       : [noteAgenda(T(data.resume && data.resume.directs ? 'stateAgendaNoOffline' : 'stateEmpty'))];
   }
   const liste = div('hl-liste');
+  const groupe = (l) => (l.indisponible ? 2 : l.prochain ? 0 : 1);
   let avant = null;
   for (const l of lignes) {
     // « il y a 3 heures » entre dans la signature : la ligne se refait quand il change.
-    const quand = l.dernier ? T('valLastLive', ilYa(l.dernier.t, data.maintenant)) : T('valLastLiveUnknown');
+    const quand = l.indisponible ? T('valUnavailable')
+      : l.dernier ? T('valLastLive', ilYa(l.dernier.t, data.maintenant)) : T('valLastLiveUnknown');
     const el = noeud(suivant, 'l:' + l.login, JSON.stringify(l) + quand, () => ligneHorsLigne(l, quand));
-    el.classList.toggle('hl-ligne--suite', !!(avant && avant.prochain && !l.prochain));
+    el.classList.toggle('hl-ligne--suite', !!(avant && groupe(avant) !== groupe(l)));
     liste.appendChild(el);
     avant = l;
   }
@@ -2227,7 +2237,8 @@ const chargerAgenda = async (section, relecture = false) => {
   if (courante !== section.id || jeton !== etatAgenda.jeton) return;
   if (!r.ok) { montrerEchec(r); return; }
   montrerAgenda(section, r.data || {});
-  if (r.data && r.data.enCours) {
+  // `attente` : une absence à reconfirmer, que la page relira d'elle-même (4.25.0.2).
+  if (r.data && (r.data.enCours || r.data.attente)) {
     etatAgenda.minuteur = setTimeout(() => {
       if (courante === section.id && jeton === etatAgenda.jeton) chargerAgenda(section, true);
     }, RELECTURE_AGENDA);

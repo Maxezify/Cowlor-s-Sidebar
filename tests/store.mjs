@@ -200,8 +200,11 @@ const PROMESSES = [
   ['the ones channels have scheduled', "'query TseAgendaProgramme("],
   /* LE CADENAS DES ABONNÉS (4.25.0.1). La fiche promet de dire, avant le
      clic, qu'une rediffusion est réservée aux abonnés : c'est le champ que
-     les requêtes de l'agenda demandent pour cela qui la rend vraie. */
-  ['and so does a replay for subscribers only', 'resourceRestriction { type }'],
+     les requêtes de l'agenda demandent pour cela qui la rend vraie. Depuis
+     4.25.0.2, elle dit « que vous ne pouvez pas voir sans abonnement » — le
+     cadenas ne paraît plus quand on vous sait abonné —, et vise le champ qui
+     le dit même sans restriction nommée : l'accès du visiteur. */
+  ['and so does a replay you cannot watch without a subscription', 'self { isRestricted }'],
 ];
 const tenues = PROMESSES.flatMap(([phrase, marque]) => {
   const dansFiche = en.includes(phrase);

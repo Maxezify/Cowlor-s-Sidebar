@@ -190,7 +190,7 @@ La page de programme d'une chaîne, sur Twitch, ne montre qu'une chaîne. Le gro
 - ★ LA SEMAINE, JOUR PAR JOUR ★ Elle s'ouvre sur aujourd'hui, les jours passés au-dessus : chaque direct passé avec sa rediffusion à un clic, ceux en cours, et ceux que les chaînes ont programmés, chacun au jour où il a commencé. Huit semaines en arrière, deux en avant.
 - ★ HORS LIGNE, MAIS PAS OUBLIÉES ★ Chaque chaîne suivie qui n'est pas en direct : celles qui ont programmé leur prochain direct d'abord, le plus proche en tête, puis les autres, la plus récente d'abord — quand elle a diffusé pour la dernière fois, sa rediffusion, et son prochain direct.
 - ★ UNE CHAÎNE OU TOUTES ★ Un menu n'en garde qu'une, et « Sa semaine » mène droit à la semaine de son dernier direct.
-- ★ FRANC SUR CE QUE TWITCH GARDE ★ Une rediffusion n'existe que si la chaîne archive ses directs, et tant que Twitch les conserve ; un dernier direct qui n'en a pas le dit (« Sans rediffusion »), une rediffusion réservée aux abonnés aussi (« Abonnés »), avant le clic.
+- ★ FRANC SUR CE QUE TWITCH GARDE ★ Une rediffusion n'existe que si la chaîne archive ses directs, et tant que Twitch les conserve ; un dernier direct qui n'en a pas le dit (« Sans rediffusion »), une rediffusion qu'on ne peut voir qu'abonné aussi (« Abonnés »), avant le clic.
 - ★ SEULEMENT QUAND VOUS REGARDEZ ★ Rien n'est demandé à Twitch avant que vous l'ouvriez, et rien n'est écrit : tout vit dans l'onglet.
 
 _______________________________

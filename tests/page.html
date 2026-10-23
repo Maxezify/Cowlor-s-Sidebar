@@ -186,11 +186,23 @@ window.__tagTop = {};      // classement par tag de langue (cf. TseTagTop)
    Le décor le donne donc par sa fin. `diffusion` est l'identifiant du direct
    dont vient une archive (`broadcastIdentifier`), `abonnes` sa restriction
    aux abonnés (`resourceRestriction`) ; tous deux ne sont servis que si la
-   requête les demande, comme le ferait le schéma. */
+   requête les demande, comme le ferait le schéma. Et l'accès du visiteur
+   (`self { isRestricted }`, 4.25.0.2) : fermé sur une archive `abonnes`, ou
+   `verrouillee` — fermée sans restriction nommée, le cas du premier essai.
+
+   `enDirect` (4.25.0.2) : un direct que seul l'agenda voit — la barre, qui
+   lit `__fx`, l'ignore. C'est ce qui éprouve la fiche lue en cours de
+   direct quand la mémoire des directs n'en sait rien. */
 window.__agenda = {};
-/* Le schéma simulé refuse les deux champs neufs des archives (4.25.0.1) :
-   l'agenda doit repartir sans eux, pour la session. */
+/* Le schéma simulé refuse les champs neufs des archives : true pour tous, ou
+   la liste de ceux qu'il refuse. Il en nomme un par refus, le premier que la
+   requête demande — comme Twitch, qui s'arrête au premier champ inconnu ;
+   l'agenda doit repartir sans LUI, pour la session (4.25.0.2). */
 window.__agendaExtras = false;
+/* Des chaînes que Twitch OMET de sa réponse, sans erreur (4.25.0.2) :
+   operationName -> { login: nombre de réponses }. Un compte suspendu, renommé
+   ou fermé, ou un hoquet du service : `users(logins:)` le rend nul. */
+window.__agendaOmises = {};
 /* Des réponses PARTIELLES : operationName -> { logins, chemin, fois }. Pour
    ces logins, `fois` réponses portent une erreur à côté des données — avec son
    chemin (`chemin: true`, le champ en panne rendu nul) ou sans (la chaîne
@@ -742,14 +754,19 @@ window.fetch = async (url, opt) => {
     if (a === undefined && f === undefined) return null;
     return { a: a || {}, f };
   };
-  const agendaVideos = (a, n, riche) => (a.videos || [])
+  const agendaVideos = (a, n, ex) => (a.videos || [])
     .slice().sort((x, y) => Date.parse(y.debut) - Date.parse(x.debut)).slice(0, n)
     .map(v => ({ node: { id: v.id, title: v.titre || '', createdAt: v.debut,
                          lengthSeconds: v.duree, viewCount: v.vues ?? 0,
                          previewThumbnailURL: 'https://static-cdn.jtvnw.net/cf_vods/' + v.id + '/thumb-160x90.jpg',
                          game: v.jeu ? { name: v.jeu, displayName: traduire(v.jeu) } : null,
-                         ...(riche ? { broadcastIdentifier: v.diffusion ? { id: v.diffusion } : null,
-                                       resourceRestriction: v.abonnes ? { type: 'SUB_ONLY_LIVE' } : null } : {}) } }));
+                         ...(ex.broadcastIdentifier ? { broadcastIdentifier: v.diffusion ? { id: v.diffusion } : null } : {}),
+                         ...(ex.resourceRestriction ? { resourceRestriction: v.abonnes ? { type: 'SUB_ONLY_LIVE' } : null } : {}),
+                         ...(ex.self ? { self: { isRestricted: !!(v.abonnes || v.verrouillee) } } : {}) } }));
+  // Les champs neufs que la requête demande, un par un.
+  const agendaExtras = (q) => ({ broadcastIdentifier: /broadcastIdentifier\s*\{/.test(q),
+                                 resourceRestriction: /resourceRestriction\s*\{/.test(q),
+                                 self: /\bself\s*\{\s*isRestricted/.test(q) });
   /* Une réponse partielle : le morceau en panne rendu nul, et l'erreur à côté
      des données — avec son chemin, ou sans. */
   const agendaPanne = (nom, rep, logins) => {
@@ -760,10 +777,23 @@ window.fetch = async (url, opt) => {
     const errors = [];
     rep.data.users.forEach((u, i) => {
       if (!u || !p.logins.includes(u.login)) return;
-      if (p.chemin) { u[champ] = null; errors.push({ message: 'service timeout', path: ['users', i, champ] }); }
+      /* `chemin` peut nommer un champ plus profond, sous l'utilisateur :
+         ['videos', 'edges', 0, 'node', 'self'] — un champ neuf d'une archive. */
+      if (Array.isArray(p.chemin)) {
+        const parent = p.chemin.slice(0, -1).reduce((o, k) => (o == null ? o : o[k]), u);
+        if (parent) parent[p.chemin[p.chemin.length - 1]] = null;
+        errors.push({ message: 'service timeout', path: ['users', i, ...p.chemin] });
+      } else if (p.chemin) { u[champ] = null; errors.push({ message: 'service timeout', path: ['users', i, champ] }); }
       else { rep.data.users[i] = null; errors.push({ message: 'service error' }); }
     });
     return { ...rep, errors };
+  };
+  // Omise de cette réponse : nulle, sans un mot (cf. __agendaOmises).
+  const agendaOmise = (nom, l) => {
+    const o = (window.__agendaOmises || {})[nom];
+    if (!o || !(o[l] > 0)) return false;
+    o[l]--;
+    return true;
   };
   const agendaCreneau = (c) => ({ id: c.id, startAt: c.debut, endAt: c.fin ?? null, title: c.titre || '',
                                   isCancelled: !!c.annule,
@@ -779,9 +809,11 @@ window.fetch = async (url, opt) => {
     if ((window.__agendaSchema || {})[nom]) {
       return { errors: [{ message: 'Cannot query field "lastBroadcast" on type "User".' }] };
     }
-    const riche = /broadcastIdentifier|resourceRestriction/.test(o.query || '');
-    if (window.__agendaExtras && riche) {
-      return { errors: [{ message: 'Cannot query field "broadcastIdentifier" on type "Video".' }] };
+    const ex = agendaExtras(o.query || '');
+    const refuses = window.__agendaExtras === true ? Object.keys(ex) : (window.__agendaExtras || []);
+    const refuse = Object.keys(ex).find(k => ex[k] && refuses.includes(k));
+    if (refuse) {
+      return { errors: [{ message: `Cannot query field "${refuse}" on type "Video".` }] };
     }
     const logins = o.variables?.logins || [];
     if (nom === 'TseAgendaProgramme') {
@@ -794,7 +826,7 @@ window.fetch = async (url, opt) => {
       }
       const premier = Number((/segmentList\(first:\s*(\d+)/.exec(o.query || '') || [])[1]) || 999;
       return agendaPanne(nom, { data: { users: logins.map(l => {
-        const x = agendaFiche(l);
+        const x = agendaOmise(nom, l) ? null : agendaFiche(l);
         if (!x) return null;
         const cr = (x.a.creneaux || []).slice().sort((p, q) => Date.parse(p.debut) - Date.parse(q.debut));
         const suivant = cr.find(c => !c.annule && Date.parse(c.debut) > Date.now());
@@ -807,15 +839,15 @@ window.fetch = async (url, opt) => {
     if (nom === 'TseAgendaDiffusions') {
       const n = o.variables?.n || 12;
       return agendaPanne(nom, { data: { users: logins.map(l => {
-        const x = agendaFiche(l);
-        return x ? { login: l, videos: { edges: agendaVideos(x.a, n, riche) } } : null;
+        const x = agendaOmise(nom, l) ? null : agendaFiche(l);
+        return x ? { login: l, videos: { edges: agendaVideos(x.a, n, ex) } } : null;
       }) } }, logins);
     }
     // TseAgendaChaines
     return agendaPanne(nom, { data: { users: logins.map(l => {
-      const x = agendaFiche(l);
+      const x = agendaOmise(nom, l) ? null : agendaFiche(l);
       if (!x) return null;
-      const f = x.f;
+      const f = x.f || x.a.enDirect;
       return {
         login: l, displayName: x.a.nom || l.charAt(0).toUpperCase() + l.slice(1),
         profileImageURL: 'https://static-cdn.jtvnw.net/jtv_user_pictures/' + l + '-70x70.png',
@@ -824,7 +856,7 @@ window.fetch = async (url, opt) => {
         // La FIN du dernier direct, sous le nom que Twitch lui donne (cf. l'en-tête).
         lastBroadcast: x.a.dernier ? { id: x.a.dernier.id, startedAt: x.a.dernier.fin } : null,
         broadcastSettings: { title: x.a.titre || '' },
-        videos: { edges: agendaVideos(x.a, 1, riche) },
+        videos: { edges: agendaVideos(x.a, 1, ex) },
       };
     }) } }, logins);
   };

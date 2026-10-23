@@ -1135,9 +1135,8 @@ a.ag-ent:focus-visible { outline: 2px solid var(--violet); outline-offset: -2px;
   display: inline-block; width: 7px; height: 7px; margin-right: 4px;
   border-radius: 50%; background: var(--direct); vertical-align: 1px;
 }
-/* LE CADENAS DES ABONNÉS (4.25.0.1), dans l'or des abonnements : cadré et
-   fermé quand on ne vous sait pas abonné, ouvert et sans cadre quand vous
-   l'êtes — la rediffusion vous est alors ouverte. */
+/* LE CADENAS DES ABONNÉS (4.25.0.1), dans l'or des abonnements : une
+   rediffusion qui vous est fermée. Ouverte, elle ne porte rien (4.25.0.2). */
 .ag-abo {
   flex: 0 0 auto;
   display: inline-flex; align-items: center; gap: 3px;
@@ -1145,7 +1144,6 @@ a.ag-ent:focus-visible { outline: 2px solid var(--violet); outline-offset: -2px;
   color: var(--or);
   font-size: 10px; font-weight: 700; line-height: 14px; white-space: nowrap;
 }
-.ag-abo--ouvert { border-color: transparent; }
 .ag-cadenas { flex: 0 0 auto; width: 9px; height: 9px; }
 
 /* ── Hors ligne ──────────────────────────────────────────────────────────── */
@@ -1156,7 +1154,7 @@ a.ag-ent:focus-visible { outline: 2px solid var(--violet); outline-offset: -2px;
 }
 .hl-ligne:hover { background: var(--survol); }
 /* Le filet entre les chaînes qui ont programmé leur prochain direct, en tête,
-   et les autres (4.25.0.1). */
+   et les autres (4.25.0.1) ; puis celles que Twitch ne sert plus (4.25.0.2). */
 .hl-ligne--suite { position: relative; margin-top: 9px; }
 .hl-ligne--suite::before {
   content: ''; position: absolute; left: 6px; right: 6px; top: -6px;
@@ -1171,6 +1169,8 @@ a.ag-ent:focus-visible { outline: 2px solid var(--violet); outline-offset: -2px;
 .hl-nom { flex: 0 1 auto; min-width: 0; font-size: 12.5px; font-weight: 700;
           white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .hl-quand { flex: 0 0 auto; font-size: 11px; color: var(--texte-faible); white-space: nowrap; }
+/* Indisponible : estompée, comme une carte hors ligne de la barre. */
+.hl-ligne--indisponible .hl-avatar, .hl-ligne--indisponible .hl-nom { opacity: 0.55; }
 .hl-titre, .hl-prochain { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .hl-titre { color: var(--texte-doux); }
 .hl-prochain { color: var(--violet-texte); }
