@@ -2059,6 +2059,231 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The schedule, after its second real run (v4.25.0.2)
+
+Two rounds of feedback from the second run on the real Twitch, screenshots
+attached: “We did say a broadcast only shows on the day it started? Why does
+it show today? Also, I don't see the Subs padlock. […] If I have access to
+the replay, show nothing […]; but if access is restricted for me, the ‘Subs’
+padlock shows. Are you sure the schedule's data is kept in memory, so no new
+search is needed? Also check there is a purge system.” Then: “I just noticed
+a channel I follow has vanished from the panel, from Offline and from the
+schedule. Investigate and fix rigorously.” Published on
+`claude/chrome-multi`.
+
+### A followed channel that vanishes
+
+The menu, “The week” and “Offline” only show a channel whose record has been
+read, and 4.25.0.1 left out every record marked “unknown”. But it marked it
+unknown as soon as Twitch left it out of its response ONCE.
+`users(logins:)` returns null for an account it does not serve — suspended,
+renamed, closed — and, silently, for whatever a hiccup of its service did not
+return. A followed channel thus vanished from everywhere, on a silence.
+
+The rest of the extension follows the opposite rule, written in the main
+pipeline: “login missing from the response: we don't know — above all not
+offline”. The schedule takes it up:
+
+- **left out once, the channel keeps everything** known of it — its record,
+  its schedule, its replay list — and is asked again **a minute later, on its
+  own**: the panel only reads the schedule during a collection, and the
+  reconfirmation does not wait for its next gesture. The panel, warned
+  (`attente`), keeps reading until then;
+- **left out twice in a row, it is unavailable** — and stays. At the bottom
+  of “Offline”, below a rule: its name, “Unavailable on Twitch”, and since
+  when in the tooltip; nothing to click that would lead to a closed page. The
+  menu keeps it. Its past streams stay in the week; what its record said of
+  the present and the future — live, scheduled — is gone. It is read again at
+  every freshness: served again, it comes back by itself;
+- **the schedule and the list are no longer erased** by an omission: 4.25.0.1
+  wrote an empty schedule and an empty list for a channel missing from their
+  response;
+- the report counts the `indisponibles` channels and the session's
+  `absences` — numbers, no login.
+
+What the screenshot's channel was, this machine cannot tell: it does not
+reach Twitch. 4.25.0.2 will say it on screen — “Unavailable on Twitch” if
+Twitch really no longer serves it, nothing if it was a hiccup.
+
+### The stream without a replay, on the day it started
+
+Twitch only gives the end of a stream without an archive (`lastBroadcast`,
+cf. 4.25.0.1). 4.25.0.1 placed it there, the only time known of it: a stream
+started on Thursday evening read on Friday, “No replay – 02:38” — on a day
+that is not its own, against the rule asked for.
+
+It now only has a day if its start is known, and two places know it:
+
+- **the main pipeline's memory of streams** (`derniersDirects`, cf. THE
+  RECONNECTION PROBE), which follows the sidebar's channels every thirty
+  seconds and keeps a stream's origin — reconnections included — after its
+  end;
+- **the record read during the stream**, which now keeps its start
+  (`vuEnDirect`).
+
+The same stream is recognised by its id; failing that, by an end that closely
+follows — a quarter of an hour — the last time it was seen: a reconnection too
+short to be archived. Another stream does not receive that origin. Otherwise,
+no day: “Offline” alone says it, “Last live 5 hours ago”. And when the main
+pipeline sees the end of a stream the record said was live, the record is
+read again without waiting for its freshness.
+
+### The padlock, only when the replay is closed to you
+
+“If I have access to the replay, show nothing.” 4.25.0.1's open padlock is
+gone: a replay known to be open to you no longer carries anything. Only the
+closed padlock remains, when it is reserved for subscribers and the
+subscription memory does not know you to be subscribed.
+
+And it was missing where it should have been: on the replays of a channel
+you cannot watch without a subscription. The named restriction
+(`resourceRestriction`) is not always there. The schedule therefore asks for a
+third field, the one Twitch's Videos tab reads to know whether the visitor
+can watch: `self { isRestricted }`. The request goes without an account: it is
+the access of a visitor subscribed to nothing, closed on every archive a
+subscription would open. The subscription memory does the rest.
+
+None of this has been tested from here. A field the schema refuses is dropped
+**on its own**, for the session — 4.25.0.1 lost both at the first refusal —,
+and an error on one of them, next to the data, no longer casts doubt on the
+channel. The report lists those that remain (`archives`).
+
+### The memory, and its purge
+
+“Are you sure the schedule's data is kept in memory?” Yes — in the tab, and
+nowhere else: nothing is written, it is a promise of the Store listing. Each
+Twitch tab therefore has its own, and a reload starts from scratch. What
+changes:
+
+- **a replay list holds as long as the last stream is the same**. 4.25.0.1
+  read it again with the record, every ten minutes; but yesterday's archives
+  do not change — only a channel that has streamed since has one more. The
+  list carries the mark of the last stream it knew, and is read again when it
+  changes, or after six hours, for views and deleted archives;
+- **the purge**, on every read of the view: a channel out of the channels
+  read — no longer followed, known channels cleared, beyond the cap of four
+  hundred — goes, record, list and failures; a replay older than the oldest
+  week the panel can show — seventy days — too. The memory is bounded: four
+  hundred records, forty replays each at most. The report counts what went
+  (`purgees`).
+
+### What changes in the panel
+
+- The closed padlock alone; the open variant, its style and its key, gone.
+- The “Unavailable on Twitch” line, dimmed, at the bottom, after a rule.
+- The stream without a replay written from its start to its end, “21:00 –
+  00:21”, on the day it started; the “– 00:21” writing is gone.
+- The view keeps reading while an absence awaits its reconfirmation.
+
+### The texts
+
+- Twelve languages: two more keys — the line and its tooltip —, one less —
+  the open padlock; the padlock's tooltip revised. The guide: the padlock
+  bullet rewritten, the “Offline” one tells of the unavailable channel, the
+  final paragraph of the stream without a replay. Scenario 96's citation
+  contract adds both labels.
+- The twelve Store listings: “a replay you cannot watch without a
+  subscription”. The `npm run store` promise now targets the field that makes
+  it true, `self { isRestricted }`.
+
+### What the bench measures
+
+**`page.html`** serves the visitor's access when asked — closed on a reserved
+archive, or `verrouillee` without a named restriction —, refuses the new
+fields one by one like the schema, and gains three levers: a channel left out
+of the response, without an error; a stream only the schedule sees; a failure
+on a deep field. `build.mjs` brings the reconfirmation down to 1.2 s.
+
+**207**, revised and extended:
+
+- b) the channel Twitch does not serve: left out, then asked again by the
+  page on its own, without any view relaunching it; unavailable at the very
+  bottom, its name and since when; out of the summary;
+- c) the stream without an archive nobody saw start has no day; the replay
+  closed without a named restriction says it is closed; the menu keeps the
+  unavailable one;
+- h) the absences, the unavailable one, the replay too old forgotten;
+- q) the three fields refused one by one; only one refused, the others stay;
+- r) an error on an archive's access has nothing asked again;
+- v) left out once — record, schedule, list kept, reconfirmed —, twice —
+  unavailable, its past streams kept, its slots silent —, then served again;
+- w) the purge of cleared channels;
+- x) the lists kept while the last stream is the same, read again when it
+  changes, or after their lifetime;
+- y) the start kept by the memory of streams — the short reconnection, the
+  other stream; the record read again as soon as a seen stream ends;
+- z) the start read during the stream; unavailable, the record no longer
+  says live.
+
+**208**: the closed padlock alone; the stream without an archive from its
+start to its end; the unavailable line, its rule, its tooltip, no button; the
+reading during the wait, without a bar.
+
+**96** quotes the two new labels.
+
+**Forty-two named mutants, all caught:** thirty-three on the collection,
+seven on the panel, two on the guide. The first is 4.25.0.1 itself — the
+channel declared unknown at its first absence — and twenty-nine assertions
+fall with it.
+
+They found two things beyond their rules:
+
+- **a product defect.** A response coming back within the very millisecond of
+  “Refresh” passed for stale (`ts > fraisApres`) and was read again at once.
+  For real, one request for nothing; on the bench, a v) sub-test failing at
+  random, under eleven mutants that had nothing to do with it. Freshness is
+  now read inclusively, and the eleven were run again;
+- **a bench defect.** Under one of them, the scenario stopped dead on an index
+  read without a guard, and silenced everything after it. It now goes on, and
+  says everything that falls.
+
+The full bench: 1891 assertions in 207 scenarios, all green.
+
+| mutant | what falls |
+| --- | --- |
+| left out once, the channel declared unknown (4.25.0.1) | 207: b, b, b, b, c, c, c, c, c, c, d, d, e, f, f, f, g, h, h, h, k, k, k, n, v, v, v, v, z |
+| no reconfirmation | 207: b, b, b, b, c, h, h, k, k, k, n, v, v, v, v, v, z |
+| the list erased by an absence | 207: v, v |
+| the unavailable one out of “Offline” | 207: b, k, n |
+| the lists read again with the record | 207: x, x, x |
+| the lists never expire | 207: x |
+| the origin lent to another stream | 207: y |
+| the short reconnection without its origin | 207: y |
+| the start read live lost on the next read | 207: z |
+| one refusal takes every field | 207: q, q |
+| the wait not told | 207: b, k, k, k, n, v, v, v, z |
+| the reconfirmation waits for the panel | 207: b, b, b, b, c, k, k, k, n, v, v, z |
+| unavailable at the first absence | 207: b, v |
+| the previous record erased by an absence | 207: v, v, v |
+| the schedule erased by an absence | 207: v |
+| the unavailable one out of the menu | 207: c |
+| the unavailable one on top | 207: b, b |
+| the unavailable one keeps its slots | 207: v |
+| the unavailable one counted offline | 207: b, v |
+| the unavailable one live by its record (week) | 207: z |
+| the unavailable one live by its record (offline) | 207: z |
+| the unavailable ones not counted | 207: h |
+| no purge | 207: h, h, w |
+| the purge keeps the records | 207: w |
+| the purge does not trim the replays | 207: h, h |
+| the lists blind to the last stream | 207: x, x |
+| the end of a seen stream reads nothing again | 207: y |
+| the memory of streams ignored | 207: y, y, y |
+| the record read live ignored | 207: z |
+| the stream without an archive at its end (4.25.0.1) | 207: c, c, c, d, q, r, y, y, y, z |
+| the visitor's access ignored | 207: c |
+| an error on a new field makes the channel doubtful | 207: r |
+| the reconfirmation waits for the freshness | 207: b, b, b, b, c, h, h, k, k, k, n, v, z |
+| the padlock for the subscriber | 208: e, l |
+| no padlock at all | 208: e, l |
+| the unavailable one with its buttons | 208: l |
+| no rule before the unavailable one | 208: l |
+| the unavailable one without a tooltip | 208: l |
+| the view drops the wait | 208: g |
+| the unavailable one not dimmed | 208: l |
+| the guide is silent on the unavailable one | 96: the quotations |
+| the guide is silent on the stream without a replay | 96: the quotations |
+
 ## The schedule, after its first real run (v4.25.0.1)
 
 Feedback from the first run on the real Twitch, screenshots attached: “On
@@ -2070,6 +2295,11 @@ something to tell whether the replay can be watched without being
 subscribed. […] In ‘Offline’, could the next scheduled streams go to the top
 of the list, the soonest first?” And: “Be rigorous!” Published on
 `claude/chrome-multi`.
+
+**Revised at the second run (v4.25.0.2, above).** The stream without an
+archive is no longer placed at its end, but on the day it was seen to start
+— or nowhere; the open padlock is gone; and a channel Twitch leaves out once
+is no longer declared unknown.
 
 ### `lastBroadcast.startedAt` is an end
 
@@ -19485,7 +19715,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 207 scenarios, 1865 assertions |
+| `npm test` | the Playwright harness: 207 scenarios, 1891 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -19505,7 +19735,7 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1744 KB | 709 KB | 4,301 → **2** |
+| `content.js` | 1744 KB | 709 KB | 4,319 → **2** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
 | `panneau.js` | 144 KB | 74 KB | 204 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |

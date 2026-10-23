@@ -2180,6 +2180,239 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## L'agenda, au deuxième essai (v4.25.0.2)
+
+Deux retours du deuxième essai sur le vrai Twitch, captures à l'appui : « On
+avait bien dit pourtant qu'une diffusion n'apparaît que le jour où elle a
+commencé ? Pourquoi ça apparaît aujourd'hui ? Également je ne vois pas le
+cadenas Abonné. […] J'aimerais que si j'ai accès au replay, alors n'affiche
+rien […] ; par contre, si l'accès est restreint pour moi, le cadenas
+"Abonné" apparaît. Es-tu sûr que les infos de l'agenda sont bien gardées en
+mémoire, et du coup pas besoin de refaire une recherche ? Également, vérifie
+qu'il y a bien un système de purge. » Puis : « Je viens de remarquer qu'une
+chaîne que je suis a disparu du panneau, de la partie Hors ligne et de
+l'agenda. Investigue et fix rigoureusement. » Publiée sur
+`claude/chrome-multi`.
+
+### Une chaîne suivie qui disparaît
+
+Le menu, « La semaine » et « Hors ligne » ne montrent une chaîne que si sa
+fiche est lue, et la 4.25.0.1 écartait toute fiche marquée « inconnue ». Or
+elle la marquait inconnue dès que Twitch l'omettait UNE fois de sa réponse.
+`users(logins:)` rend nul un compte qu'il ne sert pas — suspendu, renommé,
+fermé — et, sans rien dire, ce qu'un hoquet de son service n'a pas rendu.
+Une chaîne suivie sortait ainsi de partout, sur un silence.
+
+Le reste de l'extension a pour règle l'inverse, écrite dans le pipeline
+principal : « login absent de la réponse : on ne sait pas — surtout pas hors
+ligne ». L'agenda la reprend :
+
+- **omise une fois, la chaîne garde tout** ce qu'on en savait — sa fiche, son
+  planning, sa liste de rediffusions — et se redemande **une minute plus
+  tard, d'elle-même** : le panneau ne relit l'agenda que pendant une
+  collecte, et la reconfirmation n'attend pas son prochain geste. Le panneau,
+  averti (`attente`), relit jusqu'à elle ;
+- **omise deux fois d'affilée, elle est indisponible** — et reste. En bas de
+  « Hors ligne », sous un filet : son nom, « Indisponible sur Twitch », et
+  depuis quand dans l'infobulle ; rien sur quoi cliquer qui mènerait à une
+  page fermée. Le menu la garde. Ses directs passés restent dans la semaine ;
+  ce que sa fiche disait du présent et de l'avenir — en direct, programmé —
+  n'y est plus. On la relit à chaque fraîcheur : servie de nouveau, elle
+  revient d'elle-même ;
+- **le planning et la liste ne s'effacent plus** sur une omission : la
+  4.25.0.1 écrivait un planning vide et une liste vide pour une chaîne
+  absente de leur réponse ;
+- le rapport compte les chaînes `indisponibles` et les `absences` de la
+  session — des nombres, aucun login.
+
+Ce que la chaîne de la capture était, cette machine ne peut pas le dire :
+elle n'atteint pas Twitch. La 4.25.0.2 le dira à l'écran — « Indisponible
+sur Twitch » si Twitch ne la sert vraiment plus, rien si c'était un hoquet.
+
+### Le direct sans rediffusion, au jour où il a commencé
+
+Twitch ne donne d'un direct sans archive que sa fin (`lastBroadcast`, cf.
+4.25.0.1). La 4.25.0.1 le rangeait à elle, la seule heure qu'on en sût : un
+direct parti jeudi soir se lisait vendredi, « Sans rediffusion – 02:38 » —
+au jour qui n'est pas le sien, contre la règle demandée.
+
+Il n'a plus de jour que si l'on en connaît le début, et deux endroits le
+connaissent :
+
+- **la mémoire des directs du pipeline principal** (`derniersDirects`, cf. LA
+  SONDE DE REPRISE), qui suit les chaînes de la barre toutes les trente
+  secondes et garde l'origine d'un direct — reprises comprises — après sa
+  fin ;
+- **la fiche lue pendant le direct**, qui en garde désormais le début
+  (`vuEnDirect`).
+
+Le même direct se reconnaît à son identifiant ; à défaut, à une fin qui suit
+de près — un quart d'heure — la dernière fois qu'on l'a vu : une reprise
+trop courte pour être archivée. Un autre direct ne reçoit pas cette origine.
+Sinon, pas de jour : « Hors ligne » reste seul à le dire, « Dernier direct il
+y a 5 heures ». Et quand le pipeline principal voit finir un direct que la
+fiche disait en cours, la fiche se relit sans attendre sa fraîcheur.
+
+### Le cadenas, seulement quand la rediffusion vous est fermée
+
+« Si j'ai accès au replay, n'affiche rien. » Le cadenas ouvert de la
+4.25.0.1 est parti : une rediffusion qu'on vous sait ouverte ne porte plus
+rien. Il ne reste que le cadenas fermé, quand elle est réservée aux abonnés
+et que la mémoire des abonnements ne vous sait pas abonné.
+
+Et il manquait là où il aurait dû être : sur les rediffusions d'une chaîne
+qu'on ne peut pas regarder sans abonnement. La restriction nommée
+(`resourceRestriction`) n'y est pas toujours. L'agenda demande donc un
+troisième champ, celui que l'onglet Vidéos de Twitch lit pour savoir si le
+visiteur peut regarder : `self { isRestricted }`. La requête part sans
+compte : c'est l'accès d'un visiteur abonné à rien, fermé sur toute archive
+qu'un abonnement ouvrirait. La mémoire des abonnements fait le reste.
+
+Rien de cela n'a été éprouvé d'ici. Un champ que le schéma refuse est
+abandonné **seul**, pour la session — la 4.25.0.1 perdait les deux au premier
+refus —, et une erreur sur l'un d'eux, à côté des données, ne met plus la
+chaîne en doute. Le rapport dit ceux qui restent (`archives`).
+
+### La mémoire, et sa purge
+
+« Es-tu sûr que les infos de l'agenda sont bien gardées en mémoire ? » Oui —
+dans l'onglet, et nulle part ailleurs : rien n'est écrit, c'est une promesse
+de la fiche du Store. Chaque onglet de Twitch a donc la sienne, et un
+rechargement repart de zéro. Ce qui change :
+
+- **une liste de rediffusions vaut tant que le dernier direct est le même**.
+  La 4.25.0.1 la relisait avec la fiche, toutes les dix minutes ; or les
+  archives d'hier ne changent pas — seule une chaîne qui a diffusé depuis en
+  a une de plus. La liste porte la marque du dernier direct qu'elle a connu,
+  et se relit quand elle change, ou au bout de six heures, pour les vues et
+  les archives supprimées ;
+- **la purge**, à chaque lecture de la vue : une chaîne sortie des chaînes
+  lues — plus suivie, chaînes connues effacées, passée au-delà de la borne de
+  quatre cents — s'en va, fiche, liste et échecs ; une rediffusion plus
+  vieille que la plus ancienne semaine que le panneau sait montrer — soixante
+  dix jours — aussi. La mémoire est bornée : quatre cents fiches, quarante
+  rediffusions chacune au plus. Le rapport compte ce qui est parti
+  (`purgees`).
+
+### Ce qui change dans le panneau
+
+- Le cadenas fermé seul ; la variante ouverte, sa feuille et sa clé, partis.
+- La ligne « Indisponible sur Twitch », estompée, en bas, après un filet.
+- Le direct sans rediffusion écrit de son début à sa fin, « 21:00 – 00:21 »,
+  au jour où il a commencé ; l'écriture « – 00:21 » est partie.
+- La vue se relit tant qu'une absence attend sa reconfirmation.
+
+### Les textes
+
+- Douze langues : deux clés de plus — la ligne et son infobulle —, une de
+  moins — le cadenas ouvert ; l'infobulle du cadenas revue. Le guide : la
+  puce du cadenas réécrite, celle de « Hors ligne » dit la chaîne
+  indisponible, le paragraphe final le direct sans rediffusion. Le contrat
+  des citations du scénario 96 y ajoute les deux libellés.
+- Les douze fiches du Store : « une rediffusion que vous ne pouvez pas voir
+  sans abonnement ». La promesse de `npm run store` vise désormais le champ
+  qui la rend vraie, `self { isRestricted }`.
+
+### Ce que le banc mesure
+
+**`page.html`** sert l'accès du visiteur s'il est demandé — fermé sur une
+archive réservée, ou `verrouillee` sans restriction nommée —, refuse les
+champs neufs un par un comme le schéma, et gagne trois leviers : une chaîne
+omise de la réponse, sans erreur ; un direct que l'agenda seul voit ; une
+panne sur un champ profond. `build.mjs` ramène la reconfirmation à 1,2 s.
+
+**207**, revu et étendu :
+
+- b) la chaîne que Twitch ne sert pas : omise, puis redemandée par la page
+  d'elle-même, sans qu'aucune vue ne la relance ; indisponible tout en bas,
+  son nom et depuis quand ; hors du résumé ;
+- c) le direct sans archive que personne n'a vu commencer n'a pas de jour ;
+  la rediffusion fermée sans restriction nommée se dit fermée ; le menu garde
+  l'indisponible ;
+- h) les absences, l'indisponible, la rediffusion trop vieille oubliée ;
+- q) les trois champs refusés un par un ; un seul refusé, les autres
+  restent ;
+- r) une erreur sur l'accès d'une archive ne fait rien redemander ;
+- v) omise une fois — fiche, planning, liste gardés, reconfirmée —, deux
+  fois — indisponible, ses directs passés gardés, ses créneaux tus —, puis
+  servie de nouveau ;
+- w) la purge des chaînes effacées ;
+- x) les listes gardées tant que le dernier direct est le même, relues quand
+  il change, ou au bout de leur durée ;
+- y) le début gardé par la mémoire des directs — la reprise courte, l'autre
+  direct ; la fiche relue dès la fin d'un direct vu ;
+- z) le début lu en cours de direct ; indisponible, la fiche ne dit plus le
+  direct.
+
+**208** : le cadenas fermé seul ; le direct sans archive de son début à sa
+fin ; la ligne indisponible, son filet, son infobulle, sans bouton ; la
+relecture pendant l'attente, sans barre.
+
+**96** cite les deux libellés neufs.
+
+**Quarante-deux mutants nommés, tous pris** : trente-trois sur la collecte,
+sept sur le panneau, deux sur le guide. Le premier est la 4.25.0.1 elle-même —
+la chaîne déclarée inconnue à la première absence — et vingt-neuf assertions
+tombent avec lui.
+
+Ils ont trouvé deux choses de plus que leurs règles :
+
+- **un défaut du produit.** Une réponse revenue dans la milliseconde même
+  d'« Actualiser » passait pour périmée (`ts > fraisApres`) et se relisait
+  aussitôt. Au vrai, une requête pour rien ; au banc, un sous-test de v) qui
+  tombait au hasard, sous onze mutants qui n'avaient rien à y voir. La
+  fraîcheur se lit désormais au sens large, et les onze ont été relancés ;
+- **un défaut du banc.** Sous l'un d'eux, le scénario s'arrêtait net sur un
+  index lu sans garde, et taisait tout ce qui suivait. Il continue
+  désormais, et dit tout ce qui tombe.
+
+Le banc complet : 1891 assertions dans 207 scénarios, toutes vertes.
+
+| mutant | ce qui tombe |
+| --- | --- |
+| omise une fois, la chaîne déclarée inconnue (4.25.0.1) | 207 : b, b, b, b, c, c, c, c, c, c, d, d, e, f, f, f, g, h, h, h, k, k, k, n, v, v, v, v, z |
+| pas de reconfirmation | 207 : b, b, b, b, c, h, h, k, k, k, n, v, v, v, v, v, z |
+| la liste effacée par une absence | 207 : v, v |
+| l'indisponible hors de « Hors ligne » | 207 : b, k, n |
+| les listes relues avec la fiche | 207 : x, x, x |
+| les listes ne périment jamais | 207 : x |
+| l'origine prêtée à un autre direct | 207 : y |
+| la reprise courte sans son origine | 207 : y |
+| le début lu en cours perdu à la relecture | 207 : z |
+| un refus emporte tous les champs | 207 : q, q |
+| l'attente non dite | 207 : b, k, k, k, n, v, v, v, z |
+| la reconfirmation attend le panneau | 207 : b, b, b, b, c, k, k, k, n, v, v, z |
+| indisponible dès la première absence | 207 : b, v |
+| la fiche d'avant effacée par une absence | 207 : v, v, v |
+| le planning effacé par une absence | 207 : v |
+| l'indisponible hors du menu | 207 : c |
+| l'indisponible en tête | 207 : b, b |
+| l'indisponible garde ses créneaux | 207 : v |
+| l'indisponible comptée hors ligne | 207 : b, v |
+| l'indisponible en direct d'après sa fiche (semaine) | 207 : z |
+| l'indisponible en direct d'après sa fiche (hors ligne) | 207 : z |
+| les indisponibles non comptées | 207 : h |
+| pas de purge | 207 : h, h, w |
+| la purge garde les fiches | 207 : w |
+| la purge ne taille pas les rediffusions | 207 : h, h |
+| les listes aveugles au dernier direct | 207 : x, x |
+| la fin d'un direct vu ne relit rien | 207 : y |
+| la mémoire des directs ignorée | 207 : y, y, y |
+| la fiche lue en cours ignorée | 207 : z |
+| le direct sans archive à sa fin (4.25.0.1) | 207 : c, c, c, d, q, r, y, y, y, z |
+| l'accès du visiteur ignoré | 207 : c |
+| une erreur sur un champ neuf rend la chaîne douteuse | 207 : r |
+| la reconfirmation attend la fraîcheur | 207 : b, b, b, b, c, h, h, k, k, k, n, v, z |
+| le cadenas pour l'abonné | 208 : e, l |
+| plus de cadenas | 208 : e, l |
+| l'indisponible avec ses boutons | 208 : l |
+| pas de filet avant l'indisponible | 208 : l |
+| l'indisponible sans infobulle | 208 : l |
+| la vue lâche l'attente | 208 : g |
+| l'indisponible pas estompée | 208 : l |
+| le guide tait l'indisponible | 96 : les citations |
+| le guide tait le direct sans rediffusion | 96 : les citations |
+
 ## L'agenda, au premier essai réel (v4.25.0.1)
 
 Les retours du premier essai sur le vrai Twitch, captures à l'appui : « Il
@@ -2192,6 +2425,11 @@ des qu'on sélectionne un stream dans la liste, le panneau s'update direct
 sans être abonné au streamer. […] Dans "Hors-ligne", possibilité de mettre
 en haut de liste les prochains stream prévu ? » Et : « Soit rigoureux ! »
 Publiée sur `claude/chrome-multi`.
+
+**Revue au deuxième essai (v4.25.0.2, plus haut).** Le direct sans archive
+n'est plus rangé à sa fin, mais au jour où on l'a vu commencer — ou nulle
+part ; le cadenas ouvert est parti ; et une chaîne omise une fois par
+Twitch n'est plus déclarée inconnue.
 
 ### `lastBroadcast.startedAt` est une fin
 
@@ -20088,7 +20326,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 207 scénarios, 1865 assertions |
+| `npm test` | le harnais Playwright : 207 scénarios, 1891 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -20109,7 +20347,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1744 Ko | 709 Ko | 4 301 → **2** |
+| `content.js` | 1744 Ko | 709 Ko | 4 319 → **2** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
 | `panneau.js` | 144 Ko | 74 Ko | 204 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |

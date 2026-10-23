@@ -168,9 +168,12 @@ const subs = [
      fraîcheur, à 30 s : le 207 enchaîne une dizaine de lectures sur les mêmes
      fiches et compte chaque envoi, une fiche périmée en route en ferait
      partir un de trop. La péremption elle-même s'y éprouve sur une variante
-     du script, à 1,5 s. */
+     du script, à 1,5 s. La reconfirmation d'une chaîne omise (4.25.0.2), une
+     minute en production, à 1,2 s : sous la fraîcheur, comme au vrai, et
+     assez loin des envois pour que le 207 la reconnaisse à son retard. */
   [/AGENDA_TTL:\s*10 \* 60_000/,     'AGENDA_TTL:             30_000'],
   [/AGENDA_PAUSE_MS:\s*1_000/,       'AGENDA_PAUSE_MS:        30'],
+  [/AGENDA_RECONFIRMER_MS:\s*60_000/, 'AGENDA_RECONFIRMER_MS:  1_200'],
 ];
 for (const [re, to] of subs) {
   if (!re.test(src)) { console.error('SUBSTITUTION INTROUVABLE:', re); process.exit(1); }

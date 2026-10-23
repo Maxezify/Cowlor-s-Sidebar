@@ -391,10 +391,13 @@
     "message": "Abonnés"
   },
   "valSubOnlyLocked": {
-    "message": "Rediffusion réservée aux abonnés de la chaîne"
+    "message": "Réservée aux abonnés de la chaîne — l'extension ne vous sait pas abonné"
   },
-  "valSubOnlyOpen": {
-    "message": "Rediffusion réservée aux abonnés — vous l'êtes"
+  "valUnavailable": {
+    "message": "Indisponible sur Twitch"
+  },
+  "valUnavailableTip": {
+    "message": "Twitch ne sert plus cette chaîne (constaté le $1) : le plus souvent un compte suspendu, renommé ou fermé. Elle revient d'elle-même si Twitch la sert de nouveau."
   },
   "valChannel": {
     "message": "Chaîne"
@@ -550,7 +553,7 @@
     "message": "L'agenda de vos chaînes"
   },
   "guideAgendaTexte": {
-    "message": "Le groupe « Agenda » fait, pour toutes vos chaînes suivies à la fois, ce que la page de programme d'une chaîne fait sur Twitch pour une seule.\n• « La semaine » : jour par jour, les directs passés avec leur rediffusion — un clic l'ouvre —, ceux en cours, et ceux que les chaînes ont programmés. Elle s'ouvre sur aujourd'hui, les jours passés au-dessus ; un direct qui passe minuit reste au jour où il a commencé.\n• Les flèches changent de semaine, jusqu'à huit en arrière et deux en avant ; « Aujourd'hui » ramène au jour même, et le menu n'en garde qu'une chaîne.\n• « Hors ligne » : chaque chaîne qui n'est pas en direct — d'abord celles qui ont programmé leur prochain direct, le plus proche en tête, puis les autres, la plus récemment partie d'abord. Quand elle a diffusé, sa rediffusion à un clic, et son prochain direct. « Sa semaine » ouvre la semaine de son dernier direct.\n• « Abonnés » marque une rediffusion réservée aux abonnés de la chaîne, avant même le clic : le cadenas s'ouvre quand l'extension vous sait abonné.\nLes chaînes sont celles que votre barre latérale a montrées comme suivies. Une rediffusion n'existe que si la chaîne garde ses directs, et tant que Twitch les conserve ; un direct programmé, que si elle tient son planning sur Twitch. Rien n'est demandé à Twitch tant que vous n'ouvrez pas l'agenda."
+    "message": "Le groupe « Agenda » fait, pour toutes vos chaînes suivies à la fois, ce que la page de programme d'une chaîne fait sur Twitch pour une seule.\n• « La semaine » : jour par jour, les directs passés avec leur rediffusion — un clic l'ouvre —, ceux en cours, et ceux que les chaînes ont programmés. Elle s'ouvre sur aujourd'hui, les jours passés au-dessus ; un direct qui passe minuit reste au jour où il a commencé.\n• Les flèches changent de semaine, jusqu'à huit en arrière et deux en avant ; « Aujourd'hui » ramène au jour même, et le menu n'en garde qu'une chaîne.\n• « Hors ligne » : chaque chaîne qui n'est pas en direct — d'abord celles qui ont programmé leur prochain direct, le plus proche en tête, puis les autres, la plus récemment partie d'abord. Quand elle a diffusé, sa rediffusion à un clic, et son prochain direct. « Sa semaine » ouvre la semaine de son dernier direct. Une chaîne que Twitch ne sert plus — compte suspendu, renommé ou fermé — n'en disparaît pas : elle reste en bas, « Indisponible sur Twitch ».\n• « Abonnés » et son cadenas marquent, avant même le clic, une rediffusion réservée aux abonnés de la chaîne quand l'extension ne vous sait pas abonné ; abonné, rien ne s'affiche : elle vous est ouverte.\nLes chaînes sont celles que votre barre latérale a montrées comme suivies. Une rediffusion n'existe que si la chaîne garde ses directs, et tant que Twitch les conserve ; un direct programmé, que si elle tient son planning sur Twitch. « Sans rediffusion » n'a de jour que si l'extension a vu ce direct en cours : Twitch n'en donne que la fin. Rien n'est demandé à Twitch tant que vous n'ouvrez pas l'agenda."
   },
   "guideVieTitre": {
     "message": "Vie privée, en clair"

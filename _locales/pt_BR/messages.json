@@ -391,10 +391,13 @@
     "message": "Inscritos"
   },
   "valSubOnlyLocked": {
-    "message": "Gravação só para inscritos do canal"
+    "message": "Só para inscritos do canal — a extensão não sabe que sua inscrição está ativa"
   },
-  "valSubOnlyOpen": {
-    "message": "Gravação só para inscritos — sua inscrição está ativa"
+  "valUnavailable": {
+    "message": "Indisponível no Twitch"
+  },
+  "valUnavailableTip": {
+    "message": "O Twitch não fornece mais este canal (detectado: $1): geralmente uma conta suspensa, renomeada ou encerrada. Ele volta sozinho se o Twitch voltar a fornecê-lo."
   },
   "valChannel": {
     "message": "Canal"
@@ -550,7 +553,7 @@
     "message": "A programação dos seus canais"
   },
   "guideAgendaTexte": {
-    "message": "O grupo «Programação» faz, para todos os canais que você segue de uma vez, o que a página de programação de um canal faz no Twitch para um só.\n• «A semana»: dia a dia, as lives passadas com a gravação — um clique a abre —, as que estão no ar e as que os canais agendaram. Ela abre no dia de hoje, com os dias passados acima; uma live que passa da meia-noite fica no dia em que começou.\n• As setas mudam de semana, até oito para trás e duas para a frente; «Hoje» volta para o dia de hoje, e o menu deixa um só canal.\n• «Offline»: cada canal que não está ao vivo — primeiro os que agendaram a próxima live, a mais próxima no topo, depois os outros, o que saiu do ar mais recentemente primeiro. Quando transmitiu, a gravação a um clique e a próxima live. «Semana do canal» abre a semana da última live.\n• «Inscritos» marca uma gravação reservada aos inscritos do canal, antes mesmo do clique: o cadeado se abre quando a extensão sabe que sua inscrição está ativa.\nOs canais são os que sua barra lateral mostrou como seguidos. Uma gravação só existe se o canal guarda as lives, e enquanto o Twitch as mantiver; uma live agendada, só se o canal mantém a programação no Twitch. Nada é pedido ao Twitch enquanto você não abrir a programação."
+    "message": "O grupo «Programação» faz, para todos os canais que você segue de uma vez, o que a página de programação de um canal faz no Twitch para um só.\n• «A semana»: dia a dia, as lives passadas com a gravação — um clique a abre —, as que estão no ar e as que os canais agendaram. Ela abre no dia de hoje, com os dias passados acima; uma live que passa da meia-noite fica no dia em que começou.\n• As setas mudam de semana, até oito para trás e duas para a frente; «Hoje» volta para o dia de hoje, e o menu deixa um só canal.\n• «Offline»: cada canal que não está ao vivo — primeiro os que agendaram a próxima live, a mais próxima no topo, depois os outros, o que saiu do ar mais recentemente primeiro. Quando transmitiu, a gravação a um clique e a próxima live. «Semana do canal» abre a semana da última live. Um canal que o Twitch não fornece mais — conta suspensa, renomeada ou encerrada — não some: fica no fim da lista, «Indisponível no Twitch».\n• «Inscritos» e seu cadeado marcam, antes mesmo do clique, uma gravação reservada aos inscritos do canal quando a extensão não sabe que sua inscrição está ativa; inscrito, nada aparece: ela está aberta para você.\nOs canais são os que sua barra lateral mostrou como seguidos. Uma gravação só existe se o canal guarda as lives, e enquanto o Twitch as mantiver; uma live agendada, só se o canal mantém a programação no Twitch. «Sem gravação» só ganha um dia se a extensão viu essa live no ar: o Twitch só informa o fim dela. Nada é pedido ao Twitch enquanto você não abrir a programação."
   },
   "guideVieTitre": {
     "message": "Privacidade, em claro"

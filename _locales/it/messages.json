@@ -391,10 +391,13 @@
     "message": "Solo abbonati"
   },
   "valSubOnlyLocked": {
-    "message": "Replica riservata agli abbonati del canale"
+    "message": "Solo per gli abbonati del canale — l'estensione non sa che hai un abbonamento"
   },
-  "valSubOnlyOpen": {
-    "message": "Replica riservata agli abbonati — hai un abbonamento"
+  "valUnavailable": {
+    "message": "Non disponibile su Twitch"
+  },
+  "valUnavailableTip": {
+    "message": "Twitch non fornisce più questo canale (rilevato: $1): di solito un account sospeso, rinominato o chiuso. Torna da sé se Twitch lo fornisce di nuovo."
   },
   "valChannel": {
     "message": "Canale"
@@ -550,7 +553,7 @@
     "message": "Il programma dei tuoi canali"
   },
   "guideAgendaTexte": {
-    "message": "Il gruppo «Programma» fa, per tutti i canali che segui insieme, ciò che la pagina del programma di un canale fa su Twitch per uno solo.\n• «La settimana»: giorno per giorno, le dirette passate con la loro replica — un clic la apre —, quelle in corso e quelle che i canali hanno programmato. Si apre sul giorno di oggi, con i giorni passati sopra; una diretta che supera la mezzanotte resta nel giorno in cui è iniziata.\n• Le frecce cambiano settimana, fino a otto indietro e due avanti; «Oggi» riporta al giorno stesso, e il menu tiene un solo canale.\n• «Offline»: ogni canale che non è in diretta — prima quelli che hanno programmato la prossima diretta, la più vicina in cima, poi gli altri, quello che ha chiuso più di recente per primo. Quando ha trasmesso, la sua replica a un clic e la sua prossima diretta. «La sua settimana» apre la settimana della sua ultima diretta.\n• «Solo abbonati» segnala una replica riservata agli abbonati del canale, prima ancora del clic: il lucchetto si apre quando l'estensione sa che hai un abbonamento.\nI canali sono quelli che la tua barra laterale ha mostrato come seguiti. Una replica esiste solo se il canale conserva le sue dirette, e finché Twitch le tiene; una diretta programmata, solo se il canale tiene il suo programma su Twitch. Non viene chiesto nulla a Twitch finché non apri il programma."
+    "message": "Il gruppo «Programma» fa, per tutti i canali che segui insieme, ciò che la pagina del programma di un canale fa su Twitch per uno solo.\n• «La settimana»: giorno per giorno, le dirette passate con la loro replica — un clic la apre —, quelle in corso e quelle che i canali hanno programmato. Si apre sul giorno di oggi, con i giorni passati sopra; una diretta che supera la mezzanotte resta nel giorno in cui è iniziata.\n• Le frecce cambiano settimana, fino a otto indietro e due avanti; «Oggi» riporta al giorno stesso, e il menu tiene un solo canale.\n• «Offline»: ogni canale che non è in diretta — prima quelli che hanno programmato la prossima diretta, la più vicina in cima, poi gli altri, quello che ha chiuso più di recente per primo. Quando ha trasmesso, la sua replica a un clic e la sua prossima diretta. «La sua settimana» apre la settimana della sua ultima diretta. Un canale che Twitch non fornisce più — account sospeso, rinominato o chiuso — non sparisce: resta in fondo, «Non disponibile su Twitch».\n• «Solo abbonati» e il suo lucchetto segnalano, prima ancora del clic, una replica riservata agli abbonati del canale quando l'estensione non sa che hai un abbonamento; da abbonato non compare nulla: ti è aperta.\nI canali sono quelli che la tua barra laterale ha mostrato come seguiti. Una replica esiste solo se il canale conserva le sue dirette, e finché Twitch le tiene; una diretta programmata, solo se il canale tiene il suo programma su Twitch. «Senza replica» ha un giorno solo se l'estensione ha visto quella diretta in corso: Twitch ne dà solo la fine. Non viene chiesto nulla a Twitch finché non apri il programma."
   },
   "guideVieTitre": {
     "message": "Privacy, in chiaro"

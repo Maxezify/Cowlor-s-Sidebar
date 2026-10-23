@@ -391,10 +391,13 @@
     "message": "Subskrybenci"
   },
   "valSubOnlyLocked": {
-    "message": "Powtórka tylko dla subskrybentów kanału"
+    "message": "Tylko dla subskrybentów kanału — rozszerzenie nie wie, że masz subskrypcję"
   },
-  "valSubOnlyOpen": {
-    "message": "Powtórka tylko dla subskrybentów — masz subskrypcję"
+  "valUnavailable": {
+    "message": "Niedostępny na Twitchu"
+  },
+  "valUnavailableTip": {
+    "message": "Twitch nie udostępnia już tego kanału (zauważono: $1): zwykle konto zawieszone, przemianowane lub zamknięte. Kanał wróci sam, jeśli Twitch znów go udostępni."
   },
   "valChannel": {
     "message": "Kanał"
@@ -550,7 +553,7 @@
     "message": "Harmonogram twoich kanałów"
   },
   "guideAgendaTexte": {
-    "message": "Grupa „Harmonogram” robi dla wszystkich obserwowanych kanałów naraz to, co strona harmonogramu kanału robi na Twitchu dla jednego.\n• „Tydzień”: dzień po dniu minione transmisje z ich powtórką — kliknięcie ją otwiera —, trwające oraz te, które kanały zaplanowały. Otwiera się na dzisiejszym dniu, z minionymi dniami powyżej; transmisja, która trwa po północy, zostaje w dniu, w którym się zaczęła.\n• Strzałki zmieniają tydzień, do ośmiu wstecz i dwóch naprzód; „Dziś” wraca do dzisiejszego dnia, a menu zostawia jeden kanał.\n• „Offline”: każdy kanał, który nie nadaje — najpierw te, które zaplanowały następną transmisję, najbliższa na górze, potem pozostałe, od tego, który skończył najpóźniej. Kiedy nadawał, jego powtórka o jedno kliknięcie i następna transmisja. „Pokaż tydzień” otwiera tydzień jego ostatniej transmisji.\n• „Subskrybenci” oznacza powtórkę zarezerwowaną dla subskrybentów kanału, jeszcze przed kliknięciem: kłódka jest otwarta, gdy rozszerzenie wie, że masz subskrypcję.\nKanały to te, które twój pasek boczny pokazał jako obserwowane. Powtórka istnieje tylko wtedy, gdy kanał zapisuje transmisje, i tylko tak długo, jak Twitch je przechowuje; zaplanowana transmisja — tylko jeśli kanał prowadzi harmonogram na Twitchu. Nic nie jest wysyłane do Twitcha, dopóki nie otworzysz harmonogramu."
+    "message": "Grupa „Harmonogram” robi dla wszystkich obserwowanych kanałów naraz to, co strona harmonogramu kanału robi na Twitchu dla jednego.\n• „Tydzień”: dzień po dniu minione transmisje z ich powtórką — kliknięcie ją otwiera —, trwające oraz te, które kanały zaplanowały. Otwiera się na dzisiejszym dniu, z minionymi dniami powyżej; transmisja, która trwa po północy, zostaje w dniu, w którym się zaczęła.\n• Strzałki zmieniają tydzień, do ośmiu wstecz i dwóch naprzód; „Dziś” wraca do dzisiejszego dnia, a menu zostawia jeden kanał.\n• „Offline”: każdy kanał, który nie nadaje — najpierw te, które zaplanowały następną transmisję, najbliższa na górze, potem pozostałe, od tego, który skończył najpóźniej. Kiedy nadawał, jego powtórka o jedno kliknięcie i następna transmisja. „Pokaż tydzień” otwiera tydzień jego ostatniej transmisji. Kanał, którego Twitch już nie udostępnia — konto zawieszone, przemianowane lub zamknięte — nie znika: zostaje na samym dole jako „Niedostępny na Twitchu”.\n• „Subskrybenci” i kłódka oznaczają, jeszcze przed kliknięciem, powtórkę zarezerwowaną dla subskrybentów kanału, gdy rozszerzenie nie wie, że masz subskrypcję; z subskrypcją nic się nie pojawia: powtórka jest dla ciebie otwarta.\nKanały to te, które twój pasek boczny pokazał jako obserwowane. Powtórka istnieje tylko wtedy, gdy kanał zapisuje transmisje, i tylko tak długo, jak Twitch je przechowuje; zaplanowana transmisja — tylko jeśli kanał prowadzi harmonogram na Twitchu. „Bez powtórki” ma swój dzień tylko wtedy, gdy rozszerzenie widziało tę transmisję na żywo: Twitch podaje tylko jej koniec. Nic nie jest wysyłane do Twitcha, dopóki nie otworzysz harmonogramu."
   },
   "guideVieTitre": {
     "message": "Prywatność, wprost"
