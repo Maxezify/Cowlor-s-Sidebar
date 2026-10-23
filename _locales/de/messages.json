@@ -387,6 +387,15 @@
   "valNoReplay": {
     "message": "Ohne Aufzeichnung"
   },
+  "valSubOnly": {
+    "message": "Nur Abos"
+  },
+  "valSubOnlyLocked": {
+    "message": "Aufzeichnung nur für Abonnenten des Kanals"
+  },
+  "valSubOnlyOpen": {
+    "message": "Aufzeichnung nur für Abonnenten — du hast ein Abo"
+  },
   "valChannel": {
     "message": "Kanal"
   },
@@ -541,7 +550,7 @@
     "message": "Der Zeitplan deiner Kanäle"
   },
   "guideAgendaTexte": {
-    "message": "Die Gruppe „Zeitplan“ zeigt für alle deine gefolgten Kanäle auf einmal, was die Zeitplan-Seite eines Kanals auf Twitch für einen einzigen zeigt.\n• „Die Woche“: Tag für Tag die vergangenen Streams mit ihrer Aufzeichnung — ein Klick öffnet sie —, die laufenden und die, die die Kanäle geplant haben.\n• Die Pfeile wechseln die Woche, bis zu acht zurück und zwei voraus; „Heute“ führt zur aktuellen Woche zurück, und das Menü behält nur einen Kanal.\n• „Offline“: jeder Kanal, der nicht live ist, der zuletzt offline gegangene zuerst — wann er gestreamt hat, seine Aufzeichnung einen Klick entfernt und sein nächster Stream, falls geplant. „Woche zeigen“ öffnet die Woche seines letzten Streams.\nDie Kanäle sind die, die deine Seitenleiste als gefolgt gezeigt hat. Eine Aufzeichnung gibt es nur, wenn der Kanal seine Streams speichert, und nur so lange, wie Twitch sie aufbewahrt; einen geplanten Stream nur, wenn er seinen Zeitplan auf Twitch pflegt. Nichts wird bei Twitch angefragt, solange du den Zeitplan nicht öffnest."
+    "message": "Die Gruppe „Zeitplan“ zeigt für alle deine gefolgten Kanäle auf einmal, was die Zeitplan-Seite eines Kanals auf Twitch für einen einzigen zeigt.\n• „Die Woche“: Tag für Tag die vergangenen Streams mit ihrer Aufzeichnung — ein Klick öffnet sie —, die laufenden und die, die die Kanäle geplant haben. Sie öffnet sich beim heutigen Tag, die vergangenen Tage darüber; ein Stream, der über Mitternacht läuft, bleibt an dem Tag, an dem er begonnen hat.\n• Die Pfeile wechseln die Woche, bis zu acht zurück und zwei voraus; „Heute“ führt zum heutigen Tag zurück, und das Menü behält nur einen Kanal.\n• „Offline“: jeder Kanal, der nicht live ist — zuerst die, die ihren nächsten Stream geplant haben, der früheste oben, dann die anderen, der zuletzt offline gegangene zuerst. Wann er gestreamt hat, seine Aufzeichnung einen Klick entfernt und sein nächster Stream. „Woche zeigen“ öffnet die Woche seines letzten Streams.\n• „Nur Abos“ kennzeichnet eine Aufzeichnung, die den Abonnenten des Kanals vorbehalten ist, noch bevor du klickst: Das Schloss öffnet sich, wenn die Erweiterung weiß, dass du ein Abo hast.\nDie Kanäle sind die, die deine Seitenleiste als gefolgt gezeigt hat. Eine Aufzeichnung gibt es nur, wenn der Kanal seine Streams speichert, und nur so lange, wie Twitch sie aufbewahrt; einen geplanten Stream nur, wenn er seinen Zeitplan auf Twitch pflegt. Nichts wird bei Twitch angefragt, solange du den Zeitplan nicht öffnest."
   },
   "guideVieTitre": {
     "message": "Datenschutz, im Klartext"
@@ -625,7 +634,7 @@
     "message": "Offline"
   },
   "descHorsLigne": {
-    "message": "Deine gefolgten Kanäle, die nicht live sind: ihr letzter Stream, seine Aufzeichnung und der nächste, falls geplant."
+    "message": "Deine gefolgten Kanäle, die nicht live sind, geplante Streams zuerst: ihr letzter Stream, seine Aufzeichnung und der nächste, falls geplant."
   },
   "sumSettings": {
     "message": "Einstellungen"

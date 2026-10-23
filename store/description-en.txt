@@ -187,10 +187,10 @@ _______________________________
 ➤ 📅 WHO STREAMED, WHO'S LIVE, WHO'S NEXT
 A channel's schedule page on Twitch shows one channel. The panel's "Schedule" group shows all the channels you follow, at once.
 
-- ★ THE WEEK, DAY BY DAY ★ Every past stream with its replay one click away, the ones live right now, and the ones channels have scheduled. Eight weeks back, two ahead.
-- ★ OFFLINE, NOT FORGOTTEN ★ Every followed channel that isn't live, the most recent first: when it last streamed, its replay, and its next stream if it has one scheduled.
+- ★ THE WEEK, DAY BY DAY ★ It opens on today, the past days above: every past stream with its replay one click away, the ones live right now, and the ones channels have scheduled, each on the day it started. Eight weeks back, two ahead.
+- ★ OFFLINE, NOT FORGOTTEN ★ Every followed channel that isn't live: those with a stream scheduled come first, the soonest on top, then the others, the most recent first — when it last streamed, its replay, and its next stream.
 - ★ ONE CHANNEL OR ALL ★ A menu keeps a single channel, and "Their week" jumps straight to the week of its last stream.
-- ★ HONEST ABOUT WHAT TWITCH KEEPS ★ A replay only exists if the channel saves its broadcasts, and for as long as Twitch keeps them; a last stream without one says so ("No replay").
+- ★ HONEST ABOUT WHAT TWITCH KEEPS ★ A replay only exists if the channel saves its broadcasts, and for as long as Twitch keeps them; a last stream without one says so ("No replay"), and so does a replay for subscribers only ("Subs only"), before you click.
 - ★ ONLY WHEN YOU LOOK ★ Nothing is asked of Twitch until you open it, and nothing is stored: it all lives in the tab.
 
 _______________________________

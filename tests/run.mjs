@@ -13031,11 +13031,12 @@ titre('96. Le mode d\'emploi — la première vue, et la seule qui n\'ait besoin
      Les libellés sont désormais repris des fiches elles-mêmes, et chaque
      chapitre qui cite un bouton, un groupe ou un tri doit le citer tel quel. */
   /* L'AGENDA (4.25.0) entre au contrat par les deux bouts : le chapitre du
-     panneau nomme son groupe, et le sien cite ses deux vues, le retour à la
-     semaine en cours et « Sa semaine » — tels que chaque langue les affiche. */
+     panneau nomme son groupe, et le sien cite ses deux vues, le retour à
+     aujourd'hui, « Sa semaine » et, depuis la 4.25.0.1, la pastille des
+     rediffusions réservées aux abonnés — tels que chaque langue les affiche. */
   const CITES = {
     guidePanneauTexte: ['grpGuide', 'grpOptions', 'grpAgenda', 'grpData', 'grpDiag', 'grpGlobal', 'btnReport', 'btnReset'],
-    guideAgendaTexte: ['grpAgenda', 'navSemaine', 'navHorsLigne', 'btnToday', 'btnSeeWeek'],
+    guideAgendaTexte: ['grpAgenda', 'navSemaine', 'navHorsLigne', 'btnToday', 'btnSeeWeek', 'valSubOnly'],
     guideAboTexte: ['btnRefreshSubs', 'grpData', 'navSubs'],
     guideSalleTexte: ['optSalleAuto', 'grpOptions'],
     guideReglagesTexte: ['grpOptions', 'optValDiscret'],
@@ -33398,6 +33399,7 @@ const S_LECTEUR_SONDE = () => {
       const ag = Array.isArray(corps) && corps.some((o) => /^TseAgenda/.test((o && o.operationName) || ''));
       const e = ag ? { t0: Date.now(), t1: null, ops: corps.map((o) => ({
         nom: o.operationName, logins: (o.variables && o.variables.logins) || [], n: o.variables && o.variables.n,
+        riche: /broadcastIdentifier/.test(o.query || ''),
         forme: o.operationName !== 'TseAgendaProgramme' ? null
           : /segmentList\(first:/.test(o.query || '') ? 'segmentList(first)'
           : /segmentList\s*\{/.test(o.query || '') ? 'segmentList' : 'nextSegment' })) } : null;
@@ -33427,47 +33429,59 @@ const S_LECTEUR_SONDE = () => {
   };
 
   /* LE DÉCOR. Des chaînes inventées, chacune pour une règle :
-       zinc   — en direct, depuis la semaine en cours ; sa rediffusion EST son
-                direct, et un créneau programmé qu'il a déjà commencé ;
-       brume  — trois soirs la semaine dernière, un il y a trois semaines, et un
+       zinc   — en direct, depuis la semaine en cours ; l'archive du direct
+                s'ouvre vingt minutes après lui, et c'est son identifiant qui
+                la reconnaît ; un créneau programmé qu'il a déjà commencé ;
+       brume  — trois soirs la semaine dernière, dont le samedi qui finit à
+                minuit vingt et une, réservé aux abonnés ; la nuit du dimanche
+                d'avant, finie le lundi ; un soir il y a trois semaines ; un
                 créneau programmé déjà passé ;
        cobalt — trente jours d'affilée : douze rediffusions ne remontent pas
-                jusqu'à une semaine ancienne ;
-       dune   — un dernier direct sans archive ;
+                jusqu'à une semaine ancienne ; la dernière archive s'est
+                arrêtée une heure avant le direct — seul l'identifiant dit
+                qu'elle EST lui ;
+       dune   — un dernier direct sans archive, dont on ne sait que la fin ;
        ether  — partie depuis longtemps, mais trois créneaux la semaine
                 prochaine : un annulé, un ordinaire, un sans fin ;
        flux   — une chaîne que Twitch ne connaît plus ;
-       p01-24 — de quoi dépasser un lot de vingt-cinq. */
+       p01-24 — de quoi dépasser un lot de vingt-cinq ; p05 programmée lundi
+                prochain, avant ether.
+     `dernier` est ce que Twitch sert sous `lastBroadcast` : la FIN du dernier
+     direct, trois secondes après celle de son archive (cf. page.html). */
   const decor = (o) => {
-    const H = 3_600_000;
+    const H = 3_600_000, M = 60_000;
     const iso = (t) => new Date(t).toISOString();
     const q = window.__quand;
     const now = Date.now();
     const depuis = Math.max(now - 2 * H, Math.min(now - 1000, window.__w(0).debut + 60_000));
+    const finDe = (debut, duree) => iso(debut + duree * 1000 + 3000);
     const A = {}, FX = {};
-    FX.zinc = { id: 'z', createdAt: iso(depuis), viewers: 5100, game: 'Minecraft', title: 'Zinc en direct', tags: [] };
-    A.zinc = { nom: 'Zinc', dernierLive: iso(depuis), titre: 'Zinc en direct',
+    FX.zinc = { id: 'z', sid: '700100', createdAt: iso(depuis), viewers: 5100, game: 'Minecraft', title: 'Zinc en direct', tags: [] };
+    A.zinc = { nom: 'Zinc', titre: 'Zinc en direct', dernier: { id: '700098', fin: finDe(q(-1, 3, 19), 3 * 3600) },
       videos: [
-        { id: '5003', titre: 'Zinc en direct', debut: iso(depuis + 20_000), duree: 7180, vues: 12, jeu: 'Minecraft' },
-        { id: '5002', titre: 'Zinc — mardi', debut: iso(q(-1, 1, 19)), duree: 3 * 3600, vues: 51400, jeu: 'Minecraft' },
-        { id: '5001', titre: 'Zinc — jeudi', debut: iso(q(-1, 3, 19)), duree: 3 * 3600, vues: 1, jeu: 'Valorant' } ],
+        { id: '5003', titre: 'Zinc en direct', debut: iso(depuis + 20 * M), duree: 7180, vues: 12, jeu: 'Minecraft', diffusion: '700100' },
+        { id: '5002', titre: 'Zinc — mardi', debut: iso(q(-1, 1, 19)), duree: 3 * 3600, vues: 51400, jeu: 'Minecraft', diffusion: '700097' },
+        { id: '5001', titre: 'Zinc — jeudi', debut: iso(q(-1, 3, 19)), duree: 3 * 3600, vues: 1, jeu: 'Valorant', diffusion: '700098' } ],
       creneaux: [{ id: 'z-prog', debut: iso(depuis), fin: iso(depuis + 4 * H), titre: 'Zinc programmé', jeu: 'Minecraft' }] };
     FX.brume = null;
-    A.brume = { nom: 'Brume', dernierLive: iso(q(-1, 5, 20)), titre: 'Brume — samedi',
+    A.brume = { nom: 'Brume', titre: 'Brume — samedi', dernier: { id: '710004', fin: finDe(q(-1, 5, 20), 4 * 3600 + 21 * 60) },
       videos: [
-        { id: '6004', titre: 'Brume — samedi', debut: iso(q(-1, 5, 20)), duree: 4 * 3600, vues: 33400, jeu: 'Enshrouded' },
-        { id: '6003', titre: 'Brume — jeudi', debut: iso(q(-1, 3, 20)), duree: 4 * 3600, vues: 27100, jeu: 'Enshrouded' },
-        { id: '6002', titre: 'Brume — mardi', debut: iso(q(-1, 1, 20)), duree: 4 * 3600, vues: 9000, jeu: 'Enshrouded' },
-        { id: '6001', titre: 'Brume — ancienne', debut: iso(q(-3, 2, 20)), duree: 2 * 3600, vues: 800, jeu: 'Enshrouded' } ],
+        { id: '6004', titre: 'Brume — samedi', debut: iso(q(-1, 5, 20)), duree: 4 * 3600 + 21 * 60, vues: 33400, jeu: 'Enshrouded',
+          diffusion: '710004', abonnes: true },
+        { id: '6003', titre: 'Brume — jeudi', debut: iso(q(-1, 3, 20)), duree: 4 * 3600, vues: 27100, jeu: 'Enshrouded', diffusion: '710003' },
+        { id: '6002', titre: 'Brume — mardi', debut: iso(q(-1, 1, 20)), duree: 4 * 3600, vues: 9000, jeu: 'Enshrouded', diffusion: '710002' },
+        { id: '6005', titre: 'Brume — nuit de dimanche', debut: iso(q(-2, 6, 22)), duree: 4 * 3600, vues: 700, jeu: 'Enshrouded',
+          diffusion: '710005' },
+        { id: '6001', titre: 'Brume — ancienne', debut: iso(q(-3, 2, 20)), duree: 2 * 3600, vues: 800, jeu: 'Enshrouded', diffusion: '710001' } ],
       creneaux: [{ id: 'b-passe', debut: iso(q(-1, 4, 12)), fin: iso(q(-1, 4, 14)), titre: 'Créneau passé' }] };
     FX.cobalt = null;
-    A.cobalt = { nom: 'Cobalt', dernierLive: iso(q(-1, 6, 18)), titre: 'Cobalt — jour 0',
+    A.cobalt = { nom: 'Cobalt', titre: 'Cobalt — jour 0', dernier: { id: '720000', fin: finDe(q(-1, 6, 18), 3 * 3600) },
       videos: Array.from({ length: 30 }, (_, i) => ({ id: String(7000 + i), titre: `Cobalt — jour ${i}`,
-        debut: iso(q(-1, 6 - i, 18)), duree: 2 * 3600, vues: 100 + i, jeu: 'Elden Ring' })) };
+        debut: iso(q(-1, 6 - i, 18)), duree: 2 * 3600, vues: 100 + i, jeu: 'Elden Ring', diffusion: String(720000 + i) })) };
     FX.dune = null;
-    A.dune = { nom: 'Dune', dernierLive: iso(q(-1, 2, 21)), titre: 'Dune sans archive', videos: [] };
+    A.dune = { nom: 'Dune', titre: 'Dune sans archive', videos: [], dernier: { id: '730001', fin: iso(q(-1, 2, 23) + 30 * M) } };
     FX.ether = null;
-    A.ether = { nom: 'Ether', dernierLive: iso(q(-3, -10, 20)), titre: 'Ether — il y a longtemps', videos: [],
+    A.ether = { nom: 'Ether', titre: 'Ether — il y a longtemps', videos: [], dernier: { id: '740001', fin: iso(q(-3, -10, 20)) },
       creneaux: [
         { id: 'e-annule', debut: iso(q(1, 1, 20)), fin: iso(q(1, 1, 23)), titre: 'Annulé', jeu: 'Valorant', annule: true },
         { id: 'e-suite', debut: iso(q(1, 2, 20)), fin: iso(q(1, 2, 23)), titre: 'Suite de la série', jeu: 'Valorant' },
@@ -33475,14 +33489,19 @@ const S_LECTEUR_SONDE = () => {
     for (let i = 1; i <= 24; i++) {
       const l = 'p' + String(i).padStart(2, '0');
       FX[l] = null;
-      A[l] = { dernierLive: iso(q(-3, -20, 12) - i * H) };
+      A[l] = { dernier: { id: String(750000 + i), fin: iso(q(-3, -20, 12) - i * H) } };
     }
+    A.p05.creneaux = [{ id: 'p05-prog', debut: iso(q(1, 0, 12)), fin: iso(q(1, 0, 14)), titre: 'Tôt la semaine prochaine' }];
+    // En retard sur son créneau : commencé il y a une demi-heure, et pas en direct.
+    if (o.retardataire) A.p06.creneaux = [{ id: 'p06-retard', debut: iso(now - 30 * M), fin: iso(now + 90 * M), titre: 'En retard' }];
     const garder = o.chaines || [...Object.keys(A), 'flux'];
     window.__fx = Object.fromEntries(Object.entries(FX).filter(([l]) => garder.includes(l)));
     window.__agenda = Object.fromEntries(Object.entries(A).filter(([l]) => garder.includes(l)));
     window.__agendaFormes = o.formes === undefined ? null : o.formes;
     window.__agendaRefus = o.refus || {};
     window.__agendaSchema = o.schema || {};
+    window.__agendaExtras = !!o.extras;
+    window.__agendaPanne = o.panne || {};
     window.__agendaPerte = o.perte || 0;
     window.__retardOp = o.retard || {};
     for (const l of garder) {
@@ -33560,19 +33579,26 @@ const S_LECTEUR_SONDE = () => {
   ok('b) hors ligne : toutes les chaînes, sauf celle en direct et celle que Twitch ne connaît plus',
      hl.lignes.length === 28 && !ligne('zinc') && !ligne('flux'),
      JSON.stringify(hl.lignes.map((x) => x.login)));
-  ok('b) …la plus récemment partie d\'abord',
-     hl.lignes.slice(0, 5).map((x) => x.login).join() === 'cobalt,brume,dune,ether,p01',
-     JSON.stringify(hl.lignes.slice(0, 6).map((x) => x.login)));
-  const b = ligne('brume'), d = ligne('dune'), e = ligne('ether');
-  ok('b) …le départ se date à la fin de la rediffusion quand elle existe, au début du direct sinon',
-     b && b.dernier.fin === true && b.dernier.t === b.dernier.debut + 4 * H
-     && d && d.dernier.fin === false && d.dernier.t === d.dernier.debut,
+  ok('b) …les chaînes programmées d\'abord, la plus proche en tête, puis la plus récemment partie',
+     hl.lignes.slice(0, 6).map((x) => x.login).join() === 'p05,ether,cobalt,brume,dune,p01'
+     && hl.lignes.slice(2).every((x) => x.prochain === null),
+     JSON.stringify(hl.lignes.slice(0, 7).map((x) => [x.login, x.prochain && x.prochain.titre])));
+  const b = ligne('brume'), d = ligne('dune'), e = ligne('ether'), p5 = ligne('p05');
+  const [samediB, finSamediB, finDune] = await page.evaluate(() => [window.__quand(-1, 5, 20),
+    window.__quand(-1, 5, 20) + (4 * 3600 + 21 * 60) * 1000, window.__quand(-1, 2, 23) + 30 * 60_000]);
+  ok('b) …le départ est la fin du dernier direct : celle de sa rediffusion, qui EST ce direct, ou celle que Twitch donne',
+     b && b.dernier.revoir === true && b.dernier.debut === samediB && b.dernier.t === finSamediB
+     && d && d.dernier.revoir === false && d.dernier.debut === null && d.dernier.t === finDune,
      JSON.stringify({ brume: b && b.dernier, dune: d && d.dernier }));
   ok('b) …le prochain direct programmé, l\'annulé écarté',
-     !!e && e.planningLu === true && e.prochain && e.prochain.titre === 'Suite de la série' && b.prochain === null,
-     JSON.stringify({ ether: e && e.prochain, brume: b && b.prochain }));
-  ok('b) …résumé : vingt-huit hors ligne, une en direct, une avec un prochain direct',
-     JSON.stringify(hl.resume) === JSON.stringify({ horsLigne: 28, directs: 1, programmees: 1 })
+     !!e && e.prochain && e.prochain.titre === 'Suite de la série' && b.prochain === null
+     && !!p5 && p5.prochain && p5.prochain.titre === 'Tôt la semaine prochaine',
+     JSON.stringify({ ether: e && e.prochain, brume: b && b.prochain, p05: p5 && p5.prochain }));
+  ok('b) …une dernière rediffusion réservée aux abonnés le dit, et qu\'on ne vous sait pas abonné',
+     b.derniere.restreinte === true && b.abonne === false && d.abonne === undefined,
+     JSON.stringify({ brume: [b.derniere.restreinte, b.abonne], dune: d.abonne }));
+  ok('b) …résumé : vingt-huit hors ligne, une en direct, deux avec un prochain direct',
+     JSON.stringify(hl.resume) === JSON.stringify({ horsLigne: 28, directs: 1, programmees: 2 })
      && hl.notes.planning === 'ok' && hl.notes.limite === null && hl.notes.echouees === 0 && hl.notes.reseau === false,
      JSON.stringify({ resume: hl.resume, notes: hl.notes }));
 
@@ -33596,17 +33622,25 @@ const S_LECTEUR_SONDE = () => {
   ok('c) …dans l\'ordre des heures',
      s1.entrees.every((x, i, t) => i === 0 || t[i - 1].debut <= x.debut), '');
   const samedi = s1.entrees.find((x) => x.id === '6004');
-  const lui = await page.evaluate(() => window.__quand(-1, 5, 20));
   ok('c) …une rediffusion porte ce que le panneau affiche, ni plus ni moins',
      !!samedi && samedi.type === 'rediffusion' && samedi.login === 'brume' && samedi.titre === 'Brume — samedi'
-     && samedi.debut === lui && samedi.fin === lui + 4 * H && samedi.duree === 4 * 3600 && samedi.vues === 33400
-     && /^https:\/\//.test(samedi.vignette || '') && samedi.libelle === 'Enshrouded',
+     && samedi.debut === samediB && samedi.fin === finSamediB && samedi.duree === 4 * 3600 + 21 * 60
+     && samedi.vues === 33400 && /^https:\/\//.test(samedi.vignette || '') && samedi.libelle === 'Enshrouded'
+     && samedi.idDirect === '710004' && samedi.restreinte === true && samedi.abonne === false,
      JSON.stringify(samedi));
   const sans = s1.entrees.find((x) => x.type === 'sansRediffusion');
-  ok('c) …le direct sans archive se dit, à son heure, sans lien à inventer',
-     !!sans && sans.login === 'dune' && sans.fin === null && !sans.id
-     && sans.debut === await page.evaluate(() => window.__quand(-1, 2, 21)),
+  ok('c) …le direct sans archive se dit à sa fin, la seule heure qu\'on en sache, sans lien à inventer',
+     !!sans && sans.login === 'dune' && sans.finSeule === true && sans.debut === finDune && sans.fin === finDune && !sans.id,
      JSON.stringify(sans));
+  /* LE CAS DU PREMIER ESSAI RÉEL. Le samedi de brume finit à minuit vingt et
+     une : 4.25.0 le reprenait le dimanche, « sans rediffusion », parce qu'elle
+     lisait la fin du direct comme son début. Et la nuit du dimanche d'avant,
+     finie le lundi, n'est plus reprise au lundi de cette semaine-ci. */
+  const [dimanche, lundiSuivant] = await page.evaluate(() => [window.__quand(-1, 6, 0), window.__quand(0, 0, 0)]);
+  ok('c) …une diffusion n\'est qu\'au jour où elle a commencé : rien de brume le dimanche, ni de la nuit d\'avant',
+     !s1.entrees.some((x) => x.login === 'brume' && x.debut >= dimanche && x.debut < lundiSuivant)
+     && !s1.entrees.some((x) => x.id === '6005') && s1.entrees.filter((x) => x.login === 'brume').length === 3,
+     JSON.stringify(s1.entrees.filter((x) => x.login === 'brume').map((x) => [x.type, x.id, x.debut])));
   ok('c) …un créneau programmé déjà passé ne se montre pas',
      !s1.entrees.some((x) => x.type === 'prevu'), JSON.stringify(parType(s1.entrees)));
   ok('c) …résumé : treize diffusions, quatre chaînes',
@@ -33635,14 +33669,14 @@ const S_LECTEUR_SONDE = () => {
   const s0 = await finir(page, () => window.__semaine(0));
   const sp = await finir(page, () => window.__semaine(1));
   const direct = s0.entrees.find((x) => x.type === 'direct');
-  ok('e) cette semaine : le direct en cours, une seule fois — sa rediffusion et son créneau sont lui',
-     s0.entrees.length === 1 && !!direct && direct.login === 'zinc' && direct.fin === null
+  ok('e) cette semaine : le direct en cours, une seule fois — son archive, ouverte vingt minutes après lui, l\'est par son identifiant',
+     s0.entrees.length === 1 && !!direct && direct.login === 'zinc' && direct.id === '700100' && direct.fin === null
      && direct.spectateurs === 5100 && direct.titre === 'Zinc en direct',
      JSON.stringify(s0.entrees));
   const prevus = sp.entrees.filter((x) => x.type === 'prevu');
   ok('e) la semaine prochaine : les créneaux programmés, l\'annulé écarté, celui sans fin gardé tel quel',
-     prevus.length === 2 && prevus.map((x) => x.titre).join() === 'Suite de la série,Sans fin'
-     && prevus[0].fin !== null && prevus[1].fin === null && prevus[0].libelle === 'Valorant',
+     prevus.length === 3 && prevus.map((x) => x.titre).join() === 'Tôt la semaine prochaine,Suite de la série,Sans fin'
+     && prevus[1].fin !== null && prevus[2].fin === null && prevus[1].libelle === 'Valorant',
      JSON.stringify(prevus));
   ok('e) …ni l\'une ni l\'autre n\'a rien demandé de plus',
      (await journal(page)).length === nAvantFiltre, String((await journal(page)).length));
@@ -33657,6 +33691,14 @@ const S_LECTEUR_SONDE = () => {
   ok('f) …et la semaine se remplit : sept soirs de cobalt, la vieille de brume',
      s3.entrees.length === 8 && parLogin(s3.entrees).cobalt === 7 && parLogin(s3.entrees).brume === 1,
      JSON.stringify(parLogin(s3.entrees)));
+  const nAvantS2 = (await journal(page)).length;
+  const s2 = await finir(page, () => window.__semaine(-2));
+  const nuit = s2.entrees.find((x) => x.id === '6005');
+  const dimancheAvant = await page.evaluate(() => window.__quand(-2, 6, 22));
+  ok('f) …la nuit du dimanche reste à sa semaine, à son jour, sans rien redemander',
+     !!nuit && nuit.debut === dimancheAvant && s2.entrees.length === 8 && parLogin(s2.entrees).cobalt === 7
+     && (await journal(page)).length === nAvantS2,
+     JSON.stringify({ n: s2.entrees.length, nuit, chaines: parLogin(s2.entrees) }));
 
   /* ── g) « ACTUALISER » RELIT TOUT ─────────────────────────────────────────── */
   const nAvantActu = (await journal(page)).length;
@@ -33676,17 +33718,18 @@ const S_LECTEUR_SONDE = () => {
   const somme = (x) => x && x.servis + x.refus + x.schema + x.reseau;
   const total = (await journal(page)).length;
   ok('h) le rapport de l\'agenda : des comptes justes',
-     ag.chaines === 29 && ag.inconnues >= 1 && ag.rediffusions === 37 && ag.creneaux === 5
-     && ag.planning === 'segmentList(first)' && ag.refus === null && ag.enCours === false
+     ag.chaines === 29 && ag.inconnues >= 1 && ag.rediffusions === 38 && ag.creneaux === 6
+     && ag.planning === 'segmentList(first)' && ag.archives === 'riches' && ag.refus === null && ag.enCours === false
      && ag.envois === total && ag.lots === '25 / 10' && ag.pauseMs === 30 && ag.abandons === 0,
      JSON.stringify(ag));
-  ok('h) …chaque opération a une issue, et une seule',
-     [ag.passe1, ag.programme, ag.passe2].every((x) => x && x.lots === somme(x))
+  ok('h) …chaque opération a une issue, et une seule ; aucune réponse partielle',
+     [ag.passe1, ag.programme, ag.passe2].every((x) => x && x.lots === somme(x) && x.partiels === 0)
      && ag.passe1.lots === 4 && ag.passe1.servis === 4 && ag.passe2.lots === 4 && ag.passe2.servis === 4,
      JSON.stringify({ passe1: ag.passe1, programme: ag.programme, passe2: ag.passe2 }));
   const texteAg = JSON.stringify(ag), texteRap = JSON.stringify(rap);
   const fuites = [...['zinc', 'brume', 'cobalt', 'dune', 'ether', 'flux', 'p01'].filter((l) => texteAg.includes(l)),
-                  ...['Brume — samedi', 'Cobalt — jour', 'Suite de la série', 'Dune sans archive'].filter((t) => texteRap.includes(t))];
+                  ...['Brume — samedi', 'Cobalt — jour', 'Suite de la série', 'Dune sans archive', 'Brume — nuit de dimanche',
+                      'Tôt la semaine prochaine'].filter((t) => texteRap.includes(t))];
   ok('h) …et pas un login, pas un titre', fuites.length === 0,
      JSON.stringify(fuites.map((f) => [f, texteRap.slice(Math.max(0, texteRap.indexOf(f) - 160), texteRap.indexOf(f) + 60)])));
 
@@ -33734,7 +33777,7 @@ const S_LECTEUR_SONDE = () => {
   const etherk = hk.lignes.find((x) => x.login === 'ether');
   ok('j) …toutes refusées : trois essais, pas un de plus, et le planning se dit indisponible',
      ops(logk, 'TseAgendaProgramme').length === 3 && hk.notes.planning === 'indisponible'
-     && rapk.planning === 'indisponible' && !!etherk && etherk.prochain === null && etherk.planningLu === false
+     && rapk.planning === 'indisponible' && !!etherk && etherk.prochain === null
      && hk.lignes.length === 2,
      JSON.stringify({ programme: ops(logk, 'TseAgendaProgramme').length, notes: hk.notes, planning: rapk.planning }));
   await pk.close();
@@ -33856,6 +33899,118 @@ const S_LECTEUR_SONDE = () => {
      JSON.stringify({ n: demandees.length, tete: demandees.slice(0, 4), limite: hp.notes.limite,
                       dehors: dehors.filter((l) => demandees.includes(l)) }));
   await pp.close();
+
+  /* ── q) LES DEUX CHAMPS NEUFS REFUSÉS : L'AGENDA REPART SANS EUX (4.25.0.1) ─
+     L'identifiant du direct et la restriction des archives viennent des
+     requêtes de l'onglet Vidéos de Twitch, pas d'un essai d'ici. Si le schéma
+     les refuse, la fiche se redemande aussitôt sans eux, pour la session, et
+     c'est l'heure qui reconnaît l'archive du dernier direct. */
+  // Sans cobalt : son archive tronquée ne se reconnaît qu'à l'identifiant, que ce mode n'a plus.
+  const pq = await monter({ chaines: ['brume', 'dune'], extras: true });
+  const sq = await finir(pq, () => window.__semaine(-1));
+  const hq = await finir(pq, () => window.tse.panneau('horsLigne'));
+  const logq = await journal(pq);
+  const rapq = await pq.evaluate(() => window.tse.panneau.rapport().agenda);
+  const fichesQ = ops(logq, 'TseAgendaChaines');
+  ok('q) le schéma refuse les deux champs neufs : la fiche se redemande sans eux, une fois, et le rapport le dit',
+     fichesQ.length === 2 && fichesQ[0].riche === true && fichesQ[1].riche === false
+     && fichesQ[1].logins.join() === fichesQ[0].logins.join()
+     && ops(logq, 'TseAgendaDiffusions').every((x) => x.riche === false)
+     && rapq.archives === 'simples' && rapq.refus === null && rapq.passe1.schema === 1 && rapq.passe1.servis === 1,
+     JSON.stringify({ fiches: fichesQ.map((x) => [x.riche, x.logins.length]), archives: rapq.archives, passe1: rapq.passe1 }));
+  const brumeQ = hq.lignes.find((x) => x.login === 'brume');
+  ok('q) …l\'heure reconnaît alors l\'archive du dernier direct : pas de « sans rediffusion » en double, « Revoir » gardé',
+     sq.entrees.length === 4 && parType(sq.entrees).sansRediffusion === 1
+     && sq.entrees.find((x) => x.type === 'sansRediffusion').login === 'dune'
+     && sq.entrees.every((x) => !x.idDirect && !x.restreinte && x.abonne === undefined)
+     && !!brumeQ && brumeQ.dernier.revoir === true && brumeQ.abonne === undefined,
+     JSON.stringify({ n: sq.entrees.length, types: parType(sq.entrees), brume: brumeQ && brumeQ.dernier }));
+  await pq.close();
+
+  /* ── r) UNE RÉPONSE PARTIELLE NE PERD RIEN, ET NE CONDAMNE PERSONNE ────────
+     Des données avec une erreur à côté : la panne d'un morceau. La chaîne
+     touchée — par le chemin de l'erreur, ou parce qu'elle manque — se
+     redemande seule ; les autres sont lues, et aucune ne passe pour un
+     compte que Twitch ne connaîtrait plus. */
+  const pr2 = await monter({ chaines: ['brume', 'cobalt', 'dune', 'ether'],
+    panne: { TseAgendaChaines: { logins: ['brume'], chemin: true, fois: 1 },
+             TseAgendaProgramme: { logins: ['ether'], chemin: true, fois: 1 },
+             TseAgendaDiffusions: { logins: ['cobalt'], chemin: false, fois: 1 } } });
+  const hr2 = await finir(pr2, () => window.tse.panneau('horsLigne'));
+  const sr2 = await finir(pr2, () => window.__semaine(-1));
+  const logr2 = await journal(pr2);
+  const rapr2 = await pr2.evaluate(() => window.tse.panneau.rapport().agenda);
+  const lots = (nom) => ops(logr2, nom).map((x) => x.logins.slice().sort().join('+'));
+  ok('r) une erreur sur un champ d\'une chaîne : elle seule se redemande — sa fiche, son planning ; une chaîne manquante aussi',
+     JSON.stringify(lots('TseAgendaChaines')) === JSON.stringify(['brume+cobalt+dune+ether', 'brume'])
+     && JSON.stringify(lots('TseAgendaProgramme')) === JSON.stringify(['brume+cobalt+dune+ether', 'brume', 'ether'])
+     && JSON.stringify(lots('TseAgendaDiffusions')) === JSON.stringify(['brume+cobalt+dune', 'cobalt']),
+     JSON.stringify({ chaines: lots('TseAgendaChaines'), programme: lots('TseAgendaProgramme'),
+                      diffusions: lots('TseAgendaDiffusions') }));
+  ok('r) …les réponses partielles sont des réponses servies, comptées à part ; personne n\'est « inconnu »',
+     rapr2.passe1.lots === 2 && rapr2.passe1.servis === 2 && rapr2.passe1.partiels === 1
+     && rapr2.passe2.lots === 2 && rapr2.passe2.servis === 2 && rapr2.passe2.partiels === 1
+     && rapr2.programme.lots === 3 && rapr2.programme.servis === 3 && rapr2.programme.partiels === 1
+     && rapr2.inconnues === 0,
+     JSON.stringify({ passe1: rapr2.passe1, passe2: rapr2.passe2, inconnues: rapr2.inconnues }));
+  const brumeR = hr2.lignes.find((x) => x.login === 'brume');
+  const etherR = hr2.lignes.find((x) => x.login === 'ether');
+  ok('r) …et tout finit lu : la fin du dernier direct de brume, le planning d\'ether, les soirs de brume et de cobalt',
+     hr2.lignes.length === 4 && hr2.notes.echouees === 0 && !!brumeR && brumeR.dernier.revoir === true
+     && !!etherR && !!etherR.prochain && etherR.prochain.titre === 'Suite de la série'
+     && sr2.entrees.length === 11 && parLogin(sr2.entrees).brume === 3 && parLogin(sr2.entrees).cobalt === 7
+     && sr2.notes.echouees === 0,
+     JSON.stringify({ lignes: hr2.lignes.length, brume: brumeR && brumeR.dernier, ether: etherR && etherR.prochain,
+                      chaines: parLogin(sr2.entrees) }));
+  await pr2.close();
+
+  /* ── s) ABONNÉ : LE CADENAS S'OUVRE ──────────────────────────────────────
+     La mémoire des abonnements (cf. ABONNEMENTS REPÉRÉS) sait qu'on l'est à
+     brume : sa rediffusion réservée le dit, dans la semaine comme hors ligne. */
+  const ps = await fresh();
+  await ps.evaluate(() => {
+    const now = Date.now();
+    localStorage.setItem('tse:subs', JSON.stringify({ brume: [1, now] }));
+    localStorage.setItem('tse:substs', '2:' + now);
+  });
+  await ps.reload();
+  await ps.evaluate(() => { try { localStorage.setItem('tse:indice', 'vu'); } catch { /* stockage refusé */ } });
+  await monter({ chaines: ['brume', 'cobalt'] }, ps);
+  const ss = await finir(ps, () => window.__semaine(-1));
+  const hs = await finir(ps, () => window.tse.panneau('horsLigne'));
+  const samediS = ss.entrees.find((x) => x.id === '6004');
+  const brumeS = hs.lignes.find((x) => x.login === 'brume');
+  ok('s) abonné à la chaîne : la rediffusion réservée le dit ouverte, dans la semaine et hors ligne ; les autres ne disent rien',
+     !!samediS && samediS.restreinte === true && samediS.abonne === true && !!brumeS && brumeS.abonne === true
+     && ss.entrees.filter((x) => x.login === 'cobalt').every((x) => x.restreinte === false && x.abonne === undefined),
+     JSON.stringify({ samedi: samediS && [samediS.restreinte, samediS.abonne], brume: brumeS && brumeS.abonne }));
+  await ps.close();
+
+  /* ── t) EN RETARD SUR SON CRÉNEAU : ENCORE ATTENDUE, ET LA PLUS PROCHE ────
+     Un créneau commencé il y a une demi-heure, chaîne hors ligne : il n'est
+     pas fini, la semaine le montre encore — « Hors ligne » aussi, en tête. */
+  const pt = await monter({ chaines: ['ether', 'p06'], retardataire: true });
+  const ht = await finir(pt, () => window.tse.panneau('horsLigne'));
+  const maintenantT = await pt.evaluate(() => Date.now());
+  ok('t) un créneau commencé mais pas fini reste le prochain direct, et passe devant les créneaux à venir',
+     ht.lignes.map((x) => x.login).join() === 'p06,ether' && ht.lignes[0].prochain.titre === 'En retard'
+     && ht.lignes[0].prochain.debut < maintenantT && ht.resume.programmees === 2,
+     JSON.stringify(ht.lignes.map((x) => [x.login, x.prochain && x.prochain.titre])));
+  await pt.close();
+
+  /* ── u) QUI A FINI AVANT LA SEMAINE N'Y A RIEN COMMENCÉ ───────────────────
+     Une page neuve, la semaine en cours d'abord : brume et cobalt ont fini
+     dimanche soir. 4.25.0 leur accordait un jour de marge — pour un direct du
+     dimanche cherché le lundi —, et relisait leurs rediffusions pour rien :
+     une diffusion n'est plus qu'au jour où elle a commencé. */
+  const pu = await monter({ chaines: ['zinc', 'brume', 'cobalt', 'dune'] });
+  const su = await finir(pu, () => window.__semaine(0));
+  const logu = await journal(pu);
+  ok('u) la semaine en cours, d\'abord : seule la chaîne en direct fait lire ses rediffusions',
+     JSON.stringify(ops(logu, 'TseAgendaDiffusions').map((x) => x.logins)) === JSON.stringify([['zinc']])
+     && su.entrees.length === 1 && su.entrees[0].type === 'direct',
+     JSON.stringify({ diffusions: ops(logu, 'TseAgendaDiffusions').map((x) => x.logins), n: su.entrees.length }));
+  await pu.close();
 }
 
 /* ═════════ L'AGENDA, CÔTÉ PANNEAU (4.25.0) ═════════════════════════════════
@@ -33863,7 +34018,10 @@ const S_LECTEUR_SONDE = () => {
    fait. La page est ici un bouchon qui répond d'après la semaine DEMANDÉE —
    c'est ce qui permet de lire les bornes que le panneau calcule, et de voir
    chaque entrée tomber dans son jour. Les noms de chaînes sont ceux, inventés,
-   des maquettes du guide. */
+   des maquettes du guide.
+
+   4.25.0.1 : la vue posée sur aujourd'hui, le menu qui s'applique aussitôt,
+   le cadenas des abonnés, et ce qui ne change pas qui ne se refait pas. */
 {
   titre('208. L\'agenda dans le panneau — la semaine de la locale, des liens sûrs, une relecture qui ne bouscule rien');
 
@@ -33876,71 +34034,118 @@ const S_LECTEUR_SONDE = () => {
       return String(m).replace(/\$(\d)/g, (t, i) => (args[i - 1] === undefined ? t : String(args[i - 1])));
     };
     window.__envois = [];
-    window.__mode = { enCours: 0, notes: {}, vide: false, progression: null, figee: null };
+    /* Les leviers du bouchon. `progression` : un tableau consommé réponse par
+       réponse pendant la lecture. `dense` : huit rediffusions de plus par jour,
+       de quoi poser n'importe quel jour en haut de la vue. `arrivees` : autant
+       de réponses qui apportent chacune une rediffusion de plus, au lundi
+       matin — au-dessus de ce qu'on regarde. `version`, `vuesEnPlus`,
+       `enPlus`, `retire` : une nouvelle version, une entrée qui change, une
+       chaîne de plus dans le menu, une chaîne que la liste ne porte pas. */
+    window.__mode = { enCours: 0, notes: {}, vide: false, progression: null, figee: null,
+                      dense: false, arrivees: 0, ajouts: 0, version: 1, vuesEnPlus: 0, enPlus: false, retire: null };
     const H = 3_600_000, J = 24 * H;
     window.__repondre = (m) => {
       const now = Date.now();
-      const notes = { rosterVide: false, limite: null, planning: 'ok', refus: null, echouees: 0, reseau: false,
-                      ...window.__mode.notes };
-      const enCours = window.__mode.enCours > 0;
-      if (enCours) window.__mode.enCours--;
-      const progression = window.__mode.figee || (enCours && window.__mode.progression) || { lues: 4, aLire: 4, aCouvrir: 0 };
+      const mode = window.__mode;
+      const notes = { rosterVide: false, limite: null, planning: 'ok', refus: null, echouees: 0, reseau: false, ...mode.notes };
+      const enCours = mode.enCours > 0;
+      if (enCours) mode.enCours--;
+      if (mode.arrivees > 0) { mode.arrivees--; mode.ajouts++; mode.version++; }
+      const enLecture = Array.isArray(mode.progression) && mode.progression.length > 1 ? mode.progression.shift()
+        : Array.isArray(mode.progression) ? mode.progression[0] : mode.progression;
+      const progression = mode.figee || (enCours && enLecture) || { lues: 4, aLire: 4, aCouvrir: 0 };
       if (m.section === 'horsLigne') {
-        const prochain = new Date(now + 2 * J);
-        prochain.setHours(21, 0, 0, 0);
+        const p1 = new Date(now + 2 * J); p1.setHours(21, 0, 0, 0);
+        const p2 = new Date(now + 3 * J); p2.setHours(20, 0, 0, 0);
+        const cdn = (l) => 'https://static-cdn.jtvnw.net/jtv_user_pictures/' + l + '-70x70.png';
+        // Le jeudi d'il y a deux semaines, 14:00 : un jour qui n'est jamais le premier de sa semaine.
+        const jeudi = window.__jeudi();
         const lignes = [
+          { login: 'korbek', nom: 'Korbek', avatar: cdn('korbek'), titre: 'Korbek joue',
+            dernier: { debut: jeudi, t: jeudi + 3 * H, revoir: true },
+            derniere: { id: '9100', titre: 'Korbek — la rediffusion', debut: jeudi, duree: 3 * 3600, vues: 10,
+                        vignette: null, jeu: 'Minecraft', libelle: 'Minecraft', idDirect: '81', restreinte: true },
+            abonne: false,
+            prochain: { id: 'c9', debut: p1.getTime(), fin: p1.getTime() + 2 * H, titre: 'Retour',
+                        annule: false, jeu: 'Minecraft', libelle: 'Minecraft' } },
+          { login: 'nyxaria', nom: 'Nyxaria', avatar: cdn('nyxaria'), titre: 'Nyxaria, la grande soirée',
+            dernier: { debut: now - 2 * J - 4 * H, t: now - 2 * J, revoir: true },
+            derniere: { id: '9300', titre: 'Nyxaria — soirée', debut: now - 2 * J - 4 * H, duree: 4 * 3600, vues: 4,
+                        vignette: null, jeu: 'Elden Ring', libelle: 'Elden Ring', idDirect: '82', restreinte: true },
+            abonne: true,
+            prochain: { id: 'c10', debut: p2.getTime(), fin: null, titre: 'La suite, enfin, après une semaine de pause',
+                        annule: false, jeu: null, libelle: null } },
           { login: 'velmoria', nom: 'Velmoria', avatar: 'https://static-cdn.jtvnw.net/jtv_user_pictures/velmoria-70x70.png',
-            titre: 'Velmoria, la suite', dernier: { debut: now - 3 * H, t: now - 3 * H, fin: false },
+            titre: 'Velmoria, la suite', dernier: { debut: null, t: now - 3 * H, revoir: false },
             derniere: { id: '9200', titre: 'Une plus ancienne', debut: now - 5 * J, duree: 3600, vues: 4, vignette: null,
-                        jeu: 'Minecraft', libelle: 'Minecraft' }, prochain: null, planningLu: true },
-          { login: 'korbek', nom: 'Korbek', avatar: 'https://static-cdn.jtvnw.net/jtv_user_pictures/korbek-70x70.png',
-            titre: 'Korbek joue', dernier: { debut: now - 9 * J, t: now - 9 * J + 3 * H, fin: true },
-            derniere: { id: '9100', titre: 'Korbek — la rediffusion', debut: now - 9 * J, duree: 3 * 3600, vues: 10,
-                        vignette: null, jeu: 'Minecraft', libelle: 'Minecraft' },
-            prochain: { id: 'c9', debut: prochain.getTime(), fin: prochain.getTime() + 2 * H, titre: 'Retour',
-                        annule: false, jeu: 'Minecraft', libelle: 'Minecraft' }, planningLu: true },
+                        jeu: 'Minecraft', libelle: 'Minecraft', idDirect: '83', restreinte: false }, prochain: null },
           { login: 'aeltris', nom: 'Aeltris', avatar: 'http://insecure.example/aeltris.png', titre: '',
-            dernier: null, derniere: null, prochain: null, planningLu: false },
+            dernier: null, derniere: null, prochain: null },
         ];
-        return { vue: 'horsLigne', version: 1, maintenant: now, lignes: window.__mode.vide ? [] : lignes,
+        return { vue: 'horsLigne', version: mode.version, maintenant: now, lignes: mode.vide ? [] : lignes,
                  enCours, progression, notes,
-                 resume: { horsLigne: window.__mode.vide ? 0 : 3, directs: 2, programmees: window.__mode.vide ? 0 : 1 } };
+                 resume: { horsLigne: mode.vide ? 0 : 4, directs: 2, programmees: mode.vide ? 0 : 2 } };
       }
       const { debut, fin, chaine } = m.arg || {};
-      const jour = (j, h) => { const d = new Date(debut); d.setDate(d.getDate() + j); d.setHours(h, 0, 0, 0); return d.getTime(); };
+      const jour = (j, h, mn = 0) => { const d = new Date(debut); d.setDate(d.getDate() + j); d.setHours(h, mn, 0, 0); return d.getTime(); };
       const cdn = (id) => 'https://static-cdn.jtvnw.net/cf_vods/' + id + '/thumb-160x90.jpg';
       let entrees = [
+        // Lundi 20:00, sept heures vingt et une : elle finit mardi, et reste au lundi.
         { type: 'rediffusion', login: 'nyxaria', id: '9001', titre: 'Nyxaria — la grande soirée', debut: jour(0, 20),
-          fin: jour(0, 20) + 26513_000, duree: 26513, vues: 51401, vignette: cdn('9001'), jeu: 'Elden Ring', libelle: 'Elden Ring' },
+          fin: jour(0, 20) + 26513_000, duree: 26513, vues: 51401 + mode.vuesEnPlus, vignette: cdn('9001'),
+          jeu: 'Elden Ring', libelle: 'Elden Ring', idDirect: '91', restreinte: false },
+        { type: 'rediffusion', login: 'korbek', id: '9003', titre: 'Vignette absente', debut: jour(1, 14),
+          fin: jour(1, 19), duree: 5 * 3600, vues: 5, vignette: cdn('9003'), jeu: 'Minecraft', libelle: 'Minecraft',
+          idDirect: '93', restreinte: true, abonne: false },
         { type: 'rediffusion', login: 'korbek', id: '9002', titre: '<img src=x onerror="window.__xss=1">Korbek <b>gras</b>',
           debut: jour(2, 18), fin: jour(2, 21), duree: 3 * 3600, vues: 1, vignette: 'http://insecure.example/9002.jpg',
-          jeu: 'Minecraft', libelle: 'Minecraft' },
+          jeu: 'Minecraft', libelle: 'Minecraft', idDirect: null, restreinte: false },
         { type: 'rediffusion', login: 'aeltris', id: 'pas-un-nombre', titre: 'Identifiant douteux', debut: jour(2, 22),
-          fin: jour(2, 23), duree: 3600, vues: 3, vignette: null, jeu: null, libelle: null },
-        { type: 'sansRediffusion', login: 'velmoria', debut: jour(3, 21), fin: null, titre: 'Sans archive',
-          jeu: null, libelle: null },
+          fin: jour(2, 23), duree: 3600, vues: 3, vignette: null, jeu: null, libelle: null, idDirect: null, restreinte: false },
+        // Un direct sans archive, connu par sa seule fin : jeudi, minuit vingt et une.
+        { type: 'sansRediffusion', login: 'velmoria', debut: jour(3, 0, 21), fin: jour(3, 0, 21), finSeule: true,
+          titre: 'Sans archive', jeu: null, libelle: null },
+        { type: 'rediffusion', login: 'nyxaria', id: '9004', titre: 'Réservée, et vous l\'êtes', debut: jour(1, 21),
+          fin: jour(1, 23), duree: 2 * 3600, vues: 22, vignette: cdn('9004'), jeu: 'Elden Ring', libelle: 'Elden Ring',
+          idDirect: '94', restreinte: true, abonne: true },
         { type: 'prevu', login: 'nyxaria', id: 'c1', debut: jour(5, 21), fin: jour(5, 23), titre: 'Programmé',
           annule: false, jeu: 'Valorant', libelle: 'Valorant' },
-        { type: 'rediffusion', login: 'korbek', id: '9003', titre: 'De la veille', debut: debut - 2 * H, fin: debut + 3 * H,
-          duree: 5 * 3600, vues: 5, vignette: cdn('9003'), jeu: 'Minecraft', libelle: 'Minecraft' },
       ];
+      // Un direct a un début, et un seul : celui du bouchon est pris une fois.
+      mode.directDepuis = mode.directDepuis || now - H;
       if (now >= debut && now < fin) {
-        entrees.push({ type: 'direct', login: 'aeltris', debut: Math.max(debut, now - H), fin: null, spectateurs: 1234,
+        entrees.push({ type: 'direct', login: 'aeltris', id: '777', debut: Math.max(debut, mode.directDepuis), fin: null, spectateurs: 1234,
                        titre: 'Aeltris en direct', jeu: 'Valorant', libelle: 'Valorant' });
       }
+      if (mode.dense) {
+        for (let j = 0; j < 7; j++) {
+          for (let k = 0; k < 8; k++) {
+            entrees.push({ type: 'rediffusion', login: 'korbek', id: String(80000 + 10 * j + k), titre: `Remplissage ${j}.${k}`,
+                           debut: jour(j, 1 + k), fin: jour(j, 1 + k) + 1_800_000, duree: 1800, vues: 7, vignette: null,
+                           jeu: null, libelle: null, idDirect: null, restreinte: false });
+          }
+        }
+      }
+      for (let k = 0; k < mode.ajouts; k++) {
+        entrees.push({ type: 'rediffusion', login: 'velmoria', id: String(81000 + k), titre: `Arrivée ${k}`,
+                       debut: jour(0, 6, k), fin: jour(0, 6, k) + 600_000, duree: 600, vues: 1, vignette: null,
+                       jeu: null, libelle: null, idDirect: null, restreinte: false });
+      }
       if (chaine) entrees = entrees.filter((e) => e.login === chaine);
-      if (window.__mode.vide) entrees = [];
+      if (mode.vide) entrees = [];
       entrees.sort((a, b) => a.debut - b.debut);
       const n = (...t) => entrees.filter((e) => t.includes(e.type)).length;
-      return { vue: 'semaine', version: 1, maintenant: now, semaine: { debut, fin }, chaine: chaine || null, entrees,
+      return { vue: 'semaine', version: mode.version, maintenant: now, semaine: { debut, fin }, chaine: chaine || null, entrees,
                chaines: [{ login: 'nyxaria', nom: 'Nyxaria' }, { login: 'korbek', nom: 'Korbek' },
-                         { login: 'aeltris', nom: 'Aeltris' }, { login: 'velmoria', nom: 'Velmoria' }],
+                         { login: 'aeltris', nom: 'Aeltris' }, { login: 'velmoria', nom: 'Velmoria' },
+                         ...(mode.enPlus ? [{ login: 'zenith', nom: 'Zenith' }] : [])].filter((x) => x.login !== mode.retire),
                enCours, progression, notes,
                resume: { directs: n('direct'), diffusions: n('rediffusion', 'sansRediffusion'), prevues: n('prevu'),
                          chaines: new Set(entrees.map((e) => e.login)).size } };
     };
     window.__rapportAgenda = { chaines: 4, inconnues: 0, rediffusions: 6, creneaux: 1, planning: 'segmentList(first)',
-                               refus: null, enCours: false, passe1: { lots: 1, servis: 1, refus: 0, schema: 0, reseau: 0 } };
+                               archives: 'riches', refus: null, enCours: false,
+                               passe1: { lots: 1, servis: 1, refus: 0, schema: 0, reseau: 0, partiels: 0 } };
     window.chrome = {
       i18n: { getMessage: T, getUILanguage: () => loc },
       tabs: { query: () => Promise.resolve([{ id: 1 }]) },
@@ -33965,6 +34170,10 @@ const S_LECTEUR_SONDE = () => {
       while (d.getDay() !== premier) d.setDate(d.getDate() - 1);
       return d.getTime();
     };
+    window.__jeudi = () => window.__lundiDe(Date.now(), 1) - 11 * J + 14 * H;
+    // L'écart d'un élément au bas de la tête de l'agenda — 0 : posé juste dessous.
+    window.__ecart = (el) => Math.round(el.getBoundingClientRect().top
+      - document.querySelector('#agenda .ag-tete').getBoundingClientRect().bottom);
   };
 
   const ouvrir = async (loc, taille = { width: 760, height: 580 }) => {
@@ -33985,6 +34194,7 @@ const S_LECTEUR_SONDE = () => {
   };
   const semaines = (p) => p.evaluate(() => window.__envois.filter((m) => m.section === 'semaine').map((m) => m.arg));
   const fr = fiche('fr');
+  const Tfr = (k, sub = []) => fr[k].message.replace(/\$(\d)/g, (t, i) => sub[i - 1] ?? t);
   const page = await ouvrir('fr');
 
   /* ── a) LE GROUPE, À SA PLACE ─────────────────────────────────────────────── */
@@ -34029,30 +34239,35 @@ const S_LECTEUR_SONDE = () => {
      bEn.arg.debut === bEn.dimanche && bEn.premier.startsWith(bEn.nom), JSON.stringify(bEn));
   await pageEn.close();
 
-  /* ── c) CHAQUE ENTRÉE DANS SON JOUR, ET UN LIEN SEULEMENT S'IL EST SÛR ────── */
+  /* ── c) CHAQUE ENTRÉE DANS SON JOUR, ET UN LIEN SEULEMENT S'IL EST SÛR ──────
+     4.25.0.1 : une diffusion n'est qu'au jour où elle a commencé — la grande
+     soirée de lundi finit mardi, et ne se montre que lundi ; le direct sans
+     archive n'a que sa fin, et l'écrit comme une fin. */
   const c = await page.evaluate(() => {
     const jours = [...document.querySelectorAll('#agenda .ag-jour')];
-    const ou = (id) => jours.findIndex((j) => [...j.querySelectorAll('.ag-ent')].some((e) => e.dataset.test === id));
     // On marque chaque entrée par son titre, pour la retrouver.
     for (const e of document.querySelectorAll('#agenda .ag-ent')) e.dataset.test = e.querySelector('.ag-titre').textContent;
+    const ou = (id) => jours.map((j, i) => ([...j.querySelectorAll('.ag-ent')].some((e) => e.dataset.test === id) ? i : -1))
+      .filter((i) => i >= 0);
     const ent = (t) => [...document.querySelectorAll('#agenda .ag-ent')].find((e) => e.dataset.test === t);
     const lien = (t) => { const e = ent(t); return e ? { tag: e.tagName, href: e.getAttribute('href'), target: e.target, rel: e.rel } : null; };
     return {
-      jours: { soiree: ou('Nyxaria — la grande soirée'), veille: ou('De la veille'), sans: ou('Sans archive'),
-               prevu: ou('Programmé'), douteux: ou('Identifiant douteux') },
+      jours: { soiree: ou('Nyxaria — la grande soirée'), sans: ou('Sans archive'), prevu: ou('Programmé'),
+               douteux: ou('Identifiant douteux'), absente: ou('Vignette absente') },
       vides: jours.filter((j) => j.querySelector('.ag-vide')).length,
       soiree: lien('Nyxaria — la grande soirée'), direct: lien('Aeltris en direct'), prevu: lien('Programmé'),
       sans: lien('Sans archive'), douteux: lien('Identifiant douteux'),
-      heureVeille: ent('De la veille')?.querySelector('.ag-heure').textContent || '',
-      abrege: new Intl.DateTimeFormat('fr', { weekday: 'short', day: 'numeric', month: 'short' })
-        .format(new Date(window.__envois.filter((m) => m.section === 'semaine').pop().arg.debut - 2 * 3_600_000)),
+      heureSoiree: ent('Nyxaria — la grande soirée')?.querySelector('.ag-heure').textContent || '',
+      heureSans: ent('Sans archive')?.querySelector('.ag-heure').textContent || '',
     };
   });
-  ok('c) chaque entrée dans son jour ; celle partie la veille, au premier, avec sa date',
-     c.jours.soiree === 0 && c.jours.veille === 0 && c.jours.douteux === 2 && c.jours.sans === 3 && c.jours.prevu === 5
-     && c.heureVeille.startsWith(c.abrege),
-     JSON.stringify({ jours: c.jours, heureVeille: c.heureVeille, abrege: c.abrege }));
-  ok('c) …les jours sans rien disent « — »', c.vides >= 2, String(c.vides));
+  ok('c) chaque entrée dans son jour, et dans le seul jour où elle a commencé — la soirée qui passe minuit reste au lundi',
+     JSON.stringify(c.jours) === JSON.stringify({ soiree: [0], sans: [3], prevu: [5], douteux: [2], absente: [1] })
+     && nz(c.heureSoiree) === '20:00 – 03:21',
+     JSON.stringify({ jours: c.jours, heureSoiree: c.heureSoiree }));
+  ok('c) …le direct sans archive s\'écrit à sa fin, « – 00:21 », et non comme un début',
+     nz(c.heureSans) === '– 00:21', JSON.stringify(c.heureSans));
+  ok('c) …les jours sans rien disent « — »', c.vides >= 1, String(c.vides));
   ok('c) …une rediffusion mène à sa vidéo, un direct à la chaîne, un créneau au planning — dans un onglet, sans référent',
      c.soiree && c.soiree.tag === 'A' && c.soiree.href === 'https://www.twitch.tv/videos/9001'
      && c.direct && c.direct.href === 'https://www.twitch.tv/aeltris'
@@ -34063,15 +34278,15 @@ const S_LECTEUR_SONDE = () => {
      c.sans && c.sans.tag === 'DIV' && c.douteux && c.douteux.tag === 'DIV', JSON.stringify({ sans: c.sans, douteux: c.douteux }));
 
   /* ── d) CE QUI VIENT DE TWITCH RESTE DU TEXTE ─────────────────────────────── */
-  await attendre(page, () => document.querySelectorAll('#agenda img.ag-img').length === 1, 4000);
+  await attendre(page, () => document.querySelectorAll('#agenda img.ag-img').length === 2, 4000);
   const d = await page.evaluate(() => {
     const vig = [...document.querySelectorAll('#agenda img.ag-img')];
     const titre = [...document.querySelectorAll('#agenda .ag-titre')].find((t) => t.textContent.includes('onerror'));
     return { xss: window.__xss === undefined ? null : window.__xss, gras: document.querySelectorAll('#agenda b').length,
              titre: titre ? titre.textContent : null,
              images: vig.map((i) => ({ src: i.getAttribute('src'), lazy: i.loading, ref: i.referrerPolicy })),
-             veille: (() => {
-               const x = [...document.querySelectorAll('#agenda .ag-ent')].find((y) => y.dataset.test === 'De la veille');
+             absente: (() => {
+               const x = [...document.querySelectorAll('#agenda .ag-ent')].find((y) => y.dataset.test === 'Vignette absente');
                return x ? { img: !!x.querySelector('img'), duree: x.querySelector('.ag-duree')?.textContent || null } : null;
              })() };
   });
@@ -34079,11 +34294,11 @@ const S_LECTEUR_SONDE = () => {
      d.xss === null && d.gras === 0 && d.titre === '<img src=x onerror="window.__xss=1">Korbek <b>gras</b>',
      JSON.stringify(d));
   ok('d) …les vignettes en https seulement, chargées au défilement, sans référent',
-     d.images.length === 1 && /^https:\/\/static-cdn\.jtvnw\.net\/cf_vods\/9001\//.test(d.images[0].src)
-     && d.images[0].lazy === 'lazy' && d.images[0].ref === 'no-referrer',
+     d.images.length === 2 && d.images.every((i) => /^https:\/\/static-cdn\.jtvnw\.net\/cf_vods\/900[14]\//.test(i.src)
+                                                && i.lazy === 'lazy' && i.ref === 'no-referrer'),
      JSON.stringify(d.images));
   ok('d) …et celle qui ne vient pas laisse son cadre vide, la durée dedans',
-     !!d.veille && d.veille.img === false && d.veille.duree === '5:00:00', JSON.stringify(d.veille));
+     !!d.absente && d.absente.img === false && d.absente.duree === '5:00:00', JSON.stringify(d.absente));
 
   /* ── e) LES CHIFFRES, DANS LA LANGUE ──────────────────────────────────────── */
   const e = await page.evaluate(() => {
@@ -34101,9 +34316,33 @@ const S_LECTEUR_SONDE = () => {
      && e.duree === '7:21:53',
      JSON.stringify(e));
   ok('e) …les cartouches résument la semaine, le direct en couleur',
-     JSON.stringify(e.tuiles) === JSON.stringify([['1', fr.sumLive.message, true], ['5', fr.sumBroadcasts.message, false],
+     JSON.stringify(e.tuiles) === JSON.stringify([['1', fr.sumLive.message, true], ['6', fr.sumBroadcasts.message, false],
                                                   ['1', fr.sumPlanned.message, false], ['4', fr.sumChannels.message, false]]),
      JSON.stringify(e.tuiles));
+
+  /* ── e bis) LE CADENAS DES ABONNÉS (4.25.0.1) ────────────────────────────────
+     Une rediffusion réservée aux abonnés le dit avant le clic : cadenas fermé
+     quand on ne vous sait pas abonné, ouvert quand vous l'êtes ; les autres ne
+     portent rien. */
+  const cad = await page.evaluate(() => {
+    const pastille = (t) => {
+      const x = [...document.querySelectorAll('#agenda .ag-ent')].find((y) => y.dataset.test === t);
+      const p = x && x.querySelector('.ag-abo');
+      if (!p) return null;
+      return { texte: p.textContent, titre: p.title, ouvert: p.classList.contains('ag-abo--ouvert'),
+               dessin: p.querySelector('svg path')?.getAttribute('d') || null,
+               avantVues: !!p.nextElementSibling && p.nextElementSibling.classList.contains('ag-meta') };
+    };
+    return { absente: pastille('Vignette absente'), abonne: pastille('Réservée, et vous l\'êtes'),
+             soiree: pastille('Nyxaria — la grande soirée'), prevu: pastille('Programmé') };
+  });
+  ok('e) …une rediffusion réservée aux abonnés porte « Abonnés » et son cadenas : fermé, ou ouvert quand vous l\'êtes',
+     !!cad.absente && cad.absente.texte === fr.valSubOnly.message && cad.absente.titre === fr.valSubOnlyLocked.message
+     && !cad.absente.ouvert && cad.absente.avantVues
+     && !!cad.abonne && cad.abonne.texte === fr.valSubOnly.message && cad.abonne.titre === fr.valSubOnlyOpen.message
+     && cad.abonne.ouvert && cad.abonne.dessin !== cad.absente.dessin
+     && cad.soiree === null && cad.prevu === null,
+     JSON.stringify(cad));
 
   /* ── f) LA GÉOMÉTRIE ─────────────────────────────────────────────────────── */
   const f = await page.evaluate(() => {
@@ -34123,71 +34362,135 @@ const S_LECTEUR_SONDE = () => {
 
   /* ── g) LA RELECTURE, TANT QUE LA PAGE TRAVAILLE ──────────────────────────── */
   const n0 = (await semaines(page)).length;
-  await page.evaluate(() => { window.__mode.enCours = 3; window.__mode.progression = { lues: 1, aLire: 4, aCouvrir: 0 }; });
+  await page.evaluate(() => {
+    window.__mode.enCours = 3;
+    window.__mode.progression = [{ lues: 1, aLire: 4, aCouvrir: 0 }, { lues: 2, aLire: 4, aCouvrir: 0 }];
+  });
   await page.click('.rail-item[data-id="semaine"]');
   await attendre(page, () => !!document.querySelector('#agenda .ag-prog-rempli'), 3000);
   const g0 = await page.evaluate(() => {
     const ag = document.getElementById('agenda');
+    // La main défile : la vue ne la reprend plus.
+    ag.dispatchEvent(new WheelEvent('wheel', { deltaY: 120, bubbles: true }));
     ag.scrollTop = 120;
-    return { barre: document.querySelector('#agenda .ag-prog-rempli').style.width,
-             note: document.querySelector('#agenda .ag-note--charge')?.textContent || '', haut: ag.scrollTop };
+    const note = document.querySelector('#agenda .ag-note--charge');
+    note.__marque = 1;
+    return { barre: document.querySelector('#agenda .ag-prog-rempli').style.width, note: note.textContent,
+             dansTete: !!note.closest('.ag-tete'), haut: ag.scrollTop };
   });
   await wait(page, 1300);
-  const g1 = await page.evaluate(() => document.getElementById('agenda').scrollTop);
+  const g1 = await page.evaluate(() => ({ haut: document.getElementById('agenda').scrollTop,
+    meme: document.querySelector('#agenda .ag-note--charge')?.__marque === 1,
+    barre: document.querySelector('#agenda .ag-prog-rempli')?.style.width }));
   await wait(page, 3500);
   const nFin = (await semaines(page)).length;
   await wait(page, 1500);
   const nApres = (await semaines(page)).length;
-  ok('g) pendant la lecture : la barre d\'avancement et son compte',
-     g0.barre === '25%' && g0.note.startsWith(fr.stateAgendaLoading.message.split('…')[0]), JSON.stringify(g0));
+  ok('g) pendant la lecture : la barre d\'avancement et son compte, dans la tête de la vue',
+     g0.barre === '25%' && g0.dansTete && g0.note.startsWith(fr.stateAgendaLoading.message.split('…')[0]), JSON.stringify(g0));
+  ok('g) …la même note d\'une relecture à l\'autre : sa barre avance au lieu de repartir de zéro',
+     g1.meme === true && g1.barre === '50%', JSON.stringify(g1));
   ok('g) …la vue se relit chaque seconde, garde sa position, et s\'arrête quand la page a fini',
-     g0.haut === 120 && Math.abs(g1 - 120) <= 1 && nFin - n0 === 4 && nApres === nFin,
-     JSON.stringify({ g0: g0.haut, g1, relectures: nFin - n0, apres: nApres - nFin }));
+     g0.haut === 120 && Math.abs(g1.haut - 120) <= 1 && nFin - n0 === 4 && nApres === nFin,
+     JSON.stringify({ g0: g0.haut, g1: g1.haut, relectures: nFin - n0, apres: nApres - nFin }));
 
-  /* ── h) UN MENU OUVERT NE SE REPEINT PAS SOUS LA SOURIS ───────────────────── */
-  await page.evaluate(() => { window.__mode.enCours = 2; });
+  /* ── g bis) CE QUI ARRIVE AU-DESSUS NE POUSSE PAS CE QU'ON REGARDE ─────────
+     Trois relectures apportent chacune une rediffusion au lundi matin, bien
+     au-dessus de la ligne qu'on regarde : elle doit rester où elle est. */
+  await page.evaluate(() => { window.__mode.enCours = 3; window.__mode.arrivees = 3; window.__mode.progression = null; });
   await page.click('.rail-item[data-id="semaine"]');
-  await attendre(page, () => !!document.querySelector('#agenda .ag-chaine'), 3000);
-  await page.evaluate(() => { const s = document.querySelector('#agenda .ag-chaine'); s.__marque = 1; s.focus(); });
-  await wait(page, 1300);
-  const h0 = await page.evaluate(() => document.querySelector('#agenda .ag-chaine').__marque === 1);
+  await attendre(page, () => document.querySelectorAll('#agenda .ag-ent').length >= 8, 3000);
+  const vise = await page.evaluate(() => {
+    const ag = document.getElementById('agenda');
+    ag.dispatchEvent(new WheelEvent('wheel', { deltaY: 120, bubbles: true }));
+    const cible = [...ag.querySelectorAll('.ag-ent')].find((x) => x.querySelector('.ag-titre').textContent === 'Identifiant douteux');
+    ag.scrollTop += cible.getBoundingClientRect().top - ag.querySelector('.ag-tete').getBoundingClientRect().bottom - 30;
+    return { ecart: window.__ecart(cible), arrivees: ag.querySelectorAll('.ag-ent').length };
+  });
+  await attendre(page, () => [...document.querySelectorAll('#agenda .ag-titre')].filter((t) => /^Arrivée/.test(t.textContent)).length >= 3, 5000);
+  await wait(page, 300);
+  const apres = await page.evaluate(() => {
+    const cible = [...document.querySelectorAll('#agenda .ag-ent')].find((x) => x.querySelector('.ag-titre').textContent === 'Identifiant douteux');
+    return { ecart: window.__ecart(cible), arrivees: [...document.querySelectorAll('#agenda .ag-titre')].filter((t) => /^Arrivée/.test(t.textContent)).length };
+  });
+  ok('g) …trois rediffusions arrivées au-dessus, et la ligne qu\'on regarde n\'a pas bougé',
+     Math.abs(vise.ecart - 30) <= 1 && apres.arrivees >= 3 && Math.abs(apres.ecart - vise.ecart) <= 1,
+     JSON.stringify({ avant: vise, apres }));
+  await page.evaluate(() => { window.__mode.arrivees = 0; window.__mode.ajouts = 0; window.__mode.version++; });
+
+  /* ── h) LE MENU S'APPLIQUE AUSSITÔT, ET NE BOUGE PAS SOUS LA MAIN ───────────
+     4.25.0 attendait qu'on quitte le menu pour repeindre — or il garde le
+     focus après un choix : la chaîne choisie ne s'affichait qu'au clic
+     suivant. Le menu vit maintenant dans la tête, que rien ne détruit. */
+  await page.click('.rail-item[data-id="semaine"]');
+  await attendre(page, () => !!document.querySelector('#agenda .ag-chaine') && document.querySelectorAll('#agenda .ag-ent').length >= 7, 3000);
+  const i0 = await page.evaluate(() => [...document.querySelectorAll('#agenda .ag-chaine option')].map((o) => [o.value, o.textContent]));
+  await page.evaluate(() => {
+    const s = document.querySelector('#agenda .ag-chaine');
+    s.__marque = 1;
+    s.focus();
+    s.value = 'korbek';
+    s.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  await attendre(page, () => { const n = [...document.querySelectorAll('#agenda .ag-ent .ag-nom')].map((x) => x.textContent);
+                               return n.length > 0 && n.every((x) => x === 'Korbek'); }, 3000);
+  const h0 = await page.evaluate(() => {
+    const s = document.querySelector('#agenda .ag-chaine');
+    return { focus: document.activeElement === s, meme: s.__marque === 1, valeur: s.value,
+             arg: window.__envois.filter((m) => m.section === 'semaine').pop().arg,
+             entrees: [...document.querySelectorAll('#agenda .ag-ent .ag-nom')].map((x) => x.textContent) };
+  });
+  ok('h) une chaîne choisie s\'affiche aussitôt, le menu encore en main — le même menu, qui part avec la demande',
+     h0.focus && h0.meme && h0.valeur === 'korbek' && h0.arg.chaine === 'korbek' && h0.entrees.join() === 'Korbek,Korbek',
+     JSON.stringify(h0));
+  // Une chaîne de plus arrive pendant qu'on tient le menu : elle attend qu'on le quitte.
+  await page.evaluate(() => {
+    window.__mode.enPlus = true;
+    window.__mode.version++;
+    const s = document.querySelector('#agenda .ag-chaine');
+    s.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  await wait(page, 400);
+  const h1 = await page.evaluate(() => [...document.querySelectorAll('#agenda .ag-chaine option')].map((o) => o.value));
   await page.evaluate(() => document.querySelector('#agenda .ag-chaine').blur());
-  await wait(page, 200);
-  const h1 = await page.evaluate(() => document.querySelector('#agenda .ag-chaine').__marque === undefined);
-  ok('h) une relecture attend que le menu des chaînes soit quitté, puis repeint ce qu\'elle a reçu',
-     h0 === true && h1 === true, JSON.stringify({ garde: h0, repeint: h1 }));
-  await wait(page, 1500);
+  await wait(page, 100);
+  const h2 = await page.evaluate(() => ({ options: [...document.querySelectorAll('#agenda .ag-chaine option')].map((o) => o.value),
+                                          valeur: document.querySelector('#agenda .ag-chaine').value }));
+  await page.evaluate(() => { window.__mode.enPlus = false; window.__mode.version++; });
+  ok('h) …une chaîne arrivée pendant qu\'on tient le menu ne s\'y glisse pas sous la main : elle s\'y range quand on le quitte',
+     !h1.includes('zenith') && h1.length === 5 && h2.options.includes('zenith') && h2.options.length === 6
+     && h2.options[5] === 'zenith' && h2.valeur === 'korbek',
+     JSON.stringify({ h1, h2 }));
 
   /* ── i) LE MENU DES CHAÎNES ───────────────────────────────────────────────── */
-  const i0 = await page.evaluate(() => [...document.querySelectorAll('#agenda .ag-chaine option')].map((o) => [o.value, o.textContent]));
-  await page.selectOption('#agenda .ag-chaine', 'korbek');
-  await attendre(page, () => document.querySelectorAll('#agenda .ag-ent').length === 2, 3000);
-  const i1 = await page.evaluate(() => ({
-    arg: window.__envois.filter((m) => m.section === 'semaine').pop().arg,
-    valeur: document.querySelector('#agenda .ag-chaine').value,
-    entrees: [...document.querySelectorAll('#agenda .ag-ent .ag-nom')].map((x) => x.textContent),
-  }));
   ok('i) le menu : toutes les chaînes, puis chacune par son nom, dans l\'ordre de la langue',
      JSON.stringify(i0) === JSON.stringify([['', fr.valAllChannels.message], ['aeltris', 'Aeltris'], ['korbek', 'Korbek'],
                                             ['nyxaria', 'Nyxaria'], ['velmoria', 'Velmoria']]),
      JSON.stringify(i0));
-  ok('i) …une chaîne choisie part avec la demande, et la vue n\'en garde qu\'elle',
-     i1.arg.chaine === 'korbek' && i1.valeur === 'korbek' && i1.entrees.join() === 'Korbek,Korbek', JSON.stringify(i1));
   await page.evaluate(() => { window.__mode.vide = true; });
-  await page.click('.rail-item[data-id="semaine"]');
+  await page.selectOption('#agenda .ag-chaine', 'nyxaria');
   await attendre(page, () => !!document.querySelector('#agenda .ag-note'), 3000);
   const vide1 = await page.evaluate(() => [...document.querySelectorAll('#agenda .ag-note')].map((n) => n.textContent));
   await page.selectOption('#agenda .ag-chaine', '');
   await wait(page, 400);
   const vide2 = await page.evaluate(() => ({ notes: [...document.querySelectorAll('#agenda .ag-note')].map((n) => n.textContent),
                                              arg: window.__envois.filter((m) => m.section === 'semaine').pop().arg }));
-  await page.evaluate(() => { window.__mode.vide = false; });
+  await page.evaluate(() => { window.__mode.vide = false; window.__mode.retire = 'velmoria'; window.__mode.version++; });
+  await page.selectOption('#agenda .ag-chaine', 'velmoria');
+  await wait(page, 400);
+  const absente = await page.evaluate(() => ({ valeur: document.querySelector('#agenda .ag-chaine').value,
+    option: [...document.querySelectorAll('#agenda .ag-chaine option')].find((o) => o.value === 'velmoria')?.textContent || null }));
+  await page.evaluate(() => { window.__mode.retire = null; window.__mode.version++; });
+  ok('i) …une chaîne choisie que la liste ne porte pas encore y garde sa ligne : le menu dit ce que la vue montre',
+     absente.valeur === 'velmoria' && absente.option === 'velmoria', JSON.stringify(absente));
   ok('i) …une semaine vide le dit, pour la chaîne choisie comme pour toutes',
      vide1.includes(fr.stateAgendaEmptyChannel.message) && vide2.notes.includes(fr.stateAgendaEmpty.message)
      && vide2.arg.chaine === null,
      JSON.stringify({ vide1, vide2 }));
 
   /* ── j) LA NAVIGATION, BORNÉE ─────────────────────────────────────────────── */
+  await page.click('.rail-item[data-id="semaine"]');
+  await attendre(page, () => document.querySelectorAll('#agenda .ag-jour').length === 7, 3000);
   const boutons = () => page.evaluate(() => [...document.querySelectorAll('#agenda .ag-barre .bouton')]
     .map((x) => ({ txt: x.textContent, inactif: x.disabled })));
   const j0 = await boutons();
@@ -34203,16 +34506,16 @@ const S_LECTEUR_SONDE = () => {
     const huit = new Date(window.__lundiDe(Date.now(), 1));
     huit.setDate(huit.getDate() - 56);
     return { precedente: l.getTime(), huit: huit.getTime(),
-             auj: document.querySelectorAll('#agenda .ag-jour--auj').length };
+             auj: document.querySelectorAll('#agenda .ag-jour--auj').length, haut: document.getElementById('agenda').scrollTop };
   });
-  ok('j) aujourd\'hui, le retour est inactif ; « ‹ » recule d\'une semaine, à minuit le lundi',
-     j0[0].txt === fr.btnToday.message && j0[0].inactif && !j0[1].inactif
+  ok('j) « Aujourd\'hui » reste actif dans la semaine en cours ; « ‹ » recule d\'une semaine, à minuit le lundi',
+     j0[0].txt === fr.btnToday.message && !j0[0].inactif && !j0[1].inactif
      && argsPasse.some((a) => a.debut === jAttendu.precedente),
      JSON.stringify({ j0, precedente: jAttendu.precedente }));
-  ok('j) …huit semaines en arrière, pas une de plus, et plus de jour marqué',
+  ok('j) …huit semaines en arrière, pas une de plus, plus de jour marqué, et la semaine se lit d\'en haut',
      jPasse[1].inactif && !jPasse[0].inactif && Math.min(...argsPasse.map((a) => a.debut)) === jAttendu.huit
-     && jAttendu.auj === 0,
-     JSON.stringify({ jPasse, min: Math.min(...argsPasse.map((a) => a.debut)), attendu: jAttendu.huit }));
+     && jAttendu.auj === 0 && jAttendu.haut === 0,
+     JSON.stringify({ jPasse, min: Math.min(...argsPasse.map((a) => a.debut)), attendu: jAttendu }));
   await page.evaluate(() => document.querySelectorAll('#agenda .ag-barre .bouton')[0].click());
   await wait(page, 200);
   for (let k = 0; k < 3; k++) {
@@ -34228,22 +34531,72 @@ const S_LECTEUR_SONDE = () => {
   await page.evaluate(() => document.querySelectorAll('#agenda .ag-barre .bouton')[0].click());
   await wait(page, 200);
 
-  /* ── k) CE QUE LA VUE NE MONTRE PAS, DIT AU-DESSUS D'ELLE ─────────────────── */
+  /* ── j bis) LA VUE S'OUVRE SUR AUJOURD'HUI (4.25.0.1) ────────────────────────
+     Assez de lignes pour que n'importe quel jour puisse monter en haut : la
+     semaine s'ouvre posée sur aujourd'hui, juste sous la tête, les jours
+     passés au-dessus. Défilée à la main, elle ne se repose plus d'elle-même ;
+     « Aujourd'hui » l'y ramène. */
+  await page.evaluate(() => { window.__mode.dense = true; window.__mode.version++; });
+  await page.click('.rail-item[data-id="horsLigne"]');
+  await attendre(page, () => !!document.querySelector('#agenda .hl-ligne'), 3000);
+  await page.click('.rail-item[data-id="semaine"]');
+  await attendre(page, () => document.querySelectorAll('#agenda .ag-ent').length > 50, 3000);
+  await wait(page, 100);
+  const pose = await page.evaluate(() => {
+    const ag = document.getElementById('agenda');
+    const auj = ag.querySelector('.ag-jour--auj');
+    const avant = [...ag.querySelectorAll('.ag-jour')].indexOf(auj);
+    return { ecart: window.__ecart(auj), avant, haut: ag.scrollTop };
+  });
+  ok('j) la semaine s\'ouvre posée sur aujourd\'hui, juste sous sa tête, les jours passés au-dessus',
+     Math.abs(pose.ecart) <= 1 && (pose.avant === 0 ? pose.haut === 0 : pose.haut > 0),
+     JSON.stringify(pose));
+  // Un défilement que la vue ne s'est pas donné suffit — sans molette, comme une recherche dans la page.
+  await page.evaluate(() => { document.getElementById('agenda').scrollTop = 0; window.__mode.version++; });
+  await wait(page, 100);
+  // « Actualiser » relit la vue sans la reposer : elle reste là où on l'a mise.
+  await page.evaluate((t) => [...document.querySelectorAll('#vue-actions .bouton')].find((x) => x.textContent === t)?.click(),
+                      fr.btnRefresh.message);
+  await wait(page, 400);
+  const enHaut = await page.evaluate(() => document.getElementById('agenda').scrollTop);
+  await page.evaluate(() => document.querySelectorAll('#agenda .ag-barre .bouton')[0].click());
+  await wait(page, 300);
+  const revenu = await page.evaluate(() => window.__ecart(document.querySelector('#agenda .ag-jour--auj')));
+  ok('j) …défilée à la main, elle reste où on l\'a mise ; « Aujourd\'hui » l\'y ramène',
+     enHaut === 0 && Math.abs(revenu) <= 1, JSON.stringify({ enHaut, revenu }));
+  /* LA MAIN L'EMPORTE SUR UNE RELECTURE QUI ARRIVE AU MÊME MOMENT. Le
+     défilement ne s'annonce qu'à l'image suivante ; une relecture peinte
+     entre-temps aurait reposé la vue sur aujourd'hui, et pris ce retour pour
+     le sien. La molette lâche la vue avant qu'elle défile. */
+  const course = await page.evaluate(async () => {
+    const ag = document.getElementById('agenda');
+    window.__mode.version++;
+    ag.dispatchEvent(new WheelEvent('wheel', { deltaY: -120, bubbles: true }));
+    ag.scrollTop = 0;
+    relireAgenda();
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    return ag.scrollTop;
+  });
+  ok('j) …la molette l\'emporte sur une relecture peinte avant que le défilement s\'annonce',
+     course === 0, String(course));
+
+  /* ── k) CE QUE LA VUE NE MONTRE PAS, DIT DANS SA TÊTE ──────────────────────── */
   await page.evaluate(() => {
+    window.__mode.dense = false;
     window.__mode.notes = { limite: { retenues: 400, total: 512 }, planning: 'indisponible', refus: 'diffusions',
                             echouees: 3, reseau: true };
   });
   await page.click('.rail-item[data-id="semaine"]');
   await wait(page, 400);
-  const kS = await page.evaluate(() => [...document.querySelectorAll('#agenda .ag-note')].map((n) => n.textContent));
+  const kS = await page.evaluate(() => ({ notes: [...document.querySelectorAll('#agenda .ag-note')].map((n) => n.textContent),
+                                          tete: [...document.querySelectorAll('#agenda .ag-note')].every((n) => !!n.closest('.ag-tete')) }));
   await page.click('.rail-item[data-id="horsLigne"]');
   await attendre(page, () => !!document.querySelector('#agenda .hl-ligne'), 3000);
   const kH = await page.evaluate(() => [...document.querySelectorAll('#agenda .ag-note')].map((n) => n.textContent));
-  const Tfr = (k, sub = []) => fr[k].message.replace(/\$(\d)/g, (t, i) => sub[i - 1] ?? t);
-  ok('k) la borne, le planning absent, la liste refusée, les chaînes non servies, le réseau : chaque note à sa place',
-     kS.includes(Tfr('stateAgendaCapped', ['400', '512'])) && kS.includes(Tfr('stateAgendaNoSchedule'))
-     && kS.includes(Tfr('stateAgendaNoReplays')) && kS.includes(Tfr('stateAgendaPartial', ['3']))
-     && kS.includes(Tfr('stateAgendaNetwork')),
+  ok('k) la borne, le planning absent, la liste refusée, les chaînes non servies, le réseau : chaque note dans la tête',
+     kS.notes.includes(Tfr('stateAgendaCapped', ['400', '512'])) && kS.notes.includes(Tfr('stateAgendaNoSchedule'))
+     && kS.notes.includes(Tfr('stateAgendaNoReplays')) && kS.notes.includes(Tfr('stateAgendaPartial', ['3']))
+     && kS.notes.includes(Tfr('stateAgendaNetwork')) && kS.tete,
      JSON.stringify(kS));
   ok('k) …et « Hors ligne », qui ne lit pas la liste des rediffusions, ne parle pas de son refus',
      kH.length === 4 && !kH.includes(Tfr('stateAgendaNoReplays')), JSON.stringify(kH));
@@ -34276,64 +34629,144 @@ const S_LECTEUR_SONDE = () => {
 
   /* ── l) HORS LIGNE ───────────────────────────────────────────────────────── */
   await page.click('.rail-item[data-id="horsLigne"]');
-  await attendre(page, () => document.querySelectorAll('#agenda .hl-ligne').length === 3, 3000);
+  await attendre(page, () => document.querySelectorAll('#agenda .hl-ligne').length === 4, 3000);
   const l = await page.evaluate(() => [...document.querySelectorAll('#agenda .hl-ligne')].map((x) => ({
     nom: x.querySelector('.hl-nom').textContent, quand: x.querySelector('.hl-quand').textContent,
+    quandTitre: x.querySelector('.hl-quand').title,
     titre: x.querySelector('.hl-titre')?.textContent || null, prochain: x.querySelector('.hl-prochain')?.textContent || null,
+    prochainTitre: x.querySelector('.hl-prochain')?.title || null,
     revoir: x.querySelector('a.bouton') ? { href: x.querySelector('a.bouton').getAttribute('href'), target: x.querySelector('a.bouton').target,
                                            rel: x.querySelector('a.bouton').rel } : null,
+    abo: x.querySelector('.ag-abo') ? { ouvert: x.querySelector('.ag-abo').classList.contains('ag-abo--ouvert'),
+                                        avantRevoir: x.querySelector('.ag-abo').nextElementSibling === x.querySelector('a.bouton') } : null,
+    suite: x.classList.contains('hl-ligne--suite'),
     avatar: x.querySelector('img.hl-avatar') ? x.querySelector('img.hl-avatar').getAttribute('src') : null,
     boutons: [...x.querySelectorAll('button')].map((y) => y.textContent),
   })));
   const rel = await page.evaluate(() => ({ trois: new Intl.RelativeTimeFormat('fr', { numeric: 'auto' }).format(-3, 'hour'),
-                                           semaine: new Intl.RelativeTimeFormat('fr', { numeric: 'auto' }).format(-1, 'week') }));
-  ok('l) une ligne par chaîne, dans l\'ordre reçu : quand elle a diffusé, en temps relatif',
-     l.map((x) => x.nom).join() === 'Velmoria,Korbek,Aeltris'
-     && l[0].quand === Tfr('valLastLive', [rel.trois]) && l[1].quand === Tfr('valLastLive', [rel.semaine])
-     && l[2].quand === fr.valLastLiveUnknown.message,
-     JSON.stringify({ l: l.map((x) => [x.nom, x.quand]), rel }));
-  ok('l) …« Revoir » seulement quand la dernière rediffusion EST le dernier direct',
-     l[0].revoir === null && l[2].revoir === null && l[1].revoir
-     && l[1].revoir.href === 'https://www.twitch.tv/videos/9100' && l[1].revoir.target === '_blank'
-     && l[1].revoir.rel === 'noopener noreferrer' && l[1].titre === 'Korbek joue · Minecraft' && l[0].titre === 'Velmoria, la suite',
-     JSON.stringify(l.map((x) => ({ nom: x.nom, revoir: x.revoir, titre: x.titre }))));
-  ok('l) …le prochain direct programmé, et l\'avatar en https seulement',
-     !!l[1].prochain && l[1].prochain.startsWith(fr.valNext.message.split('$1')[0]) && l[1].prochain.includes('21:00')
-     && l[1].prochain.endsWith('— Retour') && l[0].prochain === null
-     && /^https:/.test(l[0].avatar || '') && l[2].avatar === null && l.every((x) => x.boutons.includes(fr.btnSeeWeek.message)),
+                                           semaines: new Intl.RelativeTimeFormat('fr', { numeric: 'auto' }).format(-2, 'week'),
+                                           deux: new Intl.RelativeTimeFormat('fr', { numeric: 'auto' }).format(-2, 'day') }));
+  ok('l) une ligne par chaîne, dans l\'ordre reçu — les programmées d\'abord —, un filet avant les autres',
+     l.map((x) => x.nom).join() === 'Korbek,Nyxaria,Velmoria,Aeltris'
+     && l.map((x) => x.suite).join() === 'false,false,true,false',
+     JSON.stringify(l.map((x) => [x.nom, x.suite])));
+  ok('l) …quand elle a diffusé, en temps relatif ; le détail en infobulle, la fin seule quand le début manque',
+     l[0].quand === Tfr('valLastLive', [rel.semaines]) && l[1].quand === Tfr('valLastLive', [rel.deux])
+     && l[2].quand === Tfr('valLastLive', [rel.trois]) && l[3].quand === fr.valLastLiveUnknown.message
+     && / – \d\d:\d\d$/.test(nz(l[0].quandTitre)) && nz(l[2].quandTitre).startsWith('– '),
+     JSON.stringify({ l: l.map((x) => [x.nom, x.quand, x.quandTitre]), rel }));
+  ok('l) …« Revoir » seulement quand la dernière rediffusion EST le dernier direct, le cadenas devant s\'il le faut',
+     l[2].revoir === null && l[3].revoir === null && l[0].revoir && l[1].revoir
+     && l[0].revoir.href === 'https://www.twitch.tv/videos/9100' && l[0].revoir.target === '_blank'
+     && l[0].revoir.rel === 'noopener noreferrer' && l[1].revoir.href === 'https://www.twitch.tv/videos/9300'
+     && l[0].abo && !l[0].abo.ouvert && l[0].abo.avantRevoir && l[1].abo && l[1].abo.ouvert && l[2].abo === null
+     && l[0].titre === 'Korbek joue · Minecraft' && l[2].titre === 'Velmoria, la suite',
+     JSON.stringify(l.map((x) => ({ nom: x.nom, revoir: x.revoir, abo: x.abo, titre: x.titre }))));
+  ok('l) …le prochain direct programmé, en entier dans son infobulle, et l\'avatar en https seulement',
+     !!l[0].prochain && l[0].prochain.startsWith(fr.valNext.message.split('$1')[0]) && l[0].prochain.includes('21:00')
+     && l[0].prochain.endsWith('— Retour') && l[0].prochainTitre === l[0].prochain && l[2].prochain === null
+     && /^https:/.test(l[0].avatar || '') && l[3].avatar === null && l.every((x) => x.boutons.includes(fr.btnSeeWeek.message)),
      JSON.stringify(l.map((x) => ({ prochain: x.prochain, avatar: x.avatar, boutons: x.boutons }))));
-  await page.evaluate(() => [...document.querySelectorAll('#agenda .hl-ligne')][1].querySelector('button').click());
-  await attendre(page, () => document.querySelectorAll('#agenda .ag-jour').length === 7, 3000);
+  /* « SA SEMAINE » : la semaine du dernier direct, pour cette chaîne seule, posée
+     sur son jour — assez de lignes pour qu'il puisse monter en haut. */
+  await page.evaluate(() => { window.__mode.dense = true; window.__mode.version++; });
+  await page.evaluate(() => [...document.querySelectorAll('#agenda .hl-ligne')][0].querySelector('button').click());
+  await attendre(page, () => document.querySelectorAll('#agenda .ag-ent').length > 50, 3000);
+  await wait(page, 100);
   const l2 = await page.evaluate(() => {
     const arg = window.__envois.filter((m) => m.section === 'semaine').pop().arg;
-    return { arg, attendu: window.__lundiDe(Date.now() - 9 * 86_400_000, 1),
+    const quand = window.__jeudi();
+    const jour = [...document.querySelectorAll('#agenda .ag-jour')]
+      .find((s) => Number(s.dataset.jour) <= quand && quand < Number(s.dataset.fin));
+    return { arg, attendu: window.__lundiDe(quand, 1), haut: document.getElementById('agenda').scrollTop,
              courant: document.querySelector('.rail-item[aria-current="true"]')?.dataset.id,
-             menu: document.querySelector('#agenda .ag-chaine').value };
+             menu: document.querySelector('#agenda .ag-chaine').value, ecart: jour ? window.__ecart(jour) : null };
   });
-  ok('l) …« Sa semaine » ouvre la semaine de son dernier direct, pour elle seule',
-     l2.courant === 'semaine' && l2.arg.chaine === 'korbek' && l2.arg.debut === l2.attendu && l2.menu === 'korbek',
+  await page.evaluate(() => { window.__mode.dense = false; window.__mode.version++; });
+  ok('l) …« Sa semaine » ouvre la semaine de son dernier direct, pour elle seule, posée sur son jour',
+     l2.courant === 'semaine' && l2.arg.chaine === 'korbek' && l2.arg.debut === l2.attendu && l2.menu === 'korbek'
+     && l2.ecart !== null && Math.abs(l2.ecart) <= 1 && l2.haut > 0,
      JSON.stringify(l2));
 
-  /* ── m) « ACTUALISER », ET LE RAPPORT ─────────────────────────────────────── */
+  /* ── m) « ACTUALISER » RELIT EN PLACE, ET LE RAPPORT ───────────────────────
+     4.25.0.1 : la vue n'est plus rechargée — ni « Chargement… », ni retour en
+     haut : la page relance sa collecte, et la vue la relit telle qu'elle est. */
+  const menuAvant = await page.evaluate(() => { const s = document.querySelector('#agenda .ag-chaine'); s.__marque = 2; return s.value; });
   const nAct = await page.evaluate(() => window.__envois.length);
+  await page.evaluate(() => {
+    window.__vuMessage = false;
+    new MutationObserver(() => { if (!document.getElementById('message').hidden) window.__vuMessage = true; })
+      .observe(document.getElementById('message'), { attributes: true });
+  });
   await page.evaluate((t) => [...document.querySelectorAll('#vue-actions .bouton')].find((x) => x.textContent === t)?.click(),
                       fr.btnRefresh.message);
   await wait(page, 400);
-  const act = await page.evaluate((n) => window.__envois.slice(n).map((m) => m.action || m.section), nAct);
-  ok('m) « Actualiser » demande la relecture à la page, puis relit la vue',
-     act[0] === 'actualiserAgenda' && act.includes('semaine'), JSON.stringify(act));
+  const act = await page.evaluate((n) => ({ envois: window.__envois.slice(n).map((m) => m.action || m.section),
+                                            message: window.__vuMessage,
+                                            meme: document.querySelector('#agenda .ag-chaine').__marque === 2,
+                                            valeur: document.querySelector('#agenda .ag-chaine').value }), nAct);
+  ok('m) « Actualiser » demande la relecture à la page, puis relit la vue en place : même menu, même chaîne, pas de « Chargement… »',
+     act.envois[0] === 'actualiserAgenda' && act.envois.includes('semaine') && act.message === false && act.meme
+     && act.valeur === menuAvant && menuAvant === 'korbek',
+     JSON.stringify(act));
   await page.click('#btn-rapport');
   await attendre(page, () => /AGENDA/.test(document.getElementById('rapport-zone').value), 3000);
   const zone = await page.evaluate(() => document.getElementById('rapport-zone').value);
   ok('m) …et le rapport porte le bloc de l\'agenda, en comptes',
-     /── AGENDA/.test(zone) && /planning\s+segmentList\(first\)/.test(zone) && /passe1\.lots\s+1/.test(zone),
-     zone.split('\n').filter((x) => /AGENDA|planning|passe1/.test(x)).join(' | '));
+     /── AGENDA/.test(zone) && /planning\s+segmentList\(first\)/.test(zone) && /archives\s+riches/.test(zone)
+     && /passe1\.lots\s+1/.test(zone) && /passe1\.partiels\s+0/.test(zone),
+     zone.split('\n').filter((x) => /AGENDA|planning|archives|passe1/.test(x)).join(' | '));
+  await page.evaluate(() => document.getElementById('rapport-fermer').click());
+
+  /* ── n) CE QUI NE CHANGE PAS NE SE REFAIT PAS (4.25.0.1) ────────────────────
+     Une relecture sans nouveauté ne touche à rien ; une nouvelle version
+     refait les jours, mais une entrée inchangée garde son nœud — sa vignette
+     ne se recharge pas ; une entrée qui a changé est refaite, elle seule. */
+  /* Loin de la minute suivante, et avant le premier dessin : la minute entre
+     dans ce que la vue compare, et les deux lectures doivent tomber dans la
+     même. */
+  await attendre(page, () => Date.now() % 60_000 < 45_000, 20_000);
+  await page.click('.rail-item[data-id="semaine"]');
+  await attendre(page, () => document.querySelectorAll('#agenda .ag-jour').length === 7, 3000);
+  const rouvert = await page.evaluate(() => ({ arg: window.__envois.filter((m) => m.section === 'semaine').pop().arg,
+                                                menu: document.querySelector('#agenda .ag-chaine').value }));
+  ok('n) le rail rouvre la semaine en cours, toutes chaînes — « Sa semaine » ne la garde pas',
+     rouvert.arg.debut === b0.lundi && rouvert.arg.chaine === null && rouvert.menu === '', JSON.stringify(rouvert));
+  const marquer = () => page.evaluate(() => {
+    document.querySelector('#agenda .ag-jour').__marque = 3;
+    for (const x of document.querySelectorAll('#agenda .ag-ent')) x.__marque = x.querySelector('.ag-titre').textContent;
+  });
+  const lire = () => page.evaluate(() => ({
+    jour: document.querySelector('#agenda .ag-jour').__marque === 3,
+    gardees: [...document.querySelectorAll('#agenda .ag-ent')].filter((x) => x.__marque === x.querySelector('.ag-titre').textContent)
+      .map((x) => x.__marque),
+    total: document.querySelectorAll('#agenda .ag-ent').length,
+  }));
+  await marquer();
+  await page.evaluate(() => document.querySelectorAll('#agenda .ag-barre .bouton')[0].click());
+  await wait(page, 300);
+  const p0 = await lire();
+  await page.evaluate(() => { window.__mode.version++; document.querySelectorAll('#agenda .ag-barre .bouton')[0].click(); });
+  await wait(page, 300);
+  const p1 = await lire();
+  await marquer();
+  await page.evaluate(() => { window.__mode.version++; window.__mode.vuesEnPlus = 1; document.querySelectorAll('#agenda .ag-barre .bouton')[0].click(); });
+  await wait(page, 300);
+  const p2 = await lire();
+  await page.evaluate(() => { window.__mode.vuesEnPlus = 0; window.__mode.version++; });
+  ok('n) une relecture sans nouveauté ne refait rien',
+     p0.jour === true && p0.gardees.length === p0.total && p0.total >= 7, JSON.stringify(p0));
+  ok('n) …une nouvelle version refait les jours, et garde le nœud de chaque entrée inchangée',
+     p1.jour === false && p1.gardees.length === p1.total, JSON.stringify(p1));
+  ok('n) …une entrée qui a changé est refaite, elle seule',
+     p2.total === p1.total && p2.gardees.length === p2.total - 1 && !p2.gardees.includes('Nyxaria — la grande soirée'),
+     JSON.stringify(p2));
   await page.close();
 
-  /* ── n) LES PLURIELS SLAVES ──────────────────────────────────────────────── */
+  /* ── o) LES PLURIELS SLAVES ──────────────────────────────────────────────── */
   const pRu = await ouvrir('ru');
   await pRu.click('.rail-item[data-id="semaine"]');
-  await attendre(pRu, () => document.querySelectorAll('#agenda .ag-ent').length >= 6, 5000);
+  await attendre(pRu, () => document.querySelectorAll('#agenda .ag-ent').length >= 7, 5000);
   const ru = await pRu.evaluate(() => {
     const m = {};
     for (const x of document.querySelectorAll('#agenda .ag-ent')) {
@@ -34343,12 +34776,12 @@ const S_LECTEUR_SONDE = () => {
     return m;
   });
   await pRu.close();
-  ok('n) en russe, les quatre formes : 1 просмотр, 3 просмотра, 5 просмотров, et l\'abrégé au génitif pluriel',
+  ok('o) en russe, les quatre formes : 1 просмотр, 3 просмотра, 5 просмотров, et l\'abrégé au génitif pluriel',
      ru['<img src=x onerror="window.__xss=1">Korbek <b>gras</b>'] === '1 просмотр' && ru['Identifiant douteux'] === '3 просмотра'
-     && ru['De la veille'] === '5 просмотров' && nz(ru['Nyxaria — la grande soirée']) === '51,4 тыс. просмотров',
+     && ru['Vignette absente'] === '5 просмотров' && nz(ru['Nyxaria — la grande soirée']) === '51,4 тыс. просмотров',
      JSON.stringify(ru));
 
-  /* ── o) INCRUSTÉ DANS TWITCH, LE LIEN MÈNE LA PAGE ELLE-MÊME ───────────────── */
+  /* ── p) INCRUSTÉ DANS TWITCH, LE LIEN MÈNE LA PAGE ELLE-MÊME ───────────────── */
   const hote = join(ICI, 'agenda-cadre-tmp.html');
   writeFileSync(hote, `<!DOCTYPE html><meta charset="utf-8"><body>
 <iframe id="f" src="../panneau.html" style="width:1100px;height:760px;border:0"></iframe>
@@ -34376,7 +34809,7 @@ addEventListener('message', (e) => {
   }));
   await pc.close();
   rmSync(hote, { force: true });
-  ok('o) incrusté dans Twitch, chaque lien mène la page elle-même, sans ouvrir d\'onglet',
+  ok('p) incrusté dans Twitch, chaque lien mène la page elle-même, sans ouvrir d\'onglet',
      o.vue === 'incruste' && o.liens.length >= 3 && o.liens.every(([t, r]) => t === '_top' && r === ''),
      JSON.stringify(o));
 }

@@ -18258,13 +18258,21 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
    *  « Hors ligne » (cf. panneau.js).
    *
    *  LES CHAMPS SONT CEUX QUE TWITCH SERT À SES PROPRES PAGES, relevés
-   *  sur leurs réponses réelles — la page Programme et le lecteur hors
-   *  ligne : `lastBroadcast { startedAt }`, `broadcastSettings
-   *  { title }`, les archives de `videos` (titre, date, durée, vues,
-   *  vignette, catégorie) et le planning, `channel.schedule` avec
-   *  `nextSegment` et la liste `segmentList`. Les requêtes sont
-   *  ÉCRITES, comme toutes celles du fichier : aucune requête
-   *  persistée, dont l'empreinte change sans prévenir.
+   *  sur leurs réponses réelles — la page Programme, le lecteur hors
+   *  ligne et l'onglet Vidéos : `lastBroadcast { id startedAt }`,
+   *  `broadcastSettings { title }`, les archives de `videos` (titre,
+   *  date, durée, vues, vignette, catégorie, identifiant du direct,
+   *  restriction) et le planning, `channel.schedule` avec `nextSegment`
+   *  et la liste `segmentList`. Les requêtes sont ÉCRITES, comme toutes
+   *  celles du fichier : aucune requête persistée, dont l'empreinte
+   *  change sans prévenir.
+   *
+   *  `lastBroadcast.startedAt` EST UNE FIN, PAS UN DÉBUT (4.25.0.1). Sur
+   *  une réponse réelle, il tombe trois secondes après la fin de
+   *  l'archive du même direct — même identifiant —, et le premier essai
+   *  de l'agenda l'a montré à minuit : « 19:44 – 00:21 » le jeudi, puis
+   *  « Sans rediffusion, 00:21 » le vendredi. Le nom du champ ment ; on
+   *  s'en tient à ce qu'il vaut (`finDernier`).
    *
    *  CE QUI N'EST PAS PROUVÉ, ET CE QU'ON EN FAIT. Les arguments de
    *  `segmentList` ne se lisent pas dans une réponse. On l'essaie sous
@@ -18308,22 +18316,32 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     // Un créneau sans fin déclarée occupe une heure, comme Twitch le dessine.
     const CRENEAU_DEFAUT_MS = 60 * 60_000;
 
-    const VIDEO = 'id title createdAt lengthSeconds viewCount'
-      + ' previewThumbnailURL(width: 160, height: 90) game { name displayName }';
-    const Q_CHAINES =
+    /* DEUX CHAMPS DE PLUS PAR ARCHIVE (4.25.0.1), tous deux demandés par
+       l'onglet Vidéos de Twitch lui-même : l'identifiant du direct dont elle
+       vient — c'est lui qui dit, sans deviner, si elle EST le dernier
+       direct —, et sa restriction, non nulle quand elle est réservée aux
+       abonnés. Ils n'ont pas été éprouvés d'ici : si le schéma en refuse un,
+       les requêtes repartent sans eux, pour la session, et l'heure reprend
+       le rôle de l'identifiant (`videoRiche`). */
+    const RE_EXTRAS = /broadcastIdentifier|resourceRestriction|BroadcastIdOnly|ResourceRestriction/;
+    let videoRiche = true;
+    const champsVideo = () => 'id title createdAt lengthSeconds viewCount'
+      + ' previewThumbnailURL(width: 160, height: 90) game { name displayName }'
+      + (videoRiche ? ' broadcastIdentifier { id } resourceRestriction { type }' : '');
+    const qChaines = () =>
       'query TseAgendaChaines($logins: [String!]) {' +
       '  users(logins: $logins) {' +
       '    login displayName profileImageURL(width: 70)' +
       '    stream { id createdAt viewersCount title game { name displayName } }' +
       '    lastBroadcast { id startedAt }' +
       '    broadcastSettings { title }' +
-      `    videos(first: 1, type: ARCHIVE, sort: TIME) { edges { node { ${VIDEO} } } }` +
+      `    videos(first: 1, type: ARCHIVE, sort: TIME) { edges { node { ${champsVideo()} } } }` +
       '  }' +
       '}';
-    const Q_DIFFUSIONS =
+    const qDiffusions = () =>
       'query TseAgendaDiffusions($logins: [String!], $n: Int!) {' +
       '  users(logins: $logins) {' +
-      `    login videos(first: $n, type: ARCHIVE, sort: TIME) { edges { node { ${VIDEO} } } }` +
+      `    login videos(first: $n, type: ARCHIVE, sort: TIME) { edges { node { ${champsVideo()} } } }` +
       '  }' +
       '}';
     const SEGMENT = 'id startAt endAt title categories { name displayName }';
@@ -18351,14 +18369,19 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     const jeu = (g) => (g && typeof g.name === 'string' && g.name
       ? { jeu: g.name, libelle: texte(g.displayName, 80) || g.name }
       : { jeu: null, libelle: null });
+    const chiffres = (v) => (/^\d+$/.test(String(v ?? '')) ? String(v) : null);
     const video = (n) => {
       const debut = ms(n?.createdAt);
-      if (!n || !/^\d+$/.test(String(n.id ?? '')) || debut === null) return null;
+      if (!n || !chiffres(n.id) || debut === null) return null;
       return { id: String(n.id), titre: texte(n.title), debut,
                duree: Number.isFinite(n.lengthSeconds) && n.lengthSeconds >= 0 ? n.lengthSeconds : null,
                vues: Number.isFinite(n.viewCount) ? n.viewCount : null,
-               vignette: image(n.previewThumbnailURL), ...jeu(n.game) };
+               vignette: image(n.previewThumbnailURL), ...jeu(n.game),
+               idDirect: chiffres(n.broadcastIdentifier?.id),
+               // Réservée aux abonnés : la seule restriction que Twitch pose sur une archive.
+               restreinte: !!(n.resourceRestriction && typeof n.resourceRestriction === 'object') };
     };
+    const finVideo = (v) => v.debut + (v.duree || 0) * 1000;
     const creneau = (n) => {
       const debut = ms(n?.startAt);
       if (!n || debut === null) return null;
@@ -18371,7 +18394,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     const enDirect = (s) => {
       const debut = ms(s?.createdAt);
       if (!s || debut === null) return null;
-      return { debut, spectateurs: Number.isFinite(s.viewersCount) ? s.viewersCount : null,
+      return { id: chiffres(s.id), debut, spectateurs: Number.isFinite(s.viewersCount) ? s.viewersCount : null,
                titre: texte(s.title), ...jeu(s.game) };
     };
 
@@ -18391,8 +18414,10 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     let voulu = { debut: null, fin: null, chaine: null };
     /* LES ISSUES SONT EXCLUSIVES, par opération : servie, refusée par le
        serveur, refusée par le schéma, perdue en route. Leur somme vaut `lots`
-       — la règle des compteurs de chapitres, et pour la même raison. */
-    const issues = () => ({ lots: 0, servis: 0, refus: 0, schema: 0, reseau: 0 });
+       — la règle des compteurs de chapitres, et pour la même raison.
+       `partiels` compte, PARMI les servies, celles qui revenaient avec des
+       erreurs à côté de leurs données (cf. `envoyer`). */
+    const issues = () => ({ lots: 0, servis: 0, refus: 0, schema: 0, reseau: 0, partiels: 0 });
     const bilan = { collectes: 0, envois: 0, inconnues: 0,
                     chaines: issues(), programme: issues(), diffusions: issues(),
                     attentesGql: 0, abandons: 0, dureeMs: null };
@@ -18421,6 +18446,18 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       const c = directEnCache(login);
       return c === undefined ? (f && f.direct) || null : c;
     };
+    // Ce que la mémoire des abonnements sait de cette chaîne (cf. ABONNEMENTS REPÉRÉS).
+    const estAbonne = (login) => subs.map.get(login)?.sub === true;
+
+    /* L'ARCHIVE DU DERNIER DIRECT. Elle l'est quand elle en porte
+       l'identifiant ; sans lui — schéma réduit, ou une reprise qui a ouvert
+       un second direct trop court pour être archivé —, quand la fin du
+       dernier direct tombe dans son intervalle, à un quart d'heure près. Une
+       coupure suivie d'une reprise reste ainsi UN direct, comme on l'a vécu. */
+    const estDuDernier = (v, f) =>
+      (v.idDirect !== null && f.idDernier !== null && v.idDirect === f.idDernier)
+      || (f.finDernier !== null && f.finDernier >= v.debut - MEME_DIRECT_MS
+          && f.finDernier <= finVideo(v) + MEME_DIRECT_MS);
 
     /* LES CHAÎNES, ET DANS QUEL ORDRE. Celles que la barre a vues comme
        suivies (cf. ROSTER) ; les plus suivies d'abord — en direct, abonnées,
@@ -18429,24 +18466,27 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
        d'abord celles qu'on cherche. */
     const cibles = () => {
       const vus = new Map(roster.entries());
-      const score = new Map(buildScoresReport().map((r) => [r.login, r.score]));
+      const tous = [...vus.keys()].filter((l) => RE_LOGIN_AGENDA.test(l));
+      /* Le score des seules chaînes suivies, arrondi comme le rapport des
+         scores : deux visites identiques font deux scores égaux, quelle que
+         soit la milliseconde où on les calcule, et la récence les départage. */
+      const score = new Map(tous.map((l) => [l, Number(visits.scoreFor(l).toFixed(3))]));
       const direct = (l) => (directEnCache(l) ? 1 : 0);
       const abonne = (l) => (subs.map.get(l)?.sub ? 1 : 0);
-      const tous = [...vus.keys()].filter((l) => RE_LOGIN_AGENDA.test(l));
       tous.sort((a, b) => (direct(b) - direct(a)) || (abonne(b) - abonne(a))
-        || ((score.get(b) || 0) - (score.get(a) || 0)) || (vus.get(b) - vus.get(a))
+        || (score.get(b) - score.get(a)) || (vus.get(b) - vus.get(a))
         || (a < b ? -1 : 1));
       return { liste: tous.slice(0, CFG.AGENDA_MAX_CHAINES), total: tous.length };
     };
 
-    /* A-T-ELLE DIFFUSÉ DEPUIS `debut` ? Un jour de marge : un direct parti
-       un dimanche soir déborde sur le lundi, et c'est lundi qu'on le cherche. */
+    /* A-T-ELLE PU COMMENCER UN DIRECT DEPUIS `debut` ? Pas si le dernier a
+       fini avant : un direct parti après `debut` finit après lui. Le jour de
+       marge de 4.25.0 — un direct du dimanche soir cherché le lundi — est
+       tombé avec la règle du jour où l'on commence (cf. `semaine`). */
     const actifDepuis = (login, f, debut) => {
       if (directDe(login, f)) return true;
-      const marge = debut - 24 * 3_600_000;
-      if (f.dernierLive !== null && f.dernierLive >= marge) return true;
-      const v = f.derniere;
-      return !!v && v.debut + (v.duree || 0) * 1000 >= marge;
+      if (f.finDernier !== null && f.finDernier >= debut) return true;
+      return !!f.derniere && finVideo(f.derniere) >= debut;
     };
     /* LA SECONDE PASSE : les chaînes actives de la semaine regardée dont les
        rediffusions ne sont pas lues, plus fraîches, ou pas lues ASSEZ LOIN —
@@ -18501,9 +18541,23 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       .filter((u) => u && typeof u.login === 'string')
       .map((u) => [u.login.toLowerCase(), u]));
     const messageDe = (r) => String(r?.errors?.[0]?.message || '').slice(0, 160);
+    /* OÙ LA PANNE EST TOMBÉE. Une erreur à côté des données porte son chemin :
+       ["users", 3, "videos"] ne met en doute que la quatrième chaîne de la
+       réponse, dont un champ nul peut n'être que la trace de la panne. Une
+       erreur sans chemin n'en dit pas plus que les données elles-mêmes. */
+    const suspectsDe = (r) => new Set(r.errors
+      .map((e) => (Array.isArray(e?.path) && e.path[0] === 'users' ? r.data.users?.[e.path[1]]?.login : null))
+      .filter((l) => typeof l === 'string')
+      .map((l) => l.toLowerCase()));
 
-    const lireChaines = (logins, u, maintenant) => {
+    /* UNE RÉPONSE PARTIELLE NE DIT PAS QU'UNE CHAÎNE N'EXISTE PLUS. Sans
+       erreur, un login absent de la réponse est un compte que Twitch ne
+       connaît plus ; avec des erreurs à côté des données, absent ou touché
+       par l'une d'elles (`douteux`), il est la panne d'un morceau — on garde
+       ce qu'on en savait, et on le redemandera. */
+    const lireChaines = (logins, u, maintenant, douteux) => {
       for (const l of logins) {
+        if (douteux(l)) { noterEchec('1:' + l); continue; }
         echecs.delete('1:' + l);
         const avant = chaines.get(l);
         const x = u.get(l);
@@ -18513,7 +18567,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
           nom: texte(x.displayName, 60) || l,
           avatar: image(x.profileImageURL),
           direct: enDirect(x.stream),
-          dernierLive: ms(x.lastBroadcast?.startedAt),
+          // La FIN du dernier direct, malgré le nom du champ (cf. l'en-tête).
+          finDernier: ms(x.lastBroadcast?.startedAt),
+          idDernier: chiffres(x.lastBroadcast?.id),
           titre: texte(x.broadcastSettings?.title),
           derniere: (x.videos?.edges || []).map((e) => video(e?.node)).find(Boolean) || null,
           /* Le planning voyage dans SA propre opération : on garde le précédent
@@ -18523,8 +18579,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         });
       }
     };
-    const lirePlanning = (logins, u, maintenant) => {
+    const lirePlanning = (logins, u, maintenant, douteux) => {
       for (const l of logins) {
+        if (douteux(l)) { noterEchec('p:' + l); continue; }
         echecs.delete('p:' + l);
         const f = chaines.get(l);
         if (!f || f.inconnue) continue;
@@ -18537,8 +18594,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         f.planning = { ts: maintenant, creneaux: liste.slice(0, 2 * CFG.AGENDA_CRENEAUX) };
       }
     };
-    const lireDiffusions = (logins, u, n, maintenant) => {
+    const lireDiffusions = (logins, u, n, maintenant, douteux) => {
       for (const l of logins) {
+        if (douteux(l)) { noterEchec('2:' + l); continue; }
         echecs.delete('2:' + l);
         const aretes = u.get(l)?.videos?.edges;
         const liste = Array.isArray(aretes) ? aretes : [];
@@ -18561,14 +18619,14 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
 
     const envoyer = async (t) => {
       const ops = t.passe === 1
-        ? [{ operationName: 'TseAgendaChaines', variables: { logins: t.logins }, query: Q_CHAINES },
+        ? [{ operationName: 'TseAgendaChaines', variables: { logins: t.logins }, query: qChaines() },
            ...(formesEpuisees ? [] : [{ operationName: 'TseAgendaProgramme',
              variables: { logins: t.logins }, query: qProgramme(FORMES[forme].liste) }])]
         : t.passe === 'p'
           ? [{ operationName: 'TseAgendaProgramme', variables: { logins: t.logins },
                query: qProgramme(FORMES[forme].liste) }]
           : [{ operationName: 'TseAgendaDiffusions', variables: { logins: t.logins, n: t.n },
-               query: Q_DIFFUSIONS }];
+               query: qDiffusions() }];
       bilan.envois++;
       const rep = await post(ops);
       // Une réponse qu'on ne peut pas aligner sur les opérations n'est pas arrivée.
@@ -18585,27 +18643,41 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
           for (const l of t.logins) noterEchec(PREFIXE[sorte] + l);
           return;
         }
-        if ((Array.isArray(r.errors) && r.errors.length) || !r.data) {
+        /* TROIS ISSUES POUR UNE RÉPONSE ARRIVÉE. Sans données, le SCHÉMA qui
+           refuse nomme ce qu'il refuse : la forme est en cause, on en change
+           ou l'on s'arrête ; le SERVICE qui refuse ne nomme rien : on se
+           retente, plus lentement. Des DONNÉES avec des erreurs à côté sont
+           une réponse partielle — la panne d'un morceau, jamais un refus du
+           schéma, qui rejette la requête entière — : on prend ce qui est
+           venu, et l'on redemande le reste. */
+        const fautes = Array.isArray(r.errors) && r.errors.length > 0;
+        if (!r.data) {
           const message = messageDe(r);
-          if (!RE_SCHEMA.test(message)) {
-            b.refus++; ralentir();
-            for (const l of t.logins) noterEchec(PREFIXE[sorte] + l);
+          if (fautes && RE_SCHEMA.test(message)) {
+            b.schema++;
+            if (sorte !== 'programme' && videoRiche && RE_EXTRAS.test(message)) {
+              // Les deux champs neufs des archives refusés : on repart sans eux.
+              videoRiche = false;
+            } else if (sorte === 'programme') {
+              if (forme < FORMES.length - 1) forme++; else formesEpuisees = true;
+            } else {
+              refus = { quoi: sorte, message };
+              erreurs.noter('agenda', `le schéma refuse ${op.operationName}`, message);
+            }
             return;
           }
-          b.schema++;
-          if (sorte === 'programme') {
-            if (forme < FORMES.length - 1) forme++; else formesEpuisees = true;
-          } else {
-            refus = { quoi: sorte, message };
-            erreurs.noter('agenda', `le schéma refuse ${op.operationName}`, message);
-          }
+          b.refus++; ralentir();
+          for (const l of t.logins) noterEchec(PREFIXE[sorte] + l);
           return;
         }
         b.servis++;
+        if (fautes) b.partiels++;
         const u = parLogin(r.data);
-        if (sorte === 'chaines') lireChaines(t.logins, u, maintenant);
-        else if (sorte === 'programme') lirePlanning(t.logins, u, maintenant);
-        else lireDiffusions(t.logins, u, t.n, maintenant);
+        const suspects = fautes ? suspectsDe(r) : null;
+        const douteux = (l) => fautes && (!u.has(l) || suspects.has(l));
+        if (sorte === 'chaines') lireChaines(t.logins, u, maintenant, douteux);
+        else if (sorte === 'programme') lirePlanning(t.logins, u, maintenant, douteux);
+        else lireDiffusions(t.logins, u, t.n, maintenant, douteux);
         version++;
       });
       return perdue ? 'perdue' : 'ok';
@@ -18663,14 +18735,23 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       echouees: c.liste.filter((l) => !peutRetenter('1:' + l) || !peutRetenter('2:' + l)).length,
       reseau: Date.now() < pauseJusqua,
     });
+    // Le menu des chaînes n'en lit que le nom : l'avatar resterait en route.
     const listeChaines = (liste) => liste.map((l) => {
       const f = chaines.get(l);
-      return f && !f.inconnue ? { login: l, nom: f.nom, avatar: f.avatar } : null;
+      return f && !f.inconnue ? { login: l, nom: f.nom } : null;
     }).filter(Boolean);
+    const finCreneau = (s) => s.fin || s.debut + CRENEAU_DEFAUT_MS;
 
-    /* LA SEMAINE : tout ce qui CROISE [debut, fin[, dans l'ordre des heures.
-       Le panneau a calculé les deux bornes à minuit local, au premier jour de
-       SA locale ; elles ne sont ici que des nombres. */
+    /* LA SEMAINE : tout ce qui COMMENCE dans [debut, fin[, dans l'ordre des
+       heures. Le panneau a calculé les deux bornes à minuit local, au premier
+       jour de SA locale ; elles ne sont ici que des nombres.
+
+       UNE DIFFUSION N'EST QU'À UN ENDROIT : au jour où elle a commencé
+       (4.25.0.1), c'est ce que le premier essai réel a demandé. Celle qui
+       passe minuit reste à son jour ; celle qui passe la nuit du dimanche
+       reste à sa semaine, où 4.25.0 la montrait encore au lundi suivant.
+       Seul le direct sans rediffusion se range à sa fin, la seule heure
+       qu'on en sache. */
     const semaine = (arg) => {
       const debut = Number(arg?.debut);
       const fin = Number(arg?.fin);
@@ -18684,7 +18765,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       lancer();
       const c = cibles();
       const maintenant = Date.now();
-      const croise = (a, b) => a < fin && b > debut;
+      const dans = (t) => t >= debut && t < fin;
       const entrees = [];
       for (const login of c.liste) {
         if (chaine && login !== chaine) continue;
@@ -18693,29 +18774,31 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         const d = diffusions.get(login);
         const direct = directDe(login, f);
         const videos = d ? d.videos : (f.derniere ? [f.derniere] : []);
-        if (direct && croise(direct.debut, maintenant + 1)) {
+        if (direct && dans(direct.debut)) {
           entrees.push({ type: 'direct', login, ...direct, fin: null });
         }
         for (const v of videos) {
-          const finV = v.debut + (v.duree || 0) * 1000;
-          if (!croise(v.debut, Math.max(finV, v.debut + 1))) continue;
+          if (!dans(v.debut)) continue;
           // L'enregistrement du direct en cours EST le direct : une seule entrée.
-          if (direct && Math.abs(v.debut - direct.debut) < MEME_DIRECT_MS) continue;
-          entrees.push({ type: 'rediffusion', login, ...v, fin: finV });
+          if (direct && ((direct.id !== null && v.idDirect === direct.id)
+                         || Math.abs(v.debut - direct.debut) < MEME_DIRECT_MS)) continue;
+          entrees.push({ type: 'rediffusion', login, ...v, fin: finVideo(v),
+                         ...(v.restreinte ? { abonne: estAbonne(login) } : {}) });
         }
         /* LE DERNIER DIRECT SANS REDIFFUSION — une chaîne qui n'archive pas, ou
            pas celui-là. Dit seulement quand ses rediffusions sont LUES et
-           couvrent l'instant : avant, on ne sait pas encore s'il y en a une. */
-        const dl = f.dernierLive;
-        if (dl !== null && !direct && croise(dl, dl + 1) && d
-            && (d.complet || (d.videos.length && d.videos[d.videos.length - 1].debut <= dl))
-            && !d.videos.some((v) => Math.abs(v.debut - dl) < MEME_DIRECT_MS)) {
-          entrees.push({ type: 'sansRediffusion', login, debut: dl, fin: null,
+           couvrent l'instant : avant, on ne sait pas encore s'il y en a une.
+           On n'en connaît que la FIN : c'est elle qui le place, et le panneau
+           l'écrit comme telle. */
+        const fd = f.finDernier;
+        if (fd !== null && !direct && dans(fd) && d
+            && (d.complet || (d.videos.length && d.videos[d.videos.length - 1].debut <= fd))
+            && !d.videos.some((v) => estDuDernier(v, f))) {
+          entrees.push({ type: 'sansRediffusion', login, debut: fd, fin: fd, finSeule: true,
                          titre: f.titre, jeu: null, libelle: null });
         }
         for (const s of (f.planning && f.planning.creneaux) || []) {
-          const finS = s.fin || s.debut + CRENEAU_DEFAUT_MS;
-          if (s.annule || !croise(s.debut, finS) || finS <= maintenant) continue;
+          if (s.annule || !dans(s.debut) || finCreneau(s) <= maintenant) continue;
           if (direct && s.debut <= maintenant) continue;   // c'est le direct en cours
           entrees.push({ type: 'prevu', login, ...s });
         }
@@ -18731,21 +18814,26 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       };
     };
 
-    /* QUAND A-T-ELLE QUITTÉ L'ANTENNE ? À la fin de son dernier direct quand
-       sa rediffusion la donne ; sinon, à son début — et on le dit (`fin`
-       faux) : le panneau n'écrira pas « terminé il y a » sur un départ. */
+    /* QUAND A-T-ELLE QUITTÉ L'ANTENNE ? `t` est la fin de son dernier direct :
+       celle de sa rediffusion quand elle en est une, celle que Twitch donne
+       sinon — dont on ne connaît alors pas le début (`debut` nul). `revoir`
+       dit si la dernière rediffusion EST ce dernier direct. */
     const derniereActivite = (f) => {
       const v = f.derniere;
-      const dl = f.dernierLive;
-      if (v && v.duree !== null && (dl === null || Math.abs(v.debut - dl) < MEME_DIRECT_MS || v.debut > dl)) {
-        return { debut: v.debut, t: v.debut + v.duree * 1000, fin: true };
+      const fd = f.finDernier;
+      if (v && (fd === null || estDuDernier(v, f) || v.debut > fd)) {
+        return { debut: v.debut, t: finVideo(v), revoir: true };
       }
-      if (dl !== null) return { debut: dl, t: dl, fin: false };
-      return v ? { debut: v.debut, t: v.debut, fin: false } : null;
+      return fd !== null ? { debut: null, t: fd, revoir: false } : null;
     };
 
-    /* HORS LIGNE : chaque chaîne qui n'est pas en direct, la plus récemment
-       partie d'abord ; celles dont on ne sait rien, à la fin. */
+    /* HORS LIGNE : chaque chaîne qui n'est pas en direct. Celles qui ont
+       programmé leur prochain direct d'abord, la plus proche en tête — c'est
+       ce qu'on vient chercher ici (4.25.0.1) —, puis les autres, la plus
+       récemment partie d'abord ; celles dont on ne sait rien, à la fin.
+       Le prochain direct est le premier créneau qui n'est pas fini, comme
+       dans la semaine : une chaîne en retard sur son créneau y est encore
+       attendue, et c'est elle la plus proche. */
     const horsLigne = () => {
       voulu = { debut: null, fin: null, chaine: null };
       lancer();
@@ -18758,12 +18846,15 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         if (!f || f.inconnue) continue;
         if (directDe(login, f)) { directs++; continue; }
         const prochainCreneau = ((f.planning && f.planning.creneaux) || [])
-          .find((s) => !s.annule && s.debut > maintenant) || null;
+          .find((s) => !s.annule && finCreneau(s) > maintenant) || null;
         lignes.push({ login, nom: f.nom, avatar: f.avatar, titre: f.titre,
                       dernier: derniereActivite(f), derniere: f.derniere,
-                      prochain: prochainCreneau, planningLu: f.planning !== undefined });
+                      ...(f.derniere && f.derniere.restreinte ? { abonne: estAbonne(login) } : {}),
+                      prochain: prochainCreneau });
       }
-      lignes.sort((a, b) => ((b.dernier ? b.dernier.t : -Infinity) - (a.dernier ? a.dernier.t : -Infinity))
+      lignes.sort((a, b) => ((b.prochain ? 1 : 0) - (a.prochain ? 1 : 0))
+        || (a.prochain && b.prochain ? a.prochain.debut - b.prochain.debut : 0)
+        || ((b.dernier ? b.dernier.t : -Infinity) - (a.dernier ? a.dernier.t : -Infinity))
         || (a.login < b.login ? -1 : 1));
       return {
         vue: 'horsLigne', version, maintenant, lignes,
@@ -18789,6 +18880,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         rediffusions: [...diffusions.values()].reduce((s, d) => s + d.videos.length, 0),
         creneaux: fiches.reduce((s, f) => s + ((f.planning && f.planning.creneaux.length) || 0), 0),
         planning: formesEpuisees ? 'indisponible' : FORMES[forme].nom,
+        archives: videoRiche ? 'riches' : 'simples',
         refus: refus ? `${refus.quoi} — ${refus.message}` : null,
         enCours: !!travail,
         collectes: bilan.collectes, envois: bilan.envois,

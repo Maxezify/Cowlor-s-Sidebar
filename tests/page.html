@@ -174,11 +174,28 @@ window.__vodRecent = {};   // archive récente par login (cf. TseVodRecent, le r
 window.__clips = {};       // clips par login (cf. TseClips, la troisième porte)
 window.__tagTop = {};      // classement par tag de langue (cf. TseTagTop)
 /* L'AGENDA (4.25.0) — ce que la page Programme de Twitch servirait, chaîne par
-   chaîne : login -> { nom, dernierLive (ISO), titre, videos: [{ id, titre,
-   debut (ISO), duree (s), vues, jeu }], creneaux: [{ id, debut, fin, titre,
-   jeu, annule }] }. Le DIRECT vient de __fx, comme pour la barre : une chaîne
-   absente des deux est un login que Twitch ne connaît pas, et qu'il omet. */
+   chaîne : login -> { nom, dernier: { id, fin (ISO) }, titre, videos: [{ id,
+   titre, debut (ISO), duree (s), vues, jeu, diffusion, abonnes }], creneaux:
+   [{ id, debut, fin, titre, jeu, annule }] }. Le DIRECT vient de __fx, comme
+   pour la barre — son identifiant est `sid` : une chaîne absente des deux est
+   un login que Twitch ne connaît pas, et qu'il omet.
+
+   `dernier` EST CE QUE TWITCH SERT, PAS CE QUE SON NOM PROMET (4.25.0.1) :
+   `lastBroadcast.startedAt` porte la FIN du dernier direct — relevé sur une
+   réponse réelle, trois secondes après la fin de l'archive du même direct.
+   Le décor le donne donc par sa fin. `diffusion` est l'identifiant du direct
+   dont vient une archive (`broadcastIdentifier`), `abonnes` sa restriction
+   aux abonnés (`resourceRestriction`) ; tous deux ne sont servis que si la
+   requête les demande, comme le ferait le schéma. */
 window.__agenda = {};
+/* Le schéma simulé refuse les deux champs neufs des archives (4.25.0.1) :
+   l'agenda doit repartir sans eux, pour la session. */
+window.__agendaExtras = false;
+/* Des réponses PARTIELLES : operationName -> { logins, chemin, fois }. Pour
+   ces logins, `fois` réponses portent une erreur à côté des données — avec son
+   chemin (`chemin: true`, le champ en panne rendu nul) ou sans (la chaîne
+   rendue nulle tout entière), comme Twitch quand un seul morceau tombe. */
+window.__agendaPanne = {};
 /* Les formes du planning que le schéma simulé accepte — null : toutes. Les
    arguments de `segmentList` n'ont jamais pu être éprouvés contre Twitch ; ce
    levier joue les trois réponses possibles. */
@@ -725,12 +742,29 @@ window.fetch = async (url, opt) => {
     if (a === undefined && f === undefined) return null;
     return { a: a || {}, f };
   };
-  const agendaVideos = (a, n) => (a.videos || [])
+  const agendaVideos = (a, n, riche) => (a.videos || [])
     .slice().sort((x, y) => Date.parse(y.debut) - Date.parse(x.debut)).slice(0, n)
     .map(v => ({ node: { id: v.id, title: v.titre || '', createdAt: v.debut,
                          lengthSeconds: v.duree, viewCount: v.vues ?? 0,
                          previewThumbnailURL: 'https://static-cdn.jtvnw.net/cf_vods/' + v.id + '/thumb-160x90.jpg',
-                         game: v.jeu ? { name: v.jeu, displayName: traduire(v.jeu) } : null } }));
+                         game: v.jeu ? { name: v.jeu, displayName: traduire(v.jeu) } : null,
+                         ...(riche ? { broadcastIdentifier: v.diffusion ? { id: v.diffusion } : null,
+                                       resourceRestriction: v.abonnes ? { type: 'SUB_ONLY_LIVE' } : null } : {}) } }));
+  /* Une réponse partielle : le morceau en panne rendu nul, et l'erreur à côté
+     des données — avec son chemin, ou sans. */
+  const agendaPanne = (nom, rep, logins) => {
+    const p = (window.__agendaPanne || {})[nom];
+    if (!p || !(p.fois > 0) || !rep.data || !logins.some(l => p.logins.includes(l))) return rep;
+    p.fois--;
+    const champ = nom === 'TseAgendaProgramme' ? 'channel' : nom === 'TseAgendaDiffusions' ? 'videos' : 'lastBroadcast';
+    const errors = [];
+    rep.data.users.forEach((u, i) => {
+      if (!u || !p.logins.includes(u.login)) return;
+      if (p.chemin) { u[champ] = null; errors.push({ message: 'service timeout', path: ['users', i, champ] }); }
+      else { rep.data.users[i] = null; errors.push({ message: 'service error' }); }
+    });
+    return { ...rep, errors };
+  };
   const agendaCreneau = (c) => ({ id: c.id, startAt: c.debut, endAt: c.fin ?? null, title: c.titre || '',
                                   isCancelled: !!c.annule,
                                   categories: c.jeu ? [{ name: c.jeu, displayName: traduire(c.jeu) }] : [] });
@@ -745,6 +779,10 @@ window.fetch = async (url, opt) => {
     if ((window.__agendaSchema || {})[nom]) {
       return { errors: [{ message: 'Cannot query field "lastBroadcast" on type "User".' }] };
     }
+    const riche = /broadcastIdentifier|resourceRestriction/.test(o.query || '');
+    if (window.__agendaExtras && riche) {
+      return { errors: [{ message: 'Cannot query field "broadcastIdentifier" on type "Video".' }] };
+    }
     const logins = o.variables?.logins || [];
     if (nom === 'TseAgendaProgramme') {
       const forme = agendaForme(o.query || '');
@@ -755,7 +793,7 @@ window.fetch = async (url, opt) => {
           : 'Cannot query field "nextSegment" on type "Schedule".' }] };
       }
       const premier = Number((/segmentList\(first:\s*(\d+)/.exec(o.query || '') || [])[1]) || 999;
-      return { data: { users: logins.map(l => {
+      return agendaPanne(nom, { data: { users: logins.map(l => {
         const x = agendaFiche(l);
         if (!x) return null;
         const cr = (x.a.creneaux || []).slice().sort((p, q) => Date.parse(p.debut) - Date.parse(q.debut));
@@ -764,30 +802,31 @@ window.fetch = async (url, opt) => {
           nextSegment: suivant ? agendaCreneau(suivant) : null,
           ...(forme === 'nextSegment' ? {} : { segmentList: { edges: cr.slice(0, premier).map(c => ({ node: agendaCreneau(c) })) } }),
         } : null } };
-      }) } };
+      }) } }, logins);
     }
     if (nom === 'TseAgendaDiffusions') {
       const n = o.variables?.n || 12;
-      return { data: { users: logins.map(l => {
+      return agendaPanne(nom, { data: { users: logins.map(l => {
         const x = agendaFiche(l);
-        return x ? { login: l, videos: { edges: agendaVideos(x.a, n) } } : null;
-      }) } };
+        return x ? { login: l, videos: { edges: agendaVideos(x.a, n, riche) } } : null;
+      }) } }, logins);
     }
     // TseAgendaChaines
-    return { data: { users: logins.map(l => {
+    return agendaPanne(nom, { data: { users: logins.map(l => {
       const x = agendaFiche(l);
       if (!x) return null;
       const f = x.f;
       return {
         login: l, displayName: x.a.nom || l.charAt(0).toUpperCase() + l.slice(1),
         profileImageURL: 'https://static-cdn.jtvnw.net/jtv_user_pictures/' + l + '-70x70.png',
-        stream: f ? { id: 's-' + l, createdAt: f.createdAt, viewersCount: f.viewers, title: f.title || '',
+        stream: f ? { id: f.sid || ('s-' + l), createdAt: f.createdAt, viewersCount: f.viewers, title: f.title || '',
                       game: { name: f.game, displayName: traduire(f.game) } } : null,
-        lastBroadcast: x.a.dernierLive ? { id: 'b-' + l, startedAt: x.a.dernierLive } : null,
+        // La FIN du dernier direct, sous le nom que Twitch lui donne (cf. l'en-tête).
+        lastBroadcast: x.a.dernier ? { id: x.a.dernier.id, startedAt: x.a.dernier.fin } : null,
         broadcastSettings: { title: x.a.titre || '' },
-        videos: { edges: agendaVideos(x.a, 1) },
+        videos: { edges: agendaVideos(x.a, 1, riche) },
       };
-    }) } };
+    }) } }, logins);
   };
   const data = body.map(o => {
     if (/^TseAgenda/.test(o.operationName || '')) return agendaReponse(o);

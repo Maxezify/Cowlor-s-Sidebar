@@ -187,10 +187,10 @@ _______________________________
 ➤ 📅 KTO NADAWAŁ, KTO JEST NA ŻYWO, KTO BĘDZIE NASTĘPNY
 Strona harmonogramu kanału na Twitchu pokazuje jeden kanał. Grupa „Harmonogram” w panelu pokazuje naraz wszystkie, które obserwujesz.
 
-- ★ TYDZIEŃ, DZIEŃ PO DNIU ★ Każda miniona transmisja z powtórką o jedno kliknięcie, trwające oraz te, które kanały zaplanowały. Osiem tygodni wstecz, dwa naprzód.
-- ★ OFFLINE, ALE NIE ZAPOMNIANE ★ Każdy obserwowany kanał, który nie nadaje, od najświeższego: kiedy nadawał ostatnio, jego powtórka i następna transmisja, jeśli jakąś zaplanował.
+- ★ TYDZIEŃ, DZIEŃ PO DNIU ★ Otwiera się na dzisiejszym dniu, z minionymi dniami powyżej: każda miniona transmisja z powtórką o jedno kliknięcie, trwające oraz te, które kanały zaplanowały, każda w dniu, w którym się zaczęła. Osiem tygodni wstecz, dwa naprzód.
+- ★ OFFLINE, ALE NIE ZAPOMNIANE ★ Każdy obserwowany kanał, który nie nadaje: najpierw te z zaplanowaną transmisją, najbliższa na górze, potem pozostałe, od najświeższego — kiedy nadawał ostatnio, jego powtórka i następna transmisja.
 - ★ JEDEN KANAŁ ALBO WSZYSTKIE ★ Menu zostawia jeden, a „Pokaż tydzień” prowadzi prosto do tygodnia jego ostatniej transmisji.
-- ★ UCZCIWIE O TYM, CO ZACHOWUJE TWITCH ★ Powtórka istnieje tylko wtedy, gdy kanał zapisuje transmisje, i tylko tak długo, jak Twitch je przechowuje; ostatnia transmisja bez niej mówi o tym („Bez powtórki”).
+- ★ UCZCIWIE O TYM, CO ZACHOWUJE TWITCH ★ Powtórka istnieje tylko wtedy, gdy kanał zapisuje transmisje, i tylko tak długo, jak Twitch je przechowuje; ostatnia transmisja bez niej mówi o tym („Bez powtórki”), a powtórka tylko dla subskrybentów też („Subskrybenci”), jeszcze przed kliknięciem.
 - ★ TYLKO, GDY PATRZYSZ ★ Nic nie jest wysyłane do Twitcha, zanim go otworzysz, i nic nie jest zapisywane: wszystko żyje w karcie.
 
 _______________________________

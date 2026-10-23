@@ -108,7 +108,7 @@ jour où le code change :
    livrés **ni minifiés ni obscurcis** : mêmes noms, mêmes lignes, même
    indentation que dans le dépôt. Depuis la 3.59 le paquet part en revanche
    **sans les commentaires** — ceux du JavaScript, et depuis la 3.60 ceux du
-   CSS aussi (2020 → 880 Ko) ; la phrase reste vraie au mot près — c'est de
+   CSS aussi (2037 → 888 Ko) ; la phrase reste vraie au mot près — c'est de
    lisibilité qu'elle parle, pas d'annotations — et les commentaires, eux,
    sont dans le dépôt public. Ce chiffre-là est confronté à la mesure par
    `npm run addon` : il a été faux, et personne ne l'a vu. Les mentions
@@ -185,7 +185,10 @@ jour où le code change :
    qui la tient : la rediffusion « à un clic » à `TseAgendaDiffusions`, les
    directs programmés à `TseAgendaProgramme`. Ses trois libellés — le groupe,
    « Sa semaine », « Sans rediffusion » — sont cités sous ceux de chaque
-   langue (`LIBELLES`). « Huit semaines en arrière, deux en avant » est du
+   langue (`LIBELLES`). La 4.25.0.1 y ajoute la pastille « Abonnés » des
+   rediffusions réservées aux abonnés : son libellé est cité de même, et sa
+   promesse — le dire avant le clic — est liée au champ qui la tient,
+   `resourceRestriction { type }`. « Huit semaines en arrière, deux en avant » est du
    panneau seul (`AGENDA_PASSE`, `AGENDA_FUTUR`), et c'est pourquoi la phrase
    n'est pas au contrat, qui ne relie la fiche qu'à `content.js` ; le scénario
    208 du banc tient les deux bornes. « Rien n'est écrit : tout vit dans

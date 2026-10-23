@@ -1645,6 +1645,11 @@ const lancer = async (action, bouton) => {
   const r = await demander({ action });
   if (bouton) bouton.disabled = false;
   if (!r.ok) { montrerEchec(r); return; }
+  /* L'agenda se relit EN PLACE (4.25.0.1) : « Actualiser » relance la
+     collecte, et la vue garde sa semaine, son menu et sa position pendant
+     qu'elle arrive — la recharger la remettait en haut, sous « Chargement… ». */
+  const section = SECTIONS.find((s) => s.id === courante);
+  if (section && section.agenda) { relireAgenda(); return; }
   await charger(courante);                 // la vue reflète ce qui vient d'être fait
 };
 
@@ -1662,9 +1667,18 @@ const lancer = async (action, bouton) => {
 
    ELLES SE RELISENT TANT QUE LA PAGE TRAVAILLE. La collecte part à la première
    demande et se poursuit lot après lot ; la vue redemande l'état chaque
-   seconde jusqu'à ce que la page dise avoir fini, et se repeint en gardant sa
-   position — une liste qui remonterait en haut à chaque arrivée ne se lirait
-   pas.
+   seconde jusqu'à ce que la page dise avoir fini.
+
+   CE QUI NE CHANGE PAS NE SE REFAIT PAS (4.25.0.1). La tête de la vue — la
+   barre de la semaine, ses notes — reste la même d'une relecture à l'autre,
+   et chaque ligne inchangée garde son nœud : le menu des chaînes n'est plus
+   détruit sous la main qui le tient, une vignette ne se recharge pas, et une
+   relecture sans nouveauté ne touche à rien.
+
+   LA VUE SE POSE SUR CE QU'ON CHERCHE (4.25.0.1). « La semaine » s'ouvre sur
+   aujourd'hui — les jours passés au-dessus — et y reste pendant que la
+   semaine se remplit ; dès qu'on défile soi-même, c'est la ligne qu'on
+   regardait qui reste en place.
 
    LES LIENS S'OUVRENT LÀ OÙ L'ON EST. Incrusté dans Twitch, le panneau mène la
    page elle-même à la rediffusion ; en popup, il ouvre un onglet : la popup
@@ -1672,8 +1686,13 @@ const lancer = async (action, bouton) => {
 const AGENDA_PASSE = 8;      // semaines en arrière : ce que les partenaires gardent de rediffusions
 const AGENDA_FUTUR = 2;      // semaines en avant : le planning
 const RELECTURE_AGENDA = 1000;
+/* `cible` : où poser la vue au prochain dessin — « auj », « haut », ou un
+   instant dont on veut le jour —, nulle dès qu'on a défilé soi-même.
+   `defileAuto` : le défilement que la vue s'est donné, qu'on ne prend pas pour
+   celui de la main. `noeuds` : les lignes du dernier dessin, par clé. */
 const etatAgenda = { decalage: 0, chaine: null, minuteur: null, jeton: 0,
-                     donnees: null, enAttente: false };
+                     cible: 'auj', defileAuto: 0, noeuds: new Map(), signature: null,
+                     charpente: null, menu: { chaines: [], chaine: null } };
 const CIBLE_LIEN = EN_CADRE ? '_top' : '_blank';
 
 const HEURE = new Intl.DateTimeFormat(LOCALE, { hour: '2-digit', minute: '2-digit' });
@@ -1684,6 +1703,7 @@ const DATE_COMPLETE = new Intl.DateTimeFormat(LOCALE, { dateStyle: 'full', timeS
 const COMPACT = new Intl.NumberFormat(LOCALE, { notation: 'compact', maximumFractionDigits: 1 });
 const PLURIEL = new Intl.PluralRules(LOCALE);
 const RELATIF = new Intl.RelativeTimeFormat(LOCALE, { numeric: 'auto' });
+const ORDRE_NOMS = new Intl.Collator(LOCALE, { sensitivity: 'base' });
 
 /* « 51,4 k vues », au pluriel de la langue : Intl.PluralRules choisit, et les
    quatre formes sont des clés. AU-DELÀ DE MILLE, le nombre s'abrège — « 1,2
@@ -1721,7 +1741,7 @@ const ilYa = (t, maintenant) => {
 
 /* LES BORNES D'UNE SEMAINE, à minuit local. `setDate` et non une addition de
    millisecondes : un passage à l'heure d'été ferait sinon commencer la semaine
-   suivante à 23 h ou à 1 h. */
+   suivante à 23 h ou à 1 h. Les jours se comptent de même (`jourDe`). */
 const bornesSemaine = (decalage) => {
   const d = new Date();
   d.setHours(0, 0, 0, 0);
@@ -1730,6 +1750,7 @@ const bornesSemaine = (decalage) => {
   f.setDate(f.getDate() + 7);
   return { debut: d.getTime(), fin: f.getTime() };
 };
+const jourDe = (debut, i) => { const d = new Date(debut); d.setDate(d.getDate() + i); return d.getTime(); };
 // La semaine qui contient l'instant `t`, comptée depuis la semaine courante.
 const decalageDe = (t) => {
   const d = new Date(t);
@@ -1780,15 +1801,37 @@ const imageAgenda = (src, classe) => {
   return img;
 };
 
-const MARQUE = { direct: 'valLive', prevu: 'valPlanned', sansRediffusion: 'valNoReplay' };
-const plageHoraire = (e, debutSemaine) => {
-  // Parti la semaine d'avant : l'heure seule mentirait sur le jour.
-  const de = (e.debut < debutSemaine ? JOUR_ABREGE.format(e.debut) + ' ' : '') + HEURE.format(e.debut);
-  if (e.type === 'direct') return `${de} – ${T('valOngoing')}`;
-  return e.fin ? `${de} – ${HEURE.format(e.fin)}` : de;
+/* LE CADENAS DES ABONNÉS (4.25.0.1). Une rediffusion réservée aux abonnés
+   porte une restriction que Twitch sert à tous, même sans compte : on la dit
+   avant le clic, plutôt que de laisser la page de la vidéo l'apprendre.
+   Ouvert quand la mémoire des abonnements vous sait abonné à la chaîne
+   (cf. ABONNEMENTS REPÉRÉS, content.js) ; elle ne sait que ce que vos visites
+   lui ont montré, d'où le cadenas fermé faute de savoir. */
+const cadenas = (ouvert) => {
+  const svg = svgEl('svg', { class: 'ag-cadenas', viewBox: '0 0 12 12', 'aria-hidden': 'true' });
+  svg.append(
+    svgEl('path', { d: ouvert ? 'M3.5 5.5V3.75a2.5 2.5 0 0 1 4.9-.7' : 'M3.5 5.5V3.75a2.5 2.5 0 0 1 5 0V5.5',
+                    fill: 'none', stroke: 'currentColor', 'stroke-width': 1.4, 'stroke-linecap': 'round' }),
+    svgEl('rect', { x: 2, y: 5.5, width: 8, height: 5.5, rx: 1.2, fill: 'currentColor' }));
+  return svg;
+};
+const pastilleAbonnes = (abonne) => {
+  const p = elt('span', 'ag-abo' + (abonne ? ' ag-abo--ouvert' : ''));
+  p.append(cadenas(abonne), document.createTextNode(T('valSubOnly')));
+  p.title = T(abonne ? 'valSubOnlyOpen' : 'valSubOnlyLocked');
+  return p;
 };
 
-const entreeAgenda = (e, nom, debutSemaine) => {
+const MARQUE = { direct: 'valLive', prevu: 'valPlanned', sansRediffusion: 'valNoReplay' };
+const plageHoraire = (e) => {
+  // Un direct sans rediffusion n'a que sa fin : « – 00:21 », pas un début qui mentirait.
+  if (e.finSeule) return `– ${HEURE.format(e.fin)}`;
+  const de = HEURE.format(e.debut);
+  if (e.type === 'direct') return `${de} – ${T('valOngoing')}`;
+  return e.fin > e.debut ? `${de} – ${HEURE.format(e.fin)}` : de;
+};
+
+const entreeAgenda = (e, nom) => {
   const lien = lienAgenda(e);
   const el = document.createElement(lien ? 'a' : 'div');
   el.className = 'ag-ent ag-ent--' + e.type;
@@ -1804,9 +1847,10 @@ const entreeAgenda = (e, nom, debutSemaine) => {
   const l1 = div('ag-l1');
   l1.appendChild(elt('span', 'ag-nom', nom));
   if (e.libelle) l1.appendChild(elt('span', 'ag-jeu', e.libelle));
-  l1.appendChild(elt('span', 'ag-heure', plageHoraire(e, debutSemaine)));
+  l1.appendChild(elt('span', 'ag-heure', plageHoraire(e)));
   const l2 = div('ag-l2');
   l2.appendChild(elt('span', 'ag-titre', e.titre || '—'));
+  if (e.type === 'rediffusion' && e.restreinte) l2.appendChild(pastilleAbonnes(e.abonne === true));
   if (e.type === 'rediffusion' && Number.isFinite(e.vues)) {
     l2.appendChild(elt('span', 'ag-meta', vuesTexte(e.vues)));
   } else if (e.type === 'direct' && Number.isFinite(e.spectateurs)) {
@@ -1817,15 +1861,30 @@ const entreeAgenda = (e, nom, debutSemaine) => {
   const corps = div('ag-corps');
   corps.append(l1, l2);
   el.append(vig, corps);
-  el.title = [e.titre, DATE_COMPLETE.format(e.debut)].filter(Boolean).join('\n');
+  el.title = [e.titre, (e.finSeule ? '– ' : '') + DATE_COMPLETE.format(e.debut)].filter(Boolean).join('\n');
   return el;
 };
 
+/* UNE LIGNE INCHANGÉE GARDE SON NŒUD. `suivant` reçoit les lignes du dessin en
+   cours, l'ancien dessin est oublié avec ce qui n'y entre plus. Une clé vue
+   deux fois dans un même dessin — la page n'en sert pas — aurait sinon
+   déplacé un seul nœud de la première place à la seconde. La clé sert aussi de
+   repère au défilement (`data-ancre`). */
+const noeud = (suivant, cle, sig, faire) => {
+  if (suivant.has(cle)) return faire();
+  const ancien = etatAgenda.noeuds.get(cle);
+  const n = ancien && ancien.sig === sig ? ancien : { sig, el: faire() };
+  n.el.dataset.ancre = cle;
+  suivant.set(cle, n);
+  return n.el;
+};
+
 const noteAgenda = (texte, ton) => elt('p', 'ag-note' + (ton ? ' ag-note--' + ton : ''), texte);
-/* CE QUE LA VUE NE MONTRE PAS ENCORE, OU PAS DU TOUT, dit au-dessus d'elle :
-   la lecture en cours, la borne du nombre de chaînes, le planning refusé, les
+/* CE QUE LA VUE NE MONTRE PAS ENCORE, OU PAS DU TOUT, dit dans sa tête : la
+   lecture en cours, la borne du nombre de chaînes, le planning refusé, les
    chaînes que Twitch n'a pas servies. Une semaine à moitié lue qui aurait
-   l'air entière serait pire qu'une semaine vide. */
+   l'air entière serait pire qu'une semaine vide — et la tête reste en haut,
+   où qu'on soit posé dans la semaine. */
 const notesAgenda = (data) => {
   const out = [];
   const n = data.notes || {};
@@ -1834,23 +1893,41 @@ const notesAgenda = (data) => {
      n'a pas servie deux fois ne compte jamais parmi les lues : sans `enCours`,
      la barre restait figée à 298 sur 300, au-dessus de la note qui le dit. */
   if (data.enCours && p.lues < p.aLire) {
-    const ligne = noteAgenda(T('stateAgendaLoading', [fmt.nombre(p.lues), fmt.nombre(p.aLire)]), 'charge');
-    const barre = div('ag-prog');
-    const rempli = div('ag-prog-rempli');
-    rempli.style.width = (p.aLire ? Math.round((100 * p.lues) / p.aLire) : 0) + '%';
-    barre.appendChild(rempli);
-    ligne.appendChild(barre);
-    out.push(ligne);
+    out.push({ cle: 'lecture', ton: 'charge', texte: T('stateAgendaLoading', [fmt.nombre(p.lues), fmt.nombre(p.aLire)]),
+               part: p.aLire ? Math.round((100 * p.lues) / p.aLire) : 0 });
   } else if (data.enCours && p.aCouvrir > 0) {
-    out.push(noteAgenda(T('stateAgendaLoadingReplays', fmt.nombre(p.aCouvrir)), 'charge'));
+    out.push({ cle: 'rediffusions', ton: 'charge', texte: T('stateAgendaLoadingReplays', fmt.nombre(p.aCouvrir)) });
   }
-  if (n.limite) out.push(noteAgenda(T('stateAgendaCapped', [fmt.nombre(n.limite.retenues), fmt.nombre(n.limite.total)])));
-  if (n.planning === 'indisponible') out.push(noteAgenda(T('stateAgendaNoSchedule')));
+  if (n.limite) out.push({ cle: 'limite', texte: T('stateAgendaCapped', [fmt.nombre(n.limite.retenues), fmt.nombre(n.limite.total)]) });
+  if (n.planning === 'indisponible') out.push({ cle: 'planning', texte: T('stateAgendaNoSchedule') });
   // « Hors ligne » ne lit que la dernière rediffusion : le refus de la liste ne le touche pas.
-  if (n.refus === 'diffusions' && data.vue === 'semaine') out.push(noteAgenda(T('stateAgendaNoReplays'), 'alerte'));
-  if (n.echouees) out.push(noteAgenda(T('stateAgendaPartial', fmt.nombre(n.echouees)), 'alerte'));
-  if (n.reseau) out.push(noteAgenda(T('stateAgendaNetwork'), 'alerte'));
+  if (n.refus === 'diffusions' && data.vue === 'semaine') out.push({ cle: 'refus', ton: 'alerte', texte: T('stateAgendaNoReplays') });
+  if (n.echouees) out.push({ cle: 'echouees', ton: 'alerte', texte: T('stateAgendaPartial', fmt.nombre(n.echouees)) });
+  if (n.reseau) out.push({ cle: 'reseau', ton: 'alerte', texte: T('stateAgendaNetwork') });
   return out;
+};
+/* Les notes gardent leur nœud, la barre d'avancement avec : elle glisse d'un
+   lot à l'autre au lieu de repartir de zéro à chaque relecture. */
+const poserNotes = (conteneur, data) => {
+  const avant = new Map([...conteneur.children].map((el) => [el.dataset.cle, el]));
+  const notes = notesAgenda(data);
+  conteneur.replaceChildren(...notes.map((n) => {
+    let el = avant.get(n.cle);
+    if (!el) {
+      el = noteAgenda('', n.ton);
+      el.dataset.cle = n.cle;
+      el.appendChild(elt('span', 'ag-note-texte'));
+      if (n.part !== undefined) {
+        const barre = div('ag-prog');
+        barre.appendChild(div('ag-prog-rempli'));
+        el.appendChild(barre);
+      }
+    }
+    el.firstChild.textContent = n.texte;
+    if (n.part !== undefined) el.querySelector('.ag-prog-rempli').style.width = n.part + '%';
+    return el;
+  }));
+  conteneur.hidden = !notes.length;
 };
 
 const boutonAgenda = (texte, surClic, inactif, etiquette, classe = '') => {
@@ -1865,172 +1942,291 @@ const relireAgenda = () => {
   const section = SECTIONS.find((s) => s.id === courante);
   if (section && section.agenda) chargerAgenda(section, true);
 };
+/* Une autre semaine se montre posée sur aujourd'hui s'il y est, sur son
+   premier jour sinon. « Aujourd'hui » reste actif dans la semaine en cours :
+   il y ramène la vue au jour. */
 const allerSemaine = (d) => {
   etatAgenda.decalage = Math.max(-AGENDA_PASSE, Math.min(AGENDA_FUTUR, d));
+  etatAgenda.cible = 'auj';
   relireAgenda();
 };
+/* LE RAIL OUVRE UNE VUE NEUVE (4.25.0.1) : la semaine en cours, toutes les
+   chaînes, posée sur aujourd'hui ; « Hors ligne » en haut de sa liste. « Sa
+   semaine » et « Actualiser » passent ailleurs, et gardent ce qu'ils doivent. */
+const entrerAgenda = (id) => {
+  if (id === 'semaine') { etatAgenda.decalage = 0; etatAgenda.chaine = null; }
+  etatAgenda.cible = id === 'semaine' ? 'auj' : 'haut';
+};
 
-const menuChaines = (data) => {
-  const sel = document.createElement('select');
-  sel.className = 'reg-menu ag-chaine';
-  sel.setAttribute('aria-label', T('valChannel'));
-  const tout = document.createElement('option');
-  tout.value = '';
-  tout.textContent = T('valAllChannels');
-  sel.appendChild(tout);
-  const ordre = new Intl.Collator(LOCALE, { sensitivity: 'base' });
-  const liste = (data.chaines || []).slice().sort((a, b) => ordre.compare(a.nom, b.nom));
-  for (const c of liste) {
-    const o = document.createElement('option');
-    o.value = c.login;
-    o.textContent = c.nom;
-    sel.appendChild(o);
+/* LE MENU NE SE REFAIT QUE SI SA LISTE A CHANGÉ, et jamais sous la main qui le
+   tient : une option insérée sous le pointeur ferait choisir sa voisine. Ce
+   qui arrive pendant qu'on le tient s'y range quand on le quitte (`quitte`) —
+   dit par l'appelant, plutôt que lu dans `document.activeElement`, dont la
+   valeur pendant un `blur` dépend de l'ordre où le navigateur fait les
+   choses. */
+const remplirMenu = (b, quitte = false) => {
+  const { chaines, chaine } = etatAgenda.menu;
+  const liste = chaines.slice().sort((x, y) => ORDRE_NOMS.compare(x.nom, y.nom));
+  // Une chaîne choisie que la liste n'a pas encore lue y garde sa ligne : le menu dit ce que la vue montre.
+  if (chaine && !liste.some((c) => c.login === chaine)) liste.unshift({ login: chaine, nom: chaine });
+  const sig = liste.map((c) => `${c.login}\u0001${c.nom}`).join('\u0002');
+  if (sig !== b.sig) {
+    if (!quitte && document.activeElement === b.menu) return;
+    const tout = document.createElement('option');
+    tout.value = '';
+    tout.textContent = T('valAllChannels');
+    b.menu.replaceChildren(tout, ...liste.map((c) => {
+      const o = document.createElement('option');
+      o.value = c.login;
+      o.textContent = c.nom;
+      return o;
+    }));
+    b.sig = sig;
   }
-  sel.value = liste.some((c) => c.login === etatAgenda.chaine) ? etatAgenda.chaine : '';
-  sel.addEventListener('change', () => { etatAgenda.chaine = sel.value || null; relireAgenda(); });
-  /* UN MENU OUVERT NE SE REPEINT PAS SOUS LA SOURIS : la relecture attend
-     qu'on le quitte (cf. montrerAgenda), puis repeint ce qu'elle a reçu. */
-  sel.addEventListener('blur', () => {
-    if (!etatAgenda.enAttente) return;
-    etatAgenda.enAttente = false;
-    const section = SECTIONS.find((s) => s.id === courante);
-    if (section && section.agenda && etatAgenda.donnees) montrerAgenda(section, etatAgenda.donnees, true);
+  b.menu.value = chaine || '';
+};
+const barreSemaine = () => {
+  const b = { sig: null };
+  b.auj = boutonAgenda(T('btnToday'), () => allerSemaine(0));
+  b.prec = boutonAgenda('‹', () => allerSemaine(etatAgenda.decalage - 1), false, T('btnWeekPrev'), ' ag-fleche');
+  b.suiv = boutonAgenda('›', () => allerSemaine(etatAgenda.decalage + 1), false, T('btnWeekNext'), ' ag-fleche');
+  b.plage = elt('span', 'ag-plage');
+  b.menu = document.createElement('select');
+  b.menu.className = 'reg-menu ag-chaine';
+  b.menu.setAttribute('aria-label', T('valChannel'));
+  /* LE CHOIX S'APPLIQUE AUSSITÔT (4.25.0.1). 4.25.0 refaisait ce menu à chaque
+     relecture, et attendait donc qu'on le quitte pour repeindre la vue — or un
+     menu garde le focus après un choix : la chaîne choisie ne s'affichait
+     qu'au clic suivant, ailleurs. Le menu vit maintenant dans la tête, que
+     rien ne détruit ; seule la liste se repeint. */
+  b.menu.addEventListener('change', () => {
+    etatAgenda.chaine = b.menu.value || null;
+    etatAgenda.cible = 'auj';
+    relireAgenda();
   });
-  return sel;
+  b.menu.addEventListener('blur', () => remplirMenu(b, true));
+  b.el = div('ag-barre');
+  b.el.append(b.auj, b.prec, b.suiv, b.plage, b.menu);
+  return b;
+};
+const majBarre = (b, data) => {
+  b.plage.textContent = plageSemaine(data.semaine.debut, data.semaine.fin);
+  b.prec.disabled = etatAgenda.decalage <= -AGENDA_PASSE;
+  b.suiv.disabled = etatAgenda.decalage >= AGENDA_FUTUR;
+  etatAgenda.menu = { chaines: data.chaines || [], chaine: data.chaine || null };
+  remplirMenu(b);
+};
+
+/* LA CHARPENTE : une tête collée en haut — la barre de la semaine, les notes —
+   et la liste. Elle ne se refait qu'au changement de vue. */
+const charpente = (vue) => {
+  const c = etatAgenda.charpente;
+  if (c && c.vue === vue) return c;
+  const tete = div('ag-tete');
+  const barre = vue === 'semaine' ? barreSemaine() : null;
+  const notes = div('ag-notes');
+  notes.hidden = true;
+  if (barre) tete.appendChild(barre.el);
+  tete.appendChild(notes);
+  const liste = div('ag-liste');
+  $('agenda').replaceChildren(tete, liste);
+  etatAgenda.noeuds = new Map();
+  etatAgenda.signature = null;
+  etatAgenda.charpente = { vue, tete, barre, notes, liste };
+  return etatAgenda.charpente;
 };
 
 /* LA SEMAINE : sept jours dans l'ordre de la locale, chacun avec ce qui y
-   commence — ou ce qui y déborde depuis la semaine d'avant, rangé au premier
-   jour avec sa date. */
-const vueSemaine = (data) => {
+   COMMENCE — une diffusion qui passe minuit reste au jour où elle est partie
+   (cf. `semaine` dans content.js). */
+const listeSemaine = (data, suivant) => {
   const { debut, fin } = data.semaine;
-  const barre = div('ag-barre');
-  barre.append(
-    boutonAgenda(T('btnToday'), () => allerSemaine(0), etatAgenda.decalage === 0),
-    boutonAgenda('‹', () => allerSemaine(etatAgenda.decalage - 1),
-                 etatAgenda.decalage <= -AGENDA_PASSE, T('btnWeekPrev'), ' ag-fleche'),
-    boutonAgenda('›', () => allerSemaine(etatAgenda.decalage + 1),
-                 etatAgenda.decalage >= AGENDA_FUTUR, T('btnWeekNext'), ' ag-fleche'),
-    elt('span', 'ag-plage', plageSemaine(debut, fin)),
-    menuChaines(data));
-  const out = [barre, ...notesAgenda(data)];
   const entrees = data.entrees || [];
   if (!entrees.length) {
-    if (!data.enCours) out.push(noteAgenda(T(etatAgenda.chaine ? 'stateAgendaEmptyChannel' : 'stateAgendaEmpty')));
-    return out;
+    return data.enCours ? [] : [noteAgenda(T(data.chaine ? 'stateAgendaEmptyChannel' : 'stateAgendaEmpty'))];
   }
   const noms = new Map((data.chaines || []).map((c) => [c.login, c.nom]));
-  const jours = [];
+  const out = [];
   for (let i = 0; i < 7; i++) {
-    const d = new Date(debut);
-    d.setDate(d.getDate() + i);
-    jours.push(d.getTime());
-  }
-  jours.forEach((jour, i) => {
-    const finJour = i < 6 ? jours[i + 1] : fin;
+    const jour = jourDe(debut, i);
+    const finJour = i < 6 ? jourDe(debut, i + 1) : fin;
     const section = elt('section', 'ag-jour');
+    section.dataset.jour = String(jour);
+    section.dataset.fin = String(finJour);
     const titre = elt('h3', 'ag-jour-titre', JOUR_TITRE.format(jour));
+    titre.dataset.ancre = 'j:' + jour;
     if (data.maintenant >= jour && data.maintenant < finJour) {
       section.classList.add('ag-jour--auj');
       titre.appendChild(elt('span', 'ag-auj', T('btnToday')));
     }
     section.appendChild(titre);
-    const du = entrees.filter((e) => {
-      const t = Math.max(e.debut, debut);
-      return t >= jour && t < finJour;
-    });
+    const du = entrees.filter((e) => e.debut >= jour && e.debut < finJour);
     if (!du.length) section.appendChild(elt('p', 'ag-vide', '—'));
-    for (const e of du) section.appendChild(entreeAgenda(e, noms.get(e.login) || e.login, debut));
+    for (const e of du) {
+      const nom = noms.get(e.login) || e.login;
+      section.appendChild(noeud(suivant, `e:${e.type}:${e.login}:${e.id || ''}:${e.debut}`,
+                                JSON.stringify(e) + nom, () => entreeAgenda(e, nom)));
+    }
     out.push(section);
-  });
+  }
   return out;
 };
 
+/* « Sa semaine » : celle du dernier direct, pour cette chaîne seule, posée sur
+   son jour — celui de son début quand sa rediffusion le donne, celui de sa fin
+   sinon, comme la semaine le range. */
 const voirSemaineDe = (l) => {
+  const t = l.dernier ? (l.dernier.debut ?? l.dernier.t) : null;
   etatAgenda.chaine = l.login;
-  etatAgenda.decalage = l.dernier
-    ? Math.max(-AGENDA_PASSE, Math.min(0, decalageDe(l.dernier.debut))) : 0;
+  etatAgenda.decalage = t === null ? 0 : Math.max(-AGENDA_PASSE, Math.min(0, decalageDe(t)));
+  etatAgenda.cible = t === null ? 'auj' : t;
   charger('semaine');
 };
 
-/* HORS LIGNE : une ligne par chaîne, la plus récemment partie d'abord. « Revoir »
-   n'apparaît que si la dernière rediffusion EST le dernier direct — sinon le
-   bouton mènerait, sans le dire, à un direct plus ancien. */
-const vueHorsLigne = (data) => {
-  const out = notesAgenda(data);
+/* HORS LIGNE : une ligne par chaîne, dans l'ordre de la page — les prochains
+   directs programmés d'abord, le plus proche en tête, puis les autres, la plus
+   récemment partie d'abord ; un filet sépare les deux. « Revoir » n'apparaît
+   que si la dernière rediffusion EST le dernier direct — sinon le bouton
+   mènerait, sans le dire, à un direct plus ancien. */
+const ligneHorsLigne = (l, quand) => {
+  const ligne = div('hl-ligne');
+  const avatar = imageAgenda(l.avatar, 'hl-avatar') || div('hl-avatar');
+  const corps = div('hl-corps');
+  const l1 = div('hl-l1');
+  l1.appendChild(elt('span', 'hl-nom', l.nom));
+  const q = elt('span', 'hl-quand', quand);
+  // Le début n'est connu que par la rediffusion ; sans elle, la fin seule.
+  if (l.dernier) {
+    q.title = l.dernier.debut !== null
+      ? `${DATE_COMPLETE.format(l.dernier.debut)} – ${HEURE.format(l.dernier.t)}`
+      : `– ${DATE_COMPLETE.format(l.dernier.t)}`;
+  }
+  l1.appendChild(q);
+  corps.appendChild(l1);
+  const revoir = !!(l.dernier && l.dernier.revoir && l.derniere);
+  // Deux lignes que la largeur coupe : l'infobulle les rend entières.
+  const enEntier = (classe, texte) => { const e = elt('div', classe, texte); e.title = texte; return e; };
+  const sous = [l.titre, revoir ? l.derniere.libelle : null].filter(Boolean).join(' · ');
+  if (sous) corps.appendChild(enEntier('hl-titre', sous));
+  if (l.prochain) {
+    const quandProchain = `${JOUR_ABREGE.format(l.prochain.debut)}, ${HEURE.format(l.prochain.debut)}`;
+    corps.appendChild(enEntier('hl-prochain',
+      T('valNext', quandProchain + (l.prochain.titre ? ` — ${l.prochain.titre}` : ''))));
+  }
+  const actions = div('hl-actions');
+  if (revoir && /^\d+$/.test(l.derniere.id || '')) {
+    if (l.derniere.restreinte) actions.appendChild(pastilleAbonnes(l.abonne === true));
+    const a = elt('a', 'bouton bouton--fantome', T('btnReplay'));
+    poserLien(a, `https://www.twitch.tv/videos/${l.derniere.id}`);
+    a.title = [l.derniere.titre, dureeHms(l.derniere.duree)].filter(Boolean).join(' · ');
+    actions.appendChild(a);
+  }
+  actions.appendChild(boutonAgenda(T('btnSeeWeek'), () => voirSemaineDe(l)));
+  ligne.append(avatar, corps, actions);
+  return ligne;
+};
+const listeHorsLigne = (data, suivant) => {
   const lignes = data.lignes || [];
   if (!lignes.length) {
-    if (!data.enCours) {
-      out.push(noteAgenda(T(data.resume && data.resume.directs ? 'stateAgendaNoOffline' : 'stateEmpty')));
-    }
-    return out;
+    return data.enCours ? []
+      : [noteAgenda(T(data.resume && data.resume.directs ? 'stateAgendaNoOffline' : 'stateEmpty'))];
   }
   const liste = div('hl-liste');
+  let avant = null;
   for (const l of lignes) {
-    const ligne = div('hl-ligne');
-    const avatar = imageAgenda(l.avatar, 'hl-avatar') || div('hl-avatar');
-    const corps = div('hl-corps');
-    const l1 = div('hl-l1');
-    l1.appendChild(elt('span', 'hl-nom', l.nom));
-    const quand = elt('span', 'hl-quand', l.dernier
-      ? T('valLastLive', ilYa(l.dernier.t, data.maintenant)) : T('valLastLiveUnknown'));
-    if (l.dernier) quand.title = DATE_COMPLETE.format(l.dernier.debut);
-    l1.appendChild(quand);
-    corps.appendChild(l1);
-    const memeDirect = !!(l.dernier && l.derniere && l.dernier.debut === l.derniere.debut);
-    const sous = [l.titre, memeDirect ? l.derniere.libelle : null].filter(Boolean).join(' · ');
-    if (sous) corps.appendChild(elt('div', 'hl-titre', sous));
-    if (l.prochain) {
-      const quandProchain = `${JOUR_ABREGE.format(l.prochain.debut)}, ${HEURE.format(l.prochain.debut)}`;
-      corps.appendChild(elt('div', 'hl-prochain',
-        T('valNext', quandProchain + (l.prochain.titre ? ` — ${l.prochain.titre}` : ''))));
-    }
-    const actions = div('hl-actions');
-    if (memeDirect && /^\d+$/.test(l.derniere.id || '')) {
-      const a = elt('a', 'bouton bouton--fantome', T('btnReplay'));
-      poserLien(a, `https://www.twitch.tv/videos/${l.derniere.id}`);
-      a.title = [l.derniere.titre, dureeHms(l.derniere.duree)].filter(Boolean).join(' · ');
-      actions.appendChild(a);
-    }
-    actions.appendChild(boutonAgenda(T('btnSeeWeek'), () => voirSemaineDe(l)));
-    ligne.append(avatar, corps, actions);
-    liste.appendChild(ligne);
+    // « il y a 3 heures » entre dans la signature : la ligne se refait quand il change.
+    const quand = l.dernier ? T('valLastLive', ilYa(l.dernier.t, data.maintenant)) : T('valLastLiveUnknown');
+    const el = noeud(suivant, 'l:' + l.login, JSON.stringify(l) + quand, () => ligneHorsLigne(l, quand));
+    el.classList.toggle('hl-ligne--suite', !!(avant && avant.prochain && !l.prochain));
+    liste.appendChild(el);
+    avant = l;
   }
-  out.push(liste);
-  return out;
+  return [liste];
 };
 
-const montrerAgenda = (section, data, relecture) => {
+/* OÙ L'ON REGARDE : la première ligne visible sous la tête, son écart au bas de
+   celle-ci, et son jour. Mesuré avant un dessin, rétabli après — la tête peut
+   avoir changé de hauteur entre-temps, une note venue ou partie ; et la ligne
+   peut avoir disparu, son jour non. */
+const reperer = (hote, tete) => {
+  const bas = tete.getBoundingClientRect().bottom;
+  for (const el of hote.querySelectorAll('[data-ancre]')) {
+    const r = el.getBoundingClientRect();
+    if (r.bottom <= bas) continue;
+    const jour = el.closest('[data-jour]');
+    return { cle: el.dataset.ancre, ecart: r.top - bas,
+             jour: jour ? jour.dataset.jour : null, ecartJour: jour ? jour.getBoundingClientRect().top - bas : 0 };
+  }
+  return null;
+};
+const retablir = (hote, tete, rep) => {
+  const parValeur = (attr, v) => [...hote.querySelectorAll(`[${attr}]`)].find((x) => x.getAttribute(attr) === v);
+  const el = parValeur('data-ancre', rep.cle);
+  const jour = el || !rep.jour ? null : parValeur('data-jour', rep.jour);
+  if (!el && !jour) return;
+  hote.scrollTop += (el || jour).getBoundingClientRect().top - tete.getBoundingClientRect().bottom
+    - (el ? rep.ecart : rep.ecartJour);
+};
+/* POSER LA VUE : le jour voulu juste sous la tête — aujourd'hui, ou celui d'un
+   dernier direct —, le haut quand la semaine montrée ne le contient pas. */
+const viser = (hote, tete, cible) => {
+  const jours = [...hote.querySelectorAll('.ag-jour')];
+  const jour = cible === 'auj' ? jours.find((s) => s.classList.contains('ag-jour--auj'))
+    : typeof cible === 'number' ? jours.find((s) => Number(s.dataset.jour) <= cible && cible < Number(s.dataset.fin))
+    : null;
+  if (!jour) { hote.scrollTop = 0; return; }
+  hote.scrollTop += jour.getBoundingClientRect().top - tete.getBoundingClientRect().bottom;
+};
+/* LA MAIN REPREND LA VUE : un défilement que la vue ne s'est pas donné lève la
+   cible, et la position se garde désormais ligne à ligne. */
+const suivreDefilement = () => {
+  if (Math.abs($('agenda').scrollTop - etatAgenda.defileAuto) > 1) etatAgenda.cible = null;
+};
+
+const montrerAgenda = (section, data) => {
   const n = data.notes || {};
   if (n.rosterVide) { montrerMessage('stateAgendaNoRoster'); return; }
   if (n.refus === 'chaines') { montrerMessage('stateAgendaRefused'); return; }
-  etatAgenda.donnees = data;
   const hote = $('agenda');
-  const actif = document.activeElement;
-  if (relecture && !hote.hidden && actif && actif.tagName === 'SELECT' && hote.contains(actif)) {
-    etatAgenda.enAttente = true;
-    return;
+  const visible = !hote.hidden;
+  const c = charpente(section.id);
+  /* UNE RELECTURE SANS NOUVEAUTÉ NE TOUCHE À RIEN. La minute y entre : « il y
+     a 3 heures » et le jour marqué en dépendent. */
+  const signature = JSON.stringify([data.version, data.enCours, data.progression, data.notes,
+                                    data.chaine, data.semaine, Math.floor((data.maintenant || 0) / 60_000)]);
+  if (!visible || signature !== etatAgenda.signature) {
+    const repere = visible && etatAgenda.cible === null ? reperer(hote, c.tete) : null;
+    $('message').hidden = true;
+    $('visuel').hidden = true;
+    $('visuel').replaceChildren();
+    $('tableau-cadre').hidden = true;
+    $('resume').replaceChildren(...(section.tuiles ? section.tuiles(data.resume || {}) : []).map((t) => tuile(t)));
+    if (c.barre) majBarre(c.barre, data);
+    poserNotes(c.notes, data);
+    const suivant = new Map();
+    c.liste.replaceChildren(...(section.id === 'semaine' ? listeSemaine(data, suivant) : listeHorsLigne(data, suivant)));
+    etatAgenda.noeuds = suivant;
+    etatAgenda.signature = signature;
+    hote.hidden = false;
+    if (repere) retablir(hote, c.tete, repere);
   }
-  $('message').hidden = true;
-  $('visuel').hidden = true;
-  $('visuel').replaceChildren();
-  $('tableau-cadre').hidden = true;
-  $('resume').replaceChildren(...(section.tuiles ? section.tuiles(data.resume || {}) : []).map((t) => tuile(t)));
-  const defile = relecture && !hote.hidden ? hote.scrollTop : 0;
-  hote.replaceChildren(...(section.id === 'semaine' ? vueSemaine(data) : vueHorsLigne(data)));
-  hote.hidden = false;
-  hote.scrollTop = defile;
+  if (etatAgenda.cible !== null) viser(hote, c.tete, etatAgenda.cible);
+  etatAgenda.defileAuto = hote.scrollTop;
 };
 
 const chargerAgenda = async (section, relecture = false) => {
   clearTimeout(etatAgenda.minuteur);
   const jeton = ++etatAgenda.jeton;
-  if (!relecture) montrerMessage('stateLoading');
+  if (!relecture) {
+    montrerMessage('stateLoading');
+    // Une vue rouverte sans cible part d'où l'on cherche : aujourd'hui, ou le haut de la liste.
+    if (etatAgenda.cible === null) etatAgenda.cible = section.id === 'semaine' ? 'auj' : 'haut';
+  }
   const r = await demander({ section: section.id, arg: argAgenda(section.id) });
   // Une réponse arrivée après qu'on a changé de section ou de semaine ne peint rien.
   if (courante !== section.id || jeton !== etatAgenda.jeton) return;
   if (!r.ok) { montrerEchec(r); return; }
-  montrerAgenda(section, r.data || {}, relecture);
+  montrerAgenda(section, r.data || {});
   if (r.data && r.data.enCours) {
     etatAgenda.minuteur = setTimeout(() => {
       if (courante === section.id && jeton === etatAgenda.jeton) chargerAgenda(section, true);
@@ -2562,7 +2758,7 @@ const construireRail = () => {
     b.type = 'button';
     b.textContent = T(cleNav(s.id));
     b.setAttribute('aria-current', 'false');
-    b.addEventListener('click', () => charger(s.id));
+    b.addEventListener('click', () => { if (s.agenda) entrerAgenda(s.id); charger(s.id); });
     rail.appendChild(b);
   }
 };
@@ -2576,6 +2772,14 @@ document.addEventListener('DOMContentLoaded', () => {
   appliquerDiag();
 
   $('message-bouton').addEventListener('click', () => charger(courante));
+  /* L'agenda reprend la main dès qu'on y touche : la molette, le doigt, un
+     clic — sur sa barre de défilement aussi —, une touche ; et, pour tout le
+     reste, un défilement qu'il ne s'est pas donné (cf. `suivreDefilement`). */
+  const lacher = () => { etatAgenda.cible = null; };
+  for (const ev of ['wheel', 'touchstart', 'pointerdown', 'keydown']) {
+    $('agenda').addEventListener(ev, lacher, { passive: true });
+  }
+  $('agenda').addEventListener('scroll', suivreDefilement, { passive: true });
   $('btn-rescan').addEventListener('click', () => lancer('rescan', $('btn-rescan')));
   $('btn-rapport').addEventListener('click', ouvrirRapport);
   $('rapport-fermer').addEventListener('click', fermerRapport);

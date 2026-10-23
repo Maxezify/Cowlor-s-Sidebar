@@ -187,10 +187,10 @@ _______________________________
 ➤ 📅 QUEM TRANSMITIU, QUEM ESTÁ AO VIVO, QUEM VEM AÍ
 A página de programação de um canal, na Twitch, mostra um só canal. O grupo «Programação» do painel mostra todos os que você segue, de uma vez.
 
-- ★ A SEMANA, DIA A DIA ★ Cada live passada com a gravação a um clique, as que estão no ar e as que os canais agendaram. Oito semanas para trás, duas para a frente.
-- ★ OFFLINE, MAS NÃO ESQUECIDOS ★ Cada canal seguido que não está ao vivo, o mais recente primeiro: quando transmitiu pela última vez, a gravação e a próxima live, se tiver uma agendada.
+- ★ A SEMANA, DIA A DIA ★ Ela abre no dia de hoje, com os dias passados acima: cada live passada com a gravação a um clique, as que estão no ar e as que os canais agendaram, cada uma no dia em que começou. Oito semanas para trás, duas para a frente.
+- ★ OFFLINE, MAS NÃO ESQUECIDOS ★ Cada canal seguido que não está ao vivo: primeiro os que têm uma live agendada, a mais próxima no topo, depois os outros, o mais recente primeiro — quando transmitiu pela última vez, a gravação e a próxima live.
 - ★ UM CANAL OU TODOS ★ Um menu deixa só um, e «Semana do canal» leva direto à semana da última live dele.
-- ★ SINCERO SOBRE O QUE A TWITCH GUARDA ★ Uma gravação só existe se o canal guarda as lives, e enquanto a Twitch as mantiver; uma última live sem gravação avisa («Sem gravação»).
+- ★ SINCERO SOBRE O QUE A TWITCH GUARDA ★ Uma gravação só existe se o canal guarda as lives, e enquanto a Twitch as mantiver; uma última live sem gravação avisa («Sem gravação»), e uma gravação só para inscritos também («Inscritos»), antes do clique.
 - ★ SÓ QUANDO VOCÊ OLHA ★ Nada é pedido à Twitch antes de você abrir, e nada é salvo: tudo vive na aba.
 
 _______________________________
