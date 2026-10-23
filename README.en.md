@@ -2059,6 +2059,265 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The schedule, after its first real run (v4.25.0.1)
+
+Feedback from the first run on the real Twitch, screenshots attached: “On
+‘The week’, it should open directly on today. […] Also, if a stream ends the
+next day during the night, it shows up twice in the list, on both days. I'd
+like it to show only on the day it started. […] As soon as a stream is picked
+in the list, the panel should update right away […]. If possible, add
+something to tell whether the replay can be watched without being
+subscribed. […] In ‘Offline’, could the next scheduled streams go to the top
+of the list, the soonest first?” And: “Be rigorous!” Published on
+`claude/chrome-multi`.
+
+### `lastBroadcast.startedAt` is an end
+
+4.25.0 said of itself: “the first real run will tell whether the schema
+accepts them”. It did accept them, and it showed something else: the field
+does not mean what its name says. On a real response published by the npm
+package the types come from, the same channel serves:
+
+| | id | instant |
+| --- | --- | --- |
+| `lastBroadcast` | `317468242776` | `startedAt` 21:04:53 |
+| its archive (`broadcastIdentifier`) | `317468242776` | published 19:50:41, 4,449 s: ended 21:04:50 |
+
+`startedAt` falls three seconds after the end of the archive of the same
+broadcast: it is the END of the last stream. The screenshot shows the same
+thing — “19:44 – 00:21” on Thursday, “No replay, 00:21” on Friday.
+
+What 4.25.0 did with it, read as a start:
+
+- **a duplicate “No replay” for every channel.** The archive of the last
+  stream was looked for within a quarter of an hour of its start; it was
+  given its end. None ever matched, and every last stream of the week had its
+  double — on the next day when it ran past midnight;
+- **“Replay” could never show** in “Offline”, for the same reason;
+- the second pass's day of slack — a Sunday-night stream looked for on
+  Monday — assumed a start as well.
+
+### What changes in the collection
+
+- **The archive of the last stream is recognised by its id.** Two more fields
+  per archive, the ones Twitch's own Videos tab asks for:
+  `broadcastIdentifier { id }`, the broadcast it comes from, and
+  `resourceRestriction { type }`, non-null when it is for subscribers only.
+  Without an id, time takes over: the end of the last stream falls within the
+  archive, give or take a quarter of an hour. Should the schema refuse these
+  fields, requests would go on without them at once, for the session; the
+  report says `archives riches` or `simples`.
+- **The live stream is recognised the same way,** by its archive's id: an
+  archive dated more than a quarter of an hour after the stream it records
+  no longer makes a second entry.
+- **A broadcast is in one place only: the day it started.** One that runs
+  past midnight stays on its day; one that runs through Sunday night stays in
+  its week, where 4.25.0 still showed it on the next Monday. Only a stream
+  without an archive is placed at its end — the only time known of it — and
+  the panel writes it as an end: “– 00:21”. The day of slack goes with it: a
+  channel whose last stream ended before the week started nothing in it, and
+  its replays are no longer read again for it.
+- **A partial response is no longer a refusal.** Data with an error next to
+  it is one piece failing. 4.25.0 condemned the whole batch — twenty-five
+  channels asked again, batches halved, pause doubled — for a single field.
+  Now the channel hit — by the error's path, or because it is missing — is
+  asked again on its own; the others are read, and none passes for an account
+  Twitch no longer knows. The report counts these responses apart
+  (`partiels`). A schema refusal is only recognised without data: it is the
+  whole request that it rejects.
+- **“Offline” puts first the channels that have scheduled their next stream,**
+  the soonest first, then the others, the most recently gone first. The next
+  stream is the first slot that is not over: a channel late for its slot is
+  still expected there, as the week already shows.
+- **Less computing on every read:** the channel ordering only computes the
+  score of followed channels, instead of building and sorting the whole score
+  report; the menu's list goes without the avatars it does not show.
+
+### What changes in the panel
+
+- **The channel menu applies at once.** 4.25.0 rebuilt the whole view on
+  every read, menu included, and waited until the menu was left to repaint
+  it. But a menu keeps the focus after a choice: the chosen channel only
+  showed on the next click elsewhere — most often when changing week. The view
+  now has a head — the week bar, its notes — that reads never destroy; only
+  the list is repainted. A channel arriving while the menu is held does not
+  slip in under the pointer: it is filed when the menu is left.
+- **“The week” opens on today,** just below its head, past days above, and
+  stays there while the week fills. As soon as one scrolls by oneself —
+  wheel, finger, click, keyboard, or any scroll the view did not make — it no
+  longer repositions itself. “Today” stays enabled in the current week, and
+  brings it back.
+- **The position is kept line by line,** not in pixels: the line one is
+  looking at stays where it is when replays arrive above it, and its day
+  stands in for it if it disappears.
+- **What does not change is not redone.** A read with nothing new touches
+  nothing; an unchanged line keeps its node, and its thumbnail does not
+  reload; the progress bar slides from one batch to the next instead of
+  starting over.
+- **The subscribers' padlock.** A replay for subscribers only carries a
+  “Subs only” pill and its padlock, before the click: closed when you are not
+  known to be subscribed, open when the subscription memory knows you are
+  subscribed to the channel. It only knows what your visits showed it: when
+  in doubt, the padlock stays closed. In “Offline”, the pill comes before
+  “Replay”.
+- **“Offline”:** a rule separates the scheduled channels from the others; the
+  title and the next stream, which the width cuts, read in full in their
+  tooltip; “Replay” follows what the page established, no longer an equality
+  of instants.
+- **“Their week” lands on the day** of the last stream; the rail, for its
+  part, reopens a fresh view — the current week, all channels, today.
+- **“Refresh” reads again in place:** no “Loading…”, no jump to the top.
+
+### The texts
+
+- Three more keys in the twelve languages: the pill and its two tooltips. The
+  description of “Offline” states the new order.
+- The guide chapter gains a bullet, the padlock's, and its three others say
+  what changed. Scenario 96's citation contract adds the pill to it.
+- In the twelve Store listings, three bullets of the section revised, without
+  touching the skeleton. The `npm run store` contract gains a promise — the
+  padlock, tied to the `resourceRestriction { type }` field — and a quoted
+  label, “Subs only”.
+
+### What the bench measures
+
+**`page.html`** now serves what Twitch serves: `lastBroadcast` carries the end
+of the last stream, ids are numbers, and the two new archive fields only come
+back when the request asks for them. Two more levers: the schema refusing
+those fields, and partial responses — with the error's path, or the whole
+channel null.
+
+**207**, revised and extended. The set says its ends: brume's Saturday ends
+at twenty-one past midnight, for subscribers only; the Sunday night before
+ends on Monday; cobalt's last archive stopped an hour before its stream, and
+only the id says it is that stream; the live stream's archive opens twenty
+minutes after it.
+
+- b) “Offline”: the scheduled first, the soonest on top; the departure at
+  the end of the last stream; the restriction, and that you are not known to
+  be subscribed;
+- c) last week: the replay carries its id and its restriction; the stream
+  without an archive is told at its end; nothing of brume on Sunday, nor of
+  the night before;
+- e) the live stream recognised by its id;
+- f) the Sunday night stays in its week, without asking anything again;
+- q) the new fields refused: the record asked again without them, once, and
+  time recognising the archive;
+- r) partial responses — record, schedule, list: only the channel hit asked
+  again, and nobody “unknown”;
+- s) subscribed: the padlock open, in the week and offline;
+- t) a slot started but not over is still the next stream;
+- u) the current week of a fresh page: only the live channel has its replays
+  read.
+
+**208**, revised: the evening past midnight stays on Monday; “– 00:21”; the
+padlock closed and open; the progress note keeping its node; replays arriving
+above that do not push what one is looking at; the menu applying while still
+held, and not moving under the hand; a chosen channel the list does not
+carry; the view landing on today, released by the hand, brought back by
+“Today”; the wheel winning over a read painted at the same instant; the rule,
+the tooltips, the padlock before “Replay”; “Their week” landing on its day;
+“Refresh” in place; and what does not change not being redone.
+
+**96** quotes the pill in the schedule chapter.
+
+**Eighty-four named mutants, all caught:** forty-seven on the collection,
+thirty-four on the panel, three on the guide. Three of them called for a
+tighter bench before they were even run. Without a truncated archive, nothing
+told the id from the time. Without a fixed Thursday, “Their week” landing on
+today passed on the days when the last stream fell on the first day of a
+week. And without the race between the wheel and a read, nothing exercised
+the wheel.
+
+The full bench: 1865 assertions in 207 scenarios, all green.
+
+| mutant | what falls |
+| --- | --- |
+| the collection starts at load | 207: a, b |
+| no batches | 207: b, b, g, h, k, k, n, n |
+| several workers at once | 207: b, b, g, h, k |
+| no pause between two sends | 207: b, k |
+| the live channel not first | 207: b |
+| the second pass for every channel | 207: c, g, h, r, u |
+| no long list for an older week | 207: f, f, f, g, h, h |
+| the live stream and its archive twice | 207: e, u |
+| the live stream recognised by time alone | 207: e, u |
+| “No replay” despite the archive | 207: c, c, c, d, d, q, r, s |
+| the last stream's archive without its id | 207: c, c, d, r, s |
+| the cancelled slot shown | 207: e |
+| the past slot shown | 207: c, c, c, c, d, d, m, q, r |
+| the live stream's slot shown | 207: e, u |
+| one refused form condemns the schedule | 207: j, j, j |
+| the service's refusal taken for the schema's | 207: k, k, k, o |
+| no slowing down | 207: k, k |
+| insisting on a refused channel | 207: n, o |
+| no stop on two losses | 207: n, n, n |
+| the network pause ignored | 207: n, n, n |
+| “Refresh” keeps the pause | 207: n |
+| the report names the channels | 207: h |
+| no cap | 207: p |
+| the subscription does not count | 207: p |
+| the schedule writes to storage | 207: i |
+| the channel login not checked | 207: d |
+| the week not bounded | 207: d, e, f, h |
+| the departure dated at the replay's start | 207: b |
+| “Offline”: the longest gone first | 207: b |
+| the last stream's end read as a start | 207: b, c, c, c, d, d, q, r, s |
+| the end-only time not flagged | 207: c |
+| the overlap rule back | 207: c, c, c, d, d, q, r |
+| the day of slack back | 207: u |
+| a partial record written anyway | 207: r, r |
+| a partial list taken as empty | 207: r, r, r |
+| a partial schedule taken as empty | 207: r, r, r |
+| the error's path ignored | 207: r, r, r |
+| a partial response taken as a refusal | 207: r, r |
+| the new fields never dropped | 207: q, q |
+| the new fields asked again after a refusal | 207: q, q |
+| the restriction ignored | 207: b, c, s |
+| never subscribed | 207: s |
+| “Offline”: the scheduled not first | 207: b, t |
+| “Offline”: the furthest scheduled first | 207: b, t |
+| the late slot dropped | 207: t |
+| the visit score ignored | 207: p |
+| the broadcast id never read | 207: c, c, c, d, e, r, s, u |
+| the week starts on Monday for all | 208: b |
+| the week shifted by a day | 208: b, b, b, j, j, j, l, n |
+| the replay id not checked | 208: c |
+| without `noopener` | 208: c, l |
+| the title as HTML | 208: d, e, o |
+| images over http | 208: d, l |
+| the position lost on a read | 208: g |
+| the reading does not stop | 208: g |
+| the menu rebuilt under the hand | 208: h |
+| the head rebuilt on every paint | 208: g, g, g, h, h, m, n, n, n |
+| nine weeks back | 208: j |
+| the list refusal told in both views | 208: k |
+| the frozen bar | 208: k |
+| “Replay” on an older replay | 208: l |
+| “Their week” opens the current week | 208: l |
+| the abbreviated number's plural taken from the whole number | 208: o |
+| a tab, even embedded | 208: p |
+| the end-only time written as a start | 208: c |
+| the head not sticky | 208: f, g, j, j, l |
+| the view never landed | 208: j, j, l |
+| the wheel does not release the view | 208: j |
+| scrolling does not release the view | 208: j |
+| no line kept | 208: n, n |
+| an unchanged read redone | 208: n |
+| the version forgotten | 208: h, n, n |
+| no padlock | 208: e |
+| the padlock always closed | 208: e, l |
+| no rule | 208: l |
+| “Refresh” reloads the view | 208: j, m |
+| the rail keeps the channel and the week | 208: j, j, n, n, n, n |
+| “Their week” landing on today | 208: l |
+| the note rebuilt on every read | 208: g |
+| the chosen channel missing from the menu | 208: i |
+| the position taken at the top of the view | 208: g |
+| the schedule chapter forgotten | 96: the seventeen chapters, the return to the guide, Japanese |
+| the group missing from the panel chapter | 96: the six groups, the quotations |
+| the padlock missing from the guide | 96: the quotations |
+
 ## The followed channels' schedule (v4.25.0)
 
 The request, among fifteen proposed ideas: "6. Offline, but not forgotten
@@ -2146,6 +2405,11 @@ The fields were established on the types published by an npm package drawn
 from real responses (`twitch-gql-queries`), and the bench exercises them
 against a simulated Twitch. The first real run will tell whether the schema
 accepts them. If it refuses one, the view says so, and the report says which.
+
+**The first run answered (v4.25.0.1, above).** The schema accepts these
+fields; but `lastBroadcast.startedAt` is the end of the last stream, not its
+start, and “No replay”, “Replay” and the second pass's day of slack depended
+on it.
 
 ### The texts
 
@@ -19221,7 +19485,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 207 scenarios, 1841 assertions |
+| `npm test` | the Playwright harness: 207 scenarios, 1865 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -19241,12 +19505,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1738 KB | 707 KB | 4,290 → **2** |
+| `content.js` | 1744 KB | 709 KB | 4,301 → **2** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
-| `panneau.js` | 133 KB | 68 KB | 184 → **0** |
+| `panneau.js` | 144 KB | 74 KB | 204 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
 | `background.js` | 10 KB | 2 KB | 22 → **0** |
-| **all five** | **2020 KB** | **880 KB** | **−56 %** |
+| **all five** | **2037 KB** | **888 KB** | **−56 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are

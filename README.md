@@ -2180,6 +2180,274 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## L'agenda, au premier essai réel (v4.25.0.1)
+
+Les retours du premier essai sur le vrai Twitch, captures à l'appui : « Il
+faudrait que sur la partie "Ma semaine" on puisse être directement sur le
+jour d'aujourd'hui. […] Egalement si un stream fini le lendemain dans la
+nuit, on le retrouve 2 fois dans la liste sur les deux jours. J'aimerai que
+l'on le retrouve seulement dans le jour dans lequel il a commencé. […] Que
+des qu'on sélectionne un stream dans la liste, le panneau s'update direct
+[…]. Si possible, ajouter un élément pour s'avoir si on peut voir le replay
+sans être abonné au streamer. […] Dans "Hors-ligne", possibilité de mettre
+en haut de liste les prochains stream prévu ? » Et : « Soit rigoureux ! »
+Publiée sur `claude/chrome-multi`.
+
+### `lastBroadcast.startedAt` est une fin
+
+La 4.25.0 disait d'elle-même : « le premier essai réel dira si le schéma les
+accepte ». Il les a acceptés, et il a montré autre chose : le champ ne dit
+pas ce que son nom promet. Sur une réponse réelle publiée par le paquet npm
+dont viennent les types, la même chaîne sert :
+
+| | identifiant | instant |
+| --- | --- | --- |
+| `lastBroadcast` | `317468242776` | `startedAt` 21:04:53 |
+| son archive (`broadcastIdentifier`) | `317468242776` | publiée 19:50:41, 4 449 s : finie à 21:04:50 |
+
+`startedAt` tombe trois secondes après la fin de l'archive du même direct :
+c'est la FIN du dernier direct. Le cas de la capture est le même — « 19:44 –
+00:21 » le jeudi, « Sans rediffusion, 00:21 » le vendredi.
+
+Ce que la 4.25.0 en faisait, lu comme un début :
+
+- **un « Sans rediffusion » en double pour chaque chaîne.** L'archive du
+  dernier direct se cherchait à un quart d'heure de son début ; or on lui
+  donnait sa fin. Aucune ne tombait jamais à côté, et chaque dernier direct
+  de la semaine avait son double — visible au jour suivant quand il passait
+  minuit ;
+- **« Revoir » ne pouvait jamais paraître** dans « Hors ligne », pour la même
+  raison ;
+- le jour de marge de la seconde passe — un direct du dimanche soir cherché
+  le lundi — supposait lui aussi un début.
+
+### Ce qui change dans la collecte
+
+- **L'archive du dernier direct se reconnaît à son identifiant.** Deux champs
+  de plus par archive, ceux que l'onglet Vidéos de Twitch demande lui-même :
+  `broadcastIdentifier { id }`, le direct dont elle vient, et
+  `resourceRestriction { type }`, non nul quand elle est réservée aux
+  abonnés. Sans identifiant, l'heure prend le relais : la fin du dernier
+  direct tombe dans l'archive, à un quart d'heure près. Si le schéma refusait
+  ces champs, les requêtes repartiraient aussitôt sans eux, pour la session ;
+  le rapport dit `archives riches` ou `simples`.
+- **Le direct en cours se reconnaît de même** à l'identifiant de son
+  archive : une archive datée plus d'un quart d'heure après le direct
+  qu'elle enregistre n'en fait plus une seconde entrée.
+- **Une diffusion n'est qu'à un endroit : le jour où elle a commencé.** Celle
+  qui passe minuit reste à son jour ; celle qui passe la nuit du dimanche
+  reste à sa semaine, où la 4.25.0 la montrait encore au lundi suivant. Seul
+  le direct sans archive se range à sa fin — la seule heure qu'on en sache —,
+  et le panneau l'écrit comme une fin : « – 00:21 ». Le jour de marge tombe
+  avec : une chaîne dont le dernier direct a fini avant la semaine n'y a rien
+  commencé, et ses rediffusions ne se relisent plus pour elle.
+- **Une réponse partielle n'est plus un refus.** Des données avec une erreur
+  à côté, c'est la panne d'un morceau. La 4.25.0 condamnait le lot entier —
+  vingt-cinq chaînes redemandées, les lots divisés, la pause doublée — pour
+  un seul champ tombé. Désormais, la chaîne touchée — par le chemin de
+  l'erreur, ou parce qu'elle manque — se redemande seule ; les autres sont
+  lues, et aucune ne passe pour un compte que Twitch ne connaîtrait plus. Le
+  rapport compte ces réponses à part (`partiels`). Un refus du schéma n'est
+  plus reconnu que sans données : c'est la requête entière qu'il rejette.
+- **« Hors ligne » met en tête les chaînes qui ont programmé leur prochain
+  direct**, la plus proche d'abord, puis les autres, la plus récemment
+  partie d'abord. Le prochain direct est le premier créneau qui n'est pas
+  fini : une chaîne en retard sur son créneau y est encore attendue, comme la
+  semaine le montre déjà.
+- **Moins de calcul à chaque relecture** : le classement des chaînes ne
+  calcule plus que le score des chaînes suivies, au lieu de construire et
+  trier le rapport des scores entier ; la liste du menu part sans les
+  avatars, qu'il n'affiche pas.
+
+### Ce qui change dans le panneau
+
+- **Le menu des chaînes s'applique aussitôt.** La 4.25.0 refaisait toute la
+  vue à chaque relecture, menu compris, et attendait qu'on quitte le menu
+  pour la repeindre. Or un menu garde le focus après un choix : la chaîne
+  choisie ne s'affichait qu'au clic suivant, ailleurs — le plus souvent en
+  changeant de semaine. La vue a maintenant une tête — la barre de la
+  semaine, ses notes — que les relectures ne détruisent pas ; seule la liste
+  se repeint. Une chaîne arrivée pendant qu'on tient le menu ne s'y glisse
+  pas sous le pointeur : elle s'y range quand on le quitte.
+- **« La semaine » s'ouvre posée sur aujourd'hui**, juste sous sa tête, les
+  jours passés au-dessus, et y reste pendant que la semaine se remplit. Dès
+  qu'on défile soi-même — molette, doigt, clic, clavier, ou tout défilement
+  que la vue ne s'est pas donné —, elle ne se repose plus d'elle-même.
+  « Aujourd'hui » reste actif dans la semaine en cours, et y ramène.
+- **La position se garde ligne à ligne,** pas en pixels : la ligne qu'on
+  regarde reste où elle est quand des rediffusions arrivent au-dessus, et
+  son jour la remplace si elle disparaît.
+- **Ce qui ne change pas ne se refait pas.** Une relecture sans nouveauté ne
+  touche à rien ; une ligne inchangée garde son nœud, et sa vignette ne se
+  recharge pas ; la barre d'avancement glisse d'un lot à l'autre au lieu de
+  repartir de zéro.
+- **Le cadenas des abonnés.** Une rediffusion réservée aux abonnés porte une
+  pastille « Abonnés » et son cadenas, avant le clic : fermé quand on ne vous
+  sait pas abonné, ouvert quand la mémoire des abonnements vous sait abonné
+  à la chaîne. Elle ne sait que ce que vos visites lui ont montré : faute de
+  savoir, le cadenas reste fermé. Dans « Hors ligne », la pastille précède
+  « Revoir ».
+- **« Hors ligne »** : un filet sépare les chaînes programmées des autres ;
+  le titre et le prochain direct, que la largeur coupe, se lisent en entier
+  dans leur infobulle ; « Revoir » suit ce que la page a établi, et non plus
+  une égalité d'instants.
+- **« Sa semaine » se pose sur le jour** du dernier direct ; le rail, lui,
+  rouvre une vue neuve — la semaine en cours, toutes les chaînes,
+  aujourd'hui.
+- **« Actualiser » relit en place** : ni « Chargement… », ni retour en haut.
+
+### Les textes
+
+- Trois clés de plus dans les douze langues : la pastille et ses deux
+  infobulles. La description de « Hors ligne » dit l'ordre nouveau.
+- Le chapitre du guide gagne une puce, celle du cadenas, et ses trois
+  autres disent ce qui a changé. Le contrat des citations du scénario 96 y
+  ajoute la pastille.
+- Dans les douze fiches du Store, trois puces de la section revues, sans
+  toucher au squelette. Le contrat de `npm run store` gagne une promesse —
+  le cadenas, lié au champ `resourceRestriction { type }` — et un libellé
+  cité, « Abonnés ».
+
+### Ce que le banc mesure
+
+**`page.html`** sert maintenant ce que Twitch sert : `lastBroadcast` porte la
+fin du dernier direct, les identifiants sont des nombres, et les deux champs
+neufs des archives ne reviennent que si la requête les demande. Deux leviers
+de plus : le schéma qui refuse ces champs, et les réponses partielles — avec
+le chemin de l'erreur, ou la chaîne nulle tout entière.
+
+**207**, revu et étendu. Le décor dit ses fins : le samedi de brume finit à
+minuit vingt et une, réservé aux abonnés ; la nuit du dimanche d'avant finit
+le lundi ; la dernière archive de cobalt s'est arrêtée une heure avant son
+direct, et seul l'identifiant dit qu'elle est lui ; celle du direct en cours
+s'ouvre vingt minutes après lui.
+
+- b) « Hors ligne » : les programmées d'abord, la plus proche en tête ; le
+  départ à la fin du dernier direct ; la restriction, et qu'on ne vous sait
+  pas abonné ;
+- c) la semaine passée : la rediffusion porte son identifiant et sa
+  restriction ; le direct sans archive se dit à sa fin ; rien de brume le
+  dimanche, ni de la nuit d'avant ;
+- e) le direct en cours reconnu à son identifiant ;
+- f) la nuit du dimanche reste à sa semaine, sans rien redemander ;
+- q) les champs neufs refusés : la fiche redemandée sans eux, une fois, et
+  l'heure qui reconnaît l'archive ;
+- r) les réponses partielles — fiche, planning, liste : la seule chaîne
+  touchée redemandée, et personne d'« inconnu » ;
+- s) abonné : le cadenas ouvert, dans la semaine et hors ligne ;
+- t) un créneau commencé mais pas fini reste le prochain direct ;
+- u) la semaine en cours d'une page neuve : seule la chaîne en direct fait
+  lire ses rediffusions.
+
+**208**, revu : la soirée qui passe minuit reste au lundi ; « – 00:21 » ; le
+cadenas fermé et ouvert ; la note d'avancement qui garde son nœud ; des
+rediffusions arrivées au-dessus qui ne poussent pas ce qu'on regarde ; le
+menu qui s'applique, encore en main, et ne bouge pas sous elle ; la chaîne
+choisie que la liste ne porte pas ; la vue posée sur aujourd'hui, lâchée par
+la main, ramenée par « Aujourd'hui » ; la molette qui l'emporte sur une
+relecture peinte au même instant ; le filet, les infobulles, le cadenas
+devant « Revoir » ; « Sa semaine » posée sur son jour ; « Actualiser » en
+place ; et ce qui ne change pas qui ne se refait pas.
+
+**96** cite la pastille dans le chapitre de l'agenda.
+
+**Quatre-vingt-quatre mutants nommés, tous pris** : quarante-sept sur la
+collecte, trente-quatre sur le panneau, trois sur le guide. Trois ont demandé
+de resserrer le banc avant même d'être lancés. Sans archive tronquée, rien ne
+distinguait l'identifiant de l'heure. Sans un jeudi fixe, « Sa semaine »
+posée sur aujourd'hui passait les jours où le dernier direct tombait un
+premier jour de semaine. Et sans la course entre la molette et une
+relecture, rien n'éprouvait la molette.
+
+Le banc complet : 1865 assertions dans 207 scénarios, toutes vertes.
+
+| mutant | ce qui tombe |
+| --- | --- |
+| la collecte part au démarrage | 207 : a, b |
+| pas de lot | 207 : b, b, g, h, k, k, n, n |
+| plusieurs travailleurs à la fois | 207 : b, b, g, h, k |
+| pas de pause entre deux envois | 207 : b, k |
+| la chaîne en direct pas en tête | 207 : b |
+| la seconde passe pour toutes les chaînes | 207 : c, g, h, r, u |
+| pas de liste longue pour une semaine ancienne | 207 : f, f, f, g, h, h |
+| le direct et son archive en double | 207 : e, u |
+| le direct reconnu à l'heure seule | 207 : e, u |
+| « sans rediffusion » malgré l'archive | 207 : c, c, c, d, d, q, r, s |
+| l'archive du dernier direct sans son identifiant | 207 : c, c, d, r, s |
+| le créneau annulé montré | 207 : e |
+| le créneau passé montré | 207 : c, c, c, c, d, d, m, q, r |
+| le créneau du direct en cours montré | 207 : e, u |
+| une forme refusée condamne le planning | 207 : j, j, j |
+| le refus du service pris pour celui du schéma | 207 : k, k, k, o |
+| pas de ralentissement | 207 : k, k |
+| on s'acharne sur une chaîne refusée | 207 : n, o |
+| pas d'arrêt sur deux coupures | 207 : n, n, n |
+| la pause du réseau ignorée | 207 : n, n, n |
+| « Actualiser » garde la pause | 207 : n |
+| le rapport nomme les chaînes | 207 : h |
+| pas de borne | 207 : p |
+| l'abonnement ne compte pas | 207 : p |
+| l'agenda écrit dans le stockage | 207 : i |
+| le login de la chaîne non vérifié | 207 : d |
+| la semaine non bornée | 207 : d, e, f, h |
+| le départ daté au début de la rediffusion | 207 : b |
+| « Hors ligne » : la plus anciennement partie d'abord | 207 : b |
+| la fin du dernier direct relue comme un début | 207 : b, c, c, c, d, d, q, r, s |
+| la fin seule non dite | 207 : c |
+| le chevauchement revenu | 207 : c, c, c, d, d, q, r |
+| le jour de marge revenu | 207 : u |
+| une fiche partielle écrite quand même | 207 : r, r |
+| une liste partielle prise pour vide | 207 : r, r, r |
+| un planning partiel pris pour vide | 207 : r, r, r |
+| le chemin de l'erreur ignoré | 207 : r, r, r |
+| une réponse partielle prise pour un refus | 207 : r, r |
+| les champs neufs jamais abandonnés | 207 : q, q |
+| les champs neufs redemandés après refus | 207 : q, q |
+| la restriction ignorée | 207 : b, c, s |
+| jamais abonné | 207 : s |
+| « Hors ligne » : les programmées pas en tête | 207 : b, t |
+| « Hors ligne » : la programmée la plus lointaine d'abord | 207 : b, t |
+| le créneau en retard écarté | 207 : t |
+| le score des visites ignoré | 207 : p |
+| l'identifiant du direct jamais lu | 207 : c, c, c, d, e, r, s, u |
+| la semaine commence le lundi pour tous | 208 : b |
+| la semaine décalée d'un jour | 208 : b, b, b, j, j, j, l, n |
+| l'identifiant de rediffusion non vérifié | 208 : c |
+| sans `noopener` | 208 : c, l |
+| le titre en HTML | 208 : d, e, o |
+| les images en http | 208 : d, l |
+| la position perdue à la relecture | 208 : g |
+| la relecture ne s'arrête pas | 208 : g |
+| le menu refait sous la main | 208 : h |
+| la tête refaite à chaque dessin | 208 : g, g, g, h, h, m, n, n, n |
+| neuf semaines en arrière | 208 : j |
+| le refus de la liste dit dans les deux vues | 208 : k |
+| la barre figée | 208 : k |
+| « Revoir » sur une rediffusion plus ancienne | 208 : l |
+| « Sa semaine » ouvre la semaine en cours | 208 : l |
+| le pluriel du nombre abrégé, pris au nombre entier | 208 : o |
+| un onglet, même incrusté | 208 : p |
+| la fin seule écrite comme un début | 208 : c |
+| la tête non collée | 208 : f, g, j, j, l |
+| la vue jamais posée | 208 : j, j, l |
+| la molette ne lâche pas la vue | 208 : j |
+| le défilement ne lâche pas la vue | 208 : j |
+| aucune ligne gardée | 208 : n, n |
+| une relecture inchangée refaite | 208 : n |
+| la version oubliée | 208 : h, n, n |
+| pas de cadenas | 208 : e |
+| le cadenas toujours fermé | 208 : e, l |
+| pas de filet | 208 : l |
+| « Actualiser » recharge la vue | 208 : j, m |
+| le rail garde la chaîne et la semaine | 208 : j, j, n, n, n, n |
+| « Sa semaine » posée sur aujourd'hui | 208 : l |
+| la note refaite à chaque relecture | 208 : g |
+| la chaîne choisie absente du menu | 208 : i |
+| la position prise au haut de la vue | 208 : g |
+| le chapitre de l'agenda oublié | 96 : les dix-sept chapitres, le retour au guide, le japonais |
+| le groupe absent du chapitre du panneau | 96 : les six groupes, les citations |
+| le cadenas absent du guide | 96 : les citations |
+
 ## L'agenda des chaînes suivies (v4.25.0)
 
 La demande, parmi quinze idées proposées : « 6. Hors ligne, mais pas oubliées
@@ -2273,6 +2541,11 @@ refuse. Les champs ont été établis sur les types que publie un paquet npm
 tiré de réponses réelles (`twitch-gql-queries`), et le banc les éprouve
 contre un Twitch simulé. Le premier essai réel dira si le schéma les
 accepte. S'il en refuse un, la vue le dit, et le rapport dit lequel.
+
+**Le premier essai a répondu (v4.25.0.1, plus haut).** Le schéma accepte ces
+champs ; mais `lastBroadcast.startedAt` est la fin du dernier direct, pas son
+début, et le « Sans rediffusion », « Revoir » et le jour de marge de la
+seconde passe en dépendaient.
 
 ### Les textes
 
@@ -19815,7 +20088,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 207 scénarios, 1841 assertions |
+| `npm test` | le harnais Playwright : 207 scénarios, 1865 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -19836,12 +20109,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1738 Ko | 707 Ko | 4 290 → **2** |
+| `content.js` | 1744 Ko | 709 Ko | 4 301 → **2** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
-| `panneau.js` | 133 Ko | 68 Ko | 184 → **0** |
+| `panneau.js` | 144 Ko | 74 Ko | 204 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
 | `background.js` | 10 Ko | 2 Ko | 22 → **0** |
-| **les cinq** | **2020 Ko** | **880 Ko** | **−56 %** |
+| **les cinq** | **2037 Ko** | **888 Ko** | **−56 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se

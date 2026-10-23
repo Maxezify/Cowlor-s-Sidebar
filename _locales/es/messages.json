@@ -387,6 +387,15 @@
   "valNoReplay": {
     "message": "Sin repetición"
   },
+  "valSubOnly": {
+    "message": "Suscriptores"
+  },
+  "valSubOnlyLocked": {
+    "message": "Repetición solo para suscriptores del canal"
+  },
+  "valSubOnlyOpen": {
+    "message": "Repetición solo para suscriptores — tienes una suscripción"
+  },
   "valChannel": {
     "message": "Canal"
   },
@@ -541,7 +550,7 @@
     "message": "El horario de tus canales"
   },
   "guideAgendaTexte": {
-    "message": "El grupo «Horario» hace, para todos los canales que sigues a la vez, lo que la página de horario de un canal hace en Twitch para uno solo.\n• «La semana»: día a día, los directos pasados con su repetición — un clic la abre —, los que están en curso y los que los canales han programado.\n• Las flechas cambian de semana, hasta ocho atrás y dos adelante; «Hoy» vuelve a la semana actual, y el menú deja un solo canal.\n• «Desconectados»: cada canal que no está en directo, el que terminó más recientemente primero — cuándo emitió, su repetición a un clic y su próximo directo si está programado. «Su semana» abre la semana de su último directo.\nLos canales son los que tu barra lateral ha mostrado como seguidos. Una repetición solo existe si el canal guarda sus directos, y mientras Twitch los conserve; un directo programado, solo si el canal mantiene su horario en Twitch. No se le pide nada a Twitch mientras no abras el horario."
+    "message": "El grupo «Horario» hace, para todos los canales que sigues a la vez, lo que la página de horario de un canal hace en Twitch para uno solo.\n• «La semana»: día a día, los directos pasados con su repetición — un clic la abre —, los que están en curso y los que los canales han programado. Se abre en el día de hoy, con los días pasados arriba; un directo que pasa de medianoche se queda en el día en que empezó.\n• Las flechas cambian de semana, hasta ocho atrás y dos adelante; «Hoy» vuelve al día de hoy, y el menú deja un solo canal.\n• «Desconectados»: cada canal que no está en directo — primero los que han programado su próximo directo, el más cercano arriba, y después los demás, el que terminó más recientemente primero. Cuándo emitió, su repetición a un clic y su próximo directo. «Su semana» abre la semana de su último directo.\n• «Suscriptores» marca una repetición reservada a los suscriptores del canal, antes incluso del clic: el candado se abre cuando la extensión sabe que tienes una suscripción.\nLos canales son los que tu barra lateral ha mostrado como seguidos. Una repetición solo existe si el canal guarda sus directos, y mientras Twitch los conserve; un directo programado, solo si el canal mantiene su horario en Twitch. No se le pide nada a Twitch mientras no abras el horario."
   },
   "guideVieTitre": {
     "message": "Privacidad, en claro"
@@ -625,7 +634,7 @@
     "message": "Desconectados"
   },
   "descHorsLigne": {
-    "message": "Los canales que sigues que no están en directo: su último directo, su repetición y el próximo si está programado."
+    "message": "Los canales que sigues que no están en directo, primero los directos programados: su último directo, su repetición y el próximo si está programado."
   },
   "sumSettings": {
     "message": "ajustes"

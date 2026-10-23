@@ -387,6 +387,15 @@
   "valNoReplay": {
     "message": "Sem gravação"
   },
+  "valSubOnly": {
+    "message": "Subscritores"
+  },
+  "valSubOnlyLocked": {
+    "message": "Gravação só para subscritores do canal"
+  },
+  "valSubOnlyOpen": {
+    "message": "Gravação só para subscritores — tens uma subscrição"
+  },
   "valChannel": {
     "message": "Canal"
   },
@@ -541,7 +550,7 @@
     "message": "A programação dos teus canais"
   },
   "guideAgendaTexte": {
-    "message": "O grupo «Programação» faz, para todos os canais que segues de uma vez, o que a página de programação de um canal faz no Twitch para um só.\n• «A semana»: dia a dia, as emissões passadas com a gravação — um clique abre-a —, as que estão em direto e as que os canais agendaram.\n• As setas mudam de semana, até oito para trás e duas para a frente; «Hoje» volta à semana atual, e o menu deixa um só canal.\n• «Offline»: cada canal que não está em direto, o que terminou mais recentemente primeiro — quando emitiu, a gravação a um clique e a próxima emissão, se estiver agendada. «Semana do canal» abre a semana da última emissão.\nOs canais são os que a tua barra lateral mostrou como seguidos. Uma gravação só existe se o canal guarda as emissões, e enquanto o Twitch as mantiver; uma emissão agendada, só se o canal mantém a programação no Twitch. Nada é pedido ao Twitch enquanto não abrires a programação."
+    "message": "O grupo «Programação» faz, para todos os canais que segues de uma vez, o que a página de programação de um canal faz no Twitch para um só.\n• «A semana»: dia a dia, as emissões passadas com a gravação — um clique abre-a —, as que estão em direto e as que os canais agendaram. Abre no dia de hoje, com os dias passados acima; uma emissão que passa da meia-noite fica no dia em que começou.\n• As setas mudam de semana, até oito para trás e duas para a frente; «Hoje» volta ao dia de hoje, e o menu deixa um só canal.\n• «Offline»: cada canal que não está em direto — primeiro os que agendaram a próxima emissão, a mais próxima no topo, depois os outros, o que terminou mais recentemente primeiro. Quando emitiu, a gravação a um clique e a próxima emissão. «Semana do canal» abre a semana da última emissão.\n• «Subscritores» assinala uma gravação reservada aos subscritores do canal, antes mesmo do clique: o cadeado abre-se quando a extensão sabe que tens uma subscrição.\nOs canais são os que a tua barra lateral mostrou como seguidos. Uma gravação só existe se o canal guarda as emissões, e enquanto o Twitch as mantiver; uma emissão agendada, só se o canal mantém a programação no Twitch. Nada é pedido ao Twitch enquanto não abrires a programação."
   },
   "guideVieTitre": {
     "message": "Privacidade, em claro"
@@ -625,7 +634,7 @@
     "message": "Offline"
   },
   "descHorsLigne": {
-    "message": "Os canais que segues que não estão em direto: a última emissão, a sua gravação e a próxima, se estiver agendada."
+    "message": "Os canais que segues que não estão em direto, as emissões agendadas primeiro: a última emissão, a sua gravação e a próxima, se estiver agendada."
   },
   "sumSettings": {
     "message": "definições"

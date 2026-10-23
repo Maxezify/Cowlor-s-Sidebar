@@ -387,6 +387,15 @@
   "valNoReplay": {
     "message": "Sem gravação"
   },
+  "valSubOnly": {
+    "message": "Inscritos"
+  },
+  "valSubOnlyLocked": {
+    "message": "Gravação só para inscritos do canal"
+  },
+  "valSubOnlyOpen": {
+    "message": "Gravação só para inscritos — sua inscrição está ativa"
+  },
   "valChannel": {
     "message": "Canal"
   },
@@ -541,7 +550,7 @@
     "message": "A programação dos seus canais"
   },
   "guideAgendaTexte": {
-    "message": "O grupo «Programação» faz, para todos os canais que você segue de uma vez, o que a página de programação de um canal faz no Twitch para um só.\n• «A semana»: dia a dia, as lives passadas com a gravação — um clique a abre —, as que estão no ar e as que os canais agendaram.\n• As setas mudam de semana, até oito para trás e duas para a frente; «Hoje» volta para a semana atual, e o menu deixa um só canal.\n• «Offline»: cada canal que não está ao vivo, o que saiu do ar mais recentemente primeiro — quando transmitiu, a gravação a um clique e a próxima live, se estiver agendada. «Semana do canal» abre a semana da última live.\nOs canais são os que sua barra lateral mostrou como seguidos. Uma gravação só existe se o canal guarda as lives, e enquanto o Twitch as mantiver; uma live agendada, só se o canal mantém a programação no Twitch. Nada é pedido ao Twitch enquanto você não abrir a programação."
+    "message": "O grupo «Programação» faz, para todos os canais que você segue de uma vez, o que a página de programação de um canal faz no Twitch para um só.\n• «A semana»: dia a dia, as lives passadas com a gravação — um clique a abre —, as que estão no ar e as que os canais agendaram. Ela abre no dia de hoje, com os dias passados acima; uma live que passa da meia-noite fica no dia em que começou.\n• As setas mudam de semana, até oito para trás e duas para a frente; «Hoje» volta para o dia de hoje, e o menu deixa um só canal.\n• «Offline»: cada canal que não está ao vivo — primeiro os que agendaram a próxima live, a mais próxima no topo, depois os outros, o que saiu do ar mais recentemente primeiro. Quando transmitiu, a gravação a um clique e a próxima live. «Semana do canal» abre a semana da última live.\n• «Inscritos» marca uma gravação reservada aos inscritos do canal, antes mesmo do clique: o cadeado se abre quando a extensão sabe que sua inscrição está ativa.\nOs canais são os que sua barra lateral mostrou como seguidos. Uma gravação só existe se o canal guarda as lives, e enquanto o Twitch as mantiver; uma live agendada, só se o canal mantém a programação no Twitch. Nada é pedido ao Twitch enquanto você não abrir a programação."
   },
   "guideVieTitre": {
     "message": "Privacidade, em claro"
@@ -625,7 +634,7 @@
     "message": "Offline"
   },
   "descHorsLigne": {
-    "message": "Os canais que você segue que não estão ao vivo: a última live, a gravação dela e a próxima, se estiver agendada."
+    "message": "Os canais que você segue que não estão ao vivo, as lives agendadas primeiro: a última live, a gravação dela e a próxima, se estiver agendada."
   },
   "sumSettings": {
     "message": "configurações"

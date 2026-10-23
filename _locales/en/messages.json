@@ -474,6 +474,15 @@
   "valNoReplay": {
     "message": "No replay"
   },
+  "valSubOnly": {
+    "message": "Subs only"
+  },
+  "valSubOnlyLocked": {
+    "message": "Replay for the channel's subscribers only"
+  },
+  "valSubOnlyOpen": {
+    "message": "Replay for subscribers only — you are one"
+  },
   "valChannel": {
     "message": "Channel"
   },
@@ -641,7 +650,7 @@
     "message": "Your channels' schedule"
   },
   "guideAgendaTexte": {
-    "message": "The “Schedule” group does for all your followed channels at once what a channel's schedule page does on Twitch for just one.\n• “The week”: day by day, past streams with their replay — one click opens it —, live ones, and the ones channels have scheduled.\n• The arrows change week, up to eight back and two ahead; “Today” returns to the current week, and the menu keeps a single channel.\n• “Offline”: every channel that is not live, the most recently gone first — when it streamed, its replay one click away, and its next stream if scheduled. “Their week” opens the week of its last stream.\nThe channels are those your sidebar has shown as followed. A replay exists only if the channel keeps its broadcasts, and for as long as Twitch keeps them; a scheduled stream, only if it keeps its schedule on Twitch. Nothing is asked of Twitch until you open the schedule."
+    "message": "The “Schedule” group does for all your followed channels at once what a channel's schedule page does on Twitch for just one.\n• “The week”: day by day, past streams with their replay — one click opens it —, live ones, and the ones channels have scheduled. It opens on today, with the past days above; a stream that runs past midnight stays on the day it started.\n• The arrows change week, up to eight back and two ahead; “Today” brings you back to the day itself, and the menu keeps a single channel.\n• “Offline”: every channel that is not live — first those that have scheduled their next stream, the soonest on top, then the others, the most recently gone first. When it streamed, its replay one click away, and its next stream. “Their week” opens the week of its last stream.\n• “Subs only” marks a replay reserved for the channel's subscribers, before you even click: the padlock opens when the extension knows you are subscribed.\nThe channels are those your sidebar has shown as followed. A replay exists only if the channel keeps its broadcasts, and for as long as Twitch keeps them; a scheduled stream, only if it keeps its schedule on Twitch. Nothing is asked of Twitch until you open the schedule."
   },
   "guideVieTitre": {
     "message": "Privacy, in plain words"
@@ -741,7 +750,7 @@
     "message": "Offline"
   },
   "descHorsLigne": {
-    "message": "Your followed channels that are not live: their last stream, its replay, and the next one if it is scheduled."
+    "message": "Your followed channels that are not live, scheduled streams first: their last stream, its replay, and the next one if it is scheduled."
   },
   "sumSettings": {
     "message": "settings"

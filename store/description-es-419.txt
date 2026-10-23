@@ -187,10 +187,10 @@ _______________________________
 ➤ 📅 QUIÉN TRANSMITIÓ, QUIÉN ESTÁ EN VIVO, QUIÉN SIGUE
 La página de horario de un canal, en Twitch, muestra un solo canal. El grupo «Horario» del panel muestra todos los que seguís, de una vez.
 
-- ★ LA SEMANA, DÍA POR DÍA ★ Cada transmisión pasada con su repetición a un clic, las que están en vivo y las que los canales programaron. Ocho semanas atrás, dos adelante.
-- ★ DESCONECTADOS, PERO NO OLVIDADOS ★ Cada canal seguido que no está en vivo, el más reciente primero: cuándo transmitió por última vez, su repetición y su próxima transmisión si tiene una programada.
+- ★ LA SEMANA, DÍA POR DÍA ★ Se abre en el día de hoy, con los días pasados arriba: cada transmisión pasada con su repetición a un clic, las que están en vivo y las que los canales programaron, cada una en el día en que empezó. Ocho semanas atrás, dos adelante.
+- ★ DESCONECTADOS, PERO NO OLVIDADOS ★ Cada canal seguido que no está en vivo: primero los que tienen una transmisión programada, la más cercana arriba, y después los demás, el más reciente primero — cuándo transmitió por última vez, su repetición y su próxima transmisión.
 - ★ UN CANAL O TODOS ★ Un menú deja uno solo, y «Su semana» lleva directo a la semana de su última transmisión.
-- ★ CLAROS CON LO QUE TWITCH GUARDA ★ Una repetición solo existe si el canal guarda sus transmisiones, y mientras Twitch las conserve; una última transmisión sin ella lo dice («Sin repetición»).
+- ★ CLAROS CON LO QUE TWITCH GUARDA ★ Una repetición solo existe si el canal guarda sus transmisiones, y mientras Twitch las conserve; una última transmisión sin ella lo dice («Sin repetición»), y una repetición solo para suscriptores también («Suscriptores»), antes del clic.
 - ★ SOLO CUANDO MIRÁS ★ No se le pide nada a Twitch antes de que lo abras, y no se guarda nada: todo vive en la pestaña.
 
 _______________________________

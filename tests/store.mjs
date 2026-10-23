@@ -198,6 +198,10 @@ const PROMESSES = [
      disparaisse, et la phrase tombe avec elle. */
   ['its replay one click away', "'query TseAgendaDiffusions("],
   ['the ones channels have scheduled', "'query TseAgendaProgramme("],
+  /* LE CADENAS DES ABONNÉS (4.25.0.1). La fiche promet de dire, avant le
+     clic, qu'une rediffusion est réservée aux abonnés : c'est le champ que
+     les requêtes de l'agenda demandent pour cela qui la rend vraie. */
+  ['and so does a replay for subscribers only', 'resourceRestriction { type }'],
 ];
 const tenues = PROMESSES.flatMap(([phrase, marque]) => {
   const dansFiche = en.includes(phrase);
@@ -216,8 +220,9 @@ ok('les comportements promis par la fiche sont dans content.js',
    libellés du panneau ; ils se lisent ENTRE GUILLEMETS, dans la table de SA
    langue — « 設定 » figure ailleurs dans la fiche japonaise, et le mot seul
    ne prouverait rien. L'agenda (4.25.0) y ajoute son groupe, son bouton
-   « Sa semaine » et sa marque « Sans rediffusion ». */
-const LIBELLES = ['grpOptions', 'btnRefreshSubs', 'grpAgenda', 'btnSeeWeek', 'valNoReplay'];
+   « Sa semaine » et sa marque « Sans rediffusion » ; la 4.25.0.1, sa
+   pastille « Abonnés ». */
+const LIBELLES = ['grpOptions', 'btnRefreshSubs', 'grpAgenda', 'btnSeeWeek', 'valNoReplay', 'valSubOnly'];
 const echappe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const malNommes = fiches.flatMap((f) => {
   const loc = f.replace(/^description-|\.txt$/g, '').replace('-', '_');
