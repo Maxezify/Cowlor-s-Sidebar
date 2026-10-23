@@ -227,6 +227,21 @@
   "sumCategories": {
     "message": "个分类"
   },
+  "sumLive": {
+    "message": "个直播中"
+  },
+  "sumBroadcasts": {
+    "message": "场直播"
+  },
+  "sumPlanned": {
+    "message": "场已计划"
+  },
+  "sumOffline": {
+    "message": "个离线"
+  },
+  "sumScheduled": {
+    "message": "个有下次直播"
+  },
   "btnRefreshSubs": {
     "message": "立即扫描"
   },
@@ -282,6 +297,42 @@
     "message": "与标签页的连接已断开。请重试。",
     "description": "État : la liaison avec l'onglet est perdue"
   },
+  "stateAgendaLoading": {
+    "message": "正在读取关注的频道… $1 / $2"
+  },
+  "stateAgendaLoadingReplays": {
+    "message": "正在读取回放… 还剩 $1 个频道"
+  },
+  "stateAgendaCapped": {
+    "message": "在你关注的 $2 个频道中，只读取 $1 个：正在直播的、你订阅的，然后是最常访问的。"
+  },
+  "stateAgendaNoSchedule": {
+    "message": "Twitch 不提供频道日程：无法显示已计划的直播。"
+  },
+  "stateAgendaNoReplays": {
+    "message": "Twitch 拒绝提供回放列表：每个频道只显示最新的一个。"
+  },
+  "stateAgendaPartial": {
+    "message": "Twitch 未返回的频道：$1 个；「刷新」会重新请求。"
+  },
+  "stateAgendaNetwork": {
+    "message": "Twitch 暂时没有响应；「刷新」会重新开始读取。"
+  },
+  "stateAgendaEmpty": {
+    "message": "这一周没有直播。"
+  },
+  "stateAgendaEmptyChannel": {
+    "message": "这个频道这一周没有直播。"
+  },
+  "stateAgendaNoOffline": {
+    "message": "你关注的频道都在直播。"
+  },
+  "stateAgendaNoRoster": {
+    "message": "尚不知道任何关注的频道。扩展会在你登录时，从 Twitch 侧边栏中记下它们。"
+  },
+  "stateAgendaRefused": {
+    "message": "Twitch 拒绝了日程的请求；「导出报告」会说明原因。"
+  },
   "statusOk": {
     "message": "正常"
   },
@@ -311,6 +362,45 @@
   },
   "valMore": {
     "message": "多"
+  },
+  "valViewsOne": {
+    "message": "$1 次观看"
+  },
+  "valViewsFew": {
+    "message": "$1 次观看"
+  },
+  "valViewsMany": {
+    "message": "$1 次观看"
+  },
+  "valViewsOther": {
+    "message": "$1 次观看"
+  },
+  "valOngoing": {
+    "message": "进行中"
+  },
+  "valLive": {
+    "message": "直播中"
+  },
+  "valPlanned": {
+    "message": "已计划"
+  },
+  "valNoReplay": {
+    "message": "无回放"
+  },
+  "valChannel": {
+    "message": "频道"
+  },
+  "valAllChannels": {
+    "message": "全部频道"
+  },
+  "valLastLive": {
+    "message": "上次直播：$1"
+  },
+  "valLastLiveUnknown": {
+    "message": "上次直播时间未知"
+  },
+  "valNext": {
+    "message": "下次直播：$1"
   },
   "healthOk": {
     "message": "选择器正常"
@@ -347,6 +437,21 @@
   },
   "btnRefresh": {
     "message": "刷新"
+  },
+  "btnToday": {
+    "message": "今天"
+  },
+  "btnWeekPrev": {
+    "message": "上一周"
+  },
+  "btnWeekNext": {
+    "message": "下一周"
+  },
+  "btnReplay": {
+    "message": "看回放"
+  },
+  "btnSeeWeek": {
+    "message": "查看一周"
   },
   "btnClose": {
     "message": "关闭"
@@ -430,7 +535,13 @@
     "message": "这个面板"
   },
   "guidePanneauTexte": {
-    "message": "左侧有五个分组：\n•「从这里开始」——本指南，即使没有打开 Twitch 标签页也能阅读。\n•「设置」——扩展允许你选择的一切。\n•「你的数据」——它记住的内容：你最常访问的频道、在哪些时段、你的订阅、已知频道。\n•「诊断」——只在出问题时有用；可以在设置中隐藏。\n•「热门频道」——榜单及其分类的状态。\n除本指南外，其余部分都读取最前面的 Twitch 标签页；没有的话，它们会说明。\n• 遇到问题？「导出报告」会写出一段文本，发送前可以通读：只有计数，没有任何清单——既无你的频道，也无你的订阅。\n•「清除历史记录」会永久清除扩展记住的一切；你的设置保留。"
+    "message": "左侧有六个分组：\n•「从这里开始」——本指南，即使没有打开 Twitch 标签页也能阅读。\n•「设置」——扩展允许你选择的一切。\n•「日程」——你关注的频道的直播：已结束、进行中和已计划的，以及它们的回放；见下一章。\n•「你的数据」——它记住的内容：你最常访问的频道、在哪些时段、你的订阅、已知频道。\n•「诊断」——只在出问题时有用；可以在设置中隐藏。\n•「热门频道」——榜单及其分类的状态。\n除本指南外，其余部分都读取最前面的 Twitch 标签页；没有的话，它们会说明。\n• 遇到问题？「导出报告」会写出一段文本，发送前可以通读：只有计数，没有任何清单——既无你的频道，也无你的订阅。\n•「清除历史记录」会永久清除扩展记住的一切；你的设置保留。"
+  },
+  "guideAgendaTitre": {
+    "message": "你的频道日程"
+  },
+  "guideAgendaTexte": {
+    "message": "Twitch 上一个频道的日程页面为它自己做的事，「日程」分组一次为你关注的所有频道做到。\n•「一周」：按天列出已结束的直播及其回放（点击即可打开）、正在进行的直播，以及频道已计划的直播。\n• 箭头切换周，最多往前八周、往后两周；「今天」回到本周，菜单可以只保留一个频道。\n•「离线」：每个未在直播的频道，最近下播的排在前面——何时直播过、一键可看的回放，以及已计划的下次直播。「查看一周」会打开它上次直播所在的那一周。\n这些频道来自你的侧边栏显示为关注的频道。只有频道保存直播、且仍在 Twitch 的保留期内，才有回放；只有频道在 Twitch 上维护日程，才有已计划的直播。在你打开日程之前，不会向 Twitch 请求任何内容。"
   },
   "guideVieTitre": {
     "message": "隐私，说清楚"
@@ -500,6 +611,21 @@
   },
   "descOptions": {
     "message": "扩展添加了什么，又保留了什么。默认全部开启；紫色圆点标出你改过的项。"
+  },
+  "grpAgenda": {
+    "message": "日程"
+  },
+  "navSemaine": {
+    "message": "一周"
+  },
+  "descSemaine": {
+    "message": "你关注的频道每天的直播：已结束的及其回放、正在进行的，以及已计划的。"
+  },
+  "navHorsLigne": {
+    "message": "离线"
+  },
+  "descHorsLigne": {
+    "message": "你关注的、当前未在直播的频道：上次直播、它的回放，以及已计划的下次直播。"
   },
   "sumSettings": {
     "message": "项设置"

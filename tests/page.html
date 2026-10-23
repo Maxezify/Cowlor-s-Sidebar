@@ -173,6 +173,23 @@ window.__vod = {};         // chapitres de VOD par login (cf. TseVodChapters)
 window.__vodRecent = {};   // archive récente par login (cf. TseVodRecent, le repli)
 window.__clips = {};       // clips par login (cf. TseClips, la troisième porte)
 window.__tagTop = {};      // classement par tag de langue (cf. TseTagTop)
+/* L'AGENDA (4.25.0) — ce que la page Programme de Twitch servirait, chaîne par
+   chaîne : login -> { nom, dernierLive (ISO), titre, videos: [{ id, titre,
+   debut (ISO), duree (s), vues, jeu }], creneaux: [{ id, debut, fin, titre,
+   jeu, annule }] }. Le DIRECT vient de __fx, comme pour la barre : une chaîne
+   absente des deux est un login que Twitch ne connaît pas, et qu'il omet. */
+window.__agenda = {};
+/* Les formes du planning que le schéma simulé accepte — null : toutes. Les
+   arguments de `segmentList` n'ont jamais pu être éprouvés contre Twitch ; ce
+   levier joue les trois réponses possibles. */
+window.__agendaFormes = null;
+window.__agendaRefus = {};   // operationName -> nb de « service error » à rendre
+window.__agendaSchema = {};  // operationName -> true : refus du schéma, pour de bon
+/* Nombre d'envois de l'agenda à perdre en route. Le levier commun,
+   `__failNext`, coupe le prochain POST quel qu'il soit : le relevé de la barre,
+   qui part toutes les secondes, le consommerait avant l'agenda, et le scénario
+   ne saurait plus lequel des deux il a coupé. */
+window.__agendaPerte = 0;
 /* Des codes de langue de plus que le schéma simulé connaît (4.24.0.41), sous
    la forme { SV: 'Svenska' }. Les cinq de base suffisent aux scénarios ; le
    203 en visite huit, et le 38 comme le 39 comptent sur le refus de l'italien
@@ -586,6 +603,9 @@ window.fetch = async (url, opt) => {
                             .map(m => m[1])),
                         form: body[0]?.extensions?.persistedQuery ? 'hash' : 'inline' });
   if (window.__failNext > 0) { window.__failNext--; throw new TypeError('network down'); }
+  if (window.__agendaPerte > 0 && body.some(o => /^TseAgenda/.test(o.operationName || ''))) {
+    window.__agendaPerte--; throw new TypeError('network down (agenda)');
+  }
   /* LES QUATRE AUTRES FAÇONS DONT UN APPEL PEUT ÉCHOUER. Le harnais n'en
      savait qu'une — `fetch` qui rejette — et le code repliait pourtant CINQ
      situations sur une même sentinelle muette. Un statut HTTP, un abandon au
@@ -695,7 +715,82 @@ window.fetch = async (url, opt) => {
     const max = Math.max(0, ...retards);
     if (max > 0) await new Promise(r => setTimeout(r, max));
   }
+  /* ── L'AGENDA (4.25.0) ──────────────────────────────────────────────────
+     Trois opérations, servies d'après __agenda et __fx. Les refus se jouent
+     par opération : « service error » (le serveur, qui se retente) et refus du
+     SCHÉMA (qui nomme ce qu'il refuse, et condamne la forme). */
+  const agendaFiche = (login) => {
+    const a = (window.__agenda || {})[login];
+    const f = window.__fx[login];
+    if (a === undefined && f === undefined) return null;
+    return { a: a || {}, f };
+  };
+  const agendaVideos = (a, n) => (a.videos || [])
+    .slice().sort((x, y) => Date.parse(y.debut) - Date.parse(x.debut)).slice(0, n)
+    .map(v => ({ node: { id: v.id, title: v.titre || '', createdAt: v.debut,
+                         lengthSeconds: v.duree, viewCount: v.vues ?? 0,
+                         previewThumbnailURL: 'https://static-cdn.jtvnw.net/cf_vods/' + v.id + '/thumb-160x90.jpg',
+                         game: v.jeu ? { name: v.jeu, displayName: traduire(v.jeu) } : null } }));
+  const agendaCreneau = (c) => ({ id: c.id, startAt: c.debut, endAt: c.fin ?? null, title: c.titre || '',
+                                  isCancelled: !!c.annule,
+                                  categories: c.jeu ? [{ name: c.jeu, displayName: traduire(c.jeu) }] : [] });
+  const agendaForme = (q) => /segmentList\(first:/.test(q) ? 'segmentList(first)'
+    : /segmentList\s*\{/.test(q) ? 'segmentList' : 'nextSegment';
+  const agendaReponse = (o) => {
+    const nom = o.operationName;
+    if ((window.__agendaRefus || {})[nom] > 0) {
+      window.__agendaRefus[nom]--;
+      return { errors: [{ message: 'service error' }] };
+    }
+    if ((window.__agendaSchema || {})[nom]) {
+      return { errors: [{ message: 'Cannot query field "lastBroadcast" on type "User".' }] };
+    }
+    const logins = o.variables?.logins || [];
+    if (nom === 'TseAgendaProgramme') {
+      const forme = agendaForme(o.query || '');
+      if (window.__agendaFormes && !window.__agendaFormes.includes(forme)) {
+        return { errors: [{ message: forme === 'segmentList(first)'
+          ? 'Unknown argument "first" on field "segmentList" of type "Schedule".'
+          : forme === 'segmentList' ? 'Cannot query field "segmentList" on type "Schedule".'
+          : 'Cannot query field "nextSegment" on type "Schedule".' }] };
+      }
+      const premier = Number((/segmentList\(first:\s*(\d+)/.exec(o.query || '') || [])[1]) || 999;
+      return { data: { users: logins.map(l => {
+        const x = agendaFiche(l);
+        if (!x) return null;
+        const cr = (x.a.creneaux || []).slice().sort((p, q) => Date.parse(p.debut) - Date.parse(q.debut));
+        const suivant = cr.find(c => !c.annule && Date.parse(c.debut) > Date.now());
+        return { login: l, channel: { schedule: cr.length ? {
+          nextSegment: suivant ? agendaCreneau(suivant) : null,
+          ...(forme === 'nextSegment' ? {} : { segmentList: { edges: cr.slice(0, premier).map(c => ({ node: agendaCreneau(c) })) } }),
+        } : null } };
+      }) } };
+    }
+    if (nom === 'TseAgendaDiffusions') {
+      const n = o.variables?.n || 12;
+      return { data: { users: logins.map(l => {
+        const x = agendaFiche(l);
+        return x ? { login: l, videos: { edges: agendaVideos(x.a, n) } } : null;
+      }) } };
+    }
+    // TseAgendaChaines
+    return { data: { users: logins.map(l => {
+      const x = agendaFiche(l);
+      if (!x) return null;
+      const f = x.f;
+      return {
+        login: l, displayName: x.a.nom || l.charAt(0).toUpperCase() + l.slice(1),
+        profileImageURL: 'https://static-cdn.jtvnw.net/jtv_user_pictures/' + l + '-70x70.png',
+        stream: f ? { id: 's-' + l, createdAt: f.createdAt, viewersCount: f.viewers, title: f.title || '',
+                      game: { name: f.game, displayName: traduire(f.game) } } : null,
+        lastBroadcast: x.a.dernierLive ? { id: 'b-' + l, startedAt: x.a.dernierLive } : null,
+        broadcastSettings: { title: x.a.titre || '' },
+        videos: { edges: agendaVideos(x.a, 1) },
+      };
+    }) } };
+  };
   const data = body.map(o => {
+    if (/^TseAgenda/.test(o.operationName || '')) return agendaReponse(o);
     if (o.operationName === 'GuestStarBatchCollaborationQuery' || o.operationName === 'TseGuestStar') {
       if (window.__gsMode === 'down') return { errors: [{ message: 'service unavailable' }] };
       return { data: { guestStarChannelCollaboration: gsAnswer(gsIdsFrom(o)) } };

@@ -227,6 +227,21 @@
   "sumCategories": {
     "message": "categorias"
   },
+  "sumLive": {
+    "message": "ao vivo"
+  },
+  "sumBroadcasts": {
+    "message": "lives"
+  },
+  "sumPlanned": {
+    "message": "agendadas"
+  },
+  "sumOffline": {
+    "message": "offline"
+  },
+  "sumScheduled": {
+    "message": "com próxima live"
+  },
   "btnRefreshSubs": {
     "message": "Levantar agora"
   },
@@ -282,6 +297,42 @@
     "message": "A ligação ao separador perdeu-se. Tenta de novo.",
     "description": "État : la liaison avec l'onglet est perdue"
   },
+  "stateAgendaLoading": {
+    "message": "Lendo os canais seguidos… $1 / $2"
+  },
+  "stateAgendaLoadingReplays": {
+    "message": "Lendo as gravações… canais restantes: $1"
+  },
+  "stateAgendaCapped": {
+    "message": "Só $1 dos seus $2 canais seguidos são lidos: os que estão ao vivo, suas inscrições e depois os mais visitados."
+  },
+  "stateAgendaNoSchedule": {
+    "message": "O Twitch não fornece a programação dos canais: as lives agendadas não podem ser mostradas."
+  },
+  "stateAgendaNoReplays": {
+    "message": "O Twitch recusa a lista de gravações: só a última de cada canal é mostrada."
+  },
+  "stateAgendaPartial": {
+    "message": "Canais que o Twitch não forneceu: $1; «Atualizar» pede de novo."
+  },
+  "stateAgendaNetwork": {
+    "message": "O Twitch não está respondendo agora; «Atualizar» vai retomar a leitura."
+  },
+  "stateAgendaEmpty": {
+    "message": "Nenhuma live nesta semana."
+  },
+  "stateAgendaEmptyChannel": {
+    "message": "Nenhuma live deste canal nesta semana."
+  },
+  "stateAgendaNoOffline": {
+    "message": "Todos os canais que você segue estão ao vivo."
+  },
+  "stateAgendaNoRoster": {
+    "message": "Nenhum canal seguido conhecido ainda. A extensão os aprende pela barra lateral do Twitch, enquanto você está conectado."
+  },
+  "stateAgendaRefused": {
+    "message": "O Twitch recusa as requisições da programação; «Exportar um relatório» diz por quê."
+  },
   "statusOk": {
     "message": "OK"
   },
@@ -311,6 +362,45 @@
   },
   "valMore": {
     "message": "mais"
+  },
+  "valViewsOne": {
+    "message": "$1 visualização"
+  },
+  "valViewsFew": {
+    "message": "$1 visualizações"
+  },
+  "valViewsMany": {
+    "message": "$1 visualizações"
+  },
+  "valViewsOther": {
+    "message": "$1 visualizações"
+  },
+  "valOngoing": {
+    "message": "em andamento"
+  },
+  "valLive": {
+    "message": "Ao vivo"
+  },
+  "valPlanned": {
+    "message": "Agendada"
+  },
+  "valNoReplay": {
+    "message": "Sem gravação"
+  },
+  "valChannel": {
+    "message": "Canal"
+  },
+  "valAllChannels": {
+    "message": "Todos os canais"
+  },
+  "valLastLive": {
+    "message": "Última live $1"
+  },
+  "valLastLiveUnknown": {
+    "message": "Última live desconhecida"
+  },
+  "valNext": {
+    "message": "Próxima live: $1"
   },
   "healthOk": {
     "message": "Seletores OK"
@@ -347,6 +437,21 @@
   },
   "btnRefresh": {
     "message": "Atualizar"
+  },
+  "btnToday": {
+    "message": "Hoje"
+  },
+  "btnWeekPrev": {
+    "message": "Semana anterior"
+  },
+  "btnWeekNext": {
+    "message": "Próxima semana"
+  },
+  "btnReplay": {
+    "message": "Assistir"
+  },
+  "btnSeeWeek": {
+    "message": "Semana do canal"
   },
   "btnClose": {
     "message": "Fechar"
@@ -430,7 +535,13 @@
     "message": "Este painel"
   },
   "guidePanneauTexte": {
-    "message": "Cinco grupos, à esquerda:\n• «Primeiros passos» — este guia, legível mesmo sem aba do Twitch aberta.\n• «Configurações» — tudo o que a extensão deixa escolher.\n• «Seus dados» — o que ela guardou: os canais que você mais visita, em que horários, suas inscrições, os canais conhecidos.\n• «Diagnóstico» — só serve se algo der errado; se oculta nas configurações.\n• «Top Canais» — o estado da classificação e de suas categorias.\nAs seções além deste guia leem a aba do Twitch em primeiro plano; sem ela, elas avisam.\n• Algo errado? «Exportar um relatório» escreve um texto para reler antes de enviar: contagens, nenhuma lista — nem seus canais, nem suas inscrições.\n• «Apagar o histórico» apaga tudo o que a extensão guardou, definitivamente; suas configurações ficam."
+    "message": "Seis grupos, à esquerda:\n• «Primeiros passos» — este guia, legível mesmo sem aba do Twitch aberta.\n• «Configurações» — tudo o que a extensão deixa escolher.\n• «Programação» — as lives dos canais que você segue, passadas, no ar e agendadas, com as gravações; é o próximo capítulo.\n• «Seus dados» — o que ela guardou: os canais que você mais visita, em que horários, suas inscrições, os canais conhecidos.\n• «Diagnóstico» — só serve se algo der errado; se oculta nas configurações.\n• «Top Canais» — o estado da classificação e de suas categorias.\nAs seções além deste guia leem a aba do Twitch em primeiro plano; sem ela, elas avisam.\n• Algo errado? «Exportar um relatório» escreve um texto para reler antes de enviar: contagens, nenhuma lista — nem seus canais, nem suas inscrições.\n• «Apagar o histórico» apaga tudo o que a extensão guardou, definitivamente; suas configurações ficam."
+  },
+  "guideAgendaTitre": {
+    "message": "A programação dos seus canais"
+  },
+  "guideAgendaTexte": {
+    "message": "O grupo «Programação» faz, para todos os canais que você segue de uma vez, o que a página de programação de um canal faz no Twitch para um só.\n• «A semana»: dia a dia, as lives passadas com a gravação — um clique a abre —, as que estão no ar e as que os canais agendaram.\n• As setas mudam de semana, até oito para trás e duas para a frente; «Hoje» volta para a semana atual, e o menu deixa um só canal.\n• «Offline»: cada canal que não está ao vivo, o que saiu do ar mais recentemente primeiro — quando transmitiu, a gravação a um clique e a próxima live, se estiver agendada. «Semana do canal» abre a semana da última live.\nOs canais são os que sua barra lateral mostrou como seguidos. Uma gravação só existe se o canal guarda as lives, e enquanto o Twitch as mantiver; uma live agendada, só se o canal mantém a programação no Twitch. Nada é pedido ao Twitch enquanto você não abrir a programação."
   },
   "guideVieTitre": {
     "message": "Privacidade, em claro"
@@ -500,6 +611,21 @@
   },
   "descOptions": {
     "message": "O que a extensão acrescenta e o que deixa como está. Tudo está ativo por padrão; um ponto roxo assinala o que foi alterado."
+  },
+  "grpAgenda": {
+    "message": "Programação"
+  },
+  "navSemaine": {
+    "message": "A semana"
+  },
+  "descSemaine": {
+    "message": "As lives dos canais que você segue, dia a dia: as passadas com a gravação, as que estão no ar e as agendadas."
+  },
+  "navHorsLigne": {
+    "message": "Offline"
+  },
+  "descHorsLigne": {
+    "message": "Os canais que você segue que não estão ao vivo: a última live, a gravação dela e a próxima, se estiver agendada."
   },
   "sumSettings": {
     "message": "configurações"

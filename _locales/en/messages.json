@@ -293,6 +293,21 @@
     "message": "categories",
     "description": "Cartouche : nombre de catégories"
   },
+  "sumLive": {
+    "message": "live"
+  },
+  "sumBroadcasts": {
+    "message": "streams"
+  },
+  "sumPlanned": {
+    "message": "scheduled"
+  },
+  "sumOffline": {
+    "message": "offline"
+  },
+  "sumScheduled": {
+    "message": "with a next stream"
+  },
   "btnRefreshSubs": {
     "message": "Sweep now",
     "description": "Bouton : forcer un relevé complet des abonnements"
@@ -361,6 +376,42 @@
     "message": "The link to the tab was lost. Try again.",
     "description": "État : la liaison avec l'onglet est perdue"
   },
+  "stateAgendaLoading": {
+    "message": "Reading followed channels… $1 / $2"
+  },
+  "stateAgendaLoadingReplays": {
+    "message": "Reading the replays of $1 channel(s)…"
+  },
+  "stateAgendaCapped": {
+    "message": "Only $1 of your $2 followed channels are read: the live ones, your subscriptions, then the most visited."
+  },
+  "stateAgendaNoSchedule": {
+    "message": "Twitch does not serve channel schedules: scheduled streams cannot be shown."
+  },
+  "stateAgendaNoReplays": {
+    "message": "Twitch refuses the list of replays: only each channel's latest one is shown."
+  },
+  "stateAgendaPartial": {
+    "message": "Twitch did not serve $1 channel(s); “Refresh” asks again."
+  },
+  "stateAgendaNetwork": {
+    "message": "Twitch is not answering right now; “Refresh” will start reading again."
+  },
+  "stateAgendaEmpty": {
+    "message": "No streams this week."
+  },
+  "stateAgendaEmptyChannel": {
+    "message": "No streams from this channel this week."
+  },
+  "stateAgendaNoOffline": {
+    "message": "All your followed channels are live."
+  },
+  "stateAgendaNoRoster": {
+    "message": "No followed channel known yet. The extension learns them from Twitch's sidebar while you are signed in."
+  },
+  "stateAgendaRefused": {
+    "message": "Twitch refuses the schedule's requests; “Export a report” says why."
+  },
   "statusOk": {
     "message": "OK",
     "description": "État de sonde : répond"
@@ -398,6 +449,45 @@
   },
   "valMore": {
     "message": "more"
+  },
+  "valViewsOne": {
+    "message": "$1 view"
+  },
+  "valViewsFew": {
+    "message": "$1 views"
+  },
+  "valViewsMany": {
+    "message": "$1 views"
+  },
+  "valViewsOther": {
+    "message": "$1 views"
+  },
+  "valOngoing": {
+    "message": "now"
+  },
+  "valLive": {
+    "message": "Live"
+  },
+  "valPlanned": {
+    "message": "Scheduled"
+  },
+  "valNoReplay": {
+    "message": "No replay"
+  },
+  "valChannel": {
+    "message": "Channel"
+  },
+  "valAllChannels": {
+    "message": "All channels"
+  },
+  "valLastLive": {
+    "message": "Last live $1"
+  },
+  "valLastLiveUnknown": {
+    "message": "Last live unknown"
+  },
+  "valNext": {
+    "message": "Next stream: $1"
   },
   "healthOk": {
     "message": "Selectors OK",
@@ -446,6 +536,21 @@
   "btnRefresh": {
     "message": "Refresh",
     "description": "Bouton : reconstruit le rapport à l'instant"
+  },
+  "btnToday": {
+    "message": "Today"
+  },
+  "btnWeekPrev": {
+    "message": "Previous week"
+  },
+  "btnWeekNext": {
+    "message": "Next week"
+  },
+  "btnReplay": {
+    "message": "Replay"
+  },
+  "btnSeeWeek": {
+    "message": "Their week"
   },
   "btnClose": {
     "message": "Close",
@@ -530,7 +635,13 @@
     "message": "This panel"
   },
   "guidePanneauTexte": {
-    "message": "Five groups, on the left:\n• “Get started” — this guide, readable even with no Twitch tab open.\n• “Settings” — everything the extension lets you choose.\n• “Your data” — what it has remembered: the channels you visit most, at what times, your subscriptions, the channels it knows.\n• “Diagnostics” — only useful when something goes wrong; it can be hidden in the settings.\n• “Top Channels” — the state of the ranking and its categories.\nEvery section other than this guide reads the frontmost Twitch tab; without one, they say so.\n• Something wrong? “Export a report” writes a text to read before sending it: counts, no lists — neither your channels nor your subscriptions.\n• “Erase history” erases everything the extension has remembered, for good; your settings stay."
+    "message": "Six groups, on the left:\n• “Get started” — this guide, readable even with no Twitch tab open.\n• “Settings” — everything the extension lets you choose.\n• “Schedule” — your followed channels' streams, past, live and scheduled, with their replays; that is the next chapter.\n• “Your data” — what it has remembered: the channels you visit most, at what times, your subscriptions, the channels it knows.\n• “Diagnostics” — only useful when something goes wrong; it can be hidden in the settings.\n• “Top Channels” — the state of the ranking and its categories.\nEvery section other than this guide reads the frontmost Twitch tab; without one, they say so.\n• Something wrong? “Export a report” writes a text to read before sending it: counts, no lists — neither your channels nor your subscriptions.\n• “Erase history” erases everything the extension has remembered, for good; your settings stay."
+  },
+  "guideAgendaTitre": {
+    "message": "Your channels' schedule"
+  },
+  "guideAgendaTexte": {
+    "message": "The “Schedule” group does for all your followed channels at once what a channel's schedule page does on Twitch for just one.\n• “The week”: day by day, past streams with their replay — one click opens it —, live ones, and the ones channels have scheduled.\n• The arrows change week, up to eight back and two ahead; “Today” returns to the current week, and the menu keeps a single channel.\n• “Offline”: every channel that is not live, the most recently gone first — when it streamed, its replay one click away, and its next stream if scheduled. “Their week” opens the week of its last stream.\nThe channels are those your sidebar has shown as followed. A replay exists only if the channel keeps its broadcasts, and for as long as Twitch keeps them; a scheduled stream, only if it keeps its schedule on Twitch. Nothing is asked of Twitch until you open the schedule."
   },
   "guideVieTitre": {
     "message": "Privacy, in plain words"
@@ -616,6 +727,21 @@
   },
   "descOptions": {
     "message": "What the extension adds, and what it leaves alone. Everything is on by default; a purple dot marks what you changed."
+  },
+  "grpAgenda": {
+    "message": "Schedule"
+  },
+  "navSemaine": {
+    "message": "The week"
+  },
+  "descSemaine": {
+    "message": "Your followed channels' streams, day by day: past ones with their replay, live ones, and scheduled ones."
+  },
+  "navHorsLigne": {
+    "message": "Offline"
+  },
+  "descHorsLigne": {
+    "message": "Your followed channels that are not live: their last stream, its replay, and the next one if it is scheduled."
   },
   "sumSettings": {
     "message": "settings"

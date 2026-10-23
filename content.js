@@ -3922,6 +3922,20 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
        la première fois qu'un curseur paraît. */
     INDICE_KEY:             'tse:indice',
 
+    /* === L'agenda des chaînes suivies (4.25.0) ===
+       Deux passes, à la demande du panneau et à lui seul — cf. le module
+       « agenda ». Les tailles de lot sont des PLAFONDS : un refus de Twitch
+       les divise par deux pour le reste de la session, et la pause entre deux
+       envois double avec lui. */
+    AGENDA_LOT_CHAINES:     25,     // logins par opération, première passe
+    AGENDA_LOT_DIFFUSIONS:  10,     // logins par opération, seconde passe
+    AGENDA_VIDEOS:          12,     // rediffusions demandées par chaîne
+    AGENDA_VIDEOS_MAX:      40,     // … quand une semaine plus ancienne en réclame davantage
+    AGENDA_CRENEAUX:        12,     // créneaux du planning demandés par chaîne
+    AGENDA_MAX_CHAINES:     400,    // chaînes lues au plus, les plus suivies d'abord
+    AGENDA_TTL:             10 * 60_000,
+    AGENDA_PAUSE_MS:        1_000,  // entre deux envois : une requête à la fois
+
     /* === Le panneau incrusté ===
        LES DEUX NOMBRES SONT CEUX DE LA POPUP DE BARRE D'OUTILS (cf. la borne
        760 × 580 de panneau.css). Les deux chemins mènent au même panneau ; ils
@@ -18233,6 +18247,561 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       return report;
     }
   };
+
+  /* ============================================================
+   *  L'AGENDA DES CHAÎNES SUIVIES (4.25.0)
+   *  -------------------------------------------------------------
+   *  Ce que la page « Programme » de Twitch montre pour UNE chaîne —
+   *  ses directs passés et leur rediffusion, celui en cours, ceux
+   *  qu'elle a programmés —, pour toutes les chaînes suivies à la
+   *  fois, dans le panneau. Deux vues le lisent : « La semaine » et
+   *  « Hors ligne » (cf. panneau.js).
+   *
+   *  LES CHAMPS SONT CEUX QUE TWITCH SERT À SES PROPRES PAGES, relevés
+   *  sur leurs réponses réelles — la page Programme et le lecteur hors
+   *  ligne : `lastBroadcast { startedAt }`, `broadcastSettings
+   *  { title }`, les archives de `videos` (titre, date, durée, vues,
+   *  vignette, catégorie) et le planning, `channel.schedule` avec
+   *  `nextSegment` et la liste `segmentList`. Les requêtes sont
+   *  ÉCRITES, comme toutes celles du fichier : aucune requête
+   *  persistée, dont l'empreinte change sans prévenir.
+   *
+   *  CE QUI N'EST PAS PROUVÉ, ET CE QU'ON EN FAIT. Les arguments de
+   *  `segmentList` ne se lisent pas dans une réponse. On l'essaie sous
+   *  trois formes, de la plus riche à la plus sûre, et l'on avance d'un
+   *  cran à chaque refus DU SCHÉMA — comme les clips de la frise. La
+   *  dernière ne garde que `nextSegment`, que les deux pages de Twitch
+   *  demandent. Le rapport dit laquelle est en jeu.
+   *
+   *  DEUX PASSES, parce que deux questions n'ont pas le même prix.
+   *   1. Pour CHAQUE chaîne suivie : en direct ou non, son dernier
+   *      direct, sa dernière rediffusion, son planning. Une opération
+   *      par tranche, quelques centaines d'octets par chaîne — c'est la
+   *      vue « Hors ligne » tout entière.
+   *   2. Pour les seules chaînes qui ont DIFFUSÉ depuis le début de la
+   *      semaine regardée : leurs rediffusions. Une chaîne muette depuis
+   *      dix jours n'a rien à montrer cette semaine, et la première
+   *      passe le sait déjà.
+   *
+   *  À LA DEMANDE, ET UNE REQUÊTE À LA FOIS. Rien ne part tant que le
+   *  panneau n'ouvre pas l'agenda ; les lots partent l'un après
+   *  l'autre, espacés. Twitch refuse les requêtes anonymes dès que la
+   *  cadence monte (cf. LE BUDGET DES SONDES), et un agenda n'a pas
+   *  l'urgence d'un direct. Le panneau relit l'avancement pendant que
+   *  les réponses arrivent.
+   *
+   *  RIEN N'EST ÉCRIT : tout vit en mémoire, le temps de l'onglet. Le
+   *  rapport n'en porte que des COMPTES, comme partout ailleurs.
+   * ============================================================ */
+  const agenda = (() => {
+    // La forme d'un login Twitch ; ce qui n'y entre pas ne part pas.
+    const RE_LOGIN_AGENDA = /^[a-z0-9_]{1,25}$/;
+    /* UN REFUS DU SCHÉMA NOMME CE QU'IL REFUSE ; un incident du serveur
+       (« service error », « timeout ») ne dit rien de la requête. Le premier
+       condamne une forme, le second se retente : les confondre, c'était
+       abandonner le planning sur un hoquet de Twitch. */
+    const RE_SCHEMA = /Cannot query field|Unknown (?:field|argument|type)|In field|Unknown directive/i;
+    /* La rediffusion d'un direct démarre à quelques secondes de lui — plus,
+       quand une reconnexion a gardé l'enregistrement ouvert (cf. LA SONDE DE
+       REPRISE). Au-delà d'un quart d'heure, ce sont deux diffusions. */
+    const MEME_DIRECT_MS = 15 * 60_000;
+    // Un créneau sans fin déclarée occupe une heure, comme Twitch le dessine.
+    const CRENEAU_DEFAUT_MS = 60 * 60_000;
+
+    const VIDEO = 'id title createdAt lengthSeconds viewCount'
+      + ' previewThumbnailURL(width: 160, height: 90) game { name displayName }';
+    const Q_CHAINES =
+      'query TseAgendaChaines($logins: [String!]) {' +
+      '  users(logins: $logins) {' +
+      '    login displayName profileImageURL(width: 70)' +
+      '    stream { id createdAt viewersCount title game { name displayName } }' +
+      '    lastBroadcast { id startedAt }' +
+      '    broadcastSettings { title }' +
+      `    videos(first: 1, type: ARCHIVE, sort: TIME) { edges { node { ${VIDEO} } } }` +
+      '  }' +
+      '}';
+    const Q_DIFFUSIONS =
+      'query TseAgendaDiffusions($logins: [String!], $n: Int!) {' +
+      '  users(logins: $logins) {' +
+      `    login videos(first: $n, type: ARCHIVE, sort: TIME) { edges { node { ${VIDEO} } } }` +
+      '  }' +
+      '}';
+    const SEGMENT = 'id startAt endAt title categories { name displayName }';
+    const FORMES = [
+      { nom: 'segmentList(first)', liste:
+        `segmentList(first: ${CFG.AGENDA_CRENEAUX}) { edges { node { ${SEGMENT} isCancelled } } }` },
+      { nom: 'segmentList', liste: `segmentList { edges { node { ${SEGMENT} isCancelled } } }` },
+      { nom: 'nextSegment', liste: '' },
+    ];
+    const qProgramme = (liste) =>
+      'query TseAgendaProgramme($logins: [String!]) {' +
+      '  users(logins: $logins) {' +
+      `    login channel { schedule { nextSegment { ${SEGMENT} } ${liste} } }` +
+      '  }' +
+      '}';
+
+    /* ── CE QUI REVIENT, RAMENÉ À DES NOMBRES ET DES MOTS ──────────────────
+       Rien de ce que Twitch rend ne traverse tel quel : des dates en
+       millisecondes, des textes bornés, des adresses d'image en https et rien
+       d'autre — elles finissent en `src` dans le panneau —, des identifiants
+       de rediffusion faits de chiffres, puisqu'ils finissent dans une URL. */
+    const ms = (iso) => { const t = Date.parse(iso); return Number.isFinite(t) ? t : null; };
+    const texte = (s, max = 200) => (typeof s === 'string' ? s.trim().slice(0, max) : '');
+    const image = (u) => (typeof u === 'string' && /^https:\/\//.test(u) ? u : null);
+    const jeu = (g) => (g && typeof g.name === 'string' && g.name
+      ? { jeu: g.name, libelle: texte(g.displayName, 80) || g.name }
+      : { jeu: null, libelle: null });
+    const video = (n) => {
+      const debut = ms(n?.createdAt);
+      if (!n || !/^\d+$/.test(String(n.id ?? '')) || debut === null) return null;
+      return { id: String(n.id), titre: texte(n.title), debut,
+               duree: Number.isFinite(n.lengthSeconds) && n.lengthSeconds >= 0 ? n.lengthSeconds : null,
+               vues: Number.isFinite(n.viewCount) ? n.viewCount : null,
+               vignette: image(n.previewThumbnailURL), ...jeu(n.game) };
+    };
+    const creneau = (n) => {
+      const debut = ms(n?.startAt);
+      if (!n || debut === null) return null;
+      const fin = ms(n.endAt);
+      return { id: String(n.id || debut), titre: texte(n.title), debut,
+               fin: fin !== null && fin > debut ? fin : null,
+               annule: n.isCancelled === true,
+               ...jeu(Array.isArray(n.categories) ? n.categories[0] : null) };
+    };
+    const enDirect = (s) => {
+      const debut = ms(s?.createdAt);
+      if (!s || debut === null) return null;
+      return { debut, spectateurs: Number.isFinite(s.viewersCount) ? s.viewersCount : null,
+               titre: texte(s.title), ...jeu(s.game) };
+    };
+
+    const chaines = new Map();     // login → fiche de la première passe
+    const diffusions = new Map();  // login → { ts, n, videos (récentes d'abord), complet }
+    const echecs = new Map();      // « passe:login » → { n, ts } : on ne s'acharne pas
+    let forme = 0;                 // indice dans FORMES
+    let formesEpuisees = false;    // planning indisponible pour la session
+    let refus = null;              // { quoi, message } : le schéma refuse une passe entière
+    let travail = null;            // le travailleur en cours — un seul à la fois
+    let fraisApres = 0;            // « Actualiser » : ce qui est plus ancien est à relire
+    let pauseJusqua = 0;           // après deux coupures réseau d'affilée
+    let lot1 = CFG.AGENDA_LOT_CHAINES;
+    let lot2 = CFG.AGENDA_LOT_DIFFUSIONS;
+    let pauseMs = CFG.AGENDA_PAUSE_MS;
+    let version = 0;
+    let voulu = { debut: null, fin: null, chaine: null };
+    /* LES ISSUES SONT EXCLUSIVES, par opération : servie, refusée par le
+       serveur, refusée par le schéma, perdue en route. Leur somme vaut `lots`
+       — la règle des compteurs de chapitres, et pour la même raison. */
+    const issues = () => ({ lots: 0, servis: 0, refus: 0, schema: 0, reseau: 0 });
+    const bilan = { collectes: 0, envois: 0, inconnues: 0,
+                    chaines: issues(), programme: issues(), diffusions: issues(),
+                    attentesGql: 0, abandons: 0, dureeMs: null };
+
+    const frais = (ts) => ts > fraisApres && Date.now() - ts <= CFG.AGENDA_TTL;
+    // Deux échecs pour une même chaîne, et l'on attend la prochaine fraîcheur.
+    const peutRetenter = (cle) => {
+      const e = echecs.get(cle);
+      return !e || e.n < 2 || Date.now() - e.ts > CFG.AGENDA_TTL;
+    };
+    const noterEchec = (cle) => {
+      const e = echecs.get(cle) || { n: 0 };
+      echecs.set(cle, { n: e.n + 1, ts: Date.now() });
+    };
+
+    /* « EN DIRECT » : le pipeline principal relit les chaînes de la barre
+       toutes les trente secondes ; plus frais que nous, il a le dernier mot.
+       `undefined` veut dire qu'il ne sait pas — la chaîne n'est pas dans sa
+       mémoire, ou plus fraîchement —, et l'on s'en tient alors à notre passe. */
+    const directEnCache = (login) => {
+      const e = cache.get(login);
+      if (!e || Date.now() - (e.ts || 0) > 2 * CFG.LIVE_TTL) return undefined;
+      return e.stream ? enDirect(e.stream) : null;
+    };
+    const directDe = (login, f) => {
+      const c = directEnCache(login);
+      return c === undefined ? (f && f.direct) || null : c;
+    };
+
+    /* LES CHAÎNES, ET DANS QUEL ORDRE. Celles que la barre a vues comme
+       suivies (cf. ROSTER) ; les plus suivies d'abord — en direct, abonnées,
+       visitées, vues récemment —, de sorte qu'au-delà de la borne ce soient
+       les moins regardées qui restent dehors, et que la première passe serve
+       d'abord celles qu'on cherche. */
+    const cibles = () => {
+      const vus = new Map(roster.entries());
+      const score = new Map(buildScoresReport().map((r) => [r.login, r.score]));
+      const direct = (l) => (directEnCache(l) ? 1 : 0);
+      const abonne = (l) => (subs.map.get(l)?.sub ? 1 : 0);
+      const tous = [...vus.keys()].filter((l) => RE_LOGIN_AGENDA.test(l));
+      tous.sort((a, b) => (direct(b) - direct(a)) || (abonne(b) - abonne(a))
+        || ((score.get(b) || 0) - (score.get(a) || 0)) || (vus.get(b) - vus.get(a))
+        || (a < b ? -1 : 1));
+      return { liste: tous.slice(0, CFG.AGENDA_MAX_CHAINES), total: tous.length };
+    };
+
+    /* A-T-ELLE DIFFUSÉ DEPUIS `debut` ? Un jour de marge : un direct parti
+       un dimanche soir déborde sur le lundi, et c'est lundi qu'on le cherche. */
+    const actifDepuis = (login, f, debut) => {
+      if (directDe(login, f)) return true;
+      const marge = debut - 24 * 3_600_000;
+      if (f.dernierLive !== null && f.dernierLive >= marge) return true;
+      const v = f.derniere;
+      return !!v && v.debut + (v.duree || 0) * 1000 >= marge;
+    };
+    /* LA SECONDE PASSE : les chaînes actives de la semaine regardée dont les
+       rediffusions ne sont pas lues, plus fraîches, ou pas lues ASSEZ LOIN —
+       une liste pleine dont la plus ancienne est postérieure au lundi peut en
+       cacher d'autres. On redemande alors plus long, une fois ; au-delà, la
+       liste est ce qu'elle est. */
+    const aCouvrir = (liste) => {
+      const { debut, chaine } = voulu;
+      if (debut === null) return [];
+      const out = [];
+      for (const login of liste) {
+        if (chaine && login !== chaine) continue;
+        const f = chaines.get(login);
+        if (!f || f.inconnue || !actifDepuis(login, f, debut) || !peutRetenter('2:' + login)) continue;
+        const d = diffusions.get(login);
+        if (!d || !frais(d.ts)) {
+          out.push({ login, n: d ? Math.max(d.n, CFG.AGENDA_VIDEOS) : CFG.AGENDA_VIDEOS });
+          continue;
+        }
+        if (d.complet || d.n >= CFG.AGENDA_VIDEOS_MAX) continue;
+        const plusAncienne = d.videos.length ? d.videos[d.videos.length - 1].debut : Infinity;
+        if (plusAncienne > debut) out.push({ login, n: CFG.AGENDA_VIDEOS_MAX });
+      }
+      return out;
+    };
+
+    const prochain = () => {
+      if (refus && refus.quoi === 'chaines') return null;
+      const { liste } = cibles();
+      const p1 = liste.filter((l) => {
+        const f = chaines.get(l);
+        return (!f || !frais(f.ts)) && peutRetenter('1:' + l);
+      });
+      if (p1.length) return { passe: 1, logins: p1.slice(0, lot1) };
+      /* LE PLANNING À LIRE À PART : une forme refusée entre-temps, ou un
+         incident sur sa seule opération. La fiche, elle, est fraîche. */
+      if (!formesEpuisees) {
+        const pp = liste.filter((l) => {
+          const f = chaines.get(l);
+          return f && !f.inconnue && f.planning === undefined && peutRetenter('p:' + l);
+        });
+        if (pp.length) return { passe: 'p', logins: pp.slice(0, lot1) };
+      }
+      if (refus && refus.quoi === 'diffusions') return null;
+      const p2 = aCouvrir(liste);
+      if (!p2.length) return null;
+      const n = p2[0].n;
+      return { passe: 2, n, logins: p2.filter((x) => x.n === n).slice(0, lot2).map((x) => x.login) };
+    };
+
+    const parLogin = (data) => new Map((Array.isArray(data?.users) ? data.users : [])
+      .filter((u) => u && typeof u.login === 'string')
+      .map((u) => [u.login.toLowerCase(), u]));
+    const messageDe = (r) => String(r?.errors?.[0]?.message || '').slice(0, 160);
+
+    const lireChaines = (logins, u, maintenant) => {
+      for (const l of logins) {
+        echecs.delete('1:' + l);
+        const avant = chaines.get(l);
+        const x = u.get(l);
+        if (!x) { chaines.set(l, { ts: maintenant, inconnue: true }); bilan.inconnues++; continue; }
+        chaines.set(l, {
+          ts: maintenant,
+          nom: texte(x.displayName, 60) || l,
+          avatar: image(x.profileImageURL),
+          direct: enDirect(x.stream),
+          dernierLive: ms(x.lastBroadcast?.startedAt),
+          titre: texte(x.broadcastSettings?.title),
+          derniere: (x.videos?.edges || []).map((e) => video(e?.node)).find(Boolean) || null,
+          /* Le planning voyage dans SA propre opération : on garde le précédent
+             tant que la nouvelle n'a pas répondu, plutôt que de le perdre sur un
+             incident qui ne le concernait pas. */
+          planning: avant && !avant.inconnue ? avant.planning : undefined,
+        });
+      }
+    };
+    const lirePlanning = (logins, u, maintenant) => {
+      for (const l of logins) {
+        echecs.delete('p:' + l);
+        const f = chaines.get(l);
+        if (!f || f.inconnue) continue;
+        const sch = u.get(l)?.channel?.schedule;
+        const liste = (sch?.segmentList?.edges || []).map((e) => creneau(e?.node)).filter(Boolean);
+        // `nextSegment` figure aussi dans la liste quand elle est servie.
+        const suivant = creneau(sch?.nextSegment);
+        if (suivant && !liste.some((c) => c.id === suivant.id || c.debut === suivant.debut)) liste.push(suivant);
+        liste.sort((a, b) => a.debut - b.debut);
+        f.planning = { ts: maintenant, creneaux: liste.slice(0, 2 * CFG.AGENDA_CRENEAUX) };
+      }
+    };
+    const lireDiffusions = (logins, u, n, maintenant) => {
+      for (const l of logins) {
+        echecs.delete('2:' + l);
+        const aretes = u.get(l)?.videos?.edges;
+        const liste = Array.isArray(aretes) ? aretes : [];
+        diffusions.set(l, { ts: maintenant, n, complet: liste.length < n,
+          videos: liste.map((e) => video(e?.node)).filter(Boolean).sort((a, b) => b.debut - a.debut) });
+      }
+    };
+
+    /* UN REFUS DE TWITCH RALENTIT TOUT CE QUI SUIT : des lots deux fois plus
+       petits, deux fois plus espacés, pour la session. C'est la leçon des
+       sondes de reprise — un refus resondé tout de suite refait refuser. */
+    const ralentir = () => {
+      lot1 = Math.max(5, Math.floor(lot1 / 2));
+      lot2 = Math.max(3, Math.floor(lot2 / 2));
+      pauseMs = Math.min(8_000, pauseMs * 2);
+    };
+    const SORTE = { TseAgendaChaines: 'chaines', TseAgendaProgramme: 'programme',
+                    TseAgendaDiffusions: 'diffusions' };
+    const PREFIXE = { chaines: '1:', programme: 'p:', diffusions: '2:' };
+
+    const envoyer = async (t) => {
+      const ops = t.passe === 1
+        ? [{ operationName: 'TseAgendaChaines', variables: { logins: t.logins }, query: Q_CHAINES },
+           ...(formesEpuisees ? [] : [{ operationName: 'TseAgendaProgramme',
+             variables: { logins: t.logins }, query: qProgramme(FORMES[forme].liste) }])]
+        : t.passe === 'p'
+          ? [{ operationName: 'TseAgendaProgramme', variables: { logins: t.logins },
+               query: qProgramme(FORMES[forme].liste) }]
+          : [{ operationName: 'TseAgendaDiffusions', variables: { logins: t.logins, n: t.n },
+               query: Q_DIFFUSIONS }];
+      bilan.envois++;
+      const rep = await post(ops);
+      // Une réponse qu'on ne peut pas aligner sur les opérations n'est pas arrivée.
+      const aligne = Array.isArray(rep) && rep.length === ops.length;
+      const maintenant = Date.now();
+      let perdue = !aligne;
+      ops.forEach((op, i) => {
+        const sorte = SORTE[op.operationName];
+        const b = bilan[sorte];
+        b.lots++;
+        const r = aligne ? rep[i] : null;
+        if (!r) {
+          b.reseau++; perdue = true;
+          for (const l of t.logins) noterEchec(PREFIXE[sorte] + l);
+          return;
+        }
+        if ((Array.isArray(r.errors) && r.errors.length) || !r.data) {
+          const message = messageDe(r);
+          if (!RE_SCHEMA.test(message)) {
+            b.refus++; ralentir();
+            for (const l of t.logins) noterEchec(PREFIXE[sorte] + l);
+            return;
+          }
+          b.schema++;
+          if (sorte === 'programme') {
+            if (forme < FORMES.length - 1) forme++; else formesEpuisees = true;
+          } else {
+            refus = { quoi: sorte, message };
+            erreurs.noter('agenda', `le schéma refuse ${op.operationName}`, message);
+          }
+          return;
+        }
+        b.servis++;
+        const u = parLogin(r.data);
+        if (sorte === 'chaines') lireChaines(t.logins, u, maintenant);
+        else if (sorte === 'programme') lirePlanning(t.logins, u, maintenant);
+        else lireDiffusions(t.logins, u, t.n, maintenant);
+        version++;
+      });
+      return perdue ? 'perdue' : 'ok';
+    };
+
+    const attendre = (d) => new Promise((res) => setTimeout(res, d));
+    const travailler = async () => {
+      bilan.collectes++;
+      const t0 = Date.now();
+      let coupures = 0;
+      try {
+        /* Une borne de sûreté, au cas où une réponse cesserait de faire avancer
+           l'état : quatre cents chaînes tiennent en seize lots de première passe
+           et quarante de seconde. */
+        for (let tour = 0; tour < 200; tour++) {
+          const t = prochain();
+          if (!t) break;
+          // La pause GraphQL du pipeline principal vaut aussi pour l'agenda.
+          const attente = gqlCooldownUntil - Date.now();
+          if (attente > 0) { bilan.attentesGql++; await attendre(Math.min(attente, 30_000)); }
+          if (await envoyer(t) === 'perdue') {
+            /* DEUX COUPURES D'AFFILÉE, ET L'ON S'ARRÊTE UNE MINUTE : le panneau
+               relit l'agenda toutes les secondes, et chaque relecture
+               relancerait sinon la collecte contre un réseau absent. */
+            if (++coupures >= 2) { pauseJusqua = Date.now() + 60_000; bilan.abandons++; break; }
+          } else {
+            coupures = 0;
+          }
+          await attendre(pauseMs);
+        }
+      } catch (e) {
+        erreurs.noter('agenda', 'collecte : ' + ((e && e.message) || e));
+      } finally {
+        bilan.dureeMs = Date.now() - t0;
+        travail = null;
+        version++;
+      }
+    };
+    const lancer = () => {
+      if (travail || Date.now() < pauseJusqua || !prochain()) return;
+      travail = travailler();
+    };
+
+    const progression = (liste) => ({
+      lues: liste.filter((l) => { const f = chaines.get(l); return !!f && frais(f.ts); }).length,
+      aLire: liste.length,
+      aCouvrir: aCouvrir(liste).length,
+    });
+    const notes = (c) => ({
+      rosterVide: c.total === 0,
+      // Plus de chaînes suivies que la borne : le panneau dit combien sont lues.
+      limite: c.total > c.liste.length ? { retenues: c.liste.length, total: c.total } : null,
+      planning: formesEpuisees ? 'indisponible' : 'ok',
+      refus: refus ? refus.quoi : null,
+      echouees: c.liste.filter((l) => !peutRetenter('1:' + l) || !peutRetenter('2:' + l)).length,
+      reseau: Date.now() < pauseJusqua,
+    });
+    const listeChaines = (liste) => liste.map((l) => {
+      const f = chaines.get(l);
+      return f && !f.inconnue ? { login: l, nom: f.nom, avatar: f.avatar } : null;
+    }).filter(Boolean);
+
+    /* LA SEMAINE : tout ce qui CROISE [debut, fin[, dans l'ordre des heures.
+       Le panneau a calculé les deux bornes à minuit local, au premier jour de
+       SA locale ; elles ne sont ici que des nombres. */
+    const semaine = (arg) => {
+      const debut = Number(arg?.debut);
+      const fin = Number(arg?.fin);
+      if (!Number.isFinite(debut) || !Number.isFinite(fin) || fin <= debut
+          || fin - debut > 8 * 86_400_000) {
+        throw new Error('semaine invalide');
+      }
+      const chaine = typeof arg?.chaine === 'string' && RE_LOGIN_AGENDA.test(arg.chaine)
+        ? arg.chaine : null;
+      voulu = { debut, fin, chaine };
+      lancer();
+      const c = cibles();
+      const maintenant = Date.now();
+      const croise = (a, b) => a < fin && b > debut;
+      const entrees = [];
+      for (const login of c.liste) {
+        if (chaine && login !== chaine) continue;
+        const f = chaines.get(login);
+        if (!f || f.inconnue) continue;
+        const d = diffusions.get(login);
+        const direct = directDe(login, f);
+        const videos = d ? d.videos : (f.derniere ? [f.derniere] : []);
+        if (direct && croise(direct.debut, maintenant + 1)) {
+          entrees.push({ type: 'direct', login, ...direct, fin: null });
+        }
+        for (const v of videos) {
+          const finV = v.debut + (v.duree || 0) * 1000;
+          if (!croise(v.debut, Math.max(finV, v.debut + 1))) continue;
+          // L'enregistrement du direct en cours EST le direct : une seule entrée.
+          if (direct && Math.abs(v.debut - direct.debut) < MEME_DIRECT_MS) continue;
+          entrees.push({ type: 'rediffusion', login, ...v, fin: finV });
+        }
+        /* LE DERNIER DIRECT SANS REDIFFUSION — une chaîne qui n'archive pas, ou
+           pas celui-là. Dit seulement quand ses rediffusions sont LUES et
+           couvrent l'instant : avant, on ne sait pas encore s'il y en a une. */
+        const dl = f.dernierLive;
+        if (dl !== null && !direct && croise(dl, dl + 1) && d
+            && (d.complet || (d.videos.length && d.videos[d.videos.length - 1].debut <= dl))
+            && !d.videos.some((v) => Math.abs(v.debut - dl) < MEME_DIRECT_MS)) {
+          entrees.push({ type: 'sansRediffusion', login, debut: dl, fin: null,
+                         titre: f.titre, jeu: null, libelle: null });
+        }
+        for (const s of (f.planning && f.planning.creneaux) || []) {
+          const finS = s.fin || s.debut + CRENEAU_DEFAUT_MS;
+          if (s.annule || !croise(s.debut, finS) || finS <= maintenant) continue;
+          if (direct && s.debut <= maintenant) continue;   // c'est le direct en cours
+          entrees.push({ type: 'prevu', login, ...s });
+        }
+      }
+      entrees.sort((a, b) => (a.debut - b.debut) || (a.login < b.login ? -1 : 1));
+      const compte = (...types) => entrees.filter((e) => types.includes(e.type)).length;
+      return {
+        vue: 'semaine', version, maintenant, semaine: { debut, fin }, chaine,
+        entrees, chaines: listeChaines(c.liste),
+        enCours: !!travail, progression: progression(c.liste), notes: notes(c),
+        resume: { directs: compte('direct'), diffusions: compte('rediffusion', 'sansRediffusion'),
+                  prevues: compte('prevu'), chaines: new Set(entrees.map((e) => e.login)).size },
+      };
+    };
+
+    /* QUAND A-T-ELLE QUITTÉ L'ANTENNE ? À la fin de son dernier direct quand
+       sa rediffusion la donne ; sinon, à son début — et on le dit (`fin`
+       faux) : le panneau n'écrira pas « terminé il y a » sur un départ. */
+    const derniereActivite = (f) => {
+      const v = f.derniere;
+      const dl = f.dernierLive;
+      if (v && v.duree !== null && (dl === null || Math.abs(v.debut - dl) < MEME_DIRECT_MS || v.debut > dl)) {
+        return { debut: v.debut, t: v.debut + v.duree * 1000, fin: true };
+      }
+      if (dl !== null) return { debut: dl, t: dl, fin: false };
+      return v ? { debut: v.debut, t: v.debut, fin: false } : null;
+    };
+
+    /* HORS LIGNE : chaque chaîne qui n'est pas en direct, la plus récemment
+       partie d'abord ; celles dont on ne sait rien, à la fin. */
+    const horsLigne = () => {
+      voulu = { debut: null, fin: null, chaine: null };
+      lancer();
+      const c = cibles();
+      const maintenant = Date.now();
+      const lignes = [];
+      let directs = 0;
+      for (const login of c.liste) {
+        const f = chaines.get(login);
+        if (!f || f.inconnue) continue;
+        if (directDe(login, f)) { directs++; continue; }
+        const prochainCreneau = ((f.planning && f.planning.creneaux) || [])
+          .find((s) => !s.annule && s.debut > maintenant) || null;
+        lignes.push({ login, nom: f.nom, avatar: f.avatar, titre: f.titre,
+                      dernier: derniereActivite(f), derniere: f.derniere,
+                      prochain: prochainCreneau, planningLu: f.planning !== undefined });
+      }
+      lignes.sort((a, b) => ((b.dernier ? b.dernier.t : -Infinity) - (a.dernier ? a.dernier.t : -Infinity))
+        || (a.login < b.login ? -1 : 1));
+      return {
+        vue: 'horsLigne', version, maintenant, lignes,
+        enCours: !!travail, progression: progression(c.liste), notes: notes(c),
+        resume: { horsLigne: lignes.length, directs,
+                  programmees: lignes.filter((l) => l.prochain).length },
+      };
+    };
+
+    const actualiser = () => {
+      fraisApres = Date.now();
+      echecs.clear();
+      pauseJusqua = 0;
+      lancer();
+    };
+
+    // Le rapport : des comptes, aucune chaîne.
+    const bilanPublic = () => {
+      const fiches = [...chaines.values()];
+      return {
+        chaines: fiches.filter((f) => !f.inconnue).length,
+        inconnues: bilan.inconnues,
+        rediffusions: [...diffusions.values()].reduce((s, d) => s + d.videos.length, 0),
+        creneaux: fiches.reduce((s, f) => s + ((f.planning && f.planning.creneaux.length) || 0), 0),
+        planning: formesEpuisees ? 'indisponible' : FORMES[forme].nom,
+        refus: refus ? `${refus.quoi} — ${refus.message}` : null,
+        enCours: !!travail,
+        collectes: bilan.collectes, envois: bilan.envois,
+        lots: `${lot1} / ${lot2}`, pauseMs,
+        passe1: { ...bilan.chaines }, programme: { ...bilan.programme },
+        passe2: { ...bilan.diffusions },
+        attentesGql: bilan.attentesGql, abandons: bilan.abandons, dureeMs: bilan.dureeMs,
+      };
+    };
+
+    return { semaine, horsLigne, actualiser, bilan: bilanPublic };
+  })();
+
   /* ============================================================
    *  COUCHE DE DONNÉES DU PANNEAU
    *  -------------------------------------------------------------
@@ -18282,6 +18851,11 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         const lignes = roster.entries().map(([login, ts]) => ({ login, ts }));
         return { colonnes: ['login', 'ts'], lignes, resume: { chaines: lignes.length } };
       },
+      /* L'AGENDA (4.25.0) : deux vues sur une seule collecte — cf. le module
+         `agenda`. Ni l'une ni l'autre n'a de colonnes : le panneau les peint à
+         part, comme les réglages, et c'est lui qui date et traduit. */
+      semaine(arg)   { return agenda.semaine(arg); },
+      horsLigne()    { return agenda.horsLigne(); },
       /* ══════════════════════════════════════════════════════════════════════
          LE RYTHME — CE QUE LA MÉMOIRE DES VISITES SAIT DÉJÀ
          ──────────────────────────────────────────────────────────────────────
@@ -19274,6 +19848,10 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
            avant. */
         bilanErreurs: erreurs.bilan(),
         global: globalChannels.report(),
+        /* L'AGENDA (4.25.0) : ses passes, leurs issues, la forme du planning
+           que Twitch accepte. Ses requêtes n'ont jamais pu être exécutées
+           contre le vrai Twitch ; ces lignes sont la mesure qu'on en aura. */
+        agenda: agenda.bilan(),
         journaux: {
           verrous: loadingOverlay.verrous(),
           cycles:  loadingOverlay.journal(),
@@ -19342,6 +19920,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         const r = await subsPage.refresh(true);
         return { fait: r !== null, chaines: Array.isArray(r) ? r.length : 0 };
       },
+      // L'agenda relu de zéro, à la demande (4.25.0).
+      actualiserAgenda() { agenda.actualiser(); return { fait: true }; },
       /* LA CONSOLE DU PANNEAU (4.24.0.12) : `tse.salle` y relaie ici, par ce
          même chemin, les commandes de la sonde du même instant — et elles
          seules, par leur point d'entrée commun. */

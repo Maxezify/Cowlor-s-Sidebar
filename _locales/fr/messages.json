@@ -227,6 +227,21 @@
   "sumCategories": {
     "message": "catégories"
   },
+  "sumLive": {
+    "message": "en direct"
+  },
+  "sumBroadcasts": {
+    "message": "directs"
+  },
+  "sumPlanned": {
+    "message": "prévus"
+  },
+  "sumOffline": {
+    "message": "hors ligne"
+  },
+  "sumScheduled": {
+    "message": "avec un prochain direct"
+  },
   "btnRefreshSubs": {
     "message": "Relever maintenant"
   },
@@ -282,6 +297,42 @@
     "message": "La liaison avec l'onglet a été perdue. Réessayez.",
     "description": "État : la liaison avec l'onglet est perdue"
   },
+  "stateAgendaLoading": {
+    "message": "Lecture des chaînes suivies… $1 / $2"
+  },
+  "stateAgendaLoadingReplays": {
+    "message": "Lecture des rediffusions de $1 chaîne(s)…"
+  },
+  "stateAgendaCapped": {
+    "message": "Seules $1 de vos $2 chaînes suivies sont lues : celles en direct, vos abonnements, puis les plus visitées."
+  },
+  "stateAgendaNoSchedule": {
+    "message": "Twitch ne sert pas le planning des chaînes : les directs programmés ne peuvent pas être montrés."
+  },
+  "stateAgendaNoReplays": {
+    "message": "Twitch refuse la liste des rediffusions : seule la dernière de chaque chaîne est montrée."
+  },
+  "stateAgendaPartial": {
+    "message": "Twitch n'a pas servi $1 chaîne(s) ; « Actualiser » les redemande."
+  },
+  "stateAgendaNetwork": {
+    "message": "Twitch ne répond pas pour l'instant ; « Actualiser » relancera la lecture."
+  },
+  "stateAgendaEmpty": {
+    "message": "Aucun direct cette semaine."
+  },
+  "stateAgendaEmptyChannel": {
+    "message": "Aucun direct de cette chaîne cette semaine."
+  },
+  "stateAgendaNoOffline": {
+    "message": "Toutes vos chaînes suivies sont en direct."
+  },
+  "stateAgendaNoRoster": {
+    "message": "Aucune chaîne suivie connue pour l'instant. L'extension les apprend de la barre latérale de Twitch, quand vous êtes connecté."
+  },
+  "stateAgendaRefused": {
+    "message": "Twitch refuse les requêtes de l'agenda ; « Exporter un rapport » dit pourquoi."
+  },
   "statusOk": {
     "message": "OK"
   },
@@ -311,6 +362,45 @@
   },
   "valMore": {
     "message": "plus"
+  },
+  "valViewsOne": {
+    "message": "$1 vue"
+  },
+  "valViewsFew": {
+    "message": "$1 vues"
+  },
+  "valViewsMany": {
+    "message": "$1 vues"
+  },
+  "valViewsOther": {
+    "message": "$1 vues"
+  },
+  "valOngoing": {
+    "message": "en cours"
+  },
+  "valLive": {
+    "message": "En direct"
+  },
+  "valPlanned": {
+    "message": "Prévu"
+  },
+  "valNoReplay": {
+    "message": "Sans rediffusion"
+  },
+  "valChannel": {
+    "message": "Chaîne"
+  },
+  "valAllChannels": {
+    "message": "Toutes les chaînes"
+  },
+  "valLastLive": {
+    "message": "Dernier direct $1"
+  },
+  "valLastLiveUnknown": {
+    "message": "Dernier direct inconnu"
+  },
+  "valNext": {
+    "message": "Prochain direct : $1"
   },
   "healthOk": {
     "message": "Sélecteurs OK"
@@ -347,6 +437,21 @@
   },
   "btnRefresh": {
     "message": "Actualiser"
+  },
+  "btnToday": {
+    "message": "Aujourd'hui"
+  },
+  "btnWeekPrev": {
+    "message": "Semaine précédente"
+  },
+  "btnWeekNext": {
+    "message": "Semaine suivante"
+  },
+  "btnReplay": {
+    "message": "Revoir"
+  },
+  "btnSeeWeek": {
+    "message": "Sa semaine"
   },
   "btnClose": {
     "message": "Fermer"
@@ -430,7 +535,13 @@
     "message": "Ce panneau"
   },
   "guidePanneauTexte": {
-    "message": "Cinq groupes, à gauche :\n• « Bien démarrer » — ce guide, lisible même sans onglet Twitch ouvert.\n• « Réglages » — tout ce que l'extension laisse choisir.\n• « Vos données » — ce qu'elle a retenu : les chaînes que vous visitez le plus, à quelles heures, vos abonnements, les chaînes connues.\n• « Diagnostic » — ne sert que si quelque chose cloche ; se masque dans les réglages.\n• « Top Chaînes » — l'état du classement et de ses catégories.\nLes sections autres que ce guide lisent l'onglet Twitch au premier plan ; sans lui, elles le disent.\n• Un problème ? « Exporter un rapport » écrit un texte à relire avant de l'envoyer : des comptes, aucune liste — ni vos chaînes, ni vos abonnements.\n• « Effacer l'historique » efface tout ce que l'extension a retenu, définitivement ; vos réglages restent."
+    "message": "Six groupes, à gauche :\n• « Bien démarrer » — ce guide, lisible même sans onglet Twitch ouvert.\n• « Réglages » — tout ce que l'extension laisse choisir.\n• « Agenda » — les directs de vos chaînes suivies, passés, en cours et programmés, avec leurs rediffusions ; c'est le chapitre suivant.\n• « Vos données » — ce qu'elle a retenu : les chaînes que vous visitez le plus, à quelles heures, vos abonnements, les chaînes connues.\n• « Diagnostic » — ne sert que si quelque chose cloche ; se masque dans les réglages.\n• « Top Chaînes » — l'état du classement et de ses catégories.\nLes sections autres que ce guide lisent l'onglet Twitch au premier plan ; sans lui, elles le disent.\n• Un problème ? « Exporter un rapport » écrit un texte à relire avant de l'envoyer : des comptes, aucune liste — ni vos chaînes, ni vos abonnements.\n• « Effacer l'historique » efface tout ce que l'extension a retenu, définitivement ; vos réglages restent."
+  },
+  "guideAgendaTitre": {
+    "message": "L'agenda de vos chaînes"
+  },
+  "guideAgendaTexte": {
+    "message": "Le groupe « Agenda » fait, pour toutes vos chaînes suivies à la fois, ce que la page de programme d'une chaîne fait sur Twitch pour une seule.\n• « La semaine » : jour par jour, les directs passés avec leur rediffusion — un clic l'ouvre —, ceux en cours, et ceux que les chaînes ont programmés.\n• Les flèches changent de semaine, jusqu'à huit en arrière et deux en avant ; « Aujourd'hui » ramène à la semaine en cours, et le menu n'en garde qu'une chaîne.\n• « Hors ligne » : chaque chaîne qui n'est pas en direct, la plus récemment partie d'abord — quand elle a diffusé, sa rediffusion à un clic, et son prochain direct s'il est programmé. « Sa semaine » ouvre la semaine de son dernier direct.\nLes chaînes sont celles que votre barre latérale a montrées comme suivies. Une rediffusion n'existe que si la chaîne garde ses directs, et tant que Twitch les conserve ; un direct programmé, que si elle tient son planning sur Twitch. Rien n'est demandé à Twitch tant que vous n'ouvrez pas l'agenda."
   },
   "guideVieTitre": {
     "message": "Vie privée, en clair"
@@ -500,6 +611,21 @@
   },
   "descOptions": {
     "message": "Ce que l'extension ajoute, et ce qu'elle laisse. Tout est actif par défaut ; un point violet marque ce que vous avez changé."
+  },
+  "grpAgenda": {
+    "message": "Agenda"
+  },
+  "navSemaine": {
+    "message": "La semaine"
+  },
+  "descSemaine": {
+    "message": "Les directs de vos chaînes suivies, jour par jour : passés avec leur rediffusion, en cours, et programmés."
+  },
+  "navHorsLigne": {
+    "message": "Hors ligne"
+  },
+  "descHorsLigne": {
+    "message": "Vos chaînes suivies qui ne sont pas en direct : leur dernier direct, sa rediffusion, et le prochain s'il est programmé."
   },
   "sumSettings": {
     "message": "réglages"

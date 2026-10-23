@@ -52,8 +52,8 @@ se saisit pas ici : elle vient du manifeste, clé `extDescription` de
 
 ## Ce qui doit rester vrai
 
-Les douze fiches se tiennent par leur structure : **26 sections `➤`**, **27
-séparateurs**, **99 puces** et **140 étoiles**. C'est le profil de la fiche
+Les douze fiches se tiennent par leur structure : **27 sections `➤`**, **28
+séparateurs**, **105 puces** et **152 étoiles**. C'est le profil de la fiche
 anglaise, et `npm run store` le compare à celui des onze autres : une section
 oubliée en traduisant se voit à ce compte-là, immédiatement. Ces nombres ne se
 recopient pas : le script les DÉDUIT de la fiche anglaise, si bien qu'ajouter
@@ -63,8 +63,8 @@ les recopie quand même : ces quatre nombres annonçaient 85 puces et 112 étoil
 alors que les fiches en portaient 86 et 114, parce que rien ne relie la phrase
 au compteur. Le script, lui, ne s'est jamais trompé — il mesure.
 
-Douze affirmations sont **vérifiables dans le code**, et doivent changer le jour
-où le code change :
+Treize affirmations sont **vérifiables dans le code**, et doivent changer le
+jour où le code change :
 
 1. **« Six façons de trier »** — `getSortButtons()` en rend six. C'était cinq
    avant la 3.44 ; la fiche l'a dit faux pendant une dizaine de versions.
@@ -108,7 +108,7 @@ où le code change :
    livrés **ni minifiés ni obscurcis** : mêmes noms, mêmes lignes, même
    indentation que dans le dépôt. Depuis la 3.59 le paquet part en revanche
    **sans les commentaires** — ceux du JavaScript, et depuis la 3.60 ceux du
-   CSS aussi (1918 → 828 Ko) ; la phrase reste vraie au mot près — c'est de
+   CSS aussi (2020 → 880 Ko) ; la phrase reste vraie au mot près — c'est de
    lisibilité qu'elle parle, pas d'annotations — et les commentaires, eux,
    sont dans le dépôt public. Ce chiffre-là est confronté à la mesure par
    `npm run addon` : il a été faux, et personne ne l'a vu. Les mentions
@@ -180,6 +180,18 @@ où le code change :
    clavier de la salle). Le reste — le calage sur le son commun, pas de points
    de chaîne, les publicités — est le chapitre « La salle multistream » du
    mode d'emploi, dit avec les mêmes mots.
+13. **« L'agenda »** — entré dans les fiches avec lui, à la 4.25.0. Ses deux
+   promesses de fond sont au contrat `PROMESSES`, chacune liée à la requête
+   qui la tient : la rediffusion « à un clic » à `TseAgendaDiffusions`, les
+   directs programmés à `TseAgendaProgramme`. Ses trois libellés — le groupe,
+   « Sa semaine », « Sans rediffusion » — sont cités sous ceux de chaque
+   langue (`LIBELLES`). « Huit semaines en arrière, deux en avant » est du
+   panneau seul (`AGENDA_PASSE`, `AGENDA_FUTUR`), et c'est pourquoi la phrase
+   n'est pas au contrat, qui ne relie la fiche qu'à `content.js` ; le scénario
+   208 du banc tient les deux bornes. « Rien n'est écrit : tout vit dans
+   l'onglet » est vrai par construction — le module `agenda` de `content.js`
+   ne touche ni `localStorage` ni `chrome.storage`, et le scénario 207 le
+   vérifie.
 
 ## Images
 

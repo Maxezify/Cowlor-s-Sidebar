@@ -177,10 +177,21 @@ _______________________________
 Uma engrenagem à direita do título da barra lateral, um clique, e tudo o que a extensão aprendeu abre por cima da Twitch. O ícone da extensão, no canto superior direito do navegador, abre exatamente o mesmo painel.
 
 - ★ DOIS CAMINHOS, UM SÓ PAINEL ★ A engrenagem na barra lateral ou o ícone na barra de ferramentas: a mesma página, nos dois casos. Aberta pela engrenagem ela é maior — uma janela da barra de ferramentas é limitada pelo navegador, não por nós.
-- ★ UM GUIA, LOGO DE CARA ★ O painel abre num guia de dezesseis capítulos que mostra tudo o que a extensão acrescenta, com exemplos desenhados — e aparece mesmo sem nenhuma aba da Twitch aberta.
+- ★ UM GUIA, LOGO DE CARA ★ O painel abre num guia de dezessete capítulos que mostra tudo o que a extensão acrescenta, com exemplos desenhados — e aparece mesmo sem nenhuma aba da Twitch aberta.
 - ★ SEUS HÁBITOS, DESENHADOS ★ As horas em que você assiste de verdade, num quadro de sete dias por vinte e quatro horas.
 - ★ SEUS NÚMEROS ★ Top streamers, inscrições detectadas, canais seguidos na memória: tudo ali, legível.
 - ★ UM RELATÓRIO PRA COLAR ★ Um botão monta um relatório de diagnóstico completo, sem nenhuma lista pessoal dentro — o bastante pra relatar um problema sem revelar nada.
+
+_______________________________
+
+➤ 📅 QUEM TRANSMITIU, QUEM ESTÁ AO VIVO, QUEM VEM AÍ
+A página de programação de um canal, na Twitch, mostra um só canal. O grupo «Programação» do painel mostra todos os que você segue, de uma vez.
+
+- ★ A SEMANA, DIA A DIA ★ Cada live passada com a gravação a um clique, as que estão no ar e as que os canais agendaram. Oito semanas para trás, duas para a frente.
+- ★ OFFLINE, MAS NÃO ESQUECIDOS ★ Cada canal seguido que não está ao vivo, o mais recente primeiro: quando transmitiu pela última vez, a gravação e a próxima live, se tiver uma agendada.
+- ★ UM CANAL OU TODOS ★ Um menu deixa só um, e «Semana do canal» leva direto à semana da última live dele.
+- ★ SINCERO SOBRE O QUE A TWITCH GUARDA ★ Uma gravação só existe se o canal guarda as lives, e enquanto a Twitch as mantiver; uma última live sem gravação avisa («Sem gravação»).
+- ★ SÓ QUANDO VOCÊ OLHA ★ Nada é pedido à Twitch antes de você abrir, e nada é salvo: tudo vive na aba.
 
 _______________________________
 
@@ -259,6 +270,7 @@ _______________________________
 - ★ VOCÊ SEGUE 50 STREAMERS? ★ Veja num piscar de olhos quem está ao vivo faz tempo e quem acabou de começar.
 - ★ VOCÊ É INSCRITO EM UMA DÚZIA DE CANAIS? ★ Eles estão em dourado, agrupados no topo, com os meses que você está lá.
 - ★ VOCÊ SEMPRE PERDE OS CO-STREAMS? ★ Uma ordenação dedicada leva eles para o topo, um selo diz quem está jogando com quem, e a sala multistream abre todos lado a lado.
+- ★ VOCÊ PERDEU A LIVE DE ONTEM À NOITE? ★ A gravação está a um clique na programação do painel, com o resto da semana.
 - ★ VOCÊ ODEIA BAGUNÇA VISUAL? ★ Chega de Hype Trains ocupando a barra, de faixas de anúncio, de seções vazias.
 - ★ VOCÊ SÓ AMA A TWITCH? ★ Esta extensão foi feita para você!
 

@@ -177,10 +177,21 @@ _______________________________
 A gear to the right of the sidebar title, one click, and everything the extension has learned opens on top of Twitch. The extension's icon, top right of your browser, opens exactly the same panel.
 
 - ★ TWO WAYS IN, ONE PANEL ★ The gear in the sidebar or the icon in the toolbar: the same page, either way. Opened from the gear it is larger — a toolbar popup is capped by the browser, not by us.
-- ★ A GUIDE, FIRST THING ★ The panel opens on a sixteen-chapter walkthrough of everything the extension adds, with drawn examples — and it shows even with no Twitch tab open.
+- ★ A GUIDE, FIRST THING ★ The panel opens on a seventeen-chapter walkthrough of everything the extension adds, with drawn examples — and it shows even with no Twitch tab open.
 - ★ YOUR HABITS, DRAWN ★ The hours you actually watch, laid out as a seven-day by twenty-four-hour grid.
 - ★ YOUR NUMBERS ★ Top streamers, subscriptions spotted, followed channels in memory: all there, readable.
 - ★ A REPORT TO PASTE ★ One button builds a full diagnostic report, with no personal list inside it — enough to report a problem without revealing a thing.
+
+_______________________________
+
+➤ 📅 WHO STREAMED, WHO'S LIVE, WHO'S NEXT
+A channel's schedule page on Twitch shows one channel. The panel's "Schedule" group shows all the channels you follow, at once.
+
+- ★ THE WEEK, DAY BY DAY ★ Every past stream with its replay one click away, the ones live right now, and the ones channels have scheduled. Eight weeks back, two ahead.
+- ★ OFFLINE, NOT FORGOTTEN ★ Every followed channel that isn't live, the most recent first: when it last streamed, its replay, and its next stream if it has one scheduled.
+- ★ ONE CHANNEL OR ALL ★ A menu keeps a single channel, and "Their week" jumps straight to the week of its last stream.
+- ★ HONEST ABOUT WHAT TWITCH KEEPS ★ A replay only exists if the channel saves its broadcasts, and for as long as Twitch keeps them; a last stream without one says so ("No replay").
+- ★ ONLY WHEN YOU LOOK ★ Nothing is asked of Twitch until you open it, and nothing is stored: it all lives in the tab.
 
 _______________________________
 
@@ -259,6 +270,7 @@ _______________________________
 - ★ YOU FOLLOW 50 STREAMERS? ★ See at a glance who's been live for a while and who just started.
 - ★ YOU SUB TO A DOZEN CHANNELS? ★ They're in gold, grouped at the top, with the number of months you've been there.
 - ★ YOU ALWAYS MISS CO-STREAMS? ★ A dedicated sort brings them to the top, a badge tells you who's playing with whom, and the multistream room opens them all side by side.
+- ★ YOU MISSED LAST NIGHT'S STREAM? ★ Its replay is one click away in the panel's schedule, with the rest of the week.
 - ★ YOU HATE VISUAL CLUTTER? ★ No more Hype Trains squatting the sidebar, no more ad banners, no more empty sections.
 - ★ YOU JUST LOVE TWITCH? ★ This extension is made for you!
 

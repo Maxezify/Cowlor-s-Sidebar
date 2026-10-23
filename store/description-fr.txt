@@ -177,10 +177,21 @@ _______________________________
 Une roue crantée à droite du titre de la barre latérale, un clic, et tout ce que l'extension a appris s'ouvre par-dessus Twitch. L'icône de l'extension, en haut à droite du navigateur, ouvre exactement le même panneau.
 
 - ★ DEUX CHEMINS, UN SEUL PANNEAU ★ La roue dans la barre latérale ou l'icône dans la barre d'outils : la même page, dans les deux cas. Ouverte depuis la roue, elle est plus grande — une popup de barre d'outils est bornée par le navigateur, pas par nous.
-- ★ UN MODE D'EMPLOI, D'EMBLÉE ★ Le panneau s'ouvre sur un guide de seize chapitres qui montre tout ce que l'extension ajoute, exemples dessinés à l'appui — et il s'affiche même sans onglet Twitch ouvert.
+- ★ UN MODE D'EMPLOI, D'EMBLÉE ★ Le panneau s'ouvre sur un guide de dix-sept chapitres qui montre tout ce que l'extension ajoute, exemples dessinés à l'appui — et il s'affiche même sans onglet Twitch ouvert.
 - ★ VOS HABITUDES, EN IMAGE ★ Les heures où vous regardez vraiment, dessinées en une grille de sept jours sur vingt-quatre heures.
 - ★ VOS CHIFFRES ★ Top streamers, abonnements repérés, chaînes suivies en mémoire : tout est là, lisible.
 - ★ UN RAPPORT À COLLER ★ Un bouton fabrique un rapport de diagnostic complet, sans aucune liste personnelle dedans — de quoi signaler un problème sans rien révéler.
+
+_______________________________
+
+➤ 📅 QUI A DIFFUSÉ, QUI EST EN DIRECT, QUI LE SERA
+La page de programme d'une chaîne, sur Twitch, ne montre qu'une chaîne. Le groupe « Agenda » du panneau montre toutes celles que vous suivez, d'un coup.
+
+- ★ LA SEMAINE, JOUR PAR JOUR ★ Chaque direct passé avec sa rediffusion à un clic, ceux en cours, et ceux que les chaînes ont programmés. Huit semaines en arrière, deux en avant.
+- ★ HORS LIGNE, MAIS PAS OUBLIÉES ★ Chaque chaîne suivie qui n'est pas en direct, la plus récente d'abord : quand elle a diffusé pour la dernière fois, sa rediffusion, et son prochain direct s'il est programmé.
+- ★ UNE CHAÎNE OU TOUTES ★ Un menu n'en garde qu'une, et « Sa semaine » mène droit à la semaine de son dernier direct.
+- ★ FRANC SUR CE QUE TWITCH GARDE ★ Une rediffusion n'existe que si la chaîne archive ses directs, et tant que Twitch les conserve ; un dernier direct qui n'en a pas le dit (« Sans rediffusion »).
+- ★ SEULEMENT QUAND VOUS REGARDEZ ★ Rien n'est demandé à Twitch avant que vous l'ouvriez, et rien n'est écrit : tout vit dans l'onglet.
 
 _______________________________
 
@@ -259,6 +270,7 @@ _______________________________
 - ★ VOUS SUIVEZ 50 STREAMERS ? ★ Voyez d'un coup d'œil qui est en live depuis longtemps et qui vient de commencer.
 - ★ VOUS ÊTES ABONNÉ À UNE DIZAINE DE CHAÎNES ? ★ Elles sont en or, regroupées en tête, avec le nombre de mois où vous les soutenez.
 - ★ VOUS RATEZ TOUJOURS LES CO-STREAMS ? ★ Un tri dédié les remonte en haut, un badge vous dit qui joue avec qui, et la salle multistream les ouvre tous côte à côte.
+- ★ VOUS AVEZ RATÉ LE LIVE D'HIER SOIR ? ★ Sa rediffusion est à un clic dans l'agenda du panneau, avec le reste de la semaine.
 - ★ VOUS DÉTESTEZ LE FOUILLIS VISUEL ? ★ Fini les Hype Trains qui squattent la barre, les bandeaux de pub, les sections vides.
 - ★ VOUS AIMEZ JUSTE TWITCH ? ★ Cette extension est faite pour vous !
 
