@@ -2180,6 +2180,228 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## L'agenda des chaînes suivies (v4.25.0)
+
+La demande, parmi quinze idées proposées : « 6. Hors ligne, mais pas oubliées
+7. L'agenda de la semaine. A faire dans le panneau, pour l'agenda, j'ai
+remarqué que l'on peut voir les futurs lives programmé (mais il y en a peu,
+les streamers utilisent peu cette feature) par contre, on voit aussi dans
+l'agenda les lives passés. Et ça peut être vraiment très intéressant, car
+donne un accès facile pour voir les derniers replay d'un streamer. » Publiée
+sur `claude/chrome-multi`.
+
+### Ce que Twitch montre, et ce qui manquait
+
+La page « Programme » d'une chaîne montre, semaine par semaine, ses directs
+passés avec leur rediffusion, celui en cours, et ceux qu'elle a programmés.
+Mais pour UNE chaîne, qu'il faut savoir ouvrir. Rien, sur Twitch, ne dit qui
+a diffusé hier soir parmi celles qu'on suit, ni depuis quand telle autre
+n'est plus venue.
+
+### Ce que l'agenda montre
+
+Un groupe de plus dans le rail du panneau, « Agenda », juste après
+« Réglages » : c'est la première section qui sert au quotidien.
+
+- **« La semaine »** : sept jours, dans l'ordre que la langue donne à la
+  semaine — lundi en français, dimanche en anglais et en japonais. Chaque
+  jour liste ce qui y commence :
+  - les directs passés, avec leur rediffusion — vignette, durée, titre,
+    catégorie, vues ; un clic l'ouvre ;
+  - le direct en cours ;
+  - les créneaux programmés, sans les annulés ;
+  - un dernier direct sans archive, dit comme tel.
+
+  Les flèches changent de semaine, huit en arrière et deux en avant ;
+  « Aujourd'hui » y revient ; un menu n'en garde qu'une chaîne.
+- **« Hors ligne »** : chaque chaîne suivie qui n'est pas en direct, la plus
+  récemment partie d'abord. Pour chacune :
+  - quand elle a diffusé, en temps relatif — « Dernier direct hier » ;
+  - « Revoir », seulement quand la dernière rediffusion EST le dernier
+    direct ;
+  - son prochain direct, s'il est programmé ;
+  - « Sa semaine », qui ouvre la semaine de ce dernier direct, pour elle
+    seule.
+
+Les liens s'ouvrent là où l'on est : dans un onglet depuis la popup, sans
+référent ; dans la page elle-même quand le panneau est incrusté. Ce qui vient
+de Twitch reste du texte, titres compris. Une image n'est acceptée qu'en
+https, et un identifiant de rediffusion ne devient un lien que s'il est fait
+de chiffres.
+
+### Ce qu'il demande à Twitch
+
+Les champs sont ceux que Twitch sert à sa page Programme et à son lecteur
+hors ligne : `lastBroadcast`, `broadcastSettings`, les archives de `videos`
+et `channel.schedule`. Les requêtes sont écrites, comme toutes celles du
+fichier : aucune requête persistée.
+
+- **Deux passes.**
+  - La première, pour chaque chaîne suivie, par lots de vingt-cinq : en
+    direct ou non, le dernier direct, la dernière rediffusion, le planning.
+    C'est toute la vue « Hors ligne ».
+  - La seconde, pour les seules chaînes qui ont diffusé depuis le début de
+    la semaine regardée, un jour de marge compris : leurs douze dernières
+    rediffusions, ou quarante quand une semaine plus ancienne en réclame
+    davantage.
+- **À la demande, une requête à la fois.** Rien ne part avant que le panneau
+  ouvre l'agenda. Les lots se suivent, une seconde entre deux envois, et le
+  panneau relit l'avancement chaque seconde.
+- **Ce qui échoue ne s'acharne pas.**
+  - Un refus du service divise les lots par deux et double la pause, pour la
+    session.
+  - Deux envois perdus de suite arrêtent la lecture ; « Actualiser » la
+    relance.
+  - Une chaîne que Twitch n'a pas servie deux fois attend la fraîcheur
+    suivante, dix minutes.
+- **Quatre cents chaînes au plus** : celles en direct, les abonnements, puis
+  les plus visitées et les plus récemment vues. Au-delà, le panneau dit
+  combien sont lues.
+- **Rien n'est écrit** : tout vit en mémoire, le temps de l'onglet. Le
+  rapport n'en porte que des comptes, bloc `AGENDA`.
+
+### Ce qui n'est pas prouvé
+
+Les arguments de `segmentList`, la liste des créneaux, ne se lisent dans
+aucune réponse. Le planning est donc demandé sous trois formes, de la plus
+riche à la plus sûre ; chaque refus du schéma fait avancer d'un cran. La
+dernière ne garde que `nextSegment`, que les pages de Twitch demandent
+elles-mêmes. Le rapport dit laquelle est en jeu, ou « indisponible ».
+
+**Dit tout haut : cette machine n'atteint pas Twitch,** son réseau le
+refuse. Les champs ont été établis sur les types que publie un paquet npm
+tiré de réponses réelles (`twitch-gql-queries`), et le banc les éprouve
+contre un Twitch simulé. Le premier essai réel dira si le schéma les
+accepte. S'il en refuse un, la vue le dit, et le rapport dit lequel.
+
+### Les textes
+
+- Quarante-deux clés, dans les douze langues.
+- Le guide gagne un dix-septième chapitre, « L'agenda de vos chaînes », et
+  celui du panneau nomme six groupes.
+- Les douze fiches du Store gagnent une section et une puce « pour qui ».
+  Le contrat de `npm run store` y gagne deux promesses, liées chacune à sa
+  requête, et trois libellés cités tels que chaque langue les affiche.
+
+### Deux défauts trouvés en relisant, avant le banc
+
+- **La barre d'avancement restait figée.** Une chaîne que Twitch n'a pas
+  servie deux fois ne compte jamais parmi les lues : la barre restait à 298
+  sur 300 une fois la lecture finie, au-dessus de la note qui le dit. Elle
+  ne se montre plus que pendant la lecture.
+- **« Hors ligne » parlait d'un refus qui ne le touche pas.** La note du
+  refus de la liste des rediffusions s'y affichait, alors que cette vue ne
+  lit que la dernière de chaque chaîne.
+
+### Ce que le banc mesure
+
+**207**, nouveau, quarante-six assertions : la collecte, contre le Twitch
+simulé de `page.html`.
+
+- a) rien ne part avant que le panneau ouvre l'agenda ;
+- b) hors ligne : deux envois, vingt-cinq chaînes puis cinq, une requête à
+  la fois, la chaîne en direct en tête, aucune rediffusion demandée ; puis
+  l'ordre, les dates de départ, le prochain direct sans l'annulé ;
+- c) la semaine passée : une seconde passe pour les quatre seules chaînes
+  actives, chaque rediffusion, le direct sans archive, le créneau passé
+  écarté ;
+- d) une chaîne seule, sans rien redemander ; un login mal formé ignoré ;
+  une « semaine » de neuf jours refusée ;
+- e) la semaine en cours, le direct une seule fois ; la suivante, ses
+  créneaux, l'annulé écarté ;
+- f) une semaine ancienne : quarante rediffusions, pour la seule chaîne qui
+  en a besoin ;
+- g) « Actualiser » ;
+- h) le rapport : des comptes justes, pas un login, pas un titre ;
+- i) rien d'écrit, ni dans le stockage ni dans le code du module ;
+- j) les trois formes du planning, puis toutes refusées ;
+- k) un refus du service : lots divisés, pause doublée, tout finit lu ;
+- l), m) les deux refus du schéma, de la fiche et de la liste ;
+- n) deux envois perdus : l'arrêt, la pause tenue, « Actualiser » ;
+- o) refusées deux fois, les chaînes attendent la fraîcheur suivante ;
+- p) la borne des quatre cents, et qui reste dedans.
+
+**208**, nouveau, trente-cinq assertions : les deux vues du panneau, contre
+un bouchon qui répond d'après la semaine demandée.
+
+- a) le groupe, troisième du rail ;
+- b) la semaine de la locale : lundi en français, dimanche en anglais ;
+- c) chaque entrée dans son jour ; des liens seulement sûrs, et leur cible ;
+- d) un titre en HTML reste du texte ; les vignettes en https, celle qui ne
+  vient pas laissant son cadre vide ;
+- e) les vues au pluriel de la langue, la durée, les cartouches ;
+- f) la géométrie : rien ne déborde, la barre reste en haut ;
+- g) la relecture pendant la collecte, qui garde sa position ;
+- h) elle attend qu'on quitte le menu des chaînes ;
+- i) le menu ; la semaine vide ;
+- j) la navigation, bornée à huit semaines en arrière et deux en avant ;
+- k) les notes, et les messages à la place de la vue ;
+- l) « Hors ligne » et « Sa semaine » ;
+- m) « Actualiser », et le bloc du rapport ;
+- n) les quatre pluriels russes ;
+- o) incrusté dans Twitch, des liens qui mènent la page elle-même.
+
+**96** et **70**, revus : dix-sept chapitres, six groupes, et les libellés de
+l'agenda au contrat des citations.
+
+**Un trou du banc, trouvé par les mutants.** Le sous-test du réseau perdu
+n'avait que deux chaînes : perdues deux fois, elles n'étaient plus
+demandables, et cette règle masquait la pause. Le mutant qui l'oubliait
+passait. Le sous-test lit désormais trente chaînes : les cinq du second lot
+restent à lire, et seule la pause retient la demande suivante.
+
+Le banc complet : 1841 assertions dans 207 scénarios, toutes vertes.
+
+| mutant | ce qui tombe |
+| --- | --- |
+| la collecte part au démarrage | 207 : a, b |
+| pas de lot | 207 : b, b, g, h, k, k |
+| plusieurs travailleurs à la fois | 207 : b, b, g, h, k |
+| pas de pause entre deux envois | 207 : b, k |
+| la chaîne en direct pas en tête | 207 : b |
+| la seconde passe pour toutes les chaînes | 207 : c, g, h |
+| pas de liste longue pour une semaine ancienne | 207 : f, f, g, h, h |
+| le direct et sa rediffusion en double | 207 : e |
+| « sans rediffusion » malgré la rediffusion | 207 : c, c, d, d, n |
+| le créneau annulé montré | 207 : e |
+| le créneau passé montré | 207 : c, c, c, d, d, m |
+| le créneau du direct en cours montré | 207 : e |
+| une forme refusée condamne le planning | 207 : j, j, j, n |
+| le refus du service pris pour celui du schéma | 207 : k, k, k, o |
+| pas de ralentissement | 207 : k, k |
+| on s'acharne sur une chaîne refusée | 207 : o |
+| pas d'arrêt sur deux coupures | 207 : n, n, n |
+| la pause du réseau ignorée | 207 : n, n, n — survivait avant le sous-test à trente chaînes |
+| « Actualiser » garde la pause | 207 : n |
+| le rapport nomme les chaînes | 207 : h |
+| pas de borne | 207 : p |
+| l'abonnement ne compte pas | 207 : p |
+| l'agenda écrit dans le stockage | 207 : i |
+| le login de la chaîne non vérifié | 207 : d |
+| la semaine non bornée | 207 : d, e |
+| le départ daté au début de la rediffusion | 207 : b |
+| « Hors ligne » à l'envers | 207 : b |
+| la semaine commence le lundi pour tous | 208 : b |
+| la semaine décalée d'un jour | 208 : b, b, b, j, j, j, l |
+| l'identifiant de rediffusion non vérifié | 208 : c |
+| sans `noopener` | 208 : c, l |
+| le titre en HTML | 208 : d, e, n |
+| les images en http | 208 : d, l |
+| la relecture remonte en haut | 208 : g |
+| la relecture ne s'arrête pas | 208 : g |
+| le menu repeint sous la souris | 208 : h |
+| neuf semaines en arrière | 208 : j |
+| le refus de la liste dit dans les deux vues | 208 : k |
+| la barre figée | 208 : k |
+| « Revoir » sur une rediffusion plus ancienne | 208 : l |
+| « Sa semaine » ouvre la semaine en cours | 208 : l |
+| le pluriel du nombre abrégé, pris au nombre entier | 208 : n |
+| un onglet, même incrusté | 208 : o |
+| l'entrée de la veille hors de la semaine | 208 : c, d, i, n |
+| la barre des semaines non collée | 208 : f |
+| le chapitre de l'agenda oublié | 96 : les dix-sept chapitres, le retour au guide, le japonais |
+| le groupe absent du chapitre du panneau | 96 : les six groupes, les citations |
+
 ## L'exemplaire du panneau sous Firefox (v4.24.0.45)
 
 Trouvé en préparant le portage des versions 4.24.0.40 à 4.24.0.44 sur
@@ -19593,7 +19815,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 205 scénarios, 1760 assertions |
+| `npm test` | le harnais Playwright : 207 scénarios, 1841 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -19614,12 +19836,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1660 Ko | 671 Ko | 4 242 → **2** |
+| `content.js` | 1738 Ko | 707 Ko | 4 290 → **2** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
-| `panneau.js` | 113 Ko | 53 Ko | 160 → **0** |
+| `panneau.js` | 133 Ko | 68 Ko | 184 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
 | `background.js` | 10 Ko | 2 Ko | 22 → **0** |
-| **les cinq** | **1918 Ko** | **828 Ko** | **−57 %** |
+| **les cinq** | **2020 Ko** | **880 Ko** | **−56 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se

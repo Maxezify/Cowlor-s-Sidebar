@@ -177,10 +177,21 @@ _______________________________
 Un engranaje a la derecha del título de la barra lateral, un clic, y todo lo que la extensión aprendió se abre encima de Twitch. El icono de la extensión, arriba a la derecha del navegador, abre exactamente el mismo panel.
 
 - ★ DOS CAMINOS, UN SOLO PANEL ★ El engranaje de la barra lateral o el icono de la barra de herramientas: la misma página, en ambos casos. Abierta desde el engranaje es más grande: a una ventana emergente de la barra de herramientas la limita el navegador, no nosotros.
-- ★ UNA GUÍA, DE ENTRADA ★ El panel se abre con una guía de dieciséis capítulos que muestra todo lo que la extensión agrega, con ejemplos dibujados, y aparece incluso sin ninguna pestaña de Twitch abierta.
+- ★ UNA GUÍA, DE ENTRADA ★ El panel se abre con una guía de diecisiete capítulos que muestra todo lo que la extensión agrega, con ejemplos dibujados, y aparece incluso sin ninguna pestaña de Twitch abierta.
 - ★ TUS HÁBITOS, DIBUJADOS ★ Las horas en que mirás de verdad, trazadas en una grilla de siete días por veinticuatro horas.
 - ★ TUS NÚMEROS ★ Top de streamers, suscripciones detectadas, canales seguidos en memoria: todo ahí, legible.
 - ★ UN INFORME PARA PEGAR ★ Un botón arma un informe de diagnóstico completo, sin ninguna lista personal adentro: lo justo para avisar de un problema sin revelar nada.
+
+_______________________________
+
+➤ 📅 QUIÉN TRANSMITIÓ, QUIÉN ESTÁ EN VIVO, QUIÉN SIGUE
+La página de horario de un canal, en Twitch, muestra un solo canal. El grupo «Horario» del panel muestra todos los que seguís, de una vez.
+
+- ★ LA SEMANA, DÍA POR DÍA ★ Cada transmisión pasada con su repetición a un clic, las que están en vivo y las que los canales programaron. Ocho semanas atrás, dos adelante.
+- ★ DESCONECTADOS, PERO NO OLVIDADOS ★ Cada canal seguido que no está en vivo, el más reciente primero: cuándo transmitió por última vez, su repetición y su próxima transmisión si tiene una programada.
+- ★ UN CANAL O TODOS ★ Un menú deja uno solo, y «Su semana» lleva directo a la semana de su última transmisión.
+- ★ CLAROS CON LO QUE TWITCH GUARDA ★ Una repetición solo existe si el canal guarda sus transmisiones, y mientras Twitch las conserve; una última transmisión sin ella lo dice («Sin repetición»).
+- ★ SOLO CUANDO MIRÁS ★ No se le pide nada a Twitch antes de que lo abras, y no se guarda nada: todo vive en la pestaña.
 
 _______________________________
 
@@ -259,6 +270,7 @@ _______________________________
 - ★ ¿SEGUÍS A 50 STREAMERS? ★ Mirá de un vistazo quién lleva rato en vivo y quién recién arrancó.
 - ★ ¿ESTÁS SUSCRITO A UNA DOCENA DE CANALES? ★ Están en oro, agrupados arriba, con los meses que llevás apoyándolos.
 - ★ ¿SIEMPRE TE PERDÉS LOS CO-STREAMS? ★ Un orden dedicado los sube arriba, una insignia te dice quién juega con quién, y la sala multistream los abre todos uno al lado del otro.
+- ★ ¿TE PERDISTE LA TRANSMISIÓN DE ANOCHE? ★ Su repetición está a un clic en el horario del panel, con el resto de la semana.
 - ★ ¿ODIÁS EL DESORDEN VISUAL? ★ Se acabaron los Hype Trains ocupando la barra, los banners de publicidad, las secciones vacías.
 - ★ ¿SIMPLEMENTE TE ENCANTA TWITCH? ★ ¡Esta extensión está hecha para vos!
 

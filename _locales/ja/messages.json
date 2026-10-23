@@ -227,6 +227,21 @@
   "sumCategories": {
     "message": "カテゴリー"
   },
+  "sumLive": {
+    "message": "配信中"
+  },
+  "sumBroadcasts": {
+    "message": "配信"
+  },
+  "sumPlanned": {
+    "message": "予定"
+  },
+  "sumOffline": {
+    "message": "オフライン"
+  },
+  "sumScheduled": {
+    "message": "次回予定あり"
+  },
   "btnRefreshSubs": {
     "message": "今すぐ取得"
   },
@@ -282,6 +297,42 @@
     "message": "タブとの接続が切れました。もう一度お試しください。",
     "description": "État : la liaison avec l'onglet est perdue"
   },
+  "stateAgendaLoading": {
+    "message": "フォロー中のチャンネルを読み込み中… $1 / $2"
+  },
+  "stateAgendaLoadingReplays": {
+    "message": "アーカイブを読み込み中… 残り $1 チャンネル"
+  },
+  "stateAgendaCapped": {
+    "message": "フォロー中の $2 チャンネルのうち、読み込むのは $1 チャンネルだけです。配信中、サブスク中、よく訪れる順に選びます。"
+  },
+  "stateAgendaNoSchedule": {
+    "message": "Twitch がチャンネルのスケジュールを返しません。予定された配信は表示できません。"
+  },
+  "stateAgendaNoReplays": {
+    "message": "Twitch がアーカイブの一覧を拒否しています。各チャンネルの最新のものだけを表示します。"
+  },
+  "stateAgendaPartial": {
+    "message": "Twitch から取得できなかったチャンネル：$1。「更新」で再取得します。"
+  },
+  "stateAgendaNetwork": {
+    "message": "Twitch が今は応答しません。「更新」で読み込みを再開します。"
+  },
+  "stateAgendaEmpty": {
+    "message": "この週の配信はありません。"
+  },
+  "stateAgendaEmptyChannel": {
+    "message": "この週、このチャンネルの配信はありません。"
+  },
+  "stateAgendaNoOffline": {
+    "message": "フォロー中のチャンネルはすべて配信中です。"
+  },
+  "stateAgendaNoRoster": {
+    "message": "フォロー中のチャンネルはまだわかりません。ログイン中に、拡張機能が Twitch のサイドバーから覚えます。"
+  },
+  "stateAgendaRefused": {
+    "message": "Twitch がスケジュールのリクエストを拒否しています。理由は「レポートを書き出す」でわかります。"
+  },
   "statusOk": {
     "message": "正常"
   },
@@ -311,6 +362,45 @@
   },
   "valMore": {
     "message": "多"
+  },
+  "valViewsOne": {
+    "message": "$1 回視聴"
+  },
+  "valViewsFew": {
+    "message": "$1 回視聴"
+  },
+  "valViewsMany": {
+    "message": "$1 回視聴"
+  },
+  "valViewsOther": {
+    "message": "$1 回視聴"
+  },
+  "valOngoing": {
+    "message": "配信中"
+  },
+  "valLive": {
+    "message": "配信中"
+  },
+  "valPlanned": {
+    "message": "予定"
+  },
+  "valNoReplay": {
+    "message": "アーカイブなし"
+  },
+  "valChannel": {
+    "message": "チャンネル"
+  },
+  "valAllChannels": {
+    "message": "すべてのチャンネル"
+  },
+  "valLastLive": {
+    "message": "最終配信：$1"
+  },
+  "valLastLiveUnknown": {
+    "message": "最終配信は不明"
+  },
+  "valNext": {
+    "message": "次回の配信：$1"
   },
   "healthOk": {
     "message": "セレクター正常"
@@ -347,6 +437,21 @@
   },
   "btnRefresh": {
     "message": "更新"
+  },
+  "btnToday": {
+    "message": "今日"
+  },
+  "btnWeekPrev": {
+    "message": "前の週"
+  },
+  "btnWeekNext": {
+    "message": "次の週"
+  },
+  "btnReplay": {
+    "message": "アーカイブを見る"
+  },
+  "btnSeeWeek": {
+    "message": "週間を見る"
   },
   "btnClose": {
     "message": "閉じる"
@@ -430,7 +535,13 @@
     "message": "このパネル"
   },
   "guidePanneauTexte": {
-    "message": "左側に 5 つのグループがあります。\n•「はじめに」— このガイドです。Twitch のタブが開いていなくても読めます。\n•「設定」— 拡張機能で選べるものすべて。\n•「あなたのデータ」— 覚えていること：よく訪れるチャンネル、その時間帯、サブスク、既知のチャンネル。\n•「診断」— 何かおかしいときだけ役立ちます。設定で隠せます。\n•「トップチャンネル」— ランキングとそのカテゴリの状態。\nこのガイド以外のセクションは、最前面の Twitch タブを読みます。なければ、そう伝えます。\n• 困ったときは「レポートを書き出す」で、送る前に読み返せるテキストを書き出します。件数だけで、一覧は含みません — チャンネルもサブスクも。\n•「履歴を消去」は、拡張機能が覚えたことをすべて消去します。取り消せません。設定は残ります。"
+    "message": "左側に 6 つのグループがあります。\n•「はじめに」— このガイドです。Twitch のタブが開いていなくても読めます。\n•「設定」— 拡張機能で選べるものすべて。\n•「スケジュール」— フォロー中のチャンネルの過去・配信中・予定の配信と、そのアーカイブ。次の章で説明します。\n•「あなたのデータ」— 覚えていること：よく訪れるチャンネル、その時間帯、サブスク、既知のチャンネル。\n•「診断」— 何かおかしいときだけ役立ちます。設定で隠せます。\n•「トップチャンネル」— ランキングとそのカテゴリの状態。\nこのガイド以外のセクションは、最前面の Twitch タブを読みます。なければ、そう伝えます。\n• 困ったときは「レポートを書き出す」で、送る前に読み返せるテキストを書き出します。件数だけで、一覧は含みません — チャンネルもサブスクも。\n•「履歴を消去」は、拡張機能が覚えたことをすべて消去します。取り消せません。設定は残ります。"
+  },
+  "guideAgendaTitre": {
+    "message": "チャンネルのスケジュール"
+  },
+  "guideAgendaTexte": {
+    "message": "「スケジュール」グループは、Twitch でチャンネルのスケジュールページが 1 つのチャンネルについて見せるものを、フォロー中のすべてのチャンネルについてまとめて見せます。\n•「週間」— 日ごとに、アーカイブ付きの過去の配信（クリックで開きます）、配信中のもの、チャンネルが予定した配信。\n• 矢印で週を切り替えます。8 週前から 2 週先までです。「今日」で今週に戻り、メニューで 1 つのチャンネルだけに絞れます。\n•「オフライン」— 配信していない各チャンネルを、最近配信を終えた順に。いつ配信したか、ワンクリックで見られるアーカイブ、予定があれば次回の配信。「週間を見る」で最後の配信の週を開きます。\nチャンネルは、サイドバーにフォロー中として表示されたものです。アーカイブは、チャンネルが配信を保存していて、Twitch が保持している間だけ存在します。予定された配信は、チャンネルが Twitch でスケジュールを管理している場合だけです。スケジュールを開くまで、Twitch には何も問い合わせません。"
   },
   "guideVieTitre": {
     "message": "プライバシー、はっきりと"
@@ -500,6 +611,21 @@
   },
   "descOptions": {
     "message": "拡張機能が加えるもの、そのままにするもの。既定ではすべて有効です。変更した項目には紫の点が付きます。"
+  },
+  "grpAgenda": {
+    "message": "スケジュール"
+  },
+  "navSemaine": {
+    "message": "週間"
+  },
+  "descSemaine": {
+    "message": "フォロー中のチャンネルの配信を日ごとに：アーカイブ付きの過去の配信、配信中のもの、予定されたもの。"
+  },
+  "navHorsLigne": {
+    "message": "オフライン"
+  },
+  "descHorsLigne": {
+    "message": "配信していないフォロー中のチャンネル：最後の配信、そのアーカイブ、予定があれば次回の配信。"
   },
   "sumSettings": {
     "message": "設定項目"

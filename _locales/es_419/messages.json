@@ -227,6 +227,21 @@
   "sumCategories": {
     "message": "categorías"
   },
+  "sumLive": {
+    "message": "en vivo"
+  },
+  "sumBroadcasts": {
+    "message": "transmisiones"
+  },
+  "sumPlanned": {
+    "message": "programadas"
+  },
+  "sumOffline": {
+    "message": "desconectados"
+  },
+  "sumScheduled": {
+    "message": "con próxima transmisión"
+  },
   "btnRefreshSubs": {
     "message": "Barrer ahora"
   },
@@ -282,6 +297,42 @@
     "message": "Se ha perdido la conexión con la pestaña. Vuelve a intentarlo.",
     "description": "État : la liaison avec l'onglet est perdue"
   },
+  "stateAgendaLoading": {
+    "message": "Leyendo los canales seguidos… $1 / $2"
+  },
+  "stateAgendaLoadingReplays": {
+    "message": "Leyendo las repeticiones… canales restantes: $1"
+  },
+  "stateAgendaCapped": {
+    "message": "Solo se leen $1 de tus $2 canales seguidos: los que están en vivo, tus suscripciones y después los más visitados."
+  },
+  "stateAgendaNoSchedule": {
+    "message": "Twitch no sirve el horario de los canales: no se pueden mostrar las transmisiones programadas."
+  },
+  "stateAgendaNoReplays": {
+    "message": "Twitch rechaza la lista de repeticiones: solo se muestra la última de cada canal."
+  },
+  "stateAgendaPartial": {
+    "message": "Canales que Twitch no sirvió: $1; “Actualizar” los vuelve a pedir."
+  },
+  "stateAgendaNetwork": {
+    "message": "Twitch no responde por ahora; “Actualizar” va a reanudar la lectura."
+  },
+  "stateAgendaEmpty": {
+    "message": "Ninguna transmisión esta semana."
+  },
+  "stateAgendaEmptyChannel": {
+    "message": "Ninguna transmisión de este canal esta semana."
+  },
+  "stateAgendaNoOffline": {
+    "message": "Todos los canales que seguís están en vivo."
+  },
+  "stateAgendaNoRoster": {
+    "message": "Todavía no se conoce ningún canal seguido. La extensión los aprende de la barra lateral de Twitch mientras tenés la sesión iniciada."
+  },
+  "stateAgendaRefused": {
+    "message": "Twitch rechaza las solicitudes del horario; “Exportar un informe” dice por qué."
+  },
   "statusOk": {
     "message": "OK"
   },
@@ -311,6 +362,45 @@
   },
   "valMore": {
     "message": "más"
+  },
+  "valViewsOne": {
+    "message": "$1 visualización"
+  },
+  "valViewsFew": {
+    "message": "$1 visualizaciones"
+  },
+  "valViewsMany": {
+    "message": "$1 visualizaciones"
+  },
+  "valViewsOther": {
+    "message": "$1 visualizaciones"
+  },
+  "valOngoing": {
+    "message": "en curso"
+  },
+  "valLive": {
+    "message": "En vivo"
+  },
+  "valPlanned": {
+    "message": "Programada"
+  },
+  "valNoReplay": {
+    "message": "Sin repetición"
+  },
+  "valChannel": {
+    "message": "Canal"
+  },
+  "valAllChannels": {
+    "message": "Todos los canales"
+  },
+  "valLastLive": {
+    "message": "Última transmisión $1"
+  },
+  "valLastLiveUnknown": {
+    "message": "Última transmisión desconocida"
+  },
+  "valNext": {
+    "message": "Próxima transmisión: $1"
   },
   "healthOk": {
     "message": "Selectores OK"
@@ -347,6 +437,21 @@
   },
   "btnRefresh": {
     "message": "Actualizar"
+  },
+  "btnToday": {
+    "message": "Hoy"
+  },
+  "btnWeekPrev": {
+    "message": "Semana anterior"
+  },
+  "btnWeekNext": {
+    "message": "Semana siguiente"
+  },
+  "btnReplay": {
+    "message": "Ver"
+  },
+  "btnSeeWeek": {
+    "message": "Su semana"
   },
   "btnClose": {
     "message": "Cerrar"
@@ -430,7 +535,13 @@
     "message": "Este panel"
   },
   "guidePanneauTexte": {
-    "message": "Cinco grupos, a la izquierda:\n• “Primeros pasos” — esta guía, legible incluso sin pestaña de Twitch abierta.\n• “Ajustes” — todo lo que la extensión deja elegir.\n• “Tus datos” — lo que retuvo: los canales que más visitás, a qué horas, tus suscripciones, los canales conocidos.\n• “Diagnóstico” — solo sirve si algo falla; se oculta en los ajustes.\n• “Top Canales” — el estado de la clasificación y de sus categorías.\nLas secciones distintas de esta guía leen la pestaña de Twitch en primer plano; sin ella, lo dicen.\n• ¿Algo anda mal? “Exportar un informe” escribe un texto para releer antes de enviarlo: recuentos, ninguna lista — ni tus canales, ni tus suscripciones.\n• “Borrar el historial” borra todo lo que la extensión retuvo, definitivamente; tus ajustes se quedan."
+    "message": "Seis grupos, a la izquierda:\n• “Primeros pasos” — esta guía, legible incluso sin pestaña de Twitch abierta.\n• “Ajustes” — todo lo que la extensión deja elegir.\n• “Horario” — las transmisiones de los canales que seguís, pasadas, en vivo y programadas, con sus repeticiones; es el capítulo siguiente.\n• “Tus datos” — lo que retuvo: los canales que más visitás, a qué horas, tus suscripciones, los canales conocidos.\n• “Diagnóstico” — solo sirve si algo falla; se oculta en los ajustes.\n• “Top Canales” — el estado de la clasificación y de sus categorías.\nLas secciones distintas de esta guía leen la pestaña de Twitch en primer plano; sin ella, lo dicen.\n• ¿Algo anda mal? “Exportar un informe” escribe un texto para releer antes de enviarlo: recuentos, ninguna lista — ni tus canales, ni tus suscripciones.\n• “Borrar el historial” borra todo lo que la extensión retuvo, definitivamente; tus ajustes se quedan."
+  },
+  "guideAgendaTitre": {
+    "message": "El horario de tus canales"
+  },
+  "guideAgendaTexte": {
+    "message": "El grupo “Horario” hace, para todos los canales que seguís a la vez, lo que la página de horario de un canal hace en Twitch para uno solo.\n• “La semana”: día por día, las transmisiones pasadas con su repetición — un clic la abre —, las que están en vivo y las que los canales programaron.\n• Las flechas cambian de semana, hasta ocho atrás y dos adelante; “Hoy” vuelve a la semana actual, y el menú deja un solo canal.\n• “Desconectados”: cada canal que no está en vivo, el que terminó más recientemente primero — cuándo transmitió, su repetición a un clic y su próxima transmisión si está programada. “Su semana” abre la semana de su última transmisión.\nLos canales son los que tu barra lateral mostró como seguidos. Una repetición solo existe si el canal guarda sus transmisiones, y mientras Twitch las conserve; una transmisión programada, solo si el canal mantiene su horario en Twitch. No se le pide nada a Twitch mientras no abras el horario."
   },
   "guideVieTitre": {
     "message": "Privacidad, en claro"
@@ -500,6 +611,21 @@
   },
   "descOptions": {
     "message": "Lo que la extensión agrega y lo que deja intacto. Todo está activo por defecto; un punto morado marca lo que cambiaste."
+  },
+  "grpAgenda": {
+    "message": "Horario"
+  },
+  "navSemaine": {
+    "message": "La semana"
+  },
+  "descSemaine": {
+    "message": "Las transmisiones de los canales que seguís, día por día: las pasadas con su repetición, las que están en vivo y las programadas."
+  },
+  "navHorsLigne": {
+    "message": "Desconectados"
+  },
+  "descHorsLigne": {
+    "message": "Los canales que seguís que no están en vivo: su última transmisión, su repetición y la próxima si está programada."
   },
   "sumSettings": {
     "message": "ajustes"

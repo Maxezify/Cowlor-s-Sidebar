@@ -227,6 +227,21 @@
   "sumCategories": {
     "message": "categorias"
   },
+  "sumLive": {
+    "message": "em direto"
+  },
+  "sumBroadcasts": {
+    "message": "emissões"
+  },
+  "sumPlanned": {
+    "message": "agendadas"
+  },
+  "sumOffline": {
+    "message": "offline"
+  },
+  "sumScheduled": {
+    "message": "com próxima emissão"
+  },
   "btnRefreshSubs": {
     "message": "Levantar agora"
   },
@@ -282,6 +297,42 @@
     "message": "A ligação ao separador perdeu-se. Tenta de novo.",
     "description": "État : la liaison avec l'onglet est perdue"
   },
+  "stateAgendaLoading": {
+    "message": "A ler os canais seguidos… $1 / $2"
+  },
+  "stateAgendaLoadingReplays": {
+    "message": "A ler as gravações… canais restantes: $1"
+  },
+  "stateAgendaCapped": {
+    "message": "Só são lidos $1 dos teus $2 canais seguidos: os que estão em direto, as tuas subscrições e depois os mais visitados."
+  },
+  "stateAgendaNoSchedule": {
+    "message": "O Twitch não fornece a programação dos canais: as emissões agendadas não podem ser mostradas."
+  },
+  "stateAgendaNoReplays": {
+    "message": "O Twitch recusa a lista de gravações: só é mostrada a última de cada canal."
+  },
+  "stateAgendaPartial": {
+    "message": "Canais que o Twitch não forneceu: $1; «Atualizar» volta a pedi-los."
+  },
+  "stateAgendaNetwork": {
+    "message": "O Twitch não está a responder de momento; «Atualizar» retomará a leitura."
+  },
+  "stateAgendaEmpty": {
+    "message": "Nenhuma emissão nesta semana."
+  },
+  "stateAgendaEmptyChannel": {
+    "message": "Nenhuma emissão deste canal nesta semana."
+  },
+  "stateAgendaNoOffline": {
+    "message": "Todos os canais que segues estão em direto."
+  },
+  "stateAgendaNoRoster": {
+    "message": "Ainda não se conhece nenhum canal seguido. A extensão aprende-os na barra lateral do Twitch, enquanto tens a sessão iniciada."
+  },
+  "stateAgendaRefused": {
+    "message": "O Twitch recusa os pedidos da programação; «Exportar um relatório» diz porquê."
+  },
   "statusOk": {
     "message": "OK"
   },
@@ -311,6 +362,45 @@
   },
   "valMore": {
     "message": "mais"
+  },
+  "valViewsOne": {
+    "message": "$1 visualização"
+  },
+  "valViewsFew": {
+    "message": "$1 visualizações"
+  },
+  "valViewsMany": {
+    "message": "$1 visualizações"
+  },
+  "valViewsOther": {
+    "message": "$1 visualizações"
+  },
+  "valOngoing": {
+    "message": "em curso"
+  },
+  "valLive": {
+    "message": "Em direto"
+  },
+  "valPlanned": {
+    "message": "Agendada"
+  },
+  "valNoReplay": {
+    "message": "Sem gravação"
+  },
+  "valChannel": {
+    "message": "Canal"
+  },
+  "valAllChannels": {
+    "message": "Todos os canais"
+  },
+  "valLastLive": {
+    "message": "Última emissão $1"
+  },
+  "valLastLiveUnknown": {
+    "message": "Última emissão desconhecida"
+  },
+  "valNext": {
+    "message": "Próxima emissão: $1"
   },
   "healthOk": {
     "message": "Seletores OK"
@@ -347,6 +437,21 @@
   },
   "btnRefresh": {
     "message": "Atualizar"
+  },
+  "btnToday": {
+    "message": "Hoje"
+  },
+  "btnWeekPrev": {
+    "message": "Semana anterior"
+  },
+  "btnWeekNext": {
+    "message": "Semana seguinte"
+  },
+  "btnReplay": {
+    "message": "Rever"
+  },
+  "btnSeeWeek": {
+    "message": "Semana do canal"
   },
   "btnClose": {
     "message": "Fechar"
@@ -430,7 +535,13 @@
     "message": "Este painel"
   },
   "guidePanneauTexte": {
-    "message": "Cinco grupos, à esquerda:\n• «Primeiros passos» — este guia, legível mesmo sem separador do Twitch aberto.\n• «Definições» — tudo o que a extensão deixa escolher.\n• «Os teus dados» — o que ela guardou: os canais que mais visitas, a que horas, as tuas subscrições, os canais conhecidos.\n• «Diagnóstico» — só serve se algo correr mal; oculta-se nas definições.\n• «Top Canais» — o estado da classificação e das suas categorias.\nAs secções além deste guia leem o separador do Twitch em primeiro plano; sem ele, dizem-no.\n• Algo errado? «Exportar um relatório» escreve um texto para releres antes de enviar: contagens, nenhuma lista — nem os teus canais, nem as tuas subscrições.\n• «Apagar o histórico» apaga tudo o que a extensão guardou, definitivamente; as tuas definições ficam."
+    "message": "Seis grupos, à esquerda:\n• «Primeiros passos» — este guia, legível mesmo sem separador do Twitch aberto.\n• «Definições» — tudo o que a extensão deixa escolher.\n• «Programação» — as emissões dos canais que segues, passadas, em direto e agendadas, com as gravações; é o capítulo seguinte.\n• «Os teus dados» — o que ela guardou: os canais que mais visitas, a que horas, as tuas subscrições, os canais conhecidos.\n• «Diagnóstico» — só serve se algo correr mal; oculta-se nas definições.\n• «Top Canais» — o estado da classificação e das suas categorias.\nAs secções além deste guia leem o separador do Twitch em primeiro plano; sem ele, dizem-no.\n• Algo errado? «Exportar um relatório» escreve um texto para releres antes de enviar: contagens, nenhuma lista — nem os teus canais, nem as tuas subscrições.\n• «Apagar o histórico» apaga tudo o que a extensão guardou, definitivamente; as tuas definições ficam."
+  },
+  "guideAgendaTitre": {
+    "message": "A programação dos teus canais"
+  },
+  "guideAgendaTexte": {
+    "message": "O grupo «Programação» faz, para todos os canais que segues de uma vez, o que a página de programação de um canal faz no Twitch para um só.\n• «A semana»: dia a dia, as emissões passadas com a gravação — um clique abre-a —, as que estão em direto e as que os canais agendaram.\n• As setas mudam de semana, até oito para trás e duas para a frente; «Hoje» volta à semana atual, e o menu deixa um só canal.\n• «Offline»: cada canal que não está em direto, o que terminou mais recentemente primeiro — quando emitiu, a gravação a um clique e a próxima emissão, se estiver agendada. «Semana do canal» abre a semana da última emissão.\nOs canais são os que a tua barra lateral mostrou como seguidos. Uma gravação só existe se o canal guarda as emissões, e enquanto o Twitch as mantiver; uma emissão agendada, só se o canal mantém a programação no Twitch. Nada é pedido ao Twitch enquanto não abrires a programação."
   },
   "guideVieTitre": {
     "message": "Privacidade, em claro"
@@ -500,6 +611,21 @@
   },
   "descOptions": {
     "message": "O que a extensão acrescenta e o que deixa como está. Tudo está ativo por omissão; um ponto roxo assinala o que foi alterado."
+  },
+  "grpAgenda": {
+    "message": "Programação"
+  },
+  "navSemaine": {
+    "message": "A semana"
+  },
+  "descSemaine": {
+    "message": "As emissões dos canais que segues, dia a dia: as passadas com a gravação, as que estão em direto e as agendadas."
+  },
+  "navHorsLigne": {
+    "message": "Offline"
+  },
+  "descHorsLigne": {
+    "message": "Os canais que segues que não estão em direto: a última emissão, a sua gravação e a próxima, se estiver agendada."
   },
   "sumSettings": {
     "message": "definições"

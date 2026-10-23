@@ -162,6 +162,15 @@ const subs = [
      mutant qui comptait deux lectures du même pour deux relevés passait. */
   [/SALLE_DIRECTS_MS:\s*30_000/,    'SALLE_DIRECTS_MS:      1_000'],
   [/SALLE_HORS_LIGNE_MS:\s*25_000/, 'SALLE_HORS_LIGNE_MS:     800'],
+  /* L'agenda (4.25.0) : une seconde entre deux envois et dix minutes de
+     fraîcheur en production. La pause est ramenée à 30 ms — elle reste une
+     pause, et le scénario 207 mesure qu'elle sépare bien deux envois. La
+     fraîcheur, à 30 s : le 207 enchaîne une dizaine de lectures sur les mêmes
+     fiches et compte chaque envoi, une fiche périmée en route en ferait
+     partir un de trop. La péremption elle-même s'y éprouve sur une variante
+     du script, à 1,5 s. */
+  [/AGENDA_TTL:\s*10 \* 60_000/,     'AGENDA_TTL:             30_000'],
+  [/AGENDA_PAUSE_MS:\s*1_000/,       'AGENDA_PAUSE_MS:        30'],
 ];
 for (const [re, to] of subs) {
   if (!re.test(src)) { console.error('SUBSTITUTION INTROUVABLE:', re); process.exit(1); }

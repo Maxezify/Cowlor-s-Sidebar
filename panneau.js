@@ -192,6 +192,27 @@ const SECTIONS = [
       ['sumChanged',  fmt.nombre(r.modifies), r.modifies ? 'or' : ''],
     ] },
 
+  /* L'AGENDA (4.25.0), JUSTE APRÈS LES RÉGLAGES : c'est la première section
+     qui sert au quotidien — qui a diffusé, quoi, et la rediffusion à un clic.
+     `agenda` est le troisième drapeau de cette table : ces deux vues ne se
+     peignent ni en tableau ni en réglages, et elles se relisent d'elles-mêmes
+     tant que la page n'a pas fini de les remplir (cf. L'AGENDA, plus bas). */
+  { id: 'semaine',   groupe: 'grpAgenda', agenda: true,
+    actions: [{ id: 'actualiserAgenda', cle: 'btnRefresh' }],
+    tuiles: (r) => [
+      ['sumLive',       fmt.nombre(r.directs), r.directs ? 'direct' : ''],
+      ['sumBroadcasts', fmt.nombre(r.diffusions)],
+      ['sumPlanned',    fmt.nombre(r.prevues)],
+      ['sumChannels',   fmt.nombre(r.chaines)],
+    ] },
+  { id: 'horsLigne', groupe: 'grpAgenda', agenda: true,
+    actions: [{ id: 'actualiserAgenda', cle: 'btnRefresh' }],
+    tuiles: (r) => [
+      ['sumOffline',   fmt.nombre(r.horsLigne)],
+      ['sumScheduled', fmt.nombre(r.programmees)],
+      ['sumLive',      fmt.nombre(r.directs), r.directs ? 'direct' : ''],
+    ] },
+
   { id: 'scores',  groupe: 'grpData',
     tuiles: (r) => [['sumChannels', fmt.nombre(r.chaines)]] },
 
@@ -796,6 +817,10 @@ const GUIDE = [
   { titre: 'guideTopTitre',      texte: 'guideTopTexte',      demo: () => demoOnglets() },
   { titre: 'guideReglagesTitre', texte: 'guideReglagesTexte' },
   { titre: 'guidePanneauTitre',  texte: 'guidePanneauTexte' },
+  /* L'AGENDA SUIT LE PANNEAU (4.25.0), qui le présente parmi ses groupes et
+     dit « chapitre suivant ». Pas de maquette : le chapitre décrit une vue du
+     panneau, qui est à un clic. */
+  { titre: 'guideAgendaTitre',   texte: 'guideAgendaTexte' },
   { titre: 'guideVieTitre',      texte: 'guideVieTexte' },
 ];
 
@@ -1046,6 +1071,8 @@ let courante = SECTIONS[0].id;
 
 const montrerMessage = (cle, bouton, detail) => {
   $('tableau-cadre').hidden = true;
+  // L'agenda part avec le tableau, pour la même raison que le dessin.
+  $('agenda').hidden = true;
   /* Le dessin part avec le tableau. Sans cette ligne, la grille de la section
      précédente restait affichée sous « Chargement… » — un dessin qui survit à
      sa section décrit des données qui ne sont plus celles qu'on regarde. */
@@ -1554,6 +1581,8 @@ const peindre = (section, paquet) => {
 
 const charger = async (id) => {
   courante = id;
+  // Une relecture de l'agenda en attente ne survit pas à un changement de vue.
+  clearTimeout(etatAgenda.minuteur);
   const section = SECTIONS.find((s) => s.id === id);
   /* Le mode d'emploi se range ici et NULLE PART AILLEURS. Une section de
      données peut finir en tableau, en dessin, en « rien à afficher » ou en
@@ -1562,6 +1591,7 @@ const charger = async (id) => {
      laisse aucune de côté. */
   $('guide').hidden = true;
   $('reglages').hidden = true;
+  $('agenda').hidden = true;
   for (const b of document.querySelectorAll('.rail-item')) {
     b.setAttribute('aria-current', String(b.dataset.id === id));
   }
@@ -1583,6 +1613,8 @@ const charger = async (id) => {
   }));
 
   if (section.statique) { montrerGuide(); return; }
+  // L'agenda demande avec un argument — sa semaine — et se relit lui-même.
+  if (section.agenda) { await chargerAgenda(section); return; }
 
   montrerMessage('stateLoading');
   const r = await demander({ section: id });
@@ -1614,6 +1646,396 @@ const lancer = async (action, bouton) => {
   if (bouton) bouton.disabled = false;
   if (!r.ok) { montrerEchec(r); return; }
   await charger(courante);                 // la vue reflète ce qui vient d'être fait
+};
+
+/* ════════════════════════════════════════════════════════════════════════════
+   L'AGENDA (4.25.0)
+   ────────────────────────────────────────────────────────────────────────────
+   DEUX VUES SUR UNE COLLECTE, et c'est la page qui collecte (cf. le module
+   `agenda` de content.js) : ce qui arrive ici est de la donnée nue — des
+   instants en millisecondes, des logins, des titres. Ce bloc date, traduit et
+   place ; il ne décide de rien d'autre.
+
+   LA SEMAINE EST CELLE DE LA LOCALE. Ses bornes se calculent ici, à minuit
+   local, au premier jour que la langue donne à la semaine — PREMIER_JOUR, le
+   même que la grille du rythme. La page ne reçoit que deux nombres.
+
+   ELLES SE RELISENT TANT QUE LA PAGE TRAVAILLE. La collecte part à la première
+   demande et se poursuit lot après lot ; la vue redemande l'état chaque
+   seconde jusqu'à ce que la page dise avoir fini, et se repeint en gardant sa
+   position — une liste qui remonterait en haut à chaque arrivée ne se lirait
+   pas.
+
+   LES LIENS S'OUVRENT LÀ OÙ L'ON EST. Incrusté dans Twitch, le panneau mène la
+   page elle-même à la rediffusion ; en popup, il ouvre un onglet : la popup
+   n'a pas de page à mener, et `_top` la remplacerait elle-même. */
+const AGENDA_PASSE = 8;      // semaines en arrière : ce que les partenaires gardent de rediffusions
+const AGENDA_FUTUR = 2;      // semaines en avant : le planning
+const RELECTURE_AGENDA = 1000;
+const etatAgenda = { decalage: 0, chaine: null, minuteur: null, jeton: 0,
+                     donnees: null, enAttente: false };
+const CIBLE_LIEN = EN_CADRE ? '_top' : '_blank';
+
+const HEURE = new Intl.DateTimeFormat(LOCALE, { hour: '2-digit', minute: '2-digit' });
+const JOUR_TITRE = new Intl.DateTimeFormat(LOCALE, { weekday: 'long', day: 'numeric', month: 'long' });
+const JOUR_ABREGE = new Intl.DateTimeFormat(LOCALE, { weekday: 'short', day: 'numeric', month: 'short' });
+const DATE_PLAGE = new Intl.DateTimeFormat(LOCALE, { day: 'numeric', month: 'short', year: 'numeric' });
+const DATE_COMPLETE = new Intl.DateTimeFormat(LOCALE, { dateStyle: 'full', timeStyle: 'short' });
+const COMPACT = new Intl.NumberFormat(LOCALE, { notation: 'compact', maximumFractionDigits: 1 });
+const PLURIEL = new Intl.PluralRules(LOCALE);
+const RELATIF = new Intl.RelativeTimeFormat(LOCALE, { numeric: 'auto' });
+
+/* « 51,4 k vues », au pluriel de la langue : Intl.PluralRules choisit, et les
+   quatre formes sont des clés. AU-DELÀ DE MILLE, le nombre s'abrège — « 1,2
+   тыс. » — et le nom s'accorde à l'abréviation, pas au nombre : en russe et en
+   polonais, c'est alors toujours la forme « many ». On demande donc la forme
+   d'un grand entier quelconque. */
+const VUES = { one: 'valViewsOne', few: 'valViewsFew', many: 'valViewsMany', other: 'valViewsOther' };
+const vuesTexte = (n) => {
+  if (!Number.isFinite(n)) return '';
+  return T(VUES[PLURIEL.select(n >= 1000 ? 5000 : n)] || VUES.other, COMPACT.format(n));
+};
+
+// La durée d'une rediffusion, comme Twitch l'écrit sur ses vignettes : 7:21:53.
+const dureeHms = (s) => {
+  if (!Number.isFinite(s) || s < 0) return '';
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  return `${h}:${String(m).padStart(2, '0')}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+};
+
+const minuitDe = (t) => { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); };
+/* « il y a 4 heures », « hier », « il y a 3 jours » : en heures sous la
+   journée, comme la page Programme de Twitch, en jours CIVILS au-delà — c'est
+   ce qui fait dire « hier » à ce qui s'est passé hier, et non à ce qui a
+   vingt-quatre heures. */
+const ilYa = (t, maintenant) => {
+  const ecart = maintenant - t;
+  if (ecart < 3_600_000) return RELATIF.format(-Math.max(1, Math.round(ecart / 60_000)), 'minute');
+  if (ecart < 86_400_000) return RELATIF.format(-Math.round(ecart / 3_600_000), 'hour');
+  const jours = Math.max(1, Math.round((minuitDe(maintenant) - minuitDe(t)) / 86_400_000));
+  if (jours < 7) return RELATIF.format(-jours, 'day');
+  if (jours < 35) return RELATIF.format(-Math.round(jours / 7), 'week');
+  return RELATIF.format(-Math.round(jours / 30), 'month');
+};
+
+/* LES BORNES D'UNE SEMAINE, à minuit local. `setDate` et non une addition de
+   millisecondes : un passage à l'heure d'été ferait sinon commencer la semaine
+   suivante à 23 h ou à 1 h. */
+const bornesSemaine = (decalage) => {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() - ((d.getDay() - PREMIER_JOUR + 7) % 7) + 7 * decalage);
+  const f = new Date(d);
+  f.setDate(f.getDate() + 7);
+  return { debut: d.getTime(), fin: f.getTime() };
+};
+// La semaine qui contient l'instant `t`, comptée depuis la semaine courante.
+const decalageDe = (t) => {
+  const d = new Date(t);
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() - ((d.getDay() - PREMIER_JOUR + 7) % 7));
+  return Math.round((d.getTime() - bornesSemaine(0).debut) / 604_800_000);
+};
+const plageSemaine = (debut, fin) => {
+  const dernier = new Date(fin);
+  dernier.setDate(dernier.getDate() - 1);
+  try { return DATE_PLAGE.formatRange(new Date(debut), dernier); }
+  catch { return `${DATE_PLAGE.format(debut)} – ${DATE_PLAGE.format(dernier)}`; }
+};
+const argAgenda = (id) => (id === 'semaine'
+  ? { ...bornesSemaine(etatAgenda.decalage), chaine: etatAgenda.chaine }
+  : {});
+
+/* Ce qui vient de Twitch ne devient un lien que s'il en a la forme : un login,
+   un identifiant de rediffusion fait de chiffres. Le reste reste du texte. */
+const RE_LOGIN_PANNEAU = /^[a-z0-9_]{1,25}$/;
+const lienAgenda = (e) => {
+  if (!RE_LOGIN_PANNEAU.test(e.login || '')) return null;
+  if (e.type === 'rediffusion') return /^\d+$/.test(e.id || '') ? `https://www.twitch.tv/videos/${e.id}` : null;
+  if (e.type === 'direct') return `https://www.twitch.tv/${e.login}`;
+  if (e.type === 'prevu') return `https://www.twitch.tv/${e.login}/schedule`;
+  return null;
+};
+const poserLien = (a, href) => {
+  a.href = href;
+  a.target = CIBLE_LIEN;
+  if (CIBLE_LIEN === '_blank') a.rel = 'noopener noreferrer';
+};
+
+/* LES IMAGES DE TWITCH, en https et rien d'autre, chargées au fil du
+   défilement, sans référent — l'adresse d'une page d'extension n'a rien à
+   faire chez un CDN. Une image qui ne vient pas laisse son cadre vide plutôt
+   que l'icône d'image cassée. */
+const imageAgenda = (src, classe) => {
+  if (typeof src !== 'string' || !/^https:\/\//.test(src)) return null;
+  const img = document.createElement('img');
+  img.className = classe;
+  img.alt = '';
+  img.loading = 'lazy';
+  img.decoding = 'async';
+  img.referrerPolicy = 'no-referrer';
+  img.addEventListener('error', () => img.remove(), { once: true });
+  img.src = src;
+  return img;
+};
+
+const MARQUE = { direct: 'valLive', prevu: 'valPlanned', sansRediffusion: 'valNoReplay' };
+const plageHoraire = (e, debutSemaine) => {
+  // Parti la semaine d'avant : l'heure seule mentirait sur le jour.
+  const de = (e.debut < debutSemaine ? JOUR_ABREGE.format(e.debut) + ' ' : '') + HEURE.format(e.debut);
+  if (e.type === 'direct') return `${de} – ${T('valOngoing')}`;
+  return e.fin ? `${de} – ${HEURE.format(e.fin)}` : de;
+};
+
+const entreeAgenda = (e, nom, debutSemaine) => {
+  const lien = lienAgenda(e);
+  const el = document.createElement(lien ? 'a' : 'div');
+  el.className = 'ag-ent ag-ent--' + e.type;
+  if (lien) poserLien(el, lien);
+  const vig = div('ag-vig');
+  if (e.type === 'rediffusion') {
+    const img = imageAgenda(e.vignette, 'ag-img');
+    if (img) vig.appendChild(img);
+    if (Number.isFinite(e.duree)) vig.appendChild(elt('span', 'ag-duree', dureeHms(e.duree)));
+  } else {
+    vig.appendChild(elt('span', 'ag-marque ag-marque--' + e.type, T(MARQUE[e.type] || 'valPlanned')));
+  }
+  const l1 = div('ag-l1');
+  l1.appendChild(elt('span', 'ag-nom', nom));
+  if (e.libelle) l1.appendChild(elt('span', 'ag-jeu', e.libelle));
+  l1.appendChild(elt('span', 'ag-heure', plageHoraire(e, debutSemaine)));
+  const l2 = div('ag-l2');
+  l2.appendChild(elt('span', 'ag-titre', e.titre || '—'));
+  if (e.type === 'rediffusion' && Number.isFinite(e.vues)) {
+    l2.appendChild(elt('span', 'ag-meta', vuesTexte(e.vues)));
+  } else if (e.type === 'direct' && Number.isFinite(e.spectateurs)) {
+    const m = elt('span', 'ag-meta');
+    m.append(elt('span', 'ag-point'), document.createTextNode(COMPACT.format(e.spectateurs)));
+    l2.appendChild(m);
+  }
+  const corps = div('ag-corps');
+  corps.append(l1, l2);
+  el.append(vig, corps);
+  el.title = [e.titre, DATE_COMPLETE.format(e.debut)].filter(Boolean).join('\n');
+  return el;
+};
+
+const noteAgenda = (texte, ton) => elt('p', 'ag-note' + (ton ? ' ag-note--' + ton : ''), texte);
+/* CE QUE LA VUE NE MONTRE PAS ENCORE, OU PAS DU TOUT, dit au-dessus d'elle :
+   la lecture en cours, la borne du nombre de chaînes, le planning refusé, les
+   chaînes que Twitch n'a pas servies. Une semaine à moitié lue qui aurait
+   l'air entière serait pire qu'une semaine vide. */
+const notesAgenda = (data) => {
+  const out = [];
+  const n = data.notes || {};
+  const p = data.progression || {};
+  /* L'AVANCEMENT NE SE MONTRE QUE PENDANT LA LECTURE. Une chaîne que Twitch
+     n'a pas servie deux fois ne compte jamais parmi les lues : sans `enCours`,
+     la barre restait figée à 298 sur 300, au-dessus de la note qui le dit. */
+  if (data.enCours && p.lues < p.aLire) {
+    const ligne = noteAgenda(T('stateAgendaLoading', [fmt.nombre(p.lues), fmt.nombre(p.aLire)]), 'charge');
+    const barre = div('ag-prog');
+    const rempli = div('ag-prog-rempli');
+    rempli.style.width = (p.aLire ? Math.round((100 * p.lues) / p.aLire) : 0) + '%';
+    barre.appendChild(rempli);
+    ligne.appendChild(barre);
+    out.push(ligne);
+  } else if (data.enCours && p.aCouvrir > 0) {
+    out.push(noteAgenda(T('stateAgendaLoadingReplays', fmt.nombre(p.aCouvrir)), 'charge'));
+  }
+  if (n.limite) out.push(noteAgenda(T('stateAgendaCapped', [fmt.nombre(n.limite.retenues), fmt.nombre(n.limite.total)])));
+  if (n.planning === 'indisponible') out.push(noteAgenda(T('stateAgendaNoSchedule')));
+  // « Hors ligne » ne lit que la dernière rediffusion : le refus de la liste ne le touche pas.
+  if (n.refus === 'diffusions' && data.vue === 'semaine') out.push(noteAgenda(T('stateAgendaNoReplays'), 'alerte'));
+  if (n.echouees) out.push(noteAgenda(T('stateAgendaPartial', fmt.nombre(n.echouees)), 'alerte'));
+  if (n.reseau) out.push(noteAgenda(T('stateAgendaNetwork'), 'alerte'));
+  return out;
+};
+
+const boutonAgenda = (texte, surClic, inactif, etiquette, classe = '') => {
+  const b = elt('button', 'bouton bouton--fantome' + classe, texte);
+  b.type = 'button';
+  b.disabled = !!inactif;
+  if (etiquette) { b.setAttribute('aria-label', etiquette); b.title = etiquette; }
+  b.addEventListener('click', surClic);
+  return b;
+};
+const relireAgenda = () => {
+  const section = SECTIONS.find((s) => s.id === courante);
+  if (section && section.agenda) chargerAgenda(section, true);
+};
+const allerSemaine = (d) => {
+  etatAgenda.decalage = Math.max(-AGENDA_PASSE, Math.min(AGENDA_FUTUR, d));
+  relireAgenda();
+};
+
+const menuChaines = (data) => {
+  const sel = document.createElement('select');
+  sel.className = 'reg-menu ag-chaine';
+  sel.setAttribute('aria-label', T('valChannel'));
+  const tout = document.createElement('option');
+  tout.value = '';
+  tout.textContent = T('valAllChannels');
+  sel.appendChild(tout);
+  const ordre = new Intl.Collator(LOCALE, { sensitivity: 'base' });
+  const liste = (data.chaines || []).slice().sort((a, b) => ordre.compare(a.nom, b.nom));
+  for (const c of liste) {
+    const o = document.createElement('option');
+    o.value = c.login;
+    o.textContent = c.nom;
+    sel.appendChild(o);
+  }
+  sel.value = liste.some((c) => c.login === etatAgenda.chaine) ? etatAgenda.chaine : '';
+  sel.addEventListener('change', () => { etatAgenda.chaine = sel.value || null; relireAgenda(); });
+  /* UN MENU OUVERT NE SE REPEINT PAS SOUS LA SOURIS : la relecture attend
+     qu'on le quitte (cf. montrerAgenda), puis repeint ce qu'elle a reçu. */
+  sel.addEventListener('blur', () => {
+    if (!etatAgenda.enAttente) return;
+    etatAgenda.enAttente = false;
+    const section = SECTIONS.find((s) => s.id === courante);
+    if (section && section.agenda && etatAgenda.donnees) montrerAgenda(section, etatAgenda.donnees, true);
+  });
+  return sel;
+};
+
+/* LA SEMAINE : sept jours dans l'ordre de la locale, chacun avec ce qui y
+   commence — ou ce qui y déborde depuis la semaine d'avant, rangé au premier
+   jour avec sa date. */
+const vueSemaine = (data) => {
+  const { debut, fin } = data.semaine;
+  const barre = div('ag-barre');
+  barre.append(
+    boutonAgenda(T('btnToday'), () => allerSemaine(0), etatAgenda.decalage === 0),
+    boutonAgenda('‹', () => allerSemaine(etatAgenda.decalage - 1),
+                 etatAgenda.decalage <= -AGENDA_PASSE, T('btnWeekPrev'), ' ag-fleche'),
+    boutonAgenda('›', () => allerSemaine(etatAgenda.decalage + 1),
+                 etatAgenda.decalage >= AGENDA_FUTUR, T('btnWeekNext'), ' ag-fleche'),
+    elt('span', 'ag-plage', plageSemaine(debut, fin)),
+    menuChaines(data));
+  const out = [barre, ...notesAgenda(data)];
+  const entrees = data.entrees || [];
+  if (!entrees.length) {
+    if (!data.enCours) out.push(noteAgenda(T(etatAgenda.chaine ? 'stateAgendaEmptyChannel' : 'stateAgendaEmpty')));
+    return out;
+  }
+  const noms = new Map((data.chaines || []).map((c) => [c.login, c.nom]));
+  const jours = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(debut);
+    d.setDate(d.getDate() + i);
+    jours.push(d.getTime());
+  }
+  jours.forEach((jour, i) => {
+    const finJour = i < 6 ? jours[i + 1] : fin;
+    const section = elt('section', 'ag-jour');
+    const titre = elt('h3', 'ag-jour-titre', JOUR_TITRE.format(jour));
+    if (data.maintenant >= jour && data.maintenant < finJour) {
+      section.classList.add('ag-jour--auj');
+      titre.appendChild(elt('span', 'ag-auj', T('btnToday')));
+    }
+    section.appendChild(titre);
+    const du = entrees.filter((e) => {
+      const t = Math.max(e.debut, debut);
+      return t >= jour && t < finJour;
+    });
+    if (!du.length) section.appendChild(elt('p', 'ag-vide', '—'));
+    for (const e of du) section.appendChild(entreeAgenda(e, noms.get(e.login) || e.login, debut));
+    out.push(section);
+  });
+  return out;
+};
+
+const voirSemaineDe = (l) => {
+  etatAgenda.chaine = l.login;
+  etatAgenda.decalage = l.dernier
+    ? Math.max(-AGENDA_PASSE, Math.min(0, decalageDe(l.dernier.debut))) : 0;
+  charger('semaine');
+};
+
+/* HORS LIGNE : une ligne par chaîne, la plus récemment partie d'abord. « Revoir »
+   n'apparaît que si la dernière rediffusion EST le dernier direct — sinon le
+   bouton mènerait, sans le dire, à un direct plus ancien. */
+const vueHorsLigne = (data) => {
+  const out = notesAgenda(data);
+  const lignes = data.lignes || [];
+  if (!lignes.length) {
+    if (!data.enCours) {
+      out.push(noteAgenda(T(data.resume && data.resume.directs ? 'stateAgendaNoOffline' : 'stateEmpty')));
+    }
+    return out;
+  }
+  const liste = div('hl-liste');
+  for (const l of lignes) {
+    const ligne = div('hl-ligne');
+    const avatar = imageAgenda(l.avatar, 'hl-avatar') || div('hl-avatar');
+    const corps = div('hl-corps');
+    const l1 = div('hl-l1');
+    l1.appendChild(elt('span', 'hl-nom', l.nom));
+    const quand = elt('span', 'hl-quand', l.dernier
+      ? T('valLastLive', ilYa(l.dernier.t, data.maintenant)) : T('valLastLiveUnknown'));
+    if (l.dernier) quand.title = DATE_COMPLETE.format(l.dernier.debut);
+    l1.appendChild(quand);
+    corps.appendChild(l1);
+    const memeDirect = !!(l.dernier && l.derniere && l.dernier.debut === l.derniere.debut);
+    const sous = [l.titre, memeDirect ? l.derniere.libelle : null].filter(Boolean).join(' · ');
+    if (sous) corps.appendChild(elt('div', 'hl-titre', sous));
+    if (l.prochain) {
+      const quandProchain = `${JOUR_ABREGE.format(l.prochain.debut)}, ${HEURE.format(l.prochain.debut)}`;
+      corps.appendChild(elt('div', 'hl-prochain',
+        T('valNext', quandProchain + (l.prochain.titre ? ` — ${l.prochain.titre}` : ''))));
+    }
+    const actions = div('hl-actions');
+    if (memeDirect && /^\d+$/.test(l.derniere.id || '')) {
+      const a = elt('a', 'bouton bouton--fantome', T('btnReplay'));
+      poserLien(a, `https://www.twitch.tv/videos/${l.derniere.id}`);
+      a.title = [l.derniere.titre, dureeHms(l.derniere.duree)].filter(Boolean).join(' · ');
+      actions.appendChild(a);
+    }
+    actions.appendChild(boutonAgenda(T('btnSeeWeek'), () => voirSemaineDe(l)));
+    ligne.append(avatar, corps, actions);
+    liste.appendChild(ligne);
+  }
+  out.push(liste);
+  return out;
+};
+
+const montrerAgenda = (section, data, relecture) => {
+  const n = data.notes || {};
+  if (n.rosterVide) { montrerMessage('stateAgendaNoRoster'); return; }
+  if (n.refus === 'chaines') { montrerMessage('stateAgendaRefused'); return; }
+  etatAgenda.donnees = data;
+  const hote = $('agenda');
+  const actif = document.activeElement;
+  if (relecture && !hote.hidden && actif && actif.tagName === 'SELECT' && hote.contains(actif)) {
+    etatAgenda.enAttente = true;
+    return;
+  }
+  $('message').hidden = true;
+  $('visuel').hidden = true;
+  $('visuel').replaceChildren();
+  $('tableau-cadre').hidden = true;
+  $('resume').replaceChildren(...(section.tuiles ? section.tuiles(data.resume || {}) : []).map((t) => tuile(t)));
+  const defile = relecture && !hote.hidden ? hote.scrollTop : 0;
+  hote.replaceChildren(...(section.id === 'semaine' ? vueSemaine(data) : vueHorsLigne(data)));
+  hote.hidden = false;
+  hote.scrollTop = defile;
+};
+
+const chargerAgenda = async (section, relecture = false) => {
+  clearTimeout(etatAgenda.minuteur);
+  const jeton = ++etatAgenda.jeton;
+  if (!relecture) montrerMessage('stateLoading');
+  const r = await demander({ section: section.id, arg: argAgenda(section.id) });
+  // Une réponse arrivée après qu'on a changé de section ou de semaine ne peint rien.
+  if (courante !== section.id || jeton !== etatAgenda.jeton) return;
+  if (!r.ok) { montrerEchec(r); return; }
+  montrerAgenda(section, r.data || {}, relecture);
+  if (r.data && r.data.enCours) {
+    etatAgenda.minuteur = setTimeout(() => {
+      if (courante === section.id && jeton === etatAgenda.jeton) chargerAgenda(section, true);
+    }, RELECTURE_AGENDA);
+  }
 };
 
 /* ============================================================
@@ -1998,6 +2420,9 @@ const construireRapport = (r, transport, fond) => {
     paire('retards.p90Ms', r.retards?.p90Ms),
   ]));
   L.push(...bloc('TOP CHAÎNES / TOP CHANNELS', aplatir(r.global)));
+  /* L'AGENDA (4.25.0) : ses passes et leurs issues, et la forme du planning
+     que Twitch a acceptée. Des comptes ; aucune chaîne n'y figure. */
+  L.push(...bloc('AGENDA', aplatir(r.agenda)));
 
   /* LES ERREURS EN PREMIER PARMI LES JOURNAUX, et jamais repliées : c'est la
      section qu'on cherche quand on ouvre un rapport. « (aucune) » est une

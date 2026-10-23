@@ -177,10 +177,21 @@ _______________________________
 Ein Zahnrad rechts neben dem Titel der Seitenleiste, ein Klick, und alles, was die Erweiterung gelernt hat, öffnet sich über Twitch. Das Symbol der Erweiterung, oben rechts im Browser, öffnet genau dasselbe Panel.
 
 - ★ ZWEI WEGE, EIN PANEL ★ Das Zahnrad in der Seitenleiste oder das Symbol in der Symbolleiste: dieselbe Seite, in beiden Fällen. Über das Zahnrad geöffnet ist sie größer — ein Symbolleisten-Popup wird vom Browser begrenzt, nicht von uns.
-- ★ EINE ANLEITUNG, GLEICH ZU BEGINN ★ Das Panel öffnet sich mit einer Anleitung in sechzehn Kapiteln über alles, was die Erweiterung hinzufügt, mit gezeichneten Beispielen — und sie erscheint auch ohne offenen Twitch-Tab.
+- ★ EINE ANLEITUNG, GLEICH ZU BEGINN ★ Das Panel öffnet sich mit einer Anleitung in siebzehn Kapiteln über alles, was die Erweiterung hinzufügt, mit gezeichneten Beispielen — und sie erscheint auch ohne offenen Twitch-Tab.
 - ★ IHRE GEWOHNHEITEN, GEZEICHNET ★ Die Stunden, in denen Sie wirklich zusehen, als Raster aus sieben Tagen mal vierundzwanzig Stunden.
 - ★ IHRE ZAHLEN ★ Top-Streamer, erkannte Abos, gemerkte gefolgte Kanäle: alles da, alles lesbar.
 - ★ EIN BERICHT ZUM EINFÜGEN ★ Ein Knopf baut einen vollständigen Diagnosebericht, ohne jede persönliche Liste darin — genug, um ein Problem zu melden, ohne etwas preiszugeben.
+
+_______________________________
+
+➤ 📅 WER GESTREAMT HAT, WER LIVE IST, WER ALS NÄCHSTES KOMMT
+Die Zeitplan-Seite eines Kanals auf Twitch zeigt einen einzigen Kanal. Die Gruppe „Zeitplan“ im Panel zeigt alle, denen du folgst, auf einmal.
+
+- ★ DIE WOCHE, TAG FÜR TAG ★ Jeder vergangene Stream mit seiner Aufzeichnung einen Klick entfernt, die laufenden und die, die die Kanäle geplant haben. Acht Wochen zurück, zwei voraus.
+- ★ OFFLINE, ABER NICHT VERGESSEN ★ Jeder gefolgte Kanal, der nicht live ist, der jüngste zuerst: wann er zuletzt gestreamt hat, seine Aufzeichnung und sein nächster Stream, falls einer geplant ist.
+- ★ EIN KANAL ODER ALLE ★ Ein Menü behält nur einen, und „Woche zeigen“ springt direkt in die Woche seines letzten Streams.
+- ★ EHRLICH ÜBER DAS, WAS TWITCH BEHÄLT ★ Eine Aufzeichnung gibt es nur, wenn der Kanal seine Streams speichert, und nur so lange, wie Twitch sie aufbewahrt; ein letzter Stream ohne sagt es („Ohne Aufzeichnung“).
+- ★ NUR, WENN DU HINSIEHST ★ Nichts wird bei Twitch angefragt, bevor du ihn öffnest, und nichts wird gespeichert: Alles lebt im Tab.
 
 _______________________________
 
@@ -259,6 +270,7 @@ _______________________________
 - ★ DU FOLGST 50 STREAMERN? ★ Sieh auf einen Blick, wer schon lange live ist und wer gerade erst angefangen hat.
 - ★ DU HAST EIN DUTZEND ABOS? ★ Sie sind in Gold, oben gruppiert, mit der Zahl der Monate, die du schon dabei bist.
 - ★ DU VERPASST IMMER DIE CO-STREAMS? ★ Eine eigene Sortierung holt sie nach oben, ein Abzeichen sagt dir, wer mit wem spielt, und der Multistream-Raum öffnet sie alle nebeneinander.
+- ★ DU HAST DEN STREAM VON GESTERN ABEND VERPASST? ★ Seine Aufzeichnung ist im Zeitplan des Panels einen Klick entfernt, mit dem Rest der Woche.
 - ★ DU HASST VISUELLES DURCHEINANDER? ★ Keine Hype Trains mehr, die die Sidebar besetzen, keine Werbebanner, keine leeren Abschnitte.
 - ★ DU LIEBST EINFACH TWITCH? ★ Diese Erweiterung ist für dich gemacht!
 

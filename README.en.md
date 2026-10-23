@@ -2059,6 +2059,221 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The followed channels' schedule (v4.25.0)
+
+The request, among fifteen proposed ideas: "6. Offline, but not forgotten
+7. The week's schedule. To be done in the panel. For the schedule, I noticed
+you can see future scheduled streams (but there are few, streamers rarely use
+that feature); on the other hand, the schedule also shows past streams. And
+that can be really interesting, because it gives easy access to a streamer's
+latest replays." Published on `claude/chrome-multi`.
+
+### What Twitch shows, and what was missing
+
+A channel's "Schedule" page shows, week by week, its past streams with their
+replay, the one under way, and the ones it has scheduled. But for ONE channel,
+which you have to know to open. Nothing on Twitch says who streamed last night
+among the channels you follow, nor how long another one has been away.
+
+### What the schedule shows
+
+One more group in the panel's rail, "Schedule", right after "Settings": it is
+the first section of everyday use.
+
+- **"The week"**: seven days, in the order the language gives the week —
+  Monday in French, Sunday in English and Japanese. Each day lists what
+  starts in it:
+  - past streams, with their replay — thumbnail, duration, title, category,
+    views; one click opens it;
+  - the stream under way;
+  - scheduled slots, cancelled ones left out;
+  - a last stream without an archive, said as such.
+
+  The arrows change week, eight back and two ahead; "Today" returns to it;
+  a menu keeps a single channel.
+- **"Offline"**: every followed channel that is not live, the most recently
+  gone first. For each:
+  - when it streamed, in relative time — "Last live yesterday";
+  - "Replay", only when the latest replay IS the last stream;
+  - its next stream, if one is scheduled;
+  - "Their week", which opens the week of that last stream, for that channel
+    alone.
+
+Links open where you are: in a tab from the popup, without a referrer; in the
+page itself when the panel is embedded. What comes from Twitch stays text,
+titles included. An image is only accepted over https, and a replay
+identifier only becomes a link if it is made of digits.
+
+### What it asks of Twitch
+
+The fields are those Twitch serves to its Schedule page and its offline
+player: `lastBroadcast`, `broadcastSettings`, the archives of `videos` and
+`channel.schedule`. The queries are written out, like every query in the
+file: no persisted query.
+
+- **Two passes.**
+  - The first, for every followed channel, in batches of twenty-five: live or
+    not, the last stream, the latest replay, the schedule. That is the whole
+    "Offline" view.
+  - The second, only for the channels that streamed since the start of the
+    week being viewed, one day of margin included: their twelve latest
+    replays, or forty when an older week calls for more.
+- **On demand, one request at a time.** Nothing leaves before the panel opens
+  the schedule. Batches follow one another, one second between two sends, and
+  the panel re-reads the progress every second.
+- **What fails does not insist.**
+  - A refusal from the service halves the batches and doubles the pause, for
+    the session.
+  - Two sends lost in a row stop the reading; "Refresh" restarts it.
+  - A channel Twitch has not served twice waits for the next freshness, ten
+    minutes.
+- **Four hundred channels at most**: the live ones, the subscriptions, then
+  the most visited and the most recently seen. Beyond that, the panel says
+  how many are read.
+- **Nothing is written**: everything lives in memory, for the life of the
+  tab. The report only carries counts, `AGENDA` block.
+
+### What is not proven
+
+The arguments of `segmentList`, the list of slots, cannot be read in any
+response. The schedule is therefore requested in three forms, from the
+richest to the safest; each refusal from the schema moves one notch. The last
+keeps only `nextSegment`, which Twitch's own pages request. The report says
+which one is in play, or "indisponible".
+
+**Said out loud: this machine cannot reach Twitch,** its network refuses it.
+The fields were established on the types published by an npm package drawn
+from real responses (`twitch-gql-queries`), and the bench exercises them
+against a simulated Twitch. The first real run will tell whether the schema
+accepts them. If it refuses one, the view says so, and the report says which.
+
+### The texts
+
+- Forty-two keys, in all twelve languages.
+- The guide gains a seventeenth chapter, "Your channels' schedule", and the
+  panel's chapter names six groups.
+- The twelve Store listings gain a section and a "who is it for" bullet. The
+  `npm run store` contract gains two promises, each tied to its query, and
+  three labels quoted as each language shows them.
+
+### Two defects found on re-reading, before the bench
+
+- **The progress bar stayed frozen.** A channel Twitch has not served twice
+  never counts among the read ones: the bar stayed at 298 out of 300 once the
+  reading was over, above the note that says so. It now only shows while
+  reading.
+- **"Offline" mentioned a refusal that does not concern it.** The note about
+  the replay list being refused showed there, although that view only reads
+  each channel's latest replay.
+
+### What the bench measures
+
+**207**, new, forty-six assertions: the collection, against the simulated
+Twitch of `page.html`.
+
+- a) nothing leaves before the panel opens the schedule;
+- b) offline: two sends, twenty-five channels then five, one request at a
+  time, the live channel first, no replay requested; then the order, the
+  departure times, the next stream without the cancelled one;
+- c) last week: a second pass for the four active channels only, every
+  replay, the stream without an archive, the past slot left out;
+- d) a single channel, without asking again; a malformed login ignored; a
+  nine-day "week" refused;
+- e) the current week, the live stream once; the next one, its slots, the
+  cancelled one left out;
+- f) an older week: forty replays, for the only channel that needs them;
+- g) "Refresh";
+- h) the report: correct counts, not a login, not a title;
+- i) nothing written, neither in storage nor in the module's code;
+- j) the three forms of the schedule, then all refused;
+- k) a refusal from the service: batches halved, pause doubled, everything
+  read in the end;
+- l), m) the two refusals from the schema, of the profile and of the list;
+- n) two sends lost: the stop, the pause held, "Refresh";
+- o) refused twice, channels wait for the next freshness;
+- p) the four-hundred bound, and who stays inside it.
+
+**208**, new, thirty-five assertions: the panel's two views, against a stub
+that answers according to the week requested.
+
+- a) the group, third in the rail;
+- b) the locale's week: Monday in French, Sunday in English;
+- c) each entry in its day; only safe links, and their target;
+- d) an HTML title stays text; thumbnails over https, the one that does not
+  arrive leaving its frame empty;
+- e) views in the language's plural, the duration, the tiles;
+- f) the geometry: nothing overflows, the bar stays at the top;
+- g) the re-reading during the collection, which keeps its position;
+- h) it waits for the channel menu to be left;
+- i) the menu; the empty week;
+- j) navigation, bounded to eight weeks back and two ahead;
+- k) the notes, and the messages in place of the view;
+- l) "Offline" and "Their week";
+- m) "Refresh", and the report block;
+- n) the four Russian plurals;
+- o) embedded in Twitch, links that lead the page itself.
+
+**96** and **70**, revised: seventeen chapters, six groups, and the
+schedule's labels in the quotations contract.
+
+**A hole in the bench, found by the mutants.** The lost-network sub-test had
+only two channels: lost twice, they were no longer requestable, and that rule
+masked the pause. The mutant that forgot it passed. The sub-test now reads
+thirty channels: the five of the second batch remain to be read, and only the
+pause holds back the next request.
+
+The full bench: 1841 assertions in 207 scenarios, all green.
+
+| mutant | what fails |
+| --- | --- |
+| the collection starts at boot | 207: a, b |
+| no batches | 207: b, b, g, h, k, k |
+| several workers at once | 207: b, b, g, h, k |
+| no pause between two sends | 207: b, k |
+| the live channel not first | 207: b |
+| the second pass for every channel | 207: c, g, h |
+| no long list for an older week | 207: f, f, g, h, h |
+| the live stream and its replay twice | 207: e |
+| "no replay" despite the replay | 207: c, c, d, d, n |
+| the cancelled slot shown | 207: e |
+| the past slot shown | 207: c, c, c, d, d, m |
+| the slot of the stream under way shown | 207: e |
+| a refused form condemns the schedule | 207: j, j, j, n |
+| the service's refusal taken for the schema's | 207: k, k, k, o |
+| no slowing down | 207: k, k |
+| insisting on a refused channel | 207: o |
+| no stop after two drops | 207: n, n, n |
+| the network pause ignored | 207: n, n, n — survived before the thirty-channel sub-test |
+| "Refresh" keeps the pause | 207: n |
+| the report names the channels | 207: h |
+| no bound | 207: p |
+| the subscription does not count | 207: p |
+| the schedule writes to storage | 207: i |
+| the channel's login not checked | 207: d |
+| the week not bounded | 207: d, e |
+| departure dated at the replay's start | 207: b |
+| "Offline" upside down | 207: b |
+| the week starts on Monday for everyone | 208: b |
+| the week shifted by one day | 208: b, b, b, j, j, j, l |
+| the replay identifier not checked | 208: c |
+| without `noopener` | 208: c, l |
+| the title as HTML | 208: d, e, n |
+| images over http | 208: d, l |
+| the re-reading scrolls back to the top | 208: g |
+| the re-reading never stops | 208: g |
+| the menu repainted under the mouse | 208: h |
+| nine weeks back | 208: j |
+| the list's refusal said in both views | 208: k |
+| the frozen bar | 208: k |
+| "Replay" on an older replay | 208: l |
+| "Their week" opens the current week | 208: l |
+| the abbreviated number's plural, taken from the whole number | 208: n |
+| a tab, even embedded | 208: o |
+| the entry from the day before outside the week | 208: c, d, i, n |
+| the week bar not sticky | 208: f |
+| the schedule chapter forgotten | 96: the seventeen chapters, the return to the guide, Japanese |
+| the group missing from the panel chapter | 96: the six groups, the quotations |
+
 ## The panel's copy under Firefox (v4.24.0.45)
 
 Found while preparing the port of versions 4.24.0.40 to 4.24.0.44 to
@@ -19006,7 +19221,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 205 scenarios, 1760 assertions |
+| `npm test` | the Playwright harness: 207 scenarios, 1841 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -19026,12 +19241,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1660 KB | 671 KB | 4,242 → **2** |
+| `content.js` | 1738 KB | 707 KB | 4,290 → **2** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
-| `panneau.js` | 113 KB | 53 KB | 160 → **0** |
+| `panneau.js` | 133 KB | 68 KB | 184 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
 | `background.js` | 10 KB | 2 KB | 22 → **0** |
-| **all five** | **1918 KB** | **828 KB** | **−57 %** |
+| **all five** | **2020 KB** | **880 KB** | **−56 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are

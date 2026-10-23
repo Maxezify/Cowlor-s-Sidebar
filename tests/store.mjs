@@ -192,6 +192,12 @@ const PROMESSES = [
      vise ce qui la rend vraie. */
   ['every six hours by default', 'abosPeriode:     { defaut: 6,'],
   ['sooner only if the previous sweep found nothing', 'SUBS_PAGE_EMPTY_RETRY: 15 * 60_000,'],
+  /* L'AGENDA, ENTRÉ DANS LES FICHES AVEC LUI À LA 4.25.0. Deux promesses,
+     deux requêtes : les rediffusions de la semaine et le planning des
+     chaînes. La marque est l'ouverture de la requête elle-même — qu'elle
+     disparaisse, et la phrase tombe avec elle. */
+  ['its replay one click away', "'query TseAgendaDiffusions("],
+  ['the ones channels have scheduled', "'query TseAgendaProgramme("],
 ];
 const tenues = PROMESSES.flatMap(([phrase, marque]) => {
   const dansFiche = en.includes(phrase);
@@ -209,8 +215,9 @@ ok('les comportements promis par la fiche sont dans content.js',
    4.24.0.37 — un libellé cité qui n'existe pas. Chaque fiche cite deux
    libellés du panneau ; ils se lisent ENTRE GUILLEMETS, dans la table de SA
    langue — « 設定 » figure ailleurs dans la fiche japonaise, et le mot seul
-   ne prouverait rien. */
-const LIBELLES = ['grpOptions', 'btnRefreshSubs'];
+   ne prouverait rien. L'agenda (4.25.0) y ajoute son groupe, son bouton
+   « Sa semaine » et sa marque « Sans rediffusion ». */
+const LIBELLES = ['grpOptions', 'btnRefreshSubs', 'grpAgenda', 'btnSeeWeek', 'valNoReplay'];
 const echappe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const malNommes = fiches.flatMap((f) => {
   const loc = f.replace(/^description-|\.txt$/g, '').replace('-', '_');

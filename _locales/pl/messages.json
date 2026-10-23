@@ -227,6 +227,21 @@
   "sumCategories": {
     "message": "kategorii"
   },
+  "sumLive": {
+    "message": "na żywo"
+  },
+  "sumBroadcasts": {
+    "message": "transmisji"
+  },
+  "sumPlanned": {
+    "message": "zaplanowanych"
+  },
+  "sumOffline": {
+    "message": "offline"
+  },
+  "sumScheduled": {
+    "message": "z następną transmisją"
+  },
   "btnRefreshSubs": {
     "message": "Odczytaj teraz"
   },
@@ -282,6 +297,42 @@
     "message": "Połączenie z kartą zostało utracone. Spróbuj ponownie.",
     "description": "État : la liaison avec l'onglet est perdue"
   },
+  "stateAgendaLoading": {
+    "message": "Odczyt obserwowanych kanałów… $1 / $2"
+  },
+  "stateAgendaLoadingReplays": {
+    "message": "Odczyt powtórek… pozostałe kanały: $1"
+  },
+  "stateAgendaCapped": {
+    "message": "Odczytywanych jest tylko $1 z $2 obserwowanych kanałów: nadające na żywo, twoje subskrypcje, potem najczęściej odwiedzane."
+  },
+  "stateAgendaNoSchedule": {
+    "message": "Twitch nie udostępnia harmonogramów kanałów: zaplanowanych transmisji nie da się pokazać."
+  },
+  "stateAgendaNoReplays": {
+    "message": "Twitch odrzuca listę powtórek: pokazywana jest tylko ostatnia z każdego kanału."
+  },
+  "stateAgendaPartial": {
+    "message": "Kanały, których Twitch nie udostępnił: $1; „Odśwież” pyta ponownie."
+  },
+  "stateAgendaNetwork": {
+    "message": "Twitch na razie nie odpowiada; „Odśwież” wznowi odczyt."
+  },
+  "stateAgendaEmpty": {
+    "message": "Brak transmisji w tym tygodniu."
+  },
+  "stateAgendaEmptyChannel": {
+    "message": "Brak transmisji tego kanału w tym tygodniu."
+  },
+  "stateAgendaNoOffline": {
+    "message": "Wszystkie obserwowane kanały nadają na żywo."
+  },
+  "stateAgendaNoRoster": {
+    "message": "Żaden obserwowany kanał nie jest jeszcze znany. Rozszerzenie uczy się ich z paska bocznego Twitcha, gdy jesteś zalogowany."
+  },
+  "stateAgendaRefused": {
+    "message": "Twitch odrzuca zapytania harmonogramu; „Eksportuj raport” mówi dlaczego."
+  },
   "statusOk": {
     "message": "OK"
   },
@@ -311,6 +362,45 @@
   },
   "valMore": {
     "message": "więcej"
+  },
+  "valViewsOne": {
+    "message": "$1 wyświetlenie"
+  },
+  "valViewsFew": {
+    "message": "$1 wyświetlenia"
+  },
+  "valViewsMany": {
+    "message": "$1 wyświetleń"
+  },
+  "valViewsOther": {
+    "message": "$1 wyświetlenia"
+  },
+  "valOngoing": {
+    "message": "trwa"
+  },
+  "valLive": {
+    "message": "Na żywo"
+  },
+  "valPlanned": {
+    "message": "Zaplanowana"
+  },
+  "valNoReplay": {
+    "message": "Bez powtórki"
+  },
+  "valChannel": {
+    "message": "Kanał"
+  },
+  "valAllChannels": {
+    "message": "Wszystkie kanały"
+  },
+  "valLastLive": {
+    "message": "Ostatnia transmisja $1"
+  },
+  "valLastLiveUnknown": {
+    "message": "Ostatnia transmisja nieznana"
+  },
+  "valNext": {
+    "message": "Następna transmisja: $1"
   },
   "healthOk": {
     "message": "Selektory OK"
@@ -347,6 +437,21 @@
   },
   "btnRefresh": {
     "message": "Odśwież"
+  },
+  "btnToday": {
+    "message": "Dziś"
+  },
+  "btnWeekPrev": {
+    "message": "Poprzedni tydzień"
+  },
+  "btnWeekNext": {
+    "message": "Następny tydzień"
+  },
+  "btnReplay": {
+    "message": "Obejrzyj"
+  },
+  "btnSeeWeek": {
+    "message": "Pokaż tydzień"
   },
   "btnClose": {
     "message": "Zamknij"
@@ -430,7 +535,13 @@
     "message": "Ten panel"
   },
   "guidePanneauTexte": {
-    "message": "Pięć grup, po lewej:\n• „Na początek” — ten przewodnik, czytelny nawet bez otwartej karty Twitcha.\n• „Ustawienia” — wszystko, co rozszerzenie pozwala wybrać.\n• „Twoje dane” — co zapamiętało: kanały, które odwiedzasz najczęściej, o jakich porach, twoje subskrypcje, znane kanały.\n• „Diagnostyka” — przydaje się tylko, gdy coś nie gra; można ją ukryć w ustawieniach.\n• „Najpopularniejsze kanały” — stan rankingu i jego kategorii.\nSekcje inne niż ten przewodnik czytają pierwszoplanową kartę Twitcha; bez niej mówią o tym.\n• Coś nie działa? „Eksportuj raport” zapisuje tekst do przeczytania przed wysłaniem: liczby, żadnych list — ani twoich kanałów, ani subskrypcji.\n• „Wyczyść historię” usuwa wszystko, co rozszerzenie zapamiętało, nieodwracalnie; twoje ustawienia zostają."
+    "message": "Sześć grup, po lewej:\n• „Na początek” — ten przewodnik, czytelny nawet bez otwartej karty Twitcha.\n• „Ustawienia” — wszystko, co rozszerzenie pozwala wybrać.\n• „Harmonogram” — transmisje obserwowanych kanałów, minione, trwające i zaplanowane, z ich powtórkami; to następny rozdział.\n• „Twoje dane” — co zapamiętało: kanały, które odwiedzasz najczęściej, o jakich porach, twoje subskrypcje, znane kanały.\n• „Diagnostyka” — przydaje się tylko, gdy coś nie gra; można ją ukryć w ustawieniach.\n• „Najpopularniejsze kanały” — stan rankingu i jego kategorii.\nSekcje inne niż ten przewodnik czytają pierwszoplanową kartę Twitcha; bez niej mówią o tym.\n• Coś nie działa? „Eksportuj raport” zapisuje tekst do przeczytania przed wysłaniem: liczby, żadnych list — ani twoich kanałów, ani subskrypcji.\n• „Wyczyść historię” usuwa wszystko, co rozszerzenie zapamiętało, nieodwracalnie; twoje ustawienia zostają."
+  },
+  "guideAgendaTitre": {
+    "message": "Harmonogram twoich kanałów"
+  },
+  "guideAgendaTexte": {
+    "message": "Grupa „Harmonogram” robi dla wszystkich obserwowanych kanałów naraz to, co strona harmonogramu kanału robi na Twitchu dla jednego.\n• „Tydzień”: dzień po dniu minione transmisje z ich powtórką — kliknięcie ją otwiera —, trwające oraz te, które kanały zaplanowały.\n• Strzałki zmieniają tydzień, do ośmiu wstecz i dwóch naprzód; „Dziś” wraca do bieżącego tygodnia, a menu zostawia jeden kanał.\n• „Offline”: każdy kanał, który nie nadaje, od tego, który skończył najpóźniej — kiedy nadawał, jego powtórka o jedno kliknięcie i następna transmisja, jeśli jest zaplanowana. „Pokaż tydzień” otwiera tydzień jego ostatniej transmisji.\nKanały to te, które twój pasek boczny pokazał jako obserwowane. Powtórka istnieje tylko wtedy, gdy kanał zapisuje transmisje, i tylko tak długo, jak Twitch je przechowuje; zaplanowana transmisja — tylko jeśli kanał prowadzi harmonogram na Twitchu. Nic nie jest wysyłane do Twitcha, dopóki nie otworzysz harmonogramu."
   },
   "guideVieTitre": {
     "message": "Prywatność, wprost"
@@ -500,6 +611,21 @@
   },
   "descOptions": {
     "message": "Co rozszerzenie dodaje, a czego nie rusza. Wszystko jest domyślnie włączone; fioletowa kropka oznacza to, co zostało zmienione."
+  },
+  "grpAgenda": {
+    "message": "Harmonogram"
+  },
+  "navSemaine": {
+    "message": "Tydzień"
+  },
+  "descSemaine": {
+    "message": "Transmisje obserwowanych kanałów, dzień po dniu: minione z powtórką, trwające i zaplanowane."
+  },
+  "navHorsLigne": {
+    "message": "Offline"
+  },
+  "descHorsLigne": {
+    "message": "Obserwowane kanały, które nie nadają: ich ostatnia transmisja, jej powtórka i następna, jeśli jest zaplanowana."
   },
   "sumSettings": {
     "message": "ustawień"

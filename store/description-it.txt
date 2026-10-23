@@ -177,10 +177,21 @@ _______________________________
 Un ingranaggio a destra del titolo della barra laterale, un clic, e tutto quello che l'estensione ha imparato si apre sopra Twitch. L'icona dell'estensione, in alto a destra nel browser, apre esattamente lo stesso pannello.
 
 - ★ DUE STRADE, UN SOLO PANNELLO ★ L'ingranaggio nella barra laterale o l'icona nella barra degli strumenti: la stessa pagina, in entrambi i casi. Aperta dall'ingranaggio è più grande: un popup della barra degli strumenti è limitato dal browser, non da noi.
-- ★ UNA GUIDA, SUBITO ★ Il pannello si apre su una guida di sedici capitoli che mostra tutto ciò che l'estensione aggiunge, con esempi disegnati — e si vede anche senza nessuna scheda Twitch aperta.
+- ★ UNA GUIDA, SUBITO ★ Il pannello si apre su una guida di diciassette capitoli che mostra tutto ciò che l'estensione aggiunge, con esempi disegnati — e si vede anche senza nessuna scheda Twitch aperta.
 - ★ LE TUE ABITUDINI, DISEGNATE ★ Le ore in cui guardi davvero, tracciate in una griglia di sette giorni per ventiquattro ore.
 - ★ I TUOI NUMERI ★ Top streamer, abbonamenti rilevati, canali seguiti in memoria: tutto lì, leggibile.
 - ★ UN RAPPORTO DA INCOLLARE ★ Un pulsante crea un rapporto diagnostico completo, senza alcun elenco personale dentro — quanto basta per segnalare un problema senza rivelare nulla.
+
+_______________________________
+
+➤ 📅 CHI HA TRASMESSO, CHI È IN DIRETTA, CHI SARÀ IL PROSSIMO
+La pagina del programma di un canale, su Twitch, mostra un solo canale. Il gruppo «Programma» del pannello mostra tutti quelli che segui, in una volta.
+
+- ★ LA SETTIMANA, GIORNO PER GIORNO ★ Ogni diretta passata con la sua replica a un clic, quelle in corso e quelle che i canali hanno programmato. Otto settimane indietro, due avanti.
+- ★ OFFLINE, MA NON DIMENTICATI ★ Ogni canale seguito che non è in diretta, il più recente per primo: quando ha trasmesso l'ultima volta, la sua replica e la sua prossima diretta, se ne ha una programmata.
+- ★ UN CANALE O TUTTI ★ Un menu ne tiene uno solo, e «La sua settimana» porta dritto alla settimana della sua ultima diretta.
+- ★ ONESTO SU CIÒ CHE TWITCH CONSERVA ★ Una replica esiste solo se il canale salva le sue dirette, e finché Twitch le tiene; un'ultima diretta che non ne ha una lo dice («Senza replica»).
+- ★ SOLO QUANDO GUARDI ★ Non viene chiesto nulla a Twitch prima che tu lo apra, e nulla viene salvato: tutto vive nella scheda.
 
 _______________________________
 
@@ -259,6 +270,7 @@ _______________________________
 - ★ SEGUI 50 STREAMER? ★ Vedi a colpo d'occhio chi è in diretta da un pezzo e chi ha appena iniziato.
 - ★ SEI ABBONATO A UNA DECINA DI CANALI? ★ Sono in oro, raggruppati in cima, con il numero di mesi che sei con loro.
 - ★ TI PERDI SEMPRE I CO-STREAM? ★ Un ordinamento dedicato li porta in cima, un'etichetta ti dice chi gioca con chi, e la sala multistream li apre tutti fianco a fianco.
+- ★ TI SEI PERSO LA DIRETTA DI IERI SERA? ★ La sua replica è a un clic nel programma del pannello, con il resto della settimana.
 - ★ ODI IL DISORDINE VISIVO? ★ Niente più Hype Train che occupano la barra laterale, niente più banner pubblicitari, niente più sezioni vuote.
 - ★ AMI SEMPLICEMENTE TWITCH? ★ Questa estensione è fatta per te!
 
