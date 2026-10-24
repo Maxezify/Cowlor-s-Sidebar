@@ -20208,6 +20208,15 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
             }
             return { cartes: cs.length, enveloppees, niveaux, parents: parents.size };
           })(),
+          /* LE DÉPLIAGE DE LA LISTE SUIVIE (4.25.0.5). « Afficher plus » est
+             cliqué jusqu'au bout : c'est ce qui montre toutes les chaînes
+             suivies en direct. Il rend aussi les hors-ligne, que l'extension
+             masque — avant le relevé des suivies (4.25.0.3), la seule façon de
+             les apprendre. Ces nombres disent ce que cela coûte encore. */
+          depliage: { ...bilanDepliage, horsLigne: (() => {
+            const sec = followedSection();
+            return sec ? [...sec.querySelectorAll('.side-nav-card')].filter((c) => !isSynthetic(c) && isCardOffline(c)).length : 0;
+          })() },
           liens: nav ? nav.querySelectorAll('a[href^="/"]').length : 0,
           /* Le mode Top Chaînes CLONE ses cartes : sans modèle, il n'affiche
              rien, et c'est exactement le défaut qu'un utilisateur a signalé —
@@ -26618,6 +26627,10 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
    *  AUTO-EXPANSION "Afficher plus" + masquage "Afficher moins"
    * ============================================================ */
   let lastFollowedCount = -1;
+  /* CE QUE LE DÉPLIAGE COÛTE (4.25.0.5, cf. le rapport) : ses clics, et
+     l'instant du dernier depuis le chargement — à lire contre la levée du
+     voile, que le journal date sur la même horloge. */
+  const bilanDepliage = { clics: 0, dernierClicMs: null };
 
   // Masque le bouton "Afficher moins" — inutile puisqu'on auto-expand toujours.
   // On masque le bouton ET son éventuel wrapper de cellule pour ne pas laisser
@@ -26668,6 +26681,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       return;
     }
     lastFollowedCount = currentCount;
+    bilanDepliage.clics += 1;
+    bilanDepliage.dernierClicMs = Math.round(performance.now());
     button.click();
   }
 
@@ -30841,9 +30856,10 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
   const pollRoster = () => {
     if (!CFG.AHEAD_ENABLED || document.hidden) return;
     let budget = CFG.AHEAD_MAX_POLL;
-    // roster.entries() est trié par observation la plus récente : si le
-    // budget est atteint, ce sont les chaînes les plus présentes dans la
-    // sidebar — donc celles qui comptent — qui sont servies en premier.
+    /* Toutes les chaînes suivies — celles de la barre, et depuis la 4.25.0.3
+       celles du relevé des suivies, que la barre ne montre pas au-delà de
+       cent. Le budget les couvre largement ; au-delà, roster.entries() les
+       sert par dernière observation, barre ou relevé. */
     for (const [login] of roster.entries()) {
       if (budget-- <= 0) break;
       if (getFreshChannel(login)) continue;

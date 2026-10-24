@@ -48,7 +48,7 @@
     "message": "Bekannte Kanäle"
   },
   "descRoster": {
-    "message": "Alle gefolgten Kanäle, die die Erweiterung mindestens einmal in deiner Seitenleiste gesehen hat."
+    "message": "Alle Kanäle, denen du folgst: die aus deiner Seitenleiste und die vollständige Liste, alle zwölf Stunden von deiner Seite der gefolgten Kanäle neu gelesen."
   },
   "navRythme": {
     "message": "Rhythmus"
@@ -334,7 +334,7 @@
     "message": "Alle deine gefolgten Kanäle sind live."
   },
   "stateAgendaNoRoster": {
-    "message": "Noch kein gefolgter Kanal bekannt. Die Erweiterung lernt sie aus der Seitenleiste von Twitch, während du angemeldet bist."
+    "message": "Noch kein gefolgter Kanal bekannt. Die Erweiterung lernt sie aus der Seitenleiste von Twitch und deiner Seite der gefolgten Kanäle, während du angemeldet bist."
   },
   "stateAgendaRefused": {
     "message": "Twitch verweigert die Anfragen des Zeitplans; „Bericht exportieren“ sagt, warum."
@@ -820,7 +820,7 @@
     "message": "Gemerkte gefolgte Kanäle löschen?"
   },
   "purgeRosterText": {
-    "message": "Die Liste baut sich beim Beobachten der Seitenleiste neu auf. Besuche und Abonnements bleiben unberührt."
+    "message": "Die Liste baut sich von selbst neu auf: sofort aus der Seitenleiste, dann vollständig von deiner Seite der gefolgten Kanäle, kurz darauf neu gelesen. Besuche und Abonnements bleiben unberührt."
   },
   "optPurgeFaite": {
     "message": "Gelöscht."

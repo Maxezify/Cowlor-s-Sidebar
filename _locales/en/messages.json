@@ -59,7 +59,7 @@
     "description": "Section : chaînes connues"
   },
   "descRoster": {
-    "message": "Every followed channel the extension has seen in your sidebar at least once.",
+    "message": "All your followed channels: those in your sidebar, and the full list reread from your Following page every twelve hours.",
     "description": "Description de la section chaînes connues"
   },
   "navRythme": {
@@ -413,7 +413,7 @@
     "message": "All your followed channels are live."
   },
   "stateAgendaNoRoster": {
-    "message": "No followed channel known yet. The extension learns them from Twitch's sidebar while you are signed in."
+    "message": "No followed channel known yet. The extension learns them from Twitch's sidebar and your Following page while you are signed in."
   },
   "stateAgendaRefused": {
     "message": "Twitch refuses the schedule's requests; “Export a report” says why."
@@ -936,7 +936,7 @@
     "message": "Erase the remembered followed channels?"
   },
   "purgeRosterText": {
-    "message": "The list will rebuild itself by watching the sidebar. Your visits and subscriptions are untouched."
+    "message": "The list will rebuild itself: the sidebar right away, then the full list from your Following page, reread shortly after. Your visits and subscriptions are untouched."
   },
   "optPurgeFaite": {
     "message": "Erased."

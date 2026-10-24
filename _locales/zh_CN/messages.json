@@ -48,7 +48,7 @@
     "message": "已知频道"
   },
   "descRoster": {
-    "message": "扩展在侧边栏中至少见过一次的所有关注频道。"
+    "message": "你关注的全部频道：侧边栏中的频道，以及每十二小时从你的关注频道页面重新读取的完整列表。"
   },
   "navRythme": {
     "message": "观看节奏"
@@ -334,7 +334,7 @@
     "message": "你关注的频道都在直播。"
   },
   "stateAgendaNoRoster": {
-    "message": "尚不知道任何关注的频道。扩展会在你登录时，从 Twitch 侧边栏中记下它们。"
+    "message": "尚不知道任何关注的频道。扩展会在你登录时，从 Twitch 侧边栏和你的关注频道页面中记下它们。"
   },
   "stateAgendaRefused": {
     "message": "Twitch 拒绝了日程的请求；「导出报告」会说明原因。"
@@ -820,7 +820,7 @@
     "message": "清除记住的已关注频道？"
   },
   "purgeRosterText": {
-    "message": "列表会通过观察侧边栏重新建立。你的访问记录与订阅不受影响。"
+    "message": "列表会自动重建：先立即从侧边栏读取，稍后再从你的关注频道页面重新读取完整列表。你的访问记录与订阅不受影响。"
   },
   "optPurgeFaite": {
     "message": "已清除。"

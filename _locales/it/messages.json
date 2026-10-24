@@ -48,7 +48,7 @@
     "message": "Canali noti"
   },
   "descRoster": {
-    "message": "Tutti i canali seguiti che l'estensione ha visto almeno una volta nella barra laterale."
+    "message": "Tutti i canali che segui: quelli della barra laterale e l'elenco completo, riletto ogni dodici ore dalla tua pagina dei canali seguiti."
   },
   "navRythme": {
     "message": "Ritmo"
@@ -334,7 +334,7 @@
     "message": "Tutti i canali che segui sono in diretta."
   },
   "stateAgendaNoRoster": {
-    "message": "Ancora nessun canale seguito conosciuto. L'estensione li impara dalla barra laterale di Twitch, mentre hai effettuato l'accesso."
+    "message": "Ancora nessun canale seguito conosciuto. L'estensione li impara dalla barra laterale di Twitch e dalla tua pagina dei canali seguiti, mentre hai effettuato l'accesso."
   },
   "stateAgendaRefused": {
     "message": "Twitch rifiuta le richieste del programma; «Esporta un report» dice perché."
@@ -820,7 +820,7 @@
     "message": "Cancellare i canali seguiti memorizzati?"
   },
   "purgeRosterText": {
-    "message": "La lista si ricostruirà osservando la barra laterale. Le tue visite e i tuoi abbonamenti non vengono toccati."
+    "message": "La lista si ricostruirà da sola: subito dalla barra laterale, poi per intero dalla tua pagina dei canali seguiti, riletta poco dopo. Le tue visite e i tuoi abbonamenti non vengono toccati."
   },
   "optPurgeFaite": {
     "message": "Cancellato."

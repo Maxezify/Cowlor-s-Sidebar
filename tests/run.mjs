@@ -892,6 +892,12 @@ titre('16. Palier 3 — les cartes fabriquées ne faussent rien');
       .addEventListener('click', () => window.__moreClicks++);
   });
   await wait(page, 1500);
+  /* LE DÉPLIAGE AU RAPPORT (4.25.0.5) : autant de clics que la page en a
+     reçu, l'instant du dernier, et les quatre cartes hors ligne rendues. */
+  const depliage = await page.evaluate(() => ({ ...window.tse.panneau.rapport().page.depliage, vus: window.__moreClicks }));
+  ok('le rapport compte les clics sur « Afficher plus », date le dernier, et les cartes hors ligne rendues',
+     depliage.clics >= 1 && depliage.clics === depliage.vus && Number.isFinite(depliage.dernierClicMs) && depliage.horsLigne === 4,
+     JSON.stringify(depliage));
   await page.evaluate(() => {
     [...document.querySelectorAll('.side-nav-card')]
       .filter(c => /\/ghost/.test(c.querySelector('a[href]')?.getAttribute('href') || ''))
@@ -7149,6 +7155,12 @@ titre('70. Panneau — la page rendue, mesurée');
                             onglets: [{ onglet: 'gifts', voie: 'bascule', preuve: 'aria-selected',
                                         charge: true, noeuds: 900, barre: true, cartes: 2,
                                         logins: 2, echeances: 1 }] },
+      /* LE RELEVÉ DES CHAÎNES SUIVIES (4.25.0.5) : un relevé complet fait dans
+         cette page, et un autre onglet qui s'est rangé une fois derrière lui. */
+      relevesSuivies: { enAttente: false, horodatage: Date.UTC(2026, 9, 24, 9, 0), enCours: false, differes: 1,
+                        incompletsDeSuite: 0, prochainDansMs: 690 * 60_000, prevu: false,
+                        dernier: { debut: 0, chaines: 184, pages: 4, illisibles: 1, tours: 9, complet: true,
+                                   arret: 'fin de liste', ajoutees: 84, retirees: 2, dureeMs: 31_400 } },
       global: { enabled: false, complete: false },
       journaux: { verrous: [], cycles: [{ t: 12, evt: 'depart', detail: 'boot' }], apercu: [] },
       reseau: { pauseGqlMs: 12000 },
@@ -7591,6 +7603,17 @@ titre('70. Panneau — la page rendue, mesurée');
   ok('…ce que le relevé a rendu à leur passé — ou pourquoi il ne l\'a pas jugé',
      /rendues à leur passé \/ moved to former\s+non jugé — un onglet en cours n'a pas été lu/.test(vue.texte),
      JSON.stringify((vue.texte.match(/rendues à leur passé[^\n]*/) || [])[0]));
+  /* LE RELEVÉ DES CHAÎNES SUIVIES, IMPRIMÉ (4.25.0.5). Le rapport en portait
+     les données depuis la 4.25.0.3, et le texte n'en disait rien. Mutant — le
+     bloc retiré, ou ce relevé-ci réduit à son horodatage. */
+  const blocSuivies = (vue.texte.split('CHAÎNES SUIVIES — RELEVÉ / FOLLOWED-CHANNEL SWEEP')[1] || '').split('\n──')[0];
+  const ligneSuivies = (cle, val) => new RegExp(`${cle.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')}\\s+${val.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')}`).test(blocSuivies);
+  ok('…le relevé des chaînes suivies a son bloc : quand, qui s\'est rangé, le prochain, et ce que celui de la page a lu',
+     ligneSuivies('horodatage', '2026-10-24T09:00:00.000Z') && ligneSuivies('rangé derrière un autre onglet / stood down', '1')
+     && ligneSuivies('prochain relevé dans / next sweep in', '690 min')
+     && ligneSuivies('relevé de cette page / this page\'s sweep', '184 chaîne(s) · 4 page(s) · complet · fin de liste · 31 s')
+     && ligneSuivies('ajoutées · retirées / added · removed', '84 · 2') && ligneSuivies('lots illisibles / unreadable batches', '1'),
+     JSON.stringify(blocSuivies));
   /* LES ÉCHÉANCES LUES, RAPPORTÉES AUX CHAÎNES DE L'ONGLET (4.21.0). Mutant —
      la ligne sans ce compte — : le rapport ne dit plus si les dates de Twitch
      se lisent. */
@@ -8906,6 +8929,10 @@ titre('77. Firefox — le panneau sous un `chrome.*` qui ne rend pas de promesse
   ok('…en lisant le manifeste par le namespace disponible (forme Firefox du fond)',
      /fond \/ background\s+scripts/.test(texte),
      JSON.stringify((texte.match(/fond \/ background.*/) || [])[0]));
+  // Une page qui ne dit rien du relevé des suivies : le bloc le dit, sans planter (4.25.0.5).
+  ok('…et le relevé des chaînes suivies, jamais fait : « jamais », et aucun dans cette page',
+     /FOLLOWED-CHANNEL SWEEP[^]*?horodatage\s+jamais \/ never[^]*?relevé de cette page \/ this page's sweep\s+aucun \/ none/.test(texte),
+     JSON.stringify((texte.split('FOLLOWED-CHANNEL SWEEP')[1] || '').slice(0, 600)));
 
   await page.close();
 }

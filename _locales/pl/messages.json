@@ -48,7 +48,7 @@
     "message": "Znane kanały"
   },
   "descRoster": {
-    "message": "Wszystkie obserwowane kanały, które rozszerzenie widziało choć raz na pasku bocznym."
+    "message": "Wszystkie obserwowane kanały: te z paska bocznego i pełna lista, odczytywana co dwanaście godzin z twojej strony obserwowanych kanałów."
   },
   "navRythme": {
     "message": "Rytm"
@@ -334,7 +334,7 @@
     "message": "Wszystkie obserwowane kanały nadają na żywo."
   },
   "stateAgendaNoRoster": {
-    "message": "Żaden obserwowany kanał nie jest jeszcze znany. Rozszerzenie uczy się ich z paska bocznego Twitcha, gdy jesteś zalogowany."
+    "message": "Żaden obserwowany kanał nie jest jeszcze znany. Rozszerzenie uczy się ich z paska bocznego Twitcha i z twojej strony obserwowanych kanałów, gdy jesteś zalogowany."
   },
   "stateAgendaRefused": {
     "message": "Twitch odrzuca zapytania harmonogramu; „Eksportuj raport” mówi dlaczego."
@@ -820,7 +820,7 @@
     "message": "Usunąć zapamiętane obserwowane kanały?"
   },
   "purgeRosterText": {
-    "message": "Lista odbuduje się, obserwując pasek boczny. Twoje wizyty i subskrypcje pozostają nietknięte."
+    "message": "Lista odbuduje się sama: od razu z paska bocznego, a chwilę później w całości z twojej strony obserwowanych kanałów. Twoje wizyty i subskrypcje pozostają nietknięte."
   },
   "optPurgeFaite": {
     "message": "Usunięto."

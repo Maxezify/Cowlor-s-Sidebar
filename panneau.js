@@ -2644,6 +2644,30 @@ const construireRapport = (r, transport, fond) => {
       + (o.blanc ? ' · rien sous les onglets' : '')
       + (o.texte ? ` · la page dit : « ${o.texte} »` : '')))),
   ]));
+  /* LE RELEVÉ DES CHAÎNES SUIVIES (4.25.0.3), IMPRIMÉ DEPUIS LA 4.25.0.5. Le
+     rapport en portait les données depuis sa naissance — `relevesSuivies` —,
+     et le texte n'en disait rien : un relevé jamais fait, rangé derrière un
+     autre onglet ou arrêté en route se ressemblaient tous, et seul le compte
+     du roster laissait deviner qu'il avait eu lieu. La règle est celle du bloc
+     précédent : ce qu'on collecte sans l'afficher ne sert à personne. Le
+     dernier relevé est celui de CETTE page ; l'horodatage, lui, est partagé
+     par les onglets. Des comptes, jamais une chaîne. */
+  const rs = r.relevesSuivies || {};
+  const dernier = rs.dernier;
+  L.push(...bloc('CHAÎNES SUIVIES — RELEVÉ / FOLLOWED-CHANNEL SWEEP', [
+    paire('horodatage', rs.horodatage ? new Date(rs.horodatage).toISOString() : 'jamais / never'),
+    paire('en attente / pending', rs.enAttente),
+    paire('en cours / running', rs.enCours),
+    paire('rangé derrière un autre onglet / stood down', rs.differes ?? 0),
+    paire('relevés incomplets d\'affilée / incomplete sweeps in a row', rs.incompletsDeSuite ?? 0),
+    paire('prochain relevé dans / next sweep in',
+          rs.horodatage && Number.isFinite(rs.prochainDansMs) ? `${Math.round(rs.prochainDansMs / 60_000)} min` : '—'),
+    paire('relevé de cette page / this page\'s sweep', !dernier ? 'aucun / none'
+      : `${dernier.chaines} chaîne(s) · ${dernier.pages} page(s) · ${dernier.complet ? 'complet' : 'incomplet'}`
+        + ` · ${dernier.arret || 'en cours'} · ${Math.round((dernier.dureeMs || 0) / 1000)} s`),
+    ...(dernier ? [paire('ajoutées · retirées / added · removed', `${dernier.ajoutees} · ${dernier.retirees}`),
+                   paire('lots illisibles / unreadable batches', dernier.illisibles)] : []),
+  ]));
   L.push(...bloc('RÉSEAU / NETWORK', [
     ...aplatir(r.reseau),
     paire('retards.medianeMs', r.retards?.medianeMs),
