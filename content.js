@@ -1233,6 +1233,62 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
   } catch { /* autre origine, ou déjà posé : rien */ }
 })();
 
+/* LE RELEVÉ DES CHAÎNES SUIVIES, CÔTÉ CADRE (4.25.0.3, cf. module SUIVIES).
+   La page « Chaînes suivies » demande elle-même la liste, par pages, à
+   mesure qu'on la fait défiler : ses réponses `ChannelFollows` portent
+   `data.user.follows.edges[].node.login` et `pageInfo.hasNextPage`
+   (MESURÉ, troisième passe). Twitch ne la sert pas sans compte, et
+   l'extension n'envoie jamais le jeton : on lit les RÉPONSES que la page
+   reçoit — jamais un en-tête de ce qu'elle envoie.
+   Seulement dans NOTRE cadre, à son nom, sous une page de même origine. Le
+   bloc tourne à document_start, avant le premier script de Twitch : le fetch
+   qu'il enveloppe est celui que l'application trouvera. Il poste à la page,
+   réponse par réponse, les logins lus et ce que Twitch dit de la suite. */
+const TSE_SUIVIES_FRAME_NAME = 'tse-suivies';
+const TSE_SUIVIES_MSG = 'tse:suivies';
+(() => {
+  'use strict';
+  try {
+    if (window.top === window) return;
+    if (window.name !== TSE_SUIVIES_FRAME_NAME) return;
+    if (window.top.location.origin !== location.origin) return;
+  } catch { return; }
+  const vrai = window.fetch;
+  if (typeof vrai !== 'function') return;
+  const poster = (x) => {
+    try { window.top.postMessage({ [TSE_SUIVIES_MSG]: x }, location.origin); } catch { /* page partie */ }
+  };
+  // Les opérations d'un lot, dans l'ordre : la réponse les rend dans le même.
+  const operations = (corps) => {
+    try { return [].concat(JSON.parse(corps)).map((o) => (o && o.operationName) || ''); }
+    catch { return []; }
+  };
+  const lire = (ops, json) => {
+    const reps = [].concat(json);
+    ops.forEach((nom, i) => {
+      if (nom !== 'ChannelFollows') return;
+      const f = reps[i]?.data?.user?.follows;
+      if (!f || !Array.isArray(f.edges)) { poster({ illisible: true }); return; }
+      poster({ logins: f.edges.map((e) => e?.node?.login).filter((l) => typeof l === 'string'),
+               suite: typeof f.pageInfo?.hasNextPage === 'boolean' ? f.pageInfo.hasNextPage : null });
+    });
+  };
+  window.fetch = function (...args) {
+    const p = vrai.apply(window, args);
+    try {
+      const [url, init] = args;
+      const ops = typeof init?.body === 'string' && String(url).includes('gql.twitch.tv')
+        ? operations(init.body) : [];
+      if (ops.includes('ChannelFollows')) {
+        p.then((rep) => rep.clone().json().then((json) => lire(ops, json)),
+               () => poster({ echec: true }))
+          .catch(() => poster({ illisible: true }));
+      }
+    } catch { /* jamais au détriment de la page */ }
+    return p;
+  };
+})();
+
 (() => {
   'use strict';
 
@@ -3585,6 +3641,33 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     // finirait par porter des chaînes que l'utilisateur ne suit plus.
     ROSTER_MAX_AGE:       60 * 24 * 60 * 60_000,   // 60 jours
 
+    // === Relevé des chaînes suivies (cf. module SUIVIES, 4.25.0.3) ===
+    SUIVIES_ENABLED:      true,
+    // Après le premier balayage qui voit une carte suivie : la page, le voile
+    // et le relevé des abonnements passent d'abord.
+    SUIVIES_DELAI:        20_000,
+    SUIVIES_TTL:          12 * 60 * 60_000,   // 12 h entre deux relevés complets
+    // Après un relevé incomplet : une demi-heure, puis le double à chaque
+    // nouvel échec, jamais plus que SUIVIES_TTL (cf. SUBS_PAGE_EMPTY_RETRY).
+    SUIVIES_REPRISE:      30 * 60_000,
+    /* Les bornes du relevé, celles de la cinquième mesure, qui a lu 184
+       chaînes sur 184 en 31 s : la première page attendue quinze secondes
+       après le chargement, 800 ms après chaque défilement, trente secondes
+       sans chaîne nouvelle pour conclure, deux minutes en tout. */
+    SUIVIES_PREMIERE:     15_000,
+    SUIVIES_PAS:          800,
+    SUIVIES_CALME:        30_000,
+    SUIVIES_TIMEOUT:      120_000,
+    // Une chaîne que la barre a montrée depuis ce délai reste au roster, même
+    // absente d'un relevé complet : la barre ne montre que des chaînes suivies.
+    SUIVIES_MARGE:        10 * 60_000,
+    SUIVIES_STAMP_KEY:    'tse:suiviests',
+    // Le bail, comme celui des abonnements (cf. SUBS_PAGE_RUN_KEY) : plus long
+    // que le pire relevé.
+    SUIVIES_RUN_KEY:      'tse:suiviesrun',
+    SUIVIES_LEASE:        150_000,
+    SUIVIES_CLAIM:        400,
+
     // === Cartes en avance sur Twitch (cf. module CARTES EN AVANCE) ===
     // Interrupteur unique de la fonctionnalité. À false, l'extension se
     // contente d'enrichir les cartes que Twitch pose — le roster continue
@@ -3930,7 +4013,11 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     AGENDA_LOT_CHAINES:     25,     // logins par opération, première passe
     AGENDA_LOT_DIFFUSIONS:  10,     // logins par opération, seconde passe
     AGENDA_VIDEOS:          12,     // rediffusions demandées par chaîne
-    AGENDA_VIDEOS_MAX:      40,     // … quand une semaine plus ancienne en réclame davantage
+    /* … quand une semaine plus ancienne en réclame davantage : quarante, puis
+       cent (4.25.0.3) — le plus que Twitch serve d'un coup. Quarante ne
+       couvraient pas huit semaines d'une chaîne qui diffuse chaque jour, et la
+       semaine restait incomplète sans le dire. */
+    AGENDA_VIDEOS_PALIERS:  [40, 100],
     AGENDA_CRENEAUX:        12,     // créneaux du planning demandés par chaîne
     AGENDA_MAX_CHAINES:     400,    // chaînes lues au plus, les plus suivies d'abord
     AGENDA_TTL:             10 * 60_000,    // une fiche : en direct ou non, le dernier direct
@@ -12672,6 +12759,17 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
    *  interruption figure dans les deux, et l'ordre de lecture ne doit rien y
    *  changer.
    * ============================================================ */
+  /* UN BAIL DE RELEVÉ EST-IL FRAIS ? « <jeton>:<date> », posé par la page qui
+     relève (cf. SUBS_PAGE_RUN_KEY, SUIVIES_RUN_KEY). Les deux relevés cachés
+     se le demandent l'un à l'autre (4.25.0.3) : chacun charge une application
+     Twitch entière, et deux à la fois, c'est une de trop. */
+  const bailReleve = (cle, duree) => {
+    try {
+      const t = Number(String(localStorage.getItem(cle) || '').split(':')[1] || 0);
+      return t > 0 && Date.now() - t < duree;
+    } catch { return false; }
+  };
+
   const subsPage = (() => {
     let running = false;
     /* Ce que le DERNIER relevé a vu, onglet par onglet. Remis à neuf à chaque
@@ -13373,6 +13471,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
          On paie donc au plus une fois, à l'installation, le doublon qu'on
          refuse partout ailleurs. */
       if (!force && horodatage() && bailFrais()) { differes += 1; return null; }
+      // Le relevé des chaînes suivies tourne, ici ou ailleurs (cf. bailReleve) :
+      // la reprise reviendra.
+      if (!force && bailReleve(CFG.SUIVIES_RUN_KEY, CFG.SUIVIES_LEASE)) { differes += 1; return null; }
       if (!document.body) return null;
       /* `running` EST POSÉ AVANT LE PREMIER AWAIT, ET IL LE RESTE. La prise
          de bail ci-dessous en contient un — la première écriture de ce
@@ -13739,6 +13840,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     };
 
     return { init, refresh, horodatage, notifySidebar, enAttente,
+             // Un relevé tourne : ici, ou dans une autre page (cf. bailReleve).
+             occupe: () => running || bailFrais(),
              /* `videsDeSuite` et `prochainDansMs` disent pourquoi un relevé
                 reviendra plus tôt que la période — ou pas. */
              bilan: () => {
@@ -13769,8 +13872,10 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
   /* ============================================================
    *  ROSTER DES CHAÎNES SUIVIES
    *  -------------------------------------------------------------
-   *  Mémorise les chaînes suivies APERÇUES dans la sidebar, avec la
-   *  date de dernière observation.
+   *  Mémorise les chaînes suivies, avec la date de leur dernière
+   *  observation : les cartes suivies de la barre, à chaque balayage,
+   *  et depuis la 4.25.0.3 le relevé complet de la page « Chaînes
+   *  suivies » (cf. module SUIVIES).
    *
    *  Pourquoi c'est possible sans authentification : Twitch rend dans
    *  la sidebar les chaînes suivies HORS LIGNE aussi bien que les
@@ -13778,23 +13883,31 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
    *  autoExpandFollowed déplie la liste. Les cartes suivies portent
    *  toutes le marqueur indépendant de la langue
    *  data-test-selector="followed-channel" — il suffit de les lire.
+   *  MAIS LA BARRE S'ARRÊTE À CENT (MESURÉ, 4.25.0.3) : au-delà, une
+   *  chaîne n'y entrait qu'en passant en direct, et c'est le relevé
+   *  qui donne les autres.
    *
    *  À quoi ça sert : sonder la liveness d'une chaîne ne demande
    *  aucune authentification (c'est une donnée publique) ; seule la
-   *  question « qui est-ce que je suis ? » l'exigeait. En apprenant
-   *  la réponse par observation, on lève ce verrou — et on ouvre la
-   *  possibilité de détecter un passage en direct sans attendre que
-   *  Twitch insère la carte.
+   *  question « qui est-ce que je suis ? » l'exigeait. Le roster y
+   *  répond pour les cartes en avance (cf. pollRoster) et pour
+   *  l'agenda, qui lit ces chaînes et elles seules.
    *
-   *  Ce module se contente d'ACCUMULER. Rien ne l'exploite encore ;
-   *  il tourne dès maintenant pour que la liste soit déjà chaude le
-   *  jour où on décidera de s'en servir (cf. tse.roster()).
+   *  UNE MÉMOIRE, PLUSIEURS ONGLETS (4.25.0.3). Chaque page écrivait
+   *  sa table entière : un second onglet ouvert avant un relevé y
+   *  remettait sa centaine de chaînes au premier entretien, et le
+   *  relevé était perdu. Une écriture FUSIONNE donc ce que le stockage
+   *  porte, et l'événement `storage` apporte à chaque page ce que les
+   *  autres écrivent. Une chaîne RETIRÉE (cf. releve) y laisse sa date
+   *  de retrait, en négatif : elle ne revient que si on la revoit après.
    *
    *  Vie privée : 100 % local, jamais envoyé, même posture que
    *  l'historique de visites. Effaçable via tse.reset().
    * ============================================================ */
   const roster = (() => {
     const map = new Map();   // login -> ts de dernière observation
+    // login -> ts du retrait : écrits en négatif, écartent toute observation antérieure.
+    const retraits = new Map();
     let dirty = false;
     // Classement par récence, mémoïsé. Il est parcouru DEUX fois par scan
     // (sondage puis fabrication de cartes) ; le recalculer à chaque appel
@@ -13803,28 +13916,37 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     // mutation de la table.
     let ordered = null;
 
-    const load = () => {
-      try {
-        const obj = JSON.parse(localStorage.getItem(CFG.ROSTER_STORAGE_KEY) || 'null');
-        if (!obj || typeof obj !== 'object') return;
-        for (const [login, ts] of Object.entries(obj)) {
-          const n = Number(ts);
-          if (typeof login === 'string' && Number.isFinite(n) && n > 0) map.set(login, n);
-        }
-        ordered = null;
-        prune();
-      } catch (e) {
-        erreurs.noter('stockage', 'lecture roster : ' + ((e && e.name) || e));
+    // Verse le stockage dans la table : pour chaque chaîne, la date la plus
+    // récente l'emporte, observation ou retrait. Rend true si la table a bougé.
+    const fusionner = () => {
+      let obj = null;
+      try { obj = JSON.parse(localStorage.getItem(CFG.ROSTER_STORAGE_KEY) || 'null'); }
+      catch (e) { erreurs.noter('stockage', 'lecture roster : ' + ((e && e.name) || e)); }
+      if (!obj || typeof obj !== 'object') return false;
+      let bouge = false;
+      for (const [login, v] of Object.entries(obj)) {
+        const n = Number(v);
+        if (typeof login !== 'string' || !Number.isFinite(n) || n === 0) continue;
+        const t = Math.abs(n);
+        if (t <= Math.max(map.get(login) || 0, retraits.get(login) || 0)) continue;
+        if (n > 0) { map.set(login, t); retraits.delete(login); }
+        else { map.delete(login); retraits.set(login, t); }
+        bouge = true;
       }
+      if (bouge) ordered = null;
+      return bouge;
     };
 
+    const load = () => { fusionner(); prune(); };
+
     // Évince ce qui n'a plus été vu depuis ROSTER_MAX_AGE : c'est le seul
-    // garde-fou contre les désabonnements. Sans lui, une chaîne que
-    // l'utilisateur ne suit plus resterait sondée — et, le jour où on
-    // affichera des cartes, réapparaîtrait dans sa sidebar.
+    // garde-fou contre les désabonnements que le relevé n'a pas encore vus.
+    // Sans lui, une chaîne que l'utilisateur ne suit plus resterait sondée —
+    // et réapparaîtrait dans l'agenda comme dans les cartes en avance.
     const prune = () => {
       const cutoff = Date.now() - CFG.ROSTER_MAX_AGE;
       for (const [login, ts] of map) if (ts < cutoff) { map.delete(login); ordered = null; }
+      for (const [login, ts] of retraits) if (ts < cutoff) retraits.delete(login);
       if (map.size <= CFG.ROSTER_MAX) return;
       const kept = [...map.entries()].sort((a, b) => b[1] - a[1]).slice(0, CFG.ROSTER_MAX);
       map.clear();
@@ -13838,10 +13960,11 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     const flush = () => {
       if (!dirty) return;
       dirty = false;
+      fusionner();
       prune();
       try {
-        localStorage.setItem(CFG.ROSTER_STORAGE_KEY,
-          JSON.stringify(Object.fromEntries(map)));
+        localStorage.setItem(CFG.ROSTER_STORAGE_KEY, JSON.stringify(Object.fromEntries([
+          ...map, ...[...retraits].map(([login, ts]) => [login, -ts])])));
       } catch (e) { erreurs.noter('stockage', 'roster : ' + (e && e.name || e)); }
     };
 
@@ -13853,9 +13976,40 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       // scan re-daterait les ~100 mêmes logins pour rien.
       if (prev && now - prev < 60_000) return;
       map.set(login, now);
+      retraits.delete(login);
       dirty = true;
       ordered = null; // le classement par récence change
     };
+
+    /* LE RELEVÉ DES CHAÎNES SUIVIES (cf. module SUIVIES) : chaque chaîne lue
+       est datée de maintenant. `avant`, donné par un relevé COMPLET, retire
+       celles qu'il ne liste pas et qu'on n'a pas revues depuis cet instant :
+       on ne les suit plus. Écrit tout de suite — c'est ce que les autres
+       onglets attendent. */
+    const releve = (logins, avant = null) => {
+      const now = Date.now();
+      const lus = new Set(logins);
+      let ajoutees = 0, retirees = 0;
+      for (const login of lus) {
+        if (!map.has(login)) ajoutees += 1;
+        map.set(login, now);
+        retraits.delete(login);
+      }
+      if (avant !== null) {
+        for (const [login, ts] of map) {
+          if (lus.has(login) || ts >= avant) continue;
+          map.delete(login);
+          retraits.set(login, now);
+          retirees += 1;
+        }
+      }
+      ordered = null;
+      dirty = true;
+      flush();
+      return { ajoutees, retirees };
+    };
+
+    const effacer = () => { map.clear(); retraits.clear(); dirty = false; ordered = null; };
 
     const init = () => {
       load();
@@ -13863,15 +14017,307 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       // contrairement à unload, il est fiable sur mobile et sous Chromium.
       window.addEventListener('pagehide', flush);
       document.addEventListener('visibilitychange', () => { if (document.hidden) flush(); });
+      // Ce qu'un AUTRE onglet écrit — l'événement ne part pas vers celui qui
+      // écrit. Clé retirée : la mémoire a été effacée là-bas, elle l'est ici.
+      window.addEventListener('storage', (e) => {
+        if (e.key === null || (e.key === CFG.ROSTER_STORAGE_KEY && e.newValue === null)) effacer();
+        else if (e.key === CFG.ROSTER_STORAGE_KEY) fusionner();
+      });
     };
 
     return {
-      init, flush, record,
+      init, flush, record, releve,
       entries: () => (ordered ??= [...map.entries()].sort((a, b) => b[1] - a[1])),
       clear:   () => {
-        map.clear(); dirty = false; ordered = null;
+        effacer();
         oublier(CFG.ROSTER_STORAGE_KEY, 'roster');
+        // Le relevé des suivies n'a plus rien versé : le prochain part sans attendre sa période.
+        oublier(CFG.SUIVIES_STAMP_KEY, 'horodatage des suivies');
       }
+    };
+  })();
+
+  /* ============================================================
+   *  RELEVÉ DES CHAÎNES SUIVIES (4.25.0.3)
+   *  -------------------------------------------------------------
+   *  SIGNALÉ AINSI : une chaîne suivie absente de l'agenda, de
+   *  « Hors ligne » et du menu des chaînes, alors qu'elle a des
+   *  rediffusions. Le rapport disait « roster 100 » ; le compte en
+   *  suit 184. MESURÉ en cinq passes, dans la console de
+   *  l'utilisateur :
+   *   • la barre de Twitch s'arrête à cent chaînes suivies, et
+   *     « Afficher plus » n'y fait plus rien ;
+   *   • la liste de qui on suit ne se lit pas sans compte (« server
+   *     error »), et l'extension n'envoie jamais le jeton ;
+   *   • la page « Chaînes suivies », chargée dans un cadre invisible de
+   *     même origine et défilée, les a toutes rendues — 184 sur 184 en
+   *     31 s, la dernière réponse disant « pas de suite ».
+   *  Le roster n'apprenait que ce que la barre montrait : effacé, il
+   *  n'en retrouvait que cent, et les autres n'y revenaient qu'en
+   *  passant en direct.
+   *
+   *  LE RELEVÉ. Le cadre porte un nom qui éveille, à l'intérieur, le
+   *  bloc qui lit les réponses `ChannelFollows` (cf. en tête du
+   *  fichier). Il est À L'ÉCRAN mais transparent : la page ne charge
+   *  la suite que lorsque le bas de sa liste paraît, ce qu'un cadre
+   *  hors de l'écran ne fait jamais. On le fait défiler — en remontant
+   *  un peu quand rien ne vient, pour que le bas reparaisse — jusqu'à
+   *  ce que Twitch dise « pas de suite », SUIVIES_CALME sans chaîne
+   *  nouvelle, ou SUIVIES_TIMEOUT en tout.
+   *
+   *  CE QU'IL EN FAIT. Chaque chaîne lue entre au roster. Un relevé
+   *  COMPLET dit aussi qui on ne suit plus : la chaîne qu'il ne liste
+   *  pas, et que la barre n'a pas montrée depuis SUIVIES_MARGE, en
+   *  sort — le jour même, et non soixante jours plus tard.
+   *
+   *  QUAND. Au premier balayage qui voit une carte suivie — une
+   *  session connectée —, SUIVIES_DELAI plus tard, onglet visible, et
+   *  jamais pendant le relevé des abonnements. Puis toutes les
+   *  SUIVIES_TTL, plus tôt après un relevé incomplet. Un bail empêche
+   *  deux onglets de relever ensemble (cf. SUBS_PAGE_RUN_KEY).
+   *
+   *  Vie privée : la liste rejoint le roster, local, effacé avec lui.
+   *  Le rapport n'en porte que des comptes.
+   * ============================================================ */
+  const suivies = (() => {
+    const CHEMIN = '/directory/following/channels';
+    const RE_LOGIN_SUIVIE = /^[a-z0-9_]{1,25}$/;
+    const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+    let enCours = false;
+    /* Dû et attendu dans cette page : de la première carte suivie jusqu'à ce
+       qu'il ait eu lieu, ou qu'on y ait renoncé (cf. tenter). L'agenda ouvert
+       pendant les SUIVIES_DELAI de l'attente se relit jusqu'à lui, et le dit :
+       sans cela, sa lecture finie, il ne voyait pas les chaînes arriver. */
+    let prevu = false;
+    let differes = 0;
+    // Le dernier relevé, tel qu'il s'est passé : des comptes, aucune chaîne.
+    let bilan = null;
+
+    /* L'horodatage : « <lecteur>:<date>:<incomplets de suite> ». Le dernier
+       champ fait revenir plus tôt un relevé qui n'a pas abouti. */
+    const LECTEUR = 1;
+    const champs = () => {
+      try {
+        const [v, t, n] = String(localStorage.getItem(CFG.SUIVIES_STAMP_KEY) || '').split(':');
+        return Number(v) === LECTEUR ? { t: Number(t) || 0, n: Number(n) || 0 } : null;
+      } catch { return null; }
+    };
+    const horodatage = () => champs()?.t || 0;
+    const incompletsDeSuite = () => champs()?.n || 0;
+    const attente = () => {
+      const n = incompletsDeSuite();
+      return n > 0 ? Math.min(CFG.SUIVIES_TTL, CFG.SUIVIES_REPRISE * 2 ** (n - 1)) : CFG.SUIVIES_TTL;
+    };
+    const marquer = (n) => {
+      try { localStorage.setItem(CFG.SUIVIES_STAMP_KEY, `${LECTEUR}:${Date.now()}:${n}`); }
+      catch (e) { erreurs.noter('stockage', 'horodatage des suivies : ' + ((e && e.name) || e)); }
+    };
+
+    // Le bail : posé, relu, rendu — le même que celui des abonnements.
+    const JETON = Math.random().toString(36).slice(2, 10);
+    const prendreBail = () => {
+      try { localStorage.setItem(CFG.SUIVIES_RUN_KEY, JETON + ':' + Date.now()); }
+      catch { /* sans bail on relève quand même */ }
+    };
+    const bailTenu = () => {
+      try { return String(localStorage.getItem(CFG.SUIVIES_RUN_KEY) || '').split(':')[0] === JETON; }
+      catch { return true; }
+    };
+    const rendreBail = () => {
+      try { if (bailTenu()) localStorage.removeItem(CFG.SUIVIES_RUN_KEY); }
+      catch { /* idem */ }
+    };
+    window.addEventListener('pagehide', rendreBail);
+
+    /* Ce qui défile : le conteneur que la cinquième mesure a fait défiler ;
+       à défaut, le premier ancêtre défilant d'un lien de la page. */
+    const defileurDe = (doc) => {
+      const d = doc.querySelector('.root-scrollable__content');
+      if (d) return d;
+      const w = doc.defaultView;
+      for (let e = (doc.querySelector('main') || doc.body)?.querySelector('a[href^="/"]');
+           e && e !== doc.body; e = e.parentElement) {
+        if (/(auto|scroll)/.test(w.getComputedStyle(e).overflowY) && e.scrollHeight > e.clientHeight) return e;
+      }
+      return doc.scrollingElement;
+    };
+
+    /* Charge la page, lit ses réponses, la fait défiler. Rend { logins,
+       complet }, ou null quand la page n'a rien rendu de lisible — `b.arret`
+       dit pourquoi, dans tous les cas. */
+    const parcourir = async (b) => {
+      const logins = new Set();
+      let suite = null;
+      let nouvelle = Date.now();     // la dernière chaîne nouvelle
+      const cadre = document.createElement('iframe');
+      const recevoir = (e) => {
+        if (e.source !== cadre.contentWindow || e.origin !== location.origin) return;
+        const x = e.data && e.data[TSE_SUIVIES_MSG];
+        if (!x || typeof x !== 'object') return;
+        b.pages += 1;
+        if (!Array.isArray(x.logins)) { b.illisibles += 1; return; }
+        const avant = logins.size;
+        for (const l of x.logins) {
+          const login = String(l).toLowerCase();
+          if (RE_LOGIN_SUIVIE.test(login)) logins.add(login);
+        }
+        if (logins.size > avant) nouvelle = Date.now();
+        if (typeof x.suite === 'boolean') suite = x.suite;
+      };
+      window.addEventListener('message', recevoir);
+      const t0 = Date.now();
+      const reste = () => CFG.SUIVIES_TIMEOUT - (Date.now() - t0);
+      try {
+        // Le nom AVANT l'adresse : c'est lui qui éveille le bloc du cadre.
+        cadre.name = TSE_SUIVIES_FRAME_NAME;
+        cadre.setAttribute('aria-hidden', 'true');
+        cadre.setAttribute('tabindex', '-1');
+        /* La hauteur de L'ÉCRAN, et non 900 px : le bas de la liste doit
+           paraître dans la fenêtre de la page, et une fenêtre plus basse que le
+           cadre le cachait — le banc, à 720 px, n'en lisait que la première
+           page. */
+        cadre.style.cssText = 'position:fixed;left:0;top:0;width:1280px;height:100vh;'
+          + 'opacity:0;pointer-events:none;border:0;z-index:-1';
+        const charge = new Promise((r) => cadre.addEventListener('load', () => r(true), { once: true }));
+        cadre.src = location.origin + CHEMIN;
+        document.body.appendChild(cadre);
+        if (!await Promise.race([charge, pause(reste()).then(() => false)])) {
+          b.arret = 'page jamais chargée';
+          return null;
+        }
+        let doc = null;
+        try {
+          const chemin = cadre.contentWindow.location.pathname;
+          if (chemin !== CHEMIN) {
+            b.arret = `renvoyé vers ${chemin}`;
+            erreurs.noter('suivies', `relevé renvoyé vers ${chemin}`, 'session expirée ou non connectée ?');
+            return null;
+          }
+          doc = cadre.contentDocument;
+        } catch (e) {
+          b.arret = 'origine illisible';
+          erreurs.noter('suivies', 'relevé : origine illisible', (e && e.name) || '');
+          return null;
+        }
+        // La première page, que l'application demande d'elle-même.
+        const tCharge = Date.now();
+        while (!b.pages && Date.now() - tCharge < CFG.SUIVIES_PREMIERE && reste() > 0) await pause(250);
+        if (!b.pages) {
+          b.arret = 'aucune réponse ChannelFollows';
+          erreurs.noter('suivies', 'la page des chaînes suivies n\'a rendu aucune réponse ChannelFollows lisible',
+                        'opération renommée, ou réponse lue ailleurs que par fetch ?');
+          return null;
+        }
+        let defileur = null;
+        nouvelle = Date.now();
+        while (suite !== false && Date.now() - nouvelle < CFG.SUIVIES_CALME && reste() > 0) {
+          if (!defileur?.isConnected) defileur = defileurDe(doc);
+          if (!defileur) { await pause(CFG.SUIVIES_PAS); continue; }
+          b.tours += 1;
+          const avant = b.pages;
+          defileur.scrollTop = defileur.scrollHeight;
+          await pause(CFG.SUIVIES_PAS);
+          if (b.pages === avant && suite !== false) {
+            // Rien de neuf : on remonte, puis on redescend — le bas de la liste reparaît.
+            defileur.scrollTop = Math.max(0, defileur.scrollHeight - 3 * defileur.clientHeight);
+            await pause(CFG.SUIVIES_PAS / 4);
+            defileur.scrollTop = defileur.scrollHeight;
+            await pause(CFG.SUIVIES_PAS);
+          }
+        }
+        b.arret = suite === false ? 'fin de liste' : reste() <= 0 ? 'délai maximal' : 'plus rien de neuf';
+        return { logins, complet: suite === false };
+      } finally {
+        window.removeEventListener('message', recevoir);
+        cadre.remove();
+      }
+    };
+
+    const refresh = async (force = false) => {
+      if (!CFG.SUIVIES_ENABLED || enCours) return null;
+      if (!force && Date.now() - horodatage() < attente()) return null;
+      // Un relevé tourne déjà, ici ou ailleurs — le nôtre, ou celui des abonnements.
+      if (!force && (subsPage.occupe() || bailReleve(CFG.SUIVIES_RUN_KEY, CFG.SUIVIES_LEASE))) {
+        differes += 1;
+        return null;
+      }
+      if (!document.body) return null;
+      // Posé avant le premier await, comme `running` dans subsPage.refresh.
+      enCours = true;
+      const t0 = Date.now();
+      const b = { debut: t0, chaines: 0, pages: 0, illisibles: 0, tours: 0, complet: false,
+                  arret: '', ajoutees: 0, retirees: 0, dureeMs: 0 };
+      bilan = b;
+      try {
+        prendreBail();
+        if (!force) {
+          await pause(CFG.SUIVIES_CLAIM);
+          if (!bailTenu()) { differes += 1; b.arret = 'bail pris par une autre page'; return null; }
+        }
+        const r = await parcourir(b);
+        if (r) {
+          // Une chaîne que la barre a montrée depuis SUIVIES_MARGE reste, même absente.
+          const { ajoutees, retirees } = roster.releve([...r.logins], r.complet ? t0 - CFG.SUIVIES_MARGE : null);
+          Object.assign(b, { chaines: r.logins.size, complet: r.complet, ajoutees, retirees });
+          if (ajoutees || retirees) scheduleScan();
+        }
+        marquer(r && r.complet ? 0 : incompletsDeSuite() + 1);
+        return r ? [...r.logins] : null;
+      } finally {
+        b.dureeMs = Date.now() - t0;
+        // Cf. subsPage.refresh : `enCours` est posé avant le premier await.
+        // eslint-disable-next-line require-atomic-updates
+        enCours = false;
+        rendreBail();
+      }
+    };
+
+    /* LE DÉPART : au premier balayage qui voit une carte suivie, une fois par
+       page, SUIVIES_DELAI plus tard, onglet visible. Un relevé des abonnements
+       en cours le fait revenir ; au-delà de cinq reports, la page suivante le
+       fera. */
+    let arme = false, parti = false;
+    const enAttente = () => arme && !parti;
+    const tenter = (reste) => {
+      if (document.hidden) {
+        document.addEventListener('visibilitychange', () => tenter(reste), { once: true });
+        return;
+      }
+      refresh().then((r) => {
+        // Fait, abandonné, fait ailleurs, ou pas encore dû : plus rien n'est attendu ici.
+        if (r !== null || reste <= 0 || enCours || Date.now() - horodatage() < attente()) {
+          prevu = false;
+          return;
+        }
+        setTimeout(() => tenter(reste - 1), CFG.SUIVIES_DELAI);
+      }).catch((e) => {
+        prevu = false;
+        erreurs.noter('suivies', 'relevé : ' + ((e && e.message) || e));
+      });
+    };
+    const notifySidebar = (aDesChainesSuivies) => {
+      if (!enAttente() || !aDesChainesSuivies) return;
+      parti = true;
+      prevu = Date.now() - horodatage() >= attente();
+      setTimeout(() => tenter(5), CFG.SUIVIES_DELAI);
+    };
+    const init = () => { if (CFG.SUIVIES_ENABLED) arme = true; };
+    // Le roster effacé (cf. roster.clear) : cette page relève de nouveau, au balayage suivant.
+    const rearmer = () => { parti = false; };
+
+    return {
+      init, refresh, notifySidebar, enAttente, rearmer,
+      enCours: () => enCours,
+      /* En cours, ou attendu dans cette page et toujours dû : un relevé fait
+         entre-temps — forcé, ou par un autre onglet, l'horodatage étant
+         partagé — n'est plus à venir. L'agenda se relit jusqu'à lui. */
+      aVenir: () => enCours || (prevu && Date.now() - horodatage() >= attente()),
+      bilan: () => {
+        const t = horodatage();
+        return { horodatage: t, enCours, differes, incompletsDeSuite: incompletsDeSuite(),
+                 prochainDansMs: t ? Math.max(0, t + attente() - Date.now()) : 0, prevu,
+                 dernier: bilan && { ...bilan } };
+      },
     };
   })();
 
@@ -18090,6 +18536,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       visits.map.clear();
       oublier(CFG.VISIT_STORAGE_KEY, 'visites');
       roster.clear();
+      suivies.rearmer();
       subs.clear();
       liveLag.clear();
       preview.oublierVerdicts();
@@ -18110,10 +18557,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       })));
       return lignes;
     },
-    // Chaînes suivies mémorisées par observation de la sidebar (cf. module
-    // ROSTER). Rien ne les exploite encore : la liste s'accumule pour être
-    // déjà chaude le jour où on décidera de sonder au-delà de ce que Twitch
-    // affiche. Renvoie les données brutes.
+    // Chaînes suivies mémorisées (cf. module ROSTER) : celles de la barre, et
+    // celles du relevé des suivies (cf. module SUIVIES). Les cartes en avance
+    // et l'agenda les lisent. Renvoie les données brutes.
     roster(limit = Infinity) {
       const entries = roster.entries();
       if (!entries.length) { console.log(S.consoleRosterEmpty); return []; }
@@ -18325,26 +18771,22 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     // Un créneau sans fin déclarée occupe une heure, comme Twitch le dessine.
     const CRENEAU_DEFAUT_MS = 60 * 60_000;
 
-    /* TROIS CHAMPS DE PLUS PAR ARCHIVE, tous demandés par l'onglet Vidéos de
-       Twitch lui-même :
-         — l'identifiant du direct dont elle vient (4.25.0.1) : c'est lui qui
-           dit, sans deviner, si elle EST le dernier direct ;
-         — sa restriction (4.25.0.1), non nulle quand elle est réservée aux
-           abonnés ;
-         — son accès, vu par celui qui la demande (4.25.0.2) : `self
-           { isRestricted }`. La requête part sans compte, comme toutes celles
-           du fichier : c'est donc l'accès d'un visiteur qui n'est abonné à
-           rien, et il dit fermée toute archive qu'un abonnement ouvrirait —
-           même quand Twitch ne pose pas de restriction nommée dessus, ce que
-           le premier essai a montré sur des rediffusions qu'on ne pouvait pas
-           voir sans être abonné.
-       Aucun n'a été éprouvé d'ici. Si le schéma en refuse un, les requêtes
-       repartent sans LUI seul, pour la session ; le rapport dit ceux qui
-       restent (`archives`). Sans identifiant, l'heure en reprend le rôle. */
+    /* DEUX CHAMPS DE PLUS PAR ARCHIVE, demandés par l'onglet Vidéos de Twitch
+       lui-même : l'identifiant du direct dont elle vient (4.25.0.1) — c'est
+       lui qui dit, sans deviner, si elle EST le dernier direct — et sa
+       restriction nommée. Si le schéma en refuse un, les requêtes repartent
+       sans LUI seul, pour la session ; le rapport dit ceux qui restent
+       (`archives`). Sans identifiant, l'heure en reprend le rôle.
+
+       CE QUE CES CHAMPS NE DISENT PAS, MESURÉ (4.25.0.3). Sur une archive
+       réservée aux abonnés, servie à un visiteur sans compte — la requête de
+       l'agenda —, `resourceRestriction` vaut null et `self { isRestricted }`
+       false : ni l'un ni l'autre ne la dit fermée. `self`, ajouté par la
+       4.25.0.2 sur la foi des types, est reparti. C'est le jeton de lecture
+       qui le dit (cf. L'ACCÈS AUX REDIFFUSIONS). */
     const EXTRAS = [
       { nom: 'broadcastIdentifier', champ: 'broadcastIdentifier { id }', re: /broadcastIdentifier|BroadcastIdOnly/ },
       { nom: 'resourceRestriction', champ: 'resourceRestriction { type }', re: /resourceRestriction|ResourceRestriction/ },
-      { nom: 'self', champ: 'self { isRestricted }', re: /"self"|isRestricted|VideoSelfEdge/ },
     ];
     const extrasRefuses = new Set();
     const champsVideo = () => 'id title createdAt lengthSeconds viewCount'
@@ -18380,6 +18822,32 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       '  }' +
       '}';
 
+    /* ── L'ACCÈS AUX REDIFFUSIONS, MESURÉ (4.25.0.3) ───────────────────────
+       Le seul signal qu'un visiteur sans compte reçoive d'une archive réservée
+       aux abonnés est celui que le lecteur de Twitch reçoit avant de la jouer :
+       son jeton de lecture — la requête que le lecteur écrit lui-même, sans
+       compte. Mesuré sur une rediffusion qu'on ne pouvait pas voir sans
+       abonnement : `chansub.restricted_bitrates` y nomme TOUTES les qualités,
+       de « audio_only » à la source (« chunked »), et le serveur des vidéos
+       répond 403 ; sur une rediffusion publique, la liste est vide, et il
+       répond 200.
+       C'EST UN RÉGLAGE DE LA CHAÎNE — ses rediffusions réservées aux abonnés —
+       : on demande le jeton de sa DERNIÈRE archive, un par chaîne, vingt-cinq
+       par envoi, et la réponse vaut pour toutes ses rediffusions ; il se relit
+       avec sa dernière archive, ou au bout de la durée d'une liste. Fermée
+       seulement si l'audio ET la source le sont : une chaîne qui ne
+       réserverait que la meilleure qualité resterait regardable. Sans jeton
+       lisible, on ne dit rien. */
+    const PARAMS_JETON = '{ platform: "web", playerBackend: "mediaplayer", playerType: "site" }';
+    const qAcces = (ids) => 'query TseAgendaAcces {' + ids.map((id, i) =>
+      ` a${i}: videoPlaybackAccessToken(id: "${id}", params: ${PARAMS_JETON}) { value }`).join('') + ' }';
+    const fermeeSelonJeton = (valeur) => {
+      try {
+        const rb = JSON.parse(valeur)?.chansub?.restricted_bitrates;
+        return Array.isArray(rb) ? rb.includes('audio_only') && rb.includes('chunked') : null;
+      } catch { return null; }
+    };
+
     /* ── CE QUI REVIENT, RAMENÉ À DES NOMBRES ET DES MOTS ──────────────────
        Rien de ce que Twitch rend ne traverse tel quel : des dates en
        millisecondes, des textes bornés, des adresses d'image en https et rien
@@ -18400,9 +18868,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
                vues: Number.isFinite(n.viewCount) ? n.viewCount : null,
                vignette: image(n.previewThumbnailURL), ...jeu(n.game),
                idDirect: chiffres(n.broadcastIdentifier?.id),
-               // Fermée à qui n'est abonné à rien : une restriction nommée, ou l'accès refusé.
-               restreinte: !!(n.resourceRestriction && typeof n.resourceRestriction === 'object')
-                 || n.self?.isRestricted === true };
+               // Une restriction nommée ; le jeton de lecture dit le reste (cf. `accesFerme`).
+               restreinte: !!(n.resourceRestriction && typeof n.resourceRestriction === 'object') };
     };
     const finVideo = (v) => v.debut + (v.duree || 0) * 1000;
     const creneau = (n) => {
@@ -18425,11 +18892,13 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
        toutes taillées aux chaînes lues (cf. `purger`) : un onglet ouvert des
        jours n'y accumule rien de plus qu'un onglet ouvert une heure. */
     const chaines = new Map();     // login → fiche de la première passe
-    const diffusions = new Map();  // login → { ts, n, videos (récentes d'abord), complet, cle }
+    const diffusions = new Map();  // login → { ts, n, videos (récentes d'abord), complet, jusqua, cle }
+    const acces = new Map();       // login → { video, fermee, ts } : le jeton de sa dernière archive
     const echecs = new Map();      // « passe:login » → { n, ts } : on ne s'acharne pas
     let forme = 0;                 // indice dans FORMES
     let formesEpuisees = false;    // planning indisponible pour la session
     let refus = null;              // { quoi, message } : le schéma refuse une passe entière
+    let accesRefuse = false;       // le schéma refuse le jeton de lecture : plus de cadenas pour la session
     let travail = null;            // le travailleur en cours — un seul à la fois
     /* « Actualiser » : ce qui est plus ancien est à relire. Lu au sens large
        (4.25.0.2) : une réponse revenue dans la milliseconde même du clic a été
@@ -18449,7 +18918,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
        erreurs à côté de leurs données (cf. `envoyer`). */
     const issues = () => ({ lots: 0, servis: 0, refus: 0, schema: 0, reseau: 0, partiels: 0 });
     const bilan = { collectes: 0, envois: 0, absences: 0,
-                    chaines: issues(), programme: issues(), diffusions: issues(),
+                    chaines: issues(), programme: issues(), diffusions: issues(), acces: issues(),
                     attentesGql: 0, abandons: 0, dureeMs: null, purgees: { chaines: 0, rediffusions: 0 } };
 
     const frais = (ts) => ts >= fraisApres && Date.now() - ts <= CFG.AGENDA_TTL;
@@ -18476,8 +18945,15 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       const c = directEnCache(login);
       return c === undefined ? (f && f.direct) || null : c;
     };
-    // Ce que la mémoire des abonnements sait de cette chaîne (cf. ABONNEMENTS REPÉRÉS).
-    const estAbonne = (login) => subs.map.get(login)?.sub === true;
+    /* Ce que la mémoire des abonnements sait de cette chaîne (cf. ABONNEMENTS
+       REPÉRÉS), lu comme la barre le lit (4.25.0.3) : un abonnement échu, ou
+       une observation trop vieille, n'ouvre plus rien. L'agenda lisait la
+       note brute, et un abonnement offert venu à son terme y ôtait encore le
+       cadenas. */
+    const estAbonne = (login) => subs.isSub(login);
+    const accesFrais = (a) => a.ts >= fraisApres && Date.now() - a.ts <= CFG.AGENDA_TTL_LISTES;
+    // Ses rediffusions fermées à qui n'est pas abonné, d'après le jeton de la dernière (cf. L'ACCÈS).
+    const accesFerme = (login) => acces.get(login)?.fermee === true;
 
     /* LE DÉBUT D'UN DIRECT SANS ARCHIVE (4.25.0.2). Twitch n'en sert que la
        fin. Seul un direct qu'on a VU en cours en garde le début : la mémoire
@@ -18543,8 +19019,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       || (f.finDernier !== null && f.finDernier >= v.debut - MEME_DIRECT_MS
           && f.finDernier <= finVideo(v) + MEME_DIRECT_MS);
 
-    /* LES CHAÎNES, ET DANS QUEL ORDRE. Celles que la barre a vues comme
-       suivies (cf. ROSTER) ; les plus suivies d'abord — en direct, abonnées,
+    /* LES CHAÎNES, ET DANS QUEL ORDRE. Celles du roster — que la barre a
+       vues comme suivies, ou que le relevé des suivies a lues (cf. SUIVIES) ;
+       les plus suivies d'abord — en direct, abonnées,
        visitées, vues récemment —, de sorte qu'au-delà de la borne ce soient
        les moins regardées qui restent dehors, et que la première passe serve
        d'abord celles qu'on cherche. */
@@ -18556,7 +19033,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
          soit la milliseconde où on les calcule, et la récence les départage. */
       const score = new Map(tous.map((l) => [l, Number(visits.scoreFor(l).toFixed(3))]));
       const direct = (l) => (directEnCache(l) ? 1 : 0);
-      const abonne = (l) => (subs.map.get(l)?.sub ? 1 : 0);
+      const abonne = (l) => (estAbonne(l) ? 1 : 0);
       tous.sort((a, b) => (direct(b) - direct(a)) || (abonne(b) - abonne(a))
         || (score.get(b) - score.get(a)) || (vus.get(b) - vus.get(a))
         || (a < b ? -1 : 1));
@@ -18574,6 +19051,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         if (!gardees.has(l)) { chaines.delete(l); bilan.purgees.chaines++; }
       }
       for (const l of [...diffusions.keys()]) if (!gardees.has(l)) diffusions.delete(l);
+      for (const l of [...acces.keys()]) if (!gardees.has(l)) acces.delete(l);
       for (const k of [...echecs.keys()]) if (!gardees.has(k.slice(2))) echecs.delete(k);
       const borne = Date.now() - CFG.AGENDA_RETENUE_MS;
       for (const d of diffusions.values()) {
@@ -18613,11 +19091,26 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
           out.push({ login, n: d ? Math.max(d.n, CFG.AGENDA_VIDEOS) : CFG.AGENDA_VIDEOS });
           continue;
         }
-        if (d.complet || d.n >= CFG.AGENDA_VIDEOS_MAX) continue;
-        const plusAncienne = d.videos.length ? d.videos[d.videos.length - 1].debut : Infinity;
-        if (plusAncienne > debut) out.push({ login, n: CFG.AGENDA_VIDEOS_MAX });
+        const palier = CFG.AGENDA_VIDEOS_PALIERS.find((p) => p > d.n);
+        if (!d.complet && palier && d.jusqua > debut) out.push({ login, n: palier });
       }
       return out;
+    };
+
+    /* CE QUE LA SEMAINE REGARDÉE NE PEUT PAS MONTRER (4.25.0.3) : les chaînes
+       actives depuis son début dont la liste, lue jusqu'au dernier palier,
+       n'y remonte pas. Rare — cent rediffusions couvrent huit semaines de qui
+       diffuse moins de deux fois par jour —, mais dit plutôt que tu. */
+    const lacunes = (liste) => {
+      const { debut, chaine } = voulu;
+      if (debut === null) return 0;
+      return liste.filter((login) => {
+        if (chaine && login !== chaine) return false;
+        const f = chaines.get(login);
+        const d = diffusions.get(login);
+        return !!f && !f.absente && !!d && !d.complet && listeValide(d, f) && actifDepuis(login, f, debut)
+          && d.jusqua > debut && !CFG.AGENDA_VIDEOS_PALIERS.some((p) => p > d.n);
+      }).length;
     };
 
     const prochain = () => {
@@ -18633,6 +19126,16 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
           return f && !f.absente && f.planning === undefined && peutRetenter('p:' + l);
         });
         if (pp.length) return { passe: 'p', logins: pp.slice(0, lot1) };
+      }
+      // Le jeton de la dernière archive, une fois par chaîne (cf. L'ACCÈS).
+      if (!accesRefuse) {
+        const pa = liste.filter((l) => {
+          const f = chaines.get(l);
+          if (!f || f.absente || !f.derniere || !peutRetenter('a:' + l)) return false;
+          const a = acces.get(l);
+          return !a || a.video !== f.derniere.id || !accesFrais(a);
+        }).slice(0, lot1);
+        if (pa.length) return { passe: 'a', logins: pa, ids: pa.map((l) => chaines.get(l).derniere.id) };
       }
       if (refus && refus.quoi === 'diffusions') return null;
       const p2 = aCouvrir(liste);
@@ -18724,11 +19227,31 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         const aretes = u.get(l).videos?.edges;
         const liste = Array.isArray(aretes) ? aretes : [];
         const f = chaines.get(l);
-        diffusions.set(l, { ts: maintenant, n, complet: liste.length < n,
-          videos: liste.map((e) => video(e?.node)).filter(Boolean).sort((a, b) => b.debut - a.debut),
+        const videos = liste.map((e) => video(e?.node)).filter(Boolean).sort((a, b) => b.debut - a.debut);
+        diffusions.set(l, { ts: maintenant, n, complet: liste.length < n, videos,
+          /* Jusqu'où la liste remonte, gardé à part (4.25.0.3) : la purge en
+             retire les plus vieilles, et la liste taillée aurait paru ne pas
+             atteindre une semaine qu'elle couvrait — relue pour rien. */
+          jusqua: videos.length ? videos[videos.length - 1].debut : Infinity,
           // Le dernier direct que la liste a connu (cf. `listeValide`).
           cle: f && !f.inconnue ? cleListe(f) : '' });
       }
+    };
+
+    /* Un jeton par alias, `a0` à `a24`, dans l'ordre des chaînes. Une erreur
+       qui nomme un alias, ou un alias nul à côté d'erreurs, est la panne d'un
+       morceau : on le redemandera ; un jeton nul sans erreur — l'archive
+       supprimée entre-temps — ne dit rien, et vaut pour la durée d'une liste. */
+    const lireAcces = (t, r, maintenant) => {
+      const fautes = Array.isArray(r.errors) && r.errors.length > 0;
+      const fautifs = new Set((r.errors || []).map((e) => (Array.isArray(e?.path) ? e.path[0] : null)));
+      t.logins.forEach((l, i) => {
+        const jeton = r.data['a' + i];
+        if (fautifs.has('a' + i) || (fautes && !jeton)) { noterEchec('a:' + l); return; }
+        echecs.delete('a:' + l);
+        acces.set(l, { video: t.ids[i], ts: maintenant,
+                       fermee: typeof jeton?.value === 'string' ? fermeeSelonJeton(jeton.value) : null });
+      });
     };
 
     /* UN REFUS DE TWITCH RALENTIT TOUT CE QUI SUIT : des lots deux fois plus
@@ -18740,8 +19263,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       pauseMs = Math.min(8_000, pauseMs * 2);
     };
     const SORTE = { TseAgendaChaines: 'chaines', TseAgendaProgramme: 'programme',
-                    TseAgendaDiffusions: 'diffusions' };
-    const PREFIXE = { chaines: '1:', programme: 'p:', diffusions: '2:' };
+                    TseAgendaDiffusions: 'diffusions', TseAgendaAcces: 'acces' };
+    const PREFIXE = { chaines: '1:', programme: 'p:', diffusions: '2:', acces: 'a:' };
 
     const envoyer = async (t) => {
       const ops = t.passe === 1
@@ -18751,8 +19274,10 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         : t.passe === 'p'
           ? [{ operationName: 'TseAgendaProgramme', variables: { logins: t.logins },
                query: qProgramme(FORMES[forme].liste) }]
-          : [{ operationName: 'TseAgendaDiffusions', variables: { logins: t.logins, n: t.n },
-               query: qDiffusions() }];
+          : t.passe === 'a'
+            ? [{ operationName: 'TseAgendaAcces', query: qAcces(t.ids) }]
+            : [{ operationName: 'TseAgendaDiffusions', variables: { logins: t.logins, n: t.n },
+                 query: qDiffusions() }];
       bilan.envois++;
       const rep = await post(ops);
       // Une réponse qu'on ne peut pas aligner sur les opérations n'est pas arrivée.
@@ -18782,12 +19307,16 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
           if (fautes && RE_SCHEMA.test(message)) {
             b.schema++;
             // Un champ neuf des archives refusé : on repart sans lui, et sans lui seul.
-            const extra = sorte === 'programme' ? null
+            const extra = sorte === 'programme' || sorte === 'acces' ? null
               : EXTRAS.find((x) => !extrasRefuses.has(x.nom) && x.re.test(message));
             if (extra) {
               extrasRefuses.add(extra.nom);
             } else if (sorte === 'programme') {
               if (forme < FORMES.length - 1) forme++; else formesEpuisees = true;
+            } else if (sorte === 'acces') {
+              // Plus de jeton : plus de cadenas, et rien d'autre ne s'arrête.
+              accesRefuse = true;
+              erreurs.noter('agenda', 'le schéma refuse TseAgendaAcces', message);
             } else {
               refus = { quoi: sorte, message };
               erreurs.noter('agenda', `le schéma refuse ${op.operationName}`, message);
@@ -18800,6 +19329,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         }
         b.servis++;
         if (fautes) b.partiels++;
+        if (sorte === 'acces') { lireAcces(t, r, maintenant); version++; return; }
         const u = parLogin(r.data);
         const suspects = fautes ? suspectsDe(r) : null;
         const douteux = (l) => fautes && (!u.has(l) || suspects.has(l));
@@ -18881,6 +19411,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       refus: refus ? refus.quoi : null,
       echouees: c.liste.filter((l) => !peutRetenter('1:' + l) || !peutRetenter('2:' + l)).length,
       reseau: Date.now() < pauseJusqua,
+      incompletes: lacunes(c.liste),
+      // Le relevé des chaînes suivies tourne, ou va partir : d'autres chaînes vont arriver (cf. module SUIVIES).
+      releve: suivies.aVenir(),
     });
     /* Le menu des chaînes n'en lit que le nom : l'avatar resterait en route.
        Une chaîne indisponible y reste, sous son nom d'avant ou son login. */
@@ -18937,8 +19470,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
           // L'enregistrement du direct en cours EST le direct : une seule entrée.
           if (direct && ((direct.id !== null && v.idDirect === direct.id)
                          || Math.abs(v.debut - direct.debut) < MEME_DIRECT_MS)) continue;
-          entrees.push({ type: 'rediffusion', login, ...v, fin: finVideo(v),
-                         ...(v.restreinte ? { abonne: estAbonne(login) } : {}) });
+          const ferme = v.restreinte || accesFerme(login);
+          entrees.push({ type: 'rediffusion', login, ...v, restreinte: ferme, fin: finVideo(v),
+                         ...(ferme ? { abonne: estAbonne(login) } : {}) });
         }
         /* LE DERNIER DIRECT SANS REDIFFUSION — une chaîne qui n'archive pas, ou
            pas celui-là. Dit seulement quand ses rediffusions sont LUES et
@@ -18948,7 +19482,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
            reste le seul à le dire. */
         const fd = f.finDernier;
         if (fd !== null && !direct && d
-            && (d.complet || (d.videos.length && d.videos[d.videos.length - 1].debut <= fd))
+            && (d.complet || d.jusqua <= fd)
             && !d.videos.some((v) => estDuDernier(v, f))) {
           const depuis = debutObserve(login, f);
           if (depuis !== null && dans(depuis)) {
@@ -18967,7 +19501,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       return {
         vue: 'semaine', version, maintenant, semaine: { debut, fin }, chaine,
         entrees, chaines: listeChaines(c.liste),
-        enCours: !!travail, attente: relance !== null,
+        enCours: !!travail, attente: relance !== null || suivies.aVenir(),
         progression: progression(c.liste), notes: notes(c),
         resume: { directs: compte('direct'), diffusions: compte('rediffusion', 'sansRediffusion'),
                   prevues: compte('prevu'), chaines: new Set(entrees.map((e) => e.login)).size },
@@ -19017,9 +19551,10 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         }
         const prochainCreneau = ((f.planning && f.planning.creneaux) || [])
           .find((s) => !s.annule && finCreneau(s) > maintenant) || null;
+        const derniere = f.derniere && { ...f.derniere, restreinte: f.derniere.restreinte || accesFerme(login) };
         lignes.push({ login, nom: f.nom, avatar: f.avatar, titre: f.titre,
-                      dernier: derniereActivite(login, f), derniere: f.derniere,
-                      ...(f.derniere && f.derniere.restreinte ? { abonne: estAbonne(login) } : {}),
+                      dernier: derniereActivite(login, f), derniere,
+                      ...(derniere && derniere.restreinte ? { abonne: estAbonne(login) } : {}),
                       prochain: prochainCreneau });
       }
       lignes.sort((a, b) => ((a.indisponible ? 1 : 0) - (b.indisponible ? 1 : 0))
@@ -19029,7 +19564,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         || (a.login < b.login ? -1 : 1));
       return {
         vue: 'horsLigne', version, maintenant, lignes,
-        enCours: !!travail, attente: relance !== null,
+        enCours: !!travail, attente: relance !== null || suivies.aVenir(),
         progression: progression(c.liste), notes: notes(c),
         resume: { horsLigne: lignes.filter((l) => !l.indisponible).length, directs,
                   programmees: lignes.filter((l) => l.prochain).length },
@@ -19063,6 +19598,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         lots: `${lot1} / ${lot2}`, pauseMs,
         passe1: { ...bilan.chaines }, programme: { ...bilan.programme },
         passe2: { ...bilan.diffusions },
+        // Les jetons de lecture : leurs issues, et les chaînes qu'ils disent fermées.
+        acces: { ...bilan.acces, fermees: [...acces.values()].filter((a) => a.fermee === true).length,
+                 refuse: accesRefuse },
         attentesGql: bilan.attentesGql, abandons: bilan.abandons, dureeMs: bilan.dureeMs,
       };
     };
@@ -20069,6 +20607,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         relevesAbonnements: { horodatage: subsPage.horodatage(),
                               enAttente: subsPage.enAttente(),
                               ...subsPage.bilan() },
+        // Le relevé des chaînes suivies (4.25.0.3) : des comptes, et pourquoi il s'est arrêté.
+        relevesSuivies: { enAttente: suivies.enAttente(), ...suivies.bilan() },
         /* L'ÉTAT DU RÉSEAU, qui n'y figurait pas. Une pause GraphQL en cours
            explique à elle seule une sidebar qui ne se met plus à jour — et
            c'était invisible : le rapport montrait un cache vide sans jamais
@@ -20180,7 +20720,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
             visits.map.clear(); oublier(CFG.VISIT_STORAGE_KEY, 'visites');
             return { fait: true, quoi: 'visites' };
           case 'subs':   subs.clear();   return { fait: true, quoi: 'subs' };
-          case 'roster': roster.clear(); return { fait: true, quoi: 'roster' };
+          case 'roster': roster.clear(); suivies.rearmer(); return { fait: true, quoi: 'roster' };
           default:       return { fait: false, quoi: null };
         }
       },
@@ -20299,6 +20839,10 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
      Rend la liste des chaînes trouvées, ou null si le relevé est désactivé
      ou déjà en cours. Utile pour vérifier soi-même ce que l'extension lit. */
   tseApi.subs.refresh = () => subsPage.refresh(true);
+  /* Force un relevé des chaînes suivies (cf. module SUIVIES), sans attendre
+     ses 12 h. Rend les chaînes lues, ou null si le relevé est désactivé, déjà
+     en cours, ou n'a rien rendu de lisible — le rapport dit pourquoi. */
+  tseApi.roster.refresh = () => suivies.refresh(true);
   /**
    * Force un balayage COMPLET : purge du cache de chaînes, oubli des marques
    * de carte, puis re-scan. C'est exactement le chemin qu'emprunte déjà un
@@ -30458,6 +31002,10 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     if (subsPage.enAttente()) {
       subsPage.notifySidebar(!!document.querySelector(DOM.followedCardSelector));
     }
+    // Et celui des chaînes suivies, sur la même condition (cf. module SUIVIES).
+    if (suivies.enAttente()) {
+      suivies.notifySidebar(!!document.querySelector(DOM.followedCardSelector));
+    }
     /* ── ET LE VERROU DES ORIGINES, POSÉ AVANT QU'ON NE JUGE LA STABILITÉ ──
        LE MODULE DE LA SONDE LE POSE DÉJÀ, mais au plus tôt quand le premier
        lot de chaînes PART — soit BATCH_DELAY après la première carte. Sur une
@@ -31050,6 +31598,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       roster.init();         // avant startObserver : le 1er scan relève déjà
       subs.load();           // idem : le tri doit pouvoir servir dès le 1er scan
       subsPage.init();       // arme le relevé complet ; il part au 1er scan peuplé
+      suivies.init();        // de même pour le relevé des chaînes suivies, SUIVIES_DELAI plus tard
       liveLag.init();
       visitTracker.init();
       preview.init();

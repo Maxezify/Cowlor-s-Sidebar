@@ -227,7 +227,7 @@ Wszystko działa od razu i nie trzeba niczego ustawiać. Ale sekcja „Ustawieni
 
 - ★ TO, CO WIDZISZ ★ Każda odznaka, czas trwania transmisji i jego format, pasek „właśnie ruszyła”, złoto subskrypcji, filtry, przyciski sortowania: wszystko włącza się i wyłącza jednym polem.
 - ★ TO, CO SIĘ WCZYTUJE ★ Podgląd może zrezygnować z wideo i zachować odznaki, oś czasu i miniaturę — albo po prostu zejść z jakością. Tyle, by go odciążyć, nie tracąc go.
-- ★ TO, CO DOTYCZY CIEBIE ★ Odczyt subskrypcji — jedyne uwierzytelnione żądanie rozszerzenia — można rozrzedzić aż do raz dziennie. A każda pamięć czyści się osobno: wizyty, subskrypcje, znane kanały, nie ruszając pozostałych.
+- ★ TO, CO DOTYCZY CIEBIE ★ Odczyt subskrypcji — jedno z dwóch uwierzytelnionych żądań rozszerzenia — można rozrzedzić aż do raz dziennie. A każda pamięć czyści się osobno: wizyty, subskrypcje, znane kanały, nie ruszając pozostałych.
 - ★ NIC NIE JEST PUŁAPKĄ ★ Kropka oznacza to, co zmieniłeś, jeden przycisk przywraca wszystkie wartości domyślne, a Twoje ustawienia eksportują się jako tekst, by przenieść je na inny komputer.
 
 _______________________________
@@ -256,7 +256,7 @@ _______________________________
 
 - ★ Żadnego serwera zewnętrznego ★ Rozszerzenie rozmawia wyłącznie z publicznym API samego Twitcha — dokładnie tym, którego strona już używa, by się wyświetlić. Nic więcej, nigdzie.
 - ★ Anonimowe wywołania ★ Żaden token sesji, żadne ciasteczko nigdy nie jest wysyłane: tych zapytań nie da się powiązać z Twoim kontem.
-- ★ Jeden wyjątek, powiedziany na głos ★ Żeby wiedzieć, które kanały subskrybujesz, rozszerzenie otwiera TWOJĄ własną stronę twitch.tv/subscriptions w niewidocznej ramce, domyślnie co sześć godzin (albo co trzy, dwanaście lub dwadzieścia cztery — według Twojego ustawienia), wcześniej tylko wtedy, gdy poprzedni odczyt niczego nie znalazł albo gdy klikniesz „Odczytaj teraz”, i nigdy, gdy jesteś wylogowany. Twoja przeglądarka uwierzytelnia tę stronę własnymi ciasteczkami, dokładnie tak, jakbyś kliknął link: rozszerzenie nigdy nie czyta Twojego tokenu i nigdy go nie przekazuje. To, co zachowuje — nazwy kanałów i staż w miesiącach — zostaje w Twojej przeglądarce.
+- ★ Dwa wyjątki, powiedziane na głos ★ Żeby wiedzieć, które kanały subskrybujesz, rozszerzenie otwiera TWOJĄ własną stronę twitch.tv/subscriptions w niewidocznej ramce, domyślnie co sześć godzin (albo co trzy, dwanaście lub dwadzieścia cztery — według Twojego ustawienia), wcześniej tylko wtedy, gdy poprzedni odczyt niczego nie znalazł albo gdy klikniesz „Odczytaj teraz”, i nigdy, gdy jesteś wylogowany. Żeby znać WSZYSTKIE kanały, które obserwujesz — pasek boczny Twitcha pokazuje tylko sto — w ten sam sposób otwiera Twoją stronę obserwowanych kanałów, co dwanaście godzin, wcześniej tylko wtedy, gdy poprzedni odczyt nie dotarł do końca listy. Twoja przeglądarka uwierzytelnia te strony własnymi ciasteczkami, dokładnie tak, jakbyś kliknął link: rozszerzenie nigdy nie czyta Twojego tokenu i nigdy go nie przekazuje. To, co zachowuje — nazwy kanałów i staż w miesiącach — zostaje w Twojej przeglądarce.
 - ★ Żadnego trackera, żadnego piksela, żadnej telemetrii ★
 - ★ Żadnych podejrzanych uprawnień ★ Rozszerzenie działa WYŁĄCZNIE na twitch.tv.
 - ★ Blokowanie reklam trzyma się swojego miejsca ★ Dotyczy miniatury podglądu po najechaniu i niczego więcej. Transmisja, którą naprawdę oglądasz, pozostaje nietknięta.

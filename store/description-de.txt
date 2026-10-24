@@ -227,7 +227,7 @@ Alles ist von Anfang an aktiv und nichts muss eingestellt werden. Aber der Berei
 
 - ★ WAS DU SIEHST ★ Jedes Abzeichen, die Streamdauer und ihr Format, der Balken „gerade gestartet“, das Gold der Abonnements, die Filter, die Sortierschaltflächen: alles lässt sich per Häkchen ein- und ausschalten.
 - ★ WAS GELADEN WIRD ★ Die Vorschau kann auf das Video verzichten und Abzeichen, Zeitleiste und Miniaturbild behalten — oder einfach in der Qualität heruntergehen. Genug, um sie leicht zu machen, ohne sie zu verlieren.
-- ★ WAS DICH BETRIFFT ★ Das Auslesen der Abonnements — die einzige authentifizierte Anfrage der Erweiterung — lässt sich bis auf einmal täglich strecken. Und jeder Speicher wird einzeln gelöscht: Besuche, Abonnements, bekannte Kanäle, ohne die anderen anzurühren.
+- ★ WAS DICH BETRIFFT ★ Das Auslesen der Abonnements — eine der beiden authentifizierten Anfragen der Erweiterung — lässt sich bis auf einmal täglich strecken. Und jeder Speicher wird einzeln gelöscht: Besuche, Abonnements, bekannte Kanäle, ohne die anderen anzurühren.
 - ★ NICHTS IST EINE FALLE ★ Ein Punkt markiert, was du geändert hast, eine Schaltfläche setzt alles zurück, und deine Einstellungen lassen sich als Text exportieren, um sie auf einem anderen Rechner wieder einzusetzen.
 
 _______________________________
@@ -256,7 +256,7 @@ _______________________________
 
 - ★ Kein Drittserver ★ Die Erweiterung spricht nur mit Twitchs eigener öffentlicher API — genau der, die die Seite ohnehin schon nutzt, um sich aufzubauen. Sonst nichts, nirgends.
 - ★ Anonyme Aufrufe ★ Kein Sitzungstoken, kein Cookie wird je gesendet: diese Anfragen lassen sich nicht auf dein Konto zurückführen.
-- ★ Eine Ausnahme, laut ausgesprochen ★ Um zu wissen, welche Kanäle du abonniert hast, öffnet die Erweiterung DEINE eigene Seite twitch.tv/subscriptions in einem unsichtbaren Rahmen, standardmäßig alle sechs Stunden (drei, zwölf oder vierundzwanzig je nach deiner Einstellung), früher nur, wenn der vorige Durchgang nichts gefunden hat oder du auf „Jetzt erfassen“ klickst, und nie, wenn du abgemeldet bist. Dein Browser authentifiziert diese Seite mit seinen eigenen Cookies, genau so, als hättest du den Link angeklickt: die Erweiterung liest dein Token nie und gibt es nie weiter. Was sie behält — Kanalnamen und eine Dauer in Monaten — bleibt in deinem Browser.
+- ★ Zwei Ausnahmen, laut ausgesprochen ★ Um zu wissen, welche Kanäle du abonniert hast, öffnet die Erweiterung DEINE eigene Seite twitch.tv/subscriptions in einem unsichtbaren Rahmen, standardmäßig alle sechs Stunden (drei, zwölf oder vierundzwanzig je nach deiner Einstellung), früher nur, wenn der vorige Durchgang nichts gefunden hat oder du auf „Jetzt erfassen“ klickst, und nie, wenn du abgemeldet bist. Um ALLE Kanäle zu kennen, denen du folgst — die Seitenleiste von Twitch zeigt nur hundert —, öffnet sie auf dieselbe Weise deine Seite der gefolgten Kanäle, alle zwölf Stunden, früher nur, wenn das vorige Lesen nicht bis zum Ende der Liste kam. Dein Browser authentifiziert diese Seiten mit seinen eigenen Cookies, genau so, als hättest du den Link angeklickt: die Erweiterung liest dein Token nie und gibt es nie weiter. Was sie behält — Kanalnamen und eine Dauer in Monaten — bleibt in deinem Browser.
 - ★ Kein Tracker, kein Pixel, keine Telemetrie ★
 - ★ Keine dubiosen Berechtigungen ★ Die Erweiterung läuft NUR auf twitch.tv.
 - ★ Werbeblockierung bleibt in ihrer Spur ★ Sie gilt für das Vorschaubild beim Überfahren und für sonst nichts. Der Stream, den du wirklich anschaust, bleibt unangetastet.

@@ -227,7 +227,7 @@ Tout est actif d'emblée et il n'y a rien à régler. Mais « Réglages », dans
 
 - ★ CE QUE VOUS VOYEZ ★ Chaque badge, la durée du direct et son format, la barre « vient de démarrer », l'or des abonnements, les filtres, les boutons de tri : tout s'allume et s'éteint à la case.
 - ★ CE QUI SE CHARGE ★ L'aperçu peut se passer de la vidéo et garder ses badges, sa frise et sa miniature — ou simplement descendre en qualité. De quoi l'alléger sans le perdre.
-- ★ CE QUI VOUS REGARDE ★ Le relevé de vos abonnements — la seule requête authentifiée de l'extension — s'espace jusqu'à une fois par jour. Et chaque mémoire s'efface séparément : visites, abonnements, chaînes connues, sans toucher aux autres.
+- ★ CE QUI VOUS REGARDE ★ Le relevé de vos abonnements — l'une des deux requêtes authentifiées de l'extension — s'espace jusqu'à une fois par jour. Et chaque mémoire s'efface séparément : visites, abonnements, chaînes connues, sans toucher aux autres.
 - ★ RIEN N'EST PIÉGÉ ★ Un point marque ce que vous avez changé, un bouton remet tout par défaut, et vos réglages s'exportent en texte pour les reposer sur une autre machine.
 
 _______________________________
@@ -256,7 +256,7 @@ _______________________________
 
 - ★ Aucun serveur tiers ★ L'extension ne parle qu'à l'API publique de Twitch — celle-là même que la page utilise déjà pour s'afficher. Rien d'autre, nulle part.
 - ★ Des appels anonymes ★ Aucun jeton de session, aucun cookie n'est envoyé : ces requêtes ne peuvent pas être rattachées à votre compte.
-- ★ Une exception, dite tout haut ★ Pour savoir à quelles chaînes vous êtes abonné, l'extension ouvre VOTRE page twitch.tv/subscriptions dans un cadre invisible, toutes les six heures par défaut (trois, douze ou vingt-quatre selon votre réglage), plus tôt seulement si le relevé précédent n'a rien trouvé ou si vous cliquez « Relever maintenant », et jamais si vous êtes déconnecté. C'est votre navigateur qui authentifie cette page avec ses propres cookies, exactement comme si vous aviez cliqué sur le lien : l'extension ne lit jamais votre jeton et ne le transmet jamais. Ce qu'elle en retient — des noms de chaînes et une ancienneté en mois — reste dans votre navigateur.
+- ★ Deux exceptions, dites tout haut ★ Pour savoir à quelles chaînes vous êtes abonné, l'extension ouvre VOTRE page twitch.tv/subscriptions dans un cadre invisible, toutes les six heures par défaut (trois, douze ou vingt-quatre selon votre réglage), plus tôt seulement si le relevé précédent n'a rien trouvé ou si vous cliquez « Relever maintenant », et jamais si vous êtes déconnecté. Pour connaître TOUTES les chaînes que vous suivez — la barre latérale de Twitch n'en montre que cent —, elle ouvre de même votre page des chaînes suivies, toutes les douze heures, plus tôt seulement si la lecture précédente n'est pas allée au bout de la liste. C'est votre navigateur qui authentifie ces pages avec ses propres cookies, exactement comme si vous aviez cliqué sur le lien : l'extension ne lit jamais votre jeton et ne le transmet jamais. Ce qu'elle en retient — des noms de chaînes et une ancienneté en mois — reste dans votre navigateur.
 - ★ Aucun traqueur, aucun pixel, aucune télémétrie ★
 - ★ Aucune permission louche ★ L'extension ne tourne QUE sur twitch.tv.
 - ★ Le blocage de pub reste à sa place ★ Il s'applique à la vignette d'aperçu au survol, et à rien d'autre. Le stream que vous regardez vraiment n'est pas touché.

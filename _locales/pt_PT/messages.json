@@ -318,6 +318,12 @@
   "stateAgendaNetwork": {
     "message": "O Twitch não está a responder de momento; «Atualizar» retomará a leitura."
   },
+  "stateAgendaFollowSweep": {
+    "message": "A ler a lista completa dos teus canais seguidos…"
+  },
+  "stateAgendaIncomplete": {
+    "message": "Esta semana é anterior às cem últimas gravações de alguns canais: nem todas aparecem. Canais afetados: $1"
+  },
   "stateAgendaEmpty": {
     "message": "Nenhuma emissão nesta semana."
   },
@@ -553,7 +559,7 @@
     "message": "A programação dos teus canais"
   },
   "guideAgendaTexte": {
-    "message": "O grupo «Programação» faz, para todos os canais que segues de uma vez, o que a página de programação de um canal faz no Twitch para um só.\n• «A semana»: dia a dia, as emissões passadas com a gravação — um clique abre-a —, as que estão em direto e as que os canais agendaram. Abre no dia de hoje, com os dias passados acima; uma emissão que passa da meia-noite fica no dia em que começou.\n• As setas mudam de semana, até oito para trás e duas para a frente; «Hoje» volta ao dia de hoje, e o menu deixa um só canal.\n• «Offline»: cada canal que não está em direto — primeiro os que agendaram a próxima emissão, a mais próxima no topo, depois os outros, o que terminou mais recentemente primeiro. Quando emitiu, a gravação a um clique e a próxima emissão. «Semana do canal» abre a semana da última emissão. Um canal que o Twitch já não fornece — conta suspensa, renomeada ou encerrada — não desaparece: fica no fim da lista, «Indisponível no Twitch».\n• «Subscritores» e o seu cadeado assinalam, antes mesmo do clique, uma gravação reservada aos subscritores do canal quando a extensão não sabe que tens uma subscrição; com subscrição, nada aparece: está aberta para ti.\nOs canais são os que a tua barra lateral mostrou como seguidos. Uma gravação só existe se o canal guarda as emissões, e enquanto o Twitch as mantiver; uma emissão agendada, só se o canal mantém a programação no Twitch. «Sem gravação» só tem dia se a extensão viu essa emissão em direto: o Twitch só indica o fim. Nada é pedido ao Twitch enquanto não abrires a programação."
+    "message": "O grupo «Programação» faz, para todos os canais que segues de uma vez, o que a página de programação de um canal faz no Twitch para um só.\n• «A semana»: dia a dia, as emissões passadas com a gravação — um clique abre-a —, as que estão em direto e as que os canais agendaram. Abre no dia de hoje, com os dias passados acima; uma emissão que passa da meia-noite fica no dia em que começou.\n• As setas mudam de semana, até oito para trás e duas para a frente; «Hoje» volta ao dia de hoje, e o menu deixa um só canal.\n• «Offline»: cada canal que não está em direto — primeiro os que agendaram a próxima emissão, a mais próxima no topo, depois os outros, o que terminou mais recentemente primeiro. Quando emitiu, a gravação a um clique e a próxima emissão. «Semana do canal» abre a semana da última emissão. Um canal que o Twitch já não fornece — conta suspensa, renomeada ou encerrada — não desaparece: fica no fim da lista, «Indisponível no Twitch».\n• «Subscritores» e o seu cadeado assinalam, antes mesmo do clique, uma gravação reservada aos subscritores do canal quando a extensão não sabe que tens uma subscrição; com subscrição, nada aparece: está aberta para ti.\nOs canais são todos os que segues. Como a barra lateral do Twitch só mostra cem, a extensão volta a ler a lista completa na tua página de canais seguidos, numa moldura invisível, a cada doze horas. Uma gravação só existe se o canal guarda as emissões, e enquanto o Twitch as mantiver; uma emissão agendada, só se o canal mantém a programação no Twitch. «Sem gravação» só tem dia se a extensão viu essa emissão em direto: o Twitch só indica o fim. A programação não pede nada ao Twitch enquanto não a abrires."
   },
   "guideVieTitre": {
     "message": "Privacidade, em claro"

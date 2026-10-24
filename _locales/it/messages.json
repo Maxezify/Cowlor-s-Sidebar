@@ -318,6 +318,12 @@
   "stateAgendaNetwork": {
     "message": "Twitch non risponde per ora; «Aggiorna» riavvierà la lettura."
   },
+  "stateAgendaFollowSweep": {
+    "message": "Lettura dell'elenco completo dei tuoi canali seguiti…"
+  },
+  "stateAgendaIncomplete": {
+    "message": "Questa settimana è precedente alle ultime cento repliche di alcuni canali: non sono tutte mostrate. Canali interessati: $1"
+  },
   "stateAgendaEmpty": {
     "message": "Nessuna diretta questa settimana."
   },
@@ -553,7 +559,7 @@
     "message": "Il programma dei tuoi canali"
   },
   "guideAgendaTexte": {
-    "message": "Il gruppo «Programma» fa, per tutti i canali che segui insieme, ciò che la pagina del programma di un canale fa su Twitch per uno solo.\n• «La settimana»: giorno per giorno, le dirette passate con la loro replica — un clic la apre —, quelle in corso e quelle che i canali hanno programmato. Si apre sul giorno di oggi, con i giorni passati sopra; una diretta che supera la mezzanotte resta nel giorno in cui è iniziata.\n• Le frecce cambiano settimana, fino a otto indietro e due avanti; «Oggi» riporta al giorno stesso, e il menu tiene un solo canale.\n• «Offline»: ogni canale che non è in diretta — prima quelli che hanno programmato la prossima diretta, la più vicina in cima, poi gli altri, quello che ha chiuso più di recente per primo. Quando ha trasmesso, la sua replica a un clic e la sua prossima diretta. «La sua settimana» apre la settimana della sua ultima diretta. Un canale che Twitch non fornisce più — account sospeso, rinominato o chiuso — non sparisce: resta in fondo, «Non disponibile su Twitch».\n• «Solo abbonati» e il suo lucchetto segnalano, prima ancora del clic, una replica riservata agli abbonati del canale quando l'estensione non sa che hai un abbonamento; da abbonato non compare nulla: ti è aperta.\nI canali sono quelli che la tua barra laterale ha mostrato come seguiti. Una replica esiste solo se il canale conserva le sue dirette, e finché Twitch le tiene; una diretta programmata, solo se il canale tiene il suo programma su Twitch. «Senza replica» ha un giorno solo se l'estensione ha visto quella diretta in corso: Twitch ne dà solo la fine. Non viene chiesto nulla a Twitch finché non apri il programma."
+    "message": "Il gruppo «Programma» fa, per tutti i canali che segui insieme, ciò che la pagina del programma di un canale fa su Twitch per uno solo.\n• «La settimana»: giorno per giorno, le dirette passate con la loro replica — un clic la apre —, quelle in corso e quelle che i canali hanno programmato. Si apre sul giorno di oggi, con i giorni passati sopra; una diretta che supera la mezzanotte resta nel giorno in cui è iniziata.\n• Le frecce cambiano settimana, fino a otto indietro e due avanti; «Oggi» riporta al giorno stesso, e il menu tiene un solo canale.\n• «Offline»: ogni canale che non è in diretta — prima quelli che hanno programmato la prossima diretta, la più vicina in cima, poi gli altri, quello che ha chiuso più di recente per primo. Quando ha trasmesso, la sua replica a un clic e la sua prossima diretta. «La sua settimana» apre la settimana della sua ultima diretta. Un canale che Twitch non fornisce più — account sospeso, rinominato o chiuso — non sparisce: resta in fondo, «Non disponibile su Twitch».\n• «Solo abbonati» e il suo lucchetto segnalano, prima ancora del clic, una replica riservata agli abbonati del canale quando l'estensione non sa che hai un abbonamento; da abbonato non compare nulla: ti è aperta.\nI canali sono tutti quelli che segui. Poiché la barra laterale di Twitch ne mostra solo cento, l'estensione rilegge l'elenco completo nella tua pagina dei canali seguiti, in un riquadro invisibile, ogni dodici ore. Una replica esiste solo se il canale conserva le sue dirette, e finché Twitch le tiene; una diretta programmata, solo se il canale tiene il suo programma su Twitch. «Senza replica» ha un giorno solo se l'estensione ha visto quella diretta in corso: Twitch ne dà solo la fine. Il programma non chiede nulla a Twitch finché non lo apri."
   },
   "guideVieTitre": {
     "message": "Privacy, in chiaro"

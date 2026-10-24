@@ -174,6 +174,20 @@ const subs = [
   [/AGENDA_TTL:\s*10 \* 60_000/,     'AGENDA_TTL:             30_000'],
   [/AGENDA_PAUSE_MS:\s*1_000/,       'AGENDA_PAUSE_MS:        30'],
   [/AGENDA_RECONFIRMER_MS:\s*60_000/, 'AGENDA_RECONFIRMER_MS:  1_200'],
+  /* Le relevé des chaînes suivies (4.25.0.3). Il charge une page de plus à
+     chaque chargement de Twitch, et l'agenda se relit tant qu'il est attendu :
+     le banc l'ÉTEINT pour tous les scénarios. Le 209 le rallume sur sa copie
+     du script, sans départ de lui-même — une heure de délai, aucun scénario
+     n'en dure autant — ou, sur une variante, avec. Ses autres bornes sont
+     ramenées à l'échelle d'un décor de quelques dizaines de chaînes. */
+  [/SUIVIES_ENABLED:\s*true/,        'SUIVIES_ENABLED:      false'],
+  [/SUIVIES_DELAI:\s*20_000/,        'SUIVIES_DELAI:        3_600_000'],
+  [/SUIVIES_PREMIERE:\s*15_000/,     'SUIVIES_PREMIERE:     3_000'],
+  [/SUIVIES_PAS:\s*800/,             'SUIVIES_PAS:          120'],
+  [/SUIVIES_CALME:\s*30_000/,        'SUIVIES_CALME:        1_500'],
+  [/SUIVIES_TIMEOUT:\s*120_000/,     'SUIVIES_TIMEOUT:      12_000'],
+  [/SUIVIES_LEASE:\s*150_000/,       'SUIVIES_LEASE:        15_000'],
+  [/SUIVIES_CLAIM:\s*400/,           'SUIVIES_CLAIM:        150'],
 ];
 for (const [re, to] of subs) {
   if (!re.test(src)) { console.error('SUBSTITUTION INTROUVABLE:', re); process.exit(1); }

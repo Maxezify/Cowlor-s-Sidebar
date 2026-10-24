@@ -33402,6 +33402,8 @@ const S_LECTEUR_SONDE = () => {
       const ag = Array.isArray(corps) && corps.some((o) => /^TseAgenda/.test((o && o.operationName) || ''));
       const e = ag ? { t0: Date.now(), t1: null, ops: corps.map((o) => ({
         nom: o.operationName, logins: (o.variables && o.variables.logins) || [], n: o.variables && o.variables.n,
+        // Les jetons de lecture : les archives qu'ils visent, une par alias.
+        ids: [...(o.query || '').matchAll(/videoPlaybackAccessToken\(id: "(\d+)"/g)].map((m) => m[1]),
         extras: ['broadcastIdentifier', 'resourceRestriction', 'self']
           .filter((x) => new RegExp('\\b' + x + '\\s*\\{').test(o.query || '')),
         forme: o.operationName !== 'TseAgendaProgramme' ? null
@@ -33437,15 +33439,18 @@ const S_LECTEUR_SONDE = () => {
                 s'ouvre vingt minutes après lui, et c'est son identifiant qui
                 la reconnaît ; un créneau programmé qu'il a déjà commencé ;
        brume  — trois soirs la semaine dernière, dont le samedi qui finit à
-                minuit vingt et une, réservé aux abonnés, et le jeudi, fermé
-                sans restriction nommée — seul l'accès du visiteur le dit ; la
-                nuit du dimanche d'avant, finie le lundi ; un soir il y a trois
-                semaines ; un autre il y a onze, plus vieux que tout ce que le
-                panneau sait montrer ; un créneau programmé déjà passé ;
+                minuit vingt et une ; ses rediffusions réservées aux abonnés,
+                sans restriction nommée — seul le jeton de lecture de la
+                dernière le dit, comme sur le vrai Twitch ; la nuit du dimanche
+                d'avant, finie le lundi ; un soir il y a trois semaines ; un
+                autre il y a onze, plus vieux que tout ce que le panneau sait
+                montrer ; un créneau programmé déjà passé ;
        cobalt — trente jours d'affilée : douze rediffusions ne remontent pas
                 jusqu'à une semaine ancienne ; la dernière archive s'est
                 arrêtée une heure avant le direct — seul l'identifiant dit
-                qu'elle EST lui ;
+                qu'elle EST lui ; celle du jour 2 porte une restriction
+                nommée, et elle seule ; le jeton de la dernière réserve la
+                source et une qualité, pas toutes — elle reste ouverte ;
        dune   — un dernier direct sans archive, dont on ne sait que la fin, et
                 que personne n'a vu commencer ;
        ether  — partie depuis longtemps, mais trois créneaux la semaine
@@ -33477,9 +33482,8 @@ const S_LECTEUR_SONDE = () => {
     A.brume = { nom: 'Brume', titre: 'Brume — samedi', dernier: { id: '710004', fin: finDe(q(-1, 5, 20), 4 * 3600 + 21 * 60) },
       videos: [
         { id: '6004', titre: 'Brume — samedi', debut: iso(q(-1, 5, 20)), duree: 4 * 3600 + 21 * 60, vues: 33400, jeu: 'Enshrouded',
-          diffusion: '710004', abonnes: true },
-        { id: '6003', titre: 'Brume — jeudi', debut: iso(q(-1, 3, 20)), duree: 4 * 3600, vues: 27100, jeu: 'Enshrouded', diffusion: '710003',
-          verrouillee: true },
+          diffusion: '710004', verrouillee: true },
+        { id: '6003', titre: 'Brume — jeudi', debut: iso(q(-1, 3, 20)), duree: 4 * 3600, vues: 27100, jeu: 'Enshrouded', diffusion: '710003' },
         { id: '6002', titre: 'Brume — mardi', debut: iso(q(-1, 1, 20)), duree: 4 * 3600, vues: 9000, jeu: 'Enshrouded', diffusion: '710002' },
         { id: '6005', titre: 'Brume — nuit de dimanche', debut: iso(q(-2, 6, 22)), duree: 4 * 3600, vues: 700, jeu: 'Enshrouded',
           diffusion: '710005' },
@@ -33489,7 +33493,8 @@ const S_LECTEUR_SONDE = () => {
     FX.cobalt = null;
     A.cobalt = { nom: 'Cobalt', titre: 'Cobalt — jour 0', dernier: { id: '720000', fin: finDe(q(-1, 6, 18), 3 * 3600) },
       videos: Array.from({ length: 30 }, (_, i) => ({ id: String(7000 + i), titre: `Cobalt — jour ${i}`,
-        debut: iso(q(-1, 6 - i, 18)), duree: 2 * 3600, vues: 100 + i, jeu: 'Elden Ring', diffusion: String(720000 + i) })) };
+        debut: iso(q(-1, 6 - i, 18)), duree: 2 * 3600, vues: 100 + i, jeu: 'Elden Ring', diffusion: String(720000 + i),
+        ...(i === 2 ? { abonnes: true } : {}), ...(i === 0 ? { debits: ['chunked', '720p60'] } : {}) })) };
     FX.dune = null;
     A.dune = { nom: 'Dune', titre: 'Dune sans archive', videos: [], dernier: { id: '730001', fin: iso(q(-1, 2, 23) + 30 * M) } };
     FX.ether = null;
@@ -33511,6 +33516,20 @@ const S_LECTEUR_SONDE = () => {
       FX.nuee = { id: 'n', sid: '760001', createdAt: iso(depuis), viewers: 300, game: 'Minecraft', title: 'Nuée en direct', tags: [] };
       A.nuee = { nom: 'Nuée', titre: 'Nuée en direct', videos: [], dernier: { id: '760000', fin: iso(q(-1, 2, 21)) } };
     }
+    // Deux directs par jour depuis deux mois : cent vingt rediffusions (4.25.0.3).
+    if (o.flot) {
+      A.flot = { nom: 'Flot', titre: 'Flot', dernier: { id: '780000', fin: finDe(now - 4 * H, 3600) },
+        videos: Array.from({ length: 120 }, (_, i) => ({ id: String(8000 + i), titre: `Flot ${i}`,
+          debut: iso(now - 5 * H - i * 12 * H), duree: 3600, vues: 10, jeu: 'Minecraft', diffusion: String(780000 + i) })) };
+    }
+    /* Une archive d'hier, et onze d'il y a dix à onze semaines : la liste de
+       douze est pleine, et ses onze plus vieilles s'en vont à la purge. */
+    if (o.rare) {
+      A.rare = { nom: 'Rare', titre: 'Rare', dernier: { id: '790000', fin: finDe(now - 26 * H, 3600) },
+        videos: [{ id: '9900', titre: 'Rare — hier', debut: iso(now - 27 * H), duree: 3600, vues: 3, diffusion: '790000' },
+          ...Array.from({ length: 11 }, (_, i) => ({ id: String(9901 + i), titre: `Rare — vieille ${i}`,
+            debut: iso(now - (72 + i) * 24 * H), duree: 3600, vues: 3, diffusion: String(790001 + i) }))] };
+    }
     // En direct, et l'agenda seul le voit : la barre ne la connaît pas.
     if (o.onde) {
       A.onde = { nom: 'Onde', titre: 'Onde en direct', videos: [], dernier: { id: '770000', fin: iso(q(-1, 2, 21)) },
@@ -33524,6 +33543,7 @@ const S_LECTEUR_SONDE = () => {
     window.__agendaSchema = o.schema || {};
     window.__agendaExtras = o.extras || false;
     window.__agendaOmises = o.omises || {};
+    window.__agendaJetons = o.jetons || [];
     window.__agendaPanne = o.panne || {};
     window.__agendaPerte = o.perte || 0;
     window.__retardOp = o.retard || {};
@@ -33592,22 +33612,32 @@ const S_LECTEUR_SONDE = () => {
   await wait(page, 1700);
   const log1 = await journal(page);
   const hl = await finir(page, () => window.tse.panneau('horsLigne'));
-  const lotFlux = log1.slice(0, 2).find((e) => e.ops[0].logins.includes('flux'));
+  const fiches1 = log1.filter((e) => e.ops[0].nom === 'TseAgendaChaines');
+  const jetons1 = log1.filter((e) => e.ops[0].nom === 'TseAgendaAcces');
+  const lotFlux = fiches1.slice(0, 2).find((e) => e.ops[0].logins.includes('flux'));
+  const reconf = fiches1[2];
   ok('b) …deux envois : vingt-cinq chaînes puis cinq, chacun avec le planning des mêmes',
-     log1.length === 3
-     && log1.every((e) => e.ops.map((x) => x.nom).join() === 'TseAgendaChaines,TseAgendaProgramme'
-                          && e.ops[1].logins.join() === e.ops[0].logins.join())
-     && log1[0].ops[0].logins.length === 25 && log1[1].ops[0].logins.length === 5
-     && new Set(log1.slice(0, 2).flatMap((e) => e.ops[0].logins)).size === 30,
-     JSON.stringify(log1.map((e) => e.ops.map((x) => `${x.nom}:${x.logins.length}`))));
+     log1.length === 4 && fiches1.length === 3
+     && fiches1.every((e) => e.ops.map((x) => x.nom).join() === 'TseAgendaChaines,TseAgendaProgramme'
+                             && e.ops[1].logins.join() === e.ops[0].logins.join())
+     && fiches1[0].ops[0].logins.length === 25 && fiches1[1].ops[0].logins.length === 5
+     && new Set(fiches1.slice(0, 2).flatMap((e) => e.ops[0].logins)).size === 30,
+     JSON.stringify(log1.map((e) => e.ops.map((x) => `${x.nom}:${x.logins.length || x.ids.length}`))));
+  /* LE CADENAS, MESURÉ (4.25.0.3) : le jeton de lecture de la dernière archive
+     de chaque chaîne qui en a une, vingt-cinq par envoi — zinc, brume, cobalt. */
+  ok('b) …puis le jeton de lecture de la dernière archive de chaque chaîne qui en a une, en un envoi',
+     jetons1.length === 1 && jetons1[0].ops.length === 1
+     && jetons1[0].ops[0].ids.slice().sort().join() === '5003,6004,7000',
+     JSON.stringify(jetons1.map((e) => e.ops[0].ids)));
   ok('b) …puis la chaîne que Twitch a omise, redemandée seule, une reconfirmation plus tard, sans que la vue la relance',
-     !!lotFlux && log1[2]?.ops[0].logins.join() === 'flux' && log1[2].t0 - lotFlux.t1 >= 1150
+     !!lotFlux && reconf?.ops[0].logins.join() === 'flux' && reconf.t0 - lotFlux.t1 >= 1150
      && hlMi.attente === true && hl.attente === false,
-     JSON.stringify({ ecart: lotFlux && log1[2] ? log1[2].t0 - lotFlux.t1 : null, attente: [hlMi.attente, hl.attente] }));
+     JSON.stringify({ ecart: lotFlux && reconf ? reconf.t0 - lotFlux.t1 : null, attente: [hlMi.attente, hl.attente] }));
   ok('b) …la chaîne en direct passe la première, avant l\'ordre alphabétique',
      log1[0]?.ops[0].logins[0] === 'zinc', JSON.stringify(log1[0]?.ops[0].logins.slice(0, 4)));
   ok('b) …une requête à la fois : le second envoi part après la réponse du premier, pause comprise',
-     log1.length === 3 && log1[0].t1 - log1[0].t0 >= 110 && log1[1].t0 - log1[0].t1 >= 25 && log1[2].t0 >= log1[1].t1,
+     log1.length === 4 && log1[0].t1 - log1[0].t0 >= 110 && log1[1].t0 - log1[0].t1 >= 25
+     && log1.every((e, i) => i === 0 || e.t0 >= log1[i - 1].t1),
      JSON.stringify(log1.map((e) => [e.t0, e.t1])));
   ok('b) …et cette vue ne demande aucune rediffusion : la première passe lui suffit',
      ops(log1, 'TseAgendaDiffusions').length === 0, JSON.stringify(log1.map((e) => e.ops.map((x) => x.nom))));
@@ -33620,7 +33650,7 @@ const S_LECTEUR_SONDE = () => {
   const fluxL = hl.lignes[hl.lignes.length - 1];
   ok('b) …omise deux fois, elle est indisponible : tout en bas, son nom, depuis quand, et rien d\'autre',
      hl.lignes.length === 29 && fluxL.login === 'flux' && fluxL.nom === 'flux' && fluxL.avatar === null
-     && !!lotFlux && !!log1[2] && fluxL.indisponible >= lotFlux.t1 && fluxL.indisponible <= log1[2].t0
+     && !!lotFlux && !!reconf && fluxL.indisponible >= lotFlux.t1 && fluxL.indisponible <= reconf.t0
      && Object.keys(fluxL).sort().join() === 'avatar,indisponible,login,nom',
      JSON.stringify(fluxL));
   ok('b) …les chaînes programmées d\'abord, la plus proche en tête, puis la plus récemment partie',
@@ -33638,7 +33668,7 @@ const S_LECTEUR_SONDE = () => {
      !!e && e.prochain && e.prochain.titre === 'Suite de la série' && b.prochain === null
      && !!p5 && p5.prochain && p5.prochain.titre === 'Tôt la semaine prochaine',
      JSON.stringify({ ether: e && e.prochain, brume: b && b.prochain, p05: p5 && p5.prochain }));
-  ok('b) …une dernière rediffusion réservée aux abonnés le dit, et qu\'on ne vous sait pas abonné',
+  ok('b) …une dernière rediffusion que son jeton dit fermée le dit, et qu\'on ne vous sait pas abonné',
      b.derniere.restreinte === true && b.abonne === false && d.abonne === undefined,
      JSON.stringify({ brume: [b.derniere.restreinte, b.abonne], dune: d.abonne }));
   ok('b) …résumé : vingt-huit hors ligne — l\'indisponible n\'en est pas —, une en direct, deux avec un prochain direct',
@@ -33669,11 +33699,19 @@ const S_LECTEUR_SONDE = () => {
      && samedi.vues === 33400 && /^https:\/\//.test(samedi.vignette || '') && samedi.libelle === 'Enshrouded'
      && samedi.idDirect === '710004' && samedi.restreinte === true && samedi.abonne === false,
      JSON.stringify(samedi));
-  const jeudiB = s1.entrees.find((x) => x.id === '6003');
-  ok('c) …fermée sans restriction nommée, une rediffusion le dit quand même : l\'accès du visiteur suffit (4.25.0.2)',
-     !!jeudiB && jeudiB.restreinte === true && jeudiB.abonne === false
-     && s1.entrees.filter((x) => x.login === 'cobalt').every((x) => x.restreinte === false && x.abonne === undefined),
-     JSON.stringify({ jeudi: jeudiB && [jeudiB.restreinte, jeudiB.abonne] }));
+  /* LE CAS RÉEL (4.25.0.3) : des rediffusions réservées aux abonnés, sans
+     restriction nommée — Twitch ne le dit à un visiteur sans compte que par
+     le jeton de lecture. C'est un réglage de la chaîne : le jeton de sa
+     dernière archive vaut pour toutes. Chez cobalt, ouverte, seule celle à
+     la restriction nommée se dit fermée. */
+  const brumeS1 = s1.entrees.filter((x) => x.login === 'brume');
+  const cobaltS1 = s1.entrees.filter((x) => x.login === 'cobalt');
+  ok('c) …fermée sans restriction nommée, la chaîne le dit par son jeton — toutes ses rediffusions ; ailleurs, la restriction nommée seule',
+     brumeS1.length === 3 && brumeS1.every((x) => x.restreinte === true && x.abonne === false)
+     && cobaltS1.every((x) => (x.id === '7002') === (x.restreinte === true))
+     && cobaltS1.find((x) => x.id === '7002')?.abonne === false
+     && cobaltS1.filter((x) => x.id !== '7002').every((x) => x.abonne === undefined),
+     JSON.stringify({ brume: brumeS1.map((x) => [x.id, x.restreinte]), cobalt: cobaltS1.map((x) => [x.id, x.restreinte]) }));
   /* LE SECOND CAS DU PREMIER ESSAI (4.25.0.2) : un direct sans archive n'a de
      Twitch que sa fin. 4.25.0.1 le rangeait à elle — un direct parti jeudi
      soir se lisait vendredi. Personne ne l'a vu commencer : il n'a pas de
@@ -33771,7 +33809,8 @@ const S_LECTEUR_SONDE = () => {
   const total = (await journal(page)).length;
   ok('h) le rapport de l\'agenda : des comptes justes',
      ag.chaines === 29 && ag.indisponibles === 1 && ag.absences === 3 && ag.rediffusions === 38 && ag.creneaux === 6
-     && ag.planning === 'segmentList(first)' && ag.archives === 'broadcastIdentifier resourceRestriction self'
+     && ag.planning === 'segmentList(first)' && ag.archives === 'broadcastIdentifier resourceRestriction'
+     && ag.acces.lots === 2 && ag.acces.servis === 2 && ag.acces.fermees === 1 && ag.acces.refuse === false
      && ag.refus === null && ag.enCours === false
      && ag.envois === total && ag.lots === '25 / 10' && ag.pauseMs === 30 && ag.abandons === 0,
      JSON.stringify(ag));
@@ -33781,7 +33820,7 @@ const S_LECTEUR_SONDE = () => {
   ok('h) …la rediffusion plus vieille que la plus ancienne semaine montrable est oubliée, à chaque lecture de sa liste',
      JSON.stringify(ag.purgees) === JSON.stringify({ chaines: 0, rediffusions: 2 }), JSON.stringify(ag.purgees));
   ok('h) …chaque opération a une issue, et une seule ; aucune réponse partielle',
-     [ag.passe1, ag.programme, ag.passe2].every((x) => x && x.lots === somme(x) && x.partiels === 0)
+     [ag.passe1, ag.programme, ag.passe2, ag.acces].every((x) => x && x.lots === somme(x) && x.partiels === 0)
      && ag.passe1.lots === 5 && ag.passe1.servis === 5 && ag.passe2.lots === 4 && ag.passe2.servis === 4,
      JSON.stringify({ passe1: ag.passe1, programme: ag.programme, passe2: ag.passe2 }));
   const texteAg = JSON.stringify(ag), texteRap = JSON.stringify(rap);
@@ -33850,7 +33889,7 @@ const S_LECTEUR_SONDE = () => {
      tailles.join() === '25,12,12,6,1' && rapr.lots === '12 / 5' && rapr.pauseMs === 60 && rapr.passe1.refus === 1,
      JSON.stringify({ tailles, lots: rapr.lots, pauseMs: rapr.pauseMs, passe1: rapr.passe1 }));
   ok('k) …chaque envoi suivant attend la pause doublée',
-     logr.length === 5 && logr.slice(1).every((x, i) => x.t0 - logr[i].t1 >= 55),
+     logr.length === 6 && logr.slice(1).every((x, i) => x.t0 - logr[i].t1 >= 55),
      JSON.stringify(logr.map((x) => [x.t0, x.t1])));
   ok('k) …et tout finit par être lu, sans chaîne laissée pour compte',
      hr.progression.lues === 30 && hr.progression.aLire === 30 && hr.notes.echouees === 0 && hr.lignes.length === 29,
@@ -33905,7 +33944,7 @@ const S_LECTEUR_SONDE = () => {
   await action(pn, 'actualiserAgenda');
   const hn2 = await finir(pn, () => window.tse.panneau('horsLigne'));
   ok('n) …« Actualiser » relance, et la collecte aboutit',
-     (await journal(pn)).length === 5 && hn2.notes.reseau === false && hn2.notes.echouees === 0
+     (await journal(pn)).length === 6 && hn2.notes.reseau === false && hn2.notes.echouees === 0
      && hn2.progression.lues === 30 && hn2.lignes.length === 29,
      JSON.stringify({ envois: (await journal(pn)).length, notes: hn2.notes, progression: hn2.progression }));
   await pn.close();
@@ -33924,7 +33963,7 @@ const S_LECTEUR_SONDE = () => {
   const no2 = (await journal(po)).length;
   ok('o) refusées deux fois, les chaînes ne se redemandent qu\'à la fraîcheur suivante — puis d\'elles-mêmes',
      ratees.length === 0 && ho.notes.echouees === 2 && ho.lignes.length === 0 && no1 === 2
-     && no2 === 3 && ho2.lignes.length === 2 && ho2.notes.echouees === 0,
+     && no2 === 4 && ho2.lignes.length === 2 && ho2.notes.echouees === 0,
      JSON.stringify({ ratees, echouees: ho.notes.echouees, no1, no2, lignes: ho2.lignes.length }));
   await po.close();
 
@@ -33976,36 +34015,36 @@ const S_LECTEUR_SONDE = () => {
   const logq = await journal(pq);
   const rapq = await pq.evaluate(() => window.tse.panneau.rapport().agenda);
   const fichesQ = ops(logq, 'TseAgendaChaines');
-  ok('q) le schéma refuse les trois champs neufs : la fiche se redemande sans eux, un par un, et le rapport le dit',
-     fichesQ.map((x) => x.extras.join('+')).join() === 'broadcastIdentifier+resourceRestriction+self,resourceRestriction+self,self,'
+  ok('q) le schéma refuse les deux champs neufs : la fiche se redemande sans eux, un par un, et le rapport le dit',
+     fichesQ.map((x) => x.extras.join('+')).join() === 'broadcastIdentifier+resourceRestriction,resourceRestriction,'
      && fichesQ.every((x) => x.logins.join() === fichesQ[0].logins.join())
      && ops(logq, 'TseAgendaDiffusions').every((x) => x.extras.length === 0)
-     && rapq.archives === 'simples' && rapq.refus === null && rapq.passe1.schema === 3 && rapq.passe1.servis === 1,
+     && rapq.archives === 'simples' && rapq.refus === null && rapq.passe1.schema === 2 && rapq.passe1.servis === 1,
      JSON.stringify({ fiches: fichesQ.map((x) => x.extras), archives: rapq.archives, passe1: rapq.passe1 }));
   const brumeQ = hq.lignes.find((x) => x.login === 'brume');
-  ok('q) …l\'heure reconnaît alors l\'archive du dernier direct : « Revoir » gardé ; et rien ne se dit réservé',
+  ok('q) …l\'heure reconnaît alors l\'archive du dernier direct : « Revoir » gardé ; le jeton, lui, ne dépend pas d\'eux',
      sq.entrees.length === 3 && sq.entrees.every((x) => x.type === 'rediffusion' && x.login === 'brume')
-     && sq.entrees.every((x) => !x.idDirect && !x.restreinte && x.abonne === undefined)
-     && !!brumeQ && brumeQ.dernier.revoir === true && brumeQ.abonne === undefined,
+     && sq.entrees.every((x) => !x.idDirect && x.restreinte === true && x.abonne === false)
+     && !!brumeQ && brumeQ.dernier.revoir === true && brumeQ.abonne === false,
      JSON.stringify({ n: sq.entrees.length, types: parType(sq.entrees), brume: brumeQ && brumeQ.dernier }));
   await pq.close();
 
-  // Le seul accès refusé : l'identifiant et la restriction restent.
-  const pq2 = await monter({ chaines: ['brume', 'cobalt'], extras: ['self'] });
+  // La seule restriction nommée refusée : l'identifiant reste, et le jeton.
+  const pq2 = await monter({ chaines: ['brume', 'cobalt'], extras: ['resourceRestriction'] });
   const sq2 = await finir(pq2, () => window.__semaine(-1));
   const hq2 = await finir(pq2, () => window.tse.panneau('horsLigne'));
   const logq2 = await journal(pq2);
   const rapq2 = await pq2.evaluate(() => window.tse.panneau.rapport().agenda);
-  const samediQ2 = sq2.entrees.find((x) => x.id === '6004'), jeudiQ2 = sq2.entrees.find((x) => x.id === '6003');
+  const samediQ2 = sq2.entrees.find((x) => x.id === '6004'), jour2Q2 = sq2.entrees.find((x) => x.id === '7002');
   const cobaltQ2 = hq2.lignes.find((x) => x.login === 'cobalt');
-  ok('q) …un seul refusé, les autres restent : la restriction nommée se lit, l\'archive tronquée se reconnaît à son identifiant',
+  ok('q) …un seul refusé, l\'autre reste : l\'archive tronquée se reconnaît à son identifiant ; seule la restriction nommée se perd',
      ops(logq2, 'TseAgendaChaines').map((x) => x.extras.join('+')).join()
-       === 'broadcastIdentifier+resourceRestriction+self,broadcastIdentifier+resourceRestriction'
-     && rapq2.archives === 'broadcastIdentifier resourceRestriction' && rapq2.passe1.schema === 1
-     && !!samediQ2 && samediQ2.restreinte === true && !!jeudiQ2 && jeudiQ2.restreinte === false
+       === 'broadcastIdentifier+resourceRestriction,broadcastIdentifier'
+     && rapq2.archives === 'broadcastIdentifier' && rapq2.passe1.schema === 1
+     && !!samediQ2 && samediQ2.restreinte === true && !!jour2Q2 && jour2Q2.restreinte === false
      && !!cobaltQ2 && cobaltQ2.dernier.revoir === true,
      JSON.stringify({ fiches: ops(logq2, 'TseAgendaChaines').map((x) => x.extras), archives: rapq2.archives,
-                      samedi: samediQ2 && samediQ2.restreinte, jeudi: jeudiQ2 && jeudiQ2.restreinte, cobalt: cobaltQ2 && cobaltQ2.dernier }));
+                      samedi: samediQ2 && samediQ2.restreinte, jour2: jour2Q2 && jour2Q2.restreinte, cobalt: cobaltQ2 && cobaltQ2.dernier }));
   await pq2.close();
 
   /* ── r) UNE RÉPONSE PARTIELLE NE PERD RIEN, ET NE CONDAMNE PERSONNE ────────
@@ -34049,12 +34088,12 @@ const S_LECTEUR_SONDE = () => {
      (4.25.0.2) : l'accès du visiteur peut tomber seul, l'archive dit alors
      moins, et la fiche est lue — rien ne se redemande. */
   const pr3 = await monter({ chaines: ['brume', 'cobalt'],
-    panne: { TseAgendaChaines: { logins: ['brume'], chemin: ['videos', 'edges', 0, 'node', 'self'], fois: 1 } } });
+    panne: { TseAgendaChaines: { logins: ['brume'], chemin: ['videos', 'edges', 0, 'node', 'resourceRestriction'], fois: 1 } } });
   const hr3 = await finir(pr3, () => window.tse.panneau('horsLigne'));
   const logr3 = await journal(pr3);
   const rapr3 = await pr3.evaluate(() => window.tse.panneau.rapport().agenda);
   const brumeR3 = hr3.lignes.find((x) => x.login === 'brume');
-  ok('r) …une erreur sur l\'accès d\'une archive : la fiche est lue, rien ne se redemande, la restriction nommée se lit encore',
+  ok('r) …une erreur sur la restriction d\'une archive : la fiche est lue, rien ne se redemande, et le jeton la dit fermée',
      ops(logr3, 'TseAgendaChaines').length === 1 && rapr3.passe1.partiels === 1 && hr3.notes.echouees === 0
      && !!brumeR3 && brumeR3.derniere.restreinte === true && brumeR3.dernier.revoir === true,
      JSON.stringify({ fiches: ops(logr3, 'TseAgendaChaines').length, passe1: rapr3.passe1, brume: brumeR3 && brumeR3.derniere }));
@@ -34079,9 +34118,29 @@ const S_LECTEUR_SONDE = () => {
   const brumeS = hs.lignes.find((x) => x.login === 'brume');
   ok('s) abonné à la chaîne : la rediffusion réservée le dit, avec l\'abonnement, dans la semaine et hors ligne ; les autres ne disent rien',
      !!samediS && samediS.restreinte === true && samediS.abonne === true && !!brumeS && brumeS.abonne === true
-     && ss.entrees.filter((x) => x.login === 'cobalt').every((x) => x.restreinte === false && x.abonne === undefined),
+     && ss.entrees.filter((x) => x.login === 'cobalt' && x.id !== '7002').every((x) => x.restreinte === false && x.abonne === undefined)
+     && ss.entrees.find((x) => x.id === '7002')?.abonne === false,
      JSON.stringify({ samedi: samediS && [samediS.restreinte, samediS.abonne], brume: brumeS && brumeS.abonne }));
   await ps.close();
+
+  /* Un abonnement échu n'ouvre plus rien (4.25.0.3) : la mémoire des
+     abonnements a noté brume, mais son échéance est passée. La barre le lit
+     ainsi ; l'agenda lisait la note brute. */
+  const ps2 = await fresh();
+  await ps2.evaluate(() => {
+    const now = Date.now();
+    localStorage.setItem('tse:subs', JSON.stringify({ brume: [1, now, 3, 0, 'gifts', now - 86_400_000, 1] }));
+    localStorage.setItem('tse:substs', '2:' + now);
+  });
+  await ps2.reload();
+  await ps2.evaluate(() => { try { localStorage.setItem('tse:indice', 'vu'); } catch { /* stockage refusé */ } });
+  await monter({ chaines: ['brume'] }, ps2);
+  const hs2 = await finir(ps2, () => window.tse.panneau('horsLigne'));
+  const brumeS2 = hs2.lignes.find((x) => x.login === 'brume');
+  ok('s) …un abonnement échu n\'ouvre plus rien : le cadenas revient',
+     !!brumeS2 && brumeS2.derniere.restreinte === true && brumeS2.abonne === false,
+     JSON.stringify(brumeS2 && { restreinte: brumeS2.derniere.restreinte, abonne: brumeS2.abonne }));
+  await ps2.close();
 
   /* ── t) EN RETARD SUR SON CRÉNEAU : ENCORE ATTENDUE, ET LA PLUS PROCHE ────
      Un créneau commencé il y a une demi-heure, chaîne hors ligne : il n'est
@@ -34125,6 +34184,7 @@ const S_LECTEUR_SONDE = () => {
   const hv1 = await finir(pv, () => window.tse.panneau('horsLigne'), null, false);
   const hv2 = await finir(pv, () => window.tse.panneau('horsLigne'));
   const logv = (await journal(pv)).slice(lots0);
+  const fichesV = logv.filter((e) => e.ops[0].nom === 'TseAgendaChaines');
   const etherV1 = hv1.lignes.find((x) => x.login === 'ether');
   ok('v) omise une fois : la chaîne garde sa fiche et son planning, et la page dit qu\'elle attend',
      hv1.attente === true && hv1.lignes.length === 2 && !!etherV1 && !etherV1.indisponible
@@ -34132,9 +34192,9 @@ const S_LECTEUR_SONDE = () => {
      JSON.stringify({ attente: hv1.attente, ether: etherV1 }));
   ok('v) …redemandée seule, une reconfirmation plus tard, et servie : personne d\'indisponible',
      JSON.stringify(ops(logv, 'TseAgendaChaines').map((x) => x.logins.slice().sort().join('+'))) === JSON.stringify(['brume+ether', 'ether'])
-     && logv.length === 2 && logv[1].t0 - logv[0].t1 >= 1150
+     && fichesV.length === 2 && fichesV[1].t0 - fichesV[0].t1 >= 1150
      && hv2.attente === false && hv2.lignes.length === 2 && hv2.lignes.every((x) => !x.indisponible),
-     JSON.stringify({ fiches: ops(logv, 'TseAgendaChaines').map((x) => x.logins), ecart: logv[1] && logv[1].t0 - logv[0].t1 }));
+     JSON.stringify({ fiches: ops(logv, 'TseAgendaChaines').map((x) => x.logins), ecart: fichesV[1] && fichesV[1].t0 - fichesV[0].t1 }));
   // Omise de la liste des rediffusions : la liste d'avant reste, et se redemande.
   const lots1 = (await journal(pv)).length;
   await pv.evaluate(() => { window.__agendaOmises = { TseAgendaDiffusions: { brume: 1 } }; });
@@ -34200,7 +34260,8 @@ const S_LECTEUR_SONDE = () => {
   await wait(px, 1700);
   await finir(px, () => window.__semaine(-1));
   const logx1 = (await journal(px)).slice(nx0);
-  // Brume diffuse de nouveau : un dernier direct neuf, son archive.
+  /* Brume diffuse de nouveau : un dernier direct neuf, son archive — et elle a
+     rouvert ses rediffusions : le jeton de la nouvelle ne réserve rien. */
   const kx = await px.evaluate(() => {
     const a = window.__agenda.brume;
     const debut = Date.now() - 5 * 3_600_000;
@@ -34225,6 +34286,11 @@ const S_LECTEUR_SONDE = () => {
   ok('x) …la chaîne qui a diffusé depuis relit la sienne, elle seule, et sa nouvelle rediffusion paraît',
      listes(logx2) === JSON.stringify(['brume']) && sxk.entrees.some((x) => x.id === '6009'),
      JSON.stringify({ listes: listes(logx2), k: kx, ids: sxk.entrees.map((x) => x.id) }));
+  const jetonsX2 = ops(logx2, 'TseAgendaAcces').flatMap((x) => x.ids);
+  const neuveX = sxk.entrees.find((x) => x.id === '6009');
+  ok('x) …le jeton de sa nouvelle archive se relit avec elle, et ses rediffusions ne sont plus dites réservées',
+     jetonsX2.join() === '6009' && neuveX && neuveX.restreinte === false,
+     JSON.stringify({ jetonsX2, neuveX }));
   ok('x) …et au bout de sa durée, une liste se relit même sans direct nouveau',
      listes(logx3) === JSON.stringify(['cobalt']), listes(logx3));
   await px.close();
@@ -34333,6 +34399,68 @@ const S_LECTEUR_SONDE = () => {
      && hz2.lignes.length === 1 && hz2.lignes[0].indisponible > 0,
      JSON.stringify({ avant: sz20.entrees.map((x) => x.type), apres: sz21.entrees, hors: hz2.lignes, resume: hz2.resume }));
   await pz2.close();
+
+  /* ── α) LE JETON DE LECTURE, À L'ÉPREUVE (4.25.0.3) ──────────────────────
+     Un jeton en panne se redemande seul ; le schéma qui refuse le jeton
+     n'arrête que le cadenas — les fiches, le planning et les listes se
+     lisent, et le rapport le dit. */
+  const pa1 = await monter({ chaines: ['brume', 'cobalt'], jetons: ['6004'] });
+  const ha1 = await finir(pa1, () => window.tse.panneau('horsLigne'));
+  const loga1 = await journal(pa1);
+  const brumeA1 = ha1.lignes.find((x) => x.login === 'brume');
+  ok('α) un jeton en panne : lui seul se redemande, et la chaîne finit dite fermée',
+     JSON.stringify(ops(loga1, 'TseAgendaAcces').map((x) => x.ids.slice().sort().join('+'))) === JSON.stringify(['6004+7000', '6004'])
+     && !!brumeA1 && brumeA1.derniere.restreinte === true && ha1.notes.echouees === 0,
+     JSON.stringify({ jetons: ops(loga1, 'TseAgendaAcces').map((x) => x.ids), brume: brumeA1 && brumeA1.derniere.restreinte }));
+  await pa1.close();
+  const pa2 = await monter({ chaines: ['brume', 'cobalt'], schema: { TseAgendaAcces: true } });
+  const ha2 = await finir(pa2, () => window.tse.panneau('horsLigne'));
+  const sa2 = await finir(pa2, () => window.__semaine(-1));
+  await pa2.evaluate(() => window.tse.panneau('horsLigne'));
+  await wait(pa2, 300);
+  const loga2 = await journal(pa2);
+  const rapa2 = await pa2.evaluate(() => window.tse.panneau.rapport());
+  ok('α) …le schéma refuse le jeton : un essai, pas un de plus ; plus de cadenas, et tout le reste se lit',
+     ops(loga2, 'TseAgendaAcces').length === 1 && rapa2.agenda.acces.refuse === true && rapa2.agenda.acces.schema === 1
+     && ha2.lignes.length === 2 && ha2.lignes.every((x) => x.derniere && x.derniere.restreinte === (x.login === 'cobalt' ? false : false))
+     && sa2.entrees.length === 10 && sa2.entrees.filter((x) => x.restreinte).map((x) => x.id).join() === '7002'
+     && (rapa2.erreurs || []).some((x) => x.source === 'agenda' && /TseAgendaAcces/.test(x.message)),
+     JSON.stringify({ jetons: ops(loga2, 'TseAgendaAcces').length, acces: rapa2.agenda.acces, n: sa2.entrees.length }));
+  await pa2.close();
+
+  /* ── β) UNE SEMAINE ANCIENNE D'UNE CHAÎNE PROLIFIQUE (4.25.0.3) ──────────
+     Deux directs par jour : douze rediffusions couvrent six jours, quarante
+     vingt. Il y a trois semaines, il en faut cent ; il y a huit, même cent
+     n'y remontent pas — la vue le dit au lieu de se taire. */
+  const pb = await monter({ chaines: ['flot'], flot: true });
+  const sb3 = await finir(pb, () => window.__semaine(-3));
+  const logb = await journal(pb);
+  const sb8 = await finir(pb, () => window.__semaine(-8));
+  const logb8 = (await journal(pb)).slice(logb.length);
+  ok('β) il y a trois semaines : douze, puis quarante, puis cent rediffusions — et la semaine entière',
+     JSON.stringify(ops(logb, 'TseAgendaDiffusions').map((x) => x.n)) === JSON.stringify([12, 40, 100])
+     && sb3.entrees.length === 14 && sb3.notes.incompletes === 0,
+     JSON.stringify({ n: ops(logb, 'TseAgendaDiffusions').map((x) => x.n), entrees: sb3.entrees.length, notes: sb3.notes }));
+  ok('β) …il y a huit semaines, cent n\'y remontent pas : rien de plus ne se demande, et la vue le dit',
+     ops(logb8, 'TseAgendaDiffusions').length === 0 && sb8.notes.incompletes === 1,
+     JSON.stringify({ n: ops(logb8, 'TseAgendaDiffusions').map((x) => x.n), notes: sb8.notes }));
+  await pb.close();
+
+  /* ── γ) UNE LISTE TAILLÉE GARDE CE QU'ELLE COUVRAIT (4.25.0.3) ───────────
+     Douze rediffusions, dont onze de plus de soixante-dix jours : la purge
+     les retire. La liste remontait pourtant au-delà de la semaine regardée —
+     elle ne se redemande pas plus longue pour autant. */
+  const pg = await monter({ chaines: ['rare'], rare: true });
+  await finir(pg, () => window.__semaine(0));
+  const ng0 = (await journal(pg)).length;
+  const sg = await finir(pg, () => window.__semaine(-3));
+  const logg = (await journal(pg)).slice(ng0);
+  const rapg = await pg.evaluate(() => window.tse.panneau.rapport().agenda);
+  ok('γ) les onze plus vieilles purgées, la liste couvre encore la semaine : rien ne se redemande',
+     rapg.purgees.rediffusions === 11 && ops(logg, 'TseAgendaDiffusions').length === 0
+     && sg.entrees.length === 0 && sg.notes.incompletes === 0,
+     JSON.stringify({ purgees: rapg.purgees, listes: ops(logg, 'TseAgendaDiffusions').map((x) => x.n), notes: sg.notes }));
+  await pg.close();
 }
 
 /* ═════════ L'AGENDA, CÔTÉ PANNEAU (4.25.0) ═════════════════════════════════
@@ -34933,7 +35061,7 @@ const S_LECTEUR_SONDE = () => {
   await page.evaluate(() => {
     window.__mode.dense = false;
     window.__mode.notes = { limite: { retenues: 400, total: 512 }, planning: 'indisponible', refus: 'diffusions',
-                            echouees: 3, reseau: true };
+                            echouees: 3, reseau: true, releve: true, incompletes: 2 };
   });
   await page.click('.rail-item[data-id="semaine"]');
   await wait(page, 400);
@@ -34942,13 +35070,17 @@ const S_LECTEUR_SONDE = () => {
   await page.click('.rail-item[data-id="horsLigne"]');
   await attendre(page, () => !!document.querySelector('#agenda .hl-ligne'), 3000);
   const kH = await page.evaluate(() => [...document.querySelectorAll('#agenda .ag-note')].map((n) => n.textContent));
-  ok('k) la borne, le planning absent, la liste refusée, les chaînes non servies, le réseau : chaque note dans la tête',
+  /* 4.25.0.3 : le relevé des chaînes suivies en cours, et la semaine plus
+     ancienne que les cent dernières rediffusions de deux chaînes. */
+  ok('k) la borne, le planning absent, la liste refusée, les chaînes non servies, le réseau, le relevé des suivies, la semaine trop ancienne : chaque note dans la tête',
      kS.notes.includes(Tfr('stateAgendaCapped', ['400', '512'])) && kS.notes.includes(Tfr('stateAgendaNoSchedule'))
      && kS.notes.includes(Tfr('stateAgendaNoReplays')) && kS.notes.includes(Tfr('stateAgendaPartial', ['3']))
-     && kS.notes.includes(Tfr('stateAgendaNetwork')) && kS.tete,
+     && kS.notes.includes(Tfr('stateAgendaNetwork')) && kS.notes.includes(Tfr('stateAgendaFollowSweep'))
+     && kS.notes.includes(Tfr('stateAgendaIncomplete', ['2'])) && kS.notes.length === 7 && kS.tete,
      JSON.stringify(kS));
-  ok('k) …et « Hors ligne », qui ne lit pas la liste des rediffusions, ne parle pas de son refus',
-     kH.length === 4 && !kH.includes(Tfr('stateAgendaNoReplays')), JSON.stringify(kH));
+  ok('k) …et « Hors ligne », qui ne lit pas la liste des rediffusions, ne parle ni de son refus ni des semaines qu\'elle ne couvre pas',
+     kH.length === 5 && !kH.includes(Tfr('stateAgendaNoReplays')) && !kH.includes(Tfr('stateAgendaIncomplete', ['2']))
+     && kH.includes(Tfr('stateAgendaFollowSweep')), JSON.stringify(kH));
   /* UNE LECTURE FINIE, MÊME INCOMPLÈTE, NE LAISSE PAS DE BARRE. Deux chaînes
      que Twitch n'a pas servies ne seront jamais lues avant la fraîcheur
      suivante : sans la garde `enCours`, la barre restait figée à 298 sur 300,
@@ -35177,6 +35309,301 @@ addEventListener('message', (e) => {
   ok('p) incrusté dans Twitch, chaque lien mène la page elle-même, sans ouvrir d\'onglet',
      o.vue === 'incruste' && o.liens.length >= 3 && o.liens.every(([t, r]) => t === '_top' && r === ''),
      JSON.stringify(o));
+}
+
+/* ═════════ LE RELEVÉ DES CHAÎNES SUIVIES (4.25.0.3) ════════════════════════
+   SIGNALÉ AINSI : une chaîne suivie absente de l'agenda, de « Hors ligne » et
+   du menu des chaînes, alors qu'elle avait des rediffusions. MESURÉ : la barre
+   de Twitch s'arrête à cent chaînes suivies ; la page « Chaînes suivies » les
+   donne toutes, par pages `ChannelFollows`, à mesure qu'on la fait défiler —
+   et seulement quand le bas de sa liste paraît à l'écran. Le décor la
+   reproduit (cf. page.html) avec quarante chaînes inventées, dont quatre dans
+   la barre. Ce scénario éprouve le relevé : ce qu'il lit, ce qu'il retire, ce
+   qu'il laisse aux autres onglets, quand il part, et ce qu'il dit quand il
+   échoue. Chaque onglet est ouvert dans un contexte choisi : deux onglets
+   d'un même contexte partagent leur stockage, comme deux onglets Twitch. */
+{
+  titre('209. Le relevé des chaînes suivies — au-delà des cent de la barre, sans compte, et d\'un onglet à l\'autre');
+
+  const LISTE = ['aube', 'braise', 'cendre', 'dalle',
+    ...Array.from({ length: 36 }, (_, i) => 'loin' + String(i + 1).padStart(2, '0'))];
+  const BARRE = ['aube', 'braise', 'cendre', 'dalle', 'hors_liste'];
+  /* Le banc l'éteint partout (cf. build.mjs) : ce scénario le rallume, sans
+     départ de lui-même. La variante part seule, 400 ms après la première carte
+     suivie au lieu d'une heure. */
+  const ETEINT = fileText('content.test.js');
+  const ORDINAIRE = ETEINT.replace(/SUIVIES_ENABLED:\s*false/, 'SUIVIES_ENABLED: true');
+  const VARIANTE = ORDINAIRE.replace(/SUIVIES_DELAI:\s*3_600_000/, 'SUIVIES_DELAI: 400');
+  ok('les copies du script trouvent leurs constantes', ORDINAIRE !== ETEINT && VARIANTE !== ORDINAIRE,
+     'SUIVIES_ENABLED, SUIVIES_DELAI');
+
+  const onglet = async (ctx, src = ORDINAIRE) => {
+    const p = await ctx.newPage();
+    p.on('pageerror', (e) => { fail++; console.log('  ✗ ERREUR PAGE:', e.message); });
+    await p.route('https://www.twitch.tv/**', (route) => {
+      const nom = route.request().url().split('/').pop().split('?')[0];
+      if (nom === 'content.test.js') return route.fulfill({ contentType: 'application/javascript; charset=utf-8', body: src });
+      if (nom.endsWith('.js')) return route.fulfill({ contentType: 'application/javascript; charset=utf-8', body: fileText(nom) });
+      return route.fulfill({ contentType: 'text/html; charset=utf-8', body: fileText('page.html') });
+    });
+    await p.route('https://static-cdn.jtvnw.net/**', (route) => route.fulfill({ contentType: 'image/png', body: PIXEL }));
+    await p.goto('https://www.twitch.tv/');
+    return p;
+  };
+  /* Le stockage d'avant : l'indice vu, le relevé des abonnements frais — il
+     ne charge pas sa page pendant qu'on compte celles des suivies —, et ce
+     que `amorce` y ajoute. Posé, puis relu par un rechargement. */
+  const preparer = async (p, amorce = {}) => {
+    await p.evaluate((a) => {
+      localStorage.clear();
+      localStorage.setItem('tse:indice', 'vu');
+      localStorage.setItem('tse:substs', '2:' + Date.now());
+      for (const [k, v] of Object.entries(a)) localStorage.setItem(k, typeof v === 'string' ? v : JSON.stringify(v));
+    }, amorce);
+    await p.reload();
+  };
+  const roster = (p) => p.evaluate(() => window.tse.panneau('roster').lignes.map((x) => x.login));
+  const barre = async (p, logins) => {
+    await p.evaluate((ls) => { for (const l of ls) window.__addCard(l, '', '', false); }, logins);
+    await attendre(p, (ls) => {
+      try { const r = window.tse.panneau('roster').lignes.map((x) => x.login); return ls.every((l) => r.includes(l)); }
+      catch { return false; }
+    }, 8_000, logins);
+  };
+  const stocke = (p) => p.evaluate(() => JSON.parse(localStorage.getItem('tse:roster') || '{}'));
+  const releve = (p) => p.evaluate(() => window.tse.panneau.rapport().relevesSuivies);
+  const forcer = (p, cfg) => p.evaluate((c) => { window.__suivies = c; return window.tse.roster.refresh(); }, cfg);
+  const compteurs = (p) => p.evaluate(() => ({ chargements: window.__suiviesChargements || 0, lots: window.__suiviesLots || 0 }));
+
+  /* ── a) LA LISTE ENTIÈRE, PAGE APRÈS PAGE ──────────────────────────────────
+     Une chaîne suivie il y a longtemps, que la barre ne montre plus et que la
+     liste de Twitch ne porte pas : on ne la suit plus. Une autre que la barre
+     montre, mais que la liste ne porte pas : la barre ne montre que des
+     chaînes suivies, elle reste. Un second onglet, ouvert AVANT le relevé : sa
+     mémoire n'a que ce que sa barre lui a montré. */
+  const ctx = await browser.newContext();
+  const p1 = await onglet(ctx);
+  await preparer(p1, { 'tse:roster': { quittee: Date.now() - 86_400_000 } });
+  const p2 = await onglet(ctx);
+  await barre(p1, BARRE);
+  await barre(p2, ['aube']);
+  const t0 = Date.now();
+  const lus = await forcer(p1, { logins: LISTE, page: 15, leurre: true });
+  ok('a) les quarante chaînes de la liste sont lues, page après page — et pas le login d\'une autre opération du même lot',
+     Array.isArray(lus) && lus.length === 40 && LISTE.every((l) => lus.includes(l)) && !lus.includes('leurre_du_lot'),
+     JSON.stringify(lus));
+  const r1 = await roster(p1);
+  const s1 = await stocke(p1);
+  ok('a) …elles entrent au roster, et la chaîne de la barre absente de la liste reste',
+     LISTE.every((l) => r1.includes(l)) && r1.includes('hors_liste') && r1.length === 41, JSON.stringify(r1));
+  ok('a) …celle qu\'on ne suit plus en sort, et le stockage garde la date de son retrait',
+     !r1.includes('quittee') && s1.quittee < 0 && -s1.quittee >= t0, JSON.stringify({ quittee: s1.quittee }));
+  const b1 = await releve(p1);
+  const c1 = await compteurs(p1);
+  const cadres1 = await p1.evaluate(() => document.querySelectorAll('iframe').length);
+  ok('a) …le rapport le compte : une page chargée, trois lots, la fin de liste dite par Twitch, et le cadre retiré',
+     b1.dernier && b1.dernier.chaines === 40 && b1.dernier.complet === true && b1.dernier.arret === 'fin de liste'
+     && b1.dernier.pages === 3 && b1.dernier.illisibles === 0 && b1.dernier.ajoutees === 36 && b1.dernier.retirees === 1
+     && b1.enCours === false && b1.horodatage >= t0 && b1.incompletsDeSuite === 0
+     && c1.chargements === 1 && c1.lots === 3 && cadres1 === 0,
+     JSON.stringify({ b1, c1, cadres1 }));
+  const rapportTexte = await p1.evaluate(() => JSON.stringify(window.tse.panneau.rapport()));
+  ok('a) …des comptes, et pas un login', !/loin\d\d|braise|cendre|quittee|hors_liste/.test(rapportTexte),
+     (rapportTexte.match(/.{40}(loin\d\d|braise|cendre|quittee|hors_liste).{40}/) || [''])[0]);
+
+  /* ── b) L'AUTRE ONGLET : IL REÇOIT, ET IL N'EFFACE RIEN ────────────────────── */
+  await attendre(p2, () => window.tse.panneau('roster').lignes.length >= 40, 5_000);
+  const r2 = await roster(p2);
+  ok('b) l\'onglet ouvert avant le relevé le reçoit aussitôt, sans la chaîne quittée',
+     LISTE.every((l) => r2.includes(l)) && !r2.includes('quittee'), JSON.stringify(r2));
+  await p2.evaluate(() => window.__addCard('neuve', '', '', false));
+  await attendre(p2, () => window.tse.panneau('roster').lignes.some((x) => x.login === 'neuve'), 5_000);
+  await p2.evaluate(() => window.dispatchEvent(new Event('pagehide')));
+  const s2 = await stocke(p2);
+  await attendre(p1, () => window.tse.panneau('roster').lignes.some((x) => x.login === 'neuve'), 5_000);
+  const r1b = await roster(p1);
+  ok('b) …son écriture fusionne : le relevé reste, sa chaîne neuve s\'ajoute, la chaîne quittée ne revient pas',
+     LISTE.every((l) => s2[l] > 0) && s2.neuve > 0 && s2.quittee < 0 && r1b.includes('neuve') && !r1b.includes('quittee'),
+     JSON.stringify({ s2, r1b }));
+
+  /* Une écriture d'un autre onglet dont l'événement n'est pas arrivé — un
+     onglet gelé en arrière-plan, deux écritures croisées : la suivante de
+     cette page la relit avant d'écrire, et ne l'écrase pas. */
+  await p1.evaluate(() => {
+    const o = JSON.parse(localStorage.getItem('tse:roster') || '{}');
+    o.muette = Date.now();
+    localStorage.setItem('tse:roster', JSON.stringify(o));
+    window.__addCard('carte_p1', '', '', false);
+  });
+  await attendre(p1, () => window.tse.panneau('roster').lignes.some((x) => x.login === 'carte_p1'), 5_000);
+  await p1.evaluate(() => window.dispatchEvent(new Event('pagehide')));
+  const s1b = await stocke(p1);
+  const r1c = await roster(p1);
+  ok('b) …et une écriture arrivée sans son événement n\'est pas écrasée : elle est relue avant d\'écrire',
+     s1b.muette > 0 && s1b.carte_p1 > 0 && LISTE.every((l) => s1b[l] > 0) && r1c.includes('muette'),
+     JSON.stringify({ muette: s1b.muette, carte: s1b.carte_p1, r: r1c.includes('muette') }));
+
+  /* ── c) L'AGENDA LES LIT, ET RELIT TANT QUE LE RELEVÉ TOURNE ──────────────── */
+  const hl = await p1.evaluate(() => window.tse.panneau('horsLigne'));
+  ok('c) l\'agenda lit toutes les chaînes du roster, celles du relevé comprises',
+     hl.progression.aLire === (await roster(p1)).length && hl.notes.releve === false, JSON.stringify({ p: hl.progression, n: hl.notes }));
+  const lent = p1.evaluate((liste) => { window.__suivies = { logins: liste, page: 15, delai: 1200 }; return window.tse.roster.refresh(); }, LISTE);
+  await attendre(p1, () => !!document.querySelector('iframe[name="tse-suivies"]'), 3_000);
+  const pendant = await p1.evaluate(() => {
+    const f = document.querySelector('iframe[name="tse-suivies"]');
+    const r = f.getBoundingClientRect();
+    const v = window.tse.panneau('horsLigne');
+    return { releve: v.notes.releve, attente: v.attente, enCours: window.tse.panneau.rapport().relevesSuivies.enCours,
+             cache: f.getAttribute('aria-hidden') === 'true' && f.tabIndex === -1 && getComputedStyle(f).opacity === '0'
+               && getComputedStyle(f).pointerEvents === 'none',
+             // Jusqu'en bas : c'est le bas de la liste qui doit paraître.
+             aLEcran: r.left >= 0 && r.top >= 0 && r.left < innerWidth && r.bottom <= innerHeight + 1 };
+  });
+  await lent;
+  const apres = await p1.evaluate(() => window.tse.panneau('horsLigne').notes.releve);
+  ok('c) …pendant le relevé, la vue le dit et demande à être relue ; après, plus rien',
+     pendant.releve === true && pendant.attente === true && pendant.enCours === true && apres === false,
+     JSON.stringify({ pendant, apres }));
+  ok('c) …le cadre est invisible, inerte, hors de l\'ordre du clavier — mais à l\'écran, où la page charge sa suite',
+     pendant.cache && pendant.aLEcran, JSON.stringify(pendant));
+
+  /* ── d) « EFFACER L'HISTORIQUE », PARTOUT ──────────────────────────────────── */
+  await p1.evaluate(() => window.tse.reset());
+  await attendre(p2, () => !window.tse.panneau('roster').lignes.some((x) => /^loin/.test(x.login)), 3_000);
+  const d1 = await p1.evaluate(() => ({ stamp: localStorage.getItem('tse:suiviests'),
+                                         loin: window.tse.panneau('roster').lignes.filter((x) => /^loin/.test(x.login)).length }));
+  const d2 = await roster(p2);
+  ok('d) effacé dans un onglet, le roster l\'est dans l\'autre, et le prochain relevé n\'attendra pas sa période',
+     d1.stamp === null && d1.loin === 0 && !d2.some((l) => /^loin/.test(l)), JSON.stringify({ d1, d2 }));
+  await p2.close();
+
+  /* ── e) UNE PAGE EN PANNE, REDEMANDÉE ──────────────────────────────────────── */
+  await forcer(p1, { logins: LISTE, page: 15, pannes: [2] });
+  const e1 = await releve(p1);
+  ok('e) un lot en erreur se compte illisible, la page le redemande, et le relevé va au bout',
+     e1.dernier.complet === true && e1.dernier.chaines === 40 && e1.dernier.illisibles === 1 && e1.incompletsDeSuite === 0,
+     JSON.stringify(e1));
+
+  /* ── f) CE QUI NE VA PAS AU BOUT NE RETIRE RIEN, ET REVIENT PLUS TÔT ─────── */
+  await p1.evaluate(() => {
+    const o = JSON.parse(localStorage.getItem('tse:roster') || '{}');
+    o.vieille = Date.now() - 86_400_000;
+    localStorage.setItem('tse:roster', JSON.stringify(o));
+    window.dispatchEvent(new StorageEvent('storage', { key: 'tse:roster', newValue: JSON.stringify(o) }));
+  });
+  const H = 3_600_000;
+  await forcer(p1, { logins: LISTE, page: 15, sansFin: true });
+  const f1 = await releve(p1);
+  const rf = await roster(p1);
+  ok('f) Twitch ne dit jamais « pas de suite » : le relevé s\'arrête quand plus rien ne vient, et ne retire rien',
+     f1.dernier.complet === false && f1.dernier.arret === 'plus rien de neuf' && f1.dernier.chaines === 40
+     && f1.dernier.retirees === 0 && rf.includes('vieille'), JSON.stringify({ f1, vieille: rf.includes('vieille') }));
+  ok('f) …et il revient dans une demi-heure, pas dans douze heures',
+     f1.incompletsDeSuite === 1 && f1.prochainDansMs > 0.45 * H && f1.prochainDansMs <= 0.5 * H, JSON.stringify(f1));
+
+  /* ── g) RIEN DE LISIBLE : ON LE DIT, ET L'ATTENTE DOUBLE ───────────────────── */
+  const rAvant = (await roster(p1)).length;
+  const g0 = await forcer(p1, { logins: LISTE, page: 15, operation: 'ChaineSuiviesRenommee' });
+  const g1 = await releve(p1);
+  const gErr = await p1.evaluate(() => window.tse.panneau.rapport().erreurs.filter((e) => e.source === 'suivies').map((e) => e.message));
+  ok('g) une opération renommée : aucune réponse lue, le rapport et le journal le disent, le roster ne bouge pas',
+     g0 === null && g1.dernier.arret === 'aucune réponse ChannelFollows' && gErr.some((m) => /aucune réponse ChannelFollows/.test(m))
+     && (await roster(p1)).length === rAvant, JSON.stringify({ g0, g1, gErr }));
+  ok('g) …deux relevés incomplets de suite : une heure',
+     g1.incompletsDeSuite === 2 && g1.prochainDansMs > 0.95 * H && g1.prochainDansMs <= H, JSON.stringify(g1));
+  const h0 = await forcer(p1, { logins: LISTE, page: 15, renvoi: '/login' });
+  const h1 = await releve(p1);
+  const hErr = await p1.evaluate(() => window.tse.panneau.rapport().erreurs.filter((e) => e.source === 'suivies').map((e) => e.message));
+  ok('g) …renvoyée vers la connexion : le chemin est dit, et l\'attente double encore',
+     h0 === null && h1.dernier.arret === 'renvoyé vers /login' && hErr.some((m) => /renvoyé vers \/login/.test(m))
+     && h1.incompletsDeSuite === 3 && h1.prochainDansMs > 1.95 * H, JSON.stringify({ h1, hErr }));
+  await ctx.close();
+
+  /* ── h) LE DÉPART : APRÈS LE RELEVÉ DES ABONNEMENTS, PUIS PLUS AVANT SA PÉRIODE ─
+     Un autre onglet relève les abonnements (son bail est frais) : celui des
+     suivies attend son tour, et part dès que le bail est rendu. */
+  const ctx2 = await browser.newContext();
+  const v1 = await onglet(ctx2, VARIANTE);
+  await preparer(v1, { 'tse:subsrun': 'autre:' + Date.now() });
+  await v1.evaluate((liste) => { window.__suivies = { logins: liste, page: 15 }; }, LISTE);
+  await barre(v1, ['aube']);
+  await wait(v1, 1_300);
+  const hAttente = { ...(await compteurs(v1)), differes: (await releve(v1)).differes };
+  const note = (p) => p.evaluate(() => window.tse.panneau('horsLigne').notes.releve);
+  const hNote = await note(v1);
+  await v1.evaluate(() => localStorage.removeItem('tse:subsrun'));
+  await attendre(v1, () => (window.tse.panneau.rapport().relevesSuivies.dernier || {}).complet === true, 8_000);
+  const hFait = { ...(await compteurs(v1)), r: (await roster(v1)).length, stamp: await v1.evaluate(() => localStorage.getItem('tse:suiviests')) };
+  ok('h) le relevé des abonnements en cours ailleurs : celui des suivies attend son tour, puis part de lui-même',
+     hAttente.chargements === 0 && hAttente.differes >= 1 && hFait.chargements === 1 && hFait.r === 40
+     && /^1:\d+:0$/.test(hFait.stamp || ''), JSON.stringify({ hAttente, hFait }));
+  const hNoteApres = await note(v1);
+  ok('h) …pendant qu\'il attend, l\'agenda le dit déjà, et ne le dit plus une fois le relevé fait',
+     hNote === true && hNoteApres === false, JSON.stringify({ hNote, hNoteApres }));
+  await v1.reload();
+  await v1.evaluate((liste) => { window.__suivies = { logins: liste, page: 15 }; }, LISTE);
+  await barre(v1, ['aube']);
+  await wait(v1, 1_500);
+  const hRecharge = await compteurs(v1);
+  ok('h) …et la page suivante ne relève pas avant sa période', hRecharge.chargements === 0, JSON.stringify(hRecharge));
+  await ctx2.close();
+
+  /* ── i) DEUX ONGLETS ENSEMBLE : UN SEUL RELÈVE ──────────────────────────────── */
+  const ctx3 = await browser.newContext();
+  const w1 = await onglet(ctx3, VARIANTE);
+  await preparer(w1);
+  const w2 = await onglet(ctx3, VARIANTE);
+  for (const w of [w1, w2]) await w.evaluate((liste) => { window.__suivies = { logins: liste, page: 15 }; }, LISTE);
+  await Promise.all([barre(w1, ['aube']), barre(w2, ['aube'])]);
+  await attendre(w1, () => !!localStorage.getItem('tse:suiviests'), 8_000);
+  await wait(w1, 2_500);
+  const iC = [await compteurs(w1), await compteurs(w2)];
+  const iR = [(await roster(w1)).length, (await roster(w2)).length];
+  ok('i) deux onglets ouverts ensemble : une seule page chargée, et chacun a la liste',
+     iC[0].chargements + iC[1].chargements === 1 && iR[0] === 40 && iR[1] === 40, JSON.stringify({ iC, iR }));
+  await ctx3.close();
+
+  /* La relecture du bail, éprouvée sans course : un autre onglet écrit le sien
+     pendant que celui-ci attend de le relire. Il se retire, sans charger la
+     page — et le retire pas non plus, ce bail n'étant pas le sien. */
+  const ctx5 = await browser.newContext();
+  const x1 = await onglet(ctx5, VARIANTE);
+  await preparer(x1);
+  await x1.evaluate((liste) => {
+    window.__suivies = { logins: liste, page: 15 };
+    const t = setInterval(() => {
+      const b = localStorage.getItem('tse:suiviesrun');
+      if (b && !b.startsWith('autre:')) { localStorage.setItem('tse:suiviesrun', 'autre:' + Date.now()); clearInterval(t); }
+    }, 2);
+  }, LISTE);
+  await barre(x1, ['aube']);
+  await wait(x1, 1_500);
+  const iBail = { ...(await compteurs(x1)), dernier: (await releve(x1)).dernier,
+                  bail: await x1.evaluate(() => localStorage.getItem('tse:suiviesrun') || '') };
+  ok('i) …un bail écrit par un autre onglet pendant la relecture : celui-ci se retire, et laisse ce bail en place',
+     iBail.chargements === 0 && !!iBail.dernier && iBail.dernier.arret === 'bail pris par une autre page'
+     && iBail.bail.startsWith('autre:'), JSON.stringify(iBail));
+  await ctx5.close();
+
+  /* ── j) ET LE RELEVÉ DES ABONNEMENTS ATTEND CELUI DES SUIVIES ─────────────── */
+  const ctx4 = await browser.newContext();
+  const a1 = await onglet(ctx4);
+  await a1.evaluate(() => {
+    localStorage.clear();
+    localStorage.setItem('tse:indice', 'vu');
+    localStorage.setItem('tse:suiviesrun', 'autre:' + Date.now());
+  });
+  await a1.reload();
+  await barre(a1, ['aube']);
+  await wait(a1, 1_500);
+  const jAttente = await a1.evaluate(() => ({ cadres: [...document.querySelectorAll('iframe')].filter((f) => (f.src || '').includes('/subscriptions')).length,
+                                               differes: window.tse.panneau.rapport().relevesAbonnements.differes }));
+  await a1.evaluate(() => localStorage.removeItem('tse:suiviesrun'));
+  await attendre(a1, () => !!window.tse.panneau.rapport().relevesAbonnements.horodatage, 20_000);
+  const jFait = await a1.evaluate(() => !!window.tse.panneau.rapport().relevesAbonnements.horodatage);
+  ok('j) le relevé des chaînes suivies en cours ailleurs : celui des abonnements attend, puis se fait',
+     jAttente.cadres === 0 && jAttente.differes >= 1 && jFait, JSON.stringify({ jAttente, jFait }));
+  await ctx4.close();
 }
 
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════

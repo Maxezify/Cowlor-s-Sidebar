@@ -202,9 +202,16 @@ const PROMESSES = [
      clic, qu'une rediffusion est réservée aux abonnés : c'est le champ que
      les requêtes de l'agenda demandent pour cela qui la rend vraie. Depuis
      4.25.0.2, elle dit « que vous ne pouvez pas voir sans abonnement » — le
-     cadenas ne paraît plus quand on vous sait abonné —, et vise le champ qui
-     le dit même sans restriction nommée : l'accès du visiteur. */
-  ['and so does a replay you cannot watch without a subscription', 'self { isRestricted }'],
+     cadenas ne paraît plus quand on vous sait abonné —, et vise ce qui le dit
+     même sans restriction nommée. 4.25.0.2 visait l'accès du visiteur,
+     `self { isRestricted }` ; MESURÉ en 4.25.0.3, il répond « libre » sans
+     compte, sur une archive que Twitch refuse de lire. C'est le jeton de
+     lecture qui le dit : la marque est sa requête. */
+  ['and so does a replay you cannot watch without a subscription', 'videoPlaybackAccessToken('],
+  /* LE RELEVÉ DES CHAÎNES SUIVIES (4.25.0.3) : la seconde page ouverte avec
+     le compte, dite dans la confidentialité avec sa période. La marque est la
+     constante qui la fixe. */
+  ['it opens your Following page the same way, every twelve hours', 'SUIVIES_TTL:          12 * 60 * 60_000,'],
 ];
 const tenues = PROMESSES.flatMap(([phrase, marque]) => {
   const dansFiche = en.includes(phrase);

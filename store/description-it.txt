@@ -227,7 +227,7 @@ Tutto è attivo fin da subito e non c'è nulla da impostare. Ma «Impostazioni»
 
 - ★ CIÒ CHE VEDI ★ Ogni badge, la durata della diretta e il suo formato, la barra «appena iniziata», l'oro degli abbonamenti, i filtri, i pulsanti di ordinamento: tutto si accende e si spegne con una casella.
 - ★ CIÒ CHE VIENE CARICATO ★ L'anteprima può fare a meno del video e conservare badge, linea del tempo e miniatura — oppure semplicemente scendere di qualità. Quanto basta per alleggerirla senza perderla.
-- ★ CIÒ CHE TI RIGUARDA ★ La lettura degli abbonamenti — l'unica richiesta autenticata dell'estensione — si può diradare fino a una volta al giorno. E ogni memoria si cancella da sola: visite, abbonamenti, canali noti, senza toccare le altre.
+- ★ CIÒ CHE TI RIGUARDA ★ La lettura degli abbonamenti — una delle due richieste autenticate dell'estensione — si può diradare fino a una volta al giorno. E ogni memoria si cancella da sola: visite, abbonamenti, canali noti, senza toccare le altre.
 - ★ NULLA È UNA TRAPPOLA ★ Un punto segnala ciò che hai cambiato, un pulsante ripristina tutto, e le tue impostazioni si esportano come testo per rimetterle su un'altra macchina.
 
 _______________________________
@@ -256,7 +256,7 @@ _______________________________
 
 - ★ Nessun server di terze parti ★ L'estensione parla solo con l'API pubblica di Twitch — proprio quella che la pagina usa già per mostrarsi. Nient'altro, da nessuna parte.
 - ★ Chiamate anonime ★ Nessun token di sessione, nessun cookie viene mai inviato: quelle richieste non possono essere ricondotte al tuo account.
-- ★ Un'eccezione, detta ad alta voce ★ Per sapere a quali canali sei abbonato, l'estensione apre LA TUA pagina twitch.tv/subscriptions in un riquadro invisibile, ogni sei ore per impostazione predefinita (oppure tre, dodici o ventiquattro, a tua scelta), prima solo se la rilevazione precedente non ha trovato nulla o se clicchi «Rileva ora», e mai quando non hai effettuato l'accesso. Il tuo browser autentica quella pagina con i propri cookie, esattamente come se avessi cliccato il link: l'estensione non legge mai il tuo token e non lo trasmette mai. Ciò che conserva — nomi dei canali e una durata in mesi — resta nel tuo browser.
+- ★ Due eccezioni, dette ad alta voce ★ Per sapere a quali canali sei abbonato, l'estensione apre LA TUA pagina twitch.tv/subscriptions in un riquadro invisibile, ogni sei ore per impostazione predefinita (oppure tre, dodici o ventiquattro, a tua scelta), prima solo se la rilevazione precedente non ha trovato nulla o se clicchi «Rileva ora», e mai quando non hai effettuato l'accesso. Per conoscere TUTTI i canali che segui — la barra laterale di Twitch ne mostra solo cento —, apre allo stesso modo la tua pagina dei canali seguiti, ogni dodici ore, prima solo se la lettura precedente non è arrivata in fondo all'elenco. Il tuo browser autentica quelle pagine con i propri cookie, esattamente come se avessi cliccato il link: l'estensione non legge mai il tuo token e non lo trasmette mai. Ciò che conserva — nomi dei canali e una durata in mesi — resta nel tuo browser.
 - ★ Nessun tracciante, nessun pixel, nessuna telemetria ★
 - ★ Nessun permesso losco ★ L'estensione funziona SOLO su twitch.tv.
 - ★ Il blocco pubblicità resta al suo posto ★ Si applica alla miniatura dell'anteprima al passaggio del mouse e a nient'altro. La diretta che stai davvero guardando non viene toccata.
