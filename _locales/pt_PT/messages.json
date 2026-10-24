@@ -48,7 +48,7 @@
     "message": "Canais conhecidos"
   },
   "descRoster": {
-    "message": "Todos os canais seguidos que a extensão viu pelo menos uma vez na tua barra lateral."
+    "message": "Todos os canais que segues: os da tua barra lateral e a lista completa, relida a cada doze horas na tua página de canais seguidos."
   },
   "navRythme": {
     "message": "Ritmo"
@@ -334,7 +334,7 @@
     "message": "Todos os canais que segues estão em direto."
   },
   "stateAgendaNoRoster": {
-    "message": "Ainda não se conhece nenhum canal seguido. A extensão aprende-os na barra lateral do Twitch, enquanto tens a sessão iniciada."
+    "message": "Ainda não se conhece nenhum canal seguido. A extensão aprende-os na barra lateral do Twitch e na tua página de canais seguidos, enquanto tens a sessão iniciada."
   },
   "stateAgendaRefused": {
     "message": "O Twitch recusa os pedidos da programação; «Exportar um relatório» diz porquê."
@@ -820,7 +820,7 @@
     "message": "Apagar os canais seguidos memorizados?"
   },
   "purgeRosterText": {
-    "message": "A lista reconstrói-se ao observar a barra lateral. As tuas visitas e as tuas subscrições não são tocadas."
+    "message": "A lista reconstrói-se sozinha: de imediato pela barra lateral, depois por completo pela tua página de canais seguidos, relida pouco depois. As tuas visitas e as tuas subscrições não são tocadas."
   },
   "optPurgeFaite": {
     "message": "Apagado."

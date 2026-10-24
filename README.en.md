@@ -2059,6 +2059,98 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## Followed channels, a single memory (v4.25.0.5)
+
+The question, after the fourth run's report: “About fetching the full list of
+followed channels, is the new way of getting them (thanks to the schedule)
+properly taken up across the whole extension? I'm asking in case older updates
+had another method that fetched followed channels in a less than ideal way.”
+Published on `claude/chrome-multi`.
+
+### Where the list comes from
+
+A single memory, the roster (`tse:roster`), and two ways of learning it:
+
+- **the followed-channel sweep** (4.25.0.3): the whole list, read on the
+  “Following” page, every twelve hours;
+- **the sidebar's cards**, on every scan. It is free — a DOM read —, and it is
+  what brings a channel in the moment you follow it, without waiting for the
+  next sweep.
+
+There is no other: the code asks Twitch for the list nowhere else — and no
+request made without an account returns it (measured, 4.25.0.3).
+
+### Who reads it
+
+| reader | what it does with it |
+| --- | --- |
+| cards ahead — the polling | every followed channel, fifty per request, every thirty seconds, tab visible; three hundred at most per pass |
+| cards ahead — the building | a card for a followed channel gone live that the sidebar does not show yet |
+| the schedule | every channel, ordered by live, subscriptions and visits; four hundred at most |
+| the panel, the console, the report | the list (Your data → Known channels, `tse.roster()`); its count |
+
+Nothing reads the sidebar to know *who* you follow: sorting, filters and
+co-streams work on the displayed cards, which is what they are for.
+
+### What the audit found
+
+- **The report kept quiet about the sweep.** Its counts — when, who stood
+  down behind another tab, the next one, what this page's sweep read and why
+  it stopped — had been in the report's data since 4.25.0.3, and its text
+  said nothing of them. Your report showed it: no section, and only
+  “roster 184” hinted that the sweep had happened. It now has its block,
+  “CHAÎNES SUIVIES — RELEVÉ”.
+- **Three texts, in all twelve languages, described the old source**: the
+  panel's list (“seen in your sidebar at least once”), the schedule with no
+  known channel (“learns them from Twitch's sidebar”) and the clearing
+  confirmation (“will rebuild itself by watching the sidebar”). They now name
+  both sources. On the way, Brazilian Portuguese used the European “tu” form
+  (“na tua barra”).
+- **A comment in the polling** promised to serve “the channels most present
+  in the sidebar” first: the sweep dates every channel it reads, and that
+  order no longer exists. The budget covers them by far.
+
+### What remains of the old method, and why
+
+“Show more” is clicked to the end (`autoExpandFollowed`, v3.x). That is what
+shows every followed channel **live**, and that role stays. It also renders
+the offline ones, which the extension hides: before 4.25.0.3, the only way to
+learn them; today they only serve to bring in at once an offline followed
+channel that the sweep would bring anyway.
+
+Stopping at the first offline card would spare those cards — fewer nodes on
+every scan, maybe an overlay lifted sooner. But it would change how the
+sidebar is driven, and this machine cannot measure the gain on Twitch. The
+report will: it now counts the clicks, the time of the last one — on the
+overlay log's clock — and the offline cards rendered (`page.depliage`). The
+next report will say whether the saving is worth the change.
+
+### Your report
+
+Everything checks out: 184 channels read back from the kept memory on
+reload, no request, full batches (25 / 10 / 15), a one-second pause, no
+refusal, no error. “SECTION SUIVIE — aucune 42” counts the section lookups
+made before Twitch had rendered it, at start-up.
+
+### What the bench measures
+
+- **70**: the sweep's block, on a complete sweep of the page and a tab that
+  stood down behind it;
+- **77**: a sweep never made — “never”, and none in this page;
+- **16**: the expansion in the report — as many clicks as the page received,
+  and the four offline cards rendered.
+
+**Four named mutants, all caught.**
+
+| mutant | what falls |
+| --- | --- |
+| the followed sweep kept out of the report | 70, 77 |
+| this page's sweep reduced to nothing | 70 |
+| the expansion clicks not counted | 16 |
+| every card counted offline | 16 |
+
+The full bench: 1950 assertions in 208 scenarios, all green.
+
 ## The schedule, after its fourth real run (v4.25.0.4)
 
 The feedback from the fourth run, screenshot and report attached: “I have the
@@ -2384,7 +2476,9 @@ Twitch gives it:
   `ChannelFollows` response — an operation Twitch renamed —, in the error
   log; and the report (`relevesSuivies`) always gives counts: channels, pages,
   unreadable batches, added, removed, and why it stopped. No login.
-  `tse.roster.refresh()` runs it by hand.
+  `tse.roster.refresh()` runs it by hand. **Revised in 4.25.0.5 (above)**: those
+  counts were in the report's data, not in its text; they now have their
+  block.
 
 What it costs: one Twitch page loaded in the background for about thirty
 seconds, twice a day. And the extra channels enter the live-status polling
@@ -20140,8 +20234,8 @@ day. Twitch tabs share this memory: each reads the storage back before
 writing, and learns at once what the others write.
 
 This list is what lets the extension poll beyond what Twitch displays, and so
-post a card before it does (see "Getting ahead of Twitch"). A channel not seen in
-the sidebar for 60 days is forgotten — which is what prevents holding on to a
+post a card before it does (see "Getting ahead of Twitch"). A channel seen neither
+in the sidebar nor by the followed-channel sweep for 60 days is forgotten — which is what prevents holding on to a
 channel you have unfollowed.
 
 ---
@@ -20277,7 +20371,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 208 scenarios, 1947 assertions |
+| `npm test` | the Playwright harness: 208 scenarios, 1950 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -20297,12 +20391,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1798 KB | 736 KB | 4,423 → **2** |
+| `content.js` | 1799 KB | 737 KB | 4,423 → **2** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
-| `panneau.js` | 146 KB | 74 KB | 206 → **0** |
+| `panneau.js` | 148 KB | 76 KB | 207 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
 | `background.js` | 10 KB | 2 KB | 22 → **0** |
-| **all five** | **2093 KB** | **917 KB** | **−56 %** |
+| **all five** | **2096 KB** | **918 KB** | **−56 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are

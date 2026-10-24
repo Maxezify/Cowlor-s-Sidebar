@@ -48,7 +48,7 @@
     "message": "Canales conocidos"
   },
   "descRoster": {
-    "message": "Todos los canales que sigues y que la extensión ha visto al menos una vez en tu barra lateral."
+    "message": "Todos los canales que seguís: los de tu barra lateral y la lista completa, releída cada doce horas en tu página de canales seguidos."
   },
   "navRythme": {
     "message": "Ritmo"
@@ -334,7 +334,7 @@
     "message": "Todos los canales que seguís están en vivo."
   },
   "stateAgendaNoRoster": {
-    "message": "Todavía no se conoce ningún canal seguido. La extensión los aprende de la barra lateral de Twitch mientras tenés la sesión iniciada."
+    "message": "Todavía no se conoce ningún canal seguido. La extensión los aprende de la barra lateral de Twitch y de tu página de canales seguidos mientras tenés la sesión iniciada."
   },
   "stateAgendaRefused": {
     "message": "Twitch rechaza las solicitudes del horario; “Exportar un informe” dice por qué."
@@ -820,7 +820,7 @@
     "message": "¿Borrar los canales seguidos memorizados?"
   },
   "purgeRosterText": {
-    "message": "La lista se reconstruirá observando la barra lateral. Tus visitas y tus suscripciones no se tocan."
+    "message": "La lista se reconstruirá sola: la barra lateral enseguida y luego la lista completa de tu página de canales seguidos, releída poco después. Tus visitas y tus suscripciones no se tocan."
   },
   "optPurgeFaite": {
     "message": "Borrado."

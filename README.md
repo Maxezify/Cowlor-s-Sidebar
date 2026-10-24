@@ -2180,6 +2180,101 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## Les chaînes suivies, une seule mémoire (v4.25.0.5)
+
+La question, après le rapport du quatrième essai : « Concernant la récupération
+de la liste de chaînes suivies totale, est-ce que la nouvelle façon de les
+récupérer (grâce à l'ajout de l'agenda) est bien assimilée sur l'ensemble de
+l'extension ? Je demande, au cas où sur les anciennes updates on avait une
+autre méthode qui récupérait les chaînes suivies pas de la meilleure des
+façons. » Publiée sur `claude/chrome-multi`.
+
+### D'où vient la liste
+
+Une seule mémoire, le roster (`tse:roster`), et deux façons de l'apprendre :
+
+- **le relevé des chaînes suivies** (4.25.0.3) : la liste entière, lue sur la
+  page « Chaînes suivies », toutes les douze heures ;
+- **les cartes de la barre**, à chaque balayage. C'est gratuit — une lecture
+  du DOM —, et c'est ce qui fait entrer une chaîne à l'instant où on la suit,
+  sans attendre le relevé suivant.
+
+Il n'y en a pas d'autre : le code ne demande la liste à Twitch nulle part
+ailleurs — et aucune requête sans compte ne la donne (mesuré, 4.25.0.3).
+
+### Qui la lit
+
+| lecteur | ce qu'il en fait |
+| --- | --- |
+| les cartes en avance — le sondage | toutes les chaînes suivies, cinquante par requête, toutes les trente secondes, onglet visible ; trois cents au plus par passe |
+| les cartes en avance — la fabrication | une carte pour une chaîne suivie passée en direct que la barre ne montre pas encore |
+| l'agenda | toutes les chaînes, dans l'ordre du direct, des abonnements et des visites ; quatre cents au plus |
+| le panneau, la console, le rapport | la liste (Vos données → Chaînes connues, `tse.roster()`) ; son compte |
+
+Rien ne lit la barre pour savoir *qui* l'on suit : les tris, les filtres et
+les co-streams travaillent sur les cartes affichées, ce qui est leur objet.
+
+### Ce que l'audit a trouvé
+
+- **Le rapport taisait le relevé.** Ses comptes — quand, qui s'est rangé
+  derrière un autre onglet, le prochain, ce que le relevé de la page a lu et
+  pourquoi il s'est arrêté — étaient dans les données du rapport depuis la
+  4.25.0.3, et son texte n'en disait rien. Votre rapport le montrait : aucune
+  section, et seul « roster 184 » laissait deviner que le relevé avait eu
+  lieu. Il a désormais son bloc, « CHAÎNES SUIVIES — RELEVÉ ».
+- **Trois textes, dans les douze langues, décrivaient l'ancienne source** :
+  la liste du panneau (« vues au moins une fois dans votre barre latérale »),
+  l'agenda sans chaîne connue (« l'extension les apprend de la barre
+  latérale ») et la confirmation de l'effacement (« la liste se reconstruira
+  en observant la barre latérale »). Ils disent les deux sources. Au passage,
+  le portugais du Brésil tutoyait à la portugaise (« na tua barra »).
+- **Un commentaire du sondage** promettait de servir d'abord « les chaînes
+  les plus présentes dans la barre » : le relevé date toutes les chaînes qu'il
+  lit, et cet ordre-là n'existe plus. Le budget les couvre largement.
+
+### Ce qui reste de l'ancienne méthode, et pourquoi
+
+« Afficher plus » est cliqué jusqu'au bout (`autoExpandFollowed`, v3.x).
+C'est ce qui montre toutes les chaînes suivies **en direct**, et ce rôle-là
+demeure. Il rend aussi les hors-ligne, que l'extension masque : avant la
+4.25.0.3, la seule façon de les apprendre ; aujourd'hui, elles ne servent plus
+qu'à faire entrer à l'instant une chaîne suivie hors ligne, que le relevé
+apporterait de toute façon.
+
+S'arrêter au premier hors-ligne épargnerait ces cartes — moins de nœuds à
+chaque balayage, peut-être un voile levé plus tôt. Mais ce serait changer la
+façon dont la barre est menée, et cette machine ne peut pas mesurer le gain
+sur Twitch. Le rapport le mesurera : il compte désormais les clics, l'instant
+du dernier — sur l'horloge du journal du voile — et les cartes hors ligne
+rendues (`page.depliage`). Le prochain rapport dira si l'économie vaut le
+changement.
+
+### Votre rapport
+
+Tout y est conforme : 184 chaînes relues de la mémoire gardée au
+rechargement, aucun envoi, des lots pleins (25 / 10 / 15), une pause d'une
+seconde, aucun refus, aucune erreur. « SECTION SUIVIE — aucune 42 » compte les
+recherches de la section faites avant que Twitch l'ait rendue, au démarrage.
+
+### Ce que le banc mesure
+
+- **70** : le bloc du relevé, sur un relevé complet de la page et un onglet
+  rangé derrière lui ;
+- **77** : un relevé jamais fait — « jamais », et aucun dans cette page ;
+- **16** : le dépliage au rapport — autant de clics que la page en a reçu, et
+  les quatre cartes hors ligne rendues.
+
+**Quatre mutants nommés, tous pris.**
+
+| mutant | ce qui tombe |
+| --- | --- |
+| le relevé des suivies tu au rapport | 70, 77 |
+| le relevé de la page réduit à rien | 70 |
+| les clics du dépliage non comptés | 16 |
+| toutes les cartes comptées hors ligne | 16 |
+
+Le banc complet : 1950 assertions dans 208 scénarios, toutes vertes.
+
 ## L'agenda, au quatrième essai (v4.25.0.4)
 
 Les retours du quatrième essai, capture et rapport à l'appui : « J'ai
@@ -2508,7 +2603,9 @@ où Twitch la donne :
   `ChannelFollows` lisible — une opération renommée par Twitch —, au journal
   d'erreurs ; et le rapport (`relevesSuivies`) donne chaque fois des comptes :
   chaînes, pages, lots illisibles, ajoutées, retirées, et pourquoi il s'est
-  arrêté. Aucun login. `tse.roster.refresh()` le lance à la main.
+  arrêté. Aucun login. `tse.roster.refresh()` le lance à la main. **Revu à la 4.25.0.5 (plus haut)** : ces
+  comptes étaient dans les données du rapport, pas dans son texte ; ils ont
+  leur bloc.
 
 Ce qu'il coûte : une page de Twitch chargée en arrière-plan une trentaine de
 secondes, deux fois par jour. Et les chaînes en plus entrent dans le sondage
@@ -20753,8 +20850,8 @@ d'écrire, et apprend aussitôt ce que les autres écrivent.
 
 C'est cette liste qui permet à l'extension de sonder au-delà de ce que Twitch
 affiche, et donc de poser une carte avant lui (cf. « Prendre les devants sur
-Twitch »). Une chaîne qui n'a plus été vue dans la sidebar depuis 60 jours est
-oubliée — c'est ce qui évite de retenir indéfiniment une chaîne à laquelle vous
+Twitch »). Une chaîne que ni la sidebar ni le relevé des suivies n'ont revue
+depuis 60 jours est oubliée — c'est ce qui évite de retenir indéfiniment une chaîne à laquelle vous
 vous êtes désabonné.
 
 ---
@@ -20893,7 +20990,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 208 scénarios, 1947 assertions |
+| `npm test` | le harnais Playwright : 208 scénarios, 1950 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -20914,12 +21011,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1798 Ko | 736 Ko | 4 423 → **2** |
+| `content.js` | 1799 Ko | 737 Ko | 4 423 → **2** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
-| `panneau.js` | 146 Ko | 74 Ko | 206 → **0** |
+| `panneau.js` | 148 Ko | 76 Ko | 207 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
 | `background.js` | 10 Ko | 2 Ko | 22 → **0** |
-| **les cinq** | **2093 Ko** | **917 Ko** | **−56 %** |
+| **les cinq** | **2096 Ko** | **918 Ko** | **−56 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
