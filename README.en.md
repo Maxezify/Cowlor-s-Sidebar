@@ -11989,7 +11989,7 @@ extension disabled, on `/subscriptions`.
 | no earlier retry | "2:<date>", nothing before the ordinary period |
 | one page per tab (no switching) | four loads instead of one |
 | the previous tab's cards accepted | two **expired** subscriptions gilded |
-| channel links not counted | "jenfirer Réabonnez-vous…" in the report |
+| channel links not counted | "jelvaine Réabonnez-vous…" in the report |
 | cards counted "at the highest" after a switch | "gifts · 3 card(s) · 1 channel(s)" — the previous tab, counted for the next |
 | the panel proof required from every tab | textless empty tabs sent to the guard |
 | stop at the first blank panel | the sweep stops one tab too early |

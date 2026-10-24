@@ -3438,11 +3438,11 @@ titre('42. Abonnements — le tri « mes abos en tête », sans une requête');
     window.__fx = {
       gros:      { id:'1', createdAt:h(120), viewers:9000, game:'Just Chatting', tags:[] },
       moyen:     { id:'2', createdAt:h(90),  viewers:4000, game:'Just Chatting', tags:[] },
-      omofficial:{ id:'3', createdAt:h(30),  viewers:120,  game:'Just Chatting', tags:[] },
+      omvaldiane:{ id:'3', createdAt:h(30),  viewers:120,  game:'Just Chatting', tags:[] },
     };
     window.__addCard('gros',       'Just Chatting', '9 k');
     window.__addCard('moyen',      'Just Chatting', '4 k');
-    window.__addCard('omofficial', 'Just Chatting', '120');
+    window.__addCard('omvaldiane', 'Just Chatting', '120');
   });
   const boutons = (page) => page.evaluate(() =>
     [...document.querySelectorAll('#tse-sort-row button[data-tse-sort-mode]')]
@@ -3470,7 +3470,7 @@ titre('42. Abonnements — le tri « mes abos en tête », sans une requête');
 
   // ── b) sur la page d'une chaîne abonnée, l'extension le relève ──────────
   {
-    const page = await freshTwitch(PLAYER, [], '/omofficial', SANS_PAGE);
+    const page = await freshTwitch(PLAYER, [], '/omvaldiane', SANS_PAGE);
     await decor(page);
     // Le marqueur MESURÉ sur Twitch : abonné → data-a-target="manage-sub-button".
     await page.evaluate(() => {
@@ -3485,8 +3485,8 @@ titre('42. Abonnements — le tri « mes abos en tête », sans une requête');
       try { return JSON.parse(localStorage.getItem('tse:subs') || 'null'); }
       catch { return 'illisible'; }
     });
-    ok('l\'abonnement est mémorisé', !!memoire?.omofficial, JSON.stringify(memoire));
-    ok('avec l\'état « abonné »', memoire?.omofficial?.[0] === 1, JSON.stringify(memoire));
+    ok('l\'abonnement est mémorisé', !!memoire?.omvaldiane, JSON.stringify(memoire));
+    ok('avec l\'état « abonné »', memoire?.omvaldiane?.[0] === 1, JSON.stringify(memoire));
 
     // LE point qui justifie toute cette voie : aucune requête n'a été émise
     // pour l'obtenir. Le statut a été LU sur la page, pas demandé au réseau.
@@ -3500,12 +3500,12 @@ titre('42. Abonnements — le tri « mes abos en tête », sans une requête');
     ok('le bouton s\'active une fois un abonnement connu',
        b.find(x => x.mode === 'subs')?.off === false, JSON.stringify(b));
     ok('avant le tri, l\'abonné est bon dernier',
-       (await ordre(page)).at(-1) === 'omofficial', (await ordre(page)).join(','));
+       (await ordre(page)).at(-1) === 'omvaldiane', (await ordre(page)).join(','));
     await page.evaluate(() =>
       document.querySelector('#tse-sort-row [data-tse-sort-mode="subs"]').click());
     await wait(page, 900);
     const apres = await ordre(page);
-    ok('après le tri, il passe en tête', apres[0] === 'omofficial', apres.join(','));
+    ok('après le tri, il passe en tête', apres[0] === 'omvaldiane', apres.join(','));
     ok('et les autres gardent l\'ordre par spectateurs',
        apres.slice(1).join(',') === 'gros,moyen', apres.join(','));
 
@@ -3521,7 +3521,7 @@ titre('42. Abonnements — le tri « mes abos en tête », sans une requête');
     const apresDesabo = await page.evaluate(() =>
       JSON.parse(localStorage.getItem('tse:subs') || 'null'));
     ok('le désabonnement est enregistré à la visite suivante',
-       apresDesabo?.omofficial?.[0] === 0, JSON.stringify(apresDesabo));
+       apresDesabo?.omvaldiane?.[0] === 0, JSON.stringify(apresDesabo));
     await page.close();
   }
 
@@ -3531,7 +3531,7 @@ titre('42. Abonnements — le tri « mes abos en tête », sans une requête');
       const el = document.querySelector('#tse-sort-row [data-tse-sort-mode="subs"] .tse-sort-count');
       return el ? el.textContent : null;
     });
-    const page = await freshTwitch(PLAYER, [], '/omofficial', SANS_PAGE);
+    const page = await freshTwitch(PLAYER, [], '/omvaldiane', SANS_PAGE);
     await decor(page);
     await wait(page, 1500);
     ok('aucune pastille tant qu\'aucun abonnement n\'est connu',
@@ -3611,8 +3611,8 @@ titre('43. Abonnements — la liste complète, lue dans une iframe');
   const page = await freshTwitch(PLAYER, [], '/');
   await page.evaluate(() => {
     const h = new Date(Date.now() - 60 * 60_000).toISOString();
-    window.__fx = { omofficial: { id:'1', createdAt:h, viewers:500, game:'G', tags:[] } };
-    window.__addCard('omofficial', 'G', '500');
+    window.__fx = { omvaldiane: { id:'1', createdAt:h, viewers:500, game:'G', tags:[] } };
+    window.__addCard('omvaldiane', 'G', '500');
   });
   // Le relevé part PENDANT le chargement, et non après un délai : à 250 ms
   // l'iframe est déjà en place, alors que la page de test ne rendra ses
@@ -3635,12 +3635,12 @@ titre('43. Abonnements — la liste complète, lue dans une iframe');
   // 120 jours quelqu'un qu'on ne l'est plus.
   const abonnes = Object.entries(m || {}).filter(([, v]) => v[0] === 1).map(([k]) => k).sort();
   ok('les cinq abonnements des trois onglets sont relevés',
-     abonnes.join(',') === 'clem_mlrt,etoiles,omofficial,roicheese,zerator', JSON.stringify(abonnes));
+     abonnes.join(',') === 'clovo_mrt,etorvyn,omvaldiane,roivandre,zervane', JSON.stringify(abonnes));
   ok('Turbo n\'est pas lu', !trouves.includes('jamais_turbo'), JSON.stringify(trouves));
   // Les EXPIRÉS entrent en mémoire — c'est ce qui nourrit « anciennement
   // abonné » — mais jamais comme des abonnements en cours.
   ok('les expirés sont mémorisés sans être comptés pour abonnés',
-     trouves.includes('jenfirer') && !abonnes.includes('jenfirer'), JSON.stringify(trouves));
+     trouves.includes('jelvaine') && !abonnes.includes('jelvaine'), JSON.stringify(trouves));
   ok('et tous marqués « abonné »',
      abonnes.length === 5, JSON.stringify(m));
 
@@ -3715,8 +3715,8 @@ titre('44. Abonnements — le relevé part avec la sidebar, pas avec un minuteur
     // le même instant : seule la nature de la carte a changé.
     await page.evaluate(() => {
       const h = new Date(Date.now() - 60 * 60_000).toISOString();
-      window.__fx.omofficial = { id: '1', createdAt: h, viewers: 500, game: 'G', tags: [] };
-      window.__addCard('omofficial', 'G', '500');
+      window.__fx.omvaldiane = { id: '1', createdAt: h, viewers: 500, game: 'G', tags: [] };
+      window.__addCard('omvaldiane', 'G', '500');
     });
     await wait(page, 300);
     ok('la première carte suivie déclenche le relevé', (await cadres(page)) === 1,
@@ -3725,7 +3725,7 @@ titre('44. Abonnements — le relevé part avec la sidebar, pas avec un minuteur
     const su = await page.evaluate(() => Object.keys(
       JSON.parse(localStorage.getItem('tse:subs') || '{}')).sort().join(','));
     ok('et il aboutit',
-       su === 'antoinedaniel,clem_mlrt,etoiles,jenfirer,omofficial,roicheese,zerator', su);
+       su === 'ansevaldorine,clovo_mrt,etorvyn,jelvaine,omvaldiane,roivandre,zervane', su);
     await page.close();
   }
 
@@ -3738,8 +3738,8 @@ titre('44. Abonnements — le relevé part avec la sidebar, pas avec un minuteur
     const page = await freshTwitch(PLAYER, [], '/', LENT);
     await page.evaluate(() => {
       const h = new Date(Date.now() - 60 * 60_000).toISOString();
-      window.__fx = { omofficial: { id: '1', createdAt: h, viewers: 500, game: 'G', tags: [] } };
-      window.__addCard('omofficial', 'G', '500');
+      window.__fx = { omvaldiane: { id: '1', createdAt: h, viewers: 500, game: 'G', tags: [] } };
+      window.__addCard('omvaldiane', 'G', '500');
     });
     // Sans retenue, le voile se lève dès la sidebar stable, ~350 ms après le
     // premier scan. Avec, il va jusqu'à son délai dur (1,2 s dans le harnais).
@@ -3774,7 +3774,7 @@ titre('44. Abonnements — le relevé part avec la sidebar, pas avec un minuteur
     const TIEDE = () => {
       try {
         localStorage.setItem('tse:subs',
-          JSON.stringify({ omofficial: [1, Date.now()] }));
+          JSON.stringify({ omvaldiane: [1, Date.now()] }));
         // Un démarrage TIÈDE, c'est un relevé qui a DÉJÀ abouti : son
         // horodatage est là, au format du lecteur courant. C'est lui, et non
         // la présence d'abonnements, qui dit qu'il n'y a rien à attendre.
@@ -3787,8 +3787,8 @@ titre('44. Abonnements — le relevé part avec la sidebar, pas avec un minuteur
     const page = await freshTwitch(PLAYER, [], '/', TIEDE);
     await page.evaluate(() => {
       const h = new Date(Date.now() - 60 * 60_000).toISOString();
-      window.__fx = { omofficial: { id: '1', createdAt: h, viewers: 500, game: 'G', tags: [] } };
-      window.__addCard('omofficial', 'G', '500');
+      window.__fx = { omvaldiane: { id: '1', createdAt: h, viewers: 500, game: 'G', tags: [] } };
+      window.__addCard('omvaldiane', 'G', '500');
     });
     // On observe le VERROU, pas l'instant où le voile se lève. Le relevé fait
     // démarrer plusieurs pages en arrière-plan ; sous cette charge, le voile
@@ -3827,7 +3827,7 @@ titre('45. Abonnements — le tri se grise quand aucun abonné n\'émet');
     window.__noSubsPage = true;
     try {
       localStorage.setItem('tse:subs', JSON.stringify({
-        omofficial: [1, Date.now()],
+        omvaldiane: [1, Date.now()],
         absente:    [1, Date.now()],
       }));
     } catch { /* stockage refusé : le test échouera, et c'est correct */ }
@@ -3864,8 +3864,8 @@ titre('45. Abonnements — le tri se grise quand aucun abonné n\'émet');
     // précédentes — le grisé vient bien de l'antenne, pas de la mémoire.
     await page.evaluate(() => {
       const h = new Date(Date.now() - 60 * 60_000).toISOString();
-      window.__fx.omofficial = { id: '1', createdAt: h, viewers: 500, game: 'G', tags: [] };
-      window.__addCard('omofficial', 'G', '500');
+      window.__fx.omvaldiane = { id: '1', createdAt: h, viewers: 500, game: 'G', tags: [] };
+      window.__addCard('omvaldiane', 'G', '500');
     });
     await wait(page, 1200);
     const c = await bouton(page);
@@ -3879,9 +3879,9 @@ titre('45. Abonnements — le tri se grise quand aucun abonné n\'émet');
     // Puis il s'éteint. Twitch garde la carte quelques minutes ; l'extension,
     // elle, l'a déjà marquée hors ligne — et le tri redevient sans objet.
     await page.evaluate(() => {
-      window.__fx.omofficial = null;
+      window.__fx.omvaldiane = null;
       const c2 = [...document.querySelectorAll('.side-nav-card')]
-        .find(x => x.dataset.tseLogin === 'omofficial');
+        .find(x => x.dataset.tseLogin === 'omvaldiane');
       c2.querySelector('.side-nav-card__avatar').classList.add('side-nav-card__avatar--offline');
     });
     await wait(page, 1500);
@@ -3932,8 +3932,8 @@ titre('46. Abonnements — un onglet vide ne coûte pas le garde-fou');
   const page = await freshTwitch(PLAYER, [], '/', VIDES);
   await page.evaluate(() => {
     const h = new Date(Date.now() - 60 * 60_000).toISOString();
-    window.__fx = { omofficial: { id: '1', createdAt: h, viewers: 500, game: 'G', tags: [] } };
-    window.__addCard('omofficial', 'G', '500');
+    window.__fx = { omvaldiane: { id: '1', createdAt: h, viewers: 500, game: 'G', tags: [] } };
+    window.__addCard('omvaldiane', 'G', '500');
   });
   const debut = Date.now();
   // LE point de la levée anticipée : l'onglet peuplé rentre vite, les deux
@@ -3962,7 +3962,7 @@ titre('46. Abonnements — un onglet vide ne coûte pas le garde-fou');
   const trouves = await page.evaluate(() => Object.keys(
     JSON.parse(localStorage.getItem('tse:subs') || '{}')).sort().join(','));
   ok('l\'onglet peuplé est relevé quand même',
-     trouves === 'antoinedaniel,etoiles,jenfirer,omofficial,roicheese', trouves);
+     trouves === 'ansevaldorine,etorvyn,jelvaine,omvaldiane,roivandre', trouves);
   /* ── CE QUI SE MESURAIT EN DURÉE SE MESURE EN FAITS ─────────────────────
      Cette assertion bornait le relevé à 11 s, et la borne était juste tant que
      les onglets partaient ENSEMBLE — 5,2 s mesurées, 15 s sans l'apaisement.
@@ -3996,8 +3996,8 @@ titre('46. Abonnements — un onglet vide ne coûte pas le garde-fou');
   const pm = await freshTwitch(PLAYER, [], '/', MUETS);
   await pm.evaluate(() => {
     const h = new Date(Date.now() - 60 * 60_000).toISOString();
-    window.__fx = { omofficial: { id: '1', createdAt: h, viewers: 500, game: 'G', tags: [] } };
-    window.__addCard('omofficial', 'G', '500');
+    window.__fx = { omvaldiane: { id: '1', createdAt: h, viewers: 500, game: 'G', tags: [] } };
+    window.__addCard('omvaldiane', 'G', '500');
   });
   await attendre(pm, () => !!localStorage.getItem('tse:substs'), 30_000);
   const muets = await pm.evaluate(() =>
@@ -4014,17 +4014,17 @@ titre('47. Tri — le mode choisi revient quand il redevient possible');
   const MEMOIRE = () => {
     window.__noSubsPage = true;
     try {
-      localStorage.setItem('tse:subs', JSON.stringify({ omofficial: [1, Date.now()] }));
+      localStorage.setItem('tse:subs', JSON.stringify({ omvaldiane: [1, Date.now()] }));
     } catch { /* stockage refusé : le test échouera, et c'est correct */ }
   };
   const page = await freshTwitch(PLAYER, [], '/', MEMOIRE);
   await page.evaluate(() => {
     const h = new Date(Date.now() - 60 * 60_000).toISOString();
     window.__fx = {
-      omofficial: { id: '1', createdAt: h, viewers: 100, game: 'G', tags: [] },
+      omvaldiane: { id: '1', createdAt: h, viewers: 100, game: 'G', tags: [] },
       autre:      { id: '2', createdAt: h, viewers: 900, game: 'G', tags: [] },
     };
-    window.__addCard('omofficial', 'G', '100');
+    window.__addCard('omvaldiane', 'G', '100');
     window.__addCard('autre', 'G', '900');
   });
   await wait(page, 1500);
@@ -4042,9 +4042,9 @@ titre('47. Tri — le mode choisi revient quand il redevient possible');
   // Le seul abonné s'éteint. Le tri n'a plus rien à faire : il retombe sur
   // « spectateurs », et le bouton se grise.
   await page.evaluate(() => {
-    window.__fx.omofficial = null;
+    window.__fx.omvaldiane = null;
     [...document.querySelectorAll('.side-nav-card')]
-      .find(c => c.dataset.tseLogin === 'omofficial')
+      .find(c => c.dataset.tseLogin === 'omvaldiane')
       .querySelector('.side-nav-card__avatar').classList.add('side-nav-card__avatar--offline');
   });
   await wait(page, 1500);
@@ -4056,8 +4056,8 @@ titre('47. Tri — le mode choisi revient quand il redevient possible');
   // perdu un réglage parce qu'un streamer avait éteint quelques minutes.
   await page.evaluate(() => {
     const h = new Date(Date.now() - 60 * 60_000).toISOString();
-    window.__fx.omofficial = { id: '1', createdAt: h, viewers: 100, game: 'G', tags: [] };
-    window.__goLive('omofficial');
+    window.__fx.omvaldiane = { id: '1', createdAt: h, viewers: 100, game: 'G', tags: [] };
+    window.__goLive('omvaldiane');
   });
   await wait(page, 1800);
   ok('il revient : le tri choisi revient aussi', (await mode()) === 'subs', String(await mode()));
@@ -4071,42 +4071,42 @@ titre('48. Abonnements — l\'ancienneté, lue sans lire le français');
   await page.evaluate(() => {
     const h = new Date(Date.now() - 60 * 60_000).toISOString();
     window.__fx = {
-      omofficial: { id: '1', createdAt: h, viewers: 500, game: 'G', tags: [] },
-      roicheese:  { id: '2', createdAt: h, viewers: 400, game: 'G', tags: [] },
+      omvaldiane: { id: '1', createdAt: h, viewers: 500, game: 'G', tags: [] },
+      roivandre:  { id: '2', createdAt: h, viewers: 400, game: 'G', tags: [] },
     };
-    window.__addCard('omofficial', 'G', '500');
-    window.__addCard('roicheese', 'G', '400');
+    window.__addCard('omvaldiane', 'G', '500');
+    window.__addCard('roivandre', 'G', '400');
   });
   await attendre(page, () => !!localStorage.getItem('tse:substs'));
   await wait(page, 400);
   const mem = await page.evaluate(() =>
     JSON.parse(localStorage.getItem('tse:subs') || '{}'));
 
-  // LE point du scénario. La carte payante de « roicheese » porte QUATRE
+  // LE point du scénario. La carte payante de « roivandre » porte QUATRE
   // nombres : 9 jours avant l'anniversaire, 4 mois au total, 3 mois à la
   // suite, une date d'expiration. Prendre le premier venu donnerait 9 ;
   // prendre le dernier « N mois » donnerait 3. Seule l'étiquette — apprise
   // sur une carte expirée, où elle est seule — donne 4.
   ok('l\'ancienneté totale est lue, pas le compte à rebours',
-     mem.roicheese?.[2] === 4, JSON.stringify(mem.roicheese));
-  ok('ni la série en cours', mem.roicheese?.[2] !== 3, JSON.stringify(mem.roicheese));
+     mem.roivandre?.[2] === 4, JSON.stringify(mem.roivandre));
+  ok('ni la série en cours', mem.roivandre?.[2] !== 3, JSON.stringify(mem.roivandre));
   ok('un abonnement d\'un mois est lu comme tel',
-     mem.omofficial?.[2] === 1, JSON.stringify(mem.omofficial));
+     mem.omvaldiane?.[2] === 1, JSON.stringify(mem.omvaldiane));
 
   // Les cartes expirées, elles, n'ont qu'une paire : c'est ce qui les rend
   // enseignables. On vérifie qu'elles sont relevées, et marquées « ancien ».
   ok('un ancien abonnement porte son ancienneté',
-     mem.antoinedaniel?.[2] === 29, JSON.stringify(mem.antoinedaniel));
+     mem.ansevaldorine?.[2] === 29, JSON.stringify(mem.ansevaldorine));
   ok('et la marque « ancien abonné »',
-     mem.antoinedaniel?.[3] === 1, JSON.stringify(mem.antoinedaniel));
+     mem.ansevaldorine?.[3] === 1, JSON.stringify(mem.ansevaldorine));
   ok('sans être compté comme abonné en cours',
-     mem.antoinedaniel?.[0] === 0, JSON.stringify(mem.antoinedaniel));
+     mem.ansevaldorine?.[0] === 0, JSON.stringify(mem.ansevaldorine));
 
-  // Le réabonnement : « etoiles » figure dans les expirés ET dans les payants.
+  // Le réabonnement : « etorvyn » figure dans les expirés ET dans les payants.
   // La lecture des expirés ne doit pas dégrader un abonnement en cours — et
   // c'est bien pour ça qu'elle ne touche jamais à l'état d'abonnement.
-  ok('une chaîne réabonnée reste abonnée', mem.etoiles?.[0] === 1, JSON.stringify(mem.etoiles));
-  ok('avec son ancienneté', mem.etoiles?.[2] === 12, JSON.stringify(mem.etoiles));
+  ok('une chaîne réabonnée reste abonnée', mem.etorvyn?.[0] === 1, JSON.stringify(mem.etorvyn));
+  ok('avec son ancienneté', mem.etorvyn?.[2] === 12, JSON.stringify(mem.etorvyn));
 
   // L'ancienneté survit à une observation de visite, qui vient d'une AUTRE
   // source et n'a rien à dire sur le nombre de mois.
@@ -4114,13 +4114,13 @@ titre('48. Abonnements — l\'ancienneté, lue sans lire le français');
     const b = document.createElement('button');
     b.setAttribute('data-a-target', 'manage-sub-button');
     document.body.appendChild(b);
-    history.pushState({}, '', '/roicheese');
+    history.pushState({}, '', '/roivandre');
   });
   await wait(page, 800);
   const apres = await page.evaluate(() =>
     JSON.parse(localStorage.getItem('tse:subs') || '{}'));
   ok('une visite n\'efface pas l\'ancienneté',
-     apres.roicheese?.[2] === 4, JSON.stringify(apres.roicheese));
+     apres.roivandre?.[2] === 4, JSON.stringify(apres.roivandre));
   await page.close();
 }
 
@@ -4135,17 +4135,17 @@ titre('49. Abonnements — une liste qui s\'écrit par morceaux');
   const page = await freshTwitch(PLAYER, [], '/', MORCEAUX);
   await page.evaluate(() => {
     const h = new Date(Date.now() - 60 * 60_000).toISOString();
-    window.__fx = { roicheese: { id: '2', createdAt: h, viewers: 400, game: 'G', tags: [] } };
-    window.__addCard('roicheese', 'G', '400');
+    window.__fx = { roivandre: { id: '2', createdAt: h, viewers: 400, game: 'G', tags: [] } };
+    window.__addCard('roivandre', 'G', '400');
   });
   await attendre(page, () => !!localStorage.getItem('tse:substs'), 20_000);
   await wait(page, 400);
   const mem = await page.evaluate(() => JSON.parse(localStorage.getItem('tse:subs') || '{}'));
   ok('les chaînes sont relevées malgré le rendu en deux temps',
-     mem.roicheese?.[0] === 1, JSON.stringify(mem.roicheese));
-  ok('et leur ancienneté aussi', mem.roicheese?.[2] === 4, JSON.stringify(mem.roicheese));
+     mem.roivandre?.[0] === 1, JSON.stringify(mem.roivandre));
+  ok('et leur ancienneté aussi', mem.roivandre?.[2] === 4, JSON.stringify(mem.roivandre));
   ok('y compris celle apprise sur les expirés',
-     mem.antoinedaniel?.[2] === 29, JSON.stringify(mem.antoinedaniel));
+     mem.ansevaldorine?.[2] === 29, JSON.stringify(mem.ansevaldorine));
   await page.close();
 }
 
@@ -4163,13 +4163,13 @@ titre('49. Abonnements — une liste qui s\'écrit par morceaux');
   const page = await freshTwitch(PLAYER, [], '/', VIEUX);
   await page.evaluate(() => {
     const h = new Date(Date.now() - 60 * 60_000).toISOString();
-    window.__fx = { roicheese: { id: '2', createdAt: h, viewers: 400, game: 'G', tags: [] } };
-    window.__addCard('roicheese', 'G', '400');
+    window.__fx = { roivandre: { id: '2', createdAt: h, viewers: 400, game: 'G', tags: [] } };
+    window.__addCard('roivandre', 'G', '400');
   });
   await attendre(page, () => /^2:/.test(localStorage.getItem('tse:substs') || ''), 20_000);
   const mem = await page.evaluate(() => JSON.parse(localStorage.getItem('tse:subs') || '{}'));
   ok('un relevé d\'un lecteur antérieur ne bloque pas la correction',
-     mem.roicheese?.[2] === 4, JSON.stringify(mem.roicheese));
+     mem.roivandre?.[2] === 4, JSON.stringify(mem.roivandre));
   ok('et le nouvel horodatage porte son numéro de lecteur',
      /^2:\d+$/.test(await page.evaluate(() => localStorage.getItem('tse:substs'))),
      await page.evaluate(() => localStorage.getItem('tse:substs')));
@@ -4192,15 +4192,15 @@ titre('49. Abonnements — une liste qui s\'écrit par morceaux');
   const CONNUS_MAIS_PERIMES = () => {
     window.__subsDelay = 500;
     try {
-      localStorage.setItem('tse:subs', JSON.stringify({ roicheese: [1, Date.now()] }));
+      localStorage.setItem('tse:subs', JSON.stringify({ roivandre: [1, Date.now()] }));
       localStorage.setItem('tse:substs', String(Date.now()));   // format sans lecteur
     } catch { /* stockage refusé : le test échouera, et c'est correct */ }
   };
   const page = await freshTwitch(PLAYER, [], '/', CONNUS_MAIS_PERIMES);
   await page.evaluate(() => {
     const h = new Date(Date.now() - 60 * 60_000).toISOString();
-    window.__fx = { roicheese: { id: '2', createdAt: h, viewers: 400, game: 'G', tags: [] } };
-    window.__addCard('roicheese', 'G', '400');
+    window.__fx = { roivandre: { id: '2', createdAt: h, viewers: 400, game: 'G', tags: [] } };
+    window.__addCard('roivandre', 'G', '400');
   });
   await attendre(page, () => window.__voileLeve !== null, 8000);
   const leve = await page.evaluate(() => window.__voileLeve);
@@ -4216,12 +4216,12 @@ titre('50. Aperçu — le badge d\'abonnement');
   await page.evaluate(() => {
     const h = new Date(Date.now() - 60 * 60_000).toISOString();
     window.__fx = {
-      roicheese:     { id: '2', createdAt: h, viewers: 400, game: 'G', tags: [] },
-      antoinedaniel: { id: '3', createdAt: h, viewers: 300, game: 'G', tags: [] },
+      roivandre:     { id: '2', createdAt: h, viewers: 400, game: 'G', tags: [] },
+      ansevaldorine: { id: '3', createdAt: h, viewers: 300, game: 'G', tags: [] },
       inconnue:      { id: '4', createdAt: h, viewers: 200, game: 'G', tags: [] },
     };
-    window.__addCard('roicheese', 'G', '400');
-    window.__addCard('antoinedaniel', 'G', '300');
+    window.__addCard('roivandre', 'G', '400');
+    window.__addCard('ansevaldorine', 'G', '300');
     window.__addCard('inconnue', 'G', '200');
   });
   await attendre(page, () => !!localStorage.getItem('tse:substs'));
@@ -4239,14 +4239,14 @@ titre('50. Aperçu — le badge d\'abonnement');
     return b;
   };
 
-  const abo = await badge('roicheese');
+  const abo = await badge('roivandre');
   /* Et son échéance à la suite, depuis la 4.20.0 (cf. scénario 158). */
   ok('un abonnement en cours affiche sa durée',
      abo?.texte === 'Abonné • 4 MOIS • Prochain anniversaire dans 9 jours', JSON.stringify(abo));
   ok('avec la teinte « abonné »',
      (abo?.classe || '').includes('--sub'), JSON.stringify(abo));
 
-  const ancien = await badge('antoinedaniel');
+  const ancien = await badge('ansevaldorine');
   ok('un ancien abonnement le dit, au passé',
      ancien?.texte === 'Ancien abonné • 29 MOIS', JSON.stringify(ancien));
   ok('avec sa propre teinte, désaturée',
@@ -4306,11 +4306,11 @@ titre('51. Abonnements — la carte d\'une chaîne abonnée');
   await page.evaluate(() => {
     const h = new Date(Date.now() - 60 * 60_000).toISOString();
     window.__fx = {
-      omofficial: { id: '1', createdAt: h, viewers: 500, game: 'G', tags: [] },
+      omvaldiane: { id: '1', createdAt: h, viewers: 500, game: 'G', tags: [] },
       inconnue:   { id: '2', createdAt: h, viewers: 900, game: 'G', tags: [] },
-      etoiles:    { id: '3', createdAt: h, viewers: 700, game: 'G', tags: [] },
+      etorvyn:    { id: '3', createdAt: h, viewers: 700, game: 'G', tags: [] },
     };
-    window.__addCard('omofficial', 'G', '500');
+    window.__addCard('omvaldiane', 'G', '500');
     window.__addCard('inconnue', 'G', '900');
     /* UNE TROISIÈME CARTE, ABONNÉE ET SANS LE CROCHET DE TWITCH. L'or du nom
        était écrit pour p[data-a-target=side-nav-title] : sur une carte décorée
@@ -4318,9 +4318,9 @@ titre('51. Abonnements — la carte d\'une chaîne abonnée');
        d'une telle carte — il ne s'appliquait pas, en silence. Personne ne l'a
        signalé ; c'est un audit qui l'a trouvé, en recensant ce qui dépendait
        encore de ce crochet. */
-    window.__addCard('etoiles', 'G', '700');
+    window.__addCard('etorvyn', 'G', '700');
     [...document.querySelectorAll('.side-nav-card')]
-      .find(c => c.querySelector('a[href="/etoiles"]'))
+      .find(c => c.querySelector('a[href="/etorvyn"]'))
       .querySelector('p[data-a-target="side-nav-title"]')
       .removeAttribute('data-a-target');
   });
@@ -4366,9 +4366,9 @@ titre('51. Abonnements — la carte d\'une chaîne abonnée');
     };
   }, login);
 
-  const abo = await marque('omofficial');
+  const abo = await marque('omvaldiane');
   const non = await marque('inconnue');
-  const sansCrochet = await marque('etoiles');
+  const sansCrochet = await marque('etorvyn');
   ok('la chaîne abonnée porte la marque', abo && abo.classe === true, JSON.stringify(abo));
   ok('la chaîne non abonnée ne la porte pas', non && non.classe === false, JSON.stringify(non));
   // La décoration EXISTE vraiment côté rendu : deux animations nommées sur le
@@ -4418,7 +4418,7 @@ titre('51. Abonnements — la carte d\'une chaîne abonnée');
   ok('la catégorie est marquée par la fonction de référence',
      await page.evaluate(() => {
        const c = [...document.querySelectorAll('.side-nav-card')]
-         .find(x => x.dataset.tseLogin === 'omofficial');
+         .find(x => x.dataset.tseLogin === 'omvaldiane');
        const marque = c.querySelectorAll('.tse-sub-cat');
        return marque.length === 1 && marque[0].textContent === 'G';
      }));
@@ -4446,7 +4446,7 @@ titre('51. Abonnements — la carte d\'une chaîne abonnée');
     if (b) b.click();
   });
   await wait(page, 400);
-  const apresTri = await marque('omofficial');
+  const apresTri = await marque('omvaldiane');
   ok('et ne bouge pas quand le tri change', apresTri.phase === avant,
      avant + ' -> ' + apresTri.phase);
   ok('la marque non plus', apresTri.classe === true, JSON.stringify(apresTri));
@@ -4459,9 +4459,9 @@ titre('51. Abonnements — la carte d\'une chaîne abonnée');
      sur la différence entre deux relevés, et retombe dès qu'une seule règle
      réduite reparaît — y compris une règle qu'on n'aurait pas pensé à
      interroger ici. Supprimer les assertions aurait laissé le trou ouvert. */
-  const libre = await marque('omofficial');
+  const libre = await marque('omvaldiane');
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  const calme = await marque('omofficial');
+  const calme = await marque('omvaldiane');
   const bouge = ['anim', 'nomAnim', 'catAnim', 'avatar', 'avSouffle',
                  'nomDuree', 'catDuree', 'pointeur', 'plan'];
   const ecarts = bouge.filter((k) => calme[k] !== libre[k]);
@@ -4485,8 +4485,8 @@ titre('51. Abonnements — la carte d\'une chaîne abonnée');
   // d'une chaîne à l'autre, et une marque oubliée décorerait un inconnu.
   await page.evaluate(() => {
     const c = [...document.querySelectorAll('.side-nav-card')]
-      .find(x => x.dataset.tseLogin === 'omofficial');
-    c.querySelector('a[href="/omofficial"]').setAttribute('href', '/recyclee');
+      .find(x => x.dataset.tseLogin === 'omvaldiane');
+    c.querySelector('a[href="/omvaldiane"]').setAttribute('href', '/recyclee');
   });
   await wait(page, 600);
   const recyclee = await marque('recyclee');
@@ -4520,8 +4520,8 @@ titre('53. Abonnements — une seule page par relevé, l\'étiquette est retenue
   const PLAYER = '<!doctype html><html><body>x</body></html>';
   const poser = (page) => page.evaluate(() => {
     const h = new Date(Date.now() - 60 * 60_000).toISOString();
-    window.__fx = { roicheese: { id: '2', createdAt: h, viewers: 400, game: 'G', tags: [] } };
-    window.__addCard('roicheese', 'G', '400');
+    window.__fx = { roivandre: { id: '2', createdAt: h, viewers: 400, game: 'G', tags: [] } };
+    window.__addCard('roivandre', 'G', '400');
   });
   /* Nombre maximal d'iframes /subscriptions coexistant pendant tout le relevé,
      relevé jusqu'à l'horodatage. */
@@ -4540,7 +4540,7 @@ titre('53. Abonnements — une seule page par relevé, l\'étiquette est retenue
              bascule: r.bascule,
              mem: JSON.parse(localStorage.getItem('tse:subs') || '{}') };
   });
-  const COURANTS = 'clem_mlrt,etoiles,omofficial,roicheese,zerator';
+  const COURANTS = 'clovo_mrt,etorvyn,omvaldiane,roivandre,zervane';
   const abonnes = (mem) => Object.entries(mem).filter(([, v]) => v[0] === 1)
     .map(([k]) => k).sort().join(',');
 
@@ -4592,8 +4592,8 @@ titre('53. Abonnements — une seule page par relevé, l\'étiquette est retenue
        && vu.chargements === 1, JSON.stringify(vu));
     await wait(page, 400);
     const mem = await page.evaluate(() => JSON.parse(localStorage.getItem('tse:subs') || '{}'));
-    ok('et l\'ancienneté est lue quand même', mem.roicheese?.[2] === 4,
-       JSON.stringify(mem.roicheese));
+    ok('et l\'ancienneté est lue quand même', mem.roivandre?.[2] === 4,
+       JSON.stringify(mem.roivandre));
     await page.close();
   }
 
@@ -4746,8 +4746,8 @@ titre('53. Abonnements — une seule page par relevé, l\'étiquette est retenue
        && vu.lus.join(' ') === 'paid:page gifts:bascule refusée gifts:page mobile:page expired:page',
        JSON.stringify({ bascule: vu.bascule, lus: vu.lus }));
     ok('…et chaque chaîne garde son origine',
-       vu.mem.zerator?.[4] === 'mobile' && vu.mem.clem_mlrt?.[4] === 'gifts',
-       JSON.stringify({ zerator: vu.mem.zerator, clem_mlrt: vu.mem.clem_mlrt }));
+       vu.mem.zervane?.[4] === 'mobile' && vu.mem.clovo_mrt?.[4] === 'gifts',
+       JSON.stringify({ zervane: vu.mem.zervane, clovo_mrt: vu.mem.clovo_mrt }));
     await page.close();
   }
 }
@@ -4759,12 +4759,12 @@ titre('54. Abonnements — l\'origine est retenue, la teinte reste l\'or');
   await page.evaluate(() => {
     const h = new Date(Date.now() - 60 * 60_000).toISOString();
     window.__fx = {
-      omofficial: { id: '1', createdAt: h, viewers: 500, game: 'G', tags: [] },  // payant
-      clem_mlrt:  { id: '5', createdAt: h, viewers: 150, game: 'G', tags: [] },  // offert
-      zerator:    { id: '6', createdAt: h, viewers: 840, game: 'G', tags: [] },  // mobile
+      omvaldiane: { id: '1', createdAt: h, viewers: 500, game: 'G', tags: [] },  // payant
+      clovo_mrt:  { id: '5', createdAt: h, viewers: 150, game: 'G', tags: [] },  // offert
+      zervane:    { id: '6', createdAt: h, viewers: 840, game: 'G', tags: [] },  // mobile
       inconnue:   { id: '4', createdAt: h, viewers: 900, game: 'G', tags: [] },
     };
-    for (const l of ['omofficial', 'clem_mlrt', 'zerator', 'inconnue']) {
+    for (const l of ['omvaldiane', 'clovo_mrt', 'zervane', 'inconnue']) {
       window.__addCard(l, 'G', '100');
     }
   });
@@ -4775,14 +4775,14 @@ titre('54. Abonnements — l\'origine est retenue, la teinte reste l\'or');
   // L'origine est le CINQUIÈME champ de la forme compacte. Aucune interface ne
   // s'en sert — la teinte par origine a été essayée puis retirée — mais elle
   // est relevée sans requête supplémentaire et tse.subs() la montre.
-  ok('l\'onglet d\'origine est mémorisé', mem.omofficial?.[4] === 'paid',
-     JSON.stringify(mem.omofficial));
-  ok('un abonnement offert le sait', mem.clem_mlrt?.[4] === 'gifts', JSON.stringify(mem.clem_mlrt));
-  ok('un abonnement mobile aussi', mem.zerator?.[4] === 'mobile', JSON.stringify(mem.zerator));
-  ok('les expirés ne posent pas d\'origine', !mem.antoinedaniel?.[4],
-     JSON.stringify(mem.antoinedaniel));
+  ok('l\'onglet d\'origine est mémorisé', mem.omvaldiane?.[4] === 'paid',
+     JSON.stringify(mem.omvaldiane));
+  ok('un abonnement offert le sait', mem.clovo_mrt?.[4] === 'gifts', JSON.stringify(mem.clovo_mrt));
+  ok('un abonnement mobile aussi', mem.zervane?.[4] === 'mobile', JSON.stringify(mem.zervane));
+  ok('les expirés ne posent pas d\'origine', !mem.ansevaldorine?.[4],
+     JSON.stringify(mem.ansevaldorine));
   ok('et tse.subs() la rend lisible',
-     (await page.evaluate(() => window.tse.subs().find(e => e.login === 'clem_mlrt')?.origine))
+     (await page.evaluate(() => window.tse.subs().find(e => e.login === 'clovo_mrt')?.origine))
        === 'gifts');
 
   // L'OR POUR TOUS, quelle que soit l'origine : c'est ce que l'interface dit.
@@ -4790,7 +4790,7 @@ titre('54. Abonnements — l\'origine est retenue, la teinte reste l\'or');
     const c = [...document.querySelectorAll('.side-nav-card')].find(x => x.dataset.tseLogin === l);
     return c ? getComputedStyle(c).getPropertyValue('--tse-sub-or').trim() : null;
   }, login);
-  const teintes = [await teinte('omofficial'), await teinte('clem_mlrt'), await teinte('zerator')];
+  const teintes = [await teinte('omvaldiane'), await teinte('clovo_mrt'), await teinte('zervane')];
   ok('les trois origines portent le même or', new Set(teintes).size === 1,
      JSON.stringify(teintes));
   ok('et c\'est bien de l\'or', /255,\s*196,\s*92/.test(teintes[0] || ''), String(teintes[0]));
@@ -4811,11 +4811,11 @@ titre('55. Abonnements — l\'anneau suit l\'avatar, quelle que soit sa forme');
     // Quatre cartes, quatre formes d'avatar. La dernière — hors du bloc
     // habituel ET sans <figure> — est celle qu'aucun sélecteur de la feuille
     // de style n'atteignait : c'est la quatrième branche de avatarOf().
-    window.__avatarNu = ['clem_mlrt', 'domingo'];
+    window.__avatarNu = ['clovo_mrt', 'domingo'];
     window.__avatarStories = ['hasanabi', 'domingo'];
     try {
       localStorage.setItem('tse:subs', JSON.stringify({
-        etoiles: [1, Date.now()], clem_mlrt: [1, Date.now()],
+        etorvyn: [1, Date.now()], clovo_mrt: [1, Date.now()],
         hasanabi: [1, Date.now()], domingo: [1, Date.now()],
       }));
     } catch { /* stockage refusé : le test échouera, et c'est correct */ }
@@ -4824,13 +4824,13 @@ titre('55. Abonnements — l\'anneau suit l\'avatar, quelle que soit sa forme');
   await page.evaluate(() => {
     const h = new Date(Date.now() - 60 * 60_000).toISOString();
     window.__fx = {
-      etoiles:   { id: '3', createdAt: h, viewers: 2600, game: 'G', tags: [] },
-      clem_mlrt: { id: '5', createdAt: h, viewers: 174,  game: 'G', tags: [] },
+      etorvyn:   { id: '3', createdAt: h, viewers: 2600, game: 'G', tags: [] },
+      clovo_mrt: { id: '5', createdAt: h, viewers: 174,  game: 'G', tags: [] },
       hasanabi:  { id: '7', createdAt: h, viewers: 29800, game: 'G', tags: [] },
       domingo:   { id: '8', createdAt: h, viewers: 14200, game: 'G', tags: [] },
     };
-    window.__addCard('etoiles', 'G', '2,6 k');
-    window.__addCard('clem_mlrt', 'G', '174');
+    window.__addCard('etorvyn', 'G', '2,6 k');
+    window.__addCard('clovo_mrt', 'G', '174');
     window.__addCard('hasanabi', 'G', '29,8 k');
     window.__addCard('domingo', 'G', '14,2 k');
   });
@@ -4856,8 +4856,8 @@ titre('55. Abonnements — l\'anneau suit l\'avatar, quelle que soit sa forme');
     };
   }, login);
 
-  const avecFigure = await anneau('etoiles');
-  const sansFigure = await anneau('clem_mlrt');
+  const avecFigure = await anneau('etorvyn');
+  const sansFigure = await anneau('clovo_mrt');
   const horsBloc  = await anneau('hasanabi');
   ok('le harnais sert bien trois formes différentes',
      avecFigure?.forme === 'figure' && sansFigure?.forme === 'div'
@@ -4891,8 +4891,8 @@ titre('55. Abonnements — l\'anneau suit l\'avatar, quelle que soit sa forme');
   // recyclée par React.
   await page.evaluate(() => {
     const c = [...document.querySelectorAll('.side-nav-card')]
-      .find(x => x.dataset.tseLogin === 'etoiles');
-    c.querySelector('a[href="/etoiles"]').setAttribute('href', '/recyclee');
+      .find(x => x.dataset.tseLogin === 'etorvyn');
+    c.querySelector('a[href="/etorvyn"]').setAttribute('href', '/recyclee');
   });
   await wait(page, 600);
   ok('et elle tombe quand la carte change de chaîne',
@@ -17890,8 +17890,8 @@ addEventListener('message', (e) => {
        exacte dans laquelle l'ancien garde-fou se taisait. */
     localStorage.clear();
     const h = new Date(Date.now() - 60 * 60_000).toISOString();
-    window.__fx = { omofficial: { id: '1', createdAt: h, viewers: 500, game: 'G', tags: [] } };
-    window.__addCard('omofficial', 'G', '500');
+    window.__fx = { omvaldiane: { id: '1', createdAt: h, viewers: 500, game: 'G', tags: [] } };
+    window.__addCard('omvaldiane', 'G', '500');
   };
   const relever = async (p) => {
     await p.evaluate(amorcer);
@@ -17933,7 +17933,7 @@ addEventListener('message', (e) => {
      rapport qui promet de n'en porter aucune — c'est ce que faisait la lecture
      de `main` jusqu'à la 4.19.1. On compte les liens de chaînes à la place, et
      ce nombre suffit à désigner le sélecteur. */
-  const NOMS = /omofficial|roicheese|etoiles|jenfirer|antoinedaniel|clem_mlrt|zerator/;
+  const NOMS = /omvaldiane|roivandre|etorvyn|jelvaine|ansevaldorine|clovo_mrt|zervane/;
   ok('…en désignant le sélecteur par les liens qu\'il n\'accroche pas',
      vu.erreurs.some((e) => /lien\(s\) de chaîne dans la page, aucun dans une carte/.test(e)),
      JSON.stringify(vu.erreurs));
@@ -19590,8 +19590,8 @@ addEventListener('message', (e) => {
   const ctx = await browser.newContext();
   const poser = (p) => p.evaluate(() => {
     const h = new Date(Date.now() - 60 * 60_000).toISOString();
-    window.__fx = { roicheese: { id: '2', createdAt: h, viewers: 400, game: 'G', tags: [] } };
-    window.__addCard('roicheese', 'G', '400');
+    window.__fx = { roivandre: { id: '2', createdAt: h, viewers: 400, game: 'G', tags: [] } };
+    window.__addCard('roivandre', 'G', '400');
   });
   try {
     const a = await ctx.newPage();
@@ -20496,8 +20496,8 @@ async function sousLeVoileDuDemarrage(poser) {
   const page = await freshTwitch('<!doctype html><html><body>x</body></html>', [], '/');
   await page.evaluate(() => {
     const h = new Date(Date.now() - 60 * 60_000).toISOString();
-    window.__fx = { omofficial: { id: '1', createdAt: h, viewers: 500, game: 'G', tags: [] } };
-    window.__addCard('omofficial', 'G', '500');
+    window.__fx = { omvaldiane: { id: '1', createdAt: h, viewers: 500, game: 'G', tags: [] } };
+    window.__addCard('omvaldiane', 'G', '500');
   });
   /* On attend le relevé À SON TERME — son horodatage — et non une durée. */
   await attendre(page, () => !!localStorage.getItem('tse:substs'), 15_000);
@@ -21485,8 +21485,8 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
   const PHRASE = 'Impossible d\'afficher vos abonnements pour le moment.';
   const poser = (page) => page.evaluate(() => {
     const h = new Date(Date.now() - 60 * 60_000).toISOString();
-    window.__fx = { omofficial: { id: '1', createdAt: h, viewers: 500, game: 'G', tags: [] } };
-    window.__addCard('omofficial', 'G', '500');
+    window.__fx = { omvaldiane: { id: '1', createdAt: h, viewers: 500, game: 'G', tags: [] } };
+    window.__addCard('omvaldiane', 'G', '500');
   });
   const lire = (page) => page.evaluate(() => {
     const r = window.tse.panneau.rapport();
@@ -21599,7 +21599,7 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
 {
   titre('158. Abonnements — l\'échéance au badge : l\'anniversaire d\'un payé, la fin d\'un offert');
   const PLAYER = '<!doctype html><html><body>x</body></html>';
-  const CHAINES = ['omofficial', 'roicheese', 'etoiles', 'clem_mlrt', 'zerator'];
+  const CHAINES = ['omvaldiane', 'roivandre', 'etorvyn', 'clovo_mrt', 'zervane'];
   const poser = (page) => page.evaluate((ch) => {
     const h = new Date(Date.now() - 60 * 60_000).toISOString();
     window.__fx = {};
@@ -21626,10 +21626,10 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
   // ── a) le décor tel que Twitch le sert ───────────────────────────────────
   /* Deux écarts de plus, que Twitch peut produire : des dates qui arrivent
      après le reste des cartes, l'une après l'autre, et un abonnement offert en
-     attente derrière un payé — roicheese, dans les deux onglets. */
+     attente derrière un payé — roivandre, dans les deux onglets. */
   {
     const TARD = () => {
-      window.__subsDatesTardives = { roicheese: 850, clem_mlrt: 2_000 };
+      window.__subsDatesTardives = { roivandre: 850, clovo_mrt: 2_000 };
       window.__subsOffertEnPlus = true;
     };
     const page = await freshTwitch(PLAYER, [], '/', TARD);
@@ -21645,24 +21645,24 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
     /* LA DATE, PAS LE COMPTE : le sixième champ est un minuit local. Mutant —
        le relevé qui prend la date du « 2 » dans « 12 » — : dix jours d'avance. */
     ok('un abonnement offert retient SA date d\'expiration, le 12 du mois prochain',
-       mem.clem_mlrt?.[5] === expiration.ms,
-       JSON.stringify({ lu: mem.clem_mlrt, attendu: expiration.ms }));
+       mem.clovo_mrt?.[5] === expiration.ms,
+       JSON.stringify({ lu: mem.clovo_mrt, attendu: expiration.ms }));
     /* Mutant — les dates hors de la signature de stabilité — : la liste se
        croit finie 900 ms après ses cartes, entre deux dates, et le dernier
        offert n'a plus d'échéance. */
     ok('des dates qui arrivent carte par carte sont toutes attendues',
-       mem.clem_mlrt?.[5] > 0, JSON.stringify(mem.clem_mlrt));
+       mem.clovo_mrt?.[5] > 0, JSON.stringify(mem.clovo_mrt));
     /* LE PREMIER ONGLET SERT L'ORIGINE, ET L'ÉCHÉANCE AVEC ELLE. La 3.52 le
        promettait et laissait gagner le dernier. Mutant — cette promesse
-       retirée, comme avant la 4.20.0 — : roicheese devient un offert, et
+       retirée, comme avant la 4.20.0 — : roivandre devient un offert, et
        l'expiration du cadeau en attente remplace son anniversaire. */
     ok('un payé doublé d\'un offert en attente garde SON anniversaire',
-       mem.roicheese?.[4] === 'paid' && mem.roicheese?.[5] === await dans(page, 9),
-       JSON.stringify(mem.roicheese));
+       mem.roivandre?.[4] === 'paid' && mem.roivandre?.[5] === await dans(page, 9),
+       JSON.stringify(mem.roivandre));
     ok('un abonnement mobile retient son anniversaire, comme un payé',
-       mem.zerator?.[5] === await dans(page, 3), JSON.stringify(mem.zerator));
-    ok('un expiré ne retient aucune échéance', mem.jenfirer?.[5] === undefined,
-       JSON.stringify(mem.jenfirer));
+       mem.zervane?.[5] === await dans(page, 3), JSON.stringify(mem.zervane));
+    ok('un expiré ne retient aucune échéance', mem.jelvaine?.[5] === undefined,
+       JSON.stringify(mem.jelvaine));
     /* LE RAPPORT LE DIT SANS QU'ON SURVOLE UN BADGE (4.21.0) : par onglet, les
        échéances lues sur les chaînes lues — rien pour les expirés —, et au
        total les abonnements dont l'échéance est connue. Mutants — le compte
@@ -21681,12 +21681,12 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
        dit « Prochain anniversaire dans 23 jours », qui est vrai et n'est pas
        ce qu'on lui demande. */
     ok('l\'offert : « Expire dans N jours »',
-       await badge(page, 'clem_mlrt') === `Abonné • 2 MOIS • Expire dans ${expiration.jours} jours`,
-       String(await page.evaluate(() => JSON.parse(localStorage.getItem('tse:subs')).clem_mlrt)));
+       await badge(page, 'clovo_mrt') === `Abonné • 2 MOIS • Expire dans ${expiration.jours} jours`,
+       String(await page.evaluate(() => JSON.parse(localStorage.getItem('tse:subs')).clovo_mrt)));
     ok('le jour même : « Anniversaire aujourd\'hui »',
-       await badge(page, 'omofficial') === 'Abonné • 1 MOIS • Anniversaire aujourd\'hui');
+       await badge(page, 'omvaldiane') === 'Abonné • 1 MOIS • Anniversaire aujourd\'hui');
     ok('et un jour, au singulier',
-       await badge(page, 'etoiles') === 'Abonné • 12 MOIS • Prochain anniversaire dans 1 jour');
+       await badge(page, 'etorvyn') === 'Abonné • 12 MOIS • Prochain anniversaire dans 1 jour');
     await page.close();
   }
 
@@ -21702,8 +21702,8 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
     await wait(page, 400);
     const mem = await memoire(page);
     ok('ni la série ni une date ne passent pour l\'anniversaire',
-       mem.roicheese?.[5] === await dans(page, 9) && mem.roicheese?.[2] === 4,
-       JSON.stringify(mem.roicheese));
+       mem.roivandre?.[5] === await dans(page, 9) && mem.roivandre?.[2] === 4,
+       JSON.stringify(mem.roivandre));
     await page.close();
   }
 
@@ -21717,9 +21717,9 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
       const minuit = (j) => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + j); return d.getTime(); };
       try {
         localStorage.setItem('tse:subs', JSON.stringify({
-          roicheese: [1, Date.now(), 4, 0, 'paid', minuit(3)],
-          etoiles:   [1, Date.now(), 12, 0, 'paid', minuit(-1)],
-          clem_mlrt: [1, Date.now(), 2, 0, 'gifts', minuit(8)],
+          roivandre: [1, Date.now(), 4, 0, 'paid', minuit(3)],
+          etorvyn:   [1, Date.now(), 12, 0, 'paid', minuit(-1)],
+          clovo_mrt: [1, Date.now(), 2, 0, 'gifts', minuit(8)],
         }));
         localStorage.setItem('tse:substs', '2:' + Date.now());
       } catch { /* stockage refusé : le test échouera, et c'est correct */ }
@@ -21728,10 +21728,10 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
     await poser(page);
     await wait(page, 600);
     ok('une échéance mémorisée se recompte à l\'affichage',
-       await badge(page, 'roicheese') === 'Abonné • 4 MOIS • Prochain anniversaire dans 3 jours'
-       && await badge(page, 'clem_mlrt') === 'Abonné • 2 MOIS • Expire dans 8 jours');
+       await badge(page, 'roivandre') === 'Abonné • 4 MOIS • Prochain anniversaire dans 3 jours'
+       && await badge(page, 'clovo_mrt') === 'Abonné • 2 MOIS • Expire dans 8 jours');
     ok('une échéance passée se tait, le reste du badge demeure',
-       await badge(page, 'etoiles') === 'Abonné • 12 MOIS');
+       await badge(page, 'etorvyn') === 'Abonné • 12 MOIS');
     await page.close();
   }
 }
@@ -21767,7 +21767,7 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
 {
   titre('199. Abonnements — la fin passée : plus abonné, ancien abonné');
   const PLAYER = '<!doctype html><html><body>x</body></html>';
-  const CHAINES = ['omofficial', 'roicheese', 'etoiles', 'clem_mlrt', 'zerator', 'jenfirer', 'antoinedaniel', 'kameto'];
+  const CHAINES = ['omvaldiane', 'roivandre', 'etorvyn', 'clovo_mrt', 'zervane', 'jelvaine', 'ansevaldorine', 'kavrel'];
   const poser = (page) => page.evaluate((ch) => {
     const h = new Date(Date.now() - 60 * 60_000).toISOString();
     window.__fx = {};
@@ -21803,12 +21803,12 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
              finies: r.compteurs?.finies };
   });
   /* Une mémoire d'avant ce relevé : quatre chaînes notées abonnées.
-       — « jenfirer », payé, l'anniversaire passé il y a trois jours : les
+       — « jelvaine », payé, l'anniversaire passé il y a trois jours : les
          expirés seuls la listent — elle ne s'est pas renouvelée ;
-       — « antoinedaniel », une entrée de l'ancienne forme, sans échéance :
+       — « ansevaldorine », une entrée de l'ancienne forme, sans échéance :
          les expirés seuls la listent ;
-       — « etoiles », dans les expirés ET dans les payés : réabonnée ;
-       — « kameto », dans aucun onglet : l'absence ne prouve rien.
+       — « etorvyn », dans les expirés ET dans les payés : réabonnée ;
+       — « kavrel », dans aucun onglet : l'absence ne prouve rien.
      Le script d'amorce tourne dans CHAQUE document, l'iframe du relevé
      comprise : la mémoire ne s'écrit que dans la page du haut — l'iframe la
      réécrirait sous le relevé —, le décor de la page des abonnements se
@@ -21827,10 +21827,10 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
     try {
       localStorage.setItem('tse:submois', 'Nombre total de mois abonné :');
       localStorage.setItem('tse:subs', JSON.stringify({
-        jenfirer:      [1, Date.now() - 2 * 86400000, 1, 0, 'paid', minuit(-3)],
-        antoinedaniel: [1, Date.now() - 5 * 86400000, 29, 0],
-        etoiles:       [1, Date.now() - 86400000, 12, 0, 'paid', minuit(1)],
-        kameto:        [1, Date.now(), 3, 0, 'paid', minuit(5)],
+        jelvaine:      [1, Date.now() - 2 * 86400000, 1, 0, 'paid', minuit(-3)],
+        ansevaldorine: [1, Date.now() - 5 * 86400000, 29, 0],
+        etorvyn:       [1, Date.now() - 86400000, 12, 0, 'paid', minuit(1)],
+        kavrel:        [1, Date.now(), 3, 0, 'paid', minuit(5)],
       }));
     } catch { /* stockage refusé : le test échouera, et c'est correct */ }
   `);
@@ -21854,19 +21854,19 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
        celle qu'aucun onglet ne nomme. Mutants — les révolus jamais jugés ;
        la réabonnée rendue à son passé ; l'échéance gardée. */
     ok('le relevé rend à leur passé les chaînes que seuls les expirés listent — ni la réabonnée, ni celle qu\'aucun onglet ne nomme',
-       fait && JSON.stringify(mem.jenfirer?.slice(2)) === '[1,1,"paid"]' && mem.jenfirer?.[0] === 0
-       && JSON.stringify(mem.antoinedaniel?.slice(2)) === '[29,1]' && mem.antoinedaniel?.[0] === 0
-       && mem.etoiles?.[0] === 1 && mem.etoiles?.[3] === 1 && mem.etoiles?.[5] === await dans(page, 1)
-       && mem.kameto?.[0] === 1
+       fait && JSON.stringify(mem.jelvaine?.slice(2)) === '[1,1,"paid"]' && mem.jelvaine?.[0] === 0
+       && JSON.stringify(mem.ansevaldorine?.slice(2)) === '[29,1]' && mem.ansevaldorine?.[0] === 0
+       && mem.etorvyn?.[0] === 1 && mem.etorvyn?.[3] === 1 && mem.etorvyn?.[5] === await dans(page, 1)
+       && mem.kavrel?.[0] === 1
        && b.revolus === 2 && b.lus.paid && b.lus.gifts && b.lus.mobile,
        JSON.stringify({ fait, mem, b }));
     /* Ce qui se voit : le décor d'abonné quitte les deux révolues, le badge
        devient « Ancien abonné ». */
-    const vuJ = await badges(page, 'jenfirer');
-    const vuE = await badges(page, 'etoiles');
+    const vuJ = await badges(page, 'jelvaine');
+    const vuE = await badges(page, 'etorvyn');
     ok('…leur carte perd le décor d\'abonné, leur aperçu dit « Ancien abonné », la réabonnée reste abonnée',
-       !d.split(',').includes('jenfirer') && !d.split(',').includes('antoinedaniel')
-       && d.split(',').includes('etoiles') && d.split(',').includes('kameto')
+       !d.split(',').includes('jelvaine') && !d.split(',').includes('ansevaldorine')
+       && d.split(',').includes('etorvyn') && d.split(',').includes('kavrel')
        && vuJ.sub === null && vuJ.ex === 'Ancien abonné • 1 MOIS'
        && vuE.sub === 'Abonné • 12 MOIS • Prochain anniversaire dans 1 jour' && vuE.ex === null,
        JSON.stringify({ d, vuJ, vuE }));
@@ -21887,20 +21887,20 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
     const b = await bilan(page);
     ok('un onglet en cours resté blanc, et le relevé ne juge de rien : « non jugé »',
        fait && b.revolus === null && b.lus.paid && b.lus.gifts && b.lus.mobile === false
-       && mem.jenfirer?.[0] === 1 && mem.antoinedaniel?.[0] === 1 && mem.etoiles?.[0] === 1
-       && (await dorees(page)).split(',').includes('jenfirer'),
+       && mem.jelvaine?.[0] === 1 && mem.ansevaldorine?.[0] === 1 && mem.etorvyn?.[0] === 1
+       && (await dorees(page)).split(',').includes('jelvaine'),
        JSON.stringify({ fait, b, mem }));
     await page.close();
   }
 
   // ── c) sans relevé, la date suffit ───────────────────────────────────────
   /* La page des abonnements coupée, la mémoire posée à la main :
-       — « clem_mlrt », offert, expiré hier ;
-       — « zerator », offert, expire aujourd'hui ;
-       — « roicheese », payé qu'on ne renouvelle plus (le septième champ), sa
+       — « clovo_mrt », offert, expiré hier ;
+       — « zervane », offert, expire aujourd'hui ;
+       — « roivandre », payé qu'on ne renouvelle plus (le septième champ), sa
          fin passée avant-hier ;
-       — « omofficial », payé qu'on ne renouvelle plus, fin dans cinq jours ;
-       — « etoiles », payé, l'anniversaire passé hier : un renouvellement.
+       — « omvaldiane », payé qu'on ne renouvelle plus, fin dans cinq jours ;
+       — « etorvyn », payé, l'anniversaire passé hier : un renouvellement.
      Mutants — la fin passée ignorée ; le jour même déjà fini ; l'anniversaire
      passé pris pour une fin ; la fin sans « ancien abonné » ; le septième
      champ jamais relu ; le compte au rapport. */
@@ -21910,11 +21910,11 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
       const minuit = (j) => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + j); return d.getTime(); };
       try {
         localStorage.setItem('tse:subs', JSON.stringify({
-          clem_mlrt:  [1, Date.now(), 2, 0, 'gifts', minuit(-1)],
-          zerator:    [1, Date.now(), 7, 0, 'gifts', minuit(0)],
-          roicheese:  [1, Date.now(), 4, 0, 'paid', minuit(-2), 1],
-          omofficial: [1, Date.now(), 1, 0, 'paid', minuit(5), 1],
-          etoiles:    [1, Date.now(), 12, 0, 'paid', minuit(-1)],
+          clovo_mrt:  [1, Date.now(), 2, 0, 'gifts', minuit(-1)],
+          zervane:    [1, Date.now(), 7, 0, 'gifts', minuit(0)],
+          roivandre:  [1, Date.now(), 4, 0, 'paid', minuit(-2), 1],
+          omvaldiane: [1, Date.now(), 1, 0, 'paid', minuit(5), 1],
+          etorvyn:    [1, Date.now(), 12, 0, 'paid', minuit(-1)],
         }));
         localStorage.setItem('tse:substs', '2:' + Date.now());
       } catch { /* stockage refusé : le test échouera, et c'est correct */ }
@@ -21924,7 +21924,7 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
     await wait(page, 600);
     const d = (await dorees(page)).split(',');
     const vus = {};
-    for (const l of ['clem_mlrt', 'zerator', 'roicheese', 'omofficial', 'etoiles']) vus[l] = await badges(page, l);
+    for (const l of ['clovo_mrt', 'zervane', 'roivandre', 'omvaldiane', 'etorvyn']) vus[l] = await badges(page, l);
     /* Le tableau du panneau dit ce que la barre montre : `sub` et `ancien` —
        « abonné : oui » à côté d'une échéance passée, c'est ce qui se voyait.
        `note` garde ce que la mémoire a noté. Mutant — le `sub` noté, et non
@@ -21934,56 +21934,56 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
         + `/${e.ancien ? 'révolu' : '-'}/${e.note ? 'noté' : '-'}`])));
     const b = await bilan(page);
     ok('un offert expiré hier, un payé non renouvelé dont la fin est passée : plus de décor d\'abonné, « Ancien abonné » à l\'aperçu',
-       !d.includes('clem_mlrt') && !d.includes('roicheese')
-       && vus.clem_mlrt.sub === null && vus.clem_mlrt.ex === 'Ancien abonné • 2 MOIS'
-       && vus.roicheese.sub === null && vus.roicheese.ex === 'Ancien abonné • 4 MOIS',
+       !d.includes('clovo_mrt') && !d.includes('roivandre')
+       && vus.clovo_mrt.sub === null && vus.clovo_mrt.ex === 'Ancien abonné • 2 MOIS'
+       && vus.roivandre.sub === null && vus.roivandre.ex === 'Ancien abonné • 4 MOIS',
        JSON.stringify({ d, vus }));
     ok('le jour même, encore abonné : « Expire aujourd\'hui » ; une fin à venir : « Expire dans 5 jours »',
-       d.includes('zerator') && vus.zerator.sub === 'Abonné • 7 MOIS • Expire aujourd\'hui'
-       && d.includes('omofficial') && vus.omofficial.sub === 'Abonné • 1 MOIS • Expire dans 5 jours',
+       d.includes('zervane') && vus.zervane.sub === 'Abonné • 7 MOIS • Expire aujourd\'hui'
+       && d.includes('omvaldiane') && vus.omvaldiane.sub === 'Abonné • 1 MOIS • Expire dans 5 jours',
        JSON.stringify({ d, vus }));
     ok('un anniversaire passé est un renouvellement : toujours abonné, l\'échéance se tait',
-       d.includes('etoiles') && vus.etoiles.sub === 'Abonné • 12 MOIS' && vus.etoiles.ex === null,
-       JSON.stringify(vus.etoiles));
+       d.includes('etorvyn') && vus.etorvyn.sub === 'Abonné • 12 MOIS' && vus.etorvyn.ex === null,
+       JSON.stringify(vus.etorvyn));
     ok('tse.subs() et le tableau du panneau disent ce que la barre montre, la fin et la fin passée ; le rapport compte celles qui attendent le relevé',
-       lignes.clem_mlrt === 'fin/finie/-/révolu/noté' && lignes.roicheese === 'fin/finie/-/révolu/noté'
-       && lignes.zerator === 'fin/-/abonné/-/noté' && lignes.omofficial === 'fin/-/abonné/-/noté'
-       && lignes.etoiles === '-/-/abonné/-/noté' && b.finies === 2,
+       lignes.clovo_mrt === 'fin/finie/-/révolu/noté' && lignes.roivandre === 'fin/finie/-/révolu/noté'
+       && lignes.zervane === 'fin/-/abonné/-/noté' && lignes.omvaldiane === 'fin/-/abonné/-/noté'
+       && lignes.etorvyn === '-/-/abonné/-/noté' && b.finies === 2,
        JSON.stringify({ lignes, finies: b.finies }));
     await page.close();
   }
 
   // ── d) le relevé apprend la fin d'un payé ────────────────────────────────
-  /* « roicheese » ne renouvelle plus son abonnement payé : sa carte porte
+  /* « roivandre » ne renouvelle plus son abonnement payé : sa carte porte
      l'étiquette de la date d'un offert. Au tout premier relevé, les expirés
      d'abord, puis les payés, puis les offerts : l'étiquette s'apprend APRÈS
      la carte qu'elle doit juger. Mutant — la fin jugée à la lecture de la
-     carte — : roicheese garde son anniversaire. Puis sans aucun offert : rien
+     carte — : roivandre garde son anniversaire. Puis sans aucun offert : rien
      à comparer, la date reste un anniversaire. */
   {
-    const page = await freshTwitch(PLAYER, [], '/', () => { window.__subsPayeFin = ['roicheese']; });
+    const page = await freshTwitch(PLAYER, [], '/', () => { window.__subsPayeFin = ['roivandre']; });
     await poser(page);
     const fait = await releve(page);
     await wait(page, 600);
     const mem = await memoire(page);
     const fin = await page.evaluate(() => localStorage.getItem('tse:subfin'));
-    const vu = await badges(page, 'roicheese');
+    const vu = await badges(page, 'roivandre');
     ok('le relevé retrouve sur une carte payée l\'étiquette de fin d\'un offert : « Expire dans 8 jours »',
-       fait && mem.roicheese?.[4] === 'paid' && mem.roicheese?.[5] === await dans(page, 8) && mem.roicheese?.[6] === 1
-       && mem.omofficial?.[6] === undefined && mem.clem_mlrt?.[6] === 1
+       fait && mem.roivandre?.[4] === 'paid' && mem.roivandre?.[5] === await dans(page, 8) && mem.roivandre?.[6] === 1
+       && mem.omvaldiane?.[6] === undefined && mem.clovo_mrt?.[6] === 1
        && fin === 'vos avantages arrivent à expiration le'
        && vu.sub === 'Abonné • 4 MOIS • Expire dans 8 jours',
-       JSON.stringify({ fait, roicheese: mem.roicheese, omofficial: mem.omofficial, clem: mem.clem_mlrt, fin, vu }));
+       JSON.stringify({ fait, roivandre: mem.roivandre, omvaldiane: mem.omvaldiane, clem: mem.clovo_mrt, fin, vu }));
     await page.close();
-    const sans = await freshTwitch(PLAYER, [], '/', () => { window.__subsPayeFin = ['roicheese']; window.__subsVides = ['gifts']; });
+    const sans = await freshTwitch(PLAYER, [], '/', () => { window.__subsPayeFin = ['roivandre']; window.__subsVides = ['gifts']; });
     await poser(sans);
     const fait2 = await releve(sans);
     await wait(sans, 600);
     const mem2 = await memoire(sans);
     ok('…sans offert jamais vu, rien à comparer : la date reste un anniversaire',
-       fait2 && mem2.roicheese?.[5] === await dans(sans, 9) && mem2.roicheese?.[6] === undefined
+       fait2 && mem2.roivandre?.[5] === await dans(sans, 9) && mem2.roivandre?.[6] === undefined
        && (await sans.evaluate(() => localStorage.getItem('tse:subfin'))) === null,
-       JSON.stringify({ fait2, roicheese: mem2.roicheese }));
+       JSON.stringify({ fait2, roivandre: mem2.roivandre }));
     await sans.close();
   }
 }

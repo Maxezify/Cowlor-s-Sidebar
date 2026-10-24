@@ -1210,28 +1210,28 @@ if (location.pathname === '/subscriptions' && !window.__noSubsPage) {
   // n'apparaissent nulle part ailleurs : si le module venait à lire Turbo, ou à
   // verser des expirés parmi les abonnements en cours, le relevé le dirait.
   const ONGLETS = {
-    paid:    ['omofficial', 'roicheese', 'etoiles'],
-    gifts:   ['clem_mlrt'],
-    mobile:  ['zerator'],
+    paid:    ['omvaldiane', 'roivandre', 'etorvyn'],
+    gifts:   ['clovo_mrt'],
+    mobile:  ['zervane'],
     turbo:   ['jamais_turbo'],
-    expired: ['jenfirer', 'antoinedaniel', 'etoiles'],
+    expired: ['jelvaine', 'ansevaldorine', 'etorvyn'],
     // L'onglet que Twitch AJOUTERAIT un jour (cf. __subsOngletEnPlus).
     extra:   ['jamais_extra'],
   };
   // Ancienneté par chaîne, en mois. Sur la vraie page elle est écrite dans
   // une paire <p> étiquette + <span> valeur, sans le moindre data-*.
   const MOIS = {
-    omofficial: 1, roicheese: 4, etoiles: 12, clem_mlrt: 2, zerator: 7,
-    jenfirer: 1, antoinedaniel: 29,
+    omvaldiane: 1, roivandre: 4, etorvyn: 12, clovo_mrt: 2, zervane: 7,
+    jelvaine: 1, ansevaldorine: 29,
   };
   // Les abonnements RÉVOLUS : chaînes qui n'apparaissent dans aucun autre
-  // onglet, plus une (etoiles) qui figure AUSSI dans « paid ». Ce doublon est
+  // onglet, plus une (etorvyn) qui figure AUSSI dans « paid ». Ce doublon est
   // délibéré — il reproduit un réabonnement après interruption, et vérifie
   // que la lecture des expirés ne dégrade pas un abonnement en cours.
-  const EXPIRES = ['jenfirer', 'antoinedaniel', 'etoiles'];
+  const EXPIRES = ['jelvaine', 'ansevaldorine', 'etorvyn'];
   // Jours jusqu'au prochain anniversaire, par chaîne (9 à défaut) : 0 et 1
   // pour « aujourd'hui » et le singulier.
-  const ANNIV = { omofficial: 0, etoiles: 1, clem_mlrt: 23, zerator: 3 };
+  const ANNIV = { omvaldiane: 0, etorvyn: 1, clovo_mrt: 23, zervane: 3 };
   // Une date à `j` jours d'aujourd'hui, écrite comme Twitch l'écrit en français.
   const DATE = (j) => {
     const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + j);
@@ -1371,7 +1371,7 @@ if (location.pathname === '/subscriptions' && !window.__noSubsPage) {
     let logins = (window.__subsVides || []).includes(tab) ? [] : (ONGLETS[tab] || []);
     /* __subsOffertEnPlus : un abonnement offert EN ATTENTE derrière un payé —
        la même chaîne dans deux onglets en cours, avec deux dates. */
-    if (tab === 'gifts' && window.__subsOffertEnPlus) logins = [...logins, 'roicheese'];
+    if (tab === 'gifts' && window.__subsOffertEnPlus) logins = [...logins, 'roivandre'];
     if (!logins.length) {
       /* __subsVideMuet : un onglet vide dessiné SANS UN MOT — une image seule.
          Rien ne dit que Twitch le fasse ; le relevé ne doit pas en dépendre. */

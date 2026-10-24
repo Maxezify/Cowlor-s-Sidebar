@@ -12345,7 +12345,7 @@ fait chez l'utilisateur, extension désactivée, sur `/subscriptions`.
 | pas de nouvel essai rapproché | « 2:<date> », rien avant la période ordinaire |
 | une page par onglet (plus de bascule) | quatre chargements au lieu d'un |
 | les cartes de l'onglet d'avant acceptées | deux abonnements **expirés** dorés |
-| les liens de chaînes non comptés | « jenfirer Réabonnez-vous… » dans le rapport |
+| les liens de chaînes non comptés | « jelvaine Réabonnez-vous… » dans le rapport |
 | les cartes comptées « au plus haut » après une bascule | « gifts · 3 carte(s) · 1 chaîne(s) » — l'onglet d'avant, compté pour le suivant |
 | la preuve du panneau exigée de chaque onglet | des onglets vides sans texte au garde-fou |
 | l'arrêt au premier panneau blanc | le relevé s'arrête d'un onglet trop tôt |
