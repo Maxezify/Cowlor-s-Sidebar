@@ -2180,6 +2180,290 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## L'agenda, au troisième essai (v4.25.0.3)
+
+Le retour du troisième essai, captures et rapport à l'appui : « [Une chaîne
+que je suis] n'est toujours pas présente, alors qu'elle a bien des
+rediffusions. Également, [une autre] n'a aucun cadenas "Abonné", alors que je
+n'y ai pas accès. Investigue plus en profondeur et rigueur, car tu t'y reprends
+à deux fois. Fixe ça pour de bon. Fais également un audit COMPLET de l'agenda.
+Sois particulièrement rigoureux. » Publiée sur `claude/chrome-multi`.
+
+Le reproche était juste : la 4.25.0.2 avait réparé une vraie faute — une
+chaîne omise une fois par Twitch sortait de partout —, mais ce n'était pas
+celle de la capture, et son cadenas reposait sur un champ que personne
+n'avait vu répondre. Cette fois, **rien n'a été écrit avant d'avoir été
+mesuré** sur le vrai Twitch.
+
+### Mesurer d'abord
+
+Cinq scripts collés dans la console de l'utilisateur, sur son compte. Ils
+lisent ce que la page reçoit — jamais un en-tête, jamais son jeton — et
+copient leur résultat dans le presse-papiers :
+
+1. **le rapport** : roster 100, agenda 100 chaînes. Le compte en suit 184 ;
+2. **la barre s'arrête à cent chaînes suivies.** « Afficher plus », cliqué
+   jusqu'au bout, n'ajoute plus rien à cent. Et sur deux archives, l'une
+   réservée aux abonnés, l'autre publique, demandées sans compte comme le fait
+   l'agenda : `resourceRestriction` nul et `self { isRestricted }` faux **sur
+   les deux**. Seul le **jeton de lecture** les distingue : sur la réservée,
+   `chansub.restricted_bitrates` nomme toutes les qualités, de `audio_only` à
+   la source `chunked`, et le serveur des vidéos répond 403 ; sur la publique,
+   la liste est vide, et il répond 200 ;
+3. **la page « Chaînes suivies »** demande la liste par pages, sous
+   l'opération `ChannelFollows` : `data.user.follows.edges[].node.login`, et
+   `pageInfo.hasNextPage`. Sa liste est virtualisée — une cinquantaine de
+   cartes dans le DOM à la fois ;
+4. **la liste des chaînes suivies ne se lit pas sans compte** : `user(login)
+   { follows }` rend « server error ». L'extension n'envoyant jamais le jeton,
+   elle ne peut pas la demander elle-même ;
+5. **l'algorithme exact du relevé** : la page chargée dans un cadre invisible
+   de même origine, ses réponses `ChannelFollows` lues au passage, défilée
+   jusqu'à ce que Twitch dise « pas de suite ». **184 chaînes sur 184 en
+   31 secondes**, la chaîne de la capture comprise.
+
+### La chaîne absente : la barre s'arrête à cent
+
+Le roster n'apprenait que ce que la barre montrait. Pour un compte qui suit
+plus de cent chaînes, une chaîne hors ligne au-delà de la centième n'y entrait
+qu'en passant en direct — et « Effacer l'historique » le ramenait à cent.
+L'agenda, qui lit le roster et lui seul, ne pouvait pas la connaître.
+
+**Le relevé des chaînes suivies** (module `SUIVIES`) lit la liste complète là
+où Twitch la donne :
+
+- un cadre invisible charge `/directory/following/channels`. Son **nom**
+  éveille, à l'intérieur, un petit bloc de `content.js` qui tourne à
+  `document_start` — avant le premier script de Twitch — et enveloppe le
+  `fetch` de la page : il lit les réponses `ChannelFollows`, et elles seules,
+  à leur place dans le lot (une autre opération du même lot, de même forme,
+  n'y entre pas). Il poste à la page, réponse par réponse, les logins et ce
+  que Twitch dit de la suite ;
+- la page ne charge la suite que lorsque le bas de sa liste **paraît à
+  l'écran**. Le cadre est donc posé à l'écran, transparent, sans clic ni
+  clavier, et à **la hauteur de la fenêtre** : le banc, à 720 px, n'en lisait
+  que la première page avec les 900 px de la mesure — une fenêtre basse aurait
+  coupé le relevé chez l'utilisateur aussi ;
+- on le fait défiler ; quand rien ne vient, on remonte un peu puis on
+  redescend, pour que le bas reparaisse. On s'arrête quand Twitch dit « pas de
+  suite », après trente secondes sans chaîne nouvelle, ou au bout de deux
+  minutes ;
+- chaque chaîne lue entre au roster. **Un relevé complet dit aussi qui on ne
+  suit plus** : la chaîne qu'il ne liste pas, et que la barre n'a pas montrée
+  depuis dix minutes, en sort le jour même — c'était le rôle des soixante jours
+  de péremption, qui restent pour ce que le relevé n'a pas encore vu. Un
+  relevé incomplet ajoute et ne retire rien ;
+- il part vingt secondes après le premier balayage qui voit une carte suivie
+  — une session connectée —, onglet visible, puis toutes les **douze
+  heures** ; plus tôt après un relevé incomplet — une demi-heure, puis le
+  double à chaque fois. Jamais pendant le relevé des abonnements, ici ou dans
+  un autre onglet, et réciproquement : deux applications Twitch cachées à la
+  fois, c'est une de trop. Un bail, comme celui des abonnements, empêche deux
+  onglets de relever ensemble. Après « Effacer l'historique », le prochain
+  part sans attendre sa période ;
+- quand il échoue, il le dit : page renvoyée vers la connexion, aucune réponse
+  `ChannelFollows` lisible — une opération renommée par Twitch —, au journal
+  d'erreurs ; et le rapport (`relevesSuivies`) donne chaque fois des comptes :
+  chaînes, pages, lots illisibles, ajoutées, retirées, et pourquoi il s'est
+  arrêté. Aucun login. `tse.roster.refresh()` le lance à la main.
+
+Ce qu'il coûte : une page de Twitch chargée en arrière-plan une trentaine de
+secondes, deux fois par jour. Et les chaînes en plus entrent dans le sondage
+des passages en direct (cf. « Prendre les devants sur Twitch »), cinquante par
+requête toutes les trente secondes, onglet visible : pour 184 chaînes au lieu
+de 100, deux petites requêtes de plus par demi-minute — dans l'enveloppe que le
+roster prévoyait déjà.
+
+Vie privée : la même posture que le relevé des abonnements. La page est celle
+de votre compte, le navigateur l'authentifie avec ses cookies ; l'extension
+lit ce que la page reçoit, jamais un en-tête de ce qu'elle envoie, et la liste
+rejoint le roster, dans `localStorage`, effacé avec lui. Les douze fiches du
+Store le disent : « Deux exceptions, dites tout haut ».
+
+### Une mémoire, plusieurs onglets
+
+Chaque onglet écrivait le roster **entier** : un second onglet ouvert avant le
+relevé y remettait sa centaine de chaînes au premier entretien, et le relevé
+était perdu. Désormais :
+
+- une écriture **relit le stockage et fusionne** — pour chaque chaîne, la date
+  la plus récente l'emporte ;
+- l'événement `storage` apporte à chaque onglet ce que les autres écrivent,
+  sans attendre ;
+- une chaîne retirée y laisse **sa date de retrait**, en négatif : un onglet
+  qui la gardait en mémoire ne la fait pas revenir ; seule une observation plus
+  récente la ramène ;
+- « Effacer l'historique » dans un onglet efface la mémoire des autres.
+
+### Le cadenas : ce que Twitch dit vraiment à un visiteur
+
+La 4.25.0.2 demandait `self { isRestricted }`, sur la foi des types du schéma :
+la mesure l'a trouvé **faux** sur une archive réservée, et `resourceRestriction`
+nul. Le cadenas ne venait de nulle part, et ce champ est reparti.
+
+Le signal est celui que le lecteur de Twitch reçoit avant de jouer une
+rediffusion : son **jeton de lecture** (`videoPlaybackAccessToken`, demandé
+sans compte, avec les paramètres du lecteur web). Une archive est fermée
+quand son jeton réserve **l'audio et la source** ; une chaîne qui ne
+réserverait que quelques qualités reste regardable, et rien ne s'affiche.
+Réserver ses rediffusions aux abonnés est un **réglage de la chaîne** : on
+demande le jeton de sa dernière archive, un par chaîne, vingt-cinq par envoi, et
+il vaut pour toutes ses rediffusions ; il se relit avec la dernière archive, ou
+au bout de six heures. Une restriction nommée sur une archive précise compte
+toujours, elle seule. Un jeton en panne se redemande, lui seul ; un schéma qui
+le refuserait éteint le cadenas pour la session, et rien d'autre. Le rapport
+compte les jetons et les chaînes qu'ils disent fermées (`acces`).
+
+Et l'abonnement se lit comme la barre le lit (`subs.isSub`) : la 4.25.0.2 lisait
+la note brute, et un abonnement offert venu à son terme ôtait encore le
+cadenas.
+
+### L'audit
+
+Relu de bout en bout — collecte, mémoire, panneau, textes, banc —, contre ce
+que la mesure a établi. Ce qu'il a trouvé, outre les deux défauts signalés :
+
+- **quarante rediffusions au plus par chaîne** : une chaîne qui diffuse plus
+  de cinq fois par semaine ne remontait pas jusqu'aux huit semaines que le
+  panneau sait montrer. La liste se lit par **paliers** — douze, quarante,
+  cent — selon la semaine regardée. Au-delà de cent, la vue le dit :
+  « Cette semaine remonte plus loin que les cent dernières rediffusions de
+  N chaîne(s) » ;
+- **la purge contre la couverture** : la purge retire les rediffusions trop
+  vieilles, et la liste taillée paraissait ne plus atteindre une semaine
+  qu'elle couvrait — relue pour rien. La liste garde jusqu'où elle remonte ;
+- **l'abonnement lu brut** (ci-dessus) ;
+- **le panneau pendant le relevé** : les chaînes qu'il apporte arrivent
+  pendant qu'on regarde. La vue le dit — « Lecture de la liste complète de vos
+  chaînes suivies… » — dès que le relevé est prévu, vingt secondes avant qu'il
+  parte, et se relit jusqu'à ce qu'il soit fait, ici ou dans un autre onglet.
+  Le premier jet de ce correctif l'attendait encore après un relevé fait
+  ailleurs : le banc l'a montré, l'agenda s'y relisait sans fin ;
+- **le guide** disait « les chaînes sont celles que votre barre latérale a
+  montrées » et « rien n'est demandé à Twitch tant que vous n'ouvrez pas
+  l'agenda » : il dit désormais toutes les chaînes suivies, le relevé toutes
+  les douze heures, et que c'est l'agenda qui ne demande rien avant d'être
+  ouvert ;
+- **les fiches du Store** promettaient « une exception » et « la seule requête
+  authentifiée » : elles en disent deux ;
+- un commentaire du roster disait « rien ne l'exploite encore » : l'agenda et
+  les cartes en avance le lisent depuis des versions.
+
+### Ce qui change dans le panneau
+
+Deux notes dans la tête de l'agenda : le relevé des chaînes suivies en cours,
+et la semaine plus ancienne que les cent dernières rediffusions de certaines
+chaînes — « La semaine » seulement : « Hors ligne » ne lit que la dernière.
+
+### Les textes
+
+- Douze langues : deux clés de plus, les deux notes ; le paragraphe final du
+  guide réécrit.
+- Les douze fiches du Store : la confidentialité dit « deux exceptions » et la
+  page des chaînes suivies, toutes les douze heures ; les réglages, « l'une des
+  deux requêtes authentifiées ». `npm run store` vise le jeton de lecture pour
+  le cadenas, et la période du relevé pour la promesse neuve.
+
+### Ce que le banc mesure
+
+**`page.html`** gagne une page « Chaînes suivies » fidèle à la mesure : ses
+pages `ChannelFollows`, la première au démarrage, les suivantes quand le bas
+de la liste paraît à l'écran — un `IntersectionObserver` sans racine, qu'un
+cadre hors de l'écran ne déclenche jamais. Ses leviers : une autre opération
+de même forme dans le premier lot, des lots en panne, un Twitch qui ne dit
+jamais « pas de suite », une opération renommée, un renvoi vers la connexion.
+Le jeton de lecture sert aussi des qualités réservées une à une.
+`build.mjs` éteint le relevé pour tous les autres scénarios — l'agenda se
+relirait tant qu'il est attendu — ; le 209 le rallume sur sa copie du script,
+et `build.mjs` ramène ses bornes à l'échelle du décor.
+
+**209**, nouveau :
+
+- a) les quarante chaînes, page après page, sans le login de l'autre
+  opération ; celle qu'on ne suit plus retirée, sa date de retrait gardée ;
+  celle de la barre gardée ; le rapport, des comptes et pas un login ;
+- b) l'onglet ouvert avant le relevé le reçoit, n'efface rien en écrivant,
+  et une écriture arrivée sans son événement est relue avant d'écrire ;
+- c) l'agenda lit toutes les chaînes ; pendant le relevé, la note et la
+  relecture ; le cadre invisible, inerte, et à l'écran jusqu'en bas ;
+- d) l'effacement gagne l'autre onglet, et le prochain relevé n'attend pas ;
+- e) un lot en panne, redemandé : le relevé va au bout ;
+- f) sans « pas de suite » : rien de retiré, retour dans une demi-heure ;
+- g) une opération renommée, un renvoi : dits au rapport et au journal,
+  l'attente qui double ;
+- h) le départ de lui-même, après le relevé des abonnements d'un autre
+  onglet — l'agenda le dit déjà pendant qu'il attend —, et pas avant sa
+  période ;
+- i) deux onglets ensemble : une seule page chargée ; un bail écrit par un
+  autre onglet pendant la relecture : la page se retire, et le laisse ;
+- j) le relevé des abonnements attend celui des suivies.
+
+**207** : les paliers (douze, quarante, cent ; la note au-delà), la purge qui
+ne fait rien relire, le jeton relu avec la nouvelle archive, le jeton en panne
+redemandé seul, son refus qui n'éteint
+que le cadenas, la chaîne fermée par le jeton sans restriction nommée, celle
+qui ne réserve que deux qualités et reste ouverte, l'abonnement échu.
+
+**208** : les deux notes, et « Hors ligne » qui tait la seconde.
+
+**Trente-neuf mutants nommés, tous pris** : vingt-six sur le relevé des
+chaînes suivies et la mémoire partagée, dix sur le cadenas et les listes,
+trois sur le panneau. Le premier passage en a laissé deux en vie, et chacun
+montrait un trou du banc :
+
+- **le bail sans relecture** : deux onglets ouverts ensemble ne faisaient pas
+  la course à coup sûr. Une épreuve sans course la provoque désormais — un
+  autre onglet écrit son bail pendant que la page attend de relire le sien ;
+- **le jeton d'une autre archive** : rien ne vérifiait qu'une archive nouvelle
+  fait relire son jeton. Le x) du 207 le vérifie : la chaîne qui a diffusé
+  depuis a rouvert ses rediffusions.
+
+Relancés, ils tombent.
+
+Le banc complet : 1924 assertions dans 208 scénarios, toutes vertes.
+
+| mutant | ce qui tombe |
+| --- | --- |
+| le cadre hors de l'écran | 209 : a, a, a, a, b, b, b, c, e, f, f, g, g, h, i |
+| le cadre de 900 px | 209 : a, a, a, a, b, b, b, c, e, f, f, g, g, h, i |
+| toutes les opérations du lot lues | 209 : a, a, a |
+| la réponse lue à la mauvaise place | 209 : a, a, a, b, b, b |
+| pas de retrait après un relevé complet | 209 : a, a, a, b, b |
+| retrait même après un relevé incomplet | 209 : f |
+| sans marge pour la barre | 209 : a, a |
+| écriture sans relecture | 209 : b |
+| sourd aux autres onglets | 209 : b, i |
+| retraits non écrits | 209 : a, b, b |
+| l'effacement ne gagne pas l'autre onglet | 209 : d |
+| l'effacement garde l'horodatage du relevé | 209 : d |
+| n'attend pas le relevé des abonnements | 209 : h |
+| le bail sans relecture | 209 : i |
+| la vue ne relit pas pendant le relevé | 209 : c |
+| la note du relevé jamais posée | 209 : c, h |
+| un relevé incomplet compté complet | 209 : f, g, g |
+| les abonnements n'attendent pas les suivies | 209 : j |
+| « pas de suite » jamais cru | 209 : a, a, a, b, b, e, f, g, g, h |
+| le cadre visible | 209 : c |
+| le cadre laissé | 209 : a |
+| le rapport porte les logins | 209 : a |
+| le renvoi tu | 209 : g |
+| l'absence de réponse tue | 209 : g |
+| un lot illisible non compté | 209 : e |
+| le relevé prévu non annoncé | 209 : h |
+| le jeton ignoré | 207 : c, c, q, q, s |
+| un débit réservé ferme tout | 207 : c, h, q, s |
+| la source réservée ferme tout | 207 : c, h, q, s |
+| jamais de jeton | 207 : b, b, b, b, c, c, h, k, n, o, q, q, r, s, s, α, α |
+| le jeton d'une autre archive | 207 : x |
+| le refus du jeton redemandé | 207 : α |
+| l'abonné non dit | 207 : c, c, q, s |
+| un seul palier | 207 : β |
+| la liste redemandée après la purge | 207 : c, f, r, r |
+| les semaines incomplètes tues | 207 : β |
+| la note du relevé absente | 208 : k, k |
+| la note des semaines incomplètes absente | 208 : k |
+| la note des semaines incomplètes dans « Hors ligne » | 208 : k |
+
 ## L'agenda, au deuxième essai (v4.25.0.2)
 
 Deux retours du deuxième essai sur le vrai Twitch, captures à l'appui : « On
@@ -2268,6 +2552,11 @@ visiteur peut regarder : `self { isRestricted }`. La requête part sans
 compte : c'est l'accès d'un visiteur abonné à rien, fermé sur toute archive
 qu'un abonnement ouvrirait. La mémoire des abonnements fait le reste.
 
+**Revu au troisième essai (v4.25.0.3, plus haut).** Mesuré depuis : sans
+compte, `self { isRestricted }` vaut faux sur une archive réservée, et
+`resourceRestriction` nul — ce cadenas ne venait de nulle part. C'est le
+jeton de lecture qui le dit, et `self` est reparti.
+
 Rien de cela n'a été éprouvé d'ici. Un champ que le schéma refuse est
 abandonné **seul**, pour la session — la 4.25.0.1 perdait les deux au premier
 refus —, et une erreur sur l'un d'eux, à côté des données, ne met plus la
@@ -2291,7 +2580,7 @@ rechargement repart de zéro. Ce qui change :
   quatre cents — s'en va, fiche, liste et échecs ; une rediffusion plus
   vieille que la plus ancienne semaine que le panneau sait montrer — soixante
   dix jours — aussi. La mémoire est bornée : quatre cents fiches, quarante
-  rediffusions chacune au plus. Le rapport compte ce qui est parti
+  rediffusions chacune au plus (cent depuis la 4.25.0.3, plus haut). Le rapport compte ce qui est parti
   (`purgees`).
 
 ### Ce qui change dans le panneau
@@ -20145,6 +20434,8 @@ exactement ce qu'il consomme.
   sa carte dans la sidebar (cf. section suivante).
 - `tse.roster()` — liste les chaînes suivies que l'extension a mémorisées en
   observant la sidebar (cf. section suivante).
+- `tse.roster.refresh()` — force un relevé des chaînes suivies sans attendre
+  les douze heures, et renvoie les chaînes lues (v4.25.0.3).
 - `tse.subs()` — liste les abonnements repérés, avec la date de l'observation.
 - `tse.subs.refresh()` — force un relevé complet de `/subscriptions` sans
   attendre les six heures, et renvoie les chaînes trouvées. La colonne `abonné` vaut aussi `false` : c'est ce
@@ -20198,6 +20489,13 @@ en direct (l'extension les masque ensuite). L'extension mémorise donc, au fil
 des chargements, la liste des chaînes que vous suivez — sans jamais
 s'authentifier ni toucher à un jeton de session.
 
+**Mais la barre s'arrête à cent chaînes suivies** (mesuré, v4.25.0.3). Au-delà,
+le relevé des chaînes suivies lit la liste complète sur la page « Chaînes
+suivies », toutes les douze heures (cf. « L'agenda, au troisième essai »),
+et un relevé complet retire le jour même une chaîne qu'on ne suit plus. Les
+onglets de Twitch partagent cette mémoire : chacun relit le stockage avant
+d'écrire, et apprend aussitôt ce que les autres écrivent.
+
 C'est cette liste qui permet à l'extension de sonder au-delà de ce que Twitch
 affiche, et donc de poser une carte avant lui (cf. « Prendre les devants sur
 Twitch »). Une chaîne qui n'a plus été vue dans la sidebar depuis 60 jours est
@@ -20214,7 +20512,8 @@ Tout ce que l'extension mémorise est **100 % local**, stocké dans le
 | Clé | Contenu | Usage |
 | --- | --- | --- |
 | `tse:visits` | dates de vos visites par chaîne | tri « Mes plus visités » |
-| `tse:roster` | chaînes suivies aperçues dans la sidebar | poser une carte avant Twitch |
+| `tse:roster` | chaînes suivies — vues dans la sidebar ou lues par le relevé des suivies —, et la date de retrait de celles qu'on ne suit plus | poser une carte avant Twitch, l'agenda |
+| `tse:suiviests` | date du dernier relevé des chaînes suivies, et le nombre de relevés incomplets d'affilée | espacer les relevés de 12 h, revenir plus tôt après un échec |
 | `tse:livelag` | retards mesurés de Twitch | `tse.lag()` |
 | `tse:subs` | abonnements repérés (visite + relevé de `/subscriptions`), leur ancienneté en mois, le passé d'abonné et leur échéance (anniversaire ou fin) | tri « Mes abonnements en tête », style de carte, badge d'aperçu |
 | `tse:substs` | date du dernier relevé complet, précédée du numéro du lecteur qui l'a produit | espacer les relevés de 6 h, et périmer d'office ceux d'une version antérieure |
@@ -20231,7 +20530,7 @@ d'autre, ne persiste pas même le mode choisi, et ses requêtes empruntent exact
 chemin anonyme que le reste de l'extension — `credentials: 'omit'`, Client-ID
 public, aucun jeton de session, aucune permission supplémentaire.
 
-**Une exception, et une seule.** Depuis la 3.44, le relevé des abonnements
+**Deux exceptions, et deux seulement.** Depuis la 3.44, le relevé des abonnements
 charge `https://www.twitch.tv/subscriptions` dans une iframe cachée, toutes les
 six heures. Cette page-là est **authentifiée** — c'est une page de votre
 compte. La nuance compte : l'extension ne lit ni ne transmet votre jeton, elle
@@ -20239,6 +20538,12 @@ demande une page et le navigateur l'authentifie avec ses cookies, comme pour
 n'importe quel lien que vous cliqueriez. Rien n'est envoyé à un tiers, et le
 résultat ne quitte pas `localStorage`. Désactivable par `SUBS_PAGE_ENABLED:
 false`.
+
+Depuis la 4.25.0.3, le relevé des chaînes suivies charge de la même façon
+`https://www.twitch.tv/directory/following/channels`, toutes les douze heures,
+et lit les réponses que cette page reçoit pour sa liste (`ChannelFollows`) —
+jamais un en-tête de ce qu'elle envoie. La liste rejoint `tse:roster`.
+Désactivable par `SUIVIES_ENABLED: false`.
 
 Depuis la 3.45, ce chargement a lieu **pendant** celui de la sidebar, et
 seulement si la barre contient au moins une chaîne suivie — autrement dit,
@@ -20326,7 +20631,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 207 scénarios, 1891 assertions |
+| `npm test` | le harnais Playwright : 208 scénarios, 1924 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -20347,12 +20652,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1744 Ko | 709 Ko | 4 319 → **2** |
+| `content.js` | 1782 Ko | 729 Ko | 4 382 → **2** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
-| `panneau.js` | 144 Ko | 74 Ko | 204 → **0** |
+| `panneau.js` | 145 Ko | 74 Ko | 206 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
 | `background.js` | 10 Ko | 2 Ko | 22 → **0** |
-| **les cinq** | **2037 Ko** | **888 Ko** | **−56 %** |
+| **les cinq** | **2077 Ko** | **909 Ko** | **−56 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se

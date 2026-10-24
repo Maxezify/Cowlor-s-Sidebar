@@ -227,7 +227,7 @@ Todo está activo desde el principio y no hay nada que configurar. Pero «Ajuste
 
 - ★ LO QUE VES ★ Cada insignia, la duración del directo y su formato, la barra «acaba de empezar», el oro de las suscripciones, los filtros, los botones de orden: todo se enciende y se apaga con una casilla.
 - ★ LO QUE SE CARGA ★ La vista previa puede prescindir del vídeo y conservar sus insignias, su línea de tiempo y su miniatura, o simplemente bajar de calidad. Lo justo para aligerarla sin perderla.
-- ★ LO QUE TE CONCIERNE ★ La lectura de suscripciones —la única petición autenticada de la extensión— puede espaciarse hasta una vez al día. Y cada memoria se borra por separado: visitas, suscripciones, canales conocidos, sin tocar las demás.
+- ★ LO QUE TE CONCIERNE ★ La lectura de suscripciones —una de las dos peticiones autenticadas de la extensión— puede espaciarse hasta una vez al día. Y cada memoria se borra por separado: visitas, suscripciones, canales conocidos, sin tocar las demás.
 - ★ NADA ES UNA TRAMPA ★ Un punto marca lo que has cambiado, un botón lo devuelve todo a su valor original, y tus ajustes se exportan en texto para volver a ponerlos en otra máquina.
 
 _______________________________
@@ -256,7 +256,7 @@ _______________________________
 
 - ★ Ningún servidor de terceros ★ La extensión solo habla con la API pública de la propia Twitch — esa misma que la página ya usa para mostrarse. Nada más, en ninguna parte.
 - ★ Llamadas anónimas ★ No se envía nunca ningún token de sesión ni cookie: esas peticiones no se pueden vincular a tu cuenta.
-- ★ Una excepción, dicha en voz alta ★ Para saber a qué canales estás suscrito, la extensión abre TU propia página twitch.tv/subscriptions en un marco invisible, cada seis horas por defecto (tres, doce o veinticuatro según tu ajuste), antes solo si el barrido anterior no encontró nada o si haces clic en «Barrer ahora», y nunca si no has iniciado sesión. Es tu navegador el que autentica esa página con sus propias cookies, exactamente como si hubieras hecho clic en el enlace: la extensión nunca lee tu token y nunca lo pasa a nadie. Lo que retiene — nombres de canales y una antigüedad en meses — se queda en tu navegador.
+- ★ Dos excepciones, dichas en voz alta ★ Para saber a qué canales estás suscrito, la extensión abre TU propia página twitch.tv/subscriptions en un marco invisible, cada seis horas por defecto (tres, doce o veinticuatro según tu ajuste), antes solo si el barrido anterior no encontró nada o si haces clic en «Barrer ahora», y nunca si no has iniciado sesión. Para conocer TODOS los canales que sigues —la barra lateral de Twitch solo muestra cien—, abre del mismo modo tu página de canales seguidos, cada doce horas, antes solo si la lectura anterior no llegó al final de la lista. Es tu navegador el que autentica esas páginas con sus propias cookies, exactamente como si hubieras hecho clic en el enlace: la extensión nunca lee tu token y nunca lo pasa a nadie. Lo que retiene — nombres de canales y una antigüedad en meses — se queda en tu navegador.
 - ★ Ningún rastreador, ningún píxel, ninguna telemetría ★
 - ★ Ningún permiso turbio ★ La extensión SOLO funciona en twitch.tv.
 - ★ El bloqueo de anuncios no se sale de su carril ★ Se aplica a la miniatura de vista previa y a nada más. El directo que estás viendo de verdad no se toca.

@@ -2059,6 +2059,285 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The schedule, after its third real run (v4.25.0.3)
+
+The report from the third run, screenshots and diagnostic report attached:
+“[A channel I follow] is still not there, although it does have replays.
+Also, [another one] has no “Subs only” padlock, although I have no access to
+it. Investigate more deeply and rigorously, because you are on your second
+attempt. Fix it for good. Also do a COMPLETE audit of the schedule. Be
+particularly rigorous.” Published on `claude/chrome-multi`.
+
+The criticism was fair: 4.25.0.2 had fixed a real fault — a channel Twitch
+omitted once vanished everywhere — but not the one in the screenshot, and its
+padlock relied on a field nobody had seen answer. This time, **nothing was
+written before it had been measured** on the real Twitch.
+
+### Measure first
+
+Five scripts pasted into the user's console, on their account. They read what
+the page receives — never a header, never its token — and copy their result
+to the clipboard:
+
+1. **the report**: roster 100, schedule 100 channels. The account follows
+   184;
+2. **the sidebar stops at a hundred followed channels.** “Show more”, clicked
+   to the end, adds nothing past a hundred. And on two archives, one
+   subscriber-only, one public, asked for without an account as the schedule
+   does: `resourceRestriction` null and `self { isRestricted }` false **on
+   both**. Only the **playback token** tells them apart: on the restricted
+   one, `chansub.restricted_bitrates` names every quality, from `audio_only`
+   to the `chunked` source, and the video server answers 403; on the public
+   one the list is empty, and it answers 200;
+3. **the “Followed channels” page** asks for the list in pages, under the
+   `ChannelFollows` operation: `data.user.follows.edges[].node.login`, and
+   `pageInfo.hasNextPage`. Its list is virtualised — about fifty cards in the
+   DOM at a time;
+4. **the followed-channel list cannot be read without an account**:
+   `user(login) { follows }` returns “server error”. Since the extension never
+   sends the token, it cannot ask for it itself;
+5. **the exact sweep algorithm**: the page loaded in an invisible same-origin
+   frame, its `ChannelFollows` responses read as they pass, scrolled until
+   Twitch says “no next page”. **184 channels out of 184 in 31 seconds**, the
+   screenshot's channel included.
+
+### The missing channel: the sidebar stops at a hundred
+
+The roster only learned what the sidebar showed. For an account following more
+than a hundred channels, an offline channel past the hundredth only got in by
+going live — and “Clear history” brought it back down to a hundred. The
+schedule, which reads the roster and nothing else, could not know it.
+
+**The followed-channel sweep** (`SUIVIES` module) reads the full list where
+Twitch gives it:
+
+- an invisible frame loads `/directory/following/channels`. Its **name**
+  wakes, inside, a small block of `content.js` that runs at `document_start`
+  — before Twitch's first script — and wraps the page's `fetch`: it reads the
+  `ChannelFollows` responses, and only them, at their place in the batch
+  (another operation of the same batch, of the same shape, does not get in).
+  It posts to the page, response by response, the logins and what Twitch says
+  about the next page;
+- the page only loads the next page when the bottom of its list **shows on
+  screen**. So the frame sits on screen, transparent, with no click nor
+  keyboard, and at **the height of the window**: the bench, at 720 px, only
+  read the first page with the measurement's 900 px — a short window would
+  have cut the sweep at the user's too;
+- it is scrolled; when nothing comes, it goes up a little then down again, so
+  the bottom shows again. It stops when Twitch says “no next page”, after
+  thirty seconds without a new channel, or after two minutes;
+- every channel read enters the roster. **A complete sweep also says who you
+  no longer follow**: a channel it does not list, and that the sidebar has not
+  shown for ten minutes, leaves the same day — that was the job of the sixty
+  days of expiry, which remain for what the sweep has not seen yet. An
+  incomplete sweep adds and removes nothing;
+- it starts twenty seconds after the first scan that sees a followed card —
+  a signed-in session —, tab visible, then every **twelve hours**; sooner
+  after an incomplete sweep — half an hour, then double each time. Never
+  while the subscription sweep runs, here or in another tab, and the other
+  way round: two hidden Twitch applications at once is one too many. A lease,
+  like the subscription one, keeps two tabs from sweeping together. After
+  “Clear history”, the next one starts without waiting for its period;
+- when it fails, it says so: page redirected to the login, no readable
+  `ChannelFollows` response — an operation Twitch renamed —, in the error
+  log; and the report (`relevesSuivies`) always gives counts: channels, pages,
+  unreadable batches, added, removed, and why it stopped. No login.
+  `tse.roster.refresh()` runs it by hand.
+
+What it costs: one Twitch page loaded in the background for about thirty
+seconds, twice a day. And the extra channels enter the live-status polling
+(see “Getting ahead of Twitch”), fifty per request every thirty seconds, tab
+visible: for 184 channels instead of 100, two more small requests per half
+minute — within the envelope the roster already allowed for.
+
+Privacy: the same stance as the subscription sweep. The page is your
+account's, the browser authenticates it with its cookies; the extension reads
+what the page receives, never a header of what it sends, and the list joins
+the roster, in `localStorage`, wiped with it. The twelve Store listings say
+so: “Two exceptions, said out loud”.
+
+### One memory, several tabs
+
+Each tab wrote the **whole** roster: a second tab opened before the sweep put
+its hundred channels back at its first maintenance tick, and the sweep was
+lost. Now:
+
+- a write **reads the storage back and merges** — for each channel, the most
+  recent date wins;
+- the `storage` event brings each tab what the others write, right away;
+- a removed channel leaves **its removal date** there, as a negative number:
+  a tab still holding it in memory does not bring it back; only a more recent
+  sighting does;
+- “Clear history” in one tab clears the others' memory.
+
+### The padlock: what Twitch really tells a visitor
+
+4.25.0.2 asked for `self { isRestricted }`, on the strength of the schema's
+types: the measurement found it **false** on a restricted archive, and
+`resourceRestriction` null. The padlock came from nowhere, and that field is
+gone again.
+
+The signal is the one Twitch's player receives before playing a replay: its
+**playback token** (`videoPlaybackAccessToken`, asked without an account, with
+the web player's parameters). An archive is closed when its token reserves
+**the audio and the source**; a channel that only reserved a few qualities
+stays watchable, and nothing shows. Making replays subscriber-only is a
+**channel setting**: the token of its latest archive is asked, one per
+channel, twenty-five per request, and it holds for all its replays; it is read
+again with the latest archive, or after six hours. A restriction named on a
+given archive still counts, for that one alone. A failed token is asked again,
+alone; a schema refusing it turns the padlock off for the session, and nothing
+else. The report counts the tokens and the channels they say closed
+(`acces`).
+
+And the subscription is read the way the sidebar reads it (`subs.isSub`):
+4.25.0.2 read the raw note, and a gifted subscription that had run out still
+removed the padlock.
+
+### The audit
+
+Read end to end — collection, memory, panel, texts, bench —, against what the
+measurement established. What it found, besides the two reported faults:
+
+- **forty replays at most per channel**: a channel streaming more than five
+  times a week did not reach back to the eight weeks the panel can show. The
+  list is read in **steps** — twelve, forty, a hundred — depending on the week
+  being viewed. Past a hundred, the view says so: “This week reaches further
+  back than the last hundred replays of N channel(s)”;
+- **the purge against coverage**: the purge removes replays that are too old,
+  and the trimmed list seemed no longer to reach a week it covered — read
+  again for nothing. The list keeps how far back it reaches;
+- **the subscription read raw** (above);
+- **the panel during the sweep**: the channels it brings arrive while you
+  look. The view says so — “Reading the full list of your followed channels…”
+  — as soon as the sweep is planned, twenty seconds before it starts, and
+  reads again until it is done, here or in another tab. The first draft of
+  this fix still waited for it after a sweep done elsewhere: the bench showed
+  it, the schedule kept re-reading forever;
+- **the guide** said “the channels are those your sidebar has shown” and
+  “nothing is asked of Twitch until you open the schedule”: it now says all
+  followed channels, the sweep every twelve hours, and that it is the schedule
+  that asks nothing before being opened;
+- **the Store listings** promised “one exception” and “the only authenticated
+  request”: they now say two;
+- a roster comment said “nothing uses it yet”: the schedule and the cards
+  ahead of Twitch have read it for versions.
+
+### What changes in the panel
+
+Two notes in the schedule's header: the followed-channel sweep in progress,
+and the week older than the last hundred replays of some channels — “The
+week” only: “Offline” only reads the latest one.
+
+### The texts
+
+- Twelve languages: two more keys, the two notes; the guide's final paragraph
+  rewritten.
+- The twelve Store listings: privacy says “two exceptions” and the
+  followed-channels page, every twelve hours; settings, “one of the two
+  authenticated requests”. `npm run store` targets the playback token for the
+  padlock, and the sweep's period for the new promise.
+
+### What the bench measures
+
+**`page.html`** gains a “Followed channels” page true to the measurement: its
+`ChannelFollows` pages, the first at start-up, the next ones when the bottom
+of the list shows on screen — an `IntersectionObserver` with no root, which a
+frame off screen never triggers. Its levers: another operation of the same
+shape in the first batch, failing batches, a Twitch that never says “no next
+page”, a renamed operation, a redirect to the login. The playback token also
+serves qualities reserved one by one. `build.mjs` turns the sweep off for
+every other scenario — the schedule would re-read as long as it is awaited —;
+209 turns it back on in its copy of the script, and `build.mjs` scales its
+bounds to the decor.
+
+**209**, new:
+
+- a) the forty channels, page after page, without the other operation's
+  login; the one no longer followed removed, its removal date kept; the
+  sidebar's one kept; the report, counts and not a login;
+- b) the tab opened before the sweep receives it, erases nothing when
+  writing, and a write that arrived without its event is read back before
+  writing;
+- c) the schedule reads every channel; during the sweep, the note and the
+  re-read; the frame invisible, inert, and on screen down to its bottom;
+- d) clearing reaches the other tab, and the next sweep does not wait;
+- e) a failing batch, asked again: the sweep reaches the end;
+- f) without “no next page”: nothing removed, back in half an hour;
+- g) a renamed operation, a redirect: said in the report and the log, the
+  wait doubling;
+- h) the start on its own, after another tab's subscription sweep — the
+  schedule already says so while it waits —, and not before its period;
+- i) two tabs together: a single page loaded; a lease written by another tab
+  during the read-back: the page steps aside, and leaves it;
+- j) the subscription sweep waits for the followed-channel one.
+
+**207**: the steps (twelve, forty, a hundred; the note beyond), the purge that
+makes nothing re-read, the token read again with the new archive, the failed
+token asked again alone, its refusal that
+only turns off the padlock, the channel closed by the token with no named
+restriction, the one reserving only two qualities that stays open, the
+expired subscription.
+
+**208**: the two notes, and “Offline” keeping quiet about the second.
+
+**Thirty-nine named mutants, all caught:** twenty-six on the followed-channel
+sweep and the shared memory, ten on the padlock and the lists, three on the
+panel. The first run left two alive, and each showed a hole in the bench:
+
+- **the lease not read back**: two tabs opened together did not race for
+  sure. A test without a race now provokes it — another tab writes its lease
+  while the page waits to read its own back;
+- **another archive's token**: nothing checked that a new archive makes its
+  token be read again. 207's x) checks it: the channel that streamed since
+  has reopened its replays.
+
+Run again, they fall.
+
+The full bench: 1924 assertions in 208 scenarios, all green.
+
+| mutant | what falls |
+| --- | --- |
+| the frame off screen | 209: a, a, a, a, b, b, b, c, e, f, f, g, g, h, i |
+| the 900 px frame | 209: a, a, a, a, b, b, b, c, e, f, f, g, g, h, i |
+| every operation of the batch read | 209: a, a, a |
+| the response read at the wrong place | 209: a, a, a, b, b, b |
+| no removal after a complete sweep | 209: a, a, a, b, b |
+| removal even after an incomplete sweep | 209: f |
+| no margin for the sidebar | 209: a, a |
+| writing without reading back | 209: b |
+| deaf to the other tabs | 209: b, i |
+| removals not written | 209: a, b, b |
+| clearing does not reach the other tab | 209: d |
+| clearing keeps the sweep's timestamp | 209: d |
+| does not wait for the subscription sweep | 209: h |
+| the lease not read back | 209: i |
+| the view does not re-read during the sweep | 209: c |
+| the sweep note never set | 209: c, h |
+| an incomplete sweep counted complete | 209: f, g, g |
+| subscriptions do not wait for the followed channels | 209: j |
+| “no next page” never believed | 209: a, a, a, b, b, e, f, g, g, h |
+| the frame visible | 209: c |
+| the frame left behind | 209: a |
+| the report carries the logins | 209: a |
+| the redirect kept quiet | 209: g |
+| the missing response kept quiet | 209: g |
+| an unreadable batch not counted | 209: e |
+| the planned sweep not announced | 209: h |
+| the token ignored | 207: c, c, q, q, s |
+| one reserved bitrate closes everything | 207: c, h, q, s |
+| the reserved source closes everything | 207: c, h, q, s |
+| never a token | 207: b, b, b, b, c, c, h, k, n, o, q, q, r, s, s, α, α |
+| another archive's token | 207: x |
+| the token's refusal asked again | 207: α |
+| the subscriber not told | 207: c, c, q, s |
+| a single step | 207: β |
+| the list asked again after the purge | 207: c, f, r, r |
+| the incomplete weeks kept quiet | 207: β |
+| the sweep note missing | 208: k, k |
+| the incomplete-weeks note missing | 208: k |
+| the incomplete-weeks note in “Offline” | 208: k |
+
 ## The schedule, after its second real run (v4.25.0.2)
 
 Two rounds of feedback from the second run on the real Twitch, screenshots
@@ -2143,6 +2422,11 @@ can watch: `self { isRestricted }`. The request goes without an account: it is
 the access of a visitor subscribed to nothing, closed on every archive a
 subscription would open. The subscription memory does the rest.
 
+**Revised at the third run (v4.25.0.3, above).** Measured since: without an
+account, `self { isRestricted }` is false on a restricted archive, and
+`resourceRestriction` null — that padlock came from nowhere. The playback
+token is what tells, and `self` is gone again.
+
 None of this has been tested from here. A field the schema refuses is dropped
 **on its own**, for the session — 4.25.0.1 lost both at the first refusal —,
 and an error on one of them, next to the data, no longer casts doubt on the
@@ -2164,7 +2448,8 @@ changes:
   read — no longer followed, known channels cleared, beyond the cap of four
   hundred — goes, record, list and failures; a replay older than the oldest
   week the panel can show — seventy days — too. The memory is bounded: four
-  hundred records, forty replays each at most. The report counts what went
+  hundred records, forty replays each at most (a hundred since 4.25.0.3,
+  above). The report counts what went
   (`purgees`).
 
 ### What changes in the panel
@@ -19536,6 +19821,8 @@ of it. Everything the panel shows is reachable by hand, and
   below).
 - `tse.roster()` — lists the followed channels the extension has memorised by
   watching the sidebar (see below).
+- `tse.roster.refresh()` — forces a followed-channel sweep without waiting the
+  twelve hours, and returns the channels read (v4.25.0.3).
 - `tse.subs()` — lists the subscriptions spotted, with the date of the
   observation.
 - `tse.subs.refresh()` — forces a full `/subscriptions` scan without waiting
@@ -19591,6 +19878,13 @@ ones (the extension then hides them). So the extension memorises, across page
 loads, the list of channels you follow — without ever authenticating or touching
 a session token.
 
+**But the sidebar stops at a hundred followed channels** (measured, v4.25.0.3).
+Beyond that, the followed-channel sweep reads the full list on the “Followed
+channels” page, every twelve hours (see “The schedule, after its third real
+run”), and a complete sweep removes a channel you no longer follow the same
+day. Twitch tabs share this memory: each reads the storage back before
+writing, and learns at once what the others write.
+
 This list is what lets the extension poll beyond what Twitch displays, and so
 post a card before it does (see "Getting ahead of Twitch"). A channel not seen in
 the sidebar for 60 days is forgotten — which is what prevents holding on to a
@@ -19606,7 +19900,8 @@ Everything the extension memorises is **100 % local**, stored in your browser's
 | Key | Contents | Used for |
 | --- | --- | --- |
 | `tse:visits` | your visit dates per channel | "Most visited" sort |
-| `tse:roster` | followed channels seen in the sidebar | posting a card before Twitch |
+| `tse:roster` | followed channels — seen in the sidebar or read by the followed-channel sweep —, and the removal date of those you no longer follow | posting a card before Twitch, the schedule |
+| `tse:suiviests` | date of the last followed-channel sweep, and the number of incomplete sweeps in a row | spacing sweeps 12 h apart, coming back sooner after a failure |
 | `tse:livelag` | measured Twitch lag samples | `tse.lag()` |
 | `tse:subs` | subscriptions spotted (visits + `/subscriptions` scan), their tenure in months, the former-subscriber flag and their due date (anniversary or end) | "My subscriptions first" sort, card styling, preview badge |
 | `tse:substs` | date of the last full scan, prefixed by the reader version that produced it | spacing scans 6 h apart, and expiring those of an earlier version outright |
@@ -19623,13 +19918,19 @@ even persist the selected mode, and its requests take exactly the same anonymous
 as the rest of the extension — `credentials: 'omit'`, public Client-ID, no
 session token, no extra permission.
 
-**One exception, and only one.** Since 3.44 the subscription scan loads
+**Two exceptions, and only two.** Since 3.44 the subscription scan loads
 `https://www.twitch.tv/subscriptions` in a hidden iframe, once every six hours.
 That page is **authenticated** — it is a page of your account. The nuance
 matters: the extension neither reads nor transmits your token; it asks for a
 page and the browser authenticates it with its cookies, just as for any link
 you would click. Nothing is sent to a third party, and the result never leaves
 `localStorage`. Disable with `SUBS_PAGE_ENABLED: false`.
+
+Since 4.25.0.3 the followed-channel sweep loads
+`https://www.twitch.tv/directory/following/channels` the same way, every
+twelve hours, and reads the responses that page receives for its list
+(`ChannelFollows`) — never a header of what it sends. The list joins
+`tse:roster`. Disable with `SUIVIES_ENABLED: false`.
 
 Since 3.45 that load happens **during** the sidebar's own, and only if the bar
 holds at least one followed channel — that is, never on a signed-out session.
@@ -19715,7 +20016,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 207 scenarios, 1891 assertions |
+| `npm test` | the Playwright harness: 208 scenarios, 1924 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -19735,12 +20036,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1744 KB | 709 KB | 4,319 → **2** |
+| `content.js` | 1782 KB | 729 KB | 4,382 → **2** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
-| `panneau.js` | 144 KB | 74 KB | 204 → **0** |
+| `panneau.js` | 145 KB | 74 KB | 206 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
 | `background.js` | 10 KB | 2 KB | 22 → **0** |
-| **all five** | **2037 KB** | **888 KB** | **−56 %** |
+| **all five** | **2077 KB** | **909 KB** | **−56 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are

@@ -186,9 +186,15 @@ window.__tagTop = {};      // classement par tag de langue (cf. TseTagTop)
    Le décor le donne donc par sa fin. `diffusion` est l'identifiant du direct
    dont vient une archive (`broadcastIdentifier`), `abonnes` sa restriction
    aux abonnés (`resourceRestriction`) ; tous deux ne sont servis que si la
-   requête les demande, comme le ferait le schéma. Et l'accès du visiteur
-   (`self { isRestricted }`, 4.25.0.2) : fermé sur une archive `abonnes`, ou
-   `verrouillee` — fermée sans restriction nommée, le cas du premier essai.
+   requête les demande, comme le ferait le schéma.
+
+   LE JETON DE LECTURE (4.25.0.3), servi comme Twitch le sert à un visiteur
+   sans compte, d'après la mesure : `chansub.restricted_bitrates` nomme toutes
+   les qualités sur une archive `verrouillee` — réservée aux abonnés, sans
+   restriction nommée, le cas réel —, celles de `debits` sinon : quelques
+   qualités réservées n'en ferment pas l'accès. Un identifiant inconnu
+   rend un jeton nul. `__agendaJetons` : la liste des identifiants dont le
+   jeton tombe en panne, une fois chacun, avec l'erreur qui nomme son alias.
 
    `enDirect` (4.25.0.2) : un direct que seul l'agenda voit — la barre, qui
    lit `__fx`, l'ignore. C'est ce qui éprouve la fiche lue en cours de
@@ -199,6 +205,7 @@ window.__agenda = {};
    requête demande — comme Twitch, qui s'arrête au premier champ inconnu ;
    l'agenda doit repartir sans LUI, pour la session (4.25.0.2). */
 window.__agendaExtras = false;
+window.__agendaJetons = [];
 /* Des chaînes que Twitch OMET de sa réponse, sans erreur (4.25.0.2) :
    operationName -> { login: nombre de réponses }. Un compte suspendu, renommé
    ou fermé, ou un hoquet du service : `users(logins:)` le rend nul. */
@@ -631,6 +638,11 @@ window.fetch = async (url, opt) => {
                           [...(o.query || '').matchAll(/broadcasterLanguages:\s*\[(\w+)\]/g)]
                             .map(m => m[1])),
                         form: body[0]?.extensions?.persistedQuery ? 'hash' : 'inline' });
+  // La page « Chaînes suivies » répond à ses propres demandes (cf. plus bas).
+  if (window.__suiviesMock) {
+    const r = window.__suiviesMock(body);
+    if (r) return r;
+  }
   if (window.__failNext > 0) { window.__failNext--; throw new TypeError('network down'); }
   if (window.__agendaPerte > 0 && body.some(o => /^TseAgenda/.test(o.operationName || ''))) {
     window.__agendaPerte--; throw new TypeError('network down (agenda)');
@@ -761,12 +773,30 @@ window.fetch = async (url, opt) => {
                          previewThumbnailURL: 'https://static-cdn.jtvnw.net/cf_vods/' + v.id + '/thumb-160x90.jpg',
                          game: v.jeu ? { name: v.jeu, displayName: traduire(v.jeu) } : null,
                          ...(ex.broadcastIdentifier ? { broadcastIdentifier: v.diffusion ? { id: v.diffusion } : null } : {}),
-                         ...(ex.resourceRestriction ? { resourceRestriction: v.abonnes ? { type: 'SUB_ONLY_LIVE' } : null } : {}),
-                         ...(ex.self ? { self: { isRestricted: !!(v.abonnes || v.verrouillee) } } : {}) } }));
+                         ...(ex.resourceRestriction ? { resourceRestriction: v.abonnes ? { type: 'SUB_ONLY_LIVE' } : null } : {}) } }));
   // Les champs neufs que la requête demande, un par un.
   const agendaExtras = (q) => ({ broadcastIdentifier: /broadcastIdentifier\s*\{/.test(q),
-                                 resourceRestriction: /resourceRestriction\s*\{/.test(q),
-                                 self: /\bself\s*\{\s*isRestricted/.test(q) });
+                                 resourceRestriction: /resourceRestriction\s*\{/.test(q) });
+  /* Les jetons de lecture, un par alias : la valeur que Twitch sert, chaîne
+     JSON comprise, et rien d'autre de ce qu'elle porte ne compte ici. */
+  const TOUTES = ['160p30', '360p30', '480p30', '720p60', 'audio_only', 'chunked'];
+  const agendaJetons = (q) => {
+    const data = {}, errors = [];
+    for (const [, alias, id] of q.matchAll(/(a\d+): videoPlaybackAccessToken\(id: "(\d+)"/g)) {
+      const k = (window.__agendaJetons || []).indexOf(id);
+      if (k >= 0) {
+        window.__agendaJetons.splice(k, 1);
+        data[alias] = null;
+        errors.push({ message: 'service timeout', path: [alias] });
+        continue;
+      }
+      const v = Object.values(window.__agenda || {}).flatMap((a) => a.videos || []).find((x) => x.id === id);
+      data[alias] = v ? { value: JSON.stringify({ authorization: { forbidden: false, reason: '' },
+                                                  chansub: { restricted_bitrates: v.verrouillee ? TOUTES : (v.debits || []) },
+                                                  vod_id: Number(id) }) } : null;
+    }
+    return errors.length ? { data, errors } : { data };
+  };
   /* Une réponse partielle : le morceau en panne rendu nul, et l'erreur à côté
      des données — avec son chemin, ou sans. */
   const agendaPanne = (nom, rep, logins) => {
@@ -778,7 +808,7 @@ window.fetch = async (url, opt) => {
     rep.data.users.forEach((u, i) => {
       if (!u || !p.logins.includes(u.login)) return;
       /* `chemin` peut nommer un champ plus profond, sous l'utilisateur :
-         ['videos', 'edges', 0, 'node', 'self'] — un champ neuf d'une archive. */
+         ['videos', 'edges', 0, 'node', 'resourceRestriction'] — un champ neuf d'une archive. */
       if (Array.isArray(p.chemin)) {
         const parent = p.chemin.slice(0, -1).reduce((o, k) => (o == null ? o : o[k]), u);
         if (parent) parent[p.chemin[p.chemin.length - 1]] = null;
@@ -815,6 +845,7 @@ window.fetch = async (url, opt) => {
     if (refuse) {
       return { errors: [{ message: `Cannot query field "${refuse}" on type "Video".` }] };
     }
+    if (nom === 'TseAgendaAcces') return agendaJetons(o.query || '');
     const logins = o.variables?.logins || [];
     if (nom === 'TseAgendaProgramme') {
       const forme = agendaForme(o.query || '');
@@ -1425,6 +1456,86 @@ if (location.pathname === '/subscriptions' && !window.__noSubsPage) {
     document.getElementById('root').appendChild(principal);
     peindre(panneau, ongletCourant());
   }, window.__subsDelay || 600);
+}
+
+// ── Page « Chaînes suivies » (4.25.0.3) ─────────────────────────────
+// D'après les mesures du relevé des suivies : la liste arrive par pages
+// `ChannelFollows` (data.user.follows.edges[].node.login, pageInfo.hasNextPage),
+// la première au démarrage de l'application, les suivantes quand le bas de la
+// liste paraît À L'ÉCRAN — un IntersectionObserver sans racine : un cadre hors
+// de l'écran n'aurait jamais que la première. Le défileur est
+// `.root-scrollable__content`. Les chaînes et les leviers viennent de la page
+// du dessus, `window.top.__suivies` :
+//   logins    la liste, dans l'ordre de Twitch ;   page    sa taille (15) ;
+//   leurre    le premier lot porte AVANT elle une autre opération, dont la
+//             réponse a la même forme — et un login qui ne doit pas entrer ;
+//   pannes    numéros des lots rendus en erreur (la page les redemande) ;
+//   sansFin   Twitch ne dit jamais « pas de suite » ;
+//   operation un autre nom d'opération ;   renvoi  le chemin où la page renvoie.
+// Chargements et lots se comptent dans window.top.__suiviesChargements / __suiviesLots.
+if (location.pathname === '/directory/following/channels') {
+  const cfg = (() => { try { return window.top.__suivies || null; } catch { return null; } })();
+  try { window.top.__suiviesChargements = (window.top.__suiviesChargements || 0) + 1; }
+  catch { /* sommet d'une autre origine : rien à compter */ }
+  if (cfg) {
+    if (cfg.renvoi) history.replaceState(null, '', cfg.renvoi);
+    const PAGE = cfg.page || 15;
+    const OP = cfg.operation || 'ChannelFollows';
+    const logins = cfg.logins || [];
+    let lot = 0;
+    const suivies = (edges, suite) => ({ data: { user: { follows: { edges, pageInfo: { hasNextPage: suite } } } } });
+    window.__suiviesMock = (body) => {
+      const i = body.findIndex((o) => o.operationName === OP);
+      if (i < 0) return null;
+      lot += 1;
+      try { window.top.__suiviesLots = (window.top.__suiviesLots || 0) + 1; } catch { /* idem */ }
+      const debut = Number(body[i].variables.cursor || 0);
+      const rep = body.map((o, k) => {
+        if (k !== i) return suivies([{ cursor: 'x', node: { login: 'leurre_du_lot' } }], false);
+        if ((cfg.pannes || []).includes(lot)) return { errors: [{ message: 'service error' }], data: { user: null } };
+        const tranche = logins.slice(debut, debut + PAGE);
+        return suivies(tranche.map((l, j) => ({ cursor: String(debut + j + 1), node: { login: l } })),
+                       cfg.sansFin ? true : debut + PAGE < logins.length);
+      });
+      return new Response(JSON.stringify(rep), { headers: { 'Content-Type': 'application/json' } });
+    };
+    setTimeout(() => {
+      const principal = document.createElement('main');
+      const defileur = document.createElement('div');
+      defileur.className = 'root-scrollable__content';
+      // Par-dessus tout le reste du décor : c'est elle que le cadre montre.
+      defileur.style.cssText = 'position:fixed;inset:0;overflow-y:auto;background:#fff;z-index:10';
+      const liste = document.createElement('div');
+      const bas = document.createElement('div');
+      bas.style.height = '1px';
+      defileur.append(liste, bas);
+      principal.appendChild(defileur);
+      document.getElementById('root').appendChild(principal);
+      let curseur = 0, suite = true, enVol = false;
+      const charger = async () => {
+        if (enVol || !suite) return;
+        enVol = true;
+        try {
+          const ops = [{ operationName: OP, variables: { limit: PAGE, cursor: curseur ? String(curseur) : null } }];
+          if (cfg.leurre && !curseur) ops.unshift({ operationName: 'PersonalSections', variables: {} });
+          const r = await window.fetch('https://gql.twitch.tv/gql', { method: 'POST', body: JSON.stringify(ops) });
+          const f = (await r.json())[ops.length - 1]?.data?.user?.follows;
+          if (!f) return;   // en panne : le prochain passage du bas la redemande
+          for (const e of f.edges) {
+            const a = document.createElement('a');
+            a.href = '/' + e.node.login;
+            a.textContent = e.node.login;
+            a.style.cssText = 'display:block;height:60px';
+            liste.appendChild(a);
+          }
+          curseur += f.edges.length;
+          suite = f.pageInfo.hasNextPage;
+        } finally { enVol = false; }
+      };
+      charger();
+      new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) charger(); }).observe(bas);
+    }, cfg.delai ?? 300);
+  }
 }
 
 // Montage TARDIF de la sidebar, piloté par le test (page.addInitScript).

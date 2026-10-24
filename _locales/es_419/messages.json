@@ -318,6 +318,12 @@
   "stateAgendaNetwork": {
     "message": "Twitch no responde por ahora; “Actualizar” va a reanudar la lectura."
   },
+  "stateAgendaFollowSweep": {
+    "message": "Leyendo la lista completa de tus canales seguidos…"
+  },
+  "stateAgendaIncomplete": {
+    "message": "Esta semana es anterior a las últimas cien repeticiones de algunos canales: no se muestran todas. Canales afectados: $1"
+  },
   "stateAgendaEmpty": {
     "message": "Ninguna transmisión esta semana."
   },
@@ -553,7 +559,7 @@
     "message": "El horario de tus canales"
   },
   "guideAgendaTexte": {
-    "message": "El grupo “Horario” hace, para todos los canales que seguís a la vez, lo que la página de horario de un canal hace en Twitch para uno solo.\n• “La semana”: día por día, las transmisiones pasadas con su repetición — un clic la abre —, las que están en vivo y las que los canales programaron. Se abre en el día de hoy, con los días pasados arriba; una transmisión que pasa la medianoche queda en el día en que empezó.\n• Las flechas cambian de semana, hasta ocho atrás y dos adelante; “Hoy” vuelve al día de hoy, y el menú deja un solo canal.\n• “Desconectados”: cada canal que no está en vivo — primero los que programaron su próxima transmisión, la más cercana arriba, y después los demás, el que terminó más recientemente primero. Cuándo transmitió, su repetición a un clic y su próxima transmisión. “Su semana” abre la semana de su última transmisión. Un canal que Twitch ya no sirve — cuenta suspendida, renombrada o cerrada — no desaparece: queda al final, “No disponible en Twitch”.\n• “Suscriptores” y su candado marcan, antes incluso del clic, una repetición reservada a los suscriptores del canal cuando la extensión no sabe que tenés una suscripción; con suscripción, no aparece nada: la tenés abierta.\nLos canales son los que tu barra lateral mostró como seguidos. Una repetición solo existe si el canal guarda sus transmisiones, y mientras Twitch las conserve; una transmisión programada, solo si el canal mantiene su horario en Twitch. “Sin repetición” solo tiene día si la extensión vio esa transmisión en vivo: Twitch solo da su final. No se le pide nada a Twitch mientras no abras el horario."
+    "message": "El grupo “Horario” hace, para todos los canales que seguís a la vez, lo que la página de horario de un canal hace en Twitch para uno solo.\n• “La semana”: día por día, las transmisiones pasadas con su repetición — un clic la abre —, las que están en vivo y las que los canales programaron. Se abre en el día de hoy, con los días pasados arriba; una transmisión que pasa la medianoche queda en el día en que empezó.\n• Las flechas cambian de semana, hasta ocho atrás y dos adelante; “Hoy” vuelve al día de hoy, y el menú deja un solo canal.\n• “Desconectados”: cada canal que no está en vivo — primero los que programaron su próxima transmisión, la más cercana arriba, y después los demás, el que terminó más recientemente primero. Cuándo transmitió, su repetición a un clic y su próxima transmisión. “Su semana” abre la semana de su última transmisión. Un canal que Twitch ya no sirve — cuenta suspendida, renombrada o cerrada — no desaparece: queda al final, “No disponible en Twitch”.\n• “Suscriptores” y su candado marcan, antes incluso del clic, una repetición reservada a los suscriptores del canal cuando la extensión no sabe que tenés una suscripción; con suscripción, no aparece nada: la tenés abierta.\nLos canales son todos los que sigues. Como la barra lateral de Twitch solo muestra cien, la extensión vuelve a leer la lista completa en tu página de canales seguidos, en un marco invisible, cada doce horas. Una repetición solo existe si el canal guarda sus transmisiones, y mientras Twitch las conserve; una transmisión programada, solo si el canal mantiene su horario en Twitch. “Sin repetición” solo tiene día si la extensión vio esa transmisión en vivo: Twitch solo da su final. El horario no le pide nada a Twitch mientras no lo abras."
   },
   "guideVieTitre": {
     "message": "Privacidad, en claro"

@@ -1897,7 +1897,14 @@ const notesAgenda = (data) => {
   } else if (data.enCours && p.aCouvrir > 0) {
     out.push({ cle: 'rediffusions', ton: 'charge', texte: T('stateAgendaLoadingReplays', fmt.nombre(p.aCouvrir)) });
   }
+  /* LE RELEVÉ DES CHAÎNES SUIVIES (4.25.0.3) : la barre de Twitch n'en montre
+     que cent, et celles qu'il apporte arrivent pendant qu'on regarde. */
+  if (n.releve) out.push({ cle: 'releve', ton: 'charge', texte: T('stateAgendaFollowSweep') });
   if (n.limite) out.push({ cle: 'limite', texte: T('stateAgendaCapped', [fmt.nombre(n.limite.retenues), fmt.nombre(n.limite.total)]) });
+  // Une semaine plus ancienne que les cent dernières rediffusions de certaines chaînes (4.25.0.3).
+  if (n.incompletes && data.vue === 'semaine') {
+    out.push({ cle: 'incompletes', texte: T('stateAgendaIncomplete', fmt.nombre(n.incompletes)) });
+  }
   if (n.planning === 'indisponible') out.push({ cle: 'planning', texte: T('stateAgendaNoSchedule') });
   // « Hors ligne » ne lit que la dernière rediffusion : le refus de la liste ne le touche pas.
   if (n.refus === 'diffusions' && data.vue === 'semaine') out.push({ cle: 'refus', ton: 'alerte', texte: T('stateAgendaNoReplays') });
