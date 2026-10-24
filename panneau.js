@@ -1681,8 +1681,12 @@ const lancer = async (action, bouton) => {
    regardait qui reste en place.
 
    LES LIENS S'OUVRENT LÀ OÙ L'ON EST. Incrusté dans Twitch, le panneau mène la
-   page elle-même à la rediffusion ; en popup, il ouvre un onglet : la popup
-   n'a pas de page à mener, et `_top` la remplacerait elle-même. */
+   page elle-même à la chaîne ; en popup, il ouvre un onglet : la popup n'a
+   pas de page à mener, et `_top` la remplacerait elle-même.
+   SAUF UNE REDIFFUSION (4.25.0.4), demandé ainsi : « quand on clique sur un
+   replay, j'aimerais que ce soit un nouvel onglet qui l'ouvre, et pas la même
+   page ». Elle s'ouvre toujours dans un onglet neuf : la page qu'on regardait
+   reste où elle était. */
 const AGENDA_PASSE = 8;      // semaines en arrière : ce que les partenaires gardent de rediffusions
 const AGENDA_FUTUR = 2;      // semaines en avant : le planning
 const RELECTURE_AGENDA = 1000;
@@ -1778,10 +1782,10 @@ const lienAgenda = (e) => {
   if (e.type === 'prevu') return `https://www.twitch.tv/${e.login}/schedule`;
   return null;
 };
-const poserLien = (a, href) => {
+const poserLien = (a, href, ongletNeuf = false) => {
   a.href = href;
-  a.target = CIBLE_LIEN;
-  if (CIBLE_LIEN === '_blank') a.rel = 'noopener noreferrer';
+  a.target = ongletNeuf ? '_blank' : CIBLE_LIEN;
+  if (a.target === '_blank') a.rel = 'noopener noreferrer';
 };
 
 /* LES IMAGES DE TWITCH, en https et rien d'autre, chargées au fil du
@@ -1809,17 +1813,22 @@ const imageAgenda = (src, classe) => {
    restriction nommée, ou l'accès refusé au visiteur que la page est pour
    Twitch (cf. `video`, content.js) —, et la mémoire des abonnements
    (cf. ABONNEMENTS REPÉRÉS) ne vous sait pas abonné. Elle ne sait que ce que
-   vos visites lui ont montré : faute de savoir, le cadenas est là. */
+   vos visites lui ont montré : faute de savoir, le cadenas est là.
+   LE CADENAS SEUL (4.25.0.4), demandé ainsi : « retirer le "Abonnés", juste
+   mettre un cadenas ». Le mot reste pour qui ne voit pas l'icône — le nom
+   accessible —, et l'infobulle dit le reste. */
 const fermee = (v, abonne) => !!(v && v.restreinte) && abonne !== true;
 const pastilleAbonnes = () => {
   const p = elt('span', 'ag-abo');
+  p.setAttribute('role', 'img');
+  p.setAttribute('aria-label', T('valSubOnly'));
+  p.title = T('valSubOnlyLocked');
   const svg = svgEl('svg', { class: 'ag-cadenas', viewBox: '0 0 12 12', 'aria-hidden': 'true' });
   svg.append(
     svgEl('path', { d: 'M3.5 5.5V3.75a2.5 2.5 0 0 1 5 0V5.5',
                     fill: 'none', stroke: 'currentColor', 'stroke-width': 1.4, 'stroke-linecap': 'round' }),
     svgEl('rect', { x: 2, y: 5.5, width: 8, height: 5.5, rx: 1.2, fill: 'currentColor' }));
-  p.append(svg, document.createTextNode(T('valSubOnly')));
-  p.title = T('valSubOnlyLocked');
+  p.appendChild(svg);
   return p;
 };
 
@@ -1834,7 +1843,7 @@ const entreeAgenda = (e, nom) => {
   const lien = lienAgenda(e);
   const el = document.createElement(lien ? 'a' : 'div');
   el.className = 'ag-ent ag-ent--' + e.type;
-  if (lien) poserLien(el, lien);
+  if (lien) poserLien(el, lien, e.type === 'rediffusion');
   const vig = div('ag-vig');
   if (e.type === 'rediffusion') {
     const img = imageAgenda(e.vignette, 'ag-img');
@@ -2132,7 +2141,7 @@ const ligneHorsLigne = (l, quand) => {
   if (revoir && /^\d+$/.test(l.derniere.id || '')) {
     if (fermee(l.derniere, l.abonne)) actions.appendChild(pastilleAbonnes());
     const a = elt('a', 'bouton bouton--fantome', T('btnReplay'));
-    poserLien(a, `https://www.twitch.tv/videos/${l.derniere.id}`);
+    poserLien(a, `https://www.twitch.tv/videos/${l.derniere.id}`, true);
     a.title = [l.derniere.titre, dureeHms(l.derniere.duree)].filter(Boolean).join(' · ');
     actions.appendChild(a);
   }
@@ -2208,9 +2217,14 @@ const montrerAgenda = (section, data) => {
   const visible = !hote.hidden;
   const c = charpente(section.id);
   /* UNE RELECTURE SANS NOUVEAUTÉ NE TOUCHE À RIEN. La minute y entre : « il y
-     a 3 heures » et le jour marqué en dépendent. */
+     a 3 heures » et le jour marqué en dépendent. ET LES CADENAS (4.25.0.4) :
+     un abonnement appris après le dessin — le relevé des abonnements fini
+     après l'ouverture du panneau — ne change pas la version de l'agenda, et
+     le cadenas restait jusqu'à la réouverture. */
+  const cadenas = (data.entrees || []).map((e) => (fermee(e, e.abonne) ? 1 : 0)).join('')
+    + (data.lignes || []).map((l) => (fermee(l.derniere, l.abonne) ? 1 : 0)).join('');
   const signature = JSON.stringify([data.version, data.enCours, data.progression, data.notes,
-                                    data.chaine, data.semaine, Math.floor((data.maintenant || 0) / 60_000)]);
+                                    data.chaine, data.semaine, Math.floor((data.maintenant || 0) / 60_000), cadenas]);
   if (!visible || signature !== etatAgenda.signature) {
     const repere = visible && etatAgenda.cible === null ? reperer(hote, c.tete) : null;
     $('message').hidden = true;
@@ -2244,7 +2258,9 @@ const chargerAgenda = async (section, relecture = false) => {
   if (courante !== section.id || jeton !== etatAgenda.jeton) return;
   if (!r.ok) { montrerEchec(r); return; }
   montrerAgenda(section, r.data || {});
-  // `attente` : une absence à reconfirmer, que la page relira d'elle-même (4.25.0.2).
+  /* `attente` : une absence à reconfirmer, que la page relira d'elle-même
+     (4.25.0.2) ; le relevé des chaînes suivies, la mémoire gardée qu'on lit,
+     le relevé des abonnements (4.25.0.3, 4.25.0.4). */
   if (r.data && (r.data.enCours || r.data.attente)) {
     etatAgenda.minuteur = setTimeout(() => {
       if (courante === section.id && jeton === etatAgenda.jeton) chargerAgenda(section, true);

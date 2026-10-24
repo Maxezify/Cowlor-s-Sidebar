@@ -2059,6 +2059,248 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The schedule, after its fourth real run (v4.25.0.4)
+
+The feedback from the fourth run, screenshot and report attached: “I have the
+feeling that on every page reload the schedule reloads from scratch too. Does
+it really get back what it has in memory? I'd also like the Subs padlock to
+stop showing once you're subscribed to a channel […]. Also remove the
+“Subs only”, just put a padlock. I'd like you to carry on with the complete
+audit of this schedule part. Optimise, performance gains, debugging, dead
+code.” Then: “When you click a replay, I'd like a new tab to open the
+replay, not the same page.” Published on `claude/chrome-multi`.
+
+### It got nothing back
+
+The feeling was right: nothing was written, by choice — “everything lives in
+memory, for the life of the tab” (4.25.0). The report showed the cost: for
+184 channels, **101 requests and two minutes** (`dureeMs` 122,236), on every
+reload.
+
+The schedule now keeps what it has read in twitch.tv's **IndexedDB**
+database, `tse-agenda`: one record per channel — its record, schedule
+included, its replay list and its playback token.
+
+- **Read back on the first schedule view**, the memory shows at once, and
+  only what has gone stale is asked for again: records after ten minutes,
+  lists and tokens after six hours, just as within a single tab. While it is
+  being read, the view says it is working — it does not say it is empty —,
+  and a collection asked for meanwhile starts as soon as the reading is
+  done, without waiting for another view.
+- **It only writes what changed**: the channels served since the last
+  write, at most every three seconds. A channel that leaves the read
+  channels leaves the database.
+- **Several tabs**: each writes what it knows, and the write rereads the
+  record in the same transaction to keep, piece by piece — record, list,
+  token —, the most recent one.
+- **What is not kept**: failures, refusals, the schedule query shape and the
+  counters, which hold for the session; and a “live” that has gone stale —
+  read back from a database, it would only be true for as long as it takes
+  to reread it: the channel is no longer called live until its record says
+  so again.
+- **A damaged database**: an unreadable record is not read back, leaves the
+  database on the next write, and its channel is asked for again, alone. A
+  database that does not open leaves the schedule living without it, as
+  before: the error log says so once, and nothing tries to write to it any
+  more. A refused write — a full quota — is only retried after a minute.
+- **“Clear history”** empties it, along with the tab's memory — even while
+  it is being read: nothing it was reading comes back.
+
+Why IndexedDB: `content.js` runs in the page's world, where `chrome.storage`
+does not exist, and the manifest asks for no permission — 4.25.0.4 adds none.
+And not `localStorage`: Twitch shares it with us, it is capped at a few
+megabytes for the whole origin, and the schedule weighs hundreds of
+kilobytes. Nothing leaves the browser; the report only carries counts
+(`memoire`: read, written, removed, failures).
+
+The first opening after the update still starts from an empty database; the
+following ones do not.
+
+### The report also said why it was slow
+
+An error in the report: “The number of root field aliases 25 exceeds the root
+field aliases limit allowed (15)”. Playback tokens went out twenty-five at a
+time, one alias each; Twitch accepts **fifteen** at most, and refused the
+whole request. That shape refusal passed for a service refusal: batches
+halved, pause doubled — `lots` “12 / 5”, `pauseMs` 2,000 —, for the whole
+session.
+
+- **Fifteen tokens per request** (`AGENDA_LOT_ACCES`).
+- **An oversized request is not a refusal.** When the schema names the limit
+  it exceeds, that pass's batch shrinks down to it and goes again, without
+  anything else slowing down or any channel counted as failed; a limit it
+  does not put a number on halves the batch that was sent. It is read once
+  per request, and it **holds**: the recovery below never goes past it —
+  inflating it again would get one request refused every ten. The report
+  counts these refusals separately (`limites`).
+- **The slowdown recovers.** A real service refusal still halves the
+  batches and doubles the pause; ten requests served in a row give one step
+  back (`AGENDA_REMONTEE`). The report counts both (`ralenties`,
+  `remontees`).
+- **The pause comes before the next request**, counted from the end of the
+  previous one, from this collection or another. It used to follow every
+  request, the last one included: one second of collection for nothing,
+  every time. And the state is reread after it — what it made obsolete is
+  not sent.
+
+What the same collection would cost now, this machine cannot measure: it
+does not reach Twitch. With full batches, fifteen tokens per request and a
+one-second pause, it should take about half the report's requests and time —
+an estimate, which the next report will settle. After a reload, what is fresh
+costs nothing any more.
+
+### The padlock, and nothing else
+
+- **No more word**: a padlock, in the subscription gold, with no frame. The
+  word “Subs only” remains its name for screen readers, and the tooltip says
+  the rest.
+- **Subscribed, no padlock** — that has been the rule since 4.25.0.2: a
+  replay known to be open to you carries nothing. What was missing: a
+  subscription **learnt after drawing** — the subscription sweep finishing
+  after the panel opened — did not change the schedule's version, and the
+  padlock stayed until the panel was reopened. The view's signature now
+  counts its padlocks; and while the page's subscription sweep is running, a
+  view that shows a padlock rereads every second. The padlock goes on the
+  next reread, and only it: the other rows keep their nodes.
+
+The subscription memory only knows what your visits and the
+`/subscriptions` sweep have shown it: without a successful sweep since the
+subscription, the padlock stays — for lack of knowing, as before.
+
+### The replay, in a new tab
+
+A replay in “The week” and the “Replay” button in “Offline” always open in a
+new tab, without a referrer — embedded in Twitch as in the popup: the page
+you were watching stays where it was. A live stream's channel and a
+scheduled slot's schedule page still lead the page itself when the panel is
+embedded.
+
+### The audit
+
+Reread end to end — collection, memory, panel, test bench. What it found in
+the published code, besides what the report showed:
+
+- **a refusal counted twice**: a single request carries the record and the
+  schedule; refused together, they slowed down twice — batches divided by
+  four, pause quadrupled. Once per request;
+- **dead code**: the end of the week being viewed, stored on every view and
+  never read;
+- **the padlock that would not go** (above);
+- **the guide one version behind**: its “Privacy” chapter still said “one
+  exception” — there have been two since 4.25.0.3, the Following page —, and
+  counted neither the followed channels nor what the schedule reads among
+  what stays in the browser. The Store listings already said so.
+
+And three defects in this fix's first draft, found on rereading before it
+shipped: the recovery brought batches back to their ceiling, even past a
+limit Twitch had just stated; that limit was read off the pass's ceiling
+rather than off the batch that was sent — the token batch is also capped by
+the first pass; and a refused write, or a database that does not open, was
+retried every three seconds for as long as the tab lived.
+
+No other declaration in the module lacks a reader; the linter is silent.
+
+### The texts
+
+- Twelve languages: the guide's schedule paragraph tells of the padlock
+  alone, the new tab and the kept memory; its “Privacy” chapter, the two
+  exceptions and everything that stays in the browser. The quotation
+  contract of scenario 96 no longer quotes the badge.
+- The twelve Store listings: the padlock without “Subs only”, the memory
+  kept in the browser — “a reload picks up where it left off” —, and the
+  history that empties it. `npm run store` points at the database for the
+  new promise, and no longer quotes the “Subs only” label.
+
+### What the bench measures
+
+**`page.html`**: Twitch's alias limit on tokens — fifteen, refused with its
+message —, a limit on an operation's logins, with or without a number.
+**`build.mjs`** brings the write delay down to 200 ms, and its retry after a
+refusal to 1.5 s.
+
+**207**:
+
+- i) nothing in `localStorage` or `sessionStorage`; the database, one table,
+  one entry per read channel;
+- δ) the kept memory: written as the collection goes, read back on reload
+  without a single request; the view working while it is read; several
+  tabs; a damaged database; a database that does not open; a refused
+  write; a channel no longer followed; “Clear”, before
+  and during the reading; reloaded after the records' freshness, only they
+  reread, and a stale “live” that is not believed; the collection that
+  starts on its own;
+- ε) twenty-three tokens, fifteen then eight; a limit of two; a learnt limit
+  that holds; a limit without a number;
+- ζ) the record and the schedule refused together, then three requests
+  served (variant): a single step lost, and given back;
+- η) the collection ending with its last response; the next one waiting for
+  the pause; the state reread after it;
+- θ) a padlock on show waits for the subscription sweep; without a padlock,
+  nothing.
+
+**208**: the padlock alone, named; a subscription learnt after drawing, in
+“The week” and in “Offline”; the replay and “Replay” in a new tab, proven by
+a real click.
+
+Two older tests now stop at the end of the collection they count (o, η): the
+view stays awaited there until the subscription sweep ends — six seconds on
+the bench's variants, where the records' freshness is one and a half —, and
+the page asks for the records again each time their freshness passes, which
+is what it should do.
+
+**Thirty-eight named mutants, all caught**: thirty on the collection and the
+memory, eight on the panel. The first pass saw three of them crash the bench
+instead of failing it — reads that assumed a filled database, a row present,
+a frame still there: they now check, and each one fails cleanly. “A failed
+reading blocks the schedule” was rewritten: it also blocked a successful
+reading; it now blocks only a failed one, which the bench now provokes.
+Three mutants came afterwards, with what they test: two steps lost for one
+request, a missing database receiving writes, the refused write retried in a
+loop.
+
+The full bench: 1947 assertions in 208 scenarios, all green.
+
+| mutant | what falls |
+| --- | --- |
+| the database never read back | 207: δ, δ, δ, δ, δ, δ |
+| nothing written | 207: i, δ, δ, δ, δ, δ, δ, δ, δ, δ |
+| the collection does not wait for the database | 207: δ, δ, δ |
+| the collection asked during the reading forgotten | 207: δ |
+| a stale “live” believed | 207: δ |
+| writing without reading back | 207: δ |
+| the oldest wins | 207: δ |
+| a channel no longer followed stays in the database | 207: δ |
+| “Clear” does not empty the database | 207: δ, δ |
+| “Clear” without a generation | 207: δ |
+| a failed reading blocks the schedule | 207: δ |
+| the unreadable read back | 207: δ, δ |
+| the unreadable left in the database | 207: δ |
+| “Clear history” forgets the schedule | 207: δ, δ |
+| twenty-five tokens, as in 4.25.0.3 | 207: ε, ε |
+| the size limit taken for a refusal | 207: ε, ε, ε |
+| the stated limit not read | 207: ε, ε |
+| the unstated limit measured on the ceiling | 207: ε |
+| the learnt limit inflated again | 207: ε |
+| slowed down for the whole session | 207: ζ |
+| a refusal counted among the served | 207: ζ |
+| the pause after the last request | 207: η |
+| the pause forgotten from one collection to the next | 207: δ, η |
+| the state not reread after the pause | 207: η |
+| no wait for the subscription sweep | 207: θ |
+| the wait without a padlock | 207: o, θ |
+| the week does not wait for its padlocks | 207: θ |
+| two steps lost for one request | 207: ζ |
+| a missing database receives writes | 207: δ |
+| the refused write retried in a loop | 207: δ |
+| the padlock without a name | 208: e |
+| the word back | 208: e |
+| the padlock out of the signature | 208: g ter |
+| the rows out of the signature | 208: g ter |
+| the replay in the page | 208: p, p, p |
+| “Replay” in the page | 208: p |
+| the new tab with a referrer | 208: p, p |
+| everything in a new tab | 208: p |
+
 ## The schedule, after its third real run (v4.25.0.3)
 
 The report from the third run, screenshots and diagnostic report attached:
@@ -2189,6 +2431,10 @@ given archive still counts, for that one alone. A failed token is asked again,
 alone; a schema refusing it turns the padlock off for the session, and nothing
 else. The report counts the tokens and the channels they say closed
 (`acces`).
+
+**Revised on the fourth run (v4.25.0.4, above).** Twenty-five went past
+Twitch's limit — fifteen aliases per request —: the whole request was
+refused, and that shape refusal slowed the session down. Fifteen per request.
 
 And the subscription is read the way the sidebar reads it (`subs.isSub`):
 4.25.0.2 read the raw note, and a gifted subscription that had run out still
@@ -2452,6 +2698,10 @@ changes:
   above). The report counts what went
   (`purgees`).
 
+**Revised on the fourth run (v4.25.0.4, above).** A reload no longer starts
+from scratch: what is read is kept in twitch.tv's `tse-agenda` IndexedDB
+database, and only what has aged is asked for again.
+
 ### What changes in the panel
 
 - The closed padlock alone; the open variant, its style and its key, gone.
@@ -2674,7 +2924,8 @@ What 4.25.0 did with it, read as a start:
   known to be subscribed, open when the subscription memory knows you are
   subscribed to the channel. It only knows what your visits showed it: when
   in doubt, the padlock stays closed. In “Offline”, the pill comes before
-  “Replay”.
+  “Replay”. **Revised** since: nothing when it is open to you (v4.25.0.2), and
+  the padlock alone, without the word (v4.25.0.4).
 - **“Offline”:** a rule separates the scheduled channels from the others; the
   title and the next stream, which the width cuts, read in full in their
   tooltip; “Replay” follows what the page established, no longer an equality
@@ -2876,7 +3127,8 @@ the first section of everyday use.
 Links open where you are: in a tab from the popup, without a referrer; in the
 page itself when the panel is embedded. What comes from Twitch stays text,
 titles included. An image is only accepted over https, and a replay
-identifier only becomes a link if it is made of digits.
+identifier only becomes a link if it is made of digits. **Revised in 4.25.0.4
+(above)**: a replay always opens in a new tab.
 
 ### What it asks of Twitch
 
@@ -2897,7 +3149,8 @@ file: no persisted query.
   the panel re-reads the progress every second.
 - **What fails does not insist.**
   - A refusal from the service halves the batches and doubles the pause, for
-    the session.
+    the session. **Revised in 4.25.0.4**: ten requests served in a row give one
+    step back.
   - Two sends lost in a row stop the reading; "Refresh" restarts it.
   - A channel Twitch has not served twice waits for the next freshness, ten
     minutes.
@@ -2905,7 +3158,8 @@ file: no persisted query.
   the most visited and the most recently seen. Beyond that, the panel says
   how many are read.
 - **Nothing is written**: everything lives in memory, for the life of the
-  tab. The report only carries counts, `AGENDA` block.
+  tab. The report only carries counts, `AGENDA` block. **Revised in 4.25.0.4
+  (above)**: what is read is kept in the `tse-agenda` IndexedDB database.
 
 ### What is not proven
 
@@ -19895,7 +20149,8 @@ channel you have unfollowed.
 ## Privacy
 
 Everything the extension memorises is **100 % local**, stored in your browser's
-`localStorage` and **never** sent anywhere:
+`localStorage` — the schedule, in its IndexedDB database, below — and
+**never** sent anywhere:
 
 | Key | Contents | Used for |
 | --- | --- | --- |
@@ -19911,6 +20166,12 @@ Everything the extension memorises is **100 % local**, stored in your browser's
 
 `tse.reset()` wipes them all at any time; clearing `twitch.tv`'s site data from
 your browser settings does the same.
+
+**The schedule** has kept, since 4.25.0.4, what it has read in twitch.tv's
+`tse-agenda` IndexedDB database — one entry per followed channel read: its
+record, its replay list, its playback token —, so as not to ask for
+everything again on every reload. `tse.reset()` empties it too, as does
+clearing the site data.
 
 **Top Channels** adds nothing to that list, except that its cards get their
 probe verdicts in `tse:sondes` like any other: it stores nothing else, does not
@@ -20016,7 +20277,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 208 scenarios, 1924 assertions |
+| `npm test` | the Playwright harness: 208 scenarios, 1947 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -20036,12 +20297,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1782 KB | 729 KB | 4,382 → **2** |
+| `content.js` | 1798 KB | 736 KB | 4,423 → **2** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
-| `panneau.js` | 145 KB | 74 KB | 206 → **0** |
+| `panneau.js` | 146 KB | 74 KB | 206 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
 | `background.js` | 10 KB | 2 KB | 22 → **0** |
-| **all five** | **2077 KB** | **909 KB** | **−56 %** |
+| **all five** | **2093 KB** | **917 KB** | **−56 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are

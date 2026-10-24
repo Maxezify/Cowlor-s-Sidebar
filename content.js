@@ -4008,10 +4008,18 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     /* === L'agenda des chaînes suivies (4.25.0) ===
        Deux passes, à la demande du panneau et à lui seul — cf. le module
        « agenda ». Les tailles de lot sont des PLAFONDS : un refus de Twitch
-       les divise par deux pour le reste de la session, et la pause entre deux
-       envois double avec lui. */
+       les divise par deux, et la pause entre deux envois double avec lui ;
+       AGENDA_REMONTEE envois servis d'affilée les font remonter d'un cran
+       (4.25.0.4). */
     AGENDA_LOT_CHAINES:     25,     // logins par opération, première passe
     AGENDA_LOT_DIFFUSIONS:  10,     // logins par opération, seconde passe
+    /* Les jetons de lecture, un alias par chaîne. MESURÉ au rapport de la
+       4.25.0.3 : « The number of root field aliases 25 exceeds the root field
+       aliases limit allowed (15) ». Vingt-cinq partaient, et ce refus de forme
+       passait pour un refus du service — lots divisés, pause doublée, toute la
+       session. */
+    AGENDA_LOT_ACCES:       15,
+    AGENDA_REMONTEE:        10,
     AGENDA_VIDEOS:          12,     // rediffusions demandées par chaîne
     /* … quand une semaine plus ancienne en réclame davantage : quarante, puis
        cent (4.25.0.3) — le plus que Twitch serve d'un coup. Quarante ne
@@ -4031,6 +4039,15 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        minute ; omise deux fois d'affilée, elle est indisponible (4.25.0.2). */
     AGENDA_RECONFIRMER_MS:  60_000,
     AGENDA_PAUSE_MS:        1_000,  // entre deux envois : une requête à la fois
+    /* La mémoire de l'agenda, gardée d'un chargement à l'autre (4.25.0.4) :
+       la base IndexedDB de twitch.tv — jamais localStorage, que Twitch partage
+       avec nous et que des centaines de kilo-octets d'agenda rempliraient. Une
+       écriture au plus toutes les trois secondes, des seules chaînes qui ont
+       changé. */
+    AGENDA_BASE:            'tse-agenda',
+    AGENDA_ECRITURE_MS:     3_000,
+    // Une écriture refusée — quota plein, base abîmée — ne se retente qu'au bout d'une minute.
+    AGENDA_ECRITURE_REPRISE_MS: 60_000,
 
     /* === Le panneau incrusté ===
        LES DEUX NOMBRES SONT CEUX DE LA POPUP DE BARRE D'OUTILS (cf. la borne
@@ -13842,11 +13859,13 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     return { init, refresh, horodatage, notifySidebar, enAttente,
              // Un relevé tourne : ici, ou dans une autre page (cf. bailReleve).
              occupe: () => running || bailFrais(),
+             // Un relevé tourne dans CETTE page : l'agenda se relit jusqu'à lui (4.25.0.4).
+             enCours: () => running,
              /* `videsDeSuite` et `prochainDansMs` disent pourquoi un relevé
                 reviendra plus tôt que la période — ou pas. */
              bilan: () => {
                const t = horodatage();
-               return { ...bilan, differes, videsDeSuite: videsDeSuite(),
+               return { ...bilan, enCours: running, differes, videsDeSuite: videsDeSuite(),
                         prochainDansMs: t
                           ? Math.max(0, t + attenteAvantReleve(periodeReleve()) - Date.now()) : 0,
                         onglets: bilan.onglets.map((o) => ({ ...o })) };
@@ -18537,6 +18556,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       oublier(CFG.VISIT_STORAGE_KEY, 'visites');
       roster.clear();
       suivies.rearmer();
+      agenda.effacer();      // sa mémoire gardée, dans l'onglet et dans la base (4.25.0.4)
       subs.clear();
       liveLag.clear();
       preview.oublierVerdicts();
@@ -18753,8 +18773,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
    *  l'urgence d'un direct. Le panneau relit l'avancement pendant que
    *  les réponses arrivent.
    *
-   *  RIEN N'EST ÉCRIT : tout vit en mémoire, le temps de l'onglet. Le
-   *  rapport n'en porte que des COMPTES, comme partout ailleurs.
+   *  CE QUI EST LU EST GARDÉ (4.25.0.4), dans la base IndexedDB de
+   *  twitch.tv : un rechargement repart de ce qu'on savait, et ne
+   *  redemande que ce qui a passé sa fraîcheur (cf. LA MÉMOIRE GARDÉE).
+   *  Rien ne sort du navigateur ; le rapport n'en porte que des
+   *  COMPTES, comme partout ailleurs.
    * ============================================================ */
   const agenda = (() => {
     // La forme d'un login Twitch ; ce qui n'y entre pas ne part pas.
@@ -18908,18 +18931,30 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     let pauseJusqua = 0;           // après deux coupures réseau d'affilée
     let lot1 = CFG.AGENDA_LOT_CHAINES;
     let lot2 = CFG.AGENDA_LOT_DIFFUSIONS;
+    let lotAcces = CFG.AGENDA_LOT_ACCES;
+    // Les plus grands lots que Twitch accepte, appris de ses refus de taille (cf. `borner`).
+    let borne1 = CFG.AGENDA_LOT_CHAINES;
+    let borne2 = CFG.AGENDA_LOT_DIFFUSIONS;
     let pauseMs = CFG.AGENDA_PAUSE_MS;
+    let servisDeSuite = 0;         // envois servis d'affilée, depuis le dernier refus (cf. `remonter`)
+    let finDernierEnvoi = 0;       // la pause se compte d'ici, d'une collecte à l'autre
     let version = 0;
-    let voulu = { debut: null, fin: null, chaine: null };
+    // La semaine regardée — son début, et la chaîne choisie : ce que la seconde passe couvre.
+    let voulu = { debut: null, chaine: null };
     /* LES ISSUES SONT EXCLUSIVES, par opération : servie, refusée par le
        serveur, refusée par le schéma, perdue en route. Leur somme vaut `lots`
        — la règle des compteurs de chapitres, et pour la même raison.
        `partiels` compte, PARMI les servies, celles qui revenaient avec des
        erreurs à côté de leurs données (cf. `envoyer`). */
-    const issues = () => ({ lots: 0, servis: 0, refus: 0, schema: 0, reseau: 0, partiels: 0 });
+    /* `limites` : refusées pour leur TAILLE — trop d'alias, trop de logins —,
+       ce que le schéma dit en nommant la borne (4.25.0.4). Ni un refus du
+       service, ni une forme condamnée : le lot rapetisse, et repart. */
+    const issues = () => ({ lots: 0, servis: 0, refus: 0, schema: 0, limites: 0, reseau: 0, partiels: 0 });
     const bilan = { collectes: 0, envois: 0, absences: 0,
                     chaines: issues(), programme: issues(), diffusions: issues(), acces: issues(),
-                    attentesGql: 0, abandons: 0, dureeMs: null, purgees: { chaines: 0, rediffusions: 0 } };
+                    attentesGql: 0, abandons: 0, dureeMs: null, purgees: { chaines: 0, rediffusions: 0 },
+                    ralenties: 0, remontees: 0,
+                    memoire: { base: 'fermée', restaurees: 0, ecritures: 0, chainesEcrites: 0, retirees: 0, echecs: 0 } };
 
     const frais = (ts) => ts >= fraisApres && Date.now() - ts <= CFG.AGENDA_TTL;
     // Deux échecs pour une même chaîne, et l'on attend la prochaine fraîcheur.
@@ -19047,12 +19082,15 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        quatre cents chaînes. */
     const purger = (liste) => {
       const gardees = new Set(liste);
+      // Sortie des chaînes lues : de la mémoire, et de la base (cf. LA MÉMOIRE GARDÉE).
+      const oter = (m, l) => { m.delete(l); sales.delete(l); retirees.add(l); };
       for (const l of [...chaines.keys()]) {
-        if (!gardees.has(l)) { chaines.delete(l); bilan.purgees.chaines++; }
+        if (!gardees.has(l)) { oter(chaines, l); bilan.purgees.chaines++; }
       }
-      for (const l of [...diffusions.keys()]) if (!gardees.has(l)) diffusions.delete(l);
-      for (const l of [...acces.keys()]) if (!gardees.has(l)) acces.delete(l);
+      for (const l of [...diffusions.keys()]) if (!gardees.has(l)) oter(diffusions, l);
+      for (const l of [...acces.keys()]) if (!gardees.has(l)) oter(acces, l);
       for (const k of [...echecs.keys()]) if (!gardees.has(k.slice(2))) echecs.delete(k);
+      ecrireBientot();
       const borne = Date.now() - CFG.AGENDA_RETENUE_MS;
       for (const d of diffusions.values()) {
         const avant = d.videos.length;
@@ -19134,7 +19172,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
           if (!f || f.absente || !f.derniere || !peutRetenter('a:' + l)) return false;
           const a = acces.get(l);
           return !a || a.video !== f.derniere.id || !accesFrais(a);
-        }).slice(0, lot1);
+        }).slice(0, Math.min(lot1, lotAcces));
         if (pa.length) return { passe: 'a', logins: pa, ids: pa.map((l) => chaines.get(l).derniere.id) };
       }
       if (refus && refus.quoi === 'diffusions') return null;
@@ -19254,13 +19292,210 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       });
     };
 
+    /* ── LA MÉMOIRE GARDÉE (4.25.0.4) ───────────────────────────────────────
+       DEMANDÉ AINSI : « à chaque rechargement de page, l'agenda se recharge de
+       zéro ; est-ce qu'il récupère bien ce qu'il a en mémoire ? » Non : rien
+       n'était écrit, et le rapport en disait le prix — cent un envois et deux
+       minutes pour 184 chaînes, à chaque rechargement.
+       Chaque chaîne est gardée dans la base IndexedDB de twitch.tv
+       (CFG.AGENDA_BASE), un enregistrement par chaîne : sa fiche, planning
+       compris, sa liste de rediffusions, son jeton. Relue à la première vue
+       de l'agenda, la mémoire se montre aussitôt, et seul ce qui a passé sa
+       fraîcheur se redemande — les fiches au bout de dix minutes, les listes
+       et les jetons de six heures, comme dans un même onglet.
+       POURQUOI PAS localStorage : il est à Twitch autant qu'à nous, borné à
+       quelques mégaoctets pour toute l'origine, et l'agenda en pèse des
+       centaines de kilo-octets. IndexedDB a son quota, et garde les objets
+       tels quels.
+       N'ÉCRIT QUE CE QUI A CHANGÉ : les chaînes servies depuis la dernière
+       écriture, au plus toutes les CFG.AGENDA_ECRITURE_MS ; celles qui sortent
+       des chaînes lues (cf. `purger`) sont effacées, comme un enregistrement
+       illisible.
+       PLUSIEURS ONGLETS : chacun écrit ce qu'il sait, et l'écriture relit
+       l'enregistrement dans la même transaction pour garder, morceau par
+       morceau — fiche, liste, jeton —, le plus récent.
+       CE QUI N'EST PAS GARDÉ : les échecs, les refus, la forme du planning et
+       les compteurs, qui valent pour la session ; et un « en direct » qui a
+       passé sa fraîcheur — relu d'une base, il ne serait plus vrai que le
+       temps de le relire.
+       Rien ne sort du navigateur ; « Effacer l'historique » vide la base. */
+    const TABLE = 'chaines';
+    let base = null;               // la connexion, promise une fois pour toutes
+    let restauration = null;       // la lecture de la base, lancée à la première vue
+    let restauree = false;         // lue — ou illisible : on vit alors sans elle
+    let sansBase = false;          // illisible : rien ne s'y écrit non plus, le temps de l'onglet
+    let ecritureApres = 0;         // après une écriture refusée (cf. CFG.AGENDA_ECRITURE_REPRISE_MS)
+    let demandee = false;          // une collecte demandée pendant la lecture
+    let generation = 0;            // « Effacer » : ce qui était parti avant ne réécrit rien
+    let aEcrire = null;
+    const sales = new Set();       // chaînes changées depuis la dernière écriture
+    const retirees = new Set();    // sorties des chaînes lues, ou illisibles : à effacer de la base
+    const requete = (q) => new Promise((ok, ko) => {
+      q.onsuccess = () => ok(q.result);
+      q.onerror = () => ko(q.error);
+    });
+    const ouvrirBase = () => base || (base = new Promise((ok, ko) => {
+      const q = window.indexedDB.open(CFG.AGENDA_BASE, 1);
+      // Une autre forme de données viendrait avec une autre version : la base repartirait vide.
+      q.onupgradeneeded = () => {
+        for (const n of [...q.result.objectStoreNames]) q.result.deleteObjectStore(n);
+        q.result.createObjectStore(TABLE);
+      };
+      q.onsuccess = () => ok(q.result);
+      q.onerror = () => ko(q.error);
+      q.onblocked = () => ko(new Error('base bloquée'));
+    }));
+    const estObjet = (x) => !!x && typeof x === 'object';
+    const fraicheur = (x) => (estObjet(x) && Number.isFinite(x.ts) ? x.ts : -Infinity);
+    // Une fiche date de sa dernière lecture, ou de celle de son planning, qui se lit à part.
+    const tsFiche = (f) => Math.max(fraicheur(f), fraicheur(f && f.planning));
+    const VALIDES = {
+      f: (f) => estObjet(f) && Number.isFinite(f.ts) && (f.inconnue === true || typeof f.nom === 'string'),
+      d: (d) => estObjet(d) && Number.isFinite(d.ts) && Array.isArray(d.videos),
+      a: (a) => estObjet(a) && Number.isFinite(a.ts) && typeof a.video === 'string',
+    };
+    const plusRecent = (ici, la, valide, ts) =>
+      (valide(ici) && (!valide(la) || ts(ici) >= ts(la)) ? ici : valide(la) ? la : undefined);
+
+    const restaurer = () => restauration || (restauration = (async () => {
+      const gen = generation;
+      try {
+        const db = await ouvrirBase();
+        const st = db.transaction(TABLE).objectStore(TABLE);
+        const [cles, recs] = await Promise.all([requete(st.getAllKeys()), requete(st.getAll())]);
+        const perime = Date.now() - CFG.AGENDA_TTL;
+        bilan.memoire.base = 'ouverte';
+        if (gen !== generation) return;
+        // Ce qui n'est pas lisible ne se relit pas, et sort de la base à la prochaine écriture.
+        cles.forEach((l, i) => {
+          const r = recs[i];
+          if (typeof l !== 'string' || !RE_LOGIN_AGENDA.test(l) || !estObjet(r)) { retirees.add(l); return; }
+          const fiche = VALIDES.f(r.f), liste = VALIDES.d(r.d), jeton = VALIDES.a(r.a);
+          if (fiche) chaines.set(l, r.f.ts < perime && r.f.direct ? { ...r.f, direct: null } : r.f);
+          if (liste) diffusions.set(l, r.d);
+          if (jeton) acces.set(l, r.a);
+          if (fiche || liste || jeton) bilan.memoire.restaurees++;
+          else retirees.add(l);
+        });
+      } catch (e) {
+        bilan.memoire.base = 'indisponible';
+        sansBase = true;
+        erreurs.noter('stockage', 'agenda : base illisible', (e && e.name) || String(e));
+      } finally {
+        restauree = true;
+        version++;
+        planifierRelance();
+        ecrireBientot();
+        if (demandee) lancer();
+      }
+    })());
+
+    const ecrire = async () => {
+      aEcrire = null;
+      const gen = generation;
+      const aMettre = [...sales];
+      const aOter = [...retirees];
+      sales.clear();
+      retirees.clear();
+      try {
+        const db = await ouvrirBase();
+        await new Promise((ok, ko) => {
+          const tx = db.transaction(TABLE, 'readwrite');
+          tx.oncomplete = () => ok();
+          tx.onerror = () => ko(tx.error);
+          tx.onabort = () => ko(tx.error || new Error('écriture abandonnée'));
+          if (gen !== generation) return;   // effacée entre-temps : la transaction se clôt vide
+          const st = tx.objectStore(TABLE);
+          for (const l of aOter) st.delete(l);
+          for (const l of aMettre) {
+            const q = st.get(l);
+            q.onsuccess = () => {
+              if (gen !== generation) return;
+              const r = estObjet(q.result) ? q.result : {};
+              st.put({ f: plusRecent(chaines.get(l), r.f, VALIDES.f, tsFiche),
+                       d: plusRecent(diffusions.get(l), r.d, VALIDES.d, fraicheur),
+                       a: plusRecent(acces.get(l), r.a, VALIDES.a, fraicheur) }, l);
+            };
+          }
+        });
+        bilan.memoire.ecritures++;
+        bilan.memoire.chainesEcrites += aMettre.length;
+        bilan.memoire.retirees += aOter.length;
+      } catch (e) {
+        bilan.memoire.echecs++;
+        ecritureApres = Date.now() + CFG.AGENDA_ECRITURE_REPRISE_MS;
+        // Ce qui n'a pas été écrit le sera la prochaine fois — sauf après « Effacer ».
+        if (gen === generation) {
+          for (const l of aMettre) sales.add(l);
+          for (const l of aOter) retirees.add(l);
+        }
+        erreurs.noter('stockage', 'agenda : écriture', (e && e.name) || String(e));
+      }
+    };
+    /* UNE ÉCRITURE REFUSÉE NE SE RETENTE PAS EN BOUCLE : le premier jet
+       repartait trois secondes plus tard, et ainsi de suite tant que l'onglet
+       vivait — une erreur au journal à chaque fois. Une minute d'abord ; et une
+       base qui ne s'ouvre pas ne reçoit rien. */
+    const ecrireBientot = () => {
+      if (aEcrire || !restauree || sansBase || (!sales.size && !retirees.size)) return;
+      const delai = Math.max(CFG.AGENDA_ECRITURE_MS, ecritureApres - Date.now());
+      aEcrire = setTimeout(() => { ecrire().then(ecrireBientot); }, delai);
+    };
+    /* « EFFACER L'HISTORIQUE » : la mémoire de l'onglet, et la base. Une
+       écriture partie avant ne réécrit rien (`generation`). */
+    const effacer = () => {
+      generation++;
+      for (const m of [chaines, diffusions, acces, echecs]) m.clear();
+      sales.clear();
+      retirees.clear();
+      clearTimeout(aEcrire);
+      aEcrire = null;
+      clearTimeout(relance);
+      relance = null;
+      version++;
+      ouvrirBase().then((db) => { db.transaction(TABLE, 'readwrite').objectStore(TABLE).clear(); })
+        .catch(() => { /* sans base, rien à effacer */ });
+    };
+
     /* UN REFUS DE TWITCH RALENTIT TOUT CE QUI SUIT : des lots deux fois plus
-       petits, deux fois plus espacés, pour la session. C'est la leçon des
-       sondes de reprise — un refus resondé tout de suite refait refuser. */
+       petits, deux fois plus espacés. C'est la leçon des sondes de reprise —
+       un refus resondé tout de suite refait refuser. ET LE RALENTISSEMENT
+       REMONTE (4.25.0.4), comme leur cadence : il tenait jusqu'à la fin de la
+       session, et un seul refus — au rapport, un refus de forme pris pour un
+       refus du service — a fait d'une collecte d'une minute une collecte de
+       deux. CFG.AGENDA_REMONTEE envois servis d'affilée rendent un cran.
+       Ni l'un ni l'autre ne passe une borne apprise : la regonfler ferait
+       refuser une requête tous les dix envois. */
     const ralentir = () => {
-      lot1 = Math.max(5, Math.floor(lot1 / 2));
-      lot2 = Math.max(3, Math.floor(lot2 / 2));
+      lot1 = Math.min(borne1, Math.max(5, Math.floor(lot1 / 2)));
+      lot2 = Math.min(borne2, Math.max(3, Math.floor(lot2 / 2)));
       pauseMs = Math.min(8_000, pauseMs * 2);
+      servisDeSuite = 0;
+      bilan.ralenties++;
+    };
+    const remonter = () => {
+      servisDeSuite = 0;
+      if (lot1 >= borne1 && lot2 >= borne2 && pauseMs <= CFG.AGENDA_PAUSE_MS) return;
+      lot1 = Math.min(borne1, lot1 * 2);
+      lot2 = Math.min(borne2, lot2 * 2);
+      pauseMs = Math.max(CFG.AGENDA_PAUSE_MS, Math.floor(pauseMs / 2));
+      bilan.remontees++;
+    };
+    /* UNE REQUÊTE TROP GROSSE N'EST PAS UN REFUS (4.25.0.4). Le schéma nomme
+       la borne qu'elle passe — « exceeds the root field aliases limit allowed
+       (15) » — : le lot de cette passe rapetisse jusqu'à elle, et repart, sans
+       que rien d'autre ralentisse ni qu'aucune chaîne soit comptée en échec.
+       Une borne qu'on ne lirait pas fait diviser le lot par deux. Mesurée sur
+       le lot PARTI — celui des jetons est aussi borné par `lot1` —, une fois
+       par envoi, quand bien même ses deux opérations la passeraient. */
+    const RE_LIMITE = /exceeds .*limit/i;
+    const borner = (t, message) => {
+      const parti = t.logins.length;
+      const n = Number((/allowed \((\d+)\)/i.exec(message) || [])[1]);
+      const lot = Math.max(1, Math.min(parti - 1, Number.isFinite(n) && n > 0 ? n : Math.floor(parti / 2)));
+      if (t.passe === 'a') lotAcces = lot;
+      else if (t.passe === 2) lot2 = borne2 = lot;
+      else lot1 = borne1 = lot;
     };
     const SORTE = { TseAgendaChaines: 'chaines', TseAgendaProgramme: 'programme',
                     TseAgendaDiffusions: 'diffusions', TseAgendaAcces: 'acces' };
@@ -19284,6 +19519,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       const aligne = Array.isArray(rep) && rep.length === ops.length;
       const maintenant = Date.now();
       let perdue = !aligne;
+      let refusee = false;
+      let limitee = null;          // le message d'un refus de taille (cf. `borner`)
       ops.forEach((op, i) => {
         const sorte = SORTE[op.operationName];
         const b = bilan[sorte];
@@ -19304,6 +19541,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         const fautes = Array.isArray(r.errors) && r.errors.length > 0;
         if (!r.data) {
           const message = messageDe(r);
+          if (fautes && RE_LIMITE.test(message) && t.logins.length > 1) {
+            b.limites++;
+            limitee = limitee || message;
+            return;
+          }
           if (fautes && RE_SCHEMA.test(message)) {
             b.schema++;
             // Un champ neuf des archives refusé : on repart sans lui, et sans lui seul.
@@ -19323,21 +19565,30 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
             }
             return;
           }
-          b.refus++; ralentir();
+          b.refus++;
+          if (!refusee) ralentir();
+          refusee = true;
           for (const l of t.logins) noterEchec(PREFIXE[sorte] + l);
           return;
         }
         b.servis++;
         if (fautes) b.partiels++;
-        if (sorte === 'acces') { lireAcces(t, r, maintenant); version++; return; }
-        const u = parLogin(r.data);
-        const suspects = fautes ? suspectsDe(r) : null;
-        const douteux = (l) => fautes && (!u.has(l) || suspects.has(l));
-        if (sorte === 'chaines') lireChaines(t.logins, u, maintenant, douteux);
-        else if (sorte === 'programme') lirePlanning(t.logins, u, maintenant, douteux);
-        else lireDiffusions(t.logins, u, t.n, maintenant, douteux);
+        if (sorte === 'acces') lireAcces(t, r, maintenant);
+        else {
+          const u = parLogin(r.data);
+          const suspects = fautes ? suspectsDe(r) : null;
+          const douteux = (l) => fautes && (!u.has(l) || suspects.has(l));
+          if (sorte === 'chaines') lireChaines(t.logins, u, maintenant, douteux);
+          else if (sorte === 'programme') lirePlanning(t.logins, u, maintenant, douteux);
+          else lireDiffusions(t.logins, u, t.n, maintenant, douteux);
+        }
+        // À garder (cf. LA MÉMOIRE GARDÉE) : ce qui n'a pas changé se réécrit à l'identique.
+        for (const l of t.logins) sales.add(l);
         version++;
       });
+      if (limitee) borner(t, limitee);
+      if (perdue || refusee) servisDeSuite = 0;
+      else if (!limitee && ++servisDeSuite >= CFG.AGENDA_REMONTEE) remonter();
       return perdue ? 'perdue' : 'ok';
     };
 
@@ -19351,12 +19602,26 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
            l'état : quatre cents chaînes tiennent en seize lots de première passe
            et quarante de seconde. */
         for (let tour = 0; tour < 200; tour++) {
-          const t = prochain();
+          let t = prochain();
           if (!t) break;
+          /* LA PAUSE PRÉCÈDE L'ENVOI SUIVANT (4.25.0.4), comptée depuis la fin
+             du précédent — de cette collecte ou d'une autre. Elle suivait
+             chaque envoi, le dernier compris : une seconde de collecte pour
+             rien, chaque fois. */
+          const reste = finDernierEnvoi + pauseMs - Date.now();
+          if (reste > 0) {
+            await attendre(reste);
+            t = prochain();          // l'état a pu changer pendant la pause
+            if (!t) break;
+          }
           // La pause GraphQL du pipeline principal vaut aussi pour l'agenda.
           const attente = gqlCooldownUntil - Date.now();
           if (attente > 0) { bilan.attentesGql++; await attendre(Math.min(attente, 30_000)); }
-          if (await envoyer(t) === 'perdue') {
+          const issue = await envoyer(t);
+          // Une collecte à la fois (cf. `lancer`) : personne d'autre n'écrit cet instant.
+          // eslint-disable-next-line require-atomic-updates
+          finDernierEnvoi = Date.now();
+          if (issue === 'perdue') {
             /* DEUX COUPURES D'AFFILÉE, ET L'ON S'ARRÊTE UNE MINUTE : le panneau
                relit l'agenda toutes les secondes, et chaque relecture
                relancerait sinon la collecte contre un réseau absent. */
@@ -19364,18 +19629,23 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
           } else {
             coupures = 0;
           }
-          await attendre(pauseMs);
+          ecrireBientot();
         }
       } catch (e) {
         erreurs.noter('agenda', 'collecte : ' + ((e && e.message) || e));
       } finally {
+        // Une collecte à la fois (cf. `lancer`) : rien ne réécrit le bilan pendant les attentes.
+        // eslint-disable-next-line require-atomic-updates
         bilan.dureeMs = Date.now() - t0;
         travail = null;
         version++;
         planifierRelance();
+        ecrireBientot();
       }
     };
     const lancer = () => {
+      // La mémoire gardée d'abord : on ne redemande pas ce qu'elle sait (cf. `restaurer`).
+      if (!restauree) { demandee = true; return; }
       if (travail || Date.now() < pauseJusqua || !prochain()) return;
       travail = travailler();
     };
@@ -19397,6 +19667,13 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       if (echeance === Infinity) return;
       relance = setTimeout(() => { relance = null; lancer(); }, Math.max(0, echeance - Date.now()) + 20);
     };
+
+    /* LA VUE SE RELIT tant que quelque chose doit encore changer sans qu'elle
+       le demande : une absence à reconfirmer, le relevé des chaînes suivies,
+       la base qu'on lit — et, quand elle montre un cadenas, le relevé des
+       abonnements de cette page, qui peut l'ôter (4.25.0.4). */
+    const attendue = (cadenas) => relance !== null || suivies.aVenir() || !restauree
+      || (cadenas && subsPage.enCours());
 
     const progression = (liste) => ({
       lues: liste.filter((l) => ficheFraiche(l, chaines.get(l))).length,
@@ -19444,7 +19721,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       }
       const chaine = typeof arg?.chaine === 'string' && RE_LOGIN_AGENDA.test(arg.chaine)
         ? arg.chaine : null;
-      voulu = { debut, fin, chaine };
+      voulu = { debut, chaine };
+      restaurer();
       const c = cibles();
       purger(c.liste);
       lancer();
@@ -19501,7 +19779,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       return {
         vue: 'semaine', version, maintenant, semaine: { debut, fin }, chaine,
         entrees, chaines: listeChaines(c.liste),
-        enCours: !!travail, attente: relance !== null || suivies.aVenir(),
+        enCours: !!travail || !restauree, attente: attendue(entrees.some((e) => e.abonne === false)),
         progression: progression(c.liste), notes: notes(c),
         resume: { directs: compte('direct'), diffusions: compte('rediffusion', 'sansRediffusion'),
                   prevues: compte('prevu'), chaines: new Set(entrees.map((e) => e.login)).size },
@@ -19532,7 +19810,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        ne sert plus (cf. `indisponible`) : elles ne disparaissent pas sur un
        silence, la ligne dit depuis quand. */
     const horsLigne = () => {
-      voulu = { debut: null, fin: null, chaine: null };
+      voulu = { debut: null, chaine: null };
+      restaurer();
       const c = cibles();
       purger(c.liste);
       lancer();
@@ -19564,7 +19843,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         || (a.login < b.login ? -1 : 1));
       return {
         vue: 'horsLigne', version, maintenant, lignes,
-        enCours: !!travail, attente: relance !== null || suivies.aVenir(),
+        enCours: !!travail || !restauree, attente: attendue(lignes.some((l) => l.abonne === false)),
         progression: progression(c.liste), notes: notes(c),
         resume: { horsLigne: lignes.filter((l) => !l.indisponible).length, directs,
                   programmees: lignes.filter((l) => l.prochain).length },
@@ -19595,7 +19874,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         refus: refus ? `${refus.quoi} — ${refus.message}` : null,
         enCours: !!travail,
         collectes: bilan.collectes, envois: bilan.envois,
-        lots: `${lot1} / ${lot2}`, pauseMs,
+        lots: `${lot1} / ${lot2} / ${lotAcces}`, pauseMs, ralenties: bilan.ralenties, remontees: bilan.remontees,
+        // La mémoire gardée : ce qu'on a relu de la base, et ce qu'on y a écrit (4.25.0.4).
+        memoire: { ...bilan.memoire, aEcrire: sales.size + retirees.size },
         passe1: { ...bilan.chaines }, programme: { ...bilan.programme },
         passe2: { ...bilan.diffusions },
         // Les jetons de lecture : leurs issues, et les chaînes qu'ils disent fermées.
@@ -19605,7 +19886,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       };
     };
 
-    return { semaine, horsLigne, actualiser, bilan: bilanPublic };
+    return { semaine, horsLigne, actualiser, effacer, bilan: bilanPublic };
   })();
 
   /* ============================================================

@@ -190,8 +190,8 @@ A página de programação de um canal, no Twitch, mostra um só canal. O grupo 
 - ★ A SEMANA, DIA A DIA ★ Abre no dia de hoje, com os dias passados acima: cada emissão passada com a gravação a um clique, as que estão em directo e as que os canais agendaram, cada uma no dia em que começou. Oito semanas para trás, duas para a frente.
 - ★ OFFLINE, MAS NÃO ESQUECIDOS ★ Cada canal seguido que não está em directo: primeiro os que têm uma emissão agendada, a mais próxima no topo, depois os outros, o mais recente primeiro — quando emitiu pela última vez, a gravação e a próxima emissão.
 - ★ UM CANAL OU TODOS ★ Um menu deixa só um, e «Semana do canal» leva logo à semana da sua última emissão.
-- ★ FRANCO SOBRE O QUE O TWITCH GUARDA ★ Uma gravação só existe se o canal guarda as emissões, e enquanto o Twitch as mantiver; uma última emissão sem gravação di-lo («Sem gravação»), e uma gravação que só se pode ver com subscrição também («Subscritores»), antes do clique.
-- ★ SÓ QUANDO OLHAS ★ Nada é pedido ao Twitch antes de o abrires, e nada é guardado: tudo vive no separador.
+- ★ FRANCO SOBRE O QUE O TWITCH GUARDA ★ Uma gravação só existe se o canal guarda as emissões, e enquanto o Twitch as mantiver; uma última emissão sem gravação di-lo («Sem gravação»), e uma gravação que só se pode ver com subscrição também, com um cadeado, antes do clique.
+- ★ SÓ QUANDO OLHAS ★ Nada é pedido ao Twitch antes de o abrires, e o que leu fica no teu navegador: ao recarregar, continua de onde estava.
 
 _______________________________
 
@@ -260,7 +260,7 @@ _______________________________
 - ★ Nenhum rastreador, nenhum pixel, nenhuma telemetria ★
 - ★ Nenhuma permissão suspeita ★ A extensão corre APENAS em twitch.tv.
 - ★ O bloqueio de publicidade não sai da sua faixa ★ Aplica-se à miniatura da pré-visualização e a mais nada. A emissão que estás mesmo a ver fica intacta.
-- ★ O teu histórico fica contigo ★ Visitas, subscrições, meses: guardados no localStorage do teu navegador, ponto. Apaga os dados do site twitch.tv e desaparece tudo.
+- ★ O teu histórico fica contigo ★ Visitas, subscrições, meses, programação: guardados no teu navegador (localStorage e IndexedDB), ponto. Apaga os dados do site twitch.tv e desaparece tudo.
 - ★ Código-fonte totalmente legível ★ Directamente na pasta da extensão. Sem caixa negra.
 
 _______________________________

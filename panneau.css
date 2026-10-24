@@ -1136,15 +1136,14 @@ a.ag-ent:focus-visible { outline: 2px solid var(--violet); outline-offset: -2px;
   border-radius: 50%; background: var(--direct); vertical-align: 1px;
 }
 /* LE CADENAS DES ABONNÉS (4.25.0.1), dans l'or des abonnements : une
-   rediffusion qui vous est fermée. Ouverte, elle ne porte rien (4.25.0.2). */
+   rediffusion qui vous est fermée. Ouverte, elle ne porte rien (4.25.0.2).
+   L'icône seule depuis la 4.25.0.4, sans cadre ni mot. */
 .ag-abo {
   flex: 0 0 auto;
-  display: inline-flex; align-items: center; gap: 3px;
-  padding: 0 5px; border: 1px solid; border-radius: 3px;
+  display: inline-flex; align-items: center;
   color: var(--or);
-  font-size: 10px; font-weight: 700; line-height: 14px; white-space: nowrap;
 }
-.ag-cadenas { flex: 0 0 auto; width: 9px; height: 9px; }
+.ag-cadenas { flex: 0 0 auto; width: 11px; height: 11px; }
 
 /* ── Hors ligne ──────────────────────────────────────────────────────────── */
 .hl-liste { display: flex; flex-direction: column; gap: 2px; }

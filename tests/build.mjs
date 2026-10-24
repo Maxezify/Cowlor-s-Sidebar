@@ -174,6 +174,9 @@ const subs = [
   [/AGENDA_TTL:\s*10 \* 60_000/,     'AGENDA_TTL:             30_000'],
   [/AGENDA_PAUSE_MS:\s*1_000/,       'AGENDA_PAUSE_MS:        30'],
   [/AGENDA_RECONFIRMER_MS:\s*60_000/, 'AGENDA_RECONFIRMER_MS:  1_200'],
+  // La mémoire gardée (4.25.0.4) s'écrit trois secondes après un changement : 200 ms au banc.
+  [/AGENDA_ECRITURE_MS:\s*3_000/,    'AGENDA_ECRITURE_MS:     200'],
+  [/AGENDA_ECRITURE_REPRISE_MS:\s*60_000/, 'AGENDA_ECRITURE_REPRISE_MS: 1_500'],
   /* Le relevé des chaînes suivies (4.25.0.3). Il charge une page de plus à
      chaque chargement de Twitch, et l'agenda se relit tant qu'il est attendu :
      le banc l'ÉTEINT pour tous les scénarios. Le 209 le rallume sur sa copie

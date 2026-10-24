@@ -212,6 +212,10 @@ const PROMESSES = [
      le compte, dite dans la confidentialité avec sa période. La marque est la
      constante qui la fixe. */
   ['it opens your Following page the same way, every twelve hours', 'SUIVIES_TTL:          12 * 60 * 60_000,'],
+  /* LA MÉMOIRE DE L'AGENDA, GARDÉE (4.25.0.4). La fiche promettait « rien
+     n'est écrit : tout vit dans l'onglet » ; elle dit désormais qu'un
+     rechargement reprend où il en était. La marque est l'ouverture de la base. */
+  ['what it has read stays in your browser, so a reload picks up where it left off', 'window.indexedDB.open(CFG.AGENDA_BASE'],
 ];
 const tenues = PROMESSES.flatMap(([phrase, marque]) => {
   const dansFiche = en.includes(phrase);
@@ -230,9 +234,10 @@ ok('les comportements promis par la fiche sont dans content.js',
    libellés du panneau ; ils se lisent ENTRE GUILLEMETS, dans la table de SA
    langue — « 設定 » figure ailleurs dans la fiche japonaise, et le mot seul
    ne prouverait rien. L'agenda (4.25.0) y ajoute son groupe, son bouton
-   « Sa semaine » et sa marque « Sans rediffusion » ; la 4.25.0.1, sa
-   pastille « Abonnés ». */
-const LIBELLES = ['grpOptions', 'btnRefreshSubs', 'grpAgenda', 'btnSeeWeek', 'valNoReplay', 'valSubOnly'];
+   « Sa semaine » et sa marque « Sans rediffusion ». La pastille « Abonnés »
+   de la 4.25.0.1 en est sortie à la 4.25.0.4 : le cadenas s'affiche seul, et
+   les fiches le disent par son nom. */
+const LIBELLES = ['grpOptions', 'btnRefreshSubs', 'grpAgenda', 'btnSeeWeek', 'valNoReplay'];
 const echappe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const malNommes = fiches.flatMap((f) => {
   const loc = f.replace(/^description-|\.txt$/g, '').replace('-', '_');

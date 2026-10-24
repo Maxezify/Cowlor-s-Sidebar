@@ -2180,6 +2180,249 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## L'agenda, au quatrième essai (v4.25.0.4)
+
+Les retours du quatrième essai, capture et rapport à l'appui : « J'ai
+l'impression qu'à chaque rechargement de page, l'agenda se recharge également
+de zéro. Est-ce qu'il récupère bien ce qu'il a en mémoire ? J'aimerais
+également que lorsqu'on est abonné à une chaîne, on puisse ne plus avoir le
+cadenas Abonné de visible […]. Également retirer le "Abonnés", juste mettre un
+cadenas. J'aimerais que tu continues l'audit complet sur cette partie agenda.
+Que tu optimises, gain de performance, debug, code mort. » Puis : « Quand on
+clique sur un replay, j'aimerais que ce soit un nouvel onglet qui ouvre le
+replay, et pas la même page. » Publiée sur `claude/chrome-multi`.
+
+### Il ne récupérait rien
+
+L'impression était juste : rien n'était écrit, par choix — « tout vit en
+mémoire, le temps de l'onglet » (4.25.0). Le rapport en disait le prix : pour
+184 chaînes, **101 envois et deux minutes** (`dureeMs` 122 236), à chaque
+rechargement.
+
+L'agenda garde désormais ce qu'il a lu dans la base **IndexedDB** de
+twitch.tv, `tse-agenda` : un enregistrement par chaîne, sa fiche — planning
+compris —, sa liste de rediffusions et son jeton de lecture.
+
+- **Relue à la première vue de l'agenda**, la mémoire se montre aussitôt, et
+  seul ce qui a passé sa fraîcheur se redemande : les fiches au bout de dix
+  minutes, les listes et les jetons au bout de six heures, comme dans un même
+  onglet. Pendant qu'elle se lit, la vue dit qu'elle travaille — elle ne se
+  dit pas vide —, et la collecte demandée entre-temps part dès la lecture
+  finie, sans attendre une autre vue.
+- **N'écrit que ce qui a changé** : les chaînes servies depuis la dernière
+  écriture, au plus toutes les trois secondes. Une chaîne qui sort des
+  chaînes lues sort de la base.
+- **Plusieurs onglets** : chacun écrit ce qu'il sait, et l'écriture relit
+  l'enregistrement dans la même transaction pour garder, morceau par
+  morceau — fiche, liste, jeton —, le plus récent.
+- **Ce qui n'est pas gardé** : les échecs, les refus, la forme du planning et
+  les compteurs, qui valent pour la session ; et un « en direct » qui a passé
+  sa fraîcheur — relu d'une base, il ne serait plus vrai que le temps de le
+  relire : la chaîne n'est plus dite en direct avant que sa fiche le redise.
+- **Une base abîmée** : un enregistrement illisible ne se relit pas, sort de
+  la base à l'écriture suivante, et sa chaîne se redemande, elle seule. Une
+  base qui ne s'ouvre pas laisse l'agenda vivre sans elle, comme avant : le
+  journal d'erreurs le dit une fois, et rien ne tente plus de s'y écrire. Une
+  écriture refusée — un quota plein — ne se retente qu'au bout d'une minute.
+- **« Effacer l'historique »** la vide, avec la mémoire de l'onglet — même
+  pendant qu'elle se lit : rien de ce qu'elle lisait ne revient.
+
+Pourquoi IndexedDB : `content.js` tourne dans le monde de la page, où
+`chrome.storage` n'existe pas, et le manifeste ne demande aucune permission —
+la 4.25.0.4 n'en ajoute pas. Et pas `localStorage` : Twitch le partage avec
+nous, il est borné à quelques mégaoctets pour toute l'origine, et l'agenda en
+pèse des centaines de kilo-octets. Rien ne sort du navigateur ; le rapport
+n'en porte que des comptes (`memoire` : lus, écrits, effacés, échecs).
+
+La première ouverture après la mise à jour part encore d'une base vide ; les
+suivantes, non.
+
+### Le rapport disait aussi pourquoi c'était lent
+
+Une erreur au rapport : « The number of root field aliases 25 exceeds the
+root field aliases limit allowed (15) ». Les jetons de lecture partaient par
+vingt-cinq, un alias chacun ; Twitch en accepte **quinze** au plus, et
+refusait la requête entière. Ce refus de forme passait pour un refus du
+service : lots divisés par deux, pause doublée — `lots` « 12 / 5 »,
+`pauseMs` 2 000 —, et pour toute la session.
+
+- **Quinze jetons par requête** (`AGENDA_LOT_ACCES`).
+- **Une requête trop grosse n'est pas un refus.** Quand le schéma nomme la
+  borne qu'elle passe, le lot de cette passe rapetisse jusqu'à elle et
+  repart, sans que rien d'autre ralentisse ni qu'aucune chaîne soit comptée
+  en échec ; une borne qu'il ne chiffre pas fait diviser par deux le lot
+  parti. Elle se lit une fois par envoi, et elle **tient** : la remontée
+  ci-dessous ne la passe jamais — la regonfler ferait refuser une requête
+  tous les dix envois. Le rapport compte ces refus à part (`limites`).
+- **Le ralentissement remonte.** Un vrai refus du service divise toujours
+  les lots et double la pause ; dix envois servis d'affilée rendent un cran
+  (`AGENDA_REMONTEE`). Le rapport compte les deux (`ralenties`, `remontees`).
+- **La pause précède l'envoi suivant**, comptée depuis la fin du précédent,
+  de cette collecte ou d'une autre. Elle suivait chaque envoi, le dernier
+  compris : une seconde de collecte pour rien, à chaque fois. Et l'état se
+  relit après elle — ce qu'elle a rendu caduc ne part pas.
+
+Ce que la même collecte coûterait désormais, cette machine ne peut pas le
+mesurer : elle n'atteint pas Twitch. À lots pleins, quinze jetons par
+requête et une seconde de pause, elle devrait tenir dans la moitié des envois
+et du temps du rapport — une estimation, que le prochain rapport dira. Après
+un rechargement, ce qui est frais ne coûte plus rien.
+
+### Le cadenas, et lui seul
+
+- **Plus de mot** : un cadenas, dans l'or des abonnements, sans cadre. Le mot
+  « Abonnés » reste son nom pour les lecteurs d'écran, et l'infobulle dit le
+  reste.
+- **Abonné, plus de cadenas** — c'était déjà la règle depuis la 4.25.0.2 :
+  une rediffusion qu'on vous sait ouverte ne porte rien. Ce qui manquait :
+  un abonnement **appris après le dessin** — le relevé des abonnements fini
+  après l'ouverture du panneau — ne changeait pas la version de l'agenda, et
+  le cadenas restait jusqu'à la réouverture. La signature de la vue compte
+  maintenant ses cadenas ; et tant que le relevé des abonnements de la page
+  tourne, une vue qui montre un cadenas se relit chaque seconde. Le cadenas
+  part à la relecture suivante, et lui seul : les autres lignes gardent leurs
+  nœuds.
+
+La mémoire des abonnements ne sait que ce que vos visites et le relevé de
+`/subscriptions` lui ont montré : sans un relevé réussi depuis l'abonnement,
+le cadenas reste — faute de savoir, comme avant.
+
+### La rediffusion, dans un onglet neuf
+
+Une rediffusion de « La semaine » et le bouton « Revoir » de « Hors ligne »
+s'ouvrent toujours dans un onglet neuf, sans référent — incrusté dans Twitch
+comme en popup : la page qu'on regardait reste où elle était. La chaîne d'un
+direct et le planning d'un créneau programmé, eux, mènent toujours la page
+quand le panneau est incrusté.
+
+### L'audit
+
+Relu de bout en bout — collecte, mémoire, panneau, banc. Ce qu'il a trouvé
+dans le code publié, outre ce que le rapport montrait :
+
+- **un refus compté deux fois** : une même requête porte la fiche et le
+  planning ; refusées ensemble, elles ralentissaient deux fois — lots divisés
+  par quatre, pause quadruplée. Une fois par envoi ;
+- **du code mort** : la fin de la semaine regardée, gardée à chaque vue et
+  jamais lue ;
+- **le cadenas qui ne partait pas** (ci-dessus) ;
+- **le guide en retard d'une version** : son chapitre « Vie privée » disait
+  encore « une exception » — il y en a deux depuis la 4.25.0.3, la page des
+  chaînes suivies —, et ne comptait ni les chaînes suivies ni ce que l'agenda
+  lit parmi ce qui reste dans le navigateur. Les fiches du Store le disaient
+  déjà.
+
+Et trois défauts du premier jet de ce correctif, trouvés à la relecture avant
+qu'il parte : la remontée ramenait les lots à leur plafond, même au-delà d'une
+borne que Twitch venait de dire ; cette borne se lisait sur le plafond de la
+passe plutôt que sur le lot parti — celui des jetons est aussi borné par la
+première passe ; et une écriture refusée, ou une base qui ne s'ouvre pas, se
+retentait toutes les trois secondes tant que l'onglet vivait.
+
+Aucune autre déclaration du module n'est sans lecteur ; le linter ne dit
+rien.
+
+### Les textes
+
+- Douze langues : le paragraphe de l'agenda du guide dit le cadenas seul,
+  l'onglet neuf, et la mémoire gardée ; son chapitre « Vie privée », les deux
+  exceptions et tout ce qui reste dans le navigateur. Le contrat des
+  citations du scénario 96 ne cite plus la pastille.
+- Les douze fiches du Store : le cadenas sans « Abonnés », la mémoire gardée
+  dans le navigateur — « un rechargement reprend là où il en était » —, et
+  l'historique qui la vide. `npm run store` vise la base pour la promesse
+  neuve, et ne cite plus le libellé « Abonnés ».
+
+### Ce que le banc mesure
+
+**`page.html`** : la borne des alias de Twitch sur les jetons — quinze,
+refusée avec son message —, une borne sur les logins d'une opération,
+chiffrée ou muette. **`build.mjs`** ramène l'écriture à 200 ms, et sa
+reprise après un refus à 1,5 s.
+
+**207** :
+
+- i) rien dans `localStorage` ni `sessionStorage` ; la base, une table, une
+  entrée par chaîne lue ;
+- δ) la mémoire gardée : écrite au fil de la collecte, relue au
+  rechargement sans un envoi ; la vue qui travaille pendant qu'elle se lit ;
+  plusieurs onglets ; une base abîmée ; une base qui ne s'ouvre pas ; une
+  écriture refusée ; une chaîne qu'on ne suit plus ;
+  « Effacer », avant et pendant la lecture ; rechargée après la fraîcheur
+  des fiches, elles seules relues, et un « en direct » périmé qui n'est pas
+  cru ; la collecte qui part d'elle-même ;
+- ε) vingt-trois jetons, quinze puis huit ; une borne de deux ; une borne
+  apprise qui tient ; une borne muette ;
+- ζ) la fiche et le planning refusés ensemble, puis trois envois servis
+  (variante) : un seul cran perdu, et rendu ;
+- η) la collecte qui finit avec sa dernière réponse ; la suivante qui
+  attend la pause ; l'état relu après elle ;
+- θ) un cadenas montré attend le relevé des abonnements ; sans cadenas,
+  rien.
+
+**208** : le cadenas seul, nommé ; un abonnement appris après le dessin, dans
+« La semaine » et dans « Hors ligne » ; la rediffusion et « Revoir » dans un
+onglet neuf, éprouvés par un vrai clic.
+
+Deux épreuves anciennes s'arrêtent désormais à la fin de la collecte qu'elles
+comptent (o, η) : la vue y reste attendue jusqu'à la fin du relevé des
+abonnements — six secondes sur les variantes du banc, où la fraîcheur des
+fiches en vaut une et demie —, et la page y redemande les fiches à chaque
+fraîcheur passée, ce qu'elle doit faire.
+
+**Trente-huit mutants nommés, tous pris** : trente sur la collecte et la
+mémoire, huit sur le panneau. Le premier passage en a vu trois faire planter
+le banc au lieu de le faire échouer — des lectures qui supposaient la base
+remplie, une ligne présente, un cadre encore là : elles le vérifient
+désormais, et chacun échoue proprement. « La lecture ratée bloque l'agenda »
+a été réécrit : il bloquait aussi la lecture réussie ; il ne bloque plus que
+la lecture ratée, que le banc provoque désormais. Trois mutants sont venus
+après, avec ce qu'ils éprouvent : deux crans perdus pour un envoi, une base
+absente qui reçoit des écritures, l'écriture refusée retentée en boucle.
+
+Le banc complet : 1947 assertions dans 208 scénarios, toutes vertes.
+
+| mutant | ce qui tombe |
+| --- | --- |
+| la base jamais relue | 207 : δ, δ, δ, δ, δ, δ |
+| rien d'écrit | 207 : i, δ, δ, δ, δ, δ, δ, δ, δ, δ |
+| la collecte n'attend pas la base | 207 : δ, δ, δ |
+| la collecte demandée pendant la lecture oubliée | 207 : δ |
+| un « en direct » périmé cru | 207 : δ |
+| l'écriture sans relecture | 207 : δ |
+| la plus ancienne gagne | 207 : δ |
+| une chaîne qu'on ne suit plus reste en base | 207 : δ |
+| « Effacer » ne vide pas la base | 207 : δ, δ |
+| « Effacer » sans génération | 207 : δ |
+| la lecture ratée bloque l'agenda | 207 : δ |
+| l'illisible relu | 207 : δ, δ |
+| l'illisible laissé en base | 207 : δ |
+| « Effacer l'historique » oublie l'agenda | 207 : δ, δ |
+| vingt-cinq jetons, comme en 4.25.0.3 | 207 : ε, ε |
+| la borne de taille prise pour un refus | 207 : ε, ε, ε |
+| la borne chiffrée non lue | 207 : ε, ε |
+| la borne muette mesurée sur le plafond | 207 : ε |
+| la borne apprise regonflée | 207 : ε |
+| ralenti pour toute la session | 207 : ζ |
+| un refus compté parmi les servis | 207 : ζ |
+| la pause après le dernier envoi | 207 : η |
+| la pause oubliée d'une collecte à l'autre | 207 : δ, η |
+| l'état non relu après la pause | 207 : η |
+| aucune attente du relevé des abonnements | 207 : θ |
+| l'attente sans cadenas | 207 : o, θ |
+| la semaine n'attend pas pour ses cadenas | 207 : θ |
+| deux crans perdus pour un envoi | 207 : ζ |
+| une base absente reçoit des écritures | 207 : δ |
+| l'écriture refusée retentée en boucle | 207 : δ |
+| le cadenas sans nom | 208 : e |
+| le mot revenu | 208 : e |
+| le cadenas hors de la signature | 208 : g ter |
+| les lignes hors de la signature | 208 : g ter |
+| la rediffusion dans la page | 208 : p, p, p |
+| « Revoir » dans la page | 208 : p |
+| l'onglet neuf avec référent | 208 : p, p |
+| tout dans un onglet neuf | 208 : p |
+
 ## L'agenda, au troisième essai (v4.25.0.3)
 
 Le retour du troisième essai, captures et rapport à l'appui : « [Une chaîne
@@ -2313,6 +2556,10 @@ au bout de six heures. Une restriction nommée sur une archive précise compte
 toujours, elle seule. Un jeton en panne se redemande, lui seul ; un schéma qui
 le refuserait éteint le cadenas pour la session, et rien d'autre. Le rapport
 compte les jetons et les chaînes qu'ils disent fermées (`acces`).
+
+**Revu au quatrième essai (v4.25.0.4, plus haut).** Vingt-cinq passaient la
+borne de Twitch — quinze alias par requête — : la requête entière était
+refusée, et ce refus de forme ralentissait la session. Quinze par envoi.
 
 Et l'abonnement se lit comme la barre le lit (`subs.isSub`) : la 4.25.0.2 lisait
 la note brute, et un abonnement offert venu à son terme ôtait encore le
@@ -2583,6 +2830,10 @@ rechargement repart de zéro. Ce qui change :
   rediffusions chacune au plus (cent depuis la 4.25.0.3, plus haut). Le rapport compte ce qui est parti
   (`purgees`).
 
+**Revu au quatrième essai (v4.25.0.4, plus haut).** Un rechargement ne repart
+plus de zéro : ce qui est lu est gardé dans la base IndexedDB `tse-agenda` de
+twitch.tv, et seul ce qui a vieilli se redemande.
+
 ### Ce qui change dans le panneau
 
 - Le cadenas fermé seul ; la variante ouverte, sa feuille et sa clé, partis.
@@ -2813,7 +3064,8 @@ Ce que la 4.25.0 en faisait, lu comme un début :
   sait pas abonné, ouvert quand la mémoire des abonnements vous sait abonné
   à la chaîne. Elle ne sait que ce que vos visites lui ont montré : faute de
   savoir, le cadenas reste fermé. Dans « Hors ligne », la pastille précède
-  « Revoir ».
+  « Revoir ». **Revu** depuis : rien quand elle vous est ouverte (v4.25.0.2), et le
+  cadenas seul, sans le mot (v4.25.0.4).
 - **« Hors ligne »** : un filet sépare les chaînes programmées des autres ;
   le titre et le prochain direct, que la largeur coupe, se lisent en entier
   dans leur infobulle ; « Revoir » suit ce que la page a établi, et non plus
@@ -3022,7 +3274,8 @@ Les liens s'ouvrent là où l'on est : dans un onglet depuis la popup, sans
 référent ; dans la page elle-même quand le panneau est incrusté. Ce qui vient
 de Twitch reste du texte, titres compris. Une image n'est acceptée qu'en
 https, et un identifiant de rediffusion ne devient un lien que s'il est fait
-de chiffres.
+de chiffres. **Revu à la 4.25.0.4 (plus haut)** : une rediffusion s'ouvre toujours
+dans un onglet neuf.
 
 ### Ce qu'il demande à Twitch
 
@@ -3044,7 +3297,8 @@ fichier : aucune requête persistée.
   panneau relit l'avancement chaque seconde.
 - **Ce qui échoue ne s'acharne pas.**
   - Un refus du service divise les lots par deux et double la pause, pour la
-    session.
+    session. **Revu à la 4.25.0.4** : dix envois servis d'affilée en rendent un
+    cran.
   - Deux envois perdus de suite arrêtent la lecture ; « Actualiser » la
     relance.
   - Une chaîne que Twitch n'a pas servie deux fois attend la fraîcheur
@@ -3053,7 +3307,8 @@ fichier : aucune requête persistée.
   les plus visitées et les plus récemment vues. Au-delà, le panneau dit
   combien sont lues.
 - **Rien n'est écrit** : tout vit en mémoire, le temps de l'onglet. Le
-  rapport n'en porte que des comptes, bloc `AGENDA`.
+  rapport n'en porte que des comptes, bloc `AGENDA`. **Revu à la 4.25.0.4 (plus
+  haut)** : ce qui est lu est gardé dans la base IndexedDB `tse-agenda`.
 
 ### Ce qui n'est pas prouvé
 
@@ -20507,7 +20762,8 @@ vous êtes désabonné.
 ## Vie privée
 
 Tout ce que l'extension mémorise est **100 % local**, stocké dans le
-`localStorage` de votre navigateur et **jamais** envoyé nulle part :
+`localStorage` de votre navigateur — l'agenda, dans sa base IndexedDB,
+ci-dessous — et **jamais** envoyé nulle part :
 
 | Clé | Contenu | Usage |
 | --- | --- | --- |
@@ -20523,6 +20779,12 @@ Tout ce que l'extension mémorise est **100 % local**, stocké dans le
 
 `tse.reset()` les efface toutes à tout moment ; vider les données de site de
 `twitch.tv` depuis les réglages du navigateur fait de même.
+
+**L'agenda** garde depuis la 4.25.0.4 ce qu'il a lu dans la base IndexedDB
+`tse-agenda` de twitch.tv — une entrée par chaîne suivie lue : sa fiche, sa
+liste de rediffusions, son jeton de lecture —, pour ne pas tout redemander à
+chaque rechargement. `tse.reset()` la vide aussi, comme vider les données de
+site.
 
 Le mode **Top Chaînes** n'ajoute rien à cette liste, sinon que ses cartes ont
 leurs verdicts de sonde dans `tse:sondes` comme les autres : il ne mémorise rien
@@ -20631,7 +20893,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 208 scénarios, 1924 assertions |
+| `npm test` | le harnais Playwright : 208 scénarios, 1947 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -20652,12 +20914,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1782 Ko | 729 Ko | 4 382 → **2** |
+| `content.js` | 1798 Ko | 736 Ko | 4 423 → **2** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
-| `panneau.js` | 145 Ko | 74 Ko | 206 → **0** |
+| `panneau.js` | 146 Ko | 74 Ko | 206 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
 | `background.js` | 10 Ko | 2 Ko | 22 → **0** |
-| **les cinq** | **2077 Ko** | **909 Ko** | **−56 %** |
+| **les cinq** | **2093 Ko** | **917 Ko** | **−56 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
