@@ -192,9 +192,14 @@ window.__tagTop = {};      // classement par tag de langue (cf. TseTagTop)
    sans compte, d'après la mesure : `chansub.restricted_bitrates` nomme toutes
    les qualités sur une archive `verrouillee` — réservée aux abonnés, sans
    restriction nommée, le cas réel —, celles de `debits` sinon : quelques
-   qualités réservées n'en ferment pas l'accès. Un identifiant inconnu
+   qualités réservées n'en ferment pas l'accès. Plus d'alias que
+   `__agendaAliasMax` (quinze, la borne MESURÉE de Twitch) : la requête
+   entière est refusée, sans données, avec le message de Twitch. Un identifiant inconnu
    rend un jeton nul. `__agendaJetons` : la liste des identifiants dont le
    jeton tombe en panne, une fois chacun, avec l'erreur qui nomme son alias.
+   `__agendaLoginsMax` (4.25.0.4) : une borne sur la liste de logins d'une
+   opération — aucune par défaut —, refusée de la même façon, en la nommant ;
+   sans la nommer quand `__agendaLimiteMuette` est vrai.
 
    `enDirect` (4.25.0.2) : un direct que seul l'agenda voit — la barre, qui
    lit `__fx`, l'ignore. C'est ce qui éprouve la fiche lue en cours de
@@ -781,6 +786,11 @@ window.fetch = async (url, opt) => {
      JSON comprise, et rien d'autre de ce qu'elle porte ne compte ici. */
   const TOUTES = ['160p30', '360p30', '480p30', '720p60', 'audio_only', 'chunked'];
   const agendaJetons = (q) => {
+    const n = (q.match(/\ba\d+: videoPlaybackAccessToken/g) || []).length;
+    const max = window.__agendaAliasMax ?? 15;
+    if (n > max) {
+      return { errors: [{ message: `The number of root field aliases ${n} exceeds the root field aliases limit allowed (${max})` }] };
+    }
     const data = {}, errors = [];
     for (const [, alias, id] of q.matchAll(/(a\d+): videoPlaybackAccessToken\(id: "(\d+)"/g)) {
       const k = (window.__agendaJetons || []).indexOf(id);
@@ -847,6 +857,11 @@ window.fetch = async (url, opt) => {
     }
     if (nom === 'TseAgendaAcces') return agendaJetons(o.query || '');
     const logins = o.variables?.logins || [];
+    const maxLogins = window.__agendaLoginsMax ?? Infinity;
+    if (logins.length > maxLogins) {
+      return { errors: [{ message: window.__agendaLimiteMuette ? `The number of logins ${logins.length} exceeds the list size limit`
+        : `The number of logins ${logins.length} exceeds the list size limit allowed (${maxLogins})` }] };
+    }
     if (nom === 'TseAgendaProgramme') {
       const forme = agendaForme(o.query || '');
       if (window.__agendaFormes && !window.__agendaFormes.includes(forme)) {

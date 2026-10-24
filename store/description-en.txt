@@ -190,8 +190,8 @@ A channel's schedule page on Twitch shows one channel. The panel's "Schedule" gr
 - ★ THE WEEK, DAY BY DAY ★ It opens on today, the past days above: every past stream with its replay one click away, the ones live right now, and the ones channels have scheduled, each on the day it started. Eight weeks back, two ahead.
 - ★ OFFLINE, NOT FORGOTTEN ★ Every followed channel that isn't live: those with a stream scheduled come first, the soonest on top, then the others, the most recent first — when it last streamed, its replay, and its next stream.
 - ★ ONE CHANNEL OR ALL ★ A menu keeps a single channel, and "Their week" jumps straight to the week of its last stream.
-- ★ HONEST ABOUT WHAT TWITCH KEEPS ★ A replay only exists if the channel saves its broadcasts, and for as long as Twitch keeps them; a last stream without one says so ("No replay"), and so does a replay you cannot watch without a subscription ("Subs only"), before you click.
-- ★ ONLY WHEN YOU LOOK ★ Nothing is asked of Twitch until you open it, and nothing is stored: it all lives in the tab.
+- ★ HONEST ABOUT WHAT TWITCH KEEPS ★ A replay only exists if the channel saves its broadcasts, and for as long as Twitch keeps them; a last stream without one says so ("No replay"), and so does a replay you cannot watch without a subscription, with a padlock, before you click.
+- ★ ONLY WHEN YOU LOOK ★ Nothing is asked of Twitch until you open it, and what it has read stays in your browser, so a reload picks up where it left off.
 
 _______________________________
 
@@ -260,7 +260,7 @@ _______________________________
 - ★ No tracker, no pixel, no telemetry ★
 - ★ No shady permissions ★ The extension ONLY runs on twitch.tv.
 - ★ Ad blocking stays in its lane ★ It applies to the hover preview thumbnail and to nothing else. The stream you're actually watching is untouched.
-- ★ Your history stays with you ★ Visits, subscriptions, months: stored in your browser's localStorage, period. Clear twitch.tv site data and it's all gone.
+- ★ Your history stays with you ★ Visits, subscriptions, months, the schedule: stored in your browser (localStorage and IndexedDB), period. Clear twitch.tv site data and it's all gone.
 - ★ Full source code readable ★ Right in the extension folder. No black box.
 
 _______________________________

@@ -190,8 +190,8 @@ La página de horario de un canal, en Twitch, muestra un solo canal. El grupo «
 - ★ LA SEMANA, DÍA A DÍA ★ Se abre en el día de hoy, con los días pasados arriba: cada directo pasado con su repetición a un clic, los que están en curso y los que los canales han programado, cada uno en el día en que empezó. Ocho semanas atrás, dos adelante.
 - ★ DESCONECTADOS, PERO NO OLVIDADOS ★ Cada canal seguido que no está en directo: primero los que tienen un directo programado, el más cercano arriba, y después los demás, el más reciente primero — cuándo emitió por última vez, su repetición y su próximo directo.
 - ★ UN CANAL O TODOS ★ Un menú deja uno solo, y «Su semana» lleva directamente a la semana de su último directo.
-- ★ CLAROS CON LO QUE TWITCH GUARDA ★ Una repetición solo existe si el canal guarda sus directos, y mientras Twitch los conserve; un último directo sin ella lo dice («Sin repetición»), y una repetición que solo se puede ver con suscripción también («Suscriptores»), antes del clic.
-- ★ SOLO CUANDO MIRÁIS ★ No se le pide nada a Twitch antes de que lo abráis, y no se guarda nada: todo vive en la pestaña.
+- ★ CLAROS CON LO QUE TWITCH GUARDA ★ Una repetición solo existe si el canal guarda sus directos, y mientras Twitch los conserve; un último directo sin ella lo dice («Sin repetición»), y una repetición que solo se puede ver con suscripción también, con un candado, antes del clic.
+- ★ SOLO CUANDO MIRÁIS ★ No se le pide nada a Twitch antes de que lo abráis, y lo que ha leído se queda en vuestro navegador: al recargar, sigue donde estaba.
 
 _______________________________
 
@@ -260,7 +260,7 @@ _______________________________
 - ★ Ningún rastreador, ningún píxel, ninguna telemetría ★
 - ★ Ningún permiso turbio ★ La extensión SOLO funciona en twitch.tv.
 - ★ El bloqueo de anuncios no se sale de su carril ★ Se aplica a la miniatura de vista previa y a nada más. El directo que estás viendo de verdad no se toca.
-- ★ Tu historial se queda contigo ★ Visitas, suscripciones, meses: guardados en el localStorage de tu navegador, y punto. Borra los datos del sitio twitch.tv y desaparece todo.
+- ★ Tu historial se queda contigo ★ Visitas, suscripciones, meses, horario: guardados en tu navegador (localStorage e IndexedDB), y punto. Borra los datos del sitio twitch.tv y desaparece todo.
 - ★ Código fuente totalmente legible ★ Directamente en la carpeta de la extensión. Sin caja negra.
 
 _______________________________
