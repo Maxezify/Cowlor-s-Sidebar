@@ -331,12 +331,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1660 KB | 671 KB | 4,242 → **2** |
+| `content.js` | 1810 KB | 741 KB | 4,440 → **2** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
-| `panneau.js` | 113 KB | 53 KB | 160 → **0** |
+| `panneau.js` | 148 KB | 76 KB | 207 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
 | `background.js` | 10 KB | 2 KB | 22 → **0** |
-| **all five** | **1918 KB** | **828 KB** | **−57 %** |
+| **all five** | **2107 KB** | **922 KB** | **−56 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are
@@ -1948,7 +1948,7 @@ is repaired the same way:
 | `GQL_TIMEOUT` exceeded | `abandon après … ms` | slow network, not a broken one |
 | `fetch` rejects | `échec de fetch` | offline, blocker, third-party extension |
 | unreadable body | `corps illisible (JSON)` | truncated or intercepted response |
-| **200 with an error body** | `réponse 200 avec erreurs GraphQL` | persisted query withdrawn, field renamed |
+| **200 with an error body** | `réponse 200 avec erreurs GraphQL (TseChannels)` — the refused operation, since 4.25.0.7 | persisted query withdrawn, field renamed, service refused |
 
 The last is the sneakiest: perfect transport, nothing wrong at the HTTP layer,
 and a cache that stays empty. The report also gives the number of calls, the
@@ -2488,6 +2488,1691 @@ A sub-test that modelled an impossible case — a stream growing younger without
 changing id — was replaced along the way by the ordinary case that was actually
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
+
+## Silent channels, and a small audit (v4.25.0.7)
+
+The request: “In Offline, there are channels that scheduled streams but have
+been inactive for a long time. I'd like you to remove them if they haven't
+streamed for three months. A small audit, dead code, optimisations,
+debugging… Make sure it breaks nothing in the extension.” Published on
+`claude/chrome-multi`, then carried over to `claude/firefox-multi` and both
+production branches.
+
+### Scheduled, but silent
+
+Twitch keeps the recurring schedule of a channel that no longer streams. Your
+screenshot showed one at the top of “Offline”, among the scheduled ones:
+“Last stream 41 months ago — Next stream: Monday, 16:00”.
+
+A channel is **silent** when its last known stream ended more than ninety
+days ago (`AGENDA_MUETTE_MS`). Scheduled and silent:
+
+- it leaves **“Offline”**;
+- its slots no longer appear in **the week** — the same schedule, the same
+  promise nobody keeps;
+- the report counts them (`agenda.muettes`).
+
+What does not change:
+
+- **with no known last stream** — never streamed, or not read yet —, nothing
+  says it went quiet: it stays, with its next stream;
+- **a silent channel with no schedule** stays where it was, at the bottom of
+  the list, ordered by when it left: it promised nothing, and that is not what
+  was asked.
+
+Three months means ninety days. The panel rounds to the nearest month and says
+“3 months ago” from seventy-five days: between seventy-five and eighty-nine, a
+scheduled channel showing it therefore still stays in the list.
+
+### The audit
+
+**Dead code**, looked for with tools rather than by eye:
+
+- the 217 `CFG` keys and the 24 `DOM` keys are all read;
+- the extension's CSS classes are all set — four looked orphaned, all built
+  at run time (`--${cote}`, `--${modif}`);
+- the 918 named functions of `content.js`, `panneau.js`, `bridge.js` and
+  `background.js` are all called — the candidates of a first pass were, through
+  a `...` the search had left out;
+- the linter, which flags every unused variable, is clean.
+
+Nothing to remove.
+
+**Debugging leftovers**: no `debugger`, no TODO. The `console.log` calls are
+the answers of the console's `tse.*()` commands, on purpose; those in
+`adblock.js` belong to the third-party module.
+
+**The twenty-seven errors in your report** — “réponse 200 avec erreurs
+GraphQL — service error”. Twenty-four are the refusals Twitch returns to the
+probe for archives with chapters (resuming after a drop): known, documented in
+the code, retried on the next cycle, and more frequent under the overlay,
+where probes go out fastest (19 out of 30, against 5 out of 18 afterwards).
+The other three were tied to nothing: the log groups by message, and every
+refused operation fell under one. **It now names the operation** —
+`réponse 200 avec erreurs GraphQL (TseVodRecent)` —, one line per operation.
+The next report will say which ones.
+
+**The scans**: forty-nine in the report's last minute. Measured on the bench
+with production constants, still page: twenty-four a minute — twelve from the
+refresh wake-up, every five seconds, and twelve from rendering the answers
+that follow it. No loop: the observer only reacts to added or removed nodes,
+and the idle sidebar sees twenty of them a minute, the cards' uptimes. The rest
+of the report comes from Twitch and from use. Unchanged. (A first measurement
+said two hundred: the bench brings that wake-up down to a hundred
+milliseconds, and the probe had not put it back.)
+
+### The overlay, on the real Twitch
+
+Your report is the first real measurement of 4.25.0.6:
+
+| step | time | since the start |
+| --- | --- | --- |
+| overlay starts | 421 ms | — |
+| the sidebar is populated (24 cards) | 1894 ms | 1.5 s — Twitch's time |
+| the origin probe releases the overlay | 2458 ms | 2.0 s |
+| lifted | 3960 ms | **3.5 s** |
+
+Your previous reports lifted the overlay 6.2 to 7.8 s after it started. The
+unfolding had nothing to click: the first offline channel was already in the
+first batch. What remains is the stability window — 1.5 s, the largest share
+— and the origin probe.
+
+In Top mode, the origin probe held the overlay for six seconds: that is its
+bound (`RECONNECT_PROBE_HOLD_MAX`), reached. A lead, not a fault.
+
+### The texts
+
+The guide, in all twelve languages, said of “Offline” “every channel that is
+not live”, and of the week that it shows “the ones channels have scheduled”:
+it now says that a scheduled channel silent for three months is not there,
+nor its slot. So do the Store listings, in one sentence: “Channels with an
+abandoned schedule — no stream for three months — are left out.”
+
+### What the bench measures
+
+- **207 ι)**, new: three channels scheduled next Monday — silent for a
+  hundred and twenty days, gone eighty days ago, never gone. The first leaves
+  “Offline” and the week, and the report counts it; the other two stay.
+- **207 b) and v)**: the “Offline” summary carries `muettes`.
+- **74**: a 200 response carrying errors names the refused operation.
+- **204 i)**, a bench race closed. Red twice in three full runs, green alone:
+  under load, the page received its stylesheet and its card after the
+  overlay's maximum delay — 1.2 s on the bench —, the overlay lifted on its
+  own, and the scenario read the bare mock's title, 11.7 px, the size of an
+  `<h3>` with no stylesheet. The extension had nothing to do with it: it never
+  goes below 12 px. The page is reopened when the overlay lifted before the
+  set-up, three times at most.
+
+**Six named mutants, all caught.**
+
+| mutant | what falls |
+| --- | --- |
+| the silent channel kept in “Offline” | 207 ι) — “Offline” |
+| its slot believed in the week | 207 ι) — the week |
+| silent after seventy days | 207 ι), both |
+| silent for lack of a known last stream | 207 ι), both |
+| the refused operation left out of the log | 74 |
+| silent channels left out of the report | 207 ι) — the count |
+
+The full bench: 1962 assertions in 209 scenarios, all green.
+
+## Unfolding the followed list, rebuilt (v4.25.0.6)
+
+The request: “Find a way to have every live card unfolded, but also to keep
+offline channels out of sight. Make it take as little time as possible. I
+have a feeling clicking ‘Show more’ may not be the most efficient method.
+Find other possibilities, less bug-prone, quicker to lift the overlay, more
+efficient.” Published on `claude/chrome-multi`.
+
+### What the old method did
+
+One click on “Show more” per scan, to the end of the list
+(`autoExpandFollowed`, v3.x). The bench's mock button did nothing: no
+scenario exercised this unfolding. So the bench first got a **model of
+Twitch's list** (`window.__listeSuivie`, `tests/page.html`): live channels
+first, then offline ones; twelve cards on load, twelve more per click, in a
+single render; the button removed at the end of the list; when needed, a
+render that lags as if the next batch had to be fetched, or an imposed order
+to break Twitch's. Invented channels.
+
+Measured on that model, a hundred followed channels, with production
+constants (overlay stability 1.5 s, scan 250 ms):
+
+- **eight clicks, one scan each**: the last card at 2 s, the overlay at 4 s —
+  whatever the number of live channels, three or forty;
+- **a hundred cards rendered** to show only the live ones, and every scan
+  walks them all;
+- when each batch lags by 300 ms, the overlay at **6.4 s**; and with a
+  shortened overlay, **fifty-two offline cards** shown for a moment after it
+  lifted, until the next scan hid them.
+
+### The options
+
+| option | verdict |
+| --- | --- |
+| click in a burst, without waiting for a scan | **kept** |
+| stop at the first offline card rendered | **kept**: Twitch lists followed channels that are live first |
+| hide an offline card as soon as Twitch renders it, through CSS | **kept** |
+| hide the button | **kept**: it would only reveal offline channels |
+| rewrite the sidebar's GraphQL response to drop offline channels | ruled out: it would alter Twitch's data on the strength of a schema we cannot test from here, and that it changes without notice, to spare at most one more batch of hidden cards than stopping at the first offline one |
+| several clicks at once, without waiting for the render | ruled out: a handler that counts its batches from its render state would see only one click |
+| build every live card ourselves (cards ahead) | ruled out as the main path: Twitch's cards come with its own data, without a single request; ours depend on the polling — thirty seconds, three hundred channels per pass. They remain the safety net |
+
+### What replaces it
+
+1. **Clicks in a burst.** The next click no longer waits for a scan: it
+   waits for the list to grow — the count when the click returns, then an
+   observer, `DEPLIAGE_ATTENTE_MS` (1 s) at most — and goes again. An
+   immediate render unfolds in a few milliseconds; a lagging one is waited
+   for, click by click. And since each click waits for the previous one's
+   render, it does not matter whether Twitch counts its batches from its
+   state or from the click.
+2. **Stopping at the first offline card.** Once an offline card is rendered,
+   every live one is, and the hundred no longer need to be: three live
+   channels, no click; twenty-four, two; forty, three.
+3. **Nothing re-unfolded for nothing.** A channel going live moves up among
+   the live ones and pushes an offline one out: as long as an offline card is
+   rendered, there is nothing to do. Otherwise — every rendered card is live,
+   and the button is there — the list is unfolded again. A click that had no
+   effect is only retried when the list changes, or `DEPLIAGE_REPRISE_MS`
+   (10 s) later. Twenty-five clicks at most per burst (`DEPLIAGE_CLICS_MAX`):
+   the sidebar stops at a hundred channels, twelve per batch.
+4. **Offline cards hidden as soon as Twitch renders them**, by a CSS rule on
+   its own marker (`.side-nav-card:has(.side-nav-card__avatar--offline)`),
+   without waiting for the scan that sets `data-tse-offline`. No frame shows
+   them, overlay lifted or not. The scan still rules on the rest: the other
+   signs of being offline.
+5. **The button hidden** in the followed list (`[data-tse-suivie]`), and
+   clicked hidden by the extension. The page's own, outside the sidebar, is
+   never touched.
+
+### The first draft, caught by a mutant
+
+The first version set the observer up **after** the click. A batch rendered
+within the click itself came before it, and the observer never saw its
+mutation: every click waited for the next one, our own scan's. Clicks 20 to
+290 ms apart with production constants, where there was nothing to wait for.
+The “unfolded to the end” mutant showed it: its burst lasted seconds. The
+count is now taken when the click returns, before any observer — five clicks
+in 18 ms instead of 540 —, and the report says what released each click.
+
+### What the full bench showed as well
+
+- **A scan for nothing.** A click that had no effect set off a scan of the
+  whole sidebar, when nothing had changed. On the bench's mock, whose button
+  does nothing, it came after the overlay lifted and set the title a second
+  time (204, under the load of the full bench). It now runs only if the burst
+  brought cards in — and Twitch, adding them, already triggers one.
+- **A schedule scenario red on Mondays.** 207 γ) puts its channel's last
+  archive twenty-five hours before the bench's clock: on a Monday, that is
+  the week before, the current week has nothing to ask of it (`actifDepuis`,
+  rightly so), and the first request went out during the view that was meant
+  to stay silent. The product is right; the scenario now also looks at last
+  week before counting, and holds whatever the day. Red on Monday and Tuesday
+  morning, green the rest of the week: it took this bench running on a
+  Monday.
+- **184** — the multistream room's sound alignment — failed under the load
+  of the full bench, and passes alone, as 180 and 188 did before it. It
+  touches nothing that changes here.
+
+### Measured
+
+On the model, a hundred followed channels, production constants, three runs
+per case (a few tens of milliseconds apart):
+
+| case | before: clicks · cards · overlay | after: clicks · cards · overlay |
+| --- | --- | --- |
+| 24 live, immediate render | 8 · 100 · 4.0 s | 2 · 36 · 2.2 s |
+| 24 live, batches at 300 ms | 8 · 100 · 6.4 s | 2 · 36 · 2.8 s |
+| 3 live, immediate render | 8 · 100 · 4.1 s | 0 · 12 · 2.3 s |
+| 40 live, immediate render | 8 · 100 · 4.1 s | 3 · 48 · 2.2 s |
+| 60 live, batches at 300 ms | 8 · 100 · 6.4 s | 5 · 72 · 3.6 s |
+
+No offline card shown, in any case.
+
+### What is left of the overlay's time
+
+The overlay log, on the first case: the list appears, the burst ends 4 ms
+later, the origin probe's hold lifts 300 ms after, then the **stability
+window** — 1.5 s without growth or hold — and the overlay lifts. It is kept,
+on purpose: Twitch renders its sidebar in waves, and shortening it blindly
+would lift the overlay between two of them.
+
+At start-up, your reports show an overlay lifted 6.2 to 7.8 s after it
+started, and their log said only two lines, “cycle” and “levée”. It now says three more, on the
+same clock:
+
+| line | what it says |
+| --- | --- |
+| `peuplée` | when the sidebar shows its first cards: what comes before is Twitch's time |
+| `dépliage` | the cards before and after, the clicks, and why the burst stopped |
+| `verrou` | who held the overlay, set then released |
+
+The next report will therefore tell what belongs to Twitch, to the unfolding
+and to the stability window — and whether the latter can be shortened once
+the list is known to be complete.
+
+### If Twitch ordered things differently
+
+A live channel listed after an offline one: the burst stops before it. The
+safety net is already there — it is followed, the polling knows it is live,
+and a card ahead shows it (`syncAheadCards`, fifteen at most). The report
+says whether the order held: `directsApresHorsLigne` counts the live cards
+rendered after an offline one in the same batch, zero as long as Twitch lists
+live channels first.
+
+### In the report
+
+`page.depliage`: the clicks and the time of the last one, the bursts, the
+clicks that had no effect, the reason for the last stop (`directs tous
+rendus`, `liste entière`, `clic sans effet`, `section disparue`, `plafond de
+clics`), `directsApresHorsLigne`, the offline cards rendered — hidden —, and
+**how Twitch renders its batches**: `rendus.auClic` (already there when the
+click returned), `rendus.observes` (rendered afterwards), `rendus.delai`
+(nothing within a second), and `attenteMs`, the time spent waiting for them.
+A sidebar that fetches the next batch over the network will say so there.
+
+### The texts
+
+The guide and the Store listings, in all twelve languages, promised “the full
+list unfolded”: they now say every followed channel that is **live**, and
+offline ones never shown. The button's name follows the label the code
+recognises on Twitch where it knows it: “Afficher plus” (the French guide and
+listing said “Voir plus”), “Mostrar más” and “Mostrar mais” in the Spanish
+and Portuguese guides.
+
+### What the bench measures
+
+**210**, new, on the list model:
+
+- **a)** twenty-four live out of a hundred: two clicks with no scan between
+  them, thirty-six cards, the twenty-four live ones on screen, no offline
+  one, the button hidden; each click released by the batch already rendered;
+  the report and the overlay log;
+- **b)** the rendered offline channels go live: one more batch, and a stop at
+  the next offline one;
+- **c)** three live: not one click;
+- **d)** batches lagging by 300 ms: the burst waits for them — two observed
+  renders —, and no offline card appears, not even for one scan;
+- **e)** a click with no effect: reported, not retried while the list does
+  not change, retried when it does;
+- **f)** a live channel listed after the offline ones: the burst stops before
+  it, and a card ahead shows it;
+- **g)** a live channel slipped between two offline ones in the same batch:
+  on screen, and counted in the report.
+
+**16**, **173** and **207** revised: the unfolding in the report; the
+sidebar's button hidden in the followed list; the schedule's purge, whatever
+the day.
+
+**Thirteen named mutants, all caught.**
+
+| mutant | what falls |
+| --- | --- |
+| one click per scan, as before | 210 a), b), d) |
+| unfolded to the end | 210 a) to d), f), g) |
+| offline cards hidden by the scan alone | 210 d) |
+| “Show more” left visible | 210 a) |
+| the click with no effect retried at once | 210 e) |
+| no more re-unfolding after the first burst | 210 b), e) |
+| Twitch's order never checked | 210 g) |
+| the unfolding left out of the overlay log | 210 a) |
+| the populated list left out of the log | 210 a) |
+| the holds left out of the log | 210 a) |
+| the burst does not wait for the render | 210 d), e) |
+| the observer alone, without the count when the click returns | 210 a) |
+| the renders left out of the report | 210 a), d), e) |
+
+The full bench: 1960 assertions in 209 scenarios, all green.
+
+## Followed channels, a single memory (v4.25.0.5)
+
+The question, after the fourth run's report: “About fetching the full list of
+followed channels, is the new way of getting them (thanks to the schedule)
+properly taken up across the whole extension? I'm asking in case older updates
+had another method that fetched followed channels in a less than ideal way.”
+Published on `claude/chrome-multi`.
+
+### Where the list comes from
+
+A single memory, the roster (`tse:roster`), and two ways of learning it:
+
+- **the followed-channel sweep** (4.25.0.3): the whole list, read on the
+  “Following” page, every twelve hours;
+- **the sidebar's cards**, on every scan. It is free — a DOM read —, and it is
+  what brings a channel in the moment you follow it, without waiting for the
+  next sweep.
+
+There is no other: the code asks Twitch for the list nowhere else — and no
+request made without an account returns it (measured, 4.25.0.3).
+
+### Who reads it
+
+| reader | what it does with it |
+| --- | --- |
+| cards ahead — the polling | every followed channel, fifty per request, every thirty seconds, tab visible; three hundred at most per pass |
+| cards ahead — the building | a card for a followed channel gone live that the sidebar does not show yet |
+| the schedule | every channel, ordered by live, subscriptions and visits; four hundred at most |
+| the panel, the console, the report | the list (Your data → Known channels, `tse.roster()`); its count |
+
+Nothing reads the sidebar to know *who* you follow: sorting, filters and
+co-streams work on the displayed cards, which is what they are for.
+
+### What the audit found
+
+- **The report kept quiet about the sweep.** Its counts — when, who stood
+  down behind another tab, the next one, what this page's sweep read and why
+  it stopped — had been in the report's data since 4.25.0.3, and its text
+  said nothing of them. Your report showed it: no section, and only
+  “roster 184” hinted that the sweep had happened. It now has its block,
+  “CHAÎNES SUIVIES — RELEVÉ”.
+- **Three texts, in all twelve languages, described the old source**: the
+  panel's list (“seen in your sidebar at least once”), the schedule with no
+  known channel (“learns them from Twitch's sidebar”) and the clearing
+  confirmation (“will rebuild itself by watching the sidebar”). They now name
+  both sources. On the way, Brazilian Portuguese used the European “tu” form
+  (“na tua barra”).
+- **A comment in the polling** promised to serve “the channels most present
+  in the sidebar” first: the sweep dates every channel it reads, and that
+  order no longer exists. The budget covers them by far.
+
+### What remains of the old method, and why
+
+“Show more” is clicked to the end (`autoExpandFollowed`, v3.x). That is what
+shows every followed channel **live**, and that role stays. It also renders
+the offline ones, which the extension hides: before 4.25.0.3, the only way to
+learn them; today they only serve to bring in at once an offline followed
+channel that the sweep would bring anyway.
+
+Stopping at the first offline card would spare those cards — fewer nodes on
+every scan, maybe an overlay lifted sooner. But it would change how the
+sidebar is driven, and this machine cannot measure the gain on Twitch. The
+report will: it now counts the clicks, the time of the last one — on the
+overlay log's clock — and the offline cards rendered (`page.depliage`). The
+next report will say whether the saving is worth the change.
+
+**Revised in 4.25.0.6 (above).** Stopping at the first offline card is done
+without waiting for that report: requested, and measured on a model of
+Twitch's sidebar the bench did not have — the burst, the stop and the CSS
+lift the overlay in 2.2 s where the old method took 4. The report now says
+whether Twitch's order holds (`directsApresHorsLigne`), and how it renders
+its batches.
+
+### Your report
+
+Everything checks out: 184 channels read back from the kept memory on
+reload, no request, full batches (25 / 10 / 15), a one-second pause, no
+refusal, no error. “SECTION SUIVIE — aucune 42” counts the section lookups
+made before Twitch had rendered it, at start-up.
+
+### What the bench measures
+
+- **70**: the sweep's block, on a complete sweep of the page and a tab that
+  stood down behind it;
+- **77**: a sweep never made — “never”, and none in this page;
+- **16**: the expansion in the report — as many clicks as the page received,
+  and the four offline cards rendered.
+
+**Four named mutants, all caught.**
+
+| mutant | what falls |
+| --- | --- |
+| the followed sweep kept out of the report | 70, 77 |
+| this page's sweep reduced to nothing | 70 |
+| the expansion clicks not counted | 16 |
+| every card counted offline | 16 |
+
+The full bench: 1950 assertions in 208 scenarios, all green.
+
+## The schedule, after its fourth real run (v4.25.0.4)
+
+The feedback from the fourth run, screenshot and report attached: “I have the
+feeling that on every page reload the schedule reloads from scratch too. Does
+it really get back what it has in memory? I'd also like the Subs padlock to
+stop showing once you're subscribed to a channel […]. Also remove the
+“Subs only”, just put a padlock. I'd like you to carry on with the complete
+audit of this schedule part. Optimise, performance gains, debugging, dead
+code.” Then: “When you click a replay, I'd like a new tab to open the
+replay, not the same page.” Published on `claude/chrome-multi`.
+
+### It got nothing back
+
+The feeling was right: nothing was written, by choice — “everything lives in
+memory, for the life of the tab” (4.25.0). The report showed the cost: for
+184 channels, **101 requests and two minutes** (`dureeMs` 122,236), on every
+reload.
+
+The schedule now keeps what it has read in twitch.tv's **IndexedDB**
+database, `tse-agenda`: one record per channel — its record, schedule
+included, its replay list and its playback token.
+
+- **Read back on the first schedule view**, the memory shows at once, and
+  only what has gone stale is asked for again: records after ten minutes,
+  lists and tokens after six hours, just as within a single tab. While it is
+  being read, the view says it is working — it does not say it is empty —,
+  and a collection asked for meanwhile starts as soon as the reading is
+  done, without waiting for another view.
+- **It only writes what changed**: the channels served since the last
+  write, at most every three seconds. A channel that leaves the read
+  channels leaves the database.
+- **Several tabs**: each writes what it knows, and the write rereads the
+  record in the same transaction to keep, piece by piece — record, list,
+  token —, the most recent one.
+- **What is not kept**: failures, refusals, the schedule query shape and the
+  counters, which hold for the session; and a “live” that has gone stale —
+  read back from a database, it would only be true for as long as it takes
+  to reread it: the channel is no longer called live until its record says
+  so again.
+- **A damaged database**: an unreadable record is not read back, leaves the
+  database on the next write, and its channel is asked for again, alone. A
+  database that does not open leaves the schedule living without it, as
+  before: the error log says so once, and nothing tries to write to it any
+  more. A refused write — a full quota — is only retried after a minute.
+- **“Clear history”** empties it, along with the tab's memory — even while
+  it is being read: nothing it was reading comes back.
+
+Why IndexedDB: `content.js` runs in the page's world, where `chrome.storage`
+does not exist, and the manifest asks for no permission — 4.25.0.4 adds none.
+And not `localStorage`: Twitch shares it with us, it is capped at a few
+megabytes for the whole origin, and the schedule weighs hundreds of
+kilobytes. Nothing leaves the browser; the report only carries counts
+(`memoire`: read, written, removed, failures).
+
+The first opening after the update still starts from an empty database; the
+following ones do not.
+
+### The report also said why it was slow
+
+An error in the report: “The number of root field aliases 25 exceeds the root
+field aliases limit allowed (15)”. Playback tokens went out twenty-five at a
+time, one alias each; Twitch accepts **fifteen** at most, and refused the
+whole request. That shape refusal passed for a service refusal: batches
+halved, pause doubled — `lots` “12 / 5”, `pauseMs` 2,000 —, for the whole
+session.
+
+- **Fifteen tokens per request** (`AGENDA_LOT_ACCES`).
+- **An oversized request is not a refusal.** When the schema names the limit
+  it exceeds, that pass's batch shrinks down to it and goes again, without
+  anything else slowing down or any channel counted as failed; a limit it
+  does not put a number on halves the batch that was sent. It is read once
+  per request, and it **holds**: the recovery below never goes past it —
+  inflating it again would get one request refused every ten. The report
+  counts these refusals separately (`limites`).
+- **The slowdown recovers.** A real service refusal still halves the
+  batches and doubles the pause; ten requests served in a row give one step
+  back (`AGENDA_REMONTEE`). The report counts both (`ralenties`,
+  `remontees`).
+- **The pause comes before the next request**, counted from the end of the
+  previous one, from this collection or another. It used to follow every
+  request, the last one included: one second of collection for nothing,
+  every time. And the state is reread after it — what it made obsolete is
+  not sent.
+
+What the same collection would cost now, this machine cannot measure: it
+does not reach Twitch. With full batches, fifteen tokens per request and a
+one-second pause, it should take about half the report's requests and time —
+an estimate, which the next report will settle. After a reload, what is fresh
+costs nothing any more.
+
+### The padlock, and nothing else
+
+- **No more word**: a padlock, in the subscription gold, with no frame. The
+  word “Subs only” remains its name for screen readers, and the tooltip says
+  the rest.
+- **Subscribed, no padlock** — that has been the rule since 4.25.0.2: a
+  replay known to be open to you carries nothing. What was missing: a
+  subscription **learnt after drawing** — the subscription sweep finishing
+  after the panel opened — did not change the schedule's version, and the
+  padlock stayed until the panel was reopened. The view's signature now
+  counts its padlocks; and while the page's subscription sweep is running, a
+  view that shows a padlock rereads every second. The padlock goes on the
+  next reread, and only it: the other rows keep their nodes.
+
+The subscription memory only knows what your visits and the
+`/subscriptions` sweep have shown it: without a successful sweep since the
+subscription, the padlock stays — for lack of knowing, as before.
+
+### The replay, in a new tab
+
+A replay in “The week” and the “Replay” button in “Offline” always open in a
+new tab, without a referrer — embedded in Twitch as in the popup: the page
+you were watching stays where it was. A live stream's channel and a
+scheduled slot's schedule page still lead the page itself when the panel is
+embedded.
+
+### The audit
+
+Reread end to end — collection, memory, panel, test bench. What it found in
+the published code, besides what the report showed:
+
+- **a refusal counted twice**: a single request carries the record and the
+  schedule; refused together, they slowed down twice — batches divided by
+  four, pause quadrupled. Once per request;
+- **dead code**: the end of the week being viewed, stored on every view and
+  never read;
+- **the padlock that would not go** (above);
+- **the guide one version behind**: its “Privacy” chapter still said “one
+  exception” — there have been two since 4.25.0.3, the Following page —, and
+  counted neither the followed channels nor what the schedule reads among
+  what stays in the browser. The Store listings already said so.
+
+And three defects in this fix's first draft, found on rereading before it
+shipped: the recovery brought batches back to their ceiling, even past a
+limit Twitch had just stated; that limit was read off the pass's ceiling
+rather than off the batch that was sent — the token batch is also capped by
+the first pass; and a refused write, or a database that does not open, was
+retried every three seconds for as long as the tab lived.
+
+No other declaration in the module lacks a reader; the linter is silent.
+
+### The texts
+
+- Twelve languages: the guide's schedule paragraph tells of the padlock
+  alone, the new tab and the kept memory; its “Privacy” chapter, the two
+  exceptions and everything that stays in the browser. The quotation
+  contract of scenario 96 no longer quotes the badge.
+- The twelve Store listings: the padlock without “Subs only”, the memory
+  kept in the browser — “a reload picks up where it left off” —, and the
+  history that empties it. `npm run store` points at the database for the
+  new promise, and no longer quotes the “Subs only” label.
+
+### What the bench measures
+
+**`page.html`**: Twitch's alias limit on tokens — fifteen, refused with its
+message —, a limit on an operation's logins, with or without a number.
+**`build.mjs`** brings the write delay down to 200 ms, and its retry after a
+refusal to 1.5 s.
+
+**207**:
+
+- i) nothing in `localStorage` or `sessionStorage`; the database, one table,
+  one entry per read channel;
+- δ) the kept memory: written as the collection goes, read back on reload
+  without a single request; the view working while it is read; several
+  tabs; a damaged database; a database that does not open; a refused
+  write; a channel no longer followed; “Clear”, before
+  and during the reading; reloaded after the records' freshness, only they
+  reread, and a stale “live” that is not believed; the collection that
+  starts on its own;
+- ε) twenty-three tokens, fifteen then eight; a limit of two; a learnt limit
+  that holds; a limit without a number;
+- ζ) the record and the schedule refused together, then three requests
+  served (variant): a single step lost, and given back;
+- η) the collection ending with its last response; the next one waiting for
+  the pause; the state reread after it;
+- θ) a padlock on show waits for the subscription sweep; without a padlock,
+  nothing.
+
+**208**: the padlock alone, named; a subscription learnt after drawing, in
+“The week” and in “Offline”; the replay and “Replay” in a new tab, proven by
+a real click.
+
+Two older tests now stop at the end of the collection they count (o, η): the
+view stays awaited there until the subscription sweep ends — six seconds on
+the bench's variants, where the records' freshness is one and a half —, and
+the page asks for the records again each time their freshness passes, which
+is what it should do.
+
+**Thirty-eight named mutants, all caught**: thirty on the collection and the
+memory, eight on the panel. The first pass saw three of them crash the bench
+instead of failing it — reads that assumed a filled database, a row present,
+a frame still there: they now check, and each one fails cleanly. “A failed
+reading blocks the schedule” was rewritten: it also blocked a successful
+reading; it now blocks only a failed one, which the bench now provokes.
+Three mutants came afterwards, with what they test: two steps lost for one
+request, a missing database receiving writes, the refused write retried in a
+loop.
+
+The full bench: 1947 assertions in 208 scenarios, all green.
+
+| mutant | what falls |
+| --- | --- |
+| the database never read back | 207: δ, δ, δ, δ, δ, δ |
+| nothing written | 207: i, δ, δ, δ, δ, δ, δ, δ, δ, δ |
+| the collection does not wait for the database | 207: δ, δ, δ |
+| the collection asked during the reading forgotten | 207: δ |
+| a stale “live” believed | 207: δ |
+| writing without reading back | 207: δ |
+| the oldest wins | 207: δ |
+| a channel no longer followed stays in the database | 207: δ |
+| “Clear” does not empty the database | 207: δ, δ |
+| “Clear” without a generation | 207: δ |
+| a failed reading blocks the schedule | 207: δ |
+| the unreadable read back | 207: δ, δ |
+| the unreadable left in the database | 207: δ |
+| “Clear history” forgets the schedule | 207: δ, δ |
+| twenty-five tokens, as in 4.25.0.3 | 207: ε, ε |
+| the size limit taken for a refusal | 207: ε, ε, ε |
+| the stated limit not read | 207: ε, ε |
+| the unstated limit measured on the ceiling | 207: ε |
+| the learnt limit inflated again | 207: ε |
+| slowed down for the whole session | 207: ζ |
+| a refusal counted among the served | 207: ζ |
+| the pause after the last request | 207: η |
+| the pause forgotten from one collection to the next | 207: δ, η |
+| the state not reread after the pause | 207: η |
+| no wait for the subscription sweep | 207: θ |
+| the wait without a padlock | 207: o, θ |
+| the week does not wait for its padlocks | 207: θ |
+| two steps lost for one request | 207: ζ |
+| a missing database receives writes | 207: δ |
+| the refused write retried in a loop | 207: δ |
+| the padlock without a name | 208: e |
+| the word back | 208: e |
+| the padlock out of the signature | 208: g ter |
+| the rows out of the signature | 208: g ter |
+| the replay in the page | 208: p, p, p |
+| “Replay” in the page | 208: p |
+| the new tab with a referrer | 208: p, p |
+| everything in a new tab | 208: p |
+
+## The schedule, after its third real run (v4.25.0.3)
+
+The report from the third run, screenshots and diagnostic report attached:
+“[A channel I follow] is still not there, although it does have replays.
+Also, [another one] has no “Subs only” padlock, although I have no access to
+it. Investigate more deeply and rigorously, because you are on your second
+attempt. Fix it for good. Also do a COMPLETE audit of the schedule. Be
+particularly rigorous.” Published on `claude/chrome-multi`.
+
+The criticism was fair: 4.25.0.2 had fixed a real fault — a channel Twitch
+omitted once vanished everywhere — but not the one in the screenshot, and its
+padlock relied on a field nobody had seen answer. This time, **nothing was
+written before it had been measured** on the real Twitch.
+
+### Measure first
+
+Five scripts pasted into the user's console, on their account. They read what
+the page receives — never a header, never its token — and copy their result
+to the clipboard:
+
+1. **the report**: roster 100, schedule 100 channels. The account follows
+   184;
+2. **the sidebar stops at a hundred followed channels.** “Show more”, clicked
+   to the end, adds nothing past a hundred. And on two archives, one
+   subscriber-only, one public, asked for without an account as the schedule
+   does: `resourceRestriction` null and `self { isRestricted }` false **on
+   both**. Only the **playback token** tells them apart: on the restricted
+   one, `chansub.restricted_bitrates` names every quality, from `audio_only`
+   to the `chunked` source, and the video server answers 403; on the public
+   one the list is empty, and it answers 200;
+3. **the “Followed channels” page** asks for the list in pages, under the
+   `ChannelFollows` operation: `data.user.follows.edges[].node.login`, and
+   `pageInfo.hasNextPage`. Its list is virtualised — about fifty cards in the
+   DOM at a time;
+4. **the followed-channel list cannot be read without an account**:
+   `user(login) { follows }` returns “server error”. Since the extension never
+   sends the token, it cannot ask for it itself;
+5. **the exact sweep algorithm**: the page loaded in an invisible same-origin
+   frame, its `ChannelFollows` responses read as they pass, scrolled until
+   Twitch says “no next page”. **184 channels out of 184 in 31 seconds**, the
+   screenshot's channel included.
+
+### The missing channel: the sidebar stops at a hundred
+
+The roster only learned what the sidebar showed. For an account following more
+than a hundred channels, an offline channel past the hundredth only got in by
+going live — and “Clear history” brought it back down to a hundred. The
+schedule, which reads the roster and nothing else, could not know it.
+
+**The followed-channel sweep** (`SUIVIES` module) reads the full list where
+Twitch gives it:
+
+- an invisible frame loads `/directory/following/channels`. Its **name**
+  wakes, inside, a small block of `content.js` that runs at `document_start`
+  — before Twitch's first script — and wraps the page's `fetch`: it reads the
+  `ChannelFollows` responses, and only them, at their place in the batch
+  (another operation of the same batch, of the same shape, does not get in).
+  It posts to the page, response by response, the logins and what Twitch says
+  about the next page;
+- the page only loads the next page when the bottom of its list **shows on
+  screen**. So the frame sits on screen, transparent, with no click nor
+  keyboard, and at **the height of the window**: the bench, at 720 px, only
+  read the first page with the measurement's 900 px — a short window would
+  have cut the sweep at the user's too;
+- it is scrolled; when nothing comes, it goes up a little then down again, so
+  the bottom shows again. It stops when Twitch says “no next page”, after
+  thirty seconds without a new channel, or after two minutes;
+- every channel read enters the roster. **A complete sweep also says who you
+  no longer follow**: a channel it does not list, and that the sidebar has not
+  shown for ten minutes, leaves the same day — that was the job of the sixty
+  days of expiry, which remain for what the sweep has not seen yet. An
+  incomplete sweep adds and removes nothing;
+- it starts twenty seconds after the first scan that sees a followed card —
+  a signed-in session —, tab visible, then every **twelve hours**; sooner
+  after an incomplete sweep — half an hour, then double each time. Never
+  while the subscription sweep runs, here or in another tab, and the other
+  way round: two hidden Twitch applications at once is one too many. A lease,
+  like the subscription one, keeps two tabs from sweeping together. After
+  “Clear history”, the next one starts without waiting for its period;
+- when it fails, it says so: page redirected to the login, no readable
+  `ChannelFollows` response — an operation Twitch renamed —, in the error
+  log; and the report (`relevesSuivies`) always gives counts: channels, pages,
+  unreadable batches, added, removed, and why it stopped. No login.
+  `tse.roster.refresh()` runs it by hand. **Revised in 4.25.0.5 (above)**: those
+  counts were in the report's data, not in its text; they now have their
+  block.
+
+What it costs: one Twitch page loaded in the background for about thirty
+seconds, twice a day. And the extra channels enter the live-status polling
+(see “Getting ahead of Twitch”), fifty per request every thirty seconds, tab
+visible: for 184 channels instead of 100, two more small requests per half
+minute — within the envelope the roster already allowed for.
+
+Privacy: the same stance as the subscription sweep. The page is your
+account's, the browser authenticates it with its cookies; the extension reads
+what the page receives, never a header of what it sends, and the list joins
+the roster, in `localStorage`, wiped with it. The twelve Store listings say
+so: “Two exceptions, said out loud”.
+
+### One memory, several tabs
+
+Each tab wrote the **whole** roster: a second tab opened before the sweep put
+its hundred channels back at its first maintenance tick, and the sweep was
+lost. Now:
+
+- a write **reads the storage back and merges** — for each channel, the most
+  recent date wins;
+- the `storage` event brings each tab what the others write, right away;
+- a removed channel leaves **its removal date** there, as a negative number:
+  a tab still holding it in memory does not bring it back; only a more recent
+  sighting does;
+- “Clear history” in one tab clears the others' memory.
+
+### The padlock: what Twitch really tells a visitor
+
+4.25.0.2 asked for `self { isRestricted }`, on the strength of the schema's
+types: the measurement found it **false** on a restricted archive, and
+`resourceRestriction` null. The padlock came from nowhere, and that field is
+gone again.
+
+The signal is the one Twitch's player receives before playing a replay: its
+**playback token** (`videoPlaybackAccessToken`, asked without an account, with
+the web player's parameters). An archive is closed when its token reserves
+**the audio and the source**; a channel that only reserved a few qualities
+stays watchable, and nothing shows. Making replays subscriber-only is a
+**channel setting**: the token of its latest archive is asked, one per
+channel, twenty-five per request, and it holds for all its replays; it is read
+again with the latest archive, or after six hours. A restriction named on a
+given archive still counts, for that one alone. A failed token is asked again,
+alone; a schema refusing it turns the padlock off for the session, and nothing
+else. The report counts the tokens and the channels they say closed
+(`acces`).
+
+**Revised on the fourth run (v4.25.0.4, above).** Twenty-five went past
+Twitch's limit — fifteen aliases per request —: the whole request was
+refused, and that shape refusal slowed the session down. Fifteen per request.
+
+And the subscription is read the way the sidebar reads it (`subs.isSub`):
+4.25.0.2 read the raw note, and a gifted subscription that had run out still
+removed the padlock.
+
+### The audit
+
+Read end to end — collection, memory, panel, texts, bench —, against what the
+measurement established. What it found, besides the two reported faults:
+
+- **forty replays at most per channel**: a channel streaming more than five
+  times a week did not reach back to the eight weeks the panel can show. The
+  list is read in **steps** — twelve, forty, a hundred — depending on the week
+  being viewed. Past a hundred, the view says so: “This week reaches further
+  back than the last hundred replays of N channel(s)”;
+- **the purge against coverage**: the purge removes replays that are too old,
+  and the trimmed list seemed no longer to reach a week it covered — read
+  again for nothing. The list keeps how far back it reaches;
+- **the subscription read raw** (above);
+- **the panel during the sweep**: the channels it brings arrive while you
+  look. The view says so — “Reading the full list of your followed channels…”
+  — as soon as the sweep is planned, twenty seconds before it starts, and
+  reads again until it is done, here or in another tab. The first draft of
+  this fix still waited for it after a sweep done elsewhere: the bench showed
+  it, the schedule kept re-reading forever;
+- **the guide** said “the channels are those your sidebar has shown” and
+  “nothing is asked of Twitch until you open the schedule”: it now says all
+  followed channels, the sweep every twelve hours, and that it is the schedule
+  that asks nothing before being opened;
+- **the Store listings** promised “one exception” and “the only authenticated
+  request”: they now say two;
+- a roster comment said “nothing uses it yet”: the schedule and the cards
+  ahead of Twitch have read it for versions.
+
+### What changes in the panel
+
+Two notes in the schedule's header: the followed-channel sweep in progress,
+and the week older than the last hundred replays of some channels — “The
+week” only: “Offline” only reads the latest one.
+
+### The texts
+
+- Twelve languages: two more keys, the two notes; the guide's final paragraph
+  rewritten.
+- The twelve Store listings: privacy says “two exceptions” and the
+  followed-channels page, every twelve hours; settings, “one of the two
+  authenticated requests”. `npm run store` targets the playback token for the
+  padlock, and the sweep's period for the new promise.
+
+### What the bench measures
+
+**`page.html`** gains a “Followed channels” page true to the measurement: its
+`ChannelFollows` pages, the first at start-up, the next ones when the bottom
+of the list shows on screen — an `IntersectionObserver` with no root, which a
+frame off screen never triggers. Its levers: another operation of the same
+shape in the first batch, failing batches, a Twitch that never says “no next
+page”, a renamed operation, a redirect to the login. The playback token also
+serves qualities reserved one by one. `build.mjs` turns the sweep off for
+every other scenario — the schedule would re-read as long as it is awaited —;
+209 turns it back on in its copy of the script, and `build.mjs` scales its
+bounds to the decor.
+
+**209**, new:
+
+- a) the forty channels, page after page, without the other operation's
+  login; the one no longer followed removed, its removal date kept; the
+  sidebar's one kept; the report, counts and not a login;
+- b) the tab opened before the sweep receives it, erases nothing when
+  writing, and a write that arrived without its event is read back before
+  writing;
+- c) the schedule reads every channel; during the sweep, the note and the
+  re-read; the frame invisible, inert, and on screen down to its bottom;
+- d) clearing reaches the other tab, and the next sweep does not wait;
+- e) a failing batch, asked again: the sweep reaches the end;
+- f) without “no next page”: nothing removed, back in half an hour;
+- g) a renamed operation, a redirect: said in the report and the log, the
+  wait doubling;
+- h) the start on its own, after another tab's subscription sweep — the
+  schedule already says so while it waits —, and not before its period;
+- i) two tabs together: a single page loaded; a lease written by another tab
+  during the read-back: the page steps aside, and leaves it;
+- j) the subscription sweep waits for the followed-channel one.
+
+**207**: the steps (twelve, forty, a hundred; the note beyond), the purge that
+makes nothing re-read, the token read again with the new archive, the failed
+token asked again alone, its refusal that
+only turns off the padlock, the channel closed by the token with no named
+restriction, the one reserving only two qualities that stays open, the
+expired subscription.
+
+**208**: the two notes, and “Offline” keeping quiet about the second.
+
+**Thirty-nine named mutants, all caught:** twenty-six on the followed-channel
+sweep and the shared memory, ten on the padlock and the lists, three on the
+panel. The first run left two alive, and each showed a hole in the bench:
+
+- **the lease not read back**: two tabs opened together did not race for
+  sure. A test without a race now provokes it — another tab writes its lease
+  while the page waits to read its own back;
+- **another archive's token**: nothing checked that a new archive makes its
+  token be read again. 207's x) checks it: the channel that streamed since
+  has reopened its replays.
+
+Run again, they fall.
+
+The full bench: 1924 assertions in 208 scenarios, all green.
+
+| mutant | what falls |
+| --- | --- |
+| the frame off screen | 209: a, a, a, a, b, b, b, c, e, f, f, g, g, h, i |
+| the 900 px frame | 209: a, a, a, a, b, b, b, c, e, f, f, g, g, h, i |
+| every operation of the batch read | 209: a, a, a |
+| the response read at the wrong place | 209: a, a, a, b, b, b |
+| no removal after a complete sweep | 209: a, a, a, b, b |
+| removal even after an incomplete sweep | 209: f |
+| no margin for the sidebar | 209: a, a |
+| writing without reading back | 209: b |
+| deaf to the other tabs | 209: b, i |
+| removals not written | 209: a, b, b |
+| clearing does not reach the other tab | 209: d |
+| clearing keeps the sweep's timestamp | 209: d |
+| does not wait for the subscription sweep | 209: h |
+| the lease not read back | 209: i |
+| the view does not re-read during the sweep | 209: c |
+| the sweep note never set | 209: c, h |
+| an incomplete sweep counted complete | 209: f, g, g |
+| subscriptions do not wait for the followed channels | 209: j |
+| “no next page” never believed | 209: a, a, a, b, b, e, f, g, g, h |
+| the frame visible | 209: c |
+| the frame left behind | 209: a |
+| the report carries the logins | 209: a |
+| the redirect kept quiet | 209: g |
+| the missing response kept quiet | 209: g |
+| an unreadable batch not counted | 209: e |
+| the planned sweep not announced | 209: h |
+| the token ignored | 207: c, c, q, q, s |
+| one reserved bitrate closes everything | 207: c, h, q, s |
+| the reserved source closes everything | 207: c, h, q, s |
+| never a token | 207: b, b, b, b, c, c, h, k, n, o, q, q, r, s, s, α, α |
+| another archive's token | 207: x |
+| the token's refusal asked again | 207: α |
+| the subscriber not told | 207: c, c, q, s |
+| a single step | 207: β |
+| the list asked again after the purge | 207: c, f, r, r |
+| the incomplete weeks kept quiet | 207: β |
+| the sweep note missing | 208: k, k |
+| the incomplete-weeks note missing | 208: k |
+| the incomplete-weeks note in “Offline” | 208: k |
+
+## The schedule, after its second real run (v4.25.0.2)
+
+Two rounds of feedback from the second run on the real Twitch, screenshots
+attached: “We did say a broadcast only shows on the day it started? Why does
+it show today? Also, I don't see the Subs padlock. […] If I have access to
+the replay, show nothing […]; but if access is restricted for me, the ‘Subs’
+padlock shows. Are you sure the schedule's data is kept in memory, so no new
+search is needed? Also check there is a purge system.” Then: “I just noticed
+a channel I follow has vanished from the panel, from Offline and from the
+schedule. Investigate and fix rigorously.” Published on
+`claude/chrome-multi`.
+
+### A followed channel that vanishes
+
+The menu, “The week” and “Offline” only show a channel whose record has been
+read, and 4.25.0.1 left out every record marked “unknown”. But it marked it
+unknown as soon as Twitch left it out of its response ONCE.
+`users(logins:)` returns null for an account it does not serve — suspended,
+renamed, closed — and, silently, for whatever a hiccup of its service did not
+return. A followed channel thus vanished from everywhere, on a silence.
+
+The rest of the extension follows the opposite rule, written in the main
+pipeline: “login missing from the response: we don't know — above all not
+offline”. The schedule takes it up:
+
+- **left out once, the channel keeps everything** known of it — its record,
+  its schedule, its replay list — and is asked again **a minute later, on its
+  own**: the panel only reads the schedule during a collection, and the
+  reconfirmation does not wait for its next gesture. The panel, warned
+  (`attente`), keeps reading until then;
+- **left out twice in a row, it is unavailable** — and stays. At the bottom
+  of “Offline”, below a rule: its name, “Unavailable on Twitch”, and since
+  when in the tooltip; nothing to click that would lead to a closed page. The
+  menu keeps it. Its past streams stay in the week; what its record said of
+  the present and the future — live, scheduled — is gone. It is read again at
+  every freshness: served again, it comes back by itself;
+- **the schedule and the list are no longer erased** by an omission: 4.25.0.1
+  wrote an empty schedule and an empty list for a channel missing from their
+  response;
+- the report counts the `indisponibles` channels and the session's
+  `absences` — numbers, no login.
+
+What the screenshot's channel was, this machine cannot tell: it does not
+reach Twitch. 4.25.0.2 will say it on screen — “Unavailable on Twitch” if
+Twitch really no longer serves it, nothing if it was a hiccup.
+
+### The stream without a replay, on the day it started
+
+Twitch only gives the end of a stream without an archive (`lastBroadcast`,
+cf. 4.25.0.1). 4.25.0.1 placed it there, the only time known of it: a stream
+started on Thursday evening read on Friday, “No replay – 02:38” — on a day
+that is not its own, against the rule asked for.
+
+It now only has a day if its start is known, and two places know it:
+
+- **the main pipeline's memory of streams** (`derniersDirects`, cf. THE
+  RECONNECTION PROBE), which follows the sidebar's channels every thirty
+  seconds and keeps a stream's origin — reconnections included — after its
+  end;
+- **the record read during the stream**, which now keeps its start
+  (`vuEnDirect`).
+
+The same stream is recognised by its id; failing that, by an end that closely
+follows — a quarter of an hour — the last time it was seen: a reconnection too
+short to be archived. Another stream does not receive that origin. Otherwise,
+no day: “Offline” alone says it, “Last live 5 hours ago”. And when the main
+pipeline sees the end of a stream the record said was live, the record is
+read again without waiting for its freshness.
+
+### The padlock, only when the replay is closed to you
+
+“If I have access to the replay, show nothing.” 4.25.0.1's open padlock is
+gone: a replay known to be open to you no longer carries anything. Only the
+closed padlock remains, when it is reserved for subscribers and the
+subscription memory does not know you to be subscribed.
+
+And it was missing where it should have been: on the replays of a channel
+you cannot watch without a subscription. The named restriction
+(`resourceRestriction`) is not always there. The schedule therefore asks for a
+third field, the one Twitch's Videos tab reads to know whether the visitor
+can watch: `self { isRestricted }`. The request goes without an account: it is
+the access of a visitor subscribed to nothing, closed on every archive a
+subscription would open. The subscription memory does the rest.
+
+**Revised at the third run (v4.25.0.3, above).** Measured since: without an
+account, `self { isRestricted }` is false on a restricted archive, and
+`resourceRestriction` null — that padlock came from nowhere. The playback
+token is what tells, and `self` is gone again.
+
+None of this has been tested from here. A field the schema refuses is dropped
+**on its own**, for the session — 4.25.0.1 lost both at the first refusal —,
+and an error on one of them, next to the data, no longer casts doubt on the
+channel. The report lists those that remain (`archives`).
+
+### The memory, and its purge
+
+“Are you sure the schedule's data is kept in memory?” Yes — in the tab, and
+nowhere else: nothing is written, it is a promise of the Store listing. Each
+Twitch tab therefore has its own, and a reload starts from scratch. What
+changes:
+
+- **a replay list holds as long as the last stream is the same**. 4.25.0.1
+  read it again with the record, every ten minutes; but yesterday's archives
+  do not change — only a channel that has streamed since has one more. The
+  list carries the mark of the last stream it knew, and is read again when it
+  changes, or after six hours, for views and deleted archives;
+- **the purge**, on every read of the view: a channel out of the channels
+  read — no longer followed, known channels cleared, beyond the cap of four
+  hundred — goes, record, list and failures; a replay older than the oldest
+  week the panel can show — seventy days — too. The memory is bounded: four
+  hundred records, forty replays each at most (a hundred since 4.25.0.3,
+  above). The report counts what went
+  (`purgees`).
+
+**Revised on the fourth run (v4.25.0.4, above).** A reload no longer starts
+from scratch: what is read is kept in twitch.tv's `tse-agenda` IndexedDB
+database, and only what has aged is asked for again.
+
+### What changes in the panel
+
+- The closed padlock alone; the open variant, its style and its key, gone.
+- The “Unavailable on Twitch” line, dimmed, at the bottom, after a rule.
+- The stream without a replay written from its start to its end, “21:00 –
+  00:21”, on the day it started; the “– 00:21” writing is gone.
+- The view keeps reading while an absence awaits its reconfirmation.
+
+### The texts
+
+- Twelve languages: two more keys — the line and its tooltip —, one less —
+  the open padlock; the padlock's tooltip revised. The guide: the padlock
+  bullet rewritten, the “Offline” one tells of the unavailable channel, the
+  final paragraph of the stream without a replay. Scenario 96's citation
+  contract adds both labels.
+- The twelve Store listings: “a replay you cannot watch without a
+  subscription”. The `npm run store` promise now targets the field that makes
+  it true, `self { isRestricted }`.
+
+### What the bench measures
+
+**`page.html`** serves the visitor's access when asked — closed on a reserved
+archive, or `verrouillee` without a named restriction —, refuses the new
+fields one by one like the schema, and gains three levers: a channel left out
+of the response, without an error; a stream only the schedule sees; a failure
+on a deep field. `build.mjs` brings the reconfirmation down to 1.2 s.
+
+**207**, revised and extended:
+
+- b) the channel Twitch does not serve: left out, then asked again by the
+  page on its own, without any view relaunching it; unavailable at the very
+  bottom, its name and since when; out of the summary;
+- c) the stream without an archive nobody saw start has no day; the replay
+  closed without a named restriction says it is closed; the menu keeps the
+  unavailable one;
+- h) the absences, the unavailable one, the replay too old forgotten;
+- q) the three fields refused one by one; only one refused, the others stay;
+- r) an error on an archive's access has nothing asked again;
+- v) left out once — record, schedule, list kept, reconfirmed —, twice —
+  unavailable, its past streams kept, its slots silent —, then served again;
+- w) the purge of cleared channels;
+- x) the lists kept while the last stream is the same, read again when it
+  changes, or after their lifetime;
+- y) the start kept by the memory of streams — the short reconnection, the
+  other stream; the record read again as soon as a seen stream ends;
+- z) the start read during the stream; unavailable, the record no longer
+  says live.
+
+**208**: the closed padlock alone; the stream without an archive from its
+start to its end; the unavailable line, its rule, its tooltip, no button; the
+reading during the wait, without a bar.
+
+**96** quotes the two new labels.
+
+**Forty-two named mutants, all caught:** thirty-three on the collection,
+seven on the panel, two on the guide. The first is 4.25.0.1 itself — the
+channel declared unknown at its first absence — and twenty-nine assertions
+fall with it.
+
+They found two things beyond their rules:
+
+- **a product defect.** A response coming back within the very millisecond of
+  “Refresh” passed for stale (`ts > fraisApres`) and was read again at once.
+  For real, one request for nothing; on the bench, a v) sub-test failing at
+  random, under eleven mutants that had nothing to do with it. Freshness is
+  now read inclusively, and the eleven were run again;
+- **a bench defect.** Under one of them, the scenario stopped dead on an index
+  read without a guard, and silenced everything after it. It now goes on, and
+  says everything that falls.
+
+The full bench: 1891 assertions in 207 scenarios, all green.
+
+| mutant | what falls |
+| --- | --- |
+| left out once, the channel declared unknown (4.25.0.1) | 207: b, b, b, b, c, c, c, c, c, c, d, d, e, f, f, f, g, h, h, h, k, k, k, n, v, v, v, v, z |
+| no reconfirmation | 207: b, b, b, b, c, h, h, k, k, k, n, v, v, v, v, v, z |
+| the list erased by an absence | 207: v, v |
+| the unavailable one out of “Offline” | 207: b, k, n |
+| the lists read again with the record | 207: x, x, x |
+| the lists never expire | 207: x |
+| the origin lent to another stream | 207: y |
+| the short reconnection without its origin | 207: y |
+| the start read live lost on the next read | 207: z |
+| one refusal takes every field | 207: q, q |
+| the wait not told | 207: b, k, k, k, n, v, v, v, z |
+| the reconfirmation waits for the panel | 207: b, b, b, b, c, k, k, k, n, v, v, z |
+| unavailable at the first absence | 207: b, v |
+| the previous record erased by an absence | 207: v, v, v |
+| the schedule erased by an absence | 207: v |
+| the unavailable one out of the menu | 207: c |
+| the unavailable one on top | 207: b, b |
+| the unavailable one keeps its slots | 207: v |
+| the unavailable one counted offline | 207: b, v |
+| the unavailable one live by its record (week) | 207: z |
+| the unavailable one live by its record (offline) | 207: z |
+| the unavailable ones not counted | 207: h |
+| no purge | 207: h, h, w |
+| the purge keeps the records | 207: w |
+| the purge does not trim the replays | 207: h, h |
+| the lists blind to the last stream | 207: x, x |
+| the end of a seen stream reads nothing again | 207: y |
+| the memory of streams ignored | 207: y, y, y |
+| the record read live ignored | 207: z |
+| the stream without an archive at its end (4.25.0.1) | 207: c, c, c, d, q, r, y, y, y, z |
+| the visitor's access ignored | 207: c |
+| an error on a new field makes the channel doubtful | 207: r |
+| the reconfirmation waits for the freshness | 207: b, b, b, b, c, h, h, k, k, k, n, v, z |
+| the padlock for the subscriber | 208: e, l |
+| no padlock at all | 208: e, l |
+| the unavailable one with its buttons | 208: l |
+| no rule before the unavailable one | 208: l |
+| the unavailable one without a tooltip | 208: l |
+| the view drops the wait | 208: g |
+| the unavailable one not dimmed | 208: l |
+| the guide is silent on the unavailable one | 96: the quotations |
+| the guide is silent on the stream without a replay | 96: the quotations |
+
+## The schedule, after its first real run (v4.25.0.1)
+
+Feedback from the first run on the real Twitch, screenshots attached: “On
+‘The week’, it should open directly on today. […] Also, if a stream ends the
+next day during the night, it shows up twice in the list, on both days. I'd
+like it to show only on the day it started. […] As soon as a stream is picked
+in the list, the panel should update right away […]. If possible, add
+something to tell whether the replay can be watched without being
+subscribed. […] In ‘Offline’, could the next scheduled streams go to the top
+of the list, the soonest first?” And: “Be rigorous!” Published on
+`claude/chrome-multi`.
+
+**Revised at the second run (v4.25.0.2, above).** The stream without an
+archive is no longer placed at its end, but on the day it was seen to start
+— or nowhere; the open padlock is gone; and a channel Twitch leaves out once
+is no longer declared unknown.
+
+### `lastBroadcast.startedAt` is an end
+
+4.25.0 said of itself: “the first real run will tell whether the schema
+accepts them”. It did accept them, and it showed something else: the field
+does not mean what its name says. On a real response published by the npm
+package the types come from, the same channel serves:
+
+| | id | instant |
+| --- | --- | --- |
+| `lastBroadcast` | `317468242776` | `startedAt` 21:04:53 |
+| its archive (`broadcastIdentifier`) | `317468242776` | published 19:50:41, 4,449 s: ended 21:04:50 |
+
+`startedAt` falls three seconds after the end of the archive of the same
+broadcast: it is the END of the last stream. The screenshot shows the same
+thing — “19:44 – 00:21” on Thursday, “No replay, 00:21” on Friday.
+
+What 4.25.0 did with it, read as a start:
+
+- **a duplicate “No replay” for every channel.** The archive of the last
+  stream was looked for within a quarter of an hour of its start; it was
+  given its end. None ever matched, and every last stream of the week had its
+  double — on the next day when it ran past midnight;
+- **“Replay” could never show** in “Offline”, for the same reason;
+- the second pass's day of slack — a Sunday-night stream looked for on
+  Monday — assumed a start as well.
+
+### What changes in the collection
+
+- **The archive of the last stream is recognised by its id.** Two more fields
+  per archive, the ones Twitch's own Videos tab asks for:
+  `broadcastIdentifier { id }`, the broadcast it comes from, and
+  `resourceRestriction { type }`, non-null when it is for subscribers only.
+  Without an id, time takes over: the end of the last stream falls within the
+  archive, give or take a quarter of an hour. Should the schema refuse these
+  fields, requests would go on without them at once, for the session; the
+  report says `archives riches` or `simples`.
+- **The live stream is recognised the same way,** by its archive's id: an
+  archive dated more than a quarter of an hour after the stream it records
+  no longer makes a second entry.
+- **A broadcast is in one place only: the day it started.** One that runs
+  past midnight stays on its day; one that runs through Sunday night stays in
+  its week, where 4.25.0 still showed it on the next Monday. Only a stream
+  without an archive is placed at its end — the only time known of it — and
+  the panel writes it as an end: “– 00:21”. The day of slack goes with it: a
+  channel whose last stream ended before the week started nothing in it, and
+  its replays are no longer read again for it.
+- **A partial response is no longer a refusal.** Data with an error next to
+  it is one piece failing. 4.25.0 condemned the whole batch — twenty-five
+  channels asked again, batches halved, pause doubled — for a single field.
+  Now the channel hit — by the error's path, or because it is missing — is
+  asked again on its own; the others are read, and none passes for an account
+  Twitch no longer knows. The report counts these responses apart
+  (`partiels`). A schema refusal is only recognised without data: it is the
+  whole request that it rejects.
+- **“Offline” puts first the channels that have scheduled their next stream,**
+  the soonest first, then the others, the most recently gone first. The next
+  stream is the first slot that is not over: a channel late for its slot is
+  still expected there, as the week already shows.
+- **Less computing on every read:** the channel ordering only computes the
+  score of followed channels, instead of building and sorting the whole score
+  report; the menu's list goes without the avatars it does not show.
+
+### What changes in the panel
+
+- **The channel menu applies at once.** 4.25.0 rebuilt the whole view on
+  every read, menu included, and waited until the menu was left to repaint
+  it. But a menu keeps the focus after a choice: the chosen channel only
+  showed on the next click elsewhere — most often when changing week. The view
+  now has a head — the week bar, its notes — that reads never destroy; only
+  the list is repainted. A channel arriving while the menu is held does not
+  slip in under the pointer: it is filed when the menu is left.
+- **“The week” opens on today,** just below its head, past days above, and
+  stays there while the week fills. As soon as one scrolls by oneself —
+  wheel, finger, click, keyboard, or any scroll the view did not make — it no
+  longer repositions itself. “Today” stays enabled in the current week, and
+  brings it back.
+- **The position is kept line by line,** not in pixels: the line one is
+  looking at stays where it is when replays arrive above it, and its day
+  stands in for it if it disappears.
+- **What does not change is not redone.** A read with nothing new touches
+  nothing; an unchanged line keeps its node, and its thumbnail does not
+  reload; the progress bar slides from one batch to the next instead of
+  starting over.
+- **The subscribers' padlock.** A replay for subscribers only carries a
+  “Subs only” pill and its padlock, before the click: closed when you are not
+  known to be subscribed, open when the subscription memory knows you are
+  subscribed to the channel. It only knows what your visits showed it: when
+  in doubt, the padlock stays closed. In “Offline”, the pill comes before
+  “Replay”. **Revised** since: nothing when it is open to you (v4.25.0.2), and
+  the padlock alone, without the word (v4.25.0.4).
+- **“Offline”:** a rule separates the scheduled channels from the others; the
+  title and the next stream, which the width cuts, read in full in their
+  tooltip; “Replay” follows what the page established, no longer an equality
+  of instants.
+- **“Their week” lands on the day** of the last stream; the rail, for its
+  part, reopens a fresh view — the current week, all channels, today.
+- **“Refresh” reads again in place:** no “Loading…”, no jump to the top.
+
+### The texts
+
+- Three more keys in the twelve languages: the pill and its two tooltips. The
+  description of “Offline” states the new order.
+- The guide chapter gains a bullet, the padlock's, and its three others say
+  what changed. Scenario 96's citation contract adds the pill to it.
+- In the twelve Store listings, three bullets of the section revised, without
+  touching the skeleton. The `npm run store` contract gains a promise — the
+  padlock, tied to the `resourceRestriction { type }` field — and a quoted
+  label, “Subs only”.
+
+### What the bench measures
+
+**`page.html`** now serves what Twitch serves: `lastBroadcast` carries the end
+of the last stream, ids are numbers, and the two new archive fields only come
+back when the request asks for them. Two more levers: the schema refusing
+those fields, and partial responses — with the error's path, or the whole
+channel null.
+
+**207**, revised and extended. The set says its ends: brume's Saturday ends
+at twenty-one past midnight, for subscribers only; the Sunday night before
+ends on Monday; cobalt's last archive stopped an hour before its stream, and
+only the id says it is that stream; the live stream's archive opens twenty
+minutes after it.
+
+- b) “Offline”: the scheduled first, the soonest on top; the departure at
+  the end of the last stream; the restriction, and that you are not known to
+  be subscribed;
+- c) last week: the replay carries its id and its restriction; the stream
+  without an archive is told at its end; nothing of brume on Sunday, nor of
+  the night before;
+- e) the live stream recognised by its id;
+- f) the Sunday night stays in its week, without asking anything again;
+- q) the new fields refused: the record asked again without them, once, and
+  time recognising the archive;
+- r) partial responses — record, schedule, list: only the channel hit asked
+  again, and nobody “unknown”;
+- s) subscribed: the padlock open, in the week and offline;
+- t) a slot started but not over is still the next stream;
+- u) the current week of a fresh page: only the live channel has its replays
+  read.
+
+**208**, revised: the evening past midnight stays on Monday; “– 00:21”; the
+padlock closed and open; the progress note keeping its node; replays arriving
+above that do not push what one is looking at; the menu applying while still
+held, and not moving under the hand; a chosen channel the list does not
+carry; the view landing on today, released by the hand, brought back by
+“Today”; the wheel winning over a read painted at the same instant; the rule,
+the tooltips, the padlock before “Replay”; “Their week” landing on its day;
+“Refresh” in place; and what does not change not being redone.
+
+**96** quotes the pill in the schedule chapter.
+
+**Eighty-four named mutants, all caught:** forty-seven on the collection,
+thirty-four on the panel, three on the guide. Three of them called for a
+tighter bench before they were even run. Without a truncated archive, nothing
+told the id from the time. Without a fixed Thursday, “Their week” landing on
+today passed on the days when the last stream fell on the first day of a
+week. And without the race between the wheel and a read, nothing exercised
+the wheel.
+
+The full bench: 1865 assertions in 207 scenarios, all green.
+
+| mutant | what falls |
+| --- | --- |
+| the collection starts at load | 207: a, b |
+| no batches | 207: b, b, g, h, k, k, n, n |
+| several workers at once | 207: b, b, g, h, k |
+| no pause between two sends | 207: b, k |
+| the live channel not first | 207: b |
+| the second pass for every channel | 207: c, g, h, r, u |
+| no long list for an older week | 207: f, f, f, g, h, h |
+| the live stream and its archive twice | 207: e, u |
+| the live stream recognised by time alone | 207: e, u |
+| “No replay” despite the archive | 207: c, c, c, d, d, q, r, s |
+| the last stream's archive without its id | 207: c, c, d, r, s |
+| the cancelled slot shown | 207: e |
+| the past slot shown | 207: c, c, c, c, d, d, m, q, r |
+| the live stream's slot shown | 207: e, u |
+| one refused form condemns the schedule | 207: j, j, j |
+| the service's refusal taken for the schema's | 207: k, k, k, o |
+| no slowing down | 207: k, k |
+| insisting on a refused channel | 207: n, o |
+| no stop on two losses | 207: n, n, n |
+| the network pause ignored | 207: n, n, n |
+| “Refresh” keeps the pause | 207: n |
+| the report names the channels | 207: h |
+| no cap | 207: p |
+| the subscription does not count | 207: p |
+| the schedule writes to storage | 207: i |
+| the channel login not checked | 207: d |
+| the week not bounded | 207: d, e, f, h |
+| the departure dated at the replay's start | 207: b |
+| “Offline”: the longest gone first | 207: b |
+| the last stream's end read as a start | 207: b, c, c, c, d, d, q, r, s |
+| the end-only time not flagged | 207: c |
+| the overlap rule back | 207: c, c, c, d, d, q, r |
+| the day of slack back | 207: u |
+| a partial record written anyway | 207: r, r |
+| a partial list taken as empty | 207: r, r, r |
+| a partial schedule taken as empty | 207: r, r, r |
+| the error's path ignored | 207: r, r, r |
+| a partial response taken as a refusal | 207: r, r |
+| the new fields never dropped | 207: q, q |
+| the new fields asked again after a refusal | 207: q, q |
+| the restriction ignored | 207: b, c, s |
+| never subscribed | 207: s |
+| “Offline”: the scheduled not first | 207: b, t |
+| “Offline”: the furthest scheduled first | 207: b, t |
+| the late slot dropped | 207: t |
+| the visit score ignored | 207: p |
+| the broadcast id never read | 207: c, c, c, d, e, r, s, u |
+| the week starts on Monday for all | 208: b |
+| the week shifted by a day | 208: b, b, b, j, j, j, l, n |
+| the replay id not checked | 208: c |
+| without `noopener` | 208: c, l |
+| the title as HTML | 208: d, e, o |
+| images over http | 208: d, l |
+| the position lost on a read | 208: g |
+| the reading does not stop | 208: g |
+| the menu rebuilt under the hand | 208: h |
+| the head rebuilt on every paint | 208: g, g, g, h, h, m, n, n, n |
+| nine weeks back | 208: j |
+| the list refusal told in both views | 208: k |
+| the frozen bar | 208: k |
+| “Replay” on an older replay | 208: l |
+| “Their week” opens the current week | 208: l |
+| the abbreviated number's plural taken from the whole number | 208: o |
+| a tab, even embedded | 208: p |
+| the end-only time written as a start | 208: c |
+| the head not sticky | 208: f, g, j, j, l |
+| the view never landed | 208: j, j, l |
+| the wheel does not release the view | 208: j |
+| scrolling does not release the view | 208: j |
+| no line kept | 208: n, n |
+| an unchanged read redone | 208: n |
+| the version forgotten | 208: h, n, n |
+| no padlock | 208: e |
+| the padlock always closed | 208: e, l |
+| no rule | 208: l |
+| “Refresh” reloads the view | 208: j, m |
+| the rail keeps the channel and the week | 208: j, j, n, n, n, n |
+| “Their week” landing on today | 208: l |
+| the note rebuilt on every read | 208: g |
+| the chosen channel missing from the menu | 208: i |
+| the position taken at the top of the view | 208: g |
+| the schedule chapter forgotten | 96: the seventeen chapters, the return to the guide, Japanese |
+| the group missing from the panel chapter | 96: the six groups, the quotations |
+| the padlock missing from the guide | 96: the quotations |
+
+## The followed channels' schedule (v4.25.0)
+
+The request, among fifteen proposed ideas: "6. Offline, but not forgotten
+7. The week's schedule. To be done in the panel. For the schedule, I noticed
+you can see future scheduled streams (but there are few, streamers rarely use
+that feature); on the other hand, the schedule also shows past streams. And
+that can be really interesting, because it gives easy access to a streamer's
+latest replays." Published on `claude/chrome-multi`.
+
+### What Twitch shows, and what was missing
+
+A channel's "Schedule" page shows, week by week, its past streams with their
+replay, the one under way, and the ones it has scheduled. But for ONE channel,
+which you have to know to open. Nothing on Twitch says who streamed last night
+among the channels you follow, nor how long another one has been away.
+
+### What the schedule shows
+
+One more group in the panel's rail, "Schedule", right after "Settings": it is
+the first section of everyday use.
+
+- **"The week"**: seven days, in the order the language gives the week —
+  Monday in French, Sunday in English and Japanese. Each day lists what
+  starts in it:
+  - past streams, with their replay — thumbnail, duration, title, category,
+    views; one click opens it;
+  - the stream under way;
+  - scheduled slots, cancelled ones left out;
+  - a last stream without an archive, said as such.
+
+  The arrows change week, eight back and two ahead; "Today" returns to it;
+  a menu keeps a single channel.
+- **"Offline"**: every followed channel that is not live, the most recently
+  gone first. For each:
+  - when it streamed, in relative time — "Last live yesterday";
+  - "Replay", only when the latest replay IS the last stream;
+  - its next stream, if one is scheduled;
+  - "Their week", which opens the week of that last stream, for that channel
+    alone.
+
+Links open where you are: in a tab from the popup, without a referrer; in the
+page itself when the panel is embedded. What comes from Twitch stays text,
+titles included. An image is only accepted over https, and a replay
+identifier only becomes a link if it is made of digits. **Revised in 4.25.0.4
+(above)**: a replay always opens in a new tab.
+
+### What it asks of Twitch
+
+The fields are those Twitch serves to its Schedule page and its offline
+player: `lastBroadcast`, `broadcastSettings`, the archives of `videos` and
+`channel.schedule`. The queries are written out, like every query in the
+file: no persisted query.
+
+- **Two passes.**
+  - The first, for every followed channel, in batches of twenty-five: live or
+    not, the last stream, the latest replay, the schedule. That is the whole
+    "Offline" view.
+  - The second, only for the channels that streamed since the start of the
+    week being viewed, one day of margin included: their twelve latest
+    replays, or forty when an older week calls for more.
+- **On demand, one request at a time.** Nothing leaves before the panel opens
+  the schedule. Batches follow one another, one second between two sends, and
+  the panel re-reads the progress every second.
+- **What fails does not insist.**
+  - A refusal from the service halves the batches and doubles the pause, for
+    the session. **Revised in 4.25.0.4**: ten requests served in a row give one
+    step back.
+  - Two sends lost in a row stop the reading; "Refresh" restarts it.
+  - A channel Twitch has not served twice waits for the next freshness, ten
+    minutes.
+- **Four hundred channels at most**: the live ones, the subscriptions, then
+  the most visited and the most recently seen. Beyond that, the panel says
+  how many are read.
+- **Nothing is written**: everything lives in memory, for the life of the
+  tab. The report only carries counts, `AGENDA` block. **Revised in 4.25.0.4
+  (above)**: what is read is kept in the `tse-agenda` IndexedDB database.
+
+### What is not proven
+
+The arguments of `segmentList`, the list of slots, cannot be read in any
+response. The schedule is therefore requested in three forms, from the
+richest to the safest; each refusal from the schema moves one notch. The last
+keeps only `nextSegment`, which Twitch's own pages request. The report says
+which one is in play, or "indisponible".
+
+**Said out loud: this machine cannot reach Twitch,** its network refuses it.
+The fields were established on the types published by an npm package drawn
+from real responses (`twitch-gql-queries`), and the bench exercises them
+against a simulated Twitch. The first real run will tell whether the schema
+accepts them. If it refuses one, the view says so, and the report says which.
+
+**The first run answered (v4.25.0.1, above).** The schema accepts these
+fields; but `lastBroadcast.startedAt` is the end of the last stream, not its
+start, and “No replay”, “Replay” and the second pass's day of slack depended
+on it.
+
+### The texts
+
+- Forty-two keys, in all twelve languages.
+- The guide gains a seventeenth chapter, "Your channels' schedule", and the
+  panel's chapter names six groups.
+- The twelve Store listings gain a section and a "who is it for" bullet. The
+  `npm run store` contract gains two promises, each tied to its query, and
+  three labels quoted as each language shows them.
+
+### Two defects found on re-reading, before the bench
+
+- **The progress bar stayed frozen.** A channel Twitch has not served twice
+  never counts among the read ones: the bar stayed at 298 out of 300 once the
+  reading was over, above the note that says so. It now only shows while
+  reading.
+- **"Offline" mentioned a refusal that does not concern it.** The note about
+  the replay list being refused showed there, although that view only reads
+  each channel's latest replay.
+
+### What the bench measures
+
+**207**, new, forty-six assertions: the collection, against the simulated
+Twitch of `page.html`.
+
+- a) nothing leaves before the panel opens the schedule;
+- b) offline: two sends, twenty-five channels then five, one request at a
+  time, the live channel first, no replay requested; then the order, the
+  departure times, the next stream without the cancelled one;
+- c) last week: a second pass for the four active channels only, every
+  replay, the stream without an archive, the past slot left out;
+- d) a single channel, without asking again; a malformed login ignored; a
+  nine-day "week" refused;
+- e) the current week, the live stream once; the next one, its slots, the
+  cancelled one left out;
+- f) an older week: forty replays, for the only channel that needs them;
+- g) "Refresh";
+- h) the report: correct counts, not a login, not a title;
+- i) nothing written, neither in storage nor in the module's code;
+- j) the three forms of the schedule, then all refused;
+- k) a refusal from the service: batches halved, pause doubled, everything
+  read in the end;
+- l), m) the two refusals from the schema, of the profile and of the list;
+- n) two sends lost: the stop, the pause held, "Refresh";
+- o) refused twice, channels wait for the next freshness;
+- p) the four-hundred bound, and who stays inside it.
+
+**208**, new, thirty-five assertions: the panel's two views, against a stub
+that answers according to the week requested.
+
+- a) the group, third in the rail;
+- b) the locale's week: Monday in French, Sunday in English;
+- c) each entry in its day; only safe links, and their target;
+- d) an HTML title stays text; thumbnails over https, the one that does not
+  arrive leaving its frame empty;
+- e) views in the language's plural, the duration, the tiles;
+- f) the geometry: nothing overflows, the bar stays at the top;
+- g) the re-reading during the collection, which keeps its position;
+- h) it waits for the channel menu to be left;
+- i) the menu; the empty week;
+- j) navigation, bounded to eight weeks back and two ahead;
+- k) the notes, and the messages in place of the view;
+- l) "Offline" and "Their week";
+- m) "Refresh", and the report block;
+- n) the four Russian plurals;
+- o) embedded in Twitch, links that lead the page itself.
+
+**96** and **70**, revised: seventeen chapters, six groups, and the
+schedule's labels in the quotations contract.
+
+**A hole in the bench, found by the mutants.** The lost-network sub-test had
+only two channels: lost twice, they were no longer requestable, and that rule
+masked the pause. The mutant that forgot it passed. The sub-test now reads
+thirty channels: the five of the second batch remain to be read, and only the
+pause holds back the next request.
+
+The full bench: 1841 assertions in 207 scenarios, all green.
+
+| mutant | what fails |
+| --- | --- |
+| the collection starts at boot | 207: a, b |
+| no batches | 207: b, b, g, h, k, k |
+| several workers at once | 207: b, b, g, h, k |
+| no pause between two sends | 207: b, k |
+| the live channel not first | 207: b |
+| the second pass for every channel | 207: c, g, h |
+| no long list for an older week | 207: f, f, g, h, h |
+| the live stream and its replay twice | 207: e |
+| "no replay" despite the replay | 207: c, c, d, d, n |
+| the cancelled slot shown | 207: e |
+| the past slot shown | 207: c, c, c, d, d, m |
+| the slot of the stream under way shown | 207: e |
+| a refused form condemns the schedule | 207: j, j, j, n |
+| the service's refusal taken for the schema's | 207: k, k, k, o |
+| no slowing down | 207: k, k |
+| insisting on a refused channel | 207: o |
+| no stop after two drops | 207: n, n, n |
+| the network pause ignored | 207: n, n, n — survived before the thirty-channel sub-test |
+| "Refresh" keeps the pause | 207: n |
+| the report names the channels | 207: h |
+| no bound | 207: p |
+| the subscription does not count | 207: p |
+| the schedule writes to storage | 207: i |
+| the channel's login not checked | 207: d |
+| the week not bounded | 207: d, e |
+| departure dated at the replay's start | 207: b |
+| "Offline" upside down | 207: b |
+| the week starts on Monday for everyone | 208: b |
+| the week shifted by one day | 208: b, b, b, j, j, j, l |
+| the replay identifier not checked | 208: c |
+| without `noopener` | 208: c, l |
+| the title as HTML | 208: d, e, n |
+| images over http | 208: d, l |
+| the re-reading scrolls back to the top | 208: g |
+| the re-reading never stops | 208: g |
+| the menu repainted under the mouse | 208: h |
+| nine weeks back | 208: j |
+| the list's refusal said in both views | 208: k |
+| the frozen bar | 208: k |
+| "Replay" on an older replay | 208: l |
+| "Their week" opens the current week | 208: l |
+| the abbreviated number's plural, taken from the whole number | 208: n |
+| a tab, even embedded | 208: o |
+| the entry from the day before outside the week | 208: c, d, i, n |
+| the week bar not sticky | 208: f |
+| the schedule chapter forgotten | 96: the seventeen chapters, the return to the guide, Japanese |
+| the group missing from the panel chapter | 96: the six groups, the quotations |
 
 ## The panel's copy under Firefox (v4.24.0.45)
 
@@ -11427,7 +13112,7 @@ extension disabled, on `/subscriptions`.
 | no earlier retry | "2:<date>", nothing before the ordinary period |
 | one page per tab (no switching) | four loads instead of one |
 | the previous tab's cards accepted | two **expired** subscriptions gilded |
-| channel links not counted | "jenfirer Réabonnez-vous…" in the report |
+| channel links not counted | "jelvaine Réabonnez-vous…" in the report |
 | cards counted "at the highest" after a switch | "gifts · 3 card(s) · 1 channel(s)" — the previous tab, counted for the next |
 | the panel proof required from every tab | textless empty tabs sent to the guard |
 | stop at the first blank panel | the sweep stops one tab too early |
@@ -19259,6 +20944,8 @@ of it. Everything the panel shows is reachable by hand, and
   below).
 - `tse.roster()` — lists the followed channels the extension has memorised by
   watching the sidebar (see below).
+- `tse.roster.refresh()` — forces a followed-channel sweep without waiting the
+  twelve hours, and returns the channels read (v4.25.0.3).
 - `tse.subs()` — lists the subscriptions spotted, with the date of the
   observation.
 - `tse.subs.refresh()` — forces a full `/subscriptions` scan without waiting
@@ -19314,9 +21001,16 @@ ones (the extension then hides them). So the extension memorises, across page
 loads, the list of channels you follow — without ever authenticating or touching
 a session token.
 
+**But the sidebar stops at a hundred followed channels** (measured, v4.25.0.3).
+Beyond that, the followed-channel sweep reads the full list on the “Followed
+channels” page, every twelve hours (see “The schedule, after its third real
+run”), and a complete sweep removes a channel you no longer follow the same
+day. Twitch tabs share this memory: each reads the storage back before
+writing, and learns at once what the others write.
+
 This list is what lets the extension poll beyond what Twitch displays, and so
-post a card before it does (see "Getting ahead of Twitch"). A channel not seen in
-the sidebar for 60 days is forgotten — which is what prevents holding on to a
+post a card before it does (see "Getting ahead of Twitch"). A channel seen neither
+in the sidebar nor by the followed-channel sweep for 60 days is forgotten — which is what prevents holding on to a
 channel you have unfollowed.
 
 ---
@@ -19324,12 +21018,14 @@ channel you have unfollowed.
 ## Privacy
 
 Everything the extension memorises is **100 % local**, stored in your browser's
-`localStorage` and **never** sent anywhere:
+`localStorage` — the schedule, in its IndexedDB database, below — and
+**never** sent anywhere:
 
 | Key | Contents | Used for |
 | --- | --- | --- |
 | `tse:visits` | your visit dates per channel | "Most visited" sort |
-| `tse:roster` | followed channels seen in the sidebar | posting a card before Twitch |
+| `tse:roster` | followed channels — seen in the sidebar or read by the followed-channel sweep —, and the removal date of those you no longer follow | posting a card before Twitch, the schedule |
+| `tse:suiviests` | date of the last followed-channel sweep, and the number of incomplete sweeps in a row | spacing sweeps 12 h apart, coming back sooner after a failure |
 | `tse:livelag` | measured Twitch lag samples | `tse.lag()` |
 | `tse:subs` | subscriptions spotted (visits + `/subscriptions` scan), their tenure in months, the former-subscriber flag and their due date (anniversary or end) | "My subscriptions first" sort, card styling, preview badge |
 | `tse:substs` | date of the last full scan, prefixed by the reader version that produced it | spacing scans 6 h apart, and expiring those of an earlier version outright |
@@ -19340,19 +21036,31 @@ Everything the extension memorises is **100 % local**, stored in your browser's
 `tse.reset()` wipes them all at any time; clearing `twitch.tv`'s site data from
 your browser settings does the same.
 
+**The schedule** has kept, since 4.25.0.4, what it has read in twitch.tv's
+`tse-agenda` IndexedDB database — one entry per followed channel read: its
+record, its replay list, its playback token —, so as not to ask for
+everything again on every reload. `tse.reset()` empties it too, as does
+clearing the site data.
+
 **Top Channels** adds nothing to that list, except that its cards get their
 probe verdicts in `tse:sondes` like any other: it stores nothing else, does not
 even persist the selected mode, and its requests take exactly the same anonymous path
 as the rest of the extension — `credentials: 'omit'`, public Client-ID, no
 session token, no extra permission.
 
-**One exception, and only one.** Since 3.44 the subscription scan loads
+**Two exceptions, and only two.** Since 3.44 the subscription scan loads
 `https://www.twitch.tv/subscriptions` in a hidden iframe, once every six hours.
 That page is **authenticated** — it is a page of your account. The nuance
 matters: the extension neither reads nor transmits your token; it asks for a
 page and the browser authenticates it with its cookies, just as for any link
 you would click. Nothing is sent to a third party, and the result never leaves
 `localStorage`. Disable with `SUBS_PAGE_ENABLED: false`.
+
+Since 4.25.0.3 the followed-channel sweep loads
+`https://www.twitch.tv/directory/following/channels` the same way, every
+twelve hours, and reads the responses that page receives for its list
+(`ChannelFollows`) — never a header of what it sends. The list joins
+`tse:roster`. Disable with `SUIVIES_ENABLED: false`.
 
 Since 3.45 that load happens **during** the sidebar's own, and only if the bar
 holds at least one followed channel — that is, never on a signed-out session.
@@ -19437,7 +21145,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the Firefox manifest: this repository's invariants, **then** Mozilla's `addons-linter` — the one AMO runs on submission |
-| `npm test` | the Playwright harness: 205 scenarios, 1760 assertions |
+| `npm test` | the Playwright harness: 209 scenarios, 1962 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
