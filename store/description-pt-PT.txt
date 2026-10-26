@@ -122,7 +122,7 @@ Resultado: a tua barra lateral só mostra o que interessa. Sem nada para configu
 _______________________________
 
 ➤ 📂 ACABOU O «MOSTRAR MAIS» PARA CLICAR
-A lista completa dos teus canais seguidos é expandida automaticamente a cada carregamento de página. Vês tudo, de imediato.
+Todos os teus canais seguidos em direto são expandidos automaticamente a cada carregamento de página, e os offline nunca aparecem. Vês cada direto, de imediato.
 
 _______________________________
 

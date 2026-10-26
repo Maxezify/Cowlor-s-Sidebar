@@ -2059,6 +2059,215 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## Unfolding the followed list, rebuilt (v4.25.0.6)
+
+The request: “Find a way to have every live card unfolded, but also to keep
+offline channels out of sight. Make it take as little time as possible. I
+have a feeling clicking ‘Show more’ may not be the most efficient method.
+Find other possibilities, less bug-prone, quicker to lift the overlay, more
+efficient.” Published on `claude/chrome-multi`.
+
+### What the old method did
+
+One click on “Show more” per scan, to the end of the list
+(`autoExpandFollowed`, v3.x). The bench's mock button did nothing: no
+scenario exercised this unfolding. So the bench first got a **model of
+Twitch's list** (`window.__listeSuivie`, `tests/page.html`): live channels
+first, then offline ones; twelve cards on load, twelve more per click, in a
+single render; the button removed at the end of the list; when needed, a
+render that lags as if the next batch had to be fetched, or an imposed order
+to break Twitch's. Invented channels.
+
+Measured on that model, a hundred followed channels, with production
+constants (overlay stability 1.5 s, scan 250 ms):
+
+- **eight clicks, one scan each**: the last card at 2 s, the overlay at 4 s —
+  whatever the number of live channels, three or forty;
+- **a hundred cards rendered** to show only the live ones, and every scan
+  walks them all;
+- when each batch lags by 300 ms, the overlay at **6.4 s**; and with a
+  shortened overlay, **fifty-two offline cards** shown for a moment after it
+  lifted, until the next scan hid them.
+
+### The options
+
+| option | verdict |
+| --- | --- |
+| click in a burst, without waiting for a scan | **kept** |
+| stop at the first offline card rendered | **kept**: Twitch lists followed channels that are live first |
+| hide an offline card as soon as Twitch renders it, through CSS | **kept** |
+| hide the button | **kept**: it would only reveal offline channels |
+| rewrite the sidebar's GraphQL response to drop offline channels | ruled out: it would alter Twitch's data on the strength of a schema we cannot test from here, and that it changes without notice, to spare at most one more batch of hidden cards than stopping at the first offline one |
+| several clicks at once, without waiting for the render | ruled out: a handler that counts its batches from its render state would see only one click |
+| build every live card ourselves (cards ahead) | ruled out as the main path: Twitch's cards come with its own data, without a single request; ours depend on the polling — thirty seconds, three hundred channels per pass. They remain the safety net |
+
+### What replaces it
+
+1. **Clicks in a burst.** The next click no longer waits for a scan: it
+   waits for the list to grow — the count when the click returns, then an
+   observer, `DEPLIAGE_ATTENTE_MS` (1 s) at most — and goes again. An
+   immediate render unfolds in a few milliseconds; a lagging one is waited
+   for, click by click. And since each click waits for the previous one's
+   render, it does not matter whether Twitch counts its batches from its
+   state or from the click.
+2. **Stopping at the first offline card.** Once an offline card is rendered,
+   every live one is, and the hundred no longer need to be: three live
+   channels, no click; twenty-four, two; forty, three.
+3. **Nothing re-unfolded for nothing.** A channel going live moves up among
+   the live ones and pushes an offline one out: as long as an offline card is
+   rendered, there is nothing to do. Otherwise — every rendered card is live,
+   and the button is there — the list is unfolded again. A click that had no
+   effect is only retried when the list changes, or `DEPLIAGE_REPRISE_MS`
+   (10 s) later. Twenty-five clicks at most per burst (`DEPLIAGE_CLICS_MAX`):
+   the sidebar stops at a hundred channels, twelve per batch.
+4. **Offline cards hidden as soon as Twitch renders them**, by a CSS rule on
+   its own marker (`.side-nav-card:has(.side-nav-card__avatar--offline)`),
+   without waiting for the scan that sets `data-tse-offline`. No frame shows
+   them, overlay lifted or not. The scan still rules on the rest: the other
+   signs of being offline.
+5. **The button hidden** in the followed list (`[data-tse-suivie]`), and
+   clicked hidden by the extension. The page's own, outside the sidebar, is
+   never touched.
+
+### The first draft, caught by a mutant
+
+The first version set the observer up **after** the click. A batch rendered
+within the click itself came before it, and the observer never saw its
+mutation: every click waited for the next one, our own scan's. Clicks 20 to
+290 ms apart with production constants, where there was nothing to wait for.
+The “unfolded to the end” mutant showed it: its burst lasted seconds. The
+count is now taken when the click returns, before any observer — five clicks
+in 18 ms instead of 540 —, and the report says what released each click.
+
+### What the full bench showed as well
+
+- **A scan for nothing.** A click that had no effect set off a scan of the
+  whole sidebar, when nothing had changed. On the bench's mock, whose button
+  does nothing, it came after the overlay lifted and set the title a second
+  time (204, under the load of the full bench). It now runs only if the burst
+  brought cards in — and Twitch, adding them, already triggers one.
+- **A schedule scenario red on Mondays.** 207 γ) puts its channel's last
+  archive twenty-five hours before the bench's clock: on a Monday, that is
+  the week before, the current week has nothing to ask of it (`actifDepuis`,
+  rightly so), and the first request went out during the view that was meant
+  to stay silent. The product is right; the scenario now also looks at last
+  week before counting, and holds whatever the day. Red on Monday and Tuesday
+  morning, green the rest of the week: it took this bench running on a
+  Monday.
+- **184** — the multistream room's sound alignment — failed under the load
+  of the full bench, and passes alone, as 180 and 188 did before it. It
+  touches nothing that changes here.
+
+### Measured
+
+On the model, a hundred followed channels, production constants, three runs
+per case (a few tens of milliseconds apart):
+
+| case | before: clicks · cards · overlay | after: clicks · cards · overlay |
+| --- | --- | --- |
+| 24 live, immediate render | 8 · 100 · 4.0 s | 2 · 36 · 2.2 s |
+| 24 live, batches at 300 ms | 8 · 100 · 6.4 s | 2 · 36 · 2.8 s |
+| 3 live, immediate render | 8 · 100 · 4.1 s | 0 · 12 · 2.3 s |
+| 40 live, immediate render | 8 · 100 · 4.1 s | 3 · 48 · 2.2 s |
+| 60 live, batches at 300 ms | 8 · 100 · 6.4 s | 5 · 72 · 3.6 s |
+
+No offline card shown, in any case.
+
+### What is left of the overlay's time
+
+The overlay log, on the first case: the list appears, the burst ends 4 ms
+later, the origin probe's hold lifts 300 ms after, then the **stability
+window** — 1.5 s without growth or hold — and the overlay lifts. It is kept,
+on purpose: Twitch renders its sidebar in waves, and shortening it blindly
+would lift the overlay between two of them.
+
+At start-up, your reports show an overlay lifted 6.2 to 7.8 s after it
+started, and their log said only two lines, “cycle” and “levée”. It now says three more, on the
+same clock:
+
+| line | what it says |
+| --- | --- |
+| `peuplée` | when the sidebar shows its first cards: what comes before is Twitch's time |
+| `dépliage` | the cards before and after, the clicks, and why the burst stopped |
+| `verrou` | who held the overlay, set then released |
+
+The next report will therefore tell what belongs to Twitch, to the unfolding
+and to the stability window — and whether the latter can be shortened once
+the list is known to be complete.
+
+### If Twitch ordered things differently
+
+A live channel listed after an offline one: the burst stops before it. The
+safety net is already there — it is followed, the polling knows it is live,
+and a card ahead shows it (`syncAheadCards`, fifteen at most). The report
+says whether the order held: `directsApresHorsLigne` counts the live cards
+rendered after an offline one in the same batch, zero as long as Twitch lists
+live channels first.
+
+### In the report
+
+`page.depliage`: the clicks and the time of the last one, the bursts, the
+clicks that had no effect, the reason for the last stop (`directs tous
+rendus`, `liste entière`, `clic sans effet`, `section disparue`, `plafond de
+clics`), `directsApresHorsLigne`, the offline cards rendered — hidden —, and
+**how Twitch renders its batches**: `rendus.auClic` (already there when the
+click returned), `rendus.observes` (rendered afterwards), `rendus.delai`
+(nothing within a second), and `attenteMs`, the time spent waiting for them.
+A sidebar that fetches the next batch over the network will say so there.
+
+### The texts
+
+The guide and the Store listings, in all twelve languages, promised “the full
+list unfolded”: they now say every followed channel that is **live**, and
+offline ones never shown. The button's name follows the label the code
+recognises on Twitch where it knows it: “Afficher plus” (the French guide and
+listing said “Voir plus”), “Mostrar más” and “Mostrar mais” in the Spanish
+and Portuguese guides.
+
+### What the bench measures
+
+**210**, new, on the list model:
+
+- **a)** twenty-four live out of a hundred: two clicks with no scan between
+  them, thirty-six cards, the twenty-four live ones on screen, no offline
+  one, the button hidden; each click released by the batch already rendered;
+  the report and the overlay log;
+- **b)** the rendered offline channels go live: one more batch, and a stop at
+  the next offline one;
+- **c)** three live: not one click;
+- **d)** batches lagging by 300 ms: the burst waits for them — two observed
+  renders —, and no offline card appears, not even for one scan;
+- **e)** a click with no effect: reported, not retried while the list does
+  not change, retried when it does;
+- **f)** a live channel listed after the offline ones: the burst stops before
+  it, and a card ahead shows it;
+- **g)** a live channel slipped between two offline ones in the same batch:
+  on screen, and counted in the report.
+
+**16**, **173** and **207** revised: the unfolding in the report; the
+sidebar's button hidden in the followed list; the schedule's purge, whatever
+the day.
+
+**Thirteen named mutants, all caught.**
+
+| mutant | what falls |
+| --- | --- |
+| one click per scan, as before | 210 a), b), d) |
+| unfolded to the end | 210 a) to d), f), g) |
+| offline cards hidden by the scan alone | 210 d) |
+| “Show more” left visible | 210 a) |
+| the click with no effect retried at once | 210 e) |
+| no more re-unfolding after the first burst | 210 b), e) |
+| Twitch's order never checked | 210 g) |
+| the unfolding left out of the overlay log | 210 a) |
+| the populated list left out of the log | 210 a) |
+| the holds left out of the log | 210 a) |
+| the burst does not wait for the render | 210 d), e) |
+| the observer alone, without the count when the click returns | 210 a) |
+| the renders left out of the report | 210 a), d), e) |
+
+The full bench: 1960 assertions in 209 scenarios, all green.
+
 ## Followed channels, a single memory (v4.25.0.5)
 
 The question, after the fourth run's report: “About fetching the full list of
@@ -2124,6 +2333,13 @@ sidebar is driven, and this machine cannot measure the gain on Twitch. The
 report will: it now counts the clicks, the time of the last one — on the
 overlay log's clock — and the offline cards rendered (`page.depliage`). The
 next report will say whether the saving is worth the change.
+
+**Revised in 4.25.0.6 (above).** Stopping at the first offline card is done
+without waiting for that report: requested, and measured on a model of
+Twitch's sidebar the bench did not have — the burst, the stop and the CSS
+lift the overlay in 2.2 s where the old method took 4. The report now says
+whether Twitch's order holds (`directsApresHorsLigne`), and how it renders
+its batches.
 
 ### Your report
 
@@ -20371,7 +20587,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 208 scenarios, 1950 assertions |
+| `npm test` | the Playwright harness: 209 scenarios, 1960 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -20391,12 +20607,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1799 KB | 737 KB | 4,423 → **2** |
+| `content.js` | 1808 KB | 740 KB | 4,435 → **2** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
 | `panneau.js` | 148 KB | 76 KB | 207 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
 | `background.js` | 10 KB | 2 KB | 22 → **0** |
-| **all five** | **2096 KB** | **918 KB** | **−56 %** |
+| **all five** | **2105 KB** | **922 KB** | **−56 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are

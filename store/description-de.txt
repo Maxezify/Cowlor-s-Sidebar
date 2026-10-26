@@ -122,7 +122,7 @@ Ergebnis: deine Sidebar zeigt nur noch, was zählt. Ohne dass du irgendetwas ein
 _______________________________
 
 ➤ 📂 KEIN „MEHR ANZEIGEN" MEHR ZUM KLICKEN
-Die vollständige Liste deiner gefolgten Kanäle wird bei jedem Seitenaufruf automatisch aufgeklappt. Du siehst alles, sofort.
+Alle gefolgten Kanäle, die live sind, werden bei jedem Seitenaufruf automatisch aufgeklappt, und Offline-Kanäle erscheinen nie. Du siehst jeden Livestream, sofort.
 
 _______________________________
 

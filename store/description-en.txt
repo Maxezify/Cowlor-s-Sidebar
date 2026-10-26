@@ -122,7 +122,7 @@ Result: your sidebar only shows what matters. With nothing to configure — and 
 _______________________________
 
 ➤ 📂 NO MORE "SHOW MORE" TO CLICK
-The full list of your followed channels is automatically unfolded on every page load. You see everything, right away.
+Every followed channel that is live is automatically unfolded on every page load, and offline ones never show. You see every live stream, right away.
 
 _______________________________
 

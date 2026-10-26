@@ -2180,6 +2180,219 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## Le dépliage de la liste suivie, refondu (v4.25.0.6)
+
+La demande : « Trouve un moyen d'avoir toutes les cartes en live dépliées,
+mais aussi de ne pas avoir les chaînes hors ligne visibles. Optimise au mieux
+le temps que ça prend. J'ai l'impression que la méthode de cliquer sur
+“Afficher plus” n'est peut-être pas la plus optimisée. Trouve d'autres
+possibilités, moins sujettes à des bugs, plus rapides à retirer le voile,
+plus performantes. » Publiée sur `claude/chrome-multi`.
+
+### Ce que faisait l'ancienne méthode
+
+Un clic sur « Afficher plus » par balayage, jusqu'au bout de la liste
+(`autoExpandFollowed`, v3.x). Le bouton du décor du banc était inerte : aucun
+scénario n'éprouvait ce dépliage. Le banc a donc d'abord reçu un **modèle de
+la liste de Twitch** (`window.__listeSuivie`, `tests/page.html`) : les chaînes
+en direct d'abord, puis les hors-ligne ; douze cartes au chargement, douze de
+plus par clic, d'un seul rendu ; le bouton retiré au bout de la liste ; au
+besoin, un rendu qui tarde comme s'il fallait aller chercher la suite, ou un
+ordre imposé pour violer celui de Twitch. Chaînes inventées.
+
+Mesuré sur ce modèle, cent chaînes suivies, aux constantes de la production
+(stabilité du voile 1,5 s, balayage 250 ms) :
+
+- **huit clics, un balayage chacun** : la dernière carte à 2 s, le voile à
+  4 s — quel que soit le nombre de chaînes en direct, trois ou quarante ;
+- **cent cartes rendues** pour n'en montrer que les directes, et chaque
+  balayage les parcourt toutes ;
+- quand chaque pas tarde de 300 ms, le voile à **6,4 s** ; et sur un voile
+  accéléré, **cinquante-deux cartes hors ligne** affichées un instant après la
+  levée, le temps que le balayage suivant les masque.
+
+### Les pistes
+
+| piste | verdict |
+| --- | --- |
+| cliquer en rafale, sans attendre de balayage | **retenue** |
+| s'arrêter au premier hors-ligne rendu | **retenue** : Twitch range ses chaînes suivies en direct d'abord |
+| masquer une carte hors ligne dès que Twitch la rend, par le CSS | **retenue** |
+| cacher le bouton | **retenue** : il ne dévoilerait que des hors-ligne |
+| réécrire la réponse GraphQL de la barre pour en ôter les hors-ligne | écartée : ce serait modifier les données de Twitch sur la foi d'un schéma qu'on ne peut pas éprouver d'ici, et qu'il change sans prévenir, pour épargner au plus un pas de cartes masquées de plus que l'arrêt au premier hors-ligne |
+| plusieurs clics d'un coup, sans attendre le rendu | écartée : un gestionnaire qui compte ses pas depuis son état de rendu ne verrait qu'un clic |
+| fabriquer nous-mêmes toutes les cartes en direct (les cartes en avance) | écartée comme voie principale : les cartes de Twitch arrivent avec ses propres données, sans une requête ; les nôtres dépendent du sondage — trente secondes, trois cents chaînes par passe. Elles restent le filet |
+
+### Ce qui la remplace
+
+1. **Les clics en rafale.** Le clic suivant n'attend plus un balayage : il
+   attend que la liste grandisse — le compte au retour du clic, puis un
+   observateur, `DEPLIAGE_ATTENTE_MS` (1 s) au plus — et repart. Un rendu
+   immédiat se déplie en quelques millisecondes ; un rendu qui tarde est
+   attendu clic par clic. Et parce que chaque clic attend le rendu du
+   précédent, peu importe que Twitch compte ses pas depuis son état ou depuis
+   le clic.
+2. **L'arrêt au premier hors-ligne.** Dès qu'une carte hors ligne est rendue,
+   toutes les directes le sont, et la centaine n'a plus à l'être : trois
+   directes, aucun clic ; vingt-quatre, deux ; quarante, trois.
+3. **Rien à redéplier pour rien.** Une chaîne qui passe en direct monte parmi
+   les directes et pousse une hors-ligne dehors : tant qu'une hors-ligne est
+   rendue, il n'y a rien à faire. Sinon — toutes les cartes rendues sont en
+   direct, et le bouton est là —, on redéplie. Un clic resté sans effet n'est
+   retenté que lorsque la liste change, ou `DEPLIAGE_REPRISE_MS` (10 s) plus
+   tard. Vingt-cinq clics au plus par rafale (`DEPLIAGE_CLICS_MAX`) : la barre
+   s'arrête à cent chaînes, douze par pas.
+4. **Les hors-ligne masquées dès que Twitch les rend**, par une règle CSS sur
+   son propre marqueur (`.side-nav-card:has(.side-nav-card__avatar--offline)`),
+   sans attendre le balayage qui pose `data-tse-offline`. Aucune image ne les
+   montre, voile levé ou non. Le balayage reste juge du reste : les autres
+   signes du hors-ligne.
+5. **Le bouton caché** dans la liste suivie (`[data-tse-suivie]`), que
+   l'extension clique caché. Celui de la page, hors de la barre, n'est jamais
+   touché.
+
+### Le premier jet, repris par un mutant
+
+La première écriture posait l'observateur **après** le clic. Un pas rendu
+dans le clic même le précédait, et l'observateur ne voyait jamais sa
+mutation : chaque clic attendait la suivante, celle de notre propre balayage.
+Des clics espacés de 20 à 290 ms aux constantes de la production, là où il
+n'y avait rien à attendre. C'est le mutant « déplié jusqu'au bout » qui l'a
+montré : sa rafale durait des secondes. Le compte se fait maintenant au retour
+du clic, avant tout observateur — cinq clics en 18 ms au lieu de 540 —, et le
+rapport dit ce qui a libéré chaque clic.
+
+### Ce que le banc complet a encore montré
+
+- **Un balayage pour rien.** Un clic resté sans effet relançait un balayage
+  de toute la barre, alors que rien n'avait changé. Sur le décor du banc, dont
+  le bouton ne fait rien, il tombait après la levée du voile et réglait le
+  titre une seconde fois (le 204, sous la charge du banc complet). Il ne part
+  plus que si la rafale a fait venir des cartes — et Twitch, en les ajoutant,
+  en déclenche déjà un.
+- **Un scénario de l'agenda rouge le lundi.** 207 γ) place la dernière
+  archive de sa chaîne vingt-cinq heures avant l'instant du banc : un lundi,
+  c'est la semaine d'avant, la semaine en cours n'a rien à lui demander
+  (`actifDepuis`, à juste titre), et la première demande partait pendant la
+  vue qui devait rester muette. Le produit est juste ; le scénario regarde
+  aussi la semaine passée avant de compter, et tient quel que soit le jour.
+  Rouge le lundi et le mardi matin, vert le reste de la semaine : il a fallu
+  que ce banc tourne un lundi.
+- **Le 184** — le calage par le son de la salle multistream — a échoué sous
+  la charge du banc complet, et passe seul, comme les 180 et 188 avant lui. Il
+  ne touche à rien de ce qui change ici.
+
+### Mesuré
+
+Sur le modèle, cent chaînes suivies, constantes de la production, trois
+passes par cas (des écarts de quelques dizaines de millisecondes) :
+
+| cas | avant : clics · cartes · voile | après : clics · cartes · voile |
+| --- | --- | --- |
+| 24 directes, rendu immédiat | 8 · 100 · 4,0 s | 2 · 36 · 2,2 s |
+| 24 directes, pas à 300 ms | 8 · 100 · 6,4 s | 2 · 36 · 2,8 s |
+| 3 directes, rendu immédiat | 8 · 100 · 4,1 s | 0 · 12 · 2,3 s |
+| 40 directes, rendu immédiat | 8 · 100 · 4,1 s | 3 · 48 · 2,2 s |
+| 60 directes, pas à 300 ms | 8 · 100 · 6,4 s | 5 · 72 · 3,6 s |
+
+Aucune carte hors ligne affichée, dans aucun cas.
+
+### Ce qui reste du temps du voile
+
+Le journal du voile, sur le premier cas : la liste paraît, la rafale finit
+4 ms plus tard, le verrou de la sonde d'origine se lève 300 ms après, puis la
+**fenêtre de stabilité** — 1,5 s sans croissance ni verrou — et le voile se
+lève. Elle est gardée, à dessein : Twitch rend sa barre par vagues, et la
+raccourcir à l'aveugle lèverait le voile entre deux d'entre elles.
+
+Au démarrage, vos rapports disent un voile levé 6,2 à 7,8 s après son
+départ, et leur journal ne disait que deux lignes, « cycle » et « levée ». Il en dit
+désormais trois de plus, sur la même horloge :
+
+| ligne | ce qu'elle dit |
+| --- | --- |
+| `peuplée` | l'instant où la barre montre ses premières cartes : ce qui précède est le temps de Twitch |
+| `dépliage` | les cartes avant et après, les clics, et pourquoi la rafale s'est arrêtée |
+| `verrou` | qui a retenu le voile, posé puis levé |
+
+Le prochain rapport dira donc ce qui revient à Twitch, au dépliage et à la
+fenêtre de stabilité — et si celle-ci peut être raccourcie une fois la liste
+connue entière.
+
+### Si Twitch rangeait autrement
+
+Une directe rangée après une hors-ligne : la rafale s'arrête avant elle. Le
+filet existe déjà — elle est suivie, le sondage la sait en direct, et une
+carte en avance l'affiche (`syncAheadCards`, quinze au plus). Le rapport dit
+si l'ordre a tenu : `directsApresHorsLigne` compte les directes rendues après
+une hors-ligne dans un même pas, zéro tant que Twitch range les directes
+d'abord.
+
+### Au rapport
+
+`page.depliage` : les clics et l'instant du dernier, les rafales, les clics
+restés sans effet, la raison du dernier arrêt (`directs tous rendus`,
+`liste entière`, `clic sans effet`, `section disparue`, `plafond de clics`),
+`directsApresHorsLigne`, les cartes hors ligne rendues — masquées —, et
+**comment Twitch rend ses pas** : `rendus.auClic` (déjà là au retour du clic),
+`rendus.observes` (rendus ensuite), `rendus.delai` (rien en une seconde), et
+`attenteMs`, le temps passé à les attendre. Une barre qui va chercher la suite
+sur le réseau le dira là.
+
+### Les textes
+
+Le guide et les fiches du Store, dans les douze langues, promettaient « la
+liste complète dépliée » : ils disent toutes les chaînes suivies **en
+direct**, et les hors-ligne jamais montrées. Le nom du bouton suit le libellé
+que le code reconnaît chez Twitch là où il le connaît : « Afficher plus » (le
+guide et la fiche disaient « Voir plus »), « Mostrar más » et « Mostrar
+mais » dans les guides espagnols et portugais.
+
+### Ce que le banc mesure
+
+**210**, nouveau, sur le modèle de la liste :
+
+- **a)** vingt-quatre directes sur cent : deux clics sans un balayage entre
+  eux, trente-six cartes, les vingt-quatre directes à l'écran, aucune
+  hors-ligne, le bouton caché ; chaque clic libéré par le pas déjà rendu ; le
+  rapport et le journal du voile ;
+- **b)** les hors-ligne rendues passent en direct : un pas de plus, et l'arrêt
+  à la hors-ligne suivante ;
+- **c)** trois directes : pas un clic ;
+- **d)** des pas qui tardent de 300 ms : la rafale les attend — deux rendus
+  observés —, et aucune hors-ligne ne paraît, pas même le temps d'un
+  balayage ;
+- **e)** un clic sans effet : dit au rapport, pas retenté tant que la liste ne
+  change pas, retenté quand elle change ;
+- **f)** une directe rangée après les hors-ligne : la rafale s'arrête avant
+  elle, et une carte en avance l'affiche ;
+- **g)** une directe glissée entre deux hors-ligne d'un même pas : à l'écran,
+  et comptée au rapport.
+
+**16**, **173** et **207** revus : le dépliage au rapport ; le bouton de la
+barre caché dans la liste suivie ; la purge de l'agenda, quel que soit le
+jour.
+
+**Treize mutants nommés, tous pris.**
+
+| mutant | ce qui tombe |
+| --- | --- |
+| un clic par balayage, comme avant | 210 a), b), d) |
+| déplié jusqu'au bout | 210 a) à d), f), g) |
+| les hors-ligne cachées au seul balayage | 210 d) |
+| « Afficher plus » laissé visible | 210 a) |
+| le clic sans effet retenté aussitôt | 210 e) |
+| plus de redépliage après la première rafale | 210 b), e) |
+| l'ordre de Twitch jamais vérifié | 210 g) |
+| le dépliage tu au journal du voile | 210 a) |
+| la liste peuplée tue au journal | 210 a) |
+| les verrous tus au journal | 210 a) |
+| la rafale n'attend pas le rendu | 210 d), e) |
+| l'observateur seul, sans le compte au retour du clic | 210 a) |
+| les rendus tus au rapport | 210 a), d), e) |
+
+Le banc complet : 1960 assertions dans 209 scénarios, toutes vertes.
+
 ## Les chaînes suivies, une seule mémoire (v4.25.0.5)
 
 La question, après le rapport du quatrième essai : « Concernant la récupération
@@ -2248,6 +2461,12 @@ sur Twitch. Le rapport le mesurera : il compte désormais les clics, l'instant
 du dernier — sur l'horloge du journal du voile — et les cartes hors ligne
 rendues (`page.depliage`). Le prochain rapport dira si l'économie vaut le
 changement.
+
+**Revu en 4.25.0.6 (plus haut).** L'arrêt au premier hors-ligne est fait sans
+attendre ce rapport : demandé, et mesuré sur un modèle de la barre de Twitch
+que le banc n'avait pas — la rafale, l'arrêt et le CSS lèvent le voile en
+2,2 s là où l'ancienne méthode mettait 4. Le rapport dit désormais si l'ordre
+de Twitch tient (`directsApresHorsLigne`), et comment il rend ses pas.
 
 ### Votre rapport
 
@@ -20990,7 +21209,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 208 scénarios, 1950 assertions |
+| `npm test` | le harnais Playwright : 209 scénarios, 1960 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -21011,12 +21230,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1799 Ko | 737 Ko | 4 423 → **2** |
+| `content.js` | 1808 Ko | 740 Ko | 4 435 → **2** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
 | `panneau.js` | 148 Ko | 76 Ko | 207 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
 | `background.js` | 10 Ko | 2 Ko | 22 → **0** |
-| **les cinq** | **2096 Ko** | **918 Ko** | **−56 %** |
+| **les cinq** | **2105 Ko** | **922 Ko** | **−56 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se

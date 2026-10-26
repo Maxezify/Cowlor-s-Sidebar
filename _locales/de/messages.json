@@ -547,7 +547,7 @@
     "message": "Schneller als Twitch, und aufgeräumter"
   },
   "guideViteTexte": {
-    "message": "Twitch braucht zwei bis vier Minuten, um einen Kanal zu zeigen, der live geht, und behält einen, der aufhört, noch fünf bis zehn Minuten. Die Erweiterung aktualisiert die Seitenleiste selbst, alle dreißig Sekunden: Zuschauer, Kategorie, Dauer, Kommen und Gehen.\n• Deine gefolgten Kanäle sind immer ganz ausgeklappt: kein „Mehr anzeigen“ mehr.\n• Hype Trains, Rabattbanner, Sponsorenleisten und leere Abschnitte verschwinden aus der Seitenleiste; was sie sagten, kommt als Abzeichen in der Vorschau zurück (Kapitel $1).\n• Deine Zuschauerserie und die Stories-Zeile von Twitch wandern in den Filterblock oben in der Liste. Lieber so, wie Twitch sie zeigt, oder ausgeblendet? Das steht unter „Einstellungen“."
+    "message": "Twitch braucht zwei bis vier Minuten, um einen Kanal zu zeigen, der live geht, und behält einen, der aufhört, noch fünf bis zehn Minuten. Die Erweiterung aktualisiert die Seitenleiste selbst, alle dreißig Sekunden: Zuschauer, Kategorie, Dauer, Kommen und Gehen.\n• Alle gefolgten Kanäle, die live sind, werden von selbst ausgeklappt, und Offline-Kanäle erscheinen nie: kein „Mehr anzeigen“ mehr.\n• Hype Trains, Rabattbanner, Sponsorenleisten und leere Abschnitte verschwinden aus der Seitenleiste; was sie sagten, kommt als Abzeichen in der Vorschau zurück (Kapitel $1).\n• Deine Zuschauerserie und die Stories-Zeile von Twitch wandern in den Filterblock oben in der Liste. Lieber so, wie Twitch sie zeigt, oder ausgeblendet? Das steht unter „Einstellungen“."
   },
   "guidePanneauTitre": {
     "message": "Dieses Fenster"

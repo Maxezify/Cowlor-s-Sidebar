@@ -547,7 +547,7 @@
     "message": "Szybciej niż Twitch i czyściej"
   },
   "guideViteTexte": {
-    "message": "Twitch potrzebuje od dwóch do czterech minut, by pokazać kanał, który rusza, a ten, który skończył, trzyma jeszcze pięć do dziesięciu minut. Rozszerzenie samo odświeża pasek boczny co trzydzieści sekund: widzowie, kategoria, czas trwania, przybycia i odejścia.\n• Twoje obserwowane kanały są zawsze rozwinięte w całości: koniec z „Pokaż więcej”.\n• Hype trainy, paski zniżek, belki sponsorskie i puste sekcje znikają z paska; to, co mówiły, wraca jako odznaka w podglądzie (rozdział $1).\n• Twoja seria oglądania i sekcja Stories Twitcha trafiają do bloku filtrów, na górze listy. Wolisz je tak, jak pokazuje Twitch, albo ukryte? To w sekcji „Ustawienia”."
+    "message": "Twitch potrzebuje od dwóch do czterech minut, by pokazać kanał, który rusza, a ten, który skończył, trzyma jeszcze pięć do dziesięciu minut. Rozszerzenie samo odświeża pasek boczny co trzydzieści sekund: widzowie, kategoria, czas trwania, przybycia i odejścia.\n• Wszystkie obserwowane kanały na żywo rozwijają się same, a kanały offline nigdy się nie pojawiają: koniec z „Pokaż więcej”.\n• Hype trainy, paski zniżek, belki sponsorskie i puste sekcje znikają z paska; to, co mówiły, wraca jako odznaka w podglądzie (rozdział $1).\n• Twoja seria oglądania i sekcja Stories Twitcha trafiają do bloku filtrów, na górze listy. Wolisz je tak, jak pokazuje Twitch, albo ukryte? To w sekcji „Ustawienia”."
   },
   "guidePanneauTitre": {
     "message": "Ten panel"
