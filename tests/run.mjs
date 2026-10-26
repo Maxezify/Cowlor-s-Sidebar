@@ -892,11 +892,12 @@ titre('16. Palier 3 — les cartes fabriquées ne faussent rien');
       .addEventListener('click', () => window.__moreClicks++);
   });
   await wait(page, 1500);
-  /* LE DÉPLIAGE AU RAPPORT (4.25.0.5) : autant de clics que la page en a
-     reçu, l'instant du dernier, et les quatre cartes hors ligne rendues. */
+  /* LE DÉPLIAGE AU RAPPORT (4.25.0.5, revu en 4.25.0.6) : quatre cartes hors
+     ligne sont rendues d'emblée, donc toutes les directes le sont — pas un
+     clic, et le rapport le dit, avec les quatre hors-ligne. */
   const depliage = await page.evaluate(() => ({ ...window.tse.panneau.rapport().page.depliage, vus: window.__moreClicks }));
-  ok('le rapport compte les clics sur « Afficher plus », date le dernier, et les cartes hors ligne rendues',
-     depliage.clics >= 1 && depliage.clics === depliage.vus && Number.isFinite(depliage.dernierClicMs) && depliage.horsLigne === 4,
+  ok('le rapport dit le dépliage : pas un clic quand les hors-ligne sont déjà rendues, et les quatre cartes hors ligne',
+     depliage.clics === 0 && depliage.vus === 0 && depliage.arret === 'directs tous rendus' && depliage.horsLigne === 4,
      JSON.stringify(depliage));
   await page.evaluate(() => {
     [...document.querySelectorAll('.side-nav-card')]
@@ -24978,7 +24979,10 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
      s'écrivait avec le préfixe devant une LISTE de sélecteurs : il n'en tenait
      que la première partie, et tout « ShowMore » de la page était caché, en
      permanence. Trouvé en cherchant ce qui pouvait noircir le lecteur — ce
-     n'était pas lui. Mutant — la règle rendue à son ancienne écriture. */
+     n'était pas lui. Mutant — la règle rendue à son ancienne écriture.
+     DEPUIS LA 4.25.0.6, celui de la barre l'est aussi dans la liste suivie,
+     que l'extension déplie elle-même (cf. le scénario 210) ; celui de la
+     page, jamais. */
   const plus = await page.evaluate(() => {
     const lirePlus = () => {
       const b = document.querySelector('#side-nav [data-a-target="side-nav-show-more-button"]');
@@ -24991,7 +24995,7 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
     document.body.classList.remove('tse-global-ready');
     return { hors, top };
   });
-  ok('« Afficher plus » : celui de la page n\'est jamais caché ; celui de la barre, en mode Top seulement',
+  ok('« Afficher plus » : celui de la page n\'est jamais caché ; celui de la barre l\'est en mode Top',
      plus.hors.page !== 'none' && plus.top.page !== 'none' && plus.top.barre === 'none',
      JSON.stringify(plus));
   await page.close();
@@ -34507,8 +34511,15 @@ const S_LECTEUR_SONDE = () => {
      Douze rediffusions, dont onze de plus de soixante-dix jours : la purge
      les retire. La liste remontait pourtant au-delà de la semaine regardée —
      elle ne se redemande pas plus longue pour autant. */
+  /* LA SEMAINE PASSÉE AUSSI, avant de compter. L'archive « d'hier » finit
+     vingt-cinq heures avant l'instant du banc : un lundi, c'est la semaine
+     d'avant, la semaine en cours n'a rien à demander à « rare » (cf.
+     `actifDepuis`), et la première demande partait pendant la vue d'il y a
+     trois semaines — rouge le lundi et le mardi matin, vert le reste de la
+     semaine. L'une des deux vues la demande, quel que soit le jour. */
   const pg = await monter({ chaines: ['rare'], rare: true });
   await finir(pg, () => window.__semaine(0));
+  await finir(pg, () => window.__semaine(-1));
   const ng0 = (await journal(pg)).length;
   const sg = await finir(pg, () => window.__semaine(-3));
   const logg = (await journal(pg)).slice(ng0);
@@ -36106,6 +36117,206 @@ addEventListener('message', (e) => {
   ok('j) le relevé des chaînes suivies en cours ailleurs : celui des abonnements attend, puis se fait',
      jAttente.cadres === 0 && jAttente.differes >= 1 && jFait, JSON.stringify({ jAttente, jFait }));
   await ctx4.close();
+}
+
+/* ═════════ LE DÉPLIAGE DE LA LISTE SUIVIE (4.25.0.6) ══════════════════════
+   DEMANDÉ AINSI : « toutes les cartes en live dépliées, mais pas les chaînes
+   hors ligne visibles ; optimise au mieux le temps que ça prend ». Jusqu'à la
+   4.25.0.5, un clic sur « Afficher plus » par balayage, jusqu'au bout de la
+   liste — et le bouton du décor était inerte : rien ne l'éprouvait. Le décor
+   rend désormais la liste comme Twitch (cf. `__listeSuivie`) : les directes
+   d'abord, douze au chargement, douze par clic, d'un seul rendu, ou après un
+   délai comme s'il fallait aller chercher la suite.
+   MESURÉ sur ce modèle, aux constantes de la production (cent chaînes, vingt-
+   quatre en direct) : huit clics, cent cartes et le voile à 4 s avant ; deux
+   clics, trente-six cartes et le voile à 2,2 s après. Ce scénario-ci tient le
+   comportement ; les durées, accélérées au banc, n'y sont pas jugées. */
+{
+  titre('210. Le dépliage de la liste suivie — en rafale, jusqu\'aux directes, sans une hors-ligne à l\'écran');
+
+  // Installe le modèle, et relève à chaque clic l'instant et le nombre de balayages faits.
+  const monterListe = async (page, o) => {
+    await page.evaluate((opts) => {
+      window.__clicsVus = [];
+      const n = window.__listeSuivie(opts);
+      document.querySelector('#side-nav [data-a-target="side-nav-show-more-button"]')?.addEventListener('click', () => {
+        window.__clicsVus.push({ t: performance.now(), balayages: window.tse.panneau.rapport().page.balayages.total });
+      });
+      return n;
+    }, o);
+  };
+  const etat = (page) => page.evaluate(() => {
+    const cartes = [...document.querySelectorAll('#cards .side-nav-card')];
+    const horsLigne = cartes.filter((c) => c.querySelector('.side-nav-card__avatar--offline'));
+    const rap = window.tse.panneau.rapport();
+    return { clics: window.__plusClics, rendues: cartes.length, montrees: window.__listeMontree(),
+             directsVisibles: cartes.filter((c) => !c.querySelector('.side-nav-card__avatar--offline')
+                                                   && getComputedStyle(c).display !== 'none').length,
+             horsLigneVisibles: horsLigne.filter((c) => getComputedStyle(c).display !== 'none').length,
+             bouton: (() => { const b = document.querySelector('#side-nav [data-a-target="side-nav-show-more-button"]');
+                              return b ? getComputedStyle(b).display : 'absent'; })(),
+             depliage: rap.page.depliage, journal: (rap.journaux?.cycles || []).map((e) => `${e.evt} ${e.detail}`),
+             voile: document.body.classList.contains('tse-loading'), clicsVus: window.__clicsVus };
+  });
+
+  /* ── a) VINGT-QUATRE DIRECTES SUR CENT, RENDU IMMÉDIAT ─────────────────────
+     Deux clics, en rafale — aucun balayage entre eux —, et l'arrêt au pas qui
+     porte la première hors-ligne : trente-six cartes, et non cent. */
+  const pa = await fresh();
+  await monterListe(pa, { directs: 24, horsLigne: 76, initial: 12, pas: 12 });
+  await attendre(pa, () => !document.body.classList.contains('tse-loading'), 6_000);
+  await wait(pa, 300);
+  const a = await etat(pa);
+  ok('a) vingt-quatre directes sur cent : deux clics, en rafale — sans un balayage entre eux —, trente-six cartes rendues',
+     a.clics === 2 && a.rendues === 36 && a.clicsVus.length === 2 && a.clicsVus[1].balayages === a.clicsVus[0].balayages,
+     JSON.stringify({ clics: a.clics, rendues: a.rendues, clicsVus: a.clicsVus }));
+  ok('a) …toutes les directes à l\'écran, aucune hors-ligne, et « Afficher plus » caché',
+     a.directsVisibles === 24 && a.horsLigneVisibles === 0 && a.bouton === 'none', JSON.stringify(a));
+  /* Un pas rendu dans le clic même est compté au retour du clic, sans
+     attendre : l'observateur posé après le clic ne verrait jamais sa
+     mutation, et chaque clic attendait la suivante — celle du balayage (des
+     clics espacés de 20 à 290 ms aux constantes de la production, mesuré). */
+  ok('a) …chaque clic libéré par le pas déjà rendu à son retour — rien d\'attendu',
+     a.depliage.rendus?.auClic === 2 && a.depliage.rendus?.observes === 0 && a.depliage.rendus?.delai === 0,
+     JSON.stringify(a.depliage));
+  ok('a) …le rapport dit la rafale et son arrêt, l\'ordre de Twitch tenu, et le journal du voile l\'étape',
+     a.depliage.clics === 2 && a.depliage.rafales === 1 && a.depliage.arret === 'directs tous rendus'
+     && a.depliage.directsApresHorsLigne === 0 && a.depliage.horsLigne === 12
+     && a.journal.some((x) => x === 'dépliage 12 → 36 cartes · 2 clic(s) · directs tous rendus')
+     && a.journal.some((x) => /^peuplée \d+ carte\(s\)$/.test(x)) && a.journal.includes('verrou origines posé'),
+     JSON.stringify({ depliage: a.depliage, journal: a.journal }));
+
+  /* ── b) UNE CHAÎNE QUI PASSE EN DIRECT ─────────────────────────────────────
+     Les douze hors-ligne rendues passent en direct : plus aucune hors-ligne
+     n'est rendue, le bouton est là — la liste se redéplie d'un pas, et
+     s'arrête de nouveau à la première hors-ligne. */
+  await pa.evaluate(() => {
+    for (const c of document.querySelectorAll('#cards .side-nav-card')) {
+      const l = c.querySelector('a[href]').getAttribute('href').slice(1);
+      if (c.querySelector('.side-nav-card__avatar--offline')) {
+        window.__fx[l] = { id: 'tard-' + l, createdAt: new Date(Date.now() - 60_000).toISOString(), viewers: 50, game: 'G', tags: [] };
+        window.__goLive(l);
+      }
+    }
+  });
+  await attendre(pa, () => window.__plusClics >= 3, 3_000);
+  await wait(pa, 300);
+  const b = await etat(pa);
+  ok('b) les hors-ligne rendues passent en direct : un pas de plus, et l\'arrêt à la hors-ligne suivante',
+     b.clics === 3 && b.rendues === 48 && b.horsLigneVisibles === 0 && b.directsVisibles === 36 && b.depliage.rafales === 2,
+     JSON.stringify({ clics: b.clics, rendues: b.rendues, directs: b.directsVisibles, depliage: b.depliage }));
+  await pa.close();
+
+  /* ── c) TROIS DIRECTES : PAS UN CLIC ─────────────────────────────────────── */
+  const pc = await fresh();
+  await monterListe(pc, { directs: 3, horsLigne: 97, initial: 12, pas: 12 });
+  await attendre(pc, () => !document.body.classList.contains('tse-loading'), 6_000);
+  await wait(pc, 300);
+  const c = await etat(pc);
+  ok('c) trois directes : la première hors-ligne est déjà rendue — pas un clic, douze cartes, les trois directes seules à l\'écran',
+     c.clics === 0 && c.rendues === 12 && c.directsVisibles === 3 && c.horsLigneVisibles === 0 && c.depliage.arret === 'directs tous rendus',
+     JSON.stringify({ clics: c.clics, rendues: c.rendues, directs: c.directsVisibles, depliage: c.depliage }));
+  await pc.close();
+
+  /* ── d) UN RENDU QUI TARDE ─────────────────────────────────────────────────
+     Chaque pas arrive 300 ms après son clic, comme s'il fallait le chercher :
+     la rafale l'attend, clic par clic — le rapport dit deux rendus observés et
+     au moins deux fois 300 ms d'attente —, et aucune hors-ligne ne paraît — pas
+     même le temps d'un balayage. MESURÉ avant la 4.25.0.6 sur ce cas, voile
+     accéléré : cinquante-deux cartes hors ligne affichées après la levée. */
+  const pd = await fresh();
+  await pd.evaluate(() => {
+    window.__eclairs = 0;
+    new MutationObserver((ms) => {
+      for (const m of ms) for (const n of m.addedNodes) {
+        if (n.nodeType === 1 && n.matches?.('.side-nav-card') && n.querySelector('.side-nav-card__avatar--offline')
+            && getComputedStyle(n).display !== 'none') window.__eclairs += 1;
+      }
+    }).observe(document.getElementById('cards'), { childList: true });
+  });
+  await monterListe(pd, { directs: 24, horsLigne: 76, initial: 12, pas: 12, delai: 300 });
+  await attendre(pd, () => window.__listeMontree() >= 36, 6_000);
+  await wait(pd, 600);
+  const d = await etat(pd);
+  const eclairs = await pd.evaluate(() => window.__eclairs);
+  ok('d) un rendu qui tarde : la rafale attend chaque pas, s\'arrête à trente-six cartes, et aucune hors-ligne ne paraît jamais',
+     d.clics === 2 && d.rendues === 36 && eclairs === 0 && d.horsLigneVisibles === 0 && d.directsVisibles === 24 && d.depliage.rafales === 1
+     && d.depliage.rendus?.observes === 2 && d.depliage.attenteMs >= 590,
+     JSON.stringify({ clics: d.clics, rendues: d.rendues, eclairs, depliage: d.depliage }));
+  await pd.close();
+
+  /* ── e) UN CLIC SANS EFFET ─────────────────────────────────────────────────
+     Le bouton du décor, sans le modèle, ne fait rien : un clic, dit sans
+     effet ; pas d'autre tant que la liste ne change pas ; un autre quand elle
+     change. */
+  const pe = await fresh();
+  await pe.evaluate(() => {
+    window.__clicsInertes = 0;
+    document.querySelector('#side-nav [data-a-target="side-nav-show-more-button"]')
+      .addEventListener('click', () => { window.__clicsInertes += 1; });
+    const iso = new Date(Date.now() - 3_600_000).toISOString();
+    window.__fx = { inerte1: { id: 'i1', createdAt: iso, viewers: 900, game: 'G', tags: [] } };
+    window.__addCard('inerte1', 'G', '900');
+  });
+  await attendre(pe, () => window.__clicsInertes >= 1, 4_000);
+  await wait(pe, 2_500);
+  const e1 = await pe.evaluate(() => ({ clics: window.__clicsInertes, depliage: window.tse.panneau.rapport().page.depliage }));
+  await pe.evaluate(() => {
+    window.__fx.inerte2 = { id: 'i2', createdAt: new Date(Date.now() - 3_600_000).toISOString(), viewers: 800, game: 'G', tags: [] };
+    window.__addCard('inerte2', 'G', '800');
+  });
+  await attendre(pe, () => window.__clicsInertes >= 2, 4_000);
+  const e2 = await pe.evaluate(() => window.__clicsInertes);
+  ok('e) un clic sans effet : dit au rapport, pas retenté tant que la liste ne change pas, retenté quand elle change',
+     e1.clics === 1 && e1.depliage.sansEffet === 1 && e1.depliage.arret === 'clic sans effet' && e1.depliage.rendus?.delai === 1 && e2 === 2,
+     JSON.stringify({ e1, e2 }));
+  await pe.close();
+
+  /* ── f) SI TWITCH RANGEAIT AUTREMENT ───────────────────────────────────────
+     Une directe rangée après douze hors-ligne : le dépliage s'arrête avant
+     elle. Le filet existe — elle est suivie, on la sait en direct : une carte
+     en avance l'affiche, sans qu'aucune hors-ligne ne paraisse. */
+  const pf = await fresh();
+  const ordre = [...Array.from({ length: 12 }, (_, i) => ({ login: 'tete' + String(i).padStart(2, '0'), live: true })),
+                 ...Array.from({ length: 12 }, (_, i) => ({ login: 'creux' + String(i).padStart(2, '0'), live: false })),
+                 { login: 'tardive', live: true },
+                 ...Array.from({ length: 20 }, (_, i) => ({ login: 'fond' + String(i).padStart(2, '0'), live: false }))];
+  await pf.evaluate(() => {
+    const o = JSON.parse(localStorage.getItem('tse:roster') || '{}');
+    o.tardive = Date.now();
+    localStorage.setItem('tse:roster', JSON.stringify(o));
+    window.dispatchEvent(new StorageEvent('storage', { key: 'tse:roster', newValue: JSON.stringify(o) }));
+  });
+  await monterListe(pf, { ordre, initial: 12, pas: 12 });
+  await attendre(pf, () => !!document.querySelector('.side-nav-card[data-tse-synthetic="true"] a[href="/tardive"]'), 8_000);
+  const f = await pf.evaluate(() => ({
+    clics: window.__plusClics, montrees: window.__listeMontree(),
+    tardive: (() => { const x = document.querySelector('.side-nav-card[data-tse-synthetic="true"] a[href="/tardive"]');
+                      return x ? getComputedStyle(x.closest('.side-nav-card')).display : null; })(),
+    horsLigneVisibles: [...document.querySelectorAll('#cards .side-nav-card')]
+      .filter((c) => c.querySelector('.side-nav-card__avatar--offline') && getComputedStyle(c).display !== 'none').length }));
+  ok('f) une directe rangée après les hors-ligne : le dépliage s\'arrête avant elle, et une carte en avance l\'affiche',
+     f.clics === 1 && f.montrees === 24 && f.tardive !== null && f.tardive !== 'none' && f.horsLigneVisibles === 0,
+     JSON.stringify(f));
+  await pf.close();
+
+  /* ── g) L'ORDRE DE TWITCH, VÉRIFIÉ AU PASSAGE ──────────────────────────────
+     Une directe glissée entre deux hors-ligne d'un même pas : rendue, donc à
+     l'écran — et le rapport le compte, c'est le signe qu'il faudrait revoir
+     l'arrêt au premier hors-ligne. */
+  const pg = await fresh();
+  const ordreG = [...Array.from({ length: 12 }, (_, i) => ({ login: 'avant' + String(i).padStart(2, '0'), live: true })),
+                  ...Array.from({ length: 6 }, (_, i) => ({ login: 'trou' + i, live: false })),
+                  { login: 'glissee', live: true },
+                  ...Array.from({ length: 30 }, (_, i) => ({ login: 'apres' + String(i).padStart(2, '0'), live: false }))];
+  await monterListe(pg, { ordre: ordreG, initial: 12, pas: 12 });
+  await attendre(pg, () => window.__plusClics >= 1 && window.__listeMontree() >= 24, 4_000);
+  await wait(pg, 400);
+  const g = await etat(pg);
+  ok('g) une directe glissée entre deux hors-ligne d\'un même pas : à l\'écran, et comptée au rapport',
+     g.clics === 1 && g.rendues === 24 && g.directsVisibles === 13 && g.depliage.directsApresHorsLigne === 1,
+     JSON.stringify({ clics: g.clics, rendues: g.rendues, directs: g.directsVisibles, depliage: g.depliage }));
+  await pg.close();
 }
 
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════

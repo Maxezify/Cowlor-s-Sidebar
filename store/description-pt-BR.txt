@@ -122,7 +122,7 @@ Resultado: sua barra lateral só mostra o que importa. Sem nada para configurar.
 _______________________________
 
 ➤ 📂 CHEGA DE «MOSTRAR MAIS» PARA CLICAR
-A lista completa dos seus canais seguidos é expandida automaticamente a cada carregamento de página. Você vê tudo, na hora.
+Todos os seus canais seguidos ao vivo são expandidos automaticamente a cada carregamento de página, e os offline nunca aparecem. Você vê cada live, na hora.
 
 _______________________________
 

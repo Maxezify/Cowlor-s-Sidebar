@@ -122,7 +122,7 @@ Resultado: tu barra lateral solo muestra lo que importa. Sin nada que configurar
 _______________________________
 
 ➤ 📂 SE ACABÓ EL «MOSTRAR MÁS»
-La lista completa de tus canales seguidos se despliega automáticamente en cada carga de página. Ves todo, de una.
+Todos tus canales seguidos en vivo se despliegan automáticamente en cada carga de página, y los desconectados no aparecen nunca. Ves cada transmisión en vivo, de una.
 
 _______________________________
 

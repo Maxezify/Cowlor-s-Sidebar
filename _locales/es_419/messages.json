@@ -547,7 +547,7 @@
     "message": "Más rápida que Twitch, y más limpia"
   },
   "guideViteTexte": {
-    "message": "Twitch tarda de dos a cuatro minutos en mostrar un canal que empieza, y mantiene de cinco a diez el que termina. La extensión actualiza la barra lateral ella misma, cada treinta segundos: espectadores, categoría, duración, llegadas y salidas.\n• Tus canales seguidos están siempre desplegados por completo: se acabó el “Ver más”.\n• Hype trains, banners de descuento, franjas de patrocinio y secciones vacías salen de la barra; lo que decían vuelve como insignia en la vista previa (capítulo $1).\n• Tu racha de visualización y la fila de stories de Twitch se guardan en el bloque de filtros, arriba de la lista. ¿Las preferís como las muestra Twitch, u ocultas? Está en “Ajustes”."
+    "message": "Twitch tarda de dos a cuatro minutos en mostrar un canal que empieza, y mantiene de cinco a diez el que termina. La extensión actualiza la barra lateral ella misma, cada treinta segundos: espectadores, categoría, duración, llegadas y salidas.\n• Todos tus canales seguidos en vivo se despliegan solos, y los desconectados no aparecen nunca: se acabó el “Mostrar más”.\n• Hype trains, banners de descuento, franjas de patrocinio y secciones vacías salen de la barra; lo que decían vuelve como insignia en la vista previa (capítulo $1).\n• Tu racha de visualización y la fila de stories de Twitch se guardan en el bloque de filtros, arriba de la lista. ¿Las preferís como las muestra Twitch, u ocultas? Está en “Ajustes”."
   },
   "guidePanneauTitre": {
     "message": "Este panel"

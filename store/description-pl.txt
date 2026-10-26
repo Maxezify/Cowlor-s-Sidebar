@@ -122,7 +122,7 @@ Efekt: Twój panel boczny pokazuje tylko to, co się liczy. Bez niczego do konfi
 _______________________________
 
 ➤ 📂 KONIEC Z KLIKANIEM „POKAŻ WIĘCEJ”
-Pełna lista obserwowanych kanałów rozwija się automatycznie przy każdym wczytaniu strony. Widzisz wszystko, od razu.
+Wszystkie obserwowane kanały na żywo rozwijają się automatycznie przy każdym wczytaniu strony, a kanały offline nigdy się nie pojawiają. Widzisz każdą transmisję, od razu.
 
 _______________________________
 

@@ -647,7 +647,7 @@
     "message": "Quicker than Twitch, and tidier"
   },
   "guideViteTexte": {
-    "message": "Twitch takes two to four minutes to show a channel that goes live, and keeps one that stops for five to ten. The extension refreshes the sidebar itself, every thirty seconds: viewers, category, uptime, arrivals and departures.\n• Your followed channels are always fully unfolded: no more “Show more” to click.\n• Hype trains, discount banners, sponsor strips and empty sections leave the sidebar; what they said comes back as a badge in the preview (chapter $1).\n• Your watch streak and Twitch's stories row are tucked into the filter block, at the top of the list. Prefer them as Twitch shows them, or hidden? That is in “Settings”."
+    "message": "Twitch takes two to four minutes to show a channel that goes live, and keeps one that stops for five to ten. The extension refreshes the sidebar itself, every thirty seconds: viewers, category, uptime, arrivals and departures.\n• Every followed channel that is live is unfolded for you, and offline ones never show: no more “Show more” to click.\n• Hype trains, discount banners, sponsor strips and empty sections leave the sidebar; what they said comes back as a badge in the preview (chapter $1).\n• Your watch streak and Twitch's stories row are tucked into the filter block, at the top of the list. Prefer them as Twitch shows them, or hidden? That is in “Settings”."
   },
   "guidePanneauTitre": {
     "message": "This panel"

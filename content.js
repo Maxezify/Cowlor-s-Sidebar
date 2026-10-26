@@ -3978,6 +3978,13 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     LOADING_TIMEOUT_MS:     15_000,
     // Durée du fondu de sortie (CSS transition opacity).
     LOADING_FADE_MS:        1_000,
+    // === Dépliage de la liste suivie (4.25.0.6, cf. autoExpandFollowed) ===
+    // Un clic attend le rendu de son pas au plus ce temps-là ; au-delà, il est dit sans effet.
+    DEPLIAGE_ATTENTE_MS:    1_000,
+    // Un clic sans effet n'est retenté que lorsque la liste change, ou passé ce délai.
+    DEPLIAGE_REPRISE_MS:    10_000,
+    // Garde-fou : la barre de Twitch s'arrête à cent chaînes, douze par pas.
+    DEPLIAGE_CLICS_MAX:     25,
 
     /* === Réglages de l'utilisateur ===
        UNE SEULE CLÉ, sur l'origine twitch.tv, et c'est une contrainte du
@@ -5039,6 +5046,18 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        aurait été très difficile à relier à sa cause. */
 
     .side-nav-card[data-tse-offline="true"] { display: none !important; }
+    /* … ET DÈS QUE TWITCH LA REND HORS LIGNE (4.25.0.6), par son propre
+       marqueur, sans attendre le balayage qui pose data-tse-offline : aucune
+       image ne la montre, voile levé ou non. MESURÉ sur le modèle du banc,
+       rendu différé de 300 ms : cinquante-deux cartes hors ligne s'affichaient
+       un instant après la levée du voile, le temps du balayage suivant. Le
+       balayage reste juge du reste — les autres signes du hors-ligne, et ce
+       que nos requêtes savent avant Twitch (cf. isCardOffline). */
+    .side-nav-card:has(.side-nav-card__avatar--offline):not([data-tse-synthetic="true"]) { display: none !important; }
+    /* « Afficher plus » de la liste suivie (4.25.0.6) : il ne dévoilerait que
+       des hors-ligne, que l'extension masque. Elle le clique elle-même, caché
+       (cf. autoExpandFollowed) ; « Afficher moins », lui, l'est déjà. */
+    ${DOM.showMoreStableSelector.split(',').map((x) => `[data-tse-suivie="true"] ${x.trim()}`).join(',\n    ')} { display: none !important; }
     /* Une chaîne, une carte (4.24.0.38, cf. dedoublonner) : le doublon d'une
        carte de Twitch se masque — on ne retire pas un nœud que React gère. */
     .side-nav-card[data-tse-doublon="true"] { display: none !important; }
@@ -12186,6 +12205,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     let held = false;
     const setHold = (on, raison = 'global') => {
       const avant = held;
+      // Au journal, quand il change (4.25.0.6) : c'est ce qui dit ce qui a retenu le voile.
+      if (cycleActive && on !== verrous.has(raison)) noter('verrou', `${raison} ${on ? 'posé' : 'levé'}`);
       if (on) verrous.add(raison); else verrous.delete(raison);
       held = verrous.size > 0;
       if (held && !avant) clearStability();
@@ -12194,6 +12215,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     const notifyScan = (hadOfflineActivity, cardCount) => {
       if (!cycleActive) return false;
       const stillGrowing = cardCount > lastCardCount;
+      if (lastCardCount === 0 && cardCount > 0) noter('peuplée', `${cardCount} carte(s)`);
       if (cardCount > lastCardCount) lastCardCount = cardCount;
       const ready = cardCount > 0 && !hadOfflineActivity && !stillGrowing && !held;
       if (!ready) { clearStability(); return stillGrowing; }
@@ -12279,6 +12301,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
 
     return { init, notifyScan,
       setHold, bumpActivity, startCycle,
+      // Une étape au journal du voile (cf. le dépliage de la liste suivie, 4.25.0.6).
+      noter,
       /* Un cycle de voile est-il en cours ? Lecture pure. La sonde d'origine
          s'en sert pour savoir qu'elle travaille SOUS le voile — moment où sa
          cadence ordinaire n'a plus le même sens, puisque personne ne regarde
@@ -20208,11 +20232,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
             }
             return { cartes: cs.length, enveloppees, niveaux, parents: parents.size };
           })(),
-          /* LE DÉPLIAGE DE LA LISTE SUIVIE (4.25.0.5). « Afficher plus » est
-             cliqué jusqu'au bout : c'est ce qui montre toutes les chaînes
-             suivies en direct. Il rend aussi les hors-ligne, que l'extension
-             masque — avant le relevé des suivies (4.25.0.3), la seule façon de
-             les apprendre. Ces nombres disent ce que cela coûte encore. */
+          /* LE DÉPLIAGE DE LA LISTE SUIVIE (4.25.0.5, refondu en 4.25.0.6) :
+             ses clics, ses rafales, pourquoi il s'est arrêté, si l'ordre de
+             Twitch a tenu, et les cartes hors ligne rendues — masquées. */
           depliage: { ...bilanDepliage, horsLigne: (() => {
             const sec = followedSection();
             return sec ? [...sec.querySelectorAll('.side-nav-card')].filter((c) => !isSynthetic(c) && isCardOffline(c)).length : 0;
@@ -26624,13 +26646,68 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
   }
 
   /* ============================================================
-   *  AUTO-EXPANSION "Afficher plus" + masquage "Afficher moins"
+   *  DÉPLIAGE DE LA LISTE SUIVIE (refondu en 4.25.0.6)
+   *  -------------------------------------------------------------
+   *  DEMANDÉ AINSI : « toutes les cartes en live dépliées, mais pas les
+   *  chaînes hors ligne visibles ; optimise au mieux le temps que ça
+   *  prend ; trouve d'autres possibilités, moins sujettes à des bugs,
+   *  plus rapides à retirer le voile, plus performantes ».
+   *
+   *  CE QUE FAISAIT LA 3.x, JUSQU'À LA 4.25.0.5 : un clic sur « Afficher
+   *  plus » par balayage, jusqu'au bout de la liste. MESURÉ sur le modèle
+   *  du banc aux constantes de la production — cent chaînes suivies, douze
+   *  au chargement, douze par clic — : huit clics, un balayage chacun, la
+   *  dernière carte à 2 s et le voile à 4 s, quel que soit le nombre de
+   *  chaînes en direct ; cent cartes rendues pour n'en montrer que les
+   *  directes ; et, quand le rendu tarde de 300 ms, le voile à 6,4 s.
+   *
+   *  CE QUI LE REMPLACE :
+   *   1. LES CLICS EN RAFALE. Le clic suivant n'attend plus un balayage
+   *      — SCAN_DEBOUNCE et tout ce que fait le balayage — : il attend que
+   *      la liste grandisse, un observateur à l'affût, DEPLIAGE_ATTENTE_MS
+   *      au plus, et repart. Un rendu immédiat se déplie en quelques
+   *      millisecondes ; un rendu qui tarde est attendu clic par clic. Et
+   *      parce que chaque clic attend le rendu du précédent, peu importe
+   *      que Twitch compte ses pas depuis son état ou depuis le clic.
+   *   2. L'ARRÊT AU PREMIER HORS-LIGNE. Twitch range ses chaînes suivies en
+   *      direct d'abord : dès qu'une carte hors ligne est rendue, toutes les
+   *      directes le sont, et la centaine n'a plus à l'être. Si Twitch
+   *      rangeait autrement, le filet existe déjà : une chaîne suivie qu'on
+   *      sait en direct et qu'aucune carte n'affiche reçoit une carte en
+   *      avance (cf. syncAheadCards). Le rapport dit si l'ordre a tenu
+   *      (`page.depliage.directsApresHorsLigne`).
+   *   3. RIEN À REDÉPLIER POUR RIEN. Une chaîne qui passe en direct monte
+   *      parmi les directes et pousse une hors-ligne dehors : tant qu'une
+   *      hors-ligne est rendue, il n'y a rien à faire. Sinon — toutes les
+   *      cartes rendues sont en direct, et le bouton est là —, on redéplie.
+   *      Un clic resté sans effet n'est retenté que lorsque la liste change,
+   *      ou DEPLIAGE_REPRISE_MS plus tard.
+   *  Le bouton est caché (cf. le CSS, [data-tse-suivie]) : il ne
+   *  dévoilerait que des hors-ligne, que l'extension masque — et elles le
+   *  sont dès que Twitch les rend, par le CSS, sans attendre le balayage.
+   *
+   *  ÉCARTÉ : réécrire la réponse GraphQL de la barre pour en ôter les
+   *  hors-ligne. Twitch ne les rendrait plus du tout ; mais ce serait
+   *  modifier ses propres données, sur la foi d'un schéma qu'on ne peut
+   *  pas éprouver d'ici et qu'il change sans prévenir, pour épargner au
+   *  plus un pas de cartes masquées de plus que l'arrêt au premier
+   *  hors-ligne. Et cliquer plusieurs fois d'un coup : un gestionnaire qui
+   *  compte depuis son état de rendu ne verrait qu'un clic.
    * ============================================================ */
-  let lastFollowedCount = -1;
-  /* CE QUE LE DÉPLIAGE COÛTE (4.25.0.5, cf. le rapport) : ses clics, et
-     l'instant du dernier depuis le chargement — à lire contre la levée du
-     voile, que le journal date sur la même horloge. */
-  const bilanDepliage = { clics: 0, dernierClicMs: null };
+  let depliageEnCours = false;
+  // Un clic resté sans effet : le compte de cartes d'alors, et jusqu'à quand on s'abstient.
+  let sansEffet = { cartes: -1, jusqua: 0 };
+  /* CE QUE LE DÉPLIAGE COÛTE (4.25.0.5) ET COMMENT IL S'ARRÊTE (4.25.0.6),
+     cf. le rapport : les clics et l'instant du dernier — sur l'horloge du
+     journal du voile —, les rafales, les clics restés sans effet, la raison
+     du dernier arrêt, et les cartes en direct rendues APRÈS une hors-ligne
+     dans un même pas : zéro tant que Twitch range les directes d'abord.
+     Et COMMENT TWITCH REND SES PAS : ce qui a libéré chaque clic — le rendu
+     déjà là au retour du clic, le rendu observé ensuite, ou le délai — et le
+     temps passé à les attendre. Une barre qui rend d'un trait n'attend rien ;
+     une qui va chercher la suite sur le réseau le dira ici. */
+  const bilanDepliage = { clics: 0, dernierClicMs: null, rafales: 0, sansEffet: 0, arret: '—',
+                          directsApresHorsLigne: 0, rendus: { auClic: 0, observes: 0, delai: 0 }, attenteMs: 0 };
 
   // Masque le bouton "Afficher moins" — inutile puisqu'on auto-expand toujours.
   // On masque le bouton ET son éventuel wrapper de cellule pour ne pas laisser
@@ -26654,36 +26731,89 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     });
   }
 
-  function autoExpandFollowed() {
-    const section = followedSection();
-    if (!section) return;
+  // Les cartes de Twitch de la liste suivie, dans l'ordre du DOM : les nôtres n'en sont pas.
+  const cartesDeTwitch = (section) => [...section.querySelectorAll('.side-nav-card')].filter((c) => !isSynthetic(c));
+  const boutonPlus = (section) => section.querySelector(DOM.showMoreStableSelector)
+    || [...section.querySelectorAll('button')].find((b) => DOM.showMoreLabels.includes((b.textContent || '').trim()));
 
-    // Compte les seules cartes de Twitch : c'est leur nombre qui dit si
-    // « Afficher plus » a encore de la matière à charger. Y mêler les nôtres
-    // simulerait une croissance et déclencherait des clics inutiles.
-    const cards = [...section.querySelectorAll('.side-nav-card')].filter(c => !isSynthetic(c));
-    const currentCount = cards.length;
-    if (currentCount === 0) return;
+  /* La liste suivie compte-t-elle plus de `avant` cartes ? Attendu au plus DEPLIAGE_ATTENTE_MS ;
+     rend le compte, et ce qui l'a libéré (cf. bilanDepliage.rendus).
+     LE COMPTE D'ABORD, l'observateur ensuite : un pas rendu dans le clic même
+     précède l'observateur, qui ne verrait jamais sa mutation. MESURÉ sur le
+     modèle du banc, avant ce compte, aux constantes de la production : des
+     clics espacés de 20 à 290 ms, libérés non par le rendu mais par la
+     mutation suivante — celle de notre propre balayage. */
+  const attendreCroissance = (avant) => new Promise((ok) => {
+    const compte = () => { const sec = followedSection(); return sec ? cartesDeTwitch(sec).length : 0; };
+    const deja = compte();
+    if (deja > avant) { ok({ n: deja, voie: 'auClic' }); return; }
+    let minuteur = null;
+    const obs = new MutationObserver(() => { if (compte() > avant) fin('observes'); });
+    const fin = (voie) => { obs.disconnect(); clearTimeout(minuteur); ok({ n: compte(), voie }); };
+    obs.observe(document.querySelector(DOM.sidebarRoot) || document.body, { childList: true, subtree: true });
+    minuteur = setTimeout(() => fin('delai'), CFG.DEPLIAGE_ATTENTE_MS);
+  });
 
-    if (currentCount < lastFollowedCount) lastFollowedCount = -1;
-    if (currentCount === lastFollowedCount) {
-      hideShowLessButton();
-      return;
+  async function autoExpandFollowed() {
+    let section = followedSection();
+    if (!section || depliageEnCours) return;
+    if (section.dataset.tseSuivie !== 'true') section.dataset.tseSuivie = 'true';
+    hideShowLessButton();
+    let cartes = cartesDeTwitch(section);
+    if (!cartes.length) return;
+    // Une hors-ligne rendue : toutes les directes le sont (cf. l'en-tête).
+    if (cartes.some(isCardOffline)) { bilanDepliage.arret = 'directs tous rendus'; return; }
+    if (!boutonPlus(section)) { bilanDepliage.arret = 'liste entière'; return; }
+    if (cartes.length === sansEffet.cartes && Date.now() < sansEffet.jusqua) return;
+    depliageEnCours = true;
+    bilanDepliage.rafales += 1;
+    const n0 = cartes.length;
+    let clics = 0;
+    let arret = null;
+    try {
+      while (!arret && clics < CFG.DEPLIAGE_CLICS_MAX) {
+        const bouton = boutonPlus(section);
+        if (!bouton) { arret = 'liste entière'; break; }
+        const avant = new Set(cartes);
+        clics += 1;
+        bilanDepliage.clics += 1;
+        bilanDepliage.dernierClicMs = Math.round(performance.now());
+        bouton.click();
+        const t0 = performance.now();
+        const { n, voie } = await attendreCroissance(avant.size);
+        bilanDepliage.rendus[voie] += 1;
+        bilanDepliage.attenteMs += Math.round(performance.now() - t0);
+        section = followedSection();
+        if (!section) { arret = 'section disparue'; break; }
+        cartes = cartesDeTwitch(section);
+        if (n <= avant.size) {
+          // Une rafale à la fois (`depliageEnCours`) : rien d'autre n'écrit ces états pendant l'attente.
+          // eslint-disable-next-line require-atomic-updates
+          sansEffet = { cartes: cartes.length, jusqua: Date.now() + CFG.DEPLIAGE_REPRISE_MS };
+          bilanDepliage.sansEffet += 1;
+          arret = 'clic sans effet';
+          break;
+        }
+        // Les cartes de ce pas, dans l'ordre où Twitch les a posées — avant tout tri de notre part.
+        const nouvelles = cartes.filter((c) => !avant.has(c));
+        const premiere = nouvelles.findIndex(isCardOffline);
+        if (premiere >= 0) {
+          bilanDepliage.directsApresHorsLigne += nouvelles.slice(premiere + 1).filter((c) => !isCardOffline(c)).length;
+          arret = 'directs tous rendus';
+        }
+      }
+    } finally {
+      // eslint-disable-next-line require-atomic-updates
+      depliageEnCours = false;
     }
-
-    const button = section.querySelector(DOM.showMoreStableSelector) ||
-      [...section.querySelectorAll('button')]
-        .find(btn => DOM.showMoreLabels.includes((btn.textContent || '').trim()));
-
-    if (!button) {
-      lastFollowedCount = currentCount;
-      hideShowLessButton();
-      return;
+    bilanDepliage.arret = arret || 'plafond de clics';
+    if (loadingOverlay.enCycle()) {
+      loadingOverlay.noter('dépliage', `${n0} → ${cartes.length} cartes · ${clics} clic(s) · ${bilanDepliage.arret}`);
     }
-    lastFollowedCount = currentCount;
-    bilanDepliage.clics += 1;
-    bilanDepliage.dernierClicMs = Math.round(performance.now());
-    button.click();
+    /* Un balayage pour les cartes venues — et rien quand rien n'est venu : un
+       clic sans effet n'a rien changé à balayer. Le banc l'a montré, voile
+       levé, sur un décor dont le bouton ne fait rien (cf. le scénario 204). */
+    if (cartes.length > n0) scheduleScan();
   }
 
   /* ============================================================

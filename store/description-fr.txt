@@ -121,8 +121,8 @@ Résultat : votre barre latérale n'affiche que ce qui compte. Sans rien à conf
 
 _______________________________
 
-➤ 📂 PLUS DE « VOIR PLUS » À CLIQUER
-La liste complète de vos chaînes suivies est dépliée automatiquement à chaque chargement de page. Vous voyez tout, tout de suite.
+➤ 📂 PLUS DE « AFFICHER PLUS » À CLIQUER
+Toutes vos chaînes suivies en direct sont dépliées automatiquement à chaque chargement de page, et les hors-ligne n'apparaissent jamais. Vous voyez chaque direct, tout de suite.
 
 _______________________________
 

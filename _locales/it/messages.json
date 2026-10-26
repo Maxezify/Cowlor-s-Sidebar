@@ -547,7 +547,7 @@
     "message": "Più veloce di Twitch, e più pulita"
   },
   "guideViteTexte": {
-    "message": "Twitch impiega da due a quattro minuti a mostrare un canale che va in diretta, e tiene da cinque a dieci minuti quello che si ferma. L'estensione aggiorna da sé la barra laterale, ogni trenta secondi: spettatori, categoria, durata, arrivi e partenze.\n• I tuoi canali seguiti sono sempre aperti per intero: niente più «Mostra altro».\n• Hype train, striscioni di sconto, fasce di sponsorizzazione e sezioni vuote lasciano la barra; ciò che dicevano torna come badge nell'anteprima (capitolo $1).\n• La tua serie di visualizzazione e la riga delle storie di Twitch si raccolgono nel blocco dei filtri, in cima all'elenco. Le preferisci come le mostra Twitch, o nascoste? È in «Impostazioni»."
+    "message": "Twitch impiega da due a quattro minuti a mostrare un canale che va in diretta, e tiene da cinque a dieci minuti quello che si ferma. L'estensione aggiorna da sé la barra laterale, ogni trenta secondi: spettatori, categoria, durata, arrivi e partenze.\n• Tutti i canali seguiti in diretta si aprono da soli, e quelli offline non compaiono mai: niente più «Mostra altro».\n• Hype train, striscioni di sconto, fasce di sponsorizzazione e sezioni vuote lasciano la barra; ciò che dicevano torna come badge nell'anteprima (capitolo $1).\n• La tua serie di visualizzazione e la riga delle storie di Twitch si raccolgono nel blocco dei filtri, in cima all'elenco. Le preferisci come le mostra Twitch, o nascoste? È in «Impostazioni»."
   },
   "guidePanneauTitre": {
     "message": "Questo pannello"

@@ -122,7 +122,7 @@ Risultato: la tua barra laterale mostra solo ciò che conta. Senza niente da con
 _______________________________
 
 ➤ 📂 BASTA CLICCARE «MOSTRA ALTRO»
-La lista completa dei tuoi canali seguiti viene espansa automaticamente a ogni caricamento della pagina. Vedi tutto, subito.
+Tutti i canali seguiti in diretta vengono espansi automaticamente a ogni caricamento della pagina, e quelli offline non compaiono mai. Vedi ogni diretta, subito.
 
 _______________________________
 

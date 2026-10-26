@@ -588,6 +588,45 @@ window.__addSerie = (etiquette, texte = 'Protégez votre série') => {
   return d;
 };
 
+/* LA LISTE SUIVIE DE TWITCH ET SON « AFFICHER PLUS » (4.25.0.6). Le bouton du
+   décor était inerte : aucun scénario n'éprouvait le dépliage. Ce modèle rend ce
+   que la barre de Twitch rend — les chaînes en direct d'abord, puis les hors
+   ligne ; `initial` cartes au chargement ; `pas` de plus à chaque clic, d'un
+   seul rendu, comme un composant React le fait d'un clic ; le bouton retiré
+   quand toute la liste est montrée. `delai` > 0 : le rendu attend, comme s'il
+   fallait aller chercher la suite sur le réseau ; un clic donné pendant
+   l'attente vise le même pas — le gestionnaire lit l'état de son rendu.
+   `ordre` : la liste explicite, pour violer au besoin l'ordre de Twitch.
+   Chaînes inventées. */
+window.__listeSuivie = ({ directs = 24, horsLigne = 76, initial = 12, pas = 12, delai = 0, ordre = null } = {}) => {
+  const liste = ordre || [
+    ...Array.from({ length: directs }, (_, i) => ({ login: 'vif' + String(i).padStart(2, '0'), live: true })),
+    ...Array.from({ length: horsLigne }, (_, i) => ({ login: 'veille' + String(i).padStart(2, '0'), live: false })),
+  ];
+  window.__fx = window.__fx || {};
+  const iso = new Date(Date.now() - 3_600_000).toISOString();
+  liste.forEach((e, i) => {
+    if (e.live) window.__fx[e.login] = { id: 'lv' + i, createdAt: iso, viewers: 9000 - i * 10, game: 'G', tags: [] };
+  });
+  const bouton = document.querySelector('#side-nav [data-a-target="side-nav-show-more-button"]');
+  let montres = 0;
+  window.__plusClics = 0;
+  window.__listeMontree = () => montres;
+  const montrer = (n) => {
+    const cible = Math.min(n, liste.length);
+    for (const e of liste.slice(montres, cible)) window.__addCard(e.login, 'G', e.live ? '1 k' : 'Déconnecté', e.live);
+    montres = Math.max(montres, cible);
+    if (montres >= liste.length && bouton.isConnected) bouton.remove();
+  };
+  bouton.addEventListener('click', () => {
+    window.__plusClics += 1;
+    const cible = montres + pas;
+    if (delai > 0) setTimeout(() => montrer(cible), delai); else montrer(cible);
+  });
+  montrer(initial);
+  return liste.length;
+};
+
 // ── Stub réseau : répond aux POST gql.twitch.tv ─────────────────────
 // Bascule en direct la carte que Twitch affichait « Déconnecté ».
 window.__goLive = (login) => {

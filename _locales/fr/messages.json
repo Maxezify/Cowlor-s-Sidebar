@@ -547,7 +547,7 @@
     "message": "Plus rapide que Twitch, et plus propre"
   },
   "guideViteTexte": {
-    "message": "Twitch met deux à quatre minutes à montrer une chaîne qui démarre, et garde cinq à dix minutes celle qui s'arrête. L'extension rafraîchit la barre latérale elle-même, toutes les trente secondes : spectateurs, catégorie, durée, arrivées et départs.\n• Vos chaînes suivies sont toujours dépliées en entier : plus de « Voir plus » à cliquer.\n• Hype trains, bandeaux de réduction, bannières de sponsor et sections vides quittent la barre ; ce qu'ils disaient revient en badge dans l'aperçu (chapitre $1).\n• Votre série de visionnage et les stories de Twitch se rangent dans le bloc des filtres, en haut de la liste. Vous les préférez comme Twitch les affiche, ou masquées ? C'est dans « Réglages »."
+    "message": "Twitch met deux à quatre minutes à montrer une chaîne qui démarre, et garde cinq à dix minutes celle qui s'arrête. L'extension rafraîchit la barre latérale elle-même, toutes les trente secondes : spectateurs, catégorie, durée, arrivées et départs.\n• Toutes vos chaînes suivies en direct sont dépliées d'office, et les hors-ligne n'apparaissent jamais : plus de « Afficher plus » à cliquer.\n• Hype trains, bandeaux de réduction, bannières de sponsor et sections vides quittent la barre ; ce qu'ils disaient revient en badge dans l'aperçu (chapitre $1).\n• Votre série de visionnage et les stories de Twitch se rangent dans le bloc des filtres, en haut de la liste. Vous les préférez comme Twitch les affiche, ou masquées ? C'est dans « Réglages »."
   },
   "guidePanneauTitre": {
     "message": "Ce panneau"

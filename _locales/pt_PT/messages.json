@@ -547,7 +547,7 @@
     "message": "Mais rápida do que o Twitch, e mais limpa"
   },
   "guideViteTexte": {
-    "message": "O Twitch demora dois a quatro minutos a mostrar um canal que entra em direto, e mantém cinco a dez minutos o que termina. A extensão atualiza ela própria a barra lateral, a cada trinta segundos: espetadores, categoria, duração, chegadas e partidas.\n• Os teus canais seguidos estão sempre abertos por inteiro: acabou o «Ver mais».\n• Hype trains, faixas de desconto, tiras de patrocínio e secções vazias saem da barra; o que diziam volta como distintivo na pré-visualização (capítulo $1).\n• A tua sequência de visualização e a linha de stories do Twitch arrumam-se no bloco de filtros, no topo da lista. Preferes como o Twitch as mostra, ou ocultas? Está em «Definições»."
+    "message": "O Twitch demora dois a quatro minutos a mostrar um canal que entra em direto, e mantém cinco a dez minutos o que termina. A extensão atualiza ela própria a barra lateral, a cada trinta segundos: espetadores, categoria, duração, chegadas e partidas.\n• Todos os teus canais seguidos em direto abrem-se sozinhos, e os offline nunca aparecem: acabou o «Mostrar mais».\n• Hype trains, faixas de desconto, tiras de patrocínio e secções vazias saem da barra; o que diziam volta como distintivo na pré-visualização (capítulo $1).\n• A tua sequência de visualização e a linha de stories do Twitch arrumam-se no bloco de filtros, no topo da lista. Preferes como o Twitch as mostra, ou ocultas? Está em «Definições»."
   },
   "guidePanneauTitre": {
     "message": "Este painel"
