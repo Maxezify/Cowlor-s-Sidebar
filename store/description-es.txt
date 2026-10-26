@@ -188,7 +188,7 @@ _______________________________
 La página de horario de un canal, en Twitch, muestra un solo canal. El grupo «Horario» del panel muestra todos los que seguís, de una vez.
 
 - ★ LA SEMANA, DÍA A DÍA ★ Se abre en el día de hoy, con los días pasados arriba: cada directo pasado con su repetición a un clic, los que están en curso y los que los canales han programado, cada uno en el día en que empezó. Ocho semanas atrás, dos adelante.
-- ★ DESCONECTADOS, PERO NO OLVIDADOS ★ Cada canal seguido que no está en directo: primero los que tienen un directo programado, el más cercano arriba, y después los demás, el más reciente primero — cuándo emitió por última vez, su repetición y su próximo directo.
+- ★ DESCONECTADOS, PERO NO OLVIDADOS ★ Cada canal seguido que no está en directo: primero los que tienen un directo programado, el más cercano arriba, y después los demás, el más reciente primero — cuándo emitió por última vez, su repetición y su próximo directo. Los canales con una programación abandonada — sin un directo desde hace tres meses — no aparecen.
 - ★ UN CANAL O TODOS ★ Un menú deja uno solo, y «Su semana» lleva directamente a la semana de su último directo.
 - ★ CLAROS CON LO QUE TWITCH GUARDA ★ Una repetición solo existe si el canal guarda sus directos, y mientras Twitch los conserve; un último directo sin ella lo dice («Sin repetición»), y una repetición que solo se puede ver con suscripción también, con un candado, antes del clic.
 - ★ SOLO CUANDO MIRÁIS ★ No se le pide nada a Twitch antes de que lo abráis, y lo que ha leído se queda en vuestro navegador: al recargar, sigue donde estaba.

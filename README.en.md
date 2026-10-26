@@ -1547,7 +1547,7 @@ is repaired the same way:
 | `GQL_TIMEOUT` exceeded | `abandon après … ms` | slow network, not a broken one |
 | `fetch` rejects | `échec de fetch` | offline, blocker, third-party extension |
 | unreadable body | `corps illisible (JSON)` | truncated or intercepted response |
-| **200 with an error body** | `réponse 200 avec erreurs GraphQL` | persisted query withdrawn, field renamed |
+| **200 with an error body** | `réponse 200 avec erreurs GraphQL (TseChannels)` — the refused operation, since 4.25.0.7 | persisted query withdrawn, field renamed, service refused |
 
 The last is the sneakiest: perfect transport, nothing wrong at the HTTP layer,
 and a cache that stays empty. The report also gives the number of calls, the
@@ -2058,6 +2058,133 @@ A sub-test that modelled an impossible case — a stream growing younger without
 changing id — was replaced along the way by the ordinary case that was actually
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
+
+## Silent channels, and a small audit (v4.25.0.7)
+
+The request: “In Offline, there are channels that scheduled streams but have
+been inactive for a long time. I'd like you to remove them if they haven't
+streamed for three months. A small audit, dead code, optimisations,
+debugging… Make sure it breaks nothing in the extension.” Published on
+`claude/chrome-multi`, then carried over to `claude/firefox-multi` and both
+production branches.
+
+### Scheduled, but silent
+
+Twitch keeps the recurring schedule of a channel that no longer streams. Your
+screenshot showed one at the top of “Offline”, among the scheduled ones:
+“Last stream 41 months ago — Next stream: Monday, 16:00”.
+
+A channel is **silent** when its last known stream ended more than ninety
+days ago (`AGENDA_MUETTE_MS`). Scheduled and silent:
+
+- it leaves **“Offline”**;
+- its slots no longer appear in **the week** — the same schedule, the same
+  promise nobody keeps;
+- the report counts them (`agenda.muettes`).
+
+What does not change:
+
+- **with no known last stream** — never streamed, or not read yet —, nothing
+  says it went quiet: it stays, with its next stream;
+- **a silent channel with no schedule** stays where it was, at the bottom of
+  the list, ordered by when it left: it promised nothing, and that is not what
+  was asked.
+
+Three months means ninety days. The panel rounds to the nearest month and says
+“3 months ago” from seventy-five days: between seventy-five and eighty-nine, a
+scheduled channel showing it therefore still stays in the list.
+
+### The audit
+
+**Dead code**, looked for with tools rather than by eye:
+
+- the 217 `CFG` keys and the 24 `DOM` keys are all read;
+- the extension's CSS classes are all set — four looked orphaned, all built
+  at run time (`--${cote}`, `--${modif}`);
+- the 918 named functions of `content.js`, `panneau.js`, `bridge.js` and
+  `background.js` are all called — the candidates of a first pass were, through
+  a `...` the search had left out;
+- the linter, which flags every unused variable, is clean.
+
+Nothing to remove.
+
+**Debugging leftovers**: no `debugger`, no TODO. The `console.log` calls are
+the answers of the console's `tse.*()` commands, on purpose; those in
+`adblock.js` belong to the third-party module.
+
+**The twenty-seven errors in your report** — “réponse 200 avec erreurs
+GraphQL — service error”. Twenty-four are the refusals Twitch returns to the
+probe for archives with chapters (resuming after a drop): known, documented in
+the code, retried on the next cycle, and more frequent under the overlay,
+where probes go out fastest (19 out of 30, against 5 out of 18 afterwards).
+The other three were tied to nothing: the log groups by message, and every
+refused operation fell under one. **It now names the operation** —
+`réponse 200 avec erreurs GraphQL (TseVodRecent)` —, one line per operation.
+The next report will say which ones.
+
+**The scans**: forty-nine in the report's last minute. Measured on the bench
+with production constants, still page: twenty-four a minute — twelve from the
+refresh wake-up, every five seconds, and twelve from rendering the answers
+that follow it. No loop: the observer only reacts to added or removed nodes,
+and the idle sidebar sees twenty of them a minute, the cards' uptimes. The rest
+of the report comes from Twitch and from use. Unchanged. (A first measurement
+said two hundred: the bench brings that wake-up down to a hundred
+milliseconds, and the probe had not put it back.)
+
+### The overlay, on the real Twitch
+
+Your report is the first real measurement of 4.25.0.6:
+
+| step | time | since the start |
+| --- | --- | --- |
+| overlay starts | 421 ms | — |
+| the sidebar is populated (24 cards) | 1894 ms | 1.5 s — Twitch's time |
+| the origin probe releases the overlay | 2458 ms | 2.0 s |
+| lifted | 3960 ms | **3.5 s** |
+
+Your previous reports lifted the overlay 6.2 to 7.8 s after it started. The
+unfolding had nothing to click: the first offline channel was already in the
+first batch. What remains is the stability window — 1.5 s, the largest share
+— and the origin probe.
+
+In Top mode, the origin probe held the overlay for six seconds: that is its
+bound (`RECONNECT_PROBE_HOLD_MAX`), reached. A lead, not a fault.
+
+### The texts
+
+The guide, in all twelve languages, said of “Offline” “every channel that is
+not live”, and of the week that it shows “the ones channels have scheduled”:
+it now says that a scheduled channel silent for three months is not there,
+nor its slot. So do the Store listings, in one sentence: “Channels with an
+abandoned schedule — no stream for three months — are left out.”
+
+### What the bench measures
+
+- **207 ι)**, new: three channels scheduled next Monday — silent for a
+  hundred and twenty days, gone eighty days ago, never gone. The first leaves
+  “Offline” and the week, and the report counts it; the other two stay.
+- **207 b) and v)**: the “Offline” summary carries `muettes`.
+- **74**: a 200 response carrying errors names the refused operation.
+- **204 i)**, a bench race closed. Red twice in three full runs, green alone:
+  under load, the page received its stylesheet and its card after the
+  overlay's maximum delay — 1.2 s on the bench —, the overlay lifted on its
+  own, and the scenario read the bare mock's title, 11.7 px, the size of an
+  `<h3>` with no stylesheet. The extension had nothing to do with it: it never
+  goes below 12 px. The page is reopened when the overlay lifted before the
+  set-up, three times at most.
+
+**Six named mutants, all caught.**
+
+| mutant | what falls |
+| --- | --- |
+| the silent channel kept in “Offline” | 207 ι) — “Offline” |
+| its slot believed in the week | 207 ι) — the week |
+| silent after seventy days | 207 ι), both |
+| silent for lack of a known last stream | 207 ι), both |
+| the refused operation left out of the log | 74 |
+| silent channels left out of the report | 207 ι) — the count |
+
+The full bench: 1962 assertions in 209 scenarios, all green.
 
 ## Unfolding the followed list, rebuilt (v4.25.0.6)
 
@@ -20587,7 +20714,7 @@ Four independent checks:
 | `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 209 scenarios, 1960 assertions |
+| `npm test` | the Playwright harness: 209 scenarios, 1962 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -20607,12 +20734,12 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1808 KB | 740 KB | 4,435 → **2** |
+| `content.js` | 1810 KB | 741 KB | 4,440 → **2** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
 | `panneau.js` | 148 KB | 76 KB | 207 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
 | `background.js` | 10 KB | 2 KB | 22 → **0** |
-| **all five** | **2105 KB** | **922 KB** | **−56 %** |
+| **all five** | **2107 KB** | **922 KB** | **−56 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are

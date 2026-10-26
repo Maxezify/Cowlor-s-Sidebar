@@ -4042,6 +4042,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     AGENDA_TTL_LISTES:      6 * 3_600_000,
     // Plus vieux que la plus ancienne semaine que le panneau sait montrer : oublié.
     AGENDA_RETENUE_MS:      70 * 86_400_000,
+    /* Muette depuis trois mois (4.25.0.7) : une chaîne dont le dernier direct
+       a fini il y a plus longtemps. Twitch garde son planning récurrent, que
+       personne ne tient plus — ses créneaux ne se croient plus, ni dans la
+       semaine ni dans « Hors ligne ». */
+    AGENDA_MUETTE_MS:       90 * 86_400_000,
     /* Une chaîne que Twitch omet d'une réponse se redemande au bout d'une
        minute ; omise deux fois d'affilée, elle est indisponible (4.25.0.2). */
     AGENDA_RECONFIRMER_MS:  60_000,
@@ -8734,7 +8739,15 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
               const fautifs = lots.filter(o => o && Array.isArray(o.errors) && o.errors.length);
               if (fautifs.length) {
                 reseau.refus++;
-                erreurs.noter('gql', 'réponse 200 avec erreurs GraphQL',
+                /* L'OPÉRATION REFUSÉE, NOMMÉE (4.25.0.7). Le journal regroupe
+                   par message : vingt-sept refus d'un rapport réel tenaient en
+                   une ligne qui ne disait pas quelle requête Twitch refusait —
+                   vingt-quatre se retrouvaient au bilan des sondes de reprise,
+                   trois nulle part. Une ligne par opération, désormais. */
+                const noms = [].concat(payload).map((o) => (o && o.operationName) || '?');
+                const refusees = [...new Set(lots.map((o, i) => (fautifs.includes(o) ? noms[i] || '?' : null))
+                  .filter(Boolean))];
+                erreurs.noter('gql', `réponse 200 avec erreurs GraphQL (${refusees.join(', ')})`,
                   String(fautifs[0].errors[0]?.message || '').slice(0, 120));
               }
               return j;
@@ -19792,7 +19805,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
                            titre: f.titre, jeu: null, libelle: null });
           }
         }
-        for (const s of (!horsService && f.planning && f.planning.creneaux) || []) {
+        // Muette depuis trois mois : un planning que personne ne tient (4.25.0.7).
+        const creneaux = !horsService && !muette(login, f, maintenant) && f.planning && f.planning.creneaux;
+        for (const s of creneaux || []) {
           if (s.annule || !dans(s.debut) || finCreneau(s) <= maintenant) continue;
           if (direct && s.debut <= maintenant) continue;   // c'est le direct en cours
           entrees.push({ type: 'prevu', login, ...s });
@@ -19823,11 +19838,22 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       }
       return fd !== null ? { debut: debutObserve(login, f), t: fd, revoir: false } : null;
     };
+    /* MUETTE DEPUIS TROIS MOIS (4.25.0.7) : son dernier direct connu a fini il
+       y a plus de AGENDA_MUETTE_MS. Sans dernier direct connu — jamais
+       diffusé, ou pas encore lu —, rien ne le dit : elle ne l'est pas. */
+    const muette = (login, f, maintenant) => {
+      const d = derniereActivite(login, f);
+      return !!d && d.t < maintenant - CFG.AGENDA_MUETTE_MS;
+    };
 
     /* HORS LIGNE : chaque chaîne qui n'est pas en direct. Celles qui ont
        programmé leur prochain direct d'abord, la plus proche en tête — c'est
        ce qu'on vient chercher ici (4.25.0.1) —, puis les autres, la plus
        récemment partie d'abord ; celles dont on ne sait rien, à la fin.
+       Une chaîne programmée mais muette depuis trois mois n'y est plus
+       (4.25.0.7) : son planning est celui que Twitch garde d'une chaîne qui
+       ne diffuse plus, et il la mettait en tête — « Dernier direct il y a
+       41 mois — Prochain direct : lundi, 16:00 ».
        Le prochain direct est le premier créneau qui n'est pas fini, comme
        dans la semaine : une chaîne en retard sur son créneau y est encore
        attendue, et c'est elle la plus proche. Tout en bas, celles que Twitch
@@ -19842,6 +19868,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       const maintenant = Date.now();
       const lignes = [];
       let directs = 0;
+      let muettes = 0;
       for (const login of c.liste) {
         const f = chaines.get(login);
         const horsService = indisponible(f);
@@ -19854,6 +19881,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         }
         const prochainCreneau = ((f.planning && f.planning.creneaux) || [])
           .find((s) => !s.annule && finCreneau(s) > maintenant) || null;
+        if (prochainCreneau && muette(login, f, maintenant)) { muettes++; continue; }
         const derniere = f.derniere && { ...f.derniere, restreinte: f.derniere.restreinte || accesFerme(login) };
         lignes.push({ login, nom: f.nom, avatar: f.avatar, titre: f.titre,
                       dernier: derniereActivite(login, f), derniere,
@@ -19870,7 +19898,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         enCours: !!travail || !restauree, attente: attendue(lignes.some((l) => l.abonne === false)),
         progression: progression(c.liste), notes: notes(c),
         resume: { horsLigne: lignes.filter((l) => !l.indisponible).length, directs,
-                  programmees: lignes.filter((l) => l.prochain).length },
+                  programmees: lignes.filter((l) => l.prochain).length, muettes },
       };
     };
 
@@ -19892,6 +19920,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         purgees: { ...bilan.purgees },
         rediffusions: [...diffusions.values()].reduce((s, d) => s + d.videos.length, 0),
         creneaux: fiches.reduce((s, f) => s + ((f.planning && f.planning.creneaux.length) || 0), 0),
+        // Programmées, mais muettes depuis trois mois : leurs créneaux ne se montrent pas (4.25.0.7).
+        muettes: [...chaines].filter(([l, f]) => f.planning && f.planning.creneaux.length
+                                             && muette(l, f, Date.now())).length,
         planning: formesEpuisees ? 'indisponible' : FORMES[forme].nom,
         // Les champs neufs que le schéma accepte, ou « simples » s'il les refuse tous.
         archives: EXTRAS.filter((x) => !extrasRefuses.has(x.nom)).map((x) => x.nom).join(' ') || 'simples',

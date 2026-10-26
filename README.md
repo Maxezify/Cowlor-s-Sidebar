@@ -1651,7 +1651,7 @@ nom, parce qu'aucun ne se répare comme les autres :
 | dépassement de `GQL_TIMEOUT` | `abandon après … ms` | réseau lent, pas cassé |
 | `fetch` qui rejette | `échec de fetch` | hors ligne, bloqueur, extension tierce |
 | corps illisible | `corps illisible (JSON)` | réponse tronquée ou interceptée |
-| **200 avec un corps d'erreurs** | `réponse 200 avec erreurs GraphQL` | requête persistée retirée, champ renommé |
+| **200 avec un corps d'erreurs** | `réponse 200 avec erreurs GraphQL (TseChannels)` — l'opération refusée, depuis la 4.25.0.7 | requête persistée retirée, champ renommé, service refusé |
 
 Le dernier est le plus sournois : transport parfait, aucun signe côté HTTP, et
 un cache qui reste vide. Le rapport donne en plus le nombre d'appels, le nombre
@@ -2179,6 +2179,136 @@ Un sous-test qui modélisait un cas impossible — un direct qui rajeunit sans
 changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'il
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
+
+## Les chaînes muettes, et un petit audit (v4.25.0.7)
+
+La demande : « Dans Hors ligne, il y a des chaînes qui ont programmé des
+directs mais qui sont inactives depuis longtemps. J'aimerais que tu les
+retires si ça fait trois mois qu'elles n'ont plus fait de direct. Petit
+audit, code mort, optimisations, débogage… Assure-toi que cela ne casse rien
+sur l'extension. » Publiée sur `claude/chrome-multi`, puis reportée sur
+`claude/firefox-multi` et sur les deux branches de production.
+
+### Programmées, mais muettes
+
+Twitch garde le planning récurrent d'une chaîne qui ne diffuse plus. Votre
+capture le montrait en tête de « Hors ligne », parmi les programmées :
+« Dernier direct il y a 41 mois — Prochain direct : lundi, 16:00 ».
+
+Une chaîne est **muette** quand son dernier direct connu a fini il y a plus de
+quatre-vingt-dix jours (`AGENDA_MUETTE_MS`). Programmée et muette :
+
+- elle quitte **« Hors ligne »** ;
+- ses créneaux ne paraissent plus dans **la semaine** — le même planning, la
+  même promesse que personne ne tient ;
+- le rapport les compte (`agenda.muettes`).
+
+Ce qui ne change pas :
+
+- **sans dernier direct connu** — jamais diffusé, ou pas encore lu —, rien ne
+  dit qu'elle s'est tue : elle reste, avec son prochain direct ;
+- **une chaîne muette sans planning** reste où elle était, en bas de la
+  liste, rangée par la date de son départ : elle ne promettait rien, et ce
+  n'est pas ce qui était demandé.
+
+Trois mois, c'est quatre-vingt-dix jours. Le panneau, lui, arrondit au mois le
+plus proche, et dit « il y a 3 mois » dès soixante-quinze jours : entre
+soixante-quinze et quatre-vingt-neuf, une chaîne programmée qui l'affiche reste
+donc encore dans la liste.
+
+### L'audit
+
+**Le code mort**, cherché par outillage plutôt qu'à l'œil :
+
+- les 217 clés de `CFG` et les 24 de `DOM` sont toutes lues ;
+- les classes CSS de l'extension sont toutes posées — quatre semblaient
+  orphelines, toutes composées à l'exécution (`--${cote}`, `--${modif}`) ;
+- les 918 fonctions nommées de `content.js`, `panneau.js`, `bridge.js` et
+  `background.js` sont toutes appelées — les candidates d'un premier passage
+  l'étaient par un `...` que la recherche avait exclu ;
+- le lint, qui signale toute variable inutilisée, est propre.
+
+Rien à retirer.
+
+**Les restes de débogage** : aucun `debugger`, aucun TODO. Les `console.log`
+sont les réponses des commandes `tse.*()` de la console, voulues ; ceux
+d'`adblock.js` appartiennent au module tiers.
+
+**Les vingt-sept erreurs de votre rapport** — « réponse 200 avec erreurs
+GraphQL — service error ». Vingt-quatre sont les refus que Twitch oppose à la
+sonde des archives à chapitres (la reprise après coupure) : connus, documentés
+dans le code, relancés au cycle suivant, et plus nombreux sous le voile, où
+les sondes partent au plus vite (19 sur 30, contre 5 sur 18 ensuite). Les
+trois autres ne se rattachaient à rien : le journal regroupe par message, et
+toutes les opérations refusées tenaient sous un seul. **Il nomme désormais
+l'opération** — `réponse 200 avec erreurs GraphQL (TseVodRecent)` —, une ligne
+par opération. Le prochain rapport dira lesquelles.
+
+**Les balayages** : quarante-neuf dans la dernière minute du rapport. Mesuré
+sur le banc aux constantes de la production, page immobile : vingt-quatre par
+minute — douze du réveil de rafraîchissement, toutes les cinq secondes, et
+douze du rendu des réponses qui le suivent. Aucune boucle : l'observateur ne
+réagit qu'aux nœuds ajoutés ou retirés, et la barre au repos n'en voit que
+vingt par minute, les durées des cartes. Le reste du rapport vient de Twitch
+et de l'usage. Inchangé. (Une première mesure en disait deux cents : le banc
+ramène ce réveil à cent millisecondes, et la sonde ne l'avait pas remis.)
+
+### Le voile, sur le vrai Twitch
+
+Votre rapport est la première mesure réelle de la 4.25.0.6 :
+
+| étape | instant | depuis le départ |
+| --- | --- | --- |
+| départ du voile | 421 ms | — |
+| la barre se peuple (24 cartes) | 1894 ms | 1,5 s — le temps de Twitch |
+| la sonde d'origine relâche le voile | 2458 ms | 2,0 s |
+| levée | 3960 ms | **3,5 s** |
+
+Vos rapports précédents levaient le voile 6,2 à 7,8 s après son départ. Le
+dépliage n'a rien eu à cliquer : la première chaîne hors ligne était déjà
+dans le premier pas. Ce qui reste, c'est la fenêtre de stabilité — 1,5 s, la
+plus grosse part — et la sonde d'origine.
+
+En mode Top, la sonde d'origine a tenu le voile six secondes : c'est sa borne
+(`RECONNECT_PROBE_HOLD_MAX`), atteinte. Une piste, pas une panne.
+
+### Les textes
+
+Le guide, dans les douze langues, disait de « Hors ligne » « chaque chaîne qui
+n'est pas en direct », et de la semaine qu'elle montre « ceux que les chaînes
+ont programmés » : il dit désormais qu'une chaîne programmée muette depuis
+trois mois n'y figure pas, ni son créneau. Les fiches du Store aussi, d'une
+phrase : « Les chaînes au planning abandonné — plus un direct depuis trois
+mois — n'y figurent pas. »
+
+### Ce que le banc mesure
+
+- **207 ι)**, nouveau : trois chaînes programmées lundi prochain — muette
+  depuis cent vingt jours, partie il y a quatre-vingts, jamais partie. La
+  première quitte « Hors ligne » et la semaine, et le rapport la compte ; les
+  deux autres restent.
+- **207 b) et v)** : le résumé de « Hors ligne » porte `muettes`.
+- **74** : la réponse 200 porteuse d'erreurs nomme l'opération refusée.
+- **204 i)**, une course du banc fermée. Rouge deux fois en trois passes
+  complètes, vert seul : sous la charge, la page recevait sa feuille et sa
+  carte après le délai maximal du voile — 1,2 s au banc —, il se levait seul,
+  et le scénario lisait le titre du décor nu, 11,7 px, la taille d'un `<h3>`
+  sans feuille. L'extension n'y était pour rien : elle ne descend jamais sous
+  12 px. La page est rouverte quand le voile s'est levé avant la mise en
+  place, trois fois au plus.
+
+**Six mutants nommés, tous pris.**
+
+| mutant | ce qui tombe |
+| --- | --- |
+| la muette gardée dans « Hors ligne » | 207 ι) — « Hors ligne » |
+| son créneau cru dans la semaine | 207 ι) — la semaine |
+| muette au bout de soixante-dix jours | 207 ι), les deux |
+| muette faute de dernier direct connu | 207 ι), les deux |
+| l'opération refusée tue au journal | 74 |
+| les muettes tues au rapport | 207 ι) — le compte |
+
+Le banc complet : 1962 assertions dans 209 scénarios, toutes vertes.
 
 ## Le dépliage de la liste suivie, refondu (v4.25.0.6)
 
@@ -21209,7 +21339,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 209 scénarios, 1960 assertions |
+| `npm test` | le harnais Playwright : 209 scénarios, 1962 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -21230,12 +21360,12 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1808 Ko | 740 Ko | 4 435 → **2** |
+| `content.js` | 1810 Ko | 741 Ko | 4 440 → **2** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
 | `panneau.js` | 148 Ko | 76 Ko | 207 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
 | `background.js` | 10 Ko | 2 Ko | 22 → **0** |
-| **les cinq** | **2105 Ko** | **922 Ko** | **−56 %** |
+| **les cinq** | **2107 Ko** | **922 Ko** | **−56 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
