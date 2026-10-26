@@ -95,6 +95,22 @@ const SECTIONS = [
       ['sumChanged',  fmt.nombre(r.modifies), r.modifies ? 'or' : ''],
     ] },
 
+  { id: 'semaine',   groupe: 'grpAgenda', agenda: true,
+    actions: [{ id: 'actualiserAgenda', cle: 'btnRefresh' }],
+    tuiles: (r) => [
+      ['sumLive',       fmt.nombre(r.directs), r.directs ? 'direct' : ''],
+      ['sumBroadcasts', fmt.nombre(r.diffusions)],
+      ['sumPlanned',    fmt.nombre(r.prevues)],
+      ['sumChannels',   fmt.nombre(r.chaines)],
+    ] },
+  { id: 'horsLigne', groupe: 'grpAgenda', agenda: true,
+    actions: [{ id: 'actualiserAgenda', cle: 'btnRefresh' }],
+    tuiles: (r) => [
+      ['sumOffline',   fmt.nombre(r.horsLigne)],
+      ['sumScheduled', fmt.nombre(r.programmees)],
+      ['sumLive',      fmt.nombre(r.directs), r.directs ? 'direct' : ''],
+    ] },
+
   { id: 'scores',  groupe: 'grpData',
     tuiles: (r) => [['sumChannels', fmt.nombre(r.chaines)]] },
 
@@ -485,6 +501,8 @@ const GUIDE = [
   { titre: 'guideTopTitre',      texte: 'guideTopTexte',      demo: () => demoOnglets() },
   { titre: 'guideReglagesTitre', texte: 'guideReglagesTexte' },
   { titre: 'guidePanneauTitre',  texte: 'guidePanneauTexte' },
+
+  { titre: 'guideAgendaTitre',   texte: 'guideAgendaTexte' },
   { titre: 'guideVieTitre',      texte: 'guideVieTexte' },
 ];
 
@@ -630,6 +648,8 @@ let courante = SECTIONS[0].id;
 
 const montrerMessage = (cle, bouton, detail) => {
   $('tableau-cadre').hidden = true;
+
+  $('agenda').hidden = true;
 
   $('visuel').hidden = true;
   $('visuel').replaceChildren();
@@ -1035,10 +1055,13 @@ const peindre = (section, paquet) => {
 
 const charger = async (id) => {
   courante = id;
+
+  clearTimeout(etatAgenda.minuteur);
   const section = SECTIONS.find((s) => s.id === id);
 
   $('guide').hidden = true;
   $('reglages').hidden = true;
+  $('agenda').hidden = true;
   for (const b of document.querySelectorAll('.rail-item')) {
     b.setAttribute('aria-current', String(b.dataset.id === id));
   }
@@ -1057,6 +1080,8 @@ const charger = async (id) => {
   }));
 
   if (section.statique) { montrerGuide(); return; }
+
+  if (section.agenda) { await chargerAgenda(section); return; }
 
   montrerMessage('stateLoading');
   const r = await demander({ section: id });
@@ -1081,7 +1106,504 @@ const lancer = async (action, bouton) => {
   const r = await demander({ action });
   if (bouton) bouton.disabled = false;
   if (!r.ok) { montrerEchec(r); return; }
+
+  const section = SECTIONS.find((s) => s.id === courante);
+  if (section && section.agenda) { relireAgenda(); return; }
   await charger(courante);
+};
+
+const AGENDA_PASSE = 8;
+const AGENDA_FUTUR = 2;
+const RELECTURE_AGENDA = 1000;
+
+const etatAgenda = { decalage: 0, chaine: null, minuteur: null, jeton: 0,
+                     cible: 'auj', defileAuto: 0, noeuds: new Map(), signature: null,
+                     charpente: null, menu: { chaines: [], chaine: null } };
+const CIBLE_LIEN = EN_CADRE ? '_top' : '_blank';
+
+const HEURE = new Intl.DateTimeFormat(LOCALE, { hour: '2-digit', minute: '2-digit' });
+const JOUR_TITRE = new Intl.DateTimeFormat(LOCALE, { weekday: 'long', day: 'numeric', month: 'long' });
+const JOUR_ABREGE = new Intl.DateTimeFormat(LOCALE, { weekday: 'short', day: 'numeric', month: 'short' });
+const DATE_PLAGE = new Intl.DateTimeFormat(LOCALE, { day: 'numeric', month: 'short', year: 'numeric' });
+const DATE_COMPLETE = new Intl.DateTimeFormat(LOCALE, { dateStyle: 'full', timeStyle: 'short' });
+const COMPACT = new Intl.NumberFormat(LOCALE, { notation: 'compact', maximumFractionDigits: 1 });
+const PLURIEL = new Intl.PluralRules(LOCALE);
+const RELATIF = new Intl.RelativeTimeFormat(LOCALE, { numeric: 'auto' });
+const ORDRE_NOMS = new Intl.Collator(LOCALE, { sensitivity: 'base' });
+
+const VUES = { one: 'valViewsOne', few: 'valViewsFew', many: 'valViewsMany', other: 'valViewsOther' };
+const vuesTexte = (n) => {
+  if (!Number.isFinite(n)) return '';
+  return T(VUES[PLURIEL.select(n >= 1000 ? 5000 : n)] || VUES.other, COMPACT.format(n));
+};
+
+const dureeHms = (s) => {
+  if (!Number.isFinite(s) || s < 0) return '';
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  return `${h}:${String(m).padStart(2, '0')}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+};
+
+const minuitDe = (t) => { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); };
+
+const ilYa = (t, maintenant) => {
+  const ecart = maintenant - t;
+  if (ecart < 3_600_000) return RELATIF.format(-Math.max(1, Math.round(ecart / 60_000)), 'minute');
+  if (ecart < 86_400_000) return RELATIF.format(-Math.round(ecart / 3_600_000), 'hour');
+  const jours = Math.max(1, Math.round((minuitDe(maintenant) - minuitDe(t)) / 86_400_000));
+  if (jours < 7) return RELATIF.format(-jours, 'day');
+  if (jours < 35) return RELATIF.format(-Math.round(jours / 7), 'week');
+  return RELATIF.format(-Math.round(jours / 30), 'month');
+};
+
+const bornesSemaine = (decalage) => {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() - ((d.getDay() - PREMIER_JOUR + 7) % 7) + 7 * decalage);
+  const f = new Date(d);
+  f.setDate(f.getDate() + 7);
+  return { debut: d.getTime(), fin: f.getTime() };
+};
+const jourDe = (debut, i) => { const d = new Date(debut); d.setDate(d.getDate() + i); return d.getTime(); };
+
+const decalageDe = (t) => {
+  const d = new Date(t);
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() - ((d.getDay() - PREMIER_JOUR + 7) % 7));
+  return Math.round((d.getTime() - bornesSemaine(0).debut) / 604_800_000);
+};
+const plageSemaine = (debut, fin) => {
+  const dernier = new Date(fin);
+  dernier.setDate(dernier.getDate() - 1);
+  try { return DATE_PLAGE.formatRange(new Date(debut), dernier); }
+  catch { return `${DATE_PLAGE.format(debut)} – ${DATE_PLAGE.format(dernier)}`; }
+};
+const argAgenda = (id) => (id === 'semaine'
+  ? { ...bornesSemaine(etatAgenda.decalage), chaine: etatAgenda.chaine }
+  : {});
+
+const RE_LOGIN_PANNEAU = /^[a-z0-9_]{1,25}$/;
+const lienAgenda = (e) => {
+  if (!RE_LOGIN_PANNEAU.test(e.login || '')) return null;
+  if (e.type === 'rediffusion') return /^\d+$/.test(e.id || '') ? `https://www.twitch.tv/videos/${e.id}` : null;
+  if (e.type === 'direct') return `https://www.twitch.tv/${e.login}`;
+  if (e.type === 'prevu') return `https://www.twitch.tv/${e.login}/schedule`;
+  return null;
+};
+const poserLien = (a, href, ongletNeuf = false) => {
+  a.href = href;
+  a.target = ongletNeuf ? '_blank' : CIBLE_LIEN;
+  if (a.target === '_blank') a.rel = 'noopener noreferrer';
+};
+
+const imageAgenda = (src, classe) => {
+  if (typeof src !== 'string' || !/^https:\/\//.test(src)) return null;
+  const img = document.createElement('img');
+  img.className = classe;
+  img.alt = '';
+  img.loading = 'lazy';
+  img.decoding = 'async';
+  img.referrerPolicy = 'no-referrer';
+  img.addEventListener('error', () => img.remove(), { once: true });
+  img.src = src;
+  return img;
+};
+
+const fermee = (v, abonne) => !!(v && v.restreinte) && abonne !== true;
+const pastilleAbonnes = () => {
+  const p = elt('span', 'ag-abo');
+  p.setAttribute('role', 'img');
+  p.setAttribute('aria-label', T('valSubOnly'));
+  p.title = T('valSubOnlyLocked');
+  const svg = svgEl('svg', { class: 'ag-cadenas', viewBox: '0 0 12 12', 'aria-hidden': 'true' });
+  svg.append(
+    svgEl('path', { d: 'M3.5 5.5V3.75a2.5 2.5 0 0 1 5 0V5.5',
+                    fill: 'none', stroke: 'currentColor', 'stroke-width': 1.4, 'stroke-linecap': 'round' }),
+    svgEl('rect', { x: 2, y: 5.5, width: 8, height: 5.5, rx: 1.2, fill: 'currentColor' }));
+  p.appendChild(svg);
+  return p;
+};
+
+const MARQUE = { direct: 'valLive', prevu: 'valPlanned', sansRediffusion: 'valNoReplay' };
+const plageHoraire = (e) => {
+  const de = HEURE.format(e.debut);
+  if (e.type === 'direct') return `${de} – ${T('valOngoing')}`;
+  return e.fin > e.debut ? `${de} – ${HEURE.format(e.fin)}` : de;
+};
+
+const entreeAgenda = (e, nom) => {
+  const lien = lienAgenda(e);
+  const el = document.createElement(lien ? 'a' : 'div');
+  el.className = 'ag-ent ag-ent--' + e.type;
+  if (lien) poserLien(el, lien, e.type === 'rediffusion');
+  const vig = div('ag-vig');
+  if (e.type === 'rediffusion') {
+    const img = imageAgenda(e.vignette, 'ag-img');
+    if (img) vig.appendChild(img);
+    if (Number.isFinite(e.duree)) vig.appendChild(elt('span', 'ag-duree', dureeHms(e.duree)));
+  } else {
+    vig.appendChild(elt('span', 'ag-marque ag-marque--' + e.type, T(MARQUE[e.type] || 'valPlanned')));
+  }
+  const l1 = div('ag-l1');
+  l1.appendChild(elt('span', 'ag-nom', nom));
+  if (e.libelle) l1.appendChild(elt('span', 'ag-jeu', e.libelle));
+  l1.appendChild(elt('span', 'ag-heure', plageHoraire(e)));
+  const l2 = div('ag-l2');
+  l2.appendChild(elt('span', 'ag-titre', e.titre || '—'));
+  if (e.type === 'rediffusion' && fermee(e, e.abonne)) l2.appendChild(pastilleAbonnes());
+  if (e.type === 'rediffusion' && Number.isFinite(e.vues)) {
+    l2.appendChild(elt('span', 'ag-meta', vuesTexte(e.vues)));
+  } else if (e.type === 'direct' && Number.isFinite(e.spectateurs)) {
+    const m = elt('span', 'ag-meta');
+    m.append(elt('span', 'ag-point'), document.createTextNode(COMPACT.format(e.spectateurs)));
+    l2.appendChild(m);
+  }
+  const corps = div('ag-corps');
+  corps.append(l1, l2);
+  el.append(vig, corps);
+  el.title = [e.titre, DATE_COMPLETE.format(e.debut)].filter(Boolean).join('\n');
+  return el;
+};
+
+const noeud = (suivant, cle, sig, faire) => {
+  if (suivant.has(cle)) return faire();
+  const ancien = etatAgenda.noeuds.get(cle);
+  const n = ancien && ancien.sig === sig ? ancien : { sig, el: faire() };
+  n.el.dataset.ancre = cle;
+  suivant.set(cle, n);
+  return n.el;
+};
+
+const noteAgenda = (texte, ton) => elt('p', 'ag-note' + (ton ? ' ag-note--' + ton : ''), texte);
+
+const notesAgenda = (data) => {
+  const out = [];
+  const n = data.notes || {};
+  const p = data.progression || {};
+
+  if (data.enCours && p.lues < p.aLire) {
+    out.push({ cle: 'lecture', ton: 'charge', texte: T('stateAgendaLoading', [fmt.nombre(p.lues), fmt.nombre(p.aLire)]),
+               part: p.aLire ? Math.round((100 * p.lues) / p.aLire) : 0 });
+  } else if (data.enCours && p.aCouvrir > 0) {
+    out.push({ cle: 'rediffusions', ton: 'charge', texte: T('stateAgendaLoadingReplays', fmt.nombre(p.aCouvrir)) });
+  }
+
+  if (n.releve) out.push({ cle: 'releve', ton: 'charge', texte: T('stateAgendaFollowSweep') });
+  if (n.limite) out.push({ cle: 'limite', texte: T('stateAgendaCapped', [fmt.nombre(n.limite.retenues), fmt.nombre(n.limite.total)]) });
+
+  if (n.incompletes && data.vue === 'semaine') {
+    out.push({ cle: 'incompletes', texte: T('stateAgendaIncomplete', fmt.nombre(n.incompletes)) });
+  }
+  if (n.planning === 'indisponible') out.push({ cle: 'planning', texte: T('stateAgendaNoSchedule') });
+
+  if (n.refus === 'diffusions' && data.vue === 'semaine') out.push({ cle: 'refus', ton: 'alerte', texte: T('stateAgendaNoReplays') });
+  if (n.echouees) out.push({ cle: 'echouees', ton: 'alerte', texte: T('stateAgendaPartial', fmt.nombre(n.echouees)) });
+  if (n.reseau) out.push({ cle: 'reseau', ton: 'alerte', texte: T('stateAgendaNetwork') });
+  return out;
+};
+
+const poserNotes = (conteneur, data) => {
+  const avant = new Map([...conteneur.children].map((el) => [el.dataset.cle, el]));
+  const notes = notesAgenda(data);
+  conteneur.replaceChildren(...notes.map((n) => {
+    let el = avant.get(n.cle);
+    if (!el) {
+      el = noteAgenda('', n.ton);
+      el.dataset.cle = n.cle;
+      el.appendChild(elt('span', 'ag-note-texte'));
+      if (n.part !== undefined) {
+        const barre = div('ag-prog');
+        barre.appendChild(div('ag-prog-rempli'));
+        el.appendChild(barre);
+      }
+    }
+    el.firstChild.textContent = n.texte;
+    if (n.part !== undefined) el.querySelector('.ag-prog-rempli').style.width = n.part + '%';
+    return el;
+  }));
+  conteneur.hidden = !notes.length;
+};
+
+const boutonAgenda = (texte, surClic, inactif, etiquette, classe = '') => {
+  const b = elt('button', 'bouton bouton--fantome' + classe, texte);
+  b.type = 'button';
+  b.disabled = !!inactif;
+  if (etiquette) { b.setAttribute('aria-label', etiquette); b.title = etiquette; }
+  b.addEventListener('click', surClic);
+  return b;
+};
+const relireAgenda = () => {
+  const section = SECTIONS.find((s) => s.id === courante);
+  if (section && section.agenda) chargerAgenda(section, true);
+};
+
+const allerSemaine = (d) => {
+  etatAgenda.decalage = Math.max(-AGENDA_PASSE, Math.min(AGENDA_FUTUR, d));
+  etatAgenda.cible = 'auj';
+  relireAgenda();
+};
+
+const entrerAgenda = (id) => {
+  if (id === 'semaine') { etatAgenda.decalage = 0; etatAgenda.chaine = null; }
+  etatAgenda.cible = id === 'semaine' ? 'auj' : 'haut';
+};
+
+const remplirMenu = (b, quitte = false) => {
+  const { chaines, chaine } = etatAgenda.menu;
+  const liste = chaines.slice().sort((x, y) => ORDRE_NOMS.compare(x.nom, y.nom));
+
+  if (chaine && !liste.some((c) => c.login === chaine)) liste.unshift({ login: chaine, nom: chaine });
+  const sig = liste.map((c) => `${c.login}\u0001${c.nom}`).join('\u0002');
+  if (sig !== b.sig) {
+    if (!quitte && document.activeElement === b.menu) return;
+    const tout = document.createElement('option');
+    tout.value = '';
+    tout.textContent = T('valAllChannels');
+    b.menu.replaceChildren(tout, ...liste.map((c) => {
+      const o = document.createElement('option');
+      o.value = c.login;
+      o.textContent = c.nom;
+      return o;
+    }));
+    b.sig = sig;
+  }
+  b.menu.value = chaine || '';
+};
+const barreSemaine = () => {
+  const b = { sig: null };
+  b.auj = boutonAgenda(T('btnToday'), () => allerSemaine(0));
+  b.prec = boutonAgenda('‹', () => allerSemaine(etatAgenda.decalage - 1), false, T('btnWeekPrev'), ' ag-fleche');
+  b.suiv = boutonAgenda('›', () => allerSemaine(etatAgenda.decalage + 1), false, T('btnWeekNext'), ' ag-fleche');
+  b.plage = elt('span', 'ag-plage');
+  b.menu = document.createElement('select');
+  b.menu.className = 'reg-menu ag-chaine';
+  b.menu.setAttribute('aria-label', T('valChannel'));
+
+  b.menu.addEventListener('change', () => {
+    etatAgenda.chaine = b.menu.value || null;
+    etatAgenda.cible = 'auj';
+    relireAgenda();
+  });
+  b.menu.addEventListener('blur', () => remplirMenu(b, true));
+  b.el = div('ag-barre');
+  b.el.append(b.auj, b.prec, b.suiv, b.plage, b.menu);
+  return b;
+};
+const majBarre = (b, data) => {
+  b.plage.textContent = plageSemaine(data.semaine.debut, data.semaine.fin);
+  b.prec.disabled = etatAgenda.decalage <= -AGENDA_PASSE;
+  b.suiv.disabled = etatAgenda.decalage >= AGENDA_FUTUR;
+  etatAgenda.menu = { chaines: data.chaines || [], chaine: data.chaine || null };
+  remplirMenu(b);
+};
+
+const charpente = (vue) => {
+  const c = etatAgenda.charpente;
+  if (c && c.vue === vue) return c;
+  const tete = div('ag-tete');
+  const barre = vue === 'semaine' ? barreSemaine() : null;
+  const notes = div('ag-notes');
+  notes.hidden = true;
+  if (barre) tete.appendChild(barre.el);
+  tete.appendChild(notes);
+  const liste = div('ag-liste');
+  $('agenda').replaceChildren(tete, liste);
+  etatAgenda.noeuds = new Map();
+  etatAgenda.signature = null;
+  etatAgenda.charpente = { vue, tete, barre, notes, liste };
+  return etatAgenda.charpente;
+};
+
+const listeSemaine = (data, suivant) => {
+  const { debut, fin } = data.semaine;
+  const entrees = data.entrees || [];
+  if (!entrees.length) {
+    return data.enCours ? [] : [noteAgenda(T(data.chaine ? 'stateAgendaEmptyChannel' : 'stateAgendaEmpty'))];
+  }
+  const noms = new Map((data.chaines || []).map((c) => [c.login, c.nom]));
+  const out = [];
+  for (let i = 0; i < 7; i++) {
+    const jour = jourDe(debut, i);
+    const finJour = i < 6 ? jourDe(debut, i + 1) : fin;
+    const section = elt('section', 'ag-jour');
+    section.dataset.jour = String(jour);
+    section.dataset.fin = String(finJour);
+    const titre = elt('h3', 'ag-jour-titre', JOUR_TITRE.format(jour));
+    titre.dataset.ancre = 'j:' + jour;
+    if (data.maintenant >= jour && data.maintenant < finJour) {
+      section.classList.add('ag-jour--auj');
+      titre.appendChild(elt('span', 'ag-auj', T('btnToday')));
+    }
+    section.appendChild(titre);
+    const du = entrees.filter((e) => e.debut >= jour && e.debut < finJour);
+    if (!du.length) section.appendChild(elt('p', 'ag-vide', '—'));
+    for (const e of du) {
+      const nom = noms.get(e.login) || e.login;
+      section.appendChild(noeud(suivant, `e:${e.type}:${e.login}:${e.id || ''}:${e.debut}`,
+                                JSON.stringify(e) + nom, () => entreeAgenda(e, nom)));
+    }
+    out.push(section);
+  }
+  return out;
+};
+
+const voirSemaineDe = (l) => {
+  const t = l.dernier ? (l.dernier.debut ?? l.dernier.t) : null;
+  etatAgenda.chaine = l.login;
+  etatAgenda.decalage = t === null ? 0 : Math.max(-AGENDA_PASSE, Math.min(0, decalageDe(t)));
+  etatAgenda.cible = t === null ? 'auj' : t;
+  charger('semaine');
+};
+
+const ligneHorsLigne = (l, quand) => {
+  const ligne = div('hl-ligne' + (l.indisponible ? ' hl-ligne--indisponible' : ''));
+  const avatar = imageAgenda(l.avatar, 'hl-avatar') || div('hl-avatar');
+  const corps = div('hl-corps');
+  const l1 = div('hl-l1');
+  l1.appendChild(elt('span', 'hl-nom', l.nom));
+  const q = elt('span', 'hl-quand', quand);
+  if (l.indisponible) {
+    q.title = T('valUnavailableTip', DATE_COMPLETE.format(l.indisponible));
+    l1.appendChild(q);
+    corps.appendChild(l1);
+    ligne.append(avatar, corps);
+    return ligne;
+  }
+
+  if (l.dernier) {
+    q.title = l.dernier.debut !== null
+      ? `${DATE_COMPLETE.format(l.dernier.debut)} – ${HEURE.format(l.dernier.t)}`
+      : `– ${DATE_COMPLETE.format(l.dernier.t)}`;
+  }
+  l1.appendChild(q);
+  corps.appendChild(l1);
+  const revoir = !!(l.dernier && l.dernier.revoir && l.derniere);
+
+  const enEntier = (classe, texte) => { const e = elt('div', classe, texte); e.title = texte; return e; };
+  const sous = [l.titre, revoir ? l.derniere.libelle : null].filter(Boolean).join(' · ');
+  if (sous) corps.appendChild(enEntier('hl-titre', sous));
+  if (l.prochain) {
+    const quandProchain = `${JOUR_ABREGE.format(l.prochain.debut)}, ${HEURE.format(l.prochain.debut)}`;
+    corps.appendChild(enEntier('hl-prochain',
+      T('valNext', quandProchain + (l.prochain.titre ? ` — ${l.prochain.titre}` : ''))));
+  }
+  const actions = div('hl-actions');
+  if (revoir && /^\d+$/.test(l.derniere.id || '')) {
+    if (fermee(l.derniere, l.abonne)) actions.appendChild(pastilleAbonnes());
+    const a = elt('a', 'bouton bouton--fantome', T('btnReplay'));
+    poserLien(a, `https://www.twitch.tv/videos/${l.derniere.id}`, true);
+    a.title = [l.derniere.titre, dureeHms(l.derniere.duree)].filter(Boolean).join(' · ');
+    actions.appendChild(a);
+  }
+  actions.appendChild(boutonAgenda(T('btnSeeWeek'), () => voirSemaineDe(l)));
+  ligne.append(avatar, corps, actions);
+  return ligne;
+};
+const listeHorsLigne = (data, suivant) => {
+  const lignes = data.lignes || [];
+  if (!lignes.length) {
+    return data.enCours ? []
+      : [noteAgenda(T(data.resume && data.resume.directs ? 'stateAgendaNoOffline' : 'stateEmpty'))];
+  }
+  const liste = div('hl-liste');
+  const groupe = (l) => (l.indisponible ? 2 : l.prochain ? 0 : 1);
+  let avant = null;
+  for (const l of lignes) {
+
+    const quand = l.indisponible ? T('valUnavailable')
+      : l.dernier ? T('valLastLive', ilYa(l.dernier.t, data.maintenant)) : T('valLastLiveUnknown');
+    const el = noeud(suivant, 'l:' + l.login, JSON.stringify(l) + quand, () => ligneHorsLigne(l, quand));
+    el.classList.toggle('hl-ligne--suite', !!(avant && groupe(avant) !== groupe(l)));
+    liste.appendChild(el);
+    avant = l;
+  }
+  return [liste];
+};
+
+const reperer = (hote, tete) => {
+  const bas = tete.getBoundingClientRect().bottom;
+  for (const el of hote.querySelectorAll('[data-ancre]')) {
+    const r = el.getBoundingClientRect();
+    if (r.bottom <= bas) continue;
+    const jour = el.closest('[data-jour]');
+    return { cle: el.dataset.ancre, ecart: r.top - bas,
+             jour: jour ? jour.dataset.jour : null, ecartJour: jour ? jour.getBoundingClientRect().top - bas : 0 };
+  }
+  return null;
+};
+const retablir = (hote, tete, rep) => {
+  const parValeur = (attr, v) => [...hote.querySelectorAll(`[${attr}]`)].find((x) => x.getAttribute(attr) === v);
+  const el = parValeur('data-ancre', rep.cle);
+  const jour = el || !rep.jour ? null : parValeur('data-jour', rep.jour);
+  if (!el && !jour) return;
+  hote.scrollTop += (el || jour).getBoundingClientRect().top - tete.getBoundingClientRect().bottom
+    - (el ? rep.ecart : rep.ecartJour);
+};
+
+const viser = (hote, tete, cible) => {
+  const jours = [...hote.querySelectorAll('.ag-jour')];
+  const jour = cible === 'auj' ? jours.find((s) => s.classList.contains('ag-jour--auj'))
+    : typeof cible === 'number' ? jours.find((s) => Number(s.dataset.jour) <= cible && cible < Number(s.dataset.fin))
+    : null;
+  if (!jour) { hote.scrollTop = 0; return; }
+  hote.scrollTop += jour.getBoundingClientRect().top - tete.getBoundingClientRect().bottom;
+};
+
+const suivreDefilement = () => {
+  if (Math.abs($('agenda').scrollTop - etatAgenda.defileAuto) > 1) etatAgenda.cible = null;
+};
+
+const montrerAgenda = (section, data) => {
+  const n = data.notes || {};
+  if (n.rosterVide) { montrerMessage('stateAgendaNoRoster'); return; }
+  if (n.refus === 'chaines') { montrerMessage('stateAgendaRefused'); return; }
+  const hote = $('agenda');
+  const visible = !hote.hidden;
+  const c = charpente(section.id);
+
+  const cadenas = (data.entrees || []).map((e) => (fermee(e, e.abonne) ? 1 : 0)).join('')
+    + (data.lignes || []).map((l) => (fermee(l.derniere, l.abonne) ? 1 : 0)).join('');
+  const signature = JSON.stringify([data.version, data.enCours, data.progression, data.notes,
+                                    data.chaine, data.semaine, Math.floor((data.maintenant || 0) / 60_000), cadenas]);
+  if (!visible || signature !== etatAgenda.signature) {
+    const repere = visible && etatAgenda.cible === null ? reperer(hote, c.tete) : null;
+    $('message').hidden = true;
+    $('visuel').hidden = true;
+    $('visuel').replaceChildren();
+    $('tableau-cadre').hidden = true;
+    $('resume').replaceChildren(...(section.tuiles ? section.tuiles(data.resume || {}) : []).map((t) => tuile(t)));
+    if (c.barre) majBarre(c.barre, data);
+    poserNotes(c.notes, data);
+    const suivant = new Map();
+    c.liste.replaceChildren(...(section.id === 'semaine' ? listeSemaine(data, suivant) : listeHorsLigne(data, suivant)));
+    etatAgenda.noeuds = suivant;
+    etatAgenda.signature = signature;
+    hote.hidden = false;
+    if (repere) retablir(hote, c.tete, repere);
+  }
+  if (etatAgenda.cible !== null) viser(hote, c.tete, etatAgenda.cible);
+  etatAgenda.defileAuto = hote.scrollTop;
+};
+
+const chargerAgenda = async (section, relecture = false) => {
+  clearTimeout(etatAgenda.minuteur);
+  const jeton = ++etatAgenda.jeton;
+  if (!relecture) {
+    montrerMessage('stateLoading');
+
+    if (etatAgenda.cible === null) etatAgenda.cible = section.id === 'semaine' ? 'auj' : 'haut';
+  }
+  const r = await demander({ section: section.id, arg: argAgenda(section.id) });
+
+  if (courante !== section.id || jeton !== etatAgenda.jeton) return;
+  if (!r.ok) { montrerEchec(r); return; }
+  montrerAgenda(section, r.data || {});
+
+  if (r.data && (r.data.enCours || r.data.attente)) {
+    etatAgenda.minuteur = setTimeout(() => {
+      if (courante === section.id && jeton === etatAgenda.jeton) chargerAgenda(section, true);
+    }, RELECTURE_AGENDA);
+  }
 };
 
 const bloc = (titre, lignes) => [`── ${titre} ${'─'.repeat(Math.max(0, 58 - titre.length))}`, ...lignes, ''];
@@ -1294,12 +1816,31 @@ const construireRapport = (r, transport, fond) => {
       + (o.blanc ? ' · rien sous les onglets' : '')
       + (o.texte ? ` · la page dit : « ${o.texte} »` : '')))),
   ]));
+
+  const rs = r.relevesSuivies || {};
+  const dernier = rs.dernier;
+  L.push(...bloc('CHAÎNES SUIVIES — RELEVÉ / FOLLOWED-CHANNEL SWEEP', [
+    paire('horodatage', rs.horodatage ? new Date(rs.horodatage).toISOString() : 'jamais / never'),
+    paire('en attente / pending', rs.enAttente),
+    paire('en cours / running', rs.enCours),
+    paire('rangé derrière un autre onglet / stood down', rs.differes ?? 0),
+    paire('relevés incomplets d\'affilée / incomplete sweeps in a row', rs.incompletsDeSuite ?? 0),
+    paire('prochain relevé dans / next sweep in',
+          rs.horodatage && Number.isFinite(rs.prochainDansMs) ? `${Math.round(rs.prochainDansMs / 60_000)} min` : '—'),
+    paire('relevé de cette page / this page\'s sweep', !dernier ? 'aucun / none'
+      : `${dernier.chaines} chaîne(s) · ${dernier.pages} page(s) · ${dernier.complet ? 'complet' : 'incomplet'}`
+        + ` · ${dernier.arret || 'en cours'} · ${Math.round((dernier.dureeMs || 0) / 1000)} s`),
+    ...(dernier ? [paire('ajoutées · retirées / added · removed', `${dernier.ajoutees} · ${dernier.retirees}`),
+                   paire('lots illisibles / unreadable batches', dernier.illisibles)] : []),
+  ]));
   L.push(...bloc('RÉSEAU / NETWORK', [
     ...aplatir(r.reseau),
     paire('retards.medianeMs', r.retards?.medianeMs),
     paire('retards.p90Ms', r.retards?.p90Ms),
   ]));
   L.push(...bloc('TOP CHAÎNES / TOP CHANNELS', aplatir(r.global)));
+
+  L.push(...bloc('AGENDA', aplatir(r.agenda)));
 
   L.push(...blocErreurs(r.erreurs, '', r.bilanErreurs, r.exemplaire));
 
@@ -1403,7 +1944,7 @@ const construireRail = () => {
     b.type = 'button';
     b.textContent = T(cleNav(s.id));
     b.setAttribute('aria-current', 'false');
-    b.addEventListener('click', () => charger(s.id));
+    b.addEventListener('click', () => { if (s.agenda) entrerAgenda(s.id); charger(s.id); });
     rail.appendChild(b);
   }
 };
@@ -1417,6 +1958,12 @@ document.addEventListener('DOMContentLoaded', () => {
   appliquerDiag();
 
   $('message-bouton').addEventListener('click', () => charger(courante));
+
+  const lacher = () => { etatAgenda.cible = null; };
+  for (const ev of ['wheel', 'touchstart', 'pointerdown', 'keydown']) {
+    $('agenda').addEventListener(ev, lacher, { passive: true });
+  }
+  $('agenda').addEventListener('scroll', suivreDefilement, { passive: true });
   $('btn-rescan').addEventListener('click', () => lancer('rescan', $('btn-rescan')));
   $('btn-rapport').addEventListener('click', ouvrirRapport);
   $('rapport-fermer').addEventListener('click', fermerRapport);

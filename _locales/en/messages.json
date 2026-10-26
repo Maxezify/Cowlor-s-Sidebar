@@ -59,7 +59,7 @@
     "description": "Section : chaînes connues"
   },
   "descRoster": {
-    "message": "Every followed channel the extension has seen in your sidebar at least once.",
+    "message": "All your followed channels: those in your sidebar, and the full list reread from your Following page every twelve hours.",
     "description": "Description de la section chaînes connues"
   },
   "navRythme": {
@@ -293,6 +293,21 @@
     "message": "categories",
     "description": "Cartouche : nombre de catégories"
   },
+  "sumLive": {
+    "message": "live"
+  },
+  "sumBroadcasts": {
+    "message": "streams"
+  },
+  "sumPlanned": {
+    "message": "scheduled"
+  },
+  "sumOffline": {
+    "message": "offline"
+  },
+  "sumScheduled": {
+    "message": "with a next stream"
+  },
   "btnRefreshSubs": {
     "message": "Sweep now",
     "description": "Bouton : forcer un relevé complet des abonnements"
@@ -361,6 +376,48 @@
     "message": "The link to the tab was lost. Try again.",
     "description": "État : la liaison avec l'onglet est perdue"
   },
+  "stateAgendaLoading": {
+    "message": "Reading followed channels… $1 / $2"
+  },
+  "stateAgendaLoadingReplays": {
+    "message": "Reading the replays of $1 channel(s)…"
+  },
+  "stateAgendaCapped": {
+    "message": "Only $1 of your $2 followed channels are read: the live ones, your subscriptions, then the most visited."
+  },
+  "stateAgendaNoSchedule": {
+    "message": "Twitch does not serve channel schedules: scheduled streams cannot be shown."
+  },
+  "stateAgendaNoReplays": {
+    "message": "Twitch refuses the list of replays: only each channel's latest one is shown."
+  },
+  "stateAgendaPartial": {
+    "message": "Twitch did not serve $1 channel(s); “Refresh” asks again."
+  },
+  "stateAgendaNetwork": {
+    "message": "Twitch is not answering right now; “Refresh” will start reading again."
+  },
+  "stateAgendaFollowSweep": {
+    "message": "Reading the full list of your followed channels…"
+  },
+  "stateAgendaIncomplete": {
+    "message": "This week reaches further back than the last hundred replays of $1 channel(s): not all of theirs are shown."
+  },
+  "stateAgendaEmpty": {
+    "message": "No streams this week."
+  },
+  "stateAgendaEmptyChannel": {
+    "message": "No streams from this channel this week."
+  },
+  "stateAgendaNoOffline": {
+    "message": "All your followed channels are live."
+  },
+  "stateAgendaNoRoster": {
+    "message": "No followed channel known yet. The extension learns them from Twitch's sidebar and your Following page while you are signed in."
+  },
+  "stateAgendaRefused": {
+    "message": "Twitch refuses the schedule's requests; “Export a report” says why."
+  },
   "statusOk": {
     "message": "OK",
     "description": "État de sonde : répond"
@@ -398,6 +455,57 @@
   },
   "valMore": {
     "message": "more"
+  },
+  "valViewsOne": {
+    "message": "$1 view"
+  },
+  "valViewsFew": {
+    "message": "$1 views"
+  },
+  "valViewsMany": {
+    "message": "$1 views"
+  },
+  "valViewsOther": {
+    "message": "$1 views"
+  },
+  "valOngoing": {
+    "message": "now"
+  },
+  "valLive": {
+    "message": "Live"
+  },
+  "valPlanned": {
+    "message": "Scheduled"
+  },
+  "valNoReplay": {
+    "message": "No replay"
+  },
+  "valSubOnly": {
+    "message": "Subs only"
+  },
+  "valSubOnlyLocked": {
+    "message": "For the channel's subscribers only — the extension doesn't know you're subscribed"
+  },
+  "valUnavailable": {
+    "message": "Unavailable on Twitch"
+  },
+  "valUnavailableTip": {
+    "message": "Twitch no longer serves this channel (noticed $1): usually an account suspended, renamed or closed. It comes back by itself if Twitch serves it again."
+  },
+  "valChannel": {
+    "message": "Channel"
+  },
+  "valAllChannels": {
+    "message": "All channels"
+  },
+  "valLastLive": {
+    "message": "Last live $1"
+  },
+  "valLastLiveUnknown": {
+    "message": "Last live unknown"
+  },
+  "valNext": {
+    "message": "Next stream: $1"
   },
   "healthOk": {
     "message": "Selectors OK",
@@ -446,6 +554,21 @@
   "btnRefresh": {
     "message": "Refresh",
     "description": "Bouton : reconstruit le rapport à l'instant"
+  },
+  "btnToday": {
+    "message": "Today"
+  },
+  "btnWeekPrev": {
+    "message": "Previous week"
+  },
+  "btnWeekNext": {
+    "message": "Next week"
+  },
+  "btnReplay": {
+    "message": "Replay"
+  },
+  "btnSeeWeek": {
+    "message": "Their week"
   },
   "btnClose": {
     "message": "Close",
@@ -524,19 +647,25 @@
     "message": "Quicker than Twitch, and tidier"
   },
   "guideViteTexte": {
-    "message": "Twitch takes two to four minutes to show a channel that goes live, and keeps one that stops for five to ten. The extension refreshes the sidebar itself, every thirty seconds: viewers, category, uptime, arrivals and departures.\n• Your followed channels are always fully unfolded: no more “Show more” to click.\n• Hype trains, discount banners, sponsor strips and empty sections leave the sidebar; what they said comes back as a badge in the preview (chapter $1).\n• Your watch streak and Twitch's stories row are tucked into the filter block, at the top of the list. Prefer them as Twitch shows them, or hidden? That is in “Settings”."
+    "message": "Twitch takes two to four minutes to show a channel that goes live, and keeps one that stops for five to ten. The extension refreshes the sidebar itself, every thirty seconds: viewers, category, uptime, arrivals and departures.\n• Every followed channel that is live is unfolded for you, and offline ones never show: no more “Show more” to click.\n• Hype trains, discount banners, sponsor strips and empty sections leave the sidebar; what they said comes back as a badge in the preview (chapter $1).\n• Your watch streak and Twitch's stories row are tucked into the filter block, at the top of the list. Prefer them as Twitch shows them, or hidden? That is in “Settings”."
   },
   "guidePanneauTitre": {
     "message": "This panel"
   },
   "guidePanneauTexte": {
-    "message": "Five groups, on the left:\n• “Get started” — this guide, readable even with no Twitch tab open.\n• “Settings” — everything the extension lets you choose.\n• “Your data” — what it has remembered: the channels you visit most, at what times, your subscriptions, the channels it knows.\n• “Diagnostics” — only useful when something goes wrong; it can be hidden in the settings.\n• “Top Channels” — the state of the ranking and its categories.\nEvery section other than this guide reads the frontmost Twitch tab; without one, they say so.\n• Something wrong? “Export a report” writes a text to read before sending it: counts, no lists — neither your channels nor your subscriptions.\n• “Erase history” erases everything the extension has remembered, for good; your settings stay."
+    "message": "Six groups, on the left:\n• “Get started” — this guide, readable even with no Twitch tab open.\n• “Settings” — everything the extension lets you choose.\n• “Schedule” — your followed channels' streams, past, live and scheduled, with their replays; that is the next chapter.\n• “Your data” — what it has remembered: the channels you visit most, at what times, your subscriptions, the channels it knows.\n• “Diagnostics” — only useful when something goes wrong; it can be hidden in the settings.\n• “Top Channels” — the state of the ranking and its categories.\nEvery section other than this guide reads the frontmost Twitch tab; without one, they say so.\n• Something wrong? “Export a report” writes a text to read before sending it: counts, no lists — neither your channels nor your subscriptions.\n• “Erase history” erases everything the extension has remembered, for good; your settings stay."
+  },
+  "guideAgendaTitre": {
+    "message": "Your channels' schedule"
+  },
+  "guideAgendaTexte": {
+    "message": "The “Schedule” group does for all your followed channels at once what a channel's schedule page does on Twitch for just one.\n• “The week”: day by day, past streams with their replay — one click opens it in a new tab —, live ones, and the ones channels have scheduled. It opens on today, with the past days above; a stream that runs past midnight stays on the day it started.\n• The arrows change week, up to eight back and two ahead; “Today” brings you back to the day itself, and the menu keeps a single channel.\n• “Offline”: every channel that is not live — first those that have scheduled their next stream, the soonest on top, then the others, the most recently gone first. A scheduled channel that has not streamed for three months is left out, and so is its slot in the week: that is the schedule Twitch keeps for a channel that no longer streams. When it streamed, its replay one click away, and its next stream. “Their week” opens the week of its last stream. A channel Twitch no longer serves — account suspended, renamed or closed — does not vanish from it: it stays at the bottom, “Unavailable on Twitch”.\n• A padlock marks, before you even click, a replay reserved for the channel's subscribers when the extension doesn't know you're subscribed; subscribed, nothing shows: it is open to you.\nThe channels are all those you follow. Since Twitch's sidebar shows only a hundred, the extension rereads the full list on your Following page, in an invisible frame, every twelve hours. A replay exists only if the channel keeps its broadcasts, and for as long as Twitch keeps them; a scheduled stream, only if it keeps its schedule on Twitch. “No replay” only gets a day if the extension saw that stream live: Twitch only gives its end. The schedule asks nothing of Twitch until you open it, and what it has read stays in your browser: a reload only asks again for what has aged."
   },
   "guideVieTitre": {
     "message": "Privacy, in plain words"
   },
   "guideVieTexte": {
-    "message": "• No third-party server: the extension only talks to Twitch, through the public API the page already uses.\n• Those calls are anonymous: no session token, no cookie. They cannot be tied to your account.\n• One exception, said out loud: to know your subscriptions, the extension opens YOUR twitch.tv/subscriptions page in an invisible frame — every six hours by default, or as your setting says, sooner only after a sweep that found nothing or when you ask, and never when you are signed out. Your browser authenticates it as if you had clicked the link; the extension neither reads nor passes on your token.\n• Your visits, your subscriptions and their tenure stay in your browser. Clear twitch.tv's site data, and nothing is left.\n• No permission requested, no tracker, no telemetry. The extension only runs on twitch.tv."
+    "message": "• No third-party server: the extension only talks to Twitch, through the public API the page already uses.\n• Those calls are anonymous: no session token, no cookie. They cannot be tied to your account.\n• Two exceptions, said out loud: to know your subscriptions, the extension opens YOUR twitch.tv/subscriptions page in an invisible frame — every six hours by default, or as your setting says, sooner only after a sweep that found nothing or when you ask, and never when you are signed out. To know all the channels you follow, it opens your Following page the same way, every twelve hours. Your browser authenticates them as if you had clicked the link; the extension neither reads nor passes on your token.\n• Your visits, your subscriptions and their tenure, the channels you follow and what the schedule has read stay in your browser. Clear twitch.tv's site data, and nothing is left.\n• No permission requested, no tracker, no telemetry. The extension only runs on twitch.tv."
   },
   "guideBadgeCcl": {
     "message": "Mature-rated game",
@@ -616,6 +745,21 @@
   },
   "descOptions": {
     "message": "What the extension adds, and what it leaves alone. Everything is on by default; a purple dot marks what you changed."
+  },
+  "grpAgenda": {
+    "message": "Schedule"
+  },
+  "navSemaine": {
+    "message": "The week"
+  },
+  "descSemaine": {
+    "message": "Your followed channels' streams, day by day: past ones with their replay, live ones, and scheduled ones."
+  },
+  "navHorsLigne": {
+    "message": "Offline"
+  },
+  "descHorsLigne": {
+    "message": "Your followed channels that are not live, scheduled streams first: their last stream, its replay, and the next one if it is scheduled."
   },
   "sumSettings": {
     "message": "settings"
@@ -792,7 +936,7 @@
     "message": "Erase the remembered followed channels?"
   },
   "purgeRosterText": {
-    "message": "The list will rebuild itself by watching the sidebar. Your visits and subscriptions are untouched."
+    "message": "The list will rebuild itself: the sidebar right away, then the full list from your Following page, reread shortly after. Your visits and subscriptions are untouched."
   },
   "optPurgeFaite": {
     "message": "Erased."

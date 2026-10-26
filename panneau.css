@@ -51,6 +51,11 @@ html[data-vue="incruste"] body { width: 100%; height: 100%; }
   --or-clair:    #fff6d6;
   --rouge:       #ec4c4c;
   --vert:        #3ea6a6;
+  /* L'agenda (4.25.0) : le violet ÉCRIT — catégories, prochain direct — et le
+     voile du survol d'une ligne. Deux jetons, parce que ni l'un ni l'autre ne
+     se lit de la même façon sur un fond clair. */
+  --violet-texte:#bf94ff;
+  --survol:      rgba(255, 255, 255, 0.045);
   --r-petit:     4px;
   --r-grand:     6px;
 }
@@ -84,6 +89,8 @@ html[data-theme="light"] {
   --or-clair:    #5c3b00;
   --rouge:       #b3202b;
   --vert:        #1b6b6b;
+  --violet-texte:#6c2bd9;
+  --survol:      rgba(0, 0, 0, 0.04);
   color-scheme: light;
 }
 @media (prefers-color-scheme: light) {
@@ -101,6 +108,8 @@ html[data-theme="light"] {
     --or-clair:    #5c3b00;
     --rouge:       #b3202b;
     --vert:        #1b6b6b;
+    --violet-texte:#6c2bd9;
+    --survol:      rgba(0, 0, 0, 0.04);
     color-scheme: light;
   }
 }
@@ -1000,3 +1009,172 @@ html[data-theme="light"] .d-jour {
 /* ── Le rail sans ses diagnostics ────────────────────────────────────────── */
 html[data-sans-diag] .rail-item[data-groupe="grpDiag"],
 html[data-sans-diag] .rail-groupe[data-groupe="grpDiag"] { display: none; }
+
+/* ════════════════════════════════════════════════════════════════════════════
+   L'AGENDA (4.25.0)
+   ────────────────────────────────────────────────────────────────────────────
+   UNE LISTE PAR JOUR, ET NON LA GRILLE HORAIRE DE TWITCH. La page Programme
+   pose ses directs sur des heures, en largeur : elle a mille huit cents
+   pixels pour une seule chaîne. Le panneau en a cinq cent quarante-six pour
+   toutes à la fois, et des blocs de trente pixels n'auraient laissé lire ni
+   un titre ni une heure. Chaque ligne garde ce que la page Programme dit d'un
+   direct — sa vignette et sa durée, sa catégorie, son titre, ses heures, ses
+   vues — dans l'ordre où l'on cherche.
+
+   LE CONTENEUR DÉFILE POUR SON COMPTE, comme le guide et les réglages ; sa
+   tête — la barre de navigation et les notes — reste en haut pendant qu'on
+   descend dans la semaine. Il tient sa position lui-même, ligne à ligne
+   (cf. panneau.js) : l'ancrage du navigateur corrigerait par-dessus.
+   ══════════════════════════════════════════════════════════════════════════ */
+.agenda[hidden] { display: none; }
+.agenda {
+  flex: 1 1 auto; min-height: 0;
+  overflow-y: auto;
+  overflow-anchor: none;
+  padding-right: 6px;
+}
+.tuile--direct .tuile-val { color: var(--direct); }
+
+/* La marge de la dernière note reste DANS la tête (flow-root) : sinon elle
+   passait sous son fond, et la liste s'y voyait défiler. */
+.ag-tete {
+  position: sticky; top: 0; z-index: 2;
+  display: flow-root;
+  background: var(--fond);
+}
+.ag-barre {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
+  padding: 0 0 8px;
+}
+.ag-barre .bouton { height: 26px; padding: 0 10px; }
+.ag-fleche { min-width: 28px; font-size: 14px; line-height: 1; }
+.ag-plage {
+  font-size: 12.5px; font-weight: 600; white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+/* Le menu des chaînes se range à droite, et rend la place quand elle manque :
+   la barre passe alors à la ligne plutôt que de couper la plage de dates. */
+.ag-chaine { margin-left: auto; max-width: 200px; }
+
+.ag-note {
+  margin: 0 0 8px; padding: 6px 10px;
+  font-size: 11.5px; color: var(--texte-doux);
+  border: 1px solid var(--filet); border-radius: var(--r-grand);
+  background: var(--fond-creux);
+}
+.ag-note--alerte { color: var(--rouge); border-color: rgba(236, 76, 76, 0.35); }
+.ag-prog {
+  height: 3px; margin-top: 6px; overflow: hidden;
+  border-radius: 2px; background: var(--filet);
+}
+.ag-prog-rempli { height: 100%; background: var(--violet); transition: width 0.3s; }
+
+.ag-jour { margin: 0 0 10px; }
+.ag-jour-titre {
+  display: flex; align-items: center; gap: 6px;
+  margin: 0 0 4px; padding-left: 2px;
+  font-size: 11.5px; font-weight: 700; color: var(--texte-doux);
+}
+/* Le jour courant porte la pastille de l'accent, comme la rangée que la page
+   Programme de Twitch éclaire. */
+.ag-auj {
+  padding: 1px 7px; border-radius: 999px;
+  background: rgba(145, 71, 255, 0.18); color: var(--violet-texte);
+  font-size: 10px; font-weight: 700;
+}
+.ag-vide { margin: 0 0 4px; padding-left: 2px; font-size: 12px; color: var(--texte-faible); }
+
+.ag-ent {
+  display: grid; grid-template-columns: 80px minmax(0, 1fr); align-items: center; gap: 10px;
+  padding: 5px 6px; border-radius: var(--r-grand);
+  color: inherit; text-decoration: none;
+}
+a.ag-ent:hover { background: var(--survol); }
+a.ag-ent:focus-visible { outline: 2px solid var(--violet); outline-offset: -2px; }
+/* Un créneau PROGRAMMÉ n'a pas encore eu lieu : le pointillé le dit sans
+   couleur de plus, comme un rendez-vous noté au crayon. */
+.ag-ent--prevu { border: 1px dashed var(--filet-fort); }
+.ag-ent--sansRediffusion { opacity: 0.8; }
+
+.ag-vig {
+  position: relative; width: 80px; height: 45px; overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--filet); border-radius: var(--r-petit);
+  background: var(--fond-creux);
+}
+.ag-img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.ag-duree {
+  position: absolute; right: 3px; bottom: 3px;
+  padding: 0 4px; border-radius: 3px;
+  background: rgba(0, 0, 0, 0.78); color: #fff;
+  font-size: 10px; line-height: 1.5; font-variant-numeric: tabular-nums;
+}
+.ag-marque {
+  padding: 1px 6px; border-radius: 3px; text-align: center;
+  font-size: 9.5px; font-weight: 700; line-height: 1.35;
+}
+/* Le rouge du direct est celui de Twitch, et la pastille la sienne : un
+   « EN DIRECT » qui aurait une autre couleur se lirait comme autre chose. */
+.ag-marque--direct { background: var(--direct); color: #fff; text-transform: uppercase; letter-spacing: 0.3px; }
+.ag-marque--prevu { border: 1px solid var(--violet-doux); color: var(--violet-texte); }
+.ag-marque--sansRediffusion { color: var(--texte-faible); font-weight: 600; }
+
+.ag-corps { min-width: 0; }
+.ag-l1, .ag-l2 { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+.ag-nom { flex: 0 1 auto; min-width: 0; font-size: 12.5px; font-weight: 700;
+          white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ag-jeu { flex: 0 1 auto; min-width: 0; font-size: 11.5px; color: var(--violet-texte);
+          white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ag-heure { flex: 0 0 auto; margin-left: auto; font-size: 11px; color: var(--texte-faible);
+            white-space: nowrap; font-variant-numeric: tabular-nums; }
+.ag-titre { flex: 1 1 auto; min-width: 0; font-size: 12px; color: var(--texte-doux);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ag-meta { flex: 0 0 auto; font-size: 11px; color: var(--texte-faible);
+           white-space: nowrap; font-variant-numeric: tabular-nums; }
+.ag-point {
+  display: inline-block; width: 7px; height: 7px; margin-right: 4px;
+  border-radius: 50%; background: var(--direct); vertical-align: 1px;
+}
+/* LE CADENAS DES ABONNÉS (4.25.0.1), dans l'or des abonnements : une
+   rediffusion qui vous est fermée. Ouverte, elle ne porte rien (4.25.0.2).
+   L'icône seule depuis la 4.25.0.4, sans cadre ni mot. */
+.ag-abo {
+  flex: 0 0 auto;
+  display: inline-flex; align-items: center;
+  color: var(--or);
+}
+.ag-cadenas { flex: 0 0 auto; width: 11px; height: 11px; }
+
+/* ── Hors ligne ──────────────────────────────────────────────────────────── */
+.hl-liste { display: flex; flex-direction: column; gap: 2px; }
+.hl-ligne {
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px; border-radius: var(--r-grand);
+}
+.hl-ligne:hover { background: var(--survol); }
+/* Le filet entre les chaînes qui ont programmé leur prochain direct, en tête,
+   et les autres (4.25.0.1) ; puis celles que Twitch ne sert plus (4.25.0.2). */
+.hl-ligne--suite { position: relative; margin-top: 9px; }
+.hl-ligne--suite::before {
+  content: ''; position: absolute; left: 6px; right: 6px; top: -6px;
+  border-top: 1px solid var(--filet-fort);
+}
+.hl-avatar {
+  flex: 0 0 auto; width: 32px; height: 32px; border-radius: 50%;
+  object-fit: cover; background: var(--fond-creux);
+}
+.hl-corps { flex: 1 1 auto; min-width: 0; }
+.hl-l1 { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.hl-nom { flex: 0 1 auto; min-width: 0; font-size: 12.5px; font-weight: 700;
+          white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hl-quand { flex: 0 0 auto; font-size: 11px; color: var(--texte-faible); white-space: nowrap; }
+/* Indisponible : estompée, comme une carte hors ligne de la barre. */
+.hl-ligne--indisponible .hl-avatar, .hl-ligne--indisponible .hl-nom { opacity: 0.55; }
+.hl-titre, .hl-prochain { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hl-titre { color: var(--texte-doux); }
+.hl-prochain { color: var(--violet-texte); }
+.hl-actions { flex: 0 0 auto; display: flex; align-items: center; gap: 6px; }
+.hl-actions .bouton { height: 26px; padding: 0 10px; font-size: 11.5px; }
+/* Un lien habillé en bouton : il en prend la hauteur et la ligne de base, et
+   perd le soulignement d'un lien. */
+a.bouton { display: inline-flex; align-items: center; text-decoration: none; }

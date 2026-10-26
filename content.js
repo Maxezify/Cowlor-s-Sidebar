@@ -719,6 +719,51 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
   } catch {   }
 })();
 
+const TSE_SUIVIES_FRAME_NAME = 'tse-suivies';
+const TSE_SUIVIES_MSG = 'tse:suivies';
+(() => {
+  'use strict';
+  try {
+    if (window.top === window) return;
+    if (window.name !== TSE_SUIVIES_FRAME_NAME) return;
+    if (window.top.location.origin !== location.origin) return;
+  } catch { return; }
+  const vrai = window.fetch;
+  if (typeof vrai !== 'function') return;
+  const poster = (x) => {
+    try { window.top.postMessage({ [TSE_SUIVIES_MSG]: x }, location.origin); } catch {   }
+  };
+
+  const operations = (corps) => {
+    try { return [].concat(JSON.parse(corps)).map((o) => (o && o.operationName) || ''); }
+    catch { return []; }
+  };
+  const lire = (ops, json) => {
+    const reps = [].concat(json);
+    ops.forEach((nom, i) => {
+      if (nom !== 'ChannelFollows') return;
+      const f = reps[i]?.data?.user?.follows;
+      if (!f || !Array.isArray(f.edges)) { poster({ illisible: true }); return; }
+      poster({ logins: f.edges.map((e) => e?.node?.login).filter((l) => typeof l === 'string'),
+               suite: typeof f.pageInfo?.hasNextPage === 'boolean' ? f.pageInfo.hasNextPage : null });
+    });
+  };
+  window.fetch = function (...args) {
+    const p = vrai.apply(window, args);
+    try {
+      const [url, init] = args;
+      const ops = typeof init?.body === 'string' && String(url).includes('gql.twitch.tv')
+        ? operations(init.body) : [];
+      if (ops.includes('ChannelFollows')) {
+        p.then((rep) => rep.clone().json().then((json) => lire(ops, json)),
+               () => poster({ echec: true }))
+          .catch(() => poster({ illisible: true }));
+      }
+    } catch {   }
+    return p;
+  };
+})();
+
 (() => {
   'use strict';
 
@@ -2182,6 +2227,25 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
 
     ROSTER_MAX_AGE:       60 * 24 * 60 * 60_000,
 
+    SUIVIES_ENABLED:      true,
+
+    SUIVIES_DELAI:        20_000,
+    SUIVIES_TTL:          12 * 60 * 60_000,
+
+    SUIVIES_REPRISE:      30 * 60_000,
+
+    SUIVIES_PREMIERE:     15_000,
+    SUIVIES_PAS:          800,
+    SUIVIES_CALME:        30_000,
+    SUIVIES_TIMEOUT:      120_000,
+
+    SUIVIES_MARGE:        10 * 60_000,
+    SUIVIES_STAMP_KEY:    'tse:suiviests',
+
+    SUIVIES_RUN_KEY:      'tse:suiviesrun',
+    SUIVIES_LEASE:        150_000,
+    SUIVIES_CLAIM:        400,
+
     AHEAD_ENABLED:        true,
 
     AHEAD_MAX:            15,
@@ -2293,11 +2357,43 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
 
     LOADING_FADE_MS:        1_000,
 
+    DEPLIAGE_ATTENTE_MS:    1_000,
+
+    DEPLIAGE_REPRISE_MS:    10_000,
+
+    DEPLIAGE_CLICS_MAX:     25,
+
     OPTIONS_KEY:            'tse:options',
 
     ROUE_KEY:               'tse:roue',
 
     INDICE_KEY:             'tse:indice',
+
+    AGENDA_LOT_CHAINES:     25,
+    AGENDA_LOT_DIFFUSIONS:  10,
+
+    AGENDA_LOT_ACCES:       15,
+    AGENDA_REMONTEE:        10,
+    AGENDA_VIDEOS:          12,
+
+    AGENDA_VIDEOS_PALIERS:  [40, 100],
+    AGENDA_CRENEAUX:        12,
+    AGENDA_MAX_CHAINES:     400,
+    AGENDA_TTL:             10 * 60_000,
+
+    AGENDA_TTL_LISTES:      6 * 3_600_000,
+
+    AGENDA_RETENUE_MS:      70 * 86_400_000,
+
+    AGENDA_MUETTE_MS:       90 * 86_400_000,
+
+    AGENDA_RECONFIRMER_MS:  60_000,
+    AGENDA_PAUSE_MS:        1_000,
+
+    AGENDA_BASE:            'tse-agenda',
+    AGENDA_ECRITURE_MS:     3_000,
+
+    AGENDA_ECRITURE_REPRISE_MS: 60_000,
 
     INCRUSTE_W:             1100,
     INCRUSTE_H:             760
@@ -2801,6 +2897,10 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     
 
     .side-nav-card[data-tse-offline="true"] { display: none !important; }
+    
+    .side-nav-card:has(.side-nav-card__avatar--offline):not([data-tse-synthetic="true"]) { display: none !important; }
+    
+    ${DOM.showMoreStableSelector.split(',').map((x) => `[data-tse-suivie="true"] ${x.trim()}`).join(',\n    ')} { display: none !important; }
     
     .side-nav-card[data-tse-doublon="true"] { display: none !important; }
     .side-nav-section.tse-section-hidden { display: none !important; }
@@ -4697,7 +4797,11 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
               const fautifs = lots.filter(o => o && Array.isArray(o.errors) && o.errors.length);
               if (fautifs.length) {
                 reseau.refus++;
-                erreurs.noter('gql', 'réponse 200 avec erreurs GraphQL',
+
+                const noms = [].concat(payload).map((o) => (o && o.operationName) || '?');
+                const refusees = [...new Set(lots.map((o, i) => (fautifs.includes(o) ? noms[i] || '?' : null))
+                  .filter(Boolean))];
+                erreurs.noter('gql', `réponse 200 avec erreurs GraphQL (${refusees.join(', ')})`,
                   String(fautifs[0].errors[0]?.message || '').slice(0, 120));
               }
               return j;
@@ -6362,6 +6466,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     let held = false;
     const setHold = (on, raison = 'global') => {
       const avant = held;
+
+      if (cycleActive && on !== verrous.has(raison)) noter('verrou', `${raison} ${on ? 'posé' : 'levé'}`);
       if (on) verrous.add(raison); else verrous.delete(raison);
       held = verrous.size > 0;
       if (held && !avant) clearStability();
@@ -6370,6 +6476,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     const notifyScan = (hadOfflineActivity, cardCount) => {
       if (!cycleActive) return false;
       const stillGrowing = cardCount > lastCardCount;
+      if (lastCardCount === 0 && cardCount > 0) noter('peuplée', `${cardCount} carte(s)`);
       if (cardCount > lastCardCount) lastCardCount = cardCount;
       const ready = cardCount > 0 && !hadOfflineActivity && !stillGrowing && !held;
       if (!ready) { clearStability(); return stillGrowing; }
@@ -6434,6 +6541,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
 
     return { init, notifyScan,
       setHold, bumpActivity, startCycle,
+
+      noter,
 
       enCycle: () => cycleActive,
 
@@ -6685,6 +6794,13 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       oublier(CFG.SUBS_LABEL_KEY, 'étiquette d\'ancienneté');
       oublier(CFG.SUBS_END_LABEL_KEY, 'étiquette de fin');
     }
+  };
+
+  const bailReleve = (cle, duree) => {
+    try {
+      const t = Number(String(localStorage.getItem(cle) || '').split(':')[1] || 0);
+      return t > 0 && Date.now() - t < duree;
+    } catch { return false; }
   };
 
   const subsPage = (() => {
@@ -7105,6 +7221,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       if (!force && Date.now() - horodatage() < attenteAvantReleve(periodeReleve())) return null;
 
       if (!force && horodatage() && bailFrais()) { differes += 1; return null; }
+
+      if (!force && bailReleve(CFG.SUIVIES_RUN_KEY, CFG.SUIVIES_LEASE)) { differes += 1; return null; }
       if (!document.body) return null;
 
       running = true;
@@ -7311,9 +7429,13 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
 
     return { init, refresh, horodatage, notifySidebar, enAttente,
 
+             occupe: () => running || bailFrais(),
+
+             enCours: () => running,
+
              bilan: () => {
                const t = horodatage();
-               return { ...bilan, differes, videsDeSuite: videsDeSuite(),
+               return { ...bilan, enCours: running, differes, videsDeSuite: videsDeSuite(),
                         prochainDansMs: t
                           ? Math.max(0, t + attenteAvantReleve(periodeReleve()) - Date.now()) : 0,
                         onglets: bilan.onglets.map((o) => ({ ...o })) };
@@ -7330,28 +7452,37 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
 
   const roster = (() => {
     const map = new Map();
+
+    const retraits = new Map();
     let dirty = false;
 
     let ordered = null;
 
-    const load = () => {
-      try {
-        const obj = JSON.parse(localStorage.getItem(CFG.ROSTER_STORAGE_KEY) || 'null');
-        if (!obj || typeof obj !== 'object') return;
-        for (const [login, ts] of Object.entries(obj)) {
-          const n = Number(ts);
-          if (typeof login === 'string' && Number.isFinite(n) && n > 0) map.set(login, n);
-        }
-        ordered = null;
-        prune();
-      } catch (e) {
-        erreurs.noter('stockage', 'lecture roster : ' + ((e && e.name) || e));
+    const fusionner = () => {
+      let obj = null;
+      try { obj = JSON.parse(localStorage.getItem(CFG.ROSTER_STORAGE_KEY) || 'null'); }
+      catch (e) { erreurs.noter('stockage', 'lecture roster : ' + ((e && e.name) || e)); }
+      if (!obj || typeof obj !== 'object') return false;
+      let bouge = false;
+      for (const [login, v] of Object.entries(obj)) {
+        const n = Number(v);
+        if (typeof login !== 'string' || !Number.isFinite(n) || n === 0) continue;
+        const t = Math.abs(n);
+        if (t <= Math.max(map.get(login) || 0, retraits.get(login) || 0)) continue;
+        if (n > 0) { map.set(login, t); retraits.delete(login); }
+        else { map.delete(login); retraits.set(login, t); }
+        bouge = true;
       }
+      if (bouge) ordered = null;
+      return bouge;
     };
+
+    const load = () => { fusionner(); prune(); };
 
     const prune = () => {
       const cutoff = Date.now() - CFG.ROSTER_MAX_AGE;
       for (const [login, ts] of map) if (ts < cutoff) { map.delete(login); ordered = null; }
+      for (const [login, ts] of retraits) if (ts < cutoff) retraits.delete(login);
       if (map.size <= CFG.ROSTER_MAX) return;
       const kept = [...map.entries()].sort((a, b) => b[1] - a[1]).slice(0, CFG.ROSTER_MAX);
       map.clear();
@@ -7362,10 +7493,11 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     const flush = () => {
       if (!dirty) return;
       dirty = false;
+      fusionner();
       prune();
       try {
-        localStorage.setItem(CFG.ROSTER_STORAGE_KEY,
-          JSON.stringify(Object.fromEntries(map)));
+        localStorage.setItem(CFG.ROSTER_STORAGE_KEY, JSON.stringify(Object.fromEntries([
+          ...map, ...[...retraits].map(([login, ts]) => [login, -ts])])));
       } catch (e) { erreurs.noter('stockage', 'roster : ' + (e && e.name || e)); }
     };
 
@@ -7376,24 +7508,278 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
 
       if (prev && now - prev < 60_000) return;
       map.set(login, now);
+      retraits.delete(login);
       dirty = true;
       ordered = null;
     };
+
+    const releve = (logins, avant = null) => {
+      const now = Date.now();
+      const lus = new Set(logins);
+      let ajoutees = 0, retirees = 0;
+      for (const login of lus) {
+        if (!map.has(login)) ajoutees += 1;
+        map.set(login, now);
+        retraits.delete(login);
+      }
+      if (avant !== null) {
+        for (const [login, ts] of map) {
+          if (lus.has(login) || ts >= avant) continue;
+          map.delete(login);
+          retraits.set(login, now);
+          retirees += 1;
+        }
+      }
+      ordered = null;
+      dirty = true;
+      flush();
+      return { ajoutees, retirees };
+    };
+
+    const effacer = () => { map.clear(); retraits.clear(); dirty = false; ordered = null; };
 
     const init = () => {
       load();
 
       window.addEventListener('pagehide', flush);
       document.addEventListener('visibilitychange', () => { if (document.hidden) flush(); });
+
+      window.addEventListener('storage', (e) => {
+        if (e.key === null || (e.key === CFG.ROSTER_STORAGE_KEY && e.newValue === null)) effacer();
+        else if (e.key === CFG.ROSTER_STORAGE_KEY) fusionner();
+      });
     };
 
     return {
-      init, flush, record,
+      init, flush, record, releve,
       entries: () => (ordered ??= [...map.entries()].sort((a, b) => b[1] - a[1])),
       clear:   () => {
-        map.clear(); dirty = false; ordered = null;
+        effacer();
         oublier(CFG.ROSTER_STORAGE_KEY, 'roster');
+
+        oublier(CFG.SUIVIES_STAMP_KEY, 'horodatage des suivies');
       }
+    };
+  })();
+
+  const suivies = (() => {
+    const CHEMIN = '/directory/following/channels';
+    const RE_LOGIN_SUIVIE = /^[a-z0-9_]{1,25}$/;
+    const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+    let enCours = false;
+
+    let prevu = false;
+    let differes = 0;
+
+    let bilan = null;
+
+    const LECTEUR = 1;
+    const champs = () => {
+      try {
+        const [v, t, n] = String(localStorage.getItem(CFG.SUIVIES_STAMP_KEY) || '').split(':');
+        return Number(v) === LECTEUR ? { t: Number(t) || 0, n: Number(n) || 0 } : null;
+      } catch { return null; }
+    };
+    const horodatage = () => champs()?.t || 0;
+    const incompletsDeSuite = () => champs()?.n || 0;
+    const attente = () => {
+      const n = incompletsDeSuite();
+      return n > 0 ? Math.min(CFG.SUIVIES_TTL, CFG.SUIVIES_REPRISE * 2 ** (n - 1)) : CFG.SUIVIES_TTL;
+    };
+    const marquer = (n) => {
+      try { localStorage.setItem(CFG.SUIVIES_STAMP_KEY, `${LECTEUR}:${Date.now()}:${n}`); }
+      catch (e) { erreurs.noter('stockage', 'horodatage des suivies : ' + ((e && e.name) || e)); }
+    };
+
+    const JETON = Math.random().toString(36).slice(2, 10);
+    const prendreBail = () => {
+      try { localStorage.setItem(CFG.SUIVIES_RUN_KEY, JETON + ':' + Date.now()); }
+      catch {   }
+    };
+    const bailTenu = () => {
+      try { return String(localStorage.getItem(CFG.SUIVIES_RUN_KEY) || '').split(':')[0] === JETON; }
+      catch { return true; }
+    };
+    const rendreBail = () => {
+      try { if (bailTenu()) localStorage.removeItem(CFG.SUIVIES_RUN_KEY); }
+      catch {   }
+    };
+    window.addEventListener('pagehide', rendreBail);
+
+    const defileurDe = (doc) => {
+      const d = doc.querySelector('.root-scrollable__content');
+      if (d) return d;
+      const w = doc.defaultView;
+      for (let e = (doc.querySelector('main') || doc.body)?.querySelector('a[href^="/"]');
+           e && e !== doc.body; e = e.parentElement) {
+        if (/(auto|scroll)/.test(w.getComputedStyle(e).overflowY) && e.scrollHeight > e.clientHeight) return e;
+      }
+      return doc.scrollingElement;
+    };
+
+    const parcourir = async (b) => {
+      const logins = new Set();
+      let suite = null;
+      let nouvelle = Date.now();
+      const cadre = document.createElement('iframe');
+      const recevoir = (e) => {
+        if (e.source !== cadre.contentWindow || e.origin !== location.origin) return;
+        const x = e.data && e.data[TSE_SUIVIES_MSG];
+        if (!x || typeof x !== 'object') return;
+        b.pages += 1;
+        if (!Array.isArray(x.logins)) { b.illisibles += 1; return; }
+        const avant = logins.size;
+        for (const l of x.logins) {
+          const login = String(l).toLowerCase();
+          if (RE_LOGIN_SUIVIE.test(login)) logins.add(login);
+        }
+        if (logins.size > avant) nouvelle = Date.now();
+        if (typeof x.suite === 'boolean') suite = x.suite;
+      };
+      window.addEventListener('message', recevoir);
+      const t0 = Date.now();
+      const reste = () => CFG.SUIVIES_TIMEOUT - (Date.now() - t0);
+      try {
+
+        cadre.name = TSE_SUIVIES_FRAME_NAME;
+        cadre.setAttribute('aria-hidden', 'true');
+        cadre.setAttribute('tabindex', '-1');
+
+        cadre.style.cssText = 'position:fixed;left:0;top:0;width:1280px;height:100vh;'
+          + 'opacity:0;pointer-events:none;border:0;z-index:-1';
+        const charge = new Promise((r) => cadre.addEventListener('load', () => r(true), { once: true }));
+        cadre.src = location.origin + CHEMIN;
+        document.body.appendChild(cadre);
+        if (!await Promise.race([charge, pause(reste()).then(() => false)])) {
+          b.arret = 'page jamais chargée';
+          return null;
+        }
+        let doc = null;
+        try {
+          const chemin = cadre.contentWindow.location.pathname;
+          if (chemin !== CHEMIN) {
+            b.arret = `renvoyé vers ${chemin}`;
+            erreurs.noter('suivies', `relevé renvoyé vers ${chemin}`, 'session expirée ou non connectée ?');
+            return null;
+          }
+          doc = cadre.contentDocument;
+        } catch (e) {
+          b.arret = 'origine illisible';
+          erreurs.noter('suivies', 'relevé : origine illisible', (e && e.name) || '');
+          return null;
+        }
+
+        const tCharge = Date.now();
+        while (!b.pages && Date.now() - tCharge < CFG.SUIVIES_PREMIERE && reste() > 0) await pause(250);
+        if (!b.pages) {
+          b.arret = 'aucune réponse ChannelFollows';
+          erreurs.noter('suivies', 'la page des chaînes suivies n\'a rendu aucune réponse ChannelFollows lisible',
+                        'opération renommée, ou réponse lue ailleurs que par fetch ?');
+          return null;
+        }
+        let defileur = null;
+        nouvelle = Date.now();
+        while (suite !== false && Date.now() - nouvelle < CFG.SUIVIES_CALME && reste() > 0) {
+          if (!defileur?.isConnected) defileur = defileurDe(doc);
+          if (!defileur) { await pause(CFG.SUIVIES_PAS); continue; }
+          b.tours += 1;
+          const avant = b.pages;
+          defileur.scrollTop = defileur.scrollHeight;
+          await pause(CFG.SUIVIES_PAS);
+          if (b.pages === avant && suite !== false) {
+
+            defileur.scrollTop = Math.max(0, defileur.scrollHeight - 3 * defileur.clientHeight);
+            await pause(CFG.SUIVIES_PAS / 4);
+            defileur.scrollTop = defileur.scrollHeight;
+            await pause(CFG.SUIVIES_PAS);
+          }
+        }
+        b.arret = suite === false ? 'fin de liste' : reste() <= 0 ? 'délai maximal' : 'plus rien de neuf';
+        return { logins, complet: suite === false };
+      } finally {
+        window.removeEventListener('message', recevoir);
+        cadre.remove();
+      }
+    };
+
+    const refresh = async (force = false) => {
+      if (!CFG.SUIVIES_ENABLED || enCours) return null;
+      if (!force && Date.now() - horodatage() < attente()) return null;
+
+      if (!force && (subsPage.occupe() || bailReleve(CFG.SUIVIES_RUN_KEY, CFG.SUIVIES_LEASE))) {
+        differes += 1;
+        return null;
+      }
+      if (!document.body) return null;
+
+      enCours = true;
+      const t0 = Date.now();
+      const b = { debut: t0, chaines: 0, pages: 0, illisibles: 0, tours: 0, complet: false,
+                  arret: '', ajoutees: 0, retirees: 0, dureeMs: 0 };
+      bilan = b;
+      try {
+        prendreBail();
+        if (!force) {
+          await pause(CFG.SUIVIES_CLAIM);
+          if (!bailTenu()) { differes += 1; b.arret = 'bail pris par une autre page'; return null; }
+        }
+        const r = await parcourir(b);
+        if (r) {
+
+          const { ajoutees, retirees } = roster.releve([...r.logins], r.complet ? t0 - CFG.SUIVIES_MARGE : null);
+          Object.assign(b, { chaines: r.logins.size, complet: r.complet, ajoutees, retirees });
+          if (ajoutees || retirees) scheduleScan();
+        }
+        marquer(r && r.complet ? 0 : incompletsDeSuite() + 1);
+        return r ? [...r.logins] : null;
+      } finally {
+        b.dureeMs = Date.now() - t0;
+
+        enCours = false;
+        rendreBail();
+      }
+    };
+
+    let arme = false, parti = false;
+    const enAttente = () => arme && !parti;
+    const tenter = (reste) => {
+      if (document.hidden) {
+        document.addEventListener('visibilitychange', () => tenter(reste), { once: true });
+        return;
+      }
+      refresh().then((r) => {
+
+        if (r !== null || reste <= 0 || enCours || Date.now() - horodatage() < attente()) {
+          prevu = false;
+          return;
+        }
+        setTimeout(() => tenter(reste - 1), CFG.SUIVIES_DELAI);
+      }).catch((e) => {
+        prevu = false;
+        erreurs.noter('suivies', 'relevé : ' + ((e && e.message) || e));
+      });
+    };
+    const notifySidebar = (aDesChainesSuivies) => {
+      if (!enAttente() || !aDesChainesSuivies) return;
+      parti = true;
+      prevu = Date.now() - horodatage() >= attente();
+      setTimeout(() => tenter(5), CFG.SUIVIES_DELAI);
+    };
+    const init = () => { if (CFG.SUIVIES_ENABLED) arme = true; };
+
+    const rearmer = () => { parti = false; };
+
+    return {
+      init, refresh, notifySidebar, enAttente, rearmer,
+      enCours: () => enCours,
+
+      aVenir: () => enCours || (prevu && Date.now() - horodatage() >= attente()),
+      bilan: () => {
+        const t = horodatage();
+        return { horodatage: t, enCours, differes, incompletsDeSuite: incompletsDeSuite(),
+                 prochainDansMs: t ? Math.max(0, t + attente() - Date.now()) : 0, prevu,
+                 dernier: bilan && { ...bilan } };
+      },
     };
   })();
 
@@ -10514,6 +10900,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       visits.map.clear();
       oublier(CFG.VISIT_STORAGE_KEY, 'visites');
       roster.clear();
+      suivies.rearmer();
+      agenda.effacer();
       subs.clear();
       liveLag.clear();
       preview.oublierVerdicts();
@@ -10643,6 +11031,882 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     }
   };
 
+  const agenda = (() => {
+
+    const RE_LOGIN_AGENDA = /^[a-z0-9_]{1,25}$/;
+
+    const RE_SCHEMA = /Cannot query field|Unknown (?:field|argument|type)|In field|Unknown directive/i;
+
+    const MEME_DIRECT_MS = 15 * 60_000;
+
+    const CRENEAU_DEFAUT_MS = 60 * 60_000;
+
+    const EXTRAS = [
+      { nom: 'broadcastIdentifier', champ: 'broadcastIdentifier { id }', re: /broadcastIdentifier|BroadcastIdOnly/ },
+      { nom: 'resourceRestriction', champ: 'resourceRestriction { type }', re: /resourceRestriction|ResourceRestriction/ },
+    ];
+    const extrasRefuses = new Set();
+    const champsVideo = () => 'id title createdAt lengthSeconds viewCount'
+      + ' previewThumbnailURL(width: 160, height: 90) game { name displayName }'
+      + EXTRAS.filter((x) => !extrasRefuses.has(x.nom)).map((x) => ' ' + x.champ).join('');
+    const qChaines = () =>
+      'query TseAgendaChaines($logins: [String!]) {' +
+      '  users(logins: $logins) {' +
+      '    login displayName profileImageURL(width: 70)' +
+      '    stream { id createdAt viewersCount title game { name displayName } }' +
+      '    lastBroadcast { id startedAt }' +
+      '    broadcastSettings { title }' +
+      `    videos(first: 1, type: ARCHIVE, sort: TIME) { edges { node { ${champsVideo()} } } }` +
+      '  }' +
+      '}';
+    const qDiffusions = () =>
+      'query TseAgendaDiffusions($logins: [String!], $n: Int!) {' +
+      '  users(logins: $logins) {' +
+      `    login videos(first: $n, type: ARCHIVE, sort: TIME) { edges { node { ${champsVideo()} } } }` +
+      '  }' +
+      '}';
+    const SEGMENT = 'id startAt endAt title categories { name displayName }';
+    const FORMES = [
+      { nom: 'segmentList(first)', liste:
+        `segmentList(first: ${CFG.AGENDA_CRENEAUX}) { edges { node { ${SEGMENT} isCancelled } } }` },
+      { nom: 'segmentList', liste: `segmentList { edges { node { ${SEGMENT} isCancelled } } }` },
+      { nom: 'nextSegment', liste: '' },
+    ];
+    const qProgramme = (liste) =>
+      'query TseAgendaProgramme($logins: [String!]) {' +
+      '  users(logins: $logins) {' +
+      `    login channel { schedule { nextSegment { ${SEGMENT} } ${liste} } }` +
+      '  }' +
+      '}';
+
+    const PARAMS_JETON = '{ platform: "web", playerBackend: "mediaplayer", playerType: "site" }';
+    const qAcces = (ids) => 'query TseAgendaAcces {' + ids.map((id, i) =>
+      ` a${i}: videoPlaybackAccessToken(id: "${id}", params: ${PARAMS_JETON}) { value }`).join('') + ' }';
+    const fermeeSelonJeton = (valeur) => {
+      try {
+        const rb = JSON.parse(valeur)?.chansub?.restricted_bitrates;
+        return Array.isArray(rb) ? rb.includes('audio_only') && rb.includes('chunked') : null;
+      } catch { return null; }
+    };
+
+    const ms = (iso) => { const t = Date.parse(iso); return Number.isFinite(t) ? t : null; };
+    const texte = (s, max = 200) => (typeof s === 'string' ? s.trim().slice(0, max) : '');
+    const image = (u) => (typeof u === 'string' && /^https:\/\//.test(u) ? u : null);
+    const jeu = (g) => (g && typeof g.name === 'string' && g.name
+      ? { jeu: g.name, libelle: texte(g.displayName, 80) || g.name }
+      : { jeu: null, libelle: null });
+    const chiffres = (v) => (/^\d+$/.test(String(v ?? '')) ? String(v) : null);
+    const video = (n) => {
+      const debut = ms(n?.createdAt);
+      if (!n || !chiffres(n.id) || debut === null) return null;
+      return { id: String(n.id), titre: texte(n.title), debut,
+               duree: Number.isFinite(n.lengthSeconds) && n.lengthSeconds >= 0 ? n.lengthSeconds : null,
+               vues: Number.isFinite(n.viewCount) ? n.viewCount : null,
+               vignette: image(n.previewThumbnailURL), ...jeu(n.game),
+               idDirect: chiffres(n.broadcastIdentifier?.id),
+
+               restreinte: !!(n.resourceRestriction && typeof n.resourceRestriction === 'object') };
+    };
+    const finVideo = (v) => v.debut + (v.duree || 0) * 1000;
+    const creneau = (n) => {
+      const debut = ms(n?.startAt);
+      if (!n || debut === null) return null;
+      const fin = ms(n.endAt);
+      return { id: String(n.id || debut), titre: texte(n.title), debut,
+               fin: fin !== null && fin > debut ? fin : null,
+               annule: n.isCancelled === true,
+               ...jeu(Array.isArray(n.categories) ? n.categories[0] : null) };
+    };
+    const enDirect = (s) => {
+      const debut = ms(s?.createdAt);
+      if (!s || debut === null) return null;
+      return { id: chiffres(s.id), debut, spectateurs: Number.isFinite(s.viewersCount) ? s.viewersCount : null,
+               titre: texte(s.title), ...jeu(s.game) };
+    };
+
+    const chaines = new Map();
+    const diffusions = new Map();
+    const acces = new Map();
+    const echecs = new Map();
+    let forme = 0;
+    let formesEpuisees = false;
+    let refus = null;
+    let accesRefuse = false;
+    let travail = null;
+
+    let fraisApres = 0;
+    let pauseJusqua = 0;
+    let lot1 = CFG.AGENDA_LOT_CHAINES;
+    let lot2 = CFG.AGENDA_LOT_DIFFUSIONS;
+    let lotAcces = CFG.AGENDA_LOT_ACCES;
+
+    let borne1 = CFG.AGENDA_LOT_CHAINES;
+    let borne2 = CFG.AGENDA_LOT_DIFFUSIONS;
+    let pauseMs = CFG.AGENDA_PAUSE_MS;
+    let servisDeSuite = 0;
+    let finDernierEnvoi = 0;
+    let version = 0;
+
+    let voulu = { debut: null, chaine: null };
+
+    const issues = () => ({ lots: 0, servis: 0, refus: 0, schema: 0, limites: 0, reseau: 0, partiels: 0 });
+    const bilan = { collectes: 0, envois: 0, absences: 0,
+                    chaines: issues(), programme: issues(), diffusions: issues(), acces: issues(),
+                    attentesGql: 0, abandons: 0, dureeMs: null, purgees: { chaines: 0, rediffusions: 0 },
+                    ralenties: 0, remontees: 0,
+                    memoire: { base: 'fermée', restaurees: 0, ecritures: 0, chainesEcrites: 0, retirees: 0, echecs: 0 } };
+
+    const frais = (ts) => ts >= fraisApres && Date.now() - ts <= CFG.AGENDA_TTL;
+
+    const peutRetenter = (cle) => {
+      const e = echecs.get(cle);
+      return !e || e.n < 2 || Date.now() - e.ts > CFG.AGENDA_TTL;
+    };
+    const noterEchec = (cle) => {
+      const e = echecs.get(cle) || { n: 0 };
+      echecs.set(cle, { n: e.n + 1, ts: Date.now() });
+    };
+
+    const directEnCache = (login) => {
+      const e = cache.get(login);
+      if (!e || Date.now() - (e.ts || 0) > 2 * CFG.LIVE_TTL) return undefined;
+      return e.stream ? enDirect(e.stream) : null;
+    };
+    const directDe = (login, f) => {
+      const c = directEnCache(login);
+      return c === undefined ? (f && f.direct) || null : c;
+    };
+
+    const estAbonne = (login) => subs.isSub(login);
+    const accesFrais = (a) => a.ts >= fraisApres && Date.now() - a.ts <= CFG.AGENDA_TTL_LISTES;
+
+    const accesFerme = (login) => acces.get(login)?.fermee === true;
+
+    const debutObserve = (login, f) => {
+      const m = derniersDirects.get(login);
+      if (m && f.finDernier !== null) {
+        const meme = (f.idDernier !== null && m.id === f.idDernier)
+          || (f.finDernier >= m.vu && f.finDernier - m.vu <= MEME_DIRECT_MS);
+        const origine = meme ? ms(m.origine) : null;
+        if (origine !== null && origine < f.finDernier) return origine;
+      }
+      const v = f.vuEnDirect;
+      return v && f.idDernier !== null && v.id === f.idDernier && v.debut < f.finDernier ? v.debut : null;
+    };
+
+    const finiDepuis = (login, f) => {
+      const m = derniersDirects.get(login);
+      return !!m && m.vu > f.ts && directEnCache(login) === null;
+    };
+
+    const aConfirmer = (f) => !!f.absente && f.absente.fois < 2;
+    const indisponible = (f) => !!f && !!f.absente && f.absente.fois >= 2;
+    const ficheFraiche = (login, f) => !!f && frais(f.ts)
+      && (!aConfirmer(f) || Date.now() - f.ts < CFG.AGENDA_RECONFIRMER_MS)
+      && !finiDepuis(login, f);
+
+    const cleListe = (f) => `${f.idDernier}|${f.finDernier}`;
+    const listeValide = (d, f) => d.ts >= fraisApres && Date.now() - d.ts <= CFG.AGENDA_TTL_LISTES
+      && d.cle === cleListe(f);
+
+    const estDuDernier = (v, f) =>
+      (v.idDirect !== null && f.idDernier !== null && v.idDirect === f.idDernier)
+      || (f.finDernier !== null && f.finDernier >= v.debut - MEME_DIRECT_MS
+          && f.finDernier <= finVideo(v) + MEME_DIRECT_MS);
+
+    const cibles = () => {
+      const vus = new Map(roster.entries());
+      const tous = [...vus.keys()].filter((l) => RE_LOGIN_AGENDA.test(l));
+
+      const score = new Map(tous.map((l) => [l, Number(visits.scoreFor(l).toFixed(3))]));
+      const direct = (l) => (directEnCache(l) ? 1 : 0);
+      const abonne = (l) => (estAbonne(l) ? 1 : 0);
+      tous.sort((a, b) => (direct(b) - direct(a)) || (abonne(b) - abonne(a))
+        || (score.get(b) - score.get(a)) || (vus.get(b) - vus.get(a))
+        || (a < b ? -1 : 1));
+      return { liste: tous.slice(0, CFG.AGENDA_MAX_CHAINES), total: tous.length };
+    };
+
+    const purger = (liste) => {
+      const gardees = new Set(liste);
+
+      const oter = (m, l) => { m.delete(l); sales.delete(l); retirees.add(l); };
+      for (const l of [...chaines.keys()]) {
+        if (!gardees.has(l)) { oter(chaines, l); bilan.purgees.chaines++; }
+      }
+      for (const l of [...diffusions.keys()]) if (!gardees.has(l)) oter(diffusions, l);
+      for (const l of [...acces.keys()]) if (!gardees.has(l)) oter(acces, l);
+      for (const k of [...echecs.keys()]) if (!gardees.has(k.slice(2))) echecs.delete(k);
+      ecrireBientot();
+      const borne = Date.now() - CFG.AGENDA_RETENUE_MS;
+      for (const d of diffusions.values()) {
+        const avant = d.videos.length;
+        if (avant && d.videos[avant - 1].debut < borne) {
+          d.videos = d.videos.filter((v) => v.debut >= borne);
+          bilan.purgees.rediffusions += avant - d.videos.length;
+        }
+      }
+    };
+
+    const actifDepuis = (login, f, debut) => {
+      if (directDe(login, f)) return true;
+      if (f.finDernier !== null && f.finDernier >= debut) return true;
+      return !!f.derniere && finVideo(f.derniere) >= debut;
+    };
+
+    const aCouvrir = (liste) => {
+      const { debut, chaine } = voulu;
+      if (debut === null) return [];
+      const out = [];
+      for (const login of liste) {
+        if (chaine && login !== chaine) continue;
+        const f = chaines.get(login);
+        if (!f || f.absente || !actifDepuis(login, f, debut) || !peutRetenter('2:' + login)) continue;
+        const d = diffusions.get(login);
+        if (!d || !listeValide(d, f)) {
+          out.push({ login, n: d ? Math.max(d.n, CFG.AGENDA_VIDEOS) : CFG.AGENDA_VIDEOS });
+          continue;
+        }
+        const palier = CFG.AGENDA_VIDEOS_PALIERS.find((p) => p > d.n);
+        if (!d.complet && palier && d.jusqua > debut) out.push({ login, n: palier });
+      }
+      return out;
+    };
+
+    const lacunes = (liste) => {
+      const { debut, chaine } = voulu;
+      if (debut === null) return 0;
+      return liste.filter((login) => {
+        if (chaine && login !== chaine) return false;
+        const f = chaines.get(login);
+        const d = diffusions.get(login);
+        return !!f && !f.absente && !!d && !d.complet && listeValide(d, f) && actifDepuis(login, f, debut)
+          && d.jusqua > debut && !CFG.AGENDA_VIDEOS_PALIERS.some((p) => p > d.n);
+      }).length;
+    };
+
+    const prochain = () => {
+      if (refus && refus.quoi === 'chaines') return null;
+      const { liste } = cibles();
+      const p1 = liste.filter((l) => !ficheFraiche(l, chaines.get(l)) && peutRetenter('1:' + l));
+      if (p1.length) return { passe: 1, logins: p1.slice(0, lot1) };
+
+      if (!formesEpuisees) {
+        const pp = liste.filter((l) => {
+          const f = chaines.get(l);
+          return f && !f.absente && f.planning === undefined && peutRetenter('p:' + l);
+        });
+        if (pp.length) return { passe: 'p', logins: pp.slice(0, lot1) };
+      }
+
+      if (!accesRefuse) {
+        const pa = liste.filter((l) => {
+          const f = chaines.get(l);
+          if (!f || f.absente || !f.derniere || !peutRetenter('a:' + l)) return false;
+          const a = acces.get(l);
+          return !a || a.video !== f.derniere.id || !accesFrais(a);
+        }).slice(0, Math.min(lot1, lotAcces));
+        if (pa.length) return { passe: 'a', logins: pa, ids: pa.map((l) => chaines.get(l).derniere.id) };
+      }
+      if (refus && refus.quoi === 'diffusions') return null;
+      const p2 = aCouvrir(liste);
+      if (!p2.length) return null;
+      const n = p2[0].n;
+      return { passe: 2, n, logins: p2.filter((x) => x.n === n).slice(0, lot2).map((x) => x.login) };
+    };
+
+    const parLogin = (data) => new Map((Array.isArray(data?.users) ? data.users : [])
+      .filter((u) => u && typeof u.login === 'string')
+      .map((u) => [u.login.toLowerCase(), u]));
+    const messageDe = (r) => String(r?.errors?.[0]?.message || '').slice(0, 160);
+
+    const surExtra = (chemin) => chemin.some((x) => EXTRAS.some((e) => e.nom === x));
+    const suspectsDe = (r) => new Set(r.errors
+      .map((e) => (Array.isArray(e?.path) && e.path[0] === 'users' && !surExtra(e.path)
+        ? r.data.users?.[e.path[1]]?.login : null))
+      .filter((l) => typeof l === 'string')
+      .map((l) => l.toLowerCase()));
+
+    const lireChaines = (logins, u, maintenant, douteux) => {
+      for (const l of logins) {
+        if (douteux(l)) { noterEchec('1:' + l); continue; }
+        echecs.delete('1:' + l);
+        const avant = chaines.get(l);
+        const x = u.get(l);
+        if (!x) {
+          const absente = { depuis: avant?.absente?.depuis ?? maintenant, fois: (avant?.absente?.fois || 0) + 1 };
+          chaines.set(l, avant && !avant.inconnue ? { ...avant, ts: maintenant, absente }
+            : { ts: maintenant, inconnue: true, absente });
+          bilan.absences++;
+          continue;
+        }
+        const direct = enDirect(x.stream);
+        chaines.set(l, {
+          ts: maintenant,
+          nom: texte(x.displayName, 60) || l,
+          avatar: image(x.profileImageURL),
+          direct,
+
+          vuEnDirect: direct ? { id: direct.id, debut: direct.debut }
+            : (avant && !avant.inconnue ? avant.vuEnDirect || null : null),
+
+          finDernier: ms(x.lastBroadcast?.startedAt),
+          idDernier: chiffres(x.lastBroadcast?.id),
+          titre: texte(x.broadcastSettings?.title),
+          derniere: (x.videos?.edges || []).map((e) => video(e?.node)).find(Boolean) || null,
+
+          planning: avant && !avant.inconnue ? avant.planning : undefined,
+        });
+      }
+    };
+    const lirePlanning = (logins, u, maintenant, douteux) => {
+      for (const l of logins) {
+        const f = chaines.get(l);
+        if (!f || f.inconnue) continue;
+
+        if (douteux(l) || !u.has(l)) { noterEchec('p:' + l); continue; }
+        echecs.delete('p:' + l);
+        const sch = u.get(l).channel?.schedule;
+        const liste = (sch?.segmentList?.edges || []).map((e) => creneau(e?.node)).filter(Boolean);
+
+        const suivant = creneau(sch?.nextSegment);
+        if (suivant && !liste.some((c) => c.id === suivant.id || c.debut === suivant.debut)) liste.push(suivant);
+        liste.sort((a, b) => a.debut - b.debut);
+        f.planning = { ts: maintenant, creneaux: liste.slice(0, 2 * CFG.AGENDA_CRENEAUX) };
+      }
+    };
+    const lireDiffusions = (logins, u, n, maintenant, douteux) => {
+      for (const l of logins) {
+
+        if (douteux(l) || !u.has(l)) { noterEchec('2:' + l); continue; }
+        echecs.delete('2:' + l);
+        const aretes = u.get(l).videos?.edges;
+        const liste = Array.isArray(aretes) ? aretes : [];
+        const f = chaines.get(l);
+        const videos = liste.map((e) => video(e?.node)).filter(Boolean).sort((a, b) => b.debut - a.debut);
+        diffusions.set(l, { ts: maintenant, n, complet: liste.length < n, videos,
+
+          jusqua: videos.length ? videos[videos.length - 1].debut : Infinity,
+
+          cle: f && !f.inconnue ? cleListe(f) : '' });
+      }
+    };
+
+    const lireAcces = (t, r, maintenant) => {
+      const fautes = Array.isArray(r.errors) && r.errors.length > 0;
+      const fautifs = new Set((r.errors || []).map((e) => (Array.isArray(e?.path) ? e.path[0] : null)));
+      t.logins.forEach((l, i) => {
+        const jeton = r.data['a' + i];
+        if (fautifs.has('a' + i) || (fautes && !jeton)) { noterEchec('a:' + l); return; }
+        echecs.delete('a:' + l);
+        acces.set(l, { video: t.ids[i], ts: maintenant,
+                       fermee: typeof jeton?.value === 'string' ? fermeeSelonJeton(jeton.value) : null });
+      });
+    };
+
+    const TABLE = 'chaines';
+    let base = null;
+    let restauration = null;
+    let restauree = false;
+    let sansBase = false;
+    let ecritureApres = 0;
+    let demandee = false;
+    let generation = 0;
+    let aEcrire = null;
+    const sales = new Set();
+    const retirees = new Set();
+    const requete = (q) => new Promise((ok, ko) => {
+      q.onsuccess = () => ok(q.result);
+      q.onerror = () => ko(q.error);
+    });
+    const ouvrirBase = () => base || (base = new Promise((ok, ko) => {
+      const q = window.indexedDB.open(CFG.AGENDA_BASE, 1);
+
+      q.onupgradeneeded = () => {
+        for (const n of [...q.result.objectStoreNames]) q.result.deleteObjectStore(n);
+        q.result.createObjectStore(TABLE);
+      };
+      q.onsuccess = () => ok(q.result);
+      q.onerror = () => ko(q.error);
+      q.onblocked = () => ko(new Error('base bloquée'));
+    }));
+    const estObjet = (x) => !!x && typeof x === 'object';
+    const fraicheur = (x) => (estObjet(x) && Number.isFinite(x.ts) ? x.ts : -Infinity);
+
+    const tsFiche = (f) => Math.max(fraicheur(f), fraicheur(f && f.planning));
+    const VALIDES = {
+      f: (f) => estObjet(f) && Number.isFinite(f.ts) && (f.inconnue === true || typeof f.nom === 'string'),
+      d: (d) => estObjet(d) && Number.isFinite(d.ts) && Array.isArray(d.videos),
+      a: (a) => estObjet(a) && Number.isFinite(a.ts) && typeof a.video === 'string',
+    };
+    const plusRecent = (ici, la, valide, ts) =>
+      (valide(ici) && (!valide(la) || ts(ici) >= ts(la)) ? ici : valide(la) ? la : undefined);
+
+    const restaurer = () => restauration || (restauration = (async () => {
+      const gen = generation;
+      try {
+        const db = await ouvrirBase();
+        const st = db.transaction(TABLE).objectStore(TABLE);
+        const [cles, recs] = await Promise.all([requete(st.getAllKeys()), requete(st.getAll())]);
+        const perime = Date.now() - CFG.AGENDA_TTL;
+        bilan.memoire.base = 'ouverte';
+        if (gen !== generation) return;
+
+        cles.forEach((l, i) => {
+          const r = recs[i];
+          if (typeof l !== 'string' || !RE_LOGIN_AGENDA.test(l) || !estObjet(r)) { retirees.add(l); return; }
+          const fiche = VALIDES.f(r.f), liste = VALIDES.d(r.d), jeton = VALIDES.a(r.a);
+          if (fiche) chaines.set(l, r.f.ts < perime && r.f.direct ? { ...r.f, direct: null } : r.f);
+          if (liste) diffusions.set(l, r.d);
+          if (jeton) acces.set(l, r.a);
+          if (fiche || liste || jeton) bilan.memoire.restaurees++;
+          else retirees.add(l);
+        });
+      } catch (e) {
+        bilan.memoire.base = 'indisponible';
+        sansBase = true;
+        erreurs.noter('stockage', 'agenda : base illisible', (e && e.name) || String(e));
+      } finally {
+        restauree = true;
+        version++;
+        planifierRelance();
+        ecrireBientot();
+        if (demandee) lancer();
+      }
+    })());
+
+    const ecrire = async () => {
+      aEcrire = null;
+      const gen = generation;
+      const aMettre = [...sales];
+      const aOter = [...retirees];
+      sales.clear();
+      retirees.clear();
+      try {
+        const db = await ouvrirBase();
+        await new Promise((ok, ko) => {
+          const tx = db.transaction(TABLE, 'readwrite');
+          tx.oncomplete = () => ok();
+          tx.onerror = () => ko(tx.error);
+          tx.onabort = () => ko(tx.error || new Error('écriture abandonnée'));
+          if (gen !== generation) return;
+          const st = tx.objectStore(TABLE);
+          for (const l of aOter) st.delete(l);
+          for (const l of aMettre) {
+            const q = st.get(l);
+            q.onsuccess = () => {
+              if (gen !== generation) return;
+              const r = estObjet(q.result) ? q.result : {};
+              st.put({ f: plusRecent(chaines.get(l), r.f, VALIDES.f, tsFiche),
+                       d: plusRecent(diffusions.get(l), r.d, VALIDES.d, fraicheur),
+                       a: plusRecent(acces.get(l), r.a, VALIDES.a, fraicheur) }, l);
+            };
+          }
+        });
+        bilan.memoire.ecritures++;
+        bilan.memoire.chainesEcrites += aMettre.length;
+        bilan.memoire.retirees += aOter.length;
+      } catch (e) {
+        bilan.memoire.echecs++;
+        ecritureApres = Date.now() + CFG.AGENDA_ECRITURE_REPRISE_MS;
+
+        if (gen === generation) {
+          for (const l of aMettre) sales.add(l);
+          for (const l of aOter) retirees.add(l);
+        }
+        erreurs.noter('stockage', 'agenda : écriture', (e && e.name) || String(e));
+      }
+    };
+
+    const ecrireBientot = () => {
+      if (aEcrire || !restauree || sansBase || (!sales.size && !retirees.size)) return;
+      const delai = Math.max(CFG.AGENDA_ECRITURE_MS, ecritureApres - Date.now());
+      aEcrire = setTimeout(() => { ecrire().then(ecrireBientot); }, delai);
+    };
+
+    const effacer = () => {
+      generation++;
+      for (const m of [chaines, diffusions, acces, echecs]) m.clear();
+      sales.clear();
+      retirees.clear();
+      clearTimeout(aEcrire);
+      aEcrire = null;
+      clearTimeout(relance);
+      relance = null;
+      version++;
+      ouvrirBase().then((db) => { db.transaction(TABLE, 'readwrite').objectStore(TABLE).clear(); })
+        .catch(() => {   });
+    };
+
+    const ralentir = () => {
+      lot1 = Math.min(borne1, Math.max(5, Math.floor(lot1 / 2)));
+      lot2 = Math.min(borne2, Math.max(3, Math.floor(lot2 / 2)));
+      pauseMs = Math.min(8_000, pauseMs * 2);
+      servisDeSuite = 0;
+      bilan.ralenties++;
+    };
+    const remonter = () => {
+      servisDeSuite = 0;
+      if (lot1 >= borne1 && lot2 >= borne2 && pauseMs <= CFG.AGENDA_PAUSE_MS) return;
+      lot1 = Math.min(borne1, lot1 * 2);
+      lot2 = Math.min(borne2, lot2 * 2);
+      pauseMs = Math.max(CFG.AGENDA_PAUSE_MS, Math.floor(pauseMs / 2));
+      bilan.remontees++;
+    };
+
+    const RE_LIMITE = /exceeds .*limit/i;
+    const borner = (t, message) => {
+      const parti = t.logins.length;
+      const n = Number((/allowed \((\d+)\)/i.exec(message) || [])[1]);
+      const lot = Math.max(1, Math.min(parti - 1, Number.isFinite(n) && n > 0 ? n : Math.floor(parti / 2)));
+      if (t.passe === 'a') lotAcces = lot;
+      else if (t.passe === 2) lot2 = borne2 = lot;
+      else lot1 = borne1 = lot;
+    };
+    const SORTE = { TseAgendaChaines: 'chaines', TseAgendaProgramme: 'programme',
+                    TseAgendaDiffusions: 'diffusions', TseAgendaAcces: 'acces' };
+    const PREFIXE = { chaines: '1:', programme: 'p:', diffusions: '2:', acces: 'a:' };
+
+    const envoyer = async (t) => {
+      const ops = t.passe === 1
+        ? [{ operationName: 'TseAgendaChaines', variables: { logins: t.logins }, query: qChaines() },
+           ...(formesEpuisees ? [] : [{ operationName: 'TseAgendaProgramme',
+             variables: { logins: t.logins }, query: qProgramme(FORMES[forme].liste) }])]
+        : t.passe === 'p'
+          ? [{ operationName: 'TseAgendaProgramme', variables: { logins: t.logins },
+               query: qProgramme(FORMES[forme].liste) }]
+          : t.passe === 'a'
+            ? [{ operationName: 'TseAgendaAcces', query: qAcces(t.ids) }]
+            : [{ operationName: 'TseAgendaDiffusions', variables: { logins: t.logins, n: t.n },
+                 query: qDiffusions() }];
+      bilan.envois++;
+      const rep = await post(ops);
+
+      const aligne = Array.isArray(rep) && rep.length === ops.length;
+      const maintenant = Date.now();
+      let perdue = !aligne;
+      let refusee = false;
+      let limitee = null;
+      ops.forEach((op, i) => {
+        const sorte = SORTE[op.operationName];
+        const b = bilan[sorte];
+        b.lots++;
+        const r = aligne ? rep[i] : null;
+        if (!r) {
+          b.reseau++; perdue = true;
+          for (const l of t.logins) noterEchec(PREFIXE[sorte] + l);
+          return;
+        }
+
+        const fautes = Array.isArray(r.errors) && r.errors.length > 0;
+        if (!r.data) {
+          const message = messageDe(r);
+          if (fautes && RE_LIMITE.test(message) && t.logins.length > 1) {
+            b.limites++;
+            limitee = limitee || message;
+            return;
+          }
+          if (fautes && RE_SCHEMA.test(message)) {
+            b.schema++;
+
+            const extra = sorte === 'programme' || sorte === 'acces' ? null
+              : EXTRAS.find((x) => !extrasRefuses.has(x.nom) && x.re.test(message));
+            if (extra) {
+              extrasRefuses.add(extra.nom);
+            } else if (sorte === 'programme') {
+              if (forme < FORMES.length - 1) forme++; else formesEpuisees = true;
+            } else if (sorte === 'acces') {
+
+              accesRefuse = true;
+              erreurs.noter('agenda', 'le schéma refuse TseAgendaAcces', message);
+            } else {
+              refus = { quoi: sorte, message };
+              erreurs.noter('agenda', `le schéma refuse ${op.operationName}`, message);
+            }
+            return;
+          }
+          b.refus++;
+          if (!refusee) ralentir();
+          refusee = true;
+          for (const l of t.logins) noterEchec(PREFIXE[sorte] + l);
+          return;
+        }
+        b.servis++;
+        if (fautes) b.partiels++;
+        if (sorte === 'acces') lireAcces(t, r, maintenant);
+        else {
+          const u = parLogin(r.data);
+          const suspects = fautes ? suspectsDe(r) : null;
+          const douteux = (l) => fautes && (!u.has(l) || suspects.has(l));
+          if (sorte === 'chaines') lireChaines(t.logins, u, maintenant, douteux);
+          else if (sorte === 'programme') lirePlanning(t.logins, u, maintenant, douteux);
+          else lireDiffusions(t.logins, u, t.n, maintenant, douteux);
+        }
+
+        for (const l of t.logins) sales.add(l);
+        version++;
+      });
+      if (limitee) borner(t, limitee);
+      if (perdue || refusee) servisDeSuite = 0;
+      else if (!limitee && ++servisDeSuite >= CFG.AGENDA_REMONTEE) remonter();
+      return perdue ? 'perdue' : 'ok';
+    };
+
+    const attendre = (d) => new Promise((res) => setTimeout(res, d));
+    const travailler = async () => {
+      bilan.collectes++;
+      const t0 = Date.now();
+      let coupures = 0;
+      try {
+
+        for (let tour = 0; tour < 200; tour++) {
+          let t = prochain();
+          if (!t) break;
+
+          const reste = finDernierEnvoi + pauseMs - Date.now();
+          if (reste > 0) {
+            await attendre(reste);
+            t = prochain();
+            if (!t) break;
+          }
+
+          const attente = gqlCooldownUntil - Date.now();
+          if (attente > 0) { bilan.attentesGql++; await attendre(Math.min(attente, 30_000)); }
+          const issue = await envoyer(t);
+
+          finDernierEnvoi = Date.now();
+          if (issue === 'perdue') {
+
+            if (++coupures >= 2) { pauseJusqua = Date.now() + 60_000; bilan.abandons++; break; }
+          } else {
+            coupures = 0;
+          }
+          ecrireBientot();
+        }
+      } catch (e) {
+        erreurs.noter('agenda', 'collecte : ' + ((e && e.message) || e));
+      } finally {
+
+        bilan.dureeMs = Date.now() - t0;
+        travail = null;
+        version++;
+        planifierRelance();
+        ecrireBientot();
+      }
+    };
+    const lancer = () => {
+
+      if (!restauree) { demandee = true; return; }
+      if (travail || Date.now() < pauseJusqua || !prochain()) return;
+      travail = travailler();
+    };
+
+    let relance = null;
+    const planifierRelance = () => {
+      clearTimeout(relance);
+      relance = null;
+      let echeance = Infinity;
+      for (const f of chaines.values()) {
+        if (aConfirmer(f)) echeance = Math.min(echeance, f.ts + CFG.AGENDA_RECONFIRMER_MS);
+      }
+      if (echeance === Infinity) return;
+      relance = setTimeout(() => { relance = null; lancer(); }, Math.max(0, echeance - Date.now()) + 20);
+    };
+
+    const attendue = (cadenas) => relance !== null || suivies.aVenir() || !restauree
+      || (cadenas && subsPage.enCours());
+
+    const progression = (liste) => ({
+      lues: liste.filter((l) => ficheFraiche(l, chaines.get(l))).length,
+      aLire: liste.length,
+      aCouvrir: aCouvrir(liste).length,
+    });
+    const notes = (c) => ({
+      rosterVide: c.total === 0,
+
+      limite: c.total > c.liste.length ? { retenues: c.liste.length, total: c.total } : null,
+      planning: formesEpuisees ? 'indisponible' : 'ok',
+      refus: refus ? refus.quoi : null,
+      echouees: c.liste.filter((l) => !peutRetenter('1:' + l) || !peutRetenter('2:' + l)).length,
+      reseau: Date.now() < pauseJusqua,
+      incompletes: lacunes(c.liste),
+
+      releve: suivies.aVenir(),
+    });
+
+    const listeChaines = (liste) => liste.map((l) => {
+      const f = chaines.get(l);
+      return f && (!f.inconnue || indisponible(f)) ? { login: l, nom: f.nom || l } : null;
+    }).filter(Boolean);
+    const finCreneau = (s) => s.fin || s.debut + CRENEAU_DEFAUT_MS;
+
+    const semaine = (arg) => {
+      const debut = Number(arg?.debut);
+      const fin = Number(arg?.fin);
+      if (!Number.isFinite(debut) || !Number.isFinite(fin) || fin <= debut
+          || fin - debut > 8 * 86_400_000) {
+        throw new Error('semaine invalide');
+      }
+      const chaine = typeof arg?.chaine === 'string' && RE_LOGIN_AGENDA.test(arg.chaine)
+        ? arg.chaine : null;
+      voulu = { debut, chaine };
+      restaurer();
+      const c = cibles();
+      purger(c.liste);
+      lancer();
+      const maintenant = Date.now();
+      const dans = (t) => t >= debut && t < fin;
+      const entrees = [];
+      for (const login of c.liste) {
+        if (chaine && login !== chaine) continue;
+        const f = chaines.get(login);
+        if (!f || f.inconnue) continue;
+
+        const horsService = indisponible(f);
+        const d = diffusions.get(login);
+        const direct = directDe(login, horsService ? null : f);
+        const videos = d ? d.videos : (f.derniere ? [f.derniere] : []);
+        if (direct && dans(direct.debut)) {
+          entrees.push({ type: 'direct', login, ...direct, fin: null });
+        }
+        for (const v of videos) {
+          if (!dans(v.debut)) continue;
+
+          if (direct && ((direct.id !== null && v.idDirect === direct.id)
+                         || Math.abs(v.debut - direct.debut) < MEME_DIRECT_MS)) continue;
+          const ferme = v.restreinte || accesFerme(login);
+          entrees.push({ type: 'rediffusion', login, ...v, restreinte: ferme, fin: finVideo(v),
+                         ...(ferme ? { abonne: estAbonne(login) } : {}) });
+        }
+
+        const fd = f.finDernier;
+        if (fd !== null && !direct && d
+            && (d.complet || d.jusqua <= fd)
+            && !d.videos.some((v) => estDuDernier(v, f))) {
+          const depuis = debutObserve(login, f);
+          if (depuis !== null && dans(depuis)) {
+            entrees.push({ type: 'sansRediffusion', login, debut: depuis, fin: fd,
+                           titre: f.titre, jeu: null, libelle: null });
+          }
+        }
+
+        const creneaux = !horsService && !muette(login, f, maintenant) && f.planning && f.planning.creneaux;
+        for (const s of creneaux || []) {
+          if (s.annule || !dans(s.debut) || finCreneau(s) <= maintenant) continue;
+          if (direct && s.debut <= maintenant) continue;
+          entrees.push({ type: 'prevu', login, ...s });
+        }
+      }
+      entrees.sort((a, b) => (a.debut - b.debut) || (a.login < b.login ? -1 : 1));
+      const compte = (...types) => entrees.filter((e) => types.includes(e.type)).length;
+      return {
+        vue: 'semaine', version, maintenant, semaine: { debut, fin }, chaine,
+        entrees, chaines: listeChaines(c.liste),
+        enCours: !!travail || !restauree, attente: attendue(entrees.some((e) => e.abonne === false)),
+        progression: progression(c.liste), notes: notes(c),
+        resume: { directs: compte('direct'), diffusions: compte('rediffusion', 'sansRediffusion'),
+                  prevues: compte('prevu'), chaines: new Set(entrees.map((e) => e.login)).size },
+      };
+    };
+
+    const derniereActivite = (login, f) => {
+      const v = f.derniere;
+      const fd = f.finDernier;
+      if (v && (fd === null || estDuDernier(v, f) || v.debut > fd)) {
+        return { debut: v.debut, t: finVideo(v), revoir: true };
+      }
+      return fd !== null ? { debut: debutObserve(login, f), t: fd, revoir: false } : null;
+    };
+
+    const muette = (login, f, maintenant) => {
+      const d = derniereActivite(login, f);
+      return !!d && d.t < maintenant - CFG.AGENDA_MUETTE_MS;
+    };
+
+    const horsLigne = () => {
+      voulu = { debut: null, chaine: null };
+      restaurer();
+      const c = cibles();
+      purger(c.liste);
+      lancer();
+      const maintenant = Date.now();
+      const lignes = [];
+      let directs = 0;
+      let muettes = 0;
+      for (const login of c.liste) {
+        const f = chaines.get(login);
+        const horsService = indisponible(f);
+        if (!f || (f.inconnue && !horsService)) continue;
+        if (directDe(login, horsService ? null : f)) { directs++; continue; }
+        if (horsService) {
+          lignes.push({ login, nom: f.nom || login, avatar: f.avatar || null,
+                        indisponible: f.absente.depuis });
+          continue;
+        }
+        const prochainCreneau = ((f.planning && f.planning.creneaux) || [])
+          .find((s) => !s.annule && finCreneau(s) > maintenant) || null;
+        if (prochainCreneau && muette(login, f, maintenant)) { muettes++; continue; }
+        const derniere = f.derniere && { ...f.derniere, restreinte: f.derniere.restreinte || accesFerme(login) };
+        lignes.push({ login, nom: f.nom, avatar: f.avatar, titre: f.titre,
+                      dernier: derniereActivite(login, f), derniere,
+                      ...(derniere && derniere.restreinte ? { abonne: estAbonne(login) } : {}),
+                      prochain: prochainCreneau });
+      }
+      lignes.sort((a, b) => ((a.indisponible ? 1 : 0) - (b.indisponible ? 1 : 0))
+        || ((b.prochain ? 1 : 0) - (a.prochain ? 1 : 0))
+        || (a.prochain && b.prochain ? a.prochain.debut - b.prochain.debut : 0)
+        || ((b.dernier ? b.dernier.t : -Infinity) - (a.dernier ? a.dernier.t : -Infinity))
+        || (a.login < b.login ? -1 : 1));
+      return {
+        vue: 'horsLigne', version, maintenant, lignes,
+        enCours: !!travail || !restauree, attente: attendue(lignes.some((l) => l.abonne === false)),
+        progression: progression(c.liste), notes: notes(c),
+        resume: { horsLigne: lignes.filter((l) => !l.indisponible).length, directs,
+                  programmees: lignes.filter((l) => l.prochain).length, muettes },
+      };
+    };
+
+    const actualiser = () => {
+      fraisApres = Date.now();
+      echecs.clear();
+      pauseJusqua = 0;
+      lancer();
+    };
+
+    const bilanPublic = () => {
+      const fiches = [...chaines.values()];
+      return {
+        chaines: fiches.filter((f) => !f.inconnue).length,
+
+        indisponibles: fiches.filter(indisponible).length,
+        absences: bilan.absences,
+        purgees: { ...bilan.purgees },
+        rediffusions: [...diffusions.values()].reduce((s, d) => s + d.videos.length, 0),
+        creneaux: fiches.reduce((s, f) => s + ((f.planning && f.planning.creneaux.length) || 0), 0),
+
+        muettes: [...chaines].filter(([l, f]) => f.planning && f.planning.creneaux.length
+                                             && muette(l, f, Date.now())).length,
+        planning: formesEpuisees ? 'indisponible' : FORMES[forme].nom,
+
+        archives: EXTRAS.filter((x) => !extrasRefuses.has(x.nom)).map((x) => x.nom).join(' ') || 'simples',
+        refus: refus ? `${refus.quoi} — ${refus.message}` : null,
+        enCours: !!travail,
+        collectes: bilan.collectes, envois: bilan.envois,
+        lots: `${lot1} / ${lot2} / ${lotAcces}`, pauseMs, ralenties: bilan.ralenties, remontees: bilan.remontees,
+
+        memoire: { ...bilan.memoire, aEcrire: sales.size + retirees.size },
+        passe1: { ...bilan.chaines }, programme: { ...bilan.programme },
+        passe2: { ...bilan.diffusions },
+
+        acces: { ...bilan.acces, fermees: [...acces.values()].filter((a) => a.fermee === true).length,
+                 refuse: accesRefuse },
+        attentesGql: bilan.attentesGql, abandons: bilan.abandons, dureeMs: bilan.dureeMs,
+      };
+    };
+
+    return { semaine, horsLigne, actualiser, effacer, bilan: bilanPublic };
+  })();
+
   const panneau = {
 
     sections: {
@@ -10663,6 +11927,9 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         const lignes = roster.entries().map(([login, ts]) => ({ login, ts }));
         return { colonnes: ['login', 'ts'], lignes, resume: { chaines: lignes.length } };
       },
+
+      semaine(arg)   { return agenda.semaine(arg); },
+      horsLigne()    { return agenda.horsLigne(); },
 
       rythme() {
         const grille = Array.from({ length: 7 }, () => new Array(24).fill(0));
@@ -10833,6 +12100,11 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
             }
             return { cartes: cs.length, enveloppees, niveaux, parents: parents.size };
           })(),
+
+          depliage: { ...bilanDepliage, horsLigne: (() => {
+            const sec = followedSection();
+            return sec ? [...sec.querySelectorAll('.side-nav-card')].filter((c) => !isSynthetic(c) && isCardOffline(c)).length : 0;
+          })() },
           liens: nav ? nav.querySelectorAll('a[href^="/"]').length : 0,
 
           mouvementReduit: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
@@ -11257,6 +12529,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
                               enAttente: subsPage.enAttente(),
                               ...subsPage.bilan() },
 
+        relevesSuivies: { enAttente: suivies.enAttente(), ...suivies.bilan() },
+
         reseau: {
           pauseGqlMs: Math.max(0, gqlCooldownUntil - maintenant),
 
@@ -11278,6 +12552,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
 
         bilanErreurs: erreurs.bilan(),
         global: globalChannels.report(),
+
+        agenda: agenda.bilan(),
         journaux: {
           verrous: loadingOverlay.verrous(),
           cycles:  loadingOverlay.journal(),
@@ -11318,7 +12594,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
             visits.map.clear(); oublier(CFG.VISIT_STORAGE_KEY, 'visites');
             return { fait: true, quoi: 'visites' };
           case 'subs':   subs.clear();   return { fait: true, quoi: 'subs' };
-          case 'roster': roster.clear(); return { fait: true, quoi: 'roster' };
+          case 'roster': roster.clear(); suivies.rearmer(); return { fait: true, quoi: 'roster' };
           default:       return { fait: false, quoi: null };
         }
       },
@@ -11326,6 +12602,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         const r = await subsPage.refresh(true);
         return { fait: r !== null, chaines: Array.isArray(r) ? r.length : 0 };
       },
+
+      actualiserAgenda() { agenda.actualiser(); return { fait: true }; },
 
       salle(arg) {
         const args = Array.isArray(arg && arg.args) ? arg.args.slice(0, 3) : [];
@@ -11389,6 +12667,8 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
   tseApi.scores.raw = () => buildScoresReport();
 
   tseApi.subs.refresh = () => subsPage.refresh(true);
+
+  tseApi.roster.refresh = () => suivies.refresh(true);
 
   tseApi.rescan = () => { invalidateAndRescan(); };
 
@@ -14135,7 +15415,12 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     applyChannelData(card, data);
   }
 
-  let lastFollowedCount = -1;
+  let depliageEnCours = false;
+
+  let sansEffet = { cartes: -1, jusqua: 0 };
+
+  const bilanDepliage = { clics: 0, dernierClicMs: null, rafales: 0, sansEffet: 0, arret: '—',
+                          directsApresHorsLigne: 0, rendus: { auClic: 0, observes: 0, delai: 0 }, attenteMs: 0 };
 
   function hideShowLessButton() {
     const section = followedSection();
@@ -14155,31 +15440,78 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     });
   }
 
-  function autoExpandFollowed() {
-    const section = followedSection();
-    if (!section) return;
+  const cartesDeTwitch = (section) => [...section.querySelectorAll('.side-nav-card')].filter((c) => !isSynthetic(c));
+  const boutonPlus = (section) => section.querySelector(DOM.showMoreStableSelector)
+    || [...section.querySelectorAll('button')].find((b) => DOM.showMoreLabels.includes((b.textContent || '').trim()));
 
-    const cards = [...section.querySelectorAll('.side-nav-card')].filter(c => !isSynthetic(c));
-    const currentCount = cards.length;
-    if (currentCount === 0) return;
+  const attendreCroissance = (avant) => new Promise((ok) => {
+    const compte = () => { const sec = followedSection(); return sec ? cartesDeTwitch(sec).length : 0; };
+    const deja = compte();
+    if (deja > avant) { ok({ n: deja, voie: 'auClic' }); return; }
+    let minuteur = null;
+    const obs = new MutationObserver(() => { if (compte() > avant) fin('observes'); });
+    const fin = (voie) => { obs.disconnect(); clearTimeout(minuteur); ok({ n: compte(), voie }); };
+    obs.observe(document.querySelector(DOM.sidebarRoot) || document.body, { childList: true, subtree: true });
+    minuteur = setTimeout(() => fin('delai'), CFG.DEPLIAGE_ATTENTE_MS);
+  });
 
-    if (currentCount < lastFollowedCount) lastFollowedCount = -1;
-    if (currentCount === lastFollowedCount) {
-      hideShowLessButton();
-      return;
+  async function autoExpandFollowed() {
+    let section = followedSection();
+    if (!section || depliageEnCours) return;
+    if (section.dataset.tseSuivie !== 'true') section.dataset.tseSuivie = 'true';
+    hideShowLessButton();
+    let cartes = cartesDeTwitch(section);
+    if (!cartes.length) return;
+
+    if (cartes.some(isCardOffline)) { bilanDepliage.arret = 'directs tous rendus'; return; }
+    if (!boutonPlus(section)) { bilanDepliage.arret = 'liste entière'; return; }
+    if (cartes.length === sansEffet.cartes && Date.now() < sansEffet.jusqua) return;
+    depliageEnCours = true;
+    bilanDepliage.rafales += 1;
+    const n0 = cartes.length;
+    let clics = 0;
+    let arret = null;
+    try {
+      while (!arret && clics < CFG.DEPLIAGE_CLICS_MAX) {
+        const bouton = boutonPlus(section);
+        if (!bouton) { arret = 'liste entière'; break; }
+        const avant = new Set(cartes);
+        clics += 1;
+        bilanDepliage.clics += 1;
+        bilanDepliage.dernierClicMs = Math.round(performance.now());
+        bouton.click();
+        const t0 = performance.now();
+        const { n, voie } = await attendreCroissance(avant.size);
+        bilanDepliage.rendus[voie] += 1;
+        bilanDepliage.attenteMs += Math.round(performance.now() - t0);
+        section = followedSection();
+        if (!section) { arret = 'section disparue'; break; }
+        cartes = cartesDeTwitch(section);
+        if (n <= avant.size) {
+
+          sansEffet = { cartes: cartes.length, jusqua: Date.now() + CFG.DEPLIAGE_REPRISE_MS };
+          bilanDepliage.sansEffet += 1;
+          arret = 'clic sans effet';
+          break;
+        }
+
+        const nouvelles = cartes.filter((c) => !avant.has(c));
+        const premiere = nouvelles.findIndex(isCardOffline);
+        if (premiere >= 0) {
+          bilanDepliage.directsApresHorsLigne += nouvelles.slice(premiere + 1).filter((c) => !isCardOffline(c)).length;
+          arret = 'directs tous rendus';
+        }
+      }
+    } finally {
+
+      depliageEnCours = false;
+    }
+    bilanDepliage.arret = arret || 'plafond de clics';
+    if (loadingOverlay.enCycle()) {
+      loadingOverlay.noter('dépliage', `${n0} → ${cartes.length} cartes · ${clics} clic(s) · ${bilanDepliage.arret}`);
     }
 
-    const button = section.querySelector(DOM.showMoreStableSelector) ||
-      [...section.querySelectorAll('button')]
-        .find(btn => DOM.showMoreLabels.includes((btn.textContent || '').trim()));
-
-    if (!button) {
-      lastFollowedCount = currentCount;
-      hideShowLessButton();
-      return;
-    }
-    lastFollowedCount = currentCount;
-    button.click();
+    if (cartes.length > n0) scheduleScan();
   }
 
   function updateSectionsVisibility() {
@@ -16672,6 +18004,10 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       subsPage.notifySidebar(!!document.querySelector(DOM.followedCardSelector));
     }
 
+    if (suivies.enAttente()) {
+      suivies.notifySidebar(!!document.querySelector(DOM.followedCardSelector));
+    }
+
     const cartesSansDepart = [...cards].some(c =>
       !isSynthetic(c) && c.dataset.tseLogin && !c.dataset.tseStartedAt
       && c.dataset.tseOffline !== 'true');
@@ -16969,6 +18305,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       roster.init();
       subs.load();
       subsPage.init();
+      suivies.init();
       liveLag.init();
       visitTracker.init();
       preview.init();

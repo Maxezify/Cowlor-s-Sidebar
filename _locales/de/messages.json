@@ -48,7 +48,7 @@
     "message": "Bekannte Kanäle"
   },
   "descRoster": {
-    "message": "Alle gefolgten Kanäle, die die Erweiterung mindestens einmal in deiner Seitenleiste gesehen hat."
+    "message": "Alle Kanäle, denen du folgst: die aus deiner Seitenleiste und die vollständige Liste, alle zwölf Stunden von deiner Seite der gefolgten Kanäle neu gelesen."
   },
   "navRythme": {
     "message": "Rhythmus"
@@ -227,6 +227,21 @@
   "sumCategories": {
     "message": "Kategorien"
   },
+  "sumLive": {
+    "message": "live"
+  },
+  "sumBroadcasts": {
+    "message": "Streams"
+  },
+  "sumPlanned": {
+    "message": "geplant"
+  },
+  "sumOffline": {
+    "message": "offline"
+  },
+  "sumScheduled": {
+    "message": "mit nächstem Stream"
+  },
   "btnRefreshSubs": {
     "message": "Jetzt erfassen"
   },
@@ -282,6 +297,48 @@
     "message": "Die Verbindung zum Tab ist verloren gegangen. Versuche es erneut.",
     "description": "État : la liaison avec l'onglet est perdue"
   },
+  "stateAgendaLoading": {
+    "message": "Gefolgte Kanäle werden gelesen … $1 / $2"
+  },
+  "stateAgendaLoadingReplays": {
+    "message": "Aufzeichnungen werden gelesen … verbleibende Kanäle: $1"
+  },
+  "stateAgendaCapped": {
+    "message": "Nur $1 deiner $2 gefolgten Kanäle werden gelesen: die live sind, deine Abos, dann die meistbesuchten."
+  },
+  "stateAgendaNoSchedule": {
+    "message": "Twitch liefert die Zeitpläne der Kanäle nicht: Geplante Streams können nicht angezeigt werden."
+  },
+  "stateAgendaNoReplays": {
+    "message": "Twitch verweigert die Liste der Aufzeichnungen: Nur die letzte jedes Kanals wird angezeigt."
+  },
+  "stateAgendaPartial": {
+    "message": "Kanäle ohne Antwort von Twitch: $1; „Aktualisieren“ fragt erneut an."
+  },
+  "stateAgendaNetwork": {
+    "message": "Twitch antwortet gerade nicht; „Aktualisieren“ startet das Lesen neu."
+  },
+  "stateAgendaFollowSweep": {
+    "message": "Die vollständige Liste deiner gefolgten Kanäle wird gelesen …"
+  },
+  "stateAgendaIncomplete": {
+    "message": "Diese Woche liegt vor den letzten hundert Aufzeichnungen mancher Kanäle, nicht alle werden gezeigt. Betroffene Kanäle: $1"
+  },
+  "stateAgendaEmpty": {
+    "message": "Keine Streams in dieser Woche."
+  },
+  "stateAgendaEmptyChannel": {
+    "message": "Keine Streams dieses Kanals in dieser Woche."
+  },
+  "stateAgendaNoOffline": {
+    "message": "Alle deine gefolgten Kanäle sind live."
+  },
+  "stateAgendaNoRoster": {
+    "message": "Noch kein gefolgter Kanal bekannt. Die Erweiterung lernt sie aus der Seitenleiste von Twitch und deiner Seite der gefolgten Kanäle, während du angemeldet bist."
+  },
+  "stateAgendaRefused": {
+    "message": "Twitch verweigert die Anfragen des Zeitplans; „Bericht exportieren“ sagt, warum."
+  },
   "statusOk": {
     "message": "OK"
   },
@@ -311,6 +368,57 @@
   },
   "valMore": {
     "message": "mehr"
+  },
+  "valViewsOne": {
+    "message": "$1 Aufruf"
+  },
+  "valViewsFew": {
+    "message": "$1 Aufrufe"
+  },
+  "valViewsMany": {
+    "message": "$1 Aufrufe"
+  },
+  "valViewsOther": {
+    "message": "$1 Aufrufe"
+  },
+  "valOngoing": {
+    "message": "läuft"
+  },
+  "valLive": {
+    "message": "Live"
+  },
+  "valPlanned": {
+    "message": "Geplant"
+  },
+  "valNoReplay": {
+    "message": "Ohne Aufzeichnung"
+  },
+  "valSubOnly": {
+    "message": "Nur Abos"
+  },
+  "valSubOnlyLocked": {
+    "message": "Nur für Abonnenten des Kanals — die Erweiterung weiß nicht, dass du ein Abo hast"
+  },
+  "valUnavailable": {
+    "message": "Auf Twitch nicht verfügbar"
+  },
+  "valUnavailableTip": {
+    "message": "Twitch liefert diesen Kanal nicht mehr (bemerkt: $1): meist ein gesperrtes, umbenanntes oder geschlossenes Konto. Er kehrt von selbst zurück, sobald Twitch ihn wieder liefert."
+  },
+  "valChannel": {
+    "message": "Kanal"
+  },
+  "valAllChannels": {
+    "message": "Alle Kanäle"
+  },
+  "valLastLive": {
+    "message": "Letzter Stream $1"
+  },
+  "valLastLiveUnknown": {
+    "message": "Letzter Stream unbekannt"
+  },
+  "valNext": {
+    "message": "Nächster Stream: $1"
   },
   "healthOk": {
     "message": "Selektoren OK"
@@ -347,6 +455,21 @@
   },
   "btnRefresh": {
     "message": "Aktualisieren"
+  },
+  "btnToday": {
+    "message": "Heute"
+  },
+  "btnWeekPrev": {
+    "message": "Vorherige Woche"
+  },
+  "btnWeekNext": {
+    "message": "Nächste Woche"
+  },
+  "btnReplay": {
+    "message": "Ansehen"
+  },
+  "btnSeeWeek": {
+    "message": "Woche zeigen"
   },
   "btnClose": {
     "message": "Schließen"
@@ -424,19 +547,25 @@
     "message": "Schneller als Twitch, und aufgeräumter"
   },
   "guideViteTexte": {
-    "message": "Twitch braucht zwei bis vier Minuten, um einen Kanal zu zeigen, der live geht, und behält einen, der aufhört, noch fünf bis zehn Minuten. Die Erweiterung aktualisiert die Seitenleiste selbst, alle dreißig Sekunden: Zuschauer, Kategorie, Dauer, Kommen und Gehen.\n• Deine gefolgten Kanäle sind immer ganz ausgeklappt: kein „Mehr anzeigen“ mehr.\n• Hype Trains, Rabattbanner, Sponsorenleisten und leere Abschnitte verschwinden aus der Seitenleiste; was sie sagten, kommt als Abzeichen in der Vorschau zurück (Kapitel $1).\n• Deine Zuschauerserie und die Stories-Zeile von Twitch wandern in den Filterblock oben in der Liste. Lieber so, wie Twitch sie zeigt, oder ausgeblendet? Das steht unter „Einstellungen“."
+    "message": "Twitch braucht zwei bis vier Minuten, um einen Kanal zu zeigen, der live geht, und behält einen, der aufhört, noch fünf bis zehn Minuten. Die Erweiterung aktualisiert die Seitenleiste selbst, alle dreißig Sekunden: Zuschauer, Kategorie, Dauer, Kommen und Gehen.\n• Alle gefolgten Kanäle, die live sind, werden von selbst ausgeklappt, und Offline-Kanäle erscheinen nie: kein „Mehr anzeigen“ mehr.\n• Hype Trains, Rabattbanner, Sponsorenleisten und leere Abschnitte verschwinden aus der Seitenleiste; was sie sagten, kommt als Abzeichen in der Vorschau zurück (Kapitel $1).\n• Deine Zuschauerserie und die Stories-Zeile von Twitch wandern in den Filterblock oben in der Liste. Lieber so, wie Twitch sie zeigt, oder ausgeblendet? Das steht unter „Einstellungen“."
   },
   "guidePanneauTitre": {
     "message": "Dieses Fenster"
   },
   "guidePanneauTexte": {
-    "message": "Fünf Gruppen, links:\n• „Erste Schritte“ — dieser Leitfaden, lesbar auch ohne offenen Twitch-Tab.\n• „Einstellungen“ — alles, was die Erweiterung zur Wahl stellt.\n• „Deine Daten“ — was sie behalten hat: die Kanäle, die du am häufigsten besuchst, zu welchen Zeiten, deine Abos, die bekannten Kanäle.\n• „Diagnose“ — nur nützlich, wenn etwas klemmt; lässt sich in den Einstellungen ausblenden.\n• „Top-Kanäle“ — der Stand der Rangliste und ihrer Kategorien.\nAlle Abschnitte außer diesem Leitfaden lesen den vordersten Twitch-Tab; ohne ihn sagen sie es.\n• Etwas stimmt nicht? „Bericht exportieren“ schreibt einen Text, den du vor dem Senden liest: Zahlen, keine Listen — weder deine Kanäle noch deine Abos.\n• „Verlauf löschen“ löscht alles, was die Erweiterung behalten hat, endgültig; deine Einstellungen bleiben."
+    "message": "Sechs Gruppen, links:\n• „Erste Schritte“ — dieser Leitfaden, lesbar auch ohne offenen Twitch-Tab.\n• „Einstellungen“ — alles, was die Erweiterung zur Wahl stellt.\n• „Zeitplan“ — die Streams deiner gefolgten Kanäle, vergangen, laufend und geplant, mit ihren Aufzeichnungen; das ist das nächste Kapitel.\n• „Deine Daten“ — was sie behalten hat: die Kanäle, die du am häufigsten besuchst, zu welchen Zeiten, deine Abos, die bekannten Kanäle.\n• „Diagnose“ — nur nützlich, wenn etwas klemmt; lässt sich in den Einstellungen ausblenden.\n• „Top-Kanäle“ — der Stand der Rangliste und ihrer Kategorien.\nAlle Abschnitte außer diesem Leitfaden lesen den vordersten Twitch-Tab; ohne ihn sagen sie es.\n• Etwas stimmt nicht? „Bericht exportieren“ schreibt einen Text, den du vor dem Senden liest: Zahlen, keine Listen — weder deine Kanäle noch deine Abos.\n• „Verlauf löschen“ löscht alles, was die Erweiterung behalten hat, endgültig; deine Einstellungen bleiben."
+  },
+  "guideAgendaTitre": {
+    "message": "Der Zeitplan deiner Kanäle"
+  },
+  "guideAgendaTexte": {
+    "message": "Die Gruppe „Zeitplan“ zeigt für alle deine gefolgten Kanäle auf einmal, was die Zeitplan-Seite eines Kanals auf Twitch für einen einzigen zeigt.\n• „Die Woche“: Tag für Tag die vergangenen Streams mit ihrer Aufzeichnung — ein Klick öffnet sie in einem neuen Tab —, die laufenden und die, die die Kanäle geplant haben. Sie öffnet sich beim heutigen Tag, die vergangenen Tage darüber; ein Stream, der über Mitternacht läuft, bleibt an dem Tag, an dem er begonnen hat.\n• Die Pfeile wechseln die Woche, bis zu acht zurück und zwei voraus; „Heute“ führt zum heutigen Tag zurück, und das Menü behält nur einen Kanal.\n• „Offline“: jeder Kanal, der nicht live ist — zuerst die, die ihren nächsten Stream geplant haben, der früheste oben, dann die anderen, der zuletzt offline gegangene zuerst. Ein geplanter Kanal, der seit drei Monaten nicht mehr gestreamt hat, erscheint hier nicht und sein Termin auch nicht in der Woche: Das ist der Plan, den Twitch für einen Kanal behält, der nicht mehr streamt. Wann er gestreamt hat, seine Aufzeichnung einen Klick entfernt und sein nächster Stream. „Woche zeigen“ öffnet die Woche seines letzten Streams. Ein Kanal, den Twitch nicht mehr liefert — Konto gesperrt, umbenannt oder geschlossen —, verschwindet nicht: Er bleibt ganz unten, „Auf Twitch nicht verfügbar“.\n• Ein Schloss kennzeichnet, noch bevor du klickst, eine Aufzeichnung, die den Abonnenten des Kanals vorbehalten ist, wenn die Erweiterung nicht weiß, dass du ein Abo hast; mit Abo erscheint nichts: Sie steht dir offen.\nDie Kanäle sind alle, denen du folgst. Da die Seitenleiste von Twitch nur hundert zeigt, liest die Erweiterung alle zwölf Stunden die vollständige Liste auf deiner Seite der gefolgten Kanäle, in einem unsichtbaren Rahmen. Eine Aufzeichnung gibt es nur, wenn der Kanal seine Streams speichert, und nur so lange, wie Twitch sie aufbewahrt; einen geplanten Stream nur, wenn er seinen Zeitplan auf Twitch pflegt. „Ohne Aufzeichnung“ bekommt nur dann einen Tag, wenn die Erweiterung diesen Stream live gesehen hat: Twitch nennt nur sein Ende. Der Zeitplan fragt bei Twitch nichts an, solange du ihn nicht öffnest, und was er gelesen hat, bleibt in deinem Browser: Ein Neuladen fragt nur erneut, was veraltet ist."
   },
   "guideVieTitre": {
     "message": "Datenschutz, im Klartext"
   },
   "guideVieTexte": {
-    "message": "• Kein fremder Server: Die Erweiterung spricht nur mit Twitch, über die öffentliche API, die die Seite ohnehin nutzt.\n• Diese Aufrufe sind anonym: kein Sitzungs-Token, kein Cookie. Sie lassen sich nicht deinem Konto zuordnen.\n• Eine Ausnahme, laut gesagt: Um deine Abos zu kennen, öffnet die Erweiterung DEINE Seite twitch.tv/subscriptions in einem unsichtbaren Rahmen — standardmäßig alle sechs Stunden oder so, wie du es eingestellt hast, früher nur nach einem Durchgang, der nichts gefunden hat, oder wenn du es verlangst, und nie, wenn du abgemeldet bist. Dein Browser authentifiziert sie, als hättest du den Link geklickt; die Erweiterung liest dein Token nicht und gibt es nicht weiter.\n• Deine Besuche, deine Abos und ihre Dauer bleiben in deinem Browser. Lösche die Websitedaten von twitch.tv, und nichts davon bleibt übrig.\n• Keine Berechtigung angefragt, kein Tracker, keine Telemetrie. Die Erweiterung läuft nur auf twitch.tv."
+    "message": "• Kein fremder Server: Die Erweiterung spricht nur mit Twitch, über die öffentliche API, die die Seite ohnehin nutzt.\n• Diese Aufrufe sind anonym: kein Sitzungs-Token, kein Cookie. Sie lassen sich nicht deinem Konto zuordnen.\n• Zwei Ausnahmen, laut gesagt: Um deine Abos zu kennen, öffnet die Erweiterung DEINE Seite twitch.tv/subscriptions in einem unsichtbaren Rahmen — standardmäßig alle sechs Stunden oder so, wie du es eingestellt hast, früher nur nach einem Durchgang, der nichts gefunden hat, oder wenn du es verlangst, und nie, wenn du abgemeldet bist. Um alle Kanäle zu kennen, denen du folgst, öffnet sie auf dieselbe Weise deine Seite der gefolgten Kanäle, alle zwölf Stunden. Dein Browser authentifiziert sie, als hättest du den Link geklickt; die Erweiterung liest dein Token nicht und gibt es nicht weiter.\n• Deine Besuche, deine Abos und ihre Dauer, die Kanäle, denen du folgst, und was der Zeitplan gelesen hat, bleiben in deinem Browser. Lösche die Websitedaten von twitch.tv, und nichts davon bleibt übrig.\n• Keine Berechtigung angefragt, kein Tracker, keine Telemetrie. Die Erweiterung läuft nur auf twitch.tv."
   },
   "guideBadgeCcl": {
     "message": "Spiel ab 18"
@@ -500,6 +629,21 @@
   },
   "descOptions": {
     "message": "Was die Erweiterung hinzufügt und was sie unangetastet lässt. Alles ist standardmäßig aktiv; ein violetter Punkt markiert Geändertes."
+  },
+  "grpAgenda": {
+    "message": "Zeitplan"
+  },
+  "navSemaine": {
+    "message": "Die Woche"
+  },
+  "descSemaine": {
+    "message": "Die Streams deiner gefolgten Kanäle, Tag für Tag: vergangene mit ihrer Aufzeichnung, laufende und geplante."
+  },
+  "navHorsLigne": {
+    "message": "Offline"
+  },
+  "descHorsLigne": {
+    "message": "Deine gefolgten Kanäle, die nicht live sind, geplante Streams zuerst: ihr letzter Stream, seine Aufzeichnung und der nächste, falls geplant."
   },
   "sumSettings": {
     "message": "Einstellungen"
@@ -676,7 +820,7 @@
     "message": "Gemerkte gefolgte Kanäle löschen?"
   },
   "purgeRosterText": {
-    "message": "Die Liste baut sich beim Beobachten der Seitenleiste neu auf. Besuche und Abonnements bleiben unberührt."
+    "message": "Die Liste baut sich von selbst neu auf: sofort aus der Seitenleiste, dann vollständig von deiner Seite der gefolgten Kanäle, kurz darauf neu gelesen. Besuche und Abonnements bleiben unberührt."
   },
   "optPurgeFaite": {
     "message": "Gelöscht."

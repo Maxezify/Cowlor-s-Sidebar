@@ -48,7 +48,7 @@
     "message": "Chaînes connues"
   },
   "descRoster": {
-    "message": "Toutes les chaînes suivies que l'extension a vues au moins une fois dans votre barre latérale."
+    "message": "Toutes vos chaînes suivies : celles de votre barre latérale, et la liste complète relue sur votre page des chaînes suivies toutes les douze heures."
   },
   "navRythme": {
     "message": "Rythme"
@@ -227,6 +227,21 @@
   "sumCategories": {
     "message": "catégories"
   },
+  "sumLive": {
+    "message": "en direct"
+  },
+  "sumBroadcasts": {
+    "message": "directs"
+  },
+  "sumPlanned": {
+    "message": "prévus"
+  },
+  "sumOffline": {
+    "message": "hors ligne"
+  },
+  "sumScheduled": {
+    "message": "avec un prochain direct"
+  },
   "btnRefreshSubs": {
     "message": "Relever maintenant"
   },
@@ -282,6 +297,48 @@
     "message": "La liaison avec l'onglet a été perdue. Réessayez.",
     "description": "État : la liaison avec l'onglet est perdue"
   },
+  "stateAgendaLoading": {
+    "message": "Lecture des chaînes suivies… $1 / $2"
+  },
+  "stateAgendaLoadingReplays": {
+    "message": "Lecture des rediffusions de $1 chaîne(s)…"
+  },
+  "stateAgendaCapped": {
+    "message": "Seules $1 de vos $2 chaînes suivies sont lues : celles en direct, vos abonnements, puis les plus visitées."
+  },
+  "stateAgendaNoSchedule": {
+    "message": "Twitch ne sert pas le planning des chaînes : les directs programmés ne peuvent pas être montrés."
+  },
+  "stateAgendaNoReplays": {
+    "message": "Twitch refuse la liste des rediffusions : seule la dernière de chaque chaîne est montrée."
+  },
+  "stateAgendaPartial": {
+    "message": "Twitch n'a pas servi $1 chaîne(s) ; « Actualiser » les redemande."
+  },
+  "stateAgendaNetwork": {
+    "message": "Twitch ne répond pas pour l'instant ; « Actualiser » relancera la lecture."
+  },
+  "stateAgendaFollowSweep": {
+    "message": "Lecture de la liste complète de vos chaînes suivies…"
+  },
+  "stateAgendaIncomplete": {
+    "message": "Cette semaine remonte plus loin que les cent dernières rediffusions de $1 chaîne(s) : les leurs n'y sont pas toutes."
+  },
+  "stateAgendaEmpty": {
+    "message": "Aucun direct cette semaine."
+  },
+  "stateAgendaEmptyChannel": {
+    "message": "Aucun direct de cette chaîne cette semaine."
+  },
+  "stateAgendaNoOffline": {
+    "message": "Toutes vos chaînes suivies sont en direct."
+  },
+  "stateAgendaNoRoster": {
+    "message": "Aucune chaîne suivie connue pour l'instant. L'extension les apprend de la barre latérale de Twitch et de votre page des chaînes suivies, quand vous êtes connecté."
+  },
+  "stateAgendaRefused": {
+    "message": "Twitch refuse les requêtes de l'agenda ; « Exporter un rapport » dit pourquoi."
+  },
   "statusOk": {
     "message": "OK"
   },
@@ -311,6 +368,57 @@
   },
   "valMore": {
     "message": "plus"
+  },
+  "valViewsOne": {
+    "message": "$1 vue"
+  },
+  "valViewsFew": {
+    "message": "$1 vues"
+  },
+  "valViewsMany": {
+    "message": "$1 vues"
+  },
+  "valViewsOther": {
+    "message": "$1 vues"
+  },
+  "valOngoing": {
+    "message": "en cours"
+  },
+  "valLive": {
+    "message": "En direct"
+  },
+  "valPlanned": {
+    "message": "Prévu"
+  },
+  "valNoReplay": {
+    "message": "Sans rediffusion"
+  },
+  "valSubOnly": {
+    "message": "Abonnés"
+  },
+  "valSubOnlyLocked": {
+    "message": "Réservée aux abonnés de la chaîne — l'extension ne vous sait pas abonné"
+  },
+  "valUnavailable": {
+    "message": "Indisponible sur Twitch"
+  },
+  "valUnavailableTip": {
+    "message": "Twitch ne sert plus cette chaîne (constaté le $1) : le plus souvent un compte suspendu, renommé ou fermé. Elle revient d'elle-même si Twitch la sert de nouveau."
+  },
+  "valChannel": {
+    "message": "Chaîne"
+  },
+  "valAllChannels": {
+    "message": "Toutes les chaînes"
+  },
+  "valLastLive": {
+    "message": "Dernier direct $1"
+  },
+  "valLastLiveUnknown": {
+    "message": "Dernier direct inconnu"
+  },
+  "valNext": {
+    "message": "Prochain direct : $1"
   },
   "healthOk": {
     "message": "Sélecteurs OK"
@@ -347,6 +455,21 @@
   },
   "btnRefresh": {
     "message": "Actualiser"
+  },
+  "btnToday": {
+    "message": "Aujourd'hui"
+  },
+  "btnWeekPrev": {
+    "message": "Semaine précédente"
+  },
+  "btnWeekNext": {
+    "message": "Semaine suivante"
+  },
+  "btnReplay": {
+    "message": "Revoir"
+  },
+  "btnSeeWeek": {
+    "message": "Sa semaine"
   },
   "btnClose": {
     "message": "Fermer"
@@ -424,19 +547,25 @@
     "message": "Plus rapide que Twitch, et plus propre"
   },
   "guideViteTexte": {
-    "message": "Twitch met deux à quatre minutes à montrer une chaîne qui démarre, et garde cinq à dix minutes celle qui s'arrête. L'extension rafraîchit la barre latérale elle-même, toutes les trente secondes : spectateurs, catégorie, durée, arrivées et départs.\n• Vos chaînes suivies sont toujours dépliées en entier : plus de « Voir plus » à cliquer.\n• Hype trains, bandeaux de réduction, bannières de sponsor et sections vides quittent la barre ; ce qu'ils disaient revient en badge dans l'aperçu (chapitre $1).\n• Votre série de visionnage et les stories de Twitch se rangent dans le bloc des filtres, en haut de la liste. Vous les préférez comme Twitch les affiche, ou masquées ? C'est dans « Réglages »."
+    "message": "Twitch met deux à quatre minutes à montrer une chaîne qui démarre, et garde cinq à dix minutes celle qui s'arrête. L'extension rafraîchit la barre latérale elle-même, toutes les trente secondes : spectateurs, catégorie, durée, arrivées et départs.\n• Toutes vos chaînes suivies en direct sont dépliées d'office, et les hors-ligne n'apparaissent jamais : plus de « Afficher plus » à cliquer.\n• Hype trains, bandeaux de réduction, bannières de sponsor et sections vides quittent la barre ; ce qu'ils disaient revient en badge dans l'aperçu (chapitre $1).\n• Votre série de visionnage et les stories de Twitch se rangent dans le bloc des filtres, en haut de la liste. Vous les préférez comme Twitch les affiche, ou masquées ? C'est dans « Réglages »."
   },
   "guidePanneauTitre": {
     "message": "Ce panneau"
   },
   "guidePanneauTexte": {
-    "message": "Cinq groupes, à gauche :\n• « Bien démarrer » — ce guide, lisible même sans onglet Twitch ouvert.\n• « Réglages » — tout ce que l'extension laisse choisir.\n• « Vos données » — ce qu'elle a retenu : les chaînes que vous visitez le plus, à quelles heures, vos abonnements, les chaînes connues.\n• « Diagnostic » — ne sert que si quelque chose cloche ; se masque dans les réglages.\n• « Top Chaînes » — l'état du classement et de ses catégories.\nLes sections autres que ce guide lisent l'onglet Twitch au premier plan ; sans lui, elles le disent.\n• Un problème ? « Exporter un rapport » écrit un texte à relire avant de l'envoyer : des comptes, aucune liste — ni vos chaînes, ni vos abonnements.\n• « Effacer l'historique » efface tout ce que l'extension a retenu, définitivement ; vos réglages restent."
+    "message": "Six groupes, à gauche :\n• « Bien démarrer » — ce guide, lisible même sans onglet Twitch ouvert.\n• « Réglages » — tout ce que l'extension laisse choisir.\n• « Agenda » — les directs de vos chaînes suivies, passés, en cours et programmés, avec leurs rediffusions ; c'est le chapitre suivant.\n• « Vos données » — ce qu'elle a retenu : les chaînes que vous visitez le plus, à quelles heures, vos abonnements, les chaînes connues.\n• « Diagnostic » — ne sert que si quelque chose cloche ; se masque dans les réglages.\n• « Top Chaînes » — l'état du classement et de ses catégories.\nLes sections autres que ce guide lisent l'onglet Twitch au premier plan ; sans lui, elles le disent.\n• Un problème ? « Exporter un rapport » écrit un texte à relire avant de l'envoyer : des comptes, aucune liste — ni vos chaînes, ni vos abonnements.\n• « Effacer l'historique » efface tout ce que l'extension a retenu, définitivement ; vos réglages restent."
+  },
+  "guideAgendaTitre": {
+    "message": "L'agenda de vos chaînes"
+  },
+  "guideAgendaTexte": {
+    "message": "Le groupe « Agenda » fait, pour toutes vos chaînes suivies à la fois, ce que la page de programme d'une chaîne fait sur Twitch pour une seule.\n• « La semaine » : jour par jour, les directs passés avec leur rediffusion — un clic l'ouvre dans un nouvel onglet —, ceux en cours, et ceux que les chaînes ont programmés. Elle s'ouvre sur aujourd'hui, les jours passés au-dessus ; un direct qui passe minuit reste au jour où il a commencé.\n• Les flèches changent de semaine, jusqu'à huit en arrière et deux en avant ; « Aujourd'hui » ramène au jour même, et le menu n'en garde qu'une chaîne.\n• « Hors ligne » : chaque chaîne qui n'est pas en direct — d'abord celles qui ont programmé leur prochain direct, le plus proche en tête, puis les autres, la plus récemment partie d'abord. Une chaîne programmée qui n'a plus diffusé depuis trois mois n'y figure pas, ni son créneau dans la semaine : c'est le planning que Twitch garde d'une chaîne qui ne diffuse plus. Quand elle a diffusé, sa rediffusion à un clic, et son prochain direct. « Sa semaine » ouvre la semaine de son dernier direct. Une chaîne que Twitch ne sert plus — compte suspendu, renommé ou fermé — n'en disparaît pas : elle reste en bas, « Indisponible sur Twitch ».\n• Un cadenas marque, avant même le clic, une rediffusion réservée aux abonnés de la chaîne quand l'extension ne vous sait pas abonné ; abonné, rien ne s'affiche : elle vous est ouverte.\nLes chaînes sont toutes celles que vous suivez. La barre latérale de Twitch n'en montrant que cent, l'extension relit la liste complète sur la page de vos suivis, dans un cadre invisible, toutes les douze heures. Une rediffusion n'existe que si la chaîne garde ses directs, et tant que Twitch les conserve ; un direct programmé, que si elle tient son planning sur Twitch. « Sans rediffusion » n'a de jour que si l'extension a vu ce direct en cours : Twitch n'en donne que la fin. L'agenda ne demande rien à Twitch tant que vous ne l'ouvrez pas, et ce qu'il a lu reste dans votre navigateur : un rechargement ne redemande que ce qui a vieilli."
   },
   "guideVieTitre": {
     "message": "Vie privée, en clair"
   },
   "guideVieTexte": {
-    "message": "• Aucun serveur tiers : l'extension ne parle qu'à Twitch, par l'API publique que la page utilise déjà.\n• Ces appels sont anonymes : ni jeton de session, ni cookie. Ils ne peuvent pas être rattachés à votre compte.\n• Une exception, dite tout haut : pour connaître vos abonnements, l'extension ouvre VOTRE page twitch.tv/subscriptions dans un cadre invisible — toutes les six heures par défaut, ou selon votre réglage, plus tôt seulement après un relevé qui n'a rien trouvé ou si vous le demandez, et jamais si vous êtes déconnecté. Votre navigateur l'authentifie comme si vous aviez cliqué le lien ; l'extension ne lit ni ne transmet votre jeton.\n• Vos visites, vos abonnements et leur ancienneté restent dans votre navigateur. Effacez les données du site twitch.tv, et il n'en reste rien.\n• Aucune permission demandée, aucun traceur, aucune télémétrie. L'extension ne tourne que sur twitch.tv."
+    "message": "• Aucun serveur tiers : l'extension ne parle qu'à Twitch, par l'API publique que la page utilise déjà.\n• Ces appels sont anonymes : ni jeton de session, ni cookie. Ils ne peuvent pas être rattachés à votre compte.\n• Deux exceptions, dites tout haut : pour connaître vos abonnements, l'extension ouvre VOTRE page twitch.tv/subscriptions dans un cadre invisible — toutes les six heures par défaut, ou selon votre réglage, plus tôt seulement après un relevé qui n'a rien trouvé ou si vous le demandez, et jamais si vous êtes déconnecté. Pour connaître toutes vos chaînes suivies, elle ouvre de même votre page des chaînes suivies, toutes les douze heures. Votre navigateur les authentifie comme si vous aviez cliqué le lien ; l'extension ne lit ni ne transmet votre jeton.\n• Vos visites, vos abonnements et leur ancienneté, vos chaînes suivies et ce que l'agenda a lu restent dans votre navigateur. Effacez les données du site twitch.tv, et il n'en reste rien.\n• Aucune permission demandée, aucun traceur, aucune télémétrie. L'extension ne tourne que sur twitch.tv."
   },
   "guideBadgeCcl": {
     "message": "Jeux matures"
@@ -500,6 +629,21 @@
   },
   "descOptions": {
     "message": "Ce que l'extension ajoute, et ce qu'elle laisse. Tout est actif par défaut ; un point violet marque ce que vous avez changé."
+  },
+  "grpAgenda": {
+    "message": "Agenda"
+  },
+  "navSemaine": {
+    "message": "La semaine"
+  },
+  "descSemaine": {
+    "message": "Les directs de vos chaînes suivies, jour par jour : passés avec leur rediffusion, en cours, et programmés."
+  },
+  "navHorsLigne": {
+    "message": "Hors ligne"
+  },
+  "descHorsLigne": {
+    "message": "Vos chaînes suivies qui ne sont pas en direct, les prochains directs programmés en tête : leur dernier direct, sa rediffusion, et le prochain s'il est programmé."
   },
   "sumSettings": {
     "message": "réglages"
@@ -676,7 +820,7 @@
     "message": "Effacer les chaînes suivies mémorisées ?"
   },
   "purgeRosterText": {
-    "message": "La liste se reconstruira en observant la barre latérale. Vos visites et vos abonnements ne sont pas touchés."
+    "message": "La liste se reconstruira d'elle-même : la barre latérale tout de suite, puis la liste complète de votre page des chaînes suivies, relue peu après. Vos visites et vos abonnements ne sont pas touchés."
   },
   "optPurgeFaite": {
     "message": "Effacé."

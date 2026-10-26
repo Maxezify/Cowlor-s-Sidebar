@@ -48,7 +48,7 @@
     "message": "Canales conocidos"
   },
   "descRoster": {
-    "message": "Todos los canales que sigues y que la extensión ha visto al menos una vez en tu barra lateral."
+    "message": "Todos los canales que sigues: los de tu barra lateral y la lista completa, releída cada doce horas en tu página de canales seguidos."
   },
   "navRythme": {
     "message": "Ritmo"
@@ -227,6 +227,21 @@
   "sumCategories": {
     "message": "categorías"
   },
+  "sumLive": {
+    "message": "en directo"
+  },
+  "sumBroadcasts": {
+    "message": "directos"
+  },
+  "sumPlanned": {
+    "message": "programados"
+  },
+  "sumOffline": {
+    "message": "desconectados"
+  },
+  "sumScheduled": {
+    "message": "con próximo directo"
+  },
   "btnRefreshSubs": {
     "message": "Barrer ahora"
   },
@@ -282,6 +297,48 @@
     "message": "Se ha perdido la conexión con la pestaña. Vuelve a intentarlo.",
     "description": "État : la liaison avec l'onglet est perdue"
   },
+  "stateAgendaLoading": {
+    "message": "Leyendo los canales seguidos… $1 / $2"
+  },
+  "stateAgendaLoadingReplays": {
+    "message": "Leyendo las repeticiones… canales restantes: $1"
+  },
+  "stateAgendaCapped": {
+    "message": "Solo se leen $1 de tus $2 canales seguidos: los que están en directo, tus suscripciones y después los más visitados."
+  },
+  "stateAgendaNoSchedule": {
+    "message": "Twitch no sirve el horario de los canales: no se pueden mostrar los directos programados."
+  },
+  "stateAgendaNoReplays": {
+    "message": "Twitch rechaza la lista de repeticiones: solo se muestra la última de cada canal."
+  },
+  "stateAgendaPartial": {
+    "message": "Canales que Twitch no ha servido: $1; «Actualizar» los vuelve a pedir."
+  },
+  "stateAgendaNetwork": {
+    "message": "Twitch no responde por ahora; «Actualizar» reanudará la lectura."
+  },
+  "stateAgendaFollowSweep": {
+    "message": "Leyendo la lista completa de tus canales seguidos…"
+  },
+  "stateAgendaIncomplete": {
+    "message": "Esta semana es anterior a las cien últimas repeticiones de algunos canales: no se muestran todas. Canales afectados: $1"
+  },
+  "stateAgendaEmpty": {
+    "message": "Ningún directo esta semana."
+  },
+  "stateAgendaEmptyChannel": {
+    "message": "Ningún directo de este canal esta semana."
+  },
+  "stateAgendaNoOffline": {
+    "message": "Todos los canales que sigues están en directo."
+  },
+  "stateAgendaNoRoster": {
+    "message": "Todavía no se conoce ningún canal seguido. La extensión los aprende de la barra lateral de Twitch y de tu página de canales seguidos mientras tienes la sesión iniciada."
+  },
+  "stateAgendaRefused": {
+    "message": "Twitch rechaza las peticiones del horario; «Exportar un informe» dice por qué."
+  },
   "statusOk": {
     "message": "OK"
   },
@@ -311,6 +368,57 @@
   },
   "valMore": {
     "message": "más"
+  },
+  "valViewsOne": {
+    "message": "$1 visualización"
+  },
+  "valViewsFew": {
+    "message": "$1 visualizaciones"
+  },
+  "valViewsMany": {
+    "message": "$1 visualizaciones"
+  },
+  "valViewsOther": {
+    "message": "$1 visualizaciones"
+  },
+  "valOngoing": {
+    "message": "en curso"
+  },
+  "valLive": {
+    "message": "En directo"
+  },
+  "valPlanned": {
+    "message": "Programado"
+  },
+  "valNoReplay": {
+    "message": "Sin repetición"
+  },
+  "valSubOnly": {
+    "message": "Suscriptores"
+  },
+  "valSubOnlyLocked": {
+    "message": "Solo para suscriptores del canal — la extensión no sabe que tienes una suscripción"
+  },
+  "valUnavailable": {
+    "message": "No disponible en Twitch"
+  },
+  "valUnavailableTip": {
+    "message": "Twitch ya no sirve este canal (detectado: $1): por lo general, una cuenta suspendida, renombrada o cerrada. Vuelve por sí solo si Twitch lo sirve de nuevo."
+  },
+  "valChannel": {
+    "message": "Canal"
+  },
+  "valAllChannels": {
+    "message": "Todos los canales"
+  },
+  "valLastLive": {
+    "message": "Último directo $1"
+  },
+  "valLastLiveUnknown": {
+    "message": "Último directo desconocido"
+  },
+  "valNext": {
+    "message": "Próximo directo: $1"
   },
   "healthOk": {
     "message": "Selectores OK"
@@ -347,6 +455,21 @@
   },
   "btnRefresh": {
     "message": "Actualizar"
+  },
+  "btnToday": {
+    "message": "Hoy"
+  },
+  "btnWeekPrev": {
+    "message": "Semana anterior"
+  },
+  "btnWeekNext": {
+    "message": "Semana siguiente"
+  },
+  "btnReplay": {
+    "message": "Ver"
+  },
+  "btnSeeWeek": {
+    "message": "Su semana"
   },
   "btnClose": {
     "message": "Cerrar"
@@ -424,19 +547,25 @@
     "message": "Más rápida que Twitch, y más limpia"
   },
   "guideViteTexte": {
-    "message": "Twitch tarda de dos a cuatro minutos en mostrar un canal que empieza, y mantiene de cinco a diez el que termina. La extensión refresca la barra lateral ella misma, cada treinta segundos: espectadores, categoría, duración, llegadas y salidas.\n• Tus canales seguidos están siempre desplegados por completo: se acabó el «Ver más».\n• Hype trains, banners de descuento, franjas de patrocinio y secciones vacías salen de la barra; lo que decían vuelve como insignia en la vista previa (capítulo $1).\n• Tu racha de visualización y la fila de stories de Twitch se recogen en el bloque de filtros, arriba de la lista. ¿Las prefieres como las muestra Twitch, u ocultas? Está en «Ajustes»."
+    "message": "Twitch tarda de dos a cuatro minutos en mostrar un canal que empieza, y mantiene de cinco a diez el que termina. La extensión refresca la barra lateral ella misma, cada treinta segundos: espectadores, categoría, duración, llegadas y salidas.\n• Todos tus canales seguidos en directo se despliegan solos, y los desconectados no aparecen nunca: se acabó el «Mostrar más».\n• Hype trains, banners de descuento, franjas de patrocinio y secciones vacías salen de la barra; lo que decían vuelve como insignia en la vista previa (capítulo $1).\n• Tu racha de visualización y la fila de stories de Twitch se recogen en el bloque de filtros, arriba de la lista. ¿Las prefieres como las muestra Twitch, u ocultas? Está en «Ajustes»."
   },
   "guidePanneauTitre": {
     "message": "Este panel"
   },
   "guidePanneauTexte": {
-    "message": "Cinco grupos, a la izquierda:\n• «Primeros pasos» — esta guía, legible incluso sin pestaña de Twitch abierta.\n• «Ajustes» — todo lo que la extensión deja elegir.\n• «Tus datos» — lo que ha retenido: los canales que más visitas, a qué horas, tus suscripciones, los canales conocidos.\n• «Diagnóstico» — solo sirve si algo falla; se oculta en los ajustes.\n• «Top Canales» — el estado de la clasificación y de sus categorías.\nLas secciones distintas de esta guía leen la pestaña de Twitch en primer plano; sin ella, lo dicen.\n• ¿Algo va mal? «Exportar un informe» escribe un texto para releer antes de enviarlo: recuentos, ninguna lista — ni tus canales, ni tus suscripciones.\n• «Borrar el historial» borra todo lo que la extensión ha retenido, definitivamente; tus ajustes se quedan."
+    "message": "Seis grupos, a la izquierda:\n• «Primeros pasos» — esta guía, legible incluso sin pestaña de Twitch abierta.\n• «Ajustes» — todo lo que la extensión deja elegir.\n• «Horario» — los directos de los canales que sigues, pasados, en curso y programados, con sus repeticiones; es el capítulo siguiente.\n• «Tus datos» — lo que ha retenido: los canales que más visitas, a qué horas, tus suscripciones, los canales conocidos.\n• «Diagnóstico» — solo sirve si algo falla; se oculta en los ajustes.\n• «Top Canales» — el estado de la clasificación y de sus categorías.\nLas secciones distintas de esta guía leen la pestaña de Twitch en primer plano; sin ella, lo dicen.\n• ¿Algo va mal? «Exportar un informe» escribe un texto para releer antes de enviarlo: recuentos, ninguna lista — ni tus canales, ni tus suscripciones.\n• «Borrar el historial» borra todo lo que la extensión ha retenido, definitivamente; tus ajustes se quedan."
+  },
+  "guideAgendaTitre": {
+    "message": "El horario de tus canales"
+  },
+  "guideAgendaTexte": {
+    "message": "El grupo «Horario» hace, para todos los canales que sigues a la vez, lo que la página de horario de un canal hace en Twitch para uno solo.\n• «La semana»: día a día, los directos pasados con su repetición — un clic la abre en una pestaña nueva —, los que están en curso y los que los canales han programado. Se abre en el día de hoy, con los días pasados arriba; un directo que pasa de medianoche se queda en el día en que empezó.\n• Las flechas cambian de semana, hasta ocho atrás y dos adelante; «Hoy» vuelve al día de hoy, y el menú deja un solo canal.\n• «Desconectados»: cada canal que no está en directo — primero los que han programado su próximo directo, el más cercano arriba, y después los demás, el que terminó más recientemente primero. Un canal programado que no emite desde hace tres meses no aparece, ni su horario en la semana: es la programación que Twitch conserva de un canal que ya no emite. Cuándo emitió, su repetición a un clic y su próximo directo. «Su semana» abre la semana de su último directo. Un canal que Twitch ya no sirve — cuenta suspendida, renombrada o cerrada — no desaparece: queda abajo del todo, «No disponible en Twitch».\n• Un candado marca, antes incluso del clic, una repetición reservada a los suscriptores del canal cuando la extensión no sabe que tienes una suscripción; con suscripción, no aparece nada: la tienes abierta.\nLos canales son todos los que sigues. Como la barra lateral de Twitch solo muestra cien, la extensión vuelve a leer la lista completa en tu página de canales seguidos, en un marco invisible, cada doce horas. Una repetición solo existe si el canal guarda sus directos, y mientras Twitch los conserve; un directo programado, solo si el canal mantiene su horario en Twitch. «Sin repetición» solo tiene día si la extensión vio ese directo en curso: Twitch solo da su final. El horario no le pide nada a Twitch mientras no lo abras, y lo que ha leído se queda en tu navegador: al recargar, solo vuelve a pedir lo que ha envejecido."
   },
   "guideVieTitre": {
     "message": "Privacidad, en claro"
   },
   "guideVieTexte": {
-    "message": "• Ningún servidor de terceros: la extensión solo habla con Twitch, por la API pública que la página ya usa.\n• Esas llamadas son anónimas: ni token de sesión, ni cookie. No se pueden vincular a tu cuenta.\n• Una excepción, dicha en voz alta: para conocer tus suscripciones, la extensión abre TU página twitch.tv/subscriptions en un marco invisible — cada seis horas por defecto, o según tu ajuste, antes solo tras un barrido que no encontró nada o si lo pides, y nunca si has cerrado sesión. Tu navegador la autentica como si hubieras pulsado el enlace; la extensión no lee ni transmite tu token.\n• Tus visitas, tus suscripciones y su antigüedad se quedan en tu navegador. Borra los datos del sitio twitch.tv, y no queda nada.\n• Ningún permiso pedido, ningún rastreador, ninguna telemetría. La extensión solo se ejecuta en twitch.tv."
+    "message": "• Ningún servidor de terceros: la extensión solo habla con Twitch, por la API pública que la página ya usa.\n• Esas llamadas son anónimas: ni token de sesión, ni cookie. No se pueden vincular a tu cuenta.\n• Dos excepciones, dichas en voz alta: para conocer tus suscripciones, la extensión abre TU página twitch.tv/subscriptions en un marco invisible — cada seis horas por defecto, o según tu ajuste, antes solo tras un barrido que no encontró nada o si lo pides, y nunca si has cerrado sesión. Para conocer todos los canales que sigues, abre del mismo modo tu página de canales seguidos, cada doce horas. Tu navegador las autentica como si hubieras pulsado el enlace; la extensión no lee ni transmite tu token.\n• Tus visitas, tus suscripciones y su antigüedad, los canales que sigues y lo que el horario ha leído se quedan en tu navegador. Borra los datos del sitio twitch.tv, y no queda nada.\n• Ningún permiso pedido, ningún rastreador, ninguna telemetría. La extensión solo se ejecuta en twitch.tv."
   },
   "guideBadgeCcl": {
     "message": "Juego para adultos"
@@ -500,6 +629,21 @@
   },
   "descOptions": {
     "message": "Lo que la extensión añade y lo que deja intacto. Todo está activo por defecto; un punto morado marca lo que has cambiado."
+  },
+  "grpAgenda": {
+    "message": "Horario"
+  },
+  "navSemaine": {
+    "message": "La semana"
+  },
+  "descSemaine": {
+    "message": "Los directos de los canales que sigues, día a día: los pasados con su repetición, los que están en curso y los programados."
+  },
+  "navHorsLigne": {
+    "message": "Desconectados"
+  },
+  "descHorsLigne": {
+    "message": "Los canales que sigues que no están en directo, primero los directos programados: su último directo, su repetición y el próximo si está programado."
   },
   "sumSettings": {
     "message": "ajustes"
@@ -676,7 +820,7 @@
     "message": "¿Borrar los canales seguidos memorizados?"
   },
   "purgeRosterText": {
-    "message": "La lista se reconstruirá observando la barra lateral. Tus visitas y tus suscripciones no se tocan."
+    "message": "La lista se reconstruirá sola: la barra lateral enseguida y luego la lista completa de tu página de canales seguidos, releída poco después. Tus visitas y tus suscripciones no se tocan."
   },
   "optPurgeFaite": {
     "message": "Borrado."
