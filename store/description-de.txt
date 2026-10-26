@@ -188,7 +188,7 @@ _______________________________
 Die Zeitplan-Seite eines Kanals auf Twitch zeigt einen einzigen Kanal. Die Gruppe „Zeitplan“ im Panel zeigt alle, denen du folgst, auf einmal.
 
 - ★ DIE WOCHE, TAG FÜR TAG ★ Sie öffnet sich beim heutigen Tag, die vergangenen Tage darüber: jeder vergangene Stream mit seiner Aufzeichnung einen Klick entfernt, die laufenden und die, die die Kanäle geplant haben, jeder an dem Tag, an dem er begann. Acht Wochen zurück, zwei voraus.
-- ★ OFFLINE, ABER NICHT VERGESSEN ★ Jeder gefolgte Kanal, der nicht live ist: die mit einem geplanten Stream zuerst, der früheste oben, dann die anderen, der jüngste zuerst — wann er zuletzt gestreamt hat, seine Aufzeichnung und sein nächster Stream.
+- ★ OFFLINE, ABER NICHT VERGESSEN ★ Jeder gefolgte Kanal, der nicht live ist: die mit einem geplanten Stream zuerst, der früheste oben, dann die anderen, der jüngste zuerst — wann er zuletzt gestreamt hat, seine Aufzeichnung und sein nächster Stream. Kanäle mit verwaistem Plan — seit drei Monaten kein Stream — fehlen hier.
 - ★ EIN KANAL ODER ALLE ★ Ein Menü behält nur einen, und „Woche zeigen“ springt direkt in die Woche seines letzten Streams.
 - ★ EHRLICH ÜBER DAS, WAS TWITCH BEHÄLT ★ Eine Aufzeichnung gibt es nur, wenn der Kanal seine Streams speichert, und nur so lange, wie Twitch sie aufbewahrt; ein letzter Stream ohne sagt es („Ohne Aufzeichnung“), eine Aufzeichnung, die man nur mit Abo sehen kann, ebenfalls, mit einem Schloss, noch vor dem Klick.
 - ★ NUR, WENN DU HINSIEHST ★ Nichts wird bei Twitch angefragt, bevor du ihn öffnest, und was er gelesen hat, bleibt in deinem Browser: Ein Neuladen macht dort weiter, wo er war.

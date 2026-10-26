@@ -8479,9 +8479,11 @@ titre('74. Erreurs — la taxonomie, et ce qu\'elle rend visible');
      porte('échec de fetch'), JSON.stringify(gql));
   /* CELUI-CI EST LE PLUS SOURNOIS : HTTP 200, transport parfait, et un corps
      qui ne porte que des refus. Rien dans la couche réseau ne bronchait, et le
-     cache restait vide sans la moindre trace. */
-  ok('un 200 porteur d\'erreurs GraphQL est consigné, sans rien changer au flux',
-     porte('erreurs GraphQL'), JSON.stringify(gql));
+     cache restait vide sans la moindre trace. Il NOMME l'opération refusée
+     (4.25.0.7) : un rapport réel en a montré vingt-sept sous une seule ligne,
+     dont trois que rien ne rattachait à une requête. */
+  ok('un 200 porteur d\'erreurs GraphQL est consigné, sans rien changer au flux — et nomme l\'opération refusée',
+     gql.some((x) => /^réponse 200 avec erreurs GraphQL \(Tse\w+(, Tse\w+)*\)$/.test(x)), JSON.stringify(gql));
 
   const res = await page.evaluate(() => window.tse.panneau.rapport().reseau);
   ok('le rapport dit combien d\'appels ont été passés, et combien ont échoué',
@@ -32655,7 +32657,22 @@ const S_LECTEUR_SONDE = () => {
      par-dessus), « dehors » (sœur du bloc, posée par-dessus), « ailleurs »
      (hors de la barre, fixée sur le bout de la ligne). `coupeRange` : le
      moteur qui ne rend d'un titre coupé que sa partie visible. */
-  const ouvrir = async (lang, { fleche = 'flux', largeur = 240, coupeRange = false, important = false } = {}) => {
+  /* LE VOILE DOIT SE LEVER APRÈS LA MISE EN PLACE (4.25.0.7). Sous la charge
+     du banc complet, la page attendait parfois sa feuille et sa carte plus
+     longtemps que le délai maximal du voile — 1,2 s au banc : il se levait
+     seul, et i) lisait le titre du décor nu, 11,7 px, la taille d'un <h3>
+     sans feuille. Rouge deux fois en trois passes, vert seul ; aucune
+     écriture de l'extension en cause — elle ne descend jamais sous 12 px. La
+     page est rouverte, trois fois au plus : ce que i) éprouve, c'est le
+     titre réglé SOUS le voile, encore faut-il qu'il y en ait un. */
+  const ouvrir = async (lang, o = {}) => {
+    for (let essai = 1; ; essai++) {
+      const { page, tot } = await ouvrirUne(lang, o);
+      if (!tot || essai >= 3) return page;
+      await page.close();
+    }
+  };
+  const ouvrirUne = async (lang, { fleche = 'flux', largeur = 240, coupeRange = false, important = false } = {}) => {
     const page = await browser.newPage();
     page.on('pageerror', e => { fail++; console.log('  ✗ ERREUR PAGE:', e.message); });
     /* LE TITRE AUX TROIS INSTANTS DU VOILE (4.24.0.43) : SOUS lui — relevé
@@ -32695,7 +32712,9 @@ const S_LECTEUR_SONDE = () => {
     });
     await page.goto(URL_PAGE);
     // La feuille de la ligne arrive APRÈS les premiers balayages, comme celle de Twitch peut le faire.
-    await page.evaluate(([l, f, w, c, imp]) => {
+    const tot = await page.evaluate(([l, f, w, c, imp]) => {
+      // Le voile déjà levé avant la mise en place : la page est à rouvrir (cf. `ouvrir`).
+      const tot = window.__sousVoile !== null;
       if (c) {
         /* Ce qu'un moteur rendrait des seuls glyphes VISIBLES d'un titre coupé :
            la boîte, moins la place de l'ellipse. Rendre la boîte entière ne
@@ -32741,11 +32760,12 @@ const S_LECTEUR_SONDE = () => {
       document.documentElement.lang = l;
       window.__fx = { alpha: { id: '1', createdAt: new Date(Date.now() - 3600_000).toISOString(), viewers: 900, game: 'G', tags: [] } };
       window.__addCard('alpha', 'G', '900');
+      return tot;
     }, [lang, fleche, largeur, coupeRange, important]);
     // Le voile levé : sous lui, rien n'est touchable, et les sondages attendent.
     await attendre(page, () => !document.body.classList.contains('tse-loading'), 5000);
     await wait(page, 900);
-    return page;
+    return { page, tot };
   };
   const mesurer = (page) => page.evaluate(() => {
     const ligne = document.querySelector('#side-nav .side-nav__title');
@@ -33567,6 +33587,18 @@ const S_LECTEUR_SONDE = () => {
           ...Array.from({ length: 11 }, (_, i) => ({ id: String(9901 + i), titre: `Rare — vieille ${i}`,
             debut: iso(now - (72 + i) * 24 * H), duree: 3600, vues: 3, diffusion: String(790001 + i) }))] };
     }
+    /* Trois chaînes programmées lundi prochain (4.25.0.7) : l'une muette depuis
+       cent vingt jours — le planning récurrent que Twitch garde d'une chaîne
+       qui ne diffuse plus —, l'autre partie il y a quatre-vingts jours, la
+       dernière qui n'a jamais diffusé. */
+    if (o.muettes) {
+      const prog = (l) => [{ id: l + '-prog', debut: iso(q(1, 0, 16)), fin: iso(q(1, 0, 18)), titre: 'Programmé', jeu: 'G' }];
+      A.veteran = { nom: 'Veteran', titre: 'Veteran', videos: [], dernier: { id: '795001', fin: iso(now - 120 * 24 * H) },
+                    creneaux: prog('veteran') };
+      A.limite = { nom: 'Limite', titre: 'Limite', videos: [], dernier: { id: '795002', fin: iso(now - 80 * 24 * H) },
+                   creneaux: prog('limite') };
+      A.novice = { nom: 'Novice', titre: 'Novice', videos: [], creneaux: prog('novice') };
+    }
     // En direct, et l'agenda seul le voit : la barre ne la connaît pas.
     if (o.onde) {
       A.onde = { nom: 'Onde', titre: 'Onde en direct', videos: [], dernier: { id: '770000', fin: iso(q(-1, 2, 21)) },
@@ -33709,7 +33741,7 @@ const S_LECTEUR_SONDE = () => {
      !!b && !!b.derniere && b.derniere.restreinte === true && b.abonne === false && !!d && d.abonne === undefined,
      JSON.stringify({ brume: b && [b.derniere && b.derniere.restreinte, b.abonne], dune: d && d.abonne }));
   ok('b) …résumé : vingt-huit hors ligne — l\'indisponible n\'en est pas —, une en direct, deux avec un prochain direct',
-     JSON.stringify(hl.resume) === JSON.stringify({ horsLigne: 28, directs: 1, programmees: 2 })
+     JSON.stringify(hl.resume) === JSON.stringify({ horsLigne: 28, directs: 1, programmees: 2, muettes: 0 })
      && hl.notes.planning === 'ok' && hl.notes.limite === null && hl.notes.echouees === 0 && hl.notes.reseau === false,
      JSON.stringify({ resume: hl.resume, notes: hl.notes }));
 
@@ -34277,7 +34309,7 @@ const S_LECTEUR_SONDE = () => {
   ok('v) omise deux fois d\'affilée : indisponible, en bas, sous son nom d\'avant — et pas hors ligne pour le résumé',
      hv3.lignes.map((x) => `${x.login}:${x.nom}:${!!x.indisponible}`).join() === 'brume:Brume:true,ether:Ether:true'
      && hv3.lignes.every((x) => /^https:/.test(x.avatar) && !('prochain' in x) && !('dernier' in x))
-     && JSON.stringify(hv3.resume) === JSON.stringify({ horsLigne: 0, directs: 0, programmees: 0 }),
+     && JSON.stringify(hv3.resume) === JSON.stringify({ horsLigne: 0, directs: 0, programmees: 0, muettes: 0 }),
      JSON.stringify({ lignes: hv3.lignes, resume: hv3.resume }));
   ok('v) …ses directs passés restent dans la semaine, ses créneaux à venir n\'y sont plus, et le menu la garde',
      sv3.entrees.filter((x) => x.login === 'brume').length === 3 && sv3p.entrees.length === 0
@@ -34881,6 +34913,27 @@ const S_LECTEUR_SONDE = () => {
      && !avecCad[avecCad.length - 1].releve && !avecCad[avecCad.length - 1].h
      && resumeTheta(sansCad).pendant >= 3 && sansCad.every((x) => !x.h && !x.s),
      JSON.stringify({ avec: resumeTheta(avecCad), sans: resumeTheta(sansCad), n: [avecCad.length, sansCad.length] }));
+
+  /* ── ι) PROGRAMMÉE, MAIS MUETTE DEPUIS TROIS MOIS (4.25.0.7) ─────────────
+     Signalé sur capture : « Dernier direct il y a 41 mois — Prochain direct :
+     lundi, 16:00 », en tête de « Hors ligne ». Twitch garde le planning
+     récurrent d'une chaîne qui ne diffuse plus. Muette depuis plus de quatre-
+     vingt-dix jours, elle quitte « Hors ligne », et son créneau la semaine ;
+     partie il y a quatre-vingts jours, ou jamais partie — rien ne dit alors
+     qu'elle s'est tue —, elle reste. */
+  const pi = await monter({ chaines: ['veteran', 'limite', 'novice'], muettes: true });
+  const hi = await finir(pi, () => window.tse.panneau('horsLigne'));
+  const si = await finir(pi, () => window.__semaine(1));
+  const rapi = await pi.evaluate(() => window.tse.panneau.rapport().agenda);
+  ok('ι) programmée mais muette depuis cent vingt jours : hors de « Hors ligne », et comptée ; partie il y a quatre-vingts jours, ou jamais partie, elle reste',
+     hi.lignes.map((x) => x.login).join() === 'limite,novice' && hi.lignes.every((x) => x.prochain && x.prochain.titre === 'Programmé')
+     && hi.resume.muettes === 1 && hi.resume.programmees === 2 && rapi.muettes === 1,
+     JSON.stringify({ lignes: hi.lignes.map((x) => x.login), resume: hi.resume, rapport: rapi.muettes }));
+  ok('ι) …et son créneau ne paraît pas dans la semaine où il tombe ; ceux des deux autres, si',
+     si.entrees.filter((x) => x.type === 'prevu').map((x) => x.login).sort().join() === 'limite,novice'
+     && si.resume.prevues === 2,
+     JSON.stringify(si.entrees.map((x) => `${x.type}:${x.login}`)));
+  await pi.close();
 }
 
 
