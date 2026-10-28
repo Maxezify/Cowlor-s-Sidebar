@@ -14,6 +14,10 @@
   "panelSubtitle": {
     "message": "I tuoi dati, le tue impostazioni, e di che segnalare un problema"
   },
+  "panelLocale": {
+    "message": "it",
+    "description": "Code BCP 47 de CETTE traduction, à ne pas traduire. Le panneau le lit pour savoir quelle langue chrome.i18n lui a réellement servie, et en tire la locale de ses dates et de ses nombres."
+  },
   "grpGuide": {
     "message": "Per iniziare"
   },

@@ -92,8 +92,26 @@ try {
 
 /* Locale d'affichage pour les nombres et les dates. On suit celle de
    l'INTERFACE de l'extension, pas celle du système : si le panneau parle
-   allemand, ses milliers doivent se grouper comme en allemand. */
-const LOCALE = (API.i18n.getUILanguage && API.i18n.getUILanguage()) || 'en';
+   allemand, ses milliers doivent se grouper comme en allemand.
+
+   CELLE QUI EST SERVIE, PAS CELLE QUI EST DEMANDÉE (4.25.0.8). getUILanguage()
+   rend la langue du navigateur ; chrome.i18n ne sert que nos douze traductions
+   et retombe sur l'anglais pour les autres. Un Chrome suédois lisait donc un
+   panneau anglais aux dates suédoises — « söndag 1 november » sous « The
+   week » —, et un Chrome de Taïwan des dates chinoises dans un texte anglais.
+   Chaque traduction porte son propre code, `panelLocale` : c'est lui qui
+   décide, puisque c'est lui qui a été servi. La région du navigateur ne reste
+   que si elle va avec cette langue et que la traduction n'en impose pas une
+   (es-419, pt-BR, zh-CN) : un Chrome britannique garde ses dates à
+   l'anglaise, un Chrome canadien ses nombres canadiens. */
+const LOCALE = (() => {
+  const servie = (API.i18n.getMessage && API.i18n.getMessage('panelLocale')) || 'en';
+  let ui = null;
+  try { ui = Intl.getCanonicalLocales((API.i18n.getUILanguage && API.i18n.getUILanguage()) || '')[0] || null; }
+  catch { ui = null; }   // langue vide ou mal formée : la servie suffit
+  if (!ui || servie.includes('-')) return servie;
+  return ui.split('-')[0].toLowerCase() === servie.toLowerCase() ? ui : servie;
+})();
 const NOMBRE = new Intl.NumberFormat(LOCALE);
 
 /* ── Mise en forme des valeurs ───────────────────────────────────────────── */
@@ -1709,6 +1727,19 @@ const PLURIEL = new Intl.PluralRules(LOCALE);
 const RELATIF = new Intl.RelativeTimeFormat(LOCALE, { numeric: 'auto' });
 const ORDRE_NOMS = new Intl.Collator(LOCALE, { sensitivity: 'base' });
 
+/* « 1er » (4.25.0.8), demandé ainsi : l'agenda écrit « dimanche 1 novembre »
+   au lieu de « 1er novembre ». Le français écrit le premier du mois en
+   ordinal, et Intl n'en sait rien. On corrige la PARTIE « jour » que rendent
+   formatToParts et formatRangeToParts, jamais le texte : le « 1 » d'une
+   heure, d'une année ou d'un titre ne bouge pas, ni un jour à deux chiffres
+   (« 01/11 »), qui n'est pas une date en toutes lettres. Les autres langues
+   restent telles qu'Intl les écrit. Toute date en toutes lettres du panneau
+   passe par ici — JOUR_TITRE, JOUR_ABREGE, DATE_PLAGE, DATE_COMPLETE. */
+const PREMIER_DU_MOIS = /^fr(?:-|$)/i.test(LOCALE) ? '1er' : null;
+const jourEcrit = (p) => (PREMIER_DU_MOIS && p.type === 'day' && p.value === '1' ? PREMIER_DU_MOIS : p.value);
+const dater = (format, t) => format.formatToParts(t).map(jourEcrit).join('');
+const daterPlage = (format, a, b) => format.formatRangeToParts(a, b).map(jourEcrit).join('');
+
 /* « 51,4 k vues », au pluriel de la langue : Intl.PluralRules choisit, et les
    quatre formes sont des clés. AU-DELÀ DE MILLE, le nombre s'abrège — « 1,2
    тыс. » — et le nom s'accorde à l'abréviation, pas au nombre : en russe et en
@@ -1765,8 +1796,8 @@ const decalageDe = (t) => {
 const plageSemaine = (debut, fin) => {
   const dernier = new Date(fin);
   dernier.setDate(dernier.getDate() - 1);
-  try { return DATE_PLAGE.formatRange(new Date(debut), dernier); }
-  catch { return `${DATE_PLAGE.format(debut)} – ${DATE_PLAGE.format(dernier)}`; }
+  try { return daterPlage(DATE_PLAGE, new Date(debut), dernier); }
+  catch { return `${dater(DATE_PLAGE, debut)} – ${dater(DATE_PLAGE, dernier)}`; }
 };
 const argAgenda = (id) => (id === 'semaine'
   ? { ...bornesSemaine(etatAgenda.decalage), chaine: etatAgenda.chaine }
@@ -1869,7 +1900,7 @@ const entreeAgenda = (e, nom) => {
   const corps = div('ag-corps');
   corps.append(l1, l2);
   el.append(vig, corps);
-  el.title = [e.titre, DATE_COMPLETE.format(e.debut)].filter(Boolean).join('\n');
+  el.title = [e.titre, dater(DATE_COMPLETE, e.debut)].filter(Boolean).join('\n');
   return el;
 };
 
@@ -2068,7 +2099,7 @@ const listeSemaine = (data, suivant) => {
     const section = elt('section', 'ag-jour');
     section.dataset.jour = String(jour);
     section.dataset.fin = String(finJour);
-    const titre = elt('h3', 'ag-jour-titre', JOUR_TITRE.format(jour));
+    const titre = elt('h3', 'ag-jour-titre', dater(JOUR_TITRE, jour));
     titre.dataset.ancre = 'j:' + jour;
     if (data.maintenant >= jour && data.maintenant < finJour) {
       section.classList.add('ag-jour--auj');
@@ -2113,7 +2144,7 @@ const ligneHorsLigne = (l, quand) => {
   l1.appendChild(elt('span', 'hl-nom', l.nom));
   const q = elt('span', 'hl-quand', quand);
   if (l.indisponible) {
-    q.title = T('valUnavailableTip', DATE_COMPLETE.format(l.indisponible));
+    q.title = T('valUnavailableTip', dater(DATE_COMPLETE, l.indisponible));
     l1.appendChild(q);
     corps.appendChild(l1);
     ligne.append(avatar, corps);
@@ -2122,8 +2153,8 @@ const ligneHorsLigne = (l, quand) => {
   // Le début n'est connu que par la rediffusion, ou parce qu'on l'a vu en cours ; sinon, la fin seule.
   if (l.dernier) {
     q.title = l.dernier.debut !== null
-      ? `${DATE_COMPLETE.format(l.dernier.debut)} – ${HEURE.format(l.dernier.t)}`
-      : `– ${DATE_COMPLETE.format(l.dernier.t)}`;
+      ? `${dater(DATE_COMPLETE, l.dernier.debut)} – ${HEURE.format(l.dernier.t)}`
+      : `– ${dater(DATE_COMPLETE, l.dernier.t)}`;
   }
   l1.appendChild(q);
   corps.appendChild(l1);
@@ -2133,7 +2164,7 @@ const ligneHorsLigne = (l, quand) => {
   const sous = [l.titre, revoir ? l.derniere.libelle : null].filter(Boolean).join(' · ');
   if (sous) corps.appendChild(enEntier('hl-titre', sous));
   if (l.prochain) {
-    const quandProchain = `${JOUR_ABREGE.format(l.prochain.debut)}, ${HEURE.format(l.prochain.debut)}`;
+    const quandProchain = `${dater(JOUR_ABREGE, l.prochain.debut)}, ${HEURE.format(l.prochain.debut)}`;
     corps.appendChild(enEntier('hl-prochain',
       T('valNext', quandProchain + (l.prochain.titre ? ` — ${l.prochain.titre}` : ''))));
   }
