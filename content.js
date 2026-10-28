@@ -1918,6 +1918,14 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     })
   });
 
+  const langueDe = (code) => {
+    const c = String(code || '').trim().toLowerCase().replace(/_/g, '-');
+    if (/^zh-(?:tw|hk|mo|hant)(?:-|$)/.test(c)) return null;
+    for (const l of ['en', 'fr', 'de', 'es', 'pt', 'it', 'pl', 'ru', 'ja', 'zh']) {
+      if (c === l || c.startsWith(l + '-')) return l;
+    }
+    return null;
+  };
   function detectLanguage() {
 
     if (document.querySelector('[aria-label="Chaînes suivies"]')) return 'fr';
@@ -1927,27 +1935,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     if (document.querySelector('[aria-label="Canais seguidos"]')) return 'pt';
     if (document.querySelector('[aria-label="Canais que segues"]')) return 'pt';
 
-    const parPrefixe = (code) => {
-      if (code.startsWith('fr')) return 'fr';
-      if (code.startsWith('de')) return 'de';
-      if (code.startsWith('es')) return 'es';
-      if (code.startsWith('pt')) return 'pt';
-      if (code.startsWith('it')) return 'it';
-      if (code.startsWith('pl')) return 'pl';
-      if (code.startsWith('ru')) return 'ru';
-      if (code.startsWith('ja')) return 'ja';
-      if (code.startsWith('zh')) return 'zh';
-      return null;
-    };
-    const htmlLang = (document.documentElement.lang || '').toLowerCase().trim();
-    const parHtml = parPrefixe(htmlLang);
-    if (parHtml) return parHtml;
-    if (htmlLang.startsWith('en')) return 'en';
-
-    const parNav = parPrefixe((navigator.language || '').toLowerCase());
-    if (parNav) return parNav;
-
-    return 'en';
+    return langueDe(document.documentElement.lang) || 'en';
   }
 
   let LANG = detectLanguage();
@@ -1958,8 +1946,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     try { l = Intl.getCanonicalLocales((document.documentElement.lang || '').trim())[0] || null; }
     catch { l = null; }
     if (!l) return S.locale;
-    const premiere = l.split('-')[0].toLowerCase();
-    return premiere === LANG || !STRINGS[premiere] ? l : S.locale;
+
+    const nous = langueDe(l);
+    return nous === LANG || !nous ? l : S.locale;
   };
   jalon('i18n');
 
@@ -13267,7 +13256,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         ? {}
         : { notation: 'compact', maximumFractionDigits: 1 };
       try { f = new Intl.NumberFormat(locale, opts); }
-      catch { f = new Intl.NumberFormat(undefined, opts); }
+
+      catch { f = new Intl.NumberFormat(S.locale, opts); }
       viewerFormatters.set(locale, f);
     }
     return f;
