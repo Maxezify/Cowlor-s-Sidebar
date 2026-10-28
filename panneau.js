@@ -24,7 +24,14 @@ try {
   if (su === 'light' || su === 'dark') document.documentElement.setAttribute('data-theme', su);
 } catch {   }
 
-const LOCALE = (API.i18n.getUILanguage && API.i18n.getUILanguage()) || 'en';
+const LOCALE = (() => {
+  const servie = (API.i18n.getMessage && API.i18n.getMessage('panelLocale')) || 'en';
+  let ui = null;
+  try { ui = Intl.getCanonicalLocales((API.i18n.getUILanguage && API.i18n.getUILanguage()) || '')[0] || null; }
+  catch { ui = null; }
+  if (!ui || servie.includes('-')) return servie;
+  return ui.split('-')[0].toLowerCase() === servie.toLowerCase() ? ui : servie;
+})();
 const NOMBRE = new Intl.NumberFormat(LOCALE);
 
 const fmt = {
@@ -1131,6 +1138,11 @@ const PLURIEL = new Intl.PluralRules(LOCALE);
 const RELATIF = new Intl.RelativeTimeFormat(LOCALE, { numeric: 'auto' });
 const ORDRE_NOMS = new Intl.Collator(LOCALE, { sensitivity: 'base' });
 
+const PREMIER_DU_MOIS = /^fr(?:-|$)/i.test(LOCALE) ? '1er' : null;
+const jourEcrit = (p) => (PREMIER_DU_MOIS && p.type === 'day' && p.value === '1' ? PREMIER_DU_MOIS : p.value);
+const dater = (format, t) => format.formatToParts(t).map(jourEcrit).join('');
+const daterPlage = (format, a, b) => format.formatRangeToParts(a, b).map(jourEcrit).join('');
+
 const VUES = { one: 'valViewsOne', few: 'valViewsFew', many: 'valViewsMany', other: 'valViewsOther' };
 const vuesTexte = (n) => {
   if (!Number.isFinite(n)) return '';
@@ -1175,8 +1187,8 @@ const decalageDe = (t) => {
 const plageSemaine = (debut, fin) => {
   const dernier = new Date(fin);
   dernier.setDate(dernier.getDate() - 1);
-  try { return DATE_PLAGE.formatRange(new Date(debut), dernier); }
-  catch { return `${DATE_PLAGE.format(debut)} – ${DATE_PLAGE.format(dernier)}`; }
+  try { return daterPlage(DATE_PLAGE, new Date(debut), dernier); }
+  catch { return `${dater(DATE_PLAGE, debut)} – ${dater(DATE_PLAGE, dernier)}`; }
 };
 const argAgenda = (id) => (id === 'semaine'
   ? { ...bornesSemaine(etatAgenda.decalage), chaine: etatAgenda.chaine }
@@ -1261,7 +1273,7 @@ const entreeAgenda = (e, nom) => {
   const corps = div('ag-corps');
   corps.append(l1, l2);
   el.append(vig, corps);
-  el.title = [e.titre, DATE_COMPLETE.format(e.debut)].filter(Boolean).join('\n');
+  el.title = [e.titre, dater(DATE_COMPLETE, e.debut)].filter(Boolean).join('\n');
   return el;
 };
 
@@ -1428,7 +1440,7 @@ const listeSemaine = (data, suivant) => {
     const section = elt('section', 'ag-jour');
     section.dataset.jour = String(jour);
     section.dataset.fin = String(finJour);
-    const titre = elt('h3', 'ag-jour-titre', JOUR_TITRE.format(jour));
+    const titre = elt('h3', 'ag-jour-titre', dater(JOUR_TITRE, jour));
     titre.dataset.ancre = 'j:' + jour;
     if (data.maintenant >= jour && data.maintenant < finJour) {
       section.classList.add('ag-jour--auj');
@@ -1463,7 +1475,7 @@ const ligneHorsLigne = (l, quand) => {
   l1.appendChild(elt('span', 'hl-nom', l.nom));
   const q = elt('span', 'hl-quand', quand);
   if (l.indisponible) {
-    q.title = T('valUnavailableTip', DATE_COMPLETE.format(l.indisponible));
+    q.title = T('valUnavailableTip', dater(DATE_COMPLETE, l.indisponible));
     l1.appendChild(q);
     corps.appendChild(l1);
     ligne.append(avatar, corps);
@@ -1472,8 +1484,8 @@ const ligneHorsLigne = (l, quand) => {
 
   if (l.dernier) {
     q.title = l.dernier.debut !== null
-      ? `${DATE_COMPLETE.format(l.dernier.debut)} – ${HEURE.format(l.dernier.t)}`
-      : `– ${DATE_COMPLETE.format(l.dernier.t)}`;
+      ? `${dater(DATE_COMPLETE, l.dernier.debut)} – ${HEURE.format(l.dernier.t)}`
+      : `– ${dater(DATE_COMPLETE, l.dernier.t)}`;
   }
   l1.appendChild(q);
   corps.appendChild(l1);
@@ -1483,7 +1495,7 @@ const ligneHorsLigne = (l, quand) => {
   const sous = [l.titre, revoir ? l.derniere.libelle : null].filter(Boolean).join(' · ');
   if (sous) corps.appendChild(enEntier('hl-titre', sous));
   if (l.prochain) {
-    const quandProchain = `${JOUR_ABREGE.format(l.prochain.debut)}, ${HEURE.format(l.prochain.debut)}`;
+    const quandProchain = `${dater(JOUR_ABREGE, l.prochain.debut)}, ${HEURE.format(l.prochain.debut)}`;
     corps.appendChild(enEntier('hl-prochain',
       T('valNext', quandProchain + (l.prochain.titre ? ` — ${l.prochain.titre}` : ''))));
   }
