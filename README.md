@@ -179,16 +179,17 @@ Twitch (« Chaînes suivies », « Followed Channels »…) ; en inventer une
 reviendrait à écrire du code qui ne matchera jamais tout en ayant l'air de
 couvrir la langue.
 
-Elles sont donc détectées par `html.lang` puis `navigator.language`, qui
-n'exigent aucune connaissance de l'interface de Twitch, et la sidebar tient sur
+Elles sont donc détectées par `html.lang` — puis `navigator.language` jusqu'à
+la 4.25.0.8, qui l'a retiré —, qui n'exige aucune connaissance de l'interface
+de Twitch, et la sidebar tient sur
 ses **ancres structurelles** (`followed-side-nav-header`) — exactement le repli
 prévu depuis l'origine pour toute langue non listée. Le scénario 64 retire le
 libellé français du harnais pour reproduire cette situation : les deux
 mécanismes de repli sont éprouvés ensemble.
 
-`zh-TW` retombe sur la table `zh` par le préfixe à deux lettres plutôt que sur
-l'anglais — mieux vaut du chinois simplifié que de l'anglais pour un lecteur de
-Taïwan.
+`zh-TW` retombait sur la table `zh` par le préfixe à deux lettres plutôt que
+sur l'anglais. Depuis la 4.25.0.8, le chinois traditionnel prend l'anglais,
+comme toute langue que l'extension ne parle pas (cf. plus bas).
 
 ### Deux libellés qui ne suivaient pas la langue
 
@@ -1412,10 +1413,12 @@ Les drapeaux SVG du filtre par langue proviennent du jeu **OpenMoji** (licence C
 
 L'extension détecte la langue de votre interface Twitch : d'abord par les
 libellés natifs qu'elle reconnaît dans le DOM, puis par l'attribut `lang` que
-Twitch pose sur le `<html>`, puis par `navigator.language`. Dix interfaces sont
-servies — `fr`, `en`, `de`, `es` (Espagne et Amérique latine), `pt` (Brésil et
-Portugal), `it`, `pl`, `ru`, `ja`, `zh` — et toute autre langue retombe sur
-l'anglais.
+Twitch pose sur le `<html>`. Dix interfaces sont servies — `fr`, `en`, `de`,
+`es` (Espagne et Amérique latine), `pt` (Brésil et Portugal), `it`, `pl`, `ru`,
+`ja`, `zh` (chinois simplifié) — et toute autre langue retombe sur l'anglais,
+quelle que soit celle du navigateur, chinois traditionnel compris (depuis la
+4.25.0.8). Le panneau, que `chrome.i18n` sert, suit la langue du navigateur
+avec la même règle : l'anglais à défaut, pour le texte comme pour les dates.
 
 Toutes les chaînes de l'extension (badges du popup d'aperçu, libellés du
 filtre et des boutons de tri, messages console) sont traduites en conséquence.
@@ -2179,6 +2182,96 @@ Un sous-test qui modélisait un cas impossible — un direct qui rajeunit sans
 changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'il
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
+
+## La langue par défaut, et le premier du mois (v4.25.0.8)
+
+La demande : « 2 retours à corriger sur l'extension. L'agenda écrit
+"dimanche 1 novembre" au lieu de "1er novembre". Pour les langues non
+disponibles, la langue par défaut soit l'anglais et pas le français. Soit
+rigoureux. » Publiée sur `claude/chrome-multi`, puis reportée sur
+`claude/firefox-multi` et sur les deux branches de production.
+
+### Une langue que l'extension ne parle pas : l'anglais
+
+La fiche le promettait déjà — « …et l'anglais par défaut pour toutes les
+autres langues ». Trois chemins le contredisaient.
+
+- **La barre consultait la langue du navigateur.** Quand celle de Twitch
+  n'était pas l'une des dix, `detectLanguage` passait à `navigator.language` :
+  un Twitch suédois, coréen ou turc sous un Chrome français s'affichait en
+  français. Ce recours est retiré. La langue de Twitch si l'extension la
+  parle, l'anglais sinon — y compris pour une page qui n'en déclare encore
+  aucune.
+- **Le chinois traditionnel recevait du chinois simplifié.** `zh-TW`, `zh-HK`
+  et `zh-Hant` passaient par le préfixe `zh`. Ils prennent l'anglais, comme le
+  panneau, que `chrome.i18n` servait déjà en anglais pour ces langues ; leurs
+  compteurs, qui prenaient l'anglais américain, gardent l'écriture de Twitch
+  (« 2.9萬 »). La comparaison se fait désormais au sous-étiquetage près
+  (`langueDe`) : « frr », le frison, passait pour du français.
+- **Le panneau datait dans la langue demandée, pas dans la langue servie.**
+  Sa locale venait de `getUILanguage()`, la langue du navigateur, alors que
+  `chrome.i18n` retombe sur l'anglais pour les langues qu'il n'a pas. Un
+  Chrome suédois lisait « The week » au-dessus de « måndag 26 oktober », dans
+  une semaine suédoise. Chaque traduction porte maintenant son code
+  (`panelLocale`), et c'est lui qui décide ; la région du navigateur reste
+  quand elle va avec la langue servie — un Chrome britannique garde ses
+  dates à la britannique, un Chrome canadien ses nombres canadiens. La page
+  déclare cette langue dans son `lang`, ce qui sert aussi les lecteurs
+  d'écran.
+
+Un dernier repli est fermé du même geste, inatteignable en pratique : un
+format de compteur que le moteur refuserait prenait la locale du navigateur ;
+il prend celle des libellés.
+
+### « 1er »
+
+Le français écrit le premier du mois en ordinal ; `Intl` écrit « 1 ». Le
+panneau corrige la partie « jour » de ses dates en toutes lettres — titres de
+jour, prochain direct, plage de la semaine, infobulles — en passant par
+`formatToParts` et `formatRangeToParts`, jamais par le texte : le « 1 » d'une
+heure, d'une année ou d'un titre ne bouge pas, ni un jour à deux chiffres
+(« 01/11 »). Les autres langues restent telles qu'`Intl` les écrit
+(« Sonntag, 1. November », « Sun, Nov 1 »). La barre n'écrit aucune date en
+toutes lettres.
+
+Le portugais du Brésil a une convention voisine (« 1º de novembro »), que la
+demande ne visait pas : elle n'est pas appliquée.
+
+### Le banc
+
+- **64** : le cas de la demande — un Twitch suédois sous un navigateur
+  français parle anglais, et son compteur reste suédois (« 29,3 tn ») ; une
+  page sans langue déclarée, de même ; « frr » n'est pas du français ;
+  `zh-TW` et `zh-Hant-HK` prennent l'anglais, et `zh-TW` ses compteurs
+  traditionnels ; et le revers, un Twitch français sous un navigateur anglais
+  reste français. L'assertion qui exigeait le chinois simplifié pour `zh-TW`
+  est remplacée.
+- **208 q)** : le jeudi 29 octobre 2026, horloge de la page fixée, met un
+  premier du mois dans la semaine française : « dimanche 1er novembre »,
+  « 26 oct. – 1er nov. 2026 », l'infobulle, « dim. 1er nov., 20:00 » dans
+  « Hors ligne », les autres jours intacts ; l'allemand et l'anglais sans
+  ordinal ; un navigateur suédois daté en anglais, semaine du dimanche ; un
+  navigateur britannique avec sa région, semaine du lundi.
+
+**Douze mutants nommés, tous pris.** Chacun a été posé seul, et le banc
+relancé sur 64 et 208.
+
+| mutant | ce qui tombe |
+| --- | --- |
+| la langue du navigateur consultée | 64 : Twitch suédois, page sans langue, « frr » |
+| le chinois traditionnel pris pour le nôtre | 64 : zh-TW, zh-Hant-HK |
+| le préfixe sans sous-étiquette | 64 : « frr » |
+| les compteurs jugés par le préfixe | 64 : les compteurs de zh-TW |
+| le panneau date dans la langue demandée | 208 q) : le navigateur suédois |
+| la région du navigateur oubliée | 208 q) : le navigateur britannique |
+| pas de « 1er » | 208 q) : la semaine française, « Hors ligne » |
+| « 1er » dans toutes les langues | 208 q) : l'allemand, l'anglais, le britannique |
+| la plage de la semaine sans « 1er » | 208 q) : la semaine française |
+| l'infobulle sans « 1er » | 208 q) : la semaine française |
+| le prochain direct sans « 1er » | 208 q) : « Hors ligne » |
+| le titre du jour sans « 1er » | 208 q) : la semaine française |
+
+Le banc complet : 1976 assertions dans 209 scénarios, toutes vertes.
 
 ## Les chaînes muettes, et un petit audit (v4.25.0.7)
 
@@ -21339,7 +21432,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 209 scénarios, 1962 assertions |
+| `npm test` | le harnais Playwright : 209 scénarios, 1976 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -21360,9 +21453,9 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1810 Ko | 741 Ko | 4 440 → **2** |
+| `content.js` | 1810 Ko | 741 Ko | 4 445 → **2** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
-| `panneau.js` | 148 Ko | 76 Ko | 207 → **0** |
+| `panneau.js` | 148 Ko | 76 Ko | 209 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
 | `background.js` | 10 Ko | 2 Ko | 22 → **0** |
 | **les cinq** | **2107 Ko** | **922 Ko** | **−56 %** |
@@ -21820,8 +21913,9 @@ extension, et une quatrième transformation ajoute la localisation.
 
    - **Détection de langue robuste** (`detectLanguage`) qui essaie dans
      l'ordre : 1) un libellé natif Twitch présent dans le DOM (vérité
-     terrain) ; 2) `document.documentElement.lang` ; 3) `navigator.language`
-     (fr / de / es / pt reconnus) ; 4) défaut anglais.
+     terrain) ; 2) `document.documentElement.lang`, si l'extension parle
+     cette langue ; 3) défaut anglais. (`navigator.language` venait en
+     troisième jusqu'à la 4.25.0.8, qui l'a retiré.)
 
    - **Auto-correction** via `refreshLanguage()` appelé en début de chaque
      scan de la sidebar. Si la première détection (à `document_start`,

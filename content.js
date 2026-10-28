@@ -1428,9 +1428,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
    *
    *  Détection (detectLanguage) dans l'ordre :
    *    a) libellé natif Twitch présent dans le DOM (vérité terrain) ;
-   *    b) document.documentElement.lang ;
-   *    c) navigator.language ;
-   *    d) défaut "en".
+   *    b) document.documentElement.lang, si nous parlons cette langue ;
+   *    c) défaut "en" — jamais navigator.language (4.25.0.8).
    *
    *  LANG et S sont MUTABLES. refreshLanguage() est appelé en
    *  début de chaque scan : auto-correction si la première
@@ -2646,6 +2645,29 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
   });
 
   /* ----- Détection de langue robuste ----- */
+  /* La table de NOS libellés qui sert une langue déclarée par Twitch, ou null
+     si nous ne la parlons pas. La région ne change pas la langue (« pt-BR »,
+     « es-MX », « fr-CA »), l'écriture si : le chinois TRADITIONNEL (zh-TW,
+     zh-HK, zh-MO, zh-Hant) n'est pas notre chinois, qui est simplifié. La
+     comparaison se fait au sous-étiquetage près — « frr », le frison, n'est pas
+     du français, ce que l'ancien `startsWith('fr')` lui accordait.
+
+     UNE LANGUE QUE NOUS NE PARLONS PAS PREND L'ANGLAIS (4.25.0.8), demandé
+     ainsi : « Pour les langues non disponibles, la langue par défaut soit
+     l'anglais et pas le français. » La fiche le promettait déjà ; deux replis
+     le contredisaient. La langue du NAVIGATEUR était consultée quand celle de
+     Twitch nous manquait : un Twitch suédois sous un Chrome français
+     s'affichait en français. Et le préfixe « zh » donnait du chinois simplifié
+     à Taïwan et à Hong Kong, où le panneau — que chrome.i18n sert, avec
+     l'anglais à défaut — parlait déjà anglais. */
+  const langueDe = (code) => {
+    const c = String(code || '').trim().toLowerCase().replace(/_/g, '-');
+    if (/^zh-(?:tw|hk|mo|hant)(?:-|$)/.test(c)) return null;
+    for (const l of ['en', 'fr', 'de', 'es', 'pt', 'it', 'pl', 'ru', 'ja', 'zh']) {
+      if (c === l || c.startsWith(l + '-')) return l;
+    }
+    return null;
+  };
   function detectLanguage() {
     // 1. Vérité terrain : un libellé natif est-il déjà dans le DOM ?
     if (document.querySelector('[aria-label="Chaînes suivies"]')) return 'fr';
@@ -2658,31 +2680,13 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        libellé natif listé ici, et c'est délibéré. Le point 1 compare des
        chaînes EXACTES relevées dans le DOM de Twitch ; en inventer une revient
        à écrire du code qui ne matchera jamais tout en ayant l'air de couvrir
-       la langue. Ces cinq-là sont donc détectées par les points 2 et 3, qui
-       n'exigent aucune connaissance de l'interface de Twitch — et le reste du
-       module utilise de toute façon ses ancres structurelles (cf. DOM). */
-    // 2. document.documentElement.lang
-    const parPrefixe = (code) => {
-      if (code.startsWith('fr')) return 'fr';
-      if (code.startsWith('de')) return 'de';
-      if (code.startsWith('es')) return 'es';
-      if (code.startsWith('pt')) return 'pt';
-      if (code.startsWith('it')) return 'it';
-      if (code.startsWith('pl')) return 'pl';
-      if (code.startsWith('ru')) return 'ru';
-      if (code.startsWith('ja')) return 'ja';
-      if (code.startsWith('zh')) return 'zh';
-      return null;
-    };
-    const htmlLang = (document.documentElement.lang || '').toLowerCase().trim();
-    const parHtml = parPrefixe(htmlLang);
-    if (parHtml) return parHtml;
-    if (htmlLang.startsWith('en')) return 'en';
-    // 3. navigator.language
-    const parNav = parPrefixe((navigator.language || '').toLowerCase());
-    if (parNav) return parNav;
-    // 4. Défaut
-    return 'en';
+       la langue. Ces cinq-là sont donc détectées par le point 2, qui n'exige
+       aucune connaissance de l'interface de Twitch — et le reste du module
+       utilise de toute façon ses ancres structurelles (cf. DOM). */
+    // 2. La langue que Twitch déclare sur la page, si nous la parlons.
+    // 3. Sinon l'anglais : une langue que nous n'avons pas, ou une page qui
+    //    n'en déclare encore aucune. Jamais celle du navigateur (cf. langueDe).
+    return langueDe(document.documentElement.lang) || 'en';
   }
 
   let LANG = detectLanguage();
@@ -2690,9 +2694,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
 
   /* ── LA LANGUE DE TWITCH N'EST PAS CELLE DE L'EXTENSION (4.24.0.44) ──────
      L'extension parle dix langues ; Twitch en parle trois fois plus. LANG dit
-     dans laquelle des dix on écrit NOS libellés — et retombe sur celle du
-     navigateur, ou sur l'anglais, quand Twitch est en suédois, en coréen ou
-     en turc. Mais ce que l'extension écrit À LA PLACE de Twitch — le nom
+     dans laquelle des dix on écrit NOS libellés — et retombe sur l'anglais
+     quand Twitch est en suédois, en coréen ou en turc (4.25.0.8 : plus sur
+     celle du navigateur). Mais ce que l'extension écrit À LA PLACE de Twitch — le nom
      d'une catégorie, le compteur d'une carte — et ce qu'elle LIT de Twitch —
      ce même compteur, avant que l'API réponde — doivent suivre la langue de
      Twitch, et non la nôtre : un Twitch suédois affichait des catégories en
@@ -2708,8 +2712,10 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     try { l = Intl.getCanonicalLocales((document.documentElement.lang || '').trim())[0] || null; }
     catch { l = null; }
     if (!l) return S.locale;
-    const premiere = l.split('-')[0].toLowerCase();
-    return premiere === LANG || !STRINGS[premiere] ? l : S.locale;
+    // Par langueDe, et non par le préfixe : un Twitch de Taïwan n'est pas
+    // « notre » chinois, il garde donc sa locale, et « 2.9萬 » ses compteurs.
+    const nous = langueDe(l);
+    return nous === LANG || !nous ? l : S.locale;
   };
   jalon('i18n');
 
@@ -22317,7 +22323,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         ? {}
         : { notation: 'compact', maximumFractionDigits: 1 };
       try { f = new Intl.NumberFormat(locale, opts); }
-      catch { f = new Intl.NumberFormat(undefined, opts); }
+      // Une locale que le moteur refuse prend celle de nos libellés, jamais
+      // celle du navigateur (4.25.0.8).
+      catch { f = new Intl.NumberFormat(S.locale, opts); }
       viewerFormatters.set(locale, f);
     }
     return f;

@@ -5918,8 +5918,8 @@ titre('64. Localisation — italien, polonais, russe, japonais, chinois');
      passe donc par html.lang, et la sidebar tient sur son ancre structurelle
      (followed-side-nav-header). Les deux mécanismes de repli sont éprouvés
      ensemble, ce qui est bien ce qu'on veut vérifier. */
-  const rendusDe = async (htmlLang) => {
-    const page = await browser.newPage();
+  const rendusDe = async (htmlLang, langueNavigateur = null) => {
+    const page = await browser.newPage(langueNavigateur ? { locale: langueNavigateur } : {});
     page.on('pageerror', e => { fail++; console.log('  ✗ ERREUR PAGE:', e.message); });
     await page.goto(URL_PAGE);
     await page.evaluate((l) => {
@@ -5962,18 +5962,52 @@ titre('64. Localisation — italien, polonais, russe, japonais, chinois');
        r.nombre === nombre, r.nombre);
   }
 
-  /* zh-TW n'a pas sa table : il retombe sur `zh` par le préfixe à deux lettres,
-     et non sur l'anglais. Mieux vaut du chinois simplifié que de l'anglais pour
-     un lecteur de Taïwan. */
+  /* LE CHINOIS TRADITIONNEL N'EST PAS LE NÔTRE (4.25.0.8). Notre table est
+     en chinois simplifié ; zh-TW, zh-HK et zh-Hant prennent donc l'anglais,
+     comme toute langue que nous ne parlons pas — ce que la fiche promet, et
+     ce que fait déjà le panneau, que chrome.i18n sert avec l'anglais à
+     défaut. Jusqu'à la 4.25.0.7, le préfixe « zh » leur donnait le chinois
+     simplifié. Le compteur, lui, garde l'écriture de Twitch : « 2.9萬 », le
+     萬 traditionnel, relevé dans Chromium — jusque-là il prenait l'anglais
+     américain, la locale de la table qu'on croyait la leur. */
   const tw = await rendusDe('zh-TW');
-  ok('zh-TW retombe sur la table chinoise, pas sur l\'anglais',
-     tw.onglet === '关注的频道', String(tw.onglet));
+  ok('zh-TW (chinois traditionnel) prend l\'anglais, pas notre chinois simplifié',
+     tw.onglet === 'Followed Channels', String(tw.onglet));
+  ok('…et ses compteurs gardent l\'écriture de Twitch (2.9萬)', tw.nombre === '2.9萬', tw.nombre);
+  const hant = await rendusDe('zh-Hant-HK');
+  ok('zh-Hant-HK aussi : l\'anglais', hant.onglet === 'Followed Channels', String(hant.onglet));
 
   /* Et une langue vraiment inconnue retombe sur l'anglais — le défaut, qui
      doit rester atteignable maintenant que neuf préfixes le précèdent. */
   const xx = await rendusDe('xx-XX');
   ok('une langue inconnue retombe toujours sur l\'anglais',
      xx.onglet === 'Followed Channels', String(xx.onglet));
+
+  /* LE CAS DE LA DEMANDE (4.25.0.8) : « Pour les langues non disponibles, la
+     langue par défaut soit l'anglais et pas le français. » Un Twitch suédois
+     sous un navigateur français : la page déclare « sv-SE », que nous ne
+     parlons pas, et navigator.language dit « fr-FR ». Jusqu'à la 4.25.0.7,
+     detectLanguage consultait le navigateur et l'extension parlait français.
+     Le compteur reste à l'écriture suédoise : c'est la langue de Twitch. Les
+     deux autres cas ferment les portes voisines : une page qui ne déclare
+     encore rien, et « frr », le frison, que l'ancien `startsWith('fr')`
+     prenait pour du français. */
+  const sv = await rendusDe('sv-SE', 'fr-FR');
+  ok('un Twitch suédois sous un navigateur français : l\'anglais, pas le français',
+     sv.onglet === 'Followed Channels', String(sv.onglet));
+  ok('…et son compteur reste à l\'écriture suédoise (29,3 tn)', sv.nombre === '29,3 tn', sv.nombre);
+  const vide = await rendusDe('', 'fr-FR');
+  ok('une page sans langue déclarée, sous un navigateur français : l\'anglais aussi',
+     vide.onglet === 'Followed Channels', String(vide.onglet));
+  const frr = await rendusDe('frr', 'fr-FR');
+  ok('« frr » (le frison) n\'est pas du français : l\'anglais',
+     frr.onglet === 'Followed Channels', String(frr.onglet));
+  /* Le revers, pour qu'aucune de ces assertions ne passe par un Twitch qui
+     ne parlerait plus que l'anglais : un Twitch français reste français,
+     sous un navigateur anglais. */
+  const fr = await rendusDe('fr-FR', 'en-US');
+  ok('…et un Twitch français, sous un navigateur anglais, reste français',
+     fr.onglet === 'Chaînes suivies', String(fr.onglet));
 
   // ── b) le pluriel slave, par analyse statique ────────────────────────────
   {
@@ -35875,6 +35909,89 @@ addEventListener('message', (e) => {
      JSON.stringify(revoir));
   await pc.close();
   rmSync(hote, { force: true });
+
+  /* ── q) LA LANGUE QUI EST SERVIE, ET LE PREMIER DU MOIS (4.25.0.8) ──────────
+     Deux demandes. « Pour les langues non disponibles, la langue par défaut
+     soit l'anglais » : un navigateur suédois reçoit de chrome.i18n la fiche
+     anglaise, et le panneau doit DATER en anglais aussi — il datait en
+     suédois, d'après getUILanguage(), sous un texte anglais. Le bouchon fait
+     ce que fait Chrome : la fiche servie est l'anglaise, la langue demandée
+     reste « sv ».
+     Et « l'agenda écrit "dimanche 1 novembre" au lieu de "1er novembre" ». Le
+     jeudi 29 octobre 2026, midi, met un premier du mois dans la semaine
+     française (26 octobre – 1er novembre) et dans le prochain direct de
+     Nyxaria, à trois jours : dimanche 1er novembre, 20 h. Seule l'horloge de
+     la page est fixée. Les valeurs attendues sont écrites à la main, d'après
+     la typographie, et non relevées dans la sortie du panneau. */
+  const JEUDI = new Date(2026, 9, 29, 12, 0, 0);
+  const ouvrirLe = async (ficheLoc, ui) => {
+    const p = await browser.newPage({ viewport: { width: 760, height: 580 } });
+    p.on('pageerror', (e) => { fail++; console.log('  ✗ ERREUR PAGE:', e.message); });
+    await p.route('https://static-cdn.jtvnw.net/**', (route) => route.fulfill({ contentType: 'image/png', body: PIXEL }));
+    await p.route('http://insecure.example/**', (route) => route.fulfill({ contentType: 'image/png', body: PIXEL }));
+    await p.clock.setFixedTime(JEUDI);
+    await p.addInitScript(stub, [fiche(ficheLoc), ui]);
+    await p.goto(pathToFileURL(join(ICI, '..', 'panneau.html')).href);
+    await attendre(p, () => document.querySelectorAll('.rail-item').length > 0);
+    return p;
+  };
+  const semaineDe = async (p, dense = false) => {
+    await p.evaluate((d) => { window.__mode.dense = d; }, dense);
+    await p.click('.rail-item[data-id="semaine"]');
+    await attendre(p, () => document.querySelectorAll('#agenda .ag-jour').length === 7, 5000);
+    return p.evaluate(() => {
+      const bulle = [...document.querySelectorAll('#agenda .ag-ent')]
+        .find((e) => e.querySelector('.ag-titre')?.textContent === 'Remplissage 6.0');
+      return { lang: document.documentElement.lang,
+               titres: [...document.querySelectorAll('#agenda .ag-jour-titre')].map((h) => h.firstChild.textContent),
+               plage: document.querySelector('#agenda .ag-plage')?.textContent ?? null,
+               bulle: bulle ? bulle.title : null };
+    });
+  };
+  const prochainDe = async (p) => {
+    await p.click('.rail-item[data-id="horsLigne"]');
+    await attendre(p, () => document.querySelectorAll('#agenda .hl-prochain').length > 0, 5000);
+    return p.evaluate(() => [...document.querySelectorAll('#agenda .hl-prochain')].map((e) => e.textContent));
+  };
+  const nzq = (s) => String(s ?? '').replace(/[   ]/g, ' ');
+
+  const qFr = await ouvrirLe('fr', 'fr');
+  const sFr = await semaineDe(qFr, true);
+  ok('q) en français, le premier du mois s\'écrit « 1er » : titre du jour, plage de la semaine, infobulle',
+     sFr.titres[6] === 'dimanche 1er novembre' && nzq(sFr.plage) === '26 oct. – 1er nov. 2026'
+     && /^Remplissage 6\.0\ndimanche 1er novembre 2026 à 01:00$/.test(nzq(sFr.bulle)),
+     JSON.stringify(sFr));
+  ok('q) …et les autres jours, eux, gardent leur nombre seul',
+     sFr.titres[0] === 'lundi 26 octobre' && sFr.titres[5] === 'samedi 31 octobre', JSON.stringify(sFr.titres));
+  const pFr = await prochainDe(qFr);
+  ok('q) …et dans « Hors ligne », le prochain direct : « dim. 1er nov., 20:00 »',
+     pFr.some((t) => nzq(t).includes('dim. 1er nov., 20:00')), JSON.stringify(pFr));
+  await qFr.close();
+
+  const qDe = await ouvrirLe('de', 'de');
+  const sDe = await semaineDe(qDe);
+  ok('q) l\'ordinal reste français : l\'allemand écrit « Sonntag, 1. November », sans rien d\'ajouté',
+     sDe.titres[6] === 'Sonntag, 1. November', JSON.stringify(sDe.titres));
+  await qDe.close();
+  const qEn = await ouvrirLe('en', 'en-US');
+  const pEn = await prochainDe(qEn);
+  ok('q) …et l\'anglais « Sun, Nov 1, 08:00 PM »',
+     pEn.some((t) => nzq(t).includes('Sun, Nov 1, 08:00 PM')) && !pEn.some((t) => /1er|1st/.test(t)), JSON.stringify(pEn));
+  await qEn.close();
+
+  const qSv = await ouvrirLe('en', 'sv');
+  const sSv = await semaineDe(qSv);
+  ok('q) un navigateur suédois : chrome.i18n sert l\'anglais, et le panneau DATE en anglais — semaine du dimanche, jours anglais',
+     sSv.lang === 'en' && sSv.titres[0] === 'Sunday, October 25' && sSv.titres[6] === 'Saturday, October 31'
+     && nzq(sSv.plage) === 'Oct 25 – 31, 2026',
+     JSON.stringify(sSv));
+  await qSv.close();
+  const qGb = await ouvrirLe('en', 'en-GB');
+  const sGb = await semaineDe(qGb);
+  ok('q) …mais un navigateur britannique garde sa région : semaine du lundi, dates à la britannique',
+     sGb.lang === 'en-GB' && sGb.titres[0] === 'Monday 26 October' && sGb.titres[6] === 'Sunday 1 November',
+     JSON.stringify(sGb));
+  await qGb.close();
 }
 
 /* ═════════ LE RELEVÉ DES CHAÎNES SUIVIES (4.25.0.3) ════════════════════════
