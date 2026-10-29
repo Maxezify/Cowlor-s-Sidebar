@@ -2064,6 +2064,249 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## Decorations on the compositor, content.js out of the iframes, and defense in depth (v4.25.0.9)
+
+The request, following the 4.25.0.8 audit: “Medium-high: the animated
+decorations. Yes, do it. Medium: content.js in every iframe. Yes, do it. Low:
+the schedule read back from IndexedDB. Yes, do it. Low: the replies to the
+embedded panel. Yes, do it. Informational (defense in depth). Yes, do it. […]
+Be particularly rigorous. Do flawless work.” Published on
+`claude/chrome-multi`, then carried over to `claude/firefox-multi` and both
+production branches.
+
+### Decorations: transform and opacity, nothing else
+
+**The finding.** Fifteen animations out of nineteen varied a shadow, a filter,
+a background position, a colour or a gradient's angle. The browser recomputes
+and repaints those on every frame, on the page's main thread. The audit
+measured 151 ms of work per second for a single subscribed card, 101 for the
+first-run gear, and 295 for ten subscriptions and three fresh streams. Only two
+properties animate without the main thread: transform and opacity, which the
+compositor handles alone.
+
+**The rule.** Each decoration becomes a layer, `.tse-deco`, which `poserDecor`
+places in the card or in the avatar and `retirerDecor` removes. A
+pseudo-element cannot have children, and children were needed. Only the
+transform and opacity of these layers vary. The rendering stays what it was,
+measured frame by frame against 4.25.0.8 in both themes:
+
+- **The background glow of a subscribed card.** Its four layers lived in one
+  property of the `::after`, and the animation moved their background
+  positions. Each layer is now an element the size its tile had, and the
+  element slides. The mapping is exact: a tile of width s·W at x % becomes
+  the translation x·(1 − s)/s, written as such in every `calc()`. Gap: under
+  8/255.
+- **The "just went live" bar.** Its glow was a shadow whose radius grew from 4
+  to 18 pixels, and it dragged opacity and scale off the compositor with it.
+  An animation that touches a non-composited property is not composited at
+  all. The glow is now four fixed stages that crossfade. Added together
+  (`mix-blend-mode: plus-lighter`, in an isolated group, weights summing to
+  one), two neighbouring stages equal the blend of the two. Each stage carries
+  the bar itself: splitting the bar from its shadow left a 31/255 seam on its
+  edges. The curves are the old beat's, cut exactly (de Casteljau
+  subdivision). Gap: 6/255 dark, 8 light. Exception: the right-edge column
+  while the bar widens, up to 35/255.
+- **The subscribed avatar's breath.** It was an animated shadow. It is now the
+  two extreme shadows, fixed, whose opacities vary in opposite directions.
+  Gap: 6/255. Intermediate stages change nothing: what remains comes from the
+  browser's own blur, which advances in steps.
+- **The avatar's ring.** A registered property rotated the start of its
+  gradients. It is now a disc of gradients turning under a still mask.
+  Rotating the whole ring blunted its two-pixel edges (72/255). The disc
+  overhangs the mask by two pixels, so its resampled edge never reaches the
+  circle. Gap: 7/255, and a few isolated pixels up to 10 in light.
+- **The first-run gear.** Its beat keeps only the scale. Its halo, a shadow
+  spread from 0 to 7 pixels, becomes seven nested filled shells, each one
+  pixel larger than the last. Shell k is revealed as the spread goes from k to
+  k + 1. Their radii are the ones Chromium gives a spread shadow (the spec's
+  formula, checked to the pixel). Gaps: the edge line while the button grows,
+  up to 75/255, and the very start of the halo, 45/255 on a few pixels of the
+  rim.
+- **The subathon pill.** Its colour was animated, for as long as it is on
+  screen, which means days. It now carries eight copies of itself, one per
+  colour, crossfading two at a time. Two copies of the same letter added
+  together equal that letter in the blend of the two colours, the very blend
+  the browser interpolated. Gap: 6/255. The copies overlay the pill in a
+  one-cell grid, not by positioning: on a subscribed card the name is clipped
+  to its text (`background-clip: text`), and that clip leaves positioned
+  descendants out. The pill keeps its text, which a screen reader reads once.
+
+**The name's sheen and halo are frozen.** A sheen ran through the letters of
+the name and the category, and the name's halo breathed. The sheen animates a
+text-clipped gradient, the halo a filter: no composited form reproduces them.
+They keep their starting image: the sheen at the gradient's origin, the halo
+at the exact middle of its old beat. That is the decision taken for this
+version.
+
+**Two animations keep their form, deliberately:**
+
+- **the co-stream node's ring** (`--tse-tour`). It only turns while a room
+  opens, three seconds at most. Its quarter of ink has hard edges: turned by
+  the compositor, those pixels would change completely (216/255);
+- **the preview's subathon badge.** It only lives for a hover, and its copies
+  would need to carry a background as well as the text.
+
+**The result.** Same page: ten subscriptions, four fresh streams, a subathon,
+the first-run gear. Production timings, five seconds, Chromium without a
+graphics card:
+
+| | style recalcs | main-thread tasks |
+| --- | --- | --- |
+| 4.25.0.8 | 221 | 3,044 ms (609 ms/s) |
+| 4.25.0.9 | 18 | 124 ms (25 ms/s) |
+| the same page without decorations | 13 | 35 ms |
+
+Chromium's trace declares every one of these animations taken by the
+compositor (scenario 213). The system's "reduce motion" setting is still
+ignored, as it has been since 4.14: the panel's settings switch each
+decoration off one by one.
+
+**Three traps, found along the way:**
+
+- Twitch sets `transition: background-color 300ms` on every descendant of a
+  card (`.side-nav-card *`), and a decoration is one, which the pseudo-element
+  it replaces was not. Without `transition: none`, the bar slid to its red
+  over 300 ms.
+- A host rule on the card's `span`s (".metacell span", which the bench's
+  fixture has carried since 4.20.1) gave the pill's copies its own line
+  height: they sat three pixels lower. The copies now inherit the whole font,
+  under two-class selectors.
+- A card React recycles for another channel keeps its children. A decoration
+  therefore only shows under the class that asks for it, and a card that loses
+  the class gives its decorations back.
+
+### content.js out of the iframes
+
+The iframe bridges lived at the top of `content.js`, so the manifest injected
+the whole module into every Twitch frame: the preview on every hover, every
+room tile and chat, the hidden frames of the scans. Each one parsed and
+compiled its 741 KB only to stop at its first line: 25 to 47 ms per iframe, on
+the main thread of the page that hosts it, since `player.twitch.tv` is the same
+site as `www.twitch.tv`.
+
+**The four bridges have their own file, `cadres.js`** (66 KB, 30 KB in the
+package): the preview, the room's players, its chats, the followed-channels
+scan. The manifest has two MAIN-world entries: `adblock.js` and `cadres.js` in
+every frame, `content.js` in the top frame only (`all_frames: false`).
+«MESURE_CADRES»
+
+**Two scopes, and they carry weight.** In the MAIN world a top-level `const`
+becomes a page global, and a second declaration of the same name makes the
+whole script that carries it fail, before its first line. In the top frame the
+three files run one after the other. The fourteen names `cadres.js` shares with
+`content.js` (frame names, message types) are therefore global on one side
+only, `content.js`'s. `cadres.js` redeclares them in a block, at the same
+value. The six names only the bridges use stay global in `cadres.js`: two
+copies of the extension active at once only start one set of bridges per frame.
+`npm run addon` checks the four rules with acorn: no common top-level name;
+borrowed names redeclared at the same value; `content.js` uses nothing of
+`cadres.js` or `adblock.js`; `cadres.js` keeps names of its own.
+
+The bench's Firefox variant (no `ancestorOrigins`) follows the line it
+neutralizes: it now applies to `cadres.js`, and `tests/build.mjs` refuses to
+build it if the line comes back into `content.js`.
+
+### Defense in depth
+
+None of what follows was exploitable by a third party without already holding
+the page. But a page script (Twitch, another extension, a userscript) could
+have pushed each of these doors. They are closed where they opened:
+
+- **The schedule's memory, read back from IndexedDB.** The database is
+  twitch.tv's, which the page writes as well as we do. A record is now only
+  read back if it has, field by field, the shape our network reads write: same
+  fields, same types, same bounds. The rest is set aside, and the entry is
+  fetched again. Nothing is repaired: a record we wrote passes unchanged. The
+  last archive's ID, which went as-is into the text of the token query, is now
+  quoted there (`JSON.stringify`): for digits, the text sent is the same to the
+  character.
+- **The embedded panel.** The page replied to it towards "any origin" (`'*'`).
+  Yet a frame's window survives its navigation: sent elsewhere, the frame
+  would have received the report. Requests must now come from the panel's
+  origin, the one from the address the bridge gave at opening, and replies go
+  to it alone.
+- **The preview and the room tiles.** Their messages were anchored to the
+  iframe's window, not to its origin. They must now also come from
+  `https://player.twitch.tv`.
+- **The page's memories** (visits, subscriptions, roster). The localStorage is
+  twitch.tv's. A key read back must have a login's shape (`^[a-z0-9_]+$`):
+  "//host", a dot, a space are not read back. And `buildAheadCard` refuses to
+  build a link from anything but a login.
+- **The panel's images.** They were accepted from any https host. They now are
+  only from `jtvnw.net` and `twitch.tv`, the host read by `URL`, never by
+  prefix.
+- **The panel's requests.** An action or section name must be declared in its
+  table (`Object.hasOwn`): "constructor" and "toString", which the prototype
+  lent, are refused.
+- **Six regular expressions.** The `recheck` analyser judged them polynomial:
+  quadratic time on an input made for it. Not exploitable at the lengths of
+  Twitch's texts, but there was no reason to stay that way. Each one is
+  rewritten in linear time. Its equivalence with the old one is proven outside
+  the bench: same `exec` result (index and groups), exhaustively over every
+  sequence of small alphabets, then over 300,000 random strings.
+
+  | expression | strings compared | `recheck`'s attack: before → after |
+  | --- | --- | --- |
+  | `RE_SUBATHON_NOM` | 436,284,840 | 706.9 ms → 0.06 ms (20,004 characters) |
+  | `RE_LIMITE` | 2,248,717 | 227.1 ms → 0.26 ms (45,001) |
+  | reading an `rgb()` colour | 48,727,561 | 363.0 ms → 0.12 ms (20,007) |
+  | `PLUS_RE_TRAILING` | 47,379,208 | 368.7 ms → 0.12 ms (20,000) |
+  | `ponctuerLigne` | 48,727,561 | 363.3 ms → 0.12 ms (20,001) |
+  | `compteurNu` | 22,669,621 | 394.2 ms → 0.20 ms (20,002) |
+
+**What was not done, and why.** The audit suggested capturing the native
+`fetch` at startup, so that a page script replacing `window.fetch` would not
+see our requests. That script would still hold `Response.prototype.json`,
+`JSON.parse` and everything the response goes through: the capture would
+guarantee nothing. It would, on the other hand, have frozen the `fetch` that
+eight bench scenarios replace after load to simulate Twitch.
+
+### The bench
+
+Three new scenarios:
+
+- **211**: the real extension, loaded by Chromium from the branch's manifest.
+  It is the only scenario where the browser reads the `content_scripts` block
+  and injects by itself. At the top, the three files run together without a
+  page error. In a www.twitch.tv iframe and in a player, the anti-ad module
+  and the bridges run, never the main module. The embedded panel, in a real
+  `chrome-extension://` frame, requests a section and gets its answer. Sent to
+  another origin, the same frame receives nothing more.
+- **212**: defense in depth. The preview does not reveal itself on a message
+  from its window coming from another origin. The memories read back set
+  aside "//hote.example", "a.b", "x/y" and "a:b". `tse.panneau` refuses
+  "constructor" and "toString". The token query stays the same to the
+  character for digits, and a forged ID does not come out of it. Every
+  expression in our files passes the six attacks at thirty thousand
+  characters in under 60 ms. The panel only sets images from `jtvnw.net` and
+  `twitch.tv`.
+- **213**: the decorations.
+  - a) The stylesheet animates only transform and opacity, apart from three
+    named exceptions: `tse-tour`, and the preview's badge in both themes. An
+    exception that has become pointless must be removed.
+  - b) In a decorated page, everything that runs animates only transform and
+    opacity. Each decoration is placed once, where its class asks for it.
+    Each crossfade is an exact partition, summing to one, that follows the
+    progress of the old beat: bar, gear shells, breath, pill copies. A
+    subscribed and fresh card, recycled for another channel, gives back its
+    three decorations.
+  - c) Chromium's trace refuses an old-style animated control, so it can tell,
+    and declares all our animations taken by the compositor.
+
+Revised:
+
+- **122**, **179** and **207**: the embedded panel's origin, the tiles'
+  origin, and a plausible schedule entry of a shape the network does not
+  write.
+- **51**, **55**, **93**, **113**, **114**, **118**, **123**, **137** and
+  **171** read the decorations instead of the pseudo-elements. 137 now follows
+  a real subscribed card, remembered as such, and checks that the glow layers
+  have no seam.
+- **30**, **58**, **61**, **172**, **175**, **177** and **189**: their fake
+  players load `cadres.js`. **66**: stripping covers three files.
+
+«MUTANTS»
+
 ## The default language, and the first of the month (v4.25.0.8)
 
 The request: “2 things to fix in the extension. The schedule writes
@@ -20748,9 +20991,13 @@ constant at the top of `content.js`, or to disable the anti-ad module via
 
 ```
 cowlors-sidebar-for-twitch/
-├── manifest.json          MV3 declaration (content script MAIN world, all_frames true)
+├── manifest.json          MV3 declaration (MAIN-world scripts, see Porting notes)
 ├── adblock.js             anti-ad module (vendored third-party code, see its header)
-├── content.js             all the sidebar logic
+├── cadres.js              the iframe bridges (preview, room, scan) — every frame
+├── content.js             all the sidebar logic — top frame only
+├── bridge.js              the page ↔ panel relay (isolated world)
+├── background.js          the service worker that routes the panel's messages
+├── panneau.html/.css/.js  the toolbar panel
 ├── _locales/
 │   ├── en/messages.json     English name + description (default_locale)
 │   ├── fr/messages.json     French name + description
@@ -20783,8 +21030,10 @@ cowlors-sidebar-for-twitch/
 └── README.en.md           this file
 ```
 
-**What ships to the browser** is `manifest.json`, `content.js`, `adblock.js`,
-`_locales/` and `icons/` — nothing else. The extension has no dependencies:
+**What ships to the browser** is the whitelist in `tests/addon.mjs`:
+`manifest.json`, `content.js`, `cadres.js`, `adblock.js`, `bridge.js`,
+`background.js`, `panneau.html`, `panneau.css`, `panneau.js`, `_locales/` and
+`icons/` — nothing else. The extension has no dependencies:
 `package.json` and `tests/` exist only to verify it, and are never packaged.
 
 ---
@@ -20802,7 +21051,7 @@ Four independent checks:
 
 | Command | What it checks |
 |---|---|
-| `npm run lint` | `content.js` and `adblock.js` — no-undef, `require-atomic-updates`, etc. |
+| `npm run lint` | the six shipped JavaScript files — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
 | `npm test` | the Playwright harness: 209 scenarios, 1976 assertions |
@@ -20825,12 +21074,13 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1810 KB | 741 KB | 4,445 → **2** |
+| `content.js` | 1795 KB | 731 KB | 4,317 → **2** |
+| `cadres.js` | 66 KB | 30 KB | 158 → **0** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
-| `panneau.js` | 148 KB | 76 KB | 209 → **0** |
+| `panneau.js` | 150 KB | 76 KB | 209 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 25 → **0** |
 | `background.js` | 10 KB | 2 KB | 22 → **0** |
-| **all five** | **2107 KB** | **922 KB** | **−56 %** |
+| **all six** | **2161 KB** | **943 KB** | **−56 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are
@@ -21227,10 +21477,16 @@ context, and a fourth transformation adds localization.
      hooks, sidebar CSS, capture of the initial order).
    - **`all_frames: true`**: so the anti-ad module can inject into the
      `player.twitch.tv` iframe (MV3 equivalent of the Violentmonkey
-     `@allFrames true` directive). The sidebar (TSE) module has a top-level
-     guard that neutralizes it inside iframes, and the anti-ad module only
-     wakes up in the preview iframe: in any given frame, **at most one** of
-     the two modules is active.
+     `@allFrames true` directive). The anti-ad module only wakes up in the
+     preview iframe.
+
+   **Since 4.25.0.9, two entries instead of one.** `adblock.js` and
+   `cadres.js` — the iframe bridges: preview, room tiles and chats, the
+   followed-channels scan — keep `all_frames: true`; each bridge only wakes
+   up in the frame that carries its name. `content.js`, the sidebar module,
+   moves to `all_frames: false`: injected everywhere, it was parsed and
+   compiled in every Twitch iframe only to stop at its first line. Its
+   top-level guard stays, and restates what the manifest guarantees.
 
    The matches now include `https://player.twitch.tv/*` in addition to
    `www.twitch.tv` and `twitch.tv` to allow injection into the preview

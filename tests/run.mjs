@@ -4339,9 +4339,13 @@ titre('51. Abonnements — la carte d\'une chaîne abonnée');
   const marque = (login) => page.evaluate((l) => {
     const c = [...document.querySelectorAll('.side-nav-card')].find(x => x.dataset.tseLogin === l);
     if (!c) return null;
-    const apres = getComputedStyle(c, '::after');
+    /* LES DÉCORS SONT DES ÉLÉMENTS DEPUIS LA 4.25.0.9 (cf. poserDecor) : la
+       lueur est un calque de la carte, l'anneau et le souffle un décor de
+       l'avatar. On lit ce que chacun de leurs morceaux anime, dans l'ordre. */
+    const lueur = c.querySelector(':scope > .tse-lueur-deco');
+    const lueurSt = lueur ? getComputedStyle(lueur) : null;
     const av = c.querySelector('.side-nav-card__avatar figure, .side-nav-card__avatar .tw-avatar');
-    const avApres = av ? getComputedStyle(av, '::after') : null;
+    const anims = (els) => [...els].map((e) => getComputedStyle(e).animationName).join(',') || 'none';
     /* LE NOM EST DÉSIGNÉ PAR UNE CLASSE, comme la catégorie et pour la même
        raison : le crochet d'automatisation de Twitch manque sur les cartes
        décorées, et une feuille de style qui s'y accroche cesse de s'appliquer
@@ -4356,22 +4360,24 @@ titre('51. Abonnements — la carte d\'une chaîne abonnée');
     return {
       classe:    c.classList.contains('tse-sub'),
       phase:     c.style.getPropertyValue('--tse-sub-phase'),
-      anim:      apres.animationName,
-      pointeur:  apres.pointerEvents,
+      anim:      lueur ? anims(lueur.children) : 'none',
+      pointeur:  lueurSt ? lueurSt.pointerEvents : null,
       // La lueur se peint SOUS le contenu : un z-index négatif dans le
       // contexte d'empilement de la carte. C'est ce qui lui permet de
       // cohabiter avec le fond de « frais » et du co-stream.
-      plan:      apres.zIndex,
-      avatar:    avApres ? avApres.animationName : null,
+      plan:      lueurSt ? lueurSt.zIndex : null,
+      avatar:    av ? anims(av.querySelectorAll(':scope > .tse-sub-deco > .tse-sub-deco__anneau > span')) : null,
       nomAnim:   nomStyle ? nomStyle.animationName : null,
       nomFill:   nomStyle ? nomStyle.webkitTextFillColor : null,
       nomPoids:  nomStyle ? nomStyle.fontWeight : null,
+      nomImage:  nomStyle ? nomStyle.backgroundImage : null,
+      nomFiltre: nomStyle ? nomStyle.filter : null,
       catTexte:  cat ? cat.textContent : null,
       catAnim:   catStyle ? catStyle.animationName : null,
       catFill:   catStyle ? catStyle.webkitTextFillColor : null,
-      catDuree:  catStyle ? catStyle.animationDuration : null,
-      nomDuree:  nomStyle ? nomStyle.animationDuration : null,
-      avSouffle: av ? getComputedStyle(av).animationName : null,
+      catImage:  catStyle ? catStyle.backgroundImage : null,
+      catFiltre: catStyle ? catStyle.filter : null,
+      avSouffle: av ? anims(av.querySelectorAll(':scope > .tse-sub-deco > .tse-sub-deco__souffle > span')) : null,
     };
   }, login);
 
@@ -4380,16 +4386,18 @@ titre('51. Abonnements — la carte d\'une chaîne abonnée');
   const sansCrochet = await marque('etorvyn');
   ok('la chaîne abonnée porte la marque', abo && abo.classe === true, JSON.stringify(abo));
   ok('la chaîne non abonnée ne la porte pas', non && non.classe === false, JSON.stringify(non));
-  // La décoration EXISTE vraiment côté rendu : deux animations nommées sur le
-  // ::after, et un halo sur la carte. Sans ça, la classe ne prouverait rien.
-  ok('la lueur de fond est animée', abo?.anim === 'tse-sub-lueur', String(abo && abo.anim));
+  // La décoration EXISTE vraiment côté rendu : quatre calques animés sous la
+  // carte, un anneau et un souffle sur l'avatar. Sans ça, la classe ne
+  // prouverait rien.
+  ok('la lueur de fond est animée, ses quatre calques chacun à son pas',
+     abo?.anim === 'tse-lueur-voile,tse-lueur-nappe-1,tse-lueur-nappe-2,tse-lueur-nappe-3', String(abo && abo.anim));
   // Elle se peint SOUS le contenu de la carte, et sous la barre de gauche de
   // « frais » et du co-stream : c'est ce plan négatif qui rend la cohabitation
   // possible sans une seule règle de départage.
   ok('et posée sous le contenu de la carte', abo?.plan === '-1', String(abo && abo.plan));
   // Le nom passe à l'or, et le dégradé le traverse.
   ok('le nom porte le dégradé doré',
-     (abo?.nomAnim || '').includes('tse-sub-titre'), String(abo && abo.nomAnim));
+     /linear-gradient/.test(abo?.nomImage || ''), String(abo && abo.nomImage));
   ok('en découpe dans le texte',
      (abo?.nomFill || '').includes('rgba(0, 0, 0, 0)'), String(abo && abo.nomFill));
   ok('et il est mis en gras', abo?.nomPoids === '700', String(abo && abo.nomPoids));
@@ -4397,27 +4405,28 @@ titre('51. Abonnements — la carte d\'une chaîne abonnée');
      l'or tenait à un attribut que Twitch ne pose pas sur les cartes décorées,
      ni sur aucune carte fabriquée par clonage de l'une d'elles. */
   ok('une carte abonnée SANS le crochet de Twitch reçoit le même or',
-     (sansCrochet?.nomAnim || '').includes('tse-sub-titre')
-     && sansCrochet?.nomPoids === '700', JSON.stringify(sansCrochet));
+     !!sansCrochet && sansCrochet.nomImage === abo?.nomImage
+     && sansCrochet.nomPoids === '700', JSON.stringify(sansCrochet));
   // La catégorie reçoit le même traitement, en plus sourd et plus lent : les
   // deux rangs doivent rester distincts, sans quoi la hiérarchie que Twitch
   // installe par la taille et la couleur s'aplatit.
   ok('la catégorie est bien celle visée, pas le nom',
      abo?.catTexte === 'G', String(abo && abo.catTexte));
-  ok('elle porte elle aussi le dégradé', abo?.catAnim === 'tse-sub-titre',
-     String(abo && abo.catAnim));
+  ok('elle porte elle aussi le dégradé', /linear-gradient/.test(abo?.catImage || ''),
+     String(abo && abo.catImage));
   ok('en découpe dans le texte',
      (abo?.catFill || '').includes('rgba(0, 0, 0, 0)'), String(abo && abo.catFill));
-  // Le nom porte DEUX animations (reflet + halo), la catégorie une seule ; et
-  // le reflet du nom est plus rapide. C'est cette différence qui tient la
-  // hiérarchie.
-  ok('le nom porte en plus un halo qui respire',
-     (abo?.nomAnim || '').includes('tse-sub-halo'), String(abo && abo.nomAnim));
-  ok('et son reflet va plus vite que celui de la catégorie',
-     parseFloat(abo?.nomDuree) < parseFloat(abo?.catDuree),
-     `${abo && abo.nomDuree} contre ${abo && abo.catDuree}`);
-  ok('la catégorie, elle, n\'a qu\'une animation',
-     (abo?.catAnim || '').split(',').length === 1, String(abo && abo.catAnim));
+  /* LE NOM PORTE EN PLUS UN HALO, LA CATÉGORIE NON : c'est cette différence
+     qui tient la hiérarchie. Le reflet qui défilait dans les lettres et le
+     battement du halo sont FIGÉS depuis la 4.25.0.9, et c'est une décision :
+     un dégradé découpé au texte ne se déplace qu'en se repeignant, et le
+     compositeur n'anime pas un filtre d'ombre partout. */
+  ok('le nom porte en plus un halo, figé',
+     /drop-shadow/.test(abo?.nomFiltre || '') && abo?.nomAnim === 'none', `${abo && abo.nomFiltre} — ${abo && abo.nomAnim}`);
+  ok('et rien ne défile plus dans les lettres, ni du nom ni de la catégorie',
+     abo?.nomAnim === 'none' && abo?.catAnim === 'none', `${abo && abo.nomAnim} / ${abo && abo.catAnim}`);
+  ok('la catégorie, elle, n\'a pas de halo',
+     abo?.catFiltre === 'none', String(abo && abo.catFiltre));
   ok('la catégorie d\'une chaîne non abonnée n\'est même pas marquée',
      non !== null && non.catAnim === null, String(non && non.catAnim));
   // La catégorie est DÉSIGNÉE par cardCategoryEl, plus cherchée par un
@@ -4436,9 +4445,10 @@ titre('51. Abonnements — la carte d\'une chaîne abonnée');
      JSON.stringify(non && { a: non.nomAnim, p: non.nomPoids }));
   // L'avatar garde son anneau : c'est le SEUL élément qui subsiste en mode
   // réduit, où il n'y a ni fond ni nom à colorer.
-  ok('l\'avatar garde son anneau tournant', !!abo && (abo.avatar || '').includes('tse-sub-turn'),
+  ok('l\'avatar garde son anneau tournant', abo?.avatar === 'tse-sub-turn',
      String(abo && abo.avatar));
-  ok('et son halo respire', abo?.avSouffle === 'tse-sub-souffle', String(abo && abo.avSouffle));
+  ok('et son halo respire, deux ombres en fondu', abo?.avSouffle === 'tse-sub-souffle-creux,tse-sub-souffle-plein',
+     String(abo && abo.avSouffle));
   ok('la chaîne non abonnée n\'a pas d\'anneau d\'avatar',
      !non || non.avatar === 'none', String(non && non.avatar));
   ok('et le décor ne capte pas les clics', !!abo && abo.pointeur === 'none',
@@ -4472,20 +4482,21 @@ titre('51. Abonnements — la carte d\'une chaîne abonnée');
   await page.emulateMedia({ reducedMotion: 'reduce' });
   const calme = await marque('omvaldiane');
   const bouge = ['anim', 'nomAnim', 'catAnim', 'avatar', 'avSouffle',
-                 'nomDuree', 'catDuree', 'pointeur', 'plan'];
+                 'nomFiltre', 'catFiltre', 'pointeur', 'plan'];
   const ecarts = bouge.filter((k) => calme[k] !== libre[k]);
   ok('mouvement réduit : le décor est rigoureusement le même qu\'en mouvement libre',
      ecarts.length === 0,
      JSON.stringify(Object.fromEntries(ecarts.map((k) => [k, [libre[k], calme[k]]]))));
   // Et ce « même » est bien un décor vivant, pas deux fois rien : l'invariance
   // ci-dessus serait vraie aussi si tout était éteint des deux côtés.
-  ok('le fond anime toujours', calme.anim === 'tse-sub-lueur', String(calme.anim));
-  ok('le nom aussi', (calme.nomAnim || '').includes('tse-sub-titre'), String(calme.nomAnim));
-  ok('la catégorie aussi', calme.catAnim === 'tse-sub-titre', String(calme.catAnim));
+  ok('le fond anime toujours', calme.anim === libre.anim && calme.anim.startsWith('tse-lueur-voile'), String(calme.anim));
+  ok('le nom garde son or et son halo', /linear-gradient/.test(calme.nomImage || '') && /drop-shadow/.test(calme.nomFiltre || ''),
+     `${calme.nomImage} — ${calme.nomFiltre}`);
+  ok('la catégorie aussi', /linear-gradient/.test(calme.catImage || ''), String(calme.catImage));
   ok('et la catégorie reste marquée', calme.catTexte === 'G', String(calme.catTexte));
-  ok('l\'avatar garde son anneau', (calme.avatar || '').includes('tse-sub-turn'),
+  ok('l\'avatar garde son anneau', calme.avatar === 'tse-sub-turn',
      String(calme.avatar));
-  ok('et son halo respire encore', calme.avSouffle === 'tse-sub-souffle',
+  ok('et son halo respire encore', calme.avSouffle === 'tse-sub-souffle-creux,tse-sub-souffle-plein',
      String(calme.avSouffle));
   ok('mais la marque demeure', calme.classe === true, JSON.stringify(calme));
   await page.emulateMedia({ reducedMotion: 'no-preference' });
@@ -4856,12 +4867,18 @@ titre('55. Abonnements — l\'anneau suit l\'avatar, quelle que soit sa forme');
             || c.querySelector('.tw-avatar')
             || c.querySelector('img.tw-image-avatar')?.closest('figure, .tw-avatar, div');
     if (!av) return { forme: 'introuvable' };
-    const ap = getComputedStyle(av, '::after');
+    /* L'anneau et le souffle sont le décor de l'avatar depuis la 4.25.0.9 —
+       un élément posé DANS l'avatar que avatarOf() désigne : c'est donc là,
+       et nulle part ailleurs, qu'on le cherche. */
+    const decor = av.querySelector(':scope > .tse-sub-deco');
+    const tour = decor?.querySelector(':scope > .tse-sub-deco__anneau > span');
+    const souffle = decor ? [...decor.querySelectorAll(':scope > .tse-sub-deco__souffle > span')] : [];
     return {
       forme:  av.tagName.toLowerCase(),
-      anneau: ap.content !== 'none',
-      anim:   ap.animationName,
-      halo:   getComputedStyle(av).animationName,
+      anneau: !!decor && getComputedStyle(decor).display !== 'none',
+      anim:   tour ? getComputedStyle(tour).animationName : 'none',
+      halo:   souffle.map((e) => getComputedStyle(e).animationName).join(',') || 'none',
+      decors: c.querySelectorAll('.tse-sub-deco').length,
     };
   }, login);
 
@@ -4878,23 +4895,24 @@ titre('55. Abonnements — l\'anneau suit l\'avatar, quelle que soit sa forme');
   ok('celui qui n\'en a pas le porte aussi',
      sansFigure?.anneau === true && sansFigure?.anim === 'tse-sub-turn',
      JSON.stringify(sansFigure));
-  ok('et son halo respire de même', sansFigure?.halo === 'tse-sub-souffle',
+  ok('et son halo respire de même', sansFigure?.halo === 'tse-sub-souffle-creux,tse-sub-souffle-plein',
      JSON.stringify(sansFigure));
   // LE cas signalé : un avatar rendu hors du bloc habituel — une chaîne qui
   // publie des stories — n'avait pas d'anneau, alors que sa voisine en avait un.
   ok('et celui qui est rendu hors du bloc habituel aussi',
      horsBloc?.anneau === true && horsBloc?.anim === 'tse-sub-turn',
      JSON.stringify(horsBloc));
-  ok('avec son halo', horsBloc?.halo === 'tse-sub-souffle', JSON.stringify(horsBloc));
+  ok('avec son halo', horsBloc?.halo === 'tse-sub-souffle-creux,tse-sub-souffle-plein', JSON.stringify(horsBloc));
   // LA forme qu'aucun sélecteur n'atteignait : hors du bloc ET sans <figure>.
   const nulPart = await anneau('domingo');
   ok('et celui qui cumule les deux différences aussi',
      nulPart?.anneau === true && nulPart?.anim === 'tse-sub-turn', JSON.stringify(nulPart));
   // La marque suit l'avatar, et elle est UNIQUE dans la carte : une carte
   // recyclée ne doit pas garder l'ancienne.
-  ok('une seule marque d\'avatar par carte',
+  ok('une seule marque d\'avatar par carte, et un seul décor',
      await page.evaluate(() => [...document.querySelectorAll('.side-nav-card')]
-       .every(c => c.querySelectorAll('.tse-sub-avatar').length <= 1)));
+       .every(c => c.querySelectorAll('.tse-sub-avatar').length <= 1
+                && c.querySelectorAll('.tse-sub-deco').length <= 1)));
   // La marque doit TOMBER quand la carte cesse d'être abonnée — sinon un
   // anneau doré survivrait sur une chaîne quelconque, la carte ayant été
   // recyclée par React.
@@ -4904,11 +4922,12 @@ titre('55. Abonnements — l\'anneau suit l\'avatar, quelle que soit sa forme');
     c.querySelector('a[href="/etorvyn"]').setAttribute('href', '/recyclee');
   });
   await wait(page, 600);
-  ok('et elle tombe quand la carte change de chaîne',
+  ok('et elle tombe quand la carte change de chaîne, son décor avec elle',
      await page.evaluate(() => {
        const c = [...document.querySelectorAll('.side-nav-card')]
          .find(x => x.dataset.tseLogin === 'recyclee');
-       return !!c && c.querySelectorAll('.tse-sub-avatar').length === 0;
+       return !!c && c.querySelectorAll('.tse-sub-avatar').length === 0
+         && c.querySelectorAll('.tse-deco').length === 0;
      }));
   await page.close();
 }
@@ -12107,7 +12126,17 @@ titre('93. Le subathon dans l\'aperçu — un badge, un arc-en-ciel, et pas un c
       await new Promise(r => requestAnimationFrame(r));
       const cb = getComputedStyle(badge);
       const rb = contraste(cb.color, composer(cb.backgroundColor, fondApercu));
-      const rp = contraste(getComputedStyle(puce).color, getComputedStyle(puce.closest('.side-nav-card')
+      /* LA PASTILLE NE SE PEINT PLUS ELLE-MÊME depuis la 4.25.0.9 : ses huit
+         copies le font, chacune de sa couleur, et leurs opacités se
+         partagent l'instant. La couleur VUE est donc leur somme pondérée —
+         celle que le navigateur interpolait quand la pastille était animée. */
+      const vue = [0, 0, 0];
+      for (const copie of puce.querySelectorAll('.tse-subathon-teintes > span')) {
+        const cs = getComputedStyle(copie);
+        const w = parseFloat(cs.opacity);
+        cs.color.match(/[\d.]+/g).slice(0, 3).map(Number).forEach((v, k) => { vue[k] += w * v; });
+      }
+      const rp = contraste('rgb(' + vue.join(', ') + ')', getComputedStyle(puce.closest('.side-nav-card')
         ? document.body : document.body).backgroundColor || 'rgb(24, 24, 27)');
       pireBadge = Math.min(pireBadge, rb); maxBadge = Math.max(maxBadge, rb);
       pirePuce = Math.min(pirePuce, rp);
@@ -15640,18 +15669,21 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
     () => !!document.querySelector('.side-nav-card.tse-fresh'), 9000);
 
   const mesure = await page.evaluate(async () => {
-    const c = document.querySelector('.side-nav-card.tse-fresh');
+    /* LA BARRE EST LE DÉCOR DE LA CARTE depuis la 4.25.0.9 (cf. poserDecor) :
+       c'est lui qui bat — opacité et échelle —, et ses étages portent la
+       lueur. */
+    const c = document.querySelector('.side-nav-card.tse-fresh > .tse-frais-deco');
+    if (!c) return { sansAnimation: true, sansBarre: true };
     /* LA DURÉE SE LIT SUR L'ANIMATION, ELLE NE SE RECOPIE PAS. Écrite en dur,
        elle mentirait dès que le cycle changerait de vitesse — et c'est
        précisément ce qui vient d'arriver. */
-    const anim = document.getAnimations()
-      .find(a => a.effect?.target === c && a.effect?.pseudoElement === '::before');
+    const anim = document.getAnimations().find(a => a.effect?.target === c);
     if (!anim) return { sansAnimation: true };
     const duree = anim.effect.getComputedTiming().duration;
     const ops = [], largeurs = [];
     const debut = performance.now();
     while (performance.now() - debut < duree * 1.1) {
-      const st = getComputedStyle(c, '::before');
+      const st = getComputedStyle(c);
       ops.push(parseFloat(st.opacity));
       // La largeur RENDUE : le scaleX ne change pas « width », il change ce
       // qu'on voit. Lire la matrice de transformation est la seule mesure qui
@@ -15699,13 +15731,13 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await wait(page, 300);
   const calme = await page.evaluate(async () => {
-    const c = document.querySelector('.side-nav-card.tse-fresh');
-    const lire = () => { const st = getComputedStyle(c, '::before');
+    const c = document.querySelector('.side-nav-card.tse-fresh > .tse-frais-deco');
+    // La lueur est celle du dernier étage, le plus large.
+    const lire = () => { const st = getComputedStyle(c);
       const m = new DOMMatrixReadOnly(st.transform);
       return { o: parseFloat(st.opacity), l: parseFloat(st.width) * (m.a || 1),
-               ombre: st.boxShadow }; };
-    const anim = document.getAnimations()
-      .find(a => a.effect?.target === c && a.effect?.pseudoElement === '::before');
+               ombre: getComputedStyle(c.lastElementChild).boxShadow }; };
+    const anim = document.getAnimations().find(a => a.effect?.target === c);
     const duree = anim ? anim.effect.getComputedTiming().duration : 2000;
     let oMin = 9, oMax = -1, lMin = 9e9, lMax = -1, ombre = '';
     const fin = performance.now() + duree * 1.1;
@@ -15789,9 +15821,18 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
        recopier ferait mesurer au banc sa propre copie. */
     const sec = (e) => { const d = st(e)?.animationDuration || '0s';
       return d.endsWith('ms') ? parseFloat(d) / 1000 : parseFloat(d); };
-    return { puceAnim: st(p)?.animationName, badgeAnim: st(b)?.animationName,
-             puceDuree: sec(p), badgeDuree: sec(b),
-             puceCoul: st(p)?.color, badgeCoul: st(b)?.color,
+    /* LA PASTILLE TOURNE PAR SES COPIES depuis la 4.25.0.9 : huit couleurs
+       fixes dont les opacités se partagent l'instant. Sa cadence est celle
+       de ses copies, sa couleur VUE leur somme pondérée. */
+    const copies = p ? [...p.querySelectorAll('.tse-subathon-teintes > span')] : [];
+    const vue = [0, 0, 0];
+    for (const c of copies) {
+      const cs = getComputedStyle(c), w = parseFloat(cs.opacity);
+      cs.color.match(/[\d.]+/g).slice(0, 3).map(Number).forEach((v, k) => { vue[k] += w * v; });
+    }
+    return { puceAnim: copies.length ? st(copies[0]).animationName : 'none', badgeAnim: st(b)?.animationName,
+             puceDuree: copies.length ? sec(copies[0]) : 0, badgeDuree: sec(b),
+             puceCoul: copies.length ? 'rgb(' + vue.map(Math.round).join(', ') + ')' : null, badgeCoul: st(b)?.color,
              puceTexte: (p?.textContent || '').trim(),
              anims: document.getAnimations().length };
   });
@@ -16415,10 +16456,19 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
     window.tse.options.remettre();
     const c = document.querySelector('.side-nav-card');
     c.classList.add('tse-fresh');
-    const avant = { barre: getComputedStyle(c, '::before').display,
+    /* LA BARRE EST LE DÉCOR que le script pose sur une carte fraîche depuis
+       la 4.25.0.9 (cf. poserDecor). Posé ici à la main, comme la classe, le
+       temps d'une lecture : c'est la feuille qu'on éprouve. */
+    let barre = c.querySelector(':scope > .tse-frais-deco');
+    if (!barre) {
+      barre = document.createElement('span');
+      barre.className = 'tse-deco tse-frais-deco';
+      c.appendChild(barre);
+    }
+    const avant = { barre: getComputedStyle(barre).display,
                     lavis: getComputedStyle(c).backgroundImage };
     window.tse.options.poser('fresh', false);
-    return { avant, apres: { barre: getComputedStyle(c, '::before').display,
+    return { avant, apres: { barre: getComputedStyle(barre).display,
                              lavis: getComputedStyle(c).backgroundImage } };
   });
   ok('une carte fraîche porte sa barre ET son lavis',
@@ -17639,8 +17689,15 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
                   pas un signal, elle accuse réception du pointeur. */
                rotation: getComputedStyle(r.querySelector('.tse-roue-dent')).transitionDuration,
                /* Ce qui DIT, par opposition à ce qui bouge. Une roue qui
-                  perdrait son halo ne signalerait plus rien du tout. */
-               halo: st.boxShadow,
+                  perdrait son halo ne signalerait plus rien du tout. Le halo
+                  est fait de sept coques depuis la 4.25.0.9 : on lit qu'elles
+                  sont là, visibles, et qu'elles battent. */
+               halo: (() => {
+                 const h = r.querySelector(':scope > .tse-roue-halo');
+                 if (!h || getComputedStyle(h).display === 'none') return null;
+                 return { coques: h.children.length, anime: getComputedStyle(h).animationName,
+                          couleur: getComputedStyle(h.lastElementChild).backgroundColor };
+               })(),
                bulle: !!document.getElementById('tse-bulle') };
     });
     await p.close();
@@ -17665,7 +17722,8 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
      Math.abs((calme.eMax - calme.eMin) - (vif.eMax - vif.eMin)) < 0.01,
      JSON.stringify({ calme: [calme.eMin, calme.eMax], vif: [vif.eMin, vif.eMax] }));
   ok('…et le signal reste : la roue est marquée, son halo est posé, la bulle est là',
-     calme.neuf === 'true' && /rgba?\(/.test(calme.halo) && calme.bulle === true,
+     calme.neuf === 'true' && calme.halo?.coques === 7 && calme.halo.anime === 'tse-roue-halo'
+     && /rgba?\(/.test(calme.halo.couleur) && calme.bulle === true,
      JSON.stringify(calme));
   await page.close();
 }
@@ -19059,32 +19117,34 @@ addEventListener('message', (e) => {
    par `getKeyframes()`, et compare le rendu à la première et à la dernière
    image. Une animation ajoutée demain est donc couverte sans qu'on y pense.
 
-   DEUX EXCEPTIONS, ET ELLES SE PROUVENT AU LIEU DE S'EXCUSER. Une valeur qui
-   diffère aux deux bouts n'est pas forcément une couture : elle peut être hors
-   cadre, ou décalée d'exactement une tuile. Ces deux cas-là ne sont pas
-   inscrits sur une liste d'exemptions — ils sont CALCULÉS, en pixels rendus,
-   par les deux assertions qui suivent. Le jour où l'un cesse d'être vrai, il
-   tombe du côté des coutures. */
+   UNE EXCEPTION, ET ELLE SE PROUVE AU LIEU DE S'EXCUSER. Une valeur qui
+   diffère aux deux bouts n'est pas forcément une couture : elle peut être
+   hors cadre. Ce cas-là n'est pas inscrit sur une liste d'exemptions — il est
+   CALCULÉ, en pixels rendus, par l'assertion qui suit. Le jour où il cesse
+   d'être vrai, il tombe du côté des coutures. (Il y en avait une seconde,
+   l'or du nom qui avançait d'une tuile : il est figé depuis la 4.25.0.9.) */
 {
   titre('137. Le décor de la carte abonnée — chaque cycle revient où il est parti');
+  /* UNE VRAIE CARTE ABONNÉE, depuis la 4.25.0.9 : ses décors sont des
+     éléments que le script pose (cf. poserDecor), et une classe posée à la
+     main n'en ferait naître aucun. Le relevé d'abonnements est donc posé
+     avant le chargement. */
   const page = await fresh();
+  await page.evaluate(() => localStorage.setItem('tse:subs', JSON.stringify({ abo: [1, Date.now()] })));
+  await page.reload();
   await page.evaluate(() => {
     const h = new Date(Date.now() - 60 * 60_000).toISOString();
     window.__fx = { abo: { id: '1', createdAt: h, viewers: 900, game: 'G', tags: [] } };
     window.__addCard('abo', 'G', '900');
   });
-  await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length >= 1, 12_000);
+  await attendre(page, () => !!document.querySelector('.side-nav-card.tse-sub > .tse-lueur-deco')
+    && !!document.querySelector('.tse-sub-avatar > .tse-sub-deco')
+    && document.querySelectorAll('[data-tse-viewers]').length >= 1, 12_000);
 
   const releve = await page.evaluate(() => {
     const carte = [...document.querySelectorAll('.side-nav-card')]
       .find((c) => c.dataset.tseLogin === 'abo');
     if (!carte) return { erreur: 'carte absente' };
-    /* LA MARQUE EST POSÉE ICI, DANS LA MÊME ÉVALUATION QUE LA MESURE. Le scan
-       suivant la retirerait — applySubStyle nettoie ce qui ne lui revient pas —
-       et ce qu'on éprouve n'est pas le relevé des abonnements, c'est la feuille
-       de style seule : les images-clés, telles que le moteur les interpole. */
-    carte.classList.add('tse-sub');
-    void carte.offsetHeight;
     const IGNORE = new Set(['offset', 'computedOffset', 'easing', 'composite']);
     const vues = [];
     for (const a of carte.getAnimations({ subtree: true })) {
@@ -19095,27 +19155,34 @@ addEventListener('message', (e) => {
       const props = new Set();
       for (const k of a.effect.getKeyframes())
         for (const nom of Object.keys(k)) if (!IGNORE.has(nom)) props.add(nom);
+      /* LE DÉBUT D'UN CYCLE, PAS CELUI DE L'HORLOGE : chaque carte a sa phase,
+         un retard négatif. Une heure courante de zéro tombe au milieu d'un
+         cycle, et la « dernière image » une milliseconde plus loin — sur une
+         carte de mille deux cents pixels, une nappe y avance déjà d'un
+         dixième de pixel, et c'est elle qu'on aurait mesurée. Et pas le
+         PREMIER cycle : avec un retard négatif, son début tombe avant l'heure
+         zéro, où l'animation ne s'applique pas encore. On lit le second, qui
+         est le même. */
+      const retard = a.effect.getTiming().delay || 0;
       const lire = (t) => {
-        a.currentTime = t;
+        a.currentTime = retard + duree + t;
         const st = getComputedStyle(cible, pseudo);
         return [...props].map((n) => n.startsWith('--')
           ? st.getPropertyValue(n).trim() : String(st[n]));
       };
       /* LA DERNIÈRE IMAGE, PAS LE REBOUCLAGE : à `duree` exacte le moteur a
-         déjà repassé à zéro, et tout paraîtrait boucler. Une milliseconde
-         avant, on lit ce que l'œil voit juste avant le saut. */
+         déjà repassé à zéro, et tout paraîtrait boucler. Un centième de
+         milliseconde avant, on lit ce que l'œil voit juste avant le saut. */
       const debut = lire(0);
-      const fin = lire(duree - 1);
-      /* UNE VALEUR SE COMPARE COUCHE PAR COUCHE, et d'abord comme du texte.
-         « background-position » en porte quatre, séparées par des virgules :
-         les fondre en une seule chaîne dirait « ça diffère » sans dire OÙ, et
-         c'est justement le OÙ qui sépare la couture de l'exception.
+      const fin = lire(duree - 0.01);
+      /* UNE VALEUR SE COMPARE TERME PAR TERME, et d'abord comme du texte. Une
+         matrice de transformation en porte six : les fondre en une seule
+         chaîne dirait « ça diffère » sans dire OÙ.
 
          PUIS COMME DES NOMBRES : quinze secondes d'interpolation laissent un
-         résidu de virgule flottante — « 0,0101333 % » là où on a écrit
-         « 0 % » — qui n'est pas une couture. Le centième de pour-cent est
-         large pour ce résidu, et mille fois trop serré pour une nappe qui ne
-         reviendrait pas où elle est partie. */
+         résidu de virgule flottante qui n'est pas une couture. Le
+         cinquantième de pixel est large pour ce résidu, et mille fois trop
+         serré pour une nappe qui ne reviendrait pas où elle est partie. */
       const couches = (x, y) => {
         if (x === y) return [];
         const a2 = x.split(','), b2 = y.split(',');
@@ -19123,7 +19190,9 @@ addEventListener('message', (e) => {
         const dur = [];
         for (let i = 0; i < a2.length; i++) {
           if (a2[i].trim() === b2[i].trim()) continue;
-          const u = parseFloat(a2[i]), v = parseFloat(b2[i]);
+          // « matrix(0.03769 » : le nombre, sans le nom de la fonction.
+          const nombre = (x) => parseFloat(x.replace(/^[^\d.+-]+/, ''));
+          const u = nombre(a2[i]), v = nombre(b2[i]);
           if (Number.isFinite(u) && Number.isFinite(v) && Math.abs(u - v) < 0.02) continue;
           dur.push(i);
         }
@@ -19140,56 +19209,50 @@ addEventListener('message', (e) => {
 
   // Le décor doit EXISTER, sans quoi « aucune couture » serait vrai pour rien.
   const noms = (releve.vues || []).map((v) => v.nom);
+  const DECOR = ['tse-lueur-voile', 'tse-lueur-nappe-1', 'tse-lueur-nappe-2', 'tse-lueur-nappe-3',
+                 'tse-sub-turn', 'tse-sub-souffle-creux', 'tse-sub-souffle-plein'];
   ok('la carte abonnée porte bien ses animations de décor',
-     noms.includes('tse-sub-lueur') && noms.includes('tse-sub-titre')
-     && noms.includes('tse-sub-halo'), JSON.stringify(noms));
+     DECOR.every((n) => noms.includes(n)), JSON.stringify(noms));
 
-  /* LA COUTURE DU FOND — celle qui a été signalée. Les quatre nappes sont
-     jugées ensemble, et une seule d'entre elles a le droit de différer : le
-     balayage, dont la deuxième assertion prouve qu'il est hors cadre. */
-  const lueur = (releve.vues || []).find((v) => v.nom === 'tse-sub-lueur');
-  /* LA NAPPE 0 EST LE BALAYAGE — la seule qui ait le droit de différer, et
-     l'assertion suivante prouve pourquoi. Les trois autres sont celles qui
-     sautaient : c'est ici, et nulle part ailleurs, que le défaut signalé
-     reviendrait se déclarer. */
-  const sautent = lueur
-    ? lueur.coutures.flatMap((c) => c.couches.filter((i) => i !== 0).map((i) => [c.prop, i]))
-    : [['aucune animation', -1]];
+  /* LA COUTURE DU FOND — celle qui a été signalée. Chaque nappe est un calque
+     qui glisse depuis la 4.25.0.9 : les trois nappes sont celles qui
+     sautaient, et c'est ici, et nulle part ailleurs, que le défaut signalé
+     reviendrait se déclarer. Le voile de balayage, lui, a le droit de
+     différer — l'assertion suivante prouve pourquoi. */
+  const nappes = (releve.vues || []).filter((v) => /^tse-lueur-nappe-/.test(v.nom));
+  const sautent = nappes.length === 3
+    ? nappes.filter((v) => v.coutures.length).map((v) => [v.nom, v.coutures])
+    : [['nappes manquantes', nappes.length]];
   ok('la lueur de fond revient exactement où elle est partie, nappe par nappe',
-     sautent.length === 0, JSON.stringify({ sautent, releve: lueur }));
+     sautent.length === 0, JSON.stringify({ sautent }));
 
-  /* ET TOUT LE RESTE DU DÉCOR, sans liste à tenir : ce qui reste après les
-     deux exceptions calculées plus bas doit être vide. */
+  /* ET TOUT LE RESTE DU DÉCOR, sans liste à tenir : ce qui reste après
+     l'exception calculée plus bas doit être vide. */
   const autres = (releve.vues || [])
-    .filter((v) => v.nom !== 'tse-sub-lueur' && v.nom !== 'tse-sub-titre')
+    .filter((v) => v.nom !== 'tse-lueur-voile')
     .filter((v) => v.coutures.length);
   ok('…et aucune autre animation du décor ne saute en fin de cycle',
      autres.length === 0, JSON.stringify(autres));
 
-  /* ── EXCEPTION 1 : LE BALAYAGE EST HORS CADRE AUX DEUX BOUTS ────────────
+  /* ── L'EXCEPTION : LE BALAYAGE EST HORS CADRE AUX DEUX BOUTS ───────────
      Il ne boucle pas, il n'a pas à boucler : il traverse la carte une fois par
      cycle et attend le suivant en coulisse. « En coulisse » n'est pas une
-     opinion — on convertit sa position en pixels rendus, à partir de sa propre
-     taille de fond et de la largeur de la boîte, et on exige que l'image ne
-     touche pas l'intervalle peint. Le retour de 210 % à −110 % est sec, et il
-     ne se voit pas parce qu'il se fait entièrement en dehors. */
+     opinion — on mesure la boîte RENDUE du calque, transformation comprise,
+     contre celle de la lueur, et on exige qu'elles ne se touchent pas. Le
+     retour au départ est sec, et il ne se voit pas parce qu'il se fait
+     entièrement en dehors. */
   const balayage = await page.evaluate(() => {
     const carte = [...document.querySelectorAll('.side-nav-card')]
       .find((c) => c.dataset.tseLogin === 'abo');
-    carte.classList.add('tse-sub');
-    void carte.offsetHeight;
-    const a = carte.getAnimations({ subtree: true })
-      .find((x) => x.animationName === 'tse-sub-lueur');
+    const voile = carte?.querySelector(':scope > .tse-lueur-deco > span:first-child');
+    const a = voile?.getAnimations().find((x) => x.animationName === 'tse-lueur-voile');
     if (!a) return { erreur: 'lueur absente' };
+    const cadre = voile.parentElement.getBoundingClientRect();
     const ou = (t) => {
       a.currentTime = t;
-      const st = getComputedStyle(carte, '::after');
-      const W = parseFloat(st.width);
-      const large = parseFloat(st.backgroundSize.split(',')[0]) / 100 * W;
-      const pos = parseFloat(st.backgroundPositionX.split(',')[0]);
-      const gauche = pos / 100 * (W - large);
-      return { W: +W.toFixed(1), gauche: +gauche.toFixed(1),
-               droite: +(gauche + large).toFixed(1) };
+      const r = voile.getBoundingClientRect();
+      return { W: +cadre.width.toFixed(1), gauche: +(r.left - cadre.left).toFixed(1),
+               droite: +(r.right - cadre.left).toFixed(1) };
     };
     const d = a.effect.getComputedTiming().duration;
     return { debut: ou(0), fin: ou(d - 1) };
@@ -19199,28 +19262,20 @@ addEventListener('message', (e) => {
      dehors(balayage.debut) && dehors(balayage.fin),
      JSON.stringify(balayage));
 
-  /* ── EXCEPTION 2 : L'OR DU NOM SE DÉCALE D'UNE TUILE ENTIÈRE ────────────
-     Il va de 0 % à 300 %, et sa tuile fait 300 % : un pas d'exactement une
-     tuile, sur un fond qui se répète. Ce pas n'est invisible qu'à une
-     condition — que les deux bords de la tuile portent la même couleur — et
-     c'est la condition qu'on vérifie, sur le dégradé tel qu'il est calculé. */
+  /* ── L'OR DU NOM NE BOUGE PLUS (4.25.0.9) ───────────────────────────────
+     Son reflet avançait d'exactement une tuile par cycle, et c'était la
+     seconde exception de ce scénario. Il est FIGÉ, par décision : un dégradé
+     découpé au texte ne se déplace qu'en se repeignant. On vérifie donc qu'il
+     n'a plus d'animation, et qu'il reste à l'origine de son dégradé. */
   const or = await page.evaluate(() => {
     const nom = [...document.querySelectorAll('.side-nav-card')]
       .find((c) => c.dataset.tseLogin === 'abo')?.querySelector('p.tse-nom');
     if (!nom) return { erreur: 'nom absent' };
     const st = getComputedStyle(nom);
-    const couleurs = [...st.backgroundImage.matchAll(/rgba?\([^)]*\)/g)].map((m) => m[0]);
-    return { taille: parseFloat(st.backgroundSize), repete: st.backgroundRepeat,
-             premiere: couleurs[0], derniere: couleurs[couleurs.length - 1],
-             stops: couleurs.length };
+    return { anime: st.animationName, x: st.backgroundPositionX, taille: parseFloat(st.backgroundSize) };
   });
-  const pasOr = (releve.vues || []).find((v) => v.nom === 'tse-sub-titre');
-  const bordOr = pasOr && pasOr.coutures.find((c) => c.prop === 'backgroundPositionX');
-  ok('le dégradé du nom avance d\'exactement une tuile, et la tuile se raccorde à elle-même',
-     !!bordOr && Math.abs(parseFloat(bordOr.fin) - or.taille) < 0.1
-     && or.repete === 'repeat' && or.stops >= 2
-     && or.premiere === or.derniere,
-     JSON.stringify({ pas: bordOr && bordOr.fin, ...or }));
+  ok('l\'or du nom est figé à l\'origine de son dégradé',
+     or.anime === 'none' && parseFloat(or.x) === 0 && or.taille === 300, JSON.stringify(or));
   await page.close();
 }
 
@@ -24565,7 +24620,13 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
     };
     const arrets = (img) => (img.match(/color\(srgb [^)]+\)|rgba?\([^)]+\)/g) || []).map(vers);
     const c = document.querySelector('.side-nav-card.tse-fresh');
-    const avant = getComputedStyle(c, '::before');
+    /* LA BARRE PEINTE EST LE DÉCOR depuis la 4.25.0.9 (cf. poserDecor), et son
+       halo est celui de ses étages : on lit le dernier, le plus large. Le
+       ::before ne se peint plus, mais il garde la couleur que le curseur de
+       la salle lit sur lui — elle est relevée à part, et doit être la même. */
+    const etage = c.querySelector(':scope > .tse-frais-deco > span:last-child');
+    const avant = etage ? getComputedStyle(etage) : { backgroundColor: '', boxShadow: '' };
+    const pseudo = vers(getComputedStyle(c, '::before').backgroundColor);
     /* La carte fraîche ET en co-stream : les deux classes posées le temps
        d'une lecture — le style se calcule sur-le-champ, avant que le
        balayage suivant ne les retire. */
@@ -24578,6 +24639,7 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
     return {
       variable: document.documentElement.style.getPropertyValue('--tse-direct'),
       barre: vers(avant.backgroundColor),
+      pseudo,
       halo: (avant.boxShadow.match(/rgba?\([^)]+\)/g) || []).map(vers),
       lavis: arrets(getComputedStyle(c).backgroundImage),
       co,
@@ -24587,7 +24649,7 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
   const signal = (m, rgb) => {
     const meme = (v, a) => Array.isArray(v) && v.slice(0, 3).join() === rgb.join()
       && Math.abs(v[3] - a) < 0.005;
-    return meme(m.barre, 1) && m.halo.length === 2 && m.halo.every((v) => meme(v, 1))
+    return meme(m.barre, 1) && meme(m.pseudo, 1) && m.halo.length === 2 && m.halo.every((v) => meme(v, 1))
       && m.lavis.length === 3 && meme(m.lavis[0], 0.18) && meme(m.lavis[1], 0.06)
       && m.lavis[2][3] === 0
       && meme(m.co.barre, 1) && m.co.lavis.length === 3
@@ -36769,7 +36831,7 @@ addEventListener('message', (e) => {
   await attendre(pa, () => !!document.querySelector('.tse-preview__iframe'), 6000);
   const devoiler = (origin) => pa.evaluate(async (o) => {
     const f = document.querySelector('.tse-preview__iframe');
-    window.dispatchEvent(new MessageEvent('message', { source: f.contentWindow, origin,
+    window.dispatchEvent(new MessageEvent('message', { source: f.contentWindow, origin: o,
       data: { tse: 'tse:preview-first-frame' } }));
     await new Promise((r) => setTimeout(r, 150));
     return f.dataset.tseLoaded === 'true';
@@ -36883,6 +36945,257 @@ addEventListener('message', (e) => {
   ].map((u) => [u, !!imageAgenda(u, 'x')])) : null;
   ok('le panneau ne pose d\'image que de jtvnw.net et de twitch.tv, lus par URL',
      !!images && Object.values(images).join() === 'true,true,false,false,false,false,false', JSON.stringify(images));
+}
+
+/* ═════════ LES DÉCORATIONS, AU COMPOSITEUR (4.25.0.9) ════════════════════
+   L'audit de la 4.25.0.8 l'a chiffré (P1) : quinze animations sur dix-neuf
+   animaient une ombre, un filtre, une position de fond, une couleur ou une
+   propriété enregistrée — un recalcul de style et une peinture à chaque
+   image, sur le fil principal de la page. Dix abonnés et trois directs
+   frais coûtaient 295 ms de travail par seconde. La 4.25.0.9 les fait
+   passer au compositeur, qui n'anime seul que la transformation et
+   l'opacité. Ce scénario fige les trois choses qui le garantissent :
+     a) dans la FEUILLE, aucune image-clé n'anime autre chose — hors trois
+        exceptions NOMMÉES, chacune avec sa raison, et qui doivent rester ce
+        qu'elles disent ;
+     b) dans une PAGE où tout décore — dix abonnés dont deux frais, deux
+        directs frais, un subathon, la roue du premier lancement —, chaque
+        animation qui tourne n'anime que cela, et chaque décor est là où sa
+        classe le demande, et nulle part ailleurs ;
+     c) sous Chromium, c'est le NAVIGATEUR qui le dit : sa trace déclare,
+        pour chaque animation qui démarre, si le compositeur l'a prise. Un
+        témoin animé à l'ancienne doit y être refusé — sans quoi la trace ne
+        dirait rien et l'assertion passerait à vide.
+   L'égalité visuelle avec la 4.25.0.8 ne se prouve pas ici : elle demande
+   l'ancienne version à côté, image par image. Elle a été mesurée à part, et
+   ses écarts sont écrits dans les commentaires de la feuille. */
+{
+  titre('213. Les décorations — rien que transformation et opacité, et le compositeur les prend toutes');
+  const src = readFileSync(join(ICI, '..', 'content.js'), 'utf8');
+  const EXCEPTIONS = {
+    // L'anneau de chargement du curseur : trois secondes au plus, à
+    // l'ouverture d'une salle ; un conique à bords francs, que le compositeur
+    // ne sait pas tourner sans les lisser.
+    'tse-tour': ['--tse-tour'],
+    // Le badge de l'aperçu : le temps d'un survol, à côté d'une vidéo qui joue.
+    'tse-subathon-badge': ['background-color', 'color'],
+    'tse-subathon-badge-clair': ['background-color', 'color'],
+  };
+  const images = {};
+  for (const m of src.matchAll(/@keyframes\s+([\w-]+)\s*\{/g)) {
+    let i = m.index + m[0].length, prof = 1;
+    while (prof && i < src.length) { if (src[i] === '{') prof++; else if (src[i] === '}') prof--; i++; }
+    const corps = src.slice(m.index + m[0].length, i - 1);
+    images[m[1]] = [...new Set([...corps.matchAll(/([a-z-]+)\s*:/g)].map((x) => x[1]))]
+      .filter((p) => p !== 'animation-timing-function').sort();
+  }
+  const fautives = Object.entries(images)
+    .filter(([nom, props]) => !EXCEPTIONS[nom] && props.some((p) => p !== 'transform' && p !== 'opacity'));
+  ok(`a) la feuille n'anime que transformation et opacité — ${Object.keys(images).length} images-clés, hors ${Object.keys(EXCEPTIONS).length} exceptions nommées`,
+     Object.keys(images).length >= 30 && fautives.length === 0, JSON.stringify(fautives));
+  const exceptions = Object.entries(EXCEPTIONS)
+    .map(([nom, props]) => [nom, JSON.stringify(images[nom]) === JSON.stringify([...props].sort())]);
+  ok('…et chaque exception est encore ce qu\'elle dit : une exception sans objet se retire',
+     exceptions.every(([, v]) => v), JSON.stringify(exceptions));
+
+  /* b) La page où tout décore. Les deux premiers abonnés sont aussi frais :
+     leur carte porte les deux décors à la fois. */
+  const monterDecoree = async (page) => {
+    await page.evaluate(() => {
+      const t = Date.now(), abonnes = {};
+      for (let i = 0; i < 10; i++) abonnes['abo' + i] = [1, t];
+      abonnes.subath = [1, t];
+      localStorage.setItem('tse:subs', JSON.stringify(abonnes));
+      localStorage.setItem('tse:indice', 'vu');
+      localStorage.removeItem('tse:roue');
+    });
+    await page.reload();
+    await page.evaluate(() => {
+      const iso = (min) => new Date(Date.now() - min * 60_000).toISOString();
+      window.__fx = {};
+      for (let i = 0; i < 10; i++) {
+        window.__fx['abo' + i] = { id: String(100 + i), createdAt: iso(i < 2 ? 3 : 120), viewers: 1000 + i, game: 'G', tags: [] };
+      }
+      for (let i = 0; i < 2; i++) window.__fx['frais' + i] = { id: String(200 + i), createdAt: iso(4), viewers: 500 + i, game: 'G', tags: [] };
+      window.__fx.subath = { id: '300', createdAt: iso(300), viewers: 400, game: 'G', tags: [], title: 'subathon day9' };
+      window.__fx.ordinaire = { id: '400', createdAt: iso(90), viewers: 300, game: 'G', tags: [] };
+      for (const l of Object.keys(window.__fx)) window.__addCard(l, 'G', '1 k');
+    });
+    await attendre(page, () => document.querySelectorAll('.tse-sub-avatar > .tse-sub-deco').length === 11
+      && document.querySelectorAll('.side-nav-card.tse-fresh > .tse-frais-deco').length === 4
+      && !!document.querySelector('.tse-subathon-teintes')
+      && document.getElementById('tse-roue')?.hasAttribute('data-tse-neuf'), 12_000);
+  };
+  const page = await fresh();
+  await monterDecoree(page);
+  const vu = await page.evaluate(() => {
+    const IGNORE = new Set(['offset', 'computedOffset', 'easing', 'composite']);
+    const props = {};
+    for (const a of document.getAnimations()) {
+      if (a.playState !== 'running' || !a.animationName) continue;
+      for (const k of a.effect.getKeyframes()) {
+        for (const p of Object.keys(k)) if (!IGNORE.has(p)) (props[a.animationName] ||= new Set()).add(p);
+      }
+    }
+    const carte = (c) => ({
+      l: c.dataset.tseLogin, abonne: c.classList.contains('tse-sub'), fraiche: c.classList.contains('tse-fresh'),
+      anneau: c.querySelectorAll('.tse-sub-avatar > .tse-sub-deco').length,
+      lueur: c.querySelectorAll(':scope > .tse-lueur-deco').length,
+      barre: c.querySelectorAll(':scope > .tse-frais-deco').length,
+      decors: c.querySelectorAll('.tse-deco').length,
+    });
+    const puce = document.querySelector('.tse-subathon-jour');
+    return {
+      props: Object.fromEntries(Object.entries(props).map(([k, v]) => [k, [...v].sort()])),
+      cartes: [...document.querySelectorAll('.side-nav-card')].map(carte),
+      puce: puce && { texte: puce.textContent,
+                      copies: [...puce.querySelectorAll('.tse-subathon-teintes > span')].map((s) => s.dataset.t) },
+      coques: document.querySelectorAll('#tse-roue > .tse-roue-halo > span').length,
+    };
+  });
+  const horsCompositeur = Object.entries(vu.props).filter(([, ps]) => ps.some((p) => p !== 'transform' && p !== 'opacity'));
+  const attendues = ['tse-sub-turn', 'tse-sub-souffle-creux', 'tse-lueur-voile', 'tse-lueur-nappe-3',
+                     'tse-fresh-pulse', 'tse-fresh-etage-4', 'tse-subathon-copie-8', 'tse-roue-bat', 'tse-roue-coque-7'];
+  ok('b) tout ce qui tourne dans une page décorée n\'anime que transformation et opacité',
+     horsCompositeur.length === 0 && attendues.every((n) => vu.props[n]),
+     JSON.stringify({ horsCompositeur, manquent: attendues.filter((n) => !vu.props[n]) }));
+  const parCarte = Object.fromEntries(vu.cartes.map((c) => [c.l, c]));
+  const decorsJustes = vu.cartes.every((c) =>
+    c.anneau === (c.abonne ? 1 : 0) && c.lueur === (c.abonne ? 1 : 0) && c.barre === (c.fraiche ? 1 : 0)
+    && c.decors === c.anneau + c.lueur + c.barre);
+  ok('…chaque décor est posé une fois là où sa classe le demande, et nulle part ailleurs',
+     decorsJustes && parCarte.abo0?.abonne && parCarte.abo0?.fraiche && parCarte.ordinaire?.decors === 0,
+     JSON.stringify(vu.cartes));
+  ok('…la pastille garde son texte une fois, et ses huit copies le portent par attribut ; la roue a ses sept coques',
+     vu.puce?.texte === 'J9' && vu.puce.copies.length === 8 && vu.puce.copies.every((t) => t === 'J9') && vu.coques === 7,
+     JSON.stringify({ puce: vu.puce, coques: vu.coques }));
+
+  /* LES FONDUS SONT DES PARTITIONS EXACTES, ET ILS SUIVENT L'ANCIENNE COURBE.
+     Chaque décor qui fond des étages porte, à chaque instant, un AVANCEMENT p
+     que dit déjà une autre de ses animations : l'opacité de l'enveloppe de la
+     barre (0,3 + 0,7·p), celle du halo de la roue (0,55·(1 − p)). Les poids
+     des étages doivent redonner ce même p — la barre : Σ wⱼ·j/3 ; la roue :
+     chaque coque k vaut min(1, max(0, 7p − k)) — et, pour la barre comme pour
+     le souffle et la pastille, sommer à un. Une courbe de Bézier mal découpée,
+     une image-clé déplacée, un étage oublié : tout cela fait diverger les deux
+     lectures, à un instant au moins des soixante relevés d'un cycle. */
+  const partitions = await page.evaluate(() => {
+    const op = (e) => parseFloat(getComputedStyle(e).opacity);
+    const relever = (anims, duree, mesure) => {
+      anims.forEach((a) => a.pause());
+      let pire = 0;
+      for (let i = 0; i < 60; i++) {
+        const t = (i + 0.5) * duree / 60;
+        // La même heure pour tout le groupe : ses animations partagent durée et retard.
+        anims.forEach((a) => { a.currentTime = t; });
+        pire = Math.max(pire, mesure());
+      }
+      anims.forEach((a) => a.play());
+      return +pire.toFixed(4);
+    };
+    const barre = document.querySelector('.side-nav-card.tse-fresh > .tse-frais-deco');
+    const etages = [...barre.children];
+    const fraiche = relever([barre, ...etages].flatMap((e) => e.getAnimations()), 1400, () => {
+      const p = (op(barre) - 0.3) / 0.7;
+      const w = etages.map(op);
+      const somme = w.reduce((x, y) => x + y, 0);
+      const q = w.reduce((x, y, j) => x + y * j / 3, 0);
+      const echelle = new DOMMatrixReadOnly(getComputedStyle(barre).transform).a;
+      return Math.max(Math.abs(somme - 1), Math.abs(q - p), Math.abs(echelle - (1 + p)));
+    });
+    const halo = document.querySelector('#tse-roue > .tse-roue-halo');
+    const coques = [...halo.children];
+    const roue = relever([halo, ...coques].flatMap((e) => e.getAnimations()), 1600, () => {
+      const p = 1 - op(halo) / 0.55;
+      return Math.max(...coques.map((c, k) => Math.abs(op(c) - Math.min(1, Math.max(0, 7 * p - k)))));
+    });
+    const souffle = [...document.querySelectorAll('.tse-sub-deco__souffle')][0];
+    const ombres = [...souffle.children];
+    const respire = relever(ombres.flatMap((e) => e.getAnimations()), 4200,
+      () => Math.abs(ombres.map(op).reduce((x, y) => x + y, 0) - 1));
+    const copies = [...document.querySelectorAll('.tse-subathon-teintes > span')];
+    const teintes = relever(copies.flatMap((e) => e.getAnimations()), 1500, () => {
+      const w = copies.map(op);
+      const allumees = w.map((x, j) => (x > 0.001 ? j : -1)).filter((j) => j >= 0);
+      const voisines = allumees.length <= 2
+        && (allumees.length < 2 || (allumees[1] - allumees[0]) === 1 || (allumees[0] === 0 && allumees[1] === 7));
+      return Math.abs(w.reduce((x, y) => x + y, 0) - 1) + (voisines ? 0 : 1);
+    });
+    return { fraiche, roue, respire, teintes };
+  });
+  ok('…et chaque fondu est une partition exacte qui suit l\'avancement de l\'ancien battement — barre, roue, souffle, pastille',
+     partitions.fraiche < 0.01 && partitions.roue < 0.01 && partitions.respire < 0.01 && partitions.teintes < 0.01,
+     JSON.stringify(partitions));
+
+  /* LA CARTE RECYCLÉE. React réemploie une carte pour une autre chaîne : celle
+     d'un abonné frais devient celle d'une chaîne ni abonnée ni fraîche. Ses
+     décors partent avec ses classes — la feuille les cacherait de toute
+     façon, mais ils ne doivent pas s'accumuler dans la page. */
+  const rendus = await page.evaluate(async () => {
+    window.__fx.recyclee = { id: '500', createdAt: new Date(Date.now() - 150 * 60_000).toISOString(),
+                             viewers: 700, game: 'G', tags: [] };
+    const c = document.querySelector('.side-nav-card[data-tse-login="abo0"]');
+    const avant = c.querySelectorAll('.tse-deco').length;
+    c.querySelector('a.side-nav-card__link').setAttribute('href', '/recyclee');
+    c.querySelector('p[data-a-target="side-nav-title"], p.tse-nom').textContent = 'recyclee';
+    for (let i = 0; i < 60 && (c.dataset.tseLogin !== 'recyclee' || c.querySelector('.tse-deco')); i++) {
+      await new Promise((r) => setTimeout(r, 100));
+    }
+    return { avant, login: c.dataset.tseLogin, abonne: c.classList.contains('tse-sub'),
+             fraiche: c.classList.contains('tse-fresh'), decors: c.querySelectorAll('.tse-deco').length };
+  });
+  ok('…et la carte d\'un abonné frais, recyclée pour une chaîne ni abonnée ni fraîche, rend ses trois décors',
+     rendus.avant === 3 && rendus.login === 'recyclee' && !rendus.abonne && !rendus.fraiche && rendus.decors === 0,
+     JSON.stringify(rendus));
+  await page.close();
+
+  /* c) La trace du navigateur. Sous Gecko, c'est un Chromium à part qui la
+     prend : la question est celle du compositeur de Chromium, et le banc
+     garde le même nombre d'assertions sous les deux moteurs. */
+  const chrome = MOTEUR === 'chromium' ? browser
+    : await chromium.launch(process.env.TSE_CHROMIUM ? { executablePath: process.env.TSE_CHROMIUM } : {});
+  const pt = await chrome.newPage();
+  await pt.goto(URL_PAGE);
+  await pt.evaluate(() => { try { localStorage.setItem('tse:indice', 'vu'); } catch { /* stockage refusé */ } });
+  const cdp = await pt.context().newCDPSession(pt);
+  const evts = [];
+  cdp.on('Tracing.dataCollected', (d) => evts.push(...d.value));
+  const fini = new Promise((r) => cdp.once('Tracing.tracingComplete', r));
+  await cdp.send('Tracing.start', { categories: 'blink.animations,devtools.timeline', transferMode: 'ReportEvents' });
+  await monterDecoree(pt);
+  // Le témoin : une ombre animée, comme l'étaient la barre et le souffle.
+  await pt.evaluate(() => {
+    const st = document.createElement('style');
+    st.textContent = '@keyframes tse-temoin { to { box-shadow: 0 0 9px red; } } #tse-temoin { animation: tse-temoin 1s infinite; width: 9px; height: 9px; }';
+    const d = document.createElement('div');
+    d.id = 'tse-temoin';
+    document.body.append(st, d);
+  });
+  await wait(pt, 1500);
+  await cdp.send('Tracing.end');
+  await fini;
+  await pt.close();
+  if (chrome !== browser) await chrome.close();
+  const cle = (e) => e.id2?.local || e.id2?.global || e.id;
+  const noms = new Map(), verdicts = new Map();
+  for (const e of evts) {
+    if (e.name !== 'Animation') continue;
+    const d = e.args?.data || {};
+    if (e.ph === 'b') noms.set(cle(e), d.displayName || d.name || '');
+    if (e.ph === 'n' && d.compositeFailed !== undefined) verdicts.set(cle(e), d.compositeFailed);
+  }
+  const bilan = { prises: 0, refusees: [], sansVerdict: 0, temoin: null };
+  for (const [id, nom] of noms) {
+    if (nom === 'tse-temoin') { bilan.temoin = verdicts.get(id) ?? null; continue; }
+    if (!nom.startsWith('tse-') || nom === 'tse-spin') continue;
+    if (!verdicts.has(id)) bilan.sansVerdict++;
+    else if (verdicts.get(id) === 0) bilan.prises++;
+    else bilan.refusees.push(nom);
+  }
+  ok('c) la trace de Chromium refuse le témoin animé à l\'ancienne — elle sait donc le dire',
+     typeof bilan.temoin === 'number' && bilan.temoin !== 0, JSON.stringify(bilan));
+  ok('…et déclare toutes nos animations prises par le compositeur',
+     bilan.prises >= 100 && bilan.refusees.length === 0, JSON.stringify(bilan));
 }
 
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════
