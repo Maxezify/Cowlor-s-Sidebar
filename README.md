@@ -5,8 +5,8 @@ Version 3.57.0 · Extension **Firefox** (Manifest V3) · 🇬🇧 [English versi
 > **Branche Firefox.** Ce dépôt a deux lignes de publication. `claude/chrome`
 > porte la version Chrome / Chromium ; cette branche porte la version Firefox.
 > Le **seul** fichier du produit qui diffère entre les deux est `manifest.json`
-> — `content.js` et `adblock.js` sont identiques octet pour octet, et un
-> vérificateur le garantit (cf. « [Le portage Firefox](#le-portage-firefox-v3553) »).
+> — `content.js`, `cadres.js` et `adblock.js` sont identiques octet pour
+> octet, et un vérificateur le garantit (cf. « [Le portage Firefox](#le-portage-firefox-v3553) »).
 
 Extension qui enrichit la sidebar des chaînes suivies de Twitch : durée de
 stream en direct, badge collaboration, masquage des Hype Trains et des bandeaux
@@ -343,12 +343,13 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1810 Ko | 741 Ko | 4 445 → **2** |
+| `content.js` | 1795 Ko | 731 Ko | 4 317 → **2** |
+| `cadres.js` | 66 Ko | 30 Ko | 158 → **0** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
-| `panneau.js` | 148 Ko | 76 Ko | 209 → **0** |
+| `panneau.js` | 150 Ko | 76 Ko | 209 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
 | `background.js` | 10 Ko | 2 Ko | 22 → **0** |
-| **les cinq** | **2107 Ko** | **922 Ko** | **−56 %** |
+| **les six** | **2161 Ko** | **943 Ko** | **−56 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
@@ -2626,6 +2627,301 @@ Un sous-test qui modélisait un cas impossible — un direct qui rajeunit sans
 changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'il
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
+
+## Les décorations au compositeur, content.js hors des iframes, et la défense en profondeur (v4.25.0.9)
+
+La demande, à la suite de l'audit de la 4.25.0.8 : « Moyen-élevé : les
+décorations animées. Oui fait le. Moyen : content.js dans chaque iframe. Oui
+fais le. Faible. L'agenda relu depuis IndexedDB Oui fais le. Faible. Les
+réponses au panneau incrusté Oui fais le. Informatifs (défense en profondeur)
+Oui fais le. […] Soit particulièrement rigoureux. Fait un travail
+irréprochable. » Publiée sur `claude/chrome-multi`, puis reportée sur
+`claude/firefox-multi` et sur les deux branches de production.
+
+### Les décorations : rien que transformation et opacité
+
+**Le constat.** Quinze animations sur dix-neuf faisaient varier une ombre, un
+filtre, une position de fond, une couleur ou l'angle d'un dégradé. Ce sont des
+propriétés que le navigateur recalcule et repeint à chaque image, sur le fil
+principal de la page. L'audit avait mesuré 151 ms de travail par seconde pour
+une seule carte abonnée, 101 pour la roue du premier lancement, et 295 pour
+dix abonnés et trois directs frais. Deux propriétés seulement s'animent sans
+le fil principal : la transformation et l'opacité, que le compositeur prend
+seul.
+
+**La règle.** Chaque décoration devient un calque, `.tse-deco`, que
+`poserDecor` pose dans la carte ou dans l'avatar et que `retirerDecor` retire.
+Un pseudo-élément ne peut pas avoir d'enfants, et il en fallait. Seules la
+transformation et l'opacité de ces calques varient. Le rendu, lui, reste celui
+d'avant, mesuré image par image contre la 4.25.0.8 dans les deux thèmes :
+
+- **La lueur de fond d'une carte abonnée.** Ses quatre couches tenaient dans
+  une propriété du `::after`, et l'animation déplaçait leurs positions de fond.
+  Chaque couche est désormais un calque de la taille qu'avait sa tuile, et
+  c'est le calque qui glisse. La correspondance est exacte : une tuile de
+  largeur s·W posée à x % devient la translation x·(1 − s)/s, écrite telle
+  quelle dans chaque `calc()`. Écart : moins de 8/255.
+- **La barre « vient de démarrer ».** Sa lueur était une ombre dont le rayon
+  croissait de 4 à 18 pixels, et elle entraînait l'opacité et l'échelle hors
+  du compositeur. Une animation qui touche une propriété non composée ne se
+  compose pas du tout. La lueur est maintenant faite de quatre étages fixes
+  qui se fondent l'un dans l'autre. Additionnés (`mix-blend-mode:
+  plus-lighter`, dans un groupe isolé, poids de somme un), deux étages voisins
+  valent le mélange des deux. Chaque étage porte la barre elle-même : séparer
+  la barre de son ombre laissait une couture de 31/255 sur ses bords. Les
+  courbes sont celles de l'ancien battement, découpées exactement
+  (subdivision de de Casteljau). Écart : 6/255 en sombre, 8 en clair.
+  Exception : la colonne du bord droit pendant que la barre s'élargit, jusqu'à
+  35/255.
+- **Le souffle de l'avatar abonné.** C'était une ombre animée. Il est fait des
+  deux ombres extrêmes, fixes, dont les opacités varient en sens contraire.
+  Écart : 6/255. Des étages intermédiaires n'y changent rien : ce reste vient
+  du flou du navigateur, qui avance par crans.
+- **L'anneau de l'avatar.** Une propriété enregistrée faisait tourner le
+  départ de ses dégradés. C'est désormais un disque de dégradés qui tourne
+  sous un masque immobile. Tourner l'anneau entier émoussait ses bords de deux
+  pixels (72/255). Le disque déborde de deux pixels sous le masque, si bien
+  que son bord rééchantillonné n'atteint jamais le cercle. Écart : 7/255, et
+  quelques pixels isolés jusqu'à 10 en clair.
+- **La roue du premier lancement.** Son battement ne garde que l'échelle. Son
+  halo, un étalement d'ombre de 0 à 7 pixels, devient sept coques pleines
+  emboîtées, chacune un pixel plus grande que la précédente. La coque k se
+  révèle à mesure que l'étalement passe de k à k + 1. Leurs rayons sont ceux
+  que Chromium donne à une ombre étalée (formule de la spécification,
+  vérifiée au pixel). Écarts : la ligne du bord pendant que le bouton
+  grandit, jusqu'à 75/255, et le tout début du halo, 45/255 sur quelques
+  pixels du liseré.
+- **La pastille de subathon.** Sa couleur était animée, aussi longtemps
+  qu'elle est à l'écran, c'est-à-dire des jours. Elle porte huit copies
+  d'elle-même, une par couleur, qui se fondent deux à deux. Deux copies de la
+  même lettre additionnées valent cette lettre dans le mélange des deux
+  couleurs, le mélange même que le navigateur interpolait. Écart : 6/255. Les
+  copies recouvrent la pastille dans une grille d'une seule case, et non par
+  positionnement : sur une carte abonnée, le nom est découpé au texte
+  (`background-clip: text`), et cette découpe exclut les descendants
+  positionnés. La pastille garde son texte, qu'un lecteur d'écran lit une
+  fois.
+
+**Le reflet et le halo du nom sont figés.** Un reflet défilait dans les
+lettres du nom et de la catégorie, et le halo du nom respirait. Le reflet
+anime un dégradé découpé au texte, le halo un filtre : aucune forme composée
+ne les reproduit. Ils gardent leur image de départ : le reflet à l'origine du
+dégradé, le halo au milieu exact de son ancien battement. C'est la décision
+prise pour cette version.
+
+**Deux animations gardent leur forme, et c'est pesé :**
+
+- **l'anneau du nœud de co-stream** (`--tse-tour`). Il ne tourne que le temps
+  qu'une salle s'ouvre, trois secondes au plus. Son quart d'encre a des bords
+  francs : tourné par le compositeur, il changerait ces pixels du tout au
+  tout (216/255) ;
+- **le badge de subathon de l'aperçu.** Il ne vit que le temps d'un survol, et
+  ses copies devraient porter un fond en plus du texte.
+
+**Le résultat.** Même page : dix abonnés, quatre directs frais, un subathon,
+la roue du premier lancement. Durées de production, cinq secondes, Chromium
+sans carte graphique :
+
+| | recalculs de style | tâches du fil principal |
+| --- | --- | --- |
+| 4.25.0.8 | 221 | 3 044 ms (609 ms/s) |
+| 4.25.0.9 | 18 | 124 ms (25 ms/s) |
+| la même page sans décor | 13 | 35 ms |
+
+La trace de Chromium déclare chacune de ces animations prise par le
+compositeur (scénario 213). Le réglage « moins de mouvement » du système
+reste ignoré, comme depuis la 4.14 : les réglages du panneau éteignent chaque
+décoration une par une.
+
+**Trois pièges, trouvés en route :**
+
+- Twitch pose `transition: background-color 300ms` sur tous les descendants
+  d'une carte (`.side-nav-card *`), et un décor en est un, ce que le
+  pseudo-élément qu'il remplace n'était pas. Sans `transition: none`, la
+  barre glissait en 300 ms vers son rouge.
+- Une règle de l'hôte sur les `span` de la carte (« .metacell span », que le
+  décor du banc porte depuis la 4.20.1) donnait aux copies de la pastille sa
+  propre hauteur de ligne : elles tombaient trois pixels plus bas. Les copies
+  héritent désormais la police entière, sous des sélecteurs à deux classes.
+- Une carte que React recycle pour une autre chaîne garde ses enfants. Un
+  décor ne se montre donc que sous la classe qui le demande, et la carte qui
+  la perd rend ses décors.
+
+### content.js hors des iframes
+
+Les ponts d'iframe vivaient en tête de `content.js`, et le manifeste injectait
+donc le module entier dans toutes les frames Twitch : l'aperçu à chaque
+survol, chaque tuile et chaque chat de la salle, les cadres cachés des
+relevés. Chacune analysait et compilait ses 741 Ko pour s'arrêter à sa
+première ligne : 25 à 47 ms par iframe, sur le fil principal de la page qui la
+porte, puisque `player.twitch.tv` est du même site que `www.twitch.tv`.
+
+**Les quatre ponts ont leur fichier, `cadres.js`** (66 Ko de source, 30 dans
+le paquet) : l'aperçu, les lecteurs de la salle, ses chats, le relevé des chaînes
+suivies. Le manifeste a deux entrées en monde MAIN : `adblock.js` et
+`cadres.js` dans toutes les frames, `content.js` dans le cadre principal
+seulement (`all_frames: false`). Mesuré par la méthode de l'audit (le
+script chargé dans une iframe, cache vide, quinze tours, deux séries) : une
+iframe payait 27 à 29 ms en médiane pour l'ancien `content.js`, elle paie 3 à 3,5 ms
+pour `cadres.js`, plus les 4 ms d'`adblock.js`, inchangés.
+
+**Deux portées, et elles portent.** En monde MAIN, une `const` de premier
+niveau devient une globale de la page, et une seconde déclaration du même nom
+fait échouer tout le script qui la porte, avant sa première ligne. Dans le
+cadre principal, les trois fichiers se suivent. Les quatorze noms que
+`cadres.js` partage avec `content.js` (noms de frame, types de message) sont
+donc globaux d'un seul côté, celui de `content.js`. `cadres.js` les redéclare
+dans un bloc, à la même valeur. Les six noms propres aux ponts, eux, restent
+globaux dans `cadres.js` : deux exemplaires de l'extension actifs à la fois ne
+lancent qu'un jeu de ponts par frame. `npm run addon` vérifie les quatre
+règles par acorn : aucun nom commun au premier niveau ; les emprunts
+redéclarés à la même valeur ; `content.js` n'emploie rien de `cadres.js` ni
+d'`adblock.js` ; `cadres.js` garde des noms à lui.
+
+La variante Firefox du banc (sans `ancestorOrigins`) suit la ligne qu'elle
+neutralise : elle porte désormais sur `cadres.js`, et `tests/build.mjs` refuse
+de la construire si la ligne revient dans `content.js`.
+
+### La défense en profondeur
+
+Rien de ce qui suit n'était exploitable par un tiers sans déjà tenir la page.
+Mais un script de la page (Twitch, une autre extension, un userscript) aurait
+pu pousser chacune de ces portes. Elles sont fermées là où elles s'ouvraient :
+
+- **La mémoire de l'agenda, relue d'IndexedDB.** La base est celle de
+  twitch.tv, que la page écrit aussi bien que nous. Un enregistrement ne se
+  relit plus que s'il a, champ par champ, la forme que nos lectures du réseau
+  écrivent : mêmes champs, mêmes types, mêmes bornes. Le reste est écarté, et
+  la fiche se redemande. Rien n'est réparé : un enregistrement que nous avons
+  écrit passe tel quel. L'identifiant de la dernière archive, qui partait tel
+  quel dans le texte de la requête des jetons, y est désormais cité
+  (`JSON.stringify`) : pour des chiffres, le texte envoyé est le même au
+  caractère près.
+- **Le panneau incrusté.** La page lui répondait vers « n'importe quelle
+  origine » (`'*'`). La fenêtre d'un cadre survit pourtant à sa navigation :
+  renvoyé ailleurs, le cadre aurait reçu le rapport. La demande doit
+  maintenant venir de l'origine du panneau, celle de l'adresse que le pont a
+  donnée à l'ouverture, et la réponse ne part que vers elle.
+- **L'aperçu et les tuiles de la salle.** Leurs messages étaient ancrés à la
+  fenêtre de l'iframe, pas à son origine. Ils doivent maintenant venir aussi
+  de `https://player.twitch.tv`.
+- **Les mémoires de la page** (visites, abonnements, roster). Le localStorage
+  est celui de twitch.tv. Une clé relue doit avoir la forme d'un login
+  (`^[a-z0-9_]+$`) : « //hote », un point, une espace ne se relisent pas. Et
+  `buildAheadCard` refuse de fabriquer un lien depuis autre chose qu'un login.
+- **Les images du panneau.** Elles étaient acceptées de tout hôte https. Elles
+  ne le sont plus que de `jtvnw.net` et de `twitch.tv`, hôte lu par `URL`,
+  jamais par préfixe.
+- **Les demandes du panneau.** Le nom d'une action ou d'une section doit être
+  déclaré dans sa table (`Object.hasOwn`) : « constructor » et « toString »,
+  que le prototype prêtait, sont refusés.
+- **Six expressions régulières.** L'analyseur `recheck` les jugeait
+  polynomiales : un temps quadratique sur une entrée faite pour. Ce n'était pas
+  exploitable aux longueurs des textes de Twitch, mais il n'y avait aucune
+  raison de le rester. Chacune est réécrite en temps linéaire. Son équivalence
+  avec l'ancienne est prouvée hors du banc : même résultat d'`exec` (indice et
+  groupes), exhaustivement sur toutes les suites de petits alphabets, puis sur
+  300 000 chaînes tirées au hasard.
+
+  | expression | chaînes comparées | attaque de `recheck` : avant → après |
+  | --- | --- | --- |
+  | `RE_SUBATHON_NOM` | 436 284 840 | 706,9 ms → 0,06 ms (20 004 caractères) |
+  | `RE_LIMITE` | 2 248 717 | 227,1 ms → 0,26 ms (45 001) |
+  | lecture d'une couleur `rgb()` | 48 727 561 | 363,0 ms → 0,12 ms (20 007) |
+  | `PLUS_RE_TRAILING` | 47 379 208 | 368,7 ms → 0,12 ms (20 000) |
+  | `ponctuerLigne` | 48 727 561 | 363,3 ms → 0,12 ms (20 001) |
+  | `compteurNu` | 22 669 621 | 394,2 ms → 0,20 ms (20 002) |
+
+**Ce qui n'a pas été fait, et pourquoi.** L'audit proposait de capturer le
+`fetch` natif au démarrage, pour qu'un script de la page qui remplace
+`window.fetch` ne voie pas nos requêtes. Ce script tiendrait encore
+`Response.prototype.json`, `JSON.parse` et tout ce que la réponse traverse :
+la capture ne garantirait rien. Elle aurait en revanche figé le `fetch` que
+huit scénarios du banc remplacent après le chargement pour simuler Twitch.
+
+### Le banc
+
+Trois scénarios nouveaux :
+
+- **211** : l'extension réelle, chargée par Chromium depuis le manifeste de la
+  branche. C'est le seul scénario où le navigateur lit le bloc
+  `content_scripts` et injecte lui-même. En haut, les trois fichiers tournent
+  ensemble sans une erreur de page. Dans une iframe www.twitch.tv et dans un
+  lecteur, l'anti-pub et les ponts tournent, jamais le module principal. Le
+  panneau incrusté, dans un vrai cadre `chrome-extension://`, demande une
+  section et reçoit sa réponse. Renvoyé vers une autre origine, le même cadre
+  ne reçoit plus rien.
+- **212** : la défense en profondeur. L'aperçu ne se dévoile pas sur un
+  message de sa fenêtre venu d'une autre origine. Les mémoires relues
+  écartent « //hote.example », « a.b », « x/y » et « a:b ». `tse.panneau`
+  refuse « constructor » et « toString ». La requête des jetons reste la même
+  au caractère près pour des chiffres, et un identifiant forgé n'en sort pas.
+  Toutes les expressions de nos fichiers passent les six attaques à trente
+  mille caractères en moins de 60 ms. Le panneau ne pose d'image que de
+  `jtvnw.net` et de `twitch.tv`.
+- **213** : les décorations.
+  - a) La feuille n'anime que transformation et opacité, hors trois
+    exceptions nommées : `tse-tour`, et le badge de l'aperçu dans ses deux
+    thèmes. Une exception devenue sans objet doit se retirer.
+  - b) Dans une page décorée, tout ce qui tourne n'anime que transformation
+    et opacité. Chaque décor est posé une fois, là où sa classe le demande.
+    Chaque fondu est une partition exacte, de somme un, qui suit l'avancement
+    de l'ancien battement : barre, coques de la roue, souffle, copies de la
+    pastille. La pastille ne peint plus ni son texte ni son contour. Une carte
+    abonnée et fraîche, recyclée pour une autre chaîne, rend ses trois décors.
+  - c) La trace de Chromium refuse un témoin animé à l'ancienne, donc elle
+    sait le dire, et déclare toutes nos animations prises par le compositeur.
+
+Revus :
+
+- **122**, **179** et **207** : l'origine du panneau incrusté, celle des
+  tuiles, et la fiche d'agenda de forme plausible que le réseau n'écrit pas.
+- **51**, **55**, **93**, **113**, **114**, **118**, **123**, **137** et
+  **171** lisent les décors au lieu des pseudo-éléments. Le 137 suit
+  désormais une vraie carte abonnée, mémorisée comme telle, et vérifie que les
+  nappes n'ont pas de couture.
+- **30**, **58**, **61**, **172**, **175**, **177** et **189** : leurs lecteurs
+  factices chargent `cadres.js`. **66** : le dégraissage porte sur trois
+  fichiers.
+
+**Trente-cinq mutants nommés, tous pris.** Chacun a été posé seul, et le banc
+relancé sur les scénarios qui gardent ce qu'il casse. Un seul a d'abord
+survécu : la pastille repeinte sous ses copies. Rien ne relevait qu'elle ne se
+peint plus elle-même ; le scénario 213 le relève désormais, et le mutant
+tombe.
+
+| mutant | ce qui tombe |
+| --- | --- |
+| `content.js` remis dans toutes les frames | 211 : le module principal dans une iframe |
+| un nom partagé au premier niveau de `cadres.js` | 211 : « already been declared » dans la page |
+| la réponse du panneau vers « * » | 122 : la réponse vers l'origine du panneau |
+| l'origine de la demande du panneau plus vérifiée | 122 : le cadre renvoyé vers une autre origine |
+| l'origine de l'aperçu plus vérifiée | 212 : l'aperçu dévoilé par une autre origine |
+| l'origine des tuiles plus vérifiée | 179 : la tuile qui ne parle plus depuis un lecteur |
+| la table du panneau lue sans `Object.hasOwn` | 122 : « constructor », « toString » |
+| `tse.panneau` sans `Object.hasOwn` | 212 : la console refuse « constructor » |
+| roster, visites, abonnements relus sans filtre (3) | 212 : les mémoires relues |
+| la validation de surface de l'agenda | 207 δ) : l'identifiant forgé, l'avis non booléen |
+| l'identifiant collé dans la requête des jetons | 212 : la requête des jetons |
+| les six expressions remises en temps quadratique (6) | 212 : les six attaques |
+| les images du panneau au seul préfixe https | 212 : les images du panneau |
+| l'avatar abonné sans décor | 51 : l'anneau tournant, le souffle |
+| la carte abonnée sans lueur | 51 : la lueur, ses calques, sa place sous le contenu |
+| l'abonné rendu sans ménage | 55, 213 : la carte qui change de chaîne garde son décor |
+| la barre « frais » jamais posée | 113 : la barre ne bat plus, ne s'élargit plus |
+| la barre éteinte sans ménage | 213 : la carte recyclée |
+| le décor soumis au survol progressif | 171 : le rouge mesuré de la barre |
+| un étage de la barre mal découpé | 213 : les partitions |
+| une coque de la roue décalée | 213 : les partitions |
+| une copie de la pastille hors cycle | 213 : les partitions |
+| le souffle sans contrepartie | 213 : les partitions |
+| une nappe animée par sa position de fond | 213 a), b), c) : hors compositeur, et la trace le dit |
+| une nappe qui ne revient pas | 137 : la lueur revient où elle est partie |
+| la barre animée par son ombre | 213 a), b), c) : hors compositeur, et la trace le dit |
+| la pastille peinte par elle-même | 213 : texte et contour transparents |
+| les copies sans libellé | 213 : le libellé porté par attribut |
+
+Le banc complet : 2002 assertions dans 212 scénarios, toutes vertes.
 
 ## La langue par défaut, et le premier du mois (v4.25.0.8)
 
@@ -21821,9 +22117,13 @@ via `TSE_ADBLOCK_ENABLED` en haut d'`adblock.js`) :
 
 ```
 cowlors-sidebar-for-twitch/
-├── manifest.json          déclaration MV3 (content script MAIN world, all_frames true)
+├── manifest.json          déclaration MV3 (scripts en monde MAIN, cf. Notes de portage)
 ├── adblock.js             module anti-pub (code tiers vendorisé, cf. son en-tête)
-├── content.js             toute la logique de la sidebar
+├── cadres.js              les ponts d'iframe (aperçu, salle, relevé) — toutes les frames
+├── content.js             toute la logique de la sidebar — cadre principal seulement
+├── bridge.js              le relais page ↔ panneau (monde isolé)
+├── background.js          le service worker qui route les messages du panneau
+├── panneau.html/.css/.js  le panneau de la barre d'outils
 ├── _locales/
 │   ├── en/messages.json     nom + description en anglais (default_locale)
 │   ├── fr/messages.json     nom + description en français
@@ -21856,8 +22156,10 @@ cowlors-sidebar-for-twitch/
 └── README.en.md           version anglaise
 ```
 
-**Ce qui est livré au navigateur**, c'est `manifest.json`, `content.js`,
-`adblock.js`, `_locales/` et `icons/` — rien d'autre. L'extension n'a aucune
+**Ce qui est livré au navigateur**, c'est la liste blanche de `tests/addon.mjs` :
+`manifest.json`, `content.js`, `cadres.js`, `adblock.js`, `bridge.js`,
+`background.js`, `panneau.html`, `panneau.css`, `panneau.js`, `_locales/` et
+`icons/` — rien d'autre. L'extension n'a aucune
 dépendance : `package.json` et `tests/` ne servent qu'à la vérifier, et ne sont
 jamais empaquetés.
 
@@ -21875,10 +22177,10 @@ Quatre vérifications, indépendantes :
 
 | Commande | Ce qu'elle contrôle |
 |---|---|
-| `npm run lint` | `content.js` et `adblock.js` — no-undef, `require-atomic-updates`, etc. |
+| `npm run lint` | les six fichiers JavaScript livrés — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le manifeste Firefox : les invariants du dépôt, **puis** l'`addons-linter` de Mozilla — celui qu'AMO applique à la soumission |
-| `npm test` | le harnais Playwright : 209 scénarios, 1976 assertions |
+| `npm test` | le harnais Playwright : 212 scénarios, 2002 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -22153,10 +22455,16 @@ extension, et une quatrième transformation ajoute la localisation.
      (hooks vaft, CSS sidebar, capture de l'ordre initial).
    - **`all_frames: true`** : pour permettre au module anti-pub de s'injecter
      dans l'iframe `player.twitch.tv` (équivalent MV3 de la directive
-     `@allFrames true` du userscript Violentmonkey). Le module sidebar (TSE)
-     a une garde top-level qui le neutralise dans les iframes, et le module
-     anti-pub ne s'éveille que dans l'iframe d'aperçu : dans une frame donnée,
-     **au plus un** des deux modules est actif.
+     `@allFrames true` du userscript Violentmonkey). Le module anti-pub ne
+     s'éveille que dans l'iframe d'aperçu.
+
+   **Depuis la 4.25.0.9, deux entrées et non plus une.** `adblock.js` et
+   `cadres.js` — les ponts d'iframe : aperçu, tuiles et chats de la salle,
+   relevé des chaînes suivies — gardent `all_frames: true` ; chaque pont ne
+   s'éveille que dans la frame qui porte son nom. `content.js`, le module
+   sidebar, passe à `all_frames: false` : injecté partout, il était analysé et
+   compilé dans chaque iframe Twitch pour s'arrêter à sa première ligne. Sa
+   garde top-level reste, et redit ce que le manifeste garantit.
 
    Les matches incluent désormais `https://player.twitch.tv/*` en plus de
    `www.twitch.tv` et `twitch.tv` pour autoriser l'injection dans l'iframe
