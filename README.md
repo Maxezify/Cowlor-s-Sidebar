@@ -2414,7 +2414,55 @@ vérification va de 6,7 à 6,9 s, celle de la troisième de 7,7 à 7,9 s.
   avec son propre nombre est recalée au balayage suivant.
 - **207** x) : les attentes calculées depuis le journal (cf. plus haut).
 
-MUTANTS-FR
+**Vingt-neuf mutants nommés, tous pris.** Chacun a été posé seul, et le banc
+relancé sur les scénarios qui gardent ce qu'il casse. En route :
+
+- **un mutant a survécu** : toutes les cartes tenues pour montrées dans la
+  détection des co-streams. Le trou datait d'avant cette version : aucun
+  scénario ne cachait la carte d'une session dont l'autre membre reste à
+  l'écran. Le 25 le fait désormais, et le mutant tombe ;
+- **un autre était équivalent** : la garde `:not(.tse-costream)` ajoutée au
+  réglage « vient de démarrer » ne changeait rien, puisque la règle du
+  co-stream, plus précise, l'emporte déjà. Elle est retirée plutôt que gardée
+  invérifiable ;
+- **l'assertion de la pastille comparait d'abord des images.** Instable sur le
+  banc vivant (de 2 à 39/255 pour le même mutant), elle lit désormais le
+  style calculé, et le mutant « pastille non positionnée » tombe à chaque
+  fois.
+
+| mutant | ce qui tombe |
+| --- | --- |
+| la réponse au pont vers « * » | 212 : aucun envoi vers « * » |
+| la réponse au pont vers `location.origin` | 69 : le pont ne reçoit plus rien en `file://` |
+| la réponse au pont vers l'autre origine de Twitch | 211 : la popup sans réponse |
+| la demande d'adresse vers « * » | 212 : aucun envoi vers « * » |
+| les demandes du pont vers « * » | 73 : adressée à l'origine de la page |
+| les demandes du pont vers l'autre origine de Twitch | 211 : la popup sans réponse |
+| l'adresse du panneau vers « * » | 212 : aucun envoi vers « * » |
+| le panneau qui écrit à « * » | 211 : chaque demande arrive deux fois |
+| le panneau qui n'écrit qu'à l'origine sans « www » | 124, 211 : plus rien n'arrive |
+| l'ordre de fermeture reçu de toute origine | 122 : le cadre renvoyé ailleurs ferme le panneau |
+| le reflet du clair remis en raccourci `background:` | 213 d) : le dessin du sombre |
+| les nappes du clair immobiles | 213 d) : les quatre animations |
+| la pastille d'abonné non positionnée | 213 e) : la pastille reste dans la découpe du nom |
+| les copies sans remplissage | 213 e) : chaque copie peint sa couleur |
+| la barre du groupe cachée | 118 : la carte de co-stream rendue |
+| le lavis du groupe absent | 118 : la carte de co-stream rendue |
+| la barre du clair au ton du sombre | 118 : la couleur du groupe, en clair |
+| le voile remesuré à chaque mutation | 37 d) : trente lectures dans la tâche |
+| le voile jamais remesuré | 37 d) : le voile ailleurs que la barre |
+| la remesure demandée une fois pour toutes | 37 d) : la barre déplacée, le voile resté |
+| la mesure du titre sans le texte dans sa clé | 204 a), g) : les titres des dix langues mal réglés |
+| la mesure du titre sans les polices chargées | 204 g) : la police chargée sans effet |
+| la mesure du titre jamais retenue | 204 g) : trois balayages, trois mesures |
+| la langue de Twitch retenue sans celle de la page | 206 a bis) : le Mexique écrit comme l'Espagne |
+| la langue de Twitch retenue sans la nôtre | 206 a bis) : l'allemand écrit comme le français |
+| le recalage sans le texte du bloc | 206 c bis) : la phrase redessinée pas recalée |
+| le recalage jamais sauté | 206 c bis) : les blocs reparcourus |
+| les cartes montrées lues dans la seule liste suivie | 195 : le co-stream de « Chaînes live » |
+| toutes les cartes tenues pour montrées | 25 : la carte masquée fait groupe |
+
+Le banc complet : COMPTE assertions dans 212 scénarios, toutes vertes.
 
 ## Les décorations au compositeur, content.js hors des iframes, et la défense en profondeur (v4.25.0.9)
 
@@ -21987,11 +22035,11 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1795 Ko | 731 Ko | 4 317 → **2** |
+| `content.js` | 1795 Ko | 731 Ko | 4 327 → **2** |
 | `cadres.js` | 66 Ko | 30 Ko | 158 → **0** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
 | `panneau.js` | 150 Ko | 76 Ko | 209 → **0** |
-| `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
+| `bridge.js` | 15 Ko | 3 Ko | 26 → **0** |
 | `background.js` | 10 Ko | 2 Ko | 22 → **0** |
 | **les six** | **2161 Ko** | **943 Ko** | **−56 %** |
 

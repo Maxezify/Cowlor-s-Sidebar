@@ -7,7 +7,7 @@ export default [{
       setTimeout:'readonly', clearTimeout:'readonly', setInterval:'readonly', localStorage:'readonly',
       MutationObserver:'readonly', NodeFilter:'readonly', AbortController:'readonly', Intl:'readonly',
       navigator:'readonly', location:'readonly', history:'readonly', URL:'readonly', Response:'readonly',
-      requestAnimationFrame:'readonly', Worker:'readonly', Blob:'readonly', TextDecoder:'readonly',
+      requestAnimationFrame:'readonly', cancelAnimationFrame:'readonly', Worker:'readonly', Blob:'readonly', TextDecoder:'readonly',
       CSS:'readonly', chrome:'readonly', getComputedStyle:'readonly', XMLHttpRequest:'readonly',
       atob:'readonly', btoa:'readonly', performance:'readonly', Element:'readonly', Node:'readonly',
       // Deux globals standards du navigateur qui manquaient à cette liste, et

@@ -2287,7 +2287,53 @@ of ten, 128 assertions each. The margin of the second check goes from 6.7 to
   is re-aligned on the next scan.
 - **207** x): the waits computed from the log (see above).
 
-MUTANTS-EN
+**Twenty-nine named mutants, all caught.** Each was set alone, and the bench
+run again on the scenarios that guard what it breaks. Along the way:
+
+- **one mutant survived**: every card taken as shown in the co-stream
+  detection. The gap predated this version: no scenario hid the card of a
+  session whose other member stays on screen. Scenario 25 now does, and the
+  mutant falls;
+- **another was equivalent**: the `:not(.tse-costream)` guard added to the
+  "just started" setting changed nothing, since the co-stream rule, more
+  specific, already wins. It is removed rather than kept unverifiable;
+- **the pill's assertion first compared images.** Unstable on the live bench
+  (from 2 to 39/255 for the same mutant), it now reads the computed style,
+  and the "pill not positioned" mutant falls every time.
+
+| mutant | what falls |
+| --- | --- |
+| the reply to the bridge sent to "*" | 212: no send to "*" |
+| the reply to the bridge sent to `location.origin` | 69: the bridge receives nothing on `file://` |
+| the reply to the bridge sent to Twitch's other origin | 211: the popup gets no answer |
+| the address request sent to "*" | 212: no send to "*" |
+| the bridge's requests sent to "*" | 73: addressed to the page's origin |
+| the bridge's requests sent to Twitch's other origin | 211: the popup gets no answer |
+| the panel's address sent to "*" | 212: no send to "*" |
+| the panel writing to "*" | 211: each request arrives twice |
+| the panel writing only to the origin without "www" | 124, 211: nothing arrives any more |
+| the close order accepted from any origin | 122: the frame sent elsewhere closes the panel |
+| the light sheen set back through a `background:` shorthand | 213 d): the dark theme's drawing |
+| the light layers motionless | 213 d): the four animations |
+| the subscriber's pill not positioned | 213 e): the pill stays in the name's clip |
+| the copies without a fill | 213 e): each copy paints its colour |
+| the group's bar hidden | 118: the co-stream card given back |
+| the group's wash missing | 118: the co-stream card given back |
+| the light bar in the dark tone | 118: the group's colour, in light |
+| the veil remeasured on every mutation | 37 d): thirty reads within the task |
+| the veil never remeasured | 37 d): the veil away from the sidebar |
+| the remeasure requested once and for all | 37 d): the sidebar moved, the veil left behind |
+| the title measurement without the text in its key | 204 a), g): the titles of the ten languages set wrong |
+| the title measurement without the loaded fonts | 204 g): the loaded font has no effect |
+| the title measurement never kept | 204 g): three scans, three measurements |
+| Twitch's language kept without the page's | 206 a bis): Mexico written like Spain |
+| Twitch's language kept without ours | 206 a bis): German written like French |
+| the re-alignment without the block's text | 206 c bis): the redrawn sentence not re-aligned |
+| the re-alignment never skipped | 206 c bis): the blocks walked through again |
+| the shown cards read in the followed list only | 195: the co-stream in "Live channels" |
+| every card taken as shown | 25: the hidden card forms a group |
+
+The full bench: COMPTE assertions in 212 scenarios, all green.
 
 ## Decorations on the compositor, content.js out of the iframes, and defense in depth (v4.25.0.9)
 
@@ -21338,11 +21384,11 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1795 KB | 731 KB | 4,317 → **2** |
+| `content.js` | 1795 KB | 731 KB | 4,327 → **2** |
 | `cadres.js` | 66 KB | 30 KB | 158 → **0** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
 | `panneau.js` | 150 KB | 76 KB | 209 → **0** |
-| `bridge.js` | 15 KB | 3 KB | 25 → **0** |
+| `bridge.js` | 15 KB | 3 KB | 26 → **0** |
 | `background.js` | 10 KB | 2 KB | 22 → **0** |
 | **all six** | **2161 KB** | **943 KB** | **−56 %** |
 
