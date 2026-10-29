@@ -2311,8 +2311,8 @@ relevés. Chacune analysait et compilait ses 741 Ko pour s'arrêter à sa
 première ligne : 25 à 47 ms par iframe, sur le fil principal de la page qui la
 porte, puisque `player.twitch.tv` est du même site que `www.twitch.tv`.
 
-**Les quatre ponts ont leur fichier, `cadres.js`** (66 Ko, 30 Ko dans le
-paquet) : l'aperçu, les lecteurs de la salle, ses chats, le relevé des chaînes
+**Les quatre ponts ont leur fichier, `cadres.js`** (66 Ko de source, 30 dans
+le paquet) : l'aperçu, les lecteurs de la salle, ses chats, le relevé des chaînes
 suivies. Le manifeste a deux entrées en monde MAIN : `adblock.js` et
 `cadres.js` dans toutes les frames, `content.js` dans le cadre principal
 seulement (`all_frames: false`). Mesuré par la méthode de l'audit (le

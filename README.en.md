@@ -2184,8 +2184,8 @@ compiled its 741 KB only to stop at its first line: 25 to 47 ms per iframe, on
 the main thread of the page that hosts it, since `player.twitch.tv` is the same
 site as `www.twitch.tv`.
 
-**The four bridges have their own file, `cadres.js`** (66 KB, 30 KB in the
-package): the preview, the room's players, its chats, the followed-channels
+**The four bridges have their own file, `cadres.js`** (66 KB of source, 30
+in the package): the preview, the room's players, its chats, the followed-channels
 scan. The manifest has two MAIN-world entries: `adblock.js` and `cadres.js` in
 every frame, `content.js` in the top frame only (`all_frames: false`).
 Measured with the audit's method (the script loaded in an iframe, empty
