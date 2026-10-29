@@ -45,6 +45,7 @@ import { readFileSync, writeFileSync, rmSync, mkdirSync, cpSync, existsSync, rea
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, relative, sep } from 'node:path';
+import { Parser, tokenizer } from 'acorn';
 import { degraisser, memeCode, compterCommentaires } from './degraisser.mjs';
 
 const ICI    = dirname(fileURLToPath(import.meta.url));
@@ -55,7 +56,7 @@ const lire = (f) => JSON.parse(readFileSync(join(RACINE, f), 'utf8'));
 /* LA LISTE BLANCHE. Tout ce qui part, et rien d'autre. Ajouter un fichier au
    produit se fait ICI, sans quoi il ne sera pas dans le paquet — et le
    contrôle 2 le dira. */
-const LIVRE = ['manifest.json', 'content.js', 'adblock.js', 'icons', '_locales',
+const LIVRE = ['manifest.json', 'content.js', 'cadres.js', 'adblock.js', 'icons', '_locales',
                // Le panneau de la barre d'outils et les deux relais qui le
                // relient à la page. Voir bridge.js pour la raison d'être de
                // ce découpage en trois fichiers.
@@ -66,7 +67,7 @@ const LIVRE = ['manifest.json', 'content.js', 'adblock.js', 'icons', '_locales',
    Tout ce qui est ici est dégraissé de ses commentaires à l'assemblage ET
    vérifié intact dans le dépôt : ajouter un fichier au produit sans l'ajouter
    ici le laisserait partir avec ses commentaires, sans que rien ne le dise. */
-const SCRIPTS = ['content.js', 'adblock.js', 'bridge.js', 'background.js', 'panneau.js'];
+const SCRIPTS = ['content.js', 'cadres.js', 'adblock.js', 'bridge.js', 'background.js', 'panneau.js'];
 
 let echecs = 0;
 const ok = (nom, cond, detail = '') => {
@@ -172,7 +173,7 @@ const TOLERANCE = 0.03;
    INDULGENT des deux : il faut se tromper de plus d'un kilo-octet ET de plus
    de trois pour cent pour être signalé. */
 const PLANCHER_KO = 1;
-const DOCS = [['README.md', 6], ['README.en.md', 6], ['store/README.md', 1]];
+const DOCS = [['README.md', 7], ['README.en.md', 7], ['store/README.md', 1]];
 
 const mesure = { '(total)': { avant: 0, apres: 0 } };
 for (const d of degraisses) {
@@ -392,10 +393,19 @@ ok('aucune permission n\'est demandée, comme sur l\'autre branche',
    produit — la seule chose que l'auteur a demandé de garantir. */
 const MATCHES = ['https://www.twitch.tv/*', 'https://twitch.tv/*', 'https://player.twitch.tv/*'];
 const CS_ATTENDU = [
-  /* Le produit, en monde MAIN — c'est ce qui lui permet d'exposer window.tse
-     et de lire le JavaScript de Twitch. */
-  { matches: MATCHES, js: ['adblock.js', 'content.js'],
+  /* L'anti-pub et les ponts d'iframe, en monde MAIN et dans TOUTES les
+     frames : chacun ne s'éveille que dans la frame qui porte son nom (cf. les
+     en-têtes d'adblock.js et de cadres.js). L'anti-pub d'abord, comme
+     toujours. */
+  { matches: MATCHES, js: ['adblock.js', 'cadres.js'],
     run_at: 'document_start', world: 'MAIN', all_frames: true },
+  /* Le produit, en monde MAIN — c'est ce qui lui permet d'exposer window.tse
+     et de lire le JavaScript de Twitch. Dans le cadre principal SEULEMENT
+     (4.25.0.9) : il n'a rien à faire dans une iframe, et l'y injecter coûtait
+     25 à 47 ms d'analyse et de compilation par iframe, sur le fil de la page
+     qui la porte. */
+  { matches: MATCHES, js: ['content.js'],
+    run_at: 'document_start', world: 'MAIN', all_frames: false },
   /* Le pont vers le panneau, en monde ISOLATED — le seul contexte de ce
      produit qui ait accès aux API chrome.*, et le seul qui en ait besoin.
      all_frames: false parce qu'il n'a rien à faire dans l'iframe de l'aperçu :
@@ -408,6 +418,95 @@ const CS_ATTENDU = [
 ok('le bloc content_scripts est identique à celui de l\'autre branche',
    JSON.stringify(man.content_scripts) === JSON.stringify(CS_ATTENDU),
    JSON.stringify(man.content_scripts));
+
+/* ── TROIS FICHIERS DANS UNE MÊME PORTÉE : LA RÉPARTITION DES NOMS ─────────
+   adblock.js, cadres.js et content.js tournent en monde MAIN, où tout nom
+   déclaré au premier niveau devient une globale de la PAGE. Dans le cadre
+   principal, les trois se suivent : un nom déclaré au premier niveau par deux
+   d'entre eux fait échouer le second fichier ENTIER, avant sa première ligne
+   — c'est le « has already been declared » que le rapport de la 4.24.0.40 a
+   montré, quand deux exemplaires de l'extension se croisaient. Rien d'autre
+   que ce contrôle ne le verrait avant la page : chaque fichier, lu seul, est
+   valide, et ESLint les lit seuls.
+
+   Quatre règles, et la répartition (4.25.0.9) ne tient que par les quatre :
+     1. aucun nom commun au premier niveau des trois fichiers ;
+     2. ce que cadres.js emprunte au vocabulaire de content.js — nom de frame,
+        type de message —, il le redéclare dans son BLOC, et à la même valeur :
+        dans une iframe, content.js n'est pas là pour le lui prêter ;
+     3. content.js n'emploie aucun nom propre à cadres.js ou à adblock.js : ce
+        serait une dépendance à l'ordre de deux entrées du manifeste, que rien
+        ne garantit, et elle ne casserait qu'en production ;
+     4. cadres.js garde au premier niveau des noms à lui : c'est la garde qui
+        fait échouer le second jeu de ponts d'un double exemplaire.
+   Les noms sont lus par acorn, jamais par une expression régulière : un
+   commentaire qui cite TSE_PUB_REPERES n'est pas un emploi. */
+{
+  const MONDE_MAIN = ['adblock.js', 'cadres.js', 'content.js'];
+  const source = Object.fromEntries(MONDE_MAIN.map(f => [f, readFileSync(join(RACINE, f), 'utf8')]));
+  const OPTS = { ecmaVersion: 'latest', sourceType: 'script' };
+  // Les noms qu'une liste d'instructions déclare à SON niveau, avec le texte
+  // de leur valeur. Un motif de déstructuration n'est pas lu : il est signalé.
+  const declares = (instructions, texte) => {
+    const m = new Map();
+    for (const n of instructions) {
+      if (n.type === 'VariableDeclaration') {
+        for (const d of n.declarations) {
+          m.set(d.id.type === 'Identifier' ? d.id.name : `(motif ${d.id.type})`,
+                d.init ? texte.slice(d.init.start, d.init.end) : '');
+        }
+      } else if ((n.type === 'FunctionDeclaration' || n.type === 'ClassDeclaration') && n.id) {
+        m.set(n.id.name, texte.slice(n.start, n.end));
+      }
+    }
+    return m;
+  };
+  const arbre = Object.fromEntries(MONDE_MAIN.map(f => [f, Parser.parse(source[f], OPTS)]));
+  const premier = Object.fromEntries(MONDE_MAIN.map(f => [f, declares(arbre[f].body, source[f])]));
+  const emplois = Object.fromEntries(MONDE_MAIN.map(f => [f,
+    new Set([...tokenizer(source[f], OPTS)].filter(t => t.type.label === 'name').map(t => t.value))]));
+  // Le bloc de cadres.js : les blocs nus de son premier niveau, à LEUR niveau.
+  const bloc = declares(arbre['cadres.js'].body.filter(n => n.type === 'BlockStatement')
+    .flatMap(b => b.body), source['cadres.js']);
+
+  const communs = [];
+  for (let i = 0; i < MONDE_MAIN.length; i++) {
+    for (let j = i + 1; j < MONDE_MAIN.length; j++) {
+      for (const nom of premier[MONDE_MAIN[i]].keys()) {
+        if (premier[MONDE_MAIN[j]].has(nom)) communs.push(`${nom} (${MONDE_MAIN[i]}, ${MONDE_MAIN[j]})`);
+      }
+    }
+  }
+  const motifs = MONDE_MAIN.flatMap(f => [...premier[f].keys()].filter(n => n.startsWith('(motif')).map(n => `${f} : ${n}`));
+  ok('1. adblock.js, cadres.js et content.js ne déclarent aucun nom commun au premier niveau',
+     communs.length === 0 && motifs.length === 0, [...communs, ...motifs].join(', '));
+
+  const empruntes = [...premier['content.js'].keys()].filter(n => emplois['cadres.js'].has(n));
+  const manquants = empruntes.filter(n => !bloc.has(n));
+  const differents = [...bloc.keys()].filter(n => premier['content.js'].has(n)
+    && bloc.get(n) !== premier['content.js'].get(n))
+    .map(n => `${n} : ${bloc.get(n)} ≠ ${premier['content.js'].get(n)}`);
+  const partages = [...bloc.keys()].filter(n => premier['content.js'].has(n));
+  /* Quatorze, le nombre que les deux en-têtes écrivent : un nom partagé de
+     plus doit y être dit, et ce contrôle le rappelle. */
+  ok(`2. cadres.js redéclare dans son bloc, à la même valeur, les ${partages.length} noms qu'il emprunte à content.js`,
+     manquants.length === 0 && differents.length === 0 && partages.length === 14
+     && empruntes.length === partages.length,
+     JSON.stringify({ manquants, differents, partages: partages.length, empruntes: empruntes.length }));
+
+  const caches = ['cadres.js', 'adblock.js'].flatMap(f => [...premier[f].keys()]
+    .filter(n => emplois['content.js'].has(n)).map(n => `${n} (${f})`));
+  ok('3. content.js n\'emploie aucun nom déclaré par cadres.js ou adblock.js',
+     caches.length === 0, caches.join(', '));
+
+  /* LEXICAUX, pas seulement déclarés : deux `var` ou deux `function` du même
+     nom cohabitent sans bruit d'un script à l'autre, et ne garderaient rien. */
+  const garde = arbre['cadres.js'].body
+    .filter(n => (n.type === 'VariableDeclaration' && n.kind !== 'var') || n.type === 'ClassDeclaration')
+    .flatMap(n => (n.declarations ?? [n]).map(d => d.id.name));
+  ok(`4. cadres.js garde ${garde.length} noms à lui au premier niveau — la garde d'un double exemplaire`,
+     garde.length > 0, garde.join(', '));
+}
 
 /* ── LE FOND DE TÂCHE, ET LA SEULE DIVERGENCE ASSUMÉE DU PORTAGE ──────────
    Chrome lit `background.service_worker` ; Firefox lit `background.scripts`
@@ -518,7 +617,8 @@ ok('aucun fichier au-dessus de son plafond d\'avertissements connus',
 
 /* Et surtout : plus AUCUN avertissement venu de l'outillage. C'est le contrôle
    qui aurait attrapé le premier envoi. */
-const outillage = Object.keys(parFichier).filter(f => f !== 'content.js' && f !== '(paquet)');
+const outillage = Object.keys(parFichier)
+  .filter(f => f !== 'content.js' && f !== 'cadres.js' && f !== '(paquet)');
 ok('aucun avertissement venu de l\'outillage — il n\'est plus dans le paquet',
    outillage.length === 0, JSON.stringify(outillage));
 

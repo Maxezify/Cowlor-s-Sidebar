@@ -7,7 +7,7 @@
  *  espagnol, portugais du Brésil et du Portugal) et
  *  architecture indépendante de la langue (cf. bloc I18N).
  *
- *  L'extension charge DEUX modules indépendants, dans cet ordre :
+ *  L'extension charge TROIS fichiers dans la page, dans cet ordre :
  *
  *   1) MODULE ANTI-PUB — fichier adblock.js, code tiers vendorisé
  *      (vaft v2.0.4, scamorza/TwitchAdBlock, MIT). N'agit QUE
@@ -16,26 +16,35 @@
  *      dans un lecteur Twitch intégré ailleurs. Voir l'en-tête
  *      d'adblock.js pour le détail et la liste des adaptations.
  *
- *   2) MODULE TSE (sidebar enrichie) — CE fichier. N'agit QU'EN
- *      top-level, jamais dans les iframes. C'est le module
- *      principal de l'extension.
+ *   2) LES PONTS D'IFRAME — fichier cadres.js. Ce qui doit tourner
+ *      DANS une iframe : l'aperçu (sa première image, son
+ *      interstitielle), les lecteurs et les chats de la salle, le
+ *      relevé des chaînes suivies. Chacun ne s'éveille que dans la
+ *      frame qui porte son nom (cf. l'en-tête de cadres.js).
  *
- *      Une exception, minuscule et volontaire : le PONT D'APERÇU en
- *      tête de ce fichier tourne, lui, dans l'iframe d'aperçu.
- *      Il n'y fait qu'une chose — signaler au parent la première image
- *      affichée — et ne touche à rien d'autre, précisément pour ne
- *      pas croiser le module anti-pub qui partage cette frame.
+ *   3) MODULE TSE (sidebar enrichie) — CE fichier, le module
+ *      principal de l'extension. N'agit QU'EN top-level, jamais dans
+ *      les iframes : le manifeste ne l'injecte que dans le cadre
+ *      principal (`all_frames: false`), et sa première ligne le
+ *      redit à l'exécution.
  *
- *  Les deux ont des gardes OPPOSÉES (iframe d'aperçu seulement /
- *  top-level seulement) : dans aucune frame les deux ne sont actifs
- *  ensemble, et dans une iframe qui n'est pas l'aperçu — un lecteur
- *  intégré ailleurs, la page d'abonnements lue en iframe — aucun ne
- *  l'est. Ces gardes sont porteuses, pas décoratives : le module
- *  anti-pub force document.hidden et intercepte visibilitychange,
- *  ce qui perturberait la sidebar s'il tournait dans sa frame.
- *  L'ordre de chargement est fixé par le manifeste et reproduit
- *  celui qu'avaient les deux modules quand ils partageaient un
- *  fichier — ne pas l'inverser.
+ *  Jusqu'à la 4.25.0.8, les ponts vivaient en tête de ce fichier, qui
+ *  partait donc dans chaque iframe Twitch — et y était analysé et
+ *  compilé en entier pour s'arrêter à sa première ligne, 25 à 47 ms
+ *  par iframe, mesurés, sur le fil de la page qui la porte. Ils ont
+ *  leur fichier depuis (cf. l'en-tête de cadres.js, qui dit aussi
+ *  pourquoi les noms partagés ci-dessous sont globaux ICI et pas là).
+ *
+ *  L'anti-pub et ce module ont des gardes OPPOSÉES (iframe d'aperçu
+ *  seulement / top-level seulement) : dans aucune frame les deux ne
+ *  sont actifs ensemble, et dans une iframe qui n'est pas l'aperçu —
+ *  un lecteur intégré ailleurs, la page d'abonnements lue en iframe —
+ *  aucun ne l'est. Ces gardes sont porteuses, pas décoratives : le
+ *  module anti-pub force document.hidden et intercepte
+ *  visibilitychange, ce qui perturberait la sidebar s'il tournait
+ *  dans sa frame. L'ordre de chargement est fixé par le manifeste
+ *  (adblock.js, puis cadres.js) et reproduit celui qu'avaient les
+ *  modules quand ils partageaient un fichier — ne pas l'inverser.
  *
  *  FRAÎCHEUR DES DONNÉES (v3.18) — l'extension ne se contente pas
  *  de lire le DOM de Twitch, elle rafraîchit elle-même ce que
@@ -76,9 +85,10 @@
  *
  *  Adaptations imposées par le contexte extension :
  *
- *   1) Content script déclaré avec `"world": "MAIN"`,
- *      `"run_at": "document_start"` et `"all_frames": true`
- *      dans le manifeste. Les trois sont nécessaires :
+ *   1) Content scripts déclarés avec `"world": "MAIN"` et
+ *      `"run_at": "document_start"` dans le manifeste ;
+ *      `"all_frames": true` pour adblock.js et cadres.js, false pour
+ *      ce fichier. Chacune de ces clés est nécessaire :
  *       - MAIN : pour exposer window.tse à la console, hook
  *         history.pushState/replaceState, injecter le CSS avant
  *         le premier rendu React, et — pour le module anti-pub,
@@ -87,9 +97,10 @@
  *         touche à aucune requête de la page (relu en 4.24.0.2) ;
  *       - document_start : pour intercepter avant tout autre
  *         script Twitch ;
- *       - all_frames : pour que le module anti-pub puisse
- *         s'injecter dans l'iframe d'aperçu (équivalent MV3
- *         de @allFrames true du userscript).
+ *       - all_frames, pour l'anti-pub et les ponts : pour qu'ils
+ *         s'injectent dans les iframes qui sont les leurs
+ *         (équivalent MV3 de @allFrames true du userscript) ;
+ *         false pour CE fichier, qui n'a rien à y faire.
  *
  *   2) Le seul `onerror=""` inline (fallback JPEG du popup
  *      d'aperçu, dans le module TSE) a été porté en
@@ -122,1178 +133,44 @@
  * ============================================================ */
 
 /* ============================================================
- *  PONT D'APERÇU — la seule partie de ce fichier qui tourne EN IFRAME
+ *  LES NOMS PARTAGÉS AVEC LES PONTS D'IFRAME (cadres.js)
  *  -------------------------------------------------------------
- *  Problème : `iframe.onload` signale la fin du chargement du DOCUMENT
- *  du lecteur, pas l'arrivée d'une image. Révéler l'iframe à ce
- *  moment-là posait un lecteur encore noir par-dessus la vignette,
- *  environ une seconde durant.
+ *  Ceux que les ponts et ce module emploient tous deux : le nom de
+ *  chaque frame que ce module pose, le type de chaque message
+ *  qu'ils échangent. GLOBAUX ICI, et recopiés dans un bloc dans
+ *  cadres.js — la raison est dans l'en-tête de ce fichier-là —, et
+ *  `npm run addon` vérifie que les deux copies disent la même chose.
+ *  Ce que chacun signifie, et son histoire, est écrit à côté de sa
+ *  copie dans cadres.js, près du pont qui s'en sert.
  *
- *  L'iframe étant cross-origin, le parent ne peut rien observer de son
- *  contenu. C'est donc l'iframe qui parle : à la première image
- *  réellement présentée, elle poste un message, et le parent fait
- *  alors son fondu (cf. injectIframe).
- *
- *  Ce module ne touche ni à la visibilité, ni au réseau — rien qui
- *  puisse entrer en conflit avec le module anti-pub, qui vit dans la
- *  même frame. Il touche au lecteur en UN point, et un seul : le bouton
- *  de l'interstitielle de classification (cf. ci-dessous).
- *
- *  L'INTERSTITIELLE DE CLASSIFICATION
- *  -------------------------------------------------------------
- *  Depuis les Content Classification Labels (2023), un stream étiqueté
- *  fait afficher au lecteur un écran « Commencer à regarder » qu'il faut
- *  acquitter avant que la vidéo ne parte. Dans un aperçu au survol, cet
- *  écran ne sera jamais cliqué : personne ne clique dans une vignette
- *  qu'on effleure. L'aperçu restait donc figé sur son JPEG — et
- *  l'extension, jusqu'ici, n'injectait même pas l'iframe dans ce cas.
- *
- *  Rien dans l'URL d'embed ne permet de l'éviter : Twitch le dit sur son
- *  forum développeurs, un embed non interactif ne peut pas lire un
- *  stream étiqueté. Le seul chemin est de cliquer le bouton, et il
- *  demande d'être DANS la frame du lecteur — ce que le manifeste nous
- *  donne (`player.twitch.tv` y est déclaré, `all_frames: true`).
- *
- *  C'est exactement ce que fait FrankerFaceZ, sous le réglage
- *  `player.disable-content-warnings` :
- *
- *      const btn = cont.querySelector('button[data-a-target=
- *          "content-classification-gate-overlay-start-watching-button"]');
- *      if (btn) btn.click();
- *
- *      — FrankerFaceZ, src/sites/shared/player.jsx, skipContentWarnings()
- *
- *  Deux différences avec FFZ, toutes deux voulues :
- *
- *   • FFZ passe par l'instance React pour trouver le nœud hôte ; ici
- *     l'iframe EST le lecteur, un querySelector sur le document suffit.
- *   • FFZ laisse le réglage à `false` par défaut. Ici il est actif : la
- *     vignette d'aperçu est muette, en 360p, et l'extension AFFICHE
- *     elle-même les étiquettes de classification dans le même encadré
- *     (badge « Étiquettes de contenu »). Ce que l'interstitielle sert à
- *     dire est donc dit — par nous, avant même le survol. Pour revenir
- *     au comportement de FFZ, passer TSE_GATE_ENABLED à false.
+ *  Au premier niveau, ils sont aussi la GARDE de ce module : un
+ *  second exemplaire de l'extension échoue sur le premier d'entre
+ *  eux, avant d'avoir lancé une seconde barre latérale.
  * ============================================================ */
+// L'aperçu au survol : sa frame, et ce que son pont lui dit.
 const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
-// Signalé au parent dès qu'une interstitielle est VUE. Le parent en a besoin :
-// son filet de révélation dévoilerait sinon la modale à la place de la vidéo.
 const TSE_PREVIEW_GATE_MSG = 'tse:preview-gate';
-// Signe de vie du pont, posté à son démarrage. Il ne change aucun comportement ;
-// il rend seulement distinguables deux pannes qui se ressemblent — « le pont ne
-// tourne pas dans cette iframe » et « il tourne mais ne trouve pas la modale ».
 const TSE_PREVIEW_HELLO_MSG = 'tse:preview-hello';
-
-/* L'IFRAME D'APERÇU SE RECONNAÎT À SON NOM (4.24.0.1, phase 0 du multistream).
-
-   Le manifeste injecte l'extension dans TOUT lecteur player.twitch.tv, sur
-   n'importe quel site : c'est ce qu'il faut pour atteindre l'iframe d'aperçu,
-   et c'est bien plus qu'elle. Jusqu'ici, ce pont et le module anti-pub
-   agissaient dans chacun de ces lecteurs : un lecteur Twitch intégré à un
-   site d'actualité voyait sa pub bloquée et son interstitielle de
-   classification levée. La fiche du Store promet pourtant que le blocage
-   « s'applique à la vignette d'aperçu au survol, et à rien d'autre ».
-
-   L'aperçu porte donc un nom, posé par injectIframe, et les deux modules
-   n'agissent que dans une frame qui le porte ET dont le parent est une page
-   twitch.tv. Le nom d'une frame se lit de l'intérieur dès document_start, ne
-   part pas au serveur comme le ferait un paramètre d'adresse, et survit à
-   une navigation interne du lecteur. adblock.js, chargé avant ce fichier, ne
-   peut pas lire ces constantes : il en recopie les valeurs, et le banc
-   vérifie qu'elles sont égales. */
 const TSE_PREVIEW_FRAME_NAME = 'tse-apercu';
-// Les pages qui posent l'aperçu : les deux formes que le manifeste déclare.
-const TSE_PREVIEW_PARENTS = ['https://www.twitch.tv', 'https://twitch.tv'];
-
-/* L'ORIGINE DU PARENT IMMÉDIAT, quand le navigateur la donne ; null sinon.
-   `ancestorOrigins` est ordonné du parent IMMÉDIAT vers le sommet : c'est
-   bien l'indice 0 qu'il faut — le dernier viserait la page du haut, qui n'est
-   le parent que dans le cas d'une iframe non imbriquée. Firefox ne
-   l'implémente pas avant la 148.
-
-   UNE SEULE LECTURE POUR LES DEUX PONTS (aperçu, salle) : la variante
-   Firefox du banc neutralise cette ligne-ci, et elle seule
-   (cf. tests/build.mjs). Deux lectures, et le second pont aurait gardé
-   ancestorOrigins dans un banc censé reproduire Firefox. */
-const tseOrigineParent = () => {
-  try {
-    const a = location.ancestorOrigins;
-    return a && a.length ? a[0] : null;
-  } catch { return null; }
-};
-
-// Le levage de l'interstitielle. À false, on retrouve le comportement de la
-// 3.54 : les streams étiquetés restent sur leur vignette.
+// Le levage de l'interstitielle de classification, que la salle cite à son rapport.
 const TSE_GATE_ENABLED = true;
-// Le sélecteur de FFZ, à l'identique. C'est le seul point de contact avec le
-// lecteur, et il est donc aussi étroit que possible.
-const TSE_GATE_BUTTON =
-  'button[data-a-target="content-classification-gate-overlay-start-watching-button"]';
-// Repli si Twitch renomme le bouton : n'importe quel bouton, mais UNIQUEMENT
-// dans le sous-arbre de l'interstitielle. Cliquer un bouton quelconque du
-// lecteur couperait le son, ouvrirait les réglages, ou pire.
-const TSE_GATE_ZONE = '[data-a-target^="content-classification-gate"]';
-// Borne dure du nombre de clics. Un clic qui ne ferme pas l'interstitielle
-// provoque des mutations, que l'observateur relit, qui recliquent : sans borne,
-// c'est une boucle entretenue par elle-même.
-const TSE_GATE_MAX_CLICKS = 5;
-
-(() => {
-  'use strict';
-
-  // Uniquement dans NOTRE iframe d'aperçu : un lecteur, qui porte le nom que
-  // lui donne injectIframe. Le try/catch couvre la SecurityError théorique sur
-  // window.top en cross-origin.
-  try {
-    if (window.top === window) return;
-    if (location.hostname !== 'player.twitch.tv') return;
-    if (window.name !== TSE_PREVIEW_FRAME_NAME) return;
-  } catch { return; }
-
-  // Origines destinataires : le parent immédiat quand on le connaît, sinon
-  // les deux formes que le manifeste déclare. Un envoi vers une origine qui
-  // ne correspond pas est simplement ignoré par le navigateur. Jamais '*' :
-  // le message ne porte aucune donnée, mais diffuser à l'aveugle reste une
-  // habitude à ne pas prendre.
-  const parentConnu = tseOrigineParent();
-  // Un parent CONNU qui n'est pas twitch.tv : ce n'est pas notre aperçu, quel
-  // que soit son nom — un site tiers peut nommer son iframe comme il veut. Sans
-  // ancestorOrigins (Firefox avant la 148), le nom seul tranche.
-  if (parentConnu && !TSE_PREVIEW_PARENTS.includes(parentConnu)) return;
-  const targets = parentConnu ? [parentConnu] : TSE_PREVIEW_PARENTS;
-
-  const poster = (quoi) => {
-    for (const origin of targets) {
-      try { window.parent.postMessage({ tse: quoi }, origin); } catch { /* origine refusée */ }
-    }
-  };
-
-  // Signe de vie, posté au démarrage. Il ne sert qu'au diagnostic (tse.apercu),
-  // et il sert à trancher LA question qu'on ne pouvait pas trancher autrement :
-  // « le pont tourne-t-il seulement dans cette iframe ? ». Sans lui, un pont
-  // muet et un pont qui ne trouve rien se ressemblent exactement.
-  poster(TSE_PREVIEW_HELLO_MSG);
-
-  /* Le bouton d'acquittement, s'il est VISIBLE.
-     La visibilité n'est pas un détail : Twitch peut laisser le sur-cadre dans
-     le DOM après coup. Le chercher sans regarder sa taille ferait croire à une
-     modale éternelle, et l'aperçu ne se dévoilerait alors plus jamais — on
-     aurait remplacé un défaut par son symétrique. */
-  const gateBouton = () => {
-    const visible = (b) => {
-      if (!b) return null;
-      const r = b.getBoundingClientRect();
-      return (r.width > 0 && r.height > 0) ? b : null;
-    };
-    const direct = visible(document.querySelector(TSE_GATE_BUTTON));
-    if (direct) return direct;
-    const zone = document.querySelector(TSE_GATE_ZONE);
-    return zone ? visible(zone.querySelector('button')) : null;
-  };
-
-  let sent = false, imagePrete = false;
-  /* Le signal de première image, RETENU tant qu'une modale est à l'écran.
-     Sans cette retenue, un lecteur qui pose son élément <video> avant que
-     l'écran d'acquittement n'apparaisse — ce que Twitch fait — annonçait une
-     image que personne ne voyait, et le parent dévoilait la modale. */
-  const annoncer = () => {
-    if (sent || !imagePrete) return;
-    if (gateBouton()) return;
-    sent = true;
-    poster(TSE_PREVIEW_FIRST_FRAME_MSG);
-  };
-  const announce = () => { imagePrete = true; annoncer(); };
-
-  /* L'interstitielle de classification. Cf. l'en-tête du module pour le
-     pourquoi ; ici, le comment.
-
-     Un clic par BOUTON, jamais deux : React remonte parfois l'overlay, et le
-     nouveau bouton mérite son clic, mais recliquer le même n'apporte rien et
-     nourrit la boucle décrite plus haut. D'où le WeakSet, doublé d'une borne
-     dure sur le total. */
-  const cliques = new WeakSet();
-  let clics = 0, gateVue = false;
-  const lever = () => {
-    // Rien de plus à faire : la modale a été signalée, et soit le levage est
-    // coupé, soit la borne de clics est atteinte. Sortir ici épargne deux
-    // querySelector à CHAQUE lot de mutations du lecteur, qui en produit
-    // beaucoup — et `annoncer` garde de son côté ce qu'il lui faut.
-    if (gateVue && (!TSE_GATE_ENABLED || clics >= TSE_GATE_MAX_CLICKS)) return;
-    const btn = gateBouton();
-    if (!btn) return;
-
-    /* SIGNALER d'abord, et TOUJOURS — même quand le levage est coupé.
-
-       C'est ce qui rend TSE_GATE_ENABLED honnête. Le drapeau à false a d'abord
-       coupé le signalement avec le clic : le parent ne savait alors rien de
-       l'interstitielle, son filet ordinaire jouait, et l'aperçu dévoilait la
-       modale en travers de la vignette. « Revenir au comportement d'avant »
-       donnait donc pire qu'avant. Le banc l'a dit en mutation, pas la relecture.
-
-       Signaler sans cliquer, c'est l'ancien comportement pour de bon : pas de
-       vidéo sur les chaînes étiquetées, la vignette à la place. */
-    if (!gateVue) { gateVue = true; poster(TSE_PREVIEW_GATE_MSG); }
-
-    if (!TSE_GATE_ENABLED || clics >= TSE_GATE_MAX_CLICKS) return;
-    if (cliques.has(btn)) return;
-    cliques.add(btn);
-    clics += 1;
-    try { btn.click(); } catch { /* nœud retiré entre-temps */ }
-  };
-
-  const watch = (video) => {
-    // Les trois signaux sont posés EN CONCURRENCE, à dessein : on dévoile au
-    // premier qui parle. requestVideoFrameCallback est le plus juste — il dit
-    // qu'une image a été PRÉSENTÉE — mais `playing` (la lecture démarre) et
-    // `readyState` (des données existent) peuvent arriver avant lui.
-    //
-    // La 3.28.1 avait resserré ce choix : rVFC seul, puis attente de
-    // HAVE_FUTURE_DATA, pour éviter de dévoiler pendant que le lecteur affiche
-    // encore son propre voile de chargement. Retour à la course sur demande,
-    // après essai. Ne pas « corriger » ce point sans mesure : la variante
-    // stricte a été essayée, elle est dans l'historique (3.28.1).
-    if (typeof video.requestVideoFrameCallback === 'function') {
-      try { video.requestVideoFrameCallback(announce); } catch { /* ignore */ }
-    }
-    video.addEventListener('playing', announce, { once: true });
-    if (video.readyState >= 2) announce();   // HAVE_CURRENT_DATA : une image existe
-  };
-
-  /* Le nœud <video> SOUS SURVEILLANCE, et non un simple booléen.
-     Un booléen supposait que l'élément vidéo, une fois trouvé, restait le même.
-     Twitch le remplace — notamment quand la source repart après l'acquittement
-     de l'interstitielle. On aurait alors continué d'écouter un nœud détaché :
-     `playing` n'y arrive jamais, la première image n'est jamais annoncée, et
-     l'aperçu retombe sur sa vignette alors que la vidéo joue juste à côté. */
-  let vue = null;
-  const scan = () => {
-    lever();
-    const v = document.querySelector('video');
-    if (v && v !== vue) { vue = v; watch(v); }
-    // Le signal a pu être retenu par une modale que le passage précédent vient
-    // de lever : on le rejoue à chaque tour.
-    annoncer();
-
-    /* On ne se retire QUE sur la première image annoncée.
-       La 3.55 se retirait dès qu'une <video> était sous surveillance et
-       qu'aucune modale n'était à l'écran. C'était fondé sur une idée fausse —
-       « sur un stream étiqueté, la <video> n'existe qu'une fois l'écran
-       acquitté ». Twitch pose son élément <video> avec le lecteur, AVANT que
-       l'écran d'acquittement ne se rende. La veille s'arrêtait donc juste avant
-       ce qu'elle attendait : la modale apparaissait dans une frame que plus
-       personne ne regardait, n'était ni cliquée ni signalée, et le filet
-       ordinaire du parent la dévoilait. Vu en production, pas au banc — le
-       harnais rendait sa modale AVANT la vidéo, l'ordre inverse. */
-    return sent;
-  };
-
-  // À document_start il n'y a ni <video> ni interstitielle. On les attend, sans
-  // surveiller indéfiniment : passé le délai, l'observation cesse et le parent
-  // tranche de lui-même par ses propres filets.
-  if (!scan()) {
-    const root = document.documentElement;
-    if (!root) return;
-    const mo = new MutationObserver(() => { if (scan()) mo.disconnect(); });
-    mo.observe(root, { childList: true, subtree: true });
-    setTimeout(() => mo.disconnect(), 15_000);
-  }
-})();
-
-/* ============================================================
- *  LE PONT DES LECTEURS DE LA SALLE (4.24.0.6, phase 1 du multistream)
- *  -------------------------------------------------------------
- *  La salle pose de vrais lecteurs intégrés, nommés « tse-salle », et CE
- *  pont, dans chacun, dit ce qui s'y passe et exécute ce qu'elle demande.
- *
- *  UN NOM À LUI, et pas celui de l'aperçu : ni l'anti-pub ni le pont
- *  d'aperçu ne s'éveillent ici. Le lecteur est tel que Twitch le sert.
- *
- *  CE QU'IL RAPPORTE, chaque seconde : la vidéo (lecture, son, volume,
- *  vitesse), ses images et ses octets décodés, la qualité, la latence et le
- *  tampon selon le lecteur de Twitch, une pub (TSE_PUB_REPERES), un
- *  avertissement de contenu, les gestes de l'utilisateur ; et, à la demande
- *  de la salle, un relevé daté — position, plages, essais, enveloppe du son.
- *
- *  CE QU'IL ACCEPTE, de son parent seul et d'une page twitch.tv seulement :
- *  le son et le silence, la pause et la reprise — par les boutons du
- *  lecteur, comme Twitch le recommande, à défaut par l'élément vidéo —, la
- *  qualité, le relevé, un recul ou une avance dans le tampon, la faible
- *  latence retirée.
- *
- *  LA SONDE DE PHASE 0 (4.24.0.3 à 4.24.0.5) partageait ce pont : ses
- *  questions — pubs, son, points, charge, Chat partagé — sont tranchées
- *  depuis, et elle est partie à l'audit de la 4.24.0.24. Ce qu'elle seule
- *  mesurait et qui sert encore — le débit, les images perdues, les tâches
- *  longues par coupable, l'avertissement de contenu — est passé au rapport
- *  de la salle.
- * ============================================================ */
+// La salle multistream : ses lecteurs, ses chats, et ce qu'ils échangent.
 const TSE_SALLE_FRAME_NAME = 'tse-salle';
 const TSE_SALLE_ETAT_MSG = 'tse:salle-etat';
 const TSE_SALLE_ORDRE_MSG = 'tse:salle-ordre';
-// La réponse d'un lecteur à un relevé demandé par la salle (4.24.0.11).
 const TSE_SALLE_RELEVE_MSG = 'tse:salle-releve';
-// Une commande tapée dans la console d'une tuile, relayée à la salle, et sa
-// réponse (4.24.0.12).
 const TSE_SALLE_CONSOLE_MSG = 'tse:salle-console';
 const TSE_SALLE_CONSOLE_REPONSE = 'tse:salle-console-reponse';
 const TSE_SALLE_CHAT_NAME = 'tse-salle-chat';
-/* Les repères d'une pub, RELEVÉS sur le vrai Twitch par la troisième sonde
-   (4.24.0.5) : ils paraissent ensemble au début d'une pub et partent
-   ensemble à sa fin. Ce ne sont plus des mots cherchés, ce sont des noms.
-   LEUR PRÉSENCE, ET NON PLUS LEUR VISIBILITÉ (4.24.0.27) : au journal de
-   cette sonde, ils n'existaient que pendant la pub — jamais restés cachés
-   entre deux coupures, sur deux pubs de 189 s en quatorze minutes. Un
-   bloqueur qui les CACHE par une règle d'affichage laisse la pub jouer, et
-   la visibilité seule ne la voyait plus. */
-const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video-ad-countdown"], '
-  + '[data-test-selector="ad-banner-default-text"]';
-
-(() => {
-  'use strict';
-
-  try {
-    if (window.top === window) return;
-    if (location.hostname !== 'player.twitch.tv') return;
-    if (window.name !== TSE_SALLE_FRAME_NAME) return;
-  } catch { return; }
-  const parentConnu = tseOrigineParent();
-  if (parentConnu && !TSE_PREVIEW_PARENTS.includes(parentConnu)) return;
-  const cibles = parentConnu ? [parentConnu] : TSE_PREVIEW_PARENTS;
-
-  const BOUTON_SON = 'button[data-a-target="player-mute-unmute-button"]';
-  const BOUTON_LECTURE = 'button[data-a-target="player-play-pause-button"]';
-  const enPub = () => document.querySelector(TSE_PUB_REPERES) !== null;
-  let ordre = null;
-  let numeroOrdre = 0;
-
-  /* LES GESTES DE L'UTILISATEUR DANS LE LECTEUR (4.24.0.8), comptés — un
-     clic, une touche, jamais ce qu'ils visent. La salle relance le son d'une
-     tuile que Twitch a remise en muet après coup ; un geste dans ce lecteur
-     veut dire que l'utilisateur a pris la main, et elle cesse. Seuls les
-     événements de confiance comptent : nos propres clics sur les boutons du
-     lecteur n'en sont pas. */
-  let gestes = 0;
-  const compterGeste = (e) => { if (e.isTrusted) gestes += 1; };
-  window.addEventListener('pointerdown', compterGeste, true);
-  window.addEventListener('keydown', compterGeste, true);
-  /* L'AVERTISSEMENT DE CONTENU (4.24.0.24, à l'audit). L'aperçu le lève
-     depuis la 3.55 ; la salle, jamais : une tuile dont la chaîne porte un
-     label de classification restait sur son écran d'acquittement — ni
-     image, ni son, rien à caler —, et la prise, posée sur toute tuile
-     muette, prenait le clic que l'utilisateur lui destinait. Levé ici comme
-     dans l'aperçu, par le même bouton — l'utilisateur a choisi ces streams
-     en ouvrant la salle —, un clic par bouton, cinq au plus ; au rapport,
-     qu'il a été vu, et combien de clics. TSE_GATE_ENABLED à false : vu, pas
-     levé. */
-  const leves = new WeakSet();
-  let avertissementVu = false, avertissementClics = 0;
-  const leverAvertissement = () => {
-    // Visible comme dans l'aperçu : un sur-cadre resté dans le DOM n'en est pas un.
-    const visible = (b) => { if (!b) return null; const r = b.getBoundingClientRect(); return r.width > 0 && r.height > 0 ? b : null; };
-    const zone = document.querySelector(TSE_GATE_ZONE);
-    const bouton = visible(document.querySelector(TSE_GATE_BUTTON)) || (zone ? visible(zone.querySelector('button')) : null);
-    if (!bouton) return false;
-    avertissementVu = true;
-    if (!TSE_GATE_ENABLED || avertissementClics >= TSE_GATE_MAX_CLICKS || leves.has(bouton)) return true;
-    leves.add(bouton);
-    avertissementClics += 1;
-    try { bouton.click(); } catch { /* retiré entre-temps */ }
-    return true;
-  };
-  /* ── LE LECTEUR DE TWITCH LUI-MÊME (4.24.0.10) ──────────────────────────
-     La qualité se choisit par l'instance du lecteur, pas par l'URL : le
-     paramètre « quality » n'est qu'une préférence que l'adaptation de débit
-     dépasse (mesuré en 3.26 pour l'aperçu). `setQuality` sur l'instance, lui,
-     fixe la qualité et sort le lecteur du mode automatique — c'est le chemin
-     du module anti-pub, repris de TwitchAdSolutions et éprouvé dans ce même
-     lecteur intégré. On l'atteint de la même façon : par l'arbre React de la
-     page du lecteur, jusqu'au composant qui porte `mediaPlayerInstance`.
-     Introuvable (Twitch a changé), le rapport le dit, et rien ne casse. */
-  let instanceLecteur = null;
-  // Une minute de recherche au plus, depuis la première : le temps que le
-  // lecteur se monte. Au-delà, l'arbre a changé, et le parcourir à chaque
-  // relevé, dans chaque tuile, ne coûterait que du temps.
-  let rechercheDepuis = 0;
-  const lecteurTwitch = () => {
-    if (instanceLecteur) return instanceLecteur;
-    if (!rechercheDepuis) rechercheDepuis = Date.now();
-    else if (Date.now() - rechercheDepuis > 60_000) return null;
-    try {
-      const racine = document.getElementById('root');
-      if (!racine) return null;
-      let fibre = racine._reactRootContainer?._internalRoot?.current || null;
-      if (!fibre) {
-        const cle = Object.keys(racine).find((k) => k.startsWith('__reactContainer'));
-        fibre = cle ? racine[cle] : null;
-      }
-      if (!fibre) return null;
-      // En largeur, pas en profondeur récursive : l'arbre d'une page de
-      // lecteur est profond, et une pile épuisée ne doit rien casser.
-      const file = [fibre];
-      for (let i = 0; i < file.length && i < 20_000; i++) {
-        const n = file[i];
-        const inst = n.stateNode && n.stateNode.props && n.stateNode.props.mediaPlayerInstance;
-        if (inst && n.stateNode.setPlayerActive) {
-          instanceLecteur = inst.playerInstance || inst;
-          return instanceLecteur;
-        }
-        if (n.child) file.push(n.child);
-        if (n.sibling) file.push(n.sibling);
-      }
-    } catch { /* arbre illisible : pas de lecteur */ }
-    return null;
-  };
-  /* LA QUALITÉ VOULUE : une HAUTEUR en pixels d'écran, donnée par la salle.
-     Le pont choisit dans l'échelle RÉELLE de la chaîne — elle varie d'une
-     chaîne à l'autre — la qualité la plus proche, la plus haute à égalité,
-     et la pose. PROCHE EN PROPORTION, pas en pixels : une tuile de 308 px
-     est à 148 px de 160p et à 172 de 480p, mais 160p y serait agrandie deux
-     fois, et 480p réduite d'un tiers — c'est 480p qui est la plus proche de
-     ce que l'œil voit. Reposée si le lecteur revient en automatique, cinq fois au
-     plus par demande, jamais deux fois en trois secondes.
-     UN CRAN AU-DESSUS (4.24.0.19) : à la demande — « ça pixellise » —, la
-     hauteur suivante de l'échelle, au-dessus de la plus proche : 720p pour
-     les tuiles de 551 px de la salle à trois, qui étaient en 480p. Rien
-     au-dessus de la plus haute. */
-  let hauteurVoulue = null;
-  let qualiteEssais = 0;
-  let qualiteT = 0;
-  // La meilleure d'une hauteur : la plus fluide.
-  const meilleureA = (echelle, hauteur) => echelle.filter((q) => q && q.height === hauteur)
-    .reduce((p, q) => (!p || (q.framerate || 0) > (p.framerate || 0) ? q : p), null);
-  const choisirQualite = (echelle, h) => {
-    let meilleure = null;
-    for (const q of echelle) {
-      if (!q || !Number.isFinite(q.height)) continue;
-      const ecart = Math.abs(Math.log(q.height / h));
-      if (!meilleure || ecart < meilleure.ecart
-        || (ecart === meilleure.ecart && (q.height > meilleure.q.height
-          || (q.height === meilleure.q.height && (q.framerate || 0) > (meilleure.q.framerate || 0))))) {
-        meilleure = { q, ecart };
-      }
-    }
-    if (!meilleure) return null;
-    const dessus = echelle.filter((q) => q && Number.isFinite(q.height) && q.height > meilleure.q.height)
-      .reduce((p, q) => (p === null || q.height < p ? q.height : p), null);
-    return dessus === null ? meilleure.q : meilleureA(echelle, dessus);
-  };
-  /* PAS PENDANT UNE PUB (4.24.0.27) : le lecteur y joue l'image de la pub —
-     1920 × 1080 au relevé réel, quelle que soit la qualité posée —, et
-     chaque essai usé là manquerait après : une pub d'entrée de quatorze
-     secondes prenait les cinq, à trois secondes l'un de l'autre. */
-  const tenirQualite = () => {
-    if (!hauteurVoulue || qualiteEssais >= 5 || Date.now() - qualiteT < 3000 || enPub()) return;
-    const lecteur = lecteurTwitch();
-    if (!lecteur || typeof lecteur.setQuality !== 'function') return;
-    let echelle = [];
-    try { echelle = lecteur.getQualities() || []; } catch { return; }
-    const cible = choisirQualite(echelle, hauteurVoulue);
-    if (!cible) return;
-    let actuelle = null, auto = null;
-    try { actuelle = lecteur.getQuality && lecteur.getQuality(); } catch { /* ignore */ }
-    try { auto = lecteur.isAutoQualityMode ? lecteur.isAutoQualityMode() : null; } catch { /* ignore */ }
-    if (actuelle && actuelle.name === cible.name && auto === false) return;
-    try {
-      lecteur.setQuality(cible);
-      qualiteEssais += 1;
-      qualiteT = Date.now();
-    } catch { qualiteEssais += 1; qualiteT = Date.now(); }
-  };
-  // Relevés en lecture seule, pour l'étude de la synchronisation (4.24.0.10) :
-  // la latence du direct selon le lecteur, son tampon, la vitesse de lecture.
-  const releveLecteur = () => {
-    const lecteur = lecteurTwitch();
-    if (!lecteur) return { lecteur: false };
-    const lire = (f) => { try { const x = f(); return Number.isFinite(x) ? Math.round(x * 100) / 100 : null; } catch { return null; } };
-    let nom = null, auto = null;
-    try { nom = lecteur.getQuality ? (lecteur.getQuality() || {}).name || null : null; } catch { /* ignore */ }
-    try { auto = lecteur.isAutoQualityMode ? !!lecteur.isAutoQualityMode() : null; } catch { /* ignore */ }
-    return {
-      lecteur: true, qualite: nom, auto,
-      latence: lecteur.getLiveLatency ? lire(() => lecteur.getLiveLatency()) : null,
-      tampon: lecteur.getBufferDuration ? lire(() => lecteur.getBufferDuration()) : null,
-    };
-  };
-  // Ce que la salle affiche et ce qu'elle tient, chaque seconde.
-  const etatSalle = () => {
-    const v = document.querySelector('video');
-    tenirQualite();
-    const avertissement = leverAvertissement();
-    /* LA CHARGE D'UN LECTEUR (4.24.0.24, reprise de la sonde de phase 0) :
-       les images décodées et perdues — un lecteur qui en perd, c'est une
-       machine qui ne suit pas tant de streams —, et les octets décodés,
-       d'où son débit (Chromium seul). Des compteurs, que la salle cumule. */
-    const q = v && typeof v.getVideoPlaybackQuality === 'function' ? v.getVideoPlaybackQuality() : null;
-    return {
-      ...releveLecteur(),
-      qualiteVoulue: hauteurVoulue,
-      vitesse: v ? v.playbackRate : null,
-      video: !!v,
-      lecture: !!v && !v.paused,
-      muet: v ? v.muted : null,
-      // Au rapport seulement : un lecteur non muet à volume nul se tait aussi.
-      volume: v ? Math.round(v.volume * 100) / 100 : null,
-      images: q ? q.totalVideoFrames : null,
-      perdues: q ? q.droppedVideoFrames : null,
-      octets: v && typeof v.webkitVideoDecodedByteCount === 'number'
-        ? v.webkitVideoDecodedByteCount + (Number(v.webkitAudioDecodedByteCount) || 0) : null,
-      // Présente, la pub (4.24.0.27) ; visible, au rapport seulement — un bloqueur peut la cacher.
-      pub: enPub(),
-      pubVisible: [...document.querySelectorAll(TSE_PUB_REPERES)].some((el) => el.getClientRects().length > 0),
-      boutonSon: !!document.querySelector(BOUTON_SON),
-      avertissement, avertissementVu, avertissementClics,
-      gestes,
-      ordre,
-    };
-  };
-
-  /* ── LA SONDE DU MÊME INSTANT (4.24.0.11) ───────────────────────────────
-     Le premier rapport réel a donné UNE valeur de latence par tuile, lue à
-     des instants différents : chaque pont envoie son état à son rythme, et
-     le rapport garde le dernier. Pour mesurer un écart entre tuiles, il faut
-     les lire ENSEMBLE — c'est la salle qui demande désormais un relevé, à
-     toutes à la fois, et chacune répond sur-le-champ, avec l'heure de sa
-     réponse : le rapport dit de combien les relevés d'un même tour se sont
-     écartés. Lecture seule, sauf ce que la salle demande : un déplacement,
-     la faible latence retirée, et l'écoute (S9), allumée par elle. */
-  const lireNombre = (f, chiffres = 3) => {
-    try {
-      const x = f();
-      const p = 10 ** chiffres;
-      return Number.isFinite(x) ? Math.round(x * p) / p : null;
-    } catch { return null; }
-  };
-  /* L'API DU LECTEUR : les noms de ses fonctions, les siennes et celles de
-     ses prototypes — c'est là que vivent les méthodes d'une classe. Lus par
-     leurs descripteurs, sans jamais appeler un accesseur. Pour savoir quels
-     leviers existent vraiment chez Twitch, pas dans une documentation. */
-  const lireApi = (lecteur) => {
-    const noms = new Set();
-    for (let o = lecteur; o && o !== Object.prototype; o = Object.getPrototypeOf(o)) {
-      for (const k of Object.getOwnPropertyNames(o)) {
-        if (k === 'constructor') continue;
-        const d = Object.getOwnPropertyDescriptor(o, k);
-        if (d && typeof d.value === 'function') noms.add(k);
-      }
-    }
-    return [...noms].sort();
-  };
-  /* LE DERNIER ESSAI : un déplacement demandé par la salle — recul ou
-     avance —, ou la faible latence retirée (4.24.0.21). Le pont le garde ; la
-     salle le note avec la latence du moment. */
-  let essai = null;
-  let numeroEssai = 0;
-  /* LE RECUL DANS LE TAMPON (4.24.0.13). La pause, au rapport réel, a fait
-     RECHARGER le lecteur : il est revenu au direct. Reculer d'une seconde —
-     de 0,2 à 5 à la console — dans ce qui est déjà téléchargé, par `seekTo`,
-     retient-il la tuile, ou le lecteur y revient-il aussi ? La position
-     avant et, une demi-seconde après, la position obtenue. Le troisième
-     rapport réel a répondu : 1,104 s obtenue, tenue plus de deux minutes.
-     L'AVANCE (4.24.0.14), l'inverse : sauter en avant dans le tampon — sans
-     jamais y entrer à moins d'une demi-seconde de son bout, faute de quoi
-     la tuile calerait. `sens` : 1 recule, −1 avance. */
-  const deplacer = (s, sens = 1) => {
-    const lecteur = lecteurTwitch();
-    const v = document.querySelector('video');
-    const type = sens > 0 ? 'recul' : 'avance';
-    /* JAMAIS PENDANT UNE PUB (4.24.0.27). La salle n'en demande pas (cf.
-       caler) ; ceci est la seconde garde, pour un ordre parti juste avant le
-       début de la pub. Déplacer la pub ne cale rien — elle n'est pas le
-       direct —, et ce que le lecteur en ferait n'a jamais été mesuré. */
-    if (enPub()) {
-      essai = { n: ++numeroEssai, type, valeur: s, voie: 'refusé : pub', t: Date.now(), fin: Date.now(),
-                avant: null, apres: null };
-      return;
-    }
-    if (sens < 0) {
-      const tampon = lecteur && typeof lecteur.getBufferDuration === 'function' ? lireNombre(() => lecteur.getBufferDuration()) : null;
-      if (tampon !== null && tampon < s + 0.5) {
-        essai = { n: ++numeroEssai, type, valeur: s, voie: `refusé : tampon ${tampon} s`, t: Date.now(), fin: Date.now(),
-                  avant: null, apres: null };
-        return;
-      }
-    }
-    let voie = null, avant = null;
-    const t0 = performance.now();
-    if (lecteur && typeof lecteur.seekTo === 'function' && typeof lecteur.getPosition === 'function') {
-      try { avant = lecteur.getPosition(); lecteur.seekTo(avant - sens * s); voie = 'instance'; } catch { /* voie suivante */ }
-    }
-    if (!voie && v) { avant = v.currentTime; v.currentTime = avant - sens * s; voie = 'video'; }
-    const e = { n: ++numeroEssai, type, valeur: s, voie: voie || 'sans-video', t: Date.now(), fin: null,
-                avant: Number.isFinite(avant) ? Math.round(avant * 1000) / 1000 : null, apres: null };
-    essai = e;
-    if (!voie) return;
-    setTimeout(() => {
-      const p = voie === 'instance' ? lireNombre(() => lecteur.getPosition()) : (v ? v.currentTime : null);
-      e.apres = Number.isFinite(p) ? Math.round(p * 1000) / 1000 : null;
-      // Le temps écoulé depuis le recul : la lecture a continué pendant ce
-      // temps, et la salle en tient compte (recul obtenu).
-      e.ecouleS = Math.round(performance.now() - t0) / 1000;
-      e.fin = Date.now();
-    }, 500);
-  };
-  /* LA FAIBLE LATENCE RETIRÉE (4.24.0.21). Au quatorzième rapport réel, une
-     tuile en faible latence, reculée de 4,9 s, est repartie d'elle-même à
-     1,03 et a repris ces 4,4 s en 146 secondes — son lecteur vise sa latence
-     basse, et défait tout recul. Une salle calée n'en veut pas : la salle
-     la retire, une fois, par setLiveLowLatencyEnabled(false) — un booléen,
-     que l'instance sait passer (cf. setLiveMaxLatency, qu'elle ne savait
-     pas). « instance » dit seulement qu'aucune exception n'est revenue ici ;
-     ce qu'il a fait, isLiveLowLatency le dit au relevé suivant. */
-  const retirerFaibleLatence = () => {
-    const lecteur = lecteurTwitch();
-    let voie;
-    if (!lecteur || typeof lecteur.setLiveLowLatencyEnabled !== 'function') voie = 'absent';
-    else {
-      try { lecteur.setLiveLowLatencyEnabled(false); voie = 'instance'; } catch (err) { voie = `refusé : ${(err && err.name) || 'erreur'}`; }
-    }
-    essai = { n: ++numeroEssai, type: 'faible-latence', valeur: false, voie, t: Date.now(), fin: Date.now() };
-  };
-  /* LE TAMPON EN ARRIÈRE (4.24.0.17) : jusqu'où un recul peut aller dans ce
-     que le lecteur garde. Aux rapports réels, aucun recul n'a dépassé
-     1,4 s ; une salle qui mêle faible latence et latence normale en
-     demanderait 3 à 5. Par l'élément : le début de la plage qui contient la
-     lecture. Par l'instance : getBufferedRanges, sous la forme qu'il rend —
-     paires, objets {start, end} ou TimeRanges —, huit plages au plus. */
-  const arriereElement = (v) => {
-    try {
-      if (!v || !v.buffered || !Number.isFinite(v.currentTime)) return null;
-      for (let i = 0; i < v.buffered.length; i++) {
-        const s = v.buffered.start(i), e = v.buffered.end(i);
-        if (v.currentTime >= s && v.currentTime <= e + 0.1) return Math.round((v.currentTime - s) * 1000) / 1000;
-      }
-    } catch { /* ignore */ }
-    return null;
-  };
-  /* LA FORME DE CE QU'IL REND (4.24.0.18) : aux huitième et neuvième
-     rapports réels, « forme object » sur toutes les tuiles — ni paires, ni {start, end}, ni
-     TimeRanges. Désormais son constructeur et ses clés, six au plus, chacune
-     avec son type ; et si l'une d'elles — « video » d'abord — tient un
-     tableau de plages, on le lit. */
-  const formeDe = (r) => {
-    if (!r || typeof r !== 'object') return `forme ${r === null ? 'null' : typeof r}`;
-    const proto = Object.getPrototypeOf(r);
-    const nom = proto && proto.constructor && proto.constructor.name;
-    const cles = [];
-    for (const k in r) {
-      if (cles.length >= 6) break;
-      const v = r[k];
-      cles.push(`${k}:${Array.isArray(v) ? `tableau ${v.length}` : typeof v}`);
-    }
-    return (`forme ${Array.isArray(r) ? 'tableau' : 'object'}${nom && nom !== 'Object' && nom !== 'Array' ? ` ${nom}` : ''}`
-      + ` · ${cles.length ? cles.join(', ') : 'aucune clé'}`).slice(0, 160);
-  };
-  const lirePlages = (lecteur) => {
-    let r;
-    try { r = lecteur.getBufferedRanges(); } catch { return { plages: 'erreur', forme: null }; }
-    const paire = (x) => (Array.isArray(x) && x.length >= 2 ? [x[0], x[1]]
-      : x && typeof x === 'object' && 'start' in x && 'end' in x ? [x.start, x.end] : null);
-    let l = null;
-    if (Array.isArray(r)) l = r.map(paire);
-    else if (r && typeof r.length === 'number' && typeof r.start === 'function') {
-      l = [];
-      try { for (let i = 0; i < Math.min(r.length, 8); i++) l.push([r.start(i), r.end(i)]); } catch { return { plages: 'erreur', forme: formeDe(r) }; }
-    } else if (r && typeof r === 'object') {
-      let cles = [];
-      try { cles = ['video', ...Object.keys(r)]; } catch { /* rien */ }
-      const tab = cles.map((k) => r[k]).find((v) => Array.isArray(v) && v.length && paire(v[0]));
-      if (tab) l = tab.map(paire);
-    }
-    const forme = Array.isArray(r) || r === undefined || r === null ? null : formeDe(r);
-    if (!l) return { plages: r === undefined || r === null ? null : forme, forme };
-    return { plages: l.slice(0, 8).map((x) => (x && x.every(Number.isFinite) ? x.map((y) => Math.round(y * 1000) / 1000) : null)), forme };
-  };
-  /* ── L'ÉCOUTE (S9) : LE DÉCALAGE RÉEL, MESURÉ PAR LE SON ──────────────────
-     Deux co-streamers qui se parlent diffusent chacun la voix de l'autre :
-     le même son passe dans les deux streams. Le décalage entre deux tuiles se
-     mesure alors là où l'œil le voit, part du diffuseur comprise — ce que la
-     latence du lecteur ne voit pas.
-
-     MESURÉ SOUS CHROMIUM AVANT D'ÊTRE ÉCRIT (cf. README) :
-       — `captureStream()` rend le son d'un élément MUET ou à volume nul, tel
-         quel ; `createMediaElementSource`, lui, rend du silence pour un
-         élément muet, et détourne la sortie du lecteur. D'où la capture ;
-       — un AudioContext d'iframe démarre suspendu, et `resume()` n'aboutit
-         qu'après un geste dans la page parente, délégué par l'attribut
-         `allow="autoplay"` que portent les tuiles. D'où le `resume()` redit
-         à chaque relevé tant qu'il est suspendu.
-
-     CE QUI EN SORT : l'ENVELOPPE du son — le niveau moyen de chaque bloc de
-     1024 échantillons (~21 ms), rien d'autre. Chaque bloc est daté par son
-     RANG : un bloc dure exactement 1024 échantillons, et le n-ième commence
-     n × 1024 échantillons après le premier. Ce temps est ramené à l'heure
-     commune par le plus petit écart observé entre l'heure du rappel et la
-     fin du bloc, sur les dix à vingt dernières secondes : un rappel ne peut
-     qu'être en retard, jamais en avance, et le plus petit retard est la
-     meilleure ancre — tant que l'horloge audio ne saute pas (4.24.0.31, cf.
-     MARCHE_MS). Ni le son ni l'enveloppe ne quittent la page ; le
-     rapport ne porte que le décalage calculé.
-
-     PAS `playbackTime` (4.24.0.13). Il datait les blocs jusqu'ici, et le banc
-     a montré qu'il porte, sous Chromium, une gigue de ±4 ms — des pas de 17 à
-     32 ms pour une période de 23,22 — IDENTIQUE dans toutes les tuiles, au
-     dixième de milliseconde. Sur le banc à deux voix, six passes datées par
-     lui ont donné trois calculs sur trente-six avec un pic parasite (à
-     −10 ms, z 16,5 ; à −2 580 ms) ; neuf passes datées par le rang, aucun
-     sur cinquante-quatre. Il ne sert plus qu'à compter un bloc perdu.
-
-     L'AMORCE (4.24.0.13). L'écoute démarre dans toutes les tuiles au même
-     ordre, donc au même instant, et chaque capture commence par un bloc muet
-     (le plancher, −8) avant le son : un saut commun à toutes, qui pesait plus
-     que tout le reste — un pic à 0 ms, r 0,62, au banc. Une capture ne
-     compte qu'une seconde après son premier son.
-
-     JAMAIS `mozCaptureStream` : sous Firefox, il coupe le son de l'élément. */
-  /* LA CAPTURE SUIT LA PISTE COURANTE (4.24.0.22). Le second rapport réel
-     de la 4.24.0.21 : 702 s d'écoute, ZÉRO calcul, la tuile muette à
-     « silence 100 % ». Mesuré sous Chromium (cf. README) : quand le lecteur
-     CHANGE DE SOURCE — un rechargement de son flux, sans recharger la page —,
-     la capture d'un élément lui AJOUTE une piste ; l'ancienne reste « live »,
-     et muette. La capture restait branchée sur elle, se croyait vivante, et
-     n'entendait plus que du silence. Et deux pièges de plus, mesurés de même :
-     une SECONDE capture du même élément rend la première muette ; arrêter
-     les pistes d'une capture peut rendre muette celle qui lui succède. D'où
-     la règle : une seule capture par élément, branchée sur sa piste la plus
-     récente ; on ne recapture que si l'élément a changé, ou si toutes ses
-     pistes sont finies.
-
-     L'AUDIOWORKLET (4.24.0.22). Chrome signale `ScriptProcessorNode` comme
-     déprécié, et l'inscrit aux erreurs de l'extension — un utilisateur l'a
-     vu. Le module est chargé d'un blob ; si la page le refuse, ou si le
-     navigateur n'a pas d'AudioWorklet, on garde l'ancien nœud. Le rapport dit
-     lequel (`worklet` ou `script`). Même bloc de 1024 échantillons, même
-     niveau, même datation : le rang d'un bloc vient de `currentFrame`, le
-     compte exact des échantillons du contexte — plus juste encore que le rang
-     compté à la main, qui devinait les blocs perdus. */
-  const MODULE_ENVELOPPE = `registerProcessor('tse-enveloppe', class extends AudioWorkletProcessor {
-  constructor() { super(); this.s = 0; this.n = 0; }
-  process(entrees) {
-    const x = entrees[0] && entrees[0][0];
-    const q = x ? x.length : 128;
-    if (x) for (let i = 0; i < q; i++) this.s += x[i] * x[i];
-    this.n += q;
-    if (this.n >= 1024) { this.port.postMessage([currentFrame + q, this.s / this.n]); this.s = 0; this.n = 0; }
-    return true;
-  }
-});`;
-  const ecoute = (() => {
-    const B = 1024;
-    let actif = false, ac = null, proc = null, nul = null, source = null, flux = null, video = null, piste = null;
-    let etat = 'inactive', reliaisons = 0, sr = null, voie = null;
-    let ancreCour = Infinity, ancrePrec = Infinity, ancreT = 0;
-    /* L'HORLOGE QUI SAUTE (4.24.0.31). Le plus petit écart ne suivait une
-       heure audio qui PERD du temps qu'au renouvellement de sa fenêtre, dix
-       à vingt secondes plus tard : il gardait l'ancien. Or une horloge audio
-       perd des échantillons quand son fil manque son rendez-vous — mesuré
-       sous Chromium (cf. README) : des marches de 10 à 300 ms, plusieurs par
-       minute, sur une machine dont le processeur est pris par à-coups —, et
-       le CONTENU, lui, reste à l'heure : derrière la marche, le vrai écart
-       est le nouveau. Pendant ces vingt secondes, la tuile datait son son
-       trop tôt d'autant, et la fenêtre de corrélation, de vingt secondes
-       elle aussi, le voyait presque entière. Désormais : UNE seconde pleine
-       dont le plus petit écart dépasse l'ancre de plus de MARCHE_MS — sans
-       marche, il ne bouge que d'une ou deux ms d'une seconde à l'autre —,
-       et l'ancre le prend. Une tâche longue du fil principal n'y ressemble
-       pas : la seconde qui la précède a ses blocs à l'heure, et la file
-       qu'elle a retenue se vide jusqu'au plus récent, à l'heure lui aussi.
-       Les marches suivies vont au rapport (`horloge`). */
-    const MARCHE_MS = 15;
-    let secMin = Infinity, secT = 0, marches = 0, marchesMs = [];
-    // Le rang du bloc, et l'heure audio du précédent pour compter les pertes
-    // (l'ancien nœud seulement : le worklet sait son rang).
-    let rang = -1, dernierPt = null;
-    // L'amorce d'une capture : pas encore de son, puis les blocs d'une seconde.
-    let sonVu = false, amorce = 0;
-    let lot = [];
-    // Blocs et blocs silencieux, par seconde, sur les dix dernières.
-    let secondes = [], blocs = 0, muets = 0;
-    // Le branchement seul ; la capture, elle, reste.
-    const debrancher = () => {
-      try { if (source) source.disconnect(); } catch { /* ignore */ }
-      source = null; piste = null;
-    };
-    // La capture entière : seulement si l'élément a changé, ou à l'arrêt.
-    const detacher = () => {
-      debrancher();
-      if (flux) for (const p of flux.getTracks()) { try { p.stop(); } catch { /* ignore */ } }
-      flux = null; video = null;
-    };
-    const relier = () => {
-      const v = document.querySelector('video');
-      if (!v) { etat = 'sans-video'; return; }
-      if (typeof v.captureStream !== 'function') { etat = 'indisponible'; return; }
-      // Le nœud n'est pas encore là (le module se charge) : au prochain relevé.
-      if (!proc) return;
-      if (v !== video) {
-        detacher();
-        try { flux = v.captureStream(); } catch (e) { etat = `erreur:${(e && e.name) || 'capture'}`; return; }
-        video = v;
-      }
-      const vivantes = flux.getAudioTracks().filter((p) => p.readyState === 'live');
-      const derniere = vivantes[vivantes.length - 1] || null;
-      if (!derniere) {
-        // Aucune piste vivante — pas encore de son, ou une source finie : on
-        // lâche cette capture, ses pistes arrêtées AVANT d'en prendre une
-        // autre (cf. plus haut), et on recapture au prochain relevé.
-        detacher();
-        etat = 'sans-piste';
-        return;
-      }
-      if (derniere === piste && source) return;
-      debrancher();
-      try {
-        source = ac.createMediaStreamSource(new MediaStream([derniere]));
-        source.connect(proc);
-        piste = derniere;
-        reliaisons += 1;
-        sonVu = false; amorce = Math.ceil(sr / B);
-      } catch (e) { etat = `erreur:${(e && e.name) || 'source'}`; source = null; piste = null; }
-    };
-    // Un bloc de 1024 échantillons fini : `finMs`, sa fin en ms d'horloge audio.
-    const surFin = (finMs, puissance, mur) => {
-      const ecart = mur - finMs;
-      // La seconde écoulée : son plus petit écart, face à l'ancre d'alors.
-      if (mur - secT >= 1_000) {
-        const avant = Math.min(ancreCour, ancrePrec);
-        if (secT && secMin - avant > MARCHE_MS) {
-          marches += 1;
-          marchesMs.push(Math.round(secMin - avant));
-          if (marchesMs.length > 4) marchesMs.shift();
-          ancreCour = secMin; ancrePrec = Infinity; ancreT = mur;
-        }
-        secMin = Infinity; secT = mur;
-      }
-      secMin = Math.min(secMin, ecart);
-      if (mur - ancreT > 10_000) { ancrePrec = ancreCour; ancreCour = Infinity; ancreT = mur; }
-      ancreCour = Math.min(ancreCour, ecart);
-      const ancre = Math.min(ancreCour, ancrePrec);
-      // log10 de la puissance moyenne : -8 est le plancher, -7 ≈ -70 dBFS.
-      const niveau = Math.log10(puissance + 1e-8);
-      blocs += 1;
-      if (niveau < -7) muets += 1;
-      if (!sonVu) { if (niveau < -7) return; sonVu = true; }
-      if (amorce > 0) { amorce -= 1; return; }
-      // Le milieu du bloc, au dixième de milliseconde.
-      lot.push([Math.round((ancre + finMs - ((B / sr) * 1000) / 2) * 10) / 10, Math.round(niveau * 1000) / 1000]);
-      // Borné : si la salle ne relève plus (onglet gelé), on garde le plus récent.
-      if (lot.length > 600) lot.splice(0, lot.length - 600);
-    };
-    // L'ancien nœud : un bloc de plus — ou plusieurs, si l'horloge audio a sauté (blocs perdus).
-    const surBloc = (e) => {
-      const mur = Date.now();
-      const periode = (B / sr) * 1000;
-      rang += dernierPt === null ? 1 : Math.max(1, Math.round(((e.playbackTime - dernierPt) * 1000) / periode));
-      dernierPt = e.playbackTime;
-      const x = e.inputBuffer.getChannelData(0);
-      let s = 0;
-      for (let i = 0; i < x.length; i++) s += x[i] * x[i];
-      surFin((rang + 1) * periode, s / x.length, mur);
-    };
-    const demarrer = () => {
-      actif = true;
-      voie = null;
-      const AC = window.AudioContext;
-      if (!AC) { etat = 'indisponible'; return; }
-      let ctx;
-      try {
-        ctx = ac = new AC();
-        sr = ac.sampleRate;
-        nul = ac.createGain();
-        nul.gain.value = 0;
-        nul.connect(ac.destination);
-      } catch (e) { etat = `erreur:${(e && e.name) || 'contexte'}`; ac = null; return; }
-      const parScript = (pourquoi) => {
-        if (ac !== ctx) return;
-        try {
-          proc = ac.createScriptProcessor(B, 1, 1);
-          proc.onaudioprocess = surBloc;
-          proc.connect(nul);
-        } catch (e) { etat = `erreur:${(e && e.name) || 'processeur'}`; proc = null; return; }
-        voie = pourquoi ? `script (${pourquoi})` : 'script';
-        relier();
-      };
-      if (!ac.audioWorklet || typeof AudioWorkletNode !== 'function') { parScript('sans worklet'); return; }
-      // Le rapport dit qu'on attend le module, plutôt qu'« inactive ».
-      etat = 'module';
-      let url = null;
-      try { url = URL.createObjectURL(new Blob([MODULE_ENVELOPPE], { type: 'application/javascript' })); } catch { parScript('sans blob'); return; }
-      ac.audioWorklet.addModule(url).then(() => {
-        if (ac !== ctx) return;
-        try {
-          proc = new AudioWorkletNode(ac, 'tse-enveloppe', { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1],
-                                                              channelCount: 1, channelCountMode: 'explicit' });
-          proc.port.onmessage = (m) => { const [fin, puissance] = m.data; surFin((fin / sr) * 1000, puissance, Date.now()); };
-          proc.connect(nul);
-        } catch (e) { proc = null; parScript(`nœud refusé : ${(e && e.name) || 'erreur'}`); return; }
-        voie = 'worklet';
-        relier();
-      }).catch((e) => parScript(`module refusé : ${(e && e.name) || 'erreur'}`))
-        .finally(() => { try { URL.revokeObjectURL(url); } catch { /* ignore */ } });
-    };
-    const arreter = () => {
-      actif = false;
-      detacher();
-      try {
-        if (proc) {
-          if (proc.port) proc.port.onmessage = null;
-          else proc.onaudioprocess = null;
-          proc.disconnect();
-        }
-      } catch { /* ignore */ }
-      try { if (nul) nul.disconnect(); } catch { /* ignore */ }
-      try { if (ac) ac.close(); } catch { /* ignore */ }
-      ac = null; proc = null; nul = null; lot = []; secondes = []; blocs = 0; muets = 0;
-      ancreCour = Infinity; ancrePrec = Infinity; ancreT = 0; rang = -1; dernierPt = null;
-      secMin = Infinity; secT = 0; marches = 0; marchesMs = [];
-      sonVu = false; amorce = 0;
-      etat = 'inactive';
-    };
-    // À chaque relevé : suivre le souhait de la salle, relancer un contexte
-    // suspendu, relier de nouveau si l'élément ou sa piste ont changé.
-    const tenir = (voulu) => {
-      if (voulu && !actif) demarrer();
-      else if (!voulu && actif) arreter();
-      if (!actif || !ac) return;
-      if (ac.state === 'suspended') ac.resume().catch(() => {});
-      relier();
-      if (source) etat = ac.state;
-      secondes.push([blocs, muets]);
-      if (secondes.length > 10) secondes.shift();
-      blocs = 0; muets = 0;
-    };
-    const bilan = () => {
-      if (!actif) return { etat };
-      const b = secondes.reduce((x, y) => x + y[0], 0);
-      const m = secondes.reduce((x, y) => x + y[1], 0);
-      return { etat, sr, reliaisons, voie, pistes: flux ? flux.getAudioTracks().length : 0,
-               blocs: b, silence: b ? Math.round((m / b) * 100) / 100 : null, marches, marchesMs: [...marchesMs] };
-    };
-    const prendre = () => { const l = lot; lot = []; return l; };
-    return { tenir, bilan, prendre };
-  })();
-
-  const repondreReleve = (d) => {
-    ecoute.tenir(d.ecoute === true);
-    const lecteur = lecteurTwitch();
-    const v = document.querySelector('video');
-    const f = (nom) => lecteur && typeof lecteur[nom] === 'function';
-    const r = {
-      tse: TSE_SALLE_RELEVE_MSG,
-      n: d.n,
-      t: Date.now(),
-      latence: f('getLiveLatency') ? lireNombre(() => lecteur.getLiveLatency()) : null,
-      tampon: f('getBufferDuration') ? lireNombre(() => lecteur.getBufferDuration()) : null,
-      vitesse: v ? v.playbackRate : null,
-      vitesseLecteur: f('getPlaybackRate') ? lireNombre(() => lecteur.getPlaybackRate()) : null,
-      /* Deux fonctions que le premier rapport a révélées dans l'API
-         (4.24.0.12), lues telles quelles : getSyncTime — une horloge du
-         flux ? — et getPosition. Leur nature se lira à leur pente. */
-      sync: f('getSyncTime') ? lireNombre(() => lecteur.getSyncTime()) : null,
-      position: f('getPosition') ? lireNombre(() => lecteur.getPosition()) : null,
-      // Le tampon en arrière (4.24.0.17), par l'élément et par l'instance.
-      arriere: arriereElement(v),
-      ...(f('getBufferedRanges') ? (() => { const x = lirePlages(lecteur); return { plages: x.plages, plagesForme: x.forme }; })()
-        : { plages: null, plagesForme: null }),
-      lecture: !!v && !v.paused,
-      faibleLatence: f('isLiveLowLatency') ? (() => { try { return !!lecteur.isLiveLowLatency(); } catch { return null; } })() : null,
-      essai,
-      ecoute: ecoute.bilan(),
-      /* LA PUB, AVEC L'ENVELOPPE QU'ELLE ACCOMPAGNE (4.24.0.27) : la salle
-         écarte celle-ci dès le relevé qui la voit, sans attendre l'état de
-         la seconde. */
-      pub: enPub(),
-      env: ecoute.prendre(),
-    };
-    if (d.api === true && lecteur) r.api = lireApi(lecteur);
-    for (const o of cibles) {
-      try { window.parent.postMessage(r, o); } catch { /* origine refusée */ }
-    }
-  };
-
-  /* ── LA CONSOLE DANS UNE TUILE (4.24.0.12) ──────────────────────────────
-     RAPPORT RÉEL : « tse is not defined ». `window.tse` n'existe que dans la
-     page elle-même ; or un clic droit → Inspecter sur une tuile met la
-     console dans le cadre du lecteur, où il n'y avait rien. Désormais, dans
-     une tuile de la salle, `tse.salle` relaie la commande à la salle, qui
-     l'exécute — sur CETTE tuile quand la commande n'en nomme pas — et renvoie
-     sa réponse, affichée ici. Les arguments ne passent que s'ils sont
-     simples ; la salle ne reçoit que de ses propres tuiles (cf. surMessage),
-     et ses commandes restent bornées. */
-  let numeroConsole = 0;
-  const simple = (x) => (x === null || x === undefined || ['number', 'string', 'boolean'].includes(typeof x) ? x : String(x));
-  const relayer = (commande) => (...args) => {
-    const n = ++numeroConsole;
-    for (const o of cibles) {
-      try {
-        window.parent.postMessage({ tse: TSE_SALLE_CONSOLE_MSG, n, commande, args: args.slice(0, 3).map(simple) }, o);
-      } catch { /* origine refusée */ }
-    }
-    return `[tse] ${commande} → envoyé à la salle / sent to the room`;
-  };
-  try {
-    Object.defineProperty(window, 'tse', {
-      value: Object.freeze({ salle: Object.freeze(Object.fromEntries(
-        ['auto', 'recul', 'avance', 'ecoute', 'rapport'].map((c) => [c, relayer(c)]))) }),
-      writable: false, configurable: false,
-    });
-  } catch { /* déjà posé */ }
-
-  const poster = () => {
-    const e = etatSalle();
-    for (const o of cibles) {
-      try { window.parent.postMessage({ tse: TSE_SALLE_ETAT_MSG, etat: e }, o); } catch { /* origine refusée */ }
-    }
-  };
-
-  /* QUATRE ORDRES : le son et le silence, la pause et la reprise — ces deux
-     derniers quand l'onglet passe en arrière-plan, la salle mettant en pause
-     ses tuiles muettes. Chacun par le bouton du lecteur, comme Twitch le
-     recommande, et à défaut par l'élément vidéo. */
-  const ORDRES = ['son', 'muet', 'pause', 'lecture'];
-  window.addEventListener('message', (e) => {
-    if (e.source !== window.parent || !TSE_PREVIEW_PARENTS.includes(e.origin)) return;
-    const d = e.data;
-    /* LA QUALITÉ (4.24.0.10) : un ordre à part, qui ne passe ni par un bouton
-       ni par le verdict des quatre autres. */
-    if (d && d.tse === TSE_SALLE_ORDRE_MSG && d.ordre === 'qualite') {
-      const h = Math.round(Number(d.hauteur));
-      if (h >= 100 && h <= 4320 && h !== hauteurVoulue) {
-        hauteurVoulue = h; qualiteEssais = 0; qualiteT = 0; tenirQualite();
-      }
-      return;
-    }
-    // La réponse de la salle à une commande tapée ici (4.24.0.12).
-    if (d && d.tse === TSE_SALLE_CONSOLE_REPONSE) {
-      console.info(`[tse] ${d.commande} →`, d.resultat);
-      return;
-    }
-    /* LE RELEVÉ, sur-le-champ (4.24.0.11) ; les déplacements, bornés ici
-       comme dans la salle ; la faible latence retirée (4.24.0.21). Des noms
-       à eux : « pause » est déjà l'ordre de l'onglet caché. */
-    if (d && d.tse === TSE_SALLE_ORDRE_MSG && ['releve', 'essai-recul', 'essai-avance', 'faible-latence'].includes(d.ordre)) {
-      if (d.ordre === 'releve' && Number.isFinite(d.n)) repondreReleve(d);
-      else if (d.ordre === 'faible-latence') retirerFaibleLatence();
-      else {
-        /* De 0,05 à 60 s : le calage recule d'un écart entre tuiles —
-           parfois plus de 5 s —, et ses corrections descendent à 0,05 s ; une
-           tuile retombée de 23 s derrière le direct reprend sa place d'un
-           geste (4.24.0.27). La console, elle, reste bornée à 0,2–5 s par la
-           salle ; l'avance, par son tampon. */
-        const s = Number(d.duree);
-        if (s >= 0.05 && s <= 60) deplacer(s, d.ordre === 'essai-recul' ? 1 : -1);
-      }
-      return;
-    }
-    if (!d || d.tse !== TSE_SALLE_ORDRE_MSG || !ORDRES.includes(d.ordre)) return;
-    const v = document.querySelector('video');
-    let voie = 'deja';
-    if (!v) voie = 'sans-video';
-    else if (d.ordre === 'son' || d.ordre === 'muet') {
-      const veutSon = d.ordre === 'son';
-      if (v.muted === veutSon) {
-        const b = document.querySelector(BOUTON_SON);
-        if (b) { b.click(); voie = 'bouton'; } else { v.muted = !veutSon; voie = 'video'; }
-      }
-    } else {
-      const veutLecture = d.ordre === 'lecture';
-      if (v.paused === veutLecture) {
-        const b = document.querySelector(BOUTON_LECTURE);
-        if (b) { b.click(); voie = 'bouton'; }
-        else { if (veutLecture) v.play().catch(() => {}); else v.pause(); voie = 'video'; }
-      }
-    }
-    // Numéroté : le parent compte chaque verdict une fois, et garde ceux
-    // qu'un ordre suivant a remplacés.
-    ordre = { n: ++numeroOrdre, ordre: d.ordre, voie, apres: null };
-    const courant = ordre;
-    setTimeout(() => {
-      courant.apres = v ? { muet: v.muted, lecture: !v.paused } : null;
-      poster();
-    }, 1500);
-  });
-
-  poster();
-  /* Chaque seconde : le son tenu, la qualité, l'avertissement levé et la
-     pub comptée se jugent sur cet état — en retard de deux secondes, un son
-     que Twitch a remis en muet le resterait d'autant. */
-  setInterval(poster, 1000);
-})();
-
-/* LA CONSOLE DANS UN CHAT DE LA SALLE (4.24.0.12). Le chat
-   intégré est une page de www.twitch.tv, de même origine que celle qui porte
-   la salle : `tse` y est tout simplement celui de la page. Seulement dans
-   NOS cadres de chat, et seulement de même origine — sinon, rien. */
-(() => {
-  'use strict';
-  try {
-    if (window.top === window) return;
-    if (window.name !== TSE_SALLE_CHAT_NAME) return;
-    const haut = window.top;
-    if (haut.location.origin !== location.origin) return;
-    Object.defineProperty(window, 'tse', { get: () => haut.tse, configurable: false });
-  } catch { /* autre origine, ou déjà posé : rien */ }
-})();
-
-/* LE RELEVÉ DES CHAÎNES SUIVIES, CÔTÉ CADRE (4.25.0.3, cf. module SUIVIES).
-   La page « Chaînes suivies » demande elle-même la liste, par pages, à
-   mesure qu'on la fait défiler : ses réponses `ChannelFollows` portent
-   `data.user.follows.edges[].node.login` et `pageInfo.hasNextPage`
-   (MESURÉ, troisième passe). Twitch ne la sert pas sans compte, et
-   l'extension n'envoie jamais le jeton : on lit les RÉPONSES que la page
-   reçoit — jamais un en-tête de ce qu'elle envoie.
-   Seulement dans NOTRE cadre, à son nom, sous une page de même origine. Le
-   bloc tourne à document_start, avant le premier script de Twitch : le fetch
-   qu'il enveloppe est celui que l'application trouvera. Il poste à la page,
-   réponse par réponse, les logins lus et ce que Twitch dit de la suite. */
+// Le relevé des chaînes suivies : sa frame, et la clé de ce qu'elle poste.
 const TSE_SUIVIES_FRAME_NAME = 'tse-suivies';
 const TSE_SUIVIES_MSG = 'tse:suivies';
-(() => {
-  'use strict';
-  try {
-    if (window.top === window) return;
-    if (window.name !== TSE_SUIVIES_FRAME_NAME) return;
-    if (window.top.location.origin !== location.origin) return;
-  } catch { return; }
-  const vrai = window.fetch;
-  if (typeof vrai !== 'function') return;
-  const poster = (x) => {
-    try { window.top.postMessage({ [TSE_SUIVIES_MSG]: x }, location.origin); } catch { /* page partie */ }
-  };
-  // Les opérations d'un lot, dans l'ordre : la réponse les rend dans le même.
-  const operations = (corps) => {
-    try { return [].concat(JSON.parse(corps)).map((o) => (o && o.operationName) || ''); }
-    catch { return []; }
-  };
-  const lire = (ops, json) => {
-    const reps = [].concat(json);
-    ops.forEach((nom, i) => {
-      if (nom !== 'ChannelFollows') return;
-      const f = reps[i]?.data?.user?.follows;
-      if (!f || !Array.isArray(f.edges)) { poster({ illisible: true }); return; }
-      poster({ logins: f.edges.map((e) => e?.node?.login).filter((l) => typeof l === 'string'),
-               suite: typeof f.pageInfo?.hasNextPage === 'boolean' ? f.pageInfo.hasNextPage : null });
-    });
-  };
-  window.fetch = function (...args) {
-    const p = vrai.apply(window, args);
-    try {
-      const [url, init] = args;
-      const ops = typeof init?.body === 'string' && String(url).includes('gql.twitch.tv')
-        ? operations(init.body) : [];
-      if (ops.includes('ChannelFollows')) {
-        p.then((rep) => rep.clone().json().then((json) => lire(ops, json)),
-               () => poster({ echec: true }))
-          .catch(() => poster({ illisible: true }));
-      }
-    } catch { /* jamais au détriment de la page */ }
-    return p;
-  };
-})();
 
 (() => {
   'use strict';
 
-  // Garde top-level : le code TSE n'a rien à faire dans une iframe
-  // (cf. en-tête d'adblock.js pour le pourquoi de all_frames: true).
+  // Garde top-level : le code TSE n'a rien à faire dans une iframe, et le
+  // manifeste ne l'y injecte pas (cf. l'en-tête de cadres.js) ; elle le redit.
   // Try/catch contre une SecurityError théorique sur frames cross-origin.
   try {
     if (window.top !== window) return;
@@ -5193,12 +4070,58 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       );
       border-radius: 4px;
     }
+    /* ── LA BARRE EST UN DÉCOR DEPUIS LA 4.25.0.9 ───────────────────────────
+       Elle était ce ::before, et son battement animait trois propriétés :
+       l'opacité, l'échelle — et la lueur, une ombre portée dont le rayon
+       croissait de 4 à 18 pixels. Les deux premières, le compositeur les
+       anime seul ; la troisième obligeait le navigateur à repeindre la barre
+       à chaque image, sur le fil principal, et entraînait les deux autres
+       avec elle : une animation qui touche une propriété non composée ne se
+       compose pas du tout.
+
+       La barre est désormais le décor .tse-frais-deco (cf. poserDecor), et
+       la lueur y est faite de QUATRE ÉTAGES FIXES — l'ombre de départ, celle
+       d'arrivée, et deux intermédiaires au tiers et aux deux tiers — dont
+       seules les opacités varient. Additionnés (plus-lighter, dans le groupe
+       isolé qu'est la barre), deux étages voisins valent à chaque instant le
+       mélange des deux : la lueur croît par fondu au lieu de croître par
+       rayon. MESURÉ contre l'ancienne barre, sur tout le battement : 6/255
+       d'écart au pire en sombre, 8 en clair. Deux étages seulement en
+       laissaient 18 et 23 — le rayon double, puis double encore, et un fondu
+       entre deux flous si différents se voit ; trois, 8 et 9 ; au-delà de
+       quatre, plus rien ne bouge : l'écart restant est celui du flou du
+       navigateur, qui avance par crans. Une seule colonne de pixels fait
+       exception, le BORD DROIT de la barre pendant qu'elle s'élargit : le
+       compositeur rééchantillonne un calque qu'il a peint une fois, là où
+       l'ancienne barre était repeinte à chaque largeur — jusqu'à 35/255 sur
+       ce bord, image figée ; rien ailleurs.
+
+       CHAQUE ÉTAGE PORTE LA BARRE ELLE-MÊME, pas seulement son ombre. Un
+       navigateur peint l'ombre d'une boîte opaque SOUS elle, sans la
+       découper : séparer la barre de sa lueur laissait, sur ses bords
+       anticrénelés, une couture de 31/255. Quatre barres pleines additionnées
+       à des poids de somme un font une barre pleine.
+
+       Ce pseudo-élément ne se peint donc plus sur une carte fraîche ; il
+       garde sa couleur, que le curseur de la salle lit sur lui. */
     .side-nav-card.tse-fresh::before {
       content: '';
       position: absolute;
       left: 0; top: 4px; bottom: 4px;
       width: 3px;
       background: var(--tse-frais);
+      border-radius: 0 3px 3px 0;
+      pointer-events: none;
+      z-index: 1;
+      display: none;
+    }
+    .side-nav-card.tse-fresh > .tse-frais-deco {
+      display: block;
+      position: absolute;
+      margin: 0;
+      padding: 0;
+      left: 0; top: 4px; bottom: 4px;
+      width: 3px;
       border-radius: 0 3px 3px 0;
       /* La barre s'élargit vers la DROITE, sur le dégradé de la carte, et non
          vers l'extérieur où elle mordrait sur la colonne voisine. */
@@ -5207,22 +4130,72 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       pointer-events: none;
       z-index: 1;
     }
-    /* LES DEUX ARRÊTS PORTENT LE MÊME NOMBRE DE COUCHES, et ce n'est pas une
-       symétrie d'esthète : une liste d'ombres ne s'interpole que couche à
-       couche. Un arrêt à une couche contre un arrêt à deux fait compléter la
-       plus courte par du transparent — le halo saute alors au lieu de croître,
-       et c'est la moitié du battement qui se perd. */
+    .side-nav-card > .tse-frais-deco > span {
+      display: block;
+      position: absolute;
+      inset: 0;
+      margin: 0;
+      padding: 0;
+      border-radius: inherit;
+      background: var(--tse-frais);
+      mix-blend-mode: plus-lighter;
+      animation: 1.4s linear infinite;
+    }
+    /* Le rayon de chaque étage est celui que l'ancien battement atteignait
+       au tiers de sa course : 4 + 14·p pixels, et 1 + 7·p pour le cœur. */
+    .side-nav-card > .tse-frais-deco > span:nth-child(1) {
+      box-shadow: 0 0 4px var(--tse-frais), 0 0 1px var(--tse-frais);
+      animation-name: tse-fresh-etage-1;
+    }
+    .side-nav-card > .tse-frais-deco > span:nth-child(2) {
+      box-shadow: 0 0 calc(4px + 14px / 3) var(--tse-frais), 0 0 calc(1px + 7px / 3) var(--tse-frais);
+      animation-name: tse-fresh-etage-2;
+    }
+    .side-nav-card > .tse-frais-deco > span:nth-child(3) {
+      box-shadow: 0 0 calc(4px + 28px / 3) var(--tse-frais), 0 0 calc(1px + 14px / 3) var(--tse-frais);
+      animation-name: tse-fresh-etage-3;
+    }
+    .side-nav-card > .tse-frais-deco > span:nth-child(4) {
+      box-shadow: 0 0 18px var(--tse-frais), 0 0 8px var(--tse-frais);
+      animation-name: tse-fresh-etage-4;
+    }
     @keyframes tse-fresh-pulse {
-      0%, 100% {
-        opacity: 0.3;
-        transform: scaleX(1);
-        box-shadow: 0 0 4px var(--tse-frais), 0 0 1px var(--tse-frais);
-      }
-      50% {
-        opacity: 1;
-        transform: scaleX(2);
-        box-shadow: 0 0 18px var(--tse-frais), 0 0 8px var(--tse-frais);
-      }
+      0%, 100% { opacity: 0.3; transform: scaleX(1); }
+      50%      { opacity: 1;   transform: scaleX(2); }
+    }
+    /* ── LES ÉTAGES SUIVENT LA COURBE DU BATTEMENT, AU MILLIONIÈME ─────────
+       Le battement avance selon cubic-bezier(0.4, 0, 0.6, 1) sur chaque
+       demi-cycle ; l'avancement p y passe par 1/3 et 2/3 à 19,8845 % et
+       30,1155 % du cycle (puis 69,8845 % et 80,1155 % au retour). Entre deux
+       de ces instants, chaque opacité doit varier comme p — c'est-à-dire
+       selon le MORCEAU de cette courbe qui les sépare. Un morceau de courbe
+       de Bézier est encore une courbe de Bézier (subdivision de
+       de Casteljau) : ce sont les trois courbes ci-dessous, ramenées à leur
+       carré unité. Arrondies à quatre décimales, elles suivent l'avancement
+       d'origine à 1,4·10⁻⁶ près. */
+    @keyframes tse-fresh-etage-1 {
+      0%                 { opacity: 1; animation-timing-function: cubic-bezier(0.3892, 0, 0.7031, 0.4492); }
+      19.8845%, 80.1155% { opacity: 0; animation-timing-function: cubic-bezier(0.2969, 0.5508, 0.6108, 1); }
+      100%               { opacity: 1; }
+    }
+    @keyframes tse-fresh-etage-2 {
+      0%                 { opacity: 0; animation-timing-function: cubic-bezier(0.3892, 0, 0.7031, 0.4492); }
+      19.8845%           { opacity: 1; animation-timing-function: cubic-bezier(0.3371, 0.3218, 0.6629, 0.6782); }
+      30.1155%, 69.8845% { opacity: 0; animation-timing-function: cubic-bezier(0.3371, 0.3218, 0.6629, 0.6782); }
+      80.1155%           { opacity: 1; animation-timing-function: cubic-bezier(0.2969, 0.5508, 0.6108, 1); }
+      100%               { opacity: 0; }
+    }
+    @keyframes tse-fresh-etage-3 {
+      0%, 19.8845%       { opacity: 0; animation-timing-function: cubic-bezier(0.3371, 0.3218, 0.6629, 0.6782); }
+      30.1155%           { opacity: 1; animation-timing-function: cubic-bezier(0.2969, 0.5508, 0.6108, 1); }
+      50%                { opacity: 0; animation-timing-function: cubic-bezier(0.3892, 0, 0.7031, 0.4492); }
+      69.8845%           { opacity: 1; animation-timing-function: cubic-bezier(0.3371, 0.3218, 0.6629, 0.6782); }
+      80.1155%, 100%     { opacity: 0; }
+    }
+    @keyframes tse-fresh-etage-4 {
+      0%, 30.1155%       { opacity: 0; animation-timing-function: cubic-bezier(0.2969, 0.5508, 0.6108, 1); }
+      50%                { opacity: 1; animation-timing-function: cubic-bezier(0.3892, 0, 0.7031, 0.4492); }
+      69.8845%, 100%     { opacity: 0; }
     }
 
     /* === Co-stream : même effet que "fresh" mais sans animation et avec
@@ -5285,6 +4258,17 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       border-bottom-right-radius: 0;
     }
     .side-nav-card.tse-costream.tse-costream-join-top::before {
+      top: var(--tse-costream-jt, -8px);
+      border-top-right-radius: 0;
+    }
+    /* La barre d'une carte fraîche ET en co-stream est le décor : elle se
+       joint à ses voisines comme le ::before qu'elle remplace. Ses étages
+       héritent des coins. */
+    .side-nav-card.tse-fresh.tse-costream.tse-costream-join-bottom > .tse-frais-deco {
+      bottom: var(--tse-costream-jb, -8px);
+      border-bottom-right-radius: 0;
+    }
+    .side-nav-card.tse-fresh.tse-costream.tse-costream-join-top > .tse-frais-deco {
       top: var(--tse-costream-jt, -8px);
       border-top-right-radius: 0;
     }
@@ -5402,7 +4386,15 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     }
     /* L'ANNEAU : la salle s'ouvre. Un quart d'encre fait le tour de la gélule
        jusqu'à ce que la salle soit prête — sa première tuile qui joue, trois
-       secondes au plus —, puis ▶ devient ■ avec un rebond. */
+       secondes au plus —, puis ▶ devient ■ avec un rebond.
+
+       IL RESTE ANIMÉ PAR UNE PROPRIÉTÉ ENREGISTRÉE, le seul du produit avec
+       le badge de l'aperçu, et c'est pesé (4.25.0.9). Il ne tourne que le
+       temps qu'une salle s'ouvre ; et son quart d'encre a des bords FRANCS,
+       que le navigateur peint crénelés : un disque tourné par le compositeur
+       les lisserait, et changerait ces pixels-là du tout au tout (216/255
+       mesurés). Le gain serait de trois secondes de travail, à l'ouverture
+       d'une salle ; la perte se verrait à chaque fois. */
     @property --tse-tour { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
     .tse-noeud__anneau {
       position: absolute; inset: 0; border-radius: inherit; padding: 1.5px; opacity: 0; pointer-events: none;
@@ -5542,48 +4534,95 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        l'unisson : chacune a sa position dans le cycle. Dérivée du login et
        non du rang, la phase ne bouge pas quand le tri réordonne la liste.
 
-       COÛT, MESURÉ. Une seule propriété animée par carte — la position des
-       couches de fond — plus le dégradé du nom. Relevé dans Chromium sur
-       trente cartes décorées, soit le double de ce qu'un compte ordinaire
-       affiche : 16,75 ms d'intervalle moyen entre images contre 16,76 ms sans
-       la décoration, et une image longue (> 20 ms) contre une. Autrement dit :
-       rien de mesurable. */
-    @property --tse-sub-angle {
-      syntax: '<angle>';
-      inherits: false;
-      initial-value: 0deg;
-    }
+       COÛT, MESURÉ — ET LA PREMIÈRE MESURE S'ÉTAIT TROMPÉE DE QUESTION. Elle
+       comptait l'intervalle entre deux images (16,75 ms contre 16,76 sans
+       décor) : une machine qui a de la marge tient sa cadence, même quand le
+       fil principal travaille pour rien. L'audit de la 4.25.0.8 a mesuré ce
+       travail : position de fond, ombres, angle d'un dégradé, reflet du nom,
+       tout était recalculé et repeint à chaque image — 295 ms de tâches par
+       seconde pour dix abonnés et trois directs frais.
+
+       DEPUIS LA 4.25.0.9, le décor n'anime plus que la transformation et
+       l'opacité de calques que le compositeur anime seul (cf. poserDecor), et
+       le reflet du nom est figé. Même page — dix abonnés, quatre directs
+       frais, un subathon, la roue du premier lancement —, durées de
+       production, cinq secondes, Chromium sans carte graphique : 221
+       recalculs de style et 3 044 ms de tâches avant, 18 recalculs et 124 ms
+       après, pour 13 et 35 sur la même page sans décor. La trace du
+       navigateur déclare chaque animation du décor prise par le compositeur
+       (cf. scénario 213). */
     .side-nav-card.tse-sub {
       position: relative;
       isolation: isolate;
       border-radius: 5px;
     }
-    /* LA LUEUR DE FOND. Quatre couches dans une seule propriété, chacune avec
-       sa taille et sa position propres — c'est ce qui permet de les faire
-       dériver à des vitesses différentes en n'animant qu'UNE propriété.
-       La première est le voile de balayage ; les trois autres sont les nappes.
-       Toutes très transparentes : on ajoute une lueur, on ne repeint pas la
-       carte. */
-    .side-nav-card.tse-sub::after {
-      content: '';
+    /* LA LUEUR DE FOND. Quatre couches : la première est le voile de
+       balayage, les trois autres sont les nappes. Toutes très transparentes :
+       on ajoute une lueur, on ne repeint pas la carte.
+
+       ── QUATRE CALQUES QUI GLISSENT, ET NON PLUS UN FOND QUI SE DÉCALE ─────
+       (4.25.0.9) Jusqu'à la 4.25.0.8, les quatre couches tenaient dans UNE
+       propriété du ::after, et l'animation faisait varier leurs positions —
+       une position de fond, que le navigateur repeint à chaque image sur le
+       fil principal, carte par carte. Chaque couche est désormais un calque
+       du décor (cf. poserDecor), de la taille qu'avait sa tuile, et c'est le
+       calque qui GLISSE : une translation, que le compositeur anime seul.
+
+       LA CORRESPONDANCE EST EXACTE, PAS APPROCHÉE. Une tuile de largeur s·W,
+       posée à x %, a son bord gauche à x·(W − s·W) ; une translation se
+       compte en pour-cent de la largeur du calque lui-même, s·W. La position
+       x devient donc la translation x·(1 − s)/s — c'est ce qu'écrit chaque
+       calc() ci-dessous, la formule en clair plutôt que sa valeur. Les
+       dégradés, eux, se dessinent dans la même boîte qu'avant : celle de la
+       tuile. Au rendu, l'écart tient sous 8/255 dans les deux thèmes : le
+       calque est peint une fois et déplacé au sous-pixel, le fond était
+       repeint à chaque position. */
+    .side-nav-card.tse-sub > .tse-lueur-deco {
+      display: block;
       position: absolute;
       inset: 0;
+      margin: 0;
+      padding: 0;
       z-index: -1;
       border-radius: 5px;
+      overflow: hidden;
       pointer-events: none;
-      background:
-        linear-gradient(102deg,
+    }
+    .side-nav-card > .tse-lueur-deco > span {
+      display: block;
+      position: absolute;
+      margin: 0;
+      padding: 0;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      background-repeat: no-repeat;
+      animation: 15s linear infinite;
+      animation-delay: calc(var(--tse-sub-phase, 0) * -1.25s);
+    }
+    .side-nav-card > .tse-lueur-deco > span:nth-child(1) {
+      width: 300%;
+      background-image: linear-gradient(102deg,
           rgba(var(--tse-encre), 0)     40%,
           rgba(255, 248, 224, 0.13)  48%,
           rgba(255, 220, 170, 0.07)  53%,
-          rgba(var(--tse-encre), 0)     61%),
-        radial-gradient(68% 190% at 14% 45%, rgba(255, 200, 104, 0.115), transparent 68%),
-        radial-gradient(58% 170% at 58% 72%, rgba(255, 146, 200, 0.095), transparent 70%),
-        radial-gradient(78% 210% at 88% 22%, rgba(190, 148, 255, 0.085), transparent 72%);
-      background-size: 300% 100%, 170% 100%, 200% 100%, 230% 100%;
-      background-repeat: no-repeat;
-      animation: tse-sub-lueur 15s linear infinite;
-      animation-delay: calc(var(--tse-sub-phase, 0) * -1.25s);
+          rgba(var(--tse-encre), 0)     61%);
+      animation-name: tse-lueur-voile;
+    }
+    .side-nav-card > .tse-lueur-deco > span:nth-child(2) {
+      width: 170%;
+      background-image: radial-gradient(68% 190% at 14% 45%, rgba(255, 200, 104, 0.115), transparent 68%);
+      animation-name: tse-lueur-nappe-1;
+    }
+    .side-nav-card > .tse-lueur-deco > span:nth-child(3) {
+      width: 200%;
+      background-image: radial-gradient(58% 170% at 58% 72%, rgba(255, 146, 200, 0.095), transparent 70%);
+      animation-name: tse-lueur-nappe-2;
+    }
+    .side-nav-card > .tse-lueur-deco > span:nth-child(4) {
+      width: 230%;
+      background-image: radial-gradient(78% 210% at 88% 22%, rgba(190, 148, 255, 0.085), transparent 72%);
+      animation-name: tse-lueur-nappe-3;
     }
     /* Le balayage traverse dans le premier quart du cycle puis reste hors
        cadre : il passe, il ne clignote pas. Les nappes, elles, dérivent sans
@@ -5612,13 +4651,32 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
 
        LE BALAYAGE, LUI, GARDE SON RETOUR SEC, et c'est voulu : à -110 % comme
        à 210 %, avec une image large de trois fois la carte, il est ENTIÈREMENT
-       hors cadre. Il ne se voit ni partir ni revenir. */
-    @keyframes tse-sub-lueur {
-      0%   { background-position: -110% 0,   0% 50%, 100% 50%,  40% 50%; }
-      25%  { background-position:  210% 0,  46% 50%,  62% 50%,  78% 50%; }
-      50%  { background-position:  210% 0,  84% 50%,  22% 50%,   8% 50%; }
-      75%  { background-position:  210% 0,  38% 50%,  74% 50%,  62% 50%; }
-      100% { background-position:  210% 0,   0% 50%, 100% 50%,  40% 50%; }
+       hors cadre. Il ne se voit ni partir ni revenir.
+
+       Les positions ci-dessous sont celles de ces lignes-là, inchangées, et
+       chaque calc() les convertit en translation par x·(1 − s)/s, s étant la
+       largeur du calque en cartes (3 ; 1,7 ; 2 ; 2,3). */
+    @keyframes tse-lueur-voile {
+      0%        { transform: translateX(calc(-110% * (1 - 3) / 3)); }
+      25%, 100% { transform: translateX(calc( 210% * (1 - 3) / 3)); }
+    }
+    @keyframes tse-lueur-nappe-1 {
+      0%, 100% { transform: translateX(calc(  0% * (1 - 1.7) / 1.7)); }
+      25%      { transform: translateX(calc( 46% * (1 - 1.7) / 1.7)); }
+      50%      { transform: translateX(calc( 84% * (1 - 1.7) / 1.7)); }
+      75%      { transform: translateX(calc( 38% * (1 - 1.7) / 1.7)); }
+    }
+    @keyframes tse-lueur-nappe-2 {
+      0%, 100% { transform: translateX(calc(100% * (1 - 2) / 2)); }
+      25%      { transform: translateX(calc( 62% * (1 - 2) / 2)); }
+      50%      { transform: translateX(calc( 22% * (1 - 2) / 2)); }
+      75%      { transform: translateX(calc( 74% * (1 - 2) / 2)); }
+    }
+    @keyframes tse-lueur-nappe-3 {
+      0%, 100% { transform: translateX(calc( 40% * (1 - 2.3) / 2.3)); }
+      25%      { transform: translateX(calc( 78% * (1 - 2.3) / 2.3)); }
+      50%      { transform: translateX(calc(  8% * (1 - 2.3) / 2.3)); }
+      75%      { transform: translateX(calc( 62% * (1 - 2.3) / 2.3)); }
     }
 
     /* LE TEXTE, EN OR. Un dégradé qui traverse les lettres elles-mêmes : la
@@ -5627,14 +4685,25 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        pas s'appliquer, le texte reste doré et lisible au lieu de disparaître.
 
        DEUX RANGS, ET ILS DOIVENT LE RESTER. Le nom est l'information ; la
-       catégorie l'accompagne. Le nom reçoit donc l'or vif, un reflet rapide
-       (7 s) et un halo qui respire ; la catégorie, un champagne plus sourd et
-       un reflet presque deux fois plus lent (11 s), sans halo. Leur donner le
-       même traitement aurait aplati la hiérarchie que Twitch installe par la
+       catégorie l'accompagne. Le nom reçoit donc l'or vif et un halo ; la
+       catégorie, un champagne plus sourd, sans halo. Leur donner le même
+       traitement aurait aplati la hiérarchie que Twitch installe par la
        taille et la couleur — et rendu la carte illisible d'un coup d'œil.
-       Les deux reflets ne défilent pas non plus en cadence : périodes
-       différentes ET décalages différents, sinon l'œil y verrait un seul bloc
-       qui glisse. */
+
+       FIGÉS DEPUIS LA 4.25.0.9, ET C'EST UNE DÉCISION. Un reflet défilait dans
+       les lettres (7 s pour le nom, 11 s pour la catégorie) et le halo du nom
+       respirait (5,5 s). Le reflet animait la position d'un fond, le halo un
+       filtre d'ombre : deux propriétés que le navigateur recalcule et
+       repeint sur le fil principal de la page, soixante fois par seconde et
+       par carte abonnée — l'audit de la 4.25.0.8 a chiffré les décorations à
+       295 ms de travail par seconde pour dix abonnés et trois directs frais.
+       Les autres décorations ont trouvé une forme que le compositeur anime
+       seul, au pixel près ou presque — les écarts mesurés sont écrits avec
+       chacune ; ces deux-là n'en ont pas — un dégradé découpé au texte ne se
+       déplace qu'en se repeignant. Elles gardent donc leur image
+       de départ : le reflet à l'origine du dégradé, le halo au milieu exact
+       de son ancien battement (la valeur que Chromium calculait à cet
+       instant, interpolation prémultipliée comprise). */
     .side-nav-card.tse-sub p.tse-nom {
       color: #ffd68a;
       font-weight: 700;
@@ -5662,10 +4731,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
            remplissage transparent, une ombre de texte se verrait AU TRAVERS
            des lettres, en double flou. Le filtre, lui, s'applique au résultat
            déjà découpé — il entoure les lettres au lieu de les traverser. */
-        animation: tse-sub-titre 7s linear infinite,
-                   tse-sub-halo 5.5s ease-in-out infinite;
-        animation-delay: calc(var(--tse-sub-phase, 0) * -0.58s),
-                         calc(var(--tse-sub-phase, 0) * -0.46s);
+        filter: drop-shadow(0 0 3.5px rgba(255, 214, 142, 0.375));
       }
       .side-nav-card.tse-sub .tse-sub-cat {
         background: linear-gradient(100deg,
@@ -5677,14 +4743,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         -webkit-background-clip: text;
         background-clip: text;
         -webkit-text-fill-color: transparent;
-        animation: tse-sub-titre 11s linear infinite;
-        animation-delay: calc(var(--tse-sub-phase, 0) * -0.91s);
       }
-    }
-    @keyframes tse-sub-titre { to { background-position: 300% 0; } }
-    @keyframes tse-sub-halo {
-      0%, 100% { filter: drop-shadow(0 0 2px rgba(255, 196,  92, 0.20)); }
-      50%      { filter: drop-shadow(0 0 5px rgba(255, 220, 160, 0.55)); }
     }
 
     /* L'AVATAR — seul élément qui subsiste en mode réduit, donc le seul qui
@@ -5759,8 +4818,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        dégradé sans lettres.
 
        Seule l'IMAGE change entre les thèmes. On ne pose donc qu'elle ; la
-       découpe, la taille (300 %) et la position animée restent celles des
-       règles du sombre. Le scénario 115 lit désormais la découpe calculée. */
+       découpe, la taille (300 %) et la position restent celles des règles du
+       sombre. Le scénario 115 lit désormais la découpe calculée. */
     @supports (-webkit-background-clip: text) or (background-clip: text) {
       html[data-tse-theme="light"] .side-nav-card.tse-sub p.tse-nom {
         background-image: linear-gradient(100deg,
@@ -5787,53 +4846,153 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     /* LA LUEUR DE FOND S'INVERSE AUSSI. Quatre nappes de blanc crème à 13 %
        sur du noir font une carte qui respire ; les mêmes sur du blanc ne font
        rien du tout, et la carte abonnée cesse de se distinguer. On repasse
-       donc sur des nappes SOMBRES et chaudes, à la même transparence. */
-    html[data-tse-theme="light"] .side-nav-card.tse-sub::after {
-      background:
-        linear-gradient(102deg,
+       donc sur des nappes SOMBRES et chaudes, à la même transparence.
+
+       ── CE QUE LE CLAIR FAIT VRAIMENT, ET QUE LES CALQUES REPRODUISENT ───
+       Jusqu'à la 4.25.0.8, cette règle était un raccourci « background: »
+       posé sur les quatre couches du sombre. Un raccourci remet à leur valeur
+       initiale tout ce qu'il ne nomme pas (cf. « L'IMAGE SEULE, JAMAIS LE
+       RACCOURCI », plus bas) : la répétition repassait à « repeat » et la
+       taille des trois nappes à « auto », soit la carte elle-même. Deux
+       conséquences, VISIBLES depuis la 4.11 :
+         — les nappes ne dérivaient plus : une tuile de la taille de la carte
+           se place au même endroit quelle que soit sa position ;
+         — le voile, répété toutes les trois largeurs de carte, défilait de
+           deux périodes et un peu plus en 3,75 s, puis RESTAIT, reflet fixe
+           sur la moitié gauche de la carte, pendant les 11,25 s suivantes,
+           et le cycle d'après le faisait repartir d'un saut.
+       La 4.25.0.9 ne change que la MANIÈRE de peindre, pas ce qui se voit :
+       les trois nappes sont fixes, à la taille de la carte, et le voile est
+       un calque de neuf largeurs, répété tous les trois, qui glisse du même
+       chemin que la tuile d'autrefois — décalé d'une période entière pour
+       couvrir la carte d'un bout à l'autre. */
+    html[data-tse-theme="light"] .tse-lueur-deco > span:nth-child(1) {
+      width: 900%;
+      background-image: linear-gradient(102deg,
           rgba(138, 89, 0, 0)     40%,
           rgba(138, 89, 0, 0.10)  48%,
-          rgba(138, 89, 0, 0)     56%) 0 0 / 300% 100%,
-        radial-gradient(60% 120% at 12% 50%, rgba(138, 89, 0, 0.10), transparent 70%),
-        radial-gradient(50% 100% at 52% 40%, rgba(156, 79, 107, 0.08), transparent 70%),
-        radial-gradient(70% 130% at 88% 60%, rgba(138, 89, 0, 0.09), transparent 70%);
+          rgba(138, 89, 0, 0)     56%);
+      background-size: calc(100% / 3) 100%;
+      background-repeat: repeat;
+      animation-name: tse-lueur-voile-clair;
     }
+    html[data-tse-theme="light"] .tse-lueur-deco > span:nth-child(n + 2) {
+      width: 100%;
+      animation: none;
+    }
+    html[data-tse-theme="light"] .tse-lueur-deco > span:nth-child(2) {
+      background-image: radial-gradient(60% 120% at 12% 50%, rgba(138, 89, 0, 0.10), transparent 70%);
+    }
+    html[data-tse-theme="light"] .tse-lueur-deco > span:nth-child(3) {
+      background-image: radial-gradient(50% 100% at 52% 40%, rgba(156, 79, 107, 0.08), transparent 70%);
+    }
+    html[data-tse-theme="light"] .tse-lueur-deco > span:nth-child(4) {
+      background-image: radial-gradient(70% 130% at 88% 60%, rgba(138, 89, 0, 0.09), transparent 70%);
+    }
+    /* La tuile d'autrefois avait son bord à x·(1 − 3)·W ; le calque part une
+       période (3 W) plus à gauche, et se compte en neuvièmes de lui-même. */
+    @keyframes tse-lueur-voile-clair {
+      0%        { transform: translateX(calc((-110% * (1 - 3) - 300%) / 9)); }
+      25%, 100% { transform: translateX(calc(( 210% * (1 - 3) - 300%) / 9)); }
+    }
+    /* ── LE SOUFFLE ET L'ANNEAU, PORTÉS PAR UN DÉCOR (4.25.0.9) ──────────────
+       Jusqu'à la 4.25.0.8, le halo était une ombre portée ANIMÉE sur l'avatar,
+       et l'anneau un ::after dont une propriété enregistrée (@property)
+       faisait tourner le départ des dégradés. Deux propriétés que le
+       navigateur repeint à chaque image, sur le fil principal de la page.
+
+       LES VOICI EN PIÈCES QUE LE COMPOSITEUR ANIME SEUL — opacité et
+       rotation, rien d'autre —, dans un décor que le script pose dans
+       l'avatar (cf. poserDecor) : un pseudo-élément ne peut pas avoir
+       d'enfants, et c'est d'enfants qu'il fallait.
+
+       LE SOUFFLE, ce sont les deux ombres EXTRÊMES du battement, fixes, l'une
+       sur l'autre ; seules leurs opacités varient, en sens contraire, sur la
+       même courbe que l'ancien battement. Additionnées (plus-lighter, dans un
+       groupe isolé), elles valent à chaque instant le mélange des deux.
+       L'ombre interpolée et ce fondu diffèrent de 6/255 au pire, mesurés
+       image par image ; ajouter des étages intermédiaires n'y change rien,
+       et c'est le signe que l'écart vient du flou du navigateur lui-même, qui
+       avance par crans d'un rayon au suivant.
+
+       L'ANNEAU, c'est un masque IMMOBILE sur un disque de dégradés qui
+       TOURNE. Un dégradé conique tourné de θ vaut le même dégradé parti de θ ;
+       mais tourner l'anneau entier — masque compris — fait rééchantillonner
+       ses bords, fins de deux pixels, et les émousse (72/255 mesurés sur ce
+       premier essai). Immobile, le masque reste net ; le disque, lui, n'a que
+       des dégradés doux à rééchantillonner. */
     .side-nav-card.tse-sub .tse-sub-avatar {
       position: relative;
       border-radius: 50%;
-      /* Le halo respire. C'est une ombre portée sur un disque de trente
-         pixels : le repeint tient dans un mouchoir de poche, et c'est ce qui
-         donne à l'anneau sa présence sans rien ajouter au mouvement déjà là. */
-      animation: tse-sub-souffle 4.2s ease-in-out infinite;
+      /* Le souffle se peint SOUS l'image, comme l'ombre portée qu'il
+         remplace : en z-index négatif, dans un contexte que l'avatar ouvre
+         lui-même — sans quoi il descendrait sous la lueur de fond de la
+         carte. */
+      isolation: isolate;
+    }
+    /* Un décor ne se montre que là où sa carte le demande : retiré en retard,
+       ou laissé par une carte que React a recyclée, il reste invisible. */
+    .tse-deco { display: none; }
+    /* LE SURVOL PROGRESSIF FOND LE FOND DE TOUS LES DESCENDANTS D'UNE CARTE
+       (« .side-nav-card * », plus haut), et un décor en est un — ce que le
+       pseudo-élément qu'il remplace n'était pas. Sans cette ligne, la barre
+       « frais » glissait en 300 ms vers le rouge mesuré au lieu de le prendre
+       d'un coup, sur le fil principal. Mesuré par le scénario 171. */
+    .side-nav-card .tse-deco, .side-nav-card .tse-deco *,
+    .side-nav-card .tse-subathon-teintes, .side-nav-card .tse-subathon-teintes * {
+      transition: none;
+    }
+    .side-nav-card.tse-sub .tse-sub-avatar > .tse-sub-deco {
+      display: block;
+      position: absolute;
+      inset: 0;
+      margin: 0;
+      padding: 0;
+      border-radius: 50%;
+      pointer-events: none;
+    }
+    .tse-sub-deco > .tse-sub-deco__souffle {
+      display: block;
+      position: absolute;
+      inset: 0;
+      margin: 0;
+      padding: 0;
+      border-radius: inherit;
+      z-index: -1;
+    }
+    .tse-sub-deco > .tse-sub-deco__souffle > span {
+      display: block;
+      position: absolute;
+      inset: 0;
+      margin: 0;
+      padding: 0;
+      border-radius: inherit;
+      mix-blend-mode: plus-lighter;
+      animation: tse-sub-souffle-creux 4.2s ease-in-out infinite;
       animation-delay: calc(var(--tse-sub-phase, 0) * -0.35s);
     }
-    @keyframes tse-sub-souffle {
-      0%, 100% { box-shadow: 0 0 5px color-mix(in srgb, var(--tse-sub-or) 30%, transparent); }
-      50%      { box-shadow: 0 0 11px color-mix(in srgb, var(--tse-sub-or) 62%, transparent); }
+    .tse-sub-deco > .tse-sub-deco__souffle > span:first-child {
+      box-shadow: 0 0 5px color-mix(in srgb, var(--tse-sub-or) 30%, transparent);
     }
-    .side-nav-card.tse-sub .tse-sub-avatar::after {
-      content: '';
+    .tse-sub-deco > .tse-sub-deco__souffle > span:last-child {
+      box-shadow: 0 0 11px color-mix(in srgb, var(--tse-sub-or) 62%, transparent);
+      animation-name: tse-sub-souffle-plein;
+    }
+    @keyframes tse-sub-souffle-creux { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+    @keyframes tse-sub-souffle-plein { 0%, 100% { opacity: 0; } 50% { opacity: 1; } }
+    .tse-sub-deco > .tse-sub-deco__anneau {
+      display: block;
       position: absolute;
       inset: -2.5px;
+      margin: 0;
       box-sizing: border-box;
       border-radius: 50%;
       padding: 2px;
-      background:
-        /* L'éclat qui court, blanc quelle que soit la teinte : c'est un
-           reflet, pas une couleur. */
-        conic-gradient(from var(--tse-sub-angle),
-          rgba(255, 255, 255, 0)      0deg,
-          rgba(255, 255, 255, 1)     22deg,
-          color-mix(in srgb, var(--tse-sub-clair) 70%, transparent)  44deg,
-          rgba(255, 255, 255, 0)     80deg,
-          rgba(255, 255, 255, 0)    360deg),
-        /* Le métal, dans la teinte de l'origine. */
-        conic-gradient(from var(--tse-sub-angle),
-          color-mix(in srgb, var(--tse-sub-or)    62%, transparent)    0deg,
-          color-mix(in srgb, var(--tse-sub-clair) 80%, transparent)   90deg,
-          color-mix(in srgb, var(--tse-sub-or)    58%, transparent)  180deg,
-          color-mix(in srgb, var(--tse-sub-clair) 80%, transparent)  270deg,
-          color-mix(in srgb, var(--tse-sub-or)    62%, transparent)  360deg);
+      /* Le disque qui tourne est carré : ses coins sortent du cercle, et
+         c'est le cercle immobile qui les rogne — un rognage arrondi, que le
+         compositeur applique en dernier, comme le navigateur rognait l'ancien
+         fond à sa bordure. */
+      overflow: hidden;
       /* Deux masques, l'un sur la boîte de contenu, l'autre sur la boîte
          entière ; leur DIFFÉRENCE ne laisse que l'anneau du padding. C'est ce
          qui fait un dégradé conique en bordure, chose qu'aucune propriété
@@ -5842,11 +5001,40 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       -webkit-mask-composite: xor;
       mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
       mask-composite: exclude;
+    }
+    /* LE DISQUE DÉBORDE DE DEUX PIXELS, et c'est mesuré. Un dégradé conique
+       ne dépend que de son centre, pas de sa boîte : l'agrandir autour du
+       même centre ne change rien à ce qu'il peint. Mais le BORD d'un calque
+       tourné se rééchantillonne, et à la taille exacte de l'anneau ce bord
+       touchait le cercle en quatre points tournants, qu'il assombrissait :
+       32/255 d'écart avec l'ancien anneau. Deux pixels plus loin, le bord ne
+       touche plus rien, et l'écart tombe à 7/255 à tous les angles. */
+    .tse-sub-deco > .tse-sub-deco__anneau > span {
+      display: block;
+      position: absolute;
+      inset: -2px;
+      margin: 0;
+      padding: 0;
+      background:
+        /* L'éclat qui court, blanc quelle que soit la teinte : c'est un
+           reflet, pas une couleur. */
+        conic-gradient(
+          rgba(255, 255, 255, 0)      0deg,
+          rgba(255, 255, 255, 1)     22deg,
+          color-mix(in srgb, var(--tse-sub-clair) 70%, transparent)  44deg,
+          rgba(255, 255, 255, 0)     80deg,
+          rgba(255, 255, 255, 0)    360deg),
+        /* Le métal, dans la teinte de l'origine. */
+        conic-gradient(
+          color-mix(in srgb, var(--tse-sub-or)    62%, transparent)    0deg,
+          color-mix(in srgb, var(--tse-sub-clair) 80%, transparent)   90deg,
+          color-mix(in srgb, var(--tse-sub-or)    58%, transparent)  180deg,
+          color-mix(in srgb, var(--tse-sub-clair) 80%, transparent)  270deg,
+          color-mix(in srgb, var(--tse-sub-or)    62%, transparent)  360deg);
       animation: tse-sub-turn 5s linear infinite;
       animation-delay: calc(var(--tse-sub-phase, 0) * -0.42s);
-      pointer-events: none;
     }
-    @keyframes tse-sub-turn { to { --tse-sub-angle: 360deg; } }
+    @keyframes tse-sub-turn { to { transform: rotate(360deg); } }
 
     /* ══ L'ARC-EN-CIEL DU SUBATHON ═════════════════════════════════════
        Un subathon est un événement exceptionnel : il se signale par une
@@ -5888,18 +5076,43 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        net, la 4.9 l'a ralenti faute de mieux, et la 4.14 a retiré le bloc
        entier sur demande : la sortie est désormais dans les réglages du
        panneau, qui éteignent chaque décoration une par une. La marge de ce
-       critère-ci ne dépend donc plus que de l'AIRE, ci-dessus. */
-    @keyframes tse-subathon-teinte {
-      0% { color: #ff8f8f; }
-      12.5% { color: #ffe38f; }
-      25% { color: #c7ff8f; }
-      37.5% { color: #8fffb4; }
-      50% { color: #8ffdff; }
-      62.5% { color: #8fabff; }
-      75% { color: #c78fff; }
-      87.5% { color: #ff8fe3; }
-      100% { color: #ff8f8f; }
-    }
+       critère-ci ne dépend donc plus que de l'AIRE, ci-dessus.
+
+       ── LA PASTILLE NE CHANGE PLUS DE COULEUR : ELLE CHANGE DE COPIE ──────
+       (4.25.0.9) Sa couleur était animée — une propriété que le navigateur
+       recalcule et repeint à chaque image, carte de subathon par carte de
+       subathon, aussi longtemps qu'elle est à l'écran, c'est-à-dire des
+       jours. Elle porte désormais HUIT COPIES d'elle-même, une par arrêt,
+       chacune de sa couleur fixe (cf. .tse-subathon-teintes) ; seules leurs
+       opacités varient, deux voisines à la fois, en sens contraire. Additionnées
+       (plus-lighter, dans un groupe isolé), deux copies de la même lettre
+       valent exactement cette lettre dans le mélange des deux couleurs — le
+       mélange même que le navigateur interpolait, en sRGB. Tout ce qui est
+       dit plus haut du chemin, de ses contrastes et de son rythme vaut donc
+       à l'identique. Mesuré image par image contre l'ancienne : 6/255 au pire.
+
+       LE BADGE DE L'APERÇU, LUI, GARDE SON ANIMATION, et c'est un choix : il
+       ne vit que le temps d'un survol, à côté d'une vidéo qui joue, et ses
+       copies devraient porter un fond en plus du texte. Le gain y serait nul,
+       le risque non. */
+    .tse-subathon-jour > .tse-subathon-teintes > span:nth-child(1) { color: #ff8f8f; animation-name: tse-subathon-copie-1; }
+    .tse-subathon-jour > .tse-subathon-teintes > span:nth-child(2) { color: #ffe38f; animation-name: tse-subathon-copie-2; }
+    .tse-subathon-jour > .tse-subathon-teintes > span:nth-child(3) { color: #c7ff8f; animation-name: tse-subathon-copie-3; }
+    .tse-subathon-jour > .tse-subathon-teintes > span:nth-child(4) { color: #8fffb4; animation-name: tse-subathon-copie-4; }
+    .tse-subathon-jour > .tse-subathon-teintes > span:nth-child(5) { color: #8ffdff; animation-name: tse-subathon-copie-5; }
+    .tse-subathon-jour > .tse-subathon-teintes > span:nth-child(6) { color: #8fabff; animation-name: tse-subathon-copie-6; }
+    .tse-subathon-jour > .tse-subathon-teintes > span:nth-child(7) { color: #c78fff; animation-name: tse-subathon-copie-7; }
+    .tse-subathon-jour > .tse-subathon-teintes > span:nth-child(8) { color: #ff8fe3; animation-name: tse-subathon-copie-8; }
+    /* Chaque copie culmine à son arrêt et s'éteint aux deux voisins : un
+       fondu linéaire, comme l'interpolation qu'il remplace. */
+    @keyframes tse-subathon-copie-1 { 0%, 100% { opacity: 1; } 12.5%, 87.5% { opacity: 0; } }
+    @keyframes tse-subathon-copie-2 { 0%, 25%, 100% { opacity: 0; } 12.5% { opacity: 1; } }
+    @keyframes tse-subathon-copie-3 { 0%, 12.5%, 37.5%, 100% { opacity: 0; } 25% { opacity: 1; } }
+    @keyframes tse-subathon-copie-4 { 0%, 25%, 50%, 100% { opacity: 0; } 37.5% { opacity: 1; } }
+    @keyframes tse-subathon-copie-5 { 0%, 37.5%, 62.5%, 100% { opacity: 0; } 50% { opacity: 1; } }
+    @keyframes tse-subathon-copie-6 { 0%, 50%, 75%, 100% { opacity: 0; } 62.5% { opacity: 1; } }
+    @keyframes tse-subathon-copie-7 { 0%, 62.5%, 87.5%, 100% { opacity: 0; } 75% { opacity: 1; } }
+    @keyframes tse-subathon-copie-8 { 0%, 75%, 100% { opacity: 0; } 87.5% { opacity: 1; } }
     @keyframes tse-subathon-badge {
       0% { color: #ff8f8f; background-color: rgba(214, 0, 0, 0.24); }
       12.5% { color: #ffe38f; background-color: rgba(255, 230, 154, 0.24); }
@@ -5996,30 +5209,18 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       font-size: 10px;
       font-weight: 600;
       line-height: 1;
-      /* LA COULEUR EST POSÉE EN DUR, et il le faut : sur une carte d'abonné le
-         pseudo passe en « color: transparent » pour laisser voir son or, et
-         cette transparence-là descendrait jusqu'ici — contour compris, puisque
-         celui-ci se peint en « currentColor ».
+      /* LA PASTILLE NE SE PEINT PLUS ELLE-MÊME (4.25.0.9) : ses huit copies le
+         font, par-dessus (cf. .tse-subathon-teintes). Elle garde son texte —
+         c'est lui qui la dimensionne, et lui qu'un lecteur d'écran lit — et
+         son contour, qui compte dans sa taille ; les deux se peignent en
+         transparent.
 
-         LA VALEUR ÉCRITE ICI EST CELLE DU REPOS, et elle n'est pas prise au
-         hasard : c'est le cyan que le calcul des badges désignait avant que
-         l'arc-en-ciel ne les traverse tous — le seul créneau de teinte encore
-         libre (181°, à 34° du sponsor et 35° du co-stream), au contraste de la
-         famille. Elle sert quand le mouvement est refusé, et c'est la seule
-         couleur que verront alors ces utilisateurs : elle méritait d'être
-         choisie, pas tirée au sort. Contraste mesuré sur les trois fonds que
-         la carte prend : 14,26:1 sur la sidebar, 13,22:1 au survol, 15,53:1
-         dans le panneau. */
-      color: #83f9fb;
-      /* L'ARC-EN-CIEL. La pastille ne porte que la teinte : son contour se
-         peint en « currentColor », et suit donc sans qu'on l'anime deux fois.
-
-         MÊME DURÉE QUE LE BADGE, ET CE N'EST PAS UN DÉTAIL : les deux sont
-         visibles EN MÊME TEMPS dès qu'on survole une carte de subathon. Deux
-         cycles de durées différentes se décaleraient en quelques secondes, et
-         deux surfaces qui montrent la même chose de deux couleurs à la fois se
-         lisent comme deux choses. */
-      animation: tse-subathon-teinte 1.5s linear infinite;
+         UNE COULEUR « DE REPOS » ÉTAIT POSÉE ICI, un cyan (#83f9fb) choisi par
+         le calcul des badges pour ceux qui refusaient le mouvement. Depuis que
+         la 4.14 a cessé de le leur refuser, l'arc-en-ciel tournait pour tout le
+         monde et ce cyan ne se voyait jamais. Ce qui le remplace, quand rien
+         ne s'anime, est l'image de départ du cycle (cf. plus bas). */
+      color: transparent;
       background: none;
       /* PAS DE « vertical-align », ET CE N'EST PAS UN OUBLI. La valeur demandée
          était « center », qui n'existe pas en CSS — le navigateur écarte la
@@ -6029,6 +5230,81 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
          le titre qui centre la pastille sur le nom. Écrire la propriété inerte
          à côté ferait croire qu'elle travaille. */
     }
+    /* L'ARC-EN-CIEL, EN HUIT COPIES (cf. « LA PASTILLE NE CHANGE PLUS DE
+       COULEUR », plus haut). La pastille garde son texte — c'est lui qui la
+       dimensionne, et lui qu'un lecteur d'écran lit — mais ne le peint plus,
+       ni son contour : ses huit copies le font par-dessus, au pixel près,
+       chacune avec le même contour, le même retrait et le même texte, tiré de
+       l'attribut que le script recopie (cf. poserTeintes). Une copie par
+       pseudo-élément plutôt que par texte : le texte de la pastille reste
+       « J9 », et non huit fois « J9 ».
+
+       MÊME DURÉE QUE LE BADGE, ET CE N'EST PAS UN DÉTAIL : les deux sont
+       visibles EN MÊME TEMPS dès qu'on survole une carte de subathon. Deux
+       cycles de durées différentes se décaleraient en quelques secondes, et
+       deux surfaces qui montrent la même chose de deux couleurs à la fois se
+       lisent comme deux choses. */
+    /* LE TEXTE DES COPIES HÉRITE DE SON REMPLISSAGE, et c'est ce qui le garde
+       juste. Sur une carte d'abonné, le pseudo est peint par un dégradé
+       découpé au texte, avec un remplissage TRANSPARENT dont la pastille
+       hérite : son texte y montrait l'or du pseudo, et seul son contour
+       parcourait l'arc-en-ciel. Les copies héritent du même remplissage — sur
+       une carte d'abonné, elles ne peignent donc que leur contour, et le texte
+       reste d'or, comme avant ; ailleurs, le remplissage est leur couleur.
+
+       LES SÉLECTEURS PORTENT DEUX CLASSES ET DES VALEURS EXPLICITES, pour la
+       raison dite plus haut : une règle de l'hôte comme « .quelqueChose span
+       { line-height: 16px } » bat un sélecteur d'une classe, et décalait le
+       texte des copies de trois pixels sous celui de la pastille — mesuré sur
+       le décor du banc, qui porte exactement cette règle. */
+    .side-nav-card[data-tse-subathon-day] .tse-subathon-jour:has(> .tse-subathon-teintes) {
+      display: inline-grid;
+    }
+    /* UNE SEULE CASE, ET RIEN DE POSITIONNÉ : le libellé et ses copies s'y
+       superposent. Une pastille positionnée — c'était le premier essai —
+       devient un calque à part, que le dégradé découpé au texte du pseudo
+       n'inclut plus : sur une carte d'abonné, « J9 » perdait son or. */
+    .tse-subathon-jour > .tse-subathon-libelle {
+      display: block;
+      grid-area: 1 / 1;
+      margin: 0;
+      padding: 0;
+      font: inherit;
+      letter-spacing: inherit;
+      white-space: nowrap;
+    }
+    .tse-subathon-teintes { display: none; }
+    .side-nav-card[data-tse-subathon-day] .tse-subathon-jour > .tse-subathon-teintes {
+      display: grid;
+      grid-area: 1 / 1;
+      margin: -2px -5px;
+      padding: 0;
+      font: inherit;
+      letter-spacing: inherit;
+      border-radius: inherit;
+      isolation: isolate;
+      pointer-events: none;
+    }
+    .tse-subathon-jour > .tse-subathon-teintes > span {
+      display: block;
+      grid-area: 1 / 1;
+      box-sizing: border-box;
+      margin: 0;
+      padding: 1px 4px;
+      border: 1px solid currentColor;
+      border-radius: inherit;
+      font: inherit;
+      letter-spacing: inherit;
+      text-align: left;
+      white-space: nowrap;
+      mix-blend-mode: plus-lighter;
+      /* Sans animation, l'image de départ — la première copie seule —, et
+         non la somme des huit, qui saturerait au blanc. */
+      opacity: 0;
+      animation: 1.5s linear infinite;
+    }
+    .tse-subathon-jour > .tse-subathon-teintes > span:first-child { opacity: 1; }
+    .tse-subathon-jour > .tse-subathon-teintes > span::before { content: attr(data-t); }
 
     /* ── PAS DE BLOC « prefers-reduced-motion » : C'EST UNE DEMANDE, ET ELLE
        EST MOTIVÉE. Cent cinquante lignes vivaient ici, qui arrêtaient ou
@@ -6521,15 +5797,116 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
 
        LE HALO EST UNE OMBRE, PAS UNE BORDURE : une bordure qui grossit décale
        ce qu'il y a autour à chaque battement, et le titre se mettrait à
-       tressauter à côté. */
+       tressauter à côté.
+
+       ── ET L'OMBRE EST DEVENUE SEPT COQUES (4.25.0.9) ─────────────────────
+       Elle était animée : un étalement de 0 à 7 pixels, que le navigateur
+       repeignait à chaque image sur le fil principal, et qui empêchait
+       l'échelle, animée avec elle, de passer au compositeur. Une ombre
+       étalée n'est qu'une boîte arrondie agrandie ; on la compose donc de
+       sept boîtes PLEINES, emboîtées, chacune un pixel plus grande que la
+       précédente (cf. .tse-roue-halo), qui se révèlent l'une après l'autre
+       pendant que l'étalement les traverse — de 0 à 1 à mesure qu'il passe
+       de k à k + 1 pixels. Un bord qui avance d'une fraction de pixel ne
+       fait pas autre chose : couvrir cette fraction du pixel suivant. La
+       transparence, elle, est celle du groupe entier.
+       LES RAYONS SONT CEUX DU NAVIGATEUR, MESURÉS : au-delà de quatre pixels
+       d'étalement, le coin d'une ombre ne croît plus du même pas que
+       l'étalement (formule de la spécification, que Chromium applique — à
+       un pixel près contre 135/255 pour le rayon « naïf »).
+       CE QUI DIFFÈRE ENCORE, MESURÉ : la ligne de pixels du bord, pendant que
+       le bouton grandit — le compositeur agrandit un calque peint une fois,
+       là où l'ancien bouton était repeint à chaque taille (jusqu'à 75/255 sur
+       ce bord, image figée) ; et le halo à son tout début, quand l'étalement
+       ne fait qu'une fraction de pixel et que le bouton n'est pas aligné sur
+       la grille des pixels (45/255 sur quelques pixels du liseré). */
     .tse-roue[data-tse-neuf] {
       color: #fff;
       background: ${CFG.PURPLE};
       animation: tse-roue-bat 1.6s ease-in-out infinite;
     }
+    /* L'anneau de focus, une ombre lui aussi, était RECOUVERT par l'ombre
+       animée tant que la roue battait — une animation l'emporte sur une
+       règle. Le halo n'étant plus une ombre, on le retire explicitement,
+       sans quoi il réapparaîtrait sur le bouton qui bat. */
+    .tse-roue[data-tse-neuf]:focus-visible { box-shadow: none; }
     @keyframes tse-roue-bat {
-      0%, 100% { transform: scale(1);    box-shadow: 0 0 0 0 rgba(145, 71, 255, 0.55); }
-      50%      { transform: scale(1.18); box-shadow: 0 0 0 7px rgba(145, 71, 255, 0); }
+      0%, 100% { transform: scale(1); }
+      50%      { transform: scale(1.18); }
+    }
+    .tse-roue-halo { display: none; }
+    /* Sous le contenu du bouton, au-dessus de son fond : le fond est du même
+       violet que le halo, qui ne se voit donc qu'au-dehors — comme l'ombre,
+       qui se peignait dessous. */
+    .tse-roue[data-tse-neuf] > .tse-roue-halo {
+      display: block;
+      position: absolute;
+      inset: 0;
+      margin: 0;
+      padding: 0;
+      z-index: -1;
+      pointer-events: none;
+      animation: tse-roue-halo 1.6s ease-in-out infinite;
+    }
+    @keyframes tse-roue-halo {
+      0%, 100% { opacity: 0.55; }
+      50%      { opacity: 0; }
+    }
+    .tse-roue > .tse-roue-halo > span {
+      display: block;
+      position: absolute;
+      margin: 0;
+      padding: 0;
+      background: ${CFG.PURPLE};
+      animation: 1.6s linear infinite;
+    }
+    .tse-roue > .tse-roue-halo > span:nth-child(1) { inset: -1px; border-radius: 5px;      animation-name: tse-roue-coque-1; }
+    .tse-roue > .tse-roue-halo > span:nth-child(2) { inset: -2px; border-radius: 6px;      animation-name: tse-roue-coque-2; }
+    .tse-roue > .tse-roue-halo > span:nth-child(3) { inset: -3px; border-radius: 7px;      animation-name: tse-roue-coque-3; }
+    .tse-roue > .tse-roue-halo > span:nth-child(4) { inset: -4px; border-radius: 8px;      animation-name: tse-roue-coque-4; }
+    .tse-roue > .tse-roue-halo > span:nth-child(5) { inset: -5px; border-radius: 8.96px;   animation-name: tse-roue-coque-5; }
+    .tse-roue > .tse-roue-halo > span:nth-child(6) { inset: -6px; border-radius: 9.7778px; animation-name: tse-roue-coque-6; }
+    .tse-roue > .tse-roue-halo > span:nth-child(7) { inset: -7px; border-radius: 10.449px; animation-name: tse-roue-coque-7; }
+    /* L'étalement avance selon ease-in-out sur chaque demi-cycle : il passe
+       le pixel k à l'instant où l'avancement vaut k/7, et chaque coque se
+       révèle sur le MORCEAU de cette courbe qui sépare deux de ces instants
+       — un morceau de courbe de Bézier, ramené à son carré unité (même
+       construction que les étages de la barre « frais », plus haut). À
+       quatre décimales, l'avancement d'origine est suivi à 3,4·10⁻⁶ près. */
+    @keyframes tse-roue-coque-1 {
+      0%                 { opacity: 0; animation-timing-function: cubic-bezier(0.3805, 0, 0.7049, 0.3962); }
+      13.1304%, 86.8696% { opacity: 1; animation-timing-function: cubic-bezier(0.2951, 0.6038, 0.6195, 1); }
+      100%               { opacity: 0; }
+    }
+    @keyframes tse-roue-coque-2 {
+      0%, 13.1304%       { opacity: 0; animation-timing-function: cubic-bezier(0.3476, 0.2919, 0.6785, 0.6323); }
+      18.5183%, 81.4817% { opacity: 1; animation-timing-function: cubic-bezier(0.3215, 0.3677, 0.6524, 0.7081); }
+      86.8696%, 100%     { opacity: 0; }
+    }
+    @keyframes tse-roue-coque-3 {
+      0%, 18.5183%       { opacity: 0; animation-timing-function: cubic-bezier(0.34, 0.3176, 0.6714, 0.6555); }
+      22.9194%, 77.0806% { opacity: 1; animation-timing-function: cubic-bezier(0.3286, 0.3445, 0.66, 0.6824); }
+      81.4817%, 100%     { opacity: 0; }
+    }
+    @keyframes tse-roue-coque-4 {
+      0%, 22.9194%       { opacity: 0; animation-timing-function: cubic-bezier(0.3342, 0.3313, 0.6658, 0.6687); }
+      27.0806%, 72.9194% { opacity: 1; animation-timing-function: cubic-bezier(0.3342, 0.3313, 0.6658, 0.6687); }
+      77.0806%, 100%     { opacity: 0; }
+    }
+    @keyframes tse-roue-coque-5 {
+      0%, 27.0806%       { opacity: 0; animation-timing-function: cubic-bezier(0.3286, 0.3445, 0.66, 0.6824); }
+      31.4817%, 68.5183% { opacity: 1; animation-timing-function: cubic-bezier(0.34, 0.3176, 0.6714, 0.6555); }
+      72.9194%, 100%     { opacity: 0; }
+    }
+    @keyframes tse-roue-coque-6 {
+      0%, 31.4817%       { opacity: 0; animation-timing-function: cubic-bezier(0.3215, 0.3677, 0.6524, 0.7081); }
+      36.8696%, 63.1304% { opacity: 1; animation-timing-function: cubic-bezier(0.3476, 0.2919, 0.6785, 0.6323); }
+      68.5183%, 100%     { opacity: 0; }
+    }
+    @keyframes tse-roue-coque-7 {
+      0%, 36.8696%       { opacity: 0; animation-timing-function: cubic-bezier(0.2951, 0.6038, 0.6195, 1); }
+      50%                { opacity: 1; animation-timing-function: cubic-bezier(0.3805, 0, 0.7049, 0.3962); }
+      63.1304%, 100%     { opacity: 0; }
     }
     /* ── LA BULLE ──────────────────────────────────────────────────────────
        ELLE EST EN POSITION FIXE, SUR LE CORPS DU DOCUMENT, et c'est ce qui
@@ -6945,13 +6322,10 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     /* L'ARC-EN-CIEL A DEUX JEUX DE TEINTES, et il le faut : les huit couleurs
        du cycle sombre sont PÂLES — elles sont faites pour briller sur du noir
        — et s'évanouissent sur un panneau clair. Le cycle clair parcourt les
-       mêmes huit teintes, à clarté opposée. La couleur de REPOS suit : c'est
-       elle que voient ceux qui refusent le mouvement, et elle ne peut pas
-       rester le cyan pâle du thème sombre. */
-    html[data-tse-theme="light"] .side-nav-card[data-tse-subathon-day] .tse-subathon-jour {
-      color: #00686b;
-      animation-name: tse-subathon-clair;
-    }
+       mêmes huit teintes, à clarté opposée. La couleur de REPOS du badge suit,
+       et ne peut pas rester le cyan pâle du thème sombre. (La pastille n'en a
+       plus depuis la 4.25.0.9 : ce sont ses copies qui se peignent, cf. plus
+       bas.) */
     /* LE BADGE CYCLE AUSSI SON FOND, la pastille non — celle-ci est CREUSE,
        son contour se peint en currentColor. Deux animations, donc, et non une
        seule recopiée : donner au badge le cycle de la pastille lui ferait
@@ -6983,18 +6357,16 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        CARTE — elle est creuse — et non sur un fond teinté. Les contrastes y
        sont donc meilleurs qu'au badge ; on garde néanmoins les mêmes valeurs,
        parce que deux surfaces qui montrent la même chose de deux couleurs à la
-       fois se lisent comme deux choses. */
-    @keyframes tse-subathon-clair {
-      0%   { color: #ad0000; }
-      12.5%{ color: #7a5e00; }
-      25%  { color: #496b00; }
-      37.5%{ color: #006b3b; }
-      50%  { color: #00686b; }
-      62.5%{ color: #2047cb; }
-      75%  { color: #7320cb; }
-      87.5%{ color: #a3007a; }
-      100% { color: #ad0000; }
-    }
+       fois se lisent comme deux choses. Ce sont les couleurs de ses huit
+       copies, les images-clés restant celles du sombre. */
+    html[data-tse-theme="light"] .tse-subathon-jour > .tse-subathon-teintes > span:nth-child(1) { color: #ad0000; }
+    html[data-tse-theme="light"] .tse-subathon-jour > .tse-subathon-teintes > span:nth-child(2) { color: #7a5e00; }
+    html[data-tse-theme="light"] .tse-subathon-jour > .tse-subathon-teintes > span:nth-child(3) { color: #496b00; }
+    html[data-tse-theme="light"] .tse-subathon-jour > .tse-subathon-teintes > span:nth-child(4) { color: #006b3b; }
+    html[data-tse-theme="light"] .tse-subathon-jour > .tse-subathon-teintes > span:nth-child(5) { color: #00686b; }
+    html[data-tse-theme="light"] .tse-subathon-jour > .tse-subathon-teintes > span:nth-child(6) { color: #2047cb; }
+    html[data-tse-theme="light"] .tse-subathon-jour > .tse-subathon-teintes > span:nth-child(7) { color: #7320cb; }
+    html[data-tse-theme="light"] .tse-subathon-jour > .tse-subathon-teintes > span:nth-child(8) { color: #a3007a; }
     /* Les pictogrammes d'avertissement. line-height: 1 les empêche de
        rehausser le badge : un emoji dépasse sa boîte em, et sans cela la
        pastille grandissait d'un pixel ou deux par rapport aux autres. */
@@ -7460,7 +6832,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        éléments partent, pas seulement la barre. Le dégradé du co-stream frais
        est écrit séparément (background-image contre background), d'où les
        deux déclarations : neutraliser l'une laissait l'autre en place. */
-    html[data-tse-off~="fresh"] .side-nav-card.tse-fresh::before { display: none !important; }
+    html[data-tse-off~="fresh"] .side-nav-card.tse-fresh > .tse-frais-deco { display: none !important; }
     html[data-tse-off~="fresh"] .side-nav-card.tse-fresh,
     html[data-tse-off~="fresh"] .side-nav-card.tse-fresh.tse-costream {
       background: none !important;
@@ -7549,15 +6921,19 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        fond donnerait un pseudo invisible — d'où le rétablissement explicite
        de « -webkit-text-fill-color ». C'est le genre de détail qu'un
        interrupteur mal écrit transforme en carte illisible. */
-    html[data-tse-or="discret"] .side-nav-card.tse-sub::after,
-    html[data-tse-or="aucun"]   .side-nav-card.tse-sub::after {
+    html[data-tse-or="discret"] .side-nav-card.tse-sub .tse-lueur-deco,
+    html[data-tse-or="aucun"]   .side-nav-card.tse-sub .tse-lueur-deco {
       display: none !important;
     }
     html[data-tse-or="discret"] .side-nav-card.tse-sub p.tse-nom,
     html[data-tse-or="discret"] .side-nav-card.tse-sub .tse-sub-cat,
-    html[data-tse-or="discret"] .side-nav-card.tse-sub .tse-sub-avatar,
-    html[data-tse-or="discret"] .side-nav-card.tse-sub .tse-sub-avatar::after {
+    html[data-tse-or="discret"] .side-nav-card.tse-sub .tse-sub-deco__anneau > span {
       animation: none !important;
+    }
+    /* Le souffle n'avait pas d'ombre au repos : sans son battement, il n'en
+       a plus du tout. L'anneau, lui, reste, immobile à son départ. */
+    html[data-tse-or="discret"] .side-nav-card.tse-sub .tse-sub-deco__souffle {
+      display: none !important;
     }
     html[data-tse-or="aucun"] .side-nav-card.tse-sub p.tse-nom,
     html[data-tse-or="aucun"] .side-nav-card.tse-sub .tse-sub-cat {
@@ -7571,11 +6947,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     html[data-tse-or="aucun"] .side-nav-card.tse-sub .tse-sub-cat {
       color: var(--tse-texte-doux) !important;
     }
-    html[data-tse-or="aucun"] .side-nav-card.tse-sub .tse-sub-avatar {
-      animation: none !important;
-      box-shadow: none !important;
-    }
-    html[data-tse-or="aucun"] .side-nav-card.tse-sub .tse-sub-avatar::after {
+    html[data-tse-or="aucun"] .side-nav-card.tse-sub .tse-sub-deco {
       display: none !important;
     }
 
@@ -8810,7 +8182,10 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
 
      LE MOT NU « thon » EST EXCLU (deux lettres exigées devant) : c'est le
      poisson, en français, et il n'a rien à faire ici. */
-  const RE_SUBATHON_NOM = /(?<![\p{L}])sub[\s._-]*a?[\s._-]*thon(?![\p{L}])/iu;
+  /* `(?:a[\s._-]*)?` et non `a?[\s._-]*` (4.25.0.9) : sans « a », deux suites
+     de séparateurs se disputaient le même blanc, en temps quadratique. Même
+     langage, prouvé à l'audit ; temps linéaire. */
+  const RE_SUBATHON_NOM = /(?<![\p{L}])sub[\s._-]*(?:a[\s._-]*)?thon(?![\p{L}])/iu;
   const RE_MOT_THON     = /(?<![\p{L}])\p{L}{2,}thon(?![\p{L}])/iu;
 
   /* Les mots qui disent « jour ». La liste couvre les langues où l'on diffuse
@@ -11819,6 +11194,13 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     const m = href.match(/^\/([A-Za-z0-9_]+)(?:[/?#]|$)/);
     return m && !RESERVED.test(m[1]) ? m[1].toLowerCase() : null;
   };
+  /* LA FORME D'UN LOGIN RELU (4.25.0.9) : celle que loginFromHref écrit, comme
+     le relevé des chaînes suivies. Le localStorage est celui de la page, que
+     n'importe quel script peut écrire : une clé d'une autre forme — « //hote »,
+     un point, une espace — ne se relit pas dans les mémoires de visites,
+     d'abonnements et de chaînes suivies, et ne devient jamais une adresse
+     (cf. buildAheadCard). */
+  const RE_CLE_LOGIN = /^[a-z0-9_]+$/;
 
   /* ============================================================
    *  CONSTRUCTION DU DOM — la règle, et pourquoi elle est stricte
@@ -12366,7 +11748,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         const obj = JSON.parse(raw);
         if (!obj || typeof obj !== 'object') return;
         for (const [login, arr] of Object.entries(obj)) {
-          if (!Array.isArray(arr)) continue;
+          if (!RE_CLE_LOGIN.test(login) || !Array.isArray(arr)) continue;
           // On normalise : timestamps DESC, taille bornée à N.
           const cleaned = arr
             .map(Number)
@@ -12511,7 +11893,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
           // Forme compacte [sub, ts] — ou [sub, ts, mois, ancien] depuis la
           // 3.48. On relit les deux, en tolérant tout ce qui ne leur
           // ressemble pas : une mémoire d'avant la 3.48 reste valide.
-          if (!Array.isArray(v) || v.length < 2) continue;
+          if (!RE_CLE_LOGIN.test(login) || !Array.isArray(v) || v.length < 2) continue;
           const ts = Number(v[1]);
           if (!Number.isFinite(ts) || ts <= 0) continue;
           const e = { sub: !!v[0], ts };
@@ -13988,7 +13370,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       let bouge = false;
       for (const [login, v] of Object.entries(obj)) {
         const n = Number(v);
-        if (typeof login !== 'string' || !Number.isFinite(n) || n === 0) continue;
+        if (!RE_CLE_LOGIN.test(login) || !Number.isFinite(n) || n === 0) continue;
         const t = Math.abs(n);
         if (t <= Math.max(map.get(login) || 0, retraits.get(login) || 0)) continue;
         if (n > 0) { map.set(login, t); retraits.delete(login); }
@@ -15934,6 +15316,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       // qui compte, comme pour l'aperçu.
       const t = c.tuiles.find((x) => x.cadre.contentWindow === e.source);
       if (!t) return;
+      /* Et tant qu'elle porte un lecteur (4.25.0.9) : la fenêtre d'un cadre
+         survit à sa navigation, et seul un lecteur de Twitch parle ici. */
+      if (e.origin !== 'https://player.twitch.tv') return;
       if (e.data.tse === TSE_SALLE_RELEVE_MSG) { surReleve(c, t, e.data); return; }
       /* Une commande tapée dans la console de CETTE tuile (4.24.0.12) : elle
          s'exécute ici, sur elle par défaut, et la réponse lui revient. */
@@ -18905,8 +18290,13 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        réserverait que la meilleure qualité resterait regardable. Sans jeton
        lisible, on ne dit rien. */
     const PARAMS_JETON = '{ platform: "web", playerBackend: "mediaplayer", playerType: "site" }';
+    /* L'identifiant est CITÉ, jamais collé (4.25.0.9) : une chaîne JSON est une
+       chaîne GraphQL valide, et pour des chiffres le texte envoyé est le même
+       qu'avant. Ce qui en sort n'est jamais qu'une valeur — même si un
+       identifiant venait un jour d'ailleurs que du réseau (cf. LA FORME
+       EXACTE). */
     const qAcces = (ids) => 'query TseAgendaAcces {' + ids.map((id, i) =>
-      ` a${i}: videoPlaybackAccessToken(id: "${id}", params: ${PARAMS_JETON}) { value }`).join('') + ' }';
+      ` a${i}: videoPlaybackAccessToken(id: ${JSON.stringify(String(id))}, params: ${PARAMS_JETON}) { value }`).join('') + ' }';
     const fermeeSelonJeton = (valeur) => {
       try {
         const rb = JSON.parse(valeur)?.chansub?.restricted_bitrates;
@@ -19392,11 +18782,51 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     const fraicheur = (x) => (estObjet(x) && Number.isFinite(x.ts) ? x.ts : -Infinity);
     // Une fiche date de sa dernière lecture, ou de celle de son planning, qui se lit à part.
     const tsFiche = (f) => Math.max(fraicheur(f), fraicheur(f && f.planning));
-    const VALIDES = {
-      f: (f) => estObjet(f) && Number.isFinite(f.ts) && (f.inconnue === true || typeof f.nom === 'string'),
-      d: (d) => estObjet(d) && Number.isFinite(d.ts) && Array.isArray(d.videos),
-      a: (a) => estObjet(a) && Number.isFinite(a.ts) && typeof a.video === 'string',
+    /* LA FORME EXACTE, CHAMP PAR CHAMP (4.25.0.9). La base est celle de
+       twitch.tv : la page l'écrit aussi bien que nous — Twitch, une autre
+       extension, n'importe quel script. Un enregistrement ne se relit donc que
+       s'il a la forme que NOS lectures du réseau écrivent (cf. `video`,
+       `creneau`, `enDirect`, `lireChaines`, `lireDiffusions`, `lireAcces`) :
+       mêmes champs, mêmes types, mêmes bornes. Le reste sort de la base comme
+       un enregistrement illisible. L'audit de la 4.25.0.8 en a donné la
+       raison : l'identifiant de la dernière archive, relu sans autre examen,
+       partait dans le TEXTE de la requête des jetons (cf. `qAcces`). Un
+       enregistrement que nous avons écrit passe toujours, et passe tel quel :
+       rien n'est réparé, seul l'illisible est écarté. */
+    const nombreOuNul = (x) => x === null || Number.isFinite(x);
+    const mot = (x, max) => typeof x === 'string' && x.length <= max;
+    const chiffresOk = (x) => typeof x === 'string' && chiffres(x) === x;
+    const chiffresOuNul = (x) => x === null || chiffresOk(x);
+    const imageOuNul = (x) => x === null || image(x) === x;
+    const jeuOk = (o) => (o.jeu === null && o.libelle === null)
+      || (typeof o.jeu === 'string' && o.jeu !== '' && typeof o.libelle === 'string');
+    const FORME = {
+      video: (v) => estObjet(v) && chiffresOk(v.id) && mot(v.titre, 200) && Number.isFinite(v.debut)
+        && (v.duree === null || (Number.isFinite(v.duree) && v.duree >= 0)) && nombreOuNul(v.vues)
+        && imageOuNul(v.vignette) && jeuOk(v) && chiffresOuNul(v.idDirect) && typeof v.restreinte === 'boolean',
+      creneau: (c) => estObjet(c) && typeof c.id === 'string' && mot(c.titre, 200) && Number.isFinite(c.debut)
+        && (c.fin === null || (Number.isFinite(c.fin) && c.fin > c.debut)) && typeof c.annule === 'boolean' && jeuOk(c),
+      direct: (s) => estObjet(s) && chiffresOuNul(s.id) && Number.isFinite(s.debut) && nombreOuNul(s.spectateurs)
+        && mot(s.titre, 200) && jeuOk(s),
+      vu: (v) => estObjet(v) && chiffresOuNul(v.id) && Number.isFinite(v.debut),
+      absente: (a) => estObjet(a) && Number.isFinite(a.depuis) && Number.isInteger(a.fois) && a.fois >= 1,
+      planning: (p) => estObjet(p) && Number.isFinite(p.ts) && Array.isArray(p.creneaux)
+        && p.creneaux.length <= 2 * CFG.AGENDA_CRENEAUX && p.creneaux.every((c) => FORME.creneau(c)),
+      fiche: (f) => estObjet(f) && Number.isFinite(f.ts) && (f.inconnue === true
+        ? FORME.absente(f.absente)
+        : f.inconnue === undefined && mot(f.nom, 60) && f.nom !== '' && imageOuNul(f.avatar)
+          && (f.direct === null || FORME.direct(f.direct)) && (f.vuEnDirect === null || FORME.vu(f.vuEnDirect))
+          && nombreOuNul(f.finDernier) && chiffresOuNul(f.idDernier) && mot(f.titre, 200)
+          && (f.derniere === null || FORME.video(f.derniere))
+          && (f.planning === undefined || FORME.planning(f.planning))
+          && (f.absente === undefined || FORME.absente(f.absente))),
+      liste: (d) => estObjet(d) && Number.isFinite(d.ts) && Number.isInteger(d.n) && d.n > 0
+        && typeof d.complet === 'boolean' && Array.isArray(d.videos) && d.videos.every((v) => FORME.video(v))
+        && typeof d.jusqua === 'number' && !Number.isNaN(d.jusqua) && typeof d.cle === 'string',
+      jeton: (a) => estObjet(a) && chiffresOk(a.video) && Number.isFinite(a.ts)
+        && (a.fermee === true || a.fermee === false || a.fermee === null),
     };
+    const VALIDES = { f: FORME.fiche, d: FORME.liste, a: FORME.jeton };
     const plusRecent = (ici, la, valide, ts) =>
       (valide(ici) && (!valide(la) || ts(ici) >= ts(la)) ? ici : valide(la) ? la : undefined);
 
@@ -19531,7 +18961,10 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        Une borne qu'on ne lirait pas fait diviser le lot par deux. Mesurée sur
        le lot PARTI — celui des jetons est aussi borné par `lot1` —, une fois
        par envoi, quand bien même ses deux opérations la passeraient. */
-    const RE_LIMITE = /exceeds .*limit/i;
+    /* Le premier « exceeds » de la ligne, et lui seul (4.25.0.9) : chacun
+       relançait `.*` jusqu'au bout de la ligne, en temps quadratique. Même
+       réponse — un « limit » après un « exceeds » est aussi après le premier. */
+    const RE_LIMITE = /^(?:(?!exceeds ).)*exceeds .*limit/im;
     const borner = (t, message) => {
       const parti = t.logins.length;
       const n = Number((/allowed \((\d+)\)/i.exec(message) || [])[1]);
@@ -20298,22 +19731,28 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
              répondent à la place :
                — « fraiches » à zéro dit qu'aucune chaîne n'est en direct
                  depuis moins de dix minutes, et la question s'arrête là ;
+               — « decors » dit combien de ces cartes portent la barre — le
+                 décor .tse-frais-deco, depuis la 4.25.0.9 : un écart avec
+                 « fraiches » désigne le script qui la pose, pas la feuille ;
                — « animations » à zéro dit que la règle ne s'applique pas —
                  sélecteur, cascade, ou feuille absente ;
                — « etat » dit « running », « paused » ou « finished » : un
                  navigateur qui gèle les animations se voit ici ;
                — « mouvementReduit » juste au-dessus dit si c'est l'utilisateur
                  qui a demandé l'immobilité.
-             Aucune de ces quatre réponses n'a besoin d'être devinée. */
+             Aucune de ces réponses n'a besoin d'être devinée. */
           battement: (() => {
             const fraiches = document.querySelectorAll('.side-nav-card.tse-fresh');
             const anims = document.getAnimations().filter(
-              a => a.effect && a.effect.pseudoElement === '::before'
-                && a.effect.target && a.effect.target.classList.contains('tse-fresh'));
+              a => a.effect && a.effect.target
+                && a.effect.target.classList.contains('tse-frais-deco')
+                && a.effect.target.parentElement?.classList.contains('tse-fresh'));
             /* `rouge` : la couleur de la barre, mesurée sur la pastille « en
                direct » de Twitch (4.24.0) — null tant qu'aucune n'a été lue,
                et la barre garde alors le repli de la feuille. */
-            return { fraiches: fraiches.length, animations: anims.length,
+            return { fraiches: fraiches.length,
+                     decors: document.querySelectorAll('.side-nav-card.tse-fresh > .tse-frais-deco').length,
+                     animations: anims.length,
                      etat: anims.length ? anims[0].playState : null,
                      rouge: document.documentElement.style.getPropertyValue('--tse-direct') || null };
           })(),
@@ -21096,7 +20535,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
   /* Exposé aussi sur window.tse : le panneau n'est qu'un client de plus, et
      tout ce qu'il peut lire doit rester lisible à la main. */
   tseApi.panneau = (nom, arg) => {
-    const f = panneau.sections[nom];
+    const f = Object.hasOwn(panneau.sections, nom) ? panneau.sections[nom] : null;
     if (!f) throw new Error(`[tse] section inconnue : ${nom}`);
     return f(arg);
   };
@@ -21152,9 +20591,12 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     /* Une promesse rejetée ne doit pas laisser le panneau en attente : on
        enveloppe la résolution ET le rejet, et on répond dans les deux cas. */
     try {
+      /* Un nom DÉCLARÉ ici, et rien d'hérité (4.25.0.9) : « constructor » ou
+         « toString » sont des fonctions aussi, que le prototype prêtait. */
+      const propre = (table, nom) => (Object.hasOwn(table, nom) ? table[nom] : undefined);
       const cible = d.rapport ? panneau.rapport
-                  : d.action  ? panneau.actions[d.action]
-                              : panneau.sections[d.section];
+                  : d.action  ? propre(panneau.actions, d.action)
+                              : propre(panneau.sections, d.section);
       if (typeof cible !== 'function') {
         /* Le panneau et la page sont livrés ensemble : une demande que la page
            ne sait pas servir n'est pas une faute d'utilisateur, c'est une
@@ -21235,10 +20677,18 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
                 fraiches: 0, mouvementReduit: reduit });
       return;
     }
-    const anim = document.getAnimations().find(
-      a => a.effect && a.effect.pseudoElement === '::before' && a.effect.target === carte);
+    /* La barre est le décor de la carte depuis la 4.25.0.9 (cf. poserDecor) :
+       c'est lui qui bat, et c'est sur lui qu'on lit ce que l'œil voit. */
+    const barre = carte.querySelector(':scope > .tse-frais-deco');
+    if (!barre) {
+      resolve({ verdict: 'AUCUNE BARRE sur la carte fraîche : le décor n\'est pas posé',
+                fraiches: document.querySelectorAll('.side-nav-card.tse-fresh').length,
+                mouvementReduit: reduit, animations: 0 });
+      return;
+    }
+    const anim = document.getAnimations().find((a) => a.effect && a.effect.target === barre);
     const st = () => {
-      const c = getComputedStyle(carte, '::before');
+      const c = getComputedStyle(barre);
       const m = new window.DOMMatrixReadOnly(c.transform);
       return { o: parseFloat(c.opacity), l: parseFloat(c.width) * (m.a || 1) };
     };
@@ -21331,7 +20781,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     if (html.classList.contains('tw-root--theme-light')) return 'light';
     if (html.classList.contains('tw-root--theme-dark')) return 'dark';
     const fond = getComputedStyle(document.body || html).backgroundColor;
-    const m = /(\d+)[,\s]+(\d+)[,\s]+(\d+)/.exec(fond || '');
+    // Au début d'un nombre seulement (4.25.0.9) : même correspondance, en temps linéaire.
+    const m = /(?<!\d)(\d+)[,\s]+(\d+)[,\s]+(\d+)/.exec(fond || '');
     if (!m) return 'dark';
     const [r, v, b] = [Number(m[1]), Number(m[2]), Number(m[3])];
     /* Luminance perçue (Rec. 709). Le seuil est à mi-chemin : un fond de
@@ -21765,9 +21216,63 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     return !card.querySelector(DOM.liveIndicator);
   };
 
+  /* ── LES DÉCORS (4.25.0.9) ───────────────────────────────────────────────
+     Ce que les pseudo-éléments portaient seuls — l'anneau et le souffle de
+     l'avatar abonné, la lueur de son fond, la barre « frais » — se peignait
+     en animant des propriétés que le navigateur repeint à chaque image : une
+     ombre, une position de fond, l'angle d'un dégradé. Leur forme
+     compositeur demande des CALQUES — des ombres fixes à fondre l'une dans
+     l'autre, des dégradés à translater ou à tourner sous un masque immobile
+     —, et un pseudo-élément ne peut pas avoir d'enfants. D'où ces décors : un
+     <span> inerte, posé dans l'élément de Twitch, avec ses pièces dedans.
+
+     LA FEUILLE DÉCIDE DE LES MONTRER, PAS LEUR PRÉSENCE. Un décor ne
+     s'affiche que sous la classe qui le demande (.tse-sub, .tse-fresh) : un
+     décor retiré en retard, ou resté dans une carte que React a recyclée pour
+     une autre chaîne, ne se voit pas. Le retrait n'est qu'un ménage.
+
+     ÉCRITURES CONDITIONNELLES, comme partout ici : un décor déjà là n'est pas
+     reposé — le reposer relancerait ses animations depuis zéro et
+     alimenterait la boucle des mutations. */
+  const PIECES_DECOR = {
+    // Le souffle (ses deux ombres extrêmes) et l'anneau (son disque tournant).
+    'tse-sub-deco':   [['tse-sub-deco__souffle', 2], ['tse-sub-deco__anneau', 1]],
+    // Le voile de balayage, puis les trois nappes.
+    'tse-lueur-deco': [['', 0], ['', 0], ['', 0], ['', 0]],
+    // Les quatre étages de la lueur de la barre, du plus serré au plus large.
+    'tse-frais-deco': [['', 0], ['', 0], ['', 0], ['', 0]],
+  };
+  const poserDecor = (hote, classe) => {
+    if (hote.querySelector(':scope > .' + classe)) return;
+    const decor = document.createElement('span');
+    decor.className = 'tse-deco ' + classe;
+    decor.setAttribute('aria-hidden', 'true');
+    for (const [nom, enfants] of PIECES_DECOR[classe]) {
+      const piece = document.createElement('span');
+      if (nom) piece.className = nom;
+      for (let i = 0; i < enfants; i++) piece.appendChild(document.createElement('span'));
+      decor.appendChild(piece);
+    }
+    hote.appendChild(decor);
+  };
+  const retirerDecor = (racine, classe) => {
+    for (const decor of racine.querySelectorAll('.' + classe)) decor.remove();
+  };
+
+  /* La classe et le décor de la barre « frais » vont ensemble : quatre
+     chemins allument ou éteignent la barre, aucun ne doit oublier l'un des
+     deux. Le décor n'est cherché que sur une carte qui était fraîche — c'est
+     le cas d'une poignée de cartes, à chaque balayage. */
+  const marquerFraiche = (card, fraiche) => {
+    const etait = card.classList.contains('tse-fresh');
+    if (fraiche !== etait) card.classList.toggle('tse-fresh', fraiche);
+    if (fraiche) poserDecor(card, 'tse-frais-deco');
+    else if (etait) retirerDecor(card, 'tse-frais-deco');
+  };
+
   const updateFreshness = (card) => {
     const ts = card.dataset.tseStartedAt;
-    if (!ts) { card.classList.remove('tse-fresh'); return; }
+    if (!ts) { marquerFraiche(card, false); return; }
     /* UNE REPRISE N'EST PAS UN DÉBUT, et cette garde a changé de statut sans
        changer de texte utile. Le compteur de la carte repartait de zéro sur
        une reprise, et l'âge lu ici valait donc « deux minutes » : sans cette
@@ -21785,11 +21290,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        L'allumer sur une reprise affirmerait le contraire de la vérité à
        quelqu'un qui a justement tout manqué. */
     if (repriseFraiche(card.dataset.tseLogin)) {
-      card.classList.remove('tse-fresh');
+      marquerFraiche(card, false);
       return;
     }
     const ageMin = (Date.now() - new Date(ts).getTime()) / 60_000;
-    card.classList.toggle('tse-fresh', ageMin >= 0 && ageMin < CFG.FRESH_MAX_MIN);
+    marquerFraiche(card, ageMin >= 0 && ageMin < CFG.FRESH_MAX_MIN);
   };
 
   /**
@@ -21856,7 +21361,6 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
   };
 
 
-
   const applySubStyle = (card, login) => {
     const abonne = subs.isSub(login);
     const etait = card.classList.contains('tse-sub');
@@ -21864,16 +21368,22 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     markSubPart(card, abonne, etait, 'tse-sub-avatar', avatarOf);
     markSubPart(card, abonne, etait, 'tse-sub-cat', cardCategoryEl);
     if (!abonne) {
+      if (etait) {
+        retirerDecor(card, 'tse-sub-deco');
+        retirerDecor(card, 'tse-lueur-deco');
+      }
       if (card.style.getPropertyValue('--tse-sub-phase')) {
         card.style.removeProperty('--tse-sub-phase');
       }
       return;
     }
+    const avatar = card.querySelector('.tse-sub-avatar');
+    if (avatar) poserDecor(avatar, 'tse-sub-deco');
+    poserDecor(card, 'tse-lueur-deco');
     const phase = String(subPhase(login));
     if (card.style.getPropertyValue('--tse-sub-phase') !== phase) {
       card.style.setProperty('--tse-sub-phase', phase);
     }
-
   };
 
   /**
@@ -21950,7 +21460,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
    *  pose toujours : la détection de secours lit son nombre.
    * ============================================================ */
   const PLUS_RE_ELEMENT  = /^\+\s*(\d+)$/;
-  const PLUS_RE_TRAILING = /(\s+)\+\s*(\d+)\s*$/;
+  // Au début d'une suite de blancs seulement (4.25.0.9) : même correspondance, en temps linéaire.
+  const PLUS_RE_TRAILING = /(?<!\s)(\s+)\+\s*(\d+)\s*$/;
   // Condition NÉCESSAIRE aux deux recherches ci-dessous : l'une comme l'autre
   // exigent un « + » suivi (éventuellement après des espaces) d'un chiffre.
   const PLUS_RE_PRESENT  = /\+\s*\d/;
@@ -22137,7 +21648,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
   // retire la carte de la sidebar.
   const removeUptime = (card) => {
     delete card.dataset.tseStartedAt;
-    card.classList.remove('tse-fresh');
+    marquerFraiche(card, false);
     const span = ensureUptimeSpan(card);
     if (!span) return;
     span.dataset.tseEnded = 'true';
@@ -22272,7 +21783,35 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     if (b.parentNode !== p || b.previousSibling !== n) p.appendChild(b);
     /* Le nombre vient d'une capture de CHIFFRES passée par `Number` : rien du
        titre ne traverse, et le libellé est bâti par la table de langue. */
-    setText(b, S.uiSubathonShort(sub.jour));
+    poserLibelle(b, S.uiSubathonShort(sub.jour));
+  };
+
+  /* LE LIBELLÉ DE LA PASTILLE ET SES HUIT COPIES (4.25.0.9), qui portent son
+     arc-en-ciel (cf. .tse-subathon-teintes). Le libellé a son propre <span> :
+     il partage une case de grille avec les copies, et un nœud de texte nu ne
+     se place pas. Les copies n'ont pas de texte à elles — leur libellé est un
+     attribut, que la feuille affiche —, si bien que le texte de la pastille
+     reste « J9 », une fois. Rien ne s'écrit quand rien n'a changé. */
+  const poserLibelle = (puce, libelle) => {
+    let texte = puce.querySelector(':scope > .tse-subathon-libelle');
+    if (!texte) {
+      puce.textContent = '';
+      texte = document.createElement('span');
+      texte.className = 'tse-subathon-libelle';
+      puce.appendChild(texte);
+    }
+    setText(texte, libelle);
+    let teintes = puce.querySelector(':scope > .tse-subathon-teintes');
+    if (!teintes) {
+      teintes = document.createElement('span');
+      teintes.className = 'tse-subathon-teintes';
+      teintes.setAttribute('aria-hidden', 'true');
+      for (let i = 0; i < 8; i++) teintes.appendChild(document.createElement('span'));
+      puce.appendChild(teintes);
+    }
+    for (const copie of teintes.children) {
+      if (copie.dataset.t !== libelle) copie.dataset.t = libelle;
+    }
   };
 
   /* ============================================================
@@ -25407,7 +24946,12 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        d'abonnement ont leur propre formulation, souvent sans nombre terminal ;
        les toucher ne réparerait rien et pourrait couper une phrase en deux. */
     const ponctuerLigne = (texte) => {
-      const m = /^(.*\S)[\s:]+(\d+)$/.exec(String(texte || ''));
+      /* `[\s:]+` disputait ses « : » au groupe, qui les prend aussi (4.25.0.9) :
+         temps quadratique. Le groupe le plus long ne laisse au séparateur que
+         des blancs, puis un blanc ou un « : » — ou, passé un saut de ligne que
+         `.` ne franchit pas, n'importe quels blancs et « : ». Même
+         correspondance, prouvée à l'audit ; temps linéaire. */
+      const m = /^(.*\S)[^\S\n\r\u2028\u2029]*(?:[\s:]|[\n\r\u2028\u2029][\s:]*)(\d+)$/.exec(String(texte || ''));
       return m ? `${m[1]} • ${m[2]}` : texte;
     };
 
@@ -25647,8 +25191,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        * une coupure franche.
        *
        * On attend donc que le lecteur ait vraiment présenté une image. Le
-       * signal vient de l'iframe elle-même (cf. module PONT D'APERÇU en haut
-       * de ce fichier), qui poste un message à la première frame peinte.
+       * signal vient de l'iframe elle-même (cf. module PONT D'APERÇU, dans
+       * cadres.js), qui poste un message à la première frame peinte.
        * Cross-origin oblige, on ne peut pas l'observer d'ici.
        */
       // Le pont peut signaler l'interstitielle AVANT comme APRÈS le `load` du
@@ -25691,6 +25235,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         // à CETTE iframe. Le contenu, lui, ne sert qu'à écarter le bruit des
         // autres scripts de la page (Twitch en poste beaucoup).
         if (e.source !== iframe.contentWindow) return;
+        // Et l'origine, celle d'un lecteur (4.25.0.9) : la fenêtre d'une iframe
+        // survit à sa navigation, et seul le lecteur de l'aperçu parle ici.
+        if (e.origin !== 'https://player.twitch.tv') return;
         if (e.data?.tse === TSE_PREVIEW_HELLO_MSG) { noter('pont'); return; }
         if (e.data?.tse === TSE_PREVIEW_FIRST_FRAME_MSG) {
           noter('premiere-image');
@@ -27189,6 +26736,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     const frame = document.createElement('iframe');
     frame.className = 'tse-incruste-frame';
     frame.src = urlPanneau;
+    // Son origine, « chrome-extension://<id> », fixée à l'ouverture (cf. LE CHEMIN COURT).
+    const originePanneau = /^[a-z][a-z0-9+.-]*:\/\/[^/?#]+/i.exec(urlPanneau)?.[0] || null;
     frame.title = S.uiRoueTitre;
     /* PAS DE `sandbox`, et c'est délibéré : le bac à sable retirerait à la page
        son origine d'extension, donc `chrome.runtime` — c'est-à-dire tout ce
@@ -27228,12 +26777,22 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
          page. Ici, il n'y a ni worker ni port : deux documents, un message.
 
          ON NE SERT QUE NOTRE PROPRE CADRE. La source est comparée à la fenêtre
-         de l'iframe qu'on a posée — pas à une origine qu'on ne connaît pas. */
+         de l'iframe qu'on a posée — pas à une origine qu'on ne connaît pas.
+
+         ET TANT QU'IL PORTE NOTRE PANNEAU (4.25.0.9). La fenêtre d'un cadre
+         survit à sa navigation : un script de la page qui renverrait le cadre
+         ailleurs garderait la même source, et les réponses — le rapport, les
+         données — partaient avec la cible « * » vers la nouvelle origine. La
+         demande doit donc venir de l'origine du panneau, celle de l'adresse
+         que le pont avait donnée à l'ouverture, et la réponse ne part que
+         vers elle : le navigateur la jette si le cadre a changé d'origine
+         entre-temps. */
       if (d.tse !== TSE_INCRUSTE_REQ || typeof d.id !== 'number') return;
+      if (!originePanneau || ev.origin !== originePanneau) return;
       const repondre = (charge) => {
         try {
           frame.contentWindow?.postMessage(
-            { tse: TSE_INCRUSTE_RES, id: d.id, ...charge }, '*');
+            { tse: TSE_INCRUSTE_RES, id: d.id, ...charge }, originePanneau);
         } catch { /* cadre refermé entre-temps */ }
       };
       if (!servirPanneau) { repondre(pasEncorePret()); return; }
@@ -27284,8 +26843,12 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
      battement du premier lancement, qui anime « transform: scale ». La
      rotation au survol anime « transform » elle aussi : sur le même élément,
      la seconde écraserait la première et la roue cesserait de battre dès
-     qu'on l'approche. Deux éléments, deux transformations, aucune collision. */
-  const ROUE_MARKUP = '<span class="tse-roue-dent" aria-hidden="true">\u2699\uFE0F</span>';
+     qu'on l'approche. Deux éléments, deux transformations, aucune collision.
+
+     LE HALO DU PREMIER LANCEMENT a ses sept coques (cf. .tse-roue-halo) :
+     posées une fois avec le bouton, elles ne se montrent que tant qu'il bat. */
+  const ROUE_MARKUP = '<span class="tse-roue-dent" aria-hidden="true">\u2699\uFE0F</span>'
+    + '<span class="tse-roue-halo" aria-hidden="true">' + '<span></span>'.repeat(7) + '</span>';
 
   function ensureRoue() {
     /* L'adresse est demandée à chaque passe tant qu'elle manque, et plus jamais
@@ -30247,7 +29810,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
      (« тыс. », « mln. ») ne compte pas, ni les marques de sens de lecture. */
   const SUFFIXES_DE_REPLI = [['mil', 1_000], ['mio', 1_000_000], ['mi', 1_000_000], ['k', 1_000], ['m', 1_000_000]];
   const suffixesParLangue = new Map();
-  const compteurNu = (t) => t.replace(/[\s\u00a0\u202f\u200e\u200f]+/g, '').toLowerCase().replace(/\.+$/, '');
+  // `(?<!\.)` : la dernière suite de points, prise par son début (4.25.0.9) — même résultat, en temps linéaire.
+  const compteurNu = (t) => t.replace(/[\s\u00a0\u202f\u200e\u200f]+/g, '').toLowerCase().replace(/(?<!\.)\.+$/, '');
   const suffixesCompacts = () => {
     const locale = localeTwitch();
     let table = suffixesParLangue.get(locale);
@@ -31043,7 +30607,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
   // de la couleur de co-stream de la chaîne clonée.
   const scrubClone = (el) => {
     el.querySelectorAll('.tse-uptime, .tse-viewers, .tse-collab-badge,'
-                        + ' .tse-subathon-jour, [data-tse-extra-row]')
+                        + ' .tse-subathon-jour, .tse-deco, [data-tse-extra-row]')
       .forEach(n => n.remove());
     const strip = (node) => {
       for (const attr of [...node.attributes]) {
@@ -31164,6 +30728,13 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
    * attendus — auquel cas on préfère ne rien afficher.
    */
   const buildAheadCard = (template, login, data) => {
+    /* Le lien naît du login, et d'un login seulement (4.25.0.9) : « //hote »
+       en ferait une adresse vers un autre site. Les appelants n'en donnent pas
+       d'autre — le roster est filtré à sa relecture, le classement vient de
+       Twitch — : cette garde ne sert que le jour où l'un d'eux changerait. La
+       classe est celle que loginFromHref lit, casse comprise : le classement
+       garde le login tel que Twitch l'écrit, et il n'y a là rien à refuser. */
+    if (!/^[A-Za-z0-9_]+$/.test(login)) return null;
     const card = template.cloneNode(true);
     scrubClone(card);
 

@@ -1822,9 +1822,18 @@ const poserLien = (a, href, ongletNeuf = false) => {
 /* LES IMAGES DE TWITCH, en https et rien d'autre, chargées au fil du
    défilement, sans référent — l'adresse d'une page d'extension n'a rien à
    faire chez un CDN. Une image qui ne vient pas laisse son cadre vide plutôt
-   que l'icône d'image cassée. */
+   que l'icône d'image cassée.
+   ET DE TWITCH SEULEMENT (4.25.0.9) : ses avatars et ses vignettes sont
+   servis par jtvnw.net et twitch.tv. Ce qui arrive ici a pu passer par la
+   mémoire de l'agenda, que la page peut écrire : une adresse d'un autre hôte
+   ne devient pas une requête de cette page. L'hôte est lu par URL, jamais par
+   un préfixe — « https://static-cdn.jtvnw.net.ailleurs/ » n'en est pas un. */
+const HOTE_IMAGE = /(?:^|\.)(?:jtvnw\.net|twitch\.tv)$/;
 const imageAgenda = (src, classe) => {
   if (typeof src !== 'string' || !/^https:\/\//.test(src)) return null;
+  let hote = '';
+  try { hote = new URL(src).hostname; } catch { return null; }
+  if (!HOTE_IMAGE.test(hote)) return null;
   const img = document.createElement('img');
   img.className = classe;
   img.alt = '';

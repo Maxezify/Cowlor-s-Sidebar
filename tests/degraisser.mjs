@@ -55,7 +55,7 @@ import { Parser } from 'acorn';
    validité sémantique de ce qu'on lui donne, seulement à le découper. La
    permission sert au banc, qui l'éprouve sur des CORPS de fonction — dont le
    piège central, un `return` coupé par un bloc multiligne. Elle ne change rien
-   pour content.js et adblock.js, qui n'ont pas de retour au premier niveau. */
+   pour les fichiers livrés, qui n'ont pas de retour au premier niveau. */
 const OPTIONS = { ecmaVersion: 'latest', sourceType: 'script',
                   allowReturnOutsideFunction: true };
 

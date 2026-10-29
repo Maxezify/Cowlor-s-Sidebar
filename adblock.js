@@ -11,9 +11,9 @@
  *   rend la prochaine mise à jour mécanique — on remplace le fichier et
  *   on rejoue les cinq adaptations listées ci-dessous — au lieu d'un
  *   fusionnement à la main dans les 6 000 lignes de content.js.
- *   L'ordre de chargement (adblock.js AVANT content.js, cf. manifest)
- *   reproduit exactement l'ordre qu'avaient les deux modules quand ils
- *   partageaient un fichier.
+ *   L'ordre de chargement (adblock.js AVANT cadres.js et content.js,
+ *   cf. manifest) reproduit exactement l'ordre qu'avaient les modules
+ *   quand ils partageaient un fichier.
  *
  *  PORTÉE D'EXÉCUTION :
  *   Le module ne s'active QUE dans notre iframe d'aperçu : un lecteur
@@ -81,7 +81,7 @@ const TSE_ADBLOCK_ENABLED = true;
     //     ce fichier dans TOUT lecteur player.twitch.tv, et un lecteur
     //     intégré à un site d'actualité voyait sa pub bloquée, contre la
     //     promesse du Store. L'aperçu se reconnaît à son NOM — valeur recopiée
-    //     de TSE_PREVIEW_FRAME_NAME (content.js), le banc vérifie l'égalité —
+    //     de TSE_PREVIEW_FRAME_NAME (cadres.js), le banc vérifie l'égalité —
     //     et à son parent, une page twitch.tv, quand le navigateur le dit.
     //     Sans ancestorOrigins (Firefox avant la 148), le nom seul tranche.
     if (window.name !== 'tse-apercu') return;
