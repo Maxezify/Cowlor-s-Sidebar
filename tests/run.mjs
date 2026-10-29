@@ -37049,7 +37049,8 @@ addEventListener('message', (e) => {
       props: Object.fromEntries(Object.entries(props).map(([k, v]) => [k, [...v].sort()])),
       cartes: [...document.querySelectorAll('.side-nav-card')].map(carte),
       puce: puce && { texte: puce.textContent,
-                      copies: [...puce.querySelectorAll('.tse-subathon-teintes > span')].map((s) => s.dataset.t) },
+                      copies: [...puce.querySelectorAll('.tse-subathon-teintes > span')].map((s) => s.dataset.t),
+                      couleur: getComputedStyle(puce).color, contour: getComputedStyle(puce).borderTopColor },
       coques: document.querySelectorAll('#tse-roue > .tse-roue-halo > span').length,
     };
   });
@@ -37069,6 +37070,14 @@ addEventListener('message', (e) => {
   ok('…la pastille garde son texte une fois, et ses huit copies le portent par attribut ; la roue a ses sept coques',
      vu.puce?.texte === 'J9' && vu.puce.copies.length === 8 && vu.puce.copies.every((t) => t === 'J9') && vu.coques === 7,
      JSON.stringify({ puce: vu.puce, coques: vu.coques }));
+  /* …ET ELLE NE PEINT PLUS RIEN ELLE-MÊME. Ses copies la recouvrent au pixel
+     près ; une couleur posée sur elle se peindrait dessous, et ne se verrait
+     qu'aux bords anticrénelés des lettres et du contour — un liseré d'une
+     autre teinte, que rien d'autre ici ne relève. Texte et contour suivent
+     la couleur : les deux doivent être transparents. */
+  ok('…et la pastille ne peint plus ni son texte ni son contour : ses copies le font, par-dessus',
+     vu.puce?.couleur === 'rgba(0, 0, 0, 0)' && vu.puce.contour === 'rgba(0, 0, 0, 0)',
+     JSON.stringify(vu.puce && { couleur: vu.puce.couleur, contour: vu.puce.contour }));
 
   /* LES FONDUS SONT DES PARTITIONS EXACTES, ET ILS SUIVENT L'ANCIENNE COURBE.
      Chaque décor qui fond des étages porte, à chaque instant, un AVANCEMENT p

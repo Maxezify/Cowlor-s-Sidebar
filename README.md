@@ -2422,8 +2422,8 @@ Trois scénarios nouveaux :
     et opacité. Chaque décor est posé une fois, là où sa classe le demande.
     Chaque fondu est une partition exacte, de somme un, qui suit l'avancement
     de l'ancien battement : barre, coques de la roue, souffle, copies de la
-    pastille. Une carte abonnée et fraîche, recyclée pour une autre chaîne,
-    rend ses trois décors.
+    pastille. La pastille ne peint plus ni son texte ni son contour. Une carte
+    abonnée et fraîche, recyclée pour une autre chaîne, rend ses trois décors.
   - c) La trace de Chromium refuse un témoin animé à l'ancienne, donc elle
     sait le dire, et déclare toutes nos animations prises par le compositeur.
 
@@ -2439,7 +2439,44 @@ Revus :
   factices chargent `cadres.js`. **66** : le dégraissage porte sur trois
   fichiers.
 
-«MUTANTS»
+**Trente-cinq mutants nommés, tous pris.** Chacun a été posé seul, et le banc
+relancé sur les scénarios qui gardent ce qu'il casse. Un seul a d'abord
+survécu : la pastille repeinte sous ses copies. Rien ne relevait qu'elle ne se
+peint plus elle-même ; le scénario 213 le relève désormais, et le mutant
+tombe.
+
+| mutant | ce qui tombe |
+| --- | --- |
+| `content.js` remis dans toutes les frames | 211 : le module principal dans une iframe |
+| un nom partagé au premier niveau de `cadres.js` | 211 : « already been declared » dans la page |
+| la réponse du panneau vers « * » | 122 : la réponse vers l'origine du panneau |
+| l'origine de la demande du panneau plus vérifiée | 122 : le cadre renvoyé vers une autre origine |
+| l'origine de l'aperçu plus vérifiée | 212 : l'aperçu dévoilé par une autre origine |
+| l'origine des tuiles plus vérifiée | 179 : la tuile qui ne parle plus depuis un lecteur |
+| la table du panneau lue sans `Object.hasOwn` | 122 : « constructor », « toString » |
+| `tse.panneau` sans `Object.hasOwn` | 212 : la console refuse « constructor » |
+| roster, visites, abonnements relus sans filtre (3) | 212 : les mémoires relues |
+| la validation de surface de l'agenda | 207 δ) : l'identifiant forgé, l'avis non booléen |
+| l'identifiant collé dans la requête des jetons | 212 : la requête des jetons |
+| les six expressions remises en temps quadratique (6) | 212 : les six attaques |
+| les images du panneau au seul préfixe https | 212 : les images du panneau |
+| l'avatar abonné sans décor | 51 : l'anneau tournant, le souffle |
+| la carte abonnée sans lueur | 51 : la lueur, ses calques, sa place sous le contenu |
+| l'abonné rendu sans ménage | 55, 213 : la carte qui change de chaîne garde son décor |
+| la barre « frais » jamais posée | 113 : la barre ne bat plus, ne s'élargit plus |
+| la barre éteinte sans ménage | 213 : la carte recyclée |
+| le décor soumis au survol progressif | 171 : le rouge mesuré de la barre |
+| un étage de la barre mal découpé | 213 : les partitions |
+| une coque de la roue décalée | 213 : les partitions |
+| une copie de la pastille hors cycle | 213 : les partitions |
+| le souffle sans contrepartie | 213 : les partitions |
+| une nappe animée par sa position de fond | 213 a), b), c) : hors compositeur, et la trace le dit |
+| une nappe qui ne revient pas | 137 : la lueur revient où elle est partie |
+| la barre animée par son ombre | 213 a), b), c) : hors compositeur, et la trace le dit |
+| la pastille peinte par elle-même | 213 : texte et contour transparents |
+| les copies sans libellé | 213 : le libellé porté par attribut |
+
+Le banc complet : 2002 assertions dans 212 scénarios, toutes vertes.
 
 ## La langue par défaut, et le premier du mois (v4.25.0.8)
 
@@ -21696,7 +21733,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | les six fichiers JavaScript livrés — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 212 scénarios, 2001 assertions |
+| `npm test` | le harnais Playwright : 212 scénarios, 2002 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il

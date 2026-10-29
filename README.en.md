@@ -2290,9 +2290,9 @@ Three new scenarios:
   - b) In a decorated page, everything that runs animates only transform and
     opacity. Each decoration is placed once, where its class asks for it.
     Each crossfade is an exact partition, summing to one, that follows the
-    progress of the old beat: bar, gear shells, breath, pill copies. A
-    subscribed and fresh card, recycled for another channel, gives back its
-    three decorations.
+    progress of the old beat: bar, gear shells, breath, pill copies. The pill
+    no longer paints its text or its border. A subscribed and fresh card,
+    recycled for another channel, gives back its three decorations.
   - c) Chromium's trace refuses an old-style animated control, so it can tell,
     and declares all our animations taken by the compositor.
 
@@ -2308,7 +2308,43 @@ Revised:
 - **30**, **58**, **61**, **172**, **175**, **177** and **189**: their fake
   players load `cadres.js`. **66**: stripping covers three files.
 
-«MUTANTS»
+**Thirty-five named mutants, all caught.** Each was applied on its own, and
+the bench rerun on the scenarios that guard what it breaks. Only one survived
+at first: the pill repainted under its copies. Nothing checked that it no
+longer paints itself; scenario 213 now does, and the mutant falls.
+
+| mutant | what falls |
+| --- | --- |
+| `content.js` back in every frame | 211: the main module inside an iframe |
+| a shared name at `cadres.js`'s top level | 211: "already been declared" in the page |
+| the panel's reply sent to "*" | 122: the reply to the panel's origin |
+| the panel request's origin no longer checked | 122: the frame sent to another origin |
+| the preview's origin no longer checked | 212: the preview revealed by another origin |
+| the tiles' origin no longer checked | 179: the tile no longer speaking from a player |
+| the panel's table read without `Object.hasOwn` | 122: "constructor", "toString" |
+| `tse.panneau` without `Object.hasOwn` | 212: the console refuses "constructor" |
+| roster, visits, subscriptions read back unfiltered (3) | 212: the memories read back |
+| the schedule's surface validation | 207 δ): the forged ID, the non-boolean flag |
+| the ID pasted into the token query | 212: the token query |
+| the six expressions put back in quadratic time (6) | 212: the six attacks |
+| the panel's images on the https prefix alone | 212: the panel's images |
+| the subscribed avatar without its decoration | 51: the turning ring, the breath |
+| the subscribed card without its glow | 51: the glow, its layers, its place under the content |
+| the subscription dropped without cleanup | 55, 213: the card that changes channel keeps its decoration |
+| the "fresh" bar never placed | 113: the bar no longer beats or widens |
+| the bar switched off without cleanup | 213: the recycled card |
+| the decoration under the progressive hover | 171: the bar's measured red |
+| a bar stage cut wrongly | 213: the partitions |
+| a gear shell shifted | 213: the partitions |
+| a pill copy out of cycle | 213: the partitions |
+| the breath without its counterpart | 213: the partitions |
+| a glow layer animated by its background position | 213 a), b), c): off the compositor, and the trace says so |
+| a glow layer that does not come back | 137: the glow returns where it started |
+| the bar animated by its shadow | 213 a), b), c): off the compositor, and the trace says so |
+| the pill painting itself | 213: transparent text and border |
+| the copies without the label | 213: the label carried by attribute |
+
+The full bench: 2002 assertions in 212 scenarios, all green.
 
 ## The default language, and the first of the month (v4.25.0.8)
 
@@ -21057,7 +21093,7 @@ Four independent checks:
 | `npm run lint` | the six shipped JavaScript files — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 212 scenarios, 2001 assertions |
+| `npm test` | the Playwright harness: 212 scenarios, 2002 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
