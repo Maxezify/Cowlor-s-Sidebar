@@ -1326,6 +1326,31 @@ titre('25. Aucun hash — le module sidebar n\'a plus de persisted query');
   ok('les deux cartes sont regroupées', !!by.mastu.key && by.mastu.key === by.hctuan.key, JSON.stringify(s));
   ok('le regroupement passe bien par Guest Star', /^gs:/.test(by.mastu.key || ''), by.mastu.key);
   ok('le compteur combiné est servi', nz(by.hctuan.shown) === '11,8 k', by.hctuan.shown);
+
+  /* UNE CARTE MASQUÉE NE FAIT PAS GROUPE (4.25.0.10). Un groupe est ce qu'on
+     relie à l'écran ; une carte que le filtre cache n'en est pas. hctuan
+     change de catégorie, et le filtre ne garde que celle de mastu : mastu
+     reste seul de sa session à l'écran — sans clé de groupe —, et la carte
+     masquée ne garde aucune marque. La détection lit désormais la
+     visibilité une fois par passe : c'est cette lecture qu'on éprouve.
+     Mutant — toutes les cartes tenues pour montrées. */
+  await page.evaluate(() => { window.__fx.hctuan.game = 'Fortnite'; });
+  await attendre(page, () => document.querySelector('.side-nav-card[data-tse-login="hctuan"]')?.dataset.tseCategory === 'Fortnite', 10_000);
+  await page.evaluate(() => {
+    const cat = document.querySelector('.side-nav-card[data-tse-login="mastu"]').dataset.tseCategory;
+    [...document.querySelectorAll('#tse-cat-dd .tse-dd-opt')].find((o) => o.dataset.value === cat)?.click();
+  });
+  await attendre(page, () => document.querySelector('.side-nav-card[data-tse-login="hctuan"]')?.style.display === 'none', 5000);
+  await wait(page, 600);
+  const masque = await page.evaluate(() => Object.fromEntries(['mastu', 'hctuan'].map((l) => {
+    const c = document.querySelector(`.side-nav-card[data-tse-login="${l}"]`);
+    return [l, { masquee: c.style.display === 'none', cle: c.dataset.tseCostreamKey ?? null,
+                 marque: c.classList.contains('tse-costream') }];
+  })));
+  ok('…et sous un filtre qui cache hctuan, mastu ne fait plus groupe avec une carte invisible, qui ne garde aucune marque',
+     masque.hctuan.masquee && !masque.mastu.masquee && masque.mastu.cle === null
+     && masque.hctuan.cle === null && !masque.hctuan.marque,
+     JSON.stringify(masque));
   await page.close();
 }
 
