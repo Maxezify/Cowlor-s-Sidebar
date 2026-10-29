@@ -567,6 +567,11 @@ const EXPIRATION_CADRE = 30_000;
 let suivantCadre = 0;
 const attentesCadre = new Map();
 
+const ORIGINES_PARENT = ['https://www.twitch.tv', 'https://twitch.tv'];
+const posterAuParent = (message) => {
+  for (const origine of ORIGINES_PARENT) window.parent.postMessage(message, origine);
+};
+
 window.addEventListener('message', (e) => {
 
   if (e.source !== window.parent) return;
@@ -589,8 +594,7 @@ const demanderCadre = (charge) => new Promise((resoudre) => {
                detail: 'la page n\'a pas répondu' });
   }, EXPIRATION_CADRE);
   attentesCadre.set(id, { resoudre, minuteur });
-
-  try { window.parent.postMessage({ tse: INCRUSTE_REQ, id, ...charge }, '*'); }
+  try { posterAuParent({ tse: INCRUSTE_REQ, id, ...charge }); }
   catch {
     clearTimeout(minuteur);
     attentesCadre.delete(id);
@@ -2002,7 +2006,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (document.documentElement.getAttribute('data-vue') !== 'incruste') return;
 
-    try { window.parent.postMessage({ tse: 'tse-panneau-fermer' }, '*'); }
+    try { posterAuParent({ tse: 'tse-panneau-fermer' }); }
     catch {   }
   });
 

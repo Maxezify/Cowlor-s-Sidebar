@@ -60,7 +60,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     if (!d || d.tse !== TSE_PANNEAU_REQ || typeof d.id !== 'number') return;
 
     const repondre = (charge) =>
-      window.postMessage({ tse: TSE_PANNEAU_RES, id: d.id, ...charge }, '*');
+      window.postMessage({ tse: TSE_PANNEAU_RES, id: d.id, ...charge }, '/');
 
     if (!servirPanneau) { repondre(pasEncorePret()); return; }
     servirPanneau(d, repondre);
@@ -1195,14 +1195,18 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
   let LANG = detectLanguage();
   let S = STRINGS[LANG];
 
+  let localeRetenue = { lang: null, LANG: null, valeur: null };
   const localeTwitch = () => {
+    const brut = document.documentElement.lang || '';
+    if (localeRetenue.lang === brut && localeRetenue.LANG === LANG) return localeRetenue.valeur;
     let l = null;
-    try { l = Intl.getCanonicalLocales((document.documentElement.lang || '').trim())[0] || null; }
+    try { l = Intl.getCanonicalLocales(brut.trim())[0] || null; }
     catch { l = null; }
-    if (!l) return S.locale;
 
-    const nous = langueDe(l);
-    return nous === LANG || !nous ? l : S.locale;
+    const nous = l && langueDe(l);
+    const valeur = !l ? S.locale : nous === LANG || !nous ? l : S.locale;
+    localeRetenue = { lang: brut, LANG, valeur };
+    return valeur;
   };
   jalon('i18n');
 
@@ -2669,18 +2673,10 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     }
     
     html[data-tse-theme="light"] .tse-lueur-deco > span:nth-child(1) {
-      width: 900%;
       background-image: linear-gradient(102deg,
           rgba(138, 89, 0, 0)     40%,
           rgba(138, 89, 0, 0.10)  48%,
           rgba(138, 89, 0, 0)     56%);
-      background-size: calc(100% / 3) 100%;
-      background-repeat: repeat;
-      animation-name: tse-lueur-voile-clair;
-    }
-    html[data-tse-theme="light"] .tse-lueur-deco > span:nth-child(n + 2) {
-      width: 100%;
-      animation: none;
     }
     html[data-tse-theme="light"] .tse-lueur-deco > span:nth-child(2) {
       background-image: radial-gradient(60% 120% at 12% 50%, rgba(138, 89, 0, 0.10), transparent 70%);
@@ -2690,11 +2686,6 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     }
     html[data-tse-theme="light"] .tse-lueur-deco > span:nth-child(4) {
       background-image: radial-gradient(70% 130% at 88% 60%, rgba(138, 89, 0, 0.09), transparent 70%);
-    }
-    
-    @keyframes tse-lueur-voile-clair {
-      0%        { transform: translateX(calc((-110% * (1 - 3) - 300%) / 9)); }
-      25%, 100% { transform: translateX(calc(( 210% * (1 - 3) - 300%) / 9)); }
     }
     
     .side-nav-card.tse-sub .tse-sub-avatar {
@@ -2857,6 +2848,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       display: inline-grid;
     }
     
+    .side-nav-card.tse-sub .tse-subathon-jour { position: relative; }
     .tse-subathon-jour > .tse-subathon-libelle {
       display: block;
       grid-area: 1 / 1;
@@ -2897,6 +2889,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     }
     .tse-subathon-jour > .tse-subathon-teintes > span:first-child { opacity: 1; }
     .tse-subathon-jour > .tse-subathon-teintes > span::before { content: attr(data-t); }
+    
+    .tse-subathon-jour > .tse-subathon-teintes > span { -webkit-text-fill-color: currentColor; }
 
     
 
@@ -3731,10 +3725,25 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     html[data-tse-off~="duree"] .tse-uptime { display: none !important; }
     
     html[data-tse-off~="fresh"] .side-nav-card.tse-fresh > .tse-frais-deco { display: none !important; }
-    html[data-tse-off~="fresh"] .side-nav-card.tse-fresh,
-    html[data-tse-off~="fresh"] .side-nav-card.tse-fresh.tse-costream {
+    html[data-tse-off~="fresh"] .side-nav-card.tse-fresh {
       background: none !important;
       background-image: none !important;
+    }
+    
+    html[data-tse-off~="fresh"] .side-nav-card.tse-fresh.tse-costream {
+      background-image: linear-gradient(
+        90deg,
+        var(--tse-costream-bg, rgba(var(--tse-encre), 0.10)) 0%,
+        var(--tse-costream-bg-fade, rgba(var(--tse-encre), 0.04)) 40%,
+        transparent 100%
+      ) !important;
+    }
+    html[data-tse-off~="fresh"] .side-nav-card.tse-fresh.tse-costream::before {
+      display: block;
+      background: var(--tse-costream-color, #ffffff);
+    }
+    html[data-tse-theme="light"][data-tse-off~="fresh"] .side-nav-card.tse-fresh.tse-costream::before {
+      background: var(--tse-costream-color-clair, var(--tse-costream-color, #ffffff));
     }
     html[data-tse-off~="subathonJour"] .tse-subathon-jour { display: none !important; }
 
@@ -5937,6 +5946,12 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       }
     };
 
+    let remesureDemandee = 0;
+    const repositionAvantImage = () => {
+      if (remesureDemandee) return;
+      remesureDemandee = requestAnimationFrame(() => { remesureDemandee = 0; reposition(); });
+    };
+
     const journal = [];
     const noter = (evt, detail) => {
       journal.push({ t: Math.round(performance.now()), evt, detail });
@@ -5949,6 +5964,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       if (stabilityTimer) { clearTimeout(stabilityTimer); stabilityTimer = null; }
       if (timeoutTimer)   { clearTimeout(timeoutTimer);   timeoutTimer   = null; }
       if (cycleObserver) { cycleObserver.disconnect(); cycleObserver = null; }
+      if (remesureDemandee) { cancelAnimationFrame(remesureDemandee); remesureDemandee = 0; }
       if (resizeHandler) {
         window.removeEventListener('resize', resizeHandler);
         resizeHandler = null;
@@ -6021,9 +6037,10 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       overlay = built.el;
       spinner = built.sp;
       document.body.appendChild(overlay);
-      reposition();
 
-      resizeHandler = () => reposition();
+      repositionAvantImage();
+
+      resizeHandler = () => repositionAvantImage();
       window.addEventListener('resize', resizeHandler);
 
       cycleObserver = new MutationObserver((mutations) => {
@@ -6032,7 +6049,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
           overlay && (m.target === overlay || overlay.contains(m.target))
         );
         if (allInOverlay) return;
-        reposition();
+        repositionAvantImage();
       });
       cycleObserver.observe(document.body, { childList: true, subtree: true });
 
@@ -12917,10 +12934,15 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     }
     return texte.slice(0, m.index) + voulu + texte.slice(fin);
   };
+
+  const recalages = new WeakMap();
   const recalerTexteAccessible = (card, shown) => {
     const host = liveStatusOf(card);
     if (!host) return;
     const voulu = formatViewers(shown);
+    const locale = localeTwitch();
+    const vu = recalages.get(card);
+    if (vu && vu.host === host && vu.voulu === voulu && vu.locale === locale && vu.texte === host.textContent) return;
     const natif = (nativeViewersEl(card)?.textContent || '').trim();
     for (const n of host.querySelectorAll('*')) {
       if (n.children.length) continue;
@@ -12935,6 +12957,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       ecritsAccessibles.set(n, voulu);
       if (neuf !== texte) setText(n, neuf);
     }
+    recalages.set(card, { host, voulu, locale, texte: host.textContent });
   };
 
   const renderViewers = (card, count, display) => {
@@ -15312,7 +15335,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
   });
   const demanderUrl = () => {
     if (urlPanneau) return;
-    try { window.postMessage({ tse: TSE_URL_REQ }, '*'); } catch {   }
+
+    try { window.postMessage({ tse: TSE_URL_REQ }, '/'); } catch {   }
   };
 
   let fermerIncruste = null;
@@ -15350,7 +15374,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       if (ev.source !== frame.contentWindow) return;
       const d = ev.data;
       if (!d) return;
-      if (d.tse === 'tse-panneau-fermer') { fermerIncruste?.(); return; }
+
+      if (d.tse === 'tse-panneau-fermer') {
+        if (originePanneau && ev.origin === originePanneau) fermerIncruste?.();
+        return;
+      }
 
       if (d.tse !== TSE_INCRUSTE_REQ || typeof d.id !== 'number') return;
       if (!originePanneau || ev.origin !== originePanneau) return;
@@ -15750,6 +15778,10 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     } catch { return 0; }
   };
 
+  let texteMesure = { cle: null, parRange: 0, parToile: 0 };
+  let policesChargees = 0;
+  try { document.fonts.addEventListener('loadingdone', () => { policesChargees += 1; }); }
+  catch {   }
   function ajusterTitre() {
     const ligne = document.querySelector(`${DOM.sidebarRoot} .side-nav__title[data-tse-roue]`);
     const h3 = ligne?.querySelector(':scope > h3');
@@ -15761,10 +15793,19 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     if (!h3.style.fontSize) h3.dataset.tseTitrePx = String(actuel);
     const natif = Number(h3.dataset.tseTitrePx) || actuel;
     if (!natif || !actuel) return;
-    const r = document.createRange();
-    r.selectNodeContents(h3);
-    const parRange = (r.getBoundingClientRect().width * natif) / actuel;
-    const parToile = largeurToile((h3.textContent || '').trim(), ch, natif, actuel);
+    const brut = (h3.textContent || '').trim();
+    const cle = [brut, ch.fontStyle, ch.fontVariant, ch.fontWeight, ch.fontStretch, ch.fontFamily, ch.fontFeatureSettings,
+                 ch.fontKerning, ch.letterSpacing, ch.wordSpacing, ch.textTransform, natif, actuel, h3.style.maxWidth,
+                 policesChargees].join('|');
+    let parRange, parToile;
+    if (texteMesure.cle === cle) ({ parRange, parToile } = texteMesure);
+    else {
+      const r = document.createRange();
+      r.selectNodeContents(h3);
+      parRange = (r.getBoundingClientRect().width * natif) / actuel;
+      parToile = largeurToile(brut, ch, natif, actuel);
+      texteMesure = { cle, parRange, parToile };
+    }
     const texte = Math.max(parRange, parToile);
 
     const cs = getComputedStyle(ligne);
@@ -16624,6 +16665,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       autres.push(...sec.querySelectorAll('.side-nav-card'));
     }
     const toutes = [...cards, ...autres];
+
+    const montrees = new Set(toutes.filter(cardShown));
     const suiviesSet = new Set(cards);
     const groupeDe = (cle, card) => `${cle}@${rangSection.get(card.closest('.side-nav-section')) ?? 0}`;
     const sessionDeGroupe = (g) => g.slice(0, g.lastIndexOf('@'));
@@ -16636,7 +16679,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
 
     const rattachees = [];
     toutes.forEach(card => {
-      if (!cardShown(card)) return;
+      if (!montrees.has(card)) return;
       const login = card.dataset.tseLogin;
       if (!login) return;
       const id = getChannelId(login);
@@ -16659,7 +16702,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     }
 
     toutes.forEach(card => {
-      if (!cardShown(card)) return;
+      if (!montrees.has(card)) return;
       if (gsHandled.has(card)) return;
       if (gsUsable && hostByCard.get(card) === undefined && getChannelId(card.dataset.tseLogin)) return;
       if (!cardHasCollab(card)) return;
@@ -16691,7 +16734,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     for (const g of activeKeys) for (const c of groups.get(g)) dansUnGroupe.add(c);
     const seules = new Map();
     toutes.forEach(card => {
-      if (!cardShown(card) || card.dataset.tseGlobal === 'true') return;
+      if (!montrees.has(card) || card.dataset.tseGlobal === 'true') return;
       if (dansUnGroupe.has(card) || !cardHasCollab(card)) return;
       const login = card.dataset.tseLogin;
       if (!login) return;
@@ -16781,7 +16824,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       if (g.startsWith('gs:') && membres.some((c) => suiviesSet.has(c))) bilanCostream.groupes += 1;
       if (membres.some((c) => !suiviesSet.has(c))) bilanCostream.recommandations.groupes += 1;
     }
-    for (const c of autres) if (cardShown(c) && c.dataset.tseLogin) bilanCostream.recommandations.cartes += 1;
+    for (const c of autres) if (montrees.has(c) && c.dataset.tseLogin) bilanCostream.recommandations.cartes += 1;
 
     for (const { key, raison } of rattachees) {
       if (!activeKeys.has(key)) continue;
@@ -16791,7 +16834,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
 
     const sessions = new Map();
     for (const card of cards) {
-      if (!cardShown(card)) continue;
+      if (!montrees.has(card)) continue;
       const login = card.dataset.tseLogin;
       if (!login) continue;
       const mates = getGuestStarMates(login);
