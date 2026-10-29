@@ -2462,7 +2462,7 @@ relancé sur les scénarios qui gardent ce qu'il casse. En route :
 | les cartes montrées lues dans la seule liste suivie | 195 : le co-stream de « Chaînes live » |
 | toutes les cartes tenues pour montrées | 25 : la carte masquée fait groupe |
 
-Le banc complet : COMPTE assertions dans 212 scénarios, toutes vertes.
+Le banc complet : 2020 assertions dans 212 scénarios, toutes vertes.
 
 ## Les décorations au compositeur, content.js hors des iframes, et la défense en profondeur (v4.25.0.9)
 
@@ -22014,7 +22014,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | les six fichiers JavaScript livrés — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 212 scénarios, 2002 assertions |
+| `npm test` | le harnais Playwright : 212 scénarios, 2020 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il

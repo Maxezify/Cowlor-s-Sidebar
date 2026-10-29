@@ -2333,7 +2333,7 @@ run again on the scenarios that guard what it breaks. Along the way:
 | the shown cards read in the followed list only | 195: the co-stream in "Live channels" |
 | every card taken as shown | 25: the hidden card forms a group |
 
-The full bench: COMPTE assertions in 212 scenarios, all green.
+The full bench: 2020 assertions in 212 scenarios, all green.
 
 ## Decorations on the compositor, content.js out of the iframes, and defense in depth (v4.25.0.9)
 
@@ -21364,7 +21364,7 @@ Four independent checks:
 | `npm run lint` | the six shipped JavaScript files — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 212 scenarios, 2002 assertions |
+| `npm test` | the Playwright harness: 212 scenarios, 2020 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has

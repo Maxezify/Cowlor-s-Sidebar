@@ -33752,9 +33752,14 @@ const S_LECTEUR_SONDE = () => {
     await balayer(3);
     const repos = await page.evaluate(() => ({ parcours: window.__parcours,
       texte: document.querySelector('.sr-only').textContent, nombre: document.querySelector('.tse-viewers').textContent }));
-    // Twitch redessine sa phrase, avec son nombre à lui.
+    /* Twitch redessine sa phrase, avec son nombre à lui. Le recalage suit le
+       balayage qui applique les données de la chaîne — tout de suite si elles
+       sont fraîches, au retour de leur requête sinon : on l'attend, cinq
+       secondes au plus, au lieu de le lire juste après le balayage. */
     await page.evaluate(() => { document.querySelector('.sr-only').textContent = '17.9万人の視聴者'; });
     await balayer(1);
+    await attendre(page, () => document.querySelector('.sr-only').textContent
+      === `${document.querySelector('.tse-viewers').textContent}人の視聴者`, 5000);
     const redessin = await page.evaluate(() => ({ parcours: window.__parcours,
       texte: document.querySelector('.sr-only').textContent, nombre: document.querySelector('.tse-viewers').textContent }));
     ok('c bis) trois balayages où rien ne bouge ne reparcourent aucun bloc de compteur — et la phrase reste juste',
