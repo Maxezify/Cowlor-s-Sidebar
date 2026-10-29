@@ -1,768 +1,22 @@
 
 
 const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
-
 const TSE_PREVIEW_GATE_MSG = 'tse:preview-gate';
-
 const TSE_PREVIEW_HELLO_MSG = 'tse:preview-hello';
-
 const TSE_PREVIEW_FRAME_NAME = 'tse-apercu';
 
-const TSE_PREVIEW_PARENTS = ['https://www.twitch.tv', 'https://twitch.tv'];
-
-const tseOrigineParent = () => {
-  try {
-    const a = location.ancestorOrigins;
-    return a && a.length ? a[0] : null;
-  } catch { return null; }
-};
-
 const TSE_GATE_ENABLED = true;
-
-const TSE_GATE_BUTTON =
-  'button[data-a-target="content-classification-gate-overlay-start-watching-button"]';
-
-const TSE_GATE_ZONE = '[data-a-target^="content-classification-gate"]';
-
-const TSE_GATE_MAX_CLICKS = 5;
-
-(() => {
-  'use strict';
-
-  try {
-    if (window.top === window) return;
-    if (location.hostname !== 'player.twitch.tv') return;
-    if (window.name !== TSE_PREVIEW_FRAME_NAME) return;
-  } catch { return; }
-
-  const parentConnu = tseOrigineParent();
-
-  if (parentConnu && !TSE_PREVIEW_PARENTS.includes(parentConnu)) return;
-  const targets = parentConnu ? [parentConnu] : TSE_PREVIEW_PARENTS;
-
-  const poster = (quoi) => {
-    for (const origin of targets) {
-      try { window.parent.postMessage({ tse: quoi }, origin); } catch {   }
-    }
-  };
-
-  poster(TSE_PREVIEW_HELLO_MSG);
-
-  const gateBouton = () => {
-    const visible = (b) => {
-      if (!b) return null;
-      const r = b.getBoundingClientRect();
-      return (r.width > 0 && r.height > 0) ? b : null;
-    };
-    const direct = visible(document.querySelector(TSE_GATE_BUTTON));
-    if (direct) return direct;
-    const zone = document.querySelector(TSE_GATE_ZONE);
-    return zone ? visible(zone.querySelector('button')) : null;
-  };
-
-  let sent = false, imagePrete = false;
-
-  const annoncer = () => {
-    if (sent || !imagePrete) return;
-    if (gateBouton()) return;
-    sent = true;
-    poster(TSE_PREVIEW_FIRST_FRAME_MSG);
-  };
-  const announce = () => { imagePrete = true; annoncer(); };
-
-  const cliques = new WeakSet();
-  let clics = 0, gateVue = false;
-  const lever = () => {
-
-    if (gateVue && (!TSE_GATE_ENABLED || clics >= TSE_GATE_MAX_CLICKS)) return;
-    const btn = gateBouton();
-    if (!btn) return;
-
-    if (!gateVue) { gateVue = true; poster(TSE_PREVIEW_GATE_MSG); }
-
-    if (!TSE_GATE_ENABLED || clics >= TSE_GATE_MAX_CLICKS) return;
-    if (cliques.has(btn)) return;
-    cliques.add(btn);
-    clics += 1;
-    try { btn.click(); } catch {   }
-  };
-
-  const watch = (video) => {
-
-    if (typeof video.requestVideoFrameCallback === 'function') {
-      try { video.requestVideoFrameCallback(announce); } catch {   }
-    }
-    video.addEventListener('playing', announce, { once: true });
-    if (video.readyState >= 2) announce();
-  };
-
-  let vue = null;
-  const scan = () => {
-    lever();
-    const v = document.querySelector('video');
-    if (v && v !== vue) { vue = v; watch(v); }
-
-    annoncer();
-
-    return sent;
-  };
-
-  if (!scan()) {
-    const root = document.documentElement;
-    if (!root) return;
-    const mo = new MutationObserver(() => { if (scan()) mo.disconnect(); });
-    mo.observe(root, { childList: true, subtree: true });
-    setTimeout(() => mo.disconnect(), 15_000);
-  }
-})();
 
 const TSE_SALLE_FRAME_NAME = 'tse-salle';
 const TSE_SALLE_ETAT_MSG = 'tse:salle-etat';
 const TSE_SALLE_ORDRE_MSG = 'tse:salle-ordre';
-
 const TSE_SALLE_RELEVE_MSG = 'tse:salle-releve';
-
 const TSE_SALLE_CONSOLE_MSG = 'tse:salle-console';
 const TSE_SALLE_CONSOLE_REPONSE = 'tse:salle-console-reponse';
 const TSE_SALLE_CHAT_NAME = 'tse-salle-chat';
 
-const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video-ad-countdown"], '
-  + '[data-test-selector="ad-banner-default-text"]';
-
-(() => {
-  'use strict';
-
-  try {
-    if (window.top === window) return;
-    if (location.hostname !== 'player.twitch.tv') return;
-    if (window.name !== TSE_SALLE_FRAME_NAME) return;
-  } catch { return; }
-  const parentConnu = tseOrigineParent();
-  if (parentConnu && !TSE_PREVIEW_PARENTS.includes(parentConnu)) return;
-  const cibles = parentConnu ? [parentConnu] : TSE_PREVIEW_PARENTS;
-
-  const BOUTON_SON = 'button[data-a-target="player-mute-unmute-button"]';
-  const BOUTON_LECTURE = 'button[data-a-target="player-play-pause-button"]';
-  const enPub = () => document.querySelector(TSE_PUB_REPERES) !== null;
-  let ordre = null;
-  let numeroOrdre = 0;
-
-  let gestes = 0;
-  const compterGeste = (e) => { if (e.isTrusted) gestes += 1; };
-  window.addEventListener('pointerdown', compterGeste, true);
-  window.addEventListener('keydown', compterGeste, true);
-
-  const leves = new WeakSet();
-  let avertissementVu = false, avertissementClics = 0;
-  const leverAvertissement = () => {
-
-    const visible = (b) => { if (!b) return null; const r = b.getBoundingClientRect(); return r.width > 0 && r.height > 0 ? b : null; };
-    const zone = document.querySelector(TSE_GATE_ZONE);
-    const bouton = visible(document.querySelector(TSE_GATE_BUTTON)) || (zone ? visible(zone.querySelector('button')) : null);
-    if (!bouton) return false;
-    avertissementVu = true;
-    if (!TSE_GATE_ENABLED || avertissementClics >= TSE_GATE_MAX_CLICKS || leves.has(bouton)) return true;
-    leves.add(bouton);
-    avertissementClics += 1;
-    try { bouton.click(); } catch {   }
-    return true;
-  };
-
-  let instanceLecteur = null;
-
-  let rechercheDepuis = 0;
-  const lecteurTwitch = () => {
-    if (instanceLecteur) return instanceLecteur;
-    if (!rechercheDepuis) rechercheDepuis = Date.now();
-    else if (Date.now() - rechercheDepuis > 60_000) return null;
-    try {
-      const racine = document.getElementById('root');
-      if (!racine) return null;
-      let fibre = racine._reactRootContainer?._internalRoot?.current || null;
-      if (!fibre) {
-        const cle = Object.keys(racine).find((k) => k.startsWith('__reactContainer'));
-        fibre = cle ? racine[cle] : null;
-      }
-      if (!fibre) return null;
-
-      const file = [fibre];
-      for (let i = 0; i < file.length && i < 20_000; i++) {
-        const n = file[i];
-        const inst = n.stateNode && n.stateNode.props && n.stateNode.props.mediaPlayerInstance;
-        if (inst && n.stateNode.setPlayerActive) {
-          instanceLecteur = inst.playerInstance || inst;
-          return instanceLecteur;
-        }
-        if (n.child) file.push(n.child);
-        if (n.sibling) file.push(n.sibling);
-      }
-    } catch {   }
-    return null;
-  };
-
-  let hauteurVoulue = null;
-  let qualiteEssais = 0;
-  let qualiteT = 0;
-
-  const meilleureA = (echelle, hauteur) => echelle.filter((q) => q && q.height === hauteur)
-    .reduce((p, q) => (!p || (q.framerate || 0) > (p.framerate || 0) ? q : p), null);
-  const choisirQualite = (echelle, h) => {
-    let meilleure = null;
-    for (const q of echelle) {
-      if (!q || !Number.isFinite(q.height)) continue;
-      const ecart = Math.abs(Math.log(q.height / h));
-      if (!meilleure || ecart < meilleure.ecart
-        || (ecart === meilleure.ecart && (q.height > meilleure.q.height
-          || (q.height === meilleure.q.height && (q.framerate || 0) > (meilleure.q.framerate || 0))))) {
-        meilleure = { q, ecart };
-      }
-    }
-    if (!meilleure) return null;
-    const dessus = echelle.filter((q) => q && Number.isFinite(q.height) && q.height > meilleure.q.height)
-      .reduce((p, q) => (p === null || q.height < p ? q.height : p), null);
-    return dessus === null ? meilleure.q : meilleureA(echelle, dessus);
-  };
-
-  const tenirQualite = () => {
-    if (!hauteurVoulue || qualiteEssais >= 5 || Date.now() - qualiteT < 3000 || enPub()) return;
-    const lecteur = lecteurTwitch();
-    if (!lecteur || typeof lecteur.setQuality !== 'function') return;
-    let echelle = [];
-    try { echelle = lecteur.getQualities() || []; } catch { return; }
-    const cible = choisirQualite(echelle, hauteurVoulue);
-    if (!cible) return;
-    let actuelle = null, auto = null;
-    try { actuelle = lecteur.getQuality && lecteur.getQuality(); } catch {   }
-    try { auto = lecteur.isAutoQualityMode ? lecteur.isAutoQualityMode() : null; } catch {   }
-    if (actuelle && actuelle.name === cible.name && auto === false) return;
-    try {
-      lecteur.setQuality(cible);
-      qualiteEssais += 1;
-      qualiteT = Date.now();
-    } catch { qualiteEssais += 1; qualiteT = Date.now(); }
-  };
-
-  const releveLecteur = () => {
-    const lecteur = lecteurTwitch();
-    if (!lecteur) return { lecteur: false };
-    const lire = (f) => { try { const x = f(); return Number.isFinite(x) ? Math.round(x * 100) / 100 : null; } catch { return null; } };
-    let nom = null, auto = null;
-    try { nom = lecteur.getQuality ? (lecteur.getQuality() || {}).name || null : null; } catch {   }
-    try { auto = lecteur.isAutoQualityMode ? !!lecteur.isAutoQualityMode() : null; } catch {   }
-    return {
-      lecteur: true, qualite: nom, auto,
-      latence: lecteur.getLiveLatency ? lire(() => lecteur.getLiveLatency()) : null,
-      tampon: lecteur.getBufferDuration ? lire(() => lecteur.getBufferDuration()) : null,
-    };
-  };
-
-  const etatSalle = () => {
-    const v = document.querySelector('video');
-    tenirQualite();
-    const avertissement = leverAvertissement();
-
-    const q = v && typeof v.getVideoPlaybackQuality === 'function' ? v.getVideoPlaybackQuality() : null;
-    return {
-      ...releveLecteur(),
-      qualiteVoulue: hauteurVoulue,
-      vitesse: v ? v.playbackRate : null,
-      video: !!v,
-      lecture: !!v && !v.paused,
-      muet: v ? v.muted : null,
-
-      volume: v ? Math.round(v.volume * 100) / 100 : null,
-      images: q ? q.totalVideoFrames : null,
-      perdues: q ? q.droppedVideoFrames : null,
-      octets: v && typeof v.webkitVideoDecodedByteCount === 'number'
-        ? v.webkitVideoDecodedByteCount + (Number(v.webkitAudioDecodedByteCount) || 0) : null,
-
-      pub: enPub(),
-      pubVisible: [...document.querySelectorAll(TSE_PUB_REPERES)].some((el) => el.getClientRects().length > 0),
-      boutonSon: !!document.querySelector(BOUTON_SON),
-      avertissement, avertissementVu, avertissementClics,
-      gestes,
-      ordre,
-    };
-  };
-
-  const lireNombre = (f, chiffres = 3) => {
-    try {
-      const x = f();
-      const p = 10 ** chiffres;
-      return Number.isFinite(x) ? Math.round(x * p) / p : null;
-    } catch { return null; }
-  };
-
-  const lireApi = (lecteur) => {
-    const noms = new Set();
-    for (let o = lecteur; o && o !== Object.prototype; o = Object.getPrototypeOf(o)) {
-      for (const k of Object.getOwnPropertyNames(o)) {
-        if (k === 'constructor') continue;
-        const d = Object.getOwnPropertyDescriptor(o, k);
-        if (d && typeof d.value === 'function') noms.add(k);
-      }
-    }
-    return [...noms].sort();
-  };
-
-  let essai = null;
-  let numeroEssai = 0;
-
-  const deplacer = (s, sens = 1) => {
-    const lecteur = lecteurTwitch();
-    const v = document.querySelector('video');
-    const type = sens > 0 ? 'recul' : 'avance';
-
-    if (enPub()) {
-      essai = { n: ++numeroEssai, type, valeur: s, voie: 'refusé : pub', t: Date.now(), fin: Date.now(),
-                avant: null, apres: null };
-      return;
-    }
-    if (sens < 0) {
-      const tampon = lecteur && typeof lecteur.getBufferDuration === 'function' ? lireNombre(() => lecteur.getBufferDuration()) : null;
-      if (tampon !== null && tampon < s + 0.5) {
-        essai = { n: ++numeroEssai, type, valeur: s, voie: `refusé : tampon ${tampon} s`, t: Date.now(), fin: Date.now(),
-                  avant: null, apres: null };
-        return;
-      }
-    }
-    let voie = null, avant = null;
-    const t0 = performance.now();
-    if (lecteur && typeof lecteur.seekTo === 'function' && typeof lecteur.getPosition === 'function') {
-      try { avant = lecteur.getPosition(); lecteur.seekTo(avant - sens * s); voie = 'instance'; } catch {   }
-    }
-    if (!voie && v) { avant = v.currentTime; v.currentTime = avant - sens * s; voie = 'video'; }
-    const e = { n: ++numeroEssai, type, valeur: s, voie: voie || 'sans-video', t: Date.now(), fin: null,
-                avant: Number.isFinite(avant) ? Math.round(avant * 1000) / 1000 : null, apres: null };
-    essai = e;
-    if (!voie) return;
-    setTimeout(() => {
-      const p = voie === 'instance' ? lireNombre(() => lecteur.getPosition()) : (v ? v.currentTime : null);
-      e.apres = Number.isFinite(p) ? Math.round(p * 1000) / 1000 : null;
-
-      e.ecouleS = Math.round(performance.now() - t0) / 1000;
-      e.fin = Date.now();
-    }, 500);
-  };
-
-  const retirerFaibleLatence = () => {
-    const lecteur = lecteurTwitch();
-    let voie;
-    if (!lecteur || typeof lecteur.setLiveLowLatencyEnabled !== 'function') voie = 'absent';
-    else {
-      try { lecteur.setLiveLowLatencyEnabled(false); voie = 'instance'; } catch (err) { voie = `refusé : ${(err && err.name) || 'erreur'}`; }
-    }
-    essai = { n: ++numeroEssai, type: 'faible-latence', valeur: false, voie, t: Date.now(), fin: Date.now() };
-  };
-
-  const arriereElement = (v) => {
-    try {
-      if (!v || !v.buffered || !Number.isFinite(v.currentTime)) return null;
-      for (let i = 0; i < v.buffered.length; i++) {
-        const s = v.buffered.start(i), e = v.buffered.end(i);
-        if (v.currentTime >= s && v.currentTime <= e + 0.1) return Math.round((v.currentTime - s) * 1000) / 1000;
-      }
-    } catch {   }
-    return null;
-  };
-
-  const formeDe = (r) => {
-    if (!r || typeof r !== 'object') return `forme ${r === null ? 'null' : typeof r}`;
-    const proto = Object.getPrototypeOf(r);
-    const nom = proto && proto.constructor && proto.constructor.name;
-    const cles = [];
-    for (const k in r) {
-      if (cles.length >= 6) break;
-      const v = r[k];
-      cles.push(`${k}:${Array.isArray(v) ? `tableau ${v.length}` : typeof v}`);
-    }
-    return (`forme ${Array.isArray(r) ? 'tableau' : 'object'}${nom && nom !== 'Object' && nom !== 'Array' ? ` ${nom}` : ''}`
-      + ` · ${cles.length ? cles.join(', ') : 'aucune clé'}`).slice(0, 160);
-  };
-  const lirePlages = (lecteur) => {
-    let r;
-    try { r = lecteur.getBufferedRanges(); } catch { return { plages: 'erreur', forme: null }; }
-    const paire = (x) => (Array.isArray(x) && x.length >= 2 ? [x[0], x[1]]
-      : x && typeof x === 'object' && 'start' in x && 'end' in x ? [x.start, x.end] : null);
-    let l = null;
-    if (Array.isArray(r)) l = r.map(paire);
-    else if (r && typeof r.length === 'number' && typeof r.start === 'function') {
-      l = [];
-      try { for (let i = 0; i < Math.min(r.length, 8); i++) l.push([r.start(i), r.end(i)]); } catch { return { plages: 'erreur', forme: formeDe(r) }; }
-    } else if (r && typeof r === 'object') {
-      let cles = [];
-      try { cles = ['video', ...Object.keys(r)]; } catch {   }
-      const tab = cles.map((k) => r[k]).find((v) => Array.isArray(v) && v.length && paire(v[0]));
-      if (tab) l = tab.map(paire);
-    }
-    const forme = Array.isArray(r) || r === undefined || r === null ? null : formeDe(r);
-    if (!l) return { plages: r === undefined || r === null ? null : forme, forme };
-    return { plages: l.slice(0, 8).map((x) => (x && x.every(Number.isFinite) ? x.map((y) => Math.round(y * 1000) / 1000) : null)), forme };
-  };
-
-  const MODULE_ENVELOPPE = `registerProcessor('tse-enveloppe', class extends AudioWorkletProcessor {
-  constructor() { super(); this.s = 0; this.n = 0; }
-  process(entrees) {
-    const x = entrees[0] && entrees[0][0];
-    const q = x ? x.length : 128;
-    if (x) for (let i = 0; i < q; i++) this.s += x[i] * x[i];
-    this.n += q;
-    if (this.n >= 1024) { this.port.postMessage([currentFrame + q, this.s / this.n]); this.s = 0; this.n = 0; }
-    return true;
-  }
-});`;
-  const ecoute = (() => {
-    const B = 1024;
-    let actif = false, ac = null, proc = null, nul = null, source = null, flux = null, video = null, piste = null;
-    let etat = 'inactive', reliaisons = 0, sr = null, voie = null;
-    let ancreCour = Infinity, ancrePrec = Infinity, ancreT = 0;
-
-    const MARCHE_MS = 15;
-    let secMin = Infinity, secT = 0, marches = 0, marchesMs = [];
-
-    let rang = -1, dernierPt = null;
-
-    let sonVu = false, amorce = 0;
-    let lot = [];
-
-    let secondes = [], blocs = 0, muets = 0;
-
-    const debrancher = () => {
-      try { if (source) source.disconnect(); } catch {   }
-      source = null; piste = null;
-    };
-
-    const detacher = () => {
-      debrancher();
-      if (flux) for (const p of flux.getTracks()) { try { p.stop(); } catch {   } }
-      flux = null; video = null;
-    };
-    const relier = () => {
-      const v = document.querySelector('video');
-      if (!v) { etat = 'sans-video'; return; }
-      if (typeof v.captureStream !== 'function') { etat = 'indisponible'; return; }
-
-      if (!proc) return;
-      if (v !== video) {
-        detacher();
-        try { flux = v.captureStream(); } catch (e) { etat = `erreur:${(e && e.name) || 'capture'}`; return; }
-        video = v;
-      }
-      const vivantes = flux.getAudioTracks().filter((p) => p.readyState === 'live');
-      const derniere = vivantes[vivantes.length - 1] || null;
-      if (!derniere) {
-
-        detacher();
-        etat = 'sans-piste';
-        return;
-      }
-      if (derniere === piste && source) return;
-      debrancher();
-      try {
-        source = ac.createMediaStreamSource(new MediaStream([derniere]));
-        source.connect(proc);
-        piste = derniere;
-        reliaisons += 1;
-        sonVu = false; amorce = Math.ceil(sr / B);
-      } catch (e) { etat = `erreur:${(e && e.name) || 'source'}`; source = null; piste = null; }
-    };
-
-    const surFin = (finMs, puissance, mur) => {
-      const ecart = mur - finMs;
-
-      if (mur - secT >= 1_000) {
-        const avant = Math.min(ancreCour, ancrePrec);
-        if (secT && secMin - avant > MARCHE_MS) {
-          marches += 1;
-          marchesMs.push(Math.round(secMin - avant));
-          if (marchesMs.length > 4) marchesMs.shift();
-          ancreCour = secMin; ancrePrec = Infinity; ancreT = mur;
-        }
-        secMin = Infinity; secT = mur;
-      }
-      secMin = Math.min(secMin, ecart);
-      if (mur - ancreT > 10_000) { ancrePrec = ancreCour; ancreCour = Infinity; ancreT = mur; }
-      ancreCour = Math.min(ancreCour, ecart);
-      const ancre = Math.min(ancreCour, ancrePrec);
-
-      const niveau = Math.log10(puissance + 1e-8);
-      blocs += 1;
-      if (niveau < -7) muets += 1;
-      if (!sonVu) { if (niveau < -7) return; sonVu = true; }
-      if (amorce > 0) { amorce -= 1; return; }
-
-      lot.push([Math.round((ancre + finMs - ((B / sr) * 1000) / 2) * 10) / 10, Math.round(niveau * 1000) / 1000]);
-
-      if (lot.length > 600) lot.splice(0, lot.length - 600);
-    };
-
-    const surBloc = (e) => {
-      const mur = Date.now();
-      const periode = (B / sr) * 1000;
-      rang += dernierPt === null ? 1 : Math.max(1, Math.round(((e.playbackTime - dernierPt) * 1000) / periode));
-      dernierPt = e.playbackTime;
-      const x = e.inputBuffer.getChannelData(0);
-      let s = 0;
-      for (let i = 0; i < x.length; i++) s += x[i] * x[i];
-      surFin((rang + 1) * periode, s / x.length, mur);
-    };
-    const demarrer = () => {
-      actif = true;
-      voie = null;
-      const AC = window.AudioContext;
-      if (!AC) { etat = 'indisponible'; return; }
-      let ctx;
-      try {
-        ctx = ac = new AC();
-        sr = ac.sampleRate;
-        nul = ac.createGain();
-        nul.gain.value = 0;
-        nul.connect(ac.destination);
-      } catch (e) { etat = `erreur:${(e && e.name) || 'contexte'}`; ac = null; return; }
-      const parScript = (pourquoi) => {
-        if (ac !== ctx) return;
-        try {
-          proc = ac.createScriptProcessor(B, 1, 1);
-          proc.onaudioprocess = surBloc;
-          proc.connect(nul);
-        } catch (e) { etat = `erreur:${(e && e.name) || 'processeur'}`; proc = null; return; }
-        voie = pourquoi ? `script (${pourquoi})` : 'script';
-        relier();
-      };
-      if (!ac.audioWorklet || typeof AudioWorkletNode !== 'function') { parScript('sans worklet'); return; }
-
-      etat = 'module';
-      let url = null;
-      try { url = URL.createObjectURL(new Blob([MODULE_ENVELOPPE], { type: 'application/javascript' })); } catch { parScript('sans blob'); return; }
-      ac.audioWorklet.addModule(url).then(() => {
-        if (ac !== ctx) return;
-        try {
-          proc = new AudioWorkletNode(ac, 'tse-enveloppe', { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1],
-                                                              channelCount: 1, channelCountMode: 'explicit' });
-          proc.port.onmessage = (m) => { const [fin, puissance] = m.data; surFin((fin / sr) * 1000, puissance, Date.now()); };
-          proc.connect(nul);
-        } catch (e) { proc = null; parScript(`nœud refusé : ${(e && e.name) || 'erreur'}`); return; }
-        voie = 'worklet';
-        relier();
-      }).catch((e) => parScript(`module refusé : ${(e && e.name) || 'erreur'}`))
-        .finally(() => { try { URL.revokeObjectURL(url); } catch {   } });
-    };
-    const arreter = () => {
-      actif = false;
-      detacher();
-      try {
-        if (proc) {
-          if (proc.port) proc.port.onmessage = null;
-          else proc.onaudioprocess = null;
-          proc.disconnect();
-        }
-      } catch {   }
-      try { if (nul) nul.disconnect(); } catch {   }
-      try { if (ac) ac.close(); } catch {   }
-      ac = null; proc = null; nul = null; lot = []; secondes = []; blocs = 0; muets = 0;
-      ancreCour = Infinity; ancrePrec = Infinity; ancreT = 0; rang = -1; dernierPt = null;
-      secMin = Infinity; secT = 0; marches = 0; marchesMs = [];
-      sonVu = false; amorce = 0;
-      etat = 'inactive';
-    };
-
-    const tenir = (voulu) => {
-      if (voulu && !actif) demarrer();
-      else if (!voulu && actif) arreter();
-      if (!actif || !ac) return;
-      if (ac.state === 'suspended') ac.resume().catch(() => {});
-      relier();
-      if (source) etat = ac.state;
-      secondes.push([blocs, muets]);
-      if (secondes.length > 10) secondes.shift();
-      blocs = 0; muets = 0;
-    };
-    const bilan = () => {
-      if (!actif) return { etat };
-      const b = secondes.reduce((x, y) => x + y[0], 0);
-      const m = secondes.reduce((x, y) => x + y[1], 0);
-      return { etat, sr, reliaisons, voie, pistes: flux ? flux.getAudioTracks().length : 0,
-               blocs: b, silence: b ? Math.round((m / b) * 100) / 100 : null, marches, marchesMs: [...marchesMs] };
-    };
-    const prendre = () => { const l = lot; lot = []; return l; };
-    return { tenir, bilan, prendre };
-  })();
-
-  const repondreReleve = (d) => {
-    ecoute.tenir(d.ecoute === true);
-    const lecteur = lecteurTwitch();
-    const v = document.querySelector('video');
-    const f = (nom) => lecteur && typeof lecteur[nom] === 'function';
-    const r = {
-      tse: TSE_SALLE_RELEVE_MSG,
-      n: d.n,
-      t: Date.now(),
-      latence: f('getLiveLatency') ? lireNombre(() => lecteur.getLiveLatency()) : null,
-      tampon: f('getBufferDuration') ? lireNombre(() => lecteur.getBufferDuration()) : null,
-      vitesse: v ? v.playbackRate : null,
-      vitesseLecteur: f('getPlaybackRate') ? lireNombre(() => lecteur.getPlaybackRate()) : null,
-
-      sync: f('getSyncTime') ? lireNombre(() => lecteur.getSyncTime()) : null,
-      position: f('getPosition') ? lireNombre(() => lecteur.getPosition()) : null,
-
-      arriere: arriereElement(v),
-      ...(f('getBufferedRanges') ? (() => { const x = lirePlages(lecteur); return { plages: x.plages, plagesForme: x.forme }; })()
-        : { plages: null, plagesForme: null }),
-      lecture: !!v && !v.paused,
-      faibleLatence: f('isLiveLowLatency') ? (() => { try { return !!lecteur.isLiveLowLatency(); } catch { return null; } })() : null,
-      essai,
-      ecoute: ecoute.bilan(),
-
-      pub: enPub(),
-      env: ecoute.prendre(),
-    };
-    if (d.api === true && lecteur) r.api = lireApi(lecteur);
-    for (const o of cibles) {
-      try { window.parent.postMessage(r, o); } catch {   }
-    }
-  };
-
-  let numeroConsole = 0;
-  const simple = (x) => (x === null || x === undefined || ['number', 'string', 'boolean'].includes(typeof x) ? x : String(x));
-  const relayer = (commande) => (...args) => {
-    const n = ++numeroConsole;
-    for (const o of cibles) {
-      try {
-        window.parent.postMessage({ tse: TSE_SALLE_CONSOLE_MSG, n, commande, args: args.slice(0, 3).map(simple) }, o);
-      } catch {   }
-    }
-    return `[tse] ${commande} → envoyé à la salle / sent to the room`;
-  };
-  try {
-    Object.defineProperty(window, 'tse', {
-      value: Object.freeze({ salle: Object.freeze(Object.fromEntries(
-        ['auto', 'recul', 'avance', 'ecoute', 'rapport'].map((c) => [c, relayer(c)]))) }),
-      writable: false, configurable: false,
-    });
-  } catch {   }
-
-  const poster = () => {
-    const e = etatSalle();
-    for (const o of cibles) {
-      try { window.parent.postMessage({ tse: TSE_SALLE_ETAT_MSG, etat: e }, o); } catch {   }
-    }
-  };
-
-  const ORDRES = ['son', 'muet', 'pause', 'lecture'];
-  window.addEventListener('message', (e) => {
-    if (e.source !== window.parent || !TSE_PREVIEW_PARENTS.includes(e.origin)) return;
-    const d = e.data;
-
-    if (d && d.tse === TSE_SALLE_ORDRE_MSG && d.ordre === 'qualite') {
-      const h = Math.round(Number(d.hauteur));
-      if (h >= 100 && h <= 4320 && h !== hauteurVoulue) {
-        hauteurVoulue = h; qualiteEssais = 0; qualiteT = 0; tenirQualite();
-      }
-      return;
-    }
-
-    if (d && d.tse === TSE_SALLE_CONSOLE_REPONSE) {
-      console.info(`[tse] ${d.commande} →`, d.resultat);
-      return;
-    }
-
-    if (d && d.tse === TSE_SALLE_ORDRE_MSG && ['releve', 'essai-recul', 'essai-avance', 'faible-latence'].includes(d.ordre)) {
-      if (d.ordre === 'releve' && Number.isFinite(d.n)) repondreReleve(d);
-      else if (d.ordre === 'faible-latence') retirerFaibleLatence();
-      else {
-
-        const s = Number(d.duree);
-        if (s >= 0.05 && s <= 60) deplacer(s, d.ordre === 'essai-recul' ? 1 : -1);
-      }
-      return;
-    }
-    if (!d || d.tse !== TSE_SALLE_ORDRE_MSG || !ORDRES.includes(d.ordre)) return;
-    const v = document.querySelector('video');
-    let voie = 'deja';
-    if (!v) voie = 'sans-video';
-    else if (d.ordre === 'son' || d.ordre === 'muet') {
-      const veutSon = d.ordre === 'son';
-      if (v.muted === veutSon) {
-        const b = document.querySelector(BOUTON_SON);
-        if (b) { b.click(); voie = 'bouton'; } else { v.muted = !veutSon; voie = 'video'; }
-      }
-    } else {
-      const veutLecture = d.ordre === 'lecture';
-      if (v.paused === veutLecture) {
-        const b = document.querySelector(BOUTON_LECTURE);
-        if (b) { b.click(); voie = 'bouton'; }
-        else { if (veutLecture) v.play().catch(() => {}); else v.pause(); voie = 'video'; }
-      }
-    }
-
-    ordre = { n: ++numeroOrdre, ordre: d.ordre, voie, apres: null };
-    const courant = ordre;
-    setTimeout(() => {
-      courant.apres = v ? { muet: v.muted, lecture: !v.paused } : null;
-      poster();
-    }, 1500);
-  });
-
-  poster();
-
-  setInterval(poster, 1000);
-})();
-
-(() => {
-  'use strict';
-  try {
-    if (window.top === window) return;
-    if (window.name !== TSE_SALLE_CHAT_NAME) return;
-    const haut = window.top;
-    if (haut.location.origin !== location.origin) return;
-    Object.defineProperty(window, 'tse', { get: () => haut.tse, configurable: false });
-  } catch {   }
-})();
-
 const TSE_SUIVIES_FRAME_NAME = 'tse-suivies';
 const TSE_SUIVIES_MSG = 'tse:suivies';
-(() => {
-  'use strict';
-  try {
-    if (window.top === window) return;
-    if (window.name !== TSE_SUIVIES_FRAME_NAME) return;
-    if (window.top.location.origin !== location.origin) return;
-  } catch { return; }
-  const vrai = window.fetch;
-  if (typeof vrai !== 'function') return;
-  const poster = (x) => {
-    try { window.top.postMessage({ [TSE_SUIVIES_MSG]: x }, location.origin); } catch {   }
-  };
-
-  const operations = (corps) => {
-    try { return [].concat(JSON.parse(corps)).map((o) => (o && o.operationName) || ''); }
-    catch { return []; }
-  };
-  const lire = (ops, json) => {
-    const reps = [].concat(json);
-    ops.forEach((nom, i) => {
-      if (nom !== 'ChannelFollows') return;
-      const f = reps[i]?.data?.user?.follows;
-      if (!f || !Array.isArray(f.edges)) { poster({ illisible: true }); return; }
-      poster({ logins: f.edges.map((e) => e?.node?.login).filter((l) => typeof l === 'string'),
-               suite: typeof f.pageInfo?.hasNextPage === 'boolean' ? f.pageInfo.hasNextPage : null });
-    });
-  };
-  window.fetch = function (...args) {
-    const p = vrai.apply(window, args);
-    try {
-      const [url, init] = args;
-      const ops = typeof init?.body === 'string' && String(url).includes('gql.twitch.tv')
-        ? operations(init.body) : [];
-      if (ops.includes('ChannelFollows')) {
-        p.then((rep) => rep.clone().json().then((json) => lire(ops, json)),
-               () => poster({ echec: true }))
-          .catch(() => poster({ illisible: true }));
-      }
-    } catch {   }
-    return p;
-  };
-})();
 
 (() => {
   'use strict';
@@ -2950,6 +2204,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       );
       border-radius: 4px;
     }
+    
     .side-nav-card.tse-fresh::before {
       content: '';
       position: absolute;
@@ -2957,24 +2212,80 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       width: 3px;
       background: var(--tse-frais);
       border-radius: 0 3px 3px 0;
+      pointer-events: none;
+      z-index: 1;
+      display: none;
+    }
+    .side-nav-card.tse-fresh > .tse-frais-deco {
+      display: block;
+      position: absolute;
+      margin: 0;
+      padding: 0;
+      left: 0; top: 4px; bottom: 4px;
+      width: 3px;
+      border-radius: 0 3px 3px 0;
       
       transform-origin: left center;
       animation: tse-fresh-pulse 1.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
       pointer-events: none;
       z-index: 1;
     }
+    .side-nav-card > .tse-frais-deco > span {
+      display: block;
+      position: absolute;
+      inset: 0;
+      margin: 0;
+      padding: 0;
+      border-radius: inherit;
+      background: var(--tse-frais);
+      mix-blend-mode: plus-lighter;
+      animation: 1.4s linear infinite;
+    }
     
+    .side-nav-card > .tse-frais-deco > span:nth-child(1) {
+      box-shadow: 0 0 4px var(--tse-frais), 0 0 1px var(--tse-frais);
+      animation-name: tse-fresh-etage-1;
+    }
+    .side-nav-card > .tse-frais-deco > span:nth-child(2) {
+      box-shadow: 0 0 calc(4px + 14px / 3) var(--tse-frais), 0 0 calc(1px + 7px / 3) var(--tse-frais);
+      animation-name: tse-fresh-etage-2;
+    }
+    .side-nav-card > .tse-frais-deco > span:nth-child(3) {
+      box-shadow: 0 0 calc(4px + 28px / 3) var(--tse-frais), 0 0 calc(1px + 14px / 3) var(--tse-frais);
+      animation-name: tse-fresh-etage-3;
+    }
+    .side-nav-card > .tse-frais-deco > span:nth-child(4) {
+      box-shadow: 0 0 18px var(--tse-frais), 0 0 8px var(--tse-frais);
+      animation-name: tse-fresh-etage-4;
+    }
     @keyframes tse-fresh-pulse {
-      0%, 100% {
-        opacity: 0.3;
-        transform: scaleX(1);
-        box-shadow: 0 0 4px var(--tse-frais), 0 0 1px var(--tse-frais);
-      }
-      50% {
-        opacity: 1;
-        transform: scaleX(2);
-        box-shadow: 0 0 18px var(--tse-frais), 0 0 8px var(--tse-frais);
-      }
+      0%, 100% { opacity: 0.3; transform: scaleX(1); }
+      50%      { opacity: 1;   transform: scaleX(2); }
+    }
+    
+    @keyframes tse-fresh-etage-1 {
+      0%                 { opacity: 1; animation-timing-function: cubic-bezier(0.3892, 0, 0.7031, 0.4492); }
+      19.8845%, 80.1155% { opacity: 0; animation-timing-function: cubic-bezier(0.2969, 0.5508, 0.6108, 1); }
+      100%               { opacity: 1; }
+    }
+    @keyframes tse-fresh-etage-2 {
+      0%                 { opacity: 0; animation-timing-function: cubic-bezier(0.3892, 0, 0.7031, 0.4492); }
+      19.8845%           { opacity: 1; animation-timing-function: cubic-bezier(0.3371, 0.3218, 0.6629, 0.6782); }
+      30.1155%, 69.8845% { opacity: 0; animation-timing-function: cubic-bezier(0.3371, 0.3218, 0.6629, 0.6782); }
+      80.1155%           { opacity: 1; animation-timing-function: cubic-bezier(0.2969, 0.5508, 0.6108, 1); }
+      100%               { opacity: 0; }
+    }
+    @keyframes tse-fresh-etage-3 {
+      0%, 19.8845%       { opacity: 0; animation-timing-function: cubic-bezier(0.3371, 0.3218, 0.6629, 0.6782); }
+      30.1155%           { opacity: 1; animation-timing-function: cubic-bezier(0.2969, 0.5508, 0.6108, 1); }
+      50%                { opacity: 0; animation-timing-function: cubic-bezier(0.3892, 0, 0.7031, 0.4492); }
+      69.8845%           { opacity: 1; animation-timing-function: cubic-bezier(0.3371, 0.3218, 0.6629, 0.6782); }
+      80.1155%, 100%     { opacity: 0; }
+    }
+    @keyframes tse-fresh-etage-4 {
+      0%, 30.1155%       { opacity: 0; animation-timing-function: cubic-bezier(0.2969, 0.5508, 0.6108, 1); }
+      50%                { opacity: 1; animation-timing-function: cubic-bezier(0.3892, 0, 0.7031, 0.4492); }
+      69.8845%, 100%     { opacity: 0; }
     }
 
     
@@ -3020,6 +2331,15 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       border-bottom-right-radius: 0;
     }
     .side-nav-card.tse-costream.tse-costream-join-top::before {
+      top: var(--tse-costream-jt, -8px);
+      border-top-right-radius: 0;
+    }
+    
+    .side-nav-card.tse-fresh.tse-costream.tse-costream-join-bottom > .tse-frais-deco {
+      bottom: var(--tse-costream-jb, -8px);
+      border-bottom-right-radius: 0;
+    }
+    .side-nav-card.tse-fresh.tse-costream.tse-costream-join-top > .tse-frais-deco {
       top: var(--tse-costream-jt, -8px);
       border-top-right-radius: 0;
     }
@@ -3199,45 +2519,81 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     }
 
     
-    @property --tse-sub-angle {
-      syntax: '<angle>';
-      inherits: false;
-      initial-value: 0deg;
-    }
     .side-nav-card.tse-sub {
       position: relative;
       isolation: isolate;
       border-radius: 5px;
     }
     
-    .side-nav-card.tse-sub::after {
-      content: '';
+    .side-nav-card.tse-sub > .tse-lueur-deco {
+      display: block;
       position: absolute;
       inset: 0;
+      margin: 0;
+      padding: 0;
       z-index: -1;
       border-radius: 5px;
+      overflow: hidden;
       pointer-events: none;
-      background:
-        linear-gradient(102deg,
+    }
+    .side-nav-card > .tse-lueur-deco > span {
+      display: block;
+      position: absolute;
+      margin: 0;
+      padding: 0;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      background-repeat: no-repeat;
+      animation: 15s linear infinite;
+      animation-delay: calc(var(--tse-sub-phase, 0) * -1.25s);
+    }
+    .side-nav-card > .tse-lueur-deco > span:nth-child(1) {
+      width: 300%;
+      background-image: linear-gradient(102deg,
           rgba(var(--tse-encre), 0)     40%,
           rgba(255, 248, 224, 0.13)  48%,
           rgba(255, 220, 170, 0.07)  53%,
-          rgba(var(--tse-encre), 0)     61%),
-        radial-gradient(68% 190% at 14% 45%, rgba(255, 200, 104, 0.115), transparent 68%),
-        radial-gradient(58% 170% at 58% 72%, rgba(255, 146, 200, 0.095), transparent 70%),
-        radial-gradient(78% 210% at 88% 22%, rgba(190, 148, 255, 0.085), transparent 72%);
-      background-size: 300% 100%, 170% 100%, 200% 100%, 230% 100%;
-      background-repeat: no-repeat;
-      animation: tse-sub-lueur 15s linear infinite;
-      animation-delay: calc(var(--tse-sub-phase, 0) * -1.25s);
+          rgba(var(--tse-encre), 0)     61%);
+      animation-name: tse-lueur-voile;
+    }
+    .side-nav-card > .tse-lueur-deco > span:nth-child(2) {
+      width: 170%;
+      background-image: radial-gradient(68% 190% at 14% 45%, rgba(255, 200, 104, 0.115), transparent 68%);
+      animation-name: tse-lueur-nappe-1;
+    }
+    .side-nav-card > .tse-lueur-deco > span:nth-child(3) {
+      width: 200%;
+      background-image: radial-gradient(58% 170% at 58% 72%, rgba(255, 146, 200, 0.095), transparent 70%);
+      animation-name: tse-lueur-nappe-2;
+    }
+    .side-nav-card > .tse-lueur-deco > span:nth-child(4) {
+      width: 230%;
+      background-image: radial-gradient(78% 210% at 88% 22%, rgba(190, 148, 255, 0.085), transparent 72%);
+      animation-name: tse-lueur-nappe-3;
     }
     
-    @keyframes tse-sub-lueur {
-      0%   { background-position: -110% 0,   0% 50%, 100% 50%,  40% 50%; }
-      25%  { background-position:  210% 0,  46% 50%,  62% 50%,  78% 50%; }
-      50%  { background-position:  210% 0,  84% 50%,  22% 50%,   8% 50%; }
-      75%  { background-position:  210% 0,  38% 50%,  74% 50%,  62% 50%; }
-      100% { background-position:  210% 0,   0% 50%, 100% 50%,  40% 50%; }
+    @keyframes tse-lueur-voile {
+      0%        { transform: translateX(calc(-110% * (1 - 3) / 3)); }
+      25%, 100% { transform: translateX(calc( 210% * (1 - 3) / 3)); }
+    }
+    @keyframes tse-lueur-nappe-1 {
+      0%, 100% { transform: translateX(calc(  0% * (1 - 1.7) / 1.7)); }
+      25%      { transform: translateX(calc( 46% * (1 - 1.7) / 1.7)); }
+      50%      { transform: translateX(calc( 84% * (1 - 1.7) / 1.7)); }
+      75%      { transform: translateX(calc( 38% * (1 - 1.7) / 1.7)); }
+    }
+    @keyframes tse-lueur-nappe-2 {
+      0%, 100% { transform: translateX(calc(100% * (1 - 2) / 2)); }
+      25%      { transform: translateX(calc( 62% * (1 - 2) / 2)); }
+      50%      { transform: translateX(calc( 22% * (1 - 2) / 2)); }
+      75%      { transform: translateX(calc( 74% * (1 - 2) / 2)); }
+    }
+    @keyframes tse-lueur-nappe-3 {
+      0%, 100% { transform: translateX(calc( 40% * (1 - 2.3) / 2.3)); }
+      25%      { transform: translateX(calc( 78% * (1 - 2.3) / 2.3)); }
+      50%      { transform: translateX(calc(  8% * (1 - 2.3) / 2.3)); }
+      75%      { transform: translateX(calc( 62% * (1 - 2.3) / 2.3)); }
     }
 
     
@@ -3261,10 +2617,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         background-clip: text;
         -webkit-text-fill-color: transparent;
         
-        animation: tse-sub-titre 7s linear infinite,
-                   tse-sub-halo 5.5s ease-in-out infinite;
-        animation-delay: calc(var(--tse-sub-phase, 0) * -0.58s),
-                         calc(var(--tse-sub-phase, 0) * -0.46s);
+        filter: drop-shadow(0 0 3.5px rgba(255, 214, 142, 0.375));
       }
       .side-nav-card.tse-sub .tse-sub-cat {
         background: linear-gradient(100deg,
@@ -3276,14 +2629,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         -webkit-background-clip: text;
         background-clip: text;
         -webkit-text-fill-color: transparent;
-        animation: tse-sub-titre 11s linear infinite;
-        animation-delay: calc(var(--tse-sub-phase, 0) * -0.91s);
       }
-    }
-    @keyframes tse-sub-titre { to { background-position: 300% 0; } }
-    @keyframes tse-sub-halo {
-      0%, 100% { filter: drop-shadow(0 0 2px rgba(255, 196,  92, 0.20)); }
-      50%      { filter: drop-shadow(0 0 5px rgba(255, 220, 160, 0.55)); }
     }
 
     
@@ -3322,72 +2668,147 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       }
     }
     
-    html[data-tse-theme="light"] .side-nav-card.tse-sub::after {
-      background:
-        linear-gradient(102deg,
+    html[data-tse-theme="light"] .tse-lueur-deco > span:nth-child(1) {
+      width: 900%;
+      background-image: linear-gradient(102deg,
           rgba(138, 89, 0, 0)     40%,
           rgba(138, 89, 0, 0.10)  48%,
-          rgba(138, 89, 0, 0)     56%) 0 0 / 300% 100%,
-        radial-gradient(60% 120% at 12% 50%, rgba(138, 89, 0, 0.10), transparent 70%),
-        radial-gradient(50% 100% at 52% 40%, rgba(156, 79, 107, 0.08), transparent 70%),
-        radial-gradient(70% 130% at 88% 60%, rgba(138, 89, 0, 0.09), transparent 70%);
+          rgba(138, 89, 0, 0)     56%);
+      background-size: calc(100% / 3) 100%;
+      background-repeat: repeat;
+      animation-name: tse-lueur-voile-clair;
     }
+    html[data-tse-theme="light"] .tse-lueur-deco > span:nth-child(n + 2) {
+      width: 100%;
+      animation: none;
+    }
+    html[data-tse-theme="light"] .tse-lueur-deco > span:nth-child(2) {
+      background-image: radial-gradient(60% 120% at 12% 50%, rgba(138, 89, 0, 0.10), transparent 70%);
+    }
+    html[data-tse-theme="light"] .tse-lueur-deco > span:nth-child(3) {
+      background-image: radial-gradient(50% 100% at 52% 40%, rgba(156, 79, 107, 0.08), transparent 70%);
+    }
+    html[data-tse-theme="light"] .tse-lueur-deco > span:nth-child(4) {
+      background-image: radial-gradient(70% 130% at 88% 60%, rgba(138, 89, 0, 0.09), transparent 70%);
+    }
+    
+    @keyframes tse-lueur-voile-clair {
+      0%        { transform: translateX(calc((-110% * (1 - 3) - 300%) / 9)); }
+      25%, 100% { transform: translateX(calc(( 210% * (1 - 3) - 300%) / 9)); }
+    }
+    
     .side-nav-card.tse-sub .tse-sub-avatar {
       position: relative;
       border-radius: 50%;
       
-      animation: tse-sub-souffle 4.2s ease-in-out infinite;
+      isolation: isolate;
+    }
+    
+    .tse-deco { display: none; }
+    
+    .side-nav-card .tse-deco, .side-nav-card .tse-deco *,
+    .side-nav-card .tse-subathon-teintes, .side-nav-card .tse-subathon-teintes * {
+      transition: none;
+    }
+    .side-nav-card.tse-sub .tse-sub-avatar > .tse-sub-deco {
+      display: block;
+      position: absolute;
+      inset: 0;
+      margin: 0;
+      padding: 0;
+      border-radius: 50%;
+      pointer-events: none;
+    }
+    .tse-sub-deco > .tse-sub-deco__souffle {
+      display: block;
+      position: absolute;
+      inset: 0;
+      margin: 0;
+      padding: 0;
+      border-radius: inherit;
+      z-index: -1;
+    }
+    .tse-sub-deco > .tse-sub-deco__souffle > span {
+      display: block;
+      position: absolute;
+      inset: 0;
+      margin: 0;
+      padding: 0;
+      border-radius: inherit;
+      mix-blend-mode: plus-lighter;
+      animation: tse-sub-souffle-creux 4.2s ease-in-out infinite;
       animation-delay: calc(var(--tse-sub-phase, 0) * -0.35s);
     }
-    @keyframes tse-sub-souffle {
-      0%, 100% { box-shadow: 0 0 5px color-mix(in srgb, var(--tse-sub-or) 30%, transparent); }
-      50%      { box-shadow: 0 0 11px color-mix(in srgb, var(--tse-sub-or) 62%, transparent); }
+    .tse-sub-deco > .tse-sub-deco__souffle > span:first-child {
+      box-shadow: 0 0 5px color-mix(in srgb, var(--tse-sub-or) 30%, transparent);
     }
-    .side-nav-card.tse-sub .tse-sub-avatar::after {
-      content: '';
+    .tse-sub-deco > .tse-sub-deco__souffle > span:last-child {
+      box-shadow: 0 0 11px color-mix(in srgb, var(--tse-sub-or) 62%, transparent);
+      animation-name: tse-sub-souffle-plein;
+    }
+    @keyframes tse-sub-souffle-creux { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+    @keyframes tse-sub-souffle-plein { 0%, 100% { opacity: 0; } 50% { opacity: 1; } }
+    .tse-sub-deco > .tse-sub-deco__anneau {
+      display: block;
       position: absolute;
       inset: -2.5px;
+      margin: 0;
       box-sizing: border-box;
       border-radius: 50%;
       padding: 2px;
+      
+      overflow: hidden;
+      
+      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      -webkit-mask-composite: xor;
+      mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+      mask-composite: exclude;
+    }
+    
+    .tse-sub-deco > .tse-sub-deco__anneau > span {
+      display: block;
+      position: absolute;
+      inset: -2px;
+      margin: 0;
+      padding: 0;
       background:
         
-        conic-gradient(from var(--tse-sub-angle),
+        conic-gradient(
           rgba(255, 255, 255, 0)      0deg,
           rgba(255, 255, 255, 1)     22deg,
           color-mix(in srgb, var(--tse-sub-clair) 70%, transparent)  44deg,
           rgba(255, 255, 255, 0)     80deg,
           rgba(255, 255, 255, 0)    360deg),
         
-        conic-gradient(from var(--tse-sub-angle),
+        conic-gradient(
           color-mix(in srgb, var(--tse-sub-or)    62%, transparent)    0deg,
           color-mix(in srgb, var(--tse-sub-clair) 80%, transparent)   90deg,
           color-mix(in srgb, var(--tse-sub-or)    58%, transparent)  180deg,
           color-mix(in srgb, var(--tse-sub-clair) 80%, transparent)  270deg,
           color-mix(in srgb, var(--tse-sub-or)    62%, transparent)  360deg);
-      
-      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-      -webkit-mask-composite: xor;
-      mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-      mask-composite: exclude;
       animation: tse-sub-turn 5s linear infinite;
       animation-delay: calc(var(--tse-sub-phase, 0) * -0.42s);
-      pointer-events: none;
     }
-    @keyframes tse-sub-turn { to { --tse-sub-angle: 360deg; } }
+    @keyframes tse-sub-turn { to { transform: rotate(360deg); } }
 
     
-    @keyframes tse-subathon-teinte {
-      0% { color: #ff8f8f; }
-      12.5% { color: #ffe38f; }
-      25% { color: #c7ff8f; }
-      37.5% { color: #8fffb4; }
-      50% { color: #8ffdff; }
-      62.5% { color: #8fabff; }
-      75% { color: #c78fff; }
-      87.5% { color: #ff8fe3; }
-      100% { color: #ff8f8f; }
-    }
+    .tse-subathon-jour > .tse-subathon-teintes > span:nth-child(1) { color: #ff8f8f; animation-name: tse-subathon-copie-1; }
+    .tse-subathon-jour > .tse-subathon-teintes > span:nth-child(2) { color: #ffe38f; animation-name: tse-subathon-copie-2; }
+    .tse-subathon-jour > .tse-subathon-teintes > span:nth-child(3) { color: #c7ff8f; animation-name: tse-subathon-copie-3; }
+    .tse-subathon-jour > .tse-subathon-teintes > span:nth-child(4) { color: #8fffb4; animation-name: tse-subathon-copie-4; }
+    .tse-subathon-jour > .tse-subathon-teintes > span:nth-child(5) { color: #8ffdff; animation-name: tse-subathon-copie-5; }
+    .tse-subathon-jour > .tse-subathon-teintes > span:nth-child(6) { color: #8fabff; animation-name: tse-subathon-copie-6; }
+    .tse-subathon-jour > .tse-subathon-teintes > span:nth-child(7) { color: #c78fff; animation-name: tse-subathon-copie-7; }
+    .tse-subathon-jour > .tse-subathon-teintes > span:nth-child(8) { color: #ff8fe3; animation-name: tse-subathon-copie-8; }
+    
+    @keyframes tse-subathon-copie-1 { 0%, 100% { opacity: 1; } 12.5%, 87.5% { opacity: 0; } }
+    @keyframes tse-subathon-copie-2 { 0%, 25%, 100% { opacity: 0; } 12.5% { opacity: 1; } }
+    @keyframes tse-subathon-copie-3 { 0%, 12.5%, 37.5%, 100% { opacity: 0; } 25% { opacity: 1; } }
+    @keyframes tse-subathon-copie-4 { 0%, 25%, 50%, 100% { opacity: 0; } 37.5% { opacity: 1; } }
+    @keyframes tse-subathon-copie-5 { 0%, 37.5%, 62.5%, 100% { opacity: 0; } 50% { opacity: 1; } }
+    @keyframes tse-subathon-copie-6 { 0%, 50%, 75%, 100% { opacity: 0; } 62.5% { opacity: 1; } }
+    @keyframes tse-subathon-copie-7 { 0%, 62.5%, 87.5%, 100% { opacity: 0; } 75% { opacity: 1; } }
+    @keyframes tse-subathon-copie-8 { 0%, 75%, 100% { opacity: 0; } 87.5% { opacity: 1; } }
     @keyframes tse-subathon-badge {
       0% { color: #ff8f8f; background-color: rgba(214, 0, 0, 0.24); }
       12.5% { color: #ffe38f; background-color: rgba(255, 230, 154, 0.24); }
@@ -3426,12 +2847,56 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       font-weight: 600;
       line-height: 1;
       
-      color: #83f9fb;
-      
-      animation: tse-subathon-teinte 1.5s linear infinite;
+      color: transparent;
       background: none;
       
     }
+    
+    
+    .side-nav-card[data-tse-subathon-day] .tse-subathon-jour:has(> .tse-subathon-teintes) {
+      display: inline-grid;
+    }
+    
+    .tse-subathon-jour > .tse-subathon-libelle {
+      display: block;
+      grid-area: 1 / 1;
+      margin: 0;
+      padding: 0;
+      font: inherit;
+      letter-spacing: inherit;
+      white-space: nowrap;
+    }
+    .tse-subathon-teintes { display: none; }
+    .side-nav-card[data-tse-subathon-day] .tse-subathon-jour > .tse-subathon-teintes {
+      display: grid;
+      grid-area: 1 / 1;
+      margin: -2px -5px;
+      padding: 0;
+      font: inherit;
+      letter-spacing: inherit;
+      border-radius: inherit;
+      isolation: isolate;
+      pointer-events: none;
+    }
+    .tse-subathon-jour > .tse-subathon-teintes > span {
+      display: block;
+      grid-area: 1 / 1;
+      box-sizing: border-box;
+      margin: 0;
+      padding: 1px 4px;
+      border: 1px solid currentColor;
+      border-radius: inherit;
+      font: inherit;
+      letter-spacing: inherit;
+      text-align: left;
+      white-space: nowrap;
+      mix-blend-mode: plus-lighter;
+      
+      opacity: 0;
+      animation: 1.5s linear infinite;
+    }
+    .tse-subathon-jour > .tse-subathon-teintes > span:first-child { opacity: 1; }
+    .tse-subathon-jour > .tse-subathon-teintes > span::before { content: attr(data-t); }
 
     
 
@@ -3740,9 +3205,78 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       background: ${CFG.PURPLE};
       animation: tse-roue-bat 1.6s ease-in-out infinite;
     }
+    
+    .tse-roue[data-tse-neuf]:focus-visible { box-shadow: none; }
     @keyframes tse-roue-bat {
-      0%, 100% { transform: scale(1);    box-shadow: 0 0 0 0 rgba(145, 71, 255, 0.55); }
-      50%      { transform: scale(1.18); box-shadow: 0 0 0 7px rgba(145, 71, 255, 0); }
+      0%, 100% { transform: scale(1); }
+      50%      { transform: scale(1.18); }
+    }
+    .tse-roue-halo { display: none; }
+    
+    .tse-roue[data-tse-neuf] > .tse-roue-halo {
+      display: block;
+      position: absolute;
+      inset: 0;
+      margin: 0;
+      padding: 0;
+      z-index: -1;
+      pointer-events: none;
+      animation: tse-roue-halo 1.6s ease-in-out infinite;
+    }
+    @keyframes tse-roue-halo {
+      0%, 100% { opacity: 0.55; }
+      50%      { opacity: 0; }
+    }
+    .tse-roue > .tse-roue-halo > span {
+      display: block;
+      position: absolute;
+      margin: 0;
+      padding: 0;
+      background: ${CFG.PURPLE};
+      animation: 1.6s linear infinite;
+    }
+    .tse-roue > .tse-roue-halo > span:nth-child(1) { inset: -1px; border-radius: 5px;      animation-name: tse-roue-coque-1; }
+    .tse-roue > .tse-roue-halo > span:nth-child(2) { inset: -2px; border-radius: 6px;      animation-name: tse-roue-coque-2; }
+    .tse-roue > .tse-roue-halo > span:nth-child(3) { inset: -3px; border-radius: 7px;      animation-name: tse-roue-coque-3; }
+    .tse-roue > .tse-roue-halo > span:nth-child(4) { inset: -4px; border-radius: 8px;      animation-name: tse-roue-coque-4; }
+    .tse-roue > .tse-roue-halo > span:nth-child(5) { inset: -5px; border-radius: 8.96px;   animation-name: tse-roue-coque-5; }
+    .tse-roue > .tse-roue-halo > span:nth-child(6) { inset: -6px; border-radius: 9.7778px; animation-name: tse-roue-coque-6; }
+    .tse-roue > .tse-roue-halo > span:nth-child(7) { inset: -7px; border-radius: 10.449px; animation-name: tse-roue-coque-7; }
+    
+    @keyframes tse-roue-coque-1 {
+      0%                 { opacity: 0; animation-timing-function: cubic-bezier(0.3805, 0, 0.7049, 0.3962); }
+      13.1304%, 86.8696% { opacity: 1; animation-timing-function: cubic-bezier(0.2951, 0.6038, 0.6195, 1); }
+      100%               { opacity: 0; }
+    }
+    @keyframes tse-roue-coque-2 {
+      0%, 13.1304%       { opacity: 0; animation-timing-function: cubic-bezier(0.3476, 0.2919, 0.6785, 0.6323); }
+      18.5183%, 81.4817% { opacity: 1; animation-timing-function: cubic-bezier(0.3215, 0.3677, 0.6524, 0.7081); }
+      86.8696%, 100%     { opacity: 0; }
+    }
+    @keyframes tse-roue-coque-3 {
+      0%, 18.5183%       { opacity: 0; animation-timing-function: cubic-bezier(0.34, 0.3176, 0.6714, 0.6555); }
+      22.9194%, 77.0806% { opacity: 1; animation-timing-function: cubic-bezier(0.3286, 0.3445, 0.66, 0.6824); }
+      81.4817%, 100%     { opacity: 0; }
+    }
+    @keyframes tse-roue-coque-4 {
+      0%, 22.9194%       { opacity: 0; animation-timing-function: cubic-bezier(0.3342, 0.3313, 0.6658, 0.6687); }
+      27.0806%, 72.9194% { opacity: 1; animation-timing-function: cubic-bezier(0.3342, 0.3313, 0.6658, 0.6687); }
+      77.0806%, 100%     { opacity: 0; }
+    }
+    @keyframes tse-roue-coque-5 {
+      0%, 27.0806%       { opacity: 0; animation-timing-function: cubic-bezier(0.3286, 0.3445, 0.66, 0.6824); }
+      31.4817%, 68.5183% { opacity: 1; animation-timing-function: cubic-bezier(0.34, 0.3176, 0.6714, 0.6555); }
+      72.9194%, 100%     { opacity: 0; }
+    }
+    @keyframes tse-roue-coque-6 {
+      0%, 31.4817%       { opacity: 0; animation-timing-function: cubic-bezier(0.3215, 0.3677, 0.6524, 0.7081); }
+      36.8696%, 63.1304% { opacity: 1; animation-timing-function: cubic-bezier(0.3476, 0.2919, 0.6785, 0.6323); }
+      68.5183%, 100%     { opacity: 0; }
+    }
+    @keyframes tse-roue-coque-7 {
+      0%, 36.8696%       { opacity: 0; animation-timing-function: cubic-bezier(0.2951, 0.6038, 0.6195, 1); }
+      50%                { opacity: 1; animation-timing-function: cubic-bezier(0.3805, 0, 0.7049, 0.3962); }
+      63.1304%, 100%     { opacity: 0; }
     }
     
     .tse-bulle {
@@ -3980,10 +3514,6 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       animation: tse-subathon-badge 1.5s linear infinite;
     }
     
-    html[data-tse-theme="light"] .side-nav-card[data-tse-subathon-day] .tse-subathon-jour {
-      color: #00686b;
-      animation-name: tse-subathon-clair;
-    }
     
     html[data-tse-theme="light"] .tse-preview__badge--subathon {
       color: #00686b;
@@ -4003,17 +3533,14 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       100% { color: #ad0000; background-color: rgba(214, 0, 0, 0.18); }
     }
     
-    @keyframes tse-subathon-clair {
-      0%   { color: #ad0000; }
-      12.5%{ color: #7a5e00; }
-      25%  { color: #496b00; }
-      37.5%{ color: #006b3b; }
-      50%  { color: #00686b; }
-      62.5%{ color: #2047cb; }
-      75%  { color: #7320cb; }
-      87.5%{ color: #a3007a; }
-      100% { color: #ad0000; }
-    }
+    html[data-tse-theme="light"] .tse-subathon-jour > .tse-subathon-teintes > span:nth-child(1) { color: #ad0000; }
+    html[data-tse-theme="light"] .tse-subathon-jour > .tse-subathon-teintes > span:nth-child(2) { color: #7a5e00; }
+    html[data-tse-theme="light"] .tse-subathon-jour > .tse-subathon-teintes > span:nth-child(3) { color: #496b00; }
+    html[data-tse-theme="light"] .tse-subathon-jour > .tse-subathon-teintes > span:nth-child(4) { color: #006b3b; }
+    html[data-tse-theme="light"] .tse-subathon-jour > .tse-subathon-teintes > span:nth-child(5) { color: #00686b; }
+    html[data-tse-theme="light"] .tse-subathon-jour > .tse-subathon-teintes > span:nth-child(6) { color: #2047cb; }
+    html[data-tse-theme="light"] .tse-subathon-jour > .tse-subathon-teintes > span:nth-child(7) { color: #7320cb; }
+    html[data-tse-theme="light"] .tse-subathon-jour > .tse-subathon-teintes > span:nth-child(8) { color: #a3007a; }
     
     .tse-preview__badge-mark      { flex: 0 0 auto; line-height: 1; }
     
@@ -4203,7 +3730,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     
     html[data-tse-off~="duree"] .tse-uptime { display: none !important; }
     
-    html[data-tse-off~="fresh"] .side-nav-card.tse-fresh::before { display: none !important; }
+    html[data-tse-off~="fresh"] .side-nav-card.tse-fresh > .tse-frais-deco { display: none !important; }
     html[data-tse-off~="fresh"] .side-nav-card.tse-fresh,
     html[data-tse-off~="fresh"] .side-nav-card.tse-fresh.tse-costream {
       background: none !important;
@@ -4264,15 +3791,18 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     }
 
     
-    html[data-tse-or="discret"] .side-nav-card.tse-sub::after,
-    html[data-tse-or="aucun"]   .side-nav-card.tse-sub::after {
+    html[data-tse-or="discret"] .side-nav-card.tse-sub .tse-lueur-deco,
+    html[data-tse-or="aucun"]   .side-nav-card.tse-sub .tse-lueur-deco {
       display: none !important;
     }
     html[data-tse-or="discret"] .side-nav-card.tse-sub p.tse-nom,
     html[data-tse-or="discret"] .side-nav-card.tse-sub .tse-sub-cat,
-    html[data-tse-or="discret"] .side-nav-card.tse-sub .tse-sub-avatar,
-    html[data-tse-or="discret"] .side-nav-card.tse-sub .tse-sub-avatar::after {
+    html[data-tse-or="discret"] .side-nav-card.tse-sub .tse-sub-deco__anneau > span {
       animation: none !important;
+    }
+    
+    html[data-tse-or="discret"] .side-nav-card.tse-sub .tse-sub-deco__souffle {
+      display: none !important;
     }
     html[data-tse-or="aucun"] .side-nav-card.tse-sub p.tse-nom,
     html[data-tse-or="aucun"] .side-nav-card.tse-sub .tse-sub-cat {
@@ -4286,11 +3816,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     html[data-tse-or="aucun"] .side-nav-card.tse-sub .tse-sub-cat {
       color: var(--tse-texte-doux) !important;
     }
-    html[data-tse-or="aucun"] .side-nav-card.tse-sub .tse-sub-avatar {
-      animation: none !important;
-      box-shadow: none !important;
-    }
-    html[data-tse-or="aucun"] .side-nav-card.tse-sub .tse-sub-avatar::after {
+    html[data-tse-or="aucun"] .side-nav-card.tse-sub .tse-sub-deco {
       display: none !important;
     }
 
@@ -4805,7 +4331,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       .finally(() => clearTimeout(timer));
   };
 
-  const RE_SUBATHON_NOM = /(?<![\p{L}])sub[\s._-]*a?[\s._-]*thon(?![\p{L}])/iu;
+  const RE_SUBATHON_NOM = /(?<![\p{L}])sub[\s._-]*(?:a[\s._-]*)?thon(?![\p{L}])/iu;
   const RE_MOT_THON     = /(?<![\p{L}])\p{L}{2,}thon(?![\p{L}])/iu;
 
   const JOUR_MOTS = [
@@ -6258,6 +5784,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     return m && !RESERVED.test(m[1]) ? m[1].toLowerCase() : null;
   };
 
+  const RE_CLE_LOGIN = /^[a-z0-9_]+$/;
+
   const noeudStatique = (() => {
     const cache = new Map();
     return (balisage) => {
@@ -6551,7 +6079,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         const obj = JSON.parse(raw);
         if (!obj || typeof obj !== 'object') return;
         for (const [login, arr] of Object.entries(obj)) {
-          if (!Array.isArray(arr)) continue;
+          if (!RE_CLE_LOGIN.test(login) || !Array.isArray(arr)) continue;
 
           const cleaned = arr
             .map(Number)
@@ -6623,7 +6151,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         if (!obj || typeof obj !== 'object') return;
         for (const [login, v] of Object.entries(obj)) {
 
-          if (!Array.isArray(v) || v.length < 2) continue;
+          if (!RE_CLE_LOGIN.test(login) || !Array.isArray(v) || v.length < 2) continue;
           const ts = Number(v[1]);
           if (!Number.isFinite(ts) || ts <= 0) continue;
           const e = { sub: !!v[0], ts };
@@ -7455,7 +6983,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       let bouge = false;
       for (const [login, v] of Object.entries(obj)) {
         const n = Number(v);
-        if (typeof login !== 'string' || !Number.isFinite(n) || n === 0) continue;
+        if (!RE_CLE_LOGIN.test(login) || !Number.isFinite(n) || n === 0) continue;
         const t = Math.abs(n);
         if (t <= Math.max(map.get(login) || 0, retraits.get(login) || 0)) continue;
         if (n > 0) { map.set(login, t); retraits.delete(login); }
@@ -8867,6 +8395,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
 
       const t = c.tuiles.find((x) => x.cadre.contentWindow === e.source);
       if (!t) return;
+
+      if (e.origin !== 'https://player.twitch.tv') return;
       if (e.data.tse === TSE_SALLE_RELEVE_MSG) { surReleve(c, t, e.data); return; }
 
       if (e.data.tse === TSE_SALLE_CONSOLE_MSG) {
@@ -11069,8 +10599,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       '}';
 
     const PARAMS_JETON = '{ platform: "web", playerBackend: "mediaplayer", playerType: "site" }';
+
     const qAcces = (ids) => 'query TseAgendaAcces {' + ids.map((id, i) =>
-      ` a${i}: videoPlaybackAccessToken(id: "${id}", params: ${PARAMS_JETON}) { value }`).join('') + ' }';
+      ` a${i}: videoPlaybackAccessToken(id: ${JSON.stringify(String(id))}, params: ${PARAMS_JETON}) { value }`).join('') + ' }';
     const fermeeSelonJeton = (valeur) => {
       try {
         const rb = JSON.parse(valeur)?.chansub?.restricted_bitrates;
@@ -11423,11 +10954,41 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     const fraicheur = (x) => (estObjet(x) && Number.isFinite(x.ts) ? x.ts : -Infinity);
 
     const tsFiche = (f) => Math.max(fraicheur(f), fraicheur(f && f.planning));
-    const VALIDES = {
-      f: (f) => estObjet(f) && Number.isFinite(f.ts) && (f.inconnue === true || typeof f.nom === 'string'),
-      d: (d) => estObjet(d) && Number.isFinite(d.ts) && Array.isArray(d.videos),
-      a: (a) => estObjet(a) && Number.isFinite(a.ts) && typeof a.video === 'string',
+
+    const nombreOuNul = (x) => x === null || Number.isFinite(x);
+    const mot = (x, max) => typeof x === 'string' && x.length <= max;
+    const chiffresOk = (x) => typeof x === 'string' && chiffres(x) === x;
+    const chiffresOuNul = (x) => x === null || chiffresOk(x);
+    const imageOuNul = (x) => x === null || image(x) === x;
+    const jeuOk = (o) => (o.jeu === null && o.libelle === null)
+      || (typeof o.jeu === 'string' && o.jeu !== '' && typeof o.libelle === 'string');
+    const FORME = {
+      video: (v) => estObjet(v) && chiffresOk(v.id) && mot(v.titre, 200) && Number.isFinite(v.debut)
+        && (v.duree === null || (Number.isFinite(v.duree) && v.duree >= 0)) && nombreOuNul(v.vues)
+        && imageOuNul(v.vignette) && jeuOk(v) && chiffresOuNul(v.idDirect) && typeof v.restreinte === 'boolean',
+      creneau: (c) => estObjet(c) && typeof c.id === 'string' && mot(c.titre, 200) && Number.isFinite(c.debut)
+        && (c.fin === null || (Number.isFinite(c.fin) && c.fin > c.debut)) && typeof c.annule === 'boolean' && jeuOk(c),
+      direct: (s) => estObjet(s) && chiffresOuNul(s.id) && Number.isFinite(s.debut) && nombreOuNul(s.spectateurs)
+        && mot(s.titre, 200) && jeuOk(s),
+      vu: (v) => estObjet(v) && chiffresOuNul(v.id) && Number.isFinite(v.debut),
+      absente: (a) => estObjet(a) && Number.isFinite(a.depuis) && Number.isInteger(a.fois) && a.fois >= 1,
+      planning: (p) => estObjet(p) && Number.isFinite(p.ts) && Array.isArray(p.creneaux)
+        && p.creneaux.length <= 2 * CFG.AGENDA_CRENEAUX && p.creneaux.every((c) => FORME.creneau(c)),
+      fiche: (f) => estObjet(f) && Number.isFinite(f.ts) && (f.inconnue === true
+        ? FORME.absente(f.absente)
+        : f.inconnue === undefined && mot(f.nom, 60) && f.nom !== '' && imageOuNul(f.avatar)
+          && (f.direct === null || FORME.direct(f.direct)) && (f.vuEnDirect === null || FORME.vu(f.vuEnDirect))
+          && nombreOuNul(f.finDernier) && chiffresOuNul(f.idDernier) && mot(f.titre, 200)
+          && (f.derniere === null || FORME.video(f.derniere))
+          && (f.planning === undefined || FORME.planning(f.planning))
+          && (f.absente === undefined || FORME.absente(f.absente))),
+      liste: (d) => estObjet(d) && Number.isFinite(d.ts) && Number.isInteger(d.n) && d.n > 0
+        && typeof d.complet === 'boolean' && Array.isArray(d.videos) && d.videos.every((v) => FORME.video(v))
+        && typeof d.jusqua === 'number' && !Number.isNaN(d.jusqua) && typeof d.cle === 'string',
+      jeton: (a) => estObjet(a) && chiffresOk(a.video) && Number.isFinite(a.ts)
+        && (a.fermee === true || a.fermee === false || a.fermee === null),
     };
+    const VALIDES = { f: FORME.fiche, d: FORME.liste, a: FORME.jeton };
     const plusRecent = (ici, la, valide, ts) =>
       (valide(ici) && (!valide(la) || ts(ici) >= ts(la)) ? ici : valide(la) ? la : undefined);
 
@@ -11543,7 +11104,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       bilan.remontees++;
     };
 
-    const RE_LIMITE = /exceeds .*limit/i;
+    const RE_LIMITE = /^(?:(?!exceeds ).)*exceeds .*limit/im;
     const borner = (t, message) => {
       const parti = t.logins.length;
       const n = Number((/allowed \((\d+)\)/i.exec(message) || [])[1]);
@@ -12101,10 +11662,13 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
           battement: (() => {
             const fraiches = document.querySelectorAll('.side-nav-card.tse-fresh');
             const anims = document.getAnimations().filter(
-              a => a.effect && a.effect.pseudoElement === '::before'
-                && a.effect.target && a.effect.target.classList.contains('tse-fresh'));
+              a => a.effect && a.effect.target
+                && a.effect.target.classList.contains('tse-frais-deco')
+                && a.effect.target.parentElement?.classList.contains('tse-fresh'));
 
-            return { fraiches: fraiches.length, animations: anims.length,
+            return { fraiches: fraiches.length,
+                     decors: document.querySelectorAll('.side-nav-card.tse-fresh > .tse-frais-deco').length,
+                     animations: anims.length,
                      etat: anims.length ? anims[0].playState : null,
                      rouge: document.documentElement.style.getPropertyValue('--tse-direct') || null };
           })(),
@@ -12606,7 +12170,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
   };
 
   tseApi.panneau = (nom, arg) => {
-    const f = panneau.sections[nom];
+    const f = Object.hasOwn(panneau.sections, nom) ? panneau.sections[nom] : null;
     if (!f) throw new Error(`[tse] section inconnue : ${nom}`);
     return f(arg);
   };
@@ -12633,9 +12197,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
   servirPanneau = (d, repondre) => {
 
     try {
+
+      const propre = (table, nom) => (Object.hasOwn(table, nom) ? table[nom] : undefined);
       const cible = d.rapport ? panneau.rapport
-                  : d.action  ? panneau.actions[d.action]
-                              : panneau.sections[d.section];
+                  : d.action  ? propre(panneau.actions, d.action)
+                              : propre(panneau.sections, d.section);
       if (typeof cible !== 'function') {
 
         erreurs.noter('panneau', `demande inconnue : ${d.action || d.section}`);
@@ -12674,10 +12240,17 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
                 fraiches: 0, mouvementReduit: reduit });
       return;
     }
-    const anim = document.getAnimations().find(
-      a => a.effect && a.effect.pseudoElement === '::before' && a.effect.target === carte);
+
+    const barre = carte.querySelector(':scope > .tse-frais-deco');
+    if (!barre) {
+      resolve({ verdict: 'AUCUNE BARRE sur la carte fraîche : le décor n\'est pas posé',
+                fraiches: document.querySelectorAll('.side-nav-card.tse-fresh').length,
+                mouvementReduit: reduit, animations: 0 });
+      return;
+    }
+    const anim = document.getAnimations().find((a) => a.effect && a.effect.target === barre);
     const st = () => {
-      const c = getComputedStyle(carte, '::before');
+      const c = getComputedStyle(barre);
       const m = new window.DOMMatrixReadOnly(c.transform);
       return { o: parseFloat(c.opacity), l: parseFloat(c.width) * (m.a || 1) };
     };
@@ -12733,7 +12306,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     if (html.classList.contains('tw-root--theme-light')) return 'light';
     if (html.classList.contains('tw-root--theme-dark')) return 'dark';
     const fond = getComputedStyle(document.body || html).backgroundColor;
-    const m = /(\d+)[,\s]+(\d+)[,\s]+(\d+)/.exec(fond || '');
+
+    const m = /(?<!\d)(\d+)[,\s]+(\d+)[,\s]+(\d+)/.exec(fond || '');
     if (!m) return 'dark';
     const [r, v, b] = [Number(m[1]), Number(m[2]), Number(m[3])];
 
@@ -12957,16 +12531,48 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     return !card.querySelector(DOM.liveIndicator);
   };
 
+  const PIECES_DECOR = {
+
+    'tse-sub-deco':   [['tse-sub-deco__souffle', 2], ['tse-sub-deco__anneau', 1]],
+
+    'tse-lueur-deco': [['', 0], ['', 0], ['', 0], ['', 0]],
+
+    'tse-frais-deco': [['', 0], ['', 0], ['', 0], ['', 0]],
+  };
+  const poserDecor = (hote, classe) => {
+    if (hote.querySelector(':scope > .' + classe)) return;
+    const decor = document.createElement('span');
+    decor.className = 'tse-deco ' + classe;
+    decor.setAttribute('aria-hidden', 'true');
+    for (const [nom, enfants] of PIECES_DECOR[classe]) {
+      const piece = document.createElement('span');
+      if (nom) piece.className = nom;
+      for (let i = 0; i < enfants; i++) piece.appendChild(document.createElement('span'));
+      decor.appendChild(piece);
+    }
+    hote.appendChild(decor);
+  };
+  const retirerDecor = (racine, classe) => {
+    for (const decor of racine.querySelectorAll('.' + classe)) decor.remove();
+  };
+
+  const marquerFraiche = (card, fraiche) => {
+    const etait = card.classList.contains('tse-fresh');
+    if (fraiche !== etait) card.classList.toggle('tse-fresh', fraiche);
+    if (fraiche) poserDecor(card, 'tse-frais-deco');
+    else if (etait) retirerDecor(card, 'tse-frais-deco');
+  };
+
   const updateFreshness = (card) => {
     const ts = card.dataset.tseStartedAt;
-    if (!ts) { card.classList.remove('tse-fresh'); return; }
+    if (!ts) { marquerFraiche(card, false); return; }
 
     if (repriseFraiche(card.dataset.tseLogin)) {
-      card.classList.remove('tse-fresh');
+      marquerFraiche(card, false);
       return;
     }
     const ageMin = (Date.now() - new Date(ts).getTime()) / 60_000;
-    card.classList.toggle('tse-fresh', ageMin >= 0 && ageMin < CFG.FRESH_MAX_MIN);
+    marquerFraiche(card, ageMin >= 0 && ageMin < CFG.FRESH_MAX_MIN);
   };
 
   const subPhase = (login) => {
@@ -12995,16 +12601,22 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     markSubPart(card, abonne, etait, 'tse-sub-avatar', avatarOf);
     markSubPart(card, abonne, etait, 'tse-sub-cat', cardCategoryEl);
     if (!abonne) {
+      if (etait) {
+        retirerDecor(card, 'tse-sub-deco');
+        retirerDecor(card, 'tse-lueur-deco');
+      }
       if (card.style.getPropertyValue('--tse-sub-phase')) {
         card.style.removeProperty('--tse-sub-phase');
       }
       return;
     }
+    const avatar = card.querySelector('.tse-sub-avatar');
+    if (avatar) poserDecor(avatar, 'tse-sub-deco');
+    poserDecor(card, 'tse-lueur-deco');
     const phase = String(subPhase(login));
     if (card.style.getPropertyValue('--tse-sub-phase') !== phase) {
       card.style.setProperty('--tse-sub-phase', phase);
     }
-
   };
 
   const applyCardVisibility = (card) => {
@@ -13049,7 +12661,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
   };
 
   const PLUS_RE_ELEMENT  = /^\+\s*(\d+)$/;
-  const PLUS_RE_TRAILING = /(\s+)\+\s*(\d+)\s*$/;
+
+  const PLUS_RE_TRAILING = /(?<!\s)(\s+)\+\s*(\d+)\s*$/;
 
   const PLUS_RE_PRESENT  = /\+\s*\d/;
 
@@ -13171,7 +12784,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
 
   const removeUptime = (card) => {
     delete card.dataset.tseStartedAt;
-    card.classList.remove('tse-fresh');
+    marquerFraiche(card, false);
     const span = ensureUptimeSpan(card);
     if (!span) return;
     span.dataset.tseEnded = 'true';
@@ -13239,7 +12852,29 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
 
     if (b.parentNode !== p || b.previousSibling !== n) p.appendChild(b);
 
-    setText(b, S.uiSubathonShort(sub.jour));
+    poserLibelle(b, S.uiSubathonShort(sub.jour));
+  };
+
+  const poserLibelle = (puce, libelle) => {
+    let texte = puce.querySelector(':scope > .tse-subathon-libelle');
+    if (!texte) {
+      puce.textContent = '';
+      texte = document.createElement('span');
+      texte.className = 'tse-subathon-libelle';
+      puce.appendChild(texte);
+    }
+    setText(texte, libelle);
+    let teintes = puce.querySelector(':scope > .tse-subathon-teintes');
+    if (!teintes) {
+      teintes = document.createElement('span');
+      teintes.className = 'tse-subathon-teintes';
+      teintes.setAttribute('aria-hidden', 'true');
+      for (let i = 0; i < 8; i++) teintes.appendChild(document.createElement('span'));
+      puce.appendChild(teintes);
+    }
+    for (const copie of teintes.children) {
+      if (copie.dataset.t !== libelle) copie.dataset.t = libelle;
+    }
   };
 
   const nativeViewersEl = (card) =>
@@ -14755,7 +14390,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     };
 
     const ponctuerLigne = (texte) => {
-      const m = /^(.*\S)[\s:]+(\d+)$/.exec(String(texte || ''));
+
+      const m = /^(.*\S)[^\S\n\r\u2028\u2029]*(?:[\s:]|[\n\r\u2028\u2029][\s:]*)(\d+)$/.exec(String(texte || ''));
       return m ? `${m[1]} • ${m[2]}` : texte;
     };
 
@@ -14928,6 +14564,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       const onMessage = (e) => {
 
         if (e.source !== iframe.contentWindow) return;
+
+        if (e.origin !== 'https://player.twitch.tv') return;
         if (e.data?.tse === TSE_PREVIEW_HELLO_MSG) { noter('pont'); return; }
         if (e.data?.tse === TSE_PREVIEW_FIRST_FRAME_MSG) {
           noter('premiere-image');
@@ -15697,6 +15335,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     const frame = document.createElement('iframe');
     frame.className = 'tse-incruste-frame';
     frame.src = urlPanneau;
+
+    const originePanneau = /^[a-z][a-z0-9+.-]*:\/\/[^/?#]+/i.exec(urlPanneau)?.[0] || null;
     frame.title = S.uiRoueTitre;
 
     frame.setAttribute('allow', '');
@@ -15713,10 +15353,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       if (d.tse === 'tse-panneau-fermer') { fermerIncruste?.(); return; }
 
       if (d.tse !== TSE_INCRUSTE_REQ || typeof d.id !== 'number') return;
+      if (!originePanneau || ev.origin !== originePanneau) return;
       const repondre = (charge) => {
         try {
           frame.contentWindow?.postMessage(
-            { tse: TSE_INCRUSTE_RES, id: d.id, ...charge }, '*');
+            { tse: TSE_INCRUSTE_RES, id: d.id, ...charge }, originePanneau);
         } catch {   }
       };
       if (!servirPanneau) { repondre(pasEncorePret()); return; }
@@ -15741,7 +15382,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
 
   const ROUE_ID = 'tse-roue';
 
-  const ROUE_MARKUP = '<span class="tse-roue-dent" aria-hidden="true">\u2699\uFE0F</span>';
+  const ROUE_MARKUP = '<span class="tse-roue-dent" aria-hidden="true">\u2699\uFE0F</span>'
+    + '<span class="tse-roue-halo" aria-hidden="true">' + '<span></span>'.repeat(7) + '</span>';
 
   function ensureRoue() {
 
@@ -17313,7 +16955,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
 
   const SUFFIXES_DE_REPLI = [['mil', 1_000], ['mio', 1_000_000], ['mi', 1_000_000], ['k', 1_000], ['m', 1_000_000]];
   const suffixesParLangue = new Map();
-  const compteurNu = (t) => t.replace(/[\s\u00a0\u202f\u200e\u200f]+/g, '').toLowerCase().replace(/\.+$/, '');
+
+  const compteurNu = (t) => t.replace(/[\s\u00a0\u202f\u200e\u200f]+/g, '').toLowerCase().replace(/(?<!\.)\.+$/, '');
   const suffixesCompacts = () => {
     const locale = localeTwitch();
     let table = suffixesParLangue.get(locale);
@@ -17750,7 +17393,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
 
   const scrubClone = (el) => {
     el.querySelectorAll('.tse-uptime, .tse-viewers, .tse-collab-badge,'
-                        + ' .tse-subathon-jour, [data-tse-extra-row]')
+                        + ' .tse-subathon-jour, .tse-deco, [data-tse-extra-row]')
       .forEach(n => n.remove());
     const strip = (node) => {
       for (const attr of [...node.attributes]) {
@@ -17814,6 +17457,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
   };
 
   const buildAheadCard = (template, login, data) => {
+
+    if (!/^[A-Za-z0-9_]+$/.test(login)) return null;
     const card = template.cloneNode(true);
     scrubClone(card);
 

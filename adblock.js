@@ -11,9 +11,9 @@
  *   rend la prochaine mise à jour mécanique — on remplace le fichier et
  *   on rejoue les cinq adaptations listées ci-dessous — au lieu d'un
  *   fusionnement à la main dans les 6 000 lignes de content.js.
- *   L'ordre de chargement (adblock.js AVANT content.js, cf. manifest)
- *   reproduit exactement l'ordre qu'avaient les deux modules quand ils
- *   partageaient un fichier.
+ *   L'ordre de chargement (adblock.js AVANT cadres.js et content.js,
+ *   cf. manifest) reproduit exactement l'ordre qu'avaient les modules
+ *   quand ils partageaient un fichier.
  *
  *  PORTÉE D'EXÉCUTION :
  *   Le module ne s'active QUE dans notre iframe d'aperçu : un lecteur

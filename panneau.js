@@ -1208,8 +1208,12 @@ const poserLien = (a, href, ongletNeuf = false) => {
   if (a.target === '_blank') a.rel = 'noopener noreferrer';
 };
 
+const HOTE_IMAGE = /(?:^|\.)(?:jtvnw\.net|twitch\.tv)$/;
 const imageAgenda = (src, classe) => {
   if (typeof src !== 'string' || !/^https:\/\//.test(src)) return null;
+  let hote = '';
+  try { hote = new URL(src).hostname; } catch { return null; }
+  if (!HOTE_IMAGE.test(hote)) return null;
   const img = document.createElement('img');
   img.className = classe;
   img.alt = '';
