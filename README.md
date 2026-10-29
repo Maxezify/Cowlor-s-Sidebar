@@ -2258,6 +2258,121 @@ Vérifié à l'image, avant et après, dans les deux thèmes. La pastille d'une
 carte non abonnée est identique au pixel près. Celle d'une carte abonnée a
 désormais les couleurs de l'autre.
 
+### Le démarrage : le voile, et la mesure du titre
+
+**a) Le voile ne remesure plus qu'une fois par image.** Pendant le
+chargement, le voile suit la barre latérale : il relisait sa boîte à chaque
+lot de mutations de la page, et Twitch en produit des centaines, souvent
+plusieurs dans la même image. Chaque lecture suivait une écriture dans la
+page : le navigateur recalculait la mise en page pour une valeur que personne
+ne verrait. Les remesures d'une même image n'en font plus qu'une, juste avant
+qu'elle se peigne (`requestAnimationFrame`). Le voile y est à la place de la
+barre, comme avant, et rien ne se peint entre sa pose et sa mesure. La toute
+première, à l'ouverture du cycle, passe aussi par là : elle forçait la
+première mise en page de la page dès l'injection.
+
+Mesuré sur l'extension réelle, le décor du banc augmenté d'un contenu de
+1 500 blocs, et une page qui mute à chaque tâche pendant deux secondes,
+comme une application React qui se monte (médianes de cinq chargements, sur
+les trois premières secondes) :
+
+| | mises en page | durée |
+| --- | --- | --- |
+| 4.25.0.9 | 240 | 501 ms |
+| 4.25.0.10 | 116 | 319 ms |
+| la même page sans l'extension | 118 | 349 ms |
+
+Le voile ne coûte plus aucune mise en page : il lit celle que le navigateur
+fait de toute façon pour peindre l'image.
+
+**L'explication donnée avant ce travail se trompait sur un point.** Elle
+attribuait au voile environ 16 ms par chargement, et les mettait sur le
+compte des mutations. Sur le décor du banc, page immobile, ces millisecondes
+venaient de la seule première remesure : la première mise en page de la page
+entière, forcée à l'injection. Elle est maintenant faite par le navigateur,
+à la première image ; sur ce décor immobile, elle passe dans le réglage du
+titre, première lecture de la mise en page du premier balayage
+(10,3 → 11,6 ms), et le démarrage n'y gagne qu'1,6 ms (`ready` : 51,7 →
+50,1 ms, profil de trois chargements). Le gain des mutations ne se voit que
+sur une page qui mute, d'où la mesure ci-dessus.
+
+**b) La mesure du texte du titre se retient.** Le titre se règle à chaque
+balayage, et chaque fois il remesurait son texte deux fois : par un `Range`,
+qui lit la mise en page, et par le canevas, qui doit analyser la police
+qu'on lui donne. La largeur ne dépend que du texte, de sa police (chaque
+propriété qui change la forme ou l'espacement des lettres), des deux
+tailles, de la largeur que nous lui avons posée, et des polices chargées.
+Une police web arrivée après coup change les lettres sans changer la
+déclaration ; un compteur, que chaque fin de chargement avance, entre donc
+dans la clé. Tant que rien de cela ne bouge, la largeur retenue est celle
+qu'une nouvelle mesure rendrait. Mesuré au banc, trois chargements : la
+mesure du texte coûtait 4,3 ms au démarrage, elle en coûte 2,7 (le titre y
+change encore de texte et de taille, et chaque changement remesure) ; puis
+0,09 ms par balayage, 0,05 maintenant, le temps de relire les dix
+propriétés de police de la clé. Le réglage du titre coûte en tout environ
+20 ms au démarrage. Le reste du réglage coûte davantage : les cinq
+sondages au bout de la ligne (`elementFromPoint`), environ 6 ms au
+démarrage. Ce n'est pas une mesure de texte, et ils n'ont pas été touchés.
+
+### Les balayages : trois retouches
+
+- **La langue de Twitch se retient.** Elle se demande à chaque nombre
+  formaté, une centaine par balayage, et chaque fois elle canonisait la
+  langue de la page (`Intl.getCanonicalLocales`) pour la même réponse. Elle
+  ne se recalcule plus que si la langue de la page ou la nôtre a changé ;
+  les deux sont relues à chaque appel.
+- **Le texte accessible d'une carte n'est recalé que s'il a pu changer.**
+  Chaque balayage reparcourait le bloc du compteur de chaque carte, feuille
+  par feuille, pour réécrire le nombre qu'il y avait déjà écrit. La passe ne
+  se refait que si le bloc, son texte, le nombre voulu ou la langue de Twitch
+  a changé. Le texte du bloc est relu à chaque fois : la phrase que Twitch
+  rend de nouveau avec son propre nombre est recalée au balayage suivant,
+  comme avant.
+- **La visibilité d'une carte se lit une fois par passe.** Cinq boucles de la
+  détection des co-streams demandaient à chaque carte si elle se montre :
+  quatre attributs et la classe du `<body>`, relus à chaque fois, alors que
+  rien dans cette détection ne masque ni ne montre une carte.
+
+Mesuré par balayage : 40 cartes, un compteur modifié toutes les 200 ms
+pendant 30 s, profileur à 100 µs, médianes de cinq tours :
+
+| | 4.25.0.9 | 4.25.0.10 |
+| --- | --- | --- |
+| `recalerTexteAccessible` | 0,66 ms | 0,16 ms |
+| `localeTwitch` | 0,17 ms | 0,03 ms |
+| `cardShown` | 0,34 ms | 0,16 ms |
+| le balayage entier | 9,4 ms | 8,7 ms |
+
+Le gain est d'environ 7 % du balayage, et non de 25 à 35 % comme
+l'explication l'estimait : les trois fonctions ne pesaient ensemble que
+1,2 ms sur 9,4. D'un tour à l'autre, le balayage entier varie de plus ou
+moins 0,8 ms ; les trois fonctions, elles, gagnent à chaque tour.
+
+### Le test 207 x)
+
+Le sous-test vérifie que la liste de rediffusions d'une chaîne se garde tant
+que son dernier direct n'a pas changé, et se relit au bout de sa propre
+durée. Pour tenir en quelques secondes, il raccourcissait cette durée à 5 s,
+puis attendait par pauses fixes (1,7 s, 1,7 s, 2,4 s). Sa deuxième
+vérification exigeait que tout tienne en 5 s depuis la première lecture :
+3,4 s de pauses plus trois collectes, soit environ 1,6 s de marge sur une
+machine rapide, et aucune sur une machine chargée. C'est ce qui a fait
+échouer une régénération de `firefox-prod` en 4.25.0.7.
+
+Chaque attente part désormais de l'heure réelle d'un retour, que le journal
+des envois donne. Les deux premières durent jusqu'à ce que les fiches aient
+périmé, et pas plus : sous charge, les collectes durent assez pour qu'il ne
+reste presque rien à attendre. La dernière dure jusqu'à ce que la liste ait
+sa durée, plus une demi-seconde. La liste vaut 15 s dans le sous-test. Une
+première version, à 10 s et aux pauses fixes, ne laissait que 0,4 s de marge
+avec trois cœurs sur quatre occupés : les pauses s'ajoutaient à des collectes
+qui duraient déjà des secondes. Le diagnostic dit les deux marges. Le produit
+n'est pas touché.
+
+Dix exécutions du 207, trois cœurs sur quatre occupés par des boucles sans
+fin : dix sur dix, 128 assertions chacune. La marge de la deuxième
+vérification va de 6,7 à 6,9 s, celle de la troisième de 7,7 à 7,9 s.
+
 ### Le banc
 
 - **118** : deux assertions. Une carte fraîche en co-stream, réglage éteint,

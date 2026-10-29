@@ -2136,6 +2136,117 @@ Checked on screen, before and after, in both themes. The pill of a
 non-subscribed card is identical to the pixel. The pill of a subscribed card
 now has the other one's colours.
 
+### Startup: the veil, and measuring the title
+
+**a) The veil remeasures only once per frame.** During loading, the veil
+follows the sidebar: it read the sidebar's box again on every batch of page
+mutations, and Twitch produces hundreds of them, often several within the
+same frame. Each read followed a write to the page: the browser recomputed
+the layout for a value nobody would see. The remeasures of one frame now come
+down to a single one, made just before the frame is painted
+(`requestAnimationFrame`). The veil is where the sidebar is, as before, and
+nothing is painted between placing it and measuring it. The very first one,
+when the cycle opens, goes the same way: it forced the page's first layout
+right at injection.
+
+Measured on the real extension, the bench's decor plus a content of 1,500
+blocks, and a page that mutates on every task for two seconds, the way a
+React application mounts (medians of five loads, over the first three
+seconds):
+
+| | layouts | duration |
+| --- | --- | --- |
+| 4.25.0.9 | 240 | 501 ms |
+| 4.25.0.10 | 116 | 319 ms |
+| the same page without the extension | 118 | 349 ms |
+
+The veil no longer costs any layout: it reads the one the browser does
+anyway to paint the frame.
+
+**The explanation given before this work was wrong on one point.** It
+attributed about 16 ms per load to the veil, and put them down to the
+mutations. On the bench's decor, a still page, those milliseconds came from
+the first remeasure alone: the first layout of the whole page, forced at
+injection. The browser now does it, at the first frame; on that still decor,
+it moves into the title adjustment, the first layout read of the first scan
+(10.3 → 11.6 ms), and startup only gains 1.6 ms (`ready`: 51.7 → 50.1 ms,
+profile of three loads). The gain on mutations only shows on a page that
+mutates, hence the measurement above.
+
+**b) The measurement of the title's text is kept.** The title is adjusted on
+every scan, and each time it measured its text twice: through a `Range`,
+which reads the layout, and through the canvas, which has to parse the font
+it is given. The width depends only on the text, its font (every property
+that changes the shape or the spacing of the letters), the two sizes, the
+width we set on it, and the loaded fonts. A web font that arrives later
+changes the letters without changing the declaration; a counter, moved on by
+the end of each load, is therefore part of the key. As long as none of that
+moves, the kept width is the one a new measurement would give. Measured on
+the bench, three loads: the text measurement cost 4.3 ms at startup, it now
+costs 2.7 (the title still changes text and size then, and each change
+measures again); then 0.09 ms per scan, 0.05 now, the time to read the ten
+font properties of the key again. The title adjustment costs about 20 ms in
+all at startup. The rest of the adjustment costs
+more: the five probes at the end of the line (`elementFromPoint`), about
+6 ms at startup. That is not a text measurement, and they were not touched.
+
+### Scans: three touch-ups
+
+- **Twitch's language is kept.** It is asked for on every formatted number,
+  about a hundred per scan, and each time it canonicalized the page's
+  language (`Intl.getCanonicalLocales`) for the same answer. It is now
+  recomputed only if the page's language or ours has changed; both are read
+  again on every call.
+- **A card's accessible text is only re-aligned if it may have changed.**
+  Every scan walked through each card's counter block again, leaf by leaf,
+  to write back the number it had already written. The pass is only redone if
+  the block, its text, the wanted number or Twitch's language has changed.
+  The block's text is read again every time: the sentence that Twitch renders
+  again with its own number is re-aligned on the next scan, as before.
+- **A card's visibility is read once per pass.** Five loops of the co-stream
+  detection asked each card whether it shows: four attributes and the
+  `<body>` class, read again every time, while nothing in that detection hides
+  or shows a card.
+
+Measured per scan: 40 cards, a counter changed every 200 ms for 30 s,
+profiler at 100 µs, medians of five rounds:
+
+| | 4.25.0.9 | 4.25.0.10 |
+| --- | --- | --- |
+| `recalerTexteAccessible` | 0.66 ms | 0.16 ms |
+| `localeTwitch` | 0.17 ms | 0.03 ms |
+| `cardShown` | 0.34 ms | 0.16 ms |
+| the whole scan | 9.4 ms | 8.7 ms |
+
+The gain is about 7 % of the scan, not 25 to 35 % as the explanation
+estimated: the three functions together weighed only 1.2 ms out of
+9.4. From one round to the next, the whole scan varies by about 0.8 ms
+either way; the three functions gain on every round.
+
+### Test 207 x)
+
+The sub-test checks that a channel's list of VODs is kept as long as its last
+broadcast has not changed, and is read again at the end of its own lifetime.
+To fit in a few seconds, it shortened that lifetime to 5 s, then waited with
+fixed pauses (1.7 s, 1.7 s, 2.4 s). Its second check required everything to
+fit within 5 s of the first read: 3.4 s of pauses plus three collections,
+about 1.6 s of margin on a fast machine, and none on a loaded one. That is
+what made a regeneration of `firefox-prod` fail in 4.25.0.7.
+
+Each wait now starts from the real time of a return, which the log of
+requests gives. The first two last until the channel records have expired,
+and no longer: under load, the collections take long enough that almost
+nothing is left to wait. The last one lasts until the list has reached its
+lifetime, plus half a second. The list lasts 15 s in the sub-test. A first
+version, at 10 s with the fixed pauses, left only 0.4 s of margin with three
+cores out of four kept busy: the pauses added up with collections that
+already took seconds. The diagnostic gives both margins. The product is not
+touched.
+
+Ten runs of 207, three cores out of four kept busy by endless loops: ten out
+of ten, 128 assertions each. The margin of the second check goes from 6.7 to
+6.9 s, that of the third from 7.7 to 7.9 s.
+
 ### The bench
 
 - **118**: two assertions. A fresh card in a co-stream, setting off, has the
