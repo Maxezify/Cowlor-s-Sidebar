@@ -198,6 +198,21 @@ for (const [re, to] of subs) {
 }
 writeFileSync(join(ICI, 'content.test.js'), src);
 
+/* LES PONTS D'IFRAME (4.25.0.9) — cadres.js, copié TEL QUEL : il ne porte
+   aucune constante de temps du module principal, et la règle se vérifie
+   plutôt qu'elle ne se suppose. Une constante accélérée qui viendrait à y
+   déménager disparaîtrait de content.js — l'assemblage s'arrêterait plus haut
+   sur « SUBSTITUTION INTROUVABLE » — et ne serait accélérée nulle part ;
+   celle-ci le dit ici. */
+const cadres = readFileSync(join(RACINE, 'cadres.js'), 'utf8');
+const cadresServi = SANS_COMMENTAIRES ? degraisser(cadres) : cadres;
+const demenagees = subs.filter(([re]) => re.test(cadresServi)).map(([re]) => String(re));
+if (demenagees.length) {
+  console.error('CONSTANTE ACCÉLÉRÉE DANS cadres.js, que le banc copie tel quel :', demenagees.join(', '));
+  process.exit(1);
+}
+writeFileSync(join(ICI, 'cadres.test.js'), cadresServi);
+
 /* VARIANTE FIREFOX — une seule ligne change, et il faut expliquer pourquoi
    elle ne peut pas être obtenue autrement.
 
@@ -218,21 +233,25 @@ writeFileSync(join(ICI, 'content.test.js'), src);
    La lecture est donc neutralisée ICI, à la construction, sur une COPIE. Le
    produit livré n'en sait rien ; la substitution est vérifiée comme les
    autres, et `undefined` est précisément ce que rend la lecture d'une
-   propriété absente. */
+   propriété absente.
+
+   Elle vit dans cadres.js depuis la 4.25.0.9, avec les ponts qui la lisent :
+   c'est donc lui qui a une variante, et content.js plus aucune — il ne lit
+   pas ancestorOrigins, et ne tourne plus dans les lecteurs. */
 const RE_ANCETRES = /const a = location\.ancestorOrigins;/;
-if (!RE_ANCETRES.test(src)) {
-  console.error('SUBSTITUTION INTROUVABLE (variante Firefox):', RE_ANCETRES);
+if (!RE_ANCETRES.test(cadresServi) || RE_ANCETRES.test(src)) {
+  console.error('SUBSTITUTION INTROUVABLE (variante Firefox) — attendue dans cadres.js, et là seulement :', RE_ANCETRES);
   process.exit(1);
 }
-writeFileSync(join(ICI, 'content.firefox.test.js'),
-  src.replace(RE_ANCETRES, 'const a = undefined; /* Firefox < 148 */'));
+writeFileSync(join(ICI, 'cadres.firefox.test.js'),
+  cadresServi.replace(RE_ANCETRES, 'const a = undefined; /* Firefox < 148 */'));
 // Le module anti-pub est copié TEL QUEL : il ne porte aucune constante de temps
 // à régler, et c'est justement son comportement d'origine qu'on veut éprouver —
 // à savoir qu'il ne fait STRICTEMENT RIEN hors de l'iframe d'aperçu.
 const adb = readFileSync(join(RACINE, 'adblock.js'), 'utf8');
 const adbServi = SANS_COMMENTAIRES ? degraisser(adb) : adb;
 writeFileSync(join(ICI, 'adblock.test.js'), adbServi);
-/* Sa VARIANTE FIREFOX, pour la même raison que celle de content.js et par la
+/* Sa VARIANTE FIREFOX, pour la même raison que celle de cadres.js et par la
    même ligne : depuis la 4.24.0.1, sa garde lit elle aussi ancestorOrigins
    pour reconnaître le parent de l'aperçu. Sans cette copie, le scénario qui
    reproduit Firefox éprouverait le pont sans ancestorOrigins, et l'anti-pub
@@ -243,6 +262,6 @@ if (!RE_ANCETRES.test(adbServi)) {
 }
 writeFileSync(join(ICI, 'adblock.firefox.test.js'),
   adbServi.replace(RE_ANCETRES, 'const a = undefined; /* Firefox < 148 */'));
-console.log(`content.test.js construit (${subs.length} constantes de temps accélérées) + adblock.test.js copié tel quel`
+console.log(`content.test.js construit (${subs.length} constantes de temps accélérées) + cadres.test.js et adblock.test.js copiés tels quels`
   + ' + leurs variantes Firefox'
   + (SANS_COMMENTAIRES ? ' — SANS COMMENTAIRES, comme le paquet livré' : ''));
