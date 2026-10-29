@@ -2064,6 +2064,277 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## Addressed messages, three quirks fixed, a lighter startup and lighter scans (v4.25.0.10)
+
+The request, on the list of what remained after 4.25.0.9: “7/ I want you to
+do it. But first, give the explanations for the previous points. 8/ I want you
+to do it.” Then, once the explanations were given: “For this .10, add: 2/
+Startup: do a) and b). 3/ Scans: do a). 5/ Test 207: do b).” Point 7: no
+message sent to “any origin” any more. Point 8: the three quirks that
+4.25.0.9 had reproduced as they were. Point 2: the loading veil and the
+title. Point 3: three touch-ups of the scan. Point 5: sub-test 207 x), which
+depended on the speed of the machine. Published on `claude/chrome-multi`,
+then carried over to `claude/firefox-multi` and both production branches.
+
+### No more messages to "*"
+
+Six sends still went to `'*'`, that is, to whoever holds the target window.
+None carried a secret: the page already reads all of it through `window.tse`.
+The 4.25.0.8 audit had noted them, for information. Each now has an exact
+address:
+
+- **Between `content.js` and `bridge.js`**, the two worlds of one document:
+  the request for the panel's address and its answer, the panel's requests
+  and their answers. `bridge.js` writes `location.origin`, since it only runs
+  on twitch.tv. `content.js` writes `'/'`, “the same origin as mine”. It also
+  runs in the bench, on `file://`, where Chromium gives `location.origin` as
+  "file://": a target that matches nothing, and the message would be dropped
+  without a word. `'/'` holds in both cases (measured).
+- **From the embedded panel to the page**: its requests, its close order. The
+  page is twitch.tv, which has two origins, with and without "www", and the
+  panel does not know which one holds it. The message goes to each. The
+  browser silently drops the one that does not match, and the other arrives,
+  once. In any other parent, nothing arrives. `ancestorOrigins` would have
+  given the exact origin, but Firefox does not have it before version 148.
+- **The close order**, received by the page, now only counts when it comes
+  from the panel's origin, like its requests since 4.25.0.9.
+
+This is not a closed door. Twitch's scripts listen to the same document we
+do, and an exact address lets them listen. It is a precise address in place
+of a vague one.
+
+### Three quirks, reproduced by 4.25.0.9, fixed
+
+**The glow of a subscribed card, in the light theme.** From 4.11 to 4.25.0.8,
+the light theme set its images through a `background:` shorthand. A shorthand
+resets every property it does not name to its initial value: the repeat went
+back to `repeat`, and the size of the layers to that of the card. In the light
+theme, the layers therefore did not drift. The sheen, repeated every three
+card widths, swept for 3.75 s, then stayed frozen on the left half of the card
+for the next 11.25 s, before starting again with a jump. The light theme now
+sets only its images. It keeps from the dark theme the size of each layer, the
+absence of repetition and the four animations: the sheen passes and leaves,
+the layers drift, as in the dark theme.
+
+**The subathon pill, on a subscribed card.** A subscriber's name is painted
+by a gold gradient clipped to the text (`background-clip: text`), with a
+transparent fill, and the pill lives inside the name. That clip takes the text
+of everything the name contains that is not positioned. The pill's border ran
+through the rainbow, but its letters showed the name's gold. Two rules fix
+this. On a subscribed card, the pill is positioned, and leaves the clip. Its
+copies paint their own colour (`-webkit-text-fill-color: currentColor`). The
+name's halo, a filter set on the whole name, still surrounds it.
+
+**"Just started" switched off, on a card that is also in a co-stream.** The
+setting removed everything: the fresh stream's bar and wash, but also the
+group's bar and its wash. It now removes only "just started". The card becomes
+again the co-stream card it is: its bar, in the group's colour (in the deepened
+tone in the light theme), and its wash. A card that is only fresh still loses
+everything.
+
+Checked on screen, before and after, in both themes. The pill of a
+non-subscribed card is identical to the pixel. The pill of a subscribed card
+now has the other one's colours.
+
+### Startup: the veil, and measuring the title
+
+**a) The veil remeasures only once per frame.** During loading, the veil
+follows the sidebar: it read the sidebar's box again on every batch of page
+mutations, and Twitch produces hundreds of them, often several within the
+same frame. Each read followed a write to the page: the browser recomputed
+the layout for a value nobody would see. The remeasures of one frame now come
+down to a single one, made just before the frame is painted
+(`requestAnimationFrame`). The veil is where the sidebar is, as before, and
+nothing is painted between placing it and measuring it. The very first one,
+when the cycle opens, goes the same way: it forced the page's first layout
+right at injection.
+
+Measured on the real extension, the bench's decor plus a content of 1,500
+blocks, and a page that mutates on every task for two seconds, the way a
+React application mounts (medians of five loads, over the first three
+seconds):
+
+| | layouts | duration |
+| --- | --- | --- |
+| 4.25.0.9 | 240 | 501 ms |
+| 4.25.0.10 | 116 | 319 ms |
+| the same page without the extension | 118 | 349 ms |
+
+The veil no longer costs any layout: it reads the one the browser does
+anyway to paint the frame.
+
+**The explanation given before this work was wrong on one point.** It
+attributed about 16 ms per load to the veil, and put them down to the
+mutations. On the bench's decor, a still page, those milliseconds came from
+the first remeasure alone: the first layout of the whole page, forced at
+injection. The browser now does it, at the first frame; on that still decor,
+it moves into the title adjustment, the first layout read of the first scan
+(10.3 → 11.6 ms), and startup only gains 1.6 ms (`ready`: 51.7 → 50.1 ms,
+profile of three loads). The gain on mutations only shows on a page that
+mutates, hence the measurement above.
+
+**b) The measurement of the title's text is kept.** The title is adjusted on
+every scan, and each time it measured its text twice: through a `Range`,
+which reads the layout, and through the canvas, which has to parse the font
+it is given. The width depends only on the text, its font (every property
+that changes the shape or the spacing of the letters), the two sizes, the
+width we set on it, and the loaded fonts. A web font that arrives later
+changes the letters without changing the declaration; a counter, moved on by
+the end of each load, is therefore part of the key. As long as none of that
+moves, the kept width is the one a new measurement would give. Measured on
+the bench, three loads: the text measurement cost 4.3 ms at startup, it now
+costs 2.7 (the title still changes text and size then, and each change
+measures again); then 0.09 ms per scan, 0.05 now, the time to read the ten
+font properties of the key again. The title adjustment costs about 20 ms in
+all at startup. The rest of the adjustment costs
+more: the five probes at the end of the line (`elementFromPoint`), about
+6 ms at startup. That is not a text measurement, and they were not touched.
+
+### Scans: three touch-ups
+
+- **Twitch's language is kept.** It is asked for on every formatted number,
+  about a hundred per scan, and each time it canonicalized the page's
+  language (`Intl.getCanonicalLocales`) for the same answer. It is now
+  recomputed only if the page's language or ours has changed; both are read
+  again on every call.
+- **A card's accessible text is only re-aligned if it may have changed.**
+  Every scan walked through each card's counter block again, leaf by leaf,
+  to write back the number it had already written. The pass is only redone if
+  the block, its text, the wanted number or Twitch's language has changed.
+  The block's text is read again every time: the sentence that Twitch renders
+  again with its own number is re-aligned on the next scan, as before.
+- **A card's visibility is read once per pass.** Five loops of the co-stream
+  detection asked each card whether it shows: four attributes and the
+  `<body>` class, read again every time, while nothing in that detection hides
+  or shows a card.
+
+Measured per scan: 40 cards, a counter changed every 200 ms for 30 s,
+profiler at 100 µs, medians of five rounds:
+
+| | 4.25.0.9 | 4.25.0.10 |
+| --- | --- | --- |
+| `recalerTexteAccessible` | 0.66 ms | 0.16 ms |
+| `localeTwitch` | 0.17 ms | 0.03 ms |
+| `cardShown` | 0.34 ms | 0.16 ms |
+| the whole scan | 9.4 ms | 8.7 ms |
+
+The gain is about 7 % of the scan, not 25 to 35 % as the explanation
+estimated: the three functions together weighed only 1.2 ms out of
+9.4. From one round to the next, the whole scan varies by about 0.8 ms
+either way; the three functions gain on every round.
+
+### Test 207 x)
+
+The sub-test checks that a channel's list of VODs is kept as long as its last
+broadcast has not changed, and is read again at the end of its own lifetime.
+To fit in a few seconds, it shortened that lifetime to 5 s, then waited with
+fixed pauses (1.7 s, 1.7 s, 2.4 s). Its second check required everything to
+fit within 5 s of the first read: 3.4 s of pauses plus three collections,
+about 1.6 s of margin on a fast machine, and none on a loaded one. That is
+what made a regeneration of `firefox-prod` fail in 4.25.0.7.
+
+Each wait now starts from the real time of a return, which the log of
+requests gives. The first two last until the channel records have expired,
+and no longer: under load, the collections take long enough that almost
+nothing is left to wait. The last one lasts until the list has reached its
+lifetime, plus half a second. The list lasts 15 s in the sub-test. A first
+version, at 10 s with the fixed pauses, left only 0.4 s of margin with three
+cores out of four kept busy: the pauses added up with collections that
+already took seconds. The diagnostic gives both margins. The product is not
+touched.
+
+Ten runs of 207, three cores out of four kept busy by endless loops: ten out
+of ten, 128 assertions each. The margin of the second check goes from 6.7 to
+6.9 s, that of the third from 7.7 to 7.9 s.
+
+### The bench
+
+- **118**: two assertions. A fresh card in a co-stream, setting off, has the
+  bar, colour, glow, position and wash of the same card without the "fresh"
+  class, in the dark theme as in the light one. Setting on, the fresh stream
+  keeps the upper hand.
+- **213** d): in the light theme, the subscribed glow has the dark theme's
+  computed style, layer by layer, images aside, and its sheen crosses the card
+  once per cycle before leaving it. e): on a subscribed card, each copy of
+  the pill paints its colour, and the pill is positioned; on a
+  non-subscribed card, nothing changes. The test reads the computed style,
+  not the image. A comparison on screen (the pill captured with and without
+  the name's gold) was tried and then set aside. On the bench, the cards get
+  sorted again between two captures, and the fringe of gold that a mutant
+  leaves at the edge of the letters depends on what the compositor puts in a
+  layer: from 2 to 39/255 for the same mutant.
+- **211**: each of the panel's requests reaches the page once, and only once,
+  from its origin. And the popup, through the service worker and the bridge,
+  requests a section and gets its answer. No other scenario covered that path
+  end to end.
+- **212**: none of our files sends a message to "*" any more. The reading goes
+  through the syntax tree (acorn): a comment quoting "*" is not a send.
+- **73**: the bridge addresses its requests to the page's origin. **122**: the
+  close order of a frame sent to another origin is ignored.
+- **124** and **208** p): the panel only writes to a Twitch page now. The
+  bench's host is therefore served as `https://www.twitch.tv/`, no longer from
+  a file.
+- **37** d): under the veil, thirty batches of mutations in one task do not
+  read the sidebar again. It is read once, before the next frame, and there
+  the veil covers the sidebar, even when moved.
+- **204** g): three scans without any change do not measure the title's text
+  again. A loaded font makes it measure again, once, and so does a new text:
+  Polish finds its size.
+- **206** a bis): Twitch's language is recomputed when the page's language
+  changes (Spain, then Mexico), and when ours changes (French, then German),
+  one without the other. c bis): three scans where nothing moves walk through
+  no counter block, and the sentence that Twitch redraws with its own number
+  is re-aligned on the next scan.
+- **207** x): the waits computed from the log (see above).
+
+**Twenty-nine named mutants, all caught.** Each was set alone, and the bench
+run again on the scenarios that guard what it breaks. Along the way:
+
+- **one mutant survived**: every card taken as shown in the co-stream
+  detection. The gap predated this version: no scenario hid the card of a
+  session whose other member stays on screen. Scenario 25 now does, and the
+  mutant falls;
+- **another was equivalent**: the `:not(.tse-costream)` guard added to the
+  "just started" setting changed nothing, since the co-stream rule, more
+  specific, already wins. It is removed rather than kept unverifiable;
+- **the pill's assertion first compared images.** Unstable on the live bench
+  (from 2 to 39/255 for the same mutant), it now reads the computed style,
+  and the "pill not positioned" mutant falls every time.
+
+| mutant | what falls |
+| --- | --- |
+| the reply to the bridge sent to "*" | 212: no send to "*" |
+| the reply to the bridge sent to `location.origin` | 69: the bridge receives nothing on `file://` |
+| the reply to the bridge sent to Twitch's other origin | 211: the popup gets no answer |
+| the address request sent to "*" | 212: no send to "*" |
+| the bridge's requests sent to "*" | 73: addressed to the page's origin |
+| the bridge's requests sent to Twitch's other origin | 211: the popup gets no answer |
+| the panel's address sent to "*" | 212: no send to "*" |
+| the panel writing to "*" | 211: each request arrives twice |
+| the panel writing only to the origin without "www" | 124, 211: nothing arrives any more |
+| the close order accepted from any origin | 122: the frame sent elsewhere closes the panel |
+| the light sheen set back through a `background:` shorthand | 213 d): the dark theme's drawing |
+| the light layers motionless | 213 d): the four animations |
+| the subscriber's pill not positioned | 213 e): the pill stays in the name's clip |
+| the copies without a fill | 213 e): each copy paints its colour |
+| the group's bar hidden | 118: the co-stream card given back |
+| the group's wash missing | 118: the co-stream card given back |
+| the light bar in the dark tone | 118: the group's colour, in light |
+| the veil remeasured on every mutation | 37 d): thirty reads within the task |
+| the veil never remeasured | 37 d): the veil away from the sidebar |
+| the remeasure requested once and for all | 37 d): the sidebar moved, the veil left behind |
+| the title measurement without the text in its key | 204 a), g): the titles of the ten languages set wrong |
+| the title measurement without the loaded fonts | 204 g): the loaded font has no effect |
+| the title measurement never kept | 204 g): three scans, three measurements |
+| Twitch's language kept without the page's | 206 a bis): Mexico written like Spain |
+| Twitch's language kept without ours | 206 a bis): German written like French |
+| the re-alignment without the block's text | 206 c bis): the redrawn sentence not re-aligned |
+| the re-alignment never skipped | 206 c bis): the blocks walked through again |
+| the shown cards read in the followed list only | 195: the co-stream in "Live channels" |
+| every card taken as shown | 25: the hidden card forms a group |
+
+The full bench: 2020 assertions in 212 scenarios, all green.
+
 ## Decorations on the compositor, content.js out of the iframes, and defense in depth (v4.25.0.9)
 
 The request, following the 4.25.0.8 audit: “Medium-high: the animated
@@ -21093,7 +21364,7 @@ Four independent checks:
 | `npm run lint` | the six shipped JavaScript files — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 212 scenarios, 2002 assertions |
+| `npm test` | the Playwright harness: 212 scenarios, 2020 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -21113,11 +21384,11 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1795 KB | 731 KB | 4,317 → **2** |
+| `content.js` | 1795 KB | 731 KB | 4,327 → **2** |
 | `cadres.js` | 66 KB | 30 KB | 158 → **0** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
 | `panneau.js` | 150 KB | 76 KB | 209 → **0** |
-| `bridge.js` | 15 KB | 3 KB | 25 → **0** |
+| `bridge.js` | 15 KB | 3 KB | 26 → **0** |
 | `background.js` | 10 KB | 2 KB | 22 → **0** |
 | **all six** | **2161 KB** | **943 KB** | **−56 %** |
 

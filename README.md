@@ -2183,6 +2183,287 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## Des messages adressés, trois bizarreries corrigées, un démarrage et des balayages allégés (v4.25.0.10)
+
+La demande, sur la liste de ce qui restait après la 4.25.0.9 : « 7/ Je veux
+que tu le fasses. Mais d'abord, fais les explications des points précédents.
+8/ Je veux que tu le fasses. » Puis, les explications données : « Pour cette
+.10 ajoute : 2/ Démarrage : fait a) et b). 3/ Balayage : fait a). 5/ Test
+207 : fait b). » Le point 7 : plus aucun message envoyé vers « n'importe
+quelle origine ». Le point 8 : les trois bizarreries que la 4.25.0.9 avait
+reproduites telles quelles. Le point 2 : le voile de chargement et le titre.
+Le point 3 : trois retouches du balayage. Le point 5 : le sous-test 207 x),
+qui dépendait de la vitesse de la machine. Publiée sur `claude/chrome-multi`,
+puis reportée sur `claude/firefox-multi` et sur les deux branches de
+production.
+
+### Plus aucun message vers « * »
+
+Six envois partaient encore vers `'*'`, c'est-à-dire vers quiconque tient la
+fenêtre visée. Aucun ne portait de secret : la page lit déjà tout cela par
+`window.tse`. L'audit de la 4.25.0.8 les avait notés, à titre d'information.
+Chacun a maintenant une adresse exacte :
+
+- **Entre `content.js` et `bridge.js`**, les deux mondes d'un même document :
+  la demande d'adresse du panneau et sa réponse, les demandes du panneau et
+  leurs réponses. `bridge.js` écrit `location.origin`, puisqu'il ne tourne que
+  sur twitch.tv. `content.js` écrit `'/'`, « la même origine que la mienne ».
+  Il tourne aussi dans le banc, en `file://`, où Chromium rend
+  `location.origin` comme « file:// » : une cible qui ne correspond à rien, et
+  le message serait jeté sans un mot. `'/'` tient dans les deux cas (mesuré).
+- **Du panneau incrusté vers la page** : ses demandes, son ordre de fermeture.
+  La page est twitch.tv, qui a deux origines, avec et sans « www », et le
+  panneau ne sait pas laquelle le porte. Le message part vers chacune. Le
+  navigateur jette en silence celui qui ne correspond pas, et l'autre arrive,
+  une fois. Dans un autre parent, rien n'arrive. `ancestorOrigins` aurait
+  donné l'origine exacte, mais Firefox ne l'a pas avant sa version 148.
+- **L'ordre de fermeture**, reçu par la page, ne vaut plus que venu de
+  l'origine du panneau, comme ses demandes depuis la 4.25.0.9.
+
+Ce n'est pas une porte fermée. Les scripts de Twitch écoutent le même document
+que nous, et une adresse exacte les laisse écouter. C'est une adresse juste à
+la place d'une adresse vague.
+
+### Trois bizarreries, reproduites par la 4.25.0.9, corrigées
+
+**La lueur d'une carte abonnée, en thème clair.** De la 4.11 à la 4.25.0.8, le
+clair posait ses images par un raccourci `background:`. Un raccourci remet à
+leur valeur initiale toutes les propriétés qu'il ne nomme pas : la répétition
+revenait à `repeat`, et la taille des nappes à celle de la carte. En clair, les
+nappes ne dérivaient donc pas. Le reflet, répété toutes les trois largeurs de
+carte, défilait 3,75 s, puis restait figé sur la moitié gauche de la carte
+pendant les 11,25 s suivantes, avant de repartir d'un saut. Le clair ne pose
+plus que ses images. Il garde du sombre la taille de chaque calque, l'absence
+de répétition et les quatre animations : le reflet passe et sort, les nappes
+dérivent, comme en sombre.
+
+**La pastille de subathon, sur une carte abonnée.** Le nom d'un abonné est
+peint par un dégradé d'or découpé au texte (`background-clip: text`), avec un
+remplissage transparent, et la pastille vit dans le nom. Cette découpe prend le
+texte de tout ce que le nom contient sans être positionné. Le contour de la
+pastille parcourait l'arc-en-ciel, mais ses lettres montraient l'or du nom.
+Deux règles corrigent cela. Sur une carte abonnée, la pastille est
+positionnée, et sort de la découpe. Ses copies peignent leur propre couleur
+(`-webkit-text-fill-color: currentColor`). Le halo du nom, un filtre posé sur
+tout le nom, l'entoure toujours.
+
+**« Vient de démarrer » éteint, sur une carte aussi en co-stream.** Le réglage
+retirait tout : la barre et le lavis du direct frais, mais aussi la barre du
+groupe et son lavis. Il ne retire plus que « vient de démarrer ». La carte
+redevient la carte de co-stream qu'elle est : sa barre, à la couleur du groupe
+(au ton approfondi en thème clair), et son lavis. Une carte qui n'est que
+fraîche perd toujours tout.
+
+Vérifié à l'image, avant et après, dans les deux thèmes. La pastille d'une
+carte non abonnée est identique au pixel près. Celle d'une carte abonnée a
+désormais les couleurs de l'autre.
+
+### Le démarrage : le voile, et la mesure du titre
+
+**a) Le voile ne remesure plus qu'une fois par image.** Pendant le
+chargement, le voile suit la barre latérale : il relisait sa boîte à chaque
+lot de mutations de la page, et Twitch en produit des centaines, souvent
+plusieurs dans la même image. Chaque lecture suivait une écriture dans la
+page : le navigateur recalculait la mise en page pour une valeur que personne
+ne verrait. Les remesures d'une même image n'en font plus qu'une, juste avant
+qu'elle se peigne (`requestAnimationFrame`). Le voile y est à la place de la
+barre, comme avant, et rien ne se peint entre sa pose et sa mesure. La toute
+première, à l'ouverture du cycle, passe aussi par là : elle forçait la
+première mise en page de la page dès l'injection.
+
+Mesuré sur l'extension réelle, le décor du banc augmenté d'un contenu de
+1 500 blocs, et une page qui mute à chaque tâche pendant deux secondes,
+comme une application React qui se monte (médianes de cinq chargements, sur
+les trois premières secondes) :
+
+| | mises en page | durée |
+| --- | --- | --- |
+| 4.25.0.9 | 240 | 501 ms |
+| 4.25.0.10 | 116 | 319 ms |
+| la même page sans l'extension | 118 | 349 ms |
+
+Le voile ne coûte plus aucune mise en page : il lit celle que le navigateur
+fait de toute façon pour peindre l'image.
+
+**L'explication donnée avant ce travail se trompait sur un point.** Elle
+attribuait au voile environ 16 ms par chargement, et les mettait sur le
+compte des mutations. Sur le décor du banc, page immobile, ces millisecondes
+venaient de la seule première remesure : la première mise en page de la page
+entière, forcée à l'injection. Elle est maintenant faite par le navigateur,
+à la première image ; sur ce décor immobile, elle passe dans le réglage du
+titre, première lecture de la mise en page du premier balayage
+(10,3 → 11,6 ms), et le démarrage n'y gagne qu'1,6 ms (`ready` : 51,7 →
+50,1 ms, profil de trois chargements). Le gain des mutations ne se voit que
+sur une page qui mute, d'où la mesure ci-dessus.
+
+**b) La mesure du texte du titre se retient.** Le titre se règle à chaque
+balayage, et chaque fois il remesurait son texte deux fois : par un `Range`,
+qui lit la mise en page, et par le canevas, qui doit analyser la police
+qu'on lui donne. La largeur ne dépend que du texte, de sa police (chaque
+propriété qui change la forme ou l'espacement des lettres), des deux
+tailles, de la largeur que nous lui avons posée, et des polices chargées.
+Une police web arrivée après coup change les lettres sans changer la
+déclaration ; un compteur, que chaque fin de chargement avance, entre donc
+dans la clé. Tant que rien de cela ne bouge, la largeur retenue est celle
+qu'une nouvelle mesure rendrait. Mesuré au banc, trois chargements : la
+mesure du texte coûtait 4,3 ms au démarrage, elle en coûte 2,7 (le titre y
+change encore de texte et de taille, et chaque changement remesure) ; puis
+0,09 ms par balayage, 0,05 maintenant, le temps de relire les dix
+propriétés de police de la clé. Le réglage du titre coûte en tout environ
+20 ms au démarrage. Le reste du réglage coûte davantage : les cinq
+sondages au bout de la ligne (`elementFromPoint`), environ 6 ms au
+démarrage. Ce n'est pas une mesure de texte, et ils n'ont pas été touchés.
+
+### Les balayages : trois retouches
+
+- **La langue de Twitch se retient.** Elle se demande à chaque nombre
+  formaté, une centaine par balayage, et chaque fois elle canonisait la
+  langue de la page (`Intl.getCanonicalLocales`) pour la même réponse. Elle
+  ne se recalcule plus que si la langue de la page ou la nôtre a changé ;
+  les deux sont relues à chaque appel.
+- **Le texte accessible d'une carte n'est recalé que s'il a pu changer.**
+  Chaque balayage reparcourait le bloc du compteur de chaque carte, feuille
+  par feuille, pour réécrire le nombre qu'il y avait déjà écrit. La passe ne
+  se refait que si le bloc, son texte, le nombre voulu ou la langue de Twitch
+  a changé. Le texte du bloc est relu à chaque fois : la phrase que Twitch
+  rend de nouveau avec son propre nombre est recalée au balayage suivant,
+  comme avant.
+- **La visibilité d'une carte se lit une fois par passe.** Cinq boucles de la
+  détection des co-streams demandaient à chaque carte si elle se montre :
+  quatre attributs et la classe du `<body>`, relus à chaque fois, alors que
+  rien dans cette détection ne masque ni ne montre une carte.
+
+Mesuré par balayage : 40 cartes, un compteur modifié toutes les 200 ms
+pendant 30 s, profileur à 100 µs, médianes de cinq tours :
+
+| | 4.25.0.9 | 4.25.0.10 |
+| --- | --- | --- |
+| `recalerTexteAccessible` | 0,66 ms | 0,16 ms |
+| `localeTwitch` | 0,17 ms | 0,03 ms |
+| `cardShown` | 0,34 ms | 0,16 ms |
+| le balayage entier | 9,4 ms | 8,7 ms |
+
+Le gain est d'environ 7 % du balayage, et non de 25 à 35 % comme
+l'explication l'estimait : les trois fonctions ne pesaient ensemble que
+1,2 ms sur 9,4. D'un tour à l'autre, le balayage entier varie de plus ou
+moins 0,8 ms ; les trois fonctions, elles, gagnent à chaque tour.
+
+### Le test 207 x)
+
+Le sous-test vérifie que la liste de rediffusions d'une chaîne se garde tant
+que son dernier direct n'a pas changé, et se relit au bout de sa propre
+durée. Pour tenir en quelques secondes, il raccourcissait cette durée à 5 s,
+puis attendait par pauses fixes (1,7 s, 1,7 s, 2,4 s). Sa deuxième
+vérification exigeait que tout tienne en 5 s depuis la première lecture :
+3,4 s de pauses plus trois collectes, soit environ 1,6 s de marge sur une
+machine rapide, et aucune sur une machine chargée. C'est ce qui a fait
+échouer une régénération de `firefox-prod` en 4.25.0.7.
+
+Chaque attente part désormais de l'heure réelle d'un retour, que le journal
+des envois donne. Les deux premières durent jusqu'à ce que les fiches aient
+périmé, et pas plus : sous charge, les collectes durent assez pour qu'il ne
+reste presque rien à attendre. La dernière dure jusqu'à ce que la liste ait
+sa durée, plus une demi-seconde. La liste vaut 15 s dans le sous-test. Une
+première version, à 10 s et aux pauses fixes, ne laissait que 0,4 s de marge
+avec trois cœurs sur quatre occupés : les pauses s'ajoutaient à des collectes
+qui duraient déjà des secondes. Le diagnostic dit les deux marges. Le produit
+n'est pas touché.
+
+Dix exécutions du 207, trois cœurs sur quatre occupés par des boucles sans
+fin : dix sur dix, 128 assertions chacune. La marge de la deuxième
+vérification va de 6,7 à 6,9 s, celle de la troisième de 7,7 à 7,9 s.
+
+### Le banc
+
+- **118** : deux assertions. Une carte fraîche en co-stream, réglage éteint,
+  a la barre, la couleur, la lueur, la place et le lavis de la même carte sans
+  la classe « fraîche », en sombre comme en clair. Réglage allumé, le direct
+  frais garde le dessus.
+- **213** d) : en clair, la lueur abonnée a le style calculé du sombre, calque
+  par calque, images exceptées, et son reflet traverse la carte une fois par
+  cycle avant d'en sortir. e) : sur une carte abonnée, chaque copie de la
+  pastille peint sa couleur, et la pastille est positionnée ; sur une carte
+  non abonnée, rien ne change. Le test lit le style calculé, et non l'image.
+  Une comparaison à l'image (la pastille photographiée avec et sans l'or du
+  nom) a été essayée puis écartée. Sur le banc, les cartes se rangent de
+  nouveau entre deux captures, et la frange d'or qu'un mutant laisse au bord
+  des lettres dépend de ce que le compositeur met en calque : de 2 à 39/255
+  pour le même mutant.
+- **211** : chaque demande du panneau arrive à la page une fois, et une seule,
+  de son origine. Et la popup, par le service worker et le pont, demande une
+  section et reçoit sa réponse. Aucun autre scénario ne parcourait ce chemin
+  de bout en bout.
+- **212** : aucun de nos fichiers n'envoie plus de message vers « * ». La
+  lecture se fait par l'arbre syntaxique (acorn) : un commentaire qui cite
+  « * » n'est pas un envoi.
+- **73** : le pont adresse ses demandes à l'origine de la page. **122** :
+  l'ordre de fermeture d'un cadre renvoyé vers une autre origine est ignoré.
+- **124** et **208** p) : le panneau n'écrit plus qu'à une page Twitch. L'hôte
+  du banc est donc servi comme `https://www.twitch.tv/`, et non plus depuis un
+  fichier.
+- **37** d) : sous le voile, trente lots de mutations dans une même tâche ne
+  relisent pas la barre. Elle est lue une fois, avant l'image suivante, et le
+  voile y recouvre la barre, même déplacée.
+- **204** g) : trois balayages sans changement ne remesurent pas le texte du
+  titre. Une police chargée le fait remesurer, une fois, et un texte neuf
+  aussi : le polonais trouve sa taille.
+- **206** a bis) : la langue de Twitch se recalcule quand la page en change
+  (Espagne, puis Mexique), et quand la nôtre en change (le français, puis
+  l'allemand), l'une sans l'autre. c bis) : trois balayages où rien ne bouge
+  ne reparcourent aucun bloc de compteur, et la phrase que Twitch redessine
+  avec son propre nombre est recalée au balayage suivant.
+- **207** x) : les attentes calculées depuis le journal (cf. plus haut).
+
+**Vingt-neuf mutants nommés, tous pris.** Chacun a été posé seul, et le banc
+relancé sur les scénarios qui gardent ce qu'il casse. En route :
+
+- **un mutant a survécu** : toutes les cartes tenues pour montrées dans la
+  détection des co-streams. Le trou datait d'avant cette version : aucun
+  scénario ne cachait la carte d'une session dont l'autre membre reste à
+  l'écran. Le 25 le fait désormais, et le mutant tombe ;
+- **un autre était équivalent** : la garde `:not(.tse-costream)` ajoutée au
+  réglage « vient de démarrer » ne changeait rien, puisque la règle du
+  co-stream, plus précise, l'emporte déjà. Elle est retirée plutôt que gardée
+  invérifiable ;
+- **l'assertion de la pastille comparait d'abord des images.** Instable sur le
+  banc vivant (de 2 à 39/255 pour le même mutant), elle lit désormais le
+  style calculé, et le mutant « pastille non positionnée » tombe à chaque
+  fois.
+
+| mutant | ce qui tombe |
+| --- | --- |
+| la réponse au pont vers « * » | 212 : aucun envoi vers « * » |
+| la réponse au pont vers `location.origin` | 69 : le pont ne reçoit plus rien en `file://` |
+| la réponse au pont vers l'autre origine de Twitch | 211 : la popup sans réponse |
+| la demande d'adresse vers « * » | 212 : aucun envoi vers « * » |
+| les demandes du pont vers « * » | 73 : adressée à l'origine de la page |
+| les demandes du pont vers l'autre origine de Twitch | 211 : la popup sans réponse |
+| l'adresse du panneau vers « * » | 212 : aucun envoi vers « * » |
+| le panneau qui écrit à « * » | 211 : chaque demande arrive deux fois |
+| le panneau qui n'écrit qu'à l'origine sans « www » | 124, 211 : plus rien n'arrive |
+| l'ordre de fermeture reçu de toute origine | 122 : le cadre renvoyé ailleurs ferme le panneau |
+| le reflet du clair remis en raccourci `background:` | 213 d) : le dessin du sombre |
+| les nappes du clair immobiles | 213 d) : les quatre animations |
+| la pastille d'abonné non positionnée | 213 e) : la pastille reste dans la découpe du nom |
+| les copies sans remplissage | 213 e) : chaque copie peint sa couleur |
+| la barre du groupe cachée | 118 : la carte de co-stream rendue |
+| le lavis du groupe absent | 118 : la carte de co-stream rendue |
+| la barre du clair au ton du sombre | 118 : la couleur du groupe, en clair |
+| le voile remesuré à chaque mutation | 37 d) : trente lectures dans la tâche |
+| le voile jamais remesuré | 37 d) : le voile ailleurs que la barre |
+| la remesure demandée une fois pour toutes | 37 d) : la barre déplacée, le voile resté |
+| la mesure du titre sans le texte dans sa clé | 204 a), g) : les titres des dix langues mal réglés |
+| la mesure du titre sans les polices chargées | 204 g) : la police chargée sans effet |
+| la mesure du titre jamais retenue | 204 g) : trois balayages, trois mesures |
+| la langue de Twitch retenue sans celle de la page | 206 a bis) : le Mexique écrit comme l'Espagne |
+| la langue de Twitch retenue sans la nôtre | 206 a bis) : l'allemand écrit comme le français |
+| le recalage sans le texte du bloc | 206 c bis) : la phrase redessinée pas recalée |
+| le recalage jamais sauté | 206 c bis) : les blocs reparcourus |
+| les cartes montrées lues dans la seule liste suivie | 195 : le co-stream de « Chaînes live » |
+| toutes les cartes tenues pour montrées | 25 : la carte masquée fait groupe |
+
+Le banc complet : 2020 assertions dans 212 scénarios, toutes vertes.
+
 ## Les décorations au compositeur, content.js hors des iframes, et la défense en profondeur (v4.25.0.9)
 
 La demande, à la suite de l'audit de la 4.25.0.8 : « Moyen-élevé : les
@@ -21733,7 +22014,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | les six fichiers JavaScript livrés — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 212 scénarios, 2002 assertions |
+| `npm test` | le harnais Playwright : 212 scénarios, 2020 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -21754,11 +22035,11 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1795 Ko | 731 Ko | 4 317 → **2** |
+| `content.js` | 1795 Ko | 731 Ko | 4 327 → **2** |
 | `cadres.js` | 66 Ko | 30 Ko | 158 → **0** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
 | `panneau.js` | 150 Ko | 76 Ko | 209 → **0** |
-| `bridge.js` | 15 Ko | 3 Ko | 25 → **0** |
+| `bridge.js` | 15 Ko | 3 Ko | 26 → **0** |
 | `background.js` | 10 Ko | 2 Ko | 22 → **0** |
 | **les six** | **2161 Ko** | **943 Ko** | **−56 %** |
 

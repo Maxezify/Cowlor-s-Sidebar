@@ -116,7 +116,8 @@
       let url = '';
       try { url = chrome.runtime.getURL('panneau.html'); }
       catch { /* extension rechargée : pas d'adresse, donc pas de roue */ }
-      if (url) window.postMessage({ tse: URL_RES, url }, '*');
+      // Vers ce document, et nommé (cf. l'envoi des demandes, plus bas).
+      if (url) window.postMessage({ tse: URL_RES, url }, location.origin);
       return;
     }
     if (!d || d.tse !== RES || typeof d.id !== 'number') return;
@@ -242,10 +243,17 @@
                   observations: observations() });
       }, EXPIRATION);
       attentes.set(id, { reqId: m.reqId, minuteur });
-      /* targetOrigin '*' pour la même raison que dans content.js : la cible
-         est CE document, et `location.origin` vaut la chaîne "null" sur une
-         origine opaque — le message serait jeté sans un mot. */
-      window.postMessage({ tse: REQ, id, ...demande }, '*');
+      /* VERS CE DOCUMENT, NOMMÉ (4.25.0.10 ; '*' jusque-là). La cible est la
+         page où ce fichier tourne, et `location.origin` la nomme : ce fichier
+         n'est injecté que sur twitch.tv, jamais sur une origine opaque — où
+         `location.origin` ne désignerait rien et ferait jeter le message.
+         content.js écrit '/', qui dit la même chose sans origine : il tourne
+         aussi dans le banc, en file://. Ici, '/' aurait demandé de savoir ce
+         que chaque navigateur prend pour « ma » origine dans un monde isolé —
+         mesuré sous Chromium, pas sous Firefox ; l'origine nommée ne laisse
+         pas la question se poser. Les scripts de la page écoutent toujours ce
+         document : c'est une adresse exacte, pas une porte fermée. */
+      window.postMessage({ tse: REQ, id, ...demande }, location.origin);
     });
   };
 

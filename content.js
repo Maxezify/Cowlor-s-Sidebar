@@ -270,19 +270,22 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     if (e.source !== window) return;
     const d = e.data;
     if (!d || d.tse !== TSE_PANNEAU_REQ || typeof d.id !== 'number') return;
-    /* targetOrigin '*' — et c'est le choix juste ici, pas un raccourci. La
-       destination est CE document : bridge.js écoute la même fenêtre, dans
-       l'autre monde. Or `location.origin` vaut la chaîne "null" sur une page
-       à origine opaque (un document file://, une iframe bac à sable), et un
-       targetOrigin qui ne correspond à rien fait jeter le message en silence
-       — le panneau resterait à tourner sans jamais rien dire.
+    /* targetOrigin '/' : « la même origine que la mienne » (4.25.0.10 ; '*'
+       jusque-là). La destination est CE document — bridge.js écoute la même
+       fenêtre, dans l'autre monde —, et '/' le dit sans écrire d'origine.
+       `location.origin` aurait dit la même chose sur twitch.tv, mais pas
+       partout : sur une page file://, où tourne le banc, Chromium le rend
+       « file:// », un targetOrigin qui ne correspond à rien, et le message
+       est jeté en silence — le panneau resterait à tourner sans rien dire.
+       '/' tient dans les deux cas (mesuré).
 
-       Ce que '*' élargit : les autres écouteurs de CE document, c'est-à-dire
-       les scripts de Twitch. Ils n'y gagnent rien — la charge ne contient que
-       ce que `window.tse` leur rend déjà, à portée d'un appel plus court que
-       de forger un message. */
+       CE N'EST PAS UNE FERMETURE DE PORTE : les scripts de Twitch écoutent
+       CE document, et '/' les laisse écouter comme '*' le faisait. La charge
+       ne contient de toute façon que ce que `window.tse` leur rend déjà.
+       C'est une adresse exacte au lieu d'une adresse vague — l'audit de la
+       4.25.0.8 l'avait noté, à titre d'information. */
     const repondre = (charge) =>
-      window.postMessage({ tse: TSE_PANNEAU_RES, id: d.id, ...charge }, '*');
+      window.postMessage({ tse: TSE_PANNEAU_RES, id: d.id, ...charge }, '/');
 
     if (!servirPanneau) { repondre(pasEncorePret()); return; }
     servirPanneau(d, repondre);
@@ -1584,15 +1587,25 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
      Tant qu'elle s'accorde à LANG, ou qu'elle désigne une langue que nous
      n'avons pas, c'est elle ; sinon — un libellé natif a dit autre chose que
      la page — on s'en tient à la nôtre, comme detectLanguage. */
+  /* RETENUE TANT QUE RIEN NE CHANGE (4.25.0.10). Elle se demande à chaque
+     nombre formaté — une centaine par balayage —, et chaque fois elle
+     canonisait la langue de la page (`Intl.getCanonicalLocales`) pour la même
+     réponse. La réponse ne dépend que de deux choses : l'attribut `lang` de la
+     page, que Twitch change en changeant de langue, et LANG. Les deux sont
+     relus à chaque appel ; le calcul ne se refait que si l'un a bougé. */
+  let localeRetenue = { lang: null, LANG: null, valeur: null };
   const localeTwitch = () => {
+    const brut = document.documentElement.lang || '';
+    if (localeRetenue.lang === brut && localeRetenue.LANG === LANG) return localeRetenue.valeur;
     let l = null;
-    try { l = Intl.getCanonicalLocales((document.documentElement.lang || '').trim())[0] || null; }
+    try { l = Intl.getCanonicalLocales(brut.trim())[0] || null; }
     catch { l = null; }
-    if (!l) return S.locale;
     // Par langueDe, et non par le préfixe : un Twitch de Taïwan n'est pas
     // « notre » chinois, il garde donc sa locale, et « 2.9萬 » ses compteurs.
-    const nous = langueDe(l);
-    return nous === LANG || !nous ? l : S.locale;
+    const nous = l && langueDe(l);
+    const valeur = !l ? S.locale : nous === LANG || !nous ? l : S.locale;
+    localeRetenue = { lang: brut, LANG, valeur };
+    return valeur;
   };
   jalon('i18n');
 
@@ -4848,37 +4861,27 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        rien du tout, et la carte abonnée cesse de se distinguer. On repasse
        donc sur des nappes SOMBRES et chaudes, à la même transparence.
 
-       ── CE QUE LE CLAIR FAIT VRAIMENT, ET QUE LES CALQUES REPRODUISENT ───
-       Jusqu'à la 4.25.0.8, cette règle était un raccourci « background: »
+       ── L'IMAGE SEULE CHANGE, PAS LE DESSIN (4.25.0.10) ──────────────────
+       De la 4.11 à la 4.25.0.8, cette règle était un raccourci « background: »
        posé sur les quatre couches du sombre. Un raccourci remet à leur valeur
        initiale tout ce qu'il ne nomme pas (cf. « L'IMAGE SEULE, JAMAIS LE
        RACCOURCI », plus bas) : la répétition repassait à « repeat » et la
-       taille des trois nappes à « auto », soit la carte elle-même. Deux
-       conséquences, VISIBLES depuis la 4.11 :
-         — les nappes ne dérivaient plus : une tuile de la taille de la carte
-           se place au même endroit quelle que soit sa position ;
-         — le voile, répété toutes les trois largeurs de carte, défilait de
-           deux périodes et un peu plus en 3,75 s, puis RESTAIT, reflet fixe
-           sur la moitié gauche de la carte, pendant les 11,25 s suivantes,
-           et le cycle d'après le faisait repartir d'un saut.
-       La 4.25.0.9 ne change que la MANIÈRE de peindre, pas ce qui se voit :
-       les trois nappes sont fixes, à la taille de la carte, et le voile est
-       un calque de neuf largeurs, répété tous les trois, qui glisse du même
-       chemin que la tuile d'autrefois — décalé d'une période entière pour
-       couvrir la carte d'un bout à l'autre. */
+       taille des trois nappes à « auto », soit la carte elle-même. En clair,
+       donc, les nappes ne dérivaient pas — une tuile de la taille de la carte
+       se place au même endroit quelle que soit sa position —, et le voile,
+       répété toutes les trois largeurs de carte, défilait 3,75 s puis RESTAIT,
+       reflet fixe sur la moitié gauche de la carte, les 11,25 s suivantes,
+       avant de repartir d'un saut. La 4.25.0.9 l'avait reproduit tel quel.
+
+       C'est corrigé : le clair ne pose plus que ses IMAGES, et garde de la
+       règle du sombre tout le reste — la largeur de chaque calque, l'absence
+       de répétition, les quatre animations. C'est ce que le raccourci voulait
+       dire : le voile passe et sort, les nappes dérivent, comme en sombre. */
     html[data-tse-theme="light"] .tse-lueur-deco > span:nth-child(1) {
-      width: 900%;
       background-image: linear-gradient(102deg,
           rgba(138, 89, 0, 0)     40%,
           rgba(138, 89, 0, 0.10)  48%,
           rgba(138, 89, 0, 0)     56%);
-      background-size: calc(100% / 3) 100%;
-      background-repeat: repeat;
-      animation-name: tse-lueur-voile-clair;
-    }
-    html[data-tse-theme="light"] .tse-lueur-deco > span:nth-child(n + 2) {
-      width: 100%;
-      animation: none;
     }
     html[data-tse-theme="light"] .tse-lueur-deco > span:nth-child(2) {
       background-image: radial-gradient(60% 120% at 12% 50%, rgba(138, 89, 0, 0.10), transparent 70%);
@@ -4888,12 +4891,6 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     }
     html[data-tse-theme="light"] .tse-lueur-deco > span:nth-child(4) {
       background-image: radial-gradient(70% 130% at 88% 60%, rgba(138, 89, 0, 0.09), transparent 70%);
-    }
-    /* La tuile d'autrefois avait son bord à x·(1 − 3)·W ; le calque part une
-       période (3 W) plus à gauche, et se compte en neuvièmes de lui-même. */
-    @keyframes tse-lueur-voile-clair {
-      0%        { transform: translateX(calc((-110% * (1 - 3) - 300%) / 9)); }
-      25%, 100% { transform: translateX(calc(( 210% * (1 - 3) - 300%) / 9)); }
     }
     /* ── LE SOUFFLE ET L'ANNEAU, PORTÉS PAR UN DÉCOR (4.25.0.9) ──────────────
        Jusqu'à la 4.25.0.8, le halo était une ombre portée ANIMÉE sur l'avatar,
@@ -5244,13 +5241,18 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        cycles de durées différentes se décaleraient en quelques secondes, et
        deux surfaces qui montrent la même chose de deux couleurs à la fois se
        lisent comme deux choses. */
-    /* LE TEXTE DES COPIES HÉRITE DE SON REMPLISSAGE, et c'est ce qui le garde
-       juste. Sur une carte d'abonné, le pseudo est peint par un dégradé
-       découpé au texte, avec un remplissage TRANSPARENT dont la pastille
-       hérite : son texte y montrait l'or du pseudo, et seul son contour
-       parcourait l'arc-en-ciel. Les copies héritent du même remplissage — sur
-       une carte d'abonné, elles ne peignent donc que leur contour, et le texte
-       reste d'or, comme avant ; ailleurs, le remplissage est leur couleur.
+    /* SUR UNE CARTE D'ABONNÉ, LA PASTILLE GARDE SES COULEURS (4.25.0.10).
+       Le pseudo y est peint par un dégradé d'or découpé au texte, avec un
+       remplissage TRANSPARENT — et la pastille vit DANS le pseudo. Elle en
+       héritait : son contour parcourait l'arc-en-ciel, mais ses lettres
+       montraient l'or du nom. La 4.25.0.9 l'avait reproduit tel quel ; il est
+       corrigé ici, en deux lignes (cf. plus bas) :
+         — sur une carte d'abonné, la pastille est POSITIONNÉE : elle devient
+           un calque à part, que la découpe au texte du pseudo n'inclut plus —
+           l'or ne passe plus sous ses lettres ;
+         — ses copies reprennent un remplissage plein, à leur couleur.
+       Le halo figé du nom, un filtre posé sur tout le <p>, l'entoure toujours,
+       comme avant.
 
        LES SÉLECTEURS PORTENT DEUX CLASSES ET DES VALEURS EXPLICITES, pour la
        raison dite plus haut : une règle de l'hôte comme « .quelqueChose span
@@ -5260,10 +5262,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     .side-nav-card[data-tse-subathon-day] .tse-subathon-jour:has(> .tse-subathon-teintes) {
       display: inline-grid;
     }
-    /* UNE SEULE CASE, ET RIEN DE POSITIONNÉ : le libellé et ses copies s'y
-       superposent. Une pastille positionnée — c'était le premier essai —
-       devient un calque à part, que le dégradé découpé au texte du pseudo
-       n'inclut plus : sur une carte d'abonné, « J9 » perdait son or. */
+    /* UNE SEULE CASE : le libellé et ses copies s'y superposent, sans rien
+       positionner à l'intérieur. La pastille elle-même ne l'est que sur une
+       carte d'abonné, pour sortir de la découpe au texte du pseudo (cf. plus
+       haut). */
+    .side-nav-card.tse-sub .tse-subathon-jour { position: relative; }
     .tse-subathon-jour > .tse-subathon-libelle {
       display: block;
       grid-area: 1 / 1;
@@ -5305,6 +5308,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     }
     .tse-subathon-jour > .tse-subathon-teintes > span:first-child { opacity: 1; }
     .tse-subathon-jour > .tse-subathon-teintes > span::before { content: attr(data-t); }
+    /* Leur remplissage est LEUR couleur, partout : sur une carte d'abonné, le
+       remplissage transparent du pseudo ne les rend plus muettes. */
+    .tse-subathon-jour > .tse-subathon-teintes > span { -webkit-text-fill-color: currentColor; }
 
     /* ── PAS DE BLOC « prefers-reduced-motion » : C'EST UNE DEMANDE, ET ELLE
        EST MOTIVÉE. Cent cinquante lignes vivaient ici, qui arrêtaient ou
@@ -6829,14 +6835,38 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     /* « VIENT DE DÉMARRER » EST DEUX CHOSES, et le réglage n'en retirait
        qu'une. La barre rouge se voit, mais c'est le LAVIS sur le fond de
        la carte qui la fait remarquer — un utilisateur a demandé que tous les
-       éléments partent, pas seulement la barre. Le dégradé du co-stream frais
-       est écrit séparément (background-image contre background), d'où les
-       deux déclarations : neutraliser l'une laissait l'autre en place. */
+       éléments partent, pas seulement la barre. Le fond tout entier part
+       (background et background-image : le raccourci seul laissait l'image) —
+       et sur une carte fraîche en co-stream, la règle plus bas, plus précise,
+       rend l'image du co-stream. */
     html[data-tse-off~="fresh"] .side-nav-card.tse-fresh > .tse-frais-deco { display: none !important; }
-    html[data-tse-off~="fresh"] .side-nav-card.tse-fresh,
-    html[data-tse-off~="fresh"] .side-nav-card.tse-fresh.tse-costream {
+    html[data-tse-off~="fresh"] .side-nav-card.tse-fresh {
       background: none !important;
       background-image: none !important;
+    }
+    /* LA CARTE FRAÎCHE QUI EST AUSSI EN CO-STREAM (4.25.0.10) : le réglage
+       éteint, elle redevient la carte de co-stream qu'elle est — sa barre, à
+       la couleur de son groupe, et son lavis. Jusqu'ici le réglage lui
+       retirait TOUT : le ::before reste caché sur une carte fraîche (sa barre
+       est le décor, éteint lui aussi), et le lavis du co-stream partait avec
+       celui du direct frais. « Vient de démarrer » éteint ne doit éteindre
+       que « vient de démarrer ». La barre rendue est le ::before du
+       co-stream, avec ses jonctions ; le curseur de la salle, qui lit sa
+       couleur, prend donc celle du groupe. */
+    html[data-tse-off~="fresh"] .side-nav-card.tse-fresh.tse-costream {
+      background-image: linear-gradient(
+        90deg,
+        var(--tse-costream-bg, rgba(var(--tse-encre), 0.10)) 0%,
+        var(--tse-costream-bg-fade, rgba(var(--tse-encre), 0.04)) 40%,
+        transparent 100%
+      ) !important;
+    }
+    html[data-tse-off~="fresh"] .side-nav-card.tse-fresh.tse-costream::before {
+      display: block;
+      background: var(--tse-costream-color, #ffffff);
+    }
+    html[data-tse-theme="light"][data-tse-off~="fresh"] .side-nav-card.tse-fresh.tse-costream::before {
+      background: var(--tse-costream-color-clair, var(--tse-costream-color, #ffffff));
     }
     html[data-tse-off~="subathonJour"] .tse-subathon-jour { display: none !important; }
 
@@ -11509,6 +11539,27 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         spinner.style.left = `${rect.left + rect.width / 2}px`;
       }
     };
+    /* ── UNE REMESURE PAR IMAGE, PAS PAR MUTATION (4.25.0.10) ─────────────
+       L'observateur du cycle appelait `reposition` à chaque lot de mutations,
+       et Twitch en produit des centaines pendant son chargement — souvent
+       plusieurs dans la même image. Chaque appel lisait la boîte de la barre
+       juste après une écriture dans la page : le navigateur recalculait la
+       mise en page pour une valeur que personne ne verrait, puisque seule
+       compte celle de l'image affichée. La toute première, à l'ouverture du
+       cycle, forçait de même la première mise en page de la page, au moment
+       de l'injection — mise en page à refaire aussitôt, puisque le premier
+       balayage décore les cartes.
+       Toutes les remesures d'une même image n'en font donc plus qu'UNE —
+       l'ouverture, les mutations, le redimensionnement —, faite juste avant
+       que l'image se peigne (requestAnimationFrame) : le voile y est à la
+       place de la barre, comme avant, et rien ne se peint entre sa pose et
+       sa mesure. Un onglet caché ne peint pas et ne remesure pas ; il le fait
+       à la première image où il redevient visible, avant elle. */
+    let remesureDemandee = 0;
+    const repositionAvantImage = () => {
+      if (remesureDemandee) return;
+      remesureDemandee = requestAnimationFrame(() => { remesureDemandee = 0; reposition(); });
+    };
 
     // Lève le voile en fondu. Nettoie tous les timers et observers du
     // cycle courant. cycleActive repasse à false pour qu'un futur cycle
@@ -11530,6 +11581,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       if (stabilityTimer) { clearTimeout(stabilityTimer); stabilityTimer = null; }
       if (timeoutTimer)   { clearTimeout(timeoutTimer);   timeoutTimer   = null; }
       if (cycleObserver) { cycleObserver.disconnect(); cycleObserver = null; }
+      if (remesureDemandee) { cancelAnimationFrame(remesureDemandee); remesureDemandee = 0; }
       if (resizeHandler) {
         window.removeEventListener('resize', resizeHandler);
         resizeHandler = null;
@@ -11654,10 +11706,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       overlay = built.el;
       spinner = built.sp;
       document.body.appendChild(overlay);
-      reposition();
+      // Placé avant la première image, comme toutes les remesures (cf. plus haut).
+      repositionAvantImage();
 
       // 3) Repositionnement sur resize fenêtre.
-      resizeHandler = () => reposition();
+      resizeHandler = () => repositionAvantImage();
       window.addEventListener('resize', resizeHandler);
 
       // 4) MutationObserver dédié au cycle pour repositionner sur les
@@ -11669,7 +11722,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
           overlay && (m.target === overlay || overlay.contains(m.target))
         );
         if (allInOverlay) return;
-        reposition();
+        repositionAvantImage();
       });
       cycleObserver.observe(document.body, { childList: true, subtree: true });
 
@@ -21933,10 +21986,23 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     }
     return texte.slice(0, m.index) + voulu + texte.slice(fin);
   };
+  /* RIEN À RECALER QUAND RIEN N'A BOUGÉ (4.25.0.10). Chaque balayage
+     reparcourait le bloc du compteur de chaque carte, feuille par feuille,
+     pour réécrire le nombre qu'il y avait déjà écrit. La passe ne dépend que
+     du bloc, de son texte, du nombre voulu et de la langue de Twitch : si
+     aucun des quatre n'a changé depuis la dernière, elle ne changerait rien,
+     et elle ne se refait pas. Le texte du bloc couvre tout ce que Twitch peut
+     y réécrire — sa phrase pour les lecteurs d'écran, son propre compteur —,
+     et il est relu à chaque appel : une phrase rendue de nouveau par Twitch
+     est recalée au balayage suivant, comme avant. */
+  const recalages = new WeakMap();   // carte → ce que la dernière passe a vu en sortant
   const recalerTexteAccessible = (card, shown) => {
     const host = liveStatusOf(card);
     if (!host) return;
     const voulu = formatViewers(shown);
+    const locale = localeTwitch();
+    const vu = recalages.get(card);
+    if (vu && vu.host === host && vu.voulu === voulu && vu.locale === locale && vu.texte === host.textContent) return;
     const natif = (nativeViewersEl(card)?.textContent || '').trim();
     for (const n of host.querySelectorAll('*')) {
       if (n.children.length) continue;                       // seulement les feuilles
@@ -21951,6 +22017,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       ecritsAccessibles.set(n, voulu);
       if (neuf !== texte) setText(n, neuf);
     }
+    recalages.set(card, { host, voulu, locale, texte: host.textContent });
   };
 
   const renderViewers = (card, count, display) => {
@@ -26707,7 +26774,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
   });
   const demanderUrl = () => {
     if (urlPanneau) return;
-    try { window.postMessage({ tse: TSE_URL_REQ }, '*'); } catch { /* rien à faire */ }
+    // '/' : ce document, et lui seul (cf. la réponse au pont, en tête de fichier).
+    try { window.postMessage({ tse: TSE_URL_REQ }, '/'); } catch { /* rien à faire */ }
   };
 
   /* La fermeture doit pouvoir être appelée depuis trois endroits — la croix,
@@ -26762,7 +26830,14 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       if (ev.source !== frame.contentWindow) return;
       const d = ev.data;
       if (!d) return;
-      if (d.tse === 'tse-panneau-fermer') { fermerIncruste?.(); return; }
+      /* L'ordre de fermeture aussi ne vaut que venu du panneau (4.25.0.10) :
+         la même origine que ses demandes, plus bas. Un cadre renvoyé ailleurs
+         ne ferme rien — c'est sans gravité, mais il n'y a pas deux règles pour
+         une même fenêtre. */
+      if (d.tse === 'tse-panneau-fermer') {
+        if (originePanneau && ev.origin === originePanneau) fermerIncruste?.();
+        return;
+      }
       /* ── LE CHEMIN COURT ────────────────────────────────────────────────
          LE PANNEAU EST DANS CETTE PAGE : lui faire redescendre sa question par
          le service worker pour revenir ici est inutile, et FRAGILE. Un retour
@@ -27454,6 +27529,23 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
          venu d'ailleurs dans la page compte aussi.
      Rien de cela ne dépend de la taille du titre : la place est la même d'un
      balayage à l'autre, et la taille voulue aussi. */
+  /* ── LA MESURE DU TEXTE SE RETIENT (4.25.0.10) ───────────────────────────
+     Le titre se règle à chaque balayage, et chaque fois il remesurait son
+     texte deux fois — par un Range, qui lit la mise en page, et par le
+     canevas, qui doit analyser la police qu'on lui donne. MESURÉ sur le banc :
+     environ 4 ms au démarrage, puis 0,1 ms par balayage, pour la même
+     largeur. Elle ne dépend que du texte, de sa police — chaque propriété
+     qui change la forme ou l'espacement des lettres —, des deux tailles, de
+     la largeur que nous lui avons posée, et des polices chargées : une police
+     web qui arrive après coup change les lettres sans changer la déclaration,
+     d'où le compteur, que chaque fin de chargement avance. Tant que rien de
+     cela ne bouge, la largeur retenue est celle qu'une nouvelle mesure
+     rendrait. Le reste du réglage — la place, les obstacles — se relit à
+     chaque fois : la ligne, elle, change sans que le texte change. */
+  let texteMesure = { cle: null, parRange: 0, parToile: 0 };
+  let policesChargees = 0;
+  try { document.fonts.addEventListener('loadingdone', () => { policesChargees += 1; }); }
+  catch { /* pas de FontFaceSet : la clé reste sans ce terme */ }
   function ajusterTitre() {
     const ligne = document.querySelector(`${DOM.sidebarRoot} .side-nav__title[data-tse-roue]`);
     const h3 = ligne?.querySelector(':scope > h3');
@@ -27468,10 +27560,19 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     if (!h3.style.fontSize) h3.dataset.tseTitrePx = String(actuel);
     const natif = Number(h3.dataset.tseTitrePx) || actuel;
     if (!natif || !actuel) return;
-    const r = document.createRange();
-    r.selectNodeContents(h3);
-    const parRange = (r.getBoundingClientRect().width * natif) / actuel;
-    const parToile = largeurToile((h3.textContent || '').trim(), ch, natif, actuel);
+    const brut = (h3.textContent || '').trim();
+    const cle = [brut, ch.fontStyle, ch.fontVariant, ch.fontWeight, ch.fontStretch, ch.fontFamily, ch.fontFeatureSettings,
+                 ch.fontKerning, ch.letterSpacing, ch.wordSpacing, ch.textTransform, natif, actuel, h3.style.maxWidth,
+                 policesChargees].join('|');
+    let parRange, parToile;
+    if (texteMesure.cle === cle) ({ parRange, parToile } = texteMesure);
+    else {
+      const r = document.createRange();
+      r.selectNodeContents(h3);
+      parRange = (r.getBoundingClientRect().width * natif) / actuel;
+      parToile = largeurToile(brut, ch, natif, actuel);
+      texteMesure = { cle, parRange, parToile };
+    }
     const texte = Math.max(parRange, parToile);
 
     const cs = getComputedStyle(ligne);
@@ -29178,6 +29279,12 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       autres.push(...sec.querySelectorAll('.side-nav-card'));
     }
     const toutes = [...cards, ...autres];
+    /* LUES UNE FOIS PAR PASSE (4.25.0.10). Cinq boucles de cette fonction
+       demandaient à chaque carte si elle se montre — quatre attributs et la
+       classe du <body> relus à chaque fois, pour la même réponse : rien ici ne
+       masque ni ne montre une carte. La réponse se lit une fois, ici, par le
+       même prédicat (cardShown), et les boucles la consultent. */
+    const montrees = new Set(toutes.filter(cardShown));
     const suiviesSet = new Set(cards);
     const groupeDe = (cle, card) => `${cle}@${rangSection.get(card.closest('.side-nav-section')) ?? 0}`;
     const sessionDeGroupe = (g) => g.slice(0, g.lastIndexOf('@'));
@@ -29202,7 +29309,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        ne dit pas (cf. `sessionSelonLesAutres`), et pourquoi — au bilan. */
     const rattachees = [];
     toutes.forEach(card => {
-      if (!cardShown(card)) return;
+      if (!montrees.has(card)) return;
       const login = card.dataset.tseLogin;
       if (!login) return;
       const id = getChannelId(login);
@@ -29237,7 +29344,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     // l'heuristique : on attend la vérité (~1s) → aucune transition de couleur
     // au démarrage.
     toutes.forEach(card => {
-      if (!cardShown(card)) return;
+      if (!montrees.has(card)) return;
       if (gsHandled.has(card)) return;
       if (gsUsable && hostByCard.get(card) === undefined && getChannelId(card.dataset.tseLogin)) return;
       if (!cardHasCollab(card)) return;
@@ -29306,7 +29413,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     for (const g of activeKeys) for (const c of groups.get(g)) dansUnGroupe.add(c);
     const seules = new Map();        // carte -> clé de session
     toutes.forEach(card => {
-      if (!cardShown(card) || card.dataset.tseGlobal === 'true') return;
+      if (!montrees.has(card) || card.dataset.tseGlobal === 'true') return;
       if (dansUnGroupe.has(card) || !cardHasCollab(card)) return;
       const login = card.dataset.tseLogin;
       if (!login) return;
@@ -29444,7 +29551,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       if (g.startsWith('gs:') && membres.some((c) => suiviesSet.has(c))) bilanCostream.groupes += 1;
       if (membres.some((c) => !suiviesSet.has(c))) bilanCostream.recommandations.groupes += 1;
     }
-    for (const c of autres) if (cardShown(c) && c.dataset.tseLogin) bilanCostream.recommandations.cartes += 1;
+    for (const c of autres) if (montrees.has(c) && c.dataset.tseLogin) bilanCostream.recommandations.cartes += 1;
     // Une carte rattachée compte si elle est bien entrée dans un groupe dessiné.
     for (const { key, raison } of rattachees) {
       if (!activeKeys.has(key)) continue;
@@ -29457,7 +29564,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        se rangent donc ensemble sans qu'on ait besoin d'un identifiant. */
     const sessions = new Map();
     for (const card of cards) {
-      if (!cardShown(card)) continue;
+      if (!montrees.has(card)) continue;
       const login = card.dataset.tseLogin;
       if (!login) continue;
       const mates = getGuestStarMates(login);
