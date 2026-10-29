@@ -2315,7 +2315,10 @@ porte, puisque `player.twitch.tv` est du même site que `www.twitch.tv`.
 paquet) : l'aperçu, les lecteurs de la salle, ses chats, le relevé des chaînes
 suivies. Le manifeste a deux entrées en monde MAIN : `adblock.js` et
 `cadres.js` dans toutes les frames, `content.js` dans le cadre principal
-seulement (`all_frames: false`). «MESURE_CADRES»
+seulement (`all_frames: false`). Mesuré par la méthode de l'audit (le
+script chargé dans une iframe, cache vide, quinze tours, deux séries) : une
+iframe payait 27 à 29 ms en médiane pour l'ancien `content.js`, elle paie 3 à 3,5 ms
+pour `cadres.js`, plus les 4 ms d'`adblock.js`, inchangés.
 
 **Deux portées, et elles portent.** En monde MAIN, une `const` de premier
 niveau devient une globale de la page, et une seconde déclaration du même nom
@@ -2414,8 +2417,7 @@ Trois scénarios nouveaux :
 - **213** : les décorations.
   - a) La feuille n'anime que transformation et opacité, hors trois
     exceptions nommées : `tse-tour`, et le badge de l'aperçu dans ses deux
-    thèmes. Une
-    exception devenue sans objet doit se retirer.
+    thèmes. Une exception devenue sans objet doit se retirer.
   - b) Dans une page décorée, tout ce qui tourne n'anime que transformation
     et opacité. Chaque décor est posé une fois, là où sa classe le demande.
     Chaque fondu est une partition exacte, de somme un, qui suit l'avancement
@@ -21694,7 +21696,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | les six fichiers JavaScript livrés — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 209 scénarios, 1976 assertions |
+| `npm test` | le harnais Playwright : 212 scénarios, 2001 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il

@@ -2188,7 +2188,10 @@ site as `www.twitch.tv`.
 package): the preview, the room's players, its chats, the followed-channels
 scan. The manifest has two MAIN-world entries: `adblock.js` and `cadres.js` in
 every frame, `content.js` in the top frame only (`all_frames: false`).
-«MESURE_CADRES»
+Measured with the audit's method (the script loaded in an iframe, empty
+cache, fifteen rounds, two series): an iframe paid a median of 27 to 29 ms for the old
+`content.js`; it pays 3 to 3.5 ms for `cadres.js`, plus `adblock.js`'s
+unchanged 4 ms.
 
 **Two scopes, and they carry weight.** In the MAIN world a top-level `const`
 becomes a page global, and a second declaration of the same name makes the
@@ -21054,7 +21057,7 @@ Four independent checks:
 | `npm run lint` | the six shipped JavaScript files — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 209 scenarios, 1976 assertions |
+| `npm test` | the Playwright harness: 212 scenarios, 2001 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
