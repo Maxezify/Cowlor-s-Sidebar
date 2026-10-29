@@ -2,7 +2,7 @@ import { chromium, firefox } from 'playwright';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import { readFileSync, writeFileSync, rmSync, readdirSync, mkdtempSync, mkdirSync, cpSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { tokenizer } from 'acorn';
+import { tokenizer, Parser } from 'acorn';
 import { createContext, runInContext } from 'node:vm';
 import { dirname, join } from 'node:path';
 import { degraisser, degraisserJs, memeCode, compterCommentaires,
@@ -181,6 +181,28 @@ const browser = await LANCEUR.launch(BINAIRE ? { executablePath: BINAIRE } : {})
     process.exit(2);
   });
 console.log(`moteur : ${MOTEUR} ${browser.version()}`);
+
+/* LE PANNEAU INCRUSTÉ, HÉBERGÉ PAR UNE PAGE TWITCH (4.25.0.10). Le panneau
+   n'écrit plus à son parent que vers les deux origines de Twitch : un hôte
+   file:// ne recevrait plus rien. L'hôte est donc servi comme
+   https://www.twitch.tv/__hote, et le panneau comme
+   https://www.twitch.tv/panneau.html. Même origine que l'hôte, et ça ne change
+   rien à ce qu'on éprouve : le panneau se sait encadré à `window.top !==
+   window`, et c'est l'origine de son PARENT qu'il nomme. Tout autre chemin
+   rend une page vide — ce qu'un clic sur un lien ouvrirait. */
+const PANNEAU_SERVI = { 'panneau.html': 'text/html; charset=utf-8', 'panneau.css': 'text/css; charset=utf-8',
+                        'panneau.js': 'application/javascript; charset=utf-8', 'icons/icon48.png': 'image/png' };
+async function hebergerPanneau(page, hote) {
+  await page.context().route('https://www.twitch.tv/**', (route) => {
+    const chemin = new URL(route.request().url()).pathname.slice(1);
+    if (chemin === '__hote') return route.fulfill({ contentType: 'text/html; charset=utf-8', body: hote });
+    if (PANNEAU_SERVI[chemin]) {
+      return route.fulfill({ contentType: PANNEAU_SERVI[chemin], body: readFileSync(join(ICI, '..', chemin)) });
+    }
+    return route.fulfill({ contentType: 'text/html; charset=utf-8', body: '<!DOCTYPE html><title>twitch</title>' });
+  });
+  await page.goto('https://www.twitch.tv/__hote');
+}
 
 async function fresh() {
   const page = await browser.newPage();
@@ -8267,7 +8289,7 @@ titre('73. Le transport — les trois sauts doivent se comprendre');
      leur comportement pris un par un : c'est qu'une demande entre d'un bout
      et ressorte à l'autre AVEC LES MÊMES CHAMPS. */
   const contexteTransport = ({ marque = 'pret', firefox = false } = {}) => {
-    const journal = { versPage: [], reponses: [] };
+    const journal = { versPage: [], cibles: [], reponses: [] };
     let ecouteurPage = null;      // l'écouteur 'message' posé par bridge.js
     let onConnect = null, onMessageFond = null;
     /* Le côté fond du dernier port ouvert, et ce que `lastError` vaut — et
@@ -8321,7 +8343,7 @@ titre('73. Le transport — les trois sauts doivent se comprendre');
 
     const fen = {
       addEventListener: (t, l) => { if (t === 'message') ecouteurPage = l; },
-      postMessage: (m) => journal.versPage.push(m),
+      postMessage: (m, cible) => { journal.versPage.push(m); journal.cibles.push(cible); },
     };
     fen.top = fen;                             // cadre principal : la garde passe
     const ctxPont = createContext({
@@ -8332,7 +8354,7 @@ titre('73. Le transport — les trois sauts doivent se comprendre');
         documentElement: { getAttribute: () => marque },
         addEventListener: () => {},
       },
-      location: { hostname: 'www.twitch.tv' },
+      location: { hostname: 'www.twitch.tv', origin: 'https://www.twitch.tv' },
       chrome: {
         runtime: {
           connect: () => {
@@ -8387,6 +8409,11 @@ titre('73. Le transport — les trois sauts doivent se comprendre');
     ok('la demande de rapport ATTEINT la page (le défaut signalé)',
        t.journal.versPage.length === 1 && t.journal.versPage[0].rapport === true,
        JSON.stringify(t.journal.versPage));
+    /* ADRESSÉE À LA PAGE, PAS À « * » (4.25.0.10) : la même fenêtre, nommée
+       par son origine. Mutant — le pont revenu à « * ». */
+    ok('…adressée à l\'origine de la page, et non à « * »',
+       t.journal.cibles.length === 1 && t.journal.cibles[0] === 'https://www.twitch.tv',
+       JSON.stringify(t.journal.cibles));
     t.pageRepond({ id: t.journal.versPage[0]?.id, ok: true, data: { genere: 42 } });
     const r = await p;
     ok('…et sa réponse revient intacte jusqu\'au panneau',
@@ -16476,6 +16503,55 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
   ok('…et les couper retire les deux, pas seulement la barre',
      frais.apres.barre === 'none' && frais.apres.lavis === 'none', JSON.stringify(frais.apres));
 
+  /* ── …ET RIEN DE PLUS : LE CO-STREAM RESTE (4.25.0.10) ──────────────────
+     Une carte fraîche peut être aussi en co-stream. Réglage allumé, le
+     direct frais l'emporte : sa barre, son lavis. Réglage éteint, elle doit
+     redevenir la carte de co-stream qu'elle est — la 4.25.0.9 lui retirait
+     tout, la barre du groupe comprise. La référence est la même carte, au
+     même instant, sans la classe « fraîche » : la barre (le ::before), sa
+     couleur, sa lueur, sa place et le lavis doivent lui être identiques, en
+     sombre comme en clair, où la barre prend le ton approfondi du groupe.
+     Une seule évaluation, synchrone : aucun balayage ne passe entre deux
+     lectures. */
+  const croise = await page.evaluate(() => {
+    const c = document.querySelector('.side-nav-card');
+    c.classList.add('tse-fresh', 'tse-costream');
+    c.style.setProperty('--tse-costream-color', 'rgb(0, 200, 255)');
+    c.style.setProperty('--tse-costream-color-clair', 'rgb(0, 90, 140)');
+    const lire = () => {
+      const b = getComputedStyle(c, '::before');
+      return { barre: b.display, couleur: b.backgroundColor, lueur: b.boxShadow, largeur: b.width,
+               haut: b.top, bas: b.bottom, lavis: getComputedStyle(c).backgroundImage };
+    };
+    const releve = {};
+    for (const t of ['dark', 'light']) {
+      window.tse.options.remettre();
+      window.tse.options.poser('theme', t);
+      const allume = lire();
+      window.tse.options.poser('fresh', false);
+      const eteint = lire();
+      c.classList.remove('tse-fresh');
+      const reference = lire();
+      c.classList.add('tse-fresh');
+      releve[t] = { theme: document.documentElement.getAttribute('data-tse-theme'), allume, eteint, reference };
+    }
+    c.classList.remove('tse-costream');
+    c.style.removeProperty('--tse-costream-color');
+    c.style.removeProperty('--tse-costream-color-clair');
+    window.tse.options.remettre();
+    return releve;
+  });
+  const GROUPE = { dark: 'rgb(0, 200, 255)', light: 'rgb(0, 90, 140)' };
+  ok('…mais sur une carte fraîche en co-stream, les couper rend la carte de co-stream — sa barre, à la couleur du groupe, et son lavis, en sombre comme en clair',
+     ['dark', 'light'].every((t) => croise[t].theme === t && croise[t].eteint.barre === 'block'
+       && croise[t].eteint.couleur === GROUPE[t]
+       && JSON.stringify(croise[t].eteint) === JSON.stringify(croise[t].reference)),
+     JSON.stringify(croise));
+  ok('…et allumé, le direct frais garde le dessus : pas de barre du groupe, le lavis du direct frais',
+     ['dark', 'light'].every((t) => croise[t].allume.barre === 'none' && croise[t].allume.lavis !== 'none'
+       && croise[t].allume.lavis !== croise[t].reference.lavis),
+     JSON.stringify(Object.fromEntries(['dark', 'light'].map((t) => [t, croise[t].allume]))));
+
   /* ── CE QUI RESTE PREND TOUTE LA LIGNE ──────────────────────────────────
      ASSERTION TOURNÉE, ET C'EST UN SECOND RETOUR QUI L'A EXIGÉ. Elle
      demandait que le filtre survivant se RECENTRE — la première réponse à
@@ -17276,9 +17352,16 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
     } else if (g === 'message') {
       /* LE CHEMIN DU PANNEAU. Échap frappée DANS le cadre ne remonte pas
          jusqu'ici — deux origines — donc panneau.js le poste au parent. On
-         rejoue ce message en nommant sa vraie source. */
+         rejoue ce message en nommant sa vraie source, et son origine : celle
+         de l'adresse que le pont a donnée (4.25.0.10). */
       window.dispatchEvent(new MessageEvent('message',
-        { data: { tse: 'tse-panneau-fermer' }, source: f.contentWindow }));
+        { data: { tse: 'tse-panneau-fermer' }, source: f.contentWindow, origin: 'chrome-extension://tse' }));
+    } else if (g === 'ailleurs') {
+      /* LE MÊME CADRE, RENVOYÉ VERS UNE AUTRE ORIGINE (4.25.0.10) : la bonne
+         fenêtre, mais plus le panneau. Son ordre de fermeture ne vaut rien,
+         comme ses demandes (cf. plus bas). */
+      window.dispatchEvent(new MessageEvent('message',
+        { data: { tse: 'tse-panneau-fermer' }, source: f.contentWindow, origin: 'https://ailleurs.example' }));
     } else if (g === 'imposteur') {
       /* LA MÊME DEMANDE, VENUE D'AILLEURS. Un script de la page qui poste ce
          message ne doit pas pouvoir fermer une fenêtre qu'il n'a pas ouverte. */
@@ -17292,6 +17375,8 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
   ok('le clic DANS le cadre ne ferme pas', (await sortir('cadre')) === false);
   ok('un message de fermeture venu de la page est ignoré',
      (await sortir('imposteur')) === false);
+  ok('…et celui du cadre renvoyé vers une autre origine aussi',
+     (await sortir('ailleurs')) === false);
   /* PAS DE CROIX, ET C'EST UNE DEMANDE. La 4.12.2 en avait posé une ; la 4.14
      la retire. On n'efface pas l'assertion pour autant — on la retourne : son
      ABSENCE est désormais le contrat, et les deux sorties qui restent portent
@@ -17741,12 +17826,11 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
   titre('124. Le panneau incrusté — il parle à la page, pas au worker');
 
   const messages = JSON.parse(readFileSync(join(ICI, '..', '_locales', 'fr', 'messages.json'), 'utf8'));
-  const hote = join(ICI, 'cadre-tmp.html');
   /* Un hôte minimal : un cadre, et un répondant. Il tient le rôle que content.js
      tient sur une vraie page, et rien de plus — ce qu'on éprouve ici est le
-     panneau, pas la page. */
-  writeFileSync(hote, `<!DOCTYPE html><meta charset="utf-8"><body>
-<iframe id="f" src="../panneau.html" style="width:1100px;height:760px;border:0"></iframe>
+     panneau, pas la page. Servi comme une page Twitch (cf. hebergerPanneau). */
+  const hote = `<!DOCTYPE html><meta charset="utf-8"><body>
+<iframe id="f" src="/panneau.html" style="width:1100px;height:760px;border:0"></iframe>
 <script>
 window.__vues = [];
 addEventListener('message', (e) => {
@@ -17757,7 +17841,7 @@ addEventListener('message', (e) => {
                          data: d.rapport ? { genere: Date.now() }
                                          : { colonnes: ['login'], lignes: [], resume: {} } }, '*');
 });
-</script></body>`);
+</script></body>`;
 
   const page = await browser.newPage({ viewport: { width: 1400, height: 900 } });
   page.on('pageerror', (e) => { fail++; console.log('  ✗ ERREUR PAGE:', e.message); });
@@ -17776,7 +17860,7 @@ addEventListener('message', (e) => {
                  sendMessage: () => Promise.reject(new Error('worker absent')) },
     };
   }, messages);
-  await page.goto(pathToFileURL(hote).href);
+  await hebergerPanneau(page, hote);
   await attendre(page, () => !!document.getElementById('f'), 6000);
   await wait(page, 1200);
 
@@ -17854,7 +17938,6 @@ addEventListener('message', (e) => {
      JSON.stringify({ relais, vue }));
 
   await page.close();
-  rmSync(hote, { force: true });
 }
 
 /* ═════════ UNE RÉPONSE TRONQUÉE NE JUGE QUE CE QU'ELLE CONTENAIT ═════════
@@ -36010,9 +36093,8 @@ const S_LECTEUR_SONDE = () => {
      rediffusion s'ouvre dans un onglet neuf (4.25.0.4) — dans la semaine comme
      par « Revoir » —, et la page qu'on regardait reste où elle était. Éprouvé
      par un vrai clic, pas seulement par les attributs. */
-  const hote = join(ICI, 'agenda-cadre-tmp.html');
-  writeFileSync(hote, `<!DOCTYPE html><meta charset="utf-8"><body>
-<iframe id="f" src="../panneau.html" style="width:1100px;height:760px;border:0"></iframe>
+  const hote = `<!DOCTYPE html><meta charset="utf-8"><body>
+<iframe id="f" src="/panneau.html" style="width:1100px;height:760px;border:0"></iframe>
 <script>
 addEventListener('message', (e) => {
   const d = e.data;
@@ -36021,14 +36103,13 @@ addEventListener('message', (e) => {
              : d.rapport ? { genere: Date.now() } : { colonnes: ['login'], lignes: [], resume: {} };
   e.source.postMessage({ tse: 'tse-incruste-res', id: d.id, ok: true, data }, '*');
 });
-</script></body>`);
+</script></body>`;
   const pc = await browser.newPage({ viewport: { width: 1400, height: 900 } });
   pc.on('pageerror', (x) => { fail++; console.log('  ✗ ERREUR PAGE:', x.message); });
-  // Les pages de Twitch qu'un clic ouvrirait : une page vide, servie d'ici.
-  await pc.context().route('https://www.twitch.tv/**', (route) =>
-    route.fulfill({ contentType: 'text/html; charset=utf-8', body: '<!DOCTYPE html><title>twitch</title>' }));
   await pc.addInitScript(stub, [fiche('fr'), 'fr']);
-  await pc.goto(pathToFileURL(hote).href);
+  /* Servi comme une page Twitch (cf. hebergerPanneau) — qui rend aussi une page
+     vide aux adresses qu'un clic ouvrirait. */
+  await hebergerPanneau(pc, hote);
   await attendre(pc, () => !!document.getElementById('f'), 6000);
   await wait(pc, 800);
   const cadre = () => pc.frames().find((x) => x.url().includes('panneau.html'));
@@ -36069,7 +36150,6 @@ addEventListener('message', (e) => {
      revoir.length >= 1 && revoir.every(([t, r]) => t === '_blank' && r === 'noopener noreferrer'),
      JSON.stringify(revoir));
   await pc.close();
-  rmSync(hote, { force: true });
 
   /* ── q) LA LANGUE QUI EST SERVIE, ET LE PREMIER DU MOIS (4.25.0.8) ──────────
      Deux demandes. « Pour les langues non disponibles, la langue par défaut
@@ -36674,7 +36754,7 @@ addEventListener('message', (e) => {
    (cf. tests/addon.mjs). Le décor est page.html, privé des scripts qu'il
    charge à la main : c'est le navigateur qui les pose. */
 {
-  titre('211. L\'extension réelle — chargée par Chromium : quels fichiers dans quelles frames, et le panneau incrusté de bout en bout');
+  titre('211. L\'extension réelle — chargée par Chromium : quels fichiers dans quelles frames, le panneau incrusté et la popup de bout en bout');
   const RACINE = join(ICI, '..');
   const dossier = mkdtempSync(join(tmpdir(), 'tse-extension-'));
   const ext = join(dossier, 'extension');
@@ -36756,6 +36836,13 @@ addEventListener('message', (e) => {
     await page.evaluate(() => { if (!document.getElementById('tse-incruste')) document.getElementById('tse-roue')?.click(); });
     await wait(page, 2_500);
     const panneau = page.frames().find((f) => f.url().startsWith('chrome-extension://'));
+    // Ce que la page reçoit du panneau (4.25.0.10, cf. plus bas).
+    await page.evaluate(() => {
+      window.__demandes = [];
+      addEventListener('message', (e) => {
+        if (e.data?.tse === 'tse-incruste-req') window.__demandes.push({ id: e.data.id, origin: e.origin });
+      });
+    });
     const recu = panneau ? await panneau.evaluate(async () => {
       const recus = [];
       addEventListener('message', (e) => { if (e.data?.tse === 'tse-incruste-res') recus.push({ origin: e.origin, ok: e.data.ok }); });
@@ -36767,6 +36854,39 @@ addEventListener('message', (e) => {
        !!recu && /^chrome-extension:\/\/[a-p]{32}$/.test(recu.origine) && recu.recus.length >= 1
        && recu.recus.every((x) => x.origin === 'https://www.twitch.tv' && x.ok === true),
        JSON.stringify(recu));
+    /* ── SES DEMANDES, NOMMÉES (4.25.0.10) ───────────────────────────────
+       Le panneau écrit à chacune des deux origines de Twitch, plus jamais à
+       « * » ; le navigateur jette celle qui ne correspond pas. La page reçoit
+       donc chaque demande UNE fois, de l'origine du panneau. Mutants — le
+       panneau revenu à « * » dans sa boucle (chaque demande deux fois), ou à
+       la seule origine sans « www » (aucune). */
+    const demandes = await page.evaluate(() => window.__demandes);
+    const ids = demandes.map((x) => x.id);
+    ok('…chaque demande du panneau arrive une fois, et une seule, de son origine',
+       demandes.length >= 1 && new Set(ids).size === ids.length
+       && demandes.every((x) => x.origin === recu?.origine),
+       JSON.stringify(demandes));
+
+    /* ── LA POPUP, PAR LE PONT (4.25.0.10) ───────────────────────────────
+       L'autre chemin : le panneau de la barre d'outils demande au service
+       worker, qui passe par bridge.js, qui écrit à content.js dans la même
+       fenêtre — location.origin d'un côté, '/' de l'autre, « * » nulle part —,
+       et la réponse refait le chemin. Aucun autre scénario ne le parcourt de
+       bout en bout : le 73 éprouve les deux relais dans un contexte vm. Une
+       page de l'extension tient le rôle de la popup. Mutants — l'un ou
+       l'autre envoi visant une origine qui n'est pas celle de la page. */
+    const popup = await ctx.newPage();
+    await popup.goto(`chrome-extension://${new URL(panneau.url()).host}/panneau.html`);
+    const viaPont = await popup.evaluate(async () => {
+      const etat = await chrome.runtime.sendMessage({ type: 'tse-panneau-etat' });
+      const tabId = etat?.ponts?.[0];
+      const r = await chrome.runtime.sendMessage({ type: 'tse-panneau', tabId, section: 'scores' });
+      return { ponts: etat?.ponts, ok: r?.ok, erreur: r?.erreur, donnees: !!r?.data };
+    });
+    await popup.close();
+    ok('la popup, par le service worker et le pont : la page reçoit la demande et sa réponse revient',
+       viaPont.ponts?.length === 1 && viaPont.ok === true && viaPont.donnees === true,
+       JSON.stringify(viaPont));
 
     /* ── LE MÊME CADRE, RENVOYÉ AILLEURS ─────────────────────────────────
        Un script de la page change l'adresse du cadre : même fenêtre, autre
@@ -36809,7 +36929,7 @@ addEventListener('message', (e) => {
    caractères, en moins de 60 ms — les anciennes y mettaient près d'une
    seconde. */
 {
-  titre('212. La défense en profondeur — origines, mémoires relues, noms hérités, requête des jetons, expressions en temps linéaire, images du panneau');
+  titre('212. La défense en profondeur — origines, mémoires relues, noms hérités, requête des jetons, expressions en temps linéaire, images du panneau, envois nommés');
   const RACINE = join(ICI, '..');
 
   /* ── L'APERÇU N'ÉCOUTE QUE SON LECTEUR ─────────────────────────────────
@@ -36945,6 +37065,37 @@ addEventListener('message', (e) => {
   ].map((u) => [u, !!imageAgenda(u, 'x')])) : null;
   ok('le panneau ne pose d\'image que de jtvnw.net et de twitch.tv, lus par URL',
      !!images && Object.values(images).join() === 'true,true,false,false,false,false,false', JSON.stringify(images));
+
+  /* ── PLUS UN ENVOI VERS « * » (4.25.0.10) ──────────────────────────────
+     L'audit de la 4.25.0.8 en comptait six, dans nos fichiers : la page et le
+     pont qui se parlent dans la même fenêtre, le panneau qui écrit à la page
+     qui le porte. Chacun vise désormais une origine — '/', location.origin,
+     les deux origines de Twitch. Les appels sont lus par acorn : un
+     commentaire qui cite « '*' » n'est pas un envoi. L'anti-pub n'est pas
+     lu : c'est du code tiers, rendu tel quel. Mutants — chacun des six
+     revenu à « * » ; les chemins vivants sont éprouvés au 73, au 122 et au
+     211. */
+  const versEtoile = [];
+  for (const f of ['content.js', 'cadres.js', 'bridge.js', 'background.js', 'panneau.js']) {
+    const arbre = Parser.parse(readFileSync(join(RACINE, f), 'utf8'), { ecmaVersion: 'latest', sourceType: 'script' });
+    let envois = 0;
+    const visiter = (n) => {
+      if (!n || typeof n.type !== 'string') return;
+      if (n.type === 'CallExpression' && n.callee.type === 'MemberExpression'
+          && (n.callee.property.name === 'postMessage') && n.arguments.length >= 2) {
+        envois++;
+        const cible = n.arguments[1];
+        if (cible.type === 'Literal' && cible.value === '*') versEtoile.push(`${f}:${n.loc ? n.loc.start.line : n.start}`);
+      }
+      for (const k of Object.keys(n)) {
+        const v = n[k];
+        if (Array.isArray(v)) v.forEach(visiter); else if (v && typeof v === 'object' && typeof v.type === 'string') visiter(v);
+      }
+    };
+    visiter(arbre);
+    if (!envois && f !== 'background.js') versEtoile.push(`${f} : aucun envoi lu — la lecture ne voit plus rien`);
+  }
+  ok('aucun de nos fichiers n\'envoie plus un message vers « * »', versEtoile.length === 0, versEtoile.join(', '));
 }
 
 /* ═════════ LES DÉCORATIONS, AU COMPOSITEUR (4.25.0.9) ════════════════════
@@ -37156,6 +37307,115 @@ addEventListener('message', (e) => {
   ok('…et la carte d\'un abonné frais, recyclée pour une chaîne ni abonnée ni fraîche, rend ses trois décors',
      rendus.avant === 3 && rendus.login === 'recyclee' && !rendus.abonne && !rendus.fraiche && rendus.decors === 0,
      JSON.stringify(rendus));
+
+  /* d) LA LUEUR EN CLAIR (4.25.0.10). De la 4.11 à la 4.25.0.8, le clair
+     posait ses images par un raccourci « background: », qui remettait la
+     répétition et la taille à leur valeur initiale : les nappes ne dérivaient
+     plus, et le reflet, répété toutes les trois largeurs de carte, restait sur
+     la moitié gauche onze secondes sur quinze. La 4.25.0.9 l'avait reproduit.
+     Le clair ne pose plus que ses images : calque par calque, le style calculé
+     des deux thèmes doit être le même, images exceptées — qui, elles, doivent
+     toutes différer. Puis la boîte RENDUE du reflet, suivie en clair sur tout
+     un cycle : hors de la carte au début et à la fin, dedans le temps d'un
+     passage, et d'un seul. */
+  const lireLueur = () => page.evaluate(() => {
+    const c = document.querySelector('.side-nav-card[data-tse-login="abo5"]');
+    return [...c.querySelectorAll(':scope > .tse-lueur-deco > span')].map((s) => {
+      const cs = getComputedStyle(s);
+      return { largeur: cs.width, hauteur: cs.height, taille: cs.backgroundSize, repetition: cs.backgroundRepeat,
+               anim: cs.animationName, duree: cs.animationDuration, retard: cs.animationDelay, image: cs.backgroundImage };
+    });
+  });
+  const lueurSombre = await lireLueur();
+  await page.evaluate(() => document.documentElement.setAttribute('data-a-theme', 'light'));
+  await attendre(page, () => document.documentElement.getAttribute('data-tse-theme') === 'light', 5000);
+  const lueurClaire = await lireLueur();
+  const sansImage = (l) => JSON.stringify(l.map(({ image, ...reste }) => reste));
+  ok('d) en clair, la lueur abonnée a le dessin du sombre — mêmes calques, même taille, sans répétition, mêmes quatre animations ; seules les images changent',
+     lueurClaire.length === 4 && sansImage(lueurClaire) === sansImage(lueurSombre)
+     && lueurClaire.map((c) => c.anim).join() === 'tse-lueur-voile,tse-lueur-nappe-1,tse-lueur-nappe-2,tse-lueur-nappe-3'
+     && lueurClaire.every((c, i) => c.repetition === 'no-repeat' && c.image !== lueurSombre[i].image),
+     JSON.stringify({ sombre: lueurSombre, clair: lueurClaire }));
+  const passage = await page.evaluate(() => {
+    const c = document.querySelector('.side-nav-card[data-tse-login="abo5"]');
+    const voile = c.querySelector(':scope > .tse-lueur-deco > span:first-child');
+    const a = voile.getAnimations().find((x) => x.animationName === 'tse-lueur-voile');
+    if (!a) return { erreur: 'pas de tse-lueur-voile', anims: voile.getAnimations().map((x) => x.animationName) };
+    const cadre = voile.parentElement.getBoundingClientRect();
+    const d = a.effect.getComputedTiming().duration;
+    a.pause();
+    const dedans = [];
+    for (let i = 0; i <= 120; i++) {
+      a.currentTime = Math.min(i * d / 120, d - 1);
+      const r = voile.getBoundingClientRect();
+      dedans.push(r.right > cadre.left && r.left < cadre.right ? 1 : 0);
+    }
+    a.play();
+    const entrees = dedans.filter((x, i) => x && !dedans[i - 1]).length;
+    return { debut: dedans[0], fin: dedans[120], entrees, images: dedans.filter(Boolean).length };
+  });
+  ok('…et son reflet traverse la carte une fois par cycle, puis en sort',
+     passage.debut === 0 && passage.fin === 0 && passage.entrees === 1 && passage.images > 0,
+     JSON.stringify(passage));
+  await page.evaluate(() => document.documentElement.setAttribute('data-a-theme', 'dark'));
+  await attendre(page, () => document.documentElement.getAttribute('data-tse-theme') === 'dark', 5000);
+
+  /* e) LA PASTILLE SUR UNE CARTE D'ABONNÉ (4.25.0.10). Le nom d'un abonné
+     est peint par son or, découpé à son texte (background-clip: text) — et
+     ce découpage prend le texte de tout ce que le nom contient sans être
+     positionné. La pastille en était : ses lettres sortaient en or, et ses
+     copies, transparentes par héritage, n'y pouvaient rien. Elle est
+     positionnée, et ses copies peignent la couleur qu'elles portent. La
+     preuve se fait à l'image : la pastille figée, photographiée, puis
+     photographiée encore une fois l'or du nom retiré — et les deux images
+     comparées canal par canal. Pas à l'identique : la lueur portée du nom
+     (un drop-shadow de 3,5 px, qui s'étend à la pastille, à 4 px de la
+     dernière lettre) part avec l'or et laisse 2/255 sur son bord gauche, et
+     deux captures du même instant diffèrent déjà de 1. MESURÉ : 2/255 ainsi ;
+     44 quand la pastille n'est plus positionnée — l'or reste aux bords
+     anticrénelés de ses lettres, sous les copies ; 195 dans la 4.25.0.9, où
+     les lettres étaient d'or. Le seuil est celui de nos comparaisons de
+     décors : 8/255. */
+  const pastille = page.locator('.side-nav-card[data-tse-login="subath"] .tse-subathon-jour');
+  await page.evaluate(() => {
+    const c = document.querySelector('.side-nav-card[data-tse-login="subath"]');
+    for (const a of c.getAnimations({ subtree: true })) { a.pause(); a.currentTime = 1500; }
+  });
+  await pastille.scrollIntoViewIfNeeded();
+  const boite = await pastille.boundingBox();
+  const avecOr = await page.screenshot({ clip: boite });
+  const orDuNom = await page.evaluate(() => {
+    const nom = document.querySelector('.side-nav-card[data-tse-login="subath"] p.tse-nom');
+    const image = getComputedStyle(nom).backgroundImage;
+    nom.style.setProperty('background-image', 'none', 'important');
+    return image;
+  });
+  const sansOr = await page.screenshot({ clip: boite });
+  const { ecart, copies } = await page.evaluate(async ([a, b]) => {
+    const c = document.querySelector('.side-nav-card[data-tse-login="subath"]');
+    c.querySelector('p.tse-nom').style.removeProperty('background-image');
+    for (const x of c.getAnimations({ subtree: true })) x.play();
+    const pixels = async (b64) => {
+      const im = new Image();
+      im.src = 'data:image/png;base64,' + b64;
+      await im.decode();
+      const g = new OffscreenCanvas(im.width, im.height).getContext('2d');
+      g.drawImage(im, 0, 0);
+      return g.getImageData(0, 0, im.width, im.height).data;
+    };
+    const [p, q] = await Promise.all([pixels(a), pixels(b)]);
+    let pire = p.length === q.length && p.length > 0 ? 0 : 255;
+    for (let i = 0; i < p.length; i++) if (i % 4 !== 3) pire = Math.max(pire, Math.abs(p[i] - q[i]));
+    return { ecart: pire,
+             copies: [...c.querySelectorAll('.tse-subathon-teintes > span')].map((s) => {
+               const cs = getComputedStyle(s);
+               return { couleur: cs.color, remplissage: cs.webkitTextFillColor };
+             }) };
+  }, [avecOr.toString('base64'), sansOr.toString('base64')]);
+  ok('e) sur une carte d\'abonné, la pastille garde ses couleurs : pas d\'or sous ses lettres, et chaque copie peint la sienne',
+     orDuNom !== 'none' && ecart <= 8 && copies.length === 8
+     && copies.every((x) => x.remplissage === x.couleur && x.couleur !== 'rgba(0, 0, 0, 0)'),
+     JSON.stringify({ orDuNom: orDuNom.slice(0, 60), ecart, copies }));
   await page.close();
 
   /* c) La trace du navigateur. Sous Gecko, c'est un Chromium à part qui la

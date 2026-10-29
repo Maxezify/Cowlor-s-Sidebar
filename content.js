@@ -270,19 +270,22 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     if (e.source !== window) return;
     const d = e.data;
     if (!d || d.tse !== TSE_PANNEAU_REQ || typeof d.id !== 'number') return;
-    /* targetOrigin '*' — et c'est le choix juste ici, pas un raccourci. La
-       destination est CE document : bridge.js écoute la même fenêtre, dans
-       l'autre monde. Or `location.origin` vaut la chaîne "null" sur une page
-       à origine opaque (un document file://, une iframe bac à sable), et un
-       targetOrigin qui ne correspond à rien fait jeter le message en silence
-       — le panneau resterait à tourner sans jamais rien dire.
+    /* targetOrigin '/' : « la même origine que la mienne » (4.25.0.10 ; '*'
+       jusque-là). La destination est CE document — bridge.js écoute la même
+       fenêtre, dans l'autre monde —, et '/' le dit sans écrire d'origine.
+       `location.origin` aurait dit la même chose sur twitch.tv, mais pas
+       partout : sur une page file://, où tourne le banc, Chromium le rend
+       « file:// », un targetOrigin qui ne correspond à rien, et le message
+       est jeté en silence — le panneau resterait à tourner sans rien dire.
+       '/' tient dans les deux cas (mesuré).
 
-       Ce que '*' élargit : les autres écouteurs de CE document, c'est-à-dire
-       les scripts de Twitch. Ils n'y gagnent rien — la charge ne contient que
-       ce que `window.tse` leur rend déjà, à portée d'un appel plus court que
-       de forger un message. */
+       CE N'EST PAS UNE FERMETURE DE PORTE : les scripts de Twitch écoutent
+       CE document, et '/' les laisse écouter comme '*' le faisait. La charge
+       ne contient de toute façon que ce que `window.tse` leur rend déjà.
+       C'est une adresse exacte au lieu d'une adresse vague — l'audit de la
+       4.25.0.8 l'avait noté, à titre d'information. */
     const repondre = (charge) =>
-      window.postMessage({ tse: TSE_PANNEAU_RES, id: d.id, ...charge }, '*');
+      window.postMessage({ tse: TSE_PANNEAU_RES, id: d.id, ...charge }, '/');
 
     if (!servirPanneau) { repondre(pasEncorePret()); return; }
     servirPanneau(d, repondre);
@@ -4848,37 +4851,27 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        rien du tout, et la carte abonnée cesse de se distinguer. On repasse
        donc sur des nappes SOMBRES et chaudes, à la même transparence.
 
-       ── CE QUE LE CLAIR FAIT VRAIMENT, ET QUE LES CALQUES REPRODUISENT ───
-       Jusqu'à la 4.25.0.8, cette règle était un raccourci « background: »
+       ── L'IMAGE SEULE CHANGE, PAS LE DESSIN (4.25.0.10) ──────────────────
+       De la 4.11 à la 4.25.0.8, cette règle était un raccourci « background: »
        posé sur les quatre couches du sombre. Un raccourci remet à leur valeur
        initiale tout ce qu'il ne nomme pas (cf. « L'IMAGE SEULE, JAMAIS LE
        RACCOURCI », plus bas) : la répétition repassait à « repeat » et la
-       taille des trois nappes à « auto », soit la carte elle-même. Deux
-       conséquences, VISIBLES depuis la 4.11 :
-         — les nappes ne dérivaient plus : une tuile de la taille de la carte
-           se place au même endroit quelle que soit sa position ;
-         — le voile, répété toutes les trois largeurs de carte, défilait de
-           deux périodes et un peu plus en 3,75 s, puis RESTAIT, reflet fixe
-           sur la moitié gauche de la carte, pendant les 11,25 s suivantes,
-           et le cycle d'après le faisait repartir d'un saut.
-       La 4.25.0.9 ne change que la MANIÈRE de peindre, pas ce qui se voit :
-       les trois nappes sont fixes, à la taille de la carte, et le voile est
-       un calque de neuf largeurs, répété tous les trois, qui glisse du même
-       chemin que la tuile d'autrefois — décalé d'une période entière pour
-       couvrir la carte d'un bout à l'autre. */
+       taille des trois nappes à « auto », soit la carte elle-même. En clair,
+       donc, les nappes ne dérivaient pas — une tuile de la taille de la carte
+       se place au même endroit quelle que soit sa position —, et le voile,
+       répété toutes les trois largeurs de carte, défilait 3,75 s puis RESTAIT,
+       reflet fixe sur la moitié gauche de la carte, les 11,25 s suivantes,
+       avant de repartir d'un saut. La 4.25.0.9 l'avait reproduit tel quel.
+
+       C'est corrigé : le clair ne pose plus que ses IMAGES, et garde de la
+       règle du sombre tout le reste — la largeur de chaque calque, l'absence
+       de répétition, les quatre animations. C'est ce que le raccourci voulait
+       dire : le voile passe et sort, les nappes dérivent, comme en sombre. */
     html[data-tse-theme="light"] .tse-lueur-deco > span:nth-child(1) {
-      width: 900%;
       background-image: linear-gradient(102deg,
           rgba(138, 89, 0, 0)     40%,
           rgba(138, 89, 0, 0.10)  48%,
           rgba(138, 89, 0, 0)     56%);
-      background-size: calc(100% / 3) 100%;
-      background-repeat: repeat;
-      animation-name: tse-lueur-voile-clair;
-    }
-    html[data-tse-theme="light"] .tse-lueur-deco > span:nth-child(n + 2) {
-      width: 100%;
-      animation: none;
     }
     html[data-tse-theme="light"] .tse-lueur-deco > span:nth-child(2) {
       background-image: radial-gradient(60% 120% at 12% 50%, rgba(138, 89, 0, 0.10), transparent 70%);
@@ -4888,12 +4881,6 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     }
     html[data-tse-theme="light"] .tse-lueur-deco > span:nth-child(4) {
       background-image: radial-gradient(70% 130% at 88% 60%, rgba(138, 89, 0, 0.09), transparent 70%);
-    }
-    /* La tuile d'autrefois avait son bord à x·(1 − 3)·W ; le calque part une
-       période (3 W) plus à gauche, et se compte en neuvièmes de lui-même. */
-    @keyframes tse-lueur-voile-clair {
-      0%        { transform: translateX(calc((-110% * (1 - 3) - 300%) / 9)); }
-      25%, 100% { transform: translateX(calc(( 210% * (1 - 3) - 300%) / 9)); }
     }
     /* ── LE SOUFFLE ET L'ANNEAU, PORTÉS PAR UN DÉCOR (4.25.0.9) ──────────────
        Jusqu'à la 4.25.0.8, le halo était une ombre portée ANIMÉE sur l'avatar,
@@ -5244,13 +5231,18 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        cycles de durées différentes se décaleraient en quelques secondes, et
        deux surfaces qui montrent la même chose de deux couleurs à la fois se
        lisent comme deux choses. */
-    /* LE TEXTE DES COPIES HÉRITE DE SON REMPLISSAGE, et c'est ce qui le garde
-       juste. Sur une carte d'abonné, le pseudo est peint par un dégradé
-       découpé au texte, avec un remplissage TRANSPARENT dont la pastille
-       hérite : son texte y montrait l'or du pseudo, et seul son contour
-       parcourait l'arc-en-ciel. Les copies héritent du même remplissage — sur
-       une carte d'abonné, elles ne peignent donc que leur contour, et le texte
-       reste d'or, comme avant ; ailleurs, le remplissage est leur couleur.
+    /* SUR UNE CARTE D'ABONNÉ, LA PASTILLE GARDE SES COULEURS (4.25.0.10).
+       Le pseudo y est peint par un dégradé d'or découpé au texte, avec un
+       remplissage TRANSPARENT — et la pastille vit DANS le pseudo. Elle en
+       héritait : son contour parcourait l'arc-en-ciel, mais ses lettres
+       montraient l'or du nom. La 4.25.0.9 l'avait reproduit tel quel ; il est
+       corrigé ici, en deux lignes (cf. plus bas) :
+         — sur une carte d'abonné, la pastille est POSITIONNÉE : elle devient
+           un calque à part, que la découpe au texte du pseudo n'inclut plus —
+           l'or ne passe plus sous ses lettres ;
+         — ses copies reprennent un remplissage plein, à leur couleur.
+       Le halo figé du nom, un filtre posé sur tout le <p>, l'entoure toujours,
+       comme avant.
 
        LES SÉLECTEURS PORTENT DEUX CLASSES ET DES VALEURS EXPLICITES, pour la
        raison dite plus haut : une règle de l'hôte comme « .quelqueChose span
@@ -5260,10 +5252,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     .side-nav-card[data-tse-subathon-day] .tse-subathon-jour:has(> .tse-subathon-teintes) {
       display: inline-grid;
     }
-    /* UNE SEULE CASE, ET RIEN DE POSITIONNÉ : le libellé et ses copies s'y
-       superposent. Une pastille positionnée — c'était le premier essai —
-       devient un calque à part, que le dégradé découpé au texte du pseudo
-       n'inclut plus : sur une carte d'abonné, « J9 » perdait son or. */
+    /* UNE SEULE CASE : le libellé et ses copies s'y superposent, sans rien
+       positionner à l'intérieur. La pastille elle-même ne l'est que sur une
+       carte d'abonné, pour sortir de la découpe au texte du pseudo (cf. plus
+       haut). */
+    .side-nav-card.tse-sub .tse-subathon-jour { position: relative; }
     .tse-subathon-jour > .tse-subathon-libelle {
       display: block;
       grid-area: 1 / 1;
@@ -5305,6 +5298,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     }
     .tse-subathon-jour > .tse-subathon-teintes > span:first-child { opacity: 1; }
     .tse-subathon-jour > .tse-subathon-teintes > span::before { content: attr(data-t); }
+    /* Leur remplissage est LEUR couleur, partout : sur une carte d'abonné, le
+       remplissage transparent du pseudo ne les rend plus muettes. */
+    .tse-subathon-jour > .tse-subathon-teintes > span { -webkit-text-fill-color: currentColor; }
 
     /* ── PAS DE BLOC « prefers-reduced-motion » : C'EST UNE DEMANDE, ET ELLE
        EST MOTIVÉE. Cent cinquante lignes vivaient ici, qui arrêtaient ou
@@ -6829,14 +6825,39 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     /* « VIENT DE DÉMARRER » EST DEUX CHOSES, et le réglage n'en retirait
        qu'une. La barre rouge se voit, mais c'est le LAVIS sur le fond de
        la carte qui la fait remarquer — un utilisateur a demandé que tous les
-       éléments partent, pas seulement la barre. Le dégradé du co-stream frais
-       est écrit séparément (background-image contre background), d'où les
-       deux déclarations : neutraliser l'une laissait l'autre en place. */
+       éléments partent, pas seulement la barre. Sur une carte qui n'est QUE
+       fraîche, le fond tout entier part (background et background-image : le
+       raccourci seul laissait l'image) ; sur une carte fraîche en co-stream,
+       c'est l'image du direct frais qui cède la place à celle du co-stream
+       (cf. plus bas). */
     html[data-tse-off~="fresh"] .side-nav-card.tse-fresh > .tse-frais-deco { display: none !important; }
-    html[data-tse-off~="fresh"] .side-nav-card.tse-fresh,
-    html[data-tse-off~="fresh"] .side-nav-card.tse-fresh.tse-costream {
+    html[data-tse-off~="fresh"] .side-nav-card.tse-fresh:not(.tse-costream) {
       background: none !important;
       background-image: none !important;
+    }
+    /* LA CARTE FRAÎCHE QUI EST AUSSI EN CO-STREAM (4.25.0.10) : le réglage
+       éteint, elle redevient la carte de co-stream qu'elle est — sa barre, à
+       la couleur de son groupe, et son lavis. Jusqu'ici le réglage lui
+       retirait TOUT : le ::before reste caché sur une carte fraîche (sa barre
+       est le décor, éteint lui aussi), et le lavis du co-stream partait avec
+       celui du direct frais. « Vient de démarrer » éteint ne doit éteindre
+       que « vient de démarrer ». La barre rendue est le ::before du
+       co-stream, avec ses jonctions ; le curseur de la salle, qui lit sa
+       couleur, prend donc celle du groupe. */
+    html[data-tse-off~="fresh"] .side-nav-card.tse-fresh.tse-costream {
+      background-image: linear-gradient(
+        90deg,
+        var(--tse-costream-bg, rgba(var(--tse-encre), 0.10)) 0%,
+        var(--tse-costream-bg-fade, rgba(var(--tse-encre), 0.04)) 40%,
+        transparent 100%
+      ) !important;
+    }
+    html[data-tse-off~="fresh"] .side-nav-card.tse-fresh.tse-costream::before {
+      display: block;
+      background: var(--tse-costream-color, #ffffff);
+    }
+    html[data-tse-theme="light"][data-tse-off~="fresh"] .side-nav-card.tse-fresh.tse-costream::before {
+      background: var(--tse-costream-color-clair, var(--tse-costream-color, #ffffff));
     }
     html[data-tse-off~="subathonJour"] .tse-subathon-jour { display: none !important; }
 
@@ -26707,7 +26728,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
   });
   const demanderUrl = () => {
     if (urlPanneau) return;
-    try { window.postMessage({ tse: TSE_URL_REQ }, '*'); } catch { /* rien à faire */ }
+    // '/' : ce document, et lui seul (cf. la réponse au pont, en tête de fichier).
+    try { window.postMessage({ tse: TSE_URL_REQ }, '/'); } catch { /* rien à faire */ }
   };
 
   /* La fermeture doit pouvoir être appelée depuis trois endroits — la croix,
@@ -26762,7 +26784,14 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       if (ev.source !== frame.contentWindow) return;
       const d = ev.data;
       if (!d) return;
-      if (d.tse === 'tse-panneau-fermer') { fermerIncruste?.(); return; }
+      /* L'ordre de fermeture aussi ne vaut que venu du panneau (4.25.0.10) :
+         la même origine que ses demandes, plus bas. Un cadre renvoyé ailleurs
+         ne ferme rien — c'est sans gravité, mais il n'y a pas deux règles pour
+         une même fenêtre. */
+      if (d.tse === 'tse-panneau-fermer') {
+        if (originePanneau && ev.origin === originePanneau) fermerIncruste?.();
+        return;
+      }
       /* ── LE CHEMIN COURT ────────────────────────────────────────────────
          LE PANNEAU EST DANS CETTE PAGE : lui faire redescendre sa question par
          le service worker pour revenir ici est inutile, et FRAGILE. Un retour

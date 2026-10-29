@@ -2183,6 +2183,105 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## Des messages adressés, et trois bizarreries corrigées (v4.25.0.10)
+
+La demande, sur la liste de ce qui restait après la 4.25.0.9 : « 7/ Je veux
+que tu le fasses. Mais d'abord, fais les explications des points précédents.
+8/ Je veux que tu le fasses. » Le point 7 : plus aucun message envoyé vers
+« n'importe quelle origine ». Le point 8 : les trois bizarreries que la
+4.25.0.9 avait reproduites telles quelles. Publiée sur `claude/chrome-multi`,
+puis reportée sur `claude/firefox-multi` et sur les deux branches de
+production.
+
+### Plus aucun message vers « * »
+
+Six envois partaient encore vers `'*'`, c'est-à-dire vers quiconque tient la
+fenêtre visée. Aucun ne portait de secret : la page lit déjà tout cela par
+`window.tse`. L'audit de la 4.25.0.8 les avait notés, à titre d'information.
+Chacun a maintenant une adresse exacte :
+
+- **Entre `content.js` et `bridge.js`**, les deux mondes d'un même document :
+  la demande d'adresse du panneau et sa réponse, les demandes du panneau et
+  leurs réponses. `bridge.js` écrit `location.origin`, puisqu'il ne tourne que
+  sur twitch.tv. `content.js` écrit `'/'`, « la même origine que la mienne ».
+  Il tourne aussi dans le banc, en `file://`, où Chromium rend
+  `location.origin` comme « file:// » : une cible qui ne correspond à rien, et
+  le message serait jeté sans un mot. `'/'` tient dans les deux cas (mesuré).
+- **Du panneau incrusté vers la page** : ses demandes, son ordre de fermeture.
+  La page est twitch.tv, qui a deux origines, avec et sans « www », et le
+  panneau ne sait pas laquelle le porte. Le message part vers chacune. Le
+  navigateur jette en silence celui qui ne correspond pas, et l'autre arrive,
+  une fois. Dans un autre parent, rien n'arrive. `ancestorOrigins` aurait
+  donné l'origine exacte, mais Firefox ne l'a pas avant sa version 148.
+- **L'ordre de fermeture**, reçu par la page, ne vaut plus que venu de
+  l'origine du panneau, comme ses demandes depuis la 4.25.0.9.
+
+Ce n'est pas une porte fermée. Les scripts de Twitch écoutent le même document
+que nous, et une adresse exacte les laisse écouter. C'est une adresse juste à
+la place d'une adresse vague.
+
+### Trois bizarreries, reproduites par la 4.25.0.9, corrigées
+
+**La lueur d'une carte abonnée, en thème clair.** De la 4.11 à la 4.25.0.8, le
+clair posait ses images par un raccourci `background:`. Un raccourci remet à
+leur valeur initiale toutes les propriétés qu'il ne nomme pas : la répétition
+revenait à `repeat`, et la taille des nappes à celle de la carte. En clair, les
+nappes ne dérivaient donc pas. Le reflet, répété toutes les trois largeurs de
+carte, défilait 3,75 s, puis restait figé sur la moitié gauche de la carte
+pendant les 11,25 s suivantes, avant de repartir d'un saut. Le clair ne pose
+plus que ses images. Il garde du sombre la taille de chaque calque, l'absence
+de répétition et les quatre animations : le reflet passe et sort, les nappes
+dérivent, comme en sombre.
+
+**La pastille de subathon, sur une carte abonnée.** Le nom d'un abonné est
+peint par un dégradé d'or découpé au texte (`background-clip: text`), avec un
+remplissage transparent, et la pastille vit dans le nom. Cette découpe prend le
+texte de tout ce que le nom contient sans être positionné. Le contour de la
+pastille parcourait l'arc-en-ciel, mais ses lettres montraient l'or du nom.
+Deux règles corrigent cela. Sur une carte abonnée, la pastille est
+positionnée, et sort de la découpe. Ses copies peignent leur propre couleur
+(`-webkit-text-fill-color: currentColor`). Le halo du nom, un filtre posé sur
+tout le nom, l'entoure toujours.
+
+**« Vient de démarrer » éteint, sur une carte aussi en co-stream.** Le réglage
+retirait tout : la barre et le lavis du direct frais, mais aussi la barre du
+groupe et son lavis. Il ne retire plus que « vient de démarrer ». La carte
+redevient la carte de co-stream qu'elle est : sa barre, à la couleur du groupe
+(au ton approfondi en thème clair), et son lavis. Une carte qui n'est que
+fraîche perd toujours tout.
+
+Vérifié à l'image, avant et après, dans les deux thèmes. La pastille d'une
+carte non abonnée est identique au pixel près. Celle d'une carte abonnée a
+désormais les couleurs de l'autre.
+
+### Le banc
+
+- **118** : deux assertions. Une carte fraîche en co-stream, réglage éteint,
+  a la barre, la couleur, la lueur, la place et le lavis de la même carte sans
+  la classe « fraîche », en sombre comme en clair. Réglage allumé, le direct
+  frais garde le dessus.
+- **213** d) : en clair, la lueur abonnée a le style calculé du sombre, calque
+  par calque, images exceptées, et son reflet traverse la carte une fois par
+  cycle avant d'en sortir. e) : la pastille d'une carte abonnée, photographiée
+  avec et sans l'or du nom, ne change pas de plus de 8/255, et chaque copie
+  peint sa couleur. Mesuré : 2/255 avec la correction (la lueur portée du nom
+  déborde sur le bord de la pastille), 44 quand la pastille n'est plus
+  positionnée, 94 avec la 4.25.0.9.
+- **211** : chaque demande du panneau arrive à la page une fois, et une seule,
+  de son origine. Et la popup, par le service worker et le pont, demande une
+  section et reçoit sa réponse. Aucun autre scénario ne parcourait ce chemin
+  de bout en bout.
+- **212** : aucun de nos fichiers n'envoie plus de message vers « * ». La
+  lecture se fait par l'arbre syntaxique (acorn) : un commentaire qui cite
+  « * » n'est pas un envoi.
+- **73** : le pont adresse ses demandes à l'origine de la page. **122** :
+  l'ordre de fermeture d'un cadre renvoyé vers une autre origine est ignoré.
+- **124** et **208** p) : le panneau n'écrit plus qu'à une page Twitch. L'hôte
+  du banc est donc servi comme `https://www.twitch.tv/`, et non plus depuis un
+  fichier.
+
+MUTANTS-FR
+
 ## Les décorations au compositeur, content.js hors des iframes, et la défense en profondeur (v4.25.0.9)
 
 La demande, à la suite de l'audit de la 4.25.0.8 : « Moyen-élevé : les

@@ -2064,6 +2064,102 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## Addressed messages, and three quirks fixed (v4.25.0.10)
+
+The request, on the list of what remained after 4.25.0.9: “7/ I want you to
+do it. But first, give the explanations for the previous points. 8/ I want you
+to do it.” Point 7: no message sent to “any origin” any more. Point 8: the
+three quirks that 4.25.0.9 had reproduced as they were. Published on
+`claude/chrome-multi`, then carried over to `claude/firefox-multi` and both
+production branches.
+
+### No more messages to "*"
+
+Six sends still went to `'*'`, that is, to whoever holds the target window.
+None carried a secret: the page already reads all of it through `window.tse`.
+The 4.25.0.8 audit had noted them, for information. Each now has an exact
+address:
+
+- **Between `content.js` and `bridge.js`**, the two worlds of one document:
+  the request for the panel's address and its answer, the panel's requests
+  and their answers. `bridge.js` writes `location.origin`, since it only runs
+  on twitch.tv. `content.js` writes `'/'`, “the same origin as mine”. It also
+  runs in the bench, on `file://`, where Chromium gives `location.origin` as
+  "file://": a target that matches nothing, and the message would be dropped
+  without a word. `'/'` holds in both cases (measured).
+- **From the embedded panel to the page**: its requests, its close order. The
+  page is twitch.tv, which has two origins, with and without "www", and the
+  panel does not know which one holds it. The message goes to each. The
+  browser silently drops the one that does not match, and the other arrives,
+  once. In any other parent, nothing arrives. `ancestorOrigins` would have
+  given the exact origin, but Firefox does not have it before version 148.
+- **The close order**, received by the page, now only counts when it comes
+  from the panel's origin, like its requests since 4.25.0.9.
+
+This is not a closed door. Twitch's scripts listen to the same document we
+do, and an exact address lets them listen. It is a precise address in place
+of a vague one.
+
+### Three quirks, reproduced by 4.25.0.9, fixed
+
+**The glow of a subscribed card, in the light theme.** From 4.11 to 4.25.0.8,
+the light theme set its images through a `background:` shorthand. A shorthand
+resets every property it does not name to its initial value: the repeat went
+back to `repeat`, and the size of the layers to that of the card. In the light
+theme, the layers therefore did not drift. The sheen, repeated every three
+card widths, swept for 3.75 s, then stayed frozen on the left half of the card
+for the next 11.25 s, before starting again with a jump. The light theme now
+sets only its images. It keeps from the dark theme the size of each layer, the
+absence of repetition and the four animations: the sheen passes and leaves,
+the layers drift, as in the dark theme.
+
+**The subathon pill, on a subscribed card.** A subscriber's name is painted
+by a gold gradient clipped to the text (`background-clip: text`), with a
+transparent fill, and the pill lives inside the name. That clip takes the text
+of everything the name contains that is not positioned. The pill's border ran
+through the rainbow, but its letters showed the name's gold. Two rules fix
+this. On a subscribed card, the pill is positioned, and leaves the clip. Its
+copies paint their own colour (`-webkit-text-fill-color: currentColor`). The
+name's halo, a filter set on the whole name, still surrounds it.
+
+**"Just started" switched off, on a card that is also in a co-stream.** The
+setting removed everything: the fresh stream's bar and wash, but also the
+group's bar and its wash. It now removes only "just started". The card becomes
+again the co-stream card it is: its bar, in the group's colour (in the deepened
+tone in the light theme), and its wash. A card that is only fresh still loses
+everything.
+
+Checked on screen, before and after, in both themes. The pill of a
+non-subscribed card is identical to the pixel. The pill of a subscribed card
+now has the other one's colours.
+
+### The bench
+
+- **118**: two assertions. A fresh card in a co-stream, setting off, has the
+  bar, colour, glow, position and wash of the same card without the "fresh"
+  class, in the dark theme as in the light one. Setting on, the fresh stream
+  keeps the upper hand.
+- **213** d): in the light theme, the subscribed glow has the dark theme's
+  computed style, layer by layer, images aside, and its sheen crosses the card
+  once per cycle before leaving it. e): the pill of a subscribed card,
+  captured with and without the name's gold, does not change by more than
+  8/255, and each copy paints its colour. Measured: 2/255 with the fix (the
+  name's drop shadow spills onto the pill's edge), 44 when the pill is no
+  longer positioned, 94 with 4.25.0.9.
+- **211**: each of the panel's requests reaches the page once, and only once,
+  from its origin. And the popup, through the service worker and the bridge,
+  requests a section and gets its answer. No other scenario covered that path
+  end to end.
+- **212**: none of our files sends a message to "*" any more. The reading goes
+  through the syntax tree (acorn): a comment quoting "*" is not a send.
+- **73**: the bridge addresses its requests to the page's origin. **122**: the
+  close order of a frame sent to another origin is ignored.
+- **124** and **208** p): the panel only writes to a Twitch page now. The
+  bench's host is therefore served as `https://www.twitch.tv/`, no longer from
+  a file.
+
+MUTANTS-EN
+
 ## Decorations on the compositor, content.js out of the iframes, and defense in depth (v4.25.0.9)
 
 The request, following the 4.25.0.8 audit: “Medium-high: the animated
