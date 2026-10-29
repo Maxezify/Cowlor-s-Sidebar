@@ -2873,6 +2873,59 @@ titre('37. Voile — la sidebar ne doit s\'initialiser qu\'une fois');
        j.some(e => e.detail === 'bascule réduit/étendu'), JSON.stringify(j));
     await page.close();
   }
+
+  // ── d) une remesure par image, pas par mutation (4.25.0.10) ────────────
+  {
+    /* Sous le voile, Twitch modifie la page des centaines de fois, souvent
+       plusieurs dans la même image. Chaque lot de mutations faisait relire la
+       boîte de la barre — une mise en page forcée chaque fois. Trente lots
+       dans la même tâche, séparés par des microtâches comme le sont ceux de
+       React : AUCUNE lecture pendant la tâche, UNE avant l'image suivante,
+       et le voile y est à la place de la barre, même déplacée. Les lectures
+       comptées sont celles du voile seul (sa pile nomme `reposition`) : un
+       balayage qui mesurerait la barre au même moment ne compte pas. */
+    const page = await fresh();
+    await wait(page, 1800);
+    await page.evaluate(() => {
+      document.getElementById('root').classList.add('side-nav--collapsed');
+      const d = document.createElement('div');
+      document.getElementById('cards').appendChild(d);
+      d.remove();
+    });
+    await attendre(page, () => document.body.classList.contains('tse-loading')
+      && !!document.querySelector('.tse-loading-overlay:not([data-tse-fading])'), 3000);
+    const r = await page.evaluate(async () => {
+      const nav = document.getElementById('side-nav');
+      let lectures = 0;
+      nav.getBoundingClientRect = function () {
+        if (/reposition/.test(new Error().stack || '')) lectures++;
+        return Element.prototype.getBoundingClientRect.call(this);
+      };
+      const image = () => new Promise((ok) => requestAnimationFrame(ok));
+      for (let i = 0; i < 30; i++) {
+        document.body.appendChild(document.createElement('i'));
+        await null;
+      }
+      const pendant = lectures;
+      await image();
+      const avantImage = lectures;
+      nav.style.transform = 'translate(3px, 7px)';
+      document.body.appendChild(document.createElement('i'));
+      await image(); await image();
+      const voile = document.querySelector('.tse-loading-overlay:not([data-tse-fading])')?.getBoundingClientRect();
+      const barre = Element.prototype.getBoundingClientRect.call(nav);
+      delete nav.getBoundingClientRect;
+      nav.style.transform = '';
+      const arrondi = (b) => b && [b.top, b.left, b.width, b.height].map((x) => Math.round(x * 10) / 10);
+      return { voileActif: document.body.classList.contains('tse-loading'), pendant, avantImage,
+               voile: arrondi(voile), barre: arrondi(barre) };
+    });
+    ok('d) sous le voile, trente lots de mutations dans une même tâche ne relisent pas la barre : une fois, avant l\'image suivante',
+       r.voileActif && r.pendant === 0 && r.avantImage === 1, JSON.stringify(r));
+    ok('…et à l\'image, le voile recouvre la barre, même déplacée',
+       !!r.voile && JSON.stringify(r.voile) === JSON.stringify(r.barre), JSON.stringify(r));
+    await page.close();
+  }
 }
 
 
@@ -33184,6 +33237,50 @@ const S_LECTEUR_SONDE = () => {
        JSON.stringify(m));
     await page.close();
   }
+
+  // ── g) la mesure du texte se retient (4.25.0.10) ──────────────────────────
+  {
+    /* Chaque balayage règle le titre, et remesurait son texte au canevas pour
+       la même largeur. Elle se retient tant que rien ne la change ; une police
+       qui finit de charger, ou un texte neuf, la font refaire. Les mesures sont
+       comptées au canevas, que le titre seul emploie ; les balayages, par le
+       rapport, chacun provoqué par une mutation de la barre. Mutants — la clé
+       sans le texte ; sans le compteur des polices ; la mesure jamais retenue. */
+    const page = await ouvrir('ru-RU', { fleche: 'dehors' });
+    await page.evaluate(() => {
+      window.__mesures = 0;
+      const vrai = CanvasRenderingContext2D.prototype.measureText;
+      CanvasRenderingContext2D.prototype.measureText = function (t) { window.__mesures += 1; return vrai.call(this, t); };
+    });
+    const balayer = async (n) => {
+      for (let i = 0; i < n; i++) {
+        const avant = await page.evaluate(() => {
+          const d = document.createElement('div');
+          document.getElementById('cards').appendChild(d);
+          d.remove();
+          return window.tse.panneau.rapport().page.balayages.total;
+        });
+        await attendre(page, (k) => window.tse.panneau.rapport().page.balayages.total > k, 5000, avant);
+      }
+      return page.evaluate(() => window.__mesures);
+    };
+    const auRepos = await balayer(3);
+    const pxRepos = (await mesurer(page)).px;
+    await page.evaluate(() => document.fonts.dispatchEvent(new Event('loadingdone')));
+    const apresPolice = await balayer(1);
+    const ensuite = await balayer(2);
+    await page.evaluate(() => { document.documentElement.lang = 'pl-PL'; });
+    await attendre(page, () => document.querySelector('#side-nav .side-nav__title h3')?.textContent === 'Obserwowane kanały', 10_000);
+    await balayer(1);
+    const pl = await mesurer(page);
+    const apresTexte = await page.evaluate(() => window.__mesures);
+    ok('g) d\'un balayage à l\'autre, le titre ne remesure pas son texte : trois balayages, aucune mesure, la même taille',
+       auRepos === 0 && pxRepos < 18, JSON.stringify({ auRepos, pxRepos }));
+    ok('…mais une police chargée le fait remesurer, une fois, et un texte neuf aussi — le polonais trouve sa taille',
+       apresPolice === 1 && ensuite === 1 && apresTexte > ensuite && juste(pl) && pl.texte === 'Obserwowane kanały',
+       JSON.stringify({ apresPolice, ensuite, apresTexte, pl: [pl.texte, pl.px] }));
+    await page.close();
+  }
 }
 
 /* ═════════ LA CARTE SPONSORISÉE, DANS TOUTES LES LANGUES ══════════════════
@@ -33466,6 +33563,62 @@ const S_LECTEUR_SONDE = () => {
      formats.every((f) => f.vu === f.attendu && f.twitch === f.lang),
      JSON.stringify(formats));
 
+  /* a bis) LA LANGUE DE TWITCH SE RETIENT, ET SE RELIT (4.25.0.10). Elle se
+     calcule une fois tant que ni la langue de la page ni la nôtre ne bougent.
+     Chacune des deux, changée seule, doit la faire recalculer : la page passe
+     d'Espagne au Mexique, la nôtre restant l'espagnol ; puis notre langue
+     passe du français à l'allemand — le libellé natif français disparaît —
+     sans que la page change. Mutants — la mémoire sans la langue de la page ;
+     sans la nôtre. */
+  const relue = await (async () => {
+    const page = await browser.newPage();
+    page.on('pageerror', e => { fail++; console.log('  ✗ ERREUR PAGE:', e.message); });
+    await page.goto(URL_PAGE);
+    await page.evaluate(() => { try { localStorage.setItem('tse:indice', 'vu'); } catch { /* refusé */ } });
+    const balayer = async () => {
+      const avant = await page.evaluate(() => {
+        const d = document.createElement('div');
+        document.getElementById('cards').appendChild(d);
+        d.remove();
+        return window.tse.panneau.rapport().page.balayages.total;
+      });
+      await attendre(page, (k) => window.tse.panneau.rapport().page.balayages.total > k, 5000, avant);
+      await wait(page, 100);
+    };
+    const lire = (l) => page.evaluate((x) => ({ vu: document.querySelector('.tse-viewers')?.textContent ?? null,
+      attendu: new Intl.NumberFormat(x, x.startsWith('de') ? {} : { notation: 'compact', maximumFractionDigits: 1 }).format(18234) }), l);
+    // Page d'Espagne, libellé natif ôté : notre langue est l'espagnol.
+    await page.evaluate(() => {
+      document.querySelector('.side-nav-section').removeAttribute('aria-label');
+      document.documentElement.lang = 'es-ES';
+      window.__fx = { alpha: { id: '1', createdAt: new Date(Date.now() - 3600_000).toISOString(), viewers: 18234, game: 'G', tags: [] } };
+      window.__addCard('alpha', 'G', '18234');
+    });
+    await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length === 1, 10_000);
+    await balayer();
+    const espagne = await lire('es-ES');
+    await page.evaluate(() => { document.documentElement.lang = 'es-MX'; });
+    await balayer();
+    const mexique = await lire('es-MX');
+    // Page allemande, libellé natif français : notre langue est le français…
+    await page.evaluate(() => {
+      document.documentElement.lang = 'de-DE';
+      document.querySelector('.side-nav-section').setAttribute('aria-label', 'Chaînes suivies');
+    });
+    await balayer();
+    const francais = await lire('fr-FR');
+    // …puis le libellé part : la nôtre devient l'allemand, la page n'a pas bougé.
+    await page.evaluate(() => { document.querySelector('.side-nav-section').removeAttribute('aria-label'); });
+    await balayer();
+    const allemand = await lire('de-DE');
+    await page.close();
+    return { espagne, mexique, francais, allemand };
+  })();
+  ok('a bis) la langue de Twitch se recalcule quand la page en change, et quand la nôtre en change — l\'une sans l\'autre',
+     Object.values(relue).every((x) => x.vu === x.attendu) && relue.espagne.vu !== relue.mexique.vu
+     && relue.francais.vu !== relue.allemand.vu,
+     JSON.stringify(relue));
+
   /* b) ET IL SE LIT DANS LA SIENNE, tant que l'API n'a pas répondu — ici,
      jamais. Japonais par myriades, russe en toutes lettres : « 17.9万 » et
      « 1,2 млн » valaient zéro, et la chaîne la plus regardée finissait en
@@ -33534,6 +33687,58 @@ const S_LECTEUR_SONDE = () => {
      && colle.ensuite?.nombre !== colle.nombre
      && espace.texte === `${espace.nombre}人の視聴者` && plein.texte === `${plein.nombre} viewers`,
      JSON.stringify(accessibles));
+
+  /* c bis) RIEN À RECALER QUAND RIEN N'A BOUGÉ (4.25.0.10). Chaque balayage
+     reparcourait le bloc du compteur de chaque carte pour y réécrire le
+     nombre déjà écrit. Trois balayages où rien ne change n'en parcourent plus
+     aucun — le parcours se compte par `querySelectorAll('*')`, que lui seul
+     emploie. Et la phrase que Twitch rend de nouveau, avec SON nombre, est
+     recalée au balayage suivant : le texte du bloc fait partie de ce qui est
+     comparé. Mutants — la comparaison sans le texte du bloc ; le parcours
+     jamais sauté. */
+  {
+    const page = await monter('ja-JP', `() => {
+      window.__fx = { alpha: { id: '1', createdAt: window.__h, viewers: 180000, game: 'G', tags: [] } };
+      const c = window.__addCard('alpha', 'G', '17.9万');
+      c.querySelector('.sr-only').textContent = '17.9万人の視聴者';
+    }`);
+    await attendre(page, () => document.querySelectorAll('[data-tse-viewers]').length === 1, 10_000);
+    await wait(page, 400);
+    await page.evaluate(() => {
+      window.__parcours = 0;
+      const vrai = Element.prototype.querySelectorAll;
+      Element.prototype.querySelectorAll = function (s) {
+        // Un bloc de compteur d'une carte de Twitch ; les clones ont leur propre nettoyage.
+        if (s === '*' && this.closest?.('.side-nav-card') && !this.closest('[data-tse-synthetic="true"]')) window.__parcours += 1;
+        return vrai.call(this, s);
+      };
+    });
+    const balayer = async (n) => {
+      for (let i = 0; i < n; i++) {
+        const avant = await page.evaluate(() => {
+          const d = document.createElement('div');
+          document.getElementById('cards').appendChild(d);
+          d.remove();
+          return window.tse.panneau.rapport().page.balayages.total;
+        });
+        await attendre(page, (k) => window.tse.panneau.rapport().page.balayages.total > k, 5000, avant);
+      }
+    };
+    await balayer(3);
+    const repos = await page.evaluate(() => ({ parcours: window.__parcours,
+      texte: document.querySelector('.sr-only').textContent, nombre: document.querySelector('.tse-viewers').textContent }));
+    // Twitch redessine sa phrase, avec son nombre à lui.
+    await page.evaluate(() => { document.querySelector('.sr-only').textContent = '17.9万人の視聴者'; });
+    await balayer(1);
+    const redessin = await page.evaluate(() => ({ parcours: window.__parcours,
+      texte: document.querySelector('.sr-only').textContent, nombre: document.querySelector('.tse-viewers').textContent }));
+    ok('c bis) trois balayages où rien ne bouge ne reparcourent aucun bloc de compteur — et la phrase reste juste',
+       repos.parcours === 0 && repos.texte === `${repos.nombre}人の視聴者` && repos.nombre !== '17.9万',
+       JSON.stringify(repos));
+    ok('…mais la phrase que Twitch redessine avec son nombre est recalée au balayage suivant',
+       redessin.parcours >= 1 && redessin.texte === `${redessin.nombre}人の視聴者`, JSON.stringify(redessin));
+    await page.close();
+  }
 
   /* d) LE CO-STREAMER, RECONNU À SA PLACE. L'alt de son mini-avatar est ici
      dans une langue qu'aucune table ne connaît. Il ne sert pas de gabarit à
@@ -34577,15 +34782,44 @@ const S_LECTEUR_SONDE = () => {
   await pw.close();
 
   /* ── x) UNE LISTE DE REDIFFUSIONS VAUT TANT QUE LE DERNIER DIRECT EST LE MÊME
-     (4.25.0.2). Sur une variante : la fiche périme en 1,5 s, la liste en 5 s.
+     (4.25.0.2). Sur une variante : la fiche périme en 1,5 s, la liste en 15 s.
      Les fiches se relisent à leur fraîcheur ; une liste, seulement quand la
-     chaîne a diffusé depuis — ou au bout de sa propre durée. */
+     chaîne a diffusé depuis — ou au bout de sa propre durée.
+
+     LES ATTENTES SE CALCULENT, ELLES NE SE SUPPOSENT PLUS (4.25.0.10). Avec
+     une liste à 5 s et trois pauses fixes (1,7 s, 1,7 s, 2,4 s), la deuxième
+     vérification exigeait que tout tienne en 5 s depuis la première lecture :
+     3,4 s de pauses plus trois collectes, 1,6 s de marge sur une machine
+     rapide — et aucune sur une machine chargée, où la liste de cobalt
+     périmait trop tôt et se relisait avec celle de brume. C'est ce qui a fait
+     échouer une régénération de firefox-prod. Chaque attente part désormais
+     de l'heure RÉELLE d'un retour, que le journal des envois donne :
+       — les deux premières, jusqu'à ce que les fiches aient périmé, et pas
+         plus : sous charge, les collectes durent assez pour qu'il ne reste
+         presque rien à attendre ;
+       — la dernière, jusqu'à ce que la liste de cobalt ait 15 s, plus une
+         demi-seconde.
+     La liste vaut 15 s : 10 s, essayées d'abord avec les pauses fixes, ne
+     laissaient que 0,4 s de marge, trois cœurs sur quatre occupés. Le
+     diagnostic dit les deux marges : celle de cobalt à la deuxième
+     vérification, celle de brume, relue entre-temps, à la troisième. */
   const { page: px, ratees: rx } = await pageVariante([[/AGENDA_TTL:\s*30_000/, 'AGENDA_TTL: 1_500'],
-                                                       [/AGENDA_TTL_LISTES:\s*6 \* 3_600_000/, 'AGENDA_TTL_LISTES: 5_000']]);
+                                                       [/AGENDA_TTL_LISTES:\s*6 \* 3_600_000/, 'AGENDA_TTL_LISTES: 15_000']]);
+  const TTL_FICHES_X = 1_500;
+  const TTL_LISTES_X = 15_000;
+  // L'heure du dernier retour d'une opération (et d'une chaîne, s'il y a lieu), dans un journal.
+  const revenue = (log, nom, login = null) => Math.max(...log
+    .filter((e) => e.t1 && e.ops.some((x) => x.nom === nom && (!login || x.logins.includes(login))))
+    .map((e) => e.t1));
+  const attendreJusqua = async (t) => {
+    const reste = t - await px.evaluate(() => Date.now());
+    if (reste > 0) await wait(px, reste);
+  };
   await monter({ chaines: ['brume', 'cobalt'] }, px);
   await finir(px, () => window.__semaine(-1));
-  const nx0 = (await journal(px)).length;
-  await wait(px, 1700);
+  const logx0 = await journal(px);
+  const nx0 = logx0.length;
+  await attendreJusqua(revenue(logx0, 'TseAgendaChaines') + TTL_FICHES_X + 300);
   await finir(px, () => window.__semaine(-1));
   const logx1 = (await journal(px)).slice(nx0);
   /* Brume diffuse de nouveau : un dernier direct neuf, son archive — et elle a
@@ -34598,13 +34832,20 @@ const S_LECTEUR_SONDE = () => {
     a.dernier = { id: '710009', fin: new Date(debut + 4 * 3_600_000 + 3000).toISOString() };
     return debut >= window.__w(0).debut ? 0 : -1;
   });
-  const nx1 = (await journal(px)).length;
-  await wait(px, 1700);
+  const logx1b = await journal(px);
+  const nx1 = logx1b.length;
+  await attendreJusqua(revenue(logx1b, 'TseAgendaChaines') + TTL_FICHES_X + 300);
   await finir(px, () => window.__semaine(-1));
   const logx2 = (await journal(px)).slice(nx1);
   const sxk = await finir(px, (k) => window.__semaine(k), kx);
-  const nx2 = (await journal(px)).length;
-  await wait(px, 2400);
+  const logxTout = await journal(px);
+  const nx2 = logxTout.length;
+  const cobaltLue = revenue(logx0, 'TseAgendaDiffusions', 'cobalt');
+  const brumeLue = revenue(logx2, 'TseAgendaDiffusions', 'brume');
+  const echeance = cobaltLue + TTL_LISTES_X + 500;
+  await attendreJusqua(echeance);
+  const marges = { cobaltAuxDeuxiemes: TTL_LISTES_X - (Math.min(...logx2.map((e) => e.t0)) - cobaltLue),
+                   brumeAuxTroisiemes: TTL_LISTES_X - (echeance - brumeLue) };
   await finir(px, () => window.__semaine(-1));
   const logx3 = (await journal(px)).slice(nx2);
   const listes = (log) => JSON.stringify(ops(log, 'TseAgendaDiffusions').map((x) => x.logins.slice().sort().join('+')));
@@ -34620,7 +34861,7 @@ const S_LECTEUR_SONDE = () => {
      jetonsX2.join() === '6009' && neuveX && neuveX.restreinte === false,
      JSON.stringify({ jetonsX2, neuveX }));
   ok('x) …et au bout de sa durée, une liste se relit même sans direct nouveau',
-     listes(logx3) === JSON.stringify(['cobalt']), listes(logx3));
+     listes(logx3) === JSON.stringify(['cobalt']), JSON.stringify({ listes: listes(logx3), marges }));
   await px.close();
 
   /* ── y) LE DIRECT SANS ARCHIVE QU'ON A VU COMMENCER (4.25.0.2) ────────────
@@ -37361,61 +37602,45 @@ addEventListener('message', (e) => {
   await attendre(page, () => document.documentElement.getAttribute('data-tse-theme') === 'dark', 5000);
 
   /* e) LA PASTILLE SUR UNE CARTE D'ABONNÉ (4.25.0.10). Le nom d'un abonné
-     est peint par son or, découpé à son texte (background-clip: text) — et
-     ce découpage prend le texte de tout ce que le nom contient sans être
-     positionné. La pastille en était : ses lettres sortaient en or, et ses
-     copies, transparentes par héritage, n'y pouvaient rien. Elle est
-     positionnée, et ses copies peignent la couleur qu'elles portent. La
-     preuve se fait à l'image : la pastille figée, photographiée, puis
-     photographiée encore une fois l'or du nom retiré — et les deux images
-     comparées canal par canal. Pas à l'identique : la lueur portée du nom
-     (un drop-shadow de 3,5 px, qui s'étend à la pastille, à 4 px de la
-     dernière lettre) part avec l'or et laisse 2/255 sur son bord gauche, et
-     deux captures du même instant diffèrent déjà de 1. MESURÉ : 2/255 ainsi ;
-     44 quand la pastille n'est plus positionnée — l'or reste aux bords
-     anticrénelés de ses lettres, sous les copies ; 195 dans la 4.25.0.9, où
-     les lettres étaient d'or. Le seuil est celui de nos comparaisons de
-     décors : 8/255. */
-  const pastille = page.locator('.side-nav-card[data-tse-login="subath"] .tse-subathon-jour');
-  await page.evaluate(() => {
-    const c = document.querySelector('.side-nav-card[data-tse-login="subath"]');
-    for (const a of c.getAnimations({ subtree: true })) { a.pause(); a.currentTime = 1500; }
-  });
-  await pastille.scrollIntoViewIfNeeded();
-  const boite = await pastille.boundingBox();
-  const avecOr = await page.screenshot({ clip: boite });
-  const orDuNom = await page.evaluate(() => {
-    const nom = document.querySelector('.side-nav-card[data-tse-login="subath"] p.tse-nom');
-    const image = getComputedStyle(nom).backgroundImage;
-    nom.style.setProperty('background-image', 'none', 'important');
-    return image;
-  });
-  const sansOr = await page.screenshot({ clip: boite });
-  const { ecart, copies } = await page.evaluate(async ([a, b]) => {
-    const c = document.querySelector('.side-nav-card[data-tse-login="subath"]');
-    c.querySelector('p.tse-nom').style.removeProperty('background-image');
-    for (const x of c.getAnimations({ subtree: true })) x.play();
-    const pixels = async (b64) => {
-      const im = new Image();
-      im.src = 'data:image/png;base64,' + b64;
-      await im.decode();
-      const g = new OffscreenCanvas(im.width, im.height).getContext('2d');
-      g.drawImage(im, 0, 0);
-      return g.getImageData(0, 0, im.width, im.height).data;
+     est peint par son or, découpé à son texte (background-clip: text), avec
+     un remplissage transparent — et la pastille vit dans le nom. Ses copies
+     héritaient ce remplissage : elles ne peignaient rien, et c'est l'or du
+     nom, découpé à leurs lettres, qu'on voyait. Elles peignent désormais leur
+     propre couleur, et la pastille est positionnée : la découpe au texte du
+     nom exclut les descendants positionnés, et plus aucun or ne passe sous ses
+     lettres, pas même à leur bord.
+
+     LE STYLE CALCULÉ, ET NON L'IMAGE. La comparaison à l'image — la pastille
+     photographiée avec et sans l'or du nom — a été essayée, et rejetée : sur
+     le banc vivant, les cartes se rangent de nouveau entre deux captures, et
+     la frange d'or qu'un mutant laisse au bord des lettres dépend de ce que
+     le compositeur met en calque à cet instant — 2 à 39/255 pour le même
+     mutant, jusqu'à 27 pour la version juste. Le rendu a été vérifié à l'image
+     hors du banc, sur une page figée (cf. README). Ici, les deux causes se
+     lisent sans ambiguïté : le remplissage de chaque copie, et la position de
+     la pastille, comparée à celle d'une pastille de carte non abonnée — qui
+     ne doit pas changer. */
+  const pastilles = await page.evaluate(async () => {
+    window.__fx.ordisub = { id: '301', createdAt: new Date(Date.now() - 300 * 60_000).toISOString(),
+                            viewers: 350, game: 'G', tags: [], title: 'subathon day9' };
+    window.__addCard('ordisub', 'G', '1 k');
+    const lire = (login) => {
+      const p = document.querySelector(`.side-nav-card[data-tse-login="${login}"] .tse-subathon-jour`);
+      return p && { abonne: p.closest('.side-nav-card').classList.contains('tse-sub'), position: getComputedStyle(p).position,
+                    copies: [...p.querySelectorAll('.tse-subathon-teintes > span')].map((s) => {
+                      const cs = getComputedStyle(s);
+                      return { couleur: cs.color, remplissage: cs.webkitTextFillColor };
+                    }) };
     };
-    const [p, q] = await Promise.all([pixels(a), pixels(b)]);
-    let pire = p.length === q.length && p.length > 0 ? 0 : 255;
-    for (let i = 0; i < p.length; i++) if (i % 4 !== 3) pire = Math.max(pire, Math.abs(p[i] - q[i]));
-    return { ecart: pire,
-             copies: [...c.querySelectorAll('.tse-subathon-teintes > span')].map((s) => {
-               const cs = getComputedStyle(s);
-               return { couleur: cs.color, remplissage: cs.webkitTextFillColor };
-             }) };
-  }, [avecOr.toString('base64'), sansOr.toString('base64')]);
-  ok('e) sur une carte d\'abonné, la pastille garde ses couleurs : pas d\'or sous ses lettres, et chaque copie peint la sienne',
-     orDuNom !== 'none' && ecart <= 8 && copies.length === 8
-     && copies.every((x) => x.remplissage === x.couleur && x.couleur !== 'rgba(0, 0, 0, 0)'),
-     JSON.stringify({ orDuNom: orDuNom.slice(0, 60), ecart, copies }));
+    for (let i = 0; i < 80 && !lire('ordisub')?.copies.length; i++) await new Promise((r) => setTimeout(r, 100));
+    return { abonnee: lire('subath'), ordinaire: lire('ordisub') };
+  });
+  const pleines = (p) => p && p.copies.length === 8
+    && p.copies.every((x) => x.remplissage === x.couleur && x.couleur !== 'rgba(0, 0, 0, 0)');
+  ok('e) sur une carte d\'abonné, la pastille garde ses couleurs : chaque copie peint la sienne, et la pastille sort de la découpe au texte du nom',
+     pastilles.abonnee?.abonne === true && pleines(pastilles.abonnee) && pastilles.abonnee.position !== 'static'
+     && pastilles.ordinaire?.abonne === false && pleines(pastilles.ordinaire) && pastilles.ordinaire.position === 'static',
+     JSON.stringify(pastilles));
   await page.close();
 
   /* c) La trace du navigateur. Sous Gecko, c'est un Chromium à part qui la

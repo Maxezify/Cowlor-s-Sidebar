@@ -1587,15 +1587,25 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
      Tant qu'elle s'accorde à LANG, ou qu'elle désigne une langue que nous
      n'avons pas, c'est elle ; sinon — un libellé natif a dit autre chose que
      la page — on s'en tient à la nôtre, comme detectLanguage. */
+  /* RETENUE TANT QUE RIEN NE CHANGE (4.25.0.10). Elle se demande à chaque
+     nombre formaté — une centaine par balayage —, et chaque fois elle
+     canonisait la langue de la page (`Intl.getCanonicalLocales`) pour la même
+     réponse. La réponse ne dépend que de deux choses : l'attribut `lang` de la
+     page, que Twitch change en changeant de langue, et LANG. Les deux sont
+     relus à chaque appel ; le calcul ne se refait que si l'un a bougé. */
+  let localeRetenue = { lang: null, LANG: null, valeur: null };
   const localeTwitch = () => {
+    const brut = document.documentElement.lang || '';
+    if (localeRetenue.lang === brut && localeRetenue.LANG === LANG) return localeRetenue.valeur;
     let l = null;
-    try { l = Intl.getCanonicalLocales((document.documentElement.lang || '').trim())[0] || null; }
+    try { l = Intl.getCanonicalLocales(brut.trim())[0] || null; }
     catch { l = null; }
-    if (!l) return S.locale;
     // Par langueDe, et non par le préfixe : un Twitch de Taïwan n'est pas
     // « notre » chinois, il garde donc sa locale, et « 2.9萬 » ses compteurs.
-    const nous = langueDe(l);
-    return nous === LANG || !nous ? l : S.locale;
+    const nous = l && langueDe(l);
+    const valeur = !l ? S.locale : nous === LANG || !nous ? l : S.locale;
+    localeRetenue = { lang: brut, LANG, valeur };
+    return valeur;
   };
   jalon('i18n');
 
@@ -6825,13 +6835,12 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     /* « VIENT DE DÉMARRER » EST DEUX CHOSES, et le réglage n'en retirait
        qu'une. La barre rouge se voit, mais c'est le LAVIS sur le fond de
        la carte qui la fait remarquer — un utilisateur a demandé que tous les
-       éléments partent, pas seulement la barre. Sur une carte qui n'est QUE
-       fraîche, le fond tout entier part (background et background-image : le
-       raccourci seul laissait l'image) ; sur une carte fraîche en co-stream,
-       c'est l'image du direct frais qui cède la place à celle du co-stream
-       (cf. plus bas). */
+       éléments partent, pas seulement la barre. Le fond tout entier part
+       (background et background-image : le raccourci seul laissait l'image) —
+       et sur une carte fraîche en co-stream, la règle plus bas, plus précise,
+       rend l'image du co-stream. */
     html[data-tse-off~="fresh"] .side-nav-card.tse-fresh > .tse-frais-deco { display: none !important; }
-    html[data-tse-off~="fresh"] .side-nav-card.tse-fresh:not(.tse-costream) {
+    html[data-tse-off~="fresh"] .side-nav-card.tse-fresh {
       background: none !important;
       background-image: none !important;
     }
@@ -11530,6 +11539,27 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         spinner.style.left = `${rect.left + rect.width / 2}px`;
       }
     };
+    /* ── UNE REMESURE PAR IMAGE, PAS PAR MUTATION (4.25.0.10) ─────────────
+       L'observateur du cycle appelait `reposition` à chaque lot de mutations,
+       et Twitch en produit des centaines pendant son chargement — souvent
+       plusieurs dans la même image. Chaque appel lisait la boîte de la barre
+       juste après une écriture dans la page : le navigateur recalculait la
+       mise en page pour une valeur que personne ne verrait, puisque seule
+       compte celle de l'image affichée. La toute première, à l'ouverture du
+       cycle, forçait de même la première mise en page de la page, au moment
+       de l'injection — mise en page à refaire aussitôt, puisque le premier
+       balayage décore les cartes.
+       Toutes les remesures d'une même image n'en font donc plus qu'UNE —
+       l'ouverture, les mutations, le redimensionnement —, faite juste avant
+       que l'image se peigne (requestAnimationFrame) : le voile y est à la
+       place de la barre, comme avant, et rien ne se peint entre sa pose et
+       sa mesure. Un onglet caché ne peint pas et ne remesure pas ; il le fait
+       à la première image où il redevient visible, avant elle. */
+    let remesureDemandee = 0;
+    const repositionAvantImage = () => {
+      if (remesureDemandee) return;
+      remesureDemandee = requestAnimationFrame(() => { remesureDemandee = 0; reposition(); });
+    };
 
     // Lève le voile en fondu. Nettoie tous les timers et observers du
     // cycle courant. cycleActive repasse à false pour qu'un futur cycle
@@ -11551,6 +11581,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       if (stabilityTimer) { clearTimeout(stabilityTimer); stabilityTimer = null; }
       if (timeoutTimer)   { clearTimeout(timeoutTimer);   timeoutTimer   = null; }
       if (cycleObserver) { cycleObserver.disconnect(); cycleObserver = null; }
+      if (remesureDemandee) { cancelAnimationFrame(remesureDemandee); remesureDemandee = 0; }
       if (resizeHandler) {
         window.removeEventListener('resize', resizeHandler);
         resizeHandler = null;
@@ -11675,10 +11706,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       overlay = built.el;
       spinner = built.sp;
       document.body.appendChild(overlay);
-      reposition();
+      // Placé avant la première image, comme toutes les remesures (cf. plus haut).
+      repositionAvantImage();
 
       // 3) Repositionnement sur resize fenêtre.
-      resizeHandler = () => reposition();
+      resizeHandler = () => repositionAvantImage();
       window.addEventListener('resize', resizeHandler);
 
       // 4) MutationObserver dédié au cycle pour repositionner sur les
@@ -11690,7 +11722,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
           overlay && (m.target === overlay || overlay.contains(m.target))
         );
         if (allInOverlay) return;
-        reposition();
+        repositionAvantImage();
       });
       cycleObserver.observe(document.body, { childList: true, subtree: true });
 
@@ -21954,10 +21986,23 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     }
     return texte.slice(0, m.index) + voulu + texte.slice(fin);
   };
+  /* RIEN À RECALER QUAND RIEN N'A BOUGÉ (4.25.0.10). Chaque balayage
+     reparcourait le bloc du compteur de chaque carte, feuille par feuille,
+     pour réécrire le nombre qu'il y avait déjà écrit. La passe ne dépend que
+     du bloc, de son texte, du nombre voulu et de la langue de Twitch : si
+     aucun des quatre n'a changé depuis la dernière, elle ne changerait rien,
+     et elle ne se refait pas. Le texte du bloc couvre tout ce que Twitch peut
+     y réécrire — sa phrase pour les lecteurs d'écran, son propre compteur —,
+     et il est relu à chaque appel : une phrase rendue de nouveau par Twitch
+     est recalée au balayage suivant, comme avant. */
+  const recalages = new WeakMap();   // carte → ce que la dernière passe a vu en sortant
   const recalerTexteAccessible = (card, shown) => {
     const host = liveStatusOf(card);
     if (!host) return;
     const voulu = formatViewers(shown);
+    const locale = localeTwitch();
+    const vu = recalages.get(card);
+    if (vu && vu.host === host && vu.voulu === voulu && vu.locale === locale && vu.texte === host.textContent) return;
     const natif = (nativeViewersEl(card)?.textContent || '').trim();
     for (const n of host.querySelectorAll('*')) {
       if (n.children.length) continue;                       // seulement les feuilles
@@ -21972,6 +22017,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       ecritsAccessibles.set(n, voulu);
       if (neuf !== texte) setText(n, neuf);
     }
+    recalages.set(card, { host, voulu, locale, texte: host.textContent });
   };
 
   const renderViewers = (card, count, display) => {
@@ -27483,6 +27529,23 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
          venu d'ailleurs dans la page compte aussi.
      Rien de cela ne dépend de la taille du titre : la place est la même d'un
      balayage à l'autre, et la taille voulue aussi. */
+  /* ── LA MESURE DU TEXTE SE RETIENT (4.25.0.10) ───────────────────────────
+     Le titre se règle à chaque balayage, et chaque fois il remesurait son
+     texte deux fois — par un Range, qui lit la mise en page, et par le
+     canevas, qui doit analyser la police qu'on lui donne. MESURÉ sur le banc :
+     environ 4 ms au démarrage, puis 0,1 ms par balayage, pour la même
+     largeur. Elle ne dépend que du texte, de sa police — chaque propriété
+     qui change la forme ou l'espacement des lettres —, des deux tailles, de
+     la largeur que nous lui avons posée, et des polices chargées : une police
+     web qui arrive après coup change les lettres sans changer la déclaration,
+     d'où le compteur, que chaque fin de chargement avance. Tant que rien de
+     cela ne bouge, la largeur retenue est celle qu'une nouvelle mesure
+     rendrait. Le reste du réglage — la place, les obstacles — se relit à
+     chaque fois : la ligne, elle, change sans que le texte change. */
+  let texteMesure = { cle: null, parRange: 0, parToile: 0 };
+  let policesChargees = 0;
+  try { document.fonts.addEventListener('loadingdone', () => { policesChargees += 1; }); }
+  catch { /* pas de FontFaceSet : la clé reste sans ce terme */ }
   function ajusterTitre() {
     const ligne = document.querySelector(`${DOM.sidebarRoot} .side-nav__title[data-tse-roue]`);
     const h3 = ligne?.querySelector(':scope > h3');
@@ -27497,10 +27560,19 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     if (!h3.style.fontSize) h3.dataset.tseTitrePx = String(actuel);
     const natif = Number(h3.dataset.tseTitrePx) || actuel;
     if (!natif || !actuel) return;
-    const r = document.createRange();
-    r.selectNodeContents(h3);
-    const parRange = (r.getBoundingClientRect().width * natif) / actuel;
-    const parToile = largeurToile((h3.textContent || '').trim(), ch, natif, actuel);
+    const brut = (h3.textContent || '').trim();
+    const cle = [brut, ch.fontStyle, ch.fontVariant, ch.fontWeight, ch.fontStretch, ch.fontFamily, ch.fontFeatureSettings,
+                 ch.fontKerning, ch.letterSpacing, ch.wordSpacing, ch.textTransform, natif, actuel, h3.style.maxWidth,
+                 policesChargees].join('|');
+    let parRange, parToile;
+    if (texteMesure.cle === cle) ({ parRange, parToile } = texteMesure);
+    else {
+      const r = document.createRange();
+      r.selectNodeContents(h3);
+      parRange = (r.getBoundingClientRect().width * natif) / actuel;
+      parToile = largeurToile(brut, ch, natif, actuel);
+      texteMesure = { cle, parRange, parToile };
+    }
     const texte = Math.max(parRange, parToile);
 
     const cs = getComputedStyle(ligne);
@@ -29207,6 +29279,12 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       autres.push(...sec.querySelectorAll('.side-nav-card'));
     }
     const toutes = [...cards, ...autres];
+    /* LUES UNE FOIS PAR PASSE (4.25.0.10). Cinq boucles de cette fonction
+       demandaient à chaque carte si elle se montre — quatre attributs et la
+       classe du <body> relus à chaque fois, pour la même réponse : rien ici ne
+       masque ni ne montre une carte. La réponse se lit une fois, ici, par le
+       même prédicat (cardShown), et les boucles la consultent. */
+    const montrees = new Set(toutes.filter(cardShown));
     const suiviesSet = new Set(cards);
     const groupeDe = (cle, card) => `${cle}@${rangSection.get(card.closest('.side-nav-section')) ?? 0}`;
     const sessionDeGroupe = (g) => g.slice(0, g.lastIndexOf('@'));
@@ -29231,7 +29309,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        ne dit pas (cf. `sessionSelonLesAutres`), et pourquoi — au bilan. */
     const rattachees = [];
     toutes.forEach(card => {
-      if (!cardShown(card)) return;
+      if (!montrees.has(card)) return;
       const login = card.dataset.tseLogin;
       if (!login) return;
       const id = getChannelId(login);
@@ -29266,7 +29344,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     // l'heuristique : on attend la vérité (~1s) → aucune transition de couleur
     // au démarrage.
     toutes.forEach(card => {
-      if (!cardShown(card)) return;
+      if (!montrees.has(card)) return;
       if (gsHandled.has(card)) return;
       if (gsUsable && hostByCard.get(card) === undefined && getChannelId(card.dataset.tseLogin)) return;
       if (!cardHasCollab(card)) return;
@@ -29335,7 +29413,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     for (const g of activeKeys) for (const c of groups.get(g)) dansUnGroupe.add(c);
     const seules = new Map();        // carte -> clé de session
     toutes.forEach(card => {
-      if (!cardShown(card) || card.dataset.tseGlobal === 'true') return;
+      if (!montrees.has(card) || card.dataset.tseGlobal === 'true') return;
       if (dansUnGroupe.has(card) || !cardHasCollab(card)) return;
       const login = card.dataset.tseLogin;
       if (!login) return;
@@ -29473,7 +29551,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       if (g.startsWith('gs:') && membres.some((c) => suiviesSet.has(c))) bilanCostream.groupes += 1;
       if (membres.some((c) => !suiviesSet.has(c))) bilanCostream.recommandations.groupes += 1;
     }
-    for (const c of autres) if (cardShown(c) && c.dataset.tseLogin) bilanCostream.recommandations.cartes += 1;
+    for (const c of autres) if (montrees.has(c) && c.dataset.tseLogin) bilanCostream.recommandations.cartes += 1;
     // Une carte rattachée compte si elle est bien entrée dans un groupe dessiné.
     for (const { key, raison } of rattachees) {
       if (!activeKeys.has(key)) continue;
@@ -29486,7 +29564,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        se rangent donc ensemble sans qu'on ait besoin d'un identifiant. */
     const sessions = new Map();
     for (const card of cards) {
-      if (!cardShown(card)) continue;
+      if (!montrees.has(card)) continue;
       const login = card.dataset.tseLogin;
       if (!login) continue;
       const mates = getGuestStarMates(login);

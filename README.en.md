@@ -2064,14 +2064,17 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
-## Addressed messages, and three quirks fixed (v4.25.0.10)
+## Addressed messages, three quirks fixed, a lighter startup and lighter scans (v4.25.0.10)
 
 The request, on the list of what remained after 4.25.0.9: “7/ I want you to
 do it. But first, give the explanations for the previous points. 8/ I want you
-to do it.” Point 7: no message sent to “any origin” any more. Point 8: the
-three quirks that 4.25.0.9 had reproduced as they were. Published on
-`claude/chrome-multi`, then carried over to `claude/firefox-multi` and both
-production branches.
+to do it.” Then, once the explanations were given: “For this .10, add: 2/
+Startup: do a) and b). 3/ Scans: do a). 5/ Test 207: do b).” Point 7: no
+message sent to “any origin” any more. Point 8: the three quirks that
+4.25.0.9 had reproduced as they were. Point 2: the loading veil and the
+title. Point 3: three touch-ups of the scan. Point 5: sub-test 207 x), which
+depended on the speed of the machine. Published on `claude/chrome-multi`,
+then carried over to `claude/firefox-multi` and both production branches.
 
 ### No more messages to "*"
 
@@ -2141,11 +2144,14 @@ now has the other one's colours.
   keeps the upper hand.
 - **213** d): in the light theme, the subscribed glow has the dark theme's
   computed style, layer by layer, images aside, and its sheen crosses the card
-  once per cycle before leaving it. e): the pill of a subscribed card,
-  captured with and without the name's gold, does not change by more than
-  8/255, and each copy paints its colour. Measured: 2/255 with the fix (the
-  name's drop shadow spills onto the pill's edge), 44 when the pill is no
-  longer positioned, 94 with 4.25.0.9.
+  once per cycle before leaving it. e): on a subscribed card, each copy of
+  the pill paints its colour, and the pill is positioned; on a
+  non-subscribed card, nothing changes. The test reads the computed style,
+  not the image. A comparison on screen (the pill captured with and without
+  the name's gold) was tried and then set aside. On the bench, the cards get
+  sorted again between two captures, and the fringe of gold that a mutant
+  leaves at the edge of the letters depends on what the compositor puts in a
+  layer: from 2 to 39/255 for the same mutant.
 - **211**: each of the panel's requests reaches the page once, and only once,
   from its origin. And the popup, through the service worker and the bridge,
   requests a section and gets its answer. No other scenario covered that path
@@ -2157,6 +2163,18 @@ now has the other one's colours.
 - **124** and **208** p): the panel only writes to a Twitch page now. The
   bench's host is therefore served as `https://www.twitch.tv/`, no longer from
   a file.
+- **37** d): under the veil, thirty batches of mutations in one task do not
+  read the sidebar again. It is read once, before the next frame, and there
+  the veil covers the sidebar, even when moved.
+- **204** g): three scans without any change do not measure the title's text
+  again. A loaded font makes it measure again, once, and so does a new text:
+  Polish finds its size.
+- **206** a bis): Twitch's language is recomputed when the page's language
+  changes (Spain, then Mexico), and when ours changes (French, then German),
+  one without the other. c bis): three scans where nothing moves walk through
+  no counter block, and the sentence that Twitch redraws with its own number
+  is re-aligned on the next scan.
+- **207** x): the waits computed from the log (see above).
 
 MUTANTS-EN
 

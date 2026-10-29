@@ -2183,13 +2183,17 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
-## Des messages adressés, et trois bizarreries corrigées (v4.25.0.10)
+## Des messages adressés, trois bizarreries corrigées, un démarrage et des balayages allégés (v4.25.0.10)
 
 La demande, sur la liste de ce qui restait après la 4.25.0.9 : « 7/ Je veux
 que tu le fasses. Mais d'abord, fais les explications des points précédents.
-8/ Je veux que tu le fasses. » Le point 7 : plus aucun message envoyé vers
-« n'importe quelle origine ». Le point 8 : les trois bizarreries que la
-4.25.0.9 avait reproduites telles quelles. Publiée sur `claude/chrome-multi`,
+8/ Je veux que tu le fasses. » Puis, les explications données : « Pour cette
+.10 ajoute : 2/ Démarrage : fait a) et b). 3/ Balayage : fait a). 5/ Test
+207 : fait b). » Le point 7 : plus aucun message envoyé vers « n'importe
+quelle origine ». Le point 8 : les trois bizarreries que la 4.25.0.9 avait
+reproduites telles quelles. Le point 2 : le voile de chargement et le titre.
+Le point 3 : trois retouches du balayage. Le point 5 : le sous-test 207 x),
+qui dépendait de la vitesse de la machine. Publiée sur `claude/chrome-multi`,
 puis reportée sur `claude/firefox-multi` et sur les deux branches de
 production.
 
@@ -2262,11 +2266,14 @@ désormais les couleurs de l'autre.
   frais garde le dessus.
 - **213** d) : en clair, la lueur abonnée a le style calculé du sombre, calque
   par calque, images exceptées, et son reflet traverse la carte une fois par
-  cycle avant d'en sortir. e) : la pastille d'une carte abonnée, photographiée
-  avec et sans l'or du nom, ne change pas de plus de 8/255, et chaque copie
-  peint sa couleur. Mesuré : 2/255 avec la correction (la lueur portée du nom
-  déborde sur le bord de la pastille), 44 quand la pastille n'est plus
-  positionnée, 94 avec la 4.25.0.9.
+  cycle avant d'en sortir. e) : sur une carte abonnée, chaque copie de la
+  pastille peint sa couleur, et la pastille est positionnée ; sur une carte
+  non abonnée, rien ne change. Le test lit le style calculé, et non l'image.
+  Une comparaison à l'image (la pastille photographiée avec et sans l'or du
+  nom) a été essayée puis écartée. Sur le banc, les cartes se rangent de
+  nouveau entre deux captures, et la frange d'or qu'un mutant laisse au bord
+  des lettres dépend de ce que le compositeur met en calque : de 2 à 39/255
+  pour le même mutant.
 - **211** : chaque demande du panneau arrive à la page une fois, et une seule,
   de son origine. Et la popup, par le service worker et le pont, demande une
   section et reçoit sa réponse. Aucun autre scénario ne parcourait ce chemin
@@ -2279,6 +2286,18 @@ désormais les couleurs de l'autre.
 - **124** et **208** p) : le panneau n'écrit plus qu'à une page Twitch. L'hôte
   du banc est donc servi comme `https://www.twitch.tv/`, et non plus depuis un
   fichier.
+- **37** d) : sous le voile, trente lots de mutations dans une même tâche ne
+  relisent pas la barre. Elle est lue une fois, avant l'image suivante, et le
+  voile y recouvre la barre, même déplacée.
+- **204** g) : trois balayages sans changement ne remesurent pas le texte du
+  titre. Une police chargée le fait remesurer, une fois, et un texte neuf
+  aussi : le polonais trouve sa taille.
+- **206** a bis) : la langue de Twitch se recalcule quand la page en change
+  (Espagne, puis Mexique), et quand la nôtre en change (le français, puis
+  l'allemand), l'une sans l'autre. c bis) : trois balayages où rien ne bouge
+  ne reparcourent aucun bloc de compteur, et la phrase que Twitch redessine
+  avec son propre nombre est recalée au balayage suivant.
+- **207** x) : les attentes calculées depuis le journal (cf. plus haut).
 
 MUTANTS-FR
 
