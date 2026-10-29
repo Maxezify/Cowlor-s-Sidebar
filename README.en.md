@@ -2286,6 +2286,14 @@ of ten, 128 assertions each. The margin of the second check goes from 6.7 to
   no counter block, and the sentence that Twitch redraws with its own number
   is re-aligned on the next scan.
 - **207** x): the waits computed from the log (see above).
+- **126**: the ordinary "pageshow" is now tried once the veil is lifted. It
+  was tried 400 ms after the restoration, while the cycle the restoration
+  opens lifts between 350 and 390 ms on the bench: its lifting sometimes fell
+  inside the counted window, and failed a regeneration of `chrome-prod` for
+  this version (11 log entries, then 12, on the shipped code). Outside a
+  cycle, nothing else writes to that log; the test also checks that the veil
+  does not come back. The mutant that takes every "pageshow" for a
+  restoration is still caught.
 
 **Twenty-nine named mutants, all caught.** Each was set alone, and the bench
 run again on the scenarios that guard what it breaks. Along the way:
