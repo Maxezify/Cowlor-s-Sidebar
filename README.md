@@ -2413,6 +2413,13 @@ vérification va de 6,7 à 6,9 s, celle de la troisième de 7,7 à 7,9 s.
   ne reparcourent aucun bloc de compteur, et la phrase que Twitch redessine
   avec son propre nombre est recalée au balayage suivant.
 - **207** x) : les attentes calculées depuis le journal (cf. plus haut).
+- **126** : le « pageshow » ordinaire s'éprouve une fois le voile levé. Il
+  s'éprouvait 400 ms après la restauration, alors que le cycle qu'elle ouvre
+  se lève entre 350 et 390 ms au banc : sa levée tombait parfois dans la
+  fenêtre comptée, et a fait échouer une régénération de `chrome-prod` de
+  cette version (11 entrées au journal, puis 12, sur le code livré). Hors cycle, rien d'autre n'écrit à ce journal ; le test vérifie en
+  plus que le voile ne revient pas. Le mutant qui prend tout « pageshow »
+  pour une restauration reste pris.
 
 **Vingt-neuf mutants nommés, tous pris.** Chacun a été posé seul, et le banc
 relancé sur les scénarios qui gardent ce qu'il casse. En route :

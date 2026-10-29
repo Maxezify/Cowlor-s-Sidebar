@@ -18145,23 +18145,30 @@ addEventListener('message', (e) => {
      && restaure.some((m) => /cache avant/.test(m || '')),
      JSON.stringify(restaure));
 
-  /* `persisted` DISTINGUE LES DEUX « pageshow ». Au chargement ordinaire il
-     vaut false, et le démarrage a déjà tout fait : refaire tomber le voile
-     là-dessus serait un clignotement à chaque ouverture de page. */
-  const ordinaire = await page.evaluate(async () => {
-    const n = window.tse.panneau.rapport().journaux.cycles.length;
-    window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: false }));
-    await new Promise((r) => setTimeout(r, 400));
-    return { n, apres: window.tse.panneau.rapport().journaux.cycles.length };
-  });
-  ok('…et un « pageshow » ordinaire ne déclenche rien',
-     ordinaire.n === ordinaire.apres, JSON.stringify(ordinaire));
-
   /* LE VOILE SE LÈVE. Un voile posé et jamais levé est pire que pas de voile :
      la barre reste masquée sur une page que l'utilisateur regarde. */
   await attendre(page, () => !document.body.classList.contains('tse-loading'), 8000);
   ok('…et le voile se lève de lui-même une fois la barre stable',
      await page.evaluate(() => !document.body.classList.contains('tse-loading')));
+
+  /* `persisted` DISTINGUE LES DEUX « pageshow ». Au chargement ordinaire il
+     vaut false, et le démarrage a déjà tout fait : refaire tomber le voile
+     là-dessus serait un clignotement à chaque ouverture de page.
+     ÉPROUVÉ VOILE LEVÉ (4.25.0.10), et non plus 400 ms après la restauration :
+     le cycle qu'elle ouvre écrit encore au journal jusqu'à sa levée — entre
+     300 ms et 1,2 s au banc —, et sa levée tombait parfois dans la fenêtre
+     comptée ici (11 entrées, puis 12, sur le code livré). Hors cycle, rien
+     n'écrit à ce journal qu'un cycle qui s'ouvre : une entrée de plus, ou le
+     voile revenu, est donc le « pageshow » ordinaire qui a déclenché. */
+  const ordinaire = await page.evaluate(async () => {
+    const n = window.tse.panneau.rapport().journaux.cycles.length;
+    window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: false }));
+    await new Promise((r) => setTimeout(r, 400));
+    return { n, apres: window.tse.panneau.rapport().journaux.cycles.length,
+             voile: document.body.classList.contains('tse-loading') };
+  });
+  ok('…et un « pageshow » ordinaire ne déclenche rien',
+     ordinaire.n === ordinaire.apres && !ordinaire.voile, JSON.stringify(ordinaire));
   await page.close();
 }
 
