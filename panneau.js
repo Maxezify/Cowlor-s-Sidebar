@@ -942,6 +942,21 @@ const EXPIRATION_CADRE = 30_000;
 let suivantCadre = 0;
 const attentesCadre = new Map();
 
+/* VERS NOTRE PARENT, NOMMÉ (4.25.0.10 ; « * » jusque-là). Le parent est une
+   page twitch.tv, et twitch.tv a deux origines, avec et sans « www » : on
+   ne sait pas laquelle nous porte, et on n'a pas besoin de le savoir. Le
+   message part vers CHACUNE ; le navigateur jette en silence celui dont
+   l'origine ne correspond pas, et l'autre arrive — une fois, et seulement
+   dans une page Twitch. Dans tout autre parent, rien n'arrive.
+
+   Ni paramètre d'adresse à faire passer par la page, ni `ancestorOrigins`,
+   que Firefox n'a pas avant la 148 : la liste tient en deux lignes, et ce
+   sont les deux origines que le manifeste déclare. */
+const ORIGINES_PARENT = ['https://www.twitch.tv', 'https://twitch.tv'];
+const posterAuParent = (message) => {
+  for (const origine of ORIGINES_PARENT) window.parent.postMessage(message, origine);
+};
+
 window.addEventListener('message', (e) => {
   /* ON NE RÉPOND QU'À NOTRE PARENT, et sur un identifiant qu'on a soi-même
      émis. Un script de la page peut poster ce qu'il veut ; il ne peut pas
@@ -968,11 +983,7 @@ const demanderCadre = (charge) => new Promise((resoudre) => {
                detail: 'la page n\'a pas répondu' });
   }, EXPIRATION_CADRE);
   attentesCadre.set(id, { resoudre, minuteur });
-  /* targetOrigin '*' : la destination est twitch.tv, dont il existe deux
-     origines (avec et sans « www »), et un targetOrigin qui ne correspond pas
-     fait jeter le message en silence. Ce qui voyage est une demande de lecture
-     de la page, que `window.tse` rend déjà à qui la lui demande. */
-  try { window.parent.postMessage({ tse: INCRUSTE_REQ, id, ...charge }, '*'); }
+  try { posterAuParent({ tse: INCRUSTE_REQ, id, ...charge }); }
   catch {
     clearTimeout(minuteur);
     attentesCadre.delete(id);
@@ -2910,11 +2921,8 @@ document.addEventListener('DOMContentLoaded', () => {
        barre d'outils, `window.parent` est `window`, et le message reviendrait
        s'adresser à nous-mêmes. */
     if (document.documentElement.getAttribute('data-vue') !== 'incruste') return;
-    /* targetOrigin '*' : la destination est une page twitch.tv, dont on ne
-       veut pas coder l'origine en dur — il y en a deux (avec et sans « www »),
-       et une origine qui ne correspond pas fait jeter le message en silence.
-       Ce qui voyage est un ordre de fermeture, sans donnée. */
-    try { window.parent.postMessage({ tse: 'tse-panneau-fermer' }, '*'); }
+    // Vers la page Twitch qui nous porte, et elle seule (cf. posterAuParent).
+    try { posterAuParent({ tse: 'tse-panneau-fermer' }); }
     catch { /* parent inatteignable : le cadre se fermera à la croix */ }
   });
 
