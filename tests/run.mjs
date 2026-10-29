@@ -1,6 +1,8 @@
 import { chromium, firefox } from 'playwright';
 import { pathToFileURL, fileURLToPath } from 'node:url';
-import { readFileSync, writeFileSync, rmSync, readdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, rmSync, readdirSync, mkdtempSync, mkdirSync, cpSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { tokenizer } from 'acorn';
 import { createContext, runInContext } from 'node:vm';
 import { dirname, join } from 'node:path';
 import { degraisser, degraisserJs, memeCode, compterCommentaires,
@@ -1460,7 +1462,7 @@ titre('30. Aperçu — l\'iframe n\'apparaît qu\'une fois une image affichée')
   // servis par la route de player.twitch.tv — donc à la bonne origine.
   const fakePlayer = (withVideo) => `<!doctype html><html><body>
     <script src="/adblock.test.js"></script>
-    <script src="/content.test.js"></script>
+    <script src="/cadres.test.js"></script>
     <script>
       ${withVideo ? `
       // Vidéo RÉELLE : un canvas animé capturé en MediaStream. Les images sont
@@ -5040,7 +5042,7 @@ titre('58. Aperçu — l\'écran « Commencer à regarder » ne doit plus figer 
       });
     </script>
     <script src="/adblock.test.js"></script>
-    <script src="/content.test.js"></script>
+    <script src="/cadres.test.js"></script>
   </body></html>`;
 
   const etatIframe = (page) => page.evaluate(() => {
@@ -5149,7 +5151,7 @@ titre('58. Aperçu — l\'écran « Commencer à regarder » ne doit plus figer 
         }, 400);
       </script>
       <script src="/adblock.test.js"></script>
-      <script src="/content.test.js"></script>
+      <script src="/cadres.test.js"></script>
     </body></html>`;
 
     const page = await freshTwitch(lecteurVideoDAbord);
@@ -5237,7 +5239,7 @@ titre('58. Aperçu — l\'écran « Commencer à regarder » ne doit plus figer 
         }, 400);
       </script>
       <script src="/adblock.test.js"></script>
-      <script src="/content.test.js"></script>
+      <script src="/cadres.test.js"></script>
     </body></html>`;
 
     const page = await freshTwitch(lecteurVideoRemplacee);
@@ -5567,7 +5569,7 @@ titre('61. Firefox — l\'aperçu tient sans les API que Chrome a en plus');
         Elle est [LegacyUnforgeable] — propriété propre, non configurable —
         donc impossible à retirer depuis la page. Le retrait se fait à la
         construction, sur une copie (cf. tests/build.mjs), et ce scénario
-        charge ces variantes : /content.firefox.test.js et
+        charge ces variantes : /cadres.firefox.test.js et
         /adblock.firefox.test.js.
 
       • requestVideoFrameCallback — arrivée en Firefox 132, donc présente au
@@ -5602,7 +5604,7 @@ titre('61. Firefox — l\'aperçu tient sans les API que Chrome a en plus');
       }, 40);
     </script>
     <script src="/adblock.firefox.test.js"></script>
-    <script src="/content.firefox.test.js"></script>
+    <script src="/cadres.firefox.test.js"></script>
   </body></html>`;
 
   const page = await freshTwitch(lecteurFirefox);
@@ -5629,14 +5631,14 @@ titre('61. Firefox — l\'aperçu tient sans les API que Chrome a en plus');
         rvfc: window.__fxSansApi?.rvfc ?? null,
         /* La SUBSTITUTION elle-même, lue dans le source servi : un nom de
            fichier ne prouve pas qu'on y a retiré ancestorOrigins. */
-        substituee: await Promise.all(['/content.firefox.test.js', '/adblock.firefox.test.js']
+        substituee: await Promise.all(['/cadres.firefox.test.js', '/adblock.firefox.test.js']
           .map((u) => fetch(u).then((r) => r.text())
             .then((t) => t.includes('const a = undefined; /* Firefox < 148 */')
               && !t.includes('const a = location.ancestorOrigins;'))))
           .then((l) => l.every(Boolean)),
         // La variante de build est-elle bien celle qui tourne ? On lit la
         // ligne substituée dans le source servi, pas une intention.
-        variante: [...document.scripts].some(s => s.src.endsWith('/content.firefox.test.js')),
+        variante: [...document.scripts].some(s => s.src.endsWith('/cadres.firefox.test.js')),
         /* Et celle de l'anti-pub (4.24.0.1) : sa garde lit ancestorOrigins
            elle aussi, et doit se contenter du nom de l'aperçu sans elle. */
         varianteAnti: [...document.scripts].some(s => s.src.endsWith('/adblock.firefox.test.js')),
@@ -6339,14 +6341,14 @@ titre('66. Paquet — retirer les commentaires sans toucher au programme');
   /* Un dégraisseur qui ne ferait RIEN passerait tout ce qui précède. On mesure
      donc qu'il enlève vraiment quelque chose, et sur les vrais fichiers. */
   const RACINE = join(ICI, '..');
-  const mesures = ['content.js', 'adblock.js'].map((f) => {
+  const mesures = ['content.js', 'cadres.js', 'adblock.js'].map((f) => {
     const src = readFileSync(join(RACINE, f), 'utf8');
     const out = degraisser(src);
     return { f, souci: memeCode(src, out),
              avant: Buffer.byteLength(src), apres: Buffer.byteLength(out) };
   });
   const abimes = mesures.filter(m => m.souci);
-  ok('content.js et adblock.js gardent leur flux de jetons exact',
+  ok('content.js, cadres.js et adblock.js gardent leur flux de jetons exact',
      abimes.length === 0, abimes.map(m => `${m.f} : ${m.souci}`).join(' | '));
   const gain = 1 - mesures.reduce((n, m) => n + m.apres, 0)
                  / mesures.reduce((n, m) => n + m.avant, 0);
@@ -6364,18 +6366,21 @@ titre('66. Paquet — retirer les commentaires sans toucher au programme');
   /* …et le reste doit bien être parti, sinon « conserver les mentions
      légales » deviendrait « ne rien enlever ». La mesure est exacte : après
      dégraissage, il ne doit rester QUE les notices, ni plus ni moins.
-     content.js passe de 2721 commentaires à 2 — les deux crédits OpenMoji,
-     dont la licence CC BY-SA exige l'attribution — et adblock.js de 290 à 2,
-     qui portent la notice MIT d'amont. */
-  const restants = ['content.js', 'adblock.js'].map((f) => {
+     content.js garde les deux crédits OpenMoji, dont la licence CC BY-SA
+     exige l'attribution, et adblock.js les deux qui portent la notice MIT
+     d'amont. cadres.js n'en porte aucune (4.25.0.9) : tous ses commentaires
+     partent — ce qui n'est vrai que s'il en avait, d'où le plancher. */
+  const restants = ['content.js', 'cadres.js', 'adblock.js'].map((f) => {
     const src = readFileSync(join(RACINE, f), 'utf8');
     const a = compterCommentaires(src);
     const b = compterCommentaires(degraisser(src));
     return { f, avant: a.total, legaux: a.legaux, apres: b.total };
   });
-  const boiteuses = restants.filter(r => r.apres !== r.legaux || r.legaux === 0
+  const SANS_NOTICE = ['cadres.js'];
+  const boiteuses = restants.filter(r => r.apres !== r.legaux
+                                      || (r.legaux === 0) !== SANS_NOTICE.includes(r.f)
                                       || r.avant < r.legaux + 100);
-  ok('après dégraissage il ne reste QUE les notices, dans les deux fichiers',
+  ok('après dégraissage il ne reste QUE les notices, dans les trois fichiers',
      boiteuses.length === 0,
      restants.map(r => `${r.f} ${r.avant}→${r.apres} (légaux ${r.legaux})`).join(' | '));
 
@@ -17290,26 +17295,52 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
     }
     const f = document.querySelector('.tse-incruste-frame');
     /* Le cadre n'a pas pu charger l'adresse d'extension de ce décor : il porte
-       donc encore son « about:blank », de même origine, où l'on peut écouter. */
+       donc encore son « about:blank », de même origine. Or la réponse ne part
+       plus que vers l'origine du panneau (4.25.0.9), et un « about:blank » ne
+       la recevrait pas : on lit ce que la page POSTE au cadre, cible comprise. */
     const w = f.contentWindow;
     const recues = [];
-    w.addEventListener('message', (e) => { if (e.data && e.data.tse === 'tse-incruste-res') recues.push(e.data); });
-    window.dispatchEvent(new MessageEvent('message', {
-      data: { tse: 'tse-incruste-req', id: 7, section: 'roster' }, source: w }));
+    w.postMessage = (data, cible) => { if (data && data.tse === 'tse-incruste-res') recues.push({ ...data, cible }); };
+    const demander = (id, origin, source = w) => window.dispatchEvent(new MessageEvent('message', {
+      data: { tse: 'tse-incruste-req', id, section: 'roster' }, source, origin }));
+    demander(7, 'chrome-extension://tse');
     await new Promise((r) => setTimeout(r, 250));
     /* LA MÊME DEMANDE, VENUE D'AILLEURS. Un script de la page ne doit pas
        pouvoir se faire servir par un cadre qu'il n'a pas ouvert. */
-    window.dispatchEvent(new MessageEvent('message', {
-      data: { tse: 'tse-incruste-req', id: 8, section: 'roster' }, source: window }));
+    demander(8, 'chrome-extension://tse', window);
+    /* NOTRE CADRE, RENVOYÉ AILLEURS (4.25.0.9) : la même fenêtre, une autre
+       origine. Il ne porte plus le panneau ; rien ne lui est servi. */
+    demander(9, 'https://www.twitch.tv');
     await new Promise((r) => setTimeout(r, 250));
-    return { combien: recues.length, premiere: recues[0] || null };
+    return { ids: recues.map((x) => x.id), premiere: recues[0] || null };
   });
-  ok('la page sert son cadre directement, sans worker ni pont',
-     court.combien === 1 && !!court.premiere && court.premiere.id === 7
-     && court.premiere.ok === true && !!court.premiere.data,
+  ok('la page sert son cadre directement, sans worker ni pont — vers l\'origine du panneau, et elle seule',
+     court.ids.includes(7) && !!court.premiere && court.premiere.id === 7
+     && court.premiere.ok === true && !!court.premiere.data && court.premiere.cible === 'chrome-extension://tse',
      JSON.stringify(court).slice(0, 220));
   ok('…et une demande venue de la page elle-même n\'est pas servie',
-     court.combien === 1, String(court.combien));
+     !court.ids.includes(8), JSON.stringify(court.ids));
+  ok('…ni celle du cadre renvoyé vers une autre origine',
+     !court.ids.includes(9), JSON.stringify(court.ids));
+
+  /* UN NOM HÉRITÉ N'EST NI UNE SECTION NI UNE ACTION (4.25.0.9) :
+     « constructor » et « toString » sont des fonctions aussi, que le
+     prototype de la table prêtait — la page les appelait, et répondait
+     « servi ». Mutant — la table lue sans Object.hasOwn. */
+  const herites = await page.evaluate(async () => {
+    const w = document.querySelector('.tse-incruste-frame').contentWindow;
+    const recues = [];
+    w.postMessage = (data) => { if (data && data.tse === 'tse-incruste-res') recues.push(data); };
+    for (const [id, quoi] of [[21, { action: 'constructor' }], [22, { section: 'toString' }], [23, { section: 'roster' }]]) {
+      window.dispatchEvent(new MessageEvent('message', {
+        data: { tse: 'tse-incruste-req', id, ...quoi }, source: w, origin: 'chrome-extension://tse' }));
+    }
+    await new Promise((r) => setTimeout(r, 250));
+    return recues.map((x) => ({ id: x.id, ok: x.ok, erreur: x.erreur || null })).sort((a, b) => a.id - b.id);
+  });
+  ok('…et un nom hérité du prototype n\'est ni une section ni une action : « constructor », « toString » refusés, « roster » servi',
+     JSON.stringify(herites) === JSON.stringify([{ id: 21, ok: false, erreur: 'inconnu' },
+       { id: 22, ok: false, erreur: 'inconnu' }, { id: 23, ok: true, erreur: null }]), JSON.stringify(herites));
 
   /* ── ET DEUX CLICS NE FONT PAS DEUX CADRES ───────────────────────────── */
   const double = await page.evaluate(async () => {
@@ -24689,9 +24720,9 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
 {
   titre('172. Phase 0 — l\'anti-pub et le pont n\'agissent que dans l\'aperçu');
   /* Les deux valeurs que les deux fichiers doivent partager : adblock.js,
-     chargé le premier, ne peut pas lire les constantes de content.js et les
+     chargé le premier, ne peut pas lire les constantes de cadres.js et les
      recopie. Lues dans les SOURCES, comme la palette du scénario 29. */
-  const srcContenu = readFileSync(join(ICI, '..', 'content.js'), 'utf8');
+  const srcContenu = readFileSync(join(ICI, '..', 'cadres.js'), 'utf8');
   const srcAnti = readFileSync(join(ICI, '..', 'adblock.js'), 'utf8');
   const nomContenu = /const TSE_PREVIEW_FRAME_NAME = '([^']+)';/.exec(srcContenu)?.[1];
   const parentsContenu = /const TSE_PREVIEW_PARENTS = \[([^\]]+)\];/.exec(srcContenu)?.[1]
@@ -24726,7 +24757,7 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
       });
     </script>
     <script src="/adblock.test.js"></script>
-    <script src="/content.test.js"></script>
+    <script src="/cadres.test.js"></script>
   </body></html>`;
   const page = await freshTwitch(lecteur);
   await page.evaluate(() => localStorage.setItem('tse:roue', 'vu'));
@@ -25115,7 +25146,7 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
       };
     </script>
     <script src="/adblock.test.js"></script>
-    <script src="/content.test.js"></script>
+    <script src="/cadres.test.js"></script>
   </body></html>`;
   const page = await freshTwitch(lecteur);
   await page.evaluate(() => localStorage.setItem('tse:roue', 'vu'));
@@ -25637,7 +25668,7 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
      JSON.stringify({ avantMontage, monteTard, horsDelai }));
 
   // ── Le pont, dans son rôle de salle, se tait ailleurs ─────────────────────
-  const lecteurRenard = lecteur.replace('/content.test.js', '/content.firefox.test.js')
+  const lecteurRenard = lecteur.replace('/cadres.test.js', '/cadres.firefox.test.js')
     .replace('/adblock.test.js', '/adblock.firefox.test.js');
   await page.route((url) => url.hostname === 'player.twitch.tv' && url.searchParams.get('channel') === 'renard',
     (route) => route.fulfill({ contentType: 'text/html; charset=utf-8', body: lecteurRenard }));
@@ -26177,7 +26208,7 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
       });
     </script>
     <script src="/adblock.test.js"></script>
-    <script src="/content.test.js"></script>
+    <script src="/cadres.test.js"></script>
   </body></html>`;
   // La largeur de Twitch pour la barre, posée à CHAQUE chargement : la salle
   // change de page, et un style ajouté après coup ne survivrait pas.
@@ -27150,7 +27181,7 @@ const S_LECTEUR_SONDE = () => {
       }
     </script>
     <script src="/adblock.test.js"></script>
-    <script src="/content.test.js"></script>
+    <script src="/cadres.test.js"></script>
   </body></html>`;
 };
 
@@ -27450,6 +27481,29 @@ const S_LECTEUR_SONDE = () => {
      && consoles.some((x) => x.valeur?.envoye === 'recul' && x.valeur?.chaine === 'bravo' && x.valeur?.secondes === 0.5),
      JSON.stringify({ depuisBravo, depuisAlpha, bravo: r1.tuiles.bravo?.essai, alpha: r2.tuiles.alpha?.essai, consoles }));
 
+  /* UNE TUILE QUI NE PARLE PLUS DEPUIS UN LECTEUR (4.25.0.9) : la fenêtre de
+     « bravo », mais l'origine de la page — un script qui aurait renvoyé la
+     tuile ailleurs. La salle ne lui répond pas ; à la même demande venue de
+     l'origine d'un lecteur, si — preuve que le message forgé l'atteint bien.
+     On écoute dans la tuile ce que la salle lui renvoie, sur une commande
+     qui ne change rien : `rapport`. Mutant — l'origine des tuiles plus
+     vérifiée. */
+  await cadre('bravo')?.evaluate(() => {
+    window.__reponses = [];
+    addEventListener('message', (e) => { if (e.data?.tse === 'tse:salle-console-reponse') window.__reponses.push(e.data.n); });
+  });
+  for (const [origin, n] of [['https://www.twitch.tv', 990], ['https://player.twitch.tv', 991]]) {
+    await page.evaluate(([o, num]) => {
+      const f = [...document.querySelectorAll('iframe[name="tse-salle"]')].find((x) => x.src.includes('channel=bravo'));
+      window.dispatchEvent(new MessageEvent('message', { source: f.contentWindow, origin: o,
+        data: { tse: 'tse:salle-console', n: num, commande: 'rapport', args: [] } }));
+    }, [origin, n]);
+  }
+  await wait(page, 600);
+  const reponses = await cadre('bravo')?.evaluate(() => window.__reponses).catch((e) => String(e));
+  ok('…mais une tuile qui ne parle plus depuis un lecteur n\'est plus écoutée ; depuis un lecteur, la même demande l\'est',
+     JSON.stringify(reponses) === '[991]', JSON.stringify(reponses));
+
   /* LA CONSOLE D'UN CHAT : de même origine que la page, `tse` y est le sien.
      Mutant — rien de posé dans les chats. */
   const chat = page.frames().find((f) => f.name() === 'tse-salle-chat' && !f.isDetached());
@@ -27472,10 +27526,12 @@ const S_LECTEUR_SONDE = () => {
     const f = document.querySelector('.tse-incruste-frame');
     const w = f && f.contentWindow;
     if (!w) return 'pas de cadre';
+    /* Ce que la page poste au cadre, lu à sa place : la réponse ne part que
+       vers l'origine du panneau (cf. 122), que ce décor n'a pas chargé. */
     const recues = [];
-    w.addEventListener('message', (e) => { if (e.data && e.data.tse === 'tse-incruste-res') recues.push(e.data); });
+    w.postMessage = (data) => { if (data && data.tse === 'tse-incruste-res') recues.push(data); };
     const demander = (id, arg) => window.dispatchEvent(new MessageEvent('message',
-      { data: { tse: 'tse-incruste-req', id, action: 'salle', arg }, source: w }));
+      { data: { tse: 'tse-incruste-req', id, action: 'salle', arg }, source: w, origin: 'chrome-extension://tse' }));
     demander(41, { commande: 'recul', args: [0.4] });
     demander(42, { commande: 'fermer', args: [] });
     demander(43, { commande: 'aligner', args: [false] });
@@ -29352,7 +29408,7 @@ const S_LECTEUR_SONDE = () => {
       })();
     </script>
     <script src="/adblock.test.js"></script>
-    <script src="/content.test.js"></script>
+    <script src="/cadres.test.js"></script>
   </body></html>`;
   await page.route((url) => url.hostname === 'player.twitch.tv' && ['gate', 'tetu'].includes(url.searchParams.get('channel')),
     (route) => route.fulfill({ contentType: 'text/html; charset=utf-8', body: LECTEUR_GATE }));
@@ -34677,6 +34733,49 @@ const S_LECTEUR_SONDE = () => {
      && JSON.stringify((clesAbime || []).slice().sort()) === JSON.stringify(QUATRE),
      JSON.stringify({ memoAbime, chaines: ops(logAbime, 'TseAgendaChaines').map((x) => x.logins), clesAbime }));
 
+  /* UNE FICHE PLAUSIBLE, D'UNE FORME QUE LE RÉSEAU N'ÉCRIT PAS (4.25.0.9). La
+     base est celle de twitch.tv : n'importe quel script de la page l'écrit.
+     L'identifiant de la dernière archive, relu tel quel, partait dans le
+     TEXTE de la requête des jetons : il est fait de chiffres, ou la fiche ne
+     se relit pas — elle se redemande, et seule elle. De même un jeton dont
+     l'avis n'est pas un booléen : il se redemande. Ce qui, dans le même
+     enregistrement, a la forme se relit. Mutant — la validation de surface
+     d'avant (une date et un nom). */
+  const FORGE = '1", params: {}) { value } x: user(login: "y';
+  await base(pd, `return lire(st.get('cobalt')).then((r) => {
+      r.f = { ...r.f, derniere: { ...r.f.derniere, id: arg } };
+      st.put(r, 'cobalt');
+      return lire(st.get('brume')).then((b) => { b.a = { ...b.a, fermee: 'oui' }; st.put(b, 'brume'); return 1; });
+    });`, FORGE);
+  const jetonBrume = await base(pd, "return lire(st.get('brume')).then((r) => (r && r.a ? r.a.video : null));");
+  await recharger(pd, { chaines: QUATRE });
+  // Le texte de chaque requête, entier : c'est lui qu'une injection toucherait.
+  await pd.evaluate(() => {
+    window.__textes = [];
+    const avant = window.fetch;
+    window.fetch = async (url, opt) => {
+      try { for (const o of JSON.parse(opt.body)) window.__textes.push(o.query || ''); } catch { /* pas du JSON */ }
+      return avant(url, opt);
+    };
+  });
+  await finir(pd, () => window.tse.panneau('horsLigne'));
+  await wait(pd, 600);
+  const logForme = await journal(pd);
+  const textes = await pd.evaluate(() => window.__textes);
+  const memoForme = await pd.evaluate(() => window.tse.panneau.rapport().agenda.memoire);
+  const idCobalt = await base(pd, "return lire(st.get('cobalt')).then((r) => (r && r.f && r.f.derniere ? r.f.derniere.id : null));");
+  // Hors des chaînes littérales, le texte d'une requête ne doit nommer que des jetons.
+  const horsChaines = textes.map((q) => q.replace(/"(?:[^"\\]|\\.)*"/g, '""'));
+  ok('δ) …une fiche dont la dernière archive porte un identifiant forgé ne se relit pas : elle se redemande, et rien n\'en passe dans une requête',
+     JSON.stringify(ops(logForme, 'TseAgendaChaines').map((x) => x.logins)) === '[["cobalt"]]'
+     && textes.length > 0 && !textes.some((q) => q.includes('user(login: \\"y') || q.includes('user(login: "y'))
+     && !horsChaines.some((q) => /\buser\(/.test(q)) && /^\d+$/.test(idCobalt || '') && memoForme.restaurees === 4,
+     JSON.stringify({ chaines: ops(logForme, 'TseAgendaChaines').map((x) => x.logins), idCobalt, memoForme,
+                      textes: textes.filter((q) => /TseAgendaAcces/.test(q)) }));
+  ok('δ) …un jeton dont l\'avis n\'est pas un booléen non plus : il se redemande',
+     !!jetonBrume && ops(logForme, 'TseAgendaAcces').some((x) => x.ids.includes(jetonBrume)),
+     JSON.stringify({ jetonBrume, acces: ops(logForme, 'TseAgendaAcces').map((x) => x.ids) }));
+
   // Une chaîne qu'on ne suit plus sort de la base ; « Effacer l'historique » la vide.
   await pd.evaluate(() => {
     const o = JSON.parse(localStorage.getItem('tse:roster') || '{}');
@@ -36487,6 +36586,303 @@ addEventListener('message', (e) => {
      g.clics === 1 && g.rendues === 24 && g.directsVisibles === 13 && g.depliage.directsApresHorsLigne === 1,
      JSON.stringify({ clics: g.clics, rendues: g.rendues, directs: g.directsVisibles, depliage: g.depliage }));
   await pg.close();
+}
+
+/* ═════════ L'EXTENSION RÉELLE, CHARGÉE PAR LE NAVIGATEUR (4.25.0.9) ═══════
+   Tout le reste du banc SIMULE l'injection : page.html et les lecteurs
+   factices chargent à la main les copies des scripts, dans l'ordre du
+   manifeste. Ce scénario-ci est le seul où c'est CHROMIUM qui lit le
+   manifeste et injecte. C'est donc le seul qui verrait une faute dans le bloc
+   content_scripts lui-même — un fichier dans la mauvaise entrée, un
+   all_frames inversé — ou deux fichiers qui déclarent le même nom au premier
+   niveau d'une même page, ce qui fait échouer le second ENTIER.
+
+   Né du découpage de content.js : les ponts d'iframe vivent dans cadres.js,
+   injecté dans toutes les frames, et content.js ne part plus que dans le
+   cadre principal. Mesuré ici : quels fichiers tournent en haut, dans une
+   iframe www.twitch.tv et dans un lecteur ; puis le panneau incrusté de bout
+   en bout — dans un vrai cadre chrome-extension://, ce que le scénario 122 ne
+   peut qu'espionner — et ce même cadre renvoyé vers une autre origine, qui ne
+   doit plus rien recevoir.
+
+   Le manifeste est celui de la branche. Sous Firefox, sa clé de fond est
+   `background.scripts`, que Chromium refuse en MV3 : elle est ramenée à la
+   forme que Chromium lit, sur la COPIE chargée — le bloc content_scripts,
+   seul objet de ce scénario, est mot pour mot celui des deux branches
+   (cf. tests/addon.mjs). Le décor est page.html, privé des scripts qu'il
+   charge à la main : c'est le navigateur qui les pose. */
+{
+  titre('211. L\'extension réelle — chargée par Chromium : quels fichiers dans quelles frames, et le panneau incrusté de bout en bout');
+  const RACINE = join(ICI, '..');
+  const dossier = mkdtempSync(join(tmpdir(), 'tse-extension-'));
+  const ext = join(dossier, 'extension');
+  mkdirSync(ext);
+  // La liste blanche du paquet (cf. tests/addon.mjs) : ce qui part, et rien d'autre.
+  for (const f of ['manifest.json', 'content.js', 'cadres.js', 'adblock.js', 'icons', '_locales',
+                   'bridge.js', 'background.js', 'panneau.html', 'panneau.css', 'panneau.js']) {
+    cpSync(join(RACINE, f), join(ext, f), { recursive: true });
+  }
+  const man = JSON.parse(readFileSync(join(ext, 'manifest.json'), 'utf8'));
+  if (man.background?.scripts) man.background = { service_worker: man.background.scripts[0] };
+  delete man.browser_specific_settings;
+  writeFileSync(join(ext, 'manifest.json'), JSON.stringify(man, null, 2));
+  const decor = readFileSync(join(ICI, 'page.html'), 'utf8')
+    .replace(/<script src="\.\/adblock\.test\.js"><\/script>[\s\S]*?<\/body>/, '</body>');
+  ok('le décor est page.html sans aucun des scripts de l\'extension : c\'est le navigateur qui les injecte',
+     !/\.test\.js/.test(decor) && decor.includes('__addCard'), String(decor.length));
+
+  const ctx = await chromium.launchPersistentContext(join(dossier, 'profil'), {
+    ...(process.env.TSE_CHROMIUM ? { executablePath: process.env.TSE_CHROMIUM } : { channel: 'chromium' }),
+    headless: true,
+    args: [`--disable-extensions-except=${ext}`, `--load-extension=${ext}`],
+  });
+  try {
+    await ctx.route('https://www.twitch.tv/**', (r) => r.fulfill({ contentType: 'text/html; charset=utf-8', body: decor }));
+    await ctx.route('https://player.twitch.tv/**', (r) => r.fulfill({ contentType: 'text/html; charset=utf-8',
+      body: '<!doctype html><html><body style="margin:0;background:#000"></body></html>' }));
+    await ctx.route('https://static-cdn.jtvnw.net/**', (r) => r.fulfill({ contentType: 'image/png', body: PIXEL }));
+    const page = await ctx.newPage();
+    const erreursPage = [];
+    page.on('pageerror', (e) => erreursPage.push(e.message));
+    await page.goto('https://www.twitch.tv/');
+    await page.evaluate(() => {
+      localStorage.setItem('tse:indice', 'vu');
+      localStorage.setItem('tse:roue', 'vu');
+      window.__fx = { alpha: { id: 'a', createdAt: new Date(Date.now() - 3600e3).toISOString(), viewers: 900, game: 'G', tags: [] } };
+      window.__addCard('alpha', 'G', '900');
+    });
+    await page.waitForFunction(() => document.documentElement.getAttribute('data-tse-boot') === 'pret'
+      && !!document.getElementById('tse-roue'), null, { timeout: 15_000 }).catch(() => {});
+
+    /* ── QUELS FICHIERS, DANS QUELLES FRAMES ─────────────────────────────
+       Un nom global de chacun : TSE_ADBLOCK_ENABLED pour l'anti-pub,
+       TSE_PREVIEW_PARENTS pour les ponts, TSE_PREVIEW_FIRST_FRAME_MSG pour le
+       module principal — qui pose aussi `window.tse`. Mutants — content.js
+       remis dans toutes les frames ; un nom partagé déclaré au premier niveau
+       de cadres.js, qui fait échouer content.js dans le cadre principal. */
+    const quiTourne = (f) => f.evaluate(() => ({ antipub: typeof TSE_ADBLOCK_ENABLED,
+      ponts: typeof TSE_PREVIEW_PARENTS, module: typeof TSE_PREVIEW_FIRST_FRAME_MSG, tse: typeof window.tse }));
+    const haut = await quiTourne(page.mainFrame());
+    await page.evaluate(() => {
+      for (const src of ['https://www.twitch.tv/directory/following', 'https://player.twitch.tv/?channel=alpha&parent=www.twitch.tv']) {
+        const f = document.createElement('iframe');
+        f.src = src;
+        f.style.cssText = 'position:fixed;right:0;bottom:0;width:300px;height:200px';
+        document.body.appendChild(f);
+      }
+    });
+    await wait(page, 2_000);
+    const cadreDe = (debut) => page.frames().find((f) => f !== page.mainFrame() && f.url().startsWith(debut));
+    const iframeTwitch = cadreDe('https://www.twitch.tv/directory/following');
+    const lecteur = cadreDe('https://player.twitch.tv/');
+    const dansTwitch = iframeTwitch ? await quiTourne(iframeTwitch) : null;
+    const dansLecteur = lecteur ? await quiTourne(lecteur) : null;
+    ok('en haut, les trois fichiers tournent ensemble — anti-pub, ponts, module —, sans une erreur de page',
+       JSON.stringify(haut) === JSON.stringify({ antipub: 'boolean', ponts: 'object', module: 'string', tse: 'object' })
+       && erreursPage.length === 0, JSON.stringify({ haut, erreursPage }));
+    ok('…dans une iframe www.twitch.tv et dans un lecteur : l\'anti-pub et les ponts, jamais le module principal',
+       [dansTwitch, dansLecteur].every((x) => x && x.antipub === 'boolean' && x.ponts === 'object'
+         && x.module === 'undefined' && x.tse === 'undefined'),
+       JSON.stringify({ dansTwitch, dansLecteur }));
+
+    /* ── LE PANNEAU INCRUSTÉ, DE BOUT EN BOUT ────────────────────────────
+       La roue ouvre panneau.html dans un vrai cadre chrome-extension:// ; le
+       panneau demande une section, et la réponse lui arrive — postée vers
+       SON origine (cf. 122). Mutant — la réponse visant une autre origine. */
+    await page.evaluate(() => document.getElementById('tse-roue')?.click());
+    await wait(page, 400);
+    await page.evaluate(() => { if (!document.getElementById('tse-incruste')) document.getElementById('tse-roue')?.click(); });
+    await wait(page, 2_500);
+    const panneau = page.frames().find((f) => f.url().startsWith('chrome-extension://'));
+    const recu = panneau ? await panneau.evaluate(async () => {
+      const recus = [];
+      addEventListener('message', (e) => { if (e.data?.tse === 'tse-incruste-res') recus.push({ origin: e.origin, ok: e.data.ok }); });
+      document.querySelector('.rail-item[data-id="scores"]')?.click();
+      await new Promise((r) => setTimeout(r, 1_500));
+      return { origine: location.origin, recus };
+    }) : null;
+    ok('le panneau incrusté, dans un vrai cadre d\'extension, demande une section et reçoit sa réponse de la page',
+       !!recu && /^chrome-extension:\/\/[a-p]{32}$/.test(recu.origine) && recu.recus.length >= 1
+       && recu.recus.every((x) => x.origin === 'https://www.twitch.tv' && x.ok === true),
+       JSON.stringify(recu));
+
+    /* ── LE MÊME CADRE, RENVOYÉ AILLEURS ─────────────────────────────────
+       Un script de la page change l'adresse du cadre : même fenêtre, autre
+       origine. Une demande en part ; la page ne lui sert rien. En 4.25.0.8,
+       elle lui servait la section demandée. Mutant — l'origine de la demande
+       plus vérifiée. */
+    await page.evaluate(() => { document.querySelector('.tse-incruste-frame').src = 'https://www.twitch.tv/ailleurs'; });
+    await wait(page, 2_000);
+    const ailleurs = page.frames().find((f) => f.url() === 'https://www.twitch.tv/ailleurs');
+    const servi = ailleurs ? await ailleurs.evaluate(async () => {
+      const recus = [];
+      addEventListener('message', (e) => { if (e.data?.tse === 'tse-incruste-res') recus.push(e.data.id); });
+      window.parent.postMessage({ tse: 'tse-incruste-req', id: 991, section: 'scores' }, '*');
+      await new Promise((r) => setTimeout(r, 1_500));
+      return recus;
+    }) : 'cadre introuvable';
+    ok('…et renvoyé vers une autre origine, le même cadre ne reçoit plus rien',
+       Array.isArray(servi) && servi.length === 0, JSON.stringify(servi));
+  } finally {
+    await ctx.close();
+    rmSync(dossier, { recursive: true, force: true });
+  }
+}
+
+/* ═════════ LA DÉFENSE EN PROFONDEUR (4.25.0.9) ═════════════════════════════
+   Ce que l'audit de la 4.25.0.8 a classé « faible » ou « informatif » : rien
+   d'exploitable par un tiers sans déjà tenir la page, mais autant de portes
+   qu'un script de la page — Twitch, une autre extension, un userscript —
+   aurait pu pousser. Chacune est fermée là où elle s'ouvrait, et éprouvée
+   ici, sauf trois qui le sont à côté de ce qu'elles gardent : le panneau
+   incrusté (122), les tuiles de la salle (179), la mémoire de l'agenda (207).
+
+   LES SIX EXPRESSIONS RÉGULIÈRES. recheck en jugeait six polynomiales — un
+   temps quadratique sur une entrée faite pour —, inexploitables à la taille
+   des textes de Twitch, mais sans raison de le rester. Réécrites en temps
+   linéaire, et prouvées équivalentes hors du banc, exhaustivement sur de
+   petits alphabets puis au hasard (cf. README). Ce que le banc tient, c'est
+   le temps : toutes les expressions de nos fichiers passent sur les six
+   formes d'attaque que recheck avait trouvées, chacune à trente mille
+   caractères, en moins de 60 ms — les anciennes y mettaient près d'une
+   seconde. */
+{
+  titre('212. La défense en profondeur — origines, mémoires relues, noms hérités, requête des jetons, expressions en temps linéaire, images du panneau');
+  const RACINE = join(ICI, '..');
+
+  /* ── L'APERÇU N'ÉCOUTE QUE SON LECTEUR ─────────────────────────────────
+     La fenêtre d'une iframe survit à sa navigation : un message venu de
+     l'aperçu, mais d'une autre origine que celle d'un lecteur, ne le dévoile
+     pas. Le lecteur de ce décor n'a pas de pont : seuls les messages forgés
+     ici parlent, et le filet de révélation (trois secondes après le
+     chargement) ne tombe qu'après. Mutant — l'origine plus vérifiée. */
+  const pa = await freshTwitch('<!doctype html><html><body style="margin:0;background:#000"></body></html>');
+  await pa.evaluate(() => localStorage.setItem('tse:roue', 'vu'));
+  await pa.reload();
+  await pa.evaluate(() => {
+    window.__fx = { apercu1: { id: '1721', createdAt: new Date(Date.now() - 3600_000).toISOString(),
+                               viewers: 1000, game: 'G', tags: [] } };
+    window.__addCard('apercu1', 'G', '1 k');
+  });
+  await wait(pa, 1500);
+  await hoverCard(pa, 0);
+  await attendre(pa, () => !!document.querySelector('.tse-preview__iframe'), 6000);
+  const devoiler = (origin) => pa.evaluate(async (o) => {
+    const f = document.querySelector('.tse-preview__iframe');
+    window.dispatchEvent(new MessageEvent('message', { source: f.contentWindow, origin,
+      data: { tse: 'tse:preview-first-frame' } }));
+    await new Promise((r) => setTimeout(r, 150));
+    return f.dataset.tseLoaded === 'true';
+  }, origin);
+  const parLaPage = await devoiler('https://www.twitch.tv');
+  const parLeLecteur = await devoiler('https://player.twitch.tv');
+  ok('l\'aperçu ne se dévoile pas sur un message de sa fenêtre venu d\'une autre origine ; venu du lecteur, si',
+     parLaPage === false && parLeLecteur === true, JSON.stringify({ parLaPage, parLeLecteur }));
+  await pa.close();
+
+  /* ── LES MÉMOIRES DU localStorage, RELUES À LEUR FORME ─────────────────
+     Les visites, les abonnements, les chaînes suivies : des clés que
+     loginFromHref et le relevé des suivies écrivent, faites de [a-z0-9_].
+     Une clé d'une autre forme — « //hote.example », un point, une barre —
+     ne se relit pas ; les autres, si. Mutants — chacune des trois relectures
+     sans le filtre. */
+  const pb = await fresh();
+  await pb.evaluate(() => {
+    const t = Date.now();
+    localStorage.setItem('tse:roster', JSON.stringify({ '//hote.example': t, 'a.b': t, vrai_login: t }));
+    localStorage.setItem('tse:visits', JSON.stringify({ '//hote.example': [t - 9e5], 'x/y': [t - 9e5], habitue: [t - 9e5] }));
+    localStorage.setItem('tse:subs', JSON.stringify({ '//hote.example': [1, t], 'a:b': [1, t], abonne_ok: [1, t] }));
+  });
+  await pb.reload();
+  await pb.evaluate(() => { try { localStorage.setItem('tse:indice', 'vu'); } catch { /* stockage refusé */ } });
+  await wait(pb, 600);
+  const relus = await pb.evaluate(() => Object.fromEntries(['roster', 'scores', 'subs'].map((s) =>
+    [s, window.tse.panneau(s).lignes.map((l) => l.login).sort()])));
+  ok('les mémoires relues ne gardent que des logins : « //hote.example », « a.b », « x/y », « a:b » écartés',
+     JSON.stringify(relus) === JSON.stringify({ roster: ['vrai_login'], scores: ['habitue'], subs: ['abonne_ok'] }),
+     JSON.stringify(relus));
+
+  /* ── UN NOM HÉRITÉ N'EST PAS UNE SECTION, À LA CONSOLE NON PLUS ─────────
+     tse.panneau('constructor') appelait la fonction Object. Mutant — la
+     table lue sans Object.hasOwn. */
+  const console212 = await pb.evaluate(() => ['constructor', 'toString', 'roster'].map((s) => {
+    try { window.tse.panneau(s); return 'servi'; } catch (e) { return /section inconnue/.test(e.message) ? 'inconnue' : String(e); }
+  }));
+  ok('…et à la console, tse.panneau refuse « constructor » et « toString », sert « roster »',
+     JSON.stringify(console212) === JSON.stringify(['inconnue', 'inconnue', 'servi']), JSON.stringify(console212));
+  await pb.close();
+
+  /* ── LA REQUÊTE DES JETONS CITE SES IDENTIFIANTS ───────────────────────
+     Lue dans la source et exécutée telle quelle : pour des chiffres, le
+     texte est celui d'avant, au caractère près ; pour autre chose, ce n'est
+     qu'une chaîne — hors des littéraux, la requête ne nomme que des jetons.
+     Mutant — l'identifiant collé entre guillemets. */
+  const srcContenu = readFileSync(join(RACINE, 'content.js'), 'utf8');
+  const debutQ = srcContenu.indexOf('    const PARAMS_JETON = ');
+  const finQ = srcContenu.indexOf(".join('') + ' }';", srcContenu.indexOf('    const qAcces = ')) + ".join('') + ' }';".length;
+  let qAcces = null;
+  try { qAcces = new Function(srcContenu.slice(debutQ, finQ) + '\nreturn qAcces;')(); } catch { /* lue plus bas */ }
+  const PARAMS = '{ platform: "web", playerBackend: "mediaplayer", playerType: "site" }';
+  const forge = qAcces ? qAcces(['1", params: {}) { value } x: user(login: "y']) : '';
+  ok('la requête des jetons : des chiffres comme avant, au caractère près ; un identifiant forgé n\'en sort pas',
+     !!qAcces && qAcces(['123', '45']) === `query TseAgendaAcces { a0: videoPlaybackAccessToken(id: "123", params: ${PARAMS}) { value }`
+       + ` a1: videoPlaybackAccessToken(id: "45", params: ${PARAMS}) { value } }`
+     && !/\buser\(/.test(forge.replace(/"(?:[^"\\]|\\.)*"/g, '""')),
+     forge);
+
+  /* ── TOUTES NOS EXPRESSIONS, EN TEMPS LINÉAIRE ─────────────────────────
+     Chaque expression littérale de nos fichiers — l'anti-pub, code tiers
+     qu'on ne retouche pas, n'en est pas —, sur chacune des six attaques. */
+  const N = 30_000;
+  const ATTAQUES = [
+    ['sub + tabulations', 'sub' + '\t'.repeat(N) + '\x00'],
+    ['« exceeds » répétés', 'TEXCEEDS '.repeat(N / 9) + 'T'],
+    ['chiffres', '0'.repeat(N) + '0\x000\t0\t0'],
+    ['tabulations', '\t'.repeat(N)],
+    ['deux-points', '::'.repeat(N / 2) + ':'],
+    ['points', '.'.repeat(N) + '\x00.'],
+  ];
+  const lentes = [];
+  let expressions = 0;
+  for (const f of ['content.js', 'cadres.js', 'panneau.js', 'bridge.js', 'background.js']) {
+    const vues = new Set();
+    for (const t of tokenizer(readFileSync(join(RACINE, f), 'utf8'), { ecmaVersion: 'latest' })) {
+      if (t.type.label !== 'regexp' || vues.has(`/${t.value.pattern}/${t.value.flags}`)) continue;
+      vues.add(`/${t.value.pattern}/${t.value.flags}`);
+      expressions++;
+      const re = new RegExp(t.value.pattern, t.value.flags);
+      for (const [nom, s] of ATTAQUES) {
+        re.lastIndex = 0;
+        const t0 = performance.now();
+        re.exec(s);
+        const ms = performance.now() - t0;
+        if (ms > 60) lentes.push(`${f} /${t.value.pattern}/${t.value.flags} — ${nom} : ${ms.toFixed(0)} ms`);
+      }
+    }
+  }
+  ok(`les ${expressions} expressions de nos fichiers passent les six attaques à ${N.toLocaleString('fr')} caractères en moins de 60 ms`,
+     expressions > 50 && lentes.length === 0, lentes.join(' | '));
+
+  /* ── LES IMAGES DU PANNEAU : DE TWITCH SEULEMENT ───────────────────────
+     Lue dans panneau.js et exécutée sur un document minimal : une adresse
+     https de jtvnw.net ou de twitch.tv devient une image, toute autre non —
+     un autre hôte, un hôte qui ne fait que COMMENCER comme celui de Twitch,
+     un identifiant devant l'hôte, du http. Mutant — le seul préfixe https. */
+  const srcPanneau = readFileSync(join(RACINE, 'panneau.js'), 'utf8');
+  const debutI = srcPanneau.indexOf('const HOTE_IMAGE = ');
+  const finI = srcPanneau.indexOf('\n};\n', srcPanneau.indexOf('const imageAgenda = ')) + 3;
+  let imageAgenda = null;
+  try {
+    const doc = { createElement: () => ({ addEventListener() {}, remove() {} }) };
+    imageAgenda = new Function('document', srcPanneau.slice(debutI, finI) + '\nreturn imageAgenda;')(doc);
+  } catch { /* lue plus bas */ }
+  const images = imageAgenda ? Object.fromEntries([
+    'https://static-cdn.jtvnw.net/jtv_user_pictures/a-70x70.png', 'https://vod-secure.twitch.tv/_404/404_processing_320x180.png',
+    'https://images.example/a.png', 'https://static-cdn.jtvnw.net.example/a.png',
+    'https://static-cdn.jtvnw.net@hote.example/a.png', 'http://static-cdn.jtvnw.net/a.png', 'javascript:alert(1)',
+  ].map((u) => [u, !!imageAgenda(u, 'x')])) : null;
+  ok('le panneau ne pose d\'image que de jtvnw.net et de twitch.tv, lus par URL',
+     !!images && Object.values(images).join() === 'true,true,false,false,false,false,false', JSON.stringify(images));
 }
 
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════

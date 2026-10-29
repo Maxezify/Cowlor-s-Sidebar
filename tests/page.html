@@ -1619,5 +1619,14 @@ if (new URLSearchParams(location.search).has('react')) {
 }
 </script>
 <script src="./adblock.test.js"></script>
-<script src="./content.test.js"></script>
+<script src="./cadres.test.js"></script>
+<!-- content.js : dans le cadre principal SEULEMENT, comme le manifeste
+     (`all_frames: false`, 4.25.0.9). Ce décor est aussi servi aux iframes
+     www.twitch.tv que l'extension pose — le relevé des suivies, la page
+     d'abonnements — et ne doit pas leur donner ce que le navigateur ne leur
+     donnera pas. Écrit dans le flux, il s'exécute à la même place que la
+     balise qu'il remplace. -->
+<script>
+if (window.top === window) document.write('<script src="./content.test.js"><\/script>');
+</script>
 </body></html>

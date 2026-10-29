@@ -2,12 +2,13 @@
 node_modules/
 package-lock.json
 
-# Sortie de tests/build.mjs : content.js et adblock.js recopiés avec les
-# constantes de temps accélérées. Régénéré à chaque `npm test`, jamais édité
-# à la main — le versionner reviendrait à versionner un artefact dérivé, et à
-# risquer de le voir diverger de sa source.
+# Sortie de tests/build.mjs : content.js recopié avec les constantes de temps
+# accélérées, cadres.js et adblock.js recopiés tels quels. Régénéré à chaque
+# `npm test`, jamais édité à la main — le versionner reviendrait à versionner
+# un artefact dérivé, et à risquer de le voir diverger de sa source.
 tests/content.test.js
-tests/content.firefox.test.js
+tests/cadres.test.js
+tests/cadres.firefox.test.js
 tests/adblock.test.js
 tests/adblock.firefox.test.js
 

@@ -42,11 +42,24 @@
       ],
       "js": [
         "adblock.js",
-        "content.js"
+        "cadres.js"
       ],
       "run_at": "document_start",
       "world": "MAIN",
       "all_frames": true
+    },
+    {
+      "matches": [
+        "https://www.twitch.tv/*",
+        "https://twitch.tv/*",
+        "https://player.twitch.tv/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN",
+      "all_frames": false
     },
     {
       "matches": [
