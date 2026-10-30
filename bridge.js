@@ -42,7 +42,8 @@
       let url = '';
       try { url = chrome.runtime.getURL('panneau.html'); }
       catch {   }
-      if (url) window.postMessage({ tse: URL_RES, url }, '*');
+
+      if (url) window.postMessage({ tse: URL_RES, url }, location.origin);
       return;
     }
     if (!d || d.tse !== RES || typeof d.id !== 'number') return;
@@ -111,7 +112,7 @@
       }, EXPIRATION);
       attentes.set(id, { reqId: m.reqId, minuteur });
 
-      window.postMessage({ tse: REQ, id, ...demande }, '*');
+      window.postMessage({ tse: REQ, id, ...demande }, location.origin);
     });
   };
 
