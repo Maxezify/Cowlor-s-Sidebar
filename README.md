@@ -343,13 +343,13 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1846 Ko | 773 Ko | 4 343 → **2** |
+| `content.js` | 1883 Ko | 805 Ko | 4 355 → **2** |
 | `cadres.js` | 66 Ko | 30 Ko | 158 → **0** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
 | `panneau.js` | 159 Ko | 81 Ko | 220 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 26 → **0** |
 | `background.js` | 10 Ko | 2 Ko | 22 → **0** |
-| **les six** | **2222 Ko** | **990 Ko** | **−55 %** |
+| **les six** | **2258 Ko** | **1022 Ko** | **−55 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
@@ -2627,6 +2627,154 @@ Un sous-test qui modélisait un cas impossible — un direct qui rajeunit sans
 changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'il
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
+
+## L'état du calage à gauche du bouton du chat, en deux lignes qui tiennent (v4.25.0.12)
+
+La demande, une capture à l'appui (la colonne de droite d'une salle à deux
+chats : « Masquer le chat », puis « Son de … ») : « j'aimerais que tu le
+mettes finalement sur la partie droite, à gauche du bouton "Masquer le chat".
+Il faudrait que l'ensemble des infos tiennent dans ce petit espace. Sois
+rigoureux. » Publiée sur `claude/chrome-multi` seulement, pour le moment.
+
+### Où, et ce qu'il dit
+
+L'état du calage quitte la ligne du titre et entre dans les commandes, juste
+avant le bouton du chat : dix pixels d'écart, centré sur lui, dans la même
+colonne. À deux chats, comme sur la capture, il y est seul avec le bouton ;
+à un chat, il partage la ligne avec le titre de la salle.
+
+Il tient sur **deux lignes** : la première dit ce que fait le calage, la
+seconde où en est chaque tuile. La phrase d'une ligne de la 4.25.0.11 se
+coupait (« … ») ; celles-ci sont courtes, et choisies pour tenir.
+
+| ce que montrent les deux lignes | point |
+| --- | --- |
+| Calage sur xray / quebec : à l'écoute 2/3 | ambre |
+| Calage sur xray / quebec : retard 3,87 s, à confirmer | ambre |
+| Calage sur xray / quebec : vérification 1/3 | ambre |
+| Tout est calé / repère : xray | vert |
+| Calage sur xray / quebec : écho possible, attente | ambre |
+| Calage sur xray / yankee : laissée là, 3 corrections | rouge |
+| Calage sur xray / juliett : 0,45 s, repère sans tampon | rouge |
+| Calage en pause / xray, le repère, en pub | gris |
+| Calage en pause / quebec repère dans 12 s | gris |
+| Calage / non démarré · Calage coupé / dans les réglages · Calage / arrêté · Calage indisponible / son non capturable | gris |
+
+L'infobulle ne change pas : le repère, chaque tuile en phrase entière, la
+règle des calculs, les corrections. Le rapport garde la phrase entière,
+et dit en plus les deux lignes affichées, la forme choisie et ce que le titre
+a gardé de la ligne.
+
+### Tenir entier, partout
+
+Chaque état a plusieurs **formes**, de la plus riche à la plus serrée :
+d'abord la tuile nommée avec son état ; puis, à plusieurs tuiles, les
+calées comptées au lieu d'être nommées (« calées 1/3 ») ; puis l'état seul
+d'une tuile ; enfin « Calage » en tête au lieu du repère. L'en-tête mesure la
+place que la ligne lui laisse — la colonne, moins ses marges, le bouton du
+chat dans la langue de la page et l'écart — et montre la première forme dont
+**aucune des deux lignes ne déborde**. La largeur d'un texte se lit sur sa
+plage, au pixel près, et non par `scrollWidth`, qui arrondit. Il ne remesure
+que si ce qu'il doit dire a changé, ou sa place : après chaque disposition
+de la salle (fenêtre, chat montré ou masqué, streams ajoutés ou retirés), et
+quand une police finit de se charger.
+
+**Avec un seul chat, le titre partage la ligne.** L'ordre des essais dit ce
+qui compte : une forme plus riche passe avant la note des points de chaîne,
+qui se retire plutôt que de ne montrer que « … » ; le titre passe avant la
+richesse ; il ne se retire que si même la forme la plus serrée ne tient pas
+à côté de lui. Dans la pastille d'une salle sans chat, l'état se tait, comme
+la note.
+
+**La forme la plus serrée ne porte aucun nom de chaîne, et elle tient
+partout.** Le banc le vérifie dans les dix langues de la page, avec la police
+de Twitch (Inter), dans la colonne la plus étroite qu'un chat reçoit
+(340 px), à côté du bouton dans chaque langue : vingt états de tuile dans les
+deux sens, le compte de plusieurs tuiles, les huit états où le calage ne
+travaille pas, le tout calé — avec les nombres les plus larges qu'ils portent
+(9,99 s ; 45,25 s pour un écart ; 6/6 ; 20/20 s). Pour y tenir, quelques
+formes ont été resserrées à la mesure : le repère qui ne peut pas bouger
+(« 0,45 s, repère sans tampon », sans le sens, que l'infobulle donne),
+l'allemand « springt nicht », l'italien « non arretra », le grand écart en
+allemand et en italien.
+
+Ce que l'en-tête a choisi, mesuré au banc avec la police de Twitch :
+
+| fenêtre | streams | chats | ce que garde la ligne | ce qui s'affiche |
+| --- | --- | --- | --- | --- |
+| 1920 | 2 | deux | (le bouton seul) | Calage sur xray / quebec : à l'écoute 0/3 |
+| 1920 | 3 ou 4 | un, 341 px | le titre | Calage / calées 0/2 |
+| 1920 | 6 | un, 459 px | le titre et la note | Calage sur xray / calées 0/5 |
+| 1600, 1366 | 2 | un, 598 et 481 px | le titre et la note | Calage sur xray / quebec : à l'écoute 0/3 |
+| 1280 | 2 | un, 438 px | le titre | Calage sur xray / quebec : à l'écoute 0/3 |
+| 1280 | 3 | un, 340 px | rien | Calage en pause / une seule tuile |
+
+À deux streams — la salle de la capture —, la forme entière s'affiche dans
+les quatre largeurs essayées.
+
+### Le mode d'emploi
+
+Le chapitre de la salle, dans les douze langues, situe l'état « à gauche de
+« Masquer le chat » », en deux lignes, et cite ses formes telles que la salle
+les écrit : « à l'écoute 2/6 », « retard 0,30 s, à confirmer »,
+« vérification », « Tout est calé ». Le 96 les rend avec les fonctions mêmes
+de `content.js`, bouton compris, dans la langue de chaque fiche.
+
+### Le banc
+
+- **214**, réécrit : la place (avant le bouton, dans la colonne de droite à
+  deux chats, centrée, à dix pixels) ; chaque état où le calage ne travaille
+  pas, ligne par ligne ; la pastille sans chat ; une police chargée après
+  coup ; la fenêtre rétrécie puis rélargie, au même état ; huit dispositions, de deux à six streams et de 1920 à 1280 px — rien
+  ne déborde, le titre est entier quand il est là, la note a ses 60 px, et le
+  rapport dit ce qu'on voit ; la forme entière à deux streams ; et la forme
+  la plus serrée dans les dix langues.
+- **182** : chaque relevé de l'en-tête porte aussi ses deux lignes, et
+  aucune ne déborde ; elles disent la même chose que la phrase (« Tout est
+  calé / repère : xray » quand, et seulement quand, la tuile est calée ;
+  « quebec : vérification… » tant qu'elle est vérifiée) ; le verdict
+  « quebec : retard 3,9 s, à confirmer » s'affiche.
+- **183** et **184** : le rouge du repère sans tampon, la tuile laissée là,
+  le compte des calées à quatre streams — en deux lignes entières.
+- **96** : le chapitre de la salle cite le bouton du chat et les formes
+  courtes, dans chaque langue.
+- **186**, hors de ce travail : le premier banc complet de cette version y a
+  échoué une fois — la mesure de Chromium a lu le silence sur une piste qui
+  devait déjà sonner : la lecture avait démarré, le son pas encore. Seul, le
+  scénario passe trois fois sur trois. Une piste qui doit sonner s'y remesure
+  désormais jusqu'à cinq fois ; une piste qui doit se taire n'est mesurée
+  qu'une fois, et un silence qui dure reste un silence.
+
+**Douze mutants nommés, tous pris.** Chacun a été posé seul, et le banc
+relancé sur le scénario qui garde ce qu'il casse. Deux ont demandé de
+reprendre le banc en route :
+
+- **« l'état laissé à droite de la note » faisait planter le 214** au lieu
+  d'y échouer : sa lecture de l'en-tête cherchait le bouton à côté de l'état,
+  là où il devait être. Elle le cherche désormais là où il est ; le mutant
+  tombe sur onze assertions ;
+- **« pas de remesure après une disposition » survivait** : aucune épreuve
+  ne changeait la disposition sans que l'état change aussi, et l'état qui
+  change remesure de lui-même. Le 214 rétrécit désormais la fenêtre sur la
+  même salle, au même état — deux chats à 1920 px, un seul à 1280 — et
+  attend la nouvelle mesure ; le mutant tombe.
+
+| mutant | ce qui tombe |
+| --- | --- |
+| l'état laissé à droite de la note | 214 : sa place, et tout ce qui la lit |
+| l'état posé après le bouton | 214 : sa place, la pastille, les dispositions |
+| pas de mesure | 214 : la place, la pastille, la police chargée |
+| le titre jamais retiré | 214 : les dispositions, la tuile seule (coupée) |
+| la note gardée au prix de la forme | 214 : la forme entière à deux streams |
+| une forme courte rallongée (allemand) | 214 : les dix langues |
+| la place mesurée sans le bouton | 214 : les dispositions |
+| la police chargée ignorée | 214 : la police chargée après coup |
+| pas de remesure après une disposition | 214 : la fenêtre rétrécie, même état |
+| l'état affiché dans la pastille | 214 : sans chat |
+| le guide cite l'ancien emplacement (français) | 96 : le bouton du chat cité |
+| le calé dit sans son repère | 182 : les lignes contre l'état, avant et après la chute ; l'infobulle |
+
+Le banc complet : 2048 assertions dans 213 scénarios, toutes vertes.
 
 ## Un mode d'emploi qui se lit dans l'ordre, l'agenda en images, et l'état du calage dans la salle (v4.25.0.11)
 
@@ -22697,7 +22845,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | les six fichiers JavaScript livrés — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le manifeste Firefox : les invariants du dépôt, **puis** l'`addons-linter` de Mozilla — celui qu'AMO applique à la soumission |
-| `npm test` | le harnais Playwright : 213 scénarios, 2043 assertions |
+| `npm test` | le harnais Playwright : 213 scénarios, 2048 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il

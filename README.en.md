@@ -331,13 +331,13 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1846 KB | 773 KB | 4,343 → **2** |
+| `content.js` | 1883 KB | 805 KB | 4,355 → **2** |
 | `cadres.js` | 66 KB | 30 KB | 158 → **0** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
 | `panneau.js` | 159 KB | 81 KB | 220 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 26 → **0** |
 | `background.js` | 10 KB | 2 KB | 22 → **0** |
-| **all six** | **2222 KB** | **990 KB** | **−55 %** |
+| **all six** | **2258 KB** | **1022 KB** | **−55 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are
@@ -2494,6 +2494,151 @@ A sub-test that modelled an impossible case — a stream growing younger without
 changing id — was replaced along the way by the ordinary case that was actually
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
+
+## The alignment status to the left of the chat button, on two lines that fit (v4.25.0.12)
+
+The request, with a screenshot (the right column of a two-chat room: “Hide
+the chat”, then “Sound of …”): “I'd finally like you to put it on the right,
+to the left of the ‘Hide the chat’ button. All the information should fit in
+that small space. Be rigorous.” Published on `claude/chrome-multi` only, for
+now.
+
+### Where, and what it says
+
+The alignment status leaves the title's line and joins the commands, right
+before the chat button: ten pixels apart, centred on it, in the same column.
+With two chats, as in the screenshot, it shares the line with the button
+only; with one chat, it shares it with the room's title.
+
+It holds on **two lines**: the first says what the alignment is doing, the
+second where each tile stands. The one-line sentence of 4.25.0.11 was cut
+(“…”); these are short, and chosen to fit.
+
+| what the two lines show (English page) | dot |
+| --- | --- |
+| Aligning on xray / quebec: listening 2/3 | amber |
+| Aligning on xray / quebec: behind 3.87 s, to confirm | amber |
+| Aligning on xray / quebec: checking 1/3 | amber |
+| All aligned / reference: xray | green |
+| Aligning on xray / quebec: possible echo, waiting | amber |
+| Aligning on xray / yankee: left as is, 3 corrections | red |
+| Aligning on xray / juliett: 0.45 s, reference lacks buffer | red |
+| Alignment paused / xray, the reference, in an ad | grey |
+| Alignment paused / quebec reference in 12 s | grey |
+| Alignment / not started · Alignment off / in settings · Alignment / stopped · Alignment unavailable / no sound capture | grey |
+
+The tooltip does not change: the reference, each tile as a full sentence,
+the calculation rule, the corrections. The report keeps the full sentence,
+and also gives the two lines shown, the form chosen and what the title kept
+of the line.
+
+### Fitting whole, everywhere
+
+Each state has several **forms**, from the richest to the tightest: first
+the tile named with its state; then, with several tiles, the aligned ones
+counted instead of named (“aligned 1/3”); then a tile's state alone; finally
+“Alignment” at the head instead of the reference. The header measures the
+room the line leaves it — the column, minus its padding, the chat button in
+the page's language and the gap — and shows the first form of which **neither
+line overflows**. A text's width is read on its range, to the pixel, and not
+through `scrollWidth`, which rounds. It only measures again when what it must
+say has changed, or its room: after each layout of the room (window, chat
+shown or hidden, streams added or removed), and when a font finishes loading.
+
+**With a single chat, the title shares the line.** The order of attempts
+says what matters: a richer form comes before the channel-points note, which
+steps aside rather than showing only “…”; the title comes before richness; it
+only steps aside if even the tightest form does not fit next to it. In the
+pill of a room without chat, the status falls silent, like the note.
+
+**The tightest form carries no channel name, and it fits everywhere.** The
+bench checks it in the page's ten languages, with Twitch's font (Inter), in
+the narrowest column a chat gets (340 px), next to the button in each
+language: twenty tile states in both directions, the count of several tiles,
+the eight states where the alignment is not working, all aligned — with the
+widest numbers they carry (9.99 s; 45.25 s for a gap; 6/6; 20/20 s). To fit,
+a few forms were tightened by measurement: the reference that cannot move
+(“0.45 s, reference lacks buffer”, without the direction, which the tooltip
+gives), German “springt nicht”, Italian “non arretra”, the large gap in German
+and Italian.
+
+What the header chose, measured on the bench with Twitch's font (French page):
+
+| window | streams | chats | what the line keeps | what shows |
+| --- | --- | --- | --- | --- |
+| 1920 | 2 | two | (the button only) | Calage sur xray / quebec : à l'écoute 0/3 |
+| 1920 | 3 or 4 | one, 341 px | the title | Calage / calées 0/2 |
+| 1920 | 6 | one, 459 px | the title and the note | Calage sur xray / calées 0/5 |
+| 1600, 1366 | 2 | one, 598 and 481 px | the title and the note | Calage sur xray / quebec : à l'écoute 0/3 |
+| 1280 | 2 | one, 438 px | the title | Calage sur xray / quebec : à l'écoute 0/3 |
+| 1280 | 3 | one, 340 px | nothing | Calage en pause / une seule tuile |
+
+With two streams — the room of the screenshot — the full form shows in all
+four widths tried.
+
+### The guide
+
+The room's chapter, in the twelve languages, places the status “to the left
+of ‘Hide the chat’”, on two lines, and quotes its forms as the room writes
+them: “listening 2/6”, “behind 0.30 s, to confirm”, “checking”, “All
+aligned”. Scenario 96 renders them with `content.js`'s own functions, button
+included, in each locale file's language.
+
+### The bench
+
+- **214**, rewritten: the place (before the button, in the right column with
+  two chats, centred, ten pixels apart); each state where the alignment is
+  not working, line by line; the pill without chat; a font loaded late; the
+  window narrowed then widened, in the same state; eight layouts, from two to six streams and from 1920 to 1280 px — nothing
+  overflows, the title is whole when present, the note has its 60 px, and the
+  report says what is seen; the full form with two streams; and the tightest
+  form in the ten languages.
+- **182**: each record of the header also carries its two lines, and neither
+  overflows; they say the same as the sentence (“Tout est calé / repère :
+  xray” when, and only when, the tile is aligned; “quebec : vérification…”
+  while it is being checked); the verdict “quebec : retard 3,9 s, à
+  confirmer” shows.
+- **183** and **184**: the red of the reference without buffer, the tile left
+  as is, the count of aligned tiles with four streams — on two whole lines.
+- **96**: the room's chapter quotes the chat button and the short forms, in
+  each language.
+- **186**, outside this work: the version's first full bench failed there
+  once — Chromium's measurement read silence on a track that should already
+  sound: playback had started, the sound not yet. Alone, the scenario passes
+  three times out of three. A track that must sound is now measured up to
+  five times; a track that must be silent is measured once, and a lasting
+  silence stays a silence.
+
+**Twelve named mutants, all caught.** Each was planted alone, and the bench
+rerun on the scenario that guards what it breaks. Two made the bench change
+on the way:
+
+- **“the status left to the right of the note” crashed 214** instead of
+  failing it: its reading of the header looked for the button next to the
+  status, where it should have been. It now looks where it is; the mutant
+  falls on eleven assertions;
+- **“no remeasure after a layout” survived**: no check changed the layout
+  without the state changing too, and a changing state remeasures by itself.
+  Scenario 214 now narrows the window on the same room, in the same state —
+  two chats at 1920 px, one at 1280 — and waits for the new measurement; the
+  mutant falls.
+
+| mutant | what falls |
+| --- | --- |
+| the status left to the right of the note | 214: its place, and everything that reads it |
+| the status placed after the button | 214: its place, the pill, the layouts |
+| no measurement | 214: the place, the pill, the late font |
+| the title never steps aside | 214: the layouts, the single tile (cut) |
+| the note kept at the cost of the form | 214: the full form with two streams |
+| a short form lengthened (German) | 214: the ten languages |
+| the room measured without the button | 214: the layouts |
+| the loaded font ignored | 214: the font loaded late |
+| no remeasure after a layout | 214: the narrowed window, same state |
+| the status shown in the pill | 214: no chat |
+| the guide quotes the old place (French) | 96: the chat button quoted |
+| aligned said without its reference | 182: the lines against the state, before and after the drop; the tooltip |
+
+The full bench: 2048 assertions in 213 scenarios, all green.
 
 ## A guide that reads in order, the schedule in pictures, and the alignment status in the room (v4.25.0.11)
 
@@ -22029,7 +22174,7 @@ Four independent checks:
 | `npm run lint` | the six shipped JavaScript files — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the Firefox manifest: this repository's invariants, **then** Mozilla's `addons-linter` — the one AMO runs on submission |
-| `npm test` | the Playwright harness: 213 scenarios, 2043 assertions |
+| `npm test` | the Playwright harness: 213 scenarios, 2048 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
