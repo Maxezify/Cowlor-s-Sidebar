@@ -484,6 +484,51 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiSalleOnglet:             (nom) => `Afficher le chat de ${nom}, sans changer le son`,
       uiSalleChatMasque:         'Chat masqué : fenêtre trop étroite',
       uiSallePoints:             'Pas de points de chaîne dans la salle',
+      /* L'ÉTAT DU CALAGE DANS L'EN-TÊTE (4.25.0.11, cf. etatCalage). `e` : la
+         cause, `x`/`m` les calculs du son reçus sur ceux qu'il faut, `s` un
+         écart en secondes déjà écrit à la locale, `avance` son sens, `el`/`tot`
+         le grand écart tenu sur ce qu'il doit tenir, `max`/`min10` la borne
+         des corrections. `repereRecul`/`repereTampon` : la tuile est jugée,
+         mais c'est le repère qui devait bouger, et il ne le peut pas. */
+      uiCalCoupe:                'Calage coupé dans les réglages',
+      uiCalIndispo:              'Calage indisponible : ce navigateur ne capture pas le son',
+      uiCalArrete:               'Calage arrêté',
+      uiCalNonDemarre:           'Calage non démarré',
+      uiCalSeule:                'Calage en pause : une seule tuile à l\'écran',
+      uiCalEcoute:               'Calage : à l\'écoute',
+      uiCalRefPub:               (ref) => `Calage en pause : ${ref}, qui a le son, est en pub`,
+      uiCalBascule:              (nom, s) => `Calage : ${nom} a le son, et devient le repère dans ${s} s`,
+      uiCalTout:                 (ref) => `Calage : tout est calé sur ${ref}`,
+      uiCalSur:                  (ref) => `Calage sur ${ref}`,
+      uiCalTuile:                (n, e) => {
+        const x = e.x === undefined ? '' : ` ${e.x}/${e.m}`;
+        switch (e.cause) {
+          case 'pub':       return `${n} en pub`;
+          case 'retombee':  return `${n} a glissé de ${e.s} s : elle reprend sa place`;
+          case 'ecart':     return `${n} à ${e.s} s du repère : écart vérifié, ${e.el}/${e.tot} s`;
+          case 'calee':     return `${n} calée`;
+          case 'laissee':   return `${n} laissée là : ${e.max} corrections en ${e.min10} min`;
+          case 'recul':     return `${n} en avance de ${e.s} s : son lecteur ne recule pas`;
+          case 'tampon':    return `${n} à ${e.s} s du repère : pas assez de tampon pour rattraper`;
+          case 'arriere':   return `${n} en avance de ${e.s} s : pas assez de marge pour reculer`;
+          case 'loin':      return `${n} à ${e.s} s du repère : trop loin pour être rattrapée`;
+          case 'verif':     return `${n} corrigée, vérification${x}`;
+          case 'ecoute':    return `${n} à l'écoute${x}`;
+          case 'voix':      return `${n} : pas encore de voix commune nette`;
+          case 'echo':      return `${n} : une seule voix, peut-être un écho — en attente d'une seconde`;
+          case 'ambigu':    return `${n} : deux décalages possibles — en attente`;
+          case 'aligne':    return `${n} alignée, à confirmer`;
+          case 'verifAligne': return `${n} corrigée, alignée, à confirmer`;
+          case 'verifConfirmer': return `${n} corrigée, en ${e.avance ? 'avance' : 'retard'} de ${e.s} s, à confirmer`;
+          case 'confirmer': return `${n} en ${e.avance ? 'avance' : 'retard'} de ${e.s} s, à confirmer`;
+          case 'repereRecul': return `${n} en ${e.avance ? 'avance' : 'retard'} de ${e.s} s : le lecteur du repère ne recule pas`;
+          case 'repereTampon': return `${n} en ${e.avance ? 'avance' : 'retard'} de ${e.s} s : le repère n'a pas assez de tampon pour la rejoindre`;
+          default:          return n;
+        }
+      },
+      uiCalRepere:               (ref) => `Repère : ${ref}, la tuile qui a le son — les autres se calent sur elle.`,
+      uiCalLegende:              (m, p) => `x/${m} : les calculs du son qui comptent, un essai toutes les ${p} s ; il en faut ${m} par tuile, puis deux verdicts d'accord. Une tuile corrigée est vérifiée par le son avant d'être dite calée.`,
+      uiCalCorrections:          (n) => `Corrections faites : ${n}`,
       uiSalleBanc:               (nom) => `Mettre ${nom} dans la grille`,
       uiSalleChatAfficher:       'Afficher le chat',
       uiSalleChatMasquer:        'Masquer le chat',
@@ -602,6 +647,45 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiSalleOnglet:             (nom) => `Show ${nom}'s chat, without changing the sound`,
       uiSalleChatMasque:         'Chat hidden: window too narrow',
       uiSallePoints:             'No channel points in the room',
+      uiCalCoupe:                'Alignment turned off in settings',
+      uiCalIndispo:              'Alignment unavailable: this browser cannot capture the sound',
+      uiCalArrete:               'Alignment stopped',
+      uiCalNonDemarre:           'Alignment not started',
+      uiCalSeule:                'Alignment paused: only one tile on screen',
+      uiCalEcoute:               'Alignment: listening',
+      uiCalRefPub:               (ref) => `Alignment paused: ${ref}, which has the sound, is in an ad`,
+      uiCalBascule:              (nom, s) => `Alignment: ${nom} has the sound, and becomes the reference in ${s} s`,
+      uiCalTout:                 (ref) => `Alignment: everything is aligned on ${ref}`,
+      uiCalSur:                  (ref) => `Aligning on ${ref}`,
+      uiCalTuile:                (n, e) => {
+        const x = e.x === undefined ? '' : ` ${e.x}/${e.m}`;
+        switch (e.cause) {
+          case 'pub':       return `${n} in an ad`;
+          case 'retombee':  return `${n} slipped by ${e.s} s: taking its place back`;
+          case 'ecart':     return `${n} ${e.s} s from the reference: gap being checked, ${e.el}/${e.tot} s`;
+          case 'calee':     return `${n} aligned`;
+          case 'laissee':   return `${n} left as is: ${e.max} corrections in ${e.min10} min`;
+          case 'recul':     return `${n} ahead by ${e.s} s: its player won't step back`;
+          case 'tampon':    return `${n} ${e.s} s from the reference: not enough buffer to catch up`;
+          case 'arriere':   return `${n} ahead by ${e.s} s: not enough margin to step back`;
+          case 'loin':      return `${n} ${e.s} s from the reference: too far to catch up`;
+          case 'verif':     return `${n} corrected, checking${x}`;
+          case 'ecoute':    return `${n} listening${x}`;
+          case 'voix':      return `${n}: no clear shared voice yet`;
+          case 'echo':      return `${n}: a single voice, maybe an echo — waiting for a second one`;
+          case 'ambigu':    return `${n}: two possible offsets — waiting`;
+          case 'aligne':    return `${n} in line, to be confirmed`;
+          case 'verifAligne': return `${n} corrected, in line, to be confirmed`;
+          case 'verifConfirmer': return `${n} corrected, ${e.avance ? 'ahead' : 'behind'} by ${e.s} s, to be confirmed`;
+          case 'confirmer': return `${n} ${e.avance ? 'ahead' : 'behind'} by ${e.s} s, to be confirmed`;
+          case 'repereRecul': return `${n} ${e.avance ? 'ahead' : 'behind'} by ${e.s} s: the reference's player won't step back`;
+          case 'repereTampon': return `${n} ${e.avance ? 'ahead' : 'behind'} by ${e.s} s: the reference lacks the buffer to catch up with it`;
+          default:          return n;
+        }
+      },
+      uiCalRepere:               (ref) => `Reference: ${ref}, the tile with the sound — the others line up on it.`,
+      uiCalLegende:              (m, p) => `x/${m}: sound calculations that count, one attempt every ${p} s; each tile needs ${m}, then two verdicts that agree. A corrected tile is checked by the sound before it is called aligned.`,
+      uiCalCorrections:          (n) => `Corrections made: ${n}`,
       uiSalleBanc:               (nom) => `Put ${nom} in the grid`,
       uiSalleChatAfficher:       'Show the chat',
       uiSalleChatMasquer:        'Hide the chat',
@@ -707,6 +791,45 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiSalleOnglet:             (nom) => `Chat von ${nom} anzeigen, ohne den Ton zu wechseln`,
       uiSalleChatMasque:         'Chat ausgeblendet: Fenster zu schmal',
       uiSallePoints:             'Keine Kanalpunkte im Raum',
+      uiCalCoupe:                'Ausrichtung in den Einstellungen ausgeschaltet',
+      uiCalIndispo:              'Ausrichtung nicht verfügbar: Dieser Browser kann den Ton nicht abgreifen',
+      uiCalArrete:               'Ausrichtung gestoppt',
+      uiCalNonDemarre:           'Ausrichtung nicht gestartet',
+      uiCalSeule:                'Ausrichtung pausiert: nur eine Kachel im Bild',
+      uiCalEcoute:               'Ausrichtung: hört zu',
+      uiCalRefPub:               (ref) => `Ausrichtung pausiert: ${ref}, die den Ton hat, zeigt Werbung`,
+      uiCalBascule:              (nom, s) => `Ausrichtung: ${nom} hat den Ton und wird in ${s} s zur Referenz`,
+      uiCalTout:                 (ref) => `Ausrichtung: alles auf ${ref} ausgerichtet`,
+      uiCalSur:                  (ref) => `Ausrichtung auf ${ref}`,
+      uiCalTuile:                (n, e) => {
+        const x = e.x === undefined ? '' : ` ${e.x}/${e.m}`;
+        switch (e.cause) {
+          case 'pub':       return `${n} in der Werbung`;
+          case 'retombee':  return `${n} ist um ${e.s} s abgerutscht und nimmt ihren Platz wieder ein`;
+          case 'ecart':     return `${n} ${e.s} s von der Referenz: Abstand wird geprüft, ${e.el}/${e.tot} s`;
+          case 'calee':     return `${n} ausgerichtet`;
+          case 'laissee':   return `${n} bleibt, wie sie ist: ${e.max} Korrekturen in ${e.min10} Min.`;
+          case 'recul':     return `${n} ${e.s} s voraus: ihr Player springt nicht zurück`;
+          case 'tampon':    return `${n} ${e.s} s von der Referenz: zu wenig Puffer zum Aufholen`;
+          case 'arriere':   return `${n} ${e.s} s voraus: zu wenig Spielraum zum Zurückspringen`;
+          case 'loin':      return `${n} ${e.s} s von der Referenz: zu weit zum Aufholen`;
+          case 'verif':     return `${n} korrigiert, wird geprüft${x}`;
+          case 'ecoute':    return `${n} hört zu${x}`;
+          case 'voix':      return `${n}: noch keine klare gemeinsame Stimme`;
+          case 'echo':      return `${n}: nur eine Stimme, vielleicht ein Echo — wartet auf eine zweite`;
+          case 'ambigu':    return `${n}: zwei mögliche Versätze — wartet`;
+          case 'aligne':    return `${n} in Linie, noch zu bestätigen`;
+          case 'verifAligne': return `${n} korrigiert, in Linie, noch zu bestätigen`;
+          case 'verifConfirmer': return `${n} korrigiert, ${e.s} s ${e.avance ? 'voraus' : 'zurück'}, noch zu bestätigen`;
+          case 'confirmer': return `${n} ${e.s} s ${e.avance ? 'voraus' : 'zurück'}, noch zu bestätigen`;
+          case 'repereRecul': return `${n} ${e.s} s ${e.avance ? 'voraus' : 'zurück'}: der Player der Referenz springt nicht zurück`;
+          case 'repereTampon': return `${n} ${e.s} s ${e.avance ? 'voraus' : 'zurück'}: der Referenz fehlt der Puffer, um aufzuholen`;
+          default:          return n;
+        }
+      },
+      uiCalRepere:               (ref) => `Referenz: ${ref}, die Kachel mit dem Ton — die anderen richten sich nach ihr aus.`,
+      uiCalLegende:              (m, p) => `x/${m}: zählende Tonberechnungen, ein Versuch alle ${p} s; jede Kachel braucht ${m}, dann zwei übereinstimmende Urteile. Eine korrigierte Kachel wird vom Ton geprüft, bevor sie als ausgerichtet gilt.`,
+      uiCalCorrections:          (n) => `Korrekturen: ${n}`,
       uiSalleBanc:               (nom) => `${nom} ins Raster holen`,
       uiSalleChatAfficher:       'Chat einblenden',
       uiSalleChatMasquer:        'Chat ausblenden',
@@ -812,6 +935,45 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiSalleOnglet:             (nom) => `Mostrar el chat de ${nom}, sin cambiar el sonido`,
       uiSalleChatMasque:         'Chat oculto: ventana demasiado estrecha',
       uiSallePoints:             'Sin puntos de canal en la sala',
+      uiCalCoupe:                'Alineación desactivada en los ajustes',
+      uiCalIndispo:              'Alineación no disponible: este navegador no puede capturar el sonido',
+      uiCalArrete:               'Alineación detenida',
+      uiCalNonDemarre:           'Alineación no iniciada',
+      uiCalSeule:                'Alineación en pausa: un solo recuadro en pantalla',
+      uiCalEcoute:               'Alineación: escuchando',
+      uiCalRefPub:               (ref) => `Alineación en pausa: ${ref}, que tiene el sonido, está en un anuncio`,
+      uiCalBascule:              (nom, s) => `Alineación: ${nom} tiene el sonido y será la referencia en ${s} s`,
+      uiCalTout:                 (ref) => `Alineación: todo está alineado con ${ref}`,
+      uiCalSur:                  (ref) => `Alineando con ${ref}`,
+      uiCalTuile:                (n, e) => {
+        const x = e.x === undefined ? '' : ` ${e.x}/${e.m}`;
+        switch (e.cause) {
+          case 'pub':       return `${n} en un anuncio`;
+          case 'retombee':  return `${n} se desfasó ${e.s} s: vuelve a su lugar`;
+          case 'ecart':     return `${n} a ${e.s} s de la referencia: comprobando la diferencia, ${e.el}/${e.tot} s`;
+          case 'calee':     return `${n} alineado`;
+          case 'laissee':   return `${n} se queda así: ${e.max} correcciones en ${e.min10} min`;
+          case 'recul':     return `${n} adelantado ${e.s} s: su reproductor no retrocede`;
+          case 'tampon':    return `${n} a ${e.s} s de la referencia: no hay búfer suficiente para alcanzarla`;
+          case 'arriere':   return `${n} adelantado ${e.s} s: no hay margen para retroceder`;
+          case 'loin':      return `${n} a ${e.s} s de la referencia: demasiado lejos para alcanzarla`;
+          case 'verif':     return `${n} corregido, comprobando${x}`;
+          case 'ecoute':    return `${n} escuchando${x}`;
+          case 'voix':      return `${n}: todavía sin una voz común clara`;
+          case 'echo':      return `${n}: una sola voz, quizá un eco — esperando una segunda`;
+          case 'ambigu':    return `${n}: dos desfases posibles — en espera`;
+          case 'aligne':    return `${n} en línea, por confirmar`;
+          case 'verifAligne': return `${n} corregido, en línea, por confirmar`;
+          case 'verifConfirmer': return `${n} corregido, ${e.avance ? 'adelantado' : 'atrasado'} ${e.s} s, por confirmar`;
+          case 'confirmer': return `${n} ${e.avance ? 'adelantado' : 'atrasado'} ${e.s} s, por confirmar`;
+          case 'repereRecul': return `${n} ${e.avance ? 'adelantado' : 'atrasado'} ${e.s} s: el reproductor de la referencia no retrocede`;
+          case 'repereTampon': return `${n} ${e.avance ? 'adelantado' : 'atrasado'} ${e.s} s: la referencia no tiene búfer suficiente para alcanzarlo`;
+          default:          return n;
+        }
+      },
+      uiCalRepere:               (ref) => `Referencia: ${ref}, el recuadro que tiene el sonido; los demás se alinean con él.`,
+      uiCalLegende:              (m, p) => `x/${m}: cálculos del sonido que cuentan, un intento cada ${p} s; cada recuadro necesita ${m}, y luego dos veredictos que coincidan. Un recuadro corregido lo comprueba el sonido antes de darlo por alineado.`,
+      uiCalCorrections:          (n) => `Correcciones hechas: ${n}`,
       uiSalleBanc:               (nom) => `Poner a ${nom} en la cuadrícula`,
       uiSalleChatAfficher:       'Mostrar el chat',
       uiSalleChatMasquer:        'Ocultar el chat',
@@ -917,6 +1079,45 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiSalleOnglet:             (nom) => `Mostrar o chat de ${nom}, sem trocar o som`,
       uiSalleChatMasque:         'Chat oculto: janela estreita demais',
       uiSallePoints:             'Sem pontos do canal na sala',
+      uiCalCoupe:                'Alinhamento desligado nas definições',
+      uiCalIndispo:              'Alinhamento indisponível: este navegador não consegue capturar o som',
+      uiCalArrete:               'Alinhamento parado',
+      uiCalNonDemarre:           'Alinhamento não iniciado',
+      uiCalSeule:                'Alinhamento em pausa: um só quadro na grade',
+      uiCalEcoute:               'Alinhamento: em escuta',
+      uiCalRefPub:               (ref) => `Alinhamento em pausa: ${ref}, que tem o som, está em anúncio`,
+      uiCalBascule:              (nom, s) => `Alinhamento: ${nom} tem o som e passa a ser a referência em ${s} s`,
+      uiCalTout:                 (ref) => `Alinhamento: tudo alinhado com ${ref}`,
+      uiCalSur:                  (ref) => `Alinhamento com ${ref}`,
+      uiCalTuile:                (n, e) => {
+        const x = e.x === undefined ? '' : ` ${e.x}/${e.m}`;
+        switch (e.cause) {
+          case 'pub':       return `${n} em anúncio`;
+          case 'retombee':  return `${n} deslizou ${e.s} s: volta ao seu lugar`;
+          case 'ecart':     return `${n} a ${e.s} s da referência: diferença em verificação, ${e.el}/${e.tot} s`;
+          case 'calee':     return `${n} alinhado`;
+          case 'laissee':   return `${n} fica assim: ${e.max} correções em ${e.min10} min`;
+          case 'recul':     return `${n} adiantado ${e.s} s: o player dele não recua`;
+          case 'tampon':    return `${n} a ${e.s} s da referência: buffer insuficiente para alcançar`;
+          case 'arriere':   return `${n} adiantado ${e.s} s: margem insuficiente para recuar`;
+          case 'loin':      return `${n} a ${e.s} s da referência: longe demais para alcançar`;
+          case 'verif':     return `${n} corrigido, em verificação${x}`;
+          case 'ecoute':    return `${n} em escuta${x}`;
+          case 'voix':      return `${n}: ainda sem uma voz comum nítida`;
+          case 'echo':      return `${n}: uma só voz, talvez um eco — à espera de uma segunda`;
+          case 'ambigu':    return `${n}: dois desvios possíveis — em espera`;
+          case 'aligne':    return `${n} em linha, por confirmar`;
+          case 'verifAligne': return `${n} corrigido, em linha, por confirmar`;
+          case 'verifConfirmer': return `${n} corrigido, ${e.avance ? 'adiantado' : 'atrasado'} ${e.s} s, por confirmar`;
+          case 'confirmer': return `${n} ${e.avance ? 'adiantado' : 'atrasado'} ${e.s} s, por confirmar`;
+          case 'repereRecul': return `${n} ${e.avance ? 'adiantado' : 'atrasado'} ${e.s} s: o player da referência não recua`;
+          case 'repereTampon': return `${n} ${e.avance ? 'adiantado' : 'atrasado'} ${e.s} s: a referência não tem buffer suficiente para alcançá-lo`;
+          default:          return n;
+        }
+      },
+      uiCalRepere:               (ref) => `Referência: ${ref}, o quadro que tem o som — é com ele que os outros se alinham.`,
+      uiCalLegende:              (m, p) => `x/${m}: cálculos do som que contam, uma tentativa a cada ${p} s; cada quadro precisa de ${m}, e depois de dois veredictos que concordem. Um quadro corrigido é verificado pelo som antes de ser dado como alinhado.`,
+      uiCalCorrections:          (n) => `Correções feitas: ${n}`,
       uiSalleBanc:               (nom) => `Colocar ${nom} na grade`,
       uiSalleChatAfficher:       'Mostrar o chat',
       uiSalleChatMasquer:        'Ocultar o chat',
@@ -1022,6 +1223,45 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiSalleOnglet:             (nom) => `Mostra la chat di ${nom}, senza cambiare l'audio`,
       uiSalleChatMasque:         'Chat nascosta: finestra troppo stretta',
       uiSallePoints:             'Niente punti canale nella sala',
+      uiCalCoupe:                'Allineamento disattivato nelle impostazioni',
+      uiCalIndispo:              'Allineamento non disponibile: questo browser non può catturare l\'audio',
+      uiCalArrete:               'Allineamento fermato',
+      uiCalNonDemarre:           'Allineamento non avviato',
+      uiCalSeule:                'Allineamento in pausa: un solo riquadro sullo schermo',
+      uiCalEcoute:               'Allineamento: in ascolto',
+      uiCalRefPub:               (ref) => `Allineamento in pausa: ${ref}, che ha l'audio, è in pubblicità`,
+      uiCalBascule:              (nom, s) => `Allineamento: ${nom} ha l'audio e diventa il riferimento tra ${s} s`,
+      uiCalTout:                 (ref) => `Allineamento: tutto allineato su ${ref}`,
+      uiCalSur:                  (ref) => `Allineamento su ${ref}`,
+      uiCalTuile:                (n, e) => {
+        const x = e.x === undefined ? '' : ` ${e.x}/${e.m}`;
+        switch (e.cause) {
+          case 'pub':       return `${n} in pubblicità`;
+          case 'retombee':  return `${n} è slittato di ${e.s} s: riprende il suo posto`;
+          case 'ecart':     return `${n} a ${e.s} s dal riferimento: scarto in verifica, ${e.el}/${e.tot} s`;
+          case 'calee':     return `${n} allineato`;
+          case 'laissee':   return `${n} lasciato così: ${e.max} correzioni in ${e.min10} min`;
+          case 'recul':     return `${n} avanti di ${e.s} s: il suo player non torna indietro`;
+          case 'tampon':    return `${n} a ${e.s} s dal riferimento: buffer insufficiente per recuperare`;
+          case 'arriere':   return `${n} avanti di ${e.s} s: margine insufficiente per tornare indietro`;
+          case 'loin':      return `${n} a ${e.s} s dal riferimento: troppo lontano per recuperare`;
+          case 'verif':     return `${n} corretto, in verifica${x}`;
+          case 'ecoute':    return `${n} in ascolto${x}`;
+          case 'voix':      return `${n}: ancora nessuna voce comune netta`;
+          case 'echo':      return `${n}: una sola voce, forse un'eco — in attesa di una seconda`;
+          case 'ambigu':    return `${n}: due scarti possibili — in attesa`;
+          case 'aligne':    return `${n} in linea, da confermare`;
+          case 'verifAligne': return `${n} corretto, in linea, da confermare`;
+          case 'verifConfirmer': return `${n} corretto, ${e.avance ? 'avanti' : 'indietro'} di ${e.s} s, da confermare`;
+          case 'confirmer': return `${n} ${e.avance ? 'avanti' : 'indietro'} di ${e.s} s, da confermare`;
+          case 'repereRecul': return `${n} ${e.avance ? 'avanti' : 'indietro'} di ${e.s} s: il player del riferimento non torna indietro`;
+          case 'repereTampon': return `${n} ${e.avance ? 'avanti' : 'indietro'} di ${e.s} s: il riferimento non ha buffer sufficiente per raggiungerlo`;
+          default:          return n;
+        }
+      },
+      uiCalRepere:               (ref) => `Riferimento: ${ref}, il riquadro che ha l'audio; gli altri si allineano su di lui.`,
+      uiCalLegende:              (m, p) => `x/${m}: calcoli dell'audio che contano, un tentativo ogni ${p} s; a ogni riquadro ne servono ${m}, poi due verdetti concordi. Un riquadro corretto viene verificato dall'audio prima di essere detto allineato.`,
+      uiCalCorrections:          (n) => `Correzioni fatte: ${n}`,
       uiSalleBanc:               (nom) => `Metti ${nom} nella griglia`,
       uiSalleChatAfficher:       'Mostra la chat',
       uiSalleChatMasquer:        'Nascondi la chat',
@@ -1127,6 +1367,45 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiSalleOnglet:             (nom) => `Pokaż czat: ${nom}, bez zmiany dźwięku`,
       uiSalleChatMasque:         'Czat ukryty: okno jest za wąskie',
       uiSallePoints:             'Brak punktów kanału w sali',
+      uiCalCoupe:                'Wyrównanie wyłączone w ustawieniach',
+      uiCalIndispo:              'Wyrównanie niedostępne: ta przeglądarka nie przechwytuje dźwięku',
+      uiCalArrete:               'Wyrównanie zatrzymane',
+      uiCalNonDemarre:           'Wyrównanie nieuruchomione',
+      uiCalSeule:                'Wyrównanie wstrzymane: tylko jeden kafelek na ekranie',
+      uiCalEcoute:               'Wyrównanie: nasłuch',
+      uiCalRefPub:               (ref) => `Wyrównanie wstrzymane: ${ref} ma dźwięk i jest na reklamie`,
+      uiCalBascule:              (nom, s) => `Wyrównanie: ${nom} ma dźwięk i za ${s} s stanie się odniesieniem`,
+      uiCalTout:                 (ref) => `Wyrównanie: wszystko wyrównane do ${ref}`,
+      uiCalSur:                  (ref) => `Wyrównywanie do ${ref}`,
+      uiCalTuile:                (n, e) => {
+        const x = e.x === undefined ? '' : ` ${e.x}/${e.m}`;
+        switch (e.cause) {
+          case 'pub':       return `${n} na reklamie`;
+          case 'retombee':  return `${n} przesunął się o ${e.s} s: wraca na swoje miejsce`;
+          case 'ecart':     return `${n} ${e.s} s od odniesienia: sprawdzanie różnicy, ${e.el}/${e.tot} s`;
+          case 'calee':     return `${n} wyrównany`;
+          case 'laissee':   return `${n} zostaje tak: ${e.max} ${plurielSlave(e.max, ['korekta', 'korekty', 'korekt'])} w ${e.min10} min`;
+          case 'recul':     return `${n} ${e.s} s do przodu: jego odtwarzacz nie cofa się`;
+          case 'tampon':    return `${n} ${e.s} s od odniesienia: za mały bufor, by nadrobić`;
+          case 'arriere':   return `${n} ${e.s} s do przodu: za mały zapas, by się cofnąć`;
+          case 'loin':      return `${n} ${e.s} s od odniesienia: za daleko, by nadrobić`;
+          case 'verif':     return `${n} poprawiony, sprawdzanie${x}`;
+          case 'ecoute':    return `${n} nasłuch${x}`;
+          case 'voix':      return `${n}: jeszcze brak wyraźnego wspólnego głosu`;
+          case 'echo':      return `${n}: tylko jeden głos, może echo — czeka na drugi`;
+          case 'ambigu':    return `${n}: dwa możliwe przesunięcia — czeka`;
+          case 'aligne':    return `${n} w linii, do potwierdzenia`;
+          case 'verifAligne': return `${n} poprawiony, w linii, do potwierdzenia`;
+          case 'verifConfirmer': return `${n} poprawiony, ${e.avance ? 'do przodu' : 'z tyłu'} o ${e.s} s, do potwierdzenia`;
+          case 'confirmer': return `${n} ${e.avance ? 'do przodu' : 'z tyłu'} o ${e.s} s, do potwierdzenia`;
+          case 'repereRecul': return `${n} ${e.avance ? 'do przodu' : 'z tyłu'} o ${e.s} s: odtwarzacz odniesienia nie cofa się`;
+          case 'repereTampon': return `${n} ${e.avance ? 'do przodu' : 'z tyłu'} o ${e.s} s: odniesienie ma za mały bufor, by go dogonić`;
+          default:          return n;
+        }
+      },
+      uiCalRepere:               (ref) => `Odniesienie: ${ref}, kafelek z dźwiękiem — pozostałe wyrównują się do niego.`,
+      uiCalLegende:              (m, p) => `x/${m}: liczące się obliczenia dźwięku, jedna próba co ${p} s; każdy kafelek potrzebuje ${m}, potem dwóch zgodnych werdyktów. Poprawiony kafelek jest sprawdzany przez dźwięk, zanim zostanie uznany za wyrównany.`,
+      uiCalCorrections:          (n) => `Wykonane korekty: ${n}`,
       uiSalleBanc:               (nom) => `Przenieś ${nom} do siatki`,
       uiSalleChatAfficher:       'Pokaż czat',
       uiSalleChatMasquer:        'Ukryj czat',
@@ -1232,6 +1511,45 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiSalleOnglet:             (nom) => `Показать чат: ${nom}, не меняя звук`,
       uiSalleChatMasque:         'Чат скрыт: окно слишком узкое',
       uiSallePoints:             'В зале баллы канала не начисляются',
+      uiCalCoupe:                'Выравнивание отключено в настройках',
+      uiCalIndispo:              'Выравнивание недоступно: этот браузер не может захватывать звук',
+      uiCalArrete:               'Выравнивание остановлено',
+      uiCalNonDemarre:           'Выравнивание не запущено',
+      uiCalSeule:                'Выравнивание на паузе: на экране одна плитка',
+      uiCalEcoute:               'Выравнивание: слушаем',
+      uiCalRefPub:               (ref) => `Выравнивание на паузе: у ${ref} звук, и там идёт реклама`,
+      uiCalBascule:              (nom, s) => `Выравнивание: звук у ${nom}, через ${s} с эта плитка станет опорной`,
+      uiCalTout:                 (ref) => `Выравнивание: всё выровнено по ${ref}`,
+      uiCalSur:                  (ref) => `Выравнивание по ${ref}`,
+      uiCalTuile:                (n, e) => {
+        const x = e.x === undefined ? '' : ` ${e.x}/${e.m}`;
+        switch (e.cause) {
+          case 'pub':       return `${n} — реклама`;
+          case 'retombee':  return `${n} — сдвиг на ${e.s} с, возвращается на место`;
+          case 'ecart':     return `${n} — ${e.s} с от опорной, разрыв проверяется, ${e.el}/${e.tot} с`;
+          case 'calee':     return `${n} — выровнена`;
+          case 'laissee':   return `${n} — оставлена как есть: ${e.max} ${plurielSlave(e.max, ['поправка', 'поправки', 'поправок'])} за ${e.min10} мин`;
+          case 'recul':     return `${n} — впереди на ${e.s} с, её плеер не отступает`;
+          case 'tampon':    return `${n} — ${e.s} с от опорной, мало буфера, чтобы догнать`;
+          case 'arriere':   return `${n} — впереди на ${e.s} с, мало запаса, чтобы отступить`;
+          case 'loin':      return `${n} — ${e.s} с от опорной, слишком далеко, чтобы догнать`;
+          case 'verif':     return `${n} — поправлена, проверка${x}`;
+          case 'ecoute':    return `${n} — слушаем${x}`;
+          case 'voix':      return `${n} — пока нет чёткого общего голоса`;
+          case 'echo':      return `${n} — один голос, возможно эхо, ждём второй`;
+          case 'ambigu':    return `${n} — два возможных сдвига, ждём`;
+          case 'aligne':    return `${n} — в линию, нужно подтверждение`;
+          case 'verifAligne': return `${n} — поправлена, в линию, нужно подтверждение`;
+          case 'verifConfirmer': return `${n} — поправлена, ${e.avance ? 'впереди' : 'позади'} на ${e.s} с, нужно подтверждение`;
+          case 'confirmer': return `${n} — ${e.avance ? 'впереди' : 'позади'} на ${e.s} с, нужно подтверждение`;
+          case 'repereRecul': return `${n} — ${e.avance ? 'впереди' : 'позади'} на ${e.s} с, плеер опорной не отступает`;
+          case 'repereTampon': return `${n} — ${e.avance ? 'впереди' : 'позади'} на ${e.s} с, у опорной мало буфера, чтобы догнать`;
+          default:          return n;
+        }
+      },
+      uiCalRepere:               (ref) => `Опорная плитка: ${ref}, та, у которой звук; остальные выравниваются по ней.`,
+      uiCalLegende:              (m, p) => `x/${m}: засчитанные расчёты звука, попытка каждые ${p} с; каждой плитке нужно ${m}, затем два совпавших вердикта. Поправленную плитку проверяет звук, прежде чем она считается выровненной.`,
+      uiCalCorrections:          (n) => `Сделано поправок: ${n}`,
       uiSalleBanc:               (nom) => `Поместить ${nom} в сетку`,
       uiSalleChatAfficher:       'Показать чат',
       uiSalleChatMasquer:        'Скрыть чат',
@@ -1337,6 +1655,45 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiSalleOnglet:             (nom) => `${nom} のチャットを表示（音声はそのまま）`,
       uiSalleChatMasque:         'チャット非表示：ウィンドウが狭すぎます',
       uiSallePoints:             'ルームではチャンネルポイントは貯まりません',
+      uiCalCoupe:                '同期は設定でオフになっています',
+      uiCalIndispo:              '同期は使えません：このブラウザは音声を取り込めません',
+      uiCalArrete:               '同期を停止しました',
+      uiCalNonDemarre:           '同期は開始していません',
+      uiCalSeule:                '同期を一時停止中：画面のタイルが 1 つだけです',
+      uiCalEcoute:               '同期：聞き取り中',
+      uiCalRefPub:               (ref) => `同期を一時停止中：音声を出している ${ref} が広告中です`,
+      uiCalBascule:              (nom, s) => `同期：音声が ${nom} に移りました。${s} 秒後に基準になります`,
+      uiCalTout:                 (ref) => `同期：すべて ${ref} に揃いました`,
+      uiCalSur:                  (ref) => `${ref} に同期中`,
+      uiCalTuile:                (n, e) => {
+        const x = e.x === undefined ? '' : ` ${e.x}/${e.m}`;
+        switch (e.cause) {
+          case 'pub':       return `${n} は広告中`;
+          case 'retombee':  return `${n} が ${e.s} 秒ずれました。元の位置に戻します`;
+          case 'ecart':     return `${n} は基準から ${e.s} 秒：差を確認中 ${e.el}/${e.tot} 秒`;
+          case 'calee':     return `${n} は同期済み`;
+          case 'laissee':   return `${n} はこのまま：${e.min10} 分で ${e.max} 回補正済み`;
+          case 'recul':     return `${n} は ${e.s} 秒先行：プレーヤーが戻れません`;
+          case 'tampon':    return `${n} は基準から ${e.s} 秒：追いつくためのバッファが足りません`;
+          case 'arriere':   return `${n} は ${e.s} 秒先行：戻るための余裕が足りません`;
+          case 'loin':      return `${n} は基準から ${e.s} 秒：遠すぎて追いつけません`;
+          case 'verif':     return `${n} は補正済み、確認中${x}`;
+          case 'ecoute':    return `${n} は聞き取り中${x}`;
+          case 'voix':      return `${n}：まだはっきりした共通の声がありません`;
+          case 'echo':      return `${n}：声が 1 つだけ（エコーかも）、2 つ目を待っています`;
+          case 'ambigu':    return `${n}：ずれの候補が 2 つ、待機中`;
+          case 'aligne':    return `${n} は揃っています（確認待ち）`;
+          case 'verifAligne': return `${n} は補正済み、揃っています（確認待ち）`;
+          case 'verifConfirmer': return `${n} は補正済み、${e.s} 秒${e.avance ? '先行' : '遅れ'}（確認待ち）`;
+          case 'confirmer': return `${n} は ${e.s} 秒${e.avance ? '先行' : '遅れ'}（確認待ち）`;
+          case 'repereRecul': return `${n} は ${e.s} 秒${e.avance ? '先行' : '遅れ'}：基準のプレーヤーが戻れません`;
+          case 'repereTampon': return `${n} は ${e.s} 秒${e.avance ? '先行' : '遅れ'}：基準のバッファが足りず、追いつけません`;
+          default:          return n;
+        }
+      },
+      uiCalRepere:               (ref) => `基準：${ref}（音声を出しているタイル）。ほかのタイルはこれに揃えます。`,
+      uiCalLegende:              (m, p) => `x/${m}：有効な音声の計算回数です。${p} 秒ごとに 1 回試み、各タイルに ${m} 回必要で、その後に一致する判定が 2 回続く必要があります。補正したタイルは、同期済みとする前に音声で確認します。`,
+      uiCalCorrections:          (n) => `補正回数：${n}`,
       uiSalleBanc:               (nom) => `${nom} をグリッドに表示`,
       uiSalleChatAfficher:       'チャットを表示',
       uiSalleChatMasquer:        'チャットを非表示',
@@ -1440,6 +1797,45 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiSalleOnglet:             (nom) => `显示 ${nom} 的聊天（不切换声音）`,
       uiSalleChatMasque:         '聊天已隐藏：窗口太窄',
       uiSallePoints:             '放映室内不获得频道积分',
+      uiCalCoupe:                '对齐已在设置中关闭',
+      uiCalIndispo:              '对齐不可用：此浏览器无法捕获声音',
+      uiCalArrete:               '对齐已停止',
+      uiCalNonDemarre:           '对齐尚未开始',
+      uiCalSeule:                '对齐已暂停：屏幕上只有一个画面',
+      uiCalEcoute:               '对齐：聆听中',
+      uiCalRefPub:               (ref) => `对齐已暂停：有声音的 ${ref} 正在播放广告`,
+      uiCalBascule:              (nom, s) => `对齐：声音已切到 ${nom}，${s} 秒后它将成为基准`,
+      uiCalTout:                 (ref) => `对齐：全部已对齐到 ${ref}`,
+      uiCalSur:                  (ref) => `正在对齐到 ${ref}`,
+      uiCalTuile:                (n, e) => {
+        const x = e.x === undefined ? '' : ` ${e.x}/${e.m}`;
+        switch (e.cause) {
+          case 'pub':       return `${n} 正在播放广告`;
+          case 'retombee':  return `${n} 偏移了 ${e.s} 秒，正在回到原位`;
+          case 'ecart':     return `${n} 与基准相差 ${e.s} 秒：正在核实差距 ${e.el}/${e.tot} 秒`;
+          case 'calee':     return `${n} 已对齐`;
+          case 'laissee':   return `${n} 保持现状：${e.min10} 分钟内已修正 ${e.max} 次`;
+          case 'recul':     return `${n} 超前 ${e.s} 秒：其播放器无法后退`;
+          case 'tampon':    return `${n} 与基准相差 ${e.s} 秒：缓冲不足，无法追上`;
+          case 'arriere':   return `${n} 超前 ${e.s} 秒：没有足够余量后退`;
+          case 'loin':      return `${n} 与基准相差 ${e.s} 秒：太远，无法追上`;
+          case 'verif':     return `${n} 已修正，正在核实${x}`;
+          case 'ecoute':    return `${n} 聆听中${x}`;
+          case 'voix':      return `${n}：还没有清晰的共同人声`;
+          case 'echo':      return `${n}：只有一个人声，可能是回声，正在等待第二个`;
+          case 'ambigu':    return `${n}：有两个可能的偏移，正在等待`;
+          case 'aligne':    return `${n} 已基本对齐，待确认`;
+          case 'verifAligne': return `${n} 已修正，已基本对齐，待确认`;
+          case 'verifConfirmer': return `${n} 已修正，${e.avance ? '超前' : '落后'} ${e.s} 秒，待确认`;
+          case 'confirmer': return `${n} ${e.avance ? '超前' : '落后'} ${e.s} 秒，待确认`;
+          case 'repereRecul': return `${n} ${e.avance ? '超前' : '落后'} ${e.s} 秒：基准的播放器无法后退`;
+          case 'repereTampon': return `${n} ${e.avance ? '超前' : '落后'} ${e.s} 秒：基准缓冲不足，无法追上`;
+          default:          return n;
+        }
+      },
+      uiCalRepere:               (ref) => `基准：${ref}，即有声音的画面；其他画面向它对齐。`,
+      uiCalLegende:              (m, p) => `x/${m}：有效的声音计算次数，每 ${p} 秒尝试一次；每个画面需要 ${m} 次，然后还需要两次一致的判定。修正过的画面会先由声音核实，再算作已对齐。`,
+      uiCalCorrections:          (n) => `已修正次数：${n}`,
       uiSalleBanc:               (nom) => `将 ${nom} 放入网格`,
       uiSalleChatAfficher:       '显示聊天',
       uiSalleChatMasquer:        '隐藏聊天',
@@ -7034,7 +7430,24 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     .tse-salle__note {
       color: var(--tse-texte-faible); font-size: 12px;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
+      /* Elle cède la place la première : ce qu'elle dit ne change pas, l'état
+         du calage si (4.25.0.11). */
+      flex: 0 4 auto;
     }
+    /* L'ÉTAT DU CALAGE (4.25.0.11), à droite de la note : un point — vert
+       calé, ambre au travail, rouge bloqué, gris en pause ou coupé — et la
+       phrase. Coupée par la largeur, l'infobulle la rend entière. Comme la
+       note, il se tait dans la pastille sans chat. */
+    .tse-salle__calage {
+      flex: 0 1 auto; min-width: 0; display: inline-flex; align-items: center; gap: 6px;
+      font-size: 12px; color: var(--tse-texte);
+    }
+    .tse-salle__calage-texte { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+    .tse-salle__calage-point { flex: 0 0 auto; width: 7px; height: 7px; border-radius: 50%; background: #adadb8; }
+    .tse-salle__calage[data-ton="cale"] .tse-salle__calage-point { background: #00c86f; }
+    .tse-salle__calage[data-ton="travail"] .tse-salle__calage-point { background: #f5a623; }
+    .tse-salle__calage[data-ton="bloque"] .tse-salle__calage-point { background: #eb0400; }
+    .tse-salle__tete .tse-salle__calage { display: none; }
     .tse-salle__bouton-chat {
       flex: 0 0 auto;
       padding: 4px 10px; border: 0; border-radius: 4px; cursor: pointer;
@@ -15505,7 +15918,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         if (cle.split('~').includes(login)) delete c.ecoute.paires[cle];
       }
       const k = c.calage;
-      if (k) for (const m of [k.vus, k.lus, k.etats, k.coups, k.faible, k.dits, k.deplacements, k.premieres, k.reprises, k.grands]) delete m[login];
+      if (k) for (const m of [k.vus, k.vusT, k.bloque, k.lus, k.etats, k.coups, k.faible, k.dits, k.deplacements, k.premieres, k.reprises, k.grands]) delete m[login];
       if (c.ecoute.ref === login && c.ecoute.actif) {
         // L'écoute repart sur celle qui a désormais le son.
         ecoute(false); ecoute(true);
@@ -15571,6 +15984,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       surveillerDirects(c);
       sonder(c);
       caler(c);
+      majCalage(c);
       // La vidéo de la page reste en pause tant que la salle est ouverte, même
       // si son lecteur tente de repartir de lui-même.
       for (const v of c.pausees) {
@@ -15914,6 +16328,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         ecoute: bilanEcoute(c),
         // LE CALAGE PAR LE SON (4.24.0.21) : ses mesures, ses corrections.
         calage: bilanCalage(c),
+        // Ce que l'en-tête dit du calage, mot pour mot (4.25.0.11).
+        calageAffiche: c.calageAffiche,
         /* CE QUE LA SALLE COÛTE (4.24.0.24, à l'audit) : la durée de ses pas
            et de son écoute, mesurée ; les tâches longues de la page pendant
            qu'elle est ouverte, par coupable ; les tuiles sorties de la grille,
@@ -16200,6 +16616,17 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       titre.textContent = S.uiSalleTitre(membres.length);
       const note = document.createElement('span');
       note.className = 'tse-salle__note';
+      /* OÙ EN EST LE CALAGE (4.25.0.11), à droite de la note : un point de
+         couleur et une phrase, tenus à jour à chaque pas (cf. majCalage) ;
+         l'infobulle dit le détail, tuile par tuile. */
+      const calageEl = document.createElement('span');
+      calageEl.className = 'tse-salle__calage';
+      const calagePoint = document.createElement('span');
+      calagePoint.className = 'tse-salle__calage-point';
+      calagePoint.setAttribute('aria-hidden', 'true');
+      const calageTexte = document.createElement('span');
+      calageTexte.className = 'tse-salle__calage-texte';
+      calageEl.append(calagePoint, calageTexte);
       /* PLUS DE BOUTON « FERMER » (4.24.0.10), à la demande : Échap, le nœud
          de la barre et tout changement de page ferment la salle. */
       // Le chat, forcé ou retiré à la main : l'inverse de ce qui est affiché.
@@ -16222,7 +16649,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       titreBloc.className = 'tse-salle__titre-bloc';
       // Le son, dans la pastille sans chat (4.24.0.27) ; avec un chat, son en-tête le dit.
       const { el: sonLigne, texte: sonTexte } = ligneSon('tse-salle__son', 'tse-salle__son-texte');
-      titreBloc.append(titre, sonLigne, note);
+      titreBloc.append(titre, sonLigne, note, calageEl);
       const commandes = document.createElement('div');
       commandes.className = 'tse-salle__commandes';
       commandes.append(boutonChat);
@@ -16260,6 +16687,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         t0: Date.now(), origine: opts.origine || 'console', chemin: location.pathname,
         arriveeMs: Number.isFinite(opts.arriveeMs) ? opts.arriveeMs : null, empilement,
         membres, tuiles: [], son: null, boite, scene, banc, cleBanc: null, note,
+        // L'état du calage dans l'en-tête (4.25.0.11, cf. majCalage) : l'élément, sa phrase, et ce qu'il dit.
+        calageEl, calageTexte, calageAffiche: null,
         chatG, chatD, deuxChats: false, partage: null, textes: new Map(), comparaison: null,
         // Le chat choisi par un onglet, ou null : il suit le son (4.24.0.27, cf. majChat).
         chatChoisi: null, chatsChoisis: 0, onglets, cleOnglets: null, sonTexte,
@@ -16299,6 +16728,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       verifierEmpilement(boite, empilement);
       // Ouverte par le nœud : le calage par le son, si le réglage le veut (4.24.0.21).
       if (courante.origine === 'noeud' && options.get('salleAuto')) demarrerCalage(courante, 1, 'ouverture');
+      // L'en-tête dit tout de suite où il en est, sans attendre le premier pas.
+      majCalage(courante);
       if (auChangement) auChangement();
       return {
         ouverte: true,
@@ -16726,18 +17157,21 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       const nMin = Math.max(3, Math.round(CALAGE.NETS * f));
       const nets = hist.filter((h) => h.z >= 5 && Number.isFinite(h.debut) && h.debut >= depuis)
         .slice(-Math.max(nMin, Math.round(CALAGE.FENETRE * f)));
-      if (nets.length < nMin) return { refus: `${nets.length} calculs nets sur ${nMin}`, n: nets.length };
+      /* LA CAUSE, À CÔTÉ DE LA PHRASE (4.25.0.11) : l'en-tête de la salle dit
+         où en est le calage (cf. etatCalage), et ne lit pas le français du
+         journal pour le savoir. */
+      if (nets.length < nMin) return { refus: `${nets.length} calculs nets sur ${nMin}`, n: nets.length, cause: 'calculs', min: nMin };
       const voix = grouper(nets.flatMap(pointsDe), (p) => p.ms)
         .map((g) => ({ ms: Math.round(mediane(g.map((p) => p.ms))), n1: g.filter((p) => p.w === 1).length }))
         .filter((g) => g.n1 >= 2);
-      if (!voix.length) return { refus: 'aucune voix nette', n: nets.length };
+      if (!voix.length) return { refus: 'aucune voix nette', n: nets.length, cause: 'voix' };
       const grappes = enchainer(voix);
       const salons = grappes.filter(estSalon);
       let grappe, seule = false;
       if (salons.length) {
         const plus = Math.max(...salons.map((gr) => gr.length));
         const choix = salons.filter((gr) => gr.length === plus);
-        if (choix.length > 1) return { refus: `ambigu : deux salons, autour de ${choix.map((gr) => gr[0].ms).join(' et ')} ms`, n: nets.length };
+        if (choix.length > 1) return { refus: `ambigu : deux salons, autour de ${choix.map((gr) => gr[0].ms).join(' et ')} ms`, n: nets.length, cause: 'ambigu' };
         grappe = choix[0];
       } else {
         grappe = grappes.reduce((a, b) => (premiersDe(b) > premiersDe(a) ? b : a));
@@ -16748,7 +17182,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       const desequilibre = seule && Math.abs(ms) > CALAGE.SEULE_MS && grappe.some((g) => Math.abs(g.ms - ms) >= CALAGE.DISTINCTE_MS);
       if (desequilibre) { seule = false; ms = grappe[grappe.length - 1].ms; }
       if (seule && Math.abs(ms) > CALAGE.SEULE_MS) {
-        return { refus: `une source seule, à ${ms} ms — un écho, peut-être : rien ne bouge`, n: nets.length };
+        return { refus: `une source seule, à ${ms} ms — un écho, peut-être : rien ne bouge`, n: nets.length, cause: 'echo' };
       }
       return { ms, voix: grappe.map((g) => ({ ms: g.ms, n1: g.n1 })), n: nets.length, seule, desequilibre };
     };
@@ -16773,7 +17207,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       noter(c, null, `calage · ${texte}`);
     };
     // Tout se remesure : une écoute repartie, une autre référence.
-    const repartir = (k) => { k.vus = {}; k.lus = {}; k.etats = {}; k.calculsVus = -1; };
+    const repartir = (k) => { k.vus = {}; k.vusT = {}; k.bloque = {}; k.lus = {}; k.etats = {}; k.calculsVus = -1; };
     // La première fois de chaque étape, par tuile, pour le rapport (4.24.0.25, cf. bilanCalage).
     const premiere = (k, n, etape, quand) => {
       const x = k.premieres[n] || (k.premieres[n] = {});
@@ -16795,6 +17229,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       const k = { etat: capture ? 'actif' : 'indisponible : ce navigateur ne capture pas le son d\'un lecteur (captureStream)',
                   echelle: e, origine, t0: Date.now(), ecouteAllumee: false, attente: null, journal: [],
                   vus: {}, lus: {}, etats: {}, coups: {}, faible: {}, dits: {}, deplacements: {}, premieres: {}, salleCalee: null,
+                  // 4.25.0.11 : l'heure de chaque verdict, et ce qui empêche une tuile de bouger (cf. etatCalage).
+                  vusT: {}, bloque: {},
                   // 4.24.0.27 : les places reprises, par tuile ; les grands écarts en cours d'observation (cf. grandEcart).
                   reprises: {}, grands: {},
                   calculsVus: -1, sonAilleurs: null };
@@ -16817,8 +17253,12 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       journaliser(c, k, raison);
       return true;
     };
-    // Dire une fois ce qui empêche une tuile de bouger, pas à chaque calcul.
-    const direUneFois = (c, k, nom, texte) => {
+    /* Dire une fois ce qui empêche une tuile de bouger, pas à chaque calcul.
+       `bloque` (4.25.0.11) : la même chose pour l'en-tête — sa cause et l'écart
+       en secondes —, reposée À CHAQUE fois avec son heure : elle vaut tant que
+       la tuile n'a pas changé depuis (cf. etatCalage). */
+    const direUneFois = (c, k, nom, texte, bloque = null) => {
+      if (bloque) k.bloque[nom] = { ...bloque, t: Date.now() };
       if (k.dits[nom] === texte) return;
       k.dits[nom] = texte;
       journaliser(c, k, texte);
@@ -16927,7 +17367,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         oublierPlace(p.t, maintenant + PLACE.APRES_MS);
         k.reprises[n].push(maintenant);
         k.deplacements[n] = r3((k.deplacements[n] || 0) + (avance ? -s : s));
-        delete k.dits[n];
+        delete k.dits[n]; delete k.bloque[n];
         signaler(c, n, 'place reprise');
         const geste = `${avance ? 'avance' : 'recule'} de ${s} s`;
         journaliser(c, k, !ancre ? `${quoi(p)} → elle reprend sa place : ${geste}`
@@ -16976,7 +17416,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       // e.l = latence(référence) − latence(tuile) : négatif, la tuile est derrière.
       const quoi = `${n} ${e.l < 0 ? 'derrière' : 'devant'} la référence de ${secondes(e.l)}, au-delà de ce que le son entend`
         + ` — latences et tampons d'accord (${signeMs(Math.round(e.l * 1000))} · ${signeMs(Math.round(e.b * 1000))} ms)`;
-      if (k.coups[n].length >= CALAGE.MAX_N) { direUneFois(c, k, n, `${quoi} : ${CALAGE.MAX_N} corrections déjà — laissée là`); return; }
+      if (k.coups[n].length >= CALAGE.MAX_N) { direUneFois(c, k, n, `${quoi} : ${CALAGE.MAX_N} corrections déjà — laissée là`, { cause: 'laissee', s: Math.abs(e.l) }); return; }
       const autresDevant = c.tuiles.every((u) => u === ref || u.enPub || ((ecartDe(ref, u) || { l: 0 }).l >= GRAND.S));
       let geste = null;
       if (e.l < 0) geste = { u: t, type: 'avance', s: r3(-e.l + CALAGE.AVANCE_S) };
@@ -16987,12 +17427,15 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         : geste.type === 'recul' && !peutReculer(geste.u) ? 'elle ne peut pas reculer'
           : b === null || b - geste.s < CALAGE.MARGE_S ? `${b === null ? 'tampon inconnu' : `${b} s ${geste.type === 'avance' ? 'de tampon' : 'gardées derrière'}`}`
             : null;
-      if (refus) { direUneFois(c, k, n, `${quoi} : rien à faire (${geste.u.chaine}, ${refus})`); return; }
+      // La cause, pour l'en-tête : trop loin, un lecteur qui ne recule pas, ou ce qui manque devant (tampon) ou derrière.
+      const cause = geste.s > CALAGE.REPRISE_MAX_S ? 'loin' : geste.type === 'avance' ? 'tampon'
+        : !peutReculer(geste.u) ? 'recul' : 'arriere';
+      if (refus) { direUneFois(c, k, n, `${quoi} : rien à faire (${geste.u.chaine}, ${refus})`, { cause, s: Math.abs(e.l) }); return; }
       envoyer(geste.u, `essai-${geste.type}`, { duree: geste.s });
       oublierPlace(geste.u, maintenant + PLACE.APRES_MS);
       k.coups[n].push(maintenant);
       k.deplacements[geste.u.chaine] = r3((k.deplacements[geste.u.chaine] || 0) + (geste.type === 'recul' ? geste.s : -geste.s));
-      delete k.dits[n];
+      delete k.dits[n]; delete k.bloque[n];
       premiere(k, n, 'correction', maintenant);
       signaler(c, geste.u.chaine, 'grand écart');
       journaliser(c, k, `${quoi} → ${geste.u.chaine} ${geste.type === 'avance' ? 'avance' : 'recule'} de ${geste.s} s`);
@@ -17030,7 +17473,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
          en a besoin. Le calage attend, et le rapport le dit, paire par paire. */
       if (ref && ref.enPub) {
         k.attente = ATTENTE_PUB;
-        for (const t of c.tuiles) if (t !== ref) k.vus[t.chaine] = { refus: ATTENTE_PUB, n: 0 };
+        for (const t of c.tuiles) if (t !== ref) { k.vus[t.chaine] = { refus: ATTENTE_PUB, n: 0, cause: 'pub' }; k.vusT[t.chaine] = maintenant; }
         return;
       }
       if (k.attente === ATTENTE_PUB) k.attente = null;
@@ -17047,12 +17490,13 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         /* EN PUB, PAS JUGÉE (4.24.0.27) : son verdict d'avant ne vaut plus
            rien — sa mesure est rouverte —, et ne doit pas s'accorder avec le
            premier d'après. */
-        if (t.enPub) { k.vus[t.chaine] = { refus: 'en pub', n: 0 }; continue; }
+        if (t.enPub) { k.vus[t.chaine] = { refus: 'en pub', n: 0, cause: 'pub' }; k.vusT[t.chaine] = maintenant; continue; }
         const p = c.ecoute.paires[`${ref.chaine}~${t.chaine}`];
         const depuis = depuisPaire(c, ref, t);
         const v = mesurerSon(p ? p.historique : [], depuis, Math.max(0.25, e));
         const avant = k.vus[t.chaine];
         k.vus[t.chaine] = v;
+        k.vusT[t.chaine] = maintenant;
         /* UN CALCUL NEUF, OU PAS DE JUGEMENT (4.24.0.25). Deux verdicts qui
            s'accordent, c'est un verdict qui a tenu un tour d'écoute de plus.
            Une paire que ce tour n'a pas calculée — le son de sa tuile
@@ -17097,7 +17541,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       for (const n of Object.keys(verdicts)) {
         k.coups[n] = (k.coups[n] || []).filter((x) => maintenant - x < fenetreMax);
         if (Math.abs(avances[n]) < CALAGE.SEUIL_S || k.coups[n].length < CALAGE.MAX_N) continue;
-        direUneFois(c, k, n, `${n} : ${CALAGE.MAX_N} corrections en ${Math.round(fenetreMax / 60_000)} min — laissée là`);
+        direUneFois(c, k, n, `${n} : ${CALAGE.MAX_N} corrections en ${Math.round(fenetreMax / 60_000)} min — laissée là`,
+                    { cause: 'laissee', s: Math.abs(avances[n]) });
         delete avances[n];
       }
       const noms = Object.keys(avances);
@@ -17114,12 +17559,14 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         if (Math.abs(d) < CALAGE.SEUIL_S) continue;
         if (d > 0) {
           if (peutReculer(t)) gestes.push({ t, type: 'recul', s: Math.min(10, Math.max(0.05, r3(d - CALAGE.RECUL_S))), d });
-          else direUneFois(c, k, n, `${n} en avance de ${secondes(d)}, mais ${t.retientPas ? 'son lecteur reprend chaque recul' : 'toujours en faible latence'} : rien à faire`);
+          else direUneFois(c, k, n, `${n} en avance de ${secondes(d)}, mais ${t.retientPas ? 'son lecteur reprend chaque recul' : 'toujours en faible latence'} : rien à faire`,
+                           { cause: 'recul', s: d });
         } else {
           const s = r3(-d + CALAGE.AVANCE_S);
           const b = tamponDe(t);
           if (b !== null && b - s >= CALAGE.MARGE_S) gestes.push({ t, type: 'avance', s: Math.min(10, s), d });
-          else direUneFois(c, k, n, `${n} en retard de ${secondes(d)} sur une tuile qui ne peut pas reculer, et ${b === null ? 'son tampon est inconnu' : `${b} s de tampon`} : rien à faire`);
+          else direUneFois(c, k, n, `${n} en retard de ${secondes(d)} sur une tuile qui ne peut pas reculer, et ${b === null ? 'son tampon est inconnu' : `${b} s de tampon`} : rien à faire`,
+                           { cause: 'tampon', s: -d });
         }
       }
       const mesure = Object.entries(verdicts).map(([n, v]) => `${n} ${texteMesure(v, n).split(' · voix')[0]}`).join(' ; ');
@@ -17144,7 +17591,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         g.t.changement = maintenant;
         g.t.rouverte = { t: maintenant, quoi: g.type };
         k.deplacements[g.t.chaine] = r3((k.deplacements[g.t.chaine] || 0) + (g.type === 'recul' ? g.s : -g.s));
-        delete k.dits[g.t.chaine];
+        delete k.dits[g.t.chaine]; delete k.bloque[g.t.chaine];
       }
       /* Les états, tuile par tuile, selon ce qu'est devenue sa relation à la
          référence. Changée, et jugée à ce calcul : une première correction
@@ -17219,6 +17666,107 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         })),
         salleCalee: k.salleCalee === null ? null : a(k.salleCalee),
       };
+    };
+
+    /* ── OÙ EN EST LE CALAGE, DANS L'EN-TÊTE (4.25.0.11) ─────────────────────
+       DEMANDÉ AINSI : « à droite de "Pas de points de chaîne dans la salle",
+       mets l'état du calage en direct, sois précis pour bien qu'on comprenne
+       où ça en est ». Le rapport le disait déjà, en détail et en français de
+       diagnostic ; l'en-tête le dit dans la langue de la page, à chaque pas.
+
+       RIEN N'Y EST DEVINÉ : chaque mot vient de l'état que le calage tient
+       lui-même — l'état de chaque tuile (libre, vérification, calée), le
+       dernier verdict de sa paire et sa cause (cf. mesurerSon), ce qui
+       l'empêche de bouger (cf. direUneFois), ses pubs, sa place, son grand
+       écart. Un verdict ou un blocage ne compte que s'il date d'après le
+       dernier changement de la paire — un déplacement, un rechargement, une
+       pub : la mesure est alors rouverte, et ce qu'elle disait avant ne vaut
+       plus (cf. rouvrir).
+
+       L'ORDRE DES CAS EST CELUI DE LA PRIORITÉ : une pub empêche tout, une
+       tuile qui retombe ou un grand écart vont bouger, une tuile calée l'est,
+       un blocage dit pourquoi rien ne bouge ; reste l'écoute et ses
+       calculs, puis le verdict qui attend d'être confirmé. */
+    const etatTuileCalage = (c, k, ref, t, maintenant) => {
+      const n = t.chaine;
+      if (t.enPub) return { cause: 'pub' };
+      if (t.retombee) return { cause: 'retombee', s: Math.abs(t.retombee.dl) };
+      const g = k.grands[n];
+      if (g) {
+        return { cause: 'ecart', s: Math.abs(g.l), el: Math.min(Math.round((maintenant - g.t) / 1000), Math.round((GRAND.TENU_MS * k.echelle) / 1000)),
+                 tot: Math.round((GRAND.TENU_MS * k.echelle) / 1000) };
+      }
+      const etat = k.etats[n] || 'libre';
+      if (etat === 'calée') return { cause: 'calee' };
+      const change = Math.max(c.ecoute.depuis || 0, ref.changement || 0, t.changement || 0);
+      const b = k.bloque[n];
+      if (b && b.t >= change) return { cause: b.cause, s: b.s };
+      const v = (k.vusT[n] || 0) >= change ? k.vus[n] : undefined;
+      const compte = v && v.cause === 'calculs' ? { x: v.n, m: v.min } : {};
+      // Corrigée, et le son s'est déjà prononcé depuis : ce qu'il dit, en attendant le verdict d'accord.
+      if (etat === 'vérification' && v && !v.refus) {
+        return Math.abs(v.ms) < CALAGE.SEUIL_S * 1000 ? { cause: 'verifAligne' }
+          : { cause: 'verifConfirmer', s: Math.abs(v.ms) / 1000, avance: v.ms > 0 };
+      }
+      if (etat === 'vérification') return { cause: 'verif', ...compte };
+      if (!v || v.cause === 'calculs' || v.cause === 'pub') return { cause: 'ecoute', ...compte };
+      if (v.refus) return { cause: v.cause || 'ecoute' };
+      if (Math.abs(v.ms) < CALAGE.SEUIL_S * 1000) return { cause: 'aligne', s: Math.abs(v.ms) / 1000, avance: v.ms > 0 };
+      /* LE REPÈRE NE PEUT PAS BOUGER (trouvé en écrivant le banc, cf. le 183) : au
+         point de rencontre, c'est lui qui devait reculer — son lecteur ne
+         recule pas — ou avancer — son tampon ne le permet pas (cf. caler).
+         Le blocage est posé sur LUI, et lui n'a pas de ligne : sans ceci, la
+         tuile jugée resterait « à confirmer », en ambre, alors que la
+         décision est prise et que rien ne bougera. */
+      const br = k.bloque[ref.chaine];
+      if (br && br.t >= change && (br.cause === 'recul' || br.cause === 'tampon')) {
+        return { cause: br.cause === 'recul' ? 'repereRecul' : 'repereTampon', s: Math.abs(v.ms) / 1000, avance: v.ms > 0 };
+      }
+      return { cause: 'confirmer', s: Math.abs(v.ms) / 1000, avance: v.ms > 0 };
+    };
+    // L'état de la salle : { ton, texte, detail } — `ton` colore le point, `detail` fait l'infobulle.
+    const etatCalage = (c) => {
+      const k = c.calage;
+      const seul = (ton, texte) => ({ ton, texte, detail: texte });
+      if (!k) return seul('coupe', options.get('salleAuto') ? S.uiCalNonDemarre : S.uiCalCoupe);
+      if (k.etat !== 'actif') {
+        if (k.etat.startsWith('indisponible')) return seul('coupe', S.uiCalIndispo);
+        // Arrêté par le réglage, qu'on a rallumé depuis : il ne repart seul que dans une salle ouverte par le nœud.
+        return seul('coupe', k.etat === 'arrêté : réglage' && !options.get('salleAuto') ? S.uiCalCoupe : S.uiCalArrete);
+      }
+      if (c.tuiles.length < 2) return seul('pause', S.uiCalSeule);
+      const ref = tuileDe(c, c.ecoute.ref);
+      if (!ref) return seul('travail', S.uiCalEcoute);
+      if (ref.enPub) return seul('pause', S.uiCalRefPub(ref.chaine));
+      const maintenant = Date.now();
+      const sec = (x) => new Intl.NumberFormat(S.locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(x);
+      if (k.sonAilleurs) {
+        const reste = Math.max(0, Math.ceil((CALAGE.ANCRE_MS * k.echelle - (maintenant - k.sonAilleurs.t)) / 1000));
+        return seul('pause', S.uiCalBascule(k.sonAilleurs.chaine, reste));
+      }
+      const tuiles = c.tuiles.filter((t) => t !== ref).map((t) => {
+        const e = etatTuileCalage(c, k, ref, t, maintenant);
+        return { e, texte: S.uiCalTuile(t.chaine, { ...e, s: e.s === undefined ? undefined : sec(e.s),
+                                                    max: CALAGE.MAX_N, min10: Math.round((CALAGE.MAX_MS * k.echelle) / 60_000) }) };
+      });
+      const corrections = Object.values(k.coups).reduce((s, l) => s + l.length, 0);
+      // Les calculs exigés et le rythme des essais, tels que mesurerSon et l'écoute les tiennent.
+      const exiges = Math.max(3, Math.round(CALAGE.NETS * Math.max(0.25, k.echelle)));
+      const rythme = (CFG.SALLE_ECOUTE_TOUS * CFG.SALLE_PAS_MS) / 1000;
+      const detail = [S.uiCalRepere(ref.chaine), ...tuiles.map((x) => x.texte), S.uiCalLegende(exiges, rythme),
+                      S.uiCalCorrections(corrections)].join('\n');
+      if (tuiles.every((x) => x.e.cause === 'calee')) return { ton: 'cale', texte: S.uiCalTout(ref.chaine), detail };
+      // Rouge : ce que le calage ne fera pas. Une source seule, une voix absente, deux décalages : il attend — ambre.
+      const bloquee = tuiles.some((x) => ['laissee', 'recul', 'tampon', 'arriere', 'loin', 'repereRecul', 'repereTampon'].includes(x.e.cause));
+      return { ton: bloquee ? 'bloque' : 'travail', texte: `${S.uiCalSur(ref.chaine)} · ${tuiles.map((x) => x.texte).join(' · ')}`, detail };
+    };
+    // L'en-tête suit, à chaque pas — et ne touche au document que si ce qu'il dit a changé.
+    const majCalage = (c) => {
+      const e = etatCalage(c);
+      c.calageAffiche = { ton: e.ton, texte: e.texte };
+      if (c.calageTexte.textContent !== e.texte) c.calageTexte.textContent = e.texte;
+      if (c.calageEl.title !== e.detail) c.calageEl.title = e.detail;
+      if (c.calageEl.dataset.ton !== e.ton) c.calageEl.dataset.ton = e.ton;
     };
 
     /* LE POINT D'ENTRÉE COMMUN des trois relais (4.24.0.12) : la console d'une

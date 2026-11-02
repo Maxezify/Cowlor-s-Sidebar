@@ -782,15 +782,130 @@ const carteEtBadge = (carte, mod, cle) => {
   return hote;
 };
 
-/* L'ORDRE EST CELUI DE LA RENCONTRE, et il a été refait : il commençait par
-   l'aperçu au survol, c'est-à-dire par un geste, alors qu'on voit d'abord la
-   barre latérale sans rien faire. On descend donc de ce qui s'impose à l'œil
-   — la roue, la liste, les marques sur les cartes — vers ce qu'on déclenche —
-   le survol, les tris — puis vers ce qu'on règle. */
+/* ── L'AGENDA, EN PETIT (4.25.0.11) ─────────────────────────────────────────
+   DEMANDÉ AINSI : « tu montres des exemples visuels comme certains chapitres
+   précédents, car là c'est juste un gros paragraphe peu compréhensible ».
+
+   CE N'EST PAS UNE COPIE DE LA VUE, C'EST ELLE : chaque entrée passe par
+   `entreeAgenda`, chaque ligne par `ligneHorsLigne`, en mode maquette — sans
+   lien, sans bouton, sans infobulle. La feuille de la vue les habille ; une
+   maquette recopiée aurait cessé de lui ressembler à la première retouche.
+
+   LES DATES SONT CELLES DE CETTE SEMAINE-CI, et non d'un exemple figé : une
+   pastille « Aujourd'hui » posée sur un jeudi de mars, lue un mercredi
+   d'octobre, se lirait comme une erreur. Les heures, elles, sont fixes —
+   sauf le direct en cours, parti il y a 1 h 47 (la durée que la carte de
+   Korbek porte au chapitre des co-streams), et le prochain direct, à la
+   première heure pleine deux heures après maintenant. Chaque entrée tombe
+   au jour où elle commence, comme dans la vue : passé minuit, le direct
+   d'avant-hier soir reste à avant-hier.
+
+   LES MÊMES CHAÎNES DANS LES DEUX : Korbek est en direct, donc absente de
+   « Hors ligne » ; le dernier direct d'Aeltris est celui qui n'a pas de
+   rediffusion, donc pas de « Revoir » ; celui de Velmoria est réservé aux
+   abonnés, donc son cadenas — dans la semaine comme hors ligne. */
+const HEURE_MS = 3_600_000;
+const DIRECT_DEMO_MS = 107 * 60_000;
+const jourDemo = (maintenant, j, h, m) => {
+  const d = new Date(minuitDe(maintenant));
+  d.setDate(d.getDate() + j);
+  d.setHours(h, m, 0, 0);
+  return d.getTime();
+};
+const prochainDemo = (maintenant) => {
+  const d = new Date(maintenant + 2 * HEURE_MS);
+  d.setMinutes(0, 0, 0);
+  return d.getTime() + HEURE_MS;
+};
+const demoEntrees = (maintenant) => {
+  const j = (n, h, m = 0) => jourDemo(maintenant, n, h, m);
+  const prochain = prochainDemo(maintenant);
+  return [
+    { type: 'rediffusion', nom: 'Nyxaria', libelle: 'Elden Ring', titre: T('guideDemoTitre'),
+      debut: j(-2, 20, 2), fin: j(-1, 0, 14), duree: 4 * 3600 + 12 * 60 + 9, vues: 12400, id: '1' },
+    { type: 'sansRediffusion', nom: 'Aeltris', libelle: 'Elden Ring', titre: T('guideDemoAgendaSans'),
+      debut: j(-1, 9, 30), fin: j(-1, 11, 5) },
+    { type: 'rediffusion', nom: 'Velmoria', libelle: 'Minecraft', titre: T('guideDemoAgendaSub'),
+      debut: j(-1, 14, 0), fin: j(-1, 18, 31), duree: 4 * 3600 + 31 * 60, vues: 3100, id: '2',
+      restreinte: true, abonne: false },
+    { type: 'direct', nom: 'Korbek', libelle: 'Valorant', titre: T('guideDemoAgendaDirect'),
+      debut: Math.floor((maintenant - DIRECT_DEMO_MS) / 60_000) * 60_000, spectateurs: 962 },
+    { type: 'prevu', nom: 'Aeltris', libelle: 'Elden Ring', titre: T('guideDemoAgendaPrevu'),
+      debut: prochain, fin: prochain + 3 * HEURE_MS },
+  ];
+};
+const dessinBouton = (texte, classe = '') => elt('span', 'bouton bouton--fantome' + classe, texte);
+
+const demoSemaine = (maintenant = Date.now()) => {
+  const hote = div('d-agenda');
+  const barre = div('ag-barre');
+  barre.append(dessinBouton(T('btnToday')), dessinBouton('‹', ' ag-fleche'), dessinBouton('›', ' ag-fleche'),
+               elt('span', 'reg-menu ag-chaine d-menu', T('valAllChannels')));
+  hote.appendChild(barre);
+  const entrees = demoEntrees(maintenant);
+  const jours = [...new Set(entrees.map((e) => minuitDe(e.debut)))].sort((a, b) => a - b);
+  const auj = minuitDe(maintenant);
+  for (const jour of jours) {
+    const section = div('ag-jour' + (jour === auj ? ' ag-jour--auj' : ''));
+    section.appendChild(titreJour('div', jour, jour === auj));
+    for (const e of entrees.filter((x) => minuitDe(x.debut) === jour).sort((a, b) => a.debut - b.debut)) {
+      section.appendChild(entreeAgenda(e, e.nom, true));
+    }
+    hote.appendChild(section);
+  }
+  return hote;
+};
+
+const demoHorsLigne = (maintenant = Date.now()) => {
+  const e = demoEntrees(maintenant);
+  const [nyx, aeltris, velmoria, , prevu] = e;
+  const derniere = (x) => ({ id: x.id, titre: x.titre, libelle: x.libelle, duree: x.duree,
+                             restreinte: !!x.restreinte });
+  // Dans l'ordre de la vue : la programmée, puis la plus récemment partie, puis l'indisponible.
+  const lignes = [
+    { nom: aeltris.nom, titre: aeltris.titre, dernier: { t: aeltris.fin, debut: aeltris.debut, revoir: false },
+      prochain: { debut: prevu.debut, titre: prevu.titre } },
+    { nom: velmoria.nom, titre: velmoria.titre, dernier: { t: velmoria.fin, debut: velmoria.debut, revoir: true },
+      derniere: derniere(velmoria), abonne: false },
+    { nom: nyx.nom, titre: nyx.titre, dernier: { t: nyx.fin, debut: nyx.debut, revoir: true }, derniere: derniere(nyx) },
+    { nom: 'Brenvik', indisponible: maintenant - 5 * 24 * HEURE_MS },
+  ];
+  const liste = div('hl-liste d-agenda');
+  let avant = null;
+  for (const l of lignes) {
+    const el = ligneHorsLigne(l, quandHorsLigne(l, maintenant), true);
+    el.classList.toggle('hl-ligne--suite', !!(avant && groupeHorsLigne(avant) !== groupeHorsLigne(l)));
+    liste.appendChild(el);
+    avant = l;
+  }
+  return liste;
+};
+
+/* L'ORDRE : CHAQUE CHAPITRE NE S'APPUIE QUE SUR CEUX QUI LE PRÉCÈDENT
+   (4.25.0.11). Il était celui de la rencontre — ce qui s'impose à l'œil,
+   puis ce qu'on déclenche, puis ce qu'on règle —, et un signalement en a dit
+   le défaut : « Plus rapide que Twitch » parlait de Hype Trains et de badges
+   de l'aperçu au deuxième chapitre, « Les débuts » d'un aperçu, d'un badge et
+   d'une frise au quatrième, alors que l'aperçu n'arrivait qu'au neuvième, ses
+   badges au dixième, la frise au onzième. On lisait les mots avant leur sens.
+
+   D'OÙ CET ORDRE-CI :
+     — la roue, qui ouvre ce panneau ; la carte et sa durée, qui disent ce
+       qu'est une carte ;
+     — l'aperçu au survol, puis sa frise : tout ce qui suit parle de ses
+       badges ;
+     — les marques des cartes, chacune avec son badge : les débuts (la durée,
+       le badge, la frise servent déjà), l'or, le subathon, le co-stream et la
+       salle qu'il ouvre ;
+     — TOUS les badges, réunis quand on en a déjà vu la moitié ;
+     — les tris (l'or et les co-streams y servent), puis ce que l'extension
+       retire de la barre — ses Hype Trains reviennent en badge, sa série et
+       ses stories avec les tris —, puis Top Chaînes ;
+     — ce panneau, ses réglages, l'agenda en deux vues, la vie privée.
+   Ce qu'un chapitre annonce sans l'expliquer porte le numéro de celui qui le
+   fait (`renvoi`), et le banc tient la table des dépendances (96). */
 const GUIDE = [
-  { titre: 'guideRoueTitre',     texte: 'guideRoueTexte' },
-  // Ce que la barre retire revient en badge : le renvoi mène au chapitre qui les montre (4.24.0.37).
-  { titre: 'guideViteTitre',     texte: 'guideViteTexte', renvoi: 'guideBadgesTitre' },
+  { titre: 'guideRoueTitre',     texte: 'guideRoueTexte', renvoi: 'guidePanneauTitre' },
   { titre: 'guideDureeTitre',    texte: 'guideDureeTexte',
     demo: () => {
       const hote = div('d-pile');
@@ -798,6 +913,9 @@ const GUIDE = [
                   demoCarte({ nom: 'Korbek', cat: 'Minecraft', vues: 318, fini: true }));
       return hote;
     } },
+  // Il annonce les badges, que les chapitres suivants présentent un à un, et que celui-ci réunit.
+  { titre: 'guideHoverTitre',    texte: 'guideHoverTexte', renvoi: 'guideBadgesTitre', demo: () => demoApercu() },
+  { titre: 'guideFriseTitre',    texte: 'guideFriseTexte',    demo: () => demoFrise() },
   { titre: 'guideDebutTitre',    texte: 'guideDebutTexte',
     demo: () => carteEtBadge(
       demoCarte({ nom: 'Aeltris', cat: 'Elden Ring', vues: 87, duree: '4m', frais: true }),
@@ -806,6 +924,10 @@ const GUIDE = [
     demo: () => carteEtBadge(
       demoCarte({ nom: 'Nyxaria', cat: 'Elden Ring', vues: 1243, duree: '4h19', or: true }),
       'sub', 'guideBadgeSub') },
+  { titre: 'guideSubathonTitre', texte: 'guideSubathonTexte',
+    demo: () => carteEtBadge(
+      demoCarte({ nom: 'Velmoria', cat: 'Minecraft', vues: 4820, duree: '61h04', jour: true }),
+      'subathon', 'guideBadgeSubathon') },
   /* LE RENVOI VERS LES TRIS PORTE UN NUMÉRO, ET CE NUMÉRO SE CALCULE. Il était
      recopié en toutes lettres dans les douze fiches — « chapitre 9 » — et le
      remaniement de l'ordre l'a laissé pointer sur « Les badges de l'aperçu »
@@ -824,21 +946,19 @@ const GUIDE = [
      phrase au bout du leur : ni le son aux touches, ni le chat qu'on choisit,
      ni l'alignement, ni les points de chaîne qu'on n'y gagne pas. */
   { titre: 'guideSalleTitre',    texte: 'guideSalleTexte' },
-  { titre: 'guideSubathonTitre', texte: 'guideSubathonTexte',
-    demo: () => carteEtBadge(
-      demoCarte({ nom: 'Velmoria', cat: 'Minecraft', vues: 4820, duree: '61h04', jour: true }),
-      'subathon', 'guideBadgeSubathon') },
-  { titre: 'guideHoverTitre',    texte: 'guideHoverTexte',    demo: () => demoApercu() },
   { titre: 'guideBadgesTitre',   texte: 'guideBadgesTexte',   demo: () => demoBadges() },
-  { titre: 'guideFriseTitre',    texte: 'guideFriseTexte',    demo: () => demoFrise() },
   { titre: 'guideTriTitre',      texte: 'guideTriTexte' },
+  // Ce que la barre retire revient en badge : le renvoi mène, en arrière, au chapitre qui les montre tous.
+  { titre: 'guideViteTitre',     texte: 'guideViteTexte', renvoi: 'guideBadgesTitre' },
   { titre: 'guideTopTitre',      texte: 'guideTopTexte',      demo: () => demoOnglets() },
+  // Il présente les six groupes, et renvoie aux deux chapitres de l'agenda.
+  { titre: 'guidePanneauTitre',  texte: 'guidePanneauTexte', renvoi: ['guideAgendaTitre', 'guideHorsLigneTitre'] },
   { titre: 'guideReglagesTitre', texte: 'guideReglagesTexte' },
-  { titre: 'guidePanneauTitre',  texte: 'guidePanneauTexte' },
-  /* L'AGENDA SUIT LE PANNEAU (4.25.0), qui le présente parmi ses groupes et
-     dit « chapitre suivant ». Pas de maquette : le chapitre décrit une vue du
-     panneau, qui est à un clic. */
-  { titre: 'guideAgendaTitre',   texte: 'guideAgendaTexte' },
+  /* L'AGENDA EN DEUX CHAPITRES, CHACUN SA MAQUETTE (4.25.0.11) : ses deux
+     vues, dessinées par leur propre code (cf. demoSemaine). Il tenait en un
+     paragraphe de dix-sept lignes. */
+  { titre: 'guideAgendaTitre',   texte: 'guideAgendaTexte',   plein: true, demo: () => demoSemaine() },
+  { titre: 'guideHorsLigneTitre', texte: 'guideHorsLigneTexte', plein: true, demo: () => demoHorsLigne() },
   { titre: 'guideVieTitre',      texte: 'guideVieTexte' },
 ];
 
@@ -875,16 +995,22 @@ const construireGuide = () => {
                  document.createTextNode(T(chapitre.titre)));
     section.appendChild(titre);
     if (chapitre.demo) {
-      const cadre = div('d-cadre');
+      // Une vue entière du panneau (l'agenda) prend la largeur ; une carte se serre sur elle-même.
+      const cadre = div('d-cadre' + (chapitre.plein ? ' d-cadre--plein' : ''));
       cadre.setAttribute('aria-hidden', 'true');
       cadre.appendChild(chapitre.demo());
       section.appendChild(cadre);
     }
     /* Le rang du chapitre VISÉ, lu dans la table au moment du rendu — jamais
-       la position de celui qu'on est en train de peindre. */
-    const vise = chapitre.renvoi
-      ? String(GUIDE.findIndex((c) => c.titre === chapitre.renvoi) + 1) : undefined;
-    section.append(...corpsGuide(T(chapitre.texte, vise)));
+       la position de celui qu'on est en train de peindre. Plusieurs renvois
+       (4.25.0.11) : $1, $2, dans l'ordre de la table du chapitre. */
+    const vises = [].concat(chapitre.renvoi || [])
+      .map((cle) => String(GUIDE.findIndex((c) => c.titre === cle) + 1));
+    /* La clé et les renvois, sur la section : le banc y lit l'ordre et les
+       dépendances sans dépendre de la langue de la vue (96). */
+    section.dataset.cle = chapitre.titre;
+    if (vises.length) section.dataset.renvois = vises.join(',');
+    section.append(...corpsGuide(T(chapitre.texte, vises.length ? vises : undefined)));
     blocs.push(section);
   });
   return blocs;
@@ -1869,11 +1995,12 @@ const imageAgenda = (src, classe) => {
    mettre un cadenas ». Le mot reste pour qui ne voit pas l'icône — le nom
    accessible —, et l'infobulle dit le reste. */
 const fermee = (v, abonne) => !!(v && v.restreinte) && abonne !== true;
-const pastilleAbonnes = () => {
+// Dans une maquette du mode d'emploi (4.25.0.11), pas d'infobulle : le chapitre dit ce que le cadenas veut dire.
+const pastilleAbonnes = (maquette = false) => {
   const p = elt('span', 'ag-abo');
   p.setAttribute('role', 'img');
   p.setAttribute('aria-label', T('valSubOnly'));
-  p.title = T('valSubOnlyLocked');
+  if (!maquette) p.title = T('valSubOnlyLocked');
   const svg = svgEl('svg', { class: 'ag-cadenas', viewBox: '0 0 12 12', 'aria-hidden': 'true' });
   svg.append(
     svgEl('path', { d: 'M3.5 5.5V3.75a2.5 2.5 0 0 1 5 0V5.5',
@@ -1890,8 +2017,11 @@ const plageHoraire = (e) => {
   return e.fin > e.debut ? `${de} – ${HEURE.format(e.fin)}` : de;
 };
 
-const entreeAgenda = (e, nom) => {
-  const lien = lienAgenda(e);
+/* `maquette` (4.25.0.11) : la même entrée, pour le mode d'emploi — sans lien
+   ni infobulle. C'est CE rendu-ci que le guide montre, et non une copie : une
+   maquette recopiée cesserait un jour de ressembler à la vue. */
+const entreeAgenda = (e, nom, maquette = false) => {
+  const lien = maquette ? null : lienAgenda(e);
   const el = document.createElement(lien ? 'a' : 'div');
   el.className = 'ag-ent ag-ent--' + e.type;
   if (lien) poserLien(el, lien, e.type === 'rediffusion');
@@ -1909,7 +2039,7 @@ const entreeAgenda = (e, nom) => {
   l1.appendChild(elt('span', 'ag-heure', plageHoraire(e)));
   const l2 = div('ag-l2');
   l2.appendChild(elt('span', 'ag-titre', e.titre || '—'));
-  if (e.type === 'rediffusion' && fermee(e, e.abonne)) l2.appendChild(pastilleAbonnes());
+  if (e.type === 'rediffusion' && fermee(e, e.abonne)) l2.appendChild(pastilleAbonnes(maquette));
   if (e.type === 'rediffusion' && Number.isFinite(e.vues)) {
     l2.appendChild(elt('span', 'ag-meta', vuesTexte(e.vues)));
   } else if (e.type === 'direct' && Number.isFinite(e.spectateurs)) {
@@ -1920,7 +2050,7 @@ const entreeAgenda = (e, nom) => {
   const corps = div('ag-corps');
   corps.append(l1, l2);
   el.append(vig, corps);
-  el.title = [e.titre, dater(DATE_COMPLETE, e.debut)].filter(Boolean).join('\n');
+  if (!maquette) el.title = [e.titre, dater(DATE_COMPLETE, e.debut)].filter(Boolean).join('\n');
   return el;
 };
 
@@ -2102,6 +2232,14 @@ const charpente = (vue) => {
   return etatAgenda.charpente;
 };
 
+/* Le titre d'un jour, et la pastille du jour même — la vue et sa maquette
+   (4.25.0.11) le dessinent par ici. */
+const titreJour = (balise, jour, auj) => {
+  const titre = elt(balise, 'ag-jour-titre', dater(JOUR_TITRE, jour));
+  if (auj) titre.appendChild(elt('span', 'ag-auj', T('btnToday')));
+  return titre;
+};
+
 /* LA SEMAINE : sept jours dans l'ordre de la locale, chacun avec ce qui y
    COMMENCE — une diffusion qui passe minuit reste au jour où elle est partie
    (cf. `semaine` dans content.js). */
@@ -2119,12 +2257,10 @@ const listeSemaine = (data, suivant) => {
     const section = elt('section', 'ag-jour');
     section.dataset.jour = String(jour);
     section.dataset.fin = String(finJour);
-    const titre = elt('h3', 'ag-jour-titre', dater(JOUR_TITRE, jour));
+    const auj = data.maintenant >= jour && data.maintenant < finJour;
+    const titre = titreJour('h3', jour, auj);
     titre.dataset.ancre = 'j:' + jour;
-    if (data.maintenant >= jour && data.maintenant < finJour) {
-      section.classList.add('ag-jour--auj');
-      titre.appendChild(elt('span', 'ag-auj', T('btnToday')));
-    }
+    if (auj) section.classList.add('ag-jour--auj');
     section.appendChild(titre);
     const du = entrees.filter((e) => e.debut >= jour && e.debut < finJour);
     if (!du.length) section.appendChild(elt('p', 'ag-vide', '—'));
@@ -2156,7 +2292,10 @@ const voirSemaineDe = (l) => {
    EST le dernier direct — sinon le bouton mènerait, sans le dire, à un direct
    plus ancien. Une chaîne indisponible (4.25.0.2) ne dit que cela, et depuis
    quand : son nom, et rien sur quoi cliquer qui mènerait à une page fermée. */
-const ligneHorsLigne = (l, quand) => {
+/* `maquette` (4.25.0.11) : la ligne du mode d'emploi — ses boutons ne sont que
+   leur dessin, et aucune infobulle. Un vrai « Sa semaine » dans une image
+   mènerait la vue à la semaine d'une chaîne inventée. */
+const ligneHorsLigne = (l, quand, maquette = false) => {
   const ligne = div('hl-ligne' + (l.indisponible ? ' hl-ligne--indisponible' : ''));
   const avatar = imageAgenda(l.avatar, 'hl-avatar') || div('hl-avatar');
   const corps = div('hl-corps');
@@ -2164,14 +2303,14 @@ const ligneHorsLigne = (l, quand) => {
   l1.appendChild(elt('span', 'hl-nom', l.nom));
   const q = elt('span', 'hl-quand', quand);
   if (l.indisponible) {
-    q.title = T('valUnavailableTip', dater(DATE_COMPLETE, l.indisponible));
+    if (!maquette) q.title = T('valUnavailableTip', dater(DATE_COMPLETE, l.indisponible));
     l1.appendChild(q);
     corps.appendChild(l1);
     ligne.append(avatar, corps);
     return ligne;
   }
   // Le début n'est connu que par la rediffusion, ou parce qu'on l'a vu en cours ; sinon, la fin seule.
-  if (l.dernier) {
+  if (l.dernier && !maquette) {
     q.title = l.dernier.debut !== null
       ? `${dater(DATE_COMPLETE, l.dernier.debut)} – ${HEURE.format(l.dernier.t)}`
       : `– ${dater(DATE_COMPLETE, l.dernier.t)}`;
@@ -2180,7 +2319,7 @@ const ligneHorsLigne = (l, quand) => {
   corps.appendChild(l1);
   const revoir = !!(l.dernier && l.dernier.revoir && l.derniere);
   // Deux lignes que la largeur coupe : l'infobulle les rend entières.
-  const enEntier = (classe, texte) => { const e = elt('div', classe, texte); e.title = texte; return e; };
+  const enEntier = (classe, texte) => { const e = elt('div', classe, texte); if (!maquette) e.title = texte; return e; };
   const sous = [l.titre, revoir ? l.derniere.libelle : null].filter(Boolean).join(' · ');
   if (sous) corps.appendChild(enEntier('hl-titre', sous));
   if (l.prochain) {
@@ -2189,17 +2328,26 @@ const ligneHorsLigne = (l, quand) => {
       T('valNext', quandProchain + (l.prochain.titre ? ` — ${l.prochain.titre}` : ''))));
   }
   const actions = div('hl-actions');
+  const dessin = (texte) => elt('span', 'bouton bouton--fantome', texte);
   if (revoir && /^\d+$/.test(l.derniere.id || '')) {
-    if (fermee(l.derniere, l.abonne)) actions.appendChild(pastilleAbonnes());
-    const a = elt('a', 'bouton bouton--fantome', T('btnReplay'));
-    poserLien(a, `https://www.twitch.tv/videos/${l.derniere.id}`, true);
-    a.title = [l.derniere.titre, dureeHms(l.derniere.duree)].filter(Boolean).join(' · ');
-    actions.appendChild(a);
+    if (fermee(l.derniere, l.abonne)) actions.appendChild(pastilleAbonnes(maquette));
+    if (maquette) actions.appendChild(dessin(T('btnReplay')));
+    else {
+      const a = elt('a', 'bouton bouton--fantome', T('btnReplay'));
+      poserLien(a, `https://www.twitch.tv/videos/${l.derniere.id}`, true);
+      a.title = [l.derniere.titre, dureeHms(l.derniere.duree)].filter(Boolean).join(' · ');
+      actions.appendChild(a);
+    }
   }
-  actions.appendChild(boutonAgenda(T('btnSeeWeek'), () => voirSemaineDe(l)));
+  actions.appendChild(maquette ? dessin(T('btnSeeWeek')) : boutonAgenda(T('btnSeeWeek'), () => voirSemaineDe(l)));
   ligne.append(avatar, corps, actions);
   return ligne;
 };
+/* Le groupe d'une ligne — programmée, partie, indisponible — et ce que dit son
+   « quand » : la vue et sa maquette (4.25.0.11) les lisent ici. */
+const groupeHorsLigne = (l) => (l.indisponible ? 2 : l.prochain ? 0 : 1);
+const quandHorsLigne = (l, maintenant) => (l.indisponible ? T('valUnavailable')
+  : l.dernier ? T('valLastLive', ilYa(l.dernier.t, maintenant)) : T('valLastLiveUnknown'));
 const listeHorsLigne = (data, suivant) => {
   const lignes = data.lignes || [];
   if (!lignes.length) {
@@ -2207,14 +2355,12 @@ const listeHorsLigne = (data, suivant) => {
       : [noteAgenda(T(data.resume && data.resume.directs ? 'stateAgendaNoOffline' : 'stateEmpty'))];
   }
   const liste = div('hl-liste');
-  const groupe = (l) => (l.indisponible ? 2 : l.prochain ? 0 : 1);
   let avant = null;
   for (const l of lignes) {
     // « il y a 3 heures » entre dans la signature : la ligne se refait quand il change.
-    const quand = l.indisponible ? T('valUnavailable')
-      : l.dernier ? T('valLastLive', ilYa(l.dernier.t, data.maintenant)) : T('valLastLiveUnknown');
+    const quand = quandHorsLigne(l, data.maintenant);
     const el = noeud(suivant, 'l:' + l.login, JSON.stringify(l) + quand, () => ligneHorsLigne(l, quand));
-    el.classList.toggle('hl-ligne--suite', !!(avant && groupe(avant) !== groupe(l)));
+    el.classList.toggle('hl-ligne--suite', !!(avant && groupeHorsLigne(avant) !== groupeHorsLigne(l)));
     liste.appendChild(el);
     avant = l;
   }

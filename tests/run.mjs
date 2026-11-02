@@ -13074,8 +13074,9 @@ titre('96. Le mode d\'emploi — la première vue, et la seule qui n\'ait besoin
   ok('…sans interroger le navigateur, et sans réclamer d\'onglet Twitch',
      q.n === 0 && q.message === false, JSON.stringify(q));
 
-  /* ── 3. LES DIX-SEPT CHAPITRES (la salle a le sien depuis la 4.24.0.37,
-        l'agenda depuis la 4.25.0) ──────────────────────────────────────── */
+  /* ── 3. LES DIX-HUIT CHAPITRES (la salle a le sien depuis la 4.24.0.37,
+        l'agenda depuis la 4.25.0, ses deux vues chacune le leur depuis la
+        4.25.0.11) ──────────────────────────────────────────────────────── */
   const plan = await page.evaluate(() => {
     const chaps = [...document.querySelectorAll('#guide .guide-chapitre')];
     return {
@@ -13085,11 +13086,12 @@ titre('96. Le mode d\'emploi — la première vue, et la seule qui n\'ait besoin
                               .replace(/^\d+/, '').trim()),
       sansCorps: chaps.filter(c => !c.querySelector('.guide-p, .guide-liste li')).length,
       intro: (document.querySelector('#guide .guide-intro') || {}).textContent || '',
+      cles: chaps.map(c => c.dataset.cle || ''),
     };
   });
-  ok('dix-sept chapitres, numérotés de 1 à 17, chacun avec un titre et du texte',
-     plan.n === 17
-     && plan.nums.join(',') === Array.from({ length: 17 }, (_, i) => i + 1).join(',')
+  ok('dix-huit chapitres, numérotés de 1 à 18, chacun avec un titre et du texte',
+     plan.n === 18
+     && plan.nums.join(',') === Array.from({ length: 18 }, (_, i) => i + 1).join(',')
      && plan.titres.every(t => t.length > 2)
      && plan.sansCorps === 0
      && plan.intro.length > 40,
@@ -13125,7 +13127,7 @@ titre('96. Le mode d\'emploi — la première vue, et la seule qui n\'ait besoin
      puces » — leur nombre change à chaque relecture du guide, et une borne
      serrée se contenterait de casser le banc au premier paragraphe retiré.
      Ce qu'il attrape, c'est ZÉRO : le jour où la grammaire des corps cesse
-     d'être appliquée, il n'y a plus une seule puce dans les dix-sept chapitres. */
+     d'être appliquée, il n'y a plus une seule puce dans les dix-huit chapitres. */
   ok('les puces sont devenues des éléments de liste, marqueur retiré',
      puces.items >= 20 && puces.paraAvecPuce === 0 && puces.itemAvecPuce === 0
      && puces.vides === 0,
@@ -13164,65 +13166,147 @@ titre('96. Le mode d\'emploi — la première vue, et la seule qui n\'ait besoin
      chapitre des co-streams renvoie aux tris par son NUMÉRO. Le numéro était
      recopié dans les douze fiches, et le remaniement de l'ordre l'a laissé
      pointer deux chapitres trop haut — dans les douze langues à la fois.
+     Depuis, il se calcule (`renvoi` dans panneau.js).
 
-     UNE TRADUCTION JUSTE PEUT PORTER UN RENVOI FAUX : c'est ce qui rend ce
-     défaut invisible à la relecture. On lit donc le numéro tel qu'il est
-     RENDU, et on va voir ce qu'il y a à ce rang. */
-  const renvois = await page.evaluate(() => {
-    const chaps = [...document.querySelectorAll('#guide .guide-chapitre')];
-    const titres = chaps.map((c) => c.querySelector('.guide-titre').textContent
-                                     .replace(/^\d+/, '').trim());
-    const vus = [];
-    chaps.forEach((c, i) => {
-      const corps = [...c.querySelectorAll('.guide-p, .guide-liste li')]
-        .map((e) => e.textContent).join(' ');
-      for (const m of corps.matchAll(/[(（][^)）]*?(\d+)[^)）]*?[)）]/g))
-        vus.push({ depuis: i + 1, vers: Number(m[1]), texte: m[0] });
+     LA SECTION DIT CE QU'ELLE EST (4.25.0.11) : sa clé (`data-cle`) et les
+     rangs qu'elle vise (`data-renvois`). Ce relevé ne lisait jusqu'ici que
+     les chiffres entre parenthèses, et deux renvois sur six n'en ont plus —
+     « présentés au chapitre 14 », « chapitres 16 et 17 ». La clé, elle, se
+     lie au titre affiché : sans quoi elle pourrait mentir sans que rien ne
+     le voie. */
+  const sections = await page.evaluate(() =>
+    [...document.querySelectorAll('#guide .guide-chapitre')].map((c) => ({
+      cle: c.dataset.cle || '',
+      renvois: c.dataset.renvois ? c.dataset.renvois.split(',').map(Number) : [],
+      titre: c.querySelector('.guide-titre').textContent.replace(/^\d+/, '').trim(),
+      corps: [...c.querySelectorAll('.guide-p, .guide-liste li')].map((e) => e.textContent).join('\n'),
+    })));
+  const rangDe = (cle) => sections.findIndex((x) => x.cle === cle) + 1;
+  ok('chaque chapitre porte sa clé, et c\'est celle du titre affiché',
+     sections.length === 18 && new Set(sections.map((x) => x.cle)).size === 18
+     && sections.every((x) => en[x.cle] && x.titre === en[x.cle].message),
+     JSON.stringify(sections.map((x) => [x.cle, x.titre])));
+  /* LA TABLE DES RENVOIS, ÉCRITE ICI ET NON RELUE DANS LE CODE : chacun, sa
+     cible et son SENS. Un renvoi en avant annonce (« présentés au chapitre
+     14 ») ; un renvoi en arrière rappelle. Celui de la vitesse est en
+     arrière, et c'est le signalement de la 4.25.0.11 : il parlait des badges
+     de l'aperçu sept chapitres avant qu'on les ait vus. */
+  const RENVOIS = {
+    guideRoueTitre: [['guidePanneauTitre', 'avant']],
+    guideHoverTitre: [['guideBadgesTitre', 'avant']],
+    guideCostreamTitre: [['guideTriTitre', 'avant']],
+    guideViteTitre: [['guideBadgesTitre', 'arriere']],
+    guidePanneauTitre: [['guideAgendaTitre', 'avant'], ['guideHorsLigneTitre', 'avant']],
+  };
+  const renvoisFaux = [];
+  sections.forEach((x, i) => {
+    const attendus = RENVOIS[x.cle] || [];
+    const vises = attendus.map(([cle]) => rangDe(cle));
+    if (x.renvois.join(',') !== vises.join(',')) renvoisFaux.push(`${x.cle} vise ${x.renvois} au lieu de ${vises}`);
+    attendus.forEach(([cle, sens], k) => {
+      if (vises[k] < 1) renvoisFaux.push(`${x.cle} → ${cle} : chapitre absent`);
+      else if ((sens === 'avant') !== (vises[k] > i + 1)) renvoisFaux.push(`${x.cle} → ${cle} : pas ${sens === 'avant' ? 'en avant' : 'en arrière'}`);
     });
-    return { n: chaps.length, titres, vus };
+    /* LE NUMÉRO EST DANS LE TEXTE, en chiffres isolés : un renvoi calculé que
+       la phrase oublierait d'afficher ne renverrait à rien. */
+    for (const n of x.renvois) {
+      if (!new RegExp(`(^|\\D)${n}(\\D|$)`).test(x.corps)) renvoisFaux.push(`${x.cle} n'affiche pas ${n}`);
+    }
   });
-  /* IL Y EN A AU MOINS UN : sans cette moitié, l'assertion serait verte le
-     jour où le renvoi disparaîtrait par accident. */
-  const horsBornes = renvois.vus.filter((r) => !(r.vers >= 1 && r.vers <= renvois.n));
-  const versSoi = renvois.vus.filter((r) => r.vers === r.depuis);
-  ok('chaque renvoi du mode d\'emploi désigne un chapitre qui existe, et pas lui-même',
-     renvois.vus.length >= 1 && horsBornes.length === 0 && versSoi.length === 0,
-     JSON.stringify(renvois.vus));
-  /* ET IL DÉSIGNE LE BON. Le renvoi des co-streams vise les tris : on vérifie
-     que le chapitre pointé est bien celui qui parle de trier, par son titre
-     tel que la langue de la vue le rend. */
-  const tri = await page.evaluate(() => {
-    const t = [...document.querySelectorAll('#guide .guide-chapitre .guide-titre')]
-      .map((h) => h.textContent.replace(/^\d+/, '').trim());
-    return t.findIndex((x) => /sort|filter/i.test(x)) + 1;
+  ok('chaque renvoi vise le chapitre attendu, dans le sens attendu, et son numéro s\'affiche',
+     renvoisFaux.length === 0 && Object.keys(RENVOIS).every((c) => rangDe(c) >= 1),
+     renvoisFaux.join(' · '));
+  /* DANS LES DOUZE FICHES, LE NUMÉRO EST UNE SUBSTITUTION, jamais un chiffre
+     recopié : autant de « $n » que de renvois, et aucun ailleurs. Une
+     traduction qui écrirait « chapitre 14 » en toutes lettres serait juste
+     aujourd'hui et fausse au prochain remaniement. */
+  const substFausses = [];
+  for (const loc of readdirSync(join(ICI, '..', '_locales'))) {
+    const f = fiche(loc);
+    for (const x of sections) {
+      const texte = f[x.cle.replace(/Titre$/, 'Texte')].message;
+      const n = (RENVOIS[x.cle] || []).length;
+      const vus = [...new Set([...texte.matchAll(/\$(\d)/g)].map((m) => Number(m[1])))].sort();
+      if (vus.join(',') !== Array.from({ length: n }, (_, k) => k + 1).join(',')) {
+        substFausses.push(`${loc} ${x.cle} : ${vus.map((v) => '$' + v).join(',') || '—'}`);
+      }
+    }
+  }
+  ok('…et dans les douze fiches, chaque renvoi est un « $n », sans chiffre recopié',
+     substFausses.length === 0, substFausses.slice(0, 10).join(' · '));
+
+  /* ── 5 ter A. ON NE LIT JAMAIS UN MOT AVANT SON SENS (4.25.0.11) ─────────
+     LE SIGNALEMENT : « Plus rapide que Twitch » parlait de Hype Trains et du
+     « badge dans l'aperçu » au deuxième chapitre ; « Les débuts » d'un
+     aperçu, d'un badge et d'une frise au quatrième — expliqués au neuvième,
+     au dixième, au onzième. Chaque chapitre, pris seul, était juste ; c'est
+     leur ORDRE qui ne l'était pas, et aucune relecture d'un chapitre ne le
+     voit.
+
+     LA TABLE DES NOTIONS : chacune, le motif qui la nomme dans la fiche
+     française — la langue d'écriture du guide, que les onze autres suivent
+     chapitre pour chapitre — et le chapitre qui l'explique. Un chapitre qui
+     la nomme AVANT celui-là doit y renvoyer par son numéro, ou dire
+     « chapitre suivant » s'il le précède immédiatement. Le chapitre qui
+     l'explique doit la nommer, sans quoi la table mentirait. « Réglages »
+     est situé par l'introduction (rang 0). */
+  const fr = fiche('fr');
+  const NOTIONS = [
+    ['ce panneau', /\bpanneau\b/i, 'guideRoueTitre'],
+    ['la carte', /\bcartes?\b/i, 'guideDureeTitre'],
+    ['la durée', /\bdurée\b/i, 'guideDureeTitre'],
+    ['l\'aperçu', /\baperçu\b/i, 'guideHoverTitre'],
+    ['les badges', /\bbadges?\b/i, 'guideHoverTitre'],
+    ['la frise', /\bfrise\b/i, 'guideFriseTitre'],
+    ['la reprise après coupure', /\breprise après coupure|coupe et revient/i, 'guideDebutTitre'],
+    ['l\'or des abonnements', /\bor\b/i, 'guideAboTitre'],
+    ['le subathon', /\bsubathons?\b/i, 'guideSubathonTitre'],
+    ['le co-stream', /\bco-streams?\b/i, 'guideCostreamTitre'],
+    ['la salle multistream', /\bsalles?\b/i, 'guideSalleTitre'],
+    ['le calage', /\bcal(age|ée?s?)\b/i, 'guideSalleTitre'],
+    ['les tris et les filtres', /\btri(s|er)?\b|\bfiltres?\b/i, 'guideTriTitre'],
+    ['le Hype Train', /\bhype trains?\b/i, 'guideBadgesTitre'],
+    ['l\'abonnement à prix réduit', /\bprix réduit|\bréduction/i, 'guideBadgesTitre'],
+    ['Top Chaînes', /\bTop Chaînes\b/, 'guideTopTitre'],
+    ['l\'agenda', /\bagenda\b/i, 'guideAgendaTitre'],
+    ['« Réglages »', new RegExp(fr.grpOptions.message), 'guideIntro'],
+  ];
+  const texteFr = sections.map((x) => fr[x.cle.replace(/Titre$/, 'Texte')].message
+    .replace(/\$(\d)/g, (_, k) => String(x.renvois[k - 1])));
+  const avantSonSens = [];
+  for (const [nom, motif, cle] of NOTIONS) {
+    const r = cle === 'guideIntro' ? 0 : rangDe(cle);
+    if (cle !== 'guideIntro' && r < 1) { avantSonSens.push(`${nom} : ${cle} absent`); continue; }
+    if (!motif.test(r === 0 ? fr.guideIntro.message : texteFr[r - 1])) avantSonSens.push(`${nom} : pas nommée au chapitre ${r}`);
+    texteFr.forEach((t, i) => {
+      if (i + 1 >= r || !motif.test(t)) return;
+      const annoncee = sections[i].renvois.includes(r) || (r === i + 2 && /chapitre suivant/i.test(t));
+      if (!annoncee) avantSonSens.push(`${nom} : nommée au chapitre ${i + 1}, expliquée au ${r}`);
+    });
+  }
+  ok('aucun chapitre ne nomme une notion expliquée plus loin sans renvoyer à son chapitre',
+     avantSonSens.length === 0, avantSonSens.join(' · '));
+  /* « CHAPITRE SUIVANT » N'EST VRAI QUE S'IL SUIT, dans les douze langues à
+     la fois puisque l'ordre est le même : l'aperçu avant sa frise, les
+     co-streams avant la salle qu'ils ouvrent, ce panneau avant ses réglages
+     — et les deux vues de l'agenda l'une après l'autre. Le français ne dit
+     « chapitre suivant » que là. */
+  const SUIVANTS = [['guideHoverTitre', 'guideFriseTitre'], ['guideCostreamTitre', 'guideSalleTitre'],
+                    ['guidePanneauTitre', 'guideReglagesTitre'], ['guideAgendaTitre', 'guideHorsLigneTitre']];
+  const disentSuivant = sections.filter((x, i) => /chapitre suivant/i.test(texteFr[i])).map((x) => x.cle);
+  ok('…et chaque « chapitre suivant » précède bien le chapitre qu\'il annonce',
+     SUIVANTS.every(([a, b]) => rangDe(a) >= 1 && rangDe(b) === rangDe(a) + 1)
+     && disentSuivant.join(',') === SUIVANTS.slice(0, 3).map(([a]) => a).join(','),
+     JSON.stringify({ rangs: SUIVANTS.map(([a, b]) => [rangDe(a), rangDe(b)]), disentSuivant }));
+  /* LA MAQUETTE DU CO-STREAM porte le badge bleu, celui de l'hôte, et non le
+     violet : « En live avec Korbek » sur la carte de Korbek serait un
+     streamer en direct avec lui-même. */
+  const coBadges = await page.evaluate(() => {
+    const c = document.querySelector('#guide .guide-chapitre[data-cle="guideCostreamTitre"]');
+    return { bleu: !!c?.querySelector('.d-cadre .d-badge--costream'), violet: !!c?.querySelector('.d-cadre .d-badge--squad') };
   });
-  ok('…et le renvoi des co-streams tombe sur le chapitre des tris',
-     tri >= 1 && renvois.vus.some((r) => r.vers === tri),
-     JSON.stringify({ triEstAuRang: tri, renvois: renvois.vus }));
-  /* LE SECOND RENVOI, ET LA SALLE À SA PLACE (4.24.0.37). Le chapitre de la
-     vitesse dit que ce que la barre retire revient en badge, et renvoie au
-     chapitre des badges ; celui des co-streams renvoie à la salle par
-     « chapitre suivant », sans numéro — le dire n'est vrai que si elle le
-     suit. */
-  const rangs = await page.evaluate(() => {
-    const t = [...document.querySelectorAll('#guide .guide-chapitre .guide-titre')]
-      .map((h) => h.textContent.replace(/^\d+/, '').trim());
-    return { badges: t.findIndex((x) => /badge/i.test(x)) + 1,
-             vite: t.findIndex((x) => /quicker/i.test(x)) + 1,
-             costream: t.findIndex((x) => /^co-streams$/i.test(x)) + 1,
-             salle: t.findIndex((x) => /room/i.test(x)) + 1,
-             bleu: !!document.querySelectorAll('#guide .guide-chapitre')[t.findIndex((x) => /^co-streams$/i.test(x))]
-               ?.querySelector('.d-cadre .d-badge--costream'),
-             violet: !!document.querySelectorAll('#guide .guide-chapitre')[t.findIndex((x) => /^co-streams$/i.test(x))]
-               ?.querySelector('.d-cadre .d-badge--squad') };
-  });
-  ok('…celui de la vitesse tombe sur les badges, et la salle suit les co-streams qui l\'ouvrent',
-     rangs.badges >= 1 && rangs.vite >= 1
-     && renvois.vus.some((r) => r.depuis === rangs.vite && r.vers === rangs.badges)
-     && rangs.costream >= 1 && rangs.salle === rangs.costream + 1,
-     JSON.stringify({ rangs, renvois: renvois.vus }));
   ok('…et la maquette du co-stream porte le badge bleu, plus « En live avec » sur la carte du même streamer',
-     rangs.bleu && !rangs.violet, JSON.stringify(rangs));
+     coBadges.bleu && !coBadges.violet, JSON.stringify(coBadges));
 
   /* ── 5 quater. LE GUIDE NOMME CE QU'ON VOIT, AU MOT PRÈS (4.24.0.37) ──────
      TROUVÉ EN RELISANT LES DOUZE FICHES : le chapitre du panneau disait
@@ -13238,11 +13322,15 @@ titre('96. Le mode d\'emploi — la première vue, et la seule qui n\'ait besoin
      aujourd'hui, « Sa semaine » ; depuis la 4.25.0.2, la chaîne indisponible
      et le direct sans rediffusion — tels que chaque langue les affiche. La
      pastille « Abonnés » de la 4.25.0.1 en est sortie à la 4.25.0.4 : le
-     cadenas s'affiche seul, sans mot à citer. */
+     cadenas s'affiche seul, sans mot à citer. Depuis la 4.25.0.11, chaque
+     vue a son chapitre et sa maquette : la semaine cite ses trois marques
+     (« En direct », « Prévu », « Sans rediffusion ») telles que la maquette
+     les montre, « Hors ligne » ses deux boutons et ce qu'il dit d'une chaîne
+     disparue — et renvoie à « Semaine », la vue que « Sa semaine » ouvre. */
   const CITES = {
     guidePanneauTexte: ['grpGuide', 'grpOptions', 'grpAgenda', 'grpData', 'grpDiag', 'grpGlobal', 'btnReport', 'btnReset'],
-    guideAgendaTexte: ['grpAgenda', 'navSemaine', 'navHorsLigne', 'btnToday', 'btnSeeWeek', 'valUnavailable',
-                       'valNoReplay'],
+    guideAgendaTexte: ['grpAgenda', 'navSemaine', 'btnToday', 'valNoReplay', 'valLive', 'valPlanned'],
+    guideHorsLigneTexte: ['navHorsLigne', 'navSemaine', 'btnReplay', 'btnSeeWeek', 'valUnavailable'],
     guideAboTexte: ['btnRefreshSubs', 'grpData', 'navSubs'],
     guideSalleTexte: ['optSalleAuto', 'grpOptions'],
     guideReglagesTexte: ['grpOptions', 'optValDiscret'],
@@ -13261,6 +13349,130 @@ titre('96. Le mode d\'emploi — la première vue, et la seule qui n\'ait besoin
   }
   ok('dans les douze fiches, le guide cite chaque groupe, bouton et tri par son libellé exact',
      absents.length === 0, absents.slice(0, 12).join(' · '));
+
+  /* LA SALLE CITE SON EN-TÊTE AU MOT PRÈS (4.25.0.11) : son chapitre recopie
+     quatre états du calage tels que la salle les écrit — « à l'écoute 2/6 »,
+     « en retard de 0,30 s, à confirmer », « corrigée, vérification »,
+     « calée ». Mais ceux-là vivent dans content.js, dans la langue de Twitch,
+     et non dans les fiches : la citation pourrait dériver sans que la parité
+     le voie. On les rend donc ici avec les fonctions mêmes de content.js,
+     pour la langue que chaque fiche sert (« es_419 » → « es », « pt_PT » →
+     « pt »), nombre compris — 0,30 ou 0.30 selon la locale du texte. Seul le
+     nom de la tuile, et ce qui le lie à son état (« は », « — »), reste
+     dehors. */
+  const blocStrings = readFileSync(join(ICI, '..', 'content.js'), 'utf8')
+    .match(/const STRINGS = Object\.freeze\(\{[\s\S]*?\n {2}\}\);/)[0];
+  const STRINGS_CJ = new Function(`${blocStrings}; return STRINGS;`)();
+  const citesCalage = [];
+  for (const loc of readdirSync(join(ICI, '..', '_locales'))) {
+    const s = STRINGS_CJ[loc.split('_')[0]];
+    if (!s) { citesCalage.push(`${loc} : pas de langue dans content.js`); continue; }
+    const nb = new Intl.NumberFormat(s.locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(0.3);
+    const texte = fiche(loc).guideSalleTexte.message;
+    for (const e of [{ cause: 'ecoute', x: 2, m: 6 }, { cause: 'confirmer', s: nb, avance: false },
+                     { cause: 'verif' }, { cause: 'calee' }]) {
+      const etat = s.uiCalTuile('', e).replace(/^[\s:：—は]+/, '').trim();
+      if (!etat || !texte.includes(etat)) citesCalage.push(`${loc} « ${etat} »`);
+    }
+  }
+  ok('…et le chapitre de la salle cite les états du calage tels que la salle les écrit, dans chaque langue',
+     citesCalage.length === 0, citesCalage.join(' · '));
+
+  /* ── 5 quinquies. L'AGENDA SE MONTRE, DESSINÉ PAR SON PROPRE CODE ────────
+     (4.25.0.11) Le chapitre de l'agenda était un paragraphe de dix-sept
+     lignes, sans une image, quand tous ceux d'avant en ont une. Ses deux vues
+     sont désormais dessinées par les fonctions mêmes de la vue
+     (`entreeAgenda`, `ligneHorsLigne`) en mode maquette : mêmes classes, même
+     feuille, donc même aspect — ce qui change dans la vue change ici. On
+     vérifie ce que le texte promet de montrer, et qu'une image ne se clique
+     pas : un vrai « Sa semaine » dans une maquette mènerait la vue à la
+     semaine d'une chaîne inventée. */
+  const agenda = await page.evaluate(() => {
+    const cadre = (cle) => document.querySelector(`#guide .guide-chapitre[data-cle="${cle}"] .d-cadre`);
+    const cs = cadre('guideAgendaTitre'), ch = cadre('guideHorsLigneTitre');
+    const lire = (c) => (c ? {
+      plein: c.classList.contains('d-cadre--plein'),
+      focusables: c.querySelectorAll('a, button, select, input, textarea, [tabindex], [href]').length,
+      infobulles: c.querySelectorAll('[title]').length,
+      deborde: c.scrollWidth > c.clientWidth + 1,
+    } : null);
+    const jours = cs ? [...cs.querySelectorAll('.ag-jour')].map((j) => ({
+      auj: j.classList.contains('ag-jour--auj'),
+      pastille: j.querySelector('.ag-jour-titre .ag-auj')?.textContent ?? null,
+      entrees: [...j.querySelectorAll('.ag-ent')].map((e) => ({
+        type: (e.className.match(/ag-ent--(\S+)/) || [])[1],
+        nom: e.querySelector('.ag-nom')?.textContent,
+        duree: e.querySelector('.ag-duree')?.textContent ?? null,
+        marque: e.querySelector('.ag-marque')?.textContent ?? null,
+        cadenas: !!e.querySelector('.ag-abo .ag-cadenas'),
+        point: !!e.querySelector('.ag-meta .ag-point'),
+      })),
+    })) : [];
+    const lignes = ch ? [...ch.querySelectorAll('.hl-ligne')].map((l) => ({
+      nom: l.querySelector('.hl-nom')?.textContent,
+      quand: l.querySelector('.hl-quand')?.textContent,
+      suite: l.classList.contains('hl-ligne--suite'),
+      indispo: l.classList.contains('hl-ligne--indisponible'),
+      prochain: !!l.querySelector('.hl-prochain'),
+      boutons: [...l.querySelectorAll('.hl-actions .bouton')].map((b) => b.textContent),
+      cadenas: !!l.querySelector('.ag-abo .ag-cadenas'),
+    })) : [];
+    return { semaine: lire(cs), horsLigne: lire(ch), jours, lignes,
+             barre: cs ? [...cs.querySelectorAll('.ag-barre > *')].map((b) => b.textContent) : [] };
+  });
+  const entrees = agenda.jours.flatMap((j, i) => j.entrees.map((e) => ({ ...e, jour: i })));
+  const de = (nom, type) => entrees.find((e) => e.nom === nom && e.type === type);
+  const nyx = de('Nyxaria', 'rediffusion'), vel = de('Velmoria', 'rediffusion');
+  const sans = de('Aeltris', 'sansRediffusion'), direct = de('Korbek', 'direct'), prevu = de('Aeltris', 'prevu');
+  ok('la semaine en maquette : pleine largeur, rien à cliquer ni à survoler, sa barre comme la vraie',
+     !!agenda.semaine && agenda.semaine.plein && agenda.semaine.focusables === 0
+     && agenda.semaine.infobulles === 0 && !agenda.semaine.deborde
+     && agenda.barre.join('|') === [en.btnToday.message, '‹', '›', en.valAllChannels.message].join('|'),
+     JSON.stringify({ semaine: agenda.semaine, barre: agenda.barre }));
+  /* LES QUATRE ESPÈCES D'ENTRÉES, chacune avec ce qui la distingue : la
+     rediffusion sa durée (H:MM:SS) et pas de marque, les trois autres leur
+     marque et pas de durée ; le cadenas sur la seule rediffusion réservée aux
+     abonnés ; le point rouge des spectateurs sur le seul direct. */
+  ok('…ses quatre espèces d\'entrées, chacune avec sa marque, sa durée, son cadenas ou ses spectateurs',
+     entrees.length === 5 && !!nyx && !!vel && !!sans && !!direct && !!prevu
+     && [nyx, vel].every((e) => /^\d+:\d\d:\d\d$/.test(e.duree || '') && e.marque === null)
+     && sans.marque === en.valNoReplay.message && direct.marque === en.valLive.message
+     && prevu.marque === en.valPlanned.message
+     && [sans, direct, prevu].every((e) => e.duree === null)
+     && entrees.filter((e) => e.cadenas).length === 1 && vel.cadenas
+     && entrees.filter((e) => e.point).length === 1 && direct.point,
+     JSON.stringify(entrees));
+  /* AUJOURD'HUI A SA PASTILLE, ET LUI SEUL ; LES JOURS SE SUIVENT. Le direct
+     de Korbek a commencé il y a 1 h 47 et le prévu d'Aeltris est dans deux
+     heures au moins : l'un des deux tombe aujourd'hui à toute heure du jour,
+     et c'est le jour qui porte la pastille. Le direct de Nyxaria, parti à
+     20 h 02 et fini à 0 h 14, reste au jour où il a COMMENCÉ — avant-hier,
+     donc avant celui d'Aeltris et de Velmoria, qui est hier. */
+  const jourAuj = agenda.jours.findIndex((j) => j.auj);
+  ok('…aujourd\'hui porte la pastille, lui seul, et le direct passé minuit reste au jour où il a commencé',
+     agenda.jours.filter((j) => j.auj).length === 1
+     && agenda.jours.every((j) => (j.pastille === null) === !j.auj)
+     && agenda.jours[jourAuj].pastille === en.btnToday.message
+     && (direct.jour === jourAuj || prevu.jour === jourAuj)
+     && nyx.jour + 1 === sans.jour && sans.jour === vel.jour && vel.jour < jourAuj,
+     JSON.stringify(agenda.jours.map((j) => ({ auj: j.auj, noms: j.entrees.map((e) => e.nom) }))));
+  /* HORS LIGNE : les mêmes chaînes, vues d'ailleurs. Korbek, en direct, n'y
+     est pas ; les groupes dans l'ordre de la vue — la programmée, les
+     parties, l'indisponible — séparés d'un filet ; « Revoir » seulement là
+     où le dernier direct a sa rediffusion, et le cadenas avec lui. */
+  const [hlA, hlV, hlN, hlB] = agenda.lignes;
+  ok('« Hors ligne » en maquette : les mêmes chaînes, ses trois groupes et leurs filets, ses boutons dessinés',
+     !!agenda.horsLigne && agenda.horsLigne.plein && agenda.horsLigne.focusables === 0
+     && agenda.horsLigne.infobulles === 0
+     && agenda.lignes.length === 4 && !agenda.lignes.some((l) => l.nom === 'Korbek')
+     && hlA.nom === 'Aeltris' && hlA.prochain && !hlA.suite && hlA.boutons.join('|') === en.btnSeeWeek.message
+     && hlV.nom === 'Velmoria' && hlV.suite && hlV.cadenas
+     && hlV.boutons.join('|') === [en.btnReplay.message, en.btnSeeWeek.message].join('|')
+     && hlN.nom === 'Nyxaria' && !hlN.suite && !hlN.cadenas
+     && hlN.boutons.join('|') === [en.btnReplay.message, en.btnSeeWeek.message].join('|')
+     && hlB.nom === 'Brenvik' && hlB.indispo && hlB.suite && hlB.quand === en.valUnavailable.message
+     && hlB.boutons.length === 0,
+     JSON.stringify(agenda.lignes));
 
   /* ── 6. LA PALETTE DES BADGES ─────────────────────────────────────────────
      Treize badges, DOUZE modificateurs, ONZE couleurs, et les deux exceptions
@@ -13535,7 +13747,7 @@ titre('96. Le mode d\'emploi — la première vue, et la seule qui n\'ait besoin
   }));
   ok('une autre section le range et demande la page ; y revenir le repose intact',
      parti.guide === true && parti.message === true && parti.queries > 0
-     && revenu.guide === true && revenu.chapitres === 17 && revenu.message === false,
+     && revenu.guide === true && revenu.chapitres === 18 && revenu.message === false,
      JSON.stringify({ parti, revenu }));
   await page.close();
 
@@ -13559,7 +13771,7 @@ titre('96. Le mode d\'emploi — la première vue, et la seule qui n\'ait besoin
              largeur: document.documentElement.scrollWidth };
   });
   ok('le mode d\'emploi se rend aussi en japonais, sans clé nue ni débordement',
-     rendJa.titre === ja.navGuide.message && rendJa.chapitres === 17
+     rendJa.titre === ja.navGuide.message && rendJa.chapitres === 18
      && rendJa.items >= 20 && rendJa.puces === 0 && rendJa.largeur <= 760
      && !Object.keys(ja).some(k => rendJa.texte.includes(k)),
      JSON.stringify({ titre: rendJa.titre, chapitres: rendJa.chapitres,
@@ -28178,6 +28390,25 @@ const S_LECTEUR_SONDE = () => {
   await page.evaluate(() => window.tse.salle.ouvrir('xray', 'quebec'));
   await attendre(page, () => (window.tse.salle.rapport().instant?.tours || 0) >= 4, 20_000);
   const r0 = await rapport();
+  /* L'EN-TÊTE SUIT LE CALAGE, PAS À PAS (4.25.0.11). Chaque phrase qu'il
+     écrit est relevée À L'INSTANT où il l'écrit — l'observateur passe dans
+     la même tâche que le pas qui l'a posée —, avec l'état que le calage
+     tient alors pour « quebec ». Ce qu'il dit se juge donc contre ce que le
+     moteur sait au même moment, et non contre un relevé fait deux secondes
+     plus tard. */
+  await page.evaluate(() => {
+    const el = document.querySelector('#tse-salle .tse-salle__calage');
+    window.__calageVu = [];
+    const lire = () => {
+      const texte = el.querySelector('.tse-salle__calage-texte').textContent, ton = el.dataset.ton;
+      const d = window.__calageVu[window.__calageVu.length - 1];
+      if (d && d.texte === texte && d.ton === ton) return;
+      const k = window.tse.salle.rapport().calage;
+      window.__calageVu.push({ t: Date.now(), texte, ton, etat: k?.tuiles?.quebec ?? null });
+    };
+    new MutationObserver(lire).observe(el, { subtree: true, childList: true, characterData: true, attributes: true });
+    lire();
+  });
   await page.evaluate(() => window.tse.salle.auto(0.1));
   /* SEPT MINUTES ET DEMIE AU PLUS (4.24.0.24). La voie lente — décidée sur
      la voix du milieu, montée ensuite vers la plus haute, revérifiée — a
@@ -28196,6 +28427,46 @@ const S_LECTEUR_SONDE = () => {
      && g1.slice(1).every((x) => /^quebec en avance de 0\.[23]\d s .* → quebec recule de 0\.[12]\d* s$/.test(x))
      && Math.abs(h1) < 150 && r1.calage?.etat === 'actif · calée',
      JSON.stringify({ ecart0: r0.ecartLatence, calage: r1.calage, vraieHaute: h1 }));
+  /* CE QUE L'EN-TÊTE A DIT, DANS L'ORDRE. Non démarré (la salle vient de la
+     console, et rien ne l'a lancé) ; « à l'écoute x/3 » — trois calculs du
+     son à l'échelle 0,1, pas plus ; puis le verdict, « en retard de 3,9 s, à
+     confirmer », AVANT la première correction ; « corrigée » tant que la
+     tuile est en vérification ; « tout est calé » quand, et seulement
+     quand, le calage la dit calée. Ambre au travail, vert calé, jamais
+     rouge : rien ne la bloque.
+     Mutants — l'en-tête oublié après l'ouverture ; la vérification dite
+     calée ; le verdict qui ne s'affiche pas. */
+  const vu = await page.evaluate(() => window.__calageVu);
+  const premierVerif = vu.findIndex((x) => x.etat === 'vérification');
+  const confirmer = vu.findIndex((x) => /^Calage sur xray · quebec en retard de (3,[89]|4,[012])\d s, à confirmer$/.test(x.texte));
+  const coherent = (x) => (
+    (x.etat === 'calée') === (x.texte === 'Calage : tout est calé sur xray')
+    && (x.etat !== 'vérification' || /^Calage sur xray · quebec corrigée(, | |$)/.test(x.texte))
+    && (x.etat !== 'libre' || ((/^Calage sur xray · quebec /.test(x.texte) || x.texte === 'Calage : à l\'écoute')
+                               && !/corrigée|calée|calé /.test(x.texte)))
+    && (x.ton === 'cale') === (x.etat === 'calée') && ['travail', 'cale'].includes(x.ton));
+  const incoherents = vu.filter((x, i) => i > 0 && !coherent(x));
+  ok('l\'en-tête a suivi le calage : non démarré, « à l\'écoute x/3 », le verdict à confirmer avant la correction, « corrigée », puis « tout est calé » — ambre, puis vert',
+     vu[0]?.texte === 'Calage non démarré' && vu[0]?.ton === 'coupe'
+     && vu.some((x) => /^Calage sur xray · quebec à l'écoute [0-2]\/3$/.test(x.texte))
+     && confirmer > 0 && premierVerif > confirmer && incoherents.length === 0
+     && vu[vu.length - 1].texte === 'Calage : tout est calé sur xray' && vu[vu.length - 1].ton === 'cale',
+     JSON.stringify({ incoherents, vu: vu.map((x) => `${x.ton} ${x.etat} ${x.texte}`) }));
+  /* CALÉ : le point vert, et l'infobulle qui dit tout — le repère, la tuile,
+     ce que veut dire x/3, et le nombre de corrections, celui du rapport. */
+  const tete1 = await page.evaluate(() => {
+    const el = document.querySelector('#tse-salle .tse-salle__calage');
+    return { titre: el.title.split('\n'), point: getComputedStyle(el.querySelector('.tse-salle__calage-point')).backgroundColor,
+             affiche: window.tse.salle.rapport().calageAffiche };
+  });
+  ok('…le point est vert, et l\'infobulle nomme le repère, l\'état de la tuile, la règle des calculs et les corrections faites',
+     tete1.point === 'rgb(0, 200, 111)' && tete1.titre[0] === 'Repère : xray, la tuile qui a le son — les autres se calent sur elle.'
+     && tete1.titre[1] === 'quebec calée'
+     && /^x\/3 : les calculs du son qui comptent, un essai toutes les 5 s ; il en faut 3 par tuile, puis deux verdicts d'accord\./.test(tete1.titre[2] || '')
+     && tete1.titre[3] === `Corrections faites : ${r1.calage?.corrections}` && tete1.titre.length === 4
+     && tete1.affiche?.ton === 'cale' && tete1.affiche?.texte === 'Calage : tout est calé sur xray',
+     JSON.stringify(tete1));
+
 
   /* CALÉE, ELLE NE BOUGE PLUS. L'horloge la dit désormais à 1,9 s — ce sur
      quoi le pilote d'avant aurait réaligné. Et sa voix la plus haute se tait
@@ -28235,6 +28506,14 @@ const S_LECTEUR_SONDE = () => {
      && g3.slice(1).every((x) => /^quebec en avance de 0\.[23]\d s .* → quebec recule de 0\.[12]\d* s$/.test(x))
      && Math.abs(h3) < 150,
      JSON.stringify({ rouverte, calage: r3.calage, chutes: r3.tuiles.quebec?.serie?.chutesDetail, vraieHaute: h3 }));
+  /* ET L'EN-TÊTE L'A DIT : il a quitté « tout est calé » — la mesure
+     rouverte, la correction — et y est revenu, chaque phrase d'accord avec
+     ce que le calage tenait à l'instant où elle s'écrivait. */
+  const vu3 = (await page.evaluate(() => window.__calageVu)).slice(vu.length);
+  ok('…et l\'en-tête l\'a dit : il a quitté « tout est calé » le temps de la mesure rouverte et de la correction, et y est revenu',
+     vu3.some((x) => x.ton === 'travail') && vu3.every(coherent)
+     && vu3[vu3.length - 1]?.texte === 'Calage : tout est calé sur xray',
+     JSON.stringify(vu3.map((x) => `${x.ton} ${x.etat} ${x.texte}`)));
   await page.close();
 }
 
@@ -28260,6 +28539,12 @@ const S_LECTEUR_SONDE = () => {
   // Les corrections, sans leur heure : « quebec en retard de … → xray recule de … ».
   const gestes = (r) => journal(r).filter((x) => / → /.test(x)).map((x) => x.replace(/^\+\d+ s · /, ''));
   const tant = (fn, ms, arg = null) => page.waitForFunction(fn, arg, { timeout: ms, polling: 500 }).then(() => true).catch(() => false);
+  // L'en-tête du calage (4.25.0.11) : sa phrase, son ton, la couleur de son point.
+  const lireTete = () => page.evaluate(() => {
+    const el = document.querySelector('#tse-salle .tse-salle__calage');
+    return el ? { texte: el.querySelector('.tse-salle__calage-texte').textContent, ton: el.dataset.ton,
+                  point: getComputedStyle(el.querySelector('.tse-salle__calage-point')).backgroundColor } : null;
+  });
 
   /* « india », en faible latence, 0,6 s en avance : retirée, elle recule de
      0,46 s — en deux fois si la voix à 0,35 s s'établit la première — et
@@ -28312,6 +28597,36 @@ const S_LECTEUR_SONDE = () => {
      ditB && gestes(rB).length === 0 && /^juliett retirée à \+\d+ s · le lecteur dit oui$/.test(rB.calage?.faibleLatence || '')
      && rB.tuiles.juliett?.essai === 'faible-latence false · instance · fini' && rB.tuiles.xray?.essai === null,
      JSON.stringify({ calage: rB.calage, juliett: rB.tuiles.juliett?.essai, xray: rB.tuiles.xray?.essai }));
+  /* L'EN-TÊTE LE DIT AUSSI, EN ROUGE (4.25.0.11). C'est le repère qui
+     devait avancer, et son tampon ne le permet pas : le blocage est posé
+     sur LUI, qui n'a pas de ligne dans l'en-tête. « juliett » ne reste donc
+     pas « à confirmer », en ambre, quand la décision est prise et que rien
+     ne bougera — trouvé en écrivant ce relevé.
+     Mutant — le blocage du repère ignoré. */
+  const teteB = await lireTete();
+  ok('…et l\'en-tête le dit en rouge : « juliett en avance de 0,4 s : le repère n\'a pas assez de tampon pour la rejoindre »',
+     /^Calage sur xray · juliett en avance de 0,[3-6]\d s : le repère n'a pas assez de tampon pour la rejoindre$/.test(teteB?.texte || '')
+     && teteB.ton === 'bloque' && teteB.point === 'rgb(235, 4, 0)',
+     JSON.stringify(teteB));
+  /* LE BLOCAGE NE VAUT QUE JUSQU'AU CHANGEMENT SUIVANT. Le repère rechargé,
+     la mesure est rouverte : l'en-tête revient à l'écoute. Au premier
+     verdict qui suit, la décision n'est pas encore reprise — il en faut un
+     second d'accord — et le blocage d'avant le rechargement ne dit plus
+     rien : « à confirmer », en ambre. La décision reprise, rouge de
+     nouveau. C'est la seule fenêtre où l'heure du blocage compte : sans
+     elle, le rouge reviendrait dès le premier verdict, sur la foi de
+     l'ancien. Mutant — l'heure du blocage du repère ignorée. */
+  await cadre('xray')?.evaluate(() => window.__recharger()).catch(() => null);
+  const teteDit = (motif, ms) => tant((m) => new RegExp(m)
+    .test(document.querySelector('#tse-salle .tse-salle__calage-texte')?.textContent || ''), ms, motif.source);
+  const rouvertB = await teteDit(/^Calage sur xray · juliett à l'écoute( [0-3]\/3)?$/, 15_000);
+  const teteB2 = await lireTete();
+  const confirmeB = await teteDit(/^Calage sur xray · juliett en avance de 0,[3-6]\d s, à confirmer$/, 90_000);
+  const teteB3 = await lireTete();
+  const rougeB = await teteDit(/: le repère n'a pas assez de tampon pour la rejoindre$/, 90_000);
+  ok('…le repère rechargé : « à l\'écoute », puis « à confirmer » en ambre au premier verdict — le blocage d\'avant ne vaut plus —, et rouge de nouveau quand la décision est reprise',
+     rouvertB && teteB2?.ton === 'travail' && confirmeB && teteB3?.ton === 'travail' && rougeB,
+     JSON.stringify({ rouvertB, teteB2, confirmeB, teteB3, rougeB, fin: await lireTete() }));
 
   /* Face à « uniform », 3,5 s de tampon : c'est elle qui avance, de 0,69 s
      — en deux fois si la voix à 0,35 s s'établit la première —, deux
@@ -28353,6 +28668,12 @@ const S_LECTEUR_SONDE = () => {
   // Les corrections, sans leur heure : « quebec en retard de … → xray recule de … ».
   const gestes = (r) => journal(r).filter((x) => / → /.test(x)).map((x) => x.replace(/^\+\d+ s · /, ''));
   const tant = (fn, ms, arg = null) => page.waitForFunction(fn, arg, { timeout: ms, polling: 500 }).then(() => true).catch(() => false);
+  // L'en-tête du calage (4.25.0.11) : sa phrase, son ton, la couleur de son point.
+  const lireTete = () => page.evaluate(() => {
+    const el = document.querySelector('#tse-salle .tse-salle__calage');
+    return el ? { texte: el.querySelector('.tse-salle__calage-texte').textContent, ton: el.dataset.ton,
+                  point: getComputedStyle(el.querySelector('.tse-salle__calage-point')).backgroundColor } : null;
+  });
 
   /* « papa » passe la voix de « xray » 1,1 s plus tôt, seule : un écho,
      peut-être — rien. « foxtrot » n'a rien de commun — rien. « mike » la
@@ -28372,6 +28693,14 @@ const S_LECTEUR_SONDE = () => {
      && /^en attente : (aucune voix nette|\d+ calculs nets sur \d+)$/.test(rA.calage?.mesures?.foxtrot || '')
      && rA.tuiles.papa?.essai === null && rA.tuiles.foxtrot?.essai === null && rA.tuiles.mike?.essai === null,
      JSON.stringify({ calage: rA.calage }));
+  /* L'EN-TÊTE DIT CHAQUE TUILE (4.25.0.11) : l'écho attend une seconde
+     voix, le stream sans son commun attend, la source proche est calée —
+     en ambre : le calage attend, rien ne le bloque. */
+  const teteA = await lireTete();
+  ok('…et l\'en-tête dit chaque tuile : l\'écho attend une seconde voix, le stream sans son commun attend, la source proche est calée — en ambre',
+     /^Calage sur xray · papa : une seule voix, peut-être un écho — en attente d'une seconde · foxtrot( : pas encore de voix commune nette| à l'écoute( [0-3]\/3)?) · mike calée$/.test(teteA?.texte || '')
+     && teteA.ton === 'travail' && teteA.point === 'rgb(245, 166, 35)',
+     JSON.stringify(teteA));
 
   /* TROIS CORRECTIONS AU PLUS. « yankee », un salon 1,42 s en avance,
      recule ; puis son son saute de 0,8 s plus tôt, sa lecture rechargée —
@@ -28406,6 +28735,11 @@ const S_LECTEUR_SONDE = () => {
      && /^yankee en avance de 1\.[0-4]\d s/.test(gB[0] || '') && gB.slice(1).every((x) => /^yankee en avance de [01]\.\d\d s/.test(x))
      && gB.every((x) => /→ yankee recule de [\d.]+ s$/.test(x)),
      JSON.stringify({ etapes, iL, dans, calage: rB.calage }));
+  // Et l'en-tête le dit, en rouge : le calage ne la corrigera plus.
+  const teteB = await lireTete();
+  ok('…et l\'en-tête le dit en rouge : « yankee laissée là : 3 corrections en 5 min »',
+     teteB?.texte === 'Calage sur xray · yankee laissée là : 3 corrections en 5 min' && teteB.ton === 'bloque',
+     JSON.stringify(teteB));
   await page.close();
 }
 
@@ -30401,7 +30735,8 @@ const S_LECTEUR_SONDE = () => {
   const tombee = (dl, avant, apres) => ({ dl, avant, apres });
   const jouer = (tuiles, maintenant = T0, reprises = {}) => {
     ordres.length = 0; signaux.length = 0;
-    const k = { echelle: 1, reprises, deplacements: {}, dits: {}, journal: [] };
+    // Les champs de `k` que la règle lit ou écrit — `bloque` depuis la 4.25.0.11 (cf. demarrerCalage).
+    const k = { echelle: 1, reprises, deplacements: {}, dits: {}, bloque: {}, journal: [] };
     if (regle.reprendrePlaces) regle.reprendrePlaces({ tuiles }, k, maintenant);
     return { k, ordres: [...ordres], journal: k.journal, signaux: [...signaux], tuiles };
   };
@@ -37727,6 +38062,162 @@ addEventListener('message', (e) => {
      typeof bilan.temoin === 'number' && bilan.temoin !== 0, JSON.stringify(bilan));
   ok('…et déclare toutes nos animations prises par le compositeur',
      bilan.prises >= 100 && bilan.refusees.length === 0, JSON.stringify(bilan));
+}
+
+/* ═════════ OÙ EN EST LE CALAGE, DANS L'EN-TÊTE DE LA SALLE (4.25.0.11) ═════
+   DEMANDÉ AVEC UNE CAPTURE : « à droite de "Pas de points de chaîne dans la
+   salle", mets l'état du calage en direct, sois précis pour bien qu'on
+   comprenne où ça en est ». Les scénarios du calage (182 à 184) relèvent ce
+   que l'en-tête dit pendant qu'il travaille — l'écoute, le verdict, la
+   correction, le calé, l'écho, la tuile laissée là, le repère qui ne peut
+   pas bouger. Celui-ci éprouve sa place, et les états où le calage ne
+   travaille pas : non démarré, coupé, arrêté, indisponible, une tuile seule,
+   une pub, le son qui passe à une autre tuile, la salle sans chat. */
+{
+  titre('214. L\'état du calage dans l\'en-tête — à droite des points de chaîne, et chaque état où il ne travaille pas');
+  const page = await freshTwitch(S_LECTEUR_SONDE(), [], '/directory', () => {
+    localStorage.setItem('tse:roue', 'vu');
+    document.addEventListener('DOMContentLoaded', () => {
+      const st = document.createElement('style');
+      st.textContent = '#side-nav { width: 240px; }';
+      document.head.appendChild(st);
+    });
+  });
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  const cadre = (ch) => page.frames().find((f) => f.url().includes('channel=' + ch) && !f.isDetached());
+  const tant = (fn, ms, arg = null) => page.waitForFunction(fn, arg, { timeout: ms, polling: 250 }).then(() => true).catch(() => false);
+  const lire = () => page.evaluate(() => {
+    const el = document.querySelector('#tse-salle .tse-salle__calage');
+    if (!el) return null;
+    const note = el.parentElement.querySelector('.tse-salle__note');
+    const point = el.querySelector('.tse-salle__calage-point');
+    const rc = el.getBoundingClientRect(), rn = note.getBoundingClientRect();
+    return { texte: el.querySelector('.tse-salle__calage-texte').textContent, ton: el.dataset.ton, titre: el.title,
+             point: getComputedStyle(point).backgroundColor, pointMuet: point.getAttribute('aria-hidden'),
+             visible: getComputedStyle(el).display !== 'none' && rc.width > 0, noteVisible: getComputedStyle(note).display !== 'none',
+             voisin: note.nextElementSibling === el, ecart: Math.round(rc.left - rn.right),
+             milieu: Math.abs((rc.top + rc.bottom) / 2 - (rn.top + rn.bottom) / 2), note: note.textContent,
+             dansHaut: !!el.closest('.tse-salle__haut'), dansPastille: !!el.closest('.tse-salle__tete'),
+             affiche: window.tse.salle.rapport().calageAffiche };
+  });
+  // Attendre que l'en-tête dise ce qu'on attend : il se met à jour à chaque pas de la salle (une seconde).
+  const attendreTexte = (motif, ms = 15_000) => tant((m) => {
+    const t = document.querySelector('#tse-salle .tse-salle__calage-texte');
+    return !!t && new RegExp(m).test(t.textContent);
+  }, ms, motif.source);
+  const GRIS = 'rgb(173, 173, 184)', AMBRE = 'rgb(245, 166, 35)';
+
+  /* SA PLACE : dans le haut de la colonne du chat, juste après la note des
+     points de chaîne, sur la même ligne, à sa droite. Le point est muet pour
+     la synthèse vocale ; la phrase dit tout. La salle vient de la console :
+     rien ne lance le calage — l'en-tête le dit, en gris, et le rapport
+     garde ce qu'il affiche.
+     Mutants — l'état posé ailleurs que derrière la note ; jamais écrit à
+     l'ouverture. */
+  await page.evaluate(() => window.tse.salle.ouvrir('xray', 'quebec'));
+  await attendre(page, () => (window.tse.salle.rapport().instant?.tours || 0) >= 2, 20_000);
+  const a = await lire();
+  ok('à droite de « Pas de points de chaîne dans la salle », sur sa ligne : « Calage non démarré », point gris',
+     !!a && a.visible && a.dansHaut && a.voisin && a.note === 'Pas de points de chaîne dans la salle'
+     && a.ecart >= 4 && a.ecart <= 20 && a.milieu <= 2 && a.pointMuet === 'true'
+     && a.texte === 'Calage non démarré' && a.ton === 'coupe' && a.point === GRIS && a.titre === a.texte
+     && a.affiche?.ton === 'coupe' && a.affiche?.texte === a.texte,
+     JSON.stringify(a));
+
+  /* LE RÉGLAGE : coupé, l'en-tête le dit ; rallumé, la salle de la console
+     ne repart pas seule — « non démarré » de nouveau, pas « coupé ». */
+  await page.evaluate(() => window.tse.options.poser('salleAuto', false));
+  const coupe = await attendreTexte(/^Calage coupé dans les réglages$/);
+  await page.evaluate(() => window.tse.options.poser('salleAuto', true));
+  const rallume = await attendreTexte(/^Calage non démarré$/);
+  ok('le réglage coupé : « Calage coupé dans les réglages » ; rallumé, « non démarré » de nouveau',
+     coupe && rallume, JSON.stringify(await lire()));
+
+  /* LANCÉ : l'écoute, en ambre, au rythme qu'il annonce. L'infobulle nomme
+     le repère, chaque tuile, la règle des calculs, les corrections. */
+  await page.evaluate(() => window.tse.salle.auto(0.1));
+  const ecoute = await attendreTexte(/^Calage sur xray · quebec à l'écoute( [0-3]\/3)?$/);
+  const b = await lire();
+  const lignesB = (b?.titre || '').split('\n');
+  ok('lancé : « Calage sur xray · quebec à l\'écoute x/3 », en ambre, et l\'infobulle le détaille',
+     ecoute && b.ton === 'travail' && b.point === AMBRE
+     && lignesB[0] === 'Repère : xray, la tuile qui a le son — les autres se calent sur elle.'
+     && /^quebec à l'écoute( [0-3]\/3)?$/.test(lignesB[1] || '') && /^x\/3 : /.test(lignesB[2] || '')
+     && lignesB[3] === 'Corrections faites : 0',
+     JSON.stringify(b));
+
+  /* UNE PUB : sur le repère, tout attend — en gris ; sur l'autre tuile, elle
+     seule est dite en pub. */
+  await cadre('xray')?.evaluate(() => window.__pub(9000)).catch(() => null);
+  const pubRef = await attendreTexte(/^Calage en pause : xray, qui a le son, est en pub$/);
+  const c = await lire();
+  await tant(() => !/en pub/.test(document.querySelector('#tse-salle .tse-salle__calage-texte').textContent), 20_000);
+  await cadre('quebec')?.evaluate(() => window.__pub(9000)).catch(() => null);
+  const pubTuile = await attendreTexte(/^Calage sur xray · quebec en pub$/);
+  ok('une pub sur le repère : « Calage en pause : xray, qui a le son, est en pub », en gris ; sur l\'autre : « quebec en pub »',
+     pubRef && c.ton === 'pause' && c.point === GRIS && pubTuile, JSON.stringify({ c, apres: await lire() }));
+  await tant(() => !/en pub/.test(document.querySelector('#tse-salle .tse-salle__calage-texte').textContent), 20_000);
+
+  /* ARRÊTÉ à la console : « Calage arrêté ». Relancé, puis coupé par le
+     réglage : « coupé dans les réglages » ; le réglage rallumé, la salle de
+     la console reste arrêtée — l'en-tête ne dit plus « coupé ». */
+  await page.evaluate(() => window.tse.salle.auto(false));
+  const arrete = await attendreTexte(/^Calage arrêté$/);
+  await page.evaluate(() => window.tse.salle.auto(0.1));
+  await attendreTexte(/^Calage sur xray · /);
+  await page.evaluate(() => window.tse.options.poser('salleAuto', false));
+  const coupe2 = await attendreTexte(/^Calage coupé dans les réglages$/);
+  await page.evaluate(() => window.tse.options.poser('salleAuto', true));
+  const arrete2 = await attendreTexte(/^Calage arrêté$/);
+  ok('arrêté : « Calage arrêté » ; coupé par le réglage : « coupé dans les réglages » ; le réglage rallumé sans relance : « arrêté »',
+     arrete && coupe2 && arrete2 && (await lire()).ton === 'coupe', JSON.stringify(await lire()));
+
+  /* LE SON PASSE À L'AUTRE TUILE : elle devient le repère après quinze
+     secondes d'écoute — à l'échelle 1 —, et l'en-tête compte le temps qui
+     reste. */
+  await page.evaluate(() => window.tse.salle.auto(1));
+  await attendreTexte(/^Calage sur xray · /);
+  await page.evaluate(() => window.tse.salle.son(1));
+  const bascule = await attendreTexte(/^Calage : quebec a le son, et devient le repère dans ([1-9]|1[0-5]) s$/);
+  const d = await lire();
+  ok('le son passe à « quebec » : « Calage : quebec a le son, et devient le repère dans N s », en gris',
+     bascule && d.ton === 'pause' && d.point === GRIS, JSON.stringify(d));
+  await page.evaluate(() => window.tse.salle.auto(false));
+
+  /* SANS CAPTURE DU SON, le calage ne démarre pas, et l'en-tête dit
+     pourquoi. On retire `captureStream` le temps de l'essai. */
+  const capture = await page.evaluate(() => {
+    window.__captureStream = HTMLMediaElement.prototype.captureStream;
+    delete HTMLMediaElement.prototype.captureStream;
+    return { refus: window.tse.salle.auto(0.1).erreur || null };
+  });
+  const indispo = await attendreTexte(/^Calage indisponible : ce navigateur ne capture pas le son$/);
+  await page.evaluate(() => { HTMLMediaElement.prototype.captureStream = window.__captureStream; });
+  ok('sans capture du son : « Calage indisponible : ce navigateur ne capture pas le son », en gris',
+     !!capture.refus && indispo && (await lire()).ton === 'coupe', JSON.stringify({ capture, tete: await lire() }));
+
+  /* SANS CHAT, la salle n'a plus de colonne : son titre passe dans la
+     pastille en haut à droite, et l'en-tête s'y tait — comme la note. Le
+     chat revenu, il revient à sa place. */
+  await page.click('#tse-salle .tse-salle__bouton-chat');
+  const sansChat = await tant(() => !!document.querySelector('#tse-salle .tse-salle__tete .tse-salle__calage'), 5_000);
+  const e = await lire();
+  await page.click('#tse-salle .tse-salle__bouton-chat');
+  const avecChat = await tant(() => !!document.querySelector('#tse-salle .tse-salle__haut .tse-salle__calage'), 5_000);
+  const f = await lire();
+  ok('sans chat, l\'en-tête se tait dans la pastille, comme la note ; le chat revenu, il revient à droite de la note',
+     sansChat && e.dansPastille && !e.visible && !e.noteVisible && avecChat && f.visible && f.voisin && f.dansHaut,
+     JSON.stringify({ e, f }));
+
+  /* UNE TUILE SEULE : rien à caler contre quoi — en pause, et il le dit.
+     Mutant — « tout est calé » sur une salle d'une tuile. */
+  await page.evaluate(() => window.tse.salle.ouvrir('xray'));
+  await attendre(page, () => (window.tse.salle.rapport().instant?.tours || 0) >= 1, 20_000);
+  await page.evaluate(() => window.tse.salle.auto(0.1));
+  const seule = await attendreTexte(/^Calage en pause : une seule tuile à l'écran$/);
+  ok('une tuile seule : « Calage en pause : une seule tuile à l\'écran », en gris',
+     seule && (await lire()).ton === 'pause', JSON.stringify(await lire()));
+  await page.close();
 }
 
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════

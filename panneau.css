@@ -404,6 +404,22 @@ html, body {
 }
 .d-pile { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
 
+/* ── L'agenda, en petit (4.25.0.11) ──────────────────────────────────────────
+   Les deux vues de l'agenda, dessinées par leur propre code et habillées par
+   leur propre feuille (plus bas) : une vue entière prend la largeur du
+   chapitre, au lieu de se serrer sur son contenu comme une carte. Ce qu'on
+   ajoute ici ne fait que retirer : le survol, le curseur d'un bouton, et
+   donner une image aux vignettes et aux avatars que Twitch fournirait. */
+.d-cadre--plein { display: block; }
+.d-agenda .ag-barre { padding-bottom: 6px; }
+.d-cadre span.bouton { display: inline-flex; align-items: center; cursor: default; }
+.d-cadre .bouton--fantome:hover { background: var(--fond-creux); border-color: var(--filet); }
+.d-cadre .hl-ligne:hover { background: none; }
+.d-menu { display: inline-flex; align-items: center; justify-content: space-between; gap: 8px; }
+.d-menu::after { content: '▾'; font-size: 10px; color: var(--texte-faible); }
+.d-agenda .ag-ent--rediffusion .ag-vig,
+.d-agenda .hl-avatar { background: linear-gradient(135deg, #3a3a44 0%, #1f1f25 70%, #2b2b33 100%); }
+
 /* ── La carte de la barre latérale, en petit ─────────────────────────────── */
 /* La largeur est FIXE, et non « 100 % jusqu'à 300 » : dans un cadre qui se
    serre sur son contenu, un pourcentage n'a pas de référence — il se résout
@@ -1109,9 +1125,16 @@ a.ag-ent:focus-visible { outline: 2px solid var(--violet); outline-offset: -2px;
   background: rgba(0, 0, 0, 0.78); color: #fff;
   font-size: 10px; line-height: 1.5; font-variant-numeric: tabular-nums;
 }
+/* La marque tient dans la vignette quelle que soit la langue : les mots
+   passent à la ligne (« Sans / rediffusion »), mais le russe
+   « Запланирован », d'un seul mot, dépassait de quatre pixels avec six de
+   marge. Trois suffisent ; un mot plus long encore se couperait plutôt
+   que de sortir du cadre. */
 .ag-marque {
-  padding: 1px 6px; border-radius: 3px; text-align: center;
+  box-sizing: border-box; max-width: 100%;
+  padding: 1px 3px; border-radius: 3px; text-align: center;
   font-size: 9.5px; font-weight: 700; line-height: 1.35;
+  overflow-wrap: break-word;
 }
 /* Le rouge du direct est celui de Twitch, et la pastille la sienne : un
    « EN DIRECT » qui aurait une autre couleur se lirait comme autre chose. */

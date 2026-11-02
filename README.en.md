@@ -2064,6 +2064,231 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## A guide that reads in order, the schedule in pictures, and the alignment status in the room (v4.25.0.11)
+
+Two requests. The first: “In ‘Quicker than Twitch, and tidier’, you talk
+about ‘Hype trains, discount banners’ and ‘badge in the preview (chapter
+10)’. But the user hasn't seen it before in the guide. […] You should bring
+more logic to the chapters; the user must never be unable to understand at
+the chapter they are on. I also want ‘Your channels' schedule’ to show visual
+examples.” The second, with a screenshot of a room's header: “to the right
+of ‘No channel points in the room’, put the live alignment status, be precise
+so it's clear where it stands.” Published on `claude/chrome-multi` only, for
+now.
+
+### The guide: each chapter builds only on the ones before
+
+The order was the order of encounter: what catches the eye, then what you
+trigger, then what you adjust. Each chapter, read alone, was right; their
+sequence was not. “Quicker than Twitch” came second and spoke of Hype Trains
+and the preview's badge; “Starts, and comebacks” came fourth and spoke of a
+preview, a badge and a timeline. The preview was only introduced in chapter
+nine, its badges in chapter ten, the timeline in chapter eleven.
+
+The order is now the order of dependencies, and the introduction promises
+it: “each chapter builds only on the ones before it, and whatever a chapter
+mentions without explaining carries the number of the chapter that does”.
+
+| # | chapter | what it assumes |
+| --- | --- | --- |
+| 1 | The gear, and this panel | nothing (its six groups: chapter 14) |
+| 2 | How long they have been live | defines the **card** |
+| 3 | The hover preview | the card; defines the **preview** and its **badges** (all of them: chapter 10) |
+| 4 | Earlier on this stream | the preview (announced in 3 as “the next chapter”) |
+| 5 | Starts, and comebacks | the card, the duration, the preview, its badge, the timeline |
+| 6 | Your subscriptions, in gold | the preview and its badges |
+| 7 | Subathons | likewise |
+| 8 | Co-streams | likewise (the sort that groups them: chapter 11; the room: next chapter) |
+| 9 | The multistream room | the co-streams that open it |
+| 10 | All the preview badges | the comeback, the gold, the rainbow and the co-stream already seen |
+| 11 | Sorting and filtering | the gold, the co-streams, the duration |
+| 12 | Quicker than Twitch, and tidier | the badges (chapter 10, backward) and the sorts |
+| 13 | Top Channels | the preview, the sorts |
+| 14 | This panel | (Settings: next chapter; the schedule: chapters 16 and 17) |
+| 15 | Everything adjusts, everything switches off | everything before |
+| 16 | The schedule: the week | this panel |
+| 17 | The schedule: offline | the week |
+| 18 | Privacy, in plain words | the schedule, the subscriptions |
+
+The texts followed the order. “How long they have been live” says what a
+card is. “The hover preview” says what a badge is and announces the timeline
+for the next chapter. It no longer mentions Top Channels, which comes at 13.
+“The preview badges” becomes “All the preview badges”, a recap that recalls
+the ones already met. “Quicker than Twitch” comes after it: what the sidebar
+drops “can be read in the preview badges (chapter 10)”, a reminder rather
+than an announcement. The numbers are computed, like the co-streams' one
+since 4.24.0.37; a chapter can now carry two (“chapters 16 and 17”). The
+twelve languages follow the French chapter by chapter, with their own
+labels. The twelve store listings now announce eighteen chapters.
+
+### The schedule, in two chapters and in pictures
+
+The schedule chapter was a seventeen-line paragraph without a picture, when
+every chapter before it has one. It becomes two chapters, one per view, each
+with its mock-up:
+
+- **the week**: the bar (“Today”, the two arrows, the channel menu) and three
+  days. A replay that ran past midnight, filed under the day it started; a
+  stream without a replay; a subscriber-only replay with its padlock; a live
+  stream with its viewers; a scheduled stream, dashed. Today carries its pill;
+- **offline**: the same channels, seen from elsewhere. The scheduled one
+  first, then those that left, the most recent on top, then the unavailable
+  one; a rule between the groups; “Replay” only where the last stream has its
+  replay, the padlock with it; “Their week” on every row. Korbek, live in the
+  week, is not there.
+
+The mock-ups are drawn by the view's own functions (`entreeAgenda`,
+`ligneHorsLigne`) in mock-up mode: same classes, same stylesheet, hence the
+same look. What changes in the view will change here. Mock-up mode removes
+only what would act: no link, no button (a drawing of one), no tooltip. A
+real “Their week” in a picture would take the view to the week of an
+invented channel. Dates are computed from today; the channels are invented.
+
+**Found while checking the twelve languages**: in the Russian schedule, the
+marker “Запланирован” (a single word) overflowed the thumbnail by four
+pixels, which clipped it. That was true of the real view too. The marker's
+padding goes from six pixels to three; an even longer word would break rather
+than overflow.
+
+### The alignment status, to the right of the channel points
+
+The report already said everything, in detail and in diagnostic French. The
+header now says it in the page's language, at every step of the room (one
+second): a coloured dot and a sentence, right after “No channel points in the
+room”.
+
+| what the header says | dot | when |
+| --- | --- | --- |
+| Aligning on xray · quebec listening 2/3 | amber | the pair's sound is being measured: 2 calculations that count out of the 3 needed |
+| … quebec behind by 3.87 s, to be confirmed | amber | a first verdict; a second one must agree |
+| … quebec corrected, checking 1/3 | amber | the correction is made, the sound checks it |
+| Alignment: everything is aligned on xray | green | every tile is aligned |
+| … quebec: a single voice, maybe an echo — waiting for a second one | amber | (likewise “two possible offsets”, “no clear shared voice yet”) |
+| … quebec left as is: 3 corrections in 10 min | red | the corrections limit |
+| … quebec ahead by 0.45 s: its player won't step back | red | (likewise: not enough buffer, not enough margin, too far) |
+| … quebec ahead by 0.45 s: the reference lacks the buffer to catch up with it | red | the reference had to move, and cannot |
+| … quebec in an ad · … slipped by 1.20 s: taking its place back · … gap being checked, 12/20 s | amber | an ad, a slip, a large gap under observation |
+| Alignment paused: xray, which has the sound, is in an ad | grey | (likewise: “only one tile on screen”) |
+| Alignment: quebec has the sound, and becomes the reference in 12 s | grey | the sound moved to another tile; it becomes the reference after fifteen seconds |
+| Alignment not started · turned off in settings · stopped · unavailable | grey | |
+
+The tooltip details it: the reference, each tile, what “x/3” means (and the
+pace of the attempts, one every five seconds), the number of corrections.
+Cut by the width, the sentence stays whole in the tooltip; the channel-points
+note gives way first. In the pill of a room without chat, the header falls
+silent, like the note.
+
+**Nothing is guessed.** Every word comes from the state the alignment keeps
+itself: each tile's state, its pair's last verdict and its cause, what keeps
+it from moving, its ads, its place, its large gap. For this, the engine keeps
+three more things without changing anything it decides: the time of each
+verdict, the cause of a refusal (not enough calculations, a single voice, two
+offsets, an echo), and what keeps a tile from moving, with its time. A
+verdict or a block only counts if it dates from after the pair's last change
+(a move, a reload, an ad): the measurement is then reopened, and what it said
+before no longer holds.
+
+**Two defects found while writing the bench, fixed before publication:**
+
+- **the reference that cannot move.** At the meeting point, it is sometimes
+  the reference that must step back or forward, and cannot: its player is in
+  low latency, or its buffer is too short. The block is set on it, and it has
+  no line in the header: the other tile stayed “to be confirmed”, in amber,
+  while the decision was made and nothing would move. It now says why, in
+  red;
+- **the setting switched back on.** Alignment stopped by the setting restarts
+  on its own only in a room opened from the sidebar. Opened otherwise, it
+  stayed stopped and the header said “turned off in settings”, setting back
+  on. It says “Alignment stopped”.
+
+The room's chapter in the guide presents the header and quotes four of its
+states as the room writes them, in each language.
+
+### The bench
+
+- **96**: eighteen chapters. Each section carries its key, tied to the
+  displayed title. The cross-references are read on the page and checked
+  against a table written in the bench, with their direction: forward to
+  announce, backward to recall (the speed one). Their number is displayed,
+  and in all twelve locale files each one is a “$n”, never a copied digit.
+  **The logical order has its table**: eighteen notions (the card, the
+  preview, the badges, the timeline, the comeback, the gold, the subathon,
+  the co-stream, the room, the alignment, the sorts, the Hype Train, the
+  discounted subscription, Top Channels, the schedule…), each with the
+  pattern that names it in the French file and the chapter that explains it.
+  A chapter that names it earlier must point to it by number, or say “next
+  chapter” if it comes right before; the explaining chapter must name it.
+  Every “next chapter” does precede what it announces. The alignment states
+  quoted by the room's chapter are rendered by `content.js`'s own functions,
+  in the language each locale file serves, number included (0,30 or 0.30).
+  The two schedule mock-ups: full width, nothing to click or hover, the bar
+  like the real one, the four kinds of entries, the pill on today only, the
+  past-midnight stream on its start day, the groups and rules of “Offline”.
+- **182**: the header is recorded at every sentence it writes, in the very
+  task where it writes it, with the state the alignment then holds. Not
+  started, “listening x/3”, the verdict to be confirmed before the first
+  correction, “corrected” while the tile is being checked, “everything is
+  aligned” when and only when it is aligned; never red. The tooltip, line by
+  line. After the drop: it leaves “everything is aligned” and comes back.
+- **183**: the low-latency tile facing a reference without buffer: red, and
+  the sentence says it is the reference that cannot catch up. The reference
+  reloaded, the measurement reopened: back to listening, then “to be
+  confirmed” in amber at the first verdict, and red again when the decision
+  is taken again.
+- **184**: the echo, the stream without shared sound and the aligned source,
+  each its sentence, in amber; the tile left as is, in red.
+- **214** (new): the placement (in the top of the chat column, right after
+  the note, on its line, the dot silent for screen readers) and every state
+  where the alignment is not working: not started, turned off then back on,
+  started, an ad on the reference then on the other tile, stopped, turned off
+  then back on without restart, the sound moved to the other tile, no sound
+  capture, no chat, a single tile.
+- **198**: the alignment state it builds for the place rule now carries
+  `bloque`, like the real one; without it, the rule, which clears it after
+  every move, threw — the full bench said so on the first run.
+
+**MUTANTS**
+
+| mutant | what falls |
+| --- | --- |
+| speed moved back to the top | 96: the cross-reference no longer backward; notions named before their chapter |
+| starts before the preview | 96: the preview named before it is explained, and the rest |
+| the two schedule views swapped | 96: “next chapter”, the schedule named before |
+| a cross-reference copied as digits (German) | 96: no “$n” |
+| “next chapter” removed from the preview (French) | 96: the timeline named before its chapter |
+| a wrong section key | 96: key and title, and everything that reads it |
+| the week drawn as the real view | 96: tooltips in the mock-up |
+| “Offline” drawn as the real view | 96: real buttons in the mock-up |
+| the padlock with its tooltip in the mock-up | 96: both mock-ups |
+| the past-midnight stream filed under its end | 96: the start day |
+| no rule between the groups | 96: “Offline” |
+| the today pill on every day | 96: today only |
+| the “aligned” state reworded in the room | 96: the room chapter's quote |
+| the header never refreshed at each step | 214: seven states never shown |
+| the status placed before the note | 214: its place, with and without chat |
+| “everything is aligned” on a single tile | 214: the single tile |
+| the reference's ad ignored | 214: the ad on the reference |
+| the setting switched back on says “turned off” | 214: “stopped” after the setting is back on |
+| the header shown in the pill | 214: no chat |
+| the sound moved to another tile ignored | 214: “becomes the reference in N s” |
+| “unavailable” said as “stopped” | 214: no sound capture |
+| the reference's block ignored | 183: “to be confirmed” in amber instead of red |
+| the time of the reference's block ignored | 183: red from the first verdict after the reload |
+| “left as is” in amber | 184: the tile left as is |
+| checking said as aligned | 182: the header against the alignment state, before and after the drop |
+| the verdict never shown | 182: “to be confirmed” before the correction |
+
+**Twenty-six named mutants, all caught.** Each was planted alone, and the
+bench rerun on the scenario that guards what it breaks. **One mutant survived
+the first round**: the time of the reference's block ignored. Scenario 183
+reloaded the reference and waited for the return to listening, which comes
+anyway: right after a reload, the tile has no verdict yet. The block's time
+only matters at the first verdict that follows, before the decision is
+taken again. Scenario 183 now waits for that verdict, “to be confirmed” in
+amber, then for the red of the decision taken again; the mutant falls.
+
+The full bench: 2043 assertions in 213 scenarios, all green.
+
 ## Addressed messages, three quirks fixed, a lighter startup and lighter scans (v4.25.0.10)
 
 The request, on the list of what remained after 4.25.0.9: “7/ I want you to
@@ -21372,7 +21597,7 @@ Four independent checks:
 | `npm run lint` | the six shipped JavaScript files — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 212 scenarios, 2020 assertions |
+| `npm test` | the Playwright harness: 213 scenarios, 2043 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -21392,13 +21617,13 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1795 KB | 731 KB | 4,327 → **2** |
+| `content.js` | 1846 KB | 773 KB | 4,343 → **2** |
 | `cadres.js` | 66 KB | 30 KB | 158 → **0** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
-| `panneau.js` | 150 KB | 76 KB | 209 → **0** |
+| `panneau.js` | 159 KB | 81 KB | 220 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 26 → **0** |
 | `background.js` | 10 KB | 2 KB | 22 → **0** |
-| **all six** | **2161 KB** | **943 KB** | **−56 %** |
+| **all six** | **2222 KB** | **990 KB** | **−55 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are
