@@ -13350,16 +13350,15 @@ titre('96. Le mode d\'emploi — la première vue, et la seule qui n\'ait besoin
   ok('dans les douze fiches, le guide cite chaque groupe, bouton et tri par son libellé exact',
      absents.length === 0, absents.slice(0, 12).join(' · '));
 
-  /* LA SALLE CITE SON EN-TÊTE AU MOT PRÈS (4.25.0.11) : son chapitre recopie
-     quatre états du calage tels que la salle les écrit — « à l'écoute 2/6 »,
-     « en retard de 0,30 s, à confirmer », « corrigée, vérification »,
-     « calée ». Mais ceux-là vivent dans content.js, dans la langue de Twitch,
-     et non dans les fiches : la citation pourrait dériver sans que la parité
-     le voie. On les rend donc ici avec les fonctions mêmes de content.js,
-     pour la langue que chaque fiche sert (« es_419 » → « es », « pt_PT » →
-     « pt »), nombre compris — 0,30 ou 0.30 selon la locale du texte. Seul le
-     nom de la tuile, et ce qui le lie à son état (« は », « — »), reste
-     dehors. */
+  /* LA SALLE CITE SON EN-TÊTE AU MOT PRÈS (4.25.0.11, revu en 4.25.0.12) :
+     son chapitre situe l'état du calage à gauche du bouton du chat, et
+     recopie quatre de ses états tels que la salle les écrit en deux lignes —
+     « à l'écoute 2/6 », « retard 0,30 s, à confirmer », « vérification »,
+     « Tout est calé ». Ceux-là vivent dans content.js, dans la langue de
+     Twitch, et non dans les fiches : la citation pourrait dériver sans que
+     la parité le voie. On les rend donc ici avec les fonctions mêmes de
+     content.js, pour la langue que chaque fiche sert (« es_419 » → « es »,
+     « pt_PT » → « pt »), nombre compris — 0,30 ou 0.30 selon la locale. */
   const blocStrings = readFileSync(join(ICI, '..', 'content.js'), 'utf8')
     .match(/const STRINGS = Object\.freeze\(\{[\s\S]*?\n {2}\}\);/)[0];
   const STRINGS_CJ = new Function(`${blocStrings}; return STRINGS;`)();
@@ -13369,13 +13368,11 @@ titre('96. Le mode d\'emploi — la première vue, et la seule qui n\'ait besoin
     if (!s) { citesCalage.push(`${loc} : pas de langue dans content.js`); continue; }
     const nb = new Intl.NumberFormat(s.locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(0.3);
     const texte = fiche(loc).guideSalleTexte.message;
-    for (const e of [{ cause: 'ecoute', x: 2, m: 6 }, { cause: 'confirmer', s: nb, avance: false },
-                     { cause: 'verif' }, { cause: 'calee' }]) {
-      const etat = s.uiCalTuile('', e).replace(/^[\s:：—は]+/, '').trim();
-      if (!etat || !texte.includes(etat)) citesCalage.push(`${loc} « ${etat} »`);
-    }
+    const cites = [s.uiSalleChatMasquer, s.uiCalCourt({ cause: 'ecoute', x: 2, m: 6 }),
+                   s.uiCalCourt({ cause: 'confirmer', s: nb, avance: false }), s.uiCalCourt({ cause: 'verif' }), s.uiCalToutCourt];
+    for (const c of cites) if (!c || !texte.includes(c)) citesCalage.push(`${loc} « ${c} »`);
   }
-  ok('…et le chapitre de la salle cite les états du calage tels que la salle les écrit, dans chaque langue',
+  ok('…et le chapitre de la salle cite le bouton du chat et les états du calage tels que la salle les écrit, dans chaque langue',
      citesCalage.length === 0, citesCalage.join(' · '));
 
   /* ── 5 quinquies. L'AGENDA SE MONTRE, DESSINÉ PAR SON PROPRE CODE ────────
@@ -28395,16 +28392,22 @@ const S_LECTEUR_SONDE = () => {
      la même tâche que le pas qui l'a posée —, avec l'état que le calage
      tient alors pour « quebec ». Ce qu'il dit se juge donc contre ce que le
      moteur sait au même moment, et non contre un relevé fait deux secondes
-     plus tard. */
+     plus tard. La phrase entière est celle du rapport ; les deux lignes
+     courtes, celles que l'en-tête montre à gauche du bouton du chat
+     (4.25.0.12) — et aucune ne doit déborder. */
   await page.evaluate(() => {
     const el = document.querySelector('#tse-salle .tse-salle__calage');
+    const l1 = el.querySelector('.tse-salle__calage-l1'), l2 = el.querySelector('.tse-salle__calage-l2');
+    const plage = (e) => { const r = document.createRange(); r.selectNodeContents(e); return r.getBoundingClientRect().width; };
     window.__calageVu = [];
     const lire = () => {
-      const texte = el.querySelector('.tse-salle__calage-texte').textContent, ton = el.dataset.ton;
+      const r = window.tse.salle.rapport();
+      const texte = r.calageAffiche?.texte, ton = el.dataset.ton;
+      const lignes = [l1.textContent, l2.hidden ? '' : l2.textContent];
       const d = window.__calageVu[window.__calageVu.length - 1];
-      if (d && d.texte === texte && d.ton === ton) return;
-      const k = window.tse.salle.rapport().calage;
-      window.__calageVu.push({ t: Date.now(), texte, ton, etat: k?.tuiles?.quebec ?? null });
+      if (d && d.texte === texte && d.ton === ton && d.lignes.join('|') === lignes.join('|')) return;
+      const deborde = [l1, l2].some((e) => !e.hidden && e.firstChild && plage(e) > e.getBoundingClientRect().width + 0.5);
+      window.__calageVu.push({ t: Date.now(), texte, ton, lignes, deborde, etat: r.calage?.tuiles?.quebec ?? null });
     };
     new MutationObserver(lire).observe(el, { subtree: true, childList: true, characterData: true, attributes: true });
     lire();
@@ -28444,19 +28447,29 @@ const S_LECTEUR_SONDE = () => {
     && (x.etat !== 'vérification' || /^Calage sur xray · quebec corrigée(, | |$)/.test(x.texte))
     && (x.etat !== 'libre' || ((/^Calage sur xray · quebec /.test(x.texte) || x.texte === 'Calage : à l\'écoute')
                                && !/corrigée|calée|calé /.test(x.texte)))
-    && (x.ton === 'cale') === (x.etat === 'calée') && ['travail', 'cale'].includes(x.ton));
+    && (x.ton === 'cale') === (x.etat === 'calée') && ['travail', 'cale'].includes(x.ton)
+    /* Les deux lignes disent la même chose que la phrase : calé, « Tout est
+       calé / repère : xray » ; sinon « Calage sur xray / quebec : … », dont
+       « vérification » tant que la tuile est vérifiée. */
+    && !x.deborde
+    && (x.etat !== 'calée' || (x.lignes[0] === 'Tout est calé' && x.lignes[1] === 'repère : xray'))
+    && (x.etat === 'calée' || (x.lignes[0] === 'Calage sur xray' && /^quebec : /.test(x.lignes[1]))
+        || (x.texte === 'Calage : à l\'écoute' && x.lignes.join('|') === 'Calage|à l\'écoute'))
+    && (x.etat !== 'vérification' || /^quebec : vérification/.test(x.lignes[1])));
   const incoherents = vu.filter((x, i) => i > 0 && !coherent(x));
   ok('l\'en-tête a suivi le calage : non démarré, « à l\'écoute x/3 », le verdict à confirmer avant la correction, « corrigée », puis « tout est calé » — ambre, puis vert',
-     vu[0]?.texte === 'Calage non démarré' && vu[0]?.ton === 'coupe'
+     vu[0]?.texte === 'Calage non démarré' && vu[0]?.ton === 'coupe' && vu[0]?.lignes.join('|') === 'Calage|non démarré'
+     && vu.some((x) => /^quebec : retard (3,[89]|4,[012])\d s, à confirmer$/.test(x.lignes[1]))
      && vu.some((x) => /^Calage sur xray · quebec à l'écoute [0-2]\/3$/.test(x.texte))
      && confirmer > 0 && premierVerif > confirmer && incoherents.length === 0
      && vu[vu.length - 1].texte === 'Calage : tout est calé sur xray' && vu[vu.length - 1].ton === 'cale',
-     JSON.stringify({ incoherents, vu: vu.map((x) => `${x.ton} ${x.etat} ${x.texte}`) }));
+     JSON.stringify({ incoherents, vu: vu.map((x) => `${x.ton} ${x.etat} ${x.texte} [${x.lignes.join(' / ')}]`) }));
   /* CALÉ : le point vert, et l'infobulle qui dit tout — le repère, la tuile,
      ce que veut dire x/3, et le nombre de corrections, celui du rapport. */
   const tete1 = await page.evaluate(() => {
     const el = document.querySelector('#tse-salle .tse-salle__calage');
     return { titre: el.title.split('\n'), point: getComputedStyle(el.querySelector('.tse-salle__calage-point')).backgroundColor,
+             lignes: [el.querySelector('.tse-salle__calage-l1').textContent, el.querySelector('.tse-salle__calage-l2').textContent],
              affiche: window.tse.salle.rapport().calageAffiche };
   });
   ok('…le point est vert, et l\'infobulle nomme le repère, l\'état de la tuile, la règle des calculs et les corrections faites',
@@ -28464,7 +28477,8 @@ const S_LECTEUR_SONDE = () => {
      && tete1.titre[1] === 'quebec calée'
      && /^x\/3 : les calculs du son qui comptent, un essai toutes les 5 s ; il en faut 3 par tuile, puis deux verdicts d'accord\./.test(tete1.titre[2] || '')
      && tete1.titre[3] === `Corrections faites : ${r1.calage?.corrections}` && tete1.titre.length === 4
-     && tete1.affiche?.ton === 'cale' && tete1.affiche?.texte === 'Calage : tout est calé sur xray',
+     && tete1.affiche?.ton === 'cale' && tete1.affiche?.texte === 'Calage : tout est calé sur xray'
+     && tete1.lignes.join('|') === 'Tout est calé|repère : xray' && tete1.affiche?.lignes.join('|') === tete1.lignes.join('|'),
      JSON.stringify(tete1));
 
 
@@ -28539,11 +28553,17 @@ const S_LECTEUR_SONDE = () => {
   // Les corrections, sans leur heure : « quebec en retard de … → xray recule de … ».
   const gestes = (r) => journal(r).filter((x) => / → /.test(x)).map((x) => x.replace(/^\+\d+ s · /, ''));
   const tant = (fn, ms, arg = null) => page.waitForFunction(fn, arg, { timeout: ms, polling: 500 }).then(() => true).catch(() => false);
-  // L'en-tête du calage (4.25.0.11) : sa phrase, son ton, la couleur de son point.
+  /* L'en-tête du calage (4.25.0.11) : sa phrase entière (le rapport), les
+     deux lignes qu'il montre à gauche du bouton du chat (4.25.0.12) et si
+     l'une déborde, son ton, la couleur de son point. */
   const lireTete = () => page.evaluate(() => {
     const el = document.querySelector('#tse-salle .tse-salle__calage');
-    return el ? { texte: el.querySelector('.tse-salle__calage-texte').textContent, ton: el.dataset.ton,
-                  point: getComputedStyle(el.querySelector('.tse-salle__calage-point')).backgroundColor } : null;
+    if (!el) return null;
+    const l1 = el.querySelector('.tse-salle__calage-l1'), l2 = el.querySelector('.tse-salle__calage-l2');
+    const plage = (e) => { const r = document.createRange(); r.selectNodeContents(e); return r.getBoundingClientRect().width; };
+    return { texte: window.tse.salle.rapport().calageAffiche?.texte, lignes: [l1.textContent, l2.hidden ? '' : l2.textContent],
+             deborde: [l1, l2].some((e) => !e.hidden && e.firstChild && plage(e) > e.getBoundingClientRect().width + 0.5),
+             ton: el.dataset.ton, point: getComputedStyle(el.querySelector('.tse-salle__calage-point')).backgroundColor };
   });
 
   /* « india », en faible latence, 0,6 s en avance : retirée, elle recule de
@@ -28606,6 +28626,7 @@ const S_LECTEUR_SONDE = () => {
   const teteB = await lireTete();
   ok('…et l\'en-tête le dit en rouge : « juliett en avance de 0,4 s : le repère n\'a pas assez de tampon pour la rejoindre »',
      /^Calage sur xray · juliett en avance de 0,[3-6]\d s : le repère n'a pas assez de tampon pour la rejoindre$/.test(teteB?.texte || '')
+     && teteB.lignes[0] === 'Calage sur xray' && /^juliett : 0,[3-6]\d s, repère sans tampon$/.test(teteB.lignes[1]) && !teteB.deborde
      && teteB.ton === 'bloque' && teteB.point === 'rgb(235, 4, 0)',
      JSON.stringify(teteB));
   /* LE BLOCAGE NE VAUT QUE JUSQU'AU CHANGEMENT SUIVANT. Le repère rechargé,
@@ -28618,7 +28639,7 @@ const S_LECTEUR_SONDE = () => {
      l'ancien. Mutant — l'heure du blocage du repère ignorée. */
   await cadre('xray')?.evaluate(() => window.__recharger()).catch(() => null);
   const teteDit = (motif, ms) => tant((m) => new RegExp(m)
-    .test(document.querySelector('#tse-salle .tse-salle__calage-texte')?.textContent || ''), ms, motif.source);
+    .test(window.tse.salle.rapport().calageAffiche?.texte || ''), ms, motif.source);
   const rouvertB = await teteDit(/^Calage sur xray · juliett à l'écoute( [0-3]\/3)?$/, 15_000);
   const teteB2 = await lireTete();
   const confirmeB = await teteDit(/^Calage sur xray · juliett en avance de 0,[3-6]\d s, à confirmer$/, 90_000);
@@ -28668,11 +28689,17 @@ const S_LECTEUR_SONDE = () => {
   // Les corrections, sans leur heure : « quebec en retard de … → xray recule de … ».
   const gestes = (r) => journal(r).filter((x) => / → /.test(x)).map((x) => x.replace(/^\+\d+ s · /, ''));
   const tant = (fn, ms, arg = null) => page.waitForFunction(fn, arg, { timeout: ms, polling: 500 }).then(() => true).catch(() => false);
-  // L'en-tête du calage (4.25.0.11) : sa phrase, son ton, la couleur de son point.
+  /* L'en-tête du calage (4.25.0.11) : sa phrase entière (le rapport), les
+     deux lignes qu'il montre à gauche du bouton du chat (4.25.0.12) et si
+     l'une déborde, son ton, la couleur de son point. */
   const lireTete = () => page.evaluate(() => {
     const el = document.querySelector('#tse-salle .tse-salle__calage');
-    return el ? { texte: el.querySelector('.tse-salle__calage-texte').textContent, ton: el.dataset.ton,
-                  point: getComputedStyle(el.querySelector('.tse-salle__calage-point')).backgroundColor } : null;
+    if (!el) return null;
+    const l1 = el.querySelector('.tse-salle__calage-l1'), l2 = el.querySelector('.tse-salle__calage-l2');
+    const plage = (e) => { const r = document.createRange(); r.selectNodeContents(e); return r.getBoundingClientRect().width; };
+    return { texte: window.tse.salle.rapport().calageAffiche?.texte, lignes: [l1.textContent, l2.hidden ? '' : l2.textContent],
+             deborde: [l1, l2].some((e) => !e.hidden && e.firstChild && plage(e) > e.getBoundingClientRect().width + 0.5),
+             ton: el.dataset.ton, point: getComputedStyle(el.querySelector('.tse-salle__calage-point')).backgroundColor };
   });
 
   /* « papa » passe la voix de « xray » 1,1 s plus tôt, seule : un écho,
@@ -28699,7 +28726,9 @@ const S_LECTEUR_SONDE = () => {
   const teteA = await lireTete();
   ok('…et l\'en-tête dit chaque tuile : l\'écho attend une seconde voix, le stream sans son commun attend, la source proche est calée — en ambre',
      /^Calage sur xray · papa : une seule voix, peut-être un écho — en attente d'une seconde · foxtrot( : pas encore de voix commune nette| à l'écoute( [0-3]\/3)?) · mike calée$/.test(teteA?.texte || '')
-     && teteA.ton === 'travail' && teteA.point === 'rgb(245, 166, 35)',
+     && teteA.ton === 'travail' && teteA.point === 'rgb(245, 166, 35)'
+     // Quatre streams, un seul chat de 341 px que le titre partage : le compte des calées, entier — la tête selon la place.
+     && ['Calage', 'Calage sur xray'].includes(teteA.lignes[0]) && teteA.lignes[1] === 'calées 1/3' && !teteA.deborde,
      JSON.stringify(teteA));
 
   /* TROIS CORRECTIONS AU PLUS. « yankee », un salon 1,42 s en avance,
@@ -28738,7 +28767,8 @@ const S_LECTEUR_SONDE = () => {
   // Et l'en-tête le dit, en rouge : le calage ne la corrigera plus.
   const teteB = await lireTete();
   ok('…et l\'en-tête le dit en rouge : « yankee laissée là : 3 corrections en 5 min »',
-     teteB?.texte === 'Calage sur xray · yankee laissée là : 3 corrections en 5 min' && teteB.ton === 'bloque',
+     teteB?.texte === 'Calage sur xray · yankee laissée là : 3 corrections en 5 min' && teteB.ton === 'bloque'
+     && teteB.lignes.join('|') === 'Calage sur xray|yankee : laissée là, 3 corrections' && !teteB.deborde,
      JSON.stringify(teteB));
   await page.close();
 }
@@ -29430,15 +29460,23 @@ const S_LECTEUR_SONDE = () => {
       src.disconnect();
       return Math.round(Math.log10(s / x.length + 1e-8) * 100) / 100;
     };
+    /* UNE PISTE QUI DOIT SONNER SE REMESURE, une qui doit se taire non. Au
+       banc complet chargé (4.25.0.12), la toute première mesure a lu le
+       silence : la lecture avait démarré, le son pas encore. Attendre plus
+       longtemps une fois pour toutes aurait déplacé le seuil ; on remesure
+       jusqu'à cinq fois ce qui doit porter le son — un silence qui dure, lui,
+       reste un silence, et la piste qui doit se taire n'est mesurée qu'une
+       fois. */
+    const sonore = async (p) => { let n = -8; for (let i = 0; i < 5 && n <= -4; i++) n = await niveau(p); return n; };
     const v = document.getElementById('v');
     v.src = wav(440); await v.play(); await dormir(600);
     const flux = v.captureStream();
-    const avant = { pistes: flux.getAudioTracks().length, niveau: await niveau(flux.getAudioTracks()[0]) };
+    const avant = { pistes: flux.getAudioTracks().length, niveau: await sonore(flux.getAudioTracks()[0]) };
     v.src = wav(660); await v.play(); await dormir(1200);
     const l = flux.getAudioTracks();
-    const apres = { pistes: l.length, etats: l.map((p) => p.readyState), ancienne: await niveau(l[0]), derniere: await niveau(l[l.length - 1]) };
+    const apres = { pistes: l.length, etats: l.map((p) => p.readyState), ancienne: await niveau(l[0]), derniere: await sonore(l[l.length - 1]) };
     const f2 = v.captureStream();
-    const seconde = { nouvelle: await niveau(f2.getAudioTracks()[0]), premiere: await niveau(l[l.length - 1]) };
+    const seconde = { nouvelle: await sonore(f2.getAudioTracks()[0]), premiere: await niveau(l[l.length - 1]) };
     return { avant, apres, seconde };
   }).catch((e) => ({ erreur: String(e) }));
   await t.close();
@@ -38064,159 +38102,323 @@ addEventListener('message', (e) => {
      bilan.prises >= 100 && bilan.refusees.length === 0, JSON.stringify(bilan));
 }
 
-/* ═════════ OÙ EN EST LE CALAGE, DANS L'EN-TÊTE DE LA SALLE (4.25.0.11) ═════
-   DEMANDÉ AVEC UNE CAPTURE : « à droite de "Pas de points de chaîne dans la
-   salle", mets l'état du calage en direct, sois précis pour bien qu'on
-   comprenne où ça en est ». Les scénarios du calage (182 à 184) relèvent ce
-   que l'en-tête dit pendant qu'il travaille — l'écoute, le verdict, la
-   correction, le calé, l'écho, la tuile laissée là, le repère qui ne peut
-   pas bouger. Celui-ci éprouve sa place, et les états où le calage ne
-   travaille pas : non démarré, coupé, arrêté, indisponible, une tuile seule,
-   une pub, le son qui passe à une autre tuile, la salle sans chat. */
+/* ═════════ OÙ EN EST LE CALAGE, À GAUCHE DU BOUTON DU CHAT (4.25.0.11-12) ═══
+   DEMANDÉ DEUX FOIS. D'abord « à droite de "Pas de points de chaîne dans la
+   salle", mets l'état du calage en direct, sois précis » ; puis, une capture
+   à l'appui, « mets-le finalement sur la partie droite, à gauche du bouton
+   "Masquer le chat". Il faudrait que l'ensemble des infos tiennent dans ce
+   petit espace ». Les scénarios du calage (182 à 184) relèvent ce que
+   l'en-tête dit pendant qu'il travaille. Celui-ci éprouve sa place, ses deux
+   lignes, les états où le calage ne travaille pas, les dispositions de la
+   salle, et que la forme la plus serrée tient, dans les dix langues, dans la
+   colonne la plus étroite que la salle donne à un chat.
+   La police est celle de Twitch, Inter : les largeurs sont celles du vrai. */
 {
-  titre('214. L\'état du calage dans l\'en-tête — à droite des points de chaîne, et chaque état où il ne travaille pas');
+  titre('214. L\'état du calage à gauche du bouton du chat — deux lignes entières, chaque état, chaque disposition, dix langues');
   const page = await freshTwitch(S_LECTEUR_SONDE(), [], '/directory', () => {
     localStorage.setItem('tse:roue', 'vu');
     document.addEventListener('DOMContentLoaded', () => {
       const st = document.createElement('style');
-      st.textContent = '#side-nav { width: 240px; }';
+      st.textContent = '#side-nav { width: 240px; } body { font-family: Inter, Roobert, "Helvetica Neue", Helvetica, Arial, sans-serif; }';
       document.head.appendChild(st);
     });
   });
   await page.setViewportSize({ width: 1920, height: 1080 });
   const cadre = (ch) => page.frames().find((f) => f.url().includes('channel=' + ch) && !f.isDetached());
   const tant = (fn, ms, arg = null) => page.waitForFunction(fn, arg, { timeout: ms, polling: 250 }).then(() => true).catch(() => false);
+  /* CE QUE L'EN-TÊTE MONTRE, ET OÙ. `deborde` : une ligne dont le texte est
+     plus large que sa boîte — lu sur la plage du texte, au pixel près. */
   const lire = () => page.evaluate(() => {
     const el = document.querySelector('#tse-salle .tse-salle__calage');
     if (!el) return null;
-    const note = el.parentElement.querySelector('.tse-salle__note');
+    const rect = (e) => e.getBoundingClientRect();
+    const vu = (e) => !!e && getComputedStyle(e).display !== 'none' && rect(e).width > 0
+      && !e.closest('[hidden]') && getComputedStyle(e.closest('.tse-salle__titre-bloc') || e).display !== 'none';
+    const plage = (e) => { const r = document.createRange(); r.selectNodeContents(e); return r.getBoundingClientRect().width; };
+    const l1 = el.querySelector('.tse-salle__calage-l1'), l2 = el.querySelector('.tse-salle__calage-l2');
+    // Le bouton et la ligne se cherchent où ils sont, pas où l'état devrait être : un état mal placé échoue, il ne plante pas.
+    const bouton = document.querySelector('#tse-salle .tse-salle__bouton-chat');
+    const haut = el.closest('.tse-salle__haut, .tse-salle__tete') || el.parentElement;
+    const titre = haut.querySelector('.tse-salle__titre'), note = haut.querySelector('.tse-salle__note');
     const point = el.querySelector('.tse-salle__calage-point');
-    const rc = el.getBoundingClientRect(), rn = note.getBoundingClientRect();
-    return { texte: el.querySelector('.tse-salle__calage-texte').textContent, ton: el.dataset.ton, titre: el.title,
-             point: getComputedStyle(point).backgroundColor, pointMuet: point.getAttribute('aria-hidden'),
-             visible: getComputedStyle(el).display !== 'none' && rc.width > 0, noteVisible: getComputedStyle(note).display !== 'none',
-             voisin: note.nextElementSibling === el, ecart: Math.round(rc.left - rn.right),
-             milieu: Math.abs((rc.top + rc.bottom) / 2 - (rn.top + rn.bottom) / 2), note: note.textContent,
-             dansHaut: !!el.closest('.tse-salle__haut'), dansPastille: !!el.closest('.tse-salle__tete'),
-             affiche: window.tse.salle.rapport().calageAffiche };
+    const rc = rect(el), rb = rect(bouton), rh = rect(haut), st = getComputedStyle(haut);
+    const aff = window.tse.salle.rapport().calageAffiche;
+    return {
+      texte: aff?.texte, ton: el.dataset.ton, titreInfo: el.title, aff,
+      lignes: [l1.textContent, l2.hidden ? '' : l2.textContent],
+      deborde: [l1, l2].some((e) => !e.hidden && e.firstChild && plage(e) > rect(e).width + 0.5),
+      visible: vu(el), point: getComputedStyle(point).backgroundColor, pointMuet: point.getAttribute('aria-hidden'),
+      avantBouton: el.nextElementSibling === bouton, ecartBouton: Math.round((rb.left - rc.right) * 10) / 10,
+      milieu: Math.abs((rc.top + rc.bottom) / 2 - (rb.top + rb.bottom) / 2),
+      dedans: rc.left >= rh.left + parseFloat(st.paddingLeft) - 0.5 && rb.right <= rh.right - parseFloat(st.paddingRight) + 0.5,
+      dansHaut: !!el.closest('.tse-salle__haut'), dansPastille: !!el.closest('.tse-salle__tete'),
+      colonne: haut.closest('.tse-salle__chat--droite') ? 'droite' : haut.closest('.tse-salle__chat--gauche') ? 'gauche' : 'pastille',
+      titreVu: vu(titre), titreEntier: !titre || !vu(titre) || plage(titre) <= rect(titre).width + 0.5,
+      titreAvant: !vu(titre) || rect(titre).right <= rc.left - 9.5,
+      noteVue: vu(note), noteLarge: vu(note) ? Math.round(rect(note).width) : 0, hautLarge: Math.round(rh.width),
+    };
   });
-  // Attendre que l'en-tête dise ce qu'on attend : il se met à jour à chaque pas de la salle (une seconde).
-  const attendreTexte = (motif, ms = 15_000) => tant((m) => {
-    const t = document.querySelector('#tse-salle .tse-salle__calage-texte');
-    return !!t && new RegExp(m).test(t.textContent);
-  }, ms, motif.source);
+  const texteVaut = (motif, ms = 15_000) => tant((m) => new RegExp(m).test(window.tse.salle.rapport().calageAffiche?.texte || ''), ms, motif.source);
   const GRIS = 'rgb(173, 173, 184)', AMBRE = 'rgb(245, 166, 35)';
+  const memes = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
-  /* SA PLACE : dans le haut de la colonne du chat, juste après la note des
-     points de chaîne, sur la même ligne, à sa droite. Le point est muet pour
-     la synthèse vocale ; la phrase dit tout. La salle vient de la console :
-     rien ne lance le calage — l'en-tête le dit, en gris, et le rapport
-     garde ce qu'il affiche.
-     Mutants — l'état posé ailleurs que derrière la note ; jamais écrit à
-     l'ouverture. */
+  /* a) SA PLACE. Deux streams sur 1920 px : deux chats, le titre en haut de
+     celui de gauche, les commandes en haut de celui de droite — c'est la
+     capture de la demande. L'état y est juste avant le bouton, à dix pixels,
+     centré sur lui, dans la colonne ; deux lignes entières. Le point est muet
+     pour la synthèse vocale. La salle vient de la console : rien ne lance le
+     calage — « Calage / non démarré », en gris ; le rapport garde ce qui est
+     affiché, et pourquoi (`voisins` : rien d'autre sur la ligne).
+     Mutants — l'état laissé à droite de la note ; posé après le bouton. */
   await page.evaluate(() => window.tse.salle.ouvrir('xray', 'quebec'));
   await attendre(page, () => (window.tse.salle.rapport().instant?.tours || 0) >= 2, 20_000);
   const a = await lire();
-  ok('à droite de « Pas de points de chaîne dans la salle », sur sa ligne : « Calage non démarré », point gris',
-     !!a && a.visible && a.dansHaut && a.voisin && a.note === 'Pas de points de chaîne dans la salle'
-     && a.ecart >= 4 && a.ecart <= 20 && a.milieu <= 2 && a.pointMuet === 'true'
-     && a.texte === 'Calage non démarré' && a.ton === 'coupe' && a.point === GRIS && a.titre === a.texte
-     && a.affiche?.ton === 'coupe' && a.affiche?.texte === a.texte,
+  ok('à gauche de « Masquer le chat », dans la colonne de droite : « Calage / non démarré », deux lignes entières, point gris',
+     !!a && a.visible && a.dansHaut && a.colonne === 'droite' && a.avantBouton && Math.abs(a.ecartBouton - 10) <= 1
+     && a.milieu <= 1 && a.dedans && !a.deborde && a.pointMuet === 'true'
+     && memes(a.lignes, ['Calage', 'non démarré']) && a.ton === 'coupe' && a.point === GRIS
+     && a.titreInfo === 'Calage non démarré' && a.texte === 'Calage non démarré'
+     && memes(a.aff?.lignes, a.lignes) && a.aff?.voisins === 'colonne' && a.aff?.forme === 0,
      JSON.stringify(a));
 
-  /* LE RÉGLAGE : coupé, l'en-tête le dit ; rallumé, la salle de la console
+  /* b) LE RÉGLAGE : coupé, l'en-tête le dit ; rallumé, la salle de la console
      ne repart pas seule — « non démarré » de nouveau, pas « coupé ». */
   await page.evaluate(() => window.tse.options.poser('salleAuto', false));
-  const coupe = await attendreTexte(/^Calage coupé dans les réglages$/);
+  const coupe = await texteVaut(/^Calage coupé dans les réglages$/);
+  const b1 = await lire();
   await page.evaluate(() => window.tse.options.poser('salleAuto', true));
-  const rallume = await attendreTexte(/^Calage non démarré$/);
-  ok('le réglage coupé : « Calage coupé dans les réglages » ; rallumé, « non démarré » de nouveau',
-     coupe && rallume, JSON.stringify(await lire()));
+  const rallume = await texteVaut(/^Calage non démarré$/);
+  ok('le réglage coupé : « Calage coupé / dans les réglages » ; rallumé, « Calage / non démarré » de nouveau',
+     coupe && memes(b1.lignes, ['Calage coupé', 'dans les réglages']) && !b1.deborde
+     && rallume && memes((await lire()).lignes, ['Calage', 'non démarré']), JSON.stringify(b1));
 
-  /* LANCÉ : l'écoute, en ambre, au rythme qu'il annonce. L'infobulle nomme
-     le repère, chaque tuile, la règle des calculs, les corrections. */
+  /* c) LANCÉ : sur quoi il se cale, puis la tuile et son état — en ambre.
+     L'infobulle détaille : le repère, chaque tuile en phrase entière, la
+     règle des calculs, les corrections. */
   await page.evaluate(() => window.tse.salle.auto(0.1));
-  const ecoute = await attendreTexte(/^Calage sur xray · quebec à l'écoute( [0-3]\/3)?$/);
-  const b = await lire();
-  const lignesB = (b?.titre || '').split('\n');
-  ok('lancé : « Calage sur xray · quebec à l\'écoute x/3 », en ambre, et l\'infobulle le détaille',
-     ecoute && b.ton === 'travail' && b.point === AMBRE
-     && lignesB[0] === 'Repère : xray, la tuile qui a le son — les autres se calent sur elle.'
-     && /^quebec à l'écoute( [0-3]\/3)?$/.test(lignesB[1] || '') && /^x\/3 : /.test(lignesB[2] || '')
-     && lignesB[3] === 'Corrections faites : 0',
-     JSON.stringify(b));
+  const ecoute = await texteVaut(/^Calage sur xray · quebec à l'écoute( [0-3]\/3)?$/);
+  const c1 = await lire();
+  const lignesC = (c1?.titreInfo || '').split('\n');
+  ok('lancé : « Calage sur xray / quebec : à l\'écoute x/3 », en ambre, et l\'infobulle le détaille',
+     ecoute && c1.lignes[0] === 'Calage sur xray' && /^quebec : à l'écoute( [0-3]\/3)?$/.test(c1.lignes[1]) && !c1.deborde
+     && c1.ton === 'travail' && c1.point === AMBRE
+     && lignesC[0] === 'Repère : xray, la tuile qui a le son — les autres se calent sur elle.'
+     && /^quebec à l'écoute( [0-3]\/3)?$/.test(lignesC[1] || '') && /^x\/3 : /.test(lignesC[2] || '')
+     && lignesC[3] === 'Corrections faites : 0',
+     JSON.stringify(c1));
 
-  /* UNE PUB : sur le repère, tout attend — en gris ; sur l'autre tuile, elle
-     seule est dite en pub. */
+  /* d) UNE PUB : sur le repère, tout attend — en gris ; sur l'autre tuile,
+     elle seule est dite en pub. */
   await cadre('xray')?.evaluate(() => window.__pub(9000)).catch(() => null);
-  const pubRef = await attendreTexte(/^Calage en pause : xray, qui a le son, est en pub$/);
-  const c = await lire();
-  await tant(() => !/en pub/.test(document.querySelector('#tse-salle .tse-salle__calage-texte').textContent), 20_000);
+  const pubRef = await texteVaut(/^Calage en pause : xray, qui a le son, est en pub$/);
+  const d1 = await lire();
+  await tant(() => !/en pub/.test(window.tse.salle.rapport().calageAffiche?.texte || ''), 20_000);
   await cadre('quebec')?.evaluate(() => window.__pub(9000)).catch(() => null);
-  const pubTuile = await attendreTexte(/^Calage sur xray · quebec en pub$/);
-  ok('une pub sur le repère : « Calage en pause : xray, qui a le son, est en pub », en gris ; sur l\'autre : « quebec en pub »',
-     pubRef && c.ton === 'pause' && c.point === GRIS && pubTuile, JSON.stringify({ c, apres: await lire() }));
-  await tant(() => !/en pub/.test(document.querySelector('#tse-salle .tse-salle__calage-texte').textContent), 20_000);
+  const pubTuile = await texteVaut(/^Calage sur xray · quebec en pub$/);
+  const d2 = await lire();
+  ok('une pub sur le repère : « Calage en pause / xray, le repère, en pub », en gris ; sur l\'autre : « quebec : en pub »',
+     pubRef && memes(d1.lignes, ['Calage en pause', 'xray, le repère, en pub']) && d1.ton === 'pause' && d1.point === GRIS && !d1.deborde
+     && pubTuile && memes(d2.lignes, ['Calage sur xray', 'quebec : en pub']), JSON.stringify({ d1, d2 }));
+  await tant(() => !/en pub/.test(window.tse.salle.rapport().calageAffiche?.texte || ''), 20_000);
 
-  /* ARRÊTÉ à la console : « Calage arrêté ». Relancé, puis coupé par le
-     réglage : « coupé dans les réglages » ; le réglage rallumé, la salle de
-     la console reste arrêtée — l'en-tête ne dit plus « coupé ». */
+  /* e) ARRÊTÉ à la console : « Calage / arrêté ». Relancé, puis coupé par le
+     réglage : « coupé » ; le réglage rallumé, la salle de la console reste
+     arrêtée — l'en-tête ne dit plus « coupé ». */
   await page.evaluate(() => window.tse.salle.auto(false));
-  const arrete = await attendreTexte(/^Calage arrêté$/);
+  const arrete = await texteVaut(/^Calage arrêté$/);
+  const e1 = await lire();
   await page.evaluate(() => window.tse.salle.auto(0.1));
-  await attendreTexte(/^Calage sur xray · /);
+  await texteVaut(/^Calage sur xray · /);
   await page.evaluate(() => window.tse.options.poser('salleAuto', false));
-  const coupe2 = await attendreTexte(/^Calage coupé dans les réglages$/);
+  const coupe2 = await texteVaut(/^Calage coupé dans les réglages$/);
   await page.evaluate(() => window.tse.options.poser('salleAuto', true));
-  const arrete2 = await attendreTexte(/^Calage arrêté$/);
-  ok('arrêté : « Calage arrêté » ; coupé par le réglage : « coupé dans les réglages » ; le réglage rallumé sans relance : « arrêté »',
-     arrete && coupe2 && arrete2 && (await lire()).ton === 'coupe', JSON.stringify(await lire()));
+  const arrete2 = await texteVaut(/^Calage arrêté$/);
+  const e2 = await lire();
+  ok('arrêté : « Calage / arrêté » ; coupé par le réglage, puis le réglage rallumé sans relance : « arrêté »',
+     arrete && memes(e1.lignes, ['Calage', 'arrêté']) && coupe2 && arrete2 && memes(e2.lignes, ['Calage', 'arrêté']) && e2.ton === 'coupe',
+     JSON.stringify({ e1, e2 }));
 
-  /* LE SON PASSE À L'AUTRE TUILE : elle devient le repère après quinze
+  /* f) LE SON PASSE À L'AUTRE TUILE : elle devient le repère après quinze
      secondes d'écoute — à l'échelle 1 —, et l'en-tête compte le temps qui
      reste. */
   await page.evaluate(() => window.tse.salle.auto(1));
-  await attendreTexte(/^Calage sur xray · /);
+  await texteVaut(/^Calage sur xray · /);
   await page.evaluate(() => window.tse.salle.son(1));
-  const bascule = await attendreTexte(/^Calage : quebec a le son, et devient le repère dans ([1-9]|1[0-5]) s$/);
-  const d = await lire();
-  ok('le son passe à « quebec » : « Calage : quebec a le son, et devient le repère dans N s », en gris',
-     bascule && d.ton === 'pause' && d.point === GRIS, JSON.stringify(d));
+  const bascule = await texteVaut(/^Calage : quebec a le son, et devient le repère dans ([1-9]|1[0-5]) s$/);
+  const f1 = await lire();
+  ok('le son passe à « quebec » : « Calage en pause / quebec repère dans N s », en gris',
+     bascule && f1.lignes[0] === 'Calage en pause' && /^quebec repère dans ([1-9]|1[0-5]) s$/.test(f1.lignes[1])
+     && f1.ton === 'pause' && f1.point === GRIS && !f1.deborde, JSON.stringify(f1));
   await page.evaluate(() => window.tse.salle.auto(false));
 
-  /* SANS CAPTURE DU SON, le calage ne démarre pas, et l'en-tête dit
+  /* g) SANS CAPTURE DU SON, le calage ne démarre pas, et l'en-tête dit
      pourquoi. On retire `captureStream` le temps de l'essai. */
   const capture = await page.evaluate(() => {
     window.__captureStream = HTMLMediaElement.prototype.captureStream;
     delete HTMLMediaElement.prototype.captureStream;
     return { refus: window.tse.salle.auto(0.1).erreur || null };
   });
-  const indispo = await attendreTexte(/^Calage indisponible : ce navigateur ne capture pas le son$/);
+  const indispo = await texteVaut(/^Calage indisponible : ce navigateur ne capture pas le son$/);
+  const g1 = await lire();
   await page.evaluate(() => { HTMLMediaElement.prototype.captureStream = window.__captureStream; });
-  ok('sans capture du son : « Calage indisponible : ce navigateur ne capture pas le son », en gris',
-     !!capture.refus && indispo && (await lire()).ton === 'coupe', JSON.stringify({ capture, tete: await lire() }));
+  ok('sans capture du son : « Calage indisponible / son non capturable », en gris',
+     !!capture.refus && indispo && memes(g1.lignes, ['Calage indisponible', 'son non capturable']) && g1.ton === 'coupe' && !g1.deborde,
+     JSON.stringify({ capture, g1 }));
 
-  /* SANS CHAT, la salle n'a plus de colonne : son titre passe dans la
-     pastille en haut à droite, et l'en-tête s'y tait — comme la note. Le
-     chat revenu, il revient à sa place. */
+  /* h) SANS CHAT, la salle n'a plus de colonne : le titre et le bouton
+     passent dans la pastille en haut à droite, et l'état s'y tait — comme
+     la note. Le chat revenu, il revient à gauche du bouton, et se remesure.
+     Mutant — l'état affiché dans la pastille. */
   await page.click('#tse-salle .tse-salle__bouton-chat');
   const sansChat = await tant(() => !!document.querySelector('#tse-salle .tse-salle__tete .tse-salle__calage'), 5_000);
-  const e = await lire();
+  const h1 = await lire();
   await page.click('#tse-salle .tse-salle__bouton-chat');
   const avecChat = await tant(() => !!document.querySelector('#tse-salle .tse-salle__haut .tse-salle__calage'), 5_000);
-  const f = await lire();
-  ok('sans chat, l\'en-tête se tait dans la pastille, comme la note ; le chat revenu, il revient à droite de la note',
-     sansChat && e.dansPastille && !e.visible && !e.noteVisible && avecChat && f.visible && f.voisin && f.dansHaut,
-     JSON.stringify({ e, f }));
+  const h2 = await lire();
+  ok('sans chat, l\'état se tait dans la pastille ; le chat revenu, il revient à gauche du bouton, entier',
+     sansChat && h1.dansPastille && !h1.visible && avecChat && h2.visible && h2.avantBouton && h2.colonne === 'droite' && !h2.deborde
+     && h2.aff?.voisins === 'colonne',
+     JSON.stringify({ h1, h2 }));
 
-  /* UNE TUILE SEULE : rien à caler contre quoi — en pause, et il le dit.
+  /* l) UNE POLICE ARRIVÉE APRÈS COUP change la largeur des lettres sans
+     changer leur texte : rien dans ce que l'en-tête dit n'a bougé, et
+     pourtant il doit se remesurer (cf. `loadingdone`). On l'imite : les
+     lettres des deux lignes s'élargissent, puis la fin d'un chargement de
+     police s'annonce, comme le navigateur le fait. L'état — indisponible,
+     immobile — ne tient plus nulle part : le rapport le dit coupé. Les
+     lettres rendues, il tient de nouveau.
+     Mutant — la police chargée ignorée. */
+  const large = await page.addStyleTag({ content: '.tse-salle__calage-l1, .tse-salle__calage-l2 { letter-spacing: 40px !important; }' });
+  await page.evaluate(() => document.fonts.dispatchEvent(new Event('loadingdone')));
+  const remesuree = await tant(() => window.tse.salle.rapport().calageAffiche?.coupee === true, 5_000);
+  await large.evaluate((e) => e.remove());
+  await page.evaluate(() => document.fonts.dispatchEvent(new Event('loadingdone')));
+  const rendue = await tant(() => window.tse.salle.rapport().calageAffiche?.coupee !== true, 5_000);
+  ok('une police chargée après coup : l\'en-tête se remesure, sans que rien de ce qu\'il dit ait changé',
+     remesuree && rendue && !(await lire()).deborde, JSON.stringify(await lire()));
+
+  /* m) LA FENÊTRE CHANGE, L'ÉTAT NON : la salle se redispose — deux chats à
+     1920 px, un seul à 1280, le titre alors sur la même ligne — et l'en-tête
+     se remesure sur-le-champ, sans attendre d'avoir autre chose à dire ;
+     rélargie, il revient seul avec le bouton.
+     Mutant — pas de remesure après une disposition. */
+  await page.setViewportSize({ width: 1280, height: 720 });
+  const redisposee = await tant(() => window.tse.salle.rapport().calageAffiche?.voisins !== 'colonne', 5_000);
+  const m1 = await lire();
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  const elargie = await tant(() => window.tse.salle.rapport().calageAffiche?.voisins === 'colonne', 5_000);
+  const m2 = await lire();
+  ok('la fenêtre rétrécie, un seul chat : l\'en-tête se remesure aussitôt, le titre entier à sa gauche ; rélargie, il revient seul avec le bouton',
+     redisposee && ['note', 'titre'].includes(m1.aff?.voisins) && m1.titreVu && m1.titreEntier && m1.titreAvant && !m1.deborde && m1.dedans
+     && elargie && m2.colonne === 'droite' && !m2.deborde && m2.dedans,
+     JSON.stringify({ m1, m2 }));
+
+  /* i) TOUTES LES DISPOSITIONS. Deux à six streams, de 1920 à 1280 px : un
+     chat ou deux, une colonne de 340 px ou plus. Le calage lancé, l'en-tête
+     écrit ce qu'il écrit — et dans chacune, aucune ligne ne déborde, l'état
+     est à dix pixels avant le bouton, dans la colonne ; le titre, s'il est là,
+     est entier et à sa gauche ; la note, si elle est là, a ses 60 px ; et ce
+     que le rapport dit avoir fait (`voisins`) est ce qu'on voit. Avec un seul
+     chat, la note puis le titre cèdent la place avant que l'état soit coupé.
+     Mutants — pas de mesure (la phrase coupée) ; le titre jamais retiré. */
+  const dispositions = [];
+  for (const [w, h, n] of [[1920, 1080, 2], [1920, 1080, 3], [1920, 1080, 4], [1920, 1080, 6], [1600, 900, 2], [1366, 768, 2], [1280, 720, 2], [1280, 720, 3]]) {
+    await page.setViewportSize({ width: w, height: h });
+    await page.evaluate((k) => window.tse.salle.ouvrir(...['xray', 'quebec', 'mike', 'india', 'papa', 'uniform'].slice(0, k)), n);
+    await attendre(page, () => (window.tse.salle.rapport().instant?.tours || 0) >= 1, 20_000);
+    await page.evaluate(() => window.tse.salle.auto(0.1));
+    await wait(page, 7_000);
+    const x = await lire();
+    const chat = !!x && !x.dansPastille;
+    const v = x?.aff?.voisins;
+    const accord = !chat || (v === 'colonne' ? x.colonne === 'droite' && !x.titreVu
+      : v === 'note' ? x.titreVu && x.noteVue : v === 'titre' ? x.titreVu && !x.noteVue : v === 'seul' ? !x.titreVu && !x.noteVue : false);
+    dispositions.push({ w, n, chat, v, forme: x?.aff?.forme, lignes: x?.lignes, haut: x?.hautLarge,
+                        bon: !chat || (x.visible && !x.deborde && x.avantBouton && Math.abs(x.ecartBouton - 10) <= 1 && x.dedans
+                                       && x.titreEntier && x.titreAvant && (!x.noteVue || x.noteLarge >= 59) && accord && !x.aff.coupee) });
+  }
+  ok('dans chaque disposition — 2 à 6 streams, 1920 à 1280 px —, l\'état tient entier à gauche du bouton, et le titre ne cède que s\'il le faut',
+     dispositions.every((d) => d.bon) && dispositions.some((d) => d.chat && d.v === 'colonne') && dispositions.some((d) => d.chat && d.v !== 'colonne'),
+     JSON.stringify(dispositions));
+  /* DEUX STREAMS — la salle de la capture —, la forme la plus riche partout :
+     le repère, la tuile par son nom, son état. La note cède sa place avant
+     que l'état perde un mot. Mutant — la note gardée au prix de la forme. */
+  ok('…et à deux streams, la forme entière — « Calage sur xray / quebec : … » — dans chacune des quatre largeurs',
+     dispositions.filter((d) => d.n === 2).length === 4
+     && dispositions.filter((d) => d.n === 2).every((d) => d.chat && d.forme === 0 && d.lignes?.[0] === 'Calage sur xray' && /^quebec : /.test(d.lignes?.[1] || '')),
+     JSON.stringify(dispositions.filter((d) => d.n === 2)));
+  await page.setViewportSize({ width: 1920, height: 1080 });
+
+  /* j) LA FORME LA PLUS SERRÉE TIENT PARTOUT, DANS LES DIX LANGUES. La
+     colonne la plus étroite qu'un chat reçoit est de 340 px
+     (SALLE_CHAT_PX) ; on y retire ses marges, le bouton du chat dans cette
+     langue, l'écart, le point — avec les fontes calculées du vrai bouton et
+     des vraies lignes. Chaque état — vingt états de tuile dans les deux sens,
+     le compte de plusieurs tuiles, les huit états où le calage ne travaille
+     pas, le tout calé —, avec les nombres les plus larges qu'il porte
+     (9,99 s ; 45,25 s pour un écart ; 6/6 ; 20/20 s ; 15 s), doit y tenir sur
+     ses deux lignes sans nom de chaîne. C'est la promesse : quel que soit
+     l'état, quelle que soit la langue, ce qui s'affiche est entier.
+     Mutant — une forme courte rallongée. */
+  const srcContenu = readFileSync(join(ICI, '..', 'content.js'), 'utf8');
+  const STRINGS_214 = new Function(`${srcContenu.match(/const plurielSlave = [\s\S]*?\n {2}\};/)[0]}\n`
+    + `${srcContenu.match(/const STRINGS = Object\.freeze\(\{[\s\S]*?\n {2}\}\);/)[0]}; return STRINGS;`)();
+  const CAUSES = ['pub', 'retombee', 'ecart', 'calee', 'laissee', 'recul', 'tampon', 'arriere', 'loin', 'verif', 'ecoute', 'voix', 'echo',
+                  'ambigu', 'aligne', 'verifAligne', 'verifConfirmer', 'confirmer', 'repereRecul', 'repereTampon'];
+  const SALLE = ['nonDemarre', 'coupe', 'arrete', 'indispo', 'seule', 'ecoute', 'refPub', 'bascule'];
+  const langues = Object.entries(STRINGS_214).map(([l, S]) => {
+    const nb = (x) => new Intl.NumberFormat(S.locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(x);
+    const formes = [[S.uiCalToutCourt, '']];
+    for (const c of CAUSES) for (const avance of [true, false]) {
+      formes.push([S.uiCalMot, S.uiCalCourt({ cause: c, s: nb(['ecart', 'loin', 'retombee'].includes(c) ? 45.25 : 9.99), avance, x: 6, m: 6, el: 20, tot: 20, max: 3 })]);
+    }
+    for (let k = 0; k <= 5; k++) formes.push([S.uiCalMot, S.uiCalCompte(k, 5)]);
+    for (const k of SALLE) formes.push([S.uiCalMot, S.uiCalSalle(k, { s: 15 })[1]]);
+    return { l, bouton: S.uiSalleChatMasquer, formes };
+  });
+  const budget = await page.evaluate((L) => {
+    const el = document.querySelector('#tse-salle .tse-salle__calage');
+    const bouton = document.querySelector('#tse-salle .tse-salle__bouton-chat');
+    const haut = bouton.closest('.tse-salle__haut, .tse-salle__tete'), commandes = bouton.parentElement;
+    const l1 = el.querySelector('.tse-salle__calage-l1'), l2 = el.querySelector('.tse-salle__calage-l2');
+    const point = el.querySelector('.tse-salle__calage-point');
+    const px = (v) => parseFloat(v) || 0;
+    const mesure = (texte, modele) => {
+      const s = document.createElement('span');
+      const cs = getComputedStyle(modele);
+      s.style.cssText = `position:absolute;visibility:hidden;white-space:nowrap;font:${cs.font};letter-spacing:${cs.letterSpacing}`;
+      s.textContent = texte;
+      document.getElementById('tse-salle').appendChild(s);
+      const w = s.getBoundingClientRect().width;
+      s.remove();
+      return w;
+    };
+    const sh = getComputedStyle(haut), sb = getComputedStyle(bouton);
+    const marge = px(sh.paddingLeft) + px(sh.paddingRight) + px(getComputedStyle(commandes).columnGap)
+      + point.getBoundingClientRect().width + px(getComputedStyle(el).columnGap) + 1;
+    const trop = [];
+    for (const x of L) {
+      const b = mesure(x.bouton, bouton) + px(sb.paddingLeft) + px(sb.paddingRight) + px(sb.borderLeftWidth) + px(sb.borderRightWidth);
+      const place = 340 - marge - b;
+      for (const [a, c] of x.formes) {
+        const w1 = mesure(a, l1), w2 = c ? mesure(c, l2) : 0;
+        if (w1 > place || w2 > place) trop.push(`${x.l} (${Math.round(place)} px) « ${a} / ${c} » ${Math.round(Math.max(w1, w2))} px`);
+      }
+    }
+    return { trop, n: L.reduce((s, x) => s + x.formes.length, 0) };
+  }, langues);
+  ok('dans les dix langues, chaque état tient en entier dans la colonne la plus étroite, à côté de « Masquer le chat »',
+     budget.n === 10 * (1 + 40 + 6 + 8) && budget.trop.length === 0, JSON.stringify(budget));
+
+  /* k) UNE TUILE SEULE : rien à caler contre quoi — en pause, et il le dit.
      Mutant — « tout est calé » sur une salle d'une tuile. */
   await page.evaluate(() => window.tse.salle.ouvrir('xray'));
   await attendre(page, () => (window.tse.salle.rapport().instant?.tours || 0) >= 1, 20_000);
   await page.evaluate(() => window.tse.salle.auto(0.1));
-  const seule = await attendreTexte(/^Calage en pause : une seule tuile à l'écran$/);
-  ok('une tuile seule : « Calage en pause : une seule tuile à l\'écran », en gris',
-     seule && (await lire()).ton === 'pause', JSON.stringify(await lire()));
+  const seule = await texteVaut(/^Calage en pause : une seule tuile à l'écran$/);
+  const k1 = await lire();
+  ok('une tuile seule : « Calage en pause / une seule tuile », en gris',
+     seule && memes(k1.lignes, ['Calage en pause', 'une seule tuile']) && k1.ton === 'pause' && !k1.deborde, JSON.stringify(k1));
   await page.close();
 }
 
