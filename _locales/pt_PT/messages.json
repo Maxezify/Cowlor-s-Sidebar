@@ -479,25 +479,25 @@
     "message": "Fechar"
   },
   "guideIntro": {
-    "message": "Este guia explica o que a extensão acrescenta ao Twitch e como a usar, pela ordem em que o vais encontrar. Tudo funciona assim que recarregas uma página do Twitch, sem configurar nada — e tudo se ajusta, ou se desliga, em «Definições», logo abaixo."
+    "message": "Este guia explica o que a extensão acrescenta ao Twitch e como a usar. Lê-se pela ordem: cada capítulo só se apoia nos anteriores, e o que um capítulo refere sem explicar leva o número do capítulo que o explica. Tudo funciona assim que recarregas uma página do Twitch, sem configurar nada — e tudo se ajusta, ou se desliga, em «Definições», logo abaixo."
   },
   "guideHoverTitre": {
     "message": "A pré-visualização ao passar o rato"
   },
   "guideHoverTexte": {
-    "message": "Deixa o ponteiro um instante sobre um canal: abre-se uma janela ao lado, com o vídeo em direto, o título completo, distintivos e a linha temporal do que aconteceu antes.\n• Funciona em toda a barra lateral: canais seguidos, recomendações, Top Canais.\n• Nenhum anúncio na pré-visualização. A transmissão que abres a seguir não é tocada.\n• Pesada demais? Em «Definições»: a largura, a qualidade do fluxo, ou a pré-visualização sem vídeo."
+    "message": "Deixa o ponteiro um instante sobre um cartão: abre-se uma janela ao lado — a pré-visualização —, com o vídeo em direto e o título completo.\n• Por baixo do título, distintivos: etiquetas curtas que dizem o contexto da emissão num relance. Os capítulos seguintes apresentam-nos com o que assinalam; o capítulo $1 reúne-os todos.\n• Mesmo em baixo, a linha temporal do que aconteceu antes de chegares: é o capítulo seguinte.\n• Funciona em todos os canais da barra lateral, tanto nos que segues como nas recomendações.\n• Nenhum anúncio na pré-visualização. A transmissão que abres a seguir não é tocada.\n• Pesada demais? Em «Definições»: a largura, a qualidade do fluxo, ou a pré-visualização sem vídeo."
   },
   "guideDureeTitre": {
     "message": "Há quanto tempo está em direto"
   },
   "guideDureeTexte": {
-    "message": "Por baixo do número de espetadores, cada cartão mostra há quanto tempo dura a emissão, atualizado sem abrir o canal.\n• Uma emissão que termina mostra «Encerrado» enquanto o cartão sai da lista.\n• Três formatos à escolha em «Definições»: 4h19, 4:19 ou 259 min."
+    "message": "Cada canal em direto ocupa um cartão na barra lateral: o avatar, o nome, a categoria e, à direita, o número de espetadores. Por baixo desse número, a extensão acrescenta há quanto tempo dura a emissão, atualizado sem abrir o canal.\n• Uma emissão que termina mostra «Encerrado» enquanto o cartão sai da lista.\n• Três formatos à escolha em «Definições»: 4h19, 4:19 ou 259 min."
   },
   "guideBadgesTitre": {
-    "message": "Os distintivos da pré-visualização"
+    "message": "Todos os distintivos da pré-visualização"
   },
   "guideBadgesTexte": {
-    "message": "Na pré-visualização, os distintivos dizem o contexto num relance. Aqui estão todos; cada cor tem um único sentido.\n• Vermelho: as etiquetas de conteúdo do Twitch — jogos para adultos, violência, apostas… Sabes antes de ver.\n• Verde-lima: uma novidade — o canal acabou de mudar de categoria, ou voltou após uma queda. Desaparece ao fim de dez minutos.\n• Azul, roxo, cinzento: o co-stream — quem o organiza, quem mais está em direto, quem faz parte sem transmitir.\n• Dourado: a tua subscrição, e o que vem a seguir; dourado pálido: uma subscrição terminada.\n• Verde, laranja, rosa: o patrocinador da transmissão, um Hype Train a decorrer, uma subscrição com desconto.\n• Sem cor: uma menção do Twitch, mantida tal e qual.\n• Arco-íris: um subatão, e o seu dia."
+    "message": "Aqui estão todos os distintivos que a pré-visualização sabe mostrar; cada cor tem um único sentido. Já viste o da queda, o dourado, o arco-íris e os do co-stream.\n• Vermelho: as etiquetas de conteúdo do Twitch — jogos para adultos, violência, apostas… Sabes antes de ver.\n• Verde-lima: uma novidade — o canal acabou de mudar de categoria, ou voltou após uma queda. Desaparece ao fim de dez minutos.\n• Azul, roxo, cinzento: o co-stream — quem o organiza, quem mais está em direto, quem faz parte sem transmitir.\n• Dourado: a tua subscrição, e o que vem a seguir; dourado pálido: uma subscrição terminada.\n• Verde, laranja, rosa: o patrocinador da transmissão, um Hype Train a decorrer, uma subscrição com desconto.\n• Sem cor: uma menção do Twitch, mantida tal e qual.\n• Arco-íris: um subatão, e o seu dia."
   },
   "guideFriseTitre": {
     "message": "Antes nesta live"
@@ -509,31 +509,31 @@
     "message": "Os subathons"
   },
   "guideSubathonTexte": {
-    "message": "Um subatão é aquela emissão que as subscrições prolongam sem fim — dias, às vezes semanas.\n• Uma etiqueta à direita do nome diz em que dia vai o evento; o distintivo da pré-visualização repete-o."
+    "message": "Um subatão é aquela emissão que as subscrições prolongam sem fim — dias, às vezes semanas.\n• Uma etiqueta à direita do nome diz em que dia vai o evento; na pré-visualização, um distintivo com as cores do arco-íris repete-o."
   },
   "guideCostreamTitre": {
     "message": "Os co-streams"
   },
   "guideCostreamTexte": {
-    "message": "Uma barra colorida fixa na margem esquerda do cartão: este canal transmite com outros, uma cor por co-stream. Vários participantes seguidos na lista partilham uma só barra.\n• Ao passar o rato, o distintivo azul diz quem organiza — «Canal anfitrião», ou «Co-stream de …»; o roxo nomeia os participantes em direto fora da tua lista; o cinzento, quem faz parte sem transmitir.\n• Uma ordenação agrupa-os no topo da lista (capítulo $1).\n• O pequeno cursor «▶» na barra abre as transmissões deles juntas, na sala multistream — capítulo seguinte."
+    "message": "Uma barra colorida fixa na margem esquerda do cartão: este canal transmite com outros, em co-stream — uma cor por co-stream. Vários participantes seguidos na lista partilham uma só barra.\n• Na pré-visualização, o distintivo azul diz quem organiza — «Canal anfitrião», ou «Co-stream de …»; o roxo nomeia os participantes em direto fora da tua lista; o cinzento, quem faz parte sem transmitir.\n• Uma ordenação agrupa-os no topo da lista (capítulo $1).\n• O pequeno cursor «▶» na barra abre as transmissões deles juntas, na sala multistream: é o capítulo seguinte."
   },
   "guideSalleTitre": {
     "message": "A sala multistream"
   },
   "guideSalleTexte": {
-    "message": "O cursor «▶» na barra de um co-stream abre as transmissões lado a lado, na página.\n• Passa o rato por cima: diz o que abre — «Ver os 3». Rostos na ponta? São participantes que não segues: vai até eles para os acrescentar. Shift+clique abre logo todo o co-stream.\n• Um clique num quadro dá-lhe o som — as teclas de 1 a 6 também —, e o chat segue o som. Sem chat partilhado, separadores por cima do chat mostram outro sem mudar o som.\n• No máximo seis transmissões no ecrã: as outras esperam por baixo, e um clique fá-las entrar.\n• As transmissões alinham-se sozinhas pelo som em comum, em cerca de um minuto de escuta; sem som em comum, nada se mexe. «Alinhamento automático» desliga-se em «Definições».\n• A sala não dá pontos do canal, e os anúncios do Twitch passam lá como em qualquer lado.\n• Para a fechar: Esc, ou um clique no cursor, que passou a «■»."
+    "message": "O cursor «▶» na barra de um co-stream abre as transmissões lado a lado, na página — cada uma no seu quadro.\n• Passa o rato por cima: diz o que abre — «Ver os 3». Rostos na ponta? São participantes que não segues: vai até eles para os acrescentar. Shift+clique abre logo todo o co-stream.\n• Um clique num quadro dá-lhe o som — as teclas de 1 a 6 também —, e o chat segue o som. Sem chat partilhado, separadores por cima do chat mostram outro sem mudar o som.\n• No máximo seis transmissões no ecrã: as outras esperam por baixo, e um clique fá-las entrar.\n• As transmissões alinham-se sozinhas pelo som em comum, em cerca de um minuto de escuta; sem som em comum, nada se mexe. «Alinhamento automático» desliga-se em «Definições».\n• No topo do chat, a sala diz em que ponto está o alinhamento, quadro a quadro: «em escuta 2/6» — os cálculos do som que contam, sobre os necessários —, «atrasado 0,30 s, por confirmar», «corrigido, em verificação» e, por fim, «alinhado». O ponto fica verde quando tudo está alinhado, âmbar enquanto o alinhamento trabalha ou espera, vermelho quando um quadro não pode ser corrigido, cinzento em pausa ou desligado; a dica dá o pormenor.\n• A sala não dá pontos do canal, e os anúncios do Twitch passam lá como em qualquer lado.\n• Para a fechar: Esc, ou um clique no cursor, que passou a «■»."
   },
   "guideDebutTitre": {
     "message": "Os começos e os regressos"
   },
   "guideDebutTexte": {
-    "message": "Uma barra vermelha a pulsar na margem esquerda de um cartão: essa emissão começou há menos de dez minutos. Apaga-se sozinha.\n• O streamer perdeu a ligação e voltou em menos de dez minutos? A barra não volta a acender-se, e a duração continua a contar a emissão inteira, queda incluída.\n• A pré-visualização diz então «De volta após uma queda» durante dez minutos, e a linha temporal mostra onde a emissão caiu."
+    "message": "Uma barra vermelha a pulsar na margem esquerda de um cartão: essa emissão começou há menos de dez minutos. Apaga-se sozinha.\n• O streamer perdeu a ligação e voltou em menos de dez minutos? A barra não volta a acender-se, e a duração continua a contar a emissão inteira, queda incluída.\n• A pré-visualização mostra então o distintivo «De volta após uma queda» durante dez minutos, e a linha temporal mostra onde a emissão caiu."
   },
   "guideAboTitre": {
     "message": "As suas inscrições, a ouro"
   },
   "guideAboTexte": {
-    "message": "Os canais que subscreves aparecem a ouro na lista.\n• Nada a fazer: com sessão iniciada no Twitch, a extensão lê a tua página de subscrições a cada seis horas, por omissão. Uma subscrição acabada de fazer? Abre o canal, ou clica em «Levantar agora» em «Os teus dados», secção «Subscrições».\n• Ao passar o rato, o distintivo diz há quantos meses apoias o canal, e o que vem a seguir: «Próximo aniversário» se se renova, «Expira em …» se vai terminar — uma subscrição oferecida, ou uma que já não renovas.\n• Quando a subscrição termina, o ouro apaga-se e o distintivo diz «Ex-inscrito».\n• Paga, oferecida ou móvel: as três contam."
+    "message": "Os canais que subscreves aparecem a ouro na lista.\n• Nada a fazer: com sessão iniciada no Twitch, a extensão lê a tua página de subscrições a cada seis horas, por omissão. Uma subscrição acabada de fazer? Abre o canal, ou clica em «Levantar agora»: grupo «Os teus dados» deste painel, secção «Subscrições».\n• Na pré-visualização, o distintivo dourado diz há quantos meses apoias o canal, e o que vem a seguir: «Próximo aniversário» se se renova, «Expira em …» se vai terminar — uma subscrição oferecida, ou uma que já não renovas.\n• Quando a subscrição termina, o ouro apaga-se e o distintivo diz «Ex-inscrito».\n• Paga, oferecida ou móvel: as três contam."
   },
   "guideTriTitre": {
     "message": "Ordenar e filtrar"
@@ -551,19 +551,25 @@
     "message": "Mais rápida do que o Twitch, e mais limpa"
   },
   "guideViteTexte": {
-    "message": "O Twitch demora dois a quatro minutos a mostrar um canal que entra em direto, e mantém cinco a dez minutos o que termina. A extensão atualiza ela própria a barra lateral, a cada trinta segundos: espetadores, categoria, duração, chegadas e partidas.\n• Todos os teus canais seguidos em direto abrem-se sozinhos, e os offline nunca aparecem: acabou o «Mostrar mais».\n• Hype trains, faixas de desconto, tiras de patrocínio e secções vazias saem da barra; o que diziam volta como distintivo na pré-visualização (capítulo $1).\n• A tua sequência de visualização e a linha de stories do Twitch arrumam-se no bloco de filtros, no topo da lista. Preferes como o Twitch as mostra, ou ocultas? Está em «Definições»."
+    "message": "O Twitch demora dois a quatro minutos a mostrar um canal que entra em direto, e mantém cinco a dez minutos o que termina. A extensão atualiza ela própria a barra lateral, a cada trinta segundos: espetadores, categoria, duração, chegadas e partidas.\n• Todos os teus canais seguidos em direto abrem-se sozinhos, e os offline nunca aparecem: acabou o «Mostrar mais».\n• Hype Trains, faixas de desconto, tiras de patrocínio e secções vazias saem da barra; o que diziam lê-se nos distintivos da pré-visualização (capítulo $1).\n• A tua sequência de visualização e a linha de stories do Twitch arrumam-se junto das ordenações e dos filtros, no topo da lista. Preferes como o Twitch as mostra, ou ocultas? Está em «Definições»."
   },
   "guidePanneauTitre": {
     "message": "Este painel"
   },
   "guidePanneauTexte": {
-    "message": "Seis grupos, à esquerda:\n• «Primeiros passos» — este guia, legível mesmo sem separador do Twitch aberto.\n• «Definições» — tudo o que a extensão deixa escolher.\n• «Programação» — as emissões dos canais que segues, passadas, em direto e agendadas, com as gravações; é o capítulo seguinte.\n• «Os teus dados» — o que ela guardou: os canais que mais visitas, a que horas, as tuas subscrições, os canais conhecidos.\n• «Diagnóstico» — só serve se algo correr mal; oculta-se nas definições.\n• «Top Canais» — o estado da classificação e das suas categorias.\nAs secções além deste guia leem o separador do Twitch em primeiro plano; sem ele, dizem-no.\n• Algo errado? «Exportar um relatório» escreve um texto para releres antes de enviar: contagens, nenhuma lista — nem os teus canais, nem as tuas subscrições.\n• «Apagar o histórico» apaga tudo o que a extensão guardou, definitivamente; as tuas definições ficam."
+    "message": "Seis grupos, à esquerda:\n• «Primeiros passos» — este guia, legível mesmo sem separador do Twitch aberto.\n• «Definições» — tudo o que a extensão deixa escolher; é o capítulo seguinte.\n• «Programação» — as emissões dos canais que segues, passadas, em direto e agendadas, com as gravações; capítulos $1 e $2.\n• «Os teus dados» — o que ela guardou: os canais que mais visitas, a que horas, as tuas subscrições, os canais conhecidos.\n• «Diagnóstico» — só serve se algo correr mal; oculta-se nas definições.\n• «Top Canais» — o estado da classificação e das suas categorias.\nAs secções além deste guia leem o separador do Twitch em primeiro plano; sem ele, dizem-no.\n• Algo errado? «Exportar um relatório» escreve um texto para releres antes de enviar: contagens, nenhuma lista — nem os teus canais, nem as tuas subscrições.\n• «Apagar o histórico» apaga tudo o que a extensão guardou, definitivamente; as tuas definições ficam."
   },
   "guideAgendaTitre": {
-    "message": "A programação dos teus canais"
+    "message": "A programação: a semana"
   },
   "guideAgendaTexte": {
-    "message": "O grupo «Programação» faz, para todos os canais que segues de uma vez, o que a página de programação de um canal faz no Twitch para um só.\n• «A semana»: dia a dia, as emissões passadas com a gravação — um clique abre-a num novo separador —, as que estão em direto e as que os canais agendaram. Abre no dia de hoje, com os dias passados acima; uma emissão que passa da meia-noite fica no dia em que começou.\n• As setas mudam de semana, até oito para trás e duas para a frente; «Hoje» volta ao dia de hoje, e o menu deixa um só canal.\n• «Offline»: cada canal que não está em direto — primeiro os que agendaram a próxima emissão, a mais próxima no topo, depois os outros, o que terminou mais recentemente primeiro. Um canal com emissão agendada que não emite há três meses não aparece, nem o seu horário na semana: é a programação que o Twitch guarda de um canal que já não emite. Quando emitiu, a gravação a um clique e a próxima emissão. «Semana do canal» abre a semana da última emissão. Um canal que o Twitch já não fornece — conta suspensa, renomeada ou encerrada — não desaparece: fica no fim da lista, «Indisponível no Twitch».\n• Um cadeado assinala, antes mesmo do clique, uma gravação reservada aos subscritores do canal quando a extensão não sabe que tens uma subscrição; com subscrição, nada aparece: está aberta para ti.\nOs canais são todos os que segues. Como a barra lateral do Twitch só mostra cem, a extensão volta a ler a lista completa na tua página de canais seguidos, numa moldura invisível, a cada doze horas. Uma gravação só existe se o canal guarda as emissões, e enquanto o Twitch as mantiver; uma emissão agendada, só se o canal mantém a programação no Twitch. «Sem gravação» só tem dia se a extensão viu essa emissão em direto: o Twitch só indica o fim. A programação não pede nada ao Twitch enquanto não a abrires, e o que leu fica no teu navegador: ao recarregar, só volta a pedir o que envelheceu."
+    "message": "O grupo «Programação» deste painel faz, para todos os canais que segues de uma vez, o que a página de programação de um canal faz no Twitch para um só. A sua primeira vista, «A semana», arruma dia a dia três tipos de emissões.\n• As emissões passadas, com a miniatura e a duração da gravação: um clique abre-a num novo separador.\n• As emissões em curso, marcadas «Em direto», com os espetadores.\n• As emissões agendadas, marcadas «Agendada», numa moldura tracejada.\nO exemplo acima mostra também:\n• A vista abre no dia de hoje, com os dias passados acima. Uma emissão que passa da meia-noite fica no dia em que começou: a de Nyxaria, que começou anteontem à noite, fica lá.\n• Um cadeado assinala uma gravação reservada aos subscritores do canal, quando a extensão não sabe que tens uma subscrição; com subscrição, nada aparece: está aberta para ti.\n• «Sem gravação»: uma emissão passada da qual não ficou gravação. Só tem lugar na semana se a extensão a viu em direto: o Twitch só indica a hora do fim.\nAs setas mudam de semana, até oito para trás e duas para a frente; «Hoje» volta ao dia de hoje. O menu, à direita, deixa um só canal. Uma gravação só existe se o canal guarda as emissões, e enquanto o Twitch as mantiver; uma emissão agendada, só se o canal mantém a programação no Twitch."
+  },
+  "guideHorsLigneTitre": {
+    "message": "A programação: offline"
+  },
+  "guideHorsLigneTexte": {
+    "message": "A segunda vista da programação, «Offline», dá uma linha a cada canal seguido que não está em direto — por isso Korbek, em direto no exemplo anterior, não aparece. Três grupos, separados por um traço:\n• Primeiro, os canais que agendaram a próxima emissão, a mais próxima no topo.\n• Depois, os outros, o que terminou mais recentemente primeiro.\n• No fim, os que o Twitch já não fornece — conta suspensa, renomeada ou encerrada —, marcados «Indisponível no Twitch»: não desaparecem da lista.\nCada linha diz quando o canal emitiu pela última vez, e a próxima emissão se houver uma agendada.\n• «Rever» abre num novo separador a gravação da última emissão; o cadeado dos subscritores também aparece ali. Não há «Rever» quando essa emissão não tem gravação, como a de Aeltris.\n• «Semana do canal» abre «A semana» na semana dessa última emissão, só para esse canal.\n• Um canal com emissão agendada que não emite há três meses não aparece, nem o seu horário na semana: é a programação que o Twitch guarda de um canal que já não emite.\nAs duas vistas cobrem todos os canais que segues: como a barra lateral do Twitch só mostra cem, a extensão volta a ler a lista completa na tua página de canais seguidos, numa moldura invisível, a cada doze horas. A programação não pede nada ao Twitch enquanto não a abrires, e o que leu fica no teu navegador: ao recarregar, só volta a pedir o que envelheceu."
   },
   "guideVieTitre": {
     "message": "Privacidade, em claro"
@@ -624,6 +630,18 @@
   },
   "guideDemoEnCours": {
     "message": "em andamento"
+  },
+  "guideDemoAgendaSans": {
+    "message": "Café e perguntas"
+  },
+  "guideDemoAgendaSub": {
+    "message": "A construir a base submarina"
+  },
+  "guideDemoAgendaDirect": {
+    "message": "Competitivas até Imortal"
+  },
+  "guideDemoAgendaPrevu": {
+    "message": "Elden Ring às cegas, episódio 12"
   },
   "grpOptions": {
     "message": "Definições"
@@ -908,7 +926,7 @@
     "message": "A engrenagem e este painel"
   },
   "guideRoueTexte": {
-    "message": "Uma roda dentada ⚙️ está à direita do título da barra lateral. Um clique abre este painel por cima do Twitch, sem sair da página.\n• O ícone da extensão, na barra de ferramentas do navegador, abre o mesmo painel.\n• Para o fechar: a tecla Esc, ou um clique fora."
+    "message": "Uma roda dentada ⚙️ está à direita do título da barra lateral. Um clique abre este painel por cima do Twitch, sem sair da página.\n• O ícone da extensão, na barra de ferramentas do navegador, abre o mesmo painel.\n• Para o fechar: a tecla Esc, ou um clique fora.\n• Os seus seis grupos, à esquerda, são apresentados no capítulo $1."
   },
   "guideReglagesTitre": {
     "message": "Tudo se ajusta, tudo se desliga"
