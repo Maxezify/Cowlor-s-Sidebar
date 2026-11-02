@@ -579,25 +579,25 @@
     "description": "Bouton : referme la vue du rapport"
   },
   "guideIntro": {
-    "message": "This guide tells you what the extension adds to Twitch and how to use it, in the order you will meet it. Everything works as soon as you reload a Twitch page, with nothing to configure — and everything can be adjusted, or switched off, from “Settings” just below."
+    "message": "This guide tells you what the extension adds to Twitch and how to use it. Read it in order: each chapter builds only on the ones before it, and whatever a chapter mentions without explaining carries the number of the chapter that does. Everything works as soon as you reload a Twitch page, with nothing to configure — and everything can be adjusted, or switched off, from “Settings” just below."
   },
   "guideHoverTitre": {
     "message": "The hover preview"
   },
   "guideHoverTexte": {
-    "message": "Leave the pointer on a channel for a moment: a window opens beside it, with the live video, the full title, badges and the timeline of what happened earlier.\n• It works everywhere in the sidebar: followed channels, recommendations, Top Channels.\n• No ads in the preview. The stream you open afterwards is left untouched.\n• Too heavy? In “Settings”: its width, the stream quality, or the preview without video."
+    "message": "Leave the pointer on a card for a moment: a window opens beside it — the preview —, with the live video and its full title.\n• Under the title, badges: short labels that give the stream's context at a glance. The next chapters present them along with what they flag; chapter $1 gathers them all.\n• At the very bottom, the timeline of what happened before you arrived: that is the next chapter.\n• It works on every channel in the sidebar, your followed channels and recommendations alike.\n• No ads in the preview. The stream you open afterwards is left untouched.\n• Too heavy? In “Settings”: its width, the stream quality, or the preview without video."
   },
   "guideDureeTitre": {
     "message": "How long they have been live"
   },
   "guideDureeTexte": {
-    "message": "Under the viewer count, every card shows how long the stream has been live, kept up to date without opening the channel.\n• A stream that stops shows “Ended” while its card leaves the list.\n• Three formats to choose from in “Settings”: 4h19, 4:19 or 259 min."
+    "message": "Every live channel takes up a card in the sidebar: its avatar, its username, its category, and on the right the viewer count. Under that count, the extension adds how long the stream has been live, kept up to date without opening the channel.\n• A stream that stops shows “Ended” while its card leaves the list.\n• Three formats to choose from in “Settings”: 4h19, 4:19 or 259 min."
   },
   "guideBadgesTitre": {
-    "message": "The preview badges"
+    "message": "All the preview badges"
   },
   "guideBadgesTexte": {
-    "message": "In the preview, badges give the context at a glance. Here they all are; each colour has a single meaning.\n• Red: Twitch's content labels — mature games, violence, gambling… You know before you watch.\n• Lime green: news — the channel just switched category, or came back after a drop. It fades after ten minutes.\n• Blue, purple, grey: the co-stream — who hosts it, who else is live, who is in it without streaming.\n• Gold: your subscription, and what comes next; pale gold: a subscription that has ended.\n• Green, orange, pink: the stream's sponsor, a Hype Train under way, a discounted subscription.\n• No colour: a note from Twitch, carried over as is.\n• Rainbow: a subathon, and its day."
+    "message": "Here are all the badges the preview can show; each colour has a single meaning. You have already met the drop, the gold, the rainbow and the co-stream ones.\n• Red: Twitch's content labels — mature games, violence, gambling… You know before you watch.\n• Lime green: news — the channel just switched category, or came back after a drop. It fades after ten minutes.\n• Blue, purple, grey: the co-stream — who hosts it, who else is live, who is in it without streaming.\n• Gold: your subscription, and what comes next; pale gold: a subscription that has ended.\n• Green, orange, pink: the stream's sponsor, a Hype Train under way, a discounted subscription.\n• No colour: a note from Twitch, carried over as is.\n• Rainbow: a subathon, and its day."
   },
   "guideFriseTitre": {
     "message": "Earlier on this stream"
@@ -609,31 +609,31 @@
     "message": "Subathons"
   },
   "guideSubathonTexte": {
-    "message": "A subathon is that stream subscriptions keep extending without end — days, sometimes weeks.\n• A pill to the right of the username says which day the event is on; the preview badge repeats it."
+    "message": "A subathon is that stream subscriptions keep extending without end — days, sometimes weeks.\n• A pill to the right of the username says which day the event is on; in the preview, a rainbow-coloured badge repeats it."
   },
   "guideCostreamTitre": {
     "message": "Co-streams"
   },
   "guideCostreamTexte": {
-    "message": "A steady coloured bar on the left edge of the card: this channel is streaming with others, one colour per co-stream. Several members in a row in the list share a single bar.\n• On hover, the blue badge says who is hosting — “Host Stream”, or “Co-stream of …”; the purple one names members live outside your list; the grey one, those who are part of it without streaming.\n• A sort groups them at the top of the list (chapter $1).\n• The small “▶” cursor on the bar opens their streams together, in the multistream room — next chapter."
+    "message": "A steady coloured bar on the left edge of the card: this channel is streaming with others, in a co-stream — one colour per co-stream. Several members in a row in the list share a single bar.\n• In the preview, the blue badge says who is hosting — “Host Stream”, or “Co-stream of …”; the purple one names members live outside your list; the grey one, those who are part of it without streaming.\n• A sort groups them at the top of the list (chapter $1).\n• The small “▶” cursor on the bar opens their streams together, in the multistream room: that is the next chapter."
   },
   "guideSalleTitre": {
     "message": "The multistream room"
   },
   "guideSalleTexte": {
-    "message": "The “▶” cursor on a co-stream's bar opens its streams side by side, on the page.\n• Hover it: it says what it opens — “Watch all 3”. Faces at its end? Members you do not follow: move onto them to add them. Shift+click opens the whole co-stream straight away.\n• Click a tile to give it the sound — keys 1 to 6 work too — and the chat follows the sound. Without Shared Chat, tabs above the chat show another one without changing the sound.\n• Six streams at most on screen: the others wait below, and a click brings them in.\n• The streams line themselves up on their common sound, in about a minute of listening; with no common sound, nothing moves. “Automatic alignment” can be switched off in “Settings”.\n• The room earns no channel points, and Twitch's ads play there as anywhere else.\n• To close it: Escape, or a click on the cursor, now a “■”."
+    "message": "The “▶” cursor on a co-stream's bar opens its streams side by side, on the page — each in its own tile.\n• Hover it: it says what it opens — “Watch all 3”. Faces at its end? Members you do not follow: move onto them to add them. Shift+click opens the whole co-stream straight away.\n• Click a tile to give it the sound — keys 1 to 6 work too — and the chat follows the sound. Without Shared Chat, tabs above the chat show another one without changing the sound.\n• Six streams at most on screen: the others wait below, and a click brings them in.\n• The streams line themselves up on their common sound, in about a minute of listening; with no common sound, nothing moves. “Automatic alignment” can be switched off in “Settings”.\n• At the top of the chat, the room says where the alignment stands, tile by tile: “listening 2/6” — the sound calculations that count, out of those needed —, “behind by 0.30 s, to be confirmed”, “corrected, checking”, then “aligned”. The dot is green when everything is aligned, amber while the alignment works or waits, red when a tile cannot be corrected, grey when paused or off; the tooltip gives the details.\n• The room earns no channel points, and Twitch's ads play there as anywhere else.\n• To close it: Escape, or a click on the cursor, now a “■”."
   },
   "guideDebutTitre": {
     "message": "Starts, and comebacks"
   },
   "guideDebutTexte": {
-    "message": "A red bar beating on the left edge of a card: that stream started less than ten minutes ago. It goes out on its own.\n• The streamer drops and comes back within ten minutes? The bar does not light up again, and the uptime keeps counting the whole stream, outage included.\n• Their preview then says “Back after a drop” for ten minutes, and its timeline shows where the stream cut out."
+    "message": "A red bar beating on the left edge of a card: that stream started less than ten minutes ago. It goes out on its own.\n• The streamer drops and comes back within ten minutes? The bar does not light up again, and the uptime keeps counting the whole stream, outage included.\n• Their preview then carries the “Back after a drop” badge for ten minutes, and its timeline shows where the stream cut out."
   },
   "guideAboTitre": {
     "message": "Your subscriptions, in gold"
   },
   "guideAboTexte": {
-    "message": "The channels you subscribe to are in gold in the list.\n• Nothing to do: while you are signed in to Twitch, the extension reads your subscriptions page every six hours by default. A brand-new subscription? Open the channel, or click “Sweep now” in “Your data”, under “Subscriptions”.\n• On hover, the badge says how many months you have supported the channel, then what comes next: “Next anniversary” if it renews, “Expires in …” if it is about to end — a gifted sub, or one you no longer renew.\n• Once the subscription has ended, the gold goes out and the badge says “Former sub”.\n• Paid, gifted or mobile: all three count."
+    "message": "The channels you subscribe to are in gold in the list.\n• Nothing to do: while you are signed in to Twitch, the extension reads your subscriptions page every six hours by default. A brand-new subscription? Open the channel, or click “Sweep now”: “Your data” group of this panel, under “Subscriptions”.\n• In the preview, the gold badge says how many months you have supported the channel, then what comes next: “Next anniversary” if it renews, “Expires in …” if it is about to end — a gifted sub, or one you no longer renew.\n• Once the subscription has ended, the gold goes out and the badge says “Former sub”.\n• Paid, gifted or mobile: all three count."
   },
   "guideTriTitre": {
     "message": "Sorting and filtering"
@@ -651,19 +651,25 @@
     "message": "Quicker than Twitch, and tidier"
   },
   "guideViteTexte": {
-    "message": "Twitch takes two to four minutes to show a channel that goes live, and keeps one that stops for five to ten. The extension refreshes the sidebar itself, every thirty seconds: viewers, category, uptime, arrivals and departures.\n• Every followed channel that is live is unfolded for you, and offline ones never show: no more “Show more” to click.\n• Hype trains, discount banners, sponsor strips and empty sections leave the sidebar; what they said comes back as a badge in the preview (chapter $1).\n• Your watch streak and Twitch's stories row are tucked into the filter block, at the top of the list. Prefer them as Twitch shows them, or hidden? That is in “Settings”."
+    "message": "Twitch takes two to four minutes to show a channel that goes live, and keeps one that stops for five to ten. The extension refreshes the sidebar itself, every thirty seconds: viewers, category, uptime, arrivals and departures.\n• Every followed channel that is live is unfolded for you, and offline ones never show: no more “Show more” to click.\n• Hype Trains, discount banners, sponsor strips and empty sections leave the sidebar; what they said can be read in the preview badges (chapter $1).\n• Your watch streak and Twitch's stories row are tucked in with the sorts and filters, at the top of the list. Prefer them as Twitch shows them, or hidden? That is in “Settings”."
   },
   "guidePanneauTitre": {
     "message": "This panel"
   },
   "guidePanneauTexte": {
-    "message": "Six groups, on the left:\n• “Get started” — this guide, readable even with no Twitch tab open.\n• “Settings” — everything the extension lets you choose.\n• “Schedule” — your followed channels' streams, past, live and scheduled, with their replays; that is the next chapter.\n• “Your data” — what it has remembered: the channels you visit most, at what times, your subscriptions, the channels it knows.\n• “Diagnostics” — only useful when something goes wrong; it can be hidden in the settings.\n• “Top Channels” — the state of the ranking and its categories.\nEvery section other than this guide reads the frontmost Twitch tab; without one, they say so.\n• Something wrong? “Export a report” writes a text to read before sending it: counts, no lists — neither your channels nor your subscriptions.\n• “Erase history” erases everything the extension has remembered, for good; your settings stay."
+    "message": "Six groups, on the left:\n• “Get started” — this guide, readable even with no Twitch tab open.\n• “Settings” — everything the extension lets you choose; that is the next chapter.\n• “Schedule” — your followed channels' streams, past, live and scheduled, with their replays; chapters $1 and $2.\n• “Your data” — what it has remembered: the channels you visit most, at what times, your subscriptions, the channels it knows.\n• “Diagnostics” — only useful when something goes wrong; it can be hidden in the settings.\n• “Top Channels” — the state of the ranking and its categories.\nEvery section other than this guide reads the frontmost Twitch tab; without one, they say so.\n• Something wrong? “Export a report” writes a text to read before sending it: counts, no lists — neither your channels nor your subscriptions.\n• “Erase history” erases everything the extension has remembered, for good; your settings stay."
   },
   "guideAgendaTitre": {
-    "message": "Your channels' schedule"
+    "message": "The schedule: the week"
   },
   "guideAgendaTexte": {
-    "message": "The “Schedule” group does for all your followed channels at once what a channel's schedule page does on Twitch for just one.\n• “The week”: day by day, past streams with their replay — one click opens it in a new tab —, live ones, and the ones channels have scheduled. It opens on today, with the past days above; a stream that runs past midnight stays on the day it started.\n• The arrows change week, up to eight back and two ahead; “Today” brings you back to the day itself, and the menu keeps a single channel.\n• “Offline”: every channel that is not live — first those that have scheduled their next stream, the soonest on top, then the others, the most recently gone first. A scheduled channel that has not streamed for three months is left out, and so is its slot in the week: that is the schedule Twitch keeps for a channel that no longer streams. When it streamed, its replay one click away, and its next stream. “Their week” opens the week of its last stream. A channel Twitch no longer serves — account suspended, renamed or closed — does not vanish from it: it stays at the bottom, “Unavailable on Twitch”.\n• A padlock marks, before you even click, a replay reserved for the channel's subscribers when the extension doesn't know you're subscribed; subscribed, nothing shows: it is open to you.\nThe channels are all those you follow. Since Twitch's sidebar shows only a hundred, the extension rereads the full list on your Following page, in an invisible frame, every twelve hours. A replay exists only if the channel keeps its broadcasts, and for as long as Twitch keeps them; a scheduled stream, only if it keeps its schedule on Twitch. “No replay” only gets a day if the extension saw that stream live: Twitch only gives its end. The schedule asks nothing of Twitch until you open it, and what it has read stays in your browser: a reload only asks again for what has aged."
+    "message": "The “Schedule” group of this panel does for all your followed channels at once what a channel's schedule page does on Twitch for just one. Its first view, “The week”, sorts three kinds of streams day by day.\n• Past streams, with the thumbnail and length of their replay: one click opens it in a new tab.\n• Live streams, marked “Live”, with their viewers.\n• Scheduled streams, marked “Scheduled”, in a dashed frame.\nThe example above also shows:\n• The view opens on today, with the past days above. A stream that runs past midnight stays on the day it started: Nyxaria's, which began the evening before yesterday, stays there.\n• A padlock marks a replay reserved for the channel's subscribers, when the extension doesn't know you're subscribed; subscribed, nothing shows: it is open to you.\n• “No replay”: a past stream of which no recording remains. It only gets a place in the week if the extension saw it live: Twitch only gives its end time.\nThe arrows change week, up to eight back and two ahead; “Today” brings you back to the day itself. The menu, on the right, keeps a single channel. A replay exists only if the channel keeps its broadcasts, and for as long as Twitch keeps them; a scheduled stream, only if it keeps its schedule on Twitch."
+  },
+  "guideHorsLigneTitre": {
+    "message": "The schedule: offline"
+  },
+  "guideHorsLigneTexte": {
+    "message": "The schedule's second view, “Offline”, gives a row to every followed channel that is not live — hence no Korbek, live in the previous example. Three groups, separated by a rule:\n• First, the channels that have scheduled their next stream, the soonest on top.\n• Then the others, the most recently gone first.\n• At the bottom, those Twitch no longer serves — account suspended, renamed or closed —, marked “Unavailable on Twitch”: they do not vanish from the list.\nEach row says when the channel last streamed, and its next stream if one is scheduled.\n• “Replay” opens the replay of its last stream in a new tab; the subscribers' padlock shows there too. No “Replay” when that stream has no replay, like Aeltris's.\n• “Their week” opens “The week” on the week of that last stream, for that channel alone.\n• A scheduled channel that has not streamed for three months is left out, and so is its slot in the week: that is the schedule Twitch keeps for a channel that no longer streams.\nBoth views cover all your followed channels: since Twitch's sidebar shows only a hundred, the extension rereads the full list on your Following page, in an invisible frame, every twelve hours. The schedule asks nothing of Twitch until you open it, and what it has read stays in your browser: a reload only asks again for what has aged."
   },
   "guideVieTitre": {
     "message": "Privacy, in plain words"
@@ -740,6 +746,18 @@
   "guideDemoEnCours": {
     "message": "ongoing",
     "description": "Maquette : segment de frise en cours"
+  },
+  "guideDemoAgendaSans": {
+    "message": "Coffee and questions"
+  },
+  "guideDemoAgendaSub": {
+    "message": "Building the underwater base"
+  },
+  "guideDemoAgendaDirect": {
+    "message": "Ranked up to Immortal"
+  },
+  "guideDemoAgendaPrevu": {
+    "message": "Elden Ring blind run, episode 12"
   },
   "grpOptions": {
     "message": "Settings"
@@ -1024,7 +1042,7 @@
     "message": "The gear, and this panel"
   },
   "guideRoueTexte": {
-    "message": "A ⚙️ gear sits to the right of the sidebar title. One click opens this panel on top of Twitch, without leaving the page.\n• The extension icon, in the browser toolbar, opens the same panel.\n• To close it: the Escape key, or a click outside."
+    "message": "A ⚙️ gear sits to the right of the sidebar title. One click opens this panel on top of Twitch, without leaving the page.\n• The extension icon, in the browser toolbar, opens the same panel.\n• To close it: the Escape key, or a click outside.\n• Its six groups, on the left, are presented in chapter $1."
   },
   "guideReglagesTitre": {
     "message": "Everything adjusts, everything switches off"
