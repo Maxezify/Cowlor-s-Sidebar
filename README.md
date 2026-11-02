@@ -343,13 +343,13 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1795 Ko | 731 Ko | 4 327 → **2** |
+| `content.js` | 1846 Ko | 773 Ko | 4 343 → **2** |
 | `cadres.js` | 66 Ko | 30 Ko | 158 → **0** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
-| `panneau.js` | 150 Ko | 76 Ko | 209 → **0** |
+| `panneau.js` | 159 Ko | 81 Ko | 220 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 26 → **0** |
 | `background.js` | 10 Ko | 2 Ko | 22 → **0** |
-| **les six** | **2161 Ko** | **943 Ko** | **−56 %** |
+| **les six** | **2222 Ko** | **990 Ko** | **−55 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
@@ -2627,6 +2627,235 @@ Un sous-test qui modélisait un cas impossible — un direct qui rajeunit sans
 changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'il
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
+
+## Un mode d'emploi qui se lit dans l'ordre, l'agenda en images, et l'état du calage dans la salle (v4.25.0.11)
+
+Deux demandes. La première : « Dans "Plus rapide que Twitch, et plus propre",
+tu parles de "Hype trains, bandeaux de réduction" et "badge dans l'aperçu
+(chapitre 10)". Mais l'utilisateur ne l'a pas vu avant dans le mode d'emploi.
+[…] Il faudrait que tu apportes plus de logique dans les chapitres, il faut
+pas que l'utilisateur puisse ne pas comprendre au niveau de chapitre où il se
+situe. Également je souhaite que dans "L'agenda de vos chaînes", tu montres
+des exemples visuels. » La seconde, avec une capture de l'en-tête d'une
+salle : « à droite de "Pas de points de chaîne dans la salle", mets l'état du
+calage en direct, soit précis pour bien qu'on comprenne où ça en est. »
+Publiée sur `claude/chrome-multi` seulement, pour le moment.
+
+### Le mode d'emploi : chaque chapitre ne s'appuie que sur ceux d'avant
+
+L'ordre était celui de la rencontre : ce qui saute aux yeux, puis ce qu'on
+déclenche, puis ce qu'on règle. Chaque chapitre, lu seul, était juste ; leur
+suite ne l'était pas. « Plus rapide que Twitch » arrivait deuxième et parlait
+de Hype Trains et du badge de l'aperçu ; « Les débuts » arrivait quatrième et
+parlait d'un aperçu, d'un badge et d'une frise. L'aperçu n'était présenté
+qu'au neuvième chapitre, ses badges au dixième, la frise au onzième.
+
+L'ordre est maintenant celui des dépendances, et l'introduction le promet :
+« chaque chapitre ne s'appuie que sur ceux qui le précèdent, et ce qu'un
+chapitre annonce sans l'expliquer porte le numéro de celui qui l'explique ».
+
+| # | chapitre | ce qu'il suppose |
+| --- | --- | --- |
+| 1 | La roue, et ce panneau | rien (ses six groupes : chapitre 14) |
+| 2 | Depuis combien de temps il diffuse | définit la **carte** |
+| 3 | L'aperçu au survol | la carte ; définit l'**aperçu** et ses **badges** (tous réunis : chapitre 10) |
+| 4 | Précédemment sur ce live | l'aperçu (la frise est annoncée au 3 comme « chapitre suivant ») |
+| 5 | Les débuts, et les reprises | la carte, la durée, l'aperçu, son badge, la frise |
+| 6 | Vos abonnements, en or | l'aperçu et ses badges |
+| 7 | Les subathons | idem |
+| 8 | Les co-streams | idem (le tri qui les regroupe : chapitre 11 ; la salle : chapitre suivant) |
+| 9 | La salle multistream | les co-streams, qui l'ouvrent |
+| 10 | Tous les badges de l'aperçu | la reprise, l'or, l'arc-en-ciel et le co-stream déjà vus |
+| 11 | Trier et filtrer | l'or, les co-streams, la durée |
+| 12 | Plus rapide que Twitch, et plus propre | les badges (chapitre 10, en arrière) et les tris |
+| 13 | Top Chaînes | l'aperçu, les tris |
+| 14 | Ce panneau | (Réglages : chapitre suivant ; l'agenda : chapitres 16 et 17) |
+| 15 | Tout se règle, et tout se coupe | tout ce qui précède |
+| 16 | L'agenda : la semaine | ce panneau |
+| 17 | L'agenda : hors ligne | la semaine |
+| 18 | Vie privée, en clair | l'agenda, les abonnements |
+
+Les textes ont suivi l'ordre. « Depuis combien de temps il diffuse » dit ce
+qu'est une carte. « L'aperçu au survol » dit ce qu'est un badge et annonce la
+frise au chapitre suivant. Il ne parle plus de Top Chaînes, qui vient au 13.
+« Les badges de l'aperçu » devient « Tous les badges de l'aperçu », un
+récapitulatif qui rappelle ceux qu'on a déjà croisés. « Plus rapide que
+Twitch » vient après lui : ce que la barre retire « se lit dans les badges de
+l'aperçu (chapitre 10) », un rappel et non plus une annonce. Les numéros se
+calculent, comme celui des co-streams depuis la 4.24.0.37 ; un chapitre peut
+désormais en porter deux (« chapitres 16 et 17 »). Les douze langues suivent
+le français chapitre pour chapitre, avec leurs propres libellés. Les douze
+fiches du Store annoncent désormais dix-huit chapitres.
+
+### L'agenda, en deux chapitres et en images
+
+Le chapitre de l'agenda était un paragraphe de dix-sept lignes, sans une
+image, quand tous ceux d'avant en ont une. Il devient deux chapitres, un par
+vue, chacun avec sa maquette :
+
+- **la semaine** : la barre (« Aujourd'hui », les deux flèches, le menu des
+  chaînes) et trois jours. Une rediffusion qui a passé minuit, rangée au jour
+  où elle a commencé ; un direct sans rediffusion ; une rediffusion réservée
+  aux abonnés, avec son cadenas ; un direct en cours, ses spectateurs ; un
+  direct programmé, en pointillé. Aujourd'hui porte sa pastille ;
+- **hors ligne** : les mêmes chaînes, vues d'ailleurs. La programmée d'abord,
+  puis les parties, la plus récente en tête, puis l'indisponible ; un filet
+  entre les groupes ; « Revoir » là seulement où le dernier direct a sa
+  rediffusion, le cadenas avec lui ; « Sa semaine » sur chaque ligne. Korbek,
+  en direct dans la semaine, n'y est pas.
+
+Les maquettes sont dessinées par les fonctions mêmes de la vue
+(`entreeAgenda`, `ligneHorsLigne`), en mode maquette : mêmes classes, même
+feuille, donc même aspect. Ce qui change dans la vue changera ici. Le mode
+maquette ne retire que ce qui ferait agir : pas de lien, pas de bouton (un
+dessin de bouton), pas d'infobulle. Un vrai « Sa semaine » dans une image
+mènerait la vue à la semaine d'une chaîne inventée. Les dates se calculent
+depuis aujourd'hui ; les chaînes sont inventées.
+
+**Trouvé en vérifiant les douze langues** : dans l'agenda russe, la marque
+« Запланирован » (un seul mot) dépassait de quatre pixels la vignette, qui la
+coupait. C'était vrai de la vraie vue aussi. La marque passe de six à trois
+pixels de marge ; un mot plus long encore se couperait plutôt que de sortir.
+
+### L'état du calage, à droite des points de chaîne
+
+Le rapport disait déjà tout, en détail et en français de diagnostic. L'en-tête
+le dit maintenant dans la langue de la page, à chaque pas de la salle (une
+seconde) : un point de couleur et une phrase, juste après « Pas de points de
+chaîne dans la salle ».
+
+| ce que dit l'en-tête | point | quand |
+| --- | --- | --- |
+| Calage sur xray · quebec à l'écoute 2/3 | ambre | le son de la paire est en cours de mesure : 2 calculs qui comptent sur les 3 qu'il faut |
+| … quebec en retard de 3,87 s, à confirmer | ambre | un premier verdict ; il en faut un second d'accord |
+| … quebec corrigée, vérification 1/3 | ambre | la correction est faite, le son la vérifie |
+| Calage : tout est calé sur xray | vert | toutes les tuiles sont calées |
+| … quebec : une seule voix, peut-être un écho — en attente d'une seconde | ambre | (de même « deux décalages possibles », « pas encore de voix commune nette ») |
+| … quebec laissée là : 3 corrections en 10 min | rouge | la borne des corrections |
+| … quebec en avance de 0,45 s : son lecteur ne recule pas | rouge | (de même : pas assez de tampon, pas assez de marge, trop loin) |
+| … quebec en avance de 0,45 s : le repère n'a pas assez de tampon pour la rejoindre | rouge | c'est le repère qui devait bouger, et il ne le peut pas |
+| … quebec en pub · … a glissé de 1,20 s : elle reprend sa place · … écart vérifié, 12/20 s | ambre | une pub, une retombée, un grand écart en observation |
+| Calage en pause : xray, qui a le son, est en pub | gris | (de même : « une seule tuile à l'écran ») |
+| Calage : quebec a le son, et devient le repère dans 12 s | gris | le son est passé à une autre tuile ; elle devient le repère après quinze secondes |
+| Calage non démarré · coupé dans les réglages · arrêté · indisponible | gris | |
+
+L'infobulle détaille : le repère, chaque tuile, ce que veut dire « x/3 » (et
+le rythme des essais, un toutes les cinq secondes), le nombre de corrections.
+Coupée par la largeur, la phrase reste entière dans l'infobulle ; la note des
+points de chaîne cède la place la première. Dans la pastille d'une salle sans
+chat, l'en-tête se tait, comme la note.
+
+**Rien n'y est deviné.** Chaque mot vient de l'état que le calage tient
+lui-même : l'état de chaque tuile, le dernier verdict de sa paire et sa
+cause, ce qui l'empêche de bouger, ses pubs, sa place, son grand écart. Pour
+cela, le moteur garde trois choses de plus, sans rien changer à ce qu'il
+décide : l'heure de chaque verdict, la cause d'un refus (pas assez de
+calculs, une seule voix, deux décalages, un écho), et ce qui empêche une
+tuile de bouger, avec son heure. Un verdict ou un blocage ne compte que s'il
+date d'après le dernier changement de la paire (un déplacement, un
+rechargement, une pub) : la mesure est alors rouverte, et ce qu'elle disait
+avant ne vaut plus.
+
+**Deux défauts trouvés en écrivant le banc, corrigés avant publication :**
+
+- **le repère qui ne peut pas bouger.** Au point de rencontre, c'est parfois
+  le repère qui doit reculer ou avancer, et il ne le peut pas : son lecteur
+  est en faible latence, ou son tampon est trop court. Le blocage est posé
+  sur lui, et lui n'a pas de ligne dans l'en-tête : l'autre tuile restait
+  « à confirmer », en ambre, alors que la décision était prise et que rien ne
+  bougerait. Elle dit maintenant pourquoi, en rouge ;
+- **le réglage rallumé.** Le calage arrêté par le réglage ne repart seul que
+  dans une salle ouverte par la barre. Ouverte autrement, il restait arrêté
+  et l'en-tête disait « coupé dans les réglages », réglage rallumé. Il dit
+  « Calage arrêté ».
+
+Le chapitre de la salle, dans le mode d'emploi, présente l'en-tête et cite
+quatre de ses états tels que la salle les écrit, dans chaque langue.
+
+### Le banc
+
+- **96** : dix-huit chapitres. Chaque section porte sa clé, liée au titre
+  affiché. Les renvois sont relevés sur la page et confrontés à une table
+  écrite dans le banc, avec leur sens : en avant pour annoncer, en arrière
+  pour rappeler (celui de la vitesse). Leur numéro s'affiche, et dans les
+  douze fiches chaque renvoi est un « $n », jamais un chiffre recopié.
+  **L'ordre logique a sa table** : dix-huit notions (la carte, l'aperçu, les
+  badges, la frise, la reprise, l'or, le subathon, le co-stream, la salle,
+  le calage, les tris, le Hype Train, l'abonnement à prix réduit, Top
+  Chaînes, l'agenda…), chacune avec le motif qui la nomme dans la fiche
+  française et le chapitre qui l'explique. Un chapitre qui la nomme avant
+  doit y renvoyer par son numéro, ou dire « chapitre suivant » s'il le
+  précède immédiatement ; le chapitre qui l'explique doit la nommer. Chaque
+  « chapitre suivant » précède bien ce qu'il annonce. Les états du calage
+  que cite le chapitre de la salle sont rendus par les fonctions mêmes de
+  `content.js`, dans la langue que chaque fiche sert, nombre compris (0,30 ou
+  0.30). Les deux maquettes de l'agenda : pleine largeur, rien à cliquer ni à
+  survoler, la barre comme la vraie, les quatre espèces d'entrées, la
+  pastille sur aujourd'hui seulement, le direct passé minuit à son jour de
+  départ, les groupes et les filets de « Hors ligne ».
+- **182** : l'en-tête est relevé à chaque phrase qu'il écrit, dans la tâche
+  même où il l'écrit, avec l'état que le calage tient alors. Non démarré,
+  « à l'écoute x/3 », le verdict à confirmer avant la première correction,
+  « corrigée » tant que la tuile est vérifiée, « tout est calé » quand et
+  seulement quand elle est calée ; jamais rouge. L'infobulle, ligne par
+  ligne. Après la chute : il quitte « tout est calé » et y revient.
+- **183** : la tuile en faible latence face au repère sans tampon : rouge, et
+  la phrase dit que c'est le repère qui ne peut pas la rejoindre. Le repère
+  rechargé, la mesure rouverte : retour à l'écoute, puis « à confirmer » en
+  ambre au premier verdict, et rouge de nouveau quand la décision est reprise.
+- **184** : l'écho, le stream sans son commun et la source calée, chacun sa
+  phrase, en ambre ; la tuile laissée là, en rouge.
+- **214** (nouveau) : la place (dans le haut de la colonne du chat, juste
+  après la note, sur sa ligne, le point muet pour la synthèse vocale) et
+  chaque état où le calage ne travaille pas : non démarré, coupé puis
+  rallumé, lancé, une pub sur le repère puis sur l'autre tuile, arrêté,
+  coupé puis rallumé sans relance, le son passé à l'autre tuile, sans
+  capture du son, sans chat, une tuile seule.
+- **198** : l'état de calage qu'il fabrique pour la règle des places porte
+  désormais `bloque`, comme le vrai ; sans lui, la règle, qui l'efface après
+  chaque geste, levait une erreur — le banc complet l'a dit au premier tour.
+
+**MUTANTS**
+
+| mutant | ce qui tombe |
+| --- | --- |
+| la vitesse remise en tête | 96 : le renvoi n'est plus en arrière ; des notions nommées avant leur chapitre |
+| les débuts avant l'aperçu | 96 : l'aperçu nommé avant d'être expliqué, et le reste |
+| les deux vues de l'agenda interverties | 96 : « chapitre suivant », l'agenda nommé avant |
+| un renvoi recopié en chiffres (allemand) | 96 : pas de « $n » |
+| « chapitre suivant » retiré de l'aperçu (français) | 96 : la frise nommée avant son chapitre |
+| la clé de section fausse | 96 : clé et titre, et tout ce qui la lit |
+| la semaine dessinée en vraie vue | 96 : des infobulles dans la maquette |
+| « Hors ligne » dessiné en vraie vue | 96 : de vrais boutons dans la maquette |
+| le cadenas avec son infobulle dans la maquette | 96 : les deux maquettes |
+| le direct passé minuit rangé à sa fin | 96 : le jour de départ |
+| pas de filet entre les groupes | 96 : « Hors ligne » |
+| la pastille du jour sur tous les jours | 96 : aujourd'hui seul |
+| l'état « calée » réécrit dans la salle | 96 : la citation du chapitre de la salle |
+| l'en-tête jamais remis à jour au pas | 214 : sept états jamais affichés |
+| l'état posé avant la note | 214 : sa place, avec et sans chat |
+| « tout est calé » sur une tuile seule | 214 : la tuile seule |
+| la pub du repère ignorée | 214 : la pub sur le repère |
+| le réglage rallumé dit « coupé » | 214 : « arrêté » après le réglage rallumé |
+| l'en-tête affiché dans la pastille | 214 : sans chat |
+| le son passé à une autre tuile ignoré | 214 : « devient le repère dans N s » |
+| « indisponible » dit « arrêté » | 214 : sans capture du son |
+| le blocage du repère ignoré | 183 : « à confirmer » en ambre au lieu du rouge |
+| l'heure du blocage du repère ignorée | 183 : rouge dès le premier verdict après le rechargement |
+| « laissée là » en ambre | 184 : la tuile laissée là |
+| la vérification dite calée | 182 : l'en-tête contre l'état du calage, avant et après la chute |
+| le verdict jamais affiché | 182 : « à confirmer » avant la correction |
+
+**Vingt-six mutants nommés, tous pris.** Chacun a été posé seul, et le banc
+relancé sur le scénario qui garde ce qu'il casse. **Un mutant a survécu au
+premier tour** : l'heure du blocage du repère ignorée. Le 183 rechargeait le
+repère et attendait le retour à l'écoute, qui arrive de toute façon : juste
+après un rechargement, la tuile n'a pas encore de verdict. L'heure du blocage
+ne compte qu'au premier verdict qui suit, avant que la décision soit reprise.
+Le 183 attend désormais ce verdict « à confirmer », en ambre, puis le rouge de
+la décision reprise ; le mutant tombe.
+
+Le banc complet : 2043 assertions dans 213 scénarios, toutes vertes.
 
 ## Des messages adressés, trois bizarreries corrigées, un démarrage et des balayages allégés (v4.25.0.10)
 
@@ -22468,7 +22697,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | les six fichiers JavaScript livrés — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le manifeste Firefox : les invariants du dépôt, **puis** l'`addons-linter` de Mozilla — celui qu'AMO applique à la soumission |
-| `npm test` | le harnais Playwright : 212 scénarios, 2020 assertions |
+| `npm test` | le harnais Playwright : 213 scénarios, 2043 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
