@@ -471,10 +471,85 @@ const carteEtBadge = (carte, mod, cle) => {
   return hote;
 };
 
-const GUIDE = [
-  { titre: 'guideRoueTitre',     texte: 'guideRoueTexte' },
+const HEURE_MS = 3_600_000;
+const DIRECT_DEMO_MS = 107 * 60_000;
+const jourDemo = (maintenant, j, h, m) => {
+  const d = new Date(minuitDe(maintenant));
+  d.setDate(d.getDate() + j);
+  d.setHours(h, m, 0, 0);
+  return d.getTime();
+};
+const prochainDemo = (maintenant) => {
+  const d = new Date(maintenant + 2 * HEURE_MS);
+  d.setMinutes(0, 0, 0);
+  return d.getTime() + HEURE_MS;
+};
+const demoEntrees = (maintenant) => {
+  const j = (n, h, m = 0) => jourDemo(maintenant, n, h, m);
+  const prochain = prochainDemo(maintenant);
+  return [
+    { type: 'rediffusion', nom: 'Nyxaria', libelle: 'Elden Ring', titre: T('guideDemoTitre'),
+      debut: j(-2, 20, 2), fin: j(-1, 0, 14), duree: 4 * 3600 + 12 * 60 + 9, vues: 12400, id: '1' },
+    { type: 'sansRediffusion', nom: 'Aeltris', libelle: 'Elden Ring', titre: T('guideDemoAgendaSans'),
+      debut: j(-1, 9, 30), fin: j(-1, 11, 5) },
+    { type: 'rediffusion', nom: 'Velmoria', libelle: 'Minecraft', titre: T('guideDemoAgendaSub'),
+      debut: j(-1, 14, 0), fin: j(-1, 18, 31), duree: 4 * 3600 + 31 * 60, vues: 3100, id: '2',
+      restreinte: true, abonne: false },
+    { type: 'direct', nom: 'Korbek', libelle: 'Valorant', titre: T('guideDemoAgendaDirect'),
+      debut: Math.floor((maintenant - DIRECT_DEMO_MS) / 60_000) * 60_000, spectateurs: 962 },
+    { type: 'prevu', nom: 'Aeltris', libelle: 'Elden Ring', titre: T('guideDemoAgendaPrevu'),
+      debut: prochain, fin: prochain + 3 * HEURE_MS },
+  ];
+};
+const dessinBouton = (texte, classe = '') => elt('span', 'bouton bouton--fantome' + classe, texte);
 
-  { titre: 'guideViteTitre',     texte: 'guideViteTexte', renvoi: 'guideBadgesTitre' },
+const demoSemaine = (maintenant = Date.now()) => {
+  const hote = div('d-agenda');
+  const barre = div('ag-barre');
+  barre.append(dessinBouton(T('btnToday')), dessinBouton('‹', ' ag-fleche'), dessinBouton('›', ' ag-fleche'),
+               elt('span', 'reg-menu ag-chaine d-menu', T('valAllChannels')));
+  hote.appendChild(barre);
+  const entrees = demoEntrees(maintenant);
+  const jours = [...new Set(entrees.map((e) => minuitDe(e.debut)))].sort((a, b) => a - b);
+  const auj = minuitDe(maintenant);
+  for (const jour of jours) {
+    const section = div('ag-jour' + (jour === auj ? ' ag-jour--auj' : ''));
+    section.appendChild(titreJour('div', jour, jour === auj));
+    for (const e of entrees.filter((x) => minuitDe(x.debut) === jour).sort((a, b) => a.debut - b.debut)) {
+      section.appendChild(entreeAgenda(e, e.nom, true));
+    }
+    hote.appendChild(section);
+  }
+  return hote;
+};
+
+const demoHorsLigne = (maintenant = Date.now()) => {
+  const e = demoEntrees(maintenant);
+  const [nyx, aeltris, velmoria, , prevu] = e;
+  const derniere = (x) => ({ id: x.id, titre: x.titre, libelle: x.libelle, duree: x.duree,
+                             restreinte: !!x.restreinte });
+
+  const lignes = [
+    { nom: aeltris.nom, titre: aeltris.titre, dernier: { t: aeltris.fin, debut: aeltris.debut, revoir: false },
+      prochain: { debut: prevu.debut, titre: prevu.titre } },
+    { nom: velmoria.nom, titre: velmoria.titre, dernier: { t: velmoria.fin, debut: velmoria.debut, revoir: true },
+      derniere: derniere(velmoria), abonne: false },
+    { nom: nyx.nom, titre: nyx.titre, dernier: { t: nyx.fin, debut: nyx.debut, revoir: true }, derniere: derniere(nyx) },
+    { nom: 'Brenvik', indisponible: maintenant - 5 * 24 * HEURE_MS },
+  ];
+  const liste = div('hl-liste d-agenda');
+  let avant = null;
+  for (const l of lignes) {
+    const el = ligneHorsLigne(l, quandHorsLigne(l, maintenant), true);
+    el.classList.toggle('hl-ligne--suite', !!(avant && groupeHorsLigne(avant) !== groupeHorsLigne(l)));
+    liste.appendChild(el);
+    avant = l;
+  }
+  return liste;
+};
+
+const GUIDE = [
+  { titre: 'guideRoueTitre',     texte: 'guideRoueTexte', renvoi: 'guidePanneauTitre' },
   { titre: 'guideDureeTitre',    texte: 'guideDureeTexte',
     demo: () => {
       const hote = div('d-pile');
@@ -482,6 +557,9 @@ const GUIDE = [
                   demoCarte({ nom: 'Korbek', cat: 'Minecraft', vues: 318, fini: true }));
       return hote;
     } },
+
+  { titre: 'guideHoverTitre',    texte: 'guideHoverTexte', renvoi: 'guideBadgesTitre', demo: () => demoApercu() },
+  { titre: 'guideFriseTitre',    texte: 'guideFriseTexte',    demo: () => demoFrise() },
   { titre: 'guideDebutTitre',    texte: 'guideDebutTexte',
     demo: () => carteEtBadge(
       demoCarte({ nom: 'Aeltris', cat: 'Elden Ring', vues: 87, duree: '4m', frais: true }),
@@ -490,6 +568,10 @@ const GUIDE = [
     demo: () => carteEtBadge(
       demoCarte({ nom: 'Nyxaria', cat: 'Elden Ring', vues: 1243, duree: '4h19', or: true }),
       'sub', 'guideBadgeSub') },
+  { titre: 'guideSubathonTitre', texte: 'guideSubathonTexte',
+    demo: () => carteEtBadge(
+      demoCarte({ nom: 'Velmoria', cat: 'Minecraft', vues: 4820, duree: '61h04', jour: true }),
+      'subathon', 'guideBadgeSubathon') },
 
   { titre: 'guideCostreamTitre', texte: 'guideCostreamTexte', renvoi: 'guideTriTitre',
     demo: () => carteEtBadge(
@@ -497,19 +579,17 @@ const GUIDE = [
       'costream', 'guideBadgeCostream') },
 
   { titre: 'guideSalleTitre',    texte: 'guideSalleTexte' },
-  { titre: 'guideSubathonTitre', texte: 'guideSubathonTexte',
-    demo: () => carteEtBadge(
-      demoCarte({ nom: 'Velmoria', cat: 'Minecraft', vues: 4820, duree: '61h04', jour: true }),
-      'subathon', 'guideBadgeSubathon') },
-  { titre: 'guideHoverTitre',    texte: 'guideHoverTexte',    demo: () => demoApercu() },
   { titre: 'guideBadgesTitre',   texte: 'guideBadgesTexte',   demo: () => demoBadges() },
-  { titre: 'guideFriseTitre',    texte: 'guideFriseTexte',    demo: () => demoFrise() },
   { titre: 'guideTriTitre',      texte: 'guideTriTexte' },
-  { titre: 'guideTopTitre',      texte: 'guideTopTexte',      demo: () => demoOnglets() },
-  { titre: 'guideReglagesTitre', texte: 'guideReglagesTexte' },
-  { titre: 'guidePanneauTitre',  texte: 'guidePanneauTexte' },
 
-  { titre: 'guideAgendaTitre',   texte: 'guideAgendaTexte' },
+  { titre: 'guideViteTitre',     texte: 'guideViteTexte', renvoi: 'guideBadgesTitre' },
+  { titre: 'guideTopTitre',      texte: 'guideTopTexte',      demo: () => demoOnglets() },
+
+  { titre: 'guidePanneauTitre',  texte: 'guidePanneauTexte', renvoi: ['guideAgendaTitre', 'guideHorsLigneTitre'] },
+  { titre: 'guideReglagesTitre', texte: 'guideReglagesTexte' },
+
+  { titre: 'guideAgendaTitre',   texte: 'guideAgendaTexte',   plein: true, demo: () => demoSemaine() },
+  { titre: 'guideHorsLigneTitre', texte: 'guideHorsLigneTexte', plein: true, demo: () => demoHorsLigne() },
   { titre: 'guideVieTitre',      texte: 'guideVieTexte' },
 ];
 
@@ -539,15 +619,19 @@ const construireGuide = () => {
                  document.createTextNode(T(chapitre.titre)));
     section.appendChild(titre);
     if (chapitre.demo) {
-      const cadre = div('d-cadre');
+
+      const cadre = div('d-cadre' + (chapitre.plein ? ' d-cadre--plein' : ''));
       cadre.setAttribute('aria-hidden', 'true');
       cadre.appendChild(chapitre.demo());
       section.appendChild(cadre);
     }
 
-    const vise = chapitre.renvoi
-      ? String(GUIDE.findIndex((c) => c.titre === chapitre.renvoi) + 1) : undefined;
-    section.append(...corpsGuide(T(chapitre.texte, vise)));
+    const vises = [].concat(chapitre.renvoi || [])
+      .map((cle) => String(GUIDE.findIndex((c) => c.titre === cle) + 1));
+
+    section.dataset.cle = chapitre.titre;
+    if (vises.length) section.dataset.renvois = vises.join(',');
+    section.append(...corpsGuide(T(chapitre.texte, vises.length ? vises : undefined)));
     blocs.push(section);
   });
   return blocs;
@@ -1230,11 +1314,12 @@ const imageAgenda = (src, classe) => {
 };
 
 const fermee = (v, abonne) => !!(v && v.restreinte) && abonne !== true;
-const pastilleAbonnes = () => {
+
+const pastilleAbonnes = (maquette = false) => {
   const p = elt('span', 'ag-abo');
   p.setAttribute('role', 'img');
   p.setAttribute('aria-label', T('valSubOnly'));
-  p.title = T('valSubOnlyLocked');
+  if (!maquette) p.title = T('valSubOnlyLocked');
   const svg = svgEl('svg', { class: 'ag-cadenas', viewBox: '0 0 12 12', 'aria-hidden': 'true' });
   svg.append(
     svgEl('path', { d: 'M3.5 5.5V3.75a2.5 2.5 0 0 1 5 0V5.5',
@@ -1251,8 +1336,8 @@ const plageHoraire = (e) => {
   return e.fin > e.debut ? `${de} – ${HEURE.format(e.fin)}` : de;
 };
 
-const entreeAgenda = (e, nom) => {
-  const lien = lienAgenda(e);
+const entreeAgenda = (e, nom, maquette = false) => {
+  const lien = maquette ? null : lienAgenda(e);
   const el = document.createElement(lien ? 'a' : 'div');
   el.className = 'ag-ent ag-ent--' + e.type;
   if (lien) poserLien(el, lien, e.type === 'rediffusion');
@@ -1270,7 +1355,7 @@ const entreeAgenda = (e, nom) => {
   l1.appendChild(elt('span', 'ag-heure', plageHoraire(e)));
   const l2 = div('ag-l2');
   l2.appendChild(elt('span', 'ag-titre', e.titre || '—'));
-  if (e.type === 'rediffusion' && fermee(e, e.abonne)) l2.appendChild(pastilleAbonnes());
+  if (e.type === 'rediffusion' && fermee(e, e.abonne)) l2.appendChild(pastilleAbonnes(maquette));
   if (e.type === 'rediffusion' && Number.isFinite(e.vues)) {
     l2.appendChild(elt('span', 'ag-meta', vuesTexte(e.vues)));
   } else if (e.type === 'direct' && Number.isFinite(e.spectateurs)) {
@@ -1281,7 +1366,7 @@ const entreeAgenda = (e, nom) => {
   const corps = div('ag-corps');
   corps.append(l1, l2);
   el.append(vig, corps);
-  el.title = [e.titre, dater(DATE_COMPLETE, e.debut)].filter(Boolean).join('\n');
+  if (!maquette) el.title = [e.titre, dater(DATE_COMPLETE, e.debut)].filter(Boolean).join('\n');
   return el;
 };
 
@@ -1434,6 +1519,12 @@ const charpente = (vue) => {
   return etatAgenda.charpente;
 };
 
+const titreJour = (balise, jour, auj) => {
+  const titre = elt(balise, 'ag-jour-titre', dater(JOUR_TITRE, jour));
+  if (auj) titre.appendChild(elt('span', 'ag-auj', T('btnToday')));
+  return titre;
+};
+
 const listeSemaine = (data, suivant) => {
   const { debut, fin } = data.semaine;
   const entrees = data.entrees || [];
@@ -1448,12 +1539,10 @@ const listeSemaine = (data, suivant) => {
     const section = elt('section', 'ag-jour');
     section.dataset.jour = String(jour);
     section.dataset.fin = String(finJour);
-    const titre = elt('h3', 'ag-jour-titre', dater(JOUR_TITRE, jour));
+    const auj = data.maintenant >= jour && data.maintenant < finJour;
+    const titre = titreJour('h3', jour, auj);
     titre.dataset.ancre = 'j:' + jour;
-    if (data.maintenant >= jour && data.maintenant < finJour) {
-      section.classList.add('ag-jour--auj');
-      titre.appendChild(elt('span', 'ag-auj', T('btnToday')));
-    }
+    if (auj) section.classList.add('ag-jour--auj');
     section.appendChild(titre);
     const du = entrees.filter((e) => e.debut >= jour && e.debut < finJour);
     if (!du.length) section.appendChild(elt('p', 'ag-vide', '—'));
@@ -1475,7 +1564,7 @@ const voirSemaineDe = (l) => {
   charger('semaine');
 };
 
-const ligneHorsLigne = (l, quand) => {
+const ligneHorsLigne = (l, quand, maquette = false) => {
   const ligne = div('hl-ligne' + (l.indisponible ? ' hl-ligne--indisponible' : ''));
   const avatar = imageAgenda(l.avatar, 'hl-avatar') || div('hl-avatar');
   const corps = div('hl-corps');
@@ -1483,14 +1572,14 @@ const ligneHorsLigne = (l, quand) => {
   l1.appendChild(elt('span', 'hl-nom', l.nom));
   const q = elt('span', 'hl-quand', quand);
   if (l.indisponible) {
-    q.title = T('valUnavailableTip', dater(DATE_COMPLETE, l.indisponible));
+    if (!maquette) q.title = T('valUnavailableTip', dater(DATE_COMPLETE, l.indisponible));
     l1.appendChild(q);
     corps.appendChild(l1);
     ligne.append(avatar, corps);
     return ligne;
   }
 
-  if (l.dernier) {
+  if (l.dernier && !maquette) {
     q.title = l.dernier.debut !== null
       ? `${dater(DATE_COMPLETE, l.dernier.debut)} – ${HEURE.format(l.dernier.t)}`
       : `– ${dater(DATE_COMPLETE, l.dernier.t)}`;
@@ -1499,7 +1588,7 @@ const ligneHorsLigne = (l, quand) => {
   corps.appendChild(l1);
   const revoir = !!(l.dernier && l.dernier.revoir && l.derniere);
 
-  const enEntier = (classe, texte) => { const e = elt('div', classe, texte); e.title = texte; return e; };
+  const enEntier = (classe, texte) => { const e = elt('div', classe, texte); if (!maquette) e.title = texte; return e; };
   const sous = [l.titre, revoir ? l.derniere.libelle : null].filter(Boolean).join(' · ');
   if (sous) corps.appendChild(enEntier('hl-titre', sous));
   if (l.prochain) {
@@ -1508,17 +1597,25 @@ const ligneHorsLigne = (l, quand) => {
       T('valNext', quandProchain + (l.prochain.titre ? ` — ${l.prochain.titre}` : ''))));
   }
   const actions = div('hl-actions');
+  const dessin = (texte) => elt('span', 'bouton bouton--fantome', texte);
   if (revoir && /^\d+$/.test(l.derniere.id || '')) {
-    if (fermee(l.derniere, l.abonne)) actions.appendChild(pastilleAbonnes());
-    const a = elt('a', 'bouton bouton--fantome', T('btnReplay'));
-    poserLien(a, `https://www.twitch.tv/videos/${l.derniere.id}`, true);
-    a.title = [l.derniere.titre, dureeHms(l.derniere.duree)].filter(Boolean).join(' · ');
-    actions.appendChild(a);
+    if (fermee(l.derniere, l.abonne)) actions.appendChild(pastilleAbonnes(maquette));
+    if (maquette) actions.appendChild(dessin(T('btnReplay')));
+    else {
+      const a = elt('a', 'bouton bouton--fantome', T('btnReplay'));
+      poserLien(a, `https://www.twitch.tv/videos/${l.derniere.id}`, true);
+      a.title = [l.derniere.titre, dureeHms(l.derniere.duree)].filter(Boolean).join(' · ');
+      actions.appendChild(a);
+    }
   }
-  actions.appendChild(boutonAgenda(T('btnSeeWeek'), () => voirSemaineDe(l)));
+  actions.appendChild(maquette ? dessin(T('btnSeeWeek')) : boutonAgenda(T('btnSeeWeek'), () => voirSemaineDe(l)));
   ligne.append(avatar, corps, actions);
   return ligne;
 };
+
+const groupeHorsLigne = (l) => (l.indisponible ? 2 : l.prochain ? 0 : 1);
+const quandHorsLigne = (l, maintenant) => (l.indisponible ? T('valUnavailable')
+  : l.dernier ? T('valLastLive', ilYa(l.dernier.t, maintenant)) : T('valLastLiveUnknown'));
 const listeHorsLigne = (data, suivant) => {
   const lignes = data.lignes || [];
   if (!lignes.length) {
@@ -1526,14 +1623,12 @@ const listeHorsLigne = (data, suivant) => {
       : [noteAgenda(T(data.resume && data.resume.directs ? 'stateAgendaNoOffline' : 'stateEmpty'))];
   }
   const liste = div('hl-liste');
-  const groupe = (l) => (l.indisponible ? 2 : l.prochain ? 0 : 1);
   let avant = null;
   for (const l of lignes) {
 
-    const quand = l.indisponible ? T('valUnavailable')
-      : l.dernier ? T('valLastLive', ilYa(l.dernier.t, data.maintenant)) : T('valLastLiveUnknown');
+    const quand = quandHorsLigne(l, data.maintenant);
     const el = noeud(suivant, 'l:' + l.login, JSON.stringify(l) + quand, () => ligneHorsLigne(l, quand));
-    el.classList.toggle('hl-ligne--suite', !!(avant && groupe(avant) !== groupe(l)));
+    el.classList.toggle('hl-ligne--suite', !!(avant && groupeHorsLigne(avant) !== groupeHorsLigne(l)));
     liste.appendChild(el);
     avant = l;
   }
