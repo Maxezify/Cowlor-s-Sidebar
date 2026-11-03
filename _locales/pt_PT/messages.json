@@ -551,7 +551,7 @@
     "message": "A página inicial da Twitch"
   },
   "guideAccueilTexte": {
-    "message": "Na página inicial da Twitch, a extensão coloca as suas próprias filas acima das da Twitch, na mesma coluna e alinhadas com elas. Ajustam-se em «Definições», grupo «Página inicial».\n• «Seu canal nº 1 ao vivo»: o canal seguido em direto que mais vês ocupa o lugar do carrossel da Twitch. A imagem atualiza-se a cada minuto, e nada começa sozinho. Quando nenhum dos canais que vês está em direto, o carrossel volta. «Como na Twitch» mantém-no sempre; «Nada» retira-o e para o vídeo dele. A mesma escolha está no canto superior direito do banner.\n• «Seus canais seguidos ao vivo»: uma fila, pela ordem dos que mais vês, sem nenhum pedido a mais — são os canais da barra.\n• «Top 10»: os dez primeiros lugares do Top Canais, no idioma da interface da Twitch ou em todos os idiomas, em números grandes. Uma seta mostra os lugares ganhos ou perdidos em trinta minutos, ou desde que chegaste à página inicial; «Novo» marca um canal que não estava no Top 10.\n• «Desde o início» abre a gravação da transmissão em curso no primeiro segundo. Não aparece quando o canal não guarda as gravações, e tem um cadeado quando são só para subscritores, a não ser que o sejas.\n• A pré-visualização ao passar o rato também abre nos cartões da página inicial: os da extensão e os da Twitch."
+    "message": "Na página inicial da Twitch, a extensão coloca as suas próprias filas acima das da Twitch, na mesma coluna e alinhadas com elas. Ajustam-se em «Definições», grupo «Página inicial».\n• «Seu canal nº 1 ao vivo»: o canal seguido em direto que mais vês ocupa o lugar do carrossel da Twitch, em toda a largura. Primeiro a imagem, depois a transmissão, sem som e sem anúncios, como a pré-visualização ao passar o rato; o fundo assume as cores dela. Quando nenhum dos canais que vês está em direto, o carrossel volta. «Como na Twitch» mantém-no sempre; «Nada» retira-o e para o vídeo dele.\n• «Seus canais seguidos ao vivo»: uma fila, pela ordem dos que mais vês, sem nenhum pedido a mais — são os canais da barra.\n• «Top 10»: os dez primeiros lugares do Top Canais, no idioma da interface da Twitch ou em todos os idiomas, em números grandes. Logo à direita do nome, uma seta mostra os lugares ganhos ou perdidos em trinta minutos, ou desde que chegaste à página inicial; «Novo» marca um canal que não estava no Top 10.\n• Cada fila mostra uma linha; «Mostrar tudo», a meio do traço de baixo, revela o resto.\n• «Desde o início» abre a gravação da transmissão em curso no primeiro segundo. Só aparece quando a podes ver: o canal guarda as gravações e abre-as a todos, ou és subscritor.\n• A pré-visualização ao passar o rato também abre nos cartões da página inicial: os da extensão e os da Twitch."
   },
   "guideViteTitre": {
     "message": "Mais rápida do que o Twitch, e mais limpa"
@@ -746,7 +746,13 @@
     "message": "Topo da página inicial"
   },
   "optDescAccueilTete": {
-    "message": "«O teu canal n.º 1»: o canal seguido em direto que mais vês, em vez do carrossel da Twitch, que volta quando nenhum dos canais que vês está em direto. A imagem atualiza-se; nada começa sozinho. «Nada» retira o carrossel e para o vídeo dele."
+    "message": "«O teu canal n.º 1»: o canal seguido em direto que mais vês, em vez do carrossel da Twitch, em toda a largura; o carrossel volta quando nenhum dos canais que vês está em direto. «Nada» retira o carrossel e para o vídeo dele."
+  },
+  "optAccueilVideo": {
+    "message": "Vídeo do teu canal n.º 1"
+  },
+  "optDescAccueilVideo": {
+    "message": "A transmissão começa no banner, sem som e sem anúncios, como a pré-visualização ao passar o rato: primeiro a imagem, depois o vídeo, e o fundo assume as cores dela. Para quando o banner sai do ecrã ou o separador fica oculto. Desligado: só a imagem, atualizada a cada minuto."
   },
   "optAccueilSuivis": {
     "message": "Os teus canais seguidos em direto"
@@ -776,7 +782,7 @@
     "message": "«Desde o início»"
   },
   "optDescAccueilDebut": {
-    "message": "Nos cartões da extensão, um botão que abre a gravação da transmissão em curso no primeiro segundo. Não aparece quando o canal não guarda as gravações; um cadeado quando são só para subscritores, a não ser que o sejas."
+    "message": "Nos cartões da extensão, um botão que abre a gravação da transmissão em curso no primeiro segundo. Só quando a podes ver: o canal guarda as gravações e abre-as a todos, ou és subscritor."
   },
   "optValHeros": {
     "message": "O teu canal n.º 1"
@@ -935,7 +941,7 @@
     "message": "Repor todas as definições?"
   },
   "optResetText": {
-    "message": "As vinte e oito definições desta página voltam ao valor original. Os teus dados — visitas, subscrições, canais seguidos — não são tocados."
+    "message": "As vinte e nove definições desta página voltam ao valor original. Os teus dados — visitas, subscrições, canais seguidos — não são tocados."
   },
   "optValPlein": {
     "message": "Completo"

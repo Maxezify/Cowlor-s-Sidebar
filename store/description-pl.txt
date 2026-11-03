@@ -198,10 +198,10 @@ _______________________________
 ➤ 🏠 STRONA GŁÓWNA TWITCHA PO TWOJEMU
 Na stronie głównej Twitcha rozszerzenie umieszcza własne rzędy nad rzędami Twitcha, w tej samej kolumnie i wyrównane z nimi.
 
-- ★ TWÓJ KANAŁ NR 1 NA GÓRZE ★ Zamiast karuzeli Twitcha: obserwowany kanał na żywo, który oglądasz najczęściej. Jego obraz odświeża się co minutę i nic nie startuje samo. Żaden z kanałów, które oglądasz, nie nadaje? Karuzela wraca. Wolisz karuzelę albo nic? To kwestia ustawienia.
+- ★ TWÓJ KANAŁ NR 1 NA GÓRZE ★ Zamiast karuzeli Twitcha: obserwowany kanał na żywo, który oglądasz najczęściej. Na całą szerokość: najpierw jego obraz, potem transmisja, bez dźwięku i bez reklam, jak podgląd po najechaniu; a pod tekstem jej kolory, też na żywo. Żaden z kanałów, które oglądasz, nie nadaje? Karuzela wraca. Wolisz karuzelę albo nic? To kwestia ustawienia.
 - ★ NAJPIERW OBSERWOWANE KANAŁY ★ Rząd twoich kanałów na żywo, ułożony od tych, które oglądasz najczęściej — bez żadnego dodatkowego zapytania: to te, które pasek i tak śledzi.
 - ★ TOP 10 W TWOIM JĘZYKU ★ Pierwsze dziesięć miejsc dokładnego rankingu „Najpopularniejsze kanały”, w języku twojego Twitcha albo we wszystkich językach, dużymi cyframi, z tym, co się zmieniło w ciągu trzydziestu minut: zyskane miejsca, stracone miejsca, nowe kanały. Liczone tylko wtedy, gdy strona główna jest na ekranie.
-- ★ „OD POCZĄTKU” ★ Spóźniłeś się? Przycisk otwiera powtórkę trwającej transmisji od jej pierwszej sekundy. Bez przycisku, gdy kanał nie zachowuje powtórek; z kłódką, gdy są tylko dla subskrybentów — chyba że jesteś subskrybentem.
+- ★ „OD POCZĄTKU” ★ Spóźniłeś się? Przycisk otwiera powtórkę trwającej transmisji od jej pierwszej sekundy. Przycisk pojawia się tylko wtedy, gdy możesz ją obejrzeć: kanał zachowuje powtórki i udostępnia je wszystkim — albo go subskrybujesz.
 - ★ PODGLĄD PO NAJECHANIU, TAKŻE TUTAJ ★ Na kartach strony głównej — zarówno tych z rozszerzenia, jak i tych z Twitcha.
 - ★ JAK CHCESZ ★ Każdą część wyłączysz osobno w „Ustawieniach”; wszystko wyłączone — strona główna znów jest Twitcha, bez zmian.
 
@@ -235,7 +235,7 @@ Twitch ma jasny motyw. Rozszerzenie to zauważa i przełącza się razem z nim �
 _______________________________
 
 ➤ ⚙️ A JEŚLI CHCESZ WYBIERAĆ
-Wszystko działa od razu i nie trzeba niczego ustawiać. Ale sekcja „Ustawienia” w panelu oddaje Ci dwadzieścia osiem ustawień.
+Wszystko działa od razu i nie trzeba niczego ustawiać. Ale sekcja „Ustawienia” w panelu oddaje Ci dwadzieścia dziewięć ustawień.
 
 - ★ TO, CO WIDZISZ ★ Każda odznaka, czas trwania transmisji i jego format, pasek „właśnie ruszyła”, złoto subskrypcji, filtry, przyciski sortowania: wszystko włącza się i wyłącza jednym polem.
 - ★ TO, CO SIĘ WCZYTUJE ★ Podgląd może zrezygnować z wideo i zachować odznaki, oś czasu i miniaturę — albo po prostu zejść z jakością. Tyle, by go odciążyć, nie tracąc go.
@@ -271,7 +271,7 @@ _______________________________
 - ★ Dwa wyjątki, powiedziane na głos ★ Żeby wiedzieć, które kanały subskrybujesz, rozszerzenie otwiera TWOJĄ własną stronę twitch.tv/subscriptions w niewidocznej ramce, domyślnie co sześć godzin (albo co trzy, dwanaście lub dwadzieścia cztery — według Twojego ustawienia), wcześniej tylko wtedy, gdy poprzedni odczyt niczego nie znalazł albo gdy klikniesz „Odczytaj teraz”, i nigdy, gdy jesteś wylogowany. Żeby znać WSZYSTKIE kanały, które obserwujesz — pasek boczny Twitcha pokazuje tylko sto — w ten sam sposób otwiera Twoją stronę obserwowanych kanałów, co dwanaście godzin, wcześniej tylko wtedy, gdy poprzedni odczyt nie dotarł do końca listy. Twoja przeglądarka uwierzytelnia te strony własnymi ciasteczkami, dokładnie tak, jakbyś kliknął link: rozszerzenie nigdy nie czyta Twojego tokenu i nigdy go nie przekazuje. To, co zachowuje — nazwy kanałów i staż w miesiącach — zostaje w Twojej przeglądarce.
 - ★ Żadnego trackera, żadnego piksela, żadnej telemetrii ★
 - ★ Żadnych podejrzanych uprawnień ★ Rozszerzenie działa WYŁĄCZNIE na twitch.tv.
-- ★ Blokowanie reklam trzyma się swojego miejsca ★ Dotyczy miniatury podglądu po najechaniu i niczego więcej. Transmisja, którą naprawdę oglądasz, pozostaje nietknięta.
+- ★ Blokowanie reklam trzyma się swojego miejsca ★ Dotyczy miniatury podglądu po najechaniu i wideo twojego kanału nr 1 na górze strony głównej — i niczego więcej. Transmisja, którą naprawdę oglądasz, pozostaje nietknięta.
 - ★ Twoja historia zostaje u Ciebie ★ Wizyty, subskrypcje, miesiące, harmonogram: zapisane w Twojej przeglądarce (localStorage i IndexedDB), kropka. Wyczyść dane witryny twitch.tv i wszystko znika.
 - ★ Pełny kod źródłowy do przeczytania ★ Prosto w katalogu rozszerzenia. Żadnej czarnej skrzynki.
 

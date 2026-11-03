@@ -551,7 +551,7 @@
     "message": "Strona główna Twitcha"
   },
   "guideAccueilTexte": {
-    "message": "Na stronie głównej Twitcha rozszerzenie umieszcza własne rzędy nad rzędami Twitcha, w tej samej kolumnie i wyrównane z nimi. Ustawia się je w sekcji „Ustawienia”, w grupie „Strona główna”.\n• „Twój kanał nr 1 na żywo”: obserwowany kanał na żywo, który oglądasz najczęściej, zajmuje miejsce karuzeli Twitcha. Jego obraz odświeża się co minutę i nic nie startuje samo. Gdy żaden z kanałów, które oglądasz, nie nadaje, karuzela wraca. „Jak na Twitchu” zawsze ją zostawia; „Nic” usuwa ją i zatrzymuje jej wideo. Ten sam wybór jest w prawym górnym rogu banera.\n• „Obserwowane kanały na żywo”: rząd ułożony od kanałów, które oglądasz najczęściej, bez żadnego dodatkowego zapytania — to kanały z paska.\n• „Top 10”: pierwsze dziesięć miejsc listy „Najpopularniejsze kanały”, w języku interfejsu Twitcha albo we wszystkich językach, dużymi cyframi. Strzałka pokazuje miejsca zyskane lub stracone w ciągu trzydziestu minut — albo od wejścia na stronę główną; „Nowość” oznacza kanał, którego nie było w Top 10.\n• „Od początku” otwiera powtórkę trwającej transmisji od jej pierwszej sekundy. Nie pojawia się, gdy kanał nie zachowuje powtórek, a gdy są tylko dla subskrybentów, ma kłódkę — chyba że jesteś subskrybentem.\n• Podgląd po najechaniu otwiera się też na kartach strony głównej: zarówno tych z rozszerzenia, jak i tych z Twitcha."
+    "message": "Na stronie głównej Twitcha rozszerzenie umieszcza własne rzędy nad rzędami Twitcha, w tej samej kolumnie i wyrównane z nimi. Ustawia się je w sekcji „Ustawienia”, w grupie „Strona główna”.\n• „Twój kanał nr 1 na żywo”: obserwowany kanał na żywo, który oglądasz najczęściej, zajmuje miejsce karuzeli Twitcha, na całą szerokość. Najpierw jego obraz, potem transmisja, bez dźwięku i bez reklam, jak podgląd po najechaniu; tło przejmuje jej kolory. Gdy żaden z kanałów, które oglądasz, nie nadaje, karuzela wraca. „Jak na Twitchu” zawsze ją zostawia; „Nic” usuwa ją i zatrzymuje jej wideo.\n• „Obserwowane kanały na żywo”: rząd ułożony od kanałów, które oglądasz najczęściej, bez żadnego dodatkowego zapytania — to kanały z paska.\n• „Top 10”: pierwsze dziesięć miejsc listy „Najpopularniejsze kanały”, w języku interfejsu Twitcha albo we wszystkich językach, dużymi cyframi. Tuż na prawo od nazwy strzałka pokazuje miejsca zyskane lub stracone w ciągu trzydziestu minut — albo od wejścia na stronę główną; „Nowość” oznacza kanał, którego nie było w Top 10.\n• Każdy rząd pokazuje jedną linię; „Pokaż wszystko” pośrodku kreski pod nim rozwija resztę.\n• „Od początku” otwiera powtórkę trwającej transmisji od jej pierwszej sekundy. Pojawia się tylko wtedy, gdy możesz ją obejrzeć: kanał zachowuje powtórki i udostępnia je wszystkim — albo go subskrybujesz.\n• Podgląd po najechaniu otwiera się też na kartach strony głównej: zarówno tych z rozszerzenia, jak i tych z Twitcha."
   },
   "guideViteTitre": {
     "message": "Szybciej niż Twitch i czyściej"
@@ -746,7 +746,13 @@
     "message": "Na górze strony głównej"
   },
   "optDescAccueilTete": {
-    "message": "„Twój kanał nr 1”: obserwowany kanał na żywo, który oglądasz najczęściej, zamiast karuzeli Twitcha, która wraca, gdy żaden z oglądanych przez ciebie kanałów nie nadaje. Jego obraz się odświeża, nic nie startuje samo. „Nic” usuwa karuzelę i zatrzymuje jej wideo."
+    "message": "„Twój kanał nr 1”: obserwowany kanał na żywo, który oglądasz najczęściej, zamiast karuzeli Twitcha, na całą szerokość; karuzela wraca, gdy żaden z oglądanych przez ciebie kanałów nie nadaje. „Nic” usuwa karuzelę i zatrzymuje jej wideo."
+  },
+  "optAccueilVideo": {
+    "message": "Wideo twojego kanału nr 1"
+  },
+  "optDescAccueilVideo": {
+    "message": "Transmisja startuje w banerze, bez dźwięku i bez reklam, jak podgląd po najechaniu: najpierw obraz, potem wideo, a tło przejmuje jego kolory. Zatrzymuje się, gdy baner zniknie z ekranu albo karta jest ukryta. Wyłączone: sam obraz, odświeżany co minutę."
   },
   "optAccueilSuivis": {
     "message": "Obserwowane kanały na żywo"
@@ -776,7 +782,7 @@
     "message": "„Od początku”"
   },
   "optDescAccueilDebut": {
-    "message": "Na kartach rozszerzenia przycisk, który otwiera powtórkę trwającej transmisji od jej pierwszej sekundy. Nie ma go, gdy kanał nie zachowuje powtórek; kłódka, gdy są tylko dla subskrybentów, chyba że nim jesteś."
+    "message": "Na kartach rozszerzenia przycisk, który otwiera powtórkę trwającej transmisji od jej pierwszej sekundy. Tylko wtedy, gdy możesz ją obejrzeć: kanał zachowuje powtórki i udostępnia je wszystkim albo go subskrybujesz."
   },
   "optValHeros": {
     "message": "Twój kanał nr 1"
@@ -935,7 +941,7 @@
     "message": "Przywrócić wszystkie ustawienia domyślne?"
   },
   "optResetText": {
-    "message": "Na tej stronie dwadzieścia osiem ustawień wróci do wartości pierwotnych. Twoje dane — wizyty, subskrypcje, obserwowane kanały — pozostają nietknięte."
+    "message": "Na tej stronie dwadzieścia dziewięć ustawień wróci do wartości pierwotnych. Twoje dane — wizyty, subskrypcje, obserwowane kanały — pozostają nietknięte."
   },
   "optValPlein": {
     "message": "Pełne"

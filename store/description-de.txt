@@ -198,10 +198,10 @@ _______________________________
 ➤ 🏠 DIE STARTSEITE VON TWITCH, NACH DEINEM GESCHMACK
 Auf der Startseite von Twitch setzt die Erweiterung ihre eigenen Reihen über die von Twitch, in dieselbe Spalte und bündig mit ihnen.
 
-- ★ DEIN KANAL NR. 1, GANZ OBEN ★ Anstelle des Karussells von Twitch: der gefolgte Live-Kanal, den du am meisten schaust. Sein Bild wird jede Minute aufgefrischt, und nichts startet von selbst. Keiner der Kanäle, die du schaust, ist live? Dann kommt das Karussell zurück. Lieber das Karussell oder gar nichts? Das ist eine Einstellung.
+- ★ DEIN KANAL NR. 1, GANZ OBEN ★ Anstelle des Karussells von Twitch: der gefolgte Live-Kanal, den du am meisten schaust. Über die ganze Breite: erst sein Bild, dann sein Stream, stumm und ohne Werbung, wie die Vorschau beim Überfahren; und unter dem Text seine Farben, ebenfalls live. Keiner der Kanäle, die du schaust, ist live? Dann kommt das Karussell zurück. Lieber das Karussell oder gar nichts? Das ist eine Einstellung.
 - ★ DEINE GEFOLGTEN KANÄLE ZUERST ★ Eine Reihe deiner Live-Kanäle, geordnet nach denen, die du am meisten schaust – ohne zusätzliche Anfrage: Es sind die, denen die Seitenleiste ohnehin folgt.
 - ★ DIE TOP 10 DEINER SPRACHE ★ Die ersten zehn Plätze der exakten Rangliste von Top-Kanäle, in der Sprache deines Twitch oder über alle Sprachen, in großen Ziffern, mit dem, was sich in dreißig Minuten bewegt hat: gewonnene Plätze, verlorene Plätze, Neueinsteiger. Nur berechnet, solange die Startseite angezeigt wird.
-- ★ „VON ANFANG AN“ ★ Zu spät gekommen? Ein Knopf öffnet die Aufzeichnung des laufenden Streams ab seiner allerersten Sekunde. Kein Knopf, wenn der Kanal keine Aufzeichnungen behält; ein Schloss, wenn sie Abonnenten vorbehalten sind – außer du bist einer.
+- ★ „VON ANFANG AN“ ★ Zu spät gekommen? Ein Knopf öffnet die Aufzeichnung des laufenden Streams ab seiner allerersten Sekunde. Der Knopf erscheint nur, wenn du sie ansehen kannst: Der Kanal behält seine Aufzeichnungen und gibt sie für alle frei – oder du hast ihn abonniert.
 - ★ DIE VORSCHAU BEIM ÜBERFAHREN, AUCH HIER ★ Auf den Karten der Startseite, denen der Erweiterung wie denen von Twitch.
 - ★ WIE DU WILLST ★ Jeder Teil lässt sich unter „Einstellungen“ einzeln abschalten; alles aus, und die Startseite ist wieder die von Twitch, unverändert.
 
@@ -235,7 +235,7 @@ Twitch hat ein helles Design. Die Erweiterung merkt es und wechselt mit — ohne
 _______________________________
 
 ➤ ⚙️ UND WENN DU WÄHLEN WILLST
-Alles ist von Anfang an aktiv und nichts muss eingestellt werden. Aber der Bereich „Einstellungen“ im Panel gibt dir achtundzwanzig Einstellungen in die Hand.
+Alles ist von Anfang an aktiv und nichts muss eingestellt werden. Aber der Bereich „Einstellungen“ im Panel gibt dir neunundzwanzig Einstellungen in die Hand.
 
 - ★ WAS DU SIEHST ★ Jedes Abzeichen, die Streamdauer und ihr Format, der Balken „gerade gestartet“, das Gold der Abonnements, die Filter, die Sortierschaltflächen: alles lässt sich per Häkchen ein- und ausschalten.
 - ★ WAS GELADEN WIRD ★ Die Vorschau kann auf das Video verzichten und Abzeichen, Zeitleiste und Miniaturbild behalten — oder einfach in der Qualität heruntergehen. Genug, um sie leicht zu machen, ohne sie zu verlieren.
@@ -271,7 +271,7 @@ _______________________________
 - ★ Zwei Ausnahmen, laut ausgesprochen ★ Um zu wissen, welche Kanäle du abonniert hast, öffnet die Erweiterung DEINE eigene Seite twitch.tv/subscriptions in einem unsichtbaren Rahmen, standardmäßig alle sechs Stunden (drei, zwölf oder vierundzwanzig je nach deiner Einstellung), früher nur, wenn der vorige Durchgang nichts gefunden hat oder du auf „Jetzt erfassen“ klickst, und nie, wenn du abgemeldet bist. Um ALLE Kanäle zu kennen, denen du folgst — die Seitenleiste von Twitch zeigt nur hundert —, öffnet sie auf dieselbe Weise deine Seite der gefolgten Kanäle, alle zwölf Stunden, früher nur, wenn das vorige Lesen nicht bis zum Ende der Liste kam. Dein Browser authentifiziert diese Seiten mit seinen eigenen Cookies, genau so, als hättest du den Link angeklickt: die Erweiterung liest dein Token nie und gibt es nie weiter. Was sie behält — Kanalnamen und eine Dauer in Monaten — bleibt in deinem Browser.
 - ★ Kein Tracker, kein Pixel, keine Telemetrie ★
 - ★ Keine dubiosen Berechtigungen ★ Die Erweiterung läuft NUR auf twitch.tv.
-- ★ Werbeblockierung bleibt in ihrer Spur ★ Sie gilt für das Vorschaubild beim Überfahren und für sonst nichts. Der Stream, den du wirklich anschaust, bleibt unangetastet.
+- ★ Werbeblockierung bleibt in ihrer Spur ★ Sie gilt für das Vorschaubild beim Überfahren und für das Video deines Kanals Nr. 1 oben auf der Startseite – und für sonst nichts. Der Stream, den du wirklich anschaust, bleibt unangetastet.
 - ★ Dein Verlauf bleibt bei dir ★ Besuche, Abos, Monate, Zeitplan: in deinem Browser gespeichert (localStorage und IndexedDB), Punkt. Lösche die Website-Daten von twitch.tv, und alles ist weg.
 - ★ Quellcode komplett lesbar ★ Direkt im Ordner der Erweiterung. Keine Blackbox.
 

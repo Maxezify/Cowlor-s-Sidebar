@@ -198,10 +198,10 @@ _______________________________
 ➤ 🏠 A PÁGINA INICIAL DA TWITCH DO SEU JEITO
 Na página inicial da Twitch, a extensão coloca suas próprias fileiras acima das da Twitch, na mesma coluna e alinhadas com elas.
 
-- ★ SEU CANAL Nº 1 NO TOPO ★ No lugar do carrossel da Twitch: o canal seguido ao vivo que você mais assiste. A imagem se atualiza a cada minuto, e nada começa sozinho. Nenhum dos canais que você assiste está ao vivo? O carrossel volta. Prefere o carrossel, ou nada? É uma configuração.
+- ★ SEU CANAL Nº 1 NO TOPO ★ No lugar do carrossel da Twitch: o canal seguido ao vivo que você mais assiste. Em toda a largura: primeiro a imagem, depois a transmissão, sem som e sem anúncios, como a prévia ao passar o mouse; e, sob o texto, as cores dela, também ao vivo. Nenhum dos canais que você assiste está ao vivo? O carrossel volta. Prefere o carrossel, ou nada? É uma configuração.
 - ★ SEUS CANAIS SEGUIDOS PRIMEIRO ★ Uma fileira com seus canais ao vivo, na ordem dos que você mais assiste — sem nenhuma requisição a mais: são os que a barra já acompanha.
 - ★ O TOP 10 DO SEU IDIOMA ★ As dez primeiras posições da classificação exata do Top Canais, no idioma da sua Twitch ou em todos os idiomas, em números grandes, com o que mudou em trinta minutos: posições ganhas, posições perdidas, recém-chegados. Calculado só enquanto a página inicial está na tela.
-- ★ «DESDE O INÍCIO» ★ Chegou atrasado? Um botão abre a gravação da transmissão em curso no primeiro segundo. Sem botão quando o canal não guarda as gravações; um cadeado quando elas são só para assinantes, a menos que você seja um.
+- ★ «DESDE O INÍCIO» ★ Chegou atrasado? Um botão abre a gravação da transmissão em curso no primeiro segundo. O botão só aparece quando você pode assistir: o canal guarda as gravações e as abre a todos, ou você é assinante.
 - ★ A PRÉVIA AO PASSAR O MOUSE, AQUI TAMBÉM ★ Nos cards da página inicial, os da extensão e os da Twitch.
 - ★ VOCÊ DECIDE ★ Cada parte se desliga separadamente em «Configurações»; tudo desligado, a página inicial volta a ser a da Twitch, do jeito que é.
 
@@ -235,7 +235,7 @@ A Twitch tem um tema claro. A extensão percebe e muda junto — sem recarregar,
 _______________________________
 
 ➤ ⚙️ E SE VOCÊ QUISER ESCOLHER
-Tudo já vem ativo e não há nada para configurar. Mas «Configurações», no painel, devolve a você o controle sobre vinte e oito configurações.
+Tudo já vem ativo e não há nada para configurar. Mas «Configurações», no painel, devolve a você o controle sobre vinte e nove configurações.
 
 - ★ O QUE VOCÊ VÊ ★ Cada selo, a duração da live e o seu formato, a barra «acabou de começar», o ouro das assinaturas, os filtros, os botões de ordenação: tudo liga e desliga numa caixinha.
 - ★ O QUE É CARREGADO ★ A prévia pode dispensar o vídeo e manter os selos, a linha do tempo e a miniatura — ou simplesmente baixar a qualidade. O suficiente para deixá-la leve sem perdê-la.
@@ -271,7 +271,7 @@ _______________________________
 - ★ Duas exceções, ditas em voz alta ★ Para saber a quais canais você é inscrito, a extensão abre a SUA própria página twitch.tv/subscriptions num quadro invisível, a cada seis horas por padrão (três, doze ou vinte e quatro, conforme a sua configuração), antes disso só se o levantamento anterior não tiver encontrado nada ou se você clicar em «Levantar agora», e nunca se você estiver desconectado. Para conhecer TODOS os canais que você segue — a barra lateral do Twitch mostra só cem —, ela abre da mesma forma a sua página de canais seguidos, a cada doze horas, antes disso só se a leitura anterior não tiver chegado ao fim da lista. É o seu navegador que autentica essas páginas com os próprios cookies, exatamente como se você tivesse clicado no link: a extensão nunca lê o seu token e nunca o repassa. O que ela guarda — nomes de canais e um tempo em meses — fica no seu navegador.
 - ★ Nenhum rastreador, nenhum pixel, nenhuma telemetria ★
 - ★ Nenhuma permissão suspeita ★ A extensão roda SOMENTE em twitch.tv.
-- ★ O bloqueio de anúncios fica na dele ★ Vale para a miniatura da prévia e para mais nada. A live que você está realmente assistindo não é tocada.
+- ★ O bloqueio de anúncios fica na dele ★ Vale para a miniatura da prévia e para o vídeo do seu canal nº 1 no topo da página inicial, e para mais nada. A live que você está realmente assistindo não é tocada.
 - ★ Seu histórico fica com você ★ Visitas, inscrições, meses, programação: guardados no seu navegador (localStorage e IndexedDB), ponto. Apague os dados do site twitch.tv e some tudo.
 - ★ Código-fonte totalmente legível ★ Direto na pasta da extensão. Sem caixa-preta.
 

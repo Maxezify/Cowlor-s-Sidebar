@@ -2064,6 +2064,204 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The home page, second pass: the hero as video across the whole width, rows the way Twitch does them (v4.26.0.2)
+
+The feedback, with screenshots of the real page at 1920 × 1080 and
+2560 × 1440. Published on `claude/chrome-homepage` and
+`claude/firefox-homepage` only.
+
+| feedback | what was done |
+| --- | --- |
+| "at 2560×1440 there are margins, the hero must take the whole top part" | the hero takes the column's width at every size; its height follows that width |
+| "a video instead of the picture […] first a picture, then the video, with the ad blocker" | the hover preview's player, as is, laid over the picture |
+| "a blur effect with the colours of the stream […] as if the live continued across the whole hero" | the player samples the stream's colours every second; the background takes them up, mirrored from the picture |
+| "'From the start' is useless since I'm not subscribed" | the button only appears when you can watch the replay |
+| "places gained or lost right next to the name […] same for 'New'" | the evolution shares the name's line |
+| "the 7th is cropped […] `<hr>`s at the top and bottom; the bottom one has 'Show all'" | both rows fit the width, one line, the rest under "Show all" |
+| "the 24 is a bit odd" | the count next to the heading is gone |
+| "you can remove the 'On top' part" | the choice at the hero's top right is gone; it stays in "Settings" |
+
+### The hero across the whole width
+
+The cause of the margins: the panel held its format, 18:5, with a height capped
+at 440 px. A height cap on a box with a fixed ratio carries over to its width —
+440 × 18 / 5 = **1,584 px** at most. At 1920 px the column was barely wider; at
+2560, hundreds of pixels were left on either side.
+
+The panel now takes **the column's width**, and its height is computed from
+that width (a container query): 18:5, from 320 to 720 px, never more than three
+fifths of the window. On the bench, in a 1920 px page with a 240 px sidebar,
+the panel is 1,606 × 446 px; at 2560, 2,246 × 624 px. Its text grows one step
+with it beyond 1920: the name up to 56 px, the title up to 26, the buttons up
+to 42 px tall.
+
+### The video: the hover preview's player
+
+"Use the same behaviour as the hover preview": it is the same player. The
+stream's picture is there at once; the player is laid over it, invisible, and
+**revealed at its first frame**. It carries the preview's name (`tse-apercu`):
+the ad blocker and the preview's bridge wake up in it, exactly as in the
+thumbnail — `adblock.js` did not change by a line. Same address (muted, no
+controls, autoplay), same safety nets: revealed a moment after it loads if the
+signal doesn't come, handed back to the picture if a content classification
+gate doesn't lift.
+
+Three differences, on purpose:
+
+- **720p60** rather than the preview's quality: the frame is half the screen's
+  width. The player takes the closest one when the channel doesn't serve it.
+- **Eight seconds** for its document to arrive, against three for the preview:
+  the picture holds the screen meanwhile. A player that didn't take isn't laid
+  again at every paint; it is retried five minutes later.
+- **It only plays while it can be seen**: hidden tab, hero scrolled away,
+  another page, setting off — the player is removed, and its stream with it. It
+  comes back when the hero does.
+
+Twitch's carousel, which the hero replaces, is still hidden and its video
+stopped: the page carries one player, not two. The player takes neither clicks
+nor focus — the channel link sits over it, and "Watch" beside it.
+
+A new setting, **"Video of your #1 channel"**, in the "Home page" group: off,
+the picture alone, refreshed every minute. Twenty-nine settings, in the twelve
+languages of the panel and of the listing.
+
+### The ambience: the stream's colours, without a second player
+
+The obvious way to extend the stream under the text was a second, blurred
+player: two streams of the same live, two decoders, for a smudge of colour. The
+ambience goes through the player that is already playing. The preview's bridge,
+which lives in its frame, receives a request from the hero (`tse:ambiance`); it
+then draws the video at **16 × 9 pixels** on a canvas, every second, and sends
+its colours (`tse:ambiance-px`). Nothing else leaves the frame. A protected
+video would make the canvas unreadable: reading throws, and the bridge goes
+quiet for good — the hero keeps its blurred picture.
+
+The hero lays those colours twice side by side, the first **mirrored**, on a
+canvas stretched under the whole panel and blurred by 40 px. The right half
+falls under the video — it is what shows through the video's faded edge —, the
+left half reaches toward the text: at the video's edge, the same column of
+pixels on both sides, and the stream's light carries on under the name. Two
+canvases, the newest faded over the other in 700 ms: the colour changes without
+a jump. Before the first colours, or without video, the background is the
+stream's picture, mirrored the same way — at 320 × 180, since it is blurred.
+
+What arrives is checked before it is read: the source is THIS hero's player,
+the origin `player.twitch.tv`, the dimensions capped at 64 and the length
+exact. Two more message names are shared by `cadres.js` and `content.js`:
+**sixteen** instead of fourteen, and `npm run addon` counts them.
+
+### "From the start", only when you can watch it
+
+The button carried a padlock when the channel keeps its replays for
+subscribers: a button that leads to a refusal. It now only appears when the
+archive is **open to everyone**, according to its playback token, or when you
+are known to be **subscribed** to the channel. An unreadable token doesn't say
+the archive is open: without a known subscription, no button. The padlock, its
+icon and its label (ten languages) are gone; the request hasn't changed.
+
+### The rows, the way Twitch does them
+
+Twitch's rows, as found on the real page, fit the width: a line of whole cards,
+a rule under it, and in the middle of the rule "Show all" (its `show-more`),
+which unrolls the rest. Ours scrolled sideways, and the card at the edge fell
+half outside — "the 7th is cropped".
+
+They now do as Twitch does:
+
+- a grid that takes **as many columns as the width holds** (290 px at least per
+  card, 300 per Top 10 place), none cut — on the bench, with a 240 px sidebar,
+  five places at 1920 px and seven at 2560;
+- **the first line only**; "Show all" unrolls the others in lines below — the
+  Top 10 becomes "1 to 5, then 6 to 10" —, and turns into "Show less". The row
+  stays unrolled from one paint to the next;
+- **a rule above** the first row, and under each one the rule — button — rule
+  foot; a single rule between two rows; a row that fits in one line has no
+  button, its foot is just a rule.
+
+The number of columns is the one the stylesheet computed: the script reads it
+back from the grid and only counts. The Top 10 numeral takes the thumbnail's
+height, whatever the column's width, and "10" tightens without pushing its
+card.
+
+**The Top 10 evolution** — "▲ 2", "▼ 1", "=", "New" — now reads **right next to
+the name**, on its line; it used to sit under the numeral, in the margin. **The
+count** next to "Your followed channels, live" is gone.
+
+Two new labels in the ten languages of `content.js`: "Show all" and "Show
+less". Five removed with the lead choice, one with the padlock.
+
+### The texts
+
+- **The guide**, in the twelve languages: the hero (across the whole width, the
+  picture then the stream, muted and ad-free, its colours), the evolution's
+  place, a bullet for "Show all" — quoted word for word, as the page writes it
+  —, the button's rule. The sentence about the choice at the banner's top right
+  is gone.
+- **The settings**: "Video of your #1 channel", and the descriptions of "Top of
+  the home page" and "From the start"; "twenty-nine settings" in the reset
+  sentence.
+- **The Store listings**, in the twelve languages: the top of the home page,
+  the button, the settings count, and **the ad blocker's scope**. The listing
+  promised it "applies to the hover preview thumbnail and to nothing else"; it
+  now also applies to the video of your #1 channel at the top of the home page,
+  and the listing says so. The stream you're actually watching is still
+  untouched.
+
+### The bench
+
+- **216 c)**: the video of a player without a bridge is revealed by the safety
+  net, after it loads.
+- **216 i)**: the panel measured at 1600 and 2560 px — the column's width, the
+  height due, the video on the right at its format, the mirrored background,
+  the text before the video, no lead choice any more.
+- **216 j) to l)**: the video in a fake player served from the real origin,
+  with the ad blocker and the bridge, and a real video, red on the left, blue on
+  the right — the name, the address, invisibility before the first frame, the
+  ad blocker active in the frame, the ambience sampled and laid mirrored,
+  seamless, checked to the pixel; an out-of-bounds picture discarded, another
+  player's ignored; the hidden tab, the hero scrolled away, the setting off;
+  the gate that doesn't lift.
+- **217 a), d), h), i)**: no count; the evolution on the name's line; the Top 10
+  in one line of whole places, unrolled, rolled up, at 1100 and 2560 px; the
+  followed row, a single rule between two rows, a foot without a button.
+- **218**: no button for a reserved archive without a subscription, nor for an
+  unreadable token; the button for a subscriber.
+- **96, 117, 120**: the guide quotes "Show all"; twenty-nine settings in the
+  twelve languages, the video's line greyed with the others.
+
+**Twenty-six named mutants, all caught.**
+
+| mutant | what falls |
+| --- | --- |
+| the player without the preview's name | 216 j): the name, the ad blocker, the first frame, the ambience |
+| the video revealed as soon as it is laid | 216 c), j): the picture first |
+| the ambience never requested | 216 j): the ambience |
+| the mirror forgotten | 216 j): the seam, to the pixel |
+| the ambience's bounds removed | 216 j): the out-of-bounds picture |
+| the ambience's source unchecked | 216 j): another player's picture |
+| the hidden tab ignored | 216 k): the hidden tab |
+| the watcher never set | 216 k): the hero scrolled away |
+| the video setting ignored | 216 k): the setting off |
+| the gate ignored | 216 l): the gate |
+| the failed player laid again at once | 216 l): the gate |
+| the video's safety net removed | 216 c): the player without a bridge |
+| the old format given back to the frame | 216 i): at 2560 the frame falls back to 1,584 px — the reported fault, reproduced |
+| the video stretched across the whole width | 216 i): the 16:9 format |
+| the background without its mirror | 216 i): the reflection |
+| the scrolling line | 217 h): six places cut at the edge |
+| nothing rolls up | 217 h): one line |
+| "Show all" that unrolls nothing | 217 h), i): unrolling |
+| the label that doesn't change | 217 h), i): "Show less" |
+| two rules between two rows | 217 i): a single rule |
+| the numeral at a fixed height | 217 h): the thumbnail's height |
+| the count put back | 217 a): no count |
+| the evolution off the name's line | 217 d): right next to the name |
+| a button for a reserved archive | 218: without a subscription |
+| the unreadable token taken for an open archive | 218: the unreadable token |
+| the subscription ignored | 218: the subscriber |
+
+The full bench: 2144 assertions in 218 scenarios, all green.
+
 ## The home page hero, redone after the mock-up (v4.26.0.1)
 
 The request, with a screenshot of the real page: "I'm not satisfied with the
@@ -22065,7 +22263,7 @@ Four independent checks:
 | `npm run lint` | the six shipped JavaScript files — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 218 scenarios, 2121 assertions |
+| `npm test` | the Playwright harness: 218 scenarios, 2144 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -22085,13 +22283,13 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1964 KB | 865 KB | 4,427 → **2** |
-| `cadres.js` | 66 KB | 30 KB | 158 → **0** |
+| `content.js` | 1978 KB | 872 KB | 4,457 → **2** |
+| `cadres.js` | 68 KB | 31 KB | 160 → **0** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
 | `panneau.js` | 161 KB | 82 KB | 223 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 26 → **0** |
 | `background.js` | 10 KB | 2 KB | 22 → **0** |
-| **all six** | **2341 KB** | **1083 KB** | **−54 %** |
+| **all six** | **2357 KB** | **1091 KB** | **−54 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are

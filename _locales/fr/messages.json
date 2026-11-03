@@ -551,7 +551,7 @@
     "message": "L'accueil de Twitch"
   },
   "guideAccueilTexte": {
-    "message": "Sur la page d'accueil de Twitch, l'extension pose ses rayons au-dessus de ceux de Twitch, dans la même colonne et alignés sur eux. Ils se règlent dans « Réglages », groupe « Page d'accueil ».\n• « Votre chaîne n°1 en direct » : celle de vos chaînes suivies en direct que vous regardez le plus prend la place du carrousel de Twitch. Son image se rafraîchit chaque minute, et rien ne démarre seul. Quand aucune des chaînes que vous regardez n'est en direct, le carrousel revient. « Comme Twitch » le garde toujours ; « Rien » le retire et arrête sa vidéo. Le même choix se fait en haut à droite du bandeau.\n• « Vos chaînes suivies en direct » : un rayon, dans l'ordre de celles que vous regardez le plus, sans aucune requête de plus — ce sont les chaînes de la barre.\n• « Top 10 » : les dix premières places de Top Chaînes, dans la langue de l'interface de Twitch ou dans toutes les langues, en grands chiffres. Une flèche dit les places gagnées ou perdues en trente minutes, ou depuis votre arrivée sur l'accueil ; « Nouveau » marque une chaîne qui n'était pas dans le Top 10.\n• « Depuis le début » ouvre la rediffusion du direct en cours à sa première seconde. Il n'apparaît pas quand la chaîne ne garde pas ses rediffusions, et porte un cadenas quand elles sont réservées aux abonnés, sauf si vous l'êtes.\n• L'aperçu au survol s'ouvre aussi sur les cartes de l'accueil : celles de l'extension comme celles de Twitch."
+    "message": "Sur la page d'accueil de Twitch, l'extension pose ses rayons au-dessus de ceux de Twitch, dans la même colonne et alignés sur eux. Ils se règlent dans « Réglages », groupe « Page d'accueil ».\n• « Votre chaîne n°1 en direct » : celle de vos chaînes suivies en direct que vous regardez le plus prend la place du carrousel de Twitch, sur toute la largeur. Son image d'abord, puis son direct, muet et sans publicité, comme l'aperçu au survol ; le fond en reprend les couleurs. Quand aucune des chaînes que vous regardez n'est en direct, le carrousel revient. « Comme Twitch » le garde toujours ; « Rien » le retire et arrête sa vidéo.\n• « Vos chaînes suivies en direct » : un rayon, dans l'ordre de celles que vous regardez le plus, sans aucune requête de plus — ce sont les chaînes de la barre.\n• « Top 10 » : les dix premières places de Top Chaînes, dans la langue de l'interface de Twitch ou dans toutes les langues, en grands chiffres. Juste à droite du nom, une flèche dit les places gagnées ou perdues en trente minutes, ou depuis votre arrivée sur l'accueil ; « Nouveau » marque une chaîne qui n'était pas dans le Top 10.\n• Chaque rayon montre une rangée ; « Afficher tout », au milieu du filet du dessous, déroule le reste.\n• « Depuis le début » ouvre la rediffusion du direct en cours à sa première seconde. Il n'apparaît que si vous pouvez la voir : la chaîne garde ses rediffusions et les ouvre à tous, ou vous y êtes abonné.\n• L'aperçu au survol s'ouvre aussi sur les cartes de l'accueil : celles de l'extension comme celles de Twitch."
   },
   "guideViteTitre": {
     "message": "Plus rapide que Twitch, et plus propre"
@@ -746,7 +746,13 @@
     "message": "En tête de l'accueil"
   },
   "optDescAccueilTete": {
-    "message": "« Votre chaîne n°1 » : celle de vos chaînes suivies en direct que vous regardez le plus, à la place du carrousel de Twitch, qui revient quand aucune de celles que vous regardez n'est en direct. Son image se rafraîchit, rien ne démarre seul. « Rien » retire le carrousel et arrête sa vidéo."
+    "message": "« Votre chaîne n°1 » : celle de vos chaînes suivies en direct que vous regardez le plus, à la place du carrousel de Twitch, sur toute la largeur ; le carrousel revient quand aucune de celles que vous regardez n'est en direct. « Rien » retire le carrousel et arrête sa vidéo."
+  },
+  "optAccueilVideo": {
+    "message": "Vidéo de votre chaîne n°1"
+  },
+  "optDescAccueilVideo": {
+    "message": "Le direct se lance dans le bandeau, muet et sans publicité, comme l'aperçu au survol : l'image d'abord, la vidéo ensuite, et le fond en prend les couleurs. Il s'arrête quand le bandeau sort de l'écran ou que l'onglet est caché. Coupé : l'image seule, rafraîchie chaque minute."
   },
   "optAccueilSuivis": {
     "message": "Vos chaînes suivies en direct"
@@ -776,7 +782,7 @@
     "message": "« Depuis le début »"
   },
   "optDescAccueilDebut": {
-    "message": "Sur les cartes de l'extension, un bouton qui ouvre la rediffusion du direct en cours à sa première seconde. Absent quand la chaîne ne garde pas ses rediffusions ; un cadenas quand elles sont réservées aux abonnés, sauf si vous l'êtes."
+    "message": "Sur les cartes de l'extension, un bouton qui ouvre la rediffusion du direct en cours à sa première seconde. Seulement quand vous pouvez la voir : la chaîne garde ses rediffusions et les ouvre à tous, ou vous y êtes abonné."
   },
   "optValHeros": {
     "message": "Votre chaîne n°1"
@@ -935,7 +941,7 @@
     "message": "Remettre tous les réglages par défaut ?"
   },
   "optResetText": {
-    "message": "Les vingt-huit réglages de cette page reviendront à leur valeur d'origine. Vos données — visites, abonnements, chaînes suivies — ne sont pas touchées."
+    "message": "Les vingt-neuf réglages de cette page reviendront à leur valeur d'origine. Vos données — visites, abonnements, chaînes suivies — ne sont pas touchées."
   },
   "optValPlein": {
     "message": "Complet"

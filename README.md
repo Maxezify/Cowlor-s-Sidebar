@@ -2183,6 +2183,208 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## L'accueil, deuxième passe : le héros en vidéo sur toute la largeur, des rayons à la manière de Twitch (v4.26.0.2)
+
+Les retours, captures de la page réelle à l'appui, à 1920 × 1080 et à
+2560 × 1440. Publiés sur `claude/chrome-homepage` et `claude/firefox-homepage`
+seulement.
+
+| retour | ce qui a été fait |
+| --- | --- |
+| « en 2560×1440, il y a des marges, il faut que le héro prenne bien toute la partie haute » | le héros prend la largeur de la colonne à toutes les tailles ; sa hauteur suit cette largeur |
+| « une vidéo à la place de l'image […] d'abord une image, ensuite la vidéo, avec l'antipub » | le lecteur de l'aperçu au survol, à l'identique, posé sur l'image |
+| « un effet flou avec les couleurs du stream […] comme si il y avait une continuité du live » | le lecteur relève les couleurs du direct chaque seconde ; le fond les reprend, en miroir de l'image |
+| « "Depuis le début" inutile car pas abonné » | le bouton ne paraît que si l'on peut voir la rediffusion |
+| « les places gagnées ou perdues juste à droite du pseudo […] pareil pour "Nouveau" » | l'évolution partage la ligne du nom |
+| « le 7 est croppé […] des `<hr>` en haut et en bas ; celui du bas possède "Afficher tout" » | les deux rayons tiennent dans la largeur, une rangée, et le reste sous « Afficher tout » |
+| « le 24 est un peu bizarre » | le compte à côté du titre est retiré |
+| « tu peux retirer la partie "En tête" » | le choix posé en haut à droite du héros est retiré ; il reste dans « Réglages » |
+
+### Le héros sur toute la largeur
+
+La cause des marges : le panneau tenait son format, 18:5, avec une hauteur
+plafonnée à 440 px. Un plafond de hauteur sur une boîte à format imposé se
+reporte sur sa largeur — 440 × 18 / 5 = **1 584 px** au plus. À 1920 px, la
+colonne en faisait à peine plus ; à 2560, il restait des centaines de pixels
+de part et d'autre.
+
+Le panneau prend désormais **la largeur de la colonne**, et sa hauteur se
+calcule sur cette largeur (une requête de conteneur) : 18:5, de 320 à 720 px,
+jamais plus des trois cinquièmes de la fenêtre. Au banc, dans une page de
+1920 px avec une barre de 240 px, le panneau fait 1 606 × 446 px ; à 2560,
+2 246 × 624 px. Son texte grandit d'un cran avec lui au-delà de 1920 : le
+nom jusqu'à 56 px, le titre jusqu'à 26, les boutons jusqu'à 42 de haut.
+
+### La vidéo : le lecteur de l'aperçu au survol
+
+« Prends le même comportement que l'aperçu au survol » : c'est le même
+lecteur. L'image du direct est là tout de suite ; le lecteur se pose
+par-dessus, invisible, et **se dévoile à sa première image**. Il porte le nom
+de l'aperçu (`tse-apercu`) : l'anti-pub et le pont de l'aperçu s'y éveillent,
+exactement comme dans la vignette — `adblock.js` n'a pas changé d'une ligne.
+Même adresse (muet, sans contrôles, lecture automatique), mêmes filets :
+dévoilé un instant après son chargement si le signal ne vient pas, rendu à
+l'image si une interstitielle de classification ne se lève pas.
+
+Trois différences, voulues :
+
+- **720p60** plutôt que la qualité de l'aperçu : le cadre fait la moitié de la
+  largeur de l'écran. Le lecteur prend la plus proche quand la chaîne ne la
+  sert pas.
+- **Huit secondes** pour que son document arrive, contre trois pour l'aperçu :
+  l'image tient l'écran pendant ce temps. Un lecteur qui n'a pas pris ne se
+  repose pas à chaque peinture ; il se retente cinq minutes plus tard.
+- **Il ne joue que s'il se voit** : onglet caché, héros sorti de l'écran, autre
+  page, réglage coupé — le lecteur est retiré, et son flux avec. Il revient
+  quand le héros revient.
+
+Le carrousel de Twitch, que le héros remplace, est toujours masqué et sa vidéo
+arrêtée : la page porte un lecteur, pas deux. Le lecteur ne prend ni clic ni
+focus — le lien de la chaîne est par-dessus, et « Regarder » à côté.
+
+Un réglage nouveau, **« Vidéo de votre chaîne n°1 »**, dans le groupe « Page
+d'accueil » : coupé, l'image seule, relue chaque minute. Vingt-neuf réglages,
+dans les douze langues du panneau et de la fiche.
+
+### L'ambiance : les couleurs du direct, sans second lecteur
+
+La façon évidente de prolonger le direct sous le texte était un second lecteur,
+flouté : deux flux du même direct, deux décodages, pour une tache de couleur.
+L'ambiance passe par le lecteur qui joue déjà. Le pont de l'aperçu, qui vit
+dans sa frame, reçoit du héros une demande (`tse:ambiance`) ; il dessine alors
+la vidéo en **16 × 9 pixels** sur une toile, chaque seconde, et en envoie les
+couleurs (`tse:ambiance-px`). Rien d'autre ne sort de la frame. Une vidéo
+protégée rendrait la toile illisible : la lecture lève, et le pont se tait pour
+de bon — le héros garde son image floutée.
+
+Le héros pose ces couleurs deux fois côte à côte, la première **en miroir**,
+sur une toile étirée sous tout le panneau et floutée de 40 px. La moitié
+droite tombe sous la vidéo — c'est elle qui transparaît par son bord fondu —,
+la moitié gauche s'étend vers le texte : au bord de la vidéo, la même colonne
+de pixels des deux côtés, et la lumière du direct continue sous le nom. Deux
+toiles, la plus récente fondue sur l'autre en 700 ms : la couleur change sans
+saut. Avant la première couleur, ou sans vidéo, le fond est l'image du direct,
+en miroir de même — en 320 × 180, puisqu'elle est floutée.
+
+Ce qui arrive est vérifié avant d'être lu : la source est le lecteur de CE
+héros, l'origine `player.twitch.tv`, les dimensions bornées à 64 et la
+longueur exacte. Deux noms de message de plus sont partagés par `cadres.js` et
+`content.js` : **seize** au lieu de quatorze, et `npm run addon` les compte.
+
+### « Depuis le début », seulement quand on peut le voir
+
+Le bouton portait un cadenas quand la chaîne réserve ses rediffusions aux
+abonnés : un bouton qui mène à un refus. Il ne paraît plus que si l'archive est
+**ouverte à tous**, d'après son jeton de lecture, ou si l'on vous sait **abonné**
+à la chaîne. Un jeton illisible ne dit pas que l'archive est ouverte : sans
+abonnement connu, pas de bouton. Le cadenas, son pictogramme et son libellé
+(dix langues) sont partis ; la requête, elle, n'a pas changé.
+
+### Les rayons, à la manière de Twitch
+
+Les rayons de Twitch, relevés sur la vraie page, tiennent dans la largeur : une
+rangée de cartes entières, un filet dessous, et au milieu du filet « Afficher
+tout » (son `show-more`), qui déroule le reste. Les nôtres défilaient de côté,
+et la carte du bord tombait à moitié dehors — « le 7 est croppé ».
+
+Ils font maintenant comme Twitch :
+
+- une grille qui prend **autant de colonnes que la largeur en tient** (290 px
+  au moins par carte, 300 par place du Top 10), aucune coupée — au banc, avec
+  une barre de 240 px, cinq places à 1920 px et sept à 2560 ;
+- **la première rangée seule** ; « Afficher tout » déroule les autres en
+  rangées dessous — le Top 10 devient « 1 à 5, puis 6 à 10 » —, et devient
+  « Afficher moins ». Le rayon reste déplié d'une peinture à l'autre ;
+- **un filet au-dessus** du premier rayon, et sous chacun le pied filet —
+  bouton — filet ; un seul filet entre deux rayons ; un rayon qui tient en une
+  rangée n'a pas de bouton, son pied n'est qu'un filet.
+
+Le nombre de colonnes est celui que la feuille a calculé : le script le relit
+sur la grille et ne fait que compter. Le chiffre du Top 10 prend la hauteur de
+la vignette, quelle que soit la largeur de la colonne, et « 10 » se resserre
+sans pousser sa carte.
+
+**L'évolution du Top 10** — « ▲ 2 », « ▼ 1 », « = », « Nouveau » — se lit
+désormais **juste à droite du pseudo**, sur sa ligne ; elle était sous le
+chiffre, dans la marge. **Le compte** à côté de « Vos chaînes suivies en
+direct » est retiré.
+
+Deux libellés nouveaux dans les dix langues de `content.js` : « Afficher tout »
+et « Afficher moins ». Cinq retirés avec le choix de la tête, un avec le
+cadenas.
+
+### Les textes
+
+- **Le mode d'emploi**, dans les douze langues : le héros (sur toute la
+  largeur, l'image puis le direct muet et sans publicité, ses couleurs), la
+  place de l'évolution, une puce pour « Afficher tout » — qu'il cite au mot
+  près, comme la page l'écrit —, la règle du bouton. La phrase sur le choix en
+  haut à droite du bandeau est retirée.
+- **Les réglages** : « Vidéo de votre chaîne n°1 », et les descriptions de « En
+  tête de l'accueil » et de « Depuis le début » ; « vingt-neuf réglages » dans
+  la phrase de remise à zéro.
+- **Les fiches du Store**, dans les douze langues : la tête de l'accueil, le
+  bouton, le compte des réglages, et la **portée de l'anti-pub**. La fiche
+  promettait qu'il « s'applique à la vignette d'aperçu au survol, et à rien
+  d'autre » ; il s'applique désormais aussi à la vidéo de votre chaîne n°1 en
+  tête de l'accueil, et la fiche le dit. Le stream que vous regardez vraiment
+  n'est toujours pas touché.
+
+### Le banc
+
+- **216 c)** : la vidéo d'un lecteur sans pont se dévoile par le filet, après
+  son chargement.
+- **216 i)** : le panneau mesuré à 1600 et à 2560 px — la largeur de la
+  colonne, la hauteur due, la vidéo à droite à son format, le fond en miroir,
+  le texte avant la vidéo, plus de choix de la tête.
+- **216 j) à l)** : la vidéo dans un faux lecteur servi à la vraie origine, avec
+  l'anti-pub et le pont, et une vraie vidéo rouge à gauche, bleue à droite —
+  le nom, l'adresse, l'invisibilité avant la première image, l'anti-pub actif
+  dans la frame, l'ambiance relevée et posée en miroir, sans couture, vérifiée
+  au pixel ; une image hors bornes écartée, celle d'un autre lecteur ignorée ;
+  l'onglet caché, le héros sorti de l'écran, le réglage coupé ;
+  l'interstitielle qui ne se lève pas.
+- **217 a), d), h), i)** : plus de compte ; l'évolution sur la ligne du nom ; le
+  Top 10 en une rangée de places entières, déplié, replié, à 1100 et 2560 px ;
+  le rayon des suivies, un seul filet entre deux rayons, un pied sans bouton.
+- **218** : pas de bouton pour une archive réservée sans abonnement, ni pour un
+  jeton illisible ; le bouton pour un abonné.
+- **96, 117, 120** : le guide cite « Afficher tout » ; vingt-neuf réglages dans
+  les douze langues, la ligne de la vidéo grisée avec les autres.
+
+**Vingt-six mutants nommés, tous pris.**
+
+| mutant | ce qui tombe |
+| --- | --- |
+| le lecteur sans le nom de l'aperçu | 216 j) : le nom, l'anti-pub, la première image, l'ambiance |
+| la vidéo dévoilée dès sa pose | 216 c), j) : l'image d'abord |
+| l'ambiance jamais demandée | 216 j) : l'ambiance |
+| le miroir oublié | 216 j) : la couture, au pixel |
+| les bornes de l'ambiance ôtées | 216 j) : l'image hors bornes |
+| la source de l'ambiance non vérifiée | 216 j) : l'image d'un autre lecteur |
+| l'onglet caché ignoré | 216 k) : l'onglet caché |
+| le guetteur jamais posé | 216 k) : le héros hors de l'écran |
+| le réglage de la vidéo ignoré | 216 k) : le réglage coupé |
+| la modale ignorée | 216 l) : l'interstitielle |
+| le lecteur raté reposé aussitôt | 216 l) : l'interstitielle |
+| le filet de la vidéo ôté | 216 c) : le lecteur sans pont |
+| l'ancien format rendu au cadre | 216 i) : à 2560, le cadre retombe à 1 584 px — le défaut signalé, reproduit |
+| la vidéo étirée sur toute la largeur | 216 i) : le format 16:9 |
+| le fond sans miroir | 216 i) : le reflet |
+| la ligne qui défile | 217 h) : six places coupées au bord |
+| rien ne se replie | 217 h) : une rangée |
+| « Afficher tout » qui ne déplie rien | 217 h), i) : le dépliage |
+| le libellé qui ne change pas | 217 h), i) : « Afficher moins » |
+| deux filets entre deux rayons | 217 i) : un seul filet |
+| le chiffre à hauteur fixe | 217 h) : la hauteur de la vignette |
+| le compte remis | 217 a) : pas de compte |
+| l'évolution hors de la ligne du nom | 217 d) : juste à droite du nom |
+| un bouton pour une archive réservée | 218 : sans abonnement |
+| le jeton illisible pris pour une archive ouverte | 218 : le jeton illisible |
+| l'abonnement ignoré | 218 : l'abonné |
+
+Le banc complet : 2144 assertions dans 218 scénarios, toutes vertes.
+
 ## Le héros de l'accueil, refait d'après la maquette (v4.26.0.1)
 
 La demande, une capture de la page réelle à l'appui : « Je ne suis pas
@@ -22729,7 +22931,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | les six fichiers JavaScript livrés — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 218 scénarios, 2121 assertions |
+| `npm test` | le harnais Playwright : 218 scénarios, 2144 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -22750,13 +22952,13 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1964 Ko | 865 Ko | 4 427 → **2** |
-| `cadres.js` | 66 Ko | 30 Ko | 158 → **0** |
+| `content.js` | 1978 Ko | 872 Ko | 4 457 → **2** |
+| `cadres.js` | 68 Ko | 31 Ko | 160 → **0** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
 | `panneau.js` | 161 Ko | 82 Ko | 223 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 26 → **0** |
 | `background.js` | 10 Ko | 2 Ko | 22 → **0** |
-| **les six** | **2341 Ko** | **1083 Ko** | **−54 %** |
+| **les six** | **2357 Ko** | **1091 Ko** | **−54 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
