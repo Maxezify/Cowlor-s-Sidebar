@@ -38542,7 +38542,8 @@ async function ouvrirAccueil({ decor = {}, options = null, visites = null, abos 
       if (c.options) localStorage.setItem('tse:options', JSON.stringify(c.options));
       if (c.visites) localStorage.setItem('tse:visits', JSON.stringify(Object.fromEntries(
         Object.entries(c.visites).map(([l, h]) => [l, h.map((x) => n - x * 3600e3)]))));
-      if (c.abos) localStorage.setItem('tse:subs', JSON.stringify(Object.fromEntries(c.abos.map((l) => [l, [1, n]]))));
+      if (c.abos) localStorage.setItem('tse:subs', JSON.stringify(Object.fromEntries((Array.isArray(c.abos)
+        ? c.abos.map((l) => [l, 0]) : Object.entries(c.abos)).map(([l, m]) => [l, m ? [1, n, m] : [1, n]]))));
     } catch { /* stockage refusé */ }
     window.__accueil = c.decor; })();`;
   const page = await freshTwitch('<!doctype html><html><body>x</body></html>', [], chemin, init);
@@ -38672,6 +38673,45 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
   ok('sans repère du contenu, la section suit le carrousel', gp === 'front-page-carousel' && rg.ancre === 'carrousel',
      JSON.stringify({ avant: gp, ancre: rg.ancre }));
   await sansContenu.close();
+
+  /* h) LA LANGUE DE TWITCH ARRIVE APRÈS LA SECTION : elle se réécrit entière.
+     SIGNALÉ, CAPTURE À L'APPUI : un accueil français portait « Your followed
+     channels, live » au-dessus d'un héros qui disait « Votre chaîne n°1 en
+     direct ». La section était écrite avant que la langue ne soit établie
+     (cf. refreshLanguage) ; ses titres ne suivaient pas, le héros si —
+     reconstruit. Ici, Twitch passe à l'allemand sous nos yeux, puis revient.
+     Mutant — la section qui ne se réécrit pas — : le titre reste français. */
+  const langue = await ouvrirAccueil({ visites: { korbek: [1] } });
+  await plateauAccueil(langue);
+  await attendre(langue, () => !!document.querySelector('#tse-accueil .tse-acc-heros:not([hidden])')
+    && !document.querySelector('#tse-accueil .tse-acc-rayon--suivis').hidden, 6000);
+  const lireLangue = () => langue.evaluate(() => {
+    const s = document.getElementById('tse-accueil');
+    return { aria: s.getAttribute('aria-label'), suivis: s.querySelector('.tse-acc-rayon--suivis .tse-acc-titre span').textContent,
+             surtitre: s.querySelector('.tse-acc-surtitre')?.textContent, direct: s.querySelector('.tse-acc-carte .tse-acc-direct')?.textContent,
+             avant: s.nextElementSibling === document.querySelector('[data-a-target="front-page-main-content"]'),
+             relangues: window.tse.accueil.rapport().relangues };
+  });
+  const fr = await lireLangue();
+  await langue.evaluate(() => {
+    document.documentElement.lang = 'de';
+    document.querySelector('[aria-label="Chaînes suivies"]').setAttribute('aria-label', 'Kanäle, denen du folgst');
+  });
+  await attendre(langue, () => document.querySelector('#tse-accueil .tse-acc-rayon--suivis .tse-acc-titre span')?.textContent
+    === 'Deine gefolgten Kanäle, live', 8000);
+  const de = await lireLangue();
+  ok('Twitch change de langue : la section se réécrit entière dans la nouvelle, à sa place',
+     fr.suivis === 'Vos chaînes suivies en direct' && de.suivis === 'Deine gefolgten Kanäle, live'
+     && de.surtitre === 'Dein Kanal Nr. 1, live' && de.aria === 'Ergänzungen von Cowlor\'s Sidebar auf der Startseite' && de.avant
+     && de.relangues === fr.relangues + 1, JSON.stringify({ fr, de }));
+  await langue.evaluate(() => {
+    document.documentElement.lang = 'fr';
+    document.querySelector('[aria-label="Kanäle, denen du folgst"]').setAttribute('aria-label', 'Chaînes suivies');
+  });
+  await attendre(langue, () => document.querySelector('#tse-accueil .tse-acc-rayon--suivis .tse-acc-titre span')?.textContent
+    === 'Vos chaînes suivies en direct', 8000);
+  ok('…et revient au français avec elle', (await lireLangue()).surtitre === 'Votre chaîne n°1 en direct');
+  await langue.close();
 }
 
 {
@@ -38689,11 +38729,13 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
              surtitre: h?.querySelector('.tse-acc-surtitre')?.textContent,
              image: h?.querySelector('.tse-acc-heros-image img')?.getAttribute('src') || '',
              carrousel: car ? getComputedStyle(car).display : 'absent', lit: !window.__accueilVideo.paused,
-             pauses: window.__accueilPauses || 0 };
+             pauses: window.__accueilPauses || 0, abo: !!h && !h.querySelector('.tse-acc-heros-abo')?.hidden };
   });
   const v1 = await vue();
+  /* Aucun abonnement connu ici : pas de pastille d'ancienneté (cf. i).
+     Mutant — la pastille posée sans ancienneté connue. */
   ok('en tête : la chaîne suivie que vous regardez le plus, pas la plus regardée de Twitch',
-     v1.heros === 'korbek' && v1.nom === 'Korbek' && v1.surtitre === 'Votre chaîne n°1 en direct', JSON.stringify(v1));
+     v1.heros === 'korbek' && v1.nom === 'Korbek' && v1.surtitre === 'Votre chaîne n°1 en direct' && !v1.abo, JSON.stringify(v1));
   /* Le carrousel MASQUÉ ET ARRÊTÉ : la publicité « headliner » qu'il porte
      part avec lui. Mutant — masquer sans `pause()` — : la vidéo joue cachée. */
   ok('le carrousel de Twitch est masqué, et sa vidéo arrêtée', v1.carrousel === 'none' && !v1.lit && v1.pauses >= 1,
@@ -38764,6 +38806,73 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
   ok('sans preuve de forme : la voie dit « introuvable », rien n\'est masqué, la vidéo joue',
      rm.carrousel.voie === 'introuvable' && !vm.masque && vm.lit, JSON.stringify({ voie: rm.carrousel.voie, ...vm }));
   await maigre.close();
+
+  /* i) LE PANNEAU DE LA MAQUETTE (4.26.0.1). La première version — une
+     vignette à gauche, une colonne de texte à droite, dans une boîte — a été
+     jugée « un peu moche, pas ressemblante aux maquettes ». Ce que la
+     maquette dessine, et que la page doit tenir : l'image du direct à droite,
+     à hauteur du panneau et à son format (rien de rogné), le même direct
+     flouté derrière tout le cadre, le texte à gauche, blanc. Mutant —
+     l'image étirée sur toute la largeur — : un 16:9 dans un bandeau près de
+     quatre fois plus large que haut. */
+  const pano = await ouvrirAccueil({ visites: { korbek: [1, 3] }, abos: { korbek: 14 } });
+  await plateauAccueil(pano, { top: ['zephyr', 'aldric', 'korbek', 'mirelle', 'tavor', 'solenne', 'brune', 'ildor', 'quill', 'ombre', 'faelan'] });
+  await attendre(pano, () => !!document.querySelector('#tse-accueil .tse-acc-heros:not([hidden]) .tse-acc-heros-rang:not([hidden])'), 10_000);
+  const geo = await pano.evaluate(() => {
+    const q = (sel) => document.querySelector('#tse-accueil ' + sel);
+    const h = q('.tse-acc-heros').getBoundingClientRect(), i = q('.tse-acc-heros-image').getBoundingClientRect();
+    const t = q('.tse-acc-heros-infos').getBoundingClientRect();
+    const fond = q('.tse-acc-heros-fond img'), img = q('.tse-acc-heros-image img');
+    return { l: Math.round(h.width), h: Math.round(h.height), il: Math.round(i.width), ih: Math.round(i.height),
+             droite: Math.round(h.right - i.right), haut: Math.round(i.top - h.top), texte: Math.round(t.left - h.left),
+             texteFin: Math.round(t.right - h.left), memeImage: !!fond && fond.getAttribute('src') === img.getAttribute('src'),
+             flou: fond ? getComputedStyle(fond).filter : '', nom: getComputedStyle(q('.tse-acc-heros-nom')).color };
+  });
+  ok('le panneau plein cadre : l\'image du direct à droite, à hauteur du panneau et à son format 16:9',
+     geo.ih === geo.h && Math.abs(geo.il - geo.ih * 16 / 9) <= 2 && geo.droite === 0 && geo.haut === 0 && geo.il < geo.l,
+     JSON.stringify(geo));
+  ok('…le même direct, flouté, derrière tout le cadre ; le texte à gauche, en blanc, avant l\'image',
+     geo.memeImage && /blur\(/.test(geo.flou) && geo.texte === 36 && geo.texteFin <= geo.l - geo.il + 60 && geo.nom === 'rgb(255, 255, 255)',
+     JSON.stringify(geo));
+  /* CE QUE DIT LA LIGNE DU DESSOUS : la catégorie, l'audience, depuis quand,
+     et la place au Top 10 — que le classement exact de l'accueil donne, ici
+     la troisième. Mutant — la place lue avant que le Top 10 ne soit peint —
+     ne change rien qu'on voie : on éprouve la place, pas l'ordre. */
+  const ligne = await pano.evaluate(() => ({
+    meta: [...document.querySelectorAll('#tse-accueil .tse-acc-heros-meta > span')].map((x) => (x.hidden ? null : x.textContent)),
+    l1: [...document.querySelectorAll('#tse-accueil .tse-acc-heros-l1 > span')].map((x) => x.textContent),
+    abo: (() => { const a = document.querySelector('#tse-accueil .tse-acc-heros-abo'); return a.hidden ? null : a.textContent; })(),
+  }));
+  ok('…la ligne du direct, la catégorie dans la langue de Twitch : « Discussions · 2,3 k spectateurs · en direct depuis 42m · N°3 du Top 10 »',
+     ligne.meta[0] === 'Discussions' && nz(ligne.meta[1] || '') === '2,3 k spectateurs'
+     && /^en direct depuis 4\dm$/.test(ligne.meta[2] || '') && ligne.meta[3] === 'N°3 du Top 10'
+     && JSON.stringify(ligne.l1) === '["Live","Votre chaîne n°1 en direct"]', JSON.stringify(ligne));
+  /* L'ANCIENNETÉ D'ABONNEMENT, connue, dans l'or de l'aperçu ; et elle suit
+     le réglage du badge d'abonnement. Mutant — la règle CSS du badge
+     éteint oubliée — : la pastille reste quand le badge est coupé. */
+  const sansBadge = await pano.evaluate(async () => {
+    window.tse.options.poser('badges', ['sub']);
+    await new Promise((r) => setTimeout(r, 50));
+    return getComputedStyle(document.querySelector('#tse-accueil .tse-acc-heros-abo')).display;
+  });
+  await pano.evaluate(() => window.tse.options.poser('badges', []));
+  ok('…l\'ancienneté d\'abonnement, « Abonné • 14 MOIS », qui suit le réglage du badge d\'abonnement',
+     ligne.abo === 'Abonné • 14 MOIS' && sansBadge === 'none', JSON.stringify({ abo: ligne.abo, sansBadge }));
+  /* LE CHOIX DE LA TÊTE, SOUS LA MAIN : le réglage « En tête de l'accueil »
+     lui-même. Un clic sur « Carrousel de Twitch » rend le carrousel et le
+     panneau des réglages le lit. Mutant — le bouton qui ne pose rien. */
+  const choix = await pano.evaluate(() => [...document.querySelectorAll('#tse-accueil .tse-acc-heros-choix .tse-acc-seg-btn')]
+    .map((b) => [b.textContent, b.getAttribute('aria-pressed')]));
+  await pano.click('#tse-accueil .tse-acc-seg-btn[data-tse-tete="twitch"]');
+  await attendre(pano, () => getComputedStyle(document.querySelector('[data-a-target="front-page-carousel"]')).display !== 'none'
+    && document.querySelector('#tse-accueil .tse-acc-heros').hidden, 4000);
+  const apres = await pano.evaluate(() => ({ tete: window.tse.options().accueilTete,
+    carrousel: getComputedStyle(document.querySelector('[data-a-target="front-page-carousel"]')).display,
+    heros: document.querySelector('#tse-accueil .tse-acc-heros').hidden }));
+  ok('…et en haut à droite, le choix de la tête : un clic sur « Carrousel de Twitch » pose le réglage et rend le carrousel',
+     JSON.stringify(choix) === '[["Votre chaîne n°1","true"],["Carrousel de Twitch","false"],["Rien","false"]]'
+     && apres.tete === 'twitch' && apres.carrousel !== 'none' && apres.heros, JSON.stringify({ choix, apres }));
+  await pano.close();
 }
 
 {

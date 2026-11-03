@@ -2183,6 +2183,98 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## Le héros de l'accueil, refait d'après la maquette (v4.26.0.1)
+
+La demande, une capture de la page réelle à l'appui : « Je ne suis pas
+satisfait du Hero. C'est un peu moche c'est pas ressemblant aux maquette.
+Fais un travail plus beau design et soigné s'il te plait. Soit rigoureux. »
+Publiée sur `claude/chrome-homepage` et `claude/firefox-homepage` seulement.
+
+### Ce que montrait la capture
+
+Une vignette du direct à gauche, aux deux tiers ; à droite, une colonne de
+texte de quatorze pixels perdue dans le vide ; le tout dans une boîte grise.
+La maquette, elle, dessinait un **panneau plein cadre** : la scène tient tout
+le bandeau, un voile la fond dans le noir à gauche, et le texte se pose
+dessus — un nom de quarante pixels, le titre du direct, une ligne de
+contexte, de vrais boutons.
+
+La capture montrait aussi un défaut qui n'avait rien à voir avec le dessin :
+**« Your followed channels, live »** au-dessus d'un héros qui disait « Votre
+chaîne n°1 en direct ». Voir plus bas.
+
+### Le panneau
+
+| couche | ce qu'elle fait |
+| --- | --- |
+| le fond | l'image du direct, floutée (36 px), assombrie, sur tout le cadre |
+| l'image | le direct à droite, **à son format** : 16:9, à hauteur du panneau — rogner un 16:9 dans un bandeau près de quatre fois plus large que haut aurait coupé la moitié de la scène, et la caméra avec ; son bord gauche se fond dans le fond, sans arête |
+| le voile | un dégradé de la gauche, où se lit le texte, et un du bas, où s'assoient les boutons ; il ne prend pas les clics |
+| le texte | à gauche, centré dans la hauteur, blanc |
+
+Le panneau fait la largeur des rayons et de 300 à 440 px de haut selon elle
+(18:5). Sous 1 200 px de fenêtre, l'image prend tout le cadre et le voile se
+renforce. Il est **sombre dans les deux thèmes** : c'est une image, et son
+texte est blanc sur elle.
+
+Ce qu'il dit, de haut en bas, et tout ce qu'il dit est su :
+
+- « LIVE », puis « Votre chaîne n°1 en direct » ;
+- l'avatar, le nom en 40 px, et **l'ancienneté d'abonnement** quand
+  l'extension la connaît — « Abonné • 14 MOIS », dans l'or de l'aperçu, la
+  même chaîne et la même règle ; elle suit le réglage du badge d'abonnement ;
+- le titre du direct, sur deux lignes au plus ;
+- **une ligne de contexte** : la catégorie (dans la langue de Twitch),
+  l'audience, « en direct depuis 3h05 » (qui suit « Durée du direct »), et
+  **la place au Top 10** — « N°3 du Top 10 » — quand le classement exact de
+  l'accueil la donne ;
+- « Regarder » et « Depuis le début », en boutons de 36 px.
+
+En haut à droite, **le choix de la tête** : « Votre chaîne n°1 · Carrousel
+de Twitch · Rien ». C'est le réglage « En tête de l'accueil » lui-même, pas
+une copie : un clic le pose, le carrousel revient, et le panneau des
+réglages le lit. Son infobulle dit qu'il se règle aussi dans les réglages —
+le choix disparaît avec le héros, il faut savoir où le retrouver. Le mode
+d'emploi le dit aussi, dans les douze langues.
+
+Sept libellés nouveaux, dans les dix langues de `content.js`.
+
+### Une section écrite avant la langue
+
+Twitch ne dit pas toujours sa langue au premier instant ; l'extension la
+relit à chaque balayage (`refreshLanguage`). La section de l'accueil, elle,
+était écrite une fois : née avant que la langue soit établie, elle gardait
+ses titres en anglais, quand le héros — reconstruit à chaque changement de
+chaîne — parlait déjà français. Elle porte désormais la langue dans laquelle
+elle a été écrite, et **se réécrit entière** quand celle de l'extension
+change. C'est rare, et c'est la seule façon de n'oublier aucun libellé.
+
+### Le banc
+
+- **216 i)** : le panneau plein cadre mesuré — l'image à hauteur du panneau,
+  à droite, à 16:9 ; le même direct flouté derrière ; le texte à 36 px du
+  bord, blanc, avant l'image ; la ligne de contexte entière (« Discussions ·
+  2,3 k spectateurs · en direct depuis 42m · N°3 du Top 10 ») ; l'ancienneté,
+  et sa disparition quand le badge d'abonnement est coupé ; le choix de la
+  tête, cliqué. **216 a)** : pas de pastille sans ancienneté connue.
+- **215 h)** : Twitch passe à l'allemand sous nos yeux — la section se
+  réécrit, à sa place, et revient au français avec lui.
+- **96** : le chapitre de l'accueil cite toujours ses libellés au mot près.
+
+**Sept mutants nommés, tous pris.**
+
+| mutant | ce qui tombe |
+| --- | --- |
+| la section qui ne se réécrit pas | 215 : la langue change |
+| la place au Top 10 jamais notée | 216 : la ligne de contexte |
+| la pastille posée sans ancienneté connue | 216 : le héros sans abonnement |
+| le bouton du choix qui ne pose rien | 216 : le choix de la tête |
+| l'image étirée sur toute la largeur | 216 : le panneau plein cadre |
+| la pastille ignore le badge éteint | 216 : l'ancienneté |
+| pas de fond flouté | 216 : le même direct derrière |
+
+Le banc complet : 2121 assertions dans 218 scénarios, toutes vertes.
+
 ## La page d'accueil de Twitch, enrichie (v4.26.0)
 
 La demande : « Commence le grand chantier de la Home page seulement sur ces
@@ -22637,7 +22729,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | les six fichiers JavaScript livrés — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 218 scénarios, 2114 assertions |
+| `npm test` | le harnais Playwright : 218 scénarios, 2121 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -22658,13 +22750,13 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1951 Ko | 855 Ko | 4 423 → **2** |
+| `content.js` | 1964 Ko | 865 Ko | 4 427 → **2** |
 | `cadres.js` | 66 Ko | 30 Ko | 158 → **0** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
 | `panneau.js` | 161 Ko | 82 Ko | 223 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 26 → **0** |
 | `background.js` | 10 Ko | 2 Ko | 22 → **0** |
-| **les six** | **2328 Ko** | **1072 Ko** | **−54 %** |
+| **les six** | **2341 Ko** | **1083 Ko** | **−54 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se

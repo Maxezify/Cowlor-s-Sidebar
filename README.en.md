@@ -2064,6 +2064,96 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The home page hero, redone after the mock-up (v4.26.0.1)
+
+The request, with a screenshot of the real page: "I'm not satisfied with the
+Hero. It's a bit ugly, it doesn't look like the mock-ups. Please make a
+nicer, more polished design. Be rigorous." Published on
+`claude/chrome-homepage` and `claude/firefox-homepage` only.
+
+### What the screenshot showed
+
+A stream thumbnail on the left, two thirds wide; on the right, a column of
+fourteen-pixel text lost in empty space; all of it in a grey box. The
+mock-up drew a **full-bleed panel**: the scene fills the banner, a veil
+fades it into black on the left, and the text sits on top — a forty-pixel
+name, the stream title, a line of context, real buttons.
+
+The screenshot also showed a fault that had nothing to do with the drawing:
+**"Your followed channels, live"** above a hero that said "Votre chaîne n°1
+en direct". See below.
+
+### The panel
+
+| layer | what it does |
+| --- | --- |
+| the backdrop | the stream picture, blurred (36 px), darkened, across the whole frame |
+| the picture | the stream on the right, **at its own format**: 16:9, the panel's height — cropping a 16:9 frame into a banner almost four times wider than tall would have cut half the scene, and the webcam with it; its left edge melts into the backdrop, with no seam |
+| the veil | a gradient from the left, where the text is read, and one from the bottom, where the buttons sit; it takes no clicks |
+| the text | on the left, vertically centred, white |
+
+The panel is as wide as the rows and 300 to 440 px tall depending on that
+width (18:5). Below a 1,200 px window, the picture fills the frame and the
+veil gets stronger. It is **dark in both themes**: it is a picture, and its
+text is white on it.
+
+What it says, top to bottom, and everything it says is known:
+
+- "LIVE", then "Your #1 channel, live";
+- the avatar, the 40 px name, and **the subscription tenure** when the
+  extension knows it — "Subscribed • 14 MONTHS", in the preview's gold, the
+  same string and the same rule; it follows the subscription badge setting;
+- the stream title, on two lines at most;
+- **a line of context**: the category (in Twitch's language), the audience,
+  "live for 3h05" (which follows "Stream uptime"), and **the place in the
+  Top 10** — "#3 in the Top 10" — when the home page's exact ranking gives it;
+- "Watch" and "From the start", as 36 px buttons.
+
+At the top right, **the choice of what leads**: "Your #1 channel · Twitch's
+carousel · Nothing". It is the "Top of the home page" setting itself, not a
+copy: a click sets it, the carousel comes back, and the settings panel reads
+it. Its tooltip says it is also in the settings — the choice disappears with
+the hero, so you need to know where to find it again. The guide says so
+too, in the twelve languages.
+
+Seven new labels, in the ten languages of `content.js`.
+
+### A section written before the language
+
+Twitch doesn't always say its language in the first instant; the extension
+rereads it at every scan (`refreshLanguage`). The home page section was
+written once: born before the language was settled, it kept its headings in
+English, while the hero — rebuilt at every change of channel — already spoke
+French. It now carries the language it was written in, and **rewrites itself
+entirely** when the extension's changes. It is rare, and it is the only way
+not to forget a label.
+
+### The bench
+
+- **216 i)**: the full-bleed panel measured — the picture at the panel's
+  height, on the right, at 16:9; the same stream blurred behind; the text
+  36 px from the edge, white, before the picture; the whole line of context
+  ("Discussions · 2,3 k spectateurs · en direct depuis 42m · N°3 du Top 10");
+  the tenure, and its disappearance when the subscription badge is off; the
+  lead choice, clicked. **216 a)**: no pill without a known tenure.
+- **215 h)**: Twitch switches to German before our eyes — the section
+  rewrites itself, in its place, and returns to French with it.
+- **96**: the home page chapter still quotes its labels word for word.
+
+**Seven named mutants, all caught.**
+
+| mutant | what falls |
+| --- | --- |
+| the section that doesn't rewrite itself | 215: the language changes |
+| the Top 10 place never noted | 216: the line of context |
+| the pill shown without a known tenure | 216: the hero without a subscription |
+| the choice button that sets nothing | 216: the lead choice |
+| the picture stretched across the width | 216: the full-bleed panel |
+| the pill ignores the badge being off | 216: the tenure |
+| no blurred backdrop | 216: the same stream behind |
+
+The full bench: 2121 assertions in 218 scenarios, all green.
+
 ## Twitch's home page, enhanced (v4.26.0)
 
 The request: "Start the big Home page project, only on these branches. Start
@@ -21975,7 +22065,7 @@ Four independent checks:
 | `npm run lint` | the six shipped JavaScript files — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 218 scenarios, 2114 assertions |
+| `npm test` | the Playwright harness: 218 scenarios, 2121 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -21995,13 +22085,13 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1951 KB | 855 KB | 4,423 → **2** |
+| `content.js` | 1964 KB | 865 KB | 4,427 → **2** |
 | `cadres.js` | 66 KB | 30 KB | 158 → **0** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
 | `panneau.js` | 161 KB | 82 KB | 223 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 26 → **0** |
 | `background.js` | 10 KB | 2 KB | 22 → **0** |
-| **all six** | **2328 KB** | **1072 KB** | **−54 %** |
+| **all six** | **2341 KB** | **1083 KB** | **−54 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are
