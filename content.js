@@ -508,6 +508,13 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccVide:                 'Aucune chaîne à classer pour l\'instant',
       uiAccAvec:                 (f) => `avec ${f}`,
       uiAccPlace:                (n, nom) => `Place ${n} : ${nom}`,
+      uiAccDepuis:               (d) => `en direct depuis ${d}`,
+      uiAccRang:                 (n) => `N°${n} du Top 10`,
+      uiAccTeteChoix:            'En tête :',
+      uiAccTeteHeros:            'Votre chaîne n°1',
+      uiAccTeteTwitch:           'Carrousel de Twitch',
+      uiAccTeteRien:             'Rien',
+      uiAccTeteAide:             'Se règle aussi dans les réglages de l\'extension',
       /* L'ÉTAT DU CALAGE DANS L'EN-TÊTE (4.25.0.11, cf. etatCalage). `e` : la
          cause, `x`/`m` les calculs du son reçus sur ceux qu'il faut, `s` un
          écart en secondes déjà écrit à la locale, `avance` son sens, `el`/`tot`
@@ -741,6 +748,13 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccVide:                 'No channel to rank right now',
       uiAccAvec:                 (f) => `with ${f}`,
       uiAccPlace:                (n, nom) => `Rank ${n}: ${nom}`,
+      uiAccDepuis:               (d) => `live for ${d}`,
+      uiAccRang:                 (n) => `#${n} in the Top 10`,
+      uiAccTeteChoix:            'On top:',
+      uiAccTeteHeros:            'Your #1 channel',
+      uiAccTeteTwitch:           'Twitch\'s carousel',
+      uiAccTeteRien:             'Nothing',
+      uiAccTeteAide:             'Also in the extension\'s settings',
       uiCalCoupe:                'Alignment turned off in settings',
       uiCalIndispo:              'Alignment unavailable: this browser cannot capture the sound',
       uiCalArrete:               'Alignment stopped',
@@ -949,6 +963,13 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccVide:                 'Gerade kein Kanal einzuordnen',
       uiAccAvec:                 (f) => `mit ${f}`,
       uiAccPlace:                (n, nom) => `Platz ${n}: ${nom}`,
+      uiAccDepuis:               (d) => `seit ${d} live`,
+      uiAccRang:                 (n) => `Platz ${n} der Top 10`,
+      uiAccTeteChoix:            'Oben:',
+      uiAccTeteHeros:            'Dein Kanal Nr. 1',
+      uiAccTeteTwitch:           'Karussell von Twitch',
+      uiAccTeteRien:             'Nichts',
+      uiAccTeteAide:             'Auch in den Einstellungen der Erweiterung',
       uiCalCoupe:                'Ausrichtung in den Einstellungen ausgeschaltet',
       uiCalIndispo:              'Ausrichtung nicht verfügbar: Dieser Browser kann den Ton nicht abgreifen',
       uiCalArrete:               'Ausrichtung gestoppt',
@@ -1157,6 +1178,13 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccVide:                 'Ningún canal que clasificar por ahora',
       uiAccAvec:                 (f) => `con ${f}`,
       uiAccPlace:                (n, nom) => `Puesto ${n}: ${nom}`,
+      uiAccDepuis:               (d) => `en directo desde hace ${d}`,
+      uiAccRang:                 (n) => `N.º ${n} del Top 10`,
+      uiAccTeteChoix:            'Arriba:',
+      uiAccTeteHeros:            'Tu canal n.º 1',
+      uiAccTeteTwitch:           'Carrusel de Twitch',
+      uiAccTeteRien:             'Nada',
+      uiAccTeteAide:             'También en los ajustes de la extensión',
       uiCalCoupe:                'Alineación desactivada en los ajustes',
       uiCalIndispo:              'Alineación no disponible: este navegador no puede capturar el sonido',
       uiCalArrete:               'Alineación detenida',
@@ -1365,6 +1393,13 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccVide:                 'Nenhum canal para classificar no momento',
       uiAccAvec:                 (f) => `com ${f}`,
       uiAccPlace:                (n, nom) => `Posição ${n}: ${nom}`,
+      uiAccDepuis:               (d) => `ao vivo há ${d}`,
+      uiAccRang:                 (n) => `Nº ${n} do Top 10`,
+      uiAccTeteChoix:            'No topo:',
+      uiAccTeteHeros:            'Seu canal nº 1',
+      uiAccTeteTwitch:           'Carrossel da Twitch',
+      uiAccTeteRien:             'Nada',
+      uiAccTeteAide:             'Também nas configurações da extensão',
       uiCalCoupe:                'Alinhamento desligado nas definições',
       uiCalIndispo:              'Alinhamento indisponível: este navegador não consegue capturar o som',
       uiCalArrete:               'Alinhamento parado',
@@ -1573,6 +1608,13 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccVide:                 'Nessun canale da classificare per ora',
       uiAccAvec:                 (f) => `con ${f}`,
       uiAccPlace:                (n, nom) => `Posizione ${n}: ${nom}`,
+      uiAccDepuis:               (d) => `in diretta da ${d}`,
+      uiAccRang:                 (n) => `N. ${n} della Top 10`,
+      uiAccTeteChoix:            'In cima:',
+      uiAccTeteHeros:            'Il tuo canale n. 1',
+      uiAccTeteTwitch:           'Carosello di Twitch',
+      uiAccTeteRien:             'Niente',
+      uiAccTeteAide:             'Anche nelle impostazioni dell\'estensione',
       uiCalCoupe:                'Allineamento disattivato nelle impostazioni',
       uiCalIndispo:              'Allineamento non disponibile: questo browser non può catturare l\'audio',
       uiCalArrete:               'Allineamento fermato',
@@ -1781,6 +1823,13 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccVide:                 'Na razie brak kanałów do sklasyfikowania',
       uiAccAvec:                 (f) => `razem z ${f}`,
       uiAccPlace:                (n, nom) => `Miejsce ${n}: ${nom}`,
+      uiAccDepuis:               (d) => `na żywo od ${d}`,
+      uiAccRang:                 (n) => `Nr ${n} w Top 10`,
+      uiAccTeteChoix:            'Na górze:',
+      uiAccTeteHeros:            'Twój kanał nr 1',
+      uiAccTeteTwitch:           'Karuzela Twitcha',
+      uiAccTeteRien:             'Nic',
+      uiAccTeteAide:             'Także w ustawieniach rozszerzenia',
       uiCalCoupe:                'Wyrównanie wyłączone w ustawieniach',
       uiCalIndispo:              'Wyrównanie niedostępne: ta przeglądarka nie przechwytuje dźwięku',
       uiCalArrete:               'Wyrównanie zatrzymane',
@@ -1989,6 +2038,13 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccVide:                 'Пока нечего ранжировать',
       uiAccAvec:                 (f) => `вместе с ${f}`,
       uiAccPlace:                (n, nom) => `Место ${n}: ${nom}`,
+      uiAccDepuis:               (d) => `в эфире ${d}`,
+      uiAccRang:                 (n) => `№ ${n} в Топ-10`,
+      uiAccTeteChoix:            'Наверху:',
+      uiAccTeteHeros:            'Ваш канал № 1',
+      uiAccTeteTwitch:           'Карусель Twitch',
+      uiAccTeteRien:             'Ничего',
+      uiAccTeteAide:             'Также в настройках расширения',
       uiCalCoupe:                'Выравнивание отключено в настройках',
       uiCalIndispo:              'Выравнивание недоступно: этот браузер не может захватывать звук',
       uiCalArrete:               'Выравнивание остановлено',
@@ -2197,6 +2253,13 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccVide:                 '現在ランキングできるチャンネルはありません',
       uiAccAvec:                 (f) => `${f} と一緒に`,
       uiAccPlace:                (n, nom) => `${n} 位：${nom}`,
+      uiAccDepuis:               (d) => `配信開始から ${d}`,
+      uiAccRang:                 (n) => `トップ 10 の ${n} 位`,
+      uiAccTeteChoix:            'いちばん上：',
+      uiAccTeteHeros:            'あなたの No.1 チャンネル',
+      uiAccTeteTwitch:           'Twitch のカルーセル',
+      uiAccTeteRien:             'なし',
+      uiAccTeteAide:             '拡張機能の設定でも変更できます',
       uiCalCoupe:                '同期は設定でオフになっています',
       uiCalIndispo:              '同期は使えません：このブラウザは音声を取り込めません',
       uiCalArrete:               '同期を停止しました',
@@ -2403,6 +2466,13 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccVide:                 '目前没有可排名的频道',
       uiAccAvec:                 (f) => `与 ${f} 一起`,
       uiAccPlace:                (n, nom) => `第 ${n} 名：${nom}`,
+      uiAccDepuis:               (d) => `已直播 ${d}`,
+      uiAccRang:                 (n) => `前 10 名中第 ${n} 名`,
+      uiAccTeteChoix:            '顶部：',
+      uiAccTeteHeros:            '你的第 1 频道',
+      uiAccTeteTwitch:           'Twitch 轮播',
+      uiAccTeteRien:             '无',
+      uiAccTeteAide:             '也可在扩展的设置中更改',
       uiCalCoupe:                '对齐已在设置中关闭',
       uiCalIndispo:              '对齐不可用：此浏览器无法捕获声音',
       uiCalArrete:               '对齐已停止',
@@ -8268,7 +8338,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     /* Le carrousel de Twitch, quand on le masque. Sa vidéo est arrêtée à part. */
     .tse-acc-masque { display: none !important; }
     #tse-accueil a:focus-visible { outline: 2px solid #9147ff; outline-offset: 2px; border-radius: 6px; }
-    /* « Afficher la durée » vaut ici comme sur les cartes de la barre. */
+    /* « Durée du direct » vaut ici comme sur les cartes de la barre. */
     html[data-tse-off~="duree"] #tse-accueil .tse-acc-duree,
     html[data-tse-off~="duree"] #tse-accueil .tse-acc-heros-duree { display: none !important; }
 
@@ -8320,42 +8390,135 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     .tse-acc-debut svg, .tse-acc-bouton svg { flex: 0 0 auto; width: 12px; height: 12px; fill: currentColor; }
     .tse-acc-debut--abonnes { color: var(--tse-texte-doux); }
 
-    /* ── Le héros ────────────────────────────────────────────────────── */
+    /* ── Le héros (4.26.0.1 : la mise en page de la maquette) ─────────────
+       Un panneau plein cadre de la largeur des rayons, de 300 à 440 px de
+       haut selon cette largeur. Quatre couches : le fond — l'image du direct,
+       floutée et assombrie, qui tient tout le cadre —, l'image elle-même à
+       droite, à son format, puis le voile qui fond son bord gauche dans le
+       noir, enfin le texte et le choix de la tête. Sombre dans les deux
+       thèmes : le texte est blanc sur l'image, ses couleurs sont donc fixes. */
     .tse-acc-heros {
-      display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 24px; align-items: center;
-      margin: 0 0 6px; padding: 16px; border-radius: 10px;
-      background: linear-gradient(100deg, rgba(145, 71, 255, 0.16), rgba(145, 71, 255, 0) 65%), var(--tse-surface);
+      position: relative; isolation: isolate; overflow: hidden;
+      aspect-ratio: 18 / 5; min-height: 300px; max-height: 440px;
+      margin: 0 0 12px; border-radius: 10px; background: #0e0e10;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+      color: #efeff1;
     }
-    .tse-acc-heros-image { position: relative; display: block; aspect-ratio: 16 / 9; border-radius: 8px; overflow: hidden; background: #000; }
-    .tse-acc-heros-image img { display: block; width: 100%; height: 100%; object-fit: cover; }
-    .tse-acc-heros-infos { min-width: 0; }
-    .tse-acc-surtitre {
-      margin: 0 0 10px; font-size: 12px; font-weight: 700; letter-spacing: 0.06em;
-      text-transform: uppercase; color: var(--tse-violet-texte);
+    .tse-acc-heros-fond { position: absolute; inset: -48px; z-index: 0; pointer-events: none; }
+    .tse-acc-heros-fond img {
+      display: block; width: 100%; height: 100%; object-fit: cover;
+      filter: blur(36px) saturate(1.4) brightness(0.66);
     }
-    .tse-acc-heros-tete { display: flex; align-items: center; gap: 12px; min-width: 0; }
-    .tse-acc-heros-tete .tse-acc-avatar { flex-basis: 56px; width: 56px; height: 56px; }
+    .tse-acc-heros-image {
+      position: absolute; top: 0; right: 0; z-index: 1; height: 100%;
+      display: block; aspect-ratio: 16 / 9; max-width: 100%; overflow: hidden;
+    }
+    /* Son bord gauche se fond dans le fond flouté : pas d'arête entre les
+       deux images, comme sur la maquette où la scène tient tout le cadre. */
+    .tse-acc-heros-image img {
+      display: block; width: 100%; height: 100%; object-fit: cover;
+      -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 26%);
+      mask-image: linear-gradient(90deg, transparent 0, #000 26%);
+      transition: transform 0.4s ease;
+    }
+    .tse-acc-heros-image:hover img { transform: scale(1.025); }
+    /* Le voile : de la gauche, où se lit le texte, vers l'image ; et du bas,
+       où s'assoient les boutons. Il ne prend pas les clics : l'image reste un
+       lien sous lui. */
+    .tse-acc-heros-voile {
+      position: absolute; inset: 0; z-index: 2; pointer-events: none;
+      background:
+        linear-gradient(90deg, rgba(14, 14, 16, 0.94) 0%, rgba(14, 14, 16, 0.8) 30%,
+                        rgba(14, 14, 16, 0.34) 48%, rgba(14, 14, 16, 0.08) 62%, rgba(14, 14, 16, 0) 74%),
+        linear-gradient(0deg, rgba(14, 14, 16, 0.62) 0%, rgba(14, 14, 16, 0) 36%);
+    }
+    .tse-acc-heros-infos {
+      position: absolute; z-index: 3; left: 36px; top: 0; bottom: 0;
+      display: flex; flex-direction: column; justify-content: center;
+      width: min(620px, 52%); min-width: 0; padding: 28px 0;
+    }
+    .tse-acc-heros-l1 {
+      display: flex; align-items: center; gap: 10px; margin: 0;
+      font-size: 13px; font-weight: 500; line-height: 20px; color: rgba(255, 255, 255, 0.74);
+    }
+    .tse-acc-heros-l1 .tse-acc-direct { position: static; font-size: 13px; line-height: 20px; padding: 0 6px; }
+    .tse-acc-surtitre { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tse-acc-heros-tete { display: flex; align-items: center; gap: 14px; min-width: 0; margin: 16px 0 10px; }
+    .tse-acc-heros-tete .tse-acc-avatar {
+      flex: 0 0 56px; width: 56px; height: 56px; background: #26262c;
+      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.14);
+    }
     .tse-acc-heros-nom {
-      min-width: 0; font-size: 28px; font-weight: 700; line-height: 1.15; color: var(--tse-texte);
-      text-decoration: none; overflow-wrap: anywhere;
+      min-width: 0; color: #fff; text-decoration: none;
+      font-size: clamp(28px, 2.5vw, 40px); font-weight: 800; line-height: 1.1; letter-spacing: -0.01em;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      text-shadow: 0 1px 14px rgba(0, 0, 0, 0.35);
     }
-    .tse-acc-heros-nom:hover { color: var(--tse-violet-texte); }
-    .tse-acc-heros-meta { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 12px 0 0; font-size: 14px; color: var(--tse-texte-doux); }
-    .tse-acc-heros-jeu { color: var(--tse-violet-texte); font-weight: 600; }
-    .tse-acc-heros-duree { font-variant-numeric: tabular-nums; }
+    .tse-acc-heros-nom:hover { color: #fff; text-decoration: underline; text-underline-offset: 4px; }
+    /* L'ancienneté d'abonnement, dans l'or de l'aperçu et de la barre. */
+    .tse-acc-heros-abo {
+      flex: 0 0 auto; display: inline-flex; align-items: center; height: 22px; padding: 0 9px;
+      border-radius: 999px; background: rgba(255, 201, 102, 0.22); color: #ffd591;
+      font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; white-space: nowrap;
+    }
+    html[data-tse-off~="badge-sub"] #tse-accueil .tse-acc-heros-abo { display: none !important; }
     .tse-acc-heros-titre {
-      margin: 10px 0 0; font-size: 15px; line-height: 1.4; color: var(--tse-texte); overflow-wrap: anywhere;
-      display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+      margin: 0 0 8px; color: #fff; font-size: 20px; font-weight: 600; line-height: 1.3; overflow-wrap: anywhere;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
     }
-    .tse-acc-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+    .tse-acc-heros-meta {
+      display: flex; flex-wrap: wrap; align-items: baseline; margin: 0 0 18px;
+      font-size: 14px; line-height: 20px; color: rgba(255, 255, 255, 0.74);
+    }
+    .tse-acc-heros-meta > span:not([hidden]) ~ span:not([hidden])::before {
+      content: "·"; margin: 0 8px; color: rgba(255, 255, 255, 0.45);
+    }
+    .tse-acc-heros-jeu { color: #fff; font-weight: 600; }
+    .tse-acc-heros-duree { font-variant-numeric: tabular-nums; }
+    .tse-acc-heros .tse-acc-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; }
     .tse-acc-bouton {
-      display: inline-flex; align-items: center; gap: 7px; height: 34px; margin: 0; padding: 0 14px;
-      border-radius: 6px; font-size: 14px; font-weight: 600; line-height: 34px; text-decoration: none;
+      display: inline-flex; align-items: center; gap: 8px; height: 36px; margin: 0; padding: 0 16px;
+      border-radius: 6px; font-size: 14px; font-weight: 600; line-height: 36px; text-decoration: none; white-space: nowrap;
     }
-    .tse-acc-bouton svg { width: 14px; height: 14px; }
+    .tse-acc-bouton svg { flex: 0 0 auto; width: 16px; height: 16px; fill: currentColor; }
     .tse-acc-bouton--principal { background: #9147ff; color: #fff; }
-    .tse-acc-bouton--principal:hover { background: #772ce8; }
-    @media (max-width: 1100px) { .tse-acc-heros { grid-template-columns: minmax(0, 1fr); } }
+    .tse-acc-bouton--principal:hover { background: #772ce8; color: #fff; }
+    .tse-acc-heros .tse-acc-debut {
+      height: 36px; margin: 0; padding: 0 16px; border-radius: 6px; line-height: 36px; font-size: 14px;
+      background: rgba(255, 255, 255, 0.16); color: #fff;
+      -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+    }
+    .tse-acc-heros .tse-acc-debut:hover { background: rgba(255, 255, 255, 0.24); }
+    .tse-acc-heros .tse-acc-debut--abonnes { color: rgba(255, 255, 255, 0.82); }
+    /* Le choix de la tête : le réglage « En tête de l'accueil », sous la main. */
+    .tse-acc-heros-choix {
+      position: absolute; z-index: 3; top: 16px; right: 18px;
+      display: flex; align-items: center; gap: 8px; padding: 4px 4px 4px 10px;
+      border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 6px;
+      background: rgba(14, 14, 16, 0.78); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+      font-size: 12px; color: rgba(255, 255, 255, 0.7);
+    }
+    .tse-acc-heros-choix-titre { white-space: nowrap; }
+    .tse-acc-seg { display: flex; gap: 2px; padding: 2px; border-radius: 4px; background: rgba(255, 255, 255, 0.08); }
+    .tse-acc-seg-btn {
+      margin: 0; padding: 3px 9px; border: 0; border-radius: 3px; background: transparent; cursor: pointer;
+      font: inherit; font-weight: 600; line-height: 16px; color: rgba(255, 255, 255, 0.72); white-space: nowrap;
+    }
+    .tse-acc-seg-btn:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
+    .tse-acc-seg-btn[aria-pressed="true"] { background: #9147ff; color: #fff; cursor: default; }
+    .tse-acc-seg-btn:focus-visible { outline: 2px solid #bf94ff; outline-offset: 1px; }
+    /* Étroit : l'image prend tout le cadre, le voile se renforce, le texte
+       s'élargit sur lui. */
+    @media (max-width: 1200px) {
+      .tse-acc-heros-image { left: 0; width: 100%; aspect-ratio: auto; }
+      .tse-acc-heros-voile {
+        background:
+          linear-gradient(90deg, rgba(14, 14, 16, 0.95) 0%, rgba(14, 14, 16, 0.82) 45%, rgba(14, 14, 16, 0.25) 80%, rgba(14, 14, 16, 0.1) 100%),
+          linear-gradient(0deg, rgba(14, 14, 16, 0.75) 0%, rgba(14, 14, 16, 0) 45%);
+      }
+      .tse-acc-heros-infos { left: 24px; width: min(560px, 72%); }
+      .tse-acc-heros-choix-titre { display: none; }
+    }
 
     /* ── Le Top 10 ───────────────────────────────────────────────────────
        Le chiffre en creux, à gauche de la vignette qui le recouvre en
@@ -15404,9 +15567,10 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     let refusSuite = 0;
     let debutPause = 0;
     let z = null;                // les zones de la section, une fois construite
+    let rangsTop = null;         // login → place, quand le Top 10 affiché est exact
 
     const bilan = {
-      poses: 0, reposes: 0, retraits: 0, peintures: 0, ancre: null,
+      poses: 0, reposes: 0, retraits: 0, peintures: 0, relangues: 0, ancre: null,
       carrousel: { voie: null, signature: null, masquages: 0, pauses: 0, reprises: 0 },
       heros: { montre: false, sansVisite: false },
       top: { source: null, instantanes: 0 },
@@ -15607,6 +15771,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     const construire = () => {
       section = elt('section');
       section.id = ID;
+      section.dataset.tseLangue = LANG;
       section.setAttribute('aria-label', S.uiAccSection);
       const heros = elt('div', 'tse-acc-heros');
       heros.hidden = true;
@@ -15743,7 +15908,78 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        Celle que vous regardez le plus, et seulement si vous l'avez regardée :
        sans aucune visite comptée, aucune chaîne n'est « la plus regardée »,
        et le carrousel de Twitch garde sa place. L'image se relit à la
-       minute ; rien ne démarre seul. */
+       minute ; rien ne démarre seul.
+
+       LA MISE EN PAGE DE LA MAQUETTE (4.26.0.1). La première version posait
+       une vignette à gauche et une colonne de texte à droite, dans une boîte :
+       « un peu moche, pas ressemblant aux maquettes ». C'est désormais un
+       panneau plein cadre, comme la maquette : l'image du direct à droite, à
+       son format — du 16:9 dans un bandeau près de quatre fois plus large que
+       haut, rogné, aurait coupé la moitié de la scène et la caméra —, le reste
+       du cadre tenu par la même image, floutée et assombrie, un voile en
+       dégradé, et le texte posé à gauche dessus. En haut à droite, le choix
+       de ce qui tient la tête : c'est le réglage « En tête de l'accueil »
+       lui-même, pas une copie.
+
+       Le panneau est sombre dans les deux thèmes : c'est une image, et son
+       texte est blanc sur elle. Ce qu'il dit, il le sait : la catégorie,
+       l'audience et la durée du cache de la barre, l'ancienneté d'abonnement
+       que l'aperçu affiche déjà, la place au Top 10 quand le classement
+       exact de l'accueil la donne. */
+    const TETES = [['heros', 'uiAccTeteHeros'], ['twitch', 'uiAccTeteTwitch'], ['rien', 'uiAccTeteRien']];
+    const fabriquerHeros = (login) => {
+      const fond = elt('div', 'tse-acc-heros-fond');
+      fond.setAttribute('aria-hidden', 'true');
+      const imgFond = elt('img');
+      imgFond.alt = '';
+      imgFond.decoding = 'async';
+      fond.append(imgFond);
+      const image = elt('a', 'tse-acc-heros-image');
+      image.setAttribute('href', '/' + login);
+      const img = elt('img');
+      img.alt = '';
+      img.decoding = 'async';
+      image.append(img);
+      const voile = elt('div', 'tse-acc-heros-voile');
+      voile.setAttribute('aria-hidden', 'true');
+      const choix = elt('div', 'tse-acc-heros-choix');
+      choix.setAttribute('role', 'group');
+      choix.setAttribute('aria-label', S.uiAccTeteChoix);
+      choix.title = S.uiAccTeteAide;
+      const seg = elt('div', 'tse-acc-seg');
+      for (const [v, cle] of TETES) {
+        const b = elt('button', 'tse-acc-seg-btn', S[cle]);
+        b.type = 'button';
+        b.dataset.tseTete = v;
+        b.addEventListener('click', () => { if (options.get('accueilTete') !== v) options.poser('accueilTete', v); });
+        seg.append(b);
+      }
+      choix.append(elt('span', 'tse-acc-heros-choix-titre', S.uiAccTeteChoix), seg);
+      const infos = elt('div', 'tse-acc-heros-infos');
+      const l1 = elt('p', 'tse-acc-heros-l1');
+      l1.append(elt('span', 'tse-acc-direct', S.uiAccDirect), elt('span', 'tse-acc-surtitre', S.uiAccHeros));
+      const tete = elt('div', 'tse-acc-heros-tete');
+      const av = elt('img', 'tse-acc-avatar');
+      av.alt = '';
+      const nom = elt('a', 'tse-acc-heros-nom');
+      nom.setAttribute('href', '/' + login);
+      const abo = elt('span', 'tse-acc-heros-abo');
+      abo.hidden = true;
+      tete.append(av, nom, abo);
+      const titre = elt('p', 'tse-acc-heros-titre');
+      const meta = elt('p', 'tse-acc-heros-meta');
+      meta.append(elt('span', 'tse-acc-heros-jeu'), elt('span', 'tse-acc-heros-spect'),
+                  elt('span', 'tse-acc-heros-duree'), elt('span', 'tse-acc-heros-rang'));
+      const actions = elt('div', 'tse-acc-actions');
+      const regarder = elt('a', 'tse-acc-bouton tse-acc-bouton--principal');
+      regarder.setAttribute('href', '/' + login);
+      regarder.append(noeudStatique(PICTO_LECTURE), elt('span', null, S.uiAccRegarder));
+      const debut = elt('a', 'tse-acc-bouton tse-acc-debut');
+      debut.hidden = true;
+      actions.append(regarder, debut);
+      infos.append(l1, tete, titre, meta, actions);
+      return [fond, image, voile, choix, infos];
+    };
     const peindreHeros = (h) => {
       const zh = z.heros;
       zh.hidden = !h;
@@ -15751,52 +15987,42 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       const d = donneesSuivie(h);
       if (zh.dataset.tseCle !== h.login) {
         zh.dataset.tseCle = h.login;
-        const image = elt('a', 'tse-acc-heros-image');
-        image.setAttribute('href', '/' + h.login);
-        const img = elt('img');
-        img.alt = '';
-        image.append(img, elt('span', 'tse-acc-direct', S.uiAccDirect));
-        const infos = elt('div', 'tse-acc-heros-infos');
-        const tete = elt('div', 'tse-acc-heros-tete');
-        const av = elt('img', 'tse-acc-avatar');
-        av.alt = '';
-        const nom = elt('a', 'tse-acc-heros-nom');
-        nom.setAttribute('href', '/' + h.login);
-        tete.append(av, nom);
-        const meta = elt('p', 'tse-acc-heros-meta');
-        const jeu = elt('span', 'tse-acc-heros-jeu');
-        const spect = elt('span', 'tse-acc-heros-spect');
-        const duree = elt('span', 'tse-acc-heros-duree');
-        meta.append(jeu, spect, duree);
-        const titre = elt('p', 'tse-acc-heros-titre');
-        const actions = elt('div', 'tse-acc-actions');
-        const regarder = elt('a', 'tse-acc-bouton tse-acc-bouton--principal');
-        regarder.setAttribute('href', '/' + h.login);
-        regarder.append(noeudStatique(PICTO_LECTURE), elt('span', null, S.uiAccRegarder));
-        const debut = elt('a', 'tse-acc-bouton tse-acc-debut');
-        debut.hidden = true;
-        actions.append(regarder, debut);
-        infos.append(elt('p', 'tse-acc-surtitre', S.uiAccHeros), tete, meta, titre, actions);
-        zh.replaceChildren(image, infos);
+        zh.replaceChildren(...fabriquerHeros(h.login));
       }
-      const [image, infos] = zh.children;
-      poserImage(image.firstChild, `https://static-cdn.jtvnw.net/previews-ttv/live_user_${h.login}`
-        + `-1280x720.jpg?_=${Math.floor(Date.now() / CFG.ACCUEIL_IMAGE_MS)}`);
+      const [fond, image, , choix, infos] = zh.children;
+      const url = `https://static-cdn.jtvnw.net/previews-ttv/live_user_${h.login}`
+        + `-1280x720.jpg?_=${Math.floor(Date.now() / CFG.ACCUEIL_IMAGE_MS)}`;
+      poserImage(image.firstChild, url);
+      poserImage(fond.firstChild, url);
       attrSi(image, 'aria-label', d.nom);
-      const [, tete, meta, titre, actions] = infos.children;
-      const url = imageSure(d.avatar);
-      tete.firstChild.hidden = !url;
-      if (url) attrSi(tete.firstChild, 'src', url);
-      texteSi(tete.lastChild, d.nom);
-      const [jeu, spect, duree] = meta.children;
+      const tete = options.get('accueilTete');
+      for (const b of choix.querySelectorAll('.tse-acc-seg-btn')) {
+        attrSi(b, 'aria-pressed', String(b.dataset.tseTete === tete));
+      }
+      const [, enTete, titre, meta, actions] = infos.children;
+      const [av, nom, abo] = enTete.children;
+      const avatar = imageSure(d.avatar);
+      av.hidden = !avatar;
+      if (avatar) attrSi(av, 'src', avatar);
+      texteSi(nom, d.nom);
+      /* L'ancienneté que l'aperçu affiche, et seulement connue : un « Abonné »
+         sans durée n'apprendrait rien de plus que l'or de la barre. */
+      const mois = subs.isSub(h.login) ? subs.monthsFor(h.login) : 0;
+      abo.hidden = !(mois > 0);
+      texteSi(abo, mois > 0 ? S.uiBadgeSubMonths(mois) : '');
+      texteSi(titre, d.titre);
+      titre.hidden = !d.titre;
+      attrSi(titre, 'title', d.titre || null);
+      const [jeu, spect, duree, rang] = meta.children;
       texteSi(jeu, d.jeu);
       jeu.hidden = !d.jeu;
       texteSi(spect, Number.isFinite(d.spect) ? S.uiAccSpect(d.spect, formatViewers(d.spect)) : '');
       spect.hidden = !Number.isFinite(d.spect);
-      texteSi(duree, d.debutLive ? formatUptime(d.debutLive) : '');
+      texteSi(duree, d.debutLive ? S.uiAccDepuis(formatUptime(d.debutLive)) : '');
       duree.hidden = !d.debutLive;
-      texteSi(titre, d.titre);
-      titre.hidden = !d.titre;
+      const place = rangsTop && rangsTop.get(h.login);
+      texteSi(rang, place ? S.uiAccRang(place) : '');
+      rang.hidden = !place;
       majDebut(actions.lastChild, h.login, d.nom);
     };
 
@@ -15892,7 +16118,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     const peindreTop = () => {
       const voulu = options.get('accueilTop');
       z.top.hidden = !voulu;
-      if (!voulu) { bilan.top.source = null; return; }
+      if (!voulu) { bilan.top.source = null; rangsTop = null; return; }
       const src = sourceTop();
       bilan.top.source = src === globalChannels ? 'barre' : 'accueil';
       const lang = langueVoulue();
@@ -15908,6 +16134,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       const complet = resolu && src.report().complete;
       if (complet && places.length) noterInstantane(places, cleLang);
       const ref = complet ? reference(cleLang) : null;
+      rangsTop = complet && places.length ? new Map() : null;
+      if (rangsTop) places.forEach((p, i) => { for (const r of [p.tete, ...p.membres]) rangsTop.set(r.login, i + 1); });
       rangee(z.lTop, places.map((p, i) => ({ p, rang: i + 1, ref })),
              (x) => x.p.tete.login, (x) => fabriquerPlace(x.p.tete.login), majPlace);
       const note = !places.length ? (resolu ? S.uiAccVide : S.uiAccAttente)
@@ -16004,6 +16232,18 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        survolée reste la même carte, et son aperçu reste ouvert. */
     const peindre = () => {
       if (!pose() || document.hidden) return;
+      /* LA LANGUE PEUT ARRIVER APRÈS LA SECTION. Twitch ne dit pas toujours la
+         sienne au premier instant (cf. refreshLanguage) ; une section écrite
+         avant gardait ses titres en anglais quand le héros, reconstruit,
+         parlait déjà français — signalé, capture à l'appui. Elle se réécrit
+         donc entière quand la langue change : c'est rare, et c'est la seule
+         façon de n'oublier aucun libellé. */
+      if (section.dataset.tseLangue !== LANG) {
+        const ancienne = section;
+        construire();
+        ancienne.replaceWith(section);
+        bilan.relangues++;
+      }
       bilan.peintures++;
       const tete = options.get('accueilTete');
       const liste = (options.get('accueilSuivis') || tete === 'heros') ? suiviesEnDirect() : [];
@@ -16013,13 +16253,13 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       bilan.heros.sansVisite = tete === 'heros' && !!premier && !heros;
       affiches.clear();
       if (heros) noterAffiche(heros.login, heros.e.stream?.createdAt);
+      peindreTop();                 // avant le héros : il y lit sa place
       peindreHeros(heros);
       gererCarrousel(heros);
       const suivies = options.get('accueilSuivis')
         ? liste.filter((x) => x !== heros).slice(0, CFG.ACCUEIL_SUIVIES_MAX) : [];
       for (const x of suivies) noterAffiche(x.login, x.e.stream?.createdAt);
       peindreSuivies(suivies);
-      peindreTop();
       section.hidden = !heros && z.suivis.hidden && z.top.hidden;
       if (!section.hidden) aligner();
       demanderDebuts();
