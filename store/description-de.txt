@@ -177,7 +177,7 @@ _______________________________
 Ein Zahnrad rechts neben dem Titel der Seitenleiste, ein Klick, und alles, was die Erweiterung gelernt hat, öffnet sich über Twitch. Das Symbol der Erweiterung, oben rechts im Browser, öffnet genau dasselbe Panel.
 
 - ★ ZWEI WEGE, EIN PANEL ★ Das Zahnrad in der Seitenleiste oder das Symbol in der Symbolleiste: dieselbe Seite, in beiden Fällen. Über das Zahnrad geöffnet ist sie größer — ein Symbolleisten-Popup wird vom Browser begrenzt, nicht von uns.
-- ★ EINE ANLEITUNG, GLEICH ZU BEGINN ★ Das Panel öffnet sich mit einer Anleitung in achtzehn Kapiteln über alles, was die Erweiterung hinzufügt, mit gezeichneten Beispielen — und sie erscheint auch ohne offenen Twitch-Tab.
+- ★ EINE ANLEITUNG, GLEICH ZU BEGINN ★ Das Panel öffnet sich mit einer Anleitung in neunzehn Kapiteln über alles, was die Erweiterung hinzufügt, mit gezeichneten Beispielen — und sie erscheint auch ohne offenen Twitch-Tab.
 - ★ IHRE GEWOHNHEITEN, GEZEICHNET ★ Die Stunden, in denen Sie wirklich zusehen, als Raster aus sieben Tagen mal vierundzwanzig Stunden.
 - ★ IHRE ZAHLEN ★ Top-Streamer, erkannte Abos, gemerkte gefolgte Kanäle: alles da, alles lesbar.
 - ★ EIN BERICHT ZUM EINFÜGEN ★ Ein Knopf baut einen vollständigen Diagnosebericht, ohne jede persönliche Liste darin — genug, um ein Problem zu melden, ohne etwas preiszugeben.
@@ -192,6 +192,18 @@ Die Zeitplan-Seite eines Kanals auf Twitch zeigt einen einzigen Kanal. Die Grupp
 - ★ EIN KANAL ODER ALLE ★ Ein Menü behält nur einen, und „Woche zeigen“ springt direkt in die Woche seines letzten Streams.
 - ★ EHRLICH ÜBER DAS, WAS TWITCH BEHÄLT ★ Eine Aufzeichnung gibt es nur, wenn der Kanal seine Streams speichert, und nur so lange, wie Twitch sie aufbewahrt; ein letzter Stream ohne sagt es („Ohne Aufzeichnung“), eine Aufzeichnung, die man nur mit Abo sehen kann, ebenfalls, mit einem Schloss, noch vor dem Klick.
 - ★ NUR, WENN DU HINSIEHST ★ Nichts wird bei Twitch angefragt, bevor du ihn öffnest, und was er gelesen hat, bleibt in deinem Browser: Ein Neuladen macht dort weiter, wo er war.
+
+_______________________________
+
+➤ 🏠 DIE STARTSEITE VON TWITCH, NACH DEINEM GESCHMACK
+Auf der Startseite von Twitch setzt die Erweiterung ihre eigenen Reihen über die von Twitch, in dieselbe Spalte und bündig mit ihnen.
+
+- ★ DEIN KANAL NR. 1, GANZ OBEN ★ Anstelle des Karussells von Twitch: der gefolgte Live-Kanal, den du am meisten schaust. Sein Bild wird jede Minute aufgefrischt, und nichts startet von selbst. Keiner der Kanäle, die du schaust, ist live? Dann kommt das Karussell zurück. Lieber das Karussell oder gar nichts? Das ist eine Einstellung.
+- ★ DEINE GEFOLGTEN KANÄLE ZUERST ★ Eine Reihe deiner Live-Kanäle, geordnet nach denen, die du am meisten schaust – ohne zusätzliche Anfrage: Es sind die, denen die Seitenleiste ohnehin folgt.
+- ★ DIE TOP 10 DEINER SPRACHE ★ Die ersten zehn Plätze der exakten Rangliste von Top-Kanäle, in der Sprache deines Twitch oder über alle Sprachen, in großen Ziffern, mit dem, was sich in dreißig Minuten bewegt hat: gewonnene Plätze, verlorene Plätze, Neueinsteiger. Nur berechnet, solange die Startseite angezeigt wird.
+- ★ „VON ANFANG AN“ ★ Zu spät gekommen? Ein Knopf öffnet die Aufzeichnung des laufenden Streams ab seiner allerersten Sekunde. Kein Knopf, wenn der Kanal keine Aufzeichnungen behält; ein Schloss, wenn sie Abonnenten vorbehalten sind – außer du bist einer.
+- ★ DIE VORSCHAU BEIM ÜBERFAHREN, AUCH HIER ★ Auf den Karten der Startseite, denen der Erweiterung wie denen von Twitch.
+- ★ WIE DU WILLST ★ Jeder Teil lässt sich unter „Einstellungen“ einzeln abschalten; alles aus, und die Startseite ist wieder die von Twitch, unverändert.
 
 _______________________________
 
@@ -223,7 +235,7 @@ Twitch hat ein helles Design. Die Erweiterung merkt es und wechselt mit — ohne
 _______________________________
 
 ➤ ⚙️ UND WENN DU WÄHLEN WILLST
-Alles ist von Anfang an aktiv und nichts muss eingestellt werden. Aber der Bereich „Einstellungen“ im Panel gibt dir einundzwanzig Einstellungen in die Hand.
+Alles ist von Anfang an aktiv und nichts muss eingestellt werden. Aber der Bereich „Einstellungen“ im Panel gibt dir achtundzwanzig Einstellungen in die Hand.
 
 - ★ WAS DU SIEHST ★ Jedes Abzeichen, die Streamdauer und ihr Format, der Balken „gerade gestartet“, das Gold der Abonnements, die Filter, die Sortierschaltflächen: alles lässt sich per Häkchen ein- und ausschalten.
 - ★ WAS GELADEN WIRD ★ Die Vorschau kann auf das Video verzichten und Abzeichen, Zeitleiste und Miniaturbild behalten — oder einfach in der Qualität heruntergehen. Genug, um sie leicht zu machen, ohne sie zu verlieren.

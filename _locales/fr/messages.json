@@ -547,6 +547,12 @@
   "guideTopTexte": {
     "message": "L'onglet « Top Chaînes », en haut de la barre latérale, remplace vos chaînes suivies par les chaînes les plus regardées de tout Twitch, en direct — trente par défaut, dix ou cinquante au choix.\n• Choisissez une catégorie ou une langue dans les filtres : vous obtenez son vrai classement.\n• Aperçu, durée, badges, co-streams : ce sont des cartes comme les autres.\n« Chaînes suivies » vous ramène ; votre liste n'a pas bougé."
   },
+  "guideAccueilTitre": {
+    "message": "L'accueil de Twitch"
+  },
+  "guideAccueilTexte": {
+    "message": "Sur la page d'accueil de Twitch, l'extension pose ses rayons au-dessus de ceux de Twitch, dans la même colonne et alignés sur eux. Ils se règlent dans « Réglages », groupe « Page d'accueil ».\n• « Votre chaîne n°1 en direct » : celle de vos chaînes suivies en direct que vous regardez le plus prend la place du carrousel de Twitch. Son image se rafraîchit chaque minute, et rien ne démarre seul. Quand aucune des chaînes que vous regardez n'est en direct, le carrousel revient. « Comme Twitch » le garde toujours ; « Rien » le retire et arrête sa vidéo.\n• « Vos chaînes suivies en direct » : un rayon, dans l'ordre de celles que vous regardez le plus, sans aucune requête de plus — ce sont les chaînes de la barre.\n• « Top 10 » : les dix premières places de Top Chaînes, dans la langue de l'interface de Twitch ou dans toutes les langues, en grands chiffres. Une flèche dit les places gagnées ou perdues en trente minutes, ou depuis votre arrivée sur l'accueil ; « Nouveau » marque une chaîne qui n'était pas dans le Top 10.\n• « Depuis le début » ouvre la rediffusion du direct en cours à sa première seconde. Il n'apparaît pas quand la chaîne ne garde pas ses rediffusions, et porte un cadenas quand elles sont réservées aux abonnés, sauf si vous l'êtes.\n• L'aperçu au survol s'ouvre aussi sur les cartes de l'accueil : celles de l'extension comme celles de Twitch."
+  },
   "guideViteTitre": {
     "message": "Plus rapide que Twitch, et plus propre"
   },
@@ -727,6 +733,66 @@
   "optDescSalleAuto": {
     "message": "Les streams sont calés par leur son commun — les lèvres de chaque stream sur sa voix telle qu'on l'entend. Il faut environ une minute d'écoute ; sans son commun, rien ne bouge. Coupé : rien ne bouge seul."
   },
+  "optGrpAccueil": {
+    "message": "Page d'accueil"
+  },
+  "optAccueil": {
+    "message": "Enrichir l'accueil de Twitch"
+  },
+  "optDescAccueil": {
+    "message": "Au-dessus des rayons de Twitch : vos chaînes suivies en direct et le Top 10 de votre langue ; en tête, votre chaîne la plus regardée. Coupé : l'accueil est celui de Twitch, tel quel, et rien ne tourne."
+  },
+  "optAccueilTete": {
+    "message": "En tête de l'accueil"
+  },
+  "optDescAccueilTete": {
+    "message": "« Votre chaîne n°1 » : celle de vos chaînes suivies en direct que vous regardez le plus, à la place du carrousel de Twitch, qui revient quand aucune de celles que vous regardez n'est en direct. Son image se rafraîchit, rien ne démarre seul. « Rien » retire le carrousel et arrête sa vidéo."
+  },
+  "optAccueilSuivis": {
+    "message": "Vos chaînes suivies en direct"
+  },
+  "optDescAccueilSuivis": {
+    "message": "Un rayon en tête de l'accueil, dans l'ordre de vos visites. Sans requête de plus : ce sont les chaînes que la barre suit déjà."
+  },
+  "optAccueilTop": {
+    "message": "Top 10"
+  },
+  "optDescAccueilTop": {
+    "message": "Les dix premières places du classement exact de Top Chaînes, en grands chiffres. Une flèche dit ce qui a bougé en trente minutes, ou depuis votre arrivée sur l'accueil si c'est plus récent. Calculé seulement pendant que l'accueil est affiché."
+  },
+  "optAccueilTopLangue": {
+    "message": "Langue du Top 10"
+  },
+  "optDescAccueilTopLangue": {
+    "message": "« Celle de Twitch » suit la langue de l'interface de Twitch."
+  },
+  "optAccueilApercu": {
+    "message": "Aperçu au survol sur l'accueil"
+  },
+  "optDescAccueilApercu": {
+    "message": "L'aperçu de la barre, sur les cartes de l'accueil : celles de l'extension comme celles de Twitch. Suit aussi « Afficher l'aperçu »."
+  },
+  "optAccueilDebut": {
+    "message": "« Depuis le début »"
+  },
+  "optDescAccueilDebut": {
+    "message": "Sur les cartes de l'extension, un bouton qui ouvre la rediffusion du direct en cours à sa première seconde. Absent quand la chaîne ne garde pas ses rediffusions ; un cadenas quand elles sont réservées aux abonnés, sauf si vous l'êtes."
+  },
+  "optValHeros": {
+    "message": "Votre chaîne n°1"
+  },
+  "optValRien": {
+    "message": "Rien"
+  },
+  "optValInterface": {
+    "message": "Celle de Twitch"
+  },
+  "optValToutes": {
+    "message": "Toutes les langues"
+  },
+  "optSansEffet": {
+    "message": "Sans effet tant que « $1 » est coupé"
+  },
   "optAbonnes": {
     "message": "L'or des abonnements"
   },
@@ -869,7 +935,7 @@
     "message": "Remettre tous les réglages par défaut ?"
   },
   "optResetText": {
-    "message": "Les vingt et un réglages de cette page reviendront à leur valeur d'origine. Vos données — visites, abonnements, chaînes suivies — ne sont pas touchées."
+    "message": "Les vingt-huit réglages de cette page reviendront à leur valeur d'origine. Vos données — visites, abonnements, chaînes suivies — ne sont pas touchées."
   },
   "optValPlein": {
     "message": "Complet"
@@ -932,6 +998,6 @@
     "message": "Tout se règle, et tout se coupe"
   },
   "guideReglagesTexte": {
-    "message": "« Réglages » commande tout ce que ce guide présente. Rien n'est imposé : ce qui vous gêne s'éteint, et un point violet marque ce que vous avez changé.\n• Un aperçu trop lourd ? Baissez la qualité, ou coupez la vidéo : il garde sa miniature, ses badges et sa frise.\n• L'or trop voyant ? « Discret » garde la couleur et retire le reflet.\n• La salle multistream et son alignement automatique s'éteignent chacun de leur côté.\n• Le relevé des abonnements peut s'espacer jusqu'à une fois par jour.\n• Chaque mémoire — visites, abonnements, chaînes connues — s'efface à part.\n• Vos réglages s'exportent et s'importent ; un bouton les remet tous d'origine."
+    "message": "« Réglages » commande tout ce que ce guide présente. Rien n'est imposé : ce qui vous gêne s'éteint, et un point violet marque ce que vous avez changé. Une ligne grisée dépend d'un réglage coupé : elle reste modifiable, et dit lequel quand on la survole.\n• Un aperçu trop lourd ? Baissez la qualité, ou coupez la vidéo : il garde sa miniature, ses badges et sa frise.\n• L'or trop voyant ? « Discret » garde la couleur et retire le reflet.\n• La salle multistream et son alignement automatique s'éteignent chacun de leur côté.\n• Le relevé des abonnements peut s'espacer jusqu'à une fois par jour.\n• Chaque mémoire — visites, abonnements, chaînes connues — s'efface à part.\n• Vos réglages s'exportent et s'importent ; un bouton les remet tous d'origine."
   }
 }

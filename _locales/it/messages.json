@@ -547,6 +547,12 @@
   "guideTopTexte": {
     "message": "La scheda «Canali di punta», in cima alla barra laterale, sostituisce i tuoi canali seguiti con i canali più guardati di tutto Twitch, in diretta — trenta per impostazione predefinita, dieci o cinquanta se preferisci.\n• Scegli una categoria o una lingua nei filtri: ottieni la sua vera classifica.\n• Anteprima, durata, badge, co-stream: sono schede come le altre.\n«Canali seguiti» ti riporta indietro; il tuo elenco non si è mosso."
   },
+  "guideAccueilTitre": {
+    "message": "La home di Twitch"
+  },
+  "guideAccueilTexte": {
+    "message": "Sulla pagina iniziale di Twitch, l'estensione mette le sue file sopra quelle di Twitch, nella stessa colonna e allineate con esse. Si regolano in «Impostazioni», gruppo «Pagina iniziale».\n• «Il tuo canale n. 1 in diretta»: il canale seguito in diretta che guardi di più prende il posto del carosello di Twitch. La sua immagine si aggiorna ogni minuto e niente parte da solo. Quando nessuno dei canali che guardi è in diretta, il carosello torna. «Come su Twitch» lo tiene sempre; «Niente» lo toglie e ferma il suo video.\n• «I tuoi canali seguiti in diretta»: una fila, nell'ordine di quelli che guardi di più, senza nessuna richiesta in più: sono i canali della barra.\n• «Top 10»: i primi dieci posti di Canali di punta, nella lingua dell'interfaccia di Twitch o in tutte le lingue, in grandi cifre. Una freccia indica i posti guadagnati o persi in trenta minuti, o da quando sei arrivato sulla home; «Nuovo» segna un canale che non era nella Top 10.\n• «Dall'inizio» apre la replica della diretta in corso dal suo primo secondo. Non compare quando il canale non conserva le repliche, e porta un lucchetto quando sono riservate agli abbonati, a meno che tu non lo sia.\n• L'anteprima al passaggio del mouse si apre anche sulle schede della home: quelle dell'estensione come quelle di Twitch."
+  },
   "guideViteTitre": {
     "message": "Più veloce di Twitch, e più pulita"
   },
@@ -727,6 +733,66 @@
   "optDescSalleAuto": {
     "message": "Gli stream vengono sincronizzati dal loro suono condiviso — le labbra di ogni stream sulla sua voce come la si sente. Serve circa un minuto di ascolto; senza suono condiviso, niente si muove. Disattivato: niente si muove da solo."
   },
+  "optGrpAccueil": {
+    "message": "Pagina iniziale"
+  },
+  "optAccueil": {
+    "message": "Arricchire la home di Twitch"
+  },
+  "optDescAccueil": {
+    "message": "Sopra le righe di Twitch: i tuoi canali seguiti in diretta e la Top 10 della tua lingua; in cima, il canale che guardi di più. Spento: la home è quella di Twitch, così com'è, e non gira niente."
+  },
+  "optAccueilTete": {
+    "message": "In cima alla home"
+  },
+  "optDescAccueilTete": {
+    "message": "«Il tuo canale n. 1»: il canale seguito in diretta che guardi di più, al posto del carosello di Twitch, che torna quando nessuno dei canali che guardi è in diretta. La sua immagine si aggiorna, niente parte da solo. «Niente» toglie il carosello e ferma il suo video."
+  },
+  "optAccueilSuivis": {
+    "message": "I tuoi canali seguiti in diretta"
+  },
+  "optDescAccueilSuivis": {
+    "message": "Una riga in cima alla home, nell'ordine delle tue visite. Nessuna richiesta in più: sono i canali che la barra segue già."
+  },
+  "optAccueilTop": {
+    "message": "Top 10"
+  },
+  "optDescAccueilTop": {
+    "message": "I primi dieci posti della classifica esatta di Canali di punta, in grandi cifre. Una freccia dice cosa si è mosso in trenta minuti, o da quando sei arrivato sulla home se è più recente. Calcolata solo mentre la home è visualizzata."
+  },
+  "optAccueilTopLangue": {
+    "message": "Lingua della Top 10"
+  },
+  "optDescAccueilTopLangue": {
+    "message": "«Quella di Twitch» segue la lingua dell'interfaccia di Twitch."
+  },
+  "optAccueilApercu": {
+    "message": "Anteprima al passaggio sulla home"
+  },
+  "optDescAccueilApercu": {
+    "message": "L'anteprima della barra, sulle schede della home: quelle dell'estensione e quelle di Twitch. Segue anche «Mostrare l'anteprima»."
+  },
+  "optAccueilDebut": {
+    "message": "«Dall'inizio»"
+  },
+  "optDescAccueilDebut": {
+    "message": "Sulle schede dell'estensione, un pulsante che apre la replica della diretta in corso dal suo primo secondo. Assente quando il canale non conserva le repliche; un lucchetto quando sono riservate agli abbonati, a meno che tu non lo sia."
+  },
+  "optValHeros": {
+    "message": "Il tuo canale n. 1"
+  },
+  "optValRien": {
+    "message": "Niente"
+  },
+  "optValInterface": {
+    "message": "Quella di Twitch"
+  },
+  "optValToutes": {
+    "message": "Tutte le lingue"
+  },
+  "optSansEffet": {
+    "message": "Senza effetto finché «$1» è spento"
+  },
   "optAbonnes": {
     "message": "L'oro degli abbonamenti"
   },
@@ -869,7 +935,7 @@
     "message": "Ripristinare tutte le impostazioni?"
   },
   "optResetText": {
-    "message": "Le ventuno impostazioni di questa pagina torneranno al loro valore originale. I tuoi dati — visite, abbonamenti, canali seguiti — non vengono toccati."
+    "message": "Le ventotto impostazioni di questa pagina torneranno al loro valore originale. I tuoi dati — visite, abbonamenti, canali seguiti — non vengono toccati."
   },
   "optValPlein": {
     "message": "Completo"
@@ -932,6 +998,6 @@
     "message": "Tutto si regola, tutto si spegne"
   },
   "guideReglagesTexte": {
-    "message": "«Impostazioni» comanda tutto ciò che questa guida presenta. Nulla è imposto: ciò che dà fastidio si spegne, e un punto viola segnala ciò che hai cambiato.\n• Anteprima troppo pesante? Abbassa la qualità, o togli il video: conserva miniatura, badge e linea del tempo.\n• Oro troppo vistoso? «Discreto» tiene il colore e toglie il luccichio.\n• La sala multistream e il suo allineamento automatico si spengono ciascuno per conto suo.\n• La rilevazione degli abbonamenti può diradarsi fino a una volta al giorno.\n• Ogni memoria — visite, abbonamenti, canali noti — si cancella a parte.\n• Le tue impostazioni si esportano e si importano; un pulsante le riporta tutte all'origine."
+    "message": "«Impostazioni» comanda tutto ciò che questa guida presenta. Nulla è imposto: ciò che dà fastidio si spegne, e un punto viola segnala ciò che hai cambiato. Una riga in grigio dipende da un'impostazione disattivata: resta modificabile, e al passaggio del mouse dice quale.\n• Anteprima troppo pesante? Abbassa la qualità, o togli il video: conserva miniatura, badge e linea del tempo.\n• Oro troppo vistoso? «Discreto» tiene il colore e toglie il luccichio.\n• La sala multistream e il suo allineamento automatico si spengono ciascuno per conto suo.\n• La rilevazione degli abbonamenti può diradarsi fino a una volta al giorno.\n• Ogni memoria — visite, abbonamenti, canali noti — si cancella a parte.\n• Le tue impostazioni si esportano e si importano; un pulsante le riporta tutte all'origine."
   }
 }

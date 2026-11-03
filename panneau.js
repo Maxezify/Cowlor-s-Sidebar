@@ -900,7 +900,8 @@ const demoHorsLigne = (maintenant = Date.now()) => {
      — TOUS les badges, réunis quand on en a déjà vu la moitié ;
      — les tris (l'or et les co-streams y servent), puis ce que l'extension
        retire de la barre — ses Hype Trains reviennent en badge, sa série et
-       ses stories avec les tris —, puis Top Chaînes ;
+       ses stories avec les tris —, puis Top Chaînes, puis l'accueil de
+       Twitch, dont le Top 10 est le sien ;
      — ce panneau, ses réglages, l'agenda en deux vues, la vie privée.
    Ce qu'un chapitre annonce sans l'expliquer porte le numéro de celui qui le
    fait (`renvoi`), et le banc tient la table des dépendances (96). */
@@ -951,6 +952,10 @@ const GUIDE = [
   // Ce que la barre retire revient en badge : le renvoi mène, en arrière, au chapitre qui les montre tous.
   { titre: 'guideViteTitre',     texte: 'guideViteTexte', renvoi: 'guideBadgesTitre' },
   { titre: 'guideTopTitre',      texte: 'guideTopTexte',      demo: () => demoOnglets() },
+  /* L'ACCUEIL DE TWITCH (4.26.0), juste après Top Chaînes : son Top 10 en
+     est le classement, ses cartes ouvrent l'aperçu, et il ne nomme rien de
+     ce qui vient après. */
+  { titre: 'guideAccueilTitre',  texte: 'guideAccueilTexte' },
   // Il présente les six groupes, et renvoie aux deux chapitres de l'agenda.
   { titre: 'guidePanneauTitre',  texte: 'guidePanneauTexte', renvoi: ['guideAgendaTitre', 'guideHorsLigneTitre'] },
   { titre: 'guideReglagesTitre', texte: 'guideReglagesTexte' },
@@ -1273,6 +1278,9 @@ const GROUPES_OPT = [
   ['optGrpApercu',  ['apercu', 'apercuVideo', 'apercuQualite', 'apercuTaille']],
   // Le système multistream a son groupe (4.24.0.9), pour qu'on le trouve.
   ['optGrpMultistream', ['salle', 'salleAuto']],
+  // L'accueil de Twitch (4.26.0) : le maître d'abord, ce qu'il gouverne ensuite.
+  ['optGrpAccueil', ['accueil', 'accueilTete', 'accueilSuivis', 'accueilTop',
+                     'accueilTopLangue', 'accueilApercu', 'accueilDebut']],
   ['optGrpBadges',  ['badges']],
   ['optGrpCarte',   ['duree', 'dureeFormat', 'fresh', 'abonnes', 'subathonJour']],
   ['optGrpListe',   ['tris', 'filtreCategorie', 'filtreLangue', 'topOnglet', 'topN']],
@@ -1313,6 +1321,8 @@ const MOTS_VALEUR = {
   petit: 'optValPetit',   normal: 'optValNormal',   grand: 'optValGrand',
   auto: 'optValAuto',     dark: 'optValDark',       light: 'optValLight',
   twitch: 'optValTwitch', integree: 'optValIntegree', masquee: 'optValMasquee',
+  heros: 'optValHeros',   rien: 'optValRien',
+  interface: 'optValInterface', toutes: 'optValToutes',
 };
 const EXEMPLES_DUREE = { hm: '4h19', colon: '4:19', min: '259 min' };
 
@@ -1406,6 +1416,15 @@ const ligneReglage = (id) => {
   if (!d) return null;                      // réglage disparu de la page
   const v = etatOpt.valeurs[id];
   const ligne = div('reg-ligne' + (etatOpt.modifies.includes(id) ? ' reg-ligne--modifie' : ''));
+  /* UNE LIGNE QUI DÉPEND D'UN RÉGLAGE COUPÉ SE GRISE (4.26.0). La page dit de
+     quoi elle dépend (`sous`) ; le panneau n'en tient aucune liste. La ligne
+     reste modifiable — on prépare un réglage avant d'allumer celui qui le
+     gouverne —, elle dit seulement qu'elle n'a pas d'effet pour l'instant. */
+  const coupePar = (Array.isArray(d.sous) ? d.sous : []).filter((p) => etatOpt.valeurs[p] === false);
+  if (coupePar.length) {
+    ligne.classList.add('reg-ligne--sans-effet');
+    ligne.title = T('optSansEffet', coupePar.map((p) => T('opt' + MAJ(p))).join(', '));
+  }
   const texte = div('reg-texte');
   texte.appendChild(elt('span', 'reg-nom', T('opt' + MAJ(id))));
   const desc = T('optDesc' + MAJ(id));

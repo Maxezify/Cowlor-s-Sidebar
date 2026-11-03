@@ -177,7 +177,7 @@ _______________________________
 Kółko zębate po prawej stronie tytułu paska bocznego, jedno kliknięcie i wszystko, czego nauczyło się rozszerzenie, otwiera się na Twitchu. Ikona rozszerzenia, w prawym górnym rogu przeglądarki, otwiera dokładnie ten sam panel.
 
 - ★ DWIE DROGI, JEDEN PANEL ★ Kółko na pasku bocznym albo ikona na pasku narzędzi: ta sama strona, w obu przypadkach. Otwarta kółkiem jest większa — wyskakujące okienko paska narzędzi ogranicza przeglądarka, nie my.
-- ★ INSTRUKCJA, OD RAZU ★ Panel otwiera się na przewodniku w osiemnastu rozdziałach, pokazującym wszystko, co rozszerzenie dodaje, z rysowanymi przykładami — i wyświetla się nawet bez otwartej karty Twitcha.
+- ★ INSTRUKCJA, OD RAZU ★ Panel otwiera się na przewodniku w dziewiętnastu rozdziałach, pokazującym wszystko, co rozszerzenie dodaje, z rysowanymi przykładami — i wyświetla się nawet bez otwartej karty Twitcha.
 - ★ TWOJE NAWYKI, NARYSOWANE ★ Godziny, w których naprawdę oglądasz, ułożone w siatkę siedmiu dni na dwadzieścia cztery godziny.
 - ★ TWOJE LICZBY ★ Top streamerów, wykryte subskrypcje, zapamiętane obserwowane kanały: wszystko tam, czytelnie.
 - ★ RAPORT DO WKLEJENIA ★ Jeden przycisk tworzy pełny raport diagnostyczny, bez żadnej osobistej listy w środku — tyle, by zgłosić problem, nic nie ujawniając.
@@ -192,6 +192,18 @@ Strona harmonogramu kanału na Twitchu pokazuje jeden kanał. Grupa „Harmonogr
 - ★ JEDEN KANAŁ ALBO WSZYSTKIE ★ Menu zostawia jeden, a „Pokaż tydzień” prowadzi prosto do tygodnia jego ostatniej transmisji.
 - ★ UCZCIWIE O TYM, CO ZACHOWUJE TWITCH ★ Powtórka istnieje tylko wtedy, gdy kanał zapisuje transmisje, i tylko tak długo, jak Twitch je przechowuje; ostatnia transmisja bez niej mówi o tym („Bez powtórki”), a powtórka, którą można obejrzeć tylko z subskrypcją, też — kłódką — jeszcze przed kliknięciem.
 - ★ TYLKO, GDY PATRZYSZ ★ Nic nie jest wysyłane do Twitcha, zanim go otworzysz, a to, co odczytał, zostaje w Twojej przeglądarce: po przeładowaniu wraca tam, gdzie był.
+
+_______________________________
+
+➤ 🏠 STRONA GŁÓWNA TWITCHA PO TWOJEMU
+Na stronie głównej Twitcha rozszerzenie umieszcza własne rzędy nad rzędami Twitcha, w tej samej kolumnie i wyrównane z nimi.
+
+- ★ TWÓJ KANAŁ NR 1 NA GÓRZE ★ Zamiast karuzeli Twitcha: obserwowany kanał na żywo, który oglądasz najczęściej. Jego obraz odświeża się co minutę i nic nie startuje samo. Żaden z kanałów, które oglądasz, nie nadaje? Karuzela wraca. Wolisz karuzelę albo nic? To kwestia ustawienia.
+- ★ NAJPIERW OBSERWOWANE KANAŁY ★ Rząd twoich kanałów na żywo, ułożony od tych, które oglądasz najczęściej — bez żadnego dodatkowego zapytania: to te, które pasek i tak śledzi.
+- ★ TOP 10 W TWOIM JĘZYKU ★ Pierwsze dziesięć miejsc dokładnego rankingu „Najpopularniejsze kanały”, w języku twojego Twitcha albo we wszystkich językach, dużymi cyframi, z tym, co się zmieniło w ciągu trzydziestu minut: zyskane miejsca, stracone miejsca, nowe kanały. Liczone tylko wtedy, gdy strona główna jest na ekranie.
+- ★ „OD POCZĄTKU” ★ Spóźniłeś się? Przycisk otwiera powtórkę trwającej transmisji od jej pierwszej sekundy. Bez przycisku, gdy kanał nie zachowuje powtórek; z kłódką, gdy są tylko dla subskrybentów — chyba że jesteś subskrybentem.
+- ★ PODGLĄD PO NAJECHANIU, TAKŻE TUTAJ ★ Na kartach strony głównej — zarówno tych z rozszerzenia, jak i tych z Twitcha.
+- ★ JAK CHCESZ ★ Każdą część wyłączysz osobno w „Ustawieniach”; wszystko wyłączone — strona główna znów jest Twitcha, bez zmian.
 
 _______________________________
 
@@ -223,7 +235,7 @@ Twitch ma jasny motyw. Rozszerzenie to zauważa i przełącza się razem z nim �
 _______________________________
 
 ➤ ⚙️ A JEŚLI CHCESZ WYBIERAĆ
-Wszystko działa od razu i nie trzeba niczego ustawiać. Ale sekcja „Ustawienia” w panelu oddaje Ci dwadzieścia jeden ustawień.
+Wszystko działa od razu i nie trzeba niczego ustawiać. Ale sekcja „Ustawienia” w panelu oddaje Ci dwadzieścia osiem ustawień.
 
 - ★ TO, CO WIDZISZ ★ Każda odznaka, czas trwania transmisji i jego format, pasek „właśnie ruszyła”, złoto subskrypcji, filtry, przyciski sortowania: wszystko włącza się i wyłącza jednym polem.
 - ★ TO, CO SIĘ WCZYTUJE ★ Podgląd może zrezygnować z wideo i zachować odznaki, oś czasu i miniaturę — albo po prostu zejść z jakością. Tyle, by go odciążyć, nie tracąc go.

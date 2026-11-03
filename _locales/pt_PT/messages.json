@@ -547,6 +547,12 @@
   "guideTopTexte": {
     "message": "O separador «Top Canais», no topo da barra lateral, troca os teus canais seguidos pelos canais mais vistos de todo o Twitch, em direto — trinta por omissão, dez ou cinquenta se preferires.\n• Escolhe uma categoria ou um idioma nos filtros: obténs a classificação real dela.\n• Pré-visualização, duração, distintivos, co-streams: são cartões como os outros.\n«Canais seguidos» leva-te de volta; a tua lista não se mexeu."
   },
+  "guideAccueilTitre": {
+    "message": "A página inicial da Twitch"
+  },
+  "guideAccueilTexte": {
+    "message": "Na página inicial da Twitch, a extensão coloca as suas próprias filas acima das da Twitch, na mesma coluna e alinhadas com elas. Ajustam-se em «Definições», grupo «Página inicial».\n• «Seu canal nº 1 ao vivo»: o canal seguido em direto que mais vês ocupa o lugar do carrossel da Twitch. A imagem atualiza-se a cada minuto, e nada começa sozinho. Quando nenhum dos canais que vês está em direto, o carrossel volta. «Como na Twitch» mantém-no sempre; «Nada» retira-o e para o vídeo dele.\n• «Seus canais seguidos ao vivo»: uma fila, pela ordem dos que mais vês, sem nenhum pedido a mais — são os canais da barra.\n• «Top 10»: os dez primeiros lugares do Top Canais, no idioma da interface da Twitch ou em todos os idiomas, em números grandes. Uma seta mostra os lugares ganhos ou perdidos em trinta minutos, ou desde que chegaste à página inicial; «Novo» marca um canal que não estava no Top 10.\n• «Desde o início» abre a gravação da transmissão em curso no primeiro segundo. Não aparece quando o canal não guarda as gravações, e tem um cadeado quando são só para subscritores, a não ser que o sejas.\n• A pré-visualização ao passar o rato também abre nos cartões da página inicial: os da extensão e os da Twitch."
+  },
   "guideViteTitre": {
     "message": "Mais rápida do que o Twitch, e mais limpa"
   },
@@ -727,6 +733,66 @@
   "optDescSalleAuto": {
     "message": "As transmissões são sincronizadas pelo som em comum — os lábios de cada transmissão na sua voz tal como se ouve. Demora cerca de um minuto de escuta; sem som em comum, nada se mexe. Desligado: nada se mexe sozinho."
   },
+  "optGrpAccueil": {
+    "message": "Página inicial"
+  },
+  "optAccueil": {
+    "message": "Enriquecer a página inicial da Twitch"
+  },
+  "optDescAccueil": {
+    "message": "Acima das filas da Twitch: os teus canais seguidos em direto e o Top 10 da tua língua; no topo, o canal que mais vês. Desligado: a página inicial é a da Twitch, tal como está, e nada corre."
+  },
+  "optAccueilTete": {
+    "message": "Topo da página inicial"
+  },
+  "optDescAccueilTete": {
+    "message": "«O teu canal n.º 1»: o canal seguido em direto que mais vês, em vez do carrossel da Twitch, que volta quando nenhum dos canais que vês está em direto. A imagem atualiza-se; nada começa sozinho. «Nada» retira o carrossel e para o vídeo dele."
+  },
+  "optAccueilSuivis": {
+    "message": "Os teus canais seguidos em direto"
+  },
+  "optDescAccueilSuivis": {
+    "message": "Uma fila no topo da página inicial, pela ordem das tuas visitas. Nenhum pedido a mais: são os canais que a barra já acompanha."
+  },
+  "optAccueilTop": {
+    "message": "Top 10"
+  },
+  "optDescAccueilTop": {
+    "message": "Os dez primeiros lugares da classificação exata de Top Canais, em números grandes. Uma seta mostra o que mudou em trinta minutos, ou desde que chegaste à página inicial, se for mais recente. Calculada só enquanto a página inicial está no ecrã."
+  },
+  "optAccueilTopLangue": {
+    "message": "Língua do Top 10"
+  },
+  "optDescAccueilTopLangue": {
+    "message": "«A da Twitch» segue a língua da interface da Twitch."
+  },
+  "optAccueilApercu": {
+    "message": "Pré-visualização ao passar o rato na página inicial"
+  },
+  "optDescAccueilApercu": {
+    "message": "A pré-visualização da barra, nos cartões da página inicial: os da extensão e os da Twitch. Também segue «Mostrar a pré-visualização»."
+  },
+  "optAccueilDebut": {
+    "message": "«Desde o início»"
+  },
+  "optDescAccueilDebut": {
+    "message": "Nos cartões da extensão, um botão que abre a gravação da transmissão em curso no primeiro segundo. Não aparece quando o canal não guarda as gravações; um cadeado quando são só para subscritores, a não ser que o sejas."
+  },
+  "optValHeros": {
+    "message": "O teu canal n.º 1"
+  },
+  "optValRien": {
+    "message": "Nada"
+  },
+  "optValInterface": {
+    "message": "A da Twitch"
+  },
+  "optValToutes": {
+    "message": "Todas as línguas"
+  },
+  "optSansEffet": {
+    "message": "Sem efeito enquanto «$1» estiver desligado"
+  },
   "optAbonnes": {
     "message": "O ouro das subscrições"
   },
@@ -869,7 +935,7 @@
     "message": "Repor todas as definições?"
   },
   "optResetText": {
-    "message": "As vinte e uma definições desta página voltam ao valor original. Os teus dados — visitas, subscrições, canais seguidos — não são tocados."
+    "message": "As vinte e oito definições desta página voltam ao valor original. Os teus dados — visitas, subscrições, canais seguidos — não são tocados."
   },
   "optValPlein": {
     "message": "Completo"
@@ -932,6 +998,6 @@
     "message": "Tudo se ajusta, tudo se desliga"
   },
   "guideReglagesTexte": {
-    "message": "«Definições» comanda tudo o que este guia apresenta. Nada é imposto: o que incomodar desliga-se, e um ponto roxo assinala o que mudaste.\n• Pré-visualização pesada demais? Baixa a qualidade, ou tira o vídeo: mantém a miniatura, os distintivos e a linha temporal.\n• Ouro demasiado vistoso? «Discreto» mantém a cor e tira o brilho.\n• A sala multistream e o seu alinhamento automático desligam-se separadamente.\n• A recolha de subscrições pode espaçar-se até uma vez por dia.\n• Cada memória — visitas, subscrições, canais conhecidos — apaga-se à parte.\n• As tuas definições exportam-se e importam-se; um botão repõe-nas todas."
+    "message": "«Definições» comanda tudo o que este guia apresenta. Nada é imposto: o que incomodar desliga-se, e um ponto roxo assinala o que mudaste. Uma linha a cinzento depende de uma definição desligada: continua editável e, ao passar o rato, diz qual.\n• Pré-visualização pesada demais? Baixa a qualidade, ou tira o vídeo: mantém a miniatura, os distintivos e a linha temporal.\n• Ouro demasiado vistoso? «Discreto» mantém a cor e tira o brilho.\n• A sala multistream e o seu alinhamento automático desligam-se separadamente.\n• A recolha de subscrições pode espaçar-se até uma vez por dia.\n• Cada memória — visitas, subscrições, canais conhecidos — apaga-se à parte.\n• As tuas definições exportam-se e importam-se; um botão repõe-nas todas."
   }
 }

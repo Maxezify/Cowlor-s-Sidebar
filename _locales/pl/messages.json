@@ -547,6 +547,12 @@
   "guideTopTexte": {
     "message": "Zakładka „Najpopularniejsze kanały” u góry paska bocznego zamienia twoje obserwowane kanały na najchętniej oglądane kanały całego Twitcha, na żywo — domyślnie trzydzieści, do wyboru dziesięć lub pięćdziesiąt.\n• Wybierz kategorię lub język w filtrach: dostajesz jej prawdziwy ranking.\n• Podgląd, czas trwania, odznaki, co-streamy: to karty jak wszystkie inne.\nKliknięcie „Obserwowane kanały” zabiera cię z powrotem; twoja lista się nie ruszyła."
   },
+  "guideAccueilTitre": {
+    "message": "Strona główna Twitcha"
+  },
+  "guideAccueilTexte": {
+    "message": "Na stronie głównej Twitcha rozszerzenie umieszcza własne rzędy nad rzędami Twitcha, w tej samej kolumnie i wyrównane z nimi. Ustawia się je w sekcji „Ustawienia”, w grupie „Strona główna”.\n• „Twój kanał nr 1 na żywo”: obserwowany kanał na żywo, który oglądasz najczęściej, zajmuje miejsce karuzeli Twitcha. Jego obraz odświeża się co minutę i nic nie startuje samo. Gdy żaden z kanałów, które oglądasz, nie nadaje, karuzela wraca. „Jak na Twitchu” zawsze ją zostawia; „Nic” usuwa ją i zatrzymuje jej wideo.\n• „Obserwowane kanały na żywo”: rząd ułożony od kanałów, które oglądasz najczęściej, bez żadnego dodatkowego zapytania — to kanały z paska.\n• „Top 10”: pierwsze dziesięć miejsc listy „Najpopularniejsze kanały”, w języku interfejsu Twitcha albo we wszystkich językach, dużymi cyframi. Strzałka pokazuje miejsca zyskane lub stracone w ciągu trzydziestu minut — albo od wejścia na stronę główną; „Nowość” oznacza kanał, którego nie było w Top 10.\n• „Od początku” otwiera powtórkę trwającej transmisji od jej pierwszej sekundy. Nie pojawia się, gdy kanał nie zachowuje powtórek, a gdy są tylko dla subskrybentów, ma kłódkę — chyba że jesteś subskrybentem.\n• Podgląd po najechaniu otwiera się też na kartach strony głównej: zarówno tych z rozszerzenia, jak i tych z Twitcha."
+  },
   "guideViteTitre": {
     "message": "Szybciej niż Twitch i czyściej"
   },
@@ -727,6 +733,66 @@
   "optDescSalleAuto": {
     "message": "Streamy są synchronizowane według wspólnego dźwięku — usta każdego streamu do jego głosu, tak jak go słychać. Potrzeba około minuty słuchania; bez wspólnego dźwięku nic się nie przesuwa. Wyłączone: nic nie przesuwa się samo."
   },
+  "optGrpAccueil": {
+    "message": "Strona główna"
+  },
+  "optAccueil": {
+    "message": "Wzbogać stronę główną Twitcha"
+  },
+  "optDescAccueil": {
+    "message": "Nad rzędami Twitcha: obserwowane kanały, które nadają na żywo, i Top 10 w Twoim języku; na samej górze kanał, który oglądasz najczęściej. Wyłączone: strona główna jest taka, jak na Twitchu, i nic nie działa."
+  },
+  "optAccueilTete": {
+    "message": "Na górze strony głównej"
+  },
+  "optDescAccueilTete": {
+    "message": "„Twój kanał nr 1”: obserwowany kanał na żywo, który oglądasz najczęściej, zamiast karuzeli Twitcha, która wraca, gdy żaden z oglądanych przez ciebie kanałów nie nadaje. Jego obraz się odświeża, nic nie startuje samo. „Nic” usuwa karuzelę i zatrzymuje jej wideo."
+  },
+  "optAccueilSuivis": {
+    "message": "Obserwowane kanały na żywo"
+  },
+  "optDescAccueilSuivis": {
+    "message": "Rząd na górze strony głównej, w kolejności Twoich wizyt. Bez dodatkowych zapytań: to kanały, które pasek już śledzi."
+  },
+  "optAccueilTop": {
+    "message": "Top 10"
+  },
+  "optDescAccueilTop": {
+    "message": "Pierwsze dziesięć miejsc dokładnego rankingu Najpopularniejsze kanały, dużymi cyframi. Strzałka pokazuje, co się zmieniło w ciągu trzydziestu minut — albo od wejścia na stronę główną, jeśli to krócej. Liczone tylko wtedy, gdy strona główna jest wyświetlana."
+  },
+  "optAccueilTopLangue": {
+    "message": "Język Top 10"
+  },
+  "optDescAccueilTopLangue": {
+    "message": "„Język Twitcha” podąża za językiem interfejsu Twitcha."
+  },
+  "optAccueilApercu": {
+    "message": "Podgląd po najechaniu na stronie głównej"
+  },
+  "optDescAccueilApercu": {
+    "message": "Podgląd z paska na kartach strony głównej: tych z rozszerzenia i tych z Twitcha. Podąża też za „Pokazuj podgląd”."
+  },
+  "optAccueilDebut": {
+    "message": "„Od początku”"
+  },
+  "optDescAccueilDebut": {
+    "message": "Na kartach rozszerzenia przycisk, który otwiera powtórkę trwającej transmisji od jej pierwszej sekundy. Nie ma go, gdy kanał nie zachowuje powtórek; kłódka, gdy są tylko dla subskrybentów, chyba że nim jesteś."
+  },
+  "optValHeros": {
+    "message": "Twój kanał nr 1"
+  },
+  "optValRien": {
+    "message": "Nic"
+  },
+  "optValInterface": {
+    "message": "Język Twitcha"
+  },
+  "optValToutes": {
+    "message": "Wszystkie języki"
+  },
+  "optSansEffet": {
+    "message": "Bez efektu, dopóki „$1” jest wyłączone"
+  },
   "optAbonnes": {
     "message": "Złoto subskrypcji"
   },
@@ -869,7 +935,7 @@
     "message": "Przywrócić wszystkie ustawienia domyślne?"
   },
   "optResetText": {
-    "message": "Na tej stronie dwadzieścia jeden ustawień wróci do wartości pierwotnych. Twoje dane — wizyty, subskrypcje, obserwowane kanały — pozostają nietknięte."
+    "message": "Na tej stronie dwadzieścia osiem ustawień wróci do wartości pierwotnych. Twoje dane — wizyty, subskrypcje, obserwowane kanały — pozostają nietknięte."
   },
   "optValPlein": {
     "message": "Pełne"
@@ -932,6 +998,6 @@
     "message": "Wszystko da się ustawić, wszystko wyłączyć"
   },
   "guideReglagesTexte": {
-    "message": "Sekcja „Ustawienia” steruje wszystkim, co pokazuje ten przewodnik. Nic nie jest narzucone: co przeszkadza, wyłączysz, a fioletowa kropka oznacza to, co zmieniłeś.\n• Podgląd za ciężki? Obniż jakość albo wyłącz wideo: zachowa miniaturę, odznaki i oś czasu.\n• Złoto zbyt krzykliwe? „Dyskretne” zostawia kolor, zabiera połysk.\n• Salę multistream i jej automatyczne wyrównanie wyłącza się osobno.\n• Odczyt subskrypcji można rozrzedzić do raz na dobę.\n• Każdą pamięć — wizyty, subskrypcje, znane kanały — czyści się osobno.\n• Twoje ustawienia można wyeksportować i zaimportować; jeden przycisk przywraca wszystkie domyślne."
+    "message": "Sekcja „Ustawienia” steruje wszystkim, co pokazuje ten przewodnik. Nic nie jest narzucone: co przeszkadza, wyłączysz, a fioletowa kropka oznacza to, co zmieniłeś. Wyszarzony wiersz zależy od wyłączonego ustawienia: nadal można go zmienić, a po najechaniu mówi, od którego.\n• Podgląd za ciężki? Obniż jakość albo wyłącz wideo: zachowa miniaturę, odznaki i oś czasu.\n• Złoto zbyt krzykliwe? „Dyskretne” zostawia kolor, zabiera połysk.\n• Salę multistream i jej automatyczne wyrównanie wyłącza się osobno.\n• Odczyt subskrypcji można rozrzedzić do raz na dobę.\n• Każdą pamięć — wizyty, subskrypcje, znane kanały — czyści się osobno.\n• Twoje ustawienia można wyeksportować i zaimportować; jeden przycisk przywraca wszystkie domyślne."
   }
 }

@@ -547,6 +547,12 @@
   "guideTopTexte": {
     "message": "La pestaña «Top Canales», arriba de la barra lateral, cambia tus canales seguidos por los canales más vistos de todo Twitch, en directo — treinta por defecto, diez o cincuenta si lo prefieres.\n• Elige una categoría o un idioma en los filtros: obtienes su clasificación real.\n• Vista previa, duración, insignias, co-streams: son tarjetas como las demás.\n«Canales que sigues» te devuelve; tu lista no se ha movido."
   },
+  "guideAccueilTitre": {
+    "message": "La página de inicio de Twitch"
+  },
+  "guideAccueilTexte": {
+    "message": "En la página de inicio de Twitch, la extensión coloca sus propias filas encima de las de Twitch, en la misma columna y alineadas con ellas. Se ajustan en «Ajustes», grupo «Página de inicio».\n• «Tu canal n.º 1 en directo»: el canal seguido en directo que más ves ocupa el lugar del carrusel de Twitch. Su imagen se actualiza cada minuto y nada arranca solo. Cuando ninguno de los canales que ves está en directo, el carrusel vuelve. «Como en Twitch» lo mantiene siempre; «Nada» lo quita y detiene su vídeo.\n• «Tus canales seguidos en directo»: una fila, en el orden de los que más ves, sin ninguna petición más: son los canales de la barra.\n• «Top 10»: los diez primeros puestos de Top Canales, en el idioma de la interfaz de Twitch o en todos los idiomas, en cifras grandes. Una flecha indica los puestos ganados o perdidos en treinta minutos, o desde que llegaste al inicio; «Nuevo» marca un canal que no estaba en el Top 10.\n• «Desde el principio» abre la repetición del directo en curso en su primer segundo. No aparece cuando el canal no guarda sus repeticiones, y lleva un candado cuando son solo para suscriptores, salvo que lo seas.\n• La vista previa al pasar el ratón también se abre en las tarjetas del inicio: las de la extensión y las de Twitch."
+  },
   "guideViteTitre": {
     "message": "Más rápida que Twitch, y más limpia"
   },
@@ -727,6 +733,66 @@
   "optDescSalleAuto": {
     "message": "Los streams se sincronizan por su sonido compartido —los labios de cada stream sobre su voz tal como se oye—. Hace falta alrededor de un minuto de escucha; sin sonido compartido, nada se mueve. Desactivado: nada se mueve solo."
   },
+  "optGrpAccueil": {
+    "message": "Página de inicio"
+  },
+  "optAccueil": {
+    "message": "Mejorar el inicio de Twitch"
+  },
+  "optDescAccueil": {
+    "message": "Encima de las filas de Twitch: tus canales seguidos en directo y el Top 10 de tu idioma; arriba del todo, el canal que más ves. Desactivado: el inicio es el de Twitch, tal cual, y no se ejecuta nada."
+  },
+  "optAccueilTete": {
+    "message": "Arriba del inicio"
+  },
+  "optDescAccueilTete": {
+    "message": "«Tu canal n.º 1»: el canal seguido en directo que más ves, en lugar del carrusel de Twitch, que vuelve cuando ninguno de los canales que ves está en directo. Su imagen se actualiza; nada arranca solo. «Nada» quita el carrusel y detiene su vídeo."
+  },
+  "optAccueilSuivis": {
+    "message": "Tus canales seguidos en directo"
+  },
+  "optDescAccueilSuivis": {
+    "message": "Una fila arriba del inicio, en el orden de tus visitas. Sin ninguna petición más: son los canales que la barra ya sigue."
+  },
+  "optAccueilTop": {
+    "message": "Top 10"
+  },
+  "optDescAccueilTop": {
+    "message": "Los diez primeros puestos de la clasificación exacta de Top Canales, en cifras grandes. Una flecha indica qué se ha movido en treinta minutos, o desde que llegaste al inicio si es más reciente. Solo se calcula mientras el inicio está en pantalla."
+  },
+  "optAccueilTopLangue": {
+    "message": "Idioma del Top 10"
+  },
+  "optDescAccueilTopLangue": {
+    "message": "«El de Twitch» sigue el idioma de la interfaz de Twitch."
+  },
+  "optAccueilApercu": {
+    "message": "Vista previa al pasar el ratón en el inicio"
+  },
+  "optDescAccueilApercu": {
+    "message": "La vista previa de la barra, en las tarjetas del inicio: las de la extensión y las de Twitch. También sigue «Mostrar la vista previa»."
+  },
+  "optAccueilDebut": {
+    "message": "«Desde el principio»"
+  },
+  "optDescAccueilDebut": {
+    "message": "En las tarjetas de la extensión, un botón que abre la repetición del directo en curso en su primer segundo. No aparece cuando el canal no guarda sus repeticiones; un candado cuando son solo para suscriptores, salvo que lo seas."
+  },
+  "optValHeros": {
+    "message": "Tu canal n.º 1"
+  },
+  "optValRien": {
+    "message": "Nada"
+  },
+  "optValInterface": {
+    "message": "El de Twitch"
+  },
+  "optValToutes": {
+    "message": "Todos los idiomas"
+  },
+  "optSansEffet": {
+    "message": "Sin efecto mientras «$1» esté desactivado"
+  },
   "optAbonnes": {
     "message": "El oro de las suscripciones"
   },
@@ -869,7 +935,7 @@
     "message": "¿Restablecer todos los ajustes?"
   },
   "optResetText": {
-    "message": "Los veintiún ajustes de esta página volverán a su valor original. Tus datos —visitas, suscripciones, canales seguidos— no se tocan."
+    "message": "Los veintiocho ajustes de esta página volverán a su valor original. Tus datos —visitas, suscripciones, canales seguidos— no se tocan."
   },
   "optValPlein": {
     "message": "Completo"
@@ -932,6 +998,6 @@
     "message": "Todo se ajusta, todo se apaga"
   },
   "guideReglagesTexte": {
-    "message": "«Ajustes» controla todo lo que presenta esta guía. Nada se impone: lo que te moleste se apaga, y un punto morado marca lo que has cambiado.\n• ¿Vista previa demasiado pesada? Baja la calidad, o quita el vídeo: conserva su miniatura, sus insignias y su línea de tiempo.\n• ¿Oro demasiado llamativo? «Discreto» mantiene el color y quita el brillo.\n• La sala multistream y su alineación automática se apagan por separado.\n• El barrido de suscripciones puede espaciarse hasta una vez al día.\n• Cada memoria — visitas, suscripciones, canales conocidos — se borra por separado.\n• Tus ajustes se exportan y se importan; un botón los restaura todos."
+    "message": "«Ajustes» controla todo lo que presenta esta guía. Nada se impone: lo que te moleste se apaga, y un punto morado marca lo que has cambiado. Una línea atenuada depende de un ajuste desactivado: sigue siendo modificable y, al pasar el ratón, dice de cuál.\n• ¿Vista previa demasiado pesada? Baja la calidad, o quita el vídeo: conserva su miniatura, sus insignias y su línea de tiempo.\n• ¿Oro demasiado llamativo? «Discreto» mantiene el color y quita el brillo.\n• La sala multistream y su alineación automática se apagan por separado.\n• El barrido de suscripciones puede espaciarse hasta una vez al día.\n• Cada memoria — visitas, suscripciones, canales conocidos — se borra por separado.\n• Tus ajustes se exportan y se importan; un botón los restaura todos."
   }
 }

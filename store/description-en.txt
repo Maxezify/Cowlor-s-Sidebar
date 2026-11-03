@@ -177,7 +177,7 @@ _______________________________
 A gear to the right of the sidebar title, one click, and everything the extension has learned opens on top of Twitch. The extension's icon, top right of your browser, opens exactly the same panel.
 
 - ★ TWO WAYS IN, ONE PANEL ★ The gear in the sidebar or the icon in the toolbar: the same page, either way. Opened from the gear it is larger — a toolbar popup is capped by the browser, not by us.
-- ★ A GUIDE, FIRST THING ★ The panel opens on a eighteen-chapter walkthrough of everything the extension adds, with drawn examples — and it shows even with no Twitch tab open.
+- ★ A GUIDE, FIRST THING ★ The panel opens on a nineteen-chapter walkthrough of everything the extension adds, with drawn examples — and it shows even with no Twitch tab open.
 - ★ YOUR HABITS, DRAWN ★ The hours you actually watch, laid out as a seven-day by twenty-four-hour grid.
 - ★ YOUR NUMBERS ★ Top streamers, subscriptions spotted, followed channels in memory: all there, readable.
 - ★ A REPORT TO PASTE ★ One button builds a full diagnostic report, with no personal list inside it — enough to report a problem without revealing a thing.
@@ -192,6 +192,18 @@ A channel's schedule page on Twitch shows one channel. The panel's "Schedule" gr
 - ★ ONE CHANNEL OR ALL ★ A menu keeps a single channel, and "Their week" jumps straight to the week of its last stream.
 - ★ HONEST ABOUT WHAT TWITCH KEEPS ★ A replay only exists if the channel saves its broadcasts, and for as long as Twitch keeps them; a last stream without one says so ("No replay"), and so does a replay you cannot watch without a subscription, with a padlock, before you click.
 - ★ ONLY WHEN YOU LOOK ★ Nothing is asked of Twitch until you open it, and what it has read stays in your browser, so a reload picks up where it left off.
+
+_______________________________
+
+➤ 🏠 TWITCH'S HOME PAGE, YOUR WAY
+On Twitch's home page, the extension adds its own rows above Twitch's, in the same column and lined up with them.
+
+- ★ YOUR #1 CHANNEL, ON TOP ★ In place of Twitch's carousel: the live followed channel you watch the most. Its picture refreshes every minute, and nothing starts by itself. None of the channels you watch is live? The carousel comes back. Rather keep the carousel, or have nothing at all? That's a setting.
+- ★ YOUR FOLLOWED CHANNELS FIRST ★ A row of your live channels, in the order of the ones you watch the most — at no extra request: they are the ones the sidebar already follows.
+- ★ THE TOP 10 OF YOUR LANGUAGE ★ The first ten places of Top Channels' exact ranking, in your Twitch's language or across all languages, in big numbers, with what moved over thirty minutes: places gained, places lost, newcomers. Computed only while the home page is on screen.
+- ★ "FROM THE START" ★ Arrived late? A button opens the replay of the stream in progress at its very first second. No button when the channel doesn't keep its replays; a padlock when they are for subscribers only, unless you are one.
+- ★ THE HOVER PREVIEW, HERE TOO ★ On the home page's cards, the extension's and Twitch's alike.
+- ★ YOUR CALL ★ Each part switches off on its own in "Settings"; turn it all off and the home page is Twitch's again, as is.
 
 _______________________________
 
@@ -223,7 +235,7 @@ Twitch has a light theme. The extension notices and switches with it — no relo
 _______________________________
 
 ➤ ⚙️ AND IF YOU WANT TO CHOOSE
-Everything is on from the start and there is nothing to set up. But the panel's "Settings" section hands you twenty-one settings.
+Everything is on from the start and there is nothing to set up. But the panel's "Settings" section hands you twenty-eight settings.
 
 - ★ WHAT YOU SEE ★ Every badge, the stream uptime and its format, the "just went live" bar, the subscription gold, the filters, the sort buttons: all of it switches on and off with a checkbox.
 - ★ WHAT GETS LOADED ★ The preview can drop the video and keep its badges, its timeline and its thumbnail — or simply step down in quality. Enough to make it light without losing it.

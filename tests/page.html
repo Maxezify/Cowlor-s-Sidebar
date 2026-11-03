@@ -237,6 +237,15 @@ window.__agendaPerte = 0;
    — d'où un ajout explicite plutôt qu'une table élargie pour tous. */
 window.__codesEnPlus = null;
 window.__declarees = {};   // login -> code ISO de la langue déclarée (cf. TseLangCheck)
+/* L'ACCUEIL (4.26.0). `__accueilArchives` : login -> { id, verrouillee } — l'archive
+   du direct en cours, `user.stream.archiveVideo`, servie si la chaîne est en direct
+   (dans __fx, ou dans un classement __tagTop) ; absente, `archiveVideo: null`.
+   `__accueilSchema` : vrai → TseAccueilDebut refusée sans données, comme un champ
+   que le schéma ne connaîtrait pas ; un nombre → autant de refus, puis le service
+   reprend. Les jetons de ces archives suivent la règle de l'agenda : toutes les
+   qualités nommées si `verrouillee`, aucune sinon ; plus de quinze alias, refus. */
+window.__accueilArchives = {};
+window.__accueilSchema = false;
 window.__failNext = 0;     // nb de POST à faire échouer
 window.__httpStatus = 0;   // statut HTTP à rendre une fois (429, 503, …)
 window.__abort = false;    // abandon au délai (AbortError), une fois
@@ -945,7 +954,44 @@ window.fetch = async (url, opt) => {
       };
     }) } }, logins);
   };
+  /* ── L'ACCUEIL (4.26.0) ── cf. __accueilArchives. Un login inconnu de Twitch
+     rend un utilisateur nul ; connu et hors ligne, un `stream` nul. */
+  const enDirectQuelquePart = (l) => !!window.__fx[l]
+    || Object.values(window.__tagTop || {}).some((t) => Array.isArray(t) && t.some((x) => x.login === l));
+  const accueilDebut = (q) => {
+    const sch = window.__accueilSchema;
+    if (sch === true || sch > 0) {
+      if (typeof sch === 'number') window.__accueilSchema = sch - 1;
+      return { errors: [{ message: 'Cannot query field "archiveVideo" on type "Stream".' }] };
+    }
+    const n = (q.match(/\ba\d+: user\(/g) || []).length;
+    if (n > 15) return { errors: [{ message: `The number of root field aliases ${n} exceeds the root field aliases limit allowed (15)` }] };
+    const data = {};
+    // Les logins de chaque envoi, dans l'ordre : ce que le scénario 218 relit.
+    (window.__accueilDemandes = window.__accueilDemandes || [])
+      .push([...q.matchAll(/user\(login: "([a-z0-9_]+)"\)/g)].map((m) => m[1]));
+    for (const [, alias, l] of q.matchAll(/(a\d+): user\(login: "([a-z0-9_]+)"\)/g)) {
+      if (window.__fx[l] === undefined && !enDirectQuelquePart(l)) { data[alias] = null; continue; }
+      if (!enDirectQuelquePart(l)) { data[alias] = { stream: null }; continue; }
+      const arch = (window.__accueilArchives || {})[l];
+      data[alias] = { stream: { id: 's-' + l, archiveVideo: arch ? { id: arch.id } : null } };
+    }
+    return { data };
+  };
+  const accueilJetons = (q) => {
+    const n = (q.match(/\ba\d+: videoPlaybackAccessToken/g) || []).length;
+    if (n > 15) return { errors: [{ message: `The number of root field aliases ${n} exceeds the root field aliases limit allowed (15)` }] };
+    const data = {};
+    for (const [, alias, id] of q.matchAll(/(a\d+): videoPlaybackAccessToken\(id: "(\d+)"/g)) {
+      const a = Object.values(window.__accueilArchives || {}).find((x) => x.id === id);
+      data[alias] = a ? { value: JSON.stringify({ chansub: { restricted_bitrates: a.verrouillee ? TOUTES : [] },
+                                                   vod_id: Number(id) }) } : null;
+    }
+    return { data };
+  };
   const data = body.map(o => {
+    if (o.operationName === 'TseAccueilDebut') return accueilDebut(o.query || '');
+    if (o.operationName === 'TseAccueilAcces') return accueilJetons(o.query || '');
     if (/^TseAgenda/.test(o.operationName || '')) return agendaReponse(o);
     if (o.operationName === 'GuestStarBatchCollaborationQuery' || o.operationName === 'TseGuestStar') {
       if (window.__gsMode === 'down') return { errors: [{ message: 'service unavailable' }] };
@@ -1045,10 +1091,12 @@ window.fetch = async (url, opt) => {
       if (!t || t === 'erreur') return { errors: [{ message: 'Unknown argument freeformTags' }] };
       return { data: { streams: { edges: t.map(x => ({ node: {
         id: 's-' + x.login,
-        createdAt: new Date(Date.now() - 60_000).toISOString(),
+        // Le début du direct : celui du décor s'il en donne un, sinon une minute.
+        createdAt: x.createdAt || new Date(Date.now() - 60_000).toISOString(),
         viewersCount: x.viewers,
+        // Le nom affiché : celui du décor s'il en donne un (`nom`), sinon le login.
         broadcaster: { id: 'i-' + x.login, login: x.login,
-                       displayName: x.login, profileImageURL: 'https://cdn/' + x.login + '.png' },
+                       displayName: x.nom || x.login, profileImageURL: 'https://cdn/' + x.login + '.png' },
         game: { id: 'g', name: x.game || 'Just Chatting',
                 displayName: traduire(x.game || 'Just Chatting') },
         freeformTags: (x.tags || []).map(n => ({ name: n }))
@@ -1590,6 +1638,112 @@ if (location.pathname === '/directory/following/channels') {
       new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) charger(); }).observe(bas);
     }, cfg.delai ?? 300);
   }
+}
+
+// ── L'accueil (4.26.0) ──────────────────────────────────────────────
+// D'après un échantillon du DOM réel (novembre 2026), réduit à ce que
+// l'extension lit : un <main> ; son défileur, qui porte à la fois
+// `.root-scrollable__content` et data-a-target="root-scroller" ; une enveloppe
+// `.root-scrollable__wrapper` et son unique enfant, qui tient côte à côte le
+// carrousel et la colonne centrale. Le carrousel : la publicité « headliner »
+// (masquée), une vidéo au centre, et quatre vignettes de côté qui ne sont PAS
+// des liens. La colonne : `.common-centered-column > section[data-a-target=
+// "front-page-main-content"]`, et dedans les rayons — un <h2>, puis des cartes
+// `a[data-a-target="preview-card-image-link"]` dont la miniature est
+// `previews-ttv/live_user_<login>-640x360.jpg`.
+// Leviers, posés par le test (page.addInitScript) dans window.__accueil :
+//   carrousel  'repere' (défaut, comme la vraie page) | 'forme' (sans aucun
+//              repère : ni data-a-target, ni classe) | 'aucun'
+//   contenu    false : la section des rayons perd son repère (l'ancrage doit
+//              retomber sur le carrousel)
+//   rayons     [[titre, [logins…]], …]
+//   lecture    la vidéo du carrousel joue (défaut vrai) ; elle se relance par
+//              window.__accueilVideo.play(), et ses arrêts se comptent dans
+//              window.__accueilPauses — le lecteur de Twitch, réduit à son état
+//   delai      montage au bout de N ms (défaut 200)
+// window.__accueilRemonter() refait le contenu à neuf, comme React en revenant.
+if (location.pathname === '/' && window.__accueil) {
+  const cfg = window.__accueil;
+  const el = (tag, cls) => { const x = document.createElement(tag); if (cls) x.className = cls; return x; };
+  const vignette = (l, w) => {
+    const img = el('img', 'tw-image');
+    img.src = 'https://static-cdn.jtvnw.net/previews-ttv/live_user_' + l + '-' + w + '.jpg';
+    img.style.cssText = 'display:block;width:160px;height:90px';
+    return img;
+  };
+  const carte = (l) => {
+    const art = el('article');
+    const a = el('a', 'preview-card-image-link tw-link');
+    a.href = '/' + l;
+    a.setAttribute('data-a-target', 'preview-card-image-link');
+    a.style.cssText = 'display:inline-block;width:160px;height:90px';
+    a.appendChild(vignette(l, '640x360'));
+    const nom = el('a', 'preview-card-channel-link');
+    nom.href = '/' + l;
+    nom.setAttribute('data-a-target', 'preview-card-channel-link');
+    nom.textContent = l;
+    art.append(a, nom);
+    return art;
+  };
+  const monter = (defileur) => {
+    defileur.replaceChildren();
+    const enveloppe = el('div', 'root-scrollable__wrapper');
+    const page = el('div', 'page-accueil');
+    enveloppe.appendChild(page);
+    defileur.appendChild(enveloppe);
+    if ((cfg.carrousel || 'repere') !== 'aucun') {
+      const car = el('div', cfg.carrousel === 'forme' ? 'bloc-sans-nom' : 'front-page-carousel');
+      if (cfg.carrousel !== 'forme') car.setAttribute('data-a-target', 'front-page-carousel');
+      const pub = el('div', 'headliner-ad');
+      const pubCadre = el('div');
+      pubCadre.style.display = 'none';
+      pub.appendChild(pubCadre);
+      const tourniquet = el('div', 'featured-content-carousel');
+      for (const l of ['cote_un', 'cote_deux']) tourniquet.appendChild(el('div')).appendChild(vignette(l, '320x180'));
+      const centre = el('div');
+      const v = el('video');
+      let lit = cfg.lecture !== false;
+      Object.defineProperty(v, 'paused', { get: () => !lit });
+      v.pause = () => { lit = false; window.__accueilPauses = (window.__accueilPauses || 0) + 1; };
+      v.play = () => { lit = true; v.dispatchEvent(new Event('play')); return Promise.resolve(); };
+      window.__accueilVideo = v;
+      centre.append(v, vignette('cote_centre', '320x180'));
+      tourniquet.appendChild(centre);
+      for (const l of ['cote_trois', 'cote_quatre']) tourniquet.appendChild(el('div')).appendChild(vignette(l, '320x180'));
+      car.append(pub, tourniquet);
+      page.appendChild(car);
+    }
+    const colonneBloc = el('div');
+    const colonne = el('div', 'common-centered-column');
+    const contenu = el('section');
+    if (cfg.contenu !== false) {
+      contenu.id = 'front-page-main-content';
+      contenu.setAttribute('data-a-target', 'front-page-main-content');
+    }
+    // Les marges de la colonne, celles que l'alignement doit retrouver.
+    contenu.style.cssText = 'padding:0 24px';
+    for (const [titre, logins] of cfg.rayons || []) {
+      const rayon = el('div', 'find-me');
+      const h = el('h2', 'tw-title');
+      h.textContent = titre;
+      rayon.appendChild(h);
+      for (const l of logins) rayon.appendChild(carte(l));
+      contenu.appendChild(rayon);
+    }
+    colonne.appendChild(contenu);
+    colonneBloc.appendChild(colonne);
+    page.appendChild(colonneBloc);
+  };
+  setTimeout(() => {
+    const principal = el('main', 'twilight-main');
+    principal.appendChild(el('header'));
+    const defileur = el('div', 'scrollable-area root-scrollable root-scrollable__content');
+    defileur.setAttribute('data-a-target', 'root-scroller');
+    principal.appendChild(defileur);
+    monter(defileur);
+    document.getElementById('root').appendChild(principal);
+    window.__accueilRemonter = () => monter(defileur);
+  }, cfg.delai ?? 200);
 }
 
 // Montage TARDIF de la sidebar, piloté par le test (page.addInitScript).

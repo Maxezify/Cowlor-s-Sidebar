@@ -177,7 +177,7 @@ _______________________________
 Une roue crantée à droite du titre de la barre latérale, un clic, et tout ce que l'extension a appris s'ouvre par-dessus Twitch. L'icône de l'extension, en haut à droite du navigateur, ouvre exactement le même panneau.
 
 - ★ DEUX CHEMINS, UN SEUL PANNEAU ★ La roue dans la barre latérale ou l'icône dans la barre d'outils : la même page, dans les deux cas. Ouverte depuis la roue, elle est plus grande — une popup de barre d'outils est bornée par le navigateur, pas par nous.
-- ★ UN MODE D'EMPLOI, D'EMBLÉE ★ Le panneau s'ouvre sur un guide de dix-huit chapitres qui montre tout ce que l'extension ajoute, exemples dessinés à l'appui — et il s'affiche même sans onglet Twitch ouvert.
+- ★ UN MODE D'EMPLOI, D'EMBLÉE ★ Le panneau s'ouvre sur un guide de dix-neuf chapitres qui montre tout ce que l'extension ajoute, exemples dessinés à l'appui — et il s'affiche même sans onglet Twitch ouvert.
 - ★ VOS HABITUDES, EN IMAGE ★ Les heures où vous regardez vraiment, dessinées en une grille de sept jours sur vingt-quatre heures.
 - ★ VOS CHIFFRES ★ Top streamers, abonnements repérés, chaînes suivies en mémoire : tout est là, lisible.
 - ★ UN RAPPORT À COLLER ★ Un bouton fabrique un rapport de diagnostic complet, sans aucune liste personnelle dedans — de quoi signaler un problème sans rien révéler.
@@ -192,6 +192,18 @@ La page de programme d'une chaîne, sur Twitch, ne montre qu'une chaîne. Le gro
 - ★ UNE CHAÎNE OU TOUTES ★ Un menu n'en garde qu'une, et « Sa semaine » mène droit à la semaine de son dernier direct.
 - ★ FRANC SUR CE QUE TWITCH GARDE ★ Une rediffusion n'existe que si la chaîne archive ses directs, et tant que Twitch les conserve ; un dernier direct qui n'en a pas le dit (« Sans rediffusion »), une rediffusion qu'on ne peut voir qu'abonné aussi, d'un cadenas, avant le clic.
 - ★ SEULEMENT QUAND VOUS REGARDEZ ★ Rien n'est demandé à Twitch avant que vous l'ouvriez, et ce qu'il a lu reste dans votre navigateur : un rechargement reprend où il en était.
+
+_______________________________
+
+➤ 🏠 L'ACCUEIL DE TWITCH, À VOTRE IMAGE
+Sur la page d'accueil de Twitch, l'extension pose ses propres rayons au-dessus de ceux de Twitch, dans la même colonne et alignés sur eux.
+
+- ★ VOTRE CHAÎNE N°1, EN TÊTE ★ À la place du carrousel de Twitch : celle de vos chaînes suivies en direct que vous regardez le plus. Son image se rafraîchit chaque minute, et rien ne démarre tout seul. Aucune de celles que vous regardez n'est en direct ? Le carrousel revient. Vous préférez le carrousel, ou rien du tout ? C'est un réglage.
+- ★ VOS CHAÎNES SUIVIES D'ABORD ★ Un rayon de vos chaînes en direct, dans l'ordre de celles que vous regardez le plus — sans une requête de plus : ce sont celles que la barre suit déjà.
+- ★ LE TOP 10 DE VOTRE LANGUE ★ Les dix premières places du classement exact de Top Chaînes, dans la langue de votre Twitch ou toutes langues confondues, en grands chiffres, avec ce qui a bougé en trente minutes : places gagnées, places perdues, nouvelles venues. Calculé seulement pendant que l'accueil est à l'écran.
+- ★ « DEPUIS LE DÉBUT » ★ Arrivé en retard ? Un bouton ouvre la rediffusion du direct en cours à sa toute première seconde. Pas de bouton quand la chaîne ne garde pas ses rediffusions ; un cadenas quand elles sont réservées aux abonnés, sauf si vous l'êtes.
+- ★ L'APERÇU AU SURVOL, ICI AUSSI ★ Sur les cartes de l'accueil, celles de l'extension comme celles de Twitch.
+- ★ À VOTRE GUISE ★ Chaque partie s'éteint à part dans « Réglages » ; tout coupé, l'accueil redevient celui de Twitch, tel quel.
 
 _______________________________
 
@@ -223,7 +235,7 @@ Twitch a un thème clair. L'extension le voit et bascule avec lui — sans recha
 _______________________________
 
 ➤ ⚙️ ET SI VOUS VOULEZ CHOISIR
-Tout est actif d'emblée et il n'y a rien à régler. Mais « Réglages », dans le panneau, vous rend la main sur vingt et un réglages.
+Tout est actif d'emblée et il n'y a rien à régler. Mais « Réglages », dans le panneau, vous rend la main sur vingt-huit réglages.
 
 - ★ CE QUE VOUS VOYEZ ★ Chaque badge, la durée du direct et son format, la barre « vient de démarrer », l'or des abonnements, les filtres, les boutons de tri : tout s'allume et s'éteint à la case.
 - ★ CE QUI SE CHARGE ★ L'aperçu peut se passer de la vidéo et garder ses badges, sa frise et sa miniature — ou simplement descendre en qualité. De quoi l'alléger sans le perdre.

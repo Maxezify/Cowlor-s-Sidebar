@@ -177,7 +177,7 @@ _______________________________
 Uma roda dentada à direita do título da barra lateral, um clique, e tudo o que a extensão aprendeu abre por cima do Twitch. O ícone da extensão, no canto superior direito do navegador, abre exatamente o mesmo painel.
 
 - ★ DOIS CAMINHOS, UM SÓ PAINEL ★ A roda na barra lateral ou o ícone na barra de ferramentas: a mesma página, em ambos os casos. Aberta pela roda é maior — uma janela da barra de ferramentas é limitada pelo navegador, não por nós.
-- ★ UM GUIA, LOGO À ENTRADA ★ O painel abre num guia de dezoito capítulos que mostra tudo o que a extensão acrescenta, com exemplos desenhados — e aparece mesmo sem nenhum separador do Twitch aberto.
+- ★ UM GUIA, LOGO À ENTRADA ★ O painel abre num guia de dezanove capítulos que mostra tudo o que a extensão acrescenta, com exemplos desenhados — e aparece mesmo sem nenhum separador do Twitch aberto.
 - ★ OS SEUS HÁBITOS, DESENHADOS ★ As horas a que vê mesmo, traçadas numa grelha de sete dias por vinte e quatro horas.
 - ★ OS SEUS NÚMEROS ★ Top de streamers, subscrições detetadas, canais seguidos em memória: está tudo lá, legível.
 - ★ UM RELATÓRIO PARA COLAR ★ Um botão constrói um relatório de diagnóstico completo, sem qualquer lista pessoal lá dentro — o suficiente para comunicar um problema sem revelar nada.
@@ -192,6 +192,18 @@ A página de programação de um canal, no Twitch, mostra um só canal. O grupo 
 - ★ UM CANAL OU TODOS ★ Um menu deixa só um, e «Semana do canal» leva logo à semana da sua última emissão.
 - ★ FRANCO SOBRE O QUE O TWITCH GUARDA ★ Uma gravação só existe se o canal guarda as emissões, e enquanto o Twitch as mantiver; uma última emissão sem gravação di-lo («Sem gravação»), e uma gravação que só se pode ver com subscrição também, com um cadeado, antes do clique.
 - ★ SÓ QUANDO OLHAS ★ Nada é pedido ao Twitch antes de o abrires, e o que leu fica no teu navegador: ao recarregar, continua de onde estava.
+
+_______________________________
+
+➤ 🏠 A PÁGINA INICIAL DA TWITCH À TUA MANEIRA
+Na página inicial da Twitch, a extensão coloca as suas próprias filas acima das da Twitch, na mesma coluna e alinhadas com elas.
+
+- ★ O TEU CANAL N.º 1 NO TOPO ★ Em vez do carrossel da Twitch: o canal seguido em direto que mais vês. A imagem atualiza-se a cada minuto, e nada começa sozinho. Nenhum dos canais que vês está em direto? O carrossel volta. Preferes o carrossel, ou nada? É uma definição.
+- ★ PRIMEIRO, OS TEUS CANAIS SEGUIDOS ★ Uma fila com os teus canais em direto, pela ordem dos que mais vês — sem nenhum pedido a mais: são os que a barra já acompanha.
+- ★ O TOP 10 DO TEU IDIOMA ★ Os dez primeiros lugares da classificação exata do Top Canais, no idioma da tua Twitch ou em todos os idiomas, em números grandes, com o que mudou em trinta minutos: lugares ganhos, lugares perdidos, recém-chegados. Calculado só enquanto a página inicial está no ecrã.
+- ★ «DESDE O INÍCIO» ★ Chegaste atrasado? Um botão abre a gravação da transmissão em curso no primeiro segundo. Sem botão quando o canal não guarda as gravações; um cadeado quando são só para subscritores, a não ser que o sejas.
+- ★ A PRÉ-VISUALIZAÇÃO AO PASSAR O RATO, AQUI TAMBÉM ★ Nos cartões da página inicial, os da extensão e os da Twitch.
+- ★ TU DECIDES ★ Cada parte desliga-se à parte nas «Definições»; tudo desligado, a página inicial volta a ser a da Twitch, tal como é.
 
 _______________________________
 
@@ -223,7 +235,7 @@ A Twitch tem um tema claro. A extensão dá por isso e muda com ele — sem reca
 _______________________________
 
 ➤ ⚙️ E SE QUISERES ESCOLHER
-Tudo já vem ativo e não há nada para configurar. Mas «Definições», no painel, devolve-te o comando sobre vinte e uma definições.
+Tudo já vem ativo e não há nada para configurar. Mas «Definições», no painel, devolve-te o comando sobre vinte e oito definições.
 
 - ★ O QUE VÊS ★ Cada distintivo, a duração da emissão e o seu formato, a barra «acabou de começar», o ouro das subscrições, os filtros, os botões de ordenação: tudo liga e desliga numa caixa.
 - ★ O QUE É CARREGADO ★ A pré-visualização pode dispensar o vídeo e manter os distintivos, a linha temporal e a miniatura — ou simplesmente baixar a qualidade. O suficiente para a aliviar sem a perder.
