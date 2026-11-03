@@ -343,13 +343,13 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1883 Ko | 805 Ko | 4 355 → **2** |
+| `content.js` | 1951 Ko | 855 Ko | 4 423 → **2** |
 | `cadres.js` | 66 Ko | 30 Ko | 158 → **0** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
-| `panneau.js` | 159 Ko | 81 Ko | 220 → **0** |
+| `panneau.js` | 161 Ko | 82 Ko | 223 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 26 → **0** |
 | `background.js` | 10 Ko | 2 Ko | 22 → **0** |
-| **les six** | **2258 Ko** | **1022 Ko** | **−55 %** |
+| **les six** | **2328 Ko** | **1072 Ko** | **−54 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
@@ -2627,6 +2627,245 @@ Un sous-test qui modélisait un cas impossible — un direct qui rajeunit sans
 changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'il
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
+
+## La page d'accueil de Twitch, enrichie (v4.26.0)
+
+La demande : « Commence le grand chantier de la Home page seulement sur ces
+branches. Commence le "Niveau 1 : fort effet, sur des moteurs qui existent
+déjà". Bien entendu que tu mettes à jour les options pour qu'il soit
+activable ou désactivable à souhait. » Le niveau 1 tient en cinq ajouts, tous
+bâtis sur ce que l'extension sait déjà : la mémoire des visites, le cache des
+chaînes suivies, le classement de Top Chaînes, l'archive du direct que
+l'agenda lit, l'aperçu au survol. Publiée sur `claude/chrome-homepage` et
+`claude/firefox-homepage` seulement, pour le moment.
+
+### Ce que l'accueil gagne
+
+Sur `twitch.tv/` — et nulle part ailleurs —, une section se pose **dans la
+colonne centrale de Twitch, juste avant son contenu principal** : au-dessus de
+ses rayons, à leur largeur, alignée au pixel sur leur premier titre.
+
+- **« Votre chaîne n°1 en direct »** : celle des chaînes suivies en direct que
+  vous regardez le plus (le score des visites, celui du tri « Popularité perso »)
+  prend la place du carrousel de Twitch. Une grande image du direct, relue
+  chaque minute — **aucun lecteur, rien ne démarre seul** —, le nom, la
+  catégorie, l'audience, la durée, le titre, « Regarder » et « Depuis le
+  début ». Sans visite comptée, aucune chaîne n'est « la plus regardée » : le
+  carrousel garde sa place.
+- **« Vos chaînes suivies en direct »** : un rayon, dans l'ordre des visites,
+  l'audience à égalité, le héros à part, vingt-quatre cartes au plus. Chaque
+  carte dit ce que dit celle de la barre : la durée (et son réglage), le
+  compteur d'un co-stream combiné, la catégorie traduite.
+- **« Top 10 »** : les dix premières places du classement exact de Top
+  Chaînes, dans la langue de l'interface de Twitch (lue sur `<html lang>`)
+  ou toutes langues confondues, en chiffres de cent cinquante pixels. Une
+  place par co-stream, ses membres nommés dessous. Sous chaque chiffre,
+  l'évolution : « ▲ 2 », « ▼ 1 », « = », ou « Nouveau ».
+- **« Depuis le début »** : sur le héros et sur chaque carte, un bouton vers
+  l'archive du direct en cours, à `?t=0s`. Absent quand la chaîne n'enregistre
+  pas ce direct ; un cadenas quand ses rediffusions sont réservées aux
+  abonnés, sauf si l'extension vous sait abonné.
+- **L'aperçu au survol** s'ouvre aussi sur les cartes de l'accueil — les
+  nôtres, et celles de Twitch.
+
+### Sept réglages, et ceux qui n'ont plus d'effet le disent
+
+Un groupe « Page d'accueil » dans « Réglages ». Le panneau passe de
+vingt et un à vingt-huit réglages.
+
+| réglage | défaut | valeurs |
+| --- | --- | --- |
+| Enrichir l'accueil de Twitch | oui | coupé : l'accueil est celui de Twitch, et rien ne tourne |
+| En tête de l'accueil | Votre chaîne n°1 | Comme Twitch · Votre chaîne n°1 · Rien |
+| Vos chaînes suivies en direct | oui | |
+| Top 10 | oui | |
+| Langue du Top 10 | Celle de Twitch | Celle de Twitch · Toutes les langues |
+| Aperçu au survol sur l'accueil | oui | suit aussi « Afficher l'aperçu » |
+| « Depuis le début » | oui | |
+
+**Une ligne qui dépend d'un réglage coupé se grise**, et son infobulle dit
+lequel : « Sans effet tant que « Enrichir l'accueil de Twitch » est coupé ».
+La page dit de quoi chaque réglage dépend (`sous`, dans sa table) ; le panneau
+n'en tient aucune liste. La ligne reste modifiable : on prépare un réglage
+avant d'allumer celui qui le gouverne.
+
+### Où elle se pose, et nulle part ailleurs
+
+Le DOM de l'accueil a été relevé sur la vraie page : un défileur
+(`main .root-scrollable__content`), le carrousel
+(`[data-a-target="front-page-carousel"]`), qui porte aussi la publicité
+« headliner » de Twitch, puis la colonne centrale et le contenu principal
+(`[data-a-target="front-page-main-content"]`), où vivent les rayons.
+
+- **L'ancre** : juste avant le contenu principal ; à défaut, juste après le
+  carrousel ; à défaut des deux, en tête du conteneur des rayons. Rien ne
+  bouge si tout est en place — un déplacement inutile serait une mutation, donc
+  une vérification de plus, donc une boucle.
+- **L'alignement se mesure** : les marges de la colonne sont générées, pas
+  nommées. On lit où commence le premier titre de rayon de Twitch, et l'on y
+  cale les nôtres.
+- **Le carrousel se trouve par repère, puis par forme.** La forme : l'enfant
+  de l'ancêtre commun de sa vidéo et de la DERNIÈRE carte de l'accueil qui
+  contient la vidéo — et seulement s'il reste au moins six cartes de rayon
+  hors de lui. Le carrousel en porte cinq ; un accueil dont les rayons ne sont
+  pas encore là ne peut donc pas passer pour complet. Sans preuve, on ne
+  masque rien.
+- **Masqué, il est aussi arrêté** : sa vidéo est mise en pause, et une vidéo
+  que Twitch relance dans un bloc masqué est arrêtée aussitôt (`play` écouté
+  en capture). Rendu, il rejoue.
+- **L'observateur n'existe qu'à l'adresse « / »** : il attend le défileur,
+  repose la section quand React l'emporte, remasque un carrousel redessiné.
+  On quitte l'accueil : la section part, le carrousel revient avec sa vidéo,
+  l'observateur s'éteint. Les scénarios du banc qui tournent à « / » sans ce
+  décor — la plupart — n'en voient rien.
+
+### Le Top 10 : le moteur de Top Chaînes, pas un second
+
+Le classement de la barre est devenu une **fabrique** (`creerClassement`) :
+la barre en garde une instance, l'accueil en a une autre, réglée sur sa
+langue, sans catégorie, à dix places. Même descente, mêmes preuves, même
+voie du tag ; la barre n'a pas changé d'une ligne de comportement. Les
+compteurs que la barre relit (`TseChannels`) nourrissent les deux.
+
+- **Une seule question, un seul moteur** : quand Top Chaînes est ouvert dans
+  la barre, sans catégorie, dans la même langue, l'accueil lit son classement
+  et le sien se tait.
+- **L'évolution ne compare que des classements exacts, de la même langue.**
+  Un instantané par minute, gardé trente minutes ; la référence est le plus
+  ancien, et pas avant deux minutes. Une chaîne absente de la référence n'a
+  pas « gagné onze places » — on ne savait pas où elle était — : elle est
+  « Nouveau ». Un classement partiel s'affiche et se dit partiel, mais ne
+  laisse aucun instantané.
+
+### « Depuis le début » : une question par direct
+
+`user.stream.archiveVideo` est l'archive que Twitch enregistre dès le début
+du direct — quatre rapports de terrain l'ont établi pour l'agenda. La clé
+d'une réponse est **le début du direct** : un autre direct, une autre
+question. Une chaîne suivie peut aussi être au Top 10 ; le cache de la barre
+donne alors le début, pour qu'un même direct n'ait jamais deux clés.
+
+Le cadenas suit la règle de l'agenda, la même fonction (`fermeeSelonJeton`) :
+le jeton de lecture de l'archive réserve à la fois l'audio et la source, et
+vous n'êtes pas connu comme abonné.
+
+### Coût réseau
+
+| ce qui s'affiche | ce que ça coûte |
+| --- | --- |
+| le héros, le rayon des suivies | **rien** : ce sont les chaînes que la barre interroge déjà |
+| le Top 10 | le rythme de Top Chaînes — une passe légère toutes les 30 s, une marche complète au plus toutes les 2 min 30 ; dans une langue que Twitch étiquette, la marche est un seul `TseTagTop`. **Rien** quand la barre sert déjà la même question, quand l'accueil n'est pas à l'écran, ou quand le réglage est coupé |
+| « Depuis le début » | un `TseAccueilDebut` par lot de quinze chaînes au plus, **une fois par direct** ; puis un `TseAccueilAcces` pour les jetons des archives trouvées. Une archive absente se redemande au bout de dix minutes, elle seule |
+
+Les échecs se séparent comme dans l'agenda : une réponse sans données mais
+avec des erreurs dit quelque chose de la forme — une pause d'une minute, et
+trois d'affilée font taire la voie pour la session ; une coupure de transport
+ne dit rien — une pause, et l'on redemandera. Une réponse qui porte des
+données sert, même accompagnée d'une erreur. Tout est anonyme, comme le reste.
+
+### Le rapport et la console
+
+Le rapport gagne un bloc `accueil` : poses, reposes, retraits, peintures,
+l'ancre ; le carrousel (voie, signature, masquages, pauses, reprises) ; le
+héros ; le Top 10 (sa source, ses instantanés, sa langue, l'état de son
+classement) ; « Depuis le début » (envois, archives, jetons, refus, coupures).
+`tse.accueil.rapport()`, `tse.accueil.top(n)` et `tse.accueil.marche()` le
+lisent depuis la console.
+
+### Les textes
+
+Les libellés de l'accueil vivent dans `content.js`, dans la langue de Twitch,
+dix-neuf clés dans les dix langues. Les chaînes portugaises suivent le
+portugais du Brésil, comme le reste de `content.js` ; les libellés des
+réglages en russe, en chinois et en japonais ont été alignés sur ce que la
+page affiche (« С самого начала », « 从头观看 », « フォロー中のライブチャンネル »).
+
+**Le mode d'emploi passe à dix-neuf chapitres** : « L'accueil de Twitch »
+se range juste après Top Chaînes — son Top 10 en est le classement — et ne
+nomme rien de ce qui vient après. Le chapitre des réglages explique la ligne
+grisée. Les douze fiches du Store gagnent une section « L'accueil de Twitch,
+à votre image » et annoncent dix-neuf chapitres.
+
+### Le banc
+
+Le faux Twitch (`tests/page.html`) gagne un **faux accueil** bâti sur
+l'échantillon du DOM réel : défileur, carrousel (par repère, sans repère, ou
+absent), colonne centrale, contenu principal, rayons de cartes, une vidéo
+qui compte ses pauses. Ses leviers : `window.__accueil`, `__accueilArchives`,
+`__accueilSchema` (refus de forme), `__accueilRemonter()` (React qui redessine).
+Les chaînes sont inventées.
+
+- **215** : inerte à « / » sans défileur et hors de « / » ; posée avant le
+  contenu, dans la colonne, alignée au pixel ; reposée après un redessin ;
+  retirée en partant, carrousel et vidéo rendus, observateur éteint ; le
+  réglage maître ; l'ancre de repli sur le carrousel.
+- **216** : le héros par les visites, pas par l'audience ; le carrousel
+  masqué et arrêté, relancé puis réarrêté ; l'image relue sans lecteur ; la
+  passation quand le héros coupe ; le carrousel rendu sans chaîne visitée ;
+  « Rien », « Comme Twitch » ; la forme reconnue sans repère, et refusée sans
+  preuve.
+- **217** : l'ordre du rayon, chaque champ d'une carte, zéro requête, la mise
+  à jour sans recréer les cartes ; le Top 10 en français par la voie du tag ;
+  l'évolution (▲ 2, ▼ 1, =, « Nouveau ») ; « Toutes les langues » ; le
+  classement partagé avec la barre ; un classement partiel qui ne sert pas de
+  référence.
+- **218** : le bouton, le cadenas, l'abonné sans cadenas ; une demande pour
+  trois directs et un lot de jetons ; l'archive absente redemandée seule ;
+  vingt chaînes en deux lots ; deux refus puis la réponse ; trois refus, et la
+  voie se tait.
+- **219** : l'aperçu sur nos cartes et sur celles de Twitch, ni sur le lien du
+  nom ni sur le héros, son réglage, celui de la barre, et rien hors de « / ».
+- **120** : la ligne grisée, et elle seule, avec son infobulle ; la langue du
+  Top seule grisée sous « Top 10 » coupé. **117** : vingt-huit réglages.
+  **96** : dix-neuf chapitres, la notion « accueil », les libellés cités au
+  mot près — ceux de la page rendus par les fonctions de `content.js` dans la
+  langue de chaque fiche —, et le nombre de chapitres que les fiches
+  annoncent. **212** : la requête des jetons de l'accueil cite ses
+  identifiants comme celle de l'agenda, et le test les éprouve toutes les
+  deux — il lisait `PARAMS_JETON` dans l'agenda, d'où la constante est
+  sortie pour être partagée ; le premier banc complet l'a dit.
+
+**Vingt-trois mutants nommés, tous pris.** Chacun posé seul, le banc relancé
+sur le scénario qui garde ce qu'il casse. Deux ont demandé de reprendre le
+banc en route :
+
+- **« l'instantané pris sur un classement incomplet » survivait** : aucun
+  scénario ne montrait un classement partiel à l'accueil. Le 217 en fabrique
+  un — cent catégories toutes au-dessus du seuil, comme le 26 — et le mutant
+  tombe ;
+- **« la garde des dix minutes ôtée » ne fait pas échouer le 218, elle le
+  bloque** : l'archive absente se redemande à chaque peinture, et chaque
+  réponse en déclenche une autre. Le scénario ne finit plus ; le passage des
+  mutants borne désormais chaque essai à dix minutes et compte un blocage
+  comme une prise.
+
+| mutant | ce qui tombe |
+| --- | --- |
+| le `<body>` à défaut du défileur | 215 : inerte à « / » sans décor |
+| l'accueil partout | 215 : hors de « / », et le départ |
+| l'alignement par « SEL h2 » | 215 : l'écart au pixel |
+| retirer sans rendre le carrousel | 215 : le départ, le réglage maître |
+| le héros par l'audience | 216 : le héros, la forme |
+| masquer sans arrêter la vidéo | 216 : le carrousel masqué, « Rien » |
+| `play` écouté sans capture | 216 : la vidéo relancée |
+| le héros sans visite | 216 : le carrousel rendu |
+| la forme : remonter jusqu'à la première carte | 216 : la forme reconnue |
+| la preuve à trois cartes | 216 : rien masqué sans preuve |
+| un rang inconnu compté onzième | 217 : « Nouveau » |
+| le sens de l'évolution inversé | 217 : ▲ 2, ▼ 1 |
+| le classement jamais partagé | 217 : la barre sert déjà |
+| l'instantané sur un classement incomplet | 217 : le classement partiel |
+| le cadenas sur la seule archive | 218 : le héros sans cadenas |
+| la garde des dix minutes ôtée | 218 : bloqué |
+| le lot à vingt-cinq | 218 : vingt chaînes |
+| se taire au premier refus | 218 : deux refus puis la réponse |
+| la carte cherchée dans la seule barre | 219 : nos cartes, celles de Twitch |
+| l'aperçu sans la garde d'adresse | 219 : hors de « / » |
+| l'identifiant de l'archive collé dans la requête des jetons | 212 : un identifiant forgé n'en sort pas |
+| la ligne grisée par son seul premier parent | 120 : la langue du Top |
+| l'infobulle qui nomme l'identifiant | 120 : les six lignes grisées |
+
+Le banc complet : 2114 assertions dans 218 scénarios, toutes vertes.
 
 ## L'état du calage à gauche du bouton du chat, en deux lignes qui tiennent (v4.25.0.12)
 
@@ -22845,7 +23084,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | les six fichiers JavaScript livrés — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le manifeste Firefox : les invariants du dépôt, **puis** l'`addons-linter` de Mozilla — celui qu'AMO applique à la soumission |
-| `npm test` | le harnais Playwright : 213 scénarios, 2048 assertions |
+| `npm test` | le harnais Playwright : 218 scénarios, 2114 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il

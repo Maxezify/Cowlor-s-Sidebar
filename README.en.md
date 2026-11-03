@@ -331,13 +331,13 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1883 KB | 805 KB | 4,355 → **2** |
+| `content.js` | 1951 KB | 855 KB | 4,423 → **2** |
 | `cadres.js` | 66 KB | 30 KB | 158 → **0** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
-| `panneau.js` | 159 KB | 81 KB | 220 → **0** |
+| `panneau.js` | 161 KB | 82 KB | 223 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 26 → **0** |
 | `background.js` | 10 KB | 2 KB | 22 → **0** |
-| **all six** | **2258 KB** | **1022 KB** | **−55 %** |
+| **all six** | **2328 KB** | **1072 KB** | **−54 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are
@@ -2494,6 +2494,239 @@ A sub-test that modelled an impossible case — a stream growing younger without
 changing id — was replaced along the way by the ordinary case that was actually
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
+
+## Twitch's home page, enhanced (v4.26.0)
+
+The request: "Start the big Home page project, only on these branches. Start
+'Level 1: strong effect, on engines that already exist'. Of course, update
+the options so it can be switched on or off at will." Level 1 comes down to
+five additions, all built on what the extension already knows: the visit
+memory, the followed-channel cache, the Top Channels ranking, the archive of
+the stream that the schedule reads, the hover preview. Published on
+`claude/chrome-homepage` and `claude/firefox-homepage` only, for now.
+
+### What the home page gains
+
+On `twitch.tv/` — and nowhere else — a section sits **in Twitch's centre
+column, just before its main content**: above its rows, at their width,
+lined up to the pixel with their first heading.
+
+- **"Your #1 channel, live"**: the live followed channel you watch the most
+  (the visit score, the one behind the "Personal popularity" sort) takes the place
+  of Twitch's carousel. A large picture of the stream, reread every minute —
+  **no player, nothing starts by itself** —, the name, the category, the
+  audience, the uptime, the title, "Watch" and "From the start". With no visit
+  counted, no channel is "the one you watch most": the carousel keeps its
+  place.
+- **"Your followed channels, live"**: a row, in visit order, audience as the
+  tie-break, the hero left out, twenty-four cards at most. Each card says what
+  the sidebar card says: the uptime (and its setting), a co-stream's combined
+  count, the translated category.
+- **"Top 10"**: the first ten places of Top Channels' exact ranking, in the
+  language of Twitch's interface (read from `<html lang>`) or across all
+  languages, in 150-pixel numerals. One place per co-stream, its members
+  named underneath. Under each numeral, the movement: "▲ 2", "▼ 1", "=", or
+  "New".
+- **"From the start"**: on the hero and on every card, a button to the
+  archive of the stream in progress, at `?t=0s`. Absent when the channel
+  doesn't record this stream; a padlock when its replays are for subscribers
+  only, unless the extension knows you are one.
+- **The hover preview** also opens on the home page's cards — ours, and
+  Twitch's.
+
+### Seven settings, and the ones that no longer apply say so
+
+A "Home page" group in "Settings". The panel goes from twenty-one to
+twenty-eight settings.
+
+| setting | default | values |
+| --- | --- | --- |
+| Enhance Twitch's home page | on | off: the home page is Twitch's, and nothing runs |
+| Top of the home page | Your #1 channel | As on Twitch · Your #1 channel · Nothing |
+| Your followed channels, live | on | |
+| Top 10 | on | |
+| Top 10 language | Twitch's | Twitch's · All languages |
+| Hover preview on the home page | on | also follows "Show the preview" |
+| "From the start" | on | |
+
+**A line that depends on a setting that is off is greyed out**, and its
+tooltip says which one: "No effect while “Enhance Twitch's home page” is
+off". The page says what each setting depends on (`sous`, in its table); the
+panel keeps no list of its own. The line stays editable: you can prepare a
+setting before switching on the one that governs it.
+
+### Where it goes, and nowhere else
+
+The home page DOM was taken from the real page: a scroller
+(`main .root-scrollable__content`), the carousel
+(`[data-a-target="front-page-carousel"]`), which also carries Twitch's
+"headliner" ad, then the centre column and the main content
+(`[data-a-target="front-page-main-content"]`), where the rows live.
+
+- **The anchor**: just before the main content; failing that, just after the
+  carousel; failing both, at the top of the rows' container. Nothing moves if
+  everything is in place — a needless move would be a mutation, so one more
+  check, so a loop.
+- **The alignment is measured**: the column's margins are generated, not
+  named. We read where Twitch's first row heading starts, and line ours up
+  with it.
+- **The carousel is found by landmark, then by shape.** The shape: the child
+  of the common ancestor of its video and of the LAST card on the page that
+  contains the video — and only if at least six row cards remain outside it.
+  The carousel holds five; a home page whose rows aren't there yet cannot
+  pass for complete. Without proof, nothing is hidden.
+- **Hidden, it is also stopped**: its video is paused, and a video Twitch
+  restarts inside a hidden block is paused again at once (`play` listened to
+  in the capture phase). Given back, it plays again.
+- **The observer only exists at "/"**: it waits for the scroller, puts the
+  section back when React takes it away, hides a redrawn carousel again.
+  Leave the home page: the section goes, the carousel comes back with its
+  video, the observer stops. The bench scenarios that run at "/" without this
+  decor — most of them — see none of it.
+
+### The Top 10: Top Channels' engine, not a second one
+
+The sidebar's ranking became a **factory** (`creerClassement`): the sidebar
+keeps one instance, the home page has another, set to its language, no
+category, ten places. Same descent, same proofs, same tag route; the sidebar
+hasn't changed one line of behaviour. The counts the sidebar rereads
+(`TseChannels`) feed both.
+
+- **One question, one engine**: when Top Channels is open in the sidebar,
+  with no category, in the same language, the home page reads its ranking and
+  its own stays silent.
+- **The movement only compares exact rankings, of the same language.** One
+  snapshot a minute, kept thirty minutes; the reference is the oldest, and
+  not before two minutes. A channel absent from the reference has not "gained
+  eleven places" — we didn't know where it was —: it is "New". A partial
+  ranking is shown and says it is partial, but leaves no snapshot.
+
+### "From the start": one question per stream
+
+`user.stream.archiveVideo` is the archive Twitch records from the start of
+the stream — four field reports established it for the schedule. The key of
+an answer is **the start of the stream**: another stream, another question. A
+followed channel can also be in the Top 10; the sidebar's cache then gives
+the start, so that one stream never has two keys.
+
+The padlock follows the schedule's rule, the same function
+(`fermeeSelonJeton`): the archive's playback token restricts both audio and
+source, and you are not known to be a subscriber.
+
+### Network cost
+
+| what is shown | what it costs |
+| --- | --- |
+| the hero, the followed row | **nothing**: these are the channels the sidebar already asks about |
+| the Top 10 | Top Channels' pace — a light pass every 30 s, a full walk at most every 2 min 30; in a language Twitch tags, the walk is a single `TseTagTop`. **Nothing** when the sidebar already serves the same question, when the home page isn't on screen, or when the setting is off |
+| "From the start" | one `TseAccueilDebut` per batch of at most fifteen channels, **once per stream**; then one `TseAccueilAcces` for the tokens of the archives found. A missing archive is asked again after ten minutes, on its own |
+
+Failures are told apart as in the schedule: an answer with no data but with
+errors says something about the shape — a one-minute pause, and three in a
+row silence the route for the session; a transport failure says nothing — a
+pause, and we'll ask again. An answer that carries data is used, even with an
+error alongside. Everything is anonymous, like the rest.
+
+### The report and the console
+
+The report gains an `accueil` block: placements, re-placements, removals,
+paints, the anchor; the carousel (route, signature, hidings, pauses,
+resumes); the hero; the Top 10 (its source, its snapshots, its language, the
+state of its ranking); "From the start" (sends, archives, tokens, refusals,
+failures). `tse.accueil.rapport()`, `tse.accueil.top(n)` and
+`tse.accueil.marche()` read it from the console.
+
+### The texts
+
+The home page's labels live in `content.js`, in Twitch's language, nineteen
+keys in the ten languages. The Portuguese strings follow Brazilian
+Portuguese, like the rest of `content.js`; the settings' labels in Russian,
+Chinese and Japanese were aligned with what the page shows ("С самого
+начала", "从头观看", "フォロー中のライブチャンネル").
+
+**The guide goes to nineteen chapters**: "Twitch's home page" sits right
+after Top Channels — its Top 10 is that ranking — and names nothing that
+comes later. The settings chapter explains the greyed-out line. The twelve
+Store listings gain a "Twitch's home page, your way" section and announce
+nineteen chapters.
+
+### The bench
+
+The fake Twitch (`tests/page.html`) gains a **fake home page** built on the
+sample of the real DOM: scroller, carousel (by landmark, without one, or
+absent), centre column, main content, rows of cards, a video that counts its
+pauses. Its levers: `window.__accueil`, `__accueilArchives`, `__accueilSchema`
+(shape refusals), `__accueilRemonter()` (React redrawing). The channels are
+made up.
+
+- **215**: inert at "/" without the scroller and away from "/"; placed before
+  the content, in the column, aligned to the pixel; put back after a redraw;
+  removed on leaving, carousel and video given back, observer stopped; the
+  master setting; the fallback anchor on the carousel.
+- **216**: the hero by visits, not by audience; the carousel hidden and
+  stopped, restarted then stopped again; the picture reread with no player;
+  the handover when the hero goes offline; the carousel back with no visited
+  channel; "Nothing", "As on Twitch"; the shape recognised without a
+  landmark, and refused without proof.
+- **217**: the row's order, every field of a card, zero requests, updates
+  without recreating cards; the Top 10 in French through the tag route; the
+  movement (▲ 2, ▼ 1, =, "New"); "All languages"; the ranking shared with the
+  sidebar; a partial ranking that doesn't serve as a reference.
+- **218**: the button, the padlock, the subscriber without a padlock; one
+  request for three streams and one batch of tokens; the missing archive
+  asked again on its own; twenty channels in two batches; two refusals then
+  the answer; three refusals, and the route goes silent.
+- **219**: the preview on our cards and on Twitch's, neither on the name link
+  nor on the hero, its setting, the sidebar's, and nothing away from "/".
+- **120**: the greyed-out line, and only it, with its tooltip; only the Top's
+  language greyed out under "Top 10" off. **117**: twenty-eight settings.
+  **96**: nineteen chapters, the "home page" notion, the labels quoted word
+  for word — the page's, rendered by `content.js`'s own functions in each
+  listing's language —, and the chapter count the listings announce.
+  **212**: the home page's token query quotes its identifiers like the
+  schedule's, and the test now exercises both — it read `PARAMS_JETON` in
+  the schedule, which the constant left to be shared; the first full bench
+  said so.
+
+**Twenty-three named mutants, all caught.** Each one applied alone, the bench
+rerun on the scenario that guards what it breaks. Two required reworking the
+bench along the way:
+
+- **"the snapshot taken on an incomplete ranking" survived**: no scenario
+  showed a partial ranking on the home page. 217 now builds one — a hundred
+  categories all above the threshold, as in 26 — and the mutant falls;
+- **"the ten-minute guard removed" doesn't make 218 fail, it makes it hang**:
+  the missing archive is asked again at every paint, and every answer
+  triggers another. The scenario never ends; the mutant run now caps each
+  attempt at ten minutes and counts a hang as a catch.
+
+| mutant | what falls |
+| --- | --- |
+| `<body>` when there is no scroller | 215: inert at "/" without the decor |
+| the home page everywhere | 215: away from "/", and leaving |
+| alignment through "SEL h2" | 215: the pixel offset |
+| removing without giving the carousel back | 215: leaving, the master setting |
+| the hero by audience | 216: the hero, the shape |
+| hiding without stopping the video | 216: the hidden carousel, "Nothing" |
+| `play` listened to without capture | 216: the restarted video |
+| the hero without a visit | 216: the carousel given back |
+| the shape: climbing to the first card | 216: the shape recognised |
+| the proof at three cards | 216: nothing hidden without proof |
+| an unknown rank counted as eleventh | 217: "New" |
+| the movement reversed | 217: ▲ 2, ▼ 1 |
+| the ranking never shared | 217: the sidebar already serves |
+| the snapshot on an incomplete ranking | 217: the partial ranking |
+| the padlock on the archive alone | 218: the hero without a padlock |
+| the ten-minute guard removed | 218: hangs |
+| batches of twenty-five | 218: twenty channels |
+| silence at the first refusal | 218: two refusals then the answer |
+| the card looked for in the sidebar only | 219: our cards, Twitch's |
+| the preview without the address guard | 219: away from "/" |
+| the archive id pasted into the token query | 212: a forged id doesn't get out |
+| the line greyed by its first parent only | 120: the Top's language |
+| the tooltip naming the identifier | 120: the six greyed-out lines |
+
+The full bench: 2114 assertions in 218 scenarios, all green.
 
 ## The alignment status to the left of the chat button, on two lines that fit (v4.25.0.12)
 
@@ -22174,7 +22407,7 @@ Four independent checks:
 | `npm run lint` | the six shipped JavaScript files — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the Firefox manifest: this repository's invariants, **then** Mozilla's `addons-linter` — the one AMO runs on submission |
-| `npm test` | the Playwright harness: 213 scenarios, 2048 assertions |
+| `npm test` | the Playwright harness: 218 scenarios, 2114 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
