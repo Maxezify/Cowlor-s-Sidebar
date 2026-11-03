@@ -177,6 +177,21 @@ const subs = [
   // La mémoire gardée (4.25.0.4) s'écrit trois secondes après un changement : 200 ms au banc.
   [/AGENDA_ECRITURE_MS:\s*3_000/,    'AGENDA_ECRITURE_MS:     200'],
   [/AGENDA_ECRITURE_REPRISE_MS:\s*60_000/, 'AGENDA_ECRITURE_REPRISE_MS: 1_500'],
+  /* L'accueil (4.26.0). L'évolution du Top 10 — trente minutes au plus, deux
+     au moins, un instantané par minute en production — ramenée à vingt
+     secondes, une et demie, et 0,4 : le RAPPORT entre le plancher et la
+     cadence est gardé (plusieurs instantanés avant la première flèche), et le
+     scénario 217 voit l'instantané le plus vieux sortir de la fenêtre. Une
+     archive absente, redemandée au bout de dix minutes, l'est au bout de
+     deux secondes ; un refus de forme, qui suspend une minute, suspend 0,5 s
+     — le scénario 218 compte les trois refus qui font taire la voie. L'image
+     du héros, relue à la minute, l'est toutes les 1,5 s. */
+  [/ACCUEIL_EVOLUTION_MS:\s*30 \* 60_000/,  'ACCUEIL_EVOLUTION_MS:   20_000'],
+  [/ACCUEIL_EVOLUTION_MIN_MS:\s*2 \* 60_000/, 'ACCUEIL_EVOLUTION_MIN_MS: 1_500'],
+  [/ACCUEIL_INSTANTANE_MS:\s*60_000/,  'ACCUEIL_INSTANTANE_MS:  400'],
+  [/ACCUEIL_IMAGE_MS:\s*60_000/,       'ACCUEIL_IMAGE_MS:       1_500'],
+  [/ACCUEIL_DEBUT_TTL:\s*10 \* 60_000/, 'ACCUEIL_DEBUT_TTL:      2_000'],
+  [/ACCUEIL_DEBUT_PAUSE:\s*60_000/,    'ACCUEIL_DEBUT_PAUSE:    500'],
   /* Le relevé des chaînes suivies (4.25.0.3). Il charge une page de plus à
      chaque chargement de Twitch, et l'agenda se relit tant qu'il est attendu :
      le banc l'ÉTEINT pour tous les scénarios. Le 209 le rallume sur sa copie

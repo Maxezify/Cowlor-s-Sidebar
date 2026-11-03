@@ -647,6 +647,12 @@
   "guideTopTexte": {
     "message": "The “Top Channels” tab, at the top of the sidebar, swaps your followed channels for the most-watched channels on all of Twitch, live — thirty by default, ten or fifty if you prefer.\n• Pick a category or a language in the filters: you get its real ranking.\n• Preview, uptime, badges, co-streams: these are cards like any other.\n“Followed Channels” takes you back; your list has not moved."
   },
+  "guideAccueilTitre": {
+    "message": "Twitch's home page"
+  },
+  "guideAccueilTexte": {
+    "message": "On Twitch's home page, the extension adds its own rows above Twitch's, in the same column and lined up with them. They are set in “Settings”, under “Home page”.\n• “Your #1 channel, live”: the live followed channel you watch the most takes the place of Twitch's carousel. Its picture refreshes every minute, and nothing starts by itself. When none of the channels you watch is live, the carousel comes back. “As on Twitch” always keeps it; “Nothing” removes it and stops its video.\n• “Your followed channels, live”: a row, in the order of the ones you watch the most, at no extra request — these are the sidebar's channels.\n• “Top 10”: the first ten places of Top Channels, in the language of Twitch's interface or in all languages, in big numbers. An arrow shows the places gained or lost over thirty minutes, or since you arrived on the home page; “New” marks a channel that wasn't in the Top 10.\n• “From the start” opens the replay of the stream in progress at its first second. It doesn't appear when the channel doesn't keep its replays, and shows a padlock when they are for subscribers only, unless you are one.\n• The hover preview also opens on the home page's cards: the extension's and Twitch's alike."
+  },
   "guideViteTitre": {
     "message": "Quicker than Twitch, and tidier"
   },
@@ -843,6 +849,66 @@
   "optDescSalleAuto": {
     "message": "The streams are synced by their shared sound — each stream's lips on its voice as you hear it. It takes about a minute of listening; without shared sound, nothing moves. Off: nothing moves on its own."
   },
+  "optGrpAccueil": {
+    "message": "Home page"
+  },
+  "optAccueil": {
+    "message": "Enhance Twitch's home page"
+  },
+  "optDescAccueil": {
+    "message": "Above Twitch's rows: your followed channels that are live and the Top 10 in your language; at the top, the channel you watch the most. Off: the home page is Twitch's, as is, and nothing runs."
+  },
+  "optAccueilTete": {
+    "message": "Top of the home page"
+  },
+  "optDescAccueilTete": {
+    "message": "“Your #1 channel”: the live followed channel you watch the most, in place of Twitch's carousel, which comes back when none of the channels you watch is live. Its picture refreshes; nothing starts by itself. “Nothing” removes the carousel and stops its video."
+  },
+  "optAccueilSuivis": {
+    "message": "Your followed channels, live"
+  },
+  "optDescAccueilSuivis": {
+    "message": "A row at the top of the home page, in the order of your visits. No extra request: these are the channels the sidebar already follows."
+  },
+  "optAccueilTop": {
+    "message": "Top 10"
+  },
+  "optDescAccueilTop": {
+    "message": "The first ten places of Top Channels' exact ranking, in big numbers. An arrow shows what moved over thirty minutes, or since you arrived on the home page if that is more recent. Computed only while the home page is on screen."
+  },
+  "optAccueilTopLangue": {
+    "message": "Top 10 language"
+  },
+  "optDescAccueilTopLangue": {
+    "message": "“Twitch's” follows the language of Twitch's interface."
+  },
+  "optAccueilApercu": {
+    "message": "Hover preview on the home page"
+  },
+  "optDescAccueilApercu": {
+    "message": "The sidebar's preview, on the home page cards: the extension's and Twitch's. Also follows “Show the preview”."
+  },
+  "optAccueilDebut": {
+    "message": "“From the start”"
+  },
+  "optDescAccueilDebut": {
+    "message": "On the extension's cards, a button that opens the replay of the stream in progress at its first second. Absent when the channel doesn't keep its replays; a padlock when they are for subscribers only, unless you are one."
+  },
+  "optValHeros": {
+    "message": "Your #1 channel"
+  },
+  "optValRien": {
+    "message": "Nothing"
+  },
+  "optValInterface": {
+    "message": "Twitch's"
+  },
+  "optValToutes": {
+    "message": "All languages"
+  },
+  "optSansEffet": {
+    "message": "No effect while “$1” is off"
+  },
   "optAbonnes": {
     "message": "Subscription gold"
   },
@@ -985,7 +1051,7 @@
     "message": "Reset every setting to its default?"
   },
   "optResetText": {
-    "message": "All twenty-one settings on this page will return to their original value. Your data — visits, subscriptions, followed channels — is untouched."
+    "message": "All twenty-eight settings on this page will return to their original value. Your data — visits, subscriptions, followed channels — is untouched."
   },
   "optValPlein": {
     "message": "Full"
@@ -1048,6 +1114,6 @@
     "message": "Everything adjusts, everything switches off"
   },
   "guideReglagesTexte": {
-    "message": "“Settings” controls everything this guide presents. Nothing is imposed: what bothers you switches off, and a purple dot marks what you changed.\n• Preview too heavy? Lower the quality, or cut the video: it keeps its thumbnail, its badges and its timeline.\n• Gold too loud? “Subtle” keeps the colour and drops the shimmer.\n• The multistream room and its automatic alignment switch off separately.\n• The subscriptions sweep can be spaced out to once a day.\n• Each memory — visits, subscriptions, known channels — can be erased on its own.\n• Your settings export and import; one button restores them all."
+    "message": "“Settings” controls everything this guide presents. Nothing is imposed: what bothers you switches off, and a purple dot marks what you changed. A greyed-out line depends on a setting that is off: it stays editable, and says which one when you hover it.\n• Preview too heavy? Lower the quality, or cut the video: it keeps its thumbnail, its badges and its timeline.\n• Gold too loud? “Subtle” keeps the colour and drops the shimmer.\n• The multistream room and its automatic alignment switch off separately.\n• The subscriptions sweep can be spaced out to once a day.\n• Each memory — visits, subscriptions, known channels — can be erased on its own.\n• Your settings export and import; one button restores them all."
   }
 }

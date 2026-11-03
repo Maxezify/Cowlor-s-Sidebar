@@ -547,6 +547,12 @@
   "guideTopTexte": {
     "message": "A aba «Top Canais», no topo da barra lateral, troca seus canais seguidos pelos canais mais assistidos de todo o Twitch, ao vivo — trinta por padrão, dez ou cinquenta se preferir.\n• Escolha uma categoria ou um idioma nos filtros: você recebe a classificação real dela.\n• Prévia, duração, selos, co-streams: são cartões como os outros.\n«Canais seguidos» traz você de volta; sua lista não se mexeu."
   },
+  "guideAccueilTitre": {
+    "message": "A página inicial da Twitch"
+  },
+  "guideAccueilTexte": {
+    "message": "Na página inicial da Twitch, a extensão coloca suas próprias fileiras acima das da Twitch, na mesma coluna e alinhadas com elas. Elas são ajustadas em «Configurações», grupo «Página inicial».\n• «Seu canal nº 1 ao vivo»: o canal seguido ao vivo que você mais assiste ocupa o lugar do carrossel da Twitch. A imagem se atualiza a cada minuto, e nada começa sozinho. Quando nenhum dos canais que você assiste está ao vivo, o carrossel volta. «Como na Twitch» sempre o mantém; «Nada» o tira e para o vídeo dele.\n• «Seus canais seguidos ao vivo»: uma fileira, na ordem dos que você mais assiste, sem nenhuma requisição a mais — são os canais da barra.\n• «Top 10»: as dez primeiras posições do Top Canais, no idioma da interface da Twitch ou em todos os idiomas, em números grandes. Uma seta mostra as posições ganhas ou perdidas em trinta minutos, ou desde que você chegou à página inicial; «Novo» marca um canal que não estava no Top 10.\n• «Desde o início» abre a gravação da transmissão em curso no primeiro segundo. Não aparece quando o canal não guarda as gravações, e leva um cadeado quando elas são só para assinantes, a menos que você seja um.\n• A prévia ao passar o mouse também abre nos cards da página inicial: os da extensão e os da Twitch."
+  },
   "guideViteTitre": {
     "message": "Mais rápida do que a Twitch, e mais limpa"
   },
@@ -727,6 +733,66 @@
   "optDescSalleAuto": {
     "message": "As transmissões são sincronizadas pelo som em comum — os lábios de cada transmissão na sua voz tal como se ouve. Leva cerca de um minuto de escuta; sem som em comum, nada se move. Desligado: nada se move sozinho."
   },
+  "optGrpAccueil": {
+    "message": "Página inicial"
+  },
+  "optAccueil": {
+    "message": "Enriquecer a página inicial da Twitch"
+  },
+  "optDescAccueil": {
+    "message": "Acima das fileiras da Twitch: os seus canais seguidos ao vivo e o Top 10 do seu idioma; no topo, o canal que você mais assiste. Desligado: a página inicial é a da Twitch, tal como está, e nada roda."
+  },
+  "optAccueilTete": {
+    "message": "Topo da página inicial"
+  },
+  "optDescAccueilTete": {
+    "message": "«Seu canal nº 1»: o canal seguido ao vivo que você mais assiste, no lugar do carrossel da Twitch, que volta quando nenhum dos canais que você assiste está ao vivo. A imagem se atualiza; nada começa sozinho. «Nada» tira o carrossel e para o vídeo dele."
+  },
+  "optAccueilSuivis": {
+    "message": "Seus canais seguidos ao vivo"
+  },
+  "optDescAccueilSuivis": {
+    "message": "Uma fileira no topo da página inicial, na ordem das suas visitas. Nenhuma requisição a mais: são os canais que a barra já acompanha."
+  },
+  "optAccueilTop": {
+    "message": "Top 10"
+  },
+  "optDescAccueilTop": {
+    "message": "As dez primeiras posições da classificação exata de Top Canais, em números grandes. Uma seta mostra o que mudou em trinta minutos, ou desde que você chegou à página inicial, se for mais recente. Calculada só enquanto a página inicial está na tela."
+  },
+  "optAccueilTopLangue": {
+    "message": "Idioma do Top 10"
+  },
+  "optDescAccueilTopLangue": {
+    "message": "«O da Twitch» segue o idioma da interface da Twitch."
+  },
+  "optAccueilApercu": {
+    "message": "Prévia ao passar o mouse na página inicial"
+  },
+  "optDescAccueilApercu": {
+    "message": "A prévia da barra, nos cards da página inicial: os da extensão e os da Twitch. Também segue «Mostrar a prévia»."
+  },
+  "optAccueilDebut": {
+    "message": "«Desde o início»"
+  },
+  "optDescAccueilDebut": {
+    "message": "Nos cards da extensão, um botão que abre a gravação da transmissão em curso no primeiro segundo. Não aparece quando o canal não guarda as gravações; um cadeado quando elas são só para assinantes, a menos que você seja um."
+  },
+  "optValHeros": {
+    "message": "Seu canal nº 1"
+  },
+  "optValRien": {
+    "message": "Nada"
+  },
+  "optValInterface": {
+    "message": "O da Twitch"
+  },
+  "optValToutes": {
+    "message": "Todos os idiomas"
+  },
+  "optSansEffet": {
+    "message": "Sem efeito enquanto «$1» estiver desligado"
+  },
   "optAbonnes": {
     "message": "O ouro das assinaturas"
   },
@@ -869,7 +935,7 @@
     "message": "Redefinir todas as configurações?"
   },
   "optResetText": {
-    "message": "As vinte e uma configurações desta página voltam ao valor original. Os seus dados — visitas, assinaturas, canais seguidos — não são tocados."
+    "message": "As vinte e oito configurações desta página voltam ao valor original. Os seus dados — visitas, assinaturas, canais seguidos — não são tocados."
   },
   "optValPlein": {
     "message": "Completo"
@@ -932,6 +998,6 @@
     "message": "Tudo se ajusta, tudo se desliga"
   },
   "guideReglagesTexte": {
-    "message": "«Configurações» comanda tudo o que este guia apresenta. Nada é imposto: o que incomodar se desliga, e um ponto roxo marca o que você mudou.\n• Prévia pesada demais? Baixe a qualidade, ou tire o vídeo: ela mantém a miniatura, os selos e a linha do tempo.\n• Ouro chamativo demais? «Discreto» mantém a cor e tira o brilho.\n• A sala multistream e o alinhamento automático dela se desligam separadamente.\n• A varredura de inscrições pode se espaçar até uma vez por dia.\n• Cada memória — visitas, inscrições, canais conhecidos — se apaga à parte.\n• Suas configurações se exportam e se importam; um botão devolve todas ao original."
+    "message": "«Configurações» comanda tudo o que este guia apresenta. Nada é imposto: o que incomodar se desliga, e um ponto roxo marca o que você mudou. Uma linha acinzentada depende de uma configuração desligada: continua editável e, ao passar o mouse, diz qual.\n• Prévia pesada demais? Baixe a qualidade, ou tire o vídeo: ela mantém a miniatura, os selos e a linha do tempo.\n• Ouro chamativo demais? «Discreto» mantém a cor e tira o brilho.\n• A sala multistream e o alinhamento automático dela se desligam separadamente.\n• A varredura de inscrições pode se espaçar até uma vez por dia.\n• Cada memória — visitas, inscrições, canais conhecidos — se apaga à parte.\n• Suas configurações se exportam e se importam; um botão devolve todas ao original."
   }
 }

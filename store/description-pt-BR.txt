@@ -177,7 +177,7 @@ _______________________________
 Uma engrenagem à direita do título da barra lateral, um clique, e tudo o que a extensão aprendeu abre por cima da Twitch. O ícone da extensão, no canto superior direito do navegador, abre exatamente o mesmo painel.
 
 - ★ DOIS CAMINHOS, UM SÓ PAINEL ★ A engrenagem na barra lateral ou o ícone na barra de ferramentas: a mesma página, nos dois casos. Aberta pela engrenagem ela é maior — uma janela da barra de ferramentas é limitada pelo navegador, não por nós.
-- ★ UM GUIA, LOGO DE CARA ★ O painel abre num guia de dezoito capítulos que mostra tudo o que a extensão acrescenta, com exemplos desenhados — e aparece mesmo sem nenhuma aba da Twitch aberta.
+- ★ UM GUIA, LOGO DE CARA ★ O painel abre num guia de dezenove capítulos que mostra tudo o que a extensão acrescenta, com exemplos desenhados — e aparece mesmo sem nenhuma aba da Twitch aberta.
 - ★ SEUS HÁBITOS, DESENHADOS ★ As horas em que você assiste de verdade, num quadro de sete dias por vinte e quatro horas.
 - ★ SEUS NÚMEROS ★ Top streamers, inscrições detectadas, canais seguidos na memória: tudo ali, legível.
 - ★ UM RELATÓRIO PRA COLAR ★ Um botão monta um relatório de diagnóstico completo, sem nenhuma lista pessoal dentro — o bastante pra relatar um problema sem revelar nada.
@@ -192,6 +192,18 @@ A página de programação de um canal, na Twitch, mostra um só canal. O grupo 
 - ★ UM CANAL OU TODOS ★ Um menu deixa só um, e «Semana do canal» leva direto à semana da última live dele.
 - ★ SINCERO SOBRE O QUE A TWITCH GUARDA ★ Uma gravação só existe se o canal guarda as lives, e enquanto a Twitch as mantiver; uma última live sem gravação avisa («Sem gravação»), e uma gravação que só se pode ver com inscrição também, com um cadeado, antes do clique.
 - ★ SÓ QUANDO VOCÊ OLHA ★ Nada é pedido à Twitch antes de você abrir, e o que ele leu fica no seu navegador: ao recarregar, continua de onde parou.
+
+_______________________________
+
+➤ 🏠 A PÁGINA INICIAL DA TWITCH DO SEU JEITO
+Na página inicial da Twitch, a extensão coloca suas próprias fileiras acima das da Twitch, na mesma coluna e alinhadas com elas.
+
+- ★ SEU CANAL Nº 1 NO TOPO ★ No lugar do carrossel da Twitch: o canal seguido ao vivo que você mais assiste. A imagem se atualiza a cada minuto, e nada começa sozinho. Nenhum dos canais que você assiste está ao vivo? O carrossel volta. Prefere o carrossel, ou nada? É uma configuração.
+- ★ SEUS CANAIS SEGUIDOS PRIMEIRO ★ Uma fileira com seus canais ao vivo, na ordem dos que você mais assiste — sem nenhuma requisição a mais: são os que a barra já acompanha.
+- ★ O TOP 10 DO SEU IDIOMA ★ As dez primeiras posições da classificação exata do Top Canais, no idioma da sua Twitch ou em todos os idiomas, em números grandes, com o que mudou em trinta minutos: posições ganhas, posições perdidas, recém-chegados. Calculado só enquanto a página inicial está na tela.
+- ★ «DESDE O INÍCIO» ★ Chegou atrasado? Um botão abre a gravação da transmissão em curso no primeiro segundo. Sem botão quando o canal não guarda as gravações; um cadeado quando elas são só para assinantes, a menos que você seja um.
+- ★ A PRÉVIA AO PASSAR O MOUSE, AQUI TAMBÉM ★ Nos cards da página inicial, os da extensão e os da Twitch.
+- ★ VOCÊ DECIDE ★ Cada parte se desliga separadamente em «Configurações»; tudo desligado, a página inicial volta a ser a da Twitch, do jeito que é.
 
 _______________________________
 
@@ -223,7 +235,7 @@ A Twitch tem um tema claro. A extensão percebe e muda junto — sem recarregar,
 _______________________________
 
 ➤ ⚙️ E SE VOCÊ QUISER ESCOLHER
-Tudo já vem ativo e não há nada para configurar. Mas «Configurações», no painel, devolve a você o controle sobre vinte e uma configurações.
+Tudo já vem ativo e não há nada para configurar. Mas «Configurações», no painel, devolve a você o controle sobre vinte e oito configurações.
 
 - ★ O QUE VOCÊ VÊ ★ Cada selo, a duração da live e o seu formato, a barra «acabou de começar», o ouro das assinaturas, os filtros, os botões de ordenação: tudo liga e desliga numa caixinha.
 - ★ O QUE É CARREGADO ★ A prévia pode dispensar o vídeo e manter os selos, a linha do tempo e a miniatura — ou simplesmente baixar a qualidade. O suficiente para deixá-la leve sem perdê-la.

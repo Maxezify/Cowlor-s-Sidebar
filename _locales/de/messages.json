@@ -547,6 +547,12 @@
   "guideTopTexte": {
     "message": "Der Reiter „Top-Kanäle“ oben in der Seitenleiste ersetzt deine gefolgten Kanäle durch die meistgesehenen Kanäle von ganz Twitch, live — standardmäßig dreißig, auf Wunsch zehn oder fünfzig.\n• Wähle in den Filtern eine Kategorie oder eine Sprache: Du bekommst ihre echte Rangliste.\n• Vorschau, Dauer, Abzeichen, Co-streams: Es sind Karten wie alle anderen.\n„Gefolgte Kanäle“ bringt dich zurück; deine Liste hat sich nicht bewegt."
   },
+  "guideAccueilTitre": {
+    "message": "Die Startseite von Twitch"
+  },
+  "guideAccueilTexte": {
+    "message": "Auf der Startseite von Twitch setzt die Erweiterung ihre eigenen Reihen über die von Twitch, in dieselbe Spalte und bündig mit ihnen. Eingestellt werden sie unter „Einstellungen“, Gruppe „Startseite“.\n• „Dein Kanal Nr. 1, live“: Der gefolgte Live-Kanal, den du am meisten schaust, nimmt den Platz des Karussells von Twitch ein. Sein Bild wird jede Minute aufgefrischt, und nichts startet von selbst. Ist keiner der Kanäle live, die du schaust, kommt das Karussell zurück. „Wie bei Twitch“ behält es immer; „Nichts“ entfernt es und hält sein Video an.\n• „Deine gefolgten Kanäle, live“: eine Reihe, geordnet nach denen, die du am meisten schaust – ohne eine einzige zusätzliche Anfrage: Es sind die Kanäle der Seitenleiste.\n• „Top 10“: die ersten zehn Plätze von Top-Kanäle, in der Sprache der Twitch-Oberfläche oder in allen Sprachen, in großen Ziffern. Ein Pfeil zeigt die in dreißig Minuten gewonnenen oder verlorenen Plätze – oder seit du auf der Startseite bist; „Neu“ markiert einen Kanal, der nicht in den Top 10 war.\n• „Von Anfang an“ öffnet die Aufzeichnung des laufenden Streams ab seiner ersten Sekunde. Der Knopf fehlt, wenn der Kanal keine Aufzeichnungen behält, und trägt ein Schloss, wenn sie Abonnenten vorbehalten sind – außer du bist einer.\n• Die Vorschau beim Überfahren öffnet sich auch auf den Karten der Startseite: auf denen der Erweiterung wie auf denen von Twitch."
+  },
   "guideViteTitre": {
     "message": "Schneller als Twitch, und aufgeräumter"
   },
@@ -727,6 +733,66 @@
   "optDescSalleAuto": {
     "message": "Die Streams werden über ihren gemeinsamen Ton abgestimmt — die Lippen jedes Streams auf seine Stimme, so wie man sie hört. Das dauert etwa eine Minute; ohne gemeinsamen Ton bewegt sich nichts. Aus: Nichts bewegt sich von selbst."
   },
+  "optGrpAccueil": {
+    "message": "Startseite"
+  },
+  "optAccueil": {
+    "message": "Twitch-Startseite erweitern"
+  },
+  "optDescAccueil": {
+    "message": "Über den Reihen von Twitch: deine gefolgten Kanäle, die live sind, und die Top 10 deiner Sprache; ganz oben dein meistgeschauter Kanal. Aus: Die Startseite ist die von Twitch, unverändert, und nichts läuft."
+  },
+  "optAccueilTete": {
+    "message": "Oben auf der Startseite"
+  },
+  "optDescAccueilTete": {
+    "message": "„Dein Kanal Nr. 1“: der gefolgte Live-Kanal, den du am meisten schaust, anstelle des Karussells von Twitch, das zurückkommt, wenn keiner der Kanäle, die du schaust, live ist. Sein Bild wird aufgefrischt, nichts startet von selbst. „Nichts“ entfernt das Karussell und hält sein Video an."
+  },
+  "optAccueilSuivis": {
+    "message": "Deine gefolgten Kanäle, live"
+  },
+  "optDescAccueilSuivis": {
+    "message": "Eine Reihe oben auf der Startseite, in der Reihenfolge deiner Besuche. Keine zusätzliche Anfrage: Es sind die Kanäle, die die Seitenleiste ohnehin verfolgt."
+  },
+  "optAccueilTop": {
+    "message": "Top 10"
+  },
+  "optDescAccueilTop": {
+    "message": "Die ersten zehn Plätze der exakten Rangliste von Top-Kanäle, in großen Ziffern. Ein Pfeil zeigt, was sich in dreißig Minuten bewegt hat – oder seit du auf der Startseite bist, falls das kürzer ist. Wird nur berechnet, solange die Startseite angezeigt wird."
+  },
+  "optAccueilTopLangue": {
+    "message": "Sprache der Top 10"
+  },
+  "optDescAccueilTopLangue": {
+    "message": "„Die von Twitch“ folgt der Sprache der Twitch-Oberfläche."
+  },
+  "optAccueilApercu": {
+    "message": "Vorschau beim Überfahren auf der Startseite"
+  },
+  "optDescAccueilApercu": {
+    "message": "Die Vorschau der Seitenleiste auf den Karten der Startseite: denen der Erweiterung wie denen von Twitch. Folgt auch „Vorschau anzeigen“."
+  },
+  "optAccueilDebut": {
+    "message": "„Von Anfang an“"
+  },
+  "optDescAccueilDebut": {
+    "message": "Auf den Karten der Erweiterung ein Knopf, der die Aufzeichnung des laufenden Streams ab der ersten Sekunde öffnet. Fehlt, wenn der Kanal keine Aufzeichnungen behält; ein Schloss, wenn sie Abonnenten vorbehalten sind – außer du bist einer."
+  },
+  "optValHeros": {
+    "message": "Dein Kanal Nr. 1"
+  },
+  "optValRien": {
+    "message": "Nichts"
+  },
+  "optValInterface": {
+    "message": "Die von Twitch"
+  },
+  "optValToutes": {
+    "message": "Alle Sprachen"
+  },
+  "optSansEffet": {
+    "message": "Ohne Wirkung, solange „$1“ aus ist"
+  },
   "optAbonnes": {
     "message": "Gold der Abonnements"
   },
@@ -869,7 +935,7 @@
     "message": "Alle Einstellungen zurücksetzen?"
   },
   "optResetText": {
-    "message": "Alle einundzwanzig Einstellungen dieser Seite kehren zu ihrem ursprünglichen Wert zurück. Deine Daten — Besuche, Abonnements, gefolgte Kanäle — bleiben unberührt."
+    "message": "Alle achtundzwanzig Einstellungen dieser Seite kehren zu ihrem ursprünglichen Wert zurück. Deine Daten — Besuche, Abonnements, gefolgte Kanäle — bleiben unberührt."
   },
   "optValPlein": {
     "message": "Voll"
@@ -932,6 +998,6 @@
     "message": "Alles einstellbar, alles abschaltbar"
   },
   "guideReglagesTexte": {
-    "message": "„Einstellungen“ steuert alles, was dieser Leitfaden zeigt. Nichts ist aufgezwungen: Was stört, wird abgeschaltet, und ein violetter Punkt markiert, was du geändert hast.\n• Vorschau zu schwer? Senke die Qualität oder schalte das Video ab: Sie behält Vorschaubild, Abzeichen und Zeitleiste.\n• Gold zu auffällig? „Dezent“ behält die Farbe und nimmt das Schimmern weg.\n• Der Multistream-Raum und seine automatische Ausrichtung lassen sich getrennt abschalten.\n• Die Abo-Erfassung lässt sich bis auf einmal am Tag strecken.\n• Jeder Speicher — Besuche, Abos, bekannte Kanäle — lässt sich einzeln löschen.\n• Deine Einstellungen lassen sich exportieren und importieren; ein Knopf setzt alle zurück."
+    "message": "„Einstellungen“ steuert alles, was dieser Leitfaden zeigt. Nichts ist aufgezwungen: Was stört, wird abgeschaltet, und ein violetter Punkt markiert, was du geändert hast. Eine ausgegraute Zeile hängt von einer ausgeschalteten Einstellung ab: Sie bleibt änderbar und sagt beim Überfahren, von welcher.\n• Vorschau zu schwer? Senke die Qualität oder schalte das Video ab: Sie behält Vorschaubild, Abzeichen und Zeitleiste.\n• Gold zu auffällig? „Dezent“ behält die Farbe und nimmt das Schimmern weg.\n• Der Multistream-Raum und seine automatische Ausrichtung lassen sich getrennt abschalten.\n• Die Abo-Erfassung lässt sich bis auf einmal am Tag strecken.\n• Jeder Speicher — Besuche, Abos, bekannte Kanäle — lässt sich einzeln löschen.\n• Deine Einstellungen lassen sich exportieren und importieren; ein Knopf setzt alle zurück."
   }
 }

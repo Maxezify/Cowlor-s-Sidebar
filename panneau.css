@@ -909,6 +909,11 @@ html[data-theme="light"] .d-jour {
   border-radius: 50%;
   background: var(--violet);
 }
+/* SANS EFFET POUR L'INSTANT (4.26.0) : le réglage qui la gouverne est coupé.
+   Estompée, pas désactivée — on prépare un réglage avant d'allumer son maître,
+   et l'infobulle nomme celui qu'il faut allumer. */
+.reg-ligne--sans-effet .reg-texte,
+.reg-ligne--sans-effet .reg-ctrl { opacity: 0.5; }
 
 .reg-texte { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .reg-nom   { color: var(--texte); font-size: 13px; }

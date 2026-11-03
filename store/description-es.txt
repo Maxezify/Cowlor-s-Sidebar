@@ -177,7 +177,7 @@ _______________________________
 Un engranaje a la derecha del título de la barra lateral, un clic, y todo lo que la extensión ha aprendido se abre encima de Twitch. El icono de la extensión, arriba a la derecha del navegador, abre exactamente el mismo panel.
 
 - ★ DOS CAMINOS, UN SOLO PANEL ★ El engranaje de la barra lateral o el icono de la barra de herramientas: la misma página, en ambos casos. Abierta desde el engranaje es más grande: una ventana emergente de la barra de herramientas la limita el navegador, no nosotros.
-- ★ UN MODO DE EMPLEO, DE ENTRADA ★ El panel se abre con una guía de dieciocho capítulos que enseña todo lo que la extensión añade, con ejemplos dibujados, y se muestra incluso sin ninguna pestaña de Twitch abierta.
+- ★ UN MODO DE EMPLEO, DE ENTRADA ★ El panel se abre con una guía de diecinueve capítulos que enseña todo lo que la extensión añade, con ejemplos dibujados, y se muestra incluso sin ninguna pestaña de Twitch abierta.
 - ★ VUESTROS HÁBITOS, DIBUJADOS ★ Las horas en que veis de verdad, trazadas en una cuadrícula de siete días por veinticuatro horas.
 - ★ VUESTRAS CIFRAS ★ Top de streamers, suscripciones detectadas, canales seguidos en memoria: todo ahí, legible.
 - ★ UN INFORME PARA PEGAR ★ Un botón crea un informe de diagnóstico completo, sin ninguna lista personal dentro: lo justo para avisar de un problema sin revelar nada.
@@ -192,6 +192,18 @@ La página de horario de un canal, en Twitch, muestra un solo canal. El grupo «
 - ★ UN CANAL O TODOS ★ Un menú deja uno solo, y «Su semana» lleva directamente a la semana de su último directo.
 - ★ CLAROS CON LO QUE TWITCH GUARDA ★ Una repetición solo existe si el canal guarda sus directos, y mientras Twitch los conserve; un último directo sin ella lo dice («Sin repetición»), y una repetición que solo se puede ver con suscripción también, con un candado, antes del clic.
 - ★ SOLO CUANDO MIRÁIS ★ No se le pide nada a Twitch antes de que lo abráis, y lo que ha leído se queda en vuestro navegador: al recargar, sigue donde estaba.
+
+_______________________________
+
+➤ 🏠 EL INICIO DE TWITCH, A TU MANERA
+En la página de inicio de Twitch, la extensión coloca sus propias filas encima de las de Twitch, en la misma columna y alineadas con ellas.
+
+- ★ TU CANAL N.º 1, ARRIBA ★ En lugar del carrusel de Twitch: el canal seguido en directo que más ves. Su imagen se actualiza cada minuto y nada arranca solo. ¿Ninguno de los canales que ves está en directo? El carrusel vuelve. ¿Prefieres el carrusel, o nada? Es un ajuste.
+- ★ TUS CANALES SEGUIDOS, PRIMERO ★ Una fila con tus canales en directo, en el orden de los que más ves, sin ninguna petición más: son los que la barra ya sigue.
+- ★ EL TOP 10 DE TU IDIOMA ★ Los diez primeros puestos de la clasificación exacta de Top Canales, en el idioma de tu Twitch o en todos los idiomas, en cifras grandes, con lo que se ha movido en treinta minutos: puestos ganados, puestos perdidos, recién llegados. Solo se calcula mientras el inicio está en pantalla.
+- ★ «DESDE EL PRINCIPIO» ★ ¿Llegaste tarde? Un botón abre la repetición del directo en curso en su primerísimo segundo. Sin botón cuando el canal no guarda sus repeticiones; un candado cuando son solo para suscriptores, salvo que lo seas.
+- ★ LA VISTA PREVIA AL PASAR EL RATÓN, AQUÍ TAMBIÉN ★ En las tarjetas del inicio, las de la extensión y las de Twitch.
+- ★ COMO QUIERAS ★ Cada parte se apaga por separado en «Ajustes»; todo apagado, el inicio vuelve a ser el de Twitch, tal cual.
 
 _______________________________
 
@@ -223,7 +235,7 @@ Twitch tiene un tema claro. La extensión lo detecta y cambia con él: sin recar
 _______________________________
 
 ➤ ⚙️ Y SI QUIERES ELEGIR
-Todo está activo desde el principio y no hay nada que configurar. Pero «Ajustes», en el panel, te devuelve el mando sobre veintiún ajustes.
+Todo está activo desde el principio y no hay nada que configurar. Pero «Ajustes», en el panel, te devuelve el mando sobre veintiocho ajustes.
 
 - ★ LO QUE VES ★ Cada insignia, la duración del directo y su formato, la barra «acaba de empezar», el oro de las suscripciones, los filtros, los botones de orden: todo se enciende y se apaga con una casilla.
 - ★ LO QUE SE CARGA ★ La vista previa puede prescindir del vídeo y conservar sus insignias, su línea de tiempo y su miniatura, o simplemente bajar de calidad. Lo justo para aligerarla sin perderla.

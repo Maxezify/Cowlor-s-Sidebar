@@ -484,6 +484,30 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiSalleOnglet:             (nom) => `Afficher le chat de ${nom}, sans changer le son`,
       uiSalleChatMasque:         'Chat masqué : fenêtre trop étroite',
       uiSallePoints:             'Pas de points de chaîne dans la salle',
+      /* LA PAGE D'ACCUEIL (4.26.0, cf. pageAccueil). `v` : un nombre déjà
+         écrit à la locale de Twitch ; `n` : le même, pour l'accord ; `m` : des
+         minutes ; `f` : la fente des noms (cf. FENTE). « Live » et non « En
+         direct » : c'est ce que les cartes de l'accueil de Twitch écrivent en
+         français, relevé sur la page. */
+      uiAccSection:              'Ajouts de Cowlor\'s Sidebar à l\'accueil',
+      uiAccHeros:                'Votre chaîne n°1 en direct',
+      uiAccRegarder:             'Regarder',
+      uiAccSuivis:               'Vos chaînes suivies en direct',
+      uiAccTop:                  'Top 10',
+      uiAccDirect:               'Live',
+      uiAccDebut:                'Depuis le début',
+      uiAccDebutTitre:           (nom) => `Revoir le direct de ${nom} depuis sa première seconde`,
+      uiAccAbonnes:              'Rediffusions réservées aux abonnés',
+      uiAccSpect:                (n, v) => `${v} spectateur${n > 1 ? 's' : ''}`,
+      uiAccNouveau:              'Nouveau',
+      uiAccHausse:               (n, m) => `${n} place${n > 1 ? 's' : ''} gagnée${n > 1 ? 's' : ''} en ${m} min`,
+      uiAccBaisse:               (n, m) => `${n} place${n > 1 ? 's' : ''} perdue${n > 1 ? 's' : ''} en ${m} min`,
+      uiAccStable:               (m) => `Même place qu\'il y a ${m} min`,
+      uiAccEntree:               (m) => `Hors du Top 10 il y a ${m} min`,
+      uiAccAttente:              'Classement en cours…',
+      uiAccVide:                 'Aucune chaîne à classer pour l\'instant',
+      uiAccAvec:                 (f) => `avec ${f}`,
+      uiAccPlace:                (n, nom) => `Place ${n} : ${nom}`,
       /* L'ÉTAT DU CALAGE DANS L'EN-TÊTE (4.25.0.11, cf. etatCalage). `e` : la
          cause, `x`/`m` les calculs du son reçus sur ceux qu'il faut, `s` un
          écart en secondes déjà écrit à la locale, `avance` son sens, `el`/`tot`
@@ -698,6 +722,25 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiSalleOnglet:             (nom) => `Show ${nom}'s chat, without changing the sound`,
       uiSalleChatMasque:         'Chat hidden: window too narrow',
       uiSallePoints:             'No channel points in the room',
+      uiAccSection:              'Cowlor\'s Sidebar additions to the home page',
+      uiAccHeros:                'Your #1 channel, live',
+      uiAccRegarder:             'Watch',
+      uiAccSuivis:               'Your followed channels, live',
+      uiAccTop:                  'Top 10',
+      uiAccDirect:               'Live',
+      uiAccDebut:                'From the start',
+      uiAccDebutTitre:           (nom) => `Watch ${nom}\'s stream from its very first second`,
+      uiAccAbonnes:              'Replays reserved for subscribers',
+      uiAccSpect:                (n, v) => `${v} viewer${n === 1 ? '' : 's'}`,
+      uiAccNouveau:              'New',
+      uiAccHausse:               (n, m) => `Up ${n} place${n === 1 ? '' : 's'} in ${m} min`,
+      uiAccBaisse:               (n, m) => `Down ${n} place${n === 1 ? '' : 's'} in ${m} min`,
+      uiAccStable:               (m) => `Same place as ${m} min ago`,
+      uiAccEntree:               (m) => `Outside the Top 10 ${m} min ago`,
+      uiAccAttente:              'Ranking in progress…',
+      uiAccVide:                 'No channel to rank right now',
+      uiAccAvec:                 (f) => `with ${f}`,
+      uiAccPlace:                (n, nom) => `Rank ${n}: ${nom}`,
       uiCalCoupe:                'Alignment turned off in settings',
       uiCalIndispo:              'Alignment unavailable: this browser cannot capture the sound',
       uiCalArrete:               'Alignment stopped',
@@ -887,6 +930,25 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiSalleOnglet:             (nom) => `Chat von ${nom} anzeigen, ohne den Ton zu wechseln`,
       uiSalleChatMasque:         'Chat ausgeblendet: Fenster zu schmal',
       uiSallePoints:             'Keine Kanalpunkte im Raum',
+      uiAccSection:              'Ergänzungen von Cowlor\'s Sidebar auf der Startseite',
+      uiAccHeros:                'Dein Kanal Nr. 1, live',
+      uiAccRegarder:             'Ansehen',
+      uiAccSuivis:               'Deine gefolgten Kanäle, live',
+      uiAccTop:                  'Top 10',
+      uiAccDirect:               'Live',
+      uiAccDebut:                'Von Anfang an',
+      uiAccDebutTitre:           (nom) => `Den Stream von ${nom} ab der ersten Sekunde ansehen`,
+      uiAccAbonnes:              'Wiederholungen nur für Abonnenten',
+      uiAccSpect:                (n, v) => `${v} Zuschauer`,
+      uiAccNouveau:              'Neu',
+      uiAccHausse:               (n, m) => `${n} ${n === 1 ? 'Platz' : 'Plätze'} gewonnen in ${m} Min.`,
+      uiAccBaisse:               (n, m) => `${n} ${n === 1 ? 'Platz' : 'Plätze'} verloren in ${m} Min.`,
+      uiAccStable:               (m) => `Gleicher Platz wie vor ${m} Min.`,
+      uiAccEntree:               (m) => `Vor ${m} Min. nicht in den Top 10`,
+      uiAccAttente:              'Rangliste wird erstellt …',
+      uiAccVide:                 'Gerade kein Kanal einzuordnen',
+      uiAccAvec:                 (f) => `mit ${f}`,
+      uiAccPlace:                (n, nom) => `Platz ${n}: ${nom}`,
       uiCalCoupe:                'Ausrichtung in den Einstellungen ausgeschaltet',
       uiCalIndispo:              'Ausrichtung nicht verfügbar: Dieser Browser kann den Ton nicht abgreifen',
       uiCalArrete:               'Ausrichtung gestoppt',
@@ -1076,6 +1138,25 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiSalleOnglet:             (nom) => `Mostrar el chat de ${nom}, sin cambiar el sonido`,
       uiSalleChatMasque:         'Chat oculto: ventana demasiado estrecha',
       uiSallePoints:             'Sin puntos de canal en la sala',
+      uiAccSection:              'Añadidos de Cowlor\'s Sidebar a la página de inicio',
+      uiAccHeros:                'Tu canal n.º 1 en directo',
+      uiAccRegarder:             'Ver',
+      uiAccSuivis:               'Tus canales seguidos en directo',
+      uiAccTop:                  'Top 10',
+      uiAccDirect:               'En directo',
+      uiAccDebut:                'Desde el principio',
+      uiAccDebutTitre:           (nom) => `Ver el directo de ${nom} desde su primer segundo`,
+      uiAccAbonnes:              'Repeticiones reservadas a suscriptores',
+      uiAccSpect:                (n, v) => `${v} espectador${n === 1 ? '' : 'es'}`,
+      uiAccNouveau:              'Nuevo',
+      uiAccHausse:               (n, m) => `Sube ${n} puesto${n === 1 ? '' : 's'} en ${m} min`,
+      uiAccBaisse:               (n, m) => `Baja ${n} puesto${n === 1 ? '' : 's'} en ${m} min`,
+      uiAccStable:               (m) => `Mismo puesto que hace ${m} min`,
+      uiAccEntree:               (m) => `Fuera del Top 10 hace ${m} min`,
+      uiAccAttente:              'Clasificación en curso…',
+      uiAccVide:                 'Ningún canal que clasificar por ahora',
+      uiAccAvec:                 (f) => `con ${f}`,
+      uiAccPlace:                (n, nom) => `Puesto ${n}: ${nom}`,
       uiCalCoupe:                'Alineación desactivada en los ajustes',
       uiCalIndispo:              'Alineación no disponible: este navegador no puede capturar el sonido',
       uiCalArrete:               'Alineación detenida',
@@ -1265,6 +1346,25 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiSalleOnglet:             (nom) => `Mostrar o chat de ${nom}, sem trocar o som`,
       uiSalleChatMasque:         'Chat oculto: janela estreita demais',
       uiSallePoints:             'Sem pontos do canal na sala',
+      uiAccSection:              'Adições do Cowlor\'s Sidebar à página inicial',
+      uiAccHeros:                'Seu canal nº 1 ao vivo',
+      uiAccRegarder:             'Assistir',
+      uiAccSuivis:               'Seus canais seguidos ao vivo',
+      uiAccTop:                  'Top 10',
+      uiAccDirect:               'Ao vivo',
+      uiAccDebut:                'Desde o início',
+      uiAccDebutTitre:           (nom) => `Assistir à transmissão de ${nom} desde o primeiro segundo`,
+      uiAccAbonnes:              'Gravações só para inscritos',
+      uiAccSpect:                (n, v) => `${v} espectador${n === 1 ? '' : 'es'}`,
+      uiAccNouveau:              'Novo',
+      uiAccHausse:               (n, m) => `Sobe ${n} posiç${n === 1 ? 'ão' : 'ões'} em ${m} min`,
+      uiAccBaisse:               (n, m) => `Desce ${n} posiç${n === 1 ? 'ão' : 'ões'} em ${m} min`,
+      uiAccStable:               (m) => `Mesma posição de ${m} min atrás`,
+      uiAccEntree:               (m) => `Fora do Top 10 ${m} min atrás`,
+      uiAccAttente:              'Classificação em andamento…',
+      uiAccVide:                 'Nenhum canal para classificar no momento',
+      uiAccAvec:                 (f) => `com ${f}`,
+      uiAccPlace:                (n, nom) => `Posição ${n}: ${nom}`,
       uiCalCoupe:                'Alinhamento desligado nas definições',
       uiCalIndispo:              'Alinhamento indisponível: este navegador não consegue capturar o som',
       uiCalArrete:               'Alinhamento parado',
@@ -1454,6 +1554,25 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiSalleOnglet:             (nom) => `Mostra la chat di ${nom}, senza cambiare l'audio`,
       uiSalleChatMasque:         'Chat nascosta: finestra troppo stretta',
       uiSallePoints:             'Niente punti canale nella sala',
+      uiAccSection:              'Aggiunte di Cowlor\'s Sidebar alla home',
+      uiAccHeros:                'Il tuo canale n. 1 in diretta',
+      uiAccRegarder:             'Guarda',
+      uiAccSuivis:               'I tuoi canali seguiti in diretta',
+      uiAccTop:                  'Top 10',
+      uiAccDirect:               'Live',
+      uiAccDebut:                'Dall\'inizio',
+      uiAccDebutTitre:           (nom) => `Guarda la diretta di ${nom} dal primo secondo`,
+      uiAccAbonnes:              'Repliche riservate agli abbonati',
+      uiAccSpect:                (n, v) => `${v} spettator${n === 1 ? 'e' : 'i'}`,
+      uiAccNouveau:              'Nuovo',
+      uiAccHausse:               (n, m) => `Sale di ${n} posizion${n === 1 ? 'e' : 'i'} in ${m} min`,
+      uiAccBaisse:               (n, m) => `Scende di ${n} posizion${n === 1 ? 'e' : 'i'} in ${m} min`,
+      uiAccStable:               (m) => `Stessa posizione di ${m} min fa`,
+      uiAccEntree:               (m) => `Fuori dalla Top 10 ${m} min fa`,
+      uiAccAttente:              'Classifica in corso…',
+      uiAccVide:                 'Nessun canale da classificare per ora',
+      uiAccAvec:                 (f) => `con ${f}`,
+      uiAccPlace:                (n, nom) => `Posizione ${n}: ${nom}`,
       uiCalCoupe:                'Allineamento disattivato nelle impostazioni',
       uiCalIndispo:              'Allineamento non disponibile: questo browser non può catturare l\'audio',
       uiCalArrete:               'Allineamento fermato',
@@ -1643,6 +1762,25 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiSalleOnglet:             (nom) => `Pokaż czat: ${nom}, bez zmiany dźwięku`,
       uiSalleChatMasque:         'Czat ukryty: okno jest za wąskie',
       uiSallePoints:             'Brak punktów kanału w sali',
+      uiAccSection:              'Dodatki Cowlor\'s Sidebar na stronie głównej',
+      uiAccHeros:                'Twój kanał nr 1 na żywo',
+      uiAccRegarder:             'Oglądaj',
+      uiAccSuivis:               'Obserwowane kanały na żywo',
+      uiAccTop:                  'Top 10',
+      uiAccDirect:               'Na żywo',
+      uiAccDebut:                'Od początku',
+      uiAccDebutTitre:           (nom) => `Obejrzyj transmisję ${nom} od pierwszej sekundy`,
+      uiAccAbonnes:              'Powtórki tylko dla subskrybentów',
+      uiAccSpect:                (n, v) => `${v} ${n === 1 ? 'widz' : 'widzów'}`,
+      uiAccNouveau:              'Nowość',
+      uiAccHausse:               (n, m) => `W górę o ${n} ${(n === 1 ? 'miejsce' : ([2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? 'miejsca' : 'miejsc'))} w ${m} min`,
+      uiAccBaisse:               (n, m) => `W dół o ${n} ${(n === 1 ? 'miejsce' : ([2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? 'miejsca' : 'miejsc'))} w ${m} min`,
+      uiAccStable:               (m) => `To samo miejsce co ${m} min temu`,
+      uiAccEntree:               (m) => `Poza Top 10 ${m} min temu`,
+      uiAccAttente:              'Trwa układanie rankingu…',
+      uiAccVide:                 'Na razie brak kanałów do sklasyfikowania',
+      uiAccAvec:                 (f) => `razem z ${f}`,
+      uiAccPlace:                (n, nom) => `Miejsce ${n}: ${nom}`,
       uiCalCoupe:                'Wyrównanie wyłączone w ustawieniach',
       uiCalIndispo:              'Wyrównanie niedostępne: ta przeglądarka nie przechwytuje dźwięku',
       uiCalArrete:               'Wyrównanie zatrzymane',
@@ -1832,6 +1970,25 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiSalleOnglet:             (nom) => `Показать чат: ${nom}, не меняя звук`,
       uiSalleChatMasque:         'Чат скрыт: окно слишком узкое',
       uiSallePoints:             'В зале баллы канала не начисляются',
+      uiAccSection:              'Дополнения Cowlor\'s Sidebar на главной',
+      uiAccHeros:                'Ваш канал № 1 в эфире',
+      uiAccRegarder:             'Смотреть',
+      uiAccSuivis:               'Ваши отслеживаемые каналы в эфире',
+      uiAccTop:                  'Топ-10',
+      uiAccDirect:               'В эфире',
+      uiAccDebut:                'С самого начала',
+      uiAccDebutTitre:           (nom) => `Смотреть трансляцию ${nom} с первой секунды`,
+      uiAccAbonnes:              'Повторы только для подписчиков',
+      uiAccSpect:                (n, v) => `${v} ${(n % 10 === 1 && n % 100 !== 11 ? 'зритель' : ([2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? 'зрителя' : 'зрителей'))}`,
+      uiAccNouveau:              'Новый',
+      uiAccHausse:               (n, m) => `Вверх на ${n} ${(n % 10 === 1 && n % 100 !== 11 ? 'место' : ([2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? 'места' : 'мест'))} за ${m} мин`,
+      uiAccBaisse:               (n, m) => `Вниз на ${n} ${(n % 10 === 1 && n % 100 !== 11 ? 'место' : ([2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? 'места' : 'мест'))} за ${m} мин`,
+      uiAccStable:               (m) => `То же место, что ${m} мин назад`,
+      uiAccEntree:               (m) => `${m} мин назад — вне топ-10`,
+      uiAccAttente:              'Рейтинг составляется…',
+      uiAccVide:                 'Пока нечего ранжировать',
+      uiAccAvec:                 (f) => `вместе с ${f}`,
+      uiAccPlace:                (n, nom) => `Место ${n}: ${nom}`,
       uiCalCoupe:                'Выравнивание отключено в настройках',
       uiCalIndispo:              'Выравнивание недоступно: этот браузер не может захватывать звук',
       uiCalArrete:               'Выравнивание остановлено',
@@ -2021,6 +2178,25 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiSalleOnglet:             (nom) => `${nom} のチャットを表示（音声はそのまま）`,
       uiSalleChatMasque:         'チャット非表示：ウィンドウが狭すぎます',
       uiSallePoints:             'ルームではチャンネルポイントは貯まりません',
+      uiAccSection:              'Cowlor\'s Sidebar によるホームの追加表示',
+      uiAccHeros:                'あなたの No.1 チャンネル・ライブ中',
+      uiAccRegarder:             '視聴する',
+      uiAccSuivis:               'フォロー中のライブチャンネル',
+      uiAccTop:                  'トップ 10',
+      uiAccDirect:               'ライブ',
+      uiAccDebut:                '最初から',
+      uiAccDebutTitre:           (nom) => `${nom} の配信を最初の1秒から見る`,
+      uiAccAbonnes:              'アーカイブはサブスク限定',
+      uiAccSpect:                (n, v) => `視聴者 ${v} 人`,
+      uiAccNouveau:              '新登場',
+      uiAccHausse:               (n, m) => `${m} 分で ${n} 位上昇`,
+      uiAccBaisse:               (n, m) => `${m} 分で ${n} 位下降`,
+      uiAccStable:               (m) => `${m} 分前と同じ順位`,
+      uiAccEntree:               (m) => `${m} 分前はトップ10圏外`,
+      uiAccAttente:              'ランキングを作成中…',
+      uiAccVide:                 '現在ランキングできるチャンネルはありません',
+      uiAccAvec:                 (f) => `${f} と一緒に`,
+      uiAccPlace:                (n, nom) => `${n} 位：${nom}`,
       uiCalCoupe:                '同期は設定でオフになっています',
       uiCalIndispo:              '同期は使えません：このブラウザは音声を取り込めません',
       uiCalArrete:               '同期を停止しました',
@@ -2208,6 +2384,25 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiSalleOnglet:             (nom) => `显示 ${nom} 的聊天（不切换声音）`,
       uiSalleChatMasque:         '聊天已隐藏：窗口太窄',
       uiSallePoints:             '放映室内不获得频道积分',
+      uiAccSection:              'Cowlor\'s Sidebar 在首页的新增内容',
+      uiAccHeros:                '你的第 1 频道 · 直播中',
+      uiAccRegarder:             '观看',
+      uiAccSuivis:               '你关注的直播频道',
+      uiAccTop:                  '前 10 名',
+      uiAccDirect:               '直播',
+      uiAccDebut:                '从头观看',
+      uiAccDebutTitre:           (nom) => `从第一秒开始观看 ${nom} 的直播`,
+      uiAccAbonnes:              '回放仅限订阅者观看',
+      uiAccSpect:                (n, v) => `${v} 名观众`,
+      uiAccNouveau:              '新上榜',
+      uiAccHausse:               (n, m) => `${m} 分钟内上升 ${n} 名`,
+      uiAccBaisse:               (n, m) => `${m} 分钟内下降 ${n} 名`,
+      uiAccStable:               (m) => `与 ${m} 分钟前名次相同`,
+      uiAccEntree:               (m) => `${m} 分钟前未进入前 10 名`,
+      uiAccAttente:              '排名生成中…',
+      uiAccVide:                 '目前没有可排名的频道',
+      uiAccAvec:                 (f) => `与 ${f} 一起`,
+      uiAccPlace:                (n, nom) => `第 ${n} 名：${nom}`,
       uiCalCoupe:                '对齐已在设置中关闭',
       uiCalIndispo:              '对齐不可用：此浏览器无法捕获声音',
       uiCalArrete:               '对齐已停止',
@@ -3809,6 +4004,25 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     // Une écriture refusée — quota plein, base abîmée — ne se retente qu'au bout d'une minute.
     AGENDA_ECRITURE_REPRISE_MS: 60_000,
 
+    /* === La page d'accueil de Twitch (4.26.0) ===
+       Cf. le module pageAccueil. Le Top 10 est une seconde instance du moteur
+       de Top Chaînes : ses cadences sont les siennes (GLOBAL_*). */
+    ACCUEIL_TOP_N:          10,
+    ACCUEIL_SUIVIES_MAX:    24,     // cartes du rayon des chaînes suivies
+    // L'évolution du Top 10 : trente minutes au plus, deux au moins, un instantané par minute.
+    ACCUEIL_EVOLUTION_MS:   30 * 60_000,
+    ACCUEIL_EVOLUTION_MIN_MS: 2 * 60_000,
+    ACCUEIL_INSTANTANE_MS:  60_000,
+    ACCUEIL_IMAGE_MS:       60_000, // l'image du héros se relit à la minute
+    // Le carrousel reconnu à sa forme : six cartes de rayon hors de lui, au moins (cf. trouverCarrousel).
+    ACCUEIL_PREUVE_CARTES:  6,
+    /* « Depuis le début » : quinze alias par envoi — la limite de Twitch,
+       mesurée par l'agenda (cf. AGENDA_LOT_ACCES) ; une archive absente se
+       redemande au bout de dix minutes ; un refus de forme suspend une minute. */
+    ACCUEIL_DEBUT_LOT:      15,
+    ACCUEIL_DEBUT_TTL:      10 * 60_000,
+    ACCUEIL_DEBUT_PAUSE:    60_000,
+
     /* === Le panneau incrusté ===
        LES DEUX NOMBRES SONT CEUX DE LA POPUP DE BARRE D'OUTILS (cf. la borne
        760 × 580 de panneau.css). Les deux chemins mènent au même panneau ; ils
@@ -3828,7 +4042,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
   /* ============================================================
    *  LES RÉGLAGES
    *  ------------------------------------------------------------
-   *  Vingt et un réglages, une table, et trois règles qui tiennent
+   *  Vingt-huit réglages, une table, et trois règles qui tiennent
    *  l'ensemble.
    *
    *  1. ON N'ÉCRIT QUE LES ÉCARTS. Le stockage ne contient que ce
@@ -3883,6 +4097,30 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        alignements du septième rapport réel ont paru justes. Pas « css » : il
        ne masque rien, il pilote. */
     salleAuto:       { defaut: true,      type: 'bool' },
+
+    /* — L'ACCUEIL DE TWITCH (4.26.0), cf. le module ACCUEIL — */
+    /* Le maître : coupé, l'accueil est celui de Twitch, tel quel, et rien de
+       ce qui suit ne tourne — ni requête, ni observateur. `sous` dit au
+       panneau de quel réglage une ligne dépend, pour la griser quand il est
+       coupé : c'est une indication de présentation, la page ne la lit pas (le
+       module teste lui-même ce dont il dépend). */
+    accueil:         { defaut: true,      type: 'bool' },
+    /* Ce qui tient la tête de l'accueil : le carrousel de Twitch tel quel,
+       la chaîne suivie la plus regardée parmi celles en direct (le carrousel
+       revient quand aucune ne l'est), ou rien du tout. */
+    accueilTete:     { defaut: 'heros',   type: 'choix',
+                       valeurs: ['twitch', 'heros', 'rien'], sous: ['accueil'] },
+    accueilSuivis:   { defaut: true,      type: 'bool', sous: ['accueil'] },
+    accueilTop:      { defaut: true,      type: 'bool', sous: ['accueil'] },
+    /* « interface » : la langue que Twitch déclare sur la page, et non celle
+       de nos libellés (cf. localeTwitch) ; « toutes » : le classement mondial. */
+    accueilTopLangue: { defaut: 'interface', type: 'choix',
+                       valeurs: ['interface', 'toutes'], sous: ['accueil', 'accueilTop'] },
+    /* L'aperçu de la barre, sur les cartes de l'accueil. Il suit AUSSI
+       « apercu » : couper l'aperçu le coupe partout. */
+    accueilApercu:   { defaut: true,      type: 'bool', sous: ['accueil', 'apercu'] },
+    accueilDebut:    { defaut: true,      type: 'bool', sous: ['accueil'] },
+
     abonnes:         { defaut: 'plein',   type: 'choix',
                        valeurs: ['plein', 'discret', 'aucun'], css: true },
     subathonJour:    { defaut: true,      type: 'bool', css: true },
@@ -8005,6 +8243,143 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     .tse-salle__onglet[aria-selected="true"] { color: var(--tse-texte); border-bottom-color: #9147ff; }
     .tse-salle__onglet:focus-visible { outline: 2px solid #9147ff; outline-offset: -2px; }
     .tse-salle__chat iframe { flex: 1 1 auto; width: 100%; border: 0; }
+
+    /* ══════════════════════════════════════════════════════════════════════
+       LA PAGE D'ACCUEIL (4.26.0) — cf. le module pageAccueil
+       ──────────────────────────────────────────────────────────────────────
+       Nos rayons se posent DANS la page de Twitch, au fil de ses propres
+       rayons : ils en prennent la typographie — titres de 18 px, cartes en
+       16:9 — et les couleurs neutres viennent de la palette nommée plus haut,
+       qui suit le thème. Les tailles sont en pixels : Twitch fixe la racine à
+       62,5 %, et un « rem » n'y vaut que dix pixels.
+
+       LES DEUX TEINTES DE L'ÉVOLUTION sont écrites deux fois, comme tous les
+       accents : un vert lisible sur #0e0e10 ne l'est pas sur du blanc. */
+    #tse-accueil {
+      --tse-hausse: #3ccf91; --tse-baisse: #ff7a7a; --tse-violet-texte: #bf94ff;
+      display: block; margin: 0 0 12px; padding: 10px 30px 0; color: var(--tse-texte);
+    }
+    html[data-tse-theme="light"] #tse-accueil {
+      --tse-hausse: #0a7a4b; --tse-baisse: #c62828; --tse-violet-texte: #772ce8;
+    }
+    /* L'attribut « hidden » se perd sous un « display » posé par une classe :
+       on le rend souverain dans tout ce que nous peignons. */
+    #tse-accueil[hidden], #tse-accueil [hidden] { display: none !important; }
+    /* Le carrousel de Twitch, quand on le masque. Sa vidéo est arrêtée à part. */
+    .tse-acc-masque { display: none !important; }
+    #tse-accueil a:focus-visible { outline: 2px solid #9147ff; outline-offset: 2px; border-radius: 6px; }
+    /* « Afficher la durée » vaut ici comme sur les cartes de la barre. */
+    html[data-tse-off~="duree"] #tse-accueil .tse-acc-duree,
+    html[data-tse-off~="duree"] #tse-accueil .tse-acc-heros-duree { display: none !important; }
+
+    .tse-acc-titre {
+      display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px; margin: 16px 0 10px;
+      font-size: 18px; font-weight: 600; line-height: 1.25; color: var(--tse-texte);
+    }
+    .tse-acc-compte { font-size: 13px; font-weight: 600; color: var(--tse-texte-doux); font-variant-numeric: tabular-nums; }
+    .tse-acc-langue { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; color: var(--tse-texte-doux); }
+    .tse-acc-liste {
+      display: flex; gap: 14px; margin: 0; padding: 0 0 10px; list-style: none;
+      overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity; scrollbar-width: thin;
+    }
+
+    /* ── Les cartes ──────────────────────────────────────────────────── */
+    .tse-acc-carte { flex: 0 0 280px; min-width: 0; scroll-snap-align: start; }
+    .tse-acc-vignette {
+      position: relative; display: block; aspect-ratio: 16 / 9; border-radius: 6px;
+      overflow: hidden; background: var(--tse-surface-2);
+    }
+    .tse-acc-img { display: block; width: 100%; height: 100%; object-fit: cover; transition: transform 0.18s ease; }
+    .tse-acc-vignette:hover .tse-acc-img { transform: scale(1.04); }
+    .tse-acc-direct, .tse-acc-duree, .tse-acc-spect {
+      position: absolute; padding: 0 5px; border-radius: 4px;
+      font-size: 12px; font-weight: 600; line-height: 18px; white-space: nowrap; color: #fff;
+    }
+    .tse-acc-direct { top: 8px; left: 8px; background: var(--tse-frais); text-transform: uppercase; }
+    .tse-acc-duree { top: 8px; right: 8px; background: rgba(0, 0, 0, 0.62); font-variant-numeric: tabular-nums; }
+    .tse-acc-spect { bottom: 8px; left: 8px; background: rgba(0, 0, 0, 0.62); font-weight: 500; }
+    .tse-acc-infos { display: flex; gap: 10px; min-width: 0; padding-top: 8px; }
+    .tse-acc-avatar { flex: 0 0 40px; width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: var(--tse-surface-2); }
+    .tse-acc-textes { flex: 1 1 auto; min-width: 0; }
+    .tse-acc-nom {
+      display: block; color: var(--tse-texte); font-size: 14px; font-weight: 600; line-height: 1.3;
+      text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .tse-acc-nom:hover { color: var(--tse-violet-texte); }
+    .tse-acc-titre-carte, .tse-acc-jeu, .tse-acc-avec {
+      margin: 2px 0 0; font-size: 13px; line-height: 1.35; color: var(--tse-texte-doux);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .tse-acc-avec strong { color: var(--tse-texte); font-weight: 600; }
+    .tse-acc-debut {
+      display: inline-flex; align-items: center; gap: 5px; margin-top: 6px; padding: 0 8px;
+      border-radius: 4px; background: rgba(var(--tse-encre), 0.1); color: var(--tse-texte);
+      font-size: 12px; font-weight: 600; line-height: 24px; text-decoration: none; white-space: nowrap;
+    }
+    .tse-acc-debut:hover { background: rgba(var(--tse-encre), 0.18); }
+    .tse-acc-debut svg, .tse-acc-bouton svg { flex: 0 0 auto; width: 12px; height: 12px; fill: currentColor; }
+    .tse-acc-debut--abonnes { color: var(--tse-texte-doux); }
+
+    /* ── Le héros ────────────────────────────────────────────────────── */
+    .tse-acc-heros {
+      display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); gap: 24px; align-items: center;
+      margin: 0 0 6px; padding: 16px; border-radius: 10px;
+      background: linear-gradient(100deg, rgba(145, 71, 255, 0.16), rgba(145, 71, 255, 0) 65%), var(--tse-surface);
+    }
+    .tse-acc-heros-image { position: relative; display: block; aspect-ratio: 16 / 9; border-radius: 8px; overflow: hidden; background: #000; }
+    .tse-acc-heros-image img { display: block; width: 100%; height: 100%; object-fit: cover; }
+    .tse-acc-heros-infos { min-width: 0; }
+    .tse-acc-surtitre {
+      margin: 0 0 10px; font-size: 12px; font-weight: 700; letter-spacing: 0.06em;
+      text-transform: uppercase; color: var(--tse-violet-texte);
+    }
+    .tse-acc-heros-tete { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .tse-acc-heros-tete .tse-acc-avatar { flex-basis: 56px; width: 56px; height: 56px; }
+    .tse-acc-heros-nom {
+      min-width: 0; font-size: 28px; font-weight: 700; line-height: 1.15; color: var(--tse-texte);
+      text-decoration: none; overflow-wrap: anywhere;
+    }
+    .tse-acc-heros-nom:hover { color: var(--tse-violet-texte); }
+    .tse-acc-heros-meta { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 12px 0 0; font-size: 14px; color: var(--tse-texte-doux); }
+    .tse-acc-heros-jeu { color: var(--tse-violet-texte); font-weight: 600; }
+    .tse-acc-heros-duree { font-variant-numeric: tabular-nums; }
+    .tse-acc-heros-titre {
+      margin: 10px 0 0; font-size: 15px; line-height: 1.4; color: var(--tse-texte); overflow-wrap: anywhere;
+      display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+    }
+    .tse-acc-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+    .tse-acc-bouton {
+      display: inline-flex; align-items: center; gap: 7px; height: 34px; margin: 0; padding: 0 14px;
+      border-radius: 6px; font-size: 14px; font-weight: 600; line-height: 34px; text-decoration: none;
+    }
+    .tse-acc-bouton svg { width: 14px; height: 14px; }
+    .tse-acc-bouton--principal { background: #9147ff; color: #fff; }
+    .tse-acc-bouton--principal:hover { background: #772ce8; }
+    @media (max-width: 1100px) { .tse-acc-heros { grid-template-columns: minmax(0, 1fr); } }
+
+    /* ── Le Top 10 ───────────────────────────────────────────────────────
+       Le chiffre en creux, à gauche de la vignette qui le recouvre en
+       partie, et son pied aligné sur le bas de la vignette : la carte fait
+       250 px, sa vignette 141. L'évolution se lit sous le chiffre, dans la
+       place que la carte laisse libre. */
+    .tse-acc-liste--top { gap: 6px; }
+    .tse-acc-place { position: relative; flex: 0 0 auto; display: flex; align-items: flex-start; scroll-snap-align: start; }
+    .tse-acc-rang {
+      flex: 0 0 auto; display: flex; align-items: flex-end; height: 141px; margin-right: -24px;
+      font-size: 150px; font-weight: 900; line-height: 1; letter-spacing: -0.06em;
+      color: transparent; -webkit-text-stroke: 4px rgba(var(--tse-encre), 0.42);
+      font-variant-numeric: lining-nums; user-select: none; pointer-events: none;
+    }
+    .tse-acc-place .tse-acc-carte { position: relative; z-index: 1; flex: 0 0 250px; }
+    .tse-acc-evol {
+      position: absolute; top: 150px; left: 2px; max-width: 72px; overflow: hidden; text-overflow: ellipsis;
+      font-size: 12px; font-weight: 700; line-height: 18px; white-space: nowrap; font-variant-numeric: tabular-nums;
+    }
+    .tse-acc-evol--hausse { color: var(--tse-hausse); }
+    .tse-acc-evol--baisse { color: var(--tse-baisse); }
+    .tse-acc-evol--stable { color: var(--tse-texte-faible); }
+    .tse-acc-evol--nouveau { padding: 0 5px; border-radius: 4px; background: #9147ff; color: #fff; }
+    .tse-acc-note { margin: 2px 0 0; font-size: 12px; color: var(--tse-texte-doux); }
   `;
 
   const injectCSS = () => {
@@ -9466,8 +9841,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
            désormais les mêmes sources. */
         const combine = getCollabViewers(id) ?? combineDuMembre(login);
         const hote = getHostId(id);
-        if (Number.isFinite(combine)) globalChannels.setViewers(login, combine, true);
-        else if (typeof hote !== 'string') globalChannels.setViewers(login, entry.viewers);
+        if (Number.isFinite(combine)) verserAudience(login, combine, true);
+        else if (typeof hote !== 'string') verserAudience(login, entry.viewers);
         fresh++;
         /* ── L'ORIGINE, DEMANDÉE ICI ET NON AU SURVOL ──────────────────────
            C'est le seul endroit qui voie passer TOUTES les chaînes qui ont une
@@ -9582,7 +9957,17 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
    *  de `complete`, qui ne parle QUE de la descente entre catégories et jamais
    *  de ce qui se passe à l'intérieur de l'une d'elles.
    * ============================================================ */
-  const globalChannels = (() => {
+  /* UNE FABRIQUE, ET DEUX CLASSEMENTS (4.26.0). Le module servait la seule
+     barre, et lisait son état — le mode « Top Chaînes », la langue et la
+     catégorie choisies, le nombre de places. L'accueil demande le même
+     classement exact, mais dans SA langue et sans que la barre soit en
+     « Top Chaînes » : deux demandes qu'un module unique ne peut pas tenir à
+     la fois. Le corps n'a pas changé d'un mot ; il lit désormais ce qu'on lui
+     demande par `lire()`, qui rend { actif, lang, categorie, n }. La barre lui
+     passe exactement ce qu'elle lisait — son comportement est le même octet
+     pour octet. Les mesures des menus de la barre (`mesures`) n'ont de sens
+     que pour elle : l'accueil ne les demande pas. */
+  const creerClassement = (lire, mesures = true) => {
     /* Requêtes INLINE, sans sha256Hash : ce module ne dépend d'AUCUNE
        persisted query, comme le reste de la sidebar. Anonymes (post() pose
        credentials: 'omit' et le Client-ID public), sur des données strictement
@@ -10100,7 +10485,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
          COMPLÉTÉ n'y est justement pas : il est montré avec sa place, pas
          classé pour lui-même. Répondre oui ferait mentir `estAuClassement` et
          le bilan de co-stream, qui comptent ce que la marche connaît. */
-      if (!state.globalMode) return presents;
+      if (!lire().actif) return presents;
       /* ── ET SOUS FILTRE DE LANGUE, ON COMPLÈTE QUAND MÊME ──────────────
          LA 4.18.1 S'EN ABSTENAIT, faute de connaître la langue d'un membre que
          le répertoire ne rend pas. L'utilisateur a tranché autrement, et c'est
@@ -10432,7 +10817,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
              celles dont la réponse ne dit rien. Un pool qui dépasse à peine
              l'affichage n'en a pas : tout le monde y est au-dessus, et chaque
              échantillonnage devient une condamnation. */
-          if (pool.size <= options.get('topN') + CFG.GLOBAL_MISS_CONFIRM) {
+          if (pool.size <= lire().n + CFG.GLOBAL_MISS_CONFIRM) {
             stats.sansReserve += 1;
             continue;
           }
@@ -10783,7 +11168,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       ranking      = [...pool.values()].map(plusJuste).sort((a, b) => b.viewers - a.viewers);
       rankingDirty = false;
       rankingTs    = Date.now();
-      threshold    = nthViewers(pool, options.get('topN'));
+      threshold    = nthViewers(pool, lire().n);
       recalculerCombines(ranking);
       /* CE QUE L'AUDIENCE PROPRE A CONFIRMÉ porte un combiné (cf.
          `chutesParNature`) ; le simple soupçon, non. Et la preuve d'une chaîne
@@ -10976,7 +11361,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         if (!langues.length) return;
         const ops = langues.map(l => categorie
           ? { operationName: 'TseCatLangCount',
-              variables: { name: categorie, n: options.get('topN') },
+              variables: { name: categorie, n: lire().n },
               query: catLangCountQuery(LANG_API[l]) }
           : { operationName: 'TseTagCount',
               variables: { tag: l, n: CFG.GLOBAL_TAG_MAX },
@@ -11045,7 +11430,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         const noms = categories.slice(0, CFG.GLOBAL_CATEGORIES_MAX).map(c => c.name);
         const ops = noms.map(name => ({
           operationName: 'TseCatLangCount',
-          variables: { name, n: options.get('topN') },
+          variables: { name, n: lire().n },
           query: catLangCountQuery(code)
         }));
         bilanMesures.passes += 1;
@@ -11104,7 +11489,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
          que d'écrire cette dépendance en commentaire et d'espérer qu'on la
          lise, on la fait tenir : au-delà du plafond, la descente reprend la
          main, silencieusement, comme dans tous les autres cas d'échec. */
-      if (wl?.lang && !tagRefuse && options.get('topN') <= CFG.GLOBAL_TAG_MAX) {
+      if (wl?.lang && !tagRefuse && lire().n <= CFG.GLOBAL_TAG_MAX) {
         const parTag = await tagTop(wl.lang);
         if (gen !== walkGen) return { ok: true, complete: false };
         if (parTag) {
@@ -11160,7 +11545,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       // peut que MONTER à mesure que le pool grossit ; conserver la valeur
       // basse rend la condition d'arrêt plus prudente — on visite plus de
       // catégories que strictement nécessaire, jamais moins.
-      const t = nthViewers(pool, options.get('topN'));
+      const t = nthViewers(pool, lire().n);
 
       const rest = cats.slice(seed.length);
       const todo = [];
@@ -11270,7 +11655,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
           }
         }
       } else if (ranking.length
-                 <= options.get('topN') * CFG.GLOBAL_RESERVE_RATIO) {
+                 <= lire().n * CFG.GLOBAL_RESERVE_RATIO) {
         /* ── LE SEUIL À ZÉRO EST LE CAS DANGEREUX, PAS LE CAS NEUTRE ────────
            `nthViewers` rend zéro quand le pool est PLUS COURT que le top : il
            n'y a pas de trentième rang, donc pas de seuil. Le balayage
@@ -11369,11 +11754,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     // requête en révèle 23 à 29 de plus que le top 30 brut ne contenait.
     // Filtrer les trente cartes, lui, n'en laissait que sept.
     const wantedScope = () => {
-      if (!state.globalMode || !state.categoryFilter) return null;
-      const lang = state.languageFilter;
+      if (!lire().actif || !lire().categorie) return null;
+      const lang = lire().lang;
       const code = (lang && !langApiRejected.has(lang)) ? (LANG_API[lang] || null) : null;
-      return { name: state.categoryFilter, lang, code,
-               key: state.categoryFilter + '\u0000' + (code || '') };
+      return { name: lire().categorie, lang, code,
+               key: lire().categorie + '\u0000' + (code || '') };
     };
 
     // Langue voulue pour la descente MONDIALE. Nulle dès qu'une catégorie est
@@ -11386,8 +11771,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     // l'approximation au lieu de laisser la barre latérale vide — ce qui
     // arriverait si la descente était réclamée sans pouvoir aboutir.
     const wantedLang = () => {
-      if (!state.globalMode || state.categoryFilter) return null;
-      const lang = state.languageFilter;
+      if (!lire().actif || lire().categorie) return null;
+      const lang = lire().lang;
       if (!lang || langApiRejected.has(lang)) return null;
       const code = LANG_API[lang];
       return code ? { lang, code } : null;
@@ -11488,7 +11873,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     };
 
     const tick = () => {
-      if (!state.globalMode) return;
+      if (!lire().actif) return;
 
       /* LES CHIFFRES DES MENUS PASSENT AVANT LES GARDES DE LA MARCHE, et ce
          n'est pas un détail d'ordre : placés après, ils étaient inatteignables
@@ -11497,8 +11882,10 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
          partagent ni le verrou `running` ni la pause d'après-échec : ce sont
          des requêtes indépendantes, et chacune se tait d'elle-même tant que
          son TTL n'est pas écoulé. */
-      mesurerLangues(state.categoryFilter || null).catch(() => {});
-      mesurerCategories(state.languageFilter || null).catch(() => {});
+      if (mesures) {
+        mesurerLangues(lire().categorie || null).catch(() => {});
+        mesurerCategories(lire().lang || null).catch(() => {});
+      }
 
       if (running) return;
       const now = Date.now();
@@ -11635,8 +12022,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       // chaînes les plus regardées de cette langue parmi tout ce qu'on a vu.
       // Et cela ne coûte AUCUNE requête : les tags de langue voyagent déjà
       // dans chaque réponse de la marche.
-      top(n = options.get('topN')) {
-        const lang = state.globalMode ? state.languageFilter : null;
+      top(n = lire().n) {
+        const lang = lire().actif ? lire().lang : null;
         const liste = this.base();
         // Déjà restreint PAR L'API — portée catégorie filtrée, ou descente
         // mondiale menée en langue : il n'y a plus rien à filtrer, et le
@@ -11924,7 +12311,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       // que le bilan de co-stream sache distinguer « jamais classé » de
       // « classé mais sans carte ».
       estAuClassement(login) {
-        return this.top(options.get('topN')).some((r) => r.login === login);
+        return this.top(lire().n).some((r) => r.login === login);
       },
       /* ── « PAS AU TOP 30 » N'EST PAS « PAS DANS LE POOL » ─────────────────
          MON PROPRE INSTRUMENT M'A ÉGARÉ. Le bilan rangeait sous
@@ -11964,7 +12351,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       },
       report() {
         return {
-          enabled:    state.globalMode,
+          enabled:    lire().actif,
           // Le seuil T de la descente a été calculé TOUTES LANGUES CONFONDUES.
           // Sous filtre de langue, l'inégalité qui fonde l'exactitude ne dit
           // plus rien : une chaîne française sous le top 30 de sa catégorie
@@ -11980,11 +12367,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
           // tags, lui, reste approché : le seuil T aurait été calculé toutes
           // langues confondues.
           complete:   complete
-            && !(state.globalMode && state.languageFilter
+            && !(lire().actif && lire().lang
                  && !(wantedScope() ? scopeLangApplied
-                                    : worldLang === state.languageFilter)),
+                                    : worldLang === lire().lang)),
           langApplied: !!(wantedScope() ? scopeLangApplied
-                                        : worldLang && worldLang === state.languageFilter),
+                                        : worldLang && worldLang === lire().lang),
           /* CE QUE LA VOIE DU TAG A DONNÉ. Elle n'a jamais pu être exécutée
              contre le vrai Twitch : ces compteurs sont le seul moyen de savoir
              si l'argument de filtre est le bon. Même dispositif que pour les
@@ -12006,7 +12393,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
           mesures: { ...bilanMesures, connues: mesuresCatLangue.size,
                      monde: mesuresMonde.size, evincees: mesuresEvincees },
           worldLang,
-          language:   state.globalMode ? state.languageFilter : null,
+          language:   lire().actif ? lire().lang : null,
           scope,
           scopeSize:  scopeRanking.length,
           /* La pause après échec, RELATIVE à maintenant. Elle vit ici parce
@@ -12041,7 +12428,19 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         };
       }
     };
-  })();
+  };
+
+  const globalChannels = creerClassement(() => ({
+    actif: state.globalMode, lang: state.languageFilter,
+    categorie: state.categoryFilter, n: options.get('topN'),
+  }));
+  /* UN COMPTEUR FRAIS VAUT POUR LES DEUX CLASSEMENTS (4.26.0) : celui de la
+     barre et celui de l'accueil. `setViewers` ne crée jamais d'entrée : il
+     n'écrit que chez celui qui porte déjà la chaîne. */
+  const verserAudience = (login, viewers, autorite = false) => {
+    globalChannels.setViewers(login, viewers, autorite);
+    pageAccueil.classement().setViewers(login, viewers, autorite);
+  };
 
   /* ============================================================
    *  HELPERS
@@ -14897,7 +15296,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         // Twitch est une SPA : pas de "navigation" event natif. On intercepte
         // pushState/replaceState et écoute popstate pour détecter les changements
         // de route côté client.
-        const fire = () => onLocationChange();
+        /* L'accueil (4.26.0) suit la même adresse : il se pose en arrivant
+           sur « / » et se retire en la quittant. */
+        const fire = () => { onLocationChange(); pageAccueil.route(); };
         const origPush = history.pushState;
         const origReplace = history.replaceState;
         history.pushState = function (...args) {
@@ -14916,6 +15317,814 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         // Démarre le tracking sur la page courante.
         onLocationChange();
       }
+    };
+  })();
+
+  /* ============================================================
+   *  LE JETON DE LECTURE D'UNE REDIFFUSION — partagé (4.26.0)
+   *  ------------------------------------------------------------
+   *  Sorti de l'agenda, qui l'a mesuré (4.25.0.3, cf. son en-tête
+   *  « L'ACCÈS AUX REDIFFUSIONS »), parce que l'accueil pose la
+   *  même question sur l'archive du direct en cours. Une règle,
+   *  un endroit : si Twitch change la forme du jeton, les deux
+   *  suivent ensemble.
+   * ============================================================ */
+  const PARAMS_JETON = '{ platform: "web", playerBackend: "mediaplayer", playerType: "site" }';
+  const fermeeSelonJeton = (valeur) => {
+    try {
+      const rb = JSON.parse(valeur)?.chansub?.restricted_bitrates;
+      return Array.isArray(rb) ? rb.includes('audio_only') && rb.includes('chunked') : null;
+    } catch { return null; }
+  };
+
+  /* ============================================================
+   *  LA PAGE D'ACCUEIL DE TWITCH (4.26.0)
+   *  ------------------------------------------------------------
+   *  Trois rayons posés au-dessus de ceux de Twitch, et rien
+   *  d'autre :
+   *    — en tête, « votre chaîne n°1 » : celle de vos chaînes
+   *      suivies en direct que vous regardez le plus — le score
+   *      de visites qui trie déjà la barre —, à la place du
+   *      carrousel de Twitch ;
+   *    — vos chaînes suivies en direct, dans l'ordre de vos
+   *      visites ;
+   *    — le Top 10 de votre langue, tiré du classement exact de
+   *      Top Chaînes, en grands chiffres.
+   *
+   *  RIEN N'EST INVENTÉ ICI. Les deux premiers lisent ce que la
+   *  barre sait déjà — le roster, le cache de TseChannels, les
+   *  visites — et ne coûtent aucune requête. Le Top 10 est une
+   *  seconde instance du moteur de Top Chaînes (creerClassement),
+   *  qui ne tourne que pendant que l'accueil est à l'écran et se
+   *  tait quand la barre sert déjà la même question. « Depuis le
+   *  début » demande l'archive du direct en cours : une fois par
+   *  direct, par lots de quinze, aux seules cartes affichées.
+   *
+   *  INERTE AILLEURS. Tant que l'adresse n'est pas « / » ET que le
+   *  défileur de l'accueil n'est pas dans <main>, ce module ne pose
+   *  rien et n'envoie rien ; il n'observe la page que le temps
+   *  d'attendre ce défileur, et seulement à l'adresse « / ».
+   *
+   *  LA FORME DE LA PAGE EST RELEVÉE, PAS SUPPOSÉE. Un échantillon
+   *  du DOM réel de l'accueil (novembre 2026) a fixé les repères :
+   *  le défileur `main .root-scrollable__content` (data-a-target
+   *  « root-scroller »), le carrousel `[data-a-target=
+   *  "front-page-carousel"]`, les rayons dans `.common-centered-
+   *  column > [data-a-target="front-page-main-content"]`, et des
+   *  cartes `a[data-a-target="preview-card-image-link"]` dont la
+   *  miniature est `previews-ttv/live_user_<login>`. Le repère du
+   *  carrousel peut changer un jour : il est doublé d'une règle
+   *  de forme, et le rapport dit laquelle des deux l'a trouvé.
+   *  Faute de preuve, rien n'est masqué : on pose nos rayons, et
+   *  le carrousel reste.
+   * ============================================================ */
+  const pageAccueil = (() => {
+    const ID = 'tse-accueil';
+    // Les miniatures de direct de Twitch : la seule forme stable d'une carte de rayon.
+    const SEL_MINIATURE = 'img[src*="/previews-ttv/live_user_"]';
+    const RE_MINIATURE = /\/previews-ttv\/live_user_([a-z0-9_]+)-/i;
+    /* Les repères relevés sur la vraie page : le carrousel — qui porte aussi
+       la publicité « headliner » de Twitch —, et le contenu principal, où
+       vivent les rayons et où les nôtres se posent. */
+    const SEL_CARROUSEL = '[data-a-target="front-page-carousel"], .front-page-carousel';
+    const SEL_CONTENU = '[data-a-target="front-page-main-content"], #front-page-main-content';
+    const RE_LOGIN = /^[a-z0-9_]{1,25}$/;
+
+    let section = null;          // notre <section>, construite une fois
+    let observateur = null;      // vivant à l'adresse « / » seulement
+    let verifPrevue = false;
+    let carrousel = null;        // { bloc, voie } : la dernière trouvaille
+    const masques = new Set();   // les blocs que nous masquons
+    const pausees = new Set();   // les vidéos que nous avons arrêtées, pour les rendre
+    const instantanes = [];      // [{ ts, cle, rangs: Map(login → place) }]
+    const debuts = new Map();    // login → { cle, id, fermee, ts }
+    const affiches = new Map();  // login → clé du direct, pour « Depuis le début »
+    let debutEnVol = false;
+    let debutRefuse = false;     // trois refus d'affilée : on se tait pour la session
+    let refusSuite = 0;
+    let debutPause = 0;
+    let z = null;                // les zones de la section, une fois construite
+
+    const bilan = {
+      poses: 0, reposes: 0, retraits: 0, peintures: 0, ancre: null,
+      carrousel: { voie: null, signature: null, masquages: 0, pauses: 0, reprises: 0 },
+      heros: { montre: false, sansVisite: false },
+      top: { source: null, instantanes: 0 },
+      debut: { envois: 0, demandes: 0, archives: 0, sansArchive: 0, sansStream: 0,
+               jetons: 0, fermees: 0, illisibles: 0, refus: 0, reseau: 0 },
+    };
+
+    const surAccueil = () => location.pathname === '/';
+    const actif = () => surAccueil() && options.get('accueil');
+    const pose = () => !!section && section.isConnected;
+    const exclu = (n) => !!n.closest?.(`#${ID}, ${DOM.sidebarRoot}, .tse-preview`);
+
+    /* ── LE TOP 10 : LA LANGUE, ET LE MOTEUR QUI LE SERT ─────────────────────
+       « Celle de Twitch » se lit sur <html lang>, que Twitch pose d'après la
+       langue de son interface, et se traduit en NOM DE TAG — la clé du
+       moteur (cf. LANG_API). Une langue sans tag connu se dit « toutes les
+       langues » à l'écran, pour ne pas annoncer un filtre qui n'a pas lieu. */
+    const tagInterface = () => {
+      let l = null;
+      try { l = Intl.getCanonicalLocales((document.documentElement.lang || '').trim())[0] || null; }
+      catch { l = null; }
+      if (!l) return null;
+      const code = l.split('-')[0].toUpperCase();
+      const cible = ({ NB: 'NO', NN: 'NO', FIL: 'TL' })[code] || code;
+      return Object.keys(LANG_API).find((t) => LANG_API[t] === cible) || null;
+    };
+    const langueVoulue = () => (options.get('accueilTopLangue') === 'toutes' ? null : tagInterface());
+    const topActif = () => pose() && actif() && options.get('accueilTop') && !document.hidden;
+    /* LA BARRE SERT DÉJÀ LA MÊME QUESTION : Top Chaînes ouvert, sans
+       catégorie, dans la même langue. Son classement porte au moins dix
+       places (topN vaut 10, 30 ou 50), et on le lit au lieu d'en payer un
+       second. */
+    const partage = () => !!state.globalMode && !state.categoryFilter
+      && (state.languageFilter || null) === langueVoulue();
+    const classement = creerClassement(() => ({
+      actif: topActif() && !partage(),
+      lang: langueVoulue(), categorie: null, n: CFG.ACCUEIL_TOP_N,
+    }), false);
+    const sourceTop = () => (partage() ? globalChannels : classement);
+
+    /* ── LES CHAÎNES SUIVIES EN DIRECT ───────────────────────────────────────
+       Le roster dit qui l'on suit, le cache dit qui est en direct : une
+       entrée dont `stream` est posé. Aucune requête — ce sont les chaînes
+       que la barre interroge déjà. L'ordre est celui des visites ; à score
+       égal, l'audience. */
+    const suiviesEnDirect = () => {
+      const out = [];
+      for (const [login] of roster.entries()) {
+        const e = cache.get(login);
+        if (!e || !e.stream) continue;
+        out.push({ login, e, score: visits.scoreFor(login) });
+      }
+      return out.sort((a, b) => (b.score - a.score)
+        || ((b.e.viewers || 0) - (a.e.viewers || 0)) || a.login.localeCompare(b.login));
+    };
+    // Le compteur que la carte de la barre montre : le combiné d'un co-stream, sinon le sien.
+    const audience = (login, e) => getCollabViewers(e.id) ?? combineDuMembre(login) ?? e.viewers;
+
+    /* ── LE CARROUSEL ────────────────────────────────────────────────────────
+       Par repère, puis par forme. LA FORME : le carrousel est le bloc de la
+       page qui porte sa vidéo, et la page est ce qui le sépare des rayons.
+       On prend donc l'ancêtre commun de la vidéo et de la DERNIÈRE carte de
+       l'accueil — forcément dans un rayon, sous le carrousel —, et, parmi
+       ses enfants, celui qui contient la vidéo. Remonter depuis la vidéo
+       « jusqu'à la première carte » ne marchait pas : les vignettes de côté
+       du carrousel l'arrêtaient sur le seul lecteur.
+       LA PREUVE EXIGÉE : au moins six cartes de rayon hors du bloc. Le
+       carrousel en porte cinq — un direct au centre, quatre vignettes de
+       côté —, si bien qu'un accueil dont les rayons ne sont pas encore là ne
+       peut pas passer pour un accueil complet. Les rayons, eux, peuvent
+       vivre dans un seul bloc voisin : c'est le cas sur la vraie page, où
+       tous sont sous la colonne centrale. Sans preuve, on renonce : masquer
+       un bloc qu'on n'a pas prouvé être le carrousel pourrait masquer
+       l'accueil. */
+    const defileur = () => document.querySelector('main .root-scrollable__content');
+    const trouverCarrousel = (racine) => {
+      const parRepere = [...racine.querySelectorAll(SEL_CARROUSEL)].find((n) => !exclu(n));
+      if (parRepere) return { bloc: parRepere, voie: 'repere' };
+      const video = [...racine.querySelectorAll('video')].find((v) => !exclu(v));
+      if (!video) return null;
+      const cartes = [...racine.querySelectorAll(SEL_MINIATURE)].filter((i) => !exclu(i));
+      const derniere = cartes[cartes.length - 1];
+      if (!derniere) return null;
+      let commun = video.parentElement;
+      while (commun && !commun.contains(derniere)) commun = commun.parentElement;
+      if (!commun) return null;
+      const bloc = [...commun.children].find((c) => c.contains(video));
+      if (!bloc) return null;
+      const dehors = cartes.filter((i) => commun.contains(i) && !bloc.contains(i)).length;
+      return dehors >= CFG.ACCUEIL_PREUVE_CARTES ? { bloc, voie: 'forme' } : null;
+    };
+    const signature = (n) => n.localName
+      + (n.getAttribute('data-a-target') ? `[data-a-target="${n.getAttribute('data-a-target')}"]` : '')
+      + [...n.classList].slice(0, 3).map((c) => '.' + c).join('');
+    const pauser = (v) => {
+      if (v.paused) return;
+      try { v.pause(); pausees.add(v); bilan.carrousel.pauses++; } catch { /* lecteur absent */ }
+    };
+    const masquer = (bloc) => {
+      if (!bloc.classList.contains('tse-acc-masque')) {
+        bloc.classList.add('tse-acc-masque');
+        bilan.carrousel.masquages++;
+      }
+      masques.add(bloc);
+      for (const v of bloc.querySelectorAll('video')) pauser(v);
+    };
+    /* Rendre le carrousel, c'est aussi rendre sa vidéo : nous l'avions
+       arrêtée, Twitch ne la relancerait pas de lui-même. Muette comme à
+       l'origine, elle a le droit de repartir seule. */
+    const demasquer = () => {
+      for (const b of masques) b.classList.remove('tse-acc-masque');
+      masques.clear();
+      for (const v of pausees) {
+        if (!v.isConnected) continue;
+        bilan.carrousel.reprises++;
+        try { v.play()?.catch?.(() => {}); } catch { /* rien à rendre */ }
+      }
+      pausees.clear();
+    };
+    const gererCarrousel = (heros) => {
+      const tete = options.get('accueilTete');
+      const cacher = tete === 'rien' || (tete === 'heros' && !!heros);
+      if (!cacher || !carrousel || !carrousel.bloc.isConnected) { if (masques.size) demasquer(); return; }
+      if (!masques.has(carrousel.bloc)) demasquer();
+      masquer(carrousel.bloc);
+    };
+
+    /* ── L'ANCRAGE ───────────────────────────────────────────────────────────
+       Juste avant le contenu principal, dans la colonne centrale : notre
+       section en prend la largeur, et se lit comme le premier des rayons —
+       sous le carrousel s'il est montré, à sa place s'il est masqué. À
+       défaut de ce repère, juste après le carrousel ; à défaut des deux, en
+       tête du conteneur des rayons — on descend les enveloppes à enfant
+       unique. Rien ne bouge si tout est déjà en place : un déplacement
+       inutile serait une mutation, donc une vérification de plus, donc une
+       boucle. */
+    const conteneurDe = (racine) => {
+      let c = racine;
+      for (let i = 0; i < 6; i++) {
+        const enfants = [...c.children].filter((x) => x.id !== ID);
+        if (enfants.length !== 1) break;
+        c = enfants[0];
+      }
+      return c;
+    };
+    const placer = () => {
+      const racine = defileur();
+      if (!racine) return false;
+      if (!carrousel || !carrousel.bloc.isConnected || !racine.contains(carrousel.bloc)) {
+        carrousel = trouverCarrousel(racine);
+        bilan.carrousel.voie = carrousel ? carrousel.voie : 'introuvable';
+        bilan.carrousel.signature = carrousel ? signature(carrousel.bloc) : null;
+      }
+      if (!section) construire();
+      const etait = section.isConnected;
+      const contenu = [...racine.querySelectorAll(SEL_CONTENU)].find((n) => !exclu(n) && n.parentElement);
+      bilan.ancre = contenu ? 'contenu' : carrousel ? 'carrousel' : 'conteneur';
+      if (contenu) {
+        if (contenu.previousElementSibling !== section) contenu.before(section);
+      } else if (carrousel) {
+        if (carrousel.bloc.nextElementSibling !== section) carrousel.bloc.after(section);
+      } else {
+        const c = conteneurDe(racine);
+        if (c.firstElementChild !== section) c.prepend(section);
+      }
+      if (!etait) { if (bilan.poses) bilan.reposes++; else bilan.poses++; }
+      return true;
+    };
+
+    /* ── LA CONSTRUCTION ─────────────────────────────────────────────────────
+       Tout par createElement : aucune donnée venue de Twitch ne traverse un
+       analyseur. Les seuls balisages statiques sont nos pictogrammes. */
+    const elt = (tag, classe, texte) => {
+      const x = document.createElement(tag);
+      if (classe) x.className = classe;
+      if (texte !== undefined) x.textContent = texte;
+      return x;
+    };
+    const PICTO_DEBUT = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 2h2v12H3zM14 2v12L6 8z"/></svg>';
+    const PICTO_CADENAS = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 7V5a3 3 0 0 1 6 0v2h1v7H4V7zm1.5 0h3V5a1.5 1.5 0 0 0-3 0z"/></svg>';
+    const PICTO_LECTURE = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2l10 6-10 6z"/></svg>';
+    const texteSi = (x, t) => { if (x.textContent !== t) x.textContent = t; };
+    const attrSi = (x, a, v) => {
+      if (v === null || v === undefined) { if (x.hasAttribute(a)) x.removeAttribute(a); return; }
+      if (x.getAttribute(a) !== v) x.setAttribute(a, v);
+    };
+    // Une image qui change d'adresse garde l'ancienne jusqu'à ce que la nouvelle soit là.
+    const poserImage = (img, url) => {
+      if (!url || img.dataset.tseVoulu === url) return;
+      img.dataset.tseVoulu = url;
+      if (!img.getAttribute('src')) { img.setAttribute('src', url); return; }
+      const pre = document.createElement('img');
+      pre.onload = () => { if (img.dataset.tseVoulu === url) img.setAttribute('src', url); };
+      pre.src = url;
+    };
+    const imageSure = (u) => (typeof u === 'string' && /^https:\/\//.test(u) ? u : null);
+
+    const construire = () => {
+      section = elt('section');
+      section.id = ID;
+      section.setAttribute('aria-label', S.uiAccSection);
+      const heros = elt('div', 'tse-acc-heros');
+      heros.hidden = true;
+      const suivis = elt('div', 'tse-acc-rayon tse-acc-rayon--suivis');
+      const hSuivis = elt('h2', 'tse-acc-titre');
+      const tSuivis = elt('span', null, S.uiAccSuivis);
+      const nSuivis = elt('span', 'tse-acc-compte');
+      hSuivis.append(tSuivis, nSuivis);
+      const lSuivis = elt('div', 'tse-acc-liste');
+      suivis.append(hSuivis, lSuivis);
+      suivis.hidden = true;
+      const top = elt('div', 'tse-acc-rayon tse-acc-rayon--top');
+      const hTop = elt('h2', 'tse-acc-titre');
+      const tTop = elt('span', null, S.uiAccTop);
+      const lang = elt('span', 'tse-acc-langue');
+      hTop.append(tTop, lang);
+      const lTop = elt('ol', 'tse-acc-liste tse-acc-liste--top');
+      const note = elt('p', 'tse-acc-note');
+      note.hidden = true;
+      top.append(hTop, lTop, note);
+      top.hidden = true;
+      section.append(heros, suivis, top);
+      z = { heros, suivis, tSuivis, nSuivis, lSuivis, top, tTop, lang, lTop, note, langCle: undefined };
+    };
+
+    // Une carte affichée, et le début de son direct : ce que « Depuis le début » demandera.
+    const noterAffiche = (login, debut) => { if (debut) affiches.set(login, String(debut)); };
+    /* Le bouton « Depuis le début », tel que la dernière réponse le décrit :
+       absent sans archive, un cadenas si la chaîne réserve ses rediffusions
+       aux abonnés et qu'on ne vous sait pas abonné — la règle de l'agenda. */
+    const majDebut = (a, login, nom) => {
+      const d = options.get('accueilDebut') ? debuts.get(login) : null;
+      const cle = affiches.get(login);
+      const ok = !!d && d.id !== null && d.cle === cle;
+      a.hidden = !ok;
+      if (!ok) return;
+      const ferme = d.fermee === true && !subs.isSub(login);
+      a.classList.toggle('tse-acc-debut--abonnes', ferme);
+      attrSi(a, 'href', `/videos/${d.id}?t=0s`);
+      attrSi(a, 'title', ferme ? S.uiAccAbonnes : S.uiAccDebutTitre(nom));
+      const etat = ferme ? 'cadenas' : 'debut';
+      if (a.dataset.tseEtat !== etat) {
+        a.dataset.tseEtat = etat;
+        a.replaceChildren(noeudStatique(ferme ? PICTO_CADENAS : PICTO_DEBUT), elt('span', null, S.uiAccDebut));
+      }
+    };
+
+    // Une carte : la vignette (cible de l'aperçu), puis l'avatar et les textes.
+    const fabriquerCarte = (login) => {
+      const carte = elt('article', 'tse-acc-carte');
+      carte.dataset.tseCle = login;
+      const vig = elt('a', 'tse-acc-vignette');
+      vig.setAttribute('href', '/' + login);
+      vig.dataset.tseSurvol = login;
+      const img = elt('img', 'tse-acc-img');
+      img.alt = '';
+      img.loading = 'lazy';
+      img.decoding = 'async';
+      const direct = elt('span', 'tse-acc-direct', S.uiAccDirect);
+      const duree = elt('span', 'tse-acc-duree');
+      const spect = elt('span', 'tse-acc-spect');
+      vig.append(img, direct, duree, spect);
+      const infos = elt('div', 'tse-acc-infos');
+      const av = elt('img', 'tse-acc-avatar');
+      av.alt = '';
+      av.loading = 'lazy';
+      const textes = elt('div', 'tse-acc-textes');
+      const nom = elt('a', 'tse-acc-nom');
+      nom.setAttribute('href', '/' + login);
+      const titre = elt('p', 'tse-acc-titre-carte');
+      const jeu = elt('p', 'tse-acc-jeu');
+      const avec = elt('p', 'tse-acc-avec');
+      avec.hidden = true;
+      const debut = elt('a', 'tse-acc-debut');
+      debut.hidden = true;
+      textes.append(nom, titre, jeu, avec, debut);
+      infos.append(av, textes);
+      carte.append(vig, infos);
+      return carte;
+    };
+    /* `d` : { login, nom, avatar, titre, jeu, spect, debutLive, avec } — tout
+       ce qui a été lu, rien de deviné. Un champ absent laisse sa ligne vide. */
+    const majCarte = (carte, d) => {
+      const [vig, infos] = carte.children;
+      const [img, , duree, spect] = vig.children;
+      poserImage(img, buildThumbUrl(d.login));
+      attrSi(vig, 'aria-label', d.nom);
+      texteSi(duree, d.debutLive ? formatUptime(d.debutLive) : '');
+      duree.hidden = !d.debutLive;
+      texteSi(spect, Number.isFinite(d.spect) ? formatViewers(d.spect) : '');
+      attrSi(spect, 'title', Number.isFinite(d.spect) ? S.uiAccSpect(d.spect, formatViewers(d.spect)) : null);
+      spect.hidden = !Number.isFinite(d.spect);
+      const [av, textes] = infos.children;
+      const url = imageSure(d.avatar);
+      av.hidden = !url;
+      if (url) attrSi(av, 'src', url);
+      const [nom, titre, jeu, avec, debut] = textes.children;
+      texteSi(nom, d.nom);
+      texteSi(titre, d.titre || '');
+      attrSi(titre, 'title', d.titre || null);
+      titre.hidden = !d.titre;
+      texteSi(jeu, d.jeu || '');
+      jeu.hidden = !d.jeu;
+      const noms = (d.avec || []).join(', ');
+      avec.hidden = !noms;
+      if (noms && avec.dataset.tseNoms !== noms) {
+        avec.dataset.tseNoms = noms;
+        avec.replaceChildren(phraseAvecFente(S.uiAccAvec(FENTE), () => nomsEnGras(d.avec)));
+      }
+      majDebut(debut, d.login, d.nom);
+    };
+    // Une rangée tenue par clé : les cartes restent, se mettent à jour, se réordonnent.
+    const rangee = (liste, items, cle, fabriquer, maj) => {
+      const restants = new Map([...liste.children].map((n) => [n.dataset.tseCle, n]));
+      let prec = null;
+      for (const it of items) {
+        const k = cle(it);
+        let n = restants.get(k);
+        if (n) restants.delete(k); else n = fabriquer(it);
+        maj(n, it);
+        const attendu = prec ? prec.nextSibling : liste.firstChild;
+        if (n !== attendu) liste.insertBefore(n, attendu);
+        prec = n;
+      }
+      for (const n of restants.values()) n.remove();
+    };
+    const donneesSuivie = ({ login, e }) => ({
+      login, nom: e.name || login, avatar: e.avatar, titre: e.stream?.title || '',
+      jeu: e.gameLabel || e.game || '', spect: audience(login, e),
+      debutLive: e.stream?.createdAt ? debutReel(login, e.stream.createdAt) : null,
+    });
+
+    /* ── LE HÉROS ────────────────────────────────────────────────────────────
+       Celle que vous regardez le plus, et seulement si vous l'avez regardée :
+       sans aucune visite comptée, aucune chaîne n'est « la plus regardée »,
+       et le carrousel de Twitch garde sa place. L'image se relit à la
+       minute ; rien ne démarre seul. */
+    const peindreHeros = (h) => {
+      const zh = z.heros;
+      zh.hidden = !h;
+      if (!h) { zh.replaceChildren(); delete zh.dataset.tseCle; return; }
+      const d = donneesSuivie(h);
+      if (zh.dataset.tseCle !== h.login) {
+        zh.dataset.tseCle = h.login;
+        const image = elt('a', 'tse-acc-heros-image');
+        image.setAttribute('href', '/' + h.login);
+        const img = elt('img');
+        img.alt = '';
+        image.append(img, elt('span', 'tse-acc-direct', S.uiAccDirect));
+        const infos = elt('div', 'tse-acc-heros-infos');
+        const tete = elt('div', 'tse-acc-heros-tete');
+        const av = elt('img', 'tse-acc-avatar');
+        av.alt = '';
+        const nom = elt('a', 'tse-acc-heros-nom');
+        nom.setAttribute('href', '/' + h.login);
+        tete.append(av, nom);
+        const meta = elt('p', 'tse-acc-heros-meta');
+        const jeu = elt('span', 'tse-acc-heros-jeu');
+        const spect = elt('span', 'tse-acc-heros-spect');
+        const duree = elt('span', 'tse-acc-heros-duree');
+        meta.append(jeu, spect, duree);
+        const titre = elt('p', 'tse-acc-heros-titre');
+        const actions = elt('div', 'tse-acc-actions');
+        const regarder = elt('a', 'tse-acc-bouton tse-acc-bouton--principal');
+        regarder.setAttribute('href', '/' + h.login);
+        regarder.append(noeudStatique(PICTO_LECTURE), elt('span', null, S.uiAccRegarder));
+        const debut = elt('a', 'tse-acc-bouton tse-acc-debut');
+        debut.hidden = true;
+        actions.append(regarder, debut);
+        infos.append(elt('p', 'tse-acc-surtitre', S.uiAccHeros), tete, meta, titre, actions);
+        zh.replaceChildren(image, infos);
+      }
+      const [image, infos] = zh.children;
+      poserImage(image.firstChild, `https://static-cdn.jtvnw.net/previews-ttv/live_user_${h.login}`
+        + `-1280x720.jpg?_=${Math.floor(Date.now() / CFG.ACCUEIL_IMAGE_MS)}`);
+      attrSi(image, 'aria-label', d.nom);
+      const [, tete, meta, titre, actions] = infos.children;
+      const url = imageSure(d.avatar);
+      tete.firstChild.hidden = !url;
+      if (url) attrSi(tete.firstChild, 'src', url);
+      texteSi(tete.lastChild, d.nom);
+      const [jeu, spect, duree] = meta.children;
+      texteSi(jeu, d.jeu);
+      jeu.hidden = !d.jeu;
+      texteSi(spect, Number.isFinite(d.spect) ? S.uiAccSpect(d.spect, formatViewers(d.spect)) : '');
+      spect.hidden = !Number.isFinite(d.spect);
+      texteSi(duree, d.debutLive ? formatUptime(d.debutLive) : '');
+      duree.hidden = !d.debutLive;
+      texteSi(titre, d.titre);
+      titre.hidden = !d.titre;
+      majDebut(actions.lastChild, h.login, d.nom);
+    };
+
+    const peindreSuivies = (items) => {
+      z.suivis.hidden = !items.length;
+      texteSi(z.nSuivis, items.length ? String(items.length) : '');
+      rangee(z.lSuivis, items, (it) => it.login, (it) => fabriquerCarte(it.login),
+             (n, it) => majCarte(n, donneesSuivie(it)));
+    };
+
+    /* ── LE TOP 10 ───────────────────────────────────────────────────────────
+       Une place par co-stream, comme dans Top Chaînes : la carte de son
+       meilleur membre, et les autres nommés dessous. */
+    const enPlaces = (recs) => {
+      const places = [];
+      const index = new Map();
+      for (const r of recs) {
+        const k = sessionDuMembre(r.login) || ('s:' + r.login);
+        let p = index.get(k);
+        if (!p) { p = { tete: r, membres: [] }; index.set(k, p); places.push(p); }
+        else p.membres.push(r);
+      }
+      return places.slice(0, CFG.ACCUEIL_TOP_N);
+    };
+    /* L'ÉVOLUTION NE COMPARE QUE DES CLASSEMENTS EXACTS, DE LA MÊME LANGUE.
+       Un instantané par minute, gardé trente minutes ; la référence est le
+       plus ancien. En deçà de deux minutes, aucune flèche : du bruit. Une
+       chaîne absente de la référence n'a pas « gagné douze places » — on ne
+       savait pas où elle était — : elle est « nouvelle » dans le Top 10. */
+    const noterInstantane = (places, cle) => {
+      const now = Date.now();
+      while (instantanes.length && now - instantanes[0].ts > CFG.ACCUEIL_EVOLUTION_MS) instantanes.shift();
+      const dernier = instantanes[instantanes.length - 1];
+      if (dernier && dernier.cle === cle && now - dernier.ts < CFG.ACCUEIL_INSTANTANE_MS) return;
+      const rangs = new Map();
+      places.forEach((p, i) => { for (const r of [p.tete, ...p.membres]) rangs.set(r.login, i + 1); });
+      instantanes.push({ ts: now, cle, rangs });
+      bilan.top.instantanes++;
+    };
+    const reference = (cle) => {
+      const ref = instantanes.find((x) => x.cle === cle);
+      return ref && Date.now() - ref.ts >= CFG.ACCUEIL_EVOLUTION_MIN_MS ? ref : null;
+    };
+    const evolution = (p, rang, ref) => {
+      if (!ref) return null;
+      const min = Math.max(1, Math.round((Date.now() - ref.ts) / 60_000));
+      const avant = Math.min(...[p.tete, ...p.membres].map((r) => ref.rangs.get(r.login) ?? Infinity));
+      if (!Number.isFinite(avant)) return { classe: 'nouveau', texte: S.uiAccNouveau, titre: S.uiAccEntree(min) };
+      if (avant === rang) return { classe: 'stable', texte: '=', titre: S.uiAccStable(min) };
+      const n = Math.abs(avant - rang);
+      return avant > rang
+        ? { classe: 'hausse', texte: `▲ ${n}`, titre: S.uiAccHausse(n, min) }
+        : { classe: 'baisse', texte: `▼ ${n}`, titre: S.uiAccBaisse(n, min) };
+    };
+    const fabriquerPlace = (login) => {
+      const li = elt('li', 'tse-acc-place');
+      li.dataset.tseCle = login;
+      const rang = elt('span', 'tse-acc-rang');
+      rang.setAttribute('aria-hidden', 'true');
+      const evol = elt('span', 'tse-acc-evol');
+      li.append(rang, fabriquerCarte(login), evol);
+      return li;
+    };
+    const majPlace = (li, { p, rang, ref }) => {
+      const r = p.tete;
+      const [chiffre, carte, evol] = li.children;
+      /* LE DÉBUT DU DIRECT, UN SEUL PAR CHAÎNE. Une chaîne suivie peut être
+         aussi au Top 10 : la barre et le classement la décrivent chacun, et
+         deux clés pour un même direct feraient redemander son archive à
+         chaque peinture. Le cache de la barre prime : c'est TseChannels, la
+         voix la plus autorisée sur une chaîne. */
+      const debutLive = cache.get(r.login)?.stream?.createdAt || r.createdAt || null;
+      noterAffiche(r.login, debutLive);
+      texteSi(chiffre, String(rang));
+      /* LE SPECTATEUR DU CLASSEMENT EST CELUI DU CLASSEMENT. Il a servi à
+         trier ; en montrer un autre ferait voir un dixième au-dessus d'un
+         neuvième. */
+      majCarte(carte, {
+        login: r.login, nom: r.name || r.login, avatar: r.avatar,
+        titre: cache.get(r.login)?.stream?.title || '', jeu: r.gameLabel || r.game || '',
+        spect: Number.isFinite(r.viewers) ? r.viewers : null,
+        debutLive: debutLive ? debutReel(r.login, debutLive) : null,
+        avec: p.membres.map((m) => m.name || m.login),
+      });
+      attrSi(li, 'aria-label', S.uiAccPlace(rang, r.name || r.login));
+      const e = evolution(p, rang, ref);
+      evol.hidden = !e;
+      if (!e) return;
+      evol.className = 'tse-acc-evol tse-acc-evol--' + e.classe;
+      texteSi(evol, e.texte);
+      attrSi(evol, 'title', e.titre);
+    };
+    const peindreTop = () => {
+      const voulu = options.get('accueilTop');
+      z.top.hidden = !voulu;
+      if (!voulu) { bilan.top.source = null; return; }
+      const src = sourceTop();
+      bilan.top.source = src === globalChannels ? 'barre' : 'accueil';
+      const lang = langueVoulue();
+      const cleLang = lang || '*';
+      if (z.langCle !== cleLang) {
+        z.langCle = cleLang;
+        z.lang.replaceChildren(lang ? langIcon(lang) : noeudStatique(GLOBE_MARKUP),
+                               elt('span', null, lang || S.uiFilterAllLanguages));
+      }
+      // Un login finit dans une adresse : on n'accepte que sa forme.
+      const places = enPlaces(src.top(CFG.ACCUEIL_TOP_N)).filter((p) => RE_LOGIN.test(p.tete.login));
+      const resolu = src.resolu();
+      const complet = resolu && src.report().complete;
+      if (complet && places.length) noterInstantane(places, cleLang);
+      const ref = complet ? reference(cleLang) : null;
+      rangee(z.lTop, places.map((p, i) => ({ p, rang: i + 1, ref })),
+             (x) => x.p.tete.login, (x) => fabriquerPlace(x.p.tete.login), majPlace);
+      const note = !places.length ? (resolu ? S.uiAccVide : S.uiAccAttente)
+        : (resolu && !complet ? S.uiGlobalPartial : '');
+      texteSi(z.note, note);
+      z.note.hidden = !note;
+    };
+
+    /* ── « DEPUIS LE DÉBUT » ─────────────────────────────────────────────────
+       `user.stream.archiveVideo` : l'archive que Twitch enregistre DÈS LE
+       DÉBUT du direct. Quatre rapports de terrain l'ont établi (cf.
+       fetchChapitres) : quand ce champ est nul, la chaîne n'enregistre pas
+       ce direct, et aucune autre porte n'y mène. On le redemande pourtant au
+       bout de dix minutes, le temps qu'une archive toute neuve paraisse.
+       La clé d'une réponse est le DÉBUT DU DIRECT : un autre direct, une
+       autre archive. */
+    const chercherDebuts = async (lot) => {
+      bilan.debut.envois++;
+      bilan.debut.demandes += lot.length;
+      const q = 'query TseAccueilDebut {' + lot.map(([l], i) =>
+        ` a${i}: user(login: ${JSON.stringify(l)}) { stream { id archiveVideo { id } } }`).join('') + ' }';
+      const res = await post([{ operationName: 'TseAccueilDebut', query: q }]);
+      /* DEUX ÉCHECS QU'IL FAUT SÉPARER (cf. fetchChapitres). Une réponse
+         arrivée SANS données, avec des erreurs, dit quelque chose de la
+         FORME : trois d'affilée, et l'on se tait pour la session. Une coupure
+         de transport ne dit rien : une pause, et l'on redemandera. Une
+         réponse qui porte des données sert, même si une erreur l'accompagne :
+         c'est l'alias fautif qui reste vide, pas les quatorze autres. */
+      const r0 = Array.isArray(res) ? res[0] : null;
+      if (!r0 || !r0.data) {
+        if (r0 && Array.isArray(r0.errors) && r0.errors.length) {
+          bilan.debut.refus++;
+          if (++refusSuite >= 3) debutRefuse = true;
+          else debutPause = Date.now() + CFG.ACCUEIL_DEBUT_PAUSE;
+        } else {
+          bilan.debut.reseau++;
+          debutPause = Date.now() + CFG.GQL_ERROR_COOLDOWN;
+        }
+        return;
+      }
+      refusSuite = 0;
+      const now = Date.now();
+      const ids = [];
+      lot.forEach(([login, cle], i) => {
+        const s = r0.data[`a${i}`]?.stream;
+        const id = s?.archiveVideo?.id;
+        if (!s) bilan.debut.sansStream++;
+        else if (!/^\d+$/.test(String(id ?? ''))) bilan.debut.sansArchive++;
+        const bon = !!s && /^\d+$/.test(String(id ?? ''));
+        debuts.set(login, { cle, id: bon ? String(id) : null, fermee: null, ts: now });
+        if (bon) { bilan.debut.archives++; ids.push([login, String(id)]); }
+      });
+      if (ids.length) await lireAcces(ids);
+    };
+    // Le jeton de lecture de chaque archive (cf. fermeeSelonJeton). Sans jeton lisible, on ne dit rien.
+    const lireAcces = async (ids) => {
+      const q = 'query TseAccueilAcces {' + ids.map(([, id], i) =>
+        ` a${i}: videoPlaybackAccessToken(id: ${JSON.stringify(id)}, params: ${PARAMS_JETON}) { value }`).join('') + ' }';
+      const res = await post([{ operationName: 'TseAccueilAcces', query: q }]);
+      const r0 = Array.isArray(res) ? res[0] : null;
+      if (!r0 || !r0.data) { bilan.debut.reseau++; return; }
+      bilan.debut.jetons++;
+      ids.forEach(([login, id], i) => {
+        const v = r0.data[`a${i}`]?.value;
+        const d = debuts.get(login);
+        if (!d || d.id !== id) return;
+        d.fermee = typeof v === 'string' ? fermeeSelonJeton(v) : null;
+        if (d.fermee === null) bilan.debut.illisibles++;
+        else if (d.fermee) bilan.debut.fermees++;
+      });
+    };
+    const demanderDebuts = () => {
+      if (!options.get('accueilDebut') || debutEnVol || debutRefuse || document.hidden) return;
+      if (Date.now() < debutPause) return;
+      const now = Date.now();
+      const lot = [];
+      for (const [login, cle] of affiches) {
+        if (!RE_LOGIN.test(login) || !cle) continue;
+        const d = debuts.get(login);
+        if (d && d.cle === cle && (d.id !== null || now - d.ts < CFG.ACCUEIL_DEBUT_TTL)) continue;
+        lot.push([login, cle]);
+        if (lot.length >= CFG.ACCUEIL_DEBUT_LOT) break;
+      }
+      if (!lot.length) return;
+      debutEnVol = true;
+      chercherDebuts(lot)
+        .catch((e) => erreurs.noter('accueil', 'depuis le début : ' + ((e && e.message) || e)))
+        .finally(() => { debutEnVol = false; if (pose()) peindre(); });
+    };
+
+    /* ── LA PEINTURE ─────────────────────────────────────────────────────────
+       Au réveil de cinq secondes, à l'arrivée sur l'accueil et à chaque
+       réglage. Elle ne fait que mettre à jour ce qui a changé : une carte
+       survolée reste la même carte, et son aperçu reste ouvert. */
+    const peindre = () => {
+      if (!pose() || document.hidden) return;
+      bilan.peintures++;
+      const tete = options.get('accueilTete');
+      const liste = (options.get('accueilSuivis') || tete === 'heros') ? suiviesEnDirect() : [];
+      const premier = liste[0] || null;
+      const heros = tete === 'heros' && premier && premier.score > 0 ? premier : null;
+      bilan.heros.montre = !!heros;
+      bilan.heros.sansVisite = tete === 'heros' && !!premier && !heros;
+      affiches.clear();
+      if (heros) noterAffiche(heros.login, heros.e.stream?.createdAt);
+      peindreHeros(heros);
+      gererCarrousel(heros);
+      const suivies = options.get('accueilSuivis')
+        ? liste.filter((x) => x !== heros).slice(0, CFG.ACCUEIL_SUIVIES_MAX) : [];
+      for (const x of suivies) noterAffiche(x.login, x.e.stream?.createdAt);
+      peindreSuivies(suivies);
+      peindreTop();
+      section.hidden = !heros && z.suivis.hidden && z.top.hidden;
+      if (!section.hidden) aligner();
+      demanderDebuts();
+    };
+
+    /* ALIGNÉS SUR LES RAYONS DE TWITCH, au pixel. Les marges de la colonne
+       centrale ne sont pas dans un nom de classe — elles sont générées — : on
+       mesure où commence le premier titre de rayon de Twitch, et l'on y cale
+       les nôtres. Sans titre à mesurer, la feuille garde ses trente pixels. */
+    const aligner = () => {
+      /* Le conteneur d'abord, ses titres ensuite : « SEL h2 » avec un SEL fait
+         de deux repères séparés par une virgule se lirait « l'un, ou l'autre
+         suivi d'un h2 », et rendrait le conteneur lui-même. */
+      const contenu = document.querySelector(SEL_CONTENU);
+      const titre = contenu && [...contenu.querySelectorAll('h2, h3')]
+        .find((h) => !exclu(h) && h.getClientRects().length);
+      if (!titre) return;
+      const ecart = Math.round(titre.getBoundingClientRect().left - section.getBoundingClientRect().left);
+      const voulu = ecart >= 0 && ecart <= 80 ? `${ecart}px` : '';
+      if (section.style.paddingInline !== voulu) section.style.paddingInline = voulu;
+    };
+    const retirer = () => {
+      demasquer();
+      if (pose()) { section.remove(); bilan.retraits++; }
+      if (observateur) { observateur.disconnect(); observateur = null; }
+      verifPrevue = false;
+    };
+    const verifier = () => {
+      if (!actif()) { retirer(); return; }
+      const etait = pose();
+      if (!placer()) return;
+      if (!etait) peindre();
+      else if (masques.size) for (const b of masques) masquer(b);
+    };
+    const planifier = () => {
+      if (verifPrevue) return;
+      verifPrevue = true;
+      setTimeout(erreurs.garde('accueil', () => { verifPrevue = false; verifier(); }), 150);
+    };
+    /* L'OBSERVATEUR N'EXISTE QU'À L'ADRESSE « / ». Il attend le défileur,
+       repose la section si React l'a emportée, remasque un carrousel
+       redessiné. Les mutations de notre propre section ne le réveillent pas. */
+    const observer = () => {
+      if (observateur) return;
+      observateur = new MutationObserver(erreurs.garde('accueil', (muts) => {
+        if (section && muts.every((m) => section.contains(m.target))) return;
+        planifier();
+      }));
+      observateur.observe(document.body, { childList: true, subtree: true });
+    };
+
+    return {
+      init() {
+        /* Une vidéo du carrousel masqué que Twitch relance est arrêtée
+           aussitôt. `play` ne remonte pas : on l'écoute en capture. */
+        document.addEventListener('play', (e) => {
+          const v = e.target;
+          if (!masques.size || !v || (v.localName !== 'video' && v.localName !== 'audio')) return;
+          for (const b of masques) if (b.contains(v)) { pauser(v); return; }
+        }, true);
+        options.surChangement(() => {
+          if (!actif()) { retirer(); return; }
+          observer();
+          verifier();
+          if (pose()) peindre();
+        });
+        this.route();
+      },
+      // Appelé à chaque changement d'adresse (cf. visitTracker).
+      route() {
+        if (!actif()) { retirer(); return; }
+        observer();
+        verifier();
+      },
+      tick() {
+        if (!actif()) { if (pose() || observateur) retirer(); return; }
+        verifier();
+        if (topActif() && !partage()) classement.tick();
+        peindre();
+      },
+      /* L'aperçu au survol s'étend aux cartes de l'accueil : les nôtres, et
+         celles de Twitch, reconnues à leur miniature de direct. Rend la
+         carte, ou null — ailleurs que sur l'accueil, toujours null. */
+      carteSurvolee(node) {
+        if (!actif() || !options.get('accueilApercu')) return null;
+        const notre = node.closest('[data-tse-survol]');
+        if (notre) return notre;
+        const lien = node.closest('a[href]');
+        if (!lien || !lien.closest('main') || exclu(lien)) return null;
+        const img = lien.querySelector(SEL_MINIATURE);
+        const m = img && RE_MINIATURE.exec(img.getAttribute('src') || '');
+        if (!m || !RE_LOGIN.test(m[1].toLowerCase())) return null;
+        lien.dataset.tseSurvol = m[1].toLowerCase();
+        return lien;
+      },
+      bilan: () => ({
+        ...bilan,
+        actif: actif(), pose: pose(), observe: !!observateur,
+        carrousel: { ...bilan.carrousel, masque: masques.size > 0 },
+        top: { ...bilan.top, langue: options.get('accueilTop') ? (langueVoulue() || 'toutes') : null,
+               classement: classement.report() },
+        debut: { ...bilan.debut, connus: debuts.size, refuse: debutRefuse },
+      }),
+      // Surface de vérification : le classement propre à l'accueil.
+      classement: () => classement,
     };
   })();
 
@@ -19473,8 +20682,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        avec sa dernière archive, ou au bout de la durée d'une liste. Fermée
        seulement si l'audio ET la source le sont : une chaîne qui ne
        réserverait que la meilleure qualité resterait regardable. Sans jeton
-       lisible, on ne dit rien. */
-    const PARAMS_JETON = '{ platform: "web", playerBackend: "mediaplayer", playerType: "site" }';
+       lisible, on ne dit rien.
+       PARAMS_JETON et fermeeSelonJeton vivent plus haut depuis la 4.26.0 :
+       l'accueil pose la même question sur l'archive du direct en cours. */
     /* L'identifiant est CITÉ, jamais collé (4.25.0.9) : une chaîne JSON est une
        chaîne GraphQL valide, et pour des chiffres le texte envoyé est le même
        qu'avant. Ce qui en sort n'est jamais qu'une valeur — même si un
@@ -19482,12 +20692,6 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        EXACTE). */
     const qAcces = (ids) => 'query TseAgendaAcces {' + ids.map((id, i) =>
       ` a${i}: videoPlaybackAccessToken(id: ${JSON.stringify(String(id))}, params: ${PARAMS_JETON}) { value }`).join('') + ' }';
-    const fermeeSelonJeton = (valeur) => {
-      try {
-        const rb = JSON.parse(valeur)?.chansub?.restricted_bitrates;
-        return Array.isArray(rb) ? rb.includes('audio_only') && rb.includes('chunked') : null;
-      } catch { return null; }
-    };
 
     /* ── CE QUI REVIENT, RAMENÉ À DES NOMBRES ET DES MOTS ──────────────────
        Rien de ce que Twitch rend ne traverse tel quel : des dates en
@@ -21633,6 +22837,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
            que Twitch accepte. Ses requêtes n'ont jamais pu être exécutées
            contre le vrai Twitch ; ces lignes sont la mesure qu'on en aura. */
         agenda: agenda.bilan(),
+        /* L'ACCUEIL (4.26.0) : où il s'est posé, comment le carrousel a été
+           trouvé — par repère, par forme, ou pas —, qui sert le Top 10, et
+           ce que « Depuis le début » a demandé. Rien de tout cela n'a pu être
+           vu sur le vrai Twitch ; ces lignes en seront la mesure. */
+        accueil: pageAccueil.bilan(),
         journaux: {
           verrous: loadingOverlay.verrous(),
           cycles:  loadingOverlay.journal(),
@@ -21727,6 +22936,13 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
   /* Le rapport, lisible à la main comme le reste. Le panneau en fait un
      fichier ; la console en rend l'objet. */
   tseApi.panneau.rapport = () => panneau.rapport();
+  // La page d'accueil (4.26.0) — cf. son module.
+  tseApi.accueil = Object.freeze({
+    rapport: () => pageAccueil.bilan(),
+    top: (n = CFG.ACCUEIL_TOP_N) => pageAccueil.classement().top(n),
+    // Une marche complète du classement de l'accueil, et sa promesse.
+    marche: () => pageAccueil.classement().warm(),
+  });
   // La salle multistream (4.24.0.6) — cf. son module.
   tseApi.salle = Object.freeze({
     ouvrir: (...chaines) => salle.ouvrir(...chaines),
@@ -26608,7 +27824,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       // toutes les cartes de la sidebar). Fallback via le href si dataset
       // n'est pas encore posé (cas du tout premier survol, avant que le
       // scan initial n'ait traité cette carte).
-      let login = card.dataset.tseLogin;
+      // Une carte de l'accueil porte son login dans `data-tse-survol` (4.26.0).
+      let login = card.dataset.tseLogin || card.dataset.tseSurvol;
       if (!login) {
         const link = card.querySelector(DOM.cardLinkSelector);
         login = loginFromHref(link?.getAttribute('href'));
@@ -26881,7 +28098,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     // c'est un no-op → aucun changement de comportement.
     const resolveCard = (node) => {
       let card = node.closest('.side-nav-card');
-      if (!card) return null;
+      /* Hors de la barre : une carte de l'accueil, ou rien (4.26.0). Le
+         module de l'accueil répond null partout ailleurs qu'à « / ». */
+      if (!card) return pageAccueil.carteSurvolee(node);
       for (let p = card.parentElement; p; p = p.parentElement) {
         if (p.classList.contains('side-nav-card')) card = p;
       }
@@ -29943,7 +31162,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
            cette correction-ci se faisait refuser par la garde de combiné
            précisément quand l'entrée en portait un, c'est-à-dire dans le seul
            cas pour lequel elle a été écrite. */
-        if (login) globalChannels.setViewers(login, v, true);
+        if (login) verserAudience(login, v, true);
       }
     }
     /* ── ET LE COMBINÉ DES AUTRES MEMBRES, QUI EST DANS LA MÊME RÉPONSE ────
@@ -29966,7 +31185,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        classement n'est pas touché — `setViewers` ne crée jamais d'entrée. */
     for (const id of ids) {
       for (const m of (gsCache.get(id)?.mates || [])) {
-        if (Number.isFinite(m.combined)) globalChannels.setViewers(m.login, m.combined, true);
+        if (Number.isFinite(m.combined)) verserAudience(m.login, m.combined, true);
       }
     }
     resolveGuestStarWaiters(ids); // tient les promesses en attente
@@ -32766,6 +33985,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       // en arrière-plan, et assez fine pour que GLOBAL_STRUCT_TICK soit tenu
       // à 5 s près. Ne fait rien tant que state.globalMode est faux.
       globalChannels.tick();
+      // L'accueil : sa peinture et son propre classement — rien ailleurs qu'à « / ».
+      pageAccueil.tick();
     }, CFG.REFRESH_TICK);
 
     // Entretien : purge mémoire + auto-diagnostic. Aucun rapport avec la
@@ -32878,6 +34099,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       liveLag.init();
       visitTracker.init();
       preview.init();
+      pageAccueil.init();
       startObserver();
       startTimers();
       salle.reprendre();     // une salle demandée depuis la page d'avant (4.24.0.8)
