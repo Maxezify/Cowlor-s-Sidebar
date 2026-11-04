@@ -2183,6 +2183,155 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## L'accueil, quatrième passe : un héros qui vérifie sa place (v4.26.0.4)
+
+Le retour, capture de la vraie page à l'appui. Publié sur `claude/chrome-homepage`
+seulement.
+
+| retour | ce qui a été fait |
+| --- | --- |
+| « y'a aucun héros » | le héros vérifie à l'écran qu'il se voit, et change de place tant que ce n'est pas le cas |
+
+### Ce que la capture montrait
+
+Le carrousel de Twitch était masqué, et la chaîne de tête manquait au rayon des
+suivies : le héros avait donc été choisi et peint, mais rien ne s'affichait en
+haut de la page. Seule sa place avait changé depuis la 4.26.0.2. Celle-ci le posait
+dans notre section, où on le voyait ; la 4.26.0.3 le posait en tête du défileur
+de la page (`.root-scrollable__content`), pour qu'il en prenne toute la largeur.
+
+### Pourquoi le banc ne l'a pas vu
+
+Dans le faux accueil, le défileur empile ses enfants comme un bloc ordinaire. Celui
+de Twitch les range selon sa feuille de style, et cette feuille ne se lit pas
+d'ici. Le réseau de l'environnement de travail refuse `static.twitchcdn.net` et
+`assets.twitch.tv`, et le `<body>` reçu ne porte que des noms de classes générés.
+
+Une mise en page très simple reproduit la capture : un défileur rangé en ligne
+(`display: flex`). Le héros tient sa largeur de son conteneur
+(`container-type: inline-size`, qui fixe la hauteur du cadre d'après sa largeur),
+et un tel conteneur n'a aucune largeur par lui-même. Dans une rangée flexible, où
+chaque enfant ne reçoit que la sienne, le héros mesure donc **0 px**. L'enveloppe
+de Twitch occupe alors toute la rangée : les rayons sont en tête, le carrousel
+reste masqué. La mesure le confirme : sur un faux accueil rangé ainsi, la
+4.26.0.3 pose un cadre de 0 × 320 px, et l'écran montre ce que montrait la
+capture, les rayons en tête et aucun héros.
+
+Rien ne prouve pourtant que c'est la mise en page de Twitch. Une grille, une
+enveloppe posée en absolu par-dessus ou un voile de la page cacheraient le héros
+tout autant. Plutôt que de corriger une hypothèse, le héros vérifie donc à l'écran
+qu'il se voit.
+
+### La place vérifiée
+
+Le héros essaie quatre places, de la plus large à la plus sûre :
+
+1. en tête du défileur, comme dans la 4.26.0.3 ;
+2. en tête de l'enveloppe de Twitch (`.root-scrollable__wrapper`) ;
+3. juste avant le carrousel, à sa place ;
+4. en haut de notre section, dans la colonne. C'est la place de la 4.26.0.2, que
+   la capture précédente montrait.
+
+Après chaque peinture, tant que sa place n'a pas été vue, le héros la contrôle.
+Il la refuse pour l'une de ces raisons :
+
+| raison | ce qui est constaté |
+| --- | --- |
+| `vide` | le cadre n'a pas de surface |
+| `etroit` | le cadre est moins large que le défileur ; ce contrôle ne vaut qu'aux deux premières places, qui doivent en prendre toute la largeur |
+| `recouvert` | l'élément suivant dans le flux commence avant la fin du héros (une grille, une rangée, une marge négative) |
+| `couvert` | en deux points de la partie visible du cadre, c'est un élément de la page de Twitch qui répond, et non le héros |
+
+Les éléments posés en absolu, comme une piste de défilement, ne comptent pas pour
+`recouvert` ; s'ils cachent le héros, c'est `couvert` qui le dit. Notre aperçu au
+survol ne compte pas non plus, ni ce qui vit hors de `<main>`.
+
+Un refus fait passer le héros à la place suivante, contrôlée aussitôt. Le tout
+tient dans la même image, sans éclair. Une place refusée l'est pour toute la
+session. Une place que la page n'offre pas encore (pas de carrousel trouvé, par
+exemple) est sautée pour cette fois, sans être refusée.
+
+Deux situations ne sont pas des refus : la page pas encore dessinée, et le héros
+hors de la vue. Dans ces cas, le contrôle reprend à la peinture suivante. Quand
+React redessine la page et que le héros est reposé, sa place est contrôlée de
+nouveau. La dernière place est gardée quoi qu'il arrive, et son éventuel défaut
+est noté au rapport.
+
+À la dernière place, le héros reprend l'allure de la 4.26.0.2 : des coins
+arrondis, et les marges de la colonne quand la fenêtre est grande. C'est le prix
+d'une page où aucune place plus large ne se voit, et le rapport le dira.
+
+Une règle de la feuille change. Dans un parent rangé en colonne qui centre ses
+enfants, le héros s'étire quand même (`align-self: stretch`) : sans cela, il
+n'aurait que sa largeur propre, c'est-à-dire aucune.
+
+### Le rapport
+
+Quatre champs de `accueil.heros` décrivent la place :
+
+- `place` : où le héros s'est posé (`defileur`, `enveloppe`, `carrousel` ou
+  `section`) ;
+- `vue` : s'il y a été vu ;
+- `rejets` : chaque place refusée, avec sa raison, la largeur du héros, celle du
+  défileur, et la mise en page du parent (`flex row`, `grid row`…) ;
+- `attentes` : le nombre de contrôles remis à plus tard.
+
+Si le héros manque encore, ou s'il a des marges, ces lignes diront pourquoi.
+C'est la seule mesure qu'on aura de la feuille de Twitch.
+
+### Les textes
+
+Inchangés. Le mode d'emploi, les réglages et les fiches posent le héros « sur
+toute la largeur », ce qu'il est aux trois premières places.
+
+### Le banc
+
+Le faux accueil reçoit un levier, `mise` (cf. `page.html`). Chacune de ses valeurs
+est une façon dont le défileur peut cacher le héros, et le scénario **216 m)** les
+éprouve toutes. Le héros doit chaque fois se voir, et le rapport doit dire ce qui
+a été refusé :
+
+| mise | ce que le faux accueil fait | où le héros se pose | refus |
+| --- | --- | --- | --- |
+| aucune | le défileur en bloc | le défileur | aucun |
+| `colonne` | le défileur rangé en colonne, qui centre ses enfants, et une piste de défilement en absolu | le défileur | aucun |
+| `rangee` | le défileur rangé en ligne | l'enveloppe | `vide` |
+| `dessus` | l'enveloppe posée en absolu par-dessus, sur un fond plein | l'enveloppe | `couvert` |
+| `grille` | le défileur en grille, l'enveloppe dans sa seule case | l'enveloppe | `recouvert` |
+| `marge` | des marges intérieures au défileur | la place du carrousel | `etroit` deux fois |
+| `rangees` | le défileur, l'enveloppe et la page rangés en ligne, sans carrousel | notre section | `vide` deux fois ; la place du carrousel, absente, est sautée |
+| `voile` | un bloc de `<main>` posé sur tout le haut de la page | notre section, gardée | `couvert` quatre fois |
+
+Le même scénario éprouve aussi trois cas. La page pas encore dessinée, puis le
+héros hors de la vue, ne donnent aucun refus. Revenu à l'écran, le héros est vu
+en tête du défileur. Enfin, la page redessinée en grille fait revoir sa place, qui
+est refusée.
+
+**Dix-sept mutants nommés, tous pris.** Le premier remet la 4.26.0.3 : sans
+contrôle, le héros reste dans la rangée, à 0 px de large.
+
+| mutant | ce qui tombe |
+| --- | --- |
+| la place jamais vérifiée (la 4.26.0.3) | 216 m) : toutes ses assertions — le héros reste dans la rangée, à 0 px |
+| « vide » oublié | 216 m) : la rangée ; tout rangé en ligne |
+| « etroit » oublié | 216 m) : les marges |
+| « etroit » à toutes les places | 216 m) : les marges ; tout rangé en ligne ; le voile |
+| « recouvert » oublié | 216 m) : la page redessinée en grille |
+| la piste en absolu prise pour un voisin | 216 m) : la colonne ; l'enveloppe par-dessus |
+| « couvert » oublié | 216 m) : l'enveloppe par-dessus ; le voile |
+| hors de la vue pris pour un refus | 216 m) : la page pas dessinée puis hors de la vue ; revenu à l'écran ; la grille |
+| la page pas encore dessinée prise pour un refus | 216 m) : la page pas dessinée puis hors de la vue ; revenu à l'écran ; la grille |
+| le défileur qui rogne toujours | 216 m) : l'enveloppe par-dessus |
+| la dernière place quittée | 216 m) : le voile ; rien ne bouge plus ensuite |
+| un refus qui ne fait pas avancer | 216 m) : la grille, la rangée, l'enveloppe par-dessus, et quatre autres |
+| la place reposée sans être revue | 216 m) : la page redessinée en grille |
+| une place absente qui arrête tout | 216 m) : tout rangé en ligne, sans carrousel |
+| l'enveloppe prise au hasard | 216 m) : l'enveloppe par-dessus |
+| l'étirement oublié | 216 m) : la colonne |
+| les coins de la dernière place oubliés | 216 m) : tout rangé en ligne |
+
+Le banc complet : 2158 assertions dans 218 scénarios, toutes vertes.
+
 ## L'accueil, troisième passe : le héros bord à bord, le Top 10 par cinq (v4.26.0.3)
 
 Les retours, capture de la page réelle à 2560 × 1440 à l'appui. Publiés sur
@@ -23060,7 +23209,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | les six fichiers JavaScript livrés — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 218 scénarios, 2148 assertions |
+| `npm test` | le harnais Playwright : 218 scénarios, 2158 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -23081,13 +23230,13 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1980 Ko | 873 Ko | 4 459 → **2** |
+| `content.js` | 1988 Ko | 877 Ko | 4 467 → **2** |
 | `cadres.js` | 68 Ko | 31 Ko | 160 → **0** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
 | `panneau.js` | 161 Ko | 82 Ko | 223 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 26 → **0** |
 | `background.js` | 10 Ko | 2 Ko | 22 → **0** |
-| **les six** | **2359 Ko** | **1091 Ko** | **−54 %** |
+| **les six** | **2367 Ko** | **1096 Ko** | **−54 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se

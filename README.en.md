@@ -2064,6 +2064,154 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The home page, fourth pass: a hero that checks its own place (v4.26.0.4)
+
+The feedback, with a screenshot of the real page. Published on
+`claude/chrome-homepage` only.
+
+| feedback | what was done |
+| --- | --- |
+| "there's no hero at all" | the hero checks on screen that it can be seen, and moves to another place until it can |
+
+### What the screenshot showed
+
+Twitch's carousel was hidden, and the top channel was missing from the followed
+row: the hero had been chosen and painted, yet nothing showed at the top of the
+page. Only its place had changed since 4.26.0.2. That version laid it in our
+section, where it could be seen; 4.26.0.3 laid it at the top of the page's
+scroller (`.root-scrollable__content`), so that it would take its whole width.
+
+### Why the bench didn't see it
+
+In the fake home page, the scroller stacks its children like an ordinary block.
+Twitch's arranges them according to its stylesheet, and that stylesheet cannot
+be read from here. The network of the environment this work runs in refuses
+`static.twitchcdn.net` and `assets.twitch.tv`, and the `<body>` received only
+carries generated class names.
+
+A very simple layout reproduces the screenshot: a scroller laid out as a row
+(`display: flex`). The hero takes its width from its container
+(`container-type: inline-size`, which sets the frame's height from its width),
+and such a container has no width of its own. In a flexible row, where each
+child only gets its own width, the hero therefore measures **0 px**. Twitch's
+wrapper then fills the whole row: the rows are at the top, and the carousel
+stays hidden. The measurement confirms it: on a fake home page laid out that
+way, 4.26.0.3 lays a 0 × 320 px frame, and the screen shows what the screenshot
+showed, the rows at the top and no hero.
+
+Nothing proves, though, that this is Twitch's layout. A grid, a wrapper laid
+absolutely on top, or an overlay from the page would hide the hero just as well.
+Rather than fix a hypothesis, the hero therefore checks on screen that it can be
+seen.
+
+### The checked place
+
+The hero tries four places, from the widest to the safest:
+
+1. at the top of the scroller, as in 4.26.0.3;
+2. at the top of Twitch's wrapper (`.root-scrollable__wrapper`);
+3. just before the carousel, in its place;
+4. at the top of our section, in the column. This is 4.26.0.2's place, which the
+   previous screenshot showed.
+
+After each paint, as long as its place hasn't been seen, the hero checks it. It
+refuses it for one of these reasons:
+
+| reason | what is observed |
+| --- | --- |
+| `vide` (empty) | the frame has no area |
+| `etroit` (narrow) | the frame is narrower than the scroller; this check only applies to the first two places, which must take its whole width |
+| `recouvert` (overlapped) | the next element in the flow starts before the hero ends (a grid, a row, a negative margin) |
+| `couvert` (covered) | at two points of the frame's visible part, an element of Twitch's page answers, not the hero |
+
+Elements laid absolutely, such as a scrollbar track, don't count for
+`recouvert`; if they hide the hero, `couvert` says so. Our hover preview doesn't
+count either, nor anything that lives outside `<main>`.
+
+A refusal moves the hero to the next place, checked at once. It all happens
+within the same frame, with no flash. A refused place stays refused for the
+whole session. A place the page doesn't offer yet (no carousel found, for
+instance) is skipped for this time, without being refused.
+
+Two situations are not refusals: the page not drawn yet, and the hero out of
+view. In those cases, the check resumes at the next paint. When React redraws
+the page and the hero is laid again, its place is checked again. The last place
+is kept no matter what, and any defect it has is noted in the report.
+
+In the last place, the hero takes back 4.26.0.2's look: rounded corners, and the
+column's margins when the window is large. That is the price of a page where no
+wider place can be seen, and the report will say so.
+
+One stylesheet rule changes. In a parent laid out as a column that centres its
+children, the hero stretches anyway (`align-self: stretch`): without it, it
+would only have its own width, that is to say none.
+
+### The report
+
+Four fields of `accueil.heros` describe the place:
+
+- `place`: where the hero was laid (`defileur`, `enveloppe`, `carrousel` or
+  `section`);
+- `vue`: whether it was seen there;
+- `rejets`: each refused place, with its reason, the hero's width, the
+  scroller's, and the parent's layout (`flex row`, `grid row`…);
+- `attentes`: the number of checks put off until later.
+
+If the hero is still missing, or has margins, these lines will say why. They are
+the only measurement we will have of Twitch's stylesheet.
+
+### The texts
+
+Unchanged. The guide, the settings and the listings put the hero "across the
+whole width", which it is in the first three places.
+
+### The bench
+
+The fake home page gets a lever, `mise` (see `page.html`). Each of its values is
+a way the scroller can hide the hero, and scenario **216 m)** tries them all.
+Each time, the hero must be seen, and the report must say what was refused:
+
+| `mise` | what the fake home page does | where the hero is laid | refusals |
+| --- | --- | --- | --- |
+| none | the scroller as a block | the scroller | none |
+| `colonne` | the scroller laid out as a column that centres its children, and a scrollbar track laid absolutely | the scroller | none |
+| `rangee` | the scroller laid out as a row | the wrapper | `vide` |
+| `dessus` | the wrapper laid absolutely on top, on a solid background | the wrapper | `couvert` |
+| `grille` | the scroller as a grid, the wrapper in its only cell | the wrapper | `recouvert` |
+| `marge` | inner margins on the scroller | the carousel's place | `etroit` twice |
+| `rangees` | the scroller, the wrapper and the page laid out as rows, no carousel | our section | `vide` twice; the carousel's place, absent, is skipped |
+| `voile` | a block of `<main>` laid over the whole top of the page | our section, kept | `couvert` four times |
+
+The same scenario also tries three cases. The page not drawn yet, then the hero
+out of view, give no refusal. Back on screen, the hero is seen at the top of the
+scroller. Finally, the page redrawn as a grid makes the hero's place be checked
+again, and it is refused.
+
+**Seventeen named mutants, all caught.** The first one puts 4.26.0.3 back:
+without a check, the hero stays in the row, 0 px wide.
+
+| mutant | what falls |
+| --- | --- |
+| the place never checked (4.26.0.3) | 216 m): all its assertions — the hero stays in the row, 0 px wide |
+| `vide` forgotten | 216 m): the row; everything laid out as rows |
+| `etroit` forgotten | 216 m): the margins |
+| `etroit` at every place | 216 m): the margins; everything laid out as rows; the overlay |
+| `recouvert` forgotten | 216 m): the page redrawn as a grid |
+| the absolute track taken for a sibling | 216 m): the column; the wrapper on top |
+| `couvert` forgotten | 216 m): the wrapper on top; the overlay |
+| out of view taken for a refusal | 216 m): the page not drawn, then out of view; back on screen; the grid |
+| the page not drawn yet taken for a refusal | 216 m): the page not drawn, then out of view; back on screen; the grid |
+| the scroller always clipping | 216 m): the wrapper on top |
+| the last place left | 216 m): the overlay; nothing moves afterwards |
+| a refusal that doesn't move on | 216 m): the grid, the row, the wrapper on top, and four more |
+| the place laid again without being checked again | 216 m): the page redrawn as a grid |
+| an absent place that stops everything | 216 m): everything laid out as rows, no carousel |
+| the wrapper taken at random | 216 m): the wrapper on top |
+| the stretch forgotten | 216 m): the column |
+| the last place's corners forgotten | 216 m): everything laid out as rows |
+
+The full bench: 2158 assertions in 218 scenarios, all green.
+
 ## The home page, third pass: the hero edge to edge, the Top 10 in fives (v4.26.0.3)
 
 The feedback, with a screenshot of the real page at 2560 × 1440. Published on
@@ -22391,7 +22539,7 @@ Four independent checks:
 | `npm run lint` | the six shipped JavaScript files — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 218 scenarios, 2148 assertions |
+| `npm test` | the Playwright harness: 218 scenarios, 2158 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -22411,13 +22559,13 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1980 KB | 873 KB | 4,459 → **2** |
+| `content.js` | 1988 KB | 877 KB | 4,467 → **2** |
 | `cadres.js` | 68 KB | 31 KB | 160 → **0** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
 | `panneau.js` | 161 KB | 82 KB | 223 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 26 → **0** |
 | `background.js` | 10 KB | 2 KB | 22 → **0** |
-| **all six** | **2359 KB** | **1091 KB** | **−54 %** |
+| **all six** | **2367 KB** | **1096 KB** | **−54 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are

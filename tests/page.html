@@ -1660,6 +1660,26 @@ if (location.pathname === '/directory/following/channels') {
 //   rayons     [[titre, [logins…]], …]
 //   colonneMax la colonne bornée à N px et centrée, comme celle de Twitch à
 //              grande largeur : ce qui s'y pose y prend ses marges
+//   mise       la mise en page du défileur, que sa feuille ne nous dit pas
+//              (4.26.0.4 : le héros posé en tête n'est pas apparu sur la vraie
+//              page) — chaque valeur est une façon dont il peut le cacher :
+//              'rangee'  le défileur rangé en ligne : un enfant n'y a que sa
+//                        largeur propre ;
+//              'dessus'  l'enveloppe posée par-dessus, en position absolue,
+//                        sur un fond plein, et la piste de défilement avant
+//                        elle (cf. 'colonne') ;
+//              'grille'  le défileur en grille, l'enveloppe dans sa seule
+//                        case : ce qui s'ajoute passe dessous ;
+//              'marge'   le défileur avec des marges intérieures : ni lui ni
+//                        l'enveloppe ne donnent toute la largeur ;
+//              'colonne' le défileur rangé en colonne, qui centre ses enfants,
+//                        et sa piste de défilement posée en absolu, avant
+//                        l'enveloppe — ni l'une ni l'autre ne cache rien ;
+//              'rangees' le défileur, l'enveloppe et la page rangés en ligne ;
+//              'voile'   un bloc de <main> par-dessus le haut de la page —
+//                        aucune place ne s'y voit.
+//              Relue à chaque montage : changée, puis __accueilRemonter(),
+//              c'est la page qui se redessine autrement.
 //   lecture    la vidéo du carrousel joue (défaut vrai) ; elle se relance par
 //              window.__accueilVideo.play(), et ses arrêts se comptent dans
 //              window.__accueilPauses — le lecteur de Twitch, réduit à son état
@@ -1694,6 +1714,36 @@ if (location.pathname === '/' && window.__accueil) {
     const page = el('div', 'page-accueil');
     enveloppe.appendChild(page);
     defileur.appendChild(enveloppe);
+    // La mise en page, relue à chaque montage : un test peut la changer entre deux.
+    const mise = cfg.mise || null;
+    defileur.style.cssText = mise === 'rangee' || mise === 'rangees' ? 'display:flex'
+      : mise === 'dessus' ? 'position:relative'
+      : mise === 'grille' ? 'display:grid;grid-template-areas:"page"'
+      : mise === 'marge' ? 'padding:0 80px'
+      : mise === 'colonne' ? 'display:flex;flex-direction:column;align-items:center;position:relative' : '';
+    if (mise === 'rangee') enveloppe.style.cssText = 'flex:1 1 auto;min-width:0';
+    if (mise === 'colonne') enveloppe.style.alignSelf = 'stretch';
+    if (mise === 'colonne' || mise === 'dessus') {
+      const piste = el('div', 'simplebar-track');
+      piste.style.cssText = 'position:absolute;top:0;right:0;width:10px;height:100%';
+      defileur.insertBefore(piste, enveloppe);
+    }
+    if (mise === 'rangees') {
+      enveloppe.style.cssText = 'display:flex;flex:1 1 auto;min-width:0';
+      page.style.cssText = 'display:flex;flex:1 1 auto;min-width:0';
+    }
+    if (mise === 'dessus') enveloppe.style.cssText = 'position:absolute;top:0;left:0;right:0;background:#0e0e10';
+    if (mise === 'grille') enveloppe.style.gridArea = 'page';
+    const principal = defileur.parentElement;
+    if (principal) {
+      principal.querySelector(':scope > .voile-twitch')?.remove();
+      principal.style.position = mise === 'voile' ? 'relative' : '';
+      if (mise === 'voile') {
+        const voile = el('div', 'voile-twitch');
+        voile.style.cssText = 'position:absolute;top:0;left:0;right:0;height:400px;z-index:5;background:rgba(14,14,16,.9)';
+        principal.appendChild(voile);
+      }
+    }
     if ((cfg.carrousel || 'repere') !== 'aucun') {
       const car = el('div', cfg.carrousel === 'forme' ? 'bloc-sans-nom' : 'front-page-carousel');
       if (cfg.carrousel !== 'forme') car.setAttribute('data-a-target', 'front-page-carousel');
@@ -1717,6 +1767,7 @@ if (location.pathname === '/' && window.__accueil) {
       page.appendChild(car);
     }
     const colonneBloc = el('div');
+    if (mise === 'rangees') colonneBloc.style.cssText = 'flex:1 1 auto;min-width:0';
     const colonne = el('div', 'common-centered-column');
     if (cfg.colonneMax) colonne.style.cssText = 'max-width:' + cfg.colonneMax + 'px;margin:0 auto';
     const contenu = el('section');

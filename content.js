@@ -8404,8 +8404,16 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        fond — l'image du direct puis ses couleurs relevées, en miroir,
        floutées —, la vidéo à droite à son format, le voile, le texte. Sombre
        dans les deux thèmes : le texte est blanc sur l'image, ses couleurs
-       sont donc fixes. */
-    #tse-accueil-heros { display: block; margin: 0; padding: 0; }
+       sont donc fixes.
+       SA PLACE EST VÉRIFIÉE (4.26.0.4, cf. PLACES_HEROS). Dans un parent
+       rangé en colonne qui centre ses enfants, il s'étire quand même : sans
+       quoi il n'aurait que sa largeur propre, c'est-à-dire aucune. Une
+       rangée, elle, se constate et se quitte. À la dernière place, dans
+       notre section, il reprend l'allure de la 4.26.0.2 : des coins
+       arrondis, et l'espace avant le premier rayon. */
+    #tse-accueil-heros { display: block; align-self: stretch; margin: 0; padding: 0; }
+    #tse-accueil-heros[data-tse-place="section"] { margin: 0 0 8px; }
+    #tse-accueil-heros[data-tse-place="section"] .tse-acc-heros-cadre { border-radius: 10px; }
     .tse-acc-heros { container: tse-heros / inline-size; margin: 0; }
     .tse-acc-heros-cadre {
       --tse-heros-h: clamp(320px, min(27.78cqw, 60vh), 720px);
@@ -15561,8 +15569,22 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        largeur ; ses rayons doivent s'y aligner, le héros non. Posé en tête du
        défileur, il en prend toute la largeur — de la barre latérale au bord
        de la fenêtre — et vient sous la barre du haut, à la place qu'avait le
-       carrousel ; aucune règle de la colonne ne peut le rogner. */
+       carrousel ; aucune règle de la colonne ne peut le rogner.
+       SA PLACE EST VÉRIFIÉE À L'ÉCRAN (4.26.0.4). La 4.26.0.3 le posait en
+       tête du défileur sans savoir comment Twitch y range ses enfants — sa
+       feuille ne se lit pas d'ici — et sur la vraie page il n'est pas apparu :
+       « y'a aucun héros ». Un défileur rangé en ligne, par exemple, le
+       réduirait à rien : sa largeur ne vient que de son conteneur (cf.
+       .tse-acc-heros), et une rangée flexible ne donne à un enfant que sa
+       largeur propre. Il essaie donc quatre places, de la plus large à la plus
+       sûre — le défileur, l'enveloppe de Twitch, la place du carrousel, le
+       haut de notre section, où la 4.26.0.2 le montrait —, et ne garde une
+       place qu'après l'y avoir vu : un cadre qui a une surface, toute la
+       largeur du défileur pour les deux premières, rien qui le chevauche, rien
+       de Twitch par-dessus. Une place refusée l'est pour la session, et le
+       rapport dit laquelle a tenu et pourquoi les autres non. */
     const ID_HEROS = 'tse-accueil-heros';
+    const PLACES_HEROS = ['defileur', 'enveloppe', 'carrousel', 'section'];
     // Les miniatures de direct de Twitch : la seule forme stable d'une carte de rayon.
     const SEL_MINIATURE = 'img[src*="/previews-ttv/live_user_"]';
     const RE_MINIATURE = /\/previews-ttv\/live_user_([a-z0-9_]+)-/i;
@@ -15575,6 +15597,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
 
     let section = null;          // notre <section>, construite une fois
     let blocHeros = null;        // le héros, hors de la section (cf. ID_HEROS)
+    let placeHeros = 0;          // la première place de PLACES_HEROS encore permise
+    let placeVue = false;        // la place courante a-t-elle été vue à l'écran
     let observateur = null;      // vivant à l'adresse « / » seulement
     let verifPrevue = false;
     let carrousel = null;        // { bloc, voie } : la dernière trouvaille
@@ -15600,7 +15624,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     const bilan = {
       poses: 0, reposes: 0, retraits: 0, peintures: 0, relangues: 0, reveils: 0, ancre: null,
       carrousel: { voie: null, signature: null, masquages: 0, pauses: 0, reprises: 0 },
-      heros: { montre: false, sansVisite: false,
+      heros: { montre: false, sansVisite: false, place: null, rejets: [], attentes: 0,
                video: { poses: 0, premieres: 0, filets: 0, modales: 0, retours: 0, delais: 0, retraits: 0 },
                ambiance: { demandes: 0, images: 0, rejets: 0 } },
       top: { source: null, instantanes: 0 },
@@ -15746,6 +15770,107 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       }
       return c;
     };
+    /* LES QUATRE PLACES DU HÉROS (cf. PLACES_HEROS) : où le poser, et devant
+       quoi. Le premier élément du parent qui n'est pas lui — le héros est en
+       tête —, sauf à la place du carrousel, juste avant ce dernier. Une place
+       que la page n'offre pas encore — pas d'enveloppe, pas de carrousel
+       trouvé — rend null : on prend la suivante pour cette fois, sans la
+       refuser pour autant. */
+    const premierAutre = (p) => [...p.children].find((x) => x !== blocHeros) || null;
+    const cibleHeros = (racine, place) => {
+      if (place === 'defileur') return { parent: racine, avant: premierAutre(racine) };
+      if (place === 'enveloppe') {
+        const env = racine.querySelector(':scope > .root-scrollable__wrapper')
+          || [...racine.children].find((x) => x !== blocHeros && x.id !== ID);
+        return env ? { parent: env, avant: premierAutre(env) } : null;
+      }
+      if (place === 'carrousel') {
+        const b = carrousel && carrousel.bloc;
+        return b && b.isConnected && b.parentElement && racine.contains(b)
+          ? { parent: b.parentElement, avant: b } : null;
+      }
+      return { parent: section, avant: premierAutre(section) };
+    };
+    /* Rien ne bouge si le héros est déjà à sa place — un déplacement inutile
+       serait une mutation, donc un réveil de plus. Le reposer, c'est devoir le
+       revoir : la place est revérifiée à la peinture suivante. */
+    const poserHeros = (racine) => {
+      for (let i = placeHeros; i < PLACES_HEROS.length; i++) {
+        const place = PLACES_HEROS[i];
+        const c = cibleHeros(racine, place);
+        if (!c) continue;
+        if (blocHeros.dataset.tsePlace !== place) blocHeros.dataset.tsePlace = place;
+        if (blocHeros.parentElement !== c.parent || blocHeros.nextElementSibling !== c.avant) {
+          c.parent.insertBefore(blocHeros, c.avant);
+          placeVue = false;
+        }
+        bilan.heros.place = place;
+        return;
+      }
+    };
+    /* CE QUI EMPÊCHE DE VOIR LE HÉROS À SA PLACE, ou null s'il s'y voit.
+       « attente » n'est pas un refus : la page n'est pas dessinée, ou le héros
+       est hors de la vue — on regardera à la peinture suivante.
+         vide      — pas de surface : une rangée flexible l'a réduit à rien ;
+         etroit    — moins large que le défileur, aux deux places qui doivent
+                     en prendre toute la largeur ;
+         recouvert — l'élément qui le suit dans le flux commence avant qu'il
+                     ne finisse : une grille, une rangée, une marge négative ;
+         couvert   — en deux points de sa partie visible, c'est un élément de
+                     la page de Twitch qui répond, pas lui. Notre aperçu au
+                     survol ne compte pas, ni ce qui vit hors de <main>. */
+    const defautHeros = (racine, place) => {
+      const rr = racine.getBoundingClientRect();
+      if (rr.width < 1) return 'attente';
+      const r = blocHeros.getBoundingClientRect();
+      if (r.width < 1 || r.height < 1) return 'vide';
+      if ((place === 'defileur' || place === 'enveloppe') && r.width < racine.clientWidth - 1) return 'etroit';
+      for (let s = blocHeros.nextElementSibling; s; s = s.nextElementSibling) {
+        const pos = getComputedStyle(s).position;
+        if (pos === 'absolute' || pos === 'fixed') continue;
+        const q = s.getBoundingClientRect();
+        if (q.width < 1 || q.height < 1) continue;
+        if (q.top < r.bottom - 1 && q.left < r.right - 1 && q.right > r.left + 1) return 'recouvert';
+        break;
+      }
+      // La partie visible : dans la fenêtre, et dans le défileur s'il rogne ce qui en sort.
+      const rogne = getComputedStyle(racine).overflowY !== 'visible';
+      const haut = Math.max(r.top, rogne ? rr.top : 0, 0), bas = Math.min(r.bottom, rogne ? rr.bottom : Infinity, window.innerHeight);
+      const gauche = Math.max(r.left, rogne ? rr.left : 0, 0), droite = Math.min(r.right, rogne ? rr.right : Infinity, window.innerWidth);
+      if (bas - haut < 1 || droite - gauche < 1) return 'attente';
+      const principal = racine.closest('main');
+      for (const fx of [0.25, 0.75]) {
+        const n = document.elementFromPoint(gauche + (droite - gauche) * fx, (haut + bas) / 2);
+        if (n && !blocHeros.contains(n) && !n.closest('.tse-preview') && principal && principal.contains(n)) return 'couvert';
+      }
+      return null;
+    };
+    /* Après la peinture, tant que la place n'a pas été vue. Un refus fait
+       passer à la place suivante, aussitôt revérifiée : le tout tient dans la
+       même image, sans éclair. La dernière place est celle que la 4.26.0.2
+       montrait ; elle est gardée quoi qu'il arrive, mais un défaut y est noté. */
+    const verifierPlaceHeros = () => {
+      if (placeVue || !blocHeros || blocHeros.hidden || !blocHeros.isConnected) return;
+      const racine = defileur();
+      if (!racine) return;
+      for (let n = 0; n < PLACES_HEROS.length; n++) {
+        const place = blocHeros.dataset.tsePlace;
+        const i = PLACES_HEROS.indexOf(place);
+        const raison = defautHeros(racine, place);
+        if (raison === 'attente') { bilan.heros.attentes++; return; }
+        if (raison && bilan.heros.rejets.length < 8) {
+          const p = blocHeros.parentElement, st = p ? getComputedStyle(p) : null;
+          bilan.heros.rejets.push({
+            place, raison,
+            largeur: Math.round(blocHeros.getBoundingClientRect().width), plein: racine.clientWidth,
+            parent: st ? `${st.display} ${st.flexDirection}` : null,
+          });
+        }
+        if (!raison || i < 0 || i >= PLACES_HEROS.length - 1) { placeVue = true; return; }
+        placeHeros = Math.max(placeHeros, i + 1);
+        poserHeros(racine);
+      }
+    };
     const placer = () => {
       const racine = defileur();
       if (!racine) return false;
@@ -15766,7 +15891,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         const c = conteneurDe(racine);
         if (c.firstElementChild !== section) c.prepend(section);
       }
-      if (racine.firstElementChild !== blocHeros) racine.prepend(blocHeros);
+      poserHeros(racine);
       if (!etait) { if (bilan.poses) bilan.reposes++; else bilan.poses++; }
       return true;
     };
@@ -16512,8 +16637,10 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       if (section.dataset.tseLangue !== LANG) {
         const ancienne = section, ancienBloc = blocHeros;
         construire();
+        ancienBloc.remove();          // d'abord : à la dernière place, il est dans l'ancienne section
         ancienne.replaceWith(section);
-        if (ancienBloc.isConnected) ancienBloc.replaceWith(blocHeros);
+        const racine = defileur();
+        if (racine) poserHeros(racine);
         bilan.relangues++;
       }
       bilan.peintures++;
@@ -16534,6 +16661,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       peindreSuivies(suivies);
       section.hidden = !heros && z.suivis.hidden && z.top.hidden;
       if (!section.hidden) aligner();
+      verifierPlaceHeros();
       demanderDebuts();
     };
 
@@ -16641,7 +16769,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         ...bilan,
         actif: actif(), pose: pose(), observe: !!observateur,
         carrousel: { ...bilan.carrousel, masque: masques.size > 0 },
-        heros: { ...bilan.heros, video: { ...bilan.heros.video, joue: !!lecteur, devoilee: !!lecteur?.devoile },
+        heros: { ...bilan.heros, vue: placeVue, rejets: bilan.heros.rejets.map((r) => ({ ...r })),
+                 video: { ...bilan.heros.video, joue: !!lecteur, devoilee: !!lecteur?.devoile },
                  ambiance: { ...bilan.heros.ambiance } },
         rayons: { ouverts: [...ouverts] },
         top: { ...bilan.top, langue: options.get('accueilTop') ? (langueVoulue() || 'toutes') : null,
