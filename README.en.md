@@ -2064,6 +2064,134 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The home page, third pass: the hero edge to edge, the Top 10 in fives (v4.26.0.3)
+
+The feedback, with a screenshot of the real page at 2560 × 1440. Published on
+`claude/chrome-homepage` and `claude/firefox-homepage` only.
+
+| feedback | what was done |
+| --- | --- |
+| "at 1440 there are still margins, I want no margin at all for the hero" | the hero leaves Twitch's column: at the top of the page, from the sidebar to the edge of the window |
+| "the Top 10 […] the base list size must be 5. At 1440 there are 6 items on a line" | five places per line, at every size |
+| "'Show all' must be purple, as it is natively" | the purple of Twitch's links |
+| "there is an `<hr>` between the hero and the first list, remove it" | no more rule above the rows |
+
+### The hero, edge to edge
+
+The cause of the margins that were left: in 4.26.0.2 the hero took the width of
+**the column** — and Twitch's column is centred and capped at large widths. At
+1920 px it fills the page; at 2560 it leaves empty space on either side, and the
+hero with it.
+
+The hero now lives **outside our section**, in a block of its own
+(`#tse-accueil-heros`), laid at the top of the page's scroller
+(`.root-scrollable__content`), before Twitch's wrapper. It takes its whole width
+— from the sidebar to the edge of the window — and sits right under the top
+bar, where the carousel was; no rounded corner and no edge line, since it
+touches the edges. The rows stay in the column, aligned to the pixel with
+Twitch's. Negative margins could have pulled the hero out of the column without
+moving it; but an ancestor that clips what overflows, or a margin Twitch
+computes, would have cut or shifted it. Outside the column, none of its rules
+apply.
+
+A separate block means separate cases to hold, and they are held: it leaves
+with the section (leaving the home page, the master setting off), is rewritten
+with it when Twitch changes language, comes back alone and first when React
+redraws the page, hides when there is no hero — no empty region announced at
+the top of the page —, and what it holds is kept out of what we read of
+Twitch's page (the carousel recognised by its shape, the cards, the preview)
+and of the mutations we watch — its video laid or removed is not Twitch's page
+moving. The report now counts the observer's wake-ups (`accueil.reveils`): the
+ones Twitch's page causes, and those alone.
+
+On the bench, the fake home page's column is now capped at 1,800 px and
+centred, like the real one: at 2560, what sits in it has margins; the hero
+takes the scroller's whole width, and the rows stay in the column.
+
+### The Top 10, in fives
+
+The Top 10 grid took as many columns as the width held, 300 px at least per
+place: five at 1920, six on the screen reported at 2560. It now has **five, at
+every size**: 1 to 5, then 6 to 10 under "Show all". The followed row keeps its
+grid: as many cards as the width holds, like Twitch's rows.
+
+A place now ranges from about 150 px to more than 400 depending on the window:
+its proportions are therefore counted in place widths, no longer in pixels. The
+numeral takes 28 %, the thumbnail the 79 % left under it, and the numeral takes
+the thumbnail's height. "10", two digits, holds at 72 % of that height (116 px
+at most): otherwise it would overflow the place on the left and bite into its
+neighbour. Measured at 1100, 1920 and 2560 px, rolled up and unrolled.
+
+### "Show all", in purple
+
+The button takes the purple of Twitch's links, like its own "Show all":
+Twitch's own variable, `--color-text-link`, when the page provides it — as the
+rule already takes its border colour —, and otherwise the purple of the home
+page's accents, `#bf94ff` in the dark theme, `#772ce8` in the light one. It keeps
+it on hover.
+
+### No more rule under the hero
+
+4.26.0.2 laid a rule above the first row; under the hero, it cut the hero off
+from the list. It is gone: each row only has its foot, rule — button — rule, and
+between two rows there is only the first one's foot.
+
+### The texts
+
+Unchanged. The guide, the settings and the listings already put the hero
+"across the whole width", and the guide one line in each row: it is now true at
+every size.
+
+### The bench
+
+- **215 c), d), e), f), g), h)**: the hero at the top of the scroller, outside
+  the section and the column; ten touches in the hero, ten in the section, and
+  the observer doesn't wake up — four in Twitch's rows, and it wakes up four
+  times; redrawn by React, the hero comes back alone and first; gone with the
+  section when leaving the home page or with the master setting off; without
+  the content's landmark or a carousel, the section at the top of the rows'
+  container, and it stays there when the page moves; a single hero, always
+  first, when the language changes.
+- **216 i)**: the column capped at 1,800 px and centred; at 1600 and 2560 px,
+  the hero as wide as the scroller, flush left and top, no rounded corner; at
+  2560, the column at 1,800 px and the rows inside it.
+- **217 a)**: without a hero, its block is hidden.
+- **217 h)**: five places per line at 1100, 1920 and 2560 px, rolled up and
+  unrolled; no numeral biting into its neighbour; no rule above; "Show all" in
+  purple, and in Twitch's when the page provides it.
+- **217 i)**: between two rows, only the first one's foot.
+
+**Eighteen named mutants, all caught**; the twenty-four from 4.26.0.2 that
+still apply were replayed against today's bench, all caught as well. Two are
+retired, with nothing left to mutate: the top rule no longer exists, and the
+fixed-height numeral is now t4. Two mutants of the first series survived — the
+hero's mutations taken for Twitch's, the hero counted in the container —: the
+bench tested neither. The two missing assertions in 215 are written; replayed,
+both mutants fall.
+
+| mutant | what falls |
+| --- | --- |
+| the hero put back in the section | 215 c): outside the section; 215 h): the language |
+| the hero in the column, just before the section | 215 c): outside the column; 215 g), h) |
+| the rounded corners given back to the frame | 216 i): edge to edge |
+| the section's margins given to the hero | 216 i): edge to edge, at 1600 and 2560 |
+| the hero left behind when leaving | 215 e), f): no hero any more |
+| the hero's block never hidden | 217 a): without a hero, its block hidden |
+| the old hero left when the language changes | 215 h): a single hero, first |
+| the hero's mutations taken for Twitch's | 215 c): the hero's touches |
+| the hero not kept out of Twitch's page | 216 i): the live line |
+| the hero counted in the container | 215 g): the section stays in the column |
+| the Top 10 given back to the width | 217 h): five per line |
+| the top rule put back | 217 h), i): no rule above |
+| "Show all" in the text colour | 217 h): the purple |
+| Twitch's variable ignored | 217 h): Twitch's purple |
+| the numeral at a fixed height | 217 h): the thumbnail's height, at every size |
+| the thumbnail measured the old way | 217 h): the thumbnail's height |
+| the numeral's place in pixels | 217 h): the thumbnail's height |
+| "10" at the size of a single digit | 217 h): "10" bites into its neighbour |
+
+The full bench: 2148 assertions in 218 scenarios, all green.
+
 ## The home page, second pass: the hero as video across the whole width, rows the way Twitch does them (v4.26.0.2)
 
 The feedback, with screenshots of the real page at 1920 × 1080 and
@@ -22263,7 +22391,7 @@ Four independent checks:
 | `npm run lint` | the six shipped JavaScript files — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 218 scenarios, 2144 assertions |
+| `npm test` | the Playwright harness: 218 scenarios, 2148 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -22283,13 +22411,13 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1978 KB | 872 KB | 4,457 → **2** |
+| `content.js` | 1980 KB | 873 KB | 4,459 → **2** |
 | `cadres.js` | 68 KB | 31 KB | 160 → **0** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
 | `panneau.js` | 161 KB | 82 KB | 223 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 26 → **0** |
 | `background.js` | 10 KB | 2 KB | 22 → **0** |
-| **all six** | **2357 KB** | **1091 KB** | **−54 %** |
+| **all six** | **2359 KB** | **1091 KB** | **−54 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are

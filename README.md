@@ -2183,6 +2183,135 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## L'accueil, troisième passe : le héros bord à bord, le Top 10 par cinq (v4.26.0.3)
+
+Les retours, capture de la page réelle à 2560 × 1440 à l'appui. Publiés sur
+`claude/chrome-homepage` et `claude/firefox-homepage` seulement.
+
+| retour | ce qui a été fait |
+| --- | --- |
+| « en 1440, il y a encore des marges, je ne veux aucune marge pour le héro » | le héros sort de la colonne de Twitch : en tête de la page, de la barre latérale au bord de la fenêtre |
+| « le top 10 […] la taille de liste de base doit être de 5. En 1440, là sur une ligne il y a 6 contenus » | cinq places par rangée, à toutes les tailles |
+| « "Afficher tout" doit être en violet comme en natif » | le violet des liens de Twitch |
+| « il y a un `<hr>` entre le héro et la première liste, retire le » | plus de filet au-dessus des rayons |
+
+### Le héros, bord à bord
+
+La cause des marges qui restaient : en 4.26.0.2, le héros prenait la largeur de
+**la colonne** — et la colonne de Twitch est centrée, bornée à grande largeur.
+À 1920 px elle remplit la page ; à 2560, elle laisse du vide de part et
+d'autre, et le héros avec elle.
+
+Le héros vit désormais **hors de notre section**, dans un bloc à lui
+(`#tse-accueil-heros`), posé en tête du défileur de la page
+(`.root-scrollable__content`), avant l'enveloppe de Twitch. Il en prend toute la
+largeur — de la barre latérale au bord de la fenêtre — et vient juste sous la
+barre du haut, à la place qu'avait le carrousel ; sans coin arrondi ni liseré,
+puisqu'il touche les bords. Les rayons, eux, restent dans la colonne, alignés au
+pixel sur ceux de Twitch. Des marges négatives auraient pu tirer le héros hors
+de la colonne sans le déplacer ; mais un ancêtre qui rogne ce qui dépasse, ou
+une marge que Twitch calcule, l'aurait coupé ou décalé. Hors de la colonne,
+aucune de ses règles ne s'applique.
+
+Un bloc à part, ce sont des cas à tenir à part, et ils le sont : il part avec la
+section (on quitte l'accueil, le réglage maître est coupé), se réécrit avec
+elle quand Twitch change de langue, revient seul et en tête quand React
+redessine la page, se cache quand il n'y a pas de héros — pas de région vide
+annoncée en tête de page —, et ce qu'il contient est écarté de ce que l'on lit
+de la page de Twitch (le carrousel reconnu à sa forme, les cartes, l'aperçu) et
+des mutations que l'on guette — sa vidéo posée ou retirée n'est pas la page de
+Twitch qui bouge. Le rapport compte désormais les réveils de l'observateur
+(`accueil.reveils`) : ceux que la page de Twitch cause, et ceux-là seuls.
+
+Au banc, la colonne du faux accueil est désormais bornée à 1 800 px et centrée,
+comme la vraie : à 2560, ce qui s'y pose a des marges ; le héros prend toute la
+largeur du défileur, et les rayons restent dans la colonne.
+
+### Le Top 10, cinq par rangée
+
+La grille du Top 10 prenait autant de colonnes que la largeur en tenait, à
+300 px au moins la place : cinq à 1920, six sur l'écran signalé à 2560. Elle en
+a désormais **cinq, à toutes les tailles** : 1 à 5, puis 6 à 10 sous
+« Afficher tout ». Le rayon des suivies garde sa grille : autant de cartes que
+la largeur en tient, comme les rayons de Twitch.
+
+Une place va maintenant d'environ 150 px à plus de 400 selon la fenêtre : ses
+proportions se comptent donc en largeur de place, et non plus en pixels. Le
+chiffre en prend 28 %, la vignette les 79 % qui restent sous lui, et le chiffre
+prend la hauteur de la vignette. « 10 », deux chiffres, tient à 72 % de cette
+hauteur (116 px au plus) : sans quoi il dépasserait la place par la gauche et
+mordrait sur la voisine. Mesuré à 1100, 1920 et 2560 px, replié et déplié.
+
+### « Afficher tout », en violet
+
+Le bouton prend le violet des liens de Twitch, comme son « Afficher tout » : la
+variable de Twitch elle-même, `--color-text-link`, quand la page la donne —
+comme le filet prend déjà sa couleur de bordure —, et à défaut le violet des
+accents de l'accueil, `#bf94ff` en thème sombre, `#772ce8` en clair. Il le garde
+au survol.
+
+### Plus de filet sous le héros
+
+La 4.26.0.2 posait un filet au-dessus du premier rayon ; sous le héros, il le
+coupait de la liste. Il est retiré : chaque rayon n'a plus que son pied,
+filet — bouton — filet, et entre deux rayons il n'y a que le pied du premier.
+
+### Les textes
+
+Inchangés. Le mode d'emploi, les réglages et les fiches posaient déjà le héros
+« sur toute la largeur », et le mode d'emploi une rangée par rayon : c'est
+maintenant vrai à toutes les tailles.
+
+### Le banc
+
+- **215 c), d), e), f), g), h)** : le héros en tête du défileur, hors de la
+  section et de la colonne ; dix retouches dans le héros, dix dans la section,
+  et l'observateur ne se réveille pas — quatre dans les rayons de Twitch, et il
+  se réveille quatre fois ; redessiné par React, le héros revient seul et en
+  tête ; parti avec la section quand on quitte l'accueil ou que le réglage
+  maître est coupé ; sans repère du contenu ni carrousel, la section en tête du
+  conteneur des rayons, et elle y reste quand la page bouge ; un seul héros,
+  toujours en tête, quand la langue change.
+- **216 i)** : la colonne bornée à 1 800 px et centrée ; à 1600 et à 2560 px, le
+  héros de la largeur du défileur, collé à gauche et en haut, sans coin
+  arrondi ; à 2560, la colonne à 1 800 px et les rayons dedans.
+- **217 a)** : sans héros, son bloc est caché.
+- **217 h)** : cinq places par rangée à 1100, 1920 et 2560 px, repliées et
+  dépliées ; aucun chiffre qui morde sur sa voisine ; pas de filet au-dessus ;
+  « Afficher tout » en violet, et dans celui de Twitch quand la page le donne.
+- **217 i)** : entre deux rayons, le seul pied du premier.
+
+**Dix-huit mutants nommés, tous pris** ; les vingt-quatre de la 4.26.0.2 qui valent
+encore ont été rejoués contre le banc d'aujourd'hui, tous pris aussi. Deux sont
+retirés, sans objet : le filet du haut n'existe plus, et le chiffre à hauteur
+fixe est désormais t4. Deux mutants de la première série ont survécu — les
+mutations du héros prises pour celles de Twitch, le héros compté dans le
+conteneur — : le banc n'éprouvait ni l'un ni l'autre. Les deux assertions de
+215 qui manquaient sont écrites ; rejoués, les deux mutants tombent.
+
+| mutant | ce qui tombe |
+| --- | --- |
+| le héros rendu à la section | 215 c) : hors de la section ; 215 h) : la langue |
+| le héros dans la colonne, juste avant la section | 215 c) : hors de la colonne ; 215 g), h) |
+| les coins arrondis rendus au cadre | 216 i) : bord à bord |
+| les marges de la section rendues au héros | 216 i) : bord à bord, à 1600 et à 2560 |
+| le héros laissé en partant | 215 e), f) : plus de héros |
+| le bloc du héros jamais caché | 217 a) : sans héros, son bloc caché |
+| l'ancien héros laissé quand la langue change | 215 h) : un seul héros, en tête |
+| les mutations du héros prises pour celles de Twitch | 215 c) : les retouches du héros |
+| le héros pas exclu de la page de Twitch | 216 i) : la ligne du direct |
+| le héros compté dans le conteneur | 215 g) : la section reste dans la colonne |
+| le Top 10 rendu à la largeur | 217 h) : cinq par rangée |
+| le filet du haut remis | 217 h), i) : pas de filet au-dessus |
+| « Afficher tout » dans la couleur du texte | 217 h) : le violet |
+| la variable de Twitch ignorée | 217 h) : le violet de Twitch |
+| le chiffre à hauteur fixe | 217 h) : la hauteur de la vignette, à toutes les tailles |
+| la vignette mesurée à l'ancienne | 217 h) : la hauteur de la vignette |
+| la place du chiffre en pixels | 217 h) : la hauteur de la vignette |
+| « 10 » à la taille d'un chiffre seul | 217 h) : « 10 » mord sur sa voisine |
+
+Le banc complet : 2148 assertions dans 218 scénarios, toutes vertes.
+
 ## L'accueil, deuxième passe : le héros en vidéo sur toute la largeur, des rayons à la manière de Twitch (v4.26.0.2)
 
 Les retours, captures de la page réelle à l'appui, à 1920 × 1080 et à
@@ -22931,7 +23060,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | les six fichiers JavaScript livrés — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 218 scénarios, 2144 assertions |
+| `npm test` | le harnais Playwright : 218 scénarios, 2148 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -22952,13 +23081,13 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1978 Ko | 872 Ko | 4 457 → **2** |
+| `content.js` | 1980 Ko | 873 Ko | 4 459 → **2** |
 | `cadres.js` | 68 Ko | 31 Ko | 160 → **0** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
 | `panneau.js` | 161 Ko | 82 Ko | 223 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 26 → **0** |
 | `background.js` | 10 Ko | 2 Ko | 22 → **0** |
-| **les six** | **2357 Ko** | **1091 Ko** | **−54 %** |
+| **les six** | **2359 Ko** | **1091 Ko** | **−54 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
