@@ -2064,6 +2064,72 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The home page, sixth pass: the hero's bottom faded into the page (v4.26.0.6)
+
+The feedback, with a screenshot of the real page. Published on
+`claude/chrome-homepage` only.
+
+| feedback | what was done |
+| --- | --- |
+| "it works well for the start-up" | nothing touches it |
+| "the bottom part of the hero in a progressive transparent fade with the site's background" | the bottom quarter of the frame fades out into the page, in both themes; the text stays whole and legible above it |
+
+### What changed
+
+- **The picture is in a scene, and the scene is what fades.** The blurred
+  background, the video, the shade and the black under them are gathered in a
+  block whose bottom a mask erases. At the foot of the frame, what you see is
+  not an imitated colour: it is the page itself, black in the dark theme, white
+  in the light one.
+- **A quarter of the frame, at every size.** 80 px on a 320 frame, 121 on 484
+  (a 2000 px window, the one in the screenshot), 180 on 720.
+- **An S curve, not a ramp.** The mask follows 3t² − 2t³ over eleven points: no
+  step where the fade begins or where it ends. A straight ramp changes by a
+  tenth of its range over the first tenth of the fade, and that edge shows; the
+  S curve, by less than three hundredths.
+- **The text is not in the scene.** So it never fades. It stays centred in the
+  frame, as before, as long as it has room above four fifths of the fade, where
+  the picture still holds at 90 %. When room runs short (a frame 320 px high, a
+  title on two lines, a stream line on two), the text is what moves up, as far
+  as sixteen pixels from the top. None of its lines shrinks: the title, which
+  clips what overflows, would have lost one. Laid on the top of the fade, the
+  "Watch" button keeps its exact colour.
+
+Nothing else moves: the frame's height, the video, its place, the ambience and
+its colours are those of 4.26.0.5.
+
+### The texts
+
+Unchanged: this is how the hero looks, not what it says.
+
+### The bench
+
+**216 n)**, new. The screen itself is read: a strip of pixels at the frame's
+left edge, where there is no text, in both themes.
+
+- At the foot of the frame, the page's colour, in the dark theme as in the
+  light one, and the fade takes a quarter of the frame.
+- Between the picture and the page, a rise that never goes back, smooth at both
+  ends.
+- The text outside what fades, in the middle of the frame as before, above the
+  fade.
+- Room running short, at 1024 px: the text moves up without losing a line, and
+  "Watch", laid on the top of the fade, keeps its colour.
+
+**Seven named mutants, all caught.**
+
+| mutant | what falls |
+| --- | --- |
+| the mask removed | 216 n): the frame's foot no longer the page; the rise; room running short |
+| a straight ramp | 216 n): the rise, no longer smooth at its ends |
+| the mask on the whole frame, text included | 216 n): the rise; "Watch" loses its colour |
+| a fade of fixed height | 216 n): a quarter of the frame |
+| the bottom spacer forgotten | 216 n): the text in the fade; room running short |
+| the top spacer forgotten | 216 n): room running short, the text stuck to the top |
+| lines that shrink | 216 n): room running short, the title losing a line |
+
+The full bench: 2184 assertions in 219 scenarios, all green.
+
 ## The home page, fifth pass: straight away, and the module's audit (v4.26.0.5)
 
 The feedback, with a screenshot of the real page and a report. Published on
@@ -22747,7 +22813,7 @@ Four independent checks:
 | `npm run lint` | the six shipped JavaScript files — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 219 scenarios, 2179 assertions |
+| `npm test` | the Playwright harness: 219 scenarios, 2184 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -22767,13 +22833,13 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 2010 KB | 888 KB | 4,504 → **2** |
+| `content.js` | 2013 KB | 890 KB | 4,505 → **2** |
 | `cadres.js` | 68 KB | 31 KB | 160 → **0** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
 | `panneau.js` | 162 KB | 82 KB | 224 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 26 → **0** |
 | `background.js` | 10 KB | 2 KB | 22 → **0** |
-| **all six** | **2390 KB** | **1107 KB** | **−54 %** |
+| **all six** | **2393 KB** | **1109 KB** | **−54 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are

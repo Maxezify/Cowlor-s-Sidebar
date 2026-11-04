@@ -2183,6 +2183,70 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## L'accueil, sixième passe : le bas du héros fondu dans la page (v4.26.0.6)
+
+Le retour, capture de la vraie page à l'appui. Publié sur
+`claude/chrome-homepage` seulement.
+
+| retour | ce qui a été fait |
+| --- | --- |
+| « ça fonctionne bien pour le démarrage » | rien n'y touche |
+| « la partie basse du héros en fondu progressif transparent avec le fond du site » | le quart du bas du cadre s'efface vers la page, dans les deux thèmes ; le texte reste entier et lisible au-dessus |
+
+### Ce qui a changé
+
+- **L'image est dans une scène, et c'est elle qu'on efface.** Le fond flouté, la
+  vidéo, le voile et le noir sous eux sont réunis dans un bloc dont un masque
+  efface le bas. Au pied du cadre, ce qu'on voit n'est pas une couleur imitée :
+  c'est la page elle-même, noire dans le thème sombre, blanche dans le clair.
+- **Le quart du cadre, à toutes les tailles.** 80 px sur un cadre de 320, 121
+  sur 484 (une fenêtre de 2000 px, celle de la capture), 180 sur 720.
+- **Une courbe en S, pas une rampe.** Le masque suit 3t² − 2t³ sur onze
+  points : aucune marche à l'entrée du fondu ni à sa sortie. Une rampe droite
+  change d'un dixième de son écart au premier dixième du fondu, et ce bord se
+  voit ; la courbe en S, de moins de trois centièmes.
+- **Le texte n'est pas dans la scène.** Il ne s'efface donc jamais. Il reste
+  centré dans le cadre, comme avant, tant qu'il a la place au-dessus des quatre
+  cinquièmes du fondu, là où l'image tient encore à 90 %. Quand la place manque
+  (un cadre de 320 px de haut, un titre sur deux lignes, une ligne du direct sur
+  deux), c'est le texte qui remonte, jusqu'à seize pixels du haut. Aucune de ses
+  lignes ne rétrécit : le titre, qui coupe ce qui dépasse, en aurait perdu une.
+  Posé sur le haut du fondu, le bouton « Regarder » garde sa couleur exacte.
+
+Rien d'autre ne bouge : la hauteur du cadre, la vidéo, sa place, l'ambiance et
+ses couleurs sont celles de la 4.26.0.5.
+
+### Les textes
+
+Inchangés : c'est l'allure du héros, pas ce qu'il dit.
+
+### Le banc
+
+**216 n)**, nouveau. On lit l'écran lui-même : une bande de pixels au bord
+gauche du cadre, là où il n'y a pas de texte, dans les deux thèmes.
+
+- Au pied du cadre, la couleur de la page, dans le thème sombre comme dans le
+  clair, et le fondu prend le quart du cadre.
+- Entre l'image et la page, une montée sans retour, douce à ses deux bouts.
+- Le texte hors de ce qui s'efface, au milieu du cadre comme avant,
+  au-dessus du fondu.
+- La place qui manque, à 1024 px : le texte remonte sans perdre de ligne, et
+  « Regarder », posé sur le haut du fondu, garde sa couleur.
+
+**Sept mutants nommés, tous pris.**
+
+| mutant | ce qui tombe |
+| --- | --- |
+| le masque retiré | 216 n) : le pied du cadre n'est plus la page ; la montée ; la place qui manque |
+| une rampe droite | 216 n) : la montée, qui n'est plus douce à ses bouts |
+| le masque sur tout le cadre, texte compris | 216 n) : la montée ; « Regarder » perd sa couleur |
+| un fondu de hauteur fixe | 216 n) : le quart du cadre |
+| la cale du bas oubliée | 216 n) : le texte dans le fondu ; la place qui manque |
+| la cale du haut oubliée | 216 n) : la place qui manque, le texte collé en haut |
+| les lignes qui rétrécissent | 216 n) : la place qui manque, le titre qui perd une ligne |
+
+Le banc complet : 2184 assertions dans 219 scénarios, toutes vertes.
+
 ## L'accueil, cinquième passe : d'emblée, et l'audit du module (v4.26.0.5)
 
 Les retours, capture de la vraie page et rapport à l'appui. Publiés sur
@@ -23421,7 +23485,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | les six fichiers JavaScript livrés — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 219 scénarios, 2179 assertions |
+| `npm test` | le harnais Playwright : 219 scénarios, 2184 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -23442,13 +23506,13 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 2010 Ko | 888 Ko | 4 504 → **2** |
+| `content.js` | 2013 Ko | 890 Ko | 4 505 → **2** |
 | `cadres.js` | 68 Ko | 31 Ko | 160 → **0** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
 | `panneau.js` | 162 Ko | 82 Ko | 224 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 26 → **0** |
 | `background.js` | 10 Ko | 2 Ko | 22 → **0** |
-| **les six** | **2390 Ko** | **1107 Ko** | **−54 %** |
+| **les six** | **2393 Ko** | **1109 Ko** | **−54 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
