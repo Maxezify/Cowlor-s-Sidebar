@@ -2064,6 +2064,214 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The home page, fifth pass: straight away, and the module's audit (v4.26.0.5)
+
+The feedback, with a screenshot of the real page and a report. Published on
+`claude/chrome-homepage` only.
+
+| feedback | what was done |
+| --- | --- |
+| "a lag with Twitch's native home page for a few seconds, then the new home page" | Twitch's home page no longer shows while the data arrives: the carousel is hidden from its first frame, the section is laid in the frame where Twitch lays its page, and we paint as soon as the answer comes |
+| "do a full audit of this new part" | eleven defects found and fixed, detailed below; the rest checked |
+| the attached report | it said nothing about the home page: the block was missing, it is printed now |
+
+### Where the few seconds came from
+
+Three causes, each measured frame by frame on the bench.
+
+1. **The carousel arrived after us.** Twitch lays its scroller and its column,
+   then its carousel once its own data has arrived, so after our section.
+   Nothing hid it before the next paint, at the five-second wake-up: until
+   then, the native page was what you saw. On a fake home page where the
+   carousel arrives a second and a half after the rest, 4.26.0.4 shows it for
+   six frames, while the bench's wake-up only lasts a tenth of a second. On
+   the real page, that wake-up lasts five seconds: those were the reported
+   "few seconds".
+2. **We laid ourselves a hundred and fifty milliseconds late.** The observer
+   grouped the page's movements before looking, and Twitch's home page stayed
+   alone on screen for the length of that grouping. The same happened every
+   time React redrew the page.
+3. **Data that had arrived waited for the wake-up.** The TseChannels answer
+   (who is live among your channels) arrived, and nothing painted before the
+   next wake-up.
+
+### What changed
+
+- **The carousel is hidden by a rule that `<html>` carries.** React never
+  redraws that element: the rule applies to any carousel Twitch lays, from its
+  first frame, whenever it arrives. The former class now only serves the
+  carousel recognised by its shape alone. Its video is stopped as soon as we
+  find it, and the ones React removed are let go.
+- **What is missing is laid again in the same frame.** A `MutationObserver`
+  hands back before the page is painted. The section not laid yet, or carried
+  away by React, and the hero carried away alone, are therefore laid again
+  there, always. For the ten seconds after arriving, as long as the section is
+  not in front of Twitch's rows, aligned on their titles, and the carousel
+  stopped, every movement is looked at the same way. After that, the observer
+  groups as before. The scroller is recognised among the nodes the page has
+  just added: a `querySelector` over the whole document on every movement
+  would cost what the one the sidebar had to space out cost.
+- **The early request.** Who is live among the channels that decide the hero
+  and the row is asked as soon as the page starts, no longer at the sidebar's
+  first sweep. These are the same channels, in the same queue as the sidebar,
+  and the sidebar no longer asks again for what is already on its way: each
+  followed channel is asked only once at start-up, measured on the bench.
+- **We paint as soon as the answer comes.** Each TseChannels batch served tells
+  the home page, which paints at once, without waiting for the wake-up.
+- **The veil.** As long as we don't know who is live, the home page is veiled:
+  neither Twitch's, which would have to be replaced before your eyes, nor ours
+  half filled. The veil is laid at the very start of the page, before Twitch
+  paints anything, and lifted in the same task as the paint. Most of the time,
+  the answer arrives before Twitch has laid its page, and the veil doesn't
+  show. It is bounded: a second and a half once Twitch's home page is there,
+  six seconds in all. Beyond that, Twitch's home page is better than an empty
+  page, and ours replaces it when the answer comes. With no visited channel
+  and no followed row, there is nothing to wait for and the veil lifts on
+  arrival. With the home page off, it is never laid.
+- **The hero's images leave before it.** The hero is known before Twitch has
+  laid its page: its images are requested at once, and they are there when it
+  appears.
+- **A tab opened in the background.** A hidden tab doesn't paint: the home page
+  was laid there without being painted, and on coming to it, you saw Twitch's
+  until the wake-up. It paints the instant the tab shows, before the first
+  frame.
+
+### Nothing moving on arrival
+
+Three elements pushed the page down after the fact; they now keep their place.
+
+- **The Top 10 waiting for its ranking** showed a "Ranking in progress…" line,
+  then gained a whole row when the places arrived. Its first five places now
+  show empty, at their exact size (the numerals, the thumbnails, the lines),
+  and the real ones take their place to the pixel.
+- **"From the start"** is asked after the paint, and the button appeared a
+  second later: the row grew by one line. As long as the setting is on, a card
+  that doesn't have its button (yet) keeps its place, invisible, with no
+  address or tooltip, so neither clickable nor reachable by keyboard. The
+  button becomes a block as wide as its content: laid on a line, it took that
+  line's descent, and its kept place didn't quite have its height (two
+  pixels, measured).
+- **A row's foot** has the height of the "Show all" button even without the
+  button: ten places for five columns make it appear, and everything after
+  went down as much.
+
+On the bench, the browser counts layout shifts itself (`layout-shift`). In
+each of these cases, their sum stays under 0.005 once the home page has
+appeared.
+
+### The audit
+
+| defect found | fix |
+| --- | --- |
+| the carousel that arrived after us stayed on screen until the wake-up | a rule carried by `<html>` |
+| laying grouped at 150 ms, on arrival and on every React redraw | laid again in the same frame |
+| data that had arrived waited for the wake-up to be painted | the home page is told of every batch served |
+| a tab opened in the background showed Twitch's home page on coming to it | painted the instant it shows |
+| the Top 10 gained a row on arriving | its five waiting places, at their size |
+| "From the start" made the row grow a second later | its place kept |
+| "Show all" made the foot grow | the button's height, always |
+| the text report printed nothing of the home page | the ACCUEIL block, the place refusals in plain words |
+| carousels removed by React stayed in memory, with their player | let go as soon as they leave the page |
+| "From the start"'s memory never emptied, while the Top 10 changes all day | what hasn't been shown for half an hour is forgotten |
+| the exclusion selector rebuilt on every call, on every video, thumbnail and title read | written once |
+
+Checked, and nothing to change:
+
+- **Security.** All the DOM goes through `createElement` and `textContent`, and
+  only our static pictograms go through a parser. A login only enters an
+  address or a query after its shape is checked (`RE_CLE_LOGIN` for the
+  roster, `RE_LOGIN` for the Top 10 and Twitch's cards). An archive identifier
+  only enters as digits. Avatars are `https` only. The player's messages are
+  accepted from it alone (source and origin), and its colours are checked
+  before being read (bounded dimensions, exact length).
+- **Dead code.** No rule of the home page's stylesheet without an element, no
+  unused text.
+- **The Top 10 and co-streams.** One place per session, over ten places: the
+  ranking counts them in places, not in channels.
+
+### The report
+
+The **ACCUEIL / HOME PAGE** block is printed now. It reads:
+
+- `chrono.*`: in milliseconds since the page started, the arrival, Twitch's
+  scroller, the laying, the hero, the veil lifted, the place seen, the
+  carousel hidden;
+- `voile.*`: its layings, what lifted it (`donnees`, `attente`, `plafond`,
+  `rien`, `reveil`, `depart`), its duration;
+- `amorce.*`: the channels asked at start-up, and whether the answer is in;
+- `synchrones`: the page's movements looked at in the same frame;
+- `peintureMaxMs`, `peinturesMs`, `peinturesDonnees`: what a paint costs, and
+  the ones the answer triggered;
+- `heros.place`, `heros.vue` and `heros.rejets`, one refusal per line (the
+  place, the reason, the hero's width over the scroller's, its parent's
+  layout).
+
+Counts, states, times; no channel is named.
+
+### The texts
+
+Unchanged: nothing the home page promises has changed.
+
+### The bench
+
+- **220**, new. A probe laid before any script of the page records, on every
+  frame, what is on screen: Twitch's carousel, its rows, our hero, our section,
+  the veil, as well as layout shifts. The fake home page gets two levers,
+  `carrouselApres` and `rayonsApres`, to lay the carousel or the rows later as
+  on the real page, and `__accueilRecarrousel()` to redraw the carousel alone.
+  A `__depart` set is poured in before the extension starts. The cases tried:
+  - the data before Twitch, its carousel after us;
+  - Twitch before the data;
+  - data that is late;
+  - the Top 10 waiting;
+  - a tab opened in the background;
+  - React redrawing long after arriving, and the hero carried away alone;
+  - Twitch's rows after its column;
+  - neither home page nor answer;
+  - a channel going live, the home page already there;
+  - nothing to wait for;
+  - the home page off.
+
+  In each: not one frame of Twitch's home page that would have to be replaced.
+- **218**: "From the start"'s kept place, invisible and inert; the card that
+  receives its button doesn't grow; the memory that forgets.
+- **70**: the report's ACCUEIL block.
+
+Against 4.26.0.4, scenario 220 fails from its first case: six frames of
+Twitch's carousel, six of its rows without ours.
+
+**Twenty-five named mutants, all caught.**
+
+| mutant | what falls |
+| --- | --- |
+| the carousel hidden by the class alone | 220 g): React redraws the carousel, and the new one shows before being hidden |
+| the observer that groups everything | 220 a): Twitch's carousel and rows without ours, the hero missing from the first frame, the page moving |
+| the early request that asks for nothing | 220 a), b): the veil lifted by the early request's answer; Twitch before the data; the page moving |
+| the veil never laid | 220 a), b): the same |
+| the answer ignored | 220 j): the channel that went live painted at the wake-up, not at the batch that tells it |
+| the veil unbounded once Twitch's home page is there | 220 c): data that is late |
+| the veil with no ceiling | 220 h): neither home page nor answer |
+| nothing to wait for, and the veil kept | 220 e): nothing to wait for |
+| the place judged under the veil | 220 b): the place seen when the veil lifts |
+| the place not checked again when it lifts | 220 b): the same |
+| the tab shown without a paint | 220 f): the tab opened in the background |
+| the preload forgotten | 220 a): the hero's images requested before it |
+| the sidebar asking again for what is on its way | 220 a): each followed channel asked once |
+| removed carousels kept | 220 g): the old carousel let go |
+| the Top 10 with no waiting places | 220 d): the Top 10 waiting |
+| the foot without the button's height | 220 d): the same |
+| the button's place not kept | 218: the kept place; 220 d) |
+| the kept place visible | 218: the invisible place |
+| the button put back on a line | 220 d): the height to the pixel |
+| "From the start" that forgets nothing | 218: the memory that forgets |
+| the carried-away section laid again at 150 ms | 220 g): React redoing the home page |
+| the hero carried away alone, left out | 220 g): the hero carried away four times |
+| the alignment left to the paint alone | 220 i): Twitch's rows after its column |
+| the ACCUEIL block missing from the report | 70: the ACCUEIL block |
+| the refusals flattened as they are | 70: the refusals in plain words |
+
+The full bench: 2179 assertions in 219 scenarios, all green.
+
 ## The home page, fourth pass: a hero that checks its own place (v4.26.0.4)
 
 The feedback, with a screenshot of the real page. Published on
@@ -22539,7 +22747,7 @@ Four independent checks:
 | `npm run lint` | the six shipped JavaScript files — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 218 scenarios, 2158 assertions |
+| `npm test` | the Playwright harness: 219 scenarios, 2179 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -22559,13 +22767,13 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1988 KB | 877 KB | 4,467 → **2** |
+| `content.js` | 2010 KB | 888 KB | 4,504 → **2** |
 | `cadres.js` | 68 KB | 31 KB | 160 → **0** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
-| `panneau.js` | 161 KB | 82 KB | 223 → **0** |
+| `panneau.js` | 162 KB | 82 KB | 224 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 26 → **0** |
 | `background.js` | 10 KB | 2 KB | 22 → **0** |
-| **all six** | **2367 KB** | **1096 KB** | **−54 %** |
+| **all six** | **2390 KB** | **1107 KB** | **−54 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are

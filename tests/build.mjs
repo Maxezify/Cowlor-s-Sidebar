@@ -191,6 +191,10 @@ const subs = [
   [/ACCUEIL_INSTANTANE_MS:\s*60_000/,  'ACCUEIL_INSTANTANE_MS:  400'],
   [/ACCUEIL_IMAGE_MS:\s*60_000/,       'ACCUEIL_IMAGE_MS:       1_500'],
   [/ACCUEIL_DEBUT_TTL:\s*10 \* 60_000/, 'ACCUEIL_DEBUT_TTL:      2_000'],
+  [/ACCUEIL_DEBUT_OUBLI_MS:\s*30 \* 60_000/, 'ACCUEIL_DEBUT_OUBLI_MS: 3_000'],
+  // D'emblée (4.26.0.5) : la page suivie de près deux secondes, le voile borné à trois en tout.
+  [/ACCUEIL_SYNCHRONE_MS:\s*10_000/,  'ACCUEIL_SYNCHRONE_MS:   2_000'],
+  [/ACCUEIL_VOILE_MAX_MS:\s*6_000/,   'ACCUEIL_VOILE_MAX_MS:   3_000'],
   [/ACCUEIL_DEBUT_PAUSE:\s*60_000/,    'ACCUEIL_DEBUT_PAUSE:    500'],
   /* Le relevé des chaînes suivies (4.25.0.3). Il charge une page de plus à
      chaque chargement de Twitch, et l'agenda se relit tant qu'il est attendu :

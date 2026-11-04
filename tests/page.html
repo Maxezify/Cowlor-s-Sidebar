@@ -334,6 +334,16 @@ window.__retardOp = {};
 // Logins que les réponses `TseCategoryTop` doivent OMETTRE, pour reproduire
 // l'échantillonnage mesuré de l'API (une chaîne présente 4 appels sur 6).
 window.__hidden = [];
+/* LE DÉCOR CONNU DÈS LE CHARGEMENT (4.26.0.5). Un test qui pose ses fixtures
+   après l'ouverture ne peut pas éprouver ce qui part AU DÉMARRAGE de la page —
+   l'amorce de l'accueil, qui demande ses chaînes avant que Twitch n'ait rien
+   posé. `__depart`, posé par page.addInitScript ({ __fx: {…}, __tagTop: {…},
+   __cats: […], __retardOp: {…} }), est versé ici, avant que l'extension ne
+   démarre. */
+for (const [k, v] of Object.entries(window.__depart || {})) {
+  if (Array.isArray(window[k]) && Array.isArray(v)) window[k].push(...v);
+  else Object.assign(window[k], v);
+}
 // Compte les fois où le gestionnaire natif du bouton de tri a été atteint.
 // Doit rester à 0 : l'extension intercepte en phase de capture.
 window.__nativeSortOpened = 0;
@@ -1660,6 +1670,11 @@ if (location.pathname === '/directory/following/channels') {
 //   rayons     [[titre, [logins…]], …]
 //   colonneMax la colonne bornée à N px et centrée, comme celle de Twitch à
 //              grande largeur : ce qui s'y pose y prend ses marges
+//   carrouselApres le carrousel posé N ms APRÈS le reste de l'accueil, comme
+//              sur la vraie page, où il attend ses propres données (4.26.0.5 :
+//              c'est lui qu'on voyait « quelques secondes » avant le héros)
+//   rayonsApres les rayons de Twitch posés N ms après la colonne
+// window.__accueilRecarrousel() redessine le carrousel seul, comme React.
 //   mise       la mise en page du défileur, que sa feuille ne nous dit pas
 //              (4.26.0.4 : le héros posé en tête n'est pas apparu sur la vraie
 //              page) — chaque valeur est une façon dont il peut le cacher :
@@ -1744,7 +1759,7 @@ if (location.pathname === '/' && window.__accueil) {
         principal.appendChild(voile);
       }
     }
-    if ((cfg.carrousel || 'repere') !== 'aucun') {
+    const fabriquerCarrousel = () => {
       const car = el('div', cfg.carrousel === 'forme' ? 'bloc-sans-nom' : 'front-page-carousel');
       if (cfg.carrousel !== 'forme') car.setAttribute('data-a-target', 'front-page-carousel');
       const pub = el('div', 'headliner-ad');
@@ -1764,7 +1779,18 @@ if (location.pathname === '/' && window.__accueil) {
       tourniquet.appendChild(centre);
       for (const l of ['cote_trois', 'cote_quatre']) tourniquet.appendChild(el('div')).appendChild(vignette(l, '320x180'));
       car.append(pub, tourniquet);
-      page.appendChild(car);
+      return car;
+    };
+    if ((cfg.carrousel || 'repere') !== 'aucun') {
+      const car = fabriquerCarrousel();
+      if (cfg.carrouselApres) setTimeout(() => page.insertBefore(car, page.firstChild), cfg.carrouselApres);
+      else page.appendChild(car);
+      // React qui redessine le carrousel seul : un bloc neuf à la place de l'ancien (4.26.0.5).
+      window.__accueilRecarrousel = () => {
+        const ancien = page.querySelector('[data-a-target="front-page-carousel"], .bloc-sans-nom');
+        const neuf = fabriquerCarrousel();
+        if (ancien) ancien.replaceWith(neuf); else page.insertBefore(neuf, page.firstChild);
+      };
     }
     const colonneBloc = el('div');
     if (mise === 'rangees') colonneBloc.style.cssText = 'flex:1 1 auto;min-width:0';
@@ -1777,14 +1803,17 @@ if (location.pathname === '/' && window.__accueil) {
     }
     // Les marges de la colonne, celles que l'alignement doit retrouver.
     contenu.style.cssText = 'padding:0 24px';
-    for (const [titre, logins] of cfg.rayons || []) {
-      const rayon = el('div', 'find-me');
-      const h = el('h2', 'tw-title');
-      h.textContent = titre;
-      rayon.appendChild(h);
-      for (const l of logins) rayon.appendChild(carte(l));
-      contenu.appendChild(rayon);
-    }
+    const poserRayons = () => {
+      for (const [titre, logins] of cfg.rayons || []) {
+        const rayon = el('div', 'find-me');
+        const h = el('h2', 'tw-title');
+        h.textContent = titre;
+        rayon.appendChild(h);
+        for (const l of logins) rayon.appendChild(carte(l));
+        contenu.appendChild(rayon);
+      }
+    };
+    if (cfg.rayonsApres) setTimeout(poserRayons, cfg.rayonsApres); else poserRayons();
     colonne.appendChild(contenu);
     colonneBloc.appendChild(colonne);
     page.appendChild(colonneBloc);

@@ -2183,6 +2183,218 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## L'accueil, cinquième passe : d'emblée, et l'audit du module (v4.26.0.5)
+
+Les retours, capture de la vraie page et rapport à l'appui. Publiés sur
+`claude/chrome-homepage` seulement.
+
+| retour | ce qui a été fait |
+| --- | --- |
+| « un décalage avec la homepage native de Twitch pendant quelques secondes, puis la nouvelle homepage » | l'accueil de Twitch ne se montre plus le temps des données : le carrousel est masqué dès sa première image, la section se pose dans l'image où Twitch pose sa page, et l'on peint dès la réponse |
+| « fais un audit complet de cette nouvelle partie » | onze défauts trouvés et corrigés, détaillés plus bas ; le reste vérifié |
+| le rapport joint | il ne disait rien de l'accueil : le bloc manquait, il est imprimé |
+
+### D'où venaient les quelques secondes
+
+Trois causes, chacune mesurée image par image au banc.
+
+1. **Le carrousel arrivait après nous.** Twitch pose son défileur et sa
+   colonne, puis son carrousel une fois ses propres données arrivées, donc après
+   notre section. Rien ne le masquait avant la peinture suivante, au réveil de
+   cinq secondes : pendant ce temps, c'était la page native qu'on voyait. Sur
+   un faux accueil où le carrousel arrive une seconde et demie après le reste,
+   la 4.26.0.4 le montre pendant six images, alors que le réveil du banc ne
+   dure qu'un dixième de seconde. Sur la vraie page, ce réveil dure cinq
+   secondes : c'étaient les « quelques secondes » signalées.
+2. **On se posait avec cent cinquante millisecondes de retard.** L'observateur
+   regroupait les mouvements de la page avant de regarder, et l'accueil de
+   Twitch restait seul à l'écran le temps de ce regroupement. C'était aussi le
+   cas à chaque fois que React redessinait la page.
+3. **Les données arrivées attendaient le réveil.** La réponse de TseChannels
+   (qui est en direct parmi vos chaînes) arrivait, et rien ne peignait avant le
+   réveil suivant.
+
+### Ce qui a changé
+
+- **Le carrousel est masqué par une règle que porte `<html>`.** React ne
+  redessine jamais cet élément : la règle vaut pour tout carrousel que Twitch
+  pose, dès sa première image, quel que soit le moment où il arrive. La classe
+  d'avant ne sert plus qu'au carrousel qu'on reconnaît à sa seule forme. Sa
+  vidéo est arrêtée dès qu'on le trouve, et ceux que React a retirés sont
+  lâchés.
+- **Ce qui manque se repose dans la même image.** Un `MutationObserver` rend la
+  main avant que la page ne soit peinte. La section pas encore posée, ou
+  emportée par React, et le héros emporté seul, se reposent donc là, toujours.
+  Pendant les dix secondes qui suivent l'arrivée, tant que la section n'est pas
+  devant les rayons de Twitch, alignée sur leurs titres, et le carrousel arrêté,
+  chaque mouvement est regardé de même. Ensuite, l'observateur regroupe comme
+  avant. Le défileur se reconnaît dans les nœuds que la page vient d'ajouter :
+  un `querySelector` sur tout le document à chaque mouvement coûterait ce que
+  coûtait celui que la barre a dû espacer.
+- **L'amorce.** Qui est en direct parmi les chaînes qui décident du héros et du
+  rayon, on le demande dès le démarrage de la page, et non plus au premier
+  balayage de la barre. Ce sont les mêmes chaînes, dans la même file que la
+  barre, et la barre ne redemande plus ce qui est déjà en route : chaque chaîne
+  suivie n'est demandée qu'une fois au démarrage, mesuré au banc.
+- **On peint dès la réponse.** Chaque lot de TseChannels servi prévient
+  l'accueil, qui peint aussitôt, sans attendre le réveil.
+- **Le voile.** Tant qu'on ne sait pas qui est en direct, l'accueil est voilé :
+  ni celui de Twitch, qu'il faudrait remplacer sous vos yeux, ni le nôtre à
+  moitié rempli. Le voile se pose au tout début de la page, avant que Twitch
+  ne peigne quoi que ce soit, et se lève dans la même tâche que la peinture.
+  Le plus souvent, la réponse arrive avant que Twitch n'ait posé sa page, et
+  le voile ne se voit pas. Il est borné : une seconde et demie une fois
+  l'accueil de Twitch là, six secondes en tout. Au-delà, mieux vaut l'accueil
+  de Twitch qu'une page vide, et le nôtre le remplace à la réponse. Sans
+  chaîne visitée ni rayon des suivies, il n'y a rien à attendre et le voile
+  se lève à l'arrivée. L'accueil coupé, il ne se pose pas.
+- **Les images du héros partent avant lui.** Le héros se sait avant que Twitch
+  n'ait posé sa page : ses images sont demandées tout de suite, et elles sont
+  là quand il paraît.
+- **Un onglet ouvert en arrière-plan.** Un onglet caché ne peint pas : l'accueil
+  y était posé sans être peint, et en y venant, on voyait celui de Twitch
+  jusqu'au réveil. Il se peint à l'instant où l'onglet se montre, avant la
+  première image.
+
+### Rien qui bouge en arrivant
+
+Trois éléments faisaient descendre la page après coup ; ils gardent désormais
+leur place.
+
+- **Le Top 10 en attente de son classement** montrait une ligne « Classement en
+  cours… », puis gagnait une rangée entière à l'arrivée des places. Ses cinq
+  premières places s'affichent désormais vides, à leur taille exacte (les
+  chiffres, les vignettes, les lignes), et les vraies prennent leur place au
+  pixel.
+- **« Depuis le début »** se demande après la peinture, et le bouton paraissait
+  une seconde plus tard : la rangée grandissait d'une ligne. Tant que le
+  réglage est en marche, une carte qui n'a pas (encore) le sien en garde la
+  place, invisible, sans adresse ni infobulle, donc ni cliquable ni atteignable
+  au clavier. Le bouton devient un bloc à la largeur de son contenu : posé sur
+  une ligne, il en prenait la descente, et sa place gardée n'avait pas tout à
+  fait sa hauteur (deux pixels, mesurés).
+- **Le pied d'un rayon** a la hauteur du bouton « Afficher tout » même sans
+  bouton : dix places pour cinq colonnes le font paraître, et tout ce qui
+  suivait descendait d'autant.
+
+Au banc, le navigateur compte lui-même les décalages de mise en page
+(`layout-shift`). Dans chacun de ces cas, leur somme reste sous 0,005 une fois
+l'accueil paru.
+
+### L'audit
+
+| défaut trouvé | correction |
+| --- | --- |
+| le carrousel arrivé après nous restait à l'écran jusqu'au réveil | règle portée par `<html>` |
+| la pose regroupée à 150 ms, à l'arrivée et à chaque redessin de React | reposé dans la même image |
+| les données arrivées attendaient le réveil pour être peintes | l'accueil est prévenu à chaque lot servi |
+| un onglet ouvert en arrière-plan montrait l'accueil de Twitch en y venant | peint à l'instant où il se montre |
+| le Top 10 gagnait une rangée en arrivant | ses cinq places en attente, à leur taille |
+| « Depuis le début » faisait grandir la rangée une seconde après | sa place gardée |
+| « Afficher tout » faisait grandir le pied | la hauteur du bouton, toujours |
+| le rapport texte n'imprimait rien de l'accueil | le bloc ACCUEIL, les refus de place en clair |
+| les carrousels retirés par React restaient en mémoire, avec leur lecteur | lâchés dès qu'ils sortent de la page |
+| la mémoire de « Depuis le début » ne se vidait jamais, alors que le Top 10 change toute la journée | ce qui n'est plus affiché depuis une demi-heure s'oublie |
+| le sélecteur d'exclusion recomposé à chaque appel, sur chaque vidéo, miniature et titre lus | écrit une fois |
+
+Vérifié, et rien à changer :
+
+- **Sécurité.** Tout le DOM passe par `createElement` et `textContent`, et seuls
+  nos pictogrammes statiques traversent un analyseur. Un login n'entre dans une
+  adresse ou une requête qu'après sa forme vérifiée (`RE_CLE_LOGIN` au roster,
+  `RE_LOGIN` au Top 10 et aux cartes de Twitch). Un identifiant d'archive n'y
+  entre qu'en chiffres. Les avatars sont en `https` seulement. Les messages du
+  lecteur sont acceptés de lui seul (source et origine), et ses couleurs sont
+  vérifiées avant d'être lues (dimensions bornées, longueur exacte).
+- **Code mort.** Aucune règle de la feuille de l'accueil sans élément, aucun
+  texte inutilisé.
+- **Le Top 10 et les co-streams.** Une place par session, sur dix places : le
+  classement les compte en places, pas en chaînes.
+
+### Le rapport
+
+Le bloc **ACCUEIL / HOME PAGE** est imprimé désormais. On y lit :
+
+- `chrono.*` : en millisecondes depuis le début de la page, l'arrivée, le
+  défileur de Twitch, la pose, le héros, le lever du voile, la place vue, le
+  carrousel masqué ;
+- `voile.*` : ses poses, ce qui l'a levé (`donnees`, `attente`, `plafond`,
+  `rien`, `reveil`, `depart`), sa durée ;
+- `amorce.*` : les chaînes demandées au démarrage, et si la réponse est là ;
+- `synchrones` : les mouvements de la page regardés dans la même image ;
+- `peintureMaxMs`, `peinturesMs`, `peinturesDonnees` : ce que coûte une
+  peinture, et celles que la réponse a déclenchées ;
+- `heros.place`, `heros.vue` et `heros.rejets`, un refus par ligne (la place,
+  la raison, la largeur du héros sur celle du défileur, la mise en page de son
+  parent).
+
+Des comptes, des états, des temps ; aucune chaîne n'est nommée.
+
+### Les textes
+
+Inchangés : rien de ce que l'accueil promet n'a changé.
+
+### Le banc
+
+- **220**, nouveau. Une sonde posée avant tout script de la page relève, à
+  chaque image, ce qui est à l'écran : le carrousel de Twitch, ses rayons, notre
+  héros, notre section, le voile, ainsi que les décalages de mise en page. Le
+  faux accueil reçoit deux leviers, `carrouselApres` et `rayonsApres`, pour
+  poser le carrousel ou les rayons plus tard comme sur la vraie page, et
+  `__accueilRecarrousel()` pour redessiner le carrousel seul. Un décor
+  `__depart` est versé avant que l'extension ne démarre. Les cas éprouvés :
+  - les données avant Twitch, son carrousel après nous ;
+  - Twitch avant les données ;
+  - les données qui tardent ;
+  - le Top 10 en attente ;
+  - un onglet ouvert en arrière-plan ;
+  - React qui redessine bien après l'arrivée, et le héros emporté seul ;
+  - les rayons de Twitch après sa colonne ;
+  - ni accueil ni réponse ;
+  - une chaîne qui passe en direct, l'accueil déjà là ;
+  - rien à attendre ;
+  - l'accueil coupé.
+
+  Dans chacun : aucune image de l'accueil de Twitch qu'il faudrait remplacer.
+- **218** : la place de « Depuis le début », gardée, invisible et inerte ; la
+  carte qui reçoit son bouton ne grandit pas ; la mémoire qui s'oublie.
+- **70** : le bloc ACCUEIL du rapport.
+
+Contre la 4.26.0.4, le scénario 220 échoue dès son premier cas : six images du
+carrousel de Twitch, six de ses rayons sans les nôtres.
+
+**Vingt-cinq mutants nommés, tous pris.**
+
+| mutant | ce qui tombe |
+| --- | --- |
+| le carrousel masqué par la seule classe | 220 g) : React redessine le carrousel, et le neuf se voit avant d'être masqué |
+| l'observateur qui regroupe tout | 220 a) : le carrousel et les rayons de Twitch sans les nôtres, le héros absent de la première image, la page qui bouge |
+| l'amorce qui ne demande rien | 220 a), b) : le voile levé par la réponse de l'amorce ; Twitch avant les données ; la page qui bouge |
+| le voile jamais posé | 220 a), b) : les mêmes |
+| la réponse ignorée | 220 j) : la chaîne passée en direct peinte au réveil, pas au lot qui l'apprend |
+| le voile sans borne une fois l'accueil de Twitch là | 220 c) : les données qui tardent |
+| le voile sans plafond | 220 h) : ni accueil ni réponse |
+| rien à attendre, et le voile gardé | 220 e) : rien à attendre |
+| la place jugée sous le voile | 220 b) : la place vue au lever du voile |
+| la place pas revue au lever | 220 b) : la même |
+| l'onglet revenu sans peinture | 220 f) : l'onglet ouvert en arrière-plan |
+| le préchargement oublié | 220 a) : les images du héros demandées avant lui |
+| la barre qui redemande ce qui est en vol | 220 a) : chaque chaîne suivie demandée une fois |
+| les carrousels retirés gardés | 220 g) : l'ancien carrousel lâché |
+| le Top 10 sans places d'attente | 220 d) : le Top 10 en attente |
+| le pied sans la hauteur du bouton | 220 d) : le même |
+| la place du bouton pas gardée | 218 : la place gardée ; 220 d) |
+| la place gardée visible | 218 : la place invisible |
+| le bouton remis sur une ligne | 220 d) : la hauteur au pixel |
+| « Depuis le début » qui n'oublie rien | 218 : la mémoire qui s'oublie |
+| la section emportée reposée à 150 ms | 220 g) : React qui refait l'accueil |
+| le héros emporté seul, laissé | 220 g) : le héros emporté quatre fois |
+| l'alignement laissé à la seule peinture | 220 i) : les rayons de Twitch après sa colonne |
+| le bloc ACCUEIL absent du rapport | 70 : le bloc ACCUEIL |
+| les refus aplatis tels quels | 70 : les refus en clair |
+
+Le banc complet : 2179 assertions dans 219 scénarios, toutes vertes.
+
 ## L'accueil, quatrième passe : un héros qui vérifie sa place (v4.26.0.4)
 
 Le retour, capture de la vraie page à l'appui. Publié sur `claude/chrome-homepage`
@@ -23209,7 +23421,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | les six fichiers JavaScript livrés — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 218 scénarios, 2158 assertions |
+| `npm test` | le harnais Playwright : 219 scénarios, 2179 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -23230,13 +23442,13 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 1988 Ko | 877 Ko | 4 467 → **2** |
+| `content.js` | 2010 Ko | 888 Ko | 4 504 → **2** |
 | `cadres.js` | 68 Ko | 31 Ko | 160 → **0** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
-| `panneau.js` | 161 Ko | 82 Ko | 223 → **0** |
+| `panneau.js` | 162 Ko | 82 Ko | 224 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 26 → **0** |
 | `background.js` | 10 Ko | 2 Ko | 22 → **0** |
-| **les six** | **2367 Ko** | **1096 Ko** | **−54 %** |
+| **les six** | **2390 Ko** | **1107 Ko** | **−54 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se

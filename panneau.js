@@ -2893,6 +2893,23 @@ const construireRapport = (r, transport, fond) => {
   /* L'AGENDA (4.25.0) : ses passes et leurs issues, et la forme du planning
      que Twitch a acceptée. Des comptes ; aucune chaîne n'y figure. */
   L.push(...bloc('AGENDA', aplatir(r.agenda)));
+  /* L'ACCUEIL (4.26.0), IMPRIMÉ DEPUIS LA 4.26.0.5. Le rapport en portait les
+     données depuis sa naissance — `accueil` —, et le texte n'en disait rien :
+     la 4.26.0.4 demandait la place du héros et ses refus, qu'aucun rapport ne
+     pouvait montrer. La règle des blocs précédents : ce qu'on collecte sans
+     l'afficher ne sert à personne. Des comptes, des états, des temps ; aucune
+     chaîne — le héros est votre chaîne la plus regardée, il n'est pas nommé.
+     Un refus se lit sur une ligne : la place, la raison, la largeur du héros
+     sur celle du défileur, et la mise en page de son parent. */
+  const acc = r.accueil;
+  L.push(...bloc('ACCUEIL / HOME PAGE', !acc ? ['  (absent)'] : aplatir({
+    ...acc,
+    heros: acc.heros ? {
+      ...acc.heros,
+      rejets: (acc.heros.rejets || []).map((x) =>
+        `${x.place}:${x.raison} (${x.largeur}/${x.plein} px, ${x.parent || '—'})`),
+    } : acc.heros,
+  })));
 
   /* LES ERREURS EN PREMIER PARMI LES JOURNAUX, et jamais repliées : c'est la
      section qu'on cherche quand on ouvre un rapport. « (aucune) » est une

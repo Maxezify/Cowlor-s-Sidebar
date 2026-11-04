@@ -4066,6 +4066,15 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     ACCUEIL_DEBUT_LOT:      15,
     ACCUEIL_DEBUT_TTL:      10 * 60_000,
     ACCUEIL_DEBUT_PAUSE:    60_000,
+    ACCUEIL_DEBUT_OUBLI_MS: 30 * 60_000,   // une réponse qui n'est plus affichée s'oublie au bout d'une demi-heure
+    /* D'emblée (4.26.0.5), cf. VOILE_ACCUEIL. Le voile attend au plus une
+       seconde et demie une fois l'accueil de Twitch là — au-delà, mieux vaut
+       l'accueil de Twitch qu'une page vide —, et jamais plus de six secondes
+       en tout. Pendant les dix premières secondes, chaque mouvement de la page
+       est suivi dans la même image ; ensuite, à cent cinquante millisecondes. */
+    ACCUEIL_VOILE_MS:       1_500,
+    ACCUEIL_VOILE_MAX_MS:   6_000,
+    ACCUEIL_SYNCHRONE_MS:   10_000,
 
     /* === Le panneau incrusté ===
        LES DEUX NOMBRES SONT CEUX DE LA POPUP DE BARRE D'OUTILS (cf. la borne
@@ -8316,6 +8325,19 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     #tse-accueil-heros[hidden], #tse-accueil-heros [hidden] { display: none !important; }
     /* Le carrousel de Twitch, quand on le masque. Sa vidéo est arrêtée à part. */
     .tse-acc-masque { display: none !important; }
+    /* D'EMBLÉE (4.26.0.5) : « un décalage avec la homepage native pendant
+       quelques secondes, puis la nouvelle ». Deux règles portées par <html>,
+       que React ne redessine jamais, et qui valent donc pour ce qu'il pose
+       APRÈS nous. Le carrousel masqué par son repère dès sa première image —
+       il arrivait après notre section, et restait à l'écran jusqu'à la
+       peinture suivante, cinq secondes plus tard ; la classe ci-dessus ne
+       sert plus qu'à celui qu'on ne reconnaît qu'à sa forme. Et le voile :
+       tant qu'on ne sait pas qui est en direct parmi vos chaînes, rien de
+       l'accueil ne se montre — ni celui de Twitch, qu'il faudrait remplacer
+       sous vos yeux, ni le nôtre, à moitié rempli (cf. VOILE_ACCUEIL). */
+    html[data-tse-accueil-carrousel] [data-a-target="front-page-carousel"],
+    html[data-tse-accueil-carrousel] .front-page-carousel { display: none !important; }
+    html[data-tse-accueil-voile] main .root-scrollable__content { visibility: hidden !important; }
     #tse-accueil a:focus-visible, #tse-accueil-heros a:focus-visible { outline: 2px solid #9147ff; outline-offset: 2px; border-radius: 6px; }
     /* « Durée du direct » vaut ici comme sur les cartes de la barre. */
     html[data-tse-off~="duree"] #tse-accueil .tse-acc-duree,
@@ -8342,7 +8364,10 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       display: grid; grid-template-columns: repeat(auto-fill, minmax(min(var(--tse-col), 100%), 1fr));
       gap: 20px 14px; margin: 0; padding: 0; list-style: none;
     }
-    .tse-acc-pied { display: flex; align-items: center; margin: 14px 0 4px; }
+    /* La hauteur du bouton même sans bouton (4.26.0.5) : le Top 10 l'obtient
+       en arrivant — dix places pour cinq colonnes —, et tout ce qui suit
+       descendait d'autant. */
+    .tse-acc-pied { display: flex; align-items: center; min-height: 30px; margin: 14px 0 4px; }
     .tse-acc-plus {
       flex: 0 0 auto; display: inline-flex; align-items: center; gap: 2px; height: 30px; margin: 0 10px;
       padding: 0 6px 0 10px; border: 0; border-radius: 4px; background: transparent; cursor: pointer;
@@ -8387,12 +8412,35 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
     .tse-acc-avec strong { color: var(--tse-texte); font-weight: 600; }
+    /* Un bloc à la largeur de son contenu, et non un élément de ligne : posé
+       sur une ligne, il en prenait la descente, et sa place gardée — vide —
+       n'avait pas la hauteur du bouton (4.26.0.5). */
     .tse-acc-debut {
-      display: inline-flex; align-items: center; gap: 5px; margin-top: 6px; padding: 0 8px;
+      display: flex; width: fit-content; align-items: center; gap: 5px; margin-top: 6px; padding: 0 8px;
       border-radius: 4px; background: rgba(var(--tse-encre), 0.1); color: var(--tse-texte);
       font-size: 12px; font-weight: 600; line-height: 24px; text-decoration: none; white-space: nowrap;
     }
     .tse-acc-debut:hover { background: rgba(var(--tse-encre), 0.18); }
+    /* SA PLACE, GARDÉE (4.26.0.5). L'archive se demande après la peinture,
+       et le bouton paraissait une seconde plus tard : la rangée grandissait
+       d'une ligne, et tout ce qui suit descendait. Tant que « Depuis le
+       début » est en marche, une carte qui n'a pas (encore) le sien en garde
+       la place, invisible. */
+    .tse-acc-debut[data-tse-reserve] { visibility: hidden; }
+    .tse-acc-debut { min-height: 24px; box-sizing: border-box; }
+    /* Le Top 10 en attente de son classement : ses cinq premières places,
+       vides, à leur taille exacte — les chiffres, les vignettes, les lignes. */
+    .tse-acc-place--attente .tse-acc-vignette, .tse-acc-place--attente .tse-acc-avatar, .tse-acc-os {
+      animation: tse-acc-attente 1.1s ease-in-out infinite alternate;
+    }
+    .tse-acc-os {
+      display: inline-block; width: 62%; height: 0.75em; border-radius: 4px; vertical-align: middle;
+      background: var(--tse-surface-2);
+    }
+    .tse-acc-place--attente .tse-acc-jeu .tse-acc-os { width: 38%; }
+    /* La ligne du nom : la hauteur de celle des vraies cartes (14 px × 1,3). */
+    .tse-acc-ligne-os { margin: 0; font-size: 14px; line-height: 1.3; }
+    @keyframes tse-acc-attente { from { opacity: 0.55; } to { opacity: 1; } }
     .tse-acc-debut svg, .tse-acc-bouton svg { flex: 0 0 auto; width: 12px; height: 12px; fill: currentColor; }
 
     /* ── Le héros (4.26.0.2 : la vidéo, l'ambiance ; 4.26.0.3 : sans marge) ─
@@ -10049,6 +10097,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     // Données fraîches → re-scan pour répercuter viewers, catégories, langues
     // (options des filtres) et l'ordre de tri sur l'ensemble de la sidebar.
     if (fresh) scheduleScan();
+    /* Et l'accueil, s'il est à l'écran, peint ce qu'il vient d'apprendre sans
+       attendre le réveil de cinq secondes (4.26.0.5, cf. VOILE_ACCUEIL). Même
+       sur un lot qui n'a rien appris : c'est une réponse, et le voile attend
+       des réponses, pas des bonnes nouvelles. */
+    pageAccueil.donnees();
   }
 
   // ID numérique d'une chaîne si on l'a déjà appris, sinon null.
@@ -15536,7 +15589,10 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
    *
    *  RIEN N'EST INVENTÉ ICI. Les deux premiers lisent ce que la
    *  barre sait déjà — le roster, le cache de TseChannels, les
-   *  visites — et ne coûtent aucune requête. Le Top 10 est une
+   *  visites — et ne coûtent aucune requête de plus : l'amorce
+   *  (4.26.0.5, cf. VOILE_ACCUEIL) demande au démarrage ce que la
+   *  barre demanderait à son premier balayage, et la barre ne le
+   *  redemande pas. Le Top 10 est une
    *  seconde instance du moteur de Top Chaînes (creerClassement),
    *  qui ne tourne que pendant que l'accueil est à l'écran et se
    *  tait quand la barre sert déjà la même question. « Depuis le
@@ -15620,11 +15676,32 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     let guetteur = null;         // IntersectionObserver du héros
     let lecteur = null;          // le lecteur du héros, cf. poserLecteur
     const lecteursRates = new Map(); // login → { cle, ts } : un lecteur qui n'a pas pris
+    let voile = null;            // { depuis, plafond, attente } tant que l'accueil est voilé (cf. VOILE_ACCUEIL)
+    let amorce = null;           // { logins, faite } : ce qu'il faut savoir avant de peindre
+    let arrivee = 0;             // performance.now() de l'arrivée sur « / »
+    let peinturePrevue = false;
+    let masquerVoulu = false;    // la dernière décision sur le carrousel (cf. gererCarrousel)
+    let dernierDefileur = null;  // le défileur où l'on s'est posé, tant qu'il est dans la page
+    let aligneSur = null;        // le contenu de Twitch sur lequel la section s'est alignée
+    let precharges = [];         // les images du héros, demandées avant qu'il ne paraisse
+    let prechargeCle = null;
+    let ici = false;             // sur « / », l'accueil en marche : l'arrivée a eu lieu
 
     const bilan = {
       poses: 0, reposes: 0, retraits: 0, peintures: 0, relangues: 0, reveils: 0, ancre: null,
+      /* LE TEMPS DE L'ACCUEIL (4.26.0.5), en millisecondes depuis le début de
+         la page : quand le défileur de Twitch est apparu, quand la section s'y
+         est posée, quand le héros a été peint, quand le voile s'est levé,
+         quand le carrousel a été masqué. C'est la mesure, sur la vraie page,
+         de ce que « d'emblée » veut dire. */
+      chrono: { arrivee: null, defileur: null, pose: null, heros: null, voile: null, vue: null, carrousel: null },
+      // Ce que coûte une peinture, mesuré : la plus longue, et le total.
+      peintureMaxMs: 0, peinturesMs: 0, peinturesDonnees: 0,
+      voile: { poses: 0, levees: {}, dureeMs: null },
+      amorce: { demandees: 0, faites: 0 },
+      synchrones: 0,
       carrousel: { voie: null, signature: null, masquages: 0, pauses: 0, reprises: 0 },
-      heros: { montre: false, sansVisite: false, place: null, rejets: [], attentes: 0,
+      heros: { montre: false, sansVisite: false, place: null, rejets: [], attentes: 0, precharges: 0,
                video: { poses: 0, premieres: 0, filets: 0, modales: 0, retours: 0, delais: 0, retraits: 0 },
                ambiance: { demandes: 0, images: 0, rejets: 0 } },
       top: { source: null, instantanes: 0 },
@@ -15635,7 +15712,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     const surAccueil = () => location.pathname === '/';
     const actif = () => surAccueil() && options.get('accueil');
     const pose = () => !!section && section.isConnected;
-    const exclu = (n) => !!n.closest?.(`#${ID}, #${ID_HEROS}, ${DOM.sidebarRoot}, .tse-preview`);
+    /* Ce qui n'est pas la page de Twitch : nos deux blocs, la barre, l'aperçu.
+       Le sélecteur est écrit une fois — il était recomposé à chaque appel, et
+       `exclu` passe sur chaque vidéo, chaque miniature et chaque titre lus. */
+    const SEL_EXCLU = `#${ID}, #${ID_HEROS}, ${DOM.sidebarRoot}, .tse-preview`;
+    const exclu = (n) => !!n.closest?.(SEL_EXCLU);
 
     /* ── LE TOP 10 : LA LANGUE, ET LE MOTEUR QUI LE SERT ─────────────────────
        « Celle de Twitch » se lit sur <html lang>, que Twitch pose d'après la
@@ -15727,6 +15808,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       if (!bloc.classList.contains('tse-acc-masque')) {
         bloc.classList.add('tse-acc-masque');
         bilan.carrousel.masquages++;
+        if (bilan.chrono.carrousel === null) bilan.chrono.carrousel = maintenant();
       }
       masques.add(bloc);
       for (const v of bloc.querySelectorAll('video')) pauser(v);
@@ -15744,12 +15826,197 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       }
       pausees.clear();
     };
+    /* La décision vaut pour tout carrousel, présent ou à venir : la règle que
+       porte <html> masque celui que Twitch posera après nous (4.26.0.5), la
+       classe celui qu'on ne reconnaît qu'à sa forme, et l'arrêt de sa vidéo
+       se fait dès qu'on le trouve (cf. verifier). */
     const gererCarrousel = (heros) => {
       const tete = options.get('accueilTete');
       const cacher = tete === 'rien' || (tete === 'heros' && !!heros);
+      masquerVoulu = cacher;
+      if (cacher) { if (!html.hasAttribute('data-tse-accueil-carrousel')) html.setAttribute('data-tse-accueil-carrousel', ''); }
+      else if (html.hasAttribute('data-tse-accueil-carrousel')) html.removeAttribute('data-tse-accueil-carrousel');
       if (!cacher || !carrousel || !carrousel.bloc.isConnected) { if (masques.size) demasquer(); return; }
       if (!masques.has(carrousel.bloc)) demasquer();
       masquer(carrousel.bloc);
+    };
+    /* Entre deux peintures : le carrousel que Twitch vient de poser est arrêté
+       et masqué, ceux qu'il a retirés sont lâchés — les garder, c'était
+       garder en mémoire un lecteur et ses images que la page avait jetés. */
+    const appliquerCarrousel = () => {
+      for (const b of masques) if (!b.isConnected) masques.delete(b);
+      for (const v of pausees) if (!v.isConnected) pausees.delete(v);
+      if (masquerVoulu && carrousel && carrousel.bloc.isConnected) masquer(carrousel.bloc);
+      for (const b of masques) masquer(b);
+    };
+
+    /* ── VOILE_ACCUEIL : D'EMBLÉE (4.26.0.5) ─────────────────────────────────
+       « Il y a un décalage avec la homepage native de Twitch pendant quelques
+       secondes, puis la nouvelle. » Trois causes, et chacune a sa réponse :
+
+       1. LE CARROUSEL ARRIVAIT APRÈS NOUS. Twitch pose son défileur, sa
+          colonne, puis son carrousel quand ses données sont là : après notre
+          section. Rien ne le masquait avant la peinture suivante — le réveil
+          de cinq secondes —, et c'était la page native qu'on voyait. Il est
+          masqué désormais par une règle que porte <html>, dès sa première
+          image (cf. gererCarrousel).
+       2. ON SE POSAIT CENT CINQUANTE MILLISECONDES EN RETARD. L'observateur
+          regroupait les mouvements de la page avant de regarder, et l'accueil
+          de Twitch restait seul à l'écran le temps de ce regroupement. Tant
+          que la section n'est pas à sa place définitive, il regarde dans la
+          même image (cf. suiviDePres).
+       3. ON NE PEUT PAS PEINDRE CE QU'ON NE SAIT PAS. Qui est en direct parmi
+          vos chaînes, c'est TseChannels qui le dit, au bout d'un aller-retour.
+          On le demande dès le démarrage (l'amorce), pour les chaînes qui
+          décident du héros et du rayon, et l'on peint dès la réponse, sans
+          attendre le réveil (cf. donnees). Tant qu'on ne sait pas, l'accueil
+          est VOILÉ : ni celui de Twitch, qu'il faudrait remplacer sous vos
+          yeux, ni le nôtre à moitié rempli. Le plus souvent la réponse arrive
+          avant que Twitch n'ait posé sa page, et le voile ne se voit pas.
+          Borné : une seconde et demie une fois l'accueil de Twitch là, six
+          en tout — au-delà, mieux vaut l'accueil de Twitch qu'une page vide. */
+    const html = document.documentElement;
+    const maintenant = () => Math.round(performance.now());
+    const veutDonnees = () => options.get('accueilTete') === 'heros' || !!options.get('accueilSuivis');
+    /* Ce qu'il faut savoir avant de peindre : les chaînes visitées — le héros
+       est l'une d'elles — et, pour le rayon, les chaînes suivies dans la
+       limite de ce que la barre sonde elle-même (cf. pollRoster). */
+    const candidats = () => {
+      const tete = options.get('accueilTete') === 'heros';
+      const rayon = !!options.get('accueilSuivis');
+      const out = [];
+      let budget = CFG.AHEAD_MAX_POLL;
+      for (const [login] of roster.entries()) {
+        if (rayon && budget-- > 0) out.push(login);
+        else if (tete && visits.scoreFor(login) > 0) out.push(login);
+      }
+      return out;
+    };
+    const decidable = () => !!amorce && (amorce.faite || amorce.logins.every((l) => cache.has(l)));
+    /* L'AMORCE ne double pas la barre : les mêmes chaînes, la même file
+       (cf. fetchChannel), et pollRoster ne redemande pas ce qui est en vol.
+       Elle part plus tôt, c'est tout — au démarrage de la page plutôt qu'au
+       premier balayage —, et elle sait quand elle a fini, réponse ou échec. */
+    const amorcer = () => {
+      const logins = veutDonnees() ? candidats() : [];
+      const a = { logins, faite: false };
+      amorce = a;
+      const manquants = logins.filter((l) => !cache.has(l));
+      if (!manquants.length) { a.faite = true; return; }
+      bilan.amorce.demandees += manquants.length;
+      Promise.all(manquants.map((l) => fetchChannel(l))).then(erreurs.garde('accueil', () => {
+        a.faite = true;
+        bilan.amorce.faites++;
+        if (amorce === a) donnees();
+      }));
+    };
+    const poserVoile = () => {
+      if (voile) return;
+      html.setAttribute('data-tse-accueil-voile', '');
+      voile = { depuis: performance.now(), attente: null,
+                plafond: setTimeout(erreurs.garde('accueil', () => leverVoile('plafond')), CFG.ACCUEIL_VOILE_MAX_MS) };
+      bilan.voile.poses++;
+    };
+    const leverVoile = (raison) => {
+      if (!voile) return;
+      clearTimeout(voile.plafond);
+      clearTimeout(voile.attente);
+      bilan.voile.dureeMs = Math.round(performance.now() - voile.depuis);
+      bilan.voile.levees[raison] = (bilan.voile.levees[raison] || 0) + 1;
+      voile = null;
+      html.removeAttribute('data-tse-accueil-voile');
+      if (bilan.chrono.voile === null) bilan.chrono.voile = maintenant();
+      // Sa place n'a pas pu être vue sous le voile : elle l'est maintenant.
+      if (pose()) verifierPlaceHeros();
+    };
+    // L'accueil de Twitch est là : le voile ne l'attend plus longtemps.
+    const voileBorne = () => {
+      if (voile && !voile.attente) {
+        voile.attente = setTimeout(erreurs.garde('accueil', () => leverVoile('attente')), CFG.ACCUEIL_VOILE_MS);
+      }
+    };
+    const choisir = () => {
+      const tete = options.get('accueilTete');
+      const liste = (options.get('accueilSuivis') || tete === 'heros') ? suiviesEnDirect() : [];
+      const premier = liste[0] || null;
+      const heros = tete === 'heros' && premier && premier.score > 0 ? premier : null;
+      return { tete, liste, premier, heros };
+    };
+    const urlsHeros = (login) => {
+      const minute = Math.floor(Date.now() / CFG.ACCUEIL_IMAGE_MS);
+      const base = `https://static-cdn.jtvnw.net/previews-ttv/live_user_${login}`;
+      return { grande: `${base}-1280x720.jpg?_=${minute}`, petite: `${base}-320x180.jpg?_=${minute}` };
+    };
+    /* Le héros se sait avant que Twitch n'ait posé sa page : ses images
+       partent tout de suite, et sont là quand il paraît. */
+    const prechargerHeros = () => {
+      const { heros } = choisir();
+      if (!heros) return;
+      const u = urlsHeros(heros.login);
+      if (prechargeCle === u.grande) return;
+      prechargeCle = u.grande;
+      const avatar = imageSure(heros.e.avatar);
+      // Tenues ici jusqu'à ce qu'il paraisse : une image qu'on lâche peut se perdre en route.
+      precharges = [u.grande, u.petite, avatar].filter(Boolean).map((src) => {
+        const i = document.createElement('img');
+        i.decoding = 'async';
+        i.src = src;
+        return i;
+      });
+      bilan.heros.precharges++;
+    };
+    /* Un lot de TseChannels vient d'être servi (cf. flushQueue), ou l'amorce
+       a fini : ce qu'on ne savait pas, on le sait peut-être. Sous le voile, on
+       peint et l'on lève dans la même tâche ; sinon, une peinture dans la
+       tâche suivante, une seule pour les lots qui arrivent ensemble. */
+    const donnees = () => {
+      if (!actif()) return;
+      if (voile && decidable()) {
+        if (pose()) peindre(); else prechargerHeros();
+        leverVoile('donnees');
+        return;
+      }
+      if (!pose()) { if (decidable()) prechargerHeros(); return; }
+      if (peinturePrevue) return;
+      peinturePrevue = true;
+      setTimeout(erreurs.garde('accueil', () => {
+        peinturePrevue = false;
+        if (pose()) { bilan.peinturesDonnees++; peindre(); }
+      }), 0);
+    };
+    /* L'arrivée sur « / » : l'amorce part, et le voile se pose s'il y a
+       quelque chose à attendre. `voiler` est faux quand c'est un réglage qui
+       rallume l'accueil : la page est déjà sous vos yeux, on ne l'éteint pas. */
+    const arriver = (voiler) => {
+      arrivee = performance.now();
+      bilan.chrono = { arrivee: maintenant(), defileur: null, pose: null, heros: null, voile: null, vue: null, carrousel: null };
+      aligneSur = null;
+      dernierDefileur = null;
+      amorcer();
+      if (voiler && amorce.logins.length && !decidable()) poserVoile();
+      else leverVoile(amorce.logins.length ? 'donnees' : 'rien');
+    };
+    /* SUIVRE DE PRÈS, ET SEULEMENT LE TEMPS QU'IL FAUT. Ce qui manque se
+       repose dans la même image, toujours : la section pas encore posée, ou
+       emportée par React, le héros emporté seul. Et pendant les dix secondes
+       qui suivent l'arrivée, tant que la section n'est pas devant les rayons
+       de Twitch, alignée sur leurs titres, et le carrousel arrêté s'il doit
+       l'être, chaque mouvement de la page est regardé de même — c'est ce qui
+       la rend juste dès sa première image. Le reste du temps, l'observateur
+       regroupe, comme avant. Le défileur se reconnaît dans ce que la page
+       vient d'ajouter : un querySelector sur tout le document à chaque
+       mouvement coûterait ce que coûtait celui que la barre a dû espacer. */
+    const SEL_DEFILEUR = '.root-scrollable__content';
+    const suiviDePres = (muts) => {
+      if (!pose()) {
+        return (dernierDefileur && dernierDefileur.isConnected)
+          || muts.some((m) => [...m.addedNodes].some((n) => n.nodeType === 1
+            && (n.matches(SEL_DEFILEUR) || !!n.querySelector(SEL_DEFILEUR))));
+      }
+      if (blocHeros && !blocHeros.hidden && !blocHeros.isConnected) return true;
+      if (performance.now() - arrivee > CFG.ACCUEIL_SYNCHRONE_MS) return false;
+      return !(bilan.ancre === 'contenu' && aligneSur && aligneSur.isConnected
+               && (!masquerVoulu || (carrousel && masques.has(carrousel.bloc))));
     };
 
     /* ── L'ANCRAGE ───────────────────────────────────────────────────────────
@@ -15851,6 +16118,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        montrait ; elle est gardée quoi qu'il arrive, mais un défaut y est noté. */
     const verifierPlaceHeros = () => {
       if (placeVue || !blocHeros || blocHeros.hidden || !blocHeros.isConnected) return;
+      // Sous le voile, rien ne se voit : ce n'est pas un défaut de la place (cf. leverVoile).
+      if (voile) { bilan.heros.attentes++; return; }
       const racine = defileur();
       if (!racine) return;
       for (let n = 0; n < PLACES_HEROS.length; n++) {
@@ -15866,14 +16135,23 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
             parent: st ? `${st.display} ${st.flexDirection}` : null,
           });
         }
-        if (!raison || i < 0 || i >= PLACES_HEROS.length - 1) { placeVue = true; return; }
+        if (!raison || i < 0 || i >= PLACES_HEROS.length - 1) {
+          placeVue = true;
+          if (bilan.chrono.vue === null) bilan.chrono.vue = maintenant();
+          return;
+        }
         placeHeros = Math.max(placeHeros, i + 1);
         poserHeros(racine);
       }
     };
     const placer = () => {
-      const racine = defileur();
+      const racine = dernierDefileur && dernierDefileur.isConnected ? dernierDefileur : defileur();
       if (!racine) return false;
+      if (racine !== dernierDefileur) {
+        dernierDefileur = racine;
+        if (bilan.chrono.defileur === null) bilan.chrono.defileur = maintenant();
+        voileBorne();
+      }
       if (!carrousel || !carrousel.bloc.isConnected || !racine.contains(carrousel.bloc)) {
         carrousel = trouverCarrousel(racine);
         bilan.carrousel.voie = carrousel ? carrousel.voie : 'introuvable';
@@ -15892,7 +16170,10 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         if (c.firstElementChild !== section) c.prepend(section);
       }
       poserHeros(racine);
-      if (!etait) { if (bilan.poses) bilan.reposes++; else bilan.poses++; }
+      if (!etait) {
+        if (bilan.poses) bilan.reposes++; else bilan.poses++;
+        if (bilan.chrono.pose === null) bilan.chrono.pose = maintenant();
+      }
       return true;
     };
 
@@ -16046,15 +16327,23 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        est ouverte à tous, d'après son jeton de lecture (cf. lireAcces), ou
        quand on vous sait abonné à la chaîne. Un jeton illisible ne dit pas
        qu'elle est ouverte : sans abonnement connu, pas de bouton. */
-    const majDebut = (a, login, nom) => {
+    /* `reserver` : sur une carte, la place du bouton est gardée tant que le
+       réglage est en marche (cf. la feuille, `data-tse-reserve`) — invisible,
+       sans adresse, donc ni cliquable ni atteignable au clavier. */
+    const majDebut = (a, login, nom, reserver = false) => {
       const d = options.get('accueilDebut') ? debuts.get(login) : null;
       const cle = affiches.get(login);
       const ok = !!d && d.id !== null && d.cle === cle && (d.fermee === false || subs.isSub(login));
-      a.hidden = !ok;
-      if (!ok) return;
-      attrSi(a, 'href', `/videos/${d.id}?t=0s`);
-      attrSi(a, 'title', S.uiAccDebutTitre(nom));
-      if (!a.firstChild) a.append(noeudStatique(PICTO_DEBUT), elt('span', null, S.uiAccDebut));
+      const garde = !ok && reserver && options.get('accueilDebut');
+      a.hidden = !ok && !garde;
+      if (garde) { if (!('tseReserve' in a.dataset)) a.dataset.tseReserve = ''; }
+      else if ('tseReserve' in a.dataset) delete a.dataset.tseReserve;
+      if (!ok) { attrSi(a, 'href', null); attrSi(a, 'title', null); }
+      else {
+        attrSi(a, 'href', `/videos/${d.id}?t=0s`);
+        attrSi(a, 'title', S.uiAccDebutTitre(nom));
+      }
+      if ((ok || garde) && !a.firstChild) a.append(noeudStatique(PICTO_DEBUT), elt('span', null, S.uiAccDebut));
     };
 
     /* Une carte : la vignette (cible de l'aperçu), puis l'avatar et les textes.
@@ -16125,7 +16414,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         avec.dataset.tseNoms = noms;
         avec.replaceChildren(phraseAvecFente(S.uiAccAvec(FENTE), () => nomsEnGras(d.avec)));
       }
-      majDebut(debut, d.login, d.nom);
+      majDebut(debut, d.login, d.nom, true);
     };
     // Une rangée tenue par clé : les cartes restent, se mettent à jour, se réordonnent.
     const rangee = (liste, items, cle, fabriquer, maj) => {
@@ -16383,11 +16672,10 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         zh.replaceChildren(fabriquerHeros(h.login));
       }
       const [fond, media, , infos] = zh.firstChild.children;
-      const minute = Math.floor(Date.now() / CFG.ACCUEIL_IMAGE_MS);
-      const base = `https://static-cdn.jtvnw.net/previews-ttv/live_user_${h.login}`;
-      poserImage(media.firstChild, `${base}-1280x720.jpg?_=${minute}`);
+      const u = urlsHeros(h.login);
+      poserImage(media.firstChild, u.grande);
       // Le fond est flouté de trente pixels : une petite image suffit, la même pour ses deux moitiés.
-      for (const im of fond.firstChild.children) poserImage(im, `${base}-320x180.jpg?_=${minute}`);
+      for (const im of fond.firstChild.children) poserImage(im, u.petite);
       attrSi(media.lastChild, 'aria-label', d.nom);
       const [, enTete, titre, meta, actions] = infos.children;
       const [av, nom, abo] = enTete.children;
@@ -16478,6 +16766,34 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       li.append(rang, fabriquerCarte(login));
       return li;
     };
+    /* Une place en attente : le chiffre, la vignette, l'avatar, deux lignes —
+       et la place du bouton « Depuis le début » si le réglage est en marche,
+       comme sur les vraies (cf. majDebut). Cinq : les colonnes du Top 10 (cf.
+       la feuille, `.tse-acc-liste--top`). */
+    const PLACES_ATTENTE = 5;
+    const fabriquerAttente = (n) => {
+      const li = elt('li', 'tse-acc-place tse-acc-place--attente');
+      li.dataset.tseCle = 'attente:' + n;
+      li.setAttribute('aria-hidden', 'true');
+      const rang = elt('span', 'tse-acc-rang', String(n));
+      const carte = elt('div', 'tse-acc-carte');
+      const infos = elt('div', 'tse-acc-infos');
+      const textes = elt('div', 'tse-acc-textes');
+      const ligne = elt('p', 'tse-acc-ligne-os');
+      ligne.append(elt('span', 'tse-acc-os'));
+      const jeu = elt('p', 'tse-acc-jeu');
+      jeu.append(elt('span', 'tse-acc-os'));
+      textes.append(ligne, jeu);
+      if (options.get('accueilDebut')) {
+        const d = elt('span', 'tse-acc-debut');
+        d.dataset.tseReserve = '';
+        textes.append(d);
+      }
+      infos.append(elt('span', 'tse-acc-avatar'), textes);
+      carte.append(elt('div', 'tse-acc-vignette'), infos);
+      li.append(rang, carte);
+      return li;
+    };
     const majPlace = (li, { p, rang, ref }) => {
       const r = p.tete;
       const [chiffre, carte] = li.children;
@@ -16531,12 +16847,31 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       const ref = complet ? reference(cleLang) : null;
       rangsTop = complet && places.length ? new Map() : null;
       if (rangsTop) places.forEach((p, i) => { for (const r of [p.tete, ...p.membres]) rangsTop.set(r.login, i + 1); });
-      rangee(z.lTop, places.map((p, i) => ({ p, rang: i + 1, ref })),
-             (x) => x.p.tete.login, (x) => fabriquerPlace(x.p.tete.login), majPlace);
-      const note = !places.length ? (resolu ? S.uiAccVide : S.uiAccAttente)
-        : (resolu && !complet ? S.uiGlobalPartial : '');
+      /* EN ATTENDANT LE CLASSEMENT, SES PLACES (4.26.0.5). Le Top 10 se calcule
+         en plusieurs requêtes : plusieurs secondes. Une ligne « Classement en
+         cours… » tenait sa place, et le rayon grandissait de toute une
+         rangée à l'arrivée des places — tout ce qui suit descendait. Les cinq
+         premières places, vides, à leur taille exacte, la tiennent désormais. */
+      const attente = !places.length && !resolu;
+      if (attente !== ('tseAttente' in z.lTop.dataset)) {
+        z.lTop.replaceChildren();
+        if (attente) {
+          z.lTop.dataset.tseAttente = '';
+          z.lTop.setAttribute('aria-busy', 'true');
+          for (let i = 1; i <= PLACES_ATTENTE; i++) z.lTop.append(fabriquerAttente(i));
+        } else {
+          delete z.lTop.dataset.tseAttente;
+          z.lTop.removeAttribute('aria-busy');
+        }
+      }
+      if (!attente) {
+        rangee(z.lTop, places.map((p, i) => ({ p, rang: i + 1, ref })),
+               (x) => x.p.tete.login, (x) => fabriquerPlace(x.p.tete.login), majPlace);
+      }
+      const note = attente ? '' : !places.length ? S.uiAccVide : (resolu && !complet ? S.uiGlobalPartial : '');
       texteSi(z.note, note);
       z.note.hidden = !note;
+      attrSi(z.lTop, 'aria-label', attente ? S.uiAccAttente : null);
       plier(z.top);
     };
 
@@ -16607,6 +16942,14 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       if (!options.get('accueilDebut') || debutEnVol || debutRefuse || document.hidden) return;
       if (Date.now() < debutPause) return;
       const now = Date.now();
+      /* LA MÉMOIRE SE VIDE DE CE QUI N'EST PLUS À L'ÉCRAN. Une réponse par
+         direct affiché, gardée pour ne pas la redemander à chaque peinture —
+         mais le Top 10 change toute la journée, et rien n'en sortait : une
+         entrée de plus par chaîne passée, pour la vie de la page. Ce qui n'est
+         plus affiché depuis une demi-heure part. */
+      for (const [login, d] of debuts) {
+        if (!affiches.has(login) && now - d.ts > CFG.ACCUEIL_DEBUT_OUBLI_MS) debuts.delete(login);
+      }
       const lot = [];
       for (const [login, cle] of affiches) {
         if (!RE_LOGIN.test(login) || !cle) continue;
@@ -16628,6 +16971,14 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        survolée reste la même carte, et son aperçu reste ouvert. */
     const peindre = () => {
       if (!pose() || document.hidden) return;
+      const t = performance.now();
+      try { peindreTout(); } finally {
+        const ms = performance.now() - t;
+        bilan.peinturesMs = Math.round((bilan.peinturesMs + ms) * 10) / 10;
+        if (ms > bilan.peintureMaxMs) bilan.peintureMaxMs = Math.round(ms * 10) / 10;
+      }
+    };
+    const peindreTout = () => {
       /* LA LANGUE PEUT ARRIVER APRÈS LA SECTION. Twitch ne dit pas toujours la
          sienne au premier instant (cf. refreshLanguage) ; une section écrite
          avant gardait ses titres en anglais quand le héros, reconstruit,
@@ -16644,16 +16995,15 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         bilan.relangues++;
       }
       bilan.peintures++;
-      const tete = options.get('accueilTete');
-      const liste = (options.get('accueilSuivis') || tete === 'heros') ? suiviesEnDirect() : [];
-      const premier = liste[0] || null;
-      const heros = tete === 'heros' && premier && premier.score > 0 ? premier : null;
+      const { tete, liste, premier, heros } = choisir();
       bilan.heros.montre = !!heros;
       bilan.heros.sansVisite = tete === 'heros' && !!premier && !heros;
       affiches.clear();
       if (heros) noterAffiche(heros.login, heros.e.stream?.createdAt);
       peindreTop();                 // avant le héros : il y lit sa place
       peindreHeros(heros);
+      if (heros && bilan.chrono.heros === null) bilan.chrono.heros = maintenant();
+      if (heros) { precharges = []; prechargeCle = null; }
       gererCarrousel(heros);
       const suivies = options.get('accueilSuivis')
         ? liste.filter((x) => x !== heros).slice(0, CFG.ACCUEIL_SUIVIES_MAX) : [];
@@ -16680,22 +17030,34 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       const ecart = Math.round(titre.getBoundingClientRect().left - section.getBoundingClientRect().left);
       const voulu = ecart >= 0 && ecart <= 80 ? `${ecart}px` : '';
       if (section.style.paddingInline !== voulu) section.style.paddingInline = voulu;
+      aligneSur = contenu;
     };
     const retirer = () => {
       herosCourant = null;
       oterLecteur();
       demasquer();
+      masquerVoulu = false;
+      if (html.hasAttribute('data-tse-accueil-carrousel')) html.removeAttribute('data-tse-accueil-carrousel');
+      leverVoile('depart');
       if (pose()) { section.remove(); bilan.retraits++; }
       if (blocHeros) blocHeros.remove();
       if (observateur) { observateur.disconnect(); observateur = null; }
       verifPrevue = false;
+      ici = false;
+      precharges = [];
+      prechargeCle = null;
     };
+    /* Entre deux peintures. Le carrousel que Twitch vient de poser est arrêté
+       (cf. appliquerCarrousel), et la section se cale sur les titres de Twitch
+       dès qu'ils paraissent — une fois par contenu : c'est une mesure, donc
+       une mise en page forcée, qu'on ne refait pas à chaque mouvement. */
     const verifier = () => {
       if (!actif()) { retirer(); return; }
       const etait = pose();
       if (!placer()) return;
-      if (!etait) peindre();
-      else if (masques.size) for (const b of masques) masquer(b);
+      if (!etait) { peindre(); return; }
+      appliquerCarrousel();
+      if (!section.hidden && !(aligneSur && aligneSur.isConnected)) aligner();
     };
     const planifier = () => {
       if (verifPrevue) return;
@@ -16706,12 +17068,15 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        repose la section si React l'a emportée, remasque un carrousel
        redessiné. Les mutations de notre propre section ne le réveillent pas,
        ni celles du héros, qui vit hors d'elle (4.26.0.3) : sa vidéo posée et
-       retirée, sa carte repeinte, ne sont pas la page de Twitch qui bouge. */
+       retirée, sa carte repeinte, ne sont pas la page de Twitch qui bouge.
+       Juste après l'arrivée, il regarde dans la même image (cf. suiviDePres) :
+       un MutationObserver rend la main avant que la page ne soit peinte. */
     const observer = () => {
       if (observateur) return;
       observateur = new MutationObserver(erreurs.garde('accueil', (muts) => {
         if (section && muts.every((m) => section.contains(m.target) || blocHeros.contains(m.target))) return;
         bilan.reveils++;
+        if (suiviDePres(muts)) { bilan.synchrones++; verifier(); return; }
         planifier();
       }));
       observateur.observe(document.body, { childList: true, subtree: true });
@@ -16726,30 +17091,53 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
           if (!masques.size || !v || (v.localName !== 'video' && v.localName !== 'audio')) return;
           for (const b of masques) if (b.contains(v)) { pauser(v); return; }
         }, true);
-        // Un onglet caché arrête la vidéo du héros ; revenu, elle reprend.
+        /* Un onglet caché arrête la vidéo du héros ; revenu, elle reprend. ET
+           L'ACCUEIL SE PEINT À CET INSTANT (4.26.0.5) : ouvert en arrière-plan,
+           il a été posé mais pas peint — un onglet caché ne peint pas —, et
+           c'est l'accueil de Twitch qu'on voyait en y venant, jusqu'au réveil
+           suivant. `visibilitychange` passe avant la première image. */
         document.addEventListener('visibilitychange', erreurs.garde('accueil', () => {
-          if (pose()) majLecteur();
+          if (!pose()) return;
+          if (!document.hidden && actif()) peindre();
+          majLecteur();
         }));
         options.surChangement(() => {
           if (!actif()) { retirer(); return; }
+          if (!ici) { ici = true; arriver(false); }
           observer();
           verifier();
           if (pose()) peindre();
         });
         this.route();
       },
+      /* Au tout début de la page (document_start), avant même le DOM : si l'on
+         arrive sur l'accueil et qu'il y aura de quoi attendre, le voile se
+         pose avant que Twitch ne peigne quoi que ce soit. Le roster n'est pas
+         encore lu : sa seule présence suffit ici, l'arrivée (cf. arriver)
+         lèvera le voile s'il n'y avait rien à attendre. */
+      tot() {
+        if (!surAccueil() || !options.get('accueil') || !veutDonnees()) return;
+        let r = null;
+        try { r = localStorage.getItem(CFG.ROSTER_STORAGE_KEY); } catch { r = null; }
+        if (r && r.length > 2) poserVoile();
+      },
       // Appelé à chaque changement d'adresse (cf. visitTracker).
       route() {
         if (!actif()) { retirer(); return; }
+        if (!ici) { ici = true; arriver(true); }
         observer();
         verifier();
       },
       tick() {
-        if (!actif()) { if (pose() || observateur) retirer(); return; }
+        if (!actif()) { if (pose() || observateur || voile) retirer(); return; }
         verifier();
         if (topActif() && !partage()) classement.tick();
         peindre();
+        // Filet : une réponse dont on n'aurait pas été prévenu ne laisse pas le voile en place.
+        if (voile && decidable()) leverVoile('reveil');
       },
+      // Un lot de TseChannels a été servi (cf. flushQueue).
+      donnees: erreurs.garde('accueil', () => donnees()),
       /* L'aperçu au survol s'étend aux cartes de l'accueil : les nôtres, et
          celles de Twitch, reconnues à leur miniature de direct. Rend la
          carte, ou null — ailleurs que sur l'accueil, toujours null. */
@@ -16768,14 +17156,18 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       bilan: () => ({
         ...bilan,
         actif: actif(), pose: pose(), observe: !!observateur,
-        carrousel: { ...bilan.carrousel, masque: masques.size > 0 },
+        carrousel: { ...bilan.carrousel, masque: masques.size > 0, masques: masques.size },
         heros: { ...bilan.heros, vue: placeVue, rejets: bilan.heros.rejets.map((r) => ({ ...r })),
+                 enPrechargement: precharges.length,
                  video: { ...bilan.heros.video, joue: !!lecteur, devoilee: !!lecteur?.devoile },
                  ambiance: { ...bilan.heros.ambiance } },
         rayons: { ouverts: [...ouverts] },
         top: { ...bilan.top, langue: options.get('accueilTop') ? (langueVoulue() || 'toutes') : null,
                classement: classement.report() },
         debut: { ...bilan.debut, connus: debuts.size, refuse: debutRefuse },
+        chrono: { ...bilan.chrono },
+        voile: { ...bilan.voile, levees: { ...bilan.voile.levees }, actif: !!voile },
+        amorce: { ...bilan.amorce, chaines: amorce ? amorce.logins.length : 0, decidable: decidable() },
       }),
       // Surface de vérification : le classement propre à l'accueil.
       classement: () => classement,
@@ -33708,6 +34100,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     for (const [login] of roster.entries()) {
       if (budget-- <= 0) break;
       if (getFreshChannel(login)) continue;
+      /* Déjà en vol — l'amorce de l'accueil l'a demandée au démarrage
+         (4.26.0.5) : sa réponse arrive, la redemander la paierait deux fois. */
+      if (enVolLogins.has(login)) continue;
       fetchChannel(login); // résultat récupéré via le cache au prochain scan
     }
   };
@@ -34740,6 +35135,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
    * ============================================================ */
   const boot = () => {
     injectCSS();
+    // Avant que Twitch ne peigne quoi que ce soit (cf. VOILE_ACCUEIL).
+    pageAccueil.tot();
     const ready = () => {
       // DOMContentLoaded : refreshLanguage corrige LANG si la première
       // détection (à document_start) était trop précoce.
