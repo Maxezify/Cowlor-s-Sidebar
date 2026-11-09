@@ -503,7 +503,7 @@
     "message": "Précédemment sur ce live"
   },
   "guideFriseTexte": {
-    "message": "Vous arrivez au milieu d'un direct de huit heures ? La frise de l'aperçu montre ce qui s'est passé avant : une bande par catégorie, à l'échelle du temps, et la liste dessous.\n• « ×3 » : le streamer est revenu trois fois sur cette catégorie.\n• Une chaîne qui n'archive pas ses directs ? La frise se reconstruit d'après les clips, et le dit.\n• Un « ~ » devant une durée, une couleur qui s'estompe : l'heure exacte n'est pas connue. Rien n'est inventé."
+    "message": "Vous arrivez au milieu d'un direct de huit heures ? La frise de l'aperçu montre ce qui s'est passé avant : une bande par catégorie, à l'échelle du temps, et la liste dessous.\n• « ×3 » : le streamer est revenu trois fois sur cette catégorie.\n• Une chaîne qui n'archive pas ses directs ? La frise se reconstruit d'après les clips, et le dit.\n• Un « ~ » devant une durée, une couleur qui s'estompe : l'heure exacte n'est pas connue. Rien n'est inventé.\n• Au-dessus de la frise, le récap : « Depuis 18:02 : 1h20 Discussions → 2h40 Elden Ring », puis les clips du direct et le plus vu — « 6 clips · le plus vu : « … » (8,4 k vues) ». Une page de clips pleine se dit « 30+ », et le plus vu ne se nomme que s'il est sûr."
   },
   "guideSubathonTitre": {
     "message": "Les subathons"
@@ -621,6 +621,9 @@
   },
   "guideBadgeSubathon": {
     "message": "Subathon • JOUR 10"
+  },
+  "guideBadgeRecap": {
+    "message": "Le récap du direct"
   },
   "guideDemoTitre": {
     "message": "On finit le donjon, puis questions-réponses"

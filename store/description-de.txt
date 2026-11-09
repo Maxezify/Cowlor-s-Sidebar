@@ -43,6 +43,7 @@ Sie kommen mitten in einen achtstündigen Stream. Was ist vorher passiert? Die V
 - ★ MASSSTABSGETREU ★ Die Breite jedes Bandes ist echte Zeit. Ein Blick genügt, um zu sehen, wo der Abend geblieben ist.
 - ★ AUCH OHNE AUFZEICHNUNG ★ Ein Kanal ohne Archiv? Die Erweiterung rekonstruiert den Weg aus den Clips — und SAGT es.
 - ★ SIE GIBT ZU, WAS SIE NICHT WEISS ★ Ist die genaue Uhrzeit eines Wechsels unbekannt, verläuft die Farbe weich statt scharf zu schneiden, und die Dauer trägt ein „~“. Niemals eine erfundene Zahl.
+- ★ DIE ZUSAMMENFASSUNG ★ In einer Zeile, wo der Stream schon war: „Seit 18:02: 1h20 Just Chatting → 2h40 Elden Ring“. In einer zweiten, was seine Clips davon festgehalten haben: „6 Clips · meistgesehen: „…“ (8.400 Aufrufe)“. Eine Anfrage an Twitch pro überfahrenem Stream, höchstens alle zehn Minuten.
 
 _______________________________
 

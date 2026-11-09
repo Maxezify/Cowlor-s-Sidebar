@@ -43,6 +43,7 @@ Chega a meio de uma transmissão de oito horas. O que aconteceu antes? A pré-vi
 - ★ À ESCALA ★ A largura de cada faixa é tempo real. Um olhar chega para ver por onde foi a noite.
 - ★ MESMO SEM GRAVAÇÃO ★ Um canal que não arquiva? A extensão reconstitui o percurso a partir dos clipes, e DI-LO.
 - ★ ADMITE O QUE DESCONHECE ★ Quando a hora exata de uma mudança não é conhecida, a cor esbate-se em vez de cortar a direito, e a duração leva um "~". Nunca um número inventado.
+- ★ O RESUMO ★ Numa linha, por onde a transmissão passou: «Desde 18:02: 1h20 Just Chatting → 2h40 Elden Ring». Noutra, o que os clipes guardaram dela: «6 clipes · o mais visto: «…» (8,4 mil visualizações)». Um pedido ao Twitch por transmissão sobrevoada, no máximo a cada dez minutos.
 
 _______________________________
 

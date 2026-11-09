@@ -43,6 +43,7 @@ Vous arrivez au milieu d'un stream de huit heures. Qu'est-ce qui s'est passé av
 - ★ À L'ÉCHELLE ★ La largeur de chaque bande, c'est du temps réel. Un coup d'œil suffit pour voir où est passée la soirée.
 - ★ MÊME SANS REPLAY ★ Une chaîne qui n'archive pas ? L'extension reconstitue le parcours à partir des clips, et le DIT.
 - ★ ELLE AVOUE CE QU'ELLE IGNORE ★ Quand l'heure exacte d'un changement n'est pas connue, la couleur se fond au lieu de trancher net, et la durée porte un « ~ ». Jamais un chiffre inventé.
+- ★ LE RÉCAP ★ En une ligne, d'où vient le direct : « Depuis 18:02 : 1h20 Discussions → 2h40 Elden Ring ». En une autre, ce que ses clips en ont gardé : « 6 clips · le plus vu : « … » (8,4 k vues) ». Une demande à Twitch par direct survolé, toutes les dix minutes au plus.
 
 _______________________________
 

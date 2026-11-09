@@ -503,7 +503,7 @@
     "message": "Vorher in diesem Stream"
   },
   "guideFriseTexte": {
-    "message": "Du kommst mitten in einen achtstündigen Stream? Die Zeitleiste der Vorschau zeigt, was vorher war: ein Streifen pro Kategorie, maßstabsgetreu, und darunter die Liste.\n• „×3“: Der Streamer ist dreimal zu dieser Kategorie zurückgekehrt.\n• Ein Kanal, der seine Streams nicht archiviert? Die Zeitleiste wird aus den Clips rekonstruiert, und sie sagt es.\n• Ein „~“ vor einer Dauer, eine Farbe, die ausläuft: Der genaue Zeitpunkt ist unbekannt. Nichts ist erfunden."
+    "message": "Du kommst mitten in einen achtstündigen Stream? Die Zeitleiste der Vorschau zeigt, was vorher war: ein Streifen pro Kategorie, maßstabsgetreu, und darunter die Liste.\n• „×3“: Der Streamer ist dreimal zu dieser Kategorie zurückgekehrt.\n• Ein Kanal, der seine Streams nicht archiviert? Die Zeitleiste wird aus den Clips rekonstruiert, und sie sagt es.\n• Ein „~“ vor einer Dauer, eine Farbe, die ausläuft: Der genaue Zeitpunkt ist unbekannt. Nichts ist erfunden.\n• Über der Zeitleiste die Zusammenfassung: „Seit 18:02: 1h20 Just Chatting → 2h40 Elden Ring“, dann die Clips des Streams und der meistgesehene – „6 Clips · meistgesehen: „…“ (8.400 Aufrufe)“. Eine volle Seite Clips heißt „30+“, und der meistgesehene wird nur genannt, wenn er sicher ist."
   },
   "guideSubathonTitre": {
     "message": "Subathons"
@@ -621,6 +621,9 @@
   },
   "guideBadgeSubathon": {
     "message": "Subathon • TAG 10"
+  },
+  "guideBadgeRecap": {
+    "message": "Die Stream-Zusammenfassung"
   },
   "guideDemoTitre": {
     "message": "Wir beenden den Dungeon, dann Q&A"

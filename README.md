@@ -2183,6 +2183,112 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## L'accueil, niveau 2 : le récap du direct en cours, dans l'aperçu (v4.29.0)
+
+Troisième idée du niveau 2. Publiée sur `claude/chrome-homepage` seulement.
+
+| demandé | ce qui a été fait |
+| --- | --- |
+| « Depuis 18 h 02 : 1 h 20 Just Chatting → 2 h 40 Elden Ring · 6 clips, le plus vu : « … » (8,4 k vues) » | deux lignes dans l'aperçu, entre les badges et la frise : d'où vient le direct, puis ce que ses clips en ont gardé |
+| « données : la frise + TseClips LAST_DAY » | la frise telle qu'elle est déjà lue, et les clips du direct, une demande par direct |
+| « à vérifier : que le titre et les vues du clip sont disponibles anonymement » | **pas vérifiable d'ici** : la machine du banc n'atteint pas Twitch. On les demande, on s'en passe si le schéma les refuse, et le rapport dit lequel des deux est en jeu |
+
+### La première ligne : d'où vient le direct
+
+« Depuis 18:02 : 1h20 Discussions → 2h40 Elden Ring ». L'heure est celle du
+début du direct ENTIER — coupures comprises, comme la frise —, précédée de son
+jour quand ce n'est pas aujourd'hui (« Depuis mar. 14:04 »). Les étapes sont les
+segments de la frise, dans l'ordre du temps : la part non observée s'écrit
+« … », une frise faite de clips met un « ~ » devant chaque durée, et au-delà
+de quatre étapes viennent les trois dernières. Sans frise, l'heure seule.
+
+### La seconde : ce que ses clips en ont gardé
+
+« 6 clips · le plus vu : « Le boss en une vie » (8,4 k vues) ». Seuls les
+clips faits PENDANT le direct comptent : ceux d'avant, même très vus, n'y
+entrent pas. Et le compte ne dit que ce que la réponse prouve :
+
+- **une page pleine** (trente clips) ne dit pas combien il y en a : « 30+ » ;
+- **le plus vu** ne se nomme que si la page les a tous, ou si elle est rangée
+  par vues décroissantes et contient des clips du direct. L'ordre se constate
+  sur la réponse ; il ne se suppose pas ;
+- **un direct de plus d'un jour** : la première forme ne couvre que les
+  vingt-quatre dernières heures, et la ligne le dit (« 2 clips en 24 h ») ;
+- **une page pleine sans un clip du direct** ne dit rien de lui : la ligne se
+  tait ; une page incomplète sans clip du direct dit « Aucun clip ».
+
+### Ce qui n'a pas pu être vérifié, et ce qu'on en fait
+
+`title` et `viewCount` sont des champs ordinaires des clips de Twitch, mais
+rien d'ici n'a pu montrer qu'une requête anonyme les reçoit. Si le schéma les
+refuse — une erreur qui les nomme —, ils sont retirés de la demande pour la
+session : le compte reste, et aucun « plus vu » n'est dit. La forme de la
+requête, elle, avance comme celle de la troisième porte de la frise :
+`period: LAST_DAY` d'abord, puis `sort: CREATED_AT_DESC` si le serveur refuse
+la première, et plus rien si les deux le sont. Le rapport (`reseau.recap`)
+dit la forme en jeu, si les champs sont servis, et combien de clips portaient
+un titre et des vues.
+
+### Ce qu'il coûte
+
+| ce qui s'affiche | ce que ça coûte |
+| --- | --- |
+| la première ligne | **rien** : la frise et le début du direct sont déjà connus |
+| la seconde | **une** opération `TseRecapClips` par direct survolé, au plus toutes les dix minutes |
+
+### Le réglage
+
+« Le récap du direct » rejoint les badges de l'aperçu, dans « Réglages » :
+décoché, ni ligne, ni demande à Twitch. Le nombre de réglages ne change pas.
+
+### Les textes
+
+Dix langues dans l'aperçu ; douze dans le panneau, le mode d'emploi
+(« Précédemment sur ce live ») et les fiches du Store.
+
+### Le banc
+
+**223**, nouveau. Huit clips par page au banc, trente en vrai.
+
+- a) « Depuis … : 1h20 Discussions → 2h40 Elden Ring », d'après les chapitres du
+  VOD arrivés après l'ouverture — et après les clips ; six clips du direct, et
+  pas les deux d'avant, plus vus ; le récap juste avant la frise ;
+- b) une page pleine : « 8+ », et le plus vu, la page étant rangée par vues ;
+- c) des clips d'avant le direct seulement : « Aucun clip » ;
+- d) un direct de trente heures : son jour, et « 2 clips en 24 h » ; une page
+  pleine sans un clip du direct : la ligne se tait ;
+- e) une demande par direct et par dix minutes ; la frise déjà là au premier
+  rendu, le récap la précède encore ;
+- f) `title` et `viewCount` refusés : retirés, le compte reste, sans « plus
+  vu » ;
+- g) la première forme refusée : la seconde, par date — une page pleine qui
+  atteint l'avant du direct compte juste ; une page pleine du direct seul n'a
+  pas tout vu ;
+- h) le récap retiré dans « Réglages » : ni ligne, ni demande ;
+- i) une page pleine qui n'est pas rangée par vues : le compte, sans « plus
+  vu ».
+
+**Quatorze mutants nommés, tous pris.**
+
+| mutant | ce qui tombe |
+| --- | --- |
+| le récap sans la frise | 223 a) : « Depuis … » sans ses étapes |
+| les clips d'avant le direct comptés | 223 a) et c) : les deux d'avant, plus vus, entrent au compte |
+| la page pleine prise pour le tout | 223 b) : « 8 clips » au lieu de « 8+ » |
+| le plus vu sans preuve | 223 g) : une page pleine du direct seul, rangée par date, nomme un « plus vu » |
+| l'ordre des vues supposé | 223 i) : une page pleine qui n'est pas rangée par vues nomme un « plus vu » |
+| la seconde forme qui ne voit pas le tout | 223 g) : la page qui atteint l'avant du direct se dit « 8+ » |
+| les vingt-quatre heures tues | 223 d) : « 2 clips », sans « en 24 h » |
+| les champs refusés pris pour une forme refusée | 223 f) : plus de compte du tout |
+| une demande à chaque survol | 223 e) : survolé de nouveau, nyx redemande |
+| le récap retiré qui demande quand même | 223 h) : une demande à Twitch, réglage décoché |
+| « 0+ clips » | 223 d) : une page pleine sans un clip du direct parle de lui |
+| l'heure sans son jour | 223 d) : un direct parti la veille dit son heure seule |
+| le récap après la frise | 223 e) : la frise déjà là, le récap passe après elle |
+| le récap qui ne suit pas la frise | 223 a) : les chapitres arrivés après les clips, le récap reste sans étapes |
+
+Le banc complet : 2221 assertions dans 222 scénarios, toutes vertes.
+
 ## L'accueil, niveau 2 : une étiquette par carte (v4.28.0)
 
 Deuxième idée du niveau 2. Publiée sur `claude/chrome-homepage` seulement.
@@ -23769,7 +23875,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | les six fichiers JavaScript livrés — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 221 scénarios, 2207 assertions |
+| `npm test` | le harnais Playwright : 222 scénarios, 2221 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -23790,13 +23896,13 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 2075 Ko | 937 Ko | 4 564 → **2** |
+| `content.js` | 2090 Ko | 948 Ko | 4 577 → **2** |
 | `cadres.js` | 68 Ko | 31 Ko | 160 → **0** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
 | `panneau.js` | 162 Ko | 82 Ko | 224 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 26 → **0** |
 | `background.js` | 10 Ko | 2 Ko | 22 → **0** |
-| **les six** | **2455 Ko** | **1156 Ko** | **−53 %** |
+| **les six** | **2469 Ko** | **1167 Ko** | **−53 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se

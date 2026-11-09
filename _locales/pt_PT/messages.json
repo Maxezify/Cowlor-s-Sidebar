@@ -503,7 +503,7 @@
     "message": "Antes nesta live"
   },
   "guideFriseTexte": {
-    "message": "Chegas a meio de uma emissão de oito horas? A linha temporal da pré-visualização mostra o que aconteceu antes: uma faixa por categoria, à escala, e a lista por baixo.\n• «×3»: o streamer voltou três vezes a essa categoria.\n• Um canal que não arquiva as suas emissões? A linha temporal é reconstruída a partir dos clips, e di-lo.\n• Um «~» antes de uma duração, uma cor que se esbate: a hora exata não é conhecida. Nada é inventado."
+    "message": "Chegas a meio de uma emissão de oito horas? A linha temporal da pré-visualização mostra o que aconteceu antes: uma faixa por categoria, à escala, e a lista por baixo.\n• «×3»: o streamer voltou três vezes a essa categoria.\n• Um canal que não arquiva as suas emissões? A linha temporal é reconstruída a partir dos clips, e di-lo.\n• Um «~» antes de uma duração, uma cor que se esbate: a hora exata não é conhecida. Nada é inventado.\n• Acima da linha do tempo, o resumo: «Desde 18:02: 1h20 Just Chatting → 2h40 Elden Ring», e depois os clipes da transmissão e o mais visto — «6 clipes · o mais visto: «…» (8,4 mil visualizações)». Uma página de clipes cheia diz «30+», e o mais visto só é nomeado quando é certo."
   },
   "guideSubathonTitre": {
     "message": "Os subathons"
@@ -621,6 +621,9 @@
   },
   "guideBadgeSubathon": {
     "message": "Subathon • DIA 10"
+  },
+  "guideBadgeRecap": {
+    "message": "O resumo da transmissão"
   },
   "guideDemoTitre": {
     "message": "Acabamos a masmorra e depois perguntas"

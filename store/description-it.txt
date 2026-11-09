@@ -43,6 +43,7 @@ Arrivi a metà di una live di otto ore. Cos'è successo prima? L'anteprima te lo
 - ★ IN SCALA ★ La larghezza di ogni banda è tempo reale. Un'occhiata basta per capire dov'è finita la serata.
 - ★ ANCHE SENZA REPLAY ★ Un canale che non archivia? L'estensione ricostruisce il percorso dalle clip, e lo DICE.
 - ★ AMMETTE CIÒ CHE NON SA ★ Quando l'ora esatta di un cambio non è nota, il colore sfuma invece di tagliare netto, e la durata porta una «~». Mai un numero inventato.
+- ★ IL RIEPILOGO ★ In una riga, dove è passata la diretta: «Dalle 18:02: 1h20 Just Chatting → 2h40 Elden Ring». In un'altra, ciò che le sue clip ne hanno tenuto: «6 clip · la più vista: «…» (8400 visualizzazioni)». Una richiesta a Twitch per diretta sorvolata, al massimo ogni dieci minuti.
 
 _______________________________
 

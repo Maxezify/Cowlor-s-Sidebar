@@ -9727,13 +9727,17 @@ titre('80. Aperçu — l\'ordre du corps : les badges ensemble, la frise en dern
     const titre = corps.querySelector('.tse-preview__title');
     const zone = corps.querySelector('.tse-preview__badges');
     const frise = corps.querySelector('.tse-preview__frise');
+    /* Le récap du direct (4.29.0) se pose entre les badges et la frise : le
+       même écart le sépare de l'un et de l'autre. */
+    const recap = corps.querySelector('.tse-preview__recap');
     return {
       enfants: [...corps.children].map(e => e.className.split(' ')[0]),
       badgeDansLaZone: !!badge && !!badge.closest('.tse-preview__badges'),
       zones: corps.querySelectorAll('.tse-preview__badges').length,
       dernier: corps.lastElementChild?.className.split(' ')[0] || null,
       titreBadges: ecart(titre, zone),
-      badgesFilet: ecart(zone, frise),
+      badgesFilet: recap ? ecart(zone, recap) : ecart(zone, frise),
+      recapFilet: recap ? ecart(recap, frise) : null,
     };
   });
   ok('le badge « Contenu classé », arrivé tard, rejoint la ZONE des badges',
@@ -9749,8 +9753,9 @@ titre('80. Aperçu — l\'ordre du corps : les badges ensemble, la frise en dern
      marge propre, soit quinze au lieu de six. Deux endroits décidaient d'un
      même espacement ; il n'y en a plus qu'un. */
   ok('…et les deux respirations sont ÉGALES : titre→badges = badges→filet',
-     ordre.titreBadges === ordre.badgesFilet && ordre.titreBadges > 0,
-     JSON.stringify({ titreBadges: ordre.titreBadges, badgesFilet: ordre.badgesFilet }));
+     ordre.titreBadges === ordre.badgesFilet && ordre.titreBadges > 0
+     && (ordre.recapFilet === null || ordre.recapFilet === ordre.titreBadges),
+     JSON.stringify({ titreBadges: ordre.titreBadges, badgesFilet: ordre.badgesFilet, recapFilet: ordre.recapFilet }));
   /* La VALEUR, et pas seulement l'égalité. Six pixels ont été jugés trop
      serrés à l'usage ; dix ont été demandés. Une assertion qui ne vérifierait
      que l'égalité laisserait les deux dériver ensemble sans rien dire. */
@@ -40795,6 +40800,180 @@ const lireImages = (page) => page.evaluate(() => {
   ok('f) « Une étiquette par carte » coupé : aucune étiquette, et aucune chaîne des rayons de Twitch demandée',
      vf === 0 && coutF === 0, JSON.stringify({ vf, coutF }));
   await pf.close();
+}
+
+{
+  titre('223. Le récap du direct dans l\'aperçu — d\'où il vient, ses clips, le plus vu ; et rien qui ne soit prouvé');
+  /* LE DÉCOR. Des chaînes inventées, une par règle. Huit clips par page au
+     banc (trente en vrai) :
+       nyx    — partie il y a quatre heures : 1 h 20 de Discussions puis
+                Elden Ring, d'après les chapitres du VOD ; six clips pendant le
+                direct, deux d'avant — très vus, et pourtant hors du récap ;
+       orion  — dix clips pendant le direct : la page est pleine, « 8+ » ;
+       pavot  — des clips d'avant le direct seulement : « Aucun clip » ;
+       rune   — un direct de trente heures : les vingt-quatre dernières
+                seulement, et le récap le dit. */
+  const M = 60_000, H = 60 * M;
+  const ouvrir = async (options = null) => {
+    const init = options ? `localStorage.setItem('tse:options', ${JSON.stringify(JSON.stringify(options))});` : null;
+    const p = await freshTwitch(undefined, [], '/', init);
+    await p.evaluate(([M, H]) => {
+      const iso = (t) => new Date(t).toISOString();
+      const now = Date.now();
+      const mk = (depuis, jeu, v) => ({ id: 'x', createdAt: iso(now - depuis), viewers: v, game: jeu, tags: [] });
+      window.__fx = { nyx: mk(4 * H, 'Elden Ring', 5000), orion: mk(3 * H, 'VALORANT', 3000),
+                      pavot: mk(2 * H, 'Minecraft', 800), rune: mk(30 * H, 'Just Chatting', 2000) };
+      window.__vod = { nyx: { createdAt: iso(now - 4 * H), chapitres: [{ pos: 0, jeu: 'Just Chatting' }, { pos: 80 * M, jeu: 'Elden Ring' }] } };
+      const c = (titre, vues, ilYaMin) => ({ titre, vues, ilYaMin });
+      window.__recapClips = {
+        // Six pendant le direct ; trois d'avant, dont deux de plus de vingt-quatre heures.
+        nyx: [c('Le boss en une vie', 8400, 30), c('Le chat traverse', 1200, 60), c('Raté de peu', 900, 90),
+              c('Bonjour à tous', 300, 200), c('La pause', 120, 150), c('Le cri', 2500, 100),
+              c('Hier soir', 99000, 300), c('La veille', 50000, 26 * 60), c('Avant', 40000, 30 * 60)],
+        orion: Array.from({ length: 10 }, (_, i) => c('Clip ' + i, 800 - 10 * i, 10 + i * 10)),
+        pavot: [c('Avant', 4000, 500), c('Bien avant', 3000, 700)],
+        rune: [c('Ce matin', 700, 60), c('Cette nuit', 1500, 600), c('Avant-hier', 9000, 26 * 60)],
+        // Dix clips d'avant le direct, dans les vingt-quatre heures : une page pleine, et rien de lui.
+        sel: Array.from({ length: 10 }, (_, i) => c('Avant ' + i, 500 - i, 200 + i * 20)),
+      };
+      window.__fx.sel = mk(H, 'Minecraft', 600);
+      for (const l of ['nyx', 'orion', 'pavot', 'rune', 'sel']) window.__addCard(l, window.__fx[l].game, String(window.__fx[l].viewers));
+    }, [M, H]);
+    await attendre(p, () => document.querySelectorAll('[data-tse-viewers]').length === 5);
+    return p;
+  };
+  const survoler = async (p, login, lignes = 2) => {
+    await hoverLogin(p, login);
+    await attendre(p, () => !!document.querySelector('.tse-preview[data-tse-visible="true"]'), 6000);
+    await attendre(p, (n) => document.querySelectorAll('.tse-preview__recap-ligne').length >= n, 6000, lignes);
+    return p.evaluate(() => [...document.querySelectorAll('.tse-preview__recap-ligne')].map((x) => x.textContent));
+  };
+  const relacher = async (p, login) => {
+    await p.evaluate((l) => {
+      [...document.querySelectorAll('.side-nav-card')].find((c) => c.dataset.tseLogin === l)
+        ?.dispatchEvent(new MouseEvent('mouseleave', { bubbles: false }));
+    }, login);
+    await attendre(p, () => !document.querySelector('.tse-preview[data-tse-visible="true"]'), 3000);
+  };
+  const heure = (p, l) => p.evaluate((x) => new Date(window.__fx[x].createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }), l);
+  const tousAppels = (p) => p.evaluate(() => window.__calls.filter((c) => (c.names || []).includes('TseRecapClips')).length);
+
+  const pa = await ouvrir();
+  // a) Le cas qui motive tout. La frise vient du VOD, qui arrive après l'ouverture
+  //    — et APRÈS les clips : le récap déjà posé doit suivre la frise.
+  await pa.evaluate(() => { window.__retardOp = { TseVodChapters: 900 }; });
+  await hoverLogin(pa, 'nyx');
+  await attendre(pa, () => /→/.test(document.querySelector('.tse-preview__recap-ligne')?.textContent || '')
+    && document.querySelectorAll('.tse-preview__recap-ligne').length === 2, 8000);
+  const a = await pa.evaluate(() => [...document.querySelectorAll('.tse-preview__recap-ligne')].map((x) => x.textContent));
+  const hNyx = await heure(pa, 'nyx');
+  ok('a) « Depuis 18:02 : 1h20 Discussions → 2h40 Elden Ring », dans l\'ordre du temps, d\'après la frise',
+     nz(a[0]) === nz(`Depuis ${hNyx} : 1h20 Discussions → 2h40 Elden Ring`), JSON.stringify({ a, hNyx }));
+  ok('…puis les clips du DIRECT et le plus vu : ceux d\'avant, plus vus, n\'y entrent pas',
+     nz(a[1]) === '6 clips · le plus vu : « Le boss en une vie » (8,4 k vues)', JSON.stringify(a));
+  const ordre = await pa.evaluate(() => {
+    const corps = document.querySelector('.tse-preview__body');
+    const r = corps.querySelector('.tse-preview__recap'), f = corps.querySelector('.tse-preview__frise');
+    return !!r && !!f && !!(r.compareDocumentPosition(f) & Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+  ok('…juste avant la frise', ordre, String(ordre));
+  await relacher(pa, 'nyx');
+  await pa.evaluate(() => { window.__retardOp = {}; });
+
+  // b) Une page pleine ne dit pas combien il y en a.
+  const b = await survoler(pa, 'orion');
+  await relacher(pa, 'orion');
+  // c) Des clips d'avant le direct seulement.
+  const c = await survoler(pa, 'pavot');
+  await relacher(pa, 'pavot');
+  // d) Un direct de trente heures : les vingt-quatre dernières.
+  const d = await survoler(pa, 'rune');
+  await relacher(pa, 'rune');
+  const jRune = await pa.evaluate(() => {
+    const t = new Date(window.__fx.rune.createdAt);
+    return `${t.toLocaleDateString('fr-FR', { weekday: 'short' })} ${t.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`;
+  });
+  // Une page pleine sans un clip du direct ne dit rien de lui.
+  await hoverLogin(pa, 'sel');
+  await attendre(pa, () => !!document.querySelector('.tse-preview[data-tse-visible="true"] .tse-preview__recap'), 6000);
+  await wait(pa, 1_000);
+  const sel = await pa.evaluate(() => [...document.querySelectorAll('.tse-preview__recap-ligne')].map((x) => x.textContent));
+  await relacher(pa, 'sel');
+  ok('b) une page pleine se dit « 8+ » (trente en vrai), et le plus vu s\'y nomme : elle est rangée par vues, et le direct y est',
+     nz(b[1]) === '8+ clips · le plus vu : « Clip 0 » (800 vues)', JSON.stringify(b));
+  ok('c) des clips d\'avant le direct seulement : « Aucun clip »', c[1] === 'Aucun clip', JSON.stringify(c));
+  ok('d) un direct de trente heures : parti un autre jour, il le dit — et les clips des vingt-quatre dernières heures, en le disant',
+     nz(d[0]) === nz(`Depuis ${jRune}`) && nz(d[1]) === '2 clips en 24 h · le plus vu : « Cette nuit » (1,5 k vues)',
+     JSON.stringify({ d, jRune }));
+  ok('…et une page pleine sans un clip du direct ne dit rien de lui : ni compte, ni « Aucun clip »',
+     sel.length === 1, JSON.stringify(sel));
+
+  // e) Une demande par direct et par dix minutes : survolé de nouveau, nyx ne redemande rien.
+  const avant = await tousAppels(pa);
+  await survoler(pa, 'nyx');
+  await wait(pa, 500);
+  const apres = await tousAppels(pa);
+  // Les chapitres déjà connus, la frise est là dès le premier rendu : le récap la précède encore.
+  const ordre2 = await pa.evaluate(() => {
+    const corps = document.querySelector('.tse-preview__body');
+    const r = corps.querySelector('.tse-preview__recap'), f = corps.querySelector('.tse-preview__frise');
+    return !!r && !!f && !!(r.compareDocumentPosition(f) & Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+  await relacher(pa, 'nyx');
+  const rap = await pa.evaluate(() => window.tse.panneau.rapport().reseau.recap);
+  ok('…et, la frise déjà là au premier rendu, le récap juste avant elle', ordre2, String(ordre2));
+  ok('e) une demande par direct et par dix minutes : survolé de nouveau, rien ne repart',
+     avant === 5 && apres === 5 && rap.servis === 5 && rap.champs === true && rap.forme === 0, JSON.stringify({ avant, apres, rap }));
+  await pa.close();
+
+  /* f) LE SCHÉMA REFUSE `title` ET `viewCount` — ce qu'on n'a pas pu vérifier
+     d'ici. Les deux champs se retirent, le compte reste, et rien n'est nommé. */
+  const pf = await ouvrir();
+  await pf.evaluate(() => { window.__recapSansChamps = true; });
+  await survoler(pf, 'nyx', 1);
+  await relacher(pf, 'nyx');
+  const f = await survoler(pf, 'orion');
+  const rapF = await pf.evaluate(() => window.tse.panneau.rapport().reseau.recap);
+  ok('f) title et viewCount refusés par le schéma : retirés de la demande, le compte reste, et aucun « plus vu » n\'est dit',
+     f[1] === '8+ clips' && rapF.champs === false && rapF.champsRefuses === 1, JSON.stringify({ f, rapF }));
+  await pf.close();
+
+  /* g) LA PREMIÈRE FORME REFUSÉE PAR LE SERVEUR : la seconde, rangée par date.
+     Une page qui atteint l'avant du direct les contient tous — six, exact,
+     bien que pleine. */
+  const pg = await ouvrir();
+  await pg.evaluate(() => { window.__recapRefus = true; });
+  await survoler(pg, 'pavot', 1);
+  await relacher(pg, 'pavot');
+  const g = await survoler(pg, 'nyx');
+  await relacher(pg, 'nyx');
+  // …et une page pleine du direct seulement, rangée par date : un minimum, et pas de « plus vu ».
+  const g2 = await survoler(pg, 'orion');
+  const rapG = await pg.evaluate(() => window.tse.panneau.rapport().reseau.recap);
+  ok('g) la première forme refusée : la seconde, par date — une page pleine qui atteint l\'avant du direct compte juste',
+     nz(g[1]) === '6 clips · le plus vu : « Le boss en une vie » (8,4 k vues)' && rapG.forme === 1 && rapG.refus === 1,
+     JSON.stringify({ g, rapG }));
+  ok('…mais une page pleine du direct seul, rangée par date, n\'a pas tout vu : « 8+ », et aucun « plus vu »',
+     g2[1] === '8+ clips', JSON.stringify(g2));
+  await pg.close();
+
+  /* i) L'ORDRE SE CONSTATE. Une première forme qui ne rendrait pas les clips
+     par vues décroissantes : sur une page pleine, rien ne prouve que le plus
+     vu y soit — on ne le nomme pas. */
+  const pi = await ouvrir();
+  await pi.evaluate(() => { window.__recapDesordre = true; });
+  const i = await survoler(pi, 'orion');
+  ok('i) une page pleine qui n\'est pas rangée par vues : le compte, sans « plus vu »', i[1] === '8+ clips', JSON.stringify(i));
+  await pi.close();
+
+  // h) Le récap retiré dans « Réglages » : ni ligne, ni demande.
+  const ph = await ouvrir({ badges: ['recap'] });
+  await hoverLogin(ph, 'nyx');
+  await attendre(ph, () => !!document.querySelector('.tse-preview[data-tse-visible="true"]'), 6000);
+  await wait(ph, 1500);
+  const h = { dom: await ph.evaluate(() => document.querySelectorAll('.tse-preview__recap').length), appels: await tousAppels(ph) };
+  ok('h) le récap retiré dans « Réglages » : ni ligne, ni demande à Twitch', h.dom === 0 && h.appels === 0, JSON.stringify(h));
+  await ph.close();
 }
 
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════

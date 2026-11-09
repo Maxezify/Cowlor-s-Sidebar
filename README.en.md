@@ -2064,6 +2064,111 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The home page, level 2: the recap of the stream in progress, in the preview (v4.29.0)
+
+The third idea of level 2. Published on `claude/chrome-homepage` only.
+
+| asked | what was done |
+| --- | --- |
+| "Since 18:02: 1h20 Just Chatting → 2h40 Elden Ring · 6 clips, the most viewed: "…" (8.4K views)" | two lines in the preview, between the badges and the timeline: where the stream has been, then what its clips kept of it |
+| "data: the timeline + TseClips LAST_DAY" | the timeline as it is already read, and the stream's clips, one request per stream |
+| "to check: that the clip's title and views are available anonymously" | **not checkable from here**: the bench's machine doesn't reach Twitch. They are asked for, done without if the schema refuses them, and the report says which of the two is in play |
+
+### The first line: where the stream has been
+
+"Since 18:02: 1h20 Just Chatting → 2h40 Elden Ring". The time is the start of
+the WHOLE stream — cuts included, like the timeline —, preceded by its day when
+it isn't today ("Since Tue 14:04"). The steps are the timeline's segments, in
+time order: the part not observed is written "…", a timeline made of clips puts
+a "~" before each duration, and beyond four steps come the last three. Without
+a timeline, the time alone.
+
+### The second: what its clips kept of it
+
+"6 clips · most viewed: "Le boss en une vie" (8.4K views)". Only the clips made
+DURING the stream count: those from before, however viewed, don't get in. And
+the count only says what the answer proves:
+
+- **a full page** (thirty clips) doesn't say how many there are: "30+";
+- **the most viewed** is only named if the page has them all, or if it is
+  ordered by decreasing views and holds clips of the stream. The order is
+  observed on the answer; it isn't assumed;
+- **a stream longer than a day**: the first form only covers the last
+  twenty-four hours, and the line says so ("2 clips in 24 h");
+- **a full page without one clip of the stream** says nothing of it: the line
+  stays silent; an incomplete page without a clip of the stream says "No
+  clips".
+
+### What couldn't be checked, and what is done about it
+
+`title` and `viewCount` are ordinary fields of Twitch's clips, but nothing here
+could show that an anonymous request receives them. If the schema refuses them
+— an error that names them —, they are removed from the request for the
+session: the count stays, and no "most viewed" is said. The request's form
+moves on like the timeline's third door: `period: LAST_DAY` first, then `sort:
+CREATED_AT_DESC` if the server refuses the first, and nothing more if both are
+refused. The report (`reseau.recap`) says the form in play, whether the fields
+are served, and how many clips carried a title and views.
+
+### What it costs
+
+| what shows | what it costs |
+| --- | --- |
+| the first line | **nothing**: the timeline and the stream's start are already known |
+| the second | **one** `TseRecapClips` operation per hovered stream, every ten minutes at most |
+
+### The setting
+
+"The stream recap" joins the preview's badges, in "Settings": unchecked, no
+line and no request to Twitch. The number of settings doesn't change.
+
+### The texts
+
+Ten languages in the preview; twelve in the panel, the guide ("Previously on
+this stream") and the Store listings.
+
+### The bench
+
+**223**, new. Eight clips per page on the bench, thirty for real.
+
+- a) "Since …: 1h20 Discussions → 2h40 Elden Ring", from the VOD's chapters
+  arriving after the opening — and after the clips; six clips of the stream,
+  and not the two from before, more viewed; the recap just before the timeline;
+- b) a full page: "8+", and the most viewed, the page being ordered by views;
+- c) clips from before the stream only: "No clips";
+- d) a thirty-hour stream: its day, and "2 clips in 24 h"; a full page without
+  one clip of the stream: the line stays silent;
+- e) one request per stream and per ten minutes; the timeline already there at
+  the first render, the recap still comes before it;
+- f) `title` and `viewCount` refused: removed, the count stays, without "most
+  viewed";
+- g) the first form refused: the second, by date — a full page that reaches
+  before the stream counts right; a full page of the stream alone hasn't seen
+  everything;
+- h) the recap removed in "Settings": no line, no request;
+- i) a full page not ordered by views: the count, without "most viewed".
+
+**Fourteen named mutants, all caught.**
+
+| mutant | what falls |
+| --- | --- |
+| the recap without the timeline | 223 a): "Since …" without its steps |
+| the clips from before the stream counted | 223 a) and c): the two from before, more viewed, get into the count |
+| the full page taken for the whole | 223 b): "8 clips" instead of "8+" |
+| the most viewed without proof | 223 g): a full page of the stream alone, ordered by date, names a "most viewed" |
+| the views order assumed | 223 i): a full page not ordered by views names a "most viewed" |
+| the second form that doesn't see the whole | 223 g): the page that reaches before the stream says "8+" |
+| the twenty-four hours left unsaid | 223 d): "2 clips", without "in 24 h" |
+| the refused fields taken for a refused form | 223 f): no count at all |
+| one request per hover | 223 e): hovered again, nyx asks again |
+| the removed recap that asks anyway | 223 h): a request to Twitch, setting unchecked |
+| "0+ clips" | 223 d): a full page without one clip of the stream speaks of it |
+| the time without its day | 223 d): a stream started the day before says its time alone |
+| the recap after the timeline | 223 e): the timeline already there, the recap goes after it |
+| the recap that doesn't follow the timeline | 223 a): the chapters arriving after the clips, the recap stays without steps |
+
+The full bench: 2221 assertions in 222 scenarios, all green.
+
 ## The home page, level 2: one label per card (v4.28.0)
 
 The second idea of level 2. Published on `claude/chrome-homepage` only.
@@ -23088,7 +23193,7 @@ Four independent checks:
 | `npm run lint` | the six shipped JavaScript files — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 221 scenarios, 2207 assertions |
+| `npm test` | the Playwright harness: 222 scenarios, 2221 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -23108,13 +23213,13 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 2075 KB | 937 KB | 4,564 → **2** |
+| `content.js` | 2090 KB | 948 KB | 4,577 → **2** |
 | `cadres.js` | 68 KB | 31 KB | 160 → **0** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
 | `panneau.js` | 162 KB | 82 KB | 224 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 26 → **0** |
 | `background.js` | 10 KB | 2 KB | 22 → **0** |
-| **all six** | **2455 KB** | **1156 KB** | **−53 %** |
+| **all six** | **2469 KB** | **1167 KB** | **−53 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are
