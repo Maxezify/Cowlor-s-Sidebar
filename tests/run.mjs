@@ -13424,7 +13424,9 @@ titre('96. Le mode d\'emploi — la première vue, et la seule qui n\'ait besoin
     const s = STRINGS_CJ[loc.split('_')[0]];
     if (!s) { citesAccueil.push(`${loc} : pas de langue dans content.js`); continue; }
     const texte = fiche(loc).guideAccueilTexte.message;
-    for (const c of [s.uiAccHeros, s.uiAccSuivis, s.uiAccTop, s.uiAccDebut, s.uiAccNouveau, s.uiAccAfficherTout]) {
+    // « Pendant votre absence » et son « Revoir le dernier » (4.30.0) aussi.
+    for (const c of [s.uiAccHeros, s.uiAccSuivis, s.uiAccTop, s.uiAccDebut, s.uiAccNouveau, s.uiAccAfficherTout,
+                     s.uiAbsTitre, s.uiAbsRevoir]) {
       if (!c || !texte.includes(c)) citesAccueil.push(`${loc} « ${c} »`);
     }
   }
@@ -16650,7 +16652,7 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
     return { n: Object.keys(defs).length, horsListe, jeuxNonVides,
              cle: localStorage.getItem('tse:options') };
   });
-  ok('la table porte ses trente et un réglages', table.n === 31, String(table.n));
+  ok('la table porte ses trente-deux réglages', table.n === 32, String(table.n));
   /* CELUI-CI A UNE CIBLE PRÉCISE : trois défauts sont lus dans CFG plutôt que
      recopiés — apercuQualite, abosPeriode et topN. Changer une de ces trois
      constantes sans toucher à la liste des valeurs permises rendrait le
@@ -16677,21 +16679,22 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
   /* Vingt-huit depuis la 4.26.0 : les sept réglages de la page d'accueil ;
      vingt-neuf depuis la 4.26.0.2 : la vidéo de la tête de l'accueil ;
      trente depuis la 4.27.0 : « Vos rendez-vous » ; trente et un depuis la
-     4.28.0 : « Une étiquette par carte ». En russe, le nom s'accorde à
-     « одна » — et la phrase est tournée pour se lire dans les deux textes. */
-  const TRENTE_ET_UN = { de: 'einunddreißig Einstellungen', en: 'thirty-one settings',
-                         es: 'treinta y un ajustes', es_419: 'treinta y un ajustes', fr: 'trente et un réglages',
-                         it: 'trentuno impostazioni', ja: '31 個の設定', pl: 'trzydzieści jeden ustawień',
-                         pt_BR: 'trinta e uma configurações', pt_PT: 'trinta e uma definições',
-                         ru: 'тридцать одна настройка', zh_CN: '三十一项设置' };
-  const muettes = Object.entries(TRENTE_ET_UN).flatMap(([loc, mot]) => [
+     4.28.0 : « Une étiquette par carte » ; trente-deux depuis la 4.30.0 :
+     « Pendant votre absence ». En polonais et en russe, deux veut le
+     nominatif pluriel — et un verbe au pluriel, que les phrases ont suivi. */
+  const TRENTE_DEUX = { de: 'zweiunddreißig Einstellungen', en: 'thirty-two settings',
+                        es: 'treinta y dos ajustes', es_419: 'treinta y dos ajustes', fr: 'trente-deux réglages',
+                        it: 'trentadue impostazioni', ja: '32 個の設定', pl: 'trzydzieści dwa ustawienia',
+                        pt_BR: 'trinta e duas configurações', pt_PT: 'trinta e duas definições',
+                        ru: 'тридцать две настройки', zh_CN: '三十二项设置' };
+  const muettes = Object.entries(TRENTE_DEUX).flatMap(([loc, mot]) => [
     JSON.parse(readFileSync(join(ICI, '..', '_locales', loc, 'messages.json'), 'utf8'))
       .optResetText.message.includes(mot) ? null : `panneau ${loc}`,
     readFileSync(join(ICI, '..', 'store', `description-${loc.replace('_', '-')}.txt`), 'utf8')
       .includes(mot) ? null : `fiche ${loc}`,
   ]).filter(Boolean);
   ok('…et le panneau comme la fiche du Store en annoncent autant, dans les douze langues',
-     table.n === 31 && muettes.length === 0, muettes.join(', ') || String(table.n));
+     table.n === 32 && muettes.length === 0, muettes.join(', ') || String(table.n));
   /* CELLE-CI SE LIT SUR LE FICHIER SOURCE, et c'est le fond du sujet : la
      constante de production vaut six heures, mais tests/build.mjs la réécrit à
      quatre secondes pour que le relevé des abonnements soit éprouvable. La
@@ -17298,7 +17301,7 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
              fantomes: peints.filter((id) => !table.includes(id)) };
   }, vue.peints);
 
-  ok('les trente et un réglages de la page ont chacun leur ligne',
+  ok('les trente-deux réglages de la page ont chacun leur ligne',
      contrat.oublies.length === 0, contrat.oublies.join(', '));
   ok('…et aucune ligne fantôme : l\'ordre du panneau couvre exactement la table',
      contrat.fantomes.length === 0, contrat.fantomes.join(', '));
@@ -40412,7 +40415,7 @@ const lireImages = (page) => page.evaluate(() => {
   ok('a) les créneaux d\'aujourd\'hui et de demain, dans l\'ordre des heures : ni le direct en cours, ni l\'annulé, ni l\'après-demain, ni la chaîne muette',
      JSON.stringify((ra.rdv || []).map((c) => c.cle)) === JSON.stringify(attendu.map((x) => x.cle))
      && ra.rdv.every((c, i) => c.quand === attendu[i].quand) && ra.titres[0] === 'Vos rendez-vous'
-     && JSON.stringify(ra.ordre.slice(-2)) === '["rdv","habitudes"]',
+     && JSON.stringify(ra.ordre.slice(-3)) === '["rdv","habitudes","absence"]',
      JSON.stringify({ vu: ra.rdv, attendu }));
   ok('…le temps qui reste, à la minute supérieure ; « pas encore en direct » pour un créneau commencé ; le titre et la catégorie du créneau',
      ra.rdv[0].reste === 'pas encore en direct' && [resteAurore, resteAurore + 1].some((m) => ra.rdv[1].reste === `dans ${Math.floor(m / 60)}h${String(m % 60).padStart(2, '0')}`)
@@ -40712,10 +40715,13 @@ const lireImages = (page) => page.evaluate(() => {
      descend jusqu'au premier, comme on le ferait. zulu reste loin dessous. */
   await attendre(pe, () => !!document.querySelector('#tse-accueil .tse-acc-rayon--suivis [data-tse-cle="cendre"]'), 10_000);
   await pe.evaluate(() => document.querySelector('a[data-a-target="preview-card-image-link"][href="/xray"]').scrollIntoView({ block: 'center' }));
+  /* Le retour d'aurore attend que l'agenda ait lu son direct d'avant :
+     jusque-là, « Vient de commencer » est le premier fait vrai. Sous la
+     charge du banc complet, ce relevé peut venir après les autres. */
   await attendre(pe, () => {
     const v = (l) => document.querySelector(`#tse-accueil .tse-acc-rayon--suivis [data-tse-cle="${l}"] .tse-acc-vignette`)?.getAttribute('data-tse-etiquette');
     const t = (l) => document.querySelector(`main a[data-a-target="preview-card-image-link"][href="/${l}"]`)?.getAttribute('data-tse-etiquette');
-    return !!v('aurore') && /Subathon/.test(v('brisa') || '') && !!v('houle') && !!t('xray') && !!t('aeltris') && !!t('quebec');
+    return /De retour/.test(v('aurore') || '') && /Subathon/.test(v('brisa') || '') && !!v('houle') && !!t('xray') && !!t('aeltris') && !!t('quebec');
   }, 20_000);
   const e1 = await lireEtiq(pe);
   ok('a) une étiquette par carte, dans l\'ordre : le retour avant le début, le subathon avant le début ; un début ; un co-stream ; et rien pour une chaîne sans fait',
@@ -40974,6 +40980,269 @@ const lireImages = (page) => page.evaluate(() => {
   const h = { dom: await ph.evaluate(() => document.querySelectorAll('.tse-preview__recap').length), appels: await tousAppels(ph) };
   ok('h) le récap retiré dans « Réglages » : ni ligne, ni demande à Twitch', h.dom === 0 && h.appels === 0, JSON.stringify(h));
   await ph.close();
+}
+
+{
+  titre('224. Pendant votre absence — un jour sans Twitch, et ce qu\'ont fait les chaînes que vous regardez ; fermé partout d\'un geste');
+  /* LE DÉCOR. Une absence, c'est un jour sans un onglet de Twitch à l'écran :
+     la présence posée trente heures avant le chargement, l'absence va de là
+     à maintenant. Des chaînes suivies inventées, chacune pour une règle :
+       falaise — la plus regardée (six visites) : deux archives séparées d'une
+                 coupure de cinq minutes — un seul direct —, puis un second
+                 direct ; et une archive d'AVANT l'absence, qui n'y entre pas.
+                 Ses clips : deux pendant, un d'avant, plus vu ;
+       grotte  — Twitch dit qu'elle a fini un direct il y a dix heures, sans
+                 archive : « a diffusé », ni compte ni durée ;
+       bruyere — une archive fermée aux abonnés : pas de « Revoir » ;
+       ressac  — un direct, et dix clips pendant : la page est pleine (huit
+                 au banc), mais rangée par vues — son premier est le plus vu ;
+       sillon  — un direct ;
+       dune    — un direct aussi, mais la sixième : au-delà des cinq ;
+       lagon   — la plus visitée de toutes, muette pendant l'absence ;
+       iris    — a diffusé, jamais regardée. */
+  const H = 3_600_000;
+  const VISITES = { falaise: 6, grotte: 5, bruyere: 4, ressac: 3, sillon: 2, dune: 1, lagon: 8 };
+  const contexte = async ({ presenceH = 30, absence = null, options = null } = {}) => {
+    const ctx = await browser.newContext({ viewport: { width: 1600, height: 1000 } });
+    await ctx.addInitScript(([rayons, presenceH, absence, options, visites]) => {
+      const n = Date.now(), h = 3600e3;
+      try {
+        localStorage.setItem('tse:roue', 'vu');
+        localStorage.setItem('tse:indice', 'vu');
+        if (!localStorage.getItem('tse:visits')) {
+          localStorage.setItem('tse:visits', JSON.stringify(Object.fromEntries(Object.entries(visites).map(([l, k]) =>
+            [l, Array.from({ length: k }, (_, i) => n - ((presenceH ?? 0) + 1 + i) * h)]))));
+        }
+        if (presenceH !== null && !localStorage.getItem('tse:presence')) localStorage.setItem('tse:presence', String(n - presenceH * h));
+        if (absence && !localStorage.getItem('tse:absence')) {
+          localStorage.setItem('tse:absence', JSON.stringify({ debut: n - absence[0] * h, fin: n - absence[1] * h, ferme: false }));
+        }
+        if (options) localStorage.setItem('tse:options', JSON.stringify(options));
+      } catch { /* stockage refusé */ }
+      window.__accueil = { rayons };
+    }, [RAYONS_ACCUEIL, presenceH, absence, options, VISITES]);
+    const onglet = async () => {
+      const p = await ctx.newPage();
+      p.on('pageerror', (e) => { fail++; console.log('  ✗ ERREUR PAGE:', e.message); });
+      await p.route('https://www.twitch.tv/**', (route) => {
+        const nom = route.request().url().split('/').pop().split('?')[0];
+        if (nom.endsWith('.js')) return route.fulfill({ contentType: 'application/javascript; charset=utf-8', body: fileText(nom) });
+        return route.fulfill({ contentType: 'text/html; charset=utf-8', body: fileText('page.html') });
+      });
+      await p.route('https://player.twitch.tv/**', (route) => route.fulfill({ contentType: 'text/html', body: '<!doctype html><html><body>x</body></html>' }));
+      await p.route('https://static-cdn.jtvnw.net/**', (route) => route.fulfill({ contentType: 'image/png', body: PIXEL }));
+      await p.goto('https://www.twitch.tv/');
+      return p;
+    };
+    return { ctx, onglet };
+  };
+  const decor = (p, cas = 'a') => p.evaluate((cas) => {
+    const H = 3_600_000, now = Date.now();
+    const iso = (t) => new Date(t).toISOString();
+    let k = 0;
+    const arch = (ilYaH, dureeH, o = {}) => ({ id: String(97000 + (++k)), titre: 'Archive ' + k, debut: iso(now - ilYaH * H),
+                                             duree: Math.round(dureeH * 3600), vues: 10, jeu: 'Just Chatting', ...o });
+    const A = {};
+    const avec = (l, videos, finH = null) => {
+      A[l] = { nom: l.charAt(0).toUpperCase() + l.slice(1), titre: '', videos,
+               dernier: { id: '1', fin: iso(finH !== null ? now - finH * H
+                 : Math.max(...videos.map((v) => Date.parse(v.debut) + v.duree * 1000)) + 3000) } };
+    };
+    if (cas === 'a') {
+      // Une heure d'archive, cinq minutes de coupure, la reprise : un direct, 3h05.
+      avec('falaise', [arch(40, 2), arch(20, 1), arch(20 - 65 / 60, 2), arch(8, 2)]);
+      avec('grotte', [], 10);
+      avec('bruyere', [arch(12, 3, { verrouillee: true })]);
+      avec('ressac', [arch(15, 2)]);
+      avec('sillon', [arch(25, 1.5)]);
+      avec('dune', [arch(5, 1)]);
+      avec('lagon', [arch(50, 2)], 47);
+      avec('iris', [arch(6, 2)]);
+      window.__absClips = { falaise: [{ titre: 'Le saut final', vues: 5200, ilYaH: 7 }, { titre: 'Le fou rire', vues: 1800, ilYaH: 19 },
+                                      { titre: 'Avant tout', vues: 90000, ilYaH: 50 }],
+                            ressac: Array.from({ length: 10 }, (_, i) => ({ titre: 'Vague ' + i, vues: 900 - 10 * i, ilYaH: 2 + i })) };
+    } else if (cas === 'h1') {
+      // La veille de l'absence : falaise a fini un direct, et n'a encore aucune archive.
+      avec('falaise', [], 10);
+    } else {
+      /* Dix jours d'absence : un direct il y a neuf jours, hors de la semaine ;
+         un autre il y a deux, et dix clips — une page pleine, que Twitch rend
+         ici dans l'ordre des dates : rien n'y prouve le plus vu. Et iris, qui
+         a diffusé sans avoir jamais été regardée. */
+      avec('falaise', [arch(9 * 24, 2)]);
+      avec('grotte', [arch(48, 2)]);
+      avec('iris', [arch(30, 1)]);
+      window.__absClipsDesordre = true;
+      window.__absClips = { grotte: Array.from({ length: 10 }, (_, i) => ({ titre: 'Écho ' + i, vues: 100 + 50 * i, ilYaH: 20 + i })) };
+    }
+    window.__agenda = A;
+    for (const l of Object.keys(A)) window.__addCard(l, '', '', false);
+    return Object.fromEntries(Object.entries(A).map(([l, a]) => [l, a.videos.map((v) => v.id)]));
+  }, cas);
+  const lire = (p) => p.evaluate(() => {
+    const s = document.querySelector('.tse-acc-absence');
+    return {
+      montre: !!s && !s.hidden && !!s.closest('#tse-accueil:not([hidden])'),
+      titre: s?.querySelector('.tse-acc-absence-titre')?.textContent,
+      sous: s?.querySelector('.tse-acc-absence-sous')?.textContent,
+      lignes: s ? [...s.querySelectorAll('.tse-acc-absence-ligne')].map((li) => {
+        const a = li.querySelector('.tse-acc-absence-revoir');
+        const c = li.querySelector('.tse-acc-absence-clip');
+        return { login: li.dataset.tseCle, nom: li.querySelector('.tse-acc-nom')?.textContent,
+                 quoi: li.querySelector('.tse-acc-absence-quoi')?.textContent,
+                 clip: c && !c.hidden ? c.textContent : null, revoir: a && !a.hidden ? a.getAttribute('href') : null };
+      }) : [],
+      ordre: [...document.querySelectorAll('#tse-accueil > .tse-acc-rayon')].map((x) => x.dataset.tseRayon),
+      rapport: window.tse.accueil.rapport().absence,
+      clips: window.__calls.filter((c) => (c.names || []).includes('TseAbsenceClips')).length,
+      stocke: JSON.parse(localStorage.getItem('tse:absence') || 'null'),
+    };
+  });
+  // L'agenda fini, les cinq lignes, et les clips de la première lus.
+  const pret = (p, n = 5) => attendre(p, (n) => {
+    const r = window.tse.accueil.rapport();
+    const s = document.querySelector('.tse-acc-absence');
+    return r.rdv.enCours === false && r.absence.enCours === false && !!s && !s.hidden && s.querySelectorAll('.tse-acc-absence-ligne').length === n
+      && r.absence.clips.demandes > 0 && r.absence.clips.servis + r.absence.clips.refus >= r.absence.clips.demandes;
+  }, 25_000, n);
+  const rien = async (p) => {
+    await attendre(p, () => { const r = window.tse.accueil.rapport(); return r.heros.montre && r.rdv.enCours === false; }, 20_000);
+    await wait(p, 1_500);
+    return lire(p);
+  };
+  const ligne = (v, l) => v.lignes.find((x) => x.login === l) || {};
+
+  // a) Trente heures sans Twitch.
+  const A = await contexte();
+  const pa = await A.onglet();
+  await plateauAccueil(pa);
+  const ids = await decor(pa);
+  await pret(pa);
+  const a = await lire(pa);
+  ok('a) un jour sans Twitch : le bandeau, en dernier dans l\'accueil — « Pendant votre absence », il y a un jour',
+     a.montre && a.titre === 'Pendant votre absence' && a.sous === 'Depuis votre dernière visite, il y a 1 jour' && a.ordre.at(-1) === 'absence',
+     JSON.stringify({ titre: a.titre, sous: a.sous, ordre: a.ordre }));
+  ok('…les cinq chaînes les plus regardées qui ont diffusé, dans l\'ordre de vos visites : ni la sixième, ni la muette, ni celle jamais regardée',
+     JSON.stringify(a.lignes.map((x) => x.login)) === '["falaise","grotte","bruyere","ressac","sillon"]', JSON.stringify(a.lignes.map((x) => x.login)));
+  ok('…deux archives séparées d\'une coupure font un direct, celle d\'avant l\'absence n\'y entre pas : « 2 directs · 5h05 »',
+     ligne(a, 'falaise').quoi === '2 directs · 5h05' && ligne(a, 'ressac').quoi === '1 direct · 2h00' && ligne(a, 'sillon').quoi === '1 direct · 1h30',
+     JSON.stringify(a.lignes.map((x) => x.quoi)));
+  ok('…une chaîne finie sans archive « a diffusé » — sans compte ni durée, qu\'on ne connaît pas —, et rien à revoir',
+     ligne(a, 'grotte').quoi === 'A diffusé, sans rediffusion' && ligne(a, 'grotte').revoir === null && ligne(a, 'grotte').clip === null,
+     JSON.stringify(ligne(a, 'grotte')));
+  ok('…le plus vu de ses clips PENDANT l\'absence : pas celui d\'avant, plus vu',
+     nz(ligne(a, 'falaise').clip || '') === 'Le plus vu : « Le saut final » (5,2 k vues)', JSON.stringify(ligne(a, 'falaise')));
+  ok('…une page de clips pleine, rangée par vues : son premier est le plus vu',
+     nz(ligne(a, 'ressac').clip || '') === 'Le plus vu : « Vague 0 » (900 vues)', JSON.stringify(ligne(a, 'ressac')));
+  ok('…« Revoir le dernier » ouvre la dernière archive de l\'absence ; fermée aux abonnés, pas de lien',
+     ligne(a, 'falaise').revoir === `/videos/${ids.falaise[3]}` && ligne(a, 'bruyere').revoir === null,
+     JSON.stringify({ falaise: ligne(a, 'falaise').revoir, bruyere: ligne(a, 'bruyere').revoir, ids: ids.falaise }));
+  // Ce qu'il coûte : une demande de clips par chaîne montrée, une fois par absence.
+  await pa.evaluate(() => { document.dispatchEvent(new Event('visibilitychange')); });
+  await wait(pa, 2_000);
+  const a2 = await lire(pa);
+  ok('…une demande de clips par chaîne montrée, et une seule : repeint, le bandeau ne redemande rien',
+     a.clips === 5 && a2.clips === 5 && a2.rapport.lectures > a.rapport.lectures, JSON.stringify({ avant: a.clips, apres: a2.clips, lectures: [a.rapport.lectures, a2.rapport.lectures] }));
+
+  /* b) UN SECOND ONGLET, ouvert après : la présence vient d'être posée par
+     le premier, il n'y a pas d'absence neuve — c'est la même, gardée, qu'il
+     montre. Fermée dans l'un, elle l'est dans l'autre, par l'événement du
+     stockage, et ne revient pas au rechargement. */
+  const pb = await A.onglet();
+  await plateauAccueil(pb);
+  await decor(pb);
+  await pret(pb);
+  const b = await lire(pb);
+  ok('b) un second onglet : le même bandeau — l\'absence gardée, pas recomptée',
+     b.montre && JSON.stringify(b.lignes.map((x) => x.login)) === JSON.stringify(a.lignes.map((x) => x.login))
+     && b.stocke && a.stocke && b.stocke.debut === a.stocke.debut && b.stocke.fin === a.stocke.fin,
+     JSON.stringify({ a: a.stocke, b: b.stocke }));
+  await pa.click('.tse-acc-absence-fermer');
+  const fa = await lire(pa);
+  await attendre(pb, () => document.querySelector('.tse-acc-absence')?.hidden === true, 4_000);
+  const fb = await lire(pb);
+  ok('…fermé dans l\'un : parti sur-le-champ, et dans l\'autre par l\'événement du stockage',
+     !fa.montre && fa.rapport.fermetures === 1 && !fb.montre && fb.rapport.synchros > 0 && fb.stocke?.ferme === true,
+     JSON.stringify({ a: fa.rapport, b: fb.rapport, stocke: fb.stocke }));
+  await pb.reload();
+  await plateauAccueil(pb);
+  await decor(pb);
+  const fb2 = await rien(pb);
+  ok('…et il ne revient pas au rechargement', !fb2.montre && fb2.rapport.gardee === true, JSON.stringify(fb2.rapport));
+  await A.ctx.close();
+
+  // c) Dix jours d'absence : les sept derniers, la portée de l'agenda, et le bandeau le dit.
+  const C = await contexte({ presenceH: 240 });
+  const pc = await C.onglet();
+  await plateauAccueil(pc);
+  await decor(pc, 'c');
+  await pret(pc, 1);
+  const c = await lire(pc);
+  ok('c) dix jours d\'absence : les sept derniers jours seulement, et le bandeau le dit — ni le direct d\'il y a neuf jours, ni la chaîne jamais regardée',
+     c.montre && c.sous === 'Depuis votre dernière visite, il y a 10 jours — les sept derniers'
+     && JSON.stringify(c.lignes.map((x) => x.login)) === '["grotte"]' && ligne(c, 'grotte').quoi === '1 direct · 2h00',
+     JSON.stringify({ sous: c.sous, lignes: c.lignes }));
+  /* Bornée à sept jours, la fenêtre lue glisse avec l'heure : les clips se
+     demandent pour l'absence, pas pour la fenêtre — repeint, rien ne repart. */
+  await pc.evaluate(() => { document.dispatchEvent(new Event('visibilitychange')); });
+  await wait(pc, 1_500);
+  const c2 = await lire(pc);
+  ok('…et une page de clips pleine qui n\'est pas rangée par vues ne nomme aucun « plus vu » ; ses clips ne sont demandés qu\'une fois, repeint ou non',
+     ligne(c, 'grotte').clip === null && c2.rapport.clips.servis === 1 && c2.rapport.lectures > c.rapport.lectures,
+     JSON.stringify({ grotte: ligne(c, 'grotte'), clips: c2.rapport.clips, lectures: [c.rapport.lectures, c2.rapport.lectures] }));
+  await C.ctx.close();
+
+  /* h) LA MÉMOIRE D'AVANT L'ABSENCE NE DIT RIEN D'ELLE. Une première visite :
+     l'agenda lit falaise — un direct fini, aucune archive — et le garde en
+     mémoire. Puis trente heures passent (la présence reculée d'autant), et
+     falaise a diffusé deux fois. Au retour, la mémoire est relue avant le
+     réseau, qui tarde ici : lue telle quelle, elle faisait dire « sans
+     rediffusion » à une chaîne qui en a. Chaque image est regardée. */
+  const Hh = await contexte({ presenceH: null });
+  const ph1 = await Hh.onglet();
+  await plateauAccueil(ph1);
+  await decor(ph1, 'h1');
+  await attendre(ph1, () => window.tse.accueil.rapport().rdv.enCours === false, 20_000);
+  await wait(ph1, 2_000);
+  await ph1.evaluate(() => localStorage.setItem('tse:presence', String(Date.now() - 30 * 3600e3)));
+  await ph1.close();
+  /* Après une vraie absence, la mémoire a plus d'un jour : l'agenda la relit
+     au réseau. Au banc, elle n'a que quelques secondes — on attend la durée
+     de vie de ses lectures (trente secondes au banc, cf. build.mjs). */
+  await new Promise((r) => setTimeout(r, 31_000));
+  await Hh.ctx.addInitScript(() => {
+    window.__depart = { ...(window.__depart || {}), __retardOp: { TseAgendaDiffusions: 2_500 } };
+    window.__absImages = [];
+    const regarder = () => {
+      const li = document.querySelector('.tse-acc-absence:not([hidden]) .tse-acc-absence-ligne[data-tse-cle="falaise"]');
+      if (li) window.__absImages.push(li.querySelector('.tse-acc-absence-quoi')?.textContent || '');
+      if (window.__absImages.length < 4000) requestAnimationFrame(regarder);
+    };
+    requestAnimationFrame(regarder);
+  });
+  const ph2 = await Hh.onglet();
+  await plateauAccueil(ph2);
+  await decor(ph2);
+  await pret(ph2);
+  const hv = await ph2.evaluate(() => [...new Set(window.__absImages)]);
+  ok('h) au retour, la mémoire d\'avant l\'absence ne fait pas dire « sans rediffusion » : la chaîne attend ses archives relues',
+     JSON.stringify(hv) === '["2 directs · 5h05"]', JSON.stringify(hv));
+  await Hh.ctx.close();
+
+  // d) Moins d'un jour, e) le réglage décoché, f) une installation neuve, g) une absence de plus de douze heures.
+  const sans = async (titreOk, cfg, attendu) => {
+    const X = await contexte(cfg);
+    const p = await X.onglet();
+    await plateauAccueil(p);
+    await decor(p);
+    const v = await rien(p);
+    ok(titreOk, !v.montre && v.clips === 0 && v.rapport.gardee === attendu.gardee, JSON.stringify({ montre: v.montre, clips: v.clips, rapport: v.rapport }));
+    await X.ctx.close();
+  };
+  await sans('d) vingt heures seulement : pas d\'absence, ni bandeau, ni clips demandés', { presenceH: 20 }, { gardee: false });
+  await sans('e) « Pendant votre absence » décoché : ni bandeau, ni clips demandés', { options: { accueilAbsence: false } }, { gardee: true });
+  await sans('f) une installation neuve, sans présence connue : pas d\'absence — on ne sait pas depuis quand', { presenceH: null }, { gardee: false });
+  await sans('g) une absence finie il y a treize heures : sa garde de douze heures est passée', { presenceH: 1, absence: [40, 13] }, { gardee: false });
 }
 
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════

@@ -2064,6 +2064,139 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The home page, level 2: "While you were away" (v4.30.0)
+
+The fourth idea of level 2. Published on `claude/chrome-homepage` only.
+
+| asked | what was done |
+| --- | --- |
+| "While you were away" | a banner at the bottom of the homepage: the channels you watch that streamed, their streams and how long, the most viewed of their clips, "Watch the last one" |
+| "after at least 24 h away" | an absence is twenty-four hours without a Twitch tab **on screen** — measured, not assumed |
+| "data: agenda + clips" | the archives and the end of the last stream the agenda already reads; one clip request per channel shown, once per absence |
+
+### What an absence is
+
+Presence is the last moment a twitch.tv tab was on screen — visible, not just
+open: a background tab doesn't count. It is written at most once a minute, in
+the storage the tabs share. On load, BEFORE writing it again: more than
+twenty-four hours since, and it is an absence, kept — its start, its end — for
+twelve hours, or until its banner is closed.
+
+Without a known presence — a fresh install, or the first visit after the
+update —, no absence: we don't know since when. The first banner therefore
+shows a day later at the earliest.
+
+### What the banner says
+
+"While you were away · Since your last visit, 2 days ago". Then one line per
+channel, five at most: the followed channels you watch (at least one visit
+counted), in the order of your visits, that streamed during the absence.
+
+- **"2 streams · 5h05"**: the streams started during the absence, counted as
+  elsewhere — two archives separated by a cut of less than a quarter of an hour
+  make one —, and their length;
+- **"Streamed, no replay"**: Twitch says the channel ended a stream during the
+  absence, and its archives hold none. No count and no length: they aren't
+  known;
+- **"Most viewed: "…" (5.2K views)"**: among its clips made DURING the absence,
+  those from before don't get in. The recap's rule (4.29.0): named only if the
+  page has them all, or if it is ordered by decreasing views — the order is
+  observed on the answer;
+- **"Watch the last one"**: the absence's last archive, when its token says it
+  is open, or when you are subscribed. Until the token is read, no link.
+
+A channel only gets into the banner **once its archives have been read again
+since your return**: the agenda's memory dates from the last visit, before the
+absence, and knows nothing of it. Read as it was, it made a channel with three
+replays say "no replay".
+
+Beyond seven days, the last seven — the agenda's reach —, and the banner says
+so: "10 days ago — the last seven".
+
+### Closed everywhere
+
+The cross closes the banner in every open tab, through the storage event, and
+it doesn't come back on reload. Otherwise it fades twelve hours after the
+return. The next absence puts up a new one.
+
+### What couldn't be checked
+
+As for the recap: the clips' `title` and `viewCount`, and the
+`period: LAST_WEEK` form, couldn't be tried against the real Twitch from here.
+If the schema refuses the request, no more clip requests for the session, and
+the lines stay without "most viewed"; the report says so (`absence.clips.refus`).
+
+### What it costs
+
+| what shows | what it costs |
+| --- | --- |
+| presence | one write to local storage at most once a minute, tab on screen; no request |
+| the banner and its streams | **nothing more**: the archives and cards the agenda already reads; its second pass reaches back to the start of the absence, seven days at most |
+| the most viewed | **one** `TseAbsenceClips` operation per channel shown and per absence — five at most |
+
+### The setting
+
+"While you were away" joins the "Home page" group of "Settings": unchecked, no
+banner and no clip request. Thirty-two settings.
+
+### The texts
+
+Ten languages in the banner; twelve in the panel, the guide ("Twitch's home
+page") and the Store listings.
+
+### The bench
+
+**224**, new. Eight clips per page on the bench, thirty for real.
+
+- a) thirty hours without Twitch: the banner, last on the homepage; five
+  channels in the order of visits — not the sixth, not the silent one, not the
+  one never watched; "2 streams · 5h05" from a cut and a second stream, without
+  the archive from before; "Streamed, no replay"; the most viewed during the
+  absence, not the one from before, more viewed; a full page ordered by views
+  names its first; "Watch the last one", and not for a subscriber-only archive;
+  one clip request per channel, only one;
+- b) a second tab: the same absence, not counted again; closed in one, closed in
+  the other, and no return on reload;
+- c) ten days: the last seven, and the banner says so — not the stream from
+  nine days ago, not a channel never watched; a full page ordered by date names
+  no "most viewed", and its clips are asked for only once;
+- d) twenty hours, e) the setting unchecked, f) a fresh install, g) an absence
+  ended thirteen hours ago: no banner, no clips;
+- h) a memory from before the absence, which the network is slow to read again:
+  every frame is looked at, and the channel is never said to have "no replay"
+  — it waits for its archives read again.
+
+And 221 a): the order of the rows ends with the banner.
+
+**Twenty-two named mutants, all caught.**
+
+| mutant | what falls |
+| --- | --- |
+| an absence without the one-day threshold | 224: the scenario no longer ends — every load sets an absence |
+| the twelve-hour hold forgotten | 224 g): an absence ended thirteen hours ago still shows its banner |
+| closed in this tab only | 224 b): the other tab doesn't read the storage again |
+| the closed banner that comes back | 224 b): closed, it stays; reloaded, it comes back |
+| the setting ignored | 224 e): unchecked, the banner and its clips |
+| the channels never watched | 224 c): iris, never watched, gets into the banner |
+| more than five channels | 224 a): dune, the sixth, gets into the banner |
+| the cut that makes two streams | 224 a): "3 streams" for falaise |
+| the archive from before the absence counted | 224 a): the archive from before gets into the count |
+| "streamed" left unsaid | 224 a): grotte, ended without an archive, disappears |
+| the memory from before the absence believed | 224 h): "Streamed, no replay" while reading again |
+| the week forgotten | 224 c): the stream from nine days ago gets into the banner |
+| the clip from before the absence | 224 a): the clip from before, more viewed, is named |
+| the views order assumed | 224 c): a full page ordered by date names a "most viewed" |
+| a full page never believed | 224 a): the full page ordered by views names nothing |
+| the clips asked again at each paint | 224: the scenario no longer ends — every answer repaints, and every paint asks again |
+| the key that slides with the time | 224 c): bounded to seven days, every paint asks for the clips again |
+| "Watch" a closed archive | 224 a): a link to the subscriber-only archive |
+| the banner at the top of the home page | 221 a) and 224 a): the banner before the other rows |
+| the seven days left unsaid | 224 c): "10 days ago" without "the last seven" |
+| the days rounded up | 224 a) and c): "2 days ago" for thirty hours |
+| "most viewed" without a capital | 224 a): "most viewed: …" alone on its line |
+
+The full bench: 2239 assertions in 223 scenarios, all green.
+
 ## The home page, level 2: the recap of the stream in progress, in the preview (v4.29.0)
 
 The third idea of level 2. Published on `claude/chrome-homepage` only.
@@ -23193,7 +23326,7 @@ Four independent checks:
 | `npm run lint` | the six shipped JavaScript files — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 222 scenarios, 2221 assertions |
+| `npm test` | the Playwright harness: 223 scenarios, 2239 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -23213,13 +23346,13 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 2090 KB | 948 KB | 4,577 → **2** |
+| `content.js` | 2111 KB | 964 KB | 4,596 → **2** |
 | `cadres.js` | 68 KB | 31 KB | 160 → **0** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
 | `panneau.js` | 162 KB | 82 KB | 224 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 26 → **0** |
 | `background.js` | 10 KB | 2 KB | 22 → **0** |
-| **all six** | **2469 KB** | **1167 KB** | **−53 %** |
+| **all six** | **2490 KB** | **1183 KB** | **−52 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are

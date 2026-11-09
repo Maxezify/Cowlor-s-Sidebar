@@ -2183,6 +2183,142 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## L'accueil, niveau 2 : « Pendant votre absence » (v4.30.0)
+
+Quatrième idée du niveau 2. Publiée sur `claude/chrome-homepage` seulement.
+
+| demandé | ce qui a été fait |
+| --- | --- |
+| « Pendant ton absence » | un bandeau en bas de l'accueil : les chaînes que vous regardez qui ont diffusé, leurs directs et leur durée, le plus vu de leurs clips, « Revoir le dernier » |
+| « après au moins 24 h d'absence » | une absence, c'est vingt-quatre heures sans un onglet de Twitch **à l'écran** — mesurée, pas supposée |
+| « données : agenda + clips » | les archives et la fin du dernier direct que l'agenda lit déjà ; une demande de clips par chaîne montrée, une fois par absence |
+
+### Ce qu'est une absence
+
+La présence, c'est le dernier instant où un onglet de twitch.tv était à
+l'écran — visible, pas seulement ouvert : un onglet en arrière-plan ne compte
+pas. Elle s'écrit au plus une fois par minute, dans le stockage que les onglets
+partagent. Au chargement, AVANT de l'écrire de nouveau : plus de vingt-quatre
+heures depuis, et c'est une absence, gardée — son début, sa fin — douze heures,
+ou jusqu'à ce qu'on ferme son bandeau.
+
+Sans présence connue — une installation neuve, ou la première visite après la
+mise à jour —, pas d'absence : on ne sait pas depuis quand. Le premier bandeau
+se voit donc au plus tôt un jour après.
+
+### Ce que dit le bandeau
+
+« Pendant votre absence · Depuis votre dernière visite, il y a 2 jours ». Puis
+une ligne par chaîne, cinq au plus : les chaînes suivies que vous regardez
+(une visite comptée au moins), dans l'ordre de vos visites, qui ont diffusé
+pendant l'absence.
+
+- **« 2 directs · 5h05 »** : les directs commencés pendant l'absence, comptés
+  comme ailleurs — deux archives séparées d'une coupure de moins d'un quart
+  d'heure en font un —, et leur durée ;
+- **« A diffusé, sans rediffusion »** : Twitch dit que la chaîne a fini un
+  direct pendant l'absence, et ses archives n'en ont aucun. Ni compte ni durée :
+  on ne les connaît pas ;
+- **« Le plus vu : « … » (5,2 k vues) »** : parmi ses clips faits PENDANT
+  l'absence, ceux d'avant n'entrent pas. La règle du récap (4.29.0) : nommé
+  seulement si la page les a tous, ou si elle est rangée par vues décroissantes
+  — l'ordre se constate sur la réponse ;
+- **« Revoir le dernier »** : la dernière archive de l'absence, quand son jeton
+  dit qu'elle est ouverte, ou que vous êtes abonné. Tant que le jeton n'est
+  pas lu, pas de lien.
+
+Une chaîne n'entre au bandeau qu'**une fois ses archives relues depuis votre
+retour** : la mémoire de l'agenda date de la dernière visite, d'avant
+l'absence, et n'en sait rien. Lue telle quelle, elle faisait dire « sans
+rediffusion » à une chaîne qui en avait trois.
+
+Au-delà de sept jours, les sept derniers — la portée de l'agenda —, et le
+bandeau le dit : « il y a 10 jours — les sept derniers ».
+
+### Fermé partout
+
+La croix ferme le bandeau dans tous les onglets ouverts, par l'événement du
+stockage, et il ne revient pas au rechargement. Sinon, il s'efface douze heures
+après le retour. L'absence suivante en pose un neuf.
+
+### Ce qui n'a pas pu être vérifié
+
+Comme pour le récap : `title` et `viewCount` des clips, et la forme
+`period: LAST_WEEK`, n'ont pas pu être éprouvés contre le vrai Twitch d'ici.
+Si le schéma refuse la demande, plus de demande de clips pour la session, et
+les lignes restent sans « plus vu » ; le rapport le dit (`absence.clips.refus`).
+
+### Ce qu'il coûte
+
+| ce qui s'affiche | ce que ça coûte |
+| --- | --- |
+| la présence | une écriture dans le stockage local au plus une fois par minute, onglet à l'écran ; aucune requête |
+| le bandeau et ses directs | **rien de plus** : les archives et les fiches que l'agenda lit déjà ; sa seconde passe remonte jusqu'au début de l'absence, sept jours au plus |
+| le plus vu | **une** opération `TseAbsenceClips` par chaîne montrée et par absence — cinq au plus |
+
+### Le réglage
+
+« Pendant votre absence » rejoint le groupe « Page d'accueil » de
+« Réglages » : décoché, ni bandeau, ni demande de clips. Trente-deux réglages.
+
+### Les textes
+
+Dix langues dans le bandeau ; douze dans le panneau, le mode d'emploi (« L'accueil
+de Twitch ») et les fiches du Store.
+
+### Le banc
+
+**224**, nouveau. Huit clips par page au banc, trente en vrai.
+
+- a) trente heures sans Twitch : le bandeau, en dernier dans l'accueil ; cinq
+  chaînes dans l'ordre des visites — ni la sixième, ni la muette, ni celle
+  jamais regardée ; « 2 directs · 5h05 » d'une coupure et d'un second direct,
+  sans l'archive d'avant ; « A diffusé, sans rediffusion » ; le plus vu pendant
+  l'absence, pas celui d'avant, plus vu ; une page pleine rangée par vues nomme
+  son premier ; « Revoir le dernier », et pas pour une archive fermée aux
+  abonnés ; une demande de clips par chaîne, une seule ;
+- b) un second onglet : la même absence, pas recomptée ; fermée dans l'un,
+  fermée dans l'autre, et pas de retour au rechargement ;
+- c) dix jours : les sept derniers, et le bandeau le dit — ni le direct d'il y a
+  neuf jours, ni une chaîne jamais regardée ; une page pleine rangée par date
+  ne nomme aucun « plus vu », et ses clips ne sont demandés qu'une fois ;
+- d) vingt heures, e) le réglage décoché, f) une installation neuve, g) une
+  absence finie depuis treize heures : ni bandeau, ni clips ;
+- h) une mémoire d'avant l'absence, que le réseau tarde à relire : chaque image
+  est regardée, et la chaîne n'y est jamais dite « sans rediffusion » — elle
+  attend ses archives relues.
+
+Et 221 a) : l'ordre des rayons finit par le bandeau.
+
+**Vingt-deux mutants nommés, tous pris.**
+
+| mutant | ce qui tombe |
+| --- | --- |
+| une absence sans le seuil d'un jour | 224 : le scénario ne finit plus — chaque chargement pose une absence |
+| la garde de douze heures oubliée | 224 g) : une absence finie il y a treize heures montre encore son bandeau |
+| fermé dans cet onglet seulement | 224 b) : l'autre onglet ne relit pas le stockage |
+| le bandeau fermé qui revient | 224 b) : fermé, il reste ; rechargé, il revient |
+| le réglage ignoré | 224 e) : décoché, le bandeau et ses clips |
+| les chaînes jamais regardées | 224 c) : iris, jamais regardée, entre au bandeau |
+| plus de cinq chaînes | 224 a) : dune, la sixième, entre au bandeau |
+| la coupure qui fait deux directs | 224 a) : « 3 directs » pour falaise |
+| l'archive d'avant l'absence comptée | 224 a) : l'archive d'avant entre au compte |
+| « a diffusé » tu | 224 a) : grotte, finie sans archive, disparaît |
+| la mémoire d'avant l'absence crue | 224 h) : « A diffusé, sans rediffusion » le temps de relire |
+| la semaine oubliée | 224 c) : le direct d'il y a neuf jours entre au bandeau |
+| le clip d'avant l'absence | 224 a) : le clip d'avant, plus vu, est nommé |
+| l'ordre des vues supposé | 224 c) : une page pleine rangée par date nomme un « plus vu » |
+| une page pleine jamais crue | 224 a) : la page pleine rangée par vues ne nomme rien |
+| les clips redemandés à chaque peinture | 224 : le scénario ne finit plus — chaque réponse repeint, et chaque peinture redemande |
+| la clé qui glisse avec l'heure | 224 c) : bornée à sept jours, chaque peinture redemande les clips |
+| « Revoir » une archive fermée | 224 a) : un lien vers l'archive fermée aux abonnés |
+| le bandeau en tête de l'accueil | 221 a) et 224 a) : le bandeau avant les autres rayons |
+| les sept jours tus | 224 c) : « il y a 10 jours » sans « les sept derniers » |
+| les jours arrondis au-dessus | 224 a) et c) : « il y a 2 jours » pour trente heures |
+| « le plus vu » sans majuscule | 224 a) : « le plus vu : … » seul sur sa ligne |
+
+Le banc complet : 2239 assertions dans 223 scénarios, toutes vertes.
+
 ## L'accueil, niveau 2 : le récap du direct en cours, dans l'aperçu (v4.29.0)
 
 Troisième idée du niveau 2. Publiée sur `claude/chrome-homepage` seulement.
@@ -23875,7 +24011,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | les six fichiers JavaScript livrés — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 222 scénarios, 2221 assertions |
+| `npm test` | le harnais Playwright : 223 scénarios, 2239 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -23896,13 +24032,13 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 2090 Ko | 948 Ko | 4 577 → **2** |
+| `content.js` | 2111 Ko | 964 Ko | 4 596 → **2** |
 | `cadres.js` | 68 Ko | 31 Ko | 160 → **0** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
 | `panneau.js` | 162 Ko | 82 Ko | 224 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 26 → **0** |
 | `background.js` | 10 Ko | 2 Ko | 22 → **0** |
-| **les six** | **2469 Ko** | **1167 Ko** | **−53 %** |
+| **les six** | **2490 Ko** | **1183 Ko** | **−52 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se

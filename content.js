@@ -553,6 +553,15 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiRecapClips:              (n, plus, jour) => `${n}${plus ? '+' : ''} clip${n > 1 || plus ? 's' : ''}${jour ? ' en 24 h' : ''}`,
       uiRecapSansClip:           'Aucun clip',
       uiRecapPlusVu:             (t, v, nv) => `le plus vu : « ${t} » (${v} vue${nv > 1 ? 's' : ''})`,
+      /* PENDANT VOTRE ABSENCE (4.30.0, cf. ABSENCE). `j` : des jours ; `borne` :
+         l'absence passe les sept jours que l'agenda couvre ; `n`, `d` : des
+         directs et leur durée déjà écrite. */
+      uiAbsTitre:                'Pendant votre absence',
+      uiAbsSous:                 (j, borne) => (borne ? `Depuis votre dernière visite, il y a ${j} jours — les sept derniers`
+                                                      : `Depuis votre dernière visite, il y a ${j} jour${j > 1 ? 's' : ''}`),
+      uiAbsDirects:              (n, d) => `${n} direct${n > 1 ? 's' : ''} · ${d}`,
+      uiAbsSansRedif:            'A diffusé, sans rediffusion',
+      uiAbsRevoir:               'Revoir le dernier',
       /* L'ÉTAT DU CALAGE DANS L'EN-TÊTE (4.25.0.11, cf. etatCalage). `e` : la
          cause, `x`/`m` les calculs du son reçus sur ceux qu'il faut, `s` un
          écart en secondes déjà écrit à la locale, `avance` son sens, `el`/`tot`
@@ -813,6 +822,12 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiRecapClips:              (n, plus, jour) => `${n}${plus ? '+' : ''} clip${n !== 1 || plus ? 's' : ''}${jour ? ' in 24 h' : ''}`,
       uiRecapSansClip:           'No clips',
       uiRecapPlusVu:             (t, v, nv) => `most viewed: “${t}” (${v} view${nv === 1 ? '' : 's'})`,
+      uiAbsTitre:                'While you were away',
+      uiAbsSous:                 (j, borne) => (borne ? `Since your last visit, ${j} days ago — the last seven`
+                                                      : `Since your last visit, ${j} day${j === 1 ? '' : 's'} ago`),
+      uiAbsDirects:              (n, d) => `${n} stream${n === 1 ? '' : 's'} · ${d}`,
+      uiAbsSansRedif:            'Streamed, no replay',
+      uiAbsRevoir:               'Watch the last one',
       uiCalCoupe:                'Alignment turned off in settings',
       uiCalIndispo:              'Alignment unavailable: this browser cannot capture the sound',
       uiCalArrete:               'Alignment stopped',
@@ -1048,6 +1063,12 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiRecapClips:              (n, plus, jour) => `${n}${plus ? '+' : ''} Clip${n !== 1 || plus ? 's' : ''}${jour ? ' in 24 Std.' : ''}`,
       uiRecapSansClip:           'Keine Clips',
       uiRecapPlusVu:             (t, v, nv) => `meistgesehen: „${t}“ (${v} Aufruf${nv === 1 ? '' : 'e'})`,
+      uiAbsTitre:                'Während du weg warst',
+      uiAbsSous:                 (j, borne) => (borne ? `Seit deinem letzten Besuch vor ${j} Tagen – die letzten sieben`
+                                                      : `Seit deinem letzten Besuch vor ${j} Tag${j === 1 ? '' : 'en'}`),
+      uiAbsDirects:              (n, d) => `${n} Stream${n === 1 ? '' : 's'} · ${d}`,
+      uiAbsSansRedif:            'Hat gestreamt, ohne Aufzeichnung',
+      uiAbsRevoir:               'Den letzten ansehen',
       uiCalCoupe:                'Ausrichtung in den Einstellungen ausgeschaltet',
       uiCalIndispo:              'Ausrichtung nicht verfügbar: Dieser Browser kann den Ton nicht abgreifen',
       uiCalArrete:               'Ausrichtung gestoppt',
@@ -1283,6 +1304,12 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiRecapClips:              (n, plus, jour) => `${n}${plus ? '+' : ''} clip${n !== 1 || plus ? 's' : ''}${jour ? ' en 24 h' : ''}`,
       uiRecapSansClip:           'Ningún clip',
       uiRecapPlusVu:             (t, v, nv) => `el más visto: «${t}» (${v} vista${nv === 1 ? '' : 's'})`,
+      uiAbsTitre:                'Mientras no estabas',
+      uiAbsSous:                 (j, borne) => (borne ? `Desde tu última visita, hace ${j} días — los siete últimos`
+                                                      : `Desde tu última visita, hace ${j} día${j === 1 ? '' : 's'}`),
+      uiAbsDirects:              (n, d) => `${n} directo${n === 1 ? '' : 's'} · ${d}`,
+      uiAbsSansRedif:            'Emitió, sin repetición',
+      uiAbsRevoir:               'Ver el último',
       uiCalCoupe:                'Alineación desactivada en los ajustes',
       uiCalIndispo:              'Alineación no disponible: este navegador no puede capturar el sonido',
       uiCalArrete:               'Alineación detenida',
@@ -1518,6 +1545,12 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiRecapClips:              (n, plus, jour) => `${n}${plus ? '+' : ''} clipe${n !== 1 || plus ? 's' : ''}${jour ? ' em 24 h' : ''}`,
       uiRecapSansClip:           'Nenhum clipe',
       uiRecapPlusVu:             (t, v, nv) => `o mais visto: «${t}» (${v} visualizaç${nv === 1 ? 'ão' : 'ões'})`,
+      uiAbsTitre:                'Enquanto você esteve fora',
+      uiAbsSous:                 (j, borne) => (borne ? `Desde a sua última visita, há ${j} dias — os últimos sete`
+                                                      : `Desde a sua última visita, há ${j} dia${j === 1 ? '' : 's'}`),
+      uiAbsDirects:              (n, d) => `${n} transmiss${n === 1 ? 'ão' : 'ões'} · ${d}`,
+      uiAbsSansRedif:            'Transmitiu, sem reprise',
+      uiAbsRevoir:               'Rever a última',
       uiCalCoupe:                'Alinhamento desligado nas definições',
       uiCalIndispo:              'Alinhamento indisponível: este navegador não consegue capturar o som',
       uiCalArrete:               'Alinhamento parado',
@@ -1753,6 +1786,12 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiRecapClips:              (n, plus, jour) => `${n}${plus ? '+' : ''} clip${jour ? ' in 24 ore' : ''}`,
       uiRecapSansClip:           'Nessuna clip',
       uiRecapPlusVu:             (t, v, nv) => `la più vista: «${t}» (${v} visualizzazion${nv === 1 ? 'e' : 'i'})`,
+      uiAbsTitre:                'Mentre eri via',
+      uiAbsSous:                 (j, borne) => (borne ? `Dalla tua ultima visita, ${j} giorni fa — gli ultimi sette`
+                                                      : `Dalla tua ultima visita, ${j} giorn${j === 1 ? 'o' : 'i'} fa`),
+      uiAbsDirects:              (n, d) => `${n} dirett${n === 1 ? 'a' : 'e'} · ${d}`,
+      uiAbsSansRedif:            'Ha trasmesso, senza replica',
+      uiAbsRevoir:               'Rivedi l\'ultima',
       uiCalCoupe:                'Allineamento disattivato nelle impostazioni',
       uiCalIndispo:              'Allineamento non disponibile: questo browser non può catturare l\'audio',
       uiCalArrete:               'Allineamento fermato',
@@ -1989,6 +2028,12 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiRecapClips:              (n, plus, jour) => `${n}${plus ? '+' : ''} ${plus ? 'klipów' : plurielSlave(n, ['klip', 'klipy', 'klipów'])}${jour ? ' w 24 h' : ''}`,
       uiRecapSansClip:           'Brak klipów',
       uiRecapPlusVu:             (t, v) => `najczęściej oglądany: „${t}” (${v} wyśw.)`,
+      uiAbsTitre:                'Podczas twojej nieobecności',
+      uiAbsSous:                 (j, borne) => (borne ? `Od ostatniej wizyty, ${j} dni temu — ostatnie siedem`
+                                                      : `Od ostatniej wizyty, ${j === 1 ? 'dzień' : j + ' dni'} temu`),
+      uiAbsDirects:              (n, d) => `${n} ${plurielSlave(n, ['transmisja', 'transmisje', 'transmisji'])} · ${d}`,
+      uiAbsSansRedif:            'Nadawał, bez powtórki',
+      uiAbsRevoir:               'Obejrzyj ostatnią',
       uiCalCoupe:                'Wyrównanie wyłączone w ustawieniach',
       uiCalIndispo:              'Wyrównanie niedostępne: ta przeglądarka nie przechwytuje dźwięku',
       uiCalArrete:               'Wyrównanie zatrzymane',
@@ -2225,6 +2270,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiRecapClips:              (n, plus, jour) => `${n}${plus ? '+' : ''} ${plus ? 'клипов' : plurielSlave(n, ['клип', 'клипа', 'клипов'])}${jour ? ' за 24 ч' : ''}`,
       uiRecapSansClip:           'Нет клипов',
       uiRecapPlusVu:             (t, v) => `самый просматриваемый: «${t}» (${v} просм.)`,
+      uiAbsTitre:                'Пока вас не было',
+      uiAbsSous:                 (j, borne) => `С вашего последнего визита, ${j} ${plurielSlave(j, ['день', 'дня', 'дней'])} назад${borne ? ' — последние семь' : ''}`,
+      uiAbsDirects:              (n, d) => `${n} ${plurielSlave(n, ['трансляция', 'трансляции', 'трансляций'])} · ${d}`,
+      uiAbsSansRedif:            'Был в эфире, без записи',
+      uiAbsRevoir:               'Смотреть последнюю',
       uiCalCoupe:                'Выравнивание отключено в настройках',
       uiCalIndispo:              'Выравнивание недоступно: этот браузер не может захватывать звук',
       uiCalArrete:               'Выравнивание остановлено',
@@ -2460,6 +2510,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiRecapClips:              (n, plus, jour) => `クリップ ${n}${plus ? '+' : ''} 本${jour ? '（24 時間）' : ''}`,
       uiRecapSansClip:           'クリップなし',
       uiRecapPlusVu:             (t, v) => `最多再生：「${t}」（${v} 回）`,
+      uiAbsTitre:                'お留守の間に',
+      uiAbsSous:                 (j, borne) => `前回の訪問から ${j} 日${borne ? ' — 直近 7 日分' : ''}`,
+      uiAbsDirects:              (n, d) => `配信 ${n} 回 · ${d}`,
+      uiAbsSansRedif:            '配信あり（アーカイブなし）',
+      uiAbsRevoir:               '最新の配信を見る',
       uiCalCoupe:                '同期は設定でオフになっています',
       uiCalIndispo:              '同期は使えません：このブラウザは音声を取り込めません',
       uiCalArrete:               '同期を停止しました',
@@ -2693,6 +2748,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiRecapClips:              (n, plus, jour) => `${n}${plus ? '+' : ''} 个剪辑${jour ? '（24 小时内）' : ''}`,
       uiRecapSansClip:           '没有剪辑',
       uiRecapPlusVu:             (t, v) => `播放最多：「${t}」（${v} 次）`,
+      uiAbsTitre:                '你不在的时候',
+      uiAbsSous:                 (j, borne) => `距上次访问 ${j} 天${borne ? '——仅显示最近 7 天' : ''}`,
+      uiAbsDirects:              (n, d) => `${n} 场直播 · ${d}`,
+      uiAbsSansRedif:            '有直播，无回放',
+      uiAbsRevoir:               '观看最近一场',
       uiCalCoupe:                '对齐已在设置中关闭',
       uiCalIndispo:              '对齐不可用：此浏览器无法捕获声音',
       uiCalArrete:               '对齐已停止',
@@ -4372,6 +4432,16 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     ETIQ_TENDANCE_MIN:      50,
     ETIQ_HISTO_MAX:         400,
     ETIQ_TWITCH_MAX:        60,
+    /* PENDANT VOTRE ABSENCE (4.30.0, cf. ABSENCE). Une absence, c'est vingt-
+       quatre heures sans un onglet de Twitch à l'écran ; son bandeau reste
+       douze heures, ou jusqu'à ce qu'on le ferme. La présence s'écrit au plus
+       une fois par minute. Cinq chaînes au plus, et leurs clips d'une
+       semaine : trente par chaîne, une fois par absence. */
+    ABSENCE_MIN_MS:         24 * 3_600_000,
+    ABSENCE_GARDE_MS:       12 * 3_600_000,
+    ABSENCE_PRESENCE_MS:    60_000,
+    ABSENCE_MAX:            5,
+    ABSENCE_CLIPS:          30,
 
     /* === Le panneau incrusté ===
        LES DEUX NOMBRES SONT CEUX DE LA POPUP DE BARRE D'OUTILS (cf. la borne
@@ -4480,6 +4550,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        déjà posés restent, jusqu'à leur heure. */
     accueilRdv:      { defaut: true,      type: 'bool', sous: ['accueil'] },
     accueilEtiquettes: { defaut: true,    type: 'bool', sous: ['accueil'] },
+    accueilAbsence:  { defaut: true,      type: 'bool', sous: ['accueil'] },
 
     abonnes:         { defaut: 'plein',   type: 'choix',
                        valeurs: ['plein', 'discret', 'aucun'], css: true },
@@ -8710,6 +8781,24 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     .tse-acc-direct { top: 8px; left: 8px; background: var(--tse-frais); text-transform: uppercase; }
     .tse-acc-duree { top: 8px; right: 8px; background: rgba(0, 0, 0, 0.62); font-variant-numeric: tabular-nums; }
     .tse-acc-spect { bottom: 8px; left: 8px; background: rgba(0, 0, 0, 0.62); font-weight: 500; }
+    /* PENDANT VOTRE ABSENCE (4.30.0) : un bandeau à part, en bas de nos
+       rayons — ce qui est déjà à l'écran ne descend pas quand il arrive. */
+    .tse-acc-absence { position: relative; padding: 14px 16px; border-radius: 8px; background: var(--tse-surface); }
+    .tse-acc-absence-tete { display: flex; align-items: baseline; gap: 10px; padding-right: 32px; }
+    .tse-acc-absence-titre { margin: 0; font-size: 16px; font-weight: 700; color: var(--tse-texte); }
+    .tse-acc-absence-sous { font-size: 13px; color: var(--tse-texte-doux); }
+    .tse-acc-absence-fermer {
+      position: absolute; top: 8px; right: 8px; width: 28px; height: 28px; border: 0; border-radius: 6px;
+      background: transparent; color: var(--tse-texte-doux); font-size: 18px; line-height: 28px; cursor: pointer;
+    }
+    .tse-acc-absence-fermer:hover { background: rgba(var(--tse-encre), 0.1); color: var(--tse-texte); }
+    .tse-acc-absence-liste { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 8px; }
+    .tse-acc-absence-ligne { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .tse-acc-absence-ligne .tse-acc-avatar { flex: 0 0 32px; width: 32px; height: 32px; }
+    .tse-acc-absence-textes { flex: 1 1 auto; min-width: 0; font-size: 13px; line-height: 1.35; color: var(--tse-texte-doux); }
+    .tse-acc-absence-textes p { margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tse-acc-absence-textes .tse-acc-nom { font-size: 14px; }
+    .tse-acc-absence-revoir { flex: 0 0 auto; }
     /* UNE ÉTIQUETTE PAR CARTE (4.28.0, cf. ETIQUETTES). Sur nos cartes comme
        sur celles de Twitch, en bas à droite de la vignette — la place que ni
        l'une ni l'autre n'occupe. Un attribut et un pseudo-élément : aucun
@@ -16191,6 +16280,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
                jetons: 0, fermees: 0, illisibles: 0, refus: 0, reseau: 0 },
       // Vos rendez-vous (4.27.0) : ce qui est montré, et si l'agenda tourne encore.
       rdv: { lectures: 0, creneaux: 0, habitudes: 0, attente: false, enCours: false },
+      // Pendant votre absence (4.30.0) : ce qui est montré, et ce que les clips ont coûté.
+      absence: { lectures: 0, chaines: 0, montre: false, enCours: false, fermetures: 0, synchros: 0, clips: { demandes: 0, servis: 0, refus: 0, plusVus: 0 } },
       // Une étiquette par carte (4.28.0) : combien de chaque sorte, et ce que les cartes de Twitch ont coûté.
       etiquettes: { posees: {}, demandes: 0, coins: { haut: 0, aucun: 0 }, twitch: { cartes: 0, vues: 0, etiquetees: 0 } },
     };
@@ -16786,8 +16877,25 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       hHab.append(elt('span', null, S.uiAccHabitudes), elt('span', 'tse-acc-sous-titre', S.uiAccHabitudesNote));
       const lHab = elt('div', 'tse-acc-liste tse-acc-liste--rdv');
       const hab = fabriquerRayon('habitudes', 'tse-acc-rayon--habitudes', hHab, lHab);
-      section.append(suivis, top, rdv, hab);
-      z = { heros, suivis, tSuivis, lSuivis, top, tTop, lang, lTop, note, rdv, lRdv, hab, lHab, langCle: undefined };
+      // Pendant votre absence (4.30.0) : en dernier, pour ne rien pousser de ce qu'on regarde.
+      const abs = elt('section', 'tse-acc-rayon tse-acc-absence');
+      abs.dataset.tseRayon = 'absence';
+      abs.hidden = true;
+      const tAbs = elt('div', 'tse-acc-absence-tete');
+      tAbs.append(elt('h2', 'tse-acc-absence-titre', S.uiAbsTitre), elt('span', 'tse-acc-absence-sous'));
+      const xAbs = elt('button', 'tse-acc-absence-fermer', '×');
+      xAbs.type = 'button';
+      xAbs.setAttribute('aria-label', S.uiRappelFermer);
+      xAbs.title = S.uiRappelFermer;
+      xAbs.addEventListener('click', erreurs.garde('accueil', () => {
+        presence.fermer();
+        bilan.absence.fermetures++;
+        peindre();
+      }));
+      const lAbs = elt('ul', 'tse-acc-absence-liste');
+      abs.append(tAbs, xAbs, lAbs);
+      section.append(suivis, top, rdv, hab, abs);
+      z = { heros, suivis, tSuivis, lSuivis, top, tTop, lang, lTop, note, rdv, lRdv, hab, lHab, abs, lAbs, langCle: undefined };
       /* LE LECTEUR NE JOUE QU'À L'ÉCRAN. Le héros descendu hors de la vue,
          sa vidéo s'arrête ; elle reprend quand il revient. */
       if (typeof IntersectionObserver === 'function') {
@@ -17830,6 +17938,126 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       if (r.enCours || avantMemoire) relireRdvBientot();
     };
 
+    /* ══ PENDANT VOTRE ABSENCE (4.30.0) ═════════════════════════════════════
+       Vingt-quatre heures au moins sans un onglet de Twitch à l'écran (cf.
+       LA PRÉSENCE) : au retour, un bandeau dit ce que vos chaînes suivies —
+       celles que vous regardez — ont diffusé entre-temps, d'après l'agenda.
+       Une ligne par chaîne, cinq au plus : ses directs et leur durée, le plus
+       vu de ses clips de la période, et « Revoir le dernier » quand la
+       rediffusion est ouverte. Au-delà de sept jours, les sept derniers : la
+       portée de l'agenda, et le bandeau le dit. Fermé, il l'est dans tous les
+       onglets ; sinon il s'efface douze heures après le retour.
+
+       LES CLIPS : une demande par chaîne et par absence, la semaine passée,
+       rangée par vues. Le plus vu ne se nomme que si la page a tout, ou si
+       elle est rangée par vues décroissantes et contient des clips de
+       l'absence — l'ordre se constate, comme pour le récap (cf. LE RÉCAP). */
+    const clipsAbsence = new Map();   // login -> { cle, top } ; `cle` : l'absence qu'ils couvrent
+    let clipsAbsRefuse = false;
+    const clipsAbsEnVol = new Set();
+    /* `cle` : l'absence elle-même ({ debut, fin } gardés), et non la fenêtre
+       lue — bornée aux sept derniers jours, celle-ci glisse avec l'heure, et
+       chaque peinture redemandait les clips. */
+    const demanderClipsAbsence = async (login, debut, fin, cle) => {
+      if (clipsAbsRefuse || clipsAbsEnVol.has(login) || clipsAbsence.get(login)?.cle === cle) return;
+      clipsAbsEnVol.add(login);
+      bilan.absence.clips.demandes++;
+      try {
+        const q = 'query TseAbsenceClips($login: String!, $n: Int!) {' +
+          '  user(login: $login) { clips(first: $n, criteria: { period: LAST_WEEK }) {' +
+          '    edges { node { id createdAt title viewCount } } } }' +
+          '}';
+        const res = await post([{ operationName: 'TseAbsenceClips', variables: { login, n: CFG.ABSENCE_CLIPS }, query: q }]);
+        const r0 = Array.isArray(res) ? res[0] : null;
+        if (!r0) return;
+        const aretes = r0.data?.user?.clips?.edges;
+        if (!Array.isArray(aretes)) {
+          bilan.absence.clips.refus++;
+          // eslint-disable-next-line require-atomic-updates
+          clipsAbsRefuse = true;
+          return;
+        }
+        bilan.absence.clips.servis++;
+        const noeuds = aretes.map((a) => a?.node).filter((x) => x && Number.isFinite(Date.parse(x.createdAt)));
+        const vues = (x) => (Number.isInteger(x.viewCount) && x.viewCount >= 0 ? x.viewCount : null);
+        const parVues = noeuds.every((x, i) => i === 0 || (vues(noeuds[i - 1]) ?? -1) >= (vues(x) ?? -1));
+        const pendant = noeuds.filter((x) => { const t = Date.parse(x.createdAt); return t >= debut && t < fin; });
+        const pleine = aretes.length >= CFG.ABSENCE_CLIPS;
+        let top = null;
+        if (pendant.length && (!pleine || parVues)) {
+          for (const x of pendant) {
+            const v = vues(x);
+            const t = typeof x.title === 'string' ? x.title.trim().slice(0, 140) : '';
+            if (v !== null && t && (!top || v > top.vues)) top = { titre: t, vues: v };
+          }
+        }
+        if (top) bilan.absence.clips.plusVus++;
+        clipsAbsence.set(login, { cle, top });
+        while (clipsAbsence.size > 50) clipsAbsence.delete(clipsAbsence.keys().next().value);
+        if (pose() && !document.hidden) peindreAbsence();
+      } finally {
+        clipsAbsEnVol.delete(login);
+      }
+    };
+    const fabriquerAbsence = (it) => {
+      const li = elt('li', 'tse-acc-absence-ligne');
+      li.dataset.tseCle = it.login;
+      const av = elt('img', 'tse-acc-avatar');
+      av.alt = '';
+      av.loading = 'lazy';
+      const textes = elt('div', 'tse-acc-absence-textes');
+      const nom = elt('a', 'tse-acc-nom');
+      nom.setAttribute('href', '/' + it.login);
+      textes.append(elt('p', null), elt('p', 'tse-acc-absence-quoi'), elt('p', 'tse-acc-absence-clip'));
+      textes.firstChild.append(nom);
+      const revoir = elt('a', 'tse-acc-debut tse-acc-absence-revoir');
+      li.append(av, textes, revoir);
+      return li;
+    };
+    const majAbsence = (li, it) => {
+      const [av, textes, revoir] = li.children;
+      const url = imageSure(it.avatar);
+      av.hidden = !url;
+      if (url) attrSi(av, 'src', url);
+      const [l1, quoi, clip] = textes.children;
+      texteSi(l1.firstChild, it.nom);
+      texteSi(quoi, it.n === null ? S.uiAbsSansRedif : S.uiAbsDirects(it.n, formatDuree(it.dureeMs)));
+      const c = clipsAbsence.get(it.login);
+      const top = c && c.cle === it.cle ? c.top : null;
+      // Seule sur sa ligne, la phrase du récap prend sa majuscule (« Le plus vu : … »).
+      const phrase = top ? S.uiRecapPlusVu(top.titre, formatViewers(top.vues), top.vues) : '';
+      texteSi(clip, phrase.charAt(0).toLocaleUpperCase(LANG) + phrase.slice(1));
+      attrSi(clip, 'title', top ? top.titre : null);
+      clip.hidden = !top;
+      const d = it.dernier;
+      const ouverte = !!d && (d.fermee === false || subs.isSub(it.login));
+      revoir.hidden = !ouverte;
+      attrSi(revoir, 'href', ouverte ? `/videos/${d.id}` : null);
+      if (ouverte && !revoir.firstChild) revoir.append(elt('span', null, S.uiAbsRevoir));
+    };
+    const peindreAbsence = () => {
+      const a = options.get('accueilAbsence') ? presence.absence() : null;
+      if (!a || a.ferme) { z.abs.hidden = true; bilan.absence.montre = false; return; }
+      let r;
+      try { r = agenda.absence({ debut: a.debut, fin: a.fin }); } catch (e) {
+        erreurs.noter('accueil', 'absence : ' + ((e && e.message) || e));
+        z.abs.hidden = true;
+        return;
+      }
+      bilan.absence.lectures++;
+      const cle = `${a.debut}|${a.fin}`;
+      const items = r.chaines.map((x) => ({ ...x, cle }));
+      for (const x of items) demanderClipsAbsence(x.login, r.debut, r.fin, cle).catch((e) => erreurs.noter('accueil', 'clips : ' + ((e && e.message) || e)));
+      const jours = Math.max(1, Math.floor((a.fin - a.debut) / 86_400_000));
+      texteSi(z.abs.querySelector('.tse-acc-absence-sous'), S.uiAbsSous(jours, r.borne));
+      rangee(z.lAbs, items, (x) => x.login, fabriquerAbsence, majAbsence);
+      z.abs.hidden = !items.length;
+      bilan.absence.chaines = items.length;
+      bilan.absence.montre = !!items.length;
+      bilan.absence.enCours = !!r.enCours;
+      if (r.enCours) relireRdvBientot();
+    };
+
     const peindre = () => {
       if (!pose() || document.hidden) return;
       const t = performance.now();
@@ -17871,8 +18099,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       for (const x of suivies) noterAffiche(x.login, x.e.stream?.createdAt);
       peindreSuivies(suivies);
       peindreRdv();
+      peindreAbsence();
       etiquetterTwitch();
-      section.hidden = !heros && z.suivis.hidden && z.top.hidden && z.rdv.hidden && z.hab.hidden;
+      section.hidden = !heros && z.suivis.hidden && z.top.hidden && z.rdv.hidden && z.hab.hidden && z.abs.hidden;
       if (!section.hidden) aligner();
       verifierPlaceHeros();
       demanderDebuts();
@@ -17969,6 +18198,10 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         }));
         // Un rappel posé, retiré ou vu dans un autre onglet : les boutons de l'accueil suivent.
         rappels.surChangement(erreurs.garde('accueil', () => { if (pose() && !document.hidden) peindreRdv(); }));
+        /* Le bandeau de l'absence fermé ailleurs : il se ferme ici aussi, sans
+           attendre le réveil suivant (cf. PRÉSENCE). Le rapport compte ces
+           relectures (`synchros`) : c'est la seule trace de ce chemin-là. */
+        presence.surChangement(erreurs.garde('accueil', () => { bilan.absence.synchros++; peindre(); }));
         options.surChangement(() => {
           if (!actif()) { retirer(); return; }
           if (!ici) { ici = true; arriver(false); }
@@ -18038,6 +18271,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         amorce: { ...bilan.amorce, chaines: amorce ? amorce.logins.length : 0, decidable: decidable() },
         // Vos rendez-vous et leurs rappels (4.27.0) : des comptes, aucune chaîne.
         rdv: { ...bilan.rdv, indice: { ...lireIndiceRdv() } },
+        absence: { ...bilan.absence, clips: { ...bilan.absence.clips }, gardee: !!presence.absence() },
         etiquettes: { ...bilan.etiquettes, posees: { ...bilan.etiquettes.posees }, coins: { ...bilan.etiquettes.coins },
                       twitch: { ...bilan.etiquettes.twitch }, active: !!options.get('accueilEtiquettes') },
         rappels: rappels.rapport(),
@@ -23808,7 +24042,57 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       if (!(ecart >= CFG.ETIQ_RETOUR_JOURS * 86_400_000)) return null;
       return { jours: Math.floor(ecart / 86_400_000) };
     };
-    return { semaine, horsLigne, rendezVous, retour, actualiser, effacer, bilan: bilanPublic };
+    /* PENDANT VOTRE ABSENCE (4.30.0, cf. ABSENCE). Les directs des chaînes
+       suivies que vous regardez, commencés pendant l'absence — au plus les
+       sept derniers jours, la portée de la seconde passe. Un direct se
+       compte comme ailleurs (cf. `directsDe`) : deux archives séparées d'une
+       coupure en font un. Une chaîne dont Twitch dit qu'elle a fini un
+       direct pendant l'absence, sans archive lue, « a diffusé » — sans
+       compte ni durée, qu'on ne connaît pas. */
+    const absence = (arg) => {
+      const maintenant = Date.now();
+      const fin = Number(arg?.fin);
+      const debut = Math.max(Number(arg?.debut), maintenant - CFG.ACCUEIL_RDV_RECUL_MS);
+      if (!Number.isFinite(debut) || !Number.isFinite(fin) || fin <= debut) throw new Error('absence invalide');
+      const fraiche = vouluAccueil.debut !== null && maintenant - vouluAccueil.ts <= CFG.ACCUEIL_RDV_DEMANDE_MS;
+      vouluAccueil = { debut: fraiche ? Math.min(vouluAccueil.debut, debut) : debut, ts: maintenant };
+      restaurer();
+      const c = cibles();
+      purger(c.liste);
+      lancer();
+      const vus = [];
+      for (const login of c.liste) {
+        const score = visits.scoreFor(login);
+        if (!(score > 0)) continue;
+        const f = chaines.get(login);
+        if (!f || f.inconnue || indisponible(f)) continue;
+        /* LES ARCHIVES RELUES DEPUIS LE RETOUR, et pas avant : la mémoire de
+           l'agenda date de la dernière visite — d'avant l'absence —, et n'en
+           sait rien. Lue avant d'être relue, elle faisait dire « sans
+           rediffusion » à une chaîne qui en avait trois. La chaîne attend. */
+        const d = diffusions.get(login);
+        if (!d || !(d.ts >= fin)) continue;
+        const pendant = directsDe(d.videos).filter((x) => x.debut >= debut && x.debut < fin);
+        let e = null;
+        if (pendant.length) {
+          const der = d.videos.filter((v) => v.debut >= debut && v.debut < fin).sort((a, b) => b.debut - a.debut)[0];
+          /* Fermée ou non, d'après le jeton de CETTE archive ; inconnu tant
+             qu'il n'est pas lu (null) — et « Revoir » attend de le savoir. */
+          const ac = acces.get(login);
+          const fermee = der && ac && ac.video === der.id && typeof ac.fermee === 'boolean' ? ac.fermee : null;
+          e = { n: pendant.length, dureeMs: pendant.reduce((t, x) => t + Math.max(0, x.fin - x.debut), 0),
+                dernier: der ? { id: der.id, titre: der.titre, fermee } : null };
+        } else if (f.finDernier !== null && f.finDernier >= debut && f.finDernier < fin) {
+          e = { n: null, dureeMs: null, dernier: null };
+        }
+        if (e) vus.push({ login, nom: f.nom || login, avatar: f.avatar || null, score, ...e });
+      }
+      vus.sort((a, b) => (b.score - a.score) || (a.login < b.login ? -1 : 1));
+      return { debut, fin, borne: debut > Number(arg?.debut), restauree,
+               enCours: !!travail || !restauree,
+               chaines: vus.slice(0, CFG.ABSENCE_MAX).map(({ score, ...x }) => x) };
+    };
+    return { semaine, horsLigne, rendezVous, retour, absence, actualiser, effacer, bilan: bilanPublic };
   })();
 
   /* ============================================================
@@ -23832,6 +24116,67 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
    *  mémoires (cf. LA FORME EXACTE) : une page de twitch.tv peut y
    *  écrire, et ce qui n'a pas la forme attendue n'est pas lu.
    * ============================================================ */
+  /* ============================================================
+   *  LA PRÉSENCE (4.30.0) — et l'absence qu'elle mesure
+   *  -------------------------------------------------------------
+   *  Le dernier instant où un onglet de twitch.tv était à l'écran,
+   *  écrit au plus une fois par minute, dans le stockage que les
+   *  onglets partagent. Au chargement, AVANT de l'écrire de nouveau :
+   *  plus de vingt-quatre heures depuis, et c'est une absence. Elle
+   *  se garde — { debut, fin, ferme } — douze heures, ou jusqu'à ce
+   *  qu'on ferme son bandeau, dans un onglet ou dans tous. Sans
+   *  présence connue — une installation neuve —, pas d'absence : on
+   *  ne sait pas depuis quand.
+   * ============================================================ */
+  const presence = (() => {
+    const CLE = 'tse:presence';
+    const CLE_ABS = 'tse:absence';
+    let derniere = 0;
+    const lireNombre = (cle) => {
+      let v = null;
+      try { v = Number(localStorage.getItem(cle)); } catch { v = null; }
+      return Number.isFinite(v) && v > 0 ? v : null;
+    };
+    const lireAbsence = () => {
+      let x = null;
+      try { x = JSON.parse(localStorage.getItem(CLE_ABS) || 'null'); } catch { x = null; }
+      if (!x || typeof x !== 'object' || !Number.isFinite(x.debut) || !Number.isFinite(x.fin) || x.fin <= x.debut) return null;
+      if (Date.now() - x.fin > CFG.ABSENCE_GARDE_MS) return null;
+      return { debut: x.debut, fin: x.fin, ferme: x.ferme === true };
+    };
+    const ecrireAbsence = (a) => {
+      try { localStorage.setItem(CLE_ABS, JSON.stringify(a)); } catch { /* stockage refusé : pas de bandeau gardé */ }
+    };
+    const noter = () => {
+      const now = Date.now();
+      if (now - derniere < CFG.ABSENCE_PRESENCE_MS) return;
+      derniere = now;
+      try { localStorage.setItem(CLE, String(now)); } catch { /* stockage refusé */ }
+    };
+    const init = () => {
+      const avant = lireNombre(CLE);
+      const now = Date.now();
+      // Relue avant toute écriture : un autre onglet a pu déjà la poser.
+      const deja = lireAbsence();
+      if (avant !== null && now - avant >= CFG.ABSENCE_MIN_MS && !(deja && deja.debut === avant)) {
+        ecrireAbsence({ debut: avant, fin: now, ferme: false });
+      }
+      if (!document.hidden) noter();
+    };
+    const fermer = () => {
+      const a = lireAbsence();
+      if (a && !a.ferme) ecrireAbsence({ ...a, ferme: true });
+    };
+    // Fermé dans un autre onglet — ou posé par lui : on suit sur-le-champ (cf. l'accueil).
+    const abonnes = new Set();
+    window.addEventListener('storage', erreurs.garde('presence', (ev) => {
+      if (ev.key !== CLE_ABS && ev.key !== null) return;
+      for (const f of abonnes) f();
+    }));
+    return { init, tick: () => { if (!document.hidden) noter(); }, absence: lireAbsence, fermer,
+             surChangement: (f) => { abonnes.add(f); } };
+  })();
+
   const rappels = (() => {
     const CLE = 'tse:rappels';
     const RE_LOGIN_RAPPEL = /^[a-z0-9_]{1,25}$/;
@@ -36399,6 +36744,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     // et fetch en arrière-plan, donc les réponses arrivent vides ou en timeout
     // et déclencheraient des faux "Terminé" partout. On rattrape au retour de
     // l'utilisateur (cf. handler visibilitychange plus bas).
+    // La présence d'abord, l'absence avec elle (4.30.0) : avant le premier réveil, qui la réécrit.
+    presence.init();
     setInterval(() => {
       if (document.hidden) return;
       scheduleScan();
@@ -36414,6 +36761,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       pageAccueil.tick();
       // Les rappels des rendez-vous, sur toutes les pages : l'alerte vient où l'on est.
       rappels.tick();
+      presence.tick();
     }, CFG.REFRESH_TICK);
 
     // Entretien : purge mémoire + auto-diagnostic. Aucun rapport avec la

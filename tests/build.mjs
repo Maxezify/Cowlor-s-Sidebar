@@ -205,6 +205,8 @@ const subs = [
   [/ETIQ_TENDANCE_MARGE_MS:\s*2 \* 60_000/, 'ETIQ_TENDANCE_MARGE_MS: 3_000'],
   // Le récap (4.29.0) : une page de huit clips au banc, pour qu'une page pleine se joue sans en écrire trente.
   [/RECAP_CLIPS:\s*30,/, 'RECAP_CLIPS:          8,'],
+  // Pendant votre absence (4.30.0) : de même, huit clips par page.
+  [/ABSENCE_CLIPS:\s*30,/, 'ABSENCE_CLIPS:          8,'],
   [/ACCUEIL_DEBUT_PAUSE:\s*60_000/,    'ACCUEIL_DEBUT_PAUSE:    500'],
   /* Le relevé des chaînes suivies (4.25.0.3). Il charge une page de plus à
      chaque chargement de Twitch, et l'agenda se relit tant qu'il est attendu :
