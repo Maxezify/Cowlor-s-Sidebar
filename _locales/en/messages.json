@@ -651,7 +651,7 @@
     "message": "Twitch's home page"
   },
   "guideAccueilTexte": {
-    "message": "On Twitch's home page, the extension adds its own rows above Twitch's, in the same column and lined up with them. They are set in “Settings”, under “Home page”.\n• “Your #1 channel, live”: the live followed channel you watch the most takes the place of Twitch's carousel, across the whole width. First its picture, then its stream, muted and ad-free, like the hover preview; the background takes on its colours. When none of the channels you watch is live, the carousel comes back. “As on Twitch” always keeps it; “Nothing” removes it and stops its video.\n• “Your followed channels, live”: a row, in the order of the ones you watch the most, at no extra request — these are the sidebar's channels.\n• “Top 10”: the first ten places of Top Channels, in the language of Twitch's interface or in all languages, in big numbers. Right of the name, an arrow shows the places gained or lost over thirty minutes, or since you arrived on the home page; “New” marks a channel that wasn't in the Top 10.\n• “Your scheduled streams”: what your followed channels have scheduled for today and tomorrow, with the time left. “Remind me” puts an alert in your open Twitch tabs when the channel goes live — not a system notification. Just below, “No schedule”: for a channel you watch that has nothing scheduled, the time its last streams started, when it repeats — what it did, not what it will do.\n• Each row shows one line; “Show all”, in the middle of the rule below it, unrolls the rest.\n• “From the start” opens the replay of the stream in progress at its first second. It only appears when you can watch it: the channel keeps its replays and opens them to everyone, or you are subscribed to it.\n• The hover preview also opens on the home page's cards: the extension's and Twitch's alike."
+    "message": "On Twitch's home page, the extension adds its own rows above Twitch's, in the same column and lined up with them. They are set in “Settings”, under “Home page”.\n• “Your #1 channel, live”: the live followed channel you watch the most takes the place of Twitch's carousel, across the whole width. First its picture, then its stream, muted and ad-free, like the hover preview; the background takes on its colours. When none of the channels you watch is live, the carousel comes back. “As on Twitch” always keeps it; “Nothing” removes it and stops its video.\n• “Your followed channels, live”: a row, in the order of the ones you watch the most, at no extra request — these are the sidebar's channels.\n• “Top 10”: the first ten places of Top Channels, in the language of Twitch's interface or in all languages, in big numbers. Right of the name, an arrow shows the places gained or lost over thirty minutes, or since you arrived on the home page; “New” marks a channel that wasn't in the Top 10.\n• “Your scheduled streams”: what your followed channels have scheduled for today and tomorrow, with the time left. “Remind me” puts an alert in your open Twitch tabs when the channel goes live — not a system notification. Just below, “No schedule”: for a channel you watch that has nothing scheduled, the time its last streams started, when it repeats — what it did, not what it will do.\n• One label per card, at the bottom right of the thumbnail, on the extension's cards and Twitch's alike: one fact, just one, the first true one in this list — “Back after 41 days”, “Subathon • DAY 9”, “Just started”, “Just switched to Elden Ring”, “↗ +38% in 10 min”, “#3 in English”, “Co-stream of 3 channels”. Nothing guessed: no fact seen, no label.\n• Each row shows one line; “Show all”, in the middle of the rule below it, unrolls the rest.\n• “From the start” opens the replay of the stream in progress at its first second. It only appears when you can watch it: the channel keeps its replays and opens them to everyone, or you are subscribed to it.\n• The hover preview also opens on the home page's cards: the extension's and Twitch's alike."
   },
   "guideViteTitre": {
     "message": "Quicker than Twitch, and tidier"
@@ -906,6 +906,12 @@
   "optDescAccueilRdv": {
     "message": "What your followed channels have scheduled for today and tomorrow, with the time left. “Remind me” puts an alert in your open Twitch tabs when the channel goes live. For a channel you watch that has nothing scheduled: the time its last streams started, when it repeats."
   },
+  "optAccueilEtiquettes": {
+    "message": "One label per card"
+  },
+  "optDescAccueilEtiquettes": {
+    "message": "One fact, just one, on each home page card — the extension's and Twitch's alike: “Back after 41 days”, “Just started”, “↗ +38% in 10 min”… For a channel the sidebar doesn't follow, its numbers are requested while its card is on screen."
+  },
   "optValHeros": {
     "message": "Your #1 channel"
   },
@@ -1063,7 +1069,7 @@
     "message": "Reset every setting to its default?"
   },
   "optResetText": {
-    "message": "All thirty settings on this page will return to their original value. Your data — visits, subscriptions, followed channels — is untouched."
+    "message": "All thirty-one settings on this page will return to their original value. Your data — visits, subscriptions, followed channels — is untouched."
   },
   "optValPlein": {
     "message": "Full"

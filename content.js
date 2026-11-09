@@ -534,6 +534,16 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiRappelEnDirect:          (f) => `${f} est en direct`,
       uiRappelCreneau:           (h) => `Votre rendez-vous de ${h}`,
       uiRappelFermer:            'Fermer',
+      /* UNE ÉTIQUETTE PAR CARTE (4.28.0, cf. ETIQUETTES). `j` : des jours ;
+         `p` : un pourcentage entier, arrondi vers le bas ; `m` : des minutes ;
+         `n` : une place, ou un nombre de chaînes. Le basculement et le
+         subathon reprennent les badges de l'aperçu (uiBadgeCategorySwitch,
+         uiBadgeSubathon), la place celle du Top 10 quand il est mondial. */
+      uiEtiqCommence:            'Vient de commencer',
+      uiEtiqRetour:              (j) => `De retour après ${j} jours`,
+      uiEtiqTendance:            (p, m) => `↗ +${p} % en ${m} min`,
+      uiEtiqRangLangue:          (n) => `N°${n} en français`,
+      uiEtiqCostream:            (n) => `Co-stream à ${n}`,
       /* L'ÉTAT DU CALAGE DANS L'EN-TÊTE (4.25.0.11, cf. etatCalage). `e` : la
          cause, `x`/`m` les calculs du son reçus sur ceux qu'il faut, `s` un
          écart en secondes déjà écrit à la locale, `avance` son sens, `el`/`tot`
@@ -785,6 +795,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiRappelEnDirect:          (f) => `${f} is live`,
       uiRappelCreneau:           (h) => `Scheduled for ${h}`,
       uiRappelFermer:            'Close',
+      uiEtiqCommence:            'Just started',
+      uiEtiqRetour:              (j) => `Back after ${j} days`,
+      uiEtiqTendance:            (p, m) => `↗ +${p}% in ${m} min`,
+      uiEtiqRangLangue:          (n, langue) => `#${n} in ${langue || 'English'}`,
+      uiEtiqCostream:            (n) => `Co-stream of ${n} channels`,
       uiCalCoupe:                'Alignment turned off in settings',
       uiCalIndispo:              'Alignment unavailable: this browser cannot capture the sound',
       uiCalArrete:               'Alignment stopped',
@@ -1011,6 +1026,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiRappelEnDirect:          (f) => `${f} ist live`,
       uiRappelCreneau:           (h) => `Geplant für ${h}`,
       uiRappelFermer:            'Schließen',
+      uiEtiqCommence:            'Gerade gestartet',
+      uiEtiqRetour:              (j) => `Zurück nach ${j} Tagen`,
+      uiEtiqTendance:            (p, m) => `↗ +${p} % in ${m} Min.`,
+      uiEtiqRangLangue:          (n) => `Platz ${n} auf Deutsch`,
+      uiEtiqCostream:            (n) => `Co-Stream mit ${n} Kanälen`,
       uiCalCoupe:                'Ausrichtung in den Einstellungen ausgeschaltet',
       uiCalIndispo:              'Ausrichtung nicht verfügbar: Dieser Browser kann den Ton nicht abgreifen',
       uiCalArrete:               'Ausrichtung gestoppt',
@@ -1237,6 +1257,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiRappelEnDirect:          (f) => `${f} está en directo`,
       uiRappelCreneau:           (h) => `Programado para las ${h}`,
       uiRappelFermer:            'Cerrar',
+      uiEtiqCommence:            'Acaba de empezar',
+      uiEtiqRetour:              (j) => `De vuelta tras ${j} días`,
+      uiEtiqTendance:            (p, m) => `↗ +${p} % en ${m} min`,
+      uiEtiqRangLangue:          (n) => `N.º ${n} en español`,
+      uiEtiqCostream:            (n) => `Co-stream de ${n} canales`,
       uiCalCoupe:                'Alineación desactivada en los ajustes',
       uiCalIndispo:              'Alineación no disponible: este navegador no puede capturar el sonido',
       uiCalArrete:               'Alineación detenida',
@@ -1463,6 +1488,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiRappelEnDirect:          (f) => `${f} está ao vivo`,
       uiRappelCreneau:           (h) => `Programado para as ${h}`,
       uiRappelFermer:            'Fechar',
+      uiEtiqCommence:            'Acabou de começar',
+      uiEtiqRetour:              (j) => `De volta após ${j} dias`,
+      uiEtiqTendance:            (p, m) => `↗ +${p}% em ${m} min`,
+      uiEtiqRangLangue:          (n) => `Nº ${n} em português`,
+      uiEtiqCostream:            (n) => `Co-stream com ${n} canais`,
       uiCalCoupe:                'Alinhamento desligado nas definições',
       uiCalIndispo:              'Alinhamento indisponível: este navegador não consegue capturar o som',
       uiCalArrete:               'Alinhamento parado',
@@ -1689,6 +1719,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiRappelEnDirect:          (f) => `${f} è in diretta`,
       uiRappelCreneau:           (h) => `In programma alle ${h}`,
       uiRappelFermer:            'Chiudi',
+      uiEtiqCommence:            'Appena iniziato',
+      uiEtiqRetour:              (j) => `Di ritorno dopo ${j} giorni`,
+      uiEtiqTendance:            (p, m) => `↗ +${p}% in ${m} min`,
+      uiEtiqRangLangue:          (n) => `N. ${n} in italiano`,
+      uiEtiqCostream:            (n) => `Co-stream con ${n} canali`,
       uiCalCoupe:                'Allineamento disattivato nelle impostazioni',
       uiCalIndispo:              'Allineamento non disponibile: questo browser non può catturare l\'audio',
       uiCalArrete:               'Allineamento fermato',
@@ -1916,6 +1951,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiRappelEnDirect:          (f) => `${f} nadaje na żywo`,
       uiRappelCreneau:           (h) => `Zaplanowano na ${h}`,
       uiRappelFermer:            'Zamknij',
+      uiEtiqCommence:            'Właśnie wystartował',
+      uiEtiqRetour:              (j) => `Wraca po ${j} dniach`,
+      uiEtiqTendance:            (p, m) => `↗ +${p}% w ${m} min`,
+      uiEtiqRangLangue:          (n) => `Nr ${n} po polsku`,
+      uiEtiqCostream:            (n) => `Co-stream: ${n} ${plurielSlave(n, ['kanał', 'kanały', 'kanałów'])}`,
       uiCalCoupe:                'Wyrównanie wyłączone w ustawieniach',
       uiCalIndispo:              'Wyrównanie niedostępne: ta przeglądarka nie przechwytuje dźwięku',
       uiCalArrete:               'Wyrównanie zatrzymane',
@@ -2143,6 +2183,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiRappelEnDirect:          (f) => `${f} в эфире`,
       uiRappelCreneau:           (h) => `Запланировано на ${h}`,
       uiRappelFermer:            'Закрыть',
+      uiEtiqCommence:            'Только что начался',
+      uiEtiqRetour:              (j) => `Вернулся спустя ${j} ${plurielSlave(j, ['день', 'дня', 'дней'])}`,
+      uiEtiqTendance:            (p, m) => `↗ +${p}% за ${m} мин`,
+      uiEtiqRangLangue:          (n) => `№ ${n} на русском`,
+      uiEtiqCostream:            (n) => `Совместный стрим: ${n} ${plurielSlave(n, ['канал', 'канала', 'каналов'])}`,
       uiCalCoupe:                'Выравнивание отключено в настройках',
       uiCalIndispo:              'Выравнивание недоступно: этот браузер не может захватывать звук',
       uiCalArrete:               'Выравнивание остановлено',
@@ -2369,6 +2414,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiRappelEnDirect:          (f) => `${f}が配信中`,
       uiRappelCreneau:           (h) => `${h}に予定`,
       uiRappelFermer:            '閉じる',
+      uiEtiqCommence:            '配信開始直後',
+      uiEtiqRetour:              (j) => `${j} 日ぶりの配信`,
+      uiEtiqTendance:            (p, m) => `↗ ${m} 分で +${p}%`,
+      uiEtiqRangLangue:          (n) => `日本語で ${n} 位`,
+      uiEtiqCostream:            (n) => `${n} チャンネルでコラボ配信`,
       uiCalCoupe:                '同期は設定でオフになっています',
       uiCalIndispo:              '同期は使えません：このブラウザは音声を取り込めません',
       uiCalArrete:               '同期を停止しました',
@@ -2593,6 +2643,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiRappelEnDirect:          (f) => `${f} 正在直播`,
       uiRappelCreneau:           (h) => `计划于 ${h}`,
       uiRappelFermer:            '关闭',
+      uiEtiqCommence:            '刚刚开播',
+      uiEtiqRetour:              (j) => `时隔 ${j} 天回归`,
+      uiEtiqTendance:            (p, m) => `↗ ${m} 分钟内 +${p}%`,
+      uiEtiqRangLangue:          (n) => `中文第 ${n} 名`,
+      uiEtiqCostream:            (n) => `${n} 个频道联合直播`,
       uiCalCoupe:                '对齐已在设置中关闭',
       uiCalIndispo:              '对齐不可用：此浏览器无法捕获声音',
       uiCalArrete:               '对齐已停止',
@@ -4255,6 +4310,18 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     RAPPEL_APRES_MS:        60 * 60_000,
     RAPPEL_ALERTE_MS:       15 * 60_000,
     RAPPELS_MAX:            20,
+    /* UNE ÉTIQUETTE PAR CARTE (4.28.0, cf. ETIQUETTES). « De retour » à partir
+       d'une semaine sans direct. La hausse se lit entre deux relevés du même
+       direct, dix minutes d'écart à deux minutes près : un quart au moins, sur
+       une audience d'au moins cinquante. Au plus soixante chaînes de Twitch
+       demandées par réveil, celles des cartes à l'écran. */
+    ETIQ_RETOUR_JOURS:      7,
+    ETIQ_TENDANCE_MS:       10 * 60_000,
+    ETIQ_TENDANCE_MARGE_MS: 2 * 60_000,
+    ETIQ_TENDANCE_PCT:      25,
+    ETIQ_TENDANCE_MIN:      50,
+    ETIQ_HISTO_MAX:         400,
+    ETIQ_TWITCH_MAX:        60,
 
     /* === Le panneau incrusté ===
        LES DEUX NOMBRES SONT CEUX DE LA POPUP DE BARRE D'OUTILS (cf. la borne
@@ -4362,6 +4429,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        programmé. Coupé : l'agenda ne part plus de l'accueil, et les rappels
        déjà posés restent, jusqu'à leur heure. */
     accueilRdv:      { defaut: true,      type: 'bool', sous: ['accueil'] },
+    accueilEtiquettes: { defaut: true,    type: 'bool', sous: ['accueil'] },
 
     abonnes:         { defaut: 'plein',   type: 'choix',
                        valeurs: ['plein', 'discret', 'aucun'], css: true },
@@ -8582,6 +8650,23 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     .tse-acc-direct { top: 8px; left: 8px; background: var(--tse-frais); text-transform: uppercase; }
     .tse-acc-duree { top: 8px; right: 8px; background: rgba(0, 0, 0, 0.62); font-variant-numeric: tabular-nums; }
     .tse-acc-spect { bottom: 8px; left: 8px; background: rgba(0, 0, 0, 0.62); font-weight: 500; }
+    /* UNE ÉTIQUETTE PAR CARTE (4.28.0, cf. ETIQUETTES). Sur nos cartes comme
+       sur celles de Twitch, en bas à droite de la vignette — la place que ni
+       l'une ni l'autre n'occupe. Un attribut et un pseudo-élément : aucun
+       nœud n'entre dans la carte de Twitch, et React n'a rien à défaire. Sur
+       une carte de Twitch où une autre extension a déjà posé quelque chose
+       dans ce coin, l'étiquette monte en haut à droite ; si les deux coins
+       sont pris, elle ne se montre pas. */
+    .tse-acc-vignette[data-tse-etiquette]::after,
+    main a[data-a-target="preview-card-image-link"][data-tse-etiquette]::after {
+      content: attr(data-tse-etiquette); position: absolute; right: 8px; bottom: 8px; z-index: 3;
+      max-width: calc(55% - 8px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      padding: 0 6px; border-radius: 4px; background: rgba(0, 0, 0, 0.72); color: #fff;
+      font-family: inherit; font-size: 12px; font-weight: 600; line-height: 18px; pointer-events: none;
+    }
+    main a[data-a-target="preview-card-image-link"][data-tse-etiquette] { position: relative; }
+    main a[data-a-target="preview-card-image-link"][data-tse-etiq-coin="haut"]::after { bottom: auto; top: 8px; }
+    main a[data-a-target="preview-card-image-link"][data-tse-etiq-coin="aucun"]::after { display: none; }
     .tse-acc-infos { display: flex; gap: 10px; min-width: 0; padding-top: 8px; }
     .tse-acc-avatar { flex: 0 0 40px; width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: var(--tse-surface-2); }
     .tse-acc-textes { flex: 1 1 auto; min-width: 0; }
@@ -9015,6 +9100,45 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     if (!b) return null;
     if (Date.now() - b.ts > CFG.CATEGORY_SWITCH_TTL) { basculements.delete(login); return null; }
     return b;
+  };
+
+  /* ── L'AUDIENCE D'IL Y A DIX MINUTES (4.28.0, cf. ETIQUETTES) ─────────────
+     « ↗ +38 % en 10 min » se lit sur deux relevés du MÊME direct : celui de
+     maintenant, et un d'il y a dix minutes, à deux minutes près. Les deux
+     sont des nombres que TseChannels a rendus, combinés comme la carte les
+     affiche (le co-stream compte ensemble). La mémoire est celle de l'onglet :
+     après un rechargement, il n'y a rien d'il y a dix minutes, et
+     l'étiquette attend qu'il y en ait. Un autre direct efface la série : une
+     reprise n'est pas une hausse. */
+  const audiencesVues = new Map();   // login -> [{ t, n, id }], de la plus ancienne à la plus récente
+  const audienceAffichee = (login, e) => getCollabViewers(e.id) ?? combineDuMembre(login) ?? e.viewers;
+  const noterAudience = (login, e) => {
+    const id = e?.stream?.id;
+    const n = id ? audienceAffichee(login, e) : null;
+    if (!id || !Number.isFinite(n)) { audiencesVues.delete(login); return; }
+    const now = Date.now();
+    const garde = CFG.ETIQ_TENDANCE_MS + CFG.ETIQ_TENDANCE_MARGE_MS;
+    const serie = (audiencesVues.get(login) || []).filter((x) => x.id === id && now - x.t <= garde);
+    serie.push({ t: now, n, id });
+    // Retirée puis remise : la borne évince d'abord ce qu'on n'a pas revu depuis longtemps.
+    audiencesVues.delete(login);
+    audiencesVues.set(login, serie);
+    while (audiencesVues.size > CFG.ETIQ_HISTO_MAX) audiencesVues.delete(audiencesVues.keys().next().value);
+  };
+  const tendanceDe = (login, e) => {
+    const id = e?.stream?.id;
+    const n = id ? audienceAffichee(login, e) : null;
+    if (!id || !Number.isFinite(n)) return null;
+    const now = Date.now();
+    const avant = (audiencesVues.get(login) || []).filter((x) => x.id === id
+      && now - x.t >= CFG.ETIQ_TENDANCE_MS && now - x.t <= CFG.ETIQ_TENDANCE_MS + CFG.ETIQ_TENDANCE_MARGE_MS);
+    if (!avant.length) return null;
+    const ref = avant[avant.length - 1];   // la plus proche des dix minutes
+    if (ref.n < CFG.ETIQ_TENDANCE_MIN) return null;
+    // Vers le bas, l'un et l'autre : on ne dit jamais plus que ce qui a été compté.
+    // En entiers : 140 sur 100 font 40 %, et non les 39,999… d'un quotient flottant.
+    const pct = Math.floor(((n - ref.n) * 100) / ref.n);
+    return pct >= CFG.ETIQ_TENDANCE_PCT ? { pct, min: Math.floor((now - ref.t) / 60_000) } : null;
   };
 
   /* ── REPRISE APRÈS COUPURE ────────────────────────────────────────────────
@@ -10310,6 +10434,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         // retient que le dernier pas, la frise en garde le chemin.
         suivreCategorie(login, entry);
         cache.set(login, entry);
+        noterAudience(login, entry);
         // Le mode global se nourrit du MÊME lot : un compteur frais met à
         // jour le classement sans une seule requête de plus. C'est ce qui
         // rend la cadence de 30 s réelle plutôt que théorique — la marche
@@ -16006,6 +16131,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
                jetons: 0, fermees: 0, illisibles: 0, refus: 0, reseau: 0 },
       // Vos rendez-vous (4.27.0) : ce qui est montré, et si l'agenda tourne encore.
       rdv: { lectures: 0, creneaux: 0, habitudes: 0, attente: false, enCours: false },
+      // Une étiquette par carte (4.28.0) : combien de chaque sorte, et ce que les cartes de Twitch ont coûté.
+      etiquettes: { posees: {}, demandes: 0, coins: { haut: 0, aucun: 0 }, twitch: { cartes: 0, vues: 0, etiquetees: 0 } },
     };
 
     const surAccueil = () => location.pathname === '/';
@@ -16656,6 +16783,163 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       if ((ok || garde) && !a.firstChild) a.append(noeudStatique(PICTO_DEBUT), elt('span', null, S.uiAccDebut));
     };
 
+    /* ══ UNE ÉTIQUETTE PAR CARTE (4.28.0) ═════════════════════════════════════
+       Un fait, un seul, et dans un ordre fixe — du plus rare au plus courant :
+         1. « De retour après 41 jours » — Twitch dit, pendant ce direct, que
+            le précédent a fini il y a au moins une semaine (cf. agenda.retour) ;
+         2. « Subathon • JOUR 9 » — lu dans le titre, comme la barre le lit ;
+         3. « Vient de commencer » — moins de dix minutes, la règle de la
+            barre « frais » : ni une reprise, ni un direct plus vieux ;
+         4. « Vient de passer sur Elden Ring » — vu de nos yeux entre deux
+            relevés, ou daté par les chapitres que l'aperçu a déjà lus ;
+         5. « ↗ +38 % en 10 min » — deux relevés du même direct (cf.
+            tendanceDe) ;
+         6. « N°3 en français » — la place au Top 10 exact de l'accueil ; pas
+            sur le Top 10 lui-même, qui l'écrit déjà en grand ;
+         7. « Co-stream à 3 » — la session que Guest Star décrit.
+       Ce qu'on ne sait pas ne s'écrit pas : une carte sans fait reste nue. */
+    const rangDit = (n) => {
+      const lang = langueVoulue();
+      if (!lang) return S.uiAccRang(n);
+      const code = String(LANG_API[lang] || '').toLowerCase();
+      const propre = String(S.locale || '').split('-')[0].toLowerCase();
+      if (code && code === propre) return S.uiEtiqRangLangue(n, null);
+      // L'anglais sert aussi les langues que l'extension ne parle pas : il nomme la leur.
+      if (propre === 'en' && code) {
+        let nom = null;
+        try { nom = new Intl.DisplayNames(['en'], { type: 'language' }).of(code); } catch { nom = null; }
+        if (nom && nom.toLowerCase() !== code) return S.uiEtiqRangLangue(n, nom);
+      }
+      return S.uiAccRang(n);
+    };
+    const etiquetteDe = (login, { rang = true } = {}) => {
+      if (!options.get('accueilEtiquettes')) return null;
+      const e = cache.get(login);
+      if (!e || !e.stream || Date.now() - (e.ts || 0) > 2 * CFG.LIVE_TTL) return null;
+      const r = agenda.retour(login, e.stream);
+      if (r) return { type: 'retour', texte: S.uiEtiqRetour(r.jours) };
+      if (e.subathon) return { type: 'subathon', texte: S.uiBadgeSubathon(e.subathon.jour) };
+      const age = Date.now() - Date.parse(debutReel(login, e.stream.createdAt));
+      if (Number.isFinite(age) && age >= 0 && age < CFG.FRESH_MAX_MIN * 60_000 && !repriseFraiche(login)) {
+        return { type: 'commence', texte: S.uiEtiqCommence };
+      }
+      const jeu = basculementFrais(login)?.libelle || preview.basculeConnue(login);
+      if (jeu) return { type: 'bascule', texte: S.uiBadgeCategorySwitch(jeu) };
+      const t = tendanceDe(login, e);
+      if (t) return { type: 'tendance', texte: S.uiEtiqTendance(t.pct, Math.max(1, t.min)) };
+      const n = rang && rangsTop ? rangsTop.get(login) : undefined;
+      if (n) return { type: 'rang', texte: rangDit(n) };
+      const k = camaradesDe(login).length;
+      if (k > 0) return { type: 'costream', texte: S.uiEtiqCostream(k + 1) };
+      return null;
+    };
+    /* LE COIN D'UNE CARTE DE TWITCH. Une autre extension peut y avoir posé son
+       badge — c'est le cas de la capture de la vraie page. On regarde les
+       textes posés sur la vignette, pas les classes de Twitch, qui changent :
+       un texte dans le coin du bas, on monte ; dans les deux, on se tait. */
+    const coinOccupe = (lien, zone) => {
+      for (const x of lien.querySelectorAll('*')) {
+        if (x.children.length || x.localName === 'img' || !x.textContent.trim()) continue;
+        const r = x.getBoundingClientRect();
+        if (r.width && r.height && r.left < zone.r && r.right > zone.l && r.top < zone.b && r.bottom > zone.t) return true;
+      }
+      return false;
+    };
+    const coinLibre = (lien) => {
+      const r = lien.getBoundingClientRect();
+      if (!r.width || !r.height) return null;
+      const l = r.left + r.width * 0.45;
+      if (!coinOccupe(lien, { l, r: r.right, t: r.top + r.height * 0.65, b: r.bottom })) return null;
+      return coinOccupe(lien, { l, r: r.right, t: r.top, b: r.top + r.height * 0.35 }) ? 'aucun' : 'haut';
+    };
+    const etiquetees = new Set();   // les cartes de Twitch qui portent la nôtre
+    const poserEtiquette = (n, et, twitch = false) => {
+      if (!et) {
+        if (n.hasAttribute('data-tse-etiquette')) {
+          n.removeAttribute('data-tse-etiquette');
+          n.removeAttribute('data-tse-etiq');
+          n.removeAttribute('data-tse-etiq-coin');
+        }
+        etiquetees.delete(n);
+        return;
+      }
+      if (n.getAttribute('data-tse-etiquette') !== et.texte) {
+        n.setAttribute('data-tse-etiquette', et.texte);
+        bilan.etiquettes.posees[et.type] = (bilan.etiquettes.posees[et.type] || 0) + 1;
+        if (twitch) {
+          const coin = coinLibre(n);
+          attrSi(n, 'data-tse-etiq-coin', coin);
+          if (coin) bilan.etiquettes.coins[coin]++;
+        }
+      }
+      attrSi(n, 'data-tse-etiq', et.type);
+      if (twitch) etiquetees.add(n);
+    };
+    /* CE QU'UNE CARTE COÛTE. Une chaîne que la barre suit est déjà lue toutes
+       les trente secondes. Les autres — celles du Top 10 et des rayons de
+       Twitch — entrent dans le lot commun de TseChannels tant que leur carte
+       est à l'écran, et seulement elles. */
+    /* UNE CHAÎNE QUE TWITCH OMET — renommée, bannie — ne laisse rien dans le
+       cache : sans mémoire de la demande, elle repartirait à chaque réveil.
+       Une demande vaut donc une demi-minute, comme une réponse. */
+    const demandesFaites = new Map();   // login -> instant de la demande
+    const demander = (login) => {
+      if (getFreshChannel(login) || queue.has(login) || enVolLogins.has(login)) return false;
+      const now = Date.now();
+      if (now - (demandesFaites.get(login) || 0) < CFG.LIVE_TTL) return false;
+      demandesFaites.delete(login);
+      demandesFaites.set(login, now);
+      while (demandesFaites.size > CFG.ETIQ_HISTO_MAX) demandesFaites.delete(demandesFaites.keys().next().value);
+      bilan.etiquettes.demandes++;
+      fetchChannel(login);
+      return true;
+    };
+
+    // ── Les cartes de Twitch : celles d'un direct, à l'écran ──────────────
+    const SEL_LIEN_CARTE = 'a[data-a-target="preview-card-image-link"]';
+    let guetteurCartes = null;
+    let cartesSuivies = new WeakSet();   // déjà confiées au guetteur
+    const cartesVues = new Set();        // à l'écran, ou presque
+    const loginDuLien = (lien) => {
+      const img = lien.querySelector(SEL_MINIATURE);
+      const m = img && RE_MINIATURE.exec(img.getAttribute('src') || '');
+      const l = m && m[1].toLowerCase();
+      return l && RE_LOGIN.test(l) ? l : null;
+    };
+    const etiquetterTwitch = () => {
+      const voulu = options.get('accueilEtiquettes') && pose();
+      if (voulu && !guetteurCartes && typeof IntersectionObserver === 'function') {
+        guetteurCartes = new IntersectionObserver(erreurs.garde('accueil', (entrees) => {
+          for (const en of entrees) {
+            if (en.isIntersecting) cartesVues.add(en.target); else cartesVues.delete(en.target);
+          }
+          etiquetterTwitch();
+        }), { rootMargin: '200px 0px' });
+      }
+      const liens = voulu ? [...document.querySelectorAll('main ' + SEL_LIEN_CARTE)].filter((l) => !exclu(l)) : [];
+      const presents = new Set(liens);
+      for (const l of [...etiquetees]) if (!presents.has(l)) poserEtiquette(l, null);
+      for (const l of [...cartesVues]) if (!presents.has(l)) cartesVues.delete(l);
+      let vues = 0, demandees = 0;
+      for (const lien of liens) {
+        if (guetteurCartes && !cartesSuivies.has(lien)) { cartesSuivies.add(lien); guetteurCartes.observe(lien); }
+        const login = loginDuLien(lien);
+        if (!login) { poserEtiquette(lien, null); continue; }
+        if (!guetteurCartes || cartesVues.has(lien)) {
+          vues++;
+          if (demandees < CFG.ETIQ_TWITCH_MAX && demander(login)) demandees++;
+        }
+        poserEtiquette(lien, etiquetteDe(login), true);
+      }
+      bilan.etiquettes.twitch = { cartes: liens.length, vues, etiquetees: etiquetees.size };
+    };
+    const oterEtiquettes = () => {
+      for (const l of [...etiquetees]) poserEtiquette(l, null);
+      if (guetteurCartes) { guetteurCartes.disconnect(); guetteurCartes = null; }
+      cartesSuivies = new WeakSet();
+      cartesVues.clear();
+    };
+
     /* Une carte : la vignette (cible de l'aperçu), puis l'avatar et les textes.
        Le nom partage sa ligne avec l'évolution du Top 10 : « juste à droite du
        pseudo », comme demandé — sur une chaîne suivie, elle reste vide. */
@@ -16725,6 +17009,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         avec.replaceChildren(phraseAvecFente(S.uiAccAvec(FENTE), () => nomsEnGras(d.avec)));
       }
       majDebut(debut, d.login, d.nom, true);
+      // Sur le Top 10, la place s'écrit déjà en grand à côté : pas deux fois.
+      poserEtiquette(vig, etiquetteDe(d.login, { rang: !d.top }));
     };
     // Une rangée tenue par clé : les cartes restent, se mettent à jour, se réordonnent.
     const rangee = (liste, items, cle, fabriquer, maj) => {
@@ -17130,6 +17416,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         spect: Number.isFinite(r.viewers) ? r.viewers : null,
         debutLive: debutLive ? debutReel(r.login, debutLive) : null,
         avec: p.membres.map((m) => m.name || m.login),
+        top: true,
       });
       attrSi(li, 'aria-label', S.uiAccPlace(rang, r.name || r.login));
       const evol = carte.querySelector('.tse-acc-evol');
@@ -17179,6 +17466,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         }
       }
       if (!attente) {
+        // Ses étiquettes lisent TseChannels : une chaîne que la barre ne suit pas y est demandée.
+        if (options.get('accueilEtiquettes')) for (const p of places) demander(p.tete.login);
         rangee(z.lTop, places.map((p, i) => ({ p, rang: i + 1, ref })),
                (x) => x.p.tete.login, (x) => fabriquerPlace(x.p.tete.login), majPlace);
       }
@@ -17522,6 +17811,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       for (const x of suivies) noterAffiche(x.login, x.e.stream?.createdAt);
       peindreSuivies(suivies);
       peindreRdv();
+      etiquetterTwitch();
       section.hidden = !heros && z.suivis.hidden && z.top.hidden && z.rdv.hidden && z.hab.hidden;
       if (!section.hidden) aligner();
       verifierPlaceHeros();
@@ -17561,6 +17851,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       prechargeCle = null;
       clearTimeout(rdvRelecture);
       rdvRelecture = null;
+      oterEtiquettes();
     };
     /* Entre deux peintures. Le carrousel que Twitch vient de poser est arrêté
        (cf. appliquerCarrousel), et la section se cale sur les titres de Twitch
@@ -17687,6 +17978,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         amorce: { ...bilan.amorce, chaines: amorce ? amorce.logins.length : 0, decidable: decidable() },
         // Vos rendez-vous et leurs rappels (4.27.0) : des comptes, aucune chaîne.
         rdv: { ...bilan.rdv, indice: { ...lireIndiceRdv() } },
+        etiquettes: { ...bilan.etiquettes, posees: { ...bilan.etiquettes.posees }, coins: { ...bilan.etiquettes.coins },
+                      twitch: { ...bilan.etiquettes.twitch }, active: !!options.get('accueilEtiquettes') },
         rappels: rappels.rapport(),
       }),
       // Surface de vérification : le classement propre à l'accueil.
@@ -23440,7 +23733,22 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       };
     };
 
-    return { semaine, horsLigne, rendezVous, actualiser, effacer, bilan: bilanPublic };
+    /* DE RETOUR APRÈS N JOURS (4.28.0, cf. ETIQUETTES). Ce que Twitch dit du
+       dernier direct (`lastBroadcast`) sur une fiche lue PENDANT celui-ci : si
+       ce n'est pas lui — un autre identifiant —, c'est le précédent, et sa
+       fin est celle du précédent. Une fiche lue avant le direct, ou un
+       dernier direct qui est celui en cours, ne disent rien : rien ne paraît.
+       Jamais un calcul sur des archives, qui s'effacent et mentiraient par
+       omission. */
+    const retour = (login, flux) => {
+      const f = chaines.get(login);
+      if (!f || f.inconnue || !f.direct || !flux || f.direct.id === null || String(flux.id) !== f.direct.id) return null;
+      if (f.idDernier === null || f.idDernier === f.direct.id || f.finDernier === null) return null;
+      const ecart = f.direct.debut - f.finDernier;
+      if (!(ecart >= CFG.ETIQ_RETOUR_JOURS * 86_400_000)) return null;
+      return { jours: Math.floor(ecart / 86_400_000) };
+    };
+    return { semaine, horsLigne, rendezVous, retour, actualiser, effacer, bilan: bilanPublic };
   })();
 
   /* ============================================================
@@ -30143,6 +30451,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
          qu'APRÈS leur réponse — trop tard pour retenir quoi que ce soit. */
       majVerrouVoile: (enPlus, peutLever) => majVerrouVoile(enPlus, peutLever),
       sonderOrigines: (logins) => vider(logins),
+      /* Le basculement que la frise sait déjà, sans rien demander (4.28.0) :
+         l'étiquette de la carte et le badge de l'aperçu disent la même chose. */
+      basculeConnue: (login) => basculeDeLaFrise(login),
       // Ferme l'aperçu si sa carte d'ancrage a quitté le DOM (stream terminé
       // pendant le survol). Appelée depuis scanSidebar : le retrait d'une carte
       // est une mutation de #side-nav → déclenche un scan → fermeture proactive,

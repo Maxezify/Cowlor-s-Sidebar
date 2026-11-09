@@ -551,7 +551,7 @@
     "message": "Die Startseite von Twitch"
   },
   "guideAccueilTexte": {
-    "message": "Auf der Startseite von Twitch setzt die Erweiterung ihre eigenen Reihen über die von Twitch, in dieselbe Spalte und bündig mit ihnen. Eingestellt werden sie unter „Einstellungen“, Gruppe „Startseite“.\n• „Dein Kanal Nr. 1, live“: Der gefolgte Live-Kanal, den du am meisten schaust, nimmt den Platz des Karussells von Twitch ein, über die ganze Breite. Erst sein Bild, dann sein Stream, stumm und ohne Werbung, wie die Vorschau beim Überfahren; der Hintergrund übernimmt seine Farben. Ist keiner der Kanäle live, die du schaust, kommt das Karussell zurück. „Wie bei Twitch“ behält es immer; „Nichts“ entfernt es und hält sein Video an.\n• „Deine gefolgten Kanäle, live“: eine Reihe, geordnet nach denen, die du am meisten schaust – ohne eine einzige zusätzliche Anfrage: Es sind die Kanäle der Seitenleiste.\n• „Top 10“: die ersten zehn Plätze von Top-Kanäle, in der Sprache der Twitch-Oberfläche oder in allen Sprachen, in großen Ziffern. Rechts neben dem Namen zeigt ein Pfeil die in dreißig Minuten gewonnenen oder verlorenen Plätze – oder seit du auf der Startseite bist; „Neu“ markiert einen Kanal, der nicht in den Top 10 war.\n• „Deine geplanten Streams“: was deine gefolgten Kanäle für heute und morgen geplant haben, mit der verbleibenden Zeit. „Erinnern“ zeigt einen Hinweis in deinen offenen Twitch-Tabs, sobald der Kanal live geht – keine Systembenachrichtigung. Direkt darunter „Ohne Zeitplan“: für einen Kanal, den du schaust und der nichts geplant hat, wann seine letzten Streams begonnen haben, wenn es sich wiederholt – was er getan hat, nicht was er tun wird.\n• Jede Reihe zeigt eine Zeile; „Alle anzeigen“ in der Mitte der Linie darunter klappt den Rest auf.\n• „Von Anfang an“ öffnet die Aufzeichnung des laufenden Streams ab seiner ersten Sekunde. Der Knopf erscheint nur, wenn du sie ansehen kannst: Der Kanal behält seine Aufzeichnungen und gibt sie für alle frei – oder du hast ihn abonniert.\n• Die Vorschau beim Überfahren öffnet sich auch auf den Karten der Startseite: auf denen der Erweiterung wie auf denen von Twitch."
+    "message": "Auf der Startseite von Twitch setzt die Erweiterung ihre eigenen Reihen über die von Twitch, in dieselbe Spalte und bündig mit ihnen. Eingestellt werden sie unter „Einstellungen“, Gruppe „Startseite“.\n• „Dein Kanal Nr. 1, live“: Der gefolgte Live-Kanal, den du am meisten schaust, nimmt den Platz des Karussells von Twitch ein, über die ganze Breite. Erst sein Bild, dann sein Stream, stumm und ohne Werbung, wie die Vorschau beim Überfahren; der Hintergrund übernimmt seine Farben. Ist keiner der Kanäle live, die du schaust, kommt das Karussell zurück. „Wie bei Twitch“ behält es immer; „Nichts“ entfernt es und hält sein Video an.\n• „Deine gefolgten Kanäle, live“: eine Reihe, geordnet nach denen, die du am meisten schaust – ohne eine einzige zusätzliche Anfrage: Es sind die Kanäle der Seitenleiste.\n• „Top 10“: die ersten zehn Plätze von Top-Kanäle, in der Sprache der Twitch-Oberfläche oder in allen Sprachen, in großen Ziffern. Rechts neben dem Namen zeigt ein Pfeil die in dreißig Minuten gewonnenen oder verlorenen Plätze – oder seit du auf der Startseite bist; „Neu“ markiert einen Kanal, der nicht in den Top 10 war.\n• „Deine geplanten Streams“: was deine gefolgten Kanäle für heute und morgen geplant haben, mit der verbleibenden Zeit. „Erinnern“ zeigt einen Hinweis in deinen offenen Twitch-Tabs, sobald der Kanal live geht – keine Systembenachrichtigung. Direkt darunter „Ohne Zeitplan“: für einen Kanal, den du schaust und der nichts geplant hat, wann seine letzten Streams begonnen haben, wenn es sich wiederholt – was er getan hat, nicht was er tun wird.\n• Ein Etikett pro Karte, unten rechts im Vorschaubild, auf den Karten der Erweiterung wie auf denen von Twitch: eine Tatsache, nur eine, die erste zutreffende dieser Liste – „Zurück nach 41 Tagen“, „Subathon • TAG 9“, „Gerade gestartet“, „Gerade gewechselt zu Elden Ring“, „↗ +38 % in 10 Min.“, „Platz 3 auf Deutsch“, „Co-Stream mit 3 Kanälen“. Nichts geraten: ohne gesehene Tatsache kein Etikett.\n• Jede Reihe zeigt eine Zeile; „Alle anzeigen“ in der Mitte der Linie darunter klappt den Rest auf.\n• „Von Anfang an“ öffnet die Aufzeichnung des laufenden Streams ab seiner ersten Sekunde. Der Knopf erscheint nur, wenn du sie ansehen kannst: Der Kanal behält seine Aufzeichnungen und gibt sie für alle frei – oder du hast ihn abonniert.\n• Die Vorschau beim Überfahren öffnet sich auch auf den Karten der Startseite: auf denen der Erweiterung wie auf denen von Twitch."
   },
   "guideViteTitre": {
     "message": "Schneller als Twitch, und aufgeräumter"
@@ -790,6 +790,12 @@
   "optDescAccueilRdv": {
     "message": "Was deine gefolgten Kanäle für heute und morgen geplant haben, mit der verbleibenden Zeit. „Erinnern“ zeigt einen Hinweis in deinen offenen Twitch-Tabs, sobald der Kanal live geht. Für einen Kanal, den du schaust und der nichts geplant hat: wann seine letzten Streams begonnen haben, wenn es sich wiederholt."
   },
+  "optAccueilEtiquettes": {
+    "message": "Ein Etikett pro Karte"
+  },
+  "optDescAccueilEtiquettes": {
+    "message": "Eine Tatsache, nur eine, auf jeder Karte der Startseite – denen der Erweiterung wie denen von Twitch: „Zurück nach 41 Tagen“, „Gerade gestartet“, „↗ +38 % in 10 Min.“… Für einen Kanal, dem die Seitenleiste nicht folgt, werden die Zahlen abgefragt, solange seine Karte zu sehen ist."
+  },
   "optValHeros": {
     "message": "Dein Kanal Nr. 1"
   },
@@ -947,7 +953,7 @@
     "message": "Alle Einstellungen zurücksetzen?"
   },
   "optResetText": {
-    "message": "Alle dreißig Einstellungen dieser Seite kehren zu ihrem ursprünglichen Wert zurück. Deine Daten — Besuche, Abonnements, gefolgte Kanäle — bleiben unberührt."
+    "message": "Alle einunddreißig Einstellungen dieser Seite kehren zu ihrem ursprünglichen Wert zurück. Deine Daten — Besuche, Abonnements, gefolgte Kanäle — bleiben unberührt."
   },
   "optValPlein": {
     "message": "Voll"

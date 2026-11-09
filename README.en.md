@@ -2064,6 +2064,125 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The home page, level 2: one label per card (v4.28.0)
+
+The second idea of level 2. Published on `claude/chrome-homepage` only.
+
+| asked | what was done |
+| --- | --- |
+| "a factual label per card, on our cards and on Twitch's" | at the bottom right of the thumbnail, on the home page's cards: the extension's and those of Twitch's rows |
+| "only one per card, in a fixed order of priority" | seven facts, from the rarest to the most common; the first true one wins |
+| "the trend needs a history of the counts" | the TseChannels readings, kept in the tab as long as needed |
+| "Twitch's cards missing from the sidebar need a TseChannels batch, for the visible cards only" | their channels join the common batch while their card is on screen, and only they do |
+
+### The seven, in order
+
+1. **"Back after 41 days".** What Twitch says of the last stream
+   (`lastBroadcast`) on the agenda's card, read DURING this one: if it isn't
+   this one — another identifier —, it is the previous one, and its end is the
+   previous one's. A week at least. A card read before the stream, or a last
+   stream that is the one in progress, say nothing: nothing shows. Never a
+   computation on the archives, which get deleted and would lie by omission.
+2. **"Subathon • DAY 9".** The title, read as the sidebar reads it (cf. 4.2).
+3. **"Just started".** Less than ten minutes, the sidebar's "fresh" rule: a
+   resume after a cut is not a start.
+4. **"Just switched to Elden Ring".** Seen between two readings of the same
+   stream, or dated by the chapters the preview has already read — the
+   preview's badge and the label say the same thing.
+5. **"↗ +38% in 10 min".** Two readings of the same stream, ten minutes apart
+   give or take two; a quarter at least, on an audience of at least fifty. The
+   percentage and the minutes are rounded down, and counted in integers: 140
+   over 100 makes 40%, not 39.
+6. **"#3 in English"** ("N°3 en français" in French). The place in the home
+   page's exact Top 10, in its language ("#3 in Swedish" when the extension speaks English to a Swedish
+   Twitch); "#3 in the Top 10" when the Top 10 is worldwide. Not on the Top
+   10's own cards: the place is already written there, large.
+7. **"Co-stream of 3 channels".** The session Guest Star describes.
+
+A card without a fact stays bare. The hero carries none.
+
+### Where it goes
+
+- **An attribute and a pseudo-element.** No node enters Twitch's card: React
+  has nothing to undo, and the label leaves with the attribute.
+- **At the bottom right of the thumbnail**, the place neither our cards nor
+  Twitch's use. On a Twitch card where another extension already put a text in
+  that corner — the case of the real page's capture —, it moves to the top
+  right; if both corners are taken, it stays silent. What is looked at is the
+  texts laid on the thumbnail, not Twitch's classes.
+- **Leaving the home page**, not one label left anywhere.
+
+### What it costs
+
+| what shows | what it costs |
+| --- | --- |
+| a label on a followed channel | **nothing**: the sidebar already reads it every thirty seconds |
+| a label on a Top 10 card, or a card of a Twitch row | its channel in the common `TseChannels` batch, while its card is on screen (give or take two hundred pixels); sixty at most per tick. A channel Twitch omits is requested again only once per reading period. The resume probe sees them go by like the others, within its own window |
+| "Back after N days" | nothing more: the card the agenda has already read |
+
+### The setting
+
+"One label per card", in "Settings", "Home page" group. Off: no label, and
+Twitch's cards cost nothing. Thirty-one settings: the panel's reset and the
+listing say so, in all twelve languages.
+
+### The report
+
+The ACCUEIL block gains `etiquettes.*`: how many of each kind were set, the
+channels requested, the corners taken (top, none), Twitch's cards seen and
+labelled. Counts; no channel is named.
+
+### The texts
+
+Ten languages on the page, twelve in the panel, the guide ("Twitch's home
+page") and the Store listings.
+
+### The bench
+
+**222**, new.
+
+- a) one label per card, in order: the return before the start, the subathon
+  before the start; a start; a co-stream; nothing for a channel without a
+  fact, nor for a last stream that is the one in progress, nor for three days
+  away;
+- b) the switch, seen between two readings of the same stream;
+- c) +40% over two readings; nothing for +20%, nor under fifty viewers;
+- d) on Twitch's cards: a channel one doesn't follow, the Top 10 place in its
+  language, nothing for a card without a fact, nothing of the place on the Top
+  10 itself; at the bottom right, at the top when another extension holds the
+  corner; zulu, never on screen, never requested; an omitted channel requested
+  once per period; a resume is not a return;
+- e) leaving the home page, not one label;
+- f) the setting off: no label, and no channel of Twitch's rows requested.
+
+**Twenty-one named mutants, all caught.**
+
+| mutant | what falls |
+| --- | --- |
+| the return never said | 222 a): aurore |
+| the last stream that is the one in progress | 222 a): lys, "back after 40 days" |
+| another stream's card | 222 d): a resume taken for a return |
+| back after one day | 222 a): mica, three days away |
+| back after fifty days only | 222 a): aurore |
+| the subathon forgotten | 222 a): brisa |
+| the start forgotten | 222 a), d): cendre, xray, quebec |
+| the switch forgotten | 222 b) |
+| the rise without the readings | 222 c) |
+| the rise of a fifth | 222 c): fjord, +20% |
+| the rise on a small audience | 222 c): gale, from 30 to 60 |
+| the floating-point percentage | 222 c): 39% instead of 40 |
+| the place written twice on the Top 10 | 222 d): the Top 10's own card |
+| the place without its language | 222 d): "#3 in the Top 10" |
+| the co-stream forgotten | 222 a): houle |
+| the off-screen cards requested | 222 d): zulu requested |
+| another extension's corner ignored | 222 d): quebec, over the badge next to it |
+| the setting off that labels anyway | 222 f) |
+| the setting off that still asks | 222 f): xray requested |
+| the labels left behind | 222 e) |
+| the omitted channel requested at every paint | 222 d): zephyr, at every paint |
+
+The full bench: 2207 assertions in 221 scenarios, all green.
+
 ## The home page, level 2: your scheduled streams (v4.27.0)
 
 The first idea of level 2, "new views on data already collected elsewhere".
@@ -22969,7 +23088,7 @@ Four independent checks:
 | `npm run lint` | the six shipped JavaScript files — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 220 scenarios, 2197 assertions |
+| `npm test` | the Playwright harness: 221 scenarios, 2207 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -22989,13 +23108,13 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 2056 KB | 923 KB | 4,541 → **2** |
+| `content.js` | 2075 KB | 937 KB | 4,564 → **2** |
 | `cadres.js` | 68 KB | 31 KB | 160 → **0** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
 | `panneau.js` | 162 KB | 82 KB | 224 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 26 → **0** |
 | `background.js` | 10 KB | 2 KB | 22 → **0** |
-| **all six** | **2436 KB** | **1142 KB** | **−53 %** |
+| **all six** | **2455 KB** | **1156 KB** | **−53 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are

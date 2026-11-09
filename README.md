@@ -2183,6 +2183,129 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## L'accueil, niveau 2 : une étiquette par carte (v4.28.0)
+
+Deuxième idée du niveau 2. Publiée sur `claude/chrome-homepage` seulement.
+
+| demandé | ce qui a été fait |
+| --- | --- |
+| « une étiquette factuelle par carte, sur nos cartes et sur celles de Twitch » | en bas à droite de la vignette, sur les cartes de l'accueil : celles de l'extension et celles des rayons de Twitch |
+| « une seule par carte, dans un ordre de priorité fixe » | sept faits, du plus rare au plus courant ; le premier qui soit vrai l'emporte |
+| « la tendance demande un historique des comptes » | les relevés de TseChannels, gardés dans l'onglet le temps qu'il faut |
+| « les cartes de Twitch absentes de la barre demandent un lot de TseChannels, pour les cartes visibles seulement » | leurs chaînes entrent dans le lot commun tant que leur carte est à l'écran, et seulement elles |
+
+### Les sept, dans l'ordre
+
+1. **« De retour après 41 jours ».** Ce que Twitch dit du dernier direct
+   (`lastBroadcast`) sur la fiche de l'agenda, lue PENDANT celui-ci : si ce
+   n'est pas lui — un autre identifiant —, c'est le précédent, et sa fin est
+   celle du précédent. Une semaine au moins. Une fiche lue avant le direct, ou
+   un dernier direct qui est celui en cours, ne disent rien : rien ne paraît.
+   Jamais un calcul sur les archives, qui s'effacent et mentiraient par
+   omission.
+2. **« Subathon • JOUR 9 ».** Le titre, lu comme la barre le lit (cf. 4.2).
+3. **« Vient de commencer ».** Moins de dix minutes, la règle de la barre
+   « frais » : une reprise après coupure n'est pas un début.
+4. **« Vient de passer sur Elden Ring ».** Vu entre deux relevés du même
+   direct, ou daté par les chapitres que l'aperçu a déjà lus — le badge de
+   l'aperçu et l'étiquette disent la même chose.
+5. **« ↗ +38 % en 10 min ».** Deux relevés du même direct, dix minutes
+   d'écart à deux minutes près ; un quart au moins, sur une audience d'au
+   moins cinquante. Le pourcentage et les minutes sont arrondis vers le bas,
+   et comptés en entiers : 140 sur 100 font 40 %, pas 39.
+6. **« N°3 en français ».** La place au Top 10 exact de l'accueil, dans sa
+   langue (« No. 3 in Swedish » quand l'extension parle anglais à un Twitch
+   suédois) ; « N°3 du Top 10 » quand le Top 10 est mondial. Pas sur les
+   cartes du Top 10 lui-même : la place y est déjà écrite en grand.
+7. **« Co-stream à 3 ».** La session que Guest Star décrit.
+
+Une carte sans fait reste nue. Le héros n'en porte pas.
+
+### Où elle se pose
+
+- **Un attribut et un pseudo-élément.** Aucun nœud n'entre dans la carte de
+  Twitch : React n'a rien à défaire, et l'étiquette part avec l'attribut.
+- **En bas à droite de la vignette**, la place que ni nos cartes ni celles de
+  Twitch n'occupent. Sur une carte de Twitch où une autre extension a déjà
+  posé un texte dans ce coin — c'est le cas de la capture de la vraie page —,
+  elle monte en haut à droite ; si les deux coins sont pris, elle se tait. On
+  regarde les textes posés sur la vignette, pas les classes de Twitch.
+- **En quittant l'accueil**, plus une étiquette nulle part.
+
+### Ce qu'elle coûte
+
+| ce qui s'affiche | ce que ça coûte |
+| --- | --- |
+| une étiquette sur une chaîne suivie | **rien** : la barre la relit déjà toutes les trente secondes |
+| une étiquette sur une carte du Top 10, ou d'un rayon de Twitch | sa chaîne dans le lot commun de `TseChannels`, tant que sa carte est à l'écran (à deux cents pixels près) ; soixante au plus par réveil. Une chaîne que Twitch omet n'est redemandée qu'une fois par période de relevé. La sonde de reprise les voit passer comme les autres, dans sa propre fenêtre |
+| « De retour après N jours » | rien de plus : la fiche que l'agenda a déjà lue |
+
+### Le réglage
+
+« Une étiquette par carte », dans « Réglages », groupe « Page d'accueil ».
+Coupé : aucune étiquette, et les cartes de Twitch ne coûtent rien. Trente et
+un réglages : la remise à zéro du panneau et la fiche le disent, dans les
+douze langues.
+
+### Le rapport
+
+Le bloc ACCUEIL gagne `etiquettes.*` : combien de chaque sorte ont été
+posées, les chaînes demandées, les coins pris (en haut, aucun), les cartes de
+Twitch vues et étiquetées. Des comptes ; aucune chaîne n'est nommée.
+
+### Les textes
+
+Dix langues sur la page, douze dans le panneau, le mode d'emploi (« L'accueil
+de Twitch ») et les fiches du Store.
+
+### Le banc
+
+**222**, nouveau.
+
+- a) une étiquette par carte, dans l'ordre : le retour avant le début, le
+  subathon avant le début ; un début ; un co-stream ; rien pour une chaîne
+  sans fait, ni pour un dernier direct qui est celui en cours, ni pour trois
+  jours d'absence ;
+- b) le basculement, vu entre deux relevés du même direct ;
+- c) +40 % sur deux relevés ; rien pour +20 %, ni sous cinquante
+  spectateurs ;
+- d) sur les cartes de Twitch : une chaîne qu'on ne suit pas, la place au Top
+  10 dans sa langue, rien pour une carte sans fait, rien de la place sur le
+  Top 10 lui-même ; en bas à droite, en haut quand une autre extension tient
+  le coin ; zulu, jamais à l'écran, jamais demandée ; une chaîne omise
+  redemandée une fois par période ; une reprise n'est pas un retour ;
+- e) en quittant l'accueil, plus une étiquette ;
+- f) le réglage coupé : ni étiquette, ni chaîne des rayons de Twitch
+  demandée.
+
+**Vingt et un mutants nommés, tous pris.**
+
+| mutant | ce qui tombe |
+| --- | --- |
+| le retour jamais dit | 222 a) : aurore |
+| le dernier direct qui est celui en cours | 222 a) : lys, « de retour après 40 jours » |
+| la fiche d'un autre direct | 222 d) : une reprise prise pour un retour |
+| de retour après un jour | 222 a) : mica, trois jours d'absence |
+| de retour après cinquante jours seulement | 222 a) : aurore |
+| le subathon oublié | 222 a) : brisa |
+| le début oublié | 222 a), d) : cendre, xray, quebec |
+| le basculement oublié | 222 b) |
+| la hausse sans les relevés | 222 c) |
+| la hausse d'un cinquième | 222 c) : fjord, +20 % |
+| la hausse sur une petite audience | 222 c) : gale, de 30 à 60 |
+| le pourcentage flottant | 222 c) : 39 % au lieu de 40 |
+| la place écrite deux fois sur le Top 10 | 222 d) : la carte du Top 10 elle-même |
+| la place sans sa langue | 222 d) : « N°3 du Top 10 » |
+| le co-stream oublié | 222 a) : houle |
+| les cartes hors de l'écran demandées | 222 d) : zulu demandée |
+| le coin d'une autre extension ignoré | 222 d) : quebec, sur le badge d'à côté |
+| le réglage coupé qui étiquette quand même | 222 f) |
+| le réglage coupé qui demande quand même | 222 f) : xray demandée |
+| les étiquettes laissées en partant | 222 e) |
+| la chaîne omise redemandée à chaque peinture | 222 d) : zephyr, à chaque peinture |
+
+Le banc complet : 2207 assertions dans 221 scénarios, toutes vertes.
+
 ## L'accueil, niveau 2 : vos rendez-vous (v4.27.0)
 
 Première idée du niveau 2, « de nouvelles vues sur des données déjà collectées
@@ -23646,7 +23769,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | les six fichiers JavaScript livrés — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 220 scénarios, 2197 assertions |
+| `npm test` | le harnais Playwright : 221 scénarios, 2207 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -23667,13 +23790,13 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 2056 Ko | 923 Ko | 4 541 → **2** |
+| `content.js` | 2075 Ko | 937 Ko | 4 564 → **2** |
 | `cadres.js` | 68 Ko | 31 Ko | 160 → **0** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
 | `panneau.js` | 162 Ko | 82 Ko | 224 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 26 → **0** |
 | `background.js` | 10 Ko | 2 Ko | 22 → **0** |
-| **les six** | **2436 Ko** | **1142 Ko** | **−53 %** |
+| **les six** | **2455 Ko** | **1156 Ko** | **−53 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se

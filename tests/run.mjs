@@ -16645,7 +16645,7 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
     return { n: Object.keys(defs).length, horsListe, jeuxNonVides,
              cle: localStorage.getItem('tse:options') };
   });
-  ok('la table porte ses trente réglages', table.n === 30, String(table.n));
+  ok('la table porte ses trente et un réglages', table.n === 31, String(table.n));
   /* CELUI-CI A UNE CIBLE PRÉCISE : trois défauts sont lus dans CFG plutôt que
      recopiés — apercuQualite, abosPeriode et topN. Changer une de ces trois
      constantes sans toucher à la liste des valeurs permises rendrait le
@@ -16671,20 +16671,22 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
      les deux. */
   /* Vingt-huit depuis la 4.26.0 : les sept réglages de la page d'accueil ;
      vingt-neuf depuis la 4.26.0.2 : la vidéo de la tête de l'accueil ;
-     trente depuis la 4.27.0 : « Vos rendez-vous ». */
-  const TRENTE = { de: 'dreißig Einstellungen', en: 'thirty settings',
-                   es: 'treinta ajustes', es_419: 'treinta ajustes', fr: 'trente réglages',
-                   it: 'trenta impostazioni', ja: '30 個の設定', pl: 'trzydzieści ustawień',
-                   pt_BR: 'trinta configurações', pt_PT: 'trinta definições',
-                   ru: 'тридцать настроек', zh_CN: '三十项设置' };
-  const muettes = Object.entries(TRENTE).flatMap(([loc, mot]) => [
+     trente depuis la 4.27.0 : « Vos rendez-vous » ; trente et un depuis la
+     4.28.0 : « Une étiquette par carte ». En russe, le nom s'accorde à
+     « одна » — et la phrase est tournée pour se lire dans les deux textes. */
+  const TRENTE_ET_UN = { de: 'einunddreißig Einstellungen', en: 'thirty-one settings',
+                         es: 'treinta y un ajustes', es_419: 'treinta y un ajustes', fr: 'trente et un réglages',
+                         it: 'trentuno impostazioni', ja: '31 個の設定', pl: 'trzydzieści jeden ustawień',
+                         pt_BR: 'trinta e uma configurações', pt_PT: 'trinta e uma definições',
+                         ru: 'тридцать одна настройка', zh_CN: '三十一项设置' };
+  const muettes = Object.entries(TRENTE_ET_UN).flatMap(([loc, mot]) => [
     JSON.parse(readFileSync(join(ICI, '..', '_locales', loc, 'messages.json'), 'utf8'))
       .optResetText.message.includes(mot) ? null : `panneau ${loc}`,
     readFileSync(join(ICI, '..', 'store', `description-${loc.replace('_', '-')}.txt`), 'utf8')
       .includes(mot) ? null : `fiche ${loc}`,
   ]).filter(Boolean);
   ok('…et le panneau comme la fiche du Store en annoncent autant, dans les douze langues',
-     table.n === 30 && muettes.length === 0, muettes.join(', ') || String(table.n));
+     table.n === 31 && muettes.length === 0, muettes.join(', ') || String(table.n));
   /* CELLE-CI SE LIT SUR LE FICHIER SOURCE, et c'est le fond du sujet : la
      constante de production vaut six heures, mais tests/build.mjs la réécrit à
      quatre secondes pour que le relevé des abonnements soit éprouvable. La
@@ -17291,7 +17293,7 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
              fantomes: peints.filter((id) => !table.includes(id)) };
   }, vue.peints);
 
-  ok('les trente réglages de la page ont chacun leur ligne',
+  ok('les trente et un réglages de la page ont chacun leur ligne',
      contrat.oublies.length === 0, contrat.oublies.join(', '));
   ok('…et aucune ligne fantôme : l\'ordre du panneau couvre exactement la table',
      contrat.fantomes.length === 0, contrat.fantomes.join(', '));
@@ -40597,6 +40599,202 @@ const lireImages = (page) => page.evaluate(() => {
      JSON.stringify(vf2));
   await pf.close();
   await ctxRdv.close();
+}
+
+{
+  titre('222. Une étiquette par carte — un fait, un seul, dans l\'ordre ; sur nos cartes et sur celles de Twitch ; ce qu\'elle coûte');
+  /* LE DÉCOR. Des chaînes suivies inventées, chacune pour une règle — et
+     deux qui en portent deux, pour l'ordre :
+       nyx     — la plus regardée : le héros, sans étiquette ;
+       aurore  — partie il y a trois minutes, ET son dernier direct d'avant a
+                 fini il y a quarante et un jours : « De retour » passe devant
+                 « Vient de commencer » ;
+       brisa   — partie il y a quatre minutes, en subathon au jour 9 : le
+                 subathon passe devant ;
+       cendre  — partie il y a cinq minutes : « Vient de commencer » ;
+       dune    — passe de VALORANT à Elden Ring sous nos yeux ;
+       eole    — 100 puis 140 : +40 % ; fjord — 100 puis 120, +20 % : rien ;
+       gale    — 30 puis 60 : sous les cinquante, rien ;
+       houle   — un co-stream à trois ;
+       ilot    — rien à dire : pas d'étiquette ;
+       lys     — Twitch dit que son dernier direct est CELUI EN COURS : rien
+                 ne dit quand il était là avant — pas de « De retour » ;
+       mica    — son direct d'avant a fini il y a trois jours : pas assez.
+     Les rayons de Twitch : aeltris est troisième du Top 10, xray et quebec
+     viennent de commencer — sur quebec, une autre extension a déjà posé son
+     badge en bas à droite —, brenvik n'a rien, et zulu, tout en bas, n'est
+     jamais à l'écran. */
+  const SUIV = {
+    nyx:    { id: '7000', depuis: 60,  v: 5000, jeu: 'Just Chatting', titre: 'Le héros' },
+    aurore: { id: '7001', depuis: 3,   v: 900,  jeu: 'Just Chatting', titre: 'Le retour' },
+    brisa:  { id: '7002', depuis: 4,   v: 1200, jeu: 'Just Chatting', titre: 'Subathon jour 9 !' },
+    cendre: { id: '7003', depuis: 5,   v: 400,  jeu: 'VALORANT',      titre: 'Début' },
+    dune:   { id: '7004', depuis: 90,  v: 700,  jeu: 'VALORANT',      titre: 'Changement' },
+    eole:   { id: '7005', depuis: 120, v: 100,  jeu: 'Minecraft',     titre: 'Ça monte' },
+    fjord:  { id: '7006', depuis: 120, v: 100,  jeu: 'Minecraft',     titre: 'Ça monte un peu' },
+    gale:   { id: '7007', depuis: 120, v: 30,   jeu: 'Minecraft',     titre: 'Petit' },
+    houle:  { id: '7008', depuis: 200, v: 2000, jeu: 'Just Chatting', titre: 'Ensemble' },
+    ilot:   { id: '7009', depuis: 200, v: 800,  jeu: 'Just Chatting', titre: 'Rien' },
+    lys:    { id: '7012', depuis: 180, v: 600,  jeu: 'Just Chatting', titre: 'Toujours là' },
+    mica:   { id: '7013', depuis: 150, v: 600,  jeu: 'Just Chatting', titre: 'Retour rapide' },
+  };
+  const TOP = ['zephyr', 'aldric', 'aeltris', 'tavor', 'solenne', 'brune', 'ildor', 'quill', 'faelan', 'gaspard', 'hestia', 'mirelle'];
+  const RAYONS = [['Chaînes live qui pourraient vous plaire', ['aeltris', 'brenvik', 'xray', 'quebec']], ['Loin', ['zulu']]];
+  /* Les rayons de Twitch se montent deux cents millisecondes après le
+     chargement (cf. page.html) : le décor les attend, au lieu de parier qu'ils
+     sont déjà là — sur une machine au repos, ils ne l'étaient pas. */
+  const decorEtiq = async (p) => {
+    await attendre(p, () => [...document.querySelectorAll('h2')].some((h) => h.textContent === 'Loin'), 6_000);
+    return decorEtiqPose(p);
+  };
+  const decorEtiqPose = (p) => p.evaluate(() => {
+    const H = 3_600_000, M = 60_000, now = Date.now();
+    const iso = (t) => new Date(t).toISOString();
+    // aurore : un direct dont Twitch dit que le précédent a fini il y a 41 jours.
+    window.__fx.aurore.sid = '9901';
+    window.__fx.lys.sid = '9902';
+    window.__fx.mica.sid = '9904';
+    const avant = (l, j) => iso(Date.parse(window.__fx[l].createdAt) - j * 24 * H - H);
+    window.__agenda = {
+      aurore: { nom: 'Aurore', titre: '', videos: [], dernier: { id: '9800', fin: avant('aurore', 41) } },
+      lys: { nom: 'Lys', titre: '', videos: [], dernier: { id: '9902', fin: avant('lys', 40) } },
+      mica: { nom: 'Mica', titre: '', videos: [], dernier: { id: '9805', fin: avant('mica', 3) } },
+    };
+    window.__gs = { '7008': { hostId: '7008', hostLogin: 'houle', guests: [
+      { id: '7008', login: 'houle', viewers: 2000, combined: 2600 },
+      { id: '7010', login: 'iode', viewers: 400, combined: 2600 },
+      { id: '7011', login: 'jais', viewers: 200, combined: 2600 }] } };
+    /* aeltris, troisième du Top 10 : sa carte de Twitch dit la même audience
+       que le classement — le lot commun la lui verse (cf. flushQueue). */
+    window.__fx.aeltris = { ...window.__fx.aeltris, viewers: 34000 };
+    window.__fx.xray = { ...window.__fx.xray, createdAt: iso(now - 2 * M) };
+    window.__fx.quebec = { ...window.__fx.quebec, createdAt: iso(now - M) };
+    window.__fx.zulu = { id: '69', createdAt: iso(now - 2 * M), viewers: 500, game: 'VALORANT', tags: ['Français'], title: 'Tout en bas' };
+    // zulu, loin sous la ligne de flottaison.
+    const loin = [...document.querySelectorAll('h2')].find((h) => h.textContent === 'Loin');
+    const cale = document.createElement('div');
+    cale.style.height = '4000px';
+    loin.parentNode.parentNode.insertBefore(cale, loin.parentNode);
+    // Le badge d'une autre extension, dans le coin du bas de quebec.
+    const q = document.querySelector('a[data-a-target="preview-card-image-link"][href="/quebec"]');
+    q.style.position = 'relative';
+    const autre = document.createElement('div');
+    autre.className = 'autre-extension';
+    autre.textContent = '0:01:12';
+    autre.style.cssText = 'position:absolute;right:4px;bottom:4px;font:12px/16px sans-serif;color:#fff;background:#000';
+    q.appendChild(autre);
+  });
+  const lireEtiq = (p) => p.evaluate(() => {
+    const nos = Object.fromEntries([...document.querySelectorAll('#tse-accueil .tse-acc-rayon--suivis .tse-acc-carte')]
+      .map((c) => [c.dataset.tseCle, c.querySelector('.tse-acc-vignette').getAttribute('data-tse-etiquette')]));
+    const top = Object.fromEntries([...document.querySelectorAll('#tse-accueil .tse-acc-place')]
+      .map((c) => [c.dataset.tseCle, c.querySelector('.tse-acc-vignette')?.getAttribute('data-tse-etiquette') ?? null]));
+    const twitch = Object.fromEntries([...document.querySelectorAll('main a[data-a-target="preview-card-image-link"]')]
+      .filter((a) => !a.closest('#tse-accueil, #tse-accueil-heros'))
+      .map((a) => {
+        const st = getComputedStyle(a, '::after');
+        return [a.getAttribute('href').slice(1), { texte: a.getAttribute('data-tse-etiquette'), coin: a.getAttribute('data-tse-etiq-coin'),
+          contenu: st.content, haut: st.top, bas: st.bottom, montre: st.display !== 'none' }];
+      }));
+    return { nos, top, twitch, rapport: window.tse.accueil.rapport().etiquettes };
+  });
+  const demandes = (p, l) => p.evaluate((x) => window.__calls.filter((c) => (c.ops || []).includes(x)).length, l);
+
+  const pe = await ouvrirAccueil({ decor: { rayons: RAYONS }, visites: { nyx: [1, 2, 3, 4, 5, 6], aurore: [7], houle: [8] } });
+  await plateauAccueil(pe, { suivies: SUIV, top: TOP });
+  await decorEtiq(pe);
+  /* Nos rayons poussent ceux de Twitch sous la ligne de flottaison : on
+     descend jusqu'au premier, comme on le ferait. zulu reste loin dessous. */
+  await attendre(pe, () => !!document.querySelector('#tse-accueil .tse-acc-rayon--suivis [data-tse-cle="cendre"]'), 10_000);
+  await pe.evaluate(() => document.querySelector('a[data-a-target="preview-card-image-link"][href="/xray"]').scrollIntoView({ block: 'center' }));
+  await attendre(pe, () => {
+    const v = (l) => document.querySelector(`#tse-accueil .tse-acc-rayon--suivis [data-tse-cle="${l}"] .tse-acc-vignette`)?.getAttribute('data-tse-etiquette');
+    const t = (l) => document.querySelector(`main a[data-a-target="preview-card-image-link"][href="/${l}"]`)?.getAttribute('data-tse-etiquette');
+    return !!v('aurore') && /Subathon/.test(v('brisa') || '') && !!v('houle') && !!t('xray') && !!t('aeltris') && !!t('quebec');
+  }, 20_000);
+  const e1 = await lireEtiq(pe);
+  ok('a) une étiquette par carte, dans l\'ordre : le retour avant le début, le subathon avant le début ; un début ; un co-stream ; et rien pour une chaîne sans fait',
+     e1.nos.aurore === 'De retour après 41 jours' && e1.nos.brisa === 'Subathon • JOUR 9' && e1.nos.cendre === 'Vient de commencer'
+     && e1.nos.houle === 'Co-stream à 3' && e1.nos.ilot === null && !('nyx' in e1.nos)
+     && e1.nos.lys === null && e1.nos.mica === null,
+     JSON.stringify(e1.nos));
+
+  // b) Le basculement, vu entre deux relevés du même direct.
+  await pe.evaluate(() => { window.__fx.dune = { ...window.__fx.dune, game: 'Elden Ring' }; });
+  await attendre(pe, () => !!document.querySelector('#tse-accueil [data-tse-cle="dune"] .tse-acc-vignette[data-tse-etiquette]'), 10_000);
+  const e2 = await lireEtiq(pe);
+  ok('b) « Vient de passer sur Elden Ring », vu entre deux relevés du même direct',
+     e2.nos.dune === 'Vient de passer sur Elden Ring', JSON.stringify(e2.nos.dune));
+
+  /* c) LA HAUSSE : deux relevés du même direct, quatre secondes d'écart au
+     banc (dix minutes en vrai). Le décor tient depuis plus que cela : les
+     relevés d'avant la hausse sont là. */
+  await wait(pe, 5_000);
+  await pe.evaluate(() => {
+    window.__fx.eole = { ...window.__fx.eole, viewers: 140 };
+    window.__fx.fjord = { ...window.__fx.fjord, viewers: 120 };
+    window.__fx.gale = { ...window.__fx.gale, viewers: 60 };
+  });
+  await attendre(pe, () => !!document.querySelector('#tse-accueil [data-tse-cle="eole"] .tse-acc-vignette[data-tse-etiquette]'), 10_000);
+  const e3 = await lireEtiq(pe);
+  ok('c) « ↗ +40 % » sur deux relevés du même direct ; rien pour +20 %, ni sous cinquante spectateurs',
+     /^↗ \+40 % en \d+ min$/.test(e3.nos.eole || '') && e3.nos.fjord === null && e3.nos.gale === null,
+     JSON.stringify({ eole: e3.nos.eole, fjord: e3.nos.fjord, gale: e3.nos.gale }));
+
+  /* d) LES CARTES DE TWITCH. Une chaîne qu'on ne suit pas est demandée, et
+     seulement si sa carte est à l'écran. La place au Top 10 s'écrit sur la
+     carte de Twitch, pas sur celle du Top 10 lui-même. */
+  const e4 = await lireEtiq(pe);
+  ok('d) sur les cartes de Twitch : « Vient de commencer » pour une chaîne qu\'on ne suit pas, « N°3 en français », rien pour une carte sans fait',
+     e4.twitch.xray.texte === 'Vient de commencer' && e4.twitch.aeltris.texte === 'N°3 en français' && e4.twitch.brenvik.texte === null
+     && e4.top.aeltris === null,
+     JSON.stringify({ twitch: e4.twitch, top: e4.top.aeltris }));
+  ok('…en bas à droite de la vignette — et en haut quand une autre extension tient déjà le coin du bas',
+     e4.twitch.xray.contenu === '"Vient de commencer"' && e4.twitch.xray.bas === '8px' && e4.twitch.xray.montre
+     && e4.twitch.quebec.coin === 'haut' && e4.twitch.quebec.haut === '8px' && e4.twitch.quebec.montre,
+     JSON.stringify({ xray: e4.twitch.xray, quebec: e4.twitch.quebec }));
+  const cout = { xray: await demandes(pe, 'xray'), aeltris: await demandes(pe, 'aeltris'), zulu: await demandes(pe, 'zulu') };
+  ok('…et ce qu\'elles coûtent : les chaînes des cartes à l\'écran entrent dans le lot de TseChannels ; zulu, jamais à l\'écran, n\'est pas demandée',
+     cout.xray > 0 && cout.aeltris > 0 && cout.zulu === 0 && e4.twitch.zulu.texte === null && e4.rapport.demandes > 0
+     && e4.rapport.coins.haut >= 1,
+     JSON.stringify({ cout, rapport: e4.rapport }));
+
+  /* UNE CHAÎNE QUE TWITCH OMET ne laisse rien dans le cache : zephyr, du Top
+     10, n'est pas dans le décor de TseChannels. Elle n'est redemandée qu'une
+     fois par période de relevé (0,6 s au banc), pas à chaque peinture. */
+  const z0 = await demandes(pe, 'zephyr');
+  await wait(pe, 3_000);
+  const z1 = await demandes(pe, 'zephyr');
+  ok('…et une chaîne que Twitch omet n\'est redemandée qu\'une fois par période de relevé, pas à chaque peinture',
+     z1 - z0 <= 7, JSON.stringify({ z0, z1 }));
+  /* UNE REPRISE N'EST PAS UN RETOUR : un autre direct, et la fiche lue
+     pendant le précédent ne dit plus rien de celui-ci. */
+  await pe.evaluate(() => { window.__fx.aurore = { ...window.__fx.aurore, sid: '9903', createdAt: new Date(Date.now() - 30_000).toISOString() }; });
+  const sel = '#tse-accueil [data-tse-cle="aurore"] .tse-acc-vignette';
+  await attendre(pe, (q) => document.querySelector(q)?.getAttribute('data-tse-etiquette') !== 'De retour après 41 jours', 5_000, sel);
+  const repris = await pe.evaluate((q) => document.querySelector(q)?.getAttribute('data-tse-etiquette') ?? null, sel);
+  ok('…et un autre direct n\'est pas « de retour » : la fiche lue pendant le précédent ne dit rien de lui',
+     repris !== 'De retour après 41 jours', String(repris));
+
+  // e) En quittant l'accueil, plus une étiquette nulle part.
+  await pe.evaluate(() => history.pushState({}, '', '/korbek'));
+  await attendre(pe, () => !document.querySelector('[data-tse-etiquette]'), 5_000);
+  const restes = await pe.evaluate(() => document.querySelectorAll('[data-tse-etiquette], [data-tse-etiq]').length);
+  ok('e) en quittant l\'accueil, plus une étiquette, ni sur nos cartes ni sur celles de Twitch', restes === 0, String(restes));
+  await pe.close();
+
+  // f) Le réglage coupé : aucune étiquette, et les cartes de Twitch ne coûtent rien.
+  const pf = await ouvrirAccueil({ decor: { rayons: RAYONS }, options: { accueilEtiquettes: false }, visites: { nyx: [1, 2, 3] } });
+  await plateauAccueil(pf, { suivies: SUIV, top: TOP });
+  await decorEtiq(pf);
+  await attendre(pf, () => !!document.querySelector('#tse-accueil .tse-acc-rayon--suivis [data-tse-cle="cendre"]'), 10_000);
+  await pf.evaluate(() => document.querySelector('a[data-a-target="preview-card-image-link"][href="/xray"]').scrollIntoView({ block: 'center' }));
+  await wait(pf, 2_000);
+  const vf = await pf.evaluate(() => document.querySelectorAll('[data-tse-etiquette]').length);
+  const coutF = await demandes(pf, 'xray');
+  ok('f) « Une étiquette par carte » coupé : aucune étiquette, et aucune chaîne des rayons de Twitch demandée',
+     vf === 0 && coutF === 0, JSON.stringify({ vf, coutF }));
+  await pf.close();
 }
 
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════

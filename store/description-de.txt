@@ -203,6 +203,7 @@ Auf der Startseite von Twitch setzt die Erweiterung ihre eigenen Reihen über di
 - ★ DIE TOP 10 DEINER SPRACHE ★ Die ersten zehn Plätze der exakten Rangliste von Top-Kanäle, in der Sprache deines Twitch oder über alle Sprachen, in großen Ziffern, mit dem, was sich in dreißig Minuten bewegt hat: gewonnene Plätze, verlorene Plätze, Neueinsteiger. Nur berechnet, solange die Startseite angezeigt wird.
 - ★ DEINE GEPLANTEN STREAMS ★ Was deine gefolgten Kanäle für heute und morgen geplant haben, mit der verbleibenden Zeit. „Erinnern“: ein Hinweis in deinen offenen Twitch-Tabs, sobald der Kanal live geht – ohne Systembenachrichtigung und ohne Berechtigung. Für einen Kanal, den du schaust und der nichts geplant hat: wann seine letzten Streams begonnen haben, wenn es sich wiederholt – was er getan hat, nicht was er tun wird.
 - ★ „VON ANFANG AN“ ★ Zu spät gekommen? Ein Knopf öffnet die Aufzeichnung des laufenden Streams ab seiner allerersten Sekunde. Der Knopf erscheint nur, wenn du sie ansehen kannst: Der Kanal behält seine Aufzeichnungen und gibt sie für alle frei – oder du hast ihn abonniert.
+- ★ EIN ETIKETT PRO KARTE ★ Auf den Karten der Startseite, denen der Erweiterung wie denen von Twitch: eine Tatsache, nur eine – „Zurück nach 41 Tagen“, „Gerade gestartet“, „Gerade gewechselt zu Elden Ring“, „↗ +38 % in 10 Min.“, „Platz 3 auf Deutsch“… Nichts geraten: ohne gesehene Tatsache kein Etikett. Für einen Kanal, dem die Seitenleiste nicht folgt, werden die Zahlen abgefragt, solange seine Karte zu sehen ist.
 - ★ DIE VORSCHAU BEIM ÜBERFAHREN, AUCH HIER ★ Auf den Karten der Startseite, denen der Erweiterung wie denen von Twitch.
 - ★ WIE DU WILLST ★ Jeder Teil lässt sich unter „Einstellungen“ einzeln abschalten; alles aus, und die Startseite ist wieder die von Twitch, unverändert.
 
@@ -236,7 +237,7 @@ Twitch hat ein helles Design. Die Erweiterung merkt es und wechselt mit — ohne
 _______________________________
 
 ➤ ⚙️ UND WENN DU WÄHLEN WILLST
-Alles ist von Anfang an aktiv und nichts muss eingestellt werden. Aber der Bereich „Einstellungen“ im Panel gibt dir dreißig Einstellungen in die Hand.
+Alles ist von Anfang an aktiv und nichts muss eingestellt werden. Aber der Bereich „Einstellungen“ im Panel gibt dir einunddreißig Einstellungen in die Hand.
 
 - ★ WAS DU SIEHST ★ Jedes Abzeichen, die Streamdauer und ihr Format, der Balken „gerade gestartet“, das Gold der Abonnements, die Filter, die Sortierschaltflächen: alles lässt sich per Häkchen ein- und ausschalten.
 - ★ WAS GELADEN WIRD ★ Die Vorschau kann auf das Video verzichten und Abzeichen, Zeitleiste und Miniaturbild behalten — oder einfach in der Qualität heruntergehen. Genug, um sie leicht zu machen, ohne sie zu verlieren.
