@@ -16645,7 +16645,7 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
     return { n: Object.keys(defs).length, horsListe, jeuxNonVides,
              cle: localStorage.getItem('tse:options') };
   });
-  ok('la table porte ses vingt-neuf réglages', table.n === 29, String(table.n));
+  ok('la table porte ses trente réglages', table.n === 30, String(table.n));
   /* CELUI-CI A UNE CIBLE PRÉCISE : trois défauts sont lus dans CFG plutôt que
      recopiés — apercuQualite, abosPeriode et topN. Changer une de ces trois
      constantes sans toucher à la liste des valeurs permises rendrait le
@@ -16670,20 +16670,21 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
      ustawień » — et la phrase est tournée pour que le même mot se lise dans
      les deux. */
   /* Vingt-huit depuis la 4.26.0 : les sept réglages de la page d'accueil ;
-     vingt-neuf depuis la 4.26.0.2 : la vidéo de la tête de l'accueil. */
-  const VINGT_NEUF = { de: 'neunundzwanzig Einstellungen', en: 'twenty-nine settings',
-                       es: 'veintinueve ajustes', es_419: 'veintinueve ajustes', fr: 'vingt-neuf réglages',
-                       it: 'ventinove impostazioni', ja: '29 個の設定', pl: 'dwadzieścia dziewięć ustawień',
-                       pt_BR: 'vinte e nove configurações', pt_PT: 'vinte e nove definições',
-                       ru: 'двадцать девять настроек', zh_CN: '二十九项设置' };
-  const muettes = Object.entries(VINGT_NEUF).flatMap(([loc, mot]) => [
+     vingt-neuf depuis la 4.26.0.2 : la vidéo de la tête de l'accueil ;
+     trente depuis la 4.27.0 : « Vos rendez-vous ». */
+  const TRENTE = { de: 'dreißig Einstellungen', en: 'thirty settings',
+                   es: 'treinta ajustes', es_419: 'treinta ajustes', fr: 'trente réglages',
+                   it: 'trenta impostazioni', ja: '30 個の設定', pl: 'trzydzieści ustawień',
+                   pt_BR: 'trinta configurações', pt_PT: 'trinta definições',
+                   ru: 'тридцать настроек', zh_CN: '三十项设置' };
+  const muettes = Object.entries(TRENTE).flatMap(([loc, mot]) => [
     JSON.parse(readFileSync(join(ICI, '..', '_locales', loc, 'messages.json'), 'utf8'))
       .optResetText.message.includes(mot) ? null : `panneau ${loc}`,
     readFileSync(join(ICI, '..', 'store', `description-${loc.replace('_', '-')}.txt`), 'utf8')
       .includes(mot) ? null : `fiche ${loc}`,
   ]).filter(Boolean);
   ok('…et le panneau comme la fiche du Store en annoncent autant, dans les douze langues',
-     table.n === 29 && muettes.length === 0, muettes.join(', ') || String(table.n));
+     table.n === 30 && muettes.length === 0, muettes.join(', ') || String(table.n));
   /* CELLE-CI SE LIT SUR LE FICHIER SOURCE, et c'est le fond du sujet : la
      constante de production vaut six heures, mais tests/build.mjs la réécrit à
      quatre secondes pour que le relevé des abonnements soit éprouvable. La
@@ -17290,7 +17291,7 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
              fantomes: peints.filter((id) => !table.includes(id)) };
   }, vue.peints);
 
-  ok('les vingt-neuf réglages de la page ont chacun leur ligne',
+  ok('les trente réglages de la page ont chacun leur ligne',
      contrat.oublies.length === 0, contrat.oublies.join(', '));
   ok('…et aucune ligne fantôme : l\'ordre du panneau couvre exactement la table',
      contrat.fantomes.length === 0, contrat.fantomes.join(', '));
@@ -37398,7 +37399,11 @@ addEventListener('message', (e) => {
   const eclairs = await pd.evaluate(() => window.__eclairs);
   ok('d) un rendu qui tarde : la rafale attend chaque pas, s\'arrête à trente-six cartes, et aucune hors-ligne ne paraît jamais',
      d.clics === 2 && d.rendues === 36 && eclairs === 0 && d.horsLigneVisibles === 0 && d.directsVisibles === 24 && d.depliage.rafales === 1
-     && d.depliage.rendus?.observes === 2 && d.depliage.attenteMs >= 590,
+     /* Au moins deux fois 300 ms, moins le temps du clic lui-même : la mesure
+        part APRÈS `click()`, quand le minuteur du faux Twitch, lui, est armé
+        PENDANT. Sous la charge du banc complet, ce clic a pris plus de cinq
+        millisecondes (589 mesurées) : la marge est de vingt-cinq par pas. */
+     && d.depliage.rendus?.observes === 2 && d.depliage.attenteMs >= 550,
      JSON.stringify({ clics: d.clics, rendues: d.rendues, eclairs, depliage: d.depliage }));
   await pd.close();
 
@@ -40261,6 +40266,337 @@ const lireImages = (page) => page.evaluate(() => {
   const vf = await f.evaluate(() => ({ jamais: window.__images.every((x) => !x.voile), r: window.tse.accueil.rapport().voile }));
   ok('…l\'accueil coupé : pas de voile, jamais', vf.jamais && vf.r.poses === 0, JSON.stringify(vf));
   await f.close();
+}
+
+/* ═════════ 221. VOS RENDEZ-VOUS (4.27.0) ═════════
+   « Vos rendez-vous sport » de Canal+, « Me le rappeler » de Netflix : les
+   créneaux que vos chaînes suivies ont programmés aujourd'hui et demain, avec
+   le temps qui reste ; « Me prévenir », une alerte dans les onglets Twitch
+   ouverts quand la chaîne passe en direct ; et, à part, l'heure où les
+   derniers directs d'une chaîne sans planning ont commencé — dite au passé
+   (choix de l'auteur), seulement quand elle se répète. L'agenda part de
+   l'accueil, sans que le panneau s'ouvre. Deux onglets d'un même navigateur
+   partagent leur stockage : c'est par lui que l'alerte passe de l'un à
+   l'autre. */
+{
+  titre('221. Vos rendez-vous — aujourd\'hui et demain, l\'heure des derniers directs, et l\'alerte dans les onglets ouverts');
+  const ctxRdv = await browser.newContext({ viewport: { width: 1600, height: 1000 } });
+  await ctxRdv.addInitScript((rayons) => {
+    const n = Date.now(), h = 3600e3;
+    try {
+      localStorage.setItem('tse:roue', 'vu');
+      localStorage.setItem('tse:indice', 'vu');
+      if (!localStorage.getItem('tse:visits')) {
+        localStorage.setItem('tse:visits', JSON.stringify({ korbek: [n - h, n - 3 * h], ombre: [n - 2 * h, n - 26 * h, n - 50 * h],
+          lune: [n - 7 * h, n - 30 * h], givre: [n - 5 * h], houle: [n - 9 * h], pluie: [n - 11 * h] }));
+      }
+    } catch { /* stockage refusé */ }
+    window.__accueil = { rayons };
+  }, RAYONS_ACCUEIL);
+  const ongletRdv = async () => {
+    const p = await ctxRdv.newPage();
+    p.on('pageerror', (e) => { fail++; console.log('  ✗ ERREUR PAGE:', e.message); });
+    await p.route('https://www.twitch.tv/**', (route) => {
+      const nom = route.request().url().split('/').pop().split('?')[0];
+      if (nom.endsWith('.js')) return route.fulfill({ contentType: 'application/javascript; charset=utf-8', body: fileText(nom) });
+      return route.fulfill({ contentType: 'text/html; charset=utf-8', body: fileText('page.html') });
+    });
+    await p.route('https://player.twitch.tv/**', (route) => route.fulfill({ contentType: 'text/html', body: '<!doctype html><html><body>x</body></html>' }));
+    await p.route('https://static-cdn.jtvnw.net/**', (route) => route.fulfill({ contentType: 'image/png', body: PIXEL }));
+    await p.goto('https://www.twitch.tv/');
+    return p;
+  };
+  /* LE DÉCOR, relatif à maintenant et aux minuits du navigateur. Des chaînes
+     inventées, chacune pour une règle :
+       aurore  — hors ligne, programmée dans 2 h 14 ;
+       bastion — demain à 18:30 ;
+       cendre  — son créneau a commencé il y a dix minutes, pas encore là ;
+       nyxaria — en direct (le créneau en cours EST ce direct, il ne se
+                 montre pas) et programmée demain à 21:00 ;
+       jade    — un créneau annulé ; kelp — après-demain ; vieux — muette
+                 depuis cent vingt jours : rien des trois ;
+       ombre   — sans planning, regardée : ses six derniers directs entre
+                 19:52 et 20:12 ;
+       givre   — quatre des six vers 21:00, deux l'après-midi ;
+       lune    — cinq autour de minuit, de 23:45 à 00:10 ;
+       houle   — regardée, mais des débuts épars : rien ;
+       pluie   — quatre directs à 18:00, chacun coupé et repris à 19:05 :
+                 huit archives, quatre directs — l'habitude est 18:00 ;
+       iris    — régulière, mais jamais regardée : rien. */
+  const decorRdv = (p) => p.evaluate(() => {
+    const H = 3_600_000, M = 60_000, now = Date.now();
+    const iso = (t) => new Date(t).toISOString();
+    const j0 = new Date(); j0.setHours(0, 0, 0, 0);
+    const jour = (j, h, m = 0) => new Date(j0.getFullYear(), j0.getMonth(), j0.getDate() + j, h, m).getTime();
+    const archives = (debuts, duree = 3 * H) => debuts.map((t, i) => ({ id: String(91000 + Math.round(t / 60000) % 100000 + i),
+      titre: 'Archive', debut: iso(t), duree: duree / 1000, vues: 10, jeu: 'Just Chatting' }));
+    const dernier = (videos) => ({ id: '1', fin: iso(Math.max(...videos.map((v) => Date.parse(v.debut) + v.duree * 1000)) + 3000) });
+    const A = {};
+    const avec = (l, o) => { A[l] = { nom: l.charAt(0).toUpperCase() + l.slice(1), titre: '', videos: [], ...o }; };
+    avec('aurore', { dernier: { id: '2', fin: iso(now - 50 * H) },
+      creneaux: [{ id: 'a1', debut: iso(now + 134 * M - 5000), fin: iso(now + 5 * H), titre: 'Soirée quiz', jeu: 'Just Chatting' }] });
+    avec('bastion', { dernier: { id: '3', fin: iso(now - 30 * H) },
+      creneaux: [{ id: 'b1', debut: iso(jour(1, 18, 30)), fin: iso(jour(1, 21, 0)), titre: 'Course du dimanche', jeu: 'Trackmania' }] });
+    avec('cendre', { dernier: { id: '4', fin: iso(now - 20 * H) },
+      creneaux: [{ id: 'c1', debut: iso(Math.max(now - 10 * M, j0.getTime() + 30_000)), fin: iso(now + 2 * H), titre: 'En retard' }] });
+    avec('nyxaria', { creneaux: [{ id: 'n0', debut: iso(now - 2 * H), fin: iso(now + H), titre: 'Le direct en cours' },
+                                 { id: 'n2', debut: iso(jour(1, 21, 0)), fin: iso(jour(1, 23, 0)), titre: 'La suite', jeu: 'Elden Ring' }] });
+    avec('jade', { dernier: { id: '5', fin: iso(now - 20 * H) },
+      creneaux: [{ id: 'j1', debut: iso(now + 3 * H), fin: iso(now + 4 * H), titre: 'Annulé', annule: true }] });
+    avec('kelp', { dernier: { id: '6', fin: iso(now - 20 * H) },
+      creneaux: [{ id: 'k1', debut: iso(jour(2, 10, 0)), fin: iso(jour(2, 12, 0)), titre: 'Après-demain' }] });
+    avec('vieux', { dernier: { id: '7', fin: iso(now - 120 * 24 * H) },
+      creneaux: [{ id: 'v1', debut: iso(now + 4 * H), fin: iso(now + 5 * H), titre: 'Le planning d\'une chaîne partie' }] });
+    A.ombre = { nom: 'Ombre', titre: '', videos: archives([-8, 5, 0, 12, -3, 7].map((d, i) => jour(-1 - i, 20, 0) + d * M)) };
+    A.givre = { nom: 'Givre', titre: '', videos: archives([jour(-1, 21, 0), jour(-2, 14, 0), jour(-3, 21, 10), jour(-4, 15, 30),
+                                                           jour(-5, 20, 55), jour(-6, 21, 15)]) };
+    A.lune = { nom: 'Lune', titre: '', videos: archives([jour(-1, 23, 50), jour(-1, 0, 5), jour(-3, 23, 55), jour(-3, 0, 10),
+                                                         jour(-5, 23, 45)], 2 * H) };
+    A.houle = { nom: 'Houle', titre: '', videos: archives([10, 13, 16, 19, 22, 7].map((h, i) => jour(-1 - i, h, 0))) };
+    // Une heure d'archive, cinq minutes de coupure, la reprise : un seul direct.
+    A.pluie = { nom: 'Pluie', titre: '', videos: [1, 2, 3, 4].flatMap((i) => [
+      ...archives([jour(-i, 18, 0)], H), ...archives([jour(-i, 19, 5)], 2 * H)]) };
+    A.iris = { nom: 'Iris', titre: '', videos: archives([1, 2, 3, 4, 5, 6].map((i) => jour(-i, 18, 0))) };
+    for (const l of ['ombre', 'givre', 'lune', 'houle', 'pluie', 'iris']) A[l].dernier = dernier(A[l].videos);
+    window.__agenda = A;
+    for (const l of Object.keys(A)) if (l !== 'nyxaria') window.__addCard(l, '', '', false);
+    return { tomorrow: jour(1, 0, 0) };
+  });
+  const lireRdv = (p) => p.evaluate(() => {
+    const cartes = (sel) => [...document.querySelectorAll(sel + ' .tse-acc-rdv:not(.tse-acc-rdv--attente)')].map((c) => ({
+      cle: c.dataset.tseCle, nom: c.querySelector('.tse-acc-nom')?.textContent,
+      quand: c.querySelector('.tse-acc-rdv-quand')?.textContent, reste: c.querySelector('.tse-acc-rdv-reste')?.textContent,
+      titre: c.querySelector('.tse-acc-titre-carte')?.textContent, jeu: c.querySelector('.tse-acc-jeu')?.textContent,
+      habitude: c.querySelector('.tse-acc-rdv-habitude')?.textContent,
+      rappel: c.querySelector('.tse-acc-rappel') ? { presse: c.querySelector('.tse-acc-rappel').getAttribute('aria-pressed'),
+                                                    texte: c.querySelector('.tse-acc-rappel').textContent } : null }));
+    const r = document.querySelector('.tse-acc-rayon--rdv'), h = document.querySelector('.tse-acc-rayon--habitudes');
+    return { rdv: r && !r.hidden ? cartes('.tse-acc-rayon--rdv') : null, hab: h && !h.hidden ? cartes('.tse-acc-rayon--habitudes') : null,
+             titres: [r, h].map((x) => x && x.querySelector('.tse-acc-titre')?.textContent),
+             ordre: [...document.querySelectorAll('#tse-accueil > .tse-acc-rayon')].map((x) => x.dataset.tseRayon),
+             rapport: window.tse.accueil.rapport().rdv };
+  });
+  const pa = await ongletRdv();
+  await plateauAccueil(pa);
+  const { tomorrow } = await decorRdv(pa);
+  /* L'AGENDA FINI, et pas seulement quatre cartes : les rediffusions viennent
+     par lots de dix, et une chaîne du second lot — iris, jamais regardée —
+     arriverait après une lecture faite au premier. */
+  await attendre(pa, () => {
+    const h = document.querySelector('.tse-acc-rayon--habitudes');
+    return window.tse.accueil.rapport().rdv.enCours === false
+      && !!h && !h.hidden && h.querySelectorAll('.tse-acc-rdv:not(.tse-acc-rdv--attente)').length === 4
+      && document.querySelectorAll('.tse-acc-rayon--rdv .tse-acc-rdv:not(.tse-acc-rdv--attente)').length === 4;
+  }, 20_000);
+  const ra = await lireRdv(pa);
+  /* Les heures attendues, écrites comme la page les écrit : à la locale de
+     l'interface, et « Aujourd'hui » / « Demain » d'après les minuits. */
+  const attendu = await pa.evaluate((demain) => {
+    const fmt = (t) => new Date(t).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    const A = window.__agenda;
+    const t = (l, id) => Date.parse(A[l].creneaux.find((c) => c.id === id).debut);
+    const jourDe = (x) => (x < demain ? 'Aujourd\'hui' : 'Demain');
+    return ['cendre|c1', 'aurore|a1', 'bastion|b1', 'nyxaria|n2'].map((k) => {
+      const [l, id] = k.split('|');
+      return { cle: k, quand: `${jourDe(t(l, id))} · ${fmt(t(l, id))}`, debut: t(l, id) };
+    });
+  }, tomorrow);
+  const resteAurore = Math.ceil((attendu[1].debut - Date.now()) / 60_000);
+  ok('a) les créneaux d\'aujourd\'hui et de demain, dans l\'ordre des heures : ni le direct en cours, ni l\'annulé, ni l\'après-demain, ni la chaîne muette',
+     JSON.stringify((ra.rdv || []).map((c) => c.cle)) === JSON.stringify(attendu.map((x) => x.cle))
+     && ra.rdv.every((c, i) => c.quand === attendu[i].quand) && ra.titres[0] === 'Vos rendez-vous'
+     && JSON.stringify(ra.ordre.slice(-2)) === '["rdv","habitudes"]',
+     JSON.stringify({ vu: ra.rdv, attendu }));
+  ok('…le temps qui reste, à la minute supérieure ; « pas encore en direct » pour un créneau commencé ; le titre et la catégorie du créneau',
+     ra.rdv[0].reste === 'pas encore en direct' && [resteAurore, resteAurore + 1].some((m) => ra.rdv[1].reste === `dans ${Math.floor(m / 60)}h${String(m % 60).padStart(2, '0')}`)
+     && ra.rdv[1].titre === 'Soirée quiz' && ra.rdv[1].jeu === 'Discussions' && ra.rdv[2].jeu === 'Trackmania'
+     && ra.rdv.every((c) => c.rappel && c.rappel.presse === 'false' && c.rappel.texte === 'Me prévenir'),
+     JSON.stringify(ra.rdv));
+  // L'ordre des chaînes sans planning : celui des visites, le même que le héros.
+  const scores = await pa.evaluate(() => window.tse.panneau('scores').lignes.map((s) => s.login));
+  const ordreHab = scores.filter((l) => ['ombre', 'givre', 'lune', 'pluie'].includes(l));
+  ok('b) sans planning, à part : l\'heure où leurs derniers directs ont commencé, dite au passé — minuit compris, un direct coupé compté une fois —, et rien pour des débuts épars ni pour une chaîne jamais regardée',
+     JSON.stringify((ra.hab || []).map((c) => c.cle)) === JSON.stringify(ordreHab)
+     && ra.hab.find((c) => c.cle === 'ombre').habitude === 'Ses 6 derniers directs ont commencé vers 20:00'
+     && ra.hab.find((c) => c.cle === 'givre').habitude === '4 de ses 6 derniers directs ont commencé vers 21:00'
+     && ra.hab.find((c) => c.cle === 'lune').habitude === 'Ses 5 derniers directs ont commencé vers 00:00'
+     && ra.hab.find((c) => c.cle === 'pluie').habitude === 'Ses 4 derniers directs ont commencé vers 18:00'
+     && ra.titres[1] === 'Sans planningL\'heure à laquelle leurs derniers directs ont commencé',
+     JSON.stringify({ hab: ra.hab, ordreHab, titre: ra.titres[1] }));
+  const opsAgenda = await pa.evaluate(() => window.__calls.filter((c) => (c.names || [c.op]).some((n) => /^TseAgenda/.test(n || ''))).length);
+  ok('…et l\'agenda est parti de l\'accueil, sans que le panneau ne l\'ouvre', opsAgenda > 0 && ra.rapport.lectures > 0, JSON.stringify({ opsAgenda, r: ra.rapport }));
+
+  /* c) « ME PRÉVENIR ». Posé dans un onglet, il se voit dans l'autre. Deux
+     chaînes passent en direct : cendre, dont le créneau a commencé — c'est
+     son rendez-vous ; aurore, deux heures avant le sien — ce n'est pas lui,
+     rien ne se pose (un direct compte à partir d'une demi-heure avant le
+     créneau). L'alerte de cendre paraît dans les DEUX onglets ; la fermer
+     dans l'un la ferme dans l'autre. Mutants — l'alerte qui ne passe pas
+     d'un onglet à l'autre ; la fermeture locale ; un direct sans rapport
+     pris pour le rendez-vous. */
+  await pa.click('.tse-acc-rayon--rdv [data-tse-cle="cendre|c1"] .tse-acc-rappel');
+  await pa.click('.tse-acc-rayon--rdv [data-tse-cle="aurore|a1"] .tse-acc-rappel');
+  const pb = await ongletRdv();
+  await plateauAccueil(pb);
+  await decorRdv(pb);
+  await attendre(pb, () => document.querySelectorAll('.tse-acc-rayon--rdv .tse-acc-rappel[aria-pressed="true"]').length === 2, 20_000);
+  const stocke = await pa.evaluate(() => JSON.parse(localStorage.getItem('tse:rappels') || '{}'));
+  const btnA = await pa.evaluate(() => document.querySelector('[data-tse-cle="aurore|a1"] .tse-acc-rappel').textContent);
+  const vusB = await pb.evaluate(() => [...document.querySelectorAll('.tse-acc-rayon--rdv .tse-acc-rappel[aria-pressed="true"]')]
+    .map((b) => b.closest('.tse-acc-rdv').dataset.tseCle));
+  ok('c) « Me prévenir » : posé dans un onglet, vu dans l\'autre — le login, le créneau, le nom ; rien d\'autre',
+     btnA === 'Rappel activé' && JSON.stringify(Object.keys(stocke)) === '["cendre|c1","aurore|a1"]'
+     && JSON.stringify(vusB.sort()) === '["aurore|a1","cendre|c1"]'
+     && JSON.stringify(Object.keys(stocke['aurore|a1']).sort()) === JSON.stringify(['alerte', 'avatar', 'debut', 'ferme', 'fin', 'id', 'login', 'nom'])
+     && stocke['aurore|a1'].nom === 'Aurore', JSON.stringify({ stocke, vusB }));
+  await pb.goto('https://www.twitch.tv/korbek');   // l'autre onglet est ailleurs que sur l'accueil
+  await pb.evaluate(() => { window.__fx = {}; window.__addCard('aurore', '', '', false); window.__addCard('cendre', '', '', false); });
+  const enDirect = (p) => p.evaluate(() => {
+    const t = new Date(Date.now() - 60_000).toISOString();
+    window.__fx.aurore = { id: '99', createdAt: t, viewers: 120, game: 'Just Chatting', tags: ['Français'], title: 'Soirée quiz' };
+    window.__fx.cendre = { id: '98', createdAt: t, viewers: 40, game: 'Just Chatting', tags: ['Français'], title: 'En retard' };
+  });
+  // En direct pour le premier onglet seulement : le second ne l'apprend que par le stockage partagé.
+  await enDirect(pa);
+  await attendre(pa, () => !!document.querySelector('#tse-rappels .tse-rappel'), 10_000);
+  await attendre(pb, () => !!document.querySelector('#tse-rappels .tse-rappel'), 10_000);
+  const alerte = (p) => p.evaluate(() => {
+    const n = document.querySelector('#tse-rappels .tse-rappel');
+    return n ? { texte: n.querySelector('.tse-rappel-textes').textContent, voir: n.querySelector('.tse-rappel-voir').getAttribute('href'),
+                 fort: n.querySelector('strong')?.textContent, box: (() => { const r = n.getBoundingClientRect(); return [Math.round(r.left), Math.round(innerHeight - r.bottom)]; })() } : null;
+  });
+  await wait(pa, 600);   // le temps qu'une alerte de trop paraisse, s'il y en avait une
+  const aa = await alerte(pa), ab = await alerte(pb);
+  const nAlertes = await pa.evaluate(() => document.querySelectorAll('#tse-rappels .tse-rappel').length);
+  const auroreEnDirect = await pa.evaluate(() => !!window.tse.accueil && JSON.parse(localStorage.getItem('tse:rappels'))['aurore|a1'].alerte === null);
+  const heureC = await pa.evaluate((t) => new Date(t).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }), attendu[0].debut);
+  ok('…la chaîne passe en direct à son rendez-vous : l\'alerte dans les deux onglets — l\'accueil et une page de chaîne —, en bas à gauche',
+     aa && ab && aa.texte === `Cendre est en directVotre rendez-vous de ${heureC}` && ab.texte === aa.texte
+     && aa.fort === 'Cendre' && aa.voir === '/cendre' && aa.box[0] === 16 && aa.box[1] === 16,
+     JSON.stringify({ aa, ab }));
+  ok('…et pas pour une chaîne en direct deux heures avant son créneau : ce n\'est pas le rendez-vous',
+     nAlertes === 1 && auroreEnDirect, JSON.stringify({ nAlertes, auroreEnDirect }));
+  /* PAR L'ÉVÉNEMENT `storage`, et pas au réveil suivant : au banc, le réveil
+     revient toutes les 100 ms et ferait passer l'alerte sans lui ; en
+     production, il attend cinq secondes. On compte donc la relecture. */
+  /* ET PAR LA CROIX, pas par la fermeture d'elle-même : au banc, une alerte
+     se ferme seule au bout de trois secondes. Elle doit être partie bien
+     avant — la croix écrit la fermeture, l'autre onglet la lit. */
+  const synchros0 = await pa.evaluate(() => window.tse.accueil.rapport().rappels.synchros);
+  await pb.click('#tse-rappels .tse-rappel-fermer');
+  await attendre(pa, () => !document.querySelector('#tse-rappels .tse-rappel'), 5_000);
+  const fermes = await pa.evaluate(() => {
+    const r = JSON.parse(localStorage.getItem('tse:rappels'))['cendre|c1'];
+    return { dom: document.querySelectorAll('#tse-rappels .tse-rappel').length, r, age: Date.now() - r.alerte,
+             synchros: window.tse.accueil.rapport().rappels.synchros };
+  });
+  await wait(pa, 400);
+  const plusRien = await pa.evaluate(() => document.querySelectorAll('#tse-rappels .tse-rappel').length);
+  ok('…fermée dans l\'un, fermée dans l\'autre, par l\'événement du stockage — et elle ne revient pas, la chaîne toujours en direct',
+     fermes.dom === 0 && fermes.r.ferme === true && fermes.age < 2_500 && fermes.synchros > synchros0 && plusRien === 0,
+     JSON.stringify({ fermes, synchros0, plusRien }));
+  await pb.close();
+
+  /* d) CE QUE LE STOCKAGE NE DOIT PAS FAIRE ENTRER. Une page de twitch.tv
+     peut y écrire : un login hors de sa forme, un avatar qui n'est pas en
+     https, une clé qui ne correspond pas à son rappel ne passent pas. Et un
+     rappel dont l'heure est passée depuis plus d'une heure s'oublie. */
+  const filtre = await pa.evaluate(async () => {
+    const now = Date.now();
+    localStorage.setItem('tse:rappels', JSON.stringify({
+      'x"><b|1': { login: 'x"><b', id: '1', debut: now - 1000, fin: null, nom: 'X', avatar: null, alerte: now, ferme: false },
+      'zeta|2': { login: 'zeta', id: '2', debut: now - 1000, fin: null, nom: 'Zeta', avatar: 'javascript:alert(1)', alerte: now, ferme: false },
+      'autre|9': { login: 'zeta', id: '3', debut: now - 1000, fin: null, nom: 'Z', avatar: null, alerte: now, ferme: false },
+      'passe|4': { login: 'passe', id: '4', debut: now - 5 * 3600e3, fin: now - 3 * 3600e3, nom: 'Passé', avatar: null, alerte: null, ferme: false },
+    }));
+    window.dispatchEvent(new StorageEvent('storage', { key: 'tse:rappels' }));
+    await new Promise((r) => setTimeout(r, 400));
+    const n = [...document.querySelectorAll('#tse-rappels .tse-rappel')];
+    return { cles: n.map((x) => x.dataset.tseCle), avatars: n.map((x) => x.querySelector('img').getAttribute('src')),
+             reste: Object.keys(JSON.parse(localStorage.getItem('tse:rappels') || '{}')) };
+  });
+  ok('d) une mémoire forgée : ni login hors forme, ni avatar hors https, ni clé qui ment ; un rappel passé s\'oublie',
+     JSON.stringify(filtre.cles) === '["zeta|2"]' && filtre.avatars[0] === null && !filtre.reste.includes('passe|4'),
+     JSON.stringify(filtre));
+  await wait(pa, 3_300);
+  const seule = await pa.evaluate(() => ({ dom: document.querySelectorAll('#tse-rappels .tse-rappel').length,
+                                           r: JSON.parse(localStorage.getItem('tse:rappels') || '{}')['zeta|2'] }));
+  ok('…et une alerte se ferme d\'elle-même, au bout de son temps (un quart d\'heure ; trois secondes au banc)',
+     seule.dom === 0 && seule.r && seule.r.ferme === true, JSON.stringify(seule));
+  /* CE QU'UN RAPPEL COÛTE : une chaîne que la barre ne suit pas n'est
+     demandée qu'à partir d'une demi-heure avant son créneau — gel, dans dix
+     minutes, l'est ; brume, dans trois heures, pas encore. */
+  const cout = await pa.evaluate(async () => {
+    const now = Date.now(), t0 = now;
+    localStorage.setItem('tse:rappels', JSON.stringify({
+      'brume|b9': { login: 'brume', id: 'b9', debut: now + 3 * 3600e3, fin: null, nom: 'Brume', avatar: null, alerte: null, ferme: false },
+      'gel|g9': { login: 'gel', id: 'g9', debut: now + 10 * 60e3, fin: null, nom: 'Gel', avatar: null, alerte: null, ferme: false },
+    }));
+    window.dispatchEvent(new StorageEvent('storage', { key: 'tse:rappels' }));
+    await new Promise((r) => setTimeout(r, 1_200));
+    const demandes = window.__calls.filter((c) => c.t >= t0).flatMap((c) => c.ops || []);
+    return { gel: demandes.filter((l) => l === 'gel').length, brume: demandes.filter((l) => l === 'brume').length };
+  });
+  ok('…et une chaîne que la barre ne suit pas n\'est demandée qu\'une demi-heure avant son créneau',
+     cout.gel > 0 && cout.brume === 0, JSON.stringify(cout));
+
+  /* e) RIEN NE BOUGE EN REVENANT. La mémoire de l'agenda se relit après la
+     première peinture : autant de places vides que la dernière fois tiennent
+     les deux rayons à leur hauteur, et les vraies cartes les remplacent au
+     pixel. Mutant — sans les places d'attente. */
+  await pa.evaluate(() => localStorage.removeItem('tse:rappels'));
+  await pa.addInitScript(() => {
+    /* Le décor se pose APRÈS le rechargement : les réponses de l'agenda
+       attendent qu'il soit là. Sans cela, une collecte lancée avant lui lisait
+       un Twitch sans archive — ce que le vrai ne fait pas — et le rayon des
+       habitudes s'éteignait le temps de la suivante. (`__depart` : la page
+       remet `__retardOp` à zéro en se chargeant, cf. page.html.) */
+    window.__depart = { ...(window.__depart || {}),
+      __retardOp: { TseAgendaChaines: 1_200, TseAgendaDiffusions: 1_200, TseAgendaProgramme: 1_200, TseAgendaAcces: 1_200 } };
+    window.__rdvImages = [];
+    let vraies = 0;
+    const regarder = () => {
+      const r = document.querySelector('.tse-acc-rayon--rdv'), h = document.querySelector('.tse-acc-rayon--habitudes');
+      const s = document.getElementById('tse-accueil');
+      if (s && !s.hidden) {
+        const x = { r: r && !r.hidden ? Math.round(r.getBoundingClientRect().height) : 0,
+          h: h && !h.hidden ? Math.round(h.getBoundingClientRect().height) : 0,
+          attente: !!document.querySelector('.tse-acc-rdv--attente') };
+        window.__rdvImages.push(x);
+        if (!x.attente && x.r > 0) vraies++;
+      }
+      /* Jusqu'à ce que les vraies cartes aient tenu quarante images, et non un
+         nombre d'images fixé : sous la charge du banc complet, l'agenda peut
+         mettre plus de dix secondes à répondre. */
+      if (vraies < 40 && window.__rdvImages.length < 6000) requestAnimationFrame(regarder);
+    };
+    requestAnimationFrame(regarder);
+  });
+  await pa.reload();
+  await plateauAccueil(pa);
+  await decorRdv(pa);
+  await attendre(pa, () => (window.__rdvImages || []).filter((x) => !x.attente && x.r > 0).length > 20, 40_000);
+  const img = await pa.evaluate(() => window.__rdvImages);
+  const premiere = img[0], vraies = img.filter((x) => !x.attente && x.r > 0);
+  ok('e) en revenant : les deux rayons à leur hauteur dès la première image — places vides le temps de relire la mémoire —, et pas un pixel quand les vraies cartes arrivent',
+     !!premiere && premiere.r > 0 && premiere.h > 0 && img.some((x) => x.attente) && vraies.length > 0
+     && img.every((x) => x.r === vraies[0].r && x.h === vraies[0].h),
+     JSON.stringify({ premiere, vraie: vraies[0], hauteurs: [...new Set(img.map((x) => x.r + '/' + x.h))],
+       suite: img.reduce((o, x, i) => { const k = x.r + '/' + x.h + (x.attente ? ' attente' : ''); if (!o.length || o[o.length - 1].k !== k) o.push({ k, i }); return o; }, []) }));
+  await pa.close();
+
+  // f) Le réglage coupé : ni rayon, ni agenda demandé.
+  const pf = await ouvrirAccueil({ options: { accueilRdv: false }, visites: { korbek: [1, 3], ombre: [2] } });
+  await plateauAccueil(pf);
+  await decorRdv(pf);
+  await attendre(pf, () => !!document.getElementById('tse-accueil') && window.tse.accueil.rapport().heros.montre, 10_000);
+  await wait(pf, 1_500);
+  const vf2 = await pf.evaluate(() => ({ rdv: document.querySelector('.tse-acc-rayon--rdv')?.hidden, hab: document.querySelector('.tse-acc-rayon--habitudes')?.hidden,
+    agenda: window.__calls.filter((c) => (c.names || [c.op]).some((n) => /^TseAgenda/.test(n || ''))).length }));
+  ok('f) « Vos rendez-vous » coupé : ni rayon, ni agenda demandé depuis l\'accueil', vf2.rdv === true && vf2.hab === true && vf2.agenda === 0,
+     JSON.stringify(vf2));
+  await pf.close();
+  await ctxRdv.close();
 }
 
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════

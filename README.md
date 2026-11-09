@@ -2183,6 +2183,167 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## L'accueil, niveau 2 : vos rendez-vous (v4.27.0)
+
+Première idée du niveau 2, « de nouvelles vues sur des données déjà collectées
+ailleurs ». Publiée sur `claude/chrome-homepage` seulement.
+
+| demandé | ce qui a été fait |
+| --- | --- |
+| « les créneaux programmés d'aujourd'hui et de demain, avec un compte à rebours » | un rayon « Vos rendez-vous », une carte par créneau, dans l'ordre des heures |
+| « "Me prévenir" affiche une alerte dans les onglets Twitch ouverts, pas une notification système » | une alerte dans chaque onglet Twitch ouvert quand la chaîne passe en direct ; la fermer dans l'un la ferme dans tous |
+| « à trancher : "D'habitude vers 20 h — 5 de ses 6 derniers directs" » | tranché par l'auteur : oui, dit au passé, à part des créneaux programmés |
+
+### Vos rendez-vous
+
+Ce que l'agenda sait déjà, lu depuis l'accueil : le planning de chaque chaîne
+suivie (`segmentList`, cf. 4.25.0).
+
+- **Aujourd'hui et demain**, d'après les minuits du navigateur. Une carte par
+  créneau : l'avatar, le nom, « Aujourd'hui · 20:00 » ou « Demain · 18:30 », le
+  temps qui reste, le titre et la catégorie du créneau, puis « Me prévenir ».
+- **Le temps qui reste** est compté à la minute supérieure : « dans 1m »
+  jusqu'à l'heure, jamais « dans 0m ». Un créneau commencé sans que la chaîne
+  soit là dit « pas encore en direct », jusqu'à sa fin.
+- **Ce qui n'y est pas** : le créneau du direct en cours (c'est ce direct), un
+  créneau annulé, l'après-demain, le planning d'une chaîne muette depuis trois
+  mois (la règle de l'agenda, 4.25.0.7).
+- **Rien ne bouge en revenant** (la règle de la 4.26.0.5). La mémoire de
+  l'agenda se relit après la première peinture : le nombre de cartes de la
+  dernière visite est retenu, et autant de places vides tiennent les deux
+  rayons à leur hauteur le temps de cette lecture — et, pour un rayon encore
+  vide, jusqu'à la fin de la collecte : la mémoire ne sait rien des chaînes
+  que la barre n'a pas encore montrées. Les cartes ont une hauteur fixe : les
+  vraies remplacent les places au pixel.
+
+### Sans planning, au passé
+
+Peu de chaînes remplissent leur planning. Pour une chaîne que vous regardez
+(au moins une visite comptée) et qui n'a rien programmé, un second rayon,
+« Sans planning », dit l'heure où ses derniers directs ont commencé : « 5 de ses
+6 derniers directs ont commencé vers 20:00 ». C'est un constat, jamais une
+promesse, et c'est le choix de l'auteur.
+
+- **Les débuts sont ceux des rediffusions**, à la seconde : celui d'un direct
+  est celui de son enregistrement.
+- **Un direct, pas une archive.** Une reprise après coupure peut ouvrir un second
+  enregistrement : deux archives à moins d'un quart d'heure l'une de l'autre sont
+  un seul direct, qui a commencé à la première.
+- **Quatre sur six au moins**, dans la même demi-heure, minuit compris : 23:50 et
+  00:10 sont voisins. L'heure dite est leur médiane, au quart d'heure.
+- **Cinq chaînes au plus**, dans l'ordre de vos visites.
+
+### « Me prévenir »
+
+- **Une alerte dans les onglets Twitch ouverts**, en bas à gauche, sur la barre :
+  ni sur le lecteur, ni sur le chat. « Nyxaria est en direct », « Votre
+  rendez-vous de 20:00 », « Regarder », et une croix. Pas une notification du
+  système : elle demanderait une permission, et l'extension n'en a aucune.
+- **Quand.** La chaîne est en direct pour ce rendez-vous si son direct a commencé
+  au plus tôt une demi-heure avant le créneau, ou si le créneau a commencé. Une
+  chaîne en direct deux heures avant son créneau, ce n'est pas lui : rien ne se
+  pose. Au-delà d'une heure après la fin du créneau, le rappel s'oublie.
+- **D'un onglet à l'autre.** Le stockage de twitch.tv est partagé par ses
+  onglets : le premier qui voit la chaîne en direct le note, les autres
+  l'apprennent par l'événement `storage`. Fermer l'alerte dans l'un la ferme
+  dans tous ; « Regarder » aussi. Elle se ferme d'elle-même au bout d'un quart
+  d'heure. Avant chaque écriture, la mémoire est relue : partir de ce qu'on
+  croyait savoir effacerait la fermeture d'un autre onglet.
+- **Ce qui est gardé** : le login, le créneau, le nom et l'avatar qu'affichera
+  l'alerte ; vingt rappels au plus. Ce qui en est relu est vérifié : un login
+  hors de sa forme, un avatar qui n'est pas en `https`, une clé qui ne
+  correspond pas à son rappel ne passent pas.
+
+### L'agenda part de l'accueil
+
+Il ne partait que du panneau. L'accueil le demande maintenant, au même rythme
+(une requête à la fois, une seconde entre deux), et sa mémoire gardée sert
+d'abord : un retour sur l'accueil ne redemande que ce qui a passé sa fraîcheur.
+La seconde passe — les rediffusions — couvre les sept derniers jours, d'où se
+lit l'heure habituelle ; c'est une demande de l'accueil à côté de celle du
+panneau, jamais à sa place : si le panneau regarde une autre semaine au même
+moment, elle couvre les deux. La demande s'éteint deux minutes après que
+l'accueil a cessé de la renouveler.
+
+| ce qui s'affiche | ce que ça coûte |
+| --- | --- |
+| « Vos rendez-vous », « Sans planning » | l'agenda, au rythme de l'agenda : un `TseAgendaChaines` et un `TseAgendaProgramme` par lot de vingt-cinq chaînes suivies, les jetons des dernières archives par quinze, puis un `TseAgendaDiffusions` par lot de dix pour les chaînes qui ont diffusé ces sept derniers jours. Rien de ce qui est frais : une fiche vaut dix minutes, une liste de rediffusions six heures, et la mémoire gardée sert d'un chargement à l'autre |
+| « Me prévenir » | **rien** d'ordinaire : la chaîne est suivie, la barre la relit déjà. Sinon, son login entre dans le lot commun de `TseChannels` d'une demi-heure avant le créneau jusqu'à l'alerte |
+
+La fiche du Store disait de l'agenda « rien n'est demandé à Twitch avant que
+vous l'ouvriez ». Elle dit maintenant « avant que vous l'ouvriez, ou que
+l'accueil de Twitch montre vos rendez-vous », dans les douze langues.
+
+Coupé (« Vos rendez-vous », dans « Réglages », groupe « Page d'accueil ») : ni
+rayon, ni agenda demandé depuis l'accueil ; les rappels déjà posés restent,
+jusqu'à leur heure.
+
+### Le rapport
+
+Le bloc ACCUEIL gagne `rdv.*` (lectures, créneaux et chaînes montrés, l'attente
+de la mémoire, l'agenda en cours, l'indice de la dernière visite) et
+`rappels.*` (posés, retirés, évincés, alertes, fermés, échus, chaînes demandées,
+écritures refusées, relectures venues d'un autre onglet ; actifs, montrés,
+fermés). Des comptes ; aucune chaîne
+n'est nommée.
+
+### Les textes
+
+Dix langues sur la page, douze dans le panneau, le mode d'emploi (« L'accueil de
+Twitch ») et les fiches du Store. Un réglage de plus : la remise à zéro du
+panneau et la fiche disent « trente réglages », dans les douze langues.
+
+### Le banc
+
+**221**, nouveau. Deux onglets d'un même navigateur, qui partagent leur
+stockage.
+
+- a) les créneaux d'aujourd'hui et de demain, dans l'ordre des heures ; ni le
+  direct en cours, ni l'annulé, ni l'après-demain, ni la chaîne muette ; le temps
+  qui reste, « pas encore en direct », le titre et la catégorie ;
+- b) sans planning : quatre chaînes, dont une autour de minuit et une coupée à
+  chaque direct ; rien pour des débuts épars ni pour une chaîne jamais
+  regardée ; l'agenda parti de l'accueil ;
+- c) « Me prévenir » posé dans un onglet, vu dans l'autre ; la chaîne en direct à
+  son rendez-vous, l'alerte dans les deux onglets — l'accueil et une page de
+  chaîne — alors qu'un seul la voit en direct ; rien pour une chaîne en direct
+  deux heures avant son créneau ; fermée dans l'un, fermée dans l'autre, par
+  l'événement du stockage ;
+- d) une mémoire forgée ne passe pas ; un rappel passé s'oublie ; une alerte se
+  ferme d'elle-même ; une chaîne que la barre ne suit pas n'est demandée qu'une
+  demi-heure avant son créneau ;
+- e) en revenant, les deux rayons à leur hauteur dès la première image, et pas un
+  pixel quand les vraies cartes arrivent ;
+- f) le réglage coupé : ni rayon, ni agenda.
+
+**Vingt et un mutants nommés, tous pris.**
+
+| mutant | ce qui tombe |
+| --- | --- |
+| le créneau du direct en cours montré | 221 a) : les créneaux, le temps qui reste |
+| le créneau annulé gardé | 221 a) : les créneaux, le temps qui reste |
+| un jour de plus | 221 a) : l'après-demain paraît |
+| la chaîne muette gardée | 221 a) : les créneaux, le temps qui reste |
+| l'habitude sans seuil | 221 b) : des débuts épars disent une heure |
+| l'habitude d'une chaîne jamais regardée | 221 b) : iris paraît |
+| minuit oublié | 221 b) : lune, autour de minuit |
+| l'heure à la minute, pas au quart d'heure | 221 b) : l'heure dite |
+| une archive pour un direct | 221 b) : pluie, coupée à chaque direct |
+| la seconde passe de l'accueil ignorée | 221 b) : ni habitude, ni agenda parti de l'accueil |
+| le rappel demandé avant son heure | 221 d) : brume demandée trois heures avant son créneau |
+| l'alerte qui ne passe pas d'un onglet à l'autre | 221 c) : la fermeture lue au réveil, pas par le stockage |
+| la fermeture locale | 221 c) : l'autre onglet attend que l'alerte se ferme d'elle-même |
+| l'avatar forgé lu | 221 d) : la mémoire forgée |
+| la clé qui ment acceptée | 221 d) : la mémoire forgée |
+| l'alerte éternelle | 221 d) : l'alerte qui se ferme d'elle-même |
+| le rappel passé gardé | 221 d) : le rappel passé |
+| sans places d'attente | 221 e) : les rayons à leur hauteur dès la première image |
+| le réglage coupé qui demande quand même | 221 f) : l'agenda demandé |
+| l'indice jamais écrit | 221 e) : les rayons à leur hauteur dès la première image |
+| « dans 0m » | 221 a) : le temps qui reste |
+
+Le banc complet : 2197 assertions dans 220 scénarios, toutes vertes.
+
 ## L'accueil, sixième passe : le bas du héros fondu dans la page (v4.26.0.6)
 
 Le retour, capture de la vraie page à l'appui. Publié sur
@@ -23485,7 +23646,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | les six fichiers JavaScript livrés — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 219 scénarios, 2184 assertions |
+| `npm test` | le harnais Playwright : 220 scénarios, 2197 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -23506,13 +23667,13 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 2013 Ko | 890 Ko | 4 505 → **2** |
+| `content.js` | 2056 Ko | 923 Ko | 4 541 → **2** |
 | `cadres.js` | 68 Ko | 31 Ko | 160 → **0** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
 | `panneau.js` | 162 Ko | 82 Ko | 224 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 26 → **0** |
 | `background.js` | 10 Ko | 2 Ko | 22 → **0** |
-| **les six** | **2393 Ko** | **1109 Ko** | **−54 %** |
+| **les six** | **2436 Ko** | **1142 Ko** | **−53 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se

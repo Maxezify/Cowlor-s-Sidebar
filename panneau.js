@@ -1280,7 +1280,7 @@ const GROUPES_OPT = [
   ['optGrpMultistream', ['salle', 'salleAuto']],
   // L'accueil de Twitch (4.26.0) : le maître d'abord, ce qu'il gouverne ensuite.
   ['optGrpAccueil', ['accueil', 'accueilTete', 'accueilVideo', 'accueilSuivis', 'accueilTop',
-                     'accueilTopLangue', 'accueilApercu', 'accueilDebut']],
+                     'accueilTopLangue', 'accueilApercu', 'accueilDebut', 'accueilRdv']],
   ['optGrpBadges',  ['badges']],
   ['optGrpCarte',   ['duree', 'dureeFormat', 'fresh', 'abonnes', 'subathonJour']],
   ['optGrpListe',   ['tris', 'filtreCategorie', 'filtreLangue', 'topOnglet', 'topN']],

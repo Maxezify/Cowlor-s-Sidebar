@@ -2064,6 +2064,162 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The home page, level 2: your scheduled streams (v4.27.0)
+
+The first idea of level 2, "new views on data already collected elsewhere".
+Published on `claude/chrome-homepage` only.
+
+| asked | what was done |
+| --- | --- |
+| "today's and tomorrow's scheduled slots, with a countdown" | a "Your scheduled streams" row, one card per slot, in order of time |
+| "'Remind me' shows an alert in the open Twitch tabs, not a system notification" | an alert in every open Twitch tab when the channel goes live; closing it in one closes it in all |
+| "to decide: 'Usually around 8 pm — 5 of its last 6 streams'" | decided by the author: yes, said in the past tense, apart from the scheduled slots |
+
+### Your scheduled streams
+
+What the agenda already knows, read from the home page: each followed
+channel's schedule (`segmentList`, cf. 4.25.0).
+
+- **Today and tomorrow**, from the browser's midnights. One card per slot: the
+  avatar, the name, "Today · 20:00" or "Tomorrow · 18:30", the time left, the
+  slot's title and category, then "Remind me".
+- **The time left** is counted to the next minute: "in 1m" until the time,
+  never "in 0m". A slot that has started without the channel being there says
+  "not live yet", until its end.
+- **What isn't there**: the slot of the stream in progress (it is that stream),
+  a cancelled slot, the day after tomorrow, the schedule of a channel silent for
+  three months (the agenda's rule, 4.25.0.7).
+- **Nothing moves when you come back** (4.26.0.5's rule). The agenda's memory is
+  read after the first paint: the number of cards of the last visit is kept, and
+  as many empty places hold both rows at their height for the length of that
+  read — and, for a row still empty, until the collection ends: the memory
+  knows nothing of the channels the sidebar hasn't shown yet. The cards have a
+  fixed height: the real ones replace the places to the pixel.
+
+### No schedule, in the past tense
+
+Few channels fill in their schedule. For a channel you watch (at least one
+counted visit) that has nothing scheduled, a second row, "No schedule", says
+when its last streams started: "5 of their last 6 streams started around
+20:00". It is an observation, never a promise, and it is the author's choice.
+
+- **The starts are the replays'**, to the second: a stream's start is its
+  recording's.
+- **A stream, not an archive.** A resume after a cut can open a second
+  recording: two archives less than a quarter of an hour apart are one stream,
+  which started at the first.
+- **Four out of six at least**, within the same half hour, midnight included:
+  23:50 and 00:10 are neighbours. The time said is their median, to the quarter
+  hour.
+- **Five channels at most**, in the order of your visits.
+
+### "Remind me"
+
+- **An alert in the open Twitch tabs**, at the bottom left, over the sidebar:
+  neither on the player nor on the chat. "Nyxaria is live", "Scheduled for
+  20:00", "Watch", and a cross. Not a system notification: it would need a
+  permission, and the extension has none.
+- **When.** The channel is live for this appointment if its stream started at
+  the earliest half an hour before the slot, or if the slot has started. A
+  channel live two hours before its slot is not it: nothing is raised. More than
+  an hour after the slot's end, the reminder is forgotten.
+- **From one tab to the other.** twitch.tv's storage is shared by its tabs: the
+  first one that sees the channel live notes it, the others learn it through
+  the `storage` event. Closing the alert in one closes it in all; so does
+  "Watch". It closes by itself after a quarter of an hour. Before every write,
+  the memory is read again: starting from what one believed would erase another
+  tab's closing.
+- **What is kept**: the login, the slot, the name and avatar the alert will
+  show; twenty reminders at most. What is read back is checked: a login out of
+  shape, an avatar that isn't `https`, a key that doesn't match its reminder
+  don't get in.
+
+### The agenda starts from the home page
+
+It only started from the panel. The home page now asks for it, at the same
+pace (one request at a time, a second between two), and its kept memory comes
+first: coming back to the home page only asks again for what has passed its
+freshness. The second pass — the replays — covers the last seven days, where
+the usual time is read from; it is a request from the home page beside the
+panel's, never in its place: if the panel looks at another week at the same
+moment, it covers both. The request lapses two minutes after the home page
+stops renewing it.
+
+| what shows | what it costs |
+| --- | --- |
+| "Your scheduled streams", "No schedule" | the agenda, at the agenda's pace: one `TseAgendaChaines` and one `TseAgendaProgramme` per batch of twenty-five followed channels, the last archives' tokens by fifteen, then one `TseAgendaDiffusions` per batch of ten for the channels that streamed in the last seven days. Nothing that is fresh: a card is worth ten minutes, a replay list six hours, and the kept memory serves from one load to the next |
+| "Remind me" | **nothing** ordinarily: the channel is followed, the sidebar already reads it. Otherwise, its login joins the common `TseChannels` batch from half an hour before the slot until the alert |
+
+The Store listing said of the agenda "nothing is asked of Twitch until you open
+it". It now says "until you open it, or until Twitch's home page shows your
+scheduled streams", in all twelve languages.
+
+Off ("Your scheduled streams", in "Settings", "Home page" group): no row, no
+agenda requested from the home page; reminders already set stay, until their
+time.
+
+### The report
+
+The ACCUEIL block gains `rdv.*` (reads, slots and channels shown, waiting for
+the memory, the agenda in progress, the last visit's hint) and `rappels.*`
+(set, removed, evicted, alerts, closed, expired, channels requested, refused
+writes, rereads coming from another tab; active, shown, closed). Counts; no channel is named.
+
+### The texts
+
+Ten languages on the page, twelve in the panel, the guide ("Twitch's home
+page") and the Store listings. One more setting: the panel's reset and the
+listing say "thirty settings", in all twelve languages.
+
+### The bench
+
+**221**, new. Two tabs of one browser, which share their storage.
+
+- a) today's and tomorrow's slots, in order of time; neither the stream in
+  progress, nor the cancelled one, nor the day after tomorrow, nor the silent
+  channel; the time left, "not live yet", the title and the category;
+- b) no schedule: four channels, one around midnight and one cut at every
+  stream; nothing for scattered starts nor for a channel never watched; the
+  agenda started from the home page;
+- c) "Remind me" set in one tab, seen in the other; the channel live at its
+  appointment, the alert in both tabs — the home page and a channel page — while
+  only one sees it live; nothing for a channel live two hours before its slot;
+  closed in one, closed in the other, through the storage event;
+- d) a forged memory doesn't get in; a past reminder is forgotten; an alert
+  closes by itself; a channel the sidebar doesn't follow is only requested half
+  an hour before its slot;
+- e) coming back, both rows at their height from the first frame, and not one
+  pixel when the real cards arrive;
+- f) the setting off: no row, no agenda.
+
+**Twenty-one named mutants, all caught.**
+
+| mutant | what falls |
+| --- | --- |
+| the slot of the stream in progress shown | 221 a): the slots, the time left |
+| the cancelled slot kept | 221 a): the slots, the time left |
+| one day more | 221 a): the day after tomorrow shows |
+| the silent channel kept | 221 a): the slots, the time left |
+| the habit without its threshold | 221 b): scattered starts tell a time |
+| the habit of a channel never watched | 221 b): iris shows |
+| midnight forgotten | 221 b): lune, around midnight |
+| the time to the minute, not to the quarter hour | 221 b): the time said |
+| one archive for one stream | 221 b): pluie, cut at every stream |
+| the home page's second pass ignored | 221 b): no habit, no agenda started from the home page |
+| the reminder requested before its time | 221 d): brume requested three hours before its slot |
+| the alert that doesn't go from one tab to the other | 221 c): the closing read at the next tick, not through the storage |
+| the local closing | 221 c): the other tab waits for the alert to close by itself |
+| the forged avatar read | 221 d): the forged memory |
+| the lying key accepted | 221 d): the forged memory |
+| the eternal alert | 221 d): the alert that closes by itself |
+| the past reminder kept | 221 d): the past reminder |
+| no waiting places | 221 e): both rows at their height from the first frame |
+| the setting off that still asks | 221 f): the agenda requested |
+| the hint never written | 221 e): both rows at their height from the first frame |
+| "in 0m" | 221 a): the time left |
+
+The full bench: 2197 assertions in 220 scenarios, all green.
+
 ## The home page, sixth pass: the hero's bottom faded into the page (v4.26.0.6)
 
 The feedback, with a screenshot of the real page. Published on
@@ -22813,7 +22969,7 @@ Four independent checks:
 | `npm run lint` | the six shipped JavaScript files — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 219 scenarios, 2184 assertions |
+| `npm test` | the Playwright harness: 220 scenarios, 2197 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -22833,13 +22989,13 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 2013 KB | 890 KB | 4,505 → **2** |
+| `content.js` | 2056 KB | 923 KB | 4,541 → **2** |
 | `cadres.js` | 68 KB | 31 KB | 160 → **0** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
 | `panneau.js` | 162 KB | 82 KB | 224 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 26 → **0** |
 | `background.js` | 10 KB | 2 KB | 22 → **0** |
-| **all six** | **2393 KB** | **1109 KB** | **−54 %** |
+| **all six** | **2436 KB** | **1142 KB** | **−53 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are

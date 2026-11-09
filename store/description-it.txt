@@ -191,7 +191,7 @@ La pagina del programma di un canale, su Twitch, mostra un solo canale. Il grupp
 - ★ OFFLINE, MA NON DIMENTICATI ★ Ogni canale seguito che non è in diretta: prima quelli con una diretta programmata, la più vicina in cima, poi gli altri, il più recente per primo — quando ha trasmesso l'ultima volta, la sua replica e la sua prossima diretta. I canali con una programmazione abbandonata — nessuna diretta da tre mesi — non compaiono.
 - ★ UN CANALE O TUTTI ★ Un menu ne tiene uno solo, e «La sua settimana» porta dritto alla settimana della sua ultima diretta.
 - ★ ONESTO SU CIÒ CHE TWITCH CONSERVA ★ Una replica esiste solo se il canale salva le sue dirette, e finché Twitch le tiene; un'ultima diretta che non ne ha una lo dice («Senza replica»), e una replica che si può vedere solo da abbonati pure, con un lucchetto, prima del clic.
-- ★ SOLO QUANDO GUARDI ★ Non viene chiesto nulla a Twitch prima che tu lo apra, e ciò che ha letto resta nel tuo browser: ricaricando, riprende da dove era.
+- ★ SOLO QUANDO GUARDI ★ Non viene chiesto nulla a Twitch prima che tu lo apra — o che la home di Twitch mostri le tue dirette in programma —, e ciò che ha letto resta nel tuo browser: ricaricando, riprende da dove era.
 
 _______________________________
 
@@ -201,6 +201,7 @@ Sulla pagina iniziale di Twitch, l'estensione mette le sue file sopra quelle di 
 - ★ IL TUO CANALE N. 1, IN CIMA ★ Al posto del carosello di Twitch: il canale seguito in diretta che guardi di più. Su tutta la larghezza: prima la sua immagine, poi la sua diretta, senza audio e senza pubblicità, come l'anteprima al passaggio del mouse; e sotto il testo, i suoi colori, anch'essi in diretta. Nessuno dei canali che guardi è in diretta? Il carosello torna. Preferisci il carosello, o niente? È un'impostazione.
 - ★ PRIMA I TUOI CANALI SEGUITI ★ Una fila dei tuoi canali in diretta, nell'ordine di quelli che guardi di più, senza nessuna richiesta in più: sono quelli che la barra segue già.
 - ★ LA TOP 10 DELLA TUA LINGUA ★ I primi dieci posti della classifica esatta di Canali di punta, nella lingua del tuo Twitch o in tutte le lingue, in grandi cifre, con ciò che si è mosso in trenta minuti: posti guadagnati, posti persi, nuovi arrivati. Calcolata solo mentre la home è visualizzata.
+- ★ LE TUE DIRETTE IN PROGRAMMA ★ Ciò che i canali che segui hanno in programma oggi e domani, con il tempo che manca. «Ricordamelo»: un avviso nelle schede di Twitch aperte quando il canale va in diretta, senza notifica di sistema né permessi. Per un canale che guardi e che non ha programmato nulla: l'ora in cui sono iniziate le sue ultime dirette, quando si ripete — ciò che ha fatto, non ciò che farà.
 - ★ «DALL'INIZIO» ★ Arrivato in ritardo? Un pulsante apre la replica della diretta in corso dal suo primissimo secondo. Il pulsante compare solo se puoi guardarla: il canale conserva le repliche e le apre a tutti, oppure sei abbonato.
 - ★ L'ANTEPRIMA AL PASSAGGIO, ANCHE QUI ★ Sulle schede della home, quelle dell'estensione come quelle di Twitch.
 - ★ COME VUOI TU ★ Ogni parte si spegne da sola in «Impostazioni»; tutto spento, la home torna quella di Twitch, così com'è.
@@ -235,7 +236,7 @@ Twitch ha un tema chiaro. L'estensione se ne accorge e cambia insieme a lui — 
 _______________________________
 
 ➤ ⚙️ E SE VUOI SCEGLIERE
-Tutto è attivo fin da subito e non c'è nulla da impostare. Ma «Impostazioni», nel pannello, ti restituisce il comando su ventinove impostazioni.
+Tutto è attivo fin da subito e non c'è nulla da impostare. Ma «Impostazioni», nel pannello, ti restituisce il comando su trenta impostazioni.
 
 - ★ CIÒ CHE VEDI ★ Ogni badge, la durata della diretta e il suo formato, la barra «appena iniziata», l'oro degli abbonamenti, i filtri, i pulsanti di ordinamento: tutto si accende e si spegne con una casella.
 - ★ CIÒ CHE VIENE CARICATO ★ L'anteprima può fare a meno del video e conservare badge, linea del tempo e miniatura — oppure semplicemente scendere di qualità. Quanto basta per alleggerirla senza perderla.

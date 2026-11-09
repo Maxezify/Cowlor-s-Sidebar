@@ -551,7 +551,7 @@
     "message": "A página inicial da Twitch"
   },
   "guideAccueilTexte": {
-    "message": "Na página inicial da Twitch, a extensão coloca suas próprias fileiras acima das da Twitch, na mesma coluna e alinhadas com elas. Elas são ajustadas em «Configurações», grupo «Página inicial».\n• «Seu canal nº 1 ao vivo»: o canal seguido ao vivo que você mais assiste ocupa o lugar do carrossel da Twitch, em toda a largura. Primeiro a imagem, depois a transmissão, sem som e sem anúncios, como a prévia ao passar o mouse; o fundo assume as cores dela. Quando nenhum dos canais que você assiste está ao vivo, o carrossel volta. «Como na Twitch» sempre o mantém; «Nada» o tira e para o vídeo dele.\n• «Seus canais seguidos ao vivo»: uma fileira, na ordem dos que você mais assiste, sem nenhuma requisição a mais — são os canais da barra.\n• «Top 10»: as dez primeiras posições do Top Canais, no idioma da interface da Twitch ou em todos os idiomas, em números grandes. Logo à direita do nome, uma seta mostra as posições ganhas ou perdidas em trinta minutos, ou desde que você chegou à página inicial; «Novo» marca um canal que não estava no Top 10.\n• Cada fileira mostra uma linha; «Mostrar tudo», no meio do traço de baixo, revela o resto.\n• «Desde o início» abre a gravação da transmissão em curso no primeiro segundo. Só aparece quando você pode assistir: o canal guarda as gravações e as abre a todos, ou você é assinante.\n• A prévia ao passar o mouse também abre nos cards da página inicial: os da extensão e os da Twitch."
+    "message": "Na página inicial da Twitch, a extensão coloca suas próprias fileiras acima das da Twitch, na mesma coluna e alinhadas com elas. Elas são ajustadas em «Configurações», grupo «Página inicial».\n• «Seu canal nº 1 ao vivo»: o canal seguido ao vivo que você mais assiste ocupa o lugar do carrossel da Twitch, em toda a largura. Primeiro a imagem, depois a transmissão, sem som e sem anúncios, como a prévia ao passar o mouse; o fundo assume as cores dela. Quando nenhum dos canais que você assiste está ao vivo, o carrossel volta. «Como na Twitch» sempre o mantém; «Nada» o tira e para o vídeo dele.\n• «Seus canais seguidos ao vivo»: uma fileira, na ordem dos que você mais assiste, sem nenhuma requisição a mais — são os canais da barra.\n• «Top 10»: as dez primeiras posições do Top Canais, no idioma da interface da Twitch ou em todos os idiomas, em números grandes. Logo à direita do nome, uma seta mostra as posições ganhas ou perdidas em trinta minutos, ou desde que você chegou à página inicial; «Novo» marca um canal que não estava no Top 10.\n• «Suas transmissões programadas»: o que os canais que você segue programaram para hoje e amanhã, com o tempo que falta. «Lembrete» mostra um aviso nas suas abas abertas da Twitch quando o canal fica ao vivo — não uma notificação do sistema. Logo abaixo, «Sem programação»: para um canal que você assiste e que não programou nada, a hora em que suas últimas transmissões começaram, quando ela se repete — o que ele fez, não o que fará.\n• Cada fileira mostra uma linha; «Mostrar tudo», no meio do traço de baixo, revela o resto.\n• «Desde o início» abre a gravação da transmissão em curso no primeiro segundo. Só aparece quando você pode assistir: o canal guarda as gravações e as abre a todos, ou você é assinante.\n• A prévia ao passar o mouse também abre nos cards da página inicial: os da extensão e os da Twitch."
   },
   "guideViteTitre": {
     "message": "Mais rápida do que a Twitch, e mais limpa"
@@ -784,6 +784,12 @@
   "optDescAccueilDebut": {
     "message": "Nos cards da extensão, um botão que abre a gravação da transmissão em curso no primeiro segundo. Só quando você pode assistir: o canal guarda as gravações e as abre a todos, ou você é assinante."
   },
+  "optAccueilRdv": {
+    "message": "Suas transmissões programadas"
+  },
+  "optDescAccueilRdv": {
+    "message": "O que os canais que você segue programaram para hoje e amanhã, com o tempo que falta. «Lembrete» mostra um aviso nas suas abas abertas da Twitch quando o canal fica ao vivo. Para um canal que você assiste e que não programou nada: a hora em que suas últimas transmissões começaram, quando ela se repete."
+  },
   "optValHeros": {
     "message": "Seu canal nº 1"
   },
@@ -941,7 +947,7 @@
     "message": "Redefinir todas as configurações?"
   },
   "optResetText": {
-    "message": "As vinte e nove configurações desta página voltam ao valor original. Os seus dados — visitas, assinaturas, canais seguidos — não são tocados."
+    "message": "As trinta configurações desta página voltam ao valor original. Os seus dados — visitas, assinaturas, canais seguidos — não são tocados."
   },
   "optValPlein": {
     "message": "Completo"

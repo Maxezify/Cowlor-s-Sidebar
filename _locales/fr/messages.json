@@ -551,7 +551,7 @@
     "message": "L'accueil de Twitch"
   },
   "guideAccueilTexte": {
-    "message": "Sur la page d'accueil de Twitch, l'extension pose ses rayons au-dessus de ceux de Twitch, dans la même colonne et alignés sur eux. Ils se règlent dans « Réglages », groupe « Page d'accueil ».\n• « Votre chaîne n°1 en direct » : celle de vos chaînes suivies en direct que vous regardez le plus prend la place du carrousel de Twitch, sur toute la largeur. Son image d'abord, puis son direct, muet et sans publicité, comme l'aperçu au survol ; le fond en reprend les couleurs. Quand aucune des chaînes que vous regardez n'est en direct, le carrousel revient. « Comme Twitch » le garde toujours ; « Rien » le retire et arrête sa vidéo.\n• « Vos chaînes suivies en direct » : un rayon, dans l'ordre de celles que vous regardez le plus, sans aucune requête de plus — ce sont les chaînes de la barre.\n• « Top 10 » : les dix premières places de Top Chaînes, dans la langue de l'interface de Twitch ou dans toutes les langues, en grands chiffres. Juste à droite du nom, une flèche dit les places gagnées ou perdues en trente minutes, ou depuis votre arrivée sur l'accueil ; « Nouveau » marque une chaîne qui n'était pas dans le Top 10.\n• Chaque rayon montre une rangée ; « Afficher tout », au milieu du filet du dessous, déroule le reste.\n• « Depuis le début » ouvre la rediffusion du direct en cours à sa première seconde. Il n'apparaît que si vous pouvez la voir : la chaîne garde ses rediffusions et les ouvre à tous, ou vous y êtes abonné.\n• L'aperçu au survol s'ouvre aussi sur les cartes de l'accueil : celles de l'extension comme celles de Twitch."
+    "message": "Sur la page d'accueil de Twitch, l'extension pose ses rayons au-dessus de ceux de Twitch, dans la même colonne et alignés sur eux. Ils se règlent dans « Réglages », groupe « Page d'accueil ».\n• « Votre chaîne n°1 en direct » : celle de vos chaînes suivies en direct que vous regardez le plus prend la place du carrousel de Twitch, sur toute la largeur. Son image d'abord, puis son direct, muet et sans publicité, comme l'aperçu au survol ; le fond en reprend les couleurs. Quand aucune des chaînes que vous regardez n'est en direct, le carrousel revient. « Comme Twitch » le garde toujours ; « Rien » le retire et arrête sa vidéo.\n• « Vos chaînes suivies en direct » : un rayon, dans l'ordre de celles que vous regardez le plus, sans aucune requête de plus — ce sont les chaînes de la barre.\n• « Top 10 » : les dix premières places de Top Chaînes, dans la langue de l'interface de Twitch ou dans toutes les langues, en grands chiffres. Juste à droite du nom, une flèche dit les places gagnées ou perdues en trente minutes, ou depuis votre arrivée sur l'accueil ; « Nouveau » marque une chaîne qui n'était pas dans le Top 10.\n• « Vos rendez-vous » : ce que vos chaînes suivies ont programmé aujourd'hui et demain, avec le temps qu'il reste. « Me prévenir » pose une alerte dans vos onglets Twitch ouverts quand la chaîne passe en direct — pas une notification du système. Juste en dessous, « Sans planning » : pour une chaîne que vous regardez et qui n'a rien programmé, l'heure à laquelle ses derniers directs ont commencé, quand elle se répète — ce qu'elle a fait, pas ce qu'elle fera.\n• Chaque rayon montre une rangée ; « Afficher tout », au milieu du filet du dessous, déroule le reste.\n• « Depuis le début » ouvre la rediffusion du direct en cours à sa première seconde. Il n'apparaît que si vous pouvez la voir : la chaîne garde ses rediffusions et les ouvre à tous, ou vous y êtes abonné.\n• L'aperçu au survol s'ouvre aussi sur les cartes de l'accueil : celles de l'extension comme celles de Twitch."
   },
   "guideViteTitre": {
     "message": "Plus rapide que Twitch, et plus propre"
@@ -784,6 +784,12 @@
   "optDescAccueilDebut": {
     "message": "Sur les cartes de l'extension, un bouton qui ouvre la rediffusion du direct en cours à sa première seconde. Seulement quand vous pouvez la voir : la chaîne garde ses rediffusions et les ouvre à tous, ou vous y êtes abonné."
   },
+  "optAccueilRdv": {
+    "message": "Vos rendez-vous"
+  },
+  "optDescAccueilRdv": {
+    "message": "Ce que vos chaînes suivies ont programmé aujourd'hui et demain, avec le temps qu'il reste. « Me prévenir » pose une alerte dans vos onglets Twitch ouverts quand la chaîne passe en direct. Pour une chaîne que vous regardez et qui n'a rien programmé : l'heure à laquelle ses derniers directs ont commencé, quand elle se répète."
+  },
   "optValHeros": {
     "message": "Votre chaîne n°1"
   },
@@ -941,7 +947,7 @@
     "message": "Remettre tous les réglages par défaut ?"
   },
   "optResetText": {
-    "message": "Les vingt-neuf réglages de cette page reviendront à leur valeur d'origine. Vos données — visites, abonnements, chaînes suivies — ne sont pas touchées."
+    "message": "Les trente réglages de cette page reviendront à leur valeur d'origine. Vos données — visites, abonnements, chaînes suivies — ne sont pas touchées."
   },
   "optValPlein": {
     "message": "Complet"

@@ -195,6 +195,11 @@ const subs = [
   // D'emblée (4.26.0.5) : la page suivie de près deux secondes, le voile borné à trois en tout.
   [/ACCUEIL_SYNCHRONE_MS:\s*10_000/,  'ACCUEIL_SYNCHRONE_MS:   2_000'],
   [/ACCUEIL_VOILE_MAX_MS:\s*6_000/,   'ACCUEIL_VOILE_MAX_MS:   3_000'],
+  /* Vos rendez-vous (4.27.0) : l'agenda relu tous les dixièmes de seconde
+     pendant sa collecte, et l'alerte d'un rappel qui se ferme seule au bout
+     de trois secondes au lieu d'un quart d'heure. */
+  [/ACCUEIL_RDV_RELECTURE_MS:\s*800/,  'ACCUEIL_RDV_RELECTURE_MS: 100'],
+  [/RAPPEL_ALERTE_MS:\s*15 \* 60_000/, 'RAPPEL_ALERTE_MS:       3_000'],
   [/ACCUEIL_DEBUT_PAUSE:\s*60_000/,    'ACCUEIL_DEBUT_PAUSE:    500'],
   /* Le relevé des chaînes suivies (4.25.0.3). Il charge une page de plus à
      chaque chargement de Twitch, et l'agenda se relit tant qu'il est attendu :
