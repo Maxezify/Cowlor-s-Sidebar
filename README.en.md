@@ -2064,6 +2064,91 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The home page, after use: a sharp banner, "From the start", Twitch's rows (v4.32.0.2)
+
+Three pieces of feedback, a diagnostic report attached. Published on `claude/chrome-homepage` only.
+
+| reported | what was done |
+| --- | --- |
+| "the banner's video is still pixelated" | the banner's player asks for its token with the whole quality ladder; the ad blocker capped it at 640 × 360 |
+| "'From the start' doesn't take me to the start" | the link opens the replay at `?t=1s`, no longer `?t=0s` |
+| "Twitch's lists are smaller; reuse what the extension does" | Twitch's live rows take our rows' grid: as many cards per line, the same size, the same gaps |
+
+### Why the banner stayed at 360p
+
+The report said `heros.video.qualite 360p`, `auto false`, for a height of
+644 pixels: the quality the bridge set was indeed the highest the player
+had — and it only had 360p. The banner carries the hover preview's frame
+name, and the ad blocker, which lives there, rewrites the access token's
+player type as `autoplay`: a 640 × 360 cap Twitch sets server-side, meant
+for a 480 × 270 thumbnail (adaptation (h) of `adblock.js`). No quality set
+gets past it.
+
+The cap now follows the quality the player's URL asks for (adaptation
+(i)): above 360p, the upstream type, `popout`, and its whole ladder. The
+banner asks for at least 720p: it gets its own. A hover preview stays on
+`autoplay` at its default setting, 360p — and one set higher in
+"Settings" finally gets what it asks for: until now, 480p and 720p stayed
+at 360p.
+
+The report now also gives the ladder the channel serves the player and
+the height actually decoded: `heros.video.echelle` ("160/360/480/720/1080"),
+`heros.video.decodee`.
+
+### "From the start"
+
+The link led to `/videos/…?t=0s`, and the replay didn't open at the start.
+The only reading that explains it: a zero time means "no time" to Twitch,
+and the replay resumes where you were — for a stream you're watching,
+near its end. The link now carries `?t=1s`: the first second, asked for
+explicitly. On the banner as on the cards.
+
+### Twitch's rows the size of ours
+
+4.32.0 gave them eight columns from 1600 pixels: cards smaller than ours,
+just above, and two empty places when Twitch only puts six. They now take
+our rows' grid, at every width: as many columns as fit a card of at least
+290 pixels, gaps of 20 and 14 pixels — one definition for both
+(`ACCUEIL_CARTE_MIN`, `ACCUEIL_ECARTS`). Only the live rows, those that
+carry preview cards: the categories' box art keeps Twitch's layout. Still
+CSS alone: nothing removed, nothing added.
+
+The texts that said "eight cards per line" — the setting, the guide, the
+Store listings — now say so in the twelve languages.
+
+### What couldn't be checked
+
+Twitch can't be reached from here: neither the ladder `popout` serves an
+embedded player nor how the replay page reads `t=0s` could be checked on
+the real Twitch. The first is documented upstream of the ad blocker; the
+second is the only reading that explains "not at the start" with nothing
+else changed. The report will give the ladder and the decoded height.
+
+### The bench
+
+- 32: a preview set to 720p60 asks for its token as `popout`; at its
+  default setting, still `autoplay`;
+- 216 j'): the report gives the ladder served and the decoded height;
+- 218: "From the start" at `?t=1s`, on the banner and on the cards;
+- 226 e), revised: at 1600 as at 1400 pixels, Twitch's live rows have our
+  grid — same number of columns, same card width, same gaps — and a box-art
+  row keeps its own. The fake Twitch learns category rows (`jaquettes`).
+
+**Eight named mutants, all caught.**
+
+| mutant | what falls |
+| --- | --- |
+| the cap for everyone | 32: a 720p60 preview stays on `autoplay` |
+| the cap above 720p | 32: 720p60 stays on `autoplay` |
+| the start at zero | 218: `?t=0s` on the banner and the cards |
+| eight columns | 226 e): not our rows' grid, at 1600 as at 1400 pixels |
+| other gaps | 226 e): the gaps are not ours |
+| the box art caught in the grid | 226 e): the category row turns into a grid |
+| the grid on large screens only | 226 e): Twitch's grid at 1400 pixels |
+| the ladder not reported | 216 j'): `heros.video.echelle` empty |
+
+The full bench: 2255 assertions in 225 scenarios, all green.
+
 ## The home page, after use: the banner, the labels, the preview (v4.32.0.1)
 
 Four pieces of feedback, a diagnostic report attached. Published on `claude/chrome-homepage` only.
@@ -23654,7 +23739,7 @@ Four independent checks:
 | `npm run lint` | the six shipped JavaScript files — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 225 scenarios, 2252 assertions |
+| `npm test` | the Playwright harness: 225 scenarios, 2255 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -23674,13 +23759,13 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 2126 KB | 976 KB | 4,609 → **2** |
-| `cadres.js` | 73 KB | 34 KB | 168 → **0** |
-| `adblock.js` | 125 KB | 101 KB | 298 → **2** |
+| `content.js` | 2128 KB | 977 KB | 4,613 → **2** |
+| `cadres.js` | 74 KB | 34 KB | 169 → **0** |
+| `adblock.js` | 126 KB | 101 KB | 301 → **2** |
 | `panneau.js` | 162 KB | 82 KB | 224 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 26 → **0** |
 | `background.js` | 10 KB | 2 KB | 22 → **0** |
-| **all six** | **2511 KB** | **1198 KB** | **−52 %** |
+| **all six** | **2514 KB** | **1200 KB** | **−52 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are

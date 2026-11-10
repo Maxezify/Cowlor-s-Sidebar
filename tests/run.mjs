@@ -1795,6 +1795,24 @@ titre('32. Qualité — le jeton d\'accès doit être demandé en « autoplay »
     .exec(readFileSync(join(ICI, '..', 'adblock.js'), 'utf8'));
   ok('la constante déclare bien autoplay', declared && declared[1] === 'autoplay',
      declared ? declared[1] : 'introuvable');
+  /* AU-DELÀ DE 360p, L'ÉCHELLE ENTIÈRE (4.32.0.2). Le plafond suit la qualité
+     que l'URL du lecteur demande : un aperçu réglé en 720p60 — comme la
+     bannière de l'accueil, qui porte ce même nom de frame — demande son
+     jeton en « popout », le type d'amont. La bannière restait sinon en 360p,
+     quoi qu'on lui pose : signalé, rapport à l'appui. Mutant — le plafond
+     pour tous. */
+  await unhoverCard(page, 0);
+  await wait(page, 400);
+  await page.evaluate(() => window.tse.options.poser('apercuQualite', '720p60'));
+  tokenBodies.length = 0;
+  await hoverCard(page, 0);
+  await wait(page, 1500);
+  const ops2 = tokenBodies.flat().filter(o => o?.operationName === 'PlaybackAccessToken');
+  const types2 = [...new Set(ops2.map(o => o?.variables?.playerType))];
+  const url2 = await page.evaluate(() => document.querySelector('iframe[name="tse-apercu"]')?.src || null);
+  ok('…mais un lecteur qui demande plus que 360p (ici 720p60) a l\'échelle entière : « popout »',
+     ops2.length >= 1 && types2.length === 1 && types2[0] === 'popout' && /quality=720p60/.test(url2 || ''),
+     JSON.stringify({ types2, url2 }));
   await page.close();
 }
 
@@ -39209,6 +39227,11 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
   const q2 = await qualiteVue();
   ok('…plus grande, elle le redit, et le lecteur passe en 1080p60',
      q2.h > 600 && q2.hauteur === q2.h && q2.qualite === '1080p60' && q2.auto === false, JSON.stringify(q2));
+  /* Au rapport aussi (4.32.0.2) : l'échelle que la chaîne sert au lecteur —
+     un plafond s'y lirait d'un coup d'œil — et la hauteur réellement
+     décodée, ici celle de la toile du faux lecteur, 18. */
+  ok('…et le rapport dit l\'échelle servie et la hauteur décodée', q2.echelle === '160/360/480/720/1080' && q2.decodee === 18,
+     JSON.stringify({ echelle: q2.echelle, decodee: q2.decodee }));
   await film.setViewportSize({ width: 1600, height: 1000 });
   /* k) IL NE JOUE QUE S'IL SE VOIT. Onglet caché : retiré, le fond revient à
      l'image ; revenu, il se repose. Héros sorti de la vue : de même. Réglage
@@ -39832,7 +39855,7 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
     return [l, a && !a.hidden && !('tseReserve' in a.dataset) ? { href: a.getAttribute('href'), titre: a.title, texte: a.textContent } : null];
   })));
   const b1 = await boutons();
-  ok('le héros : un bouton vers l\'archive du direct, à sa première seconde', b1.korbek && b1.korbek.href === '/videos/901?t=0s'
+  ok('le héros : un bouton vers l\'archive du direct, à sa première seconde', b1.korbek && b1.korbek.href === '/videos/901?t=1s'
      && b1.korbek.texte === 'Depuis le début' && b1.korbek.titre === 'Revoir le direct de Korbek depuis sa première seconde',
      JSON.stringify(b1.korbek));
   /* SEULEMENT CE QU'ON PEUT VOIR (4.26.0.2). Une archive réservée aux abonnés
@@ -39874,7 +39897,7 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
   const d2 = await page.evaluate(() => window.__accueilDemandes || []);
   const b2 = await boutons();
   ok('l\'archive absente se redemande seule, et le bouton paraît quand elle existe', d2.length === 2
-     && JSON.stringify(d2[1]) === '["nyxaria"]' && b2.nyxaria?.href === '/videos/903?t=0s', JSON.stringify({ d2, b: b2.nyxaria }));
+     && JSON.stringify(d2[1]) === '["nyxaria"]' && b2.nyxaria?.href === '/videos/903?t=1s', JSON.stringify({ d2, b: b2.nyxaria }));
   const hauteurs = await page.evaluate(() => Object.fromEntries(['nyxaria', 'velmoria'].map((l) =>
     [l, Math.round(document.querySelector(`#tse-accueil [data-tse-cle="${l}"]`).getBoundingClientRect().height)])));
   ok('…et la carte qui l\'a reçu n\'a pas grandi : aussi haute que sa voisine, qui garde la place du sien',
@@ -39916,7 +39939,7 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
     return { titre: a.title, href: a.getAttribute('href'), korbek: !!k && !k.hidden && !('tseReserve' in k.dataset), d: window.tse.accueil.rapport().debut };
   });
   ok('abonné connu à une chaîne qui réserve ses archives : le bouton paraît',
-     ba.titre === 'Revoir le direct de Velmoria depuis sa première seconde' && ba.href === '/videos/902?t=0s', JSON.stringify(ba));
+     ba.titre === 'Revoir le direct de Velmoria depuis sa première seconde' && ba.href === '/videos/902?t=1s', JSON.stringify(ba));
   ok('…un jeton illisible, sans abonnement connu : pas de bouton', !ba.korbek && ba.d.illisibles === 1 && ba.d.archives === 2,
      JSON.stringify(ba));
   await abo.close();
@@ -41391,6 +41414,8 @@ const lireImages = (page) => page.evaluate(() => {
     { id: 'e-cat', avant: 'Chaînes recommandées dans ', slug: 'just-chatting', nom: 'Discussions',
       cartes: ['falun', 'givre', 'gravier', 'houx', 'ilot', 'jonc', 'kaki', 'lilas', 'mauve'].map((login) => ({ login, sans: login === 'givre' || login === 'gravier' })) },
     { id: 'e-reco', nom: 'Chaînes live qui pourraient vous plaire', cartes: [{ login: 'mousse' }, { login: 'ortie' }] },
+    // Des catégories : des jaquettes, qui gardent la mise en page de Twitch (4.32.0.2).
+    { id: 'e-jaq', nom: 'Catégories que nous recommandons', jaquettes: true, cartes: [{ login: 'minecraft' }, { login: 'valorant' }] },
   ];
   const decor = (p) => p.evaluate(() => {
     const now = Date.now(), iso = (t) => new Date(t).toISOString();
@@ -41414,6 +41439,12 @@ const lireImages = (page) => page.evaluate(() => {
       autre: h2.getAttribute('data-tse-masquable'), autreApres: getComputedStyle(h2, '::after').content,
       contenu: getComputedStyle(corps).display, titreVu: h.getClientRects().length > 0,
       grille: getComputedStyle(tour).display, colonnes: getComputedStyle(tour).gridTemplateColumns.split(/\s+/).filter((x) => /px$/.test(x)).length,
+      // La grille de nos rayons, à comparer (4.32.0.2) : ses colonnes, la largeur de l'une, ses écarts.
+      piste: parseFloat(getComputedStyle(tour).gridTemplateColumns), ecarts: getComputedStyle(tour).gap,
+      nous: (() => { const l = document.querySelector('#tse-accueil .tse-acc-rayon--suivis .tse-acc-liste'); const st = l && getComputedStyle(l);
+        return st ? { colonnes: st.gridTemplateColumns.split(/\s+/).filter((x) => /px$/.test(x)).length,
+                      piste: parseFloat(st.gridTemplateColumns), ecarts: st.gap } : null; })(),
+      jaquettes: getComputedStyle(document.querySelector('[aria-labelledby="e-jaq"] .tw-tower')).display,
       // Les nœuds de TWITCH : nos rayons et la bannière, qui vivent dans <main>, ne comptent pas.
       cartes: corps.querySelectorAll('article').length,
       noeuds: [...document.querySelector('main').querySelectorAll('*')].filter((n) => !n.closest('#tse-accueil, #tse-accueil-heros')).length,
@@ -41472,7 +41503,16 @@ const lireImages = (page) => page.evaluate(() => {
 
   await attendre(page, () => window.tse.accueil.rapport().ranger.vignettes.rediffusion === 1, 15_000);
   const f = await lire(page);
-  ok('e) à 1600 pixels de large : huit cartes par rangée', f.grille === 'grid' && f.colonnes === 8, JSON.stringify({ grille: f.grille, colonnes: f.colonnes }));
+  /* e) LES RAYONS DE TWITCH À LA TAILLE DES NÔTRES (4.32.0.2, « les listes
+     natives sont plus petites ») : la grille de nos rayons — autant de
+     colonnes, des cartes de même largeur, les mêmes écarts —, et pas sur
+     les jaquettes des catégories. Mutants — huit colonnes (la 4.32.0) ;
+     d'autres écarts ; les jaquettes prises dans la grille. */
+  const memeGrille = (x) => !!x.nous && x.grille === 'grid' && x.colonnes === x.nous.colonnes && x.colonnes >= 3
+    && Math.abs(x.piste - x.nous.piste) <= 1 && x.ecarts === x.nous.ecarts;
+  ok('e) à 1600 pixels de large : la grille de nos rayons — autant de cartes par rangée, de la même taille, aux mêmes écarts',
+     memeGrille(f), JSON.stringify({ grille: f.grille, colonnes: f.colonnes, piste: f.piste, ecarts: f.ecarts, nous: f.nous }));
+  ok('…et les jaquettes des catégories gardent la mise en page de Twitch', f.jaquettes === 'flex', f.jaquettes);
   ok('f) une vignette « ? » : derrière elle, la dernière rediffusion de la chaîne que l\'agenda connaît — elle-même rendue transparente',
      f.givre.sorte === 'rediffusion' && /cf_vods\/99101\//.test(f.givre.url) && f.givre.opacite === '0', JSON.stringify(f.givre));
   ok('…sans rediffusion connue, l\'avatar que la carte porte ; une carte qui a son image, rien',
@@ -41481,7 +41521,8 @@ const lireImages = (page) => page.evaluate(() => {
   await page.setViewportSize({ width: 1400, height: 1000 });
   await wait(page, 300);
   const g = await lire(page);
-  ok('…et en deçà de 1600 pixels, la grille de Twitch, telle quelle', g.grille === 'flex', g.grille);
+  ok('…et à 1400 pixels, toujours la grille de nos rayons', memeGrille(g),
+     JSON.stringify({ grille: g.grille, colonnes: g.colonnes, piste: g.piste, ecarts: g.ecarts, nous: g.nous }));
   await page.close();
 
   // g) Le réglage décoché : rien de posé, même une catégorie retenue.

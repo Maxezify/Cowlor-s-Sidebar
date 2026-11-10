@@ -2183,6 +2183,96 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## L'accueil, après usage : une bannière nette, « Depuis le début », les rayons de Twitch (v4.32.0.2)
+
+Trois retours, rapport de diagnostic à l'appui. Publiée sur `claude/chrome-homepage` seulement.
+
+| signalé | ce qui a été fait |
+| --- | --- |
+| « la vidéo de la bannière est toujours pixelisée » | le lecteur de la bannière demande son jeton avec l'échelle de qualité entière ; il était plafonné à 640 × 360 par l'anti-pub |
+| « "Depuis le début" n'amène pas au début » | le lien ouvre la rediffusion à `?t=1s`, et non plus `?t=0s` |
+| « les listes de Twitch sont plus petites ; reprends ce que l'extension fait » | les rayons de directs de Twitch prennent la grille des nôtres : autant de cartes par rangée, de la même taille, aux mêmes écarts |
+
+### Pourquoi la bannière restait en 360p
+
+Le rapport disait `heros.video.qualite 360p`, `auto false`, pour une
+hauteur de 644 pixels : la qualité posée par le pont était bien la plus
+haute que le lecteur avait — et il n'avait que 360p. La bannière porte le
+nom de frame de l'aperçu au survol, et l'anti-pub, qui y vit, réécrit le
+type de lecteur du jeton d'accès en `autoplay` : un plafond de 640 × 360
+que Twitch pose côté serveur, voulu pour une vignette de 480 × 270
+(adaptation (h) de `adblock.js`). Aucune qualité posée ne le franchit.
+
+Le plafond suit maintenant la qualité que l'URL du lecteur demande
+(adaptation (i)) : au-delà de 360p, le type d'amont, `popout`, et son
+échelle entière. La bannière demande au moins 720p : elle a la sienne. Un
+aperçu au survol reste en `autoplay` à son réglage d'origine, 360p — et
+celui qu'on règle plus haut dans « Réglages » obtient enfin ce qu'il
+demande : jusqu'ici, 480p et 720p restaient en 360p.
+
+Le rapport dit désormais aussi l'échelle que la chaîne sert au lecteur et
+la hauteur réellement décodée : `heros.video.echelle`
+(« 160/360/480/720/1080 »), `heros.video.decodee`.
+
+### « Depuis le début »
+
+Le lien menait à `/videos/…?t=0s`, et la rediffusion ne s'ouvrait pas au
+début. La seule lecture qui l'explique : un temps nul vaut « pas de
+temps » pour Twitch, et la rediffusion reprend où vous en étiez — pour un
+direct qu'on regarde, près de sa fin. Le lien porte maintenant `?t=1s` :
+la première seconde, demandée explicitement. Sur la bannière comme sur
+les cartes.
+
+### Les rayons de Twitch à la taille des nôtres
+
+La 4.32.0 leur donnait huit colonnes à partir de 1600 pixels : des cartes
+plus petites que les nôtres, juste au-dessus, et deux places vides quand
+Twitch n'en pose que six. Ils prennent maintenant la grille de nos rayons,
+à toutes les largeurs : autant de colonnes que tient une carte de 290
+pixels au moins, des écarts de 20 et 14 pixels — une seule définition
+pour les deux (`ACCUEIL_CARTE_MIN`, `ACCUEIL_ECARTS`). Seulement les
+rayons de directs, ceux qui portent des cartes d'aperçu : les jaquettes
+des catégories gardent la mise en page de Twitch. Toujours du CSS seul :
+rien de retiré, rien d'ajouté.
+
+Les textes qui disaient « huit cartes par rangée » — le réglage, le mode
+d'emploi, les fiches du Store — le disent dans les douze langues.
+
+### Ce qui n'a pas pu être vérifié
+
+Twitch n'est pas joignable d'ici : ni l'échelle que `popout` sert à un
+lecteur intégré, ni la lecture de `t=0s` par la page des rediffusions
+n'ont pu être relevées sur le vrai Twitch. La première est documentée en
+amont de l'anti-pub ; la seconde est la seule lecture qui explique « pas
+au début » sans autre changement. Le rapport dira l'échelle et la
+hauteur décodée.
+
+### Le banc
+
+- 32 : un aperçu réglé en 720p60 demande son jeton en `popout` ; à son
+  réglage d'origine, toujours `autoplay` ;
+- 216 j') : le rapport dit l'échelle servie et la hauteur décodée ;
+- 218 : « Depuis le début » à `?t=1s`, sur la bannière et sur les cartes ;
+- 226 e), revu : à 1600 comme à 1400 pixels, les rayons de directs de
+  Twitch ont la grille des nôtres — même nombre de colonnes, même largeur
+  de carte, mêmes écarts — et un rayon de jaquettes garde la sienne. Le
+  faux Twitch apprend les rayons de catégories (`jaquettes`).
+
+**Huit mutants nommés, tous pris.**
+
+| mutant | ce qui tombe |
+| --- | --- |
+| le plafond pour tous | 32 : un aperçu en 720p60 reste en `autoplay` |
+| le plafond au-delà de 720p | 32 : 720p60 reste en `autoplay` |
+| le début à zéro | 218 : `?t=0s` sur la bannière et les cartes |
+| huit colonnes | 226 e) : pas la grille de nos rayons, à 1600 comme à 1400 pixels |
+| d'autres écarts | 226 e) : les écarts ne sont pas les nôtres |
+| les jaquettes prises dans la grille | 226 e) : le rayon de catégories passe en grille |
+| la grille des grands écrans seulement | 226 e) : la grille de Twitch à 1400 pixels |
+| l'échelle tue au rapport | 216 j') : `heros.video.echelle` vide |
+
+Le banc complet : 2255 assertions dans 225 scénarios, toutes vertes.
+
 ## L'accueil, après usage : la bannière, les étiquettes, l'aperçu (v4.32.0.1)
 
 Quatre retours, rapport de diagnostic à l'appui. Publiée sur `claude/chrome-homepage` seulement.
@@ -24351,7 +24441,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | les six fichiers JavaScript livrés — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 225 scénarios, 2252 assertions |
+| `npm test` | le harnais Playwright : 225 scénarios, 2255 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -24372,13 +24462,13 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 2126 Ko | 976 Ko | 4 609 → **2** |
-| `cadres.js` | 73 Ko | 34 Ko | 168 → **0** |
-| `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
+| `content.js` | 2128 Ko | 977 Ko | 4 613 → **2** |
+| `cadres.js` | 74 Ko | 34 Ko | 169 → **0** |
+| `adblock.js` | 126 Ko | 101 Ko | 301 → **2** |
 | `panneau.js` | 162 Ko | 82 Ko | 224 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 26 → **0** |
 | `background.js` | 10 Ko | 2 Ko | 22 → **0** |
-| **les six** | **2511 Ko** | **1198 Ko** | **−52 %** |
+| **les six** | **2514 Ko** | **1200 Ko** | **−52 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se

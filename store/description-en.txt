@@ -206,7 +206,7 @@ On Twitch's home page, the extension adds its own rows above Twitch's, in the sa
 - ★ ONE LABEL PER CARD ★ On the home page's cards, the extension's and Twitch's alike: one fact, just one — “Back after 41 days”, “Just started”, “Just switched to Elden Ring”, “↗ +38% in 10 min”, “#3 in English”… Nothing guessed: no fact seen, no label. For a channel the sidebar doesn't follow, its numbers are requested while its card is on screen.
 - ★ WHILE YOU WERE AWAY ★ Back after more than a day? A banner says what your followed channels streamed in the meantime: their streams and how long, the most viewed of their clips, and the last replay one click away. One clips request per channel and per absence.
 - ★ BECAUSE YOU OFTEN WATCH… ★ On the home page, rows that say why: “14 visits in 30 days” for one channel, and what is live in its usual category, in your language, outside your follows.
-- ★ TIDY TWITCH'S HOME PAGE ★ Hide in one click the row of a category you don't care about, go to eight cards per line on a large screen, and replace the “?” thumbnails with the last replay or the avatar. Nothing is removed from Twitch's page.
+- ★ TIDY TWITCH'S HOME PAGE ★ Hide in one click the row of a category you don't care about, give its live cards the size of the extension's, and replace the “?” thumbnails with the last replay or the avatar. Nothing is removed from Twitch's page.
 - ★ THE HOVER PREVIEW, HERE TOO ★ On the home page's cards, the extension's and Twitch's alike.
 - ★ YOUR CALL ★ Each part switches off on its own in "Settings"; turn it all off and the home page is Twitch's again, as is.
 

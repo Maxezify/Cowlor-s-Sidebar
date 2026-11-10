@@ -1846,7 +1846,8 @@ if (location.pathname === '/' && window.__accueil) {
        `.tw-tower`. Une carte sans image encore porte « 404_preview » ; son
        avatar est dans la carte. `cfg.etageres` : [{ id, avant, slug, nom,
        apres, cartes: [{ login, sans }] }] — sans `slug`, un rayon qui n'est
-       pas celui d'une catégorie. */
+       pas celui d'une catégorie ; `jaquettes` (4.32.0.2) : un rayon de
+       catégories, des jaquettes et non des cartes d'aperçu. */
     const poserEtageres = () => {
       for (const e of cfg.etageres || []) {
         const rayon = el('div', 'find-me');
@@ -1872,6 +1873,19 @@ if (location.pathname === '/' && window.__accueil) {
         for (const c of e.cartes) {
           const item = el('div', 'tw-transition');
           item.style.cssText = 'width:25%;padding:0 5px;box-sizing:border-box';
+          if (e.jaquettes) {
+            const j = el('a', 'tw-link');
+            j.href = '/directory/category/' + c.login;
+            j.setAttribute('data-a-target', 'tw-box-art-card-link');
+            j.style.cssText = 'display:block;aspect-ratio:3/4';
+            const im = el('img', 'tw-image');
+            im.src = 'https://static-cdn.jtvnw.net/ttv-boxart/' + c.login + '-188x250.jpg';
+            im.style.cssText = 'display:block;width:100%;height:100%';
+            j.appendChild(im);
+            item.appendChild(j);
+            tour.appendChild(item);
+            continue;
+          }
           const art = el('article');
           const lien = el('a', 'preview-card-image-link tw-link');
           lien.href = '/' + c.login;

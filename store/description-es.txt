@@ -206,7 +206,7 @@ En la página de inicio de Twitch, la extensión coloca sus propias filas encima
 - ★ UNA ETIQUETA POR TARJETA ★ En las tarjetas del inicio, las de la extensión y las de Twitch: un dato, uno solo —«De vuelta tras 41 días», «Acaba de empezar», «Acaba de cambiar a Elden Ring», «↗ +38 % en 10 min», «N.º 3 en español»…—. Nada adivinado: sin dato visto, no hay etiqueta. Para un canal que la barra no sigue, sus cifras se piden mientras su tarjeta está en pantalla.
 - ★ MIENTRAS NO ESTABAS ★ ¿Vuelves tras más de un día? Un aviso dice lo que tus canales seguidos emitieron entretanto: sus directos y cuánto duraron, el más visto de sus clips y la última repetición a un clic. Una petición de clips por canal y por ausencia.
 - ★ PORQUE SUELES VER A… ★ En el inicio, filas que dicen por qué: «14 visitas en 30 días» en un canal, y lo que está en directo en su categoría habitual, en tu idioma, fuera de tus seguidos.
-- ★ ORDENAR EL INICIO DE TWITCH ★ Oculta con un clic la fila de una categoría que no te interesa, pasa a ocho tarjetas por fila en pantallas grandes y sustituye las miniaturas «?» por la última repetición o el avatar. No se quita nada de la página de Twitch.
+- ★ ORDENAR EL INICIO DE TWITCH ★ Oculta con un clic la fila de una categoría que no te interesa, da a sus tarjetas de directos el tamaño de las de la extensión y sustituye las miniaturas «?» por la última repetición o el avatar. No se quita nada de la página de Twitch.
 - ★ LA VISTA PREVIA AL PASAR EL RATÓN, AQUÍ TAMBIÉN ★ En las tarjetas del inicio, las de la extensión y las de Twitch.
 - ★ COMO QUIERAS ★ Cada parte se apaga por separado en «Ajustes»; todo apagado, el inicio vuelve a ser el de Twitch, tal cual.
 
