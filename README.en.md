@@ -2064,6 +2064,109 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The home page, level 2: tidying Twitch's home page (v4.32.0)
+
+The sixth and last idea of level 2. Published on `claude/chrome-homepage` only.
+
+| asked | what was done |
+| --- | --- |
+| "CSS only, never remove a Twitch node" | attributes set on Twitch's nodes, and rules that read them: **no node removed, none added** — the bench counts every node of the page before and after |
+| "hide a row by category in one click" | "Hide", right of the title of a category row; hidden, it holds in one line, with "Show again"; the category is remembered on the device |
+| "compact rows (8 cards per row on large screens)" | eight cards per line from 1600 pixels wide |
+| "fill the "?" thumbnails with the avatar or the last replay" | the last replay when the agenda knows it, otherwise the avatar the card already carries |
+
+### A row per category, hidden in one click
+
+A Twitch row is a title and, next to it, its content, which names it. A
+category's row carries in its title a link to `/directory/category/…`: that one,
+and only that one, can be hidden. A row without a category — "Live channels we
+think you'll like" — has no stable name to remember it by, and offers nothing.
+
+"Hide" isn't a button added to the page: it is the title's `::after`, written
+right of it. A click on it is recognised by its place — right of the title,
+within its height — and only that click: a click on the title, or on its link,
+stays Twitch's. Hidden, the row's content goes; the title stays, one line, with
+"Show again". The category is remembered on the device (fifty at most): its row,
+tomorrow, stays hidden. Hidden in one tab, it is hidden in the others.
+
+### Eight cards per line
+
+From 1600 pixels wide, the card grid of a Twitch row is replaced by ours, in
+CSS: eight equal columns. Below that, Twitch's, as it is.
+
+### The "?" thumbnails
+
+A stream Twitch has no picture for yet shows its own, `404_preview`. It is made
+transparent, and behind it shows the thumbnail of the channel's last replay,
+when the agenda knows it — a channel you follow —, otherwise the avatar the card
+already carries. When Twitch puts up the real picture, it takes its place back.
+No request.
+
+### What couldn't be checked
+
+Twitch's grid could only be read in a saved page, without its style sheets: the
+eight columns are imposed with `display: grid` on `.tw-tower`, whatever Twitch's
+layout, but a card that Twitch would hide other than by removing it could show
+up again. And Twitch only puts in a row the cards it wants to show — six in
+eight of the saved page's nine rows, twelve in the third: eight columns then
+show six, tighter, and two places stay free until "Show more".
+
+The "?" thumbnail is recognised by its address, `404_preview`; the saved page
+showed none that day. A row's title, its category link, its content that names
+it and each card's avatar, for their part, were read there as the code reads
+them.
+
+### What it costs
+
+**Nothing**: no request. One reading of the page at each paint of the home
+page, like the labels (4.28.0).
+
+### The setting
+
+"Tidy Twitch's home page" joins the "Home page" group of "Settings": unchecked,
+no "Hide", no hidden row — even a remembered category —, no grid, no thumbnail.
+Thirty-four settings.
+
+### The texts
+
+Ten languages for "Hide" and "Show again"; twelve in the panel, the guide
+("Twitch's home page") and the Store listings.
+
+### The bench
+
+**226**, new. The fake Twitch learns its rows as the real page writes them: an
+`<h2 id>` title two boxes below the row, a category link, a content that names
+it, a `.tw-tower` of cards.
+
+- a) "Hide" on a category's row, nothing on another; a click on the title itself
+  stays Twitch's;
+- b) a click on "Hide": the content goes, the title stays with "Show again", the
+  category is remembered — and every node of the page is still there;
+- c) coming back, the category is still hidden; d) "Show again" brings it back;
+- e) eight cards per line at 1600 pixels, Twitch's grid below;
+- f) a "?" thumbnail: the agenda's last replay behind it, made transparent;
+  without a replay, the avatar; a card that has its picture, nothing;
+- g) the setting unchecked: nothing set, even a remembered category.
+
+**Twelve named mutants, all caught.**
+
+| mutant | what falls |
+| --- | --- |
+| every title hideable | 226 a): "Hide" on a row without a category |
+| the click on the title that hides | 226 a): a click on the title itself hides the row |
+| the category forgotten on reload | 226 b) and c): nothing remembered, the row comes back |
+| the title hidden with its content | 226 b): the title disappears with the row |
+| no "Show again" | 226 b) and c): "Hide" on a hidden row |
+| the grid at every width | 226 e): eight columns at 1400 pixels |
+| six columns | 226 e): six cards per line |
+| the avatar before the replay | 226 f): the avatar behind givre, when the agenda has its replay |
+| the "?" left in front | 226 f): the "?" stays opaque |
+| every thumbnail replaced | 226 f): falun, which has its picture, gets a background |
+| the oldest replay | 226 f): the thumbnail of the earlier archive |
+| the setting ignored | 226 g): unchecked, "Hide" and the remembered row hidden |
+
+The full bench: 2258 assertions in 225 scenarios, all green.
+
 ## The home page, level 2: rows that say why (v4.31.0)
 
 The fifth idea of level 2. Published on `claude/chrome-homepage` only.
@@ -23424,7 +23527,7 @@ Four independent checks:
 | `npm run lint` | the six shipped JavaScript files — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 224 scenarios, 2247 assertions |
+| `npm test` | the Playwright harness: 225 scenarios, 2258 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -23444,13 +23547,13 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 2124 KB | 975 KB | 4,606 → **2** |
+| `content.js` | 2136 KB | 984 KB | 4,614 → **2** |
 | `cadres.js` | 68 KB | 31 KB | 160 → **0** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
 | `panneau.js` | 162 KB | 82 KB | 224 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 26 → **0** |
 | `background.js` | 10 KB | 2 KB | 22 → **0** |
-| **all six** | **2504 KB** | **1194 KB** | **−52 %** |
+| **all six** | **2515 KB** | **1203 KB** | **−52 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are

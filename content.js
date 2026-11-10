@@ -565,6 +565,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccPourquoi:             (nom) => `Parce que vous regardez souvent ${nom}`,
       uiAccPourquoiVisites:      (n, auMoins) => `${auMoins ? 'au moins ' : ''}${n} visite${n > 1 ? 's' : ''} en 30 jours`,
       uiAccPourquoiOu:           (jeu, langue) => (langue === null ? jeu : `${jeu}, en français`),
+      uiRangerMasquer:           'Masquer',
+      uiRangerReafficher:        'Réafficher',
       /* L'ÉTAT DU CALAGE DANS L'EN-TÊTE (4.25.0.11, cf. etatCalage). `e` : la
          cause, `x`/`m` les calculs du son reçus sur ceux qu'il faut, `s` un
          écart en secondes déjà écrit à la locale, `avance` son sens, `el`/`tot`
@@ -834,6 +836,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccPourquoi:             (nom) => `Because you often watch ${nom}`,
       uiAccPourquoiVisites:      (n, auMoins) => `${auMoins ? 'at least ' : ''}${n} visit${n === 1 ? '' : 's'} in 30 days`,
       uiAccPourquoiOu:           (jeu, langue) => (langue === null ? jeu : `${jeu}, in ${langue || 'English'}`),
+      uiRangerMasquer:           'Hide',
+      uiRangerReafficher:        'Show again',
       uiCalCoupe:                'Alignment turned off in settings',
       uiCalIndispo:              'Alignment unavailable: this browser cannot capture the sound',
       uiCalArrete:               'Alignment stopped',
@@ -1078,6 +1082,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccPourquoi:             (nom) => `Weil du oft ${nom} schaust`,
       uiAccPourquoiVisites:      (n, auMoins) => `${auMoins ? 'mindestens ' : ''}${n} Besuch${n === 1 ? '' : 'e'} in 30 Tagen`,
       uiAccPourquoiOu:           (jeu, langue) => (langue === null ? jeu : `${jeu}, auf Deutsch`),
+      uiRangerMasquer:           'Ausblenden',
+      uiRangerReafficher:        'Wieder anzeigen',
       uiCalCoupe:                'Ausrichtung in den Einstellungen ausgeschaltet',
       uiCalIndispo:              'Ausrichtung nicht verfügbar: Dieser Browser kann den Ton nicht abgreifen',
       uiCalArrete:               'Ausrichtung gestoppt',
@@ -1322,6 +1328,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccPourquoi:             (nom) => `Porque sueles ver a ${nom}`,
       uiAccPourquoiVisites:      (n, auMoins) => `${auMoins ? 'al menos ' : ''}${n} visita${n === 1 ? '' : 's'} en 30 días`,
       uiAccPourquoiOu:           (jeu, langue) => (langue === null ? jeu : `${jeu}, en español`),
+      uiRangerMasquer:           'Ocultar',
+      uiRangerReafficher:        'Mostrar de nuevo',
       uiCalCoupe:                'Alineación desactivada en los ajustes',
       uiCalIndispo:              'Alineación no disponible: este navegador no puede capturar el sonido',
       uiCalArrete:               'Alineación detenida',
@@ -1566,6 +1574,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccPourquoi:             (nom) => `Porque você assiste muito a ${nom}`,
       uiAccPourquoiVisites:      (n, auMoins) => `${auMoins ? 'pelo menos ' : ''}${n} visita${n === 1 ? '' : 's'} em 30 dias`,
       uiAccPourquoiOu:           (jeu, langue) => (langue === null ? jeu : `${jeu}, em português`),
+      uiRangerMasquer:           'Ocultar',
+      uiRangerReafficher:        'Mostrar de novo',
       uiCalCoupe:                'Alinhamento desligado nas definições',
       uiCalIndispo:              'Alinhamento indisponível: este navegador não consegue capturar o som',
       uiCalArrete:               'Alinhamento parado',
@@ -1810,6 +1820,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccPourquoi:             (nom) => `Perché guardi spesso ${nom}`,
       uiAccPourquoiVisites:      (n, auMoins) => `${auMoins ? 'almeno ' : ''}${n} visit${n === 1 ? 'a' : 'e'} in 30 giorni`,
       uiAccPourquoiOu:           (jeu, langue) => (langue === null ? jeu : `${jeu}, in italiano`),
+      uiRangerMasquer:           'Nascondi',
+      uiRangerReafficher:        'Mostra di nuovo',
       uiCalCoupe:                'Allineamento disattivato nelle impostazioni',
       uiCalIndispo:              'Allineamento non disponibile: questo browser non può catturare l\'audio',
       uiCalArrete:               'Allineamento fermato',
@@ -2059,6 +2071,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         return `${auMoins ? 'co najmniej ' : ''}${n} ${mot} w ciągu 30 dni`;
       },
       uiAccPourquoiOu:           (jeu, langue) => (langue === null ? jeu : `${jeu}, po polsku`),
+      uiRangerMasquer:           'Ukryj',
+      uiRangerReafficher:        'Pokaż ponownie',
       uiCalCoupe:                'Wyrównanie wyłączone w ustawieniach',
       uiCalIndispo:              'Wyrównanie niedostępne: ta przeglądarka nie przechwytuje dźwięku',
       uiCalArrete:               'Wyrównanie zatrzymane',
@@ -2307,6 +2321,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         return `${auMoins ? 'не менее ' : ''}${n} ${mot} за 30 дней`;
       },
       uiAccPourquoiOu:           (jeu, langue) => (langue === null ? jeu : `${jeu}, на русском`),
+      uiRangerMasquer:           'Скрыть',
+      uiRangerReafficher:        'Показать снова',
       uiCalCoupe:                'Выравнивание отключено в настройках',
       uiCalIndispo:              'Выравнивание недоступно: этот браузер не может захватывать звук',
       uiCalArrete:               'Выравнивание остановлено',
@@ -2550,6 +2566,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccPourquoi:             (nom) => `${nom}をよく見ているので`,
       uiAccPourquoiVisites:      (n, auMoins) => `30日間で${auMoins ? '少なくとも' : ''}${n}回の訪問`,
       uiAccPourquoiOu:           (jeu, langue) => (langue === null ? jeu : `${jeu}・日本語`),
+      uiRangerMasquer:           '非表示',
+      uiRangerReafficher:        '再表示',
       uiCalCoupe:                '同期は設定でオフになっています',
       uiCalIndispo:              '同期は使えません：このブラウザは音声を取り込めません',
       uiCalArrete:               '同期を停止しました',
@@ -2791,6 +2809,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccPourquoi:             (nom) => `因为你常看 ${nom}`,
       uiAccPourquoiVisites:      (n, auMoins) => `30 天内${auMoins ? '至少' : ''}访问 ${n} 次`,
       uiAccPourquoiOu:           (jeu, langue) => (langue === null ? jeu : `${jeu}・中文`),
+      uiRangerMasquer:           '隐藏',
+      uiRangerReafficher:        '重新显示',
       uiCalCoupe:                '对齐已在设置中关闭',
       uiCalIndispo:              '对齐不可用：此浏览器无法捕获声音',
       uiCalArrete:               '对齐已停止',
@@ -4493,6 +4513,12 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     POURQUOI_N:             30,
     POURQUOI_CARTES:        12,
     POURQUOI_TTL:           10 * 60_000,
+    /* RANGER L'ACCUEIL DE TWITCH (4.32.0, cf. RANGER). Huit cartes par
+       rangée à partir de 1600 pixels de large ; cinquante catégories
+       masquées au plus, gardées sur l'appareil. */
+    RANGER_COLONNES:        8,
+    RANGER_LARGEUR_MIN:     1600,
+    RANGER_MASQUES_MAX:     50,
 
     /* === Le panneau incrusté ===
        LES DEUX NOMBRES SONT CEUX DE LA POPUP DE BARRE D'OUTILS (cf. la borne
@@ -4603,6 +4629,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     accueilEtiquettes: { defaut: true,    type: 'bool', sous: ['accueil'] },
     accueilAbsence:  { defaut: true,      type: 'bool', sous: ['accueil'] },
     accueilPourquoi: { defaut: true,      type: 'bool', sous: ['accueil'] },
+    accueilRanger:   { defaut: true,      type: 'bool', sous: ['accueil'] },
 
     abonnes:         { defaut: 'plein',   type: 'choix',
                        valeurs: ['plein', 'discret', 'aucun'], css: true },
@@ -8866,6 +8893,30 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       font-family: inherit; font-size: 12px; font-weight: 600; line-height: 18px; pointer-events: none;
     }
     main a[data-a-target="preview-card-image-link"][data-tse-etiquette] { position: relative; }
+    /* RANGER L'ACCUEIL DE TWITCH (4.32.0, cf. RANGER). Des attributs sur ses
+       nœuds, et ces règles : rien de retiré, rien d'ajouté. Le « Masquer »
+       d'un titre est son ::after, posé juste à droite du titre — le clic
+       s'y reconnaît à sa position (cf. clicRanger). */
+    html[data-tse-ranger] main h2[data-tse-masquable] { position: relative; width: fit-content; }
+    html[data-tse-ranger] main h2[data-tse-masquable]::after {
+      content: attr(data-tse-masquer); position: absolute; left: calc(100% + 12px); top: 50%; transform: translateY(-50%);
+      padding: 2px 8px; border-radius: 4px; white-space: nowrap; cursor: pointer;
+      font-size: 12px; font-weight: 600; line-height: 1.5; color: var(--tse-texte-doux); background: rgba(var(--tse-encre), 0.08);
+    }
+    html[data-tse-ranger] main h2[data-tse-masquable]:hover::after { color: var(--tse-texte); background: rgba(var(--tse-encre), 0.14); }
+    html[data-tse-ranger] main [data-tse-masque] [aria-labelledby] { display: none !important; }
+    html[data-tse-ranger] main [data-tse-masque] h2[data-tse-masquable] { opacity: 0.6; }
+    @media (min-width: ${CFG.RANGER_LARGEUR_MIN}px) {
+      html[data-tse-ranger] main .find-me [aria-labelledby] .tw-tower {
+        display: grid !important; grid-template-columns: repeat(${CFG.RANGER_COLONNES}, minmax(0, 1fr)) !important; gap: 0 10px !important;
+      }
+      html[data-tse-ranger] main .find-me [aria-labelledby] .tw-tower > * {
+        width: auto !important; min-width: 0 !important; max-width: none !important; flex: none !important; margin: 0 !important;
+      }
+    }
+    html[data-tse-ranger] main a[data-tse-vignette] { background: #18181b var(--tse-vignette) center / cover no-repeat; }
+    html[data-tse-ranger] main a[data-tse-vignette="avatar"] { background-size: contain; }
+    html[data-tse-ranger] main a[data-tse-vignette] img[src*="/ttv-static/404_preview"] { opacity: 0 !important; }
     main a[data-a-target="preview-card-image-link"][data-tse-etiq-coin="haut"]::after { bottom: auto; top: 8px; }
     main a[data-a-target="preview-card-image-link"][data-tse-etiq-coin="aucun"]::after { display: none; }
     .tse-acc-infos { display: flex; gap: 10px; min-width: 0; padding-top: 8px; }
@@ -16338,6 +16389,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       absence: { lectures: 0, chaines: 0, montre: false, enCours: false, fermetures: 0, synchros: 0, clips: { demandes: 0, servis: 0, refus: 0, plusVus: 0 } },
       // Une étiquette par carte (4.28.0) : combien de chaque sorte, et ce que les cartes de Twitch ont coûté.
       etiquettes: { posees: {}, demandes: 0, coins: { haut: 0, aucun: 0 }, twitch: { cartes: 0, vues: 0, etiquetees: 0 } },
+      // Ranger l'accueil de Twitch (4.32.0) : ce qui a été masqué, remplacé, et d'où.
+      ranger: { titres: 0, masquables: 0, masques: 0, clics: 0, vignettes: { rediffusion: 0, avatar: 0, sans: 0 } },
     };
 
     const surAccueil = () => location.pathname === '/';
@@ -17162,6 +17215,147 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       }
       bilan.etiquettes.twitch = { cartes: liens.length, vues, etiquetees: etiquetees.size };
     };
+    /* ── RANGER L'ACCUEIL DE TWITCH (4.32.0) ────────────────────────────────
+       CSS SEULEMENT. Aucun nœud de Twitch n'est retiré, ni ajouté : des
+       attributs sur les siens, et des règles qui les lisent (cf. le CSS).
+
+       UN RAYON PAR CATÉGORIE SE MASQUE D'UN CLIC. Un rayon de Twitch, c'est
+       un titre <h2> et, à côté, son contenu, qui le nomme (`aria-labelledby`).
+       Celui d'une catégorie porte dans son titre un lien vers
+       /directory/category/<nom> : c'est lui, et lui seul, qui se masque — un
+       rayon sans catégorie n'a pas de nom stable sous lequel le retenir.
+       « Masquer » s'écrit juste à droite du titre (son ::after) ; masqué, le
+       contenu s'en va et le titre reste, une ligne, avec « Réafficher ». La
+       catégorie est retenue sur l'appareil : son rayon, demain, reste masqué.
+
+       LES RAYONS COMPACTS : huit cartes par rangée à partir de 1600 pixels de
+       large — la grille de Twitch remplacée par la nôtre, en CSS.
+
+       LES VIGNETTES « ? ». Un direct dont Twitch n'a pas encore d'image montre
+       la sienne, 404_preview. Derrière elle — rendue transparente —, la
+       vignette de la dernière rediffusion de la chaîne, quand l'agenda la
+       connaît ; sinon l'avatar que la carte porte déjà. Rien de demandé. */
+    const CLE_MASQUES = 'tse:rayonsMasques';
+    const RE_CATEGORIE = /^\/directory\/category\/([a-z0-9-]{1,80})\/?$/;
+    const RE_URL_SURE = /^https:\/\/[^\s"'()\\]+$/;
+    let masquesMemo = null;
+    const lireMasques = () => {
+      if (masquesMemo) return masquesMemo;
+      let x = null;
+      try { x = JSON.parse(localStorage.getItem(CLE_MASQUES) || '[]'); } catch { x = null; }
+      masquesMemo = new Set((Array.isArray(x) ? x : []).filter((v) => typeof v === 'string' && /^[a-z0-9-]{1,80}$/.test(v))
+        .slice(0, CFG.RANGER_MASQUES_MAX));
+      return masquesMemo;
+    };
+    const ecrireMasques = (m) => {
+      masquesMemo = new Set([...m].slice(-CFG.RANGER_MASQUES_MAX));
+      try { localStorage.setItem(CLE_MASQUES, JSON.stringify([...masquesMemo])); } catch { /* stockage refusé : pour cette page seulement */ }
+    };
+    const titresMarques = new Set();
+    const vignettesMarquees = new Set();
+    const categorieDu = (h2) => {
+      for (const a of h2.querySelectorAll('a[href]')) {
+        const m = RE_CATEGORIE.exec(a.getAttribute('href') || '');
+        if (m) return m[1];
+      }
+      return null;
+    };
+    const etagereDu = (h2) => h2.closest('.find-me') || h2.parentElement?.parentElement?.parentElement || null;
+    const oterRanger = () => {
+      for (const h2 of titresMarques) {
+        h2.removeAttribute('data-tse-masquable');
+        h2.removeAttribute('data-tse-masquer');
+        etagereDu(h2)?.removeAttribute('data-tse-masque');
+      }
+      titresMarques.clear();
+      for (const a of vignettesMarquees) { a.removeAttribute('data-tse-vignette'); a.style.removeProperty('--tse-vignette'); }
+      vignettesMarquees.clear();
+      if (document.documentElement.hasAttribute('data-tse-ranger')) document.documentElement.removeAttribute('data-tse-ranger');
+    };
+    const rangerTwitch = () => {
+      if (!options.get('accueilRanger') || !pose()) { oterRanger(); return; }
+      const html = document.documentElement;
+      if (!html.hasAttribute('data-tse-ranger')) html.setAttribute('data-tse-ranger', '');
+      const masques = lireMasques();
+      const titres = [...document.querySelectorAll('main h2')].filter((h) => !exclu(h));
+      const vus = new Set();
+      let masquables = 0, cachees = 0;
+      for (const h2 of titres) {
+        const cat = categorieDu(h2);
+        if (!cat) continue;
+        vus.add(h2);
+        masquables++;
+        const masque = masques.has(cat);
+        if (masque) cachees++;
+        attrSi(h2, 'data-tse-masquable', cat);
+        attrSi(h2, 'data-tse-masquer', masque ? S.uiRangerReafficher : S.uiRangerMasquer);
+        const et = etagereDu(h2);
+        if (et) { if (masque) attrSi(et, 'data-tse-masque', ''); else et.removeAttribute('data-tse-masque'); }
+        titresMarques.add(h2);
+      }
+      for (const h2 of [...titresMarques]) {
+        if (vus.has(h2)) continue;
+        h2.removeAttribute('data-tse-masquable');
+        h2.removeAttribute('data-tse-masquer');
+        titresMarques.delete(h2);
+      }
+      // Les vignettes « ? » : derrière, la dernière rediffusion, sinon l'avatar de la carte.
+      const v = { rediffusion: 0, avatar: 0, sans: 0 };
+      const liens = [...document.querySelectorAll('main ' + SEL_LIEN_CARTE)].filter((l) => !exclu(l));
+      const encore = new Set();
+      for (const lien of liens) {
+        const img = lien.querySelector('img');
+        if (!img || !/\/ttv-static\/404_preview/.test(img.getAttribute('src') || '')) continue;
+        const art = lien.closest('article') || lien.parentElement;
+        const nom = art && art.querySelector('a[data-a-target="preview-card-channel-link"][href]');
+        const m = nom && /^\/([a-z0-9_]{1,25})\/?$/i.exec(nom.getAttribute('href') || '');
+        const login = m && m[1].toLowerCase();
+        const redif = login ? agenda.derniereVignette(login) : null;
+        const av = art && art.querySelector('img[src*="/jtv_user_pictures/"]');
+        const avatar = av && av !== img ? av.getAttribute('src') : null;
+        const url = [redif, avatar].find((u) => typeof u === 'string' && RE_URL_SURE.test(u)) || null;
+        if (!url) { v.sans++; continue; }
+        const sorte = url === redif ? 'rediffusion' : 'avatar';
+        v[sorte]++;
+        attrSi(lien, 'data-tse-vignette', sorte);
+        const val = `url("${url}")`;
+        if (lien.style.getPropertyValue('--tse-vignette') !== val) lien.style.setProperty('--tse-vignette', val);
+        vignettesMarquees.add(lien);
+        encore.add(lien);
+      }
+      for (const a of [...vignettesMarquees]) {
+        if (encore.has(a)) continue;
+        a.removeAttribute('data-tse-vignette');
+        a.style.removeProperty('--tse-vignette');
+        vignettesMarquees.delete(a);
+      }
+      Object.assign(bilan.ranger, { titres: titres.length, masquables, masques: cachees, vignettes: v });
+    };
+    /* LE CLIC SUR « MASQUER ». Le ::after n'est pas un nœud : un clic sur lui
+       touche son titre. On le reconnaît à sa place — à droite du titre, dans
+       sa hauteur —, et ce clic-là seulement : un clic sur le titre lui-même,
+       ou sur son lien, reste à Twitch. */
+    const clicRanger = (ev) => {
+      const h2 = ev.target instanceof Element ? ev.target.closest('h2[data-tse-masquable]') : null;
+      if (!h2 || !document.documentElement.hasAttribute('data-tse-ranger')) return;
+      const r = h2.getBoundingClientRect();
+      if (!(ev.clientX > r.right && ev.clientY >= r.top && ev.clientY <= r.bottom)) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      const cat = h2.getAttribute('data-tse-masquable');
+      const m = new Set(lireMasques());
+      if (m.has(cat)) m.delete(cat); else m.add(cat);
+      ecrireMasques(m);
+      bilan.ranger.clics++;
+      rangerTwitch();
+    };
+    document.addEventListener('click', erreurs.garde('accueil', clicRanger), true);
+    // Masqué ou réaffiché dans un autre onglet : celui-ci suit.
+    window.addEventListener('storage', erreurs.garde('accueil', (ev) => {
+      if (ev.key !== CLE_MASQUES && ev.key !== null) return;
+      masquesMemo = null;
+      if (pose() && !document.hidden) rangerTwitch();
+    }));
     const oterEtiquettes = () => {
       for (const l of [...etiquetees]) poserEtiquette(l, null);
       if (guetteurCartes) { guetteurCartes.disconnect(); guetteurCartes = null; }
@@ -18288,6 +18482,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       peindreRdv();
       peindreAbsence();
       etiquetterTwitch();
+      rangerTwitch();
       section.hidden = !heros && z.suivis.hidden && z.top.hidden && z.pq.every((x) => x.r.hidden)
         && z.rdv.hidden && z.hab.hidden && z.abs.hidden;
       if (!section.hidden) aligner();
@@ -18329,6 +18524,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       clearTimeout(rdvRelecture);
       rdvRelecture = null;
       oterEtiquettes();
+      oterRanger();
     };
     /* Entre deux peintures. Le carrousel que Twitch vient de poser est arrêté
        (cf. appliquerCarrousel), et la section se cale sur les titres de Twitch
@@ -18461,6 +18657,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         rdv: { ...bilan.rdv, indice: { ...lireIndiceRdv() } },
         absence: { ...bilan.absence, clips: { ...bilan.absence.clips }, gardee: !!presence.absence() },
         pourquoi: { ...bilan.pourquoi, rayons: bilan.pourquoi.rayons.map((x) => ({ ...x })) },
+        ranger: { ...bilan.ranger, vignettes: { ...bilan.ranger.vignettes }, retenus: [...lireMasques()] },
         etiquettes: { ...bilan.etiquettes, posees: { ...bilan.etiquettes.posees }, coins: { ...bilan.etiquettes.coins },
                       twitch: { ...bilan.etiquettes.twitch }, active: !!options.get('accueilEtiquettes') },
         rappels: rappels.rapport(),
@@ -24312,7 +24509,13 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       const f = chaines.get(login);
       return { ...r, directs: directs.length, nom: (f && !f.inconnue && f.nom) || null };
     };
-    return { semaine, horsLigne, rendezVous, retour, absence, habituelle, actualiser, effacer, bilan: bilanPublic };
+    // La vignette de la dernière rediffusion lue (4.32.0, cf. RANGER) : rien de lu, rien de dit.
+    const derniereVignette = (login) => {
+      const d = diffusions.get(login);
+      const v = d && d.videos.length ? d.videos.reduce((a, b) => (b.debut > a.debut ? b : a)) : null;
+      return (v && v.vignette) || null;
+    };
+    return { semaine, horsLigne, rendezVous, retour, absence, habituelle, derniereVignette, actualiser, effacer, bilan: bilanPublic };
   })();
 
   /* ============================================================

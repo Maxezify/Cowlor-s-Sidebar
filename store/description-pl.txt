@@ -207,6 +207,7 @@ Na stronie głównej Twitcha rozszerzenie umieszcza własne rzędy nad rzędami 
 - ★ JEDNA ETYKIETA NA KARTĘ ★ Na kartach strony głównej, rozszerzenia i Twitcha: jeden fakt, tylko jeden — „Wraca po 41 dniach”, „Właśnie wystartował”, „Właśnie przeszedł na Elden Ring”, „↗ +38% w 10 min”, „Nr 3 po polsku”… Nic zgadywanego: bez zaobserwowanego faktu nie ma etykiety. Dla kanału, którego pasek nie śledzi, liczby są pobierane, dopóki jego karta jest na ekranie.
 - ★ PODCZAS TWOJEJ NIEOBECNOŚCI ★ Wracasz po ponad dniu? Baner pokazuje, co w tym czasie nadawały obserwowane kanały: ich transmisje i czas trwania, najczęściej oglądany klip i ostatnią powtórkę jednym kliknięciem. Jedno zapytanie o klipy na kanał i nieobecność.
 - ★ BO CZĘSTO OGLĄDASZ… ★ Na stronie głównej rzędy, które mówią dlaczego: „14 wizyt w ciągu 30 dni” u jednego kanału i to, co nadaje na żywo w jego zwykłej kategorii, w twoim języku, poza obserwowanymi.
+- ★ UPORZĄDKUJ STRONĘ GŁÓWNĄ TWITCHA ★ Ukryj jednym kliknięciem rząd kategorii, która cię nie interesuje, przejdź na osiem kart w rzędzie na dużym ekranie i zastąp miniatury „?” ostatnią powtórką lub awatarem. Nic nie jest usuwane ze strony Twitcha.
 - ★ PODGLĄD PO NAJECHANIU, TAKŻE TUTAJ ★ Na kartach strony głównej — zarówno tych z rozszerzenia, jak i tych z Twitcha.
 - ★ JAK CHCESZ ★ Każdą część wyłączysz osobno w „Ustawieniach”; wszystko wyłączone — strona główna znów jest Twitcha, bez zmian.
 
@@ -240,7 +241,7 @@ Twitch ma jasny motyw. Rozszerzenie to zauważa i przełącza się razem z nim �
 _______________________________
 
 ➤ ⚙️ A JEŚLI CHCESZ WYBIERAĆ
-Wszystko działa od razu i nie trzeba niczego ustawiać. Ale sekcja „Ustawienia” w panelu oddaje Ci trzydzieści trzy ustawienia.
+Wszystko działa od razu i nie trzeba niczego ustawiać. Ale sekcja „Ustawienia” w panelu oddaje Ci trzydzieści cztery ustawienia.
 
 - ★ TO, CO WIDZISZ ★ Każda odznaka, czas trwania transmisji i jego format, pasek „właśnie ruszyła”, złoto subskrypcji, filtry, przyciski sortowania: wszystko włącza się i wyłącza jednym polem.
 - ★ TO, CO SIĘ WCZYTUJE ★ Podgląd może zrezygnować z wideo i zachować odznaki, oś czasu i miniaturę — albo po prostu zejść z jakością. Tyle, by go odciążyć, nie tracąc go.

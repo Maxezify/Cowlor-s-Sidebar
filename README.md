@@ -2183,6 +2183,116 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## L'accueil, niveau 2 : ranger l'accueil de Twitch (v4.32.0)
+
+Sixième et dernière idée du niveau 2. Publiée sur `claude/chrome-homepage` seulement.
+
+| demandé | ce qui a été fait |
+| --- | --- |
+| « CSS uniquement, jamais retirer un nœud de Twitch » | des attributs posés sur les nœuds de Twitch, et des règles qui les lisent : **aucun nœud retiré, aucun ajouté** — le banc compte chaque nœud de la page avant et après |
+| « masquer un rayon par catégorie en un clic » | « Masquer », juste à droite du titre d'un rayon de catégorie ; masqué, il tient en une ligne, avec « Réafficher » ; la catégorie est retenue sur l'appareil |
+| « rayons compacts (8 cartes par rangée sur grand écran) » | huit cartes par rangée à partir de 1600 pixels de large |
+| « remplir les vignettes « ? » avec l'avatar ou la dernière rediffusion » | la dernière rediffusion quand l'agenda la connaît, sinon l'avatar que la carte porte déjà |
+
+### Un rayon par catégorie, masqué d'un clic
+
+Un rayon de Twitch, c'est un titre et, à côté, son contenu, qui le nomme. Celui
+d'une catégorie porte dans son titre un lien vers `/directory/category/…` :
+c'est lui, et lui seul, qui se masque. Un rayon sans catégorie — « Chaînes live
+qui pourraient vous plaire » — n'a pas de nom stable sous lequel le retenir, et
+ne propose rien.
+
+« Masquer » n'est pas un bouton ajouté à la page : c'est le `::after` du titre,
+écrit juste à sa droite. Un clic sur lui se reconnaît à sa place — à droite du
+titre, dans sa hauteur — et ce clic-là seulement : un clic sur le titre, ou sur
+son lien, reste à Twitch. Masqué, le contenu du rayon s'en va ; le titre reste,
+une ligne, avec « Réafficher ». La catégorie est retenue sur l'appareil
+(cinquante au plus) : son rayon, demain, reste masqué. Masqué dans un onglet,
+il l'est dans les autres.
+
+### Huit cartes par rangée
+
+À partir de 1600 pixels de large, la grille des cartes d'un rayon de Twitch est
+remplacée par la nôtre, en CSS : huit colonnes égales. En deçà, celle de Twitch,
+telle quelle.
+
+### Les vignettes « ? »
+
+Un direct dont Twitch n'a pas encore d'image montre la sienne, `404_preview`.
+Elle est rendue transparente, et derrière elle paraît la vignette de la dernière
+rediffusion de la chaîne, quand l'agenda la connaît — une chaîne que vous
+suivez —, sinon l'avatar que la carte porte déjà. Quand Twitch pose la vraie
+image, elle reprend sa place. Aucune requête.
+
+### Ce qui n'a pas pu être vérifié
+
+La grille de Twitch n'a pu être lue que dans une page enregistrée, sans ses
+feuilles de style : les huit colonnes s'imposent en `display: grid` sur
+`.tw-tower`, quelle que soit la mise en page de Twitch, mais une carte que
+Twitch cacherait autrement qu'en la retirant pourrait reparaître. Et Twitch ne
+pose dans un rayon que les cartes qu'il veut montrer — six dans huit des neuf
+rayons de la page enregistrée, douze dans le troisième : huit colonnes en
+montrent alors six, plus serrées, et deux places restent libres jusqu'à
+« Afficher plus ».
+
+La vignette « ? » se reconnaît à son adresse, `404_preview` ; la page
+enregistrée n'en montrait aucune ce jour-là. Le titre d'un rayon, son lien de
+catégorie, son contenu qui le nomme et l'avatar de chaque carte, eux, y ont été
+relevés tels que le code les lit.
+
+### Ce qu'il coûte
+
+**Rien** : aucune requête. Une lecture de la page à chaque peinture de
+l'accueil, comme les étiquettes (4.28.0).
+
+### Le réglage
+
+« Ranger l'accueil de Twitch » rejoint le groupe « Page d'accueil » de
+« Réglages » : décoché, ni « Masquer », ni rayon masqué — même une catégorie
+retenue —, ni grille, ni vignette. Trente-quatre réglages.
+
+### Les textes
+
+Dix langues pour « Masquer » et « Réafficher » ; douze dans le panneau, le mode
+d'emploi (« L'accueil de Twitch ») et les fiches du Store.
+
+### Le banc
+
+**226**, nouveau. Le faux Twitch apprend ses rayons tels que la vraie page les
+écrit : un titre `<h2 id>` deux boîtes plus bas que le rayon, un lien de
+catégorie, un contenu qui le nomme, une `.tw-tower` de cartes.
+
+- a) « Masquer » sur le rayon d'une catégorie, rien sur un autre ; un clic sur
+  le titre lui-même reste à Twitch ;
+- b) un clic sur « Masquer » : le contenu s'en va, le titre reste avec
+  « Réafficher », la catégorie est retenue — et chaque nœud de la page est
+  toujours là ;
+- c) en revenant, la catégorie est toujours masquée ; d) « Réafficher » la rend ;
+- e) huit cartes par rangée à 1600 pixels, la grille de Twitch en deçà ;
+- f) une vignette « ? » : la dernière rediffusion de l'agenda derrière elle,
+  rendue transparente ; sans rediffusion, l'avatar ; une carte qui a son image,
+  rien ;
+- g) le réglage décoché : rien de posé, même une catégorie retenue.
+
+**Douze mutants nommés, tous pris.**
+
+| mutant | ce qui tombe |
+| --- | --- |
+| tout titre masquable | 226 a) : « Masquer » sur un rayon sans catégorie |
+| le clic sur le titre qui masque | 226 a) : un clic sur le titre lui-même masque le rayon |
+| la catégorie oubliée au rechargement | 226 b) et c) : rien de retenu, le rayon revient |
+| le titre masqué avec son contenu | 226 b) : le titre disparaît avec le rayon |
+| pas de « Réafficher » | 226 b) et c) : « Masquer » sur un rayon masqué |
+| la grille à toutes les largeurs | 226 e) : huit colonnes à 1400 pixels |
+| six colonnes | 226 e) : six cartes par rangée |
+| l'avatar avant la rediffusion | 226 f) : l'avatar derrière givre, quand l'agenda a sa rediffusion |
+| le « ? » laissé devant | 226 f) : le « ? » reste opaque |
+| toute vignette remplacée | 226 f) : falun, qui a son image, reçoit un fond |
+| la plus vieille rediffusion | 226 f) : la vignette de l'archive d'avant |
+| le réglage ignoré | 226 g) : décoché, « Masquer » et le rayon retenu masqué |
+
+Le banc complet : 2258 assertions dans 225 scénarios, toutes vertes.
+
 ## L'accueil, niveau 2 : des rayons qui disent pourquoi (v4.31.0)
 
 Cinquième idée du niveau 2. Publiée sur `claude/chrome-homepage` seulement.
@@ -24114,7 +24224,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | les six fichiers JavaScript livrés — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 224 scénarios, 2247 assertions |
+| `npm test` | le harnais Playwright : 225 scénarios, 2258 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -24135,13 +24245,13 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 2124 Ko | 975 Ko | 4 606 → **2** |
+| `content.js` | 2136 Ko | 984 Ko | 4 614 → **2** |
 | `cadres.js` | 68 Ko | 31 Ko | 160 → **0** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
 | `panneau.js` | 162 Ko | 82 Ko | 224 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 26 → **0** |
 | `background.js` | 10 Ko | 2 Ko | 22 → **0** |
-| **les six** | **2504 Ko** | **1194 Ko** | **−52 %** |
+| **les six** | **2515 Ko** | **1203 Ko** | **−52 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
