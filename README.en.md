@@ -2064,6 +2064,169 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The home page, after use: "Featured", a channel removed, Twitch's lift (v4.32.0.3)
+
+Four pieces of feedback, a diagnostic report attached. Published on `claude/chrome-homepage` only.
+
+| reported | what was done |
+| --- | --- |
+| "a Québécois streamer is often in the French Top 10; his streams are in English, despite the Français tag" | one click on its card removes the channel from that language's ranking — the Top 10 and Top Channels alike —, and one click below the Top 10 restores it |
+| "remove 'Your followed channels, live', it is redundant with the sidebar" | the row is gone, with its setting |
+| "instead, add the carousel's streamers" | "Featured": the streams of the carousel the banner hides, as a row |
+| "the hover on native rows: the left and bottom edges coloured, the picture shifting up and to the right" | the same lift on our cards, in the channel's colour |
+
+And "suggest ideas for complex lists in CSS": four directions as a mockup,
+sent separately — none ships until one is chosen.
+
+### Removing a channel from a ranking
+
+The ranking reads the language tag as the channel sets it: a channel tagged
+"Français" that does not speak French is, to it, a French channel. Nothing
+tells it apart without guessing — the language of its settings is that of its
+tag, and an English title proves nothing: French channels title in English.
+So you say it.
+
+- **The button**: on each place of a Top 10 held in one language, right of
+  the texts, shown when hovering the place or from the keyboard. "Remove
+  Tavor from this ranking".
+- **From that language only.** In the all-languages ranking the channel keeps
+  its place, which is right — and nobody is removed there.
+- **Wherever that ranking shows**: the home page's Top 10 and Top Channels in
+  the sidebar, which hold the same list. The filter sits in `top()`, before
+  the places: the ranking keeps its ten, or its thirty, and a click shows at
+  once.
+- **Said below the Top 10**: "Removed from this ranking: Tavor — Restore". A
+  Top 10 that does not show everything says so.
+- **Kept on the device** (`tse:ecartees`, language → logins), fifty at most;
+  read again and checked on load — a language the table does not know, a
+  malformed login, ignored; followed from one tab to another.
+
+The report: `accueil.ecartees` — clicks, restored, shown, languages,
+channels. Counts, no channel.
+
+### "Featured"
+
+The carousel the banner hides carries five streams; each lives in a
+`featured-content-carousel__item-container`, one class of which gives its
+place (`--center`, `--right-1`, `--right-2`, `--left-2`, `--left-1`, read on
+the real page), and its thumbnail `live_user_<login>-320x180` names the
+channel. The row takes them **in the carousel's order** — the centre, what
+comes to its right, then, round the loop, what is to its left; without those
+classes, in page order, leaving out the "headliner" ad.
+
+- **Only when the carousel is hidden** — by the banner, or by "Nothing": with
+  the carousel shown, that would be the same streams twice.
+- **Without the banner's channel**, which sits just above.
+- **What a card says comes from `TseChannels`**: a channel the sidebar does
+  not follow joins the common batch while it is featured. No extra operation.
+  A channel Twitch says is offline does not show.
+- **Its place, kept while waiting.** The carousel arrives after our first
+  frame, and its channels one response later: the row appeared above the Top
+  10, which moved down a line before your eyes — the bench caught it. A line
+  of empty cards, at the exact height of the real ones, holds its place for
+  eight seconds at most.
+- **When the carousel arrives**, its channels are read again at the mutation
+  itself, without waiting for the five-second tick.
+
+The banner does not change: the followed channel you watch the most, among
+those live. The "Featured" setting (`accueilUne`) replaces "Your followed
+channels, live"; a value left under the old key is ignored — it is not the
+same row. The report: `accueil.une` — the path (`places` or `ordre`), the
+channels read, shown, waiting, the kept place, the requests, the re-reads.
+
+### Twitch's lift on hover
+
+Read on the saved page: a Twitch card's thumbnail lives in a
+`tw-hover-accent-effect`, with four pieces beside it — two corners
+(`ScCornerTop`, `ScCornerBottom`) and two edges (`ScEdgeLeft`,
+`ScEdgeBottom`). Over forty-eight cards, the wrapper's class changes from one
+channel to the next, and ten share one: a colour per channel, and a default
+one for those that chose none.
+
+- **One piece draws all four**: a six-point polygon, folded onto the left and
+  bottom edges at rest, unfolded on hover — the left side and underside of a
+  block, corners bevelled at 45°, exactly the area the thumbnail sweeps as it
+  rises 6 pixels to the right. 100 ms, `ease`.
+- **At rest, it stays inside the thumbnail**: always overflowing, it widened
+  the grid — invisible, but measured by the bench.
+- **Twitch's square corners**: its bevelled corners meet square ones. The
+  picture's zoom on hover is gone: the lift replaces it.
+- **The channel's colour**: `primaryColorHex`, a `User` field that Twitch's
+  own queries request for the cards of its rows (`HomeShelfUser`,
+  `DirectoryPageGameStreamWithTagsNode`…). `TseChannels` now requests it —
+  some twenty bytes per channel, in a batch that goes out anyway —, and
+  `TseCategoryTop` too, for the "Because you often watch…" rows. Six hex
+  digits, or Twitch's purple.
+- **From the keyboard** as with the mouse.
+
+The report: `accueil.relief` — how many of our cards carry their channel's
+colour, how many the purple.
+
+### What couldn't be checked
+
+Twitch can't be reached from here. The saved page carries the lift's
+structure, not its style sheets: the 6 pixels are Twitch's 0.6 rem (a
+ten-pixel rem on its side), the duration and curve are the ones known of it,
+not read. That the colour is `primaryColorHex` rests on two facts — a colour
+per channel, ten cards out of forty-eight sharing one, and the field requested
+by the queries of its own cards —: the report will say how many of our cards
+received it. If Twitch rotates a hidden carousel, the row follows what it
+carries.
+
+### The bench
+
+- 217, rewritten: "Featured" — the carousel's order, the banner apart, the
+  cost, a stream that ends, the carousel shown or hidden, page order without
+  the classes, the carousel arriving after us, the kept place and its end,
+  folding;
+- 218, 219, 222, 226, revised: their cards come from "Featured" and the Top
+  10, no longer from the followed row; 220: the frame probe reads any row
+  title that shows, whichever it is, and the sixteen streams of "From the
+  start" go out together;
+- 227, new: removing a channel — the button, the click, the line, the
+  storage, all languages, the sidebar, "Restore", another tab, the storage
+  checked, the cap;
+- 228, new: the lift — at rest, on hover, to the pixel, the purple, the
+  keyboard, the field requested, a malformed colour;
+- the fake Twitch: a carousel with place classes, named by the scenario; a
+  channel's colour, returned only when requested.
+
+**Twenty-nine named mutants, all caught.** A thirtieth, set aside as equivalent: the lift moved below the background changes nothing on the bench's page, where no background stands between the lift and the page; replaced by the lift that does not unfold.
+
+| mutant | what falls |
+| --- | --- |
+| page order | 217 a): solvane, orvik, tessaly… instead of the centre first |
+| the banner's channel kept in the row | 217 a): korbek twice, in the banner and featured |
+| the row shown whatever the carousel | 217 c): "As on Twitch", the row under the carousel |
+| nothing read without the place classes | 217 d): an empty row, no page order |
+| no re-read when the carousel arrives | 217 e): no re-read |
+| an ended stream kept | 217: solvane stays featured |
+| the place never kept | 217 e') and 220 a): the row arrives, the Top 10 moves down |
+| the place kept forever | 217 e'): with no carousel, the empty line stays |
+| the filter after the places | 227 b): nine places |
+| removed from all languages | 227 c): missing from the all-languages ranking |
+| the sidebar forgotten | 227 d): Tavor stays in Top Channels |
+| the language lost in storage | 227 b): the memory without its language |
+| storage not listened to | 227 f): the other tab is not followed |
+| the language read without the table | 227 g): "Klingon" counted |
+| the login read without its shape | 227 g): "Zephyr!" counted |
+| the cap ignored | 227 h): the button stays at fifty |
+| the button always visible | 227 a): visible at rest |
+| no name, the login | 227 b): "tavor" instead of "Tavor" |
+| the lift unfolded at rest | 228 a): the polygon open without hover |
+| overflowing at rest | 228 a) and 217 k): the grid six pixels wider |
+| the rounding kept | 228 a): six pixels of rounding |
+| the shift's direction | 228 b): the picture moves down and left |
+| the channel's colour ignored | 228 b) and c): purple on Tessaly |
+| the zoom kept | 228 b): the picture still zooms |
+| the lift that does not unfold | 228 b) and c): nothing left or below |
+| no colour, nothing | 228 d): a transparent lift |
+| the field left out of the query | 228 b): no colour received |
+| a malformed colour taken | 228 e): "url(x)" set as is |
+| the keyboard forgotten | 228 d): nothing on focus |
+
+The full bench: 2278 assertions in 227 scenarios, all green.
+
 ## The home page, after use: a sharp banner, "From the start", Twitch's rows (v4.32.0.2)
 
 Three pieces of feedback, a diagnostic report attached. Published on `claude/chrome-homepage` only.
@@ -23739,7 +23902,7 @@ Four independent checks:
 | `npm run lint` | the six shipped JavaScript files — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 225 scenarios, 2255 assertions |
+| `npm test` | the Playwright harness: 227 scenarios, 2278 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -23759,13 +23922,13 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 2128 KB | 977 KB | 4,613 → **2** |
+| `content.js` | 2155 KB | 993 KB | 4,647 → **2** |
 | `cadres.js` | 74 KB | 34 KB | 169 → **0** |
 | `adblock.js` | 126 KB | 101 KB | 301 → **2** |
 | `panneau.js` | 162 KB | 82 KB | 224 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 26 → **0** |
 | `background.js` | 10 KB | 2 KB | 22 → **0** |
-| **all six** | **2514 KB** | **1200 KB** | **−52 %** |
+| **all six** | **2541 KB** | **1216 KB** | **−52 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are

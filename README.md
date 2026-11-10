@@ -2183,6 +2183,170 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## L'accueil, après usage : « À la une », une chaîne écartée, le relief de Twitch (v4.32.0.3)
+
+Quatre retours, rapport de diagnostic à l'appui. Publiée sur `claude/chrome-homepage` seulement.
+
+| signalé | ce qui a été fait |
+| --- | --- |
+| « un streamer québécois est souvent dans le Top 10 français ; ses streams sont anglophones, malgré le tag Français » | un clic sur sa carte l'écarte du classement de cette langue — le Top 10 comme Top Chaînes —, et un clic sous le Top 10 le rétablit |
+| « retire "Vos chaînes suivies en direct", elle est de trop avec la barre sur le côté » | le rayon s'en va, avec son réglage |
+| « à la place, ajoute les streamers du carrousel » | « À la une » : les directs du carrousel que la bannière masque, en rayon |
+| « le survol des listes natives : le contour gauche et bas coloré, l'image qui se décale en haut à droite » | le même relief sur nos cartes, dans la couleur de la chaîne |
+
+Et « propose des idées de listes complexes en CSS » : quatre pistes en
+maquette, envoyées à part — rien n'en est livré tant qu'aucune n'est choisie.
+
+### Écarter une chaîne d'un classement
+
+Le classement lit le tag de langue tel que la chaîne le pose : une chaîne qui
+porte « Français » sans parler français est, pour lui, une chaîne française.
+Rien ne permet de le savoir sans deviner — la langue de ses réglages est celle
+de son tag, et un titre en anglais ne prouve rien : des chaînes françaises
+titrent en anglais. C'est donc vous qui le dites.
+
+- **Le bouton** : sur chaque place d'un Top 10 tenu dans une langue, à droite
+  des textes, visible au survol de la place ou au clavier. « Écarter Tavor de
+  ce classement ».
+- **De cette langue seule.** Dans le classement de toutes les langues, la
+  chaîne reste à sa place, qui est juste — et l'on n'y écarte personne.
+- **Partout où ce classement se montre** : le Top 10 de l'accueil et Top
+  Chaînes dans la barre, qui tiennent la même liste. Le filtre est posé dans
+  `top()`, avant les places : le classement garde ses dix, ou ses trente, et
+  un clic se voit aussitôt.
+- **Dit sous le Top 10** : « Écartées de ce classement : Tavor — Rétablir ».
+  Un Top 10 qui ne montre pas tout le dit.
+- **Gardé sur l'appareil** (`tse:ecartees`, langue → logins), cinquante au
+  plus ; relu et revu au chargement — une langue que la table ne connaît pas,
+  un login mal formé, ignorés ; suivi d'un onglet à l'autre.
+
+Le rapport : `accueil.ecartees` — clics, rétablies, montrées, langues,
+chaînes. Des comptes, aucune chaîne.
+
+### « À la une »
+
+Le carrousel que la bannière masque porte cinq directs ; chacun vit dans un
+`featured-content-carousel__item-container`, dont une classe dit la place
+(`--center`, `--right-1`, `--right-2`, `--left-2`, `--left-1`, relevées sur
+la vraie page), et sa miniature `live_user_<login>-320x180` nomme la chaîne.
+Le rayon les reprend **dans l'ordre du carrousel** — le centre, ce qui vient
+à sa droite, puis, en bout de boucle, ce qui est à sa gauche ; sans ces
+classes, dans l'ordre de la page, hors de la publicité « headliner ».
+
+- **Seulement quand le carrousel est masqué** — par la bannière, ou par
+  « Rien » : le carrousel affiché, ce serait deux fois les mêmes directs.
+- **Sans la chaîne de la bannière**, qui est juste au-dessus.
+- **Ce qu'une carte dit vient de `TseChannels`** : une chaîne que la barre ne
+  suit pas entre dans le lot commun le temps qu'elle est à la une. Aucune
+  opération de plus. Une chaîne que Twitch dit hors ligne ne se montre pas.
+- **Sa place, gardée en l'attendant.** Le carrousel arrive après notre
+  première image, et ses chaînes une réponse plus tard : le rayon paraissait
+  au-dessus du Top 10, qui descendait d'une rangée sous vos yeux — le banc
+  l'a pris. Une rangée de cartes vides, à la hauteur exacte des vraies, tient
+  sa place huit secondes au plus.
+- **À l'arrivée du carrousel**, ses chaînes sont relues à la mutation même,
+  sans attendre le réveil de cinq secondes.
+
+La bannière, elle, ne change pas : la plus regardée de vos chaînes suivies en
+direct. Le réglage « À la une » (`accueilUne`) remplace « Vos chaînes suivies
+en direct » ; une valeur restée sous l'ancienne clé est ignorée — ce n'est pas
+le même rayon. Le rapport : `accueil.une` — la voie (`places` ou `ordre`), les
+chaînes lues, montrées, en attente, la place gardée, les demandes, les
+relectures.
+
+### Le relief de Twitch au survol
+
+Relevé sur la page enregistrée : la vignette d'une carte de Twitch vit dans un
+`tw-hover-accent-effect`, avec quatre pièces à côté d'elle — deux coins
+(`ScCornerTop`, `ScCornerBottom`) et deux bords (`ScEdgeLeft`,
+`ScEdgeBottom`). Sur quarante-huit cartes, la classe du conteneur change d'une
+chaîne à l'autre, et dix la partagent : une couleur par chaîne, et une par
+défaut pour celles qui n'en ont pas choisi.
+
+- **Une pièce dessine les quatre** : un polygone de six points, replié sur les
+  bords gauche et bas au repos, déplié au survol — le flanc gauche et le
+  dessous d'un bloc, coins biseautés à 45°, exactement la surface que balaie
+  la vignette en montant de 6 pixels vers la droite. 100 ms, `ease`.
+- **Au repos, il tient dans la vignette** : toujours débordant, il élargissait
+  la grille — invisible, mais mesuré par le banc.
+- **Les angles droits de Twitch** : ses coins biseautés rejoignent des angles
+  droits. Le zoom de l'image au survol s'en va : le relief le remplace.
+- **La couleur de la chaîne** : `primaryColorHex`, un champ de `User` que les
+  requêtes de Twitch lui-même demandent pour les cartes de ses rayons
+  (`HomeShelfUser`, `DirectoryPageGameStreamWithTagsNode`…). `TseChannels` le
+  demande désormais — une vingtaine d'octets par chaîne, dans un lot qui part
+  de toute façon —, `TseCategoryTop` aussi, pour les rayons « Parce que vous
+  regardez souvent… ». Six chiffres hexadécimaux, ou le violet de Twitch.
+- **Au clavier** comme à la souris.
+
+Le rapport : `accueil.relief` — combien de nos cartes portent la couleur de
+leur chaîne, combien le violet.
+
+### Ce qui n'a pas pu être vérifié
+
+Twitch n'est pas joignable d'ici. La page enregistrée porte la structure du
+relief, pas ses feuilles de style : les 6 pixels sont les 0,6 rem de Twitch
+(un rem de dix pixels chez lui), la durée et la courbe sont celles qu'on lui
+connaît, pas relevées. Que la couleur soit `primaryColorHex` est tiré de deux
+faits — une couleur par chaîne, dix cartes sur quarante-huit à la même, et le
+champ demandé par les requêtes de ses propres cartes — : le rapport dira
+combien de nos cartes l'ont reçue. Si Twitch fait tourner un carrousel masqué,
+le rayon suit ce qu'il porte.
+
+### Le banc
+
+- 217, réécrit : « À la une » — l'ordre du carrousel, la bannière à part, le
+  coût, un direct qui s'arrête, le carrousel montré ou masqué, l'ordre de la
+  page sans les classes, le carrousel arrivé après nous, la place gardée et
+  sa fin, le pliage ;
+- 218, 219, 222, 226, revus : leurs cartes viennent d'« À la une » et du Top
+  10, plus du rayon des suivies ; 220 : la sonde des images lit un titre de
+  rayon qui se voit, quel qu'il soit, et les seize directs de « Depuis le
+  début » partent ensemble ;
+- 227, nouveau : écarter une chaîne — le bouton, le clic, la ligne, le
+  stockage, toutes les langues, la barre, « Rétablir », un autre onglet, le
+  stockage revu, la borne ;
+- 228, nouveau : le relief — au repos, au survol, au pixel, le violet, le
+  clavier, le champ demandé, une couleur mal formée ;
+- le faux Twitch : un carrousel aux classes de place, nommé par le scénario ;
+  la couleur d'une chaîne, rendue seulement quand on la demande.
+
+**Vingt-neuf mutants nommés, tous pris.** Un trentième, écarté comme équivalent : le relief passé sous le fond ne change rien sur la page du banc, où aucun fond ne sépare le relief de la page ; remplacé par le relief qui ne se déplie pas.
+
+| mutant | ce qui tombe |
+| --- | --- |
+| l'ordre de la page | 217 a) : solvane, orvik, tessaly… au lieu du centre d'abord |
+| la bannière gardée dans le rayon | 217 a) : korbek deux fois, dans la bannière et à la une |
+| le rayon montré quel que soit le carrousel | 217 c) : « Comme Twitch », le rayon sous le carrousel |
+| rien de lu sans les classes de place | 217 d) : un rayon vide, sans l'ordre de la page |
+| pas de relecture à l'arrivée du carrousel | 217 e) : aucune relecture |
+| un direct arrêté gardé | 217 : solvane reste à la une |
+| la place jamais gardée | 217 e') et 220 a) : le rayon arrive, le Top 10 descend |
+| la place gardée sans fin | 217 e') : sans carrousel, la rangée vide reste |
+| le filtre après les places | 227 b) : neuf places |
+| écartée de toutes les langues | 227 c) : absente du classement de toutes les langues |
+| la barre oubliée | 227 d) : Tavor reste dans Top Chaînes |
+| la langue oubliée au stockage | 227 b) : la mémoire sans sa langue |
+| pas d'écoute du stockage | 227 f) : l'autre onglet n'est pas suivi |
+| la langue lue sans la table | 227 g) : « Klingon » compté |
+| le login lu sans sa forme | 227 g) : « Zephyr! » compté |
+| la borne ignorée | 227 h) : le bouton reste à cinquante |
+| le bouton toujours visible | 227 a) : visible au repos |
+| sans nom, le login | 227 b) : « tavor » au lieu de « Tavor » |
+| le relief déplié au repos | 228 a) : le polygone ouvert sans survol |
+| débordant au repos | 228 a) et 217 k) : la grille élargie de six pixels |
+| l'arrondi gardé | 228 a) : six pixels d'arrondi |
+| le sens du décalage | 228 b) : l'image descend à gauche |
+| la couleur de la chaîne ignorée | 228 b) et c) : le violet sur Tessaly |
+| le zoom gardé | 228 b) : l'image zoome encore |
+| le relief qui ne se déplie pas | 228 b) et c) : rien à gauche ni dessous |
+| sans couleur, rien | 228 d) : un relief transparent |
+| le champ oublié dans la requête | 228 b) : pas de couleur reçue |
+| une couleur mal formée prise | 228 e) : « url(x) » posée telle quelle |
+| le clavier oublié | 228 d) : rien au focus |
+
+Le banc complet : 2278 assertions dans 227 scénarios, toutes vertes.
+
 ## L'accueil, après usage : une bannière nette, « Depuis le début », les rayons de Twitch (v4.32.0.2)
 
 Trois retours, rapport de diagnostic à l'appui. Publiée sur `claude/chrome-homepage` seulement.
@@ -24441,7 +24605,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | les six fichiers JavaScript livrés — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 225 scénarios, 2255 assertions |
+| `npm test` | le harnais Playwright : 227 scénarios, 2278 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -24462,13 +24626,13 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 2128 Ko | 977 Ko | 4 613 → **2** |
+| `content.js` | 2155 Ko | 993 Ko | 4 647 → **2** |
 | `cadres.js` | 74 Ko | 34 Ko | 169 → **0** |
 | `adblock.js` | 126 Ko | 101 Ko | 301 → **2** |
 | `panneau.js` | 162 Ko | 82 Ko | 224 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 26 → **0** |
 | `background.js` | 10 Ko | 2 Ko | 22 → **0** |
-| **les six** | **2514 Ko** | **1200 Ko** | **−52 %** |
+| **les six** | **2541 Ko** | **1216 Ko** | **−52 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se

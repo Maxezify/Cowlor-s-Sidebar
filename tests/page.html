@@ -768,6 +768,8 @@ window.fetch = async (url, opt) => {
       login: window.__upperCaseLogins ? login.toUpperCase() : login,
       displayName: f && f.name ? f.name : login.charAt(0).toUpperCase() + login.slice(1),
       profileImageURL: 'https://cdn/api-' + login + '.png',
+      // La couleur de la chaîne (4.32.0.3) : six chiffres hexadécimaux, ou null quand elle n'en a pas.
+      primaryColorHex: f && f.couleur !== undefined ? f.couleur : null,
       stream: f ? {
         // `sid` permet de simuler une NOUVELLE session (Twitch renvoie alors
         // un autre identifiant de stream). Sans lui, l'identifiant est stable
@@ -1307,6 +1309,8 @@ window.fetch = async (url, opt) => {
     }
     if (o.operationName !== 'TseChannels') return { data: {} };
     let users = (o.variables.logins || []).map(mk).filter(Boolean);
+    // Un champ qu'on ne demande pas ne revient pas : la couleur, comme le vrai Twitch (4.32.0.3).
+    if (!/\bprimaryColorHex\b/.test(o.query || '')) users = users.map(({ primaryColorHex, ...u }) => u);
     // Twitch ne garantit pas l'ordre : on le mélange pour que le code soit
     // obligé de s'indexer sur le login et non sur la position.
     if (window.__shuffle) users = users.slice().reverse();
@@ -1695,6 +1699,10 @@ if (location.pathname === '/directory/following/channels') {
 //   rayons     [[titre, [logins…]], …]
 //   colonneMax la colonne bornée à N px et centrée, comme celle de Twitch à
 //              grande largeur : ce qui s'y pose y prend ses marges
+//   carrouselChaines les cinq directs du carrousel, dans l'ordre de la page
+//              (left-2, left-1, center, right-1, right-2, puis right-3… si
+//              le banc en pose davantage) ; carrouselPlaces
+//              false : sans les classes de place (4.32.0.3, « À la une »)
 //   carrouselApres le carrousel posé N ms APRÈS le reste de l'accueil, comme
 //              sur la vraie page, où il attend ses propres données (4.26.0.5 :
 //              c'est lui qu'on voyait « quelques secondes » avant le héros)
@@ -1792,17 +1800,29 @@ if (location.pathname === '/' && window.__accueil) {
       pubCadre.style.display = 'none';
       pub.appendChild(pubCadre);
       const tourniquet = el('div', 'featured-content-carousel');
-      for (const l of ['cote_un', 'cote_deux']) tourniquet.appendChild(el('div')).appendChild(vignette(l, '320x180'));
-      const centre = el('div');
+      /* Cinq directs, chacun dans son `featured-content-carousel__item-
+         container`, dont une classe dit la place — relevé sur la vraie page
+         (4.32.0.3) : dans l'ordre de la page, left-2, left-1, center,
+         right-1, right-2. `carrouselChaines` les nomme dans cet ordre ;
+         `carrouselPlaces: false` retire les classes de place. */
+      const chaines = cfg.carrouselChaines || ['solvane', 'orvik', 'tessaly', 'marbek', 'ilyan'];
+      const PLACES = ['left-2', 'left-1', 'center', 'right-1', 'right-2'];
+      const item = (i) => el('div', cfg.carrouselPlaces === false ? 'item-sans-place'
+        : 'featured-content-carousel__item-container featured-content-carousel__item-container--offset-' + Math.abs(i - 2)
+          + ' featured-content-carousel__item-container--' + (PLACES[i] || 'right-' + (i - 2)));
+      for (const i of [0, 1]) if (chaines[i]) tourniquet.appendChild(item(i)).appendChild(vignette(chaines[i], '320x180'));
+      const centre = item(2);
       const v = el('video');
       let lit = cfg.lecture !== false;
       Object.defineProperty(v, 'paused', { get: () => !lit });
       v.pause = () => { lit = false; window.__accueilPauses = (window.__accueilPauses || 0) + 1; };
       v.play = () => { lit = true; v.dispatchEvent(new Event('play')); return Promise.resolve(); };
       window.__accueilVideo = v;
-      centre.append(v, vignette('cote_centre', '320x180'));
+      centre.append(v);
+      if (chaines[2]) centre.append(vignette(chaines[2], '320x180'));
       tourniquet.appendChild(centre);
-      for (const l of ['cote_trois', 'cote_quatre']) tourniquet.appendChild(el('div')).appendChild(vignette(l, '320x180'));
+      // Au-delà de cinq (le banc seul en pose davantage) : right-3, right-4…
+      for (let i = 3; i < chaines.length; i++) tourniquet.appendChild(item(i)).appendChild(vignette(chaines[i], '320x180'));
       car.append(pub, tourniquet);
       return car;
     };
