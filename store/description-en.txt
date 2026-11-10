@@ -43,7 +43,6 @@ You walk in halfway through an eight-hour stream. What happened before? The prev
 - ★ TO SCALE ★ Each band's width is real time. One glance tells you where the evening went.
 - ★ EVEN WITHOUT A REPLAY ★ A channel that doesn't archive? The extension reconstructs the journey from the clips, and SAYS SO.
 - ★ IT ADMITS WHAT IT DOESN'T KNOW ★ When the exact time of a switch isn't known, the color fades instead of cutting sharp, and the duration carries a "~". Never an invented number.
-- ★ THE RECAP ★ In one line, where the stream has been: “Since 18:02: 1h20 Just Chatting → 2h40 Elden Ring”. In another, what its clips kept of it: “6 clips · most viewed: “…” (8.4K views)”. One request to Twitch per hovered stream, every ten minutes at most.
 
 _______________________________
 
@@ -199,7 +198,7 @@ _______________________________
 ➤ 🏠 TWITCH'S HOME PAGE, YOUR WAY
 On Twitch's home page, the extension adds its own rows above Twitch's, in the same column and lined up with them.
 
-- ★ YOUR #1 CHANNEL, ON TOP ★ In place of Twitch's carousel: the live followed channel you watch the most. Across the whole width: its picture first, then its stream, muted and ad-free, like the hover preview; and under the text, its colours, live too. None of the channels you watch is live? The carousel comes back. Rather keep the carousel, or have nothing at all? That's a setting.
+- ★ YOUR #1 CHANNEL, ON TOP ★ In place of Twitch's carousel: the live followed channel you watch the most — failing that, the one with the most viewers. Across the whole width: its picture first, then its stream, muted and ad-free, like the hover preview; and under the text, its colours, live too. None of your followed channels is live? The carousel comes back. Rather keep the carousel, or have nothing at all? That's a setting.
 - ★ YOUR FOLLOWED CHANNELS FIRST ★ A row of your live channels, in the order of the ones you watch the most — at no extra request: they are the ones the sidebar already follows.
 - ★ THE TOP 10 OF YOUR LANGUAGE ★ The first ten places of Top Channels' exact ranking, in your Twitch's language or across all languages, in big numbers, with what moved over thirty minutes: places gained, places lost, newcomers. Computed only while the home page is on screen.
 - ★ YOUR SCHEDULED STREAMS ★ What your followed channels have scheduled for today and tomorrow, with the time left. "Remind me": an alert in your open Twitch tabs when the channel goes live, with no system notification and no permission. For a channel you watch that has nothing scheduled: the time its last streams started, when it repeats — what it did, not what it will do.

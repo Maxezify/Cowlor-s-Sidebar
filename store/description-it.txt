@@ -43,7 +43,6 @@ Arrivi a metà di una live di otto ore. Cos'è successo prima? L'anteprima te lo
 - ★ IN SCALA ★ La larghezza di ogni banda è tempo reale. Un'occhiata basta per capire dov'è finita la serata.
 - ★ ANCHE SENZA REPLAY ★ Un canale che non archivia? L'estensione ricostruisce il percorso dalle clip, e lo DICE.
 - ★ AMMETTE CIÒ CHE NON SA ★ Quando l'ora esatta di un cambio non è nota, il colore sfuma invece di tagliare netto, e la durata porta una «~». Mai un numero inventato.
-- ★ IL RIEPILOGO ★ In una riga, dove è passata la diretta: «Dalle 18:02: 1h20 Just Chatting → 2h40 Elden Ring». In un'altra, ciò che le sue clip ne hanno tenuto: «6 clip · la più vista: «…» (8400 visualizzazioni)». Una richiesta a Twitch per diretta sorvolata, al massimo ogni dieci minuti.
 
 _______________________________
 
@@ -199,7 +198,7 @@ _______________________________
 ➤ 🏠 LA HOME DI TWITCH, A MODO TUO
 Sulla pagina iniziale di Twitch, l'estensione mette le sue file sopra quelle di Twitch, nella stessa colonna e allineate con esse.
 
-- ★ IL TUO CANALE N. 1, IN CIMA ★ Al posto del carosello di Twitch: il canale seguito in diretta che guardi di più. Su tutta la larghezza: prima la sua immagine, poi la sua diretta, senza audio e senza pubblicità, come l'anteprima al passaggio del mouse; e sotto il testo, i suoi colori, anch'essi in diretta. Nessuno dei canali che guardi è in diretta? Il carosello torna. Preferisci il carosello, o niente? È un'impostazione.
+- ★ IL TUO CANALE N. 1, IN CIMA ★ Al posto del carosello di Twitch: il canale seguito in diretta che guardi di più — altrimenti quello con più spettatori. Su tutta la larghezza: prima la sua immagine, poi la sua diretta, senza audio e senza pubblicità, come l'anteprima al passaggio del mouse; e sotto il testo, i suoi colori, anch'essi in diretta. Nessuno dei canali che segui è in diretta? Il carosello torna. Preferisci il carosello, o niente? È un'impostazione.
 - ★ PRIMA I TUOI CANALI SEGUITI ★ Una fila dei tuoi canali in diretta, nell'ordine di quelli che guardi di più, senza nessuna richiesta in più: sono quelli che la barra segue già.
 - ★ LA TOP 10 DELLA TUA LINGUA ★ I primi dieci posti della classifica esatta di Canali di punta, nella lingua del tuo Twitch o in tutte le lingue, in grandi cifre, con ciò che si è mosso in trenta minuti: posti guadagnati, posti persi, nuovi arrivati. Calcolata solo mentre la home è visualizzata.
 - ★ LE TUE DIRETTE IN PROGRAMMA ★ Ciò che i canali che segui hanno in programma oggi e domani, con il tempo che manca. «Ricordamelo»: un avviso nelle schede di Twitch aperte quando il canale va in diretta, senza notifica di sistema né permessi. Per un canale che guardi e che non ha programmato nulla: l'ora in cui sono iniziate le sue ultime dirette, quando si ripete — ciò che ha fatto, non ciò che farà.

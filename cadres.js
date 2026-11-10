@@ -33,7 +33,7 @@
  *  C'est à la fois un piège et une garde :
  *
  *   — le PIÈGE : dans le cadre principal, ce fichier et content.js
- *     tournent ensemble. Les seize noms qu'ils partagent — celui
+ *     tournent ensemble. Les dix-sept noms qu'ils partagent — celui
  *     de chaque frame, le type de chaque message — ne peuvent donc
  *     être globaux que d'un côté. Ils le sont dans content.js ; ici,
  *     ils vivent dans le bloc plus bas, hors de la portée de la page.
@@ -105,7 +105,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
   + '[data-test-selector="ad-banner-default-text"]';
 
 /* ── CE QUE content.js EMPLOIE AUSSI : DANS UN BLOC, HORS DE LA PAGE ──────
-   Les seize noms partagés sont déclarés ici en `const` de bloc : dans le
+   Les dix-sept noms partagés sont déclarés ici en `const` de bloc : dans le
    cadre principal, content.js les déclare au premier niveau, et une seconde
    déclaration globale du même nom y ferait échouer l'un des deux fichiers.
    Tout ce qui suit les emploie, et vit donc dans la même portée. */
@@ -199,6 +199,80 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
   const TSE_AMBIANCE_MSG = 'tse:ambiance';
   const TSE_AMBIANCE_PX_MSG = 'tse:ambiance-px';
 
+  /* LA QUALITÉ DE LA BANNIÈRE (4.32.0.1). Le héros dit à son lecteur la
+     hauteur que sa vidéo remplit, en pixels d'écran, et un plancher ; le
+     pont y pose la qualité comme dans une tuile de la salle (cf.
+     choisirQualite) — jamais sous le plancher quand la chaîne l'a —, et répond
+     par ce que le lecteur joue — son nom de qualité, et s'il est resté en
+     automatique. Même type de message dans les deux sens : la source dit
+     lequel. */
+  const TSE_HEROS_QUALITE_MSG = 'tse:heros-qualite';
+
+  /* ── LE LECTEUR DE TWITCH LUI-MÊME (4.24.0.10) ──────────────────────────
+     La qualité se choisit par l'instance du lecteur, pas par l'URL : le
+     paramètre « quality » n'est qu'une préférence que l'adaptation de débit
+     dépasse (mesuré en 3.26 pour l'aperçu). `setQuality` sur l'instance, lui,
+     fixe la qualité et sort le lecteur du mode automatique — c'est le chemin
+     du module anti-pub, repris de TwitchAdSolutions et éprouvé dans ce même
+     lecteur intégré. On l'atteint de la même façon : par l'arbre React de la
+     page du lecteur, jusqu'au composant qui porte `mediaPlayerInstance`.
+     Introuvable (Twitch a changé), rien ne casse : null.
+     PARTAGÉ (4.32.0.1) par les lecteurs de la salle et celui de la bannière
+     de l'accueil, chacun dans sa frame. */
+  const chercherInstance = () => {
+    try {
+      const racine = document.getElementById('root');
+      if (!racine) return null;
+      let fibre = racine._reactRootContainer?._internalRoot?.current || null;
+      if (!fibre) {
+        const cle = Object.keys(racine).find((k) => k.startsWith('__reactContainer'));
+        fibre = cle ? racine[cle] : null;
+      }
+      if (!fibre) return null;
+      // En largeur, pas en profondeur récursive : l'arbre d'une page de
+      // lecteur est profond, et une pile épuisée ne doit rien casser.
+      const file = [fibre];
+      for (let i = 0; i < file.length && i < 20_000; i++) {
+        const n = file[i];
+        const inst = n.stateNode && n.stateNode.props && n.stateNode.props.mediaPlayerInstance;
+        if (inst && n.stateNode.setPlayerActive) return inst.playerInstance || inst;
+        if (n.child) file.push(n.child);
+        if (n.sibling) file.push(n.sibling);
+      }
+    } catch { /* arbre illisible : pas de lecteur */ }
+    return null;
+  };
+  /* LA QUALITÉ VOULUE : une HAUTEUR en pixels d'écran. Le pont choisit dans
+     l'échelle RÉELLE de la chaîne — elle varie d'une chaîne à l'autre — la
+     qualité la plus proche, la plus haute à égalité. PROCHE EN PROPORTION,
+     pas en pixels : une tuile de 308 px est à 148 px de 160p et à 172 de
+     480p, mais 160p y serait agrandie deux fois, et 480p réduite d'un tiers
+     — c'est 480p qui est la plus proche de ce que l'œil voit.
+     UN CRAN AU-DESSUS (4.24.0.19) : à la demande — « ça pixellise » —, la
+     hauteur suivante de l'échelle, au-dessus de la plus proche : 720p pour
+     les tuiles de 551 px de la salle à trois, qui étaient en 480p. Rien
+     au-dessus de la plus haute. */
+  // La meilleure d'une hauteur : la plus fluide.
+  const meilleureA = (echelle, hauteur) => echelle.filter((q) => q && q.height === hauteur)
+    .reduce((p, q) => (!p || (q.framerate || 0) > (p.framerate || 0) ? q : p), null);
+  const choisirQualite = (echelle, h) => {
+    let meilleure = null;
+    for (const q of echelle) {
+      if (!q || !Number.isFinite(q.height)) continue;
+      const ecart = Math.abs(Math.log(q.height / h));
+      if (!meilleure || ecart < meilleure.ecart
+        || (ecart === meilleure.ecart && (q.height > meilleure.q.height
+          || (q.height === meilleure.q.height && (q.framerate || 0) > (meilleure.q.framerate || 0))))) {
+        meilleure = { q, ecart };
+      }
+    }
+    if (!meilleure) return null;
+    const dessus = echelle.filter((q) => q && Number.isFinite(q.height) && q.height > meilleure.q.height)
+      .reduce((p, q) => (p === null || q.height < p ? q.height : p), null);
+    return dessus === null ? meilleure.q : meilleureA(echelle, dessus);
+  };
+  const enPub = () => document.querySelector(TSE_PUB_REPERES) !== null;
+
   // Le levage de l'interstitielle. À false, on retrouve le comportement de la
   // 3.54 : les streams étiquetés restent sur leur vignette.
   const TSE_GATE_ENABLED = true;
@@ -262,6 +336,74 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       };
       ambiance = setInterval(relever, AMBIANCE_MS);
       relever();
+    });
+
+    /* LA QUALITÉ DE LA BANNIÈRE (cf. TSE_HEROS_QUALITE_MSG). Seul le héros de
+       l'accueil dit une hauteur : un aperçu au survol ne dit rien, et son
+       lecteur reste tel qu'il est. La qualité se repose si le lecteur
+       revient en automatique — cinq fois au plus par hauteur et par
+       instance, jamais deux fois en trois secondes, jamais pendant une pub.
+       L'INSTANCE SE RELIT toutes les cinq secondes : l'anti-pub, qui vit
+       dans cette frame, peut recharger le lecteur après une pub, et une
+       instance gardée viserait alors un lecteur parti. Une minute sans
+       jamais la trouver, et l'on cesse : Twitch a changé. */
+    const heros = { hauteur: null, plancher: 0, origine: null, veille: null, instance: null, lue: 0, depuis: 0,
+                    essais: 0, t: 0, dit: null };
+    // La qualité de la hauteur dite ; sous le plancher, la plus fluide de la plus basse au-dessus.
+    const cibleHeros = (echelle) => {
+      const c = choisirQualite(echelle, heros.hauteur);
+      if (!c || c.height >= heros.plancher) return c;
+      const h = echelle.filter((q) => q && Number.isFinite(q.height) && q.height >= heros.plancher)
+        .reduce((p, q) => (p === null || q.height < p ? q.height : p), null);
+      return h === null ? c : meilleureA(echelle, h);
+    };
+    const instanceHeros = () => {
+      const now = Date.now();
+      if (heros.instance && now - heros.lue < 5000) return heros.instance;
+      if (!heros.instance && heros.depuis && now - heros.depuis > 60_000) return null;
+      if (!heros.depuis) heros.depuis = now;
+      const i = chercherInstance();
+      heros.lue = now;
+      if (i !== heros.instance) { heros.instance = i; heros.essais = 0; heros.t = 0; }
+      return i;
+    };
+    const tenirHeros = () => {
+      if (!heros.hauteur || document.hidden) return;
+      const lecteur = instanceHeros();
+      if (!lecteur || typeof lecteur.setQuality !== 'function') return;
+      let echelle = [], actuelle = null, auto = null;
+      try { echelle = lecteur.getQualities() || []; } catch { return; }
+      try { actuelle = lecteur.getQuality && lecteur.getQuality(); } catch { /* ignore */ }
+      try { auto = lecteur.isAutoQualityMode ? lecteur.isAutoQualityMode() : null; } catch { /* ignore */ }
+      const cible = cibleHeros(echelle);
+      if (cible && !(actuelle && actuelle.name === cible.name && auto === false)
+          && heros.essais < 5 && Date.now() - heros.t >= 3000 && !enPub()) {
+        try { lecteur.setQuality(cible); } catch { /* ignore */ }
+        heros.essais += 1;
+        heros.t = Date.now();
+        try { actuelle = lecteur.getQuality && lecteur.getQuality(); } catch { /* ignore */ }
+        try { auto = lecteur.isAutoQualityMode ? lecteur.isAutoQualityMode() : null; } catch { /* ignore */ }
+      }
+      const nom = actuelle && typeof actuelle.name === 'string' ? actuelle.name : null;
+      const dit = `${nom}|${auto}`;
+      if (dit === heros.dit) return;
+      heros.dit = dit;
+      try {
+        window.parent.postMessage({ tse: TSE_HEROS_QUALITE_MSG, nom, auto: typeof auto === 'boolean' ? auto : null }, heros.origine);
+      } catch { /* parent parti */ }
+    };
+    window.addEventListener('message', (e) => {
+      if (e.source !== window.parent || !TSE_PREVIEW_PARENTS.includes(e.origin)) return;
+      if (e.data?.tse !== TSE_HEROS_QUALITE_MSG) return;
+      const h = Number(e.data.hauteur);
+      const p = Number(e.data.plancher ?? 0);
+      if (!Number.isFinite(h) || h < 90 || h > 4320 || !Number.isFinite(p) || p < 0 || p > 4320) return;
+      heros.origine = e.origin;
+      if (Math.round(h) !== heros.hauteur || Math.round(p) !== heros.plancher) {
+        heros.hauteur = Math.round(h); heros.plancher = Math.round(p); heros.essais = 0; heros.t = 0;
+      }
+      if (!heros.veille) heros.veille = setInterval(tenirHeros, 1000);
+      tenirHeros();
     });
 
     // Signe de vie, posté au démarrage. Il ne sert qu'au diagnostic (tse.apercu),
@@ -448,7 +590,6 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
 
     const BOUTON_SON = 'button[data-a-target="player-mute-unmute-button"]';
     const BOUTON_LECTURE = 'button[data-a-target="player-play-pause-button"]';
-    const enPub = () => document.querySelector(TSE_PUB_REPERES) !== null;
     let ordre = null;
     let numeroOrdre = 0;
 
@@ -486,83 +627,25 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
       try { bouton.click(); } catch { /* retiré entre-temps */ }
       return true;
     };
-    /* ── LE LECTEUR DE TWITCH LUI-MÊME (4.24.0.10) ──────────────────────────
-       La qualité se choisit par l'instance du lecteur, pas par l'URL : le
-       paramètre « quality » n'est qu'une préférence que l'adaptation de débit
-       dépasse (mesuré en 3.26 pour l'aperçu). `setQuality` sur l'instance, lui,
-       fixe la qualité et sort le lecteur du mode automatique — c'est le chemin
-       du module anti-pub, repris de TwitchAdSolutions et éprouvé dans ce même
-       lecteur intégré. On l'atteint de la même façon : par l'arbre React de la
-       page du lecteur, jusqu'au composant qui porte `mediaPlayerInstance`.
-       Introuvable (Twitch a changé), le rapport le dit, et rien ne casse. */
+    /* L'INSTANCE DU LECTEUR (cf. chercherInstance), mémorisée : une minute de
+       recherche au plus, depuis la première — le temps que le lecteur se
+       monte. Au-delà, l'arbre a changé, et le parcourir à chaque relevé, dans
+       chaque tuile, ne coûterait que du temps. */
     let instanceLecteur = null;
-    // Une minute de recherche au plus, depuis la première : le temps que le
-    // lecteur se monte. Au-delà, l'arbre a changé, et le parcourir à chaque
-    // relevé, dans chaque tuile, ne coûterait que du temps.
     let rechercheDepuis = 0;
     const lecteurTwitch = () => {
       if (instanceLecteur) return instanceLecteur;
       if (!rechercheDepuis) rechercheDepuis = Date.now();
       else if (Date.now() - rechercheDepuis > 60_000) return null;
-      try {
-        const racine = document.getElementById('root');
-        if (!racine) return null;
-        let fibre = racine._reactRootContainer?._internalRoot?.current || null;
-        if (!fibre) {
-          const cle = Object.keys(racine).find((k) => k.startsWith('__reactContainer'));
-          fibre = cle ? racine[cle] : null;
-        }
-        if (!fibre) return null;
-        // En largeur, pas en profondeur récursive : l'arbre d'une page de
-        // lecteur est profond, et une pile épuisée ne doit rien casser.
-        const file = [fibre];
-        for (let i = 0; i < file.length && i < 20_000; i++) {
-          const n = file[i];
-          const inst = n.stateNode && n.stateNode.props && n.stateNode.props.mediaPlayerInstance;
-          if (inst && n.stateNode.setPlayerActive) {
-            instanceLecteur = inst.playerInstance || inst;
-            return instanceLecteur;
-          }
-          if (n.child) file.push(n.child);
-          if (n.sibling) file.push(n.sibling);
-        }
-      } catch { /* arbre illisible : pas de lecteur */ }
-      return null;
+      instanceLecteur = chercherInstance();
+      return instanceLecteur;
     };
-    /* LA QUALITÉ VOULUE : une HAUTEUR en pixels d'écran, donnée par la salle.
-       Le pont choisit dans l'échelle RÉELLE de la chaîne — elle varie d'une
-       chaîne à l'autre — la qualité la plus proche, la plus haute à égalité,
-       et la pose. PROCHE EN PROPORTION, pas en pixels : une tuile de 308 px
-       est à 148 px de 160p et à 172 de 480p, mais 160p y serait agrandie deux
-       fois, et 480p réduite d'un tiers — c'est 480p qui est la plus proche de
-       ce que l'œil voit. Reposée si le lecteur revient en automatique, cinq fois au
-       plus par demande, jamais deux fois en trois secondes.
-       UN CRAN AU-DESSUS (4.24.0.19) : à la demande — « ça pixellise » —, la
-       hauteur suivante de l'échelle, au-dessus de la plus proche : 720p pour
-       les tuiles de 551 px de la salle à trois, qui étaient en 480p. Rien
-       au-dessus de la plus haute. */
+    /* LA QUALITÉ VOULUE, donnée par la salle (cf. choisirQualite) : reposée si
+       le lecteur revient en automatique, cinq fois au plus par demande,
+       jamais deux fois en trois secondes. */
     let hauteurVoulue = null;
     let qualiteEssais = 0;
     let qualiteT = 0;
-    // La meilleure d'une hauteur : la plus fluide.
-    const meilleureA = (echelle, hauteur) => echelle.filter((q) => q && q.height === hauteur)
-      .reduce((p, q) => (!p || (q.framerate || 0) > (p.framerate || 0) ? q : p), null);
-    const choisirQualite = (echelle, h) => {
-      let meilleure = null;
-      for (const q of echelle) {
-        if (!q || !Number.isFinite(q.height)) continue;
-        const ecart = Math.abs(Math.log(q.height / h));
-        if (!meilleure || ecart < meilleure.ecart
-          || (ecart === meilleure.ecart && (q.height > meilleure.q.height
-            || (q.height === meilleure.q.height && (q.framerate || 0) > (meilleure.q.framerate || 0))))) {
-          meilleure = { q, ecart };
-        }
-      }
-      if (!meilleure) return null;
-      const dessus = echelle.filter((q) => q && Number.isFinite(q.height) && q.height > meilleure.q.height)
-        .reduce((p, q) => (p === null || q.height < p ? q.height : p), null);
-      return dessus === null ? meilleure.q : meilleureA(echelle, dessus);
-    };
     /* PAS PENDANT UNE PUB (4.24.0.27) : le lecteur y joue l'image de la pub —
        1920 × 1080 au relevé réel, quelle que soit la qualité posée —, et
        chaque essai usé là manquerait après : une pub d'entrée de quatorze

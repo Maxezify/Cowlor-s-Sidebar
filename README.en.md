@@ -2064,6 +2064,133 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The home page, after use: the banner, the labels, the preview (v4.32.0.1)
+
+Four pieces of feedback, a diagnostic report attached. Published on `claude/chrome-homepage` only.
+
+| reported | what was done |
+| --- | --- |
+| "the carousel shows at the top, there is no #1 Channel banner" | with no visit counted among the live followed channels, the banner takes the first of "Your followed channels, live"; the carousel only comes back when no followed channel is live |
+| "the labels are not coloured as in the mockup" | a round pill in the mockup's colour, one per kind of fact: the text, the border and a dot of that colour, on a dark background |
+| "remove the 'Since…' part and the '… clips, most viewed' part" of the preview | 4.29.0's recap is removed, whole: its two lines, its request, its setting, its texts |
+| "raise the quality of the banner's stream" | the quality set by the player itself, from the banner's height, never below 720p |
+
+### The banner without a visit
+
+The report said `heros.sansVisite true`: five followed channels live, none
+visited on this device — five minutes on its page, the rule as always. The
+banner required a visit; it no longer does. It takes the first of "Your
+followed channels, live": the one you watch the most, and with no visit
+among them, the one with the most viewers. The report now says
+`heros.sansVisite true` when the banner holds its channel from that
+fallback.
+
+The early fetch follows: without the followed row, the banner alone has the
+followed channels requested at start-up, within what the sidebar already
+polls — the veil only lifts once the banner is painted, not on the carousel
+it would replace before your eyes. No extra request: these are the
+sidebar's channels.
+
+### Coloured labels
+
+The mockup's, one per kind of fact:
+
+| fact | colour |
+| --- | --- |
+| "Back after 41 days", "↗ +38% in 10 min" | green `#6bdb9d` |
+| "Subathon • DAY 9" | pale gold `#ffe38f` |
+| "Just started" | red `#ff6b62` |
+| "Just switched to Elden Ring" | purple `#bf94ff` |
+| "#3 in English" | gold `#ffd68a` |
+| "Co-stream of 3 channels" | blue `#8fc7ff` |
+
+A round pill, 22 pixels high, a one-pixel border and a 7-pixel dot of the
+same colour, background `rgba(14, 14, 16, 0.86)` — on our cards as on
+Twitch's. Still an attribute and a pseudo-element: the colour is a variable
+set by the kind of fact, which the pseudo-element inherits.
+
+### The preview without a recap
+
+"Since 18:02: 1h20 Just Chatting → 2h40 Elden Ring" and "6 clips · most
+viewed: …" no longer show. Gone with them: the `TseRecapClips` operation —
+one fewer per hovered stream —, the "The stream recap" badge of the badges
+setting, its line in the guide and the Store listings, in the twelve
+languages, and `reseau.recap` in the report. The category trail, which it
+read, does not move. "While you were away" keeps its "most viewed": the
+phrase now lives there under its own name.
+
+### A sharper banner
+
+The player's URL asked for 720p60, but the URL is only a preference that
+adaptive bitrate overrides — measured for the preview, in 3.26. The quality
+is now set as in the room: through Twitch's player instance, in the
+channel's real ladder. The banner tells its player the height the video
+fills, in screen pixels — density included —, when it loads and on every
+size change; the bridge sets the closest, one step above, and never below
+720p when the channel has it. It sets it again if the player falls back to
+automatic — five times at most per height, never during an ad —, and
+re-reads the instance every five seconds: the ad blocker, in the same frame,
+may reload the player. The report gives the height and what the player
+plays: `heros.video.hauteur`, `.qualite`, `.auto`.
+
+One more message name shared between the bridges and the main module:
+seventeen.
+
+### What couldn't be checked
+
+Twitch's player instance, how it is found in the page's tree and
+`setQuality` are the ones the room has used since 4.24.0.10, on the real
+player; the bench imitates them. Whether the ad blocker, after an ad,
+leaves a player whose quality holds can only be seen for real: the report
+will say.
+
+### The bench
+
+- 31: opened off the home page — the banner, which now shows there with no
+  visit, asks for its own pictures, in other slices than the preview's
+  thumbnail;
+- 207 δ): the purge of the database awaited up to five seconds, not six
+  hundred milliseconds — under the full bench's load, the write came
+  after;
+- 216, revised: with no visit, the banner takes the first of the live
+  followed channels, and the carousel only comes back with no followed
+  channel live; j') the quality — 720p60 at 1600 × 1000, out of automatic;
+  at 1280 × 800, 320 pixels, 480p one step up: the floor gives 720p60, in
+  the re-placed player's URL as in the bridge; 1080p60 at 2560 × 1440; and
+  the report;
+- 216 k), revised: the player's placings and removals counted from k), j')
+  having re-placed the player once;
+- 220, revised: the visited channel going live takes the banner back in the
+  very batch; e') with neither visit nor row, the early fetch asks for the
+  followed channels and the banner is painted when the veil lifts;
+  "nothing to wait for" becomes neither banner nor row;
+- 222 a'): the colour of each kind of fact, its border and its dot, on our
+  cards and on Twitch's;
+- 223, rewritten: the preview of a stream with two categories — its trail,
+  and no "Since …", no clips line, no request, no report line;
+- 226: the nodes counted are Twitch's alone — the banner, which now shows,
+  also lives in `<main>`.
+
+**Thirteen named mutants, all caught.**
+
+| mutant | what falls |
+| --- | --- |
+| a visit required for the banner | 216 e): no banner, the carousel comes back |
+| the early fetch without the followed channels for the banner | 220 e'): the veil lifts before the banner |
+| the fallback not reported | 216 e): `heros.sansVisite` false |
+| a single colour | 222 a'): every label white |
+| the border forgotten | 222 a'): a transparent border |
+| the dot forgotten | 222 a'): no dot |
+| the rank in red | 222 a'): "#3 in French" in red |
+| no quality set | 216 j'): the player stays on automatic, at 360p |
+| the floor forgotten in the bridge | 216 j'): 480p30 at 1280 × 800 |
+| the URL below the floor | 216 j'): 480p30 in the URL at 1280 × 800 |
+| the size never read again | 216 j'): still 720p60 at 2560 × 1440 |
+| the height miscounted | 216 j'): the height told is not the video's |
+| the absence's most viewed lost | 224: no more "Most viewed" in the banner |
+
+The full bench: 2252 assertions in 225 scenarios, all green.
+
 ## The home page, level 2: tidying Twitch's home page (v4.32.0)
 
 The sixth and last idea of level 2. Published on `claude/chrome-homepage` only.
@@ -23527,7 +23654,7 @@ Four independent checks:
 | `npm run lint` | the six shipped JavaScript files — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 225 scenarios, 2258 assertions |
+| `npm test` | the Playwright harness: 225 scenarios, 2252 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -23547,13 +23674,13 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 2136 KB | 984 KB | 4,614 → **2** |
-| `cadres.js` | 68 KB | 31 KB | 160 → **0** |
+| `content.js` | 2126 KB | 976 KB | 4,609 → **2** |
+| `cadres.js` | 73 KB | 34 KB | 168 → **0** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
 | `panneau.js` | 162 KB | 82 KB | 224 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 26 → **0** |
 | `background.js` | 10 KB | 2 KB | 22 → **0** |
-| **all six** | **2515 KB** | **1203 KB** | **−52 %** |
+| **all six** | **2511 KB** | **1198 KB** | **−52 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are

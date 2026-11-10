@@ -152,9 +152,11 @@ const TSE_PREVIEW_FIRST_FRAME_MSG = 'tse:preview-first-frame';
 const TSE_PREVIEW_GATE_MSG = 'tse:preview-gate';
 const TSE_PREVIEW_HELLO_MSG = 'tse:preview-hello';
 const TSE_PREVIEW_FRAME_NAME = 'tse-apercu';
-// Le lecteur du héros de l'accueil, qui porte ce même nom : la demande d'ambiance, et ses couleurs.
+// Le lecteur du héros de l'accueil, qui porte ce même nom : la demande d'ambiance, et ses couleurs ;
+// la hauteur que sa vidéo remplit, et la qualité qu'il en joue (4.32.0.1).
 const TSE_AMBIANCE_MSG = 'tse:ambiance';
 const TSE_AMBIANCE_PX_MSG = 'tse:ambiance-px';
+const TSE_HEROS_QUALITE_MSG = 'tse:heros-qualite';
 // Le levage de l'interstitielle de classification, que la salle cite à son rapport.
 const TSE_GATE_ENABLED = true;
 // La salle multistream : ses lecteurs, ses chats, et ce qu'ils échangent.
@@ -544,24 +546,17 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiEtiqTendance:            (p, m) => `↗ +${p} % en ${m} min`,
       uiEtiqRangLangue:          (n) => `N°${n} en français`,
       uiEtiqCostream:            (n) => `Co-stream à ${n}`,
-      /* LE RÉCAP DU DIRECT (4.29.0, cf. LE RÉCAP). `h` : une heure déjà écrite ;
-         `e` : les étapes déjà écrites, ou null ;
-         `n` : des clips, `plus` : la page était pleine — c'est un minimum ;
-         `jour` : comptés sur les vingt-quatre dernières heures seulement ;
-         `t`, `v`, `nv` : le titre du plus vu, ses vues écrites, et leur nombre. */
-      uiRecapDepuis:             (h, e) => (e ? `Depuis ${h} : ${e}` : `Depuis ${h}`),
-      uiRecapClips:              (n, plus, jour) => `${n}${plus ? '+' : ''} clip${n > 1 || plus ? 's' : ''}${jour ? ' en 24 h' : ''}`,
-      uiRecapSansClip:           'Aucun clip',
-      uiRecapPlusVu:             (t, v, nv) => `le plus vu : « ${t} » (${v} vue${nv > 1 ? 's' : ''})`,
       /* PENDANT VOTRE ABSENCE (4.30.0, cf. ABSENCE). `j` : des jours ; `borne` :
          l'absence passe les sept jours que l'agenda couvre ; `n`, `d` : des
-         directs et leur durée déjà écrite. */
+         directs et leur durée déjà écrite ; `t`, `v`, `nv` : le titre du plus
+         vu de ses clips, ses vues écrites, et leur nombre. */
       uiAbsTitre:                'Pendant votre absence',
       uiAbsSous:                 (j, borne) => (borne ? `Depuis votre dernière visite, il y a ${j} jours — les sept derniers`
                                                       : `Depuis votre dernière visite, il y a ${j} jour${j > 1 ? 's' : ''}`),
       uiAbsDirects:              (n, d) => `${n} direct${n > 1 ? 's' : ''} · ${d}`,
       uiAbsSansRedif:            'A diffusé, sans rediffusion',
       uiAbsRevoir:               'Revoir le dernier',
+      uiAbsPlusVu:               (t, v, nv) => `le plus vu : « ${t} » (${v} vue${nv > 1 ? 's' : ''})`,
       uiAccPourquoi:             (nom) => `Parce que vous regardez souvent ${nom}`,
       uiAccPourquoiVisites:      (n, auMoins) => `${auMoins ? 'au moins ' : ''}${n} visite${n > 1 ? 's' : ''} en 30 jours`,
       uiAccPourquoiOu:           (jeu, langue) => (langue === null ? jeu : `${jeu}, en français`),
@@ -823,16 +818,13 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiEtiqTendance:            (p, m) => `↗ +${p}% in ${m} min`,
       uiEtiqRangLangue:          (n, langue) => `#${n} in ${langue || 'English'}`,
       uiEtiqCostream:            (n) => `Co-stream of ${n} channels`,
-      uiRecapDepuis:             (h, e) => (e ? `Since ${h}: ${e}` : `Since ${h}`),
-      uiRecapClips:              (n, plus, jour) => `${n}${plus ? '+' : ''} clip${n !== 1 || plus ? 's' : ''}${jour ? ' in 24 h' : ''}`,
-      uiRecapSansClip:           'No clips',
-      uiRecapPlusVu:             (t, v, nv) => `most viewed: “${t}” (${v} view${nv === 1 ? '' : 's'})`,
       uiAbsTitre:                'While you were away',
       uiAbsSous:                 (j, borne) => (borne ? `Since your last visit, ${j} days ago — the last seven`
                                                       : `Since your last visit, ${j} day${j === 1 ? '' : 's'} ago`),
       uiAbsDirects:              (n, d) => `${n} stream${n === 1 ? '' : 's'} · ${d}`,
       uiAbsSansRedif:            'Streamed, no replay',
       uiAbsRevoir:               'Watch the last one',
+      uiAbsPlusVu:               (t, v, nv) => `most viewed: “${t}” (${v} view${nv === 1 ? '' : 's'})`,
       uiAccPourquoi:             (nom) => `Because you often watch ${nom}`,
       uiAccPourquoiVisites:      (n, auMoins) => `${auMoins ? 'at least ' : ''}${n} visit${n === 1 ? '' : 's'} in 30 days`,
       uiAccPourquoiOu:           (jeu, langue) => (langue === null ? jeu : `${jeu}, in ${langue || 'English'}`),
@@ -1069,16 +1061,13 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiEtiqTendance:            (p, m) => `↗ +${p} % in ${m} Min.`,
       uiEtiqRangLangue:          (n) => `Platz ${n} auf Deutsch`,
       uiEtiqCostream:            (n) => `Co-Stream mit ${n} Kanälen`,
-      uiRecapDepuis:             (h, e) => (e ? `Seit ${h}: ${e}` : `Seit ${h}`),
-      uiRecapClips:              (n, plus, jour) => `${n}${plus ? '+' : ''} Clip${n !== 1 || plus ? 's' : ''}${jour ? ' in 24 Std.' : ''}`,
-      uiRecapSansClip:           'Keine Clips',
-      uiRecapPlusVu:             (t, v, nv) => `meistgesehen: „${t}“ (${v} Aufruf${nv === 1 ? '' : 'e'})`,
       uiAbsTitre:                'Während du weg warst',
       uiAbsSous:                 (j, borne) => (borne ? `Seit deinem letzten Besuch vor ${j} Tagen – die letzten sieben`
                                                       : `Seit deinem letzten Besuch vor ${j} Tag${j === 1 ? '' : 'en'}`),
       uiAbsDirects:              (n, d) => `${n} Stream${n === 1 ? '' : 's'} · ${d}`,
       uiAbsSansRedif:            'Hat gestreamt, ohne Aufzeichnung',
       uiAbsRevoir:               'Den letzten ansehen',
+      uiAbsPlusVu:               (t, v, nv) => `meistgesehen: „${t}“ (${v} Aufruf${nv === 1 ? '' : 'e'})`,
       uiAccPourquoi:             (nom) => `Weil du oft ${nom} schaust`,
       uiAccPourquoiVisites:      (n, auMoins) => `${auMoins ? 'mindestens ' : ''}${n} Besuch${n === 1 ? '' : 'e'} in 30 Tagen`,
       uiAccPourquoiOu:           (jeu, langue) => (langue === null ? jeu : `${jeu}, auf Deutsch`),
@@ -1315,16 +1304,13 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiEtiqTendance:            (p, m) => `↗ +${p} % en ${m} min`,
       uiEtiqRangLangue:          (n) => `N.º ${n} en español`,
       uiEtiqCostream:            (n) => `Co-stream de ${n} canales`,
-      uiRecapDepuis:             (h, e) => (e ? `Desde las ${h}: ${e}` : `Desde las ${h}`),
-      uiRecapClips:              (n, plus, jour) => `${n}${plus ? '+' : ''} clip${n !== 1 || plus ? 's' : ''}${jour ? ' en 24 h' : ''}`,
-      uiRecapSansClip:           'Ningún clip',
-      uiRecapPlusVu:             (t, v, nv) => `el más visto: «${t}» (${v} vista${nv === 1 ? '' : 's'})`,
       uiAbsTitre:                'Mientras no estabas',
       uiAbsSous:                 (j, borne) => (borne ? `Desde tu última visita, hace ${j} días — los siete últimos`
                                                       : `Desde tu última visita, hace ${j} día${j === 1 ? '' : 's'}`),
       uiAbsDirects:              (n, d) => `${n} directo${n === 1 ? '' : 's'} · ${d}`,
       uiAbsSansRedif:            'Emitió, sin repetición',
       uiAbsRevoir:               'Ver el último',
+      uiAbsPlusVu:               (t, v, nv) => `el más visto: «${t}» (${v} vista${nv === 1 ? '' : 's'})`,
       uiAccPourquoi:             (nom) => `Porque sueles ver a ${nom}`,
       uiAccPourquoiVisites:      (n, auMoins) => `${auMoins ? 'al menos ' : ''}${n} visita${n === 1 ? '' : 's'} en 30 días`,
       uiAccPourquoiOu:           (jeu, langue) => (langue === null ? jeu : `${jeu}, en español`),
@@ -1561,16 +1547,13 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiEtiqTendance:            (p, m) => `↗ +${p}% em ${m} min`,
       uiEtiqRangLangue:          (n) => `Nº ${n} em português`,
       uiEtiqCostream:            (n) => `Co-stream com ${n} canais`,
-      uiRecapDepuis:             (h, e) => (e ? `Desde ${h}: ${e}` : `Desde ${h}`),
-      uiRecapClips:              (n, plus, jour) => `${n}${plus ? '+' : ''} clipe${n !== 1 || plus ? 's' : ''}${jour ? ' em 24 h' : ''}`,
-      uiRecapSansClip:           'Nenhum clipe',
-      uiRecapPlusVu:             (t, v, nv) => `o mais visto: «${t}» (${v} visualizaç${nv === 1 ? 'ão' : 'ões'})`,
       uiAbsTitre:                'Enquanto você esteve fora',
       uiAbsSous:                 (j, borne) => (borne ? `Desde a sua última visita, há ${j} dias — os últimos sete`
                                                       : `Desde a sua última visita, há ${j} dia${j === 1 ? '' : 's'}`),
       uiAbsDirects:              (n, d) => `${n} transmiss${n === 1 ? 'ão' : 'ões'} · ${d}`,
       uiAbsSansRedif:            'Transmitiu, sem reprise',
       uiAbsRevoir:               'Rever a última',
+      uiAbsPlusVu:               (t, v, nv) => `o mais visto: «${t}» (${v} visualizaç${nv === 1 ? 'ão' : 'ões'})`,
       uiAccPourquoi:             (nom) => `Porque você assiste muito a ${nom}`,
       uiAccPourquoiVisites:      (n, auMoins) => `${auMoins ? 'pelo menos ' : ''}${n} visita${n === 1 ? '' : 's'} em 30 dias`,
       uiAccPourquoiOu:           (jeu, langue) => (langue === null ? jeu : `${jeu}, em português`),
@@ -1807,16 +1790,13 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiEtiqTendance:            (p, m) => `↗ +${p}% in ${m} min`,
       uiEtiqRangLangue:          (n) => `N. ${n} in italiano`,
       uiEtiqCostream:            (n) => `Co-stream con ${n} canali`,
-      uiRecapDepuis:             (h, e) => (e ? `Dalle ${h}: ${e}` : `Dalle ${h}`),
-      uiRecapClips:              (n, plus, jour) => `${n}${plus ? '+' : ''} clip${jour ? ' in 24 ore' : ''}`,
-      uiRecapSansClip:           'Nessuna clip',
-      uiRecapPlusVu:             (t, v, nv) => `la più vista: «${t}» (${v} visualizzazion${nv === 1 ? 'e' : 'i'})`,
       uiAbsTitre:                'Mentre eri via',
       uiAbsSous:                 (j, borne) => (borne ? `Dalla tua ultima visita, ${j} giorni fa — gli ultimi sette`
                                                       : `Dalla tua ultima visita, ${j} giorn${j === 1 ? 'o' : 'i'} fa`),
       uiAbsDirects:              (n, d) => `${n} dirett${n === 1 ? 'a' : 'e'} · ${d}`,
       uiAbsSansRedif:            'Ha trasmesso, senza replica',
       uiAbsRevoir:               'Rivedi l\'ultima',
+      uiAbsPlusVu:               (t, v, nv) => `la più vista: «${t}» (${v} visualizzazion${nv === 1 ? 'e' : 'i'})`,
       uiAccPourquoi:             (nom) => `Perché guardi spesso ${nom}`,
       uiAccPourquoiVisites:      (n, auMoins) => `${auMoins ? 'almeno ' : ''}${n} visit${n === 1 ? 'a' : 'e'} in 30 giorni`,
       uiAccPourquoiOu:           (jeu, langue) => (langue === null ? jeu : `${jeu}, in italiano`),
@@ -2054,16 +2034,13 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiEtiqTendance:            (p, m) => `↗ +${p}% w ${m} min`,
       uiEtiqRangLangue:          (n) => `Nr ${n} po polsku`,
       uiEtiqCostream:            (n) => `Co-stream: ${n} ${plurielSlave(n, ['kanał', 'kanały', 'kanałów'])}`,
-      uiRecapDepuis:             (h, e) => (e ? `Od ${h}: ${e}` : `Od ${h}`),
-      uiRecapClips:              (n, plus, jour) => `${n}${plus ? '+' : ''} ${plus ? 'klipów' : plurielSlave(n, ['klip', 'klipy', 'klipów'])}${jour ? ' w 24 h' : ''}`,
-      uiRecapSansClip:           'Brak klipów',
-      uiRecapPlusVu:             (t, v) => `najczęściej oglądany: „${t}” (${v} wyśw.)`,
       uiAbsTitre:                'Podczas twojej nieobecności',
       uiAbsSous:                 (j, borne) => (borne ? `Od ostatniej wizyty, ${j} dni temu — ostatnie siedem`
                                                       : `Od ostatniej wizyty, ${j === 1 ? 'dzień' : j + ' dni'} temu`),
       uiAbsDirects:              (n, d) => `${n} ${plurielSlave(n, ['transmisja', 'transmisje', 'transmisji'])} · ${d}`,
       uiAbsSansRedif:            'Nadawał, bez powtórki',
       uiAbsRevoir:               'Obejrzyj ostatnią',
+      uiAbsPlusVu:               (t, v) => `najczęściej oglądany: „${t}” (${v} wyśw.)`,
       uiAccPourquoi:             (nom) => `Bo często oglądasz ${nom}`,
       uiAccPourquoiVisites:      (n, auMoins) => {
         const m10 = n % 10, m100 = n % 100;
@@ -2305,15 +2282,12 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiEtiqTendance:            (p, m) => `↗ +${p}% за ${m} мин`,
       uiEtiqRangLangue:          (n) => `№ ${n} на русском`,
       uiEtiqCostream:            (n) => `Совместный стрим: ${n} ${plurielSlave(n, ['канал', 'канала', 'каналов'])}`,
-      uiRecapDepuis:             (h, e) => (e ? `С ${h}: ${e}` : `С ${h}`),
-      uiRecapClips:              (n, plus, jour) => `${n}${plus ? '+' : ''} ${plus ? 'клипов' : plurielSlave(n, ['клип', 'клипа', 'клипов'])}${jour ? ' за 24 ч' : ''}`,
-      uiRecapSansClip:           'Нет клипов',
-      uiRecapPlusVu:             (t, v) => `самый просматриваемый: «${t}» (${v} просм.)`,
       uiAbsTitre:                'Пока вас не было',
       uiAbsSous:                 (j, borne) => `С вашего последнего визита, ${j} ${plurielSlave(j, ['день', 'дня', 'дней'])} назад${borne ? ' — последние семь' : ''}`,
       uiAbsDirects:              (n, d) => `${n} ${plurielSlave(n, ['трансляция', 'трансляции', 'трансляций'])} · ${d}`,
       uiAbsSansRedif:            'Был в эфире, без записи',
       uiAbsRevoir:               'Смотреть последнюю',
+      uiAbsPlusVu:               (t, v) => `самый просматриваемый: «${t}» (${v} просм.)`,
       uiAccPourquoi:             (nom) => `Потому что вы часто смотрите ${nom}`,
       uiAccPourquoiVisites:      (n, auMoins) => {
         const m10 = n % 10, m100 = n % 100;
@@ -2554,15 +2528,12 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiEtiqTendance:            (p, m) => `↗ ${m} 分で +${p}%`,
       uiEtiqRangLangue:          (n) => `日本語で ${n} 位`,
       uiEtiqCostream:            (n) => `${n} チャンネルでコラボ配信`,
-      uiRecapDepuis:             (h, e) => (e ? `${h} から：${e}` : `${h} から`),
-      uiRecapClips:              (n, plus, jour) => `クリップ ${n}${plus ? '+' : ''} 本${jour ? '（24 時間）' : ''}`,
-      uiRecapSansClip:           'クリップなし',
-      uiRecapPlusVu:             (t, v) => `最多再生：「${t}」（${v} 回）`,
       uiAbsTitre:                'お留守の間に',
       uiAbsSous:                 (j, borne) => `前回の訪問から ${j} 日${borne ? ' — 直近 7 日分' : ''}`,
       uiAbsDirects:              (n, d) => `配信 ${n} 回 · ${d}`,
       uiAbsSansRedif:            '配信あり（アーカイブなし）',
       uiAbsRevoir:               '最新の配信を見る',
+      uiAbsPlusVu:               (t, v) => `最多再生：「${t}」（${v} 回）`,
       uiAccPourquoi:             (nom) => `${nom}をよく見ているので`,
       uiAccPourquoiVisites:      (n, auMoins) => `30日間で${auMoins ? '少なくとも' : ''}${n}回の訪問`,
       uiAccPourquoiOu:           (jeu, langue) => (langue === null ? jeu : `${jeu}・日本語`),
@@ -2797,15 +2768,12 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiEtiqTendance:            (p, m) => `↗ ${m} 分钟内 +${p}%`,
       uiEtiqRangLangue:          (n) => `中文第 ${n} 名`,
       uiEtiqCostream:            (n) => `${n} 个频道联合直播`,
-      uiRecapDepuis:             (h, e) => (e ? `自 ${h} 起：${e}` : `自 ${h} 起`),
-      uiRecapClips:              (n, plus, jour) => `${n}${plus ? '+' : ''} 个剪辑${jour ? '（24 小时内）' : ''}`,
-      uiRecapSansClip:           '没有剪辑',
-      uiRecapPlusVu:             (t, v) => `播放最多：「${t}」（${v} 次）`,
       uiAbsTitre:                '你不在的时候',
       uiAbsSous:                 (j, borne) => `距上次访问 ${j} 天${borne ? '——仅显示最近 7 天' : ''}`,
       uiAbsDirects:              (n, d) => `${n} 场直播 · ${d}`,
       uiAbsSansRedif:            '有直播，无回放',
       uiAbsRevoir:               '观看最近一场',
+      uiAbsPlusVu:               (t, v) => `播放最多：「${t}」（${v} 次）`,
       uiAccPourquoi:             (nom) => `因为你常看 ${nom}`,
       uiAccPourquoiVisites:      (n, auMoins) => `30 天内${auMoins ? '至少' : ''}访问 ${n} 次`,
       uiAccPourquoiOu:           (jeu, langue) => (langue === null ? jeu : `${jeu}・中文`),
@@ -4306,11 +4274,6 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        ne dit que `clips(first:)` soit plus généreux. Demander moins que ce
        plafond ne coûte rien ; le dépasser a déjà coûté une version. */
     CATEGORY_TRAIL_CLIPS: 30,
-    /* LE RÉCAP DU DIRECT (4.29.0, cf. LE RÉCAP) : ses clips, demandés à
-       l'ouverture de l'aperçu, une fois par direct et par dix minutes. Trente,
-       le même plafond que la troisième porte. */
-    RECAP_CLIPS:          30,
-    RECAP_TTL:            10 * 60_000,
     // En deçà, on considère avoir vu le stream depuis son début. Le relevé
     // tourne toutes les 30 s : sans cette tolérance, TOUTE frise porterait un
     // segment « non observé » de quelques secondes, dû à notre seule latence
@@ -4428,12 +4391,17 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     ACCUEIL_INSTANTANE_MS:  60_000,
     ACCUEIL_IMAGE_MS:       60_000, // l'image du héros se relit à la minute
     /* La vidéo du héros (4.26.0.2), cf. poserLecteur. Le lecteur est celui de
-       l'aperçu, en plus grand : 720p60 pour un cadre qui fait la moitié de la
-       largeur — le lecteur prend la plus proche quand la chaîne ne la sert
-       pas. Son document a huit secondes pour arriver, l'image restant à
-       l'écran ; un lecteur qui n'a pas pris se retente cinq minutes plus tard,
-       jamais à chaque peinture. */
+       l'aperçu, en plus grand. SA QUALITÉ (4.32.0.1, « augmente la qualité ») :
+       celle de la salle, d'après la hauteur du cadre en pixels d'écran — la
+       plus proche, un cran au-dessus —, et jamais moins que 720p, ce que
+       l'URL demandait jusque-là sans l'obtenir : l'adaptation de débit la
+       passait. Le pont la pose dans l'échelle réelle de la chaîne ; l'URL en
+       porte la plus proche des qualités usuelles. Son document
+       a huit secondes pour arriver, l'image restant à l'écran ; un lecteur
+       qui n'a pas pris se retente cinq minutes plus tard, jamais à chaque
+       peinture. */
     ACCUEIL_VIDEO_QUALITE:  '720p60',
+    ACCUEIL_VIDEO_PLANCHER: 720,
     ACCUEIL_VIDEO_DELAI_MS: 8_000,
     ACCUEIL_VIDEO_REPRISE_MS: 5 * 60_000,
     // L'ambiance : chaque relevé du lecteur se fond sur le précédent, en ce temps.
@@ -4575,7 +4543,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     badges:          { defaut: [],        type: 'jeu', css: true,
                        valeurs: ['ccl', 'costream', 'squad', 'sub', 'exsub',
                                  'sponsor', 'hype', 'discount', 'switch',
-                                 'reprise', 'subathon', 'recap'] },
+                                 'reprise', 'subathon'] },
 
     /* — La carte dans la barre — */
     duree:           { defaut: true,      type: 'bool', css: true },
@@ -8028,15 +7996,6 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        vers le bas donne du relief aux parts et aux traits, le fond du ruban
        est creusé plutôt que clair, et le segment en cours porte une tête de
        lecture à son extrémité droite. */
-    /* LE RÉCAP DU DIRECT (4.29.0) : deux lignes sobres entre les badges et la
-       frise — d'où vient le direct, puis ce que ses clips en ont gardé. Un
-       titre trop long se coupe, il ne pousse rien. Sans marge propre : c'est
-       l'écart du corps qui le sépare de ses voisins, comme la frise (cf. 80). */
-    .tse-preview__recap { margin: 0; font-size: 12px; line-height: 1.4; color: rgba(255, 255, 255, 0.82); }
-    .tse-preview__recap-ligne { margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .tse-preview__recap-ligne + .tse-preview__recap-ligne { color: rgba(255, 255, 255, 0.66); }
-    html[data-tse-theme="light"] .tse-preview__recap { color: rgba(0, 0, 0, 0.78); }
-    html[data-tse-theme="light"] .tse-preview__recap-ligne + .tse-preview__recap-ligne { color: rgba(0, 0, 0, 0.62); }
     .tse-preview__frise {
       /* AUCUNE MARGE PROPRE, et c'est voulu. Le corps du popup est une colonne
          flex à « gap: 6px » : cette marge s'ajoutait au gap et creusait quinze
@@ -8545,8 +8504,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     html[data-tse-off~="badge-discount"] .tse-preview__badge--discount,
     html[data-tse-off~="badge-switch"]   .tse-preview__badge--switch,
     html[data-tse-off~="badge-reprise"]  .tse-preview__badge--reprise,
-    html[data-tse-off~="badge-subathon"] .tse-preview__badge--subathon,
-    html[data-tse-off~="badge-recap"]    .tse-preview__recap {
+    html[data-tse-off~="badge-subathon"] .tse-preview__badge--subathon {
       display: none !important;
     }
 
@@ -8888,10 +8846,23 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     .tse-acc-vignette[data-tse-etiquette]::after,
     main a[data-a-target="preview-card-image-link"][data-tse-etiquette]::after {
       content: attr(data-tse-etiquette); position: absolute; right: 8px; bottom: 8px; z-index: 3;
-      max-width: calc(55% - 8px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-      padding: 0 6px; border-radius: 4px; background: rgba(0, 0, 0, 0.72); color: #fff;
-      font-family: inherit; font-size: 12px; font-weight: 600; line-height: 18px; pointer-events: none;
+      box-sizing: border-box; max-width: calc(55% - 8px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      height: 22px; padding: 0 9px 0 22px; border: 1px solid currentColor; border-radius: 999px;
+      background: radial-gradient(circle at 12.5px 50%, currentColor 3.5px, transparent 4px), rgba(14, 14, 16, 0.86);
+      color: var(--tse-etiq-couleur, #fff); font-family: inherit; font-size: 12px; font-weight: 700; line-height: 20px;
+      pointer-events: none;
     }
+    /* LA COULEUR DIT LA SORTE DE FAIT (4.32.0.1), celle de la maquette : le
+       texte, le bord et le point d'une même couleur, sur un fond sombre. Une
+       variable posée sur la carte, que son ::after hérite : la règle du
+       dessus, plus précise, n'a pas à être répétée par sorte. */
+    [data-tse-etiq="retour"]   { --tse-etiq-couleur: #6bdb9d; }
+    [data-tse-etiq="subathon"] { --tse-etiq-couleur: #ffe38f; }
+    [data-tse-etiq="commence"] { --tse-etiq-couleur: #ff6b62; }
+    [data-tse-etiq="bascule"]  { --tse-etiq-couleur: #bf94ff; }
+    [data-tse-etiq="tendance"] { --tse-etiq-couleur: #6bdb9d; }
+    [data-tse-etiq="rang"]     { --tse-etiq-couleur: #ffd68a; }
+    [data-tse-etiq="costream"] { --tse-etiq-couleur: #8fc7ff; }
     main a[data-a-target="preview-card-image-link"][data-tse-etiquette] { position: relative; }
     /* RANGER L'ACCUEIL DE TWITCH (4.32.0, cf. RANGER). Des attributs sur ses
        nœuds, et ces règles : rien de retiré, rien d'ajouté. Le « Masquer »
@@ -16291,6 +16262,21 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
    *  Faute de preuve, rien n'est masqué : on pose nos rayons, et
    *  le carrousel reste.
    * ============================================================ */
+  /* LES QUALITÉS USUELLES d'un direct, pour l'URL d'un lecteur : la plus
+     proche d'une hauteur en pixels d'écran, en proportion, puis un cran
+     au-dessus, comme dans le pont (cf. choisirQualite, cadres.js). Une
+     préférence que le lecteur suit au démarrage, avant que le pont ne pose
+     la qualité exacte dans l'échelle réelle de la chaîne. La salle
+     (4.24.0.10) et la bannière de l'accueil (4.32.0.1) s'en servent. */
+  const QUALITES_USUELLES = [[160, '160p30'], [360, '360p30'], [480, '480p30'], [720, '720p60'], [1080, '1080p60']];
+  const qualiteUsuelle = (h) => {
+    let i = 0;
+    QUALITES_USUELLES.forEach((q, k) => {
+      if (Math.abs(Math.log(q[0] / h)) <= Math.abs(Math.log(QUALITES_USUELLES[i][0] / h))) i = k;
+    });
+    return QUALITES_USUELLES[Math.min(i + 1, QUALITES_USUELLES.length - 1)][1];
+  };
+
   const pageAccueil = (() => {
     const ID = 'tse-accueil';
     /* LE HÉROS VIT HORS DE LA SECTION (4.26.0.3), en tête du défileur de la
@@ -16376,7 +16362,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       synchrones: 0,
       carrousel: { voie: null, signature: null, masquages: 0, pauses: 0, reprises: 0 },
       heros: { montre: false, sansVisite: false, place: null, rejets: [], attentes: 0, precharges: 0,
-               video: { poses: 0, premieres: 0, filets: 0, modales: 0, retours: 0, delais: 0, retraits: 0 },
+               video: { poses: 0, premieres: 0, filets: 0, modales: 0, retours: 0, delais: 0, retraits: 0,
+                        // La qualité (4.32.0.1) : la hauteur dite au pont, et ce que le lecteur en joue.
+                        hauteur: null, qualite: null, auto: null },
                ambiance: { demandes: 0, images: 0, rejets: 0 } },
       top: { source: null, instantanes: 0 },
       debut: { envois: 0, demandes: 0, archives: 0, sansArchive: 0, sansStream: 0,
@@ -16563,15 +16551,17 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     const maintenant = () => Math.round(performance.now());
     const veutDonnees = () => options.get('accueilTete') === 'heros' || !!options.get('accueilSuivis');
     /* Ce qu'il faut savoir avant de peindre : les chaînes visitées — le héros
-       est l'une d'elles — et, pour le rayon, les chaînes suivies dans la
-       limite de ce que la barre sonde elle-même (cf. pollRoster). */
+       est l'une d'elles quand l'une est en direct — et les chaînes suivies
+       dans la limite de ce que la barre sonde elle-même (cf. pollRoster) :
+       pour le rayon, et pour le héros quand aucune chaîne visitée n'est en
+       direct — il prend alors la première du rayon (4.32.0.1). */
     const candidats = () => {
       const tete = options.get('accueilTete') === 'heros';
       const rayon = !!options.get('accueilSuivis');
       const out = [];
       let budget = CFG.AHEAD_MAX_POLL;
       for (const [login] of roster.entries()) {
-        if (rayon && budget-- > 0) out.push(login);
+        if ((rayon || tete) && budget-- > 0) out.push(login);
         else if (tete && visits.scoreFor(login) > 0) out.push(login);
       }
       return out;
@@ -16623,7 +16613,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       const tete = options.get('accueilTete');
       const liste = (options.get('accueilSuivis') || tete === 'heros') ? suiviesEnDirect() : [];
       const premier = liste[0] || null;
-      const heros = tete === 'heros' && premier && premier.score > 0 ? premier : null;
+      const heros = tete === 'heros' && premier ? premier : null;
       return { tete, liste, premier, heros };
     };
     const urlsHeros = (login) => {
@@ -17457,9 +17447,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     });
 
     /* ── LE HÉROS ────────────────────────────────────────────────────────────
-       Celle que vous regardez le plus, et seulement si vous l'avez regardée :
-       sans aucune visite comptée, aucune chaîne n'est « la plus regardée »,
-       et le carrousel de Twitch garde sa place.
+       La première de « Vos chaînes suivies en direct » : celle que vous
+       regardez le plus ; sans aucune visite comptée parmi elles, la plus
+       regardée en spectateurs (4.32.0.1 — jusque-là, le carrousel de Twitch
+       revenait, et la bannière manquait, signalé). Le carrousel ne revient
+       que si aucune chaîne suivie n'est en direct.
 
        LE PANNEAU DE LA MAQUETTE (4.26.0.1), sur toute la largeur (4.26.0.2).
        Il tenait son format — 18:5 —, et sa hauteur plafonnée lui imposait
@@ -17549,10 +17541,24 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
 
        IL NE JOUE QUE S'IL SE VOIT. Onglet caché, héros sorti de la vue, autre
        page, réglage coupé : le lecteur est retiré, et son flux avec. */
-    const urlLecteur = (login) => 'https://player.twitch.tv/?' + new URLSearchParams({
-      channel: login, parent: 'twitch.tv', player: 'popout', quality: CFG.ACCUEIL_VIDEO_QUALITE,
+    const urlLecteur = (login, h) => 'https://player.twitch.tv/?' + new URLSearchParams({
+      channel: login, parent: 'twitch.tv', player: 'popout', quality: qualiteHeros(h),
       muted: 'true', controls: 'false', autoplay: 'true',
     });
+    // La qualité usuelle d'une hauteur, jamais sous le plancher ; le plancher sans hauteur.
+    const qualiteHeros = (h) => {
+      const q = h ? qualiteUsuelle(h) : null;
+      return q && parseInt(q, 10) >= CFG.ACCUEIL_VIDEO_PLANCHER ? q : CFG.ACCUEIL_VIDEO_QUALITE;
+    };
+    /* LA HAUTEUR QUE LA VIDÉO REMPLIT, en pixels d'ÉCRAN (4.32.0.1) : celle du
+       cadre — un 16:9 que la largeur peut rogner — fois la densité de
+       l'écran. C'est elle que la qualité vise, comme pour une tuile de la
+       salle. Null tant que le cadre n'a pas de taille. */
+    const hauteurVideoHeros = (media) => {
+      const r = media.getBoundingClientRect();
+      const h = Math.min(r.height, r.width * 9 / 16);
+      return h > 0 ? Math.round(h * (window.devicePixelRatio || 1)) : null;
+    };
     const ORIGINE_LECTEUR = 'https://player.twitch.tv';
     const oterLecteur = () => {
       const l = lecteur;
@@ -17560,6 +17566,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       lecteur = null;
       for (const k of Object.keys(l.t)) clearTimeout(l.t[k]);
       window.removeEventListener('message', l.ecoute);
+      if (l.taille) l.taille.disconnect();
       // about:blank avant le retrait : le flux et ses tampons partent tout de suite.
       try { l.iframe.src = 'about:blank'; } catch { /* frame partie */ }
       l.iframe.remove();
@@ -17570,13 +17577,29 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       const iframe = elt('iframe', 'tse-acc-heros-video');
       // Le nom d'abord, l'adresse ensuite : le pont et l'anti-pub le lisent dès document_start.
       iframe.name = TSE_PREVIEW_FRAME_NAME;
-      iframe.src = urlLecteur(login);
+      iframe.src = urlLecteur(login, hauteurVideoHeros(media));
       iframe.setAttribute('allow', 'autoplay; encrypted-media');
       // Une image qui bouge, rien à atteindre : le lien est dessous, et le bouton « Regarder ».
       iframe.setAttribute('aria-hidden', 'true');
       iframe.tabIndex = -1;
-      const l = { login, cle, iframe, devoile: false, modale: false, t: {}, ecoute: null };
+      const l = { login, cle, iframe, devoile: false, modale: false, t: {}, ecoute: null,
+                  charge: false, hauteurEnvoyee: null, taille: null };
       const annuler = (k) => { if (l.t[k]) { clearTimeout(l.t[k]); delete l.t[k]; } };
+      /* La hauteur que la vidéo remplit, dite au pont du lecteur, qui y pose la
+         qualité (cf. cadres.js, LA QUALITÉ DE LA BANNIÈRE) : à son chargement,
+         puis à chaque changement de taille du cadre — une seule fois par
+         hauteur. */
+      const direHauteur = () => {
+        if (lecteur !== l || !l.charge) return;
+        const h = hauteurVideoHeros(media);
+        if (!h || h === l.hauteurEnvoyee) return;
+        try {
+          iframe.contentWindow.postMessage({ tse: TSE_HEROS_QUALITE_MSG, hauteur: h, plancher: CFG.ACCUEIL_VIDEO_PLANCHER },
+                                           ORIGINE_LECTEUR);
+          l.hauteurEnvoyee = h;
+          bilan.heros.video.hauteur = h;
+        } catch { /* frame partie */ }
+      };
       const devoiler = (comment) => {
         if (l.devoile || lecteur !== l) return;
         annuler('filet'); annuler('delai'); annuler('modale');
@@ -17601,6 +17624,12 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         const quoi = e.data?.tse;
         if (quoi === TSE_PREVIEW_FIRST_FRAME_MSG) devoiler('premieres');
         else if (quoi === TSE_AMBIANCE_PX_MSG) peindreAmbiance(e.data);
+        else if (quoi === TSE_HEROS_QUALITE_MSG) {
+          // Ce que le lecteur joue : son nom de qualité, et s'il est resté en automatique.
+          const nom = typeof e.data.nom === 'string' ? e.data.nom.slice(0, 24) : null;
+          bilan.heros.video.qualite = nom;
+          bilan.heros.video.auto = typeof e.data.auto === 'boolean' ? e.data.auto : null;
+        }
         else if (quoi === TSE_PREVIEW_GATE_MSG && !l.modale) {
           // Une interstitielle : plus de dévoilement à l'aveugle, et l'image si elle reste.
           l.modale = true;
@@ -17612,12 +17641,19 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       window.addEventListener('message', l.ecoute);
       iframe.addEventListener('load', () => {
         annuler('delai');
-        if (lecteur !== l || l.devoile || l.modale) return;
+        if (lecteur !== l) return;
+        l.charge = true;
+        direHauteur();
+        if (l.devoile || l.modale) return;
         l.t.filet = setTimeout(() => devoiler('filets'), CFG.PREVIEW_REVEAL_FALLBACK_MS);
       }, { once: true });
       l.t.delai = setTimeout(() => renoncer('delais'), CFG.ACCUEIL_VIDEO_DELAI_MS);
       lecteur = l;
       media.insertBefore(iframe, media.lastChild);
+      if (typeof ResizeObserver === 'function') {
+        l.taille = new ResizeObserver(erreurs.garde('accueil', direHauteur));
+        l.taille.observe(media);
+      }
       bilan.heros.video.poses++;
     };
     const lecteurVoulu = () => !!herosCourant && pose() && options.get('accueilVideo')
@@ -18206,7 +18242,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        LES CLIPS : une demande par chaîne et par absence, la semaine passée,
        rangée par vues. Le plus vu ne se nomme que si la page a tout, ou si
        elle est rangée par vues décroissantes et contient des clips de
-       l'absence — l'ordre se constate, comme pour le récap (cf. LE RÉCAP). */
+       l'absence — l'ordre se constate sur la réponse, il ne se suppose pas. */
     const clipsAbsence = new Map();   // login -> { cle, top } ; `cle` : l'absence qu'ils couvrent
     let clipsAbsRefuse = false;
     const clipsAbsEnVol = new Set();
@@ -18404,8 +18440,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       texteSi(quoi, it.n === null ? S.uiAbsSansRedif : S.uiAbsDirects(it.n, formatDuree(it.dureeMs)));
       const c = clipsAbsence.get(it.login);
       const top = c && c.cle === it.cle ? c.top : null;
-      // Seule sur sa ligne, la phrase du récap prend sa majuscule (« Le plus vu : … »).
-      const phrase = top ? S.uiRecapPlusVu(top.titre, formatViewers(top.vues), top.vues) : '';
+      // Seule sur sa ligne, la phrase prend sa majuscule (« Le plus vu : … »).
+      const phrase = top ? S.uiAbsPlusVu(top.titre, formatViewers(top.vues), top.vues) : '';
       texteSi(clip, phrase.charAt(0).toLocaleUpperCase(LANG) + phrase.slice(1));
       attrSi(clip, 'title', top ? top.titre : null);
       clip.hidden = !top;
@@ -18466,7 +18502,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       bilan.peintures++;
       const { tete, liste, premier, heros } = choisir();
       bilan.heros.montre = !!heros;
-      bilan.heros.sansVisite = tete === 'heros' && !!premier && !heros;
+      // La bannière tient sa chaîne du repli : aucune des suivies en direct n'a de visite (4.32.0.1).
+      bilan.heros.sansVisite = !!heros && !(heros.score > 0);
       affiches.clear();
       if (heros) noterAffiche(heros.login, heros.e.stream?.createdAt);
       peindreTop();                 // avant le héros : il y lit sa place
@@ -18860,18 +18897,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        une préférence, que le lecteur suit au démarrage, avant que l'ordre
        n'arrive. Depuis la 4.24.0.19, l'une et l'autre UN CRAN AU-DESSUS de
        la plus proche (cf. choisirQualite). */
-    const QUALITES_USUELLES = [[160, '160p30'], [360, '360p30'], [480, '480p30'], [720, '720p60'], [1080, '1080p60']];
     const hauteurCible = () => {
       const d = courante && courante.disposition;
       return d && d.h ? Math.round(d.h * (window.devicePixelRatio || 1)) : null;
-    };
-    // Proche en proportion, puis un cran au-dessus, comme dans le pont (cf. choisirQualite).
-    const qualiteUsuelle = (h) => {
-      let i = 0;
-      QUALITES_USUELLES.forEach((q, k) => {
-        if (Math.abs(Math.log(q[0] / h)) <= Math.abs(Math.log(QUALITES_USUELLES[i][0] / h))) i = k;
-      });
-      return QUALITES_USUELLES[Math.min(i + 1, QUALITES_USUELLES.length - 1)][1];
     };
     const tenirQualite = (t) => {
       const h = hauteurCible();
@@ -25823,8 +25851,6 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
              savoir, puisque cette requête n'a jamais pu être exécutée contre
              le vrai Twitch. */
           chapitres: preview.bilanChapitres(),
-          // Le récap du direct (4.29.0) : ses clips, par issue, et la forme en jeu.
-          recap: preview.bilanRecap(),
           dernierSuccesIlYaMs: reseau.dernierSucces
             ? maintenant - reseau.dernierSucces : null,
           dernierEchecIlYaMs: reseau.dernierEchec
@@ -29949,171 +29975,6 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     /* Le bloc entier, ou rien. `friseDe` refuse déjà une frise sans
        basculement observé : ce qui suit ne se pose donc jamais la question de
        savoir s'il a quelque chose à dire. */
-    /* ══ LE RÉCAP DU DIRECT EN COURS (4.29.0) ══════════════════════════════
-       « Depuis 18:02 : 1h20 Discussions → 2h40 Elden Ring », puis « 6 clips ·
-       le plus vu : « … » (8,4 k vues) ». La première ligne se lit dans la frise
-       — ses segments, dans l'ordre du temps ; la seconde dans les clips du
-       direct, demandés à l'ouverture de l'aperçu.
-
-       CE QUI N'A PAS PU ÊTRE VÉRIFIÉ D'ICI : que `title` et `viewCount` d'un
-       clip soient servis à une requête anonyme. On les demande ; si le
-       schéma les refuse — une erreur qui les nomme —, on les retire et l'on
-       ne dit plus que le compte. Le rapport dit lequel des deux est en jeu.
-
-       LE COMPTE NE DIT QUE CE QUE LA PAGE PROUVE. La réponse est bornée à
-       trente clips : une page pleine ne dit pas combien il y en a — « 30+ ».
-       Le plus vu ne se nomme que si la page les a tous, ou si elle est rangée
-       par vues décroissantes et en contient du direct : l'ORDRE se constate
-       sur la réponse, il ne se suppose pas. Par la première forme (les
-       dernières vingt-quatre heures), un direct plus long qu'un jour ne
-       compte que les clips de ces vingt-quatre heures, et le dit. */
-    const RECAP_FORMES = ['criteria: { period: LAST_DAY }', 'criteria: { sort: CREATED_AT_DESC }'];
-    const recapQuery = (criteria, champs) =>
-      'query TseRecapClips($login: String!, $n: Int!) {' +
-      '  user(login: $login) {' +
-      '    clips(first: $n, ' + criteria + ') {' +
-      '      edges { node { id createdAt' + (champs ? ' title viewCount' : '') + ' } }' +
-      '    }' +
-      '  }' +
-      '}';
-    let recapForme = 0;
-    let recapChamps = true;
-    let recapRefuse = false;
-    const recaps = new Map();       // identifiant du direct -> { ts, n, plus, jour, top }
-    const recapsEnVol = new Set();
-    const bilanRecap = { demandes: 0, servis: 0, refus: 0, champsRefuses: 0, reseau: 0,
-                         pleines: 0, titres: 0, vues: 0, plusVus: 0, montres: 0 };
-    const recapVoulu = () => !(options.get('badges') || []).includes('recap');
-    const lireRecap = (aretes, origine, forme, champs) => {
-      const noeuds = aretes.map((a) => a?.node).filter((x) => x && Number.isFinite(Date.parse(x.createdAt)));
-      const pendant = noeuds.filter((x) => Date.parse(x.createdAt) >= origine);
-      const pleine = aretes.length >= CFG.RECAP_CLIPS;
-      // Une page rangée par date décroissante qui atteint l'avant du direct les contient tous.
-      const parDate = noeuds.every((x, i) => i === 0 || Date.parse(noeuds[i - 1].createdAt) >= Date.parse(x.createdAt));
-      const complete = !pleine || (forme === 1 && parDate && pendant.length < noeuds.length);
-      const vues = (x) => (champs && Number.isInteger(x.viewCount) && x.viewCount >= 0 ? x.viewCount : null);
-      const parVues = champs && noeuds.every((x, i) => i === 0 || (vues(noeuds[i - 1]) ?? -1) >= (vues(x) ?? -1));
-      let top = null;
-      if (champs && pendant.length && (complete || (forme === 0 && parVues))) {
-        for (const x of pendant) {
-          const v = vues(x);
-          const t = typeof x.title === 'string' ? x.title.trim().slice(0, 140) : '';
-          if (v !== null && t && (!top || v > top.vues)) top = { titre: t, vues: v };
-        }
-      }
-      if (champs) {
-        bilanRecap.titres += pendant.filter((x) => typeof x.title === 'string' && x.title.trim()).length;
-        bilanRecap.vues += pendant.filter((x) => vues(x) !== null).length;
-      }
-      if (pleine) bilanRecap.pleines++;
-      if (top) bilanRecap.plusVus++;
-      return { n: pendant.length, plus: !complete, jour: forme === 0 && Date.now() - origine > 86_400_000, top };
-    };
-    const demanderRecap = async (login, flux) => {
-      const id = flux?.id;
-      if (!id || recapRefuse || !recapVoulu() || recapsEnVol.has(id)) return false;
-      const deja = recaps.get(id);
-      if (deja && Date.now() - deja.ts < CFG.RECAP_TTL) return false;
-      const origine = Date.parse(debutReel(login, flux.createdAt));
-      if (!Number.isFinite(origine)) return false;
-      recapsEnVol.add(id);
-      bilanRecap.demandes++;
-      try {
-        const forme = recapForme, champs = recapChamps;
-        const res = await post([{ operationName: 'TseRecapClips', variables: { login, n: CFG.RECAP_CLIPS },
-                                  query: recapQuery(RECAP_FORMES[forme], champs) }]);
-        const r0 = Array.isArray(res) ? res[0] : null;
-        if (!r0) { bilanRecap.reseau++; return false; }
-        const aretes = r0.data?.user?.clips?.edges;
-        if (!Array.isArray(aretes)) {
-          /* UN REFUS DIT QUELQUE CHOSE DE LA FORME. S'il nomme un des deux
-             champs, ce sont eux qu'on retire ; sinon, la forme suivante. */
-          const msg = (Array.isArray(r0.errors) ? r0.errors : []).map((e) => String(e?.message || '')).join(' ');
-          if (champs && /\b(?:title|viewCount)\b/.test(msg)) {
-            // eslint-disable-next-line require-atomic-updates
-            recapChamps = false;
-            bilanRecap.champsRefuses++;
-          } else {
-            bilanRecap.refus++;
-            recapForme++;
-            // eslint-disable-next-line require-atomic-updates
-            if (recapForme >= RECAP_FORMES.length) recapRefuse = true;
-          }
-          return false;
-        }
-        bilanRecap.servis++;
-        recaps.set(id, { ts: Date.now(), ...lireRecap(aretes, origine, forme, champs) });
-        while (recaps.size > 200) recaps.delete(recaps.keys().next().value);
-        return true;
-      } finally {
-        recapsEnVol.delete(id);
-      }
-    };
-    const heureRecap = (t) => {
-      const d = new Date(t);
-      const minuit = new Date(); minuit.setHours(0, 0, 0, 0);
-      const h = d.toLocaleTimeString(S.locale, { hour: '2-digit', minute: '2-digit' });
-      return t >= minuit.getTime() ? h : `${d.toLocaleDateString(S.locale, { weekday: 'short' })} ${h}`;
-    };
-    /* Les étapes, dans l'ordre du temps : deux segments voisins d'une même
-       catégorie n'en font qu'un, la part non observée s'écrit « … », et une
-       frise de clips — dont les bornes sont des minorants — met un « ~ »
-       devant chaque durée. Au-delà de quatre, les trois dernières. */
-    const etapesRecap = (f) => {
-      if (!f || !f.segments.length) return [];
-      const fusion = [];
-      for (const x of f.segments) {
-        const der = fusion[fusion.length - 1];
-        if (der && der.jeu === x.jeu) der.dureeMs += x.dureeMs;
-        else fusion.push({ jeu: x.jeu, libelle: x.libelle || x.jeu, dureeMs: x.dureeMs });
-      }
-      const approx = f.source === 'clips' ? '~' : '';
-      const mots = fusion.map((x) => `${approx}${formatDuree(x.dureeMs)} ${x.libelle}`);
-      if (f.inconnuMs > 0) mots.unshift('…');
-      return mots.length > 4 ? ['…', ...mots.slice(-3)] : mots;
-    };
-    const recapNoeud = (login) => {
-      if (!recapVoulu()) return null;
-      const flux = cache.get(login)?.stream;
-      if (!flux?.id) return null;
-      const origine = Date.parse(debutReel(login, flux.createdAt));
-      if (!Number.isFinite(origine)) return null;
-      const bloc = document.createElement('div');
-      bloc.className = 'tse-preview__recap';
-      const l1 = document.createElement('p');
-      l1.className = 'tse-preview__recap-ligne';
-      const etapes = etapesRecap(friseDe(login, preludeDe(login)));
-      l1.textContent = S.uiRecapDepuis(heureRecap(origine), etapes.length ? etapes.join(' → ') : null);
-      bloc.appendChild(l1);
-      const c = recaps.get(flux.id);
-      // Une page pleine sans un clip du direct ne dit rien de lui : on se tait.
-      if (c && !(c.n === 0 && c.plus)) {
-        const l2 = document.createElement('p');
-        l2.className = 'tse-preview__recap-ligne';
-        l2.textContent = c.n === 0 && !c.plus ? S.uiRecapSansClip
-          : S.uiRecapClips(c.n, c.plus, c.jour) + (c.top ? ' · ' + S.uiRecapPlusVu(c.top.titre, formatViewers(c.top.vues), c.top.vues) : '');
-        l2.title = l2.textContent;
-        bloc.appendChild(l2);
-      }
-      return bloc;
-    };
-    // Reposé quand la frise ou les clips changent : à sa place, juste avant la frise.
-    const majRecap = (login) => {
-      if (!el || currentLogin !== login) return;
-      const corps = el.querySelector('.tse-preview__body');
-      if (!corps) return;
-      const ancien = corps.querySelector('.tse-preview__recap');
-      const neuf = recapNoeud(login);
-      if (ancien && neuf) ancien.replaceWith(neuf);
-      else if (ancien) ancien.remove();
-      else if (neuf) {
-        const frise = corps.querySelector('.tse-preview__frise');
-        if (frise) corps.insertBefore(neuf, frise); else corps.appendChild(neuf);
-        bilanRecap.montres++;
-      }
-      if (currentCard) positionPopup(currentCard);
-    };
-
     const friseNoeud = (login, prelude) => {
       const f = friseDe(login, prelude);
       if (!f || !f.totalMs) return null;
@@ -30515,7 +30376,6 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       // Les chapitres viennent peut-être d'apprendre un basculement que nous
       // n'avons pas vu passer : le badge se repose avec la frise.
       majBasculeFrise(login);
-      majRecap(login);
       // La hauteur a changé : le popup peut sortir du viewport.
       if (currentCard) positionPopup(currentCard);
     };
@@ -30733,8 +30593,6 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
          lorsqu'un basculement a été observé — sinon elle n'a rien à dire, et
          un bloc vide dans un popup de survol se paie en hauteur à chaque
          carte. */
-      const recap = recapNoeud(login);
-      if (recap) { bilanRecap.montres++; el.querySelector('.tse-preview__body').appendChild(recap); }
       const frise = friseNoeud(login, preludeDe(login));
       /* LE VERDICT D'AFFICHAGE, COMPTÉ LÀ OÙ IL SE PREND. Les trois compteurs
          de survol disent l'état du REGISTRE ; ils ne disent pas si la frise a
@@ -31139,12 +30997,6 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
           .then(() => majFrise(login))
           .catch((e) => erreurs.noter('chapitres', (e && e.message) || e));
       }
-      // Les clips du direct, pour le récap (4.29.0) : une demande par direct et par dix minutes.
-      if (flux?.id) {
-        demanderRecap(login, flux)
-          .then((neuf) => { if (neuf) majRecap(login); })
-          .catch((e) => erreurs.noter('recap', (e && e.message) || e));
-      }
 
       // Fetch métadonnées (titre + CCL) en arrière-plan. Si l'utilisateur
       // a déjà refermé entre-temps, currentLogin aura changé et on ignore
@@ -31486,7 +31338,6 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       /* Ce que Twitch a répondu aux demandes de chapitres. Au rapport et non
          au journal d'erreurs : une chaîne qui n'archive pas ses diffusions
          est un cas ordinaire. */
-      bilanRecap: () => ({ ...bilanRecap, forme: recapRefuse ? null : recapForme, champs: recapChamps, connus: recaps.size }),
       bilanChapitres: () => ({ ...bilanChapitres,
                                // La forme en jeu, sans quoi « clipsRefus 3 »
                                // ne dirait pas laquelle a été réfutée.

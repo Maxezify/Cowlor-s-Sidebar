@@ -43,7 +43,6 @@ Llegáis a la mitad de un directo de ocho horas. ¿Qué ha pasado antes? La vist
 - ★ A ESCALA ★ El ancho de cada banda es tiempo real. Un vistazo basta para ver adónde se ha ido la tarde.
 - ★ INCLUSO SIN REPETICIÓN ★ ¿Un canal que no archiva? La extensión reconstruye el recorrido a partir de los clips, y lo DICE.
 - ★ ADMITE LO QUE IGNORA ★ Cuando no se conoce la hora exacta de un cambio, el color se funde en vez de cortar en seco, y la duración lleva una «~». Nunca una cifra inventada.
-- ★ EL RESUMEN ★ En una línea, por dónde ha pasado el directo: «Desde las 18:02: 1h20 Just Chatting → 2h40 Elden Ring». En otra, lo que sus clips han guardado: «6 clips · el más visto: «…» (8,4 mil vistas)». Una petición a Twitch por directo sobrevolado, cada diez minutos como mucho.
 
 _______________________________
 
@@ -199,7 +198,7 @@ _______________________________
 ➤ 🏠 EL INICIO DE TWITCH, A TU MANERA
 En la página de inicio de Twitch, la extensión coloca sus propias filas encima de las de Twitch, en la misma columna y alineadas con ellas.
 
-- ★ TU CANAL N.º 1, ARRIBA ★ En lugar del carrusel de Twitch: el canal seguido en directo que más ves. En todo el ancho: primero su imagen, luego su directo, sin sonido y sin anuncios, como la vista previa; y bajo el texto, sus colores, también en directo. ¿Ninguno de los canales que ves está en directo? El carrusel vuelve. ¿Prefieres el carrusel, o nada? Es un ajuste.
+- ★ TU CANAL N.º 1, ARRIBA ★ En lugar del carrusel de Twitch: el canal seguido en directo que más ves —si no, el que tiene más espectadores—. En todo el ancho: primero su imagen, luego su directo, sin sonido y sin anuncios, como la vista previa; y bajo el texto, sus colores, también en directo. ¿Ninguno de tus canales seguidos está en directo? El carrusel vuelve. ¿Prefieres el carrusel, o nada? Es un ajuste.
 - ★ TUS CANALES SEGUIDOS, PRIMERO ★ Una fila con tus canales en directo, en el orden de los que más ves, sin ninguna petición más: son los que la barra ya sigue.
 - ★ EL TOP 10 DE TU IDIOMA ★ Los diez primeros puestos de la clasificación exacta de Top Canales, en el idioma de tu Twitch o en todos los idiomas, en cifras grandes, con lo que se ha movido en treinta minutos: puestos ganados, puestos perdidos, recién llegados. Solo se calcula mientras el inicio está en pantalla.
 - ★ TUS DIRECTOS PROGRAMADOS ★ Lo que tus canales seguidos han programado para hoy y mañana, con el tiempo que falta. «Recordármelo»: un aviso en tus pestañas de Twitch abiertas cuando el canal empieza en directo, sin notificación del sistema ni permiso. Para un canal que ves y que no ha programado nada: la hora a la que empezaron sus últimos directos, cuando se repite; lo que hizo, no lo que hará.

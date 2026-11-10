@@ -2183,6 +2183,133 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## L'accueil, après usage : la bannière, les étiquettes, l'aperçu (v4.32.0.1)
+
+Quatre retours, rapport de diagnostic à l'appui. Publiée sur `claude/chrome-homepage` seulement.
+
+| signalé | ce qui a été fait |
+| --- | --- |
+| « on voit le carrousel en haut, il n'y a pas la bannière Chaîne n°1 » | sans visite comptée parmi les suivies en direct, la bannière prend la première de « Vos chaînes suivies en direct » ; le carrousel ne revient que si aucune suivie n'est en direct |
+| « les étiquettes ne sont pas colorées comme sur la maquette » | une pastille ronde à la couleur de la maquette, une par sorte de fait : le texte, le bord et un point de cette couleur, sur un fond sombre |
+| « retire la partie "Depuis…" et la partie "… clips, le plus vu" » de l'aperçu | le récap de la 4.29.0 est retiré, entier : ses deux lignes, sa requête, son réglage, ses textes |
+| « augmente la qualité du stream de la bannière » | la qualité posée par le lecteur lui-même, d'après la hauteur de la bannière, jamais moins que 720p |
+
+### La bannière sans visite
+
+Le rapport disait `heros.sansVisite true` : cinq chaînes suivies en direct,
+aucune visitée sur cet appareil — cinq minutes sur sa page, la règle de
+toujours. La bannière exigeait une visite ; elle n'en exige plus. Elle prend
+la première de « Vos chaînes suivies en direct » : celle que vous regardez le
+plus, et sans visite parmi elles, celle qui a le plus de spectateurs. Le
+rapport dit désormais `heros.sansVisite true` quand la bannière tient sa
+chaîne de ce repli.
+
+L'amorce suit : sans le rayon des suivies, la bannière seule fait demander,
+au démarrage, les chaînes suivies dans la limite de ce que la barre sonde
+déjà — le voile ne se lève qu'une fois la bannière peinte, pas sur le
+carrousel qu'elle remplacerait sous vos yeux. Aucune requête de plus : ce
+sont les chaînes de la barre.
+
+### Des étiquettes en couleur
+
+Celles de la maquette, une par sorte de fait :
+
+| fait | couleur |
+| --- | --- |
+| « De retour après 41 jours », « ↗ +38 % en 10 min » | vert `#6bdb9d` |
+| « Subathon • JOUR 9 » | or pâle `#ffe38f` |
+| « Vient de commencer » | rouge `#ff6b62` |
+| « Vient de passer sur Elden Ring » | violet `#bf94ff` |
+| « N°3 en français » | or `#ffd68a` |
+| « Co-stream à 3 » | bleu `#8fc7ff` |
+
+Une pastille ronde, 22 pixels de haut, bord d'un pixel et point de 7 pixels
+de la même couleur, fond `rgba(14, 14, 16, 0.86)` — sur nos cartes comme sur
+celles de Twitch. Toujours un attribut et un pseudo-élément : la couleur est
+une variable posée par la sorte de fait, que le pseudo-élément hérite.
+
+### L'aperçu sans récap
+
+« Depuis 18:02 : 1h20 Discussions → 2h40 Elden Ring » et « 6 clips · le plus
+vu : … » ne se montrent plus. Partis avec eux : l'opération `TseRecapClips` —
+une de moins par direct survolé —, le badge « Le récap du direct » du réglage
+des badges, sa ligne au mode d'emploi et aux fiches du Store, dans les douze
+langues, et `reseau.recap` au rapport. La frise, qu'il lisait, ne bouge pas.
+« Pendant votre absence » garde son « le plus vu » : la phrase y vit
+désormais sous son nom à lui.
+
+### Une bannière plus nette
+
+L'URL du lecteur demandait 720p60, mais l'URL n'est qu'une préférence que
+l'adaptation de débit passe — mesuré pour l'aperçu, en 3.26. La qualité se
+pose maintenant comme dans la salle : par l'instance du lecteur de Twitch,
+dans l'échelle réelle de la chaîne. La bannière dit à son lecteur la hauteur
+que la vidéo remplit, en pixels d'écran — densité comprise —, à son
+chargement puis à chaque changement de taille ; le pont y pose la plus
+proche, un cran au-dessus, et jamais moins que 720p quand la chaîne l'a. Il
+la repose si le lecteur revient en automatique — cinq fois au plus par
+hauteur, jamais pendant une pub —, et relit l'instance toutes les cinq
+secondes : l'anti-pub, dans la même frame, peut recharger le lecteur. Le
+rapport dit la hauteur et ce que le lecteur joue : `heros.video.hauteur`,
+`.qualite`, `.auto`.
+
+Un nom de message partagé de plus entre les ponts et le module principal :
+dix-sept.
+
+### Ce qui n'a pas pu être vérifié
+
+L'instance du lecteur de Twitch, sa recherche dans l'arbre de la page et
+`setQuality` sont ceux que la salle emploie depuis la 4.24.0.10, sur le
+vrai lecteur ; le banc, lui, les imite. Que l'anti-pub, après une pub,
+rende un lecteur dont la qualité tient, ne se voit qu'en vrai : le rapport
+le dira.
+
+### Le banc
+
+- 31 : ouvert hors de l'accueil — la bannière, qui y paraît maintenant sans
+  visite, demande ses propres images, à d'autres tranches que la vignette
+  de l'aperçu ;
+- 207 δ) : la purge de la base attendue jusqu'à cinq secondes, et non six
+  cents millisecondes — sous la charge du banc complet, l'écriture venait
+  après ;
+- 216, revu : sans visite, la bannière prend la première des suivies en
+  direct, et le carrousel ne revient que sans aucune suivie en direct ; j')
+  la qualité — 720p60 à 1600 × 1000, hors de l'automatique ; à 1280 × 800,
+  320 pixels, 480p d'un cran : le plancher donne 720p60, à l'URL du lecteur
+  reposé comme au pont ; 1080p60 à 2560 × 1440 ; et le rapport ;
+- 216 k), revu : les poses et les retraits du lecteur comptés depuis k),
+  j') ayant reposé le lecteur une fois ;
+- 220, revu : la chaîne visitée qui passe en direct reprend la bannière au
+  lot même ; e') sans visite ni rayon, l'amorce demande les suivies et la
+  bannière est peinte quand le voile se lève ; « rien à attendre » devient
+  ni bannière ni rayon ;
+- 222 a') : la couleur de chaque sorte de fait, son bord et son point, sur
+  nos cartes et sur celles de Twitch ;
+- 223, réécrit : l'aperçu d'un direct à deux catégories — sa frise, et ni
+  « Depuis … », ni ligne de clips, ni demande, ni ligne au rapport ;
+- 226 : les nœuds comptés sont ceux de Twitch seuls — la bannière, qui
+  paraît maintenant, vit aussi dans `<main>`.
+
+**Treize mutants nommés, tous pris.**
+
+| mutant | ce qui tombe |
+| --- | --- |
+| une visite exigée pour la bannière | 216 e) : pas de bannière, le carrousel revient |
+| l'amorce sans les suivies pour la bannière | 220 e') : le voile se lève avant la bannière |
+| le repli tu au rapport | 216 e) : `heros.sansVisite` faux |
+| une seule couleur | 222 a') : toutes les étiquettes en blanc |
+| le bord oublié | 222 a') : un bord transparent |
+| le point oublié | 222 a') : pas de point |
+| la place en rouge | 222 a') : « N°3 en français » en rouge |
+| aucune qualité posée | 216 j') : le lecteur reste en automatique, en 360p |
+| le plancher oublié au pont | 216 j') : 480p30 à 1280 × 800 |
+| l'URL sous le plancher | 216 j') : 480p30 dans l'URL à 1280 × 800 |
+| la taille jamais relue | 216 j') : toujours 720p60 à 2560 × 1440 |
+| la hauteur mal comptée | 216 j') : la hauteur dite n'est pas celle de la vidéo |
+| le plus vu de l'absence perdu | 224 : plus de « Le plus vu » au bandeau |
+
+Le banc complet : 2252 assertions dans 225 scénarios, toutes vertes.
+
 ## L'accueil, niveau 2 : ranger l'accueil de Twitch (v4.32.0)
 
 Sixième et dernière idée du niveau 2. Publiée sur `claude/chrome-homepage` seulement.
@@ -24224,7 +24351,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | les six fichiers JavaScript livrés — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 225 scénarios, 2258 assertions |
+| `npm test` | le harnais Playwright : 225 scénarios, 2252 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -24245,13 +24372,13 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 2136 Ko | 984 Ko | 4 614 → **2** |
-| `cadres.js` | 68 Ko | 31 Ko | 160 → **0** |
+| `content.js` | 2126 Ko | 976 Ko | 4 609 → **2** |
+| `cadres.js` | 73 Ko | 34 Ko | 168 → **0** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
 | `panneau.js` | 162 Ko | 82 Ko | 224 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 26 → **0** |
 | `background.js` | 10 Ko | 2 Ko | 22 → **0** |
-| **les six** | **2515 Ko** | **1203 Ko** | **−52 %** |
+| **les six** | **2511 Ko** | **1198 Ko** | **−52 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
