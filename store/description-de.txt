@@ -206,6 +206,7 @@ Auf der Startseite von Twitch setzt die Erweiterung ihre eigenen Reihen über di
 - ★ „VON ANFANG AN“ ★ Zu spät gekommen? Ein Knopf öffnet die Aufzeichnung des laufenden Streams ab seiner allerersten Sekunde. Der Knopf erscheint nur, wenn du sie ansehen kannst: Der Kanal behält seine Aufzeichnungen und gibt sie für alle frei – oder du hast ihn abonniert.
 - ★ EIN ETIKETT PRO KARTE ★ Auf den Karten der Startseite, denen der Erweiterung wie denen von Twitch: eine Tatsache, nur eine – „Zurück nach 41 Tagen“, „Gerade gestartet“, „Gerade gewechselt zu Elden Ring“, „↗ +38 % in 10 Min.“, „Platz 3 auf Deutsch“… Nichts geraten: ohne gesehene Tatsache kein Etikett. Für einen Kanal, dem die Seitenleiste nicht folgt, werden die Zahlen abgefragt, solange seine Karte zu sehen ist.
 - ★ WÄHREND DU WEG WARST ★ Nach mehr als einem Tag zurück? Ein Banner zeigt, was deine gefolgten Kanäle inzwischen gestreamt haben: ihre Streams und wie lange, den meistgesehenen ihrer Clips und die letzte Aufzeichnung mit einem Klick. Eine Clip-Anfrage pro Kanal und Abwesenheit.
+- ★ WEIL DU OFT … SCHAUST ★ Auf der Startseite Reihen, die sagen, warum: „14 Besuche in 30 Tagen“ bei einem Kanal, und was in seiner üblichen Kategorie live ist, in deiner Sprache, außerhalb deiner gefolgten Kanäle.
 - ★ DIE VORSCHAU BEIM ÜBERFAHREN, AUCH HIER ★ Auf den Karten der Startseite, denen der Erweiterung wie denen von Twitch.
 - ★ WIE DU WILLST ★ Jeder Teil lässt sich unter „Einstellungen“ einzeln abschalten; alles aus, und die Startseite ist wieder die von Twitch, unverändert.
 
@@ -239,7 +240,7 @@ Twitch hat ein helles Design. Die Erweiterung merkt es und wechselt mit — ohne
 _______________________________
 
 ➤ ⚙️ UND WENN DU WÄHLEN WILLST
-Alles ist von Anfang an aktiv und nichts muss eingestellt werden. Aber der Bereich „Einstellungen“ im Panel gibt dir zweiunddreißig Einstellungen in die Hand.
+Alles ist von Anfang an aktiv und nichts muss eingestellt werden. Aber der Bereich „Einstellungen“ im Panel gibt dir dreiunddreißig Einstellungen in die Hand.
 
 - ★ WAS DU SIEHST ★ Jedes Abzeichen, die Streamdauer und ihr Format, der Balken „gerade gestartet“, das Gold der Abonnements, die Filter, die Sortierschaltflächen: alles lässt sich per Häkchen ein- und ausschalten.
 - ★ WAS GELADEN WIRD ★ Die Vorschau kann auf das Video verzichten und Abzeichen, Zeitleiste und Miniaturbild behalten — oder einfach in der Qualität heruntergehen. Genug, um sie leicht zu machen, ohne sie zu verlieren.

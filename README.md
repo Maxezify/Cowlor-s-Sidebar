@@ -2183,6 +2183,109 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## L'accueil, niveau 2 : des rayons qui disent pourquoi (v4.31.0)
+
+Cinquième idée du niveau 2. Publiée sur `claude/chrome-homepage` seulement.
+
+| demandé | ce qui a été fait |
+| --- | --- |
+| « Parce que tu regardes souvent Korbek (14 visites en 30 jours) » | un rayon titré « Parce que vous regardez souvent Korbek », et en sous-titre ce qui le prouve : « 14 visites en 30 jours · Discussions, en français » |
+| « vit dans sa catégorie habituelle, dans ta langue, hors de tes suivis » | les directs de la catégorie où la chaîne diffuse d'habitude, dans la langue de Twitch, sans vos chaînes suivies |
+| « données : visites locales + un TseCategoryTop par rayon » | les visites que l'extension compte déjà sur cet appareil, les archives que l'agenda lit déjà, et **une** requête `TseCategoryTop` par rayon |
+
+### D'où part un rayon
+
+De la chaîne que vous avez le plus visitée en trente jours — trois visites au
+moins. Une visite, c'est la règle de l'extension depuis la barre : cinq
+minutes au moins sur la page d'une chaîne, trois heures entre deux. Les vingt
+dernières seulement sont gardées : vingt dans les trente jours, et le compte se
+dit « au moins 20 ».
+
+### Sa catégorie habituelle
+
+Celle de la plupart de ses directs archivés des trente jours — un direct compté
+une fois, comme ailleurs (deux archives séparées d'une coupure de moins d'un
+quart d'heure en font un), à la catégorie où il a commencé. Deux directs au
+moins, et plus que toute autre :
+
+- **une égalité ne désigne personne** : deux directs en Elden Ring, deux en
+  Dark Souls, et pas de rayon ;
+- **un seul direct n'est pas une habitude** ;
+- **une chaîne que vous ne suivez pas** n'a pas d'archives lues par l'agenda :
+  pas de rayon. Elle compte pourtant ses visites ; ce qu'il manque, c'est la
+  preuve de sa catégorie.
+
+### Ce qui s'y montre
+
+Les directs de cette catégorie, dans la langue de l'interface de Twitch — la
+langue du Top 10 —, rangés par spectateurs, sans vos chaînes suivies. Douze au
+plus ; une rangée, puis « Afficher tout ». L'ordre se constate sur la réponse,
+il ne se suppose pas. Et la réponse doit **nommer la catégorie demandée** (la
+règle de Top Chaînes, 4.24.0.40) : un serveur qui rendrait une autre catégorie
+pour un nom presque pareil ne fait pas de rayon.
+
+Deux rayons au plus, de deux catégories différentes, juste après le Top 10.
+
+### Ce qu'il coûte
+
+| ce qui s'affiche | ce que ça coûte |
+| --- | --- |
+| la chaîne d'où part le rayon, ses visites | **rien** : les visites sont comptées sur l'appareil, depuis toujours |
+| sa catégorie habituelle | **rien de plus** : les archives que l'agenda lit déjà |
+| le rayon | **une** opération `TseCategoryTop` par rayon, gardée dix minutes — deux au plus |
+
+### Le réglage
+
+« Parce que vous regardez souvent… » rejoint le groupe « Page d'accueil » de
+« Réglages », juste après la langue du Top 10 : décoché, ni rayon, ni requête.
+Trente-trois réglages.
+
+### Les textes
+
+Dix langues dans les rayons ; douze dans le panneau, le mode d'emploi (« L'accueil
+de Twitch ») et les fiches du Store.
+
+### Le banc
+
+**225**, nouveau.
+
+- a) vingt visites, toutes dans les trente jours : « au moins 20 visites en 30
+  jours · Discussions, en français » ; deux directs en français, par
+  spectateurs, ni la chaîne elle-même, ni une chaîne suivie, ni un direct en
+  anglais pourtant plus regardé ;
+- b) le second rayon, après une chaîne non suivie, un direct unique, une
+  égalité et une seconde chaîne de la même catégorie : « 5 visites en 30
+  jours · Minecraft, en français » — une visite d'il y a quarante jours hors du
+  compte, un direct coupé en deux archives compté une fois ; pas de troisième
+  rayon ;
+- c) une requête par rayon, dans la langue de Twitch, et rien de plus en
+  repeignant ;
+- e) une réponse qui nomme une autre catégorie : pas de rayon ; deux visites :
+  pas de rayon non plus ;
+- d) le réglage décoché : ni rayon, ni requête.
+
+**Quinze mutants nommés, tous pris.**
+
+| mutant | ce qui tombe |
+| --- | --- |
+| deux visites suffisent | 225 e) : lune, deux visites, fait un rayon |
+| les trente jours oubliés | 225 b) : « 6 visites », celle d'il y a quarante jours comptée |
+| « au moins » tu | 225 a) : « 20 visites », quand il y en a eu peut-être plus |
+| une égalité qui désigne | 225 b) : nyxaria prend le second rayon |
+| un direct unique pour habitude | 225 b) : ourse prend le second rayon |
+| la coupure qui fait deux directs | 225 b) : le Terraria coupé égale Minecraft, plus de second rayon |
+| les chaînes suivies montrées | 225 a) : nyxaria, suivie, parmi les cartes |
+| toutes les langues | 225 a) et c) : houx, en anglais, en tête ; la requête sans langue |
+| l'ordre de la réponse cru | 225 a) et b) : gravier avant falun, ortie avant mousse |
+| une autre catégorie prise pour la demandée | 225 e) : « Just Chatting » rendu pour « just chatting » fait un rayon |
+| une demande à chaque peinture | 225 : le scénario ne finit plus — chaque réponse repeint, et chaque peinture redemande |
+| un troisième rayon demandé | 225 c) : trois requêtes, renard comprise |
+| le réglage ignoré | 225 d) : décoché, deux rayons et deux requêtes |
+| deux rayons de la même catégorie | 225 b) : loutre, Just Chatting encore, prend le second rayon |
+| les rayons après « Vos rendez-vous » | 225 a) : l'ordre des rayons |
+
+Le banc complet : 2247 assertions dans 224 scénarios, toutes vertes.
+
 ## L'accueil, niveau 2 : « Pendant votre absence » (v4.30.0)
 
 Quatrième idée du niveau 2. Publiée sur `claude/chrome-homepage` seulement.
@@ -24011,7 +24114,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | les six fichiers JavaScript livrés — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 223 scénarios, 2239 assertions |
+| `npm test` | le harnais Playwright : 224 scénarios, 2247 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -24032,13 +24135,13 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 2111 Ko | 964 Ko | 4 596 → **2** |
+| `content.js` | 2124 Ko | 975 Ko | 4 606 → **2** |
 | `cadres.js` | 68 Ko | 31 Ko | 160 → **0** |
 | `adblock.js` | 125 Ko | 101 Ko | 298 → **2** |
 | `panneau.js` | 162 Ko | 82 Ko | 224 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 26 → **0** |
 | `background.js` | 10 Ko | 2 Ko | 22 → **0** |
-| **les six** | **2490 Ko** | **1183 Ko** | **−52 %** |
+| **les six** | **2504 Ko** | **1194 Ko** | **−52 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se

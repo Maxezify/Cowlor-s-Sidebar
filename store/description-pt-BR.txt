@@ -206,6 +206,7 @@ Na página inicial da Twitch, a extensão coloca suas próprias fileiras acima d
 - ★ «DESDE O INÍCIO» ★ Chegou atrasado? Um botão abre a gravação da transmissão em curso no primeiro segundo. O botão só aparece quando você pode assistir: o canal guarda as gravações e as abre a todos, ou você é assinante.
 - ★ UMA ETIQUETA POR CARD ★ Nos cards da página inicial, os da extensão e os da Twitch: um fato, só um — «De volta após 41 dias», «Acabou de começar», «Acabou de mudar para Elden Ring», «↗ +38% em 10 min», «Nº 3 em português»… Nada adivinhado: sem fato visto, sem etiqueta. Para um canal que a barra não segue, os números são pedidos enquanto o card estiver na tela.
 - ★ ENQUANTO VOCÊ ESTEVE FORA ★ Voltou depois de mais de um dia? Um aviso mostra o que os canais que você segue transmitiram nesse tempo: as transmissões e quanto duraram, o clipe mais visto e a última reprise a um clique. Um pedido de clipes por canal e por ausência.
+- ★ PORQUE VOCÊ ASSISTE MUITO A… ★ Na página inicial, fileiras que dizem por quê: «14 visitas em 30 dias» num canal, e o que está ao vivo na categoria de costume dele, no seu idioma, fora dos que você segue.
 - ★ A PRÉVIA AO PASSAR O MOUSE, AQUI TAMBÉM ★ Nos cards da página inicial, os da extensão e os da Twitch.
 - ★ VOCÊ DECIDE ★ Cada parte se desliga separadamente em «Configurações»; tudo desligado, a página inicial volta a ser a da Twitch, do jeito que é.
 
@@ -239,7 +240,7 @@ A Twitch tem um tema claro. A extensão percebe e muda junto — sem recarregar,
 _______________________________
 
 ➤ ⚙️ E SE VOCÊ QUISER ESCOLHER
-Tudo já vem ativo e não há nada para configurar. Mas «Configurações», no painel, devolve a você o controle sobre trinta e duas configurações.
+Tudo já vem ativo e não há nada para configurar. Mas «Configurações», no painel, devolve a você o controle sobre trinta e três configurações.
 
 - ★ O QUE VOCÊ VÊ ★ Cada selo, a duração da live e o seu formato, a barra «acabou de começar», o ouro das assinaturas, os filtros, os botões de ordenação: tudo liga e desliga numa caixinha.
 - ★ O QUE É CARREGADO ★ A prévia pode dispensar o vídeo e manter os selos, a linha do tempo e a miniatura — ou simplesmente baixar a qualidade. O suficiente para deixá-la leve sem perdê-la.

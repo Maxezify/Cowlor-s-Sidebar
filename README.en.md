@@ -2064,6 +2064,104 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The home page, level 2: rows that say why (v4.31.0)
+
+The fifth idea of level 2. Published on `claude/chrome-homepage` only.
+
+| asked | what was done |
+| --- | --- |
+| "Because you often watch Korbek (14 visits in 30 days)" | a row titled "Because you often watch Korbek", and below it what proves it: "14 visits in 30 days · Just Chatting, in English" |
+| "lives in their usual category, in your language, outside your follows" | the streams of the category the channel usually streams in, in Twitch's language, without your followed channels |
+| "data: local visits + one TseCategoryTop per row" | the visits the extension already counts on this device, the archives the agenda already reads, and **one** `TseCategoryTop` request per row |
+
+### Where a row starts
+
+From the channel you visited the most in thirty days — three visits at least.
+A visit is the extension's rule since the sidebar: at least five minutes on a
+channel's page, three hours between two. Only the last twenty are kept: twenty
+within the thirty days, and the count says "at least 20".
+
+### Its usual category
+
+The one of most of its archived streams of the thirty days — a stream counted
+once, as elsewhere (two archives separated by a cut of less than a quarter of an
+hour make one), in the category it started in. Two streams at least, and more
+than any other:
+
+- **a tie points to no one**: two streams in Elden Ring, two in Dark Souls, and
+  no row;
+- **a single stream isn't a habit**;
+- **a channel you don't follow** has no archives read by the agenda: no row. It
+  still counts its visits; what is missing is the proof of its category.
+
+### What shows in it
+
+The streams of that category, in the language of Twitch's interface — the Top
+10's language —, ordered by viewers, without your followed channels. Twelve at
+most; one line, then "Show all". The order is observed on the answer, not
+assumed. And the answer must **name the category asked for** (Top Channels'
+rule, 4.24.0.40): a server that would return another category for an almost
+identical name makes no row.
+
+Two rows at most, of two different categories, right after the Top 10.
+
+### What it costs
+
+| what shows | what it costs |
+| --- | --- |
+| the channel the row starts from, its visits | **nothing**: visits are counted on the device, as always |
+| its usual category | **nothing more**: the archives the agenda already reads |
+| the row | **one** `TseCategoryTop` operation per row, kept ten minutes — two at most |
+
+### The setting
+
+"Because you often watch…" joins the "Home page" group of "Settings", right
+after the Top 10's language: unchecked, no row and no request. Thirty-three
+settings.
+
+### The texts
+
+Ten languages in the rows; twelve in the panel, the guide ("Twitch's home
+page") and the Store listings.
+
+### The bench
+
+**225**, new.
+
+- a) twenty visits, all within the thirty days: "at least 20 visits in 30 days
+  · Discussions, in French" on the French bench; two French streams, by viewers,
+  not the channel itself, not a followed channel, not an English stream though
+  more watched;
+- b) the second row, after a channel not followed, a single stream, a tie and a
+  second channel of the same category: "5 visits in 30 days · Minecraft, in French" — a
+  visit from forty days ago out of the count, a stream cut into two archives
+  counted once; no third row;
+- c) one request per row, in Twitch's language, and nothing more on repaint;
+- e) an answer that names another category: no row; two visits: no row either;
+- d) the setting unchecked: no row, no request.
+
+**Fifteen named mutants, all caught.**
+
+| mutant | what falls |
+| --- | --- |
+| two visits are enough | 225 e): lune, two visits, makes a row |
+| the thirty days forgotten | 225 b): "6 visits", the one from forty days ago counted |
+| "at least" left unsaid | 225 a): "20 visits", when there may have been more |
+| a tie that points to someone | 225 b): nyxaria takes the second row |
+| a single stream as a habit | 225 b): ourse takes the second row |
+| the cut that makes two streams | 225 b): the cut Terraria ties Minecraft, no second row |
+| the followed channels shown | 225 a): nyxaria, followed, among the cards |
+| all languages | 225 a) and c): houx, in English, first; the request without a language |
+| the answer's order believed | 225 a) and b): gravier before falun, ortie before mousse |
+| another category taken for the one asked | 225 e): "Just Chatting" returned for "just chatting" makes a row |
+| one request per paint | 225: the scenario no longer ends — every answer repaints, and every paint asks again |
+| a third row asked for | 225 c): three requests, renard's included |
+| the setting ignored | 225 d): unchecked, two rows and two requests |
+| two rows of the same category | 225 b): loutre, Just Chatting again, takes the second row |
+| the rows after "Your scheduled streams" | 225 a): the order of the rows |
+
+The full bench: 2247 assertions in 224 scenarios, all green.
+
 ## The home page, level 2: "While you were away" (v4.30.0)
 
 The fourth idea of level 2. Published on `claude/chrome-homepage` only.
@@ -23326,7 +23424,7 @@ Four independent checks:
 | `npm run lint` | the six shipped JavaScript files — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 223 scenarios, 2239 assertions |
+| `npm test` | the Playwright harness: 224 scenarios, 2247 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -23346,13 +23444,13 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 2111 KB | 964 KB | 4,596 → **2** |
+| `content.js` | 2124 KB | 975 KB | 4,606 → **2** |
 | `cadres.js` | 68 KB | 31 KB | 160 → **0** |
 | `adblock.js` | 125 KB | 101 KB | 298 → **2** |
 | `panneau.js` | 162 KB | 82 KB | 224 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 26 → **0** |
 | `background.js` | 10 KB | 2 KB | 22 → **0** |
-| **all six** | **2490 KB** | **1183 KB** | **−52 %** |
+| **all six** | **2504 KB** | **1194 KB** | **−52 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are

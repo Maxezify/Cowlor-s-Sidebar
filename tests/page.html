@@ -690,6 +690,10 @@ window.fetch = async (url, opt) => {
                         cats: body.filter(o => o.operationName === 'TseCategoryTop')
                                   .map(o => o.variables?.name ?? String(o.variables?.id || '').replace(/^gid-/, '')),
                         parId: body.filter(o => o.operationName === 'TseCategoryTop' && o.variables?.id != null).length,
+                        /* Les TseCategoryTop qui demandent le TITRE des directs : ceux
+                           des rayons « Parce que vous regardez souvent… » (4.31.0) ;
+                           Top Chaînes n'en demande pas. */
+                        pourquoi: body.filter(o => o.operationName === 'TseCategoryTop' && /\btitle\b/.test(o.query || '')).length,
                         firsts: body.filter(o => o.operationName === 'TseCategoryTop')
                                     .map(o => o.variables?.n),
                         // Même chose pour la voie du tag. Relevé parce que
@@ -1294,6 +1298,8 @@ window.fetch = async (url, opt) => {
           id: 's-' + s.login,
           createdAt: s.createdAt || '2026-01-01T00:00:00.000Z',
           viewersCount: s.viewers,
+          // Le titre du direct, que demandent les rayons « Parce que vous regardez souvent… » (4.31.0).
+          title: s.titre ?? null,
           // MÊME identifiant que celui servi par TseChannels quand la chaîne
           // est aussi une fixture : sur le vrai Twitch, `broadcaster.id` et
           // `user.id` désignent la même chaîne. Les faire diverger cachait un

@@ -206,6 +206,7 @@ Sulla pagina iniziale di Twitch, l'estensione mette le sue file sopra quelle di 
 - ★ «DALL'INIZIO» ★ Arrivato in ritardo? Un pulsante apre la replica della diretta in corso dal suo primissimo secondo. Il pulsante compare solo se puoi guardarla: il canale conserva le repliche e le apre a tutti, oppure sei abbonato.
 - ★ UN'ETICHETTA PER SCHEDA ★ Sulle schede della home, quelle dell'estensione come quelle di Twitch: un fatto, uno solo — «Di ritorno dopo 41 giorni», «Appena iniziato», «È appena passato a Elden Ring», «↗ +38% in 10 min», «N. 3 in italiano»… Niente di indovinato: nessun fatto visto, nessuna etichetta. Per un canale che la barra non segue, i suoi numeri vengono chiesti finché la sua scheda è sullo schermo.
 - ★ MENTRE ERI VIA ★ Torni dopo più di un giorno? Un riquadro dice cosa hanno trasmesso nel frattempo i canali che segui: le dirette e la loro durata, la più vista delle loro clip e l'ultima replica a un clic. Una richiesta di clip per canale e per assenza.
+- ★ PERCHÉ GUARDI SPESSO… ★ Sulla home, righe che dicono perché: «14 visite in 30 giorni» per un canale, e cosa è in diretta nella sua categoria abituale, nella tua lingua, fuori dai canali che segui.
 - ★ L'ANTEPRIMA AL PASSAGGIO, ANCHE QUI ★ Sulle schede della home, quelle dell'estensione come quelle di Twitch.
 - ★ COME VUOI TU ★ Ogni parte si spegne da sola in «Impostazioni»; tutto spento, la home torna quella di Twitch, così com'è.
 
@@ -239,7 +240,7 @@ Twitch ha un tema chiaro. L'estensione se ne accorge e cambia insieme a lui — 
 _______________________________
 
 ➤ ⚙️ E SE VUOI SCEGLIERE
-Tutto è attivo fin da subito e non c'è nulla da impostare. Ma «Impostazioni», nel pannello, ti restituisce il comando su trentadue impostazioni.
+Tutto è attivo fin da subito e non c'è nulla da impostare. Ma «Impostazioni», nel pannello, ti restituisce il comando su trentatré impostazioni.
 
 - ★ CIÒ CHE VEDI ★ Ogni badge, la durata della diretta e il suo formato, la barra «appena iniziata», l'oro degli abbonamenti, i filtri, i pulsanti di ordinamento: tutto si accende e si spegne con una casella.
 - ★ CIÒ CHE VIENE CARICATO ★ L'anteprima può fare a meno del video e conservare badge, linea del tempo e miniatura — oppure semplicemente scendere di qualità. Quanto basta per alleggerirla senza perderla.
