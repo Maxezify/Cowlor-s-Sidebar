@@ -2064,6 +2064,65 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The ribbon polished, and a board to follow the bench (v4.32.0.5)
+
+Two pieces of feedback. Published on `claude/chrome-homepage` only.
+
+| reported | what was done |
+| --- | --- |
+| "the 3D ribbon idea is good; I'd like it a bit more polished, CSS-wise" | the reflection as a pool, off under the centre card; the caption without a background; faded edges; a shadow under each thumbnail; sharper arrows |
+| "a graphical interface when you run the tests and mutants: I get very little information; no need to show your actions, just where you are" | `tests/suivi/`: a page that follows the check and the mutants, to the second (see "The progress board", under Verification) |
+
+### The ribbon, reread on a screenshot
+
+The screenshot showed what the bench's fake Twitch reproduces exactly:
+
+- **blocks of colour under the neighbours.** The reflection was a rectangle
+  as wide as the card, with hard edges, cut across by the next neighbour.
+  It is a pool now — an ellipse that fades towards the sides —, at 34 % under
+  the neighbours, and off under the centre card, where the caption is read.
+  It follows the card's crossing through a named timeline: a pseudo-element
+  does not have its own. It animates nothing but its opacity;
+- **a grey box under the centre card.** The caption carried the page's
+  background, to hide the reflections passing under it, read from Twitch's
+  variable, `--color-background-base`. On the screenshot's page, the actual
+  background was darker than that variable — measured to the pixel: 34, 33,
+  38 for the page, 51, 50, 57 for the box. Nothing passes under the caption
+  any more: it has no background, and assumes no colour;
+- **cards cut off sharply at the edge** on a narrow screen, an arrow sitting
+  on the cut: a mask fades both ends of the ribbon into the page;
+- **cards stuck edge to edge** where they overlap: a drop shadow under each
+  thumbnail — on the lift, not on the thumbnail, which rises on hover and
+  would cast it on the sides it uncovers;
+- the arrows: 40 pixels, a thin rim, a blurred background.
+
+The bench: 229 e) rewritten (the pool, off at the centre; the caption with no
+background), 229 f) new (the mask, the shadow).
+
+**Six named mutants, all caught.**
+
+| mutant | what fails |
+| --- | --- |
+| no reflection | 229 e) |
+| the reflection on under the centre | 229 e) |
+| the caption on the variable's background | 229 e) |
+| the reflection without its timeline | 229 e): it lights up under every card |
+| no mask | 229 f) |
+| no shadow | 229 f) |
+
+### The progress board
+
+Described under "Verification". `run.mjs` gains a hook: with `TSE_SUIVI`, each
+scenario and each assertion are appended to a file; without it, nothing
+changes. The mutant runner and the scenario extractor, which lived outside the
+repository, move into it — the working folder that held them was wiped once,
+with the machine. Tried on a real run; on the thirteen mutants of 4.32.0.4,
+which give the same verdicts as with the old script; on its error cases
+(missing text, scenario not found); and the remaining-time estimate, on seven
+cases worked out by hand.
+
+`npm run check`: 2299 assertions in 229 scenarios, all green.
+
 ## The home page, after use: the ribbon, removed channels in Settings, Twitch's cards (v4.32.0.4)
 
 Seven pieces of feedback, one of them an audit of the whole home page. Published on `claude/chrome-homepage` only.
@@ -24168,7 +24227,7 @@ Four independent checks:
 | `npm run lint` | the six shipped JavaScript files — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 229 scenarios, 2298 assertions |
+| `npm test` | the Playwright harness: 229 scenarios, 2299 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -24177,6 +24236,32 @@ eventually advertises it wrong — this line said 544 when there were 579, and
 the tree above said 561 two pages away. The scenario count was wrong too, for a
 reason no amount of proofreading catches: the numbering **skips 52**, so what
 was being read was the highest label rather than a count of the blocks.
+
+### The progress board (v4.32.0.5)
+
+A full bench run takes over an hour, and its output does not say how far it
+has got. `tests/suivi/` shows it in a page:
+
+```bash
+node tests/suivi/serveur.mjs              # the page: http://localhost:4790/
+node tests/suivi/lancer.mjs               # npm run check, tracked
+node tests/suivi/mutants.mjs LIST.mjs     # a mutant campaign, tracked
+```
+
+The page reloads every two seconds. For the check: the current step (lint,
+parity, store sheets, package, bench), the current scenario and for how long,
+assertions passed and failed out of those this README announces, each failure
+with its detail, the estimated end. For mutants: each one with its state —
+waiting, running, caught, alive, not found, error —, what catches it, and the
+bench of the one running. The remaining time comes from the durations measured
+on the previous run, scenario by scenario; with no measurement, the page gives
+none.
+
+The bench does not depend on it: `run.mjs` only writes its events when
+`TSE_SUIVI` names a file, and a failed write fails nothing. The records live in
+`tests/suivi/.etat/`, ignored by git. A mutant is applied to a copy of the
+tree, never to the repository; a failed build or a bench with no summary gives
+ERROR, not a verdict.
 
 ### The package ships without its comments (v3.59)
 
@@ -24188,13 +24273,13 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 2171 KB | 999 KB | 4,659 → **2** |
+| `content.js` | 2174 KB | 1000 KB | 4,659 → **2** |
 | `cadres.js` | 74 KB | 34 KB | 169 → **0** |
 | `adblock.js` | 126 KB | 101 KB | 301 → **2** |
 | `panneau.js` | 165 KB | 85 KB | 226 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 26 → **0** |
 | `background.js` | 10 KB | 2 KB | 22 → **0** |
-| **all six** | **2561 KB** | **1225 KB** | **−52 %** |
+| **all six** | **2563 KB** | **1226 KB** | **−52 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are

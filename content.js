@@ -4430,13 +4430,16 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        maquette, reprises telles quelles — la carte du centre de 420 pixels
        (70 % de la largeur au plus), ses voisines pivotées de 52°, réduites
        à 72 %, reculées de 120 pixels, et chevauchées d'un septième de carte
-       de chaque côté ; une perspective de 1200 pixels ; un reflet au sol de
-       40 % de la vignette, à 18 % d'opacité. */
+       de chaque côté ; une perspective de 1200 pixels. Le reflet au sol,
+       une nappe de 36 % de la vignette, à 34 % d'opacité sous les voisines,
+       éteint sous la carte du centre (4.32.0.5 ; un pavé de 40 % à 18 %
+       auparavant). */
     ACCUEIL_RUBAN_CARTE:    420,
     ACCUEIL_RUBAN_ANGLE:    52,
     ACCUEIL_RUBAN_ECHELLE:  0.72,
     ACCUEIL_RUBAN_RECUL:    120,
     ACCUEIL_RUBAN_PERSPECTIVE: 1200,
+    ACCUEIL_RUBAN_REFLET:   0.34,
     /* LE RELIEF AU SURVOL (4.32.0.3), celui des cartes de Twitch : l'image
        monte de six pixels vers la droite, un relief de la couleur de la
        chaîne paraît à gauche et dessous. Six pixels : 0,6 rem, le rem de
@@ -8963,15 +8966,21 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        sur lui, se calent à mi-hauteur de la vignette par le même calcul — un
        pourcentage, en hauteur, se rapporterait à la hauteur. La première et
        la dernière carte n'ont pas de chevauchement vers le bord : la
-       première se centre à l'arrivée, sans défiler. */
+       première se centre à l'arrivée, sans défiler.
+       LES BORDS SE FONDENT DANS LA PAGE (4.32.0.5) : sur un écran étroit, les
+       cartes du bout étaient tranchées net par le cadre, une flèche posée sur
+       la coupe. Un masque, pas un dégradé peint : il ne suppose aucune
+       couleur de fond. */
     .tse-acc-ruban-cadre {
       position: relative; container-type: inline-size;
-      --tse-ruban-carte: min(${CFG.ACCUEIL_RUBAN_CARTE}px, 70cqw); --tse-ruban-haut: 16px;
+      --tse-ruban-carte: min(${CFG.ACCUEIL_RUBAN_CARTE}px, 70cqw); --tse-ruban-haut: 16px; --tse-ruban-fondu: 56px;
     }
     .tse-acc-liste.tse-acc-ruban {
       display: flex; gap: ${CFG.ACCUEIL_ECARTS.split(' ')[1]}; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain;
       scroll-snap-type: x mandatory; scrollbar-width: none;
       padding: var(--tse-ruban-haut) calc(50cqw - var(--tse-ruban-carte) / 2) 28px;
+      -webkit-mask-image: linear-gradient(90deg, transparent, #000 var(--tse-ruban-fondu), #000 calc(100% - var(--tse-ruban-fondu)), transparent);
+      mask-image: linear-gradient(90deg, transparent, #000 var(--tse-ruban-fondu), #000 calc(100% - var(--tse-ruban-fondu)), transparent);
     }
     .tse-acc-ruban::-webkit-scrollbar { display: none; }
     .tse-acc-ruban > .tse-acc-carte, .tse-acc-ruban > .tse-acc-carte-attente {
@@ -9008,17 +9017,39 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       .tse-acc-ruban > .tse-acc-carte, .tse-acc-ruban > .tse-acc-carte-attente {
         margin: 0 calc(var(--tse-ruban-carte) / -7);
         animation: tse-acc-ruban-plan linear both; animation-timeline: view(inline);
+        view-timeline: --tse-ruban-traversee inline;
       }
       .tse-acc-ruban > :first-child { margin-left: 0; }
       .tse-acc-ruban > :last-child { margin-right: 0; }
       .tse-acc-ruban > * > :first-child {
         transform-origin: 50% 100%; animation: tse-acc-ruban linear both; animation-timeline: view(inline);
       }
-      /* La légende sur le fond de la page : celle du centre cache les reflets
-         des voisines, qui passent dessous — et le sien, qu'elle remplace. */
+      /* LA LÉGENDE N'A PAS DE FOND (4.32.0.5). Elle avait celui de la page,
+         pour cacher les reflets qui passaient dessous — mais la page de
+         Twitch n'a pas toujours la couleur que dit sa variable : chez un
+         utilisateur, la légende du centre faisait une boîte grise sur un
+         fond plus sombre, relevé sur sa capture. Plus rien ne passe dessous :
+         le reflet du centre s'éteint (cf. LE REFLET), ceux des voisines se
+         resserrent sous leur vignette. */
       .tse-acc-ruban > * > :last-child {
         transform-origin: 50% 0; animation: tse-acc-ruban linear both, tse-acc-ruban-legende linear both;
-        animation-timeline: view(inline), view(inline); background: var(--color-background-base, #0e0e10);
+        animation-timeline: view(inline), view(inline);
+      }
+      /* LE REFLET AU SOL, dans la couleur de la chaîne — celle du relief —,
+         sous la vignette, derrière les textes de la carte (z-index -1 dans la
+         carte, isolée). Pas un miroir de l'image : le direct, les badges et
+         l'étiquette, retournés, ne diraient rien. UNE NAPPE, PAS UN PAVÉ
+         (4.32.0.5) : un rectangle de la largeur de la carte, à bords francs,
+         se lisait comme un bloc de couleur sous chaque voisine, coupé par
+         celui de la suivante. Une ellipse qui se perd vers les côtés ; et
+         sous la carte du centre, rien — sa légende est là. Il suit la
+         traversée de la carte (une ligne de temps nommée : un
+         pseudo-élément n'a pas la sienne) et n'anime que son opacité. Sans
+         lignes de temps, pas de reflet : les légendes s'y lisent toutes. */
+      .tse-acc-ruban .tse-acc-relief::after {
+        content: ''; position: absolute; left: 4%; right: 4%; top: 100%; height: 36%; z-index: -1; pointer-events: none;
+        background: radial-gradient(ellipse 50% 100% at 50% 0, var(--tse-accent), transparent 72%);
+        opacity: ${CFG.ACCUEIL_RUBAN_REFLET}; animation: tse-acc-ruban-reflet linear both; animation-timeline: --tse-ruban-traversee;
       }
     }
     @keyframes tse-acc-ruban {
@@ -9028,26 +9059,27 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     }
     @keyframes tse-acc-ruban-plan { 0%, 100% { z-index: 0; filter: brightness(0.5); } 50% { z-index: 10; filter: none; } }
     @keyframes tse-acc-ruban-legende { 0%, 40%, 60%, 100% { opacity: 0; } 50% { opacity: 1; } }
-    /* LE REFLET AU SOL, dans la couleur de la chaîne — celle du relief —,
-       sous la vignette, derrière les textes de la carte (z-index -1 dans la
-       carte, isolée). Pas un miroir de l'image : le direct, les badges et
-       l'étiquette, retournés, ne diraient rien. */
-    .tse-acc-ruban .tse-acc-relief::after {
-      content: ''; position: absolute; left: 0; right: 0; top: 100%; height: 40%; z-index: -1; pointer-events: none;
-      background: linear-gradient(var(--tse-accent), transparent); opacity: 0.18;
-    }
+    @keyframes tse-acc-ruban-reflet { 0%, 40%, 60%, 100% { opacity: ${CFG.ACCUEIL_RUBAN_REFLET}; } 50% { opacity: 0; } }
+    /* LA PROFONDEUR : une ombre portée sous chaque vignette. Les cartes se
+       chevauchent ; sans elle, une voisine collait à la carte du centre,
+       bord contre bord, sans dessus ni dessous. Sur le relief, pas sur la
+       vignette : au survol, celle-ci monte, et son ombre tomberait sur les
+       flancs du bloc qu'elle découvre. */
+    .tse-acc-ruban .tse-acc-relief { box-shadow: 0 12px 30px rgba(0, 0, 0, 0.55); }
     .tse-acc-ruban-fleche {
-      position: absolute; z-index: 20; top: calc(var(--tse-ruban-haut) + var(--tse-ruban-carte) * 9 / 32 - 18px);
-      width: 36px; height: 36px; padding: 0; border: 0; border-radius: 50%; cursor: pointer;
+      position: absolute; z-index: 20; top: calc(var(--tse-ruban-haut) + var(--tse-ruban-carte) * 9 / 32 - 20px);
+      width: 40px; height: 40px; padding: 0; border: 0; border-radius: 50%; cursor: pointer;
       display: inline-flex; align-items: center; justify-content: center;
-      background: rgba(0, 0, 0, 0.62); color: #fff; transition: opacity 0.15s ease, background 0.15s ease;
+      background: rgba(14, 14, 16, 0.72); color: #fff; transition: opacity 0.15s ease, background 0.15s ease;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12), 0 6px 18px rgba(0, 0, 0, 0.45);
+      -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
     }
     .tse-acc-ruban-fleche--prec { left: 8px; }
     .tse-acc-ruban-fleche--suiv { right: 8px; }
     .tse-acc-ruban-fleche svg { width: 22px; height: 22px; fill: currentColor; }
     .tse-acc-ruban-fleche--prec svg { transform: rotate(90deg); }
     .tse-acc-ruban-fleche--suiv svg { transform: rotate(-90deg); }
-    .tse-acc-ruban-fleche:hover { background: rgba(0, 0, 0, 0.8); }
+    .tse-acc-ruban-fleche:hover { background: rgba(14, 14, 16, 0.92); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.24), 0 6px 18px rgba(0, 0, 0, 0.45); }
     .tse-acc-ruban-fleche:focus-visible { outline: 2px solid #9147ff; outline-offset: 2px; }
     .tse-acc-ruban-fleche:disabled { opacity: 0; pointer-events: none; }
     .tse-acc-relief:hover > .tse-acc-vignette,

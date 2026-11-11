@@ -1,6 +1,6 @@
 import { chromium, firefox } from 'playwright';
 import { pathToFileURL, fileURLToPath } from 'node:url';
-import { readFileSync, writeFileSync, rmSync, readdirSync, mkdtempSync, mkdirSync, cpSync } from 'node:fs';
+import { readFileSync, writeFileSync, appendFileSync, rmSync, readdirSync, mkdtempSync, mkdirSync, cpSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { tokenizer, Parser } from 'acorn';
 import { createContext, runInContext } from 'node:vm';
@@ -21,11 +21,22 @@ let pass = 0, fail = 0;
 const echecs = [];
 let scenario = '(hors scénario)';
 let nbScenarios = 0;
-const titre = (t) => { scenario = t; nbScenarios++; console.log('\n' + t); };
+/* LE TABLEAU DE SUIVI (4.32.0.5, tests/suivi/). Avec TSE_SUIVI, chaque
+   scénario et chaque assertion s'ajoutent, une ligne JSON chacun, au fichier
+   qu'il désigne — le tableau les lit pendant que le banc tourne. Sans lui,
+   rien ne change. Une écriture qui échoue ne fait jamais échouer le banc :
+   le suivi n'est qu'un affichage. */
+const SUIVI = process.env.TSE_SUIVI || null;
+const noter = (o) => {
+  if (!SUIVI) return;
+  try { appendFileSync(SUIVI, JSON.stringify({ t: Date.now(), ...o }) + '\n'); } catch { /* affichage seulement */ }
+};
+const titre = (t) => { scenario = t; nbScenarios++; noter({ type: 'scenario', titre: t }); console.log('\n' + t); };
 const ok  = (n, c, extra='') => {
-  if (c) { pass++; console.log('  ✓', n); return; }
+  if (c) { pass++; noter({ type: 'assertion', ok: true, nom: n }); console.log('  ✓', n); return; }
   fail++;
   echecs.push({ scenario, assertion: n, detail: String(extra) });
+  noter({ type: 'assertion', ok: false, nom: n, detail: String(extra).slice(0, 4000) });
   console.log('  ✗', n, extra);
 };
 const wait = (p, ms) => p.waitForTimeout(ms);
@@ -181,6 +192,7 @@ const browser = await LANCEUR.launch(BINAIRE ? { executablePath: BINAIRE } : {})
     process.exit(2);
   });
 console.log(`moteur : ${MOTEUR} ${browser.version()}`);
+noter({ type: 'moteur', moteur: MOTEUR, version: browser.version() });
 
 /* LE PANNEAU INCRUSTÉ, HÉBERGÉ PAR UNE PAGE TWITCH (4.25.0.10). Le panneau
    n'écrit plus à son parent que vers les deux origines de Twitch : un hôte
@@ -42206,14 +42218,33 @@ const lireImages = (page) => page.evaluate(() => {
   const r4 = await lire();
   ok('d) au bout du ruban : la dernière carte au centre, « Suivant » éteint',
      r4.centre === r0.cartes[4].cle && Math.abs(r4.cartes[4].ecart) <= 1 && r4.suiv && !r4.prec, JSON.stringify({ centre: r4.centre, suiv: r4.suiv }));
-  /* e) LE REFLET AU SOL, dans la couleur de la chaîne — Tessaly, 00C8AF —, à
-     18 % ; la légende du centre sur le fond de la page, qui cache les reflets
-     des voisines. Mutants — pas de reflet ; la légende transparente. */
+  /* e) LE REFLET AU SOL, dans la couleur de la chaîne — Tessaly, 00C8AF —,
+     une nappe à 34 % sous les voisines, éteinte sous la carte du centre ;
+     la légende sans fond (4.32.0.5 : celui de la page, que disait la
+     variable de Twitch, faisait une boîte grise sur un fond plus sombre,
+     relevé sur une capture). Mutants — pas de reflet ; le reflet allumé
+     sous le centre ; la légende sur le fond de la variable. */
   const tess = r4.cartes.find((c) => c.cle === 'tessaly');
   const centreFin = r4.cartes.find((c) => c.cle === r4.centre);
-  ok('e) un reflet au sol, dans la couleur de la chaîne, à 18 % ; la légende du centre sur le fond de la page',
-     tess.reflet.contenu === '""' && /rgb\(0, 200, 175\)/.test(tess.reflet.image) && Math.abs(Number(tess.reflet.op) - 0.18) < 0.005
-     && centreFin.legFond === 'rgb(14, 14, 16)', JSON.stringify({ reflet: tess.reflet, fond: centreFin.legFond }));
+  ok('e) un reflet au sol sous les voisines, dans la couleur de la chaîne, à 34 % ; éteint sous la carte du centre, dont la légende n\'a pas de fond',
+     tess.cle !== centreFin.cle && tess.reflet.contenu === '""' && /rgb\(0, 200, 175\)/.test(tess.reflet.image)
+     && Math.abs(Number(tess.reflet.op) - 0.34) < 0.005
+     && centreFin.reflet.contenu === '""' && Number(centreFin.reflet.op) < 0.02 && centreFin.legFond === 'rgba(0, 0, 0, 0)',
+     JSON.stringify({ reflet: tess.reflet, centre: centreFin.reflet, fond: centreFin.legFond }));
+  /* f) LES BORDS SE FONDENT, LES CARTES ONT LEUR OMBRE (4.32.0.5). Sur un
+     écran étroit, les cartes du bout étaient tranchées net, une flèche sur
+     la coupe : un masque les fond dans la page, sans supposer sa couleur.
+     Une ombre sous chaque vignette sépare les cartes qui se chevauchent.
+     Mutants — pas de masque ; pas d'ombre. */
+  const bords = await page.evaluate(() => {
+    const l = document.querySelector('#tse-accueil .tse-acc-ruban');
+    const cs = getComputedStyle(l);
+    const masque = cs.maskImage || cs.webkitMaskImage || '';
+    return { masque, ombre: getComputedStyle(l.querySelector('.tse-acc-relief')).boxShadow };
+  });
+  ok('f) les bords du ruban se fondent dans la page (un masque, transparent aux deux bouts) ; chaque vignette porte son ombre',
+     /^linear-gradient\(90deg, (transparent|rgba\(0, 0, 0, 0\)), /.test(bords.masque) && /(transparent|rgba\(0, 0, 0, 0\))\)$/.test(bords.masque)
+     && /rgba\(0, 0, 0, 0\.55\) 0px 12px 30px/.test(bords.ombre), JSON.stringify(bords));
   await page.close();
 }
 
@@ -42369,4 +42400,5 @@ if (echecs.length) {
   console.log('═'.repeat(50));
 }
 console.log(`${pass} réussis, ${fail} échoués — moteur ${MOTEUR}\n`);
+noter({ type: 'bilan', reussis: pass, echoues: fail, scenarios: nbScenarios });
 process.exit(fail ? 1 : 0);

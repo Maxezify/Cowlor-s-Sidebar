@@ -2183,6 +2183,65 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## Le ruban poli, et un tableau pour suivre le banc (v4.32.0.5)
+
+Deux retours. Publiée sur `claude/chrome-homepage` seulement.
+
+| signalé | ce qui a été fait |
+| --- | --- |
+| « l'idée du ruban 3D est bonne ; j'aimerais qu'il soit un peu plus polish en termes de CSS » | le reflet en nappe, éteint sous la carte du centre ; la légende sans fond ; les bords fondus ; une ombre sous chaque vignette ; des flèches plus nettes |
+| « une interface graphique quand tu fais les tests et les mutants : j'ai très peu d'infos ; pas besoin de montrer tes actions, juste où tu en es » | `tests/suivi/` : une page qui suit la vérification et les mutants, à la seconde (cf. « Le tableau de suivi », sous Vérification) |
+
+### Le ruban, relu sur une capture
+
+La capture montrait ce que le faux Twitch du banc reproduit à l'identique :
+
+- **des pavés de couleur sous les voisines.** Le reflet était un rectangle de
+  la largeur de la carte, à bords francs, que la voisine suivante recoupait.
+  C'est une nappe désormais — une ellipse qui se perd vers les côtés —, à
+  34 % sous les voisines, et éteinte sous la carte du centre, où la légende se
+  lit. Elle suit la traversée de la carte par une ligne de temps nommée : un
+  pseudo-élément n'a pas la sienne. Elle n'anime que son opacité ;
+- **une boîte grise sous la carte du centre.** La légende portait le fond de
+  la page, pour cacher les reflets passés dessous, lu dans la variable de
+  Twitch, `--color-background-base`. Sur la page de la capture, le fond réel
+  était plus sombre que cette variable — relevé au pixel : 34, 33, 38 pour la
+  page, 51, 50, 57 pour la boîte. Plus rien ne passe sous la légende : elle
+  n'a plus de fond, et ne suppose plus aucune couleur ;
+- **des cartes tranchées net au bord** sur un écran étroit, une flèche posée
+  sur la coupe : un masque fond les deux bouts du ruban dans la page ;
+- **des cartes collées bord à bord** là où elles se chevauchent : une ombre
+  portée sous chaque vignette — sur le relief, pas sur la vignette, qui monte
+  au survol et la jetterait sur les flancs qu'elle découvre ;
+- les flèches : 40 pixels, un liseré, un fond flouté.
+
+Le banc : 229 e) réécrit (la nappe, éteinte au centre ; la légende sans
+fond), 229 f) nouveau (le masque, l'ombre).
+
+**Six mutants nommés, tous pris.**
+
+| mutant | ce qui tombe |
+| --- | --- |
+| pas de reflet | 229 e) |
+| le reflet allumé sous le centre | 229 e) |
+| la légende sur le fond de la variable | 229 e) |
+| le reflet sans sa ligne de temps | 229 e) : il s'allume sous toutes les cartes |
+| pas de masque | 229 f) |
+| pas d'ombre | 229 f) |
+
+### Le tableau de suivi
+
+Décrit sous « Vérification ». `run.mjs` y gagne un crochet : avec
+`TSE_SUIVI`, chaque scénario et chaque assertion s'ajoutent à un fichier ;
+sans lui, rien ne change. Le lanceur de mutants et l'extracteur de scénarios,
+qui vivaient hors du dépôt, y entrent — le dossier de travail qui les portait
+a été effacé une fois, avec la machine. Éprouvé sur une course réelle ; sur
+les treize mutants de la 4.32.0.4, qui rendent les mêmes verdicts qu'avec
+l'ancien script ; sur ses cas d'erreur (texte absent, scénario introuvable) ;
+et l'estimation du temps restant, sur sept cas calculés à la main.
+
+`npm run check` : 2299 assertions dans 229 scénarios, toutes vertes.
+
 ## L'accueil, après usage : le ruban, les chaînes écartées dans les Réglages, les cartes de Twitch (v4.32.0.4)
 
 Sept retours, dont un audit de tout l'accueil. Publiée sur `claude/chrome-homepage` seulement.
@@ -24879,7 +24938,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | les six fichiers JavaScript livrés — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 229 scénarios, 2298 assertions |
+| `npm test` | le harnais Playwright : 229 scénarios, 2299 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -24889,6 +24948,32 @@ taille de mémoire finit toujours par l'annoncer fausse — cette ligne disait
 deux pages d'écart. Le compte des scénarios était faux lui aussi, pour une
 raison qu'aucune relecture n'attrape : la numérotation **saute le 52**, si
 bien qu'on lisait la plus haute étiquette au lieu de compter les blocs.
+
+### Le tableau de suivi (v4.32.0.5)
+
+Un banc complet dure plus d'une heure, et sa sortie ne dit pas où il en est.
+`tests/suivi/` le montre dans une page :
+
+```bash
+node tests/suivi/serveur.mjs              # la page : http://localhost:4790/
+node tests/suivi/lancer.mjs               # npm run check, suivi
+node tests/suivi/mutants.mjs LISTE.mjs    # une campagne de mutants, suivie
+```
+
+La page se relit toutes les deux secondes. Pour la vérification : l'étape en
+cours (lint, parité, fiches, paquet, banc), le scénario en cours et depuis
+quand, les assertions réussies et échouées sur celles qu'annonce ce README,
+chaque échec avec son détail, la fin estimée. Pour les mutants : chacun avec
+son état — en attente, en cours, pris, vivant, introuvable, erreur —, ce qui
+le prend, et le banc de celui qui tourne. Le temps restant vient des durées
+mesurées à la course précédente, scénario par scénario ; sans mesure, la page
+n'en donne pas.
+
+Le banc n'en dépend pas : `run.mjs` n'écrit ses événements que si `TSE_SUIVI`
+désigne un fichier, et une écriture qui échoue ne fait rien échouer. Les
+relevés vivent dans `tests/suivi/.etat/`, ignoré par git. Un mutant est
+appliqué à une copie de l'arbre, jamais au dépôt ; une construction ratée ou
+un banc sans bilan donnent ERREUR, pas un verdict.
 
 ### Le paquet part sans ses commentaires (v3.59)
 
@@ -24900,13 +24985,13 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 2171 Ko | 999 Ko | 4 659 → **2** |
+| `content.js` | 2174 Ko | 1000 Ko | 4 659 → **2** |
 | `cadres.js` | 74 Ko | 34 Ko | 169 → **0** |
 | `adblock.js` | 126 Ko | 101 Ko | 301 → **2** |
 | `panneau.js` | 165 Ko | 85 Ko | 226 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 26 → **0** |
 | `background.js` | 10 Ko | 2 Ko | 22 → **0** |
-| **les six** | **2561 Ko** | **1225 Ko** | **−52 %** |
+| **les six** | **2563 Ko** | **1226 Ko** | **−52 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
