@@ -1280,7 +1280,7 @@ const GROUPES_OPT = [
   ['optGrpMultistream', ['salle', 'salleAuto']],
   // L'accueil de Twitch (4.26.0) : le maître d'abord, ce qu'il gouverne ensuite.
   ['optGrpAccueil', ['accueil', 'accueilTete', 'accueilVideo', 'accueilUne', 'accueilTop',
-                     'accueilTopLangue', 'accueilPourquoi', 'accueilApercu', 'accueilDebut', 'accueilRdv', 'accueilEtiquettes', 'accueilAbsence', 'accueilRanger']],
+                     'accueilTopLangue', 'accueilTopEcartees', 'accueilPourquoi', 'accueilApercu', 'accueilDebut', 'accueilRdv', 'accueilEtiquettes', 'accueilAbsence', 'accueilRanger']],
   ['optGrpBadges',  ['badges']],
   ['optGrpCarte',   ['duree', 'dureeFormat', 'fresh', 'abonnes', 'subathonJour']],
   ['optGrpListe',   ['tris', 'filtreCategorie', 'filtreLangue', 'topOnglet', 'topN']],
@@ -1401,6 +1401,92 @@ const cases = (jeu, membres, actifs, surChangement) => {
   return hote;
 };
 
+/* LA LISTE DE PSEUDOS (4.32.0.4, « on met le pseudo du streamer ; si
+   plusieurs, il est ajouté dans la liste ») : un champ, « Ajouter » ou
+   Entrée, une puce par pseudo et sa croix. On y tape le pseudo, « @pseudo »
+   ou l'adresse de la chaîne, plusieurs à la fois — séparés par des espaces,
+   des virgules ou des points-virgules. Le LOGIN, en minuscules : c'est lui
+   que porte l'adresse, et lui que le classement connaît.
+   JAMAIS DE REFUS MUET : ce qui n'a pas la forme d'un login est dit, et rendu
+   au champ pour qu'on le corrige ; un doublon est dit ; à la borne que la
+   page donne (`max`), le champ se ferme en le disant. La page revoit tout ce
+   qui entre (`propre`) : le panneau n'est qu'une porte d'entrée de plus. */
+const RE_LOGIN = /^[a-z0-9_]{1,25}$/;
+const loginTape = (brut) => {
+  let m = String(brut || '').trim();
+  const adresse = /^(?:https?:\/\/)?(?:www\.|m\.)?twitch\.tv\/([^/?#\s]+)/i.exec(m);
+  if (adresse) m = adresse[1];
+  m = m.replace(/^@/, '').toLowerCase();
+  return RE_LOGIN.test(m) ? m : null;
+};
+/* Ce qu'un ajout a dit, pour la peinture qui suit : repeindre détruit la
+   ligne, et avec elle ses messages et ce qu'on a rendu au champ. Lu une fois. */
+let suiteListe = null;
+
+const liste = (id, d, v) => {
+  const hote = div('reg-liste');
+  const plein = v.length >= d.max;
+  const pleine = T('optListePleine', String(d.max));
+  const suite = suiteListe && suiteListe.id === id ? suiteListe : null;
+  if (suite) suiteListe = null;
+  const saisie = div('reg-liste-saisie');
+  const champ = document.createElement('input');
+  champ.type = 'text';
+  champ.className = 'reg-liste-champ';
+  champ.spellcheck = false;
+  champ.autocomplete = 'off';
+  champ.setAttribute('aria-label', T('opt' + MAJ(id)));
+  champ.value = suite ? suite.reste : '';
+  champ.disabled = plein;
+  const bouton = elt('button', 'reg-liste-ajouter', T('optListeAjouter'));
+  bouton.type = 'button';
+  bouton.disabled = plein;
+  const ajouter = () => {
+    const pris = [], refuses = [], deja = [];
+    for (const brut of champ.value.split(/[\s,;]+/)) {
+      if (!brut) continue;
+      const l = loginTape(brut);
+      if (!l) refuses.push(brut);
+      else if (v.includes(l) || pris.includes(l)) deja.push(l);
+      else pris.push(l);
+    }
+    const place = Math.max(0, d.max - v.length);
+    const gardes = pris.slice(0, place), deborde = pris.slice(place);
+    const messages = [];
+    if (refuses.length) messages.push(T('optListeRefus', refuses.join(', ')));
+    if (deja.length) messages.push(T('optListeDeja', deja.join(', ')));
+    if (deborde.length) messages.push(pleine);
+    suiteListe = { id, messages, reste: [...refuses, ...deborde].join(' ') };
+    if (gardes.length) poserOption(id, [...v, ...gardes]);
+    else peindreReglages();
+  };
+  champ.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    ajouter();
+  });
+  bouton.addEventListener('click', ajouter);
+  saisie.append(champ, bouton);
+  hote.appendChild(saisie);
+  const messages = suite ? suite.messages.slice() : [];
+  if (plein && !messages.includes(pleine)) messages.push(pleine);
+  for (const m of messages) hote.appendChild(elt('p', 'reg-liste-message', m));
+  if (v.length) {
+    const puces = elt('ul', 'reg-liste-puces');
+    for (const l of v) {
+      const p = elt('li', 'reg-liste-puce');
+      const x = elt('button', 'reg-liste-retirer', '×');
+      x.type = 'button';
+      x.setAttribute('aria-label', T('optListeRetirer', l));
+      x.addEventListener('click', () => poserOption(id, v.filter((y) => y !== l)));
+      p.append(elt('span', 'reg-liste-nom', l), x);
+      puces.appendChild(p);
+    }
+    hote.appendChild(puces);
+  }
+  return hote;
+};
+
 /* ── La vue ──────────────────────────────────────────────────────────────── */
 let etatOpt = null;          // dernier paquet reçu de la page
 
@@ -1447,6 +1533,9 @@ const ligneReglage = (id) => {
     ligne.classList.add('reg-ligne--large');
     ctrl.appendChild(cases(id, d.valeurs, actifs,
       (gardes) => poserOption(id, d.valeurs.filter((m) => !gardes.includes(m)))));
+  } else if (d.type === 'liste') {
+    ligne.classList.add('reg-ligne--large');
+    ctrl.appendChild(liste(id, d, Array.isArray(v) ? v : []));
   }
   ligne.appendChild(ctrl);
   return ligne;

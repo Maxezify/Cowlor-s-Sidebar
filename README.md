@@ -2183,6 +2183,280 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## L'accueil, après usage : le ruban, les chaînes écartées dans les Réglages, les cartes de Twitch (v4.32.0.4)
+
+Sept retours, dont un audit de tout l'accueil. Publiée sur `claude/chrome-homepage` seulement.
+
+| signalé | ce qui a été fait |
+| --- | --- |
+| « que "À la une" soit en ruban 3D » | la piste B de la maquette : une ligne qui défile, la carte du centre droite, ses voisines qui pivotent, un reflet au sol |
+| « pour le "écarter", retire-le ; mets-le dans les options, on met le pseudo du streamer ; si plusieurs, il est ajouté à la liste ; les pseudos de cette liste sont écartés du Top 10 » | le bouton s'en va ; « Chaînes écartées du Top 10 », une liste de pseudos dans les Réglages, vaut pour le Top 10 en toutes langues |
+| « fais un audit complet de la partie Accueil » | code mort retiré, quatre défauts corrigés, chacun pris par le banc (cf. plus bas) |
+| « que "Sans planning" soit dans l'ordre du plus proche dans le futur » | les cinq chaînes, rangées par leur heure à venir |
+| « la pastille "Vient de passer sur V…" : dis plutôt "Va sur VALORANT" » | « Va sur VALORANT », plus court dans chaque langue |
+| « la pastille Subathon qui clignote comme ailleurs » | les huit teintes de la pastille de la barre, au même tour |
+| « une cohérence dans les visuels : il a écrit "spectateurs", la durée est différente ; mets tout au même CSS » | les cartes de Twitch prennent les marques des nôtres — « Live », le nombre seul, la durée en haut à droite |
+
+### « À la une », en ruban
+
+Les directs du carrousel sur une ligne qui défile, aimantée au centre
+(`scroll-snap`). La carte du centre est droite et pleine ; ses voisines
+pivotent de 52°, reculent, se réduisent à 72 % et s'assombrissent — les
+valeurs de la maquette. Le mouvement suit le défilement lui-même
+(`animation-timeline: view(inline)`) : aucun script ne le calcule.
+
+- **Ce qui pivote, ce sont la vignette et la légende, pas la carte.** Le
+  défilement aimanté mesure la boîte de la carte *transformée* : pivotée, son
+  centre n'était plus au centre, et « Suivant » s'arrêtait à 274 pixels au
+  lieu de 300 — mesuré au banc. La carte reste donc droite, et ses deux
+  moitiés pivotent autour du même point, le milieu de leur jointure, avec la
+  même perspective : elle reste d'un seul tenant, et l'aimant la centre au
+  pixel.
+- **L'ordre des plans** : les cartes se chevauchent d'un septième ; un
+  z-index qui suit le défilement garde devant la plus proche du centre. La
+  rotation passe au compositeur ; le z-index ne le peut pas, et
+  l'assombrissement, animé avec lui, reste avec lui. Leur ligne de temps est
+  le défilement : leurs valeurs ne changent que quand le ruban défile.
+- **Seule la carte du centre a sa légende**, comme dans le ruban dont elle
+  vient : celles des voisines paraissaient sous la sienne, qu'elles
+  chevauchent — vu à l'image. Sa légende est posée sur le fond de la page.
+- **Le reflet au sol** : la couleur de la chaîne — celle du relief — en
+  dégradé, à 18 % ; pas un miroir de l'image, où le direct, les badges et
+  l'étiquette, retournés, ne diraient rien.
+- **Deux flèches**, à mi-hauteur de la vignette : une molette verticale ne
+  fait pas défiler un ruban. Éteintes au bout.
+- **Un clic sur une carte de côté l'amène au centre**, sans ouvrir sa
+  chaîne : c'est le geste d'un ruban. Celle du centre s'ouvre ; un clic avec
+  Ctrl, Maj ou Cmd, ou du milieu, ouvre toujours.
+- **Sans lignes de temps** (un navigateur trop ancien), le ruban reste droit,
+  ses cartes côte à côte : il défile, aimanté, sans pivoter.
+- Rien ne se replie : « Afficher tout » n'y a plus rien à faire.
+
+Le rapport : `accueil.une.centrages`, les clics qui ont centré une carte.
+
+### Les chaînes écartées, dans les Réglages
+
+Le bouton de la 4.32.0.3 s'en va, et la ligne qui disait sous le Top 10 ce
+qu'il avait écarté avec lui. À la place, un réglage : « Chaînes écartées du
+Top 10 », dans le groupe de l'accueil.
+
+- **Un type de réglage neuf, la liste** : un champ, « Ajouter » ou Entrée, et
+  une puce par pseudo, que sa croix retire. On y tape le pseudo, `@pseudo` ou
+  l'adresse de la chaîne, plusieurs à la fois. Ce qui n'est pas un pseudo
+  est dit, et rendu au champ pour qu'on le corrige ; un doublon est dit ;
+  jamais un refus muet.
+- **Le login, pas le nom affiché**, en minuscules : c'est lui que porte
+  l'adresse, et lui que le classement connaît. La page revoit tout ce qui
+  entre (`propre`) : la casse repliée, ce qui n'a pas la forme d'un login
+  ignoré, un doublon compté une fois.
+- **Vingt au plus**, et le nombre n'est pas choisi : le Top 10 se prouve sur
+  dix places de plus que la liste (ci-dessous), et la réponse du tag de
+  langue, qui le prouve d'une seule requête, en porte trente. À la borne, le
+  champ se ferme en le disant.
+- **Écartées du Top 10, quelle qu'en soit la langue** — celle de Twitch comme
+  toutes : la liste n'a pas de langue. **Top Chaînes, dans la barre, n'en est
+  pas touché** ; l'accueil qui lit le classement de la barre en écarte
+  toujours les siennes.
+- **Avant les places** : le Top 10 garde ses dix, la onzième monte.
+- **La dixième place, prouvée comme les autres.** Une chaîne écartée fait
+  monter la onzième, que la preuve de complétude du classement ne couvrait
+  pas — elle valait pour dix. Le classement de l'accueil en demande donc
+  autant de plus que la liste en compte, et dit désormais jusqu'où va sa
+  preuve (`prouve`) ; une preuve trop courte relance la marche aussitôt, au
+  lieu d'attendre la suivante (deux minutes et demie). Jusque-là, le Top 10
+  se dit partiel et ne compte pas d'évolution. La barre ne se partage qu'à
+  la même condition : son Top Chaînes doit porter assez de places.
+- **Personne n'a « gagné une place »** : écarter une chaîne fait monter
+  celles d'en dessous, sans qu'elles aient pris un spectateur. Les
+  instantanés de l'évolution portent la liste ; changée, l'évolution repart
+  d'une référence neuve.
+- **Ce que la 4.32.0.3 avait écarté le reste** : sa liste par langue
+  (`tse:ecartees`) passe au réglage, une fois, toutes langues réunies, revue
+  comme tout ce qui entre ; puis sa clé s'en va.
+
+Le rapport : `accueil.top.ecartees` et `retirees` — la taille de la liste,
+et combien de ses chaînes le classement portait. Des comptes. Les réglages
+sont trente-cinq.
+
+### « Sans planning », de la plus proche à venir
+
+Les cinq chaînes restent celles que vous regardez le plus ; elles se rangent
+désormais par leur heure à venir, comme « Vos rendez-vous » au-dessus d'elles.
+L'heure d'une habitude est une heure du jour : sa prochaine fois est
+aujourd'hui si elle n'est pas passée, demain sinon — minuit compris : à 23:00,
+« vers 00:00 » vient avant « vers 20:00 ». La minute en cours compte encore
+comme à venir. À égalité d'heure, l'ordre des visites.
+
+### « Va sur VALORANT »
+
+« Vient de passer sur … » ne laissait au jeu que sa première lettre dans une
+pastille d'une demi-vignette. L'étiquette de l'accueil dit désormais « Va sur
+VALORANT », et dans chaque langue une forme courte — « Switched to »,
+« Wechselt zu », « Pasa a »… Le badge de l'aperçu, qui a sa place, garde sa
+phrase.
+
+### Le subathon qui clignote comme ailleurs
+
+L'étiquette « Subathon » parcourt les huit teintes de la pastille de la barre
+et du badge de l'aperçu, au même tour d'une seconde et demie ; le texte, le
+bord et le point suivent ensemble, le fond reste sombre. Une couleur animée se
+repeint, et c'est assumé : un pseudo-élément ne porte pas de copies, et le
+subathon est rare. Sa surface reste loin de celle que vise la règle WCAG 2.3.1.
+
+### Les cartes de Twitch aux marques des nôtres
+
+Sous « Ranger l'accueil de Twitch », une carte de direct de Twitch prend les
+marques des cartes de l'extension :
+
+- **« Live »** restylé comme le nôtre — fond, corps, graisse, marges, arrondi,
+  capitales —, à huit pixels du coin. Le mot reste celui de Twitch.
+- **Le nombre de spectateurs, sans le mot** : celui de `TseChannels`, écrit
+  comme sur nos cartes (`formatViewers` — « 2,2 k »), au style du nôtre.
+- **La durée du direct en haut à droite**, `formatUptime`, comme les nôtres —
+  et « Durée du direct » coupé, elle ne se montre pas, ici non plus.
+- **Le « 38:55 » de la capture n'était pas de Twitch.** Relevé sur la page
+  enregistrée : il vit dans un `seventv-stream-card-uptime-badge`, posé dans
+  la carte par l'extension 7TV. Il s'efface quand notre durée se montre — deux
+  durées du même direct, ce serait une de trop —, et l'étiquette retrouve le
+  coin du bas.
+- **Rien d'inventé** : sans réponse de `TseChannels` pour la chaîne, son
+  compteur reste celui de Twitch, à notre style, et rien ne s'écrit en haut.
+- **Aucun nœud n'entre** dans la carte de Twitch : des attributs, et des
+  pseudo-éléments qui les lisent.
+- **Ce que ça coûte** : les chaînes des cartes à l'écran entrent dans le lot
+  commun de `TseChannels`, comme pour leurs étiquettes — désormais aussi
+  quand les étiquettes sont coupées, tant que « Ranger » est allumé.
+
+Le rapport : `accueil.etiquettes.twitch.habillees` et `durees`.
+
+### L'audit
+
+Tout le module de l'accueil, relu : le code, sa feuille, ses textes.
+
+- **Code mort** : le module `ecartees`, son bouton, sa ligne, leur feuille et
+  leurs quatre textes en dix langues. Aucune autre fonction, aucune classe de
+  la feuille, aucun texte de l'accueil sans usage — vérifié par relevé.
+- **Un réglage remis à son défaut dans un autre onglet restait changé dans
+  celui-ci** — tous les réglages, depuis toujours. On ne garde au stockage
+  que les écarts : revenu à son défaut, un réglage en disparaît, et la
+  relecture ne posait que ce qu'elle y trouvait. Elle part désormais des
+  défauts. Et un stockage vidé d'un coup (`clear`, une clé nulle) est relu
+  aussi.
+- **L'étiquette d'une carte de Twitch restait en haut** quand on allumait
+  « Ranger » : elle calculait son coin avant que la feuille n'efface le badge
+  de 7TV. Le rangement passe désormais avant les étiquettes, et le coin se
+  recalcule quand notre durée paraît ou s'en va.
+- **La preuve du classement ne disait pas jusqu'où elle allait** — sans
+  conséquence tant que le Top 10 demandait toujours dix places ; c'est la
+  liste qui l'a rendue nécessaire (ci-dessus).
+- **Performance** : la liste est relue en ensemble une fois par changement,
+  pas à chaque peinture ; le compte des chaînes retirées ne parcourt le
+  classement que si la liste n'est pas vide ; le ruban ne coûte aucun script
+  au défilement, hormis l'état de ses flèches, une fois par image.
+
+### Ce qui n'a pas pu être vérifié
+
+Twitch n'est pas joignable d'ici. La page enregistrée porte la structure de
+ses cartes et le badge de 7TV, pas leurs feuilles de style : nos règles
+l'emportent par `!important`, et le banc les éprouve contre des styles posés
+en ligne, pas contre ceux de Twitch. Les lignes de temps de défilement
+demandent Chrome 115 ; le ruban droit qui les remplace ailleurs n'est pas
+éprouvé au banc, dont le Chromium les connaît.
+
+### Le banc
+
+- 217 l), réécrit : « À la une » en ruban — une ligne, les cinq, pas
+  d'« Afficher tout » ;
+- 120 : la liste dans le panneau — le champ, l'adresse et `@pseudo`, le
+  refus dit et rendu au champ, le doublon, la croix, la borne ; les
+  trente-cinq réglages ;
+- 221 b) : « Sans planning » dans l'ordre de l'heure à venir, contrôlé sur les
+  instants et non sur des minutes du jour, l'onglet mis à midi ;
+- 222 : « Va sur Elden Ring » ; le subathon qui parcourt les huit teintes ;
+  l'étiquette sous notre durée ; le coût, étiquettes coupées, avec et sans
+  « Ranger » ;
+- 226 : la grille de nos rayons lue sur une liste témoin, « À la une » étant
+  un ruban ;
+- 213 : deux exceptions nommées de plus, chacune avec sa raison — l'ordre des
+  plans du ruban (z-index et assombrissement) et la couleur du subathon ;
+- 64 et 213 c), sous Chromium 153, celui du banc depuis cette version :
+  l'italien s'y écrit « 29,3K » et non plus « 29.339 » — les deux formes,
+  écrites à la main, sont admises, aucune n'est celle de l'anglais ; la trace
+  ne dit plus « 0 » d'une animation prise, et recycle ses identifiants — le
+  refus d'une transition du bouton de tri était imputé à l'une des nôtres.
+  Elle se lit désormais instance par instance, et une animation de l'accueil
+  ou de la barre qui animerait une ombre y tombe toujours (éprouvé) ;
+- 220 e') : les données servies 400 ms après l'arrivée — sans retard, elles
+  croisaient l'accueil de Twitch (200 ms) à quelques millisecondes près ;
+  quand elles gagnaient, le voile se levait, à bon droit, sur un défileur
+  encore absent, et l'assertion tombait sans faute de l'accueil. Le défileur
+  est maintenant exigé avant le lever ; lever le voile avant de peindre y
+  tombe toujours (éprouvé) ;
+- 227, réécrit : les chaînes écartées — la migration, les dix places, la
+  preuve en toutes langues et relancée avant la marche suivante, mesurée,
+  l'évolution qui repart, la barre intacte, un autre onglet, le stockage
+  vidé, ce qui entre revu ;
+- 229, nouveau : le ruban — l'arrivée, les plans, les légendes, « Suivant »
+  au pixel, le clic de côté, celui du centre et Ctrl, le bout, le reflet ;
+- 230, nouveau : les cartes de Twitch — « Live », le nombre seul, la durée,
+  le badge de 7TV, rien d'inventé, « Durée du direct » coupé, aucun nœud, le
+  réglage coupé puis allumé ;
+- le faux Twitch : les coins de ses cartes et le badge de 7TV.
+
+**Quarante-sept mutants nommés, tous pris.** Deux survivaient d'abord, deux trous du banc, comblés : « la marche attendue », que le banc ne distinguait pas — sa marche complète revient toutes les 3 s, plus vite que l'attente du test — : 227 d) pose désormais la liste juste après une marche, et la preuve doit venir avant la suivante ; « minuit oublié », qui ne se voyait que si le banc tournait entre 00:01 et 21:00 : l'onglet de 221 est mis à midi, quelle que soit l'heure.
+
+| mutant | ce qui tombe |
+| --- | --- |
+| la migration oubliée | 227 a) et b) : la liste de la 4.32.0.3 perdue, Tavor et Brune au Top 10 |
+| le filtre après les places | 227 b) : huit places au lieu de dix |
+| le classement qui n'en demande que dix | 227 c') et d) : en toutes langues, la preuve s'arrête à dix chaînes |
+| la liste tenue pour la seule langue de Twitch | 227 c') : en toutes langues, Tavor et Brune reviennent |
+| la marche attendue | 227 d) : la preuve attend la marche suivante |
+| la barre filtrée aussi | 227 e) : Tavor, Brune et Aldric manquent à Top Chaînes |
+| l'accueil qui lit la barre sans sa liste | 227 e) : lu sur la barre, le Top 10 les reprend |
+| la relecture sans les défauts | 227 f) : vidée dans l'autre onglet, la liste reste dans celui-ci |
+| la casse gardée | 227 a) et b) : « Brune » ne vaut pas « brune » |
+| le doublon gardé | 227 g) : un pseudo compté deux fois |
+| la borne ignorée | 227 g) : plus de vingt pseudos gardés |
+| la liste hors de la clé de l'évolution | 227 d) : des places « gagnées » sous les chaînes montées |
+| la clé nulle ignorée | 227 f) : le stockage vidé d'un coup, la liste reste |
+| l'adresse prise telle quelle | 120 : l'adresse de la chaîne refusée |
+| le refus muet | 120 : un refus sans message |
+| le doublon renvoyé | 120 : un pseudo déjà là ajouté une seconde fois |
+| la croix qui retire tout | 120 : une croix vide la liste |
+| le champ ouvert à la borne | 120 : à vingt, le champ reste ouvert |
+| le ruban droit | 229 a) et e) : rien ne pivote |
+| les légendes partout | 229 a) : les légendes des voisines visibles |
+| les plans dans l'ordre du DOM | 229 a) : une voisine devant la carte du centre |
+| « Précédent » toujours là | 229 a) et d) : les flèches allumées aux deux bouts |
+| la carte entière qui pivote | 229 a) et b) : la carte décentrée par l'aimant |
+| le clic de côté qui ouvre la chaîne | 229 c) : la chaîne s'ouvre, la carte ne vient pas au centre |
+| le clic du centre retenu | 229 c') : la carte du centre ne s'ouvre plus |
+| Ctrl ignoré | 229 c') : avec Ctrl, la carte vient au centre au lieu de s'ouvrir |
+| pas de reflet | 229 e) : pas de reflet |
+| la légende transparente | 229 e) : la légende sans le fond de la page |
+| les flèches à mi-hauteur du ruban | 229 a) : les flèches plus bas que la mi-hauteur de la vignette |
+| le rayon replié comme une grille | 217 l) : « À la une » en grille |
+| l'ordre des visites gardé | 221 b) : l'ordre des visites, pas celui de l'heure |
+| minuit oublié | 221 b) : « vers 00:00 » en tête, à midi |
+| l'ancien texte | 222 b) : « Vient de passer sur Elden Ring » |
+| l'étiquette Subathon fixe | 222 a'') : une seule teinte |
+| le bord qui ne suit pas | 222 a'') : le bord garde sa teinte |
+| l'étiquette posée sur la durée | 222 : l'étiquette sur notre durée |
+| une étiquette réglage coupé | 222 f) : des étiquettes, le réglage coupé |
+| une demande sans l'un ni l'autre | 222 f) : des chaînes demandées, les deux réglages coupés |
+| le « Live » de Twitch tel quel | 230 a) : « Live » au style de Twitch |
+| « spectateurs » gardé | 230 b) : le mot « spectateurs » reste |
+| pas de durée | 230 c) et d) : pas de durée, le badge de 7TV reste |
+| le badge de 7TV gardé | 230 d) : deux durées |
+| le coin calculé une fois pour toutes | 230 : « Ranger » rallumé, l'étiquette reste en haut |
+| l'habillage sans le réglage | 230 h) : « Ranger » coupé, la carte de Twitch habillée quand même |
+| les étiquettes avant le rangement | 230 : « Ranger » rallumé, l'étiquette reste en haut |
+| les coins de Twitch à leur place | 230 a) et b) : « Live » et le compteur hors de leurs coins |
+| le voile levé avant la peinture | 220 e') : le voile se lève avant que la bannière ne soit peinte |
+
+Le banc complet : 2298 assertions dans 229 scénarios, toutes vertes.
+
 ## L'accueil, après usage : « À la une », une chaîne écartée, le relief de Twitch (v4.32.0.3)
 
 Quatre retours, rapport de diagnostic à l'appui. Publiée sur `claude/chrome-homepage` seulement.
@@ -24605,7 +24879,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | les six fichiers JavaScript livrés — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 227 scénarios, 2278 assertions |
+| `npm test` | le harnais Playwright : 229 scénarios, 2298 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -24626,13 +24900,13 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 2155 Ko | 993 Ko | 4 647 → **2** |
+| `content.js` | 2171 Ko | 999 Ko | 4 659 → **2** |
 | `cadres.js` | 74 Ko | 34 Ko | 169 → **0** |
 | `adblock.js` | 126 Ko | 101 Ko | 301 → **2** |
-| `panneau.js` | 162 Ko | 82 Ko | 224 → **0** |
+| `panneau.js` | 165 Ko | 85 Ko | 226 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 26 → **0** |
 | `background.js` | 10 Ko | 2 Ko | 22 → **0** |
-| **les six** | **2541 Ko** | **1216 Ko** | **−52 %** |
+| **les six** | **2561 Ko** | **1225 Ko** | **−52 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se

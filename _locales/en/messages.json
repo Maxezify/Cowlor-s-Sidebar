@@ -651,7 +651,7 @@
     "message": "Twitch's home page"
   },
   "guideAccueilTexte": {
-    "message": "On Twitch's home page, the extension adds its own rows above Twitch's, in the same column and lined up with them. They are set in “Settings”, under “Home page”.\n• “Your #1 channel, live”: the live followed channel you watch the most — failing that, the one with the most viewers — takes the place of Twitch's carousel, across the whole width. First its picture, then its stream, muted and ad-free, like the hover preview; the background takes on its colours. When none of your followed channels is live, the carousel comes back. “As on Twitch” always keeps it; “Nothing” removes it and stops its video.\n• “Featured”: the streams of Twitch's carousel, as a row, when the banner — or “Nothing” — hides it, without the banner's channel. Their cards go through the request the sidebar already makes.\n• “Top 10”: the first ten places of Top Channels, in the language of Twitch's interface or in all languages, in big numbers. Right of the name, an arrow shows the places gained or lost over thirty minutes, or since you arrived on the home page; “New” marks a channel that wasn't in the Top 10. A channel that carries the language's tag without speaking it is removed from this ranking in one click, on its card: it also leaves Top Channels, and is restored below the Top 10.\n• “Because you often watch…”: for the channel you visited the most in thirty days — three visits at least —, a row shows what is live in its usual category, in Twitch's language, outside your followed channels. The title says why: “14 visits in 30 days · Just Chatting, in English”. Two rows at most.\n• “Your scheduled streams”: what your followed channels have scheduled for today and tomorrow, with the time left. “Remind me” puts an alert in your open Twitch tabs when the channel goes live — not a system notification. Just below, “No schedule”: for a channel you watch that has nothing scheduled, the time its last streams started, when it repeats — what it did, not what it will do.\n• One label per card, at the bottom right of the thumbnail, on the extension's cards and Twitch's alike: one fact, just one, the first true one in this list — “Back after 41 days”, “Subathon • DAY 9”, “Just started”, “Just switched to Elden Ring”, “↗ +38% in 10 min”, “#3 in English”, “Co-stream of 3 channels”. Nothing guessed: no fact seen, no label.\n• “While you were away”: after twenty-four hours without Twitch on screen, a banner below the rows says what your followed channels — the ones you watch — streamed in the meantime: “3 streams · 9h20”, the most viewed of their clips, and “Watch the last one” when the replay is open. Closed, it is closed in every tab.\n• Each row shows one line; “Show all”, in the middle of the rule below it, unrolls the rest.\n• “From the start” opens the replay of the stream in progress at its first second. It only appears when you can watch it: the channel keeps its replays and opens them to everyone, or you are subscribed to it.\n• The hover preview also opens on the home page's cards: the extension's and Twitch's alike. On hover, the thumbnail lifts as on Twitch, in the channel's colour.\n• “Tidy Twitch's home page”: on Twitch's own rows. “Hide”, right of a category row's title, folds it into one line — “Show again” brings it back; the category stays hidden the following days. Their live cards take the size of the extension's. And a stream Twitch has no picture for yet shows the channel's last replay, or its avatar, instead of the “?”."
+    "message": "On Twitch's home page, the extension adds its own rows above Twitch's, in the same column and lined up with them. They are set in “Settings”, under “Home page”.\n• “Your #1 channel, live”: the live followed channel you watch the most — failing that, the one with the most viewers — takes the place of Twitch's carousel, across the whole width. First its picture, then its stream, muted and ad-free, like the hover preview; the background takes on its colours. When none of your followed channels is live, the carousel comes back. “As on Twitch” always keeps it; “Nothing” removes it and stops its video.\n• “Featured”: the streams of Twitch's carousel, as a row, when the banner — or “Nothing” — hides it, without the banner's channel. Their cards go through the request the sidebar already makes. As a ribbon: the centre card straight, its neighbours turned; two arrows scroll it, and a click on a side card brings it to the centre.\n• “Top 10”: the first ten places of Top Channels, in the language of Twitch's interface or in all languages, in big numbers. Right of the name, an arrow shows the places gained or lost over thirty minutes, or since you arrived on the home page; “New” marks a channel that wasn't in the Top 10. The channels in “Channels removed from the Top 10”, in “Settings”, do not enter it, whatever the language — for a channel that carries the language's tag without speaking it. Top Channels is not affected.\n• “Because you often watch…”: for the channel you visited the most in thirty days — three visits at least —, a row shows what is live in its usual category, in Twitch's language, outside your followed channels. The title says why: “14 visits in 30 days · Just Chatting, in English”. Two rows at most.\n• “Your scheduled streams”: what your followed channels have scheduled for today and tomorrow, with the time left. “Remind me” puts an alert in your open Twitch tabs when the channel goes live — not a system notification. Just below, “No schedule”: for a channel you watch that has nothing scheduled, the time its last streams started, when it repeats — what it did, not what it will do. These channels are sorted by the nearest time to come.\n• One label per card, at the bottom right of the thumbnail, on the extension's cards and Twitch's alike: one fact, just one, the first true one in this list — “Back after 41 days”, “Subathon • DAY 9”, “Just started”, “Switched to Elden Ring”, “↗ +38% in 10 min”, “#3 in English”, “Co-stream of 3 channels”. Nothing guessed: no fact seen, no label.\n• “While you were away”: after twenty-four hours without Twitch on screen, a banner below the rows says what your followed channels — the ones you watch — streamed in the meantime: “3 streams · 9h20”, the most viewed of their clips, and “Watch the last one” when the replay is open. Closed, it is closed in every tab.\n• Each row shows one line; “Show all”, in the middle of the rule below it, unrolls the rest. “Featured”, a ribbon, does not fold.\n• “From the start” opens the replay of the stream in progress at its first second. It only appears when you can watch it: the channel keeps its replays and opens them to everyone, or you are subscribed to it.\n• The hover preview also opens on the home page's cards: the extension's and Twitch's alike. On hover, the thumbnail lifts as on Twitch, in the channel's colour.\n• “Tidy Twitch's home page”: on Twitch's own rows. “Hide”, right of a category row's title, folds it into one line — “Show again” brings it back; the category stays hidden the following days. Their live cards take the size of the extension's. And a stream Twitch has no picture for yet shows the channel's last replay, or its avatar, instead of the “?”. Its live cards also take the extension's marks: the live badge in their style, the viewer count without the word, the stream's duration top right."
   },
   "guideViteTitre": {
     "message": "Quicker than Twitch, and tidier"
@@ -880,13 +880,34 @@
     "message": "Top 10"
   },
   "optDescAccueilTop": {
-    "message": "The first ten places of Top Channels' exact ranking, in big numbers. An arrow shows what moved over thirty minutes, or since you arrived on the home page if that is more recent. Computed only while the home page is on screen. A channel that carries the language's tag without speaking it is removed in one click on its card, here and in Top Channels; it is restored below the Top 10."
+    "message": "The first ten places of Top Channels' exact ranking, in big numbers. An arrow shows what moved over thirty minutes, or since you arrived on the home page if that is more recent. Computed only while the home page is on screen."
   },
   "optAccueilTopLangue": {
     "message": "Top 10 language"
   },
   "optDescAccueilTopLangue": {
     "message": "“Twitch's” follows the language of Twitch's interface."
+  },
+  "optAccueilTopEcartees": {
+    "message": "Channels removed from the Top 10"
+  },
+  "optDescAccueilTopEcartees": {
+    "message": "The usernames on this list do not enter the Top 10, whatever its language — for a channel that carries the language's tag without speaking it. Top Channels, in the sidebar, is not affected. Twenty at most."
+  },
+  "optListeAjouter": {
+    "message": "Add"
+  },
+  "optListeRetirer": {
+    "message": "Remove $1"
+  },
+  "optListeRefus": {
+    "message": "Not a Twitch username: $1 — letters, digits and _, as in the channel's address."
+  },
+  "optListeDeja": {
+    "message": "Already on the list: $1"
+  },
+  "optListePleine": {
+    "message": "$1 at most: remove one to add another."
   },
   "optAccueilApercu": {
     "message": "Hover preview on the home page"
@@ -928,7 +949,7 @@
     "message": "Tidy Twitch's home page"
   },
   "optDescAccueilRanger": {
-    "message": "On Twitch's own rows: “Hide” next to the title of a category row, live cards the size of the extension's, and the “?” thumbnails replaced by the last replay or the avatar. Nothing is removed from the page, and no request."
+    "message": "On Twitch's own rows: “Hide” next to the title of a category row, live cards the size of the extension's, and the “?” thumbnails replaced by the last replay or the avatar. Its live cards take the extension's marks — the live badge, the viewer count alone, the duration top right —, their figures going through the request the sidebar already makes, while they are on screen. Nothing is removed from the page."
   },
   "optValHeros": {
     "message": "Your #1 channel"
@@ -1087,7 +1108,7 @@
     "message": "Reset every setting to its default?"
   },
   "optResetText": {
-    "message": "All thirty-four settings on this page will return to their original value. Your data — visits, subscriptions, followed channels — is untouched."
+    "message": "All thirty-five settings on this page will return to their original value. Your data — visits, subscriptions, followed channels — is untouched."
   },
   "optValPlein": {
     "message": "Full"

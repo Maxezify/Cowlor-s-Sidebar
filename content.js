@@ -498,10 +498,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccHeros:                'Votre chaîne n°1 en direct',
       uiAccRegarder:             'Regarder',
       uiAccUne:                  'À la une',
-      uiAccEcarter:              (n) => `Écarter ${n} de ce classement`,
-      uiAccEcartees:             'Écartées de ce classement :',
-      uiAccRetablir:             'Rétablir',
-      uiAccRetablirTitre:        (n) => `Remettre ${n} dans ce classement`,
+      uiAccPrecedent:            'Précédent',
+      uiAccSuivant:              'Suivant',
       uiAccTop:                  'Top 10',
       uiAccDirect:               'Live',
       uiAccDebut:                'Depuis le début',
@@ -542,13 +540,17 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiRappelFermer:            'Fermer',
       /* UNE ÉTIQUETTE PAR CARTE (4.28.0, cf. ETIQUETTES). `j` : des jours ;
          `p` : un pourcentage entier, arrondi vers le bas ; `m` : des minutes ;
-         `n` : une place, ou un nombre de chaînes. Le basculement et le
-         subathon reprennent les badges de l'aperçu (uiBadgeCategorySwitch,
-         uiBadgeSubathon), la place celle du Top 10 quand il est mondial. */
+         `n` : une place, ou un nombre de chaînes. Le subathon reprend le
+         badge de l'aperçu (uiBadgeSubathon), la place celle du Top 10 quand il
+         est mondial. LE BASCULEMENT A SON TEXTE (4.32.0.4) : celui de
+         l'aperçu, « Vient de passer sur … », ne laissait au jeu que sa
+         première lettre dans une pastille d'une demi-vignette — « dis plutôt
+         "Va sur VALORANT" ». Plus court, dans chaque langue. */
       uiEtiqCommence:            'Vient de commencer',
       uiEtiqRetour:              (j) => `De retour après ${j} jours`,
       uiEtiqTendance:            (p, m) => `↗ +${p} % en ${m} min`,
       uiEtiqRangLangue:          (n) => `N°${n} en français`,
+      uiEtiqBascule:             (jeu) => `Va sur ${jeu}`,
       uiEtiqCostream:            (n) => `Co-stream à ${n}`,
       /* PENDANT VOTRE ABSENCE (4.30.0, cf. ABSENCE). `j` : des jours ; `borne` :
          l'absence passe les sept jours que l'agenda couvre ; `n`, `d` : des
@@ -784,10 +786,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccHeros:                'Your #1 channel, live',
       uiAccRegarder:             'Watch',
       uiAccUne:                  'Featured',
-      uiAccEcarter:              (n) => `Remove ${n} from this ranking`,
-      uiAccEcartees:             'Removed from this ranking:',
-      uiAccRetablir:             'Restore',
-      uiAccRetablirTitre:        (n) => `Put ${n} back in this ranking`,
+      uiAccPrecedent:            'Previous',
+      uiAccSuivant:              'Next',
       uiAccTop:                  'Top 10',
       uiAccDirect:               'Live',
       uiAccDebut:                'From the start',
@@ -825,6 +825,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiEtiqRetour:              (j) => `Back after ${j} days`,
       uiEtiqTendance:            (p, m) => `↗ +${p}% in ${m} min`,
       uiEtiqRangLangue:          (n, langue) => `#${n} in ${langue || 'English'}`,
+      uiEtiqBascule:             (jeu) => `Switched to ${jeu}`,
       uiEtiqCostream:            (n) => `Co-stream of ${n} channels`,
       uiAbsTitre:                'While you were away',
       uiAbsSous:                 (j, borne) => (borne ? `Since your last visit, ${j} days ago — the last seven`
@@ -1031,10 +1032,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccHeros:                'Dein Kanal Nr. 1, live',
       uiAccRegarder:             'Ansehen',
       uiAccUne:                  'Empfohlen',
-      uiAccEcarter:              (n) => `${n} aus dieser Rangliste entfernen`,
-      uiAccEcartees:             'Aus dieser Rangliste entfernt:',
-      uiAccRetablir:             'Wiederherstellen',
-      uiAccRetablirTitre:        (n) => `${n} wieder in diese Rangliste aufnehmen`,
+      uiAccPrecedent:            'Zurück',
+      uiAccSuivant:              'Weiter',
       uiAccTop:                  'Top 10',
       uiAccDirect:               'Live',
       uiAccDebut:                'Von Anfang an',
@@ -1072,6 +1071,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiEtiqRetour:              (j) => `Zurück nach ${j} Tagen`,
       uiEtiqTendance:            (p, m) => `↗ +${p} % in ${m} Min.`,
       uiEtiqRangLangue:          (n) => `Platz ${n} auf Deutsch`,
+      uiEtiqBascule:             (jeu) => `Wechselt zu ${jeu}`,
       uiEtiqCostream:            (n) => `Co-Stream mit ${n} Kanälen`,
       uiAbsTitre:                'Während du weg warst',
       uiAbsSous:                 (j, borne) => (borne ? `Seit deinem letzten Besuch vor ${j} Tagen – die letzten sieben`
@@ -1278,10 +1278,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccHeros:                'Tu canal n.º 1 en directo',
       uiAccRegarder:             'Ver',
       uiAccUne:                  'Destacados',
-      uiAccEcarter:              (n) => `Quitar a ${n} de esta clasificación`,
-      uiAccEcartees:             'Quitados de esta clasificación:',
-      uiAccRetablir:             'Restaurar',
-      uiAccRetablirTitre:        (n) => `Devolver a ${n} a esta clasificación`,
+      uiAccPrecedent:            'Anterior',
+      uiAccSuivant:              'Siguiente',
       uiAccTop:                  'Top 10',
       uiAccDirect:               'En directo',
       uiAccDebut:                'Desde el principio',
@@ -1319,6 +1317,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiEtiqRetour:              (j) => `De vuelta tras ${j} días`,
       uiEtiqTendance:            (p, m) => `↗ +${p} % en ${m} min`,
       uiEtiqRangLangue:          (n) => `N.º ${n} en español`,
+      uiEtiqBascule:             (jeu) => `Pasa a ${jeu}`,
       uiEtiqCostream:            (n) => `Co-stream de ${n} canales`,
       uiAbsTitre:                'Mientras no estabas',
       uiAbsSous:                 (j, borne) => (borne ? `Desde tu última visita, hace ${j} días — los siete últimos`
@@ -1525,10 +1524,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccHeros:                'Seu canal nº 1 ao vivo',
       uiAccRegarder:             'Assistir',
       uiAccUne:                  'Em destaque',
-      uiAccEcarter:              (n) => `Remover ${n} desta classificação`,
-      uiAccEcartees:             'Removidos desta classificação:',
-      uiAccRetablir:             'Restaurar',
-      uiAccRetablirTitre:        (n) => `Recolocar ${n} nesta classificação`,
+      uiAccPrecedent:            'Anterior',
+      uiAccSuivant:              'Seguinte',
       uiAccTop:                  'Top 10',
       uiAccDirect:               'Ao vivo',
       uiAccDebut:                'Desde o início',
@@ -1566,6 +1563,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiEtiqRetour:              (j) => `De volta após ${j} dias`,
       uiEtiqTendance:            (p, m) => `↗ +${p}% em ${m} min`,
       uiEtiqRangLangue:          (n) => `Nº ${n} em português`,
+      uiEtiqBascule:             (jeu) => `Vai para ${jeu}`,
       uiEtiqCostream:            (n) => `Co-stream com ${n} canais`,
       uiAbsTitre:                'Enquanto você esteve fora',
       uiAbsSous:                 (j, borne) => (borne ? `Desde a sua última visita, há ${j} dias — os últimos sete`
@@ -1772,10 +1770,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccHeros:                'Il tuo canale n. 1 in diretta',
       uiAccRegarder:             'Guarda',
       uiAccUne:                  'In primo piano',
-      uiAccEcarter:              (n) => `Togli ${n} da questa classifica`,
-      uiAccEcartees:             'Tolti da questa classifica:',
-      uiAccRetablir:             'Ripristina',
-      uiAccRetablirTitre:        (n) => `Rimetti ${n} in questa classifica`,
+      uiAccPrecedent:            'Precedente',
+      uiAccSuivant:              'Successivo',
       uiAccTop:                  'Top 10',
       uiAccDirect:               'Live',
       uiAccDebut:                'Dall\'inizio',
@@ -1813,6 +1809,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiEtiqRetour:              (j) => `Di ritorno dopo ${j} giorni`,
       uiEtiqTendance:            (p, m) => `↗ +${p}% in ${m} min`,
       uiEtiqRangLangue:          (n) => `N. ${n} in italiano`,
+      uiEtiqBascule:             (jeu) => `Passa a ${jeu}`,
       uiEtiqCostream:            (n) => `Co-stream con ${n} canali`,
       uiAbsTitre:                'Mentre eri via',
       uiAbsSous:                 (j, borne) => (borne ? `Dalla tua ultima visita, ${j} giorni fa — gli ultimi sette`
@@ -2019,10 +2016,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccHeros:                'Twój kanał nr 1 na żywo',
       uiAccRegarder:             'Oglądaj',
       uiAccUne:                  'Polecane',
-      uiAccEcarter:              (n) => `Usuń ${n} z tego rankingu`,
-      uiAccEcartees:             'Usunięte z tego rankingu:',
-      uiAccRetablir:             'Przywróć',
-      uiAccRetablirTitre:        (n) => `Przywróć ${n} do tego rankingu`,
+      uiAccPrecedent:            'Poprzedni',
+      uiAccSuivant:              'Następny',
       uiAccTop:                  'Top 10',
       uiAccDirect:               'Na żywo',
       uiAccDebut:                'Od początku',
@@ -2061,6 +2056,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiEtiqRetour:              (j) => `Wraca po ${j} dniach`,
       uiEtiqTendance:            (p, m) => `↗ +${p}% w ${m} min`,
       uiEtiqRangLangue:          (n) => `Nr ${n} po polsku`,
+      uiEtiqBascule:             (jeu) => `Przechodzi na ${jeu}`,
       uiEtiqCostream:            (n) => `Co-stream: ${n} ${plurielSlave(n, ['kanał', 'kanały', 'kanałów'])}`,
       uiAbsTitre:                'Podczas twojej nieobecności',
       uiAbsSous:                 (j, borne) => (borne ? `Od ostatniej wizyty, ${j} dni temu — ostatnie siedem`
@@ -2271,10 +2267,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccHeros:                'Ваш канал № 1 в эфире',
       uiAccRegarder:             'Смотреть',
       uiAccUne:                  'Рекомендуемые',
-      uiAccEcarter:              (n) => `Убрать ${n} из этого рейтинга`,
-      uiAccEcartees:             'Убраны из этого рейтинга:',
-      uiAccRetablir:             'Вернуть',
-      uiAccRetablirTitre:        (n) => `Вернуть ${n} в этот рейтинг`,
+      uiAccPrecedent:            'Назад',
+      uiAccSuivant:              'Вперёд',
       uiAccTop:                  'Топ-10',
       uiAccDirect:               'В эфире',
       uiAccDebut:                'С самого начала',
@@ -2313,6 +2307,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiEtiqRetour:              (j) => `Вернулся спустя ${j} ${plurielSlave(j, ['день', 'дня', 'дней'])}`,
       uiEtiqTendance:            (p, m) => `↗ +${p}% за ${m} мин`,
       uiEtiqRangLangue:          (n) => `№ ${n} на русском`,
+      uiEtiqBascule:             (jeu) => `Переходит на ${jeu}`,
       uiEtiqCostream:            (n) => `Совместный стрим: ${n} ${plurielSlave(n, ['канал', 'канала', 'каналов'])}`,
       uiAbsTitre:                'Пока вас не было',
       uiAbsSous:                 (j, borne) => `С вашего последнего визита, ${j} ${plurielSlave(j, ['день', 'дня', 'дней'])} назад${borne ? ' — последние семь' : ''}`,
@@ -2522,10 +2517,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccHeros:                'あなたの No.1 チャンネル・ライブ中',
       uiAccRegarder:             '視聴する',
       uiAccUne:                  'おすすめ',
-      uiAccEcarter:              (n) => `${n} をこのランキングから外す`,
-      uiAccEcartees:             'このランキングから外したチャンネル：',
-      uiAccRetablir:             '戻す',
-      uiAccRetablirTitre:        (n) => `${n} をこのランキングに戻す`,
+      uiAccPrecedent:            '前へ',
+      uiAccSuivant:              '次へ',
       uiAccTop:                  'トップ 10',
       uiAccDirect:               'ライブ',
       uiAccDebut:                '最初から',
@@ -2563,6 +2556,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiEtiqRetour:              (j) => `${j} 日ぶりの配信`,
       uiEtiqTendance:            (p, m) => `↗ ${m} 分で +${p}%`,
       uiEtiqRangLangue:          (n) => `日本語で ${n} 位`,
+      uiEtiqBascule:             (jeu) => `${jeu} に切り替え`,
       uiEtiqCostream:            (n) => `${n} チャンネルでコラボ配信`,
       uiAbsTitre:                'お留守の間に',
       uiAbsSous:                 (j, borne) => `前回の訪問から ${j} 日${borne ? ' — 直近 7 日分' : ''}`,
@@ -2766,10 +2760,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccHeros:                '你的第 1 频道 · 直播中',
       uiAccRegarder:             '观看',
       uiAccUne:                  '精选',
-      uiAccEcarter:              (n) => `将 ${n} 移出此排名`,
-      uiAccEcartees:             '已移出此排名：',
-      uiAccRetablir:             '恢复',
-      uiAccRetablirTitre:        (n) => `将 ${n} 放回此排名`,
+      uiAccPrecedent:            '上一个',
+      uiAccSuivant:              '下一个',
       uiAccTop:                  '前 10 名',
       uiAccDirect:               '直播',
       uiAccDebut:                '从头观看',
@@ -2807,6 +2799,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiEtiqRetour:              (j) => `时隔 ${j} 天回归`,
       uiEtiqTendance:            (p, m) => `↗ ${m} 分钟内 +${p}%`,
       uiEtiqRangLangue:          (n) => `中文第 ${n} 名`,
+      uiEtiqBascule:             (jeu) => `转到 ${jeu}`,
       uiEtiqCostream:            (n) => `${n} 个频道联合直播`,
       uiAbsTitre:                '你不在的时候',
       uiAbsSous:                 (j, borne) => `距上次访问 ${j} 天${borne ? '——仅显示最近 7 天' : ''}`,
@@ -4433,6 +4426,17 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        secondes au plus depuis l'arrivée ; au-delà, mieux vaut un rayon de
        moins qu'une rangée vide. */
     ACCUEIL_UNE_ATTENTE_MS: 8_000,
+    /* LE RUBAN D'« À LA UNE » (4.32.0.4) : les valeurs de la piste B de la
+       maquette, reprises telles quelles — la carte du centre de 420 pixels
+       (70 % de la largeur au plus), ses voisines pivotées de 52°, réduites
+       à 72 %, reculées de 120 pixels, et chevauchées d'un septième de carte
+       de chaque côté ; une perspective de 1200 pixels ; un reflet au sol de
+       40 % de la vignette, à 18 % d'opacité. */
+    ACCUEIL_RUBAN_CARTE:    420,
+    ACCUEIL_RUBAN_ANGLE:    52,
+    ACCUEIL_RUBAN_ECHELLE:  0.72,
+    ACCUEIL_RUBAN_RECUL:    120,
+    ACCUEIL_RUBAN_PERSPECTIVE: 1200,
     /* LE RELIEF AU SURVOL (4.32.0.3), celui des cartes de Twitch : l'image
        monte de six pixels vers la droite, un relief de la couleur de la
        chaîne paraît à gauche et dessous. Six pixels : 0,6 rem, le rem de
@@ -4441,10 +4445,6 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     ACCUEIL_RELIEF_PX:      6,
     ACCUEIL_RELIEF_MS:      100,
     ACCUEIL_RELIEF_DEFAUT:  '#9147ff',
-    /* LES CHAÎNES ÉCARTÉES D'UN CLASSEMENT (4.32.0.3), par langue : une
-       chaîne qui porte le tag d'une langue sans la parler. Cinquante au
-       plus, gardées sur l'appareil. */
-    ECARTEES_MAX:           50,
     /* LA GRILLE DES RAYONS (4.26.0.2) : autant de colonnes que tient une carte
        de 290 pixels au moins, et ces écarts. Les rayons de Twitch la prennent
        aussi depuis la 4.32.0.2 (cf. RANGER). */
@@ -4654,6 +4654,21 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        de nos libellés (cf. localeTwitch) ; « toutes » : le classement mondial. */
     accueilTopLangue: { defaut: 'interface', type: 'choix',
                        valeurs: ['interface', 'toutes'], sous: ['accueil', 'accueilTop'] },
+    /* LES CHAÎNES ÉCARTÉES DU TOP 10 (4.32.0.4) : des pseudos, tapés dans les
+       Réglages — « retire le bouton ; mets-le dans les options, on met le
+       pseudo du streamer ». Une chaîne qui porte le tag d'une langue sans la
+       parler, par exemple : rien ne le dit sans deviner, c'est vous qui le
+       dites. Écartées du Top 10 de l'accueil, quelle qu'en soit la langue ;
+       Top Chaînes, dans la barre, n'en sait rien.
+
+       UN TYPE NEUF, « liste » : des logins, en minuscules, dans l'ordre où
+       on les a ajoutés. VINGT AU PLUS, et le nombre n'est pas choisi : le
+       Top 10 se prouve sur dix places de plus que la liste (cf. pageAccueil,
+       `nPreuve`), et la réponse du tag de langue, qui le prouve d'une seule
+       requête, en porte trente (GLOBAL_TAG_MAX). Au-delà, chaque marche
+       redescendrait toutes les catégories. */
+    accueilTopEcartees: { defaut: [],     type: 'liste', max: CFG.GLOBAL_TAG_MAX - CFG.ACCUEIL_TOP_N,
+                          sous: ['accueil', 'accueilTop'] },
     /* L'aperçu de la barre, sur les cartes de l'accueil. Il suit AUSSI
        « apercu » : couper l'aperçu le coupe partout. */
     accueilApercu:   { defaut: true,      type: 'bool', sous: ['accueil', 'apercu'] },
@@ -4726,11 +4741,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
      être ACTIF chez tout le monde sans que personne n'ait à rouvrir le
      panneau. Une liste de gardés l'aurait masqué à tous ceux qui avaient déjà
      touché au réglage. Le défaut d'un jeu est donc la liste vide. */
+  const RE_LOGIN_OPTION = /^[a-z0-9_]{1,25}$/;
   const options = (() => {
     const valeurs = Object.create(null);
-    for (const [id, d] of Object.entries(OPT_DEFS)) {
-      valeurs[id] = Array.isArray(d.defaut) ? d.defaut.slice() : d.defaut;
-    }
 
     /* VALIDER CE QUI VIENT DU STOCKAGE, toujours. C'est du JSON écrit par une
        version antérieure, ou par une main humaine dans la console : un
@@ -4750,9 +4763,34 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         const gardes = v.filter((x) => d.valeurs.includes(x));
         return [...new Set(gardes)];
       }
+      /* Une liste de logins (4.32.0.4) : la casse ne distingue pas deux
+         chaînes, elle se replie ; ce qui n'a pas la forme d'un login est
+         ignoré, comme un membre inconnu d'un jeu ; un doublon ne compte
+         qu'une fois ; au-delà de la borne, la suite est ignorée. */
+      if (d.type === 'liste') {
+        if (!Array.isArray(v)) return undefined;
+        const gardes = [];
+        for (const x of v) {
+          const l = typeof x === 'string' ? x.trim().toLowerCase() : '';
+          if (gardes.length < d.max && RE_LOGIN_OPTION.test(l) && !gardes.includes(l)) gardes.push(l);
+        }
+        return gardes;
+      }
       return undefined;
     };
 
+    /* RELIRE PART DES DÉFAUTS (4.32.0.4). Un réglage remis à son défaut dans
+       un autre onglet DISPARAÎT du stockage — on n'y garde que les écarts —,
+       et `charger` ne posait que ce qu'il y trouvait : l'onglet qui écoutait
+       gardait l'ancienne valeur. Toutes les remises au défaut se perdaient
+       ainsi, « Remettre les défauts » compris (vu à l'audit de l'accueil :
+       une chaîne retirée de la liste des écartées dans un onglet restait
+       écartée dans l'autre). */
+    const auxDefauts = () => {
+      for (const [id, d] of Object.entries(OPT_DEFS)) {
+        valeurs[id] = Array.isArray(d.defaut) ? d.defaut.slice() : d.defaut;
+      }
+    };
     const charger = () => {
       let brut = null;
       try { brut = JSON.parse(localStorage.getItem(CFG.OPTIONS_KEY) || 'null'); }
@@ -4788,6 +4826,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     const abonnes = new Set();
     const prevenir = () => { for (const f of abonnes) { try { f(); } catch { /* un abonné qui jette n'empêche pas les autres */ } } };
 
+    auxDefauts();
     charger();
 
     return {
@@ -4818,16 +4857,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         ecrire(); prevenir();
         return true;
       },
-      remettre: () => {
-        for (const [id, d] of Object.entries(OPT_DEFS)) {
-          valeurs[id] = Array.isArray(d.defaut) ? d.defaut.slice() : d.defaut;
-        }
-        ecrire(); prevenir();
-      },
+      remettre: () => { auxDefauts(); ecrire(); prevenir(); },
       /* RELIRE SANS ÉCRIRE, pour l'événement « storage » : c'est un AUTRE
          onglet qui vient de changer quelque chose, et le réécrire d'ici ne
          ferait que renvoyer l'événement à l'expéditeur. */
-      relire: () => { charger(); prevenir(); },
+      relire: () => { auxDefauts(); charger(); prevenir(); },
       surChangement: (f) => { abonnes.add(f); }
     };
   })();
@@ -4933,9 +4967,29 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
      pas expliquer à celui qui le voit. L'événement « storage » ne part QUE
      vers les autres onglets de la même origine — celui qui écrit ne le reçoit
      pas — donc il n'y a pas d'aller-retour à craindre. */
+  // `null` : le stockage vidé d'un coup (clear) — les réglages avec.
   window.addEventListener('storage', (e) => {
-    if (e.key === CFG.OPTIONS_KEY) options.relire();
+    if (e.key === CFG.OPTIONS_KEY || e.key === null) options.relire();
   });
+
+  /* LES ÉCARTÉES DE LA 4.32.0.3 PASSENT AU RÉGLAGE (4.32.0.4), une fois. Elles
+     vivaient sous « tse:ecartees », langue → logins, posées par un bouton sur
+     les places du Top 10 ; le bouton s'en va, la liste est désormais un
+     réglage, et sans langue. Ce que vous aviez écarté le reste, toutes
+     langues réunies, revu par `propre` comme tout ce qui entre ; puis la clé
+     s'en va. Deux onglets qui chargent ensemble font deux fois la même
+     union : le résultat est le même. */
+  try {
+    const brut = localStorage.getItem('tse:ecartees');
+    if (brut !== null) {
+      let x = null;
+      try { x = JSON.parse(brut); } catch { x = null; }
+      const anciens = x && typeof x === 'object' && !Array.isArray(x)
+        ? Object.values(x).filter(Array.isArray).flat() : [];
+      if (anciens.length) options.poser('accueilTopEcartees', [...options.get('accueilTopEcartees'), ...anciens]);
+      localStorage.removeItem('tse:ecartees');
+    }
+  } catch { /* stockage refusé : il n'y a rien à reprendre */ }
 
   /* ============================================================
    *  STATE
@@ -8903,6 +8957,99 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       transition: clip-path ${CFG.ACCUEIL_RELIEF_MS}ms ease, top ${CFG.ACCUEIL_RELIEF_MS}ms ease, right ${CFG.ACCUEIL_RELIEF_MS}ms ease;
     }
     .tse-acc-relief > .tse-acc-vignette { transition: transform ${CFG.ACCUEIL_RELIEF_MS}ms ease; }
+    /* ── LE RUBAN D'« À LA UNE » (4.32.0.4, cf. RUBAN) ────────────────────
+       Une ligne qui défile, aimantée au centre. Le cadre est un conteneur de
+       requêtes : la largeur d'une carte se dit en cqw, et les flèches, posées
+       sur lui, se calent à mi-hauteur de la vignette par le même calcul — un
+       pourcentage, en hauteur, se rapporterait à la hauteur. La première et
+       la dernière carte n'ont pas de chevauchement vers le bord : la
+       première se centre à l'arrivée, sans défiler. */
+    .tse-acc-ruban-cadre {
+      position: relative; container-type: inline-size;
+      --tse-ruban-carte: min(${CFG.ACCUEIL_RUBAN_CARTE}px, 70cqw); --tse-ruban-haut: 16px;
+    }
+    .tse-acc-liste.tse-acc-ruban {
+      display: flex; gap: ${CFG.ACCUEIL_ECARTS.split(' ')[1]}; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain;
+      scroll-snap-type: x mandatory; scrollbar-width: none;
+      padding: var(--tse-ruban-haut) calc(50cqw - var(--tse-ruban-carte) / 2) 28px;
+    }
+    .tse-acc-ruban::-webkit-scrollbar { display: none; }
+    .tse-acc-ruban > .tse-acc-carte, .tse-acc-ruban > .tse-acc-carte-attente {
+      flex: 0 0 var(--tse-ruban-carte); position: relative; isolation: isolate; scroll-snap-align: center;
+    }
+    /* LE MOUVEMENT SUIT LE DÉFILEMENT : chaque carte avance sur sa propre
+       ligne de temps — sa traversée du ruban —, droite et pleine au milieu,
+       pivotée, réduite, reculée et assombrie aux bords. Sans ces lignes de
+       temps (un navigateur trop ancien), le ruban reste droit, ses cartes
+       côte à côte : il défile, aimanté, sans pivoter ni se chevaucher.
+
+       CE QUI PIVOTE, CE SONT LES DEUX MOITIÉS DE LA CARTE, PAS LA CARTE. Le
+       défilement aimanté mesure la boîte de la carte TRANSFORMÉE : pivotée,
+       elle n'a plus son centre au centre, et « Suivant » s'arrêtait à 274
+       pixels au lieu de 300 — mesuré. La carte reste donc droite, et c'est
+       sa vignette et ses textes qui pivotent, autour d'un même point — le
+       milieu de leur jointure —, chacun avec sa perspective : la même pour
+       les deux, la carte reste d'un seul tenant.
+
+       La carte, elle, porte ce qui ne la déplace pas : l'ombre des bords
+       (un filtre) et l'ordre des plans (un z-index) — les cartes se
+       chevauchent, et sans lui la dernière du DOM couvrirait sa voisine de
+       gauche. LES TEXTES NE SE LISENT QU'AU CENTRE : ceux d'une voisine
+       paraissaient sous ceux de la carte du centre, qu'elle chevauche — vu à
+       l'image. Comme le ruban dont il vient, seul le centre a sa légende.
+
+       CE QUI RESTE AU FIL PRINCIPAL : le z-index ne passe pas au compositeur,
+       et le filtre, animé avec lui, reste avec lui — une exception nommée du
+       banc (213). Leur ligne de temps est le défilement : leurs valeurs ne
+       changent que quand le ruban défile. La rotation et le fondu des
+       légendes, eux, n'animent que transformation et opacité. */
+    @supports (animation-timeline: view()) {
+      .tse-acc-liste.tse-acc-ruban { gap: 0; }
+      .tse-acc-ruban > .tse-acc-carte, .tse-acc-ruban > .tse-acc-carte-attente {
+        margin: 0 calc(var(--tse-ruban-carte) / -7);
+        animation: tse-acc-ruban-plan linear both; animation-timeline: view(inline);
+      }
+      .tse-acc-ruban > :first-child { margin-left: 0; }
+      .tse-acc-ruban > :last-child { margin-right: 0; }
+      .tse-acc-ruban > * > :first-child {
+        transform-origin: 50% 100%; animation: tse-acc-ruban linear both; animation-timeline: view(inline);
+      }
+      /* La légende sur le fond de la page : celle du centre cache les reflets
+         des voisines, qui passent dessous — et le sien, qu'elle remplace. */
+      .tse-acc-ruban > * > :last-child {
+        transform-origin: 50% 0; animation: tse-acc-ruban linear both, tse-acc-ruban-legende linear both;
+        animation-timeline: view(inline), view(inline); background: var(--color-background-base, #0e0e10);
+      }
+    }
+    @keyframes tse-acc-ruban {
+      0% { transform: perspective(${CFG.ACCUEIL_RUBAN_PERSPECTIVE}px) rotateY(${CFG.ACCUEIL_RUBAN_ANGLE}deg) scale(${CFG.ACCUEIL_RUBAN_ECHELLE}) translateZ(-${CFG.ACCUEIL_RUBAN_RECUL}px); }
+      50% { transform: perspective(${CFG.ACCUEIL_RUBAN_PERSPECTIVE}px) rotateY(0deg) scale(1) translateZ(0px); }
+      100% { transform: perspective(${CFG.ACCUEIL_RUBAN_PERSPECTIVE}px) rotateY(-${CFG.ACCUEIL_RUBAN_ANGLE}deg) scale(${CFG.ACCUEIL_RUBAN_ECHELLE}) translateZ(-${CFG.ACCUEIL_RUBAN_RECUL}px); }
+    }
+    @keyframes tse-acc-ruban-plan { 0%, 100% { z-index: 0; filter: brightness(0.5); } 50% { z-index: 10; filter: none; } }
+    @keyframes tse-acc-ruban-legende { 0%, 40%, 60%, 100% { opacity: 0; } 50% { opacity: 1; } }
+    /* LE REFLET AU SOL, dans la couleur de la chaîne — celle du relief —,
+       sous la vignette, derrière les textes de la carte (z-index -1 dans la
+       carte, isolée). Pas un miroir de l'image : le direct, les badges et
+       l'étiquette, retournés, ne diraient rien. */
+    .tse-acc-ruban .tse-acc-relief::after {
+      content: ''; position: absolute; left: 0; right: 0; top: 100%; height: 40%; z-index: -1; pointer-events: none;
+      background: linear-gradient(var(--tse-accent), transparent); opacity: 0.18;
+    }
+    .tse-acc-ruban-fleche {
+      position: absolute; z-index: 20; top: calc(var(--tse-ruban-haut) + var(--tse-ruban-carte) * 9 / 32 - 18px);
+      width: 36px; height: 36px; padding: 0; border: 0; border-radius: 50%; cursor: pointer;
+      display: inline-flex; align-items: center; justify-content: center;
+      background: rgba(0, 0, 0, 0.62); color: #fff; transition: opacity 0.15s ease, background 0.15s ease;
+    }
+    .tse-acc-ruban-fleche--prec { left: 8px; }
+    .tse-acc-ruban-fleche--suiv { right: 8px; }
+    .tse-acc-ruban-fleche svg { width: 22px; height: 22px; fill: currentColor; }
+    .tse-acc-ruban-fleche--prec svg { transform: rotate(90deg); }
+    .tse-acc-ruban-fleche--suiv svg { transform: rotate(-90deg); }
+    .tse-acc-ruban-fleche:hover { background: rgba(0, 0, 0, 0.8); }
+    .tse-acc-ruban-fleche:focus-visible { outline: 2px solid #9147ff; outline-offset: 2px; }
+    .tse-acc-ruban-fleche:disabled { opacity: 0; pointer-events: none; }
     .tse-acc-relief:hover > .tse-acc-vignette,
     .tse-acc-relief:focus-within > .tse-acc-vignette { transform: translate(var(--tse-relief), calc(-1 * var(--tse-relief))); }
     .tse-acc-relief:hover > .tse-acc-accent,
@@ -8963,6 +9110,25 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     [data-tse-etiq="tendance"] { --tse-etiq-couleur: #6bdb9d; }
     [data-tse-etiq="rang"]     { --tse-etiq-couleur: #ffd68a; }
     [data-tse-etiq="costream"] { --tse-etiq-couleur: #8fc7ff; }
+    /* LE SUBATHON CLIGNOTE COMME AILLEURS (4.32.0.4, « fais la pastille
+       Subathon qui clignote comme ailleurs ») : les huit teintes de la
+       pastille de la barre et du badge de l'aperçu, au même tour d'une
+       seconde et demie. Le texte, le bord et le point les suivent — tous en
+       currentColor — ; le fond reste sombre : ce sont des teintes PÂLES, faites
+       pour briller sur du noir, et la vignette derrière est une image qui
+       bouge. La pastille, 22 pixels de haut sur une demi-vignette au plus,
+       reste loin de l'aire que vise la règle WCAG 2.3.1 (cf. la pastille de
+       la barre). Une couleur animée se repeint, et c'est assumé : un
+       pseudo-élément ne porte pas de copies, et le subathon est rare — une
+       exception nommée du banc (213), comme le badge de l'aperçu. */
+    .tse-acc-vignette[data-tse-etiq="subathon"]::after,
+    main a[data-a-target="preview-card-image-link"][data-tse-etiq="subathon"]::after {
+      animation: tse-acc-etiq-subathon 1.5s linear infinite;
+    }
+    @keyframes tse-acc-etiq-subathon {
+      0%, 100% { color: #ff8f8f; } 12.5% { color: #ffe38f; } 25% { color: #c7ff8f; } 37.5% { color: #8fffb4; }
+      50% { color: #8ffdff; } 62.5% { color: #8fabff; } 75% { color: #c78fff; } 87.5% { color: #ff8fe3; }
+    }
     main a[data-a-target="preview-card-image-link"][data-tse-etiquette] { position: relative; }
     /* RANGER L'ACCUEIL DE TWITCH (4.32.0, cf. RANGER). Des attributs sur ses
        nœuds, et ces règles : rien de retiré, rien d'ajouté. Le « Masquer »
@@ -8996,7 +9162,57 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     html[data-tse-ranger] main a[data-tse-vignette] { background: #18181b var(--tse-vignette) center / cover no-repeat; }
     html[data-tse-ranger] main a[data-tse-vignette="avatar"] { background-size: contain; }
     html[data-tse-ranger] main a[data-tse-vignette] img[src*="/ttv-static/404_preview"] { opacity: 0 !important; }
+    /* LES CARTES DE TWITCH AUX MARQUES DES NÔTRES (4.32.0.4, cf. HABILLER) :
+       les valeurs de .tse-acc-direct, .tse-acc-duree et .tse-acc-spect, recopiées
+       une à une — la page enregistrée porte la structure de Twitch, pas sa
+       feuille, d'où les !important. Ses deux coins (« Live » en haut à gauche,
+       le compteur en bas à gauche) se reposent à huit pixels du bord, comme
+       les nôtres. */
+    html[data-tse-ranger] main a[data-a-target="preview-card-image-link"] div:has(> .tw-channel-status-text-indicator),
+    html[data-tse-ranger] main a[data-a-target="preview-card-image-link"] div:has(> .tw-media-card-stat) {
+      position: absolute !important; margin: 0 !important; padding: 0 !important; left: 8px !important; right: auto !important;
+    }
+    html[data-tse-ranger] main a[data-a-target="preview-card-image-link"] div:has(> .tw-channel-status-text-indicator) {
+      top: 8px !important; bottom: auto !important;
+    }
+    html[data-tse-ranger] main a[data-a-target="preview-card-image-link"] div:has(> .tw-media-card-stat) {
+      bottom: 8px !important; top: auto !important;
+    }
+    html[data-tse-ranger] main a[data-a-target="preview-card-image-link"] .tw-channel-status-text-indicator,
+    html[data-tse-ranger] main a[data-a-target="preview-card-image-link"] .tw-media-card-stat {
+      display: block !important; height: auto !important; margin: 0 !important; padding: 0 5px !important; border: 0 !important;
+      border-radius: 4px !important; color: #fff !important; font-family: inherit !important; font-size: 12px !important;
+      line-height: 18px !important; white-space: nowrap !important;
+    }
+    html[data-tse-ranger] main a[data-a-target="preview-card-image-link"] .tw-channel-status-text-indicator {
+      background: var(--tse-frais) !important; font-weight: 600 !important; text-transform: uppercase !important;
+    }
+    html[data-tse-ranger] main a[data-a-target="preview-card-image-link"] .tw-channel-status-text-indicator * {
+      margin: 0 !important; padding: 0 !important; color: inherit !important; font: inherit !important; text-transform: inherit !important;
+    }
+    html[data-tse-ranger] main a[data-a-target="preview-card-image-link"] .tw-media-card-stat {
+      background: rgba(0, 0, 0, 0.62) !important; font-weight: 500 !important;
+    }
+    /* LE NOMBRE, SANS LE MOT : celui de TseChannels, écrit comme sur nos cartes. */
+    html[data-tse-ranger] main a[data-a-target="preview-card-image-link"] .tw-media-card-stat[data-tse-spect] { font-size: 0 !important; }
+    html[data-tse-ranger] main a[data-a-target="preview-card-image-link"] .tw-media-card-stat[data-tse-spect]::before {
+      content: attr(data-tse-spect); font-size: 12px;
+    }
+    html[data-tse-ranger] main a[data-a-target="preview-card-image-link"][data-tse-duree] { position: relative; }
+    html[data-tse-ranger] main a[data-a-target="preview-card-image-link"][data-tse-duree]::before {
+      content: attr(data-tse-duree); position: absolute; top: 8px; right: 8px; z-index: 3; padding: 0 5px; border-radius: 4px;
+      background: rgba(0, 0, 0, 0.62); color: #fff; font-family: inherit; font-size: 12px; font-weight: 600; line-height: 18px;
+      white-space: nowrap; font-variant-numeric: tabular-nums; pointer-events: none;
+    }
+    html[data-tse-off~="duree"] main a[data-a-target="preview-card-image-link"][data-tse-duree]::before { display: none; }
+    html[data-tse-ranger]:not([data-tse-off~="duree"]) main a[data-a-target="preview-card-image-link"][data-tse-duree] .seventv-stream-card-uptime-badge {
+      display: none !important;
+    }
     main a[data-a-target="preview-card-image-link"][data-tse-etiq-coin="haut"]::after { bottom: auto; top: 8px; }
+    /* Sous notre durée, quand elle se montre : huit pixels, sa ligne de 18, six d'écart. */
+    html[data-tse-ranger]:not([data-tse-off~="duree"]) main a[data-a-target="preview-card-image-link"][data-tse-duree][data-tse-etiq-coin="haut"]::after {
+      top: 32px;
+    }
     main a[data-a-target="preview-card-image-link"][data-tse-etiq-coin="aucun"]::after { display: none; }
     .tse-acc-infos { display: flex; gap: 10px; min-width: 0; padding-top: 8px; }
     .tse-acc-avatar { flex: 0 0 40px; width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: var(--tse-surface-2); }
@@ -9326,30 +9542,6 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     .tse-acc-evol--stable { color: var(--tse-texte-faible); }
     .tse-acc-evol--nouveau { padding: 0 6px; border-radius: 4px; background: #9147ff; color: #fff; font-size: 11px; }
     .tse-acc-note { margin: 2px 0 0; font-size: 12px; color: var(--tse-texte-doux); }
-    /* « ÉCARTER DE CE CLASSEMENT » (4.32.0.3) : à droite des textes de la
-       place, au survol de la place ou au clavier seulement. */
-    .tse-acc-ecarter {
-      flex: 0 0 auto; align-self: flex-start; width: 26px; height: 26px; margin: -2px 0 0 0; padding: 0;
-      display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: 4px;
-      background: transparent; color: var(--tse-texte-doux); cursor: pointer; opacity: 0; transition: opacity 0.12s ease;
-    }
-    .tse-acc-place:hover .tse-acc-ecarter, .tse-acc-ecarter:focus-visible { opacity: 1; }
-    .tse-acc-ecarter:hover { background: rgba(var(--tse-encre), 0.1); color: var(--tse-texte); }
-    .tse-acc-ecarter:focus-visible { outline: 2px solid #9147ff; outline-offset: 1px; }
-    .tse-acc-ecarter svg { width: 16px; height: 16px; fill: currentColor; }
-    /* Ce que le classement a écarté : une ligne sous lui, chaque chaîne et son « Rétablir ». */
-    .tse-acc-ecartees {
-      display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin: 8px 0 0;
-      font-size: 12px; color: var(--tse-texte-doux);
-    }
-    .tse-acc-ecartee { display: inline-flex; align-items: center; gap: 6px; }
-    .tse-acc-ecartee-nom { font-weight: 600; color: var(--tse-texte); }
-    .tse-acc-retablir {
-      padding: 0 6px; border: 0; border-radius: 4px; background: rgba(var(--tse-encre), 0.1); cursor: pointer;
-      font: inherit; font-weight: 600; line-height: 20px; color: var(--color-text-link, var(--tse-violet-texte));
-    }
-    .tse-acc-retablir:hover { background: rgba(var(--tse-encre), 0.18); }
-    .tse-acc-retablir:focus-visible { outline: 2px solid #9147ff; outline-offset: 1px; }
   `;
 
   const injectCSS = () => {
@@ -10984,97 +11176,6 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
    *  de `complete`, qui ne parle QUE de la descente entre catégories et jamais
    *  de ce qui se passe à l'intérieur de l'une d'elles.
    * ============================================================ */
-  /* ══ LES CHAÎNES ÉCARTÉES D'UN CLASSEMENT (4.32.0.3) ════════════════════════
-     « Un streamer québécois est souvent dans le Top 10 français ; ses streams
-     sont anglophones, malgré le tag Français. » Le tag de langue est la seule
-     chose que le classement lit, et il le lit tel que la chaîne le pose : une
-     chaîne qui porte « Français » sans parler français est, pour lui, une
-     chaîne française. Rien ne permet de le savoir sans deviner — la langue de
-     ses réglages est celle de son tag, et un titre en anglais ne dit pas
-     qu'on ne parle pas français : des chaînes françaises titrent en anglais.
-
-     C'EST DONC VOUS QUI LE DITES, d'un clic sur sa carte du Top 10 : écartée
-     du classement DE CETTE LANGUE, et de lui seul — dans le classement de
-     toutes les langues, elle reste à sa place, qui est juste. Écartée partout
-     où ce classement se montre : le Top 10 de l'accueil comme Top Chaînes,
-     puisque les deux tiennent la même liste (cf. `top`). Gardée sur
-     l'appareil, et rétablie d'un clic sous le Top 10, qui dit toujours ce
-     qu'il a écarté.
-
-     Langue → logins, sous une seule clé. Ce qui vient du stockage est revu :
-     une langue que la table ne connaît pas, un login mal formé, et c'est
-     ignoré. */
-  const ecartees = (() => {
-    const CLE = 'tse:ecartees';
-    const RE = /^[a-z0-9_]{1,25}$/;
-    let memo = null;
-    const ecouteurs = new Set();
-    const lire = () => {
-      if (memo) return memo;
-      let x = null;
-      try { x = JSON.parse(localStorage.getItem(CLE) || 'null'); } catch { x = null; }
-      const m = new Map();
-      let n = 0;
-      if (x && typeof x === 'object' && !Array.isArray(x)) {
-        for (const [lang, logins] of Object.entries(x)) {
-          if (!LANG_SET.has(lang) || !Array.isArray(logins)) continue;
-          const jeu = new Set();
-          for (const l of logins) {
-            if (typeof l !== 'string' || !RE.test(l) || n >= CFG.ECARTEES_MAX) continue;
-            if (!jeu.has(l)) { jeu.add(l); n++; }
-          }
-          if (jeu.size) m.set(lang, jeu);
-        }
-      }
-      memo = m;
-      return memo;
-    };
-    const ecrire = (m) => {
-      memo = m;
-      const brut = {};
-      for (const [lang, jeu] of m) if (jeu.size) brut[lang] = [...jeu];
-      try {
-        if (Object.keys(brut).length) localStorage.setItem(CLE, JSON.stringify(brut));
-        else localStorage.removeItem(CLE);
-      } catch { /* stockage refusé : pour cette page seulement */ }
-      for (const f of ecouteurs) f();
-    };
-    const total = (m) => [...m.values()].reduce((s, j) => s + j.size, 0);
-    // Changées dans un autre onglet : celui-ci suit.
-    window.addEventListener('storage', (ev) => {
-      if (ev.key !== CLE && ev.key !== null) return;
-      memo = null;
-      for (const f of ecouteurs) f();
-    });
-    return {
-      de: (lang) => (lang && lire().get(lang)) || null,
-      ecarter(lang, login) {
-        const l = String(login || '').toLowerCase();
-        if (!LANG_SET.has(lang) || !RE.test(l)) return false;
-        const m = new Map([...lire()].map(([k, j]) => [k, new Set(j)]));
-        const jeu = m.get(lang) || new Set();
-        if (jeu.has(l) || total(m) >= CFG.ECARTEES_MAX) return false;
-        jeu.add(l);
-        m.set(lang, jeu);
-        ecrire(m);
-        return true;
-      },
-      retablir(lang, login) {
-        const l = String(login || '').toLowerCase();
-        const m = new Map([...lire()].map(([k, j]) => [k, new Set(j)]));
-        const jeu = m.get(lang);
-        if (!jeu || !jeu.delete(l)) return false;
-        if (!jeu.size) m.delete(lang);
-        ecrire(m);
-        return true;
-      },
-      plein: () => total(lire()) >= CFG.ECARTEES_MAX,
-      surChangement(f) { ecouteurs.add(f); },
-      // Pour le rapport : des comptes, aucune chaîne.
-      rapport: () => ({ langues: lire().size, chaines: total(lire()) }),
-    };
-  })();
-
   /* UNE FABRIQUE, ET DEUX CLASSEMENTS (4.26.0). Le module servait la seule
      barre, et lisait son état — le mode « Top Chaînes », la langue et la
      catégorie choisies, le nombre de places. L'accueil demande le même
@@ -11169,6 +11270,12 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     let degraded      = false; // cadence structurelle retombée sur la marche
     let running       = false;
     let complete      = false; // le dernier classement est-il PROUVÉ complet ?
+    /* JUSQU'OÙ (4.32.0.4) : le nombre de chaînes que cette preuve couvre. Il
+       était sous-entendu — `lire().n` — tant que `n` ne bougeait pas ; celui
+       de l'accueil grandit avec les chaînes écartées, et une preuve faite
+       pour dix ne dit rien de la onzième. Une preuve trop courte appelle une
+       marche complète sans attendre son tour (cf. `tick`). */
+    let nPreuve       = 0;
     let windowFloor   = 0;     // total de la dernière catégorie de la fenêtre
     const stats = { walks: 0, light: 0, scoped: 0, ops: 0, failedSlices: 0,
                     /* « sousPlancher » compte les absences qu'on REFUSE de
@@ -12627,6 +12734,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
              visiter ; le tag rend un classement DÉJÀ TRIÉ par le serveur, dont
              les cent premiers contiennent forcément les trente affichés. */
           complete = true;
+          // La réponse du tag est un top GLOBAL_TAG_MAX trié par le serveur : elle les prouve tous.
+          nPreuve = CFG.GLOBAL_TAG_MAX;
           windowFloor = 0;
           // eslint-disable-next-line require-atomic-updates
           worldLang = wl.lang;
@@ -12663,7 +12772,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       // peut que MONTER à mesure que le pool grossit ; conserver la valeur
       // basse rend la condition d'arrêt plus prudente — on visite plus de
       // catégories que strictement nécessaire, jamais moins.
-      const t = nthViewers(pool, lire().n);
+      const nT = lire().n;
+      const t = nthViewers(pool, nT);
 
       const rest = cats.slice(seed.length);
       const todo = [];
@@ -12723,6 +12833,10 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       stats.nonLues = nonLues;
       complete = !truncated && nonLues === 0
         && (cats.length < CFG.GLOBAL_CATEGORIES_MAX || windowFloor <= threshold);
+      /* T a coupé les catégories pour `nT` chaînes, et `threshold` vient de la
+         publication, juste au-dessus, sans attente entre les deux : la preuve
+         vaut pour la plus courte des deux demandes. */
+      nPreuve = complete ? Math.min(nT, lire().n) : 0;
 
       // Langue finale calculée AVANT d'être publiée, et relue nulle part
       // ensuite : la marche n'interroge plus l'état global une fois ses
@@ -13035,7 +13149,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         worldLang = null;
       }
       const needFull = langChange || !ranking.length
-        || now - lastFullWalk >= CFG.GLOBAL_FULL_WALK_MS;
+        || now - lastFullWalk >= CFG.GLOBAL_FULL_WALK_MS
+        || (complete && nPreuve < lire().n);
       if (!needFull) {
         const interval = degraded ? CFG.GLOBAL_FULL_WALK_MS : CFG.GLOBAL_STRUCT_TICK;
         if (now - rankingTs < interval) return;
@@ -13057,7 +13172,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       worldLang = null; allLangPool = []; walkGen += 1;
       scopeLangApplied = false;
       scopeGen += 1;   // invalide une passe encore en vol
-      failStreak = 0; okStreak = 0; degraded = false; complete = false;
+      failStreak = 0; okStreak = 0; degraded = false; complete = false; nPreuve = 0;
     };
 
     return {
@@ -13140,7 +13255,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       // chaînes les plus regardées de cette langue parmi tout ce qu'on a vu.
       // Et cela ne coûte AUCUNE requête : les tags de langue voyagent déjà
       // dans chaque réponse de la marche.
-      top(n = lire().n) {
+      /* `exclues` (4.32.0.4) : des logins que ce classement-ci ne montre pas
+         — les chaînes écartées du Top 10 de l'accueil. Retirées AVANT les
+         places : le classement garde ses dix, et la onzième monte. La barre
+         ne passe rien. */
+      top(n = lire().n, exclues = null) {
         const lang = lire().actif ? lire().lang : null;
         const liste = this.base();
         // Déjà restreint PAR L'API — portée catégorie filtrée, ou descente
@@ -13151,12 +13270,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
             || (wantedScope() && scopeLangApplied)
             || (!wantedScope() && worldLang === lang))
           ? liste : liste.filter(r => r.tags.includes(lang));
-        /* LES CHAÎNES QUE VOUS AVEZ ÉCARTÉES DE CETTE LANGUE (4.32.0.3, cf.
-           `ecartees`), avant les places : le classement garde ses dix, ou ses
-           trente. Ici, et non dans le pool : un clic se voit tout de suite,
-           et rétablir n'attend pas la marche suivante. */
-        const exclues = ecartees.de(lang);
-        return parPlaces(exclues ? filtree.filter(r => !exclues.has(String(r.login).toLowerCase())) : filtree, n);
+        return parPlaces(exclues && exclues.size
+          ? filtree.filter(r => !exclues.has(String(r.login).toLowerCase())) : filtree, n);
       },
 
       // Langues proposables. Calculées sur le pool MONDIAL, jamais sur la
@@ -13495,6 +13610,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
                                     : worldLang === lire().lang)),
           langApplied: !!(wantedScope() ? scopeLangApplied
                                         : worldLang && worldLang === lire().lang),
+          // Combien de chaînes la preuve couvre (4.32.0.4) ; 0 sans preuve.
+          prouve:     complete ? nPreuve : 0,
           /* CE QUE LA VOIE DU TAG A DONNÉ. Elle n'a jamais pu être exécutée
              contre le vrai Twitch : ces compteurs sont le seul moyen de savoir
              si l'argument de filtre est le bon. Même dispositif que pour les
@@ -16611,13 +16728,13 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
                         // L'échelle que la chaîne sert au lecteur, et la hauteur décodée (4.32.0.2).
                         echelle: null, decodee: null },
                ambiance: { demandes: 0, images: 0, rejets: 0 } },
-      top: { source: null, instantanes: 0 },
+      /* `ecartees` (4.32.0.4) : la liste du réglage, et combien de ses chaînes
+         le classement portait — et a donc retirées. Des comptes. */
+      top: { source: null, instantanes: 0, ecartees: 0, retirees: 0 },
       /* « À la une » (4.32.0.3) : d'où viennent ses chaînes — l'ordre du
          carrousel lu sur ses places, ou celui de la page —, combien il en
          porte, combien se montrent, combien attendent leur réponse. */
-      une: { voie: null, lues: 0, montrees: 0, attente: 0, reserve: false, demandes: 0, relectures: 0 },
-      // Les chaînes écartées d'un classement (4.32.0.3) : les clics, et ce que le Top 10 affiché a écarté.
-      ecartees: { clics: 0, retablies: 0, montrees: 0 },
+      une: { voie: null, lues: 0, montrees: 0, attente: 0, reserve: false, demandes: 0, relectures: 0, centrages: 0 },
       debut: { envois: 0, demandes: 0, archives: 0, sansArchive: 0, sansStream: 0,
                jetons: 0, fermees: 0, illisibles: 0, refus: 0, reseau: 0 },
       // Vos rendez-vous (4.27.0) : ce qui est montré, et si l'agenda tourne encore.
@@ -16627,7 +16744,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       pourquoi: { lectures: 0, rayons: [], demandes: 0, servis: 0, refus: 0, vides: 0 },
       absence: { lectures: 0, chaines: 0, montre: false, enCours: false, fermetures: 0, synchros: 0, clips: { demandes: 0, servis: 0, refus: 0, plusVus: 0 } },
       // Une étiquette par carte (4.28.0) : combien de chaque sorte, et ce que les cartes de Twitch ont coûté.
-      etiquettes: { posees: {}, demandes: 0, coins: { haut: 0, aucun: 0 }, twitch: { cartes: 0, vues: 0, etiquetees: 0 } },
+      etiquettes: { posees: {}, demandes: 0, coins: { haut: 0, aucun: 0 }, twitch: { cartes: 0, vues: 0, etiquetees: 0, habillees: 0, durees: 0 } },
       // Ranger l'accueil de Twitch (4.32.0) : ce qui a été masqué, remplacé, et d'où.
       ranger: { titres: 0, masquables: 0, masques: 0, clics: 0, vignettes: { rediffusion: 0, avatar: 0, sans: 0 } },
     };
@@ -16661,11 +16778,26 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        catégorie, dans la même langue. Son classement porte au moins dix
        places (topN vaut 10, 30 ou 50), et on le lit au lieu d'en payer un
        second. */
+    /* LES CHAÎNES ÉCARTÉES DU TOP 10 (4.32.0.4, cf. OPT_DEFS), en ensemble.
+       Retirées avant les places, elles laissent monter les suivantes : le Top
+       10 en demande donc autant de plus au classement, pour que la dixième
+       place soit PROUVÉE comme les neuf autres (cf. `nPreuve`). La barre ne
+       se partage qu'à cette condition : son Top Chaînes doit en porter assez. */
+    let ecarteesCle = null;
+    let ecarteesJeu = new Set();
+    const ecarteesTop = () => {
+      const l = options.get('accueilTopEcartees');
+      const cle = l.join(',');
+      if (cle !== ecarteesCle) { ecarteesCle = cle; ecarteesJeu = new Set(l); }
+      return ecarteesJeu;
+    };
+    const placesVoulues = () => CFG.ACCUEIL_TOP_N + ecarteesTop().size;
     const partage = () => !!state.globalMode && !state.categoryFilter
-      && (state.languageFilter || null) === langueVoulue();
+      && (state.languageFilter || null) === langueVoulue()
+      && options.get('topN') >= placesVoulues();
     const classement = creerClassement(() => ({
       actif: topActif() && !partage(),
-      lang: langueVoulue(), categorie: null, n: CFG.ACCUEIL_TOP_N,
+      lang: langueVoulue(), categorie: null, n: placesVoulues(),
     }), false);
     const sourceTop = () => (partage() ? globalChannels : classement);
 
@@ -17177,6 +17309,67 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        pied filet-bouton-filet sous chacun ; sans rien de plus à montrer, il
        n'est qu'un filet. Pas de filet au-dessus du premier (4.26.0.3) : sous
        le héros, il le coupait de la liste — « retire-le ». */
+    /* ══ LE RUBAN (4.32.0.4) ══════════════════════════════════════════════════
+       « Que "À la une" soit en ruban 3D » — la piste B de la maquette. Les
+       cartes défilent en une ligne, aimantées au centre (scroll-snap) ; celle
+       du centre est droite et pleine, celles des côtés pivotent, reculent et
+       s'assombrissent, et le sol reflète la couleur de chaque chaîne. Le
+       mouvement suit le défilement lui-même (animation-timeline: view), sans
+       script : cf. la feuille. Le script ne fait que trois choses :
+         - les deux flèches, qui mènent d'une carte à la suivante — une molette
+           verticale ne fait pas défiler un ruban ;
+         - leur état : la première carte au centre, pas de « Précédent » ;
+         - un clic sur une carte de côté l'amène au centre, au lieu d'ouvrir sa
+           chaîne : c'est le geste d'un ruban. Celle du centre s'ouvre ; un clic
+           du milieu, ou avec Ctrl, Maj ou Cmd, ouvre toujours.
+       Les positions sont celles de la mise en page (offsetLeft), pas celles
+       qu'on voit : une carte qui pivote n'a pas bougé. */
+    const cartesRuban = (liste) => [...liste.children].filter((c) => !c.hidden);
+    const auCentre = (liste) => {
+      const milieu = liste.scrollLeft + liste.clientWidth / 2;
+      let meilleure = null, ecart = Infinity;
+      for (const c of cartesRuban(liste)) {
+        const d = Math.abs(c.offsetLeft + c.offsetWidth / 2 - milieu);
+        if (d < ecart) { ecart = d; meilleure = c; }
+      }
+      return meilleure;
+    };
+    const centrer = (liste, carte) => {
+      liste.scrollTo({ left: carte.offsetLeft + carte.offsetWidth / 2 - liste.clientWidth / 2, behavior: 'smooth' });
+    };
+    const mener = (liste, sens) => {
+      const cartes = cartesRuban(liste);
+      const i = cartes.indexOf(auCentre(liste));
+      const cible = cartes[i + sens];
+      if (cible) centrer(liste, cible);
+    };
+    const majFleches = (liste) => {
+      const cartes = cartesRuban(liste);
+      const i = cartes.indexOf(auCentre(liste));
+      const cadre = liste.parentElement;
+      if (!cadre) return;
+      for (const b of cadre.querySelectorAll(':scope > .tse-acc-ruban-fleche')) {
+        const sens = Number(b.dataset.tseSens);
+        const off = 'tseAttente' in liste.dataset || i < 0 || !cartes[i + sens];
+        if (b.disabled !== off) b.disabled = off;
+      }
+    };
+    let flechesPrevues = false;
+    const flechesBientot = (liste) => {
+      if (flechesPrevues) return;
+      flechesPrevues = true;
+      requestAnimationFrame(erreurs.garde('accueil', () => { flechesPrevues = false; majFleches(liste); }));
+    };
+    const centrerAuClic = (liste, ev) => {
+      if (ev.button !== 0 || ev.ctrlKey || ev.metaKey || ev.shiftKey || ev.altKey) return;
+      const carte = ev.target.closest?.('.tse-acc-carte');
+      if (!carte || carte.parentElement !== liste || carte === auCentre(liste)) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      bilan.une.centrages++;
+      centrer(liste, carte);
+    };
+
     const fabriquerRayon = (cle, classe, titre, liste) => {
       const r = elt('div', 'tse-acc-rayon ' + classe);
       r.dataset.tseRayon = cle;
@@ -17243,8 +17436,24 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       // « À la une » (4.32.0.3), à la place qu'avait « Vos chaînes suivies en direct ».
       const hUne = elt('h2', 'tse-acc-titre');
       hUne.append(elt('span', null, S.uiAccUne));
-      const lUne = elt('div', 'tse-acc-liste');
-      const une = fabriquerRayon('une', 'tse-acc-rayon--une', hUne, lUne);
+      // En ruban (4.32.0.4, cf. RUBAN) : la liste défile, deux flèches la mènent.
+      const lUne = elt('div', 'tse-acc-liste tse-acc-ruban');
+      const cadreUne = elt('div', 'tse-acc-ruban-cadre');
+      const flecheUne = (sens) => {
+        const b = elt('button', 'tse-acc-ruban-fleche tse-acc-ruban-fleche--' + (sens < 0 ? 'prec' : 'suiv'));
+        b.type = 'button';
+        b.dataset.tseSens = String(sens);
+        const nom = sens < 0 ? S.uiAccPrecedent : S.uiAccSuivant;
+        b.title = nom;
+        b.setAttribute('aria-label', nom);
+        b.append(noeudStatique(PICTO_CHEVRON));
+        b.addEventListener('click', erreurs.garde('accueil', () => mener(lUne, sens)));
+        return b;
+      };
+      cadreUne.append(flecheUne(-1), lUne, flecheUne(1));
+      lUne.addEventListener('scroll', () => flechesBientot(lUne), { passive: true });
+      lUne.addEventListener('click', erreurs.garde('accueil', (ev) => centrerAuClic(lUne, ev)), true);
+      const une = fabriquerRayon('une', 'tse-acc-rayon--une', hUne, cadreUne);
       const hTop = elt('h2', 'tse-acc-titre');
       const tTop = elt('span', null, S.uiAccTop);
       const lang = elt('span', 'tse-acc-langue');
@@ -17253,10 +17462,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       const top = fabriquerRayon('top', 'tse-acc-rayon--top', hTop, lTop);
       const note = elt('p', 'tse-acc-note');
       note.hidden = true;
-      // Ce que le classement a écarté, et de quoi le rétablir (4.32.0.3, cf. `ecartees`).
-      const ecart = elt('p', 'tse-acc-ecartees');
-      ecart.hidden = true;
-      lTop.after(note, ecart);
+      lTop.after(note);
       // Des rayons qui disent pourquoi (4.31.0), juste après le Top 10 (cf. POURQUOI).
       const pq = Array.from({ length: CFG.POURQUOI_RAYONS }, (_, i) => {
         const h = elt('h2', 'tse-acc-titre');
@@ -17291,7 +17497,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       const lAbs = elt('ul', 'tse-acc-absence-liste');
       abs.append(tAbs, xAbs, lAbs);
       section.append(une, top, ...pq.map((x) => x.r), rdv, hab, abs);
-      z = { heros, une, lUne, top, tTop, lang, lTop, note, ecart, pq, rdv, lRdv, hab, lHab, abs, lAbs, langCle: undefined };
+      z = { heros, une, lUne, top, tTop, lang, lTop, note, pq, rdv, lRdv, hab, lHab, abs, lAbs, langCle: undefined };
       /* LE LECTEUR NE JOUE QU'À L'ÉCRAN. Le héros descendu hors de la vue,
          sa vidéo s'arrête ; elle reprend quand il revient. */
       if (typeof IntersectionObserver === 'function') {
@@ -17358,7 +17564,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
          2. « Subathon • JOUR 9 » — lu dans le titre, comme la barre le lit ;
          3. « Vient de commencer » — moins de dix minutes, la règle de la
             barre « frais » : ni une reprise, ni un direct plus vieux ;
-         4. « Vient de passer sur Elden Ring » — vu de nos yeux entre deux
+         4. « Va sur Elden Ring » — vu de nos yeux entre deux
             relevés, ou daté par les chapitres que l'aperçu a déjà lus ;
          5. « ↗ +38 % en 10 min » — deux relevés du même direct (cf.
             tendanceDe) ;
@@ -17392,7 +17598,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         return { type: 'commence', texte: S.uiEtiqCommence };
       }
       const jeu = basculementFrais(login)?.libelle || preview.basculeConnue(login);
-      if (jeu) return { type: 'bascule', texte: S.uiBadgeCategorySwitch(jeu) };
+      if (jeu) return { type: 'bascule', texte: S.uiEtiqBascule(jeu) };
       const t = tendanceDe(login, e);
       if (t) return { type: 'tendance', texte: S.uiEtiqTendance(t.pct, Math.max(1, t.min)) };
       const n = rang && rangsTop ? rangsTop.get(login) : undefined;
@@ -17413,6 +17619,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       }
       return false;
     };
+    /* NOTRE DURÉE TIENT LE HAUT À DROITE (4.32.0.4, cf. HABILLER) : un
+       pseudo-élément, que `coinOccupe` ne voit pas — il ne lit que des nœuds.
+       Une étiquette chassée du bas se pose alors sous elle (cf. la feuille,
+       `data-tse-etiq-coin="haut"` sur une carte qui porte sa durée). */
+    const dureeMontree = (lien) => lien.hasAttribute('data-tse-duree') && !!options.get('duree');
     const coinLibre = (lien) => {
       const r = lien.getBoundingClientRect();
       if (!r.width || !r.height) return null;
@@ -17421,6 +17632,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       return coinOccupe(lien, { l, r: r.right, t: r.top, b: r.top + r.height * 0.35 }) ? 'aucun' : 'haut';
     };
     const etiquetees = new Set();   // les cartes de Twitch qui portent la nôtre
+    const coinsPour = new WeakMap();  // carte → ce pour quoi son coin a été calculé
     const poserEtiquette = (n, et, twitch = false) => {
       if (!et) {
         if (n.hasAttribute('data-tse-etiquette')) {
@@ -17428,16 +17640,24 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
           n.removeAttribute('data-tse-etiq');
           n.removeAttribute('data-tse-etiq-coin');
         }
+        coinsPour.delete(n);
         etiquetees.delete(n);
         return;
       }
-      if (n.getAttribute('data-tse-etiquette') !== et.texte) {
-        n.setAttribute('data-tse-etiquette', et.texte);
-        bilan.etiquettes.posees[et.type] = (bilan.etiquettes.posees[et.type] || 0) + 1;
+      /* LE COIN SE RECALCULE quand le texte change, et quand notre durée
+         paraît ou s'en va (4.32.0.4) : elle prend le haut, et la sienne — celle
+         d'une autre extension, en bas à droite — s'efface devant elle. */
+      const pour = et.texte + (twitch && dureeMontree(n) ? '|d' : '');
+      if (n.getAttribute('data-tse-etiquette') !== et.texte || (twitch && coinsPour.get(n) !== pour)) {
+        if (n.getAttribute('data-tse-etiquette') !== et.texte) {
+          n.setAttribute('data-tse-etiquette', et.texte);
+          bilan.etiquettes.posees[et.type] = (bilan.etiquettes.posees[et.type] || 0) + 1;
+        }
         if (twitch) {
+          coinsPour.set(n, pour);
           const coin = coinLibre(n);
+          if (coin !== n.getAttribute('data-tse-etiq-coin') && coin) bilan.etiquettes.coins[coin]++;
           attrSi(n, 'data-tse-etiq-coin', coin);
-          if (coin) bilan.etiquettes.coins[coin]++;
         }
       }
       attrSi(n, 'data-tse-etiq', et.type);
@@ -17475,9 +17695,43 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       const l = m && m[1].toLowerCase();
       return l && RE_LOGIN.test(l) ? l : null;
     };
+    /* ── HABILLER LES CARTES DE TWITCH (4.32.0.4) ─────────────────────────
+       « Une cohérence dans les visuels : on voit qu'il a écrit spectateurs,
+       et la durée est différente de celle de l'extension. Mets tout au même
+       CSS. » Sous « Ranger l'accueil de Twitch », une carte de direct de
+       Twitch prend les marques des nôtres : son « Live » restylé, son
+       compteur réduit au nombre — le nôtre, `formatViewers`, lu dans
+       TseChannels comme sur nos cartes —, et la durée du direct en haut à
+       droite, `formatUptime`, comme les nôtres. Des attributs, et des
+       pseudo-éléments qui les lisent (cf. la feuille) : aucun nœud n'entre.
+       Sans réponse de TseChannels pour la chaîne, son compteur reste celui
+       de Twitch, à notre style, et rien ne s'écrit en haut à droite.
+
+       LA DURÉE QU'ON VOYAIT N'ÉTAIT PAS CELLE DE TWITCH : relevé sur la page
+       enregistrée, le « 38:55 » vit dans un `seventv-stream-card-uptime-badge`
+       — celui de l'extension 7TV, posé dans la carte. Il s'efface quand la
+       nôtre se montre : deux durées du même direct, ce serait une de trop. */
+    const habillees = new Set();
+    const SEL_STAT = '.tw-media-card-stat';
+    const habiller = (lien, login) => {
+      const e = login ? cache.get(login) : null;
+      const direct = e && e.stream ? e : null;
+      const debut = direct?.stream?.createdAt ? debutReel(login, direct.stream.createdAt) : null;
+      attrSi(lien, 'data-tse-duree', debut ? formatUptime(debut) || null : null);
+      const n = direct ? audience(login, direct) : null;
+      const stat = lien.querySelector(SEL_STAT);
+      if (stat) attrSi(stat, 'data-tse-spect', Number.isFinite(n) ? formatViewers(n) : null);
+      if (login) habillees.add(lien); else habillees.delete(lien);
+    };
+    const deshabiller = (lien) => {
+      lien.removeAttribute('data-tse-duree');
+      lien.querySelector(SEL_STAT)?.removeAttribute('data-tse-spect');
+      habillees.delete(lien);
+    };
     const etiquetterTwitch = () => {
       const voulu = options.get('accueilEtiquettes') && pose();
-      if (voulu && !guetteurCartes && typeof IntersectionObserver === 'function') {
+      const habille = options.get('accueilRanger') && pose();
+      if ((voulu || habille) && !guetteurCartes && typeof IntersectionObserver === 'function') {
         guetteurCartes = new IntersectionObserver(erreurs.garde('accueil', (entrees) => {
           for (const en of entrees) {
             if (en.isIntersecting) cartesVues.add(en.target); else cartesVues.delete(en.target);
@@ -17485,22 +17739,26 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
           etiquetterTwitch();
         }), { rootMargin: '200px 0px' });
       }
-      const liens = voulu ? [...document.querySelectorAll('main ' + SEL_LIEN_CARTE)].filter((l) => !exclu(l)) : [];
+      const liens = voulu || habille ? [...document.querySelectorAll('main ' + SEL_LIEN_CARTE)].filter((l) => !exclu(l)) : [];
       const presents = new Set(liens);
-      for (const l of [...etiquetees]) if (!presents.has(l)) poserEtiquette(l, null);
+      for (const l of [...etiquetees]) if (!voulu || !presents.has(l)) poserEtiquette(l, null);
+      for (const l of [...habillees]) if (!habille || !presents.has(l)) deshabiller(l);
       for (const l of [...cartesVues]) if (!presents.has(l)) cartesVues.delete(l);
       let vues = 0, demandees = 0;
       for (const lien of liens) {
         if (guetteurCartes && !cartesSuivies.has(lien)) { cartesSuivies.add(lien); guetteurCartes.observe(lien); }
         const login = loginDuLien(lien);
-        if (!login) { poserEtiquette(lien, null); continue; }
+        if (!login) { poserEtiquette(lien, null); deshabiller(lien); continue; }
         if (!guetteurCartes || cartesVues.has(lien)) {
           vues++;
           if (demandees < CFG.ETIQ_TWITCH_MAX && demander(login)) demandees++;
         }
-        poserEtiquette(lien, etiquetteDe(login), true);
+        // Habillée d'abord : l'étiquette lit notre durée pour choisir son coin.
+        if (habille) habiller(lien, login);
+        if (voulu) poserEtiquette(lien, etiquetteDe(login), true);
       }
-      bilan.etiquettes.twitch = { cartes: liens.length, vues, etiquetees: etiquetees.size };
+      bilan.etiquettes.twitch = { cartes: liens.length, vues, etiquetees: etiquetees.size, habillees: habillees.size,
+                                  durees: [...habillees].filter((l) => l.hasAttribute('data-tse-duree')).length };
     };
     /* ── RANGER L'ACCUEIL DE TWITCH (4.32.0) ────────────────────────────────
        CSS SEULEMENT. Aucun nœud de Twitch n'est retiré, ni ajouté : des
@@ -17645,6 +17903,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     }));
     const oterEtiquettes = () => {
       for (const l of [...etiquetees]) poserEtiquette(l, null);
+      for (const l of [...habillees]) deshabiller(l);
       if (guetteurCartes) { guetteurCartes.disconnect(); guetteurCartes = null; }
       cartesSuivies = new WeakSet();
       cartesVues.clear();
@@ -18157,6 +18416,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       }
       z.une.hidden = !items.length && !reserve;
       plier(z.une);
+      majFleches(z.lUne);
       Object.assign(bilan.une, { voie, lues: logins.length, montrees: items.length, attente, reserve });
     };
 
@@ -18206,30 +18466,12 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     };
     /* Une place : le chiffre en creux, puis la carte, dont la ligne du nom
        porte l'évolution (cf. fabriquerCarte). */
-    /* « ÉCARTER » (4.32.0.3, cf. `ecartees`) : une chaîne qui porte le tag de
-       la langue sans la parler. Le bouton vit dans la ligne de l'avatar, à
-       droite des textes, et ne paraît qu'au survol de la place ou au clavier ;
-       seulement sur un Top 10 tenu dans une langue — sur celui de toutes les
-       langues, elle est à sa place. */
-    const PICTO_ECARTER = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM3 8c0-1.1.36-2.13.97-2.96l7 6.99A5 5 0 0 1 3 8Zm9.03 2.96-7-6.99a5 5 0 0 1 7 7Z"/></svg>';
     const fabriquerPlace = (login) => {
       const li = elt('li', 'tse-acc-place');
       li.dataset.tseCle = login;
       const rang = elt('span', 'tse-acc-rang');
       rang.setAttribute('aria-hidden', 'true');
-      const carte = fabriquerCarte(login);
-      const ecarter = elt('button', 'tse-acc-ecarter');
-      ecarter.type = 'button';
-      ecarter.hidden = true;
-      ecarter.append(noeudStatique(PICTO_ECARTER));
-      ecarter.addEventListener('click', erreurs.garde('accueil', (ev) => {
-        ev.preventDefault();
-        ev.stopPropagation();
-        const lang = langueVoulue();
-        if (lang && ecartees.ecarter(lang, login)) bilan.ecartees.clics++;
-      }));
-      carte.lastChild.append(ecarter);
-      li.append(rang, carte);
+      li.append(rang, fabriquerCarte(login));
       return li;
     };
     /* Une place en attente : le chiffre, la vignette, l'avatar, deux lignes —
@@ -18286,14 +18528,6 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         top: true,
       });
       attrSi(li, 'aria-label', S.uiAccPlace(rang, r.name || r.login));
-      // Le nom qu'elle portait au classement : écartée, elle n'y sera plus pour le dire.
-      if (r.name) { nomsVus.delete(r.login); nomsVus.set(r.login, r.name); }
-      while (nomsVus.size > CFG.ECARTEES_MAX * 2) nomsVus.delete(nomsVus.keys().next().value);
-      const ecarter = carte.querySelector('.tse-acc-ecarter');
-      const peutEcarter = !!langueVoulue() && !ecartees.plein();
-      ecarter.hidden = !peutEcarter;
-      attrSi(ecarter, 'title', peutEcarter ? S.uiAccEcarter(r.name || r.login) : null);
-      attrSi(ecarter, 'aria-label', peutEcarter ? S.uiAccEcarter(r.name || r.login) : null);
       const evol = carte.querySelector('.tse-acc-evol');
       const e = evolution(p, rang, ref);
       evol.hidden = !e;
@@ -18301,37 +18535,6 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       evol.className = 'tse-acc-evol tse-acc-evol--' + e.classe;
       texteSi(evol, e.texte);
       attrSi(evol, 'title', e.titre);
-    };
-    /* CE QUE CE CLASSEMENT A ÉCARTÉ, dit sous lui, et rétabli d'un clic : un
-       Top 10 qui ne montre pas tout le dit. Le nom est celui qu'elle portait
-       au Top 10 dans cette page, ou celui que la barre connaît, le login à
-       défaut — la chaîne n'est plus au classement pour nous le donner. */
-    const nomsVus = new Map();   // login → nom affiché, des places montrées
-    const peindreEcartees = (lang) => {
-      const jeu = ecartees.de(lang);
-      const logins = jeu ? [...jeu] : [];
-      bilan.ecartees.montrees = logins.length;
-      z.ecart.hidden = !logins.length;
-      const nomDe = (l) => nomsVus.get(l) || cache.get(l)?.name || l;
-      const cle = logins.length ? `${lang}|${logins.map((l) => l + ':' + nomDe(l)).join(',')}` : '';
-      if (z.ecart.dataset.tseCle === cle) return;
-      z.ecart.dataset.tseCle = cle;
-      z.ecart.replaceChildren();
-      if (!logins.length) return;
-      z.ecart.append(elt('span', 'tse-acc-ecartees-dit', S.uiAccEcartees));
-      for (const l of logins) {
-        const nom = nomDe(l);
-        const x = elt('span', 'tse-acc-ecartee');
-        x.dataset.tseCle = l;
-        const b = elt('button', 'tse-acc-retablir', S.uiAccRetablir);
-        b.type = 'button';
-        b.title = S.uiAccRetablirTitre(nom);
-        b.addEventListener('click', erreurs.garde('accueil', () => {
-          if (ecartees.retablir(lang, l)) bilan.ecartees.retablies++;
-        }));
-        x.append(elt('span', 'tse-acc-ecartee-nom', nom), b);
-        z.ecart.append(x);
-      }
     };
     const peindreTop = () => {
       const voulu = options.get('accueilTop');
@@ -18346,12 +18549,26 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         z.lang.replaceChildren(lang ? langIcon(lang) : noeudStatique(GLOBE_MARKUP),
                                elt('span', null, lang || S.uiFilterAllLanguages));
       }
+      const exclues = ecarteesTop();
       // Un login finit dans une adresse : on n'accepte que sa forme.
-      const places = enPlaces(src.top(CFG.ACCUEIL_TOP_N)).filter((p) => RE_LOGIN.test(p.tete.login));
+      const places = enPlaces(src.top(CFG.ACCUEIL_TOP_N, exclues)).filter((p) => RE_LOGIN.test(p.tete.login));
+      bilan.top.ecartees = exclues.size;
+      bilan.top.retirees = exclues.size ? src.base().filter((r) => exclues.has(String(r.login).toLowerCase())).length : 0;
       const resolu = src.resolu();
-      const complet = resolu && src.report().complete;
-      if (complet && places.length) noterInstantane(places, cleLang);
-      const ref = complet ? reference(cleLang) : null;
+      /* COMPLET, ET JUSQU'À LA DIXIÈME PLACE (4.32.0.4) : une chaîne écartée
+         fait monter la onzième, que la dernière marche n'a peut-être pas
+         prouvée — elle l'avait été pour dix. Jusqu'à la marche suivante, que
+         le classement lance aussitôt (cf. `nPreuve`), le Top 10 se dit
+         partiel et ne compte pas d'évolution. */
+      const rapportTop = src.report();
+      const complet = resolu && rapportTop.complete && rapportTop.prouve >= placesVoulues();
+      /* L'ÉVOLUTION COMPARE CE QUI SE COMPARE : des places comptées sans les
+         mêmes chaînes écartées ne se comparent pas — en écarter une ferait
+         « gagner une place » à toutes celles d'en dessous. La liste fait
+         partie de la clé des instantanés. */
+      const cleEvol = `${cleLang}|${[...exclues].sort().join(',')}`;
+      if (complet && places.length) noterInstantane(places, cleEvol);
+      const ref = complet ? reference(cleEvol) : null;
       rangsTop = complet && places.length ? new Map() : null;
       if (rangsTop) places.forEach((p, i) => { for (const r of [p.tete, ...p.membres]) rangsTop.set(r.login, i + 1); });
       /* EN ATTENDANT LE CLASSEMENT, SES PLACES (4.26.0.5). Le Top 10 se calcule
@@ -18380,7 +18597,6 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       const note = attente ? '' : !places.length ? S.uiAccVide : (resolu && !complet ? S.uiGlobalPartial : '');
       texteSi(z.note, note);
       z.note.hidden = !note;
-      peindreEcartees(lang);
       attrSi(z.lTop, 'aria-label', attente ? S.uiAccAttente : null);
       plier(z.top);
     };
@@ -18964,8 +19180,12 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       peindrePourquoi();
       peindreRdv();
       peindreAbsence();
-      etiquetterTwitch();
+      /* RANGER AVANT LES ÉTIQUETTES (4.32.0.4) : c'est `data-tse-ranger`, sur
+         <html>, qui efface le badge de 7TV devant notre durée ; posé après,
+         une étiquette calculait son coin avec le badge encore là, et restait
+         en haut — le banc l'a pris, au moment où l'on allume le réglage. */
       rangerTwitch();
+      etiquetterTwitch();
       section.hidden = !heros && z.une.hidden && z.top.hidden && z.pq.every((x) => x.r.hidden)
         && z.rdv.hidden && z.hab.hidden && z.abs.hidden;
       if (!section.hidden) aligner();
@@ -19090,13 +19310,6 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
            attendre le réveil suivant (cf. PRÉSENCE). Le rapport compte ces
            relectures (`synchros`) : c'est la seule trace de ce chemin-là. */
         presence.surChangement(erreurs.garde('accueil', () => { bilan.absence.synchros++; peindre(); }));
-        /* Une chaîne écartée ou rétablie, ici ou dans un autre onglet : le Top
-           10 se repeint, et Top Chaînes avec lui — la barre lit le même
-           classement (cf. `ecartees`). */
-        ecartees.surChangement(erreurs.garde('accueil', () => {
-          scheduleScan();
-          if (pose() && !document.hidden) peindre();
-        }));
         options.surChangement(() => {
           if (!actif()) { retirer(); return; }
           if (!ici) { ici = true; arriver(false); }
@@ -19159,7 +19372,6 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
                  ambiance: { ...bilan.heros.ambiance } },
         rayons: { ouverts: [...ouverts] },
         une: { ...bilan.une, active: !!options.get('accueilUne') },
-        ecartees: { ...bilan.ecartees, ...ecartees.rapport() },
         /* Le relief au survol (4.32.0.3) : combien de nos cartes portent la
            couleur de leur chaîne, et combien celle de Twitch, faute de la
            connaître — ce que le rapport du vrai Twitch dira de primaryColorHex. */
@@ -24877,10 +25089,25 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         if (h) habitudes.push({ login, nom: f.nom || login, avatar: f.avatar || null, ...h, score });
       }
       creneaux.sort((a, b) => (a.debut - b.debut) || (a.login < b.login ? -1 : 1));
+      /* LES CINQ QUE VOUS REGARDEZ LE PLUS, puis DANS L'ORDRE DE LEUR HEURE À
+         VENIR (4.32.0.4, « que "Sans planning" soit dans l'ordre du plus
+         proche dans le futur ») : le rayon dit ce qui vient d'abord, comme
+         « Vos rendez-vous » au-dessus de lui. L'heure d'une habitude est une
+         heure du jour ; sa prochaine fois est aujourd'hui si elle n'est pas
+         passée, demain sinon — minuit compris : à 23:00, 00:00 vient avant
+         20:00. La minute en cours compte encore comme à venir : « vers 20:00 »
+         est l'heure qu'il est, à 20:00:40. Les cinq restent celles que vous
+         regardez le plus : l'ordre change, pas le choix. À égalité d'heure,
+         l'ordre des visites. */
       habitudes.sort((a, b) => (b.score - a.score) || (a.login < b.login ? -1 : 1));
+      const ici = new Date(maintenant);
+      const minuteDuJour = ici.getHours() * 60 + ici.getMinutes();
+      const dans = (vers) => (vers - minuteDuJour + 1440) % 1440;
+      const retenues = habitudes.slice(0, CFG.ACCUEIL_HABITUDES_MAX)
+        .sort((a, b) => dans(a.vers) - dans(b.vers));
       return {
         version, maintenant, creneaux,
-        habitudes: habitudes.slice(0, CFG.ACCUEIL_HABITUDES_MAX).map(({ score, ...h }) => h),
+        habitudes: retenues.map(({ score, ...h }) => h),
         enCours: !!travail || !restauree, restauree, attente: attendue(false), progression: progression(c.liste),
       };
     };

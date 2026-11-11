@@ -1916,6 +1916,46 @@ if (location.pathname === '/' && window.__accueil) {
                            : 'https://static-cdn.jtvnw.net/previews-ttv/live_user_' + c.login + '-440x248.jpg';
           img.style.cssText = 'display:block;width:100%;height:100%';
           lien.appendChild(img);
+          /* LES COINS D'UNE CARTE DE DIRECT (4.32.0.4), relevés sur la page
+             enregistrée : « LIVE » en haut à gauche, le compteur — « 67
+             spectateurs » — en bas à gauche, chacun dans un coin posé en
+             absolu (`ScPositionCorner`), à dix pixels du bord. Les styles de
+             Twitch ne sont pas dans la page enregistrée : ceux-ci, en ligne,
+             DIFFÈRENT des nôtres sur chaque propriété que notre feuille impose
+             — un autre rouge, une autre graisse, pas de capitales —, sans quoi
+             le 230 ne prouverait pas qu'elle les impose (le mutant « le Live
+             de Twitch tel quel » survivait à des valeurs égales). `c.septv` :
+             le badge de durée que l'extension 7TV pose dans la carte, en bas
+             à droite. */
+          if (e.natifs) {
+            lien.style.position = 'relative';
+            const coin = (ou) => {
+              const d = el('div', 'ScPositionCorner');
+              d.style.cssText = 'position:absolute;' + ou + ':0;left:0;margin:10px';
+              return d;
+            };
+            const haut = coin('top');
+            const live = el('div', 'tw-channel-status-text-indicator');
+            live.style.cssText = 'background:#e91916;color:#fff;border-radius:2px;padding:0 8px;font-weight:700;text-transform:none';
+            const mot = el('span');
+            mot.style.cssText = 'font-size:13px;line-height:20px';
+            mot.textContent = 'Live';
+            live.appendChild(mot);
+            haut.appendChild(live);
+            const bas = coin('bottom');
+            const stat = el('div', 'tw-media-card-stat');
+            stat.style.cssText = 'background:rgba(0,0,0,.6);color:#fff;border-radius:2px;padding:0 4px;font-size:13px;line-height:20px';
+            stat.textContent = c.vues + ' spectateurs';
+            bas.appendChild(stat);
+            lien.append(haut, bas);
+            if (c.septv) {
+              const sept = el('div', 'seventv-stream-card-uptime-badge');
+              sept.style.cssText = 'position:absolute;right:0;bottom:0;margin:10px;background:rgba(0,0,0,.6);color:#fff;'
+                + 'border-radius:2px;padding:0 4px;font-size:13px;line-height:20px';
+              sept.textContent = c.septv;
+              lien.appendChild(sept);
+            }
+          }
           const av = el('img', 'tw-image-avatar');
           av.src = 'https://static-cdn.jtvnw.net/jtv_user_pictures/' + c.login + '-profile_image-70x70.png';
           const nom = el('a', 'preview-card-channel-link');

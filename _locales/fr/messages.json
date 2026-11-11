@@ -551,7 +551,7 @@
     "message": "L'accueil de Twitch"
   },
   "guideAccueilTexte": {
-    "message": "Sur la page d'accueil de Twitch, l'extension pose ses rayons au-dessus de ceux de Twitch, dans la même colonne et alignés sur eux. Ils se règlent dans « Réglages », groupe « Page d'accueil ».\n• « Votre chaîne n°1 en direct » : celle de vos chaînes suivies en direct que vous regardez le plus — à défaut, celle qui a le plus de spectateurs — prend la place du carrousel de Twitch, sur toute la largeur. Son image d'abord, puis son direct, muet et sans publicité, comme l'aperçu au survol ; le fond en reprend les couleurs. Quand aucune de vos chaînes suivies n'est en direct, le carrousel revient. « Comme Twitch » le garde toujours ; « Rien » le retire et arrête sa vidéo.\n• « À la une » : les directs du carrousel de Twitch, en rayon, quand la bannière — ou « Rien » — le masque, sans la chaîne de la bannière. Leurs cartes passent par la demande que la barre fait déjà.\n• « Top 10 » : les dix premières places de Top Chaînes, dans la langue de l'interface de Twitch ou dans toutes les langues, en grands chiffres. Juste à droite du nom, une flèche dit les places gagnées ou perdues en trente minutes, ou depuis votre arrivée sur l'accueil ; « Nouveau » marque une chaîne qui n'était pas dans le Top 10. Une chaîne qui porte le tag de la langue sans la parler s'écarte de ce classement d'un clic, sur sa carte : elle en sort aussi dans Top Chaînes, et se rétablit sous le Top 10.\n• « Parce que vous regardez souvent… » : pour la chaîne que vous avez le plus visitée en trente jours — trois visites au moins —, un rayon montre ce qui est en direct dans sa catégorie habituelle, dans la langue de Twitch, hors de vos chaînes suivies. Le titre dit pourquoi : « 14 visites en 30 jours · Just Chatting, en français ». Deux rayons au plus.\n• « Vos rendez-vous » : ce que vos chaînes suivies ont programmé aujourd'hui et demain, avec le temps qu'il reste. « Me prévenir » pose une alerte dans vos onglets Twitch ouverts quand la chaîne passe en direct — pas une notification du système. Juste en dessous, « Sans planning » : pour une chaîne que vous regardez et qui n'a rien programmé, l'heure à laquelle ses derniers directs ont commencé, quand elle se répète — ce qu'elle a fait, pas ce qu'elle fera.\n• Une étiquette par carte, en bas à droite de la vignette, sur les cartes de l'extension comme sur celles de Twitch : un fait, un seul, le premier vrai de cette liste — « De retour après 41 jours », « Subathon • JOUR 9 », « Vient de commencer », « Vient de passer sur Elden Ring », « ↗ +38 % en 10 min », « N°3 en français », « Co-stream à 3 ». Rien de deviné : sans fait observé, pas d'étiquette.\n• « Pendant votre absence » : après vingt-quatre heures sans Twitch à l'écran, un bandeau en bas des rayons dit ce que vos chaînes suivies — celles que vous regardez — ont diffusé entre-temps : « 3 directs · 9h20 », le plus vu de leurs clips, et « Revoir le dernier » quand la rediffusion est ouverte. Fermé, il l'est dans tous les onglets.\n• Chaque rayon montre une rangée ; « Afficher tout », au milieu du filet du dessous, déroule le reste.\n• « Depuis le début » ouvre la rediffusion du direct en cours à sa première seconde. Il n'apparaît que si vous pouvez la voir : la chaîne garde ses rediffusions et les ouvre à tous, ou vous y êtes abonné.\n• L'aperçu au survol s'ouvre aussi sur les cartes de l'accueil : celles de l'extension comme celles de Twitch. Au survol, la vignette se soulève comme sur Twitch, dans la couleur de la chaîne.\n• « Ranger l'accueil de Twitch » : sur les rayons de Twitch eux-mêmes. « Masquer », juste à droite du titre d'un rayon de catégorie, le replie en une ligne — « Réafficher » le rend ; la catégorie reste masquée les jours suivants. Les cartes de directs y prennent la taille de celles de l'extension. Et un direct dont Twitch n'a pas encore d'image montre la dernière rediffusion de la chaîne, ou son avatar, à la place du « ? »."
+    "message": "Sur la page d'accueil de Twitch, l'extension pose ses rayons au-dessus de ceux de Twitch, dans la même colonne et alignés sur eux. Ils se règlent dans « Réglages », groupe « Page d'accueil ».\n• « Votre chaîne n°1 en direct » : celle de vos chaînes suivies en direct que vous regardez le plus — à défaut, celle qui a le plus de spectateurs — prend la place du carrousel de Twitch, sur toute la largeur. Son image d'abord, puis son direct, muet et sans publicité, comme l'aperçu au survol ; le fond en reprend les couleurs. Quand aucune de vos chaînes suivies n'est en direct, le carrousel revient. « Comme Twitch » le garde toujours ; « Rien » le retire et arrête sa vidéo.\n• « À la une » : les directs du carrousel de Twitch, en rayon, quand la bannière — ou « Rien » — le masque, sans la chaîne de la bannière. Leurs cartes passent par la demande que la barre fait déjà. En ruban : la carte du centre droite, ses voisines pivotées ; deux flèches le font défiler, et un clic sur une carte de côté l'amène au centre.\n• « Top 10 » : les dix premières places de Top Chaînes, dans la langue de l'interface de Twitch ou dans toutes les langues, en grands chiffres. Juste à droite du nom, une flèche dit les places gagnées ou perdues en trente minutes, ou depuis votre arrivée sur l'accueil ; « Nouveau » marque une chaîne qui n'était pas dans le Top 10. Les chaînes de « Chaînes écartées du Top 10 », dans « Réglages », n'y entrent pas, quelle que soit la langue — pour une chaîne qui porte le tag de la langue sans la parler. Top Chaînes n'en est pas touché.\n• « Parce que vous regardez souvent… » : pour la chaîne que vous avez le plus visitée en trente jours — trois visites au moins —, un rayon montre ce qui est en direct dans sa catégorie habituelle, dans la langue de Twitch, hors de vos chaînes suivies. Le titre dit pourquoi : « 14 visites en 30 jours · Just Chatting, en français ». Deux rayons au plus.\n• « Vos rendez-vous » : ce que vos chaînes suivies ont programmé aujourd'hui et demain, avec le temps qu'il reste. « Me prévenir » pose une alerte dans vos onglets Twitch ouverts quand la chaîne passe en direct — pas une notification du système. Juste en dessous, « Sans planning » : pour une chaîne que vous regardez et qui n'a rien programmé, l'heure à laquelle ses derniers directs ont commencé, quand elle se répète — ce qu'elle a fait, pas ce qu'elle fera. Ces chaînes se rangent de la plus proche à venir.\n• Une étiquette par carte, en bas à droite de la vignette, sur les cartes de l'extension comme sur celles de Twitch : un fait, un seul, le premier vrai de cette liste — « De retour après 41 jours », « Subathon • JOUR 9 », « Vient de commencer », « Va sur Elden Ring », « ↗ +38 % en 10 min », « N°3 en français », « Co-stream à 3 ». Rien de deviné : sans fait observé, pas d'étiquette.\n• « Pendant votre absence » : après vingt-quatre heures sans Twitch à l'écran, un bandeau en bas des rayons dit ce que vos chaînes suivies — celles que vous regardez — ont diffusé entre-temps : « 3 directs · 9h20 », le plus vu de leurs clips, et « Revoir le dernier » quand la rediffusion est ouverte. Fermé, il l'est dans tous les onglets.\n• Chaque rayon montre une rangée ; « Afficher tout », au milieu du filet du dessous, déroule le reste. « À la une », un ruban, ne se replie pas.\n• « Depuis le début » ouvre la rediffusion du direct en cours à sa première seconde. Il n'apparaît que si vous pouvez la voir : la chaîne garde ses rediffusions et les ouvre à tous, ou vous y êtes abonné.\n• L'aperçu au survol s'ouvre aussi sur les cartes de l'accueil : celles de l'extension comme celles de Twitch. Au survol, la vignette se soulève comme sur Twitch, dans la couleur de la chaîne.\n• « Ranger l'accueil de Twitch » : sur les rayons de Twitch eux-mêmes. « Masquer », juste à droite du titre d'un rayon de catégorie, le replie en une ligne — « Réafficher » le rend ; la catégorie reste masquée les jours suivants. Les cartes de directs y prennent la taille de celles de l'extension. Et un direct dont Twitch n'a pas encore d'image montre la dernière rediffusion de la chaîne, ou son avatar, à la place du « ? ». Les cartes de directs y prennent aussi les marques de celles de l'extension : le badge du direct à leur style, le nombre de spectateurs sans le mot, la durée du direct en haut à droite."
   },
   "guideViteTitre": {
     "message": "Plus rapide que Twitch, et plus propre"
@@ -764,13 +764,34 @@
     "message": "Top 10"
   },
   "optDescAccueilTop": {
-    "message": "Les dix premières places du classement exact de Top Chaînes, en grands chiffres. Une flèche dit ce qui a bougé en trente minutes, ou depuis votre arrivée sur l'accueil si c'est plus récent. Calculé seulement pendant que l'accueil est affiché. Une chaîne qui porte le tag de la langue sans la parler s'écarte d'un clic sur sa carte, ici et dans Top Chaînes ; elle se rétablit sous le Top 10."
+    "message": "Les dix premières places du classement exact de Top Chaînes, en grands chiffres. Une flèche dit ce qui a bougé en trente minutes, ou depuis votre arrivée sur l'accueil si c'est plus récent. Calculé seulement pendant que l'accueil est affiché."
   },
   "optAccueilTopLangue": {
     "message": "Langue du Top 10"
   },
   "optDescAccueilTopLangue": {
     "message": "« Celle de Twitch » suit la langue de l'interface de Twitch."
+  },
+  "optAccueilTopEcartees": {
+    "message": "Chaînes écartées du Top 10"
+  },
+  "optDescAccueilTopEcartees": {
+    "message": "Les pseudos de cette liste n'entrent pas dans le Top 10, quelle qu'en soit la langue — pour une chaîne qui porte le tag de la langue sans la parler. Top Chaînes, dans la barre, n'en est pas touché. Vingt au plus."
+  },
+  "optListeAjouter": {
+    "message": "Ajouter"
+  },
+  "optListeRetirer": {
+    "message": "Retirer $1"
+  },
+  "optListeRefus": {
+    "message": "Pas un pseudo Twitch : $1 — des lettres, des chiffres et _, comme dans l'adresse de la chaîne."
+  },
+  "optListeDeja": {
+    "message": "Déjà dans la liste : $1"
+  },
+  "optListePleine": {
+    "message": "$1 au plus : retirez-en une pour en ajouter une autre."
   },
   "optAccueilApercu": {
     "message": "Aperçu au survol sur l'accueil"
@@ -812,7 +833,7 @@
     "message": "Ranger l'accueil de Twitch"
   },
   "optDescAccueilRanger": {
-    "message": "Sur les rayons de Twitch eux-mêmes : « Masquer » à côté du titre d'un rayon de catégorie, des cartes de directs à la taille de celles de l'extension, et les vignettes « ? » remplacées par la dernière rediffusion ou l'avatar. Rien n'est retiré de la page, et aucune requête."
+    "message": "Sur les rayons de Twitch eux-mêmes : « Masquer » à côté du titre d'un rayon de catégorie, des cartes de directs à la taille de celles de l'extension, et les vignettes « ? » remplacées par la dernière rediffusion ou l'avatar. Ses cartes de directs prennent les marques de celles de l'extension — le badge du direct, le nombre de spectateurs seul, la durée en haut à droite —, leurs chiffres passant par la demande que la barre fait déjà, le temps qu'elles sont à l'écran. Rien n'est retiré de la page."
   },
   "optValHeros": {
     "message": "Votre chaîne n°1"
@@ -971,7 +992,7 @@
     "message": "Remettre tous les réglages par défaut ?"
   },
   "optResetText": {
-    "message": "Les trente-quatre réglages de cette page reviendront à leur valeur d'origine. Vos données — visites, abonnements, chaînes suivies — ne sont pas touchées."
+    "message": "Les trente-cinq réglages de cette page reviendront à leur valeur d'origine. Vos données — visites, abonnements, chaînes suivies — ne sont pas touchées."
   },
   "optValPlein": {
     "message": "Complet"

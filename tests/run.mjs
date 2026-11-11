@@ -6091,9 +6091,14 @@ titre('64. Localisation — italien, polonais, russe, japonais, chinois');
      « 29.339 ». Une valeur attendue prise dans le mauvais moteur fait échouer
      un test qui n'a rien à reprocher au code — c'est arrivé ici. Le japonais
      et le chinois comptent par myriades (2.9万), le polonais et le russe
-     écrivent leur abréviation en toutes lettres. */
+     écrivent leur abréviation en toutes lettres.
+     L'ITALIEN A DEUX FORMES, selon l'ICU du navigateur (4.32.0.4) : celle de
+     Chromium 153 a pris l'abréviation que Node avait déjà, « 29,3K » ; les
+     précédentes rendaient « 29.339 ». Les deux sont écrites ici à la main, et
+     aucune n'est celle de l'anglais (« 29.3K ») : une table branchée sur une
+     mauvaise locale échoue toujours. */
   for (const [htmlLang, libelle, nombre, nom] of [
-    ['it-IT', 'Canali seguiti',        '29.339',    'italien'],
+    ['it-IT', 'Canali seguiti',        ['29.339', '29,3K'], 'italien'],
     ['pl-PL', 'Obserwowane kanały',    '29,3 tys.', 'polonais'],
     ['ru-RU', 'Отслеживаемые каналы',  '29,3 тыс.', 'russe'],
     ['ja-JP', 'フォロー中のチャンネル',      '2.9万',      'japonais'],
@@ -6101,8 +6106,8 @@ titre('64. Localisation — italien, polonais, russe, japonais, chinois');
   ]) {
     const r = await rendusDe(htmlLang);
     ok(`${nom} : le libellé vient de la bonne table`, r.onglet === libelle, String(r.onglet));
-    ok(`${nom} : et sa clé locale formate les nombres du pays (${nombre})`,
-       r.nombre === nombre, r.nombre);
+    ok(`${nom} : et sa clé locale formate les nombres du pays (${[].concat(nombre).join(' ou ')})`,
+       [].concat(nombre).includes(r.nombre), r.nombre);
   }
 
   /* LE CHINOIS TRADITIONNEL N'EST PAS LE NÔTRE (4.25.0.8). Notre table est
@@ -16669,7 +16674,7 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
     return { n: Object.keys(defs).length, horsListe, jeuxNonVides,
              cle: localStorage.getItem('tse:options') };
   });
-  ok('la table porte ses trente-quatre réglages', table.n === 34, String(table.n));
+  ok('la table porte ses trente-cinq réglages', table.n === 35, String(table.n));
   /* CELUI-CI A UNE CIBLE PRÉCISE : trois défauts sont lus dans CFG plutôt que
      recopiés — apercuQualite, abosPeriode et topN. Changer une de ces trois
      constantes sans toucher à la liste des valeurs permises rendrait le
@@ -16699,21 +16704,22 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
      4.28.0 : « Une étiquette par carte » ; trente-deux depuis la 4.30.0 :
      « Pendant votre absence » ; trente-trois depuis la 4.31.0 : « Parce que
      vous regardez souvent… » ; trente-quatre depuis la 4.32.0 : « Ranger
-     l'accueil de Twitch ». En polonais et en russe, de deux à quatre, le
-     nominatif pluriel — et un verbe au pluriel, que les phrases ont suivi. */
-  const TRENTE_QUATRE = { de: 'vierunddreißig Einstellungen', en: 'thirty-four settings',
-                          es: 'treinta y cuatro ajustes', es_419: 'treinta y cuatro ajustes', fr: 'trente-quatre réglages',
-                          it: 'trentaquattro impostazioni', ja: '34 個の設定', pl: 'trzydzieści cztery ustawienia',
-                          pt_BR: 'trinta e quatro configurações', pt_PT: 'trinta e quatro definições',
-                          ru: 'тридцать четыре настройки', zh_CN: '三十四项设置' };
-  const muettes = Object.entries(TRENTE_QUATRE).flatMap(([loc, mot]) => [
+     l'accueil de Twitch » ; trente-cinq depuis la 4.32.0.4 : « Chaînes
+     écartées du Top 10 ». En polonais et en russe, à partir de cinq, le
+     génitif pluriel — et, en polonais, le verbe au singulier. */
+  const TRENTE_CINQ = { de: 'fünfunddreißig Einstellungen', en: 'thirty-five settings',
+                        es: 'treinta y cinco ajustes', es_419: 'treinta y cinco ajustes', fr: 'trente-cinq réglages',
+                        it: 'trentacinque impostazioni', ja: '35 個の設定', pl: 'trzydzieści pięć ustawień',
+                        pt_BR: 'trinta e cinco configurações', pt_PT: 'trinta e cinco definições',
+                        ru: 'тридцать пять настроек', zh_CN: '三十五项设置' };
+  const muettes = Object.entries(TRENTE_CINQ).flatMap(([loc, mot]) => [
     JSON.parse(readFileSync(join(ICI, '..', '_locales', loc, 'messages.json'), 'utf8'))
       .optResetText.message.includes(mot) ? null : `panneau ${loc}`,
     readFileSync(join(ICI, '..', 'store', `description-${loc.replace('_', '-')}.txt`), 'utf8')
       .includes(mot) ? null : `fiche ${loc}`,
   ]).filter(Boolean);
   ok('…et le panneau comme la fiche du Store en annoncent autant, dans les douze langues',
-     table.n === 34 && muettes.length === 0, muettes.join(', ') || String(table.n));
+     table.n === 35 && muettes.length === 0, muettes.join(', ') || String(table.n));
   /* CELLE-CI SE LIT SUR LE FICHIER SOURCE, et c'est le fond du sujet : la
      constante de production vaut six heures, mais tests/build.mjs la réécrit à
      quatre secondes pour que le relevé des abonnements soit éprouvable. La
@@ -17223,6 +17229,7 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
       accueilTop: { defaut: true, type: 'bool', sous: ['accueil'] },
       accueilTopLangue: { defaut: 'interface', type: 'choix', valeurs: ['interface', 'toutes'],
                           sous: ['accueil', 'accueilTop'] },
+      accueilTopEcartees: { defaut: [], type: 'liste', max: 20, sous: ['accueil', 'accueilTop'] },
       accueilApercu: { defaut: true, type: 'bool', sous: ['accueil', 'apercu'] },
       accueilDebut: { defaut: true, type: 'bool', sous: ['accueil'] },
       abonnes: { defaut: 'plein', type: 'choix', valeurs: ['plein', 'discret', 'aucun'] },
@@ -17320,7 +17327,7 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
              fantomes: peints.filter((id) => !table.includes(id)) };
   }, vue.peints);
 
-  ok('les trente-quatre réglages de la page ont chacun leur ligne',
+  ok('les réglages de la page ont chacun leur ligne',
      contrat.oublies.length === 0, contrat.oublies.join(', '));
   ok('…et aucune ligne fantôme : l\'ordre du panneau couvre exactement la table',
      contrat.fantomes.length === 0, contrat.fantomes.join(', '));
@@ -17345,7 +17352,7 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
      vue.voisine === 'stories' && vue.serie.join('|') === 'Comme Twitch|Intégrée|Masquée',
      JSON.stringify({ voisine: vue.voisine, menu: vue.serie }));
   ok('les cartouches disent le compte, et zéro modifié au départ',
-     vue.tuiles[0] === '29' && vue.tuiles[1] === '0', JSON.stringify(vue.tuiles));
+     vue.tuiles[0] === '30' && vue.tuiles[1] === '0', JSON.stringify(vue.tuiles));
 
   /* ── CE QUI PART VERS LA PAGE ───────────────────────────────────────── */
   await page.evaluate(() => document.querySelector(
@@ -17459,8 +17466,9 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
 
   /* UNE LIGNE QUI DÉPEND D'UN RÉGLAGE COUPÉ SE GRISE, ET DIT POURQUOI (4.26.0).
      Le panneau ne tient aucune liste : il lit `sous` dans la table de la page.
-     « Enrichir l'accueil » coupé grise ses sept réglages, et eux seuls ; « Top
-     10 » coupé, accueil rallumé, ne grise que la langue du Top. Mutants — la
+     « Enrichir l'accueil » coupé grise ses huit réglages, et eux seuls ; « Top
+     10 » coupé, accueil rallumé, ne grise que la langue du Top et ses chaînes
+     écartées (4.32.0.4). Mutants — la
      ligne grisée par le seul premier parent de `sous` (la langue du Top reste
      vive sous « Top 10 » coupé) ; le titre qui nomme l'identifiant au lieu du
      libellé (« accueil »). */
@@ -17470,9 +17478,9 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
   await attendre(page, () => document.querySelectorAll('#reglages .reg-ligne--sans-effet').length > 0, 4000);
   const g1 = await grises();
   const motif = 'Sans effet tant que « Enrichir l\'accueil de Twitch » est coupé';
-  ok('« Enrichir l\'accueil » coupé : ses sept réglages se grisent, et eux seuls, en disant pourquoi',
+  ok('« Enrichir l\'accueil » coupé : ses huit réglages se grisent, et eux seuls, en disant pourquoi',
      JSON.stringify(Object.keys(g1).sort()) === JSON.stringify(['accueilApercu', 'accueilDebut',
-       'accueilTete', 'accueilTop', 'accueilTopLangue', 'accueilUne', 'accueilVideo']) && Object.values(g1).every((t) => t === motif), JSON.stringify(g1));
+       'accueilTete', 'accueilTop', 'accueilTopEcartees', 'accueilTopLangue', 'accueilUne', 'accueilVideo']) && Object.values(g1).every((t) => t === motif), JSON.stringify(g1));
   const encore = await page.evaluate(() => {
     const l = document.querySelector('#reglages [data-reg="accueilUne"]');
     return { actif: !l.querySelector('input').disabled, opacite: getComputedStyle(l.querySelector('.reg-ctrl')).opacity };
@@ -17486,8 +17494,64 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
   await page.evaluate(() => document.querySelector('#reglages [data-reg="accueilTop"] input').click());
   await attendre(page, () => document.querySelectorAll('#reglages .reg-ligne--sans-effet').length > 0, 4000);
   const g2 = await grises();
-  ok('« Top 10 » coupé, accueil allumé : seule la langue du Top se grise',
-     JSON.stringify(g2) === JSON.stringify({ accueilTopLangue: 'Sans effet tant que « Top 10 » est coupé' }), JSON.stringify(g2));
+  ok('« Top 10 » coupé, accueil allumé : seules la langue du Top et ses chaînes écartées se grisent',
+     JSON.stringify(g2) === JSON.stringify({ accueilTopLangue: 'Sans effet tant que « Top 10 » est coupé',
+                                             accueilTopEcartees: 'Sans effet tant que « Top 10 » est coupé' }), JSON.stringify(g2));
+  await page.evaluate(() => document.querySelector('#reglages [data-reg="accueilTop"] input').click());
+  await attendre(page, () => document.querySelectorAll('#reglages .reg-ligne--sans-effet').length === 0, 4000);
+
+  /* LA LISTE DE PSEUDOS (4.32.0.4) : un champ, « Ajouter » ou Entrée, une
+     puce par pseudo et sa croix. On y tape un pseudo, « @pseudo » ou
+     l'adresse de la chaîne, plusieurs à la fois ; ce qui n'en est pas un est
+     dit, et rendu au champ ; un doublon est dit ; le focus reste au champ.
+     La page revoit tout (cf. 227 g) : ici, ce que le panneau lui envoie.
+     Mutants — l'adresse prise telle quelle ; le refus muet ; le doublon
+     renvoyé ; la croix qui retire tout. */
+  const liste = () => page.evaluate(() => {
+    const l = document.querySelector('#reglages [data-reg="accueilTopEcartees"]');
+    return { champ: l.querySelector('.reg-liste-champ')?.value, actif: !l.querySelector('.reg-liste-champ')?.disabled,
+             bouton: l.querySelector('.reg-liste-ajouter')?.textContent, puces: [...l.querySelectorAll('.reg-liste-nom')].map((x) => x.textContent),
+             croix: [...l.querySelectorAll('.reg-liste-retirer')].map((x) => x.getAttribute('aria-label')),
+             messages: [...l.querySelectorAll('.reg-liste-message')].map((x) => x.textContent),
+             modifie: l.classList.contains('reg-ligne--modifie'), focus: document.activeElement?.className,
+             nom: l.querySelector('.reg-nom')?.textContent, poses: window.__poses.filter((x) => x.id === 'accueilTopEcartees') };
+  });
+  const l0 = await liste();
+  ok('la liste des chaînes écartées : un champ, « Ajouter », aucune puce, la ligne non modifiée',
+     l0.champ === '' && l0.actif && l0.bouton === 'Ajouter' && l0.puces.length === 0 && !l0.modifie
+     && l0.nom === 'Chaînes écartées du Top 10', JSON.stringify(l0));
+  await page.fill('#reglages [data-reg="accueilTopEcartees"] .reg-liste-champ', '@Tavor, https://www.twitch.tv/Brune/videos zéphyr! tavor');
+  await page.press('#reglages [data-reg="accueilTopEcartees"] .reg-liste-champ', 'Enter');
+  await attendre(page, () => document.querySelectorAll('#reglages [data-reg="accueilTopEcartees"] .reg-liste-nom').length === 2, 4000);
+  const l1 = await liste();
+  ok('…Entrée : « @pseudo » et l\'adresse de la chaîne lus comme des pseudos, en minuscules ; le reste dit, et rendu au champ ; le focus au champ',
+     JSON.stringify(l1.poses.map((x) => x.valeur)) === '[["tavor","brune"]]' && JSON.stringify(l1.puces) === '["tavor","brune"]'
+     && l1.champ === 'zéphyr!' && l1.focus === 'reg-liste-champ' && l1.modifie
+     && JSON.stringify(l1.messages) === JSON.stringify(['Pas un pseudo Twitch : zéphyr! — des lettres, des chiffres et _, comme dans l\'adresse de la chaîne.',
+                                                        'Déjà dans la liste : tavor'])
+     && JSON.stringify(l1.croix) === '["Retirer tavor","Retirer brune"]', JSON.stringify(l1));
+  await page.fill('#reglages [data-reg="accueilTopEcartees"] .reg-liste-champ', 'brune');
+  await page.click('#reglages [data-reg="accueilTopEcartees"] .reg-liste-ajouter');
+  await attendre(page, () => document.querySelectorAll('#reglages [data-reg="accueilTopEcartees"] .reg-liste-message').length === 1, 4000);
+  const l2 = await liste();
+  ok('…« Ajouter » un pseudo déjà là : dit, rien d\'envoyé', l2.poses.length === 1
+     && JSON.stringify(l2.messages) === '["Déjà dans la liste : brune"]', JSON.stringify(l2));
+  await page.click('#reglages [data-reg="accueilTopEcartees"] .reg-liste-retirer');
+  await attendre(page, () => document.querySelectorAll('#reglages [data-reg="accueilTopEcartees"] .reg-liste-nom').length === 1, 4000);
+  const l3 = await liste();
+  ok('…sa croix retire une puce, et elle seule', JSON.stringify(l3.poses[l3.poses.length - 1].valeur) === '["brune"]'
+     && JSON.stringify(l3.puces) === '["brune"]', JSON.stringify(l3));
+  /* PLEINE : vingt — la borne que la page donne (`max`) — et le champ se
+     ferme, en le disant. Mutant — le champ ouvert à la borne. */
+  await page.evaluate(() => {
+    const v = Array.from({ length: 20 }, (_, i) => 'plein' + i);
+    window.chrome.runtime.sendMessage({ action: 'setOption', arg: { id: 'accueilTopEcartees', valeur: v } });
+  });
+  await page.evaluate(() => document.querySelector('.rail-item[data-id="options"]').click());
+  await attendre(page, () => document.querySelectorAll('#reglages [data-reg="accueilTopEcartees"] .reg-liste-nom').length === 20, 4000);
+  const l4 = await liste();
+  ok('…vingt au plus : le champ se ferme, et le dit', !l4.actif && JSON.stringify(l4.messages) === '["20 au plus : retirez-en une pour en ajouter une autre."]',
+     JSON.stringify({ actif: l4.actif, messages: l4.messages }));
   await page.close();
 }
 
@@ -37911,7 +37975,7 @@ addEventListener('message', (e) => {
    frais coûtaient 295 ms de travail par seconde. La 4.25.0.9 les fait
    passer au compositeur, qui n'anime seul que la transformation et
    l'opacité. Ce scénario fige les trois choses qui le garantissent :
-     a) dans la FEUILLE, aucune image-clé n'anime autre chose — hors trois
+     a) dans la FEUILLE, aucune image-clé n'anime autre chose — hors des
         exceptions NOMMÉES, chacune avec sa raison, et qui doivent rester ce
         qu'elles disent ;
      b) dans une PAGE où tout décore — dix abonnés dont deux frais, deux
@@ -37936,6 +38000,17 @@ addEventListener('message', (e) => {
     // Le badge de l'aperçu : le temps d'un survol, à côté d'une vidéo qui joue.
     'tse-subathon-badge': ['background-color', 'color'],
     'tse-subathon-badge-clair': ['background-color', 'color'],
+    // L'ordre des plans du ruban de l'accueil (4.32.0.4) : sans z-index, la
+    // voisine de droite couvre la carte du centre, et un z-index ne passe pas
+    // au compositeur — l'assombrissement, animé avec lui, reste avec lui. Sa
+    // ligne de temps est le défilement : ses valeurs ne changent que quand le
+    // ruban défile. La rotation, elle, est à part (tse-acc-ruban).
+    'tse-acc-ruban-plan': ['filter', 'z-index'],
+    // L'étiquette Subathon de l'accueil (4.32.0.4) : un pseudo-élément, qui ne
+    // porte pas les huit calques de la pastille de la barre ; une couleur
+    // animée se repeint, sur une pastille, le temps qu'un subathon est à
+    // l'écran.
+    'tse-acc-etiq-subathon': ['color'],
   };
   const images = {};
   for (const m of src.matchAll(/@keyframes\s+([\w-]+)\s*\{/g)) {
@@ -38234,21 +38309,43 @@ addEventListener('message', (e) => {
   await fini;
   await pt.close();
   if (chrome !== browser) await chrome.close();
+  /* LE VERDICT, ANIMATION PAR ANIMATION (revu en 4.32.0.4, sous Chromium
+     153). Deux choses ont changé dans la trace. Elle RECYCLE ses
+     identifiants : une transition finie — « border-top-color » sur le bouton
+     de tri, refusée à bon droit — rend le sien, qu'une de nos animations
+     reprend ensuite ; lu dans une table par identifiant, le refus de l'une
+     était imputé à l'autre, et la liste des « refusées » changeait d'un banc
+     à l'autre. On suit donc les INSTANCES, dans l'ordre du temps, de leur
+     début (b) à leur fin (e). Et elle ne dit plus « 0 » d'une animation prise :
+     elle ne signale que les refus. Une instance qui tourne sans refus est
+     prise ; un « 0 », sous les Chromium d'avant, aussi. Le témoin, qui doit
+     être refusé, prouve que la trace sait encore le dire. */
   const cle = (e) => e.id2?.local || e.id2?.global || e.id;
-  const noms = new Map(), verdicts = new Map();
-  for (const e of evts) {
-    if (e.name !== 'Animation') continue;
+  const instances = [], courantes = new Map();
+  for (const e of evts.filter((x) => x.name === 'Animation').sort((a, b) => (a.ts || 0) - (b.ts || 0))) {
     const d = e.args?.data || {};
-    if (e.ph === 'b') noms.set(cle(e), d.displayName || d.name || '');
-    if (e.ph === 'n' && d.compositeFailed !== undefined) verdicts.set(cle(e), d.compositeFailed);
+    const k = cle(e);
+    if (e.ph === 'b') {
+      const i = { nom: d.displayName || d.name || '', verdict: undefined, tourne: false };
+      instances.push(i);
+      courantes.set(k, i);
+      continue;
+    }
+    const i = courantes.get(k);
+    if (!i) continue;
+    if (e.ph === 'n') {
+      if (d.compositeFailed !== undefined) i.verdict = d.compositeFailed;
+      if (d.state === 'running') i.tourne = true;
+    }
+    if (e.ph === 'e') courantes.delete(k);
   }
   const bilan = { prises: 0, refusees: [], sansVerdict: 0, temoin: null };
-  for (const [id, nom] of noms) {
-    if (nom === 'tse-temoin') { bilan.temoin = verdicts.get(id) ?? null; continue; }
-    if (!nom.startsWith('tse-') || nom === 'tse-spin') continue;
-    if (!verdicts.has(id)) bilan.sansVerdict++;
-    else if (verdicts.get(id) === 0) bilan.prises++;
-    else bilan.refusees.push(nom);
+  for (const i of instances) {
+    if (i.nom === 'tse-temoin') { bilan.temoin = i.verdict ?? null; continue; }
+    if (!i.nom.startsWith('tse-') || i.nom === 'tse-spin') continue;
+    if (i.verdict === undefined && !i.tourne) bilan.sansVerdict++;
+    else if (!i.verdict) bilan.prises++;
+    else bilan.refusees.push(i.nom);
   }
   ok('c) la trace de Chromium refuse le témoin animé à l\'ancienne — elle sait donc le dire',
      typeof bilan.temoin === 'number' && bilan.temoin !== 0, JSON.stringify(bilan));
@@ -39893,34 +39990,31 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
                       h5: [h5.replie.cols, h5.replie.vues.length, h5.replie.coupees, h5.replie.chiffres, h5.deplie.lignes, h5.deplie.mord] }));
   await rang.close();
 
-  /* l) « À LA UNE », PAREIL : ses cinq directs, une rangée, le reste sous
-     « Afficher tout » quand la largeur n'en tient pas cinq. Entre deux
+  /* l) « À LA UNE » EN RUBAN (4.32.0.4, cf. 229) : ses cinq directs sur une
+     ligne qui défile, sans « Afficher tout » — rien ne se replie. Entre deux
      rayons, le seul pied du premier : aucun filet au-dessus d'un rayon
-     (4.26.0.3). Et un rayon qui tient en une rangée n'a pas de bouton : son
-     pied n'est qu'un filet. */
+     (4.26.0.3). Et un rayon sans bouton n'a pour pied qu'un filet. Mutant —
+     le rayon replié comme une grille. */
   const ray = await ouvrirAccueil({ visites: { korbek: [1] }, options: { accueilDebut: false } });
   await plateauAccueil(ray);
   await ray.setViewportSize({ width: 1200, height: 900 });
   await attendre(ray, () => document.querySelectorAll('#tse-accueil .tse-acc-rayon--une .tse-acc-carte').length === 5
     && document.querySelectorAll('#tse-accueil .tse-acc-place').length === 10, 10_000);
   await wait(ray, 400);
-  const lireUne = () => ray.evaluate(() => {
+  const u1 = await ray.evaluate(() => {
     const z = document.querySelector('#tse-accueil .tse-acc-rayon--une'), t = document.querySelector('#tse-accueil .tse-acc-rayon--top');
     const liste = z.querySelector('.tse-acc-liste');
-    const cols = getComputedStyle(liste).gridTemplateColumns.split(/\s+/).length;
+    const cartes = [...liste.children];
     const b = z.querySelector('.tse-acc-plus');
-    return { cols, vues: [...liste.children].filter((c) => !c.hidden).length,
+    return { ruban: liste.classList.contains('tse-acc-ruban'), affichage: getComputedStyle(liste).display,
+             vues: cartes.filter((c) => !c.hidden).length, lignes: new Set(cartes.map((c) => c.offsetTop)).size,
              bouton: b.hidden ? null : b.textContent,
              premiers: [z.firstElementChild?.localName, t.firstElementChild?.localName],
              filets: [...document.querySelectorAll('#tse-accueil hr')].filter((x) => x.getClientRects().length).length };
   });
-  const u1 = await lireUne();
-  ok('cinq directs à la une, moins de colonnes : une rangée, « Afficher tout » pour le reste ; entre les deux rayons, le seul pied du premier',
-     u1.cols >= 2 && u1.cols < 5 && u1.vues === u1.cols && u1.bouton === 'Afficher tout'
+  ok('l) cinq directs à la une, en ruban : une seule ligne, les cinq, pas d\'« Afficher tout » ; entre les deux rayons, le seul pied du premier',
+     u1.ruban && u1.affichage === 'flex' && u1.vues === 5 && u1.lignes === 1 && u1.bouton === null
      && JSON.stringify(u1.premiers) === '["h2","h2"]' && u1.filets === 4, JSON.stringify(u1));
-  await ray.evaluate(() => document.querySelector('#tse-accueil .tse-acc-rayon--une .tse-acc-plus').click());
-  const u2 = await lireUne();
-  ok('…dépliés : les cinq', u2.vues === 5 && u2.bouton === 'Afficher moins', JSON.stringify(u2));
   await ray.close();
   const peu = await ouvrirAccueil({ visites: { korbek: [1] }, decor: { carrouselChaines: ['solvane', 'orvik', 'tessaly'] },
                                     options: { accueilDebut: false, accueilTop: false } });
@@ -40504,14 +40598,21 @@ const lireImages = (page) => page.evaluate(() => {
      des suivies en direct, et l'amorce les demande donc — le voile ne se
      lève qu'une fois la bannière peinte, pas sur le carrousel de Twitch
      qu'elle remplacerait sous vos yeux. Mutant — l'amorce qui ne demande que
-     les chaînes visitées. */
-  const e2 = await ouvrirDemblee({ visites: null });
+     les chaînes visitées.
+     L'ACCUEIL DE TWITCH D'ABORD, LES DONNÉES ENSUITE (4.32.0.4) : sans
+     retard, la réponse et le décor (200 ms) se croisaient à quelques
+     millisecondes près ; quand la réponse gagnait, le voile se levait sur un
+     défileur qui n'existait pas encore — le cas a), juste lui aussi —, et
+     l'assertion tombait. Quatre cents millisecondes : le défileur est là
+     bien avant, la borne du voile (1,5 s) bien après. */
+  const e2 = await ouvrirDemblee({ visites: null, retard: { TseChannels: 400 } });
   await attendre(e2, () => window.tse.accueil.rapport().chrono.voile !== null && window.tse.accueil.rapport().heros.montre, 8000);
   const re2 = await e2.evaluate(() => { const r = window.tse.accueil.rapport();
     return { amorce: r.amorce, chrono: r.chrono, levees: r.voile.levees, heros: r.heros.montre, sansVisite: r.heros.sansVisite,
              cle: document.querySelector('#tse-accueil-heros .tse-acc-heros:not([hidden])')?.dataset.tseCle ?? null }; });
   ok('e\') sans visite : l\'amorce demande les suivies, et la bannière — la première d\'entre elles — est peinte quand le voile se lève',
      re2.amorce.demandees > 0 && re2.levees.donnees === 1 && re2.heros && re2.sansVisite && re2.cle === 'nyxaria'
+     && re2.chrono.defileur !== null && re2.chrono.defileur < re2.chrono.voile
      && re2.chrono.heros !== null && re2.chrono.heros <= re2.chrono.voile, JSON.stringify(re2));
   await e2.close();
   const f = await ouvrirDemblee({ options: { accueil: false } });
@@ -40533,7 +40634,16 @@ const lireImages = (page) => page.evaluate(() => {
    l'autre. */
 {
   titre('221. Vos rendez-vous — aujourd\'hui et demain, l\'heure des derniers directs, et l\'alerte dans les onglets ouverts');
-  const ctxRdv = await browser.newContext({ viewport: { width: 1600, height: 1000 } });
+  /* MIDI, OÙ QUE TOURNE LE BANC (4.32.0.4). L'ordre de « Sans planning »
+     dépend de l'heure qu'il est : vers 22 h, toutes les habitudes du décor
+     (18:00, 20:00, 21:00, 00:00) sont passées, et l'ordre juste coïncide
+     avec celui des heures du jour — le mutant « minuit oublié » survivait
+     les soirs. Le fuseau de l'onglet met l'heure locale vers midi : 00:00
+     passée, les trois autres à venir. Le décor et les oracles lisent tous
+     l'heure de la page, rien d'autre ne bouge. */
+  const decalage = 12 - new Date().getUTCHours();
+  const fuseauMidi = decalage === 0 ? 'Etc/UTC' : decalage > 0 ? `Etc/GMT-${decalage}` : `Etc/GMT+${-decalage}`;
+  const ctxRdv = await browser.newContext({ viewport: { width: 1600, height: 1000 }, timezoneId: fuseauMidi });
   await ctxRdv.addInitScript((rayons) => {
     const n = Date.now(), h = 3600e3;
     try {
@@ -40665,11 +40775,24 @@ const lireImages = (page) => page.evaluate(() => {
      && ra.rdv[1].titre === 'Soirée quiz' && ra.rdv[1].jeu === 'Discussions' && ra.rdv[2].jeu === 'Trackmania'
      && ra.rdv.every((c) => c.rappel && c.rappel.presse === 'false' && c.rappel.texte === 'Me prévenir'),
      JSON.stringify(ra.rdv));
-  // L'ordre des chaînes sans planning : celui des visites, le même que le héros.
-  const scores = await pa.evaluate(() => window.tse.panneau('scores').lignes.map((s) => s.login));
-  const ordreHab = scores.filter((l) => ['ombre', 'givre', 'lune', 'pluie'].includes(l));
-  ok('b) sans planning, à part : l\'heure où leurs derniers directs ont commencé, dite au passé — minuit compris, un direct coupé compté une fois —, et rien pour des débuts épars ni pour une chaîne jamais regardée',
-     JSON.stringify((ra.hab || []).map((c) => c.cle)) === JSON.stringify(ordreHab)
+  /* L'ORDRE DES CHAÎNES SANS PLANNING (4.32.0.4) : celui de leur heure à
+     venir — « du plus proche dans le futur ». Calculé ici sur les instants,
+     pas sur des minutes du jour : la prochaine fois de « vers 20:00 » est
+     aujourd'hui à 20:00 si la minute n'est pas passée, demain sinon. Midi à
+     l'onglet (cf. son contexte) : 00:00 vient en dernier. Mutants — l'ordre
+     des visites gardé ; minuit oublié (00:00 rangé avant tout). */
+  const ordreHab = await pa.evaluate(() => {
+    const vers = { ombre: [20, 0], givre: [21, 0], lune: [0, 0], pluie: [18, 0] };
+    const now = Date.now();
+    const prochaine = ([h, m]) => {
+      const d = new Date(now); d.setHours(h, m, 0, 0);
+      if (d.getTime() + 60_000 <= now) d.setDate(d.getDate() + 1);
+      return d.getTime();
+    };
+    return Object.keys(vers).sort((a, b) => prochaine(vers[a]) - prochaine(vers[b]));
+  });
+  ok('b) sans planning, à part : l\'heure où leurs derniers directs ont commencé, dite au passé — minuit compris, un direct coupé compté une fois —, et rien pour des débuts épars ni pour une chaîne jamais regardée ; dans l\'ordre de leur heure à venir',
+     JSON.stringify((ra.hab || []).map((c) => c.cle)) === JSON.stringify(ordreHab) && ordreHab.at(-1) === 'lune'
      && ra.hab.find((c) => c.cle === 'ombre').habitude === 'Ses 6 derniers directs ont commencé vers 20:00'
      && ra.hab.find((c) => c.cle === 'givre').habitude === '4 de ses 6 derniers directs ont commencé vers 21:00'
      && ra.hab.find((c) => c.cle === 'lune').habitude === 'Ses 5 derniers directs ont commencé vers 00:00'
@@ -40989,25 +41112,61 @@ const lireImages = (page) => page.evaluate(() => {
   const couleurs = await pe.evaluate(() => {
     const st = (el) => {
       const c = getComputedStyle(el, '::after');
-      return { c: c.color, bord: c.borderTopColor, rond: c.borderTopLeftRadius, point: /radial-gradient/.test(c.backgroundImage) };
+      return { c: c.color, bord: c.borderTopColor, rond: c.borderTopLeftRadius, point: /radial-gradient/.test(c.backgroundImage),
+               anim: c.animationName, duree: c.animationDuration };
     };
     const nous = (l) => st(document.querySelector(`#tse-accueil .tse-acc-rayon--une [data-tse-cle="${l}"] .tse-acc-vignette`));
     const eux = (l) => st(document.querySelector(`main a[data-a-target="preview-card-image-link"][href="/${l}"]`));
     return { aurore: nous('aurore'), brisa: nous('brisa'), cendre: nous('cendre'), houle: nous('houle'), xray: eux('xray'), aeltris: eux('aeltris') };
   });
-  const teinte = (x, rgb) => x.c === rgb && x.bord === rgb && x.rond === '999px' && x.point;
-  ok('a\') chaque sorte de fait a sa couleur, celle de la maquette — le retour en vert, le subathon en or pâle, le début en rouge, le co-stream en bleu, la place en or',
-     teinte(couleurs.aurore, 'rgb(107, 219, 157)') && teinte(couleurs.brisa, 'rgb(255, 227, 143)')
-     && teinte(couleurs.cendre, 'rgb(255, 107, 98)') && teinte(couleurs.houle, 'rgb(143, 199, 255)')
-     && teinte(couleurs.xray, 'rgb(255, 107, 98)') && teinte(couleurs.aeltris, 'rgb(255, 214, 138)'),
+  const teinte = (x, rgb) => x.c === rgb && x.bord === rgb && x.rond === '999px' && x.point && x.anim === 'none';
+  ok('a\') chaque sorte de fait a sa couleur, celle de la maquette — le retour en vert, le début en rouge, le co-stream en bleu, la place en or',
+     teinte(couleurs.aurore, 'rgb(107, 219, 157)') && teinte(couleurs.cendre, 'rgb(255, 107, 98)')
+     && teinte(couleurs.houle, 'rgb(143, 199, 255)') && teinte(couleurs.xray, 'rgb(255, 107, 98)')
+     && teinte(couleurs.aeltris, 'rgb(255, 214, 138)'),
      JSON.stringify(couleurs));
+  /* a'') LE SUBATHON CLIGNOTE COMME AILLEURS (4.32.0.4) : les huit teintes de
+     la pastille de la barre, au tour d'une seconde et demie ; le bord et le
+     point suivent le texte. Deux relevés à un quart de tour d'écart ne
+     donnent pas la même couleur, et chacune est sur le chemin des huit
+     teintes. Mutants — l'étiquette fixe ; le bord qui ne suit pas.
+     « Sur le chemin » : la position se lit sur la composante qui change le
+     plus, et chaque composante doit s'y retrouver à l'arrondi près. Lue sur
+     chacune, elle ne vaut rien quand l'une ne bouge que de deux unités
+     (#8fffb4 → #8ffdff) : rgb(143, 255, 188) y était refusé au banc
+     complet. */
+  const TEINTES = [[255, 143, 143], [255, 227, 143], [199, 255, 143], [143, 255, 180], [143, 253, 255], [143, 171, 255], [199, 143, 255], [255, 143, 227]];
+  const surLeChemin = (rgb) => {
+    const v = (rgb.match(/\d+/g) || []).map(Number);
+    return v.length === 3 && TEINTES.some((a, i) => {
+      const b = TEINTES[(i + 1) % 8];
+      const k = [0, 1, 2].reduce((m, j) => (Math.abs(b[j] - a[j]) > Math.abs(b[m] - a[m]) ? j : m), 0);
+      const t = (v[k] - a[k]) / (b[k] - a[k]);
+      return t >= -0.01 && t <= 1.01 && [0, 1, 2].every((j) => Math.abs(a[j] + t * (b[j] - a[j]) - v[j]) <= 1.5);
+    });
+  };
+  const brisa2 = await pe.evaluate(async () => {
+    const el = document.querySelector('#tse-accueil .tse-acc-rayon--une [data-tse-cle="brisa"] .tse-acc-vignette');
+    const lu = () => { const c = getComputedStyle(el, '::after'); return { c: c.color, bord: c.borderTopColor }; };
+    const a = lu();
+    await new Promise((r) => setTimeout(r, 375));
+    return [a, lu()];
+  });
+  ok('a\'\') le subathon clignote comme ailleurs : les huit teintes de la pastille, un tour d\'une seconde et demie, le bord et le point avec le texte',
+     couleurs.brisa.anim === 'tse-acc-etiq-subathon' && couleurs.brisa.duree === '1.5s' && couleurs.brisa.point
+     && brisa2[0].c !== brisa2[1].c && brisa2.every((x) => x.bord === x.c && surLeChemin(x.c)),
+     JSON.stringify({ brisa: couleurs.brisa, brisa2 }));
 
   // b) Le basculement, vu entre deux relevés du même direct.
   await pe.evaluate(() => { window.__fx.dune = { ...window.__fx.dune, game: 'Elden Ring' }; });
   await attendre(pe, () => !!document.querySelector('#tse-accueil [data-tse-cle="dune"] .tse-acc-vignette[data-tse-etiquette]'), 10_000);
   const e2 = await lireEtiq(pe);
-  ok('b) « Vient de passer sur Elden Ring », vu entre deux relevés du même direct',
-     e2.nos.dune === 'Vient de passer sur Elden Ring', JSON.stringify(e2.nos.dune));
+  /* « VA SUR », PAS « VIENT DE PASSER SUR » (4.32.0.4) : la pastille tient
+     dans une demi-vignette, et l'ancienne ne laissait au jeu que sa
+     première lettre — « dis plutôt "Va sur VALORANT" ». Le badge de
+     l'aperçu, lui, garde sa phrase. Mutant — l'ancien texte. */
+  ok('b) « Va sur Elden Ring », vu entre deux relevés du même direct',
+     e2.nos.dune === 'Va sur Elden Ring', JSON.stringify(e2.nos.dune));
 
   /* c) LA HAUSSE : deux relevés du même direct, quatre secondes d'écart au
      banc (dix minutes en vrai). Le décor tient depuis plus que cela : les
@@ -41032,9 +41191,13 @@ const lireImages = (page) => page.evaluate(() => {
      e4.twitch.xray.texte === 'Vient de commencer' && e4.twitch.aeltris.texte === 'N°3 en français' && e4.twitch.brenvik.texte === null
      && e4.top.aeltris === null,
      JSON.stringify({ twitch: e4.twitch, top: e4.top.aeltris }));
-  ok('…en bas à droite de la vignette — et en haut quand une autre extension tient déjà le coin du bas',
+  /* Quand une autre extension tient le coin du bas, l'étiquette monte — sous
+     la durée que « Ranger l'accueil de Twitch » écrit en haut à droite
+     (4.32.0.4, cf. 230) : 8 + 18 + 6 pixels. Mutant — l'étiquette posée sur
+     la durée. */
+  ok('…en bas à droite de la vignette — et en haut, sous notre durée, quand une autre extension tient déjà le coin du bas',
      e4.twitch.xray.contenu === '"Vient de commencer"' && e4.twitch.xray.bas === '8px' && e4.twitch.xray.montre
-     && e4.twitch.quebec.coin === 'haut' && e4.twitch.quebec.haut === '8px' && e4.twitch.quebec.montre,
+     && e4.twitch.quebec.coin === 'haut' && e4.twitch.quebec.haut === '32px' && e4.twitch.quebec.montre,
      JSON.stringify({ xray: e4.twitch.xray, quebec: e4.twitch.quebec }));
   const cout = { xray: await demandes(pe, 'xray'), aeltris: await demandes(pe, 'aeltris'), zulu: await demandes(pe, 'zulu') };
   ok('…et ce qu\'elles coûtent : les chaînes des cartes à l\'écran entrent dans le lot de TseChannels ; zulu, jamais à l\'écran, n\'est pas demandée',
@@ -41066,18 +41229,30 @@ const lireImages = (page) => page.evaluate(() => {
   ok('e) en quittant l\'accueil, plus une étiquette, ni sur nos cartes ni sur celles de Twitch', restes === 0, String(restes));
   await pe.close();
 
-  // f) Le réglage coupé : aucune étiquette, et les cartes de Twitch ne coûtent rien.
-  const pf = await ouvrirAccueil({ decor: { rayons: RAYONS, carrouselChaines: UNE }, options: { accueilEtiquettes: false }, visites: { nyx: [1, 2, 3] } });
-  await plateauAccueil(pf, { suivies: SUIV, top: TOP });
-  await decorEtiq(pf);
-  await attendre(pf, () => !!document.querySelector('#tse-accueil .tse-acc-rayon--une [data-tse-cle="cendre"]'), 10_000);
-  await pf.evaluate(() => document.querySelector('a[data-a-target="preview-card-image-link"][href="/xray"]').scrollIntoView({ block: 'center' }));
-  await wait(pf, 2_000);
+  /* f) LE RÉGLAGE COUPÉ : aucune étiquette. Les cartes de Twitch coûtent
+     encore tant que « Ranger l'accueil de Twitch » écrit leur durée et leur
+     compteur (4.32.0.4, cf. 230) ; les deux coupés, rien. Mutants — une
+     étiquette posée réglage coupé ; une demande sans l'un ni l'autre. */
+  const ouvrirF = async (options) => {
+    const p = await ouvrirAccueil({ decor: { rayons: RAYONS, carrouselChaines: UNE }, options, visites: { nyx: [1, 2, 3] } });
+    await plateauAccueil(p, { suivies: SUIV, top: TOP });
+    await decorEtiq(p);
+    await attendre(p, () => !!document.querySelector('#tse-accueil .tse-acc-rayon--une [data-tse-cle="cendre"]'), 10_000);
+    await p.evaluate(() => document.querySelector('a[data-a-target="preview-card-image-link"][href="/xray"]').scrollIntoView({ block: 'center' }));
+    await wait(p, 2_000);
+    return p;
+  };
+  const pf = await ouvrirF({ accueilEtiquettes: false });
+  await attendre(pf, () => !!document.querySelector('a[data-a-target="preview-card-image-link"][href="/xray"][data-tse-duree]'), 8_000);
   const vf = await pf.evaluate(() => document.querySelectorAll('[data-tse-etiquette]').length);
   const coutF = await demandes(pf, 'xray');
-  ok('f) « Une étiquette par carte » coupé : aucune étiquette, et aucune chaîne des rayons de Twitch demandée',
-     vf === 0 && coutF === 0, JSON.stringify({ vf, coutF }));
   await pf.close();
+  const pg = await ouvrirF({ accueilEtiquettes: false, accueilRanger: false });
+  const vg = await pg.evaluate(() => document.querySelectorAll('[data-tse-etiquette], [data-tse-duree], [data-tse-spect]').length);
+  const coutG = await demandes(pg, 'xray');
+  await pg.close();
+  ok('f) « Une étiquette par carte » coupé : aucune étiquette ; la carte de Twitch est encore lue pour sa durée, et plus du tout sans « Ranger l\'accueil de Twitch »',
+     vf === 0 && coutF > 0 && vg === 0 && coutG === 0, JSON.stringify({ vf, coutF, vg, coutG }));
 }
 
 {
@@ -41556,9 +41731,22 @@ const lireImages = (page) => page.evaluate(() => {
       grille: getComputedStyle(tour).display, colonnes: getComputedStyle(tour).gridTemplateColumns.split(/\s+/).filter((x) => /px$/.test(x)).length,
       // La grille de nos rayons, à comparer (4.32.0.2) : ses colonnes, la largeur de l'une, ses écarts.
       piste: parseFloat(getComputedStyle(tour).gridTemplateColumns), ecarts: getComputedStyle(tour).gap,
-      nous: (() => { const l = document.querySelector('#tse-accueil .tse-acc-rayon--une .tse-acc-liste'); const st = l && getComputedStyle(l);
-        return st ? { colonnes: st.gridTemplateColumns.split(/\s+/).filter((x) => /px$/.test(x)).length,
-                      piste: parseFloat(st.gridTemplateColumns), ecarts: st.gap } : null; })(),
+      /* La grille d'un rayon à nous : « À la une » est un ruban depuis la
+         4.32.0.4, et les autres rayons ne sont pas tous là — une liste
+         témoin, posée dans notre section le temps de la lire. */
+      nous: (() => {
+        const sec = document.querySelector('#tse-accueil');
+        if (!sec) return null;
+        const l = document.createElement('div');
+        l.className = 'tse-acc-liste';
+        for (let i = 0; i < 8; i++) l.append(document.createElement('div'));
+        sec.append(l);
+        const st = getComputedStyle(l);
+        const r = { colonnes: st.gridTemplateColumns.split(/\s+/).filter((x) => /px$/.test(x)).length,
+                    piste: parseFloat(st.gridTemplateColumns), ecarts: st.gap };
+        l.remove();
+        return r;
+      })(),
       jaquettes: getComputedStyle(document.querySelector('[aria-labelledby="e-jaq"] .tw-tower')).display,
       // Les nœuds de TWITCH : nos rayons et la bannière, qui vivent dans <main>, ne comptent pas.
       cartes: corps.querySelectorAll('article').length,
@@ -41655,122 +41843,179 @@ const lireImages = (page) => page.evaluate(() => {
 }
 
 {
-  titre('227. Écarter une chaîne d\'un classement — « elle porte le tag Français, ses streams sont anglophones » ; de cette langue seule, partout où il se montre, rétablie d\'un clic');
-  /* LE SIGNALEMENT : une chaîne souvent dans le Top 10 français, qui porte le
-     tag Français et streame en anglais. Rien ne le dit sans deviner — la
-     langue de ses réglages est celle de son tag, un titre en anglais ne dit
-     pas qu'on ne parle pas français. C'est donc vous qui le dites, d'un clic
-     sur sa carte (cf. `ecartees`). Tavor, quatrième, en fait office. */
-  const page = await ouvrirAccueil({ visites: { korbek: [1] }, options: { accueilDebut: false, accueilUne: false } });
+  titre('227. Les chaînes écartées du Top 10 — une liste de pseudos dans les Réglages, toutes langues, la dixième place prouvée, d\'un onglet à l\'autre');
+  /* « POUR LE "ÉCARTER", RETIRE-LE ; METS-LE DANS LES OPTIONS, ON MET LE
+     PSEUDO DU STREAMER. SI PLUSIEURS, IL EST AJOUTÉ À LA LISTE. ET LES PSEUDOS
+     DE CETTE LISTE SONT ÉCARTÉS DU TOP 10. » (4.32.0.4) — le bouton de la
+     4.32.0.3 s'en va, la liste est un réglage, `accueilTopEcartees`. Tavor et
+     Brune, quatrième et sixième, en font office. */
+  const PLACES = (sans) => TOP_ACCUEIL.filter((l) => !sans.includes(l)).slice(0, 10);
+  /* SANS RÉGLAGES POSÉS PAR L'AMORCE : elle les réécrit dans chaque document
+     de l'origine — un cadre de twitch.tv chargé plus tard aussi —, et c'est
+     un « storage » pour la page : la liste migrée y était effacée par le
+     banc lui-même. Les deux réglages du décor se posent donc à la main. */
+  const page = await ouvrirAccueil({ visites: { korbek: [1] } });
+  /* a) CE QUE LA 4.32.0.3 AVAIT ÉCARTÉ LE RESTE : sa liste par langue passe au
+     réglage, une fois, toutes langues réunies — un login mal formé ignoré —,
+     et sa clé s'en va. Mutant — la migration oubliée. */
+  await page.evaluate(() => localStorage.setItem('tse:ecartees', JSON.stringify({ Français: ['tavor', 'Zéphyr!'], Deutsch: ['Brune'] })));
+  await page.reload();
+  await page.evaluate(() => { window.tse.options.poser('accueilDebut', false); window.tse.options.poser('accueilUne', false); });
   await plateauAccueil(page);
   await attendre(page, () => document.querySelectorAll('#tse-accueil .tse-acc-place:not(.tse-acc-place--attente)').length === 10, 10_000);
   const lire = () => page.evaluate(() => {
     const z = document.querySelector('#tse-accueil .tse-acc-rayon--top');
-    const b = z.querySelector('.tse-acc-place[data-tse-cle="tavor"] .tse-acc-ecarter');
-    const l = z.querySelector('.tse-acc-ecartees');
+    const r = window.tse.accueil.rapport().top;
     return { places: [...z.querySelectorAll('.tse-acc-place')].map((p) => p.dataset.tseCle),
-             bouton: b && { cache: b.hidden, titre: b.title, aria: b.getAttribute('aria-label'), opacite: getComputedStyle(b).opacity,
-                            dansInfos: b.parentElement.classList.contains('tse-acc-infos') },
-             ligne: l.hidden ? null : { texte: l.textContent, retablir: [...l.querySelectorAll('.tse-acc-retablir')].map((x) => x.title) },
-             garde: localStorage.getItem('tse:ecartees'), rapport: window.tse.accueil.rapport().ecartees };
+             liste: window.tse.options().accueilTopEcartees, ancienne: localStorage.getItem('tse:ecartees'),
+             boutons: z.querySelectorAll('button:not(.tse-acc-plus)').length, ligne: !!z.querySelector('.tse-acc-ecartees'),
+             note: z.querySelector('.tse-acc-note').hidden ? null : z.querySelector('.tse-acc-note').textContent,
+             evol: [...z.querySelectorAll('.tse-acc-evol')].filter((e) => !e.hidden).map((e) => e.className.split('--')[1]),
+             rapport: { ecartees: r.ecartees, retirees: r.retirees, source: r.source, prouve: r.classement.prouve } };
   });
   const a1 = await lire();
-  /* a) LE BOUTON : sur chaque place d'un Top 10 tenu dans une langue, dans la
-     ligne de l'avatar, invisible tant qu'on ne survole pas la place. Mutant —
-     le bouton toujours visible. */
-  await page.hover('#tse-accueil .tse-acc-place[data-tse-cle="tavor"] .tse-acc-nom');
-  await wait(page, 300);
-  const a2 = await lire();
-  ok('a) « Écarter » : sur la place, dans la ligne de l\'avatar, caché au repos, visible au survol, et il dit ce qu\'il fait',
-     a1.bouton && !a1.bouton.cache && a1.bouton.opacite === '0' && a1.bouton.dansInfos && a2.bouton.opacite === '1'
-     && a1.bouton.titre === 'Écarter Tavor de ce classement' && a1.bouton.aria === a1.bouton.titre && a1.ligne === null,
-     JSON.stringify({ a1: a1.bouton, a2: a2.bouton, ligne: a1.ligne }));
-  /* b) LE CLIC : Tavor quitte le Top 10 aussitôt — le onzième entre, il y a
-     toujours dix places —, sous lui une ligne dit ce qui est écarté, et
-     l'appareil le retient, sous la langue. Mutants — le filtre posé après
-     les places (neuf places) ; la langue oubliée au stockage. */
-  await page.click('#tse-accueil .tse-acc-place[data-tse-cle="tavor"] .tse-acc-ecarter');
-  await attendre(page, () => !document.querySelector('#tse-accueil .tse-acc-place[data-tse-cle="tavor"]'), 4000);
-  const b1 = await lire();
-  ok('b) un clic : la chaîne quitte le Top 10, le onzième entre — toujours dix places, dans l\'ordre',
-     JSON.stringify(b1.places) === JSON.stringify(TOP_ACCUEIL.filter((l) => l !== 'tavor').slice(0, 10)), JSON.stringify(b1.places));
-  ok('…sous le Top 10, « Écartées de ce classement : Tavor », et son « Rétablir »',
-     b1.ligne && b1.ligne.texte === 'Écartées de ce classement :TavorRétablir'
-     && JSON.stringify(b1.ligne.retablir) === '["Remettre Tavor dans ce classement"]', JSON.stringify(b1.ligne));
-  ok('…retenue sur l\'appareil, sous sa langue ; le rapport compte, sans nommer personne',
-     b1.garde === '{"Français":["tavor"]}' && b1.rapport.clics === 1 && b1.rapport.chaines === 1 && b1.rapport.langues === 1
-     && b1.rapport.montrees === 1 && !JSON.stringify(b1.rapport).includes('tavor'), JSON.stringify({ garde: b1.garde, r: b1.rapport }));
-  /* c) DE CETTE LANGUE SEULE : dans le classement de toutes les langues, elle
-     est à sa place, qui est juste — et l'on n'y écarte personne. Mutant —
-     l'exclusion pour toutes les langues. */
-  // Le classement mondial se descend par catégories (cf. 217 j) : la seule, ici, porte les douze.
+  ok('a) la liste de la 4.32.0.3 passe au réglage, une fois, toutes langues réunies ; un login mal formé ignoré ; l\'ancienne clé s\'en va',
+     JSON.stringify(a1.liste) === '["tavor","brune"]' && a1.ancienne === null, JSON.stringify(a1));
+  /* b) ÉCARTÉES DU TOP 10, AVANT LES PLACES : dix places, la onzième et la
+     douzième montent ; plus de bouton sur les places, plus de ligne sous le
+     Top 10. Le rapport compte, sans nommer. Mutants — le filtre posé après
+     les places (huit places) ; le bouton gardé. */
+  ok('b) écartées du Top 10 : toujours dix places, les suivantes montent ; ni bouton sur les places, ni ligne dessous ; le rapport compte sans nommer',
+     JSON.stringify(a1.places) === JSON.stringify(PLACES(['tavor', 'brune'])) && a1.boutons === 0 && !a1.ligne
+     && a1.rapport.ecartees === 2 && a1.rapport.retirees === 2 && !JSON.stringify(a1.rapport).includes('tavor'),
+     JSON.stringify(a1));
+  /* c) LA DIXIÈME PLACE EST PROUVÉE comme les autres : le classement en
+     demande deux de plus, et sa preuve les couvre — le Top 10 ne se dit pas
+     partiel. En toutes langues aussi : la liste n'a pas de langue. Mutants —
+     le classement qui n'en demande que dix (« partiel ») ; la liste tenue
+     pour la seule langue de Twitch. */
+  ok('c) la dixième place prouvée : la preuve couvre douze chaînes au moins, et le Top 10 ne se dit pas partiel',
+     a1.rapport.prouve >= 12 && a1.note === null && a1.rapport.source === 'accueil', JSON.stringify(a1.rapport));
   await page.evaluate((t) => {
     window.__cats = [{ name: 'Just Chatting', viewers: 900000, streams: t.map((l, i) => ({ login: l, viewers: 40000 - i * 3000 })) }];
     window.tse.options.poser('accueilTopLangue', 'toutes');
   }, TOP_ACCUEIL);
-  await attendre(page, () => !!document.querySelector('#tse-accueil .tse-acc-place[data-tse-cle="tavor"]'), 12_000);
+  await attendre(page, () => window.tse.accueil.rapport().top.langue === 'toutes'
+    && document.querySelectorAll('#tse-accueil .tse-acc-place:not(.tse-acc-place--attente)').length === 10
+    && window.tse.accueil.rapport().top.classement.prouve >= 12
+    && document.querySelector('#tse-accueil .tse-acc-rayon--top .tse-acc-note').hidden, 12_000);
   const c1 = await lire();
-  ok('c) dans toutes les langues, elle est à sa place ; ni bouton pour écarter, ni ligne',
-     c1.places.includes('tavor') && c1.bouton && c1.bouton.cache && c1.ligne === null, JSON.stringify(c1));
+  ok('…en toutes langues aussi : la liste n\'a pas de langue, et la preuve suit',
+     JSON.stringify(c1.places) === JSON.stringify(PLACES(['tavor', 'brune'])) && c1.note === null, JSON.stringify(c1));
+  /* d) UNE CHAÎNE DE PLUS, ET LA PREUVE SE REFAIT AUSSITÔT — sans attendre
+     la marche suivante (deux minutes et demie en vrai) : la treizième
+     chaîne n'était pas prouvée. Mutant — la marche attendue (la preuve reste
+     à douze jusqu'à la marche suivante). D'abord, l'évolution a de quoi se
+     dire (1,5 s au banc) : tout est stable.
+     « Sans attendre » se MESURE : le banc mène la marche complète toutes les
+     3 s (GLOBAL_FULL_WALK_MS, tests/build.mjs), assez vite pour qu'une
+     attente de quelques secondes ne distingue rien. La liste est donc posée
+     juste après une marche (`walkAge`), et la preuve doit couvrir treize
+     chaînes AVANT que la suivante soit due : âge de la marche au moment de
+     poser + délai < 3 s. Le mutant ne peut relancer qu'à 3 s révolues. */
+  await wait(page, 2500);
+  const d0 = await lire();
+  await attendre(page, () => {
+    const c = window.tse.accueil.rapport().top.classement;
+    return c.walkAge !== null && c.walkAge < 400 && c.prouve >= 12;
+  }, 8_000);
+  const dT = await page.evaluate(async () => {
+    const age0 = window.tse.accueil.rapport().top.classement.walkAge;
+    const t0 = performance.now();
+    window.tse.options.poser('accueilTopEcartees', ['tavor', 'brune', 'aldric']);
+    while (window.tse.accueil.rapport().top.classement.prouve < 13 && performance.now() - t0 < 8000) {
+      await new Promise((r) => setTimeout(r, 20));
+    }
+    return { age0, delai: Math.round(performance.now() - t0) };
+  });
+  await attendre(page, () => window.tse.accueil.rapport().top.classement.prouve >= 13
+    && !document.querySelector('#tse-accueil .tse-acc-place[data-tse-cle="aldric"]')
+    && document.querySelector('#tse-accueil .tse-acc-rayon--top .tse-acc-note').hidden, 8_000);
+  const d1 = await lire();
+  ok('d) une chaîne de plus : elle quitte le Top 10 aussitôt, et la preuve se refait sans attendre la marche suivante',
+     JSON.stringify(d1.places) === JSON.stringify(PLACES(['tavor', 'brune', 'aldric'])) && d1.rapport.prouve >= 13 && d1.note === null
+     && dT.age0 + dT.delai < 3000,
+     JSON.stringify({ ...d1, temps: dT }));
+  /* …ET PERSONNE N'A « GAGNÉ UNE PLACE » : celles d'en dessous sont montées
+     parce qu'une chaîne est sortie, pas parce qu'elles ont pris des
+     spectateurs. Les instantanés de l'évolution portent la liste : changée,
+     elle repart d'une référence neuve. Mutant — la liste hors de la clé
+     (« ▲ 1 » sous Aldric pendant trente minutes). */
+  await wait(page, 3000);
+  const d2 = await lire();
+  ok('…et personne n\'a « gagné une place » : l\'évolution repart d\'une référence prise avec la même liste',
+     d0.evol.length > 0 && d0.evol.every((x) => x === 'stable') && d2.evol.length > 0 && d2.evol.every((x) => x === 'stable'),
+     JSON.stringify({ avant: d0.evol, apres: d2.evol }));
   await page.evaluate(() => window.tse.options.poser('accueilTopLangue', 'interface'));
-  await attendre(page, () => !document.querySelector('#tse-accueil .tse-acc-place[data-tse-cle="tavor"]')
-    && document.querySelectorAll('#tse-accueil .tse-acc-place:not(.tse-acc-place--attente)').length === 10, 8000);
-  /* d) PARTOUT OÙ CE CLASSEMENT SE MONTRE : Top Chaînes, dans la barre, en
-     français — la barre et l'accueil tiennent la même liste. Mutant — le
-     filtre posé dans le seul rayon de l'accueil. */
+  await attendre(page, () => window.tse.accueil.rapport().top.langue !== 'toutes'
+    && document.querySelectorAll('#tse-accueil .tse-acc-place:not(.tse-acc-place--attente)').length === 10, 8_000);
+  /* e) TOP CHAÎNES, DANS LA BARRE, N'EN SAIT RIEN : la liste vaut pour le Top
+     10 de l'accueil. Et l'accueil qui lit le classement de la barre — même
+     langue, trente places — en écarte toujours les siennes. Mutants — la
+     barre filtrée elle aussi ; l'accueil qui lit la barre sans sa liste. */
   await page.evaluate(() => document.querySelector('#tse-mode-row [data-tse-mode="global"]').click());
   await attendre(page, () => document.querySelectorAll('.side-nav-card[data-tse-global="true"]').length > 0, 10_000);
-  // Le menu de la barre propose le français quand il le sait ; la barre en français, l'accueil lit son classement.
   await attendre(page, () => [...document.querySelectorAll('#tse-lang-dd .tse-dd-opt')].some((o) => o.dataset.value === 'Français'), 10_000);
   await page.evaluate(() => [...document.querySelectorAll('#tse-lang-dd .tse-dd-opt')].find((o) => o.dataset.value === 'Français').click());
   await attendre(page, () => window.tse.accueil.rapport().top.source === 'barre'
-    && [...document.querySelectorAll('.side-nav-card[data-tse-global="true"]')].some((x) => x.dataset.tseLogin === 'aldric'), 10_000);
+    && [...document.querySelectorAll('.side-nav-card[data-tse-global="true"]')].some((x) => x.dataset.tseLogin === 'tavor'), 10_000);
   await wait(page, 600);
   const barre = await page.evaluate(() => [...document.querySelectorAll('.side-nav-card[data-tse-global="true"]')].map((x) => x.dataset.tseLogin));
-  ok('d) Top Chaînes en français, dans la barre : écartée là aussi', !barre.includes('tavor') && barre.includes('aldric'), JSON.stringify(barre));
-  /* e) RÉTABLIE D'UN CLIC : à sa place, dans l'accueil comme dans la barre ;
-     la ligne s'en va, le stockage se vide. Mutant — la barre qui attend le
-     balayage suivant (la liste ne se repeint pas). */
-  await page.click('#tse-accueil .tse-acc-ecartees .tse-acc-retablir');
-  await attendre(page, () => !!document.querySelector('#tse-accueil .tse-acc-place[data-tse-cle="tavor"]')
-    && [...document.querySelectorAll('.side-nav-card[data-tse-global="true"]')].some((x) => x.dataset.tseLogin === 'tavor'), 6000);
   const e1 = await lire();
-  ok('e) « Rétablir » : de retour à sa place, dans l\'accueil comme dans la barre ; plus de ligne, plus rien de gardé',
-     e1.places.indexOf('tavor') === 3 && e1.ligne === null && e1.garde === null && e1.rapport.retablies === 1, JSON.stringify(e1));
-  /* f) UN AUTRE ONGLET : la mémoire changée ailleurs, celui-ci suit sans
-     rechargement. Mutant — pas d'écoute du stockage. */
+  ok('e) Top Chaînes, dans la barre, garde tout ; l\'accueil qui lit son classement en écarte toujours les siennes',
+     ['tavor', 'brune', 'aldric'].every((l) => barre.includes(l)) && e1.rapport.source === 'barre'
+     && JSON.stringify(e1.places) === JSON.stringify(PLACES(['tavor', 'brune', 'aldric'])), JSON.stringify({ barre, e1 }));
+  /* f) UN AUTRE ONGLET : la liste changée ailleurs, celui-ci suit ; et vidée
+     ailleurs — le réglage revenu à son défaut quitte le stockage —, celui-ci
+     suit encore. C'était un défaut de tous les réglages, vu à l'audit : un
+     réglage remis à son défaut dans un onglet restait changé dans l'autre.
+     Mutant — la relecture sans les défauts. */
   await page.evaluate(() => {
-    localStorage.setItem('tse:ecartees', '{"Français":["aldric"]}');
-    window.dispatchEvent(new StorageEvent('storage', { key: 'tse:ecartees' }));
+    localStorage.setItem('tse:options', JSON.stringify({ accueilDebut: false, accueilUne: false, accueilTopEcartees: ['zephyr'] }));
+    window.dispatchEvent(new StorageEvent('storage', { key: 'tse:options' }));
   });
-  await attendre(page, () => !document.querySelector('#tse-accueil .tse-acc-place[data-tse-cle="aldric"]'), 4000);
-  ok('f) écartée dans un autre onglet : celui-ci suit', (await lire()).ligne?.texte === 'Écartées de ce classement :AldricRétablir');
+  await attendre(page, () => !document.querySelector('#tse-accueil .tse-acc-place[data-tse-cle="zephyr"]')
+    && !!document.querySelector('#tse-accueil .tse-acc-place[data-tse-cle="tavor"]'), 4000);
+  const f1 = await lire();
+  await page.evaluate(() => {
+    localStorage.setItem('tse:options', JSON.stringify({ accueilDebut: false, accueilUne: false }));
+    window.dispatchEvent(new StorageEvent('storage', { key: 'tse:options' }));
+  });
+  await attendre(page, () => !!document.querySelector('#tse-accueil .tse-acc-place[data-tse-cle="zephyr"]'), 4000);
+  const f2 = await lire();
+  /* …ET LE STOCKAGE VIDÉ D'UN COUP (`clear`, une clé nulle) : les réglages
+     reviennent tous à leur défaut. Mutant — la clé nulle ignorée. */
+  await page.evaluate(() => {
+    localStorage.setItem('tse:options', JSON.stringify({ accueilDebut: false, accueilUne: false, accueilTopEcartees: ['zephyr'] }));
+    window.dispatchEvent(new StorageEvent('storage', { key: 'tse:options' }));
+  });
+  await attendre(page, () => !document.querySelector('#tse-accueil .tse-acc-place[data-tse-cle="zephyr"]'), 4000);
+  await page.evaluate(() => {
+    localStorage.removeItem('tse:options');
+    window.dispatchEvent(new StorageEvent('storage', { key: null }));
+  });
+  await attendre(page, () => !!document.querySelector('#tse-accueil .tse-acc-place[data-tse-cle="zephyr"]'), 4000);
+  const f3 = await lire();
+  ok('f) changée dans un autre onglet, celui-ci suit ; vidée dans l\'autre — revenue à son défaut —, il suit encore ; et le stockage vidé d\'un coup aussi',
+     JSON.stringify(f1.liste) === '["zephyr"]' && JSON.stringify(f2.liste) === '[]' && f2.places[0] === 'zephyr'
+     && JSON.stringify(f3.liste) === '[]' && f3.places[0] === 'zephyr',
+     JSON.stringify({ f1: f1.liste, f2: f2.liste, f3: f3.liste, places: f3.places }));
+  await page.evaluate(() => { window.tse.options.poser('accueilDebut', false); window.tse.options.poser('accueilUne', false); });
+  /* g) CE QUI ENTRE EST REVU (`propre`) : la casse repliée, les espaces ôtés,
+     un doublon compté une fois, ce qui n'a pas la forme d'un login ignoré ;
+     vingt au plus — dix places de plus que la réponse du tag n'en porte pas.
+     Mutants — la casse gardée ; le doublon gardé ; la borne ignorée. */
+  const g1 = await page.evaluate(() => {
+    window.tse.options.poser('accueilTopEcartees', ['  Zephyr ', 'zephyr', 'Zéphyr', 'mal formé', 42, 'x'.repeat(26), 'aldric']);
+    const a = window.tse.options().accueilTopEcartees;
+    window.tse.options.poser('accueilTopEcartees', Array.from({ length: 25 }, (_, i) => 'plein' + i));
+    const b = window.tse.options().accueilTopEcartees;
+    window.tse.options.poser('accueilTopEcartees', []);
+    return { a, b: b.length, dernier: b[b.length - 1] };
+  });
+  ok('g) ce qui entre est revu : casse repliée, espaces ôtés, doublon compté une fois, forme d\'un login exigée ; vingt au plus, les premiers',
+     JSON.stringify(g1.a) === '["zephyr","aldric"]' && g1.b === 20 && g1.dernier === 'plein19', JSON.stringify(g1));
   await page.close();
-
-  /* g) CE QUI VIENT DU STOCKAGE EST REVU : une langue que la table ne connaît
-     pas, un login mal formé, une forme qui n'est pas la sienne — ignorés.
-     Mutants — la langue lue sans la table ; le login lu sans sa forme. */
-  const revu = await ouvrirAccueil({ visites: { korbek: [1] }, options: { accueilDebut: false, accueilUne: false } });
-  await revu.evaluate(() => localStorage.setItem('tse:ecartees', JSON.stringify({ Klingon: ['zephyr'], Français: ['Zephyr!', 'aldric', 42] })));
-  await revu.reload();
-  await plateauAccueil(revu);
-  await attendre(revu, () => document.querySelectorAll('#tse-accueil .tse-acc-place:not(.tse-acc-place--attente)').length === 10, 10_000);
-  const lireRevu = () => revu.evaluate(() => ({ places: [...document.querySelectorAll('#tse-accueil .tse-acc-place')].map((p) => p.dataset.tseCle),
-    bouton: document.querySelector('#tse-accueil .tse-acc-place .tse-acc-ecarter').hidden, rapport: window.tse.accueil.rapport().ecartees }));
-  const g1 = await lireRevu();
-  ok('g) le stockage revu : la langue inconnue et le login mal formé ignorés, le reste tenu',
-     g1.places[0] === 'zephyr' && !g1.places.includes('aldric') && g1.rapport.chaines === 1 && g1.rapport.langues === 1
-     && g1.bouton === false, JSON.stringify(g1));
-  /* h) CINQUANTE AU PLUS : au-delà, on n'écarte plus — le bouton se tait.
-     Mutant — la borne ignorée. */
-  await revu.evaluate(() => {
-    localStorage.setItem('tse:ecartees', JSON.stringify({ Deutsch: Array.from({ length: 50 }, (_, i) => 'plein' + i) }));
-    window.dispatchEvent(new StorageEvent('storage', { key: 'tse:ecartees' }));
-  });
-  await attendre(revu, () => document.querySelector('#tse-accueil .tse-acc-place .tse-acc-ecarter')?.hidden === true, 4000);
-  const h1 = await lireRevu();
-  ok('h) cinquante chaînes écartées : la borne atteinte, le bouton se tait', h1.bouton === true && h1.rapport.chaines === 50, JSON.stringify(h1));
-  await revu.close();
 }
 
 {
@@ -41867,6 +42112,236 @@ const lireImages = (page) => page.evaluate(() => {
    L'assertion se compte ELLE-MÊME : au moment où elle s'évalue elle n'est pas
    encore dans le total, d'où le +1. Sans lui, le banc annoncerait éternellement
    une assertion de moins qu'il n'en a. */
+{
+  titre('229. « À la une » en ruban — la carte du centre droite, ses voisines qui pivotent, deux flèches, un clic qui centre');
+  /* « QUE "À LA UNE" SOIT EN RUBAN 3D » (4.32.0.4) — la piste B de la
+     maquette. Les cinq directs du carrousel sur une ligne qui défile,
+     aimantée au centre ; le mouvement suit le défilement (animation-timeline),
+     et ce qui pivote, ce sont la vignette et la légende de chaque carte — la
+     carte elle-même reste droite, pour que l'aimant la centre au pixel. */
+  const page = await ouvrirAccueil({ visites: { korbek: [1] }, options: { accueilDebut: false } });
+  await plateauAccueil(page);
+  await attendre(page, () => document.querySelectorAll('#tse-accueil .tse-acc-rayon--une .tse-acc-carte').length === 5
+    && document.querySelector('#tse-accueil .tse-acc-rayon--une [data-tse-cle="tessaly"] .tse-acc-relief')?.dataset.tseCouleur === 'chaine', 8000);
+  await page.evaluate(() => document.querySelector('#tse-accueil .tse-acc-rayon--une').scrollIntoView({ block: 'start' }));
+  await wait(page, 400);
+  const lire = () => page.evaluate(() => {
+    const l = document.querySelector('#tse-accueil .tse-acc-ruban');
+    const mat = (el) => { const m = new DOMMatrix(getComputedStyle(el).transform); return { m11: m.m11, m13: m.m13, m41: m.m41 }; };
+    const cartes = [...l.children].map((c) => {
+      const [relief, infos] = c.children;
+      const reflet = getComputedStyle(relief, '::after');
+      return { cle: c.dataset.tseCle, ecart: Math.round(c.offsetLeft + c.offsetWidth / 2 - (l.scrollLeft + l.clientWidth / 2)),
+               z: Number(getComputedStyle(c).zIndex) || 0, filtre: getComputedStyle(c).filter, vig: mat(relief), leg: mat(infos),
+               legOp: Number(getComputedStyle(infos).opacity), legFond: getComputedStyle(infos).backgroundColor,
+               reflet: { contenu: reflet.content, image: reflet.backgroundImage, op: reflet.opacity } };
+    });
+    const centre = cartes.reduce((m, c) => (Math.abs(c.ecart) < Math.abs(m.ecart) ? c : m));
+    const vc = l.querySelector(`[data-tse-cle="${centre.cle}"] .tse-acc-vignette`).getBoundingClientRect();
+    const fl = document.querySelector('#tse-accueil .tse-acc-ruban-fleche--suiv').getBoundingClientRect();
+    return { sl: Math.round(l.scrollLeft), cartes, centre: centre.cle,
+             prec: document.querySelector('#tse-accueil .tse-acc-ruban-fleche--prec').disabled,
+             suiv: document.querySelector('#tse-accueil .tse-acc-ruban-fleche--suiv').disabled,
+             alignement: Math.round(fl.top + fl.height / 2 - (vc.top + vc.height / 2)),
+             centrages: window.tse.accueil.rapport().une.centrages, chemin: location.pathname };
+  });
+  const droite = (m) => Math.abs(m.m11 - 1) < 1e-3 && Math.abs(m.m13) < 1e-3 && Math.abs(m.m41) < 0.5;
+  const r0 = await lire();
+  const [c0, c1, c2] = r0.cartes;
+  /* a) À L'ARRIVÉE : la première carte au centre, sans défiler ; droite et
+     pleine, sa légende lisible ; ses voisines pivotées, assombries, sans
+     légende, et l'ordre des plans décroît avec la distance. « Précédent »
+     n'a rien devant lui ; les flèches à mi-hauteur de la vignette. Mutants
+     — le ruban droit, sans lignes de temps ; les légendes partout ; les
+     plans dans l'ordre du DOM ; « Précédent » toujours là. */
+  ok('a) à l\'arrivée : la première carte au centre, droite, sa légende lisible ; les voisines pivotées, assombries, sans légende ; les plans selon la distance',
+     r0.sl === 0 && Math.abs(c0.ecart) <= 1 && droite(c0.vig) && droite(c0.leg) && c0.legOp > 0.99
+     && /^(none|brightness\((1|0\.99\d*)\))$/.test(c0.filtre)
+     && Math.abs(c1.vig.m13) > 0.1 && /brightness\(0\.\d+\)/.test(c1.filtre) && c1.legOp < 0.05
+     && c0.z > c1.z && c1.z > c2.z,
+     JSON.stringify({ sl: r0.sl, c0, c1: { vig: c1.vig, filtre: c1.filtre, legOp: c1.legOp, z: c1.z }, z2: c2.z }));
+  ok('…« Précédent » éteint au début, « Suivant » allumé, les flèches à mi-hauteur de la vignette',
+     r0.prec && !r0.suiv && Math.abs(r0.alignement) <= 2, JSON.stringify({ prec: r0.prec, suiv: r0.suiv, alignement: r0.alignement }));
+  /* b) « SUIVANT » : la carte suivante au centre, au pixel — l'aimant mesure
+     la carte, qui ne pivote pas. Mutant — la carte entière qui pivote
+     (l'aimant s'arrêtait à 274 pixels au lieu de 300, mesuré). */
+  await page.click('#tse-accueil .tse-acc-ruban-fleche--suiv');
+  await attendre(page, () => { const l = document.querySelector('#tse-accueil .tse-acc-ruban'); return l.scrollLeft > 0; }, 3000);
+  await wait(page, 1200);
+  const r1 = await lire();
+  ok('b) « Suivant » : la carte suivante au centre, au pixel, droite ; « Précédent » allumé',
+     r1.centre === c1.cle && Math.abs(r1.cartes[1].ecart) <= 1 && droite(r1.cartes[1].vig) && !r1.prec,
+     JSON.stringify({ centre: r1.centre, ecart: r1.cartes[1].ecart, vig: r1.cartes[1].vig, prec: r1.prec }));
+  /* c) UN CLIC SUR UNE CARTE DE CÔTÉ l'amène au centre, sans ouvrir sa
+     chaîne ; sur celle du centre, le lien suit son cours ; avec Ctrl, une
+     carte de côté s'ouvre comme un lien. Mutants — le clic de côté qui ouvre
+     la chaîne ; le clic du centre retenu. */
+  await page.evaluate(() => {
+    window.__clics = [];
+    window.addEventListener('click', (e) => { window.__clics.push({ prevenu: e.defaultPrevented, ctrl: e.ctrlKey }); e.preventDefault(); });
+  });
+  const cle3 = r0.cartes[3].cle;
+  await page.click(`#tse-accueil .tse-acc-ruban [data-tse-cle="${cle3}"] .tse-acc-vignette`, { force: true });
+  await wait(page, 1500);
+  const r2 = await lire();
+  const clics2 = await page.evaluate(() => window.__clics.slice());
+  ok('c) un clic sur une carte de côté l\'amène au centre, sans ouvrir sa chaîne ; le rapport le compte',
+     r2.centre === cle3 && Math.abs(r2.cartes[3].ecart) <= 1 && r2.chemin === '/' && clics2.length === 0 && r2.centrages === 1,
+     JSON.stringify({ centre: r2.centre, ecart: r2.cartes[3].ecart, chemin: r2.chemin, clics2, centrages: r2.centrages }));
+  await page.click(`#tse-accueil .tse-acc-ruban [data-tse-cle="${cle3}"] .tse-acc-nom`);
+  const cle2 = r0.cartes[2].cle;
+  await page.click(`#tse-accueil .tse-acc-ruban [data-tse-cle="${cle2}"] .tse-acc-vignette`, { force: true, modifiers: ['Control'] });
+  await wait(page, 600);
+  const r3 = await lire();
+  const clics3 = await page.evaluate(() => window.__clics.slice());
+  ok('…sur celle du centre, le lien suit son cours ; avec Ctrl, une carte de côté s\'ouvre comme un lien, sans rien centrer',
+     clics3.length === 2 && clics3[0].prevenu === false && !clics3[0].ctrl && clics3[1].prevenu === false && clics3[1].ctrl
+     && r3.centre === cle3 && r3.centrages === 1, JSON.stringify({ clics3, centre: r3.centre }));
+  /* d) AU BOUT, « Suivant » s'éteint. */
+  for (let i = 0; i < 3; i++) {
+    if (await page.evaluate(() => document.querySelector('#tse-accueil .tse-acc-ruban-fleche--suiv').disabled)) break;
+    await page.click('#tse-accueil .tse-acc-ruban-fleche--suiv');
+    await wait(page, 1200);
+  }
+  const r4 = await lire();
+  ok('d) au bout du ruban : la dernière carte au centre, « Suivant » éteint',
+     r4.centre === r0.cartes[4].cle && Math.abs(r4.cartes[4].ecart) <= 1 && r4.suiv && !r4.prec, JSON.stringify({ centre: r4.centre, suiv: r4.suiv }));
+  /* e) LE REFLET AU SOL, dans la couleur de la chaîne — Tessaly, 00C8AF —, à
+     18 % ; la légende du centre sur le fond de la page, qui cache les reflets
+     des voisines. Mutants — pas de reflet ; la légende transparente. */
+  const tess = r4.cartes.find((c) => c.cle === 'tessaly');
+  const centreFin = r4.cartes.find((c) => c.cle === r4.centre);
+  ok('e) un reflet au sol, dans la couleur de la chaîne, à 18 % ; la légende du centre sur le fond de la page',
+     tess.reflet.contenu === '""' && /rgb\(0, 200, 175\)/.test(tess.reflet.image) && Math.abs(Number(tess.reflet.op) - 0.18) < 0.005
+     && centreFin.legFond === 'rgb(14, 14, 16)', JSON.stringify({ reflet: tess.reflet, fond: centreFin.legFond }));
+  await page.close();
+}
+
+{
+  titre('230. Les cartes de Twitch aux marques des nôtres — « Live », le nombre de spectateurs seul, la durée en haut à droite ; le badge de 7TV');
+  /* « UNE COHÉRENCE DANS LES VISUELS : ON VOIT QU'IL A ÉCRIT SPECTATEURS, ET LA
+     DURÉE EST DIFFÉRENTE DE CELLE DE L'EXTENSION. METS TOUT AU MÊME CSS. »
+     (4.32.0.4) — sous « Ranger l'accueil de Twitch ». Relevé sur la page
+     enregistrée : « LIVE » et le compteur vivent chacun dans un coin posé en
+     absolu ; la durée « 38:55 » n'est PAS de Twitch — un
+     `seventv-stream-card-uptime-badge`, posé par l'extension 7TV. Le décor :
+     xray et quebec en direct, que TseChannels décrit ; quebec porte le badge
+     de 7TV et vient de commencer ; zinnia, que TseChannels ne connaît pas. */
+  const ETAGERE = [{ id: 'e-nat', nom: 'Chaînes live qui pourraient vous plaire', natifs: true,
+                     cartes: [{ login: 'xray', vues: 67 }, { login: 'quebec', vues: 1200, septv: '38:55' }, { login: 'zinnia', vues: 12 }] }];
+  const ouvrir = async (options) => {
+    const p = await ouvrirAccueil({ decor: { etageres: ETAGERE }, visites: { korbek: [1] }, options: { accueilDebut: false, ...options } });
+    await plateauAccueil(p);
+    // Les rayons de Twitch se montent après le chargement (cf. page.html) : on les attend.
+    await attendre(p, () => !!document.getElementById('e-nat'), 6000);
+    await p.evaluate(() => {
+      window.__fx.quebec = { ...window.__fx.quebec, createdAt: new Date(Date.now() - 60_000).toISOString() };
+      document.getElementById('e-nat').scrollIntoView({ block: 'center' });
+    });
+    return p;
+  };
+  const noeudsTwitch = (p) => p.evaluate(() => document.querySelector('[aria-labelledby="e-nat"]').querySelectorAll('*').length);
+  const lire = (p) => p.evaluate(() => {
+    const lien = (l) => document.querySelector(`[aria-labelledby="e-nat"] a[href="/${l}"]`);
+    const boite = (el, ref) => { const a = el.getBoundingClientRect(), b = ref.getBoundingClientRect();
+      return { g: Math.round(a.left - b.left), h: Math.round(a.top - b.top), d: Math.round(b.right - a.right), b: Math.round(b.bottom - a.bottom) }; };
+    const style = (el, pseudo) => { const c = getComputedStyle(el, pseudo || null);
+      return { fond: c.backgroundColor, couleur: c.color, taille: c.fontSize, graisse: c.fontWeight, ligne: c.lineHeight,
+               marge: c.paddingLeft + ' ' + c.paddingRight, rond: c.borderTopLeftRadius, casse: c.textTransform }; };
+    const nous = (sel) => style(document.querySelector(`#tse-accueil .tse-acc-rayon--une .tse-acc-carte ${sel}`));
+    const carte = (l) => {
+      const a = lien(l), live = a.querySelector('.tw-channel-status-text-indicator'), st = a.querySelector('.tw-media-card-stat');
+      const avant = getComputedStyle(a, '::before'), apres = getComputedStyle(a, '::after');
+      const sept = a.querySelector('.seventv-stream-card-uptime-badge');
+      return { duree: a.getAttribute('data-tse-duree'), spect: st.getAttribute('data-tse-spect'),
+               live: { ...style(live), mot: getComputedStyle(live.firstElementChild).fontSize, ...boite(live, a) },
+               stat: { ...style(st), texte: getComputedStyle(st).fontSize, avant: getComputedStyle(st, '::before').content, ...boite(st, a) },
+               avant: { contenu: avant.content, montre: avant.display !== 'none', haut: avant.top, droite: avant.right, ...style(a, '::before') },
+               sept: sept ? getComputedStyle(sept).display : null,
+               etiq: { texte: a.getAttribute('data-tse-etiquette'), coin: a.getAttribute('data-tse-etiq-coin'), haut: apres.top, bas: apres.bottom } };
+    };
+    return { xray: carte('xray'), quebec: carte('quebec'), zinnia: carte('zinnia'),
+             nous: { direct: nous('.tse-acc-direct'), duree: nous('.tse-acc-duree'), spect: nous('.tse-acc-spect') },
+             rapport: window.tse.accueil.rapport().etiquettes.twitch };
+  });
+  const p = await ouvrir({});
+  const n0 = await noeudsTwitch(p);
+  await attendre(p, () => !!document.querySelector('[aria-labelledby="e-nat"] a[href="/xray"][data-tse-duree]')
+    && !!document.querySelector('[aria-labelledby="e-nat"] a[href="/quebec"][data-tse-etiquette]'), 10_000);
+  await wait(p, 600);
+  const r = await lire(p);
+  const meme = (a, b, cles) => cles.every((k) => a[k] === b[k]);
+  /* a) « LIVE » AU STYLE DU NÔTRE : son fond, sa taille, sa graisse, sa
+     ligne, ses marges, son arrondi, sa casse — et à huit pixels du coin, comme
+     le nôtre. Le mot reste celui de Twitch. Mutant — le « Live » de Twitch
+     laissé tel quel. */
+  ok('a) « Live » au style du nôtre, à huit pixels du coin, le mot de Twitch gardé',
+     meme(r.xray.live, r.nous.direct, ['fond', 'couleur', 'taille', 'graisse', 'ligne', 'marge', 'rond', 'casse'])
+     && r.xray.live.mot === '12px' && r.xray.live.g === 8 && r.xray.live.h === 8, JSON.stringify({ live: r.xray.live, nous: r.nous.direct }));
+  /* b) LE NOMBRE, SANS LE MOT : celui de TseChannels, écrit comme sur nos
+     cartes — 2 200 → « 2,2 k » —, au style du nôtre, à huit pixels du coin
+     du bas. Mutant — « spectateurs » gardé. */
+  ok('b) le nombre de spectateurs seul, écrit comme sur nos cartes, au style du nôtre, en bas à gauche',
+     /^2,2\s?k$/.test(r.xray.spect || '') && r.xray.stat.avant === `"${r.xray.spect}"` && r.xray.stat.texte === '0px'
+     && meme(r.xray.stat, r.nous.spect, ['fond', 'couleur', 'graisse', 'ligne', 'marge', 'rond']) && r.xray.stat.g === 8 && r.xray.stat.b === 8,
+     JSON.stringify({ stat: r.xray.stat, spect: r.xray.spect, nous: r.nous.spect }));
+  /* c) LA DURÉE, EN HAUT À DROITE, comme sur nos cartes : `formatUptime`,
+     au style du nôtre. Mutant — pas de durée. */
+  ok('c) la durée du direct en haut à droite, écrite et dessinée comme sur nos cartes',
+     /^1h0[89]$/.test(r.xray.duree || '') && r.xray.avant.contenu === `"${r.xray.duree}"` && r.xray.avant.montre
+     && r.xray.avant.haut === '8px' && r.xray.avant.droite === '8px'
+     && meme(r.xray.avant, r.nous.duree, ['fond', 'couleur', 'taille', 'graisse', 'ligne', 'marge', 'rond']),
+     JSON.stringify({ avant: r.xray.avant, nous: r.nous.duree }));
+  /* d) LE BADGE DE 7TV S'EFFACE devant notre durée — deux durées du même
+     direct, ce serait une de trop —, et l'étiquette retrouve le coin du bas.
+     Mutants — le badge de 7TV gardé ; le coin jamais recalculé. */
+  ok('d) le badge de durée de 7TV s\'efface devant la nôtre, et l\'étiquette reprend le coin du bas',
+     r.quebec.sept === 'none' && r.quebec.etiq.texte === 'Vient de commencer' && r.quebec.etiq.coin === null && r.quebec.etiq.bas === '8px',
+     JSON.stringify(r.quebec));
+  /* e) SANS RÉPONSE DE TSECHANNELS, rien d'inventé : le compteur de Twitch,
+     à notre style, et pas de durée. Mutant — une durée inventée. */
+  ok('e) une chaîne que TseChannels ne décrit pas : son compteur de Twitch à notre style, et pas de durée',
+     r.zinnia.duree === null && r.zinnia.spect === null && r.zinnia.stat.texte === '12px' && r.zinnia.avant.contenu === 'none',
+     JSON.stringify(r.zinnia));
+  /* g) AUCUN NŒUD N'ENTRE dans les cartes de Twitch : des attributs, et des
+     pseudo-éléments. Le rapport compte les cartes habillées. */
+  const n1 = await noeudsTwitch(p);
+  ok('g) aucun nœud ajouté aux cartes de Twitch ; le rapport compte les cartes habillées',
+     n1 === n0 && r.rapport.habillees >= 3 && r.rapport.durees >= 2, JSON.stringify({ n0, n1, rapport: r.rapport }));
+  await p.close();
+  /* f) « DURÉE DU DIRECT » COUPÉ, comme sur nos cartes : notre durée ne se
+     montre pas, celle de 7TV reste, et l'étiquette monte en haut à droite —
+     à huit pixels, rien au-dessus d'elle. (Une page à part : le réglage posé
+     par l'amorce du banc, que ses cadres réécrivent.) */
+  const pf = await ouvrir({ duree: false });
+  await attendre(pf, () => !!document.querySelector('[aria-labelledby="e-nat"] a[href="/quebec"][data-tse-etiquette]'), 10_000);
+  await wait(pf, 600);
+  const f = await lire(pf);
+  ok('f) « Durée du direct » coupé : notre durée ne se montre pas, celle de 7TV reste, l\'étiquette monte en haut à droite',
+     (!f.xray.avant.montre || f.xray.avant.contenu === 'none') && f.quebec.sept !== 'none' && f.quebec.etiq.coin === 'haut'
+     && f.quebec.etiq.haut === '8px', JSON.stringify(f.quebec));
+  await pf.close();
+  /* h) « RANGER L'ACCUEIL DE TWITCH » COUPÉ : la carte de Twitch telle quelle.
+     Mutant — l'habillage sans le réglage. */
+  const q = await ouvrir({ accueilRanger: false });
+  await attendre(q, () => !!document.querySelector('[aria-labelledby="e-nat"] a[href="/quebec"][data-tse-etiquette]'), 10_000);
+  await wait(q, 600);
+  const h = await lire(q);
+  ok('h) « Ranger l\'accueil de Twitch » coupé : ni durée, ni nombre seul, « Live » et 7TV tels que Twitch et 7TV les posent',
+     h.xray.duree === null && h.xray.spect === null && h.xray.live.marge === '8px 8px' && h.xray.live.mot === '13px' && h.xray.stat.texte === '13px'
+     && h.quebec.sept !== 'none' && h.quebec.etiq.coin === 'haut', JSON.stringify({ xray: h.xray, quebec: h.quebec }));
+  /* …PUIS ALLUMÉ : la durée paraît, 7TV s'efface, et l'étiquette — posée
+     en haut faute de place en bas — redescend : son coin se recalcule quand
+     notre durée paraît. Mutant — le coin calculé une fois pour toutes. */
+  await q.evaluate(() => window.tse.options.poser('accueilRanger', true));
+  await attendre(q, () => document.querySelector('[aria-labelledby="e-nat"] a[href="/quebec"]').hasAttribute('data-tse-duree'), 6000);
+  await wait(q, 600);
+  const h2 = await lire(q);
+  ok('…puis allumé : la durée paraît, 7TV s\'efface, et l\'étiquette redescend en bas à droite',
+     h2.quebec.sept === 'none' && h2.quebec.etiq.coin === null && h2.quebec.etiq.bas === '8px', JSON.stringify(h2.quebec));
+  await q.close();
+}
+
 {
   titre('68. Le banc — sa taille est celle que les README annoncent');
   const total = pass + fail + 1;          // +1 : cette assertion-ci

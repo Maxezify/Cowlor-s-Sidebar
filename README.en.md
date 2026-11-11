@@ -2064,6 +2064,272 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The home page, after use: the ribbon, removed channels in Settings, Twitch's cards (v4.32.0.4)
+
+Seven pieces of feedback, one of them an audit of the whole home page. Published on `claude/chrome-homepage` only.
+
+| reported | what was done |
+| --- | --- |
+| "make 'Featured' a 3D ribbon" | track B of the mockup: a line that scrolls, the centre card straight, its neighbours turned, a reflection on the floor |
+| "remove the 'remove' button; put it in the options, we type the streamer's username; several are added to a list; the usernames on that list are removed from the Top 10" | the button is gone; "Channels removed from the Top 10", a list of usernames in Settings, applies to the Top 10 in every language |
+| "do a full audit of the Home part" | dead code removed, four defects fixed, each one caught by the bench (see below) |
+| "'No schedule' in order of the nearest in the future" | the five channels, sorted by their time to come |
+| "the 'Vient de passer sur V…' pill: say 'Va sur VALORANT' instead" | "Va sur VALORANT" in French, a shorter form in every language |
+| "the Subathon pill blinking like elsewhere" | the eight hues of the sidebar's pill, at the same pace |
+| "consistent visuals: it says 'viewers', the duration differs; put everything in the same CSS" | Twitch's cards take our cards' marks — "Live", the bare number, the duration top right |
+
+### "Featured", as a ribbon
+
+The carousel's streams on a line that scrolls, snapped to the centre
+(`scroll-snap`). The centre card stands straight and full; its neighbours turn
+by 52°, move back, shrink to 72 % and darken — the mockup's values. The
+motion follows the scrolling itself (`animation-timeline: view(inline)`): no
+script computes it.
+
+- **What turns is the thumbnail and the caption, not the card.** Snap
+  scrolling measures the *transformed* box of the card: turned, its centre
+  was no longer at the centre, and "Next" stopped at 274 pixels instead of
+  300 — measured by the bench. So the card stays straight, and its two halves
+  turn around the same point, the middle of their seam, with the same
+  perspective: it stays in one piece, and the snap centres it to the pixel.
+- **The order of planes**: the cards overlap by a seventh; a z-index that
+  follows the scrolling keeps the one nearest the centre in front. The
+  rotation goes to the compositor; the z-index cannot, and the darkening,
+  animated with it, stays with it. Their timeline is the scrolling: their
+  values only change while the ribbon scrolls.
+- **Only the centre card has its caption**, as in the ribbon it comes from:
+  the neighbours' captions showed under its own, which they overlap — seen in
+  the picture. Its caption sits on the page's background.
+- **The reflection on the floor**: the channel's colour — the lift's — as a
+  gradient, at 18 %; not a mirror of the picture, where the stream, the
+  badges and the label, upside down, would say nothing.
+- **Two arrows**, halfway down the thumbnail: a vertical wheel does not
+  scroll a ribbon. Off at the ends.
+- **A click on a side card brings it to the centre**, without opening its
+  channel: that is a ribbon's gesture. The centre one opens; a click with
+  Ctrl, Shift or Cmd, or a middle click, always opens.
+- **Without scroll timelines** (too old a browser), the ribbon stays flat,
+  its cards side by side: it scrolls, snapped, without turning.
+- Nothing folds: "Show all" has nothing left to do there.
+
+The report: `accueil.une.centrages`, the clicks that centred a card.
+
+### Removed channels, in Settings
+
+The 4.32.0.3 button is gone, and with it the line below the Top 10 that said
+what it had removed. In their place, a setting: "Channels removed from the Top
+10", in the home page's group.
+
+- **A new kind of setting, the list**: a field, "Add" or Enter, and one chip
+  per username, which its cross removes. You type the username, `@username`
+  or the channel's address, several at once. What is not a username is said,
+  and given back to the field to fix; a duplicate is said; never a silent
+  refusal.
+- **The login, not the display name**, in lower case: it is what the address
+  carries, and what the ranking knows. The page checks everything that comes
+  in (`propre`): case folded, anything not shaped like a login ignored, a
+  duplicate counted once.
+- **Twenty at most**, and the number is not a choice: the Top 10 is proven
+  over ten places more than the list (below), and the language-tag answer,
+  which proves it in a single request, carries thirty. At the limit, the
+  field closes and says so.
+- **Removed from the Top 10, whatever its language** — Twitch's or all of
+  them: the list has no language. **Top Channels, in the sidebar, is not
+  affected**; the home page reading the sidebar's ranking still removes its
+  own.
+- **Before the places**: the Top 10 keeps its ten, the eleventh moves up.
+- **The tenth place, proven like the others.** A removed channel brings up
+  the eleventh, which the ranking's proof of completeness did not cover — it
+  was for ten. The home page's ranking therefore asks for as many more as
+  the list holds, and now says how far its proof goes (`prouve`); too short a
+  proof restarts the walk at once, instead of waiting for the next one (two
+  and a half minutes). Until then, the Top 10 says it is partial and counts
+  no movement. The sidebar is shared only on the same condition: its Top
+  Channels must carry enough places.
+- **Nobody "gained a place"**: removing a channel moves up those below it,
+  without them gaining a viewer. The movement's snapshots carry the list;
+  changed, the movement starts again from a fresh reference.
+- **What 4.32.0.3 had removed stays removed**: its per-language list
+  (`tse:ecartees`) moves to the setting, once, all languages together,
+  checked like everything that comes in; then its key goes.
+
+The report: `accueil.top.ecartees` and `retirees` — the list's size, and how
+many of its channels the ranking carried. Counts. Settings now number
+thirty-five.
+
+### "No schedule", nearest to come first
+
+The five channels are still the ones you watch the most; they are now sorted
+by their time to come, like "Your scheduled streams" above them. A habit's
+time is a time of day: its next occurrence is today if it has not passed,
+tomorrow otherwise — midnight included: at 23:00, "around 00:00" comes before
+"around 20:00". The current minute still counts as to come. At equal times,
+the order of visits.
+
+### "Switched to VALORANT"
+
+"Vient de passer sur …" left the game only its first letter in a pill half a
+thumbnail wide. The home page's label now says "Va sur VALORANT" in French,
+and a short form in each language — "Switched to", "Wechselt zu", "Pasa a"…
+The preview's badge, which has the room, keeps its sentence.
+
+### The subathon blinking like elsewhere
+
+The "Subathon" label runs through the eight hues of the sidebar's pill and the
+preview's badge, at the same pace of one and a half seconds; text, border and
+dot move together, the background stays dark. An animated colour repaints,
+and that is accepted: a pseudo-element carries no copies, and subathons are
+rare. Its area stays far from the one WCAG 2.3.1 targets.
+
+### Twitch's cards with our marks
+
+Under "Tidy Twitch's home page", a Twitch live card takes the extension's
+cards' marks:
+
+- **"Live"** restyled like ours — background, size, weight, padding, rounding,
+  capitals —, eight pixels from the corner. The word stays Twitch's.
+- **The viewer count without the word**: `TseChannels`' number, written as on
+  our cards (`formatViewers`), in our style.
+- **The stream's duration top right**, `formatUptime`, like ours — and with
+  "Stream uptime" off, it does not show, here either.
+- **The screenshot's "38:55" was not Twitch's.** Read on the saved page: it
+  lives in a `seventv-stream-card-uptime-badge`, put in the card by the 7TV
+  extension. It steps aside when our duration shows — two durations of the
+  same stream would be one too many —, and the label gets the bottom corner
+  back.
+- **Nothing made up**: without a `TseChannels` answer for the channel, its
+  count stays Twitch's, in our style, and nothing is written at the top.
+- **No node goes into** Twitch's card: attributes, and pseudo-elements that
+  read them.
+- **What it costs**: the channels of the cards on screen join `TseChannels`'
+  common batch, as for their labels — now also when labels are off, as long
+  as "Tidy" is on.
+
+The report: `accueil.etiquettes.twitch.habillees` and `durees`.
+
+### The audit
+
+The whole home module, read again: its code, its style sheet, its texts.
+
+- **Dead code**: the `ecartees` module, its button, its line, their style and
+  their four texts in ten languages. No other function, no class of the style
+  sheet, no home text left unused — checked by a survey.
+- **A setting put back to its default in another tab stayed changed in this
+  one** — every setting, all along. Storage keeps only the differences: back
+  to its default, a setting leaves it, and the re-read only set what it
+  found. It now starts from the defaults. And storage cleared at once
+  (`clear`, a null key) is re-read too.
+- **A Twitch card's label stayed at the top** when "Tidy" was switched on: it
+  computed its corner before the style sheet hid 7TV's badge. Tidying now
+  comes before the labels, and the corner is computed again when our
+  duration shows or goes.
+- **The ranking's proof did not say how far it went** — harmless while the
+  Top 10 always asked for ten places; the list made it necessary (above).
+- **Performance**: the list is read into a set once per change, not at every
+  paint; counting the removed channels walks the ranking only if the list is
+  not empty; the ribbon costs no script while scrolling, except its arrows'
+  state, once per frame.
+
+### What couldn't be checked
+
+Twitch can't be reached from here. The saved page carries its cards' structure
+and 7TV's badge, not their style sheets: our rules win through `!important`,
+and the bench tries them against inline styles, not against Twitch's. Scroll
+timelines need Chrome 115; the flat ribbon that replaces them elsewhere is not
+tried by the bench, whose Chromium knows them.
+
+### The bench
+
+- 217 l), rewritten: "Featured" as a ribbon — one line, the five, no "Show
+  all";
+- 120: the list in the panel — the field, the address and `@username`, the
+  refusal said and given back to the field, the duplicate, the cross, the
+  limit; the thirty-five settings;
+- 221 b): "No schedule" in order of the time to come, checked on instants and
+  not on minutes of the day, the tab set to noon;
+- 222: "Va sur Elden Ring"; the subathon running through the eight hues; the
+  label under our duration; the cost with labels off, with and without
+  "Tidy";
+- 226: our rows' grid read on a sample list, "Featured" being a ribbon;
+- 213: two more named exceptions, each with its reason — the ribbon's order of
+  planes (z-index and darkening) and the subathon's colour;
+- 64 and 213 c), under Chromium 153, the bench's browser since this version:
+  Italian now reads "29,3K" instead of "29.339" — both forms, written by
+  hand, are accepted, neither is English's; the trace no longer says "0" of
+  an animation taken, and recycles its ids — the refusal of a transition on
+  the sort button was blamed on one of ours. It is now read instance by
+  instance, and an animation that animated a shadow still fails there
+  (tried);
+- 220 e'): the data served 400 ms after arrival — without a delay they
+  crossed Twitch's home (200 ms) within a few milliseconds; when they won, the
+  veil rightly lifted over a scroller not there yet, and the assertion failed
+  with no fault in the home. The scroller is now required before the lift;
+  lifting the veil before painting still fails there (tried);
+- 227, rewritten: removed channels — the migration, the ten places, the proof
+  in all languages and restarted before the next walk, measured, the movement
+  starting over, the sidebar untouched, another tab, storage cleared, what
+  comes in checked;
+- 229, new: the ribbon — arrival, planes, captions, "Next" to the pixel, the
+  side click, the centre one and Ctrl, the end, the reflection;
+- 230, new: Twitch's cards — "Live", the bare number, the duration, 7TV's
+  badge, nothing made up, "Stream uptime" off, no node, the setting off
+  then on;
+- the fake Twitch: its cards' corners and 7TV's badge.
+
+**Forty-seven named mutants, all caught.** Two survived at first, two holes in the bench, filled: "the walk awaited", which the bench could not tell apart — its full walk comes back every 3 s, faster than the test's wait —: 227 d) now sets the list just after a walk, and the proof must come before the next one; "midnight forgotten", which only showed if the bench ran between 00:01 and 21:00: 221's tab is set to noon, whatever the time.
+
+| mutant | what falls |
+| --- | --- |
+| the migration forgotten | 227 a) and b): the 4.32.0.3 list lost, Tavor and Brune in the Top 10 |
+| the filter after the places | 227 b): eight places instead of ten |
+| the ranking asking for ten only | 227 c') and d): in all languages, the proof stops at ten channels |
+| the list held for Twitch's language only | 227 c'): in all languages, Tavor and Brune come back |
+| the walk awaited | 227 d): the proof waits for the next walk |
+| the sidebar filtered too | 227 e): Tavor, Brune and Aldric missing from Top Channels |
+| the home page reading the sidebar without its list | 227 e): read from the sidebar, the Top 10 takes them back |
+| the re-read without the defaults | 227 f): cleared in the other tab, the list stays in this one |
+| the case kept | 227 a) and b): "Brune" is not "brune" |
+| the duplicate kept | 227 g): a username counted twice |
+| the limit ignored | 227 g): more than twenty usernames kept |
+| the list outside the movement's key | 227 d): places "gained" under the channels that moved up |
+| the null key ignored | 227 f): storage cleared at once, the list stays |
+| the address taken as is | 120: the channel's address refused |
+| the silent refusal | 120: a refusal with no message |
+| the duplicate sent again | 120: a username already there added a second time |
+| the cross that removes everything | 120: one cross empties the list |
+| the field open at the limit | 120: at twenty, the field stays open |
+| the flat ribbon | 229 a) and e): nothing turns |
+| captions everywhere | 229 a): the neighbours' captions visible |
+| the planes in DOM order | 229 a): a neighbour in front of the centre card |
+| "Previous" always on | 229 a) and d): the arrows on at both ends |
+| the whole card turning | 229 a) and b): the card off-centre after the snap |
+| the side click opening the channel | 229 c): the channel opens, the card does not come to the centre |
+| the centre click held back | 229 c'): the centre card no longer opens |
+| Ctrl ignored | 229 c'): with Ctrl, the card comes to the centre instead of opening |
+| no reflection | 229 e): no reflection |
+| the transparent caption | 229 e): the caption without the page's background |
+| the arrows halfway down the ribbon | 229 a): the arrows below the thumbnail's middle |
+| the row folded like a grid | 217 l): "Featured" as a grid |
+| the order of visits kept | 221 b): the order of visits, not of the time |
+| midnight forgotten | 221 b): "around 00:00" first, at noon |
+| the old text | 222 b): "Vient de passer sur Elden Ring" |
+| the still Subathon label | 222 a''): a single hue |
+| the border that does not follow | 222 a''): the border keeps its hue |
+| the label on the duration | 222: the label over our duration |
+| a label with the setting off | 222 f): labels, with the setting off |
+| a request with neither | 222 f): channels requested, both settings off |
+| Twitch's "Live" as is | 230 a): "Live" in Twitch's style |
+| "viewers" kept | 230 b): the word "spectateurs" stays |
+| no duration | 230 c) and d): no duration, 7TV's badge stays |
+| 7TV's badge kept | 230 d): two durations |
+| the corner computed once and for all | 230: "Tidy" back on, the label stays at the top |
+| the dressing without the setting | 230 h): "Tidy" off, Twitch's card dressed all the same |
+| the labels before the tidying | 230: "Tidy" back on, the label stays at the top |
+| Twitch's corners left in place | 230 a) and b): "Live" and the count out of their corners |
+| the veil lifted before painting | 220 e'): the veil lifts before the banner is painted |
+
+The full bench: 2298 assertions in 229 scenarios, all green.
+
 ## The home page, after use: "Featured", a channel removed, Twitch's lift (v4.32.0.3)
 
 Four pieces of feedback, a diagnostic report attached. Published on `claude/chrome-homepage` only.
@@ -23902,7 +24168,7 @@ Four independent checks:
 | `npm run lint` | the six shipped JavaScript files — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 227 scenarios, 2278 assertions |
+| `npm test` | the Playwright harness: 229 scenarios, 2298 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -23922,13 +24188,13 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 2155 KB | 993 KB | 4,647 → **2** |
+| `content.js` | 2171 KB | 999 KB | 4,659 → **2** |
 | `cadres.js` | 74 KB | 34 KB | 169 → **0** |
 | `adblock.js` | 126 KB | 101 KB | 301 → **2** |
-| `panneau.js` | 162 KB | 82 KB | 224 → **0** |
+| `panneau.js` | 165 KB | 85 KB | 226 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 26 → **0** |
 | `background.js` | 10 KB | 2 KB | 22 → **0** |
-| **all six** | **2541 KB** | **1216 KB** | **−52 %** |
+| **all six** | **2561 KB** | **1225 KB** | **−52 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are
