@@ -1680,6 +1680,52 @@ if (location.pathname === '/directory/following/channels') {
   }
 }
 
+// ── La barre du haut (4.33.0) ───────────────────────────────────────
+// Seulement si le scénario la demande (window.__navHaut) : la zone de
+// recherche relevée sur le vrai Twitch par l'utilisateur, le 11/11/2026 —
+// mêmes repères, mêmes classes, même imbrication, la loupe dans la ligne du
+// champ, le champ caché à sa suite, et le bouton de la recherche repliée
+// dans la même rangée que le conteneur —, réduite à ce que le zapping lit.
+// Les styles en ligne tiennent lieu de ceux de Twitch : ses classes ne
+// disent rien sans sa feuille.
+//   __navHaut   true       la recherche entière, la loupe collée au champ ;
+//               'repliee'  une fenêtre étroite : le champ masqué, la loupe
+//                          repliée seule ;
+//               'bloc'     une rangée qui ne serait pas en ligne — pour la
+//                          voie de repli du bouton.
+// window.__navRangee() refait la rangée de la recherche, comme React ;
+// window.__navRemplacer() remplace la barre entière.
+if (window.__navHaut) {
+  const mode = window.__navHaut;
+  const rangee = () => `
+    <div class="Layout-sc-1xcs6mc-0 kyOtyH top-nav__search-container" style="display:${mode === 'repliee' ? 'none' : 'flex'};align-items:center">
+      <div class="Layout-sc-1xcs6mc-0 search-box" data-a-target="nav-search-box"><div><form role="search"><div aria-haspopup="grid" class="Layout-sc-1xcs6mc-0 geVlrj">
+        <div class="Layout-sc-1xcs6mc-0 cQOddD"><div class="Layout-sc-1xcs6mc-0 gdtxcL tw-combo-input" data-a-target="tray-search-input" style="display:flex;align-items:center">
+          <div class="ScInputWrapper-sc-1fxjr4l-0 dBwVHW tw-combo-input__input"><div class="ScInputContainer-sc-vu7u7d-3 WVQC"><div data-a-target="tray-search-input" class="Layout-sc-1xcs6mc-0 glFavL">
+            <input aria-label="Afficher les résultats de la recherche" type="search" class="tw-input tw-input--large" placeholder="Rechercher" data-a-target="tw-input" maxlength="65" style="box-sizing:border-box;width:320px;height:36px">
+          </div></div></div>
+          <div class="Layout-sc-1xcs6mc-0 iuktUJ"><button class="ScCoreButton-sc-ocjdkq-0 ivGBcN tw-combo-input__button-icon tw-combo-input__button-icon--large" type="secondary" aria-label="Bouton Rechercher" disabled style="width:36px;height:36px;margin:0;padding:0">&#9906;</button></div>
+        </div></div>
+        <div class="Layout-sc-1xcs6mc-0 giLCES"><div><div class="Layout-sc-1xcs6mc-0 gVwZXK"><div class="ScInputContainer-sc-vu7u7d-3 WVQC"><div class="Layout-sc-1xcs6mc-0 glFavL"><input type="search" class="tw-input tw-input--large" data-a-target="tw-input" style="display:none"></div></div></div></div></div>
+      </div></form></div></div>
+    </div>
+    <div class="Layout-sc-1xcs6mc-0 jCxYDG" style="display:${mode === 'repliee' ? 'flex' : 'none'};align-items:center"><div class="Layout-sc-1xcs6mc-0 cPajeB"><div class="Layout-sc-1xcs6mc-0 glFavL"><div><div class="InjectLayout-sc-1i43xsx-0 bohlnR"><button aria-label="Rechercher" title="Rechercher" style="width:30px;height:30px;margin:0;padding:0">&#9906;</button></div></div></div></div></div>`;
+  const barre = () => {
+    const nav = document.createElement('nav');
+    nav.className = 'InjectLayout-sc-1i43xsx-0 UAQUH top-nav';
+    nav.dataset.aTarget = 'top-nav-container';
+    nav.style.cssText = 'height:5rem;display:flex;align-items:center;justify-content:space-between;padding:0 10px;background:#18181b';
+    nav.innerHTML = `<div class="Layout-sc-1xcs6mc-0 lokfxK top-nav__menu" style="display:flex;gap:12px"><a data-a-target="home-link" aria-label="Accueil Twitch" href="/">T</a><a data-a-target="following-link" href="/directory/following">Suivis</a></div>
+      <div class="Layout-sc-1xcs6mc-0 jeyaJm" style="display:${mode === 'bloc' ? 'block' : 'flex'};align-items:center">${rangee()}</div>
+      <div class="Layout-sc-1xcs6mc-0 bUCiUP" style="display:flex;gap:8px"><button aria-label="Ouvrir les notifications">N</button></div>`;
+    return nav;
+  };
+  let nav = barre();
+  document.getElementById('root').prepend(nav);
+  window.__navRangee = () => { nav.querySelector('.jeyaJm').innerHTML = rangee(); };
+  window.__navRemplacer = () => { const n = barre(); nav.replaceWith(n); nav = n; };
+}
+
 // ── L'accueil (4.26.0) ──────────────────────────────────────────────
 // D'après un échantillon du DOM réel (novembre 2026), réduit à ce que
 // l'extension lit : un <main> ; son défileur, qui porte à la fois

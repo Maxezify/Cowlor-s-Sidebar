@@ -2064,6 +2064,177 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## Zapping (v4.33.0)
+
+One piece of feedback, and its mockup. Published on `claude/chrome-homepage` only.
+
+| reported | what was done |
+| --- | --- |
+| "on level 3, only zapping interests me; to get to it, a button just to the right of the search area's magnifier; do the job professionally, take the existing mockup as a good base" | idea 13, rebuilt from the screenshot of its mockup: your followed channels that are live, full screen, one after another |
+
+### The screen
+
+The live stream full frame — a Twitch embedded player, cropped like a cover
+image: it keeps its 16:9 and overflows the screen rather than leaving bars —,
+and, laid on dark gradients:
+
+- top left, "Zapping · your followed channels, live" and the rank, "2 / 7";
+- top right, the keys, which are buttons too: ↑ ↓ switch, Enter open the
+  channel, S add to the room (or remove from it), O open the room — from two
+  channels —, Esc exit;
+- on the right, the column of channels — thumbnail, name, category, viewers —,
+  the current one framed, the next one marked "preloaded", those in the room
+  "in the room"; a click goes there;
+- at the bottom, the channel: its face, its name and its subathon badge — the
+  sidebar's, with its eight hues —, its title, "Live", its category, its
+  viewers, how long it has been live, "subathon, day 9";
+- bottom right, "Sound from …", which mutes and unmutes.
+
+Two deliberate departures from the mockup: in French, « vos suivis » rather
+than « tes suivis » — the extension uses the formal "you" everywhere else;
+"Live" rather than "EN DIRECT" — the word 4.32.0.4 put on every card, on
+request.
+
+### The order, the sidebar's
+
+The followed channels that are live, as the sidebar orders them, whatever its
+sort: the list you have in front of you. Those it does not show (collapsed, not
+yet rendered) follow, by viewers; in Top Channels the sidebar does not show
+your follows, and only the viewers order applies. Zapping starts from the
+page's channel, if it is one, otherwise from the first; past the end it comes
+back to the start, like a remote control. It keeps itself up to date while you
+zap; the current channel that goes offline stays where it was, "Offline": you
+are not moved.
+
+### The next one is already there
+
+A second player, muted and invisible, loads the following channel — in the
+direction you are going —, half a second after you arrive: bandwidth goes to
+the current one first, and held arrows do not load everything. It becomes the
+current one at once — the same frame, nothing reloads. A channel that was not
+expected — a click in the column, a change of direction — loads under the
+previous image, which stays until the new one plays: the bench counts the
+frames, none is without a visible player. Two players at most, then; the
+room's phase 0 measured what one costs.
+
+### Sound, keyboard, the page underneath
+
+Every embedded player starts muted: autoplay requires it. The room's bridge
+(`cadres.js`), woken by the zapping players' name, gives the sound to the
+current one through the player's own button, and tries again if Twitch mutes
+it back, five times at most; a player that is not the current one and that
+Twitch would unmute is muted again. A transparent cover sits over the players:
+a click in the image does not give them focus, and the keys stay with the
+screen, which does not let them through to Twitch. Tab cycles within the
+screen. The page's video pauses on opening and resumes on closing, as for the
+room; Escape gives focus back to the button.
+
+The players' name, one more name shared between the bridges and the main
+module: eighteen.
+
+### The room
+
+S adds the current channel to the room, or removes it; O opens the room with
+the chosen ones, from two, six at most — the seventh is refused, and the screen
+says so. The room opens the usual way: on "Browse", in place; elsewhere, through
+a real navigation (see 4.24.0.8). A room already open closes when zapping opens
+— two screens of players would fight over the sound — and its streams move into
+the selection: O reopens it with those you add. Without the room — its setting
+off —, no S and no O.
+
+### The button, right of the magnifier
+
+Taken from the real bar, provided by the user: the field's magnifier is
+`button.tw-combo-input__button-icon`, inside `[data-a-target="nav-search-box"]`;
+the search container has, as a neighbour in the same row, the button of the
+collapsed search used in narrow windows. The button goes at the end of that
+row, and **measurement** says whether it sits right next to the visible
+magnifier: centres aligned within six pixels, less than 32 pixels apart.
+Otherwise it goes in the field's own line, just after the magnifier. React can
+rebuild the bar: an observer on it puts the button back before the next frame;
+with the whole bar replaced, a glance every two seconds. The report gives the
+path (`rangee`, `champ`). A square like the magnifier, in Twitch's colours — its
+variables, with the measured values as fallback. "Zapping", in "Settings",
+removes it: it is the thirty-sixth setting. The guide has its chapter, right
+after the room's — it has twenty now, and the store sheets say so —, and the
+sheets their section.
+
+### What could not be checked here
+
+- **sound on the real embedded player.** Zapping takes the room's bridge as
+  is; it was for the room that phase 0 established, on the real Twitch, that
+  an embedded player is unmuted through its button without the browser
+  stopping it. The bench tries it on a fake player;
+- **the real bar.** The button is placed and measured on a reproduction of the
+  extract — same markers, same classes, same nesting —, not on Twitch's page,
+  which this machine cannot reach;
+- **the cost of two players** at once, on a real connection.
+
+### The bench
+
+231, new, twenty-four assertions: the button in its place, measured, put back;
+the screen, the sidebar's order, the cover, the page paused; the current one
+with sound, the next one preloaded, muted, served without reloading; the
+direction; no frame without a player; the full loop; the bottom of the screen;
+sound muted and back; the room, its limit, its opening, an open room closed;
+Tab, Escape, Enter, starting from a channel's page; the channel that goes
+offline; the setting; two other bars; no channel; the sources; the guide. 120:
+thirty-six settings; 96: twenty chapters, which the twelve sheets announce, and
+the zapping chapter quotes its setting and "Settings". The fake Twitch learns the top bar, in three forms, and the fake
+player the two buttons the bridge presses.
+
+**Twenty-nine named mutants, all caught.** Four survived at first, four holes
+in the bench, filled: "no glance at the bar" — the resize that follows the
+page's opening put the button back 250 ms later, standing in for the missing
+glance: b) waits until it has passed, and only sees its own paths; "Tab
+leaving the screen" — l) only asked that focus stay on the screen: it must go
+from button to button, and come back to the first; "the sound button that
+mutes nothing" — the bridge's next report muted the sound in its place: i)
+holds those reports back for the measurement, it is the button that must mute;
+"the players in front of the screen" — the players ignore the mouse, and the
+measuring point saw through them: c) gives it back to them for one
+measurement, and the counter must stay on top. Two others crashed the bench,
+and the runner counted them as errors: "O with a single channel" closed the
+screen, and the next reading crashed before any assertion — it now returns an
+empty reading, and j) fails; "the viewers' order, not the sidebar's" failed an
+assertion, then crashed the bench. The runner now counts as caught a mutant
+with an assertion failed before the crash, and notes it: three are caught
+that way, marked in the table.
+
+| mutant | what fails |
+| --- | --- |
+| the button before the magnifier | 231 a), b), l) (Escape), p) |
+| the button placed without measuring | 231 p) |
+| no observer on the bar | 231 b) |
+| no glance at the bar | 231 b) — then the bench crashes |
+| the viewers' order, not the sidebar's | 231 c), d) — then the bench crashes |
+| the preloaded player thrown away and reloaded | 231 e), f) |
+| preloading always forward | 231 f) |
+| the previous picture removed at once | 231 f) |
+| the previous picture removed as soon as the channel changes | 231 f) |
+| sound never restored | 231 d), e), i) |
+| the preloaded player left with sound | 231 d) (the preloaded one mutes again) |
+| no cover | 231 c) |
+| keys passed on to Twitch | 231 e) |
+| Tab leaving the screen | 231 l) |
+| the room's limit ignored | 231 j) (six at most), k), k) (reopened) |
+| O with a single channel | 231 j) — then the bench crashes |
+| the open room left open | 231 k) (reopened) |
+| the page's video left playing | 231 c), l) (Escape) |
+| the page's video not resumed | 231 l) (Escape) |
+| the current channel that goes offline leaves the list | 231 m), n) |
+| no subathon badge | 231 h) |
+| the sound button that mutes nothing | 231 i) |
+| the setting off, the button stays | 231 o) |
+| always starting at the first | 231 n) |
+| Enter without navigating | 231 n) |
+| the bridge closed to the zapping's players | 231 d), d) (the preloaded one mutes again), e), i), r) |
+| the preloaded player visible | 231 d) |
+| the players in front of the screen | 231 c) |
+| the wheel let through | 231 l) (the wheel) |
+
+`npm run check`: 2323 assertions in 230 scenarios, all green.
+
 ## The ribbon polished, and a board to follow the bench (v4.32.0.5)
 
 Two pieces of feedback. Published on `claude/chrome-homepage` only.
@@ -24227,7 +24398,7 @@ Four independent checks:
 | `npm run lint` | the six shipped JavaScript files — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 229 scenarios, 2299 assertions |
+| `npm test` | the Playwright harness: 230 scenarios, 2323 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -24260,8 +24431,9 @@ none.
 The bench does not depend on it: `run.mjs` only writes its events when
 `TSE_SUIVI` names a file, and a failed write fails nothing. The records live in
 `tests/suivi/.etat/`, ignored by git. A mutant is applied to a copy of the
-tree, never to the repository; a failed build or a bench with no summary gives
-ERROR, not a verdict.
+tree, never to the repository; a failed build or a bench that crashes before
+any assertion fails gives ERROR, not a verdict; an assertion failed, then a
+crash: CAUGHT, and the crash is noted.
 
 ### The package ships without its comments (v3.59)
 
@@ -24273,13 +24445,13 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 2174 KB | 1000 KB | 4,659 → **2** |
-| `cadres.js` | 74 KB | 34 KB | 169 → **0** |
+| `content.js` | 2236 KB | 1052 KB | 4,721 → **2** |
+| `cadres.js` | 74 KB | 34 KB | 170 → **0** |
 | `adblock.js` | 126 KB | 101 KB | 301 → **2** |
-| `panneau.js` | 165 KB | 85 KB | 226 → **0** |
+| `panneau.js` | 166 KB | 85 KB | 227 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 26 → **0** |
 | `background.js` | 10 KB | 2 KB | 22 → **0** |
-| **all six** | **2563 KB** | **1226 KB** | **−52 %** |
+| **all six** | **2626 KB** | **1278 KB** | **−51 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are

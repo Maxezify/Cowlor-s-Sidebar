@@ -947,6 +947,7 @@ const GUIDE = [
      phrase au bout du leur : ni le son aux touches, ni le chat qu'on choisit,
      ni l'alignement, ni les points de chaîne qu'on n'y gagne pas. */
   { titre: 'guideSalleTitre',    texte: 'guideSalleTexte' },
+  { titre: 'guideZapTitre',      texte: 'guideZapTexte' },
   { titre: 'guideBadgesTitre',   texte: 'guideBadgesTexte',   demo: () => demoBadges() },
   { titre: 'guideTriTitre',      texte: 'guideTriTexte' },
   // Ce que la barre retire revient en badge : le renvoi mène, en arrière, au chapitre qui les montre tous.
@@ -1278,6 +1279,8 @@ const GROUPES_OPT = [
   ['optGrpApercu',  ['apercu', 'apercuVideo', 'apercuQualite', 'apercuTaille']],
   // Le système multistream a son groupe (4.24.0.9), pour qu'on le trouve.
   ['optGrpMultistream', ['salle', 'salleAuto']],
+  // Le zapping (4.33.0) : le bouton à droite de la loupe, et son écran.
+  ['optGrpZapping', ['zapping']],
   // L'accueil de Twitch (4.26.0) : le maître d'abord, ce qu'il gouverne ensuite.
   ['optGrpAccueil', ['accueil', 'accueilTete', 'accueilVideo', 'accueilUne', 'accueilTop',
                      'accueilTopLangue', 'accueilTopEcartees', 'accueilPourquoi', 'accueilApercu', 'accueilDebut', 'accueilRdv', 'accueilEtiquettes', 'accueilAbsence', 'accueilRanger']],

@@ -623,6 +623,12 @@
   "guideSalleTexte": {
     "message": "The “▶” cursor on a co-stream's bar opens its streams side by side, on the page — each in its own tile.\n• Hover it: it says what it opens — “Watch all 3”. Faces at its end? Members you do not follow: move onto them to add them. Shift+click opens the whole co-stream straight away.\n• Click a tile to give it the sound — keys 1 to 6 work too — and the chat follows the sound. Without Shared Chat, tabs above the chat show another one without changing the sound.\n• Six streams at most on screen: the others wait below, and a click brings them in.\n• The streams line themselves up on their common sound, in about a minute of listening; with no common sound, nothing moves. “Automatic alignment” can be switched off in “Settings”.\n• To the left of “Hide the chat”, two lines say where the alignment stands: which tile it aligns on, then the state of each other one — “listening 2/6” (the sound calculations that count, out of those needed), “behind 0.30 s, to confirm”, “checking”, then “All aligned”. The dot is green when everything is aligned, amber while the alignment works or waits, red when a tile cannot be corrected, grey when paused or off; the tooltip gives the details, tile by tile.\n• The room earns no channel points, and Twitch's ads play there as anywhere else.\n• To close it: Escape, or a click on the cursor, now a “■”."
   },
+  "guideZapTitre": {
+    "message": "Zapping"
+  },
+  "guideZapTexte": {
+    "message": "The button to the right of the search magnifier opens your followed channels that are live, full screen, in the sidebar's order.\n• ↑ and ↓ switch channels; past the end, you start again from the top. A click in the right-hand column goes to that channel.\n• The next one is already loaded — “preloaded” —: it shows at once.\n• Enter opens the channel; Escape closes, and the page's video resumes.\n• S adds the channel to the room, O opens the room once there are two — six at most. A room already open closes when zapping opens; its streams stay in the selection.\n• “Sound from …”, bottom right, mutes and unmutes.\n• “Zapping” can be turned off in “Settings”."
+  },
   "guideDebutTitre": {
     "message": "Starts, and comebacks"
   },
@@ -848,6 +854,15 @@
   },
   "optDescSalleAuto": {
     "message": "The streams are synced by their shared sound — each stream's lips on its voice as you hear it. It takes about a minute of listening; without shared sound, nothing moves. Off: nothing moves on its own."
+  },
+  "optGrpZapping": {
+    "message": "Zapping"
+  },
+  "optZapping": {
+    "message": "Zapping"
+  },
+  "optDescZapping": {
+    "message": "A button to the right of the search magnifier opens your followed channels that are live, full screen, one after another: ↑ and ↓ to switch, Enter to open the channel, S to add it to the room, O to open the room, Esc to exit. The next one is already loaded. The page's video pauses while you zap; an open room closes, and its streams are kept to reopen. Off: no button, no screen."
   },
   "optGrpAccueil": {
     "message": "Home page"
@@ -1108,7 +1123,7 @@
     "message": "Reset every setting to its default?"
   },
   "optResetText": {
-    "message": "All thirty-five settings on this page will return to their original value. Your data — visits, subscriptions, followed channels — is untouched."
+    "message": "All thirty-six settings on this page will return to their original value. Your data — visits, subscriptions, followed channels — is untouched."
   },
   "optValPlein": {
     "message": "Full"

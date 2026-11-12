@@ -82,6 +82,17 @@ Esc la chiude — oppure un clic sul cursore, diventato «■».
 
 _______________________________
 
+➤ 📺 ZAPPING: I TUOI CANALI SEGUITI IN DIRETTA, UNO DOPO L'ALTRO
+Un pulsante a destra della lente della ricerca apre i tuoi canali seguiti in diretta, a schermo intero — come cambiare canale in TV.
+
+- ★ ↑ E ↓ ★ Un canale dopo l'altro, nell'ordine della tua barra laterale; il successivo è già caricato e appare subito.
+- ★ TUTTO A COLPO D'OCCHIO ★ Nome, titolo, categoria, spettatori, durata della diretta — e il badge del subathon.
+- ★ VERSO LA SALA ★ S aggiunge un canale alla sala, O la apre con quelli scelti.
+
+Invio apre il canale, Esc chiude.
+
+_______________________________
+
 ➤ 💜 I TUOI ABBONAMENTI, IN ORO
 I canali che sostieni davvero non dovrebbero sembrare uguali a tutti gli altri. Ora non lo sono più:
 
@@ -177,7 +188,7 @@ _______________________________
 Un ingranaggio a destra del titolo della barra laterale, un clic, e tutto quello che l'estensione ha imparato si apre sopra Twitch. L'icona dell'estensione, in alto a destra nel browser, apre esattamente lo stesso pannello.
 
 - ★ DUE STRADE, UN SOLO PANNELLO ★ L'ingranaggio nella barra laterale o l'icona nella barra degli strumenti: la stessa pagina, in entrambi i casi. Aperta dall'ingranaggio è più grande: un popup della barra degli strumenti è limitato dal browser, non da noi.
-- ★ UNA GUIDA, SUBITO ★ Il pannello si apre su una guida di diciannove capitoli che mostra tutto ciò che l'estensione aggiunge, con esempi disegnati — e si vede anche senza nessuna scheda Twitch aperta.
+- ★ UNA GUIDA, SUBITO ★ Il pannello si apre su una guida di venti capitoli che mostra tutto ciò che l'estensione aggiunge, con esempi disegnati — e si vede anche senza nessuna scheda Twitch aperta.
 - ★ LE TUE ABITUDINI, DISEGNATE ★ Le ore in cui guardi davvero, tracciate in una griglia di sette giorni per ventiquattro ore.
 - ★ I TUOI NUMERI ★ Top streamer, abbonamenti rilevati, canali seguiti in memoria: tutto lì, leggibile.
 - ★ UN RAPPORTO DA INCOLLARE ★ Un pulsante crea un rapporto diagnostico completo, senza alcun elenco personale dentro — quanto basta per segnalare un problema senza rivelare nulla.
@@ -240,7 +251,7 @@ Twitch ha un tema chiaro. L'estensione se ne accorge e cambia insieme a lui — 
 _______________________________
 
 ➤ ⚙️ E SE VUOI SCEGLIERE
-Tutto è attivo fin da subito e non c'è nulla da impostare. Ma «Impostazioni», nel pannello, ti restituisce il comando su trentacinque impostazioni.
+Tutto è attivo fin da subito e non c'è nulla da impostare. Ma «Impostazioni», nel pannello, ti restituisce il comando su trentasei impostazioni.
 
 - ★ CIÒ CHE VEDI ★ Ogni badge, la durata della diretta e il suo formato, la barra «appena iniziata», l'oro degli abbonamenti, i filtri, i pulsanti di ordinamento: tutto si accende e si spegne con una casella.
 - ★ CIÒ CHE VIENE CARICATO ★ L'anteprima può fare a meno del video e conservare badge, linea del tempo e miniatura — oppure semplicemente scendere di qualità. Quanto basta per alleggerirla senza perderla.

@@ -82,6 +82,17 @@ Esc schließt ihn — oder ein Klick auf den Regler, der jetzt ein „■“ ist
 
 _______________________________
 
+➤ 📺 ZAPPING: DEINE GEFOLGTEN KANÄLE LIVE, EINER NACH DEM ANDEREN
+Ein Knopf rechts neben der Lupe der Suche öffnet deine gefolgten Kanäle, die live sind, im Vollbild — wie das Umschalten beim Fernsehen.
+
+- ★ ↑ UND ↓ ★ Ein Kanal nach dem anderen, in der Reihenfolge deiner Seitenleiste; der nächste ist schon geladen und erscheint sofort.
+- ★ ALLES AUF EINEN BLICK ★ Name, Titel, Kategorie, Zuschauer, Dauer des Streams — und das Subathon-Abzeichen.
+- ★ WEITER IN DEN RAUM ★ S fügt einen Kanal dem Raum hinzu, O öffnet den Raum mit den gewählten.
+
+Enter öffnet den Kanal, Esc schließt.
+
+_______________________________
+
 ➤ 💜 DEINE ABOS, IN GOLD
 Die Kanäle, die du wirklich unterstützt, sollten nicht aussehen wie alle anderen. Ab jetzt tun sie das nicht mehr:
 
@@ -177,7 +188,7 @@ _______________________________
 Ein Zahnrad rechts neben dem Titel der Seitenleiste, ein Klick, und alles, was die Erweiterung gelernt hat, öffnet sich über Twitch. Das Symbol der Erweiterung, oben rechts im Browser, öffnet genau dasselbe Panel.
 
 - ★ ZWEI WEGE, EIN PANEL ★ Das Zahnrad in der Seitenleiste oder das Symbol in der Symbolleiste: dieselbe Seite, in beiden Fällen. Über das Zahnrad geöffnet ist sie größer — ein Symbolleisten-Popup wird vom Browser begrenzt, nicht von uns.
-- ★ EINE ANLEITUNG, GLEICH ZU BEGINN ★ Das Panel öffnet sich mit einer Anleitung in neunzehn Kapiteln über alles, was die Erweiterung hinzufügt, mit gezeichneten Beispielen — und sie erscheint auch ohne offenen Twitch-Tab.
+- ★ EINE ANLEITUNG, GLEICH ZU BEGINN ★ Das Panel öffnet sich mit einer Anleitung in zwanzig Kapiteln über alles, was die Erweiterung hinzufügt, mit gezeichneten Beispielen — und sie erscheint auch ohne offenen Twitch-Tab.
 - ★ IHRE GEWOHNHEITEN, GEZEICHNET ★ Die Stunden, in denen Sie wirklich zusehen, als Raster aus sieben Tagen mal vierundzwanzig Stunden.
 - ★ IHRE ZAHLEN ★ Top-Streamer, erkannte Abos, gemerkte gefolgte Kanäle: alles da, alles lesbar.
 - ★ EIN BERICHT ZUM EINFÜGEN ★ Ein Knopf baut einen vollständigen Diagnosebericht, ohne jede persönliche Liste darin — genug, um ein Problem zu melden, ohne etwas preiszugeben.
@@ -240,7 +251,7 @@ Twitch hat ein helles Design. Die Erweiterung merkt es und wechselt mit — ohne
 _______________________________
 
 ➤ ⚙️ UND WENN DU WÄHLEN WILLST
-Alles ist von Anfang an aktiv und nichts muss eingestellt werden. Aber der Bereich „Einstellungen“ im Panel gibt dir fünfunddreißig Einstellungen in die Hand.
+Alles ist von Anfang an aktiv und nichts muss eingestellt werden. Aber der Bereich „Einstellungen“ im Panel gibt dir sechsunddreißig Einstellungen in die Hand.
 
 - ★ WAS DU SIEHST ★ Jedes Abzeichen, die Streamdauer und ihr Format, der Balken „gerade gestartet“, das Gold der Abonnements, die Filter, die Sortierschaltflächen: alles lässt sich per Häkchen ein- und ausschalten.
 - ★ WAS GELADEN WIRD ★ Die Vorschau kann auf das Video verzichten und Abzeichen, Zeitleiste und Miniaturbild behalten — oder einfach in der Qualität heruntergehen. Genug, um sie leicht zu machen, ohne sie zu verlieren.

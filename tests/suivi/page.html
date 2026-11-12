@@ -220,7 +220,7 @@ function peindreMutants(m, maintenant) {
       el('td', { class: 'cache-mobile' }, x.scenarios.join(', ')),
       el('td', {}, badge(x.etat)),
       el('td', { class: 'n' }, x.ms !== undefined ? duree(x.ms) : x.etat === 'en-cours' ? duree(maintenant - x.debut) : ''),
-      el('td', { class: 'cache-mobile' }, x.etat === 'pris' ? (x.rates || [])[0] || '' : x.etat === 'introuvable' ? `texte présent ${x.fois} fois`
+      el('td', { class: 'cache-mobile' }, x.etat === 'pris' ? ((x.rates || [])[0] || '') + (x.plante ? ' — puis le banc a planté' : '') : x.etat === 'introuvable' ? `texte présent ${x.fois} fois`
         : x.etat === 'erreur' ? el('details', { 'data-cle': `mutant:${x.id}` }, el('summary', {}, 'sortie'), el('pre', {}, x.sortie || '')) : x.etat === 'vivant' ? 'rien : trou du banc' : '')))))));
 }
 

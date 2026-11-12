@@ -523,6 +523,12 @@
   "guideSalleTexte": {
     "message": "Il cursore «▶» sulla barra di un co-stream apre i suoi stream fianco a fianco, sulla pagina — ognuno nel suo riquadro.\n• Passaci sopra: dice cosa apre — «Guarda tutti e 3». Dei volti in fondo? Partecipanti che non segui: vai verso di loro per aggiungerli. Maiusc+clic apre subito tutto il co-stream.\n• Un clic su un riquadro gli dà l'audio — anche i tasti da 1 a 6 —, e la chat segue l'audio. Senza chat condivisa, delle schede sopra la chat ne mostrano un'altra senza cambiare l'audio.\n• Al massimo sei stream sullo schermo: gli altri aspettano sotto, e un clic li fa entrare.\n• Gli stream si allineano da soli sul loro audio comune, in circa un minuto di ascolto; senza audio comune, non si muove nulla. «Allineamento automatico» si spegne in «Impostazioni».\n• A sinistra di «Nascondi la chat», due righe dicono a che punto è l'allineamento: su quale riquadro si allinea, poi lo stato di ciascun altro — «in ascolto 2/6» (i calcoli dell'audio che contano, su quelli necessari), «indietro 0,30 s, da confermare», «in verifica», poi «Tutto allineato». Il punto è verde quando tutto è allineato, ambra mentre l'allineamento lavora o aspetta, rosso quando un riquadro non si può correggere, grigio in pausa o spento; il suggerimento dà il dettaglio, riquadro per riquadro.\n• La sala non fa guadagnare punti canale, e le pubblicità di Twitch vi passano come altrove.\n• Per chiuderla: Esc, o un clic sul cursore, diventato «■»."
   },
+  "guideZapTitre": {
+    "message": "Lo zapping"
+  },
+  "guideZapTexte": {
+    "message": "Il pulsante a destra della lente della ricerca apre i tuoi canali seguiti in diretta, a schermo intero, nell'ordine della barra laterale.\n• ↑ e ↓ cambiano canale; alla fine si riparte dall'inizio. Un clic nella colonna di destra porta a quel canale.\n• Il successivo è già caricato — «precaricato» —: appare subito.\n• Invio apre il canale; Esc chiude, e il video della pagina riprende.\n• S aggiunge il canale alla sala, O apre la sala da due canali in su — al massimo sei. Una sala già aperta si chiude all'apertura dello zapping; i suoi stream restano nella selezione.\n• «Audio di …», in basso a destra, disattiva e riattiva l'audio.\n• «Zapping» si disattiva in «Impostazioni»."
+  },
   "guideDebutTitre": {
     "message": "Gli inizi, e i ritorni"
   },
@@ -732,6 +738,15 @@
   },
   "optDescSalleAuto": {
     "message": "Gli stream vengono sincronizzati dal loro suono condiviso — le labbra di ogni stream sulla sua voce come la si sente. Serve circa un minuto di ascolto; senza suono condiviso, niente si muove. Disattivato: niente si muove da solo."
+  },
+  "optGrpZapping": {
+    "message": "Zapping"
+  },
+  "optZapping": {
+    "message": "Zapping"
+  },
+  "optDescZapping": {
+    "message": "Un pulsante a destra della lente della ricerca apre i tuoi canali seguiti in diretta, a schermo intero, uno dopo l'altro: ↑ e ↓ per cambiare, Invio per aprire il canale, S per aggiungerlo alla sala, O per aprire la sala, Esc per uscire. Il successivo è già caricato. Il video della pagina va in pausa durante lo zapping; una sala aperta si chiude, e i suoi stream restano da riaprire. Disattivato: né pulsante né schermo."
   },
   "optGrpAccueil": {
     "message": "Pagina iniziale"
@@ -992,7 +1007,7 @@
     "message": "Ripristinare tutte le impostazioni?"
   },
   "optResetText": {
-    "message": "Le trentacinque impostazioni di questa pagina torneranno al loro valore originale. I tuoi dati — visite, abbonamenti, canali seguiti — non vengono toccati."
+    "message": "Le trentasei impostazioni di questa pagina torneranno al loro valore originale. I tuoi dati — visite, abbonamenti, canali seguiti — non vengono toccati."
   },
   "optValPlein": {
     "message": "Completo"

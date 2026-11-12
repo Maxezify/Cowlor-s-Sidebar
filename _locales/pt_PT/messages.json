@@ -523,6 +523,12 @@
   "guideSalleTexte": {
     "message": "O cursor «▶» na barra de um co-stream abre as transmissões lado a lado, na página — cada uma no seu quadro.\n• Passa o rato por cima: diz o que abre — «Ver os 3». Rostos na ponta? São participantes que não segues: vai até eles para os acrescentar. Shift+clique abre logo todo o co-stream.\n• Um clique num quadro dá-lhe o som — as teclas de 1 a 6 também —, e o chat segue o som. Sem chat partilhado, separadores por cima do chat mostram outro sem mudar o som.\n• No máximo seis transmissões no ecrã: as outras esperam por baixo, e um clique fá-las entrar.\n• As transmissões alinham-se sozinhas pelo som em comum, em cerca de um minuto de escuta; sem som em comum, nada se mexe. «Alinhamento automático» desliga-se em «Definições».\n• À esquerda de «Ocultar o chat», duas linhas dizem em que ponto está o alinhamento: com que quadro se alinha e o estado de cada um dos outros — «em escuta 2/6» (os cálculos do som que contam, sobre os necessários), «atrasado 0,30 s, por confirmar», «em verificação» e, por fim, «Tudo alinhado». O ponto fica verde quando tudo está alinhado, âmbar enquanto o alinhamento trabalha ou espera, vermelho quando um quadro não pode ser corrigido, cinzento em pausa ou desligado; a dica dá o pormenor, quadro a quadro.\n• A sala não dá pontos do canal, e os anúncios do Twitch passam lá como em qualquer lado.\n• Para a fechar: Esc, ou um clique no cursor, que passou a «■»."
   },
+  "guideZapTitre": {
+    "message": "O zapping"
+  },
+  "guideZapTexte": {
+    "message": "O botão à direita da lupa da pesquisa abre os canais que segues e que estão em direto, em ecrã inteiro, pela ordem da barra lateral.\n• ↑ e ↓ mudam de canal; no fim, recomeça do início. Um clique na coluna da direita leva ao canal.\n• O seguinte já está carregado — «pré-carregado» —: aparece de imediato.\n• Enter abre o canal; Esc fecha, e o vídeo da página retoma.\n• S adiciona o canal à sala, O abre a sala a partir de dois — no máximo seis. Uma sala já aberta fecha-se ao abrir o zapping; as suas transmissões ficam na seleção.\n• «Som de …», no canto inferior direito, tira e devolve o som.\n• «Zapping» desativa-se em «Definições»."
+  },
   "guideDebutTitre": {
     "message": "Os começos e os regressos"
   },
@@ -732,6 +738,15 @@
   },
   "optDescSalleAuto": {
     "message": "As transmissões são sincronizadas pelo som em comum — os lábios de cada transmissão na sua voz tal como se ouve. Demora cerca de um minuto de escuta; sem som em comum, nada se mexe. Desligado: nada se mexe sozinho."
+  },
+  "optGrpZapping": {
+    "message": "Zapping"
+  },
+  "optZapping": {
+    "message": "Zapping"
+  },
+  "optDescZapping": {
+    "message": "Um botão à direita da lupa da pesquisa abre os canais que segues e que estão em direto, em ecrã inteiro, um após o outro: ↑ e ↓ para mudar, Enter para abrir o canal, S para o adicionar à sala, O para abrir a sala, Esc para sair. O seguinte já está carregado. O vídeo da página fica em pausa durante o zapping; uma sala aberta fecha-se, e as suas transmissões ficam para reabrir. Desativado: nem botão, nem ecrã."
   },
   "optGrpAccueil": {
     "message": "Página inicial"
@@ -992,7 +1007,7 @@
     "message": "Repor todas as definições?"
   },
   "optResetText": {
-    "message": "As trinta e cinco definições desta página voltam ao valor original. Os teus dados — visitas, subscrições, canais seguidos — não são tocados."
+    "message": "As trinta e seis definições desta página voltam ao valor original. Os teus dados — visitas, subscrições, canais seguidos — não são tocados."
   },
   "optValPlein": {
     "message": "Completo"

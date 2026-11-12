@@ -82,6 +82,17 @@ Esc fecha a sala — ou um clique no cursor, que virou «■».
 
 _______________________________
 
+➤ 📺 ZAPPING: SEUS CANAIS SEGUIDOS AO VIVO, UM DEPOIS DO OUTRO
+Um botão à direita da lupa da busca abre seus canais seguidos que estão ao vivo, em tela cheia — como trocar de canal na TV.
+
+- ★ ↑ E ↓ ★ Um canal depois do outro, na ordem da sua barra lateral; o próximo já está carregado e aparece na hora.
+- ★ TUDO NUM RELANCE ★ Nome, título, categoria, espectadores, tempo ao vivo — e o selo do subathon.
+- ★ PARA A SALA ★ S adiciona um canal à sala, O abre a sala com os que você escolheu.
+
+Enter abre o canal, Esc fecha.
+
+_______________________________
+
 ➤ 💜 SUAS INSCRIÇÕES, EM DOURADO
 Os canais que você realmente apoia não deveriam parecer todos os outros. Agora não parecem mais:
 
@@ -177,7 +188,7 @@ _______________________________
 Uma engrenagem à direita do título da barra lateral, um clique, e tudo o que a extensão aprendeu abre por cima da Twitch. O ícone da extensão, no canto superior direito do navegador, abre exatamente o mesmo painel.
 
 - ★ DOIS CAMINHOS, UM SÓ PAINEL ★ A engrenagem na barra lateral ou o ícone na barra de ferramentas: a mesma página, nos dois casos. Aberta pela engrenagem ela é maior — uma janela da barra de ferramentas é limitada pelo navegador, não por nós.
-- ★ UM GUIA, LOGO DE CARA ★ O painel abre num guia de dezenove capítulos que mostra tudo o que a extensão acrescenta, com exemplos desenhados — e aparece mesmo sem nenhuma aba da Twitch aberta.
+- ★ UM GUIA, LOGO DE CARA ★ O painel abre num guia de vinte capítulos que mostra tudo o que a extensão acrescenta, com exemplos desenhados — e aparece mesmo sem nenhuma aba da Twitch aberta.
 - ★ SEUS HÁBITOS, DESENHADOS ★ As horas em que você assiste de verdade, num quadro de sete dias por vinte e quatro horas.
 - ★ SEUS NÚMEROS ★ Top streamers, inscrições detectadas, canais seguidos na memória: tudo ali, legível.
 - ★ UM RELATÓRIO PRA COLAR ★ Um botão monta um relatório de diagnóstico completo, sem nenhuma lista pessoal dentro — o bastante pra relatar um problema sem revelar nada.
@@ -240,7 +251,7 @@ A Twitch tem um tema claro. A extensão percebe e muda junto — sem recarregar,
 _______________________________
 
 ➤ ⚙️ E SE VOCÊ QUISER ESCOLHER
-Tudo já vem ativo e não há nada para configurar. Mas «Configurações», no painel, devolve a você o controle sobre trinta e cinco configurações.
+Tudo já vem ativo e não há nada para configurar. Mas «Configurações», no painel, devolve a você o controle sobre trinta e seis configurações.
 
 - ★ O QUE VOCÊ VÊ ★ Cada selo, a duração da live e o seu formato, a barra «acabou de começar», o ouro das assinaturas, os filtros, os botões de ordenação: tudo liga e desliga numa caixinha.
 - ★ O QUE É CARREGADO ★ A prévia pode dispensar o vídeo e manter os selos, a linha do tempo e a miniatura — ou simplesmente baixar a qualidade. O suficiente para deixá-la leve sem perdê-la.

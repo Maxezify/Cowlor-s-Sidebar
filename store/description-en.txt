@@ -82,6 +82,17 @@ Escape closes it — or a click on the cursor, now a "■".
 
 _______________________________
 
+➤ 📺 ZAPPING: YOUR FOLLOWED CHANNELS, LIVE, ONE AFTER ANOTHER
+A button to the right of the search magnifier opens your followed channels that are live, full screen — like switching channels on a TV.
+
+- ★ ↑ AND ↓ ★ One channel after another, in the order of your sidebar; the next one is already loaded, so it shows at once.
+- ★ EVERYTHING AT A GLANCE ★ Name, title, category, viewers, how long it has been live — and the subathon badge.
+- ★ ON TO THE ROOM ★ S adds a channel to the room, O opens the room with the ones you picked.
+
+Enter opens the channel, Escape closes.
+
+_______________________________
+
 ➤ 💜 YOUR SUBSCRIPTIONS, IN GOLD
 The channels you actually support shouldn't look like all the others. Now they don't:
 
@@ -177,7 +188,7 @@ _______________________________
 A gear to the right of the sidebar title, one click, and everything the extension has learned opens on top of Twitch. The extension's icon, top right of your browser, opens exactly the same panel.
 
 - ★ TWO WAYS IN, ONE PANEL ★ The gear in the sidebar or the icon in the toolbar: the same page, either way. Opened from the gear it is larger — a toolbar popup is capped by the browser, not by us.
-- ★ A GUIDE, FIRST THING ★ The panel opens on a nineteen-chapter walkthrough of everything the extension adds, with drawn examples — and it shows even with no Twitch tab open.
+- ★ A GUIDE, FIRST THING ★ The panel opens on a twenty-chapter walkthrough of everything the extension adds, with drawn examples — and it shows even with no Twitch tab open.
 - ★ YOUR HABITS, DRAWN ★ The hours you actually watch, laid out as a seven-day by twenty-four-hour grid.
 - ★ YOUR NUMBERS ★ Top streamers, subscriptions spotted, followed channels in memory: all there, readable.
 - ★ A REPORT TO PASTE ★ One button builds a full diagnostic report, with no personal list inside it — enough to report a problem without revealing a thing.
@@ -240,7 +251,7 @@ Twitch has a light theme. The extension notices and switches with it — no relo
 _______________________________
 
 ➤ ⚙️ AND IF YOU WANT TO CHOOSE
-Everything is on from the start and there is nothing to set up. But the panel's "Settings" section hands you thirty-five settings.
+Everything is on from the start and there is nothing to set up. But the panel's "Settings" section hands you thirty-six settings.
 
 - ★ WHAT YOU SEE ★ Every badge, the stream uptime and its format, the "just went live" bar, the subscription gold, the filters, the sort buttons: all of it switches on and off with a checkbox.
 - ★ WHAT GETS LOADED ★ The preview can drop the video and keep its badges, its timeline and its thumbnail — or simply step down in quality. Enough to make it light without losing it.

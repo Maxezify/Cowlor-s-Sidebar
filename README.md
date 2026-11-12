@@ -2183,6 +2183,177 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## Le zapping (v4.33.0)
+
+Un retour, et sa maquette. Publiée sur `claude/chrome-homepage` seulement.
+
+| signalé | ce qui a été fait |
+| --- | --- |
+| « concernant le niveau 3, seul le zapping m'intéresse ; pour y accéder, un bouton juste à droite de la loupe de la zone de recherche ; fais le travail de façon pro, prends la maquette déjà faite comme une bonne base » | l'idée 13, refaite d'après la capture de sa maquette : vos chaînes suivies en direct, en plein écran, l'une après l'autre |
+
+### L'écran
+
+Le direct en plein cadre — un lecteur intégré de Twitch, recadré comme une
+image de couverture : il garde son 16/9 et déborde de l'écran plutôt que de
+laisser des bandes —, et, posés sur des dégradés sombres :
+
+- en haut à gauche, « Zapping · vos suivis en direct » et le rang, « 2 / 7 » ;
+- en haut à droite, les touches, qui sont aussi des boutons : ↑ ↓ changer,
+  Entrée ouvrir la chaîne, S ajouter à la salle (ou l'en retirer), O ouvrir la
+  salle — dès deux chaînes —, Échap quitter ;
+- à droite, la colonne des chaînes — vignette, nom, catégorie, spectateurs —,
+  la courante encadrée, la suivante marquée « préchargée », celles de la salle
+  « dans la salle » ; un clic y mène ;
+- en bas, la chaîne : son visage, son nom et la pastille de son subathon —
+  celle de la barre, avec ses huit teintes —, son titre, « Live », sa
+  catégorie, ses spectateurs, sa durée, « subathon, jour 9 » ;
+- en bas à droite, « Son de … », qui coupe le son et le rend.
+
+Deux écarts à la maquette, voulus : « vos suivis » et non « tes suivis » —
+l'extension vouvoie partout ailleurs ; « Live » et non « EN DIRECT » — c'est le
+mot que la 4.32.0.4 a mis sur toutes les cartes, à la demande.
+
+### L'ordre, celui de la barre
+
+Les chaînes suivies en direct telles que la barre les range, quel que soit son
+tri : c'est la liste qu'on a sous les yeux. Celles qu'elle ne montre pas
+(repliée, pas encore rendue) suivent, par spectateurs ; en Top Chaînes, la
+barre ne montre pas vos suivis, et seul l'ordre des spectateurs vaut. Le
+zapping part de la chaîne de la page, si c'en est une, sinon de la première ;
+au bout, il revient au début, comme une télécommande. Il se tient à jour
+pendant qu'on zappe ; la chaîne courante qui s'arrête reste où elle était,
+« Hors ligne » : on ne vous déplace pas.
+
+### La suivante est déjà là
+
+Un second lecteur, muet et invisible, charge la chaîne d'après — dans le sens
+où l'on va —, une demi-seconde après qu'on est arrivé : la bande passante va
+d'abord au courant, et des flèches tenues ne chargent pas tout. Il devient le
+courant d'un coup — le même cadre, rien ne se recharge. Une chaîne qu'on
+n'attendait pas — un clic dans la colonne, un changement de sens — se charge
+sous l'image d'avant, qui reste jusqu'à ce que la nouvelle joue : le banc
+compte les images, aucune n'est sans lecteur visible. Deux lecteurs au plus,
+donc ; la phase 0 de la salle a mesuré ce qu'en coûte un.
+
+### Le son, le clavier, la page dessous
+
+Tout lecteur intégré démarre muet : la lecture automatique l'exige. Le pont de
+la salle (`cadres.js`), éveillé par le nom des lecteurs du zapping, rend le son
+au courant par le bouton même du lecteur, et le relance si Twitch le remet en
+muet, cinq fois au plus ; un lecteur qui n'est pas le courant et que Twitch
+rendrait au son se retait. Un capot transparent couvre les lecteurs : un clic
+dans l'image ne leur donne pas le focus, et les touches restent à l'écran, qui
+ne les laisse pas passer à Twitch. Tab tourne dans l'écran. La vidéo de la page
+est mise en pause à l'ouverture et relancée à la fermeture, comme pour la
+salle ; Échap rend le focus au bouton.
+
+Le nom des lecteurs, un nom partagé de plus entre les ponts et le module
+principal : dix-huit.
+
+### La salle
+
+S ajoute la chaîne courante à la salle, ou l'en retire ; O ouvre la salle avec
+celles qu'on a choisies, dès deux, six au plus — la septième est refusée, et
+l'écran le dit. La salle s'ouvre par son chemin habituel : sur « Parcourir »,
+sur place ; ailleurs, par une vraie navigation (cf. 4.24.0.8). Une salle déjà
+ouverte se ferme à l'ouverture du zapping — deux écrans de lecteurs se
+disputeraient le son — et ses streams passent dans la sélection : O la rouvre
+avec ceux qu'on y ajoute. Sans la salle — son réglage coupé —, ni S ni O.
+
+### Le bouton, à droite de la loupe
+
+Relevé sur la vraie barre, fournie par l'utilisateur : la loupe du champ est
+`button.tw-combo-input__button-icon`, dans `[data-a-target="nav-search-box"]` ;
+le conteneur de la recherche a pour voisin, dans la même rangée, le bouton de
+la recherche repliée des fenêtres étroites. Le bouton se pose au bout de cette
+rangée, et la **mesure** dit s'il est bien collé à droite de la loupe visible :
+centres alignés à six pixels près, à moins de 32 pixels. Sinon, il se pose
+dans la ligne même du champ, juste après la loupe. React peut refaire la
+barre : un observateur sur elle le repose avant l'image suivante ; la barre
+entière remplacée, un coup d'œil toutes les deux secondes. Le rapport dit la
+voie (`rangee`, `champ`). Un carré comme la loupe, aux couleurs de Twitch — ses
+variables, avec les valeurs relevées en repli. « Zapping », dans « Réglages »,
+l'enlève : c'est le trente-sixième réglage. Le mode d'emploi a son chapitre,
+juste après celui de la salle — il en compte vingt, et les fiches du Store le
+disent —, et les fiches leur section.
+
+### Ce qui n'a pas pu être vérifié ici
+
+- **le son sur le vrai lecteur intégré.** Le zapping prend le pont de la salle
+  tel quel ; c'est pour la salle que la phase 0 a établi, sur le vrai Twitch,
+  qu'un lecteur intégré se rend au son par son bouton sans que le navigateur
+  l'arrête. Le banc l'éprouve sur un faux lecteur ;
+- **la barre réelle.** Le bouton est posé et mesuré sur une reproduction du
+  relevé — mêmes repères, mêmes classes, même imbrication —, pas sur la page de
+  Twitch, que cette machine ne peut pas joindre ;
+- **le coût de deux lecteurs** à la fois, sur une vraie connexion.
+
+### Le banc
+
+231, nouveau, vingt-quatre assertions : le bouton à sa place, mesuré, reposé ;
+l'écran, l'ordre de la barre, le capot, la page en pause ; le courant au son,
+la suivante préchargée, muette, servie sans se recharger ; le sens ; aucune
+image sans lecteur ; le tour complet ; le bas de l'écran ; le son coupé et
+rendu ; la salle, sa borne, son ouverture, la salle ouverte refermée ; Tab,
+Échap, Entrée, le départ depuis la page d'une chaîne ; la chaîne qui s'arrête ;
+le réglage ; deux autres barres ; aucune chaîne ; les sources ; le mode
+d'emploi. 120 : trente-six réglages ; 96 : vingt chapitres, que les douze
+fiches annoncent, et le chapitre du zapping cite son réglage et « Réglages ».
+Le faux Twitch apprend la barre du haut, en trois
+formes, et le faux lecteur les deux boutons que le pont presse.
+
+**Vingt-neuf mutants nommés, tous pris.** Quatre vivaient d'abord, quatre trous
+du banc, comblés : « sans coup d'œil sur la barre » — le redimensionnement qui
+suit l'ouverture de la page reposait le bouton 250 ms plus tard, à la place du
+coup d'œil manquant : b) attend qu'il soit passé, et ne voit plus que ses
+propres chemins ; « Tab qui sort de l'écran » — l) demandait seulement que le
+focus reste dans l'écran : il doit aller de bouton en bouton, et revenir au
+premier ; « le bouton du son qui ne coupe rien » — le relevé suivant du pont
+coupait le son à sa place : i) retient ces relevés le temps de la mesure, c'est
+le bouton qui doit couper ; « les lecteurs devant l'écran » — les lecteurs
+ignorent la souris, et le point de mesure voyait au travers : c) la leur rend
+le temps d'une mesure, et le compteur doit rester dessus. Deux autres faisaient
+planter le banc, et le lanceur les comptait en erreur : « O à une seule
+chaîne » fermait l'écran, et la lecture suivante plantait avant toute
+assertion — elle rend désormais un relevé vide, et j) tombe ; « l'ordre des
+spectateurs » faisait tomber une assertion, puis planter le banc. Le lanceur
+compte désormais pris le mutant dont une assertion est tombée avant le
+plantage, et le note : trois le sont ainsi, marqués au tableau.
+
+| mutant | ce qui tombe |
+| --- | --- |
+| le bouton avant la loupe | 231 a), b), l) (Échap), p) |
+| le bouton posé sans mesure | 231 p) |
+| sans observateur sur la barre | 231 b) |
+| sans coup d'œil sur la barre | 231 b) — puis le banc plante |
+| l'ordre des spectateurs, pas celui de la barre | 231 c), d) — puis le banc plante |
+| le préchargé jeté et rechargé | 231 e), f) |
+| le préchargement toujours vers l'avant | 231 f) |
+| l'image d'avant retirée sur-le-champ | 231 f) |
+| l'image d'avant retirée dès le changement | 231 f) |
+| le son jamais rendu | 231 d), e), i) |
+| le préchargé laissé au son | 231 d) (le préchargé se retait) |
+| pas de capot | 231 c) |
+| les touches qui passent à Twitch | 231 e) |
+| Tab qui sort de l'écran | 231 l) |
+| la borne de la salle ignorée | 231 j) (six au plus), k), k) (rouvert) |
+| O à une seule chaîne | 231 j) — puis le banc plante |
+| la salle ouverte laissée | 231 k) (rouvert) |
+| la vidéo de la page laissée | 231 c), l) (Échap) |
+| la vidéo de la page pas relancée | 231 l) (Échap) |
+| la courante qui s'arrête sort de la liste | 231 m), n) |
+| sans pastille de subathon | 231 h) |
+| le bouton du son qui ne coupe rien | 231 i) |
+| le réglage coupé, le bouton reste | 231 o) |
+| le départ toujours à la première | 231 n) |
+| Entrée sans navigation | 231 n) |
+| le pont fermé aux lecteurs du zapping | 231 d), d) (le préchargé se retait), e), i), r) |
+| le préchargé visible | 231 d) |
+| les lecteurs devant l'écran | 231 c) |
+| la molette laissée | 231 l) (la molette) |
+
+`npm run check` : 2323 assertions dans 230 scénarios, toutes vertes.
+
 ## Le ruban poli, et un tableau pour suivre le banc (v4.32.0.5)
 
 Deux retours. Publiée sur `claude/chrome-homepage` seulement.
@@ -24938,7 +25109,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | les six fichiers JavaScript livrés — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 229 scénarios, 2299 assertions |
+| `npm test` | le harnais Playwright : 230 scénarios, 2323 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -24973,7 +25144,9 @@ Le banc n'en dépend pas : `run.mjs` n'écrit ses événements que si `TSE_SUIVI
 désigne un fichier, et une écriture qui échoue ne fait rien échouer. Les
 relevés vivent dans `tests/suivi/.etat/`, ignoré par git. Un mutant est
 appliqué à une copie de l'arbre, jamais au dépôt ; une construction ratée ou
-un banc sans bilan donnent ERREUR, pas un verdict.
+un banc qui plante avant qu'une assertion tombe donnent ERREUR, pas un
+verdict ; une assertion tombée, puis un plantage : PRIS, et le plantage est
+noté.
 
 ### Le paquet part sans ses commentaires (v3.59)
 
@@ -24985,13 +25158,13 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 2174 Ko | 1000 Ko | 4 659 → **2** |
-| `cadres.js` | 74 Ko | 34 Ko | 169 → **0** |
+| `content.js` | 2236 Ko | 1052 Ko | 4 721 → **2** |
+| `cadres.js` | 74 Ko | 34 Ko | 170 → **0** |
 | `adblock.js` | 126 Ko | 101 Ko | 301 → **2** |
-| `panneau.js` | 165 Ko | 85 Ko | 226 → **0** |
+| `panneau.js` | 166 Ko | 85 Ko | 227 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 26 → **0** |
 | `background.js` | 10 Ko | 2 Ko | 22 → **0** |
-| **les six** | **2563 Ko** | **1226 Ko** | **−52 %** |
+| **les six** | **2626 Ko** | **1278 Ko** | **−51 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
