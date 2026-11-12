@@ -85,7 +85,8 @@ _______________________________
 ➤ 📺 ZAPPING: OBSERWOWANE KANAŁY NA ŻYWO, JEDEN PO DRUGIM
 Przycisk na prawo od lupy wyszukiwania otwiera obserwowane kanały, które nadają na żywo, na pełnym ekranie — jak przełączanie kanałów w telewizji.
 
-- ★ ↑ I ↓ ★ Kanał po kanale, w kolejności z Twojego paska bocznego; następny jest już wczytany, więc pojawia się od razu.
+- ★ ↑ I ↓ ★ Kanał po kanale, w kolejności z Twojego paska bocznego; poprzedni i następny są już wczytane, więc pojawiają się od razu.
+- ★ TYLKO OBRAZ ★ Prawdziwy pełny ekran; gdy mysz przestaje się ruszać, znika wszystko poza transmisją.
 - ★ WSZYSTKO NA PIERWSZY RZUT OKA ★ Nazwa, tytuł, kategoria, widzowie, czas transmisji — i odznaka subathonu.
 - ★ DO SALI ★ S dodaje kanał do sali, O otwiera salę z wybranymi kanałami.
 

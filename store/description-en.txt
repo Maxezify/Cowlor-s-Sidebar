@@ -85,7 +85,8 @@ _______________________________
 ➤ 📺 ZAPPING: YOUR FOLLOWED CHANNELS, LIVE, ONE AFTER ANOTHER
 A button to the right of the search magnifier opens your followed channels that are live, full screen — like switching channels on a TV.
 
-- ★ ↑ AND ↓ ★ One channel after another, in the order of your sidebar; the next one is already loaded, so it shows at once.
+- ★ ↑ AND ↓ ★ One channel after another, in the order of your sidebar; the previous and the next ones are already loaded, so they show at once.
+- ★ JUST THE PICTURE ★ True full screen; when the mouse stops moving, everything fades but the stream.
 - ★ EVERYTHING AT A GLANCE ★ Name, title, category, viewers, how long it has been live — and the subathon badge.
 - ★ ON TO THE ROOM ★ S adds a channel to the room, O opens the room with the ones you picked.
 

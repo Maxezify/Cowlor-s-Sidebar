@@ -4410,12 +4410,16 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     // l'anneau du curseur ne tourne pas plus longtemps.
     SALLE_PRETE_MAX_MS:    3_000,
     // === Le zapping (4.33.0) ===
-    // Le second lecteur attend que le courant ait pris sa place ; un lecteur
+    // Les lecteurs préchargés attendent que le courant ait pris sa place —
+    // celui du sens où l'on va d'abord, l'autre ensuite (4.33.0.1) ; un lecteur
     // que son pont ne décrit pas paraît quand même au bout de ZAP_PRET_MAX_MS ;
     // le fondu d'une image à l'autre ; la relecture des chaînes ; l'avis à
     // l'écran ; le son relancé, comme dans la salle ; la garde du bouton dans
-    // la barre, et le délai après un redimensionnement.
+    // la barre, et le délai après un redimensionnement. L'interface s'efface
+    // après ZAP_REPOS_MS sans que la souris bouge (4.33.0.1).
     ZAP_PRECHARGE_MS:      500,
+    ZAP_PRECHARGE_AUTRE_MS: 1_500,
+    ZAP_REPOS_MS:          3_000,
     ZAP_PRET_MAX_MS:       4_000,
     ZAP_FONDU_MS:          180,
     ZAP_RELEVE_MS:         2_000,
@@ -4687,6 +4691,12 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     ACCUEIL_RUBAN_RECUL:    120,
     ACCUEIL_RUBAN_PERSPECTIVE: 1200,
     ACCUEIL_RUBAN_REFLET:   0.34,
+    // Le fondu d'une carte qui change de bout quand le ruban tourne (4.33.0.1, cf. RUBAN).
+    ACCUEIL_RUBAN_ENTREE_MS: 320,
+    /* Le temps qu'on laisse au ruban pour arriver à la carte qu'on lui a
+       donnée (un défilement doux en prend moins d'une seconde) : passé, un
+       défilement qui finit ailleurs est réputé fait à la main. */
+    ACCUEIL_RUBAN_MENE_MS: 1_500,
     /* LE RELIEF AU SURVOL (4.32.0.3), celui des cartes de Twitch : l'image
        monte de six pixels vers la droite, un relief de la couleur de la
        chaîne paraît à gauche et dessous. Six pixels : 0,6 rem, le rem de
@@ -9255,6 +9265,19 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       background: rgba(14, 14, 16, 0.92); box-shadow: inset 0 0 0 1px rgba(169, 112, 255, 0.55); font-size: 15px;
     }
     .tse-zap__avis[hidden] { display: none; }
+    /* AU REPOS (4.33.0.1, cf. L'INTERFACE AU REPOS) : tout ce qui se pose sur
+       le direct s'efface, le pointeur avec ; l'avis, lui, dit ce qu'on vient
+       de faire et garde sa propre durée. Le retour est plus vif que le
+       départ : on attend ce qu'on cherche, pas ce qu'on quitte. Rien ne
+       bouge dans la mise en page : seule l'opacité change, et elle passe au
+       compositeur. */
+    .tse-zap__capot, .tse-zap__trait, .tse-zap__compteur, .tse-zap__aide, .tse-zap__liste, .tse-zap__infos, .tse-zap__son {
+      transition: opacity 0.18s ease;
+    }
+    #tse-zap.tse-zap--repos { cursor: none; }
+    #tse-zap.tse-zap--repos :is(.tse-zap__capot, .tse-zap__trait, .tse-zap__compteur, .tse-zap__aide, .tse-zap__liste, .tse-zap__infos, .tse-zap__son) {
+      opacity: 0; transition-duration: 0.6s;
+    }
     @media (max-width: 1100px) {
       #tse-zap { --tse-zap-colonne: 260px; }
       .tse-zap__vignette { width: 88px; }
@@ -9402,6 +9425,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       mask-image: linear-gradient(90deg, transparent, #000 var(--tse-ruban-fondu), #000 calc(100% - var(--tse-ruban-fondu)), transparent);
     }
     .tse-acc-ruban::-webkit-scrollbar { display: none; }
+    /* Le temps d'un chemin mené par nous, l'aimant se tait (cf. allerA). */
+    .tse-acc-liste.tse-acc-ruban.tse-acc-ruban--mene { scroll-snap-type: none; }
     .tse-acc-ruban > .tse-acc-carte, .tse-acc-ruban > .tse-acc-carte-attente {
       flex: 0 0 var(--tse-ruban-carte); position: relative; isolation: isolate; scroll-snap-align: center;
     }
@@ -9431,6 +9456,13 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        banc (213). Leur ligne de temps est le défilement : leurs valeurs ne
        changent que quand le ruban défile. La rotation et le fondu des
        légendes, eux, n'animent que transformation et opacité. */
+    /* LA CARTE QUI CHANGE DE BOUT (4.33.0.1, cf. RUBAN) entre en fondu : le
+       tour la fait passer d'un bout de la ligne à l'autre, et elle ne surgit
+       pas. Sans lignes de temps, elle est seule ; avec elles, elle s'ajoute
+       à celle des plans (ci-dessous) : cette règle-ci vient AVANT, sans
+       quoi elle remplacerait l'autre. */
+    .tse-acc-ruban > .tse-acc-carte--arrivee { animation: tse-acc-ruban-arrivee ${CFG.ACCUEIL_RUBAN_ENTREE_MS}ms ease-out both; }
+    @keyframes tse-acc-ruban-arrivee { from { opacity: 0; } }
     @supports (animation-timeline: view()) {
       .tse-acc-liste.tse-acc-ruban { gap: 0; }
       .tse-acc-ruban > .tse-acc-carte, .tse-acc-ruban > .tse-acc-carte-attente {
@@ -9469,6 +9501,10 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         content: ''; position: absolute; left: 4%; right: 4%; top: 100%; height: 36%; z-index: -1; pointer-events: none;
         background: radial-gradient(ellipse 50% 100% at 50% 0, var(--tse-accent), transparent 72%);
         opacity: ${CFG.ACCUEIL_RUBAN_REFLET}; animation: tse-acc-ruban-reflet linear both; animation-timeline: --tse-ruban-traversee;
+      }
+      .tse-acc-ruban > .tse-acc-carte--arrivee {
+        animation: tse-acc-ruban-plan linear both, tse-acc-ruban-arrivee ${CFG.ACCUEIL_RUBAN_ENTREE_MS}ms ease-out both;
+        animation-timeline: view(inline), auto;
       }
     }
     @keyframes tse-acc-ruban {
@@ -17185,7 +17221,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       /* « À la une » (4.32.0.3) : d'où viennent ses chaînes — l'ordre du
          carrousel lu sur ses places, ou celui de la page —, combien il en
          porte, combien se montrent, combien attendent leur réponse. */
-      une: { voie: null, lues: 0, montrees: 0, attente: 0, reserve: false, demandes: 0, relectures: 0, centrages: 0 },
+      une: { voie: null, lues: 0, montrees: 0, attente: 0, reserve: false, demandes: 0, relectures: 0, centrages: 0,
+             // Le ruban circulaire (4.33.0.1) : la carte du centre, et les tours faits pour la garder entourée.
+             tete: null, tours: 0 },
       debut: { envois: 0, demandes: 0, archives: 0, sansArchive: 0, sansStream: 0,
                jetons: 0, fermees: 0, illisibles: 0, refus: 0, reseau: 0 },
       // Vos rendez-vous (4.27.0) : ce qui est montré, et si l'agenda tourne encore.
@@ -17769,12 +17807,35 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        script : cf. la feuille. Le script ne fait que trois choses :
          - les deux flèches, qui mènent d'une carte à la suivante — une molette
            verticale ne fait pas défiler un ruban ;
-         - leur état : la première carte au centre, pas de « Précédent » ;
          - un clic sur une carte de côté l'amène au centre, au lieu d'ouvrir sa
            chaîne : c'est le geste d'un ruban. Celle du centre s'ouvre ; un clic
-           du milieu, ou avec Ctrl, Maj ou Cmd, ouvre toujours.
-       Les positions sont celles de la mise en page (offsetLeft), pas celles
-       qu'on voit : une carte qui pivote n'a pas bougé. */
+           du milieu, ou avec Ctrl, Maj ou Cmd, ouvre toujours ;
+         - le tour (4.33.0.1, ci-dessous).
+       Les positions sont celles de la mise en page (offsetLeft, la boîte de la
+       carte), pas celles qu'on voit : une carte qui pivote n'a pas bougé.
+
+       CIRCULAIRE, ET TOUJOURS ENTOURÉ (4.33.0.1). « De temps en temps, le
+       ruban semble décalé — quand j'arrive sur la page » : sa dernière carte
+       au centre, toutes les autres à gauche, relevé sur une capture. La
+       cause, reproduite au banc : le carrousel de Twitch tourne de lui-même
+       peu après l'arrivée ; ses places changent, l'ordre de nos cartes aussi,
+       et le navigateur, qui garde aimantée la carte qu'il tenait, l'a suivie
+       jusqu'au bout de la ligne. Le ruban ne s'en remet plus à l'aimant :
+         - LA CARTE DE TÊTE est nommée — la première du carrousel à la
+           première peinture, puis celle qu'on amène au centre — et c'est elle
+           qu'on centre, à chaque peinture ;
+         - LE RUBAN TOURNE, comme le carrousel dont il vient : la carte de
+           tête est au milieu de la ligne, ses voisines des deux côtés, dans
+           l'ordre du carrousel, qui boucle (left-2, left-1, center, right-1,
+           right-2 : ses places mêmes). Un carrousel qui tourne garde son
+           cycle : rien ne bouge chez nous ;
+         - LE TOUR NE SE VOIT PAS : les cartes passent d'un bout à l'autre de la
+           ligne, et le défilement est compensé d'autant dans la même tâche —
+           la carte la plus proche du centre reste où elle était, au pixel. Il
+           se fait AVANT d'aller vers une carte — sa voisine du bout est déjà
+           là quand elle arrive — et, après un défilement à la main, à son
+           terme. Une carte qui change de bout entre en fondu ;
+         - les flèches ne s'éteignent plus : il n'y a pas de bout. */
     const cartesRuban = (liste) => [...liste.children].filter((c) => !c.hidden);
     const auCentre = (liste) => {
       const milieu = liste.scrollLeft + liste.clientWidth / 2;
@@ -17788,28 +17849,115 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     const centrer = (liste, carte) => {
       liste.scrollTo({ left: carte.offsetLeft + carte.offsetWidth / 2 - liste.clientWidth / 2, behavior: 'smooth' });
     };
+    /* L'état du ruban : sa carte de tête (une clé) ; s'il défile — du
+       premier `scroll` à `scrollend` ; et, quand c'est nous qui le menons,
+       vers quelle carte et depuis quand (`vers`, `versT`). Un tour, avant
+       d'aller, défile lui aussi, à l'instant : sa fin ne doit pas passer pour
+       celle d'un défilement à la main, qui changerait la tête. */
+    const etatsRuban = new WeakMap();
+    const etatRuban = (liste) => {
+      let e = etatsRuban.get(liste);
+      if (!e) etatsRuban.set(liste, (e = { tete: null, defile: false, vers: null, versT: 0 }));
+      return e;
+    };
+    const menePar = (e) => e.vers !== null && performance.now() - e.versT < CFG.ACCUEIL_RUBAN_MENE_MS;
+    const carteDeTete = (liste, k = etatRuban(liste).tete) =>
+      k === null ? null : cartesRuban(liste).find((c) => c.dataset.tseCle === k) || null;
+    // À l'écran, au sous-pixel : du milieu du ruban au milieu d'une carte.
+    const ecartAuMilieu = (liste, carte) => {
+      const r = carte.getBoundingClientRect(), l = liste.getBoundingClientRect();
+      return r.left + r.width / 2 - (l.left + liste.clientLeft + liste.clientWidth / 2);
+    };
+    // La place de la carte de tête : le milieu ; à nombre pair, la carte de plus va à droite, du côté de « Suivant ».
+    const milieuRuban = (n) => Math.floor((n - 1) / 2);
+    const entrerEnFondu = (carte) => {
+      carte.classList.remove('tse-acc-carte--arrivee');
+      void carte.offsetWidth;
+      carte.classList.add('tse-acc-carte--arrivee');
+    };
+    /* LE TOUR : `carte` au milieu de la ligne, sans que rien ne bouge à
+       l'écran (cf. RUBAN). À deux cartes, pas de tour : l'une est à côté de
+       l'autre des deux côtés à la fois. */
+    const tourner = (liste, carte) => {
+      const cartes = cartesRuban(liste);
+      const n = cartes.length;
+      const decalage = cartes.indexOf(carte) - milieuRuban(n);
+      if (n < 3 || !decalage || !liste.clientWidth) return;
+      const repere = auCentre(liste);
+      const avant = ecartAuMilieu(liste, repere);
+      const bougees = decalage > 0 ? cartes.slice(0, decalage) : cartes.slice(n + decalage);
+      if (decalage > 0) liste.append(...bougees); else liste.prepend(...bougees);
+      liste.scrollLeft += ecartAuMilieu(liste, repere) - avant;
+      for (const c of bougees) entrerEnFondu(c);
+      bilan.une.tours++;
+    };
+    // Aller vers une carte : elle devient la tête, le ruban tourne, puis défile jusqu'à elle.
+    /* L'AIMANT SUSPENDU LE TEMPS DU CHEMIN : un défilement « obligatoire »
+       recolle toute position posée à la main à la carte la plus proche. Un
+       second clic en plein chemin — la compensation pose le ruban entre deux
+       cartes — sautait ainsi jusqu'à une demi-carte (137 pixels relevés au
+       banc, sous charge). Le chemin mène de toute façon à une carte : l'aimant
+       revient à son terme (cf. finDefilement). */
+    const allerA = (liste, carte) => {
+      const e = etatRuban(liste);
+      e.tete = e.vers = carte.dataset.tseCle;
+      e.versT = performance.now();
+      bilan.une.tete = e.tete;
+      liste.classList.add('tse-acc-ruban--mene');
+      tourner(liste, carte);
+      centrer(liste, carte);
+    };
     const mener = (liste, sens) => {
       const cartes = cartesRuban(liste);
-      const i = cartes.indexOf(auCentre(liste));
-      const cible = cartes[i + sens];
-      if (cible) centrer(liste, cible);
+      const n = cartes.length;
+      if (n < 2 || 'tseAttente' in liste.dataset) return;
+      const i = cartes.indexOf(carteDeTete(liste) || auCentre(liste));
+      allerA(liste, cartes[(((i + sens) % n) + n) % n]);
+    };
+    /* LA TÊTE AU CENTRE, après une peinture ou un changement de taille, à
+       l'instant. PENDANT UN DÉFILEMENT, on ne le contrarie pas : si la
+       peinture a déplacé ce qu'on voyait (`repere` : la carte du centre
+       avant elle, et son écart), on le remet où il était ; et si c'est nous
+       qui menions le ruban, on reprend le chemin vers sa carte. Un
+       défilement à la main n'est jamais ramené : sa fin dira la tête. */
+    const poserTete = (liste, repere = null, cle = undefined) => {
+      const tete = carteDeTete(liste, cle);
+      if (!tete || !liste.clientWidth) return;
+      const e = etatRuban(liste);
+      if (e.defile) {
+        if (!repere || !repere.carte.isConnected) return;
+        const d = ecartAuMilieu(liste, repere.carte) - repere.ecart;
+        if (Math.abs(d) < 0.5) return;
+        liste.scrollLeft += d;
+        if (menePar(e)) centrer(liste, tete);
+        return;
+      }
+      const d = ecartAuMilieu(liste, tete);
+      if (Math.abs(d) >= 0.5) liste.scrollLeft += d;
+    };
+    /* Un défilement fini. Mené par nous, il n'est fini qu'à sa carte : la
+       fin du tour qui le précède ne compte pas. À la main, il a pu changer
+       la tête : la carte du centre la devient. Puis le ruban tourne, pour la
+       garder entourée. */
+    const finDefilement = (liste) => {
+      const e = etatRuban(liste);
+      e.defile = false;
+      if ('tseAttente' in liste.dataset) return;
+      const c = auCentre(liste);
+      if (!c) return;
+      if (menePar(e) && c.dataset.tseCle !== e.vers) return;
+      e.vers = null;
+      liste.classList.remove('tse-acc-ruban--mene');
+      if (c.dataset.tseCle !== e.tete) { e.tete = c.dataset.tseCle; bilan.une.tete = e.tete; }
+      tourner(liste, c);
     };
     const majFleches = (liste) => {
-      const cartes = cartesRuban(liste);
-      const i = cartes.indexOf(auCentre(liste));
       const cadre = liste.parentElement;
       if (!cadre) return;
+      const off = 'tseAttente' in liste.dataset || cartesRuban(liste).length < 2;
       for (const b of cadre.querySelectorAll(':scope > .tse-acc-ruban-fleche')) {
-        const sens = Number(b.dataset.tseSens);
-        const off = 'tseAttente' in liste.dataset || i < 0 || !cartes[i + sens];
         if (b.disabled !== off) b.disabled = off;
       }
-    };
-    let flechesPrevues = false;
-    const flechesBientot = (liste) => {
-      if (flechesPrevues) return;
-      flechesPrevues = true;
-      requestAnimationFrame(erreurs.garde('accueil', () => { flechesPrevues = false; majFleches(liste); }));
     };
     const centrerAuClic = (liste, ev) => {
       if (ev.button !== 0 || ev.ctrlKey || ev.metaKey || ev.shiftKey || ev.altKey) return;
@@ -17818,7 +17966,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       ev.preventDefault();
       ev.stopPropagation();
       bilan.une.centrages++;
-      centrer(liste, carte);
+      allerA(liste, carte);
     };
 
     const fabriquerRayon = (cle, classe, titre, liste) => {
@@ -17902,8 +18050,12 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         return b;
       };
       cadreUne.append(flecheUne(-1), lUne, flecheUne(1));
-      lUne.addEventListener('scroll', () => flechesBientot(lUne), { passive: true });
+      lUne.addEventListener('scroll', () => { etatRuban(lUne).defile = true; }, { passive: true });
+      lUne.addEventListener('scrollend', erreurs.garde('accueil', () => finDefilement(lUne)));
       lUne.addEventListener('click', erreurs.garde('accueil', (ev) => centrerAuClic(lUne, ev)), true);
+      lUne.addEventListener('animationend', (ev) => {
+        if (ev.animationName === 'tse-acc-ruban-arrivee') ev.target.classList.remove('tse-acc-carte--arrivee');
+      });
       const une = fabriquerRayon('une', 'tse-acc-rayon--une', hUne, cadreUne);
       const hTop = elt('h2', 'tse-acc-titre');
       const tTop = elt('span', null, S.uiAccTop);
@@ -17968,6 +18120,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
           if (l === large) return;
           large = l;
           plier(z.une);
+          poserTete(z.lUne);
           plier(z.top);
           plier(z.rdv);
           plier(z.hab);
@@ -18854,19 +19007,42 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
          n'est en direct n'a rien à attendre. */
       const reserve = voulu && !items.length && (!logins.length || attente > 0)
         && performance.now() - arrivee < CFG.ACCUEIL_UNE_ATTENTE_MS;
+      const ruban = etatRuban(z.lUne);
       if (reserve !== ('tseAttente' in z.lUne.dataset)) {
         z.lUne.replaceChildren();
         if (reserve) { z.lUne.dataset.tseAttente = ''; z.lUne.setAttribute('aria-busy', 'true'); }
         else { delete z.lUne.dataset.tseAttente; z.lUne.removeAttribute('aria-busy'); }
       }
+      // Ce qu'on voit avant de peindre : la carte du centre et son écart (cf. poserTete).
+      const c0 = z.lUne.clientWidth ? auCentre(z.lUne) : null;
+      const repere = c0 && { carte: c0, ecart: ecartAuMilieu(z.lUne, c0) };
       if (reserve) {
         if (!z.lUne.children.length) for (let i = 1; i <= UNE_ATTENTE; i++) z.lUne.append(fabriquerCarteAttente(i));
       } else {
-        rangee(z.lUne, items, (it) => it.login, (it) => fabriquerCarte(it.login),
+        /* LA CARTE DE TÊTE (cf. RUBAN) : la première du carrousel à la
+           première peinture ; ensuite, celle qu'on a menée au centre. Partie,
+           elle cède sa place à la carte restante la plus proche du centre.
+           Un carrousel lu vide — React le redessine — ne l'oublie pas : les
+           mêmes cartes, revenues, la retrouvent. */
+        const cles = items.map((it) => it.login);
+        if (cles.length && !cles.includes(ruban.tete)) {
+          const proche = ruban.tete !== null && cartesRuban(z.lUne)
+            .filter((c) => cles.includes(c.dataset.tseCle))
+            .sort((x, y) => Math.abs(ecartAuMilieu(z.lUne, x)) - Math.abs(ecartAuMilieu(z.lUne, y)))[0];
+          ruban.tete = proche ? proche.dataset.tseCle : cles[0] ?? null;
+        }
+        // L'ordre du carrousel, qui boucle, tourné pour que la tête soit au milieu.
+        const t = cles.indexOf(ruban.tete);
+        const d = t < 0 || items.length < 3 ? 0 : t - milieuRuban(items.length);
+        const tournes = d ? [...items.slice(d), ...items.slice(0, d)] : items;
+        rangee(z.lUne, tournes, (it) => it.login, (it) => fabriquerCarte(it.login),
                (n, it) => majCarte(n, donneesSuivie(it)));
       }
+      bilan.une.tete = ruban.tete;
       z.une.hidden = !items.length && !reserve;
       plier(z.une);
+      // Les places vides, entourées elles aussi : celle du milieu au centre.
+      poserTete(z.lUne, repere, reserve ? 'attente:' + (milieuRuban(UNE_ATTENTE) + 1) : undefined);
       majFleches(z.lUne);
       Object.assign(bilan.une, { voie, lues: logins.length, montrees: items.length, attente, reserve });
     };
@@ -23323,12 +23499,19 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
      chaîne de la page, si c'en est une ; sinon de la première. Au bout de la
      liste, on revient au début, comme une télécommande.
 
-     LA SUIVANTE EST DÉJÀ LÀ : un second lecteur, muet et invisible, charge la
-     chaîne d'après — dans le sens où l'on va —, et devient le courant d'un
-     coup. Une chaîne qu'on n'attendait pas (un clic dans la colonne, un
-     changement de sens) se charge sous l'image d'avant, qui reste jusqu'à ce
-     que la nouvelle joue : jamais d'écran noir entre les deux. Deux lecteurs
-     au plus, donc : la phase 0 de la salle a mesuré ce qu'en coûte un.
+     LES VOISINES SONT DÉJÀ LÀ (4.33.0.1 ; la suivante seule en 4.33.0) :
+     deux lecteurs, muets et invisibles, chargent la chaîne d'avant et celle
+     d'après — celle du sens où l'on va d'abord —, et l'une ou l'autre
+     devient le courant d'un coup. L'ancien courant, à chaque pas, est une
+     voisine du nouveau : il reste, muet et invisible, au lieu d'être jeté
+     puis rechargé. Une chaîne qu'on n'attendait pas (un clic dans la
+     colonne) se charge sous l'image d'avant, qui reste jusqu'à ce que la
+     nouvelle joue : jamais d'écran noir entre les deux. Trois lecteurs au
+     plus, donc, quatre le temps d'un fondu ; les préchargés se mettent en
+     pause quand l'onglet passe en arrière-plan.
+
+     EN PLEIN ÉCRAN, ET L'INTERFACE S'EFFACE (4.33.0.1) : cf. LE PLEIN ÉCRAN
+     et L'INTERFACE AU REPOS, plus bas.
 
      LE SON : tout lecteur intégré démarre muet (la lecture automatique
      l'exige) ; le pont rend le son au courant par le bouton même du lecteur,
@@ -23340,7 +23523,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
      Un clic dans un lecteur lui donnerait le focus, et les flèches
      n'arriveraient plus jusqu'ici. ↑ ↓ changent, Entrée ouvre la chaîne,
      S l'ajoute à la salle (ou l'en retire), O ouvre la salle dès deux
-     chaînes, Échap ferme. Tab tourne dans l'écran, sans en sortir.
+     chaînes, Échap ferme. Tab tourne dans l'écran, sans en sortir. Aucune
+     touche ne passe à Twitch — ni enfoncée, ni relâchée —, et celles qui
+     font défiler ne font pas défiler la page dessous.
 
      LA PAGE DESSOUS : sa vidéo est mise en pause à l'ouverture et relancée à
      la fermeture, comme pour la salle. Une salle ouverte se ferme : deux
@@ -23372,6 +23557,10 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       voie: null, poses: 0, reposes: 0, ouvertures: 0, vides: 0, changements: 0,
       precharges: 0, prechargesServies: 0, chaines: 0, salles: 0, sallesFermees: 0,
       sons: 0, muets: 0, avis: 0, fermetures: {},
+      /* 4.33.0.1 : les anciens courants gardés comme voisins préchargés (au
+         lieu d'être jetés puis rechargés) ; le plein écran — obtenu, refusé ;
+         les fois où l'interface s'est effacée. */
+      recycles: 0, pleinsEcrans: 0, pleinEcranRefus: 0, repos: 0,
     };
     let porteur = null, bouton = null, obsNav = null, navVue = null, redimT = null;
     let z = null;
@@ -23554,14 +23743,43 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       clearTimeout(l.pretT);
       l.f.remove();
     };
-    // Le courant paraît (en fondu) ; ceux qu'il remplace partent une fois le fondu passé.
+    // Tous les lecteurs de l'écran : le courant, les préchargés, ceux qui partent.
+    const lecteurs = (c) => [c.courant, ...c.attentes, ...c.sortants].filter(Boolean);
+    /* LES DEUX VOISINES (4.33.0.1) : « précharge la chaîne avant et la chaîne
+       après ». Celle du sens où l'on va d'abord ; à deux chaînes, la même des
+       deux côtés, une seule fois. */
+    const voisines = (c) => {
+      const n = c.liste.length;
+      if (n < 2 || !c.courant) return [];
+      const a = c.liste[(((c.i + c.sens) % n) + n) % n].login;
+      const b = c.liste[(((c.i - c.sens) % n) + n) % n].login;
+      return [...new Set([a, b])].filter((x) => x !== c.courant.login);
+    };
+    /* L'ANCIEN COURANT, une fois le nouveau paru, ne part pas s'il est une
+       voisine du nouveau — c'est le cas de chaque pas : on le garde, muet et
+       invisible, comme préchargé. Revenir en arrière ne recharge plus rien. */
+    const garderOuJeter = (c, l) => {
+      if (z !== c || l === c.courant || c.attentes.includes(l)) return;
+      // Le nouveau courant pas encore paru (on est revenu, puis reparti, très vite) : c'est son fondu qui décidera.
+      if (!c.courant || !c.courant.f.classList.contains('tse-zap__lecteur--pret')) return;
+      const k = c.sortants.indexOf(l);
+      if (k >= 0) c.sortants.splice(k, 1);
+      if (voisines(c).includes(l.login) && !c.attentes.some((a) => a.login === l.login)) {
+        l.f.classList.remove('tse-zap__lecteur--sortant', 'tse-zap__lecteur--courant', 'tse-zap__lecteur--pret');
+        l.f.classList.add('tse-zap__lecteur--attente');
+        c.attentes.push(l);
+        bilan.recycles++;
+        peindre();
+      } else jeter(l);
+    };
+    // Le courant paraît (en fondu) ; ceux qu'il remplace partent une fois le fondu passé — ou restent, voisins.
     const montrer = (l) => {
       const c = z;
       if (!c || l !== c.courant) return;
       l.f.classList.add('tse-zap__lecteur--pret');
-      const sortants = c.sortants.splice(0);
+      const sortants = [...c.sortants];
       // Une marge après le fondu : l'image d'avant ne part pas avant que la nouvelle soit entière.
-      if (sortants.length) setTimeout(() => sortants.forEach(jeter), CFG.ZAP_FONDU_MS + 80);
+      if (sortants.length) setTimeout(erreurs.garde('zapping', () => sortants.forEach((x) => garderOuJeter(c, x))), CFG.ZAP_FONDU_MS + 80);
     };
     const tenirSon = (l) => {
       const c = z;
@@ -23581,7 +23799,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       const c = z;
       if (!c || !e.data || e.data.tse !== TSE_SALLE_ETAT_MSG || e.origin !== 'https://player.twitch.tv') return;
       // `source` ancre le message à UN de nos lecteurs : la seule vérification qui compte.
-      const l = [c.courant, c.attente, ...c.sortants].find((x) => x && x.f.contentWindow === e.source);
+      const l = lecteurs(c).find((x) => x.f.contentWindow === e.source);
       if (!l) return;
       const et = e.data.etat && typeof e.data.etat === 'object' ? e.data.etat : {};
       l.etat = { video: !!et.video, lecture: !!et.lecture, muet: typeof et.muet === 'boolean' ? et.muet : null };
@@ -23598,21 +23816,32 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         if (l.etat.muet === false) { envoyer(l, 'muet'); bilan.muets++; }
       }
     };
+    /* LE PRÉCHARGEMENT : les voisines qui manquent se chargent, chacune après
+       son délai — un temps d'abord, le courant prend la bande passante, et
+       des flèches tenues ne chargent pas tout. Un préchargé qui n'est plus
+       voisin part ; un délai déjà compté pour une voisine qui l'est encore
+       continue : la relecture des chaînes, toutes les deux secondes, ne le
+       remet pas à zéro. Un ancien courant encore à l'écran tient sa place : il
+       sera gardé (cf. garderOuJeter). */
     const precharger = () => {
       const c = z;
-      clearTimeout(c.prechargeT);
-      const n = c.liste.length;
-      if (n < 2 || !c.courant) { jeter(c.attente); c.attente = null; return; }
-      const cible = c.liste[(((c.i + c.sens) % n) + n) % n].login;
-      if (cible === c.courant.login || (c.attente && c.attente.login === cible)) return;
-      // Un temps d'abord : le courant prend la bande passante, et des flèches tenues ne chargent pas tout.
-      c.prechargeT = setTimeout(erreurs.garde('zapping', () => {
-        if (z !== c || cible === c.courant.login) return;
-        jeter(c.attente);
-        c.attente = creerLecteur(cible, true);
-        bilan.precharges++;
-        peindre();
-      }), CFG.ZAP_PRECHARGE_MS);
+      const cibles = voisines(c);
+      for (const a of [...c.attentes]) {
+        if (!cibles.includes(a.login)) { c.attentes.splice(c.attentes.indexOf(a), 1); jeter(a); }
+      }
+      for (const [login, t] of c.prechargeT) {
+        if (!cibles.includes(login)) { clearTimeout(t); c.prechargeT.delete(login); }
+      }
+      cibles.forEach((login, rang) => {
+        if (c.prechargeT.has(login) || c.attentes.some((a) => a.login === login) || c.sortants.some((x) => x.login === login)) return;
+        c.prechargeT.set(login, setTimeout(erreurs.garde('zapping', () => {
+          c.prechargeT.delete(login);
+          if (z !== c || !voisines(c).includes(login) || lecteurs(c).some((x) => x.login === login)) return;
+          c.attentes.push(creerLecteur(login, true));
+          bilan.precharges++;
+          peindre();
+        }), rang ? CFG.ZAP_PRECHARGE_AUTRE_MS : CFG.ZAP_PRECHARGE_MS));
+      });
     };
     const aller = (i, sens, comment) => {
       const c = z;
@@ -23623,12 +23852,12 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       c.i = j;
       c.sens = sens;
       if (c.courant && c.courant.login === login) { peindre(); return; }
-      let l;
-      if (c.attente && c.attente.login === login) {
-        l = c.attente;
-        c.attente = null;
-        l.f.classList.remove('tse-zap__lecteur--attente');
-        bilan.prechargesServies++;
+      // Le lecteur de la chaîne, s'il est déjà là : préchargé, ou un ancien courant qui n'est pas encore parti.
+      let l = c.attentes.find((a) => a.login === login) || c.sortants.find((x) => x.login === login) || null;
+      if (l) {
+        if (c.attentes.includes(l)) { c.attentes.splice(c.attentes.indexOf(l), 1); bilan.prechargesServies++; }
+        else c.sortants.splice(c.sortants.indexOf(l), 1);
+        l.f.classList.remove('tse-zap__lecteur--attente', 'tse-zap__lecteur--sortant');
       } else {
         l = creerLecteur(login, false);
       }
@@ -23644,6 +23873,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       l.sonEssais = 0;
       if (l.pret) montrer(l);
       else {
+        clearTimeout(l.pretT);
         // Un lecteur qui ne dit rien (pas de pont, un avertissement de contenu) paraît quand même.
         l.pretT = setTimeout(erreurs.garde('zapping', () => { if (!l.pret) { l.pret = true; montrer(l); } }), CFG.ZAP_PRET_MAX_MS);
       }
@@ -23662,7 +23892,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       c.avis.textContent = texte;
       c.avis.hidden = false;
       bilan.avis++;
-      c.avisT = setTimeout(() => { if (z === c) c.avis.hidden = true; }, CFG.ZAP_AVIS_MS);
+      c.avisT = setTimeout(erreurs.garde('zapping', () => { if (z === c) c.avis.hidden = true; }), CFG.ZAP_AVIS_MS);
     };
     const ouvrirChaine = () => {
       const c = z;
@@ -23713,6 +23943,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       return x;
     };
     const texteSi = (x, t) => { if (x.textContent !== t) x.textContent = t; };
+    // Rien n'est réécrit à l'identique : la peinture revient toutes les deux secondes.
+    const attrSi = (x, a, v) => { if (x.getAttribute(a) !== v) x.setAttribute(a, v); };
     const touche = (libelle, action, classe = '') => {
       const b = elt('button', 'tse-zap__touche ' + classe);
       b.type = 'button';
@@ -23833,11 +24065,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       const r = c.refs;
       const n = c.liste.length;
       texteSi(r.titre, S.uiZapTitre);
-      c.boite.setAttribute('aria-label', S.uiZapTitre);
+      attrSi(c.boite, 'aria-label', S.uiZapTitre);
       texteSi(r.rang, n ? `${c.i + 1} / ${n}` : '0 / 0');
       texteSi(r.changerTexte, S.uiZapChanger);
-      r.precedente.setAttribute('aria-label', S.uiZapPrecedente);
-      r.suivante.setAttribute('aria-label', S.uiZapSuivante);
+      attrSi(r.precedente, 'aria-label', S.uiZapPrecedente);
+      attrSi(r.suivante, 'aria-label', S.uiZapSuivante);
       texteSi(r.entree.querySelector('kbd'), S.uiZapEntree);
       texteSi(r.entreeTexte, S.uiZapOuvrir);
       const dans = !!(c.courant && c.selection.includes(c.courant.login));
@@ -23852,12 +24084,18 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       r.suivante.disabled = n < 2;
       r.vide.hidden = n > 0;
       texteSi(r.vide, S.uiZapVide);
-      r.liste.setAttribute('aria-label', S.uiZapListe);
-      // La colonne : refaite quand les chaînes changent, retouchée sinon.
+      attrSi(r.liste, 'aria-label', S.uiZapListe);
+      /* La colonne : refaite quand les chaînes changent, retouchée sinon.
+         Refaite, elle garde le focus de la carte qui l'avait, et la courante
+         revient en vue (4.33.0.1 : il restait sur une carte retirée, et la
+         colonne ne suivait plus la courante). */
       const cle = c.liste.map((x) => x.login).join(' ');
       if (c.cleListe !== cle) {
         c.cleListe = cle;
+        const focus = document.activeElement?.closest?.('.tse-zap__chaine')?.dataset.tseLogin ?? null;
         r.liste.replaceChildren(...c.liste.map(carte));
+        c.vueCourante = null;
+        if (focus) r.liste.querySelector(`.tse-zap__chaine[data-tse-login="${focus}"]`)?.focus({ preventScroll: true });
       }
       const items = r.liste.children;
       c.liste.forEach((x, k) => {
@@ -23872,7 +24110,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         const courante = k === c.i;
         b.classList.toggle('tse-zap__chaine--courante', courante);
         if (courante) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current');
-        const pre = !!(c.attente && c.attente.login === x.login);
+        const pre = c.attentes.some((a) => a.login === x.login);
         const enSalle = salleOk() && c.selection.includes(x.login);
         const cleM = `${pre ? 'p' : ''}${enSalle ? 's' : ''}|${S.uiZapPrechargee}|${S.uiZapDansSalle}`;
         if (marquesEl.dataset.cle !== cleM) {
@@ -23881,9 +24119,15 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
                                          enSalle && marque('tse-zap__marque--salle', S.uiZapDansSalle)].filter(Boolean));
         }
       });
+      /* LA COURANTE EN VUE, par la colonne seule : `scrollIntoView` peut
+         faire défiler tous les ancêtres — l'écran, qui ne défile pas, et la
+         page dessous. Les marges : la lueur de la carte en haut, le fondu
+         du bas. */
       if (c.vueCourante !== c.i && items[c.i]) {
         c.vueCourante = c.i;
-        items[c.i].scrollIntoView({ block: 'nearest' });
+        const li = items[c.i], L = r.liste;
+        if (li.offsetTop - 10 < L.scrollTop) L.scrollTop = li.offsetTop - 10;
+        else if (li.offsetTop + li.offsetHeight + 28 > L.scrollTop + L.clientHeight) L.scrollTop = li.offsetTop + li.offsetHeight + 28 - L.clientHeight;
       }
       // La chaîne courante, en bas.
       const x = n ? c.liste[c.i] : null;
@@ -23922,8 +24166,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         r.sonIcone.replaceChildren(noeudStatique(icone));
       }
       texteSi(r.sonTexte, c.muet ? S.uiZapMuet : S.uiSalleChatSon(nomAffiche));
-      r.son.title = S.uiZapSonTitre;
-      r.son.setAttribute('aria-pressed', c.muet ? 'true' : 'false');
+      attrSi(r.son, 'title', S.uiZapSonTitre);
+      attrSi(r.son, 'aria-pressed', c.muet ? 'true' : 'false');
     };
 
     /* LA LISTE SE TIENT À JOUR pendant qu'on zappe : une chaîne qui passe en
@@ -23953,6 +24197,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       // Rien ne passe à Twitch tant que l'écran est ouvert ; les raccourcis du navigateur, si.
       if (e.ctrlKey || e.metaKey || e.altKey) return;
       e.stopPropagation();
+      // Une touche montre l'interface, comme la souris : on voit la chaîne où l'on arrive, et le bouton où l'on est.
+      eveiller(c);
       const surBouton = e.target instanceof Element && !!e.target.closest('button') && c.boite.contains(e.target);
       const k = e.key;
       let fait = true;
@@ -23968,20 +24214,109 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         const i = f.indexOf(document.activeElement);
         const j = e.shiftKey ? (i <= 0 ? f.length - 1 : i - 1) : (i < 0 || i >= f.length - 1 ? 0 : i + 1);
         f[j].focus();
-      } else fait = false;
+      }
+      /* LES TOUCHES QUI FONT DÉFILER (4.33.0.1) : sans geste à elles ici, elles
+         faisaient défiler la page de Twitch sous l'écran — on la retrouvait
+         ailleurs en fermant. L'espace, sur un bouton, l'actionne. */
+      else if ((k === ' ' && !surBouton) || ['PageUp', 'PageDown', 'Home', 'End', 'ArrowLeft', 'ArrowRight'].includes(k)) { /* rien */ }
+      else fait = false;
       if (fait) e.preventDefault();
+    };
+    // Le relâchement et la frappe d'une touche ne passent pas à Twitch non plus.
+    const surToucheAutre = (e) => {
+      if (z && !e.ctrlKey && !e.metaKey && !e.altKey) e.stopPropagation();
+    };
+    // La fenêtre change de taille (le plein écran, aussi) : chaque lecteur reçoit la hauteur qu'il doit viser.
+    const surTaille = () => {
+      const c = z;
+      if (!c) return;
+      clearTimeout(c.tailleT);
+      c.tailleT = setTimeout(erreurs.garde('zapping', () => {
+        if (z !== c) return;
+        const h = Math.round(window.innerHeight * (window.devicePixelRatio || 1));
+        for (const l of lecteurs(c)) if (l.qualite) envoyer(l, 'qualite', { hauteur: h });
+      }), CFG.ZAP_REDIM_MS);
     };
     // Le focus qui s'échapperait (un clic hors des boutons, un lecteur) revient à l'écran.
     const surFocus = (e) => {
       const c = z;
       if (c && e.target instanceof Node && !c.boite.contains(e.target)) c.boite.focus({ preventScroll: true });
     };
+    // L'onglet caché : les préchargés se mettent en pause ; le courant, lui, garde le son qu'on écoute.
     const surVisibilite = () => {
       const c = z;
-      if (!c || !c.attente) return;
-      envoyer(c.attente, document.hidden ? 'pause' : 'lecture');
+      if (!c) return;
+      for (const a of c.attentes) envoyer(a, document.hidden ? 'pause' : 'lecture');
     };
     const surNavigation = () => fermer('navigation');
+
+    /* ── L'INTERFACE AU REPOS (4.33.0.1) ─────────────────────────────────────
+       « Au bout de quelques secondes sans bouger la souris, fais disparaître
+       l'UI ; elle réapparaît quand la souris rebouge. » Tout ce qui se pose
+       sur le direct s'efface en fondu — le compteur, les touches, la
+       colonne, la chaîne, le son, les dégradés du capot —, et le pointeur
+       avec : il ne reste que l'image. Une touche la ramène aussi (cf.
+       surTouche). Elle reste tant que le pointeur est posé sur elle, et
+       quand il n'y a rien à zapper — son message est tout l'écran.
+       UN SEUL MINUTEUR, PAS UN PAR MOUVEMENT : la souris donne des dizaines
+       d'événements par seconde ; chacun note son heure, et le minuteur, à son
+       terme, compte ce qui reste. Un « mousemove » sans déplacement — le
+       navigateur en émet quand ce qui est sous le pointeur change, une
+       chaîne qui paraît par exemple — ne compte pas. */
+    const veiller = (c, ms) => { c.reposT = setTimeout(erreurs.garde('zapping', () => veille(c)), ms); };
+    const veille = (c) => {
+      c.reposT = null;
+      if (z !== c) return;
+      const reste = c.bouge + CFG.ZAP_REPOS_MS - performance.now();
+      if (reste > 0) { veiller(c, reste); return; }
+      if (!c.liste.length || c.boite.querySelector('.tse-zap__compteur:hover, .tse-zap__aide:hover, .tse-zap__liste:hover, .tse-zap__infos:hover, .tse-zap__son:hover')) {
+        c.bouge = performance.now();
+        veiller(c, CFG.ZAP_REPOS_MS);
+        return;
+      }
+      if (!c.boite.classList.contains('tse-zap--repos')) { c.boite.classList.add('tse-zap--repos'); bilan.repos++; }
+    };
+    const eveiller = (c) => {
+      c.bouge = performance.now();
+      c.boite.classList.remove('tse-zap--repos');
+      if (!c.reposT) veiller(c, CFG.ZAP_REPOS_MS);
+    };
+    const surSouris = (e) => {
+      const c = z;
+      if (!c) return;
+      if (e.type === 'mousemove') {
+        if (e.screenX === c.souris.x && e.screenY === c.souris.y) return;
+        c.souris.x = e.screenX;
+        c.souris.y = e.screenY;
+      }
+      eveiller(c);
+    };
+
+    /* ── LE PLEIN ÉCRAN (4.33.0.1) ───────────────────────────────────────────
+       « Mets le zapping en plein écran. Si on quitte ou qu'on ouvre la salle,
+       on passe en fenêtré normal. » L'écran lui-même devient plein écran, à
+       l'ouverture : le clic sur le bouton en donne le droit au navigateur. Ce
+       droit manque (une ouverture par l'API, sans geste) : l'écran reste
+       dans la fenêtre, comme avant, et le rapport le compte. En sortant —
+       Échap, Entrée vers la chaîne, O vers la salle —, l'écran retiré rend la
+       fenêtre, avant tout le reste : la salle s'ouvre en fenêtré normal.
+       ÉCHAP EN PLEIN ÉCRAN est au navigateur : il en sort, et la page ne voit
+       pas la touche. Sortir du plein écran sans nous — Échap, ou le bandeau
+       du navigateur —, c'est donc quitter le zapping, comme Échap le fait
+       en fenêtré : une seule touche, pas deux. */
+    const pleinEcran = (c) => {
+      const f = c.boite.requestFullscreen;
+      if (typeof f !== 'function') { bilan.pleinEcranRefus++; return; }
+      let p;
+      try { p = f.call(c.boite, { navigationUI: 'hide' }); } catch { bilan.pleinEcranRefus++; return; }
+      Promise.resolve(p).then(() => { if (z === c) bilan.pleinsEcrans++; }, () => { bilan.pleinEcranRefus++; });
+    };
+    const surPleinEcran = () => {
+      const c = z;
+      if (!c) return;
+      if (document.fullscreenElement === c.boite) c.pleinEcran = true;
+      else if (c.pleinEcran) fermer('plein-ecran');
+    };
 
     /* ── OUVRIR, FERMER ───────────────────────────────────────────────────── */
     const ouvrir = (origine = 'api') => {
@@ -23994,18 +24329,28 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       for (const v of pausees) { try { v.pause(); } catch { /* ignore */ } }
       const refs = construire();
       z = {
-        t0: Date.now(), origine, boite: refs.boite, scene: refs.scene, refs, avis: refs.avis, avisT: null,
-        liste: chaines(), i: 0, sens: 1, courant: null, attente: null, sortants: [], prechargeT: null,
+        origine, boite: refs.boite, scene: refs.scene, refs, avis: refs.avis, avisT: null,
+        liste: chaines(), i: 0, sens: 1, courant: null, attentes: [], sortants: [], prechargeT: new Map(),
         selection: avant ? avant.slice(0, CFG.SALLE_MAX) : [], muet: false, pausees, cleListe: null, vueCourante: null,
         retour: document.activeElement && typeof document.activeElement.focus === 'function' ? document.activeElement : null, minuteur: null,
+        pleinEcran: false, bouge: 0, reposT: null, souris: { x: null, y: null }, tailleT: null,
       };
       document.body.appendChild(refs.boite);
-      document.addEventListener('keydown', surTouche, true);
+      // Le geste qui ouvre donne le droit au plein écran : on le demande avant tout ce qui pourrait le faire perdre.
+      pleinEcran(z);
+      // Sur la fenêtre, en capture : le tout premier relais d'une touche, avant le document et tout ce qu'il porte.
+      window.addEventListener('keydown', surTouche, true);
+      window.addEventListener('keyup', surToucheAutre, true);
+      window.addEventListener('keypress', surToucheAutre, true);
       document.addEventListener('focusin', surFocus, true);
       document.addEventListener('visibilitychange', surVisibilite);
+      document.addEventListener('fullscreenchange', surPleinEcran);
       window.addEventListener('message', surMessage);
       window.addEventListener('popstate', surNavigation);
+      window.addEventListener('resize', surTaille);
+      for (const t of ['mousemove', 'mousedown', 'wheel']) refs.boite.addEventListener(t, surSouris, { passive: true });
       z.minuteur = setInterval(erreurs.garde('zapping', relire), CFG.ZAP_RELEVE_MS);
+      eveiller(z);
       bilan.ouvertures++;
       const depart = z.liste.findIndex((x) => x.login === pageChaine());
       if (z.liste.length) aller(depart >= 0 ? depart : 0, 1, 'ouverture');
@@ -24018,14 +24363,24 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       if (!c) return { ferme: false };
       z = null;
       clearInterval(c.minuteur);
-      clearTimeout(c.prechargeT);
+      for (const t of c.prechargeT.values()) clearTimeout(t);
       clearTimeout(c.avisT);
-      for (const l of [c.courant, c.attente, ...c.sortants]) if (l) clearTimeout(l.pretT);
-      document.removeEventListener('keydown', surTouche, true);
+      clearTimeout(c.reposT);
+      for (const l of lecteurs(c)) clearTimeout(l.pretT);
+      window.removeEventListener('keydown', surTouche, true);
+      window.removeEventListener('keyup', surToucheAutre, true);
+      window.removeEventListener('keypress', surToucheAutre, true);
       document.removeEventListener('focusin', surFocus, true);
       document.removeEventListener('visibilitychange', surVisibilite);
+      document.removeEventListener('fullscreenchange', surPleinEcran);
       window.removeEventListener('message', surMessage);
       window.removeEventListener('popstate', surNavigation);
+      window.removeEventListener('resize', surTaille);
+      clearTimeout(c.tailleT);
+      /* LA FENÊTRE REVIENT ICI (cf. LE PLEIN ÉCRAN) : l'écran retiré, le
+         navigateur sort du plein écran — son élément a quitté la page —, avant
+         que la salle ne s'ouvre ou que la page ne reprenne. Un appel de plus à
+         `exitFullscreen` ne changeait rien : un mutant l'a montré. */
       c.boite.remove();
       bilan.fermetures[raison] = (bilan.fermetures[raison] || 0) + 1;
       if (!navigue) {
@@ -24042,8 +24397,12 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     const rapport = () => ({
       ...bilan, fermetures: { ...bilan.fermetures },
       ouvert: !!z,
+      ouvertPar: z ? z.origine : null,
       courant: z && z.courant ? z.courant.login : null,
-      precharge: z && z.attente ? z.attente.login : null,
+      prechargees: z ? z.attentes.map((a) => a.login) : null,
+      pleinEcran: !!(z && document.fullscreenElement === z.boite),
+      // `repos` est le compte des effacements ; ceci, l'état de l'instant.
+      auRepos: !!(z && z.boite.classList.contains('tse-zap--repos')),
       liste: z ? z.liste.map((x) => x.login) : null,
       rang: z && z.liste.length ? z.i + 1 : null,
       selection: z ? [...z.selection] : null,

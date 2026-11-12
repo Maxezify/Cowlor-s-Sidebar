@@ -527,7 +527,7 @@
     "message": "El zapping"
   },
   "guideZapTexte": {
-    "message": "El botón a la derecha de la lupa de búsqueda abre tus canales seguidos que están en directo, a pantalla completa, en el orden de la barra lateral.\n• ↑ y ↓ cambian de canal; al final, se vuelve al principio. Un clic en la columna de la derecha lleva a ese canal.\n• El siguiente ya está cargado —«precargado»—: aparece al instante.\n• Intro abre el canal; Esc cierra, y el vídeo de la página se reanuda.\n• S añade el canal a la sala, O abre la sala a partir de dos —seis como máximo—. Una sala ya abierta se cierra al abrir el zapping; sus streams quedan en la selección.\n• «Sonido de …», abajo a la derecha, quita y devuelve el sonido.\n• «Zapping» se desactiva en «Ajustes»."
+    "message": "El botón a la derecha de la lupa de búsqueda abre tus canales seguidos que están en directo, a pantalla completa, en el orden de la barra lateral.\n• ↑ y ↓ cambian de canal; al final, se vuelve al principio. Un clic en la columna de la derecha lleva a ese canal.\n• El canal anterior y el siguiente ya están cargados —cada uno «precargado»—: aparecen al instante.\n• La pantalla pasa a pantalla completa; al salir, o al abrir la sala, vuelve la ventana.\n• Unos segundos sin mover el ratón y solo queda la imagen; un movimiento o una tecla devuelve el resto.\n• Intro abre el canal; Esc cierra, y el vídeo de la página se reanuda.\n• S añade el canal a la sala, O abre la sala a partir de dos —seis como máximo—. Una sala ya abierta se cierra al abrir el zapping; sus streams quedan en la selección.\n• «Sonido de …», abajo a la derecha, quita y devuelve el sonido.\n• «Zapping» se desactiva en «Ajustes»."
   },
   "guideDebutTitre": {
     "message": "Los comienzos y las vueltas"
@@ -746,7 +746,7 @@
     "message": "Zapping"
   },
   "optDescZapping": {
-    "message": "Un botón a la derecha de la lupa de búsqueda abre tus canales seguidos que están en directo, a pantalla completa, uno tras otro: ↑ y ↓ para cambiar, Intro para abrir el canal, S para añadirlo a la sala, O para abrir la sala, Esc para salir. El siguiente ya está cargado. El vídeo de la página se pausa mientras haces zapping; una sala abierta se cierra, y sus streams quedan para volver a abrirla. Desactivado: ni botón ni pantalla."
+    "message": "Un botón a la derecha de la lupa de búsqueda abre tus canales seguidos que están en directo, a pantalla completa, uno tras otro: ↑ y ↓ para cambiar, Intro para abrir el canal, S para añadirlo a la sala, O para abrir la sala, Esc para salir. El anterior y el siguiente ya están cargados; cuando el ratón deja de moverse, la interfaz desaparece. El vídeo de la página se pausa mientras haces zapping; una sala abierta se cierra, y sus streams quedan para volver a abrirla. Desactivado: ni botón ni pantalla."
   },
   "optGrpAccueil": {
     "message": "Página de inicio"

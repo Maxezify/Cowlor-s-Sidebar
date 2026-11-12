@@ -39648,9 +39648,14 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
   await plateauAccueil(page);
   await attendre(page, () => document.querySelectorAll('#tse-accueil .tse-acc-rayon--une .tse-acc-carte').length === 4
     && !!document.querySelector('#tse-accueil-heros .tse-acc-heros:not([hidden])'), 6000);
+  /* L'ORDRE SE LIT DEPUIS LA CARTE DE TÊTE, vers la droite, en bouclant
+     (4.33.0.1) : le ruban tourne pour garder sa carte du centre entourée,
+     et sa ligne commence où le tour l'a laissée. */
   const rayon = () => page.evaluate(() => {
     const z = document.querySelector('#tse-accueil .tse-acc-rayon--une');
-    return { ordre: [...z.querySelectorAll('.tse-acc-carte')].map((c) => c.dataset.tseCle), cache: z.hidden,
+    const cles = [...z.querySelectorAll('.tse-acc-carte')].map((c) => c.dataset.tseCle);
+    const t = cles.indexOf(window.tse.accueil.rapport().une.tete);
+    return { ordre: t < 0 ? cles : [...cles.slice(t), ...cles.slice(0, t)], cache: z.hidden,
              premier: z.parentElement.firstElementChild === z,
              titre: z.querySelector('.tse-acc-titre span').textContent,
              heros: document.querySelector('#tse-accueil-heros .tse-acc-heros')?.dataset.tseCle,
@@ -39728,8 +39733,11 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
                                      options: { accueilTop: false, accueilDebut: false } });
   await plateauAccueil(sans);
   await attendre(sans, () => document.querySelectorAll('#tse-accueil .tse-acc-rayon--une .tse-acc-carte').length === 5, 6000);
-  const d1 = await sans.evaluate(() => ({ ordre: [...document.querySelectorAll('#tse-accueil .tse-acc-rayon--une .tse-acc-carte')].map((c) => c.dataset.tseCle),
-                                           voie: window.tse.accueil.rapport().une.voie }));
+  const d1 = await sans.evaluate(() => {
+    const cles = [...document.querySelectorAll('#tse-accueil .tse-acc-rayon--une .tse-acc-carte')].map((c) => c.dataset.tseCle);
+    const t = cles.indexOf(window.tse.accueil.rapport().une.tete);
+    return { ordre: t < 0 ? cles : [...cles.slice(t), ...cles.slice(0, t)], voie: window.tse.accueil.rapport().une.voie };
+  });
   ok('sans les classes de place : l\'ordre de la page, et le rapport dit « ordre »',
      JSON.stringify(d1.ordre) === JSON.stringify(UNE_ACCUEIL) && d1.voie === 'ordre', JSON.stringify(d1));
   await sans.close();
@@ -42129,12 +42137,16 @@ const lireImages = (page) => page.evaluate(() => {
    encore dans le total, d'où le +1. Sans lui, le banc annoncerait éternellement
    une assertion de moins qu'il n'en a. */
 {
-  titre('229. « À la une » en ruban — la carte du centre droite, ses voisines qui pivotent, deux flèches, un clic qui centre');
+  titre('229. « À la une » en ruban — la carte du centre droite, ses voisines qui pivotent des deux côtés, un ruban qui boucle, un clic qui centre');
   /* « QUE "À LA UNE" SOIT EN RUBAN 3D » (4.32.0.4) — la piste B de la
      maquette. Les cinq directs du carrousel sur une ligne qui défile,
      aimantée au centre ; le mouvement suit le défilement (animation-timeline),
      et ce qui pivote, ce sont la vignette et la légende de chaque carte — la
-     carte elle-même reste droite, pour que l'aimant la centre au pixel. */
+     carte elle-même reste droite, pour que l'aimant la centre au pixel.
+     CIRCULAIRE (4.33.0.1) : « le ruban semble décalé, quand j'arrive sur la
+     page » — sa dernière carte au centre, rien à droite, relevé sur une
+     capture. Le ruban boucle désormais, comme le carrousel dont il vient :
+     la carte du centre a toujours ses voisines des deux côtés. */
   const page = await ouvrirAccueil({ visites: { korbek: [1] }, options: { accueilDebut: false } });
   await plateauAccueil(page);
   await attendre(page, () => document.querySelectorAll('#tse-accueil .tse-acc-rayon--une .tse-acc-carte').length === 5
@@ -42155,57 +42167,105 @@ const lireImages = (page) => page.evaluate(() => {
     const centre = cartes.reduce((m, c) => (Math.abs(c.ecart) < Math.abs(m.ecart) ? c : m));
     const vc = l.querySelector(`[data-tse-cle="${centre.cle}"] .tse-acc-vignette`).getBoundingClientRect();
     const fl = document.querySelector('#tse-accueil .tse-acc-ruban-fleche--suiv').getBoundingClientRect();
-    return { sl: Math.round(l.scrollLeft), cartes, centre: centre.cle,
+    const une = window.tse.accueil.rapport().une;
+    return { sl: Math.round(l.scrollLeft), cartes, centre: centre.cle, ordre: cartes.map((c) => c.cle).join(','),
+             ecarts: cartes.map((c) => c.ecart), tete: une.tete, tours: une.tours, aimant: getComputedStyle(l).scrollSnapType,
              prec: document.querySelector('#tse-accueil .tse-acc-ruban-fleche--prec').disabled,
              suiv: document.querySelector('#tse-accueil .tse-acc-ruban-fleche--suiv').disabled,
              alignement: Math.round(fl.top + fl.height / 2 - (vc.top + vc.height / 2)),
-             centrages: window.tse.accueil.rapport().une.centrages, chemin: location.pathname };
+             centrages: une.centrages, chemin: location.pathname };
   });
   const droite = (m) => Math.abs(m.m11 - 1) < 1e-3 && Math.abs(m.m13) < 1e-3 && Math.abs(m.m41) < 0.5;
+  /* ENTOURÉE : la carte du centre est au milieu de la ligne — deux voisines
+     à gauche, deux à droite —, au pixel, et les autres à pas égaux. */
+  const entouree = (r, cle) => {
+    const m = r.cartes.findIndex((c) => c.cle === cle);
+    const pas = r.cartes[m + 1] ? r.cartes[m + 1].ecart : 0;
+    return m === 2 && r.centre === cle && pas > 200 && r.cartes.every((c, i) => Math.abs(c.ecart - (i - m) * pas) <= 1);
+  };
   const r0 = await lire();
-  const [c0, c1, c2] = r0.cartes;
-  /* a) À L'ARRIVÉE : la première carte au centre, sans défiler ; droite et
-     pleine, sa légende lisible ; ses voisines pivotées, assombries, sans
-     légende, et l'ordre des plans décroît avec la distance. « Précédent »
-     n'a rien devant lui ; les flèches à mi-hauteur de la vignette. Mutants
-     — le ruban droit, sans lignes de temps ; les légendes partout ; les
-     plans dans l'ordre du DOM ; « Précédent » toujours là. */
-  ok('a) à l\'arrivée : la première carte au centre, droite, sa légende lisible ; les voisines pivotées, assombries, sans légende ; les plans selon la distance',
-     r0.sl === 0 && Math.abs(c0.ecart) <= 1 && droite(c0.vig) && droite(c0.leg) && c0.legOp > 0.99
-     && /^(none|brightness\((1|0\.99\d*)\))$/.test(c0.filtre)
-     && Math.abs(c1.vig.m13) > 0.1 && /brightness\(0\.\d+\)/.test(c1.filtre) && c1.legOp < 0.05
-     && c0.z > c1.z && c1.z > c2.z,
-     JSON.stringify({ sl: r0.sl, c0, c1: { vig: c1.vig, filtre: c1.filtre, legOp: c1.legOp, z: c1.z }, z2: c2.z }));
-  ok('…« Précédent » éteint au début, « Suivant » allumé, les flèches à mi-hauteur de la vignette',
-     r0.prec && !r0.suiv && Math.abs(r0.alignement) <= 2, JSON.stringify({ prec: r0.prec, suiv: r0.suiv, alignement: r0.alignement }));
-  /* b) « SUIVANT » : la carte suivante au centre, au pixel — l'aimant mesure
-     la carte, qui ne pivote pas. Mutant — la carte entière qui pivote
-     (l'aimant s'arrêtait à 274 pixels au lieu de 300, mesuré). */
-  await page.click('#tse-accueil .tse-acc-ruban-fleche--suiv');
-  await attendre(page, () => { const l = document.querySelector('#tse-accueil .tse-acc-ruban'); return l.scrollLeft > 0; }, 3000);
+  const [g2, g1, c0, d1, d2] = r0.cartes;
+  /* a) À L'ARRIVÉE : la première carte du carrousel — sa place « center »
+     — au centre, entourée de ses voisines dans l'ordre même du carrousel :
+     left-2, left-1, center, right-1, right-2. Droite et pleine, sa légende
+     lisible ; ses voisines pivotées vers elle, de part et d'autre,
+     assombries, sans légende ; l'ordre des plans décroît avec la distance,
+     des deux côtés. Mutants — le ruban qui ne tourne pas (la première carte
+     au bout gauche, rien à sa gauche) ; la tête qui n'est pas posée ; le
+     ruban droit, sans lignes de temps ; les légendes partout ; les plans
+     dans l'ordre du DOM. */
+  ok('a) à l\'arrivée : la première carte du carrousel au centre, entourée, dans l\'ordre de ses places (left-2, left-1, center, right-1, right-2)',
+     r0.ordre === 'solvane,orvik,tessaly,marbek,ilyan' && entouree(r0, 'tessaly') && r0.tete === 'tessaly',
+     JSON.stringify({ ordre: r0.ordre, ecarts: r0.ecarts, tete: r0.tete }));
+  ok('…droite, sa légende lisible ; ses voisines pivotées vers elle des deux côtés, assombries, sans légende ; les plans selon la distance',
+     droite(c0.vig) && droite(c0.leg) && c0.legOp > 0.99 && /^(none|brightness\((1|0\.99\d*)\))$/.test(c0.filtre)
+     && g1.vig.m13 * d1.vig.m13 < 0 && Math.abs(g1.vig.m13) > 0.1 && Math.abs(d1.vig.m13) > 0.1
+     && /brightness\(0\.\d+\)/.test(g1.filtre) && /brightness\(0\.\d+\)/.test(d1.filtre) && g1.legOp < 0.05 && d1.legOp < 0.05
+     && c0.z > g1.z && c0.z > d1.z && g1.z > g2.z && d1.z > d2.z,
+     JSON.stringify({ c0, g1: { vig: g1.vig, filtre: g1.filtre, legOp: g1.legOp, z: g1.z }, d1: { vig: d1.vig, z: d1.z }, z2: [g2.z, d2.z] }));
+  ok('…les deux flèches allumées — le ruban boucle —, à mi-hauteur de la vignette',
+     !r0.prec && !r0.suiv && Math.abs(r0.alignement) <= 2, JSON.stringify({ prec: r0.prec, suiv: r0.suiv, alignement: r0.alignement }));
+  /* a') LE CARROUSEL DE TWITCH QUI TOURNE — la cause du décalage : ses
+     places changent, l'ordre lu aussi, et l'aimant du navigateur suivait la
+     carte qu'il tenait jusqu'au bout de la ligne (reproduit : la dernière au
+     centre, 1200 pixels de défilement). Le cycle, lui, est le même : rien ne
+     bouge. Mutants — la tête reprise à chaque peinture (le ruban suit le
+     carrousel) ; la tête ni posée ni tournée (l'aimant décide). */
+  for (const ordre of [['orvik', 'tessaly', 'marbek', 'ilyan', 'solvane'], ['tessaly', 'marbek', 'ilyan', 'solvane', 'orvik']]) {
+    await page.evaluate((o) => { window.__accueil.carrouselChaines = o; window.__accueilRecarrousel(); }, ordre);
+    await wait(page, 2000);
+  }
+  const rTourne = await lire();
+  ok('a\') le carrousel de Twitch qui tourne, deux fois : la même carte au centre, entourée, rien n\'a bougé',
+     rTourne.ordre === r0.ordre && entouree(rTourne, 'tessaly') && rTourne.sl === r0.sl && rTourne.tours === 0,
+     JSON.stringify({ ordre: rTourne.ordre, ecarts: rTourne.ecarts, sl: [r0.sl, rTourne.sl], tours: rTourne.tours }));
+  /* b) « SUIVANT » : LE TOUR, PUIS LE DÉFILEMENT. Au clic, rien ne bouge à
+     l'écran — la carte du bout gauche passe au bout droit, au-delà de ce
+     qu'on voit, et y entre en fondu ; puis la suivante vient au centre, au
+     pixel — l'aimant mesure la carte, qui ne pivote pas —, entourée.
+     Mutants — le tour sans compensation (tout saute d'une carte) ; pas de
+     tour (rien à droite de la nouvelle) ; pas de fondu ; la carte entière
+     qui pivote (l'aimant s'arrêtait à 274 pixels au lieu de 300). */
+  const auClic = await page.evaluate(() => {
+    const l = document.querySelector('#tse-accueil .tse-acc-ruban');
+    const p = () => Object.fromEntries([...l.children].map((c) => [c.dataset.tseCle, Math.round((c.getBoundingClientRect().left - l.getBoundingClientRect().left) * 10) / 10]));
+    const avant = p();
+    document.querySelector('#tse-accueil .tse-acc-ruban-fleche--suiv').click();
+    const apres = p();
+    const passee = l.lastElementChild;
+    return { avant, apres, passee: passee.dataset.tseCle, fondu: passee.classList.contains('tse-acc-carte--arrivee')
+             && passee.getAnimations().some((a) => a.animationName === 'tse-acc-ruban-arrivee'), ordre: [...l.children].map((c) => c.dataset.tseCle).join(',') };
+  });
+  const immobiles = Object.keys(auClic.avant).filter((k) => k !== auClic.passee).every((k) => Math.abs(auClic.avant[k] - auClic.apres[k]) < 0.6);
+  ok('b) « Suivant » : au clic, rien ne bouge à l\'écran ; la carte du bout gauche passe au bout droit, en fondu',
+     immobiles && auClic.passee === 'solvane' && auClic.apres.solvane > auClic.avant.ilyan && auClic.fondu
+     && auClic.ordre === 'orvik,tessaly,marbek,ilyan,solvane', JSON.stringify(auClic));
   await wait(page, 1200);
   const r1 = await lire();
-  ok('b) « Suivant » : la carte suivante au centre, au pixel, droite ; « Précédent » allumé',
-     r1.centre === c1.cle && Math.abs(r1.cartes[1].ecart) <= 1 && droite(r1.cartes[1].vig) && !r1.prec,
-     JSON.stringify({ centre: r1.centre, ecart: r1.cartes[1].ecart, vig: r1.cartes[1].vig, prec: r1.prec }));
-  /* c) UN CLIC SUR UNE CARTE DE CÔTÉ l'amène au centre, sans ouvrir sa
-     chaîne ; sur celle du centre, le lien suit son cours ; avec Ctrl, une
-     carte de côté s'ouvre comme un lien. Mutants — le clic de côté qui ouvre
-     la chaîne ; le clic du centre retenu. */
+  /* …ET L'AIMANT REVENU : il se tait le temps du chemin (cf. d'')), et
+     revient à son terme. Mutant — l'aimant jamais rendu (la peinture
+     suivante recentre la tête : seul l'aimant lui-même le dit). */
+  ok('…puis la suivante au centre, au pixel, droite, entourée ; l\'aimant revenu',
+     entouree(r1, 'marbek') && droite(r1.cartes[2].vig) && r1.tete === 'marbek' && r1.ordre === 'orvik,tessaly,marbek,ilyan,solvane'
+     && r1.aimant === 'x mandatory', JSON.stringify({ ordre: r1.ordre, ecarts: r1.ecarts, vig: r1.cartes[2].vig, tete: r1.tete, aimant: r1.aimant }));
+  /* c) UN CLIC SUR UNE CARTE DE CÔTÉ l'amène au centre, entourée, sans
+     ouvrir sa chaîne ; sur celle du centre, le lien suit son cours ; avec
+     Ctrl, une carte de côté s'ouvre comme un lien. Mutants — le clic de côté
+     qui ouvre la chaîne ; le clic du centre retenu. */
   await page.evaluate(() => {
     window.__clics = [];
     window.addEventListener('click', (e) => { window.__clics.push({ prevenu: e.defaultPrevented, ctrl: e.ctrlKey }); e.preventDefault(); });
   });
-  const cle3 = r0.cartes[3].cle;
+  const cle3 = r1.cartes[4].cle;
   await page.click(`#tse-accueil .tse-acc-ruban [data-tse-cle="${cle3}"] .tse-acc-vignette`, { force: true });
   await wait(page, 1500);
   const r2 = await lire();
   const clics2 = await page.evaluate(() => window.__clics.slice());
-  ok('c) un clic sur une carte de côté l\'amène au centre, sans ouvrir sa chaîne ; le rapport le compte',
-     r2.centre === cle3 && Math.abs(r2.cartes[3].ecart) <= 1 && r2.chemin === '/' && clics2.length === 0 && r2.centrages === 1,
-     JSON.stringify({ centre: r2.centre, ecart: r2.cartes[3].ecart, chemin: r2.chemin, clics2, centrages: r2.centrages }));
+  ok('c) un clic sur une carte de côté, à deux places : au centre, entourée, sans ouvrir sa chaîne ; le rapport le compte',
+     entouree(r2, cle3) && r2.chemin === '/' && clics2.length === 0 && r2.centrages === 1,
+     JSON.stringify({ centre: r2.centre, ordre: r2.ordre, ecarts: r2.ecarts, chemin: r2.chemin, clics2, centrages: r2.centrages }));
   await page.click(`#tse-accueil .tse-acc-ruban [data-tse-cle="${cle3}"] .tse-acc-nom`);
-  const cle2 = r0.cartes[2].cle;
+  const cle2 = r2.cartes[1].cle;
   await page.click(`#tse-accueil .tse-acc-ruban [data-tse-cle="${cle2}"] .tse-acc-vignette`, { force: true, modifiers: ['Control'] });
   await wait(page, 600);
   const r3 = await lire();
@@ -42213,23 +42273,83 @@ const lireImages = (page) => page.evaluate(() => {
   ok('…sur celle du centre, le lien suit son cours ; avec Ctrl, une carte de côté s\'ouvre comme un lien, sans rien centrer',
      clics3.length === 2 && clics3[0].prevenu === false && !clics3[0].ctrl && clics3[1].prevenu === false && clics3[1].ctrl
      && r3.centre === cle3 && r3.centrages === 1, JSON.stringify({ clics3, centre: r3.centre }));
-  /* d) AU BOUT, « Suivant » s'éteint. */
-  for (let i = 0; i < 3; i++) {
-    if (await page.evaluate(() => document.querySelector('#tse-accueil .tse-acc-ruban-fleche--suiv').disabled)) break;
+  /* d) LE RUBAN BOUCLE : cinq fois « Suivant », on revient à la même carte,
+     entourée à chaque pas ; « Précédent » repart dans l'autre sens. Mutant
+     — les flèches éteintes au bout. */
+  const pas = [];
+  for (let i = 0; i < 5; i++) {
     await page.click('#tse-accueil .tse-acc-ruban-fleche--suiv');
-    await wait(page, 1200);
+    await wait(page, 1000);
+    const r = await lire();
+    pas.push({ centre: r.centre, entouree: entouree(r, r.centre), suiv: r.suiv });
   }
+  await page.click('#tse-accueil .tse-acc-ruban-fleche--prec');
+  await wait(page, 1200);
   const r4 = await lire();
-  ok('d) au bout du ruban : la dernière carte au centre, « Suivant » éteint',
-     r4.centre === r0.cartes[4].cle && Math.abs(r4.cartes[4].ecart) <= 1 && r4.suiv && !r4.prec, JSON.stringify({ centre: r4.centre, suiv: r4.suiv }));
+  const cycle = 'tessaly,marbek,ilyan,solvane,orvik';
+  const suivante = (k) => cycle.split(',')[(cycle.split(',').indexOf(k) + 1) % 5];
+  ok('d) le ruban boucle : cinq fois « Suivant » ramènent la même carte, entourée à chaque pas ; « Précédent » repart dans l\'autre sens',
+     pas[4].centre === cle3 && pas.every((x, i) => x.entouree && !x.suiv && x.centre === suivante(i ? pas[i - 1].centre : cle3))
+     && suivante(r4.centre) === cle3 && entouree(r4, r4.centre) && !r4.prec,
+     JSON.stringify({ pas, retour: r4.centre }));
+  /* d') À LA MAIN : un défilement d'un peu moins de deux cartes, qui
+     s'arrête entre deux — l'aimant le mène à la plus proche, revenu après les
+     chemins menés par nous ; à sa fin, la carte du centre devient la tête,
+     et le ruban tourne pour l'entourer. Mutants — la fin d'un défilement
+     ignorée ; l'aimant jamais rendu. */
+  const departMain = r4.centre;
+  await page.evaluate(() => document.querySelector('#tse-accueil .tse-acc-ruban').scrollBy({ left: 520, behavior: 'smooth' }));
+  await wait(page, 1500);
+  const r5 = await lire();
+  ok('d\') un défilement à la main qui s\'arrête entre deux cartes : l\'aimant le mène à la plus proche, qui devient la tête, entourée',
+     r5.centre === suivante(suivante(departMain)) && entouree(r5, r5.centre) && r5.tete === r5.centre,
+     JSON.stringify({ depart: departMain, centre: r5.centre, ordre: r5.ordre, ecarts: r5.ecarts, tete: r5.tete }));
+  /* d'') DEUX CLICS RAPPROCHÉS : le second tombe en plein défilement, quand
+     l'aimant du navigateur ne tient plus aucune carte — c'est alors notre
+     compensation, et elle seule, qui garde l'image : sans elle, tout
+     sautait d'une carte, 300 pixels (mesuré). Et l'aimant du ruban se tait
+     le temps du chemin : il recollait la position compensée à la carte la
+     plus proche, jusqu'à 137 pixels relevés sous charge. Aucun saut, et le
+     ruban s'arrête deux cartes plus loin, entouré. Mutants — le tour sans
+     compensation (ruban arrêté, l'aimant compense à sa place : seul ce cas
+     le voit) ; l'aimant gardé pendant le chemin. */
+  /* À trois écarts — le second clic tôt, au milieu, tard dans le chemin —,
+     le plus grand saut est retenu, et chaque fois le ruban doit finir deux
+     cartes plus loin. */
+  const sauts = [];
+  let departDouble = r5.centre, rDouble = null, finsJustes = true;
+  for (const ecart of [60, 160, 260]) {
+    sauts.push(await page.evaluate(async (ms) => {
+      const l = document.querySelector('#tse-accueil .tse-acc-ruban');
+      const p = () => Object.fromEntries([...l.children].map((c) => [c.dataset.tseCle, c.getBoundingClientRect().left]));
+      const b = document.querySelector('#tse-accueil .tse-acc-ruban-fleche--suiv');
+      b.click();
+      await new Promise((ok) => setTimeout(ok, ms));
+      const avant = p();
+      b.click();
+      const apres = p();
+      const passee = l.lastElementChild.dataset.tseCle;
+      return Math.max(...Object.keys(avant).filter((k) => k !== passee).map((k) => Math.abs(apres[k] - avant[k])));
+    }, ecart));
+    await wait(page, 1600);
+    rDouble = await lire();
+    if (rDouble.centre !== suivante(suivante(departDouble)) || !entouree(rDouble, rDouble.centre)) finsJustes = false;
+    departDouble = rDouble.centre;
+  }
+  const double = Math.max(...sauts);
+  ok('d\'\') deux clics rapprochés : au second, en plein défilement, rien ne saute ; le ruban s\'arrête deux cartes plus loin, entouré',
+     double < 2 && finsJustes, JSON.stringify({ sauts: sauts.map((x) => Math.round(x * 10) / 10), finsJustes, centre: rDouble.centre, ecarts: rDouble.ecarts }));
+  // Pour e) : une voisine porte le reflet de Tessaly, la seule chaîne qui a sa couleur.
+  if (rDouble.centre === 'tessaly') { await page.click('#tse-accueil .tse-acc-ruban-fleche--suiv'); await wait(page, 1200); }
+  const rFin = await lire();
   /* e) LE REFLET AU SOL, dans la couleur de la chaîne — Tessaly, 00C8AF —,
      une nappe à 34 % sous les voisines, éteinte sous la carte du centre ;
      la légende sans fond (4.32.0.5 : celui de la page, que disait la
      variable de Twitch, faisait une boîte grise sur un fond plus sombre,
      relevé sur une capture). Mutants — pas de reflet ; le reflet allumé
      sous le centre ; la légende sur le fond de la variable. */
-  const tess = r4.cartes.find((c) => c.cle === 'tessaly');
-  const centreFin = r4.cartes.find((c) => c.cle === r4.centre);
+  const tess = rFin.cartes.find((c) => c.cle === 'tessaly');
+  const centreFin = rFin.cartes.find((c) => c.cle === rFin.centre);
   ok('e) un reflet au sol sous les voisines, dans la couleur de la chaîne, à 34 % ; éteint sous la carte du centre, dont la légende n\'a pas de fond',
      tess.cle !== centreFin.cle && tess.reflet.contenu === '""' && /rgb\(0, 200, 175\)/.test(tess.reflet.image)
      && Math.abs(Number(tess.reflet.op) - 0.34) < 0.005
@@ -42402,6 +42522,9 @@ const LECTEUR_ZAP = `<!doctype html><html><body style="margin:0;background:#000"
     setInterval(() => { x.fillStyle = 'hsl(' + h + ',55%,' + (28 + Math.random() * 4) + '%)'; x.fillRect(0, 0, 64, 36); }, 40);
     document.querySelector('[data-a-target="player-mute-unmute-button"]').addEventListener('click', () => { v.muted = !v.muted; });
     document.querySelector('[data-a-target="player-play-pause-button"]').addEventListener('click', () => { if (v.paused) v.play(); else v.pause(); });
+    // Les ordres du zapping, notés (4.33.0.1 : la hauteur visée, relue quand la fenêtre change).
+    window.__ordres = [];
+    addEventListener('message', (e) => { if (e.data && e.data.tse === 'tse:salle-ordre') window.__ordres.push(e.data); });
   </script>
   <script src="/cadres.test.js"></script>
 </body></html>`;
@@ -42413,6 +42536,15 @@ const SUIVIES_ZAP = {
   tazmerin: { id: '23', depuis: 140, v: 1200, jeu: 'Hollow Knight: Silksong', titre: 'Premier run' },
   lirael:   { id: '25', depuis: 55,  v: 900,  jeu: 'Minecraft', titre: 'Le village au bord de l\'eau' },
   sevrane:  { id: '22', depuis: 30,  v: 640,  jeu: 'Minecraft', titre: 'Construction du château' },
+};
+// Douze suivies (4.33.0.1) : une colonne qui défile, même en plein écran.
+const SUIVIES_ZAP_DOUZE = {
+  ...SUIVIES_ZAP,
+  orlane:   { id: '26', depuis: 44,  v: 520, jeu: 'Just Chatting', titre: 'Lecture du soir' },
+  kestrin:  { id: '27', depuis: 71,  v: 480, jeu: 'Minecraft', titre: 'La ferme automatique' },
+  vaudric:  { id: '28', depuis: 12,  v: 430, jeu: 'Counter-Strike', titre: 'Entraînement' },
+  melsande: { id: '29', depuis: 150, v: 390, jeu: 'Elden Ring', titre: 'Sans bouclier' },
+  tibrac:   { id: '30', depuis: 33,  v: 350, jeu: 'Hollow Knight: Silksong', titre: 'Les boss, un par un' },
 };
 async function ouvrirZap({ nav = true, chemin = '/directory', suivies = SUIVIES_ZAP } = {}) {
   const init = `(() => { try { localStorage.setItem('tse:roue', 'vu'); localStorage.setItem('tse:indice', 'vu'); } catch { /* refusé */ }
@@ -42466,7 +42598,7 @@ const lireZap = (page) => page.evaluate(() => {
 });
 
 {
-  titre('231. Le zapping — un bouton à droite de la loupe, vos suivis en direct en plein écran, la suivante déjà chargée');
+  titre('231. Le zapping — un bouton à droite de la loupe, vos suivis en direct en plein écran, les deux voisines déjà chargées, l\'interface qui s\'efface');
   /* a) LE BOUTON, juste à droite de la loupe : au bout de la rangée de la
      recherche, hors du formulaire ; centres alignés, ses huit pixels de
      marge. Mutant — posé avant la loupe. */
@@ -42527,6 +42659,8 @@ const lireZap = (page) => page.evaluate(() => {
   await attendre(p, () => !document.getElementById('video-page').paused, 3000);
   await p.click('.tse-zap-bouton');
   await attendre(p, () => window.tse.zapping.rapport().courant !== null, 4000);
+  // Le plein écran se pose après le clic, le temps que le navigateur l'accorde.
+  await attendre(p, () => document.fullscreenElement !== null, 3000);
   const o = await p.evaluate(() => {
     const z = document.getElementById('tse-zap');
     const r = z.getBoundingClientRect();
@@ -42544,56 +42678,93 @@ const lireZap = (page) => page.evaluate(() => {
              compteurDessus: !!dessus && !!dessus.closest('.tse-zap__compteur'),
              capot: document.elementFromPoint(innerWidth / 2, innerHeight / 2).className, role: z.getAttribute('role'), modal: z.getAttribute('aria-modal'),
              focus: z.contains(document.activeElement), barre: [...document.querySelectorAll('.side-nav-card')].map((c) => c.dataset.tseLogin),
-             videoPage: document.getElementById('video-page').paused };
+             videoPage: document.getElementById('video-page').paused, pleinEcran: document.fullscreenElement === z };
   });
   const z1 = await lireZap(p);
+  /* c') EN PLEIN ÉCRAN (4.33.0.1) : « peux-tu mettre le zapping en plein
+     écran ? » — l'écran lui-même, au clic sur le bouton, qui en donne le
+     droit. Mutant — pas de plein écran. */
+  ok('c\') ouvert par le bouton : l\'écran lui-même en plein écran',
+     o.pleinEcran && z1.rapport.pleinEcran && z1.rapport.ouvertPar === 'bouton' && z1.rapport.pleinsEcrans === 1,
+     JSON.stringify({ pleinEcran: o.pleinEcran, rapport: { pe: z1.rapport.pleinEcran, par: z1.rapport.ouvertPar, n: z1.rapport.pleinsEcrans } }));
   ok('c) l\'écran plein, devant la barre du haut, modal, le focus dedans ; les sept chaînes dans l\'ordre de la barre (ici alphabétique) ; un capot devant les lecteurs ; la vidéo de la page en pause',
      o.couvre && o.plein && o.capot === 'tse-zap__capot' && o.compteurDessus && o.role === 'dialog' && o.modal === 'true' && o.focus && o.videoPage
      && JSON.stringify(z1.liste) === JSON.stringify(o.barre) && z1.liste.length === 7 && z1.rang === '1 / 7' && z1.titre === 'Zapping · vos suivis en direct'
      && z1.courante === 'brenvik', JSON.stringify({ o, liste: z1.liste, rang: z1.rang }));
   /* d) LE COURANT : un lecteur intégré, au nom qui éveille le pont, muet à
      l'adresse — la lecture automatique l'exige — puis rendu au son par le
-     pont ; la suivante, déjà chargée, muette et invisible, marquée
-     « préchargée ». Un lecteur qui n'est pas le courant et que Twitch
-     rendrait au son se retait. Mutants — le son jamais rendu ; pas de
-     préchargement ; le préchargé laissé au son. */
+     pont. LES DEUX VOISINES (4.33.0.1 : « précharge la chaîne avant et la
+     chaîne après ») : la suivante — le sens où l'on va — d'abord, la
+     précédente ensuite — ici la dernière, la liste boucle —, muettes,
+     invisibles, marquées « préchargée ». Un lecteur qui n'est pas le
+     courant et que Twitch rendrait au son se retait. Mutants — le son jamais
+     rendu ; la suivante seule ; le sens ignoré ; le préchargé laissé au son ;
+     le préchargé visible. */
   const vBrenvik = await attendreVideo(p, 'brenvik', (v) => v.muet === false && v.lecture);
-  await attendre(p, () => window.tse.zapping.rapport().precharge === 'lirael', 3000);
+  await attendre(p, () => (window.tse.zapping.rapport().prechargees || []).length === 2, 4000);
   const vLirael = await attendreVideo(p, 'lirael', (v) => v.lecture);
+  const vVelmoria = await attendreVideo(p, 'velmoria', (v) => v.lecture);
   const z2 = await lireZap(p);
-  const cadreB = z2.cadres.find((c) => c.login === 'brenvik'), cadreL = z2.cadres.find((c) => c.login === 'lirael');
+  const cadreB = z2.cadres.find((c) => c.login === 'brenvik'), cadreL = z2.cadres.find((c) => c.login === 'lirael'),
+        cadreV = z2.cadres.find((c) => c.login === 'velmoria');
   const srcB = await p.evaluate(() => document.querySelector('#tse-zap iframe[data-tse-login="brenvik"]').src);
-  ok('d) le courant : un lecteur nommé « tse-zapping », muet à l\'adresse, puis au son par le pont ; la suivante préchargée, muette, invisible, marquée',
+  ok('d) le courant : un lecteur nommé « tse-zapping », muet à l\'adresse, puis au son par le pont ; la suivante, puis la précédente, préchargées, muettes, invisibles, marquées',
      vBrenvik && vBrenvik.muet === false && vBrenvik.lecture && cadreB.nom === 'tse-zapping' && cadreB.op === 1
      && /[?&]channel=brenvik&parent=www\.twitch\.tv&muted=true&autoplay=true$/.test(srcB)
-     && vLirael && vLirael.muet === true && cadreL && cadreL.op === 0 && JSON.stringify(z2.marques) === '{"lirael":["préchargée"]}',
-     JSON.stringify({ vBrenvik, vLirael, cadres: z2.cadres, marques: z2.marques, srcB }));
+     && JSON.stringify(z2.rapport.prechargees) === '["lirael","velmoria"]' && z2.cadres.length === 3
+     && vLirael && vLirael.muet === true && vVelmoria && vVelmoria.muet === true && cadreL && cadreL.op === 0 && cadreV && cadreV.op === 0
+     && JSON.stringify(z2.marques) === '{"lirael":["préchargée"],"velmoria":["préchargée"]}',
+     JSON.stringify({ vBrenvik, vLirael, vVelmoria, cadres: z2.cadres, prechargees: z2.rapport.prechargees, marques: z2.marques, srcB }));
   await p.frames().find((f) => f.name() === 'tse-zapping' && /channel=lirael/.test(f.url())).evaluate(() => { document.querySelector('video').muted = false; });
   const vRetu = await attendreVideo(p, 'lirael', (v) => v.muet === true, 4000);
   ok('…le préchargé que Twitch rendrait au son se retait', vRetu && vRetu.muet === true, JSON.stringify(vRetu));
   /* e) ↓ : la préchargée devient le courant, le même cadre — rien ne se
-     recharge —, au son ; l'ancien se tait et part après le fondu ; la
-     suivante se précharge. Les touches ne passent pas à Twitch. Mutants —
-     le préchargé jeté et rechargé ; l'ancien laissé. */
-  await p.evaluate(() => { document.querySelector('#tse-zap iframe[data-tse-login="lirael"]').dataset.marque = 'pre'; });
+     recharge —, au son. L'ANCIEN COURANT EST GARDÉ (4.33.0.1) : il est la
+     précédente du nouveau ; une fois le fondu passé, il reste, muet,
+     invisible, préchargé — le même cadre, encore. Celle qui n'est plus
+     voisine part ; la nouvelle suivante se précharge. Les touches ne
+     passent pas à Twitch. Mutants — le préchargé jeté et rechargé ;
+     l'ancien jeté ; l'ancienne voisine laissée. */
+  await p.evaluate(() => {
+    document.querySelector('#tse-zap iframe[data-tse-login="lirael"]').dataset.marque = 'pre';
+    document.querySelector('#tse-zap iframe[data-tse-login="brenvik"]').dataset.marque = 'ancien';
+  });
   await p.keyboard.press('ArrowDown');
   await attendre(p, () => window.tse.zapping.rapport().courant === 'lirael', 2000);
   const vLirael2 = await attendreVideo(p, 'lirael', (v) => v.muet === false);
-  await wait(p, 500);
+  await attendre(p, () => JSON.stringify([...(window.tse.zapping.rapport().prechargees || [])].sort()) === '["brenvik","nyxaria"]', 4000);
+  const vBrenvik2 = await attendreVideo(p, 'brenvik', (v) => v.muet === true);
   const z3 = await lireZap(p);
-  const marque = await p.evaluate(() => document.querySelector('#tse-zap iframe[data-tse-login="lirael"]')?.dataset.marque ?? null);
-  await attendre(p, () => window.tse.zapping.rapport().precharge === 'nyxaria', 3000);
+  const marques = await p.evaluate(() => Object.fromEntries([...document.querySelectorAll('#tse-zap iframe')].map((f) => [f.dataset.tseLogin, f.dataset.marque ?? null])));
   const touches = await p.evaluate(() => window.__touchesPage);
-  ok('e) ↓ : la préchargée devient le courant — le même cadre —, au son ; l\'ancienne part ; la suivante se précharge ; « 2 / 7 » ; rien ne passe à Twitch',
-     z3.rang === '2 / 7' && z3.courante === 'lirael' && z3.nom === 'Lirael' && marque === 'pre' && vLirael2 && vLirael2.muet === false
-     && !z3.cadres.some((c) => c.login === 'brenvik') && z3.rapport.prechargesServies === 1
-     && (await p.evaluate(() => window.tse.zapping.rapport().precharge)) === 'nyxaria' && touches === 0,
-     JSON.stringify({ rang: z3.rang, courante: z3.courante, marque, vLirael2, cadres: z3.cadres, rapport: z3.rapport, touches }));
-  /* f) ↑, À REBOURS : la chaîne d'avant n'était pas préchargée ; elle se
-     charge SOUS l'image d'avant, qui reste jusqu'à ce qu'elle joue — à
-     aucune image l'écran n'est sans lecteur visible. Le préchargement suit
-     le sens : celle d'avant encore. Mutants — l'ancien retiré sur-le-champ ;
-     le préchargement toujours vers l'avant. */
+  ok('e) ↓ : la préchargée devient le courant — le même cadre —, au son ; l\'ancien courant reste, muet et invisible, préchargé — le même cadre — ; la nouvelle suivante se précharge ; « 2 / 7 » ; rien ne passe à Twitch',
+     z3.rang === '2 / 7' && z3.courante === 'lirael' && z3.nom === 'Lirael' && marques.lirael === 'pre' && vLirael2 && vLirael2.muet === false
+     && marques.brenvik === 'ancien' && vBrenvik2 && vBrenvik2.muet === true && z3.cadres.find((c) => c.login === 'brenvik')?.op === 0
+     && !z3.cadres.some((c) => c.login === 'velmoria') && z3.cadres.length === 3
+     && z3.rapport.prechargesServies === 1 && z3.rapport.recycles === 1 && touches === 0,
+     JSON.stringify({ rang: z3.rang, courante: z3.courante, marques, vLirael2, vBrenvik2, cadres: z3.cadres, rapport: z3.rapport, touches }));
+  /* f) ↑, À REBOURS : l'ancien courant revient — le même cadre, sans rien
+     recharger, servi comme un préchargé. Le préchargement suit le sens :
+     celle d'avant se charge. Mutants — le préchargement toujours vers
+     l'avant ; l'ancien jeté. */
+  await p.keyboard.press('ArrowUp');
+  await attendre(p, () => window.tse.zapping.rapport().courant === 'brenvik', 2000);
+  await attendre(p, () => JSON.stringify([...(window.tse.zapping.rapport().prechargees || [])].sort()) === '["lirael","velmoria"]', 4000);
+  const z4 = await lireZap(p);
+  const marquesF = await p.evaluate(() => Object.fromEntries([...document.querySelectorAll('#tse-zap iframe')].map((f) => [f.dataset.tseLogin, f.dataset.marque ?? null])));
+  ok('f) ↑ : l\'ancien courant revient, le même cadre, sans rien recharger ; celle d\'avant se précharge, la suivante reste',
+     z4.courante === 'brenvik' && z4.rang === '1 / 7' && marquesF.brenvik === 'ancien' && marquesF.lirael === 'pre'
+     && z4.rapport.prechargesServies === 2 && z4.rapport.recycles === 2 && z4.cadres.length === 3,
+     JSON.stringify({ courante: z4.courante, marquesF, rapport: z4.rapport }));
+  /* g) AU BOUT, ON REVIENT : ↑ depuis la première mène à la dernière —
+     préchargée, elle aussi. UNE CHAÎNE QU'ON N'ATTENDAIT PAS — un clic dans
+     la colonne, loin des voisines — se charge SOUS l'image d'avant, qui
+     reste jusqu'à ce qu'elle joue : à aucune image l'écran n'est sans
+     lecteur visible. Mutants — l'ancien retiré sur-le-champ ; retiré dès le
+     changement. */
+  await p.keyboard.press('ArrowUp');
+  await attendre(p, () => window.tse.zapping.rapport().courant === 'velmoria', 2000);
+  const z5 = await lireZap(p);
   await p.evaluate(() => {
     window.__noir = 0; window.__images = 0;
     const t0 = performance.now();
@@ -42605,24 +42776,17 @@ const lireZap = (page) => page.evaluate(() => {
     };
     requestAnimationFrame(regarder);
   });
-  await p.keyboard.press('ArrowUp');
+  await p.click('#tse-zap .tse-zap__chaine[data-tse-login="nyxaria"]');
   await wait(p, 2600);
   const noir = await p.evaluate(() => ({ noir: window.__noir, images: window.__images }));
-  await attendre(p, () => window.tse.zapping.rapport().precharge === 'velmoria', 3000);
-  const z4 = await lireZap(p);
-  ok('f) ↑ : la chaîne d\'avant se charge sous l\'image qui reste — aucune image sans lecteur visible ; le préchargement suit le sens',
-     z4.courante === 'brenvik' && z4.rang === '1 / 7' && noir.images > 20 && noir.noir === 0 && z4.rapport.precharge === 'velmoria'
-     && z4.rapport.prechargesServies === 1, JSON.stringify({ noir, courante: z4.courante, rapport: z4.rapport }));
-  /* g) AU BOUT, ON REVIENT : ↑ depuis la première mène à la dernière ; un
-     clic dans la colonne mène à la sienne. */
-  await p.keyboard.press('ArrowUp');
-  await attendre(p, () => window.tse.zapping.rapport().courant === 'velmoria', 2000);
-  const z5 = await lireZap(p);
-  await p.click('#tse-zap .tse-zap__chaine[data-tse-login="nyxaria"]');
-  await attendre(p, () => window.tse.zapping.rapport().courant === 'nyxaria', 2000);
   const z6 = await lireZap(p);
-  ok('g) ↑ depuis la première : la dernière (« 7 / 7 ») ; un clic dans la colonne : sa chaîne',
-     z5.rang === '7 / 7' && z5.courante === 'velmoria' && z6.rang === '3 / 7' && z6.courante === 'nyxaria', JSON.stringify({ z5: z5.rang, z6: z6.rang }));
+  /* …ET LE PRÉCHARGEMENT SUIT LE SENS : on est remonté, celle d'avant —
+     Lirael — se charge d'abord, celle d'après — Quorvin — ensuite. Mutant —
+     toujours la suivante d'abord. */
+  ok('g) ↑ depuis la première : la dernière (« 7 / 7 »), préchargée ; un clic loin dans la colonne : sa chaîne, chargée sous l\'image qui reste — aucune image sans lecteur visible ; en remontant, celle d\'avant se précharge d\'abord',
+     z5.rang === '7 / 7' && z5.courante === 'velmoria' && z5.rapport.prechargesServies === 3 && z6.rang === '3 / 7' && z6.courante === 'nyxaria'
+     && noir.images > 20 && noir.noir === 0 && JSON.stringify(z6.rapport.prechargees) === '["lirael","quorvin"]',
+     JSON.stringify({ z5: z5.rang, servies: z5.rapport.prechargesServies, z6: z6.rang, noir, prechargees: z6.rapport.prechargees }));
   /* h) LA CHAÎNE, EN BAS : son nom et la pastille de son subathon — celle
      de la barre —, son titre, « Live », sa catégorie, ses spectateurs, sa
      durée, « subathon, jour 9 » ; « Son de … ». Mutant — sans pastille. */
@@ -42675,10 +42839,13 @@ const lireZap = (page) => page.evaluate(() => {
   await p.keyboard.press('o');
   await attendre(p, () => !document.getElementById('tse-zap') && !!window.tse.salle.rapport().ouverte, 4000);
   const salleOuverte = await p.evaluate(() => ({ zap: !!document.getElementById('tse-zap'), n: window.tse.salle.rapport().membres,
-    chaines: [...new Set([...document.querySelectorAll('#tse-salle [data-tse-salle-chaine]')].map((x) => x.dataset.tseSalleChaine))].sort() }));
-  ok('k) O : la salle s\'ouvre avec les six, sur place ; le zapping se ferme',
-     !salleOuverte.zap && salleOuverte.n === 6 && JSON.stringify(salleOuverte.chaines) === JSON.stringify([...selection].sort()),
-     JSON.stringify({ salleOuverte, selection }));
+    chaines: [...new Set([...document.querySelectorAll('#tse-salle [data-tse-salle-chaine]')].map((x) => x.dataset.tseSalleChaine))].sort(),
+    pleinEcran: document.fullscreenElement !== null }));
+  /* « Si on ouvre la salle, on passe en fenêtré normal » (4.33.0.1). Mutant
+     — la fenêtre pas rendue. */
+  ok('k) O : la salle s\'ouvre avec les six, sur place, en fenêtré normal ; le zapping se ferme',
+     !salleOuverte.zap && salleOuverte.n === 6 && JSON.stringify(salleOuverte.chaines) === JSON.stringify([...selection].sort())
+     && !salleOuverte.pleinEcran, JSON.stringify({ salleOuverte, selection }));
   await p.click('.tse-zap-bouton', { force: true });
   await attendre(p, () => window.tse.zapping.rapport().ouvert, 3000);
   const z11 = await lireZap(p);
@@ -42723,9 +42890,10 @@ const lireZap = (page) => page.evaluate(() => {
   await wait(q, 300);
   const ferme = await q.evaluate(() => ({ zap: !!document.getElementById('tse-zap'), cadres: document.querySelectorAll('iframe[name="tse-zapping"]').length,
                                          video: !document.getElementById('video-page').paused, focus: document.activeElement?.className ?? null,
-                                         fermetures: window.tse.zapping.rapport().fermetures }));
-  ok('…Échap le ferme : plus de lecteur, la vidéo de la page reprend, le focus revient au bouton',
-     pause && !ferme.zap && ferme.cadres === 0 && ferme.video && ferme.focus === 'tse-zap-bouton' && ferme.fermetures.echap === 1, JSON.stringify({ pause, ferme }));
+                                         fermetures: window.tse.zapping.rapport().fermetures, pleinEcran: document.fullscreenElement !== null }));
+  ok('…Échap le ferme : plus de lecteur, la vidéo de la page reprend, le focus revient au bouton, en fenêtré normal',
+     pause && !ferme.zap && ferme.cadres === 0 && ferme.video && ferme.focus === 'tse-zap-bouton' && ferme.fermetures.echap === 1
+     && !ferme.pleinEcran, JSON.stringify({ pause, ferme }));
   /* m) LA COURANTE QUI S'ARRÊTE reste à sa place, « hors ligne » : on ne
      vous déplace pas. Mutant — elle sort de la liste. */
   await q.click('.tse-zap-bouton');
@@ -42800,6 +42968,160 @@ const lireZap = (page) => page.evaluate(() => {
      && JSON.stringify(z14.aide) === JSON.stringify(['↑', '↓', 'Échapquitter']) && z14.rapport.vides === 1,
      JSON.stringify({ vide: z14.vide, rang: z14.rang, aide: z14.aide }));
   await v.close();
+  /* t) LE PLEIN ÉCRAN, SES AUTRES SORTIES (4.33.0.1). Ouvert sans geste —
+     par l'API —, le navigateur le refuse : l'écran reste dans la fenêtre,
+     et tout marche. Sorti du plein écran sans nous — Échap au navigateur,
+     qui ne laisse pas la touche à la page, ou son bandeau —, le zapping se
+     ferme : une seule touche pour quitter, pas deux. Mutants — le refus qui
+     casse l'ouverture ; la sortie du plein écran ignorée. */
+  const w = await ouvrirZap({ suivies: SUIVIES_ZAP_DOUZE });
+  await attendre(w, () => !!document.querySelector('.tse-zap-bouton'), 6000);
+  await attendre(w, () => document.querySelectorAll('.side-nav-card[data-tse-login]').length === 12, 8000);
+  await wait(w, 1200);
+  /* SANS GESTE : chaque appel du banc dans la page vaut un geste pour
+     Chromium, et un geste dure cinq secondes. On attend, dans la page,
+     qu'il soit passé — puis on ouvre. */
+  const parApi = await w.evaluate(async () => {
+    while (navigator.userActivation.isActive) await new Promise((ok) => setTimeout(ok, 100));
+    const r = window.tse.zapping.ouvrir();
+    await new Promise((ok) => setTimeout(ok, 600));
+    const x = window.tse.zapping.rapport();
+    return { r, pleinEcran: document.fullscreenElement !== null, courant: x.courant, refus: x.pleinEcranRefus, par: x.ouvertPar };
+  });
+  /* LA HAUTEUR VISÉE SUIT LA FENÊTRE (l'audit : elle n'était dite qu'une
+     fois, au premier relevé) — en fenêtré, où la fenêtre peut changer.
+     Mutant — la taille ignorée. */
+  await attendre(w, () => (window.tse.zapping.rapport().prechargees || []).length === 2, 4000);
+  await wait(w, 1500);
+  await w.setViewportSize({ width: 1500, height: 820 });
+  await wait(w, 900);
+  const hauteurs = await Promise.all(w.frames().filter((f) => f.name() === 'tse-zapping')
+    .map((f) => f.evaluate(() => (window.__ordres || []).filter((o) => o.ordre === 'qualite').map((o) => o.hauteur).at(-1) ?? null).catch(() => null)));
+  const vise = await w.evaluate(() => Math.round(window.innerHeight * (window.devicePixelRatio || 1)));
+  ok('…et en fenêtré, chaque lecteur reçoit la hauteur que vise la fenêtre, quand elle change',
+     hauteurs.length === 3 && hauteurs.every((h) => h === vise), JSON.stringify({ hauteurs, vise }));
+  /* LES TOUCHES QUI FONT DÉFILER (l'audit) — en fenêtré, là où elles le
+     peuvent : Espace, Page suivante, Fin faisaient descendre la page de
+     Twitch sous l'écran, de 787, 1 574 puis 2 100 pixels (mesuré) ; en plein
+     écran, rien ne défile de toute façon. Et une touche relâchée ne passe
+     pas à Twitch. Mutants — les touches de défilement laissées ; le
+     relâchement laissé. */
+  const defile = await w.evaluate(() => {
+    document.documentElement.style.minHeight = '3000px'; window.scrollTo(0, 0);
+    window.__relachees = 0;
+    window.addEventListener('keyup', () => { window.__relachees++; });
+    document.getElementById('tse-zap').focus();
+    return window.scrollY;
+  });
+  for (const k of [' ', 'PageDown', 'End', 'ArrowRight']) await w.keyboard.press(k);
+  await wait(w, 400);
+  const apresTouches = await w.evaluate(() => ({ y: window.scrollY, relachees: window.__relachees, ouvert: window.tse.zapping.rapport().ouvert,
+                                                 pleinEcran: document.fullscreenElement !== null }));
+  ok('…en fenêtré, ni l\'espace, ni Page suivante, ni Fin, ni → ne font défiler la page dessous ; aucune touche relâchée ne passe à Twitch',
+     defile === 0 && apresTouches.y === 0 && apresTouches.relachees === 0 && apresTouches.ouvert && !apresTouches.pleinEcran,
+     JSON.stringify({ defile, apresTouches }));
+  await w.evaluate(() => { document.documentElement.style.minHeight = ''; });
+  await w.evaluate(() => window.tse.zapping.fermer());
+  await w.click('.tse-zap-bouton');
+  await attendre(w, () => document.fullscreenElement !== null && window.tse.zapping.rapport().courant !== null, 4000);
+  await w.evaluate(() => document.exitFullscreen());
+  await attendre(w, () => !window.tse.zapping.rapport().ouvert, 3000);
+  const sortie = await w.evaluate(() => ({ ouvert: window.tse.zapping.rapport().ouvert, fermetures: window.tse.zapping.rapport().fermetures,
+                                           cadres: document.querySelectorAll('iframe[name="tse-zapping"]').length }));
+  ok('t) ouvert sans geste : dans la fenêtre, et tout marche ; sorti du plein écran par le navigateur : le zapping se ferme',
+     parApi.r.ouvert && !parApi.pleinEcran && parApi.courant && parApi.refus === 1 && parApi.par === 'console'
+     && !sortie.ouvert && sortie.fermetures['plein-ecran'] === 1 && sortie.cadres === 0, JSON.stringify({ parApi, sortie }));
+  /* u) L'INTERFACE AU REPOS (4.33.0.1) : « au bout de quelques secondes
+     sans bouger la souris, fais disparaître l'UI ; elle réapparaît quand la
+     souris rebouge ». Trois secondes après le dernier mouvement : tout ce
+     qui se pose sur le direct s'efface — compteur, touches, colonne,
+     chaîne, son, capot —, et le pointeur avec. Un « mousemove » sans
+     déplacement — le navigateur en émet quand ce qui est sous le pointeur
+     change — ne la ramène pas ; un vrai mouvement, si ; une touche aussi.
+     Le pointeur posé sur la colonne la garde. Mutants — jamais au repos ; le
+     faux mouvement qui réveille ; la touche qui ne réveille pas ; le survol
+     ignoré ; le pointeur laissé. */
+  await w.evaluate(() => window.addEventListener('mousemove', (e) => { if (e.isTrusted) window.__dernier = [e.screenX, e.screenY]; }, true));
+  await w.click('.tse-zap-bouton');
+  await attendre(w, () => window.tse.zapping.rapport().courant !== null, 4000);
+  await w.mouse.move(700, 420);
+  await w.mouse.move(705, 424);
+  const reposAvant = await w.evaluate(() => window.tse.zapping.rapport().repos);
+  const lireRepos = () => w.evaluate(() => {
+    const z = document.getElementById('tse-zap');
+    const op = (s) => Number(getComputedStyle(z.querySelector(s)).opacity);
+    return { repos: z.classList.contains('tse-zap--repos'), curseur: getComputedStyle(z).cursor,
+             ops: ['.tse-zap__compteur', '.tse-zap__aide', '.tse-zap__liste', '.tse-zap__infos', '.tse-zap__son', '.tse-zap__capot'].map(op) };
+  });
+  await wait(w, 1500);
+  const u0 = await lireRepos();
+  await wait(w, 2500);
+  const u1 = await lireRepos();
+  // Le navigateur rejoue un « mousemove » au même point quand ce qui est sous le pointeur change : on en rejoue un, aux dernières coordonnées.
+  await w.evaluate(() => document.querySelector('#tse-zap .tse-zap__capot').dispatchEvent(
+    new MouseEvent('mousemove', { bubbles: true, screenX: window.__dernier[0], screenY: window.__dernier[1] })));
+  await wait(w, 300);
+  const surPlace = await lireRepos();
+  await w.mouse.move(760, 460);
+  await wait(w, 400);
+  const u2 = await lireRepos();
+  await wait(w, 3600);
+  const u3 = await lireRepos();
+  await w.keyboard.press('ArrowDown');
+  await wait(w, 400);
+  const u4 = await lireRepos();
+  const liste = await w.evaluate(() => { const r = document.querySelector('#tse-zap .tse-zap__liste').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + 60 }; });
+  await w.mouse.move(liste.x, liste.y);
+  await wait(w, 4000);
+  const u5 = await lireRepos();
+  const rRepos = await w.evaluate(() => { const x = window.tse.zapping.rapport(); return { repos: x.repos, auRepos: x.auRepos }; });
+  ok('u) trois secondes sans bouger la souris : l\'interface s\'efface, le pointeur avec ; un mouvement sur place ne la ramène pas, un vrai mouvement et une touche si ; posée sur la colonne, elle reste',
+     !u0.repos && u0.ops.every((x) => x === 1) && u1.repos && u1.ops.every((x) => x === 0) && u1.curseur === 'none'
+     && surPlace.repos && !u2.repos && u2.ops.every((x) => x > 0.95) && u3.repos && !u4.repos && !u5.repos
+     && rRepos.repos - reposAvant === 2 && rRepos.auRepos === false, JSON.stringify({ u0, u1, surPlace, u2, u3, u4, u5, rRepos, reposAvant }));
+  /* v) LA COLONNE REFAITE GARDE LE FOCUS, ET LA COURANTE EN VUE (4.33.0.1,
+     l'audit : une chaîne qui s'arrête refait la colonne ; le focus tombait,
+     et la colonne ne suivait plus la courante). Douze chaînes : la colonne
+     défile. La courante, la première ; le focus, sur la deuxième ; la
+     colonne menée tout en bas ; puis la dernière s'arrête — après la
+     courante, dont le rang ne change donc pas. Mutants — le focus perdu ; la
+     courante laissée hors de vue. */
+  const ordreV = await w.evaluate(() => [...document.querySelectorAll('#tse-zap .tse-zap__chaine')].map((b) => b.dataset.tseLogin));
+  const [premiere, deuxieme] = ordreV, partante = ordreV.at(-1);
+  await w.click(`#tse-zap .tse-zap__chaine[data-tse-login="${premiere}"]`);
+  await attendre(w, (l) => window.tse.zapping.rapport().courant === l, 3000, premiere);
+  await w.focus(`#tse-zap .tse-zap__chaine[data-tse-login="${deuxieme}"]`);
+  const defilait = await w.evaluate(() => { const L = document.querySelector('#tse-zap .tse-zap__liste'); L.scrollTop = L.scrollHeight; return L.scrollTop > 200; });
+  await w.evaluate((l) => { window.__fx[l] = null; }, partante);
+  await attendre(w, () => document.querySelectorAll('#tse-zap .tse-zap__chaine').length === 11, 8000);
+  const apres = await w.evaluate((l) => {
+    const L = document.querySelector('#tse-zap .tse-zap__liste'), b = L.querySelector(`.tse-zap__chaine[data-tse-login="${l}"]`);
+    const rl = L.getBoundingClientRect(), rb = b.getBoundingClientRect();
+    return { focus: document.activeElement?.dataset?.tseLogin ?? document.activeElement?.className ?? null, enVue: rb.top >= rl.top - 1 && rb.bottom <= rl.bottom + 1,
+             rang: window.tse.zapping.rapport().rang };
+  }, premiere);
+  ok('v) une chaîne s\'arrête, la colonne est refaite : le focus reste sur la carte qui l\'avait, et la courante revient en vue',
+     defilait && apres.focus === deuxieme && apres.enVue && apres.rang === 1, JSON.stringify({ defilait, premiere, deuxieme, partante, apres }));
+  /* w) L'ONGLET CACHÉ : les préchargés se mettent en pause — deux vidéos de
+     moins à décoder pour rien —, le courant garde le son qu'on écoute ;
+     revenu, ils reprennent. Mutant — les préchargés laissés en lecture. */
+  const cacher = (h) => w.evaluate((x) => {
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => x });
+    document.dispatchEvent(new Event('visibilitychange'));
+  }, h);
+  await attendre(w, () => (window.tse.zapping.rapport().prechargees || []).length === 2, 5000);
+  const pre = await w.evaluate(() => window.tse.zapping.rapport().prechargees);
+  const cour = await w.evaluate(() => window.tse.zapping.rapport().courant);
+  await Promise.all(pre.map((l) => attendreVideo(w, l, (v) => v.lecture, 4000)));
+  await cacher(true);
+  const cachePre = await Promise.all(pre.map((l) => attendreVideo(w, l, (v) => !v.lecture, 3000)));
+  const cacheCour = await videoZap(w, cour);
+  await cacher(false);
+  const revenuPre = await Promise.all(pre.map((l) => attendreVideo(w, l, (v) => v.lecture, 3000)));
+  ok('w) l\'onglet caché : les préchargés en pause, le courant joue ; revenu, ils reprennent',
+     pre.length === 2 && cachePre.every((v) => v && !v.lecture) && cacheCour && cacheCour.lecture && revenuPre.every((v) => v && v.lecture),
+     JSON.stringify({ pre, cachePre, cacheCour, revenuPre }));
+  await w.close();
   /* r) LES SOURCES : le nom des lecteurs, le même dans content.js et dans
      cadres.js, et cadres.js l'accepte pour son pont ; les vingt-deux textes
      du zapping dans les dix langues de la page. */

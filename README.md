@@ -2183,6 +2183,198 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## Le ruban centré, le zapping en plein écran (v4.33.0.1)
+
+Quatre retours, et un audit. Publiée sur `claude/chrome-homepage` seulement.
+
+| signalé | ce qui a été fait |
+| --- | --- |
+| « de temps en temps, le ruban semble décalé ; il faut qu'il soit centré » — « c'est quand j'arrive sur la page » | la cause, reproduite au banc ; un ruban circulaire, la voie choisie entre deux : la carte du centre toujours entourée, des deux côtés |
+| « au bout de quelques secondes sans bouger la souris, fais disparaître l'UI ; elle réapparaît quand la souris rebouge » | trois secondes ; tout s'efface sauf le direct, le pointeur avec |
+| « précharge la chaîne avant et la chaîne après » | les deux voisines ; et l'ancien courant gardé, à chaque pas |
+| « mets le zapping en plein écran ; si on quitte ou qu'on ouvre la salle, on passe en fenêtré normal » | le plein écran à l'ouverture ; la fenêtre rendue en sortant, salle comprise |
+| « fais un audit complet de la partie zapping » | ce qu'il a trouvé, corrigé (ci-dessous) |
+
+### Le ruban, centré
+
+La capture : la dernière carte du ruban au centre, toutes les autres à
+gauche. Reproduit au banc : le carrousel de Twitch tourne de lui-même peu
+après l'arrivée ; ses places changent, l'ordre de nos cartes aussi — et le
+navigateur, qui garde aimantée la carte qu'il tenait, l'a suivie jusqu'au bout
+de la ligne : 1 200 pixels de défilement, mesurés.
+
+Deux voies proposées — le même ruban, qui ne se décale plus, ou un ruban
+circulaire — ; la seconde choisie :
+
+- **la carte de tête est nommée** : la première du carrousel à la première
+  peinture, puis celle qu'on amène au centre. C'est elle qu'on centre, à
+  chaque peinture ; l'aimant ne décide plus ;
+- **le ruban tourne**, comme le carrousel dont il vient : la carte de tête au
+  milieu de la ligne, ses voisines des deux côtés, dans l'ordre du carrousel,
+  qui boucle — ses places mêmes : left-2, left-1, center, right-1, right-2.
+  Un carrousel qui tourne garde son cycle : chez nous, rien ne bouge ;
+- **le tour ne se voit pas** : des cartes passent d'un bout de la ligne à
+  l'autre, et le défilement est compensé d'autant dans la même tâche — au
+  clic, aucune carte ne bouge à l'écran, au dixième de pixel près, mesuré.
+  Il se fait avant d'aller vers une carte — sa voisine du bout est déjà là
+  quand elle arrive — et, après un défilement à la main, à son terme. La
+  carte qui change de bout entre en fondu (320 ms). Ruban arrêté, l'aimant
+  du navigateur recolle de lui-même la carte qu'il tient ; en plein
+  défilement, il n'en tient aucune, et deux clics rapprochés faisaient sauter
+  l'image d'une carte, 300 pixels, sans notre compensation. Et l'aimant se
+  tait le temps d'un chemin mené par nous : « obligatoire », il recollait la
+  position compensée à la carte la plus proche — jusqu'à 137 pixels, relevés
+  par le banc complet, sous charge ; il revient au terme du chemin. Aucun
+  saut, à trois écarts entre les clics, processeur ralenti six fois compris ;
+- **les flèches ne s'éteignent plus** : il n'y a plus de bout ;
+- un défilement à la main n'est jamais ramené : sa fin dit la nouvelle tête.
+  Un carrousel lu vide un instant — React le redessine — n'oublie pas la
+  tête. Les places vides de l'attente sont entourées, elles aussi.
+
+À huit cartes, le plus que porte le carrousel, et 2 000 pixels de large :
+trois voisines de chaque côté. Le rapport : `accueil.une.tete`, la carte du
+centre ; `accueil.une.tours`.
+
+### Le zapping
+
+- **Les deux voisines** : la précédente et la suivante, préchargées, muettes,
+  invisibles, marquées « préchargée » — celle du sens où l'on va après
+  500 ms, l'autre après 1,5 s. À chaque pas, l'ancien courant est une voisine
+  du nouveau : il reste, muet et invisible, au lieu d'être jeté puis rechargé
+  — revenir en arrière ne recharge plus rien. Trois lecteurs, quatre le temps
+  d'un fondu. Une chaîne qu'on n'attendait pas se charge toujours sous
+  l'image d'avant.
+- **Le plein écran** : l'écran lui-même, à l'ouverture — le clic sur le
+  bouton en donne le droit. Sans ce droit (une ouverture par l'API), il
+  reste dans la fenêtre, et tout marche. En sortant — Échap, Entrée vers la
+  chaîne, O vers la salle —, la fenêtre est rendue avant tout le reste : la
+  salle s'ouvre en fenêtré normal. En plein écran, Échap est au navigateur,
+  qui en sort sans laisser la touche à la page : sortir du plein écran, c'est
+  donc quitter le zapping — une touche, pas deux.
+- **L'interface au repos** : trois secondes sans que la souris bouge, et le
+  compteur, les touches, la colonne, la chaîne, le son et les dégradés
+  s'effacent en fondu, le pointeur avec ; un mouvement ou une touche les
+  ramène. Le pointeur posé sur l'interface la garde ; sans chaîne, son
+  message reste. Un seul minuteur, pas un par mouvement ; un « mousemove »
+  sans déplacement — le navigateur en émet quand ce qui est sous le pointeur
+  change — ne compte pas.
+
+Le mode d'emploi, le réglage et les fiches du Store le disent, dans les
+douze langues ; les fiches gagnent une puce, « Rien que l'image ».
+
+Le rapport : `zapping.prechargees` (la liste ; elle remplace `precharge`),
+`recycles`, `pleinEcran`, `pleinsEcrans`, `pleinEcranRefus`, `repos` (le
+compte), `auRepos` (l'instant), `ouvertPar`.
+
+### L'audit
+
+Le module relu ligne à ligne. Trouvé, corrigé, et pris par le banc :
+
+- **les touches qui font défiler** — Espace, Page suivante, Fin, ← → —
+  faisaient défiler la page de Twitch sous l'écran, en fenêtré — toujours en
+  4.33.0, et quand le plein écran est refusé : 787, 1 574 puis 2 100 pixels,
+  mesurés ; on la retrouvait ailleurs en fermant ;
+- **une touche relâchée** passait à Twitch. Les touches sont maintenant
+  prises sur la fenêtre, en capture — le tout premier relais —, et non plus
+  sur le document ;
+- **la hauteur visée par les lecteurs** n'était dite qu'une fois, au premier
+  relevé : une fenêtre redimensionnée la laissait fausse ;
+- **la colonne refaite** — une chaîne qui s'arrête — perdait le focus, et ne
+  suivait plus la courante ;
+- **l'onglet caché** mettait déjà en pause le préchargé de la 4.33.0, sans
+  preuve au banc : la voici, pour les deux.
+
+Trouvé et corrigé, sans preuve au banc :
+
+- la courante mise en vue par `scrollIntoView`, qui peut faire défiler tous
+  les ancêtres — la page dessous comprise : la colonne défile seule ;
+- un délai de préchargement remis à zéro par la relecture des chaînes,
+  toutes les deux secondes : un délai compté continue. Le banc ne sait pas le
+  prendre : la relecture tombe dans le délai ou non, selon l'instant ;
+- du ménage : un champ jamais lu (`t0`), des attributs réécrits à
+  l'identique toutes les deux secondes, deux minuteurs hors de la garde
+  d'erreurs.
+
+### Ce qui n'a pas pu être vérifié ici
+
+- **le plein écran dans un vrai Chrome, à l'écran**, et la touche Échap
+  elle-même : le banc tourne sans écran ; il éprouve la sortie par le
+  navigateur (`document.exitFullscreen`), pas la touche ;
+- **le coût de trois lecteurs** à la fois, sur une vraie connexion ;
+- **le rythme réel du carrousel de Twitch** : il n'a pas été relevé ; le banc
+  le fait tourner deux fois.
+
+### Le banc
+
+229, réécrit pour le ruban circulaire : l'arrivée entourée, le carrousel
+qui tourne deux fois, « Suivant » au dixième de pixel, la boucle, le
+défilement à la main qui s'arrête entre deux cartes, deux clics rapprochés à
+trois écarts — treize assertions. 231 : les deux voisines et leur
+ordre, l'ancien courant gardé, le plein écran et ses sorties, l'interface au
+repos, les touches, la hauteur visée, la colonne refaite, l'onglet caché —
+trente et une. 217 lit l'ordre du rayon depuis sa carte de tête, en bouclant :
+la ligne commence où le tour l'a laissée. Le faux lecteur note les ordres
+qu'il reçoit.
+
+**Trente mutants nommés, tous pris.** Quatre vivaient d'abord. Deux
+trous du banc, comblés : « le tour sans compensation » — ruban arrêté,
+l'aimant du navigateur recolle de lui-même la carte qu'il tient et compense à
+notre place : d'') l'éprouve en plein défilement, par deux clics rapprochés ;
+« les touches de défilement laissées » — l'assertion tournait en plein écran,
+où rien ne défile de toute façon : elle tourne en fenêtré, où la page
+descendait de 2 100 pixels. Un troisième, « la courante laissée hors de vue »
+: la chaîne retirée venait avant la courante, dont le rang changeait, et la
+colonne la suivait de toute façon ; la colonne compte maintenant douze
+chaînes, et c'est la dernière qui s'arrête. Le quatrième, « la fenêtre pas
+rendue en sortant », montrait un appel de trop : retirer l'écran fait déjà
+sortir du plein écran ; l'appel est parti, et le mutant avec. Les mutants
+dont les assertions ont bougé ont été rejoués.
+Le banc complet, lui, a pris un défaut qu'aucun mutant ne cherchait :
+l'aimant qui recollait la position compensée (cf. « Le ruban, centré ») ;
+deux mutants de plus le gardent — l'aimant gardé pendant le chemin, et
+jamais rendu après. Le second vivait d'abord : la peinture suivante
+recentrait la tête et cachait son absence ; b) lit maintenant l'aimant
+lui-même.
+
+| mutant | ce qui tombe |
+| --- | --- |
+| le ruban qui ne tourne pas à la peinture | 229 a), a) (droite, voisines), a'), d), d') |
+| la tête reprise à chaque peinture (le ruban suit le carrousel) | 229 a'), b), b) (puis au centre), c), c) (le centre, Ctrl), d) |
+| la tête jamais posée au centre | 229 a), a) (droite, voisines), a'), b), d'') |
+| le tour sans compensation | 229 b), d'') |
+| pas de tour avant d'aller | 229 b) |
+| pas de fondu pour la carte qui change de bout | 229 b) |
+| les flèches éteintes | 229 a) (les flèches), b), b) (puis au centre) — puis le banc plante |
+| la fin d'un défilement à la main ignorée | 229 d') |
+| la fin du tour prise pour un défilement à la main | 229 b) (puis au centre), c), d), d'') |
+| l'aimant gardé pendant le chemin | 229 d'') |
+| l'aimant jamais rendu | 229 b) (puis au centre) |
+| la suivante seule | 231 d), e), f), g), t) (la hauteur visée), w) |
+| le sens ignoré : toujours la suivante d'abord | 231 g) |
+| l'ancien courant jeté | 231 e), f) |
+| l'ancienne voisine laissée | 231 e), f) |
+| pas de plein écran | 231 c') — puis le banc plante |
+| la sortie du plein écran ignorée | 231 t) — puis le banc plante |
+| le refus du plein écran qui casse l'ouverture | 231 t) (la hauteur visée) — puis le banc plante |
+| jamais au repos | 231 u) |
+| le mouvement sur place qui réveille | 231 u) |
+| la touche qui ne réveille pas | 231 u) |
+| le survol ignoré | 231 u) |
+| le pointeur laissé | 231 u) |
+| les touches de défilement laissées | 231 t) (les touches) |
+| le relâchement laissé | 231 t) (les touches) |
+| la taille de la fenêtre ignorée | 231 t) (la hauteur visée) |
+| le focus perdu à la refonte de la colonne | 231 v) |
+| la courante laissée hors de vue à la refonte | 231 v) |
+| les préchargés en lecture, l'onglet caché | 231 w) |
+| le préchargé gardé visible | 231 e) |
+
+`npm run check` : 2335 assertions dans 230 scénarios ; au dernier banc
+complet, 2334 vertes. La 2335e, au 188 — le calage de la salle à trois
+streams, que cette version ne touche pas —, est tombée une fois sous la
+charge du banc entier ; seule, elle passe, trois fois sur trois. Livrée
+ainsi, à la demande de l'utilisateur.
+
 ## Le zapping (v4.33.0)
 
 Un retour, et sa maquette. Publiée sur `claude/chrome-homepage` seulement.
@@ -25109,7 +25301,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | les six fichiers JavaScript livrés — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 230 scénarios, 2323 assertions |
+| `npm test` | le harnais Playwright : 230 scénarios, 2335 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -25158,13 +25350,13 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 2236 Ko | 1052 Ko | 4 721 → **2** |
+| `content.js` | 2258 Ko | 1062 Ko | 4 758 → **2** |
 | `cadres.js` | 74 Ko | 34 Ko | 170 → **0** |
 | `adblock.js` | 126 Ko | 101 Ko | 301 → **2** |
 | `panneau.js` | 166 Ko | 85 Ko | 227 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 26 → **0** |
 | `background.js` | 10 Ko | 2 Ko | 22 → **0** |
-| **les six** | **2626 Ko** | **1278 Ko** | **−51 %** |
+| **les six** | **2648 Ko** | **1289 Ko** | **−51 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se

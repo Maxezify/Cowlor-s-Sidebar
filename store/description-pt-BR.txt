@@ -85,7 +85,8 @@ _______________________________
 ➤ 📺 ZAPPING: SEUS CANAIS SEGUIDOS AO VIVO, UM DEPOIS DO OUTRO
 Um botão à direita da lupa da busca abre seus canais seguidos que estão ao vivo, em tela cheia — como trocar de canal na TV.
 
-- ★ ↑ E ↓ ★ Um canal depois do outro, na ordem da sua barra lateral; o próximo já está carregado e aparece na hora.
+- ★ ↑ E ↓ ★ Um canal depois do outro, na ordem da sua barra lateral; o anterior e o próximo já estão carregados e aparecem na hora.
+- ★ SÓ A IMAGEM ★ Tela cheia de verdade; quando o mouse para de se mexer, tudo some, menos a transmissão.
 - ★ TUDO NUM RELANCE ★ Nome, título, categoria, espectadores, tempo ao vivo — e o selo do subathon.
 - ★ PARA A SALA ★ S adiciona um canal à sala, O abre a sala com os que você escolheu.
 

@@ -627,7 +627,7 @@
     "message": "Zapping"
   },
   "guideZapTexte": {
-    "message": "The button to the right of the search magnifier opens your followed channels that are live, full screen, in the sidebar's order.\n• ↑ and ↓ switch channels; past the end, you start again from the top. A click in the right-hand column goes to that channel.\n• The next one is already loaded — “preloaded” —: it shows at once.\n• Enter opens the channel; Escape closes, and the page's video resumes.\n• S adds the channel to the room, O opens the room once there are two — six at most. A room already open closes when zapping opens; its streams stay in the selection.\n• “Sound from …”, bottom right, mutes and unmutes.\n• “Zapping” can be turned off in “Settings”."
+    "message": "The button to the right of the search magnifier opens your followed channels that are live, full screen, in the sidebar's order.\n• ↑ and ↓ switch channels; past the end, you start again from the top. A click in the right-hand column goes to that channel.\n• The channels before and after are already loaded — each one “preloaded” —: they show at once.\n• The screen goes full screen; leaving it, or opening the room, gives the window back.\n• A few seconds without moving the mouse and only the picture remains; a move or a key brings the rest back.\n• Enter opens the channel; Escape closes, and the page's video resumes.\n• S adds the channel to the room, O opens the room once there are two — six at most. A room already open closes when zapping opens; its streams stay in the selection.\n• “Sound from …”, bottom right, mutes and unmutes.\n• “Zapping” can be turned off in “Settings”."
   },
   "guideDebutTitre": {
     "message": "Starts, and comebacks"
@@ -862,7 +862,7 @@
     "message": "Zapping"
   },
   "optDescZapping": {
-    "message": "A button to the right of the search magnifier opens your followed channels that are live, full screen, one after another: ↑ and ↓ to switch, Enter to open the channel, S to add it to the room, O to open the room, Esc to exit. The next one is already loaded. The page's video pauses while you zap; an open room closes, and its streams are kept to reopen. Off: no button, no screen."
+    "message": "A button to the right of the search magnifier opens your followed channels that are live, full screen, one after another: ↑ and ↓ to switch, Enter to open the channel, S to add it to the room, O to open the room, Esc to exit. The previous and next ones are already loaded; when the mouse stops moving, the interface fades away. The page's video pauses while you zap; an open room closes, and its streams are kept to reopen. Off: no button, no screen."
   },
   "optGrpAccueil": {
     "message": "Home page"

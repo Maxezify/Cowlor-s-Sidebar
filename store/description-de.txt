@@ -85,7 +85,8 @@ _______________________________
 ➤ 📺 ZAPPING: DEINE GEFOLGTEN KANÄLE LIVE, EINER NACH DEM ANDEREN
 Ein Knopf rechts neben der Lupe der Suche öffnet deine gefolgten Kanäle, die live sind, im Vollbild — wie das Umschalten beim Fernsehen.
 
-- ★ ↑ UND ↓ ★ Ein Kanal nach dem anderen, in der Reihenfolge deiner Seitenleiste; der nächste ist schon geladen und erscheint sofort.
+- ★ ↑ UND ↓ ★ Ein Kanal nach dem anderen, in der Reihenfolge deiner Seitenleiste; der vorige und der nächste sind schon geladen und erscheinen sofort.
+- ★ NUR DAS BILD ★ Echtes Vollbild; bewegt sich die Maus nicht mehr, verschwindet alles außer dem Stream.
 - ★ ALLES AUF EINEN BLICK ★ Name, Titel, Kategorie, Zuschauer, Dauer des Streams — und das Subathon-Abzeichen.
 - ★ WEITER IN DEN RAUM ★ S fügt einen Kanal dem Raum hinzu, O öffnet den Raum mit den gewählten.
 

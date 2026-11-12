@@ -85,7 +85,8 @@ _______________________________
 ➤ 📺 ZAPPING: I TUOI CANALI SEGUITI IN DIRETTA, UNO DOPO L'ALTRO
 Un pulsante a destra della lente della ricerca apre i tuoi canali seguiti in diretta, a schermo intero — come cambiare canale in TV.
 
-- ★ ↑ E ↓ ★ Un canale dopo l'altro, nell'ordine della tua barra laterale; il successivo è già caricato e appare subito.
+- ★ ↑ E ↓ ★ Un canale dopo l'altro, nell'ordine della tua barra laterale; il precedente e il successivo sono già caricati e appaiono subito.
+- ★ SOLO L'IMMAGINE ★ Un vero schermo intero; quando il mouse smette di muoversi, scompare tutto tranne la diretta.
 - ★ TUTTO A COLPO D'OCCHIO ★ Nome, titolo, categoria, spettatori, durata della diretta — e il badge del subathon.
 - ★ VERSO LA SALA ★ S aggiunge un canale alla sala, O la apre con quelli scelti.
 

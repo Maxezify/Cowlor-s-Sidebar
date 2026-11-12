@@ -2064,6 +2064,194 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The centred ribbon, zapping full screen (v4.33.0.1)
+
+Four pieces of feedback, and an audit. Published on `claude/chrome-homepage` only.
+
+| reported | what was done |
+| --- | --- |
+| "now and then, the ribbon looks shifted; it must be centred" — "it's when I land on the page" | the cause, reproduced on the bench; a circular ribbon, the path chosen out of two: the centre card always surrounded, on both sides |
+| "after a few seconds without moving the mouse, make the UI disappear; it comes back when the mouse moves again" | three seconds; everything fades but the stream, the pointer too |
+| "preload the channel before and the channel after" | both neighbours; and the former current one kept, at every step |
+| "put zapping full screen; if you leave or open the room, go back to a normal window" | full screen on opening; the window given back on leaving, room included |
+| "do a full audit of the zapping part" | what it found, fixed (below) |
+
+### The ribbon, centred
+
+The screenshot: the ribbon's last card in the centre, all the others on the
+left. Reproduced on the bench: Twitch's carousel turns by itself shortly
+after landing; its places change, so does the order of our cards — and the
+browser, which keeps the card it held snapped, followed it to the end of the
+line: 1,200 pixels of scrolling, measured.
+
+Two paths offered — the same ribbon, no longer shifting, or a circular
+ribbon —; the second chosen:
+
+- **the head card is named**: the carousel's first at the first paint, then
+  the one brought to the centre. It is the one centred, at every paint; the
+  snapping no longer decides;
+- **the ribbon turns**, like the carousel it comes from: the head card in the
+  middle of the line, its neighbours on both sides, in the carousel's order,
+  which loops — its very places: left-2, left-1, center, right-1, right-2.
+  A carousel that turns keeps its cycle: on our side, nothing moves;
+- **the turn is not seen**: cards move from one end of the line to the
+  other, and the scroll is compensated by as much in the same task — on a
+  click, no card moves on screen, to a tenth of a pixel, measured. It happens
+  before going to a card — its neighbour at the end is already there when it
+  arrives — and, after a scroll by hand, when it ends. The card changing
+  ends fades in (320 ms). With the ribbon at rest, the browser's snapping
+  re-snaps the card it holds by itself; mid-scroll it holds none, and two
+  quick clicks made the picture jump by a card, 300 pixels, without our
+  compensation. And snapping goes quiet for the length of a path we lead:
+  "mandatory", it re-snapped the compensated position to the nearest card —
+  up to 137 pixels, found by the full bench, under load; it comes back at
+  the end of the path. No jump, at three gaps between the clicks, the
+  processor slowed six times included;
+- **the arrows no longer go off**: there is no end anymore;
+- a scroll by hand is never pulled back: its end names the new head. A
+  carousel read empty for an instant — React redraws it — does not forget
+  the head. The empty placeholders of the wait are surrounded too.
+
+With eight cards, the most the carousel holds, and 2,000 pixels wide: three
+neighbours on each side. The report: `accueil.une.tete`, the centre card;
+`accueil.une.tours`.
+
+### Zapping
+
+- **Both neighbours**: the previous and the next one, preloaded, muted,
+  invisible, marked "preloaded" — the one in the direction of travel after
+  500 ms, the other after 1.5 s. At every step, the former current one is a
+  neighbour of the new one: it stays, muted and invisible, instead of being
+  thrown away then reloaded — going back reloads nothing anymore. Three
+  players, four for the length of a fade. An unexpected channel still loads
+  under the previous picture.
+- **Full screen**: the screen itself, on opening — the click on the button
+  grants the right to it. Without that right (an opening through the API),
+  it stays in the window, and everything works. On leaving — Escape, Enter to
+  the channel, O to the room —, the window is given back before anything
+  else: the room opens in a normal window. In full screen, Escape belongs to
+  the browser, which leaves it without handing the key to the page: leaving
+  full screen therefore means leaving zapping — one key, not two.
+- **The interface at rest**: three seconds without the mouse moving, and the
+  counter, the keys, the column, the channel, the sound and the gradients
+  fade out, the pointer too; a move or a key brings them back. The pointer
+  resting on the interface keeps it; with no channel, its message stays. One
+  timer, not one per move; a "mousemove" without movement — the browser
+  sends some when what is under the pointer changes — does not count.
+
+The guide, the setting and the store sheets say so, in the twelve
+languages; the sheets gain a bullet, "Just the picture".
+
+The report: `zapping.prechargees` (the list; it replaces `precharge`),
+`recycles`, `pleinEcran`, `pleinsEcrans`, `pleinEcranRefus`, `repos` (the
+count), `auRepos` (the instant), `ouvertPar`.
+
+### The audit
+
+The module read line by line. Found, fixed, and caught by the bench:
+
+- **the keys that scroll** — Space, Page Down, End, ← → — scrolled Twitch's
+  page under the screen, in a window — always in 4.33.0, and when full screen
+  is refused: 787, 1,574 then 2,100 pixels, measured; you found it elsewhere
+  on closing;
+- **a released key** went through to Twitch. Keys are now taken on the
+  window, in the capture phase — the very first relay —, no longer on the
+  document;
+- **the height the players aim for** was only said once, at the first
+  report: a resized window left it wrong;
+- **the rebuilt column** — a channel going offline — lost the focus, and no
+  longer followed the current one;
+- **the hidden tab** already paused 4.33.0's preloaded player, with no proof
+  on the bench: here it is, for both.
+
+Found and fixed, with no proof on the bench:
+
+- the current one brought into view by `scrollIntoView`, which may scroll
+  every ancestor — the page underneath included: the column scrolls alone;
+- a preload delay reset by the channel re-read, every two seconds: a delay
+  being counted carries on. The bench cannot catch it: the re-read falls
+  within the delay or not, depending on the instant;
+- housekeeping: a field never read (`t0`), attributes rewritten identically
+  every two seconds, two timers outside the error guard.
+
+### What could not be checked here
+
+- **full screen in a real Chrome, on a screen**, and the Escape key itself:
+  the bench runs without a screen; it tries leaving through the browser
+  (`document.exitFullscreen`), not the key;
+- **the cost of three players** at once, on a real connection;
+- **the real pace of Twitch's carousel**: it was not measured; the bench
+  turns it twice.
+
+### The bench
+
+229, rewritten for the circular ribbon: the surrounded arrival, the carousel
+turning twice, "Next" to a tenth of a pixel, the loop, the scroll by hand,
+a scroll by hand that stops between two cards, two quick clicks at three
+gaps — thirteen assertions. 231: both neighbours and their order, the former current
+one kept, full screen and its exits, the interface at rest, the keys, the
+height aimed for, the rebuilt column, the hidden tab — thirty-one. 217 reads
+the row's order from its head card, looping: the line starts where the turn
+left it. The fake player records the orders it receives.
+
+**Thirty named mutants, all caught.** Four survived at first. Two
+holes in the bench, filled: "the turn without compensation" — with the
+ribbon at rest, the browser's snapping re-snaps the card it holds by itself
+and compensates in our place: d'') tries it mid-scroll, with two quick
+clicks; "the scrolling keys let through" — the assertion ran in full screen,
+where nothing scrolls anyway: it runs in a window, where the page went down
+2,100 pixels. A third, "the current one left out of view on rebuild": the
+removed channel came before the current one, whose rank changed, and the
+column followed it anyway; the column now holds twelve channels, and the
+last one goes offline. The fourth, "the window not given back on leaving",
+showed one call too many: removing the screen already leaves full screen;
+the call is gone, and the mutant with it. The mutants whose assertions moved
+were run again.
+The full bench, for its part, caught a defect no mutant was looking for:
+snapping re-snapping the compensated position (see "The ribbon, centred");
+two more mutants guard it — snapping kept during the path, and never given
+back after. The second survived at first: the next paint re-centred the
+head and hid its absence; b) now reads the snapping itself.
+
+| mutant | what fails |
+| --- | --- |
+| the ribbon not turned on painting | 229 a), a) (straight, neighbours), a'), d), d') |
+| the head taken anew at every paint (the ribbon follows the carousel) | 229 a'), b), b) (then centred), c), c) (the centre, Ctrl), d) |
+| the head never set in the centre | 229 a), a) (straight, neighbours), a'), b), d'') |
+| the turn without compensation | 229 b), d'') |
+| no turn before going | 229 b) |
+| no fade for the card changing ends | 229 b) |
+| the arrows off | 229 a) (the arrows), b), b) (then centred) — then the bench crashes |
+| the end of a scroll by hand ignored | 229 d') |
+| the end of the turn taken for a scroll by hand | 229 b) (then centred), c), d), d'') |
+| snapping kept during the path | 229 d'') |
+| snapping never given back | 229 b) (then centred) |
+| the next one only | 231 d), e), f), g), t) (the height aimed for), w) |
+| the direction ignored: always the next one first | 231 g) |
+| the former current one thrown away | 231 e), f) |
+| the former neighbour left | 231 e), f) |
+| no full screen | 231 c') — then the bench crashes |
+| leaving full screen ignored | 231 t) — then the bench crashes |
+| full screen refused breaking the opening | 231 t) (the height aimed for) — then the bench crashes |
+| never at rest | 231 u) |
+| a move on the spot that wakes | 231 u) |
+| the key that does not wake | 231 u) |
+| hovering ignored | 231 u) |
+| the pointer left | 231 u) |
+| the scrolling keys let through | 231 t) (the keys) |
+| the key release let through | 231 t) (the keys) |
+| the window size ignored | 231 t) (the height aimed for) |
+| focus lost when the column is rebuilt | 231 v) |
+| the current one left out of view on rebuild | 231 v) |
+| the preloaded players playing, tab hidden | 231 w) |
+| the preloaded player kept visible | 231 e) |
+
+`npm run check`: 2335 assertions in 230 scenarios; on the last full bench,
+2334 green. The 2335th, in 188 — the room's three-stream sync, which this
+version does not touch —, failed once under the load of the whole bench;
+alone, it passes, three times out of three. Delivered so, at the user's
+request.
+
 ## Zapping (v4.33.0)
 
 One piece of feedback, and its mockup. Published on `claude/chrome-homepage` only.
@@ -24398,7 +24586,7 @@ Four independent checks:
 | `npm run lint` | the six shipped JavaScript files — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 230 scenarios, 2323 assertions |
+| `npm test` | the Playwright harness: 230 scenarios, 2335 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -24445,13 +24633,13 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 2236 KB | 1052 KB | 4,721 → **2** |
+| `content.js` | 2258 KB | 1062 KB | 4,758 → **2** |
 | `cadres.js` | 74 KB | 34 KB | 170 → **0** |
 | `adblock.js` | 126 KB | 101 KB | 301 → **2** |
 | `panneau.js` | 166 KB | 85 KB | 227 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 26 → **0** |
 | `background.js` | 10 KB | 2 KB | 22 → **0** |
-| **all six** | **2626 KB** | **1278 KB** | **−51 %** |
+| **all six** | **2648 KB** | **1289 KB** | **−51 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are
