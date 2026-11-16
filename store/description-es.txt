@@ -206,6 +206,7 @@ En la página de inicio de Twitch, la extensión coloca sus propias filas encima
 - ★ «DESDE EL PRINCIPIO» ★ ¿Llegaste tarde? Un botón abre la repetición del directo en curso en su primerísimo segundo. El botón solo aparece cuando puedes verla: el canal guarda sus repeticiones y las abre a todos, o estás suscrito.
 - ★ UNA ETIQUETA POR TARJETA ★ En las tarjetas del inicio, las de la extensión y las de Twitch: un dato, uno solo —«De vuelta tras 41 días», «Acaba de empezar», «Acaba de cambiar a Elden Ring», «↗ +38 % en 10 min», «N.º 3 en español»…—. Nada adivinado: sin dato visto, no hay etiqueta. Para un canal que la barra no sigue, sus cifras se piden mientras su tarjeta está en pantalla.
 - ★ MIENTRAS NO ESTABAS ★ ¿Vuelves tras más de un día? Un aviso dice lo que tus canales seguidos emitieron entretanto: sus directos y cuánto duraron, el más visto de sus clips y la última repetición a un clic. Una petición de clips por canal y por ausencia.
+- ★ PORQUE SUELES VER A… ★ En el inicio, filas que dicen por qué: «14 visitas en 30 días» en un canal, y lo que está en directo en su categoría habitual, en tu idioma, fuera de tus seguidos.
 - ★ LA VISTA PREVIA AL PASAR EL RATÓN, AQUÍ TAMBIÉN ★ En las tarjetas del inicio, las de la extensión y las de Twitch.
 - ★ COMO QUIERAS ★ Cada parte se apaga por separado en «Ajustes»; todo apagado, el inicio vuelve a ser el de Twitch, tal cual.
 
@@ -239,7 +240,7 @@ Twitch tiene un tema claro. La extensión lo detecta y cambia con él: sin recar
 _______________________________
 
 ➤ ⚙️ Y SI QUIERES ELEGIR
-Todo está activo desde el principio y no hay nada que configurar. Pero «Ajustes», en el panel, te devuelve el mando sobre treinta y dos ajustes.
+Todo está activo desde el principio y no hay nada que configurar. Pero «Ajustes», en el panel, te devuelve el mando sobre treinta y tres ajustes.
 
 - ★ LO QUE VES ★ Cada insignia, la duración del directo y su formato, la barra «acaba de empezar», el oro de las suscripciones, los filtros, los botones de orden: todo se enciende y se apaga con una casilla.
 - ★ LO QUE SE CARGA ★ La vista previa puede prescindir del vídeo y conservar sus insignias, su línea de tiempo y su miniatura, o simplemente bajar de calidad. Lo justo para aligerarla sin perderla.

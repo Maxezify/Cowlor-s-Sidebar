@@ -562,6 +562,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAbsDirects:              (n, d) => `${n} direct${n > 1 ? 's' : ''} · ${d}`,
       uiAbsSansRedif:            'A diffusé, sans rediffusion',
       uiAbsRevoir:               'Revoir le dernier',
+      uiAccPourquoi:             (nom) => `Parce que vous regardez souvent ${nom}`,
+      uiAccPourquoiVisites:      (n, auMoins) => `${auMoins ? 'au moins ' : ''}${n} visite${n > 1 ? 's' : ''} en 30 jours`,
+      uiAccPourquoiOu:           (jeu, langue) => (langue === null ? jeu : `${jeu}, en français`),
       /* L'ÉTAT DU CALAGE DANS L'EN-TÊTE (4.25.0.11, cf. etatCalage). `e` : la
          cause, `x`/`m` les calculs du son reçus sur ceux qu'il faut, `s` un
          écart en secondes déjà écrit à la locale, `avance` son sens, `el`/`tot`
@@ -828,6 +831,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAbsDirects:              (n, d) => `${n} stream${n === 1 ? '' : 's'} · ${d}`,
       uiAbsSansRedif:            'Streamed, no replay',
       uiAbsRevoir:               'Watch the last one',
+      uiAccPourquoi:             (nom) => `Because you often watch ${nom}`,
+      uiAccPourquoiVisites:      (n, auMoins) => `${auMoins ? 'at least ' : ''}${n} visit${n === 1 ? '' : 's'} in 30 days`,
+      uiAccPourquoiOu:           (jeu, langue) => (langue === null ? jeu : `${jeu}, in ${langue || 'English'}`),
       uiCalCoupe:                'Alignment turned off in settings',
       uiCalIndispo:              'Alignment unavailable: this browser cannot capture the sound',
       uiCalArrete:               'Alignment stopped',
@@ -1069,6 +1075,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAbsDirects:              (n, d) => `${n} Stream${n === 1 ? '' : 's'} · ${d}`,
       uiAbsSansRedif:            'Hat gestreamt, ohne Aufzeichnung',
       uiAbsRevoir:               'Den letzten ansehen',
+      uiAccPourquoi:             (nom) => `Weil du oft ${nom} schaust`,
+      uiAccPourquoiVisites:      (n, auMoins) => `${auMoins ? 'mindestens ' : ''}${n} Besuch${n === 1 ? '' : 'e'} in 30 Tagen`,
+      uiAccPourquoiOu:           (jeu, langue) => (langue === null ? jeu : `${jeu}, auf Deutsch`),
       uiCalCoupe:                'Ausrichtung in den Einstellungen ausgeschaltet',
       uiCalIndispo:              'Ausrichtung nicht verfügbar: Dieser Browser kann den Ton nicht abgreifen',
       uiCalArrete:               'Ausrichtung gestoppt',
@@ -1310,6 +1319,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAbsDirects:              (n, d) => `${n} directo${n === 1 ? '' : 's'} · ${d}`,
       uiAbsSansRedif:            'Emitió, sin repetición',
       uiAbsRevoir:               'Ver el último',
+      uiAccPourquoi:             (nom) => `Porque sueles ver a ${nom}`,
+      uiAccPourquoiVisites:      (n, auMoins) => `${auMoins ? 'al menos ' : ''}${n} visita${n === 1 ? '' : 's'} en 30 días`,
+      uiAccPourquoiOu:           (jeu, langue) => (langue === null ? jeu : `${jeu}, en español`),
       uiCalCoupe:                'Alineación desactivada en los ajustes',
       uiCalIndispo:              'Alineación no disponible: este navegador no puede capturar el sonido',
       uiCalArrete:               'Alineación detenida',
@@ -1551,6 +1563,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAbsDirects:              (n, d) => `${n} transmiss${n === 1 ? 'ão' : 'ões'} · ${d}`,
       uiAbsSansRedif:            'Transmitiu, sem reprise',
       uiAbsRevoir:               'Rever a última',
+      uiAccPourquoi:             (nom) => `Porque você assiste muito a ${nom}`,
+      uiAccPourquoiVisites:      (n, auMoins) => `${auMoins ? 'pelo menos ' : ''}${n} visita${n === 1 ? '' : 's'} em 30 dias`,
+      uiAccPourquoiOu:           (jeu, langue) => (langue === null ? jeu : `${jeu}, em português`),
       uiCalCoupe:                'Alinhamento desligado nas definições',
       uiCalIndispo:              'Alinhamento indisponível: este navegador não consegue capturar o som',
       uiCalArrete:               'Alinhamento parado',
@@ -1792,6 +1807,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAbsDirects:              (n, d) => `${n} dirett${n === 1 ? 'a' : 'e'} · ${d}`,
       uiAbsSansRedif:            'Ha trasmesso, senza replica',
       uiAbsRevoir:               'Rivedi l\'ultima',
+      uiAccPourquoi:             (nom) => `Perché guardi spesso ${nom}`,
+      uiAccPourquoiVisites:      (n, auMoins) => `${auMoins ? 'almeno ' : ''}${n} visit${n === 1 ? 'a' : 'e'} in 30 giorni`,
+      uiAccPourquoiOu:           (jeu, langue) => (langue === null ? jeu : `${jeu}, in italiano`),
       uiCalCoupe:                'Allineamento disattivato nelle impostazioni',
       uiCalIndispo:              'Allineamento non disponibile: questo browser non può catturare l\'audio',
       uiCalArrete:               'Allineamento fermato',
@@ -2034,6 +2052,13 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAbsDirects:              (n, d) => `${n} ${plurielSlave(n, ['transmisja', 'transmisje', 'transmisji'])} · ${d}`,
       uiAbsSansRedif:            'Nadawał, bez powtórki',
       uiAbsRevoir:               'Obejrzyj ostatnią',
+      uiAccPourquoi:             (nom) => `Bo często oglądasz ${nom}`,
+      uiAccPourquoiVisites:      (n, auMoins) => {
+        const m10 = n % 10, m100 = n % 100;
+        const mot = n === 1 ? 'wizyta' : (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) ? 'wizyty' : 'wizyt';
+        return `${auMoins ? 'co najmniej ' : ''}${n} ${mot} w ciągu 30 dni`;
+      },
+      uiAccPourquoiOu:           (jeu, langue) => (langue === null ? jeu : `${jeu}, po polsku`),
       uiCalCoupe:                'Wyrównanie wyłączone w ustawieniach',
       uiCalIndispo:              'Wyrównanie niedostępne: ta przeglądarka nie przechwytuje dźwięku',
       uiCalArrete:               'Wyrównanie zatrzymane',
@@ -2275,6 +2300,13 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAbsDirects:              (n, d) => `${n} ${plurielSlave(n, ['трансляция', 'трансляции', 'трансляций'])} · ${d}`,
       uiAbsSansRedif:            'Был в эфире, без записи',
       uiAbsRevoir:               'Смотреть последнюю',
+      uiAccPourquoi:             (nom) => `Потому что вы часто смотрите ${nom}`,
+      uiAccPourquoiVisites:      (n, auMoins) => {
+        const m10 = n % 10, m100 = n % 100;
+        const mot = m10 === 1 && m100 !== 11 ? 'визит' : (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) ? 'визита' : 'визитов';
+        return `${auMoins ? 'не менее ' : ''}${n} ${mot} за 30 дней`;
+      },
+      uiAccPourquoiOu:           (jeu, langue) => (langue === null ? jeu : `${jeu}, на русском`),
       uiCalCoupe:                'Выравнивание отключено в настройках',
       uiCalIndispo:              'Выравнивание недоступно: этот браузер не может захватывать звук',
       uiCalArrete:               'Выравнивание остановлено',
@@ -2515,6 +2547,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAbsDirects:              (n, d) => `配信 ${n} 回 · ${d}`,
       uiAbsSansRedif:            '配信あり（アーカイブなし）',
       uiAbsRevoir:               '最新の配信を見る',
+      uiAccPourquoi:             (nom) => `${nom}をよく見ているので`,
+      uiAccPourquoiVisites:      (n, auMoins) => `30日間で${auMoins ? '少なくとも' : ''}${n}回の訪問`,
+      uiAccPourquoiOu:           (jeu, langue) => (langue === null ? jeu : `${jeu}・日本語`),
       uiCalCoupe:                '同期は設定でオフになっています',
       uiCalIndispo:              '同期は使えません：このブラウザは音声を取り込めません',
       uiCalArrete:               '同期を停止しました',
@@ -2753,6 +2788,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAbsDirects:              (n, d) => `${n} 场直播 · ${d}`,
       uiAbsSansRedif:            '有直播，无回放',
       uiAbsRevoir:               '观看最近一场',
+      uiAccPourquoi:             (nom) => `因为你常看 ${nom}`,
+      uiAccPourquoiVisites:      (n, auMoins) => `30 天内${auMoins ? '至少' : ''}访问 ${n} 次`,
+      uiAccPourquoiOu:           (jeu, langue) => (langue === null ? jeu : `${jeu}・中文`),
       uiCalCoupe:                '对齐已在设置中关闭',
       uiCalIndispo:              '对齐不可用：此浏览器无法捕获声音',
       uiCalArrete:               '对齐已停止',
@@ -4442,6 +4480,19 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     ABSENCE_PRESENCE_MS:    60_000,
     ABSENCE_MAX:            5,
     ABSENCE_CLIPS:          30,
+    /* DES RAYONS QUI DISENT POURQUOI (4.31.0, cf. POURQUOI). Une chaîne que
+       vous regardez souvent — trois visites au moins en trente jours —, la
+       catégorie où elle diffuse d'habitude — celle de la plupart de ses
+       directs archivés de trente jours, deux au moins —, et ce qui y est en
+       direct dans la langue de Twitch, hors de vos suivis. Deux rayons au
+       plus, un TseCategoryTop chacun, au plus toutes les dix minutes. */
+    POURQUOI_JOURS:         30,
+    POURQUOI_MIN_VISITES:   3,
+    POURQUOI_MIN_DIRECTS:   2,
+    POURQUOI_RAYONS:        2,
+    POURQUOI_N:             30,
+    POURQUOI_CARTES:        12,
+    POURQUOI_TTL:           10 * 60_000,
 
     /* === Le panneau incrusté ===
        LES DEUX NOMBRES SONT CEUX DE LA POPUP DE BARRE D'OUTILS (cf. la borne
@@ -4551,6 +4602,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     accueilRdv:      { defaut: true,      type: 'bool', sous: ['accueil'] },
     accueilEtiquettes: { defaut: true,    type: 'bool', sous: ['accueil'] },
     accueilAbsence:  { defaut: true,      type: 'bool', sous: ['accueil'] },
+    accueilPourquoi: { defaut: true,      type: 'bool', sous: ['accueil'] },
 
     abonnes:         { defaut: 'plein',   type: 'choix',
                        valeurs: ['plein', 'discret', 'aucun'], css: true },
@@ -16281,6 +16333,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       // Vos rendez-vous (4.27.0) : ce qui est montré, et si l'agenda tourne encore.
       rdv: { lectures: 0, creneaux: 0, habitudes: 0, attente: false, enCours: false },
       // Pendant votre absence (4.30.0) : ce qui est montré, et ce que les clips ont coûté.
+      // Des rayons qui disent pourquoi (4.31.0) : les chaînes d'où ils partent, et ce qu'ils ont coûté.
+      pourquoi: { lectures: 0, rayons: [], demandes: 0, servis: 0, refus: 0, vides: 0 },
       absence: { lectures: 0, chaines: 0, montre: false, enCours: false, fermetures: 0, synchros: 0, clips: { demandes: 0, servis: 0, refus: 0, plusVus: 0 } },
       // Une étiquette par carte (4.28.0) : combien de chaque sorte, et ce que les cartes de Twitch ont coûté.
       etiquettes: { posees: {}, demandes: 0, coins: { haut: 0, aucun: 0 }, twitch: { cartes: 0, vues: 0, etiquetees: 0 } },
@@ -16868,6 +16922,13 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       const note = elt('p', 'tse-acc-note');
       note.hidden = true;
       lTop.after(note);
+      // Des rayons qui disent pourquoi (4.31.0), juste après le Top 10 (cf. POURQUOI).
+      const pq = Array.from({ length: CFG.POURQUOI_RAYONS }, (_, i) => {
+        const h = elt('h2', 'tse-acc-titre');
+        h.append(elt('span'), elt('span', 'tse-acc-sous-titre'));
+        const l = elt('div', 'tse-acc-liste');
+        return { r: fabriquerRayon('pourquoi-' + i, 'tse-acc-rayon--pourquoi', h, l), h, l };
+      });
       // Vos rendez-vous (4.27.0), puis les chaînes sans planning, à part (cf. RENDEZ_VOUS).
       const hRdv = elt('h2', 'tse-acc-titre');
       hRdv.append(elt('span', null, S.uiAccRdv));
@@ -16894,8 +16955,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       }));
       const lAbs = elt('ul', 'tse-acc-absence-liste');
       abs.append(tAbs, xAbs, lAbs);
-      section.append(suivis, top, rdv, hab, abs);
-      z = { heros, suivis, tSuivis, lSuivis, top, tTop, lang, lTop, note, rdv, lRdv, hab, lHab, abs, lAbs, langCle: undefined };
+      section.append(suivis, top, ...pq.map((x) => x.r), rdv, hab, abs);
+      z = { heros, suivis, tSuivis, lSuivis, top, tTop, lang, lTop, note, pq, rdv, lRdv, hab, lHab, abs, lAbs, langCle: undefined };
       /* LE LECTEUR NE JOUE QU'À L'ÉCRAN. Le héros descendu hors de la vue,
          sa vidéo s'arrête ; elle reprend quand il revient. */
       if (typeof IntersectionObserver === 'function') {
@@ -17999,6 +18060,131 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         clipsAbsEnVol.delete(login);
       }
     };
+    /* ── DES RAYONS QUI DISENT POURQUOI (4.31.0) ─────────────────────────────
+       « Parce que vous regardez souvent Korbek » — et en sous-titre ce qui le
+       prouve : « 14 visites en 30 jours · Just Chatting, en français ».
+
+       LA CHAÎNE D'OÙ PART UN RAYON : celle que vous avez le plus visitée en
+       trente jours, trois visites au moins. Les visites sont les vôtres,
+       comptées sur cet appareil (cf. TRACKING DES VISITES) : les vingt
+       dernières seulement sont gardées — vingt dans les trente jours, et le
+       compte se dit « au moins vingt ».
+       SA CATÉGORIE HABITUELLE : celle de la plupart de ses directs archivés
+       des trente jours (cf. `agenda.habituelle`). Une chaîne que l'agenda ne
+       lit pas — que vous ne suivez pas —, ou dont les directs se partagent
+       entre deux catégories à égalité, ne fait pas de rayon : rien n'y
+       désigne une habitude.
+       CE QUI S'Y MONTRE : les directs de cette catégorie dans la langue de
+       Twitch, par spectateurs, sans vos chaînes suivies ni elle-même. Une
+       demande par rayon — un TseCategoryTop —, gardée dix minutes. Deux
+       rayons au plus, de deux catégories différentes. La réponse doit nommer
+       la catégorie demandée (la règle de Top Chaînes, 4.24.0.40). */
+    const POURQUOI_Q = (code) => 'query TseCategoryTop($name: String!, $n: Int!) {' +
+      '  game(name: $name) { id name' +
+      '    streams(first: $n, options: { sort: VIEWER_COUNT' + (code ? `, broadcasterLanguages: [${code}]` : '') + ' }) {' +
+      '      edges { node { id createdAt viewersCount title' +
+      '        broadcaster { id login displayName profileImageURL(width: 70) }' +
+      '        game { id name displayName } } }' +
+      '    } }' +
+      '}';
+    const court = (v, max = 80) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
+    const pourquoiLus = new Map();     // `${jeu}|${code}` -> { ts, chaines }
+    const pourquoiEnVol = new Set();
+    const graines = () => {
+      const depuis = Date.now() - CFG.POURQUOI_JOURS * 86_400_000;
+      const out = [];
+      for (const [login, liste] of visits.map) {
+        if (!RE_LOGIN.test(login)) continue;
+        const n = liste.filter((t) => t >= depuis).length;
+        if (n < CFG.POURQUOI_MIN_VISITES) continue;
+        // La liste est pleine et tient toute dans les trente jours : il y en a peut-être eu d'autres.
+        out.push({ login, n, auMoins: liste.length >= CFG.VISIT_ROLLING_N && n === liste.length, score: visits.scoreFor(login) });
+      }
+      return out.sort((a, b) => (b.n - a.n) || (b.score - a.score) || (a.login < b.login ? -1 : 1));
+    };
+    const demanderPourquoi = async (jeu, code) => {
+      const cle = `${jeu}|${code || ''}`;
+      const lu = pourquoiLus.get(cle);
+      if (pourquoiEnVol.has(cle) || (lu && Date.now() - lu.ts < CFG.POURQUOI_TTL)) return;
+      pourquoiEnVol.add(cle);
+      bilan.pourquoi.demandes++;
+      try {
+        const res = await post([{ operationName: 'TseCategoryTop', variables: { name: jeu, n: CFG.POURQUOI_N }, query: POURQUOI_Q(code) }]);
+        const r0 = Array.isArray(res) ? res[0] : null;
+        const g = r0?.data?.game;
+        const aretes = g?.streams?.edges;
+        if (!g || g.name !== jeu || !Array.isArray(aretes)) {
+          bilan.pourquoi.refus++;
+          pourquoiLus.set(cle, { ts: Date.now(), chaines: [] });
+          return;
+        }
+        bilan.pourquoi.servis++;
+        const chaines = aretes.map((a) => a?.node).filter((x) => x && RE_LOGIN.test(x.broadcaster?.login || ''))
+          .map((x) => ({ login: x.broadcaster.login, nom: court(x.broadcaster.displayName) || x.broadcaster.login,
+                         avatar: x.broadcaster.profileImageURL || null, titre: court(x.title, 140),
+                         jeu: court(x.game?.displayName) || court(x.game?.name) || '',
+                         spect: Number.isFinite(x.viewersCount) ? x.viewersCount : null,
+                         debutLive: Number.isFinite(Date.parse(x.createdAt)) ? x.createdAt : null }))
+          // L'ordre se constate : par spectateurs, quel que soit celui de la réponse.
+          .sort((a, b) => (b.spect ?? -1) - (a.spect ?? -1) || (a.login < b.login ? -1 : 1));
+        pourquoiLus.set(cle, { ts: Date.now(), chaines });
+        while (pourquoiLus.size > 8) pourquoiLus.delete(pourquoiLus.keys().next().value);
+        if (pose() && !document.hidden) peindre();
+      } finally {
+        pourquoiEnVol.delete(cle);
+      }
+    };
+    const peindrePourquoi = () => {
+      const rayons = [];
+      if (options.get('accueilPourquoi')) {
+        const lang = tagInterface();
+        const code = lang ? LANG_API[lang] || null : null;
+        // La langue dite comme celle du Top 10 (cf. rangDit) : la sienne, ou nommée en anglais, ou tue.
+        const propre = String(S.locale || '').split('-')[0].toLowerCase();
+        let langue = null;
+        if (code && code.toLowerCase() === propre) langue = '';
+        else if (code && propre === 'en') {
+          try { langue = new Intl.DisplayNames(['en'], { type: 'language' }).of(code.toLowerCase()); } catch { langue = null; }
+          if (langue && langue.toLowerCase() === code.toLowerCase()) langue = null;
+        }
+        const depuis = Date.now() - CFG.POURQUOI_JOURS * 86_400_000;
+        const vues = new Set();
+        for (const g of graines()) {
+          if (rayons.length >= CFG.POURQUOI_RAYONS) break;
+          const h = agenda.habituelle(g.login, depuis);
+          if (!h || vues.has(h.jeu)) continue;
+          vues.add(h.jeu);
+          demanderPourquoi(h.jeu, code).catch((e) => erreurs.noter('accueil', 'pourquoi : ' + ((e && e.message) || e)));
+          const lu = pourquoiLus.get(`${h.jeu}|${code || ''}`);
+          rayons.push({ g, h, langue, chaines: lu ? lu.chaines : null });
+        }
+      }
+      bilan.pourquoi.lectures++;
+      const suivies = new Set(roster.entries().map(([l]) => l));
+      const montres = [];
+      z.pq.forEach((slot, i) => {
+        const x = rayons[i];
+        const chaines = x && x.chaines
+          // Hors de vos suivis — elle-même comprise : l'agenda ne lit que des chaînes suivies.
+          ? x.chaines.filter((c) => !suivies.has(c.login)).slice(0, CFG.POURQUOI_CARTES) : [];
+        if (!x || !chaines.length) {
+          slot.r.hidden = true;
+          if (x && x.chaines) bilan.pourquoi.vides++;
+          return;
+        }
+        const f = cache.get(x.g.login);
+        const nomGraine = (f && f.name) || x.h.nom || x.g.login;
+        const [t, sous] = slot.h.children;
+        texteSi(t, S.uiAccPourquoi(nomGraine));
+        texteSi(sous, `${S.uiAccPourquoiVisites(x.g.n, x.g.auMoins)} · ${S.uiAccPourquoiOu(x.h.libelle, x.langue)}`);
+        slot.r.dataset.tseGraine = x.g.login;
+        rangee(slot.l, chaines, (c) => c.login, (c) => fabriquerCarte(c.login), (n, c) => majCarte(n, c));
+        slot.r.hidden = false;
+        plier(slot.r);
+        montres.push({ graine: x.g.login, visites: x.g.n, auMoins: x.g.auMoins, jeu: x.h.jeu, directs: x.h.n, cartes: chaines.length });
+      });
+      bilan.pourquoi.rayons = montres;
+    };
     const fabriquerAbsence = (it) => {
       const li = elt('li', 'tse-acc-absence-ligne');
       li.dataset.tseCle = it.login;
@@ -18098,10 +18284,12 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         ? liste.filter((x) => x !== heros).slice(0, CFG.ACCUEIL_SUIVIES_MAX) : [];
       for (const x of suivies) noterAffiche(x.login, x.e.stream?.createdAt);
       peindreSuivies(suivies);
+      peindrePourquoi();
       peindreRdv();
       peindreAbsence();
       etiquetterTwitch();
-      section.hidden = !heros && z.suivis.hidden && z.top.hidden && z.rdv.hidden && z.hab.hidden && z.abs.hidden;
+      section.hidden = !heros && z.suivis.hidden && z.top.hidden && z.pq.every((x) => x.r.hidden)
+        && z.rdv.hidden && z.hab.hidden && z.abs.hidden;
       if (!section.hidden) aligner();
       verifierPlaceHeros();
       demanderDebuts();
@@ -18272,6 +18460,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         // Vos rendez-vous et leurs rappels (4.27.0) : des comptes, aucune chaîne.
         rdv: { ...bilan.rdv, indice: { ...lireIndiceRdv() } },
         absence: { ...bilan.absence, clips: { ...bilan.absence.clips }, gardee: !!presence.absence() },
+        pourquoi: { ...bilan.pourquoi, rayons: bilan.pourquoi.rayons.map((x) => ({ ...x })) },
         etiquettes: { ...bilan.etiquettes, posees: { ...bilan.etiquettes.posees }, coins: { ...bilan.etiquettes.coins },
                       twitch: { ...bilan.etiquettes.twitch }, active: !!options.get('accueilEtiquettes') },
         rappels: rappels.rapport(),
@@ -24092,7 +24281,38 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
                enCours: !!travail || !restauree,
                chaines: vus.slice(0, CFG.ABSENCE_MAX).map(({ score, ...x }) => x) };
     };
-    return { semaine, horsLigne, rendezVous, retour, absence, actualiser, effacer, bilan: bilanPublic };
+    /* LA CATÉGORIE HABITUELLE (4.31.0, cf. POURQUOI). Celle de la plupart
+       des directs archivés de la chaîne depuis `depuis` — un direct compté
+       une fois, comme ailleurs (deux archives séparées d'une coupure en font
+       un), à la catégorie où il a commencé —, si elle en tient au moins
+       POURQUOI_MIN_DIRECTS et plus que toute autre. Une égalité ne désigne
+       personne : rien. Sans archive lue, rien non plus. La lecture relance
+       la collecte, comme les autres vues de l'accueil. */
+    const habituelle = (login, depuis) => {
+      restaurer();
+      lancer();
+      const d = diffusions.get(login);
+      if (!d) return null;
+      const directs = [];
+      for (const v of [...d.videos].filter((x) => x.debut >= depuis).sort((a, b) => a.debut - b.debut)) {
+        const prec = directs[directs.length - 1];
+        if (prec && v.debut - prec.fin < MEME_DIRECT_MS) { prec.fin = Math.max(prec.fin, finVideo(v)); continue; }
+        directs.push({ fin: finVideo(v), jeu: v.jeu, libelle: v.libelle });
+      }
+      const compte = new Map();
+      for (const x of directs) {
+        if (!x.jeu) continue;
+        const c = compte.get(x.jeu) || { jeu: x.jeu, libelle: x.libelle || x.jeu, n: 0 };
+        c.n++;
+        compte.set(x.jeu, c);
+      }
+      const rangs = [...compte.values()].sort((a, b) => b.n - a.n);
+      const r = rangs[0];
+      if (!r || r.n < CFG.POURQUOI_MIN_DIRECTS || (rangs[1] && rangs[1].n === r.n)) return null;
+      const f = chaines.get(login);
+      return { ...r, directs: directs.length, nom: (f && !f.inconnue && f.nom) || null };
+    };
+    return { semaine, horsLigne, rendezVous, retour, absence, habituelle, actualiser, effacer, bilan: bilanPublic };
   })();
 
   /* ============================================================

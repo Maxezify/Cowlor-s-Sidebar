@@ -16652,7 +16652,7 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
     return { n: Object.keys(defs).length, horsListe, jeuxNonVides,
              cle: localStorage.getItem('tse:options') };
   });
-  ok('la table porte ses trente-deux réglages', table.n === 32, String(table.n));
+  ok('la table porte ses trente-trois réglages', table.n === 33, String(table.n));
   /* CELUI-CI A UNE CIBLE PRÉCISE : trois défauts sont lus dans CFG plutôt que
      recopiés — apercuQualite, abosPeriode et topN. Changer une de ces trois
      constantes sans toucher à la liste des valeurs permises rendrait le
@@ -16680,21 +16680,22 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
      vingt-neuf depuis la 4.26.0.2 : la vidéo de la tête de l'accueil ;
      trente depuis la 4.27.0 : « Vos rendez-vous » ; trente et un depuis la
      4.28.0 : « Une étiquette par carte » ; trente-deux depuis la 4.30.0 :
-     « Pendant votre absence ». En polonais et en russe, deux veut le
-     nominatif pluriel — et un verbe au pluriel, que les phrases ont suivi. */
-  const TRENTE_DEUX = { de: 'zweiunddreißig Einstellungen', en: 'thirty-two settings',
-                        es: 'treinta y dos ajustes', es_419: 'treinta y dos ajustes', fr: 'trente-deux réglages',
-                        it: 'trentadue impostazioni', ja: '32 個の設定', pl: 'trzydzieści dwa ustawienia',
-                        pt_BR: 'trinta e duas configurações', pt_PT: 'trinta e duas definições',
-                        ru: 'тридцать две настройки', zh_CN: '三十二项设置' };
-  const muettes = Object.entries(TRENTE_DEUX).flatMap(([loc, mot]) => [
+     « Pendant votre absence » ; trente-trois depuis la 4.31.0 : « Parce que
+     vous regardez souvent… ». En polonais et en russe, deux et trois veulent
+     le nominatif pluriel — et un verbe au pluriel, que les phrases ont suivi. */
+  const TRENTE_TROIS = { de: 'dreiunddreißig Einstellungen', en: 'thirty-three settings',
+                         es: 'treinta y tres ajustes', es_419: 'treinta y tres ajustes', fr: 'trente-trois réglages',
+                         it: 'trentatré impostazioni', ja: '33 個の設定', pl: 'trzydzieści trzy ustawienia',
+                         pt_BR: 'trinta e três configurações', pt_PT: 'trinta e três definições',
+                         ru: 'тридцать три настройки', zh_CN: '三十三项设置' };
+  const muettes = Object.entries(TRENTE_TROIS).flatMap(([loc, mot]) => [
     JSON.parse(readFileSync(join(ICI, '..', '_locales', loc, 'messages.json'), 'utf8'))
       .optResetText.message.includes(mot) ? null : `panneau ${loc}`,
     readFileSync(join(ICI, '..', 'store', `description-${loc.replace('_', '-')}.txt`), 'utf8')
       .includes(mot) ? null : `fiche ${loc}`,
   ]).filter(Boolean);
   ok('…et le panneau comme la fiche du Store en annoncent autant, dans les douze langues',
-     table.n === 32 && muettes.length === 0, muettes.join(', ') || String(table.n));
+     table.n === 33 && muettes.length === 0, muettes.join(', ') || String(table.n));
   /* CELLE-CI SE LIT SUR LE FICHIER SOURCE, et c'est le fond du sujet : la
      constante de production vaut six heures, mais tests/build.mjs la réécrit à
      quatre secondes pour que le relevé des abonnements soit éprouvable. La
@@ -17301,7 +17302,7 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
              fantomes: peints.filter((id) => !table.includes(id)) };
   }, vue.peints);
 
-  ok('les trente-deux réglages de la page ont chacun leur ligne',
+  ok('les trente-trois réglages de la page ont chacun leur ligne',
      contrat.oublies.length === 0, contrat.oublies.join(', '));
   ok('…et aucune ligne fantôme : l\'ordre du panneau couvre exactement la table',
      contrat.fantomes.length === 0, contrat.fantomes.join(', '));
@@ -40709,6 +40710,11 @@ const lireImages = (page) => page.evaluate(() => {
   const demandes = (p, l) => p.evaluate((x) => window.__calls.filter((c) => (c.ops || []).includes(x)).length, l);
 
   const pe = await ouvrirAccueil({ decor: { rayons: RAYONS }, visites: { nyx: [1, 2, 3, 4, 5, 6], aurore: [7], houle: [8] } });
+  /* L'agenda répond d'après le décor posé APRÈS le plateau : une lecture
+     partie entre les deux ne sait rien du direct d'avant d'aurore, et la
+     suivante attend la fin de la mémoire (trente secondes au banc). Ses
+     réponses sont donc retenues deux secondes — elles se composent après. */
+  await pe.evaluate(() => { window.__retardOp = { TseAgendaChaines: 2_000, TseAgendaDiffusions: 2_000, TseAgendaProgramme: 2_000, TseAgendaAcces: 2_000 }; });
   await plateauAccueil(pe, { suivies: SUIV, top: TOP });
   await decorEtiq(pe);
   /* Nos rayons poussent ceux de Twitch sous la ligne de flottaison : on
@@ -40724,6 +40730,7 @@ const lireImages = (page) => page.evaluate(() => {
     return /De retour/.test(v('aurore') || '') && /Subathon/.test(v('brisa') || '') && !!v('houle') && !!t('xray') && !!t('aeltris') && !!t('quebec');
   }, 20_000);
   const e1 = await lireEtiq(pe);
+  await pe.evaluate(() => { window.__retardOp = {}; });
   ok('a) une étiquette par carte, dans l\'ordre : le retour avant le début, le subathon avant le début ; un début ; un co-stream ; et rien pour une chaîne sans fait',
      e1.nos.aurore === 'De retour après 41 jours' && e1.nos.brisa === 'Subathon • JOUR 9' && e1.nos.cendre === 'Vient de commencer'
      && e1.nos.houle === 'Co-stream à 3' && e1.nos.ilot === null && !('nyx' in e1.nos)
@@ -40861,7 +40868,14 @@ const lireImages = (page) => page.evaluate(() => {
     }, login);
     await attendre(p, () => !document.querySelector('.tse-preview[data-tse-visible="true"]'), 3000);
   };
-  const heure = (p, l) => p.evaluate((x) => new Date(window.__fx[x].createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }), l);
+  /* L'heure du début, comme le récap l'écrit : précédée du jour quand le
+     direct a commencé avant minuit — le banc qui passe minuit le voit. */
+  const heure = (p, l) => p.evaluate((x) => {
+    const d = new Date(window.__fx[x].createdAt), minuit = new Date();
+    minuit.setHours(0, 0, 0, 0);
+    const h = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    return d >= minuit ? h : `${d.toLocaleDateString('fr-FR', { weekday: 'short' })} ${h}`;
+  }, l);
   const tousAppels = (p) => p.evaluate(() => window.__calls.filter((c) => (c.names || []).includes('TseRecapClips')).length);
 
   const pa = await ouvrir();
@@ -41243,6 +41257,145 @@ const lireImages = (page) => page.evaluate(() => {
   await sans('e) « Pendant votre absence » décoché : ni bandeau, ni clips demandés', { options: { accueilAbsence: false } }, { gardee: true });
   await sans('f) une installation neuve, sans présence connue : pas d\'absence — on ne sait pas depuis quand', { presenceH: null }, { gardee: false });
   await sans('g) une absence finie il y a treize heures : sa garde de douze heures est passée', { presenceH: 1, absence: [40, 13] }, { gardee: false });
+}
+
+{
+  titre('225. Des rayons qui disent pourquoi — la chaîne que vous regardez souvent, sa catégorie habituelle, votre langue, hors de vos suivis');
+  /* LE DÉCOR. Les visites sont les vôtres, posées dans le stockage ; les
+     archives viennent de l'agenda. Des chaînes inventées, une par règle :
+       korbek   — vingt visites, toutes dans les trente jours : la liste est
+                  pleine, « au moins 20 » ; quatre directs en Just Chatting,
+                  un en VALORANT : sa catégorie, Just Chatting ;
+       pivert   — neuf visites, mais vous ne la suivez pas : l'agenda ne lit
+                  pas ses archives, rien n'y désigne une habitude ;
+       ourse    — huit visites, un seul direct : pas une habitude ;
+       nyxaria  — sept visites, mais deux directs en Elden Ring et deux en
+                  Dark Souls : une égalité ne désigne personne ;
+       loutre   — six visites, deux directs en Just Chatting : la catégorie
+                  du premier rayon, pas deux fois ;
+       velmoria — cinq visites dans les trente jours, une sixième d'il y a
+                  quarante jours, qui ne compte pas ; deux directs en
+                  Minecraft, et un en Terraria coupé en deux archives — un
+                  direct, pas deux : le second rayon ;
+       renard   — quatre visites, deux directs en VALORANT : un troisième
+                  rayon, qui n'est pas demandé ;
+       lune     — cinq directs en Just Chatting, deux visites seulement.
+     Dans Just Chatting : falun et gravier, en français, que vous ne suivez
+     pas ; houx, plus regardé, mais en anglais ; korbek et nyxaria, suivies.
+     Dans Minecraft : mousse et ortie, en français. Twitch rend les directs
+     dans l'ordre inverse des spectateurs (cf. page.html) : l'ordre se
+     constate, il ne se suppose pas. */
+  const H = 3_600_000, J = 24 * H;
+  const heures = (n, pas, depuis = 1) => Array.from({ length: n }, (_, i) => depuis + i * pas);
+  const visites = {
+    korbek: heures(20, 24), pivert: heures(9, 20), ourse: heures(8, 20), nyxaria: heures(7, 30),
+    loutre: heures(6, 30), velmoria: [...heures(5, 40), 40 * 24], renard: heures(4, 40), lune: heures(2, 50),
+  };
+  const decor = (p) => p.evaluate(([H, J]) => {
+    const now = Date.now(), iso = (t) => new Date(t).toISOString();
+    let k = 0;
+    const arch = (jours, jeu, decaleMin = 0) => ({ id: String(98000 + (++k)), titre: 'Archive ' + k,
+                                                   debut: iso(now - jours * J - 3 * H + decaleMin * 60_000), duree: 3600, vues: 10, jeu });
+    const A = {};
+    const avec = (l, videos) => {
+      A[l] = { nom: l.charAt(0).toUpperCase() + l.slice(1), titre: '', videos,
+               dernier: { id: '1', fin: iso(Math.max(...videos.map((v) => Date.parse(v.debut) + v.duree * 1000)) + 3000) } };
+    };
+    avec('korbek', [arch(2, 'Just Chatting'), arch(5, 'Just Chatting'), arch(9, 'VALORANT'), arch(14, 'Just Chatting'), arch(20, 'Just Chatting')]);
+    avec('nyxaria', [arch(1, 'Elden Ring'), arch(4, 'Dark Souls'), arch(8, 'Elden Ring'), arch(12, 'Dark Souls')]);
+    // Terraria : une heure d'archive, cinq minutes de coupure, la reprise — un seul direct.
+    avec('velmoria', [arch(3, 'Minecraft'), arch(6, 'Terraria'), arch(6, 'Terraria', 65), arch(10, 'Minecraft')]);
+    avec('ourse', [arch(4, 'Fortnite')]);
+    avec('loutre', [arch(2, 'Just Chatting'), arch(7, 'Just Chatting')]);
+    avec('renard', [arch(5, 'VALORANT'), arch(11, 'VALORANT')]);
+    avec('lune', [1, 3, 5, 7, 9].map((j) => arch(j, 'Just Chatting')));
+    window.__agenda = A;
+    for (const l of ['lune', 'ourse', 'loutre', 'renard']) window.__addCard(l, '', '', false);
+    const fr = ['Français'];
+    window.__cats = [
+      { name: 'Just Chatting', viewers: 400000, streams: [
+        { login: 'falun', viewers: 9000, tags: fr, titre: 'On refait le monde' },
+        { login: 'houx', viewers: 12000, tags: ['English'], titre: 'Morning chat' },
+        { login: 'gravier', viewers: 4000, tags: fr, titre: 'Café et questions' },
+        { login: 'korbek', viewers: 2310, tags: fr },
+        { login: 'nyxaria', viewers: 500, tags: fr } ] },
+      { name: 'Minecraft', viewers: 90000, streams: [
+        { login: 'ortie', viewers: 2000, tags: fr, titre: 'Survie' },
+        { login: 'mousse', viewers: 3000, tags: fr, titre: 'Ferme à golems' } ] },
+      { name: 'VALORANT', viewers: 250000, streams: [] },
+    ];
+  }, [H, J]);
+  const lire = (p) => p.evaluate(() => [...document.querySelectorAll('#tse-accueil > .tse-acc-rayon--pourquoi')].map((r) => ({
+    cle: r.dataset.tseRayon, montre: !r.hidden, graine: r.dataset.tseGraine || null,
+    titre: r.querySelector('.tse-acc-titre > span:first-child')?.textContent,
+    sous: r.querySelector('.tse-acc-sous-titre')?.textContent,
+    cartes: [...r.querySelectorAll('.tse-acc-carte')].map((c) => c.dataset.tseCle),
+    titres: [...r.querySelectorAll('.tse-acc-titre-carte')].map((t) => t.textContent),
+  })));
+  // Les nôtres seulement : Top Chaînes interroge aussi les catégories, sans les titres (cf. page.html).
+  const appels = (p) => p.evaluate(() => window.__calls.filter((c) => c.pourquoi > 0));
+  const page = await ouvrirAccueil({ visites });
+  await plateauAccueil(page);
+  await decor(page);
+  await attendre(page, () => {
+    const r = window.tse.accueil.rapport();
+    return r.rdv.enCours === false && r.pourquoi.rayons.length === 2
+      && document.querySelectorAll('.tse-acc-rayon--pourquoi:not([hidden]) .tse-acc-carte').length === 4;
+  }, 25_000);
+  const v = await lire(page);
+  const ordre = await page.evaluate(() => [...document.querySelectorAll('#tse-accueil > .tse-acc-rayon')].map((x) => x.dataset.tseRayon));
+  ok('a) « Parce que vous regardez souvent Korbek » — et ce qui le prouve : « au moins 20 visites en 30 jours · Discussions, en français »',
+     v[0]?.montre && v[0].titre === 'Parce que vous regardez souvent Korbek'
+     && v[0].sous === 'au moins 20 visites en 30 jours · Discussions, en français', JSON.stringify(v[0]));
+  ok('…ce qui est en direct dans sa catégorie, dans la langue de Twitch, par spectateurs : ni elle, ni une chaîne suivie, ni celle qui parle anglais',
+     JSON.stringify(v[0]?.cartes) === '["falun","gravier"]' && JSON.stringify(v[0]?.titres) === '["On refait le monde","Café et questions"]',
+     JSON.stringify(v[0]));
+  ok('b) le second rayon : ni une chaîne non suivie (pivert), ni un direct unique (ourse), ni une égalité (nyxaria), ni la même catégorie (loutre) — Velmoria, « 5 visites », celle d\'il y a quarante jours hors du compte, et son Terraria coupé compté une fois',
+     v[1]?.montre && v[1].graine === 'velmoria' && v[1].sous === '5 visites en 30 jours · Minecraft, en français'
+     && JSON.stringify(v[1].cartes) === '["mousse","ortie"]', JSON.stringify(v[1]));
+  ok('…et pas plus de deux rayons : renard, troisième, n\'est pas demandé',
+     v.length === 2 && v.filter((x) => x.montre).length === 2, JSON.stringify(v.map((x) => x.graine)));
+  ok('…juste après le Top 10, avant « Vos rendez-vous »',
+     JSON.stringify(ordre.slice(ordre.indexOf('top'), ordre.indexOf('top') + 4)) === '["top","pourquoi-0","pourquoi-1","rdv"]', JSON.stringify(ordre));
+  const c1 = await appels(page);
+  await page.evaluate(() => { document.dispatchEvent(new Event('visibilitychange')); });
+  await wait(page, 2_000);
+  const c2 = await appels(page);
+  const rap = await page.evaluate(() => window.tse.accueil.rapport().pourquoi);
+  ok('c) une demande par rayon — un TseCategoryTop, dans la langue de Twitch —, et rien de plus en repeignant',
+     c1.length === 2 && c2.length === 2 && c1.every((c) => (c.langs || []).includes('FR')) && rap.demandes === 2 && rap.servis === 2,
+     JSON.stringify({ avant: c1.map((c) => [c.cats, c.langs]), apres: c2.length, rap }));
+  await page.close();
+
+  /* e) LA RÉPONSE DOIT NOMMER LA CATÉGORIE DEMANDÉE (la règle de Top
+     Chaînes, 4.24.0.40). Les archives de korbek disent « just chatting » ;
+     un serveur qui résout les noms sans la casse rend « Just Chatting » —
+     un autre nom, qui ne dit rien de celui demandé : pas de rayon. Et lune,
+     deux visites : pas une chaîne que vous regardez souvent. */
+  const pe = await ouvrirAccueil({ visites: { korbek: visites.korbek, lune: visites.lune } });
+  await plateauAccueil(pe);
+  await decor(pe);
+  await pe.evaluate(() => {
+    window.__nomsSansCasse = true;
+    for (const v of window.__agenda.korbek.videos) if (v.jeu === 'Just Chatting') v.jeu = 'just chatting';
+  });
+  await attendre(pe, () => { const r = window.tse.accueil.rapport(); return r.rdv.enCours === false && r.pourquoi.refus > 0; }, 20_000);
+  await wait(pe, 1_500);
+  const e = { rayons: (await lire(pe)).filter((x) => x.montre).map((x) => x.graine),
+              rap: await pe.evaluate(() => window.tse.accueil.rapport().pourquoi) };
+  ok('e) une réponse qui nomme une autre catégorie ne fait pas de rayon ; ni deux visites',
+     e.rayons.length === 0 && e.rap.refus === 1, JSON.stringify(e));
+  await pe.close();
+
+  // d) Le réglage décoché : ni rayon, ni demande.
+  const pd = await ouvrirAccueil({ visites, options: { accueilPourquoi: false } });
+  await plateauAccueil(pd);
+  await decor(pd);
+  await attendre(pd, () => { const r = window.tse.accueil.rapport(); return r.heros.montre && r.rdv.enCours === false; }, 20_000);
+  await wait(pd, 1_500);
+  const d = { rayons: (await lire(pd)).filter((x) => x.montre).length, appels: (await appels(pd)).length };
+  ok('d) « Parce que vous regardez souvent… » décoché : ni rayon, ni demande', d.rayons === 0 && d.appels === 0, JSON.stringify(d));
+  await pd.close();
 }
 
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════
