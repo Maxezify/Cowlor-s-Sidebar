@@ -1643,7 +1643,11 @@ titre('31. Vignette — l\'URL doit être stable, et l\'attente ne doit pas êtr
   // Ouvert AVANT la page : depuis le préchargement, les premières miniatures
   // partent sans qu'aucun survol n'ait eu lieu. La fenêtre doit les couvrir.
   const t0 = Date.now();
-  const page = await freshTwitch('<!doctype html><html><body>lecteur</body></html>', cdnUrls);
+  /* Hors de l'accueil : depuis la 4.32.0.1, la bannière y prend la première
+     suivie en direct même sans visite — alpha —, et demande ses propres
+     images (1280 × 720, 320 × 180) à d'autres tranches. Ce scénario parle de
+     la vignette de l'aperçu, et d'elle seule. */
+  const page = await freshTwitch('<!doctype html><html><body>lecteur</body></html>', cdnUrls, '/directory');
   await page.evaluate(() => {
     window.__fx = {
       alpha: { id:'1', createdAt:new Date(Date.now()-3600_000).toISOString(), viewers:1000, game:'G', tags:[] },
@@ -9727,17 +9731,13 @@ titre('80. Aperçu — l\'ordre du corps : les badges ensemble, la frise en dern
     const titre = corps.querySelector('.tse-preview__title');
     const zone = corps.querySelector('.tse-preview__badges');
     const frise = corps.querySelector('.tse-preview__frise');
-    /* Le récap du direct (4.29.0) se pose entre les badges et la frise : le
-       même écart le sépare de l'un et de l'autre. */
-    const recap = corps.querySelector('.tse-preview__recap');
     return {
       enfants: [...corps.children].map(e => e.className.split(' ')[0]),
       badgeDansLaZone: !!badge && !!badge.closest('.tse-preview__badges'),
       zones: corps.querySelectorAll('.tse-preview__badges').length,
       dernier: corps.lastElementChild?.className.split(' ')[0] || null,
       titreBadges: ecart(titre, zone),
-      badgesFilet: recap ? ecart(zone, recap) : ecart(zone, frise),
-      recapFilet: recap ? ecart(recap, frise) : null,
+      badgesFilet: ecart(zone, frise),
     };
   });
   ok('le badge « Contenu classé », arrivé tard, rejoint la ZONE des badges',
@@ -9753,9 +9753,8 @@ titre('80. Aperçu — l\'ordre du corps : les badges ensemble, la frise en dern
      marge propre, soit quinze au lieu de six. Deux endroits décidaient d'un
      même espacement ; il n'y en a plus qu'un. */
   ok('…et les deux respirations sont ÉGALES : titre→badges = badges→filet',
-     ordre.titreBadges === ordre.badgesFilet && ordre.titreBadges > 0
-     && (ordre.recapFilet === null || ordre.recapFilet === ordre.titreBadges),
-     JSON.stringify({ titreBadges: ordre.titreBadges, badgesFilet: ordre.badgesFilet, recapFilet: ordre.recapFilet }));
+     ordre.titreBadges === ordre.badgesFilet && ordre.titreBadges > 0,
+     JSON.stringify({ titreBadges: ordre.titreBadges, badgesFilet: ordre.badgesFilet }));
   /* La VALEUR, et pas seulement l'égalité. Six pixels ont été jugés trop
      serrés à l'usage ; dix ont été demandés. Une assertion qui ne vérifierait
      que l'égalité laisserait les deux dériver ensemble sans rien dire. */
@@ -35688,8 +35687,16 @@ const S_LECTEUR_SONDE = () => {
     window.dispatchEvent(new StorageEvent('storage', { key: 'tse:roster', newValue: JSON.stringify(o) }));
   });
   await finir(pd, () => window.tse.panneau('horsLigne'));
-  await wait(pd, 600);
-  const cles4 = await cles(pd);
+  /* La base se purge en écrivant, après la lecture : attendue jusqu'à cinq
+     secondes, et non six cents millisecondes — sous la charge du banc
+     complet, l'écriture venait après (4.32.0.1). Une purge qui ne vient
+     jamais laisse ether dans la base, et l'assertion le dit. */
+  let cles4 = null;
+  for (let i = 0; i < 25; i++) {
+    await wait(pd, 200);
+    cles4 = await cles(pd);
+    if (Array.isArray(cles4) && !cles4.includes('ether')) break;
+  }
   await pd.evaluate(() => window.tse.reset());
   await wait(pd, 400);
   const cles5 = await cles(pd);
@@ -38577,9 +38584,24 @@ const TOP_ACCUEIL = ['zephyr', 'aldric', 'mirelle', 'tavor', 'solenne', 'brune',
    l'ordre du manifeste, et une vraie vidéo — un canvas capturé — rouge à
    gauche, bleue à droite, dessinée après un temps : la première image n'est
    annoncée qu'alors. `porte` : l'interstitielle de classification, qui ne se
-   lève pas, et pas de vidéo. */
+   lève pas, et pas de vidéo. L'INSTANCE DU LECTEUR DE TWITCH (4.32.0.1), là
+   où le pont la cherche (cf. 175) : l'échelle de qualités d'une chaîne, en
+   automatique tant que personne ne pose de qualité. */
 const lecteurAccueil = ({ porte = false } = {}) => `<!doctype html><html><body>
-    <script>window.__clics = 0;</script>
+    <div id="root"></div>
+    <script>
+      window.__clics = 0;
+      (() => {
+        const echelle = [160, 360, 480, 720, 1080].map((h) => ({ name: h + (h >= 720 ? 'p60' : 'p30'), height: h,
+          width: Math.round(h * 16 / 9), framerate: h >= 720 ? 60 : 30 }));
+        let courante = echelle[1], auto = true;
+        window.__lecteur = { poses: [], getQualities: () => echelle, getQuality: () => courante,
+          setQuality: (q) => { courante = q; auto = false; window.__lecteur.poses.push(q.name); },
+          isAutoQualityMode: () => auto, setAutoQualityMode: (b) => { auto = !!b; } };
+        document.getElementById('root').__reactContainer$faux = { stateNode: null, sibling: null,
+          child: { stateNode: { setPlayerActive() {}, props: { mediaPlayerInstance: window.__lecteur } }, child: null, sibling: null } };
+      })();
+    </script>
     ${porte ? `<div data-a-target="content-classification-gate-overlay">
       <button data-a-target="content-classification-gate-overlay-start-watching-button"
               onclick="window.__clics++" style="width:200px;height:40px">Commencer</button></div>` : ''}
@@ -38897,15 +38919,28 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
   await page.evaluate(() => { window.__fx.korbek = null; });
   await attendre(page, () => document.querySelector('#tse-accueil-heros .tse-acc-heros')?.dataset.tseCle === 'nyxaria', 8000);
   ok('la chaîne en tête coupe : la suivante par les visites prend sa place', (await vue()).heros === 'nyxaria');
-  /* e) PLUS AUCUNE CHAÎNE VISITÉE EN DIRECT : le carrousel revient, et sa
-     vidéo avec lui. Mutant — garder le carrousel masqué tant qu'une suivie
-     est en direct, visitée ou non — : Velmoria, jamais visitée, le cache. */
+  /* e) PLUS AUCUNE CHAÎNE VISITÉE EN DIRECT (4.32.0.1) : la bannière prend la
+     première de « Vos chaînes suivies en direct » — Velmoria, jamais
+     visitée —, et le rapport dit qu'elle la tient du repli. Jusqu'à la
+     4.32.0, le carrousel revenait ici, et la bannière manquait : signalé,
+     rapport à l'appui (« heros.sansVisite true »). Mutant — l'ancienne
+     règle, une visite exigée — : pas de héros, le carrousel revient. */
   await page.evaluate(() => { window.__fx.nyxaria = null; });
-  await attendre(page, () => getComputedStyle(document.querySelector('[data-a-target="front-page-carousel"]')).display !== 'none', 8000);
+  await attendre(page, () => document.querySelector('#tse-accueil-heros .tse-acc-heros')?.dataset.tseCle === 'velmoria', 8000);
   const v4 = await vue();
   const r4 = await rapportAccueil(page);
-  ok('aucune suivie visitée en direct : pas de héros, le carrousel revient et rejoue',
-     v4.heros === null && v4.carrousel !== 'none' && v4.lit && r4.heros.sansVisite, JSON.stringify({ ...v4, r: r4.heros }));
+  ok('aucune suivie visitée en direct : la bannière prend la première du rayon, et le carrousel reste masqué',
+     v4.heros === 'velmoria' && v4.carrousel === 'none' && !v4.lit && r4.heros.sansVisite === true,
+     JSON.stringify({ ...v4, r: r4.heros }));
+  /* …et plus AUCUNE suivie en direct : alors seulement le carrousel revient,
+     et sa vidéo avec lui. */
+  await page.evaluate(() => { window.__fx.velmoria = null; });
+  await attendre(page, () => getComputedStyle(document.querySelector('[data-a-target="front-page-carousel"]')).display !== 'none', 8000);
+  const v4b = await vue();
+  const r4b = await rapportAccueil(page);
+  ok('…plus aucune suivie en direct : pas de héros, le carrousel revient et rejoue',
+     v4b.heros === null && v4b.carrousel !== 'none' && v4b.lit && r4b.heros.sansVisite === false,
+     JSON.stringify({ ...v4b, r: r4b.heros }));
   // f) « Rien » : ni héros ni carrousel ; « Comme Twitch » : le carrousel, toujours.
   await page.evaluate(() => window.tse.options.poser('accueilTete', 'rien'));
   await attendre(page, () => getComputedStyle(document.querySelector('[data-a-target="front-page-carousel"]')).display === 'none', 3000);
@@ -39126,6 +39161,55 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
   });
   ok('…une image hors bornes du lecteur est écartée ; celle d\'un autre lecteur n\'est pas lue',
      faux.rejets === avantFaux.rejets + 1 && !faux.vert, JSON.stringify({ avant: avantFaux, faux }));
+  /* j') LA QUALITÉ DU DIRECT (4.32.0.1, « augmente la qualité du stream
+     présenté sur la bannière »). L'URL n'est qu'une préférence que
+     l'adaptation de débit passe : le héros dit à son lecteur la hauteur que
+     la vidéo remplit, en pixels d'écran, et le pont y pose la qualité par
+     l'instance du lecteur — la plus proche, un cran au-dessus, jamais sous
+     720p. À 1600 × 1000 : 720p60, hors de l'automatique. À 1280 × 800, la
+     bannière fait 320 pixels de haut — 360p au plus proche, 480p d'un cran :
+     c'est le plancher qui donne 720p60, à l'URL du lecteur reposé comme au
+     pont. À 2560 × 1440, plus de 600 pixels : 1080p60, sans repose. Le
+     rapport dit la hauteur et ce que le lecteur joue. Mutants — aucune
+     qualité posée (l'automatique reste) ; le plancher oublié, au pont ou à
+     l'URL ; la taille jamais relue ; la hauteur mal comptée. */
+  const qualiteVue = () => film.evaluate(() => {
+    const f = document.querySelector('#tse-accueil-heros .tse-acc-heros-video');
+    const r = f.parentElement.getBoundingClientRect();
+    return { h: Math.round(Math.min(r.height, r.width * 9 / 16) * devicePixelRatio), url: new URL(f.src).searchParams.get('quality'),
+             ...window.tse.accueil.rapport().heros.video };
+  });
+  await attendre(film, () => window.tse.accueil.rapport().heros.video.qualite === '720p60', 10_000);
+  const q1 = await qualiteVue();
+  const poses1 = await cadreHeros().evaluate(() => window.__lecteur.poses);
+  ok('j\') la bannière dit sa hauteur à son lecteur, qui joue 720p60, hors de l\'automatique',
+     q1.h > 300 && q1.hauteur === q1.h && q1.qualite === '720p60' && q1.auto === false
+     && poses1.length >= 1 && poses1.every((n) => n === '720p60'), JSON.stringify({ q1, poses1 }));
+  // Plus petite, et le lecteur reposé — l'onglet caché puis revenu (cf. k) : son URL se fait à cette taille.
+  await film.setViewportSize({ width: 1280, height: 800 });
+  const basculer = (cache) => film.evaluate((c) => {
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => c });
+    Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => (c ? 'hidden' : 'visible') });
+    document.dispatchEvent(new Event('visibilitychange'));
+  }, cache);
+  await basculer(true);
+  await attendre(film, () => !document.querySelector('#tse-accueil-heros .tse-acc-heros-video'), 5000);
+  await basculer(false);
+  await attendre(film, () => document.querySelector('#tse-accueil-heros .tse-acc-heros-video')?.dataset.tseLoaded === 'true', 10_000);
+  const cadre2 = () => film.frames().find((x) => x.url().includes('channel=korbek'));
+  await attendre(film, () => window.tse.accueil.rapport().heros.video.hauteur < 416, 10_000);
+  await wait(film, 2500);
+  const q3 = await qualiteVue();
+  const poses3 = await cadre2()?.evaluate(() => window.__lecteur.poses).catch(() => null);
+  ok('…plus petite (320 pixels : 480p d\'un cran) : le plancher donne 720p60, à l\'URL du lecteur comme au pont',
+     q3.h < 416 && q3.hauteur === q3.h && q3.url === '720p60' && q3.qualite === '720p60' && q3.auto === false
+     && Array.isArray(poses3) && poses3.length >= 1 && poses3.every((n) => n === '720p60'), JSON.stringify({ q3, poses3 }));
+  await film.setViewportSize({ width: 2560, height: 1440 });
+  await attendre(film, () => window.tse.accueil.rapport().heros.video.qualite === '1080p60', 10_000);
+  const q2 = await qualiteVue();
+  ok('…plus grande, elle le redit, et le lecteur passe en 1080p60',
+     q2.h > 600 && q2.hauteur === q2.h && q2.qualite === '1080p60' && q2.auto === false, JSON.stringify(q2));
+  await film.setViewportSize({ width: 1600, height: 1000 });
   /* k) IL NE JOUE QUE S'IL SE VOIT. Onglet caché : retiré, le fond revient à
      l'image ; revenu, il se repose. Héros sorti de la vue : de même. Réglage
      coupé : l'image seule. Mutants — l'onglet caché ignoré ; le guetteur
@@ -39139,13 +39223,15 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
     vues: document.querySelectorAll('#tse-accueil-heros .tse-acc-heros-ambiance--vue').length,
     image: !!document.querySelector('#tse-accueil-heros .tse-acc-heros-img')?.getAttribute('src'),
     ...window.tse.accueil.rapport().heros.video }));
+  // Compté depuis ici : j') a déjà reposé le lecteur une fois.
+  const k0 = await etatFilm();
   await cacherFilm(true);
   const k1 = await etatFilm();
   await cacherFilm(false);
   await attendre(film, () => !!document.querySelector('#tse-accueil-heros .tse-acc-heros-video'), 4000);
   const k2 = await etatFilm();
   ok('onglet caché : le lecteur est retiré et le fond revient à l\'image ; revenu, il se repose',
-     !k1.video && k1.vues === 0 && k1.image && k1.retraits === 1 && k2.video && k2.poses === 2, JSON.stringify({ k1, k2 }));
+     !k1.video && k1.vues === 0 && k1.image && k1.retraits === k0.retraits + 1 && k2.video && k2.poses === k0.poses + 1, JSON.stringify({ k0, k1, k2 }));
   // Le faux accueil défile avec le document : une cale sous les rayons, et l'on descend.
   await film.evaluate(() => {
     const cale = document.createElement('div');
@@ -39159,14 +39245,14 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
   await film.evaluate(() => { document.scrollingElement.scrollTop = 0; });
   await attendre(film, () => !!document.querySelector('#tse-accueil-heros .tse-acc-heros-video'), 4000);
   const k4 = await etatFilm();
-  ok('héros sorti de la vue : le lecteur part ; revenu à l\'écran, il revient', !k3.video && k3.retraits === 2
-     && k4.video && k4.poses === 3, JSON.stringify({ k3, k4 }));
+  ok('héros sorti de la vue : le lecteur part ; revenu à l\'écran, il revient', !k3.video && k3.retraits === k0.retraits + 2
+     && k4.video && k4.poses === k0.poses + 2, JSON.stringify({ k3, k4 }));
   await film.evaluate(() => window.tse.options.poser('accueilVideo', false));
   await attendre(film, () => !document.querySelector('#tse-accueil-heros .tse-acc-heros-video'), 3000);
   await wait(film, 800);
   const k5 = await etatFilm();
   ok('« Vidéo de votre chaîne n°1 » coupée : l\'image seule, et aucun lecteur ne revient', !k5.video && k5.image
-     && k5.poses === 3 && k5.vues === 0, JSON.stringify(k5));
+     && k5.poses === k0.poses + 2 && k5.vues === 0, JSON.stringify(k5));
   await film.close();
 
   /* l) L'INTERSTITIELLE QUI NE SE LÈVE PAS : le pont la signale, le lecteur
@@ -40250,29 +40336,50 @@ const lireImages = (page) => page.evaluate(() => {
   /* j) UNE CHAÎNE QUI PASSE EN DIRECT, L'ACCUEIL DÉJÀ À L'ÉCRAN : la barre
      l'apprend à son relevé suivant, et l'accueil la peint au lot même qui la
      lui apprend, pas au réveil d'après (cinq secondes sur la vraie page).
-     Mutant — la réponse ignorée. */
+     Korbek, la seule visitée : jusque-là, la bannière tenait la première du
+     rayon (4.32.0.1) ; elle lui revient. Mutant — la réponse ignorée. */
   const j = await ouvrirDemblee({ decor: { delai: 600 }, retard: { TseChannels: 40 }, horsLigne: ['korbek'] });
   await attendre(j, () => !!document.getElementById('tse-accueil') && window.tse.accueil.rapport().amorce.faites === 1, 8000);
   await wait(j, 800);
-  const j0 = await j.evaluate(() => ({ montre: window.tse.accueil.rapport().heros.montre, n: window.tse.accueil.rapport().peinturesDonnees }));
+  const tete = () => j.evaluate(() => ({ cle: document.querySelector('#tse-accueil-heros .tse-acc-heros:not([hidden])')?.dataset.tseCle ?? null,
+                                         sansVisite: window.tse.accueil.rapport().heros.sansVisite, n: window.tse.accueil.rapport().peinturesDonnees }));
+  const j0 = await tete();
   await j.evaluate(() => { window.__fx.korbek = { id: '12', createdAt: new Date(Date.now() - 42 * 60_000).toISOString(), viewers: 2310,
                                                   game: 'Just Chatting', tags: ['Français'], title: 'On discute de tout' }; });
-  await attendre(j, () => window.tse.accueil.rapport().heros.montre, 8000);
-  const j1 = await j.evaluate(() => ({ montre: window.tse.accueil.rapport().heros.montre, n: window.tse.accueil.rapport().peinturesDonnees }));
+  await attendre(j, () => document.querySelector('#tse-accueil-heros .tse-acc-heros:not([hidden])')?.dataset.tseCle === 'korbek', 8000);
+  const j1 = await tete();
   ok('une chaîne qui passe en direct, l\'accueil déjà là : le héros peint au lot même qui l\'apprend',
-     !j0.montre && j1.montre && j1.n > j0.n, JSON.stringify({ j0, j1 }));
+     j0.cle !== null && j0.cle !== 'korbek' && j0.sansVisite && j1.cle === 'korbek' && !j1.sansVisite && j1.n > j0.n,
+     JSON.stringify({ j0, j1 }));
   await j.close();
 
-  /* e) RIEN À ATTENDRE : aucune chaîne visitée, ni rayon des suivies — le
-     voile posé au démarrage se lève à l'arrivée, sans rien demander. Et
-     l'accueil coupé : il ne se pose même pas. */
-  const e = await ouvrirDemblee({ visites: null, options: { accueilSuivis: false } });
+  /* e) RIEN À ATTENDRE : ni bannière — « Comme Twitch » —, ni rayon des
+     suivies. Rien ne se demande, aucun voile ne se pose, et l'accueil de
+     Twitch se montre tel quel. (Jusqu'à la 4.32.0, « aucune chaîne visitée »
+     suffisait : la bannière n'en prenait pas d'autre. Elle prend maintenant
+     la première du rayon, et attend donc les chaînes suivies.) Et l'accueil
+     coupé : il ne se pose même pas. */
+  const e = await ouvrirDemblee({ visites: null, options: { accueilSuivis: false, accueilTete: 'twitch' } });
   await attendre(e, () => window.__images.filter((x) => x.accueil).length > 30, 8000);
   const ie = await lireImages(e);
-  ok('rien à attendre : le voile levé à l\'arrivée, sans amorce, et l\'accueil de Twitch montré tel quel',
-     ie.voilees === 0 && ie.rapport.voile.levees.rien === 1 && ie.rapport.amorce.demandees === 0 && ie.carrousel > 0,
+  ok('rien à attendre : ni voile ni amorce, et l\'accueil de Twitch montré tel quel',
+     ie.voilees === 0 && ie.rapport.voile.poses === 0 && ie.rapport.amorce.demandees === 0 && ie.carrousel > 0,
      JSON.stringify(ie.rapport));
   await e.close();
+  /* e') SANS VISITE NI RAYON, LA BANNIÈRE (4.32.0.1) : elle prendra la
+     première des suivies en direct, et l'amorce les demande donc — le voile
+     ne se lève qu'une fois la bannière peinte, pas sur le carrousel de
+     Twitch qu'elle remplacerait sous vos yeux. Mutant — l'amorce qui ne
+     demande les suivies que pour le rayon. */
+  const e2 = await ouvrirDemblee({ visites: null, options: { accueilSuivis: false } });
+  await attendre(e2, () => window.tse.accueil.rapport().chrono.voile !== null && window.tse.accueil.rapport().heros.montre, 8000);
+  const re2 = await e2.evaluate(() => { const r = window.tse.accueil.rapport();
+    return { amorce: r.amorce, chrono: r.chrono, levees: r.voile.levees, heros: r.heros.montre, sansVisite: r.heros.sansVisite,
+             cle: document.querySelector('#tse-accueil-heros .tse-acc-heros:not([hidden])')?.dataset.tseCle ?? null }; });
+  ok('e\') sans visite ni rayon : l\'amorce demande les suivies, et la bannière — la première d\'entre elles — est peinte quand le voile se lève',
+     re2.amorce.demandees > 0 && re2.levees.donnees === 1 && re2.heros && re2.sansVisite && re2.cle === 'nyxaria'
+     && re2.chrono.heros !== null && re2.chrono.heros <= re2.chrono.voile, JSON.stringify(re2));
+  await e2.close();
   const f = await ouvrirDemblee({ options: { accueil: false } });
   await attendre(f, () => window.__images.filter((x) => x.accueil).length > 30, 8000);
   const vf = await f.evaluate(() => ({ jamais: window.__images.every((x) => !x.voile), r: window.tse.accueil.rapport().voile }));
@@ -40737,6 +40844,25 @@ const lireImages = (page) => page.evaluate(() => {
      && e1.nos.houle === 'Co-stream à 3' && e1.nos.ilot === null && !('nyx' in e1.nos)
      && e1.nos.lys === null && e1.nos.mica === null,
      JSON.stringify(e1.nos));
+  /* a') LA COULEUR DIT LA SORTE DE FAIT (4.32.0.1, « pas colorées comme sur la
+     maquette ») : le texte, le bord et le point de la couleur de la maquette,
+     sur un fond sombre — sur nos cartes comme sur celles de Twitch. Mutants —
+     une seule couleur pour toutes ; le bord ou le point oubliés. */
+  const couleurs = await pe.evaluate(() => {
+    const st = (el) => {
+      const c = getComputedStyle(el, '::after');
+      return { c: c.color, bord: c.borderTopColor, rond: c.borderTopLeftRadius, point: /radial-gradient/.test(c.backgroundImage) };
+    };
+    const nous = (l) => st(document.querySelector(`#tse-accueil .tse-acc-rayon--suivis [data-tse-cle="${l}"] .tse-acc-vignette`));
+    const eux = (l) => st(document.querySelector(`main a[data-a-target="preview-card-image-link"][href="/${l}"]`));
+    return { aurore: nous('aurore'), brisa: nous('brisa'), cendre: nous('cendre'), houle: nous('houle'), xray: eux('xray'), aeltris: eux('aeltris') };
+  });
+  const teinte = (x, rgb) => x.c === rgb && x.bord === rgb && x.rond === '999px' && x.point;
+  ok('a\') chaque sorte de fait a sa couleur, celle de la maquette — le retour en vert, le subathon en or pâle, le début en rouge, le co-stream en bleu, la place en or',
+     teinte(couleurs.aurore, 'rgb(107, 219, 157)') && teinte(couleurs.brisa, 'rgb(255, 227, 143)')
+     && teinte(couleurs.cendre, 'rgb(255, 107, 98)') && teinte(couleurs.houle, 'rgb(143, 199, 255)')
+     && teinte(couleurs.xray, 'rgb(255, 107, 98)') && teinte(couleurs.aeltris, 'rgb(255, 214, 138)'),
+     JSON.stringify(couleurs));
 
   // b) Le basculement, vu entre deux relevés du même direct.
   await pe.evaluate(() => { window.__fx.dune = { ...window.__fx.dune, game: 'Elden Ring' }; });
@@ -40817,184 +40943,37 @@ const lireImages = (page) => page.evaluate(() => {
 }
 
 {
-  titre('223. Le récap du direct dans l\'aperçu — d\'où il vient, ses clips, le plus vu ; et rien qui ne soit prouvé');
-  /* LE DÉCOR. Des chaînes inventées, une par règle. Huit clips par page au
-     banc (trente en vrai) :
-       nyx    — partie il y a quatre heures : 1 h 20 de Discussions puis
-                Elden Ring, d'après les chapitres du VOD ; six clips pendant le
-                direct, deux d'avant — très vus, et pourtant hors du récap ;
-       orion  — dix clips pendant le direct : la page est pleine, « 8+ » ;
-       pavot  — des clips d'avant le direct seulement : « Aucun clip » ;
-       rune   — un direct de trente heures : les vingt-quatre dernières
-                seulement, et le récap le dit. */
+  titre('223. L\'aperçu sans récap (4.32.0.1) — ni « Depuis … », ni clips du direct, ni demande à Twitch');
+  /* Le récap de la 4.29.0 — « Depuis 18:02 : 1h20 Discussions → 2h40 Elden
+     Ring », puis « 6 clips · le plus vu : … » — est retiré à la demande :
+     « superflu ». Ce qui reste de l'aperçu ne bouge pas : la frise, qu'il
+     lisait, est toujours là, dernière du corps. nyx est partie il y a
+     quatre heures — Discussions, puis Elden Ring, d'après ses chapitres —,
+     et des clips du direct existent : rien ne les demande plus. */
   const M = 60_000, H = 60 * M;
-  const ouvrir = async (options = null) => {
-    const init = options ? `localStorage.setItem('tse:options', ${JSON.stringify(JSON.stringify(options))});` : null;
-    const p = await freshTwitch(undefined, [], '/', init);
-    await p.evaluate(([M, H]) => {
-      const iso = (t) => new Date(t).toISOString();
-      const now = Date.now();
-      const mk = (depuis, jeu, v) => ({ id: 'x', createdAt: iso(now - depuis), viewers: v, game: jeu, tags: [] });
-      window.__fx = { nyx: mk(4 * H, 'Elden Ring', 5000), orion: mk(3 * H, 'VALORANT', 3000),
-                      pavot: mk(2 * H, 'Minecraft', 800), rune: mk(30 * H, 'Just Chatting', 2000) };
-      window.__vod = { nyx: { createdAt: iso(now - 4 * H), chapitres: [{ pos: 0, jeu: 'Just Chatting' }, { pos: 80 * M, jeu: 'Elden Ring' }] } };
-      const c = (titre, vues, ilYaMin) => ({ titre, vues, ilYaMin });
-      window.__recapClips = {
-        // Six pendant le direct ; trois d'avant, dont deux de plus de vingt-quatre heures.
-        nyx: [c('Le boss en une vie', 8400, 30), c('Le chat traverse', 1200, 60), c('Raté de peu', 900, 90),
-              c('Bonjour à tous', 300, 200), c('La pause', 120, 150), c('Le cri', 2500, 100),
-              c('Hier soir', 99000, 300), c('La veille', 50000, 26 * 60), c('Avant', 40000, 30 * 60)],
-        orion: Array.from({ length: 10 }, (_, i) => c('Clip ' + i, 800 - 10 * i, 10 + i * 10)),
-        pavot: [c('Avant', 4000, 500), c('Bien avant', 3000, 700)],
-        rune: [c('Ce matin', 700, 60), c('Cette nuit', 1500, 600), c('Avant-hier', 9000, 26 * 60)],
-        // Dix clips d'avant le direct, dans les vingt-quatre heures : une page pleine, et rien de lui.
-        sel: Array.from({ length: 10 }, (_, i) => c('Avant ' + i, 500 - i, 200 + i * 20)),
-      };
-      window.__fx.sel = mk(H, 'Minecraft', 600);
-      for (const l of ['nyx', 'orion', 'pavot', 'rune', 'sel']) window.__addCard(l, window.__fx[l].game, String(window.__fx[l].viewers));
-    }, [M, H]);
-    await attendre(p, () => document.querySelectorAll('[data-tse-viewers]').length === 5);
-    return p;
-  };
-  const survoler = async (p, login, lignes = 2) => {
-    await hoverLogin(p, login);
-    await attendre(p, () => !!document.querySelector('.tse-preview[data-tse-visible="true"]'), 6000);
-    await attendre(p, (n) => document.querySelectorAll('.tse-preview__recap-ligne').length >= n, 6000, lignes);
-    return p.evaluate(() => [...document.querySelectorAll('.tse-preview__recap-ligne')].map((x) => x.textContent));
-  };
-  const relacher = async (p, login) => {
-    await p.evaluate((l) => {
-      [...document.querySelectorAll('.side-nav-card')].find((c) => c.dataset.tseLogin === l)
-        ?.dispatchEvent(new MouseEvent('mouseleave', { bubbles: false }));
-    }, login);
-    await attendre(p, () => !document.querySelector('.tse-preview[data-tse-visible="true"]'), 3000);
-  };
-  /* L'heure du début, comme le récap l'écrit : précédée du jour quand le
-     direct a commencé avant minuit — le banc qui passe minuit le voit. */
-  const heure = (p, l) => p.evaluate((x) => {
-    const d = new Date(window.__fx[x].createdAt), minuit = new Date();
-    minuit.setHours(0, 0, 0, 0);
-    const h = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-    return d >= minuit ? h : `${d.toLocaleDateString('fr-FR', { weekday: 'short' })} ${h}`;
-  }, l);
-  const tousAppels = (p) => p.evaluate(() => window.__calls.filter((c) => (c.names || []).includes('TseRecapClips')).length);
-
-  const pa = await ouvrir();
-  // a) Le cas qui motive tout. La frise vient du VOD, qui arrive après l'ouverture
-  //    — et APRÈS les clips : le récap déjà posé doit suivre la frise.
-  await pa.evaluate(() => { window.__retardOp = { TseVodChapters: 900 }; });
-  await hoverLogin(pa, 'nyx');
-  await attendre(pa, () => /→/.test(document.querySelector('.tse-preview__recap-ligne')?.textContent || '')
-    && document.querySelectorAll('.tse-preview__recap-ligne').length === 2, 8000);
-  const a = await pa.evaluate(() => [...document.querySelectorAll('.tse-preview__recap-ligne')].map((x) => x.textContent));
-  const hNyx = await heure(pa, 'nyx');
-  ok('a) « Depuis 18:02 : 1h20 Discussions → 2h40 Elden Ring », dans l\'ordre du temps, d\'après la frise',
-     nz(a[0]) === nz(`Depuis ${hNyx} : 1h20 Discussions → 2h40 Elden Ring`), JSON.stringify({ a, hNyx }));
-  ok('…puis les clips du DIRECT et le plus vu : ceux d\'avant, plus vus, n\'y entrent pas',
-     nz(a[1]) === '6 clips · le plus vu : « Le boss en une vie » (8,4 k vues)', JSON.stringify(a));
-  const ordre = await pa.evaluate(() => {
+  const p = await freshTwitch(undefined, [], '/');
+  await p.evaluate(([M, H]) => {
+    const iso = (t) => new Date(t).toISOString();
+    const now = Date.now();
+    window.__fx = { nyx: { id: 'x', createdAt: iso(now - 4 * H), viewers: 5000, game: 'Elden Ring', tags: [] } };
+    window.__vod = { nyx: { createdAt: iso(now - 4 * H), chapitres: [{ pos: 0, jeu: 'Just Chatting' }, { pos: 80 * M, jeu: 'Elden Ring' }] } };
+    window.__addCard('nyx', 'Elden Ring', '5000');
+  }, [M, H]);
+  await attendre(p, () => document.querySelectorAll('[data-tse-viewers]').length === 1);
+  await hoverLogin(p, 'nyx');
+  await attendre(p, () => !!document.querySelector('.tse-preview[data-tse-visible="true"] .tse-preview__frise'), 8000);
+  await wait(p, 1500);
+  const r = await p.evaluate(() => {
     const corps = document.querySelector('.tse-preview__body');
-    const r = corps.querySelector('.tse-preview__recap'), f = corps.querySelector('.tse-preview__frise');
-    return !!r && !!f && !!(r.compareDocumentPosition(f) & Node.DOCUMENT_POSITION_FOLLOWING);
+    return { recap: document.querySelectorAll('.tse-preview__recap, .tse-preview__recap-ligne').length,
+             depuis: /Depuis \d/.test(corps.textContent), dernier: corps.lastElementChild?.className.split(' ')[0] || null,
+             appels: window.__calls.filter((c) => (c.names || []).some((n) => /Recap/.test(n))).length,
+             rapport: 'recap' in (window.tse.panneau.rapport().reseau || {}) };
   });
-  ok('…juste avant la frise', ordre, String(ordre));
-  await relacher(pa, 'nyx');
-  await pa.evaluate(() => { window.__retardOp = {}; });
-
-  // b) Une page pleine ne dit pas combien il y en a.
-  const b = await survoler(pa, 'orion');
-  await relacher(pa, 'orion');
-  // c) Des clips d'avant le direct seulement.
-  const c = await survoler(pa, 'pavot');
-  await relacher(pa, 'pavot');
-  // d) Un direct de trente heures : les vingt-quatre dernières.
-  const d = await survoler(pa, 'rune');
-  await relacher(pa, 'rune');
-  const jRune = await pa.evaluate(() => {
-    const t = new Date(window.__fx.rune.createdAt);
-    return `${t.toLocaleDateString('fr-FR', { weekday: 'short' })} ${t.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`;
-  });
-  // Une page pleine sans un clip du direct ne dit rien de lui.
-  await hoverLogin(pa, 'sel');
-  await attendre(pa, () => !!document.querySelector('.tse-preview[data-tse-visible="true"] .tse-preview__recap'), 6000);
-  await wait(pa, 1_000);
-  const sel = await pa.evaluate(() => [...document.querySelectorAll('.tse-preview__recap-ligne')].map((x) => x.textContent));
-  await relacher(pa, 'sel');
-  ok('b) une page pleine se dit « 8+ » (trente en vrai), et le plus vu s\'y nomme : elle est rangée par vues, et le direct y est',
-     nz(b[1]) === '8+ clips · le plus vu : « Clip 0 » (800 vues)', JSON.stringify(b));
-  ok('c) des clips d\'avant le direct seulement : « Aucun clip »', c[1] === 'Aucun clip', JSON.stringify(c));
-  ok('d) un direct de trente heures : parti un autre jour, il le dit — et les clips des vingt-quatre dernières heures, en le disant',
-     nz(d[0]) === nz(`Depuis ${jRune}`) && nz(d[1]) === '2 clips en 24 h · le plus vu : « Cette nuit » (1,5 k vues)',
-     JSON.stringify({ d, jRune }));
-  ok('…et une page pleine sans un clip du direct ne dit rien de lui : ni compte, ni « Aucun clip »',
-     sel.length === 1, JSON.stringify(sel));
-
-  // e) Une demande par direct et par dix minutes : survolé de nouveau, nyx ne redemande rien.
-  const avant = await tousAppels(pa);
-  await survoler(pa, 'nyx');
-  await wait(pa, 500);
-  const apres = await tousAppels(pa);
-  // Les chapitres déjà connus, la frise est là dès le premier rendu : le récap la précède encore.
-  const ordre2 = await pa.evaluate(() => {
-    const corps = document.querySelector('.tse-preview__body');
-    const r = corps.querySelector('.tse-preview__recap'), f = corps.querySelector('.tse-preview__frise');
-    return !!r && !!f && !!(r.compareDocumentPosition(f) & Node.DOCUMENT_POSITION_FOLLOWING);
-  });
-  await relacher(pa, 'nyx');
-  const rap = await pa.evaluate(() => window.tse.panneau.rapport().reseau.recap);
-  ok('…et, la frise déjà là au premier rendu, le récap juste avant elle', ordre2, String(ordre2));
-  ok('e) une demande par direct et par dix minutes : survolé de nouveau, rien ne repart',
-     avant === 5 && apres === 5 && rap.servis === 5 && rap.champs === true && rap.forme === 0, JSON.stringify({ avant, apres, rap }));
-  await pa.close();
-
-  /* f) LE SCHÉMA REFUSE `title` ET `viewCount` — ce qu'on n'a pas pu vérifier
-     d'ici. Les deux champs se retirent, le compte reste, et rien n'est nommé. */
-  const pf = await ouvrir();
-  await pf.evaluate(() => { window.__recapSansChamps = true; });
-  await survoler(pf, 'nyx', 1);
-  await relacher(pf, 'nyx');
-  const f = await survoler(pf, 'orion');
-  const rapF = await pf.evaluate(() => window.tse.panneau.rapport().reseau.recap);
-  ok('f) title et viewCount refusés par le schéma : retirés de la demande, le compte reste, et aucun « plus vu » n\'est dit',
-     f[1] === '8+ clips' && rapF.champs === false && rapF.champsRefuses === 1, JSON.stringify({ f, rapF }));
-  await pf.close();
-
-  /* g) LA PREMIÈRE FORME REFUSÉE PAR LE SERVEUR : la seconde, rangée par date.
-     Une page qui atteint l'avant du direct les contient tous — six, exact,
-     bien que pleine. */
-  const pg = await ouvrir();
-  await pg.evaluate(() => { window.__recapRefus = true; });
-  await survoler(pg, 'pavot', 1);
-  await relacher(pg, 'pavot');
-  const g = await survoler(pg, 'nyx');
-  await relacher(pg, 'nyx');
-  // …et une page pleine du direct seulement, rangée par date : un minimum, et pas de « plus vu ».
-  const g2 = await survoler(pg, 'orion');
-  const rapG = await pg.evaluate(() => window.tse.panneau.rapport().reseau.recap);
-  ok('g) la première forme refusée : la seconde, par date — une page pleine qui atteint l\'avant du direct compte juste',
-     nz(g[1]) === '6 clips · le plus vu : « Le boss en une vie » (8,4 k vues)' && rapG.forme === 1 && rapG.refus === 1,
-     JSON.stringify({ g, rapG }));
-  ok('…mais une page pleine du direct seul, rangée par date, n\'a pas tout vu : « 8+ », et aucun « plus vu »',
-     g2[1] === '8+ clips', JSON.stringify(g2));
-  await pg.close();
-
-  /* i) L'ORDRE SE CONSTATE. Une première forme qui ne rendrait pas les clips
-     par vues décroissantes : sur une page pleine, rien ne prouve que le plus
-     vu y soit — on ne le nomme pas. */
-  const pi = await ouvrir();
-  await pi.evaluate(() => { window.__recapDesordre = true; });
-  const i = await survoler(pi, 'orion');
-  ok('i) une page pleine qui n\'est pas rangée par vues : le compte, sans « plus vu »', i[1] === '8+ clips', JSON.stringify(i));
-  await pi.close();
-
-  // h) Le récap retiré dans « Réglages » : ni ligne, ni demande.
-  const ph = await ouvrir({ badges: ['recap'] });
-  await hoverLogin(ph, 'nyx');
-  await attendre(ph, () => !!document.querySelector('.tse-preview[data-tse-visible="true"]'), 6000);
-  await wait(ph, 1500);
-  const h = { dom: await ph.evaluate(() => document.querySelectorAll('.tse-preview__recap').length), appels: await tousAppels(ph) };
-  ok('h) le récap retiré dans « Réglages » : ni ligne, ni demande à Twitch', h.dom === 0 && h.appels === 0, JSON.stringify(h));
-  await ph.close();
+  ok('l\'aperçu d\'un direct à deux catégories : sa frise, dernière du corps, et ni « Depuis … » ni ligne de clips',
+     r.recap === 0 && !r.depuis && r.dernier === 'tse-preview__frise', JSON.stringify(r));
+  ok('…ni demande de ses clips à Twitch, ni ligne au rapport', r.appels === 0 && !r.rapport, JSON.stringify(r));
+  await p.close();
 }
 
 {
@@ -41435,7 +41414,9 @@ const lireImages = (page) => page.evaluate(() => {
       autre: h2.getAttribute('data-tse-masquable'), autreApres: getComputedStyle(h2, '::after').content,
       contenu: getComputedStyle(corps).display, titreVu: h.getClientRects().length > 0,
       grille: getComputedStyle(tour).display, colonnes: getComputedStyle(tour).gridTemplateColumns.split(/\s+/).filter((x) => /px$/.test(x)).length,
-      cartes: corps.querySelectorAll('article').length, noeuds: document.querySelector('main').querySelectorAll('*').length,
+      // Les nœuds de TWITCH : nos rayons et la bannière, qui vivent dans <main>, ne comptent pas.
+      cartes: corps.querySelectorAll('article').length,
+      noeuds: [...document.querySelector('main').querySelectorAll('*')].filter((n) => !n.closest('#tse-accueil, #tse-accueil-heros')).length,
       givre: vig('givre'), gravier: vig('gravier'), falun: vig('falun'),
       retenus: JSON.parse(localStorage.getItem('tse:rayonsMasques') || '[]'),
       rapport: window.tse.accueil.rapport().ranger,

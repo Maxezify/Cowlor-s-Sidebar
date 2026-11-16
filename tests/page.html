@@ -172,7 +172,6 @@ window.__calls = [];       // journal : une entrée par POST { n: nb d'opératio
 window.__vod = {};         // chapitres de VOD par login (cf. TseVodChapters)
 window.__vodRecent = {};   // archive récente par login (cf. TseVodRecent, le repli)
 window.__clips = {};       // clips par login (cf. TseClips, la troisième porte)
-window.__recapClips = {};  // clips du direct par login, pour le récap (cf. TseRecapClips, 4.29.0)
 window.__absClips = {};    // clips de la semaine par login, pour l'absence (cf. TseAbsenceClips, 4.30.0)
 window.__tagTop = {};      // classement par tag de langue (cf. TseTagTop)
 /* L'AGENDA (4.25.0) — ce que la page Programme de Twitch servirait, chaîne par
@@ -1071,31 +1070,6 @@ window.fetch = async (url, opt) => {
          — absent → aucun clip. Le défaut est donc « la chaîne n'en a pas »,
            et non un refus : c'est le cas ordinaire, et les scénarios qui ne
            s'occupent pas des clips gardent l'affichage d'avant. */
-    /* TseRecapClips (4.29.0) : les clips du direct, pour le récap de l'aperçu.
-       `__recapClips[login]` : [{ titre, vues, ilYaMin }]. La forme décide de
-       l'ordre, comme chez Twitch : LAST_DAY rend les vingt-quatre dernières
-       heures par vues décroissantes, CREATED_AT_DESC toutes, des plus
-       récentes aux plus anciennes. `__recapSansChamps` : le schéma refuse
-       title et viewCount, et le dit ; `__recapRefus` : la forme LAST_DAY
-       échoue côté serveur. */
-    if (o.operationName === 'TseRecapClips') {
-      const q = o.query || '';
-      if (window.__recapSansChamps && /\b(?:title|viewCount)\b/.test(q)) {
-        return { errors: [{ message: 'Cannot query field "viewCount" on type "Clip".' }] };
-      }
-      if (window.__recapRefus && /LAST_DAY/.test(q)) return { errors: [{ message: 'service error' }] };
-      const n = o.variables?.n ?? 30;
-      const maintenant = Date.now();
-      let c = ((window.__recapClips || {})[o.variables?.login] || []).map(x => ({ ...x, t: maintenant - x.ilYaMin * 60_000 }));
-      // `__recapDesordre` : la première forme rendue dans un autre ordre que celui des vues.
-      if (/LAST_DAY/.test(q)) c = c.filter(x => maintenant - x.t <= 86_400_000)
-        .sort(window.__recapDesordre ? (a, b) => a.t - b.t : (a, b) => b.vues - a.vues);
-      else c = c.sort((a, b) => b.t - a.t);
-      const champs = /\btitle\b/.test(q);
-      return { data: { user: { clips: { edges: c.slice(0, n).map(x => ({ node: {
-        id: 'rc-' + x.ilYaMin + '-' + x.vues, createdAt: new Date(x.t).toISOString(),
-        ...(champs ? { title: x.titre, viewCount: x.vues } : {}) } })) } } } };
-    }
     /* TseAbsenceClips (4.30.0) : les clips de la semaine, pour « Pendant
        votre absence ». `__absClips[login]` : [{ titre, vues, ilYaH }], datés
        en heures avant maintenant. LAST_WEEK rend les sept derniers jours par

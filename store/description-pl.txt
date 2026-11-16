@@ -43,7 +43,6 @@ Wchodzisz w połowie ośmiogodzinnego streama. Co było wcześniej? Podgląd Ci 
 - ★ W SKALI ★ Szerokość każdego pasma to prawdziwy czas. Jedno spojrzenie i wiesz, gdzie poszedł wieczór.
 - ★ NAWET BEZ POWTÓRKI ★ Kanał bez archiwum? Rozszerzenie odtwarza drogę z klipów — i MÓWI o tym.
 - ★ PRZYZNAJE SIĘ DO NIEWIEDZY ★ Gdy dokładna godzina zmiany nie jest znana, kolor przechodzi płynnie zamiast ciąć ostro, a czas nosi „~”. Nigdy zmyślona liczba.
-- ★ PODSUMOWANIE ★ W jednej linii, przez co przeszła transmisja: „Od 18:02: 1h20 Just Chatting → 2h40 Elden Ring”. W drugiej, co zachowały z niej klipy: „6 klipów · najczęściej oglądany: „…” (8,4 tys. wyśw.)”. Jedno zapytanie do Twitcha na najechaną transmisję, najwyżej co dziesięć minut.
 
 _______________________________
 
@@ -199,7 +198,7 @@ _______________________________
 ➤ 🏠 STRONA GŁÓWNA TWITCHA PO TWOJEMU
 Na stronie głównej Twitcha rozszerzenie umieszcza własne rzędy nad rzędami Twitcha, w tej samej kolumnie i wyrównane z nimi.
 
-- ★ TWÓJ KANAŁ NR 1 NA GÓRZE ★ Zamiast karuzeli Twitcha: obserwowany kanał na żywo, który oglądasz najczęściej. Na całą szerokość: najpierw jego obraz, potem transmisja, bez dźwięku i bez reklam, jak podgląd po najechaniu; a pod tekstem jej kolory, też na żywo. Żaden z kanałów, które oglądasz, nie nadaje? Karuzela wraca. Wolisz karuzelę albo nic? To kwestia ustawienia.
+- ★ TWÓJ KANAŁ NR 1 NA GÓRZE ★ Zamiast karuzeli Twitcha: obserwowany kanał na żywo, który oglądasz najczęściej — a jeśli takiego nie ma, ten z największą liczbą widzów. Na całą szerokość: najpierw jego obraz, potem transmisja, bez dźwięku i bez reklam, jak podgląd po najechaniu; a pod tekstem jej kolory, też na żywo. Żaden z obserwowanych kanałów nie nadaje? Karuzela wraca. Wolisz karuzelę albo nic? To kwestia ustawienia.
 - ★ NAJPIERW OBSERWOWANE KANAŁY ★ Rząd twoich kanałów na żywo, ułożony od tych, które oglądasz najczęściej — bez żadnego dodatkowego zapytania: to te, które pasek i tak śledzi.
 - ★ TOP 10 W TWOIM JĘZYKU ★ Pierwsze dziesięć miejsc dokładnego rankingu „Najpopularniejsze kanały”, w języku twojego Twitcha albo we wszystkich językach, dużymi cyframi, z tym, co się zmieniło w ciągu trzydziestu minut: zyskane miejsca, stracone miejsca, nowe kanały. Liczone tylko wtedy, gdy strona główna jest na ekranie.
 - ★ ZAPLANOWANE TRANSMISJE ★ To, co obserwowane kanały zaplanowały na dziś i jutro, z czasem do rozpoczęcia. „Przypomnij mi”: powiadomienie w otwartych kartach Twitcha, gdy kanał zacznie transmisję — bez powiadomień systemowych i bez uprawnień. Dla oglądanego kanału, który niczego nie zaplanował: godzina, o której zaczynały się jego ostatnie transmisje, jeśli się powtarza — to, co robił, a nie to, co zrobi.

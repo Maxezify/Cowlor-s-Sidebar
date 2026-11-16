@@ -43,7 +43,6 @@ Chega a meio de uma transmissão de oito horas. O que aconteceu antes? A pré-vi
 - ★ À ESCALA ★ A largura de cada faixa é tempo real. Um olhar chega para ver por onde foi a noite.
 - ★ MESMO SEM GRAVAÇÃO ★ Um canal que não arquiva? A extensão reconstitui o percurso a partir dos clipes, e DI-LO.
 - ★ ADMITE O QUE DESCONHECE ★ Quando a hora exata de uma mudança não é conhecida, a cor esbate-se em vez de cortar a direito, e a duração leva um "~". Nunca um número inventado.
-- ★ O RESUMO ★ Numa linha, por onde a transmissão passou: «Desde 18:02: 1h20 Just Chatting → 2h40 Elden Ring». Noutra, o que os clipes guardaram dela: «6 clipes · o mais visto: «…» (8,4 mil visualizações)». Um pedido ao Twitch por transmissão sobrevoada, no máximo a cada dez minutos.
 
 _______________________________
 
@@ -199,7 +198,7 @@ _______________________________
 ➤ 🏠 A PÁGINA INICIAL DA TWITCH À TUA MANEIRA
 Na página inicial da Twitch, a extensão coloca as suas próprias filas acima das da Twitch, na mesma coluna e alinhadas com elas.
 
-- ★ O TEU CANAL N.º 1 NO TOPO ★ Em vez do carrossel da Twitch: o canal seguido em direto que mais vês. Em toda a largura: primeiro a imagem, depois a transmissão, sem som e sem anúncios, como a pré-visualização ao passar o rato; e, sob o texto, as cores dela, também em direto. Nenhum dos canais que vês está em direto? O carrossel volta. Preferes o carrossel, ou nada? É uma definição.
+- ★ O TEU CANAL N.º 1 NO TOPO ★ Em vez do carrossel da Twitch: o canal seguido em direto que mais vês — ou, na falta dele, o que tem mais espectadores. Em toda a largura: primeiro a imagem, depois a transmissão, sem som e sem anúncios, como a pré-visualização ao passar o rato; e, sob o texto, as cores dela, também em direto. Nenhum dos canais que segues está em direto? O carrossel volta. Preferes o carrossel, ou nada? É uma definição.
 - ★ PRIMEIRO, OS TEUS CANAIS SEGUIDOS ★ Uma fila com os teus canais em direto, pela ordem dos que mais vês — sem nenhum pedido a mais: são os que a barra já acompanha.
 - ★ O TOP 10 DO TEU IDIOMA ★ Os dez primeiros lugares da classificação exata do Top Canais, no idioma da tua Twitch ou em todos os idiomas, em números grandes, com o que mudou em trinta minutos: lugares ganhos, lugares perdidos, recém-chegados. Calculado só enquanto a página inicial está no ecrã.
 - ★ AS TUAS TRANSMISSÕES PROGRAMADAS ★ O que os canais que segues programaram para hoje e amanhã, com o tempo que falta. «Lembrete»: um aviso nos teus separadores abertos do Twitch quando o canal entra em direto, sem notificação do sistema nem permissão. Para um canal que vês e que não programou nada: a hora a que começaram as suas últimas transmissões, quando se repete — o que fez, não o que fará.

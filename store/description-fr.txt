@@ -43,7 +43,6 @@ Vous arrivez au milieu d'un stream de huit heures. Qu'est-ce qui s'est passé av
 - ★ À L'ÉCHELLE ★ La largeur de chaque bande, c'est du temps réel. Un coup d'œil suffit pour voir où est passée la soirée.
 - ★ MÊME SANS REPLAY ★ Une chaîne qui n'archive pas ? L'extension reconstitue le parcours à partir des clips, et le DIT.
 - ★ ELLE AVOUE CE QU'ELLE IGNORE ★ Quand l'heure exacte d'un changement n'est pas connue, la couleur se fond au lieu de trancher net, et la durée porte un « ~ ». Jamais un chiffre inventé.
-- ★ LE RÉCAP ★ En une ligne, d'où vient le direct : « Depuis 18:02 : 1h20 Discussions → 2h40 Elden Ring ». En une autre, ce que ses clips en ont gardé : « 6 clips · le plus vu : « … » (8,4 k vues) ». Une demande à Twitch par direct survolé, toutes les dix minutes au plus.
 
 _______________________________
 
@@ -199,7 +198,7 @@ _______________________________
 ➤ 🏠 L'ACCUEIL DE TWITCH, À VOTRE IMAGE
 Sur la page d'accueil de Twitch, l'extension pose ses propres rayons au-dessus de ceux de Twitch, dans la même colonne et alignés sur eux.
 
-- ★ VOTRE CHAÎNE N°1, EN TÊTE ★ À la place du carrousel de Twitch : celle de vos chaînes suivies en direct que vous regardez le plus. Sur toute la largeur : son image d'abord, puis son direct, muet et sans publicité, comme l'aperçu au survol ; et sous le texte, ses couleurs, en direct elles aussi. Aucune de celles que vous regardez n'est en direct ? Le carrousel revient. Vous préférez le carrousel, ou rien du tout ? C'est un réglage.
+- ★ VOTRE CHAÎNE N°1, EN TÊTE ★ À la place du carrousel de Twitch : celle de vos chaînes suivies en direct que vous regardez le plus — à défaut, celle qui a le plus de spectateurs. Sur toute la largeur : son image d'abord, puis son direct, muet et sans publicité, comme l'aperçu au survol ; et sous le texte, ses couleurs, en direct elles aussi. Aucune de vos chaînes suivies n'est en direct ? Le carrousel revient. Vous préférez le carrousel, ou rien du tout ? C'est un réglage.
 - ★ VOS CHAÎNES SUIVIES D'ABORD ★ Un rayon de vos chaînes en direct, dans l'ordre de celles que vous regardez le plus — sans une requête de plus : ce sont celles que la barre suit déjà.
 - ★ LE TOP 10 DE VOTRE LANGUE ★ Les dix premières places du classement exact de Top Chaînes, dans la langue de votre Twitch ou toutes langues confondues, en grands chiffres, avec ce qui a bougé en trente minutes : places gagnées, places perdues, nouvelles venues. Calculé seulement pendant que l'accueil est à l'écran.
 - ★ VOS RENDEZ-VOUS ★ Ce que vos chaînes suivies ont programmé aujourd'hui et demain, avec le temps qu'il reste. « Me prévenir » : une alerte dans vos onglets Twitch ouverts quand la chaîne passe en direct, sans notification du système ni permission. Pour une chaîne que vous regardez et qui n'a rien programmé : l'heure à laquelle ses derniers directs ont commencé, quand elle se répète — ce qu'elle a fait, pas ce qu'elle fera.

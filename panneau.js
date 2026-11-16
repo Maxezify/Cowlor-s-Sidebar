@@ -1300,7 +1300,7 @@ const LIBELLE_MEMBRE = {
   exsub: 'guideBadgeExsub',     sponsor: 'guideBadgeSponsor',
   hype: 'guideBadgeHype',       discount: 'guideBadgeDiscount',
   switch: 'guideBadgeSwitch',   reprise: 'guideBadgeReprise',
-  subathon: 'guideBadgeSubathon',  recap: 'guideBadgeRecap',
+  subathon: 'guideBadgeSubathon',
   viewers: 'optTriViewers',     subs: 'optTriSubs',
   popular: 'optTriPopular',     uptime: 'optTriUptime',
   alpha: 'optTriAlpha',         costream_tri: 'optTriCostream',

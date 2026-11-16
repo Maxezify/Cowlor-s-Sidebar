@@ -43,7 +43,6 @@ Sie kommen mitten in einen achtstündigen Stream. Was ist vorher passiert? Die V
 - ★ MASSSTABSGETREU ★ Die Breite jedes Bandes ist echte Zeit. Ein Blick genügt, um zu sehen, wo der Abend geblieben ist.
 - ★ AUCH OHNE AUFZEICHNUNG ★ Ein Kanal ohne Archiv? Die Erweiterung rekonstruiert den Weg aus den Clips — und SAGT es.
 - ★ SIE GIBT ZU, WAS SIE NICHT WEISS ★ Ist die genaue Uhrzeit eines Wechsels unbekannt, verläuft die Farbe weich statt scharf zu schneiden, und die Dauer trägt ein „~“. Niemals eine erfundene Zahl.
-- ★ DIE ZUSAMMENFASSUNG ★ In einer Zeile, wo der Stream schon war: „Seit 18:02: 1h20 Just Chatting → 2h40 Elden Ring“. In einer zweiten, was seine Clips davon festgehalten haben: „6 Clips · meistgesehen: „…“ (8.400 Aufrufe)“. Eine Anfrage an Twitch pro überfahrenem Stream, höchstens alle zehn Minuten.
 
 _______________________________
 
@@ -199,7 +198,7 @@ _______________________________
 ➤ 🏠 DIE STARTSEITE VON TWITCH, NACH DEINEM GESCHMACK
 Auf der Startseite von Twitch setzt die Erweiterung ihre eigenen Reihen über die von Twitch, in dieselbe Spalte und bündig mit ihnen.
 
-- ★ DEIN KANAL NR. 1, GANZ OBEN ★ Anstelle des Karussells von Twitch: der gefolgte Live-Kanal, den du am meisten schaust. Über die ganze Breite: erst sein Bild, dann sein Stream, stumm und ohne Werbung, wie die Vorschau beim Überfahren; und unter dem Text seine Farben, ebenfalls live. Keiner der Kanäle, die du schaust, ist live? Dann kommt das Karussell zurück. Lieber das Karussell oder gar nichts? Das ist eine Einstellung.
+- ★ DEIN KANAL NR. 1, GANZ OBEN ★ Anstelle des Karussells von Twitch: der gefolgte Live-Kanal, den du am meisten schaust – sonst der mit den meisten Zuschauern. Über die ganze Breite: erst sein Bild, dann sein Stream, stumm und ohne Werbung, wie die Vorschau beim Überfahren; und unter dem Text seine Farben, ebenfalls live. Keiner deiner gefolgten Kanäle ist live? Dann kommt das Karussell zurück. Lieber das Karussell oder gar nichts? Das ist eine Einstellung.
 - ★ DEINE GEFOLGTEN KANÄLE ZUERST ★ Eine Reihe deiner Live-Kanäle, geordnet nach denen, die du am meisten schaust – ohne zusätzliche Anfrage: Es sind die, denen die Seitenleiste ohnehin folgt.
 - ★ DIE TOP 10 DEINER SPRACHE ★ Die ersten zehn Plätze der exakten Rangliste von Top-Kanäle, in der Sprache deines Twitch oder über alle Sprachen, in großen Ziffern, mit dem, was sich in dreißig Minuten bewegt hat: gewonnene Plätze, verlorene Plätze, Neueinsteiger. Nur berechnet, solange die Startseite angezeigt wird.
 - ★ DEINE GEPLANTEN STREAMS ★ Was deine gefolgten Kanäle für heute und morgen geplant haben, mit der verbleibenden Zeit. „Erinnern“: ein Hinweis in deinen offenen Twitch-Tabs, sobald der Kanal live geht – ohne Systembenachrichtigung und ohne Berechtigung. Für einen Kanal, den du schaust und der nichts geplant hat: wann seine letzten Streams begonnen haben, wenn es sich wiederholt – was er getan hat, nicht was er tun wird.
