@@ -7320,6 +7320,15 @@ titre('70. Panneau — la page rendue, mesurée');
                         incompletsDeSuite: 0, prochainDansMs: 690 * 60_000, prevu: false,
                         dernier: { debut: 0, chaines: 184, pages: 4, illisibles: 1, tours: 9, complet: true,
                                    arret: 'fin de liste', ajoutees: 84, retirees: 2, dureeMs: 31_400 } },
+      /* L'ACCUEIL (4.26.0.5, imprimé désormais) : un héros refusé en tête du
+         défileur, posé dans l'enveloppe ; le voile levé par la réponse. */
+      accueil: { poses: 1, reposes: 0, ancre: 'contenu', reveils: 12, synchrones: 9,
+                 chrono: { arrivee: 420, defileur: 2390, pose: 2391, heros: 2391, voile: 1180, vue: 2392, carrousel: 3100 },
+                 voile: { poses: 1, levees: { donnees: 1 }, dureeMs: 760, actif: false },
+                 amorce: { demandees: 184, faites: 1, chaines: 184, decidable: true },
+                 heros: { montre: true, place: 'enveloppe', vue: true, attentes: 0, precharges: 1,
+                          rejets: [{ place: 'defileur', raison: 'vide', largeur: 0, plein: 1680, parent: 'flex row' }] },
+                 peintureMaxMs: 3.2, peinturesMs: 41.7 },
       global: { enabled: false, complete: false },
       journaux: { verrous: [], cycles: [{ t: 12, evt: 'depart', detail: 'boot' }], apercu: [] },
       reseau: { pauseGqlMs: 12000 },
@@ -7773,6 +7782,16 @@ titre('70. Panneau — la page rendue, mesurée');
      && ligneSuivies('relevé de cette page / this page\'s sweep', '184 chaîne(s) · 4 page(s) · complet · fin de liste · 31 s')
      && ligneSuivies('ajoutées · retirées / added · removed', '84 · 2') && ligneSuivies('lots illisibles / unreadable batches', '1'),
      JSON.stringify(blocSuivies));
+  /* L'ACCUEIL, IMPRIMÉ (4.26.0.5). Le rapport en portait les données depuis
+     la 4.26.0, et le texte n'en disait rien : la 4.26.0.4 demandait la place
+     du héros et ses refus, qu'aucun rapport ne pouvait montrer. Un refus sur
+     une ligne lisible, et non « [object Object] ». Mutants — le bloc retiré ;
+     les refus aplatis tels quels. */
+  const blocAccueil = (vue.texte.split('ACCUEIL / HOME PAGE')[1] || '').split('\n──')[0];
+  ok('…l\'accueil a son bloc : la place du héros et chaque refus en clair, le voile, l\'amorce, les temps',
+     /heros\.place\s+enveloppe/.test(blocAccueil) && /heros\.rejets\s+defileur:vide \(0\/1680 px, flex row\)/.test(blocAccueil)
+     && /voile\.levees\.donnees\s+1/.test(blocAccueil) && /chrono\.voile\s+1180/.test(blocAccueil)
+     && /amorce\.demandees\s+184/.test(blocAccueil) && !/object Object/.test(blocAccueil), JSON.stringify(blocAccueil));
   /* LES ÉCHÉANCES LUES, RAPPORTÉES AUX CHAÎNES DE L'ONGLET (4.21.0). Mutant —
      la ligne sans ce compte — : le rapport ne dit plus si les dates de Twitch
      se lisent. */
@@ -39599,12 +39618,12 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
   titre('218. « Depuis le début » — l\'archive du direct en cours, seulement quand on peut la voir, une demande par direct');
   const page = await ouvrirAccueil({ visites: { korbek: [1, 2], velmoria: [5] }, options: { accueilTop: false } });
   await plateauAccueil(page, { archives: { korbek: { id: '901' }, velmoria: { id: '902', verrouillee: true } } });
-  await attendre(page, () => !!document.querySelector('#tse-accueil-heros .tse-acc-heros .tse-acc-debut:not([hidden])')
+  await attendre(page, () => !!document.querySelector('#tse-accueil-heros .tse-acc-heros .tse-acc-debut:not([hidden]):not([data-tse-reserve])')
     && window.tse.accueil.rapport().debut.fermees === 1, 8000);
   const boutons = () => page.evaluate(() => Object.fromEntries(['korbek', 'velmoria', 'nyxaria'].map((l) => {
     const z = document.querySelector(`#tse-accueil-heros [data-tse-cle="${l}"], #tse-accueil [data-tse-cle="${l}"]`);
     const a = z && z.querySelector('.tse-acc-debut');
-    return [l, a && !a.hidden ? { href: a.getAttribute('href'), titre: a.title, texte: a.textContent } : null];
+    return [l, a && !a.hidden && !('tseReserve' in a.dataset) ? { href: a.getAttribute('href'), titre: a.title, texte: a.textContent } : null];
   })));
   const b1 = await boutons();
   ok('le héros : un bouton vers l\'archive du direct, à sa première seconde', b1.korbek && b1.korbek.href === '/videos/901?t=0s'
@@ -39618,6 +39637,21 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
      b1.velmoria === null && !(await page.evaluate(() => !!document.querySelector('#tse-accueil .tse-acc-debut--abonnes'))),
      JSON.stringify(b1.velmoria));
   ok('sans archive : pas de bouton', b1.nyxaria === null, JSON.stringify(b1.nyxaria));
+  /* SA PLACE, GARDÉE (4.26.0.5). Le bouton paraissait une seconde après la
+     carte, et la rangée grandissait d'une ligne : tout ce qui suit
+     descendait. Une carte sans bouton en garde la place — invisible, sans
+     adresse ni infobulle, donc ni cliquable ni atteignable au clavier —, et
+     toutes les cartes du rayon ont la même hauteur. Mutants — la place non
+     gardée ; la place gardée visible. */
+  const garde = await page.evaluate(() => {
+    const carte = (l) => document.querySelector(`#tse-accueil [data-tse-cle="${l}"]`);
+    const a = carte('nyxaria').querySelector('.tse-acc-debut');
+    return { reserve: 'tseReserve' in a.dataset, vis: getComputedStyle(a).visibility, href: a.getAttribute('href'),
+             titre: a.getAttribute('title'), haut: Math.round(a.getBoundingClientRect().height) };
+  });
+  ok('…mais sa place, gardée : invisible, sans adresse ni infobulle, à la hauteur d\'un bouton',
+     garde.reserve && garde.vis === 'hidden' && garde.href === null && garde.titre === null && garde.haut === 24,
+     JSON.stringify(garde));
   /* UNE DEMANDE PAR DIRECT, et les jetons dans la foulée : trois chaînes, un
      envoi de chaque, quelle que soit la cadence des peintures. Mutant — la
      garde de dix minutes ôtée pour une archive absente — : Nyxaria est
@@ -39630,19 +39664,35 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
   /* L'ARCHIVE QUI N'EXISTAIT PAS SE REDEMANDE, ELLE SEULE, au bout de dix
      minutes (deux secondes au banc) — et si elle a paru, le bouton aussi. */
   await page.evaluate(() => { window.__accueilArchives.nyxaria = { id: '903' }; });
-  await attendre(page, () => !!document.querySelector('#tse-accueil [data-tse-cle="nyxaria"] .tse-acc-debut:not([hidden])'), 6000);
+  await attendre(page, () => !!document.querySelector('#tse-accueil [data-tse-cle="nyxaria"] .tse-acc-debut:not([hidden]):not([data-tse-reserve])'), 6000);
   const d2 = await page.evaluate(() => window.__accueilDemandes || []);
   const b2 = await boutons();
   ok('l\'archive absente se redemande seule, et le bouton paraît quand elle existe', d2.length === 2
      && JSON.stringify(d2[1]) === '["nyxaria"]' && b2.nyxaria?.href === '/videos/903?t=0s', JSON.stringify({ d2, b: b2.nyxaria }));
+  const hauteurs = await page.evaluate(() => Object.fromEntries(['nyxaria', 'velmoria'].map((l) =>
+    [l, Math.round(document.querySelector(`#tse-accueil [data-tse-cle="${l}"]`).getBoundingClientRect().height)])));
+  ok('…et la carte qui l\'a reçu n\'a pas grandi : aussi haute que sa voisine, qui garde la place du sien',
+     hauteurs.nyxaria === hauteurs.velmoria && hauteurs.nyxaria > 0, JSON.stringify(hauteurs));
+  /* LA MÉMOIRE SE VIDE DE CE QUI N'EST PLUS À L'ÉCRAN (4.26.0.5). Une réponse
+     par direct affiché, gardée pour ne pas la redemander — mais rien n'en
+     sortait, et le Top 10 change toute la journée. Velmoria s'arrête : sa
+     réponse s'oublie une demi-heure plus tard (trois secondes au banc).
+     Mutant — rien n'est oublié. */
+  const connus0 = (await rapportAccueil(page)).debut.connus;
+  await page.evaluate(() => { window.__fx.velmoria = null; });
+  await attendre(page, () => !document.querySelector('#tse-accueil [data-tse-cle="velmoria"]'), 6000);
+  await attendre(page, (n) => window.tse.accueil.rapport().debut.connus < n, 8000, connus0);
+  const connus1 = (await rapportAccueil(page)).debut.connus;
+  ok('…et la réponse d\'une chaîne qui n\'est plus à l\'écran s\'oublie, celles des autres restent',
+     connus0 === 3 && connus1 === 2, JSON.stringify({ connus0, connus1 }));
   // Réglage coupé : les boutons disparaissent, et plus rien ne part.
   await page.evaluate(() => window.tse.options.poser('accueilDebut', false));
-  await attendre(page, () => !document.querySelector('#tse-accueil .tse-acc-debut:not([hidden])'), 3000);
+  await attendre(page, () => !document.querySelector('#tse-accueil .tse-acc-debut:not([hidden]):not([data-tse-reserve])'), 3000);
   const n3 = (await page.evaluate(() => window.__accueilDemandes || [])).length;
   await page.evaluate(() => { window.__fx.korbek.createdAt = new Date().toISOString(); });   // un autre direct
   await wait(page, 2500);
   ok('« Depuis le début » coupé : plus de bouton, plus de demande, même pour un direct neuf',
-     !(await page.evaluate(() => !!document.querySelector('#tse-accueil .tse-acc-debut:not([hidden])')))
+     !(await page.evaluate(() => !!document.querySelector('#tse-accueil .tse-acc-debut:not([hidden]):not([data-tse-reserve])')))
      && (await page.evaluate(() => (window.__accueilDemandes || []).length)) === n3);
   await page.close();
 
@@ -39652,12 +39702,12 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
      pour une archive ouverte. */
   const abo = await ouvrirAccueil({ visites: { velmoria: [1], korbek: [3] }, abos: ['velmoria'], options: { accueilTop: false } });
   await plateauAccueil(abo, { archives: { velmoria: { id: '902', verrouillee: true }, korbek: { id: '905', illisible: true } } });
-  await attendre(abo, () => !!document.querySelector('#tse-accueil-heros [data-tse-cle="velmoria"] .tse-acc-debut:not([hidden])')
+  await attendre(abo, () => !!document.querySelector('#tse-accueil-heros [data-tse-cle="velmoria"] .tse-acc-debut:not([hidden]):not([data-tse-reserve])')
     && window.tse.accueil.rapport().debut.illisibles === 1, 8000);
   const ba = await abo.evaluate(() => {
     const a = document.querySelector('#tse-accueil-heros [data-tse-cle="velmoria"] .tse-acc-debut');
     const k = document.querySelector('#tse-accueil [data-tse-cle="korbek"] .tse-acc-debut');
-    return { titre: a.title, href: a.getAttribute('href'), korbek: !!k && !k.hidden, d: window.tse.accueil.rapport().debut };
+    return { titre: a.title, href: a.getAttribute('href'), korbek: !!k && !k.hidden && !('tseReserve' in k.dataset), d: window.tse.accueil.rapport().debut };
   });
   ok('abonné connu à une chaîne qui réserve ses archives : le bouton paraît',
      ba.titre === 'Revoir le direct de Velmoria depuis sa première seconde' && ba.href === '/videos/902?t=0s', JSON.stringify(ba));
@@ -39672,7 +39722,7 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
     { id: String(100 + i), depuis: 10 + i, v: 100 + i, jeu: 'Minecraft', titre: 'Titre ' + i }]));
   const lots = await ouvrirAccueil({ options: { accueilTop: false, accueilTete: 'twitch' } });
   await plateauAccueil(lots, { suivies: vingt, archives: Object.fromEntries(Object.keys(vingt).map((l, i) => [l, { id: String(500 + i) }])) });
-  await attendre(lots, () => document.querySelectorAll('#tse-accueil .tse-acc-debut:not([hidden])').length === 20, 10_000);
+  await attendre(lots, () => document.querySelectorAll('#tse-accueil .tse-acc-debut:not([hidden]):not([data-tse-reserve])').length === 20, 10_000);
   const dl = await lots.evaluate(() => window.__accueilDemandes || []);
   ok('vingt chaînes : deux envois de quinze au plus, chacune demandée une fois', dl.length === 2 && dl.every((d) => d.length <= 15)
      && new Set(dl.flat()).size === 20 && dl.flat().length === 20, JSON.stringify(dl.map((d) => d.length)));
@@ -39684,7 +39734,7 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
   const refus = await ouvrirAccueil({ visites: { korbek: [1] }, options: { accueilTop: false } });
   await refus.evaluate(() => { window.__accueilSchema = 2; });
   await plateauAccueil(refus, { archives: { korbek: { id: '901' } } });
-  await attendre(refus, () => !!document.querySelector('#tse-accueil-heros .tse-acc-heros .tse-acc-debut:not([hidden])'), 8000);
+  await attendre(refus, () => !!document.querySelector('#tse-accueil-heros .tse-acc-heros .tse-acc-debut:not([hidden]):not([data-tse-reserve])'), 8000);
   const rr = await rapportAccueil(refus);
   ok('deux refus de forme, puis le service répond : le bouton paraît', rr.debut.refus === 2 && !rr.debut.refuse,
      JSON.stringify(rr.debut));
@@ -39765,6 +39815,349 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
   ok('hors de l\'accueil, la même carte de Twitch n\'ouvre pas d\'aperçu',
      !(await ailleurs.evaluate(() => !!document.querySelector('.tse-preview[data-tse-visible="true"]'))));
   await ailleurs.close();
+}
+
+/* ── L'ACCUEIL D'EMBLÉE (4.26.0.5) ───────────────────────────────────────────
+   « Il y a un décalage avec la homepage native de Twitch pendant quelques
+   secondes, puis la nouvelle homepage. » Ce qui se voit se mesure à l'image :
+   une sonde, posée avant tout script de la page, relève à chaque image ce qui
+   est À L'ÉCRAN — visible, et pas sous un `visibility: hidden` — : le
+   carrousel de Twitch, ses rayons, notre héros, notre section, le voile. Et
+   les décalages de mise en page, que le navigateur compte lui-même
+   (`layout-shift`). Tout ce qui change la page dans une tâche est fait avant
+   l'image suivante : la sonde voit ce que l'œil voit. */
+const SONDE_IMAGES = `
+  /* La mise en page de Twitch, là où elle compte ici : la barre latérale à
+     côté de la page, et non au-dessus. Sans quoi chaque carte qu'elle gagne
+     ou perd déplace tout l'accueil — un décalage qui n'existe pas chez Twitch. */
+  // documentElement n'existe pas toujours à ce stade (cf. freshTwitch) : on attend qu'il soit là.
+  const st = document.createElement('style');
+  st.textContent = '#side-nav{position:fixed!important;left:0;top:0;width:240px!important;height:100vh;overflow:auto} main{margin-left:240px}';
+  const poserStyle = () => { const r = document.head || document.documentElement; if (r) r.appendChild(st); else setTimeout(poserStyle, 0); };
+  poserStyle();
+  window.__images = [];
+  window.__decalages = [];
+  try {
+    new PerformanceObserver((liste) => {
+      for (const e of liste.getEntries()) {
+        window.__decalages.push({ t: Math.round(e.startTime), v: e.value,
+          sources: (e.sources || []).map((s) => (s.node && s.node.nodeType === 1)
+            ? s.node.localName + (s.node.id ? '#' + s.node.id : '') + (s.node.className && typeof s.node.className === 'string' ? '.' + s.node.className.split(' ')[0] : '')
+            : '?') });
+      }
+    }).observe({ type: 'layout-shift', buffered: true });
+  } catch (e) { window.__decalages = null; }
+  const vu = (el) => !!el && el.isConnected && el.getClientRects().length > 0
+    && getComputedStyle(el).visibility === 'visible';
+  const regarder = () => {
+    const top = document.querySelector('#tse-accueil .tse-acc-rayon--top');
+    window.__images.push({
+      t: Math.round(performance.now()),
+      accueil: !!document.querySelector('main .root-scrollable__content .page-accueil'),
+      car: vu(document.querySelector('[data-a-target="front-page-carousel"]')),
+      rangs: vu(document.querySelector('[data-a-target="front-page-main-content"] h2')),
+      heros: vu(document.querySelector('#tse-accueil-heros .tse-acc-heros-cadre')),
+      sect: vu(document.querySelector('#tse-accueil .tse-acc-titre')),
+      voile: document.documentElement.hasAttribute('data-tse-accueil-voile'),
+      attente: !!document.querySelector('#tse-accueil .tse-acc-place--attente'),
+      places: document.querySelectorAll('#tse-accueil .tse-acc-place:not(.tse-acc-place--attente)').length,
+      topH: top && !top.hidden ? Math.round(top.getBoundingClientRect().height) : null,
+      // Nos titres de rayon sur ceux de Twitch, au pixel, quand les deux se voient.
+      ecart: (() => {
+        const n = document.querySelector('#tse-accueil .tse-acc-titre'), t = document.querySelector('[data-a-target="front-page-main-content"] h2');
+        return vu(n) && vu(t) ? Math.round(n.getBoundingClientRect().left - t.getBoundingClientRect().left) : null;
+      })(),
+    });
+    if (window.__images.length < 4000) requestAnimationFrame(regarder);
+  };
+  requestAnimationFrame(regarder);`;
+async function ouvrirDemblee({ decor = {}, visites = { korbek: [1, 3] }, suivies = SUIVIES_ACCUEIL, top = TOP_ACCUEIL,
+                               retard = {}, options = {}, chemin = '/', cache = false, horsLigne = [] } = {}) {
+  const h = (m) => new Date(Date.now() - m * 60_000).toISOString();
+  const fx = Object.fromEntries(Object.entries(suivies).map(([l, x]) =>
+    [l, { id: x.id, createdAt: h(x.depuis), viewers: x.v, game: x.jeu, tags: ['Français'], title: x.titre }]));
+  for (const [i, l] of ['aeltris', 'brenvik', 'xray', 'quebec'].entries()) {
+    fx[l] = { id: String(60 + i), createdAt: h(50 + i * 9), viewers: 3000 - i * 400, game: 'VALORANT', tags: ['Français'], title: 'Direct ' + l };
+  }
+  for (const l of horsLigne) fx[l] = null;
+  const cfg = {
+    decor: decor === false ? null : { rayons: RAYONS_ACCUEIL, ...decor }, visites,
+    options: { accueilVideo: false, accueilDebut: false, ...options },
+    roster: Object.fromEntries(Object.keys(suivies).map((l) => [l, Date.now() - 3600e3])),
+    depart: {
+      __fx: fx, __retardOp: retard,
+      __tagTop: { 'Français': top.map((l, i) => ({ login: l, nom: l.charAt(0).toUpperCase() + l.slice(1),
+        viewers: 40000 - i * 3000, createdAt: h(30 + i * 7), game: i % 2 ? 'Just Chatting' : 'VALORANT', tags: ['Français'] })) },
+      __cats: [{ name: 'Just Chatting', viewers: 400000 }, { name: 'VALORANT', viewers: 250000 }],
+    },
+  };
+  const init = `(() => { const c = ${JSON.stringify(cfg)}; const n = Date.now();
+    try {
+      localStorage.setItem('tse:roue', 'vu'); localStorage.setItem('tse:indice', 'vu');
+      localStorage.setItem('tse:options', JSON.stringify(c.options));
+      if (c.visites) localStorage.setItem('tse:visits', JSON.stringify(Object.fromEntries(
+        Object.entries(c.visites).map(([l, h]) => [l, h.map((x) => n - x * 3600e3)]))));
+      localStorage.setItem('tse:roster', JSON.stringify(c.roster));
+    } catch { /* stockage refusé */ }
+    window.__accueil = c.decor; window.__depart = c.depart;
+    // Un onglet ouvert en arrière-plan : caché dès le départ, montré par __montrer().
+    if (${cache ? 'true' : 'false'}) {
+      Object.defineProperty(document, 'hidden', { configurable: true, get: () => !window.__visibleA });
+      Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => (window.__visibleA ? 'visible' : 'hidden') });
+      window.__montrer = () => { window.__visibleA = performance.now(); document.dispatchEvent(new Event('visibilitychange')); };
+    }
+    ${SONDE_IMAGES}
+  })();`;
+  return freshTwitch('<!doctype html><html><body>x</body></html>', [], chemin, init);
+}
+/* Ce que disent les images, depuis que l'accueil de Twitch est dans la page :
+   combien montrent son carrousel, combien ses rayons sans les nôtres
+   au-dessus, combien le voile — et le décalage cumulé de la mise en page. */
+const lireImages = (page) => page.evaluate(() => {
+  const im = window.__images.filter((x) => x.accueil);
+  const debut = im.length ? im[0].t : null;
+  const leve = im.findIndex((x) => !x.voile);
+  return {
+    images: im.length, debut,
+    carrousel: im.filter((x) => x.car).length,
+    rangsSeuls: im.filter((x) => x.rangs && !(x.sect && x.heros)).length,
+    voilees: im.filter((x) => x.voile).length,
+    premiere: leve >= 0 ? { t: im[leve].t, heros: im[leve].heros, sect: im[leve].sect, car: im[leve].car } : null,
+    attente: im.filter((x) => x.attente).length,
+    hauteursTop: [...new Set(im.filter((x) => x.sect && x.topH !== null).map((x) => x.topH))],
+    places: Math.max(0, ...im.map((x) => x.places)),
+    decalage: window.__decalages === null ? null
+      : Math.round(window.__decalages.filter((d) => debut !== null && d.t >= debut).reduce((s, d) => s + d.v, 0) * 10000) / 10000,
+    sources: window.__decalages ? [...new Set(window.__decalages.filter((d) => debut !== null && d.t >= debut).flatMap((d) => d.sources))] : null,
+    rapport: (() => { const r = window.tse.accueil.rapport(); return { chrono: r.chrono, voile: r.voile, amorce: r.amorce, heros: { montre: r.heros.montre, precharges: r.heros.precharges, place: r.heros.place, vue: r.heros.vue }, synchrones: r.synchrones }; })(),
+  };
+});
+
+{
+  titre('220. L\'accueil d\'emblée — jamais celui de Twitch le temps des données, et rien qui bouge en arrivant');
+  /* a) LES DONNÉES AVANT TWITCH, ET SON CARROUSEL APRÈS NOUS : la panne
+     signalée. L'amorce demande les chaînes suivies au démarrage de la page ;
+     Twitch pose son accueil à 700 ms, et son carrousel une seconde et demie
+     plus tard, quand ses données à lui sont là. La 4.26.0.4 le laissait à
+     l'écran jusqu'à la peinture suivante. Le voile, posé au démarrage, est
+     levé avant que rien ne paraisse ; le héros est peint dans la même image
+     que l'accueil de Twitch ; ses images sont parties avant lui. Mutants —
+     le carrousel masqué à la seule peinture ; la pose regroupée à 150 ms ;
+     l'amorce retirée ; le préchargement oublié. */
+  const a = await ouvrirDemblee({ decor: { delai: 700, carrouselApres: 1500 }, retard: { TseChannels: 120 } });
+  await attendre(a, () => window.__images.filter((x) => x.accueil).length > 150
+    && !!document.querySelector('[data-a-target="front-page-carousel"]'), 12_000);
+  await wait(a, 600);
+  const ia = await lireImages(a);
+  const precharge = await a.evaluate(() => {
+    const debut = window.__images.find((x) => x.accueil)?.t ?? Infinity;
+    const r = performance.getEntriesByType('resource').find((e) => /live_user_korbek-1280x720/.test(e.name));
+    return r ? Math.round(r.startTime) < debut : null;
+  });
+  ok('les données avant Twitch : pas une image du carrousel de Twitch, ni de ses rayons sans les nôtres — le carrousel arrivé après nous compris',
+     ia.images > 100 && ia.carrousel === 0 && ia.rangsSeuls === 0, JSON.stringify(ia));
+  ok('…le voile levé avant que l\'accueil de Twitch ne paraisse, sur la réponse de l\'amorce, et le héros peint dans sa première image',
+     ia.voilees === 0 && ia.rapport.voile.levees.donnees === 1 && ia.rapport.voile.poses === 1
+     && ia.rapport.amorce.demandees >= 3 && ia.rapport.amorce.faites === 1
+     && ia.premiere && ia.premiere.heros && ia.premiere.sect, JSON.stringify(ia));
+  ok('…ses images demandées avant lui, et la page ne bouge pas en arrivant',
+     precharge === true && ia.rapport.heros.precharges === 1 && ia.decalage !== null && ia.decalage < 0.005,
+     JSON.stringify({ precharge, decalage: ia.decalage, sources: ia.sources }));
+  /* L'AMORCE NE DOUBLE PAS LA BARRE : la barre sonde les mêmes chaînes à son
+     premier balayage, pendant que la réponse de l'amorce est en route — elle
+     ne les redemande pas. Mutant — pollRoster qui ignore ce qui est en vol. */
+  const demandes = await a.evaluate(() => {
+    const t = {};
+    for (const c of window.__calls) if (c.op === 'TseChannels') for (const l of c.ops) (t[l] ||= []).push(c.t);
+    // L'écart entre les deux premières demandes : la fraîcheur du cache (0,6 s au banc), jamais moins.
+    return Object.fromEntries(Object.entries(t).map(([l, x]) => [l, x.length > 1 ? x[1] - x[0] : null]));
+  });
+  ok('…et chaque chaîne suivie n\'est pas redemandée tant que sa réponse est en route',
+     ['korbek', 'velmoria', 'nyxaria'].every((l) => demandes[l] === null || demandes[l] >= 500), JSON.stringify(demandes));
+  await a.close();
+
+  /* b) TWITCH AVANT LES DONNÉES : son accueil à 600 ms, la réponse plus d'une
+     seconde après le démarrage. Le voile le couvre, puis se lève sur la réponse — dans la
+     même tâche que la peinture : la première image dévoilée montre le héros
+     et la section, jamais l'accueil de Twitch. Mutants — le voile jamais posé ;
+     levé avant la peinture ; la peinture attendue au réveil. */
+  const b = await ouvrirDemblee({ decor: { delai: 600 }, retard: { TseChannels: 1200 } });
+  await attendre(b, () => window.tse.accueil.rapport().heros.montre && !document.documentElement.hasAttribute('data-tse-accueil-voile'), 10_000);
+  await wait(b, 800);
+  const ib = await lireImages(b);
+  ok('Twitch avant les données : voilé le temps de la réponse, puis notre accueil entier, dans la même image',
+     ib.voilees > 10 && ib.carrousel === 0 && ib.rangsSeuls === 0 && ib.rapport.voile.levees.donnees === 1
+     && ib.premiere && ib.premiere.heros && ib.premiere.sect && !ib.premiere.car, JSON.stringify(ib));
+  ok('…sans décalage de la mise en page', ib.decalage !== null && ib.decalage < 0.005, JSON.stringify({ d: ib.decalage, s: ib.sources }));
+  /* SA PLACE N'A PAS ÉTÉ JUGÉE SOUS LE VOILE, où rien ne se voit : elle l'est
+     au lever, dans la même tâche, et c'est la première. Et c'est la réponse
+     qui l'a levé, pas le réveil d'après. Mutants — la place jugée sous le
+     voile (elle tombe à la dernière) ; la place pas revue au lever ; la
+     réponse ignorée (le réveil lève). */
+  const cb = ib.rapport.chrono;
+  ok('…sa place vue au lever du voile, et c\'est la première ; levé par la réponse, pas par le réveil',
+     ib.rapport.heros.place === 'defileur' && ib.rapport.heros.vue && cb.vue !== null && cb.voile !== null
+     && cb.vue >= cb.voile && ib.premiere && cb.vue <= ib.premiere.t && !ib.rapport.voile.levees.reveil,
+     JSON.stringify({ r: ib.rapport, premiere: ib.premiere }));
+  await b.close();
+
+  /* c) LES DONNÉES QUI NE VIENNENT PAS : la réponse à quatre secondes. Le voile
+     ne tient qu'une seconde et demie une fois l'accueil de Twitch là — au-delà,
+     mieux vaut l'accueil de Twitch qu'une page vide —, puis le héros le
+     remplace à la réponse, sans attendre le réveil. Mutants — le voile sans
+     borne ; levé à la pose. */
+  const c = await ouvrirDemblee({ decor: { delai: 600 }, retard: { TseChannels: 4000 } });
+  await attendre(c, () => window.tse.accueil.rapport().heros.montre, 12_000);
+  await wait(c, 400);
+  const ic = await lireImages(c);
+  const dureeVoile = ic.voilees ? await c.evaluate(() => {
+    const im = window.__images.filter((x) => x.accueil);
+    return im.filter((x) => x.voile).at(-1).t - im[0].t;
+  }) : 0;
+  ok('les données qui tardent : voilé une seconde et demie, puis l\'accueil de Twitch, puis le nôtre à la réponse',
+     ic.rapport.voile.levees.attente === 1 && dureeVoile >= 1300 && dureeVoile <= 2100 && ic.carrousel > 0 && ic.rapport.heros.montre,
+     JSON.stringify({ dureeVoile, voile: ic.rapport.voile, carrousel: ic.carrousel, chrono: ic.rapport.chrono }));
+  const apres = await c.evaluate(() => ({ remplace: window.__images.slice(-20).every((x) => !x.car && x.heros),
+                                          parDonnees: window.tse.accueil.rapport().peinturesDonnees }));
+  ok('…et le héros a remplacé le carrousel, peint par la réponse elle-même et non au réveil suivant',
+     apres.remplace && apres.parDonnees >= 1, JSON.stringify(apres));
+  await c.close();
+
+  /* d) LE TOP 10 EN ATTENTE DE SON CLASSEMENT : ses cinq premières places,
+     vides, à leur taille exacte. Les places arrivent sans que le rayon change
+     de hauteur — le bouton « Afficher tout » compris, que dix places pour
+     cinq colonnes font paraître —, et les rayons de Twitch, dessous, ne
+     bougent pas. Avec « Depuis le début », qui garde sa place. Mutants — pas
+     de places en attente ; le pied sans sa hauteur. */
+  const d = await ouvrirDemblee({ decor: { delai: 300 }, retard: { TseChannels: 60, TseTagTop: 700 },
+                                  options: { accueilTop: true, accueilDebut: true } });
+  await attendre(d, () => window.__images.some((x) => x.places >= 5), 12_000);
+  await wait(d, 1500);
+  const id = await lireImages(d);
+  ok('le Top 10 en attente : cinq places vides, puis les vraies, et le rayon garde sa hauteur au pixel',
+     id.attente > 5 && id.places >= 5 && id.hauteursTop.length === 1 && id.decalage !== null && id.decalage < 0.005,
+     JSON.stringify({ attente: id.attente, places: id.places, h: id.hauteursTop, d: id.decalage, s: id.sources }));
+  await d.close();
+
+  /* f) OUVERT EN ARRIÈRE-PLAN : un onglet caché ne peint pas. L'accueil y est
+     posé, pas peint ; en y venant, on voyait celui de Twitch jusqu'au réveil
+     suivant. Il se peint à l'instant où l'onglet se montre, avant la première
+     image. Mutant — rien de fait au retour. */
+  const g = await ouvrirDemblee({ decor: { delai: 600 }, retard: { TseChannels: 120 }, cache: true });
+  await attendre(g, () => !!document.getElementById('tse-accueil') && window.tse.accueil.rapport().amorce.faites === 1, 8000);
+  await wait(g, 500);
+  await g.evaluate(() => window.__montrer());
+  await wait(g, 600);
+  const ig = await g.evaluate(() => {
+    const im = window.__images.filter((x) => x.accueil && x.t > window.__visibleA);
+    return { images: im.length, carrousel: im.filter((x) => x.car).length,
+             rangsSeuls: im.filter((x) => x.rangs && !(x.sect && x.heros)).length,
+             premiere: im[0] ? { heros: im[0].heros, sect: im[0].sect } : null };
+  });
+  ok('ouvert en arrière-plan : à l\'instant où l\'onglet se montre, notre accueil, dès la première image',
+     ig.images > 10 && ig.carrousel === 0 && ig.rangsSeuls === 0 && ig.premiere && ig.premiere.heros && ig.premiere.sect,
+     JSON.stringify(ig));
+  await g.close();
+
+  /* g) BIEN APRÈS L'ARRIVÉE, REACT REDESSINE : le carrousel seul, puis tout
+     l'accueil. Le carrousel neuf est masqué dès sa première image — la règle
+     que porte <html> —, l'ancien lâché ; la section emportée est reposée dans
+     la même image. Mutants — le carrousel masqué par la seule classe ; les
+     anciens carrousels gardés ; la section reposée à cent cinquante
+     millisecondes. */
+  const r = await ouvrirDemblee({ decor: { delai: 600 }, retard: { TseChannels: 60 } });
+  await attendre(r, () => window.tse.accueil.rapport().heros.montre, 8000);
+  await wait(r, 2600);   // au-delà des deux secondes où la page est suivie de près (banc)
+  const t0r = await r.evaluate(() => { const t = performance.now(); window.__accueilRecarrousel(); return t; });
+  await wait(r, 700);
+  /* Avant que l'accueil ne se refasse : la peinture qui suivrait, carrousel
+     neuf hors de ses masques, viderait tout et cacherait l'oubli. */
+  const [t1r, masquesRecarrousel] = await r.evaluate(() => {
+    const n = window.tse.accueil.rapport().carrousel.masques;
+    const t = performance.now(); window.__accueilRemonter(); return [t, n];
+  });
+  await wait(r, 700);
+  /* Le héros seul emporté : il revient dans la même image. Quatre fois, à
+     des instants que le réveil du banc (100 ms) ne rattrape pas tous : un
+     réveil tombé par chance entre l'emport et l'image suivante le
+     reposerait aussi, et l'oubli passerait une fois sur six. */
+  const t2r = await r.evaluate(() => performance.now());
+  for (let i = 0; i < 4; i++) {
+    await r.evaluate(() => document.getElementById('tse-accueil-heros').remove());
+    await wait(r, 230);
+  }
+  await wait(r, 300);
+  const ir = await r.evaluate(([a, b, c]) => {
+    const im = window.__images.filter((x) => x.t > a);
+    const apresRemontee = im.filter((x) => x.t > b);
+    return { images: im.length, carrousel: im.filter((x) => x.car).length,
+             rangsSeuls: apresRemontee.filter((x) => x.rangs && !(x.sect && x.heros)).length,
+             sansHeros: im.filter((x) => x.t > c && !x.heros).length,
+             masques: window.tse.accueil.rapport().carrousel.masques };
+  }, [t0r, t1r, t2r]);
+  ir.masquesRecarrousel = masquesRecarrousel;
+  ok('bien après l\'arrivée, React redessine : le carrousel neuf masqué dès sa première image, l\'ancien lâché, la section et le héros reposés dans la même image',
+     ir.images > 20 && ir.carrousel === 0 && ir.rangsSeuls === 0 && ir.sansHeros === 0
+     && ir.masquesRecarrousel === 1 && ir.masques === 1, JSON.stringify(ir));
+  await r.close();
+
+  /* i) LES RAYONS DE TWITCH APRÈS SA COLONNE : nos titres se calent sur les
+     siens dans l'image même où ils paraissent, et non à la peinture suivante.
+     Mutant — l'alignement laissé à la seule peinture. */
+  const al = await ouvrirDemblee({ decor: { delai: 600, rayonsApres: 900 }, retard: { TseChannels: 60 } });
+  await attendre(al, () => window.__images.some((x) => x.rangs), 8000);
+  await wait(al, 500);
+  const ial = await al.evaluate(() => {
+    const im = window.__images.filter((x) => x.rangs);
+    return { images: im.length, ecarts: [...new Set(im.map((x) => x.ecart))] };
+  });
+  ok('les rayons de Twitch après sa colonne : nos titres sur les siens, au pixel, dès qu\'ils paraissent',
+     ial.images > 10 && ial.ecarts.length === 1 && ial.ecarts[0] === 0, JSON.stringify(ial));
+  await al.close();
+
+  /* h) SANS L'ACCUEIL DE TWITCH, ET SANS RÉPONSE : le voile, posé au
+     démarrage sur un défileur qui n'existe pas, ne reste pas sur <html> — il
+     part à son plafond (six secondes ; trois au banc). Mutant — le voile
+     sans plafond. */
+  const v = await ouvrirDemblee({ decor: false, retard: { TseChannels: 9000 } });
+  await attendre(v, () => !document.documentElement.hasAttribute('data-tse-accueil-voile'), 6000);
+  const rv = await v.evaluate(() => ({ attr: document.documentElement.hasAttribute('data-tse-accueil-voile'),
+                                       voile: window.tse.accueil.rapport().voile }));
+  ok('sans accueil de Twitch ni réponse : le voile part à son plafond',
+     !rv.attr && rv.voile.levees.plafond === 1 && rv.voile.dureeMs >= 2900, JSON.stringify(rv));
+  await v.close();
+
+  /* j) UNE CHAÎNE QUI PASSE EN DIRECT, L'ACCUEIL DÉJÀ À L'ÉCRAN : la barre
+     l'apprend à son relevé suivant, et l'accueil la peint au lot même qui la
+     lui apprend, pas au réveil d'après (cinq secondes sur la vraie page).
+     Mutant — la réponse ignorée. */
+  const j = await ouvrirDemblee({ decor: { delai: 600 }, retard: { TseChannels: 40 }, horsLigne: ['korbek'] });
+  await attendre(j, () => !!document.getElementById('tse-accueil') && window.tse.accueil.rapport().amorce.faites === 1, 8000);
+  await wait(j, 800);
+  const j0 = await j.evaluate(() => ({ montre: window.tse.accueil.rapport().heros.montre, n: window.tse.accueil.rapport().peinturesDonnees }));
+  await j.evaluate(() => { window.__fx.korbek = { id: '12', createdAt: new Date(Date.now() - 42 * 60_000).toISOString(), viewers: 2310,
+                                                  game: 'Just Chatting', tags: ['Français'], title: 'On discute de tout' }; });
+  await attendre(j, () => window.tse.accueil.rapport().heros.montre, 8000);
+  const j1 = await j.evaluate(() => ({ montre: window.tse.accueil.rapport().heros.montre, n: window.tse.accueil.rapport().peinturesDonnees }));
+  ok('une chaîne qui passe en direct, l\'accueil déjà là : le héros peint au lot même qui l\'apprend',
+     !j0.montre && j1.montre && j1.n > j0.n, JSON.stringify({ j0, j1 }));
+  await j.close();
+
+  /* e) RIEN À ATTENDRE : aucune chaîne visitée, ni rayon des suivies — le
+     voile posé au démarrage se lève à l'arrivée, sans rien demander. Et
+     l'accueil coupé : il ne se pose même pas. */
+  const e = await ouvrirDemblee({ visites: null, options: { accueilSuivis: false } });
+  await attendre(e, () => window.__images.filter((x) => x.accueil).length > 30, 8000);
+  const ie = await lireImages(e);
+  ok('rien à attendre : le voile levé à l\'arrivée, sans amorce, et l\'accueil de Twitch montré tel quel',
+     ie.voilees === 0 && ie.rapport.voile.levees.rien === 1 && ie.rapport.amorce.demandees === 0 && ie.carrousel > 0,
+     JSON.stringify(ie.rapport));
+  await e.close();
+  const f = await ouvrirDemblee({ options: { accueil: false } });
+  await attendre(f, () => window.__images.filter((x) => x.accueil).length > 30, 8000);
+  const vf = await f.evaluate(() => ({ jamais: window.__images.every((x) => !x.voile), r: window.tse.accueil.rapport().voile }));
+  ok('…l\'accueil coupé : pas de voile, jamais', vf.jamais && vf.r.poses === 0, JSON.stringify(vf));
+  await f.close();
 }
 
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════
