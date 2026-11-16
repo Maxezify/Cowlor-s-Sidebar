@@ -603,7 +603,7 @@
     "message": "Earlier on this stream"
   },
   "guideFriseTexte": {
-    "message": "Walking in halfway through an eight-hour stream? The preview's timeline shows what happened before: one band per category, to scale, and the list underneath.\n• “×3”: the streamer came back to that category three times.\n• A channel that does not archive its streams? The timeline is rebuilt from the clips, and says so.\n• A “~” before a duration, a colour that fades: the exact time is not known. Nothing is made up."
+    "message": "Walking in halfway through an eight-hour stream? The preview's timeline shows what happened before: one band per category, to scale, and the list underneath.\n• “×3”: the streamer came back to that category three times.\n• A channel that does not archive its streams? The timeline is rebuilt from the clips, and says so.\n• A “~” before a duration, a colour that fades: the exact time is not known. Nothing is made up.\n• Above the timeline, the recap: “Since 18:02: 1h20 Just Chatting → 2h40 Elden Ring”, then the stream's clips and the most viewed — “6 clips · most viewed: “…” (8.4K views)”. A full page of clips says “30+”, and the most viewed is only named when it is certain."
   },
   "guideSubathonTitre": {
     "message": "Subathons"
@@ -732,6 +732,9 @@
   "guideBadgeSubathon": {
     "message": "Subathon • DAY 10",
     "description": "Maquette : badge de subathon"
+  },
+  "guideBadgeRecap": {
+    "message": "The stream recap"
   },
   "guideDemoTitre": {
     "message": "Finishing the dungeon, then Q&A",

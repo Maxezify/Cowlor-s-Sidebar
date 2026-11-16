@@ -43,6 +43,7 @@ Llegás a la mitad de un en vivo de ocho horas. ¿Qué pasó antes? La vista pre
 - ★ A ESCALA ★ El ancho de cada banda es tiempo real. Un vistazo alcanza para ver adónde se fue la tarde.
 - ★ INCLUSO SIN REPETICIÓN ★ ¿Un canal que no archiva? La extensión reconstruye el recorrido a partir de los clips, y lo DICE.
 - ★ ADMITE LO QUE NO SABE ★ Cuando no se conoce la hora exacta de un cambio, el color se funde en vez de cortar en seco, y la duración lleva una «~». Nunca un número inventado.
+- ★ EL RESUMEN ★ En una línea, por dónde pasó el directo: «Desde las 18:02: 1h20 Just Chatting → 2h40 Elden Ring». En otra, lo que sus clips guardaron: «6 clips · el más visto: «…» (8.4 k vistas)». Una petición a Twitch por directo sobrevolado, cada diez minutos como mucho.
 
 _______________________________
 

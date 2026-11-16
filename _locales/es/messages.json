@@ -503,7 +503,7 @@
     "message": "Antes en este directo"
   },
   "guideFriseTexte": {
-    "message": "¿Llegas a la mitad de un directo de ocho horas? La línea de tiempo de la vista previa muestra lo que pasó antes: una banda por categoría, a escala, y la lista debajo.\n• «×3»: el streamer volvió tres veces a esa categoría.\n• ¿Un canal que no archiva sus directos? La línea de tiempo se reconstruye a partir de los clips, y lo dice.\n• Una «~» delante de una duración, un color que se difumina: no se conoce la hora exacta. Nada es inventado."
+    "message": "¿Llegas a la mitad de un directo de ocho horas? La línea de tiempo de la vista previa muestra lo que pasó antes: una banda por categoría, a escala, y la lista debajo.\n• «×3»: el streamer volvió tres veces a esa categoría.\n• ¿Un canal que no archiva sus directos? La línea de tiempo se reconstruye a partir de los clips, y lo dice.\n• Una «~» delante de una duración, un color que se difumina: no se conoce la hora exacta. Nada es inventado.\n• Encima de la línea de tiempo, el resumen: «Desde las 18:02: 1h20 Just Chatting → 2h40 Elden Ring», y luego los clips del directo y el más visto —«6 clips · el más visto: «…» (8,4 mil vistas)»—. Una página de clips llena dice «30+», y el más visto solo se nombra cuando es seguro."
   },
   "guideSubathonTitre": {
     "message": "Los subatones"
@@ -621,6 +621,9 @@
   },
   "guideBadgeSubathon": {
     "message": "Subatón • DÍA 10"
+  },
+  "guideBadgeRecap": {
+    "message": "El resumen del directo"
   },
   "guideDemoTitre": {
     "message": "Acabamos la mazmorra y luego preguntas"

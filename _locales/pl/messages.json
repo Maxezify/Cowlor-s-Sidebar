@@ -503,7 +503,7 @@
     "message": "Wcześniej na tej transmisji"
   },
   "guideFriseTexte": {
-    "message": "Wchodzisz w połowie ośmiogodzinnej transmisji? Oś czasu w podglądzie pokazuje, co było wcześniej: jeden pas na kategorię, w skali, a pod spodem lista.\n• „×3”: streamer wrócił do tej kategorii trzy razy.\n• Kanał, który nie archiwizuje transmisji? Oś czasu jest odtwarzana z klipów i to mówi.\n• „~” przed czasem, kolor, który się rozmywa: dokładna godzina nie jest znana. Nic nie jest zmyślone."
+    "message": "Wchodzisz w połowie ośmiogodzinnej transmisji? Oś czasu w podglądzie pokazuje, co było wcześniej: jeden pas na kategorię, w skali, a pod spodem lista.\n• „×3”: streamer wrócił do tej kategorii trzy razy.\n• Kanał, który nie archiwizuje transmisji? Oś czasu jest odtwarzana z klipów i to mówi.\n• „~” przed czasem, kolor, który się rozmywa: dokładna godzina nie jest znana. Nic nie jest zmyślone.\n• Nad osią czasu podsumowanie: „Od 18:02: 1h20 Just Chatting → 2h40 Elden Ring”, a pod nim klipy z transmisji i najczęściej oglądany — „6 klipów · najczęściej oglądany: „…” (8,4 tys. wyśw.)”. Pełna strona klipów to „30+”, a najczęściej oglądany jest podawany tylko wtedy, gdy jest pewny."
   },
   "guideSubathonTitre": {
     "message": "Subathony"
@@ -621,6 +621,9 @@
   },
   "guideBadgeSubathon": {
     "message": "Subathon • DZIEŃ 10"
+  },
+  "guideBadgeRecap": {
+    "message": "Podsumowanie transmisji"
   },
   "guideDemoTitre": {
     "message": "Kończymy loch, potem pytania"
