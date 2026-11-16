@@ -191,7 +191,7 @@ A página de programação de um canal, na Twitch, mostra um só canal. O grupo 
 - ★ OFFLINE, MAS NÃO ESQUECIDOS ★ Cada canal seguido que não está ao vivo: primeiro os que têm uma live agendada, a mais próxima no topo, depois os outros, o mais recente primeiro — quando transmitiu pela última vez, a gravação e a próxima live. Canais com uma agenda abandonada — sem live há três meses — não aparecem.
 - ★ UM CANAL OU TODOS ★ Um menu deixa só um, e «Semana do canal» leva direto à semana da última live dele.
 - ★ SINCERO SOBRE O QUE A TWITCH GUARDA ★ Uma gravação só existe se o canal guarda as lives, e enquanto a Twitch as mantiver; uma última live sem gravação avisa («Sem gravação»), e uma gravação que só se pode ver com inscrição também, com um cadeado, antes do clique.
-- ★ SÓ QUANDO VOCÊ OLHA ★ Nada é pedido à Twitch antes de você abrir, e o que ele leu fica no seu navegador: ao recarregar, continua de onde parou.
+- ★ SÓ QUANDO VOCÊ OLHA ★ Nada é pedido à Twitch antes de você abrir — ou de a página inicial da Twitch mostrar suas transmissões programadas —, e o que ele leu fica no seu navegador: ao recarregar, continua de onde parou.
 
 _______________________________
 
@@ -201,6 +201,7 @@ Na página inicial da Twitch, a extensão coloca suas próprias fileiras acima d
 - ★ SEU CANAL Nº 1 NO TOPO ★ No lugar do carrossel da Twitch: o canal seguido ao vivo que você mais assiste. Em toda a largura: primeiro a imagem, depois a transmissão, sem som e sem anúncios, como a prévia ao passar o mouse; e, sob o texto, as cores dela, também ao vivo. Nenhum dos canais que você assiste está ao vivo? O carrossel volta. Prefere o carrossel, ou nada? É uma configuração.
 - ★ SEUS CANAIS SEGUIDOS PRIMEIRO ★ Uma fileira com seus canais ao vivo, na ordem dos que você mais assiste — sem nenhuma requisição a mais: são os que a barra já acompanha.
 - ★ O TOP 10 DO SEU IDIOMA ★ As dez primeiras posições da classificação exata do Top Canais, no idioma da sua Twitch ou em todos os idiomas, em números grandes, com o que mudou em trinta minutos: posições ganhas, posições perdidas, recém-chegados. Calculado só enquanto a página inicial está na tela.
+- ★ SUAS TRANSMISSÕES PROGRAMADAS ★ O que os canais que você segue programaram para hoje e amanhã, com o tempo que falta. «Lembrete»: um aviso nas suas abas abertas da Twitch quando o canal fica ao vivo, sem notificação do sistema nem permissão. Para um canal que você assiste e que não programou nada: a hora em que suas últimas transmissões começaram, quando ela se repete — o que ele fez, não o que fará.
 - ★ «DESDE O INÍCIO» ★ Chegou atrasado? Um botão abre a gravação da transmissão em curso no primeiro segundo. O botão só aparece quando você pode assistir: o canal guarda as gravações e as abre a todos, ou você é assinante.
 - ★ A PRÉVIA AO PASSAR O MOUSE, AQUI TAMBÉM ★ Nos cards da página inicial, os da extensão e os da Twitch.
 - ★ VOCÊ DECIDE ★ Cada parte se desliga separadamente em «Configurações»; tudo desligado, a página inicial volta a ser a da Twitch, do jeito que é.
@@ -235,7 +236,7 @@ A Twitch tem um tema claro. A extensão percebe e muda junto — sem recarregar,
 _______________________________
 
 ➤ ⚙️ E SE VOCÊ QUISER ESCOLHER
-Tudo já vem ativo e não há nada para configurar. Mas «Configurações», no painel, devolve a você o controle sobre vinte e nove configurações.
+Tudo já vem ativo e não há nada para configurar. Mas «Configurações», no painel, devolve a você o controle sobre trinta configurações.
 
 - ★ O QUE VOCÊ VÊ ★ Cada selo, a duração da live e o seu formato, a barra «acabou de começar», o ouro das assinaturas, os filtros, os botões de ordenação: tudo liga e desliga numa caixinha.
 - ★ O QUE É CARREGADO ★ A prévia pode dispensar o vídeo e manter os selos, a linha do tempo e a miniatura — ou simplesmente baixar a qualidade. O suficiente para deixá-la leve sem perdê-la.

@@ -191,7 +191,7 @@ A channel's schedule page on Twitch shows one channel. The panel's "Schedule" gr
 - ★ OFFLINE, NOT FORGOTTEN ★ Every followed channel that isn't live: those with a stream scheduled come first, the soonest on top, then the others, the most recent first — when it last streamed, its replay, and its next stream. Channels with an abandoned schedule — no stream for three months — are left out.
 - ★ ONE CHANNEL OR ALL ★ A menu keeps a single channel, and "Their week" jumps straight to the week of its last stream.
 - ★ HONEST ABOUT WHAT TWITCH KEEPS ★ A replay only exists if the channel saves its broadcasts, and for as long as Twitch keeps them; a last stream without one says so ("No replay"), and so does a replay you cannot watch without a subscription, with a padlock, before you click.
-- ★ ONLY WHEN YOU LOOK ★ Nothing is asked of Twitch until you open it, and what it has read stays in your browser, so a reload picks up where it left off.
+- ★ ONLY WHEN YOU LOOK ★ Nothing is asked of Twitch until you open it — or until Twitch's home page shows your scheduled streams —, and what it has read stays in your browser, so a reload picks up where it left off.
 
 _______________________________
 
@@ -201,6 +201,7 @@ On Twitch's home page, the extension adds its own rows above Twitch's, in the sa
 - ★ YOUR #1 CHANNEL, ON TOP ★ In place of Twitch's carousel: the live followed channel you watch the most. Across the whole width: its picture first, then its stream, muted and ad-free, like the hover preview; and under the text, its colours, live too. None of the channels you watch is live? The carousel comes back. Rather keep the carousel, or have nothing at all? That's a setting.
 - ★ YOUR FOLLOWED CHANNELS FIRST ★ A row of your live channels, in the order of the ones you watch the most — at no extra request: they are the ones the sidebar already follows.
 - ★ THE TOP 10 OF YOUR LANGUAGE ★ The first ten places of Top Channels' exact ranking, in your Twitch's language or across all languages, in big numbers, with what moved over thirty minutes: places gained, places lost, newcomers. Computed only while the home page is on screen.
+- ★ YOUR SCHEDULED STREAMS ★ What your followed channels have scheduled for today and tomorrow, with the time left. "Remind me": an alert in your open Twitch tabs when the channel goes live, with no system notification and no permission. For a channel you watch that has nothing scheduled: the time its last streams started, when it repeats — what it did, not what it will do.
 - ★ "FROM THE START" ★ Arrived late? A button opens the replay of the stream in progress at its very first second. The button only appears when you can watch it: the channel keeps its replays and opens them to everyone, or you are subscribed to it.
 - ★ THE HOVER PREVIEW, HERE TOO ★ On the home page's cards, the extension's and Twitch's alike.
 - ★ YOUR CALL ★ Each part switches off on its own in "Settings"; turn it all off and the home page is Twitch's again, as is.
@@ -235,7 +236,7 @@ Twitch has a light theme. The extension notices and switches with it — no relo
 _______________________________
 
 ➤ ⚙️ AND IF YOU WANT TO CHOOSE
-Everything is on from the start and there is nothing to set up. But the panel's "Settings" section hands you twenty-nine settings.
+Everything is on from the start and there is nothing to set up. But the panel's "Settings" section hands you thirty settings.
 
 - ★ WHAT YOU SEE ★ Every badge, the stream uptime and its format, the "just went live" bar, the subscription gold, the filters, the sort buttons: all of it switches on and off with a checkbox.
 - ★ WHAT GETS LOADED ★ The preview can drop the video and keep its badges, its timeline and its thumbnail — or simply step down in quality. Enough to make it light without losing it.

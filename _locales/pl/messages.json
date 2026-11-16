@@ -551,7 +551,7 @@
     "message": "Strona główna Twitcha"
   },
   "guideAccueilTexte": {
-    "message": "Na stronie głównej Twitcha rozszerzenie umieszcza własne rzędy nad rzędami Twitcha, w tej samej kolumnie i wyrównane z nimi. Ustawia się je w sekcji „Ustawienia”, w grupie „Strona główna”.\n• „Twój kanał nr 1 na żywo”: obserwowany kanał na żywo, który oglądasz najczęściej, zajmuje miejsce karuzeli Twitcha, na całą szerokość. Najpierw jego obraz, potem transmisja, bez dźwięku i bez reklam, jak podgląd po najechaniu; tło przejmuje jej kolory. Gdy żaden z kanałów, które oglądasz, nie nadaje, karuzela wraca. „Jak na Twitchu” zawsze ją zostawia; „Nic” usuwa ją i zatrzymuje jej wideo.\n• „Obserwowane kanały na żywo”: rząd ułożony od kanałów, które oglądasz najczęściej, bez żadnego dodatkowego zapytania — to kanały z paska.\n• „Top 10”: pierwsze dziesięć miejsc listy „Najpopularniejsze kanały”, w języku interfejsu Twitcha albo we wszystkich językach, dużymi cyframi. Tuż na prawo od nazwy strzałka pokazuje miejsca zyskane lub stracone w ciągu trzydziestu minut — albo od wejścia na stronę główną; „Nowość” oznacza kanał, którego nie było w Top 10.\n• Każdy rząd pokazuje jedną linię; „Pokaż wszystko” pośrodku kreski pod nim rozwija resztę.\n• „Od początku” otwiera powtórkę trwającej transmisji od jej pierwszej sekundy. Pojawia się tylko wtedy, gdy możesz ją obejrzeć: kanał zachowuje powtórki i udostępnia je wszystkim — albo go subskrybujesz.\n• Podgląd po najechaniu otwiera się też na kartach strony głównej: zarówno tych z rozszerzenia, jak i tych z Twitcha."
+    "message": "Na stronie głównej Twitcha rozszerzenie umieszcza własne rzędy nad rzędami Twitcha, w tej samej kolumnie i wyrównane z nimi. Ustawia się je w sekcji „Ustawienia”, w grupie „Strona główna”.\n• „Twój kanał nr 1 na żywo”: obserwowany kanał na żywo, który oglądasz najczęściej, zajmuje miejsce karuzeli Twitcha, na całą szerokość. Najpierw jego obraz, potem transmisja, bez dźwięku i bez reklam, jak podgląd po najechaniu; tło przejmuje jej kolory. Gdy żaden z kanałów, które oglądasz, nie nadaje, karuzela wraca. „Jak na Twitchu” zawsze ją zostawia; „Nic” usuwa ją i zatrzymuje jej wideo.\n• „Obserwowane kanały na żywo”: rząd ułożony od kanałów, które oglądasz najczęściej, bez żadnego dodatkowego zapytania — to kanały z paska.\n• „Top 10”: pierwsze dziesięć miejsc listy „Najpopularniejsze kanały”, w języku interfejsu Twitcha albo we wszystkich językach, dużymi cyframi. Tuż na prawo od nazwy strzałka pokazuje miejsca zyskane lub stracone w ciągu trzydziestu minut — albo od wejścia na stronę główną; „Nowość” oznacza kanał, którego nie było w Top 10.\n• „Zaplanowane transmisje”: to, co obserwowane kanały zaplanowały na dziś i jutro, z czasem do rozpoczęcia. „Przypomnij mi” pokazuje powiadomienie w otwartych kartach Twitcha, gdy kanał zacznie transmisję — nie powiadomienie systemowe. Tuż pod spodem „Bez harmonogramu”: dla oglądanego kanału, który niczego nie zaplanował, godzina, o której zaczynały się jego ostatnie transmisje, jeśli się powtarza — to, co robił, a nie to, co zrobi.\n• Każdy rząd pokazuje jedną linię; „Pokaż wszystko” pośrodku kreski pod nim rozwija resztę.\n• „Od początku” otwiera powtórkę trwającej transmisji od jej pierwszej sekundy. Pojawia się tylko wtedy, gdy możesz ją obejrzeć: kanał zachowuje powtórki i udostępnia je wszystkim — albo go subskrybujesz.\n• Podgląd po najechaniu otwiera się też na kartach strony głównej: zarówno tych z rozszerzenia, jak i tych z Twitcha."
   },
   "guideViteTitre": {
     "message": "Szybciej niż Twitch i czyściej"
@@ -784,6 +784,12 @@
   "optDescAccueilDebut": {
     "message": "Na kartach rozszerzenia przycisk, który otwiera powtórkę trwającej transmisji od jej pierwszej sekundy. Tylko wtedy, gdy możesz ją obejrzeć: kanał zachowuje powtórki i udostępnia je wszystkim albo go subskrybujesz."
   },
+  "optAccueilRdv": {
+    "message": "Zaplanowane transmisje"
+  },
+  "optDescAccueilRdv": {
+    "message": "To, co obserwowane kanały zaplanowały na dziś i jutro, z czasem do rozpoczęcia. „Przypomnij mi” pokazuje powiadomienie w otwartych kartach Twitcha, gdy kanał zacznie transmisję. Dla oglądanego kanału bez harmonogramu: godzina, o której zaczynały się jego ostatnie transmisje, jeśli się powtarza."
+  },
   "optValHeros": {
     "message": "Twój kanał nr 1"
   },
@@ -941,7 +947,7 @@
     "message": "Przywrócić wszystkie ustawienia domyślne?"
   },
   "optResetText": {
-    "message": "Na tej stronie dwadzieścia dziewięć ustawień wróci do wartości pierwotnych. Twoje dane — wizyty, subskrypcje, obserwowane kanały — pozostają nietknięte."
+    "message": "Na tej stronie trzydzieści ustawień wróci do wartości pierwotnych. Twoje dane — wizyty, subskrypcje, obserwowane kanały — pozostają nietknięte."
   },
   "optValPlein": {
     "message": "Pełne"

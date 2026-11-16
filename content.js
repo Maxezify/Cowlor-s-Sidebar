@@ -514,6 +514,26 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccRang:                 (n) => `N°${n} du Top 10`,
       uiAccAfficherTout:         'Afficher tout',
       uiAccAfficherMoins:        'Afficher moins',
+      /* VOS RENDEZ-VOUS (4.27.0, cf. RENDEZ_VOUS). `d` : une durée déjà écrite
+         (« 2h14 ») ; `h` : une heure à la locale ; `k`/`n` : les directs qui
+         tombent dans la même demi-heure, sur les derniers comptés ; `f` : la
+         fente du nom (cf. FENTE). L'habitude se dit au passé — un constat,
+         jamais une promesse. */
+      uiAccRdv:                  'Vos rendez-vous',
+      uiAccAujourdhui:           'Aujourd\'hui',
+      uiAccDemain:               'Demain',
+      uiAccDans:                 (d) => `dans ${d}`,
+      uiAccAttendu:              'pas encore en direct',
+      uiAccPrevenir:             'Me prévenir',
+      uiAccPrevenu:              'Rappel activé',
+      uiAccPrevenirTitre:        (nom) => `Une alerte dans vos onglets Twitch ouverts quand ${nom} passera en direct`,
+      uiAccHabitudes:            'Sans planning',
+      uiAccHabitudesNote:        'L\'heure à laquelle leurs derniers directs ont commencé',
+      uiAccHabitude:             (k, n, h) => (k === n ? `Ses ${n} derniers directs ont commencé vers ${h}`
+                                                       : `${k} de ses ${n} derniers directs ont commencé vers ${h}`),
+      uiRappelEnDirect:          (f) => `${f} est en direct`,
+      uiRappelCreneau:           (h) => `Votre rendez-vous de ${h}`,
+      uiRappelFermer:            'Fermer',
       /* L'ÉTAT DU CALAGE DANS L'EN-TÊTE (4.25.0.11, cf. etatCalage). `e` : la
          cause, `x`/`m` les calculs du son reçus sur ceux qu'il faut, `s` un
          écart en secondes déjà écrit à la locale, `avance` son sens, `el`/`tot`
@@ -750,6 +770,21 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccRang:                 (n) => `#${n} in the Top 10`,
       uiAccAfficherTout:         'Show all',
       uiAccAfficherMoins:        'Show less',
+      uiAccRdv:                  'Your scheduled streams',
+      uiAccAujourdhui:           'Today',
+      uiAccDemain:               'Tomorrow',
+      uiAccDans:                 (d) => `in ${d}`,
+      uiAccAttendu:              'not live yet',
+      uiAccPrevenir:             'Remind me',
+      uiAccPrevenu:              'Reminder set',
+      uiAccPrevenirTitre:        (nom) => `An alert in your open Twitch tabs when ${nom} goes live`,
+      uiAccHabitudes:            'No schedule',
+      uiAccHabitudesNote:        'When their last streams started',
+      uiAccHabitude:             (k, n, h) => (k === n ? `Their last ${n} streams started around ${h}`
+                                                       : `${k} of their last ${n} streams started around ${h}`),
+      uiRappelEnDirect:          (f) => `${f} is live`,
+      uiRappelCreneau:           (h) => `Scheduled for ${h}`,
+      uiRappelFermer:            'Close',
       uiCalCoupe:                'Alignment turned off in settings',
       uiCalIndispo:              'Alignment unavailable: this browser cannot capture the sound',
       uiCalArrete:               'Alignment stopped',
@@ -961,6 +996,21 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccRang:                 (n) => `Platz ${n} der Top 10`,
       uiAccAfficherTout:         'Alle anzeigen',
       uiAccAfficherMoins:        'Weniger anzeigen',
+      uiAccRdv:                  'Deine geplanten Streams',
+      uiAccAujourdhui:           'Heute',
+      uiAccDemain:               'Morgen',
+      uiAccDans:                 (d) => `in ${d}`,
+      uiAccAttendu:              'noch nicht live',
+      uiAccPrevenir:             'Erinnern',
+      uiAccPrevenu:              'Erinnerung aktiv',
+      uiAccPrevenirTitre:        (nom) => `Ein Hinweis in deinen offenen Twitch-Tabs, sobald ${nom} live geht`,
+      uiAccHabitudes:            'Ohne Zeitplan',
+      uiAccHabitudesNote:        'Wann ihre letzten Streams begonnen haben',
+      uiAccHabitude:             (k, n, h) => (k === n ? `Die letzten ${n} Streams begannen gegen ${h}`
+                                                       : `${k} der letzten ${n} Streams begannen gegen ${h}`),
+      uiRappelEnDirect:          (f) => `${f} ist live`,
+      uiRappelCreneau:           (h) => `Geplant für ${h}`,
+      uiRappelFermer:            'Schließen',
       uiCalCoupe:                'Ausrichtung in den Einstellungen ausgeschaltet',
       uiCalIndispo:              'Ausrichtung nicht verfügbar: Dieser Browser kann den Ton nicht abgreifen',
       uiCalArrete:               'Ausrichtung gestoppt',
@@ -1172,6 +1222,21 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccRang:                 (n) => `N.º ${n} del Top 10`,
       uiAccAfficherTout:         'Mostrar todo',
       uiAccAfficherMoins:        'Mostrar menos',
+      uiAccRdv:                  'Tus directos programados',
+      uiAccAujourdhui:           'Hoy',
+      uiAccDemain:               'Mañana',
+      uiAccDans:                 (d) => `en ${d}`,
+      uiAccAttendu:              'aún no está en directo',
+      uiAccPrevenir:             'Recordármelo',
+      uiAccPrevenu:              'Recordatorio activado',
+      uiAccPrevenirTitre:        (nom) => `Un aviso en tus pestañas de Twitch abiertas cuando ${nom} empiece en directo`,
+      uiAccHabitudes:            'Sin horario',
+      uiAccHabitudesNote:        'Cuándo empezaron sus últimos directos',
+      uiAccHabitude:             (k, n, h) => (k === n ? `Sus últimos ${n} directos empezaron hacia las ${h}`
+                                                       : `${k} de sus últimos ${n} directos empezaron hacia las ${h}`),
+      uiRappelEnDirect:          (f) => `${f} está en directo`,
+      uiRappelCreneau:           (h) => `Programado para las ${h}`,
+      uiRappelFermer:            'Cerrar',
       uiCalCoupe:                'Alineación desactivada en los ajustes',
       uiCalIndispo:              'Alineación no disponible: este navegador no puede capturar el sonido',
       uiCalArrete:               'Alineación detenida',
@@ -1383,6 +1448,21 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccRang:                 (n) => `Nº ${n} do Top 10`,
       uiAccAfficherTout:         'Mostrar tudo',
       uiAccAfficherMoins:        'Mostrar menos',
+      uiAccRdv:                  'Suas transmissões programadas',
+      uiAccAujourdhui:           'Hoje',
+      uiAccDemain:               'Amanhã',
+      uiAccDans:                 (d) => `em ${d}`,
+      uiAccAttendu:              'ainda não está ao vivo',
+      uiAccPrevenir:             'Lembrete',
+      uiAccPrevenu:              'Lembrete ativado',
+      uiAccPrevenirTitre:        (nom) => `Um aviso nas suas abas abertas da Twitch quando ${nom} ficar ao vivo`,
+      uiAccHabitudes:            'Sem programação',
+      uiAccHabitudesNote:        'Quando suas últimas transmissões começaram',
+      uiAccHabitude:             (k, n, h) => (k === n ? `Suas últimas ${n} transmissões começaram por volta das ${h}`
+                                                       : `${k} das suas últimas ${n} transmissões começaram por volta das ${h}`),
+      uiRappelEnDirect:          (f) => `${f} está ao vivo`,
+      uiRappelCreneau:           (h) => `Programado para as ${h}`,
+      uiRappelFermer:            'Fechar',
       uiCalCoupe:                'Alinhamento desligado nas definições',
       uiCalIndispo:              'Alinhamento indisponível: este navegador não consegue capturar o som',
       uiCalArrete:               'Alinhamento parado',
@@ -1594,6 +1674,21 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccRang:                 (n) => `N. ${n} della Top 10`,
       uiAccAfficherTout:         'Mostra tutto',
       uiAccAfficherMoins:        'Mostra meno',
+      uiAccRdv:                  'Le tue dirette in programma',
+      uiAccAujourdhui:           'Oggi',
+      uiAccDemain:               'Domani',
+      uiAccDans:                 (d) => `tra ${d}`,
+      uiAccAttendu:              'non ancora in diretta',
+      uiAccPrevenir:             'Ricordamelo',
+      uiAccPrevenu:              'Promemoria attivo',
+      uiAccPrevenirTitre:        (nom) => `Un avviso nelle schede di Twitch aperte quando ${nom} andrà in diretta`,
+      uiAccHabitudes:            'Senza programma',
+      uiAccHabitudesNote:        'Quando sono iniziate le loro ultime dirette',
+      uiAccHabitude:             (k, n, h) => (k === n ? `Le sue ultime ${n} dirette sono iniziate verso le ${h}`
+                                                       : `${k} delle sue ultime ${n} dirette sono iniziate verso le ${h}`),
+      uiRappelEnDirect:          (f) => `${f} è in diretta`,
+      uiRappelCreneau:           (h) => `In programma alle ${h}`,
+      uiRappelFermer:            'Chiudi',
       uiCalCoupe:                'Allineamento disattivato nelle impostazioni',
       uiCalIndispo:              'Allineamento non disponibile: questo browser non può catturare l\'audio',
       uiCalArrete:               'Allineamento fermato',
@@ -1805,6 +1900,22 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccRang:                 (n) => `Nr ${n} w Top 10`,
       uiAccAfficherTout:         'Pokaż wszystko',
       uiAccAfficherMoins:        'Pokaż mniej',
+      uiAccRdv:                  'Zaplanowane transmisje',
+      uiAccAujourdhui:           'Dziś',
+      uiAccDemain:               'Jutro',
+      uiAccDans:                 (d) => `za ${d}`,
+      uiAccAttendu:              'jeszcze nie nadaje',
+      uiAccPrevenir:             'Przypomnij mi',
+      uiAccPrevenu:              'Przypomnienie włączone',
+      uiAccPrevenirTitre:        (nom) => `Powiadomienie w otwartych kartach Twitcha, gdy ${nom} zacznie transmisję`,
+      uiAccHabitudes:            'Bez harmonogramu',
+      uiAccHabitudesNote:        'Kiedy zaczynały się ich ostatnie transmisje',
+      uiAccHabitude:             (k, n, h) => (k === n
+        ? `${plurielSlave(n, ['Ostatnia', 'Ostatnie', 'Ostatnich'])} ${n} ${plurielSlave(n, ['transmisja', 'transmisje', 'transmisji'])} ${plurielSlave(n, ['zaczęła', 'zaczęły', 'zaczęło'])} się około ${h}`
+        : `${k} z ostatnich ${n} transmisji ${plurielSlave(k, ['zaczęła', 'zaczęły', 'zaczęło'])} się około ${h}`),
+      uiRappelEnDirect:          (f) => `${f} nadaje na żywo`,
+      uiRappelCreneau:           (h) => `Zaplanowano na ${h}`,
+      uiRappelFermer:            'Zamknij',
       uiCalCoupe:                'Wyrównanie wyłączone w ustawieniach',
       uiCalIndispo:              'Wyrównanie niedostępne: ta przeglądarka nie przechwytuje dźwięku',
       uiCalArrete:               'Wyrównanie zatrzymane',
@@ -2016,6 +2127,22 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccRang:                 (n) => `№ ${n} в Топ-10`,
       uiAccAfficherTout:         'Показать все',
       uiAccAfficherMoins:        'Показать меньше',
+      uiAccRdv:                  'Запланированные трансляции',
+      uiAccAujourdhui:           'Сегодня',
+      uiAccDemain:               'Завтра',
+      uiAccDans:                 (d) => `через ${d}`,
+      uiAccAttendu:              'ещё не в эфире',
+      uiAccPrevenir:             'Напомнить',
+      uiAccPrevenu:              'Напоминание включено',
+      uiAccPrevenirTitre:        (nom) => `Уведомление в открытых вкладках Twitch, когда ${nom} выйдет в эфир`,
+      uiAccHabitudes:            'Без расписания',
+      uiAccHabitudesNote:        'Когда начинались их последние трансляции',
+      uiAccHabitude:             (k, n, h) => (k === n
+        ? `Последние ${n} ${plurielSlave(n, ['трансляция', 'трансляции', 'трансляций'])} начались около ${h}`
+        : `${k} из ${n} последних трансляций начались около ${h}`),
+      uiRappelEnDirect:          (f) => `${f} в эфире`,
+      uiRappelCreneau:           (h) => `Запланировано на ${h}`,
+      uiRappelFermer:            'Закрыть',
       uiCalCoupe:                'Выравнивание отключено в настройках',
       uiCalIndispo:              'Выравнивание недоступно: этот браузер не может захватывать звук',
       uiCalArrete:               'Выравнивание остановлено',
@@ -2227,6 +2354,21 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccRang:                 (n) => `トップ 10 の ${n} 位`,
       uiAccAfficherTout:         'すべて表示',
       uiAccAfficherMoins:        '表示を減らす',
+      uiAccRdv:                  '予定されている配信',
+      uiAccAujourdhui:           '今日',
+      uiAccDemain:               '明日',
+      uiAccDans:                 (d) => `あと${d}`,
+      uiAccAttendu:              'まだ配信していません',
+      uiAccPrevenir:             'リマインド',
+      uiAccPrevenu:              'リマインド設定済み',
+      uiAccPrevenirTitre:        (nom) => `${nom}が配信を始めたら、開いているTwitchのタブでお知らせします`,
+      uiAccHabitudes:            'スケジュールなし',
+      uiAccHabitudesNote:        '直近の配信が始まった時刻',
+      uiAccHabitude:             (k, n, h) => (k === n ? `直近${n}回の配信は${h}ごろに始まりました`
+                                                       : `直近${n}回のうち${k}回の配信が${h}ごろに始まりました`),
+      uiRappelEnDirect:          (f) => `${f}が配信中`,
+      uiRappelCreneau:           (h) => `${h}に予定`,
+      uiRappelFermer:            '閉じる',
       uiCalCoupe:                '同期は設定でオフになっています',
       uiCalIndispo:              '同期は使えません：このブラウザは音声を取り込めません',
       uiCalArrete:               '同期を停止しました',
@@ -2436,6 +2578,21 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccRang:                 (n) => `前 10 名中第 ${n} 名`,
       uiAccAfficherTout:         '显示全部',
       uiAccAfficherMoins:        '收起',
+      uiAccRdv:                  '计划中的直播',
+      uiAccAujourdhui:           '今天',
+      uiAccDemain:               '明天',
+      uiAccDans:                 (d) => `${d}后`,
+      uiAccAttendu:              '尚未开播',
+      uiAccPrevenir:             '提醒我',
+      uiAccPrevenu:              '已设置提醒',
+      uiAccPrevenirTitre:        (nom) => `当 ${nom} 开播时，在已打开的 Twitch 标签页中提醒`,
+      uiAccHabitudes:            '没有日程',
+      uiAccHabitudesNote:        '最近几场直播的开始时间',
+      uiAccHabitude:             (k, n, h) => (k === n ? `最近 ${n} 场直播都在 ${h} 左右开始`
+                                                       : `最近 ${n} 场直播中有 ${k} 场在 ${h} 左右开始`),
+      uiRappelEnDirect:          (f) => `${f} 正在直播`,
+      uiRappelCreneau:           (h) => `计划于 ${h}`,
+      uiRappelFermer:            '关闭',
       uiCalCoupe:                '对齐已在设置中关闭',
       uiCalIndispo:              '对齐不可用：此浏览器无法捕获声音',
       uiCalArrete:               '对齐已停止',
@@ -4075,6 +4232,29 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     ACCUEIL_VOILE_MS:       1_500,
     ACCUEIL_VOILE_MAX_MS:   6_000,
     ACCUEIL_SYNCHRONE_MS:   10_000,
+    /* Vos rendez-vous (4.27.0), cf. RENDEZ_VOUS. Aujourd'hui et demain ; la
+       seconde passe de l'agenda remonte sept jours pour l'heure habituelle,
+       tant que l'accueil renouvelle sa demande (deux minutes sans lui, elle
+       s'éteint). L'habitude : quatre des six derniers débuts au moins dans la
+       même demi-heure, cinq chaînes au plus. */
+    ACCUEIL_RDV_JOURS:      2,
+    ACCUEIL_RDV_RECUL_MS:   7 * 86_400_000,
+    ACCUEIL_RDV_DEMANDE_MS: 2 * 60_000,
+    ACCUEIL_RDV_MAX:        12,
+    ACCUEIL_HABITUDE_N:     6,
+    ACCUEIL_HABITUDE_MIN:   4,
+    ACCUEIL_HABITUDE_FENETRE_MIN: 30,
+    ACCUEIL_HABITUDES_MAX:  5,
+    ACCUEIL_RDV_RELECTURE_MS: 800,   // pendant une collecte, l'accueil relit l'agenda à ce rythme
+    /* « Me prévenir » : l'alerte se pose dans les onglets Twitch ouverts
+       quand la chaîne passe en direct — dès une demi-heure avant son créneau,
+       jusqu'à une heure après sa fin ; au-delà, le rendez-vous s'oublie. Elle
+       reste un quart d'heure, ou jusqu'à ce qu'on la ferme, dans un onglet ou
+       dans tous. */
+    RAPPEL_AVANCE_MS:       30 * 60_000,
+    RAPPEL_APRES_MS:        60 * 60_000,
+    RAPPEL_ALERTE_MS:       15 * 60_000,
+    RAPPELS_MAX:            20,
 
     /* === Le panneau incrusté ===
        LES DEUX NOMBRES SONT CEUX DE LA POPUP DE BARRE D'OUTILS (cf. la borne
@@ -4177,6 +4357,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        « apercu » : couper l'aperçu le coupe partout. */
     accueilApercu:   { defaut: true,      type: 'bool', sous: ['accueil', 'apercu'] },
     accueilDebut:    { defaut: true,      type: 'bool', sous: ['accueil'] },
+    /* Vos rendez-vous (4.27.0) : ce que vos chaînes ont programmé aujourd'hui
+       et demain, et l'heure de leurs derniers directs quand elles n'ont rien
+       programmé. Coupé : l'agenda ne part plus de l'accueil, et les rappels
+       déjà posés restent, jusqu'à leur heure. */
+    accueilRdv:      { defaut: true,      type: 'bool', sous: ['accueil'] },
 
     abonnes:         { defaut: 'plein',   type: 'choix',
                        valeurs: ['plein', 'discret', 'aucun'], css: true },
@@ -8442,6 +8627,78 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     .tse-acc-ligne-os { margin: 0; font-size: 14px; line-height: 1.3; }
     @keyframes tse-acc-attente { from { opacity: 0.55; } to { opacity: 1; } }
     .tse-acc-debut svg, .tse-acc-bouton svg { flex: 0 0 auto; width: 12px; height: 12px; fill: currentColor; }
+
+    /* ── Vos rendez-vous (4.27.0) ──────────────────────────────────────
+       Une carte sans vignette — il n'y a pas encore d'image à montrer :
+       l'avatar, le nom, le jour et l'heure, le temps qui reste, le titre et
+       la catégorie du créneau, puis « Me prévenir ». Une hauteur fixe : les
+       places vides qui tiennent le rayon le temps de relire la mémoire
+       (cf. peindreRdv) ont celle des vraies cartes, et rien ne bouge quand
+       elles arrivent. */
+    .tse-acc-sous-titre { font-size: 13px; font-weight: 500; color: var(--tse-texte-doux); }
+    .tse-acc-liste--rdv { --tse-col: 250px; }
+    .tse-acc-rdv {
+      display: flex; gap: 12px; min-width: 0; height: 156px; box-sizing: border-box; padding: 12px;
+      border-radius: 6px; background: var(--tse-surface); overflow: hidden;
+    }
+    .tse-acc-rdv--habitude { height: 104px; }
+    .tse-acc-rayon--habitudes .tse-acc-rdv--attente { height: 104px; }
+    .tse-acc-rdv-av { flex: 0 0 48px; display: block; }
+    .tse-acc-rdv .tse-acc-avatar { display: block; flex-basis: 48px; width: 48px; height: 48px; }
+    .tse-acc-rdv .tse-acc-nom { display: block; }
+    .tse-acc-rdv-quand, .tse-acc-rdv-reste {
+      margin: 0; font-size: 13px; font-weight: 600; line-height: 1.35; font-variant-numeric: tabular-nums;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .tse-acc-rdv-quand { margin-top: 4px; color: var(--tse-texte); }
+    .tse-acc-rdv-reste { color: var(--tse-violet-texte); }
+    .tse-acc-rdv-reste--attendu { color: var(--tse-texte-doux); font-weight: 500; }
+    .tse-acc-rdv-habitude {
+      margin: 4px 0 0; font-size: 13px; line-height: 1.4; color: var(--tse-texte-doux);
+      display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+    }
+    .tse-acc-rappel {
+      display: flex; width: fit-content; align-items: center; gap: 5px; min-height: 24px; box-sizing: border-box;
+      margin-top: 8px; padding: 0 8px; border: 0; border-radius: 4px; background: rgba(var(--tse-encre), 0.1);
+      color: var(--tse-texte); font: inherit; font-size: 12px; font-weight: 600; line-height: 24px;
+      white-space: nowrap; cursor: pointer;
+    }
+    .tse-acc-rappel:hover { background: rgba(var(--tse-encre), 0.18); }
+    .tse-acc-rappel[aria-pressed="true"] { background: #9147ff; color: #fff; }
+    .tse-acc-rappel[aria-pressed="true"]:hover { background: #772ce8; }
+    .tse-acc-rappel:focus-visible { outline: 2px solid #9147ff; outline-offset: 2px; }
+    .tse-acc-rappel svg { flex: 0 0 auto; width: 12px; height: 12px; fill: currentColor; }
+    .tse-acc-rdv--attente .tse-acc-avatar { animation: tse-acc-attente 1.1s ease-in-out infinite alternate; }
+
+    /* ── L'alerte d'un rendez-vous (4.27.0, cf. rappels) ─────────────────
+       En bas à gauche, sur la barre : ni sur le lecteur, ni sur le chat.
+       Les couleurs de Twitch quand la page les donne, celles du thème
+       sombre sinon. */
+    #tse-rappels {
+      position: fixed; left: 16px; bottom: 16px; z-index: 6000; display: flex; flex-direction: column; gap: 8px;
+      width: min(360px, calc(100vw - 32px)); pointer-events: none;
+    }
+    .tse-rappel {
+      pointer-events: auto; display: flex; align-items: center; gap: 10px; padding: 10px 8px 10px 12px;
+      border-radius: 8px; background: var(--color-background-alt, #18181b); color: var(--color-text-base, #efeff1);
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(145, 71, 255, 0.7);
+      font-size: 13px; line-height: 1.35;
+    }
+    .tse-rappel-avatar { flex: 0 0 40px; width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
+    .tse-rappel-textes { flex: 1 1 auto; min-width: 0; }
+    .tse-rappel-textes p { margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tse-rappel-creneau { color: var(--color-text-alt, #adadb8); }
+    .tse-rappel-voir {
+      flex: 0 0 auto; padding: 0 10px; border-radius: 4px; background: #9147ff; color: #fff !important;
+      font-weight: 600; line-height: 28px; text-decoration: none !important; white-space: nowrap;
+    }
+    .tse-rappel-voir:hover { background: #772ce8; }
+    .tse-rappel-fermer {
+      flex: 0 0 auto; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 4px; background: transparent;
+      color: inherit; font: inherit; font-size: 18px; line-height: 28px; cursor: pointer;
+    }
+    .tse-rappel-fermer:hover { background: rgba(127, 127, 127, 0.2); }
+    .tse-rappel-voir:focus-visible, .tse-rappel-fermer:focus-visible { outline: 2px solid #9147ff; outline-offset: 2px; }
 
     /* ── Le héros (4.26.0.2 : la vidéo, l'ambiance ; 4.26.0.3 : sans marge) ─
        Son bloc est en tête du défileur de la page, hors de la colonne de
@@ -15747,6 +16004,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       top: { source: null, instantanes: 0 },
       debut: { envois: 0, demandes: 0, archives: 0, sansArchive: 0, sansStream: 0,
                jetons: 0, fermees: 0, illisibles: 0, refus: 0, reseau: 0 },
+      // Vos rendez-vous (4.27.0) : ce qui est montré, et si l'agenda tourne encore.
+      rdv: { lectures: 0, creneaux: 0, habitudes: 0, attente: false, enCours: false },
     };
 
     const surAccueil = () => location.pathname === '/';
@@ -16331,8 +16590,17 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       const note = elt('p', 'tse-acc-note');
       note.hidden = true;
       lTop.after(note);
-      section.append(suivis, top);
-      z = { heros, suivis, tSuivis, lSuivis, top, tTop, lang, lTop, note, langCle: undefined };
+      // Vos rendez-vous (4.27.0), puis les chaînes sans planning, à part (cf. RENDEZ_VOUS).
+      const hRdv = elt('h2', 'tse-acc-titre');
+      hRdv.append(elt('span', null, S.uiAccRdv));
+      const lRdv = elt('div', 'tse-acc-liste tse-acc-liste--rdv');
+      const rdv = fabriquerRayon('rdv', 'tse-acc-rayon--rdv', hRdv, lRdv);
+      const hHab = elt('h2', 'tse-acc-titre');
+      hHab.append(elt('span', null, S.uiAccHabitudes), elt('span', 'tse-acc-sous-titre', S.uiAccHabitudesNote));
+      const lHab = elt('div', 'tse-acc-liste tse-acc-liste--rdv');
+      const hab = fabriquerRayon('habitudes', 'tse-acc-rayon--habitudes', hHab, lHab);
+      section.append(suivis, top, rdv, hab);
+      z = { heros, suivis, tSuivis, lSuivis, top, tTop, lang, lTop, note, rdv, lRdv, hab, lHab, langCle: undefined };
       /* LE LECTEUR NE JOUE QU'À L'ÉCRAN. Le héros descendu hors de la vue,
          sa vidéo s'arrête ; elle reprend quand il revient. */
       if (typeof IntersectionObserver === 'function') {
@@ -16353,6 +16621,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
           large = l;
           plier(z.suivis);
           plier(z.top);
+          plier(z.rdv);
+          plier(z.hab);
         }));
         mesureur.observe(section);
       }
@@ -17013,6 +17283,204 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        Au réveil de cinq secondes, à l'arrivée sur l'accueil et à chaque
        réglage. Elle ne fait que mettre à jour ce qui a changé : une carte
        survolée reste la même carte, et son aperçu reste ouvert. */
+    /* ── VOS RENDEZ-VOUS (4.27.0) ─────────────────────────────────────────────
+       RENDEZ_VOUS. Ce que l'agenda sait des créneaux d'aujourd'hui et de
+       demain (cf. agenda.rendezVous), une carte par créneau, dans l'ordre des
+       heures ; puis, dans un rayon à part, l'heure où les derniers directs
+       d'une chaîne sans planning ont commencé — dite au passé.
+       L'AGENDA PART D'ICI. Rien ne partait tant que le panneau ne l'ouvrait
+       pas ; l'accueil le demande maintenant, au même rythme que le panneau
+       (une requête à la fois, une seconde entre deux), et sa mémoire gardée
+       sert d'abord : un retour sur l'accueil ne redemande que ce qui a passé
+       sa fraîcheur.
+       RIEN NE BOUGE EN ARRIVANT, ici non plus (cf. 4.26.0.5). La mémoire se
+       relit en quelques dizaines de millisecondes, après la première
+       peinture : le nombre de cartes de la dernière visite est retenu, et
+       autant de places vides tiennent la hauteur du rayon le temps de cette
+       lecture. */
+    const CLE_RDV_INDICE = 'tse:accueil:rdv';
+    let rdvIndice = null;
+    const lireIndiceRdv = () => {
+      if (rdvIndice) return rdvIndice;
+      let x = null;
+      try { x = JSON.parse(localStorage.getItem(CLE_RDV_INDICE) || 'null'); } catch { /* illisible */ }
+      const n = (v) => (Number.isInteger(v) && v >= 0 ? Math.min(v, CFG.ACCUEIL_RDV_MAX) : 0);
+      rdvIndice = { c: n(x && x.c), h: n(x && x.h) };
+      return rdvIndice;
+    };
+    const noterIndiceRdv = (c, h) => {
+      const i = lireIndiceRdv();
+      if (i.c === c && i.h === h) return;
+      rdvIndice = { c, h };
+      try { localStorage.setItem(CLE_RDV_INDICE, JSON.stringify(rdvIndice)); } catch { /* stockage refusé */ }
+    };
+    const PICTO_CLOCHE = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5a4.5 4.5 0 0 0-4.5 4.5v2.6L2 11v1h12v-1l-1.5-2.4V6A4.5 4.5 0 0 0 8 1.5zM6.2 13a1.8 1.8 0 0 0 3.6 0z"/></svg>';
+    const heureDe = (t) => new Date(t).toLocaleTimeString(S.locale, { hour: '2-digit', minute: '2-digit' });
+    const heureDuJour = (m) => heureDe(new Date(2000, 0, 1, Math.floor(m / 60), m % 60).getTime());
+    const fabriquerRdv = (it) => {
+      const carte = elt('article', 'tse-acc-rdv');
+      carte.dataset.tseCle = it.cle;
+      const av = elt('img', 'tse-acc-avatar');
+      av.alt = '';
+      av.loading = 'lazy';
+      const lienAv = elt('a', 'tse-acc-rdv-av');
+      lienAv.append(av);
+      const textes = elt('div', 'tse-acc-textes');
+      const nom = elt('a', 'tse-acc-nom');
+      const quand = elt('p', 'tse-acc-rdv-quand');
+      const reste = elt('p', 'tse-acc-rdv-reste');
+      const titre = elt('p', 'tse-acc-titre-carte');
+      const jeu = elt('p', 'tse-acc-jeu');
+      const rappel = elt('button', 'tse-acc-rappel');
+      rappel.type = 'button';
+      rappel.append(noeudStatique(PICTO_CLOCHE), elt('span'));
+      rappel.addEventListener('click', erreurs.garde('accueil', () => {
+        const d = carte.tseRdv;
+        if (!d) return;
+        rappels.basculer({ login: d.login, nom: d.nom, avatar: d.avatar, id: d.id, debut: d.debut, fin: d.fin });
+        majRappel(rappel, d);
+      }));
+      textes.append(nom, quand, reste, titre, jeu, rappel);
+      carte.append(lienAv, textes);
+      return carte;
+    };
+    const majRappel = (b, d) => {
+      const pris = rappels.a(d.login, d.id);
+      attrSi(b, 'aria-pressed', String(pris));
+      texteSi(b.lastChild, pris ? S.uiAccPrevenu : S.uiAccPrevenir);
+      attrSi(b, 'title', S.uiAccPrevenirTitre(d.nom));
+    };
+    const majRdv = (carte, d, maintenant, demain) => {
+      carte.tseRdv = d;
+      const [lienAv, textes] = carte.children;
+      attrSi(lienAv, 'href', '/' + d.login);
+      attrSi(lienAv, 'aria-label', d.nom);
+      const av = lienAv.firstChild;
+      const url = imageSure(d.avatar);
+      av.hidden = !url;
+      if (url) attrSi(av, 'src', url);
+      const [nom, quand, reste, titre, jeu, rappel] = textes.children;
+      texteSi(nom, d.nom);
+      attrSi(nom, 'href', '/' + d.login);
+      texteSi(quand, `${d.debut < demain ? S.uiAccAujourdhui : S.uiAccDemain} · ${heureDe(d.debut)}`);
+      // À la minute supérieure : « dans 1 min » jusqu'à l'heure, jamais « dans 0 min ».
+      texteSi(reste, d.debut > maintenant
+        ? S.uiAccDans(formatDuree(Math.ceil((d.debut - maintenant) / 60_000) * 60_000)) : S.uiAccAttendu);
+      reste.classList.toggle('tse-acc-rdv-reste--attendu', d.debut <= maintenant);
+      texteSi(titre, d.titre || '');
+      attrSi(titre, 'title', d.titre || null);
+      titre.hidden = !d.titre;
+      texteSi(jeu, d.libelle || '');
+      jeu.hidden = !d.libelle;
+      majRappel(rappel, d);
+    };
+    const fabriquerHabitude = (it) => {
+      const carte = elt('article', 'tse-acc-rdv tse-acc-rdv--habitude');
+      carte.dataset.tseCle = it.cle;
+      const av = elt('img', 'tse-acc-avatar');
+      av.alt = '';
+      av.loading = 'lazy';
+      const lienAv = elt('a', 'tse-acc-rdv-av');
+      lienAv.append(av);
+      const textes = elt('div', 'tse-acc-textes');
+      textes.append(elt('a', 'tse-acc-nom'), elt('p', 'tse-acc-rdv-habitude'));
+      carte.append(lienAv, textes);
+      return carte;
+    };
+    const majHabitude = (carte, d) => {
+      const [lienAv, textes] = carte.children;
+      attrSi(lienAv, 'href', '/' + d.login);
+      attrSi(lienAv, 'aria-label', d.nom);
+      const av = lienAv.firstChild;
+      const url = imageSure(d.avatar);
+      av.hidden = !url;
+      if (url) attrSi(av, 'src', url);
+      const [nom, phrase] = textes.children;
+      texteSi(nom, d.nom);
+      attrSi(nom, 'href', '/' + d.login);
+      texteSi(phrase, S.uiAccHabitude(d.k, d.n, heureDuJour(d.vers)));
+    };
+    // Une place vide à la taille d'une carte : l'avatar, quatre lignes, le bouton.
+    const fabriquerRdvAttente = (i) => {
+      const carte = elt('article', 'tse-acc-rdv tse-acc-rdv--attente');
+      carte.dataset.tseCle = 'attente:' + i;
+      carte.setAttribute('aria-hidden', 'true');
+      const lienAv = elt('span', 'tse-acc-rdv-av');
+      lienAv.append(elt('span', 'tse-acc-avatar'));
+      const textes = elt('div', 'tse-acc-textes');
+      for (let k = 0; k < 4; k++) {
+        const p = elt('p', 'tse-acc-ligne-os');
+        p.append(elt('span', 'tse-acc-os'));
+        textes.append(p);
+      }
+      carte.append(lienAv, textes);
+      return carte;
+    };
+    let rdvRelecture = null;
+    const relireRdvBientot = () => {
+      if (rdvRelecture) return;
+      rdvRelecture = setTimeout(erreurs.garde('accueil', () => {
+        rdvRelecture = null;
+        if (pose() && !document.hidden) peindreRdv();
+      }), CFG.ACCUEIL_RDV_RELECTURE_MS);
+    };
+    const peindreRdv = () => {
+      if (!options.get('accueilRdv')) {
+        z.rdv.hidden = true;
+        z.hab.hidden = true;
+        return;
+      }
+      const j0 = new Date();
+      j0.setHours(0, 0, 0, 0);
+      const debut = j0.getTime();
+      const demain = new Date(j0.getFullYear(), j0.getMonth(), j0.getDate() + 1).getTime();
+      const fin = new Date(j0.getFullYear(), j0.getMonth(), j0.getDate() + CFG.ACCUEIL_RDV_JOURS).getTime();
+      let r;
+      try { r = agenda.rendezVous({ debut, fin }); } catch (e) {
+        erreurs.noter('accueil', 'rendez-vous : ' + ((e && e.message) || e));
+        z.rdv.hidden = true;
+        z.hab.hidden = true;
+        return;
+      }
+      bilan.rdv.lectures++;
+      const maintenant = Date.now();
+      const creneaux = r.creneaux.slice(0, CFG.ACCUEIL_RDV_MAX).map((c) => ({ ...c, cle: `${c.login}|${c.id}` }));
+      const habitudes = r.habitudes.map((h) => ({ ...h, cle: h.login }));
+      /* Avant que la mémoire ne soit relue, autant de places vides que la
+         dernière fois : la hauteur est tenue, puis les vraies cartes. Et
+         jusqu'à ce que la collecte FINISSE, pour un rayon encore vide : la
+         mémoire relue ne sait rien des chaînes que la barre n'a pas encore
+         montrées — la liste des suivies se charge à son rythme —, et le rayon
+         disparaissait le temps qu'elles arrivent, pour revenir une seconde
+         plus tard (vu au banc complet, sous charge). */
+      const indice = lireIndiceRdv();
+      const avantMemoire = !r.restauree;
+      const remplir = (rayon, liste, items, nAttente, fabriquer, maj) => {
+        const attente = (avantMemoire || !!r.enCours) && !items.length && nAttente > 0;
+        if (attente !== ('tseAttente' in liste.dataset)) {
+          liste.replaceChildren();
+          if (attente) liste.dataset.tseAttente = ''; else delete liste.dataset.tseAttente;
+        }
+        if (attente) {
+          if (!liste.children.length) for (let i = 1; i <= nAttente; i++) liste.append(fabriquerRdvAttente(i));
+        } else {
+          rangee(liste, items, (x) => x.cle, fabriquer, maj);
+        }
+        rayon.hidden = !attente && !items.length;
+        plier(rayon);
+      };
+      remplir(z.rdv, z.lRdv, creneaux, indice.c, fabriquerRdv, (n, d) => majRdv(n, d, maintenant, demain));
+      remplir(z.hab, z.lHab, habitudes, indice.h, fabriquerHabitude, majHabitude);
+      // Retenu une fois la collecte finie : en cours, un rayon vide n'est pas un rayon sans cartes.
+      if (!avantMemoire && !r.enCours) noterIndiceRdv(creneaux.length, habitudes.length);
+      bilan.rdv.creneaux = creneaux.length;
+      bilan.rdv.habitudes = habitudes.length;
+      bilan.rdv.attente = avantMemoire;
+      bilan.rdv.enCours = !!r.enCours;
+      // La collecte tourne : on relit au rythme de ses réponses, pas du réveil de cinq secondes.
+      if (r.enCours || avantMemoire) relireRdvBientot();
+    };
+
     const peindre = () => {
       if (!pose() || document.hidden) return;
       const t = performance.now();
@@ -17053,7 +17521,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         ? liste.filter((x) => x !== heros).slice(0, CFG.ACCUEIL_SUIVIES_MAX) : [];
       for (const x of suivies) noterAffiche(x.login, x.e.stream?.createdAt);
       peindreSuivies(suivies);
-      section.hidden = !heros && z.suivis.hidden && z.top.hidden;
+      peindreRdv();
+      section.hidden = !heros && z.suivis.hidden && z.top.hidden && z.rdv.hidden && z.hab.hidden;
       if (!section.hidden) aligner();
       verifierPlaceHeros();
       demanderDebuts();
@@ -17090,6 +17559,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       ici = false;
       precharges = [];
       prechargeCle = null;
+      clearTimeout(rdvRelecture);
+      rdvRelecture = null;
     };
     /* Entre deux peintures. Le carrousel que Twitch vient de poser est arrêté
        (cf. appliquerCarrousel), et la section se cale sur les titres de Twitch
@@ -17145,6 +17616,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
           if (!document.hidden && actif()) peindre();
           majLecteur();
         }));
+        // Un rappel posé, retiré ou vu dans un autre onglet : les boutons de l'accueil suivent.
+        rappels.surChangement(erreurs.garde('accueil', () => { if (pose() && !document.hidden) peindreRdv(); }));
         options.surChangement(() => {
           if (!actif()) { retirer(); return; }
           if (!ici) { ici = true; arriver(false); }
@@ -17212,6 +17685,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         chrono: { ...bilan.chrono },
         voile: { ...bilan.voile, levees: { ...bilan.voile.levees }, actif: !!voile },
         amorce: { ...bilan.amorce, chaines: amorce ? amorce.logins.length : 0, decidable: decidable() },
+        // Vos rendez-vous et leurs rappels (4.27.0) : des comptes, aucune chaîne.
+        rdv: { ...bilan.rdv, indice: { ...lireIndiceRdv() } },
+        rappels: rappels.rapport(),
       }),
       // Surface de vérification : le classement propre à l'accueil.
       classement: () => classement,
@@ -21853,6 +22329,20 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     let version = 0;
     // La semaine regardée — son début, et la chaîne choisie : ce que la seconde passe couvre.
     let voulu = { debut: null, chaine: null };
+    /* CE QUE L'ACCUEIL DEMANDE (4.27.0, cf. RENDEZ_VOUS) : les rediffusions
+       des sept derniers jours, d'où se lit l'heure habituelle d'une chaîne
+       sans planning. À côté de la semaine du panneau, jamais à sa place : le
+       panneau peut regarder une autre semaine au même moment, et la seconde
+       passe couvre alors les deux. La demande se périme si l'accueil ne la
+       renouvelle pas — il la renouvelle tant qu'il est à l'écran. */
+    let vouluAccueil = { debut: null, ts: 0 };
+    const demandesPasse2 = () => {
+      const d = voulu.debut !== null ? [voulu] : [];
+      if (vouluAccueil.debut !== null && Date.now() - vouluAccueil.ts <= CFG.ACCUEIL_RDV_DEMANDE_MS) {
+        d.push({ debut: vouluAccueil.debut, chaine: null });
+      }
+      return d;
+    };
     /* LES ISSUES SONT EXCLUSIVES, par opération : servie, refusée par le
        serveur, refusée par le schéma, perdue en route. Leur somme vaut `lots`
        — la règle des compteurs de chapitres, et pour la même raison.
@@ -22029,11 +22519,15 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        cacher d'autres. On redemande alors plus long, une fois ; au-delà, la
        liste est ce qu'elle est. */
     const aCouvrir = (liste) => {
-      const { debut, chaine } = voulu;
-      if (debut === null) return [];
+      const demandes = demandesPasse2();
+      if (!demandes.length) return [];
       const out = [];
       for (const login of liste) {
-        if (chaine && login !== chaine) continue;
+        /* Le plus tôt des débuts qui la concernent : celui de la semaine du
+           panneau, celui de l'accueil, ou les deux (cf. `vouluAccueil`). */
+        let debut = Infinity;
+        for (const x of demandes) if (!x.chaine || x.chaine === login) debut = Math.min(debut, x.debut);
+        if (debut === Infinity) continue;
         const f = chaines.get(login);
         if (!f || f.absente || !actifDepuis(login, f, debut) || !peutRetenter('2:' + login)) continue;
         const d = diffusions.get(login);
@@ -22820,6 +23314,93 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       };
     };
 
+    /* ── LES RENDEZ-VOUS DE L'ACCUEIL (4.27.0) ──────────────────────────────
+       « Vos rendez-vous sport » de Canal+, « Me le rappeler » de Netflix : ce
+       que vos chaînes suivies ont programmé aujourd'hui et demain, dans
+       l'ordre des heures. `debut` et `fin` sont les deux minuits que l'accueil
+       a calculés dans le fuseau du navigateur ; ici, des nombres.
+
+       ET CE QU'ELLES FONT SANS LE DIRE. Peu de chaînes remplissent leur
+       planning. Pour une chaîne que vous regardez et qui n'a rien programmé :
+       l'heure où ses derniers directs ont COMMENCÉ, dite au passé — un
+       constat, « 5 de ses 6 derniers directs ont commencé vers 20:00 », et
+       jamais une promesse (choix de l'auteur, la prévision écartée). Il faut
+       qu'au moins quatre de ses six derniers débuts tombent dans la même
+       demi-heure ; sinon, rien. Les débuts sont ceux des rediffusions, à la
+       seconde : celui d'un direct est celui de son enregistrement. */
+    /* LES DIRECTS, PAS LES ARCHIVES. Une reprise après coupure peut ouvrir un
+       second enregistrement : deux archives à moins d'un quart d'heure l'une
+       de l'autre sont un seul direct, qui a commencé à la première. */
+    const directsDe = (videos) => {
+      const out = [];
+      for (const v of [...videos].sort((a, b) => a.debut - b.debut)) {
+        const prec = out[out.length - 1];
+        if (prec && v.debut - prec.fin < MEME_DIRECT_MS) { prec.fin = Math.max(prec.fin, finVideo(v)); continue; }
+        out.push({ debut: v.debut, fin: finVideo(v) });
+      }
+      return out.reverse();
+    };
+    const habitude = (directs) => {
+      const derniers = directs.slice(0, CFG.ACCUEIL_HABITUDE_N);
+      if (derniers.length < CFG.ACCUEIL_HABITUDE_MIN) return null;
+      const minutes = derniers.map((x) => { const d = new Date(x.debut); return d.getHours() * 60 + d.getMinutes(); });
+      // La demi-heure la plus peuplée, minuit compris : 23:50 et 00:10 sont voisins.
+      let meilleur = null;
+      for (const m0 of minutes) {
+        const ecarts = minutes.map((m) => (m - m0 + 1440) % 1440).filter((e) => e < CFG.ACCUEIL_HABITUDE_FENETRE_MIN);
+        if (!meilleur || ecarts.length > meilleur.ecarts.length) meilleur = { m0, ecarts };
+      }
+      if (meilleur.ecarts.length < CFG.ACCUEIL_HABITUDE_MIN) return null;
+      // Leur médiane, au quart d'heure : « vers 20:00 », pas « vers 19:58 ».
+      const e = [...meilleur.ecarts].sort((a, b) => a - b);
+      const mediane = e.length % 2 ? e[(e.length - 1) / 2] : (e[e.length / 2 - 1] + e[e.length / 2]) / 2;
+      const vers = (Math.round((meilleur.m0 + mediane) / 15) * 15) % 1440;
+      return { k: meilleur.ecarts.length, n: derniers.length, vers };
+    };
+    const rendezVous = (arg) => {
+      const debut = Number(arg?.debut);
+      const fin = Number(arg?.fin);
+      if (!Number.isFinite(debut) || !Number.isFinite(fin) || fin <= debut || fin - debut > 3 * 86_400_000) {
+        throw new Error('rendez-vous invalides');
+      }
+      const maintenant = Date.now();
+      vouluAccueil = { debut: debut - CFG.ACCUEIL_RDV_RECUL_MS, ts: maintenant };
+      restaurer();
+      const c = cibles();
+      purger(c.liste);
+      lancer();
+      const creneaux = [];
+      const habitudes = [];
+      for (const login of c.liste) {
+        const f = chaines.get(login);
+        // Muette depuis trois mois : un planning que personne ne tient (cf. `semaine`).
+        if (!f || f.inconnue || indisponible(f) || muette(login, f, maintenant)) continue;
+        const direct = directDe(login, f);
+        let prevu = false;
+        for (const s of (f.planning && f.planning.creneaux) || []) {
+          if (s.annule || s.debut < debut || s.debut >= fin || finCreneau(s) <= maintenant) continue;
+          if (direct && s.debut <= maintenant) continue;   // c'est le direct en cours
+          prevu = true;
+          creneaux.push({ login, nom: f.nom || login, avatar: f.avatar || null, id: s.id, titre: s.titre,
+                          debut: s.debut, fin: s.fin, jeu: s.jeu, libelle: s.libelle });
+        }
+        // Une chaîne programmée, en direct, ou jamais regardée n'a pas d'habitude à dire.
+        if (prevu || direct) continue;
+        const score = visits.scoreFor(login);
+        if (!(score > 0)) continue;
+        const d = diffusions.get(login);
+        const h = d && d.videos.length ? habitude(directsDe(d.videos)) : null;
+        if (h) habitudes.push({ login, nom: f.nom || login, avatar: f.avatar || null, ...h, score });
+      }
+      creneaux.sort((a, b) => (a.debut - b.debut) || (a.login < b.login ? -1 : 1));
+      habitudes.sort((a, b) => (b.score - a.score) || (a.login < b.login ? -1 : 1));
+      return {
+        version, maintenant, creneaux,
+        habitudes: habitudes.slice(0, CFG.ACCUEIL_HABITUDES_MAX).map(({ score, ...h }) => h),
+        enCours: !!travail || !restauree, restauree, attente: attendue(false), progression: progression(c.liste),
+      };
+    };
+
     const actualiser = () => {
       fraisApres = Date.now();
       echecs.clear();
@@ -22859,7 +23440,210 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       };
     };
 
-    return { semaine, horsLigne, actualiser, effacer, bilan: bilanPublic };
+    return { semaine, horsLigne, rendezVous, actualiser, effacer, bilan: bilanPublic };
+  })();
+
+  /* ============================================================
+   *  LES RAPPELS DES RENDEZ-VOUS (4.27.0)
+   *  -------------------------------------------------------------
+   *  « Me prévenir », sur un créneau de l'accueil : quand la chaîne
+   *  passe en direct — dès une demi-heure avant son créneau, jusqu'à
+   *  une heure après sa fin —, une alerte se pose dans les onglets
+   *  Twitch ouverts. Pas une notification du système : elle
+   *  demanderait une permission, et l'extension n'en a aucune.
+   *
+   *  LA MÉMOIRE EST CELLE DE twitch.tv (localStorage), partagée par
+   *  tous ses onglets, et c'est ce qui les accorde. Le premier onglet
+   *  qui voit la chaîne en direct le note ; les autres l'apprennent
+   *  par l'événement `storage` et posent la même alerte ; la fermer
+   *  dans l'un la ferme dans tous. Un rappel échu s'oublie.
+   *
+   *  CE QU'ON Y GARDE : le login, le créneau, le nom et l'avatar
+   *  qu'affichera l'alerte — rien d'autre, et rien ne sort du
+   *  navigateur. Ce qu'on en relit est vérifié comme le reste des
+   *  mémoires (cf. LA FORME EXACTE) : une page de twitch.tv peut y
+   *  écrire, et ce qui n'a pas la forme attendue n'est pas lu.
+   * ============================================================ */
+  const rappels = (() => {
+    const CLE = 'tse:rappels';
+    const RE_LOGIN_RAPPEL = /^[a-z0-9_]{1,25}$/;
+    const bilan = { poses: 0, retires: 0, evinces: 0, alertes: 0, fermes: 0, echus: 0, demandes: 0, echecs: 0, synchros: 0 };
+    let memo = null;
+    const lire = () => {
+      if (memo) return memo;
+      let x = null;
+      try { x = JSON.parse(localStorage.getItem(CLE) || 'null'); } catch { /* illisible : rien */ }
+      const m = new Map();
+      if (x && typeof x === 'object' && !Array.isArray(x)) {
+        for (const [k, r] of Object.entries(x)) {
+          if (!r || typeof r !== 'object' || !RE_LOGIN_RAPPEL.test(r.login) || typeof r.id !== 'string'
+              || r.id.length > 64 || k !== r.login + '|' + r.id || !Number.isFinite(r.debut)
+              || !(r.fin === null || Number.isFinite(r.fin))) continue;
+          m.set(k, { login: r.login, id: r.id, debut: r.debut, fin: r.fin,
+                     nom: typeof r.nom === 'string' && r.nom ? r.nom.slice(0, 60) : r.login,
+                     avatar: typeof r.avatar === 'string' && /^https:\/\//.test(r.avatar) ? r.avatar : null,
+                     alerte: Number.isFinite(r.alerte) ? r.alerte : null, ferme: r.ferme === true });
+        }
+      }
+      memo = m;
+      return m;
+    };
+    const ecrire = (m) => {
+      memo = m;
+      try {
+        if (!m.size) localStorage.removeItem(CLE);
+        else localStorage.setItem(CLE, JSON.stringify(Object.fromEntries(m)));
+      } catch { bilan.echecs++; }
+      for (const f of abonnes) f();
+    };
+    const abonnes = new Set();
+    // Un créneau sans fin déclarée dure une heure, comme dans l'agenda.
+    const echeance = (r) => (r.fin || r.debut + 3_600_000) + CFG.RAPPEL_APRES_MS;
+    const a = (login, id) => lire().has(login + '|' + id);
+    /* ÉCRIRE, C'EST D'ABORD RELIRE. Un autre onglet a pu écrire depuis la
+       dernière lecture : partir de ce qu'on croyait savoir, c'était effacer
+       son alerte ou sa fermeture, et la faire revenir. */
+    const relire = () => { memo = null; return new Map(lire()); };
+    const basculer = (r) => {
+      if (!r || !RE_LOGIN_RAPPEL.test(r.login) || !Number.isFinite(r.debut)) return;
+      const m = relire();
+      const k = r.login + '|' + String(r.id);
+      if (m.has(k)) { m.delete(k); bilan.retires++; }
+      else {
+        // Plein : le plus proche de son échéance laisse sa place.
+        while (m.size >= CFG.RAPPELS_MAX) {
+          const plusTot = [...m.entries()].sort((x, y) => echeance(x[1]) - echeance(y[1]))[0][0];
+          m.delete(plusTot);
+          bilan.evinces++;
+        }
+        m.set(k, { login: r.login, id: String(r.id).slice(0, 64), debut: r.debut, fin: Number.isFinite(r.fin) ? r.fin : null,
+                   nom: r.nom || r.login, avatar: r.avatar || null, alerte: null, ferme: false });
+        bilan.poses++;
+      }
+      ecrire(m);
+      afficher();
+    };
+    const fermer = (k) => {
+      const m = relire();
+      const r = m.get(k);
+      if (!r || r.ferme) return;
+      m.set(k, { ...r, ferme: true });
+      bilan.fermes++;
+      ecrire(m);
+      afficher();
+    };
+    /* LE RÉVEIL, dans chaque onglet visible (cf. REFRESH_TICK). La chaîne
+       est « en direct pour ce rendez-vous » si son direct a commencé au plus
+       tôt une demi-heure avant le créneau, ou si le créneau a commencé : une
+       chaîne déjà en direct à l'heure dite y est. La barre la suit d'ordinaire
+       (c'est une chaîne suivie) ; sinon, on la demande dans le lot commun. */
+    const tick = () => {
+      const m = relire();
+      if (!m.size) { afficher(); return; }
+      const now = Date.now();
+      let change = false;
+      for (const [k, r] of m) {
+        if (now > echeance(r)) { m.delete(k); bilan.echus++; change = true; continue; }
+        if (r.alerte !== null) {
+          if (!r.ferme && now - r.alerte > CFG.RAPPEL_ALERTE_MS) { m.set(k, { ...r, ferme: true }); change = true; }
+          continue;
+        }
+        if (now < r.debut - CFG.RAPPEL_AVANCE_MS) continue;
+        const e = cache.get(r.login);
+        const frais = !!e && now - (e.ts || 0) <= 2 * CFG.LIVE_TTL;
+        const s = frais ? e.stream : null;
+        const depuis = s ? Date.parse(s.createdAt) : NaN;
+        if (s && (now >= r.debut || (Number.isFinite(depuis) && depuis >= r.debut - CFG.RAPPEL_AVANCE_MS))) {
+          m.set(k, { ...r, alerte: now });
+          bilan.alertes++;
+          change = true;
+        } else if ((!e || now - (e.ts || 0) > CFG.LIVE_TTL) && !enVolLogins.has(r.login) && !queue.has(r.login)) {
+          bilan.demandes++;
+          fetchChannel(r.login);
+        }
+      }
+      if (change) ecrire(m);
+      afficher();
+    };
+
+    /* L'ALERTE : en bas à gauche, sur la barre — ni sur le lecteur, ni sur
+       le chat. « Regarder » mène au direct et la ferme partout ; la croix la
+       ferme partout. */
+    let boite = null;
+    const fabriquer = (k, r) => {
+      const n = document.createElement('div');
+      n.className = 'tse-rappel';
+      n.dataset.tseCle = k;
+      const av = document.createElement('img');
+      av.className = 'tse-rappel-avatar';
+      av.alt = '';
+      if (r.avatar) av.src = r.avatar; else av.hidden = true;
+      const textes = document.createElement('div');
+      textes.className = 'tse-rappel-textes';
+      const l1 = document.createElement('p');
+      l1.appendChild(phraseAvecFente(S.uiRappelEnDirect(FENTE), () => {
+        const b = document.createElement('strong');
+        b.textContent = r.nom;
+        return b;
+      }));
+      const l2 = document.createElement('p');
+      l2.className = 'tse-rappel-creneau';
+      l2.textContent = S.uiRappelCreneau(new Date(r.debut).toLocaleTimeString(S.locale, { hour: '2-digit', minute: '2-digit' }));
+      textes.append(l1, l2);
+      const voir = document.createElement('a');
+      voir.className = 'tse-rappel-voir';
+      voir.href = '/' + r.login;
+      voir.textContent = S.uiAccRegarder;
+      voir.addEventListener('click', () => fermer(k));
+      const x = document.createElement('button');
+      x.type = 'button';
+      x.className = 'tse-rappel-fermer';
+      x.setAttribute('aria-label', S.uiRappelFermer);
+      x.title = S.uiRappelFermer;
+      x.textContent = '×';
+      x.addEventListener('click', () => fermer(k));
+      n.append(av, textes, voir, x);
+      return n;
+    };
+    const afficher = () => {
+      const actives = [...lire().entries()].filter(([, r]) => r.alerte !== null && !r.ferme);
+      if (!actives.length) { if (boite) { boite.remove(); boite = null; } return; }
+      if (!document.body) return;
+      if (!boite || !boite.isConnected) {
+        boite = document.createElement('div');
+        boite.id = 'tse-rappels';
+        boite.setAttribute('role', 'status');
+        boite.setAttribute('aria-live', 'polite');
+        document.body.appendChild(boite);
+      }
+      const restants = new Map([...boite.children].map((n) => [n.dataset.tseCle, n]));
+      for (const [k, r] of actives) {
+        if (restants.has(k)) { restants.delete(k); continue; }
+        boite.appendChild(fabriquer(k, r));
+      }
+      for (const n of restants.values()) n.remove();
+    };
+    // Revenu sur un onglet : il voit tout de suite ce que les autres ont vu.
+    document.addEventListener('visibilitychange', erreurs.garde('rappels', () => { if (!document.hidden) tick(); }));
+    /* Un autre onglet a écrit : on relit, et l'alerte suit — sur-le-champ,
+       sans attendre le réveil suivant (cinq secondes). Le rapport compte ces
+       relectures (`synchros`) : c'est la seule trace de ce chemin-là. */
+    window.addEventListener('storage', erreurs.garde('rappels', (ev) => {
+      if (ev.key !== CLE && ev.key !== null) return;
+      memo = null;
+      bilan.synchros++;
+      afficher();
+      for (const f of abonnes) f();
+    }));
+    const surChangement = (f) => { abonnes.add(f); };
+    const rapport = () => {
+      const m = lire();
+      const v = [...m.values()];
+      return { ...bilan, actifs: v.filter((r) => r.alerte === null).length,
+               montrees: v.filter((r) => r.alerte !== null && !r.ferme).length,
+               fermees: v.filter((r) => r.ferme).length };
+    };
+    return { a, basculer, tick, afficher, surChangement, rapport };
   })();
 
   /* ============================================================
@@ -35080,6 +35864,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       globalChannels.tick();
       // L'accueil : sa peinture et son propre classement — rien ailleurs qu'à « / ».
       pageAccueil.tick();
+      // Les rappels des rendez-vous, sur toutes les pages : l'alerte vient où l'on est.
+      rappels.tick();
     }, CFG.REFRESH_TICK);
 
     // Entretien : purge mémoire + auto-diagnostic. Aucun rapport avec la

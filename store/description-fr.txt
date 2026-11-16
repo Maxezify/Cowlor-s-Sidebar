@@ -191,7 +191,7 @@ La page de programme d'une chaîne, sur Twitch, ne montre qu'une chaîne. Le gro
 - ★ HORS LIGNE, MAIS PAS OUBLIÉES ★ Chaque chaîne suivie qui n'est pas en direct : celles qui ont programmé leur prochain direct d'abord, le plus proche en tête, puis les autres, la plus récente d'abord — quand elle a diffusé pour la dernière fois, sa rediffusion, et son prochain direct. Les chaînes au planning abandonné — plus un direct depuis trois mois — n'y figurent pas.
 - ★ UNE CHAÎNE OU TOUTES ★ Un menu n'en garde qu'une, et « Sa semaine » mène droit à la semaine de son dernier direct.
 - ★ FRANC SUR CE QUE TWITCH GARDE ★ Une rediffusion n'existe que si la chaîne archive ses directs, et tant que Twitch les conserve ; un dernier direct qui n'en a pas le dit (« Sans rediffusion »), une rediffusion qu'on ne peut voir qu'abonné aussi, d'un cadenas, avant le clic.
-- ★ SEULEMENT QUAND VOUS REGARDEZ ★ Rien n'est demandé à Twitch avant que vous l'ouvriez, et ce qu'il a lu reste dans votre navigateur : un rechargement reprend où il en était.
+- ★ SEULEMENT QUAND VOUS REGARDEZ ★ Rien n'est demandé à Twitch avant que vous l'ouvriez — ou que l'accueil de Twitch montre vos rendez-vous —, et ce qu'il a lu reste dans votre navigateur : un rechargement reprend où il en était.
 
 _______________________________
 
@@ -201,6 +201,7 @@ Sur la page d'accueil de Twitch, l'extension pose ses propres rayons au-dessus d
 - ★ VOTRE CHAÎNE N°1, EN TÊTE ★ À la place du carrousel de Twitch : celle de vos chaînes suivies en direct que vous regardez le plus. Sur toute la largeur : son image d'abord, puis son direct, muet et sans publicité, comme l'aperçu au survol ; et sous le texte, ses couleurs, en direct elles aussi. Aucune de celles que vous regardez n'est en direct ? Le carrousel revient. Vous préférez le carrousel, ou rien du tout ? C'est un réglage.
 - ★ VOS CHAÎNES SUIVIES D'ABORD ★ Un rayon de vos chaînes en direct, dans l'ordre de celles que vous regardez le plus — sans une requête de plus : ce sont celles que la barre suit déjà.
 - ★ LE TOP 10 DE VOTRE LANGUE ★ Les dix premières places du classement exact de Top Chaînes, dans la langue de votre Twitch ou toutes langues confondues, en grands chiffres, avec ce qui a bougé en trente minutes : places gagnées, places perdues, nouvelles venues. Calculé seulement pendant que l'accueil est à l'écran.
+- ★ VOS RENDEZ-VOUS ★ Ce que vos chaînes suivies ont programmé aujourd'hui et demain, avec le temps qu'il reste. « Me prévenir » : une alerte dans vos onglets Twitch ouverts quand la chaîne passe en direct, sans notification du système ni permission. Pour une chaîne que vous regardez et qui n'a rien programmé : l'heure à laquelle ses derniers directs ont commencé, quand elle se répète — ce qu'elle a fait, pas ce qu'elle fera.
 - ★ « DEPUIS LE DÉBUT » ★ Arrivé en retard ? Un bouton ouvre la rediffusion du direct en cours à sa toute première seconde. Le bouton n'apparaît que si vous pouvez la voir : la chaîne garde ses rediffusions et les ouvre à tous, ou vous y êtes abonné.
 - ★ L'APERÇU AU SURVOL, ICI AUSSI ★ Sur les cartes de l'accueil, celles de l'extension comme celles de Twitch.
 - ★ À VOTRE GUISE ★ Chaque partie s'éteint à part dans « Réglages » ; tout coupé, l'accueil redevient celui de Twitch, tel quel.
@@ -235,7 +236,7 @@ Twitch a un thème clair. L'extension le voit et bascule avec lui — sans recha
 _______________________________
 
 ➤ ⚙️ ET SI VOUS VOULEZ CHOISIR
-Tout est actif d'emblée et il n'y a rien à régler. Mais « Réglages », dans le panneau, vous rend la main sur vingt-neuf réglages.
+Tout est actif d'emblée et il n'y a rien à régler. Mais « Réglages », dans le panneau, vous rend la main sur trente réglages.
 
 - ★ CE QUE VOUS VOYEZ ★ Chaque badge, la durée du direct et son format, la barre « vient de démarrer », l'or des abonnements, les filtres, les boutons de tri : tout s'allume et s'éteint à la case.
 - ★ CE QUI SE CHARGE ★ L'aperçu peut se passer de la vidéo et garder ses badges, sa frise et sa miniature — ou simplement descendre en qualité. De quoi l'alléger sans le perdre.

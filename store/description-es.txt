@@ -191,7 +191,7 @@ La página de horario de un canal, en Twitch, muestra un solo canal. El grupo «
 - ★ DESCONECTADOS, PERO NO OLVIDADOS ★ Cada canal seguido que no está en directo: primero los que tienen un directo programado, el más cercano arriba, y después los demás, el más reciente primero — cuándo emitió por última vez, su repetición y su próximo directo. Los canales con una programación abandonada — sin un directo desde hace tres meses — no aparecen.
 - ★ UN CANAL O TODOS ★ Un menú deja uno solo, y «Su semana» lleva directamente a la semana de su último directo.
 - ★ CLAROS CON LO QUE TWITCH GUARDA ★ Una repetición solo existe si el canal guarda sus directos, y mientras Twitch los conserve; un último directo sin ella lo dice («Sin repetición»), y una repetición que solo se puede ver con suscripción también, con un candado, antes del clic.
-- ★ SOLO CUANDO MIRÁIS ★ No se le pide nada a Twitch antes de que lo abráis, y lo que ha leído se queda en vuestro navegador: al recargar, sigue donde estaba.
+- ★ SOLO CUANDO MIRÁIS ★ No se le pide nada a Twitch antes de que lo abráis —o de que el inicio de Twitch muestre vuestros directos programados—, y lo que ha leído se queda en vuestro navegador: al recargar, sigue donde estaba.
 
 _______________________________
 
@@ -201,6 +201,7 @@ En la página de inicio de Twitch, la extensión coloca sus propias filas encima
 - ★ TU CANAL N.º 1, ARRIBA ★ En lugar del carrusel de Twitch: el canal seguido en directo que más ves. En todo el ancho: primero su imagen, luego su directo, sin sonido y sin anuncios, como la vista previa; y bajo el texto, sus colores, también en directo. ¿Ninguno de los canales que ves está en directo? El carrusel vuelve. ¿Prefieres el carrusel, o nada? Es un ajuste.
 - ★ TUS CANALES SEGUIDOS, PRIMERO ★ Una fila con tus canales en directo, en el orden de los que más ves, sin ninguna petición más: son los que la barra ya sigue.
 - ★ EL TOP 10 DE TU IDIOMA ★ Los diez primeros puestos de la clasificación exacta de Top Canales, en el idioma de tu Twitch o en todos los idiomas, en cifras grandes, con lo que se ha movido en treinta minutos: puestos ganados, puestos perdidos, recién llegados. Solo se calcula mientras el inicio está en pantalla.
+- ★ TUS DIRECTOS PROGRAMADOS ★ Lo que tus canales seguidos han programado para hoy y mañana, con el tiempo que falta. «Recordármelo»: un aviso en tus pestañas de Twitch abiertas cuando el canal empieza en directo, sin notificación del sistema ni permiso. Para un canal que ves y que no ha programado nada: la hora a la que empezaron sus últimos directos, cuando se repite; lo que hizo, no lo que hará.
 - ★ «DESDE EL PRINCIPIO» ★ ¿Llegaste tarde? Un botón abre la repetición del directo en curso en su primerísimo segundo. El botón solo aparece cuando puedes verla: el canal guarda sus repeticiones y las abre a todos, o estás suscrito.
 - ★ LA VISTA PREVIA AL PASAR EL RATÓN, AQUÍ TAMBIÉN ★ En las tarjetas del inicio, las de la extensión y las de Twitch.
 - ★ COMO QUIERAS ★ Cada parte se apaga por separado en «Ajustes»; todo apagado, el inicio vuelve a ser el de Twitch, tal cual.
@@ -235,7 +236,7 @@ Twitch tiene un tema claro. La extensión lo detecta y cambia con él: sin recar
 _______________________________
 
 ➤ ⚙️ Y SI QUIERES ELEGIR
-Todo está activo desde el principio y no hay nada que configurar. Pero «Ajustes», en el panel, te devuelve el mando sobre veintinueve ajustes.
+Todo está activo desde el principio y no hay nada que configurar. Pero «Ajustes», en el panel, te devuelve el mando sobre treinta ajustes.
 
 - ★ LO QUE VES ★ Cada insignia, la duración del directo y su formato, la barra «acaba de empezar», el oro de las suscripciones, los filtros, los botones de orden: todo se enciende y se apaga con una casilla.
 - ★ LO QUE SE CARGA ★ La vista previa puede prescindir del vídeo y conservar sus insignias, su línea de tiempo y su miniatura, o simplemente bajar de calidad. Lo justo para aligerarla sin perderla.

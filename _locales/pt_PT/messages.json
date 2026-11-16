@@ -551,7 +551,7 @@
     "message": "A página inicial da Twitch"
   },
   "guideAccueilTexte": {
-    "message": "Na página inicial da Twitch, a extensão coloca as suas próprias filas acima das da Twitch, na mesma coluna e alinhadas com elas. Ajustam-se em «Definições», grupo «Página inicial».\n• «Seu canal nº 1 ao vivo»: o canal seguido em direto que mais vês ocupa o lugar do carrossel da Twitch, em toda a largura. Primeiro a imagem, depois a transmissão, sem som e sem anúncios, como a pré-visualização ao passar o rato; o fundo assume as cores dela. Quando nenhum dos canais que vês está em direto, o carrossel volta. «Como na Twitch» mantém-no sempre; «Nada» retira-o e para o vídeo dele.\n• «Seus canais seguidos ao vivo»: uma fila, pela ordem dos que mais vês, sem nenhum pedido a mais — são os canais da barra.\n• «Top 10»: os dez primeiros lugares do Top Canais, no idioma da interface da Twitch ou em todos os idiomas, em números grandes. Logo à direita do nome, uma seta mostra os lugares ganhos ou perdidos em trinta minutos, ou desde que chegaste à página inicial; «Novo» marca um canal que não estava no Top 10.\n• Cada fila mostra uma linha; «Mostrar tudo», a meio do traço de baixo, revela o resto.\n• «Desde o início» abre a gravação da transmissão em curso no primeiro segundo. Só aparece quando a podes ver: o canal guarda as gravações e abre-as a todos, ou és subscritor.\n• A pré-visualização ao passar o rato também abre nos cartões da página inicial: os da extensão e os da Twitch."
+    "message": "Na página inicial da Twitch, a extensão coloca as suas próprias filas acima das da Twitch, na mesma coluna e alinhadas com elas. Ajustam-se em «Definições», grupo «Página inicial».\n• «Seu canal nº 1 ao vivo»: o canal seguido em direto que mais vês ocupa o lugar do carrossel da Twitch, em toda a largura. Primeiro a imagem, depois a transmissão, sem som e sem anúncios, como a pré-visualização ao passar o rato; o fundo assume as cores dela. Quando nenhum dos canais que vês está em direto, o carrossel volta. «Como na Twitch» mantém-no sempre; «Nada» retira-o e para o vídeo dele.\n• «Seus canais seguidos ao vivo»: uma fila, pela ordem dos que mais vês, sem nenhum pedido a mais — são os canais da barra.\n• «Top 10»: os dez primeiros lugares do Top Canais, no idioma da interface da Twitch ou em todos os idiomas, em números grandes. Logo à direita do nome, uma seta mostra os lugares ganhos ou perdidos em trinta minutos, ou desde que chegaste à página inicial; «Novo» marca um canal que não estava no Top 10.\n• «Suas transmissões programadas»: o que os canais que segues programaram para hoje e amanhã, com o tempo que falta. «Lembrete» mostra um aviso nos teus separadores abertos do Twitch quando o canal entra em direto — não uma notificação do sistema. Logo abaixo, «Sem programação»: para um canal que vês e que não programou nada, a hora a que começaram as suas últimas transmissões, quando se repete — o que fez, não o que fará.\n• Cada fila mostra uma linha; «Mostrar tudo», a meio do traço de baixo, revela o resto.\n• «Desde o início» abre a gravação da transmissão em curso no primeiro segundo. Só aparece quando a podes ver: o canal guarda as gravações e abre-as a todos, ou és subscritor.\n• A pré-visualização ao passar o rato também abre nos cartões da página inicial: os da extensão e os da Twitch."
   },
   "guideViteTitre": {
     "message": "Mais rápida do que o Twitch, e mais limpa"
@@ -784,6 +784,12 @@
   "optDescAccueilDebut": {
     "message": "Nos cartões da extensão, um botão que abre a gravação da transmissão em curso no primeiro segundo. Só quando a podes ver: o canal guarda as gravações e abre-as a todos, ou és subscritor."
   },
+  "optAccueilRdv": {
+    "message": "As tuas transmissões programadas"
+  },
+  "optDescAccueilRdv": {
+    "message": "O que os canais que segues programaram para hoje e amanhã, com o tempo que falta. «Lembrete» mostra um aviso nos teus separadores abertos da Twitch quando o canal entra em direto. Para um canal que vês e que não programou nada: a hora a que começaram as suas últimas transmissões, quando se repete."
+  },
   "optValHeros": {
     "message": "O teu canal n.º 1"
   },
@@ -941,7 +947,7 @@
     "message": "Repor todas as definições?"
   },
   "optResetText": {
-    "message": "As vinte e nove definições desta página voltam ao valor original. Os teus dados — visitas, subscrições, canais seguidos — não são tocados."
+    "message": "As trinta definições desta página voltam ao valor original. Os teus dados — visitas, subscrições, canais seguidos — não são tocados."
   },
   "optValPlein": {
     "message": "Completo"
