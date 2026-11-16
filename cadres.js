@@ -385,11 +385,19 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         try { auto = lecteur.isAutoQualityMode ? lecteur.isAutoQualityMode() : null; } catch { /* ignore */ }
       }
       const nom = actuelle && typeof actuelle.name === 'string' ? actuelle.name : null;
-      const dit = `${nom}|${auto}`;
+      /* AU RAPPORT AUSSI (4.32.0.2) : les hauteurs de l'échelle que la chaîne
+         sert à ce lecteur — un plafond s'y lit d'un coup d'œil — et celle de
+         l'image réellement décodée, que le nom de qualité ne dit pas toujours. */
+      const echelleVue = [...new Set(echelle.map((q) => q && q.height).filter((h) => Number.isFinite(h)))]
+        .sort((a, b) => a - b).join('/');
+      const v = document.querySelector('video');
+      const decodee = v && Number.isFinite(v.videoHeight) && v.videoHeight > 0 ? v.videoHeight : null;
+      const dit = `${nom}|${auto}|${echelleVue}|${decodee}`;
       if (dit === heros.dit) return;
       heros.dit = dit;
       try {
-        window.parent.postMessage({ tse: TSE_HEROS_QUALITE_MSG, nom, auto: typeof auto === 'boolean' ? auto : null }, heros.origine);
+        window.parent.postMessage({ tse: TSE_HEROS_QUALITE_MSG, nom, auto: typeof auto === 'boolean' ? auto : null,
+                                    echelle: echelleVue, decodee }, heros.origine);
       } catch { /* parent parti */ }
     };
     window.addEventListener('message', (e) => {

@@ -4385,6 +4385,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        de Top Chaînes : ses cadences sont les siennes (GLOBAL_*). */
     ACCUEIL_TOP_N:          10,
     ACCUEIL_SUIVIES_MAX:    24,     // cartes du rayon des chaînes suivies
+    /* LA GRILLE DES RAYONS (4.26.0.2) : autant de colonnes que tient une carte
+       de 290 pixels au moins, et ces écarts. Les rayons de Twitch la prennent
+       aussi depuis la 4.32.0.2 (cf. RANGER). */
+    ACCUEIL_CARTE_MIN:      290,
+    ACCUEIL_ECARTS:         '20px 14px',
     // L'évolution du Top 10 : trente minutes au plus, deux au moins, un instantané par minute.
     ACCUEIL_EVOLUTION_MS:   30 * 60_000,
     ACCUEIL_EVOLUTION_MIN_MS: 2 * 60_000,
@@ -4481,11 +4486,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     POURQUOI_N:             30,
     POURQUOI_CARTES:        12,
     POURQUOI_TTL:           10 * 60_000,
-    /* RANGER L'ACCUEIL DE TWITCH (4.32.0, cf. RANGER). Huit cartes par
-       rangée à partir de 1600 pixels de large ; cinquante catégories
-       masquées au plus, gardées sur l'appareil. */
-    RANGER_COLONNES:        8,
-    RANGER_LARGEUR_MIN:     1600,
+    /* RANGER L'ACCUEIL DE TWITCH (4.32.0, cf. RANGER) : cinquante catégories
+       masquées au plus, gardées sur l'appareil. Les cartes de ses rayons
+       prennent la grille des nôtres (4.32.0.2, cf. ACCUEIL_CARTE_MIN). */
     RANGER_MASQUES_MAX:     50,
 
     /* === Le panneau incrusté ===
@@ -8781,9 +8784,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       border-top: 1px solid var(--color-border-base, rgba(var(--tse-encre), 0.12));
     }
     .tse-acc-liste {
-      --tse-col: 290px;
+      --tse-col: ${CFG.ACCUEIL_CARTE_MIN}px;
       display: grid; grid-template-columns: repeat(auto-fill, minmax(min(var(--tse-col), 100%), 1fr));
-      gap: 20px 14px; margin: 0; padding: 0; list-style: none;
+      gap: ${CFG.ACCUEIL_ECARTS}; margin: 0; padding: 0; list-style: none;
     }
     /* La hauteur du bouton même sans bouton (4.26.0.5) : le Top 10 l'obtient
        en arrivant — dix places pour cinq colonnes —, et tout ce qui suit
@@ -8877,13 +8880,21 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     html[data-tse-ranger] main h2[data-tse-masquable]:hover::after { color: var(--tse-texte); background: rgba(var(--tse-encre), 0.14); }
     html[data-tse-ranger] main [data-tse-masque] [aria-labelledby] { display: none !important; }
     html[data-tse-ranger] main [data-tse-masque] h2[data-tse-masquable] { opacity: 0.6; }
-    @media (min-width: ${CFG.RANGER_LARGEUR_MIN}px) {
-      html[data-tse-ranger] main .find-me [aria-labelledby] .tw-tower {
-        display: grid !important; grid-template-columns: repeat(${CFG.RANGER_COLONNES}, minmax(0, 1fr)) !important; gap: 0 10px !important;
-      }
-      html[data-tse-ranger] main .find-me [aria-labelledby] .tw-tower > * {
-        width: auto !important; min-width: 0 !important; max-width: none !important; flex: none !important; margin: 0 !important;
-      }
+    /* LES RAYONS DE TWITCH À LA TAILLE DES NÔTRES (4.32.0.2, « les listes
+       natives sont plus petites ; reprends ce que l'extension fait ») : la
+       grille de nos rayons — autant de colonnes que tient une carte de
+       ${CFG.ACCUEIL_CARTE_MIN} pixels, les mêmes écarts —, à toutes les
+       largeurs. Jusque-là, huit colonnes à partir de 1600 pixels : des
+       cartes plus petites que les nôtres, juste au-dessus. Seulement les
+       rayons de directs — ceux qui portent des cartes d'aperçu — : les
+       jaquettes des catégories gardent la mise en page de Twitch. */
+    html[data-tse-ranger] main .find-me [aria-labelledby] .tw-tower:has(a[data-a-target="preview-card-image-link"]) {
+      display: grid !important; grid-template-columns: repeat(auto-fill, minmax(min(${CFG.ACCUEIL_CARTE_MIN}px, 100%), 1fr)) !important;
+      gap: ${CFG.ACCUEIL_ECARTS} !important;
+    }
+    html[data-tse-ranger] main .find-me [aria-labelledby] .tw-tower:has(a[data-a-target="preview-card-image-link"]) > * {
+      width: auto !important; min-width: 0 !important; max-width: none !important; flex: none !important; margin: 0 !important;
+      padding: 0 !important;
     }
     html[data-tse-ranger] main a[data-tse-vignette] { background: #18181b var(--tse-vignette) center / cover no-repeat; }
     html[data-tse-ranger] main a[data-tse-vignette="avatar"] { background-size: contain; }
@@ -16364,7 +16375,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       heros: { montre: false, sansVisite: false, place: null, rejets: [], attentes: 0, precharges: 0,
                video: { poses: 0, premieres: 0, filets: 0, modales: 0, retours: 0, delais: 0, retraits: 0,
                         // La qualité (4.32.0.1) : la hauteur dite au pont, et ce que le lecteur en joue.
-                        hauteur: null, qualite: null, auto: null },
+                        hauteur: null, qualite: null, auto: null,
+                        // L'échelle que la chaîne sert au lecteur, et la hauteur décodée (4.32.0.2).
+                        echelle: null, decodee: null },
                ambiance: { demandes: 0, images: 0, rejets: 0 } },
       top: { source: null, instantanes: 0 },
       debut: { envois: 0, demandes: 0, archives: 0, sansArchive: 0, sansStream: 0,
@@ -17049,7 +17062,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       else if ('tseReserve' in a.dataset) delete a.dataset.tseReserve;
       if (!ok) { attrSi(a, 'href', null); attrSi(a, 'title', null); }
       else {
-        attrSi(a, 'href', `/videos/${d.id}?t=0s`);
+        /* `t=1s`, et non `t=0s` (4.32.0.2) : signalé, « il n'amène pas depuis
+           le début ». La seule lecture qui l'explique — Twitch n'est pas
+           joignable du banc — : un temps nul vaut « pas de temps », et la
+           rediffusion reprend où vous en étiez. Une seconde, explicite. */
+        attrSi(a, 'href', `/videos/${d.id}?t=1s`);
         attrSi(a, 'title', S.uiAccDebutTitre(nom));
       }
       if ((ok || garde) && !a.firstChild) a.append(noeudStatique(PICTO_DEBUT), elt('span', null, S.uiAccDebut));
@@ -17629,6 +17646,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
           const nom = typeof e.data.nom === 'string' ? e.data.nom.slice(0, 24) : null;
           bilan.heros.video.qualite = nom;
           bilan.heros.video.auto = typeof e.data.auto === 'boolean' ? e.data.auto : null;
+          // L'échelle servie et la hauteur décodée (4.32.0.2), vérifiées avant d'être gardées.
+          const ech = typeof e.data.echelle === 'string' && /^[0-9/]{0,64}$/.test(e.data.echelle) ? e.data.echelle : null;
+          const dec = Number.isInteger(e.data.decodee) && e.data.decodee > 0 && e.data.decodee <= 4320 ? e.data.decodee : null;
+          bilan.heros.video.echelle = ech;
+          bilan.heros.video.decodee = dec;
         }
         else if (quoi === TSE_PREVIEW_GATE_MSG && !l.modale) {
           // Une interstitielle : plus de dévoilement à l'aveugle, et l'image si elle reste.

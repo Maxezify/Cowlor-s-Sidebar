@@ -206,7 +206,7 @@ Sulla pagina iniziale di Twitch, l'estensione mette le sue file sopra quelle di 
 - ★ UN'ETICHETTA PER SCHEDA ★ Sulle schede della home, quelle dell'estensione come quelle di Twitch: un fatto, uno solo — «Di ritorno dopo 41 giorni», «Appena iniziato», «È appena passato a Elden Ring», «↗ +38% in 10 min», «N. 3 in italiano»… Niente di indovinato: nessun fatto visto, nessuna etichetta. Per un canale che la barra non segue, i suoi numeri vengono chiesti finché la sua scheda è sullo schermo.
 - ★ MENTRE ERI VIA ★ Torni dopo più di un giorno? Un riquadro dice cosa hanno trasmesso nel frattempo i canali che segui: le dirette e la loro durata, la più vista delle loro clip e l'ultima replica a un clic. Una richiesta di clip per canale e per assenza.
 - ★ PERCHÉ GUARDI SPESSO… ★ Sulla home, righe che dicono perché: «14 visite in 30 giorni» per un canale, e cosa è in diretta nella sua categoria abituale, nella tua lingua, fuori dai canali che segui.
-- ★ RIORDINARE LA HOME DI TWITCH ★ Nascondi con un clic la riga di una categoria che non ti interessa, passa a otto schede per riga sugli schermi grandi e sostituisci le miniature «?» con l'ultima replica o l'avatar. Nulla viene tolto dalla pagina di Twitch.
+- ★ RIORDINARE LA HOME DI TWITCH ★ Nascondi con un clic la riga di una categoria che non ti interessa, dai alle sue schede delle dirette la misura di quelle dell'estensione e sostituisci le miniature «?» con l'ultima replica o l'avatar. Nulla viene tolto dalla pagina di Twitch.
 - ★ L'ANTEPRIMA AL PASSAGGIO, ANCHE QUI ★ Sulle schede della home, quelle dell'estensione come quelle di Twitch.
 - ★ COME VUOI TU ★ Ogni parte si spegne da sola in «Impostazioni»; tutto spento, la home torna quella di Twitch, così com'è.
 
