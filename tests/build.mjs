@@ -195,6 +195,8 @@ const subs = [
   // D'emblée (4.26.0.5) : la page suivie de près deux secondes, le voile borné à trois en tout.
   [/ACCUEIL_SYNCHRONE_MS:\s*10_000/,  'ACCUEIL_SYNCHRONE_MS:   2_000'],
   [/ACCUEIL_VOILE_MAX_MS:\s*6_000/,   'ACCUEIL_VOILE_MAX_MS:   3_000'],
+  // « À la une » (4.32.0.3) : sa place gardée quatre secondes au banc, plus que le carrousel posé après nous (cf. 220 a).
+  [/ACCUEIL_UNE_ATTENTE_MS:\s*8_000/, 'ACCUEIL_UNE_ATTENTE_MS: 4_000'],
   /* Vos rendez-vous (4.27.0) : l'agenda relu tous les dixièmes de seconde
      pendant sa collecte, et l'alerte d'un rappel qui se ferme seule au bout
      de trois secondes au lieu d'un quart d'heure. */
