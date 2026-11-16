@@ -33,7 +33,7 @@
  *  C'est à la fois un piège et une garde :
  *
  *   — le PIÈGE : dans le cadre principal, ce fichier et content.js
- *     tournent ensemble. Les dix-sept noms qu'ils partagent — celui
+ *     tournent ensemble. Les dix-huit noms qu'ils partagent — celui
  *     de chaque frame, le type de chaque message — ne peuvent donc
  *     être globaux que d'un côté. Ils le sont dans content.js ; ici,
  *     ils vivent dans le bloc plus bas, hors de la portée de la page.
@@ -105,7 +105,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
   + '[data-test-selector="ad-banner-default-text"]';
 
 /* ── CE QUE content.js EMPLOIE AUSSI : DANS UN BLOC, HORS DE LA PAGE ──────
-   Les dix-sept noms partagés sont déclarés ici en `const` de bloc : dans le
+   Les dix-huit noms partagés sont déclarés ici en `const` de bloc : dans le
    cadre principal, content.js les déclare au premier niveau, et une seconde
    déclaration globale du même nom y ferait échouer l'un des deux fichiers.
    Tout ce qui suit les emploie, et vit donc dans la même portée. */
@@ -583,6 +583,11 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
   const TSE_SALLE_CONSOLE_MSG = 'tse:salle-console';
   const TSE_SALLE_CONSOLE_REPONSE = 'tse:salle-console-reponse';
   const TSE_SALLE_CHAT_NAME = 'tse-salle-chat';
+  /* LES LECTEURS DU ZAPPING (4.33.0) prennent le même pont, sous leur nom :
+     le son, le silence, la pause, la reprise, la qualité, l'avertissement
+     levé. La salle ne les écoute pas — elle ne reçoit que de ses tuiles — et
+     le zapping ne lit que l'état. */
+  const TSE_ZAP_FRAME_NAME = 'tse-zapping';
 
   (() => {
     'use strict';
@@ -590,7 +595,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     try {
       if (window.top === window) return;
       if (location.hostname !== 'player.twitch.tv') return;
-      if (window.name !== TSE_SALLE_FRAME_NAME) return;
+      if (window.name !== TSE_SALLE_FRAME_NAME && window.name !== TSE_ZAP_FRAME_NAME) return;
     } catch { return; }
     const parentConnu = tseOrigineParent();
     if (parentConnu && !TSE_PREVIEW_PARENTS.includes(parentConnu)) return;

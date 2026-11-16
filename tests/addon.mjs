@@ -487,12 +487,13 @@ ok('le bloc content_scripts est identique à celui de l\'autre branche',
     && bloc.get(n) !== premier['content.js'].get(n))
     .map(n => `${n} : ${bloc.get(n)} ≠ ${premier['content.js'].get(n)}`);
   const partages = [...bloc.keys()].filter(n => premier['content.js'].has(n));
-  /* Dix-sept, le nombre que les deux en-têtes écrivent : un nom partagé de
+  /* Dix-huit, le nombre que les deux en-têtes écrivent : un nom partagé de
      plus doit y être dit, et ce contrôle le rappelle. Quatorze jusqu'à la
      4.26.0.1 ; l'ambiance du héros de l'accueil en a ajouté deux, la
-     qualité de sa vidéo un (4.32.0.1). */
+     qualité de sa vidéo un (4.32.0.1), le nom des lecteurs du zapping un
+     (4.33.0). */
   ok(`2. cadres.js redéclare dans son bloc, à la même valeur, les ${partages.length} noms qu'il emprunte à content.js`,
-     manquants.length === 0 && differents.length === 0 && partages.length === 17
+     manquants.length === 0 && differents.length === 0 && partages.length === 18
      && empruntes.length === partages.length,
      JSON.stringify({ manquants, differents, partages: partages.length, empruntes: empruntes.length }));
 

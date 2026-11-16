@@ -523,6 +523,12 @@
   "guideSalleTexte": {
     "message": "Le curseur « ▶ » posé sur la barre d'un co-stream ouvre ses streams côte à côte, sur la page — chacun dans sa tuile.\n• Survolez-le : il dit ce qu'il ouvre — « Regarder les 3 ». Des visages à son bout ? Des membres que vous ne suivez pas : allez vers eux pour les ajouter. Maj+clic ouvre directement tout le co-stream.\n• Un clic sur une tuile lui donne le son — les touches 1 à 6 aussi —, et le chat suit le son. Sans Chat partagé, des onglets au-dessus du chat en affichent un autre sans changer le son.\n• Six streams au plus à l'écran : les autres attendent dessous, un clic les fait entrer.\n• Les streams se calent seuls sur leur son commun, en une minute d'écoute environ ; sans son commun, rien ne bouge. « Alignement automatique » se coupe dans « Réglages ».\n• À gauche de « Masquer le chat », deux lignes disent où en est le calage : sur quelle tuile il se cale, puis l'état de chaque autre — « à l'écoute 2/6 » (les calculs du son qui comptent, sur ceux qu'il faut), « retard 0,30 s, à confirmer », « vérification », puis « Tout est calé ». Le point est vert quand tout est calé, ambre tant que le calage travaille ou attend, rouge quand une tuile ne peut pas être corrigée, gris en pause ou coupé ; l'infobulle donne le détail, tuile par tuile.\n• La salle ne fait pas gagner de points de chaîne, et les publicités de Twitch y passent comme ailleurs.\n• Pour la refermer : Échap, ou un clic sur le curseur, devenu « ■ »."
   },
+  "guideZapTitre": {
+    "message": "Le zapping"
+  },
+  "guideZapTexte": {
+    "message": "Le bouton à droite de la loupe de la recherche ouvre vos chaînes suivies en direct, en plein écran, dans l'ordre de la barre.\n• ↑ et ↓ changent de chaîne ; au bout, on repart du début. Un clic dans la colonne de droite mène à la sienne.\n• La suivante est déjà chargée — « préchargée » — : elle s'affiche d'un coup.\n• Entrée ouvre la chaîne ; Échap referme, et la vidéo de la page reprend.\n• S ajoute la chaîne à la salle, O ouvre la salle dès deux — six au plus. Une salle déjà ouverte se ferme à l'ouverture du zapping ; ses streams restent dans la sélection.\n• « Son de … », en bas à droite, coupe le son et le rend.\n• « Zapping » se coupe dans « Réglages »."
+  },
   "guideDebutTitre": {
     "message": "Les débuts, et les reprises"
   },
@@ -732,6 +738,15 @@
   },
   "optDescSalleAuto": {
     "message": "Les streams sont calés par leur son commun — les lèvres de chaque stream sur sa voix telle qu'on l'entend. Il faut environ une minute d'écoute ; sans son commun, rien ne bouge. Coupé : rien ne bouge seul."
+  },
+  "optGrpZapping": {
+    "message": "Zapping"
+  },
+  "optZapping": {
+    "message": "Zapping"
+  },
+  "optDescZapping": {
+    "message": "Un bouton à droite de la loupe de la recherche ouvre vos chaînes suivies en direct, en plein écran, l'une après l'autre : ↑ et ↓ pour changer, Entrée pour ouvrir la chaîne, S pour l'ajouter à la salle, O pour ouvrir la salle, Échap pour quitter. La suivante est déjà chargée. La vidéo de la page s'arrête le temps du zapping ; une salle ouverte se ferme, et ses streams restent à rouvrir. Coupé : ni bouton, ni écran."
   },
   "optGrpAccueil": {
     "message": "Page d'accueil"
@@ -992,7 +1007,7 @@
     "message": "Remettre tous les réglages par défaut ?"
   },
   "optResetText": {
-    "message": "Les trente-cinq réglages de cette page reviendront à leur valeur d'origine. Vos données — visites, abonnements, chaînes suivies — ne sont pas touchées."
+    "message": "Les trente-six réglages de cette page reviendront à leur valeur d'origine. Vos données — visites, abonnements, chaînes suivies — ne sont pas touchées."
   },
   "optValPlein": {
     "message": "Complet"

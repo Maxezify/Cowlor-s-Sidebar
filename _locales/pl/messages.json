@@ -523,6 +523,12 @@
   "guideSalleTexte": {
     "message": "Kursor „▶” na pasku co-streamu otwiera jego transmisje obok siebie, na stronie — każdą w jej kafelku.\n• Najedź na niego: mówi, co otworzy — „Oglądaj 3 naraz”. Twarze na jego końcu? To uczestnicy, których nie obserwujesz: najedź na nich, aby ich dodać. Shift+klik otwiera od razu cały co-stream.\n• Kliknięcie kafelka daje mu dźwięk — klawisze od 1 do 6 też — a czat podąża za dźwiękiem. Bez wspólnego czatu zakładki nad czatem pokazują inny, nie zmieniając dźwięku.\n• Najwyżej sześć transmisji na ekranie: pozostałe czekają pod spodem, a kliknięcie je wprowadza.\n• Transmisje same wyrównują się do wspólnego dźwięku, po mniej więcej minucie słuchania; bez wspólnego dźwięku nic się nie rusza. „Automatyczne wyrównanie” wyłączysz w sekcji „Ustawienia”.\n• Na lewo od „Ukryj czat” dwa wiersze mówią, na jakim etapie jest wyrównanie: do którego kafelka się wyrównuje, a potem stan każdego innego — „nasłuch 2/6” (liczące się obliczenia dźwięku spośród potrzebnych), „z tyłu o 0,30 s, do potwierdzenia”, „sprawdzanie”, a na koniec „Wszystko wyrównane”. Kropka jest zielona, gdy wszystko jest wyrównane, bursztynowa, gdy wyrównanie pracuje lub czeka, czerwona, gdy kafelka nie da się poprawić, szara w pauzie lub po wyłączeniu; podpowiedź podaje szczegóły, kafelek po kafelku.\n• Sala nie daje punktów kanału, a reklamy Twitcha lecą w niej jak wszędzie.\n• Aby ją zamknąć: Esc albo kliknięcie kursora, który zmienił się w „■”."
   },
+  "guideZapTitre": {
+    "message": "Zapping"
+  },
+  "guideZapTexte": {
+    "message": "Przycisk na prawo od lupy wyszukiwania otwiera obserwowane kanały, które nadają na żywo, na pełnym ekranie, w kolejności z paska bocznego.\n• ↑ i ↓ zmieniają kanał; po ostatnim wraca się do pierwszego. Kliknięcie w prawej kolumnie prowadzi do danego kanału.\n• Następny jest już „wczytany”: pojawia się od razu.\n• Enter otwiera kanał; Esc zamyka, a wideo strony rusza dalej.\n• S dodaje kanał do sali, O otwiera salę od dwóch kanałów — najwyżej sześciu. Otwarta już sala zamyka się przy otwarciu zappingu; jej streamy zostają w wyborze.\n• „Dźwięk: …” w prawym dolnym rogu wyłącza i włącza dźwięk.\n• „Zapping” wyłącza się w „Ustawieniach”."
+  },
   "guideDebutTitre": {
     "message": "Początki i powroty"
   },
@@ -732,6 +738,15 @@
   },
   "optDescSalleAuto": {
     "message": "Streamy są synchronizowane według wspólnego dźwięku — usta każdego streamu do jego głosu, tak jak go słychać. Potrzeba około minuty słuchania; bez wspólnego dźwięku nic się nie przesuwa. Wyłączone: nic nie przesuwa się samo."
+  },
+  "optGrpZapping": {
+    "message": "Zapping"
+  },
+  "optZapping": {
+    "message": "Zapping"
+  },
+  "optDescZapping": {
+    "message": "Przycisk na prawo od lupy wyszukiwania otwiera obserwowane kanały, które nadają na żywo, na pełnym ekranie, jeden po drugim: ↑ i ↓ zmieniają kanał, Enter otwiera kanał, S dodaje go do sali, O otwiera salę, Esc zamyka. Następny jest już wczytany. Wideo strony zatrzymuje się na czas zappingu; otwarta sala się zamyka, a jej streamy czekają na ponowne otwarcie. Wyłączone: ani przycisku, ani ekranu."
   },
   "optGrpAccueil": {
     "message": "Strona główna"
@@ -992,7 +1007,7 @@
     "message": "Przywrócić wszystkie ustawienia domyślne?"
   },
   "optResetText": {
-    "message": "Na tej stronie trzydzieści pięć ustawień wróci do wartości pierwotnych. Twoje dane — wizyty, subskrypcje, obserwowane kanały — pozostają nietknięte."
+    "message": "Na tej stronie trzydzieści sześć ustawień wróci do wartości pierwotnych. Twoje dane — wizyty, subskrypcje, obserwowane kanały — pozostają nietknięte."
   },
   "optValPlein": {
     "message": "Pełne"

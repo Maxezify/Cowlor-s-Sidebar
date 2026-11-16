@@ -5,9 +5,11 @@
 //     avant: '…texte exact, présent une seule fois…', apres: '…', scenarios: [120] }
 // Chacun est appliqué seul à une copie de l'arbre (le dépôt n'est jamais
 // touché), éprouvé par ses scénarios, puis retiré. PRIS : au moins une
-// assertion tombe. VIVANT : toutes passent — un trou du banc. INTROUVABLE :
+// assertion tombe (même si le banc plante ensuite : noté). VIVANT : toutes
+// passent — un trou du banc. INTROUVABLE :
 // le texte `avant` n'est pas là une fois et une seule. ERREUR : le banc n'a
-// pas rendu de bilan (plantage, délai dépassé) ; ce n'est pas une prise.
+// pas rendu de bilan (plantage, délai dépassé) sans qu'aucune assertion soit
+// tombée ; ce n'est pas une prise.
 import { spawnSync } from 'node:child_process';
 import { appendFileSync, writeFileSync, readFileSync, cpSync, rmSync, symlinkSync, realpathSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -68,7 +70,10 @@ for (const m of liste) {
       const r = spawnSync('node', ['tests/_extrait.mjs'], { cwd: copie, encoding: 'utf8', timeout: 30 * 60_000,
                                                              env: { ...process.env, TSE_SUIVI: F.mutantBanc } });
       const d = derouler(lireJsonl(F.mutantBanc));
-      if (!d.bilan) {
+      if (!d.bilan && d.echoues) {
+        // Une assertion est tombée, puis le banc a planté : le mutant est pris, le plantage noté.
+        res = { etat: 'pris', plante: true, reussis: d.reussis, echoues: d.echoues, rates: d.echecs.slice(0, 6).map((e) => e.nom) };
+      } else if (!d.bilan) {
         res = { etat: 'erreur', sortie: ((r.stderr || '') + (r.stdout || '')).split('\n').slice(-25).join('\n') };
       } else {
         res = { etat: d.bilan.echoues ? 'pris' : 'vivant', reussis: d.bilan.reussis, echoues: d.bilan.echoues,
@@ -86,7 +91,7 @@ for (const m of liste) {
   const etiquette = { pris: 'PRIS       ', vivant: 'VIVANT     ', introuvable: 'INTROUVABLE', erreur: 'ERREUR     ' }[res.etat];
   const detail = res.etat === 'introuvable' ? `${res.fois} fois`
     : res.etat === 'erreur' ? res.sortie.split('\n').filter(Boolean).at(-1) || ''
-    : `${res.reussis} réussis, ${res.echoues} échoués${res.rates.length ? ' | ' + res.rates.join(' ‖ ') : ''}`;
+    : `${res.reussis} réussis, ${res.echoues} échoués${res.plante ? ', puis le banc a planté' : ''}${res.rates.length ? ' | ' + res.rates.join(' ‖ ') : ''}`;
   console.log(`${etiquette} | ${m.id} ${m.nom} | ${detail}`);
 }
 rmSync(join(copie, 'tests', '_extrait.mjs'), { force: true });

@@ -167,6 +167,8 @@ const TSE_SALLE_RELEVE_MSG = 'tse:salle-releve';
 const TSE_SALLE_CONSOLE_MSG = 'tse:salle-console';
 const TSE_SALLE_CONSOLE_REPONSE = 'tse:salle-console-reponse';
 const TSE_SALLE_CHAT_NAME = 'tse-salle-chat';
+// Les lecteurs du zapping (4.33.0) : le pont de la salle, sous un nom à eux (cf. cadres.js).
+const TSE_ZAP_FRAME_NAME = 'tse-zapping';
 // Le relevé des chaînes suivies : sa frame, et la clé de ce qu'elle poste.
 const TSE_SUIVIES_FRAME_NAME = 'tse-suivies';
 const TSE_SUIVIES_MSG = 'tse:suivies';
@@ -485,6 +487,29 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiSalleSonPour:            (nom) => `Donner le son à ${nom}`,
       uiSalleChat:               (nom) => `Chat de ${nom}`,
       uiSalleChatSon:            (nom) => `Son de ${nom}`,
+      // Le zapping (4.33.0).
+      uiZapBouton:               'Zapping : vos suivis en direct',
+      uiZapTitre:                'Zapping · vos suivis en direct',
+      uiZapListe:                'Vos suivis en direct',
+      uiZapChanger:              'changer',
+      uiZapPrecedente:           'Chaîne précédente',
+      uiZapSuivante:             'Chaîne suivante',
+      uiZapOuvrir:               'ouvrir la chaîne',
+      uiZapSalleAjouter:         'ajouter à la salle',
+      uiZapSalleRetirer:         'retirer de la salle',
+      uiZapSalleOuvrir:          (n) => `ouvrir la salle (${n})`,
+      uiZapQuitter:              'quitter',
+      uiZapEntree:               'Entrée',
+      uiZapEchap:                'Échap',
+      uiZapPrechargee:           'préchargée',
+      uiZapDansSalle:            'dans la salle',
+      uiZapVide:                 'Aucune de vos chaînes suivies n\'est en direct.',
+      uiZapMuet:                 'Son coupé',
+      uiZapSonTitre:             'Couper ou rendre le son',
+      uiZapHorsLigne:            'Hors ligne',
+      uiZapSubathon:             (n) => (n === null ? 'subathon' : `subathon, jour ${n}`),
+      uiZapSallePleine:          (n) => `La salle tient ${n} streams au plus.`,
+      uiZapSalleDeux:            'Il faut au moins deux chaînes pour ouvrir la salle.',
       uiSalleOnglets:            'Choisir le chat',
       uiSalleOnglet:             (nom) => `Afficher le chat de ${nom}, sans changer le son`,
       uiSalleChatMasque:         'Chat masqué : fenêtre trop étroite',
@@ -778,6 +803,29 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiSalleSonPour:            (nom) => `Give the sound to ${nom}`,
       uiSalleChat:               (nom) => `${nom}'s chat`,
       uiSalleChatSon:            (nom) => `Sound from ${nom}`,
+      // Le zapping (4.33.0).
+      uiZapBouton:               'Zapping: your followed channels, live',
+      uiZapTitre:                'Zapping · your followed channels, live',
+      uiZapListe:                'Your followed channels, live',
+      uiZapChanger:              'switch',
+      uiZapPrecedente:           'Previous channel',
+      uiZapSuivante:             'Next channel',
+      uiZapOuvrir:               'open the channel',
+      uiZapSalleAjouter:         'add to the room',
+      uiZapSalleRetirer:         'remove from the room',
+      uiZapSalleOuvrir:          (n) => `open the room (${n})`,
+      uiZapQuitter:              'exit',
+      uiZapEntree:               'Enter',
+      uiZapEchap:                'Esc',
+      uiZapPrechargee:           'preloaded',
+      uiZapDansSalle:            'in the room',
+      uiZapVide:                 'None of your followed channels is live.',
+      uiZapMuet:                 'Sound off',
+      uiZapSonTitre:             'Mute or unmute',
+      uiZapHorsLigne:            'Offline',
+      uiZapSubathon:             (n) => (n === null ? 'subathon' : `subathon, day ${n}`),
+      uiZapSallePleine:          (n) => `The room holds ${n} streams at most.`,
+      uiZapSalleDeux:            'The room needs at least two channels.',
       uiSalleOnglets:            'Choose the chat',
       uiSalleOnglet:             (nom) => `Show ${nom}'s chat, without changing the sound`,
       uiSalleChatMasque:         'Chat hidden: window too narrow',
@@ -1024,6 +1072,29 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiSalleSonPour:            (nom) => `Ton für ${nom} einschalten`,
       uiSalleChat:               (nom) => `Chat von ${nom}`,
       uiSalleChatSon:            (nom) => `Ton von ${nom}`,
+      // Le zapping (4.33.0).
+      uiZapBouton:               'Zapping: deine gefolgten Kanäle, live',
+      uiZapTitre:                'Zapping · deine gefolgten Kanäle, live',
+      uiZapListe:                'Deine gefolgten Kanäle, live',
+      uiZapChanger:              'wechseln',
+      uiZapPrecedente:           'Vorheriger Kanal',
+      uiZapSuivante:             'Nächster Kanal',
+      uiZapOuvrir:               'Kanal öffnen',
+      uiZapSalleAjouter:         'zum Raum hinzufügen',
+      uiZapSalleRetirer:         'aus dem Raum entfernen',
+      uiZapSalleOuvrir:          (n) => `Raum öffnen (${n})`,
+      uiZapQuitter:              'beenden',
+      uiZapEntree:               'Enter',
+      uiZapEchap:                'Esc',
+      uiZapPrechargee:           'vorgeladen',
+      uiZapDansSalle:            'im Raum',
+      uiZapVide:                 'Keiner deiner gefolgten Kanäle ist live.',
+      uiZapMuet:                 'Ton aus',
+      uiZapSonTitre:             'Ton aus- oder einschalten',
+      uiZapHorsLigne:            'Offline',
+      uiZapSubathon:             (n) => (n === null ? 'Subathon' : `Subathon, Tag ${n}`),
+      uiZapSallePleine:          (n) => `Der Raum fasst höchstens ${n} Streams.`,
+      uiZapSalleDeux:            'Der Raum braucht mindestens zwei Kanäle.',
       uiSalleOnglets:            'Chat auswählen',
       uiSalleOnglet:             (nom) => `Chat von ${nom} anzeigen, ohne den Ton zu wechseln`,
       uiSalleChatMasque:         'Chat ausgeblendet: Fenster zu schmal',
@@ -1270,6 +1341,29 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiSalleSonPour:            (nom) => `Dar el sonido a ${nom}`,
       uiSalleChat:               (nom) => `Chat de ${nom}`,
       uiSalleChatSon:            (nom) => `Sonido de ${nom}`,
+      // Le zapping (4.33.0).
+      uiZapBouton:               'Zapping: tus canales seguidos en directo',
+      uiZapTitre:                'Zapping · tus canales seguidos en directo',
+      uiZapListe:                'Tus canales seguidos en directo',
+      uiZapChanger:              'cambiar',
+      uiZapPrecedente:           'Canal anterior',
+      uiZapSuivante:             'Canal siguiente',
+      uiZapOuvrir:               'abrir el canal',
+      uiZapSalleAjouter:         'añadir a la sala',
+      uiZapSalleRetirer:         'quitar de la sala',
+      uiZapSalleOuvrir:          (n) => `abrir la sala (${n})`,
+      uiZapQuitter:              'salir',
+      uiZapEntree:               'Intro',
+      uiZapEchap:                'Esc',
+      uiZapPrechargee:           'precargado',
+      uiZapDansSalle:            'en la sala',
+      uiZapVide:                 'Ninguno de tus canales seguidos está en directo.',
+      uiZapMuet:                 'Sin sonido',
+      uiZapSonTitre:             'Quitar o devolver el sonido',
+      uiZapHorsLigne:            'Desconectado',
+      uiZapSubathon:             (n) => (n === null ? 'subatón' : `subatón, día ${n}`),
+      uiZapSallePleine:          (n) => `La sala admite ${n} streams como máximo.`,
+      uiZapSalleDeux:            'La sala necesita al menos dos canales.',
       uiSalleOnglets:            'Elegir el chat',
       uiSalleOnglet:             (nom) => `Mostrar el chat de ${nom}, sin cambiar el sonido`,
       uiSalleChatMasque:         'Chat oculto: ventana demasiado estrecha',
@@ -1516,6 +1610,29 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiSalleSonPour:            (nom) => `Dar o som a ${nom}`,
       uiSalleChat:               (nom) => `Chat de ${nom}`,
       uiSalleChatSon:            (nom) => `Som de ${nom}`,
+      // Le zapping (4.33.0).
+      uiZapBouton:               'Zapping: seus canais seguidos ao vivo',
+      uiZapTitre:                'Zapping · seus canais seguidos ao vivo',
+      uiZapListe:                'Seus canais seguidos ao vivo',
+      uiZapChanger:              'mudar',
+      uiZapPrecedente:           'Canal anterior',
+      uiZapSuivante:             'Próximo canal',
+      uiZapOuvrir:               'abrir o canal',
+      uiZapSalleAjouter:         'adicionar à sala',
+      uiZapSalleRetirer:         'tirar da sala',
+      uiZapSalleOuvrir:          (n) => `abrir a sala (${n})`,
+      uiZapQuitter:              'sair',
+      uiZapEntree:               'Enter',
+      uiZapEchap:                'Esc',
+      uiZapPrechargee:           'pré-carregado',
+      uiZapDansSalle:            'na sala',
+      uiZapVide:                 'Nenhum dos seus canais seguidos está ao vivo.',
+      uiZapMuet:                 'Sem som',
+      uiZapSonTitre:             'Tirar ou devolver o som',
+      uiZapHorsLigne:            'Offline',
+      uiZapSubathon:             (n) => (n === null ? 'subathon' : `subathon, dia ${n}`),
+      uiZapSallePleine:          (n) => `A sala comporta no máximo ${n} streams.`,
+      uiZapSalleDeux:            'A sala precisa de pelo menos dois canais.',
       uiSalleOnglets:            'Escolher o chat',
       uiSalleOnglet:             (nom) => `Mostrar o chat de ${nom}, sem trocar o som`,
       uiSalleChatMasque:         'Chat oculto: janela estreita demais',
@@ -1762,6 +1879,29 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiSalleSonPour:            (nom) => `Dai l'audio a ${nom}`,
       uiSalleChat:               (nom) => `Chat di ${nom}`,
       uiSalleChatSon:            (nom) => `Audio di ${nom}`,
+      // Le zapping (4.33.0).
+      uiZapBouton:               'Zapping: i tuoi canali seguiti in diretta',
+      uiZapTitre:                'Zapping · i tuoi canali seguiti in diretta',
+      uiZapListe:                'I tuoi canali seguiti in diretta',
+      uiZapChanger:              'cambia',
+      uiZapPrecedente:           'Canale precedente',
+      uiZapSuivante:             'Canale successivo',
+      uiZapOuvrir:               'apri il canale',
+      uiZapSalleAjouter:         'aggiungi alla sala',
+      uiZapSalleRetirer:         'togli dalla sala',
+      uiZapSalleOuvrir:          (n) => `apri la sala (${n})`,
+      uiZapQuitter:              'esci',
+      uiZapEntree:               'Invio',
+      uiZapEchap:                'Esc',
+      uiZapPrechargee:           'precaricato',
+      uiZapDansSalle:            'nella sala',
+      uiZapVide:                 'Nessuno dei tuoi canali seguiti è in diretta.',
+      uiZapMuet:                 'Audio disattivato',
+      uiZapSonTitre:             'Disattiva o riattiva l\'audio',
+      uiZapHorsLigne:            'Offline',
+      uiZapSubathon:             (n) => (n === null ? 'subathon' : `subathon, giorno ${n}`),
+      uiZapSallePleine:          (n) => `La sala contiene al massimo ${n} stream.`,
+      uiZapSalleDeux:            'Servono almeno due canali per aprire la sala.',
       uiSalleOnglets:            'Scegli la chat',
       uiSalleOnglet:             (nom) => `Mostra la chat di ${nom}, senza cambiare l'audio`,
       uiSalleChatMasque:         'Chat nascosta: finestra troppo stretta',
@@ -2008,6 +2148,29 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiSalleSonPour:            (nom) => `Włącz dźwięk: ${nom}`,
       uiSalleChat:               (nom) => `Czat: ${nom}`,
       uiSalleChatSon:            (nom) => `Dźwięk: ${nom}`,
+      // Le zapping (4.33.0).
+      uiZapBouton:               'Zapping: obserwowane kanały na żywo',
+      uiZapTitre:                'Zapping · obserwowane kanały na żywo',
+      uiZapListe:                'Obserwowane kanały na żywo',
+      uiZapChanger:              'zmień',
+      uiZapPrecedente:           'Poprzedni kanał',
+      uiZapSuivante:             'Następny kanał',
+      uiZapOuvrir:               'otwórz kanał',
+      uiZapSalleAjouter:         'dodaj do sali',
+      uiZapSalleRetirer:         'usuń z sali',
+      uiZapSalleOuvrir:          (n) => `otwórz salę (${n})`,
+      uiZapQuitter:              'wyjdź',
+      uiZapEntree:               'Enter',
+      uiZapEchap:                'Esc',
+      uiZapPrechargee:           'wczytany',
+      uiZapDansSalle:            'w sali',
+      uiZapVide:                 'Żaden z obserwowanych kanałów nie nadaje na żywo.',
+      uiZapMuet:                 'Dźwięk wyłączony',
+      uiZapSonTitre:             'Wyłącz lub włącz dźwięk',
+      uiZapHorsLigne:            'Offline',
+      uiZapSubathon:             (n) => (n === null ? 'subathon' : `subathon, dzień ${n}`),
+      uiZapSallePleine:          (n) => `Sala mieści najwyżej ${n} ${n === 1 ? 'stream' : [2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? 'streamy' : 'streamów'}.`,
+      uiZapSalleDeux:            'Sala potrzebuje co najmniej dwóch kanałów.',
       uiSalleOnglets:            'Wybierz czat',
       uiSalleOnglet:             (nom) => `Pokaż czat: ${nom}, bez zmiany dźwięku`,
       uiSalleChatMasque:         'Czat ukryty: okno jest za wąskie',
@@ -2259,6 +2422,29 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiSalleSonPour:            (nom) => `Включить звук: ${nom}`,
       uiSalleChat:               (nom) => `Чат: ${nom}`,
       uiSalleChatSon:            (nom) => `Звук: ${nom}`,
+      // Le zapping (4.33.0).
+      uiZapBouton:               'Переключение: отслеживаемые каналы в эфире',
+      uiZapTitre:                'Переключение · отслеживаемые каналы в эфире',
+      uiZapListe:                'Отслеживаемые каналы в эфире',
+      uiZapChanger:              'переключить',
+      uiZapPrecedente:           'Предыдущий канал',
+      uiZapSuivante:             'Следующий канал',
+      uiZapOuvrir:               'открыть канал',
+      uiZapSalleAjouter:         'добавить в зал',
+      uiZapSalleRetirer:         'убрать из зала',
+      uiZapSalleOuvrir:          (n) => `открыть зал (${n})`,
+      uiZapQuitter:              'выйти',
+      uiZapEntree:               'Enter',
+      uiZapEchap:                'Esc',
+      uiZapPrechargee:           'загружен заранее',
+      uiZapDansSalle:            'в зале',
+      uiZapVide:                 'Ни один из отслеживаемых каналов сейчас не в эфире.',
+      uiZapMuet:                 'Звук выключен',
+      uiZapSonTitre:             'Выключить или включить звук',
+      uiZapHorsLigne:            'Не в сети',
+      uiZapSubathon:             (n) => (n === null ? 'сабатон' : `сабатон, день ${n}`),
+      uiZapSallePleine:          (n) => `В зале не больше ${n} ${n % 10 === 1 && n % 100 !== 11 ? 'трансляции' : 'трансляций'}.`,
+      uiZapSalleDeux:            'Для зала нужно не меньше двух каналов.',
       uiSalleOnglets:            'Выбрать чат',
       uiSalleOnglet:             (nom) => `Показать чат: ${nom}, не меняя звук`,
       uiSalleChatMasque:         'Чат скрыт: окно слишком узкое',
@@ -2509,6 +2695,29 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiSalleSonPour:            (nom) => `${nom} の音声に切り替え`,
       uiSalleChat:               (nom) => `${nom} のチャット`,
       uiSalleChatSon:            (nom) => `音声：${nom}`,
+      // Le zapping (4.33.0).
+      uiZapBouton:               'ザッピング：フォロー中のライブ',
+      uiZapTitre:                'ザッピング · フォロー中のライブ',
+      uiZapListe:                'フォロー中のライブ',
+      uiZapChanger:              '切り替え',
+      uiZapPrecedente:           '前のチャンネル',
+      uiZapSuivante:             '次のチャンネル',
+      uiZapOuvrir:               'チャンネルを開く',
+      uiZapSalleAjouter:         'ルームに追加',
+      uiZapSalleRetirer:         'ルームから外す',
+      uiZapSalleOuvrir:          (n) => `ルームを開く (${n})`,
+      uiZapQuitter:              '終了',
+      uiZapEntree:               'Enter',
+      uiZapEchap:                'Esc',
+      uiZapPrechargee:           '先読み済み',
+      uiZapDansSalle:            'ルームに追加済み',
+      uiZapVide:                 'フォロー中のチャンネルは今ライブ配信していません。',
+      uiZapMuet:                 'ミュート中',
+      uiZapSonTitre:             'ミュートの切り替え',
+      uiZapHorsLigne:            'オフライン',
+      uiZapSubathon:             (n) => (n === null ? 'サブアソン' : `サブアソン ${n}日目`),
+      uiZapSallePleine:          (n) => `ルームに入るのは最大 ${n} 配信です。`,
+      uiZapSalleDeux:            'ルームを開くには 2 チャンネル以上が必要です。',
       uiSalleOnglets:            'チャットを選ぶ',
       uiSalleOnglet:             (nom) => `${nom} のチャットを表示（音声はそのまま）`,
       uiSalleChatMasque:         'チャット非表示：ウィンドウが狭すぎます',
@@ -2752,6 +2961,29 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiSalleSonPour:            (nom) => `切换到 ${nom} 的声音`,
       uiSalleChat:               (nom) => `${nom} 的聊天`,
       uiSalleChatSon:            (nom) => `声音：${nom}`,
+      // Le zapping (4.33.0).
+      uiZapBouton:               '换台：你关注的直播',
+      uiZapTitre:                '换台 · 你关注的直播',
+      uiZapListe:                '你关注的直播',
+      uiZapChanger:              '切换',
+      uiZapPrecedente:           '上一个频道',
+      uiZapSuivante:             '下一个频道',
+      uiZapOuvrir:               '打开频道',
+      uiZapSalleAjouter:         '加入放映室',
+      uiZapSalleRetirer:         '移出放映室',
+      uiZapSalleOuvrir:          (n) => `打开放映室（${n}）`,
+      uiZapQuitter:              '退出',
+      uiZapEntree:               'Enter',
+      uiZapEchap:                'Esc',
+      uiZapPrechargee:           '已预载',
+      uiZapDansSalle:            '在放映室中',
+      uiZapVide:                 '你关注的频道目前都没有直播。',
+      uiZapMuet:                 '已静音',
+      uiZapSonTitre:             '静音或恢复声音',
+      uiZapHorsLigne:            '离线',
+      uiZapSubathon:             (n) => (n === null ? '订阅马拉松' : `订阅马拉松第 ${n} 天`),
+      uiZapSallePleine:          (n) => `放映室最多容纳 ${n} 个直播。`,
+      uiZapSalleDeux:            '放映室至少需要两个频道。',
       uiSalleOnglets:            '选择聊天室',
       uiSalleOnglet:             (nom) => `显示 ${nom} 的聊天（不切换声音）`,
       uiSalleChatMasque:         '聊天已隐藏：窗口太窄',
@@ -4177,6 +4409,21 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     // LA SALLE PRÊTE (4.24.0.34) : la première tuile qui joue, ou ce délai —
     // l'anneau du curseur ne tourne pas plus longtemps.
     SALLE_PRETE_MAX_MS:    3_000,
+    // === Le zapping (4.33.0) ===
+    // Le second lecteur attend que le courant ait pris sa place ; un lecteur
+    // que son pont ne décrit pas paraît quand même au bout de ZAP_PRET_MAX_MS ;
+    // le fondu d'une image à l'autre ; la relecture des chaînes ; l'avis à
+    // l'écran ; le son relancé, comme dans la salle ; la garde du bouton dans
+    // la barre, et le délai après un redimensionnement.
+    ZAP_PRECHARGE_MS:      500,
+    ZAP_PRET_MAX_MS:       4_000,
+    ZAP_FONDU_MS:          180,
+    ZAP_RELEVE_MS:         2_000,
+    ZAP_AVIS_MS:           2_600,
+    ZAP_SON_ESSAIS:        5,
+    ZAP_SON_ECART_MS:      2_000,
+    ZAP_GARDE_MS:          2_000,
+    ZAP_REDIM_MS:          250,
     /* LE CURSEUR DE LA BARRE (4.24.0.34) : le pointeur tenu sur la gélule
        avant qu'elle s'étire — un pointeur qui balaie la liste ne s'y tient
        pas — ; le temps qu'il a pour revenir avant le repli ; et l'indice
@@ -4628,6 +4875,10 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        alignements du septième rapport réel ont paru justes. Pas « css » : il
        ne masque rien, il pilote. */
     salleAuto:       { defaut: true,      type: 'bool' },
+    /* LE ZAPPING (4.33.0, cf. le module ZAPPING) : le bouton à droite de la
+       loupe de la recherche, et l'écran qu'il ouvre. Coupé : ni bouton ni
+       écran, et un écran ouvert se ferme. Son groupe au panneau. */
+    zapping:         { defaut: true,      type: 'bool' },
 
     /* — L'ACCUEIL DE TWITCH (4.26.0), cf. le module ACCUEIL — */
     /* Le maître : coupé, l'accueil est celui de Twitch, tel quel, et rien de
@@ -8847,6 +9098,174 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     .tse-salle__onglet[aria-selected="true"] { color: var(--tse-texte); border-bottom-color: #9147ff; }
     .tse-salle__onglet:focus-visible { outline: 2px solid #9147ff; outline-offset: -2px; }
     .tse-salle__chat iframe { flex: 1 1 auto; width: 100%; border: 0; }
+    /* ── LE ZAPPING (4.33.0, cf. son module) ────────────────────────────────
+       LE BOUTON : un carré comme la loupe de Twitch, à ses couleurs — ses
+       variables, avec les valeurs relevées en repli. L'ÉCRAN, d'après la
+       maquette : le direct en plein cadre, recadré comme une image de
+       couverture — le lecteur garde le 16/9 de Twitch et déborde de l'écran
+       plutôt que de laisser des bandes — ; ce qui se lit, posé sur des
+       dégradés sombres et des pavés translucides. Sombre dans les deux
+       thèmes : c'est un écran de télévision. PAS DE FLOU D'ARRIÈRE-PLAN : sur
+       une vidéo qui change à chaque image, il se recalculerait à chaque image,
+       pour un effet que l'opacité des pavés rend à peine visible. */
+    .tse-zap-porteur { display: flex; align-items: center; flex: 0 0 auto; margin-left: 8px; }
+    .tse-zap-bouton {
+      display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0;
+      border: 0; border-radius: var(--border-radius-medium, 4px); cursor: pointer;
+      background: var(--color-background-button-secondary-default, rgba(83, 83, 95, 0.38));
+      color: var(--color-fill-button-icon, #efeff1);
+    }
+    .tse-zap-bouton:hover { background: var(--color-background-button-secondary-hover, rgba(83, 83, 95, 0.48)); }
+    .tse-zap-bouton:focus-visible { outline: 2px solid #9147ff; outline-offset: 2px; }
+    .tse-zap-bouton svg { width: 20px; height: 20px; fill: currentColor; }
+    #tse-zap {
+      position: fixed; inset: 0; z-index: 9000; overflow: hidden; background: #000; color: #fff;
+      font-family: Inter, Roobert, "Helvetica Neue", Helvetica, Arial, sans-serif; line-height: 1.35;
+      --tse-zap-marge: clamp(20px, 3.2vw, 60px); --tse-zap-colonne: 330px;
+    }
+    #tse-zap:focus { outline: none; }
+    /* La scène isole ses lecteurs : leurs plans (courant, sortant, en attente) ne passent pas devant l'écran. */
+    .tse-zap__scene { position: absolute; inset: 0; z-index: 0; }
+    .tse-zap__lecteur {
+      position: absolute; left: 50%; top: 50%; width: max(100vw, 177.78vh); height: max(100vh, 56.25vw);
+      transform: translate(-50%, -50%); border: 0; opacity: 0; pointer-events: none;
+      transition: opacity ${CFG.ZAP_FONDU_MS}ms ease;
+    }
+    /* Le courant passe devant, et ne se montre qu'une fois qu'il joue : jusque-là, l'image d'avant reste. */
+    .tse-zap__lecteur--attente { z-index: 0; }
+    .tse-zap__lecteur--sortant { z-index: 1; opacity: 1; }
+    .tse-zap__lecteur--courant { z-index: 2; }
+    .tse-zap__lecteur--courant.tse-zap__lecteur--pret { opacity: 1; }
+    .tse-zap__capot {
+      position: absolute; inset: 0;
+      background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.55) 0, rgba(0, 0, 0, 0) 22%),
+        linear-gradient(0deg, rgba(0, 0, 0, 0.88) 0, rgba(0, 0, 0, 0.35) 24%, rgba(0, 0, 0, 0) 42%),
+        linear-gradient(270deg, rgba(0, 0, 0, 0.4) 0, rgba(0, 0, 0, 0) 32%);
+    }
+    .tse-zap__trait { position: absolute; left: 0; right: 0; top: 0; height: 4px; background: linear-gradient(90deg, #e9407a, #9147ff 50%, #3d7cff); }
+    .tse-zap__compteur, .tse-zap__aide, .tse-zap__chaine, .tse-zap__son {
+      background: rgba(14, 14, 16, 0.82); border-radius: 8px; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07);
+    }
+    .tse-zap__compteur {
+      position: absolute; left: var(--tse-zap-marge); top: 44px; display: flex; align-items: center; gap: 14px;
+      padding: 12px 18px; font-size: 15px; color: #dedee3;
+    }
+    .tse-zap__rang { font-size: 28px; font-weight: 700; color: #fff; font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
+    .tse-zap__aide {
+      position: absolute; right: var(--tse-zap-marge); top: 44px; display: flex; align-items: center; flex-wrap: wrap;
+      gap: 8px 18px; padding: 10px 16px; max-width: calc(100vw - 2 * var(--tse-zap-marge) - 360px);
+      font-size: 14px; color: #e5e5ea;
+    }
+    .tse-zap__groupe { display: inline-flex; align-items: center; gap: 6px; }
+    .tse-zap__touche {
+      display: inline-flex; align-items: center; gap: 8px; padding: 0; border: 0; border-radius: 4px; background: none;
+      color: #e5e5ea; font: inherit; font-size: 14px; cursor: pointer;
+    }
+    .tse-zap__touche[hidden] { display: none; }
+    .tse-zap__touche:disabled { cursor: default; opacity: 0.45; }
+    .tse-zap__touche:focus-visible { outline: 2px solid #a970ff; outline-offset: 3px; }
+    .tse-zap__libelle { white-space: nowrap; }
+    .tse-zap__kbd {
+      display: inline-flex; align-items: center; justify-content: center; min-width: 26px; height: 24px; padding: 0 7px;
+      border-radius: 4px; background: rgba(255, 255, 255, 0.12); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22);
+      font: 700 12px/1 Inter, Roobert, "Helvetica Neue", Helvetica, Arial, sans-serif; color: #fff;
+    }
+    .tse-zap__touche--fleche .tse-zap__kbd { width: 26px; min-width: 0; padding: 0; }
+    .tse-zap__touche:not(:disabled):hover .tse-zap__kbd { background: rgba(255, 255, 255, 0.22); }
+    /* La colonne défile quand les chaînes ne tiennent pas : son bas se fond
+       plutôt que de trancher une carte, et une marge intérieure laisse sa
+       lueur à la carte courante, que le défilement rognerait. */
+    .tse-zap__liste {
+      position: absolute; right: calc(var(--tse-zap-marge) - 12px); top: 140px; bottom: 140px; width: calc(var(--tse-zap-colonne) + 24px);
+      box-sizing: border-box; margin: 0; padding: 10px 12px 28px; list-style: none; display: flex; flex-direction: column; gap: 10px;
+      overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none;
+      -webkit-mask-image: linear-gradient(#000 calc(100% - 28px), transparent); mask-image: linear-gradient(#000 calc(100% - 28px), transparent);
+    }
+    .tse-zap__liste::-webkit-scrollbar { display: none; }
+    .tse-zap__item { flex: 0 0 auto; }
+    .tse-zap__chaine {
+      display: flex; align-items: center; gap: 12px; width: 100%; padding: 8px; border: 0; text-align: left;
+      color: #fff; font: inherit; cursor: pointer;
+    }
+    .tse-zap__chaine:hover { background: rgba(31, 31, 35, 0.92); }
+    .tse-zap__chaine:focus-visible { outline: 2px solid #a970ff; outline-offset: 2px; }
+    .tse-zap__chaine--courante { box-shadow: inset 0 0 0 2px #a970ff, 0 0 0 1px rgba(169, 112, 255, 0.35), 0 0 22px rgba(145, 71, 255, 0.45); }
+    .tse-zap__vignette { flex: 0 0 auto; width: 112px; aspect-ratio: 16 / 9; border-radius: 4px; object-fit: cover; background: #26262c; }
+    .tse-zap__chaine-textes { display: grid; gap: 2px; min-width: 0; }
+    .tse-zap__chaine-nom { font-size: 15px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tse-zap__chaine-meta { font-size: 12.5px; color: #adadb8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tse-zap__marques { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px; }
+    .tse-zap__marques:empty { display: none; }
+    .tse-zap__marque { padding: 1px 7px; border-radius: 999px; font-size: 11px; font-weight: 700; line-height: 1.4; }
+    .tse-zap__marque--prechargee { color: #3ccf7e; box-shadow: inset 0 0 0 1px #3ccf7e; }
+    .tse-zap__marque--salle { color: #c8a6ff; box-shadow: inset 0 0 0 1px #a970ff; }
+    .tse-zap__infos {
+      position: absolute; left: var(--tse-zap-marge); bottom: 56px; right: calc(var(--tse-zap-marge) + var(--tse-zap-colonne) + 40px);
+      display: flex; align-items: center; gap: 22px; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+    }
+    .tse-zap__infos[hidden] { display: none; }
+    .tse-zap__visage {
+      position: relative; flex: 0 0 auto; width: 76px; height: 76px; border-radius: 50%; overflow: hidden;
+      display: grid; place-items: center; font-size: 32px; font-weight: 700;
+      background: linear-gradient(135deg, #b23ad8, #6b2bd9); box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.14);
+    }
+    .tse-zap__visage img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .tse-zap__visage img[hidden] { display: none; }
+    .tse-zap__textes { display: grid; gap: 6px; min-width: 0; }
+    .tse-zap__ligne-nom { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .tse-zap__nom { font-size: 38px; font-weight: 800; line-height: 1.1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tse-zap__titre-direct { font-size: 20px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tse-zap__titre-direct[hidden] { display: none; }
+    .tse-zap__meta { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 16px; color: #e5e5ea; }
+    .tse-zap__meta-texte { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tse-zap__direct {
+      flex: 0 0 auto; padding: 1px 6px; border-radius: 3px; background: var(--tse-frais, #e91916); color: #fff;
+      font-size: 12px; font-weight: 600; text-transform: uppercase; text-shadow: none;
+    }
+    .tse-zap__direct--hors { background: #53535f; }
+    /* La pastille du subathon, celle de la barre, à la taille du nom (cf. .tse-subathon-teintes). */
+    #tse-zap .tse-subathon-jour {
+      display: inline-grid; flex: 0 0 auto; padding: 2px 7px; border: 2px solid currentColor; border-radius: 6px;
+      font-size: 20px; font-weight: 800; line-height: 1; color: transparent; text-shadow: none;
+    }
+    #tse-zap .tse-subathon-jour[hidden] { display: none; }
+    #tse-zap .tse-subathon-jour > .tse-subathon-teintes {
+      display: grid; grid-area: 1 / 1; margin: -4px -9px; padding: 0; font: inherit; letter-spacing: inherit;
+      border-radius: inherit; isolation: isolate; pointer-events: none;
+    }
+    #tse-zap .tse-subathon-jour > .tse-subathon-teintes > span { padding: 2px 7px; border-width: 2px; }
+    .tse-zap__son {
+      position: absolute; right: var(--tse-zap-marge); bottom: 56px; display: inline-flex; align-items: center; gap: 10px;
+      padding: 10px 16px; border: 0; color: #fff; font: inherit; font-size: 15px; cursor: pointer;
+    }
+    .tse-zap__son[hidden] { display: none; }
+    .tse-zap__son:hover { background: rgba(31, 31, 35, 0.92); }
+    .tse-zap__son:focus-visible { outline: 2px solid #a970ff; outline-offset: 2px; }
+    .tse-zap__son[aria-pressed="true"] { color: #adadb8; }
+    .tse-zap__son-icone { display: inline-flex; }
+    .tse-zap__son-icone svg { width: 20px; height: 20px; fill: currentColor; }
+    .tse-zap__vide {
+      position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); margin: 0; padding: 18px 26px;
+      border-radius: 10px; background: rgba(14, 14, 16, 0.82); font-size: 18px; text-align: center;
+    }
+    .tse-zap__vide[hidden] { display: none; }
+    .tse-zap__avis {
+      position: absolute; left: 50%; bottom: 170px; transform: translateX(-50%); padding: 10px 18px; border-radius: 8px;
+      background: rgba(14, 14, 16, 0.92); box-shadow: inset 0 0 0 1px rgba(169, 112, 255, 0.55); font-size: 15px;
+    }
+    .tse-zap__avis[hidden] { display: none; }
+    @media (max-width: 1100px) {
+      #tse-zap { --tse-zap-colonne: 260px; }
+      .tse-zap__vignette { width: 88px; }
+      .tse-zap__nom { font-size: 30px; }
+      .tse-zap__titre-direct { font-size: 17px; }
+    }
+    @media (max-width: 760px) {
+      .tse-zap__liste { display: none; }
+      .tse-zap__infos { right: var(--tse-zap-marge); bottom: 110px; }
+      .tse-zap__aide { left: var(--tse-zap-marge); top: 110px; max-width: none; }
+    }
 
     /* ══════════════════════════════════════════════════════════════════════
        LA PAGE D'ACCUEIL (4.26.0) — cf. le module pageAccueil
@@ -22881,6 +23300,760 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     };
   })();
 
+  /* ── LE ZAPPING (4.33.0) ─────────────────────────────────────────────────
+     « Concernant le niveau 3, seul le zapping m'intéresse. Pour y accéder,
+     un bouton juste à droite de la loupe de la zone de recherche. Prends la
+     maquette déjà faite comme une bonne base. » — l'idée 13, d'après la
+     capture de sa maquette : vos chaînes suivies en direct, l'une après
+     l'autre, en plein écran, comme on change de chaîne à la télévision.
+
+     CE QU'IL MONTRE : le direct en plein cadre, un lecteur intégré de Twitch
+     (celui de la salle, et le même pont : cf. cadres.js) ; en haut à gauche,
+     « Zapping · vos suivis en direct » et le rang, « 2 / 7 » ; en haut à
+     droite, les touches, qui sont aussi des boutons ; à droite, la colonne
+     des chaînes, la courante encadrée, la suivante « préchargée » ; en bas,
+     la chaîne — son visage, son nom, la pastille de son subathon, son titre,
+     « Live », sa catégorie, ses spectateurs, sa durée — et « Son de … ».
+
+     L'ORDRE, CELUI DE LA BARRE : les chaînes suivies en direct telles que la
+     barre les range, quel que soit son tri — c'est la liste que vous avez
+     sous les yeux. Celles qu'elle ne montre pas (repliée, pas encore rendue)
+     suivent, par spectateurs. La barre en Top Chaînes ne montre pas vos
+     suivis : on prend alors le seul ordre des spectateurs. On part de la
+     chaîne de la page, si c'en est une ; sinon de la première. Au bout de la
+     liste, on revient au début, comme une télécommande.
+
+     LA SUIVANTE EST DÉJÀ LÀ : un second lecteur, muet et invisible, charge la
+     chaîne d'après — dans le sens où l'on va —, et devient le courant d'un
+     coup. Une chaîne qu'on n'attendait pas (un clic dans la colonne, un
+     changement de sens) se charge sous l'image d'avant, qui reste jusqu'à ce
+     que la nouvelle joue : jamais d'écran noir entre les deux. Deux lecteurs
+     au plus, donc : la phase 0 de la salle a mesuré ce qu'en coûte un.
+
+     LE SON : tout lecteur intégré démarre muet (la lecture automatique
+     l'exige) ; le pont rend le son au courant par le bouton même du lecteur,
+     et le relance si Twitch le remet en muet — cinq fois au plus, comme la
+     salle. Les autres restent muets. « Son de … », en bas à droite, le coupe
+     et le rend.
+
+     LE CLAVIER RESTE À LA PAGE : un capot transparent couvre les lecteurs.
+     Un clic dans un lecteur lui donnerait le focus, et les flèches
+     n'arriveraient plus jusqu'ici. ↑ ↓ changent, Entrée ouvre la chaîne,
+     S l'ajoute à la salle (ou l'en retire), O ouvre la salle dès deux
+     chaînes, Échap ferme. Tab tourne dans l'écran, sans en sortir.
+
+     LA PAGE DESSOUS : sa vidéo est mise en pause à l'ouverture et relancée à
+     la fermeture, comme pour la salle. Une salle ouverte se ferme : deux
+     écrans de lecteurs se disputeraient le son ; ses streams passent dans
+     la sélection, et O la rouvre avec ceux qu'on y ajoute.
+
+     LE BOUTON, À DROITE DE LA LOUPE, relevé sur la vraie barre (fournie par
+     l'utilisateur, 4.33.0) : la loupe du champ est
+     « button.tw-combo-input__button-icon », dans
+     [data-a-target="nav-search-box"] ; le conteneur de la recherche a pour
+     voisin, dans la même rangée, le bouton de la recherche repliée (les
+     fenêtres étroites). Le bouton se pose au bout de cette rangée, et la
+     MESURE dit s'il est bien collé à droite de la loupe visible : centres
+     alignés, à moins de 32 pixels. Sinon, il se pose dans la ligne même du
+     champ, juste après la loupe — là où elle est, à coup sûr. Le rapport
+     dit la voie. Sans zone de recherche, pas de bouton. */
+  const zapping = (() => {
+    const NAV = '[data-a-target="top-nav-container"]';
+    const RECHERCHE = '[data-a-target="nav-search-box"]';
+    const LOUPE = '.tw-combo-input__button-icon';
+    // Un écran et ses deux flèches : changer de chaîne.
+    const PICTO = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M4 4h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Zm0 2v10h16V6H4Z"/>'
+      + '<path d="M8 20h8v2H8zM9.5 7.5l2.5 3H7zM14.5 14.5 12 11.5h5z"/></svg>';
+    const HAUT_PARLEUR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9.5v5h3.6L12 19V5L6.6 9.5H3Z"/>'
+      + '<path d="M15.5 8.6a4.6 4.6 0 0 1 0 6.8M18 6.2a8 8 0 0 1 0 11.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+    const MUET = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9.5v5h3.6L12 19V5L6.6 9.5H3Z"/>'
+      + '<path d="m16 9.5 5 5m0-5-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+    const bilan = {
+      voie: null, poses: 0, reposes: 0, ouvertures: 0, vides: 0, changements: 0,
+      precharges: 0, prechargesServies: 0, chaines: 0, salles: 0, sallesFermees: 0,
+      sons: 0, muets: 0, avis: 0, fermetures: {},
+    };
+    let porteur = null, bouton = null, obsNav = null, navVue = null, redimT = null;
+    let z = null;
+
+    const visible = (el) => {
+      if (!el || !el.isConnected) return null;
+      const r = el.getBoundingClientRect();
+      return r.width > 0 && r.height > 0 ? r : null;
+    };
+    const imageSure = (u) => (typeof u === 'string' && /^https:\/\//.test(u) ? u : null);
+    const salleOk = () => !!options.get('salle');
+
+    /* ── LE BOUTON ────────────────────────────────────────────────────────── */
+    // La loupe du champ : par sa classe ; à défaut, par la forme — le premier
+    // bouton qui suit le champ visible.
+    const loupeDuChamp = (boite) => {
+      const parClasse = boite.querySelector(LOUPE);
+      if (parClasse) return parClasse;
+      const champ = [...boite.querySelectorAll('input[type="search"]')].find((i) => visible(i));
+      if (!champ) return null;
+      return [...boite.querySelectorAll('button')].find((b) => !(porteur && porteur.contains(b))
+        && (champ.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING)) || null;
+    };
+    // La loupe qu'on voit : celle du champ, ou celle de la recherche repliée.
+    const loupeVisible = (boite, rangee) => {
+      const l = loupeDuChamp(boite);
+      if (visible(l)) return l;
+      if (!rangee) return null;
+      for (const x of rangee.children) {
+        if (x === porteur || x.contains(boite)) continue;
+        const b = [...x.querySelectorAll('button')].find((y) => visible(y));
+        if (b) return b;
+      }
+      return null;
+    };
+    // Collé à droite d'elle : centres alignés à 6 pixels près, et pas plus de 32 pixels entre les deux.
+    const colle = (loupe) => {
+      const a = visible(loupe), b = visible(bouton);
+      if (!a || !b) return false;
+      const dy = Math.abs((a.top + a.bottom) / 2 - (b.top + b.bottom) / 2);
+      const dx = b.left - a.right;
+      return dy <= 6 && dx >= -1 && dx <= 32;
+    };
+    // Dans la ligne du champ, la case qui porte la loupe : son plus haut ancêtre qui ne contient qu'elle.
+    const caseDe = (loupe, boite) => {
+      let e = loupe;
+      while (e.parentElement && e.parentElement !== boite && e.parentElement.childElementCount === 1) e = e.parentElement;
+      return e;
+    };
+    const libeller = () => {
+      if (!bouton) return;
+      if (bouton.getAttribute('aria-label') !== S.uiZapBouton) {
+        bouton.setAttribute('aria-label', S.uiZapBouton);
+        bouton.title = S.uiZapBouton;
+      }
+    };
+    const creerBouton = () => {
+      porteur = document.createElement('div');
+      porteur.className = 'tse-zap-porteur';
+      bouton = document.createElement('button');
+      bouton.type = 'button';
+      bouton.className = 'tse-zap-bouton';
+      bouton.setAttribute('aria-haspopup', 'dialog');
+      bouton.appendChild(noeudStatique(PICTO));
+      bouton.addEventListener('click', erreurs.garde('zapping', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        ouvrir('bouton');
+      }));
+      porteur.appendChild(bouton);
+    };
+    const retirerBouton = () => {
+      if (obsNav) { obsNav.disconnect(); obsNav = null; navVue = null; }
+      if (porteur && porteur.isConnected) porteur.remove();
+    };
+    /* `remesurer` : la mise en page a pu changer (une fenêtre redimensionnée
+       passe de la recherche entière à la repliée) — on repose et l'on mesure
+       à nouveau, même si le bouton est encore là. */
+    const placer = (remesurer = false) => {
+      if (!options.get('zapping')) { retirerBouton(); bilan.voie = 'coupe'; return; }
+      const nav = document.querySelector(NAV);
+      if (!nav) return;
+      const boite = nav.querySelector(RECHERCHE);
+      if (!boite) { bilan.voie = 'sans-recherche'; return; }
+      if (!porteur) creerBouton();
+      libeller();
+      const etait = porteur.isConnected && nav.contains(porteur);
+      if (etait && !remesurer) return;
+      const conteneur = boite.closest('.top-nav__search-container') || boite;
+      const rangee = conteneur.parentElement && nav.contains(conteneur.parentElement) ? conteneur.parentElement : null;
+      let voie = 'rangee';
+      if (rangee) {
+        if (rangee.lastElementChild !== porteur) rangee.appendChild(porteur);
+      } else voie = 'champ';
+      if (!rangee || !colle(loupeVisible(boite, rangee))) {
+        const loupe = loupeDuChamp(boite);
+        if (loupe) {
+          const c = caseDe(loupe, boite);
+          if (c.nextElementSibling !== porteur) c.after(porteur);
+          voie = 'champ';
+        }
+        if (!colle(loupeVisible(boite, rangee))) voie += '-non-verifiee';
+      }
+      if (!etait) { if (bilan.poses) bilan.reposes++; else bilan.poses++; }
+      bilan.voie = voie;
+      if (navVue !== nav) {
+        if (obsNav) obsNav.disconnect();
+        navVue = nav;
+        // React peut reconstruire la barre : le bouton parti, il revient dans la même image.
+        obsNav = new MutationObserver(erreurs.garde('zapping', () => {
+          if (porteur && !porteur.isConnected) placer();
+        }));
+        obsNav.observe(nav, { childList: true, subtree: true });
+      }
+    };
+    const init = () => {
+      placer();
+      // La barre peut arriver après nous, ou être remplacée entière : un coup d'œil toutes les deux secondes,
+      // pour la vie de la page.
+      setInterval(erreurs.garde('zapping', () => {
+        if (!porteur || !porteur.isConnected || !navVue || !navVue.isConnected) placer();
+        else libeller();
+      }), CFG.ZAP_GARDE_MS);
+      window.addEventListener('resize', () => {
+        clearTimeout(redimT);
+        redimT = setTimeout(erreurs.garde('zapping', () => placer(true)), CFG.ZAP_REDIM_MS);
+      });
+      options.surChangement(() => {
+        placer(true);
+        if (z && !options.get('zapping')) fermer('reglage');
+        else if (z) peindre();
+      });
+    };
+
+    /* ── LES CHAÎNES ──────────────────────────────────────────────────────── */
+    const chaines = () => {
+      const vivantes = new Map();
+      for (const [login] of roster.entries()) {
+        const e = cache.get(login);
+        if (e && e.stream) vivantes.set(login, e);
+      }
+      const ordre = [];
+      const section = !state.globalMode ? followedSection() : null;
+      if (section) {
+        for (const c of entreesDe(section).cartes) {
+          const l = getCardLogin(c);
+          if (l && vivantes.has(l) && !ordre.includes(l)) ordre.push(l);
+        }
+      }
+      const reste = [...vivantes.keys()].filter((l) => !ordre.includes(l))
+        .sort((a, b) => ((vivantes.get(b).viewers || 0) - (vivantes.get(a).viewers || 0)) || a.localeCompare(b));
+      return [...ordre, ...reste].map((login) => ({ login, e: vivantes.get(login), horsLigne: false }));
+    };
+    const pageChaine = () => {
+      const m = /^\/([a-z0-9_]{1,25})\/?$/i.exec(location.pathname);
+      return m ? m[1].toLowerCase() : null;
+    };
+
+    /* ── LES LECTEURS ─────────────────────────────────────────────────────── */
+    const creerLecteur = (login, attente) => {
+      const f = document.createElement('iframe');
+      // Le nom AVANT l'adresse : c'est lui qui éveille le pont (cf. cadres.js).
+      f.name = TSE_ZAP_FRAME_NAME;
+      f.title = login;
+      f.className = 'tse-zap__lecteur' + (attente ? ' tse-zap__lecteur--attente' : '');
+      f.dataset.tseLogin = login;
+      f.setAttribute('allow', 'autoplay; fullscreen; encrypted-media; picture-in-picture');
+      f.src = `https://player.twitch.tv/?${new URLSearchParams({
+        channel: login, parent: location.hostname, muted: 'true', autoplay: 'true' })}`;
+      const l = { login, f, pret: false, etat: null, qualite: false, sonEssais: 0, sonT: 0, pretT: null };
+      z.scene.appendChild(f);
+      return l;
+    };
+    const envoyer = (l, ordre, plus = null) => {
+      try { l.f.contentWindow.postMessage({ tse: TSE_SALLE_ORDRE_MSG, ordre, ...(plus || {}) }, 'https://player.twitch.tv'); }
+      catch { /* lecteur retiré */ }
+    };
+    const jeter = (l) => {
+      if (!l) return;
+      clearTimeout(l.pretT);
+      l.f.remove();
+    };
+    // Le courant paraît (en fondu) ; ceux qu'il remplace partent une fois le fondu passé.
+    const montrer = (l) => {
+      const c = z;
+      if (!c || l !== c.courant) return;
+      l.f.classList.add('tse-zap__lecteur--pret');
+      const sortants = c.sortants.splice(0);
+      // Une marge après le fondu : l'image d'avant ne part pas avant que la nouvelle soit entière.
+      if (sortants.length) setTimeout(() => sortants.forEach(jeter), CFG.ZAP_FONDU_MS + 80);
+    };
+    const tenirSon = (l) => {
+      const c = z;
+      const et = l.etat;
+      if (!c || !et || !et.video) return;
+      if (c.muet) {
+        if (et.muet === false) { envoyer(l, 'muet'); bilan.muets++; }
+        return;
+      }
+      if (et.muet !== true || l.sonEssais >= CFG.ZAP_SON_ESSAIS || Date.now() - l.sonT < CFG.ZAP_SON_ECART_MS) return;
+      l.sonEssais++;
+      l.sonT = Date.now();
+      envoyer(l, 'son');
+      bilan.sons++;
+    };
+    const surMessage = (e) => {
+      const c = z;
+      if (!c || !e.data || e.data.tse !== TSE_SALLE_ETAT_MSG || e.origin !== 'https://player.twitch.tv') return;
+      // `source` ancre le message à UN de nos lecteurs : la seule vérification qui compte.
+      const l = [c.courant, c.attente, ...c.sortants].find((x) => x && x.f.contentWindow === e.source);
+      if (!l) return;
+      const et = e.data.etat && typeof e.data.etat === 'object' ? e.data.etat : {};
+      l.etat = { video: !!et.video, lecture: !!et.lecture, muet: typeof et.muet === 'boolean' ? et.muet : null };
+      if (!l.qualite) {
+        l.qualite = true;
+        envoyer(l, 'qualite', { hauteur: Math.round(window.innerHeight * (window.devicePixelRatio || 1)) });
+      }
+      if (l === c.courant) {
+        if (l.etat.lecture && !l.pret) { l.pret = true; montrer(l); }
+        tenirSon(l);
+      } else {
+        if (l.etat.lecture) l.pret = true;
+        // Un lecteur qui n'est pas le courant se tait, quoi qu'il arrive.
+        if (l.etat.muet === false) { envoyer(l, 'muet'); bilan.muets++; }
+      }
+    };
+    const precharger = () => {
+      const c = z;
+      clearTimeout(c.prechargeT);
+      const n = c.liste.length;
+      if (n < 2 || !c.courant) { jeter(c.attente); c.attente = null; return; }
+      const cible = c.liste[(((c.i + c.sens) % n) + n) % n].login;
+      if (cible === c.courant.login || (c.attente && c.attente.login === cible)) return;
+      // Un temps d'abord : le courant prend la bande passante, et des flèches tenues ne chargent pas tout.
+      c.prechargeT = setTimeout(erreurs.garde('zapping', () => {
+        if (z !== c || cible === c.courant.login) return;
+        jeter(c.attente);
+        c.attente = creerLecteur(cible, true);
+        bilan.precharges++;
+        peindre();
+      }), CFG.ZAP_PRECHARGE_MS);
+    };
+    const aller = (i, sens, comment) => {
+      const c = z;
+      const n = c.liste.length;
+      if (!n) return;
+      const j = ((i % n) + n) % n;
+      const login = c.liste[j].login;
+      c.i = j;
+      c.sens = sens;
+      if (c.courant && c.courant.login === login) { peindre(); return; }
+      let l;
+      if (c.attente && c.attente.login === login) {
+        l = c.attente;
+        c.attente = null;
+        l.f.classList.remove('tse-zap__lecteur--attente');
+        bilan.prechargesServies++;
+      } else {
+        l = creerLecteur(login, false);
+      }
+      const ancien = c.courant;
+      c.courant = l;
+      if (ancien) {
+        envoyer(ancien, 'muet');
+        ancien.f.classList.remove('tse-zap__lecteur--courant');
+        ancien.f.classList.add('tse-zap__lecteur--sortant');
+        c.sortants.push(ancien);
+      }
+      l.f.classList.add('tse-zap__lecteur--courant');
+      l.sonEssais = 0;
+      if (l.pret) montrer(l);
+      else {
+        // Un lecteur qui ne dit rien (pas de pont, un avertissement de contenu) paraît quand même.
+        l.pretT = setTimeout(erreurs.garde('zapping', () => { if (!l.pret) { l.pret = true; montrer(l); } }), CFG.ZAP_PRET_MAX_MS);
+      }
+      if (l.etat) tenirSon(l);
+      if (comment !== 'ouverture') bilan.changements++;
+      precharger();
+      peindre();
+    };
+    const changer = (pas) => { if (z && z.liste.length) aller(z.i + pas, pas < 0 ? -1 : 1, 'fleche'); };
+
+    /* ── CE QU'ON FAIT DE LA CHAÎNE ───────────────────────────────────────── */
+    const avis = (texte) => {
+      const c = z;
+      if (!c) return;
+      clearTimeout(c.avisT);
+      c.avis.textContent = texte;
+      c.avis.hidden = false;
+      bilan.avis++;
+      c.avisT = setTimeout(() => { if (z === c) c.avis.hidden = true; }, CFG.ZAP_AVIS_MS);
+    };
+    const ouvrirChaine = () => {
+      const c = z;
+      if (!c || !c.courant) return;
+      const login = c.courant.login;
+      bilan.chaines++;
+      // Déjà sur sa page : on ferme, et la page reprend.
+      if (pageChaine() === login) { fermer('chaine'); return; }
+      fermer('chaine', { navigue: true });
+      location.assign('/' + encodeURIComponent(login));
+    };
+    const basculerSalle = () => {
+      const c = z;
+      if (!c || !c.courant || !salleOk()) return;
+      const login = c.courant.login;
+      const k = c.selection.indexOf(login);
+      if (k >= 0) c.selection.splice(k, 1);
+      else if (c.selection.length >= CFG.SALLE_MAX) { avis(S.uiZapSallePleine(CFG.SALLE_MAX)); return; }
+      else c.selection.push(login);
+      peindre();
+    };
+    const ouvrirSalle = () => {
+      const c = z;
+      if (!c || !salleOk()) return;
+      if (c.selection.length < 2) { avis(S.uiZapSalleDeux); return; }
+      const membres = [...c.selection];
+      bilan.salles++;
+      fermer('salle', { navigue: true });
+      salle.ouvrirDepuisBarre(membres);
+    };
+    const basculerSon = () => {
+      const c = z;
+      if (!c) return;
+      c.muet = !c.muet;
+      if (c.courant) {
+        c.courant.sonEssais = 0;
+        envoyer(c.courant, c.muet ? 'muet' : 'son');
+        if (c.muet) bilan.muets++; else bilan.sons++;
+      }
+      peindre();
+    };
+
+    /* ── L'ÉCRAN ──────────────────────────────────────────────────────────── */
+    const elt = (tag, classe, texte) => {
+      const x = document.createElement(tag);
+      if (classe) x.className = classe;
+      if (texte !== undefined) x.textContent = texte;
+      return x;
+    };
+    const texteSi = (x, t) => { if (x.textContent !== t) x.textContent = t; };
+    const touche = (libelle, action, classe = '') => {
+      const b = elt('button', 'tse-zap__touche ' + classe);
+      b.type = 'button';
+      b.addEventListener('click', erreurs.garde('zapping', action));
+      const k = elt('kbd', 'tse-zap__kbd', libelle);
+      b.appendChild(k);
+      return b;
+    };
+    const construire = () => {
+      const boite = elt('div', '');
+      boite.id = 'tse-zap';
+      boite.setAttribute('role', 'dialog');
+      boite.setAttribute('aria-modal', 'true');
+      boite.tabIndex = -1;
+      const scene = elt('div', 'tse-zap__scene');
+      const capot = elt('div', 'tse-zap__capot');
+      const trait = elt('div', 'tse-zap__trait');
+      const compteur = elt('div', 'tse-zap__compteur');
+      const titre = elt('span', 'tse-zap__titre');
+      const rang = elt('b', 'tse-zap__rang');
+      compteur.append(titre, rang);
+      const aide = elt('div', 'tse-zap__aide');
+      const precedente = touche('↑', () => changer(-1), 'tse-zap__touche--fleche');
+      const suivante = touche('↓', () => changer(1), 'tse-zap__touche--fleche');
+      const changerTexte = elt('span', 'tse-zap__libelle');
+      const gChanger = elt('span', 'tse-zap__groupe');
+      gChanger.append(precedente, suivante, changerTexte);
+      const entree = touche('', ouvrirChaine);
+      const entreeTexte = elt('span', 'tse-zap__libelle');
+      entree.appendChild(entreeTexte);
+      const s = touche('S', basculerSalle);
+      const sTexte = elt('span', 'tse-zap__libelle');
+      s.appendChild(sTexte);
+      const o = touche('O', ouvrirSalle);
+      const oTexte = elt('span', 'tse-zap__libelle');
+      o.appendChild(oTexte);
+      const echap = touche('', () => fermer('bouton'));
+      const echapTexte = elt('span', 'tse-zap__libelle');
+      echap.appendChild(echapTexte);
+      aide.append(gChanger, entree, s, o, echap);
+      const liste = elt('ol', 'tse-zap__liste');
+      const infos = elt('div', 'tse-zap__infos');
+      infos.setAttribute('aria-live', 'polite');
+      const visage = elt('span', 'tse-zap__visage');
+      const visageImg = elt('img', '');
+      visageImg.alt = '';
+      visageImg.decoding = 'async';
+      // Une image qui ne vient pas laisse l'initiale, pas une icône cassée.
+      visageImg.addEventListener('error', () => { visageImg.hidden = true; });
+      visage.append(document.createTextNode(''), visageImg);
+      const textes = elt('div', 'tse-zap__textes');
+      const ligneNom = elt('div', 'tse-zap__ligne-nom');
+      const nom = elt('span', 'tse-zap__nom');
+      const jour = elt('span', 'tse-subathon-jour');
+      ligneNom.append(nom, jour);
+      const titreDirect = elt('div', 'tse-zap__titre-direct');
+      const meta = elt('div', 'tse-zap__meta');
+      const direct = elt('span', 'tse-zap__direct');
+      const metaTexte = elt('span', 'tse-zap__meta-texte');
+      meta.append(direct, metaTexte);
+      textes.append(ligneNom, titreDirect, meta);
+      infos.append(visage, textes);
+      const son = elt('button', 'tse-zap__son');
+      son.type = 'button';
+      son.addEventListener('click', erreurs.garde('zapping', basculerSon));
+      const sonIcone = elt('span', 'tse-zap__son-icone');
+      const sonTexte = elt('span', 'tse-zap__son-texte');
+      son.append(sonIcone, sonTexte);
+      const vide = elt('p', 'tse-zap__vide');
+      vide.hidden = true;
+      const avisEl = elt('div', 'tse-zap__avis');
+      avisEl.setAttribute('role', 'status');
+      avisEl.hidden = true;
+      boite.append(scene, capot, trait, compteur, aide, liste, infos, son, vide, avisEl);
+      // La molette ne fait pas défiler la page dessous : seule la colonne défile, et jusqu'à son bout seulement.
+      boite.addEventListener('wheel', (e) => { if (!e.target.closest || !e.target.closest('.tse-zap__liste')) e.preventDefault(); }, { passive: false });
+      return { boite, scene, titre, rang, aide, changerTexte, entree, entreeTexte, s, sTexte, o, oTexte, echap, echapTexte,
+               precedente, suivante, liste, infos, visage, visageImg, nom, jour, titreDirect, direct, metaTexte,
+               son, sonIcone, sonTexte, vide, avis: avisEl };
+    };
+
+    // Une carte de la colonne : sa vignette, son nom, « catégorie · spectateurs », ses marques.
+    const carte = (x) => {
+      const li = elt('li', 'tse-zap__item');
+      const b = elt('button', 'tse-zap__chaine');
+      b.type = 'button';
+      b.dataset.tseLogin = x.login;
+      b.addEventListener('click', erreurs.garde('zapping', () => {
+        if (!z) return;
+        const j = z.liste.findIndex((y) => y.login === x.login);
+        if (j >= 0) aller(j, j < z.i ? -1 : 1, 'clic');
+      }));
+      const img = elt('img', 'tse-zap__vignette');
+      img.alt = '';
+      img.decoding = 'async';
+      const t = elt('span', 'tse-zap__chaine-textes');
+      const n = elt('span', 'tse-zap__chaine-nom');
+      const m = elt('span', 'tse-zap__chaine-meta');
+      const marques = elt('span', 'tse-zap__marques');
+      t.append(n, m, marques);
+      b.append(img, t);
+      li.appendChild(b);
+      return li;
+    };
+    const metaCourte = (x) => {
+      const e = x.e || {};
+      if (x.horsLigne) return S.uiZapHorsLigne;
+      const p = [];
+      if (e.gameLabel) p.push(e.gameLabel);
+      if (Number.isFinite(e.viewers)) p.push(formatViewers(e.viewers));
+      return p.join(' · ');
+    };
+    const marque = (classe, texte) => elt('span', 'tse-zap__marque ' + classe, texte);
+
+    const peindre = () => {
+      const c = z;
+      if (!c) return;
+      const r = c.refs;
+      const n = c.liste.length;
+      texteSi(r.titre, S.uiZapTitre);
+      c.boite.setAttribute('aria-label', S.uiZapTitre);
+      texteSi(r.rang, n ? `${c.i + 1} / ${n}` : '0 / 0');
+      texteSi(r.changerTexte, S.uiZapChanger);
+      r.precedente.setAttribute('aria-label', S.uiZapPrecedente);
+      r.suivante.setAttribute('aria-label', S.uiZapSuivante);
+      texteSi(r.entree.querySelector('kbd'), S.uiZapEntree);
+      texteSi(r.entreeTexte, S.uiZapOuvrir);
+      const dans = !!(c.courant && c.selection.includes(c.courant.login));
+      texteSi(r.sTexte, dans ? S.uiZapSalleRetirer : S.uiZapSalleAjouter);
+      texteSi(r.oTexte, S.uiZapSalleOuvrir(c.selection.length));
+      texteSi(r.echap.querySelector('kbd'), S.uiZapEchap);
+      texteSi(r.echapTexte, S.uiZapQuitter);
+      r.s.hidden = !salleOk() || !n;
+      r.o.hidden = !salleOk() || c.selection.length < 2;
+      r.entree.hidden = !n;
+      r.precedente.disabled = n < 2;
+      r.suivante.disabled = n < 2;
+      r.vide.hidden = n > 0;
+      texteSi(r.vide, S.uiZapVide);
+      r.liste.setAttribute('aria-label', S.uiZapListe);
+      // La colonne : refaite quand les chaînes changent, retouchée sinon.
+      const cle = c.liste.map((x) => x.login).join(' ');
+      if (c.cleListe !== cle) {
+        c.cleListe = cle;
+        r.liste.replaceChildren(...c.liste.map(carte));
+      }
+      const items = r.liste.children;
+      c.liste.forEach((x, k) => {
+        const li = items[k];
+        const b = li.firstChild;
+        const [img, t] = b.children;
+        const [nomEl, metaEl, marquesEl] = t.children;
+        texteSi(nomEl, x.e?.name || x.login);
+        texteSi(metaEl, metaCourte(x));
+        const u = x.horsLigne ? '' : buildThumbUrl(x.login);
+        if (img.getAttribute('src') !== u) { if (u) img.src = u; else img.removeAttribute('src'); }
+        const courante = k === c.i;
+        b.classList.toggle('tse-zap__chaine--courante', courante);
+        if (courante) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current');
+        const pre = !!(c.attente && c.attente.login === x.login);
+        const enSalle = salleOk() && c.selection.includes(x.login);
+        const cleM = `${pre ? 'p' : ''}${enSalle ? 's' : ''}|${S.uiZapPrechargee}|${S.uiZapDansSalle}`;
+        if (marquesEl.dataset.cle !== cleM) {
+          marquesEl.dataset.cle = cleM;
+          marquesEl.replaceChildren(...[pre && marque('tse-zap__marque--prechargee', S.uiZapPrechargee),
+                                         enSalle && marque('tse-zap__marque--salle', S.uiZapDansSalle)].filter(Boolean));
+        }
+      });
+      if (c.vueCourante !== c.i && items[c.i]) {
+        c.vueCourante = c.i;
+        items[c.i].scrollIntoView({ block: 'nearest' });
+      }
+      // La chaîne courante, en bas.
+      const x = n ? c.liste[c.i] : null;
+      r.infos.hidden = !x;
+      r.son.hidden = !x;
+      if (!x) return;
+      const e = x.e || {};
+      const nomAffiche = e.name || x.login;
+      texteSi(r.nom, nomAffiche);
+      const initiale = [...nomAffiche][0]?.toLocaleUpperCase(S.locale) || '';
+      if (r.visage.firstChild.nodeValue !== initiale) r.visage.firstChild.nodeValue = initiale;
+      const av = imageSure(e.avatar);
+      if (av) { if (r.visageImg.getAttribute('src') !== av) { r.visageImg.hidden = false; r.visageImg.src = av; } }
+      else { r.visageImg.removeAttribute('src'); r.visageImg.hidden = true; }
+      // La pastille du subathon de la barre, avec ses huit copies ; sans numéro de jour, pas de pastille (rien d'inventé).
+      const jourN = Number.isInteger(e.subathon?.jour) ? e.subathon.jour : null;
+      r.jour.hidden = jourN === null;
+      if (jourN !== null) poserLibelle(r.jour, S.uiSubathonShort(jourN));
+      texteSi(r.titreDirect, e.stream?.title || '');
+      r.titreDirect.hidden = !e.stream?.title;
+      texteSi(r.direct, x.horsLigne ? S.uiZapHorsLigne : S.uiAccDirect);
+      r.direct.classList.toggle('tse-zap__direct--hors', !!x.horsLigne);
+      const p = [];
+      if (!x.horsLigne) {
+        if (e.gameLabel) p.push(e.gameLabel);
+        if (Number.isFinite(e.viewers)) p.push(S.uiAccSpect(e.viewers, formatViewers(e.viewers)));
+        const d = e.stream?.createdAt ? formatUptime(e.stream.createdAt) : null;
+        if (d) p.push(S.uiAccDepuis(d));
+        if (e.subathon) p.push(S.uiZapSubathon(jourN));
+      }
+      texteSi(r.metaTexte, p.join(' · '));
+      // « Son de … » : le son va à la chaîne courante, sauf si on l'a coupé.
+      const icone = c.muet ? MUET : HAUT_PARLEUR;
+      if (r.sonIcone.dataset.icone !== (c.muet ? 'm' : 's')) {
+        r.sonIcone.dataset.icone = c.muet ? 'm' : 's';
+        r.sonIcone.replaceChildren(noeudStatique(icone));
+      }
+      texteSi(r.sonTexte, c.muet ? S.uiZapMuet : S.uiSalleChatSon(nomAffiche));
+      r.son.title = S.uiZapSonTitre;
+      r.son.setAttribute('aria-pressed', c.muet ? 'true' : 'false');
+    };
+
+    /* LA LISTE SE TIENT À JOUR pendant qu'on zappe : une chaîne qui passe en
+       direct entre à sa place ; une qui s'arrête sort — sauf la courante, qui
+       reste où elle était, « hors ligne » : on ne vous déplace pas. */
+    const relire = () => {
+      const c = z;
+      if (!c) return;
+      const neuve = chaines();
+      const cur = c.courant ? c.courant.login : null;
+      if (cur && !neuve.some((x) => x.login === cur)) {
+        neuve.splice(Math.min(c.i, neuve.length), 0, { login: cur, e: cache.get(cur) || c.liste[c.i]?.e || null, horsLigne: true });
+      }
+      c.liste = neuve;
+      const j = cur ? neuve.findIndex((x) => x.login === cur) : -1;
+      if (j >= 0) c.i = j;
+      else if (!cur && neuve.length) { aller(0, 1, 'ouverture'); return; }
+      precharger();
+      peindre();
+    };
+
+    /* ── LE CLAVIER ───────────────────────────────────────────────────────── */
+    const focalisables = () => [...z.boite.querySelectorAll('button')].filter((b) => !b.disabled && !b.hidden && visible(b));
+    const surTouche = (e) => {
+      const c = z;
+      if (!c || e.isComposing) return;
+      // Rien ne passe à Twitch tant que l'écran est ouvert ; les raccourcis du navigateur, si.
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      e.stopPropagation();
+      const surBouton = e.target instanceof Element && !!e.target.closest('button') && c.boite.contains(e.target);
+      const k = e.key;
+      let fait = true;
+      if (k === 'ArrowDown') changer(1);
+      else if (k === 'ArrowUp') changer(-1);
+      else if (k === 'Escape') fermer('echap');
+      else if (k === 'Enter' && !surBouton) ouvrirChaine();
+      else if ((k === 's' || k === 'S') && salleOk()) basculerSalle();
+      else if ((k === 'o' || k === 'O') && salleOk()) ouvrirSalle();
+      else if (k === 'Tab') {
+        const f = focalisables();
+        if (!f.length) { e.preventDefault(); return; }
+        const i = f.indexOf(document.activeElement);
+        const j = e.shiftKey ? (i <= 0 ? f.length - 1 : i - 1) : (i < 0 || i >= f.length - 1 ? 0 : i + 1);
+        f[j].focus();
+      } else fait = false;
+      if (fait) e.preventDefault();
+    };
+    // Le focus qui s'échapperait (un clic hors des boutons, un lecteur) revient à l'écran.
+    const surFocus = (e) => {
+      const c = z;
+      if (c && e.target instanceof Node && !c.boite.contains(e.target)) c.boite.focus({ preventScroll: true });
+    };
+    const surVisibilite = () => {
+      const c = z;
+      if (!c || !c.attente) return;
+      envoyer(c.attente, document.hidden ? 'pause' : 'lecture');
+    };
+    const surNavigation = () => fermer('navigation');
+
+    /* ── OUVRIR, FERMER ───────────────────────────────────────────────────── */
+    const ouvrir = (origine = 'api') => {
+      if (z) return { deja: true };
+      if (!options.get('zapping')) return { erreur: 'zapping coupé / zapping disabled' };
+      // Une salle ouverte se ferme ; ses streams passent dans la sélection.
+      const avant = salle.membres();
+      if (avant) { salle.fermer('zapping'); bilan.sallesFermees++; }
+      const pausees = [...document.querySelectorAll('video')].filter((v) => !v.paused);
+      for (const v of pausees) { try { v.pause(); } catch { /* ignore */ } }
+      const refs = construire();
+      z = {
+        t0: Date.now(), origine, boite: refs.boite, scene: refs.scene, refs, avis: refs.avis, avisT: null,
+        liste: chaines(), i: 0, sens: 1, courant: null, attente: null, sortants: [], prechargeT: null,
+        selection: avant ? avant.slice(0, CFG.SALLE_MAX) : [], muet: false, pausees, cleListe: null, vueCourante: null,
+        retour: document.activeElement && typeof document.activeElement.focus === 'function' ? document.activeElement : null, minuteur: null,
+      };
+      document.body.appendChild(refs.boite);
+      document.addEventListener('keydown', surTouche, true);
+      document.addEventListener('focusin', surFocus, true);
+      document.addEventListener('visibilitychange', surVisibilite);
+      window.addEventListener('message', surMessage);
+      window.addEventListener('popstate', surNavigation);
+      z.minuteur = setInterval(erreurs.garde('zapping', relire), CFG.ZAP_RELEVE_MS);
+      bilan.ouvertures++;
+      const depart = z.liste.findIndex((x) => x.login === pageChaine());
+      if (z.liste.length) aller(depart >= 0 ? depart : 0, 1, 'ouverture');
+      else { bilan.vides++; peindre(); }
+      refs.boite.focus({ preventScroll: true });
+      return { ouvert: true, chaines: z.liste.length };
+    };
+    const fermer = (raison = 'api', { navigue = false } = {}) => {
+      const c = z;
+      if (!c) return { ferme: false };
+      z = null;
+      clearInterval(c.minuteur);
+      clearTimeout(c.prechargeT);
+      clearTimeout(c.avisT);
+      for (const l of [c.courant, c.attente, ...c.sortants]) if (l) clearTimeout(l.pretT);
+      document.removeEventListener('keydown', surTouche, true);
+      document.removeEventListener('focusin', surFocus, true);
+      document.removeEventListener('visibilitychange', surVisibilite);
+      window.removeEventListener('message', surMessage);
+      window.removeEventListener('popstate', surNavigation);
+      c.boite.remove();
+      bilan.fermetures[raison] = (bilan.fermetures[raison] || 0) + 1;
+      if (!navigue) {
+        // La page reprend là où le zapping l'avait arrêtée — si elle est encore là.
+        for (const v of c.pausees) {
+          if (v.isConnected && v.paused) { try { v.play().catch(() => {}); } catch { /* ignore */ } }
+        }
+        const retour = c.retour && c.retour.isConnected ? c.retour : bouton && bouton.isConnected ? bouton : null;
+        if (retour) retour.focus({ preventScroll: true });
+      }
+      return { ferme: true };
+    };
+
+    const rapport = () => ({
+      ...bilan, fermetures: { ...bilan.fermetures },
+      ouvert: !!z,
+      courant: z && z.courant ? z.courant.login : null,
+      precharge: z && z.attente ? z.attente.login : null,
+      liste: z ? z.liste.map((x) => x.login) : null,
+      rang: z && z.liste.length ? z.i + 1 : null,
+      selection: z ? [...z.selection] : null,
+      muet: z ? z.muet : null,
+      lecteurs: z ? z.scene.querySelectorAll('iframe').length : 0,
+    });
+
+    return { init, placer, ouvrir, fermer: (raison = 'api') => fermer(raison), rapport };
+  })();
+
   /* ── LE CURSEUR SUR LA BARRE (4.24.0.7, phase 1 du multistream) ─────────
      L'IDÉE DE DÉPART DE LA SALLE, prise au mot : « une sorte d'emoji au
      milieu de la barrière colorée de co-stream qui, lorsqu'on clique dessus,
@@ -26239,6 +27412,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
            `noeuds` (4.24.0.7) : les nœuds posés sur les barres à cet instant,
            et les clics qu'ils ont reçus. */
         salle: { ...salle.rapport(), noeuds: noeudsSalle.bilan() },
+        // Le zapping (4.33.0) : où est son bouton, ce qu'on y a fait.
+        zapping: zapping.rapport(),
         /* ── LA RANGÉE DES STORIES (4.23.0) ───────────────────────────────
            Seul son bloc externe a été relevé : la puce lit la rangée sans en
            supposer la forme, et ce bloc dit ce qu'elle y a trouvé.
@@ -26740,6 +27915,12 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     avance: (...a) => salle.avance(...a),
     // Le calage par le son (4.24.0.21) : auto(), auto(false).
     auto: (x) => salle.auto(x),
+  });
+  // Le zapping (4.33.0) — cf. son module.
+  tseApi.zapping = Object.freeze({
+    ouvrir: () => zapping.ouvrir('console'),
+    fermer: () => zapping.fermer('console'),
+    rapport: () => zapping.rapport(),
   });
 
   /* ============================================================
@@ -37893,6 +39074,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       visitTracker.init();
       preview.init();
       pageAccueil.init();
+      zapping.init();        // le bouton à droite de la loupe (4.33.0)
       startObserver();
       startTimers();
       salle.reprendre();     // une salle demandée depuis la page d'avant (4.24.0.8)

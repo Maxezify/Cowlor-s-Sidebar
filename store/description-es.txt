@@ -82,6 +82,17 @@ Esc la cierra — o un clic en el cursor, convertido en «■».
 
 _______________________________
 
+➤ 📺 ZAPPING: TUS CANALES SEGUIDOS EN DIRECTO, UNO TRAS OTRO
+Un botón a la derecha de la lupa de búsqueda abre tus canales seguidos que están en directo, a pantalla completa — como cambiar de canal en la tele.
+
+- ★ ↑ Y ↓ ★ Un canal tras otro, en el orden de tu barra lateral; el siguiente ya está cargado y aparece al instante.
+- ★ TODO DE UN VISTAZO ★ Nombre, título, categoría, espectadores, tiempo en directo — y la insignia del subatón.
+- ★ HACIA LA SALA ★ S añade un canal a la sala, O la abre con los que elegiste.
+
+Intro abre el canal, Esc cierra.
+
+_______________________________
+
 ➤ 💜 TUS SUSCRIPCIONES, EN ORO
 Los canales a los que de verdad apoyas no deberían parecerse a todos los demás. Ya no lo hacen:
 
@@ -177,7 +188,7 @@ _______________________________
 Un engranaje a la derecha del título de la barra lateral, un clic, y todo lo que la extensión ha aprendido se abre encima de Twitch. El icono de la extensión, arriba a la derecha del navegador, abre exactamente el mismo panel.
 
 - ★ DOS CAMINOS, UN SOLO PANEL ★ El engranaje de la barra lateral o el icono de la barra de herramientas: la misma página, en ambos casos. Abierta desde el engranaje es más grande: una ventana emergente de la barra de herramientas la limita el navegador, no nosotros.
-- ★ UN MODO DE EMPLEO, DE ENTRADA ★ El panel se abre con una guía de diecinueve capítulos que enseña todo lo que la extensión añade, con ejemplos dibujados, y se muestra incluso sin ninguna pestaña de Twitch abierta.
+- ★ UN MODO DE EMPLEO, DE ENTRADA ★ El panel se abre con una guía de veinte capítulos que enseña todo lo que la extensión añade, con ejemplos dibujados, y se muestra incluso sin ninguna pestaña de Twitch abierta.
 - ★ VUESTROS HÁBITOS, DIBUJADOS ★ Las horas en que veis de verdad, trazadas en una cuadrícula de siete días por veinticuatro horas.
 - ★ VUESTRAS CIFRAS ★ Top de streamers, suscripciones detectadas, canales seguidos en memoria: todo ahí, legible.
 - ★ UN INFORME PARA PEGAR ★ Un botón crea un informe de diagnóstico completo, sin ninguna lista personal dentro: lo justo para avisar de un problema sin revelar nada.
@@ -240,7 +251,7 @@ Twitch tiene un tema claro. La extensión lo detecta y cambia con él: sin recar
 _______________________________
 
 ➤ ⚙️ Y SI QUIERES ELEGIR
-Todo está activo desde el principio y no hay nada que configurar. Pero «Ajustes», en el panel, te devuelve el mando sobre treinta y cinco ajustes.
+Todo está activo desde el principio y no hay nada que configurar. Pero «Ajustes», en el panel, te devuelve el mando sobre treinta y seis ajustes.
 
 - ★ LO QUE VES ★ Cada insignia, la duración del directo y su formato, la barra «acaba de empezar», el oro de las suscripciones, los filtros, los botones de orden: todo se enciende y se apaga con una casilla.
 - ★ LO QUE SE CARGA ★ La vista previa puede prescindir del vídeo y conservar sus insignias, su línea de tiempo y su miniatura, o simplemente bajar de calidad. Lo justo para aligerarla sin perderla.

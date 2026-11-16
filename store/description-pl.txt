@@ -82,6 +82,17 @@ Esc ją zamyka — albo kliknięcie kursora, który zmienił się w „■”.
 
 _______________________________
 
+➤ 📺 ZAPPING: OBSERWOWANE KANAŁY NA ŻYWO, JEDEN PO DRUGIM
+Przycisk na prawo od lupy wyszukiwania otwiera obserwowane kanały, które nadają na żywo, na pełnym ekranie — jak przełączanie kanałów w telewizji.
+
+- ★ ↑ I ↓ ★ Kanał po kanale, w kolejności z Twojego paska bocznego; następny jest już wczytany, więc pojawia się od razu.
+- ★ WSZYSTKO NA PIERWSZY RZUT OKA ★ Nazwa, tytuł, kategoria, widzowie, czas transmisji — i odznaka subathonu.
+- ★ DO SALI ★ S dodaje kanał do sali, O otwiera salę z wybranymi kanałami.
+
+Enter otwiera kanał, Esc zamyka.
+
+_______________________________
+
 ➤ 💜 TWOJE SUBSKRYPCJE, W ZŁOCIE
 Kanały, które naprawdę wspierasz, nie powinny wyglądać jak wszystkie inne. Teraz już nie wyglądają:
 
@@ -177,7 +188,7 @@ _______________________________
 Kółko zębate po prawej stronie tytułu paska bocznego, jedno kliknięcie i wszystko, czego nauczyło się rozszerzenie, otwiera się na Twitchu. Ikona rozszerzenia, w prawym górnym rogu przeglądarki, otwiera dokładnie ten sam panel.
 
 - ★ DWIE DROGI, JEDEN PANEL ★ Kółko na pasku bocznym albo ikona na pasku narzędzi: ta sama strona, w obu przypadkach. Otwarta kółkiem jest większa — wyskakujące okienko paska narzędzi ogranicza przeglądarka, nie my.
-- ★ INSTRUKCJA, OD RAZU ★ Panel otwiera się na przewodniku w dziewiętnastu rozdziałach, pokazującym wszystko, co rozszerzenie dodaje, z rysowanymi przykładami — i wyświetla się nawet bez otwartej karty Twitcha.
+- ★ INSTRUKCJA, OD RAZU ★ Panel otwiera się na przewodniku w dwudziestu rozdziałach, pokazującym wszystko, co rozszerzenie dodaje, z rysowanymi przykładami — i wyświetla się nawet bez otwartej karty Twitcha.
 - ★ TWOJE NAWYKI, NARYSOWANE ★ Godziny, w których naprawdę oglądasz, ułożone w siatkę siedmiu dni na dwadzieścia cztery godziny.
 - ★ TWOJE LICZBY ★ Top streamerów, wykryte subskrypcje, zapamiętane obserwowane kanały: wszystko tam, czytelnie.
 - ★ RAPORT DO WKLEJENIA ★ Jeden przycisk tworzy pełny raport diagnostyczny, bez żadnej osobistej listy w środku — tyle, by zgłosić problem, nic nie ujawniając.
@@ -240,7 +251,7 @@ Twitch ma jasny motyw. Rozszerzenie to zauważa i przełącza się razem z nim �
 _______________________________
 
 ➤ ⚙️ A JEŚLI CHCESZ WYBIERAĆ
-Wszystko działa od razu i nie trzeba niczego ustawiać. Ale sekcja „Ustawienia” w panelu oddaje Ci trzydzieści pięć ustawień.
+Wszystko działa od razu i nie trzeba niczego ustawiać. Ale sekcja „Ustawienia” w panelu oddaje Ci trzydzieści sześć ustawień.
 
 - ★ TO, CO WIDZISZ ★ Każda odznaka, czas trwania transmisji i jego format, pasek „właśnie ruszyła”, złoto subskrypcji, filtry, przyciski sortowania: wszystko włącza się i wyłącza jednym polem.
 - ★ TO, CO SIĘ WCZYTUJE ★ Podgląd może zrezygnować z wideo i zachować odznaki, oś czasu i miniaturę — albo po prostu zejść z jakością. Tyle, by go odciążyć, nie tracąc go.

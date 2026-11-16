@@ -13132,9 +13132,10 @@ titre('96. Le mode d\'emploi — la première vue, et la seule qui n\'ait besoin
   ok('…sans interroger le navigateur, et sans réclamer d\'onglet Twitch',
      q.n === 0 && q.message === false, JSON.stringify(q));
 
-  /* ── 3. LES DIX-NEUF CHAPITRES (la salle a le sien depuis la 4.24.0.37,
+  /* ── 3. LES VINGT CHAPITRES (la salle a le sien depuis la 4.24.0.37,
         l'agenda depuis la 4.25.0, ses deux vues chacune le leur depuis la
-        4.25.0.11, l'accueil de Twitch depuis la 4.26.0) ──────────────────── */
+        4.25.0.11, l'accueil de Twitch depuis la 4.26.0, le zapping depuis
+        la 4.33.0) ─────────────────────────────────────────────────────────── */
   const plan = await page.evaluate(() => {
     const chaps = [...document.querySelectorAll('#guide .guide-chapitre')];
     return {
@@ -13147,9 +13148,9 @@ titre('96. Le mode d\'emploi — la première vue, et la seule qui n\'ait besoin
       cles: chaps.map(c => c.dataset.cle || ''),
     };
   });
-  ok('dix-neuf chapitres, numérotés de 1 à 19, chacun avec un titre et du texte',
-     plan.n === 19
-     && plan.nums.join(',') === Array.from({ length: 19 }, (_, i) => i + 1).join(',')
+  ok('vingt chapitres, numérotés de 1 à 20, chacun avec un titre et du texte',
+     plan.n === 20
+     && plan.nums.join(',') === Array.from({ length: 20 }, (_, i) => i + 1).join(',')
      && plan.titres.every(t => t.length > 2)
      && plan.sansCorps === 0
      && plan.intro.length > 40,
@@ -13158,14 +13159,14 @@ titre('96. Le mode d\'emploi — la première vue, et la seule qui n\'ait besoin
      était recopié à la main, et rien ne liait la phrase au guide : on le lie
      ici, comme le compte des réglages (117). Le mot change avec le nombre ;
      un chapitre ajouté sans toucher aux fiches fait tomber cette ligne. */
-  const DIX_NEUF = { de: 'neunzehn Kapiteln', en: 'nineteen-chapter', es: 'diecinueve capítulos',
-                     es_419: 'diecinueve capítulos', fr: 'dix-neuf chapitres', it: 'diciannove capitoli',
-                     ja: '十九章', pl: 'dziewiętnastu rozdziałach', pt_BR: 'dezenove capítulos',
-                     pt_PT: 'dezanove capítulos', ru: 'девятнадцати глав', zh_CN: '十九章' };
-  const fichesMuettes = Object.entries(DIX_NEUF).filter(([loc, mot]) => !readFileSync(
+  const VINGT = { de: 'zwanzig Kapiteln', en: 'twenty-chapter', es: 'veinte capítulos',
+                  es_419: 'veinte capítulos', fr: 'vingt chapitres', it: 'venti capitoli',
+                  ja: '二十章', pl: 'dwudziestu rozdziałach', pt_BR: 'vinte capítulos',
+                  pt_PT: 'vinte capítulos', ru: 'двадцати глав', zh_CN: '二十章' };
+  const fichesMuettes = Object.entries(VINGT).filter(([loc, mot]) => !readFileSync(
     join(ICI, '..', 'store', `description-${loc.replace('_', '-')}.txt`), 'utf8').includes(mot)).map(([loc]) => loc);
   ok('…et les douze fiches du Store annoncent ce nombre de chapitres',
-     plan.n === 19 && Object.keys(DIX_NEUF).length === readdirSync(join(ICI, '..', '_locales')).length
+     plan.n === 20 && Object.keys(VINGT).length === readdirSync(join(ICI, '..', '_locales')).length
      && fichesMuettes.length === 0, fichesMuettes.join(', ') || String(plan.n));
 
   /* ── 4. AUCUN LIBELLÉ MANQUANT ────────────────────────────────────────────
@@ -13198,7 +13199,7 @@ titre('96. Le mode d\'emploi — la première vue, et la seule qui n\'ait besoin
      puces » — leur nombre change à chaque relecture du guide, et une borne
      serrée se contenterait de casser le banc au premier paragraphe retiré.
      Ce qu'il attrape, c'est ZÉRO : le jour où la grammaire des corps cesse
-     d'être appliquée, il n'y a plus une seule puce dans les dix-neuf chapitres. */
+     d'être appliquée, il n'y a plus une seule puce dans les vingt chapitres. */
   ok('les puces sont devenues des éléments de liste, marqueur retiré',
      puces.items >= 20 && puces.paraAvecPuce === 0 && puces.itemAvecPuce === 0
      && puces.vides === 0,
@@ -13254,7 +13255,7 @@ titre('96. Le mode d\'emploi — la première vue, et la seule qui n\'ait besoin
     })));
   const rangDe = (cle) => sections.findIndex((x) => x.cle === cle) + 1;
   ok('chaque chapitre porte sa clé, et c\'est celle du titre affiché',
-     sections.length === 19 && new Set(sections.map((x) => x.cle)).size === 19
+     sections.length === 20 && new Set(sections.map((x) => x.cle)).size === 20
      && sections.every((x) => en[x.cle] && x.titre === en[x.cle].message),
      JSON.stringify(sections.map((x) => [x.cle, x.titre])));
   /* LA TABLE DES RENVOIS, ÉCRITE ICI ET NON RELUE DANS LE CODE : chacun, sa
@@ -13405,6 +13406,8 @@ titre('96. Le mode d\'emploi — la première vue, et la seule qui n\'ait besoin
     guideHorsLigneTexte: ['navHorsLigne', 'navSemaine', 'btnReplay', 'btnSeeWeek', 'valUnavailable'],
     guideAboTexte: ['btnRefreshSubs', 'grpData', 'navSubs'],
     guideSalleTexte: ['optSalleAuto', 'grpOptions'],
+    // Le zapping (4.33.0) : son réglage, et où il se coupe.
+    guideZapTexte: ['optZapping', 'grpOptions'],
     guideReglagesTexte: ['grpOptions', 'optValDiscret'],
     guideTriTexte: ['optTriViewers', 'optTriSubs', 'optTriPopular', 'optTriUptime', 'optTriAlpha', 'optTriCostream'],
     guideTopTexte: ['grpGlobal', 'guideDemoSuivies'],
@@ -13836,7 +13839,7 @@ titre('96. Le mode d\'emploi — la première vue, et la seule qui n\'ait besoin
   }));
   ok('une autre section le range et demande la page ; y revenir le repose intact',
      parti.guide === true && parti.message === true && parti.queries > 0
-     && revenu.guide === true && revenu.chapitres === 19 && revenu.message === false,
+     && revenu.guide === true && revenu.chapitres === 20 && revenu.message === false,
      JSON.stringify({ parti, revenu }));
   await page.close();
 
@@ -13860,7 +13863,7 @@ titre('96. Le mode d\'emploi — la première vue, et la seule qui n\'ait besoin
              largeur: document.documentElement.scrollWidth };
   });
   ok('le mode d\'emploi se rend aussi en japonais, sans clé nue ni débordement',
-     rendJa.titre === ja.navGuide.message && rendJa.chapitres === 19
+     rendJa.titre === ja.navGuide.message && rendJa.chapitres === 20
      && rendJa.items >= 20 && rendJa.puces === 0 && rendJa.largeur <= 760
      && !Object.keys(ja).some(k => rendJa.texte.includes(k)),
      JSON.stringify({ titre: rendJa.titre, chapitres: rendJa.chapitres,
@@ -16686,7 +16689,7 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
     return { n: Object.keys(defs).length, horsListe, jeuxNonVides,
              cle: localStorage.getItem('tse:options') };
   });
-  ok('la table porte ses trente-cinq réglages', table.n === 35, String(table.n));
+  ok('la table porte ses trente-six réglages', table.n === 36, String(table.n));
   /* CELUI-CI A UNE CIBLE PRÉCISE : trois défauts sont lus dans CFG plutôt que
      recopiés — apercuQualite, abosPeriode et topN. Changer une de ces trois
      constantes sans toucher à la liste des valeurs permises rendrait le
@@ -16717,21 +16720,22 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
      « Pendant votre absence » ; trente-trois depuis la 4.31.0 : « Parce que
      vous regardez souvent… » ; trente-quatre depuis la 4.32.0 : « Ranger
      l'accueil de Twitch » ; trente-cinq depuis la 4.32.0.4 : « Chaînes
-     écartées du Top 10 ». En polonais et en russe, à partir de cinq, le
-     génitif pluriel — et, en polonais, le verbe au singulier. */
-  const TRENTE_CINQ = { de: 'fünfunddreißig Einstellungen', en: 'thirty-five settings',
-                        es: 'treinta y cinco ajustes', es_419: 'treinta y cinco ajustes', fr: 'trente-cinq réglages',
-                        it: 'trentacinque impostazioni', ja: '35 個の設定', pl: 'trzydzieści pięć ustawień',
-                        pt_BR: 'trinta e cinco configurações', pt_PT: 'trinta e cinco definições',
-                        ru: 'тридцать пять настроек', zh_CN: '三十五项设置' };
-  const muettes = Object.entries(TRENTE_CINQ).flatMap(([loc, mot]) => [
+     écartées du Top 10 » ; trente-six depuis la 4.33.0 : « Zapping ». En
+     polonais et en russe, à partir de cinq, le génitif pluriel — et, en
+     polonais, le verbe au singulier. */
+  const TRENTE_SIX = { de: 'sechsunddreißig Einstellungen', en: 'thirty-six settings',
+                       es: 'treinta y seis ajustes', es_419: 'treinta y seis ajustes', fr: 'trente-six réglages',
+                       it: 'trentasei impostazioni', ja: '36 個の設定', pl: 'trzydzieści sześć ustawień',
+                       pt_BR: 'trinta e seis configurações', pt_PT: 'trinta e seis definições',
+                       ru: 'тридцать шесть настроек', zh_CN: '三十六项设置' };
+  const muettes = Object.entries(TRENTE_SIX).flatMap(([loc, mot]) => [
     JSON.parse(readFileSync(join(ICI, '..', '_locales', loc, 'messages.json'), 'utf8'))
       .optResetText.message.includes(mot) ? null : `panneau ${loc}`,
     readFileSync(join(ICI, '..', 'store', `description-${loc.replace('_', '-')}.txt`), 'utf8')
       .includes(mot) ? null : `fiche ${loc}`,
   ]).filter(Boolean);
   ok('…et le panneau comme la fiche du Store en annoncent autant, dans les douze langues',
-     table.n === 35 && muettes.length === 0, muettes.join(', ') || String(table.n));
+     table.n === 36 && muettes.length === 0, muettes.join(', ') || String(table.n));
   /* CELLE-CI SE LIT SUR LE FICHIER SOURCE, et c'est le fond du sujet : la
      constante de production vaut six heures, mais tests/build.mjs la réécrit à
      quatre secondes pour que le relevé des abonnements soit éprouvable. La
@@ -42371,6 +42375,457 @@ const lireImages = (page) => page.evaluate(() => {
   ok('…puis allumé : la durée paraît, 7TV s\'efface, et l\'étiquette redescend en bas à droite',
      h2.quebec.sept === 'none' && h2.quebec.etiq.coin === null && h2.quebec.etiq.bas === '8px', JSON.stringify(h2.quebec));
   await q.close();
+}
+
+/* ═════════ 231. LE ZAPPING (4.33.0) ═════════
+   « Concernant le niveau 3, seul le zapping m'intéresse. Pour y accéder, un
+   bouton juste à droite de la loupe de la zone de recherche. » La barre du
+   haut est celle relevée par l'utilisateur sur le vrai Twitch (cf.
+   page.html, __navHaut) ; le lecteur, un faux de player.twitch.tv qui porte
+   une vidéo, les deux boutons de Twitch que le pont presse, et le pont
+   lui-même. Sept chaînes suivies en direct, comme sur la maquette (« 2 / 7 ») ;
+   Velmoria est en subathon, jour 9. */
+const LECTEUR_ZAP = `<!doctype html><html><body style="margin:0;background:#000">
+  <button data-a-target="player-mute-unmute-button" style="position:absolute;left:0;top:0;width:8px;height:8px;opacity:0"></button>
+  <button data-a-target="player-play-pause-button" style="position:absolute;left:10px;top:0;width:8px;height:8px;opacity:0"></button>
+  <script>
+    const ch = new URLSearchParams(location.search).get('channel') || '?';
+    const c = document.createElement('canvas'); c.width = 64; c.height = 36;
+    const x = c.getContext('2d');
+    let h = 0; for (const k of ch) h = (h * 31 + k.charCodeAt(0)) % 360;
+    const v = document.createElement('video');
+    v.autoplay = true; v.muted = true; v.playsInline = true;
+    v.style.cssText = 'width:100%;height:100%;display:block';
+    v.srcObject = c.captureStream(25);
+    document.body.appendChild(v);
+    v.play().catch(() => {});
+    setInterval(() => { x.fillStyle = 'hsl(' + h + ',55%,' + (28 + Math.random() * 4) + '%)'; x.fillRect(0, 0, 64, 36); }, 40);
+    document.querySelector('[data-a-target="player-mute-unmute-button"]').addEventListener('click', () => { v.muted = !v.muted; });
+    document.querySelector('[data-a-target="player-play-pause-button"]').addEventListener('click', () => { if (v.paused) v.play(); else v.pause(); });
+  </script>
+  <script src="/cadres.test.js"></script>
+</body></html>`;
+const SUIVIES_ZAP = {
+  nyxaria:  { id: '11', depuis: 185, v: 8400, jeu: 'Elden Ring', titre: 'Boss final sans mourir' },
+  brenvik:  { id: '21', depuis: 64,  v: 5600, jeu: 'Counter-Strike', titre: 'Ranked toute la nuit' },
+  velmoria: { id: '13', depuis: 98,  v: 3000, jeu: 'Just Chatting', titre: 'SUBATHON JOUR 9 — on ne dort pas tant que la barre n\'est pas pleine' },
+  quorvin:  { id: '24', depuis: 20,  v: 2100, jeu: 'Just Chatting', titre: 'Café et discussions' },
+  tazmerin: { id: '23', depuis: 140, v: 1200, jeu: 'Hollow Knight: Silksong', titre: 'Premier run' },
+  lirael:   { id: '25', depuis: 55,  v: 900,  jeu: 'Minecraft', titre: 'Le village au bord de l\'eau' },
+  sevrane:  { id: '22', depuis: 30,  v: 640,  jeu: 'Minecraft', titre: 'Construction du château' },
+};
+async function ouvrirZap({ nav = true, chemin = '/directory', suivies = SUIVIES_ZAP } = {}) {
+  const init = `(() => { try { localStorage.setItem('tse:roue', 'vu'); localStorage.setItem('tse:indice', 'vu'); } catch { /* refusé */ }
+    window.__navHaut = ${JSON.stringify(nav)}; })();`;
+  const page = await freshTwitch(LECTEUR_ZAP, [], chemin, init);
+  await page.setViewportSize({ width: 1600, height: 900 });
+  await page.evaluate((s) => {
+    const h = (m) => new Date(Date.now() - m * 60_000).toISOString();
+    window.__fx = Object.fromEntries(Object.entries(s).map(([l, x]) =>
+      [l, { id: x.id, createdAt: h(x.depuis), viewers: x.v, game: x.jeu, tags: ['Français'], title: x.titre }]));
+    for (const [l, x] of Object.entries(s)) window.__addCard(l, x.jeu, String(x.v));
+  }, suivies);
+  return page;
+}
+// L'état de la vidéo d'un lecteur du zapping, lu dans son cadre.
+const videoZap = async (page, login) => {
+  const fr = page.frames().find((f) => f.name() === 'tse-zapping' && new URL(f.url()).searchParams.get('channel') === login);
+  return fr ? fr.evaluate(() => { const v = document.querySelector('video'); return v ? { muet: v.muted, lecture: !v.paused } : null; }).catch(() => null) : null;
+};
+const attendreVideo = async (page, login, fn, ms = 6000) => {
+  const t0 = Date.now();
+  let v = null;
+  while (Date.now() - t0 < ms) {
+    v = await videoZap(page, login);
+    if (v && fn(v)) return v;
+    await wait(page, 150);
+  }
+  return v;
+};
+/* L'écran absent — fermé par un mutant, par exemple — rend un relevé vide
+   plutôt que null : l'assertion tombe, le banc ne plante pas. */
+const lireZap = (page) => page.evaluate(() => {
+  const z = document.getElementById('tse-zap');
+  if (!z) return { absent: true, liste: [], marques: {}, aide: [], cadres: [], rapport: window.tse.zapping.rapport() };
+  const q = (s) => z.querySelector(s);
+  return {
+    rang: q('.tse-zap__rang').textContent, titre: q('.tse-zap__titre').textContent,
+    liste: [...z.querySelectorAll('.tse-zap__chaine')].map((b) => b.dataset.tseLogin),
+    courante: z.querySelector('.tse-zap__chaine--courante')?.dataset.tseLogin ?? null,
+    marques: Object.fromEntries([...z.querySelectorAll('.tse-zap__chaine')].map((b) => [b.dataset.tseLogin,
+      [...b.querySelectorAll('.tse-zap__marque')].map((m) => m.textContent)]).filter(([, m]) => m.length)),
+    nom: q('.tse-zap__nom').textContent, jour: q('.tse-zap__ligne-nom .tse-subathon-jour').hidden ? null : q('.tse-zap__ligne-nom .tse-subathon-libelle')?.textContent ?? null,
+    titreDirect: q('.tse-zap__titre-direct').textContent, direct: q('.tse-zap__direct').textContent, meta: q('.tse-zap__meta-texte').textContent,
+    son: q('.tse-zap__son-texte').textContent, sonPresse: q('.tse-zap__son').getAttribute('aria-pressed'),
+    aide: [...z.querySelectorAll('.tse-zap__aide .tse-zap__touche')].filter((b) => !b.hidden).map((b) => b.textContent.trim()),
+    avis: q('.tse-zap__avis').hidden ? null : q('.tse-zap__avis').textContent,
+    vide: q('.tse-zap__vide').hidden ? null : q('.tse-zap__vide').textContent,
+    cadres: [...z.querySelectorAll('iframe')].map((f) => ({ login: f.dataset.tseLogin, nom: f.name, cls: f.className, op: Number(getComputedStyle(f).opacity) })),
+    rapport: window.tse.zapping.rapport(),
+  };
+});
+
+{
+  titre('231. Le zapping — un bouton à droite de la loupe, vos suivis en direct en plein écran, la suivante déjà chargée');
+  /* a) LE BOUTON, juste à droite de la loupe : au bout de la rangée de la
+     recherche, hors du formulaire ; centres alignés, ses huit pixels de
+     marge. Mutant — posé avant la loupe. */
+  const p = await ouvrirZap();
+  await attendre(p, () => !!document.querySelector('.tse-zap-bouton'), 6000);
+  const posBouton = () => p.evaluate(() => {
+    const b = document.querySelector('.tse-zap-bouton');
+    const loupe = [...document.querySelectorAll('[data-a-target="top-nav-container"] button')]
+      .find((x) => x.offsetParent !== null && !x.classList.contains('tse-zap-bouton') && /Rechercher/.test(x.getAttribute('aria-label') || ''));
+    if (!b || !loupe) return { b: !!b, loupe: !!loupe };
+    const rb = b.getBoundingClientRect(), rl = loupe.getBoundingClientRect();
+    return { n: document.querySelectorAll('.tse-zap-bouton').length, dy: Math.round((rb.top + rb.bottom) / 2 - (rl.top + rl.bottom) / 2),
+             dx: Math.round(rb.left - rl.right), loupe: loupe.getAttribute('aria-label'), formulaire: !!b.closest('form'),
+             apresLoupe: b.closest('.tse-zap-porteur').previousElementSibling?.contains(loupe) ?? false,
+             label: b.getAttribute('aria-label'), title: b.title, voie: window.tse.zapping.rapport().voie };
+  });
+  const b1 = await posBouton();
+  // Le redimensionnement d'ouverture repose le bouton 250 ms plus tard : passé, b) ne voit que ses propres chemins.
+  await wait(p, 600);
+  ok('a) le bouton, une fois, juste à droite de la loupe de la recherche : centres alignés, huit pixels entre eux, au bout de la rangée, hors du formulaire',
+     b1.n === 1 && b1.dy === 0 && b1.dx === 8 && b1.loupe === 'Bouton Rechercher' && !b1.formulaire && b1.voie === 'rangee'
+     && b1.label === 'Zapping : vos suivis en direct' && b1.title === b1.label, JSON.stringify(b1));
+  /* b) REACT REFAIT LA RANGÉE : le bouton revient, dans la même tâche — un
+     observateur sur la barre ; LA BARRE ENTIÈRE REMPLACÉE : au coup d'œil
+     suivant (deux secondes). Mutants — sans observateur ; sans coup d'œil. */
+  const r1 = await p.evaluate(async () => {
+    window.__navRangee();
+    await new Promise((r) => requestAnimationFrame(() => r()));
+    return { la: !!document.querySelector('[data-a-target="top-nav-container"] .tse-zap-bouton'), reposes: window.tse.zapping.rapport().reposes };
+  });
+  await p.evaluate(() => window.__navRemplacer());
+  await attendre(p, () => !!document.querySelector('[data-a-target="top-nav-container"] .tse-zap-bouton'), 3500);
+  const b2 = await posBouton();
+  ok('b) la rangée refaite : le bouton revient avant l\'image suivante ; la barre entière remplacée : au coup d\'œil suivant, à la même place',
+     r1.la && r1.reposes === 1 && b2.n === 1 && b2.dy === 0 && b2.dx === 8 && b2.voie === 'rangee'
+     && (await p.evaluate(() => window.tse.zapping.rapport().reposes)) === 2, JSON.stringify({ r1, b2 }));
+
+  /* c) L'ÉCRAN : plein, devant tout — la barre du haut comprise —, un
+     dialogue modal qui prend le focus. Les chaînes : les suivies en direct
+     dans l'ordre de la barre, quel que soit son tri — ici l'alphabet, qui
+     n'est pas celui des spectateurs. Un capot devant les lecteurs : un clic
+     n'y donne pas le focus au lecteur. La vidéo de la page, en pause.
+     Mutants — l'ordre des spectateurs ; pas de capot ; la vidéo laissée. */
+  await attendre(p, () => !!document.querySelector('.tse-sort-toggle[data-tse-sort-mode="alpha"]'), 6000);
+  await p.click('.tse-sort-toggle[data-tse-sort-mode="alpha"]');
+  await attendre(p, () => [...document.querySelectorAll('.side-nav-card')].map((c) => c.dataset.tseLogin).join() === 'brenvik,lirael,nyxaria,quorvin,sevrane,tazmerin,velmoria', 6000);
+  await p.evaluate(() => {
+    const c = document.createElement('canvas'); c.width = 16; c.height = 9;
+    const v = document.createElement('video'); v.id = 'video-page'; v.muted = true; v.srcObject = c.captureStream(10);
+    document.body.appendChild(v); v.play().catch(() => { /* interrompue par la pause du zapping : c'est voulu */ });
+    window.__touchesPage = 0;
+    window.addEventListener('keydown', () => { window.__touchesPage++; });
+    /* La retenue des relevés du pont (cf. i), posée AVANT l'ouverture : au
+       même nœud, les écouteurs passent dans l'ordre où on les a posés. */
+    window.__retenir = false;
+    window.addEventListener('message', (e) => { if (window.__retenir && e.data?.tse === 'tse:salle-etat') e.stopImmediatePropagation(); }, true);
+  });
+  await attendre(p, () => !document.getElementById('video-page').paused, 3000);
+  await p.click('.tse-zap-bouton');
+  await attendre(p, () => window.tse.zapping.rapport().courant !== null, 4000);
+  const o = await p.evaluate(() => {
+    const z = document.getElementById('tse-zap');
+    const r = z.getBoundingClientRect();
+    const pts = [[5, 5], [innerWidth / 2, 25], [innerWidth - 5, innerHeight - 5], [innerWidth / 2, innerHeight / 2]];
+    /* L'empilement : les lecteurs ignorent la souris, et le point ne les
+       voit pas ; rendus à elle le temps d'une mesure, ils doivent rester
+       sous le compteur. */
+    const st = document.createElement('style');
+    st.textContent = '#tse-zap iframe { pointer-events: auto !important; }';
+    document.head.appendChild(st);
+    const rc = z.querySelector('.tse-zap__compteur').getBoundingClientRect();
+    const dessus = document.elementFromPoint(rc.left + 6, rc.top + 6);
+    st.remove();
+    return { couvre: pts.every(([x, y]) => z.contains(document.elementFromPoint(x, y))), plein: r.width === innerWidth && r.height === innerHeight,
+             compteurDessus: !!dessus && !!dessus.closest('.tse-zap__compteur'),
+             capot: document.elementFromPoint(innerWidth / 2, innerHeight / 2).className, role: z.getAttribute('role'), modal: z.getAttribute('aria-modal'),
+             focus: z.contains(document.activeElement), barre: [...document.querySelectorAll('.side-nav-card')].map((c) => c.dataset.tseLogin),
+             videoPage: document.getElementById('video-page').paused };
+  });
+  const z1 = await lireZap(p);
+  ok('c) l\'écran plein, devant la barre du haut, modal, le focus dedans ; les sept chaînes dans l\'ordre de la barre (ici alphabétique) ; un capot devant les lecteurs ; la vidéo de la page en pause',
+     o.couvre && o.plein && o.capot === 'tse-zap__capot' && o.compteurDessus && o.role === 'dialog' && o.modal === 'true' && o.focus && o.videoPage
+     && JSON.stringify(z1.liste) === JSON.stringify(o.barre) && z1.liste.length === 7 && z1.rang === '1 / 7' && z1.titre === 'Zapping · vos suivis en direct'
+     && z1.courante === 'brenvik', JSON.stringify({ o, liste: z1.liste, rang: z1.rang }));
+  /* d) LE COURANT : un lecteur intégré, au nom qui éveille le pont, muet à
+     l'adresse — la lecture automatique l'exige — puis rendu au son par le
+     pont ; la suivante, déjà chargée, muette et invisible, marquée
+     « préchargée ». Un lecteur qui n'est pas le courant et que Twitch
+     rendrait au son se retait. Mutants — le son jamais rendu ; pas de
+     préchargement ; le préchargé laissé au son. */
+  const vBrenvik = await attendreVideo(p, 'brenvik', (v) => v.muet === false && v.lecture);
+  await attendre(p, () => window.tse.zapping.rapport().precharge === 'lirael', 3000);
+  const vLirael = await attendreVideo(p, 'lirael', (v) => v.lecture);
+  const z2 = await lireZap(p);
+  const cadreB = z2.cadres.find((c) => c.login === 'brenvik'), cadreL = z2.cadres.find((c) => c.login === 'lirael');
+  const srcB = await p.evaluate(() => document.querySelector('#tse-zap iframe[data-tse-login="brenvik"]').src);
+  ok('d) le courant : un lecteur nommé « tse-zapping », muet à l\'adresse, puis au son par le pont ; la suivante préchargée, muette, invisible, marquée',
+     vBrenvik && vBrenvik.muet === false && vBrenvik.lecture && cadreB.nom === 'tse-zapping' && cadreB.op === 1
+     && /[?&]channel=brenvik&parent=www\.twitch\.tv&muted=true&autoplay=true$/.test(srcB)
+     && vLirael && vLirael.muet === true && cadreL && cadreL.op === 0 && JSON.stringify(z2.marques) === '{"lirael":["préchargée"]}',
+     JSON.stringify({ vBrenvik, vLirael, cadres: z2.cadres, marques: z2.marques, srcB }));
+  await p.frames().find((f) => f.name() === 'tse-zapping' && /channel=lirael/.test(f.url())).evaluate(() => { document.querySelector('video').muted = false; });
+  const vRetu = await attendreVideo(p, 'lirael', (v) => v.muet === true, 4000);
+  ok('…le préchargé que Twitch rendrait au son se retait', vRetu && vRetu.muet === true, JSON.stringify(vRetu));
+  /* e) ↓ : la préchargée devient le courant, le même cadre — rien ne se
+     recharge —, au son ; l'ancien se tait et part après le fondu ; la
+     suivante se précharge. Les touches ne passent pas à Twitch. Mutants —
+     le préchargé jeté et rechargé ; l'ancien laissé. */
+  await p.evaluate(() => { document.querySelector('#tse-zap iframe[data-tse-login="lirael"]').dataset.marque = 'pre'; });
+  await p.keyboard.press('ArrowDown');
+  await attendre(p, () => window.tse.zapping.rapport().courant === 'lirael', 2000);
+  const vLirael2 = await attendreVideo(p, 'lirael', (v) => v.muet === false);
+  await wait(p, 500);
+  const z3 = await lireZap(p);
+  const marque = await p.evaluate(() => document.querySelector('#tse-zap iframe[data-tse-login="lirael"]')?.dataset.marque ?? null);
+  await attendre(p, () => window.tse.zapping.rapport().precharge === 'nyxaria', 3000);
+  const touches = await p.evaluate(() => window.__touchesPage);
+  ok('e) ↓ : la préchargée devient le courant — le même cadre —, au son ; l\'ancienne part ; la suivante se précharge ; « 2 / 7 » ; rien ne passe à Twitch',
+     z3.rang === '2 / 7' && z3.courante === 'lirael' && z3.nom === 'Lirael' && marque === 'pre' && vLirael2 && vLirael2.muet === false
+     && !z3.cadres.some((c) => c.login === 'brenvik') && z3.rapport.prechargesServies === 1
+     && (await p.evaluate(() => window.tse.zapping.rapport().precharge)) === 'nyxaria' && touches === 0,
+     JSON.stringify({ rang: z3.rang, courante: z3.courante, marque, vLirael2, cadres: z3.cadres, rapport: z3.rapport, touches }));
+  /* f) ↑, À REBOURS : la chaîne d'avant n'était pas préchargée ; elle se
+     charge SOUS l'image d'avant, qui reste jusqu'à ce qu'elle joue — à
+     aucune image l'écran n'est sans lecteur visible. Le préchargement suit
+     le sens : celle d'avant encore. Mutants — l'ancien retiré sur-le-champ ;
+     le préchargement toujours vers l'avant. */
+  await p.evaluate(() => {
+    window.__noir = 0; window.__images = 0;
+    const t0 = performance.now();
+    const regarder = () => {
+      const op = Math.max(0, ...[...document.querySelectorAll('#tse-zap iframe')].map((f) => Number(getComputedStyle(f).opacity)));
+      window.__images++;
+      if (op < 0.95) window.__noir++;
+      if (performance.now() - t0 < 2500) requestAnimationFrame(regarder);
+    };
+    requestAnimationFrame(regarder);
+  });
+  await p.keyboard.press('ArrowUp');
+  await wait(p, 2600);
+  const noir = await p.evaluate(() => ({ noir: window.__noir, images: window.__images }));
+  await attendre(p, () => window.tse.zapping.rapport().precharge === 'velmoria', 3000);
+  const z4 = await lireZap(p);
+  ok('f) ↑ : la chaîne d\'avant se charge sous l\'image qui reste — aucune image sans lecteur visible ; le préchargement suit le sens',
+     z4.courante === 'brenvik' && z4.rang === '1 / 7' && noir.images > 20 && noir.noir === 0 && z4.rapport.precharge === 'velmoria'
+     && z4.rapport.prechargesServies === 1, JSON.stringify({ noir, courante: z4.courante, rapport: z4.rapport }));
+  /* g) AU BOUT, ON REVIENT : ↑ depuis la première mène à la dernière ; un
+     clic dans la colonne mène à la sienne. */
+  await p.keyboard.press('ArrowUp');
+  await attendre(p, () => window.tse.zapping.rapport().courant === 'velmoria', 2000);
+  const z5 = await lireZap(p);
+  await p.click('#tse-zap .tse-zap__chaine[data-tse-login="nyxaria"]');
+  await attendre(p, () => window.tse.zapping.rapport().courant === 'nyxaria', 2000);
+  const z6 = await lireZap(p);
+  ok('g) ↑ depuis la première : la dernière (« 7 / 7 ») ; un clic dans la colonne : sa chaîne',
+     z5.rang === '7 / 7' && z5.courante === 'velmoria' && z6.rang === '3 / 7' && z6.courante === 'nyxaria', JSON.stringify({ z5: z5.rang, z6: z6.rang }));
+  /* h) LA CHAÎNE, EN BAS : son nom et la pastille de son subathon — celle
+     de la barre —, son titre, « Live », sa catégorie, ses spectateurs, sa
+     durée, « subathon, jour 9 » ; « Son de … ». Mutant — sans pastille. */
+  await p.click('#tse-zap .tse-zap__chaine[data-tse-login="velmoria"]');
+  await attendre(p, () => window.tse.zapping.rapport().courant === 'velmoria', 2000);
+  await wait(p, 300);
+  const z7 = await lireZap(p);
+  ok('h) en bas : le nom, la pastille « J9 », le titre, « Live », « Discussions · 3 k spectateurs · en direct depuis 1h38 · subathon, jour 9 », « Son de Velmoria »',
+     z7.nom === 'Velmoria' && z7.jour === 'J9' && z7.titreDirect === SUIVIES_ZAP.velmoria.titre && z7.direct === 'Live'
+     && /^Discussions · 3 k spectateurs · en direct depuis 1h(38|39|40) · subathon, jour 9$/.test(nz(z7.meta)) && z7.son === 'Son de Velmoria',
+     JSON.stringify({ nom: z7.nom, jour: z7.jour, titre: z7.titreDirect, direct: z7.direct, meta: z7.meta, son: z7.son }));
+  /* i) LE SON SE COUPE ET REVIENT, par « Son de … ». Mutant — le bouton qui
+     ne fait que changer son texte. */
+  const vAvant = await attendreVideo(p, 'velmoria', (v) => v.muet === false);
+  /* Les relevés du pont, retenus le temps de la mesure : c'est l'ordre du
+     bouton qui coupe, pas la tenue du son au relevé suivant. */
+  await p.evaluate(() => { window.__retenir = true; });
+  await p.click('#tse-zap .tse-zap__son');
+  const vMuet = await attendreVideo(p, 'velmoria', (v) => v.muet === true, 3000);
+  const z8 = await lireZap(p);
+  await p.click('#tse-zap .tse-zap__son');
+  const vSon = await attendreVideo(p, 'velmoria', (v) => v.muet === false, 3000);
+  await p.evaluate(() => { window.__retenir = false; });
+  ok('i) « Son de Velmoria » coupe le son — « Son coupé », pressé — puis le rend',
+     vAvant && vAvant.muet === false && vMuet && vMuet.muet === true && z8.son === 'Son coupé' && z8.sonPresse === 'true' && vSon && vSon.muet === false,
+     JSON.stringify({ vAvant, vMuet, son: z8.son, presse: z8.sonPresse, vSon }));
+  /* j) LA SALLE : S ajoute la chaîne — « dans la salle » —, et son libellé
+     devient « retirer de la salle » ; O ne paraît qu'à deux, et seul, ne
+     l'ouvre pas ; la salle tient six streams, la septième est refusée, et
+     on le dit. Mutants — O à une chaîne ; la borne ignorée. */
+  await p.keyboard.press('s');
+  const z9 = await lireZap(p);
+  await p.keyboard.press('o');
+  const z9b = await lireZap(p);
+  ok('j) S : « dans la salle », « retirer de la salle » ; O absent, et sans effet, à une seule chaîne',
+     JSON.stringify(z9.marques.velmoria) === '["dans la salle"]' && z9.aide.includes('Sretirer de la salle') && !z9.aide.some((t) => /^O/.test(t))
+     && z9b.avis === 'Il faut au moins deux chaînes pour ouvrir la salle.' && z9b.rapport.ouvert,
+     JSON.stringify({ marques: z9.marques, aide: z9.aide, avis: z9b.avis }));
+  for (let i = 0; i < 6; i++) { await p.keyboard.press('ArrowDown'); await p.keyboard.press('s'); }
+  const z10 = await lireZap(p);
+  ok('…six au plus : la septième refusée, et dit ; O paraît, avec le compte',
+     z10.rapport.selection.length === 6 && !z10.rapport.selection.includes(z10.rapport.courant) && z10.avis === 'La salle tient 6 streams au plus.'
+     && z10.aide.includes('Oouvrir la salle (6)'), JSON.stringify({ sel: z10.rapport.selection, avis: z10.avis, aide: z10.aide }));
+  /* k) O OUVRE LA SALLE avec la sélection — sur « Parcourir », la page de la
+     salle, sur place —, et le zapping se ferme. Rouvert, le zapping ferme la
+     salle — deux écrans de lecteurs se disputeraient le son — et reprend
+     ses streams dans la sélection. Mutants — la salle laissée ouverte ; la
+     sélection oubliée. */
+  const selection = z10.rapport.selection;
+  await p.keyboard.press('o');
+  await attendre(p, () => !document.getElementById('tse-zap') && !!window.tse.salle.rapport().ouverte, 4000);
+  const salleOuverte = await p.evaluate(() => ({ zap: !!document.getElementById('tse-zap'), n: window.tse.salle.rapport().membres,
+    chaines: [...new Set([...document.querySelectorAll('#tse-salle [data-tse-salle-chaine]')].map((x) => x.dataset.tseSalleChaine))].sort() }));
+  ok('k) O : la salle s\'ouvre avec les six, sur place ; le zapping se ferme',
+     !salleOuverte.zap && salleOuverte.n === 6 && JSON.stringify(salleOuverte.chaines) === JSON.stringify([...selection].sort()),
+     JSON.stringify({ salleOuverte, selection }));
+  await p.click('.tse-zap-bouton', { force: true });
+  await attendre(p, () => window.tse.zapping.rapport().ouvert, 3000);
+  const z11 = await lireZap(p);
+  const salleApres = await p.evaluate(() => window.tse.salle.rapport().ouverte);
+  ok('…rouvert, le zapping ferme la salle et reprend ses streams dans la sélection',
+     !salleApres && JSON.stringify(z11.rapport.selection) === JSON.stringify(selection) && z11.rapport.sallesFermees === 1,
+     JSON.stringify({ salleApres, sel: z11.rapport.selection, fermees: z11.rapport.sallesFermees }));
+  /* l) TAB TOURNE DANS L'ÉCRAN ; ÉCHAP le ferme : plus de lecteur, la vidéo
+     de la page reprend, le focus revient au bouton. Mutants — Tab qui sort ;
+     la vidéo laissée en pause. */
+  /* De bouton en bouton : au bout, Tab revient au premier, sans jamais
+     tomber hors de l'écran ni sur son fond. */
+  const poses = [];
+  for (let i = 0; i < 24; i++) {
+    await p.keyboard.press('Tab');
+    poses.push(await p.evaluate(() => { const a = document.activeElement; const z = document.getElementById('tse-zap');
+      return z && z.contains(a) && a.localName === 'button' ? [...z.querySelectorAll('button')].indexOf(a) : -1; }));
+  }
+  const tours = poses.filter((x, i) => i > 0 && x < poses[i - 1]).length;
+  ok('l) Tab tourne dans l\'écran, de bouton en bouton, et revient au premier', poses.every((x) => x >= 0) && tours >= 1, JSON.stringify(poses));
+  /* …ET LA MOLETTE ne fait pas défiler la page dessous. Mutant — la molette laissée. */
+  const avantMolette = await p.evaluate(() => { document.documentElement.style.minHeight = '3000px'; window.scrollTo(0, 0); return window.scrollY; });
+  await p.mouse.move(400, 450);
+  await p.mouse.wheel(0, 900);
+  await wait(p, 400);
+  const apresMolette = await p.evaluate(() => window.scrollY);
+  ok('…et la molette ne fait pas défiler la page sous l\'écran', avantMolette === 0 && apresMolette === 0, JSON.stringify({ avantMolette, apresMolette }));
+  await p.close();
+
+  const q = await ouvrirZap();
+  await attendre(q, () => !!document.querySelector('.tse-zap-bouton'), 6000);
+  await q.evaluate(() => {
+    const c = document.createElement('canvas'); c.width = 16; c.height = 9;
+    const v = document.createElement('video'); v.id = 'video-page'; v.muted = true; v.srcObject = c.captureStream(10);
+    document.body.appendChild(v); v.play().catch(() => { /* interrompue par la pause du zapping : c'est voulu */ });
+  });
+  await attendre(q, () => !document.getElementById('video-page').paused, 3000);
+  await q.click('.tse-zap-bouton');
+  await attendre(q, () => window.tse.zapping.rapport().courant !== null, 4000);
+  const pause = await q.evaluate(() => document.getElementById('video-page').paused);
+  await q.keyboard.press('Escape');
+  await wait(q, 300);
+  const ferme = await q.evaluate(() => ({ zap: !!document.getElementById('tse-zap'), cadres: document.querySelectorAll('iframe[name="tse-zapping"]').length,
+                                         video: !document.getElementById('video-page').paused, focus: document.activeElement?.className ?? null,
+                                         fermetures: window.tse.zapping.rapport().fermetures }));
+  ok('…Échap le ferme : plus de lecteur, la vidéo de la page reprend, le focus revient au bouton',
+     pause && !ferme.zap && ferme.cadres === 0 && ferme.video && ferme.focus === 'tse-zap-bouton' && ferme.fermetures.echap === 1, JSON.stringify({ pause, ferme }));
+  /* m) LA COURANTE QUI S'ARRÊTE reste à sa place, « hors ligne » : on ne
+     vous déplace pas. Mutant — elle sort de la liste. */
+  await q.click('.tse-zap-bouton');
+  await attendre(q, () => window.tse.zapping.rapport().courant === 'nyxaria', 4000);
+  await q.evaluate(() => { window.__fx.nyxaria = null; });
+  await attendre(q, () => document.querySelector('#tse-zap .tse-zap__direct')?.textContent === 'Hors ligne', 8000);
+  const z12 = await lireZap(q);
+  ok('m) la courante qui s\'arrête reste à sa place, « Hors ligne », la liste entière',
+     z12.direct === 'Hors ligne' && z12.courante === 'nyxaria' && z12.liste.length === 7 && z12.rang === '1 / 7' && z12.meta === '',
+     JSON.stringify({ direct: z12.direct, courante: z12.courante, n: z12.liste.length, rang: z12.rang, meta: z12.meta }));
+  /* n) ENTRÉE OUVRE LA CHAÎNE — et, depuis sa page, le zapping repart d'elle. */
+  await q.keyboard.press('ArrowDown');
+  await attendre(q, () => window.tse.zapping.rapport().courant === 'brenvik', 3000);
+  await Promise.all([q.waitForURL('**/brenvik', { timeout: 6000 }).catch(() => {}), q.keyboard.press('Enter')]);
+  const url = new URL(q.url()).pathname;
+  await q.close();
+  const r = await ouvrirZap({ chemin: '/velmoria' });
+  await attendre(r, () => !!document.querySelector('.tse-zap-bouton'), 6000);
+  await attendre(r, () => document.querySelectorAll('.side-nav-card[data-tse-login]').length === 7, 6000);
+  await wait(r, 1500);
+  await r.click('.tse-zap-bouton');
+  await attendre(r, () => window.tse.zapping.rapport().courant !== null, 4000);
+  const z13 = await lireZap(r);
+  ok('n) Entrée ouvre la chaîne courante ; depuis la page d\'une chaîne, le zapping repart d\'elle',
+     url === '/brenvik' && z13.courante === 'velmoria' && z13.rang === '3 / 7', JSON.stringify({ url, courante: z13.courante, rang: z13.rang }));
+  /* o) LE RÉGLAGE COUPÉ : l'écran ouvert se ferme, le bouton part, et rien
+     ne s'ouvre ; rallumé, il revient. */
+  await r.evaluate(() => window.tse.options.poser('zapping', false));
+  await wait(r, 200);
+  const coupe = await r.evaluate(() => ({ zap: !!document.getElementById('tse-zap'), bouton: !!document.querySelector('.tse-zap-bouton'),
+                                         ouvrir: window.tse.zapping.ouvrir(), voie: window.tse.zapping.rapport().voie }));
+  await r.evaluate(() => window.tse.options.poser('zapping', true));
+  await wait(r, 200);
+  const rallume = await r.evaluate(() => !!document.querySelector('[data-a-target="top-nav-container"] .tse-zap-bouton'));
+  ok('o) « Zapping » coupé : l\'écran se ferme, le bouton part, rien ne s\'ouvre ; rallumé, le bouton revient',
+     !coupe.zap && !coupe.bouton && /coupé/.test(coupe.ouvrir.erreur || '') && coupe.voie === 'coupe' && rallume, JSON.stringify({ coupe, rallume }));
+  await r.close();
+  /* p) DEUX AUTRES BARRES : une rangée qui ne serait pas en ligne — le
+     bouton se pose alors dans la ligne du champ, juste après la loupe ; la
+     recherche repliée d'une fenêtre étroite — à droite de sa loupe. Mutant
+     — sans mesure, posé au bout de la rangée quoi qu'il arrive. */
+  const sBloc = await ouvrirZap({ nav: 'bloc' });
+  await attendre(sBloc, () => !!document.querySelector('.tse-zap-bouton'), 6000);
+  const bBloc = await sBloc.evaluate(() => {
+    const b = document.querySelector('.tse-zap-bouton'), l = document.querySelector('.tw-combo-input__button-icon');
+    const rb = b.getBoundingClientRect(), rl = l.getBoundingClientRect();
+    return { dy: Math.round((rb.top + rb.bottom) / 2 - (rl.top + rl.bottom) / 2), dx: Math.round(rb.left - rl.right),
+             apres: b.closest('.tse-zap-porteur').previousElementSibling?.classList.contains('iuktUJ') ?? false, voie: window.tse.zapping.rapport().voie };
+  });
+  await sBloc.close();
+  const sRep = await ouvrirZap({ nav: 'repliee' });
+  await attendre(sRep, () => !!document.querySelector('.tse-zap-bouton'), 6000);
+  const bRep = await sRep.evaluate(() => {
+    const b = document.querySelector('.tse-zap-bouton'), l = document.querySelector('.jCxYDG button');
+    const rb = b.getBoundingClientRect(), rl = l.getBoundingClientRect();
+    return { dy: Math.round((rb.top + rb.bottom) / 2 - (rl.top + rl.bottom) / 2), dx: Math.round(rb.left - rl.right), voie: window.tse.zapping.rapport().voie };
+  });
+  await sRep.close();
+  ok('p) une rangée qui n\'est pas en ligne : dans la ligne du champ, juste après la loupe ; la recherche repliée : à droite de sa loupe',
+     bBloc.apres && bBloc.dy === 0 && bBloc.dx === 8 && bBloc.voie === 'champ' && bRep.dy === 0 && bRep.dx === 8 && bRep.voie === 'rangee',
+     JSON.stringify({ bBloc, bRep }));
+  /* q) AUCUNE CHAÎNE SUIVIE EN DIRECT : l'écran le dit, sans lecteur ni
+     touche qui ne servirait à rien. */
+  const v = await ouvrirZap({ suivies: {} });
+  await attendre(v, () => !!document.querySelector('.tse-zap-bouton'), 6000);
+  await wait(v, 800);
+  await v.click('.tse-zap-bouton');
+  await attendre(v, () => !!document.getElementById('tse-zap'), 3000);
+  const z14 = await lireZap(v);
+  ok('q) aucune chaîne en direct : « Aucune de vos chaînes suivies n\'est en direct. », « 0 / 0 », ni lecteur, ni Entrée, ni S',
+     z14.vide === 'Aucune de vos chaînes suivies n\'est en direct.' && z14.rang === '0 / 0' && z14.cadres.length === 0
+     && JSON.stringify(z14.aide) === JSON.stringify(['↑', '↓', 'Échapquitter']) && z14.rapport.vides === 1,
+     JSON.stringify({ vide: z14.vide, rang: z14.rang, aide: z14.aide }));
+  await v.close();
+  /* r) LES SOURCES : le nom des lecteurs, le même dans content.js et dans
+     cadres.js, et cadres.js l'accepte pour son pont ; les vingt-deux textes
+     du zapping dans les dix langues de la page. */
+  const srcC = readFileSync(join(ICI, '..', 'content.js'), 'utf8'), srcF = readFileSync(join(ICI, '..', 'cadres.js'), 'utf8');
+  const nomC = /const TSE_ZAP_FRAME_NAME = '([^']+)';/.exec(srcC)?.[1], nomF = /const TSE_ZAP_FRAME_NAME = '([^']+)';/.exec(srcF)?.[1];
+  const cles = [...new Set(srcC.match(/\buiZap[A-Za-z]+(?=:)/g))];
+  const parLangue = cles.map((k) => [k, (srcC.match(new RegExp(`^ {6}${k}: `, 'gm')) || []).length]).filter(([, n]) => n !== 10);
+  ok('r) le nom des lecteurs, le même des deux côtés, et accepté par le pont ; les vingt-deux textes dans les dix langues',
+     nomC === 'tse-zapping' && nomF === nomC && /window\.name !== TSE_SALLE_FRAME_NAME && window\.name !== TSE_ZAP_FRAME_NAME/.test(srcF)
+     && cles.length === 22 && parLangue.length === 0, JSON.stringify({ nomC, nomF, n: cles.length, parLangue }));
+  /* s) LE MODE D'EMPLOI a son chapitre, juste après celui de la salle, et
+     y cite ce que l'écran affiche, tel que la page l'écrit dans la langue de
+     chaque fiche — « préchargée », « Son de … » —, comme le chapitre de
+     l'accueil cite ses rayons. Mutant — un libellé reformulé d'un seul côté. */
+  const blocZ = srcC.match(/const STRINGS = Object\.freeze\(\{[\s\S]*?\n {2}\}\);/)[0];
+  const STRZ = new Function(`${blocZ}; return STRINGS;`)();
+  const ordreGuide = [...readFileSync(join(ICI, '..', 'panneau.js'), 'utf8').matchAll(/\{ titre: '(guide[A-Za-z]+Titre)'/g)].map((m) => m[1]);
+  const citesZap = [];
+  for (const loc of readdirSync(join(ICI, '..', '_locales'))) {
+    const s = STRZ[loc.split('_')[0]];
+    const texte = JSON.parse(readFileSync(join(ICI, '..', '_locales', loc, 'messages.json'), 'utf8')).guideZapTexte?.message || '';
+    for (const c of [s.uiZapPrechargee, s.uiSalleChatSon('…')]) if (!c || !texte.includes(c)) citesZap.push(`${loc} « ${c} »`);
+  }
+  ok('s) le mode d\'emploi a son chapitre, après celui de la salle, et cite « préchargée » et « Son de … » tels que la page les écrit, dans les douze langues',
+     ordreGuide.indexOf('guideZapTitre') === ordreGuide.indexOf('guideSalleTitre') + 1 && citesZap.length === 0,
+     JSON.stringify({ rang: ordreGuide.indexOf('guideZapTitre'), citesZap }));
 }
 
 {

@@ -523,6 +523,12 @@
   "guideSalleTexte": {
     "message": "Der „▶“-Regler auf dem Balken eines Co-streams öffnet seine Streams nebeneinander, auf der Seite — jeden in seiner eigenen Kachel.\n• Fahr darüber: Er sagt, was er öffnet — „Alle 3 ansehen“. Gesichter an seinem Ende? Beteiligte, denen du nicht folgst: Fahr zu ihnen, um sie hinzuzufügen. Umschalt+Klick öffnet direkt den ganzen Co-stream.\n• Ein Klick auf eine Kachel gibt ihr den Ton — die Tasten 1 bis 6 ebenso —, und der Chat folgt dem Ton. Ohne geteilten Chat zeigen Reiter über dem Chat einen anderen an, ohne den Ton zu wechseln.\n• Höchstens sechs Streams auf dem Bildschirm: Die anderen warten darunter, ein Klick holt sie herein.\n• Die Streams richten sich selbst an ihrem gemeinsamen Ton aus, nach etwa einer Minute Zuhören; ohne gemeinsamen Ton bewegt sich nichts. „Automatische Ausrichtung“ lässt sich unter „Einstellungen“ abschalten.\n• Links von „Chat ausblenden“ sagen zwei Zeilen, wie weit die Ausrichtung ist: auf welche Kachel sie ausrichtet, dann den Stand jeder anderen — „hört zu 2/6“ (die zählenden Tonberechnungen von denen, die nötig sind), „0,30 s zurück, zu bestätigen“, „wird geprüft“, dann „Alles ausgerichtet“. Der Punkt ist grün, wenn alles ausgerichtet ist, bernsteinfarben, solange die Ausrichtung arbeitet oder wartet, rot, wenn sich eine Kachel nicht korrigieren lässt, grau bei Pause oder abgeschaltet; der Tooltip nennt die Einzelheiten, Kachel für Kachel.\n• Der Raum bringt keine Kanalpunkte, und die Werbung von Twitch läuft dort wie überall.\n• Zum Schließen: Esc oder ein Klick auf den Regler, der jetzt ein „■“ ist."
   },
+  "guideZapTitre": {
+    "message": "Zapping"
+  },
+  "guideZapTexte": {
+    "message": "Der Knopf rechts neben der Lupe der Suche öffnet deine gefolgten Kanäle, die live sind, im Vollbild, in der Reihenfolge der Seitenleiste.\n• ↑ und ↓ wechseln den Kanal; am Ende geht es von vorn los. Ein Klick in der rechten Spalte führt zu diesem Kanal.\n• Der nächste ist schon geladen — „vorgeladen“ —: er erscheint sofort.\n• Enter öffnet den Kanal; Esc schließt, und das Video der Seite läuft weiter.\n• S fügt den Kanal dem Raum hinzu, O öffnet den Raum ab zwei Kanälen — höchstens sechs. Ein schon offener Raum schließt sich beim Zapping; seine Streams bleiben in der Auswahl.\n• „Ton von …“ unten rechts schaltet den Ton aus und wieder ein.\n• „Zapping“ lässt sich in den „Einstellungen“ abschalten."
+  },
   "guideDebutTitre": {
     "message": "Starts und Rückkehr"
   },
@@ -732,6 +738,15 @@
   },
   "optDescSalleAuto": {
     "message": "Die Streams werden über ihren gemeinsamen Ton abgestimmt — die Lippen jedes Streams auf seine Stimme, so wie man sie hört. Das dauert etwa eine Minute; ohne gemeinsamen Ton bewegt sich nichts. Aus: Nichts bewegt sich von selbst."
+  },
+  "optGrpZapping": {
+    "message": "Zapping"
+  },
+  "optZapping": {
+    "message": "Zapping"
+  },
+  "optDescZapping": {
+    "message": "Ein Knopf rechts neben der Lupe der Suche öffnet deine gefolgten Kanäle, die live sind, im Vollbild, einen nach dem anderen: ↑ und ↓ zum Wechseln, Enter öffnet den Kanal, S fügt ihn dem Raum hinzu, O öffnet den Raum, Esc beendet. Der nächste ist schon geladen. Das Video der Seite pausiert so lange; ein offener Raum schließt sich, seine Streams bleiben zum Wiederöffnen. Aus: kein Knopf, kein Bildschirm."
   },
   "optGrpAccueil": {
     "message": "Startseite"
@@ -992,7 +1007,7 @@
     "message": "Alle Einstellungen zurücksetzen?"
   },
   "optResetText": {
-    "message": "Alle fünfunddreißig Einstellungen dieser Seite kehren zu ihrem ursprünglichen Wert zurück. Deine Daten — Besuche, Abonnements, gefolgte Kanäle — bleiben unberührt."
+    "message": "Alle sechsunddreißig Einstellungen dieser Seite kehren zu ihrem ursprünglichen Wert zurück. Deine Daten — Besuche, Abonnements, gefolgte Kanäle — bleiben unberührt."
   },
   "optValPlein": {
     "message": "Voll"
