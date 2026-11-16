@@ -551,7 +551,7 @@
     "message": "La página de inicio de Twitch"
   },
   "guideAccueilTexte": {
-    "message": "En la página de inicio de Twitch, la extensión coloca sus propias filas encima de las de Twitch, en la misma columna y alineadas con ellas. Se ajustan en “Ajustes”, grupo “Página de inicio”.\n• “Tu canal n.º 1 en directo”: el canal seguido en vivo que más ves —si no, el que tiene más espectadores— ocupa el lugar del carrusel de Twitch, en todo el ancho. Primero su imagen, luego su transmisión, sin sonido y sin anuncios, como la vista previa al pasar el mouse; el fondo toma sus colores. Cuando ninguno de tus canales seguidos está en vivo, el carrusel vuelve. “Como en Twitch” lo mantiene siempre; “Nada” lo quita y detiene su video.\n• “Destacados”: las transmisiones del carrusel de Twitch, en una fila, cuando el banner —o «Nada»— lo oculta, sin el canal del banner. Sus tarjetas pasan por la solicitud que la barra ya hace.\n• “Top 10”: los diez primeros puestos de Top Canales, en el idioma de la interfaz de Twitch o en todos los idiomas, en cifras grandes. Justo a la derecha del nombre, una flecha indica los puestos ganados o perdidos en treinta minutos, o desde que llegaste al inicio; “Nuevo” marca un canal que no estaba en el Top 10. Un canal que lleva la etiqueta del idioma sin hablarlo se quita de esta clasificación con un clic en su tarjeta: también sale de Top Canales, y se restaura debajo del Top 10.\n• «Porque sueles ver a…»: para el canal que más visitaste en treinta días —tres visitas como mínimo—, una fila muestra lo que está en directo en su categoría habitual, en el idioma de Twitch, fuera de tus canales seguidos. El título dice por qué: «14 visitas en 30 días · Just Chatting, en español». Dos filas como máximo.\n• «Tus directos programados»: lo que tus canales seguidos programaron para hoy y mañana, con el tiempo que falta. «Recordármelo» muestra un aviso en tus pestañas de Twitch abiertas cuando el canal empieza en vivo, no una notificación del sistema. Justo debajo, «Sin horario»: para un canal que mirás y que no programó nada, la hora a la que empezaron sus últimos directos, cuando se repite; lo que hizo, no lo que hará.\n• Una etiqueta por tarjeta, abajo a la derecha de la miniatura, en las tarjetas de la extensión y en las de Twitch: un dato, uno solo, el primero cierto de esta lista —«De vuelta tras 41 días», «Subatón • DÍA 9», «Acaba de empezar», «Acaba de cambiar a Elden Ring», «↗ +38 % en 10 min», «N.º 3 en español», «Co-stream de 3 canales»—. Nada adivinado: sin dato visto, no hay etiqueta.\n• «Mientras no estabas»: tras veinticuatro horas sin Twitch en pantalla, un aviso bajo las filas dice lo que tus canales seguidos —los que ves— emitieron entretanto: «3 directos · 9h20», el más visto de sus clips y «Ver el último» cuando la repetición está abierta. Cerrado, lo está en todas las pestañas.\n• Cada fila muestra una línea; “Mostrar todo”, en medio de la raya de abajo, despliega el resto.\n• “Desde el principio” abre la repetición de la transmisión en curso en su primer segundo. Solo aparece cuando puedes verla: el canal guarda sus repeticiones y las abre a todos, o estás suscrito.\n• La vista previa al pasar el mouse también se abre en las tarjetas del inicio: las de la extensión y las de Twitch. Al pasar el mouse, la miniatura se levanta como en Twitch, en el color del canal.\n• «Ordenar el inicio de Twitch»: en las propias filas de Twitch. «Ocultar», a la derecha del título de una fila de categoría, la pliega en una línea —«Mostrar de nuevo» la recupera—; la categoría sigue oculta los días siguientes. Sus tarjetas de transmisiones toman el tamaño de las de la extensión. Y un directo del que Twitch aún no tiene imagen muestra la última repetición del canal, o su avatar, en lugar del «?»."
+    "message": "En la página de inicio de Twitch, la extensión coloca sus propias filas encima de las de Twitch, en la misma columna y alineadas con ellas. Se ajustan en “Ajustes”, grupo “Página de inicio”.\n• “Tu canal n.º 1 en directo”: el canal seguido en vivo que más ves —si no, el que tiene más espectadores— ocupa el lugar del carrusel de Twitch, en todo el ancho. Primero su imagen, luego su transmisión, sin sonido y sin anuncios, como la vista previa al pasar el mouse; el fondo toma sus colores. Cuando ninguno de tus canales seguidos está en vivo, el carrusel vuelve. “Como en Twitch” lo mantiene siempre; “Nada” lo quita y detiene su video.\n• “Destacados”: las transmisiones del carrusel de Twitch, en una fila, cuando el banner —o «Nada»— lo oculta, sin el canal del banner. Sus tarjetas pasan por la solicitud que la barra ya hace. En cinta: la tarjeta del centro recta, sus vecinas giradas; dos flechas la desplazan, y un clic en una tarjeta lateral la lleva al centro.\n• “Top 10”: los diez primeros puestos de Top Canales, en el idioma de la interfaz de Twitch o en todos los idiomas, en cifras grandes. Justo a la derecha del nombre, una flecha indica los puestos ganados o perdidos en treinta minutos, o desde que llegaste al inicio; “Nuevo” marca un canal que no estaba en el Top 10. Los canales de “Canales quitados del Top 10”, en «Ajustes», no entran, sea cual sea el idioma: para un canal que lleva la etiqueta del idioma sin hablarlo. Top Canales no se ve afectado.\n• «Porque sueles ver a…»: para el canal que más visitaste en treinta días —tres visitas como mínimo—, una fila muestra lo que está en directo en su categoría habitual, en el idioma de Twitch, fuera de tus canales seguidos. El título dice por qué: «14 visitas en 30 días · Just Chatting, en español». Dos filas como máximo.\n• «Tus directos programados»: lo que tus canales seguidos programaron para hoy y mañana, con el tiempo que falta. «Recordármelo» muestra un aviso en tus pestañas de Twitch abiertas cuando el canal empieza en vivo, no una notificación del sistema. Justo debajo, «Sin horario»: para un canal que mirás y que no programó nada, la hora a la que empezaron sus últimos directos, cuando se repite; lo que hizo, no lo que hará. Estos canales se ordenan del más cercano por venir.\n• Una etiqueta por tarjeta, abajo a la derecha de la miniatura, en las tarjetas de la extensión y en las de Twitch: un dato, uno solo, el primero cierto de esta lista —«De vuelta tras 41 días», «Subatón • DÍA 9», «Acaba de empezar», «Pasa a Elden Ring», «↗ +38 % en 10 min», «N.º 3 en español», «Co-stream de 3 canales»—. Nada adivinado: sin dato visto, no hay etiqueta.\n• «Mientras no estabas»: tras veinticuatro horas sin Twitch en pantalla, un aviso bajo las filas dice lo que tus canales seguidos —los que ves— emitieron entretanto: «3 directos · 9h20», el más visto de sus clips y «Ver el último» cuando la repetición está abierta. Cerrado, lo está en todas las pestañas.\n• Cada fila muestra una línea; “Mostrar todo”, en medio de la raya de abajo, despliega el resto. “Destacados”, una cinta, no se pliega.\n• “Desde el principio” abre la repetición de la transmisión en curso en su primer segundo. Solo aparece cuando puedes verla: el canal guarda sus repeticiones y las abre a todos, o estás suscrito.\n• La vista previa al pasar el mouse también se abre en las tarjetas del inicio: las de la extensión y las de Twitch. Al pasar el mouse, la miniatura se levanta como en Twitch, en el color del canal.\n• «Ordenar el inicio de Twitch»: en las propias filas de Twitch. «Ocultar», a la derecha del título de una fila de categoría, la pliega en una línea —«Mostrar de nuevo» la recupera—; la categoría sigue oculta los días siguientes. Sus tarjetas de transmisiones toman el tamaño de las de la extensión. Y un directo del que Twitch aún no tiene imagen muestra la última repetición del canal, o su avatar, en lugar del «?». Sus tarjetas de directos llevan también las marcas de las de la extensión: la insignia del directo con su estilo, la cifra de espectadores sin la palabra, la duración del directo arriba a la derecha."
   },
   "guideViteTitre": {
     "message": "Más rápida que Twitch, y más limpia"
@@ -764,13 +764,34 @@
     "message": "Top 10"
   },
   "optDescAccueilTop": {
-    "message": "Los diez primeros puestos de la clasificación exacta de Top Canales, en cifras grandes. Una flecha indica qué se movió en treinta minutos, o desde que llegaste al inicio si es más reciente. Solo se calcula mientras el inicio está en pantalla. Un canal que lleva la etiqueta del idioma sin hablarlo se quita con un clic en su tarjeta, aquí y en Top Canales; se restaura debajo del Top 10."
+    "message": "Los diez primeros puestos de la clasificación exacta de Top Canales, en cifras grandes. Una flecha indica qué se movió en treinta minutos, o desde que llegaste al inicio si es más reciente. Solo se calcula mientras el inicio está en pantalla."
   },
   "optAccueilTopLangue": {
     "message": "Idioma del Top 10"
   },
   "optDescAccueilTopLangue": {
     "message": "«El de Twitch» sigue el idioma de la interfaz de Twitch."
+  },
+  "optAccueilTopEcartees": {
+    "message": "Canales quitados del Top 10"
+  },
+  "optDescAccueilTopEcartees": {
+    "message": "Los nombres de usuario de esta lista no entran en el Top 10, sea cual sea el idioma: para un canal que lleva la etiqueta del idioma sin hablarlo. Top Canales, en la barra, no se ve afectado. Veinte como máximo."
+  },
+  "optListeAjouter": {
+    "message": "Agregar"
+  },
+  "optListeRetirer": {
+    "message": "Quitar $1"
+  },
+  "optListeRefus": {
+    "message": "No es un nombre de usuario de Twitch: $1 — letras, cifras y _, como en la dirección del canal."
+  },
+  "optListeDeja": {
+    "message": "Ya está en la lista: $1"
+  },
+  "optListePleine": {
+    "message": "$1 como máximo: quita uno para agregar otro."
   },
   "optAccueilApercu": {
     "message": "Vista previa al pasar el mouse en el inicio"
@@ -812,7 +833,7 @@
     "message": "Ordenar el inicio de Twitch"
   },
   "optDescAccueilRanger": {
-    "message": "En las filas de Twitch: «Ocultar» junto al título de una fila de categoría, tarjetas de transmisiones del tamaño de las de la extensión y las miniaturas «?» sustituidas por la última repetición o el avatar. No se quita nada de la página, ni hay peticiones."
+    "message": "En las filas de Twitch: «Ocultar» junto al título de una fila de categoría, tarjetas de transmisiones del tamaño de las de la extensión y las miniaturas «?» sustituidas por la última repetición o el avatar. Sus tarjetas de directos llevan las marcas de las de la extensión —la insignia del directo, la cifra de espectadores sola, la duración arriba a la derecha—, con sus cifras pedidas por la solicitud que la barra ya hace, mientras están en pantalla. No se quita nada de la página."
   },
   "optValHeros": {
     "message": "Tu canal n.º 1"
@@ -971,7 +992,7 @@
     "message": "¿Restablecer todos los ajustes?"
   },
   "optResetText": {
-    "message": "Los treinta y cuatro ajustes de esta página volverán a su valor original. Tus datos —visitas, suscripciones, canales seguidos— no se tocan."
+    "message": "Los treinta y cinco ajustes de esta página volverán a su valor original. Tus datos —visitas, suscripciones, canales seguidos— no se tocan."
   },
   "optValPlein": {
     "message": "Completo"

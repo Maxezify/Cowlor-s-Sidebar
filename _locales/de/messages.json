@@ -551,7 +551,7 @@
     "message": "Die Startseite von Twitch"
   },
   "guideAccueilTexte": {
-    "message": "Auf der Startseite von Twitch setzt die Erweiterung ihre eigenen Reihen über die von Twitch, in dieselbe Spalte und bündig mit ihnen. Eingestellt werden sie unter „Einstellungen“, Gruppe „Startseite“.\n• „Dein Kanal Nr. 1, live“: Der gefolgte Live-Kanal, den du am meisten schaust – sonst der mit den meisten Zuschauern –, nimmt den Platz des Karussells von Twitch ein, über die ganze Breite. Erst sein Bild, dann sein Stream, stumm und ohne Werbung, wie die Vorschau beim Überfahren; der Hintergrund übernimmt seine Farben. Ist keiner deiner gefolgten Kanäle live, kommt das Karussell zurück. „Wie bei Twitch“ behält es immer; „Nichts“ entfernt es und hält sein Video an.\n• „Empfohlen“: die Streams aus dem Karussell von Twitch, als Reihe, wenn das Banner – oder „Nichts“ – es ausblendet, ohne den Kanal des Banners. Ihre Karten laufen über die Anfrage, die die Seitenleiste ohnehin stellt.\n• „Top 10“: die ersten zehn Plätze von Top-Kanäle, in der Sprache der Twitch-Oberfläche oder in allen Sprachen, in großen Ziffern. Rechts neben dem Namen zeigt ein Pfeil die in dreißig Minuten gewonnenen oder verlorenen Plätze – oder seit du auf der Startseite bist; „Neu“ markiert einen Kanal, der nicht in den Top 10 war. Ein Kanal, der den Tag der Sprache trägt, ohne sie zu sprechen, wird mit einem Klick auf seiner Karte aus dieser Rangliste entfernt: Er verschwindet auch aus Top-Kanäle und wird unter den Top 10 wiederhergestellt.\n• „Weil du oft … schaust“: Für den Kanal, den du in dreißig Tagen am häufigsten besucht hast – mindestens drei Besuche –, zeigt eine Reihe, was in seiner üblichen Kategorie live ist, in der Sprache von Twitch, außerhalb deiner gefolgten Kanäle. Der Titel sagt, warum: „14 Besuche in 30 Tagen · Just Chatting, auf Deutsch“. Höchstens zwei Reihen.\n• „Deine geplanten Streams“: was deine gefolgten Kanäle für heute und morgen geplant haben, mit der verbleibenden Zeit. „Erinnern“ zeigt einen Hinweis in deinen offenen Twitch-Tabs, sobald der Kanal live geht – keine Systembenachrichtigung. Direkt darunter „Ohne Zeitplan“: für einen Kanal, den du schaust und der nichts geplant hat, wann seine letzten Streams begonnen haben, wenn es sich wiederholt – was er getan hat, nicht was er tun wird.\n• Ein Etikett pro Karte, unten rechts im Vorschaubild, auf den Karten der Erweiterung wie auf denen von Twitch: eine Tatsache, nur eine, die erste zutreffende dieser Liste – „Zurück nach 41 Tagen“, „Subathon • TAG 9“, „Gerade gestartet“, „Gerade gewechselt zu Elden Ring“, „↗ +38 % in 10 Min.“, „Platz 3 auf Deutsch“, „Co-Stream mit 3 Kanälen“. Nichts geraten: ohne gesehene Tatsache kein Etikett.\n• „Während du weg warst“: Nach vierundzwanzig Stunden ohne Twitch auf dem Bildschirm sagt ein Banner unter den Reihen, was deine gefolgten Kanäle – die, die du schaust – inzwischen gestreamt haben: „3 Streams · 9h20“, den meistgesehenen ihrer Clips und „Den letzten ansehen“, wenn die Aufzeichnung offen ist. Geschlossen, ist es in allen Tabs geschlossen.\n• Jede Reihe zeigt eine Zeile; „Alle anzeigen“ in der Mitte der Linie darunter klappt den Rest auf.\n• „Von Anfang an“ öffnet die Aufzeichnung des laufenden Streams ab seiner ersten Sekunde. Der Knopf erscheint nur, wenn du sie ansehen kannst: Der Kanal behält seine Aufzeichnungen und gibt sie für alle frei – oder du hast ihn abonniert.\n• Die Vorschau beim Überfahren öffnet sich auch auf den Karten der Startseite: auf denen der Erweiterung wie auf denen von Twitch. Beim Überfahren hebt sich das Vorschaubild wie bei Twitch, in der Farbe des Kanals.\n• „Twitch-Startseite aufräumen“: auf den Reihen von Twitch selbst. „Ausblenden“, rechts neben dem Titel einer Kategorie-Reihe, klappt sie auf eine Zeile zusammen – „Wieder anzeigen“ holt sie zurück; die Kategorie bleibt auch an den folgenden Tagen ausgeblendet. Ihre Live-Karten bekommen die Größe der Karten der Erweiterung. Und ein Stream, für den Twitch noch kein Bild hat, zeigt statt des „?“ die letzte Aufzeichnung des Kanals oder seinen Avatar."
+    "message": "Auf der Startseite von Twitch setzt die Erweiterung ihre eigenen Reihen über die von Twitch, in dieselbe Spalte und bündig mit ihnen. Eingestellt werden sie unter „Einstellungen“, Gruppe „Startseite“.\n• „Dein Kanal Nr. 1, live“: Der gefolgte Live-Kanal, den du am meisten schaust – sonst der mit den meisten Zuschauern –, nimmt den Platz des Karussells von Twitch ein, über die ganze Breite. Erst sein Bild, dann sein Stream, stumm und ohne Werbung, wie die Vorschau beim Überfahren; der Hintergrund übernimmt seine Farben. Ist keiner deiner gefolgten Kanäle live, kommt das Karussell zurück. „Wie bei Twitch“ behält es immer; „Nichts“ entfernt es und hält sein Video an.\n• „Empfohlen“: die Streams aus dem Karussell von Twitch, als Reihe, wenn das Banner – oder „Nichts“ – es ausblendet, ohne den Kanal des Banners. Ihre Karten laufen über die Anfrage, die die Seitenleiste ohnehin stellt. Als Band: die Karte in der Mitte gerade, ihre Nachbarn gedreht; zwei Pfeile blättern es durch, und ein Klick auf eine seitliche Karte holt sie in die Mitte.\n• „Top 10“: die ersten zehn Plätze von Top-Kanäle, in der Sprache der Twitch-Oberfläche oder in allen Sprachen, in großen Ziffern. Rechts neben dem Namen zeigt ein Pfeil die in dreißig Minuten gewonnenen oder verlorenen Plätze – oder seit du auf der Startseite bist; „Neu“ markiert einen Kanal, der nicht in den Top 10 war. Die Kanäle aus „Aus den Top 10 entfernte Kanäle“ in „Einstellungen“ kommen nicht hinein, gleich in welcher Sprache – für einen Kanal, der den Tag der Sprache trägt, ohne sie zu sprechen. Top-Kanäle bleibt unberührt.\n• „Weil du oft … schaust“: Für den Kanal, den du in dreißig Tagen am häufigsten besucht hast – mindestens drei Besuche –, zeigt eine Reihe, was in seiner üblichen Kategorie live ist, in der Sprache von Twitch, außerhalb deiner gefolgten Kanäle. Der Titel sagt, warum: „14 Besuche in 30 Tagen · Just Chatting, auf Deutsch“. Höchstens zwei Reihen.\n• „Deine geplanten Streams“: was deine gefolgten Kanäle für heute und morgen geplant haben, mit der verbleibenden Zeit. „Erinnern“ zeigt einen Hinweis in deinen offenen Twitch-Tabs, sobald der Kanal live geht – keine Systembenachrichtigung. Direkt darunter „Ohne Zeitplan“: für einen Kanal, den du schaust und der nichts geplant hat, wann seine letzten Streams begonnen haben, wenn es sich wiederholt – was er getan hat, nicht was er tun wird. Diese Kanäle stehen in der Reihenfolge ihrer nächsten Uhrzeit.\n• Ein Etikett pro Karte, unten rechts im Vorschaubild, auf den Karten der Erweiterung wie auf denen von Twitch: eine Tatsache, nur eine, die erste zutreffende dieser Liste – „Zurück nach 41 Tagen“, „Subathon • TAG 9“, „Gerade gestartet“, „Wechselt zu Elden Ring“, „↗ +38 % in 10 Min.“, „Platz 3 auf Deutsch“, „Co-Stream mit 3 Kanälen“. Nichts geraten: ohne gesehene Tatsache kein Etikett.\n• „Während du weg warst“: Nach vierundzwanzig Stunden ohne Twitch auf dem Bildschirm sagt ein Banner unter den Reihen, was deine gefolgten Kanäle – die, die du schaust – inzwischen gestreamt haben: „3 Streams · 9h20“, den meistgesehenen ihrer Clips und „Den letzten ansehen“, wenn die Aufzeichnung offen ist. Geschlossen, ist es in allen Tabs geschlossen.\n• Jede Reihe zeigt eine Zeile; „Alle anzeigen“ in der Mitte der Linie darunter klappt den Rest auf. „Empfohlen“ ist ein Band und klappt sich nicht ein.\n• „Von Anfang an“ öffnet die Aufzeichnung des laufenden Streams ab seiner ersten Sekunde. Der Knopf erscheint nur, wenn du sie ansehen kannst: Der Kanal behält seine Aufzeichnungen und gibt sie für alle frei – oder du hast ihn abonniert.\n• Die Vorschau beim Überfahren öffnet sich auch auf den Karten der Startseite: auf denen der Erweiterung wie auf denen von Twitch. Beim Überfahren hebt sich das Vorschaubild wie bei Twitch, in der Farbe des Kanals.\n• „Twitch-Startseite aufräumen“: auf den Reihen von Twitch selbst. „Ausblenden“, rechts neben dem Titel einer Kategorie-Reihe, klappt sie auf eine Zeile zusammen – „Wieder anzeigen“ holt sie zurück; die Kategorie bleibt auch an den folgenden Tagen ausgeblendet. Ihre Live-Karten bekommen die Größe der Karten der Erweiterung. Und ein Stream, für den Twitch noch kein Bild hat, zeigt statt des „?“ die letzte Aufzeichnung des Kanals oder seinen Avatar. Die Stream-Karten tragen dort auch die Zeichen der Karten der Erweiterung: das Live-Abzeichen in ihrem Stil, die Zuschauerzahl ohne das Wort, die Dauer des Streams oben rechts."
   },
   "guideViteTitre": {
     "message": "Schneller als Twitch, und aufgeräumter"
@@ -764,13 +764,34 @@
     "message": "Top 10"
   },
   "optDescAccueilTop": {
-    "message": "Die ersten zehn Plätze der exakten Rangliste von Top-Kanäle, in großen Ziffern. Ein Pfeil zeigt, was sich in dreißig Minuten bewegt hat – oder seit du auf der Startseite bist, falls das kürzer ist. Wird nur berechnet, solange die Startseite angezeigt wird. Ein Kanal, der den Tag der Sprache trägt, ohne sie zu sprechen, wird mit einem Klick auf seiner Karte entfernt, hier und in Top-Kanäle; unter den Top 10 wird er wiederhergestellt."
+    "message": "Die ersten zehn Plätze der exakten Rangliste von Top-Kanäle, in großen Ziffern. Ein Pfeil zeigt, was sich in dreißig Minuten bewegt hat – oder seit du auf der Startseite bist, falls das kürzer ist. Wird nur berechnet, solange die Startseite angezeigt wird."
   },
   "optAccueilTopLangue": {
     "message": "Sprache der Top 10"
   },
   "optDescAccueilTopLangue": {
     "message": "„Die von Twitch“ folgt der Sprache der Twitch-Oberfläche."
+  },
+  "optAccueilTopEcartees": {
+    "message": "Aus den Top 10 entfernte Kanäle"
+  },
+  "optDescAccueilTopEcartees": {
+    "message": "Die Benutzernamen dieser Liste kommen nicht in die Top 10, gleich in welcher Sprache – für einen Kanal, der den Tag der Sprache trägt, ohne sie zu sprechen. Top-Kanäle in der Seitenleiste bleibt unberührt. Höchstens zwanzig."
+  },
+  "optListeAjouter": {
+    "message": "Hinzufügen"
+  },
+  "optListeRetirer": {
+    "message": "$1 entfernen"
+  },
+  "optListeRefus": {
+    "message": "Kein Twitch-Benutzername: $1 – Buchstaben, Ziffern und _, wie in der Adresse des Kanals."
+  },
+  "optListeDeja": {
+    "message": "Schon in der Liste: $1"
+  },
+  "optListePleine": {
+    "message": "Höchstens $1: Entferne einen, um einen anderen hinzuzufügen."
   },
   "optAccueilApercu": {
     "message": "Vorschau beim Überfahren auf der Startseite"
@@ -812,7 +833,7 @@
     "message": "Twitch-Startseite aufräumen"
   },
   "optDescAccueilRanger": {
-    "message": "Auf den Reihen von Twitch selbst: „Ausblenden“ neben dem Titel einer Kategorie-Reihe, Live-Karten in der Größe der Karten der Erweiterung und die „?“-Vorschaubilder durch die letzte Aufzeichnung oder den Avatar ersetzt. Nichts wird von der Seite entfernt, keine Anfrage."
+    "message": "Auf den Reihen von Twitch selbst: „Ausblenden“ neben dem Titel einer Kategorie-Reihe, Live-Karten in der Größe der Karten der Erweiterung und die „?“-Vorschaubilder durch die letzte Aufzeichnung oder den Avatar ersetzt. Die Stream-Karten tragen die Zeichen der Karten der Erweiterung – das Live-Abzeichen, die Zuschauerzahl allein, die Dauer oben rechts –, ihre Zahlen über die Anfrage, die die Seitenleiste ohnehin stellt, solange sie zu sehen sind. Nichts wird von der Seite entfernt."
   },
   "optValHeros": {
     "message": "Dein Kanal Nr. 1"
@@ -971,7 +992,7 @@
     "message": "Alle Einstellungen zurücksetzen?"
   },
   "optResetText": {
-    "message": "Alle vierunddreißig Einstellungen dieser Seite kehren zu ihrem ursprünglichen Wert zurück. Deine Daten — Besuche, Abonnements, gefolgte Kanäle — bleiben unberührt."
+    "message": "Alle fünfunddreißig Einstellungen dieser Seite kehren zu ihrem ursprünglichen Wert zurück. Deine Daten — Besuche, Abonnements, gefolgte Kanäle — bleiben unberührt."
   },
   "optValPlein": {
     "message": "Voll"
