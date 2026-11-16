@@ -836,17 +836,24 @@ window.fetch = async (url, opt) => {
     if (a === undefined && f === undefined) return null;
     return { a: a || {}, f };
   };
-  const agendaVideos = (a, n, ex) => (a.videos || [])
+  const agendaVideos = (a, n, ex, taille) => (a.videos || [])
     .slice().sort((x, y) => Date.parse(y.debut) - Date.parse(x.debut)).slice(0, n)
     .map(v => ({ node: { id: v.id, title: v.titre || '', createdAt: v.debut,
                          lengthSeconds: v.duree, viewCount: v.vues ?? 0,
-                         previewThumbnailURL: 'https://static-cdn.jtvnw.net/cf_vods/' + v.id + '/thumb-160x90.jpg',
+                         // À la taille que la requête demande, comme Twitch (4.33.0.3).
+                         previewThumbnailURL: 'https://static-cdn.jtvnw.net/cf_vods/' + v.id + '/thumb-' + taille + '.jpg',
                          game: v.jeu ? { name: v.jeu, displayName: traduire(v.jeu) } : null,
                          ...(ex.broadcastIdentifier ? { broadcastIdentifier: v.diffusion ? { id: v.diffusion } : null } : {}),
                          ...(ex.resourceRestriction ? { resourceRestriction: v.abonnes ? { type: 'SUB_ONLY_LIVE' } : null } : {}) } }));
   // Les champs neufs que la requête demande, un par un.
   const agendaExtras = (q) => ({ broadcastIdentifier: /broadcastIdentifier\s*\{/.test(q),
                                  resourceRestriction: /resourceRestriction\s*\{/.test(q) });
+  /* La taille des vignettes, celle que la requête demande (4.33.0.3). À part
+     des champs neufs : le mode qui les refuse tous en compte les clés. */
+  const agendaTaille = (q) => {
+    const t = /previewThumbnailURL\(width:\s*(\d+),\s*height:\s*(\d+)\)/.exec(q);
+    return t ? t[1] + 'x' + t[2] : '0x0';
+  };
   /* Les jetons de lecture, un par alias : la valeur que Twitch sert, chaîne
      JSON comprise, et rien d'autre de ce qu'elle porte ne compte ici. */
   const TOUTES = ['160p30', '360p30', '480p30', '720p60', 'audio_only', 'chunked'];
@@ -915,6 +922,7 @@ window.fetch = async (url, opt) => {
       return { errors: [{ message: 'Cannot query field "lastBroadcast" on type "User".' }] };
     }
     const ex = agendaExtras(o.query || '');
+    const taille = agendaTaille(o.query || '');
     const refuses = window.__agendaExtras === true ? Object.keys(ex) : (window.__agendaExtras || []);
     const refuse = Object.keys(ex).find(k => ex[k] && refuses.includes(k));
     if (refuse) {
@@ -951,7 +959,7 @@ window.fetch = async (url, opt) => {
       const n = o.variables?.n || 12;
       return agendaPanne(nom, { data: { users: logins.map(l => {
         const x = agendaOmise(nom, l) ? null : agendaFiche(l);
-        return x ? { login: l, videos: { edges: agendaVideos(x.a, n, ex) } } : null;
+        return x ? { login: l, videos: { edges: agendaVideos(x.a, n, ex, taille) } } : null;
       }) } }, logins);
     }
     // TseAgendaChaines
@@ -967,7 +975,7 @@ window.fetch = async (url, opt) => {
         // La FIN du dernier direct, sous le nom que Twitch lui donne (cf. l'en-tête).
         lastBroadcast: x.a.dernier ? { id: x.a.dernier.id, startedAt: x.a.dernier.fin } : null,
         broadcastSettings: { title: x.a.titre || '' },
-        videos: { edges: agendaVideos(x.a, 1, ex) },
+        videos: { edges: agendaVideos(x.a, 1, ex, taille) },
       };
     }) } }, logins);
   };
@@ -1089,6 +1097,15 @@ window.fetch = async (url, opt) => {
       return { data: { user: { clips: { edges: c.slice(0, n).map(x => ({ node: {
         id: 'ac-' + x.ilYaH + '-' + x.vues, createdAt: new Date(x.t).toISOString(),
         title: x.titre, viewCount: x.vues } })) } } } };
+    }
+    /* TseAbsenceVignette (4.33.0.3) : la vignette d'une archive, à la taille
+       demandée — la carte d'absence la veut en grand. `__absVignetteRefus` :
+       le schéma refuse la demande. */
+    if (o.operationName === 'TseAbsenceVignette') {
+      if (window.__absVignetteRefus) return { errors: [{ message: 'Cannot query field "video" on type "Query".' }] };
+      const t = /previewThumbnailURL\(width:\s*(\d+),\s*height:\s*(\d+)\)/.exec(o.query || '');
+      const id = String(o.variables?.id || '');
+      return { data: { video: /^\d+$/.test(id) ? { id, previewThumbnailURL: 'https://static-cdn.jtvnw.net/cf_vods/' + id + '/thumb-' + (t ? t[1] + 'x' + t[2] : '0x0') + '.jpg' } : null } };
     }
     if (o.operationName === 'TseClips') {
       const c = window.__clips && window.__clips[o.variables?.login];
