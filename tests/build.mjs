@@ -200,6 +200,9 @@ const subs = [
      de trois secondes au lieu d'un quart d'heure. */
   [/ACCUEIL_RDV_RELECTURE_MS:\s*800/,  'ACCUEIL_RDV_RELECTURE_MS: 100'],
   [/RAPPEL_ALERTE_MS:\s*15 \* 60_000/, 'RAPPEL_ALERTE_MS:       3_000'],
+  // La hausse d'une étiquette (4.28.0) : quatre secondes au banc, à trois près, au lieu de dix minutes à deux près.
+  [/ETIQ_TENDANCE_MS:\s*10 \* 60_000/, 'ETIQ_TENDANCE_MS:       4_000'],
+  [/ETIQ_TENDANCE_MARGE_MS:\s*2 \* 60_000/, 'ETIQ_TENDANCE_MARGE_MS: 3_000'],
   [/ACCUEIL_DEBUT_PAUSE:\s*60_000/,    'ACCUEIL_DEBUT_PAUSE:    500'],
   /* Le relevé des chaînes suivies (4.25.0.3). Il charge une page de plus à
      chaque chargement de Twitch, et l'agenda se relit tant qu'il est attendu :

@@ -203,6 +203,7 @@ Na página inicial da Twitch, a extensão coloca as suas próprias filas acima d
 - ★ O TOP 10 DO TEU IDIOMA ★ Os dez primeiros lugares da classificação exata do Top Canais, no idioma da tua Twitch ou em todos os idiomas, em números grandes, com o que mudou em trinta minutos: lugares ganhos, lugares perdidos, recém-chegados. Calculado só enquanto a página inicial está no ecrã.
 - ★ AS TUAS TRANSMISSÕES PROGRAMADAS ★ O que os canais que segues programaram para hoje e amanhã, com o tempo que falta. «Lembrete»: um aviso nos teus separadores abertos do Twitch quando o canal entra em direto, sem notificação do sistema nem permissão. Para um canal que vês e que não programou nada: a hora a que começaram as suas últimas transmissões, quando se repete — o que fez, não o que fará.
 - ★ «DESDE O INÍCIO» ★ Chegaste atrasado? Um botão abre a gravação da transmissão em curso no primeiro segundo. O botão só aparece quando a podes ver: o canal guarda as gravações e abre-as a todos, ou és subscritor.
+- ★ UMA ETIQUETA POR CARTÃO ★ Nos cartões da página inicial, os da extensão e os do Twitch: um facto, só um — «De volta após 41 dias», «Acabou de começar», «Acabou de mudar para Elden Ring», «↗ +38% em 10 min», «Nº 3 em português»… Nada adivinhado: sem facto visto, sem etiqueta. Para um canal que a barra não segue, os números são pedidos enquanto o cartão estiver no ecrã.
 - ★ A PRÉ-VISUALIZAÇÃO AO PASSAR O RATO, AQUI TAMBÉM ★ Nos cartões da página inicial, os da extensão e os da Twitch.
 - ★ TU DECIDES ★ Cada parte desliga-se à parte nas «Definições»; tudo desligado, a página inicial volta a ser a da Twitch, tal como é.
 
@@ -236,7 +237,7 @@ A Twitch tem um tema claro. A extensão dá por isso e muda com ele — sem reca
 _______________________________
 
 ➤ ⚙️ E SE QUISERES ESCOLHER
-Tudo já vem ativo e não há nada para configurar. Mas «Definições», no painel, devolve-te o comando sobre trinta definições.
+Tudo já vem ativo e não há nada para configurar. Mas «Definições», no painel, devolve-te o comando sobre trinta e uma definições.
 
 - ★ O QUE VÊS ★ Cada distintivo, a duração da emissão e o seu formato, a barra «acabou de começar», o ouro das subscrições, os filtros, os botões de ordenação: tudo liga e desliga numa caixa.
 - ★ O QUE É CARREGADO ★ A pré-visualização pode dispensar o vídeo e manter os distintivos, a linha temporal e a miniatura — ou simplesmente baixar a qualidade. O suficiente para a aliviar sem a perder.

@@ -203,6 +203,7 @@ On Twitch's home page, the extension adds its own rows above Twitch's, in the sa
 - ★ THE TOP 10 OF YOUR LANGUAGE ★ The first ten places of Top Channels' exact ranking, in your Twitch's language or across all languages, in big numbers, with what moved over thirty minutes: places gained, places lost, newcomers. Computed only while the home page is on screen.
 - ★ YOUR SCHEDULED STREAMS ★ What your followed channels have scheduled for today and tomorrow, with the time left. "Remind me": an alert in your open Twitch tabs when the channel goes live, with no system notification and no permission. For a channel you watch that has nothing scheduled: the time its last streams started, when it repeats — what it did, not what it will do.
 - ★ "FROM THE START" ★ Arrived late? A button opens the replay of the stream in progress at its very first second. The button only appears when you can watch it: the channel keeps its replays and opens them to everyone, or you are subscribed to it.
+- ★ ONE LABEL PER CARD ★ On the home page's cards, the extension's and Twitch's alike: one fact, just one — “Back after 41 days”, “Just started”, “Just switched to Elden Ring”, “↗ +38% in 10 min”, “#3 in English”… Nothing guessed: no fact seen, no label. For a channel the sidebar doesn't follow, its numbers are requested while its card is on screen.
 - ★ THE HOVER PREVIEW, HERE TOO ★ On the home page's cards, the extension's and Twitch's alike.
 - ★ YOUR CALL ★ Each part switches off on its own in "Settings"; turn it all off and the home page is Twitch's again, as is.
 
@@ -236,7 +237,7 @@ Twitch has a light theme. The extension notices and switches with it — no relo
 _______________________________
 
 ➤ ⚙️ AND IF YOU WANT TO CHOOSE
-Everything is on from the start and there is nothing to set up. But the panel's "Settings" section hands you thirty settings.
+Everything is on from the start and there is nothing to set up. But the panel's "Settings" section hands you thirty-one settings.
 
 - ★ WHAT YOU SEE ★ Every badge, the stream uptime and its format, the "just went live" bar, the subscription gold, the filters, the sort buttons: all of it switches on and off with a checkbox.
 - ★ WHAT GETS LOADED ★ The preview can drop the video and keep its badges, its timeline and its thumbnail — or simply step down in quality. Enough to make it light without losing it.
