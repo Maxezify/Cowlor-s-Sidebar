@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Suivi du banc</title>
+<style>
+  :root {
+    --fond: #0e0e10; --carte: #18181b; --creux: #1f1f23; --filet: #2f2f35;
+    --texte: #efeff1; --doux: #adadb8; --pale: #7a7a85;
+    --violet: #a970ff; --violet-fond: rgba(169, 112, 255, .14);
+    --vert: #3ccf7e; --vert-fond: rgba(60, 207, 126, .13);
+    --rouge: #ff6b6b; --rouge-fond: rgba(255, 107, 107, .13);
+    --ambre: #f5b546; --ambre-fond: rgba(245, 181, 70, .14);
+    --r: 10px;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --fond: #f4f4f6; --carte: #ffffff; --creux: #f0f0f3; --filet: #dedee3;
+      --texte: #18181b; --doux: #53535f; --pale: #85858f;
+      --violet: #772ce8; --violet-fond: rgba(119, 44, 232, .1);
+      --vert: #11843f; --vert-fond: rgba(17, 132, 63, .1);
+      --rouge: #c9302c; --rouge-fond: rgba(201, 48, 44, .1);
+      --ambre: #9a6400; --ambre-fond: rgba(154, 100, 0, .12);
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--fond); color: var(--texte); font: 14px/1.45 Inter, "Segoe UI", system-ui, -apple-system, sans-serif;
+         -webkit-font-smoothing: antialiased; }
+  main { max-width: 1080px; margin: 0 auto; padding: 20px 16px 48px; display: grid; gap: 16px; }
+  header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; }
+  h1 { font-size: 18px; margin: 0; font-weight: 700; letter-spacing: -.01em; }
+  h2 { font-size: 13px; margin: 0; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--doux); }
+  .meta { color: var(--pale); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+  .vu { margin-left: auto; }
+  .carte { background: var(--carte); border: 1px solid var(--filet); border-radius: var(--r); padding: 16px; display: grid; gap: 14px; min-width: 0; }
+  .tete { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+  .badge { display: inline-flex; align-items: center; gap: 6px; padding: 2px 9px; border-radius: 999px; font-size: 11.5px; font-weight: 700;
+           letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; }
+  .b-en-cours { background: var(--violet-fond); color: var(--violet); }
+  .b-en-cours::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; animation: pouls 1.4s ease-in-out infinite; }
+  .b-vert, .b-pris, .b-termine { background: var(--vert-fond); color: var(--vert); }
+  .b-rouge, .b-vivant, .b-erreur { background: var(--rouge-fond); color: var(--rouge); }
+  .b-interrompu, .b-introuvable { background: var(--ambre-fond); color: var(--ambre); }
+  .b-attente { background: var(--creux); color: var(--pale); }
+  @keyframes pouls { 50% { opacity: .35; } }
+  .chiffres { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+  .chiffre { background: var(--creux); border-radius: 8px; padding: 10px 12px; min-width: 0; }
+  .chiffre b { display: block; font-size: 22px; line-height: 1.2; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+  .chiffre span { color: var(--doux); font-size: 12px; }
+  .chiffre.ok b { color: var(--vert); } .chiffre.ko b { color: var(--rouge); }
+  .barre { height: 8px; border-radius: 999px; background: var(--creux); overflow: hidden; display: flex; }
+  .barre i { display: block; height: 100%; background: var(--violet); transition: width .6s ease; }
+  .barre i.ko { background: var(--rouge); }
+  .etapes { display: flex; flex-wrap: wrap; gap: 6px; }
+  .etape { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 8px; background: var(--creux);
+           color: var(--pale); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+  .etape.faite { color: var(--doux); } .etape.faite::before { content: "✓"; color: var(--vert); font-weight: 700; }
+  .etape.active { color: var(--texte); background: var(--violet-fond); box-shadow: inset 0 0 0 1px var(--violet); }
+  .etape.active::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--violet); animation: pouls 1.4s infinite; }
+  .etape.ratee { color: var(--rouge); background: var(--rouge-fond); } .etape.ratee::before { content: "✗"; font-weight: 700; }
+  .courant { border-left: 3px solid var(--violet); padding: 2px 0 2px 12px; display: grid; gap: 2px; min-width: 0; }
+  .courant .t { font-weight: 600; overflow-wrap: anywhere; }
+  .alerte { color: var(--ambre); }
+  .liste { display: grid; gap: 8px; }
+  .echec { background: var(--rouge-fond); border-radius: 8px; padding: 10px 12px; display: grid; gap: 3px; min-width: 0; }
+  .echec .s { color: var(--doux); font-size: 12px; overflow-wrap: anywhere; }
+  .echec .n { font-weight: 600; overflow-wrap: anywhere; }
+  details summary { cursor: pointer; color: var(--doux); font-size: 12px; }
+  pre { margin: 6px 0 0; padding: 10px; background: var(--creux); border-radius: 6px; font: 12px/1.45 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+        white-space: pre-wrap; overflow-wrap: anywhere; max-height: 320px; overflow: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+  th { text-align: left; color: var(--pale); font-weight: 600; font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; padding: 0 8px 6px; }
+  td { padding: 7px 8px; border-top: 1px solid var(--filet); vertical-align: top; overflow-wrap: anywhere; }
+  td.n, th.n { text-align: right; white-space: nowrap; }
+  tr.actif td { background: var(--violet-fond); }
+  .defile { overflow-x: auto; margin: 0 -4px; padding: 0 4px; }
+  .vide { color: var(--pale); }
+  .lent { color: var(--ambre); }
+  .hors { position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%); background: var(--rouge); color: #fff; padding: 6px 14px;
+          border-radius: 999px; font-size: 12.5px; font-weight: 600; display: none; }
+  .hors.vu2 { display: block; }
+  @media (max-width: 560px) { .cache-mobile { display: none; } .chiffre b { font-size: 19px; } }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Suivi du banc</h1>
+    <span class="meta" id="ident"></span>
+    <span class="meta vu" id="vu">connexion…</span>
+  </header>
+  <section class="carte" id="banc"></section>
+  <section class="carte" id="mutants"></section>
+  <section class="carte" id="courses"></section>
+</main>
+<div class="hors" id="hors">Le serveur du tableau ne répond plus</div>
+<script>
+'use strict';
+const ETAPES = { lint: 'Lint', parity: 'Parité des locales', store: 'Fiches du Store', addon: 'Paquet', test: 'Banc' };
+const ETATS = { 'en-cours': 'En cours', vert: 'Vert', rouge: 'Rouge', interrompu: 'Interrompu', termine: 'Terminé',
+                attente: 'En attente', pris: 'Pris', vivant: 'Vivant', introuvable: 'Introuvable', erreur: 'Erreur' };
+const $ = (id) => document.getElementById(id);
+const el = (tag, attrs = {}, ...enfants) => {
+  const x = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) if (v !== null && v !== undefined && v !== false) x.setAttribute(k, v === true ? '' : v);
+  for (const e of enfants.flat()) if (e !== null && e !== undefined && e !== false) x.append(e instanceof Node ? e : String(e));
+  return x;
+};
+const duree = (ms) => {
+  if (ms === null || ms === undefined) return '—';
+  const s = Math.max(0, Math.round(ms / 1000));
+  if (s < 60) return `${s} s`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m} min ${String(s % 60).padStart(2, '0')} s`;
+  return `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')} min`;
+};
+const heure = (t) => (t ? new Date(t).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '—');
+const date = (t) => (t ? new Date(t).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—');
+const nombre = (n) => (n === null || n === undefined ? '—' : n.toLocaleString('fr-FR'));
+const badge = (etat) => el('span', { class: `badge b-${etat}` }, ETATS[etat] || etat);
+const chiffre = (valeur, libelle, cls = '') => el('div', { class: `chiffre ${cls}` }, el('b', {}, valeur), el('span', {}, libelle));
+const barre = (fait, ko, total) => {
+  const b = el('div', { class: 'barre', role: 'progressbar', 'aria-valuemin': 0, 'aria-valuemax': total, 'aria-valuenow': fait + ko });
+  if (total) {
+    b.append(el('i', { style: `width:${(100 * fait / total).toFixed(2)}%` }));
+    if (ko) b.append(el('i', { class: 'ko', style: `width:${Math.max(0.6, 100 * ko / total).toFixed(2)}%` }));
+  }
+  return b;
+};
+const finEstimee = (e, maintenant) => e.etat === 'en-cours'
+  ? (e.restantMs === null ? chiffre('—', 'temps restant inconnu (aucune mesure)')
+     : chiffre(`${e.approx ? '≈ ' : ''}${heure(maintenant + e.restantMs)}`, `fin estimée — reste ${duree(e.restantMs)}`))
+  : chiffre(heure(e.fin), e.fin ? 'terminé à' : 'arrêté');
+const lent = (ms, habituel) => habituel && ms > habituel * 1.5 + 20_000;
+
+function peindreBanc(b, maintenant) {
+  const c = $('banc');
+  c.replaceChildren();
+  if (!b) { c.append(el('h2', {}, 'Vérification'), el('p', { class: 'vide' }, 'Aucune vérification lancée par tests/suivi/lancer.mjs pour l’instant.')); return; }
+  c.append(el('div', { class: 'tete' }, el('h2', {}, 'Vérification'), badge(b.etat),
+    el('span', { class: 'meta' }, b.commande || ''), b.moteur ? el('span', { class: 'meta' }, `${b.moteur.nom} ${b.moteur.version}`) : null));
+  if (b.sequence) {
+    const etapes = el('div', { class: 'etapes' });
+    const vues = new Map(b.phases.map((p) => [p.nom, p]));
+    for (const nom of b.sequence) {
+      const p = vues.get(nom);
+      const active = b.etat === 'en-cours' && b.phase === nom;
+      const ratee = b.etat === 'rouge' && b.phase === nom;
+      const cls = !p ? '' : active ? 'active' : ratee ? 'ratee' : 'faite';
+      etapes.append(el('span', { class: `etape ${cls}` }, ETAPES[nom] || nom,
+        p ? el('span', { class: 'meta' }, duree((p.fin ?? maintenant) - p.debut)) : null));
+    }
+    c.append(etapes);
+  }
+  const total = b.attendus?.assertions ?? null;
+  const ecoule = (b.fin ?? maintenant) - b.debut;
+  c.append(el('div', { class: 'chiffres' },
+    chiffre(b.attendus ? `${nombre(b.scenariosVus)} / ${nombre(b.attendus.scenarios)}` : nombre(b.scenariosVus), 'scénarios'),
+    chiffre(nombre(b.reussis), total ? `assertions réussies sur ${nombre(total)}` : 'assertions réussies', 'ok'),
+    chiffre(nombre(b.echoues), 'assertions échouées', b.echoues ? 'ko' : ''),
+    chiffre(duree(ecoule), `écoulé — lancé à ${heure(b.debut)}`),
+    finEstimee(b, maintenant)));
+  if (total) c.append(barre(b.reussis, b.echoues, total));
+  if (b.courant) {
+    const depuis = maintenant - b.courant.debut;
+    c.append(el('div', { class: 'courant' }, el('span', { class: 't' }, b.courant.titre),
+      el('span', { class: 'meta' }, `depuis ${duree(depuis)}`, b.courant.habituel ? ` — d’habitude ${duree(b.courant.habituel)}` : ' — jamais mesuré',
+        ` · ${b.courant.ok} ✓`, b.courant.ko ? ` · ${b.courant.ko} ✗` : ''),
+      lent(depuis, b.courant.habituel) ? el('span', { class: 'alerte' }, 'Plus long que d’habitude.') : null));
+  } else if (b.etat === 'en-cours' && b.phase && b.phase !== 'test') {
+    c.append(el('div', { class: 'courant' }, el('span', { class: 't' }, ETAPES[b.phase] || b.phase), el('span', { class: 'meta' }, 'étape en cours')));
+  }
+  if (b.etat === 'en-cours' && maintenant - b.dernierSigne > 180_000 && !(b.courant && b.courant.habituel && maintenant - b.courant.debut < b.courant.habituel * 1.5 + 20_000)) {
+    c.append(el('p', { class: 'alerte' }, `Aucun signe depuis ${duree(maintenant - b.dernierSigne)}.`));
+  }
+  if (b.echecs.length) {
+    c.append(el('h2', {}, `Échecs (${b.echecs.length})`));
+    c.append(el('div', { class: 'liste' }, b.echecs.map((e) => el('div', { class: 'echec' },
+      el('span', { class: 's' }, e.scenario), el('span', { class: 'n' }, `✗ ${e.nom}`),
+      e.detail ? el('details', { 'data-cle': `echec:${e.scenario}:${e.nom}` }, el('summary', {}, 'détail'), el('pre', {}, e.detail)) : null))));
+  }
+  if (b.sortie) c.append(el('details', { open: true, 'data-cle': 'sortie' }, el('summary', {}, 'Dernières lignes de la sortie'), el('pre', {}, b.sortie.join('\n'))));
+  if (b.derniers.length) {
+    c.append(el('h2', {}, 'Derniers scénarios'));
+    c.append(el('div', { class: 'defile' }, el('table', {},
+      el('thead', {}, el('tr', {}, el('th', {}, 'Scénario'), el('th', { class: 'n' }, 'Durée'), el('th', { class: 'n cache-mobile' }, 'D’habitude'),
+        el('th', { class: 'n' }, '✓'), el('th', { class: 'n' }, '✗'))),
+      el('tbody', {}, b.derniers.map((s) => el('tr', {}, el('td', {}, s.titre),
+        el('td', { class: `n ${lent(s.ms, s.habituel) ? 'lent' : ''}` }, duree(s.ms)),
+        el('td', { class: 'n cache-mobile' }, duree(s.habituel)), el('td', { class: 'n' }, s.ok), el('td', { class: 'n' }, s.ko || '')))))));
+  }
+}
+
+function peindreMutants(m, maintenant) {
+  const c = $('mutants');
+  c.replaceChildren();
+  if (!m) { c.append(el('h2', {}, 'Mutants'), el('p', { class: 'vide' }, 'Aucune campagne de mutants pour l’instant.')); return; }
+  const k = m.compte;
+  c.append(el('div', { class: 'tete' }, el('h2', {}, 'Mutants'), badge(m.etat),
+    el('span', { class: 'meta' }, (m.source || '').split('/').pop()), el('span', { class: 'meta' }, `${m.branche || ''}@${m.commit || ''}`)));
+  c.append(el('div', { class: 'chiffres' },
+    chiffre(`${k.faits} / ${k.total}`, 'éprouvés'),
+    chiffre(nombre(k.pris), 'pris', 'ok'),
+    chiffre(nombre(k.vivants), 'vivants', k.vivants ? 'ko' : ''),
+    chiffre(nombre(k.introuvables + k.erreurs), 'introuvables ou en erreur', k.introuvables + k.erreurs ? 'ko' : ''),
+    finEstimee(m, maintenant)));
+  c.append(barre(k.faits, 0, k.total));
+  if (m.courant) {
+    const x = m.courant;
+    c.append(el('div', { class: 'courant' }, el('span', { class: 't' }, `${x.id} — ${x.nom}`),
+      el('span', { class: 'meta' }, `scénario ${x.scenarios} / ${x.sur}${x.titre ? ' : ' + x.titre : ''} · ${x.reussis} ✓ · ${x.echoues} ✗ · depuis ${duree(maintenant - x.debut)}`),
+      x.echoues ? el('span', { style: 'color:var(--vert)' }, 'Déjà pris : une assertion est tombée.') : null));
+  }
+  c.append(el('div', { class: 'defile' }, el('table', {},
+    el('thead', {}, el('tr', {}, el('th', {}, 'Mutant'), el('th', { class: 'cache-mobile' }, 'Scénarios'), el('th', {}, 'État'),
+      el('th', { class: 'n' }, 'Durée'), el('th', { class: 'cache-mobile' }, 'Ce qui le prend'))),
+    el('tbody', {}, m.liste.map((x) => el('tr', { class: x.etat === 'en-cours' ? 'actif' : null },
+      el('td', {}, el('b', {}, x.id), ' ', x.nom),
+      el('td', { class: 'cache-mobile' }, x.scenarios.join(', ')),
+      el('td', {}, badge(x.etat)),
+      el('td', { class: 'n' }, x.ms !== undefined ? duree(x.ms) : x.etat === 'en-cours' ? duree(maintenant - x.debut) : ''),
+      el('td', { class: 'cache-mobile' }, x.etat === 'pris' ? (x.rates || [])[0] || '' : x.etat === 'introuvable' ? `texte présent ${x.fois} fois`
+        : x.etat === 'erreur' ? el('details', { 'data-cle': `mutant:${x.id}` }, el('summary', {}, 'sortie'), el('pre', {}, x.sortie || '')) : x.etat === 'vivant' ? 'rien : trou du banc' : '')))))));
+}
+
+function peindreCourses(cs) {
+  const c = $('courses');
+  c.replaceChildren(el('h2', {}, 'Dernières vérifications'));
+  if (!cs.length) { c.append(el('p', { class: 'vide' }, 'Aucune encore.')); return; }
+  c.append(el('div', { class: 'defile' }, el('table', {},
+    el('thead', {}, el('tr', {}, el('th', {}, 'Lancée'), el('th', {}, 'Commande'), el('th', { class: 'cache-mobile' }, 'Version'),
+      el('th', {}, 'Résultat'), el('th', { class: 'n' }, 'Assertions'), el('th', { class: 'n' }, 'Durée'))),
+    el('tbody', {}, cs.map((r) => el('tr', {}, el('td', {}, date(r.debut)), el('td', {}, r.commande || ''),
+      el('td', { class: 'cache-mobile' }, `${r.version || ''} ${r.commit || ''}`),
+      el('td', {}, badge(r.code === 0 ? 'vert' : r.signal ? 'interrompu' : 'rouge')),
+      el('td', { class: 'n' }, `${nombre(r.reussis)} ✓${r.echoues ? ` · ${nombre(r.echoues)} ✗` : ''}`),
+      el('td', { class: 'n' }, duree(r.fin - r.debut))))))));
+}
+
+/* Le tableau se repeint toutes les deux secondes : un détail ouvert (ou
+   fermé) à la main le reste, d'une peinture à l'autre. */
+const detailsVus = new Map();
+document.addEventListener('toggle', (e) => { if (e.target.dataset?.cle) detailsVus.set(e.target.dataset.cle, e.target.open); }, true);
+const garderDetails = () => {
+  for (const d of document.querySelectorAll('details[data-cle]')) {
+    if (detailsVus.has(d.dataset.cle) && d.open !== detailsVus.get(d.dataset.cle)) d.open = detailsVus.get(d.dataset.cle);
+  }
+};
+let dernier = null, decalage = 0;
+async function relire() {
+  try {
+    const r = await fetch('etat', { cache: 'no-store' });
+    if (!r.ok) throw new Error(r.status);
+    const e = await r.json();
+    decalage = Date.now() - e.maintenant;
+    dernier = e;
+    $('hors').classList.remove('vu2');
+    peindre();
+  } catch {
+    $('hors').classList.add('vu2');
+  }
+}
+function peindre() {
+  if (!dernier) return;
+  const maintenant = Date.now() - decalage;
+  const b = dernier.banc, m = dernier.mutants;
+  const src = b || m;
+  $('ident').textContent = src ? `${src.version ? 'v' + src.version : ''} · ${src.branche || ''}@${src.commit || ''}${src.modifie ? ' (modifié)' : ''}` : '';
+  $('vu').textContent = `relu à ${new Date(maintenant).toLocaleTimeString('fr-FR')}`;
+  const actif = [b, m].some((x) => x && x.etat === 'en-cours');
+  document.title = actif ? `● ${b && b.etat === 'en-cours' ? `${b.scenariosVus}/${b.attendus?.scenarios ?? '?'}` : `${m.compte.faits}/${m.compte.total}`} — Suivi du banc` : 'Suivi du banc';
+  peindreBanc(b, maintenant);
+  peindreMutants(m, maintenant);
+  peindreCourses(dernier.courses || []);
+  garderDetails();
+}
+relire();
+setInterval(relire, 2000);
+</script>
+</body>
+</html>

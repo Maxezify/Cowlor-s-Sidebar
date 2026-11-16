@@ -23,3 +23,8 @@ test-results/
 # Paquet d'extension assemblé par `npm run addon` / `npm run package` depuis la
 # liste blanche de tests/addon.mjs. Artefact dérivé, régénéré à la demande.
 dist/
+
+# Le tableau de suivi (tests/suivi/) : ses relevés sont propres à la machine
+# et à l'instant ; l'extrait de scénarios est régénéré à chaque usage.
+tests/suivi/.etat/
+tests/_extrait.mjs
