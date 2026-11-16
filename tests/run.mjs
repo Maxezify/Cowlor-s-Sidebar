@@ -39278,6 +39278,109 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
   const gv2 = await lirePlace(mv);
   ok('…et rien ne bouge plus aux peintures suivantes', gv2.rejets.length === 4 && gv2.place === 'section', JSON.stringify(gv2));
   await mv.close();
+
+  /* n) LE BAS DU HÉROS SE FOND DANS LA PAGE (4.26.0.6). Demandé : « la
+     partie basse du héros en fondu progressif transparent avec le fond du
+     site ». On lit l'écran lui-même — une bande de pixels au bord gauche du
+     cadre, là où il n'y a pas de texte —, dans les deux thèmes : au pied du
+     cadre, la couleur de la page ; au-dessus du quart du bas, l'image ; entre
+     les deux, une montée sans retour, et douce à ses deux bouts (une rampe
+     droite y change d'un dixième de son écart, la courbe en S de moins de
+     trois centièmes). Le texte, lui, n'est pas dans ce qui s'efface : au
+     milieu du cadre quand il a la place, comme avant ; plus haut quand il ne
+     l'a pas ; et le bouton « Regarder » garde sa couleur exacte, même posé
+     sur le haut du fondu. Mutants — le masque retiré ; une rampe droite ; le
+     masque posé sur tout le cadre, texte compris ; un fondu de hauteur fixe ;
+     la cale du bas oubliée ; la cale du haut oubliée ; les lignes qui
+     rétrécissent. */
+  const lireFondu = async (page) => {
+    const g = await page.evaluate(() => {
+      const c = document.querySelector('#tse-accueil-heros .tse-acc-heros-cadre');
+      const r = c.getBoundingClientRect();
+      const inf = c.querySelector('.tse-acc-heros-infos');
+      const kids = [...inf.children];
+      const titre = c.querySelector('.tse-acc-heros-titre'), bouton = c.querySelector('.tse-acc-bouton--principal');
+      const rb = bouton.getBoundingClientRect();
+      const fond = getComputedStyle(document.body).backgroundColor.match(/\d+/g).slice(0, 3).map(Number);
+      return { x: Math.round(r.left), y: Math.round(r.top), l: Math.round(r.width), h: Math.round(r.height),
+               dansVue: r.top >= 0 && r.bottom <= innerHeight,
+               F: parseFloat(getComputedStyle(inf, '::after').minHeight) / 0.8, page: fond,
+               haut: kids[0].getBoundingClientRect().top - r.top, bas: kids[kids.length - 1].getBoundingClientRect().bottom - r.top,
+               horsScene: inf.parentElement === c && !inf.closest('.tse-acc-heros-scene'),
+               titreH: titre.getBoundingClientRect().height, titreLigne: parseFloat(getComputedStyle(titre).lineHeight),
+               bouton: { x: Math.round(rb.left + 6), y: Math.round(rb.bottom - 3) } };
+    });
+    const lire = async (clip) => {
+      const png = await page.screenshot({ clip });
+      return page.evaluate(async ([b64, n]) => {
+        const im = new Image();
+        im.src = 'data:image/png;base64,' + b64;
+        await im.decode();
+        const cv = document.createElement('canvas');
+        cv.width = im.width; cv.height = im.height;
+        const ctx = cv.getContext('2d');
+        ctx.drawImage(im, 0, 0);
+        const d = ctx.getImageData(0, 0, im.width, im.height).data, k = im.height / n;
+        return Array.from({ length: n }, (_, y) => {
+          const i = (Math.floor((y + 0.5) * k) * im.width + Math.floor(im.width / 2)) * 4;
+          return [d[i], d[i + 1], d[i + 2]];
+        });
+      }, [png.toString('base64'), clip.height]);
+    };
+    g.col = await lire({ x: g.x + 4, y: g.y, width: 4, height: g.h });
+    g.btn = (await lire({ x: g.bouton.x, y: g.bouton.y, width: 2, height: 1 }))[0];
+    return g;
+  };
+  const lum = ([r, v, b]) => 0.2126 * r + 0.7152 * v + 0.0722 * b;
+  const proche = (a, b, t) => a.every((x, i) => Math.abs(x - b[i]) <= t);
+  const fonduJuge = (g) => {
+    const L = g.col.map(lum), h = g.h, F = g.F;
+    const at = (y) => L[Math.min(h - 1, Math.max(0, Math.round(y)))];
+    const debut = Math.round(h - F), ecart = at(h - 1) - at(debut);
+    let monte = true;
+    for (let y = debut; y < h - 1; y++) if (L[y + 1] < L[y] - 1.5) monte = false;
+    return { F: Math.round(F * 10) / 10, quart: Math.abs(F - h / 4) <= 1, dansVue: g.dansVue, pied: g.col[h - 1], page: g.page,
+             piedEstPage: proche(g.col[h - 1], g.page, 4), image: Math.round(at(debut - 2)), ecart: Math.round(ecart), monte,
+             entree: Math.round(Math.abs(at(h - 0.9 * F) - at(debut)) / Math.abs(ecart || 1) * 1000) / 1000,
+             sortie: Math.round(Math.abs(at(h - 1) - at(h - 0.1 * F)) / Math.abs(ecart || 1) * 1000) / 1000,
+             centre: Math.round((g.haut + g.bas) / 2), milieu: h / 2, haut: Math.round(g.haut), bas: Math.round(g.bas),
+             limite: Math.round(h - 0.8 * F), horsScene: g.horsScene, btn: g.btn,
+             titreLignes: Math.round(g.titreH / g.titreLigne * 100) / 100 };
+  };
+  const fo = await ouvrirAccueil({ visites: { korbek: [1, 3] } });
+  await plateauAccueil(fo);
+  await attendre(fo, () => !!document.querySelector('#tse-accueil-heros .tse-acc-heros:not([hidden]) .tse-acc-heros-nom'), 10_000);
+  await wait(fo, 400);
+  const fs = fonduJuge(await lireFondu(fo));
+  await fo.evaluate(() => { document.documentElement.dataset.aTheme = 'light'; });
+  await wait(fo, 300);
+  const fc = fonduJuge(await lireFondu(fo));
+  ok('le bas du héros se fond dans la page : au pied du cadre, la couleur de la page, dans le thème sombre comme dans le clair ; le fondu prend le quart du cadre',
+     fs.dansVue && fc.dansVue && fs.piedEstPage && fc.piedEstPage && fs.quart && fc.quart && fc.image < 90, JSON.stringify({ sombre: fs, clair: fc }));
+  ok('…une montée sans retour, douce à ses deux bouts (la courbe en S, pas une rampe)',
+     fc.monte && fc.ecart > 150 && fc.entree < 0.06 && fc.sortie < 0.06, JSON.stringify(fc));
+  ok('…et le texte hors de ce qui s\'efface, au milieu du cadre comme avant, au-dessus du fondu',
+     fs.horsScene && Math.abs(fs.centre - fs.milieu) <= 1 && fs.bas <= fs.limite, JSON.stringify(fs));
+  await fo.close();
+  /* La place qui manque : 1024 px de large, 320 de haut, un titre sur deux
+     lignes, une ligne du direct sur deux. La fenêtre est haute : à cette
+     largeur, la barre du faux Twitch passe au-dessus de la page, et le
+     héros doit être tout entier à l'écran pour qu'on le lise. */
+  const fe = await ouvrirAccueil({ visites: { korbek: [1, 3] } });
+  await fe.setViewportSize({ width: 1024, height: 1100 });
+  await plateauAccueil(fe, { suivies: { ...SUIVIES_ACCUEIL, korbek: { ...SUIVIES_ACCUEIL.korbek,
+    jeu: 'Simulateur de gestion de ferme et de village médiéval en coopération',
+    titre: 'Grande soirée discussion avec la communauté, on parle de tout et de rien jusqu\'au bout de la nuit et même un peu plus' } } });
+  await attendre(fe, () => !!document.querySelector('#tse-accueil-heros .tse-acc-heros:not([hidden]) .tse-acc-heros-nom'), 10_000);
+  await fe.evaluate(() => { document.documentElement.dataset.aTheme = 'light'; });
+  await wait(fe, 400);
+  const fp = fonduJuge(await lireFondu(fe));
+  ok('la place qui manque (1024 px, un titre et une ligne du direct sur deux lignes) : le texte remonte, jusqu\'à seize pixels du haut, sans perdre de ligne',
+     fp.dansVue && fp.piedEstPage && fp.haut >= 15 && fp.bas <= fp.limite + 12 && fp.bas < fp.milieu + (fp.bas - fp.haut) / 2 - 8
+     && Math.abs(fp.titreLignes - 2) < 0.05, JSON.stringify(fp));
+  ok('…et « Regarder », posé sur le haut du fondu, garde sa couleur exacte',
+     fp.bas > fp.limite && proche(fp.btn, [0x91, 0x47, 0xff], 3), JSON.stringify(fp));
+  await fe.close();
 }
 
 {

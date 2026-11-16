@@ -8458,15 +8458,43 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        quoi il n'aurait que sa largeur propre, c'est-à-dire aucune. Une
        rangée, elle, se constate et se quitte. À la dernière place, dans
        notre section, il reprend l'allure de la 4.26.0.2 : des coins
-       arrondis, et l'espace avant le premier rayon. */
+       arrondis, et l'espace avant le premier rayon.
+       SON BAS SE FOND DANS LA PAGE (4.26.0.6) : « la partie basse du héros en
+       fondu progressif transparent avec le fond du site ». L'image — le fond,
+       la vidéo, le voile, et le noir sous eux — est dans une scène dont un
+       masque efface le bas : ce qu'on voit au pied du cadre, c'est la page
+       elle-même, dans l'un et l'autre thème. Le texte n'est pas dans la
+       scène, il ne s'efface donc jamais ; il se tient au-dessus du fondu
+       (cf. .tse-acc-heros-infos). */
     #tse-accueil-heros { display: block; align-self: stretch; margin: 0; padding: 0; }
     #tse-accueil-heros[data-tse-place="section"] { margin: 0 0 8px; }
     #tse-accueil-heros[data-tse-place="section"] .tse-acc-heros-cadre { border-radius: 10px; }
     .tse-acc-heros { container: tse-heros / inline-size; margin: 0; }
     .tse-acc-heros-cadre {
       --tse-heros-h: clamp(320px, min(27.78cqw, 60vh), 720px);
+      /* Le fondu prend le quart du cadre, à toutes les tailles : 80 px sur
+         320, 121 sur 484 (une fenêtre de 2000 px), 180 sur 720. */
+      --tse-fondu: calc(var(--tse-heros-h) * 0.25);
       position: relative; isolation: isolate; overflow: hidden; height: var(--tse-heros-h);
-      border-radius: 0; background: #0e0e10; color: #efeff1;
+      border-radius: 0; color: #efeff1;
+    }
+    /* Le masque suit une courbe en S (3t² − 2t³, onze points) : ni marche à
+       l'entrée du fondu, ni à sa sortie — une rampe droite laisse voir ses
+       deux bords. */
+    .tse-acc-heros-scene {
+      position: absolute; inset: 0; z-index: 0; overflow: hidden; background: #0e0e10;
+      -webkit-mask-image: linear-gradient(0deg, transparent 0,
+        rgba(0, 0, 0, 0.028) calc(var(--tse-fondu) * 0.1), rgba(0, 0, 0, 0.104) calc(var(--tse-fondu) * 0.2),
+        rgba(0, 0, 0, 0.216) calc(var(--tse-fondu) * 0.3), rgba(0, 0, 0, 0.352) calc(var(--tse-fondu) * 0.4),
+        rgba(0, 0, 0, 0.5) calc(var(--tse-fondu) * 0.5), rgba(0, 0, 0, 0.648) calc(var(--tse-fondu) * 0.6),
+        rgba(0, 0, 0, 0.784) calc(var(--tse-fondu) * 0.7), rgba(0, 0, 0, 0.896) calc(var(--tse-fondu) * 0.8),
+        rgba(0, 0, 0, 0.972) calc(var(--tse-fondu) * 0.9), #000 var(--tse-fondu));
+      mask-image: linear-gradient(0deg, transparent 0,
+        rgba(0, 0, 0, 0.028) calc(var(--tse-fondu) * 0.1), rgba(0, 0, 0, 0.104) calc(var(--tse-fondu) * 0.2),
+        rgba(0, 0, 0, 0.216) calc(var(--tse-fondu) * 0.3), rgba(0, 0, 0, 0.352) calc(var(--tse-fondu) * 0.4),
+        rgba(0, 0, 0, 0.5) calc(var(--tse-fondu) * 0.5), rgba(0, 0, 0, 0.648) calc(var(--tse-fondu) * 0.6),
+        rgba(0, 0, 0, 0.784) calc(var(--tse-fondu) * 0.7), rgba(0, 0, 0, 0.896) calc(var(--tse-fondu) * 0.8),
+        rgba(0, 0, 0, 0.972) calc(var(--tse-fondu) * 0.9), #000 var(--tse-fondu));
     }
     /* Le fond : deux fois la largeur de la vidéo, calé à droite — sa moitié
        droite sous la vidéo, sa moitié gauche en miroir vers le texte. Il
@@ -8508,12 +8536,24 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
                         rgba(14, 14, 16, 0.16) 46%, rgba(14, 14, 16, 0) 58%),
         linear-gradient(0deg, rgba(14, 14, 16, 0.5) 0%, rgba(14, 14, 16, 0) 40%);
     }
+    /* LE TEXTE AU-DESSUS DU FONDU (4.26.0.6). Il reste centré dans le cadre
+       — deux cales égales, avant et après lui —, mais la cale du bas ne
+       descend jamais sous les quatre cinquièmes du fondu, là où le masque
+       laisse encore 90 % de l'image : quand la place manque, c'est le texte
+       qui remonte, pas le fondu qui le gagne. Il remonte jusqu'à seize
+       pixels du haut ; au-delà seulement, il entre dans le fondu. Et il ne
+       se coupe pas : aucune de ses lignes ne rétrécit — le titre, qui coupe
+       ce qui dépasse, en aurait perdu une. */
     .tse-acc-heros-infos {
       position: absolute; z-index: 3; left: clamp(24px, 2.4cqw, 56px); top: 0; bottom: 0;
-      display: flex; flex-direction: column; justify-content: center;
-      width: min(760px, 46%); min-width: 0; padding: 28px 0;
+      display: flex; flex-direction: column;
+      width: min(760px, 46%); min-width: 0; padding: 0;
       text-shadow: 0 1px 12px rgba(0, 0, 0, 0.35);
     }
+    .tse-acc-heros-infos::before, .tse-acc-heros-infos::after { content: ""; flex: 1 1 0; }
+    .tse-acc-heros-infos::before { min-height: 16px; }
+    .tse-acc-heros-infos::after { min-height: calc(var(--tse-fondu) * 0.8); }
+    .tse-acc-heros-infos > * { flex-shrink: 0; }
     .tse-acc-heros-l1 {
       display: flex; align-items: center; gap: 10px; margin: 0;
       font-size: clamp(13px, 0.7cqw, 15px); font-weight: 500; line-height: 20px; color: rgba(255, 255, 255, 0.8);
@@ -16511,7 +16551,10 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       debut.hidden = true;
       actions.append(regarder, debut);
       infos.append(l1, tete, titre, meta, actions);
-      cadre.append(fond, media, voile, infos);
+      // L'image dans la scène, que son masque fond dans la page ; le texte hors d'elle (4.26.0.6).
+      const scene = elt('div', 'tse-acc-heros-scene');
+      scene.append(fond, media, voile);
+      cadre.append(scene, infos);
       return cadre;
     };
 
@@ -16671,7 +16714,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         zh.dataset.tseCle = h.login;
         zh.replaceChildren(fabriquerHeros(h.login));
       }
-      const [fond, media, , infos] = zh.firstChild.children;
+      const [scene, infos] = zh.firstChild.children;
+      const [fond, media] = scene.children;
       const u = urlsHeros(h.login);
       poserImage(media.firstChild, u.grande);
       // Le fond est flouté de trente pixels : une petite image suffit, la même pour ses deux moitiés.
