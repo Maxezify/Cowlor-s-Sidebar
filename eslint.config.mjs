@@ -47,7 +47,10 @@ export default [{
   },
   linterOptions: { reportUnusedDisableDirectives: true },
   rules: {
-    'no-unused-vars': ['warn', { args:'none', varsIgnorePattern:'^_' }],
+    // Les paramètres aussi, après le dernier lu (4.33.0.4) : `args:'none'`
+    // laissait passer un paramètre que personne ne lisait. Une exclusion par
+    // déstructuration — `({ score, ...h }) => h` — n'en est pas un.
+    'no-unused-vars': ['warn', { args:'after-used', ignoreRestSiblings:true, varsIgnorePattern:'^_' }],
     'no-undef': 'error',
     'no-unreachable': 'error',
     'no-dupe-keys': 'error',
