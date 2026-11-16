@@ -207,6 +207,7 @@ Na página inicial da Twitch, a extensão coloca as suas próprias filas acima d
 - ★ UMA ETIQUETA POR CARTÃO ★ Nos cartões da página inicial, os da extensão e os do Twitch: um facto, só um — «De volta após 41 dias», «Acabou de começar», «Acabou de mudar para Elden Ring», «↗ +38% em 10 min», «Nº 3 em português»… Nada adivinhado: sem facto visto, sem etiqueta. Para um canal que a barra não segue, os números são pedidos enquanto o cartão estiver no ecrã.
 - ★ ENQUANTO ESTIVESTE FORA ★ Voltaste depois de mais de um dia? Um aviso mostra o que os canais que segues transmitiram entretanto: as transmissões e quanto duraram, o clipe mais visto e a última reprise a um clique. Um pedido de clipes por canal e por ausência.
 - ★ PORQUE VÊS MUITAS VEZES… ★ Na página inicial, filas que dizem porquê: «14 visitas em 30 dias» num canal, e o que está em direto na categoria habitual dele, na tua língua, fora dos que segues.
+- ★ ARRUMAR A PÁGINA INICIAL DO TWITCH ★ Oculta com um clique a fila de uma categoria que não te interessa, passa para oito cartões por fila em ecrãs grandes e substitui as miniaturas «?» pela última reprise ou pelo avatar. Nada é retirado da página do Twitch.
 - ★ A PRÉ-VISUALIZAÇÃO AO PASSAR O RATO, AQUI TAMBÉM ★ Nos cartões da página inicial, os da extensão e os da Twitch.
 - ★ TU DECIDES ★ Cada parte desliga-se à parte nas «Definições»; tudo desligado, a página inicial volta a ser a da Twitch, tal como é.
 
@@ -240,7 +241,7 @@ A Twitch tem um tema claro. A extensão dá por isso e muda com ele — sem reca
 _______________________________
 
 ➤ ⚙️ E SE QUISERES ESCOLHER
-Tudo já vem ativo e não há nada para configurar. Mas «Definições», no painel, devolve-te o comando sobre trinta e três definições.
+Tudo já vem ativo e não há nada para configurar. Mas «Definições», no painel, devolve-te o comando sobre trinta e quatro definições.
 
 - ★ O QUE VÊS ★ Cada distintivo, a duração da emissão e o seu formato, a barra «acabou de começar», o ouro das subscrições, os filtros, os botões de ordenação: tudo liga e desliga numa caixa.
 - ★ O QUE É CARREGADO ★ A pré-visualização pode dispensar o vídeo e manter os distintivos, a linha temporal e a miniatura — ou simplesmente baixar a qualidade. O suficiente para a aliviar sem a perder.

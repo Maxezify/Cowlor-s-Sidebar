@@ -13424,9 +13424,9 @@ titre('96. Le mode d\'emploi — la première vue, et la seule qui n\'ait besoin
     const s = STRINGS_CJ[loc.split('_')[0]];
     if (!s) { citesAccueil.push(`${loc} : pas de langue dans content.js`); continue; }
     const texte = fiche(loc).guideAccueilTexte.message;
-    // « Pendant votre absence » et son « Revoir le dernier » (4.30.0) aussi.
+    // « Pendant votre absence » et son « Revoir le dernier » (4.30.0), « Masquer » et « Réafficher » (4.32.0) aussi.
     for (const c of [s.uiAccHeros, s.uiAccSuivis, s.uiAccTop, s.uiAccDebut, s.uiAccNouveau, s.uiAccAfficherTout,
-                     s.uiAbsTitre, s.uiAbsRevoir]) {
+                     s.uiAbsTitre, s.uiAbsRevoir, s.uiRangerMasquer, s.uiRangerReafficher]) {
       if (!c || !texte.includes(c)) citesAccueil.push(`${loc} « ${c} »`);
     }
   }
@@ -16652,7 +16652,7 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
     return { n: Object.keys(defs).length, horsListe, jeuxNonVides,
              cle: localStorage.getItem('tse:options') };
   });
-  ok('la table porte ses trente-trois réglages', table.n === 33, String(table.n));
+  ok('la table porte ses trente-quatre réglages', table.n === 34, String(table.n));
   /* CELUI-CI A UNE CIBLE PRÉCISE : trois défauts sont lus dans CFG plutôt que
      recopiés — apercuQualite, abosPeriode et topN. Changer une de ces trois
      constantes sans toucher à la liste des valeurs permises rendrait le
@@ -16681,21 +16681,22 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
      trente depuis la 4.27.0 : « Vos rendez-vous » ; trente et un depuis la
      4.28.0 : « Une étiquette par carte » ; trente-deux depuis la 4.30.0 :
      « Pendant votre absence » ; trente-trois depuis la 4.31.0 : « Parce que
-     vous regardez souvent… ». En polonais et en russe, deux et trois veulent
-     le nominatif pluriel — et un verbe au pluriel, que les phrases ont suivi. */
-  const TRENTE_TROIS = { de: 'dreiunddreißig Einstellungen', en: 'thirty-three settings',
-                         es: 'treinta y tres ajustes', es_419: 'treinta y tres ajustes', fr: 'trente-trois réglages',
-                         it: 'trentatré impostazioni', ja: '33 個の設定', pl: 'trzydzieści trzy ustawienia',
-                         pt_BR: 'trinta e três configurações', pt_PT: 'trinta e três definições',
-                         ru: 'тридцать три настройки', zh_CN: '三十三项设置' };
-  const muettes = Object.entries(TRENTE_TROIS).flatMap(([loc, mot]) => [
+     vous regardez souvent… » ; trente-quatre depuis la 4.32.0 : « Ranger
+     l'accueil de Twitch ». En polonais et en russe, de deux à quatre, le
+     nominatif pluriel — et un verbe au pluriel, que les phrases ont suivi. */
+  const TRENTE_QUATRE = { de: 'vierunddreißig Einstellungen', en: 'thirty-four settings',
+                          es: 'treinta y cuatro ajustes', es_419: 'treinta y cuatro ajustes', fr: 'trente-quatre réglages',
+                          it: 'trentaquattro impostazioni', ja: '34 個の設定', pl: 'trzydzieści cztery ustawienia',
+                          pt_BR: 'trinta e quatro configurações', pt_PT: 'trinta e quatro definições',
+                          ru: 'тридцать четыре настройки', zh_CN: '三十四项设置' };
+  const muettes = Object.entries(TRENTE_QUATRE).flatMap(([loc, mot]) => [
     JSON.parse(readFileSync(join(ICI, '..', '_locales', loc, 'messages.json'), 'utf8'))
       .optResetText.message.includes(mot) ? null : `panneau ${loc}`,
     readFileSync(join(ICI, '..', 'store', `description-${loc.replace('_', '-')}.txt`), 'utf8')
       .includes(mot) ? null : `fiche ${loc}`,
   ]).filter(Boolean);
   ok('…et le panneau comme la fiche du Store en annoncent autant, dans les douze langues',
-     table.n === 33 && muettes.length === 0, muettes.join(', ') || String(table.n));
+     table.n === 34 && muettes.length === 0, muettes.join(', ') || String(table.n));
   /* CELLE-CI SE LIT SUR LE FICHIER SOURCE, et c'est le fond du sujet : la
      constante de production vaut six heures, mais tests/build.mjs la réécrit à
      quatre secondes pour que le relevé des abonnements soit éprouvable. La
@@ -17302,7 +17303,7 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
              fantomes: peints.filter((id) => !table.includes(id)) };
   }, vue.peints);
 
-  ok('les trente-trois réglages de la page ont chacun leur ligne',
+  ok('les trente-quatre réglages de la page ont chacun leur ligne',
      contrat.oublies.length === 0, contrat.oublies.join(', '));
   ok('…et aucune ligne fantôme : l\'ordre du panneau couvre exactement la table',
      contrat.fantomes.length === 0, contrat.fantomes.join(', '));
@@ -41396,6 +41397,124 @@ const lireImages = (page) => page.evaluate(() => {
   const d = { rayons: (await lire(pd)).filter((x) => x.montre).length, appels: (await appels(pd)).length };
   ok('d) « Parce que vous regardez souvent… » décoché : ni rayon, ni demande', d.rayons === 0 && d.appels === 0, JSON.stringify(d));
   await pd.close();
+}
+
+{
+  titre('226. Ranger l\'accueil de Twitch — masquer un rayon de catégorie d\'un clic, huit cartes par rangée, les vignettes « ? » remplies ; rien de retiré');
+  /* LE DÉCOR. Deux rayons de Twitch, à sa manière (cf. page.html) :
+       « Chaînes recommandées dans Discussions » — une catégorie : neuf
+       cartes ; givre, suivie, n'a pas encore d'image et l'agenda connaît sa
+       dernière rediffusion ; gravier, pas suivie, n'en a pas non plus : son
+       avatar ; les autres ont la leur ;
+       « Chaînes live qui pourraient vous plaire » — pas de catégorie : rien
+       à masquer, rien sous quoi le retenir. */
+  const ETAGERES = [
+    { id: 'e-cat', avant: 'Chaînes recommandées dans ', slug: 'just-chatting', nom: 'Discussions',
+      cartes: ['falun', 'givre', 'gravier', 'houx', 'ilot', 'jonc', 'kaki', 'lilas', 'mauve'].map((login) => ({ login, sans: login === 'givre' || login === 'gravier' })) },
+    { id: 'e-reco', nom: 'Chaînes live qui pourraient vous plaire', cartes: [{ login: 'mousse' }, { login: 'ortie' }] },
+  ];
+  const decor = (p) => p.evaluate(() => {
+    const now = Date.now(), iso = (t) => new Date(t).toISOString();
+    window.__agenda = { givre: { nom: 'Givre', titre: '', videos: [
+      { id: '99101', titre: 'La veille', debut: iso(now - 30 * 3600e3), duree: 7200, vues: 10, jeu: 'Just Chatting' },
+      { id: '99100', titre: 'Avant', debut: iso(now - 80 * 3600e3), duree: 7200, vues: 10, jeu: 'Just Chatting' }],
+      dernier: { id: '1', fin: iso(now - 28 * 3600e3) } } };
+    window.__addCard('givre', '', '', false);
+  });
+  const lire = (p) => p.evaluate(() => {
+    const h = document.getElementById('e-cat'), h2 = document.getElementById('e-reco');
+    const corps = document.querySelector('[aria-labelledby="e-cat"]');
+    const tour = corps.querySelector('.tw-tower');
+    const lien = (l) => [...document.querySelectorAll('main a[data-a-target="preview-card-image-link"]')]
+      .find((a) => a.getAttribute('href') === '/' + l);
+    const vig = (l) => { const a = lien(l); return { sorte: a.getAttribute('data-tse-vignette'), url: a.style.getPropertyValue('--tse-vignette'),
+                                                     opacite: getComputedStyle(a.querySelector('img')).opacity }; };
+    return {
+      ranger: document.documentElement.hasAttribute('data-tse-ranger'),
+      masquable: h.getAttribute('data-tse-masquable'), apres: getComputedStyle(h, '::after').content,
+      autre: h2.getAttribute('data-tse-masquable'), autreApres: getComputedStyle(h2, '::after').content,
+      contenu: getComputedStyle(corps).display, titreVu: h.getClientRects().length > 0,
+      grille: getComputedStyle(tour).display, colonnes: getComputedStyle(tour).gridTemplateColumns.split(/\s+/).filter((x) => /px$/.test(x)).length,
+      cartes: corps.querySelectorAll('article').length, noeuds: document.querySelector('main').querySelectorAll('*').length,
+      givre: vig('givre'), gravier: vig('gravier'), falun: vig('falun'),
+      retenus: JSON.parse(localStorage.getItem('tse:rayonsMasques') || '[]'),
+      rapport: window.tse.accueil.rapport().ranger,
+    };
+  });
+  const cliquerApres = async (p) => {
+    const r = await p.evaluate(() => { const b = document.getElementById('e-cat').getBoundingClientRect(); return { x: b.right, y: b.top + b.height / 2 }; });
+    await p.mouse.click(r.x + 24, r.y);
+  };
+  const page = await ouvrirAccueil({ decor: { etageres: ETAGERES } });
+  await plateauAccueil(page);
+  await decor(page);
+  await attendre(page, () => {
+    const r = window.tse.accueil.rapport();
+    return r.rdv.enCours === false && r.ranger.masquables === 1 && r.ranger.vignettes.rediffusion === 1;
+  }, 20_000);
+  await page.evaluate(() => document.getElementById('e-cat').scrollIntoView({ block: 'center' }));
+  const a = await lire(page);
+  ok('a) le rayon d\'une catégorie porte « Masquer », juste à droite de son titre ; celui qui n\'en a pas, rien',
+     a.ranger && a.masquable === 'just-chatting' && a.apres === '"Masquer"' && a.autre === null && a.autreApres === 'none',
+     JSON.stringify({ masquable: a.masquable, apres: a.apres, autre: a.autre, autreApres: a.autreApres }));
+  // Un clic sur le titre lui-même reste à Twitch : rien ne se masque.
+  await page.evaluate(() => {
+    const s = document.querySelector('#e-cat > span');
+    const b = s.getBoundingClientRect();
+    s.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, clientX: b.left + 4, clientY: b.top + b.height / 2 }));
+  });
+  await wait(page, 300);
+  const a2 = await lire(page);
+  ok('…un clic sur le titre lui-même reste à Twitch', a2.contenu !== 'none' && a2.retenus.length === 0, JSON.stringify({ contenu: a2.contenu, retenus: a2.retenus }));
+
+  await cliquerApres(page);
+  await wait(page, 300);
+  const b = await lire(page);
+  ok('b) un clic sur « Masquer » : le contenu s\'en va, le titre reste avec « Réafficher », la catégorie est retenue',
+     b.contenu === 'none' && b.titreVu && b.apres === '"Réafficher"' && JSON.stringify(b.retenus) === '["just-chatting"]' && b.rapport.clics === 1,
+     JSON.stringify({ contenu: b.contenu, apres: b.apres, retenus: b.retenus, clics: b.rapport.clics }));
+  ok('…et rien n\'est retiré de la page de Twitch : les neuf cartes, et chaque nœud, sont toujours là',
+     b.cartes === 9 && b.noeuds === a.noeuds, JSON.stringify({ cartes: b.cartes, noeuds: [a.noeuds, b.noeuds] }));
+
+  await page.reload();
+  await plateauAccueil(page);
+  await decor(page);
+  await attendre(page, () => window.tse.accueil.rapport().ranger.masques === 1, 15_000);
+  const c = await lire(page);
+  ok('c) en revenant : la catégorie est toujours masquée', c.contenu === 'none' && c.apres === '"Réafficher"', JSON.stringify({ contenu: c.contenu, apres: c.apres }));
+  await page.evaluate(() => document.getElementById('e-cat').scrollIntoView({ block: 'center' }));
+  await cliquerApres(page);
+  await wait(page, 300);
+  const d = await lire(page);
+  ok('d) « Réafficher » : le contenu revient, et plus rien n\'est retenu',
+     d.contenu !== 'none' && d.apres === '"Masquer"' && d.retenus.length === 0, JSON.stringify({ contenu: d.contenu, retenus: d.retenus }));
+
+  await attendre(page, () => window.tse.accueil.rapport().ranger.vignettes.rediffusion === 1, 15_000);
+  const f = await lire(page);
+  ok('e) à 1600 pixels de large : huit cartes par rangée', f.grille === 'grid' && f.colonnes === 8, JSON.stringify({ grille: f.grille, colonnes: f.colonnes }));
+  ok('f) une vignette « ? » : derrière elle, la dernière rediffusion de la chaîne que l\'agenda connaît — elle-même rendue transparente',
+     f.givre.sorte === 'rediffusion' && /cf_vods\/99101\//.test(f.givre.url) && f.givre.opacite === '0', JSON.stringify(f.givre));
+  ok('…sans rediffusion connue, l\'avatar que la carte porte ; une carte qui a son image, rien',
+     f.gravier.sorte === 'avatar' && /jtv_user_pictures\/gravier-/.test(f.gravier.url) && f.falun.sorte === null && f.falun.opacite === '1',
+     JSON.stringify({ gravier: f.gravier, falun: f.falun }));
+  await page.setViewportSize({ width: 1400, height: 1000 });
+  await wait(page, 300);
+  const g = await lire(page);
+  ok('…et en deçà de 1600 pixels, la grille de Twitch, telle quelle', g.grille === 'flex', g.grille);
+  await page.close();
+
+  // g) Le réglage décoché : rien de posé, même une catégorie retenue.
+  const ph = await ouvrirAccueil({ decor: { etageres: ETAGERES }, options: { accueilRanger: false } });
+  await ph.evaluate(() => localStorage.setItem('tse:rayonsMasques', '["just-chatting"]'));
+  await plateauAccueil(ph);
+  await decor(ph);
+  await attendre(ph, () => { const r = window.tse.accueil.rapport(); return r.heros.montre && r.rdv.enCours === false; }, 20_000);
+  await wait(ph, 1_000);
+  const h = await lire(ph);
+  ok('g) « Ranger l\'accueil de Twitch » décoché : ni « Masquer », ni rayon masqué, ni grille, ni vignette',
+     !h.ranger && h.masquable === null && h.contenu !== 'none' && h.grille === 'flex' && h.givre.sorte === null,
+     JSON.stringify({ ranger: h.ranger, masquable: h.masquable, contenu: h.contenu, grille: h.grille, givre: h.givre }));
+  await ph.close();
 }
 
 /* ═════════ LE BANC SE COMPTE, ET LES README DOIVENT LE DIRE JUSTE ═════════

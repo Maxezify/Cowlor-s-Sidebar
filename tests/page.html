@@ -1864,7 +1864,67 @@ if (location.pathname === '/' && window.__accueil) {
         contenu.appendChild(rayon);
       }
     };
+    /* LES RAYONS DE TWITCH, À SA MANIÈRE (4.32.0). Ce que la vraie page montre
+       (relevé le 4 novembre 2026, sans un nom de chaîne recopié) : un titre
+       <h2 id> deux boîtes plus bas que le rayon `.find-me`, qui porte pour
+       une catégorie un lien /directory/category/<nom> ; à côté, le contenu,
+       qui le nomme (`aria-labelledby`) et range ses cartes dans une
+       `.tw-tower`. Une carte sans image encore porte « 404_preview » ; son
+       avatar est dans la carte. `cfg.etageres` : [{ id, avant, slug, nom,
+       apres, cartes: [{ login, sans }] }] — sans `slug`, un rayon qui n'est
+       pas celui d'une catégorie. */
+    const poserEtageres = () => {
+      for (const e of cfg.etageres || []) {
+        const rayon = el('div', 'find-me');
+        const tete = el('div');
+        const boite = el('div');
+        const h = el('h2', 'tw-title');
+        h.id = e.id;
+        if (e.avant) h.appendChild(Object.assign(el('span', 'tw-title'), { textContent: e.avant }));
+        if (e.slug) {
+          const a = el('a', 'tw-link');
+          a.href = '/directory/category/' + e.slug;
+          a.textContent = e.nom;
+          h.appendChild(a);
+        } else if (e.nom) h.appendChild(Object.assign(el('span', 'tw-title'), { textContent: e.nom }));
+        if (e.apres) h.appendChild(Object.assign(el('span', 'tw-title'), { textContent: e.apres }));
+        boite.appendChild(h);
+        tete.appendChild(boite);
+        rayon.appendChild(tete);
+        const corps = el('div');
+        corps.setAttribute('aria-labelledby', e.id);
+        const tour = el('div', 'tw-tower');
+        tour.style.cssText = 'display:flex;flex-wrap:wrap';
+        for (const c of e.cartes) {
+          const item = el('div', 'tw-transition');
+          item.style.cssText = 'width:25%;padding:0 5px;box-sizing:border-box';
+          const art = el('article');
+          const lien = el('a', 'preview-card-image-link tw-link');
+          lien.href = '/' + c.login;
+          lien.setAttribute('data-a-target', 'preview-card-image-link');
+          lien.style.cssText = 'display:block;aspect-ratio:16/9';
+          const img = el('img', 'tw-image');
+          img.src = c.sans ? 'https://static-cdn.jtvnw.net/ttv-static/404_preview-440x248.jpg'
+                           : 'https://static-cdn.jtvnw.net/previews-ttv/live_user_' + c.login + '-440x248.jpg';
+          img.style.cssText = 'display:block;width:100%;height:100%';
+          lien.appendChild(img);
+          const av = el('img', 'tw-image-avatar');
+          av.src = 'https://static-cdn.jtvnw.net/jtv_user_pictures/' + c.login + '-profile_image-70x70.png';
+          const nom = el('a', 'preview-card-channel-link');
+          nom.href = '/' + c.login;
+          nom.setAttribute('data-a-target', 'preview-card-channel-link');
+          nom.textContent = c.login;
+          art.append(lien, av, nom);
+          item.appendChild(art);
+          tour.appendChild(item);
+        }
+        corps.appendChild(tour);
+        rayon.appendChild(corps);
+        contenu.appendChild(rayon);
+      }
+    };
     if (cfg.rayonsApres) setTimeout(poserRayons, cfg.rayonsApres); else poserRayons();
+    poserEtageres();
     colonne.appendChild(contenu);
     colonneBloc.appendChild(colonne);
     page.appendChild(colonneBloc);
