@@ -173,6 +173,7 @@ window.__vod = {};         // chapitres de VOD par login (cf. TseVodChapters)
 window.__vodRecent = {};   // archive récente par login (cf. TseVodRecent, le repli)
 window.__clips = {};       // clips par login (cf. TseClips, la troisième porte)
 window.__recapClips = {};  // clips du direct par login, pour le récap (cf. TseRecapClips, 4.29.0)
+window.__absClips = {};    // clips de la semaine par login, pour l'absence (cf. TseAbsenceClips, 4.30.0)
 window.__tagTop = {};      // classement par tag de langue (cf. TseTagTop)
 /* L'AGENDA (4.25.0) — ce que la page Programme de Twitch servirait, chaîne par
    chaîne : login -> { nom, dernier: { id, fin (ISO) }, titre, videos: [{ id,
@@ -1090,6 +1091,24 @@ window.fetch = async (url, opt) => {
       return { data: { user: { clips: { edges: c.slice(0, n).map(x => ({ node: {
         id: 'rc-' + x.ilYaMin + '-' + x.vues, createdAt: new Date(x.t).toISOString(),
         ...(champs ? { title: x.titre, viewCount: x.vues } : {}) } })) } } } };
+    }
+    /* TseAbsenceClips (4.30.0) : les clips de la semaine, pour « Pendant
+       votre absence ». `__absClips[login]` : [{ titre, vues, ilYaH }], datés
+       en heures avant maintenant. LAST_WEEK rend les sept derniers jours par
+       vues décroissantes — ou, `__absClipsDesordre`, par date : un ordre que
+       l'extension doit constater, pas supposer ; `__absClipsRefus` : le
+       schéma refuse la demande. */
+    if (o.operationName === 'TseAbsenceClips') {
+      if (window.__absClipsRefus) return { errors: [{ message: 'Cannot query field "clips" on type "User".' }] };
+      const n = o.variables?.n ?? 30;
+      const maintenant = Date.now();
+      const c = ((window.__absClips || {})[o.variables?.login] || [])
+        .map(x => ({ ...x, t: maintenant - x.ilYaH * 3_600_000 }))
+        .filter(x => maintenant - x.t <= 7 * 86_400_000)
+        .sort(window.__absClipsDesordre ? (a, b) => b.t - a.t : (a, b) => b.vues - a.vues);
+      return { data: { user: { clips: { edges: c.slice(0, n).map(x => ({ node: {
+        id: 'ac-' + x.ilYaH + '-' + x.vues, createdAt: new Date(x.t).toISOString(),
+        title: x.titre, viewCount: x.vues } })) } } } };
     }
     if (o.operationName === 'TseClips') {
       const c = window.__clips && window.__clips[o.variables?.login];

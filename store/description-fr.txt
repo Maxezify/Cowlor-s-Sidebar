@@ -205,6 +205,7 @@ Sur la page d'accueil de Twitch, l'extension pose ses propres rayons au-dessus d
 - ★ VOS RENDEZ-VOUS ★ Ce que vos chaînes suivies ont programmé aujourd'hui et demain, avec le temps qu'il reste. « Me prévenir » : une alerte dans vos onglets Twitch ouverts quand la chaîne passe en direct, sans notification du système ni permission. Pour une chaîne que vous regardez et qui n'a rien programmé : l'heure à laquelle ses derniers directs ont commencé, quand elle se répète — ce qu'elle a fait, pas ce qu'elle fera.
 - ★ « DEPUIS LE DÉBUT » ★ Arrivé en retard ? Un bouton ouvre la rediffusion du direct en cours à sa toute première seconde. Le bouton n'apparaît que si vous pouvez la voir : la chaîne garde ses rediffusions et les ouvre à tous, ou vous y êtes abonné.
 - ★ UNE ÉTIQUETTE PAR CARTE ★ Sur les cartes de l'accueil, celles de l'extension comme celles de Twitch : un fait, un seul — « De retour après 41 jours », « Vient de commencer », « Vient de passer sur Elden Ring », « ↗ +38 % en 10 min », « N°3 en français »… Rien de deviné : sans fait observé, pas d'étiquette. Pour une chaîne que la barre ne suit pas, ses chiffres sont demandés tant que sa carte est à l'écran.
+- ★ PENDANT VOTRE ABSENCE ★ De retour après plus d'un jour ? Un bandeau dit ce que vos chaînes suivies ont diffusé entre-temps : leurs directs et leur durée, le plus vu de leurs clips, et la dernière rediffusion à un clic. Une demande de clips par chaîne et par absence.
 - ★ L'APERÇU AU SURVOL, ICI AUSSI ★ Sur les cartes de l'accueil, celles de l'extension comme celles de Twitch.
 - ★ À VOTRE GUISE ★ Chaque partie s'éteint à part dans « Réglages » ; tout coupé, l'accueil redevient celui de Twitch, tel quel.
 
@@ -238,7 +239,7 @@ Twitch a un thème clair. L'extension le voit et bascule avec lui — sans recha
 _______________________________
 
 ➤ ⚙️ ET SI VOUS VOULEZ CHOISIR
-Tout est actif d'emblée et il n'y a rien à régler. Mais « Réglages », dans le panneau, vous rend la main sur trente et un réglages.
+Tout est actif d'emblée et il n'y a rien à régler. Mais « Réglages », dans le panneau, vous rend la main sur trente-deux réglages.
 
 - ★ CE QUE VOUS VOYEZ ★ Chaque badge, la durée du direct et son format, la barre « vient de démarrer », l'or des abonnements, les filtres, les boutons de tri : tout s'allume et s'éteint à la case.
 - ★ CE QUI SE CHARGE ★ L'aperçu peut se passer de la vidéo et garder ses badges, sa frise et sa miniature — ou simplement descendre en qualité. De quoi l'alléger sans le perdre.
