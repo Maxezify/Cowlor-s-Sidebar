@@ -48,7 +48,6 @@ html[data-vue="incruste"] body { width: 100%; height: 100%; }
      l'assombrit pas, et une barre n'a pas de contraste de texte à tenir. */
   --direct:      #eb0400;
   --or:          #ffc45c;
-  --or-clair:    #fff6d6;
   --rouge:       #ec4c4c;
   --vert:        #3ea6a6;
   /* L'agenda (4.25.0) : le violet ÉCRIT — catégories, prochain direct — et le
@@ -86,7 +85,6 @@ html[data-theme="light"] {
   --texte-faible:#6e6e7a;
   --violet-doux: rgba(145, 71, 255, 0.35);
   --or:          #8a5900;
-  --or-clair:    #5c3b00;
   --rouge:       #b3202b;
   --vert:        #1b6b6b;
   --violet-texte:#6c2bd9;
@@ -105,7 +103,6 @@ html[data-theme="light"] {
     --texte-faible:#6e6e7a;
     --violet-doux: rgba(145, 71, 255, 0.35);
     --or:          #8a5900;
-    --or-clair:    #5c3b00;
     --rouge:       #b3202b;
     --vert:        #1b6b6b;
     --violet-texte:#6c2bd9;

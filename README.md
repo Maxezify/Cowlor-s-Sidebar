@@ -2183,6 +2183,86 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## Le code mort, vérifié (v4.33.0.4)
+
+Un retour : « oui, retire le code mort ; sois rigoureux ». Publiée sur
+`claude/chrome-homepage` ; la même version passe ensuite sur
+`claude/firefox-homepage`, et les deux branches de production en sont tirées.
+
+### D'abord, une erreur de la 4.33.0.3
+
+La 4.33.0.3 relevait cinq déclarations « jamais appelées » : `lireCarte`,
+`bilanApi`, `nomDe`, `typo` et `suiviesDabord`, plus trois qui ne servaient
+qu'à elles. C'était faux. Les cinq sont appelées, chacune derrière un étalement :
+
+| déclaration | son appel |
+| --- | --- |
+| `lireCarte` | `trouve.push({ login, ...lireCarte(carte, …) })` (la lecture des abonnements) |
+| `bilanApi` | `...bilanApi(c)` (le rapport de la salle multistream) |
+| `nomDe` | `[...nomDe(l)][0]` (l'initiale d'un visage sans image) |
+| `typo` | `...typo(nomEl, 'n'), ...typo(catEl, 'c')` (le gabarit d'une carte promue, mesuré sur une carte ordinaire) |
+| `suiviesDabord` | `[...membres, ...suiviesDabord(autres)]` (l'ordre d'une salle multistream) |
+
+Le relevé écartait tout nom précédé d'un point, pour ne pas compter
+`objet.nom` comme un appel de `nom`. Du même geste, il écartait les trois
+points de l'étalement. Les retirer aurait cassé ces cinq usages. Le
+paragraphe de la 4.33.0.3 est corrigé et renvoie ici.
+
+### Le relevé, refait
+
+Chaque balayage est fait hors commentaires, sur les six scripts de
+l'extension et sa feuille de panneau.
+
+| catégorie | comment | résultat |
+| --- | --- | --- |
+| déclarations (fonctions, constantes) | chaque nom cherché ailleurs que dans sa déclaration ; l'étalement compte comme un usage | aucune morte |
+| clés de `CFG` (297) | `CFG.CLÉ` ou `CFG['CLÉ']` ; aucun accès calculé n'existe | aucune morte |
+| messages des langues (355 clés, les mêmes dans les douze dossiers) | les littéraux, et les clés composées : `nav`/`desc` + section (15 sections), `opt`/`optDesc` + réglage (36), `confirme` + `Title`/`Text`, `__MSG_…__` du manifeste | aucun mort |
+| chaînes de l'interface (`S.ui…`) | lues littéralement ou composées (`uiCcl…`) | aucune morte |
+| réglages | les 36 de la page sont les 36 du panneau | aucun orphelin |
+| commandes du panneau | les 11 que la page sait faire, chacune envoyée | aucune morte |
+| classes CSS | littérales, ou composées (`tse-acc-evol--` + `e.classe`, `d-badge--` + modificateur, `tuile--` + ton…), chaque valeur retrouvée dans le code | aucune morte |
+| variables CSS | définies, puis lues par un `var()` | **une morte : `--or-clair`** |
+| clés de stockage | écrites, puis lues | deux asymétries, voulues : `s-qs-ts`, que lit le lecteur de Twitch ; `tse:ecartees`, lue une fois par la reprise de la 4.32.0.4, puis effacée |
+| paramètres | `no-unused-vars`, paramètres compris | **un mort : `nom`, dans `texteMesure`** ; deux `score` sont des exclusions par déstructuration (`({ score, ...h }) => h`), voulues |
+
+### Retiré
+
+- **`--or-clair`**, dans panneau.css. La 3.62.0 l'a posé pour les deux thèmes
+  (trois définitions, avec celle du thème du système). Aucune règle ne l'a
+  jamais lu : `git log -S "var(--or-clair"` ne rend rien.
+- **le paramètre `nom` de `texteMesure`**, dans le calage par le son
+  (4.24.0.21). Il n'a jamais été lu depuis son écriture : les trois appels
+  écrivent le nom eux-mêmes devant la mesure. Il est retiré de la signature et
+  des trois appels, et le texte rendu reste le même.
+
+### Gardé : la règle qui l'aurait vu
+
+`no-unused-vars` ignorait les paramètres (`args: 'none'`), et c'est ce qui a
+laissé passer `nom`. Elle lit désormais tout paramètre placé après le dernier
+lu (`after-used`), et ne compte pas les exclusions par déstructuration
+(`ignoreRestSiblings`). `npm run lint` ne rend aucun avertissement.
+
+### Ce qui n'a pas pu être vérifié ici
+
+- **les classes de Twitch que la feuille vise**, comme
+  `primary-with-small-avatar__mini-avatar` ou `.tw-dialog-layer`. Elles
+  appartiennent à la page de Twitch, qui n'est pas joignable d'ici, et le faux
+  Twitch du banc n'en porte pas toutes. Elles sont gardées : un sélecteur qui
+  ne trouve rien ne coûte rien, et un sélecteur retiré à tort rendrait un
+  défaut de Twitch.
+
+### Le banc
+
+Aucun scénario n'a changé, puisque rien de ce qui est retiré n'avait d'effet.
+Le banc appelle déjà `texteMesure` avec un seul argument (185).
+
+`npm run check` : 2347 assertions dans 231 scénarios, toutes vertes, en deux
+passages. Le complet a été coupé au 182 par un redémarrage de la machine
+(1 625 assertions, aucune en échec), puis, sur le même arbre, le banc a repris
+du 182 au bout (721). Le 68, qui confronte ce compte au README, n'a tourné dans
+aucun des deux : la somme, 1 625 + 721 + la sienne, fait 2347.
+
 ## Le co-stream à son plus regardé, l'absence en cartes, l'audit (v4.33.0.3)
 
 Trois retours. Publiée sur `claude/chrome-homepage` seulement.
@@ -2261,10 +2341,11 @@ sélecteurs répétés de la feuille sont des surcharges d'écran étroit.
 - l'assertion du repli de l'absence ne prouvait rien : à 1600 pixels, les
   cinq cartes tiennent sur une rangée. Elle tourne dans un onglet de 1000.
 
-**Relevé hors du périmètre, laissé :** cinq déclarations jamais appelées,
-ailleurs que dans l'accueil et le zapping — `lireCarte` (et `dateEcrite`,
-`retenirFin`, qui ne servent qu'à elle), `bilanApi` (et `LEVIERS`), `nomDe`,
-`typo`, `suiviesDabord`.
+**Relevé hors du périmètre — et faux, corrigé à la 4.33.0.4 :** cette ligne
+annonçait cinq déclarations jamais appelées (`lireCarte`, `bilanApi`, `nomDe`,
+`typo`, `suiviesDabord`). Les cinq sont appelées, derrière un étalement que le
+relevé ne comptait pas. La section de la 4.33.0.4 dit l'erreur et refait le
+relevé.
 
 ### Ce qui n'a pas pu être vérifié ici
 

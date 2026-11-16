@@ -2064,6 +2064,86 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## Dead code, checked (v4.33.0.4)
+
+One report: "yes, remove the dead code; be rigorous". Published on
+`claude/chrome-homepage`; the same version then goes to
+`claude/firefox-homepage`, and both production branches are drawn from it.
+
+### First, a mistake in 4.33.0.3
+
+4.33.0.3 listed five declarations as "never called": `lireCarte`,
+`bilanApi`, `nomDe`, `typo` and `suiviesDabord`, plus three used only by
+them. That was wrong. All five are called, each behind a spread:
+
+| declaration | its call |
+| --- | --- |
+| `lireCarte` | `trouve.push({ login, ...lireCarte(carte, …) })` (reading the subscriptions) |
+| `bilanApi` | `...bilanApi(c)` (the multistream room's report) |
+| `nomDe` | `[...nomDe(l)][0]` (the initial of a face with no image) |
+| `typo` | `...typo(nomEl, 'n'), ...typo(catEl, 'c')` (a promoted card's template, measured on an ordinary card) |
+| `suiviesDabord` | `[...membres, ...suiviesDabord(autres)]` (the order of a multistream room) |
+
+The scan skipped any name preceded by a dot, so that `object.name` would not
+count as a call to `name`. By the same move it skipped the three dots of a
+spread. Removing them would have broken these five uses. The 4.33.0.3
+paragraph is corrected and points here.
+
+### The scan, redone
+
+Every pass ignores comments, and runs over the extension's six scripts and
+its panel stylesheet.
+
+| category | how | result |
+| --- | --- | --- |
+| declarations (functions, constants) | each name looked for outside its declaration; a spread counts as a use | none dead |
+| `CFG` keys (297) | `CFG.KEY` or `CFG['KEY']`; no computed access exists | none dead |
+| locale messages (355 keys, the same in all twelve folders) | literals, and composed keys: `nav`/`desc` + section (15 sections), `opt`/`optDesc` + setting (36), `confirme` + `Title`/`Text`, the manifest's `__MSG_…__` | none dead |
+| interface strings (`S.ui…`) | read literally or composed (`uiCcl…`) | none dead |
+| settings | the page's 36 are the panel's 36 | no orphan |
+| panel commands | the 11 the page can run, each one sent | none dead |
+| CSS classes | literal, or composed (`tse-acc-evol--` + `e.classe`, `d-badge--` + modifier, `tuile--` + tone…), each value found in the code | none dead |
+| CSS variables | defined, then read by a `var()` | **one dead: `--or-clair`** |
+| storage keys | written, then read | two asymmetries, intended: `s-qs-ts`, read by Twitch's player; `tse:ecartees`, read once by the 4.32.0.4 carry-over, then erased |
+| parameters | `no-unused-vars`, parameters included | **one dead: `nom`, in `texteMesure`**; two `score` are exclusions by destructuring (`({ score, ...h }) => h`), intended |
+
+### Removed
+
+- **`--or-clair`**, in panneau.css. 3.62.0 set it for both themes (three
+  definitions, counting the system theme's). No rule ever read it:
+  `git log -S "var(--or-clair"` returns nothing.
+- **the `nom` parameter of `texteMesure`**, in the sound-based alignment
+  (4.24.0.21). It was never read after it was written: the three calls write
+  the name in front of the measurement themselves. It is removed from the
+  signature and from the three calls, and the text returned stays the same.
+
+### Kept: the rule that would have seen it
+
+`no-unused-vars` ignored parameters (`args: 'none'`), and that is what let
+`nom` through. It now checks every parameter placed after the last one read
+(`after-used`), and does not count exclusions by destructuring
+(`ignoreRestSiblings`). `npm run lint` returns no warning.
+
+### What could not be checked here
+
+- **the Twitch classes the stylesheet targets**, such as
+  `primary-with-small-avatar__mini-avatar` or `.tw-dialog-layer`. They belong
+  to Twitch's page, which cannot be reached from here, and the bench's fake
+  Twitch does not carry all of them. They are kept: a selector that finds
+  nothing costs nothing, and a selector removed by mistake would bring back a
+  Twitch defect.
+
+### The bench
+
+No scenario changed, since nothing removed had any effect. The bench already
+calls `texteMesure` with a single argument (185).
+
+`npm run check`: 2347 assertions in 231 scenarios, all green, in two passes.
+The full one was cut at 182 by a restart of the machine (1,625 assertions,
+none failed), then, on the same tree, the bench resumed from 182 to the end
+(721). Scenario 68, which checks this count against the README, ran in
+neither: the sum, 1,625 + 721 + its own, makes 2347.
+
 ## The co-stream at its most watched, the absence as cards, the audit (v4.33.0.3)
 
 Three reports. Published on `claude/chrome-homepage` only.
@@ -2140,10 +2220,10 @@ stylesheet's repeated selectors are narrow-screen overrides.
 - the absence fold assertion proved nothing: at 1600 pixels the five cards
   fit on one row. It runs in a 1000-pixel tab.
 
-**Noted outside the scope, left:** five declarations never called, outside
-the home page and the zapping — `lireCarte` (and `dateEcrite`, `retenirFin`,
-used only by it), `bilanApi` (and `LEVIERS`), `nomDe`, `typo`,
-`suiviesDabord`.
+**Noted outside the scope — and wrong, corrected in 4.33.0.4:** this line
+listed five declarations as never called (`lireCarte`, `bilanApi`, `nomDe`,
+`typo`, `suiviesDabord`). All five are called, behind a spread the scan did not
+count. The 4.33.0.4 section states the mistake and redoes the scan.
 
 ### What could not be checked here
 

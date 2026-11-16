@@ -23261,7 +23261,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     const secondes = (x) => `${(Math.round(Math.abs(x) * 100) / 100).toFixed(2)} s`;
     /* Un verdict, en clair : « quebec en retard de 3.87 s · voix −4470 (6) · −3870 (9) · 15 calculs nets » ;
        un salon déséquilibré le dit (4.24.0.35) : « (+1510 ms, un salon déséquilibré) ». */
-    const texteMesure = (v, nom) => (v.refus ? `en attente : ${v.refus}`
+    const texteMesure = (v) => (v.refus ? `en attente : ${v.refus}`
       : `${Math.abs(v.ms) < CALAGE.SEUIL_S * 1000 ? 'avec la référence' : `${v.ms > 0 ? 'en avance' : 'en retard'} de ${secondes(v.ms / 1000)}`}`
         + ` (${signeMs(v.ms)} ms${v.desequilibre ? ', un salon déséquilibré' : ''}) · voix ${v.voix.map((g) => `${signeMs(g.ms)} (${g.n1})`).join(' · ')} · ${v.n} calculs nets`);
     const journaliser = (c, k, texte) => {
@@ -23632,7 +23632,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
                            { cause: 'tampon', s: -d });
         }
       }
-      const mesure = Object.entries(verdicts).map(([n, v]) => `${n} ${texteMesure(v, n).split(' · voix')[0]}`).join(' ; ');
+      const mesure = Object.entries(verdicts).map(([n, v]) => `${n} ${texteMesure(v).split(' · voix')[0]}`).join(' ; ');
       if (!gestes.length) {
         /* Rien à corriger : calées, les paires jugées à moins de 0,15 s de
            la référence — pas une tuile que rien n'a pu rejoindre. */
@@ -23640,7 +23640,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
           if (Math.abs(avances[n] ?? Infinity) >= CALAGE.SEUIL_S || k.etats[n] === 'calée') continue;
           k.etats[n] = 'calée';
           premiere(k, n, 'calee', maintenant);
-          journaliser(c, k, `calée : ${n} ${texteMesure(verdicts[n], n).split(' · voix')[0]}`
+          journaliser(c, k, `calée : ${n} ${texteMesure(verdicts[n]).split(' · voix')[0]}`
             + (tenues[n] ? ' — sa voix la plus haute pas revue, une autre à moins de 0,4 s : elle tient' : ''));
         }
         // La salle est calée quand chaque tuile l'est — mesurée à zéro depuis le dernier changement de sa relation.
@@ -23700,7 +23700,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         origine: k.origine,
         reference: ref,
         corrections: Object.values(k.coups).reduce((s, l) => s + l.length, 0),
-        mesures: Object.fromEntries(Object.entries(k.vus).map(([n, v]) => [n, texteMesure(v, n)])),
+        mesures: Object.fromEntries(Object.entries(k.vus).map(([n, v]) => [n, texteMesure(v)])),
         tuiles: Object.fromEntries(c.tuiles.filter((t) => t.chaine !== ref).map((t) => [t.chaine, k.etats[t.chaine] || 'libre'])),
         deplacements: Object.entries(k.deplacements).map(([n, s]) => `${n} ${s >= 0 ? 'recul' : 'avance'} ${Math.abs(s)} s`).join(' · ') || null,
         // Les places reprises (4.24.0.27), par tuile.
