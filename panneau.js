@@ -1279,7 +1279,7 @@ const GROUPES_OPT = [
   // Le système multistream a son groupe (4.24.0.9), pour qu'on le trouve.
   ['optGrpMultistream', ['salle', 'salleAuto']],
   // L'accueil de Twitch (4.26.0) : le maître d'abord, ce qu'il gouverne ensuite.
-  ['optGrpAccueil', ['accueil', 'accueilTete', 'accueilSuivis', 'accueilTop',
+  ['optGrpAccueil', ['accueil', 'accueilTete', 'accueilVideo', 'accueilSuivis', 'accueilTop',
                      'accueilTopLangue', 'accueilApercu', 'accueilDebut']],
   ['optGrpBadges',  ['badges']],
   ['optGrpCarte',   ['duree', 'dureeFormat', 'fresh', 'abonnes', 'subathonJour']],

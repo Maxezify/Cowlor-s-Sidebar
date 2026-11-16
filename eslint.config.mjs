@@ -36,6 +36,10 @@ export default [{
       // branche sur UNE piste de la capture, et mesure son enveloppe dans un
       // worklet plutôt que dans le ScriptProcessorNode déprécié.
       MediaStream:'readonly', AudioWorkletNode:'readonly',
+      // IntersectionObserver et ImageData : le héros de l'accueil (4.26.0.2)
+      // ne joue sa vidéo que s'il est à l'écran, et pose les couleurs que son
+      // lecteur relève sur une toile.
+      IntersectionObserver:'readonly', ImageData:'readonly',
       // `browser` : le namespace de Firefox, celui qui rend des promesses.
       // Chrome ne le définit pas — d'où les gardes `typeof browser` dans
       // panneau.js et background.js, et d'où sa présence ici.

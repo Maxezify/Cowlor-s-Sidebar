@@ -651,7 +651,7 @@
     "message": "Twitch's home page"
   },
   "guideAccueilTexte": {
-    "message": "On Twitch's home page, the extension adds its own rows above Twitch's, in the same column and lined up with them. They are set in “Settings”, under “Home page”.\n• “Your #1 channel, live”: the live followed channel you watch the most takes the place of Twitch's carousel. Its picture refreshes every minute, and nothing starts by itself. When none of the channels you watch is live, the carousel comes back. “As on Twitch” always keeps it; “Nothing” removes it and stops its video. The same choice sits at the top right of the banner.\n• “Your followed channels, live”: a row, in the order of the ones you watch the most, at no extra request — these are the sidebar's channels.\n• “Top 10”: the first ten places of Top Channels, in the language of Twitch's interface or in all languages, in big numbers. An arrow shows the places gained or lost over thirty minutes, or since you arrived on the home page; “New” marks a channel that wasn't in the Top 10.\n• “From the start” opens the replay of the stream in progress at its first second. It doesn't appear when the channel doesn't keep its replays, and shows a padlock when they are for subscribers only, unless you are one.\n• The hover preview also opens on the home page's cards: the extension's and Twitch's alike."
+    "message": "On Twitch's home page, the extension adds its own rows above Twitch's, in the same column and lined up with them. They are set in “Settings”, under “Home page”.\n• “Your #1 channel, live”: the live followed channel you watch the most takes the place of Twitch's carousel, across the whole width. First its picture, then its stream, muted and ad-free, like the hover preview; the background takes on its colours. When none of the channels you watch is live, the carousel comes back. “As on Twitch” always keeps it; “Nothing” removes it and stops its video.\n• “Your followed channels, live”: a row, in the order of the ones you watch the most, at no extra request — these are the sidebar's channels.\n• “Top 10”: the first ten places of Top Channels, in the language of Twitch's interface or in all languages, in big numbers. Right of the name, an arrow shows the places gained or lost over thirty minutes, or since you arrived on the home page; “New” marks a channel that wasn't in the Top 10.\n• Each row shows one line; “Show all”, in the middle of the rule below it, unrolls the rest.\n• “From the start” opens the replay of the stream in progress at its first second. It only appears when you can watch it: the channel keeps its replays and opens them to everyone, or you are subscribed to it.\n• The hover preview also opens on the home page's cards: the extension's and Twitch's alike."
   },
   "guideViteTitre": {
     "message": "Quicker than Twitch, and tidier"
@@ -862,7 +862,13 @@
     "message": "Top of the home page"
   },
   "optDescAccueilTete": {
-    "message": "“Your #1 channel”: the live followed channel you watch the most, in place of Twitch's carousel, which comes back when none of the channels you watch is live. Its picture refreshes; nothing starts by itself. “Nothing” removes the carousel and stops its video."
+    "message": "“Your #1 channel”: the live followed channel you watch the most, in place of Twitch's carousel, across the whole width; the carousel comes back when none of the channels you watch is live. “Nothing” removes the carousel and stops its video."
+  },
+  "optAccueilVideo": {
+    "message": "Video of your #1 channel"
+  },
+  "optDescAccueilVideo": {
+    "message": "The stream starts in the banner, muted and ad-free, like the hover preview: the picture first, then the video, and the background takes on its colours. It stops when the banner leaves the screen or the tab is hidden. Off: the picture alone, refreshed every minute."
   },
   "optAccueilSuivis": {
     "message": "Your followed channels, live"
@@ -892,7 +898,7 @@
     "message": "“From the start”"
   },
   "optDescAccueilDebut": {
-    "message": "On the extension's cards, a button that opens the replay of the stream in progress at its first second. Absent when the channel doesn't keep its replays; a padlock when they are for subscribers only, unless you are one."
+    "message": "On the extension's cards, a button that opens the replay of the stream in progress at its first second. Only when you can watch it: the channel keeps its replays and opens them to everyone, or you are subscribed to it."
   },
   "optValHeros": {
     "message": "Your #1 channel"
@@ -1051,7 +1057,7 @@
     "message": "Reset every setting to its default?"
   },
   "optResetText": {
-    "message": "All twenty-eight settings on this page will return to their original value. Your data — visits, subscriptions, followed channels — is untouched."
+    "message": "All twenty-nine settings on this page will return to their original value. Your data — visits, subscriptions, followed channels — is untouched."
   },
   "optValPlein": {
     "message": "Full"

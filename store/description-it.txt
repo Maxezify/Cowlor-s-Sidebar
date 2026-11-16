@@ -198,10 +198,10 @@ _______________________________
 ➤ 🏠 LA HOME DI TWITCH, A MODO TUO
 Sulla pagina iniziale di Twitch, l'estensione mette le sue file sopra quelle di Twitch, nella stessa colonna e allineate con esse.
 
-- ★ IL TUO CANALE N. 1, IN CIMA ★ Al posto del carosello di Twitch: il canale seguito in diretta che guardi di più. La sua immagine si aggiorna ogni minuto e niente parte da solo. Nessuno dei canali che guardi è in diretta? Il carosello torna. Preferisci il carosello, o niente? È un'impostazione.
+- ★ IL TUO CANALE N. 1, IN CIMA ★ Al posto del carosello di Twitch: il canale seguito in diretta che guardi di più. Su tutta la larghezza: prima la sua immagine, poi la sua diretta, senza audio e senza pubblicità, come l'anteprima al passaggio del mouse; e sotto il testo, i suoi colori, anch'essi in diretta. Nessuno dei canali che guardi è in diretta? Il carosello torna. Preferisci il carosello, o niente? È un'impostazione.
 - ★ PRIMA I TUOI CANALI SEGUITI ★ Una fila dei tuoi canali in diretta, nell'ordine di quelli che guardi di più, senza nessuna richiesta in più: sono quelli che la barra segue già.
 - ★ LA TOP 10 DELLA TUA LINGUA ★ I primi dieci posti della classifica esatta di Canali di punta, nella lingua del tuo Twitch o in tutte le lingue, in grandi cifre, con ciò che si è mosso in trenta minuti: posti guadagnati, posti persi, nuovi arrivati. Calcolata solo mentre la home è visualizzata.
-- ★ «DALL'INIZIO» ★ Arrivato in ritardo? Un pulsante apre la replica della diretta in corso dal suo primissimo secondo. Nessun pulsante quando il canale non conserva le repliche; un lucchetto quando sono riservate agli abbonati, a meno che tu non lo sia.
+- ★ «DALL'INIZIO» ★ Arrivato in ritardo? Un pulsante apre la replica della diretta in corso dal suo primissimo secondo. Il pulsante compare solo se puoi guardarla: il canale conserva le repliche e le apre a tutti, oppure sei abbonato.
 - ★ L'ANTEPRIMA AL PASSAGGIO, ANCHE QUI ★ Sulle schede della home, quelle dell'estensione come quelle di Twitch.
 - ★ COME VUOI TU ★ Ogni parte si spegne da sola in «Impostazioni»; tutto spento, la home torna quella di Twitch, così com'è.
 
@@ -235,7 +235,7 @@ Twitch ha un tema chiaro. L'estensione se ne accorge e cambia insieme a lui — 
 _______________________________
 
 ➤ ⚙️ E SE VUOI SCEGLIERE
-Tutto è attivo fin da subito e non c'è nulla da impostare. Ma «Impostazioni», nel pannello, ti restituisce il comando su ventotto impostazioni.
+Tutto è attivo fin da subito e non c'è nulla da impostare. Ma «Impostazioni», nel pannello, ti restituisce il comando su ventinove impostazioni.
 
 - ★ CIÒ CHE VEDI ★ Ogni badge, la durata della diretta e il suo formato, la barra «appena iniziata», l'oro degli abbonamenti, i filtri, i pulsanti di ordinamento: tutto si accende e si spegne con una casella.
 - ★ CIÒ CHE VIENE CARICATO ★ L'anteprima può fare a meno del video e conservare badge, linea del tempo e miniatura — oppure semplicemente scendere di qualità. Quanto basta per alleggerirla senza perderla.
@@ -271,7 +271,7 @@ _______________________________
 - ★ Due eccezioni, dette ad alta voce ★ Per sapere a quali canali sei abbonato, l'estensione apre LA TUA pagina twitch.tv/subscriptions in un riquadro invisibile, ogni sei ore per impostazione predefinita (oppure tre, dodici o ventiquattro, a tua scelta), prima solo se la rilevazione precedente non ha trovato nulla o se clicchi «Rileva ora», e mai quando non hai effettuato l'accesso. Per conoscere TUTTI i canali che segui — la barra laterale di Twitch ne mostra solo cento —, apre allo stesso modo la tua pagina dei canali seguiti, ogni dodici ore, prima solo se la lettura precedente non è arrivata in fondo all'elenco. Il tuo browser autentica quelle pagine con i propri cookie, esattamente come se avessi cliccato il link: l'estensione non legge mai il tuo token e non lo trasmette mai. Ciò che conserva — nomi dei canali e una durata in mesi — resta nel tuo browser.
 - ★ Nessun tracciante, nessun pixel, nessuna telemetria ★
 - ★ Nessun permesso losco ★ L'estensione funziona SOLO su twitch.tv.
-- ★ Il blocco pubblicità resta al suo posto ★ Si applica alla miniatura dell'anteprima al passaggio del mouse e a nient'altro. La diretta che stai davvero guardando non viene toccata.
+- ★ Il blocco pubblicità resta al suo posto ★ Si applica alla miniatura dell'anteprima al passaggio del mouse e al video del tuo canale n. 1 in cima alla home, e a nient'altro. La diretta che stai davvero guardando non viene toccata.
 - ★ La tua cronologia resta con te ★ Visite, abbonamenti, mesi, programma: archiviati nel tuo browser (localStorage e IndexedDB), punto. Cancella i dati del sito twitch.tv e sparisce tutto.
 - ★ Codice sorgente completamente leggibile ★ Direttamente nella cartella dell'estensione. Nessuna scatola nera.
 

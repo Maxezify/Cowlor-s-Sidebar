@@ -237,7 +237,7 @@ window.__agendaPerte = 0;
    — d'où un ajout explicite plutôt qu'une table élargie pour tous. */
 window.__codesEnPlus = null;
 window.__declarees = {};   // login -> code ISO de la langue déclarée (cf. TseLangCheck)
-/* L'ACCUEIL (4.26.0). `__accueilArchives` : login -> { id, verrouillee } — l'archive
+/* L'ACCUEIL (4.26.0). `__accueilArchives` : login -> { id, verrouillee, illisible } — l'archive
    du direct en cours, `user.stream.archiveVideo`, servie si la chaîne est en direct
    (dans __fx, ou dans un classement __tagTop) ; absente, `archiveVideo: null`.
    `__accueilSchema` : vrai → TseAccueilDebut refusée sans données, comme un champ
@@ -984,8 +984,9 @@ window.fetch = async (url, opt) => {
     const data = {};
     for (const [, alias, id] of q.matchAll(/(a\d+): videoPlaybackAccessToken\(id: "(\d+)"/g)) {
       const a = Object.values(window.__accueilArchives || {}).find((x) => x.id === id);
-      data[alias] = a ? { value: JSON.stringify({ chansub: { restricted_bitrates: a.verrouillee ? TOUTES : [] },
-                                                   vod_id: Number(id) }) } : null;
+      // `illisible` : un jeton qui ne dit rien de son accès (4.26.0.2, cf. scénario 218).
+      data[alias] = !a ? null : a.illisible ? { value: 'pas un jeton' }
+        : { value: JSON.stringify({ chansub: { restricted_bitrates: a.verrouillee ? TOUTES : [] }, vod_id: Number(id) }) };
     }
     return { data };
   };

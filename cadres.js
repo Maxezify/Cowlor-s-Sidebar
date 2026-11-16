@@ -33,7 +33,7 @@
  *  C'est à la fois un piège et une garde :
  *
  *   — le PIÈGE : dans le cadre principal, ce fichier et content.js
- *     tournent ensemble. Les quatorze noms qu'ils partagent — celui
+ *     tournent ensemble. Les seize noms qu'ils partagent — celui
  *     de chaque frame, le type de chaque message — ne peuvent donc
  *     être globaux que d'un côté. Ils le sont dans content.js ; ici,
  *     ils vivent dans le bloc plus bas, hors de la portée de la page.
@@ -105,7 +105,7 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
   + '[data-test-selector="ad-banner-default-text"]';
 
 /* ── CE QUE content.js EMPLOIE AUSSI : DANS UN BLOC, HORS DE LA PAGE ──────
-   Les quatorze noms partagés sont déclarés ici en `const` de bloc : dans le
+   Les seize noms partagés sont déclarés ici en `const` de bloc : dans le
    cadre principal, content.js les déclare au premier niveau, et une seconde
    déclaration globale du même nom y ferait échouer l'un des deux fichiers.
    Tout ce qui suit les emploie, et vit donc dans la même portée. */
@@ -191,6 +191,14 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
      vérifie qu'elles sont égales. */
   const TSE_PREVIEW_FRAME_NAME = 'tse-apercu';
 
+  /* L'AMBIANCE DU HÉROS DE L'ACCUEIL (4.26.0.2). Le héros pose un lecteur de
+     ce même nom, et lui demande ses couleurs (TSE_AMBIANCE_MSG) ; le pont
+     répond chaque seconde par une image de 16 × 9 pixels du direct
+     (TSE_AMBIANCE_PX_MSG), que le héros étend, floutée, sous son texte. Un
+     aperçu au survol ne demande rien : il ne relève rien. */
+  const TSE_AMBIANCE_MSG = 'tse:ambiance';
+  const TSE_AMBIANCE_PX_MSG = 'tse:ambiance-px';
+
   // Le levage de l'interstitielle. À false, on retrouve le comportement de la
   // 3.54 : les streams étiquetés restent sur leur vignette.
   const TSE_GATE_ENABLED = true;
@@ -224,6 +232,37 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         try { window.parent.postMessage({ tse: quoi }, origin); } catch { /* origine refusée */ }
       }
     };
+
+    /* LES COULEURS DU DIRECT, À LA DEMANDE DU PARENT (cf. TSE_AMBIANCE_MSG).
+       La vidéo du lecteur est de cette frame : la dessiner en 16 × 9 sur une
+       toile et en lire les pixels ne sort rien d'ici que des couleurs. Une
+       image protégée rendrait la toile illisible — la lecture lève alors, et
+       le pont se tait pour de bon : le héros garde son image floutée. Rien ne
+       se relève tant que l'onglet est caché, ni avant qu'une image existe. */
+    const AMBIANCE_W = 16, AMBIANCE_H = 9, AMBIANCE_MS = 1000;
+    let ambiance = null;
+    window.addEventListener('message', (e) => {
+      if (e.source !== window.parent || !TSE_PREVIEW_PARENTS.includes(e.origin)) return;
+      if (e.data?.tse !== TSE_AMBIANCE_MSG || ambiance) return;
+      const toile = document.createElement('canvas');
+      toile.width = AMBIANCE_W;
+      toile.height = AMBIANCE_H;
+      const ctx = toile.getContext('2d', { willReadFrequently: true });
+      if (!ctx) return;
+      const origine = e.origin;
+      const relever = () => {
+        if (document.hidden) return;
+        const v = document.querySelector('video');
+        if (!v || v.readyState < 2 || !v.videoWidth) return;
+        try {
+          ctx.drawImage(v, 0, 0, AMBIANCE_W, AMBIANCE_H);
+          const px = ctx.getImageData(0, 0, AMBIANCE_W, AMBIANCE_H).data;
+          window.parent.postMessage({ tse: TSE_AMBIANCE_PX_MSG, w: AMBIANCE_W, h: AMBIANCE_H, px }, origine);
+        } catch { clearInterval(ambiance); }
+      };
+      ambiance = setInterval(relever, AMBIANCE_MS);
+      relever();
+    });
 
     // Signe de vie, posté au démarrage. Il ne sert qu'au diagnostic (tse.apercu),
     // et il sert à trancher LA question qu'on ne pouvait pas trancher autrement :

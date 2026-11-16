@@ -551,7 +551,7 @@
     "message": "Die Startseite von Twitch"
   },
   "guideAccueilTexte": {
-    "message": "Auf der Startseite von Twitch setzt die Erweiterung ihre eigenen Reihen über die von Twitch, in dieselbe Spalte und bündig mit ihnen. Eingestellt werden sie unter „Einstellungen“, Gruppe „Startseite“.\n• „Dein Kanal Nr. 1, live“: Der gefolgte Live-Kanal, den du am meisten schaust, nimmt den Platz des Karussells von Twitch ein. Sein Bild wird jede Minute aufgefrischt, und nichts startet von selbst. Ist keiner der Kanäle live, die du schaust, kommt das Karussell zurück. „Wie bei Twitch“ behält es immer; „Nichts“ entfernt es und hält sein Video an. Dieselbe Wahl gibt es oben rechts im Banner.\n• „Deine gefolgten Kanäle, live“: eine Reihe, geordnet nach denen, die du am meisten schaust – ohne eine einzige zusätzliche Anfrage: Es sind die Kanäle der Seitenleiste.\n• „Top 10“: die ersten zehn Plätze von Top-Kanäle, in der Sprache der Twitch-Oberfläche oder in allen Sprachen, in großen Ziffern. Ein Pfeil zeigt die in dreißig Minuten gewonnenen oder verlorenen Plätze – oder seit du auf der Startseite bist; „Neu“ markiert einen Kanal, der nicht in den Top 10 war.\n• „Von Anfang an“ öffnet die Aufzeichnung des laufenden Streams ab seiner ersten Sekunde. Der Knopf fehlt, wenn der Kanal keine Aufzeichnungen behält, und trägt ein Schloss, wenn sie Abonnenten vorbehalten sind – außer du bist einer.\n• Die Vorschau beim Überfahren öffnet sich auch auf den Karten der Startseite: auf denen der Erweiterung wie auf denen von Twitch."
+    "message": "Auf der Startseite von Twitch setzt die Erweiterung ihre eigenen Reihen über die von Twitch, in dieselbe Spalte und bündig mit ihnen. Eingestellt werden sie unter „Einstellungen“, Gruppe „Startseite“.\n• „Dein Kanal Nr. 1, live“: Der gefolgte Live-Kanal, den du am meisten schaust, nimmt den Platz des Karussells von Twitch ein, über die ganze Breite. Erst sein Bild, dann sein Stream, stumm und ohne Werbung, wie die Vorschau beim Überfahren; der Hintergrund übernimmt seine Farben. Ist keiner der Kanäle live, die du schaust, kommt das Karussell zurück. „Wie bei Twitch“ behält es immer; „Nichts“ entfernt es und hält sein Video an.\n• „Deine gefolgten Kanäle, live“: eine Reihe, geordnet nach denen, die du am meisten schaust – ohne eine einzige zusätzliche Anfrage: Es sind die Kanäle der Seitenleiste.\n• „Top 10“: die ersten zehn Plätze von Top-Kanäle, in der Sprache der Twitch-Oberfläche oder in allen Sprachen, in großen Ziffern. Rechts neben dem Namen zeigt ein Pfeil die in dreißig Minuten gewonnenen oder verlorenen Plätze – oder seit du auf der Startseite bist; „Neu“ markiert einen Kanal, der nicht in den Top 10 war.\n• Jede Reihe zeigt eine Zeile; „Alle anzeigen“ in der Mitte der Linie darunter klappt den Rest auf.\n• „Von Anfang an“ öffnet die Aufzeichnung des laufenden Streams ab seiner ersten Sekunde. Der Knopf erscheint nur, wenn du sie ansehen kannst: Der Kanal behält seine Aufzeichnungen und gibt sie für alle frei – oder du hast ihn abonniert.\n• Die Vorschau beim Überfahren öffnet sich auch auf den Karten der Startseite: auf denen der Erweiterung wie auf denen von Twitch."
   },
   "guideViteTitre": {
     "message": "Schneller als Twitch, und aufgeräumter"
@@ -746,7 +746,13 @@
     "message": "Oben auf der Startseite"
   },
   "optDescAccueilTete": {
-    "message": "„Dein Kanal Nr. 1“: der gefolgte Live-Kanal, den du am meisten schaust, anstelle des Karussells von Twitch, das zurückkommt, wenn keiner der Kanäle, die du schaust, live ist. Sein Bild wird aufgefrischt, nichts startet von selbst. „Nichts“ entfernt das Karussell und hält sein Video an."
+    "message": "„Dein Kanal Nr. 1“: der gefolgte Live-Kanal, den du am meisten schaust, anstelle des Karussells von Twitch, über die ganze Breite; das Karussell kommt zurück, wenn keiner der Kanäle, die du schaust, live ist. „Nichts“ entfernt das Karussell und hält sein Video an."
+  },
+  "optAccueilVideo": {
+    "message": "Video deines Kanals Nr. 1"
+  },
+  "optDescAccueilVideo": {
+    "message": "Der Stream startet im Banner, stumm und ohne Werbung, wie die Vorschau beim Überfahren: erst das Bild, dann das Video, und der Hintergrund übernimmt seine Farben. Er hält an, wenn das Banner aus dem Bild scrollt oder der Tab verborgen ist. Aus: nur das Bild, jede Minute aufgefrischt."
   },
   "optAccueilSuivis": {
     "message": "Deine gefolgten Kanäle, live"
@@ -776,7 +782,7 @@
     "message": "„Von Anfang an“"
   },
   "optDescAccueilDebut": {
-    "message": "Auf den Karten der Erweiterung ein Knopf, der die Aufzeichnung des laufenden Streams ab der ersten Sekunde öffnet. Fehlt, wenn der Kanal keine Aufzeichnungen behält; ein Schloss, wenn sie Abonnenten vorbehalten sind – außer du bist einer."
+    "message": "Auf den Karten der Erweiterung ein Knopf, der die Aufzeichnung des laufenden Streams ab der ersten Sekunde öffnet. Nur, wenn du sie ansehen kannst: Der Kanal behält seine Aufzeichnungen und gibt sie für alle frei, oder du hast ihn abonniert."
   },
   "optValHeros": {
     "message": "Dein Kanal Nr. 1"
@@ -935,7 +941,7 @@
     "message": "Alle Einstellungen zurücksetzen?"
   },
   "optResetText": {
-    "message": "Alle achtundzwanzig Einstellungen dieser Seite kehren zu ihrem ursprünglichen Wert zurück. Deine Daten — Besuche, Abonnements, gefolgte Kanäle — bleiben unberührt."
+    "message": "Alle neunundzwanzig Einstellungen dieser Seite kehren zu ihrem ursprünglichen Wert zurück. Deine Daten — Besuche, Abonnements, gefolgte Kanäle — bleiben unberührt."
   },
   "optValPlein": {
     "message": "Voll"

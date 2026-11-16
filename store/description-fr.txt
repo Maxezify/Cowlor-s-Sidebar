@@ -198,10 +198,10 @@ _______________________________
 ➤ 🏠 L'ACCUEIL DE TWITCH, À VOTRE IMAGE
 Sur la page d'accueil de Twitch, l'extension pose ses propres rayons au-dessus de ceux de Twitch, dans la même colonne et alignés sur eux.
 
-- ★ VOTRE CHAÎNE N°1, EN TÊTE ★ À la place du carrousel de Twitch : celle de vos chaînes suivies en direct que vous regardez le plus. Son image se rafraîchit chaque minute, et rien ne démarre tout seul. Aucune de celles que vous regardez n'est en direct ? Le carrousel revient. Vous préférez le carrousel, ou rien du tout ? C'est un réglage.
+- ★ VOTRE CHAÎNE N°1, EN TÊTE ★ À la place du carrousel de Twitch : celle de vos chaînes suivies en direct que vous regardez le plus. Sur toute la largeur : son image d'abord, puis son direct, muet et sans publicité, comme l'aperçu au survol ; et sous le texte, ses couleurs, en direct elles aussi. Aucune de celles que vous regardez n'est en direct ? Le carrousel revient. Vous préférez le carrousel, ou rien du tout ? C'est un réglage.
 - ★ VOS CHAÎNES SUIVIES D'ABORD ★ Un rayon de vos chaînes en direct, dans l'ordre de celles que vous regardez le plus — sans une requête de plus : ce sont celles que la barre suit déjà.
 - ★ LE TOP 10 DE VOTRE LANGUE ★ Les dix premières places du classement exact de Top Chaînes, dans la langue de votre Twitch ou toutes langues confondues, en grands chiffres, avec ce qui a bougé en trente minutes : places gagnées, places perdues, nouvelles venues. Calculé seulement pendant que l'accueil est à l'écran.
-- ★ « DEPUIS LE DÉBUT » ★ Arrivé en retard ? Un bouton ouvre la rediffusion du direct en cours à sa toute première seconde. Pas de bouton quand la chaîne ne garde pas ses rediffusions ; un cadenas quand elles sont réservées aux abonnés, sauf si vous l'êtes.
+- ★ « DEPUIS LE DÉBUT » ★ Arrivé en retard ? Un bouton ouvre la rediffusion du direct en cours à sa toute première seconde. Le bouton n'apparaît que si vous pouvez la voir : la chaîne garde ses rediffusions et les ouvre à tous, ou vous y êtes abonné.
 - ★ L'APERÇU AU SURVOL, ICI AUSSI ★ Sur les cartes de l'accueil, celles de l'extension comme celles de Twitch.
 - ★ À VOTRE GUISE ★ Chaque partie s'éteint à part dans « Réglages » ; tout coupé, l'accueil redevient celui de Twitch, tel quel.
 
@@ -235,7 +235,7 @@ Twitch a un thème clair. L'extension le voit et bascule avec lui — sans recha
 _______________________________
 
 ➤ ⚙️ ET SI VOUS VOULEZ CHOISIR
-Tout est actif d'emblée et il n'y a rien à régler. Mais « Réglages », dans le panneau, vous rend la main sur vingt-huit réglages.
+Tout est actif d'emblée et il n'y a rien à régler. Mais « Réglages », dans le panneau, vous rend la main sur vingt-neuf réglages.
 
 - ★ CE QUE VOUS VOYEZ ★ Chaque badge, la durée du direct et son format, la barre « vient de démarrer », l'or des abonnements, les filtres, les boutons de tri : tout s'allume et s'éteint à la case.
 - ★ CE QUI SE CHARGE ★ L'aperçu peut se passer de la vidéo et garder ses badges, sa frise et sa miniature — ou simplement descendre en qualité. De quoi l'alléger sans le perdre.
@@ -271,7 +271,7 @@ _______________________________
 - ★ Deux exceptions, dites tout haut ★ Pour savoir à quelles chaînes vous êtes abonné, l'extension ouvre VOTRE page twitch.tv/subscriptions dans un cadre invisible, toutes les six heures par défaut (trois, douze ou vingt-quatre selon votre réglage), plus tôt seulement si le relevé précédent n'a rien trouvé ou si vous cliquez « Relever maintenant », et jamais si vous êtes déconnecté. Pour connaître TOUTES les chaînes que vous suivez — la barre latérale de Twitch n'en montre que cent —, elle ouvre de même votre page des chaînes suivies, toutes les douze heures, plus tôt seulement si la lecture précédente n'est pas allée au bout de la liste. C'est votre navigateur qui authentifie ces pages avec ses propres cookies, exactement comme si vous aviez cliqué sur le lien : l'extension ne lit jamais votre jeton et ne le transmet jamais. Ce qu'elle en retient — des noms de chaînes et une ancienneté en mois — reste dans votre navigateur.
 - ★ Aucun traqueur, aucun pixel, aucune télémétrie ★
 - ★ Aucune permission louche ★ L'extension ne tourne QUE sur twitch.tv.
-- ★ Le blocage de pub reste à sa place ★ Il s'applique à la vignette d'aperçu au survol, et à rien d'autre. Le stream que vous regardez vraiment n'est pas touché.
+- ★ Le blocage de pub reste à sa place ★ Il s'applique à la vignette d'aperçu au survol et à la vidéo de votre chaîne n°1 en tête de l'accueil, et à rien d'autre. Le stream que vous regardez vraiment n'est pas touché.
 - ★ Votre historique reste chez vous ★ Visites, abonnements, mois, agenda : stockés dans votre navigateur (localStorage et IndexedDB), point. Effacez les données de site de twitch.tv et tout disparaît.
 - ★ Code source entièrement lisible ★ Directement dans le dossier de l'extension. Pas de boîte noire.
 

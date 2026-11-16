@@ -198,10 +198,10 @@ _______________________________
 ➤ 🏠 A PÁGINA INICIAL DA TWITCH À TUA MANEIRA
 Na página inicial da Twitch, a extensão coloca as suas próprias filas acima das da Twitch, na mesma coluna e alinhadas com elas.
 
-- ★ O TEU CANAL N.º 1 NO TOPO ★ Em vez do carrossel da Twitch: o canal seguido em direto que mais vês. A imagem atualiza-se a cada minuto, e nada começa sozinho. Nenhum dos canais que vês está em direto? O carrossel volta. Preferes o carrossel, ou nada? É uma definição.
+- ★ O TEU CANAL N.º 1 NO TOPO ★ Em vez do carrossel da Twitch: o canal seguido em direto que mais vês. Em toda a largura: primeiro a imagem, depois a transmissão, sem som e sem anúncios, como a pré-visualização ao passar o rato; e, sob o texto, as cores dela, também em direto. Nenhum dos canais que vês está em direto? O carrossel volta. Preferes o carrossel, ou nada? É uma definição.
 - ★ PRIMEIRO, OS TEUS CANAIS SEGUIDOS ★ Uma fila com os teus canais em direto, pela ordem dos que mais vês — sem nenhum pedido a mais: são os que a barra já acompanha.
 - ★ O TOP 10 DO TEU IDIOMA ★ Os dez primeiros lugares da classificação exata do Top Canais, no idioma da tua Twitch ou em todos os idiomas, em números grandes, com o que mudou em trinta minutos: lugares ganhos, lugares perdidos, recém-chegados. Calculado só enquanto a página inicial está no ecrã.
-- ★ «DESDE O INÍCIO» ★ Chegaste atrasado? Um botão abre a gravação da transmissão em curso no primeiro segundo. Sem botão quando o canal não guarda as gravações; um cadeado quando são só para subscritores, a não ser que o sejas.
+- ★ «DESDE O INÍCIO» ★ Chegaste atrasado? Um botão abre a gravação da transmissão em curso no primeiro segundo. O botão só aparece quando a podes ver: o canal guarda as gravações e abre-as a todos, ou és subscritor.
 - ★ A PRÉ-VISUALIZAÇÃO AO PASSAR O RATO, AQUI TAMBÉM ★ Nos cartões da página inicial, os da extensão e os da Twitch.
 - ★ TU DECIDES ★ Cada parte desliga-se à parte nas «Definições»; tudo desligado, a página inicial volta a ser a da Twitch, tal como é.
 
@@ -235,7 +235,7 @@ A Twitch tem um tema claro. A extensão dá por isso e muda com ele — sem reca
 _______________________________
 
 ➤ ⚙️ E SE QUISERES ESCOLHER
-Tudo já vem ativo e não há nada para configurar. Mas «Definições», no painel, devolve-te o comando sobre vinte e oito definições.
+Tudo já vem ativo e não há nada para configurar. Mas «Definições», no painel, devolve-te o comando sobre vinte e nove definições.
 
 - ★ O QUE VÊS ★ Cada distintivo, a duração da emissão e o seu formato, a barra «acabou de começar», o ouro das subscrições, os filtros, os botões de ordenação: tudo liga e desliga numa caixa.
 - ★ O QUE É CARREGADO ★ A pré-visualização pode dispensar o vídeo e manter os distintivos, a linha temporal e a miniatura — ou simplesmente baixar a qualidade. O suficiente para a aliviar sem a perder.
@@ -271,7 +271,7 @@ _______________________________
 - ★ Duas excepções, ditas em voz alta ★ Para saber a que canais estás subscrito, a extensão abre a TUA própria página twitch.tv/subscriptions num quadro invisível, a cada seis horas por predefinição (três, doze ou vinte e quatro, conforme a tua definição), mais cedo só se o levantamento anterior não tiver encontrado nada ou se clicares em «Levantar agora», e nunca se tiveres a sessão terminada. Para conhecer TODOS os canais que segues — a barra lateral do Twitch só mostra cem —, abre da mesma forma a tua página de canais seguidos, a cada doze horas, mais cedo só se a leitura anterior não tiver chegado ao fim da lista. É o teu navegador que autentica essas páginas com os próprios cookies, exactamente como se tivesses clicado no link: a extensão nunca lê o teu token e nunca o passa a ninguém. O que guarda — nomes de canais e um tempo em meses — fica no teu navegador.
 - ★ Nenhum rastreador, nenhum pixel, nenhuma telemetria ★
 - ★ Nenhuma permissão suspeita ★ A extensão corre APENAS em twitch.tv.
-- ★ O bloqueio de publicidade não sai da sua faixa ★ Aplica-se à miniatura da pré-visualização e a mais nada. A emissão que estás mesmo a ver fica intacta.
+- ★ O bloqueio de publicidade não sai da sua faixa ★ Aplica-se à miniatura da pré-visualização e ao vídeo do teu canal n.º 1 no topo da página inicial, e a mais nada. A emissão que estás mesmo a ver fica intacta.
 - ★ O teu histórico fica contigo ★ Visitas, subscrições, meses, programação: guardados no teu navegador (localStorage e IndexedDB), ponto. Apaga os dados do site twitch.tv e desaparece tudo.
 - ★ Código-fonte totalmente legível ★ Directamente na pasta da extensão. Sem caixa negra.
 
