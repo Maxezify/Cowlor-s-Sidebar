@@ -8312,13 +8312,14 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     }
     /* L'attribut « hidden » se perd sous un « display » posé par une classe :
        on le rend souverain dans tout ce que nous peignons. */
-    #tse-accueil[hidden], #tse-accueil [hidden] { display: none !important; }
+    #tse-accueil[hidden], #tse-accueil [hidden],
+    #tse-accueil-heros[hidden], #tse-accueil-heros [hidden] { display: none !important; }
     /* Le carrousel de Twitch, quand on le masque. Sa vidéo est arrêtée à part. */
     .tse-acc-masque { display: none !important; }
-    #tse-accueil a:focus-visible { outline: 2px solid #9147ff; outline-offset: 2px; border-radius: 6px; }
+    #tse-accueil a:focus-visible, #tse-accueil-heros a:focus-visible { outline: 2px solid #9147ff; outline-offset: 2px; border-radius: 6px; }
     /* « Durée du direct » vaut ici comme sur les cartes de la barre. */
     html[data-tse-off~="duree"] #tse-accueil .tse-acc-duree,
-    html[data-tse-off~="duree"] #tse-accueil .tse-acc-heros-duree { display: none !important; }
+    html[data-tse-off~="duree"] #tse-accueil-heros .tse-acc-heros-duree { display: none !important; }
 
     .tse-acc-titre {
       display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px; margin: 16px 0 10px;
@@ -8336,9 +8337,6 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       flex: 1 1 0; min-width: 0; height: 0; margin: 0; border: 0;
       border-top: 1px solid var(--color-border-base, rgba(var(--tse-encre), 0.12));
     }
-    .tse-acc-filet--haut { display: block; margin: 4px 0 0; }
-    /* Un seul filet entre deux rayons : celui du haut ne sert qu'au premier montré. */
-    .tse-acc-rayon:not([hidden]) ~ .tse-acc-rayon .tse-acc-filet--haut { display: none; }
     .tse-acc-liste {
       --tse-col: 290px;
       display: grid; grid-template-columns: repeat(auto-fill, minmax(min(var(--tse-col), 100%), 1fr));
@@ -8348,9 +8346,13 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     .tse-acc-plus {
       flex: 0 0 auto; display: inline-flex; align-items: center; gap: 2px; height: 30px; margin: 0 10px;
       padding: 0 6px 0 10px; border: 0; border-radius: 4px; background: transparent; cursor: pointer;
-      font: inherit; font-size: 13px; font-weight: 600; line-height: 30px; color: var(--tse-texte); white-space: nowrap;
+      font: inherit; font-size: 13px; font-weight: 600; line-height: 30px; white-space: nowrap;
+      /* Le violet des liens de Twitch, comme son « Afficher tout » (4.26.0.3) :
+         sa propre variable quand la page la donne, comme le filet la sienne ;
+         à défaut, le violet de nos accents, qui suit le thème. */
+      color: var(--color-text-link, var(--tse-violet-texte));
     }
-    .tse-acc-plus:hover { background: rgba(var(--tse-encre), 0.1); }
+    .tse-acc-plus:hover { background: rgba(var(--tse-encre), 0.1); color: var(--color-text-link, var(--tse-violet-texte)); }
     .tse-acc-plus:focus-visible { outline: 2px solid #9147ff; outline-offset: 1px; }
     .tse-acc-plus svg { width: 20px; height: 20px; fill: currentColor; transition: transform 0.2s ease; }
     .tse-acc-plus[aria-expanded="true"] svg { transform: rotate(180deg); }
@@ -8393,20 +8395,22 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     .tse-acc-debut:hover { background: rgba(var(--tse-encre), 0.18); }
     .tse-acc-debut svg, .tse-acc-bouton svg { flex: 0 0 auto; width: 12px; height: 12px; fill: currentColor; }
 
-    /* ── Le héros (4.26.0.2 : toute la largeur, la vidéo, l'ambiance) ────
-       Le conteneur est la colonne entière ; le cadre y prend sa hauteur
-       d'après SA largeur — 18:5, de 320 à 720 px, jamais plus des trois
-       cinquièmes de la fenêtre —, et non l'inverse : c'est ce qui laissait
-       des marges à 2560 px. Quatre couches : le fond — l'image du direct
-       puis ses couleurs relevées, en miroir, floutées —, la vidéo à droite
-       à son format, le voile, le texte. Sombre dans les deux thèmes : le
-       texte est blanc sur l'image, ses couleurs sont donc fixes. */
-    .tse-acc-heros { container: tse-heros / inline-size; margin: 0 0 8px; }
+    /* ── Le héros (4.26.0.2 : la vidéo, l'ambiance ; 4.26.0.3 : sans marge) ─
+       Son bloc est en tête du défileur de la page, hors de la colonne de
+       Twitch (cf. ID_HEROS) : il en prend toute la largeur, bord à bord, et
+       vient sous la barre du haut — d'où ni coin arrondi, ni liseré. Le
+       cadre prend sa hauteur d'après SA largeur — 18:5, de 320 à 720 px,
+       jamais plus des trois cinquièmes de la fenêtre. Quatre couches : le
+       fond — l'image du direct puis ses couleurs relevées, en miroir,
+       floutées —, la vidéo à droite à son format, le voile, le texte. Sombre
+       dans les deux thèmes : le texte est blanc sur l'image, ses couleurs
+       sont donc fixes. */
+    #tse-accueil-heros { display: block; margin: 0; padding: 0; }
+    .tse-acc-heros { container: tse-heros / inline-size; margin: 0; }
     .tse-acc-heros-cadre {
       --tse-heros-h: clamp(320px, min(27.78cqw, 60vh), 720px);
       position: relative; isolation: isolate; overflow: hidden; height: var(--tse-heros-h);
-      border-radius: 10px; background: #0e0e10; color: #efeff1;
-      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+      border-radius: 0; background: #0e0e10; color: #efeff1;
     }
     /* Le fond : deux fois la largeur de la vidéo, calé à droite — sa moitié
        droite sous la vidéo, sa moitié gauche en miroir vers le texte. Il
@@ -8481,7 +8485,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       border-radius: 999px; background: rgba(255, 201, 102, 0.22); color: #ffd591; text-shadow: none;
       font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; white-space: nowrap;
     }
-    html[data-tse-off~="badge-sub"] #tse-accueil .tse-acc-heros-abo { display: none !important; }
+    html[data-tse-off~="badge-sub"] #tse-accueil-heros .tse-acc-heros-abo { display: none !important; }
     .tse-acc-heros-titre {
       margin: 0 0 8px; color: #fff; font-size: clamp(18px, 1.15cqw, 26px); font-weight: 600; line-height: 1.3;
       overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
@@ -8523,21 +8527,24 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     }
 
     /* ── Le Top 10 ───────────────────────────────────────────────────────
-       Le chiffre en creux, à gauche de la vignette qui le recouvre en
-       partie, et son pied aligné sur le bas de la vignette. La place est
-       une cellule de la grille : sa vignette fait la largeur de la cellule
-       moins celle du chiffre (78 px), et le chiffre en prend la hauteur. */
-    .tse-acc-liste--top { --tse-col: 300px; gap: 22px 16px; }
+       CINQ PLACES PAR RANGÉE, À TOUTES LES TAILLES (4.26.0.3) : « la taille
+       de liste de base doit être de 5 » — 1 à 5, puis 6 à 10 sous « Afficher
+       tout ». Le chiffre en creux, à gauche de la vignette qui le recouvre en
+       partie, et son pied aligné sur le bas de la vignette. Tout se mesure
+       en largeur de place : le chiffre en prend 28 %, la vignette les 79 %
+       qui restent sous lui, et le chiffre en prend la hauteur — une place
+       étroite garde ses proportions. */
+    .tse-acc-liste--top { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 22px 16px; }
     .tse-acc-place { container-type: inline-size; display: flex; align-items: flex-start; min-width: 0; }
     .tse-acc-rang {
-      --tse-vignette-h: calc((100cqw - 78px) * 9 / 16);
-      flex: 0 0 100px; min-width: 0; display: flex; align-items: flex-end; justify-content: flex-end;
-      height: var(--tse-vignette-h); margin-right: -22px;
+      --tse-vignette-h: calc(79cqw * 9 / 16);
+      flex: 0 0 28cqw; min-width: 0; display: flex; align-items: flex-end; justify-content: flex-end;
+      height: var(--tse-vignette-h); margin-right: -7cqw;
       font-size: min(150px, var(--tse-vignette-h)); font-weight: 900; line-height: 1; letter-spacing: -0.06em;
       color: transparent; -webkit-text-stroke: 4px rgba(var(--tse-encre), 0.42);
       font-variant-numeric: lining-nums; user-select: none; pointer-events: none; white-space: nowrap;
     }
-    .tse-acc-rang--double { font-size: min(116px, var(--tse-vignette-h)); letter-spacing: -0.12em; }
+    .tse-acc-rang--double { font-size: min(116px, calc(var(--tse-vignette-h) * 0.72)); letter-spacing: -0.12em; }
     .tse-acc-place .tse-acc-carte { position: relative; z-index: 1; flex: 1 1 auto; min-width: 0; }
     .tse-acc-evol {
       flex: 0 0 auto; font-size: 12px; font-weight: 700; line-height: 18px; white-space: nowrap;
@@ -15548,6 +15555,14 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
    * ============================================================ */
   const pageAccueil = (() => {
     const ID = 'tse-accueil';
+    /* LE HÉROS VIT HORS DE LA SECTION (4.26.0.3), en tête du défileur de la
+       page : « en 1440, il y a encore des marges, je ne veux aucune marge ».
+       La section est dans la colonne de Twitch, centrée et bornée à grande
+       largeur ; ses rayons doivent s'y aligner, le héros non. Posé en tête du
+       défileur, il en prend toute la largeur — de la barre latérale au bord
+       de la fenêtre — et vient sous la barre du haut, à la place qu'avait le
+       carrousel ; aucune règle de la colonne ne peut le rogner. */
+    const ID_HEROS = 'tse-accueil-heros';
     // Les miniatures de direct de Twitch : la seule forme stable d'une carte de rayon.
     const SEL_MINIATURE = 'img[src*="/previews-ttv/live_user_"]';
     const RE_MINIATURE = /\/previews-ttv\/live_user_([a-z0-9_]+)-/i;
@@ -15559,6 +15574,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     const RE_LOGIN = /^[a-z0-9_]{1,25}$/;
 
     let section = null;          // notre <section>, construite une fois
+    let blocHeros = null;        // le héros, hors de la section (cf. ID_HEROS)
     let observateur = null;      // vivant à l'adresse « / » seulement
     let verifPrevue = false;
     let carrousel = null;        // { bloc, voie } : la dernière trouvaille
@@ -15582,7 +15598,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     const lecteursRates = new Map(); // login → { cle, ts } : un lecteur qui n'a pas pris
 
     const bilan = {
-      poses: 0, reposes: 0, retraits: 0, peintures: 0, relangues: 0, ancre: null,
+      poses: 0, reposes: 0, retraits: 0, peintures: 0, relangues: 0, reveils: 0, ancre: null,
       carrousel: { voie: null, signature: null, masquages: 0, pauses: 0, reprises: 0 },
       heros: { montre: false, sansVisite: false,
                video: { poses: 0, premieres: 0, filets: 0, modales: 0, retours: 0, delais: 0, retraits: 0 },
@@ -15595,7 +15611,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     const surAccueil = () => location.pathname === '/';
     const actif = () => surAccueil() && options.get('accueil');
     const pose = () => !!section && section.isConnected;
-    const exclu = (n) => !!n.closest?.(`#${ID}, ${DOM.sidebarRoot}, .tse-preview`);
+    const exclu = (n) => !!n.closest?.(`#${ID}, #${ID_HEROS}, ${DOM.sidebarRoot}, .tse-preview`);
 
     /* ── LE TOP 10 : LA LANGUE, ET LE MOTEUR QUI LE SERT ─────────────────────
        « Celle de Twitch » se lit sur <html lang>, que Twitch pose d'après la
@@ -15724,7 +15740,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     const conteneurDe = (racine) => {
       let c = racine;
       for (let i = 0; i < 6; i++) {
-        const enfants = [...c.children].filter((x) => x.id !== ID);
+        const enfants = [...c.children].filter((x) => x.id !== ID && x.id !== ID_HEROS);
         if (enfants.length !== 1) break;
         c = enfants[0];
       }
@@ -15750,6 +15766,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         const c = conteneurDe(racine);
         if (c.firstElementChild !== section) c.prepend(section);
       }
+      if (racine.firstElementChild !== blocHeros) racine.prepend(blocHeros);
       if (!etait) { if (bilan.poses) bilan.reposes++; else bilan.poses++; }
       return true;
     };
@@ -15788,13 +15805,13 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        de Twitch, eux, tiennent dans la largeur : une rangée de cartes
        entières, un filet dessous, et au milieu du filet « Afficher tout »,
        qui déroule le reste en rangées sous la première — c'est leur
-       `show-more`, relevé sur la vraie page. Les nôtres font de même : un
-       filet au-dessus du premier rayon, le pied filet-bouton-filet sous
-       chacun ; sans rien de plus à montrer, le pied n'est qu'un filet. */
+       `show-more`, relevé sur la vraie page. Les nôtres font de même : le
+       pied filet-bouton-filet sous chacun ; sans rien de plus à montrer, il
+       n'est qu'un filet. Pas de filet au-dessus du premier (4.26.0.3) : sous
+       le héros, il le coupait de la liste — « retire-le ». */
     const fabriquerRayon = (cle, classe, titre, liste) => {
       const r = elt('div', 'tse-acc-rayon ' + classe);
       r.dataset.tseRayon = cle;
-      const haut = elt('hr', 'tse-acc-filet tse-acc-filet--haut');
       const pied = elt('div', 'tse-acc-pied');
       const plus = elt('button', 'tse-acc-plus');
       plus.type = 'button';
@@ -15805,7 +15822,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         plier(r);
       });
       pied.append(elt('hr', 'tse-acc-filet'), plus, elt('hr', 'tse-acc-filet'));
-      r.append(haut, titre, liste, pied);
+      r.append(titre, liste, pied);
       r.hidden = true;
       return r;
     };
@@ -15846,8 +15863,14 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       section.id = ID;
       section.dataset.tseLangue = LANG;
       section.setAttribute('aria-label', S.uiAccSection);
+      blocHeros = elt('div');
+      blocHeros.id = ID_HEROS;
+      blocHeros.dataset.tseLangue = LANG;
+      blocHeros.setAttribute('aria-label', S.uiAccHeros);
+      blocHeros.setAttribute('role', 'region');
       const heros = elt('div', 'tse-acc-heros');
       heros.hidden = true;
+      blocHeros.append(heros);
       const hSuivis = elt('h2', 'tse-acc-titre');
       const tSuivis = elt('span', null, S.uiAccSuivis);
       hSuivis.append(tSuivis);
@@ -15862,7 +15885,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       const note = elt('p', 'tse-acc-note');
       note.hidden = true;
       lTop.after(note);
-      section.append(heros, suivis, top);
+      section.append(suivis, top);
       z = { heros, suivis, tSuivis, lSuivis, top, tTop, lang, lTop, note, langCle: undefined };
       /* LE LECTEUR NE JOUE QU'À L'ÉCRAN. Le héros descendu hors de la vue,
          sa vidéo s'arrête ; elle reprend quand il revient. */
@@ -16226,6 +16249,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     const peindreHeros = (h) => {
       const zh = z.heros;
       zh.hidden = !h;
+      blocHeros.hidden = !h;
       herosCourant = h ? { login: h.login, cle: String(h.e.stream?.createdAt || h.e.stream?.id || '') } : null;
       if (!h) { zh.replaceChildren(); delete zh.dataset.tseCle; majLecteur(); return; }
       const d = donneesSuivie(h);
@@ -16486,9 +16510,10 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
          donc entière quand la langue change : c'est rare, et c'est la seule
          façon de n'oublier aucun libellé. */
       if (section.dataset.tseLangue !== LANG) {
-        const ancienne = section;
+        const ancienne = section, ancienBloc = blocHeros;
         construire();
         ancienne.replaceWith(section);
+        if (ancienBloc.isConnected) ancienBloc.replaceWith(blocHeros);
         bilan.relangues++;
       }
       bilan.peintures++;
@@ -16533,6 +16558,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       oterLecteur();
       demasquer();
       if (pose()) { section.remove(); bilan.retraits++; }
+      if (blocHeros) blocHeros.remove();
       if (observateur) { observateur.disconnect(); observateur = null; }
       verifPrevue = false;
     };
@@ -16550,11 +16576,14 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     };
     /* L'OBSERVATEUR N'EXISTE QU'À L'ADRESSE « / ». Il attend le défileur,
        repose la section si React l'a emportée, remasque un carrousel
-       redessiné. Les mutations de notre propre section ne le réveillent pas. */
+       redessiné. Les mutations de notre propre section ne le réveillent pas,
+       ni celles du héros, qui vit hors d'elle (4.26.0.3) : sa vidéo posée et
+       retirée, sa carte repeinte, ne sont pas la page de Twitch qui bouge. */
     const observer = () => {
       if (observateur) return;
       observateur = new MutationObserver(erreurs.garde('accueil', (muts) => {
-        if (section && muts.every((m) => section.contains(m.target))) return;
+        if (section && muts.every((m) => section.contains(m.target) || blocHeros.contains(m.target))) return;
+        bilan.reveils++;
         planifier();
       }));
       observateur.observe(document.body, { childList: true, subtree: true });

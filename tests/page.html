@@ -1658,6 +1658,8 @@ if (location.pathname === '/directory/following/channels') {
 //   contenu    false : la section des rayons perd son repère (l'ancrage doit
 //              retomber sur le carrousel)
 //   rayons     [[titre, [logins…]], …]
+//   colonneMax la colonne bornée à N px et centrée, comme celle de Twitch à
+//              grande largeur : ce qui s'y pose y prend ses marges
 //   lecture    la vidéo du carrousel joue (défaut vrai) ; elle se relance par
 //              window.__accueilVideo.play(), et ses arrêts se comptent dans
 //              window.__accueilPauses — le lecteur de Twitch, réduit à son état
@@ -1716,6 +1718,7 @@ if (location.pathname === '/' && window.__accueil) {
     }
     const colonneBloc = el('div');
     const colonne = el('div', 'common-centered-column');
+    if (cfg.colonneMax) colonne.style.cssText = 'max-width:' + cfg.colonneMax + 'px;margin:0 auto';
     const contenu = el('section');
     if (cfg.contenu !== false) {
       contenu.id = 'front-page-main-content';
