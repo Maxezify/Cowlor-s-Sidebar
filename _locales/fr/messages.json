@@ -527,7 +527,7 @@
     "message": "Le zapping"
   },
   "guideZapTexte": {
-    "message": "Le bouton à droite de la loupe de la recherche ouvre vos chaînes suivies en direct, en plein écran, dans l'ordre de la barre.\n• ↑ et ↓ changent de chaîne ; au bout, on repart du début. Un clic dans la colonne de droite mène à la sienne.\n• La suivante est déjà chargée — « préchargée » — : elle s'affiche d'un coup.\n• Entrée ouvre la chaîne ; Échap referme, et la vidéo de la page reprend.\n• S ajoute la chaîne à la salle, O ouvre la salle dès deux — six au plus. Une salle déjà ouverte se ferme à l'ouverture du zapping ; ses streams restent dans la sélection.\n• « Son de … », en bas à droite, coupe le son et le rend.\n• « Zapping » se coupe dans « Réglages »."
+    "message": "Le bouton à droite de la loupe de la recherche ouvre vos chaînes suivies en direct, en plein écran, dans l'ordre de la barre.\n• ↑ et ↓ changent de chaîne ; au bout, on repart du début. Un clic dans la colonne de droite mène à la sienne.\n• La chaîne d'avant et celle d'après sont déjà chargées — chacune « préchargée » — : elles s'affichent d'un coup.\n• L'écran passe en plein écran ; le quitter, ou ouvrir la salle, rend la fenêtre.\n• Quelques secondes sans bouger la souris, et il ne reste que l'image ; un geste ou une touche ramène le reste.\n• Entrée ouvre la chaîne ; Échap referme, et la vidéo de la page reprend.\n• S ajoute la chaîne à la salle, O ouvre la salle dès deux — six au plus. Une salle déjà ouverte se ferme à l'ouverture du zapping ; ses streams restent dans la sélection.\n• « Son de … », en bas à droite, coupe le son et le rend.\n• « Zapping » se coupe dans « Réglages »."
   },
   "guideDebutTitre": {
     "message": "Les débuts, et les reprises"
@@ -746,7 +746,7 @@
     "message": "Zapping"
   },
   "optDescZapping": {
-    "message": "Un bouton à droite de la loupe de la recherche ouvre vos chaînes suivies en direct, en plein écran, l'une après l'autre : ↑ et ↓ pour changer, Entrée pour ouvrir la chaîne, S pour l'ajouter à la salle, O pour ouvrir la salle, Échap pour quitter. La suivante est déjà chargée. La vidéo de la page s'arrête le temps du zapping ; une salle ouverte se ferme, et ses streams restent à rouvrir. Coupé : ni bouton, ni écran."
+    "message": "Un bouton à droite de la loupe de la recherche ouvre vos chaînes suivies en direct, en plein écran, l'une après l'autre : ↑ et ↓ pour changer, Entrée pour ouvrir la chaîne, S pour l'ajouter à la salle, O pour ouvrir la salle, Échap pour quitter. La précédente et la suivante sont déjà chargées ; quand la souris ne bouge plus, l'interface s'efface. La vidéo de la page s'arrête le temps du zapping ; une salle ouverte se ferme, et ses streams restent à rouvrir. Coupé : ni bouton, ni écran."
   },
   "optGrpAccueil": {
     "message": "Page d'accueil"

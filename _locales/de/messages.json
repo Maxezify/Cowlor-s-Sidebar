@@ -527,7 +527,7 @@
     "message": "Zapping"
   },
   "guideZapTexte": {
-    "message": "Der Knopf rechts neben der Lupe der Suche öffnet deine gefolgten Kanäle, die live sind, im Vollbild, in der Reihenfolge der Seitenleiste.\n• ↑ und ↓ wechseln den Kanal; am Ende geht es von vorn los. Ein Klick in der rechten Spalte führt zu diesem Kanal.\n• Der nächste ist schon geladen — „vorgeladen“ —: er erscheint sofort.\n• Enter öffnet den Kanal; Esc schließt, und das Video der Seite läuft weiter.\n• S fügt den Kanal dem Raum hinzu, O öffnet den Raum ab zwei Kanälen — höchstens sechs. Ein schon offener Raum schließt sich beim Zapping; seine Streams bleiben in der Auswahl.\n• „Ton von …“ unten rechts schaltet den Ton aus und wieder ein.\n• „Zapping“ lässt sich in den „Einstellungen“ abschalten."
+    "message": "Der Knopf rechts neben der Lupe der Suche öffnet deine gefolgten Kanäle, die live sind, im Vollbild, in der Reihenfolge der Seitenleiste.\n• ↑ und ↓ wechseln den Kanal; am Ende geht es von vorn los. Ein Klick in der rechten Spalte führt zu diesem Kanal.\n• Der vorige und der nächste Kanal sind schon geladen — jeweils „vorgeladen“ —: sie erscheinen sofort.\n• Der Bildschirm geht ins Vollbild; beim Verlassen oder beim Öffnen des Raums kehrt das Fenster zurück.\n• Ein paar Sekunden ohne Mausbewegung, und nur das Bild bleibt; eine Bewegung oder eine Taste holt den Rest zurück.\n• Enter öffnet den Kanal; Esc schließt, und das Video der Seite läuft weiter.\n• S fügt den Kanal dem Raum hinzu, O öffnet den Raum ab zwei Kanälen — höchstens sechs. Ein schon offener Raum schließt sich beim Zapping; seine Streams bleiben in der Auswahl.\n• „Ton von …“ unten rechts schaltet den Ton aus und wieder ein.\n• „Zapping“ lässt sich in den „Einstellungen“ abschalten."
   },
   "guideDebutTitre": {
     "message": "Starts und Rückkehr"
@@ -746,7 +746,7 @@
     "message": "Zapping"
   },
   "optDescZapping": {
-    "message": "Ein Knopf rechts neben der Lupe der Suche öffnet deine gefolgten Kanäle, die live sind, im Vollbild, einen nach dem anderen: ↑ und ↓ zum Wechseln, Enter öffnet den Kanal, S fügt ihn dem Raum hinzu, O öffnet den Raum, Esc beendet. Der nächste ist schon geladen. Das Video der Seite pausiert so lange; ein offener Raum schließt sich, seine Streams bleiben zum Wiederöffnen. Aus: kein Knopf, kein Bildschirm."
+    "message": "Ein Knopf rechts neben der Lupe der Suche öffnet deine gefolgten Kanäle, die live sind, im Vollbild, einen nach dem anderen: ↑ und ↓ zum Wechseln, Enter öffnet den Kanal, S fügt ihn dem Raum hinzu, O öffnet den Raum, Esc beendet. Der vorige und der nächste sind schon geladen; bewegt sich die Maus nicht mehr, verschwindet die Oberfläche. Das Video der Seite pausiert so lange; ein offener Raum schließt sich, seine Streams bleiben zum Wiederöffnen. Aus: kein Knopf, kein Bildschirm."
   },
   "optGrpAccueil": {
     "message": "Startseite"

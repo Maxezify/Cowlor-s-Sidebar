@@ -527,7 +527,7 @@
     "message": "Lo zapping"
   },
   "guideZapTexte": {
-    "message": "Il pulsante a destra della lente della ricerca apre i tuoi canali seguiti in diretta, a schermo intero, nell'ordine della barra laterale.\n• ↑ e ↓ cambiano canale; alla fine si riparte dall'inizio. Un clic nella colonna di destra porta a quel canale.\n• Il successivo è già caricato — «precaricato» —: appare subito.\n• Invio apre il canale; Esc chiude, e il video della pagina riprende.\n• S aggiunge il canale alla sala, O apre la sala da due canali in su — al massimo sei. Una sala già aperta si chiude all'apertura dello zapping; i suoi stream restano nella selezione.\n• «Audio di …», in basso a destra, disattiva e riattiva l'audio.\n• «Zapping» si disattiva in «Impostazioni»."
+    "message": "Il pulsante a destra della lente della ricerca apre i tuoi canali seguiti in diretta, a schermo intero, nell'ordine della barra laterale.\n• ↑ e ↓ cambiano canale; alla fine si riparte dall'inizio. Un clic nella colonna di destra porta a quel canale.\n• Il canale precedente e il successivo sono già caricati — ciascuno «precaricato» —: appaiono subito.\n• Lo schermo passa a schermo intero; uscendo, o aprendo la sala, torna la finestra.\n• Qualche secondo senza muovere il mouse e resta solo l'immagine; un movimento o un tasto riporta il resto.\n• Invio apre il canale; Esc chiude, e il video della pagina riprende.\n• S aggiunge il canale alla sala, O apre la sala da due canali in su — al massimo sei. Una sala già aperta si chiude all'apertura dello zapping; i suoi stream restano nella selezione.\n• «Audio di …», in basso a destra, disattiva e riattiva l'audio.\n• «Zapping» si disattiva in «Impostazioni»."
   },
   "guideDebutTitre": {
     "message": "Gli inizi, e i ritorni"
@@ -746,7 +746,7 @@
     "message": "Zapping"
   },
   "optDescZapping": {
-    "message": "Un pulsante a destra della lente della ricerca apre i tuoi canali seguiti in diretta, a schermo intero, uno dopo l'altro: ↑ e ↓ per cambiare, Invio per aprire il canale, S per aggiungerlo alla sala, O per aprire la sala, Esc per uscire. Il successivo è già caricato. Il video della pagina va in pausa durante lo zapping; una sala aperta si chiude, e i suoi stream restano da riaprire. Disattivato: né pulsante né schermo."
+    "message": "Un pulsante a destra della lente della ricerca apre i tuoi canali seguiti in diretta, a schermo intero, uno dopo l'altro: ↑ e ↓ per cambiare, Invio per aprire il canale, S per aggiungerlo alla sala, O per aprire la sala, Esc per uscire. Il precedente e il successivo sono già caricati; quando il mouse smette di muoversi, l'interfaccia scompare. Il video della pagina va in pausa durante lo zapping; una sala aperta si chiude, e i suoi stream restano da riaprire. Disattivato: né pulsante né schermo."
   },
   "optGrpAccueil": {
     "message": "Pagina iniziale"

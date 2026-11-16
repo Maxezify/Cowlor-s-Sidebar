@@ -85,7 +85,8 @@ _______________________________
 ➤ 📺 LE ZAPPING : VOS SUIVIS EN DIRECT, L'UN APRÈS L'AUTRE
 Un bouton à droite de la loupe de la recherche ouvre vos chaînes suivies en direct, en plein écran — comme on change de chaîne à la télévision.
 
-- ★ ↑ ET ↓ ★ Une chaîne après l'autre, dans l'ordre de votre barre ; la suivante est déjà chargée, elle s'affiche d'un coup.
+- ★ ↑ ET ↓ ★ Une chaîne après l'autre, dans l'ordre de votre barre ; la précédente et la suivante sont déjà chargées, elles s'affichent d'un coup.
+- ★ RIEN QUE L'IMAGE ★ Un vrai plein écran ; quand la souris ne bouge plus, tout s'efface sauf le direct.
 - ★ TOUT D'UN COUP D'ŒIL ★ Le nom, le titre, la catégorie, les spectateurs, la durée du direct — et la pastille du subathon.
 - ★ VERS LA SALLE ★ S ajoute une chaîne à la salle, O l'ouvre avec celles que vous avez choisies.
 

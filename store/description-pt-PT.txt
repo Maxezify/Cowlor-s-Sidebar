@@ -85,7 +85,8 @@ _______________________________
 ➤ 📺 ZAPPING: OS CANAIS QUE SEGUES EM DIRETO, UM APÓS O OUTRO
 Um botão à direita da lupa da pesquisa abre os canais que segues e que estão em direto, em ecrã inteiro — como mudar de canal na televisão.
 
-- ★ ↑ E ↓ ★ Um canal após o outro, pela ordem da tua barra lateral; o seguinte já está carregado e aparece de imediato.
+- ★ ↑ E ↓ ★ Um canal após o outro, pela ordem da tua barra lateral; o anterior e o seguinte já estão carregados e aparecem de imediato.
+- ★ SÓ A IMAGEM ★ Ecrã inteiro a sério; quando o rato deixa de se mexer, desaparece tudo menos a transmissão.
 - ★ TUDO NUM RELANCE ★ Nome, título, categoria, espetadores, tempo em direto — e o emblema do subathon.
 - ★ PARA A SALA ★ S adiciona um canal à sala, O abre a sala com os que escolheste.
 
