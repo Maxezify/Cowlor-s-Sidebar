@@ -2183,6 +2183,135 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## Le co-stream du Top 10, comme sur Twitch (v4.33.0.2)
+
+Deux retours, capture et HTML de Twitch à l'appui. Publiée sur
+`claude/chrome-homepage` seulement.
+
+| signalé | ce qui a été fait |
+| --- | --- |
+| « dans le Top 10, on peut voir des costreams, faudrait prendre le même système que le natif, à savoir "le nom d'un streamer" suivi d'un + et le nombre dans le costream ; en passant la souris sur la flèche à côté, on a une fenêtre qui apparaît avec les détails » | « Nom + 3 ⌄ » juste après le nom, et la fenêtre de Twitch, ligne pour ligne ; la ligne « avec … » d'avant s'en va |
+| « on voit 12,4 k et un symbole juste en dessous, il faudrait qu'il soit à la même ligne » | le compteur des cartes de Twitch en flex : le nombre et l'icône sur une ligne |
+
+### Le co-stream d'une place
+
+Une place du Top 10 tient un co-stream entier depuis la 4.18 : la carte de
+son meilleur membre, et les autres nommés dessous, « avec Y, Z ». Ils le
+sont maintenant comme sur la carte de Twitch :
+
+- **« Nom + 3 ⌄ »**, juste après le nom, avant l'évolution : le nombre des
+  AUTRES membres. Les membres sont ceux que Guest Star nomme dans la
+  session, complétés par les chaînes que le classement a rangées dans la
+  place ; un invité qui ne diffuse pas sur sa propre chaîne en est — il est
+  dans le direct —, comme chez Twitch ;
+- **la fenêtre**, au survol de « + 3 ⌄ », sous lui : la chaîne de la carte,
+  puis « En live avec : » et les autres, chacun avec son avatar, son nom, le
+  point rouge du direct et ses spectateurs À LUI — l'audience propre que
+  TseChannels lit sur sa chaîne ; le combiné reste sur la vignette, c'est lui
+  qui classe. Les autres par audience décroissante ; qui ne diffuse pas
+  vient après, sans point ni nombre. Chaque ligne ouvre la chaîne dans un
+  nouvel onglet, comme chez Twitch. Sans réponse fraîche, pas de nombre ; la
+  tolérance est celle des étiquettes, deux cycles, pour qu'une réponse qui
+  vient de passer son terme ne fasse pas clignoter la ligne ;
+- **pour les lecteurs d'écran**, le bouton se nomme comme la phrase cachée
+  de Twitch : « Vortex est en live avec Tourbe, Sillage et Ressac », la liste
+  écrite dans la langue de l'interface (`Intl.ListFormat`) ;
+- **les gestes** : le survol ouvre (après 100 ms : un passage n'ouvre pas) ;
+  le pointeur peut aller du bouton à la fenêtre ; parti des deux, elle se
+  ferme après 250 ms. Un clic l'épingle, un second la ferme, un clic ailleurs
+  aussi. Au clavier, le bouton atteint par Tab l'ouvre, Tab entre dans la
+  fenêtre, Échap la ferme et rend le focus au bouton ;
+- **une fenêtre de la couche supérieure** (`popover`) : chaque place est un
+  conteneur de requêtes (`container-type`), qui piège un `position: fixed`,
+  et le pli du rayon l'aurait rognée. La fenêtre suit pourtant son bouton
+  dans le DOM : la tabulation y entre juste après lui. Une place qui change
+  de rang est déplacée, et un popover déplacé se referme : ouvert, il se
+  rouvre à sa place. La page défile, la fenêtre suit son bouton ; le bouton
+  sorti de l'écran, ou le Top 10 coupé, elle se ferme. Un navigateur sans
+  `popover` garde le bouton, et la phrase en infobulle ;
+- **elle se met à jour ligne à ligne**, tenue par login, comme nos rayons :
+  réécrite d'un bloc à chaque nombre neuf, elle chassait le focus de la
+  ligne qui l'avait — trouvé par le banc, au clavier.
+
+Ce que ça coûte : les membres d'une place entrent dans le lot commun de
+TseChannels tant qu'elle est peinte, la tête aussi — une fois par cycle de
+trente secondes, aucune requête à part. La chaîne `uiAccAvec` s'en va ;
+`uiAccCsAvec` et `uiAccCsPhrase` arrivent, dans les dix langues de
+l'interface. La liste à la mode de la langue, que la salle écrivait pour elle
+seule, est partagée.
+
+Le rapport : `accueil.top.cs` — `places` et `membres` montrés, `ouvertures`,
+`demandes`, `ouverte`, `epinglee`.
+
+### Le compteur et son icône
+
+Sur un co-stream, Twitch pose dans le compteur de ses cartes une icône — deux
+silhouettes — à côté du nombre combiné. « Ranger l'accueil de Twitch »
+réduit ce compteur à notre nombre ; mis en bloc, il envoyait l'icône, un
+bloc, à la ligne. Il est en flex : le nombre et l'icône se tiennent sur la
+ligne de dix-huit pixels, centrés. Le mot de Twitch, éteint, garde ses écarts
+et ses marges : on les défait, et l'écart est le nôtre, quatre pixels —
+seulement s'il y a une icône. Un compteur sans réponse de TseChannels garde
+le texte de Twitch, sur une ligne aussi.
+
+### Ce qui n'a pas pu être vérifié ici
+
+- **le balisage réel de l'icône** : Twitch n'est pas joignable d'ici, et la
+  page enregistrée n'avait pas de co-stream. Le banc en éprouve trois formes
+  plausibles — un bloc après le texte, l'icône avant le texte dans une
+  enveloppe en flex, l'icône des composants de Twitch dans sa boîte à
+  proportions —, chacune avec ses propres écarts ;
+- **une vraie session Guest Star dans un vrai Top 10**, et la fenêtre sur la
+  vraie page ;
+- **la tolérance de deux cycles** : le banc ne sait pas tenir une réponse
+  exactement entre un et deux cycles d'âge ; aucun mutant ne la garde.
+
+### Le banc
+
+230 gagne i) : trois chaînes en direct portent l'icône dans leur compteur,
+chacune sous une forme ; le compteur tient sur une ligne de dix-huit pixels,
+l'icône dedans et centrée, à quatre pixels du nombre, rien après elle que la
+marge du compteur ; une chaîne sans réponse de TseChannels aussi, avec le
+texte de Twitch. Neuf assertions devenues dix. 232, nouveau : un co-stream à
+quatre en tête du Top 10 — trois qui diffusent, un invité qui ne diffuse pas,
+nommés par la session dans un autre ordre que celui de l'audience — et le
+bouton, la fenêtre, le survol, le clic, le clavier, le Top 10 coupé — six
+assertions. Le faux Twitch sait poser l'icône dans le compteur de ses cartes.
+
+**Vingt-deux mutants nommés, tous pris.** Un vivait d'abord : « la fenêtre
+orpheline, le Top 10 coupé » — ouverte au survol, la fenêtre se fermait de
+toute façon, le bouton parti de sous le pointeur ; f) l'épingle d'un clic
+avant de couper. Avant la campagne, le banc avait pris un défaut à lui seul :
+la fenêtre réécrite d'un bloc chassait le focus du clavier (cf. plus haut) ;
+un mutant le garde.
+
+| mutant | ce qui tombe |
+| --- | --- |
+| pas de bouton de co-stream | 232 a) — puis le banc plante |
+| le compte sans l'invité qui ne diffuse pas | 232 a), b) |
+| le bouton après l'évolution | 232 a) |
+| pas de phrase pour nom | 232 a) |
+| le combiné à la place de l'audience propre | 232 b) |
+| l'ordre de la session, sans tri par audience | 232 b) |
+| la fenêtre hors de la couche supérieure | 232 b), c), d), e) |
+| pas de délai de grâce | 232 c) |
+| la fenêtre qui ne retient pas le pointeur | 232 c) |
+| jamais fermée au départ du pointeur | 232 c) |
+| le clic qui ferme ce que le survol a ouvert | 232 d) |
+| pas de fermeture au clic dehors | 232 d) |
+| pas d'ouverture au clavier | 232 e) |
+| Échap sans effet | 232 e) |
+| le focus rendu qui rouvre | 232 e) |
+| la fenêtre réécrite d'un bloc à chaque relevé | 232 e) |
+| la fenêtre orpheline, le Top 10 coupé | 232 f) |
+| les liens dans le même onglet | 232 b) |
+| le compteur en bloc | 230 i) |
+| les écarts de Twitch gardés | 230 i) |
+| les marges de Twitch gardées | 230 i) |
+| pas d'écart à nous | 230 i) |
+
+`npm run check` : 2342 assertions dans 231 scénarios, toutes vertes.
+
 ## Le ruban centré, le zapping en plein écran (v4.33.0.1)
 
 Quatre retours, et un audit. Publiée sur `claude/chrome-homepage` seulement.
@@ -25301,7 +25430,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | les six fichiers JavaScript livrés — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 230 scénarios, 2335 assertions |
+| `npm test` | le harnais Playwright : 231 scénarios, 2342 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -25350,13 +25479,13 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 2258 Ko | 1062 Ko | 4 758 → **2** |
+| `content.js` | 2277 Ko | 1075 Ko | 4 780 → **2** |
 | `cadres.js` | 74 Ko | 34 Ko | 170 → **0** |
 | `adblock.js` | 126 Ko | 101 Ko | 301 → **2** |
 | `panneau.js` | 166 Ko | 85 Ko | 227 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 26 → **0** |
 | `background.js` | 10 Ko | 2 Ko | 22 → **0** |
-| **les six** | **2648 Ko** | **1289 Ko** | **−51 %** |
+| **les six** | **2667 Ko** | **1301 Ko** | **−51 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se

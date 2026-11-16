@@ -42381,9 +42381,14 @@ const lireImages = (page) => page.evaluate(() => {
      absolu ; la durée « 38:55 » n'est PAS de Twitch — un
      `seventv-stream-card-uptime-badge`, posé par l'extension 7TV. Le décor :
      xray et quebec en direct, que TseChannels décrit ; quebec porte le badge
-     de 7TV et vient de commencer ; zinnia, que TseChannels ne connaît pas. */
+     de 7TV et vient de commencer ; zinnia, que TseChannels ne connaît pas.
+     Ombelle, pivoine et rhizome (4.33.0.2), en direct, portent dans leur
+     compteur l'icône d'un co-stream, chacune sous une forme (cf. page.html,
+     `icone`) ; zinnia aussi, sous la première. */
   const ETAGERE = [{ id: 'e-nat', nom: 'Chaînes live qui pourraient vous plaire', natifs: true,
-                     cartes: [{ login: 'xray', vues: 67 }, { login: 'quebec', vues: 1200, septv: '38:55' }, { login: 'zinnia', vues: 12 }] }];
+                     cartes: [{ login: 'xray', vues: 67 }, { login: 'quebec', vues: 1200, septv: '38:55' }, { login: 'zinnia', vues: 12, icone: 'bloc' },
+                              { login: 'ombelle', vues: 12400, icone: 'bloc' }, { login: 'pivoine', vues: 9600, icone: 'enveloppe' },
+                              { login: 'rhizome', vues: 7000, icone: 'ratio' }] }];
   const ouvrir = async (options) => {
     const p = await ouvrirAccueil({ decor: { etageres: ETAGERE }, visites: { korbek: [1] }, options: { accueilDebut: false, ...options } });
     await plateauAccueil(p);
@@ -42391,6 +42396,10 @@ const lireImages = (page) => page.evaluate(() => {
     await attendre(p, () => !!document.getElementById('e-nat'), 6000);
     await p.evaluate(() => {
       window.__fx.quebec = { ...window.__fx.quebec, createdAt: new Date(Date.now() - 60_000).toISOString() };
+      for (const [i, l] of ['ombelle', 'pivoine', 'rhizome'].entries()) {
+        window.__fx[l] = { id: String(90 + i), createdAt: new Date(Date.now() - (80 + i) * 60_000).toISOString(),
+                           viewers: [12400, 9600, 7000][i], game: 'VALORANT', tags: ['Français'], title: 'Direct ' + l };
+      }
       document.getElementById('e-nat').scrollIntoView({ block: 'center' });
     });
     return p;
@@ -42463,6 +42472,42 @@ const lireImages = (page) => page.evaluate(() => {
   const n1 = await noeudsTwitch(p);
   ok('g) aucun nœud ajouté aux cartes de Twitch ; le rapport compte les cartes habillées',
      n1 === n0 && r.rapport.habillees >= 3 && r.rapport.durees >= 2, JSON.stringify({ n0, n1, rapport: r.rapport }));
+  /* i) LE NOMBRE ET L'ICÔNE D'UN CO-STREAM SUR UNE LIGNE (4.33.0.2) : « on
+     voit 12,4 k et un symbole juste en dessous, il faudrait qu'il soit à la
+     même ligne ». Sous chacune des trois formes : un compteur d'une ligne
+     de dix-huit, l'icône dedans et centrée ; quatre pixels entre notre
+     nombre et elle, et rien après elle que la marge du compteur — les
+     écarts et les marges de Twitch défaits. Zinnia, que TseChannels ne
+     décrit pas, garde le texte de Twitch : sur une ligne aussi. Mutants —
+     le compteur en bloc ; les écarts de Twitch gardés ; ses marges
+     gardées ; pas d'écart à nous. */
+  await attendre(p, () => ['ombelle', 'pivoine', 'rhizome'].every((l) =>
+    document.querySelector(`[aria-labelledby="e-nat"] a[href="/${l}"] .tw-media-card-stat[data-tse-spect]`)), 10_000);
+  const ic = await p.evaluate(() => {
+    const out = {};
+    const pinceau = document.createElement('canvas').getContext('2d');
+    for (const l of ['ombelle', 'pivoine', 'rhizome', 'zinnia']) {
+      const st = document.querySelector(`[aria-labelledby="e-nat"] a[href="/${l}"] .tw-media-card-stat`);
+      const rs = st.getBoundingClientRect();
+      const ri = st.querySelector('svg[data-icone]').getBoundingClientRect();
+      const cs = getComputedStyle(st);
+      const av = getComputedStyle(st, '::before');
+      const texte = st.getAttribute('data-tse-spect');
+      // La largeur du nombre que ::before écrit, à sa police.
+      pinceau.font = `${av.fontWeight} ${av.fontSize} ${av.fontFamily}`;
+      const debut = rs.left + parseFloat(cs.paddingLeft);
+      const r1 = (x) => Math.round(x * 10) / 10;
+      out[l] = { spect: texte, h: r1(rs.height), haut: r1(ri.top - rs.top), bas: r1(rs.bottom - ri.bottom), icone: r1(ri.width),
+                 centre: r1((ri.top + ri.bottom) / 2 - (rs.top + rs.bottom) / 2),
+                 ecart: texte ? r1(ri.left - debut - pinceau.measureText(texte).width) : null,
+                 fin: r1(rs.right - parseFloat(cs.paddingRight) - ri.right) };
+    }
+    return out;
+  });
+  const uneLigne = (x) => Math.abs(x.h - 18) < 0.6 && x.haut >= -0.5 && x.bas >= -0.5 && Math.abs(x.centre) <= 1 && x.icone >= 13;
+  ok('i) l\'icône d\'un co-stream sur la ligne du nombre, centrée, à quatre pixels de lui, sous les trois formes ; le texte de Twitch aussi',
+     ['ombelle', 'pivoine', 'rhizome'].every((l) => ic[l].spect && uneLigne(ic[l]) && Math.abs(ic[l].ecart - 4) <= 0.75 && Math.abs(ic[l].fin) <= 0.75)
+     && /^12,4\s?k$/.test(ic.ombelle.spect) && ic.zinnia.spect === null && uneLigne(ic.zinnia), JSON.stringify(ic));
   await p.close();
   /* f) « DURÉE DU DIRECT » COUPÉ, comme sur nos cartes : notre durée ne se
      montre pas, celle de 7TV reste, et l'étiquette monte en haut à droite —
@@ -43148,6 +43193,181 @@ const lireZap = (page) => page.evaluate(() => {
   ok('s) le mode d\'emploi a son chapitre, après celui de la salle, et cite « préchargée » et « Son de … » tels que la page les écrit, dans les douze langues',
      ordreGuide.indexOf('guideZapTitre') === ordreGuide.indexOf('guideSalleTitre') + 1 && citesZap.length === 0,
      JSON.stringify({ rang: ordreGuide.indexOf('guideZapTitre'), citesZap }));
+}
+
+/* ═════════ 232. LE CO-STREAM D'UNE PLACE DU TOP 10 (4.33.0.2) ═════════
+   « Dans le Top 10, on peut voir des costreams, faudrait prendre le même
+   système que le natif, à savoir "le nom d'un streamer" suivi d'un + et le
+   nombre dans le costream. En passant la souris sur la flèche à côté, on a
+   une fenêtre qui apparaît avec les détails. » Le décor : un co-stream à
+   quatre en tête du classement — Vortex, l'hôte, 41 600 spectateurs à lui ;
+   Sillage, 6 200 ; Tourbe, 765 ; et Ressac, dans la session sans diffuser
+   sur sa chaîne. Leur combiné, 48 565, les met en tête. Guest Star les nomme
+   dans l'ordre Vortex, Tourbe, Sillage, Ressac — pas celui de l'audience ;
+   TseChannels donne à chacun la sienne. Les noms sont inventés. */
+{
+  titre('232. Le co-stream d\'une place du Top 10 — « Nom + 3 ⌄ », et au survol la fenêtre des membres, chacun avec ses spectateurs');
+  const TOP_CS = ['vortex', 'sillage', 'tourbe', ...TOP_ACCUEIL.slice(0, 9)];
+  const page = await ouvrirAccueil({ options: { accueilDebut: false } });
+  await plateauAccueil(page, { top: TOP_CS });
+  await page.evaluate(() => {
+    const h = (m) => new Date(Date.now() - m * 60_000).toISOString();
+    const fx = (id, v) => ({ id, createdAt: h(95), viewers: v, game: 'Just Chatting', tags: ['Français'], title: 'Ensemble' });
+    Object.assign(window.__fx, { vortex: fx('8100', 41600), sillage: fx('8101', 6200), tourbe: fx('8102', 765), ressac: null });
+    const session = { hostId: '8100', hostLogin: 'vortex', guests: [
+      { id: '8100', login: 'vortex', viewers: 41600, combined: 48565 },
+      { id: '8102', login: 'tourbe', viewers: 765, combined: 48565 },
+      { id: '8101', login: 'sillage', viewers: 6200, combined: 48565 },
+      { id: '8103', login: 'ressac', sansStream: true }] };
+    window.__gs = { 8100: session, 8101: session, 8102: session };
+  });
+  const BOUTON = '#tse-accueil .tse-acc-place[data-tse-cle="vortex"] .tse-acc-cs';
+  // Les quatre membres connus, et l'audience propre des trois qui diffusent arrivée.
+  await attendre(page, (sel) => {
+    const b = document.querySelector(sel);
+    return b && b.textContent === '+ 3' && ['vortex', 'sillage', 'tourbe', 'ressac']
+      .every((l) => window.__calls.some((c) => c.names.includes('TseChannels') && JSON.stringify(c).includes(`"${l}"`)));
+  }, 20_000, BOUTON);
+  await page.evaluate((sel) => document.querySelector(sel)?.scrollIntoView({ block: 'center' }), BOUTON);
+  await wait(page, 1500);
+  const lire = () => page.evaluate((sel) => {
+    const b = document.querySelector(sel);
+    if (!b) return null;
+    const fen = b.nextElementSibling;
+    const place = b.closest('.tse-acc-place');
+    const nom = place.querySelector('.tse-acc-nom');
+    const rb = b.getBoundingClientRect(), rn = nom.getBoundingClientRect(), rf = fen ? fen.getBoundingClientRect() : null;
+    const lignes = fen ? [...fen.children].map((x) => x.matches('a') ? {
+      href: x.getAttribute('href'), cible: x.target, rel: x.rel, nom: x.querySelector('.tse-acc-cs-nom')?.textContent,
+      avatar: x.querySelector('.tse-acc-cs-avatar img:not([hidden])')?.getAttribute('src') || null,
+      vues: x.querySelector('.tse-acc-cs-vues:not([hidden])')?.textContent ?? null,
+      point: x.querySelector('.tse-acc-cs-vues:not([hidden])') ? getComputedStyle(x.querySelector('.tse-acc-cs-vues'), '::before').backgroundColor : null,
+    } : { titre: x.textContent }) : [];
+    const dernier = fen && fen.lastElementChild ? fen.lastElementChild.getBoundingClientRect() : null;
+    const dessus = dernier ? document.elementFromPoint(dernier.left + dernier.width / 2, dernier.top + dernier.height / 2) : null;
+    return {
+      texte: b.textContent, etiquette: b.getAttribute('aria-label'), deplie: b.getAttribute('aria-expanded'),
+      controle: b.getAttribute('aria-controls') === fen?.id, popover: fen?.getAttribute('popover'),
+      ouverte: !!fen && fen.matches(':popover-open'),
+      apresNom: Math.round(rb.left - rn.right), memeLigne: Math.abs((rb.top + rb.bottom) / 2 - (rn.top + rn.bottom) / 2) <= 2,
+      avant: [...b.parentElement.children].map((x) => x.className.split(' ')[0]),
+      sous: rf && rf.width ? { ecart: Math.round(rf.top - rb.bottom), gauche: Math.round(rf.left - rb.left) } : null,
+      dessus: !!dessus && !!fen && fen.contains(dessus),
+      lignes, avec: !!place.querySelector('.tse-acc-avec'), places: [...document.querySelectorAll('#tse-accueil .tse-acc-place')].map((p) => p.dataset.tseCle),
+      focus: document.activeElement === b ? 'bouton' : fen && fen.contains(document.activeElement) ? 'fenetre' : 'ailleurs',
+      cs: window.tse.accueil.rapport().top.cs,
+      local: getComputedStyle(document.documentElement).getPropertyValue('--tse-frais').trim(),
+    };
+  }, BOUTON);
+  const r0 = await lire();
+  /* a) « NOM + 3 ⌄ » : une place pour le co-stream entier — ni Sillage ni
+     Tourbe n'en ont une à eux —, le bouton juste après le nom, sur sa ligne,
+     avant l'évolution ; la phrase des lecteurs d'écran pour nom ; la ligne
+     « avec … » d'avant partie. Fermée. Une place sans co-stream n'a pas de
+     bouton. Mutants — l'ancienne ligne gardée ; le bouton après l'évolution ;
+     le compte sans l'invité qui ne diffuse pas. */
+  const sansCs = await page.evaluate(() => !document.querySelector('#tse-accueil .tse-acc-place[data-tse-cle="zephyr"] .tse-acc-cs'));
+  ok('a) une place pour le co-stream, « Vortex + 3 ⌄ » sur la ligne du nom, la phrase « Vortex est en live avec … » pour nom ; plus de ligne « avec »',
+     r0 && r0.texte === '+ 3' && r0.etiquette === 'Vortex est en live avec Tourbe, Sillage et Ressac' && r0.deplie === 'false'
+     && r0.controle && r0.popover === 'manual' && !r0.ouverte && r0.apresNom === 4 && r0.memeLigne
+     && r0.avant.join(' ') === 'tse-acc-nom tse-acc-cs tse-acc-cs-fen tse-acc-evol' && !r0.avec
+     && r0.places[0] === 'vortex' && !r0.places.includes('sillage') && !r0.places.includes('tourbe') && sansCs,
+     JSON.stringify({ r0, sansCs }));
+  /* b) LE SURVOL OUVRE LA FENÊTRE, sous le bouton, aligné sur lui : la
+     chaîne de la carte, « En live avec : », puis les autres par audience —
+     chacune avec son avatar — celui de la carte pour la sienne, celui de
+     TseChannels pour les autres —, son nom, le point rouge du direct et SES
+     spectateurs ; Ressac, qui ne diffuse pas, sans point ni nombre ; Sillage
+     avant Tourbe, que la session nomme avant lui. Chaque
+     ligne ouvre la chaîne dans un nouvel onglet. Au-dessus de tout : la
+     dernière ligne est ce que la page montre à cet endroit. Mutants — le
+     combiné à la place de l'audience propre ; un nombre pour qui ne
+     diffuse pas ; l'ordre de la session ; une fenêtre rognée par sa place. */
+  await page.hover(BOUTON);
+  await attendre(page, (sel) => document.querySelector(sel)?.nextElementSibling?.matches(':popover-open'), 3000, BOUTON);
+  const r1 = await lire();
+  const attendues = [['vortex', 'Vortex', '41,6 k'], [null, 'En live avec :'], ['sillage', 'Sillage', '6,2 k'], ['tourbe', 'Tourbe', '765'], ['ressac', 'Ressac', null]];
+  const lignesJustes = r1.lignes.length === attendues.length && attendues.every((a, i) => {
+    const l = r1.lignes[i];
+    if (a[0] === null) return l.titre === a[1];
+    return l.href === '/' + a[0] && l.cible === '_blank' && l.rel === 'noopener noreferrer' && l.nom === a[1]
+      && l.avatar === (i ? `https://cdn/api-${a[0]}.png` : `https://cdn/${a[0]}.png`) && (l.vues === null ? null : nz(l.vues)) === (a[2] === null ? null : a[2].replace(/\s/g, ' '))
+      && (a[2] === null || l.point !== null && l.point !== 'rgba(0, 0, 0, 0)');
+  });
+  ok('b) au survol, la fenêtre sous le bouton : Vortex et ses 41,6 k, « En live avec : », Sillage 6,2 k, Tourbe 765, Ressac sans nombre ; des liens vers un nouvel onglet ; par-dessus tout',
+     r1.ouverte && r1.deplie === 'true' && r1.sous && r1.sous.ecart === 6 && r1.sous.gauche === 0 && lignesJustes && r1.dessus
+     && r1.cs.places === 1 && r1.cs.membres === 3 && r1.cs.ouvertures === 1 && r1.cs.ouverte && !r1.cs.epinglee,
+     JSON.stringify({ ouverte: r1.ouverte, sous: r1.sous, dessus: r1.dessus, lignes: r1.lignes, cs: r1.cs }));
+  /* c) LE POINTEUR PASSE DU BOUTON À LA FENÊTRE sans la fermer — l'écart
+     qui les sépare se franchit —, puis s'en va : elle se ferme. Mutants —
+     pas de délai de grâce ; la fenêtre qui ne retient pas le pointeur ;
+     jamais fermée. */
+  const fenBoite = await page.evaluate((sel) => { const r = document.querySelector(sel).nextElementSibling.getBoundingClientRect(); return { x: r.left + 20, y: r.top + 12 }; }, BOUTON);
+  await page.mouse.move(fenBoite.x, fenBoite.y, { steps: 4 });
+  await wait(page, 500);
+  const r2 = await lire();
+  await page.mouse.move(5, 5, { steps: 4 });
+  await attendre(page, (sel) => !document.querySelector(sel).nextElementSibling.matches(':popover-open'), 3000, BOUTON);
+  const r3 = await lire();
+  ok('c) du bouton à la fenêtre, elle reste ouverte ; le pointeur parti, elle se ferme',
+     r2.ouverte && !r3.ouverte && r3.deplie === 'false', JSON.stringify({ r2: r2.ouverte, r3: { ouverte: r3.ouverte, deplie: r3.deplie } }));
+  /* d) UN CLIC L'ÉPINGLE : le pointeur parti, elle reste ; un clic ailleurs
+     la ferme. Un second clic sur le bouton la ferme aussi. Mutants — le
+     clic qui ferme ce que le survol vient d'ouvrir ; pas de fermeture au
+     clic dehors. */
+  await page.hover(BOUTON);
+  await attendre(page, (sel) => document.querySelector(sel).nextElementSibling.matches(':popover-open'), 3000, BOUTON);
+  await page.click(BOUTON);
+  await page.mouse.move(5, 5, { steps: 4 });
+  await wait(page, 700);
+  const r4 = await lire();
+  await page.mouse.click(5, 5);
+  await wait(page, 200);
+  const r5 = await lire();
+  await page.click(BOUTON);
+  await wait(page, 200);
+  const r6a = await lire();
+  await page.click(BOUTON);
+  await wait(page, 200);
+  const r6b = await lire();
+  ok('d) un clic l\'épingle — le pointeur parti, elle reste — ; un clic ailleurs la ferme ; sur le bouton, un clic ouvre, le suivant ferme',
+     r4.ouverte && r4.cs.epinglee && !r5.ouverte && r6a.ouverte && !r6b.ouverte,
+     JSON.stringify({ r4: [r4.ouverte, r4.cs.epinglee], r5: r5.ouverte, r6: [r6a.ouverte, r6b.ouverte] }));
+  /* e) AU CLAVIER : le bouton atteint par Tab ouvre sa fenêtre ; Tab entre
+     dans la fenêtre, sur sa première ligne — elle suit son bouton dans le
+     DOM —, et l'y garde pendant que les nombres se relisent ; Échap la
+     ferme, rend le focus au bouton, et ne la rouvre pas. Mutants — pas
+     d'ouverture au clavier ; la fenêtre réécrite d'un bloc à chaque
+     relevé ; Échap sans effet ; le focus rendu qui rouvre. */
+  await page.mouse.move(5, 5);
+  await page.evaluate((sel) => document.querySelector(sel).closest('.tse-acc-place').querySelector('.tse-acc-nom').focus(), BOUTON);
+  await page.keyboard.press('Tab');
+  await wait(page, 200);
+  const r7 = await lire();
+  await page.keyboard.press('Tab');
+  // Plusieurs relevés de TseChannels passent (600 ms au banc) : la ligne qui a le focus le garde.
+  await wait(page, 1500);
+  const r8 = await lire();
+  const premier = await page.evaluate(() => document.activeElement?.getAttribute('href'));
+  await page.keyboard.press('Escape');
+  await wait(page, 300);
+  const r9 = await lire();
+  ok('e) au clavier : Tab sur le bouton l\'ouvre, Tab entre dans la fenêtre sur Vortex et y reste, Échap la ferme et rend le focus au bouton sans la rouvrir',
+     r7.focus === 'bouton' && r7.ouverte && r8.focus === 'fenetre' && premier === '/vortex' && !r9.ouverte && r9.focus === 'bouton',
+     JSON.stringify({ r7: [r7.focus, r7.ouverte], r8: [r8.focus, premier], r9: [r9.focus, r9.ouverte] }));
+  /* f) LE TOP 10 COUPÉ ferme la fenêtre ouverte, et ne laisse rien dans la
+     couche supérieure. Épinglée d'un clic : ouverte au survol, elle se
+     fermerait de toute façon, le bouton parti de sous le pointeur — et le
+     mutant vivait. Mutant — la fenêtre orpheline. */
+  await page.click(BOUTON);
+  await attendre(page, (sel) => document.querySelector(sel).nextElementSibling.matches(':popover-open'), 3000, BOUTON);
+  const epinglee = (await page.evaluate(() => window.tse.accueil.rapport().top.cs)).epinglee;
+  await page.evaluate(() => window.tse.options.poser('accueilTop', false));
+  await wait(page, 600);
+  const coupe = await page.evaluate(() => ({ ouvertes: document.querySelectorAll(':popover-open').length, cs: window.tse.accueil.rapport().top.cs }));
+  ok('f) le Top 10 coupé : la fenêtre épinglée se ferme, rien ne reste par-dessus la page',
+     epinglee && coupe.ouvertes === 0 && !coupe.cs.ouverte, JSON.stringify({ epinglee, ...coupe }));
+  await page.close();
 }
 
 {

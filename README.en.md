@@ -2064,6 +2064,131 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The Top 10 co-stream, as on Twitch (v4.33.0.2)
+
+Two reports, with a Twitch screenshot and HTML. Published on
+`claude/chrome-homepage` only.
+
+| reported | what was done |
+| --- | --- |
+| “in the Top 10 we can see co-streams; it should use the native system, i.e. a streamer's name followed by a + and the number in the co-stream; hovering the arrow next to it shows a window with the details” | “Name + 3 ⌄” right after the name, and Twitch's window, row for row; the old “with …” line goes |
+| “we see 12.4K and a symbol just below it; it should be on the same line” | the counter of Twitch's cards in flex: the number and the icon on one line |
+
+### A place's co-stream
+
+Since 4.18 a Top 10 place holds a whole co-stream: the card of its best
+member, with the others named underneath, “with Y, Z”. They are now shown as
+on Twitch's card:
+
+- **“Name + 3 ⌄”**, right after the name, before the movement arrow: the
+  number of OTHER members. The members are those Guest Star names in the
+  session, completed by the channels the ranking put in the place; a guest
+  who doesn't stream on their own channel counts — they are in the stream —,
+  as on Twitch;
+- **the window**, on hovering “+ 3 ⌄”, below it: the card's channel, then
+  “Live with:” and the others, each with avatar, name, the red live dot and
+  THEIR OWN viewers — the audience TseChannels reads on their channel; the
+  combined count stays on the thumbnail, it is what ranks. The others by
+  decreasing audience; a member who doesn't stream comes after, without dot
+  or number. Each row opens the channel in a new tab, as on Twitch. No fresh
+  answer, no number; the tolerance is the labels' one, two cycles, so an
+  answer that just expired doesn't make the row blink;
+- **for screen readers**, the button is named like Twitch's hidden sentence:
+  “Vortex is live with Tourbe, Sillage and Ressac”, the list written in the
+  interface language (`Intl.ListFormat`);
+- **gestures**: hover opens it (after 100 ms: passing over doesn't); the
+  pointer can go from the button to the window; once it has left both, the
+  window closes after 250 ms. A click pins it, a second click closes it, so
+  does a click elsewhere. With the keyboard, Tab onto the button opens it,
+  Tab enters the window, Escape closes it and gives focus back to the button;
+- **a top-layer window** (`popover`): every place is a query container
+  (`container-type`), which traps a `position: fixed`, and the row's fold
+  would have clipped it. The window still follows its button in the DOM: Tab
+  enters it right after the button. A place that changes rank is moved, and
+  a moved popover closes: if it was open, it reopens in place. The page
+  scrolls, the window follows its button; with the button off screen, or the
+  Top 10 turned off, it closes. A browser without `popover` keeps the button,
+  with the sentence as a tooltip;
+- **it updates row by row**, keyed by login, like our rows: rewritten in one
+  go on every new number, it drove focus off the row that had it — found by
+  the bench, with the keyboard.
+
+What it costs: a place's members join TseChannels' common batch while the
+place is painted, its head too — once per thirty-second cycle, no separate
+request. The `uiAccAvec` string goes; `uiAccCsAvec` and `uiAccCsPhrase`
+arrive, in the interface's ten languages. The language-aware list, which the
+room wrote for itself alone, is shared.
+
+The report: `accueil.top.cs` — `places` and `membres` shown, `ouvertures`,
+`demandes`, `ouverte`, `epinglee`.
+
+### The counter and its icon
+
+On a co-stream, Twitch puts an icon — two silhouettes — next to the combined
+number in its cards' counter. “Tidy Twitch's home page” reduces that counter
+to our number; as a block, it sent the icon, itself a block, to a new line.
+It is now flex: the number and the icon hold on the eighteen-pixel line,
+centred. Twitch's word, switched off, keeps its gaps and margins: they are
+undone, and the gap is ours, four pixels — only when there is an icon. A
+counter without a TseChannels answer keeps Twitch's text, on one line too.
+
+### What could not be checked here
+
+- **the icon's real markup**: Twitch can't be reached from here, and the
+  saved page had no co-stream. The bench tests three plausible shapes — a
+  block after the text, the icon before the text in a flex wrapper, Twitch's
+  component icon in its aspect-ratio box —, each with its own gaps;
+- **a real Guest Star session in a real Top 10**, and the window on the real
+  page;
+- **the two-cycle tolerance**: the bench can't hold an answer exactly between
+  one and two cycles old; no mutant guards it.
+
+### The bench
+
+230 gains i): three live channels carry the icon in their counter, each in
+one shape; the counter holds on one eighteen-pixel line, the icon inside and
+centred, four pixels from the number, nothing after it but the counter's
+padding; a channel without a TseChannels answer too, with Twitch's text.
+Nine assertions become ten. 232, new: a four-member co-stream at the top of
+the Top 10 — three who stream, a guest who doesn't, named by the session in
+another order than the audience's — and the button, the window, hover,
+click, keyboard, the Top 10 turned off — six assertions. The fake Twitch can
+put the icon in its cards' counter.
+
+**Twenty-two named mutants, all caught.** One lived at first: “the orphan
+window, Top 10 turned off” — opened on hover, the window closed anyway, the
+button gone from under the pointer; f) pins it with a click before turning
+off. Before the campaign, the bench had caught a defect on its own: the
+window rewritten in one go drove keyboard focus away (see above); a mutant
+guards it.
+
+| mutant | what fails |
+| --- | --- |
+| no co-stream button | 232 a) — then the bench crashes |
+| the count without the guest who doesn't stream | 232 a), b) |
+| the button after the movement arrow | 232 a) |
+| no sentence as its name | 232 a) |
+| the combined count instead of the own audience | 232 b) |
+| the session order, no sort by audience | 232 b) |
+| the window outside the top layer | 232 b), c), d), e) |
+| no grace delay | 232 c) |
+| the window that doesn't hold the pointer | 232 c) |
+| never closed when the pointer leaves | 232 c) |
+| the click that closes what hover opened | 232 d) |
+| no closing on an outside click | 232 d) |
+| no opening with the keyboard | 232 e) |
+| Escape does nothing | 232 e) |
+| the focus given back that reopens | 232 e) |
+| the window rewritten in one go on every reading | 232 e) |
+| the orphan window, Top 10 turned off | 232 f) |
+| links in the same tab | 232 b) |
+| the counter as a block | 230 i) |
+| Twitch's gaps kept | 230 i) |
+| Twitch's margins kept | 230 i) |
+| no gap of ours | 230 i) |
+
+`npm run check`: 2342 assertions in 231 scenarios, all green.
+
 ## The centred ribbon, zapping full screen (v4.33.0.1)
 
 Four pieces of feedback, and an audit. Published on `claude/chrome-homepage` only.
@@ -24586,7 +24711,7 @@ Four independent checks:
 | `npm run lint` | the six shipped JavaScript files — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 230 scenarios, 2335 assertions |
+| `npm test` | the Playwright harness: 231 scenarios, 2342 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -24633,13 +24758,13 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 2258 KB | 1062 KB | 4,758 → **2** |
+| `content.js` | 2277 KB | 1075 KB | 4,780 → **2** |
 | `cadres.js` | 74 KB | 34 KB | 170 → **0** |
 | `adblock.js` | 126 KB | 101 KB | 301 → **2** |
 | `panneau.js` | 166 KB | 85 KB | 227 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 26 → **0** |
 | `background.js` | 10 KB | 2 KB | 22 → **0** |
-| **all six** | **2648 KB** | **1289 KB** | **−51 %** |
+| **all six** | **2667 KB** | **1301 KB** | **−51 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are
