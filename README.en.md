@@ -331,13 +331,13 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 1964 KB | 865 KB | 4,427 → **2** |
-| `cadres.js` | 66 KB | 30 KB | 158 → **0** |
-| `adblock.js` | 125 KB | 101 KB | 298 → **2** |
-| `panneau.js` | 161 KB | 82 KB | 223 → **0** |
+| `content.js` | 2285 KB | 1080 KB | 4,788 → **2** |
+| `cadres.js` | 74 KB | 34 KB | 170 → **0** |
+| `adblock.js` | 126 KB | 101 KB | 301 → **2** |
+| `panneau.js` | 166 KB | 85 KB | 227 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 26 → **0** |
 | `background.js` | 10 KB | 2 KB | 22 → **0** |
-| **all six** | **2341 KB** | **1083 KB** | **−54 %** |
+| **all six** | **2676 KB** | **1306 KB** | **−51 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are
@@ -2494,6 +2494,2861 @@ A sub-test that modelled an impossible case — a stream growing younger without
 changing id — was replaced along the way by the ordinary case that was actually
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
+
+## Dead code, checked (v4.33.0.4)
+
+One report: "yes, remove the dead code; be rigorous". Published on
+`claude/chrome-homepage`; the same version then goes to
+`claude/firefox-homepage`, and both production branches are drawn from it.
+
+### First, a mistake in 4.33.0.3
+
+4.33.0.3 listed five declarations as "never called": `lireCarte`,
+`bilanApi`, `nomDe`, `typo` and `suiviesDabord`, plus three used only by
+them. That was wrong. All five are called, each behind a spread:
+
+| declaration | its call |
+| --- | --- |
+| `lireCarte` | `trouve.push({ login, ...lireCarte(carte, …) })` (reading the subscriptions) |
+| `bilanApi` | `...bilanApi(c)` (the multistream room's report) |
+| `nomDe` | `[...nomDe(l)][0]` (the initial of a face with no image) |
+| `typo` | `...typo(nomEl, 'n'), ...typo(catEl, 'c')` (a promoted card's template, measured on an ordinary card) |
+| `suiviesDabord` | `[...membres, ...suiviesDabord(autres)]` (the order of a multistream room) |
+
+The scan skipped any name preceded by a dot, so that `object.name` would not
+count as a call to `name`. By the same move it skipped the three dots of a
+spread. Removing them would have broken these five uses. The 4.33.0.3
+paragraph is corrected and points here.
+
+### The scan, redone
+
+Every pass ignores comments, and runs over the extension's six scripts and
+its panel stylesheet.
+
+| category | how | result |
+| --- | --- | --- |
+| declarations (functions, constants) | each name looked for outside its declaration; a spread counts as a use | none dead |
+| `CFG` keys (297) | `CFG.KEY` or `CFG['KEY']`; no computed access exists | none dead |
+| locale messages (355 keys, the same in all twelve folders) | literals, and composed keys: `nav`/`desc` + section (15 sections), `opt`/`optDesc` + setting (36), `confirme` + `Title`/`Text`, the manifest's `__MSG_…__` | none dead |
+| interface strings (`S.ui…`) | read literally or composed (`uiCcl…`) | none dead |
+| settings | the page's 36 are the panel's 36 | no orphan |
+| panel commands | the 11 the page can run, each one sent | none dead |
+| CSS classes | literal, or composed (`tse-acc-evol--` + `e.classe`, `d-badge--` + modifier, `tuile--` + tone…), each value found in the code | none dead |
+| CSS variables | defined, then read by a `var()` | **one dead: `--or-clair`** |
+| storage keys | written, then read | two asymmetries, intended: `s-qs-ts`, read by Twitch's player; `tse:ecartees`, read once by the 4.32.0.4 carry-over, then erased |
+| parameters | `no-unused-vars`, parameters included | **one dead: `nom`, in `texteMesure`**; two `score` are exclusions by destructuring (`({ score, ...h }) => h`), intended |
+
+### Removed
+
+- **`--or-clair`**, in panneau.css. 3.62.0 set it for both themes (three
+  definitions, counting the system theme's). No rule ever read it:
+  `git log -S "var(--or-clair"` returns nothing.
+- **the `nom` parameter of `texteMesure`**, in the sound-based alignment
+  (4.24.0.21). It was never read after it was written: the three calls write
+  the name in front of the measurement themselves. It is removed from the
+  signature and from the three calls, and the text returned stays the same.
+
+### Kept: the rule that would have seen it
+
+`no-unused-vars` ignored parameters (`args: 'none'`), and that is what let
+`nom` through. It now checks every parameter placed after the last one read
+(`after-used`), and does not count exclusions by destructuring
+(`ignoreRestSiblings`). `npm run lint` returns no warning.
+
+### What could not be checked here
+
+- **the Twitch classes the stylesheet targets**, such as
+  `primary-with-small-avatar__mini-avatar` or `.tw-dialog-layer`. They belong
+  to Twitch's page, which cannot be reached from here, and the bench's fake
+  Twitch does not carry all of them. They are kept: a selector that finds
+  nothing costs nothing, and a selector removed by mistake would bring back a
+  Twitch defect.
+
+### The bench
+
+No scenario changed, since nothing removed had any effect. The bench already
+calls `texteMesure` with a single argument (185).
+
+`npm run check`: 2347 assertions in 231 scenarios, all green, in two passes.
+The full one was cut at 182 by a restart of the machine (1,625 assertions,
+none failed), then, on the same tree, the bench resumed from 182 to the end
+(721). Scenario 68, which checks this count against the README, ran in
+neither: the sum, 1,625 + 721 + its own, makes 2347.
+
+## The co-stream at its most watched, the absence as cards, the audit (v4.33.0.3)
+
+Three reports. Published on `claude/chrome-homepage` only.
+
+| reported | what was done |
+| --- | --- |
+| “put the one with the most viewers on top; in the screenshot it's the opposite” | a Top 10 co-stream's card is its most watched member's; the window names them first |
+| “I'm not a fan of 'While you were away'; propose a UX/UI that matches the rest of the page” | two mockups, made of our real components; the cards option chosen, and built |
+| “do a full audit of the zapping and the home page” | measurements and a read-through (below) |
+
+### A co-stream's card
+
+The screenshot: a card at 858 viewers, and in its window a member at 20.8K.
+The ranking puts a session's members at the same number — the combined one —,
+and the place took the first it returned. It now takes the one with the most
+viewers of their own, read in TseChannels; with no known audience, the
+ranking's order. Another member only takes the card by beating it by 5 %
+(`ACCUEIL_CS_TETE_ECART`), remembered per session: two close audiences don't
+swap the card on every reading.
+
+### While you were away, as cards
+
+Two options offered as mockups — a row of cards like the Top 10, tiles like
+“Your scheduled streams” —; the first chosen. A row like the others: its title
+in their style, the close button at the end, “Show all”. One card per channel,
+ours, but for a replay:
+
+- **the picture of the absence's last replay**, large; without a replay, the
+  blurred avatar. It opens the replay when you can watch it, the channel
+  otherwise; no hover preview, nothing there is live;
+- **“2 streams”** instead of “Live”, in the grey of the other badges; **their
+  duration** top right; **when the last one ended** bottom left, “6 hr. ago”
+  (`Intl.RelativeTimeFormat`, in the interface language) — left out if the
+  channel is live right now;
+- below: the avatar, the name, the last stream's title — “Streamed, no
+  replay” without a replay —, **“Most viewed clip: …”** (the word “clip”
+  added in the ten languages: alone under a replay, “most viewed” no longer
+  said of what), and “Watch the last one”, styled like “From the start”.
+
+**The large picture, without an extra request.** The schedule reads replay
+pictures at 160 × 90: the panel's size, which shows them at 80 × 45. On a
+three-hundred-pixel card it was blurry. The large one (640 × 360) of the last
+replay goes in the same batch as the clips, as a separate operation: no extra
+request, and its refusal doesn't touch the clips — the card then keeps the
+small one. The setting, the guide and the Store sheets say so, in the twelve
+languages. The report: `accueil.absence.vignettes`.
+
+### The audit
+
+**Measured on the bench, with `Memory.getDOMCounters` and the heap after
+garbage collection:**
+
+- the home page running, two thousand paints: nodes (1,271) and listeners (86)
+  unchanged; the heap levels off — +300, +114, +42, +21 KB per half minute,
+  bounded caches filling up;
+- a paint costs 1.8 ms on average, 23 ms at most;
+- the co-stream window opened and closed sixty times, the zapping thirty: a
+  one-off cost on the first opening (+13 and +10 listeners), then nothing;
+- the bench itself kept every request in its log (`__calls`): emptied before
+  each measurement, to count only the extension.
+
+**Read through:** every timer, listener and observer of the home page and the
+zapping — all undone with what carries them; the schedule only writes what
+changed; no translated string, class or report counter without a use; the
+stylesheet's repeated selectors are narrow-screen overrides.
+
+**Found, fixed:**
+
+- the absence's blurry picture (above);
+- a `[hidden]` rule of the co-stream window (4.33.0.2), redundant:
+  `#tse-accueil [hidden]` already covers the window, which stays in the
+  section for the cascade even in the top layer. Removed; the bench checks a
+  hidden number doesn't show there;
+- the absence fold assertion proved nothing: at 1600 pixels the five cards
+  fit on one row. It runs in a 1000-pixel tab.
+
+**Noted outside the scope — and wrong, corrected in 4.33.0.4:** this line
+listed five declarations as never called (`lireCarte`, `bilanApi`, `nomDe`,
+`typo`, `suiviesDabord`). All five are called, behind a spread the scan did not
+count. The 4.33.0.4 section states the mistake and redoes the scan.
+
+### What could not be checked here
+
+- **the large picture on the real Twitch**: `video(id:)` and its
+  `previewThumbnailURL` at the requested size are those of the public schema;
+  the bench plays them, Twitch can't be reached from here. Refused, the small
+  one stays;
+- **a paint's cost on the real page**, with its dozens of cards: measured on
+  the bench only.
+
+### The bench
+
+224 rewritten for the cards, its guarantees kept: what the line said — “2
+streams · 5h05” — is read on the badges and the picture's name. Four more
+assertions: the card (large picture requested in the clips batch, badges, “6
+hr. ago”, title, links); the channel without a replay and the closed replay;
+the fold, in a 1000-pixel tab; the large picture refused, the clips served
+anyway. The fake Twitch serves a replay's picture at the requested size. 232
+gains one: the co-stream's card moves to the most watched past 5 %, not
+below, and comes back — the setup's ranking now returns another member first.
+
+The full bench caught a defect of the fake Twitch, not of the extension: the
+picture size it reads in the request was stored among the schedule's new
+fields, and the mode that refuses them all refused it too — endlessly, since
+no request can do without it (207 q). It is kept apart.
+
+**Thirteen named mutants, all caught.**
+
+| mutant | what fails |
+| --- | --- |
+| the card in the ranking's order | 232 g) |
+| a switch on the slightest lead | 232 g) |
+| the card kept forever | 232 g) |
+| the small picture, never the large one | 224 a') (the card, the closed replay) |
+| the picture's refusal taking the clips with it | 224 c) (the clips, the refusal) |
+| the live red on a replay | 224 a') (the card) |
+| the last stream's end left out | 224 a') (the card, without a replay) |
+| the closed replay as the link | 224 a') (without a replay, closed) |
+| the avatar without blur | 224 a') (without a replay) |
+| no fold on paint | 224 a') (the fold) |
+| the stream's title forgotten | 224 a') (the card) |
+| the stream count forgotten | 224 a) (two streams), a') (the card), c) |
+| the shared `[hidden]` rule lost for the section | 232 b) |
+
+`npm run check`: 2347 assertions in 231 scenarios, all green — in two passes:
+the full one, stopped after 205 by the fake Twitch's two failures in 207 (see
+above), then, once fixed, from 205 to the end, 207 included. The scenarios
+before it don't use the mode the fix touches.
+
+## The Top 10 co-stream, as on Twitch (v4.33.0.2)
+
+Two reports, with a Twitch screenshot and HTML. Published on
+`claude/chrome-homepage` only.
+
+| reported | what was done |
+| --- | --- |
+| “in the Top 10 we can see co-streams; it should use the native system, i.e. a streamer's name followed by a + and the number in the co-stream; hovering the arrow next to it shows a window with the details” | “Name + 3 ⌄” right after the name, and Twitch's window, row for row; the old “with …” line goes |
+| “we see 12.4K and a symbol just below it; it should be on the same line” | the counter of Twitch's cards in flex: the number and the icon on one line |
+
+### A place's co-stream
+
+Since 4.18 a Top 10 place holds a whole co-stream: the card of its best
+member, with the others named underneath, “with Y, Z”. They are now shown as
+on Twitch's card:
+
+- **“Name + 3 ⌄”**, right after the name, before the movement arrow: the
+  number of OTHER members. The members are those Guest Star names in the
+  session, completed by the channels the ranking put in the place; a guest
+  who doesn't stream on their own channel counts — they are in the stream —,
+  as on Twitch;
+- **the window**, on hovering “+ 3 ⌄”, below it: the card's channel, then
+  “Live with:” and the others, each with avatar, name, the red live dot and
+  THEIR OWN viewers — the audience TseChannels reads on their channel; the
+  combined count stays on the thumbnail, it is what ranks. The others by
+  decreasing audience; a member who doesn't stream comes after, without dot
+  or number. Each row opens the channel in a new tab, as on Twitch. No fresh
+  answer, no number; the tolerance is the labels' one, two cycles, so an
+  answer that just expired doesn't make the row blink;
+- **for screen readers**, the button is named like Twitch's hidden sentence:
+  “Vortex is live with Tourbe, Sillage and Ressac”, the list written in the
+  interface language (`Intl.ListFormat`);
+- **gestures**: hover opens it (after 100 ms: passing over doesn't); the
+  pointer can go from the button to the window; once it has left both, the
+  window closes after 250 ms. A click pins it, a second click closes it, so
+  does a click elsewhere. With the keyboard, Tab onto the button opens it,
+  Tab enters the window, Escape closes it and gives focus back to the button;
+- **a top-layer window** (`popover`): every place is a query container
+  (`container-type`), which traps a `position: fixed`, and the row's fold
+  would have clipped it. The window still follows its button in the DOM: Tab
+  enters it right after the button. A place that changes rank is moved, and
+  a moved popover closes: if it was open, it reopens in place. The page
+  scrolls, the window follows its button; with the button off screen, or the
+  Top 10 turned off, it closes. A browser without `popover` keeps the button,
+  with the sentence as a tooltip;
+- **it updates row by row**, keyed by login, like our rows: rewritten in one
+  go on every new number, it drove focus off the row that had it — found by
+  the bench, with the keyboard.
+
+What it costs: a place's members join TseChannels' common batch while the
+place is painted, its head too — once per thirty-second cycle, no separate
+request. The `uiAccAvec` string goes; `uiAccCsAvec` and `uiAccCsPhrase`
+arrive, in the interface's ten languages. The language-aware list, which the
+room wrote for itself alone, is shared.
+
+The report: `accueil.top.cs` — `places` and `membres` shown, `ouvertures`,
+`demandes`, `ouverte`, `epinglee`.
+
+### The counter and its icon
+
+On a co-stream, Twitch puts an icon — two silhouettes — next to the combined
+number in its cards' counter. “Tidy Twitch's home page” reduces that counter
+to our number; as a block, it sent the icon, itself a block, to a new line.
+It is now flex: the number and the icon hold on the eighteen-pixel line,
+centred. Twitch's word, switched off, keeps its gaps and margins: they are
+undone, and the gap is ours, four pixels — only when there is an icon. A
+counter without a TseChannels answer keeps Twitch's text, on one line too.
+
+### What could not be checked here
+
+- **the icon's real markup**: Twitch can't be reached from here, and the
+  saved page had no co-stream. The bench tests three plausible shapes — a
+  block after the text, the icon before the text in a flex wrapper, Twitch's
+  component icon in its aspect-ratio box —, each with its own gaps;
+- **a real Guest Star session in a real Top 10**, and the window on the real
+  page;
+- **the two-cycle tolerance**: the bench can't hold an answer exactly between
+  one and two cycles old; no mutant guards it.
+
+### The bench
+
+230 gains i): three live channels carry the icon in their counter, each in
+one shape; the counter holds on one eighteen-pixel line, the icon inside and
+centred, four pixels from the number, nothing after it but the counter's
+padding; a channel without a TseChannels answer too, with Twitch's text.
+Nine assertions become ten. 232, new: a four-member co-stream at the top of
+the Top 10 — three who stream, a guest who doesn't, named by the session in
+another order than the audience's — and the button, the window, hover,
+click, keyboard, the Top 10 turned off — six assertions. The fake Twitch can
+put the icon in its cards' counter.
+
+**Twenty-two named mutants, all caught.** One lived at first: “the orphan
+window, Top 10 turned off” — opened on hover, the window closed anyway, the
+button gone from under the pointer; f) pins it with a click before turning
+off. Before the campaign, the bench had caught a defect on its own: the
+window rewritten in one go drove keyboard focus away (see above); a mutant
+guards it.
+
+| mutant | what fails |
+| --- | --- |
+| no co-stream button | 232 a) — then the bench crashes |
+| the count without the guest who doesn't stream | 232 a), b) |
+| the button after the movement arrow | 232 a) |
+| no sentence as its name | 232 a) |
+| the combined count instead of the own audience | 232 b) |
+| the session order, no sort by audience | 232 b) |
+| the window outside the top layer | 232 b), c), d), e) |
+| no grace delay | 232 c) |
+| the window that doesn't hold the pointer | 232 c) |
+| never closed when the pointer leaves | 232 c) |
+| the click that closes what hover opened | 232 d) |
+| no closing on an outside click | 232 d) |
+| no opening with the keyboard | 232 e) |
+| Escape does nothing | 232 e) |
+| the focus given back that reopens | 232 e) |
+| the window rewritten in one go on every reading | 232 e) |
+| the orphan window, Top 10 turned off | 232 f) |
+| links in the same tab | 232 b) |
+| the counter as a block | 230 i) |
+| Twitch's gaps kept | 230 i) |
+| Twitch's margins kept | 230 i) |
+| no gap of ours | 230 i) |
+
+`npm run check`: 2342 assertions in 231 scenarios, all green.
+
+## The centred ribbon, zapping full screen (v4.33.0.1)
+
+Four pieces of feedback, and an audit. Published on `claude/chrome-homepage` only.
+
+| reported | what was done |
+| --- | --- |
+| "now and then, the ribbon looks shifted; it must be centred" — "it's when I land on the page" | the cause, reproduced on the bench; a circular ribbon, the path chosen out of two: the centre card always surrounded, on both sides |
+| "after a few seconds without moving the mouse, make the UI disappear; it comes back when the mouse moves again" | three seconds; everything fades but the stream, the pointer too |
+| "preload the channel before and the channel after" | both neighbours; and the former current one kept, at every step |
+| "put zapping full screen; if you leave or open the room, go back to a normal window" | full screen on opening; the window given back on leaving, room included |
+| "do a full audit of the zapping part" | what it found, fixed (below) |
+
+### The ribbon, centred
+
+The screenshot: the ribbon's last card in the centre, all the others on the
+left. Reproduced on the bench: Twitch's carousel turns by itself shortly
+after landing; its places change, so does the order of our cards — and the
+browser, which keeps the card it held snapped, followed it to the end of the
+line: 1,200 pixels of scrolling, measured.
+
+Two paths offered — the same ribbon, no longer shifting, or a circular
+ribbon —; the second chosen:
+
+- **the head card is named**: the carousel's first at the first paint, then
+  the one brought to the centre. It is the one centred, at every paint; the
+  snapping no longer decides;
+- **the ribbon turns**, like the carousel it comes from: the head card in the
+  middle of the line, its neighbours on both sides, in the carousel's order,
+  which loops — its very places: left-2, left-1, center, right-1, right-2.
+  A carousel that turns keeps its cycle: on our side, nothing moves;
+- **the turn is not seen**: cards move from one end of the line to the
+  other, and the scroll is compensated by as much in the same task — on a
+  click, no card moves on screen, to a tenth of a pixel, measured. It happens
+  before going to a card — its neighbour at the end is already there when it
+  arrives — and, after a scroll by hand, when it ends. The card changing
+  ends fades in (320 ms). With the ribbon at rest, the browser's snapping
+  re-snaps the card it holds by itself; mid-scroll it holds none, and two
+  quick clicks made the picture jump by a card, 300 pixels, without our
+  compensation. And snapping goes quiet for the length of a path we lead:
+  "mandatory", it re-snapped the compensated position to the nearest card —
+  up to 137 pixels, found by the full bench, under load; it comes back at
+  the end of the path. No jump, at three gaps between the clicks, the
+  processor slowed six times included;
+- **the arrows no longer go off**: there is no end anymore;
+- a scroll by hand is never pulled back: its end names the new head. A
+  carousel read empty for an instant — React redraws it — does not forget
+  the head. The empty placeholders of the wait are surrounded too.
+
+With eight cards, the most the carousel holds, and 2,000 pixels wide: three
+neighbours on each side. The report: `accueil.une.tete`, the centre card;
+`accueil.une.tours`.
+
+### Zapping
+
+- **Both neighbours**: the previous and the next one, preloaded, muted,
+  invisible, marked "preloaded" — the one in the direction of travel after
+  500 ms, the other after 1.5 s. At every step, the former current one is a
+  neighbour of the new one: it stays, muted and invisible, instead of being
+  thrown away then reloaded — going back reloads nothing anymore. Three
+  players, four for the length of a fade. An unexpected channel still loads
+  under the previous picture.
+- **Full screen**: the screen itself, on opening — the click on the button
+  grants the right to it. Without that right (an opening through the API),
+  it stays in the window, and everything works. On leaving — Escape, Enter to
+  the channel, O to the room —, the window is given back before anything
+  else: the room opens in a normal window. In full screen, Escape belongs to
+  the browser, which leaves it without handing the key to the page: leaving
+  full screen therefore means leaving zapping — one key, not two.
+- **The interface at rest**: three seconds without the mouse moving, and the
+  counter, the keys, the column, the channel, the sound and the gradients
+  fade out, the pointer too; a move or a key brings them back. The pointer
+  resting on the interface keeps it; with no channel, its message stays. One
+  timer, not one per move; a "mousemove" without movement — the browser
+  sends some when what is under the pointer changes — does not count.
+
+The guide, the setting and the store sheets say so, in the twelve
+languages; the sheets gain a bullet, "Just the picture".
+
+The report: `zapping.prechargees` (the list; it replaces `precharge`),
+`recycles`, `pleinEcran`, `pleinsEcrans`, `pleinEcranRefus`, `repos` (the
+count), `auRepos` (the instant), `ouvertPar`.
+
+### The audit
+
+The module read line by line. Found, fixed, and caught by the bench:
+
+- **the keys that scroll** — Space, Page Down, End, ← → — scrolled Twitch's
+  page under the screen, in a window — always in 4.33.0, and when full screen
+  is refused: 787, 1,574 then 2,100 pixels, measured; you found it elsewhere
+  on closing;
+- **a released key** went through to Twitch. Keys are now taken on the
+  window, in the capture phase — the very first relay —, no longer on the
+  document;
+- **the height the players aim for** was only said once, at the first
+  report: a resized window left it wrong;
+- **the rebuilt column** — a channel going offline — lost the focus, and no
+  longer followed the current one;
+- **the hidden tab** already paused 4.33.0's preloaded player, with no proof
+  on the bench: here it is, for both.
+
+Found and fixed, with no proof on the bench:
+
+- the current one brought into view by `scrollIntoView`, which may scroll
+  every ancestor — the page underneath included: the column scrolls alone;
+- a preload delay reset by the channel re-read, every two seconds: a delay
+  being counted carries on. The bench cannot catch it: the re-read falls
+  within the delay or not, depending on the instant;
+- housekeeping: a field never read (`t0`), attributes rewritten identically
+  every two seconds, two timers outside the error guard.
+
+### What could not be checked here
+
+- **full screen in a real Chrome, on a screen**, and the Escape key itself:
+  the bench runs without a screen; it tries leaving through the browser
+  (`document.exitFullscreen`), not the key;
+- **the cost of three players** at once, on a real connection;
+- **the real pace of Twitch's carousel**: it was not measured; the bench
+  turns it twice.
+
+### The bench
+
+229, rewritten for the circular ribbon: the surrounded arrival, the carousel
+turning twice, "Next" to a tenth of a pixel, the loop, the scroll by hand,
+a scroll by hand that stops between two cards, two quick clicks at three
+gaps — thirteen assertions. 231: both neighbours and their order, the former current
+one kept, full screen and its exits, the interface at rest, the keys, the
+height aimed for, the rebuilt column, the hidden tab — thirty-one. 217 reads
+the row's order from its head card, looping: the line starts where the turn
+left it. The fake player records the orders it receives.
+
+**Thirty named mutants, all caught.** Four survived at first. Two
+holes in the bench, filled: "the turn without compensation" — with the
+ribbon at rest, the browser's snapping re-snaps the card it holds by itself
+and compensates in our place: d'') tries it mid-scroll, with two quick
+clicks; "the scrolling keys let through" — the assertion ran in full screen,
+where nothing scrolls anyway: it runs in a window, where the page went down
+2,100 pixels. A third, "the current one left out of view on rebuild": the
+removed channel came before the current one, whose rank changed, and the
+column followed it anyway; the column now holds twelve channels, and the
+last one goes offline. The fourth, "the window not given back on leaving",
+showed one call too many: removing the screen already leaves full screen;
+the call is gone, and the mutant with it. The mutants whose assertions moved
+were run again.
+The full bench, for its part, caught a defect no mutant was looking for:
+snapping re-snapping the compensated position (see "The ribbon, centred");
+two more mutants guard it — snapping kept during the path, and never given
+back after. The second survived at first: the next paint re-centred the
+head and hid its absence; b) now reads the snapping itself.
+
+| mutant | what fails |
+| --- | --- |
+| the ribbon not turned on painting | 229 a), a) (straight, neighbours), a'), d), d') |
+| the head taken anew at every paint (the ribbon follows the carousel) | 229 a'), b), b) (then centred), c), c) (the centre, Ctrl), d) |
+| the head never set in the centre | 229 a), a) (straight, neighbours), a'), b), d'') |
+| the turn without compensation | 229 b), d'') |
+| no turn before going | 229 b) |
+| no fade for the card changing ends | 229 b) |
+| the arrows off | 229 a) (the arrows), b), b) (then centred) — then the bench crashes |
+| the end of a scroll by hand ignored | 229 d') |
+| the end of the turn taken for a scroll by hand | 229 b) (then centred), c), d), d'') |
+| snapping kept during the path | 229 d'') |
+| snapping never given back | 229 b) (then centred) |
+| the next one only | 231 d), e), f), g), t) (the height aimed for), w) |
+| the direction ignored: always the next one first | 231 g) |
+| the former current one thrown away | 231 e), f) |
+| the former neighbour left | 231 e), f) |
+| no full screen | 231 c') — then the bench crashes |
+| leaving full screen ignored | 231 t) — then the bench crashes |
+| full screen refused breaking the opening | 231 t) (the height aimed for) — then the bench crashes |
+| never at rest | 231 u) |
+| a move on the spot that wakes | 231 u) |
+| the key that does not wake | 231 u) |
+| hovering ignored | 231 u) |
+| the pointer left | 231 u) |
+| the scrolling keys let through | 231 t) (the keys) |
+| the key release let through | 231 t) (the keys) |
+| the window size ignored | 231 t) (the height aimed for) |
+| focus lost when the column is rebuilt | 231 v) |
+| the current one left out of view on rebuild | 231 v) |
+| the preloaded players playing, tab hidden | 231 w) |
+| the preloaded player kept visible | 231 e) |
+
+`npm run check`: 2335 assertions in 230 scenarios; on the last full bench,
+2334 green. The 2335th, in 188 — the room's three-stream sync, which this
+version does not touch —, failed once under the load of the whole bench;
+alone, it passes, three times out of three. Delivered so, at the user's
+request.
+
+## Zapping (v4.33.0)
+
+One piece of feedback, and its mockup. Published on `claude/chrome-homepage` only.
+
+| reported | what was done |
+| --- | --- |
+| "on level 3, only zapping interests me; to get to it, a button just to the right of the search area's magnifier; do the job professionally, take the existing mockup as a good base" | idea 13, rebuilt from the screenshot of its mockup: your followed channels that are live, full screen, one after another |
+
+### The screen
+
+The live stream full frame — a Twitch embedded player, cropped like a cover
+image: it keeps its 16:9 and overflows the screen rather than leaving bars —,
+and, laid on dark gradients:
+
+- top left, "Zapping · your followed channels, live" and the rank, "2 / 7";
+- top right, the keys, which are buttons too: ↑ ↓ switch, Enter open the
+  channel, S add to the room (or remove from it), O open the room — from two
+  channels —, Esc exit;
+- on the right, the column of channels — thumbnail, name, category, viewers —,
+  the current one framed, the next one marked "preloaded", those in the room
+  "in the room"; a click goes there;
+- at the bottom, the channel: its face, its name and its subathon badge — the
+  sidebar's, with its eight hues —, its title, "Live", its category, its
+  viewers, how long it has been live, "subathon, day 9";
+- bottom right, "Sound from …", which mutes and unmutes.
+
+Two deliberate departures from the mockup: in French, « vos suivis » rather
+than « tes suivis » — the extension uses the formal "you" everywhere else;
+"Live" rather than "EN DIRECT" — the word 4.32.0.4 put on every card, on
+request.
+
+### The order, the sidebar's
+
+The followed channels that are live, as the sidebar orders them, whatever its
+sort: the list you have in front of you. Those it does not show (collapsed, not
+yet rendered) follow, by viewers; in Top Channels the sidebar does not show
+your follows, and only the viewers order applies. Zapping starts from the
+page's channel, if it is one, otherwise from the first; past the end it comes
+back to the start, like a remote control. It keeps itself up to date while you
+zap; the current channel that goes offline stays where it was, "Offline": you
+are not moved.
+
+### The next one is already there
+
+A second player, muted and invisible, loads the following channel — in the
+direction you are going —, half a second after you arrive: bandwidth goes to
+the current one first, and held arrows do not load everything. It becomes the
+current one at once — the same frame, nothing reloads. A channel that was not
+expected — a click in the column, a change of direction — loads under the
+previous image, which stays until the new one plays: the bench counts the
+frames, none is without a visible player. Two players at most, then; the
+room's phase 0 measured what one costs.
+
+### Sound, keyboard, the page underneath
+
+Every embedded player starts muted: autoplay requires it. The room's bridge
+(`cadres.js`), woken by the zapping players' name, gives the sound to the
+current one through the player's own button, and tries again if Twitch mutes
+it back, five times at most; a player that is not the current one and that
+Twitch would unmute is muted again. A transparent cover sits over the players:
+a click in the image does not give them focus, and the keys stay with the
+screen, which does not let them through to Twitch. Tab cycles within the
+screen. The page's video pauses on opening and resumes on closing, as for the
+room; Escape gives focus back to the button.
+
+The players' name, one more name shared between the bridges and the main
+module: eighteen.
+
+### The room
+
+S adds the current channel to the room, or removes it; O opens the room with
+the chosen ones, from two, six at most — the seventh is refused, and the screen
+says so. The room opens the usual way: on "Browse", in place; elsewhere, through
+a real navigation (see 4.24.0.8). A room already open closes when zapping opens
+— two screens of players would fight over the sound — and its streams move into
+the selection: O reopens it with those you add. Without the room — its setting
+off —, no S and no O.
+
+### The button, right of the magnifier
+
+Taken from the real bar, provided by the user: the field's magnifier is
+`button.tw-combo-input__button-icon`, inside `[data-a-target="nav-search-box"]`;
+the search container has, as a neighbour in the same row, the button of the
+collapsed search used in narrow windows. The button goes at the end of that
+row, and **measurement** says whether it sits right next to the visible
+magnifier: centres aligned within six pixels, less than 32 pixels apart.
+Otherwise it goes in the field's own line, just after the magnifier. React can
+rebuild the bar: an observer on it puts the button back before the next frame;
+with the whole bar replaced, a glance every two seconds. The report gives the
+path (`rangee`, `champ`). A square like the magnifier, in Twitch's colours — its
+variables, with the measured values as fallback. "Zapping", in "Settings",
+removes it: it is the thirty-sixth setting. The guide has its chapter, right
+after the room's — it has twenty now, and the store sheets say so —, and the
+sheets their section.
+
+### What could not be checked here
+
+- **sound on the real embedded player.** Zapping takes the room's bridge as
+  is; it was for the room that phase 0 established, on the real Twitch, that
+  an embedded player is unmuted through its button without the browser
+  stopping it. The bench tries it on a fake player;
+- **the real bar.** The button is placed and measured on a reproduction of the
+  extract — same markers, same classes, same nesting —, not on Twitch's page,
+  which this machine cannot reach;
+- **the cost of two players** at once, on a real connection.
+
+### The bench
+
+231, new, twenty-four assertions: the button in its place, measured, put back;
+the screen, the sidebar's order, the cover, the page paused; the current one
+with sound, the next one preloaded, muted, served without reloading; the
+direction; no frame without a player; the full loop; the bottom of the screen;
+sound muted and back; the room, its limit, its opening, an open room closed;
+Tab, Escape, Enter, starting from a channel's page; the channel that goes
+offline; the setting; two other bars; no channel; the sources; the guide. 120:
+thirty-six settings; 96: twenty chapters, which the twelve sheets announce, and
+the zapping chapter quotes its setting and "Settings". The fake Twitch learns the top bar, in three forms, and the fake
+player the two buttons the bridge presses.
+
+**Twenty-nine named mutants, all caught.** Four survived at first, four holes
+in the bench, filled: "no glance at the bar" — the resize that follows the
+page's opening put the button back 250 ms later, standing in for the missing
+glance: b) waits until it has passed, and only sees its own paths; "Tab
+leaving the screen" — l) only asked that focus stay on the screen: it must go
+from button to button, and come back to the first; "the sound button that
+mutes nothing" — the bridge's next report muted the sound in its place: i)
+holds those reports back for the measurement, it is the button that must mute;
+"the players in front of the screen" — the players ignore the mouse, and the
+measuring point saw through them: c) gives it back to them for one
+measurement, and the counter must stay on top. Two others crashed the bench,
+and the runner counted them as errors: "O with a single channel" closed the
+screen, and the next reading crashed before any assertion — it now returns an
+empty reading, and j) fails; "the viewers' order, not the sidebar's" failed an
+assertion, then crashed the bench. The runner now counts as caught a mutant
+with an assertion failed before the crash, and notes it: three are caught
+that way, marked in the table.
+
+| mutant | what fails |
+| --- | --- |
+| the button before the magnifier | 231 a), b), l) (Escape), p) |
+| the button placed without measuring | 231 p) |
+| no observer on the bar | 231 b) |
+| no glance at the bar | 231 b) — then the bench crashes |
+| the viewers' order, not the sidebar's | 231 c), d) — then the bench crashes |
+| the preloaded player thrown away and reloaded | 231 e), f) |
+| preloading always forward | 231 f) |
+| the previous picture removed at once | 231 f) |
+| the previous picture removed as soon as the channel changes | 231 f) |
+| sound never restored | 231 d), e), i) |
+| the preloaded player left with sound | 231 d) (the preloaded one mutes again) |
+| no cover | 231 c) |
+| keys passed on to Twitch | 231 e) |
+| Tab leaving the screen | 231 l) |
+| the room's limit ignored | 231 j) (six at most), k), k) (reopened) |
+| O with a single channel | 231 j) — then the bench crashes |
+| the open room left open | 231 k) (reopened) |
+| the page's video left playing | 231 c), l) (Escape) |
+| the page's video not resumed | 231 l) (Escape) |
+| the current channel that goes offline leaves the list | 231 m), n) |
+| no subathon badge | 231 h) |
+| the sound button that mutes nothing | 231 i) |
+| the setting off, the button stays | 231 o) |
+| always starting at the first | 231 n) |
+| Enter without navigating | 231 n) |
+| the bridge closed to the zapping's players | 231 d), d) (the preloaded one mutes again), e), i), r) |
+| the preloaded player visible | 231 d) |
+| the players in front of the screen | 231 c) |
+| the wheel let through | 231 l) (the wheel) |
+
+`npm run check`: 2323 assertions in 230 scenarios, all green.
+
+## The ribbon polished, and a board to follow the bench (v4.32.0.5)
+
+Two pieces of feedback. Published on `claude/chrome-homepage` only.
+
+| reported | what was done |
+| --- | --- |
+| "the 3D ribbon idea is good; I'd like it a bit more polished, CSS-wise" | the reflection as a pool, off under the centre card; the caption without a background; faded edges; a shadow under each thumbnail; sharper arrows |
+| "a graphical interface when you run the tests and mutants: I get very little information; no need to show your actions, just where you are" | `tests/suivi/`: a page that follows the check and the mutants, to the second (see "The progress board", under Verification) |
+
+### The ribbon, reread on a screenshot
+
+The screenshot showed what the bench's fake Twitch reproduces exactly:
+
+- **blocks of colour under the neighbours.** The reflection was a rectangle
+  as wide as the card, with hard edges, cut across by the next neighbour.
+  It is a pool now — an ellipse that fades towards the sides —, at 34 % under
+  the neighbours, and off under the centre card, where the caption is read.
+  It follows the card's crossing through a named timeline: a pseudo-element
+  does not have its own. It animates nothing but its opacity;
+- **a grey box under the centre card.** The caption carried the page's
+  background, to hide the reflections passing under it, read from Twitch's
+  variable, `--color-background-base`. On the screenshot's page, the actual
+  background was darker than that variable — measured to the pixel: 34, 33,
+  38 for the page, 51, 50, 57 for the box. Nothing passes under the caption
+  any more: it has no background, and assumes no colour;
+- **cards cut off sharply at the edge** on a narrow screen, an arrow sitting
+  on the cut: a mask fades both ends of the ribbon into the page;
+- **cards stuck edge to edge** where they overlap: a drop shadow under each
+  thumbnail — on the lift, not on the thumbnail, which rises on hover and
+  would cast it on the sides it uncovers;
+- the arrows: 40 pixels, a thin rim, a blurred background.
+
+The bench: 229 e) rewritten (the pool, off at the centre; the caption with no
+background), 229 f) new (the mask, the shadow).
+
+**Six named mutants, all caught.**
+
+| mutant | what fails |
+| --- | --- |
+| no reflection | 229 e) |
+| the reflection on under the centre | 229 e) |
+| the caption on the variable's background | 229 e) |
+| the reflection without its timeline | 229 e): it lights up under every card |
+| no mask | 229 f) |
+| no shadow | 229 f) |
+
+### The progress board
+
+Described under "Verification". `run.mjs` gains a hook: with `TSE_SUIVI`, each
+scenario and each assertion are appended to a file; without it, nothing
+changes. The mutant runner and the scenario extractor, which lived outside the
+repository, move into it — the working folder that held them was wiped once,
+with the machine. Tried on a real run; on the thirteen mutants of 4.32.0.4,
+which give the same verdicts as with the old script; on its error cases
+(missing text, scenario not found); and the remaining-time estimate, on seven
+cases worked out by hand.
+
+`npm run check`: 2299 assertions in 229 scenarios, all green.
+
+## The home page, after use: the ribbon, removed channels in Settings, Twitch's cards (v4.32.0.4)
+
+Seven pieces of feedback, one of them an audit of the whole home page. Published on `claude/chrome-homepage` only.
+
+| reported | what was done |
+| --- | --- |
+| "make 'Featured' a 3D ribbon" | track B of the mockup: a line that scrolls, the centre card straight, its neighbours turned, a reflection on the floor |
+| "remove the 'remove' button; put it in the options, we type the streamer's username; several are added to a list; the usernames on that list are removed from the Top 10" | the button is gone; "Channels removed from the Top 10", a list of usernames in Settings, applies to the Top 10 in every language |
+| "do a full audit of the Home part" | dead code removed, four defects fixed, each one caught by the bench (see below) |
+| "'No schedule' in order of the nearest in the future" | the five channels, sorted by their time to come |
+| "the 'Vient de passer sur V…' pill: say 'Va sur VALORANT' instead" | "Va sur VALORANT" in French, a shorter form in every language |
+| "the Subathon pill blinking like elsewhere" | the eight hues of the sidebar's pill, at the same pace |
+| "consistent visuals: it says 'viewers', the duration differs; put everything in the same CSS" | Twitch's cards take our cards' marks — "Live", the bare number, the duration top right |
+
+### "Featured", as a ribbon
+
+The carousel's streams on a line that scrolls, snapped to the centre
+(`scroll-snap`). The centre card stands straight and full; its neighbours turn
+by 52°, move back, shrink to 72 % and darken — the mockup's values. The
+motion follows the scrolling itself (`animation-timeline: view(inline)`): no
+script computes it.
+
+- **What turns is the thumbnail and the caption, not the card.** Snap
+  scrolling measures the *transformed* box of the card: turned, its centre
+  was no longer at the centre, and "Next" stopped at 274 pixels instead of
+  300 — measured by the bench. So the card stays straight, and its two halves
+  turn around the same point, the middle of their seam, with the same
+  perspective: it stays in one piece, and the snap centres it to the pixel.
+- **The order of planes**: the cards overlap by a seventh; a z-index that
+  follows the scrolling keeps the one nearest the centre in front. The
+  rotation goes to the compositor; the z-index cannot, and the darkening,
+  animated with it, stays with it. Their timeline is the scrolling: their
+  values only change while the ribbon scrolls.
+- **Only the centre card has its caption**, as in the ribbon it comes from:
+  the neighbours' captions showed under its own, which they overlap — seen in
+  the picture. Its caption sits on the page's background.
+- **The reflection on the floor**: the channel's colour — the lift's — as a
+  gradient, at 18 %; not a mirror of the picture, where the stream, the
+  badges and the label, upside down, would say nothing.
+- **Two arrows**, halfway down the thumbnail: a vertical wheel does not
+  scroll a ribbon. Off at the ends.
+- **A click on a side card brings it to the centre**, without opening its
+  channel: that is a ribbon's gesture. The centre one opens; a click with
+  Ctrl, Shift or Cmd, or a middle click, always opens.
+- **Without scroll timelines** (too old a browser), the ribbon stays flat,
+  its cards side by side: it scrolls, snapped, without turning.
+- Nothing folds: "Show all" has nothing left to do there.
+
+The report: `accueil.une.centrages`, the clicks that centred a card.
+
+### Removed channels, in Settings
+
+The 4.32.0.3 button is gone, and with it the line below the Top 10 that said
+what it had removed. In their place, a setting: "Channels removed from the Top
+10", in the home page's group.
+
+- **A new kind of setting, the list**: a field, "Add" or Enter, and one chip
+  per username, which its cross removes. You type the username, `@username`
+  or the channel's address, several at once. What is not a username is said,
+  and given back to the field to fix; a duplicate is said; never a silent
+  refusal.
+- **The login, not the display name**, in lower case: it is what the address
+  carries, and what the ranking knows. The page checks everything that comes
+  in (`propre`): case folded, anything not shaped like a login ignored, a
+  duplicate counted once.
+- **Twenty at most**, and the number is not a choice: the Top 10 is proven
+  over ten places more than the list (below), and the language-tag answer,
+  which proves it in a single request, carries thirty. At the limit, the
+  field closes and says so.
+- **Removed from the Top 10, whatever its language** — Twitch's or all of
+  them: the list has no language. **Top Channels, in the sidebar, is not
+  affected**; the home page reading the sidebar's ranking still removes its
+  own.
+- **Before the places**: the Top 10 keeps its ten, the eleventh moves up.
+- **The tenth place, proven like the others.** A removed channel brings up
+  the eleventh, which the ranking's proof of completeness did not cover — it
+  was for ten. The home page's ranking therefore asks for as many more as
+  the list holds, and now says how far its proof goes (`prouve`); too short a
+  proof restarts the walk at once, instead of waiting for the next one (two
+  and a half minutes). Until then, the Top 10 says it is partial and counts
+  no movement. The sidebar is shared only on the same condition: its Top
+  Channels must carry enough places.
+- **Nobody "gained a place"**: removing a channel moves up those below it,
+  without them gaining a viewer. The movement's snapshots carry the list;
+  changed, the movement starts again from a fresh reference.
+- **What 4.32.0.3 had removed stays removed**: its per-language list
+  (`tse:ecartees`) moves to the setting, once, all languages together,
+  checked like everything that comes in; then its key goes.
+
+The report: `accueil.top.ecartees` and `retirees` — the list's size, and how
+many of its channels the ranking carried. Counts. Settings now number
+thirty-five.
+
+### "No schedule", nearest to come first
+
+The five channels are still the ones you watch the most; they are now sorted
+by their time to come, like "Your scheduled streams" above them. A habit's
+time is a time of day: its next occurrence is today if it has not passed,
+tomorrow otherwise — midnight included: at 23:00, "around 00:00" comes before
+"around 20:00". The current minute still counts as to come. At equal times,
+the order of visits.
+
+### "Switched to VALORANT"
+
+"Vient de passer sur …" left the game only its first letter in a pill half a
+thumbnail wide. The home page's label now says "Va sur VALORANT" in French,
+and a short form in each language — "Switched to", "Wechselt zu", "Pasa a"…
+The preview's badge, which has the room, keeps its sentence.
+
+### The subathon blinking like elsewhere
+
+The "Subathon" label runs through the eight hues of the sidebar's pill and the
+preview's badge, at the same pace of one and a half seconds; text, border and
+dot move together, the background stays dark. An animated colour repaints,
+and that is accepted: a pseudo-element carries no copies, and subathons are
+rare. Its area stays far from the one WCAG 2.3.1 targets.
+
+### Twitch's cards with our marks
+
+Under "Tidy Twitch's home page", a Twitch live card takes the extension's
+cards' marks:
+
+- **"Live"** restyled like ours — background, size, weight, padding, rounding,
+  capitals —, eight pixels from the corner. The word stays Twitch's.
+- **The viewer count without the word**: `TseChannels`' number, written as on
+  our cards (`formatViewers`), in our style.
+- **The stream's duration top right**, `formatUptime`, like ours — and with
+  "Stream uptime" off, it does not show, here either.
+- **The screenshot's "38:55" was not Twitch's.** Read on the saved page: it
+  lives in a `seventv-stream-card-uptime-badge`, put in the card by the 7TV
+  extension. It steps aside when our duration shows — two durations of the
+  same stream would be one too many —, and the label gets the bottom corner
+  back.
+- **Nothing made up**: without a `TseChannels` answer for the channel, its
+  count stays Twitch's, in our style, and nothing is written at the top.
+- **No node goes into** Twitch's card: attributes, and pseudo-elements that
+  read them.
+- **What it costs**: the channels of the cards on screen join `TseChannels`'
+  common batch, as for their labels — now also when labels are off, as long
+  as "Tidy" is on.
+
+The report: `accueil.etiquettes.twitch.habillees` and `durees`.
+
+### The audit
+
+The whole home module, read again: its code, its style sheet, its texts.
+
+- **Dead code**: the `ecartees` module, its button, its line, their style and
+  their four texts in ten languages. No other function, no class of the style
+  sheet, no home text left unused — checked by a survey.
+- **A setting put back to its default in another tab stayed changed in this
+  one** — every setting, all along. Storage keeps only the differences: back
+  to its default, a setting leaves it, and the re-read only set what it
+  found. It now starts from the defaults. And storage cleared at once
+  (`clear`, a null key) is re-read too.
+- **A Twitch card's label stayed at the top** when "Tidy" was switched on: it
+  computed its corner before the style sheet hid 7TV's badge. Tidying now
+  comes before the labels, and the corner is computed again when our
+  duration shows or goes.
+- **The ranking's proof did not say how far it went** — harmless while the
+  Top 10 always asked for ten places; the list made it necessary (above).
+- **Performance**: the list is read into a set once per change, not at every
+  paint; counting the removed channels walks the ranking only if the list is
+  not empty; the ribbon costs no script while scrolling, except its arrows'
+  state, once per frame.
+
+### What couldn't be checked
+
+Twitch can't be reached from here. The saved page carries its cards' structure
+and 7TV's badge, not their style sheets: our rules win through `!important`,
+and the bench tries them against inline styles, not against Twitch's. Scroll
+timelines need Chrome 115; the flat ribbon that replaces them elsewhere is not
+tried by the bench, whose Chromium knows them.
+
+### The bench
+
+- 217 l), rewritten: "Featured" as a ribbon — one line, the five, no "Show
+  all";
+- 120: the list in the panel — the field, the address and `@username`, the
+  refusal said and given back to the field, the duplicate, the cross, the
+  limit; the thirty-five settings;
+- 221 b): "No schedule" in order of the time to come, checked on instants and
+  not on minutes of the day, the tab set to noon;
+- 222: "Va sur Elden Ring"; the subathon running through the eight hues; the
+  label under our duration; the cost with labels off, with and without
+  "Tidy";
+- 226: our rows' grid read on a sample list, "Featured" being a ribbon;
+- 213: two more named exceptions, each with its reason — the ribbon's order of
+  planes (z-index and darkening) and the subathon's colour;
+- 64 and 213 c), under Chromium 153, the bench's browser since this version:
+  Italian now reads "29,3K" instead of "29.339" — both forms, written by
+  hand, are accepted, neither is English's; the trace no longer says "0" of
+  an animation taken, and recycles its ids — the refusal of a transition on
+  the sort button was blamed on one of ours. It is now read instance by
+  instance, and an animation that animated a shadow still fails there
+  (tried);
+- 220 e'): the data served 400 ms after arrival — without a delay they
+  crossed Twitch's home (200 ms) within a few milliseconds; when they won, the
+  veil rightly lifted over a scroller not there yet, and the assertion failed
+  with no fault in the home. The scroller is now required before the lift;
+  lifting the veil before painting still fails there (tried);
+- 227, rewritten: removed channels — the migration, the ten places, the proof
+  in all languages and restarted before the next walk, measured, the movement
+  starting over, the sidebar untouched, another tab, storage cleared, what
+  comes in checked;
+- 229, new: the ribbon — arrival, planes, captions, "Next" to the pixel, the
+  side click, the centre one and Ctrl, the end, the reflection;
+- 230, new: Twitch's cards — "Live", the bare number, the duration, 7TV's
+  badge, nothing made up, "Stream uptime" off, no node, the setting off
+  then on;
+- the fake Twitch: its cards' corners and 7TV's badge.
+
+**Forty-seven named mutants, all caught.** Two survived at first, two holes in the bench, filled: "the walk awaited", which the bench could not tell apart — its full walk comes back every 3 s, faster than the test's wait —: 227 d) now sets the list just after a walk, and the proof must come before the next one; "midnight forgotten", which only showed if the bench ran between 00:01 and 21:00: 221's tab is set to noon, whatever the time.
+
+| mutant | what falls |
+| --- | --- |
+| the migration forgotten | 227 a) and b): the 4.32.0.3 list lost, Tavor and Brune in the Top 10 |
+| the filter after the places | 227 b): eight places instead of ten |
+| the ranking asking for ten only | 227 c') and d): in all languages, the proof stops at ten channels |
+| the list held for Twitch's language only | 227 c'): in all languages, Tavor and Brune come back |
+| the walk awaited | 227 d): the proof waits for the next walk |
+| the sidebar filtered too | 227 e): Tavor, Brune and Aldric missing from Top Channels |
+| the home page reading the sidebar without its list | 227 e): read from the sidebar, the Top 10 takes them back |
+| the re-read without the defaults | 227 f): cleared in the other tab, the list stays in this one |
+| the case kept | 227 a) and b): "Brune" is not "brune" |
+| the duplicate kept | 227 g): a username counted twice |
+| the limit ignored | 227 g): more than twenty usernames kept |
+| the list outside the movement's key | 227 d): places "gained" under the channels that moved up |
+| the null key ignored | 227 f): storage cleared at once, the list stays |
+| the address taken as is | 120: the channel's address refused |
+| the silent refusal | 120: a refusal with no message |
+| the duplicate sent again | 120: a username already there added a second time |
+| the cross that removes everything | 120: one cross empties the list |
+| the field open at the limit | 120: at twenty, the field stays open |
+| the flat ribbon | 229 a) and e): nothing turns |
+| captions everywhere | 229 a): the neighbours' captions visible |
+| the planes in DOM order | 229 a): a neighbour in front of the centre card |
+| "Previous" always on | 229 a) and d): the arrows on at both ends |
+| the whole card turning | 229 a) and b): the card off-centre after the snap |
+| the side click opening the channel | 229 c): the channel opens, the card does not come to the centre |
+| the centre click held back | 229 c'): the centre card no longer opens |
+| Ctrl ignored | 229 c'): with Ctrl, the card comes to the centre instead of opening |
+| no reflection | 229 e): no reflection |
+| the transparent caption | 229 e): the caption without the page's background |
+| the arrows halfway down the ribbon | 229 a): the arrows below the thumbnail's middle |
+| the row folded like a grid | 217 l): "Featured" as a grid |
+| the order of visits kept | 221 b): the order of visits, not of the time |
+| midnight forgotten | 221 b): "around 00:00" first, at noon |
+| the old text | 222 b): "Vient de passer sur Elden Ring" |
+| the still Subathon label | 222 a''): a single hue |
+| the border that does not follow | 222 a''): the border keeps its hue |
+| the label on the duration | 222: the label over our duration |
+| a label with the setting off | 222 f): labels, with the setting off |
+| a request with neither | 222 f): channels requested, both settings off |
+| Twitch's "Live" as is | 230 a): "Live" in Twitch's style |
+| "viewers" kept | 230 b): the word "spectateurs" stays |
+| no duration | 230 c) and d): no duration, 7TV's badge stays |
+| 7TV's badge kept | 230 d): two durations |
+| the corner computed once and for all | 230: "Tidy" back on, the label stays at the top |
+| the dressing without the setting | 230 h): "Tidy" off, Twitch's card dressed all the same |
+| the labels before the tidying | 230: "Tidy" back on, the label stays at the top |
+| Twitch's corners left in place | 230 a) and b): "Live" and the count out of their corners |
+| the veil lifted before painting | 220 e'): the veil lifts before the banner is painted |
+
+The full bench: 2298 assertions in 229 scenarios, all green.
+
+## The home page, after use: "Featured", a channel removed, Twitch's lift (v4.32.0.3)
+
+Four pieces of feedback, a diagnostic report attached. Published on `claude/chrome-homepage` only.
+
+| reported | what was done |
+| --- | --- |
+| "a Québécois streamer is often in the French Top 10; his streams are in English, despite the Français tag" | one click on its card removes the channel from that language's ranking — the Top 10 and Top Channels alike —, and one click below the Top 10 restores it |
+| "remove 'Your followed channels, live', it is redundant with the sidebar" | the row is gone, with its setting |
+| "instead, add the carousel's streamers" | "Featured": the streams of the carousel the banner hides, as a row |
+| "the hover on native rows: the left and bottom edges coloured, the picture shifting up and to the right" | the same lift on our cards, in the channel's colour |
+
+And "suggest ideas for complex lists in CSS": four directions as a mockup,
+sent separately — none ships until one is chosen.
+
+### Removing a channel from a ranking
+
+The ranking reads the language tag as the channel sets it: a channel tagged
+"Français" that does not speak French is, to it, a French channel. Nothing
+tells it apart without guessing — the language of its settings is that of its
+tag, and an English title proves nothing: French channels title in English.
+So you say it.
+
+- **The button**: on each place of a Top 10 held in one language, right of
+  the texts, shown when hovering the place or from the keyboard. "Remove
+  Tavor from this ranking".
+- **From that language only.** In the all-languages ranking the channel keeps
+  its place, which is right — and nobody is removed there.
+- **Wherever that ranking shows**: the home page's Top 10 and Top Channels in
+  the sidebar, which hold the same list. The filter sits in `top()`, before
+  the places: the ranking keeps its ten, or its thirty, and a click shows at
+  once.
+- **Said below the Top 10**: "Removed from this ranking: Tavor — Restore". A
+  Top 10 that does not show everything says so.
+- **Kept on the device** (`tse:ecartees`, language → logins), fifty at most;
+  read again and checked on load — a language the table does not know, a
+  malformed login, ignored; followed from one tab to another.
+
+The report: `accueil.ecartees` — clicks, restored, shown, languages,
+channels. Counts, no channel.
+
+### "Featured"
+
+The carousel the banner hides carries five streams; each lives in a
+`featured-content-carousel__item-container`, one class of which gives its
+place (`--center`, `--right-1`, `--right-2`, `--left-2`, `--left-1`, read on
+the real page), and its thumbnail `live_user_<login>-320x180` names the
+channel. The row takes them **in the carousel's order** — the centre, what
+comes to its right, then, round the loop, what is to its left; without those
+classes, in page order, leaving out the "headliner" ad.
+
+- **Only when the carousel is hidden** — by the banner, or by "Nothing": with
+  the carousel shown, that would be the same streams twice.
+- **Without the banner's channel**, which sits just above.
+- **What a card says comes from `TseChannels`**: a channel the sidebar does
+  not follow joins the common batch while it is featured. No extra operation.
+  A channel Twitch says is offline does not show.
+- **Its place, kept while waiting.** The carousel arrives after our first
+  frame, and its channels one response later: the row appeared above the Top
+  10, which moved down a line before your eyes — the bench caught it. A line
+  of empty cards, at the exact height of the real ones, holds its place for
+  eight seconds at most.
+- **When the carousel arrives**, its channels are read again at the mutation
+  itself, without waiting for the five-second tick.
+
+The banner does not change: the followed channel you watch the most, among
+those live. The "Featured" setting (`accueilUne`) replaces "Your followed
+channels, live"; a value left under the old key is ignored — it is not the
+same row. The report: `accueil.une` — the path (`places` or `ordre`), the
+channels read, shown, waiting, the kept place, the requests, the re-reads.
+
+### Twitch's lift on hover
+
+Read on the saved page: a Twitch card's thumbnail lives in a
+`tw-hover-accent-effect`, with four pieces beside it — two corners
+(`ScCornerTop`, `ScCornerBottom`) and two edges (`ScEdgeLeft`,
+`ScEdgeBottom`). Over forty-eight cards, the wrapper's class changes from one
+channel to the next, and ten share one: a colour per channel, and a default
+one for those that chose none.
+
+- **One piece draws all four**: a six-point polygon, folded onto the left and
+  bottom edges at rest, unfolded on hover — the left side and underside of a
+  block, corners bevelled at 45°, exactly the area the thumbnail sweeps as it
+  rises 6 pixels to the right. 100 ms, `ease`.
+- **At rest, it stays inside the thumbnail**: always overflowing, it widened
+  the grid — invisible, but measured by the bench.
+- **Twitch's square corners**: its bevelled corners meet square ones. The
+  picture's zoom on hover is gone: the lift replaces it.
+- **The channel's colour**: `primaryColorHex`, a `User` field that Twitch's
+  own queries request for the cards of its rows (`HomeShelfUser`,
+  `DirectoryPageGameStreamWithTagsNode`…). `TseChannels` now requests it —
+  some twenty bytes per channel, in a batch that goes out anyway —, and
+  `TseCategoryTop` too, for the "Because you often watch…" rows. Six hex
+  digits, or Twitch's purple.
+- **From the keyboard** as with the mouse.
+
+The report: `accueil.relief` — how many of our cards carry their channel's
+colour, how many the purple.
+
+### What couldn't be checked
+
+Twitch can't be reached from here. The saved page carries the lift's
+structure, not its style sheets: the 6 pixels are Twitch's 0.6 rem (a
+ten-pixel rem on its side), the duration and curve are the ones known of it,
+not read. That the colour is `primaryColorHex` rests on two facts — a colour
+per channel, ten cards out of forty-eight sharing one, and the field requested
+by the queries of its own cards —: the report will say how many of our cards
+received it. If Twitch rotates a hidden carousel, the row follows what it
+carries.
+
+### The bench
+
+- 217, rewritten: "Featured" — the carousel's order, the banner apart, the
+  cost, a stream that ends, the carousel shown or hidden, page order without
+  the classes, the carousel arriving after us, the kept place and its end,
+  folding;
+- 218, 219, 222, 226, revised: their cards come from "Featured" and the Top
+  10, no longer from the followed row; 220: the frame probe reads any row
+  title that shows, whichever it is, and the sixteen streams of "From the
+  start" go out together;
+- 227, new: removing a channel — the button, the click, the line, the
+  storage, all languages, the sidebar, "Restore", another tab, the storage
+  checked, the cap;
+- 228, new: the lift — at rest, on hover, to the pixel, the purple, the
+  keyboard, the field requested, a malformed colour;
+- the fake Twitch: a carousel with place classes, named by the scenario; a
+  channel's colour, returned only when requested.
+
+**Twenty-nine named mutants, all caught.** A thirtieth, set aside as equivalent: the lift moved below the background changes nothing on the bench's page, where no background stands between the lift and the page; replaced by the lift that does not unfold.
+
+| mutant | what falls |
+| --- | --- |
+| page order | 217 a): solvane, orvik, tessaly… instead of the centre first |
+| the banner's channel kept in the row | 217 a): korbek twice, in the banner and featured |
+| the row shown whatever the carousel | 217 c): "As on Twitch", the row under the carousel |
+| nothing read without the place classes | 217 d): an empty row, no page order |
+| no re-read when the carousel arrives | 217 e): no re-read |
+| an ended stream kept | 217: solvane stays featured |
+| the place never kept | 217 e') and 220 a): the row arrives, the Top 10 moves down |
+| the place kept forever | 217 e'): with no carousel, the empty line stays |
+| the filter after the places | 227 b): nine places |
+| removed from all languages | 227 c): missing from the all-languages ranking |
+| the sidebar forgotten | 227 d): Tavor stays in Top Channels |
+| the language lost in storage | 227 b): the memory without its language |
+| storage not listened to | 227 f): the other tab is not followed |
+| the language read without the table | 227 g): "Klingon" counted |
+| the login read without its shape | 227 g): "Zephyr!" counted |
+| the cap ignored | 227 h): the button stays at fifty |
+| the button always visible | 227 a): visible at rest |
+| no name, the login | 227 b): "tavor" instead of "Tavor" |
+| the lift unfolded at rest | 228 a): the polygon open without hover |
+| overflowing at rest | 228 a) and 217 k): the grid six pixels wider |
+| the rounding kept | 228 a): six pixels of rounding |
+| the shift's direction | 228 b): the picture moves down and left |
+| the channel's colour ignored | 228 b) and c): purple on Tessaly |
+| the zoom kept | 228 b): the picture still zooms |
+| the lift that does not unfold | 228 b) and c): nothing left or below |
+| no colour, nothing | 228 d): a transparent lift |
+| the field left out of the query | 228 b): no colour received |
+| a malformed colour taken | 228 e): "url(x)" set as is |
+| the keyboard forgotten | 228 d): nothing on focus |
+
+The full bench: 2278 assertions in 227 scenarios, all green.
+
+## The home page, after use: a sharp banner, "From the start", Twitch's rows (v4.32.0.2)
+
+Three pieces of feedback, a diagnostic report attached. Published on `claude/chrome-homepage` only.
+
+| reported | what was done |
+| --- | --- |
+| "the banner's video is still pixelated" | the banner's player asks for its token with the whole quality ladder; the ad blocker capped it at 640 × 360 |
+| "'From the start' doesn't take me to the start" | the link opens the replay at `?t=1s`, no longer `?t=0s` |
+| "Twitch's lists are smaller; reuse what the extension does" | Twitch's live rows take our rows' grid: as many cards per line, the same size, the same gaps |
+
+### Why the banner stayed at 360p
+
+The report said `heros.video.qualite 360p`, `auto false`, for a height of
+644 pixels: the quality the bridge set was indeed the highest the player
+had — and it only had 360p. The banner carries the hover preview's frame
+name, and the ad blocker, which lives there, rewrites the access token's
+player type as `autoplay`: a 640 × 360 cap Twitch sets server-side, meant
+for a 480 × 270 thumbnail (adaptation (h) of `adblock.js`). No quality set
+gets past it.
+
+The cap now follows the quality the player's URL asks for (adaptation
+(i)): above 360p, the upstream type, `popout`, and its whole ladder. The
+banner asks for at least 720p: it gets its own. A hover preview stays on
+`autoplay` at its default setting, 360p — and one set higher in
+"Settings" finally gets what it asks for: until now, 480p and 720p stayed
+at 360p.
+
+The report now also gives the ladder the channel serves the player and
+the height actually decoded: `heros.video.echelle` ("160/360/480/720/1080"),
+`heros.video.decodee`.
+
+### "From the start"
+
+The link led to `/videos/…?t=0s`, and the replay didn't open at the start.
+The only reading that explains it: a zero time means "no time" to Twitch,
+and the replay resumes where you were — for a stream you're watching,
+near its end. The link now carries `?t=1s`: the first second, asked for
+explicitly. On the banner as on the cards.
+
+### Twitch's rows the size of ours
+
+4.32.0 gave them eight columns from 1600 pixels: cards smaller than ours,
+just above, and two empty places when Twitch only puts six. They now take
+our rows' grid, at every width: as many columns as fit a card of at least
+290 pixels, gaps of 20 and 14 pixels — one definition for both
+(`ACCUEIL_CARTE_MIN`, `ACCUEIL_ECARTS`). Only the live rows, those that
+carry preview cards: the categories' box art keeps Twitch's layout. Still
+CSS alone: nothing removed, nothing added.
+
+The texts that said "eight cards per line" — the setting, the guide, the
+Store listings — now say so in the twelve languages.
+
+### What couldn't be checked
+
+Twitch can't be reached from here: neither the ladder `popout` serves an
+embedded player nor how the replay page reads `t=0s` could be checked on
+the real Twitch. The first is documented upstream of the ad blocker; the
+second is the only reading that explains "not at the start" with nothing
+else changed. The report will give the ladder and the decoded height.
+
+### The bench
+
+- 32: a preview set to 720p60 asks for its token as `popout`; at its
+  default setting, still `autoplay`;
+- 216 j'): the report gives the ladder served and the decoded height;
+- 218: "From the start" at `?t=1s`, on the banner and on the cards;
+- 226 e), revised: at 1600 as at 1400 pixels, Twitch's live rows have our
+  grid — same number of columns, same card width, same gaps — and a box-art
+  row keeps its own. The fake Twitch learns category rows (`jaquettes`).
+
+**Eight named mutants, all caught.**
+
+| mutant | what falls |
+| --- | --- |
+| the cap for everyone | 32: a 720p60 preview stays on `autoplay` |
+| the cap above 720p | 32: 720p60 stays on `autoplay` |
+| the start at zero | 218: `?t=0s` on the banner and the cards |
+| eight columns | 226 e): not our rows' grid, at 1600 as at 1400 pixels |
+| other gaps | 226 e): the gaps are not ours |
+| the box art caught in the grid | 226 e): the category row turns into a grid |
+| the grid on large screens only | 226 e): Twitch's grid at 1400 pixels |
+| the ladder not reported | 216 j'): `heros.video.echelle` empty |
+
+The full bench: 2255 assertions in 225 scenarios, all green.
+
+## The home page, after use: the banner, the labels, the preview (v4.32.0.1)
+
+Four pieces of feedback, a diagnostic report attached. Published on `claude/chrome-homepage` only.
+
+| reported | what was done |
+| --- | --- |
+| "the carousel shows at the top, there is no #1 Channel banner" | with no visit counted among the live followed channels, the banner takes the first of "Your followed channels, live"; the carousel only comes back when no followed channel is live |
+| "the labels are not coloured as in the mockup" | a round pill in the mockup's colour, one per kind of fact: the text, the border and a dot of that colour, on a dark background |
+| "remove the 'Since…' part and the '… clips, most viewed' part" of the preview | 4.29.0's recap is removed, whole: its two lines, its request, its setting, its texts |
+| "raise the quality of the banner's stream" | the quality set by the player itself, from the banner's height, never below 720p |
+
+### The banner without a visit
+
+The report said `heros.sansVisite true`: five followed channels live, none
+visited on this device — five minutes on its page, the rule as always. The
+banner required a visit; it no longer does. It takes the first of "Your
+followed channels, live": the one you watch the most, and with no visit
+among them, the one with the most viewers. The report now says
+`heros.sansVisite true` when the banner holds its channel from that
+fallback.
+
+The early fetch follows: without the followed row, the banner alone has the
+followed channels requested at start-up, within what the sidebar already
+polls — the veil only lifts once the banner is painted, not on the carousel
+it would replace before your eyes. No extra request: these are the
+sidebar's channels.
+
+### Coloured labels
+
+The mockup's, one per kind of fact:
+
+| fact | colour |
+| --- | --- |
+| "Back after 41 days", "↗ +38% in 10 min" | green `#6bdb9d` |
+| "Subathon • DAY 9" | pale gold `#ffe38f` |
+| "Just started" | red `#ff6b62` |
+| "Just switched to Elden Ring" | purple `#bf94ff` |
+| "#3 in English" | gold `#ffd68a` |
+| "Co-stream of 3 channels" | blue `#8fc7ff` |
+
+A round pill, 22 pixels high, a one-pixel border and a 7-pixel dot of the
+same colour, background `rgba(14, 14, 16, 0.86)` — on our cards as on
+Twitch's. Still an attribute and a pseudo-element: the colour is a variable
+set by the kind of fact, which the pseudo-element inherits.
+
+### The preview without a recap
+
+"Since 18:02: 1h20 Just Chatting → 2h40 Elden Ring" and "6 clips · most
+viewed: …" no longer show. Gone with them: the `TseRecapClips` operation —
+one fewer per hovered stream —, the "The stream recap" badge of the badges
+setting, its line in the guide and the Store listings, in the twelve
+languages, and `reseau.recap` in the report. The category trail, which it
+read, does not move. "While you were away" keeps its "most viewed": the
+phrase now lives there under its own name.
+
+### A sharper banner
+
+The player's URL asked for 720p60, but the URL is only a preference that
+adaptive bitrate overrides — measured for the preview, in 3.26. The quality
+is now set as in the room: through Twitch's player instance, in the
+channel's real ladder. The banner tells its player the height the video
+fills, in screen pixels — density included —, when it loads and on every
+size change; the bridge sets the closest, one step above, and never below
+720p when the channel has it. It sets it again if the player falls back to
+automatic — five times at most per height, never during an ad —, and
+re-reads the instance every five seconds: the ad blocker, in the same frame,
+may reload the player. The report gives the height and what the player
+plays: `heros.video.hauteur`, `.qualite`, `.auto`.
+
+One more message name shared between the bridges and the main module:
+seventeen.
+
+### What couldn't be checked
+
+Twitch's player instance, how it is found in the page's tree and
+`setQuality` are the ones the room has used since 4.24.0.10, on the real
+player; the bench imitates them. Whether the ad blocker, after an ad,
+leaves a player whose quality holds can only be seen for real: the report
+will say.
+
+### The bench
+
+- 31: opened off the home page — the banner, which now shows there with no
+  visit, asks for its own pictures, in other slices than the preview's
+  thumbnail;
+- 207 δ): the purge of the database awaited up to five seconds, not six
+  hundred milliseconds — under the full bench's load, the write came
+  after;
+- 216, revised: with no visit, the banner takes the first of the live
+  followed channels, and the carousel only comes back with no followed
+  channel live; j') the quality — 720p60 at 1600 × 1000, out of automatic;
+  at 1280 × 800, 320 pixels, 480p one step up: the floor gives 720p60, in
+  the re-placed player's URL as in the bridge; 1080p60 at 2560 × 1440; and
+  the report;
+- 216 k), revised: the player's placings and removals counted from k), j')
+  having re-placed the player once;
+- 220, revised: the visited channel going live takes the banner back in the
+  very batch; e') with neither visit nor row, the early fetch asks for the
+  followed channels and the banner is painted when the veil lifts;
+  "nothing to wait for" becomes neither banner nor row;
+- 222 a'): the colour of each kind of fact, its border and its dot, on our
+  cards and on Twitch's;
+- 223, rewritten: the preview of a stream with two categories — its trail,
+  and no "Since …", no clips line, no request, no report line;
+- 226: the nodes counted are Twitch's alone — the banner, which now shows,
+  also lives in `<main>`.
+
+**Thirteen named mutants, all caught.**
+
+| mutant | what falls |
+| --- | --- |
+| a visit required for the banner | 216 e): no banner, the carousel comes back |
+| the early fetch without the followed channels for the banner | 220 e'): the veil lifts before the banner |
+| the fallback not reported | 216 e): `heros.sansVisite` false |
+| a single colour | 222 a'): every label white |
+| the border forgotten | 222 a'): a transparent border |
+| the dot forgotten | 222 a'): no dot |
+| the rank in red | 222 a'): "#3 in French" in red |
+| no quality set | 216 j'): the player stays on automatic, at 360p |
+| the floor forgotten in the bridge | 216 j'): 480p30 at 1280 × 800 |
+| the URL below the floor | 216 j'): 480p30 in the URL at 1280 × 800 |
+| the size never read again | 216 j'): still 720p60 at 2560 × 1440 |
+| the height miscounted | 216 j'): the height told is not the video's |
+| the absence's most viewed lost | 224: no more "Most viewed" in the banner |
+
+The full bench: 2252 assertions in 225 scenarios, all green.
+
+## The home page, level 2: tidying Twitch's home page (v4.32.0)
+
+The sixth and last idea of level 2. Published on `claude/chrome-homepage` only.
+
+| asked | what was done |
+| --- | --- |
+| "CSS only, never remove a Twitch node" | attributes set on Twitch's nodes, and rules that read them: **no node removed, none added** — the bench counts every node of the page before and after |
+| "hide a row by category in one click" | "Hide", right of the title of a category row; hidden, it holds in one line, with "Show again"; the category is remembered on the device |
+| "compact rows (8 cards per row on large screens)" | eight cards per line from 1600 pixels wide |
+| "fill the "?" thumbnails with the avatar or the last replay" | the last replay when the agenda knows it, otherwise the avatar the card already carries |
+
+### A row per category, hidden in one click
+
+A Twitch row is a title and, next to it, its content, which names it. A
+category's row carries in its title a link to `/directory/category/…`: that one,
+and only that one, can be hidden. A row without a category — "Live channels we
+think you'll like" — has no stable name to remember it by, and offers nothing.
+
+"Hide" isn't a button added to the page: it is the title's `::after`, written
+right of it. A click on it is recognised by its place — right of the title,
+within its height — and only that click: a click on the title, or on its link,
+stays Twitch's. Hidden, the row's content goes; the title stays, one line, with
+"Show again". The category is remembered on the device (fifty at most): its row,
+tomorrow, stays hidden. Hidden in one tab, it is hidden in the others.
+
+### Eight cards per line
+
+From 1600 pixels wide, the card grid of a Twitch row is replaced by ours, in
+CSS: eight equal columns. Below that, Twitch's, as it is.
+
+### The "?" thumbnails
+
+A stream Twitch has no picture for yet shows its own, `404_preview`. It is made
+transparent, and behind it shows the thumbnail of the channel's last replay,
+when the agenda knows it — a channel you follow —, otherwise the avatar the card
+already carries. When Twitch puts up the real picture, it takes its place back.
+No request.
+
+### What couldn't be checked
+
+Twitch's grid could only be read in a saved page, without its style sheets: the
+eight columns are imposed with `display: grid` on `.tw-tower`, whatever Twitch's
+layout, but a card that Twitch would hide other than by removing it could show
+up again. And Twitch only puts in a row the cards it wants to show — six in
+eight of the saved page's nine rows, twelve in the third: eight columns then
+show six, tighter, and two places stay free until "Show more".
+
+The "?" thumbnail is recognised by its address, `404_preview`; the saved page
+showed none that day. A row's title, its category link, its content that names
+it and each card's avatar, for their part, were read there as the code reads
+them.
+
+### What it costs
+
+**Nothing**: no request. One reading of the page at each paint of the home
+page, like the labels (4.28.0).
+
+### The setting
+
+"Tidy Twitch's home page" joins the "Home page" group of "Settings": unchecked,
+no "Hide", no hidden row — even a remembered category —, no grid, no thumbnail.
+Thirty-four settings.
+
+### The texts
+
+Ten languages for "Hide" and "Show again"; twelve in the panel, the guide
+("Twitch's home page") and the Store listings.
+
+### The bench
+
+**226**, new. The fake Twitch learns its rows as the real page writes them: an
+`<h2 id>` title two boxes below the row, a category link, a content that names
+it, a `.tw-tower` of cards.
+
+- a) "Hide" on a category's row, nothing on another; a click on the title itself
+  stays Twitch's;
+- b) a click on "Hide": the content goes, the title stays with "Show again", the
+  category is remembered — and every node of the page is still there;
+- c) coming back, the category is still hidden; d) "Show again" brings it back;
+- e) eight cards per line at 1600 pixels, Twitch's grid below;
+- f) a "?" thumbnail: the agenda's last replay behind it, made transparent;
+  without a replay, the avatar; a card that has its picture, nothing;
+- g) the setting unchecked: nothing set, even a remembered category.
+
+**Twelve named mutants, all caught.**
+
+| mutant | what falls |
+| --- | --- |
+| every title hideable | 226 a): "Hide" on a row without a category |
+| the click on the title that hides | 226 a): a click on the title itself hides the row |
+| the category forgotten on reload | 226 b) and c): nothing remembered, the row comes back |
+| the title hidden with its content | 226 b): the title disappears with the row |
+| no "Show again" | 226 b) and c): "Hide" on a hidden row |
+| the grid at every width | 226 e): eight columns at 1400 pixels |
+| six columns | 226 e): six cards per line |
+| the avatar before the replay | 226 f): the avatar behind givre, when the agenda has its replay |
+| the "?" left in front | 226 f): the "?" stays opaque |
+| every thumbnail replaced | 226 f): falun, which has its picture, gets a background |
+| the oldest replay | 226 f): the thumbnail of the earlier archive |
+| the setting ignored | 226 g): unchecked, "Hide" and the remembered row hidden |
+
+The full bench: 2258 assertions in 225 scenarios, all green.
+
+## The home page, level 2: rows that say why (v4.31.0)
+
+The fifth idea of level 2. Published on `claude/chrome-homepage` only.
+
+| asked | what was done |
+| --- | --- |
+| "Because you often watch Korbek (14 visits in 30 days)" | a row titled "Because you often watch Korbek", and below it what proves it: "14 visits in 30 days · Just Chatting, in English" |
+| "lives in their usual category, in your language, outside your follows" | the streams of the category the channel usually streams in, in Twitch's language, without your followed channels |
+| "data: local visits + one TseCategoryTop per row" | the visits the extension already counts on this device, the archives the agenda already reads, and **one** `TseCategoryTop` request per row |
+
+### Where a row starts
+
+From the channel you visited the most in thirty days — three visits at least.
+A visit is the extension's rule since the sidebar: at least five minutes on a
+channel's page, three hours between two. Only the last twenty are kept: twenty
+within the thirty days, and the count says "at least 20".
+
+### Its usual category
+
+The one of most of its archived streams of the thirty days — a stream counted
+once, as elsewhere (two archives separated by a cut of less than a quarter of an
+hour make one), in the category it started in. Two streams at least, and more
+than any other:
+
+- **a tie points to no one**: two streams in Elden Ring, two in Dark Souls, and
+  no row;
+- **a single stream isn't a habit**;
+- **a channel you don't follow** has no archives read by the agenda: no row. It
+  still counts its visits; what is missing is the proof of its category.
+
+### What shows in it
+
+The streams of that category, in the language of Twitch's interface — the Top
+10's language —, ordered by viewers, without your followed channels. Twelve at
+most; one line, then "Show all". The order is observed on the answer, not
+assumed. And the answer must **name the category asked for** (Top Channels'
+rule, 4.24.0.40): a server that would return another category for an almost
+identical name makes no row.
+
+Two rows at most, of two different categories, right after the Top 10.
+
+### What it costs
+
+| what shows | what it costs |
+| --- | --- |
+| the channel the row starts from, its visits | **nothing**: visits are counted on the device, as always |
+| its usual category | **nothing more**: the archives the agenda already reads |
+| the row | **one** `TseCategoryTop` operation per row, kept ten minutes — two at most |
+
+### The setting
+
+"Because you often watch…" joins the "Home page" group of "Settings", right
+after the Top 10's language: unchecked, no row and no request. Thirty-three
+settings.
+
+### The texts
+
+Ten languages in the rows; twelve in the panel, the guide ("Twitch's home
+page") and the Store listings.
+
+### The bench
+
+**225**, new.
+
+- a) twenty visits, all within the thirty days: "at least 20 visits in 30 days
+  · Discussions, in French" on the French bench; two French streams, by viewers,
+  not the channel itself, not a followed channel, not an English stream though
+  more watched;
+- b) the second row, after a channel not followed, a single stream, a tie and a
+  second channel of the same category: "5 visits in 30 days · Minecraft, in French" — a
+  visit from forty days ago out of the count, a stream cut into two archives
+  counted once; no third row;
+- c) one request per row, in Twitch's language, and nothing more on repaint;
+- e) an answer that names another category: no row; two visits: no row either;
+- d) the setting unchecked: no row, no request.
+
+**Fifteen named mutants, all caught.**
+
+| mutant | what falls |
+| --- | --- |
+| two visits are enough | 225 e): lune, two visits, makes a row |
+| the thirty days forgotten | 225 b): "6 visits", the one from forty days ago counted |
+| "at least" left unsaid | 225 a): "20 visits", when there may have been more |
+| a tie that points to someone | 225 b): nyxaria takes the second row |
+| a single stream as a habit | 225 b): ourse takes the second row |
+| the cut that makes two streams | 225 b): the cut Terraria ties Minecraft, no second row |
+| the followed channels shown | 225 a): nyxaria, followed, among the cards |
+| all languages | 225 a) and c): houx, in English, first; the request without a language |
+| the answer's order believed | 225 a) and b): gravier before falun, ortie before mousse |
+| another category taken for the one asked | 225 e): "Just Chatting" returned for "just chatting" makes a row |
+| one request per paint | 225: the scenario no longer ends — every answer repaints, and every paint asks again |
+| a third row asked for | 225 c): three requests, renard's included |
+| the setting ignored | 225 d): unchecked, two rows and two requests |
+| two rows of the same category | 225 b): loutre, Just Chatting again, takes the second row |
+| the rows after "Your scheduled streams" | 225 a): the order of the rows |
+
+The full bench: 2247 assertions in 224 scenarios, all green.
+
+## The home page, level 2: "While you were away" (v4.30.0)
+
+The fourth idea of level 2. Published on `claude/chrome-homepage` only.
+
+| asked | what was done |
+| --- | --- |
+| "While you were away" | a banner at the bottom of the homepage: the channels you watch that streamed, their streams and how long, the most viewed of their clips, "Watch the last one" |
+| "after at least 24 h away" | an absence is twenty-four hours without a Twitch tab **on screen** — measured, not assumed |
+| "data: agenda + clips" | the archives and the end of the last stream the agenda already reads; one clip request per channel shown, once per absence |
+
+### What an absence is
+
+Presence is the last moment a twitch.tv tab was on screen — visible, not just
+open: a background tab doesn't count. It is written at most once a minute, in
+the storage the tabs share. On load, BEFORE writing it again: more than
+twenty-four hours since, and it is an absence, kept — its start, its end — for
+twelve hours, or until its banner is closed.
+
+Without a known presence — a fresh install, or the first visit after the
+update —, no absence: we don't know since when. The first banner therefore
+shows a day later at the earliest.
+
+### What the banner says
+
+"While you were away · Since your last visit, 2 days ago". Then one line per
+channel, five at most: the followed channels you watch (at least one visit
+counted), in the order of your visits, that streamed during the absence.
+
+- **"2 streams · 5h05"**: the streams started during the absence, counted as
+  elsewhere — two archives separated by a cut of less than a quarter of an hour
+  make one —, and their length;
+- **"Streamed, no replay"**: Twitch says the channel ended a stream during the
+  absence, and its archives hold none. No count and no length: they aren't
+  known;
+- **"Most viewed: "…" (5.2K views)"**: among its clips made DURING the absence,
+  those from before don't get in. The recap's rule (4.29.0): named only if the
+  page has them all, or if it is ordered by decreasing views — the order is
+  observed on the answer;
+- **"Watch the last one"**: the absence's last archive, when its token says it
+  is open, or when you are subscribed. Until the token is read, no link.
+
+A channel only gets into the banner **once its archives have been read again
+since your return**: the agenda's memory dates from the last visit, before the
+absence, and knows nothing of it. Read as it was, it made a channel with three
+replays say "no replay".
+
+Beyond seven days, the last seven — the agenda's reach —, and the banner says
+so: "10 days ago — the last seven".
+
+### Closed everywhere
+
+The cross closes the banner in every open tab, through the storage event, and
+it doesn't come back on reload. Otherwise it fades twelve hours after the
+return. The next absence puts up a new one.
+
+### What couldn't be checked
+
+As for the recap: the clips' `title` and `viewCount`, and the
+`period: LAST_WEEK` form, couldn't be tried against the real Twitch from here.
+If the schema refuses the request, no more clip requests for the session, and
+the lines stay without "most viewed"; the report says so (`absence.clips.refus`).
+
+### What it costs
+
+| what shows | what it costs |
+| --- | --- |
+| presence | one write to local storage at most once a minute, tab on screen; no request |
+| the banner and its streams | **nothing more**: the archives and cards the agenda already reads; its second pass reaches back to the start of the absence, seven days at most |
+| the most viewed | **one** `TseAbsenceClips` operation per channel shown and per absence — five at most |
+
+### The setting
+
+"While you were away" joins the "Home page" group of "Settings": unchecked, no
+banner and no clip request. Thirty-two settings.
+
+### The texts
+
+Ten languages in the banner; twelve in the panel, the guide ("Twitch's home
+page") and the Store listings.
+
+### The bench
+
+**224**, new. Eight clips per page on the bench, thirty for real.
+
+- a) thirty hours without Twitch: the banner, last on the homepage; five
+  channels in the order of visits — not the sixth, not the silent one, not the
+  one never watched; "2 streams · 5h05" from a cut and a second stream, without
+  the archive from before; "Streamed, no replay"; the most viewed during the
+  absence, not the one from before, more viewed; a full page ordered by views
+  names its first; "Watch the last one", and not for a subscriber-only archive;
+  one clip request per channel, only one;
+- b) a second tab: the same absence, not counted again; closed in one, closed in
+  the other, and no return on reload;
+- c) ten days: the last seven, and the banner says so — not the stream from
+  nine days ago, not a channel never watched; a full page ordered by date names
+  no "most viewed", and its clips are asked for only once;
+- d) twenty hours, e) the setting unchecked, f) a fresh install, g) an absence
+  ended thirteen hours ago: no banner, no clips;
+- h) a memory from before the absence, which the network is slow to read again:
+  every frame is looked at, and the channel is never said to have "no replay"
+  — it waits for its archives read again.
+
+And 221 a): the order of the rows ends with the banner.
+
+**Twenty-two named mutants, all caught.**
+
+| mutant | what falls |
+| --- | --- |
+| an absence without the one-day threshold | 224: the scenario no longer ends — every load sets an absence |
+| the twelve-hour hold forgotten | 224 g): an absence ended thirteen hours ago still shows its banner |
+| closed in this tab only | 224 b): the other tab doesn't read the storage again |
+| the closed banner that comes back | 224 b): closed, it stays; reloaded, it comes back |
+| the setting ignored | 224 e): unchecked, the banner and its clips |
+| the channels never watched | 224 c): iris, never watched, gets into the banner |
+| more than five channels | 224 a): dune, the sixth, gets into the banner |
+| the cut that makes two streams | 224 a): "3 streams" for falaise |
+| the archive from before the absence counted | 224 a): the archive from before gets into the count |
+| "streamed" left unsaid | 224 a): grotte, ended without an archive, disappears |
+| the memory from before the absence believed | 224 h): "Streamed, no replay" while reading again |
+| the week forgotten | 224 c): the stream from nine days ago gets into the banner |
+| the clip from before the absence | 224 a): the clip from before, more viewed, is named |
+| the views order assumed | 224 c): a full page ordered by date names a "most viewed" |
+| a full page never believed | 224 a): the full page ordered by views names nothing |
+| the clips asked again at each paint | 224: the scenario no longer ends — every answer repaints, and every paint asks again |
+| the key that slides with the time | 224 c): bounded to seven days, every paint asks for the clips again |
+| "Watch" a closed archive | 224 a): a link to the subscriber-only archive |
+| the banner at the top of the home page | 221 a) and 224 a): the banner before the other rows |
+| the seven days left unsaid | 224 c): "10 days ago" without "the last seven" |
+| the days rounded up | 224 a) and c): "2 days ago" for thirty hours |
+| "most viewed" without a capital | 224 a): "most viewed: …" alone on its line |
+
+The full bench: 2239 assertions in 223 scenarios, all green.
+
+## The home page, level 2: the recap of the stream in progress, in the preview (v4.29.0)
+
+The third idea of level 2. Published on `claude/chrome-homepage` only.
+
+| asked | what was done |
+| --- | --- |
+| "Since 18:02: 1h20 Just Chatting → 2h40 Elden Ring · 6 clips, the most viewed: "…" (8.4K views)" | two lines in the preview, between the badges and the timeline: where the stream has been, then what its clips kept of it |
+| "data: the timeline + TseClips LAST_DAY" | the timeline as it is already read, and the stream's clips, one request per stream |
+| "to check: that the clip's title and views are available anonymously" | **not checkable from here**: the bench's machine doesn't reach Twitch. They are asked for, done without if the schema refuses them, and the report says which of the two is in play |
+
+### The first line: where the stream has been
+
+"Since 18:02: 1h20 Just Chatting → 2h40 Elden Ring". The time is the start of
+the WHOLE stream — cuts included, like the timeline —, preceded by its day when
+it isn't today ("Since Tue 14:04"). The steps are the timeline's segments, in
+time order: the part not observed is written "…", a timeline made of clips puts
+a "~" before each duration, and beyond four steps come the last three. Without
+a timeline, the time alone.
+
+### The second: what its clips kept of it
+
+"6 clips · most viewed: "Le boss en une vie" (8.4K views)". Only the clips made
+DURING the stream count: those from before, however viewed, don't get in. And
+the count only says what the answer proves:
+
+- **a full page** (thirty clips) doesn't say how many there are: "30+";
+- **the most viewed** is only named if the page has them all, or if it is
+  ordered by decreasing views and holds clips of the stream. The order is
+  observed on the answer; it isn't assumed;
+- **a stream longer than a day**: the first form only covers the last
+  twenty-four hours, and the line says so ("2 clips in 24 h");
+- **a full page without one clip of the stream** says nothing of it: the line
+  stays silent; an incomplete page without a clip of the stream says "No
+  clips".
+
+### What couldn't be checked, and what is done about it
+
+`title` and `viewCount` are ordinary fields of Twitch's clips, but nothing here
+could show that an anonymous request receives them. If the schema refuses them
+— an error that names them —, they are removed from the request for the
+session: the count stays, and no "most viewed" is said. The request's form
+moves on like the timeline's third door: `period: LAST_DAY` first, then `sort:
+CREATED_AT_DESC` if the server refuses the first, and nothing more if both are
+refused. The report (`reseau.recap`) says the form in play, whether the fields
+are served, and how many clips carried a title and views.
+
+### What it costs
+
+| what shows | what it costs |
+| --- | --- |
+| the first line | **nothing**: the timeline and the stream's start are already known |
+| the second | **one** `TseRecapClips` operation per hovered stream, every ten minutes at most |
+
+### The setting
+
+"The stream recap" joins the preview's badges, in "Settings": unchecked, no
+line and no request to Twitch. The number of settings doesn't change.
+
+### The texts
+
+Ten languages in the preview; twelve in the panel, the guide ("Previously on
+this stream") and the Store listings.
+
+### The bench
+
+**223**, new. Eight clips per page on the bench, thirty for real.
+
+- a) "Since …: 1h20 Discussions → 2h40 Elden Ring", from the VOD's chapters
+  arriving after the opening — and after the clips; six clips of the stream,
+  and not the two from before, more viewed; the recap just before the timeline;
+- b) a full page: "8+", and the most viewed, the page being ordered by views;
+- c) clips from before the stream only: "No clips";
+- d) a thirty-hour stream: its day, and "2 clips in 24 h"; a full page without
+  one clip of the stream: the line stays silent;
+- e) one request per stream and per ten minutes; the timeline already there at
+  the first render, the recap still comes before it;
+- f) `title` and `viewCount` refused: removed, the count stays, without "most
+  viewed";
+- g) the first form refused: the second, by date — a full page that reaches
+  before the stream counts right; a full page of the stream alone hasn't seen
+  everything;
+- h) the recap removed in "Settings": no line, no request;
+- i) a full page not ordered by views: the count, without "most viewed".
+
+**Fourteen named mutants, all caught.**
+
+| mutant | what falls |
+| --- | --- |
+| the recap without the timeline | 223 a): "Since …" without its steps |
+| the clips from before the stream counted | 223 a) and c): the two from before, more viewed, get into the count |
+| the full page taken for the whole | 223 b): "8 clips" instead of "8+" |
+| the most viewed without proof | 223 g): a full page of the stream alone, ordered by date, names a "most viewed" |
+| the views order assumed | 223 i): a full page not ordered by views names a "most viewed" |
+| the second form that doesn't see the whole | 223 g): the page that reaches before the stream says "8+" |
+| the twenty-four hours left unsaid | 223 d): "2 clips", without "in 24 h" |
+| the refused fields taken for a refused form | 223 f): no count at all |
+| one request per hover | 223 e): hovered again, nyx asks again |
+| the removed recap that asks anyway | 223 h): a request to Twitch, setting unchecked |
+| "0+ clips" | 223 d): a full page without one clip of the stream speaks of it |
+| the time without its day | 223 d): a stream started the day before says its time alone |
+| the recap after the timeline | 223 e): the timeline already there, the recap goes after it |
+| the recap that doesn't follow the timeline | 223 a): the chapters arriving after the clips, the recap stays without steps |
+
+The full bench: 2221 assertions in 222 scenarios, all green.
+
+## The home page, level 2: one label per card (v4.28.0)
+
+The second idea of level 2. Published on `claude/chrome-homepage` only.
+
+| asked | what was done |
+| --- | --- |
+| "a factual label per card, on our cards and on Twitch's" | at the bottom right of the thumbnail, on the home page's cards: the extension's and those of Twitch's rows |
+| "only one per card, in a fixed order of priority" | seven facts, from the rarest to the most common; the first true one wins |
+| "the trend needs a history of the counts" | the TseChannels readings, kept in the tab as long as needed |
+| "Twitch's cards missing from the sidebar need a TseChannels batch, for the visible cards only" | their channels join the common batch while their card is on screen, and only they do |
+
+### The seven, in order
+
+1. **"Back after 41 days".** What Twitch says of the last stream
+   (`lastBroadcast`) on the agenda's card, read DURING this one: if it isn't
+   this one — another identifier —, it is the previous one, and its end is the
+   previous one's. A week at least. A card read before the stream, or a last
+   stream that is the one in progress, say nothing: nothing shows. Never a
+   computation on the archives, which get deleted and would lie by omission.
+2. **"Subathon • DAY 9".** The title, read as the sidebar reads it (cf. 4.2).
+3. **"Just started".** Less than ten minutes, the sidebar's "fresh" rule: a
+   resume after a cut is not a start.
+4. **"Just switched to Elden Ring".** Seen between two readings of the same
+   stream, or dated by the chapters the preview has already read — the
+   preview's badge and the label say the same thing.
+5. **"↗ +38% in 10 min".** Two readings of the same stream, ten minutes apart
+   give or take two; a quarter at least, on an audience of at least fifty. The
+   percentage and the minutes are rounded down, and counted in integers: 140
+   over 100 makes 40%, not 39.
+6. **"#3 in English"** ("N°3 en français" in French). The place in the home
+   page's exact Top 10, in its language ("#3 in Swedish" when the extension speaks English to a Swedish
+   Twitch); "#3 in the Top 10" when the Top 10 is worldwide. Not on the Top
+   10's own cards: the place is already written there, large.
+7. **"Co-stream of 3 channels".** The session Guest Star describes.
+
+A card without a fact stays bare. The hero carries none.
+
+### Where it goes
+
+- **An attribute and a pseudo-element.** No node enters Twitch's card: React
+  has nothing to undo, and the label leaves with the attribute.
+- **At the bottom right of the thumbnail**, the place neither our cards nor
+  Twitch's use. On a Twitch card where another extension already put a text in
+  that corner — the case of the real page's capture —, it moves to the top
+  right; if both corners are taken, it stays silent. What is looked at is the
+  texts laid on the thumbnail, not Twitch's classes.
+- **Leaving the home page**, not one label left anywhere.
+
+### What it costs
+
+| what shows | what it costs |
+| --- | --- |
+| a label on a followed channel | **nothing**: the sidebar already reads it every thirty seconds |
+| a label on a Top 10 card, or a card of a Twitch row | its channel in the common `TseChannels` batch, while its card is on screen (give or take two hundred pixels); sixty at most per tick. A channel Twitch omits is requested again only once per reading period. The resume probe sees them go by like the others, within its own window |
+| "Back after N days" | nothing more: the card the agenda has already read |
+
+### The setting
+
+"One label per card", in "Settings", "Home page" group. Off: no label, and
+Twitch's cards cost nothing. Thirty-one settings: the panel's reset and the
+listing say so, in all twelve languages.
+
+### The report
+
+The ACCUEIL block gains `etiquettes.*`: how many of each kind were set, the
+channels requested, the corners taken (top, none), Twitch's cards seen and
+labelled. Counts; no channel is named.
+
+### The texts
+
+Ten languages on the page, twelve in the panel, the guide ("Twitch's home
+page") and the Store listings.
+
+### The bench
+
+**222**, new.
+
+- a) one label per card, in order: the return before the start, the subathon
+  before the start; a start; a co-stream; nothing for a channel without a
+  fact, nor for a last stream that is the one in progress, nor for three days
+  away;
+- b) the switch, seen between two readings of the same stream;
+- c) +40% over two readings; nothing for +20%, nor under fifty viewers;
+- d) on Twitch's cards: a channel one doesn't follow, the Top 10 place in its
+  language, nothing for a card without a fact, nothing of the place on the Top
+  10 itself; at the bottom right, at the top when another extension holds the
+  corner; zulu, never on screen, never requested; an omitted channel requested
+  once per period; a resume is not a return;
+- e) leaving the home page, not one label;
+- f) the setting off: no label, and no channel of Twitch's rows requested.
+
+**Twenty-one named mutants, all caught.**
+
+| mutant | what falls |
+| --- | --- |
+| the return never said | 222 a): aurore |
+| the last stream that is the one in progress | 222 a): lys, "back after 40 days" |
+| another stream's card | 222 d): a resume taken for a return |
+| back after one day | 222 a): mica, three days away |
+| back after fifty days only | 222 a): aurore |
+| the subathon forgotten | 222 a): brisa |
+| the start forgotten | 222 a), d): cendre, xray, quebec |
+| the switch forgotten | 222 b) |
+| the rise without the readings | 222 c) |
+| the rise of a fifth | 222 c): fjord, +20% |
+| the rise on a small audience | 222 c): gale, from 30 to 60 |
+| the floating-point percentage | 222 c): 39% instead of 40 |
+| the place written twice on the Top 10 | 222 d): the Top 10's own card |
+| the place without its language | 222 d): "#3 in the Top 10" |
+| the co-stream forgotten | 222 a): houle |
+| the off-screen cards requested | 222 d): zulu requested |
+| another extension's corner ignored | 222 d): quebec, over the badge next to it |
+| the setting off that labels anyway | 222 f) |
+| the setting off that still asks | 222 f): xray requested |
+| the labels left behind | 222 e) |
+| the omitted channel requested at every paint | 222 d): zephyr, at every paint |
+
+The full bench: 2207 assertions in 221 scenarios, all green.
+
+## The home page, level 2: your scheduled streams (v4.27.0)
+
+The first idea of level 2, "new views on data already collected elsewhere".
+Published on `claude/chrome-homepage` only.
+
+| asked | what was done |
+| --- | --- |
+| "today's and tomorrow's scheduled slots, with a countdown" | a "Your scheduled streams" row, one card per slot, in order of time |
+| "'Remind me' shows an alert in the open Twitch tabs, not a system notification" | an alert in every open Twitch tab when the channel goes live; closing it in one closes it in all |
+| "to decide: 'Usually around 8 pm — 5 of its last 6 streams'" | decided by the author: yes, said in the past tense, apart from the scheduled slots |
+
+### Your scheduled streams
+
+What the agenda already knows, read from the home page: each followed
+channel's schedule (`segmentList`, cf. 4.25.0).
+
+- **Today and tomorrow**, from the browser's midnights. One card per slot: the
+  avatar, the name, "Today · 20:00" or "Tomorrow · 18:30", the time left, the
+  slot's title and category, then "Remind me".
+- **The time left** is counted to the next minute: "in 1m" until the time,
+  never "in 0m". A slot that has started without the channel being there says
+  "not live yet", until its end.
+- **What isn't there**: the slot of the stream in progress (it is that stream),
+  a cancelled slot, the day after tomorrow, the schedule of a channel silent for
+  three months (the agenda's rule, 4.25.0.7).
+- **Nothing moves when you come back** (4.26.0.5's rule). The agenda's memory is
+  read after the first paint: the number of cards of the last visit is kept, and
+  as many empty places hold both rows at their height for the length of that
+  read — and, for a row still empty, until the collection ends: the memory
+  knows nothing of the channels the sidebar hasn't shown yet. The cards have a
+  fixed height: the real ones replace the places to the pixel.
+
+### No schedule, in the past tense
+
+Few channels fill in their schedule. For a channel you watch (at least one
+counted visit) that has nothing scheduled, a second row, "No schedule", says
+when its last streams started: "5 of their last 6 streams started around
+20:00". It is an observation, never a promise, and it is the author's choice.
+
+- **The starts are the replays'**, to the second: a stream's start is its
+  recording's.
+- **A stream, not an archive.** A resume after a cut can open a second
+  recording: two archives less than a quarter of an hour apart are one stream,
+  which started at the first.
+- **Four out of six at least**, within the same half hour, midnight included:
+  23:50 and 00:10 are neighbours. The time said is their median, to the quarter
+  hour.
+- **Five channels at most**, in the order of your visits.
+
+### "Remind me"
+
+- **An alert in the open Twitch tabs**, at the bottom left, over the sidebar:
+  neither on the player nor on the chat. "Nyxaria is live", "Scheduled for
+  20:00", "Watch", and a cross. Not a system notification: it would need a
+  permission, and the extension has none.
+- **When.** The channel is live for this appointment if its stream started at
+  the earliest half an hour before the slot, or if the slot has started. A
+  channel live two hours before its slot is not it: nothing is raised. More than
+  an hour after the slot's end, the reminder is forgotten.
+- **From one tab to the other.** twitch.tv's storage is shared by its tabs: the
+  first one that sees the channel live notes it, the others learn it through
+  the `storage` event. Closing the alert in one closes it in all; so does
+  "Watch". It closes by itself after a quarter of an hour. Before every write,
+  the memory is read again: starting from what one believed would erase another
+  tab's closing.
+- **What is kept**: the login, the slot, the name and avatar the alert will
+  show; twenty reminders at most. What is read back is checked: a login out of
+  shape, an avatar that isn't `https`, a key that doesn't match its reminder
+  don't get in.
+
+### The agenda starts from the home page
+
+It only started from the panel. The home page now asks for it, at the same
+pace (one request at a time, a second between two), and its kept memory comes
+first: coming back to the home page only asks again for what has passed its
+freshness. The second pass — the replays — covers the last seven days, where
+the usual time is read from; it is a request from the home page beside the
+panel's, never in its place: if the panel looks at another week at the same
+moment, it covers both. The request lapses two minutes after the home page
+stops renewing it.
+
+| what shows | what it costs |
+| --- | --- |
+| "Your scheduled streams", "No schedule" | the agenda, at the agenda's pace: one `TseAgendaChaines` and one `TseAgendaProgramme` per batch of twenty-five followed channels, the last archives' tokens by fifteen, then one `TseAgendaDiffusions` per batch of ten for the channels that streamed in the last seven days. Nothing that is fresh: a card is worth ten minutes, a replay list six hours, and the kept memory serves from one load to the next |
+| "Remind me" | **nothing** ordinarily: the channel is followed, the sidebar already reads it. Otherwise, its login joins the common `TseChannels` batch from half an hour before the slot until the alert |
+
+The Store listing said of the agenda "nothing is asked of Twitch until you open
+it". It now says "until you open it, or until Twitch's home page shows your
+scheduled streams", in all twelve languages.
+
+Off ("Your scheduled streams", in "Settings", "Home page" group): no row, no
+agenda requested from the home page; reminders already set stay, until their
+time.
+
+### The report
+
+The ACCUEIL block gains `rdv.*` (reads, slots and channels shown, waiting for
+the memory, the agenda in progress, the last visit's hint) and `rappels.*`
+(set, removed, evicted, alerts, closed, expired, channels requested, refused
+writes, rereads coming from another tab; active, shown, closed). Counts; no channel is named.
+
+### The texts
+
+Ten languages on the page, twelve in the panel, the guide ("Twitch's home
+page") and the Store listings. One more setting: the panel's reset and the
+listing say "thirty settings", in all twelve languages.
+
+### The bench
+
+**221**, new. Two tabs of one browser, which share their storage.
+
+- a) today's and tomorrow's slots, in order of time; neither the stream in
+  progress, nor the cancelled one, nor the day after tomorrow, nor the silent
+  channel; the time left, "not live yet", the title and the category;
+- b) no schedule: four channels, one around midnight and one cut at every
+  stream; nothing for scattered starts nor for a channel never watched; the
+  agenda started from the home page;
+- c) "Remind me" set in one tab, seen in the other; the channel live at its
+  appointment, the alert in both tabs — the home page and a channel page — while
+  only one sees it live; nothing for a channel live two hours before its slot;
+  closed in one, closed in the other, through the storage event;
+- d) a forged memory doesn't get in; a past reminder is forgotten; an alert
+  closes by itself; a channel the sidebar doesn't follow is only requested half
+  an hour before its slot;
+- e) coming back, both rows at their height from the first frame, and not one
+  pixel when the real cards arrive;
+- f) the setting off: no row, no agenda.
+
+**Twenty-one named mutants, all caught.**
+
+| mutant | what falls |
+| --- | --- |
+| the slot of the stream in progress shown | 221 a): the slots, the time left |
+| the cancelled slot kept | 221 a): the slots, the time left |
+| one day more | 221 a): the day after tomorrow shows |
+| the silent channel kept | 221 a): the slots, the time left |
+| the habit without its threshold | 221 b): scattered starts tell a time |
+| the habit of a channel never watched | 221 b): iris shows |
+| midnight forgotten | 221 b): lune, around midnight |
+| the time to the minute, not to the quarter hour | 221 b): the time said |
+| one archive for one stream | 221 b): pluie, cut at every stream |
+| the home page's second pass ignored | 221 b): no habit, no agenda started from the home page |
+| the reminder requested before its time | 221 d): brume requested three hours before its slot |
+| the alert that doesn't go from one tab to the other | 221 c): the closing read at the next tick, not through the storage |
+| the local closing | 221 c): the other tab waits for the alert to close by itself |
+| the forged avatar read | 221 d): the forged memory |
+| the lying key accepted | 221 d): the forged memory |
+| the eternal alert | 221 d): the alert that closes by itself |
+| the past reminder kept | 221 d): the past reminder |
+| no waiting places | 221 e): both rows at their height from the first frame |
+| the setting off that still asks | 221 f): the agenda requested |
+| the hint never written | 221 e): both rows at their height from the first frame |
+| "in 0m" | 221 a): the time left |
+
+The full bench: 2197 assertions in 220 scenarios, all green.
+
+## The home page, sixth pass: the hero's bottom faded into the page (v4.26.0.6)
+
+The feedback, with a screenshot of the real page. Published on
+`claude/chrome-homepage` only.
+
+| feedback | what was done |
+| --- | --- |
+| "it works well for the start-up" | nothing touches it |
+| "the bottom part of the hero in a progressive transparent fade with the site's background" | the bottom quarter of the frame fades out into the page, in both themes; the text stays whole and legible above it |
+
+### What changed
+
+- **The picture is in a scene, and the scene is what fades.** The blurred
+  background, the video, the shade and the black under them are gathered in a
+  block whose bottom a mask erases. At the foot of the frame, what you see is
+  not an imitated colour: it is the page itself, black in the dark theme, white
+  in the light one.
+- **A quarter of the frame, at every size.** 80 px on a 320 frame, 121 on 484
+  (a 2000 px window, the one in the screenshot), 180 on 720.
+- **An S curve, not a ramp.** The mask follows 3t² − 2t³ over eleven points: no
+  step where the fade begins or where it ends. A straight ramp changes by a
+  tenth of its range over the first tenth of the fade, and that edge shows; the
+  S curve, by less than three hundredths.
+- **The text is not in the scene.** So it never fades. It stays centred in the
+  frame, as before, as long as it has room above four fifths of the fade, where
+  the picture still holds at 90 %. When room runs short (a frame 320 px high, a
+  title on two lines, a stream line on two), the text is what moves up, as far
+  as sixteen pixels from the top. None of its lines shrinks: the title, which
+  clips what overflows, would have lost one. Laid on the top of the fade, the
+  "Watch" button keeps its exact colour.
+
+Nothing else moves: the frame's height, the video, its place, the ambience and
+its colours are those of 4.26.0.5.
+
+### The texts
+
+Unchanged: this is how the hero looks, not what it says.
+
+### The bench
+
+**216 n)**, new. The screen itself is read: a strip of pixels at the frame's
+left edge, where there is no text, in both themes.
+
+- At the foot of the frame, the page's colour, in the dark theme as in the
+  light one, and the fade takes a quarter of the frame.
+- Between the picture and the page, a rise that never goes back, smooth at both
+  ends.
+- The text outside what fades, in the middle of the frame as before, above the
+  fade.
+- Room running short, at 1024 px: the text moves up without losing a line, and
+  "Watch", laid on the top of the fade, keeps its colour.
+
+**Seven named mutants, all caught.**
+
+| mutant | what falls |
+| --- | --- |
+| the mask removed | 216 n): the frame's foot no longer the page; the rise; room running short |
+| a straight ramp | 216 n): the rise, no longer smooth at its ends |
+| the mask on the whole frame, text included | 216 n): the rise; "Watch" loses its colour |
+| a fade of fixed height | 216 n): a quarter of the frame |
+| the bottom spacer forgotten | 216 n): the text in the fade; room running short |
+| the top spacer forgotten | 216 n): room running short, the text stuck to the top |
+| lines that shrink | 216 n): room running short, the title losing a line |
+
+The full bench: 2184 assertions in 219 scenarios, all green.
+
+## The home page, fifth pass: straight away, and the module's audit (v4.26.0.5)
+
+The feedback, with a screenshot of the real page and a report. Published on
+`claude/chrome-homepage` only.
+
+| feedback | what was done |
+| --- | --- |
+| "a lag with Twitch's native home page for a few seconds, then the new home page" | Twitch's home page no longer shows while the data arrives: the carousel is hidden from its first frame, the section is laid in the frame where Twitch lays its page, and we paint as soon as the answer comes |
+| "do a full audit of this new part" | eleven defects found and fixed, detailed below; the rest checked |
+| the attached report | it said nothing about the home page: the block was missing, it is printed now |
+
+### Where the few seconds came from
+
+Three causes, each measured frame by frame on the bench.
+
+1. **The carousel arrived after us.** Twitch lays its scroller and its column,
+   then its carousel once its own data has arrived, so after our section.
+   Nothing hid it before the next paint, at the five-second wake-up: until
+   then, the native page was what you saw. On a fake home page where the
+   carousel arrives a second and a half after the rest, 4.26.0.4 shows it for
+   six frames, while the bench's wake-up only lasts a tenth of a second. On
+   the real page, that wake-up lasts five seconds: those were the reported
+   "few seconds".
+2. **We laid ourselves a hundred and fifty milliseconds late.** The observer
+   grouped the page's movements before looking, and Twitch's home page stayed
+   alone on screen for the length of that grouping. The same happened every
+   time React redrew the page.
+3. **Data that had arrived waited for the wake-up.** The TseChannels answer
+   (who is live among your channels) arrived, and nothing painted before the
+   next wake-up.
+
+### What changed
+
+- **The carousel is hidden by a rule that `<html>` carries.** React never
+  redraws that element: the rule applies to any carousel Twitch lays, from its
+  first frame, whenever it arrives. The former class now only serves the
+  carousel recognised by its shape alone. Its video is stopped as soon as we
+  find it, and the ones React removed are let go.
+- **What is missing is laid again in the same frame.** A `MutationObserver`
+  hands back before the page is painted. The section not laid yet, or carried
+  away by React, and the hero carried away alone, are therefore laid again
+  there, always. For the ten seconds after arriving, as long as the section is
+  not in front of Twitch's rows, aligned on their titles, and the carousel
+  stopped, every movement is looked at the same way. After that, the observer
+  groups as before. The scroller is recognised among the nodes the page has
+  just added: a `querySelector` over the whole document on every movement
+  would cost what the one the sidebar had to space out cost.
+- **The early request.** Who is live among the channels that decide the hero
+  and the row is asked as soon as the page starts, no longer at the sidebar's
+  first sweep. These are the same channels, in the same queue as the sidebar,
+  and the sidebar no longer asks again for what is already on its way: each
+  followed channel is asked only once at start-up, measured on the bench.
+- **We paint as soon as the answer comes.** Each TseChannels batch served tells
+  the home page, which paints at once, without waiting for the wake-up.
+- **The veil.** As long as we don't know who is live, the home page is veiled:
+  neither Twitch's, which would have to be replaced before your eyes, nor ours
+  half filled. The veil is laid at the very start of the page, before Twitch
+  paints anything, and lifted in the same task as the paint. Most of the time,
+  the answer arrives before Twitch has laid its page, and the veil doesn't
+  show. It is bounded: a second and a half once Twitch's home page is there,
+  six seconds in all. Beyond that, Twitch's home page is better than an empty
+  page, and ours replaces it when the answer comes. With no visited channel
+  and no followed row, there is nothing to wait for and the veil lifts on
+  arrival. With the home page off, it is never laid.
+- **The hero's images leave before it.** The hero is known before Twitch has
+  laid its page: its images are requested at once, and they are there when it
+  appears.
+- **A tab opened in the background.** A hidden tab doesn't paint: the home page
+  was laid there without being painted, and on coming to it, you saw Twitch's
+  until the wake-up. It paints the instant the tab shows, before the first
+  frame.
+
+### Nothing moving on arrival
+
+Three elements pushed the page down after the fact; they now keep their place.
+
+- **The Top 10 waiting for its ranking** showed a "Ranking in progress…" line,
+  then gained a whole row when the places arrived. Its first five places now
+  show empty, at their exact size (the numerals, the thumbnails, the lines),
+  and the real ones take their place to the pixel.
+- **"From the start"** is asked after the paint, and the button appeared a
+  second later: the row grew by one line. As long as the setting is on, a card
+  that doesn't have its button (yet) keeps its place, invisible, with no
+  address or tooltip, so neither clickable nor reachable by keyboard. The
+  button becomes a block as wide as its content: laid on a line, it took that
+  line's descent, and its kept place didn't quite have its height (two
+  pixels, measured).
+- **A row's foot** has the height of the "Show all" button even without the
+  button: ten places for five columns make it appear, and everything after
+  went down as much.
+
+On the bench, the browser counts layout shifts itself (`layout-shift`). In
+each of these cases, their sum stays under 0.005 once the home page has
+appeared.
+
+### The audit
+
+| defect found | fix |
+| --- | --- |
+| the carousel that arrived after us stayed on screen until the wake-up | a rule carried by `<html>` |
+| laying grouped at 150 ms, on arrival and on every React redraw | laid again in the same frame |
+| data that had arrived waited for the wake-up to be painted | the home page is told of every batch served |
+| a tab opened in the background showed Twitch's home page on coming to it | painted the instant it shows |
+| the Top 10 gained a row on arriving | its five waiting places, at their size |
+| "From the start" made the row grow a second later | its place kept |
+| "Show all" made the foot grow | the button's height, always |
+| the text report printed nothing of the home page | the ACCUEIL block, the place refusals in plain words |
+| carousels removed by React stayed in memory, with their player | let go as soon as they leave the page |
+| "From the start"'s memory never emptied, while the Top 10 changes all day | what hasn't been shown for half an hour is forgotten |
+| the exclusion selector rebuilt on every call, on every video, thumbnail and title read | written once |
+
+Checked, and nothing to change:
+
+- **Security.** All the DOM goes through `createElement` and `textContent`, and
+  only our static pictograms go through a parser. A login only enters an
+  address or a query after its shape is checked (`RE_CLE_LOGIN` for the
+  roster, `RE_LOGIN` for the Top 10 and Twitch's cards). An archive identifier
+  only enters as digits. Avatars are `https` only. The player's messages are
+  accepted from it alone (source and origin), and its colours are checked
+  before being read (bounded dimensions, exact length).
+- **Dead code.** No rule of the home page's stylesheet without an element, no
+  unused text.
+- **The Top 10 and co-streams.** One place per session, over ten places: the
+  ranking counts them in places, not in channels.
+
+### The report
+
+The **ACCUEIL / HOME PAGE** block is printed now. It reads:
+
+- `chrono.*`: in milliseconds since the page started, the arrival, Twitch's
+  scroller, the laying, the hero, the veil lifted, the place seen, the
+  carousel hidden;
+- `voile.*`: its layings, what lifted it (`donnees`, `attente`, `plafond`,
+  `rien`, `reveil`, `depart`), its duration;
+- `amorce.*`: the channels asked at start-up, and whether the answer is in;
+- `synchrones`: the page's movements looked at in the same frame;
+- `peintureMaxMs`, `peinturesMs`, `peinturesDonnees`: what a paint costs, and
+  the ones the answer triggered;
+- `heros.place`, `heros.vue` and `heros.rejets`, one refusal per line (the
+  place, the reason, the hero's width over the scroller's, its parent's
+  layout).
+
+Counts, states, times; no channel is named.
+
+### The texts
+
+Unchanged: nothing the home page promises has changed.
+
+### The bench
+
+- **220**, new. A probe laid before any script of the page records, on every
+  frame, what is on screen: Twitch's carousel, its rows, our hero, our section,
+  the veil, as well as layout shifts. The fake home page gets two levers,
+  `carrouselApres` and `rayonsApres`, to lay the carousel or the rows later as
+  on the real page, and `__accueilRecarrousel()` to redraw the carousel alone.
+  A `__depart` set is poured in before the extension starts. The cases tried:
+  - the data before Twitch, its carousel after us;
+  - Twitch before the data;
+  - data that is late;
+  - the Top 10 waiting;
+  - a tab opened in the background;
+  - React redrawing long after arriving, and the hero carried away alone;
+  - Twitch's rows after its column;
+  - neither home page nor answer;
+  - a channel going live, the home page already there;
+  - nothing to wait for;
+  - the home page off.
+
+  In each: not one frame of Twitch's home page that would have to be replaced.
+- **218**: "From the start"'s kept place, invisible and inert; the card that
+  receives its button doesn't grow; the memory that forgets.
+- **70**: the report's ACCUEIL block.
+
+Against 4.26.0.4, scenario 220 fails from its first case: six frames of
+Twitch's carousel, six of its rows without ours.
+
+**Twenty-five named mutants, all caught.**
+
+| mutant | what falls |
+| --- | --- |
+| the carousel hidden by the class alone | 220 g): React redraws the carousel, and the new one shows before being hidden |
+| the observer that groups everything | 220 a): Twitch's carousel and rows without ours, the hero missing from the first frame, the page moving |
+| the early request that asks for nothing | 220 a), b): the veil lifted by the early request's answer; Twitch before the data; the page moving |
+| the veil never laid | 220 a), b): the same |
+| the answer ignored | 220 j): the channel that went live painted at the wake-up, not at the batch that tells it |
+| the veil unbounded once Twitch's home page is there | 220 c): data that is late |
+| the veil with no ceiling | 220 h): neither home page nor answer |
+| nothing to wait for, and the veil kept | 220 e): nothing to wait for |
+| the place judged under the veil | 220 b): the place seen when the veil lifts |
+| the place not checked again when it lifts | 220 b): the same |
+| the tab shown without a paint | 220 f): the tab opened in the background |
+| the preload forgotten | 220 a): the hero's images requested before it |
+| the sidebar asking again for what is on its way | 220 a): each followed channel asked once |
+| removed carousels kept | 220 g): the old carousel let go |
+| the Top 10 with no waiting places | 220 d): the Top 10 waiting |
+| the foot without the button's height | 220 d): the same |
+| the button's place not kept | 218: the kept place; 220 d) |
+| the kept place visible | 218: the invisible place |
+| the button put back on a line | 220 d): the height to the pixel |
+| "From the start" that forgets nothing | 218: the memory that forgets |
+| the carried-away section laid again at 150 ms | 220 g): React redoing the home page |
+| the hero carried away alone, left out | 220 g): the hero carried away four times |
+| the alignment left to the paint alone | 220 i): Twitch's rows after its column |
+| the ACCUEIL block missing from the report | 70: the ACCUEIL block |
+| the refusals flattened as they are | 70: the refusals in plain words |
+
+The full bench: 2179 assertions in 219 scenarios, all green.
+
+## The home page, fourth pass: a hero that checks its own place (v4.26.0.4)
+
+The feedback, with a screenshot of the real page. Published on
+`claude/chrome-homepage` only.
+
+| feedback | what was done |
+| --- | --- |
+| "there's no hero at all" | the hero checks on screen that it can be seen, and moves to another place until it can |
+
+### What the screenshot showed
+
+Twitch's carousel was hidden, and the top channel was missing from the followed
+row: the hero had been chosen and painted, yet nothing showed at the top of the
+page. Only its place had changed since 4.26.0.2. That version laid it in our
+section, where it could be seen; 4.26.0.3 laid it at the top of the page's
+scroller (`.root-scrollable__content`), so that it would take its whole width.
+
+### Why the bench didn't see it
+
+In the fake home page, the scroller stacks its children like an ordinary block.
+Twitch's arranges them according to its stylesheet, and that stylesheet cannot
+be read from here. The network of the environment this work runs in refuses
+`static.twitchcdn.net` and `assets.twitch.tv`, and the `<body>` received only
+carries generated class names.
+
+A very simple layout reproduces the screenshot: a scroller laid out as a row
+(`display: flex`). The hero takes its width from its container
+(`container-type: inline-size`, which sets the frame's height from its width),
+and such a container has no width of its own. In a flexible row, where each
+child only gets its own width, the hero therefore measures **0 px**. Twitch's
+wrapper then fills the whole row: the rows are at the top, and the carousel
+stays hidden. The measurement confirms it: on a fake home page laid out that
+way, 4.26.0.3 lays a 0 × 320 px frame, and the screen shows what the screenshot
+showed, the rows at the top and no hero.
+
+Nothing proves, though, that this is Twitch's layout. A grid, a wrapper laid
+absolutely on top, or an overlay from the page would hide the hero just as well.
+Rather than fix a hypothesis, the hero therefore checks on screen that it can be
+seen.
+
+### The checked place
+
+The hero tries four places, from the widest to the safest:
+
+1. at the top of the scroller, as in 4.26.0.3;
+2. at the top of Twitch's wrapper (`.root-scrollable__wrapper`);
+3. just before the carousel, in its place;
+4. at the top of our section, in the column. This is 4.26.0.2's place, which the
+   previous screenshot showed.
+
+After each paint, as long as its place hasn't been seen, the hero checks it. It
+refuses it for one of these reasons:
+
+| reason | what is observed |
+| --- | --- |
+| `vide` (empty) | the frame has no area |
+| `etroit` (narrow) | the frame is narrower than the scroller; this check only applies to the first two places, which must take its whole width |
+| `recouvert` (overlapped) | the next element in the flow starts before the hero ends (a grid, a row, a negative margin) |
+| `couvert` (covered) | at two points of the frame's visible part, an element of Twitch's page answers, not the hero |
+
+Elements laid absolutely, such as a scrollbar track, don't count for
+`recouvert`; if they hide the hero, `couvert` says so. Our hover preview doesn't
+count either, nor anything that lives outside `<main>`.
+
+A refusal moves the hero to the next place, checked at once. It all happens
+within the same frame, with no flash. A refused place stays refused for the
+whole session. A place the page doesn't offer yet (no carousel found, for
+instance) is skipped for this time, without being refused.
+
+Two situations are not refusals: the page not drawn yet, and the hero out of
+view. In those cases, the check resumes at the next paint. When React redraws
+the page and the hero is laid again, its place is checked again. The last place
+is kept no matter what, and any defect it has is noted in the report.
+
+In the last place, the hero takes back 4.26.0.2's look: rounded corners, and the
+column's margins when the window is large. That is the price of a page where no
+wider place can be seen, and the report will say so.
+
+One stylesheet rule changes. In a parent laid out as a column that centres its
+children, the hero stretches anyway (`align-self: stretch`): without it, it
+would only have its own width, that is to say none.
+
+### The report
+
+Four fields of `accueil.heros` describe the place:
+
+- `place`: where the hero was laid (`defileur`, `enveloppe`, `carrousel` or
+  `section`);
+- `vue`: whether it was seen there;
+- `rejets`: each refused place, with its reason, the hero's width, the
+  scroller's, and the parent's layout (`flex row`, `grid row`…);
+- `attentes`: the number of checks put off until later.
+
+If the hero is still missing, or has margins, these lines will say why. They are
+the only measurement we will have of Twitch's stylesheet.
+
+### The texts
+
+Unchanged. The guide, the settings and the listings put the hero "across the
+whole width", which it is in the first three places.
+
+### The bench
+
+The fake home page gets a lever, `mise` (see `page.html`). Each of its values is
+a way the scroller can hide the hero, and scenario **216 m)** tries them all.
+Each time, the hero must be seen, and the report must say what was refused:
+
+| `mise` | what the fake home page does | where the hero is laid | refusals |
+| --- | --- | --- | --- |
+| none | the scroller as a block | the scroller | none |
+| `colonne` | the scroller laid out as a column that centres its children, and a scrollbar track laid absolutely | the scroller | none |
+| `rangee` | the scroller laid out as a row | the wrapper | `vide` |
+| `dessus` | the wrapper laid absolutely on top, on a solid background | the wrapper | `couvert` |
+| `grille` | the scroller as a grid, the wrapper in its only cell | the wrapper | `recouvert` |
+| `marge` | inner margins on the scroller | the carousel's place | `etroit` twice |
+| `rangees` | the scroller, the wrapper and the page laid out as rows, no carousel | our section | `vide` twice; the carousel's place, absent, is skipped |
+| `voile` | a block of `<main>` laid over the whole top of the page | our section, kept | `couvert` four times |
+
+The same scenario also tries three cases. The page not drawn yet, then the hero
+out of view, give no refusal. Back on screen, the hero is seen at the top of the
+scroller. Finally, the page redrawn as a grid makes the hero's place be checked
+again, and it is refused.
+
+**Seventeen named mutants, all caught.** The first one puts 4.26.0.3 back:
+without a check, the hero stays in the row, 0 px wide.
+
+| mutant | what falls |
+| --- | --- |
+| the place never checked (4.26.0.3) | 216 m): all its assertions — the hero stays in the row, 0 px wide |
+| `vide` forgotten | 216 m): the row; everything laid out as rows |
+| `etroit` forgotten | 216 m): the margins |
+| `etroit` at every place | 216 m): the margins; everything laid out as rows; the overlay |
+| `recouvert` forgotten | 216 m): the page redrawn as a grid |
+| the absolute track taken for a sibling | 216 m): the column; the wrapper on top |
+| `couvert` forgotten | 216 m): the wrapper on top; the overlay |
+| out of view taken for a refusal | 216 m): the page not drawn, then out of view; back on screen; the grid |
+| the page not drawn yet taken for a refusal | 216 m): the page not drawn, then out of view; back on screen; the grid |
+| the scroller always clipping | 216 m): the wrapper on top |
+| the last place left | 216 m): the overlay; nothing moves afterwards |
+| a refusal that doesn't move on | 216 m): the grid, the row, the wrapper on top, and four more |
+| the place laid again without being checked again | 216 m): the page redrawn as a grid |
+| an absent place that stops everything | 216 m): everything laid out as rows, no carousel |
+| the wrapper taken at random | 216 m): the wrapper on top |
+| the stretch forgotten | 216 m): the column |
+| the last place's corners forgotten | 216 m): everything laid out as rows |
+
+The full bench: 2158 assertions in 218 scenarios, all green.
+
+## The home page, third pass: the hero edge to edge, the Top 10 in fives (v4.26.0.3)
+
+The feedback, with a screenshot of the real page at 2560 × 1440. Published on
+`claude/chrome-homepage` and `claude/firefox-homepage` only.
+
+| feedback | what was done |
+| --- | --- |
+| "at 1440 there are still margins, I want no margin at all for the hero" | the hero leaves Twitch's column: at the top of the page, from the sidebar to the edge of the window |
+| "the Top 10 […] the base list size must be 5. At 1440 there are 6 items on a line" | five places per line, at every size |
+| "'Show all' must be purple, as it is natively" | the purple of Twitch's links |
+| "there is an `<hr>` between the hero and the first list, remove it" | no more rule above the rows |
+
+### The hero, edge to edge
+
+The cause of the margins that were left: in 4.26.0.2 the hero took the width of
+**the column** — and Twitch's column is centred and capped at large widths. At
+1920 px it fills the page; at 2560 it leaves empty space on either side, and the
+hero with it.
+
+The hero now lives **outside our section**, in a block of its own
+(`#tse-accueil-heros`), laid at the top of the page's scroller
+(`.root-scrollable__content`), before Twitch's wrapper. It takes its whole width
+— from the sidebar to the edge of the window — and sits right under the top
+bar, where the carousel was; no rounded corner and no edge line, since it
+touches the edges. The rows stay in the column, aligned to the pixel with
+Twitch's. Negative margins could have pulled the hero out of the column without
+moving it; but an ancestor that clips what overflows, or a margin Twitch
+computes, would have cut or shifted it. Outside the column, none of its rules
+apply.
+
+A separate block means separate cases to hold, and they are held: it leaves
+with the section (leaving the home page, the master setting off), is rewritten
+with it when Twitch changes language, comes back alone and first when React
+redraws the page, hides when there is no hero — no empty region announced at
+the top of the page —, and what it holds is kept out of what we read of
+Twitch's page (the carousel recognised by its shape, the cards, the preview)
+and of the mutations we watch — its video laid or removed is not Twitch's page
+moving. The report now counts the observer's wake-ups (`accueil.reveils`): the
+ones Twitch's page causes, and those alone.
+
+On the bench, the fake home page's column is now capped at 1,800 px and
+centred, like the real one: at 2560, what sits in it has margins; the hero
+takes the scroller's whole width, and the rows stay in the column.
+
+### The Top 10, in fives
+
+The Top 10 grid took as many columns as the width held, 300 px at least per
+place: five at 1920, six on the screen reported at 2560. It now has **five, at
+every size**: 1 to 5, then 6 to 10 under "Show all". The followed row keeps its
+grid: as many cards as the width holds, like Twitch's rows.
+
+A place now ranges from about 150 px to more than 400 depending on the window:
+its proportions are therefore counted in place widths, no longer in pixels. The
+numeral takes 28 %, the thumbnail the 79 % left under it, and the numeral takes
+the thumbnail's height. "10", two digits, holds at 72 % of that height (116 px
+at most): otherwise it would overflow the place on the left and bite into its
+neighbour. Measured at 1100, 1920 and 2560 px, rolled up and unrolled.
+
+### "Show all", in purple
+
+The button takes the purple of Twitch's links, like its own "Show all":
+Twitch's own variable, `--color-text-link`, when the page provides it — as the
+rule already takes its border colour —, and otherwise the purple of the home
+page's accents, `#bf94ff` in the dark theme, `#772ce8` in the light one. It keeps
+it on hover.
+
+### No more rule under the hero
+
+4.26.0.2 laid a rule above the first row; under the hero, it cut the hero off
+from the list. It is gone: each row only has its foot, rule — button — rule, and
+between two rows there is only the first one's foot.
+
+### The texts
+
+Unchanged. The guide, the settings and the listings already put the hero
+"across the whole width", and the guide one line in each row: it is now true at
+every size.
+
+### The bench
+
+- **215 c), d), e), f), g), h)**: the hero at the top of the scroller, outside
+  the section and the column; ten touches in the hero, ten in the section, and
+  the observer doesn't wake up — four in Twitch's rows, and it wakes up four
+  times; redrawn by React, the hero comes back alone and first; gone with the
+  section when leaving the home page or with the master setting off; without
+  the content's landmark or a carousel, the section at the top of the rows'
+  container, and it stays there when the page moves; a single hero, always
+  first, when the language changes.
+- **216 i)**: the column capped at 1,800 px and centred; at 1600 and 2560 px,
+  the hero as wide as the scroller, flush left and top, no rounded corner; at
+  2560, the column at 1,800 px and the rows inside it.
+- **217 a)**: without a hero, its block is hidden.
+- **217 h)**: five places per line at 1100, 1920 and 2560 px, rolled up and
+  unrolled; no numeral biting into its neighbour; no rule above; "Show all" in
+  purple, and in Twitch's when the page provides it.
+- **217 i)**: between two rows, only the first one's foot.
+
+**Eighteen named mutants, all caught**; the twenty-four from 4.26.0.2 that
+still apply were replayed against today's bench, all caught as well. Two are
+retired, with nothing left to mutate: the top rule no longer exists, and the
+fixed-height numeral is now t4. Two mutants of the first series survived — the
+hero's mutations taken for Twitch's, the hero counted in the container —: the
+bench tested neither. The two missing assertions in 215 are written; replayed,
+both mutants fall.
+
+| mutant | what falls |
+| --- | --- |
+| the hero put back in the section | 215 c): outside the section; 215 h): the language |
+| the hero in the column, just before the section | 215 c): outside the column; 215 g), h) |
+| the rounded corners given back to the frame | 216 i): edge to edge |
+| the section's margins given to the hero | 216 i): edge to edge, at 1600 and 2560 |
+| the hero left behind when leaving | 215 e), f): no hero any more |
+| the hero's block never hidden | 217 a): without a hero, its block hidden |
+| the old hero left when the language changes | 215 h): a single hero, first |
+| the hero's mutations taken for Twitch's | 215 c): the hero's touches |
+| the hero not kept out of Twitch's page | 216 i): the live line |
+| the hero counted in the container | 215 g): the section stays in the column |
+| the Top 10 given back to the width | 217 h): five per line |
+| the top rule put back | 217 h), i): no rule above |
+| "Show all" in the text colour | 217 h): the purple |
+| Twitch's variable ignored | 217 h): Twitch's purple |
+| the numeral at a fixed height | 217 h): the thumbnail's height, at every size |
+| the thumbnail measured the old way | 217 h): the thumbnail's height |
+| the numeral's place in pixels | 217 h): the thumbnail's height |
+| "10" at the size of a single digit | 217 h): "10" bites into its neighbour |
+
+The full bench: 2148 assertions in 218 scenarios, all green.
+
+## The home page, second pass: the hero as video across the whole width, rows the way Twitch does them (v4.26.0.2)
+
+The feedback, with screenshots of the real page at 1920 × 1080 and
+2560 × 1440. Published on `claude/chrome-homepage` and
+`claude/firefox-homepage` only.
+
+| feedback | what was done |
+| --- | --- |
+| "at 2560×1440 there are margins, the hero must take the whole top part" | the hero takes the column's width at every size; its height follows that width |
+| "a video instead of the picture […] first a picture, then the video, with the ad blocker" | the hover preview's player, as is, laid over the picture |
+| "a blur effect with the colours of the stream […] as if the live continued across the whole hero" | the player samples the stream's colours every second; the background takes them up, mirrored from the picture |
+| "'From the start' is useless since I'm not subscribed" | the button only appears when you can watch the replay |
+| "places gained or lost right next to the name […] same for 'New'" | the evolution shares the name's line |
+| "the 7th is cropped […] `<hr>`s at the top and bottom; the bottom one has 'Show all'" | both rows fit the width, one line, the rest under "Show all" |
+| "the 24 is a bit odd" | the count next to the heading is gone |
+| "you can remove the 'On top' part" | the choice at the hero's top right is gone; it stays in "Settings" |
+
+### The hero across the whole width
+
+The cause of the margins: the panel held its format, 18:5, with a height capped
+at 440 px. A height cap on a box with a fixed ratio carries over to its width —
+440 × 18 / 5 = **1,584 px** at most. At 1920 px the column was barely wider; at
+2560, hundreds of pixels were left on either side.
+
+The panel now takes **the column's width**, and its height is computed from
+that width (a container query): 18:5, from 320 to 720 px, never more than three
+fifths of the window. On the bench, in a 1920 px page with a 240 px sidebar,
+the panel is 1,606 × 446 px; at 2560, 2,246 × 624 px. Its text grows one step
+with it beyond 1920: the name up to 56 px, the title up to 26, the buttons up
+to 42 px tall.
+
+### The video: the hover preview's player
+
+"Use the same behaviour as the hover preview": it is the same player. The
+stream's picture is there at once; the player is laid over it, invisible, and
+**revealed at its first frame**. It carries the preview's name (`tse-apercu`):
+the ad blocker and the preview's bridge wake up in it, exactly as in the
+thumbnail — `adblock.js` did not change by a line. Same address (muted, no
+controls, autoplay), same safety nets: revealed a moment after it loads if the
+signal doesn't come, handed back to the picture if a content classification
+gate doesn't lift.
+
+Three differences, on purpose:
+
+- **720p60** rather than the preview's quality: the frame is half the screen's
+  width. The player takes the closest one when the channel doesn't serve it.
+- **Eight seconds** for its document to arrive, against three for the preview:
+  the picture holds the screen meanwhile. A player that didn't take isn't laid
+  again at every paint; it is retried five minutes later.
+- **It only plays while it can be seen**: hidden tab, hero scrolled away,
+  another page, setting off — the player is removed, and its stream with it. It
+  comes back when the hero does.
+
+Twitch's carousel, which the hero replaces, is still hidden and its video
+stopped: the page carries one player, not two. The player takes neither clicks
+nor focus — the channel link sits over it, and "Watch" beside it.
+
+A new setting, **"Video of your #1 channel"**, in the "Home page" group: off,
+the picture alone, refreshed every minute. Twenty-nine settings, in the twelve
+languages of the panel and of the listing.
+
+### The ambience: the stream's colours, without a second player
+
+The obvious way to extend the stream under the text was a second, blurred
+player: two streams of the same live, two decoders, for a smudge of colour. The
+ambience goes through the player that is already playing. The preview's bridge,
+which lives in its frame, receives a request from the hero (`tse:ambiance`); it
+then draws the video at **16 × 9 pixels** on a canvas, every second, and sends
+its colours (`tse:ambiance-px`). Nothing else leaves the frame. A protected
+video would make the canvas unreadable: reading throws, and the bridge goes
+quiet for good — the hero keeps its blurred picture.
+
+The hero lays those colours twice side by side, the first **mirrored**, on a
+canvas stretched under the whole panel and blurred by 40 px. The right half
+falls under the video — it is what shows through the video's faded edge —, the
+left half reaches toward the text: at the video's edge, the same column of
+pixels on both sides, and the stream's light carries on under the name. Two
+canvases, the newest faded over the other in 700 ms: the colour changes without
+a jump. Before the first colours, or without video, the background is the
+stream's picture, mirrored the same way — at 320 × 180, since it is blurred.
+
+What arrives is checked before it is read: the source is THIS hero's player,
+the origin `player.twitch.tv`, the dimensions capped at 64 and the length
+exact. Two more message names are shared by `cadres.js` and `content.js`:
+**sixteen** instead of fourteen, and `npm run addon` counts them.
+
+### "From the start", only when you can watch it
+
+The button carried a padlock when the channel keeps its replays for
+subscribers: a button that leads to a refusal. It now only appears when the
+archive is **open to everyone**, according to its playback token, or when you
+are known to be **subscribed** to the channel. An unreadable token doesn't say
+the archive is open: without a known subscription, no button. The padlock, its
+icon and its label (ten languages) are gone; the request hasn't changed.
+
+### The rows, the way Twitch does them
+
+Twitch's rows, as found on the real page, fit the width: a line of whole cards,
+a rule under it, and in the middle of the rule "Show all" (its `show-more`),
+which unrolls the rest. Ours scrolled sideways, and the card at the edge fell
+half outside — "the 7th is cropped".
+
+They now do as Twitch does:
+
+- a grid that takes **as many columns as the width holds** (290 px at least per
+  card, 300 per Top 10 place), none cut — on the bench, with a 240 px sidebar,
+  five places at 1920 px and seven at 2560;
+- **the first line only**; "Show all" unrolls the others in lines below — the
+  Top 10 becomes "1 to 5, then 6 to 10" —, and turns into "Show less". The row
+  stays unrolled from one paint to the next;
+- **a rule above** the first row, and under each one the rule — button — rule
+  foot; a single rule between two rows; a row that fits in one line has no
+  button, its foot is just a rule.
+
+The number of columns is the one the stylesheet computed: the script reads it
+back from the grid and only counts. The Top 10 numeral takes the thumbnail's
+height, whatever the column's width, and "10" tightens without pushing its
+card.
+
+**The Top 10 evolution** — "▲ 2", "▼ 1", "=", "New" — now reads **right next to
+the name**, on its line; it used to sit under the numeral, in the margin. **The
+count** next to "Your followed channels, live" is gone.
+
+Two new labels in the ten languages of `content.js`: "Show all" and "Show
+less". Five removed with the lead choice, one with the padlock.
+
+### The texts
+
+- **The guide**, in the twelve languages: the hero (across the whole width, the
+  picture then the stream, muted and ad-free, its colours), the evolution's
+  place, a bullet for "Show all" — quoted word for word, as the page writes it
+  —, the button's rule. The sentence about the choice at the banner's top right
+  is gone.
+- **The settings**: "Video of your #1 channel", and the descriptions of "Top of
+  the home page" and "From the start"; "twenty-nine settings" in the reset
+  sentence.
+- **The Store listings**, in the twelve languages: the top of the home page,
+  the button, the settings count, and **the ad blocker's scope**. The listing
+  promised it "applies to the hover preview thumbnail and to nothing else"; it
+  now also applies to the video of your #1 channel at the top of the home page,
+  and the listing says so. The stream you're actually watching is still
+  untouched.
+
+### The bench
+
+- **216 c)**: the video of a player without a bridge is revealed by the safety
+  net, after it loads.
+- **216 i)**: the panel measured at 1600 and 2560 px — the column's width, the
+  height due, the video on the right at its format, the mirrored background,
+  the text before the video, no lead choice any more.
+- **216 j) to l)**: the video in a fake player served from the real origin,
+  with the ad blocker and the bridge, and a real video, red on the left, blue on
+  the right — the name, the address, invisibility before the first frame, the
+  ad blocker active in the frame, the ambience sampled and laid mirrored,
+  seamless, checked to the pixel; an out-of-bounds picture discarded, another
+  player's ignored; the hidden tab, the hero scrolled away, the setting off;
+  the gate that doesn't lift.
+- **217 a), d), h), i)**: no count; the evolution on the name's line; the Top 10
+  in one line of whole places, unrolled, rolled up, at 1100 and 2560 px; the
+  followed row, a single rule between two rows, a foot without a button.
+- **218**: no button for a reserved archive without a subscription, nor for an
+  unreadable token; the button for a subscriber.
+- **96, 117, 120**: the guide quotes "Show all"; twenty-nine settings in the
+  twelve languages, the video's line greyed with the others.
+
+**Twenty-six named mutants, all caught.**
+
+| mutant | what falls |
+| --- | --- |
+| the player without the preview's name | 216 j): the name, the ad blocker, the first frame, the ambience |
+| the video revealed as soon as it is laid | 216 c), j): the picture first |
+| the ambience never requested | 216 j): the ambience |
+| the mirror forgotten | 216 j): the seam, to the pixel |
+| the ambience's bounds removed | 216 j): the out-of-bounds picture |
+| the ambience's source unchecked | 216 j): another player's picture |
+| the hidden tab ignored | 216 k): the hidden tab |
+| the watcher never set | 216 k): the hero scrolled away |
+| the video setting ignored | 216 k): the setting off |
+| the gate ignored | 216 l): the gate |
+| the failed player laid again at once | 216 l): the gate |
+| the video's safety net removed | 216 c): the player without a bridge |
+| the old format given back to the frame | 216 i): at 2560 the frame falls back to 1,584 px — the reported fault, reproduced |
+| the video stretched across the whole width | 216 i): the 16:9 format |
+| the background without its mirror | 216 i): the reflection |
+| the scrolling line | 217 h): six places cut at the edge |
+| nothing rolls up | 217 h): one line |
+| "Show all" that unrolls nothing | 217 h), i): unrolling |
+| the label that doesn't change | 217 h), i): "Show less" |
+| two rules between two rows | 217 i): a single rule |
+| the numeral at a fixed height | 217 h): the thumbnail's height |
+| the count put back | 217 a): no count |
+| the evolution off the name's line | 217 d): right next to the name |
+| a button for a reserved archive | 218: without a subscription |
+| the unreadable token taken for an open archive | 218: the unreadable token |
+| the subscription ignored | 218: the subscriber |
+
+The full bench: 2144 assertions in 218 scenarios, all green.
 
 ## The home page hero, redone after the mock-up (v4.26.0.1)
 
@@ -22497,7 +25352,7 @@ Four independent checks:
 | `npm run lint` | the six shipped JavaScript files — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the Firefox manifest: this repository's invariants, **then** Mozilla's `addons-linter` — the one AMO runs on submission |
-| `npm test` | the Playwright harness: 218 scenarios, 2121 assertions |
+| `npm test` | the Playwright harness: 231 scenarios, 2347 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -22533,6 +25388,33 @@ The stub also reproduces the API's measured defects, because a lenient harness
 lets bugs through: `games` comes back sorted but `streams` does not, a channel
 can go missing from one response to the next (sampling), and a stream's
 broadcast language is independent of the tags it displays.
+
+### The progress board (v4.32.0.5)
+
+A full bench run takes over an hour, and its output does not say how far it
+has got. `tests/suivi/` shows it in a page:
+
+```bash
+node tests/suivi/serveur.mjs              # the page: http://localhost:4790/
+node tests/suivi/lancer.mjs               # npm run check, tracked
+node tests/suivi/mutants.mjs LIST.mjs     # a mutant campaign, tracked
+```
+
+The page reloads every two seconds. For the check: the current step (lint,
+parity, store sheets, package, bench), the current scenario and for how long,
+assertions passed and failed out of those this README announces, each failure
+with its detail, the estimated end. For mutants: each one with its state —
+waiting, running, caught, alive, not found, error —, what catches it, and the
+bench of the one running. The remaining time comes from the durations measured
+on the previous run, scenario by scenario; with no measurement, the page gives
+none.
+
+The bench does not depend on it: `run.mjs` only writes its events when
+`TSE_SUIVI` names a file, and a failed write fails nothing. The records live in
+`tests/suivi/.etat/`, ignored by git. A mutant is applied to a copy of the
+tree, never to the repository; a failed build or a bench that crashes before
+any assertion fails gives ERROR, not a verdict; an assertion failed, then a
+crash: CAUGHT, and the crash is noted.
 
 ### Chrome Web Store captures
 
