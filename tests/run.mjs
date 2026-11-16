@@ -39151,6 +39151,114 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
      l1 === null && !l2.video && l2.image && l2.poses === 1 && l2.retours === 1 && l2.filets === 0 && l2.premieres === 0,
      JSON.stringify({ l1, l2 }));
   await porte.close();
+
+  /* m) SA PLACE, VÉRIFIÉE À L'ÉCRAN (4.26.0.4). Signalé, capture de la vraie
+     page à l'appui : « y'a aucun héros » — le carrousel masqué, la chaîne
+     retirée du rayon, et rien en tête. La 4.26.0.3 le posait en tête du
+     défileur de Twitch sans savoir comment celui-ci range ses enfants : sa
+     feuille ne se lit pas d'ici. Le faux accueil en prend donc chacune des
+     façons de le cacher (cf. `mise` dans page.html), et le héros doit,
+     chaque fois, se voir — en essayant les places dans l'ordre, et en disant
+     au rapport laquelle a tenu et pourquoi les autres non.
+     Mutants — la place jamais vérifiée (la 4.26.0.3) ; chacun des quatre
+     défauts oublié ; « hors de la vue » pris pour un refus ; la dernière
+     place quittée ; la place reposée sans être revue. */
+  const lirePlace = (p) => p.evaluate(() => {
+    const b = document.getElementById('tse-accueil-heros');
+    const d = document.querySelector('main .root-scrollable__content'), rd = d.getBoundingClientRect();
+    const c = b.querySelector('.tse-acc-heros-cadre'), rc = c ? c.getBoundingClientRect() : { left: 0, top: 0, width: 0, height: 0 };
+    const y = rc.top + Math.min(rc.height, innerHeight - rc.top) / 2;
+    const centre = rc.width && y > 0 ? document.elementFromPoint(rc.left + rc.width / 2, y) : null;
+    const s = document.getElementById('tse-accueil'), ss = getComputedStyle(s);
+    const h = window.tse.accueil.rapport().heros;
+    return { place: h.place, vue: h.vue, attentes: h.attentes, rejets: h.rejets.map((x) => x.place + ':' + x.raison),
+             parentRejet: h.rejets[0] ? h.rejets[0].parent : null, attr: b.dataset.tsePlace || null,
+             l: Math.round(rc.width), plein: d.clientWidth,
+             gauche: Math.round(rc.left - rd.left - d.clientLeft), dessus: Math.round(rc.top - rd.top - d.clientTop),
+             vu: !!centre && b.contains(centre), rayon: c ? getComputedStyle(c).borderTopLeftRadius : null,
+             premierSection: s.firstElementChild === b,
+             interieur: Math.round(s.getBoundingClientRect().width - parseFloat(ss.paddingLeft) - parseFloat(ss.paddingRight)),
+             avantCarrousel: b.nextElementSibling === document.querySelector('[data-a-target="front-page-carousel"]'),
+             masque: !!document.querySelector('.tse-acc-masque') };
+  });
+  const placeVue = (p) => attendre(p, () => {
+    const h = window.tse.accueil.rapport().heros;
+    return h.montre && h.vue && !!document.querySelector('#tse-accueil-heros:not([hidden]) .tse-acc-heros:not([hidden])');
+  }, 10_000);
+  const ouvrirMise = async (mise, decor = {}) => {
+    const p = await ouvrirAccueil({ decor: { mise, ...decor }, visites: { korbek: [1, 3] },
+                                    options: { accueilTop: false, accueilDebut: false, accueilVideo: false } });
+    await plateauAccueil(p);
+    await placeVue(p);
+    return p;
+  };
+
+  // La page pas encore dessinée, puis le héros hors de la vue : ce ne sont pas des refus, on attend de le voir.
+  const m0 = await ouvrirAccueil({ visites: { korbek: [1, 3] }, options: { accueilTop: false, accueilDebut: false, accueilVideo: false } });
+  await attendre(m0, () => !!document.querySelector('main .root-scrollable__content'), 6000);
+  await m0.evaluate(() => { document.querySelector('main').style.display = 'none'; });
+  await plateauAccueil(m0);
+  await attendre(m0, () => window.tse.accueil.rapport().heros.attentes >= 3, 8000);
+  const m9 = await lirePlace(m0);
+  await m0.evaluate(() => {
+    const cale = document.createElement('div');
+    cale.style.height = '4000px';
+    document.querySelector('main').after(cale);
+    document.querySelector('main').style.display = '';
+    window.scrollTo(0, 3000);
+  });
+  await attendre(m0, (n) => window.tse.accueil.rapport().heros.attentes >= n + 3, 8000, m9.attentes);
+  const ma = await lirePlace(m0);
+  ok('la page pas encore dessinée, puis le héros hors de la vue : la place attend d\'être vue, sans refus',
+     m9.place === 'defileur' && !m9.vue && m9.attentes >= 3 && m9.rejets.length === 0
+     && ma.place === 'defileur' && !ma.vue && ma.attentes >= m9.attentes + 3 && ma.rejets.length === 0, JSON.stringify({ m9, ma }));
+  await m0.evaluate(() => window.scrollTo(0, 0));
+  await placeVue(m0);
+  const mb = await lirePlace(m0);
+  ok('…revenu à l\'écran, vu en tête du défileur : toute la largeur, collé en haut, sans coin arrondi, aucun refus',
+     mb.place === 'defileur' && mb.attr === 'defileur' && mb.vue && mb.rejets.length === 0 && mb.vu
+     && mb.l === mb.plein && mb.gauche === 0 && mb.dessus === 0 && mb.rayon === '0px', JSON.stringify(mb));
+  // La page qui se redessine autrement : le héros reposé est revu, et quitte une place qui ne tient plus.
+  await m0.evaluate(() => { window.__accueil.mise = 'grille'; window.__accueilRemonter(); });
+  await attendre(m0, () => window.tse.accueil.rapport().heros.place === 'enveloppe' && window.tse.accueil.rapport().heros.vue, 6000);
+  const mc = await lirePlace(m0);
+  ok('…la page redessinée en grille, où il passerait sous la page : revu, refusé (« recouvert »), posé dans l\'enveloppe',
+     mc.place === 'enveloppe' && JSON.stringify(mc.rejets) === '["defileur:recouvert"]' && mc.vu
+     && mc.l === mc.plein && mc.gauche === 0 && mc.dessus === 0, JSON.stringify(mc));
+  await m0.close();
+
+  const cas = [
+    ['colonne', 'le défileur rangé en colonne, qui centre ses enfants, et sa piste posée en absolu : en tête du défileur, toute la largeur, aucun refus',
+     (g) => g.place === 'defileur' && g.rejets.length === 0 && g.l === g.plein && g.gauche === 0 && g.dessus === 0],
+    ['rangee', 'le défileur rangé en ligne, qui le réduit à rien : refusé (« vide »), posé dans l\'enveloppe, toute la largeur',
+     (g) => g.place === 'enveloppe' && JSON.stringify(g.rejets) === '["defileur:vide"]' && g.parentRejet === 'flex row'
+       && g.l === g.plein && g.gauche === 0 && g.dessus === 0 && g.rayon === '0px'],
+    ['dessus', 'l\'enveloppe posée par-dessus : refusé (« couvert »), posé dans l\'enveloppe, toute la largeur',
+     (g) => g.place === 'enveloppe' && JSON.stringify(g.rejets) === '["defileur:couvert"]'
+       && g.l === g.plein && g.gauche === 0 && g.dessus === 0],
+    ['marge', 'ni le défileur ni l\'enveloppe ne donnent la largeur : deux refus (« etroit »), posé à la place du carrousel, masqué',
+     (g) => g.place === 'carrousel' && JSON.stringify(g.rejets) === '["defileur:etroit","enveloppe:etroit"]'
+       && g.avantCarrousel && g.masque && g.l === g.plein - 160 && g.dessus === 0],
+    ['rangees', 'tout rangé en ligne, et pas de carrousel : deux refus, sa place sautée sans refus, posé en haut de notre section, comme en 4.26.0.2, coins arrondis',
+     (g) => g.place === 'section' && JSON.stringify(g.rejets) === '["defileur:vide","enveloppe:vide"]'
+       && g.premierSection && g.l === g.interieur && g.rayon === '10px', { carrousel: 'aucun' }],
+  ];
+  for (const [mise, quoi, juge, decor] of cas) {
+    const p = await ouvrirMise(mise, decor);
+    const g = await lirePlace(p);
+    ok(quoi + ' — et il se voit', juge(g) && g.vue && g.vu && g.attr === g.place, JSON.stringify(g));
+    await p.close();
+  }
+  // Rien ne se voit nulle part : la dernière place est gardée, et son défaut noté.
+  const mv = await ouvrirMise('voile');
+  const gv = await lirePlace(mv);
+  ok('un voile de Twitch sur tout le haut : quatre refus (« couvert »), la dernière place gardée, sans boucle',
+     gv.place === 'section' && gv.vue && gv.premierSection && !gv.vu
+     && JSON.stringify(gv.rejets) === '["defileur:couvert","enveloppe:couvert","carrousel:couvert","section:couvert"]', JSON.stringify(gv));
+  await wait(mv, 600);
+  const gv2 = await lirePlace(mv);
+  ok('…et rien ne bouge plus aux peintures suivantes', gv2.rejets.length === 4 && gv2.place === 'section', JSON.stringify(gv2));
+  await mv.close();
 }
 
 {
