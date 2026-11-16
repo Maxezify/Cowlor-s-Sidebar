@@ -2064,6 +2064,135 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The co-stream at its most watched, the absence as cards, the audit (v4.33.0.3)
+
+Three reports. Published on `claude/chrome-homepage` only.
+
+| reported | what was done |
+| --- | --- |
+| “put the one with the most viewers on top; in the screenshot it's the opposite” | a Top 10 co-stream's card is its most watched member's; the window names them first |
+| “I'm not a fan of 'While you were away'; propose a UX/UI that matches the rest of the page” | two mockups, made of our real components; the cards option chosen, and built |
+| “do a full audit of the zapping and the home page” | measurements and a read-through (below) |
+
+### A co-stream's card
+
+The screenshot: a card at 858 viewers, and in its window a member at 20.8K.
+The ranking puts a session's members at the same number — the combined one —,
+and the place took the first it returned. It now takes the one with the most
+viewers of their own, read in TseChannels; with no known audience, the
+ranking's order. Another member only takes the card by beating it by 5 %
+(`ACCUEIL_CS_TETE_ECART`), remembered per session: two close audiences don't
+swap the card on every reading.
+
+### While you were away, as cards
+
+Two options offered as mockups — a row of cards like the Top 10, tiles like
+“Your scheduled streams” —; the first chosen. A row like the others: its title
+in their style, the close button at the end, “Show all”. One card per channel,
+ours, but for a replay:
+
+- **the picture of the absence's last replay**, large; without a replay, the
+  blurred avatar. It opens the replay when you can watch it, the channel
+  otherwise; no hover preview, nothing there is live;
+- **“2 streams”** instead of “Live”, in the grey of the other badges; **their
+  duration** top right; **when the last one ended** bottom left, “6 hr. ago”
+  (`Intl.RelativeTimeFormat`, in the interface language) — left out if the
+  channel is live right now;
+- below: the avatar, the name, the last stream's title — “Streamed, no
+  replay” without a replay —, **“Most viewed clip: …”** (the word “clip”
+  added in the ten languages: alone under a replay, “most viewed” no longer
+  said of what), and “Watch the last one”, styled like “From the start”.
+
+**The large picture, without an extra request.** The schedule reads replay
+pictures at 160 × 90: the panel's size, which shows them at 80 × 45. On a
+three-hundred-pixel card it was blurry. The large one (640 × 360) of the last
+replay goes in the same batch as the clips, as a separate operation: no extra
+request, and its refusal doesn't touch the clips — the card then keeps the
+small one. The setting, the guide and the Store sheets say so, in the twelve
+languages. The report: `accueil.absence.vignettes`.
+
+### The audit
+
+**Measured on the bench, with `Memory.getDOMCounters` and the heap after
+garbage collection:**
+
+- the home page running, two thousand paints: nodes (1,271) and listeners (86)
+  unchanged; the heap levels off — +300, +114, +42, +21 KB per half minute,
+  bounded caches filling up;
+- a paint costs 1.8 ms on average, 23 ms at most;
+- the co-stream window opened and closed sixty times, the zapping thirty: a
+  one-off cost on the first opening (+13 and +10 listeners), then nothing;
+- the bench itself kept every request in its log (`__calls`): emptied before
+  each measurement, to count only the extension.
+
+**Read through:** every timer, listener and observer of the home page and the
+zapping — all undone with what carries them; the schedule only writes what
+changed; no translated string, class or report counter without a use; the
+stylesheet's repeated selectors are narrow-screen overrides.
+
+**Found, fixed:**
+
+- the absence's blurry picture (above);
+- a `[hidden]` rule of the co-stream window (4.33.0.2), redundant:
+  `#tse-accueil [hidden]` already covers the window, which stays in the
+  section for the cascade even in the top layer. Removed; the bench checks a
+  hidden number doesn't show there;
+- the absence fold assertion proved nothing: at 1600 pixels the five cards
+  fit on one row. It runs in a 1000-pixel tab.
+
+**Noted outside the scope, left:** five declarations never called, outside
+the home page and the zapping — `lireCarte` (and `dateEcrite`, `retenirFin`,
+used only by it), `bilanApi` (and `LEVIERS`), `nomDe`, `typo`,
+`suiviesDabord`.
+
+### What could not be checked here
+
+- **the large picture on the real Twitch**: `video(id:)` and its
+  `previewThumbnailURL` at the requested size are those of the public schema;
+  the bench plays them, Twitch can't be reached from here. Refused, the small
+  one stays;
+- **a paint's cost on the real page**, with its dozens of cards: measured on
+  the bench only.
+
+### The bench
+
+224 rewritten for the cards, its guarantees kept: what the line said — “2
+streams · 5h05” — is read on the badges and the picture's name. Four more
+assertions: the card (large picture requested in the clips batch, badges, “6
+hr. ago”, title, links); the channel without a replay and the closed replay;
+the fold, in a 1000-pixel tab; the large picture refused, the clips served
+anyway. The fake Twitch serves a replay's picture at the requested size. 232
+gains one: the co-stream's card moves to the most watched past 5 %, not
+below, and comes back — the setup's ranking now returns another member first.
+
+The full bench caught a defect of the fake Twitch, not of the extension: the
+picture size it reads in the request was stored among the schedule's new
+fields, and the mode that refuses them all refused it too — endlessly, since
+no request can do without it (207 q). It is kept apart.
+
+**Thirteen named mutants, all caught.**
+
+| mutant | what fails |
+| --- | --- |
+| the card in the ranking's order | 232 g) |
+| a switch on the slightest lead | 232 g) |
+| the card kept forever | 232 g) |
+| the small picture, never the large one | 224 a') (the card, the closed replay) |
+| the picture's refusal taking the clips with it | 224 c) (the clips, the refusal) |
+| the live red on a replay | 224 a') (the card) |
+| the last stream's end left out | 224 a') (the card, without a replay) |
+| the closed replay as the link | 224 a') (without a replay, closed) |
+| the avatar without blur | 224 a') (without a replay) |
+| no fold on paint | 224 a') (the fold) |
+| the stream's title forgotten | 224 a') (the card) |
+| the stream count forgotten | 224 a) (two streams), a') (the card), c) |
+| the shared `[hidden]` rule lost for the section | 232 b) |
+
+`npm run check`: 2347 assertions in 231 scenarios, all green — in two passes:
+the full one, stopped after 205 by the fake Twitch's two failures in 207 (see
+above), then, once fixed, from 205 to the end, 207 included. The scenarios
+before it don't use the mode the fix touches.
+
 ## The Top 10 co-stream, as on Twitch (v4.33.0.2)
 
 Two reports, with a Twitch screenshot and HTML. Published on
@@ -24711,7 +24840,7 @@ Four independent checks:
 | `npm run lint` | the six shipped JavaScript files — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 231 scenarios, 2342 assertions |
+| `npm test` | the Playwright harness: 231 scenarios, 2347 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -24758,13 +24887,13 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 2277 KB | 1075 KB | 4,780 → **2** |
+| `content.js` | 2285 KB | 1080 KB | 4,788 → **2** |
 | `cadres.js` | 74 KB | 34 KB | 170 → **0** |
 | `adblock.js` | 126 KB | 101 KB | 301 → **2** |
 | `panneau.js` | 166 KB | 85 KB | 227 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 26 → **0** |
 | `background.js` | 10 KB | 2 KB | 22 → **0** |
-| **all six** | **2667 KB** | **1301 KB** | **−51 %** |
+| **all six** | **2676 KB** | **1306 KB** | **−51 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are

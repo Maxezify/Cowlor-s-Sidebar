@@ -588,7 +588,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAbsDirects:              (n, d) => `${n} direct${n > 1 ? 's' : ''} · ${d}`,
       uiAbsSansRedif:            'A diffusé, sans rediffusion',
       uiAbsRevoir:               'Revoir le dernier',
-      uiAbsPlusVu:               (t, v, nv) => `le plus vu : « ${t} » (${v} vue${nv > 1 ? 's' : ''})`,
+      uiAbsPlusVu:               (t, v, nv) => `clip le plus vu : « ${t} » (${v} vue${nv > 1 ? 's' : ''})`,
+      uiAbsNDirects:             (n) => `${n} direct${n > 1 ? 's' : ''}`,
       uiAccPourquoi:             (nom) => `Parce que vous regardez souvent ${nom}`,
       uiAccPourquoiVisites:      (n, auMoins) => `${auMoins ? 'au moins ' : ''}${n} visite${n > 1 ? 's' : ''} en 30 jours`,
       uiAccPourquoiOu:           (jeu, langue) => (langue === null ? jeu : `${jeu}, en français`),
@@ -883,7 +884,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAbsDirects:              (n, d) => `${n} stream${n === 1 ? '' : 's'} · ${d}`,
       uiAbsSansRedif:            'Streamed, no replay',
       uiAbsRevoir:               'Watch the last one',
-      uiAbsPlusVu:               (t, v, nv) => `most viewed: “${t}” (${v} view${nv === 1 ? '' : 's'})`,
+      uiAbsPlusVu:               (t, v, nv) => `most viewed clip: “${t}” (${v} view${nv === 1 ? '' : 's'})`,
+      uiAbsNDirects:             (n) => `${n} stream${n === 1 ? '' : 's'}`,
       uiAccPourquoi:             (nom) => `Because you often watch ${nom}`,
       uiAccPourquoiVisites:      (n, auMoins) => `${auMoins ? 'at least ' : ''}${n} visit${n === 1 ? '' : 's'} in 30 days`,
       uiAccPourquoiOu:           (jeu, langue) => (langue === null ? jeu : `${jeu}, in ${langue || 'English'}`),
@@ -1153,7 +1155,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAbsDirects:              (n, d) => `${n} Stream${n === 1 ? '' : 's'} · ${d}`,
       uiAbsSansRedif:            'Hat gestreamt, ohne Aufzeichnung',
       uiAbsRevoir:               'Den letzten ansehen',
-      uiAbsPlusVu:               (t, v, nv) => `meistgesehen: „${t}“ (${v} Aufruf${nv === 1 ? '' : 'e'})`,
+      uiAbsPlusVu:               (t, v, nv) => `meistgesehener Clip: „${t}“ (${v} Aufruf${nv === 1 ? '' : 'e'})`,
+      uiAbsNDirects:             (n) => `${n} Stream${n === 1 ? '' : 's'}`,
       uiAccPourquoi:             (nom) => `Weil du oft ${nom} schaust`,
       uiAccPourquoiVisites:      (n, auMoins) => `${auMoins ? 'mindestens ' : ''}${n} Besuch${n === 1 ? '' : 'e'} in 30 Tagen`,
       uiAccPourquoiOu:           (jeu, langue) => (langue === null ? jeu : `${jeu}, auf Deutsch`),
@@ -1423,7 +1426,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAbsDirects:              (n, d) => `${n} directo${n === 1 ? '' : 's'} · ${d}`,
       uiAbsSansRedif:            'Emitió, sin repetición',
       uiAbsRevoir:               'Ver el último',
-      uiAbsPlusVu:               (t, v, nv) => `el más visto: «${t}» (${v} vista${nv === 1 ? '' : 's'})`,
+      uiAbsPlusVu:               (t, v, nv) => `el clip más visto: «${t}» (${v} vista${nv === 1 ? '' : 's'})`,
+      uiAbsNDirects:             (n) => `${n} directo${n === 1 ? '' : 's'}`,
       uiAccPourquoi:             (nom) => `Porque sueles ver a ${nom}`,
       uiAccPourquoiVisites:      (n, auMoins) => `${auMoins ? 'al menos ' : ''}${n} visita${n === 1 ? '' : 's'} en 30 días`,
       uiAccPourquoiOu:           (jeu, langue) => (langue === null ? jeu : `${jeu}, en español`),
@@ -1693,7 +1697,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAbsDirects:              (n, d) => `${n} transmiss${n === 1 ? 'ão' : 'ões'} · ${d}`,
       uiAbsSansRedif:            'Transmitiu, sem reprise',
       uiAbsRevoir:               'Rever a última',
-      uiAbsPlusVu:               (t, v, nv) => `o mais visto: «${t}» (${v} visualizaç${nv === 1 ? 'ão' : 'ões'})`,
+      uiAbsPlusVu:               (t, v, nv) => `o clipe mais visto: «${t}» (${v} visualizaç${nv === 1 ? 'ão' : 'ões'})`,
+      uiAbsNDirects:             (n) => `${n} transmiss${n === 1 ? 'ão' : 'ões'}`,
       uiAccPourquoi:             (nom) => `Porque você assiste muito a ${nom}`,
       uiAccPourquoiVisites:      (n, auMoins) => `${auMoins ? 'pelo menos ' : ''}${n} visita${n === 1 ? '' : 's'} em 30 dias`,
       uiAccPourquoiOu:           (jeu, langue) => (langue === null ? jeu : `${jeu}, em português`),
@@ -1963,7 +1968,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAbsDirects:              (n, d) => `${n} dirett${n === 1 ? 'a' : 'e'} · ${d}`,
       uiAbsSansRedif:            'Ha trasmesso, senza replica',
       uiAbsRevoir:               'Rivedi l\'ultima',
-      uiAbsPlusVu:               (t, v, nv) => `la più vista: «${t}» (${v} visualizzazion${nv === 1 ? 'e' : 'i'})`,
+      uiAbsPlusVu:               (t, v, nv) => `la clip più vista: «${t}» (${v} visualizzazion${nv === 1 ? 'e' : 'i'})`,
+      uiAbsNDirects:             (n) => `${n} dirett${n === 1 ? 'a' : 'e'}`,
       uiAccPourquoi:             (nom) => `Perché guardi spesso ${nom}`,
       uiAccPourquoiVisites:      (n, auMoins) => `${auMoins ? 'almeno ' : ''}${n} visit${n === 1 ? 'a' : 'e'} in 30 giorni`,
       uiAccPourquoiOu:           (jeu, langue) => (langue === null ? jeu : `${jeu}, in italiano`),
@@ -2234,7 +2240,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAbsDirects:              (n, d) => `${n} ${plurielSlave(n, ['transmisja', 'transmisje', 'transmisji'])} · ${d}`,
       uiAbsSansRedif:            'Nadawał, bez powtórki',
       uiAbsRevoir:               'Obejrzyj ostatnią',
-      uiAbsPlusVu:               (t, v) => `najczęściej oglądany: „${t}” (${v} wyśw.)`,
+      uiAbsPlusVu:               (t, v) => `najczęściej oglądany klip: „${t}” (${v} wyśw.)`,
+      uiAbsNDirects:             (n) => `${n} ${plurielSlave(n, ['transmisja', 'transmisje', 'transmisji'])}`,
       uiAccPourquoi:             (nom) => `Bo często oglądasz ${nom}`,
       uiAccPourquoiVisites:      (n, auMoins) => {
         const m10 = n % 10, m100 = n % 100;
@@ -2508,7 +2515,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAbsDirects:              (n, d) => `${n} ${plurielSlave(n, ['трансляция', 'трансляции', 'трансляций'])} · ${d}`,
       uiAbsSansRedif:            'Был в эфире, без записи',
       uiAbsRevoir:               'Смотреть последнюю',
-      uiAbsPlusVu:               (t, v) => `самый просматриваемый: «${t}» (${v} просм.)`,
+      uiAbsPlusVu:               (t, v) => `самый просматриваемый клип: «${t}» (${v} просм.)`,
+      uiAbsNDirects:             (n) => `${n} ${plurielSlave(n, ['трансляция', 'трансляции', 'трансляций'])}`,
       uiAccPourquoi:             (nom) => `Потому что вы часто смотрите ${nom}`,
       uiAccPourquoiVisites:      (n, auMoins) => {
         const m10 = n % 10, m100 = n % 100;
@@ -2781,7 +2789,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAbsDirects:              (n, d) => `配信 ${n} 回 · ${d}`,
       uiAbsSansRedif:            '配信あり（アーカイブなし）',
       uiAbsRevoir:               '最新の配信を見る',
-      uiAbsPlusVu:               (t, v) => `最多再生：「${t}」（${v} 回）`,
+      uiAbsPlusVu:               (t, v) => `最多再生クリップ：「${t}」（${v} 回）`,
+      uiAbsNDirects:             (n) => `配信 ${n} 回`,
       uiAccPourquoi:             (nom) => `${nom}をよく見ているので`,
       uiAccPourquoiVisites:      (n, auMoins) => `30日間で${auMoins ? '少なくとも' : ''}${n}回の訪問`,
       uiAccPourquoiOu:           (jeu, langue) => (langue === null ? jeu : `${jeu}・日本語`),
@@ -3048,7 +3057,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAbsDirects:              (n, d) => `${n} 场直播 · ${d}`,
       uiAbsSansRedif:            '有直播，无回放',
       uiAbsRevoir:               '观看最近一场',
-      uiAbsPlusVu:               (t, v) => `播放最多：「${t}」（${v} 次）`,
+      uiAbsPlusVu:               (t, v) => `播放最多的剪辑：「${t}」（${v} 次）`,
+      uiAbsNDirects:             (n) => `${n} 场直播`,
       uiAccPourquoi:             (nom) => `因为你常看 ${nom}`,
       uiAccPourquoiVisites:      (n, auMoins) => `30 天内${auMoins ? '至少' : ''}访问 ${n} 次`,
       uiAccPourquoiOu:           (jeu, langue) => (langue === null ? jeu : `${jeu}・中文`),
@@ -4713,6 +4723,10 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        ce délai : de quoi franchir l'écart qui les sépare. */
     ACCUEIL_CS_OUVRE_MS:    100,
     ACCUEIL_CS_FERME_MS:    250,
+    /* LA CARTE D'UN CO-STREAM EST CELLE DE SON MEMBRE LE PLUS REGARDÉ
+       (4.33.0.3). Une autre ne la lui prend qu'en le dépassant de 5 % : deux
+       audiences voisines ne font pas changer la carte à chaque relevé. */
+    ACCUEIL_CS_TETE_ECART:  0.05,
     /* LE RELIEF AU SURVOL (4.32.0.3), celui des cartes de Twitch : l'image
        monte de six pixels vers la droite, un relief de la couleur de la
        chaîne paraît à gauche et dessous. Six pixels : 0,6 rem, le rem de
@@ -9568,24 +9582,22 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     .tse-acc-direct { top: 8px; left: 8px; background: var(--tse-frais); text-transform: uppercase; }
     .tse-acc-duree { top: 8px; right: 8px; background: rgba(0, 0, 0, 0.62); font-variant-numeric: tabular-nums; }
     .tse-acc-spect { bottom: 8px; left: 8px; background: rgba(0, 0, 0, 0.62); font-weight: 500; }
-    /* PENDANT VOTRE ABSENCE (4.30.0) : un bandeau à part, en bas de nos
-       rayons — ce qui est déjà à l'écran ne descend pas quand il arrive. */
-    .tse-acc-absence { position: relative; padding: 14px 16px; border-radius: 8px; background: var(--tse-surface); }
-    .tse-acc-absence-tete { display: flex; align-items: baseline; gap: 10px; padding-right: 32px; }
-    .tse-acc-absence-titre { margin: 0; font-size: 16px; font-weight: 700; color: var(--tse-texte); }
-    .tse-acc-absence-sous { font-size: 13px; color: var(--tse-texte-doux); }
+    /* PENDANT VOTRE ABSENCE (4.30.0 ; un rayon de cartes depuis la 4.33.0.3,
+       cf. ABSENCE), en bas de nos rayons — ce qui est déjà à l'écran ne
+       descend pas quand il arrive. Son titre est celui des autres rayons ; la
+       croix, au bout de sa ligne. Ses cartes sont les nôtres, d'une archive :
+       le nombre de directs à la place de « Live », dans le gris des autres
+       pastilles. Sans archive, l'avatar flouté tient la place de l'image. */
+    .tse-acc-absence-tete { display: flex; align-items: center; gap: 10px; }
+    .tse-acc-absence-tete .tse-acc-titre { flex: 1 1 auto; min-width: 0; }
     .tse-acc-absence-fermer {
-      position: absolute; top: 8px; right: 8px; width: 28px; height: 28px; border: 0; border-radius: 6px;
+      flex: 0 0 auto; width: 28px; height: 28px; margin-top: 6px; border: 0; border-radius: 6px;
       background: transparent; color: var(--tse-texte-doux); font-size: 18px; line-height: 28px; cursor: pointer;
     }
     .tse-acc-absence-fermer:hover { background: rgba(var(--tse-encre), 0.1); color: var(--tse-texte); }
-    .tse-acc-absence-liste { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 8px; }
-    .tse-acc-absence-ligne { display: flex; align-items: center; gap: 10px; min-width: 0; }
-    .tse-acc-absence-ligne .tse-acc-avatar { flex: 0 0 32px; width: 32px; height: 32px; }
-    .tse-acc-absence-textes { flex: 1 1 auto; min-width: 0; font-size: 13px; line-height: 1.35; color: var(--tse-texte-doux); }
-    .tse-acc-absence-textes p { margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .tse-acc-absence-textes .tse-acc-nom { font-size: 14px; }
-    .tse-acc-absence-revoir { flex: 0 0 auto; }
+    .tse-acc-absence-fermer:focus-visible { outline: 2px solid #9147ff; outline-offset: 1px; }
+    .tse-acc-direct.tse-acc-direct--archive { background: rgba(0, 0, 0, 0.62); }
+    .tse-acc-vignette--avatar .tse-acc-img { filter: blur(14px) brightness(0.55); transform: scale(1.2); }
     /* UNE ÉTIQUETTE PAR CARTE (4.28.0, cf. ETIQUETTES). Sur nos cartes comme
        sur celles de Twitch, en bas à droite de la vignette — la place que ni
        l'une ni l'autre n'occupe. Un attribut et un pseudo-élément : aucun
@@ -9788,8 +9800,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     .tse-acc-cs-avatar {
       flex: 0 0 24px; width: 24px; height: 24px; border-radius: 50%; overflow: hidden; background: var(--tse-surface-2);
     }
+    /* Masqués par \`#tse-accueil [hidden]\` (cf. plus haut) : la fenêtre, dans
+       la couche supérieure, reste dans la section pour le DOM et la cascade. */
     .tse-acc-cs-avatar img { display: block; width: 100%; height: 100%; object-fit: cover; }
-    .tse-acc-cs-avatar img[hidden], .tse-acc-cs-vues[hidden] { display: none; }
     .tse-acc-cs-nom { flex: 1 1 auto; min-width: 0; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     /* Le point rouge et le nombre, à droite : ceux de la chaîne seule. */
     .tse-acc-cs-vues {
@@ -17322,7 +17335,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       // Pendant votre absence (4.30.0) : ce qui est montré, et ce que les clips ont coûté.
       // Des rayons qui disent pourquoi (4.31.0) : les chaînes d'où ils partent, et ce qu'ils ont coûté.
       pourquoi: { lectures: 0, rayons: [], demandes: 0, servis: 0, refus: 0, vides: 0 },
-      absence: { lectures: 0, chaines: 0, montre: false, enCours: false, fermetures: 0, synchros: 0, clips: { demandes: 0, servis: 0, refus: 0, plusVus: 0 } },
+      absence: { lectures: 0, chaines: 0, montre: false, enCours: false, fermetures: 0, synchros: 0, vignettes: 0,
+                 clips: { demandes: 0, servis: 0, refus: 0, plusVus: 0 } },
       // Une étiquette par carte (4.28.0) : combien de chaque sorte, et ce que les cartes de Twitch ont coûté.
       etiquettes: { posees: {}, demandes: 0, coins: { haut: 0, aucun: 0 }, twitch: { cartes: 0, vues: 0, etiquetees: 0, habillees: 0, durees: 0 } },
       // Ranger l'accueil de Twitch (4.32.0) : ce qui a été masqué, remplacé, et d'où.
@@ -18173,12 +18187,12 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       hHab.append(elt('span', null, S.uiAccHabitudes), elt('span', 'tse-acc-sous-titre', S.uiAccHabitudesNote));
       const lHab = elt('div', 'tse-acc-liste tse-acc-liste--rdv');
       const hab = fabriquerRayon('habitudes', 'tse-acc-rayon--habitudes', hHab, lHab);
-      // Pendant votre absence (4.30.0) : en dernier, pour ne rien pousser de ce qu'on regarde.
-      const abs = elt('section', 'tse-acc-rayon tse-acc-absence');
-      abs.dataset.tseRayon = 'absence';
-      abs.hidden = true;
+      /* Pendant votre absence (4.30.0) : en dernier, pour ne rien pousser de ce
+         qu'on regarde. Un rayon comme les autres depuis la 4.33.0.3 — son titre,
+         ses cartes, son « Afficher tout » —, la croix au bout du titre. */
+      const hAbs = elt('h2', 'tse-acc-titre');
+      hAbs.append(elt('span', 'tse-acc-absence-titre', S.uiAbsTitre), elt('span', 'tse-acc-sous-titre tse-acc-absence-sous'));
       const tAbs = elt('div', 'tse-acc-absence-tete');
-      tAbs.append(elt('h2', 'tse-acc-absence-titre', S.uiAbsTitre), elt('span', 'tse-acc-absence-sous'));
       const xAbs = elt('button', 'tse-acc-absence-fermer', '×');
       xAbs.type = 'button';
       xAbs.setAttribute('aria-label', S.uiRappelFermer);
@@ -18188,8 +18202,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         bilan.absence.fermetures++;
         peindre();
       }));
-      const lAbs = elt('ul', 'tse-acc-absence-liste');
-      abs.append(tAbs, xAbs, lAbs);
+      tAbs.append(hAbs, xAbs);
+      const lAbs = elt('div', 'tse-acc-liste tse-acc-absence-liste');
+      const abs = fabriquerRayon('absence', 'tse-acc-rayon--absence tse-acc-absence', tAbs, lAbs);
       section.append(une, top, ...pq.map((x) => x.r), rdv, hab, abs);
       z = { heros, une, lUne, top, tTop, lang, lTop, note, pq, rdv, lRdv, hab, lHab, abs, lAbs, langCle: undefined };
       /* LE LECTEUR NE JOUE QU'À L'ÉCRAN. Le héros descendu hors de la vue,
@@ -18215,6 +18230,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
           plier(z.top);
           plier(z.rdv);
           plier(z.hab);
+          plier(z.abs);
         }));
         mesureur.observe(section);
       }
@@ -19381,18 +19397,52 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     };
 
     /* ── LE TOP 10 ───────────────────────────────────────────────────────────
-       Une place par co-stream, comme dans Top Chaînes : la carte de son
-       meilleur membre, et les autres nommés dessous. */
+       Une place par co-stream, comme dans Top Chaînes : la carte d'un de ses
+       membres, et les autres derrière « + N » (cf. CO-STREAM).
+
+       QUELLE CARTE (4.33.0.3). « Mets celui qui a le plus de viewers sur le
+       top ; là, dans la capture, c'est le contraire » : la carte montrait un
+       membre à 858 spectateurs, et la fenêtre, dessous, un autre à 20,8 k.
+       Le classement range les membres d'une session au même nombre — le
+       combiné —, et la place prenait le premier qu'il rendait. Elle prend
+       maintenant celui qui a le plus de spectateurs À LUI, lus dans
+       TseChannels (cf. `audiencePropre`) ; sans aucune audience connue,
+       l'ordre du classement. Une autre ne lui prend la carte qu'en le
+       dépassant de CFG.ACCUEIL_CS_TETE_ECART, mémoire tenue par session. */
+    const tetesDesSessions = new Map();   // clé de session -> login de sa carte
+    const audiencePropre = (login) => {
+      const e = cache.get(login);
+      return e && e.stream && Date.now() - (e.ts || 0) <= 2 * CFG.LIVE_TTL && Number.isFinite(e.viewers) ? e.viewers : null;
+    };
     const enPlaces = (recs) => {
       const places = [];
       const index = new Map();
       for (const r of recs) {
         const k = sessionDuMembre(r.login) || ('s:' + r.login);
         let p = index.get(k);
-        if (!p) { p = { tete: r, membres: [] }; index.set(k, p); places.push(p); }
+        if (!p) { p = { cle: k, tete: r, membres: [] }; index.set(k, p); places.push(p); }
         else p.membres.push(r);
       }
-      return places.slice(0, CFG.ACCUEIL_TOP_N);
+      const gardees = places.slice(0, CFG.ACCUEIL_TOP_N);
+      for (const p of gardees) {
+        if (!p.membres.length) continue;
+        const tous = [p.tete, ...p.membres];
+        let meilleur = null;
+        for (const r of tous) {
+          const v = audiencePropre(r.login);
+          if (v !== null && (!meilleur || v > meilleur.v)) meilleur = { r, v };
+        }
+        const avant = tous.find((r) => r.login === tetesDesSessions.get(p.cle));
+        const vAvant = avant ? audiencePropre(avant.login) : null;
+        const tete = !meilleur ? (avant || p.tete)
+          : avant && avant !== meilleur.r && vAvant !== null && meilleur.v <= vAvant * (1 + CFG.ACCUEIL_CS_TETE_ECART) ? avant
+          : meilleur.r;
+        tetesDesSessions.delete(p.cle);
+        tetesDesSessions.set(p.cle, tete.login);
+        if (tete !== p.tete) { p.membres = tous.filter((r) => r !== tete); p.tete = tete; }
+      }
+      while (tetesDesSessions.size > 4 * CFG.ACCUEIL_TOP_N) tetesDesSessions.delete(tetesDesSessions.keys().next().value);
+      return gardees;
     };
     /* L'ÉVOLUTION NE COMPARE QUE DES CLASSEMENTS EXACTS, DE LA MÊME LANGUE.
        Un instantané par minute, gardé trente minutes ; la référence est le
@@ -19880,13 +19930,21 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        rangée par vues. Le plus vu ne se nomme que si la page a tout, ou si
        elle est rangée par vues décroissantes et contient des clips de
        l'absence — l'ordre se constate sur la réponse, il ne se suppose pas. */
-    const clipsAbsence = new Map();   // login -> { cle, top } ; `cle` : l'absence qu'ils couvrent
+    const clipsAbsence = new Map();   // login -> { cle, top, vignette } ; `cle` : l'absence qu'ils couvrent
     let clipsAbsRefuse = false;
     const clipsAbsEnVol = new Set();
     /* `cle` : l'absence elle-même ({ debut, fin } gardés), et non la fenêtre
        lue — bornée aux sept derniers jours, celle-ci glisse avec l'heure, et
        chaque peinture redemandait les clips. */
-    const demanderClipsAbsence = async (login, debut, fin, cle) => {
+    /* LA VIGNETTE À LA TAILLE D'UNE CARTE (4.33.0.3). L'agenda lit celle des
+       archives en 160 × 90 : la taille du panneau, qui les montre en 80 × 45.
+       Sur une carte de trois cents pixels, elle est floue. La grande — celle
+       de la dernière archive de l'absence — part dans le MÊME envoi que les
+       clips, opération à part : aucune requête de plus, et son refus ne
+       touche pas aux clips. Sans elle, la petite. */
+    const Q_VIGNETTE_ABS = 'query TseAbsenceVignette($id: ID!) { video(id: $id) { id previewThumbnailURL(width: 640, height: 360) } }';
+    let vignetteAbsRefusee = false;
+    const demanderClipsAbsence = async (login, debut, fin, cle, video) => {
       if (clipsAbsRefuse || clipsAbsEnVol.has(login) || clipsAbsence.get(login)?.cle === cle) return;
       clipsAbsEnVol.add(login);
       bilan.absence.clips.demandes++;
@@ -19895,7 +19953,21 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
           '  user(login: $login) { clips(first: $n, criteria: { period: LAST_WEEK }) {' +
           '    edges { node { id createdAt title viewCount } } } }' +
           '}';
-        const res = await post([{ operationName: 'TseAbsenceClips', variables: { login, n: CFG.ABSENCE_CLIPS }, query: q }]);
+        const ops = [{ operationName: 'TseAbsenceClips', variables: { login, n: CFG.ABSENCE_CLIPS }, query: q }];
+        const avecVignette = !!video && !vignetteAbsRefusee;
+        if (avecVignette) ops.push({ operationName: 'TseAbsenceVignette', variables: { id: video }, query: Q_VIGNETTE_ABS });
+        const res = await post(ops);
+        let vignette = null;
+        if (avecVignette && Array.isArray(res)) {
+          const v = res[1]?.data?.video;
+          if (v && String(v.id) === String(video)) vignette = imageSure(v.previewThumbnailURL);
+          /* Une réponse sans données dit quelque chose de la forme : on ne la
+             redemande plus. Un drapeau qui ne fait que monter : l'ordre des
+             réponses n'y change rien. */
+          // eslint-disable-next-line require-atomic-updates
+          else if (res[1] && !res[1].data && Array.isArray(res[1].errors)) vignetteAbsRefusee = true;
+          if (vignette) bilan.absence.vignettes++;
+        }
         const r0 = Array.isArray(res) ? res[0] : null;
         if (!r0) return;
         const aretes = r0.data?.user?.clips?.edges;
@@ -19920,7 +19992,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
           }
         }
         if (top) bilan.absence.clips.plusVus++;
-        clipsAbsence.set(login, { cle, top });
+        clipsAbsence.set(login, { cle, top, vignette });
         while (clipsAbsence.size > 50) clipsAbsence.delete(clipsAbsence.keys().next().value);
         if (pose() && !document.hidden) peindreAbsence();
       } finally {
@@ -20053,41 +20125,101 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       });
       bilan.pourquoi.rayons = montres;
     };
+    /* UNE CARTE PAR CHAÎNE (4.33.0.3). « Je suis pas très fan de la partie
+       "Pendant votre absence" ; propose une UX/UI qui correspond bien au reste
+       de la page » — deux maquettes, la voie des cartes choisie. Les nôtres,
+       celles du Top 10, mais d'une archive :
+       — la vignette est celle de la dernière archive de l'absence, que
+         l'agenda a déjà lue ; sans elle, l'avatar flouté. Elle ouvre la
+         rediffusion quand on peut la voir (cf. `ouverte`), la chaîne sinon ;
+         pas d'aperçu au survol : rien n'y est en direct ;
+       — en haut à gauche, le nombre de directs, à la place de « Live » ; en
+         haut à droite, leur durée ; en bas à gauche, la fin du dernier,
+         « il y a 6 h » (`Intl.RelativeTimeFormat`, dans la langue de
+         l'interface) — tue si la chaîne est en direct maintenant ;
+       — dessous, l'avatar et le nom ; le titre du dernier direct — « A diffusé,
+         sans rediffusion » quand il n'y a pas d'archive — ; le clip le plus vu ;
+         et « Revoir le dernier », au style de « Depuis le début ». */
+    const ilYa = (t) => {
+      const ms = Date.now() - t;
+      if (!Number.isFinite(ms) || ms < 0) return null;
+      const [n, unite] = ms < 3_600_000 ? [Math.max(1, Math.floor(ms / 60_000)), 'minute']
+        : ms < 86_400_000 ? [Math.floor(ms / 3_600_000), 'hour'] : [Math.floor(ms / 86_400_000), 'day'];
+      try { return new Intl.RelativeTimeFormat(S.locale, { style: 'short', numeric: 'always' }).format(-n, unite); }
+      catch { return null; }
+    };
     const fabriquerAbsence = (it) => {
-      const li = elt('li', 'tse-acc-absence-ligne');
-      li.dataset.tseCle = it.login;
+      const carte = elt('article', 'tse-acc-carte tse-acc-absence-carte');
+      carte.dataset.tseCle = it.login;
+      const relief = elt('div', 'tse-acc-relief');
+      const accent = elt('span', 'tse-acc-accent');
+      accent.setAttribute('aria-hidden', 'true');
+      const vig = elt('a', 'tse-acc-vignette');
+      const img = elt('img', 'tse-acc-img');
+      img.alt = '';
+      img.loading = 'lazy';
+      img.decoding = 'async';
+      vig.append(img, elt('span', 'tse-acc-direct tse-acc-direct--archive'), elt('span', 'tse-acc-duree'), elt('span', 'tse-acc-spect'));
+      relief.append(accent, vig);
+      const infos = elt('div', 'tse-acc-infos');
       const av = elt('img', 'tse-acc-avatar');
       av.alt = '';
       av.loading = 'lazy';
-      const textes = elt('div', 'tse-acc-absence-textes');
+      const textes = elt('div', 'tse-acc-textes');
+      const ligne = elt('div', 'tse-acc-nom-ligne');
       const nom = elt('a', 'tse-acc-nom');
       nom.setAttribute('href', '/' + it.login);
-      textes.append(elt('p', null), elt('p', 'tse-acc-absence-quoi'), elt('p', 'tse-acc-absence-clip'));
-      textes.firstChild.append(nom);
+      ligne.append(nom);
       const revoir = elt('a', 'tse-acc-debut tse-acc-absence-revoir');
-      li.append(av, textes, revoir);
-      return li;
+      revoir.append(noeudStatique(PICTO_LECTURE), elt('span', null, S.uiAbsRevoir));
+      textes.append(ligne, elt('p', 'tse-acc-titre-carte'), elt('p', 'tse-acc-jeu tse-acc-absence-clip'), revoir);
+      infos.append(av, textes);
+      carte.append(relief, infos);
+      return carte;
     };
-    const majAbsence = (li, it) => {
-      const [av, textes, revoir] = li.children;
-      const url = imageSure(it.avatar);
-      av.hidden = !url;
-      if (url) attrSi(av, 'src', url);
-      const [l1, quoi, clip] = textes.children;
-      texteSi(l1.firstChild, it.nom);
-      texteSi(quoi, it.n === null ? S.uiAbsSansRedif : S.uiAbsDirects(it.n, formatDuree(it.dureeMs)));
-      const c = clipsAbsence.get(it.login);
-      const top = c && c.cle === it.cle ? c.top : null;
-      // Seule sur sa ligne, la phrase prend sa majuscule (« Le plus vu : … »).
+    const majAbsence = (carte, it) => {
+      const [relief, infos] = carte.children;
+      const couleur = couleurChaine(String(cache.get(it.login)?.couleur || '').replace(/^#/, ''));
+      attrSi(relief, 'data-tse-couleur', couleur ? 'chaine' : 'defaut');
+      const accent = couleur || CFG.ACCUEIL_RELIEF_DEFAUT;
+      if (relief.style.getPropertyValue('--tse-accent') !== accent) relief.style.setProperty('--tse-accent', accent);
+      const vig = relief.lastChild;
+      const [img, nb, duree, quand] = vig.children;
+      const d = it.dernier;
+      const ouverte = !!d && (d.fermee === false || subs.isSub(it.login));
+      attrSi(vig, 'href', ouverte ? `/videos/${d.id}` : '/' + it.login);
+      const lu = clipsAbsence.get(it.login);
+      const archive = (lu && lu.cle === it.cle && lu.vignette) || imageSure(d?.vignette);
+      const avatar = imageSure(it.avatar);
+      vig.classList.toggle('tse-acc-vignette--avatar', !archive && !!avatar);
+      if (archive || avatar) poserImage(img, archive || avatar);
+      img.hidden = !(archive || avatar);
+      attrSi(vig, 'aria-label', `${it.nom} — ${it.n === null ? S.uiAbsSansRedif : S.uiAbsDirects(it.n, formatDuree(it.dureeMs))}`);
+      texteSi(nb, it.n === null ? '' : S.uiAbsNDirects(it.n));
+      nb.hidden = it.n === null;
+      texteSi(duree, it.n === null ? '' : formatDuree(it.dureeMs));
+      duree.hidden = it.n === null;
+      // En direct maintenant, « il y a 2 min » mentirait : la fin dite est celle d'un direct qui continue.
+      const dit = Number.isFinite(it.fin) && !getFreshChannel(it.login)?.stream ? ilYa(it.fin) : null;
+      texteSi(quand, dit || '');
+      quand.hidden = !dit;
+      const [av, textes] = infos.children;
+      av.hidden = !avatar;
+      if (avatar) attrSi(av, 'src', avatar);
+      const [ligne, titre, clip, revoir] = textes.children;
+      texteSi(ligne.firstChild, it.nom);
+      const t = it.n === null ? S.uiAbsSansRedif : (d?.titre || '');
+      texteSi(titre, t);
+      attrSi(titre, 'title', t || null);
+      titre.hidden = !t;
+      const top = lu && lu.cle === it.cle ? lu.top : null;
+      // Seule sur sa ligne, la phrase prend sa majuscule (« Clip le plus vu : … »).
       const phrase = top ? S.uiAbsPlusVu(top.titre, formatViewers(top.vues), top.vues) : '';
       texteSi(clip, phrase.charAt(0).toLocaleUpperCase(LANG) + phrase.slice(1));
       attrSi(clip, 'title', top ? top.titre : null);
       clip.hidden = !top;
-      const d = it.dernier;
-      const ouverte = !!d && (d.fermee === false || subs.isSub(it.login));
       revoir.hidden = !ouverte;
       attrSi(revoir, 'href', ouverte ? `/videos/${d.id}` : null);
-      if (ouverte && !revoir.firstChild) revoir.append(elt('span', null, S.uiAbsRevoir));
     };
     const peindreAbsence = () => {
       const a = options.get('accueilAbsence') ? presence.absence() : null;
@@ -20101,11 +20233,15 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       bilan.absence.lectures++;
       const cle = `${a.debut}|${a.fin}`;
       const items = r.chaines.map((x) => ({ ...x, cle }));
-      for (const x of items) demanderClipsAbsence(x.login, r.debut, r.fin, cle).catch((e) => erreurs.noter('accueil', 'clips : ' + ((e && e.message) || e)));
+      for (const x of items) {
+        demanderClipsAbsence(x.login, r.debut, r.fin, cle, x.dernier?.id || null)
+          .catch((e) => erreurs.noter('accueil', 'clips : ' + ((e && e.message) || e)));
+      }
       const jours = Math.max(1, Math.floor((a.fin - a.debut) / 86_400_000));
       texteSi(z.abs.querySelector('.tse-acc-absence-sous'), S.uiAbsSous(jours, r.borne));
       rangee(z.lAbs, items, (x) => x.login, fabriquerAbsence, majAbsence);
       z.abs.hidden = !items.length;
+      plier(z.abs);
       bilan.absence.chaines = items.length;
       bilan.absence.montre = !!items.length;
       bilan.absence.enCours = !!r.enCours;
@@ -27113,10 +27249,13 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
              qu'il n'est pas lu (null) — et « Revoir » attend de le savoir. */
           const ac = acces.get(login);
           const fermee = der && ac && ac.video === der.id && typeof ac.fermee === 'boolean' ? ac.fermee : null;
+          /* La carte (4.33.0.3) : la vignette de la dernière archive, son
+             titre, et la fin du dernier direct — « il y a 6 h ». */
           e = { n: pendant.length, dureeMs: pendant.reduce((t, x) => t + Math.max(0, x.fin - x.debut), 0),
-                dernier: der ? { id: der.id, titre: der.titre, fermee } : null };
+                fin: pendant[0].fin,
+                dernier: der ? { id: der.id, titre: der.titre, fermee, vignette: der.vignette || null } : null };
         } else if (f.finDernier !== null && f.finDernier >= debut && f.finDernier < fin) {
-          e = { n: null, dureeMs: null, dernier: null };
+          e = { n: null, dureeMs: null, fin: f.finDernier, dernier: null };
         }
         if (e) vus.push({ login, nom: f.nom || login, avatar: f.avatar || null, score, ...e });
       }

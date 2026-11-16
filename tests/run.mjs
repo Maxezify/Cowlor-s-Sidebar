@@ -41333,8 +41333,8 @@ const lireImages = (page) => page.evaluate(() => {
        iris    — a diffusé, jamais regardée. */
   const H = 3_600_000;
   const VISITES = { falaise: 6, grotte: 5, bruyere: 4, ressac: 3, sillon: 2, dune: 1, lagon: 8 };
-  const contexte = async ({ presenceH = 30, absence = null, options = null } = {}) => {
-    const ctx = await browser.newContext({ viewport: { width: 1600, height: 1000 } });
+  const contexte = async ({ presenceH = 30, absence = null, options = null, largeur = 1600 } = {}) => {
+    const ctx = await browser.newContext({ viewport: { width: largeur, height: 1000 } });
     await ctx.addInitScript(([rayons, presenceH, absence, options, visites]) => {
       const n = Date.now(), h = 3600e3;
       try {
@@ -41404,6 +41404,8 @@ const lireImages = (page) => page.evaluate(() => {
       avec('grotte', [arch(48, 2)]);
       avec('iris', [arch(30, 1)]);
       window.__absClipsDesordre = true;
+      // La grande vignette refusée (4.33.0.3) : la petite, et les clips quand même.
+      window.__absVignetteRefus = true;
       window.__absClips = { grotte: Array.from({ length: 10 }, (_, i) => ({ titre: 'Écho ' + i, vues: 100 + 50 * i, ilYaH: 20 + i })) };
     }
     window.__agenda = A;
@@ -41416,12 +41418,21 @@ const lireImages = (page) => page.evaluate(() => {
       montre: !!s && !s.hidden && !!s.closest('#tse-accueil:not([hidden])'),
       titre: s?.querySelector('.tse-acc-absence-titre')?.textContent,
       sous: s?.querySelector('.tse-acc-absence-sous')?.textContent,
-      lignes: s ? [...s.querySelectorAll('.tse-acc-absence-ligne')].map((li) => {
-        const a = li.querySelector('.tse-acc-absence-revoir');
-        const c = li.querySelector('.tse-acc-absence-clip');
-        return { login: li.dataset.tseCle, nom: li.querySelector('.tse-acc-nom')?.textContent,
-                 quoi: li.querySelector('.tse-acc-absence-quoi')?.textContent,
-                 clip: c && !c.hidden ? c.textContent : null, revoir: a && !a.hidden ? a.getAttribute('href') : null };
+      /* Une carte par chaîne depuis la 4.33.0.3 : `quoi` redit ce que la ligne
+         d'avant disait — « 2 directs · 5h05 », ou « A diffusé, sans
+         rediffusion » —, lu sur ses pastilles et son titre. */
+      lignes: s ? [...s.querySelectorAll('.tse-acc-absence-carte')].map((c) => {
+        const vu = (sel) => { const x = c.querySelector(sel); return x && !x.hidden ? x.textContent : null; };
+        const v = c.querySelector('.tse-acc-vignette');
+        const a = c.querySelector('.tse-acc-absence-revoir');
+        const nb = vu('.tse-acc-direct'), duree = vu('.tse-acc-duree'), titre = vu('.tse-acc-titre-carte');
+        return { login: c.dataset.tseCle, nom: c.querySelector('.tse-acc-nom')?.textContent,
+                 quoi: nb ? `${nb} · ${duree}` : titre, nb, duree, titre, quand: vu('.tse-acc-spect'),
+                 etiquette: v.getAttribute('aria-label'), lien: v.getAttribute('href'), survol: v.hasAttribute('data-tse-survol'),
+                 image: v.querySelector('img:not([hidden])')?.getAttribute('src') || null,
+                 flou: v.classList.contains('tse-acc-vignette--avatar'),
+                 avatar: c.querySelector('.tse-acc-avatar:not([hidden])')?.getAttribute('src') || null,
+                 clip: vu('.tse-acc-absence-clip'), revoir: a && !a.hidden ? a.getAttribute('href') : null };
       }) : [],
       ordre: [...document.querySelectorAll('#tse-accueil > .tse-acc-rayon')].map((x) => x.dataset.tseRayon),
       rapport: window.tse.accueil.rapport().absence,
@@ -41433,7 +41444,7 @@ const lireImages = (page) => page.evaluate(() => {
   const pret = (p, n = 5) => attendre(p, (n) => {
     const r = window.tse.accueil.rapport();
     const s = document.querySelector('.tse-acc-absence');
-    return r.rdv.enCours === false && r.absence.enCours === false && !!s && !s.hidden && s.querySelectorAll('.tse-acc-absence-ligne').length === n
+    return r.rdv.enCours === false && r.absence.enCours === false && !!s && !s.hidden && s.querySelectorAll('.tse-acc-absence-carte').length === n
       && r.absence.clips.demandes > 0 && r.absence.clips.servis + r.absence.clips.refus >= r.absence.clips.demandes;
   }, 25_000, n);
   const rien = async (p) => {
@@ -41462,12 +41473,72 @@ const lireImages = (page) => page.evaluate(() => {
      ligne(a, 'grotte').quoi === 'A diffusé, sans rediffusion' && ligne(a, 'grotte').revoir === null && ligne(a, 'grotte').clip === null,
      JSON.stringify(ligne(a, 'grotte')));
   ok('…le plus vu de ses clips PENDANT l\'absence : pas celui d\'avant, plus vu',
-     nz(ligne(a, 'falaise').clip || '') === 'Le plus vu : « Le saut final » (5,2 k vues)', JSON.stringify(ligne(a, 'falaise')));
+     nz(ligne(a, 'falaise').clip || '') === 'Clip le plus vu : « Le saut final » (5,2 k vues)', JSON.stringify(ligne(a, 'falaise')));
   ok('…une page de clips pleine, rangée par vues : son premier est le plus vu',
-     nz(ligne(a, 'ressac').clip || '') === 'Le plus vu : « Vague 0 » (900 vues)', JSON.stringify(ligne(a, 'ressac')));
+     nz(ligne(a, 'ressac').clip || '') === 'Clip le plus vu : « Vague 0 » (900 vues)', JSON.stringify(ligne(a, 'ressac')));
   ok('…« Revoir le dernier » ouvre la dernière archive de l\'absence ; fermée aux abonnés, pas de lien',
      ligne(a, 'falaise').revoir === `/videos/${ids.falaise[3]}` && ligne(a, 'bruyere').revoir === null,
      JSON.stringify({ falaise: ligne(a, 'falaise').revoir, bruyere: ligne(a, 'bruyere').revoir, ids: ids.falaise }));
+  /* a') LA CARTE (4.33.0.3) — « propose une UX/UI qui correspond bien au
+     reste de la page » : un rayon comme les autres, son titre à leur style,
+     des cartes comme les nôtres. Celle de falaise : la vignette de sa
+     dernière archive EN GRAND — demandée dans le même envoi que ses clips —,
+     « 2 directs » à la place de « Live », dans le gris des pastilles, la
+     durée, « il y a 6 h » ; le titre du direct ; la vignette ouvre la
+     rediffusion, sans aperçu au survol. Grotte, sans archive : l'avatar
+     flouté, ni nombre ni durée, la chaîne pour lien. Bruyère, fermée aux
+     abonnés : sa chaîne pour lien. Repliée à une rangée, comme les autres.
+     Mutants — la petite vignette ; pas de grande ; le rouge du direct ; la
+     fin tue ; la rediffusion fermée pour lien ; pas de repli. */
+  const carte = await pa.evaluate(() => {
+    const s = document.querySelector('.tse-acc-absence');
+    const h = s.querySelector('.tse-acc-titre'), hTop = document.querySelector('#tse-accueil .tse-acc-rayon--top .tse-acc-titre');
+    const st = (e) => { const c = getComputedStyle(e); return [c.fontSize, c.fontWeight, c.marginTop, c.marginBottom].join(' '); };
+    const v = s.querySelector('.tse-acc-absence-carte .tse-acc-vignette');
+    const r = v.getBoundingClientRect();
+    const liste = s.querySelector('.tse-acc-liste');
+    const cols = getComputedStyle(liste).gridTemplateColumns.trim().split(/\s+/).filter((t) => /^[\d.]+px$/.test(t)).length;
+    const cartes = [...liste.children];
+    const plus = s.querySelector('.tse-acc-plus');
+    return { titre: st(h) === st(hTop), ratio: Math.round(r.width / r.height * 100) / 100,
+             pastille: getComputedStyle(v.querySelector('.tse-acc-direct')).backgroundColor,
+             cols, cachees: cartes.filter((c) => c.hidden).length, plus: !plus.hidden,
+             envois: window.__calls.filter((c) => (c.names || []).includes('TseAbsenceClips') && c.names.includes('TseAbsenceVignette')).length,
+             vignettes: window.tse.accueil.rapport().absence.vignettes };
+  });
+  const fa1 = ligne(a, 'falaise'), gr = ligne(a, 'grotte'), br = ligne(a, 'bruyere');
+  const derniere = ids.falaise[3];
+  ok('a\') une carte par chaîne, au style des nôtres : la grande vignette de la dernière archive, « 2 directs », la durée, « il y a 6 h », le titre ; la rediffusion pour lien, sans aperçu',
+     fa1.image === `https://static-cdn.jtvnw.net/cf_vods/${derniere}/thumb-640x360.jpg` && !fa1.flou && fa1.nb === '2 directs' && fa1.duree === '5h05'
+     && nz(fa1.quand) === 'il y a 6 h' && fa1.titre === 'Archive 4' && fa1.lien === `/videos/${derniere}` && !fa1.survol
+     && fa1.etiquette === 'Falaise — 2 directs · 5h05' && carte.pastille === 'rgba(0, 0, 0, 0.62)' && carte.titre && carte.ratio === 1.78
+     && carte.envois === 4 && carte.vignettes === 4,
+     JSON.stringify({ falaise: fa1, carte }));
+  ok('…sans archive, l\'avatar flouté, ni nombre ni durée, la fin dite et la chaîne pour lien ; fermée aux abonnés, la chaîne pour lien',
+     gr.flou && !!gr.image && gr.image === gr.avatar && gr.nb === null && gr.duree === null && nz(gr.quand) === 'il y a 10 h'
+     && gr.titre === 'A diffusé, sans rediffusion' && gr.lien === '/grotte' && br.lien === '/bruyere' && br.revoir === null
+     && /thumb-640x360\.jpg$/.test(br.image || ''),
+     JSON.stringify({ grotte: gr, bruyere: br }));
+  /* REPLIÉE À UNE RANGÉE, comme les autres rayons. À 1600 pixels, les cinq
+     cartes tiennent sur une rangée : rien à replier — l'assertion ne prouvait
+     rien là. Un onglet de 1000 pixels, ouvert à cette largeur : les cartes y
+     arrivent après la mise en page, et c'est la peinture de l'absence qui
+     doit les replier. Mutant — pas de repli à la peinture. */
+  const Etroit = await contexte({ largeur: 1000 });
+  const pe = await Etroit.onglet();
+  await plateauAccueil(pe);
+  await decor(pe);
+  await pret(pe);
+  const replie = await pe.evaluate(() => {
+    const s = document.querySelector('.tse-acc-absence');
+    const liste = s.querySelector('.tse-acc-liste');
+    const cols = getComputedStyle(liste).gridTemplateColumns.trim().split(/\s+/).filter((t) => /^[\d.]+px$/.test(t)).length;
+    return { cols, cachees: [...liste.children].filter((c) => c.hidden).length, plus: !s.querySelector('.tse-acc-plus').hidden };
+  });
+  await Etroit.ctx.close();
+  ok('…repliée à une rangée, comme les autres rayons : à 1000 pixels, les cartes de trop cachées et « Afficher tout »',
+     replie.cols > 0 && replie.cols < 5 && replie.cachees === 5 - replie.cols && replie.plus && carte.cols === 5 && carte.cachees === 0,
+     JSON.stringify({ large: { cols: carte.cols, cachees: carte.cachees }, etroit: replie }));
   // Ce qu'il coûte : une demande de clips par chaîne montrée, une fois par absence.
   await pa.evaluate(() => { document.dispatchEvent(new Event('visibilitychange')); });
   await wait(pa, 2_000);
@@ -41521,6 +41592,12 @@ const lireImages = (page) => page.evaluate(() => {
   ok('…et une page de clips pleine qui n\'est pas rangée par vues ne nomme aucun « plus vu » ; ses clips ne sont demandés qu\'une fois, repeint ou non',
      ligne(c, 'grotte').clip === null && c2.rapport.clips.servis === 1 && c2.rapport.lectures > c.rapport.lectures,
      JSON.stringify({ grotte: ligne(c, 'grotte'), clips: c2.rapport.clips, lectures: [c.rapport.lectures, c2.rapport.lectures] }));
+  /* La grande vignette refusée par le schéma (4.33.0.3) : la carte garde la
+     petite, que l'agenda a lue, et les clips sont servis quand même. Mutant —
+     le refus qui emporte les clips. */
+  ok('…la grande vignette refusée : la petite, celle de l\'agenda, et les clips servis quand même',
+     /\/thumb-160x90\.jpg$/.test(ligne(c2, 'grotte').image || '') && c2.rapport.vignettes === 0 && c2.rapport.clips.servis === 1 && c2.rapport.clips.refus === 0,
+     JSON.stringify({ grotte: ligne(c2, 'grotte'), vignettes: c2.rapport.vignettes, clips: c2.rapport.clips }));
   await C.ctx.close();
 
   /* h) LA MÉMOIRE D'AVANT L'ABSENCE NE DIT RIEN D'ELLE. Une première visite :
@@ -41545,8 +41622,8 @@ const lireImages = (page) => page.evaluate(() => {
     window.__depart = { ...(window.__depart || {}), __retardOp: { TseAgendaDiffusions: 2_500 } };
     window.__absImages = [];
     const regarder = () => {
-      const li = document.querySelector('.tse-acc-absence:not([hidden]) .tse-acc-absence-ligne[data-tse-cle="falaise"]');
-      if (li) window.__absImages.push(li.querySelector('.tse-acc-absence-quoi')?.textContent || '');
+      const li = document.querySelector('.tse-acc-absence:not([hidden]) .tse-acc-absence-carte[data-tse-cle="falaise"]');
+      if (li) window.__absImages.push(li.querySelector('.tse-acc-vignette')?.getAttribute('aria-label') || '');
       if (window.__absImages.length < 4000) requestAnimationFrame(regarder);
     };
     requestAnimationFrame(regarder);
@@ -41557,7 +41634,7 @@ const lireImages = (page) => page.evaluate(() => {
   await pret(ph2);
   const hv = await ph2.evaluate(() => [...new Set(window.__absImages)]);
   ok('h) au retour, la mémoire d\'avant l\'absence ne fait pas dire « sans rediffusion » : la chaîne attend ses archives relues',
-     JSON.stringify(hv) === '["2 directs · 5h05"]', JSON.stringify(hv));
+     JSON.stringify(hv) === '["Falaise — 2 directs · 5h05"]', JSON.stringify(hv));
   await Hh.ctx.close();
 
   // d) Moins d'un jour, e) le réglage décoché, f) une installation neuve, g) une absence de plus de douze heures.
@@ -43204,10 +43281,12 @@ const lireZap = (page) => page.evaluate(() => {
    Sillage, 6 200 ; Tourbe, 765 ; et Ressac, dans la session sans diffuser
    sur sa chaîne. Leur combiné, 48 565, les met en tête. Guest Star les nomme
    dans l'ordre Vortex, Tourbe, Sillage, Ressac — pas celui de l'audience ;
-   TseChannels donne à chacun la sienne. Les noms sont inventés. */
+   TseChannels donne à chacun la sienne. Le classement, qui les range tous au
+   même combiné, rend Tourbe d'abord (4.33.0.3) : la carte doit pourtant être
+   celle de Vortex, le plus regardé. Les noms sont inventés. */
 {
   titre('232. Le co-stream d\'une place du Top 10 — « Nom + 3 ⌄ », et au survol la fenêtre des membres, chacun avec ses spectateurs');
-  const TOP_CS = ['vortex', 'sillage', 'tourbe', ...TOP_ACCUEIL.slice(0, 9)];
+  const TOP_CS = ['tourbe', 'vortex', 'sillage', ...TOP_ACCUEIL.slice(0, 9)];
   const page = await ouvrirAccueil({ options: { accueilDebut: false } });
   await plateauAccueil(page, { top: TOP_CS });
   await page.evaluate(() => {
@@ -43253,7 +43332,9 @@ const lireZap = (page) => page.evaluate(() => {
       avant: [...b.parentElement.children].map((x) => x.className.split(' ')[0]),
       sous: rf && rf.width ? { ecart: Math.round(rf.top - rb.bottom), gauche: Math.round(rf.left - rb.left) } : null,
       dessus: !!dessus && !!fen && fen.contains(dessus),
-      lignes, avec: !!place.querySelector('.tse-acc-avec'), places: [...document.querySelectorAll('#tse-accueil .tse-acc-place')].map((p) => p.dataset.tseCle),
+      lignes, avec: !!place.querySelector('.tse-acc-avec'),
+      // Ce que l'œil voit : un nombre masqué ne s'affiche pas, dans la couche supérieure comme ailleurs.
+      affiches: fen ? [...fen.querySelectorAll('.tse-acc-cs-vues')].filter((v) => getComputedStyle(v).display !== 'none').length : null, places: [...document.querySelectorAll('#tse-accueil .tse-acc-place')].map((p) => p.dataset.tseCle),
       focus: document.activeElement === b ? 'bouton' : fen && fen.contains(document.activeElement) ? 'fenetre' : 'ailleurs',
       cs: window.tse.accueil.rapport().top.cs,
       local: getComputedStyle(document.documentElement).getPropertyValue('--tse-frais').trim(),
@@ -43295,9 +43376,9 @@ const lireZap = (page) => page.evaluate(() => {
       && (a[2] === null || l.point !== null && l.point !== 'rgba(0, 0, 0, 0)');
   });
   ok('b) au survol, la fenêtre sous le bouton : Vortex et ses 41,6 k, « En live avec : », Sillage 6,2 k, Tourbe 765, Ressac sans nombre ; des liens vers un nouvel onglet ; par-dessus tout',
-     r1.ouverte && r1.deplie === 'true' && r1.sous && r1.sous.ecart === 6 && r1.sous.gauche === 0 && lignesJustes && r1.dessus
+     r1.ouverte && r1.deplie === 'true' && r1.sous && r1.sous.ecart === 6 && r1.sous.gauche === 0 && lignesJustes && r1.dessus && r1.affiches === 3
      && r1.cs.places === 1 && r1.cs.membres === 3 && r1.cs.ouvertures === 1 && r1.cs.ouverte && !r1.cs.epinglee,
-     JSON.stringify({ ouverte: r1.ouverte, sous: r1.sous, dessus: r1.dessus, lignes: r1.lignes, cs: r1.cs }));
+     JSON.stringify({ ouverte: r1.ouverte, sous: r1.sous, dessus: r1.dessus, affiches: r1.affiches, lignes: r1.lignes, cs: r1.cs }));
   /* c) LE POINTEUR PASSE DU BOUTON À LA FENÊTRE sans la fermer — l'écart
      qui les sépare se franchit —, puis s'en va : elle se ferme. Mutants —
      pas de délai de grâce ; la fenêtre qui ne retient pas le pointeur ;
@@ -43355,6 +43436,30 @@ const lireZap = (page) => page.evaluate(() => {
   ok('e) au clavier : Tab sur le bouton l\'ouvre, Tab entre dans la fenêtre sur Vortex et y reste, Échap la ferme et rend le focus au bouton sans la rouvrir',
      r7.focus === 'bouton' && r7.ouverte && r8.focus === 'fenetre' && premier === '/vortex' && !r9.ouverte && r9.focus === 'bouton',
      JSON.stringify({ r7: [r7.focus, r7.ouverte], r8: [r8.focus, premier], r9: [r9.focus, r9.ouverte] }));
+  /* g) LA CARTE EST CELLE DU PLUS REGARDÉ, et ne bat pas (4.33.0.3) :
+     Sillage monte à 43 000, à moins de 5 % de Vortex (41 600) — la carte
+     reste à Vortex ; à 46 000, elle passe à Sillage, la fenêtre du bouton
+     le nomme en tête ; redescendu, la carte revient à Vortex. Mutants — la
+     carte dans l'ordre du classement (cf. a) ; une bascule au moindre
+     dépassement ; la carte gardée pour toujours. */
+  const premiere = () => page.evaluate(() => document.querySelector('#tse-accueil .tse-acc-place')?.dataset.tseCle);
+  const audienceDe = (v) => page.evaluate((x) => { window.__fx.sillage = { ...window.__fx.sillage, viewers: x }; }, v);
+  await page.mouse.move(5, 5);
+  await audienceDe(43000);
+  await wait(page, 2500);
+  const g1 = await premiere();
+  await audienceDe(46000);
+  await attendre(page, () => document.querySelector('#tse-accueil .tse-acc-place')?.dataset.tseCle === 'sillage', 6000);
+  const g2 = await premiere();
+  const g2b = await page.evaluate(() => document.querySelector('#tse-accueil .tse-acc-place[data-tse-cle="sillage"] .tse-acc-cs')?.getAttribute('aria-label'));
+  await audienceDe(6200);
+  await attendre(page, () => document.querySelector('#tse-accueil .tse-acc-place')?.dataset.tseCle === 'vortex', 6000);
+  const g3 = await premiere();
+  ok('g) la carte du co-stream est celle du plus regardé : gardée à 3 % près, passée à Sillage au-delà de 5 %, rendue à Vortex',
+     g1 === 'vortex' && g2 === 'sillage' && g2b === 'Sillage est en live avec Vortex, Tourbe et Ressac' && g3 === 'vortex',
+     JSON.stringify({ g1, g2, g2b, g3 }));
+  await page.evaluate((sel) => document.querySelector(sel)?.scrollIntoView({ block: 'center' }), BOUTON);
+  await wait(page, 300);
   /* f) LE TOP 10 COUPÉ ferme la fenêtre ouverte, et ne laisse rien dans la
      couche supérieure. Épinglée d'un clic : ouverte au survol, elle se
      fermerait de toute façon, le bouton parti de sous le pointeur — et le

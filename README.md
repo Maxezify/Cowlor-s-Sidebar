@@ -2183,6 +2183,137 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## Le co-stream à son plus regardé, l'absence en cartes, l'audit (v4.33.0.3)
+
+Trois retours. Publiée sur `claude/chrome-homepage` seulement.
+
+| signalé | ce qui a été fait |
+| --- | --- |
+| « mets celui qui a le plus de viewers sur le top ; là, dans la capture, c'est le contraire » | la carte d'un co-stream du Top 10 est celle de son membre le plus regardé ; la fenêtre le nomme en tête |
+| « je suis pas très fan de "Pendant votre absence" ; propose un UX/UI qui correspond bien au reste de la page » | deux maquettes, faites de nos vrais composants ; la voie des cartes choisie, et faite |
+| « fais un audit complet du zapping et de la page Accueil » | mesures et relecture (ci-dessous) |
+
+### La carte d'un co-stream
+
+La capture : une carte à 858 spectateurs, et dans sa fenêtre un membre à
+20,8 k. Le classement range les membres d'une session au même nombre — le
+combiné —, et la place prenait le premier qu'il rendait. Elle prend
+maintenant celui qui a le plus de spectateurs à lui, lus dans TseChannels ;
+sans aucune audience connue, l'ordre du classement. Un autre ne lui prend la
+carte qu'en le dépassant de 5 % (`ACCUEIL_CS_TETE_ECART`), mémoire tenue par
+session : deux audiences voisines ne font pas changer la carte à chaque
+relevé.
+
+### Pendant votre absence, en cartes
+
+Deux voies proposées en maquettes — un rayon de cartes comme le Top 10, des
+tuiles comme « Vos rendez-vous » — ; la première choisie. Un rayon comme les
+autres : son titre à leur style, la croix au bout, « Afficher tout ». Une
+carte par chaîne, les nôtres, mais d'une archive :
+
+- **la vignette de la dernière archive de l'absence**, en grand ; sans
+  archive, l'avatar flouté. Elle ouvre la rediffusion quand on peut la voir,
+  la chaîne sinon ; pas d'aperçu au survol, rien n'y est en direct ;
+- **« 2 directs »** à la place de « Live », dans le gris des autres pastilles ;
+  **leur durée** en haut à droite ; **la fin du dernier** en bas à gauche,
+  « il y a 6 h » (`Intl.RelativeTimeFormat`, dans la langue de l'interface) —
+  tue si la chaîne est en direct maintenant ;
+- dessous : l'avatar, le nom, le titre du dernier direct — « A diffusé, sans
+  rediffusion » quand il n'y a pas d'archive —, **« Clip le plus vu : … »**
+  (le mot « clip » ajouté dans les dix langues : seul sous une archive, « le
+  plus vu » ne disait plus de quoi), et « Revoir le dernier », au style de
+  « Depuis le début ».
+
+**La vignette en grand, sans requête de plus.** L'agenda lit celle des
+archives en 160 × 90 : la taille du panneau, qui les montre en 80 × 45. Sur
+une carte de trois cents pixels, elle était floue. La grande (640 × 360) de la
+dernière archive part dans le même envoi que les clips, opération à part :
+aucune requête de plus, et son refus ne touche pas aux clips — la carte garde
+alors la petite. Le réglage, le mode d'emploi et les fiches du Store le
+disent, dans les douze langues. Le rapport : `accueil.absence.vignettes`.
+
+### L'audit
+
+**Mesuré, au banc, par `Memory.getDOMCounters` et le tas après ramasse-miettes :**
+
+- l'accueil qui tourne, deux mille peintures : nœuds (1 271) et écouteurs
+  (86) inchangés ; le tas se stabilise — +300, +114, +42, +21 Ko par demi-
+  minute, des caches bornés qui se remplissent ;
+- une peinture coûte 1,8 ms en moyenne, 23 ms au plus ;
+- la fenêtre du co-stream ouverte et fermée soixante fois, le zapping trente :
+  un coût unique à la première ouverture (+13 et +10 écouteurs), puis plus
+  rien ;
+- le banc lui-même gardait chaque requête dans son journal (`__calls`) : vidé
+  avant chaque mesure, pour ne compter que l'extension.
+
+**Relu :** chaque minuteur, écouteur et observateur de l'accueil et du zapping
+— tous défaits avec ce qui les porte ; l'agenda n'écrit que ce qui a changé ;
+pas de chaîne traduite, de classe ou de compteur du rapport sans usage ; les
+sélecteurs répétés de la feuille sont des surcharges d'écran étroit.
+
+**Trouvé, corrigé :**
+
+- la vignette floue de l'absence (ci-dessus) ;
+- une règle `[hidden]` de la fenêtre du co-stream (4.33.0.2), redondante :
+  `#tse-accueil [hidden]` couvre déjà la fenêtre, qui reste dans la section
+  pour la cascade même dans la couche supérieure. Retirée ; le banc vérifie
+  qu'un nombre masqué ne s'y voit pas ;
+- l'assertion du repli de l'absence ne prouvait rien : à 1600 pixels, les
+  cinq cartes tiennent sur une rangée. Elle tourne dans un onglet de 1000.
+
+**Relevé hors du périmètre, laissé :** cinq déclarations jamais appelées,
+ailleurs que dans l'accueil et le zapping — `lireCarte` (et `dateEcrite`,
+`retenirFin`, qui ne servent qu'à elle), `bilanApi` (et `LEVIERS`), `nomDe`,
+`typo`, `suiviesDabord`.
+
+### Ce qui n'a pas pu être vérifié ici
+
+- **la grande vignette sur le vrai Twitch** : `video(id:)` et sa
+  `previewThumbnailURL` à la taille demandée sont ceux du schéma public ; le
+  banc les joue, Twitch n'est pas joignable d'ici. Refusés, la petite reste ;
+- **le coût d'une peinture sur la vraie page**, avec ses dizaines de cartes :
+  mesuré au banc seulement.
+
+### Le banc
+
+224 réécrit pour les cartes, ses garanties gardées : ce que disait la ligne —
+« 2 directs · 5h05 » — se lit sur les pastilles et le nom de la vignette.
+Quatre assertions de plus : la carte (grande vignette demandée dans l'envoi des
+clips, pastilles, « il y a 6 h », titre, liens) ; la chaîne sans archive et la
+rediffusion fermée ; le repli, dans un onglet de 1000 pixels ; la grande
+vignette refusée, les clips servis quand même. Le faux Twitch sert la vignette
+d'une archive à la taille demandée. 232 en gagne une : la carte du co-stream
+passe au plus regardé au-delà de 5 %, pas en deçà, et revient — le classement
+du décor rend désormais un autre membre d'abord.
+
+Le banc complet a pris un défaut du faux Twitch, pas de l'extension : la
+taille de vignette qu'il lit dans la requête était rangée parmi les champs
+neufs de l'agenda, et le mode qui les refuse tous la refusait aussi — sans
+fin, puisqu'aucune requête ne peut s'en passer (207 q). Elle est à part.
+
+**Treize mutants nommés, tous pris.**
+
+| mutant | ce qui tombe |
+| --- | --- |
+| la carte dans l'ordre du classement | 232 g) |
+| une bascule au moindre dépassement | 232 g) |
+| la carte gardée pour toujours | 232 g) |
+| la petite vignette, jamais la grande | 224 a') (la carte, la rediffusion fermée) |
+| le refus de la vignette qui emporte les clips | 224 c) (les clips, le refus) |
+| le rouge du direct sur une archive | 224 a') (la carte) |
+| la fin du dernier direct tue | 224 a') (la carte, sans archive) |
+| la rediffusion fermée pour lien | 224 a') (sans archive, fermée) |
+| l'avatar sans flou | 224 a') (sans archive) |
+| pas de repli à la peinture | 224 a') (le repli) |
+| le titre du direct oublié | 224 a') (la carte) |
+| le compte de directs oublié | 224 a) (deux directs), a') (la carte), c) |
+| la règle commune `[hidden]` perdue pour la section | 232 b) |
+
+`npm run check` : 2347 assertions dans 231 scénarios, toutes vertes — en deux
+passages : le complet, interrompu après le 205 par les deux échecs du faux
+Twitch au 207 (cf. ci-dessus), puis, la correction faite, du 205 au bout, le
+207 compris. Les scénarios d'avant n'emploient pas le mode qu'elle touche.
+
 ## Le co-stream du Top 10, comme sur Twitch (v4.33.0.2)
 
 Deux retours, capture et HTML de Twitch à l'appui. Publiée sur
@@ -25430,7 +25561,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | les six fichiers JavaScript livrés — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 231 scénarios, 2342 assertions |
+| `npm test` | le harnais Playwright : 231 scénarios, 2347 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -25479,13 +25610,13 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 2277 Ko | 1075 Ko | 4 780 → **2** |
+| `content.js` | 2285 Ko | 1080 Ko | 4 788 → **2** |
 | `cadres.js` | 74 Ko | 34 Ko | 170 → **0** |
 | `adblock.js` | 126 Ko | 101 Ko | 301 → **2** |
 | `panneau.js` | 166 Ko | 85 Ko | 227 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 26 → **0** |
 | `background.js` | 10 Ko | 2 Ko | 22 → **0** |
-| **les six** | **2667 Ko** | **1301 Ko** | **−51 %** |
+| **les six** | **2676 Ko** | **1306 Ko** | **−51 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
