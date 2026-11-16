@@ -537,7 +537,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccEntree:               (m) => `Hors du Top 10 il y a ${m} min`,
       uiAccAttente:              'Classement en cours…',
       uiAccVide:                 'Aucune chaîne à classer pour l\'instant',
-      uiAccAvec:                 (f) => `avec ${f}`,
+      uiAccCsAvec:               'En live avec :',
+      uiAccCsPhrase:             (nom, liste) => `${nom} est en live avec ${liste}`,
       uiAccPlace:                (n, nom) => `Place ${n} : ${nom}`,
       uiAccDepuis:               (d) => `en direct depuis ${d}`,
       uiAccRang:                 (n) => `N°${n} du Top 10`,
@@ -848,7 +849,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccEntree:               (m) => `Outside the Top 10 ${m} min ago`,
       uiAccAttente:              'Ranking in progress…',
       uiAccVide:                 'No channel to rank right now',
-      uiAccAvec:                 (f) => `with ${f}`,
+      uiAccCsAvec:               'Live with:',
+      uiAccCsPhrase:             (nom, liste) => `${nom} is live with ${liste}`,
       uiAccPlace:                (n, nom) => `Rank ${n}: ${nom}`,
       uiAccDepuis:               (d) => `live for ${d}`,
       uiAccRang:                 (n) => `#${n} in the Top 10`,
@@ -1117,7 +1119,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccEntree:               (m) => `Vor ${m} Min. nicht in den Top 10`,
       uiAccAttente:              'Rangliste wird erstellt …',
       uiAccVide:                 'Gerade kein Kanal einzuordnen',
-      uiAccAvec:                 (f) => `mit ${f}`,
+      uiAccCsAvec:               'Live mit:',
+      uiAccCsPhrase:             (nom, liste) => `${nom} ist live mit ${liste}`,
       uiAccPlace:                (n, nom) => `Platz ${n}: ${nom}`,
       uiAccDepuis:               (d) => `seit ${d} live`,
       uiAccRang:                 (n) => `Platz ${n} der Top 10`,
@@ -1386,7 +1389,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccEntree:               (m) => `Fuera del Top 10 hace ${m} min`,
       uiAccAttente:              'Clasificación en curso…',
       uiAccVide:                 'Ningún canal que clasificar por ahora',
-      uiAccAvec:                 (f) => `con ${f}`,
+      uiAccCsAvec:               'En vivo con:',
+      uiAccCsPhrase:             (nom, liste) => `${nom} está en vivo con ${liste}`,
       uiAccPlace:                (n, nom) => `Puesto ${n}: ${nom}`,
       uiAccDepuis:               (d) => `en directo desde hace ${d}`,
       uiAccRang:                 (n) => `N.º ${n} del Top 10`,
@@ -1655,7 +1659,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccEntree:               (m) => `Fora do Top 10 ${m} min atrás`,
       uiAccAttente:              'Classificação em andamento…',
       uiAccVide:                 'Nenhum canal para classificar no momento',
-      uiAccAvec:                 (f) => `com ${f}`,
+      uiAccCsAvec:               'Ao vivo com:',
+      uiAccCsPhrase:             (nom, liste) => `${nom} está ao vivo com ${liste}`,
       uiAccPlace:                (n, nom) => `Posição ${n}: ${nom}`,
       uiAccDepuis:               (d) => `ao vivo há ${d}`,
       uiAccRang:                 (n) => `Nº ${n} do Top 10`,
@@ -1924,7 +1929,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccEntree:               (m) => `Fuori dalla Top 10 ${m} min fa`,
       uiAccAttente:              'Classifica in corso…',
       uiAccVide:                 'Nessun canale da classificare per ora',
-      uiAccAvec:                 (f) => `con ${f}`,
+      uiAccCsAvec:               'In diretta con:',
+      uiAccCsPhrase:             (nom, liste) => `${nom} è in diretta con ${liste}`,
       uiAccPlace:                (n, nom) => `Posizione ${n}: ${nom}`,
       uiAccDepuis:               (d) => `in diretta da ${d}`,
       uiAccRang:                 (n) => `N. ${n} della Top 10`,
@@ -2193,7 +2199,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccEntree:               (m) => `Poza Top 10 ${m} min temu`,
       uiAccAttente:              'Trwa układanie rankingu…',
       uiAccVide:                 'Na razie brak kanałów do sklasyfikowania',
-      uiAccAvec:                 (f) => `razem z ${f}`,
+      uiAccCsAvec:               'Na żywo z:',
+      uiAccCsPhrase:             (nom, liste) => `${nom} — na żywo z ${liste}`,
       uiAccPlace:                (n, nom) => `Miejsce ${n}: ${nom}`,
       uiAccDepuis:               (d) => `na żywo od ${d}`,
       uiAccRang:                 (n) => `Nr ${n} w Top 10`,
@@ -2467,7 +2474,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccEntree:               (m) => `${m} мин назад — вне топ-10`,
       uiAccAttente:              'Рейтинг составляется…',
       uiAccVide:                 'Пока нечего ранжировать',
-      uiAccAvec:                 (f) => `вместе с ${f}`,
+      uiAccCsAvec:               'В эфире с:',
+      uiAccCsPhrase:             (nom, liste) => `${nom} — в эфире с ${liste}`,
       uiAccPlace:                (n, nom) => `Место ${n}: ${nom}`,
       uiAccDepuis:               (d) => `в эфире ${d}`,
       uiAccRang:                 (n) => `№ ${n} в Топ-10`,
@@ -2740,7 +2748,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccEntree:               (m) => `${m} 分前はトップ10圏外`,
       uiAccAttente:              'ランキングを作成中…',
       uiAccVide:                 '現在ランキングできるチャンネルはありません',
-      uiAccAvec:                 (f) => `${f} と一緒に`,
+      uiAccCsAvec:               '一緒に配信中：',
+      uiAccCsPhrase:             (nom, liste) => `${nom} は ${liste} と配信中`,
       uiAccPlace:                (n, nom) => `${n} 位：${nom}`,
       uiAccDepuis:               (d) => `配信開始から ${d}`,
       uiAccRang:                 (n) => `トップ 10 の ${n} 位`,
@@ -3006,7 +3015,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccEntree:               (m) => `${m} 分钟前未进入前 10 名`,
       uiAccAttente:              '排名生成中…',
       uiAccVide:                 '目前没有可排名的频道',
-      uiAccAvec:                 (f) => `与 ${f} 一起`,
+      uiAccCsAvec:               '一起直播：',
+      uiAccCsPhrase:             (nom, liste) => `${nom} 正在与 ${liste} 直播`,
       uiAccPlace:                (n, nom) => `第 ${n} 名：${nom}`,
       uiAccDepuis:               (d) => `已直播 ${d}`,
       uiAccRang:                 (n) => `前 10 名中第 ${n} 名`,
@@ -4697,6 +4707,12 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        donnée (un défilement doux en prend moins d'une seconde) : passé, un
        défilement qui finit ailleurs est réputé fait à la main. */
     ACCUEIL_RUBAN_MENE_MS: 1_500,
+    /* LE CO-STREAM D'UNE PLACE DU TOP 10 (4.33.0.2) : sa fenêtre s'ouvre
+       quand le pointeur s'attarde sur « + N ⌄ » — un passage ne l'ouvre
+       pas —, et se ferme quand il a quitté le bouton ET la fenêtre depuis
+       ce délai : de quoi franchir l'écart qui les sépare. */
+    ACCUEIL_CS_OUVRE_MS:    100,
+    ACCUEIL_CS_FERME_MS:    250,
     /* LE RELIEF AU SURVOL (4.32.0.3), celui des cartes de Twitch : l'image
        monte de six pixels vers la droite, un relief de la couleur de la
        chaîne paraît à gauche et dessous. Six pixels : 0,6 rem, le rem de
@@ -9680,10 +9696,34 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     html[data-tse-ranger] main a[data-a-target="preview-card-image-link"] .tw-media-card-stat {
       background: rgba(0, 0, 0, 0.62) !important; font-weight: 500 !important;
     }
+    /* LE NOMBRE ET SON ICÔNE SUR UNE LIGNE (4.33.0.2). « On voit 12,4 k et un
+       symbole juste en dessous, il faudrait qu'il soit à la même ligne » :
+       sur un co-stream, Twitch pose dans son compteur une icône — deux
+       silhouettes — à côté du nombre combiné. Mis en bloc, notre compteur
+       envoyait cette icône, un bloc, à la ligne. En flex, le nombre et elle
+       se tiennent sur la ligne de dix-huit, centrés, quelle que soit la
+       profondeur à laquelle Twitch la range. */
+    html[data-tse-ranger] main a[data-a-target="preview-card-image-link"] .tw-media-card-stat {
+      display: flex !important; align-items: center !important;
+    }
     /* LE NOMBRE, SANS LE MOT : celui de TseChannels, écrit comme sur nos cartes. */
     html[data-tse-ranger] main a[data-a-target="preview-card-image-link"] .tw-media-card-stat[data-tse-spect] { font-size: 0 !important; }
     html[data-tse-ranger] main a[data-a-target="preview-card-image-link"] .tw-media-card-stat[data-tse-spect]::before {
       content: attr(data-tse-spect); font-size: 12px;
+    }
+    /* Le mot de Twitch est éteint, pas absent : ses écarts et ses marges
+       sépareraient encore notre nombre de l'icône, d'une distance qu'on ne
+       choisit pas. On les défait, et l'écart est le nôtre, quatre pixels —
+       seulement s'il y a une icône. */
+    html[data-tse-ranger] main a[data-a-target="preview-card-image-link"] .tw-media-card-stat[data-tse-spect],
+    html[data-tse-ranger] main a[data-a-target="preview-card-image-link"] .tw-media-card-stat[data-tse-spect] :not(svg, svg *) {
+      column-gap: 0 !important;
+    }
+    html[data-tse-ranger] main a[data-a-target="preview-card-image-link"] .tw-media-card-stat[data-tse-spect] :not(svg, svg *) {
+      margin: 0 !important;
+    }
+    html[data-tse-ranger] main a[data-a-target="preview-card-image-link"] .tw-media-card-stat[data-tse-spect]:has(svg, img)::before {
+      margin-right: 4px;
     }
     html[data-tse-ranger] main a[data-a-target="preview-card-image-link"][data-tse-duree] { position: relative; }
     html[data-tse-ranger] main a[data-a-target="preview-card-image-link"][data-tse-duree]::before {
@@ -9711,11 +9751,52 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
     .tse-acc-nom:hover { color: var(--tse-violet-texte); }
-    .tse-acc-titre-carte, .tse-acc-jeu, .tse-acc-avec {
+    .tse-acc-titre-carte, .tse-acc-jeu {
       margin: 2px 0 0; font-size: 13px; line-height: 1.35; color: var(--tse-texte-doux);
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
-    .tse-acc-avec strong { color: var(--tse-texte); font-weight: 600; }
+    /* LE CO-STREAM D'UNE PLACE (4.33.0.2, cf. CO-STREAM) : « + 2 ⌄ » juste
+       après le nom, comme sur la carte de Twitch ; il ne rétrécit pas, le nom
+       s'abrège avant lui. Huit pixels du nom par l'écart de la ligne, moins
+       les quatre de son propre fond. */
+    .tse-acc-cs {
+      flex: 0 0 auto; display: inline-flex; align-items: center; gap: 2px; margin: 0 0 0 -4px; padding: 0 2px 0 4px;
+      border: 0; border-radius: 4px; background: transparent; color: var(--tse-texte);
+      font: inherit; font-size: 13px; font-weight: 400; line-height: 20px; white-space: nowrap; cursor: pointer;
+    }
+    .tse-acc-cs:hover, .tse-acc-cs[aria-expanded="true"] { background: rgba(var(--tse-encre), 0.1); }
+    .tse-acc-cs:focus-visible { outline: 2px solid var(--tse-violet-texte); outline-offset: 1px; }
+    .tse-acc-cs svg { flex: 0 0 16px; width: 16px; height: 16px; fill: currentColor; }
+    /* Sa fenêtre, dans la couche supérieure : on défait le placement et le
+       cadre que le navigateur donne à un popover (centré, bordé) ; le
+       script la pose sous le bouton. Jamais de \`display\` ici : c'est lui
+       qui la cache quand elle est fermée. */
+    .tse-acc-cs-fen {
+      position: fixed; inset: auto; margin: 0; box-sizing: border-box;
+      min-width: 200px; max-width: min(320px, calc(100vw - 16px)); padding: 6px; overflow: visible;
+      border: 1px solid rgba(var(--tse-encre), 0.12); border-radius: 6px;
+      background: var(--tse-surface); color: var(--tse-texte); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+      font-size: 13px; line-height: 18px; text-align: left;
+    }
+    .tse-acc-cs-titre { margin: 6px 6px 2px; font-weight: 700; }
+    .tse-acc-cs-membre {
+      display: flex; align-items: center; gap: 8px; padding: 4px 6px; border-radius: 4px;
+      color: inherit; text-decoration: none;
+    }
+    .tse-acc-cs-membre:hover, .tse-acc-cs-membre:focus-visible { background: var(--tse-surface-2); }
+    .tse-acc-cs-membre:focus-visible { outline: 2px solid var(--tse-violet-texte); outline-offset: -2px; }
+    .tse-acc-cs-avatar {
+      flex: 0 0 24px; width: 24px; height: 24px; border-radius: 50%; overflow: hidden; background: var(--tse-surface-2);
+    }
+    .tse-acc-cs-avatar img { display: block; width: 100%; height: 100%; object-fit: cover; }
+    .tse-acc-cs-avatar img[hidden], .tse-acc-cs-vues[hidden] { display: none; }
+    .tse-acc-cs-nom { flex: 1 1 auto; min-width: 0; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    /* Le point rouge et le nombre, à droite : ceux de la chaîne seule. */
+    .tse-acc-cs-vues {
+      flex: 0 0 auto; display: inline-flex; align-items: center; gap: 5px; margin-left: 12px;
+      font-variant-numeric: tabular-nums; white-space: nowrap;
+    }
+    .tse-acc-cs-vues::before { content: ""; flex: 0 0 8px; width: 8px; height: 8px; border-radius: 50%; background: var(--tse-frais); }
     /* Un bloc à la largeur de son contenu, et non un élément de ligne : posé
        sur une ligne, il en prenait la descente, et sa place gardée — vide —
        n'avait pas la hauteur du bouton (4.26.0.5). */
@@ -14299,6 +14380,12 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     return frag;
   };
 
+  // « A, B et C », dans la langue de l'interface.
+  const listeNoms = (noms) => {
+    try { return new Intl.ListFormat(S.locale, { type: 'conjunction' }).format(noms); }
+    catch { return noms.join(', '); }
+  };
+
   /* Une liste de noms en gras, séparés par « , ». Le séparateur est un nœud
      texte à part : c'est ce qui évitait déjà « Scok , Farore » du temps du
      HTML, et la raison n'a pas changé — le badge est en flex avec un gap. */
@@ -17217,7 +17304,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
                ambiance: { demandes: 0, images: 0, rejets: 0 } },
       /* `ecartees` (4.32.0.4) : la liste du réglage, et combien de ses chaînes
          le classement portait — et a donc retirées. Des comptes. */
-      top: { source: null, instantanes: 0, ecartees: 0, retirees: 0 },
+      top: { source: null, instantanes: 0, ecartees: 0, retirees: 0,
+             /* Les co-streams (4.33.0.2) : les places qui en portent un, leurs
+                autres membres, les fenêtres ouvertes, et les membres demandés
+                à TseChannels pour leur audience propre. */
+             cs: { places: 0, membres: 0, ouvertures: 0, demandes: 0 } },
       /* « À la une » (4.32.0.3) : d'où viennent ses chaînes — l'ordre du
          carrousel lu sur ses places, ou celui de la page —, combien il en
          porte, combien se montrent, combien attendent leur réponse. */
@@ -18513,6 +18604,254 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       cartesVues.clear();
     };
 
+    /* ── LE CO-STREAM D'UNE PLACE (4.33.0.2) ──────────────────────────────────
+       « Dans le Top 10, on peut voir des costreams, faudrait prendre le même
+       système que le natif, à savoir "le nom d'un streamer" suivi d'un + et
+       le nombre dans le costream. En passant la souris sur la flèche à côté,
+       on a une fenêtre qui apparaît avec les détails. » Relevé sur la carte
+       de Twitch, capture et HTML à l'appui : « Nom + 2 ⌄ » ; au survol, une
+       fenêtre — la chaîne de la carte d'abord, puis « En live avec : » et
+       les autres —, chaque ligne avec l'avatar, le nom, un point rouge et
+       les spectateurs DE CETTE CHAÎNE-LÀ, et un lien qui l'ouvre dans un
+       nouvel onglet ; pour les lecteurs d'écran, « X est en live avec Y et
+       Z ». La ligne « avec Y, Z » qu'elle remplace s'en va.
+
+       LES MEMBRES : la session telle que Guest Star la nomme (`camaradesDe`),
+       complétée par les chaînes que le classement a rangées dans la place.
+       Un invité qui ne diffuse pas sur sa propre chaîne est nommé, sans
+       point ni nombre. LES NOMBRES : l'audience PROPRE de chacun, lue dans
+       TseChannels — le combiné, sur la vignette, est celui qui classe. Sans
+       réponse fraîche, pas de nombre : rien de deviné. Les membres entrent
+       dans le lot commun tant que leur place est peinte (cf. `demander`).
+
+       UNE FENÊTRE DE LA COUCHE SUPÉRIEURE (`popover`). La place est un
+       conteneur de requêtes (`container-type`) : elle piège un `position:
+       fixed`, et le pli du rayon l'aurait rognée. La couche supérieure n'a
+       pas d'ancêtre qui la contienne ; la fenêtre suit pourtant son bouton
+       dans le DOM, et la tabulation y entre juste après lui. Un navigateur
+       sans `popover` garde le bouton, et la phrase en infobulle. */
+    const POPOVER = typeof document.createElement('div').showPopover === 'function';
+    const etatsCs = new WeakMap();   // bouton → { tete: { login, nom, avatar }, autres: [{ login, nom }] }
+    let csOuvert = null;             // { bouton, fen, epingle }
+    let csMinuteur = 0;
+    let csNumero = 0;
+    let csRendu = null;              // le bouton auquel Échap vient de rendre le focus : il ne rouvre pas
+    /* Le nom d'un membre : celui que TseChannels lui lit sur sa propre chaîne,
+       sinon celui que la session ou le classement lui donne, sinon son login. */
+    const nomCs = (m) => cache.get(m.login)?.name || m.nom || m.login;
+    const phraseCs = (cs) => S.uiAccCsPhrase(nomCs(cs.tete), listeNoms(cs.autres.map(nomCs)));
+    // Les autres membres d'une place : la session d'abord, dans son ordre, puis ce que le classement y a mis.
+    const autresDeLaPlace = (p) => {
+      const tete = p.tete.login;
+      const vus = new Set([tete]);
+      const autres = [];
+      for (const m of [...camaradesDe(tete), ...p.membres]) {
+        const l = m?.login && String(m.login).toLowerCase();
+        if (!l || vus.has(l) || !RE_LOGIN.test(l)) continue;
+        vus.add(l);
+        autres.push({ login: l, nom: m.name || null });
+      }
+      return autres;
+    };
+    /* Une ligne de la fenêtre, telle qu'on la lit maintenant. Le nombre
+       garde la tolérance des étiquettes — deux cycles : une réponse qui
+       vient de passer son terme ne fait pas clignoter la ligne le temps que
+       la suivante arrive. */
+    const ficheCs = (m, avatar) => {
+      const e = cache.get(m.login);
+      const frais = !!e && Date.now() - (e.ts || 0) <= 2 * CFG.LIVE_TTL;
+      const n = frais && e.stream && Number.isFinite(e.viewers) ? e.viewers : null;
+      return { login: m.login, nom: nomCs(m), avatar: imageSure(avatar) || imageSure(e?.avatar), n };
+    };
+    const fabriquerLigneCs = (login) => {
+      const a = elt('a', 'tse-acc-cs-membre');
+      a.dataset.tseCle = login;
+      a.setAttribute('href', '/' + login);
+      a.setAttribute('target', '_blank');
+      a.setAttribute('rel', 'noopener noreferrer');
+      const av = elt('span', 'tse-acc-cs-avatar');
+      const img = elt('img');
+      img.alt = '';
+      img.decoding = 'async';
+      img.hidden = true;
+      av.append(img);
+      const vues = elt('span', 'tse-acc-cs-vues');
+      vues.hidden = true;
+      a.append(av, elt('span', 'tse-acc-cs-nom'), vues);
+      return a;
+    };
+    const majLigneCs = (a, x) => {
+      const [av, nom, vues] = a.children;
+      const img = av.firstChild;
+      img.hidden = !x.avatar;
+      if (x.avatar) attrSi(img, 'src', x.avatar);
+      texteSi(nom, x.nom);
+      vues.hidden = x.n === null;
+      texteSi(vues, x.n === null ? '' : formatViewers(x.n));
+      attrSi(vues, 'title', x.n === null ? null : S.uiAccSpect(x.n, formatViewers(x.n)));
+    };
+    /* LA FENÊTRE SE MET À JOUR LIGNE À LIGNE, tenue par login (cf. `rangee`) :
+       réécrite d'un bloc à chaque nombre neuf, elle emportait la ligne qui
+       avait le focus — au clavier, on en était chassé. La chaîne de la carte,
+       puis « En live avec : », puis les autres par audience décroissante ;
+       ceux dont on ne la connaît pas, après, dans l'ordre de la session. */
+    const remplirCs = (fen, cs) => {
+      const autres = cs.autres.map((m, i) => ({ x: ficheCs(m), i }))
+        .sort((a, b) => ((b.x.n ?? -1) - (a.x.n ?? -1)) || (a.i - b.i)).map((o) => o.x);
+      rangee(fen, [ficheCs(cs.tete, cs.tete.avatar), null, ...autres], (x) => (x ? x.login : ':titre'),
+             (x) => {
+               if (x) return fabriquerLigneCs(x.login);
+               const t = elt('p', 'tse-acc-cs-titre');
+               t.dataset.tseCle = ':titre';
+               return t;
+             },
+             (n, x) => { if (x) majLigneCs(n, x); else texteSi(n, S.uiAccCsAvec); });
+    };
+    /* SOUS LE BOUTON, aligné sur son bord gauche, et gardé dans la fenêtre du
+       navigateur ; au-dessus s'il n'y a pas la place dessous. Un bouton
+       sorti de l'écran — la page a défilé — ferme sa fenêtre. */
+    const placerCs = () => {
+      if (!csOuvert) return;
+      const { bouton: b, fen } = csOuvert;
+      const r = b.getBoundingClientRect();
+      const vh = window.innerHeight;
+      if (!r.width || r.bottom < 0 || r.top > vh) { fermerCs(); return; }
+      const vw = document.documentElement.clientWidth;
+      const w = fen.offsetWidth;
+      const h = fen.offsetHeight;
+      const left = Math.max(8, Math.min(r.left, vw - w - 8));
+      let top = r.bottom + 6;
+      if (top + h > vh - 8 && r.top - 6 - h >= 8) top = r.top - 6 - h;
+      fen.style.left = Math.round(left) + 'px';
+      fen.style.top = Math.round(top) + 'px';
+      attrSi(fen, 'data-tse-cote', top < r.top ? 'haut' : 'bas');
+    };
+    let csCadre = 0;
+    const replacerCs = () => {
+      if (csCadre) return;
+      csCadre = requestAnimationFrame(() => { csCadre = 0; placerCs(); });
+    };
+    const dansCs = (n) => !!csOuvert && n instanceof Node && (csOuvert.bouton.contains(n) || csOuvert.fen.contains(n));
+    const surPointeurCs = (ev) => { if (!dansCs(ev.target)) fermerCs(); };
+    const surToucheCs = (ev) => {
+      if (ev.key !== 'Escape' || !csOuvert) return;
+      const { bouton } = csOuvert;
+      const dedans = dansCs(document.activeElement);
+      fermerCs();
+      // Le focus rendu passe par `focus`, synchrone : le drapeau ne lui survit pas.
+      if (dedans && document.activeElement !== bouton) { csRendu = bouton; bouton.focus(); csRendu = null; }
+    };
+    const ecouterCs = (oui) => {
+      const f = oui ? 'addEventListener' : 'removeEventListener';
+      document[f]('pointerdown', surPointeurCs, true);
+      document[f]('keydown', surToucheCs, true);
+      document[f]('scroll', replacerCs, true);
+      window[f]('resize', replacerCs);
+    };
+    const fermerCs = () => {
+      clearTimeout(csMinuteur);
+      if (!csOuvert) return;
+      const { bouton, fen } = csOuvert;
+      csOuvert = null;
+      ecouterCs(false);
+      bouton.setAttribute('aria-expanded', 'false');
+      if (fen.matches(':popover-open')) fen.hidePopover();
+    };
+    const ouvrirCs = (bouton, epingle) => {
+      clearTimeout(csMinuteur);
+      if (csOuvert && csOuvert.bouton !== bouton) fermerCs();
+      const fen = bouton.nextElementSibling;
+      const cs = etatsCs.get(bouton);
+      if (!fen || !cs || !bouton.isConnected) return;
+      if (!csOuvert) {
+        remplirCs(fen, cs);
+        if (!fen.matches(':popover-open')) fen.showPopover();
+        csOuvert = { bouton, fen, epingle: false };
+        bouton.setAttribute('aria-expanded', 'true');
+        ecouterCs(true);
+        placerCs();
+        bilan.top.cs.ouvertures++;
+      }
+      if (epingle && csOuvert) csOuvert.epingle = true;
+    };
+    const plusTardCs = (fn, ms) => { clearTimeout(csMinuteur); csMinuteur = setTimeout(erreurs.garde('accueil', fn), ms); };
+    // Le pointeur quitte le bouton ou la fenêtre : on ferme, sauf s'il revient à temps ou qu'un clic l'a épinglée.
+    const quitterCs = (ev) => {
+      if (ev.pointerType === 'touch' || !csOuvert || csOuvert.epingle) { if (!csOuvert) clearTimeout(csMinuteur); return; }
+      plusTardCs(() => { if (csOuvert && !csOuvert.epingle) fermerCs(); }, CFG.ACCUEIL_CS_FERME_MS);
+    };
+    const fabriquerCs = () => {
+      const b = elt('button', 'tse-acc-cs');
+      b.type = 'button';
+      b.append(elt('span', null), noeudStatique(PICTO_CHEVRON));
+      if (!POPOVER) return [b];
+      b.setAttribute('aria-expanded', 'false');
+      const fen = elt('div', 'tse-acc-cs-fen');
+      fen.id = 'tse-acc-cs-' + (++csNumero);
+      fen.setAttribute('popover', 'manual');
+      b.setAttribute('aria-controls', fen.id);
+      const garde = (fn) => erreurs.garde('accueil', fn);
+      b.addEventListener('pointerenter', garde((ev) => {
+        if (ev.pointerType === 'touch') return;
+        if (csOuvert && csOuvert.bouton === b) { clearTimeout(csMinuteur); return; }
+        plusTardCs(() => ouvrirCs(b, false), CFG.ACCUEIL_CS_OUVRE_MS);
+      }));
+      b.addEventListener('pointerleave', garde(quitterCs));
+      // Un clic épingle la fenêtre que le survol a ouverte ; un second la ferme.
+      b.addEventListener('click', garde(() => {
+        if (csOuvert && csOuvert.bouton === b && csOuvert.epingle) fermerCs();
+        else ouvrirCs(b, true);
+      }));
+      // Au clavier, le bouton atteint ouvre sa fenêtre ; la souris, elle, a son survol.
+      b.addEventListener('focus', garde(() => {
+        if (csRendu === b) { csRendu = null; return; }
+        if (b.matches(':focus-visible')) ouvrirCs(b, false);
+      }));
+      fen.addEventListener('pointerenter', garde(() => { if (csOuvert && csOuvert.fen === fen) clearTimeout(csMinuteur); }));
+      fen.addEventListener('pointerleave', garde(quitterCs));
+      // Le focus parti ailleurs que dans le bouton ou sa fenêtre la ferme.
+      const sortie = garde((ev) => {
+        if (csOuvert && csOuvert.bouton === b && ev.relatedTarget && !dansCs(ev.relatedTarget)) fermerCs();
+      });
+      b.addEventListener('focusout', sortie);
+      fen.addEventListener('focusout', sortie);
+      return [b, fen];
+    };
+    /* Le bouton d'une carte : posé, mis à jour, retiré. Juste après le nom,
+       comme sur la carte de Twitch ; l'évolution du Top 10 vient après lui. */
+    const majCs = (ligne, cs) => {
+      const b = ligne.querySelector(':scope > .tse-acc-cs');
+      if (!cs || !cs.autres.length) {
+        if (!b) return;
+        if (csOuvert && csOuvert.bouton === b) fermerCs();
+        if (b.nextElementSibling?.classList.contains('tse-acc-cs-fen')) b.nextElementSibling.remove();
+        b.remove();
+        return;
+      }
+      let bouton = b;
+      if (!bouton) {
+        const noeuds = fabriquerCs();
+        bouton = noeuds[0];
+        ligne.firstChild.after(...noeuds);
+      }
+      etatsCs.set(bouton, cs);
+      texteSi(bouton.firstChild, `+ ${cs.autres.length}`);
+      const phrase = phraseCs(cs);
+      attrSi(bouton, 'aria-label', phrase);
+      if (!POPOVER) attrSi(bouton, 'title', phrase);
+      if (csOuvert && csOuvert.bouton === bouton) remplirCs(csOuvert.fen, cs);
+    };
+    /* APRÈS CHAQUE PEINTURE DU TOP 10. Une place qui change de rang est
+       déplacée dans la liste, et un `popover` déplacé se referme : s'il était
+       ouvert, il se rouvre à sa place. Un bouton parti emporte la sienne. */
+    const suivreCs = () => {
+      if (!csOuvert) return;
+      const { bouton, fen } = csOuvert;
+      if (!bouton.isConnected || !fen.isConnected) { fermerCs(); return; }
+      if (!fen.matches(':popover-open')) fen.showPopover();
+      placerCs();
+    };
+
     /* Une carte : la vignette (cible de l'aperçu), puis l'avatar et les textes.
        Le nom partage sa ligne avec l'évolution du Top 10 : « juste à droite du
        pseudo », comme demandé — sur une chaîne suivie, elle reste vide.
@@ -18559,19 +18898,18 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       ligne.append(nom, evol);
       const titre = elt('p', 'tse-acc-titre-carte');
       const jeu = elt('p', 'tse-acc-jeu');
-      const avec = elt('p', 'tse-acc-avec');
-      avec.hidden = true;
       const debut = elt('a', 'tse-acc-debut');
       debut.hidden = true;
-      textes.append(ligne, titre, jeu, avec, debut);
+      textes.append(ligne, titre, jeu, debut);
       infos.append(av, textes);
       relief.append(accent, vig);
       carte.append(relief, infos);
       return carte;
     };
-    /* `d` : { login, nom, avatar, titre, jeu, spect, debutLive, avec, couleur }
+    /* `d` : { login, nom, avatar, titre, jeu, spect, debutLive, cs, couleur }
        — tout ce qui a été lu, rien de deviné. Un champ absent laisse sa ligne
-       vide ; une couleur inconnue laisse celle de Twitch. */
+       vide ; une couleur inconnue laisse celle de Twitch. `cs` : le
+       co-stream d'une place du Top 10 (cf. CO-STREAM). */
     const majCarte = (carte, d) => {
       const [relief, infos] = carte.children;
       const vig = relief.lastChild;
@@ -18591,19 +18929,14 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       const url = imageSure(d.avatar);
       av.hidden = !url;
       if (url) attrSi(av, 'src', url);
-      const [ligne, titre, jeu, avec, debut] = textes.children;
+      const [ligne, titre, jeu, debut] = textes.children;
       texteSi(ligne.firstChild, d.nom);
+      majCs(ligne, d.cs || null);
       texteSi(titre, d.titre || '');
       attrSi(titre, 'title', d.titre || null);
       titre.hidden = !d.titre;
       texteSi(jeu, d.jeu || '');
       jeu.hidden = !d.jeu;
-      const noms = (d.avec || []).join(', ');
-      avec.hidden = !noms;
-      if (noms && avec.dataset.tseNoms !== noms) {
-        avec.dataset.tseNoms = noms;
-        avec.replaceChildren(phraseAvecFente(S.uiAccAvec(FENTE), () => nomsEnGras(d.avec)));
-      }
       majDebut(debut, d.login, d.nom, true);
       // Sur le Top 10, la place s'écrit déjà en grand à côté : pas deux fois.
       poserEtiquette(vig, etiquetteDe(d.login, { rang: !d.top }));
@@ -19142,6 +19475,15 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       texteSi(chiffre, String(rang));
       // Deux chiffres se resserrent : « 10 » tient la place d'un seul.
       chiffre.classList.toggle('tse-acc-rang--double', rang >= 10);
+      /* LE CO-STREAM (cf. CO-STREAM) : ses membres, et l'audience propre de
+         chacun, demandée à TseChannels — celle de la tête aussi : sa
+         vignette porte le combiné, sa ligne dans la fenêtre le sien. */
+      const autres = autresDeLaPlace(p);
+      if (autres.length) {
+        bilan.top.cs.places++;
+        bilan.top.cs.membres += autres.length;
+        for (const l of [r.login, ...autres.map((m) => m.login)]) demander(l, bilan.top.cs);
+      }
       /* LE SPECTATEUR DU CLASSEMENT EST CELUI DU CLASSEMENT. Il a servi à
          trier ; en montrer un autre ferait voir un dixième au-dessus d'un
          neuvième. */
@@ -19150,7 +19492,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         titre: cache.get(r.login)?.stream?.title || '', jeu: r.gameLabel || r.game || '',
         spect: Number.isFinite(r.viewers) ? r.viewers : null,
         debutLive: debutLive ? debutReel(r.login, debutLive) : null,
-        avec: p.membres.map((m) => m.name || m.login),
+        cs: autres.length ? { tete: { login: r.login, nom: r.name || null, avatar: r.avatar }, autres } : null,
         couleur: cache.get(r.login)?.couleur,
         top: true,
       });
@@ -19166,7 +19508,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     const peindreTop = () => {
       const voulu = options.get('accueilTop');
       z.top.hidden = !voulu;
-      if (!voulu) { bilan.top.source = null; rangsTop = null; return; }
+      if (!voulu) { bilan.top.source = null; rangsTop = null; fermerCs(); return; }
       const src = sourceTop();
       bilan.top.source = src === globalChannels ? 'barre' : 'accueil';
       const lang = langueVoulue();
@@ -19218,9 +19560,13 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       if (!attente) {
         // Ses étiquettes lisent TseChannels : une chaîne que la barre ne suit pas y est demandée.
         if (options.get('accueilEtiquettes')) for (const p of places) demander(p.tete.login);
+        // Les co-streams se comptent à chaque peinture : ce qui est montré maintenant.
+        bilan.top.cs.places = 0;
+        bilan.top.cs.membres = 0;
         rangee(z.lTop, places.map((p, i) => ({ p, rang: i + 1, ref })),
                (x) => x.p.tete.login, (x) => fabriquerPlace(x.p.tete.login), majPlace);
       }
+      suivreCs();
       const note = attente ? '' : !places.length ? S.uiAccVide : (resolu && !complet ? S.uiGlobalPartial : '');
       texteSi(z.note, note);
       z.note.hidden = !note;
@@ -19844,6 +20190,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       masquerVoulu = false;
       if (html.hasAttribute('data-tse-accueil-carrousel')) html.removeAttribute('data-tse-accueil-carrousel');
       leverVoile('depart');
+      fermerCs();
       if (pose()) { section.remove(); bilan.retraits++; }
       if (blocHeros) blocHeros.remove();
       if (observateur) { observateur.disconnect(); observateur = null; }
@@ -20007,7 +20354,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
           defaut: section.querySelectorAll('.tse-acc-relief[data-tse-couleur="defaut"]').length,
         } : null,
         top: { ...bilan.top, langue: options.get('accueilTop') ? (langueVoulue() || 'toutes') : null,
-               classement: classement.report() },
+               classement: classement.report(),
+               // Une fenêtre de co-stream ouverte, et si un clic l'a épinglée (4.33.0.2).
+               cs: { ...bilan.top.cs, ouverte: !!csOuvert, epinglee: !!csOuvert?.epingle } },
         debut: { ...bilan.debut, connus: debuts.size, refuse: debutRefuse },
         chrono: { ...bilan.chrono },
         voile: { ...bilan.voile, levees: { ...bilan.voile.levees }, actif: !!voile },
@@ -24472,10 +24821,6 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     let proche = null;            // la clé du co-stream que le pointeur survole
 
     const cleDe = (membres) => [...membres].sort().join(' ');
-    const listeNoms = (noms) => {
-      try { return new Intl.ListFormat(S.locale, { type: 'conjunction' }).format(noms); }
-      catch { return noms.join(', '); }
-    };
     // Un texte qui ne change pas ne se réécrit pas : réécrit, il remplacerait
     // son nœud texte, et l'observateur de la barre verrait un enfant changer.
     const ecrire = (el, texte) => { if (el.textContent !== texte) el.textContent = texte; };

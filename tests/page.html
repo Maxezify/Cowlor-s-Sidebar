@@ -1992,6 +1992,63 @@ if (location.pathname === '/' && window.__accueil) {
             const stat = el('div', 'tw-media-card-stat');
             stat.style.cssText = 'background:rgba(0,0,0,.6);color:#fff;border-radius:2px;padding:0 4px;font-size:13px;line-height:20px';
             stat.textContent = c.vues + ' spectateurs';
+            /* L'ICÔNE D'UN CO-STREAM DANS LE COMPTEUR (4.33.0.2) : deux
+               silhouettes à côté du nombre combiné, vues sur une capture —
+               « 12,4 k et un symbole juste en dessous ». Son balisage n'a pas
+               été relevé : trois formes plausibles, chacune avec des écarts
+               à elle que notre feuille doit défaire. `bloc` : un bloc après le
+               texte, dans un compteur en flex ; `enveloppe` : l'icône AVANT le
+               texte, tous deux dans une enveloppe en flex, avec leurs marges ;
+               `ratio` : l'icône des composants de Twitch — un cadre de
+               largeur fixe, une boîte à proportions, le SVG posé en absolu à
+               100 %. */
+            if (c.icone) {
+              const svg = () => {
+                const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                s.setAttribute('viewBox', '0 0 20 20');
+                s.setAttribute('width', '100%');
+                s.setAttribute('height', '100%');
+                s.setAttribute('fill', 'currentColor');
+                s.setAttribute('data-icone', '');
+                const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                p.setAttribute('d', 'M7 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm6 0a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM1 17c0-3 3-5 6-5s6 2 6 5zm12 0c0-1-.4-2.6-1.5-3.6 3.4-.6 6.5 1 6.5 3.6z');
+                s.appendChild(p);
+                return s;
+              };
+              if (c.icone === 'bloc') {
+                stat.style.display = 'flex'; stat.style.gap = '4px'; stat.style.alignItems = 'center';
+                const f = el('div', 'ScSvgWrapper');
+                f.style.cssText = 'display:block;width:14px;height:14px';
+                f.appendChild(svg());
+                stat.appendChild(f);
+              } else if (c.icone === 'enveloppe') {
+                stat.textContent = '';
+                const env = el('div', 'Layout');
+                env.style.cssText = 'display:flex;align-items:center;gap:3px';
+                const f = el('div', 'ScFigure');
+                f.style.cssText = 'display:block;width:14px;height:14px;margin-right:4px';
+                f.appendChild(svg());
+                const t = el('p', 'CoreText');
+                t.style.cssText = 'margin:0 0 0 2px';
+                t.textContent = c.vues + ' spectateurs';
+                env.append(f, t);
+                stat.appendChild(env);
+              } else if (c.icone === 'ratio') {
+                stat.textContent = '';
+                stat.style.display = 'flex'; stat.style.gap = '6px'; stat.style.alignItems = 'center';
+                const t = el('span');
+                t.textContent = c.vues + ' spectateurs';
+                const cadre = el('div', 'ScIconLayout');
+                cadre.style.cssText = 'display:block;width:14px;margin-left:4px';
+                const ratio = el('div', 'ScAspectRatio');
+                ratio.style.cssText = 'position:relative;width:100%;padding-bottom:100%';
+                const s = svg();
+                s.style.cssText = 'position:absolute;left:0;top:0';
+                ratio.appendChild(s);
+                cadre.appendChild(ratio);
+                stat.append(t, cadre);
+              }
+            }
             bas.appendChild(stat);
             lien.append(haut, bas);
             if (c.septv) {
