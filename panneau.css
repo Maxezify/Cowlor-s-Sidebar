@@ -48,7 +48,6 @@ html[data-vue="incruste"] body { width: 100%; height: 100%; }
      l'assombrit pas, et une barre n'a pas de contraste de texte à tenir. */
   --direct:      #eb0400;
   --or:          #ffc45c;
-  --or-clair:    #fff6d6;
   --rouge:       #ec4c4c;
   --vert:        #3ea6a6;
   /* L'agenda (4.25.0) : le violet ÉCRIT — catégories, prochain direct — et le
@@ -86,7 +85,6 @@ html[data-theme="light"] {
   --texte-faible:#6e6e7a;
   --violet-doux: rgba(145, 71, 255, 0.35);
   --or:          #8a5900;
-  --or-clair:    #5c3b00;
   --rouge:       #b3202b;
   --vert:        #1b6b6b;
   --violet-texte:#6c2bd9;
@@ -105,7 +103,6 @@ html[data-theme="light"] {
     --texte-faible:#6e6e7a;
     --violet-doux: rgba(145, 71, 255, 0.35);
     --or:          #8a5900;
-    --or-clair:    #5c3b00;
     --rouge:       #b3202b;
     --vert:        #1b6b6b;
     --violet-texte:#6c2bd9;
@@ -909,6 +906,11 @@ html[data-theme="light"] .d-jour {
   border-radius: 50%;
   background: var(--violet);
 }
+/* SANS EFFET POUR L'INSTANT (4.26.0) : le réglage qui la gouverne est coupé.
+   Estompée, pas désactivée — on prépare un réglage avant d'allumer son maître,
+   et l'infobulle nomme celui qu'il faut allumer. */
+.reg-ligne--sans-effet .reg-texte,
+.reg-ligne--sans-effet .reg-ctrl { opacity: 0.5; }
 
 .reg-texte { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .reg-nom   { color: var(--texte); font-size: 13px; }
@@ -1000,6 +1002,68 @@ html[data-theme="light"] .d-jour {
 .reg-case input { accent-color: var(--violet); margin: 0; cursor: pointer; }
 .reg-case:has(input:checked) { color: var(--texte); border-color: var(--filet-fort); }
 .reg-case:has(input:focus-visible) { outline: 2px solid var(--violet); outline-offset: 1px; }
+
+/* ── La liste de pseudos (4.32.0.4) ──────────────────────────────────────── */
+.reg-liste { display: flex; flex-direction: column; gap: 6px; }
+.reg-liste-saisie { display: flex; gap: 6px; }
+.reg-liste-champ {
+  flex: 1;
+  min-width: 0;
+  box-sizing: border-box;
+  background: var(--fond-creux);
+  color: var(--texte);
+  border: 1px solid var(--filet-fort);
+  border-radius: var(--r-petit);
+  padding: 5px 8px;
+  font: inherit;
+  font-size: 12.5px;
+}
+.reg-liste-champ:focus-visible { outline: 2px solid var(--violet); outline-offset: 1px; }
+.reg-liste-champ:disabled { opacity: 0.5; cursor: not-allowed; }
+.reg-liste-ajouter {
+  flex: none;
+  background: var(--fond-creux);
+  color: var(--texte);
+  border: 1px solid var(--filet-fort);
+  border-radius: var(--r-petit);
+  padding: 5px 10px;
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.reg-liste-ajouter:hover:not(:disabled) { border-color: var(--violet-doux); }
+.reg-liste-ajouter:focus-visible { outline: 2px solid var(--violet); outline-offset: 1px; }
+.reg-liste-ajouter:disabled { opacity: 0.5; cursor: not-allowed; }
+.reg-liste-message { margin: 0; font-size: 11.5px; line-height: 1.45; color: var(--texte-doux); }
+.reg-liste-puces { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.reg-liste-puce {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 3px 2px 9px;
+  border: 1px solid var(--filet-fort);
+  border-radius: 999px;
+  background: var(--fond-creux);
+  font-size: 12px;
+  color: var(--texte);
+}
+.reg-liste-retirer {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--texte-doux);
+  font: inherit;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+.reg-liste-retirer:hover { background: var(--filet-fort); color: var(--texte); }
+.reg-liste-retirer:focus-visible { outline: 2px solid var(--violet); outline-offset: 1px; }
 
 /* ── L'échange par texte, et les purges ──────────────────────────────────── */
 .reg-zone {

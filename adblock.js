@@ -41,7 +41,12 @@
  *   h) ForceAccessTokenPlayerType passé de 'popout' à 'autoplay' — Twitch
  *      plafonne l'échelle de qualité d'autoplay à 640x360, ce qui est
  *      exactement le bon plafond pour une vignette de 480x270, et un plafond
- *      SERVEUR que l'adaptation de débit ne peut pas franchir.
+ *      SERVEUR que l'adaptation de débit ne peut pas franchir ;
+ *   i) (4.32.0.2) ce plafond SUIT LA QUALITÉ QUE L'URL DU LECTEUR DEMANDE :
+ *      au-delà de 360p — la bannière de l'accueil, un aperçu réglé plus haut
+ *      —, le type d'amont, 'popout', et son échelle entière. La bannière,
+ *      lecteur de ce même nom, restait sinon en 360p quoi qu'on lui pose :
+ *      signalé, « toujours pixelisée », rapport à l'appui (360p, posé).
  *
  *  (f), (g) et (h) ne sont pas des corrections : en amont ces valeurs sont
  *  justes, pour un lecteur qu'on regarde vraiment. Elles ne le sont plus dès
@@ -102,6 +107,9 @@ const TSE_ADBLOCK_ENABLED = true;
         BackupPlayerTypes: ['mobile_feed', 'popout', 'autoplay'],
 
         ForceAccessTokenPlayerType: 'autoplay',
+
+        ForceAccessTokenCapHeight: 360,
+        ForceAccessTokenPlayerTypeAboveCap: 'popout',
         StripAdSegments: true,
 
         RenumberSequence: true,
@@ -1194,6 +1202,13 @@ const TSE_ADBLOCK_ENABLED = true;
         }
     }
 
+    function forcedPlayerType() {
+        let asked = NaN;
+        try { asked = parseInt(new URLSearchParams(location.search).get('quality') || '', 10); } catch { asked = NaN; }
+        return Number.isFinite(asked) && asked > Config.ForceAccessTokenCapHeight
+            ? Config.ForceAccessTokenPlayerTypeAboveCap : Config.ForceAccessTokenPlayerType;
+    }
+
     function rewriteGqlBody(init, realFetch) {
         if (!init || typeof init.body !== 'string' || !init.body.includes('PlaybackAccessToken')) {
             return null;
@@ -1251,17 +1266,18 @@ const TSE_ADBLOCK_ENABLED = true;
         if (!Config.ForceAccessTokenPlayerType) {
             return null;
         }
+        const forced = forcedPlayerType();
         let replaced = null;
         for (const op of operations) {
             const current = op?.variables?.playerType;
-            if (current && current !== Config.ForceAccessTokenPlayerType && !isPictureByPicture(op)) {
+            if (current && current !== forced && !isPictureByPicture(op)) {
                 replaced = current;
-                op.variables.playerType = Config.ForceAccessTokenPlayerType;
+                op.variables.playerType = forced;
             }
         }
         if (replaced) {
             init.body = JSON.stringify(parsed);
-            logOnce('playerType', 'debug', "rewrote playerType '" + replaced + "' as '" + Config.ForceAccessTokenPlayerType + "'");
+            logOnce('playerType', 'debug', "rewrote playerType '" + replaced + "' as '" + forced + "'");
         }
         return null;
     }

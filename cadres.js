@@ -29,6 +29,54 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
 
   const TSE_PREVIEW_FRAME_NAME = 'tse-apercu';
 
+  const TSE_AMBIANCE_MSG = 'tse:ambiance';
+  const TSE_AMBIANCE_PX_MSG = 'tse:ambiance-px';
+
+  const TSE_HEROS_QUALITE_MSG = 'tse:heros-qualite';
+
+  const chercherInstance = () => {
+    try {
+      const racine = document.getElementById('root');
+      if (!racine) return null;
+      let fibre = racine._reactRootContainer?._internalRoot?.current || null;
+      if (!fibre) {
+        const cle = Object.keys(racine).find((k) => k.startsWith('__reactContainer'));
+        fibre = cle ? racine[cle] : null;
+      }
+      if (!fibre) return null;
+
+      const file = [fibre];
+      for (let i = 0; i < file.length && i < 20_000; i++) {
+        const n = file[i];
+        const inst = n.stateNode && n.stateNode.props && n.stateNode.props.mediaPlayerInstance;
+        if (inst && n.stateNode.setPlayerActive) return inst.playerInstance || inst;
+        if (n.child) file.push(n.child);
+        if (n.sibling) file.push(n.sibling);
+      }
+    } catch {   }
+    return null;
+  };
+
+  const meilleureA = (echelle, hauteur) => echelle.filter((q) => q && q.height === hauteur)
+    .reduce((p, q) => (!p || (q.framerate || 0) > (p.framerate || 0) ? q : p), null);
+  const choisirQualite = (echelle, h) => {
+    let meilleure = null;
+    for (const q of echelle) {
+      if (!q || !Number.isFinite(q.height)) continue;
+      const ecart = Math.abs(Math.log(q.height / h));
+      if (!meilleure || ecart < meilleure.ecart
+        || (ecart === meilleure.ecart && (q.height > meilleure.q.height
+          || (q.height === meilleure.q.height && (q.framerate || 0) > (meilleure.q.framerate || 0))))) {
+        meilleure = { q, ecart };
+      }
+    }
+    if (!meilleure) return null;
+    const dessus = echelle.filter((q) => q && Number.isFinite(q.height) && q.height > meilleure.q.height)
+      .reduce((p, q) => (p === null || q.height < p ? q.height : p), null);
+    return dessus === null ? meilleure.q : meilleureA(echelle, dessus);
+  };
+  const enPub = () => document.querySelector(TSE_PUB_REPERES) !== null;
+
   const TSE_GATE_ENABLED = true;
 
   (() => {
@@ -50,6 +98,117 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         try { window.parent.postMessage({ tse: quoi }, origin); } catch {   }
       }
     };
+
+    const AMBIANCE_W = 16, AMBIANCE_H = 9, AMBIANCE_MS = 1000;
+
+    const MOTIF = [[255, 0, 0], [0, 255, 0], [0, 0, 255]];
+    const LECTURE_ECART = 8;
+    const lectureFidele = (ctx) => {
+      for (let x = 0; x < AMBIANCE_W; x++) {
+        ctx.fillStyle = `rgb(${MOTIF[x % 3].join(',')})`;
+        ctx.fillRect(x, 0, 1, AMBIANCE_H);
+      }
+      const d = ctx.getImageData(0, 0, AMBIANCE_W, AMBIANCE_H).data;
+      for (let i = 0; i < d.length; i += 4) {
+        const m = MOTIF[(i / 4) % AMBIANCE_W % 3];
+        if (Math.abs(d[i] - m[0]) > LECTURE_ECART || Math.abs(d[i + 1] - m[1]) > LECTURE_ECART
+            || Math.abs(d[i + 2] - m[2]) > LECTURE_ECART) return false;
+      }
+      return true;
+    };
+    let ambiance = null;
+    window.addEventListener('message', (e) => {
+      if (e.source !== window.parent || !TSE_PREVIEW_PARENTS.includes(e.origin)) return;
+      if (e.data?.tse !== TSE_AMBIANCE_MSG || ambiance) return;
+      const toile = document.createElement('canvas');
+      toile.width = AMBIANCE_W;
+      toile.height = AMBIANCE_H;
+      const ctx = toile.getContext('2d', { willReadFrequently: true });
+      if (!ctx) return;
+      const origine = e.origin;
+      const relever = () => {
+        if (document.hidden) return;
+        const v = document.querySelector('video');
+        if (!v || v.readyState < 2 || !v.videoWidth) return;
+        try {
+          if (!lectureFidele(ctx)) {
+            clearInterval(ambiance);
+            window.parent.postMessage({ tse: TSE_AMBIANCE_PX_MSG, faussee: true }, origine);
+            return;
+          }
+          ctx.drawImage(v, 0, 0, AMBIANCE_W, AMBIANCE_H);
+          const px = ctx.getImageData(0, 0, AMBIANCE_W, AMBIANCE_H).data;
+          window.parent.postMessage({ tse: TSE_AMBIANCE_PX_MSG, w: AMBIANCE_W, h: AMBIANCE_H, px }, origine);
+        } catch { clearInterval(ambiance); }
+      };
+      ambiance = setInterval(relever, AMBIANCE_MS);
+      relever();
+    });
+
+    const heros = { hauteur: null, plancher: 0, origine: null, veille: null, instance: null, lue: 0, depuis: 0,
+                    essais: 0, t: 0, dit: null };
+
+    const cibleHeros = (echelle) => {
+      const c = choisirQualite(echelle, heros.hauteur);
+      if (!c || c.height >= heros.plancher) return c;
+      const h = echelle.filter((q) => q && Number.isFinite(q.height) && q.height >= heros.plancher)
+        .reduce((p, q) => (p === null || q.height < p ? q.height : p), null);
+      return h === null ? c : meilleureA(echelle, h);
+    };
+    const instanceHeros = () => {
+      const now = Date.now();
+      if (heros.instance && now - heros.lue < 5000) return heros.instance;
+      if (!heros.instance && heros.depuis && now - heros.depuis > 60_000) return null;
+      if (!heros.depuis) heros.depuis = now;
+      const i = chercherInstance();
+      heros.lue = now;
+      if (i !== heros.instance) { heros.instance = i; heros.essais = 0; heros.t = 0; }
+      return i;
+    };
+    const tenirHeros = () => {
+      if (!heros.hauteur || document.hidden) return;
+      const lecteur = instanceHeros();
+      if (!lecteur || typeof lecteur.setQuality !== 'function') return;
+      let echelle = [], actuelle = null, auto = null;
+      try { echelle = lecteur.getQualities() || []; } catch { return; }
+      try { actuelle = lecteur.getQuality && lecteur.getQuality(); } catch {   }
+      try { auto = lecteur.isAutoQualityMode ? lecteur.isAutoQualityMode() : null; } catch {   }
+      const cible = cibleHeros(echelle);
+      if (cible && !(actuelle && actuelle.name === cible.name && auto === false)
+          && heros.essais < 5 && Date.now() - heros.t >= 3000 && !enPub()) {
+        try { lecteur.setQuality(cible); } catch {   }
+        heros.essais += 1;
+        heros.t = Date.now();
+        try { actuelle = lecteur.getQuality && lecteur.getQuality(); } catch {   }
+        try { auto = lecteur.isAutoQualityMode ? lecteur.isAutoQualityMode() : null; } catch {   }
+      }
+      const nom = actuelle && typeof actuelle.name === 'string' ? actuelle.name : null;
+
+      const echelleVue = [...new Set(echelle.map((q) => q && q.height).filter((h) => Number.isFinite(h)))]
+        .sort((a, b) => a - b).join('/');
+      const v = document.querySelector('video');
+      const decodee = v && Number.isFinite(v.videoHeight) && v.videoHeight > 0 ? v.videoHeight : null;
+      const dit = `${nom}|${auto}|${echelleVue}|${decodee}`;
+      if (dit === heros.dit) return;
+      heros.dit = dit;
+      try {
+        window.parent.postMessage({ tse: TSE_HEROS_QUALITE_MSG, nom, auto: typeof auto === 'boolean' ? auto : null,
+                                    echelle: echelleVue, decodee }, heros.origine);
+      } catch {   }
+    };
+    window.addEventListener('message', (e) => {
+      if (e.source !== window.parent || !TSE_PREVIEW_PARENTS.includes(e.origin)) return;
+      if (e.data?.tse !== TSE_HEROS_QUALITE_MSG) return;
+      const h = Number(e.data.hauteur);
+      const p = Number(e.data.plancher ?? 0);
+      if (!Number.isFinite(h) || h < 90 || h > 4320 || !Number.isFinite(p) || p < 0 || p > 4320) return;
+      heros.origine = e.origin;
+      if (Math.round(h) !== heros.hauteur || Math.round(p) !== heros.plancher) {
+        heros.hauteur = Math.round(h); heros.plancher = Math.round(p); heros.essais = 0; heros.t = 0;
+      }
+      if (!heros.veille) heros.veille = setInterval(tenirHeros, 1000);
+      tenirHeros();
+    });
 
     poster(TSE_PREVIEW_HELLO_MSG);
 
@@ -131,13 +290,15 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
   const TSE_SALLE_CONSOLE_REPONSE = 'tse:salle-console-reponse';
   const TSE_SALLE_CHAT_NAME = 'tse-salle-chat';
 
+  const TSE_ZAP_FRAME_NAME = 'tse-zapping';
+
   (() => {
     'use strict';
 
     try {
       if (window.top === window) return;
       if (location.hostname !== 'player.twitch.tv') return;
-      if (window.name !== TSE_SALLE_FRAME_NAME) return;
+      if (window.name !== TSE_SALLE_FRAME_NAME && window.name !== TSE_ZAP_FRAME_NAME) return;
     } catch { return; }
     const parentConnu = tseOrigineParent();
     if (parentConnu && !TSE_PREVIEW_PARENTS.includes(parentConnu)) return;
@@ -145,7 +306,6 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
 
     const BOUTON_SON = 'button[data-a-target="player-mute-unmute-button"]';
     const BOUTON_LECTURE = 'button[data-a-target="player-play-pause-button"]';
-    const enPub = () => document.querySelector(TSE_PUB_REPERES) !== null;
     let ordre = null;
     let numeroOrdre = 0;
 
@@ -171,59 +331,18 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     };
 
     let instanceLecteur = null;
-
     let rechercheDepuis = 0;
     const lecteurTwitch = () => {
       if (instanceLecteur) return instanceLecteur;
       if (!rechercheDepuis) rechercheDepuis = Date.now();
       else if (Date.now() - rechercheDepuis > 60_000) return null;
-      try {
-        const racine = document.getElementById('root');
-        if (!racine) return null;
-        let fibre = racine._reactRootContainer?._internalRoot?.current || null;
-        if (!fibre) {
-          const cle = Object.keys(racine).find((k) => k.startsWith('__reactContainer'));
-          fibre = cle ? racine[cle] : null;
-        }
-        if (!fibre) return null;
-
-        const file = [fibre];
-        for (let i = 0; i < file.length && i < 20_000; i++) {
-          const n = file[i];
-          const inst = n.stateNode && n.stateNode.props && n.stateNode.props.mediaPlayerInstance;
-          if (inst && n.stateNode.setPlayerActive) {
-            instanceLecteur = inst.playerInstance || inst;
-            return instanceLecteur;
-          }
-          if (n.child) file.push(n.child);
-          if (n.sibling) file.push(n.sibling);
-        }
-      } catch {   }
-      return null;
+      instanceLecteur = chercherInstance();
+      return instanceLecteur;
     };
 
     let hauteurVoulue = null;
     let qualiteEssais = 0;
     let qualiteT = 0;
-
-    const meilleureA = (echelle, hauteur) => echelle.filter((q) => q && q.height === hauteur)
-      .reduce((p, q) => (!p || (q.framerate || 0) > (p.framerate || 0) ? q : p), null);
-    const choisirQualite = (echelle, h) => {
-      let meilleure = null;
-      for (const q of echelle) {
-        if (!q || !Number.isFinite(q.height)) continue;
-        const ecart = Math.abs(Math.log(q.height / h));
-        if (!meilleure || ecart < meilleure.ecart
-          || (ecart === meilleure.ecart && (q.height > meilleure.q.height
-            || (q.height === meilleure.q.height && (q.framerate || 0) > (meilleure.q.framerate || 0))))) {
-          meilleure = { q, ecart };
-        }
-      }
-      if (!meilleure) return null;
-      const dessus = echelle.filter((q) => q && Number.isFinite(q.height) && q.height > meilleure.q.height)
-        .reduce((p, q) => (p === null || q.height < p ? q.height : p), null);
-      return dessus === null ? meilleure.q : meilleureA(echelle, dessus);
-    };
 
     const tenirQualite = () => {
       if (!hauteurVoulue || qualiteEssais >= 5 || Date.now() - qualiteT < 3000 || enPub()) return;

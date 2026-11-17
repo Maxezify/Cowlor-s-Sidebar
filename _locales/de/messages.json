@@ -523,6 +523,12 @@
   "guideSalleTexte": {
     "message": "Der „▶“-Regler auf dem Balken eines Co-streams öffnet seine Streams nebeneinander, auf der Seite — jeden in seiner eigenen Kachel.\n• Fahr darüber: Er sagt, was er öffnet — „Alle 3 ansehen“. Gesichter an seinem Ende? Beteiligte, denen du nicht folgst: Fahr zu ihnen, um sie hinzuzufügen. Umschalt+Klick öffnet direkt den ganzen Co-stream.\n• Ein Klick auf eine Kachel gibt ihr den Ton — die Tasten 1 bis 6 ebenso —, und der Chat folgt dem Ton. Ohne geteilten Chat zeigen Reiter über dem Chat einen anderen an, ohne den Ton zu wechseln.\n• Höchstens sechs Streams auf dem Bildschirm: Die anderen warten darunter, ein Klick holt sie herein.\n• Die Streams richten sich selbst an ihrem gemeinsamen Ton aus, nach etwa einer Minute Zuhören; ohne gemeinsamen Ton bewegt sich nichts. „Automatische Ausrichtung“ lässt sich unter „Einstellungen“ abschalten.\n• Links von „Chat ausblenden“ sagen zwei Zeilen, wie weit die Ausrichtung ist: auf welche Kachel sie ausrichtet, dann den Stand jeder anderen — „hört zu 2/6“ (die zählenden Tonberechnungen von denen, die nötig sind), „0,30 s zurück, zu bestätigen“, „wird geprüft“, dann „Alles ausgerichtet“. Der Punkt ist grün, wenn alles ausgerichtet ist, bernsteinfarben, solange die Ausrichtung arbeitet oder wartet, rot, wenn sich eine Kachel nicht korrigieren lässt, grau bei Pause oder abgeschaltet; der Tooltip nennt die Einzelheiten, Kachel für Kachel.\n• Der Raum bringt keine Kanalpunkte, und die Werbung von Twitch läuft dort wie überall.\n• Zum Schließen: Esc oder ein Klick auf den Regler, der jetzt ein „■“ ist."
   },
+  "guideZapTitre": {
+    "message": "Zapping"
+  },
+  "guideZapTexte": {
+    "message": "Der Knopf rechts neben der Lupe der Suche öffnet deine gefolgten Kanäle, die live sind, im Vollbild, in der Reihenfolge der Seitenleiste.\n• ↑ und ↓ wechseln den Kanal; am Ende geht es von vorn los. Ein Klick in der rechten Spalte führt zu diesem Kanal.\n• Der vorige und der nächste Kanal sind schon geladen — jeweils „vorgeladen“ —: sie erscheinen sofort.\n• Der Bildschirm geht ins Vollbild; beim Verlassen oder beim Öffnen des Raums kehrt das Fenster zurück.\n• Ein paar Sekunden ohne Mausbewegung, und nur das Bild bleibt; eine Bewegung oder eine Taste holt den Rest zurück.\n• Enter öffnet den Kanal; Esc schließt, und das Video der Seite läuft weiter.\n• S fügt den Kanal dem Raum hinzu, O öffnet den Raum ab zwei Kanälen — höchstens sechs. Ein schon offener Raum schließt sich beim Zapping; seine Streams bleiben in der Auswahl.\n• „Ton von …“ unten rechts schaltet den Ton aus und wieder ein.\n• „Zapping“ lässt sich in den „Einstellungen“ abschalten."
+  },
   "guideDebutTitre": {
     "message": "Starts und Rückkehr"
   },
@@ -546,6 +552,12 @@
   },
   "guideTopTexte": {
     "message": "Der Reiter „Top-Kanäle“ oben in der Seitenleiste ersetzt deine gefolgten Kanäle durch die meistgesehenen Kanäle von ganz Twitch, live — standardmäßig dreißig, auf Wunsch zehn oder fünfzig.\n• Wähle in den Filtern eine Kategorie oder eine Sprache: Du bekommst ihre echte Rangliste.\n• Vorschau, Dauer, Abzeichen, Co-streams: Es sind Karten wie alle anderen.\n„Gefolgte Kanäle“ bringt dich zurück; deine Liste hat sich nicht bewegt."
+  },
+  "guideAccueilTitre": {
+    "message": "Die Startseite von Twitch"
+  },
+  "guideAccueilTexte": {
+    "message": "Auf der Startseite von Twitch setzt die Erweiterung ihre eigenen Reihen über die von Twitch, in dieselbe Spalte und bündig mit ihnen. Eingestellt werden sie unter „Einstellungen“, Gruppe „Startseite“.\n• „Dein Kanal Nr. 1, live“: Der gefolgte Live-Kanal, den du am meisten schaust – sonst der mit den meisten Zuschauern –, nimmt den Platz des Karussells von Twitch ein, über die ganze Breite. Erst sein Bild, dann sein Stream, stumm und ohne Werbung, wie die Vorschau beim Überfahren; der Hintergrund übernimmt seine Farben. Ist keiner deiner gefolgten Kanäle live, kommt das Karussell zurück. „Wie bei Twitch“ behält es immer; „Nichts“ entfernt es und hält sein Video an.\n• „Empfohlen“: die Streams aus dem Karussell von Twitch, als Reihe, wenn das Banner – oder „Nichts“ – es ausblendet, ohne den Kanal des Banners. Ihre Karten laufen über die Anfrage, die die Seitenleiste ohnehin stellt. Als Band: die Karte in der Mitte gerade, ihre Nachbarn gedreht; zwei Pfeile blättern es durch, und ein Klick auf eine seitliche Karte holt sie in die Mitte.\n• „Top 10“: die ersten zehn Plätze von Top-Kanäle, in der Sprache der Twitch-Oberfläche oder in allen Sprachen, in großen Ziffern. Rechts neben dem Namen zeigt ein Pfeil die in dreißig Minuten gewonnenen oder verlorenen Plätze – oder seit du auf der Startseite bist; „Neu“ markiert einen Kanal, der nicht in den Top 10 war. Die Kanäle aus „Aus den Top 10 entfernte Kanäle“ in „Einstellungen“ kommen nicht hinein, gleich in welcher Sprache – für einen Kanal, der den Tag der Sprache trägt, ohne sie zu sprechen. Top-Kanäle bleibt unberührt. Ein Co-Stream belegt einen einzigen Platz, wie bei Twitch: der Name, „+ 2“ und ein Pfeil; fährst du über den Pfeil, siehst du seine Mitglieder, jedes mit seinen eigenen Zuschauern.\n• „Weil du oft … schaust“: Für den Kanal, den du in dreißig Tagen am häufigsten besucht hast – mindestens drei Besuche –, zeigt eine Reihe, was in seiner üblichen Kategorie live ist, in der Sprache von Twitch, außerhalb deiner gefolgten Kanäle. Der Titel sagt, warum: „14 Besuche in 30 Tagen · Just Chatting, auf Deutsch“. Höchstens zwei Reihen.\n• „Deine geplanten Streams“: was deine gefolgten Kanäle für heute und morgen geplant haben, mit der verbleibenden Zeit. „Erinnern“ zeigt einen Hinweis in deinen offenen Twitch-Tabs, sobald der Kanal live geht – keine Systembenachrichtigung. Direkt darunter „Ohne Zeitplan“: für einen Kanal, den du schaust und der nichts geplant hat, wann seine letzten Streams begonnen haben, wenn es sich wiederholt – was er getan hat, nicht was er tun wird. Diese Kanäle stehen in der Reihenfolge ihrer nächsten Uhrzeit.\n• Ein Etikett pro Karte, unten rechts im Vorschaubild, auf den Karten der Erweiterung wie auf denen von Twitch: eine Tatsache, nur eine, die erste zutreffende dieser Liste – „Zurück nach 41 Tagen“, „Subathon • TAG 9“, „Gerade gestartet“, „Wechselt zu Elden Ring“, „↗ +38 % in 10 Min.“, „Platz 3 auf Deutsch“, „Co-Stream mit 3 Kanälen“. Nichts geraten: ohne gesehene Tatsache kein Etikett.\n• „Während du weg warst“: Nach vierundzwanzig Stunden ohne Twitch auf dem Bildschirm zeigt eine Reihe unter den anderen, was deine gefolgten Kanäle – die, die du schaust – inzwischen gestreamt haben, eine Karte pro Kanal: das Bild der letzten Aufzeichnung, „3 Streams“ und ihre Dauer, wann der letzte endete, den meistgesehenen ihrer Clips und „Den letzten ansehen“, wenn die Aufzeichnung offen ist. Geschlossen, ist sie in allen Tabs geschlossen.\n• Jede Reihe zeigt eine Zeile; „Alle anzeigen“ in der Mitte der Linie darunter klappt den Rest auf. „Empfohlen“ ist ein Band und klappt sich nicht ein.\n• „Von Anfang an“ öffnet die Aufzeichnung des laufenden Streams ab seiner ersten Sekunde. Der Knopf erscheint nur, wenn du sie ansehen kannst: Der Kanal behält seine Aufzeichnungen und gibt sie für alle frei – oder du hast ihn abonniert.\n• Die Vorschau beim Überfahren öffnet sich auch auf den Karten der Startseite: auf denen der Erweiterung wie auf denen von Twitch. Beim Überfahren hebt sich das Vorschaubild wie bei Twitch, in der Farbe des Kanals.\n• „Twitch-Startseite aufräumen“: auf den Reihen von Twitch selbst. „Ausblenden“, rechts neben dem Titel einer Kategorie-Reihe, klappt sie auf eine Zeile zusammen – „Wieder anzeigen“ holt sie zurück; die Kategorie bleibt auch an den folgenden Tagen ausgeblendet. Ihre Live-Karten bekommen die Größe der Karten der Erweiterung. Und ein Stream, für den Twitch noch kein Bild hat, zeigt statt des „?“ die letzte Aufzeichnung des Kanals oder seinen Avatar. Die Stream-Karten tragen dort auch die Zeichen der Karten der Erweiterung: das Live-Abzeichen in ihrem Stil, die Zuschauerzahl ohne das Wort, die Dauer des Streams oben rechts."
   },
   "guideViteTitre": {
     "message": "Schneller als Twitch, und aufgeräumter"
@@ -727,6 +739,132 @@
   "optDescSalleAuto": {
     "message": "Die Streams werden über ihren gemeinsamen Ton abgestimmt — die Lippen jedes Streams auf seine Stimme, so wie man sie hört. Das dauert etwa eine Minute; ohne gemeinsamen Ton bewegt sich nichts. Aus: Nichts bewegt sich von selbst."
   },
+  "optGrpZapping": {
+    "message": "Zapping"
+  },
+  "optZapping": {
+    "message": "Zapping"
+  },
+  "optDescZapping": {
+    "message": "Ein Knopf rechts neben der Lupe der Suche öffnet deine gefolgten Kanäle, die live sind, im Vollbild, einen nach dem anderen: ↑ und ↓ zum Wechseln, Enter öffnet den Kanal, S fügt ihn dem Raum hinzu, O öffnet den Raum, Esc beendet. Der vorige und der nächste sind schon geladen; bewegt sich die Maus nicht mehr, verschwindet die Oberfläche. Das Video der Seite pausiert so lange; ein offener Raum schließt sich, seine Streams bleiben zum Wiederöffnen. Aus: kein Knopf, kein Bildschirm."
+  },
+  "optGrpAccueil": {
+    "message": "Startseite"
+  },
+  "optAccueil": {
+    "message": "Twitch-Startseite erweitern"
+  },
+  "optDescAccueil": {
+    "message": "Über den Reihen von Twitch: die Streams aus dem Karussell, „Empfohlen“, und die Top 10 deiner Sprache; ganz oben dein meistgeschauter Kanal. Aus: Die Startseite ist die von Twitch, unverändert, und nichts läuft."
+  },
+  "optAccueilTete": {
+    "message": "Oben auf der Startseite"
+  },
+  "optDescAccueilTete": {
+    "message": "„Dein Kanal Nr. 1“: der gefolgte Live-Kanal, den du am meisten schaust – sonst der mit den meisten Zuschauern –, anstelle des Karussells von Twitch, über die ganze Breite; das Karussell kommt zurück, wenn keiner deiner gefolgten Kanäle live ist. „Nichts“ entfernt das Karussell und hält sein Video an."
+  },
+  "optAccueilVideo": {
+    "message": "Video deines Kanals Nr. 1"
+  },
+  "optDescAccueilVideo": {
+    "message": "Der Stream startet im Banner, stumm und ohne Werbung, wie die Vorschau beim Überfahren: erst das Bild, dann das Video, und der Hintergrund übernimmt seine Farben. Er hält an, wenn das Banner aus dem Bild scrollt oder der Tab verborgen ist. Aus: nur das Bild, jede Minute aufgefrischt."
+  },
+  "optAccueilUne": {
+    "message": "Empfohlen"
+  },
+  "optDescAccueilUne": {
+    "message": "Die Streams aus dem Karussell von Twitch, als Reihe, wenn es ausgeblendet ist – durch das Banner oder durch „Nichts“. Ihre Karten laufen über die Anfrage, die die Seitenleiste ohnehin stellt, solange sie zu sehen sind."
+  },
+  "optAccueilTop": {
+    "message": "Top 10"
+  },
+  "optDescAccueilTop": {
+    "message": "Die ersten zehn Plätze der exakten Rangliste von Top-Kanäle, in großen Ziffern. Ein Pfeil zeigt, was sich in dreißig Minuten bewegt hat – oder seit du auf der Startseite bist, falls das kürzer ist. Wird nur berechnet, solange die Startseite angezeigt wird."
+  },
+  "optAccueilTopLangue": {
+    "message": "Sprache der Top 10"
+  },
+  "optDescAccueilTopLangue": {
+    "message": "„Die von Twitch“ folgt der Sprache der Twitch-Oberfläche."
+  },
+  "optAccueilTopEcartees": {
+    "message": "Aus den Top 10 entfernte Kanäle"
+  },
+  "optDescAccueilTopEcartees": {
+    "message": "Die Benutzernamen dieser Liste kommen nicht in die Top 10, gleich in welcher Sprache – für einen Kanal, der den Tag der Sprache trägt, ohne sie zu sprechen. Top-Kanäle in der Seitenleiste bleibt unberührt. Höchstens zwanzig."
+  },
+  "optListeAjouter": {
+    "message": "Hinzufügen"
+  },
+  "optListeRetirer": {
+    "message": "$1 entfernen"
+  },
+  "optListeRefus": {
+    "message": "Kein Twitch-Benutzername: $1 – Buchstaben, Ziffern und _, wie in der Adresse des Kanals."
+  },
+  "optListeDeja": {
+    "message": "Schon in der Liste: $1"
+  },
+  "optListePleine": {
+    "message": "Höchstens $1: Entferne einen, um einen anderen hinzuzufügen."
+  },
+  "optAccueilApercu": {
+    "message": "Vorschau beim Überfahren auf der Startseite"
+  },
+  "optDescAccueilApercu": {
+    "message": "Die Vorschau der Seitenleiste auf den Karten der Startseite: denen der Erweiterung wie denen von Twitch. Folgt auch „Vorschau anzeigen“."
+  },
+  "optAccueilDebut": {
+    "message": "„Von Anfang an“"
+  },
+  "optDescAccueilDebut": {
+    "message": "Auf den Karten der Erweiterung ein Knopf, der die Aufzeichnung des laufenden Streams ab der ersten Sekunde öffnet. Nur, wenn du sie ansehen kannst: Der Kanal behält seine Aufzeichnungen und gibt sie für alle frei, oder du hast ihn abonniert."
+  },
+  "optAccueilRdv": {
+    "message": "Deine geplanten Streams"
+  },
+  "optDescAccueilRdv": {
+    "message": "Was deine gefolgten Kanäle für heute und morgen geplant haben, mit der verbleibenden Zeit. „Erinnern“ zeigt einen Hinweis in deinen offenen Twitch-Tabs, sobald der Kanal live geht. Für einen Kanal, den du schaust und der nichts geplant hat: wann seine letzten Streams begonnen haben, wenn es sich wiederholt."
+  },
+  "optAccueilEtiquettes": {
+    "message": "Ein Etikett pro Karte"
+  },
+  "optDescAccueilEtiquettes": {
+    "message": "Eine Tatsache, nur eine, auf jeder Karte der Startseite – denen der Erweiterung wie denen von Twitch: „Zurück nach 41 Tagen“, „Gerade gestartet“, „↗ +38 % in 10 Min.“… Für einen Kanal, dem die Seitenleiste nicht folgt, werden die Zahlen abgefragt, solange seine Karte zu sehen ist."
+  },
+  "optAccueilAbsence": {
+    "message": "Während du weg warst"
+  },
+  "optDescAccueilAbsence": {
+    "message": "Nach vierundzwanzig Stunden ohne Twitch auf dem Bildschirm zeigt eine Reihe von Karten unten auf der Startseite, was deine gefolgten Kanäle inzwischen gestreamt haben: das Bild ihrer letzten Aufzeichnung, ihre Streams, den meistgesehenen ihrer Clips und die letzte Aufzeichnung. Eine Clip-Anfrage pro Kanal und Abwesenheit, die auch das Bild mitbringt."
+  },
+  "optAccueilPourquoi": {
+    "message": "Weil du oft … schaust"
+  },
+  "optDescAccueilPourquoi": {
+    "message": "Für die Kanäle, die du am häufigsten besuchst: was in ihrer üblichen Kategorie live ist, in der Sprache von Twitch, außerhalb deiner gefolgten Kanäle – und der Titel sagt, warum. Eine Anfrage pro Reihe, höchstens zwei Reihen."
+  },
+  "optAccueilRanger": {
+    "message": "Twitch-Startseite aufräumen"
+  },
+  "optDescAccueilRanger": {
+    "message": "Auf den Reihen von Twitch selbst: „Ausblenden“ neben dem Titel einer Kategorie-Reihe, Live-Karten in der Größe der Karten der Erweiterung und die „?“-Vorschaubilder durch die letzte Aufzeichnung oder den Avatar ersetzt. Die Stream-Karten tragen die Zeichen der Karten der Erweiterung – das Live-Abzeichen, die Zuschauerzahl allein, die Dauer oben rechts –, ihre Zahlen über die Anfrage, die die Seitenleiste ohnehin stellt, solange sie zu sehen sind. Nichts wird von der Seite entfernt."
+  },
+  "optValHeros": {
+    "message": "Dein Kanal Nr. 1"
+  },
+  "optValRien": {
+    "message": "Nichts"
+  },
+  "optValInterface": {
+    "message": "Die von Twitch"
+  },
+  "optValToutes": {
+    "message": "Alle Sprachen"
+  },
+  "optSansEffet": {
+    "message": "Ohne Wirkung, solange „$1“ aus ist"
+  },
   "optAbonnes": {
     "message": "Gold der Abonnements"
   },
@@ -869,7 +1007,7 @@
     "message": "Alle Einstellungen zurücksetzen?"
   },
   "optResetText": {
-    "message": "Alle einundzwanzig Einstellungen dieser Seite kehren zu ihrem ursprünglichen Wert zurück. Deine Daten — Besuche, Abonnements, gefolgte Kanäle — bleiben unberührt."
+    "message": "Alle sechsunddreißig Einstellungen dieser Seite kehren zu ihrem ursprünglichen Wert zurück. Deine Daten — Besuche, Abonnements, gefolgte Kanäle — bleiben unberührt."
   },
   "optValPlein": {
     "message": "Voll"
@@ -932,6 +1070,6 @@
     "message": "Alles einstellbar, alles abschaltbar"
   },
   "guideReglagesTexte": {
-    "message": "„Einstellungen“ steuert alles, was dieser Leitfaden zeigt. Nichts ist aufgezwungen: Was stört, wird abgeschaltet, und ein violetter Punkt markiert, was du geändert hast.\n• Vorschau zu schwer? Senke die Qualität oder schalte das Video ab: Sie behält Vorschaubild, Abzeichen und Zeitleiste.\n• Gold zu auffällig? „Dezent“ behält die Farbe und nimmt das Schimmern weg.\n• Der Multistream-Raum und seine automatische Ausrichtung lassen sich getrennt abschalten.\n• Die Abo-Erfassung lässt sich bis auf einmal am Tag strecken.\n• Jeder Speicher — Besuche, Abos, bekannte Kanäle — lässt sich einzeln löschen.\n• Deine Einstellungen lassen sich exportieren und importieren; ein Knopf setzt alle zurück."
+    "message": "„Einstellungen“ steuert alles, was dieser Leitfaden zeigt. Nichts ist aufgezwungen: Was stört, wird abgeschaltet, und ein violetter Punkt markiert, was du geändert hast. Eine ausgegraute Zeile hängt von einer ausgeschalteten Einstellung ab: Sie bleibt änderbar und sagt beim Überfahren, von welcher.\n• Vorschau zu schwer? Senke die Qualität oder schalte das Video ab: Sie behält Vorschaubild, Abzeichen und Zeitleiste.\n• Gold zu auffällig? „Dezent“ behält die Farbe und nimmt das Schimmern weg.\n• Der Multistream-Raum und seine automatische Ausrichtung lassen sich getrennt abschalten.\n• Die Abo-Erfassung lässt sich bis auf einmal am Tag strecken.\n• Jeder Speicher — Besuche, Abos, bekannte Kanäle — lässt sich einzeln löschen.\n• Deine Einstellungen lassen sich exportieren und importieren; ein Knopf setzt alle zurück."
   }
 }

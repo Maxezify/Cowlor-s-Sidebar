@@ -5,6 +5,10 @@ const TSE_PREVIEW_GATE_MSG = 'tse:preview-gate';
 const TSE_PREVIEW_HELLO_MSG = 'tse:preview-hello';
 const TSE_PREVIEW_FRAME_NAME = 'tse-apercu';
 
+const TSE_AMBIANCE_MSG = 'tse:ambiance';
+const TSE_AMBIANCE_PX_MSG = 'tse:ambiance-px';
+const TSE_HEROS_QUALITE_MSG = 'tse:heros-qualite';
+
 const TSE_GATE_ENABLED = true;
 
 const TSE_SALLE_FRAME_NAME = 'tse-salle';
@@ -14,6 +18,8 @@ const TSE_SALLE_RELEVE_MSG = 'tse:salle-releve';
 const TSE_SALLE_CONSOLE_MSG = 'tse:salle-console';
 const TSE_SALLE_CONSOLE_REPONSE = 'tse:salle-console-reponse';
 const TSE_SALLE_CHAT_NAME = 'tse-salle-chat';
+
+const TSE_ZAP_FRAME_NAME = 'tse-zapping';
 
 const TSE_SUIVIES_FRAME_NAME = 'tse-suivies';
 const TSE_SUIVIES_MSG = 'tse:suivies';
@@ -137,10 +143,96 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiSalleSonPour:            (nom) => `Donner le son à ${nom}`,
       uiSalleChat:               (nom) => `Chat de ${nom}`,
       uiSalleChatSon:            (nom) => `Son de ${nom}`,
+
+      uiZapBouton:               'Zapping : vos suivis en direct',
+      uiZapTitre:                'Zapping · vos suivis en direct',
+      uiZapListe:                'Vos suivis en direct',
+      uiZapChanger:              'changer',
+      uiZapPrecedente:           'Chaîne précédente',
+      uiZapSuivante:             'Chaîne suivante',
+      uiZapOuvrir:               'ouvrir la chaîne',
+      uiZapSalleAjouter:         'ajouter à la salle',
+      uiZapSalleRetirer:         'retirer de la salle',
+      uiZapSalleOuvrir:          (n) => `ouvrir la salle (${n})`,
+      uiZapQuitter:              'quitter',
+      uiZapEntree:               'Entrée',
+      uiZapEchap:                'Échap',
+      uiZapPrechargee:           'préchargée',
+      uiZapDansSalle:            'dans la salle',
+      uiZapVide:                 'Aucune de vos chaînes suivies n\'est en direct.',
+      uiZapMuet:                 'Son coupé',
+      uiZapSonTitre:             'Couper ou rendre le son',
+      uiZapHorsLigne:            'Hors ligne',
+      uiZapSubathon:             (n) => (n === null ? 'subathon' : `subathon, jour ${n}`),
+      uiZapSallePleine:          (n) => `La salle tient ${n} streams au plus.`,
+      uiZapSalleDeux:            'Il faut au moins deux chaînes pour ouvrir la salle.',
       uiSalleOnglets:            'Choisir le chat',
       uiSalleOnglet:             (nom) => `Afficher le chat de ${nom}, sans changer le son`,
       uiSalleChatMasque:         'Chat masqué : fenêtre trop étroite',
       uiSallePoints:             'Pas de points de chaîne dans la salle',
+
+      uiAccSection:              'Ajouts de Cowlor\'s Sidebar à l\'accueil',
+      uiAccHeros:                'Votre chaîne n°1 en direct',
+      uiAccRegarder:             'Regarder',
+      uiAccUne:                  'À la une',
+      uiAccPrecedent:            'Précédent',
+      uiAccSuivant:              'Suivant',
+      uiAccTop:                  'Top 10',
+      uiAccDirect:               'Live',
+      uiAccDebut:                'Depuis le début',
+      uiAccDebutTitre:           (nom) => `Revoir le direct de ${nom} depuis sa première seconde`,
+      uiAccSpect:                (n, v) => `${v} spectateur${n > 1 ? 's' : ''}`,
+      uiAccNouveau:              'Nouveau',
+      uiAccHausse:               (n, m) => `${n} place${n > 1 ? 's' : ''} gagnée${n > 1 ? 's' : ''} en ${m} min`,
+      uiAccBaisse:               (n, m) => `${n} place${n > 1 ? 's' : ''} perdue${n > 1 ? 's' : ''} en ${m} min`,
+      uiAccStable:               (m) => `Même place qu\'il y a ${m} min`,
+      uiAccEntree:               (m) => `Hors du Top 10 il y a ${m} min`,
+      uiAccAttente:              'Classement en cours…',
+      uiAccVide:                 'Aucune chaîne à classer pour l\'instant',
+      uiAccCsAvec:               'En live avec :',
+      uiAccCsPhrase:             (nom, liste) => `${nom} est en live avec ${liste}`,
+      uiAccPlace:                (n, nom) => `Place ${n} : ${nom}`,
+      uiAccDepuis:               (d) => `en direct depuis ${d}`,
+      uiAccRang:                 (n) => `N°${n} du Top 10`,
+      uiAccAfficherTout:         'Afficher tout',
+      uiAccAfficherMoins:        'Afficher moins',
+
+      uiAccRdv:                  'Vos rendez-vous',
+      uiAccAujourdhui:           'Aujourd\'hui',
+      uiAccDemain:               'Demain',
+      uiAccDans:                 (d) => `dans ${d}`,
+      uiAccAttendu:              'pas encore en direct',
+      uiAccPrevenir:             'Me prévenir',
+      uiAccPrevenu:              'Rappel activé',
+      uiAccPrevenirTitre:        (nom) => `Une alerte dans vos onglets Twitch ouverts quand ${nom} passera en direct`,
+      uiAccHabitudes:            'Sans planning',
+      uiAccHabitudesNote:        'L\'heure à laquelle leurs derniers directs ont commencé',
+      uiAccHabitude:             (k, n, h) => (k === n ? `Ses ${n} derniers directs ont commencé vers ${h}`
+                                                       : `${k} de ses ${n} derniers directs ont commencé vers ${h}`),
+      uiRappelEnDirect:          (f) => `${f} est en direct`,
+      uiRappelCreneau:           (h) => `Votre rendez-vous de ${h}`,
+      uiRappelFermer:            'Fermer',
+
+      uiEtiqCommence:            'Vient de commencer',
+      uiEtiqRetour:              (j) => `De retour après ${j} jours`,
+      uiEtiqTendance:            (p, m) => `↗ +${p} % en ${m} min`,
+      uiEtiqRangLangue:          (n) => `N°${n} en français`,
+      uiEtiqBascule:             (jeu) => `Va sur ${jeu}`,
+      uiEtiqCostream:            (n) => `Co-stream à ${n}`,
+
+      uiAbsTitre:                'Pendant votre absence',
+      uiAbsSous:                 (j, borne) => (borne ? `Depuis votre dernière visite, il y a ${j} jours — les sept derniers`
+                                                      : `Depuis votre dernière visite, il y a ${j} jour${j > 1 ? 's' : ''}`),
+      uiAbsDirects:              (n, d) => `${n} direct${n > 1 ? 's' : ''} · ${d}`,
+      uiAbsSansRedif:            'A diffusé, sans rediffusion',
+      uiAbsRevoir:               'Revoir le dernier',
+      uiAbsPlusVu:               (t, v, nv) => `clip le plus vu : « ${t} » (${v} vue${nv > 1 ? 's' : ''})`,
+      uiAbsNDirects:             (n) => `${n} direct${n > 1 ? 's' : ''}`,
+      uiAccPourquoi:             (nom) => `Parce que vous regardez souvent ${nom}`,
+      uiAccPourquoiVisites:      (n, auMoins) => `${auMoins ? 'au moins ' : ''}${n} visite${n > 1 ? 's' : ''} en 30 jours`,
+      uiAccPourquoiOu:           (jeu, langue) => (langue === null ? jeu : `${jeu}, en français`),
+      uiRangerMasquer:           'Masquer',
+      uiRangerReafficher:        'Réafficher',
 
       uiCalCoupe:                'Calage coupé dans les réglages',
       uiCalIndispo:              'Calage indisponible : ce navigateur ne capture pas le son',
@@ -332,10 +424,92 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiSalleSonPour:            (nom) => `Give the sound to ${nom}`,
       uiSalleChat:               (nom) => `${nom}'s chat`,
       uiSalleChatSon:            (nom) => `Sound from ${nom}`,
+
+      uiZapBouton:               'Zapping: your followed channels, live',
+      uiZapTitre:                'Zapping · your followed channels, live',
+      uiZapListe:                'Your followed channels, live',
+      uiZapChanger:              'switch',
+      uiZapPrecedente:           'Previous channel',
+      uiZapSuivante:             'Next channel',
+      uiZapOuvrir:               'open the channel',
+      uiZapSalleAjouter:         'add to the room',
+      uiZapSalleRetirer:         'remove from the room',
+      uiZapSalleOuvrir:          (n) => `open the room (${n})`,
+      uiZapQuitter:              'exit',
+      uiZapEntree:               'Enter',
+      uiZapEchap:                'Esc',
+      uiZapPrechargee:           'preloaded',
+      uiZapDansSalle:            'in the room',
+      uiZapVide:                 'None of your followed channels is live.',
+      uiZapMuet:                 'Sound off',
+      uiZapSonTitre:             'Mute or unmute',
+      uiZapHorsLigne:            'Offline',
+      uiZapSubathon:             (n) => (n === null ? 'subathon' : `subathon, day ${n}`),
+      uiZapSallePleine:          (n) => `The room holds ${n} streams at most.`,
+      uiZapSalleDeux:            'The room needs at least two channels.',
       uiSalleOnglets:            'Choose the chat',
       uiSalleOnglet:             (nom) => `Show ${nom}'s chat, without changing the sound`,
       uiSalleChatMasque:         'Chat hidden: window too narrow',
       uiSallePoints:             'No channel points in the room',
+      uiAccSection:              'Cowlor\'s Sidebar additions to the home page',
+      uiAccHeros:                'Your #1 channel, live',
+      uiAccRegarder:             'Watch',
+      uiAccUne:                  'Featured',
+      uiAccPrecedent:            'Previous',
+      uiAccSuivant:              'Next',
+      uiAccTop:                  'Top 10',
+      uiAccDirect:               'Live',
+      uiAccDebut:                'From the start',
+      uiAccDebutTitre:           (nom) => `Watch ${nom}\'s stream from its very first second`,
+      uiAccSpect:                (n, v) => `${v} viewer${n === 1 ? '' : 's'}`,
+      uiAccNouveau:              'New',
+      uiAccHausse:               (n, m) => `Up ${n} place${n === 1 ? '' : 's'} in ${m} min`,
+      uiAccBaisse:               (n, m) => `Down ${n} place${n === 1 ? '' : 's'} in ${m} min`,
+      uiAccStable:               (m) => `Same place as ${m} min ago`,
+      uiAccEntree:               (m) => `Outside the Top 10 ${m} min ago`,
+      uiAccAttente:              'Ranking in progress…',
+      uiAccVide:                 'No channel to rank right now',
+      uiAccCsAvec:               'Live with:',
+      uiAccCsPhrase:             (nom, liste) => `${nom} is live with ${liste}`,
+      uiAccPlace:                (n, nom) => `Rank ${n}: ${nom}`,
+      uiAccDepuis:               (d) => `live for ${d}`,
+      uiAccRang:                 (n) => `#${n} in the Top 10`,
+      uiAccAfficherTout:         'Show all',
+      uiAccAfficherMoins:        'Show less',
+      uiAccRdv:                  'Your scheduled streams',
+      uiAccAujourdhui:           'Today',
+      uiAccDemain:               'Tomorrow',
+      uiAccDans:                 (d) => `in ${d}`,
+      uiAccAttendu:              'not live yet',
+      uiAccPrevenir:             'Remind me',
+      uiAccPrevenu:              'Reminder set',
+      uiAccPrevenirTitre:        (nom) => `An alert in your open Twitch tabs when ${nom} goes live`,
+      uiAccHabitudes:            'No schedule',
+      uiAccHabitudesNote:        'When their last streams started',
+      uiAccHabitude:             (k, n, h) => (k === n ? `Their last ${n} streams started around ${h}`
+                                                       : `${k} of their last ${n} streams started around ${h}`),
+      uiRappelEnDirect:          (f) => `${f} is live`,
+      uiRappelCreneau:           (h) => `Scheduled for ${h}`,
+      uiRappelFermer:            'Close',
+      uiEtiqCommence:            'Just started',
+      uiEtiqRetour:              (j) => `Back after ${j} days`,
+      uiEtiqTendance:            (p, m) => `↗ +${p}% in ${m} min`,
+      uiEtiqRangLangue:          (n, langue) => `#${n} in ${langue || 'English'}`,
+      uiEtiqBascule:             (jeu) => `Switched to ${jeu}`,
+      uiEtiqCostream:            (n) => `Co-stream of ${n} channels`,
+      uiAbsTitre:                'While you were away',
+      uiAbsSous:                 (j, borne) => (borne ? `Since your last visit, ${j} days ago — the last seven`
+                                                      : `Since your last visit, ${j} day${j === 1 ? '' : 's'} ago`),
+      uiAbsDirects:              (n, d) => `${n} stream${n === 1 ? '' : 's'} · ${d}`,
+      uiAbsSansRedif:            'Streamed, no replay',
+      uiAbsRevoir:               'Watch the last one',
+      uiAbsPlusVu:               (t, v, nv) => `most viewed clip: “${t}” (${v} view${nv === 1 ? '' : 's'})`,
+      uiAbsNDirects:             (n) => `${n} stream${n === 1 ? '' : 's'}`,
+      uiAccPourquoi:             (nom) => `Because you often watch ${nom}`,
+      uiAccPourquoiVisites:      (n, auMoins) => `${auMoins ? 'at least ' : ''}${n} visit${n === 1 ? '' : 's'} in 30 days`,
+      uiAccPourquoiOu:           (jeu, langue) => (langue === null ? jeu : `${jeu}, in ${langue || 'English'}`),
+      uiRangerMasquer:           'Hide',
+      uiRangerReafficher:        'Show again',
       uiCalCoupe:                'Alignment turned off in settings',
       uiCalIndispo:              'Alignment unavailable: this browser cannot capture the sound',
       uiCalArrete:               'Alignment stopped',
@@ -521,10 +695,92 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiSalleSonPour:            (nom) => `Ton für ${nom} einschalten`,
       uiSalleChat:               (nom) => `Chat von ${nom}`,
       uiSalleChatSon:            (nom) => `Ton von ${nom}`,
+
+      uiZapBouton:               'Zapping: deine gefolgten Kanäle, live',
+      uiZapTitre:                'Zapping · deine gefolgten Kanäle, live',
+      uiZapListe:                'Deine gefolgten Kanäle, live',
+      uiZapChanger:              'wechseln',
+      uiZapPrecedente:           'Vorheriger Kanal',
+      uiZapSuivante:             'Nächster Kanal',
+      uiZapOuvrir:               'Kanal öffnen',
+      uiZapSalleAjouter:         'zum Raum hinzufügen',
+      uiZapSalleRetirer:         'aus dem Raum entfernen',
+      uiZapSalleOuvrir:          (n) => `Raum öffnen (${n})`,
+      uiZapQuitter:              'beenden',
+      uiZapEntree:               'Enter',
+      uiZapEchap:                'Esc',
+      uiZapPrechargee:           'vorgeladen',
+      uiZapDansSalle:            'im Raum',
+      uiZapVide:                 'Keiner deiner gefolgten Kanäle ist live.',
+      uiZapMuet:                 'Ton aus',
+      uiZapSonTitre:             'Ton aus- oder einschalten',
+      uiZapHorsLigne:            'Offline',
+      uiZapSubathon:             (n) => (n === null ? 'Subathon' : `Subathon, Tag ${n}`),
+      uiZapSallePleine:          (n) => `Der Raum fasst höchstens ${n} Streams.`,
+      uiZapSalleDeux:            'Der Raum braucht mindestens zwei Kanäle.',
       uiSalleOnglets:            'Chat auswählen',
       uiSalleOnglet:             (nom) => `Chat von ${nom} anzeigen, ohne den Ton zu wechseln`,
       uiSalleChatMasque:         'Chat ausgeblendet: Fenster zu schmal',
       uiSallePoints:             'Keine Kanalpunkte im Raum',
+      uiAccSection:              'Ergänzungen von Cowlor\'s Sidebar auf der Startseite',
+      uiAccHeros:                'Dein Kanal Nr. 1, live',
+      uiAccRegarder:             'Ansehen',
+      uiAccUne:                  'Empfohlen',
+      uiAccPrecedent:            'Zurück',
+      uiAccSuivant:              'Weiter',
+      uiAccTop:                  'Top 10',
+      uiAccDirect:               'Live',
+      uiAccDebut:                'Von Anfang an',
+      uiAccDebutTitre:           (nom) => `Den Stream von ${nom} ab der ersten Sekunde ansehen`,
+      uiAccSpect:                (n, v) => `${v} Zuschauer`,
+      uiAccNouveau:              'Neu',
+      uiAccHausse:               (n, m) => `${n} ${n === 1 ? 'Platz' : 'Plätze'} gewonnen in ${m} Min.`,
+      uiAccBaisse:               (n, m) => `${n} ${n === 1 ? 'Platz' : 'Plätze'} verloren in ${m} Min.`,
+      uiAccStable:               (m) => `Gleicher Platz wie vor ${m} Min.`,
+      uiAccEntree:               (m) => `Vor ${m} Min. nicht in den Top 10`,
+      uiAccAttente:              'Rangliste wird erstellt …',
+      uiAccVide:                 'Gerade kein Kanal einzuordnen',
+      uiAccCsAvec:               'Live mit:',
+      uiAccCsPhrase:             (nom, liste) => `${nom} ist live mit ${liste}`,
+      uiAccPlace:                (n, nom) => `Platz ${n}: ${nom}`,
+      uiAccDepuis:               (d) => `seit ${d} live`,
+      uiAccRang:                 (n) => `Platz ${n} der Top 10`,
+      uiAccAfficherTout:         'Alle anzeigen',
+      uiAccAfficherMoins:        'Weniger anzeigen',
+      uiAccRdv:                  'Deine geplanten Streams',
+      uiAccAujourdhui:           'Heute',
+      uiAccDemain:               'Morgen',
+      uiAccDans:                 (d) => `in ${d}`,
+      uiAccAttendu:              'noch nicht live',
+      uiAccPrevenir:             'Erinnern',
+      uiAccPrevenu:              'Erinnerung aktiv',
+      uiAccPrevenirTitre:        (nom) => `Ein Hinweis in deinen offenen Twitch-Tabs, sobald ${nom} live geht`,
+      uiAccHabitudes:            'Ohne Zeitplan',
+      uiAccHabitudesNote:        'Wann ihre letzten Streams begonnen haben',
+      uiAccHabitude:             (k, n, h) => (k === n ? `Die letzten ${n} Streams begannen gegen ${h}`
+                                                       : `${k} der letzten ${n} Streams begannen gegen ${h}`),
+      uiRappelEnDirect:          (f) => `${f} ist live`,
+      uiRappelCreneau:           (h) => `Geplant für ${h}`,
+      uiRappelFermer:            'Schließen',
+      uiEtiqCommence:            'Gerade gestartet',
+      uiEtiqRetour:              (j) => `Zurück nach ${j} Tagen`,
+      uiEtiqTendance:            (p, m) => `↗ +${p} % in ${m} Min.`,
+      uiEtiqRangLangue:          (n) => `Platz ${n} auf Deutsch`,
+      uiEtiqBascule:             (jeu) => `Wechselt zu ${jeu}`,
+      uiEtiqCostream:            (n) => `Co-Stream mit ${n} Kanälen`,
+      uiAbsTitre:                'Während du weg warst',
+      uiAbsSous:                 (j, borne) => (borne ? `Seit deinem letzten Besuch vor ${j} Tagen – die letzten sieben`
+                                                      : `Seit deinem letzten Besuch vor ${j} Tag${j === 1 ? '' : 'en'}`),
+      uiAbsDirects:              (n, d) => `${n} Stream${n === 1 ? '' : 's'} · ${d}`,
+      uiAbsSansRedif:            'Hat gestreamt, ohne Aufzeichnung',
+      uiAbsRevoir:               'Den letzten ansehen',
+      uiAbsPlusVu:               (t, v, nv) => `meistgesehener Clip: „${t}“ (${v} Aufruf${nv === 1 ? '' : 'e'})`,
+      uiAbsNDirects:             (n) => `${n} Stream${n === 1 ? '' : 's'}`,
+      uiAccPourquoi:             (nom) => `Weil du oft ${nom} schaust`,
+      uiAccPourquoiVisites:      (n, auMoins) => `${auMoins ? 'mindestens ' : ''}${n} Besuch${n === 1 ? '' : 'e'} in 30 Tagen`,
+      uiAccPourquoiOu:           (jeu, langue) => (langue === null ? jeu : `${jeu}, auf Deutsch`),
+      uiRangerMasquer:           'Ausblenden',
+      uiRangerReafficher:        'Wieder anzeigen',
       uiCalCoupe:                'Ausrichtung in den Einstellungen ausgeschaltet',
       uiCalIndispo:              'Ausrichtung nicht verfügbar: Dieser Browser kann den Ton nicht abgreifen',
       uiCalArrete:               'Ausrichtung gestoppt',
@@ -710,10 +966,92 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiSalleSonPour:            (nom) => `Dar el sonido a ${nom}`,
       uiSalleChat:               (nom) => `Chat de ${nom}`,
       uiSalleChatSon:            (nom) => `Sonido de ${nom}`,
+
+      uiZapBouton:               'Zapping: tus canales seguidos en directo',
+      uiZapTitre:                'Zapping · tus canales seguidos en directo',
+      uiZapListe:                'Tus canales seguidos en directo',
+      uiZapChanger:              'cambiar',
+      uiZapPrecedente:           'Canal anterior',
+      uiZapSuivante:             'Canal siguiente',
+      uiZapOuvrir:               'abrir el canal',
+      uiZapSalleAjouter:         'añadir a la sala',
+      uiZapSalleRetirer:         'quitar de la sala',
+      uiZapSalleOuvrir:          (n) => `abrir la sala (${n})`,
+      uiZapQuitter:              'salir',
+      uiZapEntree:               'Intro',
+      uiZapEchap:                'Esc',
+      uiZapPrechargee:           'precargado',
+      uiZapDansSalle:            'en la sala',
+      uiZapVide:                 'Ninguno de tus canales seguidos está en directo.',
+      uiZapMuet:                 'Sin sonido',
+      uiZapSonTitre:             'Quitar o devolver el sonido',
+      uiZapHorsLigne:            'Desconectado',
+      uiZapSubathon:             (n) => (n === null ? 'subatón' : `subatón, día ${n}`),
+      uiZapSallePleine:          (n) => `La sala admite ${n} streams como máximo.`,
+      uiZapSalleDeux:            'La sala necesita al menos dos canales.',
       uiSalleOnglets:            'Elegir el chat',
       uiSalleOnglet:             (nom) => `Mostrar el chat de ${nom}, sin cambiar el sonido`,
       uiSalleChatMasque:         'Chat oculto: ventana demasiado estrecha',
       uiSallePoints:             'Sin puntos de canal en la sala',
+      uiAccSection:              'Añadidos de Cowlor\'s Sidebar a la página de inicio',
+      uiAccHeros:                'Tu canal n.º 1 en directo',
+      uiAccRegarder:             'Ver',
+      uiAccUne:                  'Destacados',
+      uiAccPrecedent:            'Anterior',
+      uiAccSuivant:              'Siguiente',
+      uiAccTop:                  'Top 10',
+      uiAccDirect:               'En directo',
+      uiAccDebut:                'Desde el principio',
+      uiAccDebutTitre:           (nom) => `Ver el directo de ${nom} desde su primer segundo`,
+      uiAccSpect:                (n, v) => `${v} espectador${n === 1 ? '' : 'es'}`,
+      uiAccNouveau:              'Nuevo',
+      uiAccHausse:               (n, m) => `Sube ${n} puesto${n === 1 ? '' : 's'} en ${m} min`,
+      uiAccBaisse:               (n, m) => `Baja ${n} puesto${n === 1 ? '' : 's'} en ${m} min`,
+      uiAccStable:               (m) => `Mismo puesto que hace ${m} min`,
+      uiAccEntree:               (m) => `Fuera del Top 10 hace ${m} min`,
+      uiAccAttente:              'Clasificación en curso…',
+      uiAccVide:                 'Ningún canal que clasificar por ahora',
+      uiAccCsAvec:               'En vivo con:',
+      uiAccCsPhrase:             (nom, liste) => `${nom} está en vivo con ${liste}`,
+      uiAccPlace:                (n, nom) => `Puesto ${n}: ${nom}`,
+      uiAccDepuis:               (d) => `en directo desde hace ${d}`,
+      uiAccRang:                 (n) => `N.º ${n} del Top 10`,
+      uiAccAfficherTout:         'Mostrar todo',
+      uiAccAfficherMoins:        'Mostrar menos',
+      uiAccRdv:                  'Tus directos programados',
+      uiAccAujourdhui:           'Hoy',
+      uiAccDemain:               'Mañana',
+      uiAccDans:                 (d) => `en ${d}`,
+      uiAccAttendu:              'aún no está en directo',
+      uiAccPrevenir:             'Recordármelo',
+      uiAccPrevenu:              'Recordatorio activado',
+      uiAccPrevenirTitre:        (nom) => `Un aviso en tus pestañas de Twitch abiertas cuando ${nom} empiece en directo`,
+      uiAccHabitudes:            'Sin horario',
+      uiAccHabitudesNote:        'Cuándo empezaron sus últimos directos',
+      uiAccHabitude:             (k, n, h) => (k === n ? `Sus últimos ${n} directos empezaron hacia las ${h}`
+                                                       : `${k} de sus últimos ${n} directos empezaron hacia las ${h}`),
+      uiRappelEnDirect:          (f) => `${f} está en directo`,
+      uiRappelCreneau:           (h) => `Programado para las ${h}`,
+      uiRappelFermer:            'Cerrar',
+      uiEtiqCommence:            'Acaba de empezar',
+      uiEtiqRetour:              (j) => `De vuelta tras ${j} días`,
+      uiEtiqTendance:            (p, m) => `↗ +${p} % en ${m} min`,
+      uiEtiqRangLangue:          (n) => `N.º ${n} en español`,
+      uiEtiqBascule:             (jeu) => `Pasa a ${jeu}`,
+      uiEtiqCostream:            (n) => `Co-stream de ${n} canales`,
+      uiAbsTitre:                'Mientras no estabas',
+      uiAbsSous:                 (j, borne) => (borne ? `Desde tu última visita, hace ${j} días — los siete últimos`
+                                                      : `Desde tu última visita, hace ${j} día${j === 1 ? '' : 's'}`),
+      uiAbsDirects:              (n, d) => `${n} directo${n === 1 ? '' : 's'} · ${d}`,
+      uiAbsSansRedif:            'Emitió, sin repetición',
+      uiAbsRevoir:               'Ver el último',
+      uiAbsPlusVu:               (t, v, nv) => `el clip más visto: «${t}» (${v} vista${nv === 1 ? '' : 's'})`,
+      uiAbsNDirects:             (n) => `${n} directo${n === 1 ? '' : 's'}`,
+      uiAccPourquoi:             (nom) => `Porque sueles ver a ${nom}`,
+      uiAccPourquoiVisites:      (n, auMoins) => `${auMoins ? 'al menos ' : ''}${n} visita${n === 1 ? '' : 's'} en 30 días`,
+      uiAccPourquoiOu:           (jeu, langue) => (langue === null ? jeu : `${jeu}, en español`),
+      uiRangerMasquer:           'Ocultar',
+      uiRangerReafficher:        'Mostrar de nuevo',
       uiCalCoupe:                'Alineación desactivada en los ajustes',
       uiCalIndispo:              'Alineación no disponible: este navegador no puede capturar el sonido',
       uiCalArrete:               'Alineación detenida',
@@ -899,10 +1237,92 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiSalleSonPour:            (nom) => `Dar o som a ${nom}`,
       uiSalleChat:               (nom) => `Chat de ${nom}`,
       uiSalleChatSon:            (nom) => `Som de ${nom}`,
+
+      uiZapBouton:               'Zapping: seus canais seguidos ao vivo',
+      uiZapTitre:                'Zapping · seus canais seguidos ao vivo',
+      uiZapListe:                'Seus canais seguidos ao vivo',
+      uiZapChanger:              'mudar',
+      uiZapPrecedente:           'Canal anterior',
+      uiZapSuivante:             'Próximo canal',
+      uiZapOuvrir:               'abrir o canal',
+      uiZapSalleAjouter:         'adicionar à sala',
+      uiZapSalleRetirer:         'tirar da sala',
+      uiZapSalleOuvrir:          (n) => `abrir a sala (${n})`,
+      uiZapQuitter:              'sair',
+      uiZapEntree:               'Enter',
+      uiZapEchap:                'Esc',
+      uiZapPrechargee:           'pré-carregado',
+      uiZapDansSalle:            'na sala',
+      uiZapVide:                 'Nenhum dos seus canais seguidos está ao vivo.',
+      uiZapMuet:                 'Sem som',
+      uiZapSonTitre:             'Tirar ou devolver o som',
+      uiZapHorsLigne:            'Offline',
+      uiZapSubathon:             (n) => (n === null ? 'subathon' : `subathon, dia ${n}`),
+      uiZapSallePleine:          (n) => `A sala comporta no máximo ${n} streams.`,
+      uiZapSalleDeux:            'A sala precisa de pelo menos dois canais.',
       uiSalleOnglets:            'Escolher o chat',
       uiSalleOnglet:             (nom) => `Mostrar o chat de ${nom}, sem trocar o som`,
       uiSalleChatMasque:         'Chat oculto: janela estreita demais',
       uiSallePoints:             'Sem pontos do canal na sala',
+      uiAccSection:              'Adições do Cowlor\'s Sidebar à página inicial',
+      uiAccHeros:                'Seu canal nº 1 ao vivo',
+      uiAccRegarder:             'Assistir',
+      uiAccUne:                  'Em destaque',
+      uiAccPrecedent:            'Anterior',
+      uiAccSuivant:              'Seguinte',
+      uiAccTop:                  'Top 10',
+      uiAccDirect:               'Ao vivo',
+      uiAccDebut:                'Desde o início',
+      uiAccDebutTitre:           (nom) => `Assistir à transmissão de ${nom} desde o primeiro segundo`,
+      uiAccSpect:                (n, v) => `${v} espectador${n === 1 ? '' : 'es'}`,
+      uiAccNouveau:              'Novo',
+      uiAccHausse:               (n, m) => `Sobe ${n} posiç${n === 1 ? 'ão' : 'ões'} em ${m} min`,
+      uiAccBaisse:               (n, m) => `Desce ${n} posiç${n === 1 ? 'ão' : 'ões'} em ${m} min`,
+      uiAccStable:               (m) => `Mesma posição de ${m} min atrás`,
+      uiAccEntree:               (m) => `Fora do Top 10 ${m} min atrás`,
+      uiAccAttente:              'Classificação em andamento…',
+      uiAccVide:                 'Nenhum canal para classificar no momento',
+      uiAccCsAvec:               'Ao vivo com:',
+      uiAccCsPhrase:             (nom, liste) => `${nom} está ao vivo com ${liste}`,
+      uiAccPlace:                (n, nom) => `Posição ${n}: ${nom}`,
+      uiAccDepuis:               (d) => `ao vivo há ${d}`,
+      uiAccRang:                 (n) => `Nº ${n} do Top 10`,
+      uiAccAfficherTout:         'Mostrar tudo',
+      uiAccAfficherMoins:        'Mostrar menos',
+      uiAccRdv:                  'Suas transmissões programadas',
+      uiAccAujourdhui:           'Hoje',
+      uiAccDemain:               'Amanhã',
+      uiAccDans:                 (d) => `em ${d}`,
+      uiAccAttendu:              'ainda não está ao vivo',
+      uiAccPrevenir:             'Lembrete',
+      uiAccPrevenu:              'Lembrete ativado',
+      uiAccPrevenirTitre:        (nom) => `Um aviso nas suas abas abertas da Twitch quando ${nom} ficar ao vivo`,
+      uiAccHabitudes:            'Sem programação',
+      uiAccHabitudesNote:        'Quando suas últimas transmissões começaram',
+      uiAccHabitude:             (k, n, h) => (k === n ? `Suas últimas ${n} transmissões começaram por volta das ${h}`
+                                                       : `${k} das suas últimas ${n} transmissões começaram por volta das ${h}`),
+      uiRappelEnDirect:          (f) => `${f} está ao vivo`,
+      uiRappelCreneau:           (h) => `Programado para as ${h}`,
+      uiRappelFermer:            'Fechar',
+      uiEtiqCommence:            'Acabou de começar',
+      uiEtiqRetour:              (j) => `De volta após ${j} dias`,
+      uiEtiqTendance:            (p, m) => `↗ +${p}% em ${m} min`,
+      uiEtiqRangLangue:          (n) => `Nº ${n} em português`,
+      uiEtiqBascule:             (jeu) => `Vai para ${jeu}`,
+      uiEtiqCostream:            (n) => `Co-stream com ${n} canais`,
+      uiAbsTitre:                'Enquanto você esteve fora',
+      uiAbsSous:                 (j, borne) => (borne ? `Desde a sua última visita, há ${j} dias — os últimos sete`
+                                                      : `Desde a sua última visita, há ${j} dia${j === 1 ? '' : 's'}`),
+      uiAbsDirects:              (n, d) => `${n} transmiss${n === 1 ? 'ão' : 'ões'} · ${d}`,
+      uiAbsSansRedif:            'Transmitiu, sem reprise',
+      uiAbsRevoir:               'Rever a última',
+      uiAbsPlusVu:               (t, v, nv) => `o clipe mais visto: «${t}» (${v} visualizaç${nv === 1 ? 'ão' : 'ões'})`,
+      uiAbsNDirects:             (n) => `${n} transmiss${n === 1 ? 'ão' : 'ões'}`,
+      uiAccPourquoi:             (nom) => `Porque você assiste muito a ${nom}`,
+      uiAccPourquoiVisites:      (n, auMoins) => `${auMoins ? 'pelo menos ' : ''}${n} visita${n === 1 ? '' : 's'} em 30 dias`,
+      uiAccPourquoiOu:           (jeu, langue) => (langue === null ? jeu : `${jeu}, em português`),
+      uiRangerMasquer:           'Ocultar',
+      uiRangerReafficher:        'Mostrar de novo',
       uiCalCoupe:                'Alinhamento desligado nas definições',
       uiCalIndispo:              'Alinhamento indisponível: este navegador não consegue capturar o som',
       uiCalArrete:               'Alinhamento parado',
@@ -1088,10 +1508,92 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiSalleSonPour:            (nom) => `Dai l'audio a ${nom}`,
       uiSalleChat:               (nom) => `Chat di ${nom}`,
       uiSalleChatSon:            (nom) => `Audio di ${nom}`,
+
+      uiZapBouton:               'Zapping: i tuoi canali seguiti in diretta',
+      uiZapTitre:                'Zapping · i tuoi canali seguiti in diretta',
+      uiZapListe:                'I tuoi canali seguiti in diretta',
+      uiZapChanger:              'cambia',
+      uiZapPrecedente:           'Canale precedente',
+      uiZapSuivante:             'Canale successivo',
+      uiZapOuvrir:               'apri il canale',
+      uiZapSalleAjouter:         'aggiungi alla sala',
+      uiZapSalleRetirer:         'togli dalla sala',
+      uiZapSalleOuvrir:          (n) => `apri la sala (${n})`,
+      uiZapQuitter:              'esci',
+      uiZapEntree:               'Invio',
+      uiZapEchap:                'Esc',
+      uiZapPrechargee:           'precaricato',
+      uiZapDansSalle:            'nella sala',
+      uiZapVide:                 'Nessuno dei tuoi canali seguiti è in diretta.',
+      uiZapMuet:                 'Audio disattivato',
+      uiZapSonTitre:             'Disattiva o riattiva l\'audio',
+      uiZapHorsLigne:            'Offline',
+      uiZapSubathon:             (n) => (n === null ? 'subathon' : `subathon, giorno ${n}`),
+      uiZapSallePleine:          (n) => `La sala contiene al massimo ${n} stream.`,
+      uiZapSalleDeux:            'Servono almeno due canali per aprire la sala.',
       uiSalleOnglets:            'Scegli la chat',
       uiSalleOnglet:             (nom) => `Mostra la chat di ${nom}, senza cambiare l'audio`,
       uiSalleChatMasque:         'Chat nascosta: finestra troppo stretta',
       uiSallePoints:             'Niente punti canale nella sala',
+      uiAccSection:              'Aggiunte di Cowlor\'s Sidebar alla home',
+      uiAccHeros:                'Il tuo canale n. 1 in diretta',
+      uiAccRegarder:             'Guarda',
+      uiAccUne:                  'In primo piano',
+      uiAccPrecedent:            'Precedente',
+      uiAccSuivant:              'Successivo',
+      uiAccTop:                  'Top 10',
+      uiAccDirect:               'Live',
+      uiAccDebut:                'Dall\'inizio',
+      uiAccDebutTitre:           (nom) => `Guarda la diretta di ${nom} dal primo secondo`,
+      uiAccSpect:                (n, v) => `${v} spettator${n === 1 ? 'e' : 'i'}`,
+      uiAccNouveau:              'Nuovo',
+      uiAccHausse:               (n, m) => `Sale di ${n} posizion${n === 1 ? 'e' : 'i'} in ${m} min`,
+      uiAccBaisse:               (n, m) => `Scende di ${n} posizion${n === 1 ? 'e' : 'i'} in ${m} min`,
+      uiAccStable:               (m) => `Stessa posizione di ${m} min fa`,
+      uiAccEntree:               (m) => `Fuori dalla Top 10 ${m} min fa`,
+      uiAccAttente:              'Classifica in corso…',
+      uiAccVide:                 'Nessun canale da classificare per ora',
+      uiAccCsAvec:               'In diretta con:',
+      uiAccCsPhrase:             (nom, liste) => `${nom} è in diretta con ${liste}`,
+      uiAccPlace:                (n, nom) => `Posizione ${n}: ${nom}`,
+      uiAccDepuis:               (d) => `in diretta da ${d}`,
+      uiAccRang:                 (n) => `N. ${n} della Top 10`,
+      uiAccAfficherTout:         'Mostra tutto',
+      uiAccAfficherMoins:        'Mostra meno',
+      uiAccRdv:                  'Le tue dirette in programma',
+      uiAccAujourdhui:           'Oggi',
+      uiAccDemain:               'Domani',
+      uiAccDans:                 (d) => `tra ${d}`,
+      uiAccAttendu:              'non ancora in diretta',
+      uiAccPrevenir:             'Ricordamelo',
+      uiAccPrevenu:              'Promemoria attivo',
+      uiAccPrevenirTitre:        (nom) => `Un avviso nelle schede di Twitch aperte quando ${nom} andrà in diretta`,
+      uiAccHabitudes:            'Senza programma',
+      uiAccHabitudesNote:        'Quando sono iniziate le loro ultime dirette',
+      uiAccHabitude:             (k, n, h) => (k === n ? `Le sue ultime ${n} dirette sono iniziate verso le ${h}`
+                                                       : `${k} delle sue ultime ${n} dirette sono iniziate verso le ${h}`),
+      uiRappelEnDirect:          (f) => `${f} è in diretta`,
+      uiRappelCreneau:           (h) => `In programma alle ${h}`,
+      uiRappelFermer:            'Chiudi',
+      uiEtiqCommence:            'Appena iniziato',
+      uiEtiqRetour:              (j) => `Di ritorno dopo ${j} giorni`,
+      uiEtiqTendance:            (p, m) => `↗ +${p}% in ${m} min`,
+      uiEtiqRangLangue:          (n) => `N. ${n} in italiano`,
+      uiEtiqBascule:             (jeu) => `Passa a ${jeu}`,
+      uiEtiqCostream:            (n) => `Co-stream con ${n} canali`,
+      uiAbsTitre:                'Mentre eri via',
+      uiAbsSous:                 (j, borne) => (borne ? `Dalla tua ultima visita, ${j} giorni fa — gli ultimi sette`
+                                                      : `Dalla tua ultima visita, ${j} giorn${j === 1 ? 'o' : 'i'} fa`),
+      uiAbsDirects:              (n, d) => `${n} dirett${n === 1 ? 'a' : 'e'} · ${d}`,
+      uiAbsSansRedif:            'Ha trasmesso, senza replica',
+      uiAbsRevoir:               'Rivedi l\'ultima',
+      uiAbsPlusVu:               (t, v, nv) => `la clip più vista: «${t}» (${v} visualizzazion${nv === 1 ? 'e' : 'i'})`,
+      uiAbsNDirects:             (n) => `${n} dirett${n === 1 ? 'a' : 'e'}`,
+      uiAccPourquoi:             (nom) => `Perché guardi spesso ${nom}`,
+      uiAccPourquoiVisites:      (n, auMoins) => `${auMoins ? 'almeno ' : ''}${n} visit${n === 1 ? 'a' : 'e'} in 30 giorni`,
+      uiAccPourquoiOu:           (jeu, langue) => (langue === null ? jeu : `${jeu}, in italiano`),
+      uiRangerMasquer:           'Nascondi',
+      uiRangerReafficher:        'Mostra di nuovo',
       uiCalCoupe:                'Allineamento disattivato nelle impostazioni',
       uiCalIndispo:              'Allineamento non disponibile: questo browser non può catturare l\'audio',
       uiCalArrete:               'Allineamento fermato',
@@ -1277,10 +1779,97 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiSalleSonPour:            (nom) => `Włącz dźwięk: ${nom}`,
       uiSalleChat:               (nom) => `Czat: ${nom}`,
       uiSalleChatSon:            (nom) => `Dźwięk: ${nom}`,
+
+      uiZapBouton:               'Zapping: obserwowane kanały na żywo',
+      uiZapTitre:                'Zapping · obserwowane kanały na żywo',
+      uiZapListe:                'Obserwowane kanały na żywo',
+      uiZapChanger:              'zmień',
+      uiZapPrecedente:           'Poprzedni kanał',
+      uiZapSuivante:             'Następny kanał',
+      uiZapOuvrir:               'otwórz kanał',
+      uiZapSalleAjouter:         'dodaj do sali',
+      uiZapSalleRetirer:         'usuń z sali',
+      uiZapSalleOuvrir:          (n) => `otwórz salę (${n})`,
+      uiZapQuitter:              'wyjdź',
+      uiZapEntree:               'Enter',
+      uiZapEchap:                'Esc',
+      uiZapPrechargee:           'wczytany',
+      uiZapDansSalle:            'w sali',
+      uiZapVide:                 'Żaden z obserwowanych kanałów nie nadaje na żywo.',
+      uiZapMuet:                 'Dźwięk wyłączony',
+      uiZapSonTitre:             'Wyłącz lub włącz dźwięk',
+      uiZapHorsLigne:            'Offline',
+      uiZapSubathon:             (n) => (n === null ? 'subathon' : `subathon, dzień ${n}`),
+      uiZapSallePleine:          (n) => `Sala mieści najwyżej ${n} ${n === 1 ? 'stream' : [2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? 'streamy' : 'streamów'}.`,
+      uiZapSalleDeux:            'Sala potrzebuje co najmniej dwóch kanałów.',
       uiSalleOnglets:            'Wybierz czat',
       uiSalleOnglet:             (nom) => `Pokaż czat: ${nom}, bez zmiany dźwięku`,
       uiSalleChatMasque:         'Czat ukryty: okno jest za wąskie',
       uiSallePoints:             'Brak punktów kanału w sali',
+      uiAccSection:              'Dodatki Cowlor\'s Sidebar na stronie głównej',
+      uiAccHeros:                'Twój kanał nr 1 na żywo',
+      uiAccRegarder:             'Oglądaj',
+      uiAccUne:                  'Polecane',
+      uiAccPrecedent:            'Poprzedni',
+      uiAccSuivant:              'Następny',
+      uiAccTop:                  'Top 10',
+      uiAccDirect:               'Na żywo',
+      uiAccDebut:                'Od początku',
+      uiAccDebutTitre:           (nom) => `Obejrzyj transmisję ${nom} od pierwszej sekundy`,
+      uiAccSpect:                (n, v) => `${v} ${n === 1 ? 'widz' : 'widzów'}`,
+      uiAccNouveau:              'Nowość',
+      uiAccHausse:               (n, m) => `W górę o ${n} ${(n === 1 ? 'miejsce' : ([2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? 'miejsca' : 'miejsc'))} w ${m} min`,
+      uiAccBaisse:               (n, m) => `W dół o ${n} ${(n === 1 ? 'miejsce' : ([2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? 'miejsca' : 'miejsc'))} w ${m} min`,
+      uiAccStable:               (m) => `To samo miejsce co ${m} min temu`,
+      uiAccEntree:               (m) => `Poza Top 10 ${m} min temu`,
+      uiAccAttente:              'Trwa układanie rankingu…',
+      uiAccVide:                 'Na razie brak kanałów do sklasyfikowania',
+      uiAccCsAvec:               'Na żywo z:',
+      uiAccCsPhrase:             (nom, liste) => `${nom} — na żywo z ${liste}`,
+      uiAccPlace:                (n, nom) => `Miejsce ${n}: ${nom}`,
+      uiAccDepuis:               (d) => `na żywo od ${d}`,
+      uiAccRang:                 (n) => `Nr ${n} w Top 10`,
+      uiAccAfficherTout:         'Pokaż wszystko',
+      uiAccAfficherMoins:        'Pokaż mniej',
+      uiAccRdv:                  'Zaplanowane transmisje',
+      uiAccAujourdhui:           'Dziś',
+      uiAccDemain:               'Jutro',
+      uiAccDans:                 (d) => `za ${d}`,
+      uiAccAttendu:              'jeszcze nie nadaje',
+      uiAccPrevenir:             'Przypomnij mi',
+      uiAccPrevenu:              'Przypomnienie włączone',
+      uiAccPrevenirTitre:        (nom) => `Powiadomienie w otwartych kartach Twitcha, gdy ${nom} zacznie transmisję`,
+      uiAccHabitudes:            'Bez harmonogramu',
+      uiAccHabitudesNote:        'Kiedy zaczynały się ich ostatnie transmisje',
+      uiAccHabitude:             (k, n, h) => (k === n
+        ? `${plurielSlave(n, ['Ostatnia', 'Ostatnie', 'Ostatnich'])} ${n} ${plurielSlave(n, ['transmisja', 'transmisje', 'transmisji'])} ${plurielSlave(n, ['zaczęła', 'zaczęły', 'zaczęło'])} się około ${h}`
+        : `${k} z ostatnich ${n} transmisji ${plurielSlave(k, ['zaczęła', 'zaczęły', 'zaczęło'])} się około ${h}`),
+      uiRappelEnDirect:          (f) => `${f} nadaje na żywo`,
+      uiRappelCreneau:           (h) => `Zaplanowano na ${h}`,
+      uiRappelFermer:            'Zamknij',
+      uiEtiqCommence:            'Właśnie wystartował',
+      uiEtiqRetour:              (j) => `Wraca po ${j} dniach`,
+      uiEtiqTendance:            (p, m) => `↗ +${p}% w ${m} min`,
+      uiEtiqRangLangue:          (n) => `Nr ${n} po polsku`,
+      uiEtiqBascule:             (jeu) => `Przechodzi na ${jeu}`,
+      uiEtiqCostream:            (n) => `Co-stream: ${n} ${plurielSlave(n, ['kanał', 'kanały', 'kanałów'])}`,
+      uiAbsTitre:                'Podczas twojej nieobecności',
+      uiAbsSous:                 (j, borne) => (borne ? `Od ostatniej wizyty, ${j} dni temu — ostatnie siedem`
+                                                      : `Od ostatniej wizyty, ${j === 1 ? 'dzień' : j + ' dni'} temu`),
+      uiAbsDirects:              (n, d) => `${n} ${plurielSlave(n, ['transmisja', 'transmisje', 'transmisji'])} · ${d}`,
+      uiAbsSansRedif:            'Nadawał, bez powtórki',
+      uiAbsRevoir:               'Obejrzyj ostatnią',
+      uiAbsPlusVu:               (t, v) => `najczęściej oglądany klip: „${t}” (${v} wyśw.)`,
+      uiAbsNDirects:             (n) => `${n} ${plurielSlave(n, ['transmisja', 'transmisje', 'transmisji'])}`,
+      uiAccPourquoi:             (nom) => `Bo często oglądasz ${nom}`,
+      uiAccPourquoiVisites:      (n, auMoins) => {
+        const m10 = n % 10, m100 = n % 100;
+        const mot = n === 1 ? 'wizyta' : (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) ? 'wizyty' : 'wizyt';
+        return `${auMoins ? 'co najmniej ' : ''}${n} ${mot} w ciągu 30 dni`;
+      },
+      uiAccPourquoiOu:           (jeu, langue) => (langue === null ? jeu : `${jeu}, po polsku`),
+      uiRangerMasquer:           'Ukryj',
+      uiRangerReafficher:        'Pokaż ponownie',
       uiCalCoupe:                'Wyrównanie wyłączone w ustawieniach',
       uiCalIndispo:              'Wyrównanie niedostępne: ta przeglądarka nie przechwytuje dźwięku',
       uiCalArrete:               'Wyrównanie zatrzymane',
@@ -1466,10 +2055,96 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiSalleSonPour:            (nom) => `Включить звук: ${nom}`,
       uiSalleChat:               (nom) => `Чат: ${nom}`,
       uiSalleChatSon:            (nom) => `Звук: ${nom}`,
+
+      uiZapBouton:               'Переключение: отслеживаемые каналы в эфире',
+      uiZapTitre:                'Переключение · отслеживаемые каналы в эфире',
+      uiZapListe:                'Отслеживаемые каналы в эфире',
+      uiZapChanger:              'переключить',
+      uiZapPrecedente:           'Предыдущий канал',
+      uiZapSuivante:             'Следующий канал',
+      uiZapOuvrir:               'открыть канал',
+      uiZapSalleAjouter:         'добавить в зал',
+      uiZapSalleRetirer:         'убрать из зала',
+      uiZapSalleOuvrir:          (n) => `открыть зал (${n})`,
+      uiZapQuitter:              'выйти',
+      uiZapEntree:               'Enter',
+      uiZapEchap:                'Esc',
+      uiZapPrechargee:           'загружен заранее',
+      uiZapDansSalle:            'в зале',
+      uiZapVide:                 'Ни один из отслеживаемых каналов сейчас не в эфире.',
+      uiZapMuet:                 'Звук выключен',
+      uiZapSonTitre:             'Выключить или включить звук',
+      uiZapHorsLigne:            'Не в сети',
+      uiZapSubathon:             (n) => (n === null ? 'сабатон' : `сабатон, день ${n}`),
+      uiZapSallePleine:          (n) => `В зале не больше ${n} ${n % 10 === 1 && n % 100 !== 11 ? 'трансляции' : 'трансляций'}.`,
+      uiZapSalleDeux:            'Для зала нужно не меньше двух каналов.',
       uiSalleOnglets:            'Выбрать чат',
       uiSalleOnglet:             (nom) => `Показать чат: ${nom}, не меняя звук`,
       uiSalleChatMasque:         'Чат скрыт: окно слишком узкое',
       uiSallePoints:             'В зале баллы канала не начисляются',
+      uiAccSection:              'Дополнения Cowlor\'s Sidebar на главной',
+      uiAccHeros:                'Ваш канал № 1 в эфире',
+      uiAccRegarder:             'Смотреть',
+      uiAccUne:                  'Рекомендуемые',
+      uiAccPrecedent:            'Назад',
+      uiAccSuivant:              'Вперёд',
+      uiAccTop:                  'Топ-10',
+      uiAccDirect:               'В эфире',
+      uiAccDebut:                'С самого начала',
+      uiAccDebutTitre:           (nom) => `Смотреть трансляцию ${nom} с первой секунды`,
+      uiAccSpect:                (n, v) => `${v} ${(n % 10 === 1 && n % 100 !== 11 ? 'зритель' : ([2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? 'зрителя' : 'зрителей'))}`,
+      uiAccNouveau:              'Новый',
+      uiAccHausse:               (n, m) => `Вверх на ${n} ${(n % 10 === 1 && n % 100 !== 11 ? 'место' : ([2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? 'места' : 'мест'))} за ${m} мин`,
+      uiAccBaisse:               (n, m) => `Вниз на ${n} ${(n % 10 === 1 && n % 100 !== 11 ? 'место' : ([2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? 'места' : 'мест'))} за ${m} мин`,
+      uiAccStable:               (m) => `То же место, что ${m} мин назад`,
+      uiAccEntree:               (m) => `${m} мин назад — вне топ-10`,
+      uiAccAttente:              'Рейтинг составляется…',
+      uiAccVide:                 'Пока нечего ранжировать',
+      uiAccCsAvec:               'В эфире с:',
+      uiAccCsPhrase:             (nom, liste) => `${nom} — в эфире с ${liste}`,
+      uiAccPlace:                (n, nom) => `Место ${n}: ${nom}`,
+      uiAccDepuis:               (d) => `в эфире ${d}`,
+      uiAccRang:                 (n) => `№ ${n} в Топ-10`,
+      uiAccAfficherTout:         'Показать все',
+      uiAccAfficherMoins:        'Показать меньше',
+      uiAccRdv:                  'Запланированные трансляции',
+      uiAccAujourdhui:           'Сегодня',
+      uiAccDemain:               'Завтра',
+      uiAccDans:                 (d) => `через ${d}`,
+      uiAccAttendu:              'ещё не в эфире',
+      uiAccPrevenir:             'Напомнить',
+      uiAccPrevenu:              'Напоминание включено',
+      uiAccPrevenirTitre:        (nom) => `Уведомление в открытых вкладках Twitch, когда ${nom} выйдет в эфир`,
+      uiAccHabitudes:            'Без расписания',
+      uiAccHabitudesNote:        'Когда начинались их последние трансляции',
+      uiAccHabitude:             (k, n, h) => (k === n
+        ? `Последние ${n} ${plurielSlave(n, ['трансляция', 'трансляции', 'трансляций'])} начались около ${h}`
+        : `${k} из ${n} последних трансляций начались около ${h}`),
+      uiRappelEnDirect:          (f) => `${f} в эфире`,
+      uiRappelCreneau:           (h) => `Запланировано на ${h}`,
+      uiRappelFermer:            'Закрыть',
+      uiEtiqCommence:            'Только что начался',
+      uiEtiqRetour:              (j) => `Вернулся спустя ${j} ${plurielSlave(j, ['день', 'дня', 'дней'])}`,
+      uiEtiqTendance:            (p, m) => `↗ +${p}% за ${m} мин`,
+      uiEtiqRangLangue:          (n) => `№ ${n} на русском`,
+      uiEtiqBascule:             (jeu) => `Переходит на ${jeu}`,
+      uiEtiqCostream:            (n) => `Совместный стрим: ${n} ${plurielSlave(n, ['канал', 'канала', 'каналов'])}`,
+      uiAbsTitre:                'Пока вас не было',
+      uiAbsSous:                 (j, borne) => `С вашего последнего визита, ${j} ${plurielSlave(j, ['день', 'дня', 'дней'])} назад${borne ? ' — последние семь' : ''}`,
+      uiAbsDirects:              (n, d) => `${n} ${plurielSlave(n, ['трансляция', 'трансляции', 'трансляций'])} · ${d}`,
+      uiAbsSansRedif:            'Был в эфире, без записи',
+      uiAbsRevoir:               'Смотреть последнюю',
+      uiAbsPlusVu:               (t, v) => `самый просматриваемый клип: «${t}» (${v} просм.)`,
+      uiAbsNDirects:             (n) => `${n} ${plurielSlave(n, ['трансляция', 'трансляции', 'трансляций'])}`,
+      uiAccPourquoi:             (nom) => `Потому что вы часто смотрите ${nom}`,
+      uiAccPourquoiVisites:      (n, auMoins) => {
+        const m10 = n % 10, m100 = n % 100;
+        const mot = m10 === 1 && m100 !== 11 ? 'визит' : (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) ? 'визита' : 'визитов';
+        return `${auMoins ? 'не менее ' : ''}${n} ${mot} за 30 дней`;
+      },
+      uiAccPourquoiOu:           (jeu, langue) => (langue === null ? jeu : `${jeu}, на русском`),
+      uiRangerMasquer:           'Скрыть',
+      uiRangerReafficher:        'Показать снова',
       uiCalCoupe:                'Выравнивание отключено в настройках',
       uiCalIndispo:              'Выравнивание недоступно: этот браузер не может захватывать звук',
       uiCalArrete:               'Выравнивание остановлено',
@@ -1655,10 +2330,91 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiSalleSonPour:            (nom) => `${nom} の音声に切り替え`,
       uiSalleChat:               (nom) => `${nom} のチャット`,
       uiSalleChatSon:            (nom) => `音声：${nom}`,
+
+      uiZapBouton:               'ザッピング：フォロー中のライブ',
+      uiZapTitre:                'ザッピング · フォロー中のライブ',
+      uiZapListe:                'フォロー中のライブ',
+      uiZapChanger:              '切り替え',
+      uiZapPrecedente:           '前のチャンネル',
+      uiZapSuivante:             '次のチャンネル',
+      uiZapOuvrir:               'チャンネルを開く',
+      uiZapSalleAjouter:         'ルームに追加',
+      uiZapSalleRetirer:         'ルームから外す',
+      uiZapSalleOuvrir:          (n) => `ルームを開く (${n})`,
+      uiZapQuitter:              '終了',
+      uiZapEntree:               'Enter',
+      uiZapEchap:                'Esc',
+      uiZapPrechargee:           '先読み済み',
+      uiZapDansSalle:            'ルームに追加済み',
+      uiZapVide:                 'フォロー中のチャンネルは今ライブ配信していません。',
+      uiZapMuet:                 'ミュート中',
+      uiZapSonTitre:             'ミュートの切り替え',
+      uiZapHorsLigne:            'オフライン',
+      uiZapSubathon:             (n) => (n === null ? 'サブアソン' : `サブアソン ${n}日目`),
+      uiZapSallePleine:          (n) => `ルームに入るのは最大 ${n} 配信です。`,
+      uiZapSalleDeux:            'ルームを開くには 2 チャンネル以上が必要です。',
       uiSalleOnglets:            'チャットを選ぶ',
       uiSalleOnglet:             (nom) => `${nom} のチャットを表示（音声はそのまま）`,
       uiSalleChatMasque:         'チャット非表示：ウィンドウが狭すぎます',
       uiSallePoints:             'ルームではチャンネルポイントは貯まりません',
+      uiAccSection:              'Cowlor\'s Sidebar によるホームの追加表示',
+      uiAccHeros:                'あなたの No.1 チャンネル・ライブ中',
+      uiAccRegarder:             '視聴する',
+      uiAccUne:                  'おすすめ',
+      uiAccPrecedent:            '前へ',
+      uiAccSuivant:              '次へ',
+      uiAccTop:                  'トップ 10',
+      uiAccDirect:               'ライブ',
+      uiAccDebut:                '最初から',
+      uiAccDebutTitre:           (nom) => `${nom} の配信を最初の1秒から見る`,
+      uiAccSpect:                (n, v) => `視聴者 ${v} 人`,
+      uiAccNouveau:              '新登場',
+      uiAccHausse:               (n, m) => `${m} 分で ${n} 位上昇`,
+      uiAccBaisse:               (n, m) => `${m} 分で ${n} 位下降`,
+      uiAccStable:               (m) => `${m} 分前と同じ順位`,
+      uiAccEntree:               (m) => `${m} 分前はトップ10圏外`,
+      uiAccAttente:              'ランキングを作成中…',
+      uiAccVide:                 '現在ランキングできるチャンネルはありません',
+      uiAccCsAvec:               '一緒に配信中：',
+      uiAccCsPhrase:             (nom, liste) => `${nom} は ${liste} と配信中`,
+      uiAccPlace:                (n, nom) => `${n} 位：${nom}`,
+      uiAccDepuis:               (d) => `配信開始から ${d}`,
+      uiAccRang:                 (n) => `トップ 10 の ${n} 位`,
+      uiAccAfficherTout:         'すべて表示',
+      uiAccAfficherMoins:        '表示を減らす',
+      uiAccRdv:                  '予定されている配信',
+      uiAccAujourdhui:           '今日',
+      uiAccDemain:               '明日',
+      uiAccDans:                 (d) => `あと${d}`,
+      uiAccAttendu:              'まだ配信していません',
+      uiAccPrevenir:             'リマインド',
+      uiAccPrevenu:              'リマインド設定済み',
+      uiAccPrevenirTitre:        (nom) => `${nom}が配信を始めたら、開いているTwitchのタブでお知らせします`,
+      uiAccHabitudes:            'スケジュールなし',
+      uiAccHabitudesNote:        '直近の配信が始まった時刻',
+      uiAccHabitude:             (k, n, h) => (k === n ? `直近${n}回の配信は${h}ごろに始まりました`
+                                                       : `直近${n}回のうち${k}回の配信が${h}ごろに始まりました`),
+      uiRappelEnDirect:          (f) => `${f}が配信中`,
+      uiRappelCreneau:           (h) => `${h}に予定`,
+      uiRappelFermer:            '閉じる',
+      uiEtiqCommence:            '配信開始直後',
+      uiEtiqRetour:              (j) => `${j} 日ぶりの配信`,
+      uiEtiqTendance:            (p, m) => `↗ ${m} 分で +${p}%`,
+      uiEtiqRangLangue:          (n) => `日本語で ${n} 位`,
+      uiEtiqBascule:             (jeu) => `${jeu} に切り替え`,
+      uiEtiqCostream:            (n) => `${n} チャンネルでコラボ配信`,
+      uiAbsTitre:                'お留守の間に',
+      uiAbsSous:                 (j, borne) => `前回の訪問から ${j} 日${borne ? ' — 直近 7 日分' : ''}`,
+      uiAbsDirects:              (n, d) => `配信 ${n} 回 · ${d}`,
+      uiAbsSansRedif:            '配信あり（アーカイブなし）',
+      uiAbsRevoir:               '最新の配信を見る',
+      uiAbsPlusVu:               (t, v) => `最多再生クリップ：「${t}」（${v} 回）`,
+      uiAbsNDirects:             (n) => `配信 ${n} 回`,
+      uiAccPourquoi:             (nom) => `${nom}をよく見ているので`,
+      uiAccPourquoiVisites:      (n, auMoins) => `30日間で${auMoins ? '少なくとも' : ''}${n}回の訪問`,
+      uiAccPourquoiOu:           (jeu, langue) => (langue === null ? jeu : `${jeu}・日本語`),
+      uiRangerMasquer:           '非表示',
+      uiRangerReafficher:        '再表示',
       uiCalCoupe:                '同期は設定でオフになっています',
       uiCalIndispo:              '同期は使えません：このブラウザは音声を取り込めません',
       uiCalArrete:               '同期を停止しました',
@@ -1842,10 +2598,91 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiSalleSonPour:            (nom) => `切换到 ${nom} 的声音`,
       uiSalleChat:               (nom) => `${nom} 的聊天`,
       uiSalleChatSon:            (nom) => `声音：${nom}`,
+
+      uiZapBouton:               '换台：你关注的直播',
+      uiZapTitre:                '换台 · 你关注的直播',
+      uiZapListe:                '你关注的直播',
+      uiZapChanger:              '切换',
+      uiZapPrecedente:           '上一个频道',
+      uiZapSuivante:             '下一个频道',
+      uiZapOuvrir:               '打开频道',
+      uiZapSalleAjouter:         '加入放映室',
+      uiZapSalleRetirer:         '移出放映室',
+      uiZapSalleOuvrir:          (n) => `打开放映室（${n}）`,
+      uiZapQuitter:              '退出',
+      uiZapEntree:               'Enter',
+      uiZapEchap:                'Esc',
+      uiZapPrechargee:           '已预载',
+      uiZapDansSalle:            '在放映室中',
+      uiZapVide:                 '你关注的频道目前都没有直播。',
+      uiZapMuet:                 '已静音',
+      uiZapSonTitre:             '静音或恢复声音',
+      uiZapHorsLigne:            '离线',
+      uiZapSubathon:             (n) => (n === null ? '订阅马拉松' : `订阅马拉松第 ${n} 天`),
+      uiZapSallePleine:          (n) => `放映室最多容纳 ${n} 个直播。`,
+      uiZapSalleDeux:            '放映室至少需要两个频道。',
       uiSalleOnglets:            '选择聊天室',
       uiSalleOnglet:             (nom) => `显示 ${nom} 的聊天（不切换声音）`,
       uiSalleChatMasque:         '聊天已隐藏：窗口太窄',
       uiSallePoints:             '放映室内不获得频道积分',
+      uiAccSection:              'Cowlor\'s Sidebar 在首页的新增内容',
+      uiAccHeros:                '你的第 1 频道 · 直播中',
+      uiAccRegarder:             '观看',
+      uiAccUne:                  '精选',
+      uiAccPrecedent:            '上一个',
+      uiAccSuivant:              '下一个',
+      uiAccTop:                  '前 10 名',
+      uiAccDirect:               '直播',
+      uiAccDebut:                '从头观看',
+      uiAccDebutTitre:           (nom) => `从第一秒开始观看 ${nom} 的直播`,
+      uiAccSpect:                (n, v) => `${v} 名观众`,
+      uiAccNouveau:              '新上榜',
+      uiAccHausse:               (n, m) => `${m} 分钟内上升 ${n} 名`,
+      uiAccBaisse:               (n, m) => `${m} 分钟内下降 ${n} 名`,
+      uiAccStable:               (m) => `与 ${m} 分钟前名次相同`,
+      uiAccEntree:               (m) => `${m} 分钟前未进入前 10 名`,
+      uiAccAttente:              '排名生成中…',
+      uiAccVide:                 '目前没有可排名的频道',
+      uiAccCsAvec:               '一起直播：',
+      uiAccCsPhrase:             (nom, liste) => `${nom} 正在与 ${liste} 直播`,
+      uiAccPlace:                (n, nom) => `第 ${n} 名：${nom}`,
+      uiAccDepuis:               (d) => `已直播 ${d}`,
+      uiAccRang:                 (n) => `前 10 名中第 ${n} 名`,
+      uiAccAfficherTout:         '显示全部',
+      uiAccAfficherMoins:        '收起',
+      uiAccRdv:                  '计划中的直播',
+      uiAccAujourdhui:           '今天',
+      uiAccDemain:               '明天',
+      uiAccDans:                 (d) => `${d}后`,
+      uiAccAttendu:              '尚未开播',
+      uiAccPrevenir:             '提醒我',
+      uiAccPrevenu:              '已设置提醒',
+      uiAccPrevenirTitre:        (nom) => `当 ${nom} 开播时，在已打开的 Twitch 标签页中提醒`,
+      uiAccHabitudes:            '没有日程',
+      uiAccHabitudesNote:        '最近几场直播的开始时间',
+      uiAccHabitude:             (k, n, h) => (k === n ? `最近 ${n} 场直播都在 ${h} 左右开始`
+                                                       : `最近 ${n} 场直播中有 ${k} 场在 ${h} 左右开始`),
+      uiRappelEnDirect:          (f) => `${f} 正在直播`,
+      uiRappelCreneau:           (h) => `计划于 ${h}`,
+      uiRappelFermer:            '关闭',
+      uiEtiqCommence:            '刚刚开播',
+      uiEtiqRetour:              (j) => `时隔 ${j} 天回归`,
+      uiEtiqTendance:            (p, m) => `↗ ${m} 分钟内 +${p}%`,
+      uiEtiqRangLangue:          (n) => `中文第 ${n} 名`,
+      uiEtiqBascule:             (jeu) => `转到 ${jeu}`,
+      uiEtiqCostream:            (n) => `${n} 个频道联合直播`,
+      uiAbsTitre:                '你不在的时候',
+      uiAbsSous:                 (j, borne) => `距上次访问 ${j} 天${borne ? '——仅显示最近 7 天' : ''}`,
+      uiAbsDirects:              (n, d) => `${n} 场直播 · ${d}`,
+      uiAbsSansRedif:            '有直播，无回放',
+      uiAbsRevoir:               '观看最近一场',
+      uiAbsPlusVu:               (t, v) => `播放最多的剪辑：「${t}」（${v} 次）`,
+      uiAbsNDirects:             (n) => `${n} 场直播`,
+      uiAccPourquoi:             (nom) => `因为你常看 ${nom}`,
+      uiAccPourquoiVisites:      (n, auMoins) => `30 天内${auMoins ? '至少' : ''}访问 ${n} 次`,
+      uiAccPourquoiOu:           (jeu, langue) => (langue === null ? jeu : `${jeu}・中文`),
+      uiRangerMasquer:           '隐藏',
+      uiRangerReafficher:        '重新显示',
       uiCalCoupe:                '对齐已在设置中关闭',
       uiCalIndispo:              '对齐不可用：此浏览器无法捕获声音',
       uiCalArrete:               '对齐已停止',
@@ -2398,6 +3235,18 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
 
     SALLE_PRETE_MAX_MS:    3_000,
 
+    ZAP_PRECHARGE_MS:      500,
+    ZAP_PRECHARGE_AUTRE_MS: 1_500,
+    ZAP_REPOS_MS:          3_000,
+    ZAP_PRET_MAX_MS:       4_000,
+    ZAP_FONDU_MS:          180,
+    ZAP_RELEVE_MS:         2_000,
+    ZAP_AVIS_MS:           2_600,
+    ZAP_SON_ESSAIS:        5,
+    ZAP_SON_ECART_MS:      2_000,
+    ZAP_GARDE_MS:          2_000,
+    ZAP_REDIM_MS:          250,
+
     NOEUD_INTENTION_MS:    150,
     NOEUD_GRACE_MS:        80,
     NOEUD_INDICE_ATTENTE_MS: 600,
@@ -2484,6 +3333,97 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
 
     AGENDA_ECRITURE_REPRISE_MS: 60_000,
 
+    ACCUEIL_TOP_N:          10,
+
+    ACCUEIL_UNE_MAX:        8,
+
+    ACCUEIL_UNE_ATTENTE_MS: 8_000,
+
+    ACCUEIL_RUBAN_CARTE:    420,
+    ACCUEIL_RUBAN_ANGLE:    52,
+    ACCUEIL_RUBAN_ECHELLE:  0.72,
+    ACCUEIL_RUBAN_RECUL:    120,
+    ACCUEIL_RUBAN_PERSPECTIVE: 1200,
+    ACCUEIL_RUBAN_REFLET:   0.34,
+
+    ACCUEIL_RUBAN_ENTREE_MS: 320,
+
+    ACCUEIL_RUBAN_MENE_MS: 1_500,
+
+    ACCUEIL_CS_OUVRE_MS:    100,
+    ACCUEIL_CS_FERME_MS:    250,
+
+    ACCUEIL_CS_TETE_ECART:  0.05,
+
+    ACCUEIL_RELIEF_PX:      6,
+    ACCUEIL_RELIEF_MS:      100,
+    ACCUEIL_RELIEF_DEFAUT:  '#9147ff',
+
+    ACCUEIL_CARTE_MIN:      290,
+    ACCUEIL_ECARTS:         '20px 14px',
+
+    ACCUEIL_EVOLUTION_MS:   30 * 60_000,
+    ACCUEIL_EVOLUTION_MIN_MS: 2 * 60_000,
+    ACCUEIL_INSTANTANE_MS:  60_000,
+    ACCUEIL_IMAGE_MS:       60_000,
+
+    ACCUEIL_VIDEO_QUALITE:  '720p60',
+    ACCUEIL_VIDEO_PLANCHER: 720,
+    ACCUEIL_VIDEO_DELAI_MS: 8_000,
+    ACCUEIL_VIDEO_REPRISE_MS: 5 * 60_000,
+
+    ACCUEIL_AMBIANCE_FONDU_MS: 700,
+
+    ACCUEIL_PREUVE_CARTES:  6,
+
+    ACCUEIL_DEBUT_LOT:      15,
+    ACCUEIL_DEBUT_TTL:      10 * 60_000,
+    ACCUEIL_DEBUT_PAUSE:    60_000,
+    ACCUEIL_DEBUT_OUBLI_MS: 30 * 60_000,
+
+    ACCUEIL_VOILE_MS:       1_500,
+    ACCUEIL_VOILE_MAX_MS:   6_000,
+    ACCUEIL_SYNCHRONE_MS:   10_000,
+
+    ACCUEIL_RDV_JOURS:      2,
+    ACCUEIL_RDV_RECUL_MS:   7 * 86_400_000,
+    ACCUEIL_RDV_DEMANDE_MS: 2 * 60_000,
+    ACCUEIL_RDV_MAX:        12,
+    ACCUEIL_HABITUDE_N:     6,
+    ACCUEIL_HABITUDE_MIN:   4,
+    ACCUEIL_HABITUDE_FENETRE_MIN: 30,
+    ACCUEIL_HABITUDES_MAX:  5,
+    ACCUEIL_RDV_RELECTURE_MS: 800,
+
+    RAPPEL_AVANCE_MS:       30 * 60_000,
+    RAPPEL_APRES_MS:        60 * 60_000,
+    RAPPEL_ALERTE_MS:       15 * 60_000,
+    RAPPELS_MAX:            20,
+
+    ETIQ_RETOUR_JOURS:      7,
+    ETIQ_TENDANCE_MS:       10 * 60_000,
+    ETIQ_TENDANCE_MARGE_MS: 2 * 60_000,
+    ETIQ_TENDANCE_PCT:      25,
+    ETIQ_TENDANCE_MIN:      50,
+    ETIQ_HISTO_MAX:         400,
+    ETIQ_TWITCH_MAX:        60,
+
+    ABSENCE_MIN_MS:         24 * 3_600_000,
+    ABSENCE_GARDE_MS:       12 * 3_600_000,
+    ABSENCE_PRESENCE_MS:    60_000,
+    ABSENCE_MAX:            5,
+    ABSENCE_CLIPS:          30,
+
+    POURQUOI_JOURS:         30,
+    POURQUOI_MIN_VISITES:   3,
+    POURQUOI_MIN_DIRECTS:   2,
+    POURQUOI_RAYONS:        2,
+    POURQUOI_N:             30,
+    POURQUOI_CARTES:        12,
+    POURQUOI_TTL:           10 * 60_000,
+
+    RANGER_MASQUES_MAX:     50,
+
     INCRUSTE_W:             1100,
     INCRUSTE_H:             760
   });
@@ -2509,6 +3449,34 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     salle:           { defaut: true,      type: 'bool', css: true },
 
     salleAuto:       { defaut: true,      type: 'bool' },
+
+    zapping:         { defaut: true,      type: 'bool' },
+
+    accueil:         { defaut: true,      type: 'bool' },
+
+    accueilTete:     { defaut: 'heros',   type: 'choix',
+                       valeurs: ['twitch', 'heros', 'rien'], sous: ['accueil'] },
+
+    accueilVideo:    { defaut: true,      type: 'bool', sous: ['accueil'] },
+
+    accueilUne:      { defaut: true,      type: 'bool', sous: ['accueil'] },
+    accueilTop:      { defaut: true,      type: 'bool', sous: ['accueil'] },
+
+    accueilTopLangue: { defaut: 'interface', type: 'choix',
+                       valeurs: ['interface', 'toutes'], sous: ['accueil', 'accueilTop'] },
+
+    accueilTopEcartees: { defaut: [],     type: 'liste', max: CFG.GLOBAL_TAG_MAX - CFG.ACCUEIL_TOP_N,
+                          sous: ['accueil', 'accueilTop'] },
+
+    accueilApercu:   { defaut: true,      type: 'bool', sous: ['accueil', 'apercu'] },
+    accueilDebut:    { defaut: true,      type: 'bool', sous: ['accueil'] },
+
+    accueilRdv:      { defaut: true,      type: 'bool', sous: ['accueil'] },
+    accueilEtiquettes: { defaut: true,    type: 'bool', sous: ['accueil'] },
+    accueilAbsence:  { defaut: true,      type: 'bool', sous: ['accueil'] },
+    accueilPourquoi: { defaut: true,      type: 'bool', sous: ['accueil'] },
+    accueilRanger:   { defaut: true,      type: 'bool', sous: ['accueil'] },
+
     abonnes:         { defaut: 'plein',   type: 'choix',
                        valeurs: ['plein', 'discret', 'aucun'], css: true },
     subathonJour:    { defaut: true,      type: 'bool', css: true },
@@ -2534,11 +3502,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     theme:           { defaut: 'auto',    type: 'choix', valeurs: ['auto', 'dark', 'light'] }
   });
 
+  const RE_LOGIN_OPTION = /^[a-z0-9_]{1,25}$/;
   const options = (() => {
     const valeurs = Object.create(null);
-    for (const [id, d] of Object.entries(OPT_DEFS)) {
-      valeurs[id] = Array.isArray(d.defaut) ? d.defaut.slice() : d.defaut;
-    }
 
     const propre = (id, v) => {
       const d = OPT_DEFS[id];
@@ -2553,9 +3519,24 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         const gardes = v.filter((x) => d.valeurs.includes(x));
         return [...new Set(gardes)];
       }
+
+      if (d.type === 'liste') {
+        if (!Array.isArray(v)) return undefined;
+        const gardes = [];
+        for (const x of v) {
+          const l = typeof x === 'string' ? x.trim().toLowerCase() : '';
+          if (gardes.length < d.max && RE_LOGIN_OPTION.test(l) && !gardes.includes(l)) gardes.push(l);
+        }
+        return gardes;
+      }
       return undefined;
     };
 
+    const auxDefauts = () => {
+      for (const [id, d] of Object.entries(OPT_DEFS)) {
+        valeurs[id] = Array.isArray(d.defaut) ? d.defaut.slice() : d.defaut;
+      }
+    };
     const charger = () => {
       let brut = null;
       try { brut = JSON.parse(localStorage.getItem(CFG.OPTIONS_KEY) || 'null'); }
@@ -2589,6 +3570,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     const abonnes = new Set();
     const prevenir = () => { for (const f of abonnes) { try { f(); } catch {   } } };
 
+    auxDefauts();
     charger();
 
     return {
@@ -2619,14 +3601,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         ecrire(); prevenir();
         return true;
       },
-      remettre: () => {
-        for (const [id, d] of Object.entries(OPT_DEFS)) {
-          valeurs[id] = Array.isArray(d.defaut) ? d.defaut.slice() : d.defaut;
-        }
-        ecrire(); prevenir();
-      },
+      remettre: () => { auxDefauts(); ecrire(); prevenir(); },
 
-      relire: () => { charger(); prevenir(); },
+      relire: () => { auxDefauts(); charger(); prevenir(); },
       surChangement: (f) => { abonnes.add(f); }
     };
   })();
@@ -2680,8 +3657,20 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
   appliquerOptions();
 
   window.addEventListener('storage', (e) => {
-    if (e.key === CFG.OPTIONS_KEY) options.relire();
+    if (e.key === CFG.OPTIONS_KEY || e.key === null) options.relire();
   });
+
+  try {
+    const brut = localStorage.getItem('tse:ecartees');
+    if (brut !== null) {
+      let x = null;
+      try { x = JSON.parse(brut); } catch { x = null; }
+      const anciens = x && typeof x === 'object' && !Array.isArray(x)
+        ? Object.values(x).filter(Array.isArray).flat() : [];
+      if (anciens.length) options.poser('accueilTopEcartees', [...options.get('accueilTopEcartees'), ...anciens]);
+      localStorage.removeItem('tse:ecartees');
+    }
+  } catch {   }
 
   const state = {
 
@@ -4810,6 +5799,775 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     .tse-salle__onglet[aria-selected="true"] { color: var(--tse-texte); border-bottom-color: #9147ff; }
     .tse-salle__onglet:focus-visible { outline: 2px solid #9147ff; outline-offset: -2px; }
     .tse-salle__chat iframe { flex: 1 1 auto; width: 100%; border: 0; }
+    
+    .tse-zap-porteur { display: flex; align-items: center; flex: 0 0 auto; margin-left: 8px; }
+    .tse-zap-bouton {
+      display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0;
+      border: 0; border-radius: var(--border-radius-medium, 4px); cursor: pointer;
+      background: var(--color-background-button-secondary-default, rgba(83, 83, 95, 0.38));
+      color: var(--color-fill-button-icon, #efeff1);
+    }
+    .tse-zap-bouton:hover { background: var(--color-background-button-secondary-hover, rgba(83, 83, 95, 0.48)); }
+    .tse-zap-bouton:focus-visible { outline: 2px solid #9147ff; outline-offset: 2px; }
+    .tse-zap-bouton svg { width: 20px; height: 20px; fill: currentColor; }
+    #tse-zap {
+      position: fixed; inset: 0; z-index: 9000; overflow: hidden; background: #000; color: #fff;
+      font-family: Inter, Roobert, "Helvetica Neue", Helvetica, Arial, sans-serif; line-height: 1.35;
+      --tse-zap-marge: clamp(20px, 3.2vw, 60px); --tse-zap-colonne: 330px;
+    }
+    #tse-zap:focus { outline: none; }
+    
+    .tse-zap__scene { position: absolute; inset: 0; z-index: 0; }
+    .tse-zap__lecteur {
+      position: absolute; left: 50%; top: 50%; width: max(100vw, 177.78vh); height: max(100vh, 56.25vw);
+      transform: translate(-50%, -50%); border: 0; opacity: 0; pointer-events: none;
+      transition: opacity ${CFG.ZAP_FONDU_MS}ms ease;
+    }
+    
+    .tse-zap__lecteur--attente { z-index: 0; }
+    .tse-zap__lecteur--sortant { z-index: 1; opacity: 1; }
+    .tse-zap__lecteur--courant { z-index: 2; }
+    .tse-zap__lecteur--courant.tse-zap__lecteur--pret { opacity: 1; }
+    .tse-zap__capot {
+      position: absolute; inset: 0;
+      background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.55) 0, rgba(0, 0, 0, 0) 22%),
+        linear-gradient(0deg, rgba(0, 0, 0, 0.88) 0, rgba(0, 0, 0, 0.35) 24%, rgba(0, 0, 0, 0) 42%),
+        linear-gradient(270deg, rgba(0, 0, 0, 0.4) 0, rgba(0, 0, 0, 0) 32%);
+    }
+    .tse-zap__trait { position: absolute; left: 0; right: 0; top: 0; height: 4px; background: linear-gradient(90deg, #e9407a, #9147ff 50%, #3d7cff); }
+    .tse-zap__compteur, .tse-zap__aide, .tse-zap__chaine, .tse-zap__son {
+      background: rgba(14, 14, 16, 0.82); border-radius: 8px; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07);
+    }
+    .tse-zap__compteur {
+      position: absolute; left: var(--tse-zap-marge); top: 44px; display: flex; align-items: center; gap: 14px;
+      padding: 12px 18px; font-size: 15px; color: #dedee3;
+    }
+    .tse-zap__rang { font-size: 28px; font-weight: 700; color: #fff; font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
+    .tse-zap__aide {
+      position: absolute; right: var(--tse-zap-marge); top: 44px; display: flex; align-items: center; flex-wrap: wrap;
+      gap: 8px 18px; padding: 10px 16px; max-width: calc(100vw - 2 * var(--tse-zap-marge) - 360px);
+      font-size: 14px; color: #e5e5ea;
+    }
+    .tse-zap__groupe { display: inline-flex; align-items: center; gap: 6px; }
+    .tse-zap__touche {
+      display: inline-flex; align-items: center; gap: 8px; padding: 0; border: 0; border-radius: 4px; background: none;
+      color: #e5e5ea; font: inherit; font-size: 14px; cursor: pointer;
+    }
+    .tse-zap__touche[hidden] { display: none; }
+    .tse-zap__touche:disabled { cursor: default; opacity: 0.45; }
+    .tse-zap__touche:focus-visible { outline: 2px solid #a970ff; outline-offset: 3px; }
+    .tse-zap__libelle { white-space: nowrap; }
+    .tse-zap__kbd {
+      display: inline-flex; align-items: center; justify-content: center; min-width: 26px; height: 24px; padding: 0 7px;
+      border-radius: 4px; background: rgba(255, 255, 255, 0.12); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22);
+      font: 700 12px/1 Inter, Roobert, "Helvetica Neue", Helvetica, Arial, sans-serif; color: #fff;
+    }
+    .tse-zap__touche--fleche .tse-zap__kbd { width: 26px; min-width: 0; padding: 0; }
+    .tse-zap__touche:not(:disabled):hover .tse-zap__kbd { background: rgba(255, 255, 255, 0.22); }
+    
+    .tse-zap__liste {
+      position: absolute; right: calc(var(--tse-zap-marge) - 12px); top: 140px; bottom: 140px; width: calc(var(--tse-zap-colonne) + 24px);
+      box-sizing: border-box; margin: 0; padding: 10px 12px 28px; list-style: none; display: flex; flex-direction: column; gap: 10px;
+      overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none;
+      -webkit-mask-image: linear-gradient(#000 calc(100% - 28px), transparent); mask-image: linear-gradient(#000 calc(100% - 28px), transparent);
+    }
+    .tse-zap__liste::-webkit-scrollbar { display: none; }
+    .tse-zap__item { flex: 0 0 auto; }
+    .tse-zap__chaine {
+      display: flex; align-items: center; gap: 12px; width: 100%; padding: 8px; border: 0; text-align: left;
+      color: #fff; font: inherit; cursor: pointer;
+    }
+    .tse-zap__chaine:hover { background: rgba(31, 31, 35, 0.92); }
+    .tse-zap__chaine:focus-visible { outline: 2px solid #a970ff; outline-offset: 2px; }
+    .tse-zap__chaine--courante { box-shadow: inset 0 0 0 2px #a970ff, 0 0 0 1px rgba(169, 112, 255, 0.35), 0 0 22px rgba(145, 71, 255, 0.45); }
+    .tse-zap__vignette { flex: 0 0 auto; width: 112px; aspect-ratio: 16 / 9; border-radius: 4px; object-fit: cover; background: #26262c; }
+    .tse-zap__chaine-textes { display: grid; gap: 2px; min-width: 0; }
+    .tse-zap__chaine-nom { font-size: 15px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tse-zap__chaine-meta { font-size: 12.5px; color: #adadb8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tse-zap__marques { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px; }
+    .tse-zap__marques:empty { display: none; }
+    .tse-zap__marque { padding: 1px 7px; border-radius: 999px; font-size: 11px; font-weight: 700; line-height: 1.4; }
+    .tse-zap__marque--prechargee { color: #3ccf7e; box-shadow: inset 0 0 0 1px #3ccf7e; }
+    .tse-zap__marque--salle { color: #c8a6ff; box-shadow: inset 0 0 0 1px #a970ff; }
+    .tse-zap__infos {
+      position: absolute; left: var(--tse-zap-marge); bottom: 56px; right: calc(var(--tse-zap-marge) + var(--tse-zap-colonne) + 40px);
+      display: flex; align-items: center; gap: 22px; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+    }
+    .tse-zap__infos[hidden] { display: none; }
+    .tse-zap__visage {
+      position: relative; flex: 0 0 auto; width: 76px; height: 76px; border-radius: 50%; overflow: hidden;
+      display: grid; place-items: center; font-size: 32px; font-weight: 700;
+      background: linear-gradient(135deg, #b23ad8, #6b2bd9); box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.14);
+    }
+    .tse-zap__visage img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .tse-zap__visage img[hidden] { display: none; }
+    .tse-zap__textes { display: grid; gap: 6px; min-width: 0; }
+    .tse-zap__ligne-nom { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .tse-zap__nom { font-size: 38px; font-weight: 800; line-height: 1.1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tse-zap__titre-direct { font-size: 20px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tse-zap__titre-direct[hidden] { display: none; }
+    .tse-zap__meta { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 16px; color: #e5e5ea; }
+    .tse-zap__meta-texte { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tse-zap__direct {
+      flex: 0 0 auto; padding: 1px 6px; border-radius: 3px; background: var(--tse-frais, #e91916); color: #fff;
+      font-size: 12px; font-weight: 600; text-transform: uppercase; text-shadow: none;
+    }
+    .tse-zap__direct--hors { background: #53535f; }
+    
+    #tse-zap .tse-subathon-jour {
+      display: inline-grid; flex: 0 0 auto; padding: 2px 7px; border: 2px solid currentColor; border-radius: 6px;
+      font-size: 20px; font-weight: 800; line-height: 1; color: transparent; text-shadow: none;
+    }
+    #tse-zap .tse-subathon-jour[hidden] { display: none; }
+    #tse-zap .tse-subathon-jour > .tse-subathon-teintes {
+      display: grid; grid-area: 1 / 1; margin: -4px -9px; padding: 0; font: inherit; letter-spacing: inherit;
+      border-radius: inherit; isolation: isolate; pointer-events: none;
+    }
+    #tse-zap .tse-subathon-jour > .tse-subathon-teintes > span { padding: 2px 7px; border-width: 2px; }
+    .tse-zap__son {
+      position: absolute; right: var(--tse-zap-marge); bottom: 56px; display: inline-flex; align-items: center; gap: 10px;
+      padding: 10px 16px; border: 0; color: #fff; font: inherit; font-size: 15px; cursor: pointer;
+    }
+    .tse-zap__son[hidden] { display: none; }
+    .tse-zap__son:hover { background: rgba(31, 31, 35, 0.92); }
+    .tse-zap__son:focus-visible { outline: 2px solid #a970ff; outline-offset: 2px; }
+    .tse-zap__son[aria-pressed="true"] { color: #adadb8; }
+    .tse-zap__son-icone { display: inline-flex; }
+    .tse-zap__son-icone svg { width: 20px; height: 20px; fill: currentColor; }
+    .tse-zap__vide {
+      position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); margin: 0; padding: 18px 26px;
+      border-radius: 10px; background: rgba(14, 14, 16, 0.82); font-size: 18px; text-align: center;
+    }
+    .tse-zap__vide[hidden] { display: none; }
+    .tse-zap__avis {
+      position: absolute; left: 50%; bottom: 170px; transform: translateX(-50%); padding: 10px 18px; border-radius: 8px;
+      background: rgba(14, 14, 16, 0.92); box-shadow: inset 0 0 0 1px rgba(169, 112, 255, 0.55); font-size: 15px;
+    }
+    .tse-zap__avis[hidden] { display: none; }
+    
+    .tse-zap__capot, .tse-zap__trait, .tse-zap__compteur, .tse-zap__aide, .tse-zap__liste, .tse-zap__infos, .tse-zap__son {
+      transition: opacity 0.18s ease;
+    }
+    #tse-zap.tse-zap--repos { cursor: none; }
+    #tse-zap.tse-zap--repos :is(.tse-zap__capot, .tse-zap__trait, .tse-zap__compteur, .tse-zap__aide, .tse-zap__liste, .tse-zap__infos, .tse-zap__son) {
+      opacity: 0; transition-duration: 0.6s;
+    }
+    @media (max-width: 1100px) {
+      #tse-zap { --tse-zap-colonne: 260px; }
+      .tse-zap__vignette { width: 88px; }
+      .tse-zap__nom { font-size: 30px; }
+      .tse-zap__titre-direct { font-size: 17px; }
+    }
+    @media (max-width: 760px) {
+      .tse-zap__liste { display: none; }
+      .tse-zap__infos { right: var(--tse-zap-marge); bottom: 110px; }
+      .tse-zap__aide { left: var(--tse-zap-marge); top: 110px; max-width: none; }
+    }
+
+    
+    #tse-accueil {
+      --tse-hausse: #3ccf91; --tse-baisse: #ff7a7a; --tse-violet-texte: #bf94ff;
+      display: block; margin: 0 0 12px; padding: 10px 30px 0; color: var(--tse-texte);
+    }
+    html[data-tse-theme="light"] #tse-accueil {
+      --tse-hausse: #0a7a4b; --tse-baisse: #c62828; --tse-violet-texte: #772ce8;
+    }
+    
+    #tse-accueil[hidden], #tse-accueil [hidden],
+    #tse-accueil-heros[hidden], #tse-accueil-heros [hidden] { display: none !important; }
+    
+    .tse-acc-masque { display: none !important; }
+    
+    html[data-tse-accueil-carrousel] [data-a-target="front-page-carousel"],
+    html[data-tse-accueil-carrousel] .front-page-carousel { display: none !important; }
+    html[data-tse-accueil-voile] main .root-scrollable__content { visibility: hidden !important; }
+    #tse-accueil a:focus-visible, #tse-accueil-heros a:focus-visible { outline: 2px solid #9147ff; outline-offset: 2px; border-radius: 6px; }
+    
+    html[data-tse-off~="duree"] #tse-accueil .tse-acc-duree,
+    html[data-tse-off~="duree"] #tse-accueil-heros .tse-acc-heros-duree { display: none !important; }
+
+    .tse-acc-titre {
+      display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px; margin: 16px 0 10px;
+      font-size: 18px; font-weight: 600; line-height: 1.25; color: var(--tse-texte);
+    }
+    .tse-acc-langue { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 600; color: var(--tse-texte-doux); }
+
+    
+    .tse-acc-filet {
+      flex: 1 1 0; min-width: 0; height: 0; margin: 0; border: 0;
+      border-top: 1px solid var(--color-border-base, rgba(var(--tse-encre), 0.12));
+    }
+    .tse-acc-liste {
+      --tse-col: ${CFG.ACCUEIL_CARTE_MIN}px;
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(min(var(--tse-col), 100%), 1fr));
+      gap: ${CFG.ACCUEIL_ECARTS}; margin: 0; padding: 0; list-style: none;
+    }
+    
+    .tse-acc-pied { display: flex; align-items: center; min-height: 30px; margin: 14px 0 4px; }
+    .tse-acc-plus {
+      flex: 0 0 auto; display: inline-flex; align-items: center; gap: 2px; height: 30px; margin: 0 10px;
+      padding: 0 6px 0 10px; border: 0; border-radius: 4px; background: transparent; cursor: pointer;
+      font: inherit; font-size: 13px; font-weight: 600; line-height: 30px; white-space: nowrap;
+      
+      color: var(--color-text-link, var(--tse-violet-texte));
+    }
+    .tse-acc-plus:hover { background: rgba(var(--tse-encre), 0.1); color: var(--color-text-link, var(--tse-violet-texte)); }
+    .tse-acc-plus:focus-visible { outline: 2px solid #9147ff; outline-offset: 1px; }
+    .tse-acc-plus svg { width: 20px; height: 20px; fill: currentColor; transition: transform 0.2s ease; }
+    .tse-acc-plus[aria-expanded="true"] svg { transform: rotate(180deg); }
+
+    
+    .tse-acc-carte { min-width: 0; }
+    
+    .tse-acc-vignette {
+      position: relative; display: block; aspect-ratio: 16 / 9; border-radius: 0;
+      overflow: hidden; background: var(--tse-surface-2);
+    }
+    .tse-acc-img { display: block; width: 100%; height: 100%; object-fit: cover; }
+    /* LE RELIEF AU SURVOL (4.32.0.3, cf. fabriquerCarte), celui de
+       \`tw-hover-accent-effect\`. Au repos, rien : le relief est replié sur
+       les bords gauche et bas, sans surface. Au survol, la vignette monte de
+       ${CFG.ACCUEIL_RELIEF_PX} pixels vers la droite, et le relief se déplie
+       derrière elle : le flanc gauche et le dessous d'un bloc, coins biseautés
+       à 45° — exactement la surface que balaie la vignette en montant. Un
+       polygone de six points, les mêmes au repos et au survol : la transition
+       les fait glisser, en ${CFG.ACCUEIL_RELIEF_MS} ms, comme la vignette.
+       AU REPOS, LE RELIEF TIENT DANS LA VIGNETTE : il ne déborde de six pixels,
+       en haut et à droite, qu'au survol. Toujours débordant, il élargissait
+       la grille — la dernière colonne dépassait de la liste, invisible mais
+       mesurable : le banc l'a pris. */
+    .tse-acc-relief { position: relative; --tse-accent: ${CFG.ACCUEIL_RELIEF_DEFAUT}; --tse-relief: ${CFG.ACCUEIL_RELIEF_PX}px; }
+    .tse-acc-accent {
+      position: absolute; top: 0; right: 0; bottom: 0; left: 0;
+      background: var(--tse-accent); pointer-events: none;
+      clip-path: polygon(0 0, 0 0, 0 100%, 100% 100%, 100% 100%, 0 100%);
+      transition: clip-path ${CFG.ACCUEIL_RELIEF_MS}ms ease, top ${CFG.ACCUEIL_RELIEF_MS}ms ease, right ${CFG.ACCUEIL_RELIEF_MS}ms ease;
+    }
+    .tse-acc-relief > .tse-acc-vignette { transition: transform ${CFG.ACCUEIL_RELIEF_MS}ms ease; }
+    
+    .tse-acc-ruban-cadre {
+      position: relative; container-type: inline-size;
+      --tse-ruban-carte: min(${CFG.ACCUEIL_RUBAN_CARTE}px, 70cqw); --tse-ruban-haut: 16px; --tse-ruban-fondu: 56px;
+    }
+    .tse-acc-liste.tse-acc-ruban {
+      display: flex; gap: ${CFG.ACCUEIL_ECARTS.split(' ')[1]}; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain;
+      scroll-snap-type: x mandatory; scrollbar-width: none;
+      padding: var(--tse-ruban-haut) calc(50cqw - var(--tse-ruban-carte) / 2) 28px;
+      -webkit-mask-image: linear-gradient(90deg, transparent, #000 var(--tse-ruban-fondu), #000 calc(100% - var(--tse-ruban-fondu)), transparent);
+      mask-image: linear-gradient(90deg, transparent, #000 var(--tse-ruban-fondu), #000 calc(100% - var(--tse-ruban-fondu)), transparent);
+    }
+    .tse-acc-ruban::-webkit-scrollbar { display: none; }
+    
+    .tse-acc-liste.tse-acc-ruban.tse-acc-ruban--mene { scroll-snap-type: none; }
+    .tse-acc-ruban > .tse-acc-carte, .tse-acc-ruban > .tse-acc-carte-attente {
+      flex: 0 0 var(--tse-ruban-carte); position: relative; isolation: isolate; scroll-snap-align: center;
+    }
+    
+    
+    .tse-acc-ruban > .tse-acc-carte--arrivee { animation: tse-acc-ruban-arrivee ${CFG.ACCUEIL_RUBAN_ENTREE_MS}ms ease-out both; }
+    @keyframes tse-acc-ruban-arrivee { from { opacity: 0; } }
+    @supports (animation-timeline: view()) {
+      .tse-acc-liste.tse-acc-ruban { gap: 0; }
+      .tse-acc-ruban > .tse-acc-carte, .tse-acc-ruban > .tse-acc-carte-attente {
+        margin: 0 calc(var(--tse-ruban-carte) / -7);
+        animation: tse-acc-ruban-plan linear both; animation-timeline: view(inline);
+        view-timeline: --tse-ruban-traversee inline;
+      }
+      .tse-acc-ruban > :first-child { margin-left: 0; }
+      .tse-acc-ruban > :last-child { margin-right: 0; }
+      .tse-acc-ruban > * > :first-child {
+        transform-origin: 50% 100%; animation: tse-acc-ruban linear both; animation-timeline: view(inline);
+      }
+      
+      .tse-acc-ruban > * > :last-child {
+        transform-origin: 50% 0; animation: tse-acc-ruban linear both, tse-acc-ruban-legende linear both;
+        animation-timeline: view(inline), view(inline);
+      }
+      
+      .tse-acc-ruban .tse-acc-relief::after {
+        content: ''; position: absolute; left: 4%; right: 4%; top: 100%; height: 36%; z-index: -1; pointer-events: none;
+        background: radial-gradient(ellipse 50% 100% at 50% 0, var(--tse-accent), transparent 72%);
+        opacity: ${CFG.ACCUEIL_RUBAN_REFLET}; animation: tse-acc-ruban-reflet linear both; animation-timeline: --tse-ruban-traversee;
+      }
+      .tse-acc-ruban > .tse-acc-carte--arrivee {
+        animation: tse-acc-ruban-plan linear both, tse-acc-ruban-arrivee ${CFG.ACCUEIL_RUBAN_ENTREE_MS}ms ease-out both;
+        animation-timeline: view(inline), auto;
+      }
+    }
+    @keyframes tse-acc-ruban {
+      0% { transform: perspective(${CFG.ACCUEIL_RUBAN_PERSPECTIVE}px) rotateY(${CFG.ACCUEIL_RUBAN_ANGLE}deg) scale(${CFG.ACCUEIL_RUBAN_ECHELLE}) translateZ(-${CFG.ACCUEIL_RUBAN_RECUL}px); }
+      50% { transform: perspective(${CFG.ACCUEIL_RUBAN_PERSPECTIVE}px) rotateY(0deg) scale(1) translateZ(0px); }
+      100% { transform: perspective(${CFG.ACCUEIL_RUBAN_PERSPECTIVE}px) rotateY(-${CFG.ACCUEIL_RUBAN_ANGLE}deg) scale(${CFG.ACCUEIL_RUBAN_ECHELLE}) translateZ(-${CFG.ACCUEIL_RUBAN_RECUL}px); }
+    }
+    @keyframes tse-acc-ruban-plan { 0%, 100% { z-index: 0; filter: brightness(0.5); } 50% { z-index: 10; filter: none; } }
+    @keyframes tse-acc-ruban-legende { 0%, 40%, 60%, 100% { opacity: 0; } 50% { opacity: 1; } }
+    @keyframes tse-acc-ruban-reflet { 0%, 40%, 60%, 100% { opacity: ${CFG.ACCUEIL_RUBAN_REFLET}; } 50% { opacity: 0; } }
+    
+    .tse-acc-ruban .tse-acc-relief { box-shadow: 0 12px 30px rgba(0, 0, 0, 0.55); }
+    .tse-acc-ruban-fleche {
+      position: absolute; z-index: 20; top: calc(var(--tse-ruban-haut) + var(--tse-ruban-carte) * 9 / 32 - 20px);
+      width: 40px; height: 40px; padding: 0; border: 0; border-radius: 50%; cursor: pointer;
+      display: inline-flex; align-items: center; justify-content: center;
+      background: rgba(14, 14, 16, 0.72); color: #fff; transition: opacity 0.15s ease, background 0.15s ease;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12), 0 6px 18px rgba(0, 0, 0, 0.45);
+      -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+    }
+    .tse-acc-ruban-fleche--prec { left: 8px; }
+    .tse-acc-ruban-fleche--suiv { right: 8px; }
+    .tse-acc-ruban-fleche svg { width: 22px; height: 22px; fill: currentColor; }
+    .tse-acc-ruban-fleche--prec svg { transform: rotate(90deg); }
+    .tse-acc-ruban-fleche--suiv svg { transform: rotate(-90deg); }
+    .tse-acc-ruban-fleche:hover { background: rgba(14, 14, 16, 0.92); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.24), 0 6px 18px rgba(0, 0, 0, 0.45); }
+    .tse-acc-ruban-fleche:focus-visible { outline: 2px solid #9147ff; outline-offset: 2px; }
+    .tse-acc-ruban-fleche:disabled { opacity: 0; pointer-events: none; }
+    .tse-acc-relief:hover > .tse-acc-vignette,
+    .tse-acc-relief:focus-within > .tse-acc-vignette { transform: translate(var(--tse-relief), calc(-1 * var(--tse-relief))); }
+    .tse-acc-relief:hover > .tse-acc-accent,
+    .tse-acc-relief:focus-within > .tse-acc-accent {
+      top: calc(-1 * var(--tse-relief)); right: calc(-1 * var(--tse-relief));
+      clip-path: polygon(0 var(--tse-relief), var(--tse-relief) 0, var(--tse-relief) calc(100% - var(--tse-relief)),
+                         100% calc(100% - var(--tse-relief)), calc(100% - var(--tse-relief)) 100%, 0 100%);
+    }
+    .tse-acc-direct, .tse-acc-duree, .tse-acc-spect {
+      position: absolute; padding: 0 5px; border-radius: 4px;
+      font-size: 12px; font-weight: 600; line-height: 18px; white-space: nowrap; color: #fff;
+    }
+    .tse-acc-direct { top: 8px; left: 8px; background: var(--tse-frais); text-transform: uppercase; }
+    .tse-acc-duree { top: 8px; right: 8px; background: rgba(0, 0, 0, 0.62); font-variant-numeric: tabular-nums; }
+    .tse-acc-spect { bottom: 8px; left: 8px; background: rgba(0, 0, 0, 0.62); font-weight: 500; }
+    
+    .tse-acc-absence-tete { display: flex; align-items: center; gap: 10px; }
+    .tse-acc-absence-tete .tse-acc-titre { flex: 1 1 auto; min-width: 0; }
+    .tse-acc-absence-fermer {
+      flex: 0 0 auto; width: 28px; height: 28px; margin-top: 6px; border: 0; border-radius: 6px;
+      background: transparent; color: var(--tse-texte-doux); font-size: 18px; line-height: 28px; cursor: pointer;
+    }
+    .tse-acc-absence-fermer:hover { background: rgba(var(--tse-encre), 0.1); color: var(--tse-texte); }
+    .tse-acc-absence-fermer:focus-visible { outline: 2px solid #9147ff; outline-offset: 1px; }
+    .tse-acc-direct.tse-acc-direct--archive { background: rgba(0, 0, 0, 0.62); }
+    .tse-acc-vignette--avatar .tse-acc-img { filter: blur(14px) brightness(0.55); transform: scale(1.2); }
+    
+    .tse-acc-vignette[data-tse-etiquette]::after,
+    main a[data-a-target="preview-card-image-link"][data-tse-etiquette]::after {
+      content: attr(data-tse-etiquette); position: absolute; right: 8px; bottom: 8px; z-index: 3;
+      box-sizing: border-box; max-width: calc(55% - 8px); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      height: 22px; padding: 0 9px 0 22px; border: 1px solid currentColor; border-radius: 999px;
+      background: radial-gradient(circle at 12.5px 50%, currentColor 3.5px, transparent 4px), rgba(14, 14, 16, 0.86);
+      color: var(--tse-etiq-couleur, #fff); font-family: inherit; font-size: 12px; font-weight: 700; line-height: 20px;
+      pointer-events: none;
+    }
+    
+    [data-tse-etiq="retour"]   { --tse-etiq-couleur: #6bdb9d; }
+    [data-tse-etiq="subathon"] { --tse-etiq-couleur: #ffe38f; }
+    [data-tse-etiq="commence"] { --tse-etiq-couleur: #ff6b62; }
+    [data-tse-etiq="bascule"]  { --tse-etiq-couleur: #bf94ff; }
+    [data-tse-etiq="tendance"] { --tse-etiq-couleur: #6bdb9d; }
+    [data-tse-etiq="rang"]     { --tse-etiq-couleur: #ffd68a; }
+    [data-tse-etiq="costream"] { --tse-etiq-couleur: #8fc7ff; }
+    
+    .tse-acc-vignette[data-tse-etiq="subathon"]::after,
+    main a[data-a-target="preview-card-image-link"][data-tse-etiq="subathon"]::after {
+      animation: tse-acc-etiq-subathon 1.5s linear infinite;
+    }
+    @keyframes tse-acc-etiq-subathon {
+      0%, 100% { color: #ff8f8f; } 12.5% { color: #ffe38f; } 25% { color: #c7ff8f; } 37.5% { color: #8fffb4; }
+      50% { color: #8ffdff; } 62.5% { color: #8fabff; } 75% { color: #c78fff; } 87.5% { color: #ff8fe3; }
+    }
+    
+    main a[data-a-target="preview-card-image-link"][data-tse-etiquette] { position: relative; display: block !important; }
+    
+    html[data-tse-ranger] main h2[data-tse-masquable] { position: relative; width: fit-content; }
+    html[data-tse-ranger] main h2[data-tse-masquable]::after {
+      content: attr(data-tse-masquer); position: absolute; left: calc(100% + 12px); top: 50%; transform: translateY(-50%);
+      padding: 2px 8px; border-radius: 4px; white-space: nowrap; cursor: pointer;
+      font-size: 12px; font-weight: 600; line-height: 1.5; color: var(--tse-texte-doux); background: rgba(var(--tse-encre), 0.08);
+    }
+    html[data-tse-ranger] main h2[data-tse-masquable]:hover::after { color: var(--tse-texte); background: rgba(var(--tse-encre), 0.14); }
+    html[data-tse-ranger] main [data-tse-masque] [aria-labelledby] { display: none !important; }
+    html[data-tse-ranger] main [data-tse-masque] h2[data-tse-masquable] { opacity: 0.6; }
+    /* LES RAYONS DE TWITCH À LA TAILLE DES NÔTRES (4.32.0.2, « les listes
+       natives sont plus petites ; reprends ce que l'extension fait ») : la
+       grille de nos rayons — autant de colonnes que tient une carte de
+       ${CFG.ACCUEIL_CARTE_MIN} pixels, les mêmes écarts —, à toutes les
+       largeurs. Jusque-là, huit colonnes à partir de 1600 pixels : des
+       cartes plus petites que les nôtres, juste au-dessus. Seulement les
+       rayons de directs — ceux qui portent des cartes d'aperçu — : les
+       jaquettes des catégories gardent la mise en page de Twitch. */
+    html[data-tse-ranger] main .find-me [aria-labelledby] .tw-tower:has(a[data-a-target="preview-card-image-link"]) {
+      display: grid !important; grid-template-columns: repeat(auto-fill, minmax(min(${CFG.ACCUEIL_CARTE_MIN}px, 100%), 1fr)) !important;
+      gap: ${CFG.ACCUEIL_ECARTS} !important;
+    }
+    html[data-tse-ranger] main .find-me [aria-labelledby] .tw-tower:has(a[data-a-target="preview-card-image-link"]) > * {
+      width: auto !important; min-width: 0 !important; max-width: none !important; flex: none !important; margin: 0 !important;
+      padding: 0 !important;
+    }
+    html[data-tse-ranger] main a[data-tse-vignette] { background: #18181b var(--tse-vignette) center / cover no-repeat; }
+    html[data-tse-ranger] main a[data-tse-vignette="avatar"] { background-size: contain; }
+    html[data-tse-ranger] main a[data-tse-vignette] img[src*="/ttv-static/404_preview"] { opacity: 0 !important; }
+    
+    html[data-tse-ranger] main a[data-a-target="preview-card-image-link"] div:has(> .tw-channel-status-text-indicator),
+    html[data-tse-ranger] main a[data-a-target="preview-card-image-link"] div:has(> .tw-media-card-stat) {
+      position: absolute !important; margin: 0 !important; padding: 0 !important; left: 8px !important; right: auto !important;
+    }
+    html[data-tse-ranger] main a[data-a-target="preview-card-image-link"] div:has(> .tw-channel-status-text-indicator) {
+      top: 8px !important; bottom: auto !important;
+    }
+    html[data-tse-ranger] main a[data-a-target="preview-card-image-link"] div:has(> .tw-media-card-stat) {
+      bottom: 8px !important; top: auto !important;
+    }
+    html[data-tse-ranger] main a[data-a-target="preview-card-image-link"] .tw-channel-status-text-indicator,
+    html[data-tse-ranger] main a[data-a-target="preview-card-image-link"] .tw-media-card-stat {
+      display: block !important; height: auto !important; margin: 0 !important; padding: 0 5px !important; border: 0 !important;
+      border-radius: 4px !important; color: #fff !important; font-family: inherit !important; font-size: 12px !important;
+      line-height: 18px !important; white-space: nowrap !important;
+    }
+    html[data-tse-ranger] main a[data-a-target="preview-card-image-link"] .tw-channel-status-text-indicator {
+      background: var(--tse-frais) !important; font-weight: 600 !important; text-transform: uppercase !important;
+    }
+    html[data-tse-ranger] main a[data-a-target="preview-card-image-link"] .tw-channel-status-text-indicator * {
+      margin: 0 !important; padding: 0 !important; color: inherit !important; font: inherit !important; text-transform: inherit !important;
+    }
+    html[data-tse-ranger] main a[data-a-target="preview-card-image-link"] .tw-media-card-stat {
+      background: rgba(0, 0, 0, 0.62) !important; font-weight: 500 !important;
+    }
+    
+    html[data-tse-ranger] main a[data-a-target="preview-card-image-link"] .tw-media-card-stat {
+      display: flex !important; align-items: center !important;
+    }
+    
+    html[data-tse-ranger] main a[data-a-target="preview-card-image-link"] .tw-media-card-stat[data-tse-spect] { font-size: 0 !important; }
+    html[data-tse-ranger] main a[data-a-target="preview-card-image-link"] .tw-media-card-stat[data-tse-spect]::before {
+      content: attr(data-tse-spect); font-size: 12px;
+    }
+    
+    html[data-tse-ranger] main a[data-a-target="preview-card-image-link"] .tw-media-card-stat[data-tse-spect],
+    html[data-tse-ranger] main a[data-a-target="preview-card-image-link"] .tw-media-card-stat[data-tse-spect] :not(svg, svg *) {
+      column-gap: 0 !important;
+    }
+    html[data-tse-ranger] main a[data-a-target="preview-card-image-link"] .tw-media-card-stat[data-tse-spect] :not(svg, svg *) {
+      margin: 0 !important;
+    }
+    html[data-tse-ranger] main a[data-a-target="preview-card-image-link"] .tw-media-card-stat[data-tse-spect]:has(svg, img)::before {
+      margin-right: 4px;
+    }
+    html[data-tse-ranger] main a[data-a-target="preview-card-image-link"][data-tse-duree] { position: relative; display: block !important; }
+    html[data-tse-ranger] main a[data-a-target="preview-card-image-link"][data-tse-duree]::before {
+      content: attr(data-tse-duree); position: absolute; top: 8px; right: 8px; z-index: 3; padding: 0 5px; border-radius: 4px;
+      background: rgba(0, 0, 0, 0.62); color: #fff; font-family: inherit; font-size: 12px; font-weight: 600; line-height: 18px;
+      white-space: nowrap; font-variant-numeric: tabular-nums; pointer-events: none;
+    }
+    html[data-tse-off~="duree"] main a[data-a-target="preview-card-image-link"][data-tse-duree]::before { display: none; }
+    html[data-tse-ranger]:not([data-tse-off~="duree"]) main a[data-a-target="preview-card-image-link"][data-tse-duree] .seventv-stream-card-uptime-badge {
+      display: none !important;
+    }
+    main a[data-a-target="preview-card-image-link"][data-tse-etiq-coin="haut"]::after { bottom: auto; top: 8px; }
+    
+    html[data-tse-ranger]:not([data-tse-off~="duree"]) main a[data-a-target="preview-card-image-link"][data-tse-duree][data-tse-etiq-coin="haut"]::after {
+      top: 32px;
+    }
+    main a[data-a-target="preview-card-image-link"][data-tse-etiq-coin="aucun"]::after { display: none; }
+    .tse-acc-infos { display: flex; gap: 10px; min-width: 0; padding-top: 8px; }
+    .tse-acc-avatar { flex: 0 0 40px; width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: var(--tse-surface-2); }
+    .tse-acc-textes { flex: 1 1 auto; min-width: 0; }
+    
+    .tse-acc-nom-ligne { display: flex; align-items: center; gap: 8px; min-width: 0; }
+    .tse-acc-nom {
+      flex: 0 1 auto; min-width: 0; color: var(--tse-texte); font-size: 14px; font-weight: 600; line-height: 1.3;
+      text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .tse-acc-nom:hover { color: var(--tse-violet-texte); }
+    .tse-acc-titre-carte, .tse-acc-jeu {
+      margin: 2px 0 0; font-size: 13px; line-height: 1.35; color: var(--tse-texte-doux);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    
+    .tse-acc-cs {
+      flex: 0 0 auto; display: inline-flex; align-items: center; gap: 2px; margin: 0 0 0 -4px; padding: 0 2px 0 4px;
+      border: 0; border-radius: 4px; background: transparent; color: var(--tse-texte);
+      font: inherit; font-size: 13px; font-weight: 400; line-height: 20px; white-space: nowrap; cursor: pointer;
+    }
+    .tse-acc-cs:hover, .tse-acc-cs[aria-expanded="true"] { background: rgba(var(--tse-encre), 0.1); }
+    .tse-acc-cs:focus-visible { outline: 2px solid var(--tse-violet-texte); outline-offset: 1px; }
+    .tse-acc-cs svg { flex: 0 0 16px; width: 16px; height: 16px; fill: currentColor; }
+    
+    .tse-acc-cs-fen {
+      position: fixed; inset: auto; margin: 0; box-sizing: border-box;
+      min-width: 200px; max-width: min(320px, calc(100vw - 16px)); padding: 6px; overflow: visible;
+      border: 1px solid rgba(var(--tse-encre), 0.12); border-radius: 6px;
+      background: var(--tse-surface); color: var(--tse-texte); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+      font-size: 13px; line-height: 18px; text-align: left;
+    }
+    .tse-acc-cs-titre { margin: 6px 6px 2px; font-weight: 700; }
+    .tse-acc-cs-membre {
+      display: flex; align-items: center; gap: 8px; padding: 4px 6px; border-radius: 4px;
+      color: inherit; text-decoration: none;
+    }
+    .tse-acc-cs-membre:hover, .tse-acc-cs-membre:focus-visible { background: var(--tse-surface-2); }
+    .tse-acc-cs-membre:focus-visible { outline: 2px solid var(--tse-violet-texte); outline-offset: -2px; }
+    .tse-acc-cs-avatar {
+      flex: 0 0 24px; width: 24px; height: 24px; border-radius: 50%; overflow: hidden; background: var(--tse-surface-2);
+    }
+    
+    .tse-acc-cs-avatar img { display: block; width: 100%; height: 100%; object-fit: cover; }
+    .tse-acc-cs-nom { flex: 1 1 auto; min-width: 0; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    
+    .tse-acc-cs-vues {
+      flex: 0 0 auto; display: inline-flex; align-items: center; gap: 5px; margin-left: 12px;
+      font-variant-numeric: tabular-nums; white-space: nowrap;
+    }
+    .tse-acc-cs-vues::before { content: ""; flex: 0 0 8px; width: 8px; height: 8px; border-radius: 50%; background: var(--tse-frais); }
+    
+    .tse-acc-debut {
+      display: flex; width: fit-content; align-items: center; gap: 5px; margin-top: 6px; padding: 0 8px;
+      border-radius: 4px; background: rgba(var(--tse-encre), 0.1); color: var(--tse-texte);
+      font-size: 12px; font-weight: 600; line-height: 24px; text-decoration: none; white-space: nowrap;
+    }
+    .tse-acc-debut:hover { background: rgba(var(--tse-encre), 0.18); }
+    
+    .tse-acc-debut[data-tse-reserve] { visibility: hidden; }
+    .tse-acc-debut { min-height: 24px; box-sizing: border-box; }
+    
+    .tse-acc-carte-attente { min-width: 0; }
+    .tse-acc-place--attente .tse-acc-vignette, .tse-acc-place--attente .tse-acc-avatar, .tse-acc-os,
+    .tse-acc-carte-attente .tse-acc-vignette, .tse-acc-carte-attente .tse-acc-avatar {
+      animation: tse-acc-attente 1.1s ease-in-out infinite alternate;
+    }
+    .tse-acc-os {
+      display: inline-block; width: 62%; height: 0.75em; border-radius: 4px; vertical-align: middle;
+      background: var(--tse-surface-2);
+    }
+    .tse-acc-place--attente .tse-acc-jeu .tse-acc-os, .tse-acc-carte-attente .tse-acc-jeu .tse-acc-os { width: 38%; }
+    
+    .tse-acc-ligne-os { margin: 0; font-size: 14px; line-height: 1.3; }
+    @keyframes tse-acc-attente { from { opacity: 0.55; } to { opacity: 1; } }
+    .tse-acc-debut svg, .tse-acc-bouton svg { flex: 0 0 auto; width: 12px; height: 12px; fill: currentColor; }
+
+    
+    .tse-acc-sous-titre { font-size: 13px; font-weight: 500; color: var(--tse-texte-doux); }
+    .tse-acc-liste--rdv { --tse-col: 250px; }
+    .tse-acc-rdv {
+      display: flex; gap: 12px; min-width: 0; height: 156px; box-sizing: border-box; padding: 12px;
+      border-radius: 6px; background: var(--tse-surface); overflow: hidden;
+    }
+    .tse-acc-rdv--habitude { height: 104px; }
+    .tse-acc-rayon--habitudes .tse-acc-rdv--attente { height: 104px; }
+    .tse-acc-rdv-av { flex: 0 0 48px; display: block; }
+    .tse-acc-rdv .tse-acc-avatar { display: block; flex-basis: 48px; width: 48px; height: 48px; }
+    .tse-acc-rdv .tse-acc-nom { display: block; }
+    .tse-acc-rdv-quand, .tse-acc-rdv-reste {
+      margin: 0; font-size: 13px; font-weight: 600; line-height: 1.35; font-variant-numeric: tabular-nums;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .tse-acc-rdv-quand { margin-top: 4px; color: var(--tse-texte); }
+    .tse-acc-rdv-reste { color: var(--tse-violet-texte); }
+    .tse-acc-rdv-reste--attendu { color: var(--tse-texte-doux); font-weight: 500; }
+    .tse-acc-rdv-habitude {
+      margin: 4px 0 0; font-size: 13px; line-height: 1.4; color: var(--tse-texte-doux);
+      display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+    }
+    .tse-acc-rappel {
+      display: flex; width: fit-content; align-items: center; gap: 5px; min-height: 24px; box-sizing: border-box;
+      margin-top: 8px; padding: 0 8px; border: 0; border-radius: 4px; background: rgba(var(--tse-encre), 0.1);
+      color: var(--tse-texte); font: inherit; font-size: 12px; font-weight: 600; line-height: 24px;
+      white-space: nowrap; cursor: pointer;
+    }
+    .tse-acc-rappel:hover { background: rgba(var(--tse-encre), 0.18); }
+    .tse-acc-rappel[aria-pressed="true"] { background: #9147ff; color: #fff; }
+    .tse-acc-rappel[aria-pressed="true"]:hover { background: #772ce8; }
+    .tse-acc-rappel:focus-visible { outline: 2px solid #9147ff; outline-offset: 2px; }
+    .tse-acc-rappel svg { flex: 0 0 auto; width: 12px; height: 12px; fill: currentColor; }
+    .tse-acc-rdv--attente .tse-acc-avatar { animation: tse-acc-attente 1.1s ease-in-out infinite alternate; }
+
+    
+    #tse-rappels {
+      position: fixed; left: 16px; bottom: 16px; z-index: 6000; display: flex; flex-direction: column; gap: 8px;
+      width: min(360px, calc(100vw - 32px)); pointer-events: none;
+    }
+    .tse-rappel {
+      pointer-events: auto; display: flex; align-items: center; gap: 10px; padding: 10px 8px 10px 12px;
+      border-radius: 8px; background: var(--color-background-alt, #18181b); color: var(--color-text-base, #efeff1);
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(145, 71, 255, 0.7);
+      font-size: 13px; line-height: 1.35;
+    }
+    .tse-rappel-avatar { flex: 0 0 40px; width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
+    .tse-rappel-textes { flex: 1 1 auto; min-width: 0; }
+    .tse-rappel-textes p { margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tse-rappel-creneau { color: var(--color-text-alt, #adadb8); }
+    .tse-rappel-voir {
+      flex: 0 0 auto; padding: 0 10px; border-radius: 4px; background: #9147ff; color: #fff !important;
+      font-weight: 600; line-height: 28px; text-decoration: none !important; white-space: nowrap;
+    }
+    .tse-rappel-voir:hover { background: #772ce8; }
+    .tse-rappel-fermer {
+      flex: 0 0 auto; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 4px; background: transparent;
+      color: inherit; font: inherit; font-size: 18px; line-height: 28px; cursor: pointer;
+    }
+    .tse-rappel-fermer:hover { background: rgba(127, 127, 127, 0.2); }
+    .tse-rappel-voir:focus-visible, .tse-rappel-fermer:focus-visible { outline: 2px solid #9147ff; outline-offset: 2px; }
+
+    
+    #tse-accueil-heros { display: block; align-self: stretch; margin: 0; padding: 0; }
+    #tse-accueil-heros[data-tse-place="section"] { margin: 0 0 8px; }
+    #tse-accueil-heros[data-tse-place="section"] .tse-acc-heros-cadre { border-radius: 10px; }
+    .tse-acc-heros { container: tse-heros / inline-size; margin: 0; }
+    .tse-acc-heros-cadre {
+      --tse-heros-h: clamp(320px, min(27.78cqw, 60vh), 720px);
+      
+      --tse-fondu: calc(var(--tse-heros-h) * 0.25);
+      position: relative; isolation: isolate; overflow: hidden; height: var(--tse-heros-h);
+      border-radius: 0; color: #efeff1;
+    }
+    
+    .tse-acc-heros-scene {
+      position: absolute; inset: 0; z-index: 0; overflow: hidden; background: #0e0e10;
+      -webkit-mask-image: linear-gradient(0deg, transparent 0,
+        rgba(0, 0, 0, 0.028) calc(var(--tse-fondu) * 0.1), rgba(0, 0, 0, 0.104) calc(var(--tse-fondu) * 0.2),
+        rgba(0, 0, 0, 0.216) calc(var(--tse-fondu) * 0.3), rgba(0, 0, 0, 0.352) calc(var(--tse-fondu) * 0.4),
+        rgba(0, 0, 0, 0.5) calc(var(--tse-fondu) * 0.5), rgba(0, 0, 0, 0.648) calc(var(--tse-fondu) * 0.6),
+        rgba(0, 0, 0, 0.784) calc(var(--tse-fondu) * 0.7), rgba(0, 0, 0, 0.896) calc(var(--tse-fondu) * 0.8),
+        rgba(0, 0, 0, 0.972) calc(var(--tse-fondu) * 0.9), #000 var(--tse-fondu));
+      mask-image: linear-gradient(0deg, transparent 0,
+        rgba(0, 0, 0, 0.028) calc(var(--tse-fondu) * 0.1), rgba(0, 0, 0, 0.104) calc(var(--tse-fondu) * 0.2),
+        rgba(0, 0, 0, 0.216) calc(var(--tse-fondu) * 0.3), rgba(0, 0, 0, 0.352) calc(var(--tse-fondu) * 0.4),
+        rgba(0, 0, 0, 0.5) calc(var(--tse-fondu) * 0.5), rgba(0, 0, 0, 0.648) calc(var(--tse-fondu) * 0.6),
+        rgba(0, 0, 0, 0.784) calc(var(--tse-fondu) * 0.7), rgba(0, 0, 0, 0.896) calc(var(--tse-fondu) * 0.8),
+        rgba(0, 0, 0, 0.972) calc(var(--tse-fondu) * 0.9), #000 var(--tse-fondu));
+    }
+    
+    .tse-acc-heros-fond {
+      position: absolute; z-index: 0; top: -48px; bottom: -48px; right: -48px;
+      width: calc(var(--tse-heros-h) * 32 / 9 + 96px); min-width: calc(100% + 96px);
+      pointer-events: none; filter: blur(40px) saturate(1.45) brightness(0.74);
+    }
+    .tse-acc-heros-reflet { position: absolute; inset: 0; display: flex; }
+    .tse-acc-heros-reflet img { flex: 1 1 50%; min-width: 0; height: 100%; object-fit: cover; }
+    .tse-acc-heros-reflet img:first-child { transform: scaleX(-1); }
+    .tse-acc-heros-ambiance {
+      position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; transition: opacity 0.6s ease;
+    }
+    .tse-acc-heros-ambiance--vue { opacity: 1; }
+    .tse-acc-heros-ambiance--dessus { z-index: 1; }
+    .tse-acc-heros-media {
+      position: absolute; top: 0; right: 0; z-index: 1; height: 100%;
+      aspect-ratio: 16 / 9; max-width: 100%; overflow: hidden;
+      -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 24%);
+      mask-image: linear-gradient(90deg, transparent 0, #000 24%);
+    }
+    .tse-acc-heros-img, .tse-acc-heros-video {
+      position: absolute; inset: 0; display: block; width: 100%; height: 100%; border: 0;
+    }
+    .tse-acc-heros-img { object-fit: cover; }
+    
+    .tse-acc-heros-video { opacity: 0; transition: opacity 0.6s ease; pointer-events: none; }
+    .tse-acc-heros-video[data-tse-loaded="true"] { opacity: 1; }
+    .tse-acc-heros-lien { position: absolute; inset: 0; z-index: 1; }
+    
+    .tse-acc-heros-voile {
+      position: absolute; inset: 0; z-index: 2; pointer-events: none;
+      background:
+        linear-gradient(90deg, rgba(14, 14, 16, 0.72) 0%, rgba(14, 14, 16, 0.5) 28%,
+                        rgba(14, 14, 16, 0.16) 46%, rgba(14, 14, 16, 0) 58%),
+        linear-gradient(0deg, rgba(14, 14, 16, 0.5) 0%, rgba(14, 14, 16, 0) 40%);
+    }
+    
+    .tse-acc-heros-infos {
+      position: absolute; z-index: 3; left: clamp(24px, 2.4cqw, 56px); top: 0; bottom: 0;
+      display: flex; flex-direction: column;
+      width: min(760px, 46%); min-width: 0; padding: 0;
+      text-shadow: 0 1px 12px rgba(0, 0, 0, 0.35);
+    }
+    .tse-acc-heros-infos::before, .tse-acc-heros-infos::after { content: ""; flex: 1 1 0; }
+    .tse-acc-heros-infos::before { min-height: 16px; }
+    .tse-acc-heros-infos::after { min-height: calc(var(--tse-fondu) * 0.8); }
+    .tse-acc-heros-infos > * { flex-shrink: 0; }
+    .tse-acc-heros-l1 {
+      display: flex; align-items: center; gap: 10px; margin: 0;
+      font-size: clamp(13px, 0.7cqw, 15px); font-weight: 500; line-height: 20px; color: rgba(255, 255, 255, 0.8);
+    }
+    .tse-acc-heros-l1 .tse-acc-direct { position: static; font-size: inherit; line-height: 20px; padding: 0 6px; text-shadow: none; }
+    .tse-acc-surtitre { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .tse-acc-heros-tete { display: flex; align-items: center; gap: 14px; min-width: 0; margin: 16px 0 10px; }
+    
+    .tse-acc-heros-tete .tse-acc-avatar {
+      --tse-av: clamp(56px, 2.9cqw, 68px);
+      flex: 0 0 var(--tse-av); width: var(--tse-av); height: var(--tse-av); background: #26262c;
+      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.16);
+    }
+    .tse-acc-heros-nom {
+      min-width: 0; color: #fff; text-decoration: none;
+      font-size: clamp(28px, 2.5cqw, 56px); font-weight: 800; line-height: 1.1; letter-spacing: -0.01em;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .tse-acc-heros-nom:hover { color: #fff; text-decoration: underline; text-underline-offset: 4px; }
+    
+    .tse-acc-heros-abo {
+      flex: 0 0 auto; display: inline-flex; align-items: center; height: 22px; padding: 0 9px;
+      border-radius: 999px; background: rgba(255, 201, 102, 0.22); color: #ffd591; text-shadow: none;
+      font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; white-space: nowrap;
+    }
+    html[data-tse-off~="badge-sub"] #tse-accueil-heros .tse-acc-heros-abo { display: none !important; }
+    .tse-acc-heros-titre {
+      margin: 0 0 8px; color: #fff; font-size: clamp(18px, 1.15cqw, 26px); font-weight: 600; line-height: 1.3;
+      overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    }
+    .tse-acc-heros-meta {
+      display: flex; flex-wrap: wrap; align-items: baseline; margin: 0 0 18px;
+      font-size: clamp(14px, 0.75cqw, 17px); line-height: 1.45; color: rgba(255, 255, 255, 0.8);
+    }
+    .tse-acc-heros-meta > span:not([hidden]) ~ span:not([hidden])::before {
+      content: "·"; margin: 0 8px; color: rgba(255, 255, 255, 0.5);
+    }
+    .tse-acc-heros-jeu { color: #fff; font-weight: 600; }
+    .tse-acc-heros-duree { font-variant-numeric: tabular-nums; }
+    .tse-acc-heros .tse-acc-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; }
+    .tse-acc-bouton {
+      display: inline-flex; align-items: center; gap: 8px; height: clamp(36px, 1.8cqw, 42px); margin: 0; padding: 0 16px;
+      border-radius: 6px; font-size: clamp(14px, 0.72cqw, 16px); font-weight: 600; line-height: 1; text-decoration: none;
+      white-space: nowrap; text-shadow: none;
+    }
+    .tse-acc-bouton svg { flex: 0 0 auto; width: 16px; height: 16px; fill: currentColor; }
+    .tse-acc-bouton--principal { background: #9147ff; color: #fff; }
+    .tse-acc-bouton--principal:hover { background: #772ce8; color: #fff; }
+    .tse-acc-heros .tse-acc-debut {
+      height: clamp(36px, 1.8cqw, 42px); margin: 0; padding: 0 16px; border-radius: 6px; line-height: 1;
+      font-size: clamp(14px, 0.72cqw, 16px);
+      background: rgba(255, 255, 255, 0.16); color: #fff;
+      -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+    }
+    .tse-acc-heros .tse-acc-debut:hover { background: rgba(255, 255, 255, 0.24); }
+    
+    @container tse-heros (max-width: 1100px) {
+      .tse-acc-heros-voile {
+        background:
+          linear-gradient(90deg, rgba(14, 14, 16, 0.88) 0%, rgba(14, 14, 16, 0.7) 45%, rgba(14, 14, 16, 0.2) 80%, rgba(14, 14, 16, 0.08) 100%),
+          linear-gradient(0deg, rgba(14, 14, 16, 0.7) 0%, rgba(14, 14, 16, 0) 45%);
+      }
+      .tse-acc-heros-infos { width: min(560px, 72%); }
+    }
+
+    
+    .tse-acc-liste--top { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 22px 16px; }
+    .tse-acc-place { container-type: inline-size; display: flex; align-items: flex-start; min-width: 0; }
+    .tse-acc-rang {
+      --tse-vignette-h: calc(79cqw * 9 / 16);
+      flex: 0 0 28cqw; min-width: 0; display: flex; align-items: flex-end; justify-content: flex-end;
+      height: var(--tse-vignette-h); margin-right: -7cqw;
+      font-size: min(150px, var(--tse-vignette-h)); font-weight: 900; line-height: 1; letter-spacing: -0.06em;
+      color: transparent; -webkit-text-stroke: 4px rgba(var(--tse-encre), 0.42);
+      font-variant-numeric: lining-nums; user-select: none; pointer-events: none; white-space: nowrap;
+    }
+    .tse-acc-rang--double { font-size: min(116px, calc(var(--tse-vignette-h) * 0.72)); letter-spacing: -0.12em; }
+    .tse-acc-place .tse-acc-carte { position: relative; z-index: 1; flex: 1 1 auto; min-width: 0; }
+    .tse-acc-evol {
+      flex: 0 0 auto; font-size: 12px; font-weight: 700; line-height: 18px; white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+    }
+    .tse-acc-evol--hausse { color: var(--tse-hausse); }
+    .tse-acc-evol--baisse { color: var(--tse-baisse); }
+    .tse-acc-evol--stable { color: var(--tse-texte-faible); }
+    .tse-acc-evol--nouveau { padding: 0 6px; border-radius: 4px; background: #9147ff; color: #fff; font-size: 11px; }
+    .tse-acc-note { margin: 2px 0 0; font-size: 12px; color: var(--tse-texte-doux); }
   `;
 
   const injectCSS = () => {
@@ -4848,6 +6606,36 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     if (!b) return null;
     if (Date.now() - b.ts > CFG.CATEGORY_SWITCH_TTL) { basculements.delete(login); return null; }
     return b;
+  };
+
+  const audiencesVues = new Map();
+  const audienceAffichee = (login, e) => getCollabViewers(e.id) ?? combineDuMembre(login) ?? e.viewers;
+  const noterAudience = (login, e) => {
+    const id = e?.stream?.id;
+    const n = id ? audienceAffichee(login, e) : null;
+    if (!id || !Number.isFinite(n)) { audiencesVues.delete(login); return; }
+    const now = Date.now();
+    const garde = CFG.ETIQ_TENDANCE_MS + CFG.ETIQ_TENDANCE_MARGE_MS;
+    const serie = (audiencesVues.get(login) || []).filter((x) => x.id === id && now - x.t <= garde);
+    serie.push({ t: now, n, id });
+
+    audiencesVues.delete(login);
+    audiencesVues.set(login, serie);
+    while (audiencesVues.size > CFG.ETIQ_HISTO_MAX) audiencesVues.delete(audiencesVues.keys().next().value);
+  };
+  const tendanceDe = (login, e) => {
+    const id = e?.stream?.id;
+    const n = id ? audienceAffichee(login, e) : null;
+    if (!id || !Number.isFinite(n)) return null;
+    const now = Date.now();
+    const avant = (audiencesVues.get(login) || []).filter((x) => x.id === id
+      && now - x.t >= CFG.ETIQ_TENDANCE_MS && now - x.t <= CFG.ETIQ_TENDANCE_MS + CFG.ETIQ_TENDANCE_MARGE_MS);
+    if (!avant.length) return null;
+    const ref = avant[avant.length - 1];
+    if (ref.n < CFG.ETIQ_TENDANCE_MIN) return null;
+
+    const pct = Math.floor(((n - ref.n) * 100) / ref.n);
+    return pct >= CFG.ETIQ_TENDANCE_PCT ? { pct, min: Math.floor((now - ref.t) / 60_000) } : null;
   };
 
   const derniersDirects = new Map();
@@ -5259,6 +7047,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     '    login' +
     '    displayName' +
     '    profileImageURL(width: 70)' +
+
+    '    primaryColorHex' +
     '    stream {' +
 
     '      id createdAt viewersCount title' +
@@ -5268,6 +7058,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     '    }' +
     '  }' +
     '}';
+
+  const couleurChaine = (v) => (typeof v === 'string' && /^[0-9a-f]{6}$/i.test(v) ? '#' + v.toLowerCase() : null);
 
   const buildChannelsOp = (logins) => ({
     operationName: 'TseChannels',
@@ -5396,6 +7188,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
 
           name:    user?.displayName?.trim() || cache.get(login)?.name || null,
           avatar:  user?.profileImageURL || cache.get(login)?.avatar || null,
+
+          couleur: couleurChaine(user.primaryColorHex),
           ts:      now
         };
 
@@ -5405,11 +7199,12 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
 
         suivreCategorie(login, entry);
         cache.set(login, entry);
+        noterAudience(login, entry);
 
         const combine = getCollabViewers(id) ?? combineDuMembre(login);
         const hote = getHostId(id);
-        if (Number.isFinite(combine)) globalChannels.setViewers(login, combine, true);
-        else if (typeof hote !== 'string') globalChannels.setViewers(login, entry.viewers);
+        if (Number.isFinite(combine)) verserAudience(login, combine, true);
+        else if (typeof hote !== 'string') verserAudience(login, entry.viewers);
         fresh++;
 
         if (entry?.stream?.id) aSonder.push(login);
@@ -5419,6 +7214,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     preview.sonderOrigines(aSonder);
 
     if (fresh) scheduleScan();
+
+    pageAccueil.donnees();
   }
 
   const getChannelId = (login) => cache.get(login)?.id ?? null;
@@ -5442,7 +7239,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     });
   };
 
-  const globalChannels = (() => {
+  const creerClassement = (lire, mesures = true) => {
 
     const CATEGORIES_QUERY =
       'query TseCategories($n: Int!) {' +
@@ -5483,6 +7280,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     let degraded      = false;
     let running       = false;
     let complete      = false;
+
+    let nPreuve       = 0;
     let windowFloor   = 0;
     const stats = { walks: 0, light: 0, scoped: 0, ops: 0, failedSlices: 0,
 
@@ -5684,7 +7483,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
 
     const completer = (cle, presents) => {
 
-      if (!state.globalMode) return presents;
+      if (!lire().actif) return presents;
 
       if (!cle || cle.slice(0, 3) !== 'gs:') return presents;
       const membres = membresDeLaSession(cle);
@@ -5824,7 +7623,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
 
         if (rec.misses >= CFG.GLOBAL_MISS_CONFIRM || rec.creux) {
 
-          if (pool.size <= options.get('topN') + CFG.GLOBAL_MISS_CONFIRM) {
+          if (pool.size <= lire().n + CFG.GLOBAL_MISS_CONFIRM) {
             stats.sansReserve += 1;
             continue;
           }
@@ -5938,7 +7737,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       ranking      = [...pool.values()].map(plusJuste).sort((a, b) => b.viewers - a.viewers);
       rankingDirty = false;
       rankingTs    = Date.now();
-      threshold    = nthViewers(pool, options.get('topN'));
+      threshold    = nthViewers(pool, lire().n);
       recalculerCombines(ranking);
 
       const presents = new Set([...ranking, ...scopeRanking].map((r) => r.login));
@@ -6025,7 +7824,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         if (!langues.length) return;
         const ops = langues.map(l => categorie
           ? { operationName: 'TseCatLangCount',
-              variables: { name: categorie, n: options.get('topN') },
+              variables: { name: categorie, n: lire().n },
               query: catLangCountQuery(LANG_API[l]) }
           : { operationName: 'TseTagCount',
               variables: { tag: l, n: CFG.GLOBAL_TAG_MAX },
@@ -6072,7 +7871,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         const noms = categories.slice(0, CFG.GLOBAL_CATEGORIES_MAX).map(c => c.name);
         const ops = noms.map(name => ({
           operationName: 'TseCatLangCount',
-          variables: { name, n: options.get('topN') },
+          variables: { name, n: lire().n },
           query: catLangCountQuery(code)
         }));
         bilanMesures.passes += 1;
@@ -6105,7 +7904,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       categories   = cats;
       categoriesTs = started;
 
-      if (wl?.lang && !tagRefuse && options.get('topN') <= CFG.GLOBAL_TAG_MAX) {
+      if (wl?.lang && !tagRefuse && lire().n <= CFG.GLOBAL_TAG_MAX) {
         const parTag = await tagTop(wl.lang);
         if (gen !== walkGen) return { ok: true, complete: false };
         if (parTag) {
@@ -6118,6 +7917,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
           publish(poolTag);
 
           complete = true;
+
+          nPreuve = CFG.GLOBAL_TAG_MAX;
           windowFloor = 0;
 
           worldLang = wl.lang;
@@ -6142,7 +7943,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       }
       if (!a.done) return { ok: false, complete: false };
 
-      const t = nthViewers(pool, options.get('topN'));
+      const nT = lire().n;
+      const t = nthViewers(pool, nT);
 
       const rest = cats.slice(seed.length);
       const todo = [];
@@ -6177,6 +7979,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       stats.nonLues = nonLues;
       complete = !truncated && nonLues === 0
         && (cats.length < CFG.GLOBAL_CATEGORIES_MAX || windowFloor <= threshold);
+
+      nPreuve = complete ? Math.min(nT, lire().n) : 0;
 
       const langFinal = code ? wl.lang : null;
 
@@ -6213,7 +8017,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
           }
         }
       } else if (ranking.length
-                 <= options.get('topN') * CFG.GLOBAL_RESERVE_RATIO) {
+                 <= lire().n * CFG.GLOBAL_RESERVE_RATIO) {
 
         for (const c of cats.slice(seed.length,
                                    seed.length + CFG.GLOBAL_WIDEN_CATEGORIES)) {
@@ -6261,16 +8065,16 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     let scopeLangApplied = false;
 
     const wantedScope = () => {
-      if (!state.globalMode || !state.categoryFilter) return null;
-      const lang = state.languageFilter;
+      if (!lire().actif || !lire().categorie) return null;
+      const lang = lire().lang;
       const code = (lang && !langApiRejected.has(lang)) ? (LANG_API[lang] || null) : null;
-      return { name: state.categoryFilter, lang, code,
-               key: state.categoryFilter + '\u0000' + (code || '') };
+      return { name: lire().categorie, lang, code,
+               key: lire().categorie + '\u0000' + (code || '') };
     };
 
     const wantedLang = () => {
-      if (!state.globalMode || state.categoryFilter) return null;
-      const lang = state.languageFilter;
+      if (!lire().actif || lire().categorie) return null;
+      const lang = lire().lang;
       if (!lang || langApiRejected.has(lang)) return null;
       const code = LANG_API[lang];
       return code ? { lang, code } : null;
@@ -6346,10 +8150,12 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     };
 
     const tick = () => {
-      if (!state.globalMode) return;
+      if (!lire().actif) return;
 
-      mesurerLangues(state.categoryFilter || null).catch(() => {});
-      mesurerCategories(state.languageFilter || null).catch(() => {});
+      if (mesures) {
+        mesurerLangues(lire().categorie || null).catch(() => {});
+        mesurerCategories(lire().lang || null).catch(() => {});
+      }
 
       if (running) return;
       const now = Date.now();
@@ -6376,7 +8182,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         worldLang = null;
       }
       const needFull = langChange || !ranking.length
-        || now - lastFullWalk >= CFG.GLOBAL_FULL_WALK_MS;
+        || now - lastFullWalk >= CFG.GLOBAL_FULL_WALK_MS
+        || (complete && nPreuve < lire().n);
       if (!needFull) {
         const interval = degraded ? CFG.GLOBAL_FULL_WALK_MS : CFG.GLOBAL_STRUCT_TICK;
         if (now - rankingTs < interval) return;
@@ -6398,7 +8205,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       worldLang = null; allLangPool = []; walkGen += 1;
       scopeLangApplied = false;
       scopeGen += 1;
-      failStreak = 0; okStreak = 0; degraded = false; complete = false;
+      failStreak = 0; okStreak = 0; degraded = false; complete = false; nPreuve = 0;
     };
 
     return {
@@ -6434,15 +8241,16 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         return ranking;
       },
 
-      top(n = options.get('topN')) {
-        const lang = state.globalMode ? state.languageFilter : null;
+      top(n = lire().n, exclues = null) {
+        const lang = lire().actif ? lire().lang : null;
         const liste = this.base();
 
         const filtree = (!lang
             || (wantedScope() && scopeLangApplied)
             || (!wantedScope() && worldLang === lang))
           ? liste : liste.filter(r => r.tags.includes(lang));
-        return parPlaces(filtree, n);
+        return parPlaces(exclues && exclues.size
+          ? filtree.filter(r => !exclues.has(String(r.login).toLowerCase())) : filtree, n);
       },
 
       langs(categorie = null) {
@@ -6555,7 +8363,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       },
 
       estAuClassement(login) {
-        return this.top(options.get('topN')).some((r) => r.login === login);
+        return this.top(lire().n).some((r) => r.login === login);
       },
 
       estDansLeBase(login) {
@@ -6584,14 +8392,16 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       },
       report() {
         return {
-          enabled:    state.globalMode,
+          enabled:    lire().actif,
 
           complete:   complete
-            && !(state.globalMode && state.languageFilter
+            && !(lire().actif && lire().lang
                  && !(wantedScope() ? scopeLangApplied
-                                    : worldLang === state.languageFilter)),
+                                    : worldLang === lire().lang)),
           langApplied: !!(wantedScope() ? scopeLangApplied
-                                        : worldLang && worldLang === state.languageFilter),
+                                        : worldLang && worldLang === lire().lang),
+
+          prouve:     complete ? nPreuve : 0,
 
           tags: { ...bilanTags, refuse: tagRefuse },
 
@@ -6600,7 +8410,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
           mesures: { ...bilanMesures, connues: mesuresCatLangue.size,
                      monde: mesuresMonde.size, evincees: mesuresEvincees },
           worldLang,
-          language:   state.globalMode ? state.languageFilter : null,
+          language:   lire().actif ? lire().lang : null,
           scope,
           scopeSize:  scopeRanking.length,
 
@@ -6625,7 +8435,17 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         };
       }
     };
-  })();
+  };
+
+  const globalChannels = creerClassement(() => ({
+    actif: state.globalMode, lang: state.languageFilter,
+    categorie: state.categoryFilter, n: options.get('topN'),
+  }));
+
+  const verserAudience = (login, viewers, autorite = false) => {
+    globalChannels.setViewers(login, viewers, autorite);
+    pageAccueil.classement().setViewers(login, viewers, autorite);
+  };
 
   const RESERVED =/^(directory|videos|search|p|drops|wallet|prime|subscriptions|settings|jobs|turbo|moderator|payments|inventory|messages|friends)$/i;
 
@@ -6681,6 +8501,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       if (i < morceaux.length - 1) frag.appendChild(fabriquerRemplissage());
     });
     return frag;
+  };
+
+  const listeNoms = (noms) => {
+    try { return new Intl.ListFormat(S.locale, { type: 'conjunction' }).format(noms); }
+    catch { return noms.join(', '); }
   };
 
   const nomsEnGras = (noms) => {
@@ -8312,7 +10137,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       init() {
         visits.load();
 
-        const fire = () => onLocationChange();
+        const fire = () => { onLocationChange(); pageAccueil.route(); };
         const origPush = history.pushState;
         const origReplace = history.replaceState;
         history.pushState = function (...args) {
@@ -8330,6 +10155,2668 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
 
         onLocationChange();
       }
+    };
+  })();
+
+  const PARAMS_JETON = '{ platform: "web", playerBackend: "mediaplayer", playerType: "site" }';
+  const fermeeSelonJeton = (valeur) => {
+    try {
+      const rb = JSON.parse(valeur)?.chansub?.restricted_bitrates;
+      return Array.isArray(rb) ? rb.includes('audio_only') && rb.includes('chunked') : null;
+    } catch { return null; }
+  };
+
+  const QUALITES_USUELLES = [[160, '160p30'], [360, '360p30'], [480, '480p30'], [720, '720p60'], [1080, '1080p60']];
+  const qualiteUsuelle = (h) => {
+    let i = 0;
+    QUALITES_USUELLES.forEach((q, k) => {
+      if (Math.abs(Math.log(q[0] / h)) <= Math.abs(Math.log(QUALITES_USUELLES[i][0] / h))) i = k;
+    });
+    return QUALITES_USUELLES[Math.min(i + 1, QUALITES_USUELLES.length - 1)][1];
+  };
+
+  const pageAccueil = (() => {
+    const ID = 'tse-accueil';
+
+    const ID_HEROS = 'tse-accueil-heros';
+    const PLACES_HEROS = ['defileur', 'enveloppe', 'carrousel', 'section'];
+
+    const SEL_MINIATURE = 'img[src*="/previews-ttv/live_user_"]';
+    const RE_MINIATURE = /\/previews-ttv\/live_user_([a-z0-9_]+)-/i;
+
+    const SEL_CARROUSEL = '[data-a-target="front-page-carousel"], .front-page-carousel';
+    const SEL_CONTENU = '[data-a-target="front-page-main-content"], #front-page-main-content';
+    const RE_LOGIN = /^[a-z0-9_]{1,25}$/;
+
+    let section = null;
+    let blocHeros = null;
+    let placeHeros = 0;
+    let placeVue = false;
+    let observateur = null;
+    let verifPrevue = false;
+    let carrousel = null;
+    const masques = new Set();
+    const pausees = new Set();
+    const instantanes = [];
+    const debuts = new Map();
+    const affiches = new Map();
+    let debutEnVol = false;
+    let debutRefuse = false;
+    let refusSuite = 0;
+    let debutPause = 0;
+    let z = null;
+    let rangsTop = null;
+    const ouverts = new Set();
+    let mesureur = null;
+    let herosCourant = null;
+    let herosVu = false;
+    let guetteur = null;
+    let lecteur = null;
+    const lecteursRates = new Map();
+    let voile = null;
+    let amorce = null;
+    let arrivee = 0;
+    let peinturePrevue = false;
+    let masquerVoulu = false;
+    let dernierDefileur = null;
+    let aligneSur = null;
+    let precharges = [];
+    let prechargeCle = null;
+    let ici = false;
+
+    const bilan = {
+      poses: 0, reposes: 0, retraits: 0, peintures: 0, relangues: 0, reveils: 0, ancre: null,
+
+      chrono: { arrivee: null, defileur: null, pose: null, heros: null, voile: null, vue: null, carrousel: null },
+
+      peintureMaxMs: 0, peinturesMs: 0, peinturesDonnees: 0,
+      voile: { poses: 0, levees: {}, dureeMs: null },
+      amorce: { demandees: 0, faites: 0 },
+      synchrones: 0,
+      carrousel: { voie: null, signature: null, masquages: 0, pauses: 0, reprises: 0 },
+      heros: { montre: false, sansVisite: false, place: null, rejets: [], attentes: 0, precharges: 0,
+               video: { poses: 0, premieres: 0, filets: 0, modales: 0, retours: 0, delais: 0, retraits: 0,
+
+                        hauteur: null, qualite: null, auto: null,
+
+                        echelle: null, decodee: null },
+               ambiance: { demandes: 0, images: 0, rejets: 0, faussees: 0 } },
+
+      top: { source: null, instantanes: 0, ecartees: 0, retirees: 0,
+
+             cs: { places: 0, membres: 0, ouvertures: 0, demandes: 0 } },
+
+      une: { voie: null, lues: 0, montrees: 0, attente: 0, reserve: false, demandes: 0, relectures: 0, centrages: 0,
+
+             tete: null, tours: 0 },
+      debut: { envois: 0, demandes: 0, archives: 0, sansArchive: 0, sansStream: 0,
+               jetons: 0, fermees: 0, illisibles: 0, refus: 0, reseau: 0 },
+
+      rdv: { lectures: 0, creneaux: 0, habitudes: 0, attente: false, enCours: false },
+
+      pourquoi: { lectures: 0, rayons: [], demandes: 0, servis: 0, refus: 0, vides: 0 },
+      absence: { lectures: 0, chaines: 0, montre: false, enCours: false, fermetures: 0, synchros: 0, vignettes: 0,
+                 clips: { demandes: 0, servis: 0, refus: 0, plusVus: 0 } },
+
+      etiquettes: { posees: {}, demandes: 0, coins: { haut: 0, aucun: 0 }, twitch: { cartes: 0, vues: 0, etiquetees: 0, habillees: 0, durees: 0 } },
+
+      ranger: { titres: 0, masquables: 0, masques: 0, clics: 0, vignettes: { rediffusion: 0, avatar: 0, sans: 0 } },
+    };
+
+    const surAccueil = () => location.pathname === '/';
+    const actif = () => surAccueil() && options.get('accueil');
+    const pose = () => !!section && section.isConnected;
+
+    const SEL_EXCLU = `#${ID}, #${ID_HEROS}, ${DOM.sidebarRoot}, .tse-preview`;
+    const exclu = (n) => !!n.closest?.(SEL_EXCLU);
+
+    const tagInterface = () => {
+      let l = null;
+      try { l = Intl.getCanonicalLocales((document.documentElement.lang || '').trim())[0] || null; }
+      catch { l = null; }
+      if (!l) return null;
+      const code = l.split('-')[0].toUpperCase();
+      const cible = ({ NB: 'NO', NN: 'NO', FIL: 'TL' })[code] || code;
+      return Object.keys(LANG_API).find((t) => LANG_API[t] === cible) || null;
+    };
+    const langueVoulue = () => (options.get('accueilTopLangue') === 'toutes' ? null : tagInterface());
+    const topActif = () => pose() && actif() && options.get('accueilTop') && !document.hidden;
+
+    let ecarteesCle = null;
+    let ecarteesJeu = new Set();
+    const ecarteesTop = () => {
+      const l = options.get('accueilTopEcartees');
+      const cle = l.join(',');
+      if (cle !== ecarteesCle) { ecarteesCle = cle; ecarteesJeu = new Set(l); }
+      return ecarteesJeu;
+    };
+    const placesVoulues = () => CFG.ACCUEIL_TOP_N + ecarteesTop().size;
+    const partage = () => !!state.globalMode && !state.categoryFilter
+      && (state.languageFilter || null) === langueVoulue()
+      && options.get('topN') >= placesVoulues();
+    const classement = creerClassement(() => ({
+      actif: topActif() && !partage(),
+      lang: langueVoulue(), categorie: null, n: placesVoulues(),
+    }), false);
+    const sourceTop = () => (partage() ? globalChannels : classement);
+
+    const suiviesEnDirect = () => {
+      const out = [];
+      for (const [login] of roster.entries()) {
+        const e = cache.get(login);
+        if (!e || !e.stream) continue;
+        out.push({ login, e, score: visits.scoreFor(login) });
+      }
+      return out.sort((a, b) => (b.score - a.score)
+        || ((b.e.viewers || 0) - (a.e.viewers || 0)) || a.login.localeCompare(b.login));
+    };
+
+    const audience = (login, e) => getCollabViewers(e.id) ?? combineDuMembre(login) ?? e.viewers;
+
+    const defileur = () => document.querySelector('main .root-scrollable__content');
+    const trouverCarrousel = (racine) => {
+      const parRepere = [...racine.querySelectorAll(SEL_CARROUSEL)].find((n) => !exclu(n));
+      if (parRepere) return { bloc: parRepere, voie: 'repere' };
+      const video = [...racine.querySelectorAll('video')].find((v) => !exclu(v));
+      if (!video) return null;
+      const cartes = [...racine.querySelectorAll(SEL_MINIATURE)].filter((i) => !exclu(i));
+      const derniere = cartes[cartes.length - 1];
+      if (!derniere) return null;
+      let commun = video.parentElement;
+      while (commun && !commun.contains(derniere)) commun = commun.parentElement;
+      if (!commun) return null;
+      const bloc = [...commun.children].find((c) => c.contains(video));
+      if (!bloc) return null;
+      const dehors = cartes.filter((i) => commun.contains(i) && !bloc.contains(i)).length;
+      return dehors >= CFG.ACCUEIL_PREUVE_CARTES ? { bloc, voie: 'forme' } : null;
+    };
+
+    const RE_PLACE_CARROUSEL = /featured-content-carousel__item-container--(?:(center)|left-(\d+)|right-(\d+))(?:\s|$)/;
+    const chainesCarrousel = () => {
+      const b = carrousel && carrousel.bloc;
+      if (!b || !b.isConnected) return { logins: [], voie: null };
+      const out = [];
+      const ajouter = (img) => {
+        const m = img && RE_MINIATURE.exec(img.getAttribute('src') || '');
+        const l = m && m[1].toLowerCase();
+        if (l && RE_LOGIN.test(l) && !out.includes(l)) out.push(l);
+      };
+      const places = [];
+      for (const n of b.querySelectorAll('[class*="featured-content-carousel__item-container--"]')) {
+        const m = RE_PLACE_CARROUSEL.exec(n.getAttribute('class') || '');
+        if (m) places.push({ n, rang: m[1] ? 0 : m[3] ? Number(m[3]) : 1000 - Number(m[2]) });
+      }
+      if (places.length) {
+        places.sort((x, y) => x.rang - y.rang);
+        for (const p of places) ajouter(p.n.querySelector(SEL_MINIATURE));
+        return { logins: out.slice(0, CFG.ACCUEIL_UNE_MAX), voie: 'places' };
+      }
+      for (const img of b.querySelectorAll(SEL_MINIATURE)) {
+        if (!img.closest('[data-a-target="frontpage-headliner"]')) ajouter(img);
+      }
+      return { logins: out.slice(0, CFG.ACCUEIL_UNE_MAX), voie: 'ordre' };
+    };
+    const signature = (n) => n.localName
+      + (n.getAttribute('data-a-target') ? `[data-a-target="${n.getAttribute('data-a-target')}"]` : '')
+      + [...n.classList].slice(0, 3).map((c) => '.' + c).join('');
+    const pauser = (v) => {
+      if (v.paused) return;
+      try { v.pause(); pausees.add(v); bilan.carrousel.pauses++; } catch {   }
+    };
+    const masquer = (bloc) => {
+      if (!bloc.classList.contains('tse-acc-masque')) {
+        bloc.classList.add('tse-acc-masque');
+        bilan.carrousel.masquages++;
+        if (bilan.chrono.carrousel === null) bilan.chrono.carrousel = maintenant();
+      }
+      masques.add(bloc);
+      for (const v of bloc.querySelectorAll('video')) pauser(v);
+    };
+
+    const demasquer = () => {
+      for (const b of masques) b.classList.remove('tse-acc-masque');
+      masques.clear();
+      for (const v of pausees) {
+        if (!v.isConnected) continue;
+        bilan.carrousel.reprises++;
+        try { v.play()?.catch?.(() => {}); } catch {   }
+      }
+      pausees.clear();
+    };
+
+    const gererCarrousel = (heros) => {
+      const tete = options.get('accueilTete');
+      const cacher = tete === 'rien' || (tete === 'heros' && !!heros);
+      masquerVoulu = cacher;
+      if (cacher) { if (!html.hasAttribute('data-tse-accueil-carrousel')) html.setAttribute('data-tse-accueil-carrousel', ''); }
+      else if (html.hasAttribute('data-tse-accueil-carrousel')) html.removeAttribute('data-tse-accueil-carrousel');
+      if (!cacher || !carrousel || !carrousel.bloc.isConnected) { if (masques.size) demasquer(); return; }
+      if (!masques.has(carrousel.bloc)) demasquer();
+      masquer(carrousel.bloc);
+    };
+
+    const appliquerCarrousel = () => {
+      for (const b of masques) if (!b.isConnected) masques.delete(b);
+      for (const v of pausees) if (!v.isConnected) pausees.delete(v);
+      if (masquerVoulu && carrousel && carrousel.bloc.isConnected) masquer(carrousel.bloc);
+      for (const b of masques) masquer(b);
+    };
+
+    const html = document.documentElement;
+    const maintenant = () => Math.round(performance.now());
+
+    const veutDonnees = () => options.get('accueilTete') === 'heros';
+
+    const candidats = () => {
+      if (!veutDonnees()) return [];
+      const out = [];
+      let budget = CFG.AHEAD_MAX_POLL;
+      for (const [login] of roster.entries()) {
+        if (budget-- > 0 || visits.scoreFor(login) > 0) out.push(login);
+      }
+      return out;
+    };
+    const decidable = () => !!amorce && (amorce.faite || amorce.logins.every((l) => cache.has(l)));
+
+    const amorcer = () => {
+      const logins = veutDonnees() ? candidats() : [];
+      const a = { logins, faite: false };
+      amorce = a;
+      const manquants = logins.filter((l) => !cache.has(l));
+      if (!manquants.length) { a.faite = true; return; }
+      bilan.amorce.demandees += manquants.length;
+      Promise.all(manquants.map((l) => fetchChannel(l))).then(erreurs.garde('accueil', () => {
+        a.faite = true;
+        bilan.amorce.faites++;
+        if (amorce === a) donnees();
+      }));
+    };
+    const poserVoile = () => {
+      if (voile) return;
+      html.setAttribute('data-tse-accueil-voile', '');
+      voile = { depuis: performance.now(), attente: null,
+                plafond: setTimeout(erreurs.garde('accueil', () => leverVoile('plafond')), CFG.ACCUEIL_VOILE_MAX_MS) };
+      bilan.voile.poses++;
+    };
+    const leverVoile = (raison) => {
+      if (!voile) return;
+      clearTimeout(voile.plafond);
+      clearTimeout(voile.attente);
+      bilan.voile.dureeMs = Math.round(performance.now() - voile.depuis);
+      bilan.voile.levees[raison] = (bilan.voile.levees[raison] || 0) + 1;
+      voile = null;
+      html.removeAttribute('data-tse-accueil-voile');
+      if (bilan.chrono.voile === null) bilan.chrono.voile = maintenant();
+
+      if (pose()) verifierPlaceHeros();
+    };
+
+    const voileBorne = () => {
+      if (voile && !voile.attente) {
+        voile.attente = setTimeout(erreurs.garde('accueil', () => leverVoile('attente')), CFG.ACCUEIL_VOILE_MS);
+      }
+    };
+    const choisir = () => {
+      const tete = options.get('accueilTete');
+      const premier = tete === 'heros' ? suiviesEnDirect()[0] || null : null;
+      return { tete, heros: premier };
+    };
+    const urlsHeros = (login) => {
+      const minute = Math.floor(Date.now() / CFG.ACCUEIL_IMAGE_MS);
+      const base = `https://static-cdn.jtvnw.net/previews-ttv/live_user_${login}`;
+      return { grande: `${base}-1280x720.jpg?_=${minute}`, petite: `${base}-320x180.jpg?_=${minute}` };
+    };
+
+    const prechargerHeros = () => {
+      const { heros } = choisir();
+      if (!heros) return;
+      const u = urlsHeros(heros.login);
+      if (prechargeCle === u.grande) return;
+      prechargeCle = u.grande;
+      const avatar = imageSure(heros.e.avatar);
+
+      precharges = [u.grande, u.petite, avatar].filter(Boolean).map((src) => {
+        const i = document.createElement('img');
+        i.decoding = 'async';
+        i.src = src;
+        return i;
+      });
+      bilan.heros.precharges++;
+    };
+
+    const donnees = () => {
+      if (!actif()) return;
+      if (voile && decidable()) {
+        if (pose()) peindre(); else prechargerHeros();
+        leverVoile('donnees');
+        return;
+      }
+      if (!pose()) { if (decidable()) prechargerHeros(); return; }
+      if (peinturePrevue) return;
+      peinturePrevue = true;
+      setTimeout(erreurs.garde('accueil', () => {
+        peinturePrevue = false;
+        if (pose()) { bilan.peinturesDonnees++; peindre(); }
+      }), 0);
+    };
+
+    const arriver = (voiler) => {
+      arrivee = performance.now();
+      bilan.chrono = { arrivee: maintenant(), defileur: null, pose: null, heros: null, voile: null, vue: null, carrousel: null };
+      aligneSur = null;
+      dernierDefileur = null;
+      amorcer();
+      if (voiler && amorce.logins.length && !decidable()) poserVoile();
+      else leverVoile(amorce.logins.length ? 'donnees' : 'rien');
+    };
+
+    const SEL_DEFILEUR = '.root-scrollable__content';
+    const suiviDePres = (muts) => {
+      if (!pose()) {
+        return (dernierDefileur && dernierDefileur.isConnected)
+          || muts.some((m) => [...m.addedNodes].some((n) => n.nodeType === 1
+            && (n.matches(SEL_DEFILEUR) || !!n.querySelector(SEL_DEFILEUR))));
+      }
+      if (blocHeros && !blocHeros.hidden && !blocHeros.isConnected) return true;
+      if (performance.now() - arrivee > CFG.ACCUEIL_SYNCHRONE_MS) return false;
+      return !(bilan.ancre === 'contenu' && aligneSur && aligneSur.isConnected
+               && (!masquerVoulu || (carrousel && masques.has(carrousel.bloc))));
+    };
+
+    const conteneurDe = (racine) => {
+      let c = racine;
+      for (let i = 0; i < 6; i++) {
+        const enfants = [...c.children].filter((x) => x.id !== ID && x.id !== ID_HEROS);
+        if (enfants.length !== 1) break;
+        c = enfants[0];
+      }
+      return c;
+    };
+
+    const premierAutre = (p) => [...p.children].find((x) => x !== blocHeros) || null;
+    const cibleHeros = (racine, place) => {
+      if (place === 'defileur') return { parent: racine, avant: premierAutre(racine) };
+      if (place === 'enveloppe') {
+        const env = racine.querySelector(':scope > .root-scrollable__wrapper')
+          || [...racine.children].find((x) => x !== blocHeros && x.id !== ID);
+        return env ? { parent: env, avant: premierAutre(env) } : null;
+      }
+      if (place === 'carrousel') {
+        const b = carrousel && carrousel.bloc;
+        return b && b.isConnected && b.parentElement && racine.contains(b)
+          ? { parent: b.parentElement, avant: b } : null;
+      }
+      return { parent: section, avant: premierAutre(section) };
+    };
+
+    const poserHeros = (racine) => {
+      for (let i = placeHeros; i < PLACES_HEROS.length; i++) {
+        const place = PLACES_HEROS[i];
+        const c = cibleHeros(racine, place);
+        if (!c) continue;
+        if (blocHeros.dataset.tsePlace !== place) blocHeros.dataset.tsePlace = place;
+        if (blocHeros.parentElement !== c.parent || blocHeros.nextElementSibling !== c.avant) {
+          c.parent.insertBefore(blocHeros, c.avant);
+          placeVue = false;
+        }
+        bilan.heros.place = place;
+        return;
+      }
+    };
+
+    const defautHeros = (racine, place) => {
+      const rr = racine.getBoundingClientRect();
+      if (rr.width < 1) return 'attente';
+      const r = blocHeros.getBoundingClientRect();
+      if (r.width < 1 || r.height < 1) return 'vide';
+      if ((place === 'defileur' || place === 'enveloppe') && r.width < racine.clientWidth - 1) return 'etroit';
+      for (let s = blocHeros.nextElementSibling; s; s = s.nextElementSibling) {
+        const pos = getComputedStyle(s).position;
+        if (pos === 'absolute' || pos === 'fixed') continue;
+        const q = s.getBoundingClientRect();
+        if (q.width < 1 || q.height < 1) continue;
+        if (q.top < r.bottom - 1 && q.left < r.right - 1 && q.right > r.left + 1) return 'recouvert';
+        break;
+      }
+
+      const rogne = getComputedStyle(racine).overflowY !== 'visible';
+      const haut = Math.max(r.top, rogne ? rr.top : 0, 0), bas = Math.min(r.bottom, rogne ? rr.bottom : Infinity, window.innerHeight);
+      const gauche = Math.max(r.left, rogne ? rr.left : 0, 0), droite = Math.min(r.right, rogne ? rr.right : Infinity, window.innerWidth);
+      if (bas - haut < 1 || droite - gauche < 1) return 'attente';
+      const principal = racine.closest('main');
+      for (const fx of [0.25, 0.75]) {
+        const n = document.elementFromPoint(gauche + (droite - gauche) * fx, (haut + bas) / 2);
+        if (n && !blocHeros.contains(n) && !n.closest('.tse-preview') && principal && principal.contains(n)) return 'couvert';
+      }
+      return null;
+    };
+
+    const verifierPlaceHeros = () => {
+      if (placeVue || !blocHeros || blocHeros.hidden || !blocHeros.isConnected) return;
+
+      if (voile) { bilan.heros.attentes++; return; }
+      const racine = defileur();
+      if (!racine) return;
+      for (let n = 0; n < PLACES_HEROS.length; n++) {
+        const place = blocHeros.dataset.tsePlace;
+        const i = PLACES_HEROS.indexOf(place);
+        const raison = defautHeros(racine, place);
+        if (raison === 'attente') { bilan.heros.attentes++; return; }
+        if (raison && bilan.heros.rejets.length < 8) {
+          const p = blocHeros.parentElement, st = p ? getComputedStyle(p) : null;
+          bilan.heros.rejets.push({
+            place, raison,
+            largeur: Math.round(blocHeros.getBoundingClientRect().width), plein: racine.clientWidth,
+            parent: st ? `${st.display} ${st.flexDirection}` : null,
+          });
+        }
+        if (!raison || i < 0 || i >= PLACES_HEROS.length - 1) {
+          placeVue = true;
+          if (bilan.chrono.vue === null) bilan.chrono.vue = maintenant();
+          return;
+        }
+        placeHeros = Math.max(placeHeros, i + 1);
+        poserHeros(racine);
+      }
+    };
+    const placer = () => {
+      const racine = dernierDefileur && dernierDefileur.isConnected ? dernierDefileur : defileur();
+      if (!racine) return false;
+      if (racine !== dernierDefileur) {
+        dernierDefileur = racine;
+        if (bilan.chrono.defileur === null) bilan.chrono.defileur = maintenant();
+        voileBorne();
+      }
+      if (!carrousel || !carrousel.bloc.isConnected || !racine.contains(carrousel.bloc)) {
+        carrousel = trouverCarrousel(racine);
+        bilan.carrousel.voie = carrousel ? carrousel.voie : 'introuvable';
+        bilan.carrousel.signature = carrousel ? signature(carrousel.bloc) : null;
+      }
+      if (!section) construire();
+      const etait = section.isConnected;
+      const contenu = [...racine.querySelectorAll(SEL_CONTENU)].find((n) => !exclu(n) && n.parentElement);
+      bilan.ancre = contenu ? 'contenu' : carrousel ? 'carrousel' : 'conteneur';
+      if (contenu) {
+        if (contenu.previousElementSibling !== section) contenu.before(section);
+      } else if (carrousel) {
+        if (carrousel.bloc.nextElementSibling !== section) carrousel.bloc.after(section);
+      } else {
+        const c = conteneurDe(racine);
+        if (c.firstElementChild !== section) c.prepend(section);
+      }
+      poserHeros(racine);
+      if (!etait) {
+        if (bilan.poses) bilan.reposes++; else bilan.poses++;
+        if (bilan.chrono.pose === null) bilan.chrono.pose = maintenant();
+      }
+      return true;
+    };
+
+    const elt = (tag, classe, texte) => {
+      const x = document.createElement(tag);
+      if (classe) x.className = classe;
+      if (texte !== undefined) x.textContent = texte;
+      return x;
+    };
+    const PICTO_DEBUT = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 2h2v12H3zM14 2v12L6 8z"/></svg>';
+    const PICTO_LECTURE = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2l10 6-10 6z"/></svg>';
+    const PICTO_CHEVRON = '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 13.4 4.6 8 6 6.6l4 4 4-4L15.4 8z"/></svg>';
+    const texteSi = (x, t) => { if (x.textContent !== t) x.textContent = t; };
+    const attrSi = (x, a, v) => {
+      if (v === null || v === undefined) { if (x.hasAttribute(a)) x.removeAttribute(a); return; }
+      if (x.getAttribute(a) !== v) x.setAttribute(a, v);
+    };
+
+    const poserImage = (img, url) => {
+      if (!url || img.dataset.tseVoulu === url) return;
+      img.dataset.tseVoulu = url;
+      if (!img.getAttribute('src')) { img.setAttribute('src', url); return; }
+      const pre = document.createElement('img');
+      pre.onload = () => { if (img.dataset.tseVoulu === url) img.setAttribute('src', url); };
+      pre.src = url;
+    };
+    const imageSure = (u) => (typeof u === 'string' && /^https:\/\//.test(u) ? u : null);
+
+    const cartesRuban = (liste) => [...liste.children].filter((c) => !c.hidden);
+    const auCentre = (liste) => {
+      const milieu = liste.scrollLeft + liste.clientWidth / 2;
+      let meilleure = null, ecart = Infinity;
+      for (const c of cartesRuban(liste)) {
+        const d = Math.abs(c.offsetLeft + c.offsetWidth / 2 - milieu);
+        if (d < ecart) { ecart = d; meilleure = c; }
+      }
+      return meilleure;
+    };
+    const centrer = (liste, carte) => {
+      liste.scrollTo({ left: carte.offsetLeft + carte.offsetWidth / 2 - liste.clientWidth / 2, behavior: 'smooth' });
+    };
+
+    const etatsRuban = new WeakMap();
+    const etatRuban = (liste) => {
+      let e = etatsRuban.get(liste);
+      if (!e) etatsRuban.set(liste, (e = { tete: null, defile: false, vers: null, versT: 0 }));
+      return e;
+    };
+    const menePar = (e) => e.vers !== null && performance.now() - e.versT < CFG.ACCUEIL_RUBAN_MENE_MS;
+    const carteDeTete = (liste, k = etatRuban(liste).tete) =>
+      k === null ? null : cartesRuban(liste).find((c) => c.dataset.tseCle === k) || null;
+
+    const ecartAuMilieu = (liste, carte) => {
+      const r = carte.getBoundingClientRect(), l = liste.getBoundingClientRect();
+      return r.left + r.width / 2 - (l.left + liste.clientLeft + liste.clientWidth / 2);
+    };
+
+    const milieuRuban = (n) => Math.floor((n - 1) / 2);
+    const entrerEnFondu = (carte) => {
+      carte.classList.remove('tse-acc-carte--arrivee');
+      void carte.offsetWidth;
+      carte.classList.add('tse-acc-carte--arrivee');
+    };
+
+    const tourner = (liste, carte) => {
+      const cartes = cartesRuban(liste);
+      const n = cartes.length;
+      const decalage = cartes.indexOf(carte) - milieuRuban(n);
+      if (n < 3 || !decalage || !liste.clientWidth) return;
+      const repere = auCentre(liste);
+      const avant = ecartAuMilieu(liste, repere);
+      const bougees = decalage > 0 ? cartes.slice(0, decalage) : cartes.slice(n + decalage);
+      if (decalage > 0) liste.append(...bougees); else liste.prepend(...bougees);
+      liste.scrollLeft += ecartAuMilieu(liste, repere) - avant;
+      for (const c of bougees) entrerEnFondu(c);
+      bilan.une.tours++;
+    };
+
+    const allerA = (liste, carte) => {
+      const e = etatRuban(liste);
+      e.tete = e.vers = carte.dataset.tseCle;
+      e.versT = performance.now();
+      bilan.une.tete = e.tete;
+      liste.classList.add('tse-acc-ruban--mene');
+      tourner(liste, carte);
+      centrer(liste, carte);
+    };
+    const mener = (liste, sens) => {
+      const cartes = cartesRuban(liste);
+      const n = cartes.length;
+      if (n < 2 || 'tseAttente' in liste.dataset) return;
+      const i = cartes.indexOf(carteDeTete(liste) || auCentre(liste));
+      allerA(liste, cartes[(((i + sens) % n) + n) % n]);
+    };
+
+    const poserTete = (liste, repere = null, cle = undefined) => {
+      const tete = carteDeTete(liste, cle);
+      if (!tete || !liste.clientWidth) return;
+      const e = etatRuban(liste);
+      if (e.defile) {
+        if (!repere || !repere.carte.isConnected) return;
+        const d = ecartAuMilieu(liste, repere.carte) - repere.ecart;
+        if (Math.abs(d) < 0.5) return;
+        liste.scrollLeft += d;
+        if (menePar(e)) centrer(liste, tete);
+        return;
+      }
+      const d = ecartAuMilieu(liste, tete);
+      if (Math.abs(d) >= 0.5) liste.scrollLeft += d;
+    };
+
+    const finDefilement = (liste) => {
+      const e = etatRuban(liste);
+      e.defile = false;
+      if ('tseAttente' in liste.dataset) return;
+      const c = auCentre(liste);
+      if (!c) return;
+      if (menePar(e) && c.dataset.tseCle !== e.vers) return;
+      e.vers = null;
+      liste.classList.remove('tse-acc-ruban--mene');
+      if (c.dataset.tseCle !== e.tete) { e.tete = c.dataset.tseCle; bilan.une.tete = e.tete; }
+      tourner(liste, c);
+    };
+    const majFleches = (liste) => {
+      const cadre = liste.parentElement;
+      if (!cadre) return;
+      const off = 'tseAttente' in liste.dataset || cartesRuban(liste).length < 2;
+      for (const b of cadre.querySelectorAll(':scope > .tse-acc-ruban-fleche')) {
+        if (b.disabled !== off) b.disabled = off;
+      }
+    };
+    const centrerAuClic = (liste, ev) => {
+      if (ev.button !== 0 || ev.ctrlKey || ev.metaKey || ev.shiftKey || ev.altKey) return;
+      const carte = ev.target.closest?.('.tse-acc-carte');
+      if (!carte || carte.parentElement !== liste || carte === auCentre(liste)) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      bilan.une.centrages++;
+      allerA(liste, carte);
+    };
+
+    const fabriquerRayon = (cle, classe, titre, liste) => {
+      const r = elt('div', 'tse-acc-rayon ' + classe);
+      r.dataset.tseRayon = cle;
+      const pied = elt('div', 'tse-acc-pied');
+      const plus = elt('button', 'tse-acc-plus');
+      plus.type = 'button';
+      plus.hidden = true;
+      plus.append(elt('span', null, S.uiAccAfficherTout), noeudStatique(PICTO_CHEVRON));
+      plus.addEventListener('click', () => {
+        if (ouverts.has(cle)) ouverts.delete(cle); else ouverts.add(cle);
+        plier(r);
+      });
+      pied.append(elt('hr', 'tse-acc-filet'), plus, elt('hr', 'tse-acc-filet'));
+      r.append(titre, liste, pied);
+      r.hidden = true;
+      return r;
+    };
+
+    const colonnes = (liste) => {
+      if (!liste.clientWidth) return 0;
+      const pistes = getComputedStyle(liste).gridTemplateColumns.trim().split(/\s+/)
+        .filter((t) => /^[\d.]+px$/.test(t)).length;
+      return pistes || 0;
+    };
+    const plier = (r) => {
+      const liste = r.querySelector('.tse-acc-liste');
+      const plus = r.querySelector('.tse-acc-plus');
+      const ouvert = ouverts.has(r.dataset.tseRayon);
+      const items = liste.children;
+      const cols = colonnes(liste);
+      const replie = !ouvert && cols > 0;
+      for (let i = 0; i < items.length; i++) {
+        const cache = replie && i >= cols;
+        if (items[i].hidden !== cache) items[i].hidden = cache;
+      }
+
+      const reste = cols > 0 && items.length > cols && !('tseAttente' in liste.dataset);
+      plus.hidden = !reste;
+      if (!reste) return;
+      texteSi(plus.firstChild, ouvert ? S.uiAccAfficherMoins : S.uiAccAfficherTout);
+      attrSi(plus, 'aria-expanded', String(ouvert));
+    };
+
+    const construire = () => {
+      if (guetteur) { guetteur.disconnect(); guetteur = null; }
+      if (mesureur) { mesureur.disconnect(); mesureur = null; }
+      herosVu = false;
+      section = elt('section');
+      section.id = ID;
+      section.dataset.tseLangue = LANG;
+      section.setAttribute('aria-label', S.uiAccSection);
+      blocHeros = elt('div');
+      blocHeros.id = ID_HEROS;
+      blocHeros.dataset.tseLangue = LANG;
+      blocHeros.setAttribute('aria-label', S.uiAccHeros);
+      blocHeros.setAttribute('role', 'region');
+      const heros = elt('div', 'tse-acc-heros');
+      heros.hidden = true;
+      blocHeros.append(heros);
+
+      const hUne = elt('h2', 'tse-acc-titre');
+      hUne.append(elt('span', null, S.uiAccUne));
+
+      const lUne = elt('div', 'tse-acc-liste tse-acc-ruban');
+      const cadreUne = elt('div', 'tse-acc-ruban-cadre');
+      const flecheUne = (sens) => {
+        const b = elt('button', 'tse-acc-ruban-fleche tse-acc-ruban-fleche--' + (sens < 0 ? 'prec' : 'suiv'));
+        b.type = 'button';
+        b.dataset.tseSens = String(sens);
+        const nom = sens < 0 ? S.uiAccPrecedent : S.uiAccSuivant;
+        b.title = nom;
+        b.setAttribute('aria-label', nom);
+        b.append(noeudStatique(PICTO_CHEVRON));
+        b.addEventListener('click', erreurs.garde('accueil', () => mener(lUne, sens)));
+        return b;
+      };
+      cadreUne.append(flecheUne(-1), lUne, flecheUne(1));
+      lUne.addEventListener('scroll', () => { etatRuban(lUne).defile = true; }, { passive: true });
+      lUne.addEventListener('scrollend', erreurs.garde('accueil', () => finDefilement(lUne)));
+      lUne.addEventListener('click', erreurs.garde('accueil', (ev) => centrerAuClic(lUne, ev)), true);
+      lUne.addEventListener('animationend', (ev) => {
+        if (ev.animationName === 'tse-acc-ruban-arrivee') ev.target.classList.remove('tse-acc-carte--arrivee');
+      });
+      const une = fabriquerRayon('une', 'tse-acc-rayon--une', hUne, cadreUne);
+      const hTop = elt('h2', 'tse-acc-titre');
+      const tTop = elt('span', null, S.uiAccTop);
+      const lang = elt('span', 'tse-acc-langue');
+      hTop.append(tTop, lang);
+      const lTop = elt('ol', 'tse-acc-liste tse-acc-liste--top');
+      const top = fabriquerRayon('top', 'tse-acc-rayon--top', hTop, lTop);
+      const note = elt('p', 'tse-acc-note');
+      note.hidden = true;
+      lTop.after(note);
+
+      const pq = Array.from({ length: CFG.POURQUOI_RAYONS }, (_, i) => {
+        const h = elt('h2', 'tse-acc-titre');
+        h.append(elt('span'), elt('span', 'tse-acc-sous-titre'));
+        const l = elt('div', 'tse-acc-liste');
+        return { r: fabriquerRayon('pourquoi-' + i, 'tse-acc-rayon--pourquoi', h, l), h, l };
+      });
+
+      const hRdv = elt('h2', 'tse-acc-titre');
+      hRdv.append(elt('span', null, S.uiAccRdv));
+      const lRdv = elt('div', 'tse-acc-liste tse-acc-liste--rdv');
+      const rdv = fabriquerRayon('rdv', 'tse-acc-rayon--rdv', hRdv, lRdv);
+      const hHab = elt('h2', 'tse-acc-titre');
+      hHab.append(elt('span', null, S.uiAccHabitudes), elt('span', 'tse-acc-sous-titre', S.uiAccHabitudesNote));
+      const lHab = elt('div', 'tse-acc-liste tse-acc-liste--rdv');
+      const hab = fabriquerRayon('habitudes', 'tse-acc-rayon--habitudes', hHab, lHab);
+
+      const hAbs = elt('h2', 'tse-acc-titre');
+      hAbs.append(elt('span', 'tse-acc-absence-titre', S.uiAbsTitre), elt('span', 'tse-acc-sous-titre tse-acc-absence-sous'));
+      const tAbs = elt('div', 'tse-acc-absence-tete');
+      const xAbs = elt('button', 'tse-acc-absence-fermer', '×');
+      xAbs.type = 'button';
+      xAbs.setAttribute('aria-label', S.uiRappelFermer);
+      xAbs.title = S.uiRappelFermer;
+      xAbs.addEventListener('click', erreurs.garde('accueil', () => {
+        presence.fermer();
+        bilan.absence.fermetures++;
+        peindre();
+      }));
+      tAbs.append(hAbs, xAbs);
+      const lAbs = elt('div', 'tse-acc-liste tse-acc-absence-liste');
+      const abs = fabriquerRayon('absence', 'tse-acc-rayon--absence tse-acc-absence', tAbs, lAbs);
+      section.append(une, top, ...pq.map((x) => x.r), rdv, hab, abs);
+      z = { heros, une, lUne, top, tTop, lang, lTop, note, pq, rdv, lRdv, hab, lHab, abs, lAbs, langCle: undefined };
+
+      if (typeof IntersectionObserver === 'function') {
+        guetteur = new IntersectionObserver(erreurs.garde('accueil', (entrees) => {
+          const vu = entrees[entrees.length - 1].isIntersecting;
+          if (vu === herosVu) return;
+          herosVu = vu;
+          majLecteur();
+        }));
+        guetteur.observe(heros);
+      } else herosVu = true;
+
+      if (typeof ResizeObserver === 'function') {
+        let large = 0;
+        mesureur = new ResizeObserver(erreurs.garde('accueil', (entrees) => {
+          const l = Math.round(entrees[entrees.length - 1].contentRect.width);
+          if (l === large) return;
+          large = l;
+          plier(z.une);
+          poserTete(z.lUne);
+          plier(z.top);
+          plier(z.rdv);
+          plier(z.hab);
+          plier(z.abs);
+        }));
+        mesureur.observe(section);
+      }
+    };
+
+    const noterAffiche = (login, debut) => { if (debut) affiches.set(login, String(debut)); };
+
+    const majDebut = (a, login, nom, reserver = false) => {
+      const d = options.get('accueilDebut') ? debuts.get(login) : null;
+      const cle = affiches.get(login);
+      const ok = !!d && d.id !== null && d.cle === cle && (d.fermee === false || subs.isSub(login));
+      const garde = !ok && reserver && options.get('accueilDebut');
+      a.hidden = !ok && !garde;
+      if (garde) { if (!('tseReserve' in a.dataset)) a.dataset.tseReserve = ''; }
+      else if ('tseReserve' in a.dataset) delete a.dataset.tseReserve;
+      if (!ok) { attrSi(a, 'href', null); attrSi(a, 'title', null); }
+      else {
+
+        attrSi(a, 'href', `/videos/${d.id}?t=1s`);
+        attrSi(a, 'title', S.uiAccDebutTitre(nom));
+      }
+      if ((ok || garde) && !a.firstChild) a.append(noeudStatique(PICTO_DEBUT), elt('span', null, S.uiAccDebut));
+    };
+
+    const rangDit = (n) => {
+      const lang = langueVoulue();
+      if (!lang) return S.uiAccRang(n);
+      const code = String(LANG_API[lang] || '').toLowerCase();
+      const propre = String(S.locale || '').split('-')[0].toLowerCase();
+      if (code && code === propre) return S.uiEtiqRangLangue(n, null);
+
+      if (propre === 'en' && code) {
+        let nom = null;
+        try { nom = new Intl.DisplayNames(['en'], { type: 'language' }).of(code); } catch { nom = null; }
+        if (nom && nom.toLowerCase() !== code) return S.uiEtiqRangLangue(n, nom);
+      }
+      return S.uiAccRang(n);
+    };
+    const etiquetteDe = (login, { rang = true } = {}) => {
+      if (!options.get('accueilEtiquettes')) return null;
+      const e = cache.get(login);
+      if (!e || !e.stream || Date.now() - (e.ts || 0) > 2 * CFG.LIVE_TTL) return null;
+      const r = agenda.retour(login, e.stream);
+      if (r) return { type: 'retour', texte: S.uiEtiqRetour(r.jours) };
+      if (e.subathon) return { type: 'subathon', texte: S.uiBadgeSubathon(e.subathon.jour) };
+      const age = Date.now() - Date.parse(debutReel(login, e.stream.createdAt));
+      if (Number.isFinite(age) && age >= 0 && age < CFG.FRESH_MAX_MIN * 60_000 && !repriseFraiche(login)) {
+        return { type: 'commence', texte: S.uiEtiqCommence };
+      }
+      const jeu = basculementFrais(login)?.libelle || preview.basculeConnue(login);
+      if (jeu) return { type: 'bascule', texte: S.uiEtiqBascule(jeu) };
+      const t = tendanceDe(login, e);
+      if (t) return { type: 'tendance', texte: S.uiEtiqTendance(t.pct, Math.max(1, t.min)) };
+      const n = rang && rangsTop ? rangsTop.get(login) : undefined;
+      if (n) return { type: 'rang', texte: rangDit(n) };
+      const k = camaradesDe(login).length;
+      if (k > 0) return { type: 'costream', texte: S.uiEtiqCostream(k + 1) };
+      return null;
+    };
+
+    const coinOccupe = (lien, zone) => {
+      for (const x of lien.querySelectorAll('*')) {
+        if (x.children.length || x.localName === 'img' || !x.textContent.trim()) continue;
+        const r = x.getBoundingClientRect();
+        if (r.width && r.height && r.left < zone.r && r.right > zone.l && r.top < zone.b && r.bottom > zone.t) return true;
+      }
+      return false;
+    };
+
+    const dureeMontree = (lien) => lien.hasAttribute('data-tse-duree') && !!options.get('duree');
+    const coinLibre = (lien) => {
+      const r = lien.getBoundingClientRect();
+      if (!r.width || !r.height) return null;
+      const l = r.left + r.width * 0.45;
+      if (!coinOccupe(lien, { l, r: r.right, t: r.top + r.height * 0.65, b: r.bottom })) return null;
+      return coinOccupe(lien, { l, r: r.right, t: r.top, b: r.top + r.height * 0.35 }) ? 'aucun' : 'haut';
+    };
+    const etiquetees = new Set();
+    const coinsPour = new WeakMap();
+    const poserEtiquette = (n, et, twitch = false) => {
+      if (!et) {
+        if (n.hasAttribute('data-tse-etiquette')) {
+          n.removeAttribute('data-tse-etiquette');
+          n.removeAttribute('data-tse-etiq');
+          n.removeAttribute('data-tse-etiq-coin');
+        }
+        coinsPour.delete(n);
+        etiquetees.delete(n);
+        return;
+      }
+
+      const pour = et.texte + (twitch && dureeMontree(n) ? '|d' : '');
+      if (n.getAttribute('data-tse-etiquette') !== et.texte || (twitch && coinsPour.get(n) !== pour)) {
+        if (n.getAttribute('data-tse-etiquette') !== et.texte) {
+          n.setAttribute('data-tse-etiquette', et.texte);
+          bilan.etiquettes.posees[et.type] = (bilan.etiquettes.posees[et.type] || 0) + 1;
+        }
+        if (twitch) {
+          coinsPour.set(n, pour);
+          const coin = coinLibre(n);
+          if (coin !== n.getAttribute('data-tse-etiq-coin') && coin) bilan.etiquettes.coins[coin]++;
+          attrSi(n, 'data-tse-etiq-coin', coin);
+        }
+      }
+      attrSi(n, 'data-tse-etiq', et.type);
+      if (twitch) etiquetees.add(n);
+    };
+
+    const demandesFaites = new Map();
+
+    const demander = (login, pour = bilan.etiquettes) => {
+      if (getFreshChannel(login) || queue.has(login) || enVolLogins.has(login)) return false;
+      const now = Date.now();
+      if (now - (demandesFaites.get(login) || 0) < CFG.LIVE_TTL) return false;
+      demandesFaites.delete(login);
+      demandesFaites.set(login, now);
+      while (demandesFaites.size > CFG.ETIQ_HISTO_MAX) demandesFaites.delete(demandesFaites.keys().next().value);
+      pour.demandes++;
+      fetchChannel(login);
+      return true;
+    };
+
+    const SEL_LIEN_CARTE = 'a[data-a-target="preview-card-image-link"]';
+    let guetteurCartes = null;
+    let cartesSuivies = new WeakSet();
+    const cartesVues = new Set();
+    const loginDuLien = (lien) => {
+      const img = lien.querySelector(SEL_MINIATURE);
+      const m = img && RE_MINIATURE.exec(img.getAttribute('src') || '');
+      const l = m && m[1].toLowerCase();
+      return l && RE_LOGIN.test(l) ? l : null;
+    };
+
+    const habillees = new Set();
+    const SEL_STAT = '.tw-media-card-stat';
+    const habiller = (lien, login) => {
+      const e = login ? cache.get(login) : null;
+      const direct = e && e.stream ? e : null;
+      const debut = direct?.stream?.createdAt ? debutReel(login, direct.stream.createdAt) : null;
+      attrSi(lien, 'data-tse-duree', debut ? formatUptime(debut) || null : null);
+      const n = direct ? audience(login, direct) : null;
+      const stat = lien.querySelector(SEL_STAT);
+      if (stat) attrSi(stat, 'data-tse-spect', Number.isFinite(n) ? formatViewers(n) : null);
+      if (login) habillees.add(lien); else habillees.delete(lien);
+    };
+    const deshabiller = (lien) => {
+      lien.removeAttribute('data-tse-duree');
+      lien.querySelector(SEL_STAT)?.removeAttribute('data-tse-spect');
+      habillees.delete(lien);
+    };
+    const etiquetterTwitch = () => {
+      const voulu = options.get('accueilEtiquettes') && pose();
+      const habille = options.get('accueilRanger') && pose();
+      if ((voulu || habille) && !guetteurCartes && typeof IntersectionObserver === 'function') {
+        guetteurCartes = new IntersectionObserver(erreurs.garde('accueil', (entrees) => {
+          for (const en of entrees) {
+            if (en.isIntersecting) cartesVues.add(en.target); else cartesVues.delete(en.target);
+          }
+          etiquetterTwitch();
+        }), { rootMargin: '200px 0px' });
+      }
+      const liens = voulu || habille ? [...document.querySelectorAll('main ' + SEL_LIEN_CARTE)].filter((l) => !exclu(l)) : [];
+      const presents = new Set(liens);
+      for (const l of [...etiquetees]) if (!voulu || !presents.has(l)) poserEtiquette(l, null);
+      for (const l of [...habillees]) if (!habille || !presents.has(l)) deshabiller(l);
+      for (const l of [...cartesVues]) if (!presents.has(l)) cartesVues.delete(l);
+      let vues = 0, demandees = 0;
+      for (const lien of liens) {
+        if (guetteurCartes && !cartesSuivies.has(lien)) { cartesSuivies.add(lien); guetteurCartes.observe(lien); }
+        const login = loginDuLien(lien);
+        if (!login) { poserEtiquette(lien, null); deshabiller(lien); continue; }
+        if (!guetteurCartes || cartesVues.has(lien)) {
+          vues++;
+          if (demandees < CFG.ETIQ_TWITCH_MAX && demander(login)) demandees++;
+        }
+
+        if (habille) habiller(lien, login);
+        if (voulu) poserEtiquette(lien, etiquetteDe(login), true);
+      }
+      bilan.etiquettes.twitch = { cartes: liens.length, vues, etiquetees: etiquetees.size, habillees: habillees.size,
+                                  durees: [...habillees].filter((l) => l.hasAttribute('data-tse-duree')).length };
+    };
+
+    const CLE_MASQUES = 'tse:rayonsMasques';
+    const RE_CATEGORIE = /^\/directory\/category\/([a-z0-9-]{1,80})\/?$/;
+    const RE_URL_SURE = /^https:\/\/[^\s"'()\\]+$/;
+    let masquesMemo = null;
+    const lireMasques = () => {
+      if (masquesMemo) return masquesMemo;
+      let x = null;
+      try { x = JSON.parse(localStorage.getItem(CLE_MASQUES) || '[]'); } catch { x = null; }
+      masquesMemo = new Set((Array.isArray(x) ? x : []).filter((v) => typeof v === 'string' && /^[a-z0-9-]{1,80}$/.test(v))
+        .slice(0, CFG.RANGER_MASQUES_MAX));
+      return masquesMemo;
+    };
+    const ecrireMasques = (m) => {
+      masquesMemo = new Set([...m].slice(-CFG.RANGER_MASQUES_MAX));
+      try { localStorage.setItem(CLE_MASQUES, JSON.stringify([...masquesMemo])); } catch {   }
+    };
+    const titresMarques = new Set();
+    const vignettesMarquees = new Set();
+    const categorieDu = (h2) => {
+      for (const a of h2.querySelectorAll('a[href]')) {
+        const m = RE_CATEGORIE.exec(a.getAttribute('href') || '');
+        if (m) return m[1];
+      }
+      return null;
+    };
+    const etagereDu = (h2) => h2.closest('.find-me') || h2.parentElement?.parentElement?.parentElement || null;
+    const oterRanger = () => {
+      for (const h2 of titresMarques) {
+        h2.removeAttribute('data-tse-masquable');
+        h2.removeAttribute('data-tse-masquer');
+        etagereDu(h2)?.removeAttribute('data-tse-masque');
+      }
+      titresMarques.clear();
+      for (const a of vignettesMarquees) { a.removeAttribute('data-tse-vignette'); a.style.removeProperty('--tse-vignette'); }
+      vignettesMarquees.clear();
+      if (document.documentElement.hasAttribute('data-tse-ranger')) document.documentElement.removeAttribute('data-tse-ranger');
+    };
+    const rangerTwitch = () => {
+      if (!options.get('accueilRanger') || !pose()) { oterRanger(); return; }
+      const html = document.documentElement;
+      if (!html.hasAttribute('data-tse-ranger')) html.setAttribute('data-tse-ranger', '');
+      const masques = lireMasques();
+      const titres = [...document.querySelectorAll('main h2')].filter((h) => !exclu(h));
+      const vus = new Set();
+      let masquables = 0, cachees = 0;
+      for (const h2 of titres) {
+        const cat = categorieDu(h2);
+        if (!cat) continue;
+        vus.add(h2);
+        masquables++;
+        const masque = masques.has(cat);
+        if (masque) cachees++;
+        attrSi(h2, 'data-tse-masquable', cat);
+        attrSi(h2, 'data-tse-masquer', masque ? S.uiRangerReafficher : S.uiRangerMasquer);
+        const et = etagereDu(h2);
+        if (et) { if (masque) attrSi(et, 'data-tse-masque', ''); else et.removeAttribute('data-tse-masque'); }
+        titresMarques.add(h2);
+      }
+      for (const h2 of [...titresMarques]) {
+        if (vus.has(h2)) continue;
+        h2.removeAttribute('data-tse-masquable');
+        h2.removeAttribute('data-tse-masquer');
+        titresMarques.delete(h2);
+      }
+
+      const v = { rediffusion: 0, avatar: 0, sans: 0 };
+      const liens = [...document.querySelectorAll('main ' + SEL_LIEN_CARTE)].filter((l) => !exclu(l));
+      const encore = new Set();
+      for (const lien of liens) {
+        const img = lien.querySelector('img');
+        if (!img || !/\/ttv-static\/404_preview/.test(img.getAttribute('src') || '')) continue;
+        const art = lien.closest('article') || lien.parentElement;
+        const nom = art && art.querySelector('a[data-a-target="preview-card-channel-link"][href]');
+        const m = nom && /^\/([a-z0-9_]{1,25})\/?$/i.exec(nom.getAttribute('href') || '');
+        const login = m && m[1].toLowerCase();
+        const redif = login ? agenda.derniereVignette(login) : null;
+        const av = art && art.querySelector('img[src*="/jtv_user_pictures/"]');
+        const avatar = av && av !== img ? av.getAttribute('src') : null;
+        const url = [redif, avatar].find((u) => typeof u === 'string' && RE_URL_SURE.test(u)) || null;
+        if (!url) { v.sans++; continue; }
+        const sorte = url === redif ? 'rediffusion' : 'avatar';
+        v[sorte]++;
+        attrSi(lien, 'data-tse-vignette', sorte);
+        const val = `url("${url}")`;
+        if (lien.style.getPropertyValue('--tse-vignette') !== val) lien.style.setProperty('--tse-vignette', val);
+        vignettesMarquees.add(lien);
+        encore.add(lien);
+      }
+      for (const a of [...vignettesMarquees]) {
+        if (encore.has(a)) continue;
+        a.removeAttribute('data-tse-vignette');
+        a.style.removeProperty('--tse-vignette');
+        vignettesMarquees.delete(a);
+      }
+      Object.assign(bilan.ranger, { titres: titres.length, masquables, masques: cachees, vignettes: v });
+    };
+
+    const clicRanger = (ev) => {
+      const h2 = ev.target instanceof Element ? ev.target.closest('h2[data-tse-masquable]') : null;
+      if (!h2 || !document.documentElement.hasAttribute('data-tse-ranger')) return;
+      const r = h2.getBoundingClientRect();
+      if (!(ev.clientX > r.right && ev.clientY >= r.top && ev.clientY <= r.bottom)) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      const cat = h2.getAttribute('data-tse-masquable');
+      const m = new Set(lireMasques());
+      if (m.has(cat)) m.delete(cat); else m.add(cat);
+      ecrireMasques(m);
+      bilan.ranger.clics++;
+      rangerTwitch();
+    };
+    document.addEventListener('click', erreurs.garde('accueil', clicRanger), true);
+
+    window.addEventListener('storage', erreurs.garde('accueil', (ev) => {
+      if (ev.key !== CLE_MASQUES && ev.key !== null) return;
+      masquesMemo = null;
+      if (pose() && !document.hidden) rangerTwitch();
+    }));
+    const oterEtiquettes = () => {
+      for (const l of [...etiquetees]) poserEtiquette(l, null);
+      for (const l of [...habillees]) deshabiller(l);
+      if (guetteurCartes) { guetteurCartes.disconnect(); guetteurCartes = null; }
+      cartesSuivies = new WeakSet();
+      cartesVues.clear();
+    };
+
+    const POPOVER = typeof document.createElement('div').showPopover === 'function';
+    const etatsCs = new WeakMap();
+    let csOuvert = null;
+    let csMinuteur = 0;
+    let csNumero = 0;
+    let csRendu = null;
+
+    const nomCs = (m) => cache.get(m.login)?.name || m.nom || m.login;
+    const phraseCs = (cs) => S.uiAccCsPhrase(nomCs(cs.tete), listeNoms(cs.autres.map(nomCs)));
+
+    const autresDeLaPlace = (p) => {
+      const tete = p.tete.login;
+      const vus = new Set([tete]);
+      const autres = [];
+      for (const m of [...camaradesDe(tete), ...p.membres]) {
+        const l = m?.login && String(m.login).toLowerCase();
+        if (!l || vus.has(l) || !RE_LOGIN.test(l)) continue;
+        vus.add(l);
+        autres.push({ login: l, nom: m.name || null });
+      }
+      return autres;
+    };
+
+    const ficheCs = (m, avatar) => {
+      const e = cache.get(m.login);
+      const frais = !!e && Date.now() - (e.ts || 0) <= 2 * CFG.LIVE_TTL;
+      const n = frais && e.stream && Number.isFinite(e.viewers) ? e.viewers : null;
+      return { login: m.login, nom: nomCs(m), avatar: imageSure(avatar) || imageSure(e?.avatar), n };
+    };
+    const fabriquerLigneCs = (login) => {
+      const a = elt('a', 'tse-acc-cs-membre');
+      a.dataset.tseCle = login;
+      a.setAttribute('href', '/' + login);
+      a.setAttribute('target', '_blank');
+      a.setAttribute('rel', 'noopener noreferrer');
+      const av = elt('span', 'tse-acc-cs-avatar');
+      const img = elt('img');
+      img.alt = '';
+      img.decoding = 'async';
+      img.hidden = true;
+      av.append(img);
+      const vues = elt('span', 'tse-acc-cs-vues');
+      vues.hidden = true;
+      a.append(av, elt('span', 'tse-acc-cs-nom'), vues);
+      return a;
+    };
+    const majLigneCs = (a, x) => {
+      const [av, nom, vues] = a.children;
+      const img = av.firstChild;
+      img.hidden = !x.avatar;
+      if (x.avatar) attrSi(img, 'src', x.avatar);
+      texteSi(nom, x.nom);
+      vues.hidden = x.n === null;
+      texteSi(vues, x.n === null ? '' : formatViewers(x.n));
+      attrSi(vues, 'title', x.n === null ? null : S.uiAccSpect(x.n, formatViewers(x.n)));
+    };
+
+    const remplirCs = (fen, cs) => {
+      const autres = cs.autres.map((m, i) => ({ x: ficheCs(m), i }))
+        .sort((a, b) => ((b.x.n ?? -1) - (a.x.n ?? -1)) || (a.i - b.i)).map((o) => o.x);
+      rangee(fen, [ficheCs(cs.tete, cs.tete.avatar), null, ...autres], (x) => (x ? x.login : ':titre'),
+             (x) => {
+               if (x) return fabriquerLigneCs(x.login);
+               const t = elt('p', 'tse-acc-cs-titre');
+               t.dataset.tseCle = ':titre';
+               return t;
+             },
+             (n, x) => { if (x) majLigneCs(n, x); else texteSi(n, S.uiAccCsAvec); });
+    };
+
+    const placerCs = () => {
+      if (!csOuvert) return;
+      const { bouton: b, fen } = csOuvert;
+      const r = b.getBoundingClientRect();
+      const vh = window.innerHeight;
+      if (!r.width || r.bottom < 0 || r.top > vh) { fermerCs(); return; }
+      const vw = document.documentElement.clientWidth;
+      const w = fen.offsetWidth;
+      const h = fen.offsetHeight;
+      const left = Math.max(8, Math.min(r.left, vw - w - 8));
+      let top = r.bottom + 6;
+      if (top + h > vh - 8 && r.top - 6 - h >= 8) top = r.top - 6 - h;
+      fen.style.left = Math.round(left) + 'px';
+      fen.style.top = Math.round(top) + 'px';
+      attrSi(fen, 'data-tse-cote', top < r.top ? 'haut' : 'bas');
+    };
+    let csCadre = 0;
+    const replacerCs = () => {
+      if (csCadre) return;
+      csCadre = requestAnimationFrame(() => { csCadre = 0; placerCs(); });
+    };
+    const dansCs = (n) => !!csOuvert && n instanceof Node && (csOuvert.bouton.contains(n) || csOuvert.fen.contains(n));
+    const surPointeurCs = (ev) => { if (!dansCs(ev.target)) fermerCs(); };
+    const surToucheCs = (ev) => {
+      if (ev.key !== 'Escape' || !csOuvert) return;
+      const { bouton } = csOuvert;
+      const dedans = dansCs(document.activeElement);
+      fermerCs();
+
+      if (dedans && document.activeElement !== bouton) { csRendu = bouton; bouton.focus(); csRendu = null; }
+    };
+    const ecouterCs = (oui) => {
+      const f = oui ? 'addEventListener' : 'removeEventListener';
+      document[f]('pointerdown', surPointeurCs, true);
+      document[f]('keydown', surToucheCs, true);
+      document[f]('scroll', replacerCs, true);
+      window[f]('resize', replacerCs);
+    };
+    const fermerCs = () => {
+      clearTimeout(csMinuteur);
+      if (!csOuvert) return;
+      const { bouton, fen } = csOuvert;
+      csOuvert = null;
+      ecouterCs(false);
+      bouton.setAttribute('aria-expanded', 'false');
+      if (fen.matches(':popover-open')) fen.hidePopover();
+    };
+    const ouvrirCs = (bouton, epingle) => {
+      clearTimeout(csMinuteur);
+      if (csOuvert && csOuvert.bouton !== bouton) fermerCs();
+      const fen = bouton.nextElementSibling;
+      const cs = etatsCs.get(bouton);
+      if (!fen || !cs || !bouton.isConnected) return;
+      if (!csOuvert) {
+        remplirCs(fen, cs);
+        if (!fen.matches(':popover-open')) fen.showPopover();
+        csOuvert = { bouton, fen, epingle: false };
+        bouton.setAttribute('aria-expanded', 'true');
+        ecouterCs(true);
+        placerCs();
+        bilan.top.cs.ouvertures++;
+      }
+      if (epingle && csOuvert) csOuvert.epingle = true;
+    };
+    const plusTardCs = (fn, ms) => { clearTimeout(csMinuteur); csMinuteur = setTimeout(erreurs.garde('accueil', fn), ms); };
+
+    const quitterCs = (ev) => {
+      if (ev.pointerType === 'touch' || !csOuvert || csOuvert.epingle) { if (!csOuvert) clearTimeout(csMinuteur); return; }
+      plusTardCs(() => { if (csOuvert && !csOuvert.epingle) fermerCs(); }, CFG.ACCUEIL_CS_FERME_MS);
+    };
+    const fabriquerCs = () => {
+      const b = elt('button', 'tse-acc-cs');
+      b.type = 'button';
+      b.append(elt('span', null), noeudStatique(PICTO_CHEVRON));
+      if (!POPOVER) return [b];
+      b.setAttribute('aria-expanded', 'false');
+      const fen = elt('div', 'tse-acc-cs-fen');
+      fen.id = 'tse-acc-cs-' + (++csNumero);
+      fen.setAttribute('popover', 'manual');
+      b.setAttribute('aria-controls', fen.id);
+      const garde = (fn) => erreurs.garde('accueil', fn);
+      b.addEventListener('pointerenter', garde((ev) => {
+        if (ev.pointerType === 'touch') return;
+        if (csOuvert && csOuvert.bouton === b) { clearTimeout(csMinuteur); return; }
+        plusTardCs(() => ouvrirCs(b, false), CFG.ACCUEIL_CS_OUVRE_MS);
+      }));
+      b.addEventListener('pointerleave', garde(quitterCs));
+
+      b.addEventListener('click', garde(() => {
+        if (csOuvert && csOuvert.bouton === b && csOuvert.epingle) fermerCs();
+        else ouvrirCs(b, true);
+      }));
+
+      b.addEventListener('focus', garde(() => {
+        if (csRendu === b) { csRendu = null; return; }
+        if (b.matches(':focus-visible')) ouvrirCs(b, false);
+      }));
+      fen.addEventListener('pointerenter', garde(() => { if (csOuvert && csOuvert.fen === fen) clearTimeout(csMinuteur); }));
+      fen.addEventListener('pointerleave', garde(quitterCs));
+
+      const sortie = garde((ev) => {
+        if (csOuvert && csOuvert.bouton === b && ev.relatedTarget && !dansCs(ev.relatedTarget)) fermerCs();
+      });
+      b.addEventListener('focusout', sortie);
+      fen.addEventListener('focusout', sortie);
+      return [b, fen];
+    };
+
+    const majCs = (ligne, cs) => {
+      const b = ligne.querySelector(':scope > .tse-acc-cs');
+      if (!cs || !cs.autres.length) {
+        if (!b) return;
+        if (csOuvert && csOuvert.bouton === b) fermerCs();
+        if (b.nextElementSibling?.classList.contains('tse-acc-cs-fen')) b.nextElementSibling.remove();
+        b.remove();
+        return;
+      }
+      let bouton = b;
+      if (!bouton) {
+        const noeuds = fabriquerCs();
+        bouton = noeuds[0];
+        ligne.firstChild.after(...noeuds);
+      }
+      etatsCs.set(bouton, cs);
+      texteSi(bouton.firstChild, `+ ${cs.autres.length}`);
+      const phrase = phraseCs(cs);
+      attrSi(bouton, 'aria-label', phrase);
+      if (!POPOVER) attrSi(bouton, 'title', phrase);
+      if (csOuvert && csOuvert.bouton === bouton) remplirCs(csOuvert.fen, cs);
+    };
+
+    const suivreCs = () => {
+      if (!csOuvert) return;
+      const { bouton, fen } = csOuvert;
+      if (!bouton.isConnected || !fen.isConnected) { fermerCs(); return; }
+      if (!fen.matches(':popover-open')) fen.showPopover();
+      placerCs();
+    };
+
+    const fabriquerCarte = (login) => {
+      const carte = elt('article', 'tse-acc-carte');
+      carte.dataset.tseCle = login;
+      const relief = elt('div', 'tse-acc-relief');
+      const accent = elt('span', 'tse-acc-accent');
+      accent.setAttribute('aria-hidden', 'true');
+      const vig = elt('a', 'tse-acc-vignette');
+      vig.setAttribute('href', '/' + login);
+      vig.dataset.tseSurvol = login;
+      const img = elt('img', 'tse-acc-img');
+      img.alt = '';
+      img.loading = 'lazy';
+      img.decoding = 'async';
+      const direct = elt('span', 'tse-acc-direct', S.uiAccDirect);
+      const duree = elt('span', 'tse-acc-duree');
+      const spect = elt('span', 'tse-acc-spect');
+      vig.append(img, direct, duree, spect);
+      const infos = elt('div', 'tse-acc-infos');
+      const av = elt('img', 'tse-acc-avatar');
+      av.alt = '';
+      av.loading = 'lazy';
+      const textes = elt('div', 'tse-acc-textes');
+      const ligne = elt('div', 'tse-acc-nom-ligne');
+      const nom = elt('a', 'tse-acc-nom');
+      nom.setAttribute('href', '/' + login);
+      const evol = elt('span', 'tse-acc-evol');
+      evol.hidden = true;
+      ligne.append(nom, evol);
+      const titre = elt('p', 'tse-acc-titre-carte');
+      const jeu = elt('p', 'tse-acc-jeu');
+      const debut = elt('a', 'tse-acc-debut');
+      debut.hidden = true;
+      textes.append(ligne, titre, jeu, debut);
+      infos.append(av, textes);
+      relief.append(accent, vig);
+      carte.append(relief, infos);
+      return carte;
+    };
+
+    const majCarte = (carte, d) => {
+      const [relief, infos] = carte.children;
+      const vig = relief.lastChild;
+      const couleur = couleurChaine(String(d.couleur || '').replace(/^#/, ''));
+      attrSi(relief, 'data-tse-couleur', couleur ? 'chaine' : 'defaut');
+      const accent = couleur || CFG.ACCUEIL_RELIEF_DEFAUT;
+      if (relief.style.getPropertyValue('--tse-accent') !== accent) relief.style.setProperty('--tse-accent', accent);
+      const [img, , duree, spect] = vig.children;
+      poserImage(img, buildThumbUrl(d.login));
+      attrSi(vig, 'aria-label', d.nom);
+      texteSi(duree, d.debutLive ? formatUptime(d.debutLive) : '');
+      duree.hidden = !d.debutLive;
+      texteSi(spect, Number.isFinite(d.spect) ? formatViewers(d.spect) : '');
+      attrSi(spect, 'title', Number.isFinite(d.spect) ? S.uiAccSpect(d.spect, formatViewers(d.spect)) : null);
+      spect.hidden = !Number.isFinite(d.spect);
+      const [av, textes] = infos.children;
+      const url = imageSure(d.avatar);
+      av.hidden = !url;
+      if (url) attrSi(av, 'src', url);
+      const [ligne, titre, jeu, debut] = textes.children;
+      texteSi(ligne.firstChild, d.nom);
+      majCs(ligne, d.cs || null);
+      texteSi(titre, d.titre || '');
+      attrSi(titre, 'title', d.titre || null);
+      titre.hidden = !d.titre;
+      texteSi(jeu, d.jeu || '');
+      jeu.hidden = !d.jeu;
+      majDebut(debut, d.login, d.nom, true);
+
+      poserEtiquette(vig, etiquetteDe(d.login, { rang: !d.top }));
+    };
+
+    const rangee = (liste, items, cle, fabriquer, maj) => {
+      const restants = new Map([...liste.children].map((n) => [n.dataset.tseCle, n]));
+      let prec = null;
+      for (const it of items) {
+        const k = cle(it);
+        let n = restants.get(k);
+        if (n) restants.delete(k); else n = fabriquer(it);
+        maj(n, it);
+        const attendu = prec ? prec.nextSibling : liste.firstChild;
+        if (n !== attendu) liste.insertBefore(n, attendu);
+        prec = n;
+      }
+      for (const n of restants.values()) n.remove();
+    };
+    const donneesSuivie = ({ login, e }) => ({
+      login, nom: e.name || login, avatar: e.avatar, titre: e.stream?.title || '', couleur: e.couleur,
+      jeu: e.gameLabel || e.game || '', spect: audience(login, e),
+      debutLive: e.stream?.createdAt ? debutReel(login, e.stream.createdAt) : null,
+    });
+
+    const fabriquerHeros = (login) => {
+      const cadre = elt('div', 'tse-acc-heros-cadre');
+      const fond = elt('div', 'tse-acc-heros-fond');
+      fond.setAttribute('aria-hidden', 'true');
+      const reflet = elt('div', 'tse-acc-heros-reflet');
+      for (let i = 0; i < 2; i++) {
+        const im = elt('img');
+        im.alt = '';
+        im.decoding = 'async';
+        reflet.append(im);
+      }
+      fond.append(reflet, elt('canvas', 'tse-acc-heros-ambiance'), elt('canvas', 'tse-acc-heros-ambiance'));
+      const media = elt('div', 'tse-acc-heros-media');
+      const img = elt('img', 'tse-acc-heros-img');
+      img.alt = '';
+      img.decoding = 'async';
+      const lien = elt('a', 'tse-acc-heros-lien');
+      lien.setAttribute('href', '/' + login);
+      media.append(img, lien);
+      const voile = elt('div', 'tse-acc-heros-voile');
+      voile.setAttribute('aria-hidden', 'true');
+      const infos = elt('div', 'tse-acc-heros-infos');
+      const l1 = elt('p', 'tse-acc-heros-l1');
+      l1.append(elt('span', 'tse-acc-direct', S.uiAccDirect), elt('span', 'tse-acc-surtitre', S.uiAccHeros));
+      const tete = elt('div', 'tse-acc-heros-tete');
+      const av = elt('img', 'tse-acc-avatar');
+      av.alt = '';
+      const nom = elt('a', 'tse-acc-heros-nom');
+      nom.setAttribute('href', '/' + login);
+      const abo = elt('span', 'tse-acc-heros-abo');
+      abo.hidden = true;
+      tete.append(av, nom, abo);
+      const titre = elt('p', 'tse-acc-heros-titre');
+      const meta = elt('p', 'tse-acc-heros-meta');
+      meta.append(elt('span', 'tse-acc-heros-jeu'), elt('span', 'tse-acc-heros-spect'),
+                  elt('span', 'tse-acc-heros-duree'), elt('span', 'tse-acc-heros-rang'));
+      const actions = elt('div', 'tse-acc-actions');
+      const regarder = elt('a', 'tse-acc-bouton tse-acc-bouton--principal');
+      regarder.setAttribute('href', '/' + login);
+      regarder.append(noeudStatique(PICTO_LECTURE), elt('span', null, S.uiAccRegarder));
+      const debut = elt('a', 'tse-acc-bouton tse-acc-debut');
+      debut.hidden = true;
+      actions.append(regarder, debut);
+      infos.append(l1, tete, titre, meta, actions);
+
+      const scene = elt('div', 'tse-acc-heros-scene');
+      scene.append(fond, media, voile);
+      cadre.append(scene, infos);
+      return cadre;
+    };
+
+    const urlLecteur = (login, h) => 'https://player.twitch.tv/?' + new URLSearchParams({
+      channel: login, parent: 'twitch.tv', player: 'popout', quality: qualiteHeros(h),
+      muted: 'true', controls: 'false', autoplay: 'true',
+    });
+
+    const qualiteHeros = (h) => {
+      const q = h ? qualiteUsuelle(h) : null;
+      return q && parseInt(q, 10) >= CFG.ACCUEIL_VIDEO_PLANCHER ? q : CFG.ACCUEIL_VIDEO_QUALITE;
+    };
+
+    const hauteurVideoHeros = (media) => {
+      const r = media.getBoundingClientRect();
+      const h = Math.min(r.height, r.width * 9 / 16);
+      return h > 0 ? Math.round(h * (window.devicePixelRatio || 1)) : null;
+    };
+    const ORIGINE_LECTEUR = 'https://player.twitch.tv';
+    const oterLecteur = () => {
+      const l = lecteur;
+      if (!l) return;
+      lecteur = null;
+      for (const k of Object.keys(l.t)) clearTimeout(l.t[k]);
+      window.removeEventListener('message', l.ecoute);
+      if (l.taille) l.taille.disconnect();
+
+      try { l.iframe.src = 'about:blank'; } catch {   }
+      l.iframe.remove();
+      bilan.heros.video.retraits++;
+      eteindreAmbiance();
+    };
+    const poserLecteur = (media, login, cle) => {
+      const iframe = elt('iframe', 'tse-acc-heros-video');
+
+      iframe.name = TSE_PREVIEW_FRAME_NAME;
+      iframe.src = urlLecteur(login, hauteurVideoHeros(media));
+      iframe.setAttribute('allow', 'autoplay; encrypted-media');
+
+      iframe.setAttribute('aria-hidden', 'true');
+      iframe.tabIndex = -1;
+      const l = { login, cle, iframe, devoile: false, modale: false, t: {}, ecoute: null,
+                  charge: false, hauteurEnvoyee: null, taille: null };
+      const annuler = (k) => { if (l.t[k]) { clearTimeout(l.t[k]); delete l.t[k]; } };
+
+      const direHauteur = () => {
+        if (lecteur !== l || !l.charge) return;
+        const h = hauteurVideoHeros(media);
+        if (!h || h === l.hauteurEnvoyee) return;
+        try {
+          iframe.contentWindow.postMessage({ tse: TSE_HEROS_QUALITE_MSG, hauteur: h, plancher: CFG.ACCUEIL_VIDEO_PLANCHER },
+                                           ORIGINE_LECTEUR);
+          l.hauteurEnvoyee = h;
+          bilan.heros.video.hauteur = h;
+        } catch {   }
+      };
+      const devoiler = (comment) => {
+        if (l.devoile || lecteur !== l) return;
+        annuler('filet'); annuler('delai'); annuler('modale');
+        l.devoile = true;
+        iframe.dataset.tseLoaded = 'true';
+        bilan.heros.video[comment]++;
+
+        try {
+          iframe.contentWindow.postMessage({ tse: TSE_AMBIANCE_MSG }, ORIGINE_LECTEUR);
+          bilan.heros.ambiance.demandes++;
+        } catch {   }
+      };
+      const renoncer = (raison) => {
+        if (lecteur !== l) return;
+        lecteursRates.set(login, { cle, ts: Date.now() });
+        bilan.heros.video[raison]++;
+        oterLecteur();
+      };
+      l.ecoute = (e) => {
+
+        if (e.source !== iframe.contentWindow || e.origin !== ORIGINE_LECTEUR) return;
+        const quoi = e.data?.tse;
+        if (quoi === TSE_PREVIEW_FIRST_FRAME_MSG) devoiler('premieres');
+        else if (quoi === TSE_AMBIANCE_PX_MSG) peindreAmbiance(e.data);
+        else if (quoi === TSE_HEROS_QUALITE_MSG) {
+
+          const nom = typeof e.data.nom === 'string' ? e.data.nom.slice(0, 24) : null;
+          bilan.heros.video.qualite = nom;
+          bilan.heros.video.auto = typeof e.data.auto === 'boolean' ? e.data.auto : null;
+
+          const ech = typeof e.data.echelle === 'string' && /^[0-9/]{0,64}$/.test(e.data.echelle) ? e.data.echelle : null;
+          const dec = Number.isInteger(e.data.decodee) && e.data.decodee > 0 && e.data.decodee <= 4320 ? e.data.decodee : null;
+          bilan.heros.video.echelle = ech;
+          bilan.heros.video.decodee = dec;
+        }
+        else if (quoi === TSE_PREVIEW_GATE_MSG && !l.modale) {
+
+          l.modale = true;
+          bilan.heros.video.modales++;
+          annuler('filet');
+          if (!l.devoile) l.t.modale = setTimeout(() => renoncer('retours'), CFG.PREVIEW_GATE_TIMEOUT_MS);
+        }
+      };
+      window.addEventListener('message', l.ecoute);
+      iframe.addEventListener('load', () => {
+        annuler('delai');
+        if (lecteur !== l) return;
+        l.charge = true;
+        direHauteur();
+        if (l.devoile || l.modale) return;
+        l.t.filet = setTimeout(() => devoiler('filets'), CFG.PREVIEW_REVEAL_FALLBACK_MS);
+      }, { once: true });
+      l.t.delai = setTimeout(() => renoncer('delais'), CFG.ACCUEIL_VIDEO_DELAI_MS);
+      lecteur = l;
+      media.insertBefore(iframe, media.lastChild);
+      if (typeof ResizeObserver === 'function') {
+        l.taille = new ResizeObserver(erreurs.garde('accueil', direHauteur));
+        l.taille.observe(media);
+      }
+      bilan.heros.video.poses++;
+    };
+    const lecteurVoulu = () => !!herosCourant && pose() && options.get('accueilVideo')
+      && !document.hidden && herosVu;
+    const majLecteur = () => {
+      if (!lecteurVoulu()) { oterLecteur(); return; }
+      const { login, cle } = herosCourant;
+      if (lecteur && lecteur.login === login && lecteur.cle === cle && lecteur.iframe.isConnected) return;
+      oterLecteur();
+      const rate = lecteursRates.get(login);
+      if (rate && rate.cle === cle && Date.now() - rate.ts < CFG.ACCUEIL_VIDEO_REPRISE_MS) return;
+      const media = z.heros.querySelector('.tse-acc-heros-media');
+      if (media) poserLecteur(media, login, cle);
+    };
+
+    const peindreAmbiance = (d) => {
+
+      if (d?.faussee === true) { bilan.heros.ambiance.faussees++; return; }
+      const w = d?.w, h = d?.h, px = d?.px;
+      if (!Number.isInteger(w) || !Number.isInteger(h) || w < 1 || h < 1 || w > 64 || h > 64
+          || !px || px.length !== w * h * 4) { bilan.heros.ambiance.rejets++; return; }
+      const toiles = z.heros.querySelectorAll('.tse-acc-heros-ambiance');
+      if (toiles.length !== 2) return;
+      const dessus = toiles[0].classList.contains('tse-acc-heros-ambiance--dessus') ? toiles[0] : toiles[1];
+      const cible = dessus === toiles[0] ? toiles[1] : toiles[0];
+      const image = new ImageData(2 * w, h);
+      const out = image.data;
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          const s = (y * w + x) * 4;
+          const droite = (y * 2 * w + w + x) * 4;
+          const miroir = (y * 2 * w + (w - 1 - x)) * 4;
+          for (let k = 0; k < 3; k++) { out[droite + k] = px[s + k]; out[miroir + k] = px[s + k]; }
+          out[droite + 3] = 255;
+          out[miroir + 3] = 255;
+        }
+      }
+      if (cible.width !== 2 * w) cible.width = 2 * w;
+      if (cible.height !== h) cible.height = h;
+      const ctx = cible.getContext('2d');
+      if (!ctx) return;
+      ctx.putImageData(image, 0, 0);
+      cible.classList.add('tse-acc-heros-ambiance--vue', 'tse-acc-heros-ambiance--dessus');
+      dessus.classList.remove('tse-acc-heros-ambiance--dessus');
+      if (typeof cible.animate === 'function') {
+        cible.animate([{ opacity: 0 }, { opacity: 1 }], { duration: CFG.ACCUEIL_AMBIANCE_FONDU_MS, easing: 'ease-out' });
+      }
+      bilan.heros.ambiance.images++;
+    };
+
+    const eteindreAmbiance = () => {
+      if (!z) return;
+      for (const t of z.heros.querySelectorAll('.tse-acc-heros-ambiance')) {
+        t.classList.remove('tse-acc-heros-ambiance--vue', 'tse-acc-heros-ambiance--dessus');
+      }
+    };
+
+    const peindreHeros = (h) => {
+      const zh = z.heros;
+      zh.hidden = !h;
+      blocHeros.hidden = !h;
+      herosCourant = h ? { login: h.login, cle: String(h.e.stream?.createdAt || h.e.stream?.id || '') } : null;
+      if (!h) { zh.replaceChildren(); delete zh.dataset.tseCle; majLecteur(); return; }
+      const d = donneesSuivie(h);
+      if (zh.dataset.tseCle !== h.login) {
+        zh.dataset.tseCle = h.login;
+        zh.replaceChildren(fabriquerHeros(h.login));
+      }
+      const [scene, infos] = zh.firstChild.children;
+      const [fond, media] = scene.children;
+      const u = urlsHeros(h.login);
+      poserImage(media.firstChild, u.grande);
+
+      for (const im of fond.firstChild.children) poserImage(im, u.petite);
+      attrSi(media.lastChild, 'aria-label', d.nom);
+      const [, enTete, titre, meta, actions] = infos.children;
+      const [av, nom, abo] = enTete.children;
+      const avatar = imageSure(d.avatar);
+      av.hidden = !avatar;
+      if (avatar) attrSi(av, 'src', avatar);
+      texteSi(nom, d.nom);
+
+      const mois = subs.isSub(h.login) ? subs.monthsFor(h.login) : 0;
+      abo.hidden = !(mois > 0);
+      texteSi(abo, mois > 0 ? S.uiBadgeSubMonths(mois) : '');
+      texteSi(titre, d.titre);
+      titre.hidden = !d.titre;
+      attrSi(titre, 'title', d.titre || null);
+      const [jeu, spect, duree, rang] = meta.children;
+      texteSi(jeu, d.jeu);
+      jeu.hidden = !d.jeu;
+      texteSi(spect, Number.isFinite(d.spect) ? S.uiAccSpect(d.spect, formatViewers(d.spect)) : '');
+      spect.hidden = !Number.isFinite(d.spect);
+      texteSi(duree, d.debutLive ? S.uiAccDepuis(formatUptime(d.debutLive)) : '');
+      duree.hidden = !d.debutLive;
+      const place = rangsTop && rangsTop.get(h.login);
+      texteSi(rang, place ? S.uiAccRang(place) : '');
+      rang.hidden = !place;
+      majDebut(actions.lastChild, h.login, d.nom);
+      majLecteur();
+    };
+
+    const UNE_ATTENTE = 5;
+    const fabriquerCarteAttente = (n) => {
+
+      const carte = elt('div', 'tse-acc-carte-attente');
+      carte.dataset.tseCle = 'attente:' + n;
+      carte.setAttribute('aria-hidden', 'true');
+      const infos = elt('div', 'tse-acc-infos');
+      const textes = elt('div', 'tse-acc-textes');
+      const os = (classe) => { const p = elt('p', classe); p.append(elt('span', 'tse-acc-os')); return p; };
+      textes.append(os('tse-acc-ligne-os'), os('tse-acc-titre-carte'), os('tse-acc-jeu'));
+      if (options.get('accueilDebut')) {
+        const d = elt('span', 'tse-acc-debut');
+        d.dataset.tseReserve = '';
+        textes.append(d);
+      }
+      infos.append(elt('span', 'tse-acc-avatar'), textes);
+      carte.append(elt('div', 'tse-acc-vignette'), infos);
+      return carte;
+    };
+    let uneLue = '';
+    const peindreUne = (heros) => {
+      const voulu = !!options.get('accueilUne') && masquerVoulu;
+      const { logins, voie } = voulu ? chainesCarrousel() : { logins: [], voie: null };
+      uneLue = logins.join(',');
+      const items = [];
+      let attente = 0;
+      for (const login of logins) {
+        if (heros && login === heros.login) continue;
+        demander(login, bilan.une);
+        const e = cache.get(login);
+        if (!e) { attente++; continue; }
+        if (e.stream) items.push({ login, e });
+      }
+      for (const x of items) noterAffiche(x.login, x.e.stream?.createdAt);
+
+      const reserve = voulu && !items.length && (!logins.length || attente > 0)
+        && performance.now() - arrivee < CFG.ACCUEIL_UNE_ATTENTE_MS;
+      const ruban = etatRuban(z.lUne);
+      if (reserve !== ('tseAttente' in z.lUne.dataset)) {
+        z.lUne.replaceChildren();
+        if (reserve) { z.lUne.dataset.tseAttente = ''; z.lUne.setAttribute('aria-busy', 'true'); }
+        else { delete z.lUne.dataset.tseAttente; z.lUne.removeAttribute('aria-busy'); }
+      }
+
+      const c0 = z.lUne.clientWidth ? auCentre(z.lUne) : null;
+      const repere = c0 && { carte: c0, ecart: ecartAuMilieu(z.lUne, c0) };
+      if (reserve) {
+        if (!z.lUne.children.length) for (let i = 1; i <= UNE_ATTENTE; i++) z.lUne.append(fabriquerCarteAttente(i));
+      } else {
+
+        const cles = items.map((it) => it.login);
+        if (cles.length && !cles.includes(ruban.tete)) {
+          const proche = ruban.tete !== null && cartesRuban(z.lUne)
+            .filter((c) => cles.includes(c.dataset.tseCle))
+            .sort((x, y) => Math.abs(ecartAuMilieu(z.lUne, x)) - Math.abs(ecartAuMilieu(z.lUne, y)))[0];
+          ruban.tete = proche ? proche.dataset.tseCle : cles[0] ?? null;
+        }
+
+        const t = cles.indexOf(ruban.tete);
+        const d = t < 0 || items.length < 3 ? 0 : t - milieuRuban(items.length);
+        const tournes = d ? [...items.slice(d), ...items.slice(0, d)] : items;
+        rangee(z.lUne, tournes, (it) => it.login, (it) => fabriquerCarte(it.login),
+               (n, it) => majCarte(n, donneesSuivie(it)));
+      }
+      bilan.une.tete = ruban.tete;
+      z.une.hidden = !items.length && !reserve;
+      plier(z.une);
+
+      poserTete(z.lUne, repere, reserve ? 'attente:' + (milieuRuban(UNE_ATTENTE) + 1) : undefined);
+      majFleches(z.lUne);
+      Object.assign(bilan.une, { voie, lues: logins.length, montrees: items.length, attente, reserve });
+    };
+
+    const tetesDesSessions = new Map();
+    const audiencePropre = (login) => {
+      const e = cache.get(login);
+      return e && e.stream && Date.now() - (e.ts || 0) <= 2 * CFG.LIVE_TTL && Number.isFinite(e.viewers) ? e.viewers : null;
+    };
+    const enPlaces = (recs) => {
+      const places = [];
+      const index = new Map();
+      for (const r of recs) {
+        const k = sessionDuMembre(r.login) || ('s:' + r.login);
+        let p = index.get(k);
+        if (!p) { p = { cle: k, tete: r, membres: [] }; index.set(k, p); places.push(p); }
+        else p.membres.push(r);
+      }
+      const gardees = places.slice(0, CFG.ACCUEIL_TOP_N);
+      for (const p of gardees) {
+        if (!p.membres.length) continue;
+        const tous = [p.tete, ...p.membres];
+        let meilleur = null;
+        for (const r of tous) {
+          const v = audiencePropre(r.login);
+          if (v !== null && (!meilleur || v > meilleur.v)) meilleur = { r, v };
+        }
+        const avant = tous.find((r) => r.login === tetesDesSessions.get(p.cle));
+        const vAvant = avant ? audiencePropre(avant.login) : null;
+        const tete = !meilleur ? (avant || p.tete)
+          : avant && avant !== meilleur.r && vAvant !== null && meilleur.v <= vAvant * (1 + CFG.ACCUEIL_CS_TETE_ECART) ? avant
+          : meilleur.r;
+        tetesDesSessions.delete(p.cle);
+        tetesDesSessions.set(p.cle, tete.login);
+        if (tete !== p.tete) { p.membres = tous.filter((r) => r !== tete); p.tete = tete; }
+      }
+      while (tetesDesSessions.size > 4 * CFG.ACCUEIL_TOP_N) tetesDesSessions.delete(tetesDesSessions.keys().next().value);
+      return gardees;
+    };
+
+    const noterInstantane = (places, cle) => {
+      const now = Date.now();
+      while (instantanes.length && now - instantanes[0].ts > CFG.ACCUEIL_EVOLUTION_MS) instantanes.shift();
+      const dernier = instantanes[instantanes.length - 1];
+      if (dernier && dernier.cle === cle && now - dernier.ts < CFG.ACCUEIL_INSTANTANE_MS) return;
+      const rangs = new Map();
+      places.forEach((p, i) => { for (const r of [p.tete, ...p.membres]) rangs.set(r.login, i + 1); });
+      instantanes.push({ ts: now, cle, rangs });
+      bilan.top.instantanes++;
+    };
+    const reference = (cle) => {
+      const ref = instantanes.find((x) => x.cle === cle);
+      return ref && Date.now() - ref.ts >= CFG.ACCUEIL_EVOLUTION_MIN_MS ? ref : null;
+    };
+    const evolution = (p, rang, ref) => {
+      if (!ref) return null;
+      const min = Math.max(1, Math.round((Date.now() - ref.ts) / 60_000));
+      const avant = Math.min(...[p.tete, ...p.membres].map((r) => ref.rangs.get(r.login) ?? Infinity));
+      if (!Number.isFinite(avant)) return { classe: 'nouveau', texte: S.uiAccNouveau, titre: S.uiAccEntree(min) };
+      if (avant === rang) return { classe: 'stable', texte: '=', titre: S.uiAccStable(min) };
+      const n = Math.abs(avant - rang);
+      return avant > rang
+        ? { classe: 'hausse', texte: `▲ ${n}`, titre: S.uiAccHausse(n, min) }
+        : { classe: 'baisse', texte: `▼ ${n}`, titre: S.uiAccBaisse(n, min) };
+    };
+
+    const fabriquerPlace = (login) => {
+      const li = elt('li', 'tse-acc-place');
+      li.dataset.tseCle = login;
+      const rang = elt('span', 'tse-acc-rang');
+      rang.setAttribute('aria-hidden', 'true');
+      li.append(rang, fabriquerCarte(login));
+      return li;
+    };
+
+    const PLACES_ATTENTE = 5;
+    const fabriquerAttente = (n) => {
+      const li = elt('li', 'tse-acc-place tse-acc-place--attente');
+      li.dataset.tseCle = 'attente:' + n;
+      li.setAttribute('aria-hidden', 'true');
+      const rang = elt('span', 'tse-acc-rang', String(n));
+      const carte = elt('div', 'tse-acc-carte');
+      const infos = elt('div', 'tse-acc-infos');
+      const textes = elt('div', 'tse-acc-textes');
+      const ligne = elt('p', 'tse-acc-ligne-os');
+      ligne.append(elt('span', 'tse-acc-os'));
+      const jeu = elt('p', 'tse-acc-jeu');
+      jeu.append(elt('span', 'tse-acc-os'));
+      textes.append(ligne, jeu);
+      if (options.get('accueilDebut')) {
+        const d = elt('span', 'tse-acc-debut');
+        d.dataset.tseReserve = '';
+        textes.append(d);
+      }
+      infos.append(elt('span', 'tse-acc-avatar'), textes);
+      carte.append(elt('div', 'tse-acc-vignette'), infos);
+      li.append(rang, carte);
+      return li;
+    };
+    const majPlace = (li, { p, rang, ref }) => {
+      const r = p.tete;
+      const [chiffre, carte] = li.children;
+
+      const debutLive = cache.get(r.login)?.stream?.createdAt || r.createdAt || null;
+      noterAffiche(r.login, debutLive);
+      texteSi(chiffre, String(rang));
+
+      chiffre.classList.toggle('tse-acc-rang--double', rang >= 10);
+
+      const autres = autresDeLaPlace(p);
+      if (autres.length) {
+        bilan.top.cs.places++;
+        bilan.top.cs.membres += autres.length;
+        for (const l of [r.login, ...autres.map((m) => m.login)]) demander(l, bilan.top.cs);
+      }
+
+      majCarte(carte, {
+        login: r.login, nom: r.name || r.login, avatar: r.avatar,
+        titre: cache.get(r.login)?.stream?.title || '', jeu: r.gameLabel || r.game || '',
+        spect: Number.isFinite(r.viewers) ? r.viewers : null,
+        debutLive: debutLive ? debutReel(r.login, debutLive) : null,
+        cs: autres.length ? { tete: { login: r.login, nom: r.name || null, avatar: r.avatar }, autres } : null,
+        couleur: cache.get(r.login)?.couleur,
+        top: true,
+      });
+      attrSi(li, 'aria-label', S.uiAccPlace(rang, r.name || r.login));
+      const evol = carte.querySelector('.tse-acc-evol');
+      const e = evolution(p, rang, ref);
+      evol.hidden = !e;
+      if (!e) return;
+      evol.className = 'tse-acc-evol tse-acc-evol--' + e.classe;
+      texteSi(evol, e.texte);
+      attrSi(evol, 'title', e.titre);
+    };
+    const peindreTop = () => {
+      const voulu = options.get('accueilTop');
+      z.top.hidden = !voulu;
+      if (!voulu) { bilan.top.source = null; rangsTop = null; fermerCs(); return; }
+      const src = sourceTop();
+      bilan.top.source = src === globalChannels ? 'barre' : 'accueil';
+      const lang = langueVoulue();
+      const cleLang = lang || '*';
+      if (z.langCle !== cleLang) {
+        z.langCle = cleLang;
+        z.lang.replaceChildren(lang ? langIcon(lang) : noeudStatique(GLOBE_MARKUP),
+                               elt('span', null, lang || S.uiFilterAllLanguages));
+      }
+      const exclues = ecarteesTop();
+
+      const places = enPlaces(src.top(CFG.ACCUEIL_TOP_N, exclues)).filter((p) => RE_LOGIN.test(p.tete.login));
+      bilan.top.ecartees = exclues.size;
+      bilan.top.retirees = exclues.size ? src.base().filter((r) => exclues.has(String(r.login).toLowerCase())).length : 0;
+      const resolu = src.resolu();
+
+      const rapportTop = src.report();
+      const complet = resolu && rapportTop.complete && rapportTop.prouve >= placesVoulues();
+
+      const cleEvol = `${cleLang}|${[...exclues].sort().join(',')}`;
+      if (complet && places.length) noterInstantane(places, cleEvol);
+      const ref = complet ? reference(cleEvol) : null;
+      rangsTop = complet && places.length ? new Map() : null;
+      if (rangsTop) places.forEach((p, i) => { for (const r of [p.tete, ...p.membres]) rangsTop.set(r.login, i + 1); });
+
+      const attente = !places.length && !resolu;
+      if (attente !== ('tseAttente' in z.lTop.dataset)) {
+        z.lTop.replaceChildren();
+        if (attente) {
+          z.lTop.dataset.tseAttente = '';
+          z.lTop.setAttribute('aria-busy', 'true');
+          for (let i = 1; i <= PLACES_ATTENTE; i++) z.lTop.append(fabriquerAttente(i));
+        } else {
+          delete z.lTop.dataset.tseAttente;
+          z.lTop.removeAttribute('aria-busy');
+        }
+      }
+      if (!attente) {
+
+        if (options.get('accueilEtiquettes')) for (const p of places) demander(p.tete.login);
+
+        bilan.top.cs.places = 0;
+        bilan.top.cs.membres = 0;
+        rangee(z.lTop, places.map((p, i) => ({ p, rang: i + 1, ref })),
+               (x) => x.p.tete.login, (x) => fabriquerPlace(x.p.tete.login), majPlace);
+      }
+      suivreCs();
+      const note = attente ? '' : !places.length ? S.uiAccVide : (resolu && !complet ? S.uiGlobalPartial : '');
+      texteSi(z.note, note);
+      z.note.hidden = !note;
+      attrSi(z.lTop, 'aria-label', attente ? S.uiAccAttente : null);
+      plier(z.top);
+    };
+
+    const chercherDebuts = async (lot) => {
+      bilan.debut.envois++;
+      bilan.debut.demandes += lot.length;
+      const q = 'query TseAccueilDebut {' + lot.map(([l], i) =>
+        ` a${i}: user(login: ${JSON.stringify(l)}) { stream { id archiveVideo { id } } }`).join('') + ' }';
+      const res = await post([{ operationName: 'TseAccueilDebut', query: q }]);
+
+      const r0 = Array.isArray(res) ? res[0] : null;
+      if (!r0 || !r0.data) {
+        if (r0 && Array.isArray(r0.errors) && r0.errors.length) {
+          bilan.debut.refus++;
+          if (++refusSuite >= 3) debutRefuse = true;
+          else debutPause = Date.now() + CFG.ACCUEIL_DEBUT_PAUSE;
+        } else {
+          bilan.debut.reseau++;
+          debutPause = Date.now() + CFG.GQL_ERROR_COOLDOWN;
+        }
+        return;
+      }
+      refusSuite = 0;
+      const now = Date.now();
+      const ids = [];
+      lot.forEach(([login, cle], i) => {
+        const s = r0.data[`a${i}`]?.stream;
+        const id = s?.archiveVideo?.id;
+        if (!s) bilan.debut.sansStream++;
+        else if (!/^\d+$/.test(String(id ?? ''))) bilan.debut.sansArchive++;
+        const bon = !!s && /^\d+$/.test(String(id ?? ''));
+        debuts.set(login, { cle, id: bon ? String(id) : null, fermee: null, ts: now });
+        if (bon) { bilan.debut.archives++; ids.push([login, String(id)]); }
+      });
+      if (ids.length) await lireAcces(ids);
+    };
+
+    const lireAcces = async (ids) => {
+      const q = 'query TseAccueilAcces {' + ids.map(([, id], i) =>
+        ` a${i}: videoPlaybackAccessToken(id: ${JSON.stringify(id)}, params: ${PARAMS_JETON}) { value }`).join('') + ' }';
+      const res = await post([{ operationName: 'TseAccueilAcces', query: q }]);
+      const r0 = Array.isArray(res) ? res[0] : null;
+      if (!r0 || !r0.data) { bilan.debut.reseau++; return; }
+      bilan.debut.jetons++;
+      ids.forEach(([login, id], i) => {
+        const v = r0.data[`a${i}`]?.value;
+        const d = debuts.get(login);
+        if (!d || d.id !== id) return;
+        d.fermee = typeof v === 'string' ? fermeeSelonJeton(v) : null;
+        if (d.fermee === null) bilan.debut.illisibles++;
+        else if (d.fermee) bilan.debut.fermees++;
+      });
+    };
+    const demanderDebuts = () => {
+      if (!options.get('accueilDebut') || debutEnVol || debutRefuse || document.hidden) return;
+      if (Date.now() < debutPause) return;
+      const now = Date.now();
+
+      for (const [login, d] of debuts) {
+        if (!affiches.has(login) && now - d.ts > CFG.ACCUEIL_DEBUT_OUBLI_MS) debuts.delete(login);
+      }
+      const lot = [];
+      for (const [login, cle] of affiches) {
+        if (!RE_LOGIN.test(login) || !cle) continue;
+        const d = debuts.get(login);
+        if (d && d.cle === cle && (d.id !== null || now - d.ts < CFG.ACCUEIL_DEBUT_TTL)) continue;
+        lot.push([login, cle]);
+        if (lot.length >= CFG.ACCUEIL_DEBUT_LOT) break;
+      }
+      if (!lot.length) return;
+      debutEnVol = true;
+      chercherDebuts(lot)
+        .catch((e) => erreurs.noter('accueil', 'depuis le début : ' + ((e && e.message) || e)))
+        .finally(() => { debutEnVol = false; if (pose()) peindre(); });
+    };
+
+    const CLE_RDV_INDICE = 'tse:accueil:rdv';
+    let rdvIndice = null;
+    const lireIndiceRdv = () => {
+      if (rdvIndice) return rdvIndice;
+      let x = null;
+      try { x = JSON.parse(localStorage.getItem(CLE_RDV_INDICE) || 'null'); } catch {   }
+      const n = (v) => (Number.isInteger(v) && v >= 0 ? Math.min(v, CFG.ACCUEIL_RDV_MAX) : 0);
+      rdvIndice = { c: n(x && x.c), h: n(x && x.h) };
+      return rdvIndice;
+    };
+    const noterIndiceRdv = (c, h) => {
+      const i = lireIndiceRdv();
+      if (i.c === c && i.h === h) return;
+      rdvIndice = { c, h };
+      try { localStorage.setItem(CLE_RDV_INDICE, JSON.stringify(rdvIndice)); } catch {   }
+    };
+    const PICTO_CLOCHE = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5a4.5 4.5 0 0 0-4.5 4.5v2.6L2 11v1h12v-1l-1.5-2.4V6A4.5 4.5 0 0 0 8 1.5zM6.2 13a1.8 1.8 0 0 0 3.6 0z"/></svg>';
+    const heureDe = (t) => new Date(t).toLocaleTimeString(S.locale, { hour: '2-digit', minute: '2-digit' });
+    const heureDuJour = (m) => heureDe(new Date(2000, 0, 1, Math.floor(m / 60), m % 60).getTime());
+    const fabriquerRdv = (it) => {
+      const carte = elt('article', 'tse-acc-rdv');
+      carte.dataset.tseCle = it.cle;
+      const av = elt('img', 'tse-acc-avatar');
+      av.alt = '';
+      av.loading = 'lazy';
+      const lienAv = elt('a', 'tse-acc-rdv-av');
+      lienAv.append(av);
+      const textes = elt('div', 'tse-acc-textes');
+      const nom = elt('a', 'tse-acc-nom');
+      const quand = elt('p', 'tse-acc-rdv-quand');
+      const reste = elt('p', 'tse-acc-rdv-reste');
+      const titre = elt('p', 'tse-acc-titre-carte');
+      const jeu = elt('p', 'tse-acc-jeu');
+      const rappel = elt('button', 'tse-acc-rappel');
+      rappel.type = 'button';
+      rappel.append(noeudStatique(PICTO_CLOCHE), elt('span'));
+      rappel.addEventListener('click', erreurs.garde('accueil', () => {
+        const d = carte.tseRdv;
+        if (!d) return;
+        rappels.basculer({ login: d.login, nom: d.nom, avatar: d.avatar, id: d.id, debut: d.debut, fin: d.fin });
+        majRappel(rappel, d);
+      }));
+      textes.append(nom, quand, reste, titre, jeu, rappel);
+      carte.append(lienAv, textes);
+      return carte;
+    };
+    const majRappel = (b, d) => {
+      const pris = rappels.a(d.login, d.id);
+      attrSi(b, 'aria-pressed', String(pris));
+      texteSi(b.lastChild, pris ? S.uiAccPrevenu : S.uiAccPrevenir);
+      attrSi(b, 'title', S.uiAccPrevenirTitre(d.nom));
+    };
+    const majRdv = (carte, d, maintenant, demain) => {
+      carte.tseRdv = d;
+      const [lienAv, textes] = carte.children;
+      attrSi(lienAv, 'href', '/' + d.login);
+      attrSi(lienAv, 'aria-label', d.nom);
+      const av = lienAv.firstChild;
+      const url = imageSure(d.avatar);
+      av.hidden = !url;
+      if (url) attrSi(av, 'src', url);
+      const [nom, quand, reste, titre, jeu, rappel] = textes.children;
+      texteSi(nom, d.nom);
+      attrSi(nom, 'href', '/' + d.login);
+      texteSi(quand, `${d.debut < demain ? S.uiAccAujourdhui : S.uiAccDemain} · ${heureDe(d.debut)}`);
+
+      texteSi(reste, d.debut > maintenant
+        ? S.uiAccDans(formatDuree(Math.ceil((d.debut - maintenant) / 60_000) * 60_000)) : S.uiAccAttendu);
+      reste.classList.toggle('tse-acc-rdv-reste--attendu', d.debut <= maintenant);
+      texteSi(titre, d.titre || '');
+      attrSi(titre, 'title', d.titre || null);
+      titre.hidden = !d.titre;
+      texteSi(jeu, d.libelle || '');
+      jeu.hidden = !d.libelle;
+      majRappel(rappel, d);
+    };
+    const fabriquerHabitude = (it) => {
+      const carte = elt('article', 'tse-acc-rdv tse-acc-rdv--habitude');
+      carte.dataset.tseCle = it.cle;
+      const av = elt('img', 'tse-acc-avatar');
+      av.alt = '';
+      av.loading = 'lazy';
+      const lienAv = elt('a', 'tse-acc-rdv-av');
+      lienAv.append(av);
+      const textes = elt('div', 'tse-acc-textes');
+      textes.append(elt('a', 'tse-acc-nom'), elt('p', 'tse-acc-rdv-habitude'));
+      carte.append(lienAv, textes);
+      return carte;
+    };
+    const majHabitude = (carte, d) => {
+      const [lienAv, textes] = carte.children;
+      attrSi(lienAv, 'href', '/' + d.login);
+      attrSi(lienAv, 'aria-label', d.nom);
+      const av = lienAv.firstChild;
+      const url = imageSure(d.avatar);
+      av.hidden = !url;
+      if (url) attrSi(av, 'src', url);
+      const [nom, phrase] = textes.children;
+      texteSi(nom, d.nom);
+      attrSi(nom, 'href', '/' + d.login);
+      texteSi(phrase, S.uiAccHabitude(d.k, d.n, heureDuJour(d.vers)));
+    };
+
+    const fabriquerRdvAttente = (i) => {
+      const carte = elt('article', 'tse-acc-rdv tse-acc-rdv--attente');
+      carte.dataset.tseCle = 'attente:' + i;
+      carte.setAttribute('aria-hidden', 'true');
+      const lienAv = elt('span', 'tse-acc-rdv-av');
+      lienAv.append(elt('span', 'tse-acc-avatar'));
+      const textes = elt('div', 'tse-acc-textes');
+      for (let k = 0; k < 4; k++) {
+        const p = elt('p', 'tse-acc-ligne-os');
+        p.append(elt('span', 'tse-acc-os'));
+        textes.append(p);
+      }
+      carte.append(lienAv, textes);
+      return carte;
+    };
+    let rdvRelecture = null;
+    const relireRdvBientot = () => {
+      if (rdvRelecture) return;
+      rdvRelecture = setTimeout(erreurs.garde('accueil', () => {
+        rdvRelecture = null;
+        if (pose() && !document.hidden) peindreRdv();
+      }), CFG.ACCUEIL_RDV_RELECTURE_MS);
+    };
+    const peindreRdv = () => {
+      if (!options.get('accueilRdv')) {
+        z.rdv.hidden = true;
+        z.hab.hidden = true;
+        return;
+      }
+      const j0 = new Date();
+      j0.setHours(0, 0, 0, 0);
+      const debut = j0.getTime();
+      const demain = new Date(j0.getFullYear(), j0.getMonth(), j0.getDate() + 1).getTime();
+      const fin = new Date(j0.getFullYear(), j0.getMonth(), j0.getDate() + CFG.ACCUEIL_RDV_JOURS).getTime();
+      let r;
+      try { r = agenda.rendezVous({ debut, fin }); } catch (e) {
+        erreurs.noter('accueil', 'rendez-vous : ' + ((e && e.message) || e));
+        z.rdv.hidden = true;
+        z.hab.hidden = true;
+        return;
+      }
+      bilan.rdv.lectures++;
+      const maintenant = Date.now();
+      const creneaux = r.creneaux.slice(0, CFG.ACCUEIL_RDV_MAX).map((c) => ({ ...c, cle: `${c.login}|${c.id}` }));
+      const habitudes = r.habitudes.map((h) => ({ ...h, cle: h.login }));
+
+      const indice = lireIndiceRdv();
+      const avantMemoire = !r.restauree;
+      const remplir = (rayon, liste, items, nAttente, fabriquer, maj) => {
+        const attente = (avantMemoire || !!r.enCours) && !items.length && nAttente > 0;
+        if (attente !== ('tseAttente' in liste.dataset)) {
+          liste.replaceChildren();
+          if (attente) liste.dataset.tseAttente = ''; else delete liste.dataset.tseAttente;
+        }
+        if (attente) {
+          if (!liste.children.length) for (let i = 1; i <= nAttente; i++) liste.append(fabriquerRdvAttente(i));
+        } else {
+          rangee(liste, items, (x) => x.cle, fabriquer, maj);
+        }
+        rayon.hidden = !attente && !items.length;
+        plier(rayon);
+      };
+      remplir(z.rdv, z.lRdv, creneaux, indice.c, fabriquerRdv, (n, d) => majRdv(n, d, maintenant, demain));
+      remplir(z.hab, z.lHab, habitudes, indice.h, fabriquerHabitude, majHabitude);
+
+      if (!avantMemoire && !r.enCours) noterIndiceRdv(creneaux.length, habitudes.length);
+      bilan.rdv.creneaux = creneaux.length;
+      bilan.rdv.habitudes = habitudes.length;
+      bilan.rdv.attente = avantMemoire;
+      bilan.rdv.enCours = !!r.enCours;
+
+      if (r.enCours || avantMemoire) relireRdvBientot();
+    };
+
+    const clipsAbsence = new Map();
+    let clipsAbsRefuse = false;
+    const clipsAbsEnVol = new Set();
+
+    const Q_VIGNETTE_ABS = 'query TseAbsenceVignette($id: ID!) { video(id: $id) { id previewThumbnailURL(width: 640, height: 360) } }';
+    let vignetteAbsRefusee = false;
+    const demanderClipsAbsence = async (login, debut, fin, cle, video) => {
+      if (clipsAbsRefuse || clipsAbsEnVol.has(login) || clipsAbsence.get(login)?.cle === cle) return;
+      clipsAbsEnVol.add(login);
+      bilan.absence.clips.demandes++;
+      try {
+        const q = 'query TseAbsenceClips($login: String!, $n: Int!) {' +
+          '  user(login: $login) { clips(first: $n, criteria: { period: LAST_WEEK }) {' +
+          '    edges { node { id createdAt title viewCount } } } }' +
+          '}';
+        const ops = [{ operationName: 'TseAbsenceClips', variables: { login, n: CFG.ABSENCE_CLIPS }, query: q }];
+        const avecVignette = !!video && !vignetteAbsRefusee;
+        if (avecVignette) ops.push({ operationName: 'TseAbsenceVignette', variables: { id: video }, query: Q_VIGNETTE_ABS });
+        const res = await post(ops);
+        let vignette = null;
+        if (avecVignette && Array.isArray(res)) {
+          const v = res[1]?.data?.video;
+          if (v && String(v.id) === String(video)) vignette = imageSure(v.previewThumbnailURL);
+
+          else if (res[1] && !res[1].data && Array.isArray(res[1].errors)) vignetteAbsRefusee = true;
+          if (vignette) bilan.absence.vignettes++;
+        }
+        const r0 = Array.isArray(res) ? res[0] : null;
+        if (!r0) return;
+        const aretes = r0.data?.user?.clips?.edges;
+        if (!Array.isArray(aretes)) {
+          bilan.absence.clips.refus++;
+
+          clipsAbsRefuse = true;
+          return;
+        }
+        bilan.absence.clips.servis++;
+        const noeuds = aretes.map((a) => a?.node).filter((x) => x && Number.isFinite(Date.parse(x.createdAt)));
+        const vues = (x) => (Number.isInteger(x.viewCount) && x.viewCount >= 0 ? x.viewCount : null);
+        const parVues = noeuds.every((x, i) => i === 0 || (vues(noeuds[i - 1]) ?? -1) >= (vues(x) ?? -1));
+        const pendant = noeuds.filter((x) => { const t = Date.parse(x.createdAt); return t >= debut && t < fin; });
+        const pleine = aretes.length >= CFG.ABSENCE_CLIPS;
+        let top = null;
+        if (pendant.length && (!pleine || parVues)) {
+          for (const x of pendant) {
+            const v = vues(x);
+            const t = typeof x.title === 'string' ? x.title.trim().slice(0, 140) : '';
+            if (v !== null && t && (!top || v > top.vues)) top = { titre: t, vues: v };
+          }
+        }
+        if (top) bilan.absence.clips.plusVus++;
+        clipsAbsence.set(login, { cle, top, vignette });
+        while (clipsAbsence.size > 50) clipsAbsence.delete(clipsAbsence.keys().next().value);
+        if (pose() && !document.hidden) peindreAbsence();
+      } finally {
+        clipsAbsEnVol.delete(login);
+      }
+    };
+
+    const POURQUOI_Q = (code) => 'query TseCategoryTop($name: String!, $n: Int!) {' +
+      '  game(name: $name) { id name' +
+      '    streams(first: $n, options: { sort: VIEWER_COUNT' + (code ? `, broadcasterLanguages: [${code}]` : '') + ' }) {' +
+      '      edges { node { id createdAt viewersCount title' +
+      '        broadcaster { id login displayName profileImageURL(width: 70) primaryColorHex }' +
+      '        game { id name displayName } } }' +
+      '    } }' +
+      '}';
+    const court = (v, max = 80) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
+    const pourquoiLus = new Map();
+    const pourquoiEnVol = new Set();
+    const graines = () => {
+      const depuis = Date.now() - CFG.POURQUOI_JOURS * 86_400_000;
+      const out = [];
+      for (const [login, liste] of visits.map) {
+        if (!RE_LOGIN.test(login)) continue;
+        const n = liste.filter((t) => t >= depuis).length;
+        if (n < CFG.POURQUOI_MIN_VISITES) continue;
+
+        out.push({ login, n, auMoins: liste.length >= CFG.VISIT_ROLLING_N && n === liste.length, score: visits.scoreFor(login) });
+      }
+      return out.sort((a, b) => (b.n - a.n) || (b.score - a.score) || (a.login < b.login ? -1 : 1));
+    };
+    const demanderPourquoi = async (jeu, code) => {
+      const cle = `${jeu}|${code || ''}`;
+      const lu = pourquoiLus.get(cle);
+      if (pourquoiEnVol.has(cle) || (lu && Date.now() - lu.ts < CFG.POURQUOI_TTL)) return;
+      pourquoiEnVol.add(cle);
+      bilan.pourquoi.demandes++;
+      try {
+        const res = await post([{ operationName: 'TseCategoryTop', variables: { name: jeu, n: CFG.POURQUOI_N }, query: POURQUOI_Q(code) }]);
+        const r0 = Array.isArray(res) ? res[0] : null;
+        const g = r0?.data?.game;
+        const aretes = g?.streams?.edges;
+        if (!g || g.name !== jeu || !Array.isArray(aretes)) {
+          bilan.pourquoi.refus++;
+          pourquoiLus.set(cle, { ts: Date.now(), chaines: [] });
+          return;
+        }
+        bilan.pourquoi.servis++;
+        const chaines = aretes.map((a) => a?.node).filter((x) => x && RE_LOGIN.test(x.broadcaster?.login || ''))
+          .map((x) => ({ login: x.broadcaster.login, nom: court(x.broadcaster.displayName) || x.broadcaster.login,
+                         avatar: x.broadcaster.profileImageURL || null, titre: court(x.title, 140),
+                         couleur: couleurChaine(x.broadcaster.primaryColorHex),
+                         jeu: court(x.game?.displayName) || court(x.game?.name) || '',
+                         spect: Number.isFinite(x.viewersCount) ? x.viewersCount : null,
+                         debutLive: Number.isFinite(Date.parse(x.createdAt)) ? x.createdAt : null }))
+
+          .sort((a, b) => (b.spect ?? -1) - (a.spect ?? -1) || (a.login < b.login ? -1 : 1));
+        pourquoiLus.set(cle, { ts: Date.now(), chaines });
+        while (pourquoiLus.size > 8) pourquoiLus.delete(pourquoiLus.keys().next().value);
+        if (pose() && !document.hidden) peindre();
+      } finally {
+        pourquoiEnVol.delete(cle);
+      }
+    };
+    const peindrePourquoi = () => {
+      const rayons = [];
+      if (options.get('accueilPourquoi')) {
+        const lang = tagInterface();
+        const code = lang ? LANG_API[lang] || null : null;
+
+        const propre = String(S.locale || '').split('-')[0].toLowerCase();
+        let langue = null;
+        if (code && code.toLowerCase() === propre) langue = '';
+        else if (code && propre === 'en') {
+          try { langue = new Intl.DisplayNames(['en'], { type: 'language' }).of(code.toLowerCase()); } catch { langue = null; }
+          if (langue && langue.toLowerCase() === code.toLowerCase()) langue = null;
+        }
+        const depuis = Date.now() - CFG.POURQUOI_JOURS * 86_400_000;
+        const vues = new Set();
+        for (const g of graines()) {
+          if (rayons.length >= CFG.POURQUOI_RAYONS) break;
+          const h = agenda.habituelle(g.login, depuis);
+          if (!h || vues.has(h.jeu)) continue;
+          vues.add(h.jeu);
+          demanderPourquoi(h.jeu, code).catch((e) => erreurs.noter('accueil', 'pourquoi : ' + ((e && e.message) || e)));
+          const lu = pourquoiLus.get(`${h.jeu}|${code || ''}`);
+          rayons.push({ g, h, langue, chaines: lu ? lu.chaines : null });
+        }
+      }
+      bilan.pourquoi.lectures++;
+      const suivies = new Set(roster.entries().map(([l]) => l));
+      const montres = [];
+      z.pq.forEach((slot, i) => {
+        const x = rayons[i];
+        const chaines = x && x.chaines
+
+          ? x.chaines.filter((c) => !suivies.has(c.login)).slice(0, CFG.POURQUOI_CARTES) : [];
+        if (!x || !chaines.length) {
+          slot.r.hidden = true;
+          if (x && x.chaines) bilan.pourquoi.vides++;
+          return;
+        }
+        const f = cache.get(x.g.login);
+        const nomGraine = (f && f.name) || x.h.nom || x.g.login;
+        const [t, sous] = slot.h.children;
+        texteSi(t, S.uiAccPourquoi(nomGraine));
+        texteSi(sous, `${S.uiAccPourquoiVisites(x.g.n, x.g.auMoins)} · ${S.uiAccPourquoiOu(x.h.libelle, x.langue)}`);
+        slot.r.dataset.tseGraine = x.g.login;
+        rangee(slot.l, chaines, (c) => c.login, (c) => fabriquerCarte(c.login), (n, c) => majCarte(n, c));
+        slot.r.hidden = false;
+        plier(slot.r);
+        montres.push({ graine: x.g.login, visites: x.g.n, auMoins: x.g.auMoins, jeu: x.h.jeu, directs: x.h.n, cartes: chaines.length });
+      });
+      bilan.pourquoi.rayons = montres;
+    };
+
+    const ilYa = (t) => {
+      const ms = Date.now() - t;
+      if (!Number.isFinite(ms) || ms < 0) return null;
+      const [n, unite] = ms < 3_600_000 ? [Math.max(1, Math.floor(ms / 60_000)), 'minute']
+        : ms < 86_400_000 ? [Math.floor(ms / 3_600_000), 'hour'] : [Math.floor(ms / 86_400_000), 'day'];
+      try { return new Intl.RelativeTimeFormat(S.locale, { style: 'short', numeric: 'always' }).format(-n, unite); }
+      catch { return null; }
+    };
+    const fabriquerAbsence = (it) => {
+      const carte = elt('article', 'tse-acc-carte tse-acc-absence-carte');
+      carte.dataset.tseCle = it.login;
+      const relief = elt('div', 'tse-acc-relief');
+      const accent = elt('span', 'tse-acc-accent');
+      accent.setAttribute('aria-hidden', 'true');
+      const vig = elt('a', 'tse-acc-vignette');
+      const img = elt('img', 'tse-acc-img');
+      img.alt = '';
+      img.loading = 'lazy';
+      img.decoding = 'async';
+      vig.append(img, elt('span', 'tse-acc-direct tse-acc-direct--archive'), elt('span', 'tse-acc-duree'), elt('span', 'tse-acc-spect'));
+      relief.append(accent, vig);
+      const infos = elt('div', 'tse-acc-infos');
+      const av = elt('img', 'tse-acc-avatar');
+      av.alt = '';
+      av.loading = 'lazy';
+      const textes = elt('div', 'tse-acc-textes');
+      const ligne = elt('div', 'tse-acc-nom-ligne');
+      const nom = elt('a', 'tse-acc-nom');
+      nom.setAttribute('href', '/' + it.login);
+      ligne.append(nom);
+      const revoir = elt('a', 'tse-acc-debut tse-acc-absence-revoir');
+      revoir.append(noeudStatique(PICTO_LECTURE), elt('span', null, S.uiAbsRevoir));
+      textes.append(ligne, elt('p', 'tse-acc-titre-carte'), elt('p', 'tse-acc-jeu tse-acc-absence-clip'), revoir);
+      infos.append(av, textes);
+      carte.append(relief, infos);
+      return carte;
+    };
+    const majAbsence = (carte, it) => {
+      const [relief, infos] = carte.children;
+      const couleur = couleurChaine(String(cache.get(it.login)?.couleur || '').replace(/^#/, ''));
+      attrSi(relief, 'data-tse-couleur', couleur ? 'chaine' : 'defaut');
+      const accent = couleur || CFG.ACCUEIL_RELIEF_DEFAUT;
+      if (relief.style.getPropertyValue('--tse-accent') !== accent) relief.style.setProperty('--tse-accent', accent);
+      const vig = relief.lastChild;
+      const [img, nb, duree, quand] = vig.children;
+      const d = it.dernier;
+      const ouverte = !!d && (d.fermee === false || subs.isSub(it.login));
+      attrSi(vig, 'href', ouverte ? `/videos/${d.id}` : '/' + it.login);
+      const lu = clipsAbsence.get(it.login);
+      const archive = (lu && lu.cle === it.cle && lu.vignette) || imageSure(d?.vignette);
+      const avatar = imageSure(it.avatar);
+      vig.classList.toggle('tse-acc-vignette--avatar', !archive && !!avatar);
+      if (archive || avatar) poserImage(img, archive || avatar);
+      img.hidden = !(archive || avatar);
+      attrSi(vig, 'aria-label', `${it.nom} — ${it.n === null ? S.uiAbsSansRedif : S.uiAbsDirects(it.n, formatDuree(it.dureeMs))}`);
+      texteSi(nb, it.n === null ? '' : S.uiAbsNDirects(it.n));
+      nb.hidden = it.n === null;
+      texteSi(duree, it.n === null ? '' : formatDuree(it.dureeMs));
+      duree.hidden = it.n === null;
+
+      const dit = Number.isFinite(it.fin) && !getFreshChannel(it.login)?.stream ? ilYa(it.fin) : null;
+      texteSi(quand, dit || '');
+      quand.hidden = !dit;
+      const [av, textes] = infos.children;
+      av.hidden = !avatar;
+      if (avatar) attrSi(av, 'src', avatar);
+      const [ligne, titre, clip, revoir] = textes.children;
+      texteSi(ligne.firstChild, it.nom);
+      const t = it.n === null ? S.uiAbsSansRedif : (d?.titre || '');
+      texteSi(titre, t);
+      attrSi(titre, 'title', t || null);
+      titre.hidden = !t;
+      const top = lu && lu.cle === it.cle ? lu.top : null;
+
+      const phrase = top ? S.uiAbsPlusVu(top.titre, formatViewers(top.vues), top.vues) : '';
+      texteSi(clip, phrase.charAt(0).toLocaleUpperCase(LANG) + phrase.slice(1));
+      attrSi(clip, 'title', top ? top.titre : null);
+      clip.hidden = !top;
+      revoir.hidden = !ouverte;
+      attrSi(revoir, 'href', ouverte ? `/videos/${d.id}` : null);
+    };
+    const peindreAbsence = () => {
+      const a = options.get('accueilAbsence') ? presence.absence() : null;
+      if (!a || a.ferme) { z.abs.hidden = true; bilan.absence.montre = false; return; }
+      let r;
+      try { r = agenda.absence({ debut: a.debut, fin: a.fin }); } catch (e) {
+        erreurs.noter('accueil', 'absence : ' + ((e && e.message) || e));
+        z.abs.hidden = true;
+        return;
+      }
+      bilan.absence.lectures++;
+      const cle = `${a.debut}|${a.fin}`;
+      const items = r.chaines.map((x) => ({ ...x, cle }));
+      for (const x of items) {
+        demanderClipsAbsence(x.login, r.debut, r.fin, cle, x.dernier?.id || null)
+          .catch((e) => erreurs.noter('accueil', 'clips : ' + ((e && e.message) || e)));
+      }
+      const jours = Math.max(1, Math.floor((a.fin - a.debut) / 86_400_000));
+      texteSi(z.abs.querySelector('.tse-acc-absence-sous'), S.uiAbsSous(jours, r.borne));
+      rangee(z.lAbs, items, (x) => x.login, fabriquerAbsence, majAbsence);
+      z.abs.hidden = !items.length;
+      plier(z.abs);
+      bilan.absence.chaines = items.length;
+      bilan.absence.montre = !!items.length;
+      bilan.absence.enCours = !!r.enCours;
+      if (r.enCours) relireRdvBientot();
+    };
+
+    const peindre = () => {
+      if (!pose() || document.hidden) return;
+      const t = performance.now();
+      try { peindreTout(); } finally {
+        const ms = performance.now() - t;
+        bilan.peinturesMs = Math.round((bilan.peinturesMs + ms) * 10) / 10;
+        if (ms > bilan.peintureMaxMs) bilan.peintureMaxMs = Math.round(ms * 10) / 10;
+      }
+    };
+    const peindreTout = () => {
+
+      if (section.dataset.tseLangue !== LANG) {
+        const ancienne = section, ancienBloc = blocHeros;
+        construire();
+        ancienBloc.remove();
+        ancienne.replaceWith(section);
+        const racine = defileur();
+        if (racine) poserHeros(racine);
+        bilan.relangues++;
+      }
+      bilan.peintures++;
+      const { heros } = choisir();
+      bilan.heros.montre = !!heros;
+
+      bilan.heros.sansVisite = !!heros && !(heros.score > 0);
+      affiches.clear();
+      if (heros) noterAffiche(heros.login, heros.e.stream?.createdAt);
+      peindreTop();
+      peindreHeros(heros);
+      if (heros && bilan.chrono.heros === null) bilan.chrono.heros = maintenant();
+      if (heros) { precharges = []; prechargeCle = null; }
+      gererCarrousel(heros);
+      peindreUne(heros);
+      peindrePourquoi();
+      peindreRdv();
+      peindreAbsence();
+
+      rangerTwitch();
+      etiquetterTwitch();
+      section.hidden = !heros && z.une.hidden && z.top.hidden && z.pq.every((x) => x.r.hidden)
+        && z.rdv.hidden && z.hab.hidden && z.abs.hidden;
+      if (!section.hidden) aligner();
+      verifierPlaceHeros();
+      demanderDebuts();
+    };
+
+    const aligner = () => {
+
+      const contenu = document.querySelector(SEL_CONTENU);
+      const titre = contenu && [...contenu.querySelectorAll('h2, h3')]
+        .find((h) => !exclu(h) && h.getClientRects().length);
+      if (!titre) return;
+      const ecart = Math.round(titre.getBoundingClientRect().left - section.getBoundingClientRect().left);
+      const voulu = ecart >= 0 && ecart <= 80 ? `${ecart}px` : '';
+      if (section.style.paddingInline !== voulu) section.style.paddingInline = voulu;
+      aligneSur = contenu;
+    };
+    const retirer = () => {
+      herosCourant = null;
+      oterLecteur();
+      demasquer();
+      masquerVoulu = false;
+      if (html.hasAttribute('data-tse-accueil-carrousel')) html.removeAttribute('data-tse-accueil-carrousel');
+      leverVoile('depart');
+      fermerCs();
+      if (pose()) { section.remove(); bilan.retraits++; }
+      if (blocHeros) blocHeros.remove();
+      if (observateur) { observateur.disconnect(); observateur = null; }
+      verifPrevue = false;
+      ici = false;
+      precharges = [];
+      prechargeCle = null;
+      clearTimeout(rdvRelecture);
+      rdvRelecture = null;
+      oterEtiquettes();
+      oterRanger();
+      uneLue = '';
+    };
+
+    const suivreUne = () => {
+      if (!options.get('accueilUne') || !masquerVoulu) return;
+      const lu = chainesCarrousel().logins.join(',');
+      if (lu === uneLue) return;
+      uneLue = lu;
+      if (voile) return;
+
+      const n = bilan.peintures;
+      setTimeout(erreurs.garde('accueil', () => {
+        if (!pose() || bilan.peintures !== n) return;
+        bilan.une.relectures++;
+        peindre();
+      }), 0);
+    };
+    const verifier = () => {
+      if (!actif()) { retirer(); return; }
+      const etait = pose();
+      if (!placer()) return;
+      if (!etait) { peindre(); return; }
+      appliquerCarrousel();
+      suivreUne();
+      if (!section.hidden && !(aligneSur && aligneSur.isConnected)) aligner();
+    };
+    const planifier = () => {
+      if (verifPrevue) return;
+      verifPrevue = true;
+      setTimeout(erreurs.garde('accueil', () => { verifPrevue = false; verifier(); }), 150);
+    };
+
+    const observer = () => {
+      if (observateur) return;
+      observateur = new MutationObserver(erreurs.garde('accueil', (muts) => {
+        if (section && muts.every((m) => section.contains(m.target) || blocHeros.contains(m.target))) return;
+        bilan.reveils++;
+        if (suiviDePres(muts)) { bilan.synchrones++; verifier(); return; }
+        planifier();
+      }));
+      observateur.observe(document.body, { childList: true, subtree: true });
+    };
+
+    return {
+      init() {
+
+        document.addEventListener('play', (e) => {
+          const v = e.target;
+          if (!masques.size || !v || (v.localName !== 'video' && v.localName !== 'audio')) return;
+          for (const b of masques) if (b.contains(v)) { pauser(v); return; }
+        }, true);
+
+        document.addEventListener('visibilitychange', erreurs.garde('accueil', () => {
+          if (!pose()) return;
+          if (!document.hidden && actif()) peindre();
+          majLecteur();
+        }));
+
+        rappels.surChangement(erreurs.garde('accueil', () => { if (pose() && !document.hidden) peindreRdv(); }));
+
+        presence.surChangement(erreurs.garde('accueil', () => { bilan.absence.synchros++; peindre(); }));
+        options.surChangement(() => {
+          if (!actif()) { retirer(); return; }
+          if (!ici) { ici = true; arriver(false); }
+          observer();
+          verifier();
+          if (pose()) peindre();
+        });
+        this.route();
+      },
+
+      tot() {
+        if (!surAccueil() || !options.get('accueil') || !veutDonnees()) return;
+        let r = null;
+        try { r = localStorage.getItem(CFG.ROSTER_STORAGE_KEY); } catch { r = null; }
+        if (r && r.length > 2) poserVoile();
+      },
+
+      route() {
+        if (!actif()) { retirer(); return; }
+        if (!ici) { ici = true; arriver(true); }
+        observer();
+        verifier();
+      },
+      tick() {
+        if (!actif()) { if (pose() || observateur || voile) retirer(); return; }
+        verifier();
+        if (topActif() && !partage()) classement.tick();
+        peindre();
+
+        if (voile && decidable()) leverVoile('reveil');
+      },
+
+      donnees: erreurs.garde('accueil', () => donnees()),
+
+      carteSurvolee(node) {
+        if (!actif() || !options.get('accueilApercu')) return null;
+        const notre = node.closest('[data-tse-survol]');
+        if (notre) return notre;
+        const lien = node.closest('a[href]');
+        if (!lien || !lien.closest('main') || exclu(lien)) return null;
+        const img = lien.querySelector(SEL_MINIATURE);
+        const m = img && RE_MINIATURE.exec(img.getAttribute('src') || '');
+        if (!m || !RE_LOGIN.test(m[1].toLowerCase())) return null;
+        lien.dataset.tseSurvol = m[1].toLowerCase();
+        return lien;
+      },
+      bilan: () => ({
+        ...bilan,
+        actif: actif(), pose: pose(), observe: !!observateur,
+        carrousel: { ...bilan.carrousel, masque: masques.size > 0, masques: masques.size },
+        heros: { ...bilan.heros, vue: placeVue, rejets: bilan.heros.rejets.map((r) => ({ ...r })),
+                 enPrechargement: precharges.length,
+                 video: { ...bilan.heros.video, joue: !!lecteur, devoilee: !!lecteur?.devoile },
+                 ambiance: { ...bilan.heros.ambiance } },
+        rayons: { ouverts: [...ouverts] },
+        une: { ...bilan.une, active: !!options.get('accueilUne') },
+
+        relief: pose() ? {
+          chaine: section.querySelectorAll('.tse-acc-relief[data-tse-couleur="chaine"]').length,
+          defaut: section.querySelectorAll('.tse-acc-relief[data-tse-couleur="defaut"]').length,
+        } : null,
+        top: { ...bilan.top, langue: options.get('accueilTop') ? (langueVoulue() || 'toutes') : null,
+               classement: classement.report(),
+
+               cs: { ...bilan.top.cs, ouverte: !!csOuvert, epinglee: !!csOuvert?.epingle } },
+        debut: { ...bilan.debut, connus: debuts.size, refuse: debutRefuse },
+        chrono: { ...bilan.chrono },
+        voile: { ...bilan.voile, levees: { ...bilan.voile.levees }, actif: !!voile },
+        amorce: { ...bilan.amorce, chaines: amorce ? amorce.logins.length : 0, decidable: decidable() },
+
+        rdv: { ...bilan.rdv, indice: { ...lireIndiceRdv() } },
+        absence: { ...bilan.absence, clips: { ...bilan.absence.clips }, gardee: !!presence.absence() },
+        pourquoi: { ...bilan.pourquoi, rayons: bilan.pourquoi.rayons.map((x) => ({ ...x })) },
+        ranger: { ...bilan.ranger, vignettes: { ...bilan.ranger.vignettes }, retenus: [...lireMasques()] },
+        etiquettes: { ...bilan.etiquettes, posees: { ...bilan.etiquettes.posees }, coins: { ...bilan.etiquettes.coins },
+                      twitch: { ...bilan.etiquettes.twitch }, active: !!options.get('accueilEtiquettes') },
+        rappels: rappels.rapport(),
+      }),
+
+      classement: () => classement,
     };
   })();
 
@@ -8439,18 +12926,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       } catch {   }
     };
 
-    const QUALITES_USUELLES = [[160, '160p30'], [360, '360p30'], [480, '480p30'], [720, '720p60'], [1080, '1080p60']];
     const hauteurCible = () => {
       const d = courante && courante.disposition;
       return d && d.h ? Math.round(d.h * (window.devicePixelRatio || 1)) : null;
-    };
-
-    const qualiteUsuelle = (h) => {
-      let i = 0;
-      QUALITES_USUELLES.forEach((q, k) => {
-        if (Math.abs(Math.log(q[0] / h)) <= Math.abs(Math.log(QUALITES_USUELLES[i][0] / h))) i = k;
-      });
-      return QUALITES_USUELLES[Math.min(i + 1, QUALITES_USUELLES.length - 1)][1];
     };
     const tenirQualite = (t) => {
       const h = hauteurCible();
@@ -10300,7 +14778,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     const signeMs = (x) => `${x > 0 ? '+' : x < 0 ? '−' : ''}${Math.abs(x)}`;
     const secondes = (x) => `${(Math.round(Math.abs(x) * 100) / 100).toFixed(2)} s`;
 
-    const texteMesure = (v, nom) => (v.refus ? `en attente : ${v.refus}`
+    const texteMesure = (v) => (v.refus ? `en attente : ${v.refus}`
       : `${Math.abs(v.ms) < CALAGE.SEUIL_S * 1000 ? 'avec la référence' : `${v.ms > 0 ? 'en avance' : 'en retard'} de ${secondes(v.ms / 1000)}`}`
         + ` (${signeMs(v.ms)} ms${v.desequilibre ? ', un salon déséquilibré' : ''}) · voix ${v.voix.map((g) => `${signeMs(g.ms)} (${g.n1})`).join(' · ')} · ${v.n} calculs nets`);
     const journaliser = (c, k, texte) => {
@@ -10593,14 +15071,14 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
                            { cause: 'tampon', s: -d });
         }
       }
-      const mesure = Object.entries(verdicts).map(([n, v]) => `${n} ${texteMesure(v, n).split(' · voix')[0]}`).join(' ; ');
+      const mesure = Object.entries(verdicts).map(([n, v]) => `${n} ${texteMesure(v).split(' · voix')[0]}`).join(' ; ');
       if (!gestes.length) {
 
         for (const n of Object.keys(verdicts)) {
           if (Math.abs(avances[n] ?? Infinity) >= CALAGE.SEUIL_S || k.etats[n] === 'calée') continue;
           k.etats[n] = 'calée';
           premiere(k, n, 'calee', maintenant);
-          journaliser(c, k, `calée : ${n} ${texteMesure(verdicts[n], n).split(' · voix')[0]}`
+          journaliser(c, k, `calée : ${n} ${texteMesure(verdicts[n]).split(' · voix')[0]}`
             + (tenues[n] ? ' — sa voix la plus haute pas revue, une autre à moins de 0,4 s : elle tient' : ''));
         }
 
@@ -10655,7 +15133,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         origine: k.origine,
         reference: ref,
         corrections: Object.values(k.coups).reduce((s, l) => s + l.length, 0),
-        mesures: Object.fromEntries(Object.entries(k.vus).map(([n, v]) => [n, texteMesure(v, n)])),
+        mesures: Object.fromEntries(Object.entries(k.vus).map(([n, v]) => [n, texteMesure(v)])),
         tuiles: Object.fromEntries(c.tuiles.filter((t) => t.chaine !== ref).map((t) => [t.chaine, k.etats[t.chaine] || 'libre'])),
         deplacements: Object.entries(k.deplacements).map(([n, s]) => `${n} ${s >= 0 ? 'recul' : 'avance'} ${Math.abs(s)} s`).join(' · ') || null,
 
@@ -10859,6 +15337,813 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     };
   })();
 
+  const zapping = (() => {
+    const NAV = '[data-a-target="top-nav-container"]';
+    const RECHERCHE = '[data-a-target="nav-search-box"]';
+    const LOUPE = '.tw-combo-input__button-icon';
+
+    const PICTO = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M4 4h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Zm0 2v10h16V6H4Z"/>'
+      + '<path d="M8 20h8v2H8zM9.5 7.5l2.5 3H7zM14.5 14.5 12 11.5h5z"/></svg>';
+    const HAUT_PARLEUR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9.5v5h3.6L12 19V5L6.6 9.5H3Z"/>'
+      + '<path d="M15.5 8.6a4.6 4.6 0 0 1 0 6.8M18 6.2a8 8 0 0 1 0 11.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+    const MUET = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9.5v5h3.6L12 19V5L6.6 9.5H3Z"/>'
+      + '<path d="m16 9.5 5 5m0-5-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+    const bilan = {
+      voie: null, poses: 0, reposes: 0, ouvertures: 0, vides: 0, changements: 0,
+      precharges: 0, prechargesServies: 0, chaines: 0, salles: 0, sallesFermees: 0,
+      sons: 0, muets: 0, avis: 0, fermetures: {},
+
+      recycles: 0, pleinsEcrans: 0, pleinEcranRefus: 0, repos: 0,
+    };
+    let porteur = null, bouton = null, obsNav = null, navVue = null, redimT = null;
+    let z = null;
+
+    const visible = (el) => {
+      if (!el || !el.isConnected) return null;
+      const r = el.getBoundingClientRect();
+      return r.width > 0 && r.height > 0 ? r : null;
+    };
+    const imageSure = (u) => (typeof u === 'string' && /^https:\/\//.test(u) ? u : null);
+    const salleOk = () => !!options.get('salle');
+
+    const loupeDuChamp = (boite) => {
+      const parClasse = boite.querySelector(LOUPE);
+      if (parClasse) return parClasse;
+      const champ = [...boite.querySelectorAll('input[type="search"]')].find((i) => visible(i));
+      if (!champ) return null;
+      return [...boite.querySelectorAll('button')].find((b) => !(porteur && porteur.contains(b))
+        && (champ.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING)) || null;
+    };
+
+    const loupeVisible = (boite, rangee) => {
+      const l = loupeDuChamp(boite);
+      if (visible(l)) return l;
+      if (!rangee) return null;
+      for (const x of rangee.children) {
+        if (x === porteur || x.contains(boite)) continue;
+        const b = [...x.querySelectorAll('button')].find((y) => visible(y));
+        if (b) return b;
+      }
+      return null;
+    };
+
+    const colle = (loupe) => {
+      const a = visible(loupe), b = visible(bouton);
+      if (!a || !b) return false;
+      const dy = Math.abs((a.top + a.bottom) / 2 - (b.top + b.bottom) / 2);
+      const dx = b.left - a.right;
+      return dy <= 6 && dx >= -1 && dx <= 32;
+    };
+
+    const caseDe = (loupe, boite) => {
+      let e = loupe;
+      while (e.parentElement && e.parentElement !== boite && e.parentElement.childElementCount === 1) e = e.parentElement;
+      return e;
+    };
+    const libeller = () => {
+      if (!bouton) return;
+      if (bouton.getAttribute('aria-label') !== S.uiZapBouton) {
+        bouton.setAttribute('aria-label', S.uiZapBouton);
+        bouton.title = S.uiZapBouton;
+      }
+    };
+    const creerBouton = () => {
+      porteur = document.createElement('div');
+      porteur.className = 'tse-zap-porteur';
+      bouton = document.createElement('button');
+      bouton.type = 'button';
+      bouton.className = 'tse-zap-bouton';
+      bouton.setAttribute('aria-haspopup', 'dialog');
+      bouton.appendChild(noeudStatique(PICTO));
+      bouton.addEventListener('click', erreurs.garde('zapping', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        ouvrir('bouton');
+      }));
+      porteur.appendChild(bouton);
+    };
+    const retirerBouton = () => {
+      if (obsNav) { obsNav.disconnect(); obsNav = null; navVue = null; }
+      if (porteur && porteur.isConnected) porteur.remove();
+    };
+
+    const placer = (remesurer = false) => {
+      if (!options.get('zapping')) { retirerBouton(); bilan.voie = 'coupe'; return; }
+      const nav = document.querySelector(NAV);
+      if (!nav) return;
+      const boite = nav.querySelector(RECHERCHE);
+      if (!boite) { bilan.voie = 'sans-recherche'; return; }
+      if (!porteur) creerBouton();
+      libeller();
+      const etait = porteur.isConnected && nav.contains(porteur);
+      if (etait && !remesurer) return;
+      const conteneur = boite.closest('.top-nav__search-container') || boite;
+      const rangee = conteneur.parentElement && nav.contains(conteneur.parentElement) ? conteneur.parentElement : null;
+      let voie = 'rangee';
+      if (rangee) {
+        if (rangee.lastElementChild !== porteur) rangee.appendChild(porteur);
+      } else voie = 'champ';
+      if (!rangee || !colle(loupeVisible(boite, rangee))) {
+        const loupe = loupeDuChamp(boite);
+        if (loupe) {
+          const c = caseDe(loupe, boite);
+          if (c.nextElementSibling !== porteur) c.after(porteur);
+          voie = 'champ';
+        }
+        if (!colle(loupeVisible(boite, rangee))) voie += '-non-verifiee';
+      }
+      if (!etait) { if (bilan.poses) bilan.reposes++; else bilan.poses++; }
+      bilan.voie = voie;
+      if (navVue !== nav) {
+        if (obsNav) obsNav.disconnect();
+        navVue = nav;
+
+        obsNav = new MutationObserver(erreurs.garde('zapping', () => {
+          if (porteur && !porteur.isConnected) placer();
+        }));
+        obsNav.observe(nav, { childList: true, subtree: true });
+      }
+    };
+    const init = () => {
+      placer();
+
+      setInterval(erreurs.garde('zapping', () => {
+        if (!porteur || !porteur.isConnected || !navVue || !navVue.isConnected) placer();
+        else libeller();
+      }), CFG.ZAP_GARDE_MS);
+      window.addEventListener('resize', () => {
+        clearTimeout(redimT);
+        redimT = setTimeout(erreurs.garde('zapping', () => placer(true)), CFG.ZAP_REDIM_MS);
+      });
+      options.surChangement(() => {
+        placer(true);
+        if (z && !options.get('zapping')) fermer('reglage');
+        else if (z) peindre();
+      });
+    };
+
+    const chaines = () => {
+      const vivantes = new Map();
+      for (const [login] of roster.entries()) {
+        const e = cache.get(login);
+        if (e && e.stream) vivantes.set(login, e);
+      }
+      const ordre = [];
+      const section = !state.globalMode ? followedSection() : null;
+      if (section) {
+        for (const c of entreesDe(section).cartes) {
+          const l = getCardLogin(c);
+          if (l && vivantes.has(l) && !ordre.includes(l)) ordre.push(l);
+        }
+      }
+      const reste = [...vivantes.keys()].filter((l) => !ordre.includes(l))
+        .sort((a, b) => ((vivantes.get(b).viewers || 0) - (vivantes.get(a).viewers || 0)) || a.localeCompare(b));
+      return [...ordre, ...reste].map((login) => ({ login, e: vivantes.get(login), horsLigne: false }));
+    };
+    const pageChaine = () => {
+      const m = /^\/([a-z0-9_]{1,25})\/?$/i.exec(location.pathname);
+      return m ? m[1].toLowerCase() : null;
+    };
+
+    const creerLecteur = (login, attente) => {
+      const f = document.createElement('iframe');
+
+      f.name = TSE_ZAP_FRAME_NAME;
+      f.title = login;
+      f.className = 'tse-zap__lecteur' + (attente ? ' tse-zap__lecteur--attente' : '');
+      f.dataset.tseLogin = login;
+      f.setAttribute('allow', 'autoplay; fullscreen; encrypted-media; picture-in-picture');
+      f.src = `https://player.twitch.tv/?${new URLSearchParams({
+        channel: login, parent: location.hostname, muted: 'true', autoplay: 'true' })}`;
+      const l = { login, f, pret: false, etat: null, qualite: false, sonEssais: 0, sonT: 0, pretT: null };
+      z.scene.appendChild(f);
+      return l;
+    };
+    const envoyer = (l, ordre, plus = null) => {
+      try { l.f.contentWindow.postMessage({ tse: TSE_SALLE_ORDRE_MSG, ordre, ...(plus || {}) }, 'https://player.twitch.tv'); }
+      catch {   }
+    };
+    const jeter = (l) => {
+      if (!l) return;
+      clearTimeout(l.pretT);
+      l.f.remove();
+    };
+
+    const lecteurs = (c) => [c.courant, ...c.attentes, ...c.sortants].filter(Boolean);
+
+    const voisines = (c) => {
+      const n = c.liste.length;
+      if (n < 2 || !c.courant) return [];
+      const a = c.liste[(((c.i + c.sens) % n) + n) % n].login;
+      const b = c.liste[(((c.i - c.sens) % n) + n) % n].login;
+      return [...new Set([a, b])].filter((x) => x !== c.courant.login);
+    };
+
+    const garderOuJeter = (c, l) => {
+      if (z !== c || l === c.courant || c.attentes.includes(l)) return;
+
+      if (!c.courant || !c.courant.f.classList.contains('tse-zap__lecteur--pret')) return;
+      const k = c.sortants.indexOf(l);
+      if (k >= 0) c.sortants.splice(k, 1);
+      if (voisines(c).includes(l.login) && !c.attentes.some((a) => a.login === l.login)) {
+        l.f.classList.remove('tse-zap__lecteur--sortant', 'tse-zap__lecteur--courant', 'tse-zap__lecteur--pret');
+        l.f.classList.add('tse-zap__lecteur--attente');
+        c.attentes.push(l);
+        bilan.recycles++;
+        peindre();
+      } else jeter(l);
+    };
+
+    const montrer = (l) => {
+      const c = z;
+      if (!c || l !== c.courant) return;
+      l.f.classList.add('tse-zap__lecteur--pret');
+      const sortants = [...c.sortants];
+
+      if (sortants.length) setTimeout(erreurs.garde('zapping', () => sortants.forEach((x) => garderOuJeter(c, x))), CFG.ZAP_FONDU_MS + 80);
+    };
+    const tenirSon = (l) => {
+      const c = z;
+      const et = l.etat;
+      if (!c || !et || !et.video) return;
+      if (c.muet) {
+        if (et.muet === false) { envoyer(l, 'muet'); bilan.muets++; }
+        return;
+      }
+      if (et.muet !== true || l.sonEssais >= CFG.ZAP_SON_ESSAIS || Date.now() - l.sonT < CFG.ZAP_SON_ECART_MS) return;
+      l.sonEssais++;
+      l.sonT = Date.now();
+      envoyer(l, 'son');
+      bilan.sons++;
+    };
+    const surMessage = (e) => {
+      const c = z;
+      if (!c || !e.data || e.data.tse !== TSE_SALLE_ETAT_MSG || e.origin !== 'https://player.twitch.tv') return;
+
+      const l = lecteurs(c).find((x) => x.f.contentWindow === e.source);
+      if (!l) return;
+      const et = e.data.etat && typeof e.data.etat === 'object' ? e.data.etat : {};
+      l.etat = { video: !!et.video, lecture: !!et.lecture, muet: typeof et.muet === 'boolean' ? et.muet : null };
+      if (!l.qualite) {
+        l.qualite = true;
+        envoyer(l, 'qualite', { hauteur: Math.round(window.innerHeight * (window.devicePixelRatio || 1)) });
+      }
+      if (l === c.courant) {
+        if (l.etat.lecture && !l.pret) { l.pret = true; montrer(l); }
+        tenirSon(l);
+      } else {
+        if (l.etat.lecture) l.pret = true;
+
+        if (l.etat.muet === false) { envoyer(l, 'muet'); bilan.muets++; }
+      }
+    };
+
+    const precharger = () => {
+      const c = z;
+      const cibles = voisines(c);
+      for (const a of [...c.attentes]) {
+        if (!cibles.includes(a.login)) { c.attentes.splice(c.attentes.indexOf(a), 1); jeter(a); }
+      }
+      for (const [login, t] of c.prechargeT) {
+        if (!cibles.includes(login)) { clearTimeout(t); c.prechargeT.delete(login); }
+      }
+      cibles.forEach((login, rang) => {
+        if (c.prechargeT.has(login) || c.attentes.some((a) => a.login === login) || c.sortants.some((x) => x.login === login)) return;
+        c.prechargeT.set(login, setTimeout(erreurs.garde('zapping', () => {
+          c.prechargeT.delete(login);
+          if (z !== c || !voisines(c).includes(login) || lecteurs(c).some((x) => x.login === login)) return;
+          c.attentes.push(creerLecteur(login, true));
+          bilan.precharges++;
+          peindre();
+        }), rang ? CFG.ZAP_PRECHARGE_AUTRE_MS : CFG.ZAP_PRECHARGE_MS));
+      });
+    };
+    const aller = (i, sens, comment) => {
+      const c = z;
+      const n = c.liste.length;
+      if (!n) return;
+      const j = ((i % n) + n) % n;
+      const login = c.liste[j].login;
+      c.i = j;
+      c.sens = sens;
+      if (c.courant && c.courant.login === login) { peindre(); return; }
+
+      let l = c.attentes.find((a) => a.login === login) || c.sortants.find((x) => x.login === login) || null;
+      if (l) {
+        if (c.attentes.includes(l)) { c.attentes.splice(c.attentes.indexOf(l), 1); bilan.prechargesServies++; }
+        else c.sortants.splice(c.sortants.indexOf(l), 1);
+        l.f.classList.remove('tse-zap__lecteur--attente', 'tse-zap__lecteur--sortant');
+      } else {
+        l = creerLecteur(login, false);
+      }
+      const ancien = c.courant;
+      c.courant = l;
+      if (ancien) {
+        envoyer(ancien, 'muet');
+        ancien.f.classList.remove('tse-zap__lecteur--courant');
+        ancien.f.classList.add('tse-zap__lecteur--sortant');
+        c.sortants.push(ancien);
+      }
+      l.f.classList.add('tse-zap__lecteur--courant');
+      l.sonEssais = 0;
+      if (l.pret) montrer(l);
+      else {
+        clearTimeout(l.pretT);
+
+        l.pretT = setTimeout(erreurs.garde('zapping', () => { if (!l.pret) { l.pret = true; montrer(l); } }), CFG.ZAP_PRET_MAX_MS);
+      }
+      if (l.etat) tenirSon(l);
+      if (comment !== 'ouverture') bilan.changements++;
+      precharger();
+      peindre();
+    };
+    const changer = (pas) => { if (z && z.liste.length) aller(z.i + pas, pas < 0 ? -1 : 1, 'fleche'); };
+
+    const avis = (texte) => {
+      const c = z;
+      if (!c) return;
+      clearTimeout(c.avisT);
+      c.avis.textContent = texte;
+      c.avis.hidden = false;
+      bilan.avis++;
+      c.avisT = setTimeout(erreurs.garde('zapping', () => { if (z === c) c.avis.hidden = true; }), CFG.ZAP_AVIS_MS);
+    };
+    const ouvrirChaine = () => {
+      const c = z;
+      if (!c || !c.courant) return;
+      const login = c.courant.login;
+      bilan.chaines++;
+
+      if (pageChaine() === login) { fermer('chaine'); return; }
+      fermer('chaine', { navigue: true });
+      location.assign('/' + encodeURIComponent(login));
+    };
+    const basculerSalle = () => {
+      const c = z;
+      if (!c || !c.courant || !salleOk()) return;
+      const login = c.courant.login;
+      const k = c.selection.indexOf(login);
+      if (k >= 0) c.selection.splice(k, 1);
+      else if (c.selection.length >= CFG.SALLE_MAX) { avis(S.uiZapSallePleine(CFG.SALLE_MAX)); return; }
+      else c.selection.push(login);
+      peindre();
+    };
+    const ouvrirSalle = () => {
+      const c = z;
+      if (!c || !salleOk()) return;
+      if (c.selection.length < 2) { avis(S.uiZapSalleDeux); return; }
+      const membres = [...c.selection];
+      bilan.salles++;
+      fermer('salle', { navigue: true });
+      salle.ouvrirDepuisBarre(membres);
+    };
+    const basculerSon = () => {
+      const c = z;
+      if (!c) return;
+      c.muet = !c.muet;
+      if (c.courant) {
+        c.courant.sonEssais = 0;
+        envoyer(c.courant, c.muet ? 'muet' : 'son');
+        if (c.muet) bilan.muets++; else bilan.sons++;
+      }
+      peindre();
+    };
+
+    const elt = (tag, classe, texte) => {
+      const x = document.createElement(tag);
+      if (classe) x.className = classe;
+      if (texte !== undefined) x.textContent = texte;
+      return x;
+    };
+    const texteSi = (x, t) => { if (x.textContent !== t) x.textContent = t; };
+
+    const attrSi = (x, a, v) => { if (x.getAttribute(a) !== v) x.setAttribute(a, v); };
+    const touche = (libelle, action, classe = '') => {
+      const b = elt('button', 'tse-zap__touche ' + classe);
+      b.type = 'button';
+      b.addEventListener('click', erreurs.garde('zapping', action));
+      const k = elt('kbd', 'tse-zap__kbd', libelle);
+      b.appendChild(k);
+      return b;
+    };
+    const construire = () => {
+      const boite = elt('div', '');
+      boite.id = 'tse-zap';
+      boite.setAttribute('role', 'dialog');
+      boite.setAttribute('aria-modal', 'true');
+      boite.tabIndex = -1;
+      const scene = elt('div', 'tse-zap__scene');
+      const capot = elt('div', 'tse-zap__capot');
+      const trait = elt('div', 'tse-zap__trait');
+      const compteur = elt('div', 'tse-zap__compteur');
+      const titre = elt('span', 'tse-zap__titre');
+      const rang = elt('b', 'tse-zap__rang');
+      compteur.append(titre, rang);
+      const aide = elt('div', 'tse-zap__aide');
+      const precedente = touche('↑', () => changer(-1), 'tse-zap__touche--fleche');
+      const suivante = touche('↓', () => changer(1), 'tse-zap__touche--fleche');
+      const changerTexte = elt('span', 'tse-zap__libelle');
+      const gChanger = elt('span', 'tse-zap__groupe');
+      gChanger.append(precedente, suivante, changerTexte);
+      const entree = touche('', ouvrirChaine);
+      const entreeTexte = elt('span', 'tse-zap__libelle');
+      entree.appendChild(entreeTexte);
+      const s = touche('S', basculerSalle);
+      const sTexte = elt('span', 'tse-zap__libelle');
+      s.appendChild(sTexte);
+      const o = touche('O', ouvrirSalle);
+      const oTexte = elt('span', 'tse-zap__libelle');
+      o.appendChild(oTexte);
+      const echap = touche('', () => fermer('bouton'));
+      const echapTexte = elt('span', 'tse-zap__libelle');
+      echap.appendChild(echapTexte);
+      aide.append(gChanger, entree, s, o, echap);
+      const liste = elt('ol', 'tse-zap__liste');
+      const infos = elt('div', 'tse-zap__infos');
+      infos.setAttribute('aria-live', 'polite');
+      const visage = elt('span', 'tse-zap__visage');
+      const visageImg = elt('img', '');
+      visageImg.alt = '';
+      visageImg.decoding = 'async';
+
+      visageImg.addEventListener('error', () => { visageImg.hidden = true; });
+      visage.append(document.createTextNode(''), visageImg);
+      const textes = elt('div', 'tse-zap__textes');
+      const ligneNom = elt('div', 'tse-zap__ligne-nom');
+      const nom = elt('span', 'tse-zap__nom');
+      const jour = elt('span', 'tse-subathon-jour');
+      ligneNom.append(nom, jour);
+      const titreDirect = elt('div', 'tse-zap__titre-direct');
+      const meta = elt('div', 'tse-zap__meta');
+      const direct = elt('span', 'tse-zap__direct');
+      const metaTexte = elt('span', 'tse-zap__meta-texte');
+      meta.append(direct, metaTexte);
+      textes.append(ligneNom, titreDirect, meta);
+      infos.append(visage, textes);
+      const son = elt('button', 'tse-zap__son');
+      son.type = 'button';
+      son.addEventListener('click', erreurs.garde('zapping', basculerSon));
+      const sonIcone = elt('span', 'tse-zap__son-icone');
+      const sonTexte = elt('span', 'tse-zap__son-texte');
+      son.append(sonIcone, sonTexte);
+      const vide = elt('p', 'tse-zap__vide');
+      vide.hidden = true;
+      const avisEl = elt('div', 'tse-zap__avis');
+      avisEl.setAttribute('role', 'status');
+      avisEl.hidden = true;
+      boite.append(scene, capot, trait, compteur, aide, liste, infos, son, vide, avisEl);
+
+      boite.addEventListener('wheel', (e) => { if (!e.target.closest || !e.target.closest('.tse-zap__liste')) e.preventDefault(); }, { passive: false });
+      return { boite, scene, titre, rang, aide, changerTexte, entree, entreeTexte, s, sTexte, o, oTexte, echap, echapTexte,
+               precedente, suivante, liste, infos, visage, visageImg, nom, jour, titreDirect, direct, metaTexte,
+               son, sonIcone, sonTexte, vide, avis: avisEl };
+    };
+
+    const carte = (x) => {
+      const li = elt('li', 'tse-zap__item');
+      const b = elt('button', 'tse-zap__chaine');
+      b.type = 'button';
+      b.dataset.tseLogin = x.login;
+      b.addEventListener('click', erreurs.garde('zapping', () => {
+        if (!z) return;
+        const j = z.liste.findIndex((y) => y.login === x.login);
+        if (j >= 0) aller(j, j < z.i ? -1 : 1, 'clic');
+      }));
+      const img = elt('img', 'tse-zap__vignette');
+      img.alt = '';
+      img.decoding = 'async';
+      const t = elt('span', 'tse-zap__chaine-textes');
+      const n = elt('span', 'tse-zap__chaine-nom');
+      const m = elt('span', 'tse-zap__chaine-meta');
+      const marques = elt('span', 'tse-zap__marques');
+      t.append(n, m, marques);
+      b.append(img, t);
+      li.appendChild(b);
+      return li;
+    };
+    const metaCourte = (x) => {
+      const e = x.e || {};
+      if (x.horsLigne) return S.uiZapHorsLigne;
+      const p = [];
+      if (e.gameLabel) p.push(e.gameLabel);
+      if (Number.isFinite(e.viewers)) p.push(formatViewers(e.viewers));
+      return p.join(' · ');
+    };
+    const marque = (classe, texte) => elt('span', 'tse-zap__marque ' + classe, texte);
+
+    const peindre = () => {
+      const c = z;
+      if (!c) return;
+      const r = c.refs;
+      const n = c.liste.length;
+      texteSi(r.titre, S.uiZapTitre);
+      attrSi(c.boite, 'aria-label', S.uiZapTitre);
+      texteSi(r.rang, n ? `${c.i + 1} / ${n}` : '0 / 0');
+      texteSi(r.changerTexte, S.uiZapChanger);
+      attrSi(r.precedente, 'aria-label', S.uiZapPrecedente);
+      attrSi(r.suivante, 'aria-label', S.uiZapSuivante);
+      texteSi(r.entree.querySelector('kbd'), S.uiZapEntree);
+      texteSi(r.entreeTexte, S.uiZapOuvrir);
+      const dans = !!(c.courant && c.selection.includes(c.courant.login));
+      texteSi(r.sTexte, dans ? S.uiZapSalleRetirer : S.uiZapSalleAjouter);
+      texteSi(r.oTexte, S.uiZapSalleOuvrir(c.selection.length));
+      texteSi(r.echap.querySelector('kbd'), S.uiZapEchap);
+      texteSi(r.echapTexte, S.uiZapQuitter);
+      r.s.hidden = !salleOk() || !n;
+      r.o.hidden = !salleOk() || c.selection.length < 2;
+      r.entree.hidden = !n;
+      r.precedente.disabled = n < 2;
+      r.suivante.disabled = n < 2;
+      r.vide.hidden = n > 0;
+      texteSi(r.vide, S.uiZapVide);
+      attrSi(r.liste, 'aria-label', S.uiZapListe);
+
+      const cle = c.liste.map((x) => x.login).join(' ');
+      if (c.cleListe !== cle) {
+        c.cleListe = cle;
+        const focus = document.activeElement?.closest?.('.tse-zap__chaine')?.dataset.tseLogin ?? null;
+        r.liste.replaceChildren(...c.liste.map(carte));
+        c.vueCourante = null;
+        if (focus) r.liste.querySelector(`.tse-zap__chaine[data-tse-login="${focus}"]`)?.focus({ preventScroll: true });
+      }
+      const items = r.liste.children;
+      c.liste.forEach((x, k) => {
+        const li = items[k];
+        const b = li.firstChild;
+        const [img, t] = b.children;
+        const [nomEl, metaEl, marquesEl] = t.children;
+        texteSi(nomEl, x.e?.name || x.login);
+        texteSi(metaEl, metaCourte(x));
+        const u = x.horsLigne ? '' : buildThumbUrl(x.login);
+        if (img.getAttribute('src') !== u) { if (u) img.src = u; else img.removeAttribute('src'); }
+        const courante = k === c.i;
+        b.classList.toggle('tse-zap__chaine--courante', courante);
+        if (courante) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current');
+        const pre = c.attentes.some((a) => a.login === x.login);
+        const enSalle = salleOk() && c.selection.includes(x.login);
+        const cleM = `${pre ? 'p' : ''}${enSalle ? 's' : ''}|${S.uiZapPrechargee}|${S.uiZapDansSalle}`;
+        if (marquesEl.dataset.cle !== cleM) {
+          marquesEl.dataset.cle = cleM;
+          marquesEl.replaceChildren(...[pre && marque('tse-zap__marque--prechargee', S.uiZapPrechargee),
+                                         enSalle && marque('tse-zap__marque--salle', S.uiZapDansSalle)].filter(Boolean));
+        }
+      });
+
+      if (c.vueCourante !== c.i && items[c.i]) {
+        c.vueCourante = c.i;
+        const li = items[c.i], L = r.liste;
+        if (li.offsetTop - 10 < L.scrollTop) L.scrollTop = li.offsetTop - 10;
+        else if (li.offsetTop + li.offsetHeight + 28 > L.scrollTop + L.clientHeight) L.scrollTop = li.offsetTop + li.offsetHeight + 28 - L.clientHeight;
+      }
+
+      const x = n ? c.liste[c.i] : null;
+      r.infos.hidden = !x;
+      r.son.hidden = !x;
+      if (!x) return;
+      const e = x.e || {};
+      const nomAffiche = e.name || x.login;
+      texteSi(r.nom, nomAffiche);
+      const initiale = [...nomAffiche][0]?.toLocaleUpperCase(S.locale) || '';
+      if (r.visage.firstChild.nodeValue !== initiale) r.visage.firstChild.nodeValue = initiale;
+      const av = imageSure(e.avatar);
+      if (av) { if (r.visageImg.getAttribute('src') !== av) { r.visageImg.hidden = false; r.visageImg.src = av; } }
+      else { r.visageImg.removeAttribute('src'); r.visageImg.hidden = true; }
+
+      const jourN = Number.isInteger(e.subathon?.jour) ? e.subathon.jour : null;
+      r.jour.hidden = jourN === null;
+      if (jourN !== null) poserLibelle(r.jour, S.uiSubathonShort(jourN));
+      texteSi(r.titreDirect, e.stream?.title || '');
+      r.titreDirect.hidden = !e.stream?.title;
+      texteSi(r.direct, x.horsLigne ? S.uiZapHorsLigne : S.uiAccDirect);
+      r.direct.classList.toggle('tse-zap__direct--hors', !!x.horsLigne);
+      const p = [];
+      if (!x.horsLigne) {
+        if (e.gameLabel) p.push(e.gameLabel);
+        if (Number.isFinite(e.viewers)) p.push(S.uiAccSpect(e.viewers, formatViewers(e.viewers)));
+        const d = e.stream?.createdAt ? formatUptime(e.stream.createdAt) : null;
+        if (d) p.push(S.uiAccDepuis(d));
+        if (e.subathon) p.push(S.uiZapSubathon(jourN));
+      }
+      texteSi(r.metaTexte, p.join(' · '));
+
+      const icone = c.muet ? MUET : HAUT_PARLEUR;
+      if (r.sonIcone.dataset.icone !== (c.muet ? 'm' : 's')) {
+        r.sonIcone.dataset.icone = c.muet ? 'm' : 's';
+        r.sonIcone.replaceChildren(noeudStatique(icone));
+      }
+      texteSi(r.sonTexte, c.muet ? S.uiZapMuet : S.uiSalleChatSon(nomAffiche));
+      attrSi(r.son, 'title', S.uiZapSonTitre);
+      attrSi(r.son, 'aria-pressed', c.muet ? 'true' : 'false');
+    };
+
+    const relire = () => {
+      const c = z;
+      if (!c) return;
+      const neuve = chaines();
+      const cur = c.courant ? c.courant.login : null;
+      if (cur && !neuve.some((x) => x.login === cur)) {
+        neuve.splice(Math.min(c.i, neuve.length), 0, { login: cur, e: cache.get(cur) || c.liste[c.i]?.e || null, horsLigne: true });
+      }
+      c.liste = neuve;
+      const j = cur ? neuve.findIndex((x) => x.login === cur) : -1;
+      if (j >= 0) c.i = j;
+      else if (!cur && neuve.length) { aller(0, 1, 'ouverture'); return; }
+      precharger();
+      peindre();
+    };
+
+    const focalisables = () => [...z.boite.querySelectorAll('button')].filter((b) => !b.disabled && !b.hidden && visible(b));
+    const surTouche = (e) => {
+      const c = z;
+      if (!c || e.isComposing) return;
+
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      e.stopPropagation();
+
+      eveiller(c);
+      const surBouton = e.target instanceof Element && !!e.target.closest('button') && c.boite.contains(e.target);
+      const k = e.key;
+      let fait = true;
+      if (k === 'ArrowDown') changer(1);
+      else if (k === 'ArrowUp') changer(-1);
+      else if (k === 'Escape') fermer('echap');
+      else if (k === 'Enter' && !surBouton) ouvrirChaine();
+      else if ((k === 's' || k === 'S') && salleOk()) basculerSalle();
+      else if ((k === 'o' || k === 'O') && salleOk()) ouvrirSalle();
+      else if (k === 'Tab') {
+        const f = focalisables();
+        if (!f.length) { e.preventDefault(); return; }
+        const i = f.indexOf(document.activeElement);
+        const j = e.shiftKey ? (i <= 0 ? f.length - 1 : i - 1) : (i < 0 || i >= f.length - 1 ? 0 : i + 1);
+        f[j].focus();
+      }
+
+      else if ((k === ' ' && !surBouton) || ['PageUp', 'PageDown', 'Home', 'End', 'ArrowLeft', 'ArrowRight'].includes(k)) {   }
+      else fait = false;
+      if (fait) e.preventDefault();
+    };
+
+    const surToucheAutre = (e) => {
+      if (z && !e.ctrlKey && !e.metaKey && !e.altKey) e.stopPropagation();
+    };
+
+    const surTaille = () => {
+      const c = z;
+      if (!c) return;
+      clearTimeout(c.tailleT);
+      c.tailleT = setTimeout(erreurs.garde('zapping', () => {
+        if (z !== c) return;
+        const h = Math.round(window.innerHeight * (window.devicePixelRatio || 1));
+        for (const l of lecteurs(c)) if (l.qualite) envoyer(l, 'qualite', { hauteur: h });
+      }), CFG.ZAP_REDIM_MS);
+    };
+
+    const surFocus = (e) => {
+      const c = z;
+      if (c && e.target instanceof Node && !c.boite.contains(e.target)) c.boite.focus({ preventScroll: true });
+    };
+
+    const surVisibilite = () => {
+      const c = z;
+      if (!c) return;
+      for (const a of c.attentes) envoyer(a, document.hidden ? 'pause' : 'lecture');
+    };
+    const surNavigation = () => fermer('navigation');
+
+    const veiller = (c, ms) => { c.reposT = setTimeout(erreurs.garde('zapping', () => veille(c)), ms); };
+    const veille = (c) => {
+      c.reposT = null;
+      if (z !== c) return;
+      const reste = c.bouge + CFG.ZAP_REPOS_MS - performance.now();
+      if (reste > 0) { veiller(c, reste); return; }
+      if (!c.liste.length || c.boite.querySelector('.tse-zap__compteur:hover, .tse-zap__aide:hover, .tse-zap__liste:hover, .tse-zap__infos:hover, .tse-zap__son:hover')) {
+        c.bouge = performance.now();
+        veiller(c, CFG.ZAP_REPOS_MS);
+        return;
+      }
+      if (!c.boite.classList.contains('tse-zap--repos')) { c.boite.classList.add('tse-zap--repos'); bilan.repos++; }
+    };
+    const eveiller = (c) => {
+      c.bouge = performance.now();
+      c.boite.classList.remove('tse-zap--repos');
+      if (!c.reposT) veiller(c, CFG.ZAP_REPOS_MS);
+    };
+    const surSouris = (e) => {
+      const c = z;
+      if (!c) return;
+      if (e.type === 'mousemove') {
+        if (e.screenX === c.souris.x && e.screenY === c.souris.y) return;
+        c.souris.x = e.screenX;
+        c.souris.y = e.screenY;
+      }
+      eveiller(c);
+    };
+
+    const pleinEcran = (c) => {
+      const f = c.boite.requestFullscreen;
+      if (typeof f !== 'function') { bilan.pleinEcranRefus++; return; }
+      let p;
+      try { p = f.call(c.boite, { navigationUI: 'hide' }); } catch { bilan.pleinEcranRefus++; return; }
+      Promise.resolve(p).then(() => { if (z === c) bilan.pleinsEcrans++; }, () => { bilan.pleinEcranRefus++; });
+    };
+    const surPleinEcran = () => {
+      const c = z;
+      if (!c) return;
+      if (document.fullscreenElement === c.boite) c.pleinEcran = true;
+      else if (c.pleinEcran) fermer('plein-ecran');
+    };
+
+    const ouvrir = (origine = 'api') => {
+      if (z) return { deja: true };
+      if (!options.get('zapping')) return { erreur: 'zapping coupé / zapping disabled' };
+
+      const avant = salle.membres();
+      if (avant) { salle.fermer('zapping'); bilan.sallesFermees++; }
+      const pausees = [...document.querySelectorAll('video')].filter((v) => !v.paused);
+      for (const v of pausees) { try { v.pause(); } catch {   } }
+      const refs = construire();
+      z = {
+        origine, boite: refs.boite, scene: refs.scene, refs, avis: refs.avis, avisT: null,
+        liste: chaines(), i: 0, sens: 1, courant: null, attentes: [], sortants: [], prechargeT: new Map(),
+        selection: avant ? avant.slice(0, CFG.SALLE_MAX) : [], muet: false, pausees, cleListe: null, vueCourante: null,
+        retour: document.activeElement && typeof document.activeElement.focus === 'function' ? document.activeElement : null, minuteur: null,
+        pleinEcran: false, bouge: 0, reposT: null, souris: { x: null, y: null }, tailleT: null,
+      };
+      document.body.appendChild(refs.boite);
+
+      pleinEcran(z);
+
+      window.addEventListener('keydown', surTouche, true);
+      window.addEventListener('keyup', surToucheAutre, true);
+      window.addEventListener('keypress', surToucheAutre, true);
+      document.addEventListener('focusin', surFocus, true);
+      document.addEventListener('visibilitychange', surVisibilite);
+      document.addEventListener('fullscreenchange', surPleinEcran);
+      window.addEventListener('message', surMessage);
+      window.addEventListener('popstate', surNavigation);
+      window.addEventListener('resize', surTaille);
+      for (const t of ['mousemove', 'mousedown', 'wheel']) refs.boite.addEventListener(t, surSouris, { passive: true });
+      z.minuteur = setInterval(erreurs.garde('zapping', relire), CFG.ZAP_RELEVE_MS);
+      eveiller(z);
+      bilan.ouvertures++;
+      const depart = z.liste.findIndex((x) => x.login === pageChaine());
+      if (z.liste.length) aller(depart >= 0 ? depart : 0, 1, 'ouverture');
+      else { bilan.vides++; peindre(); }
+      refs.boite.focus({ preventScroll: true });
+      return { ouvert: true, chaines: z.liste.length };
+    };
+    const fermer = (raison = 'api', { navigue = false } = {}) => {
+      const c = z;
+      if (!c) return { ferme: false };
+      z = null;
+      clearInterval(c.minuteur);
+      for (const t of c.prechargeT.values()) clearTimeout(t);
+      clearTimeout(c.avisT);
+      clearTimeout(c.reposT);
+      for (const l of lecteurs(c)) clearTimeout(l.pretT);
+      window.removeEventListener('keydown', surTouche, true);
+      window.removeEventListener('keyup', surToucheAutre, true);
+      window.removeEventListener('keypress', surToucheAutre, true);
+      document.removeEventListener('focusin', surFocus, true);
+      document.removeEventListener('visibilitychange', surVisibilite);
+      document.removeEventListener('fullscreenchange', surPleinEcran);
+      window.removeEventListener('message', surMessage);
+      window.removeEventListener('popstate', surNavigation);
+      window.removeEventListener('resize', surTaille);
+      clearTimeout(c.tailleT);
+
+      c.boite.remove();
+      bilan.fermetures[raison] = (bilan.fermetures[raison] || 0) + 1;
+      if (!navigue) {
+
+        for (const v of c.pausees) {
+          if (v.isConnected && v.paused) { try { v.play().catch(() => {}); } catch {   } }
+        }
+        const retour = c.retour && c.retour.isConnected ? c.retour : bouton && bouton.isConnected ? bouton : null;
+        if (retour) retour.focus({ preventScroll: true });
+      }
+      return { ferme: true };
+    };
+
+    const rapport = () => ({
+      ...bilan, fermetures: { ...bilan.fermetures },
+      ouvert: !!z,
+      ouvertPar: z ? z.origine : null,
+      courant: z && z.courant ? z.courant.login : null,
+      prechargees: z ? z.attentes.map((a) => a.login) : null,
+      pleinEcran: !!(z && document.fullscreenElement === z.boite),
+
+      auRepos: !!(z && z.boite.classList.contains('tse-zap--repos')),
+      liste: z ? z.liste.map((x) => x.login) : null,
+      rang: z && z.liste.length ? z.i + 1 : null,
+      selection: z ? [...z.selection] : null,
+      muet: z ? z.muet : null,
+      lecteurs: z ? z.scene.querySelectorAll('iframe').length : 0,
+    });
+
+    return { init, placer, ouvrir, fermer: (raison = 'api') => fermer(raison), rapport };
+  })();
+
   const noeudsSalle = (() => {
 
     const parCle = new Map();
@@ -10876,10 +16161,6 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     let proche = null;
 
     const cleDe = (membres) => [...membres].sort().join(' ');
-    const listeNoms = (noms) => {
-      try { return new Intl.ListFormat(S.locale, { type: 'conjunction' }).format(noms); }
-      catch { return noms.join(', '); }
-    };
 
     const ecrire = (el, texte) => { if (el.textContent !== texte) el.textContent = texte; };
     const enfoncer = (el, oui) => {
@@ -11668,16 +16949,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       '  }' +
       '}';
 
-    const PARAMS_JETON = '{ platform: "web", playerBackend: "mediaplayer", playerType: "site" }';
-
     const qAcces = (ids) => 'query TseAgendaAcces {' + ids.map((id, i) =>
       ` a${i}: videoPlaybackAccessToken(id: ${JSON.stringify(String(id))}, params: ${PARAMS_JETON}) { value }`).join('') + ' }';
-    const fermeeSelonJeton = (valeur) => {
-      try {
-        const rb = JSON.parse(valeur)?.chansub?.restricted_bitrates;
-        return Array.isArray(rb) ? rb.includes('audio_only') && rb.includes('chunked') : null;
-      } catch { return null; }
-    };
 
     const ms = (iso) => { const t = Date.parse(iso); return Number.isFinite(t) ? t : null; };
     const texte = (s, max = 200) => (typeof s === 'string' ? s.trim().slice(0, max) : '');
@@ -11738,6 +17011,15 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     let version = 0;
 
     let voulu = { debut: null, chaine: null };
+
+    let vouluAccueil = { debut: null, ts: 0 };
+    const demandesPasse2 = () => {
+      const d = voulu.debut !== null ? [voulu] : [];
+      if (vouluAccueil.debut !== null && Date.now() - vouluAccueil.ts <= CFG.ACCUEIL_RDV_DEMANDE_MS) {
+        d.push({ debut: vouluAccueil.debut, chaine: null });
+      }
+      return d;
+    };
 
     const issues = () => ({ lots: 0, servis: 0, refus: 0, schema: 0, limites: 0, reseau: 0, partiels: 0 });
     const bilan = { collectes: 0, envois: 0, absences: 0,
@@ -11845,11 +17127,14 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     };
 
     const aCouvrir = (liste) => {
-      const { debut, chaine } = voulu;
-      if (debut === null) return [];
+      const demandes = demandesPasse2();
+      if (!demandes.length) return [];
       const out = [];
       for (const login of liste) {
-        if (chaine && login !== chaine) continue;
+
+        let debut = Infinity;
+        for (const x of demandes) if (!x.chaine || x.chaine === login) debut = Math.min(debut, x.debut);
+        if (debut === Infinity) continue;
         const f = chaines.get(login);
         if (!f || f.absente || !actifDepuis(login, f, debut) || !peutRetenter('2:' + login)) continue;
         const d = diffusions.get(login);
@@ -12486,6 +17771,82 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       };
     };
 
+    const directsDe = (videos) => {
+      const out = [];
+      for (const v of [...videos].sort((a, b) => a.debut - b.debut)) {
+        const prec = out[out.length - 1];
+        if (prec && v.debut - prec.fin < MEME_DIRECT_MS) { prec.fin = Math.max(prec.fin, finVideo(v)); continue; }
+        out.push({ debut: v.debut, fin: finVideo(v) });
+      }
+      return out.reverse();
+    };
+    const habitude = (directs) => {
+      const derniers = directs.slice(0, CFG.ACCUEIL_HABITUDE_N);
+      if (derniers.length < CFG.ACCUEIL_HABITUDE_MIN) return null;
+      const minutes = derniers.map((x) => { const d = new Date(x.debut); return d.getHours() * 60 + d.getMinutes(); });
+
+      let meilleur = null;
+      for (const m0 of minutes) {
+        const ecarts = minutes.map((m) => (m - m0 + 1440) % 1440).filter((e) => e < CFG.ACCUEIL_HABITUDE_FENETRE_MIN);
+        if (!meilleur || ecarts.length > meilleur.ecarts.length) meilleur = { m0, ecarts };
+      }
+      if (meilleur.ecarts.length < CFG.ACCUEIL_HABITUDE_MIN) return null;
+
+      const e = [...meilleur.ecarts].sort((a, b) => a - b);
+      const mediane = e.length % 2 ? e[(e.length - 1) / 2] : (e[e.length / 2 - 1] + e[e.length / 2]) / 2;
+      const vers = (Math.round((meilleur.m0 + mediane) / 15) * 15) % 1440;
+      return { k: meilleur.ecarts.length, n: derniers.length, vers };
+    };
+    const rendezVous = (arg) => {
+      const debut = Number(arg?.debut);
+      const fin = Number(arg?.fin);
+      if (!Number.isFinite(debut) || !Number.isFinite(fin) || fin <= debut || fin - debut > 3 * 86_400_000) {
+        throw new Error('rendez-vous invalides');
+      }
+      const maintenant = Date.now();
+      vouluAccueil = { debut: debut - CFG.ACCUEIL_RDV_RECUL_MS, ts: maintenant };
+      restaurer();
+      const c = cibles();
+      purger(c.liste);
+      lancer();
+      const creneaux = [];
+      const habitudes = [];
+      for (const login of c.liste) {
+        const f = chaines.get(login);
+
+        if (!f || f.inconnue || indisponible(f) || muette(login, f, maintenant)) continue;
+        const direct = directDe(login, f);
+        let prevu = false;
+        for (const s of (f.planning && f.planning.creneaux) || []) {
+          if (s.annule || s.debut < debut || s.debut >= fin || finCreneau(s) <= maintenant) continue;
+          if (direct && s.debut <= maintenant) continue;
+          prevu = true;
+          creneaux.push({ login, nom: f.nom || login, avatar: f.avatar || null, id: s.id, titre: s.titre,
+                          debut: s.debut, fin: s.fin, jeu: s.jeu, libelle: s.libelle });
+        }
+
+        if (prevu || direct) continue;
+        const score = visits.scoreFor(login);
+        if (!(score > 0)) continue;
+        const d = diffusions.get(login);
+        const h = d && d.videos.length ? habitude(directsDe(d.videos)) : null;
+        if (h) habitudes.push({ login, nom: f.nom || login, avatar: f.avatar || null, ...h, score });
+      }
+      creneaux.sort((a, b) => (a.debut - b.debut) || (a.login < b.login ? -1 : 1));
+
+      habitudes.sort((a, b) => (b.score - a.score) || (a.login < b.login ? -1 : 1));
+      const ici = new Date(maintenant);
+      const minuteDuJour = ici.getHours() * 60 + ici.getMinutes();
+      const dans = (vers) => (vers - minuteDuJour + 1440) % 1440;
+      const retenues = habitudes.slice(0, CFG.ACCUEIL_HABITUDES_MAX)
+        .sort((a, b) => dans(a.vers) - dans(b.vers));
+      return {
+        version, maintenant, creneaux,
+        habitudes: retenues.map(({ score, ...h }) => h),
+        enCours: !!travail || !restauree, restauree, attente: attendue(false), progression: progression(c.liste),
+      };
+    };
+
     const actualiser = () => {
       fraisApres = Date.now();
       echecs.clear();
@@ -12524,7 +17885,308 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       };
     };
 
-    return { semaine, horsLigne, actualiser, effacer, bilan: bilanPublic };
+    const retour = (login, flux) => {
+      const f = chaines.get(login);
+      if (!f || f.inconnue || !f.direct || !flux || f.direct.id === null || String(flux.id) !== f.direct.id) return null;
+      if (f.idDernier === null || f.idDernier === f.direct.id || f.finDernier === null) return null;
+      const ecart = f.direct.debut - f.finDernier;
+      if (!(ecart >= CFG.ETIQ_RETOUR_JOURS * 86_400_000)) return null;
+      return { jours: Math.floor(ecart / 86_400_000) };
+    };
+
+    const absence = (arg) => {
+      const maintenant = Date.now();
+      const fin = Number(arg?.fin);
+      const debut = Math.max(Number(arg?.debut), maintenant - CFG.ACCUEIL_RDV_RECUL_MS);
+      if (!Number.isFinite(debut) || !Number.isFinite(fin) || fin <= debut) throw new Error('absence invalide');
+      const fraiche = vouluAccueil.debut !== null && maintenant - vouluAccueil.ts <= CFG.ACCUEIL_RDV_DEMANDE_MS;
+      vouluAccueil = { debut: fraiche ? Math.min(vouluAccueil.debut, debut) : debut, ts: maintenant };
+      restaurer();
+      const c = cibles();
+      purger(c.liste);
+      lancer();
+      const vus = [];
+      for (const login of c.liste) {
+        const score = visits.scoreFor(login);
+        if (!(score > 0)) continue;
+        const f = chaines.get(login);
+        if (!f || f.inconnue || indisponible(f)) continue;
+
+        const d = diffusions.get(login);
+        if (!d || !(d.ts >= fin)) continue;
+        const pendant = directsDe(d.videos).filter((x) => x.debut >= debut && x.debut < fin);
+        let e = null;
+        if (pendant.length) {
+          const der = d.videos.filter((v) => v.debut >= debut && v.debut < fin).sort((a, b) => b.debut - a.debut)[0];
+
+          const ac = acces.get(login);
+          const fermee = der && ac && ac.video === der.id && typeof ac.fermee === 'boolean' ? ac.fermee : null;
+
+          e = { n: pendant.length, dureeMs: pendant.reduce((t, x) => t + Math.max(0, x.fin - x.debut), 0),
+                fin: pendant[0].fin,
+                dernier: der ? { id: der.id, titre: der.titre, fermee, vignette: der.vignette || null } : null };
+        } else if (f.finDernier !== null && f.finDernier >= debut && f.finDernier < fin) {
+          e = { n: null, dureeMs: null, fin: f.finDernier, dernier: null };
+        }
+        if (e) vus.push({ login, nom: f.nom || login, avatar: f.avatar || null, score, ...e });
+      }
+      vus.sort((a, b) => (b.score - a.score) || (a.login < b.login ? -1 : 1));
+      return { debut, fin, borne: debut > Number(arg?.debut), restauree,
+               enCours: !!travail || !restauree,
+               chaines: vus.slice(0, CFG.ABSENCE_MAX).map(({ score, ...x }) => x) };
+    };
+
+    const habituelle = (login, depuis) => {
+      restaurer();
+      lancer();
+      const d = diffusions.get(login);
+      if (!d) return null;
+      const directs = [];
+      for (const v of [...d.videos].filter((x) => x.debut >= depuis).sort((a, b) => a.debut - b.debut)) {
+        const prec = directs[directs.length - 1];
+        if (prec && v.debut - prec.fin < MEME_DIRECT_MS) { prec.fin = Math.max(prec.fin, finVideo(v)); continue; }
+        directs.push({ fin: finVideo(v), jeu: v.jeu, libelle: v.libelle });
+      }
+      const compte = new Map();
+      for (const x of directs) {
+        if (!x.jeu) continue;
+        const c = compte.get(x.jeu) || { jeu: x.jeu, libelle: x.libelle || x.jeu, n: 0 };
+        c.n++;
+        compte.set(x.jeu, c);
+      }
+      const rangs = [...compte.values()].sort((a, b) => b.n - a.n);
+      const r = rangs[0];
+      if (!r || r.n < CFG.POURQUOI_MIN_DIRECTS || (rangs[1] && rangs[1].n === r.n)) return null;
+      const f = chaines.get(login);
+      return { ...r, directs: directs.length, nom: (f && !f.inconnue && f.nom) || null };
+    };
+
+    const derniereVignette = (login) => {
+      const d = diffusions.get(login);
+      const v = d && d.videos.length ? d.videos.reduce((a, b) => (b.debut > a.debut ? b : a)) : null;
+      return (v && v.vignette) || null;
+    };
+    return { semaine, horsLigne, rendezVous, retour, absence, habituelle, derniereVignette, actualiser, effacer, bilan: bilanPublic };
+  })();
+
+  const presence = (() => {
+    const CLE = 'tse:presence';
+    const CLE_ABS = 'tse:absence';
+    let derniere = 0;
+    const lireNombre = (cle) => {
+      let v = null;
+      try { v = Number(localStorage.getItem(cle)); } catch { v = null; }
+      return Number.isFinite(v) && v > 0 ? v : null;
+    };
+    const lireAbsence = () => {
+      let x = null;
+      try { x = JSON.parse(localStorage.getItem(CLE_ABS) || 'null'); } catch { x = null; }
+      if (!x || typeof x !== 'object' || !Number.isFinite(x.debut) || !Number.isFinite(x.fin) || x.fin <= x.debut) return null;
+      if (Date.now() - x.fin > CFG.ABSENCE_GARDE_MS) return null;
+      return { debut: x.debut, fin: x.fin, ferme: x.ferme === true };
+    };
+    const ecrireAbsence = (a) => {
+      try { localStorage.setItem(CLE_ABS, JSON.stringify(a)); } catch {   }
+    };
+    const noter = () => {
+      const now = Date.now();
+      if (now - derniere < CFG.ABSENCE_PRESENCE_MS) return;
+      derniere = now;
+      try { localStorage.setItem(CLE, String(now)); } catch {   }
+    };
+    const init = () => {
+      const avant = lireNombre(CLE);
+      const now = Date.now();
+
+      const deja = lireAbsence();
+      if (avant !== null && now - avant >= CFG.ABSENCE_MIN_MS && !(deja && deja.debut === avant)) {
+        ecrireAbsence({ debut: avant, fin: now, ferme: false });
+      }
+      if (!document.hidden) noter();
+    };
+    const fermer = () => {
+      const a = lireAbsence();
+      if (a && !a.ferme) ecrireAbsence({ ...a, ferme: true });
+    };
+
+    const abonnes = new Set();
+    window.addEventListener('storage', erreurs.garde('presence', (ev) => {
+      if (ev.key !== CLE_ABS && ev.key !== null) return;
+      for (const f of abonnes) f();
+    }));
+    return { init, tick: () => { if (!document.hidden) noter(); }, absence: lireAbsence, fermer,
+             surChangement: (f) => { abonnes.add(f); } };
+  })();
+
+  const rappels = (() => {
+    const CLE = 'tse:rappels';
+    const RE_LOGIN_RAPPEL = /^[a-z0-9_]{1,25}$/;
+    const bilan = { poses: 0, retires: 0, evinces: 0, alertes: 0, fermes: 0, echus: 0, demandes: 0, echecs: 0, synchros: 0 };
+    let memo = null;
+    const lire = () => {
+      if (memo) return memo;
+      let x = null;
+      try { x = JSON.parse(localStorage.getItem(CLE) || 'null'); } catch {   }
+      const m = new Map();
+      if (x && typeof x === 'object' && !Array.isArray(x)) {
+        for (const [k, r] of Object.entries(x)) {
+          if (!r || typeof r !== 'object' || !RE_LOGIN_RAPPEL.test(r.login) || typeof r.id !== 'string'
+              || r.id.length > 64 || k !== r.login + '|' + r.id || !Number.isFinite(r.debut)
+              || !(r.fin === null || Number.isFinite(r.fin))) continue;
+          m.set(k, { login: r.login, id: r.id, debut: r.debut, fin: r.fin,
+                     nom: typeof r.nom === 'string' && r.nom ? r.nom.slice(0, 60) : r.login,
+                     avatar: typeof r.avatar === 'string' && /^https:\/\//.test(r.avatar) ? r.avatar : null,
+                     alerte: Number.isFinite(r.alerte) ? r.alerte : null, ferme: r.ferme === true });
+        }
+      }
+      memo = m;
+      return m;
+    };
+    const ecrire = (m) => {
+      memo = m;
+      try {
+        if (!m.size) localStorage.removeItem(CLE);
+        else localStorage.setItem(CLE, JSON.stringify(Object.fromEntries(m)));
+      } catch { bilan.echecs++; }
+      for (const f of abonnes) f();
+    };
+    const abonnes = new Set();
+
+    const echeance = (r) => (r.fin || r.debut + 3_600_000) + CFG.RAPPEL_APRES_MS;
+    const a = (login, id) => lire().has(login + '|' + id);
+
+    const relire = () => { memo = null; return new Map(lire()); };
+    const basculer = (r) => {
+      if (!r || !RE_LOGIN_RAPPEL.test(r.login) || !Number.isFinite(r.debut)) return;
+      const m = relire();
+      const k = r.login + '|' + String(r.id);
+      if (m.has(k)) { m.delete(k); bilan.retires++; }
+      else {
+
+        while (m.size >= CFG.RAPPELS_MAX) {
+          const plusTot = [...m.entries()].sort((x, y) => echeance(x[1]) - echeance(y[1]))[0][0];
+          m.delete(plusTot);
+          bilan.evinces++;
+        }
+        m.set(k, { login: r.login, id: String(r.id).slice(0, 64), debut: r.debut, fin: Number.isFinite(r.fin) ? r.fin : null,
+                   nom: r.nom || r.login, avatar: r.avatar || null, alerte: null, ferme: false });
+        bilan.poses++;
+      }
+      ecrire(m);
+      afficher();
+    };
+    const fermer = (k) => {
+      const m = relire();
+      const r = m.get(k);
+      if (!r || r.ferme) return;
+      m.set(k, { ...r, ferme: true });
+      bilan.fermes++;
+      ecrire(m);
+      afficher();
+    };
+
+    const tick = () => {
+      const m = relire();
+      if (!m.size) { afficher(); return; }
+      const now = Date.now();
+      let change = false;
+      for (const [k, r] of m) {
+        if (now > echeance(r)) { m.delete(k); bilan.echus++; change = true; continue; }
+        if (r.alerte !== null) {
+          if (!r.ferme && now - r.alerte > CFG.RAPPEL_ALERTE_MS) { m.set(k, { ...r, ferme: true }); change = true; }
+          continue;
+        }
+        if (now < r.debut - CFG.RAPPEL_AVANCE_MS) continue;
+        const e = cache.get(r.login);
+        const frais = !!e && now - (e.ts || 0) <= 2 * CFG.LIVE_TTL;
+        const s = frais ? e.stream : null;
+        const depuis = s ? Date.parse(s.createdAt) : NaN;
+        if (s && (now >= r.debut || (Number.isFinite(depuis) && depuis >= r.debut - CFG.RAPPEL_AVANCE_MS))) {
+          m.set(k, { ...r, alerte: now });
+          bilan.alertes++;
+          change = true;
+        } else if ((!e || now - (e.ts || 0) > CFG.LIVE_TTL) && !enVolLogins.has(r.login) && !queue.has(r.login)) {
+          bilan.demandes++;
+          fetchChannel(r.login);
+        }
+      }
+      if (change) ecrire(m);
+      afficher();
+    };
+
+    let boite = null;
+    const fabriquer = (k, r) => {
+      const n = document.createElement('div');
+      n.className = 'tse-rappel';
+      n.dataset.tseCle = k;
+      const av = document.createElement('img');
+      av.className = 'tse-rappel-avatar';
+      av.alt = '';
+      if (r.avatar) av.src = r.avatar; else av.hidden = true;
+      const textes = document.createElement('div');
+      textes.className = 'tse-rappel-textes';
+      const l1 = document.createElement('p');
+      l1.appendChild(phraseAvecFente(S.uiRappelEnDirect(FENTE), () => {
+        const b = document.createElement('strong');
+        b.textContent = r.nom;
+        return b;
+      }));
+      const l2 = document.createElement('p');
+      l2.className = 'tse-rappel-creneau';
+      l2.textContent = S.uiRappelCreneau(new Date(r.debut).toLocaleTimeString(S.locale, { hour: '2-digit', minute: '2-digit' }));
+      textes.append(l1, l2);
+      const voir = document.createElement('a');
+      voir.className = 'tse-rappel-voir';
+      voir.href = '/' + r.login;
+      voir.textContent = S.uiAccRegarder;
+      voir.addEventListener('click', () => fermer(k));
+      const x = document.createElement('button');
+      x.type = 'button';
+      x.className = 'tse-rappel-fermer';
+      x.setAttribute('aria-label', S.uiRappelFermer);
+      x.title = S.uiRappelFermer;
+      x.textContent = '×';
+      x.addEventListener('click', () => fermer(k));
+      n.append(av, textes, voir, x);
+      return n;
+    };
+    const afficher = () => {
+      const actives = [...lire().entries()].filter(([, r]) => r.alerte !== null && !r.ferme);
+      if (!actives.length) { if (boite) { boite.remove(); boite = null; } return; }
+      if (!document.body) return;
+      if (!boite || !boite.isConnected) {
+        boite = document.createElement('div');
+        boite.id = 'tse-rappels';
+        boite.setAttribute('role', 'status');
+        boite.setAttribute('aria-live', 'polite');
+        document.body.appendChild(boite);
+      }
+      const restants = new Map([...boite.children].map((n) => [n.dataset.tseCle, n]));
+      for (const [k, r] of actives) {
+        if (restants.has(k)) { restants.delete(k); continue; }
+        boite.appendChild(fabriquer(k, r));
+      }
+      for (const n of restants.values()) n.remove();
+    };
+
+    document.addEventListener('visibilitychange', erreurs.garde('rappels', () => { if (!document.hidden) tick(); }));
+
+    window.addEventListener('storage', erreurs.garde('rappels', (ev) => {
+      if (ev.key !== CLE && ev.key !== null) return;
+      memo = null;
+      bilan.synchros++;
+      afficher();
+      for (const f of abonnes) f();
+    }));
+    const surChangement = (f) => { abonnes.add(f); };
+    const rapport = () => {
+      const m = lire();
+      const v = [...m.values()];
+      return { ...bilan, actifs: v.filter((r) => r.alerte === null).length,
+               montrees: v.filter((r) => r.alerte !== null && !r.ferme).length,
+               fermees: v.filter((r) => r.ferme).length };
+    };
+    return { a, basculer, tick, afficher, surChangement, rapport };
   })();
 
   const panneau = {
@@ -12946,6 +18608,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
 
         salle: { ...salle.rapport(), noeuds: noeudsSalle.bilan() },
 
+        zapping: zapping.rapport(),
+
         stories: (() => {
           const r = rangeeStories();
           const bloc = document.getElementById(FILTER_ID);
@@ -13177,6 +18841,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         global: globalChannels.report(),
 
         agenda: agenda.bilan(),
+
+        accueil: pageAccueil.bilan(),
         journaux: {
           verrous: loadingOverlay.verrous(),
           cycles:  loadingOverlay.journal(),
@@ -13247,6 +18913,13 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
 
   tseApi.panneau.rapport = () => panneau.rapport();
 
+  tseApi.accueil = Object.freeze({
+    rapport: () => pageAccueil.bilan(),
+    top: (n = CFG.ACCUEIL_TOP_N) => pageAccueil.classement().top(n),
+
+    marche: () => pageAccueil.classement().warm(),
+  });
+
   tseApi.salle = Object.freeze({
     ouvrir: (...chaines) => salle.ouvrir(...chaines),
     son: (i) => salle.son(i),
@@ -13262,6 +18935,12 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     avance: (...a) => salle.avance(...a),
 
     auto: (x) => salle.auto(x),
+  });
+
+  tseApi.zapping = Object.freeze({
+    ouvrir: () => zapping.ouvrir('console'),
+    fermer: () => zapping.fermer('console'),
+    rapport: () => zapping.rapport(),
   });
 
   servirPanneau = (d, repondre) => {
@@ -15750,7 +21429,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
 
     const open = (card) => {
 
-      let login = card.dataset.tseLogin;
+      let login = card.dataset.tseLogin || card.dataset.tseSurvol;
       if (!login) {
         const link = card.querySelector(DOM.cardLinkSelector);
         login = loginFromHref(link?.getAttribute('href'));
@@ -15857,7 +21536,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
 
     const resolveCard = (node) => {
       let card = node.closest('.side-nav-card');
-      if (!card) return null;
+
+      if (!card) return pageAccueil.carteSurvolee(node);
       for (let p = card.parentElement; p; p = p.parentElement) {
         if (p.classList.contains('side-nav-card')) card = p;
       }
@@ -15930,6 +21610,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
 
       majVerrouVoile: (enPlus, peutLever) => majVerrouVoile(enPlus, peutLever),
       sonderOrigines: (logins) => vider(logins),
+
+      basculeConnue: (login) => basculeDeLaFrise(login),
 
       closeIfDetached: () => {
 
@@ -17475,13 +23157,13 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         if (!Number.isFinite(v)) continue;
         const login = parId.get(id);
 
-        if (login) globalChannels.setViewers(login, v, true);
+        if (login) verserAudience(login, v, true);
       }
     }
 
     for (const id of ids) {
       for (const m of (gsCache.get(id)?.mates || [])) {
-        if (Number.isFinite(m.combined)) globalChannels.setViewers(m.login, m.combined, true);
+        if (Number.isFinite(m.combined)) verserAudience(m.login, m.combined, true);
       }
     }
     resolveGuestStarWaiters(ids);
@@ -18483,6 +24165,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     for (const [login] of roster.entries()) {
       if (budget-- <= 0) break;
       if (getFreshChannel(login)) continue;
+
+      if (enVolLogins.has(login)) continue;
       fetchChannel(login);
     }
   };
@@ -18975,6 +24659,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       rafraichirAffichage();
     }, CFG.UI_TICK);
 
+    presence.init();
     setInterval(() => {
       if (document.hidden) return;
       scheduleScan();
@@ -18982,6 +24667,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       thumbPreload.tick();
 
       globalChannels.tick();
+
+      pageAccueil.tick();
+
+      rappels.tick();
+      presence.tick();
     }, CFG.REFRESH_TICK);
 
     setInterval(() => {
@@ -19028,6 +24718,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
 
   const boot = () => {
     injectCSS();
+
+    pageAccueil.tot();
     const ready = () => {
 
       refreshLanguage();
@@ -19040,6 +24732,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       liveLag.init();
       visitTracker.init();
       preview.init();
+      pageAccueil.init();
+      zapping.init();
       startObserver();
       startTimers();
       salle.reprendre();
