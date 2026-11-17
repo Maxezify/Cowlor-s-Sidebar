@@ -523,6 +523,12 @@
   "guideSalleTexte": {
     "message": "Le curseur « ▶ » posé sur la barre d'un co-stream ouvre ses streams côte à côte, sur la page — chacun dans sa tuile.\n• Survolez-le : il dit ce qu'il ouvre — « Regarder les 3 ». Des visages à son bout ? Des membres que vous ne suivez pas : allez vers eux pour les ajouter. Maj+clic ouvre directement tout le co-stream.\n• Un clic sur une tuile lui donne le son — les touches 1 à 6 aussi —, et le chat suit le son. Sans Chat partagé, des onglets au-dessus du chat en affichent un autre sans changer le son.\n• Six streams au plus à l'écran : les autres attendent dessous, un clic les fait entrer.\n• Les streams se calent seuls sur leur son commun, en une minute d'écoute environ ; sans son commun, rien ne bouge. « Alignement automatique » se coupe dans « Réglages ».\n• À gauche de « Masquer le chat », deux lignes disent où en est le calage : sur quelle tuile il se cale, puis l'état de chaque autre — « à l'écoute 2/6 » (les calculs du son qui comptent, sur ceux qu'il faut), « retard 0,30 s, à confirmer », « vérification », puis « Tout est calé ». Le point est vert quand tout est calé, ambre tant que le calage travaille ou attend, rouge quand une tuile ne peut pas être corrigée, gris en pause ou coupé ; l'infobulle donne le détail, tuile par tuile.\n• La salle ne fait pas gagner de points de chaîne, et les publicités de Twitch y passent comme ailleurs.\n• Pour la refermer : Échap, ou un clic sur le curseur, devenu « ■ »."
   },
+  "guideZapTitre": {
+    "message": "Le zapping"
+  },
+  "guideZapTexte": {
+    "message": "Le bouton à droite de la loupe de la recherche ouvre vos chaînes suivies en direct, en plein écran, dans l'ordre de la barre.\n• ↑ et ↓ changent de chaîne ; au bout, on repart du début. Un clic dans la colonne de droite mène à la sienne.\n• La chaîne d'avant et celle d'après sont déjà chargées — chacune « préchargée » — : elles s'affichent d'un coup.\n• L'écran passe en plein écran ; le quitter, ou ouvrir la salle, rend la fenêtre.\n• Quelques secondes sans bouger la souris, et il ne reste que l'image ; un geste ou une touche ramène le reste.\n• Entrée ouvre la chaîne ; Échap referme, et la vidéo de la page reprend.\n• S ajoute la chaîne à la salle, O ouvre la salle dès deux — six au plus. Une salle déjà ouverte se ferme à l'ouverture du zapping ; ses streams restent dans la sélection.\n• « Son de … », en bas à droite, coupe le son et le rend.\n• « Zapping » se coupe dans « Réglages »."
+  },
   "guideDebutTitre": {
     "message": "Les débuts, et les reprises"
   },
@@ -546,6 +552,12 @@
   },
   "guideTopTexte": {
     "message": "L'onglet « Top Chaînes », en haut de la barre latérale, remplace vos chaînes suivies par les chaînes les plus regardées de tout Twitch, en direct — trente par défaut, dix ou cinquante au choix.\n• Choisissez une catégorie ou une langue dans les filtres : vous obtenez son vrai classement.\n• Aperçu, durée, badges, co-streams : ce sont des cartes comme les autres.\n« Chaînes suivies » vous ramène ; votre liste n'a pas bougé."
+  },
+  "guideAccueilTitre": {
+    "message": "L'accueil de Twitch"
+  },
+  "guideAccueilTexte": {
+    "message": "Sur la page d'accueil de Twitch, l'extension pose ses rayons au-dessus de ceux de Twitch, dans la même colonne et alignés sur eux. Ils se règlent dans « Réglages », groupe « Page d'accueil ».\n• « Votre chaîne n°1 en direct » : celle de vos chaînes suivies en direct que vous regardez le plus — à défaut, celle qui a le plus de spectateurs — prend la place du carrousel de Twitch, sur toute la largeur. Son image d'abord, puis son direct, muet et sans publicité, comme l'aperçu au survol ; le fond en reprend les couleurs. Quand aucune de vos chaînes suivies n'est en direct, le carrousel revient. « Comme Twitch » le garde toujours ; « Rien » le retire et arrête sa vidéo.\n• « À la une » : les directs du carrousel de Twitch, en rayon, quand la bannière — ou « Rien » — le masque, sans la chaîne de la bannière. Leurs cartes passent par la demande que la barre fait déjà. En ruban : la carte du centre droite, ses voisines pivotées ; deux flèches le font défiler, et un clic sur une carte de côté l'amène au centre.\n• « Top 10 » : les dix premières places de Top Chaînes, dans la langue de l'interface de Twitch ou dans toutes les langues, en grands chiffres. Juste à droite du nom, une flèche dit les places gagnées ou perdues en trente minutes, ou depuis votre arrivée sur l'accueil ; « Nouveau » marque une chaîne qui n'était pas dans le Top 10. Les chaînes de « Chaînes écartées du Top 10 », dans « Réglages », n'y entrent pas, quelle que soit la langue — pour une chaîne qui porte le tag de la langue sans la parler. Top Chaînes n'en est pas touché. Un co-stream y tient une seule place, comme sur Twitch : le nom, « + 2 » et une flèche ; au survol de la flèche, ses membres, chacun avec ses propres spectateurs.\n• « Parce que vous regardez souvent… » : pour la chaîne que vous avez le plus visitée en trente jours — trois visites au moins —, un rayon montre ce qui est en direct dans sa catégorie habituelle, dans la langue de Twitch, hors de vos chaînes suivies. Le titre dit pourquoi : « 14 visites en 30 jours · Just Chatting, en français ». Deux rayons au plus.\n• « Vos rendez-vous » : ce que vos chaînes suivies ont programmé aujourd'hui et demain, avec le temps qu'il reste. « Me prévenir » pose une alerte dans vos onglets Twitch ouverts quand la chaîne passe en direct — pas une notification du système. Juste en dessous, « Sans planning » : pour une chaîne que vous regardez et qui n'a rien programmé, l'heure à laquelle ses derniers directs ont commencé, quand elle se répète — ce qu'elle a fait, pas ce qu'elle fera. Ces chaînes se rangent de la plus proche à venir.\n• Une étiquette par carte, en bas à droite de la vignette, sur les cartes de l'extension comme sur celles de Twitch : un fait, un seul, le premier vrai de cette liste — « De retour après 41 jours », « Subathon • JOUR 9 », « Vient de commencer », « Va sur Elden Ring », « ↗ +38 % en 10 min », « N°3 en français », « Co-stream à 3 ». Rien de deviné : sans fait observé, pas d'étiquette.\n• « Pendant votre absence » : après vingt-quatre heures sans Twitch à l'écran, un rayon en bas des autres montre ce que vos chaînes suivies — celles que vous regardez — ont diffusé entre-temps, une carte par chaîne : l'image de la dernière rediffusion, « 3 directs » et leur durée, la fin du dernier, le plus vu de leurs clips, et « Revoir le dernier » quand la rediffusion est ouverte. Fermé, il l'est dans tous les onglets.\n• Chaque rayon montre une rangée ; « Afficher tout », au milieu du filet du dessous, déroule le reste. « À la une », un ruban, ne se replie pas.\n• « Depuis le début » ouvre la rediffusion du direct en cours à sa première seconde. Il n'apparaît que si vous pouvez la voir : la chaîne garde ses rediffusions et les ouvre à tous, ou vous y êtes abonné.\n• L'aperçu au survol s'ouvre aussi sur les cartes de l'accueil : celles de l'extension comme celles de Twitch. Au survol, la vignette se soulève comme sur Twitch, dans la couleur de la chaîne.\n• « Ranger l'accueil de Twitch » : sur les rayons de Twitch eux-mêmes. « Masquer », juste à droite du titre d'un rayon de catégorie, le replie en une ligne — « Réafficher » le rend ; la catégorie reste masquée les jours suivants. Les cartes de directs y prennent la taille de celles de l'extension. Et un direct dont Twitch n'a pas encore d'image montre la dernière rediffusion de la chaîne, ou son avatar, à la place du « ? ». Les cartes de directs y prennent aussi les marques de celles de l'extension : le badge du direct à leur style, le nombre de spectateurs sans le mot, la durée du direct en haut à droite."
   },
   "guideViteTitre": {
     "message": "Plus rapide que Twitch, et plus propre"
@@ -727,6 +739,132 @@
   "optDescSalleAuto": {
     "message": "Les streams sont calés par leur son commun — les lèvres de chaque stream sur sa voix telle qu'on l'entend. Il faut environ une minute d'écoute ; sans son commun, rien ne bouge. Coupé : rien ne bouge seul."
   },
+  "optGrpZapping": {
+    "message": "Zapping"
+  },
+  "optZapping": {
+    "message": "Zapping"
+  },
+  "optDescZapping": {
+    "message": "Un bouton à droite de la loupe de la recherche ouvre vos chaînes suivies en direct, en plein écran, l'une après l'autre : ↑ et ↓ pour changer, Entrée pour ouvrir la chaîne, S pour l'ajouter à la salle, O pour ouvrir la salle, Échap pour quitter. La précédente et la suivante sont déjà chargées ; quand la souris ne bouge plus, l'interface s'efface. La vidéo de la page s'arrête le temps du zapping ; une salle ouverte se ferme, et ses streams restent à rouvrir. Coupé : ni bouton, ni écran."
+  },
+  "optGrpAccueil": {
+    "message": "Page d'accueil"
+  },
+  "optAccueil": {
+    "message": "Enrichir l'accueil de Twitch"
+  },
+  "optDescAccueil": {
+    "message": "Au-dessus des rayons de Twitch : les directs du carrousel, « À la une », et le Top 10 de votre langue ; en tête, votre chaîne la plus regardée. Coupé : l'accueil est celui de Twitch, tel quel, et rien ne tourne."
+  },
+  "optAccueilTete": {
+    "message": "En tête de l'accueil"
+  },
+  "optDescAccueilTete": {
+    "message": "« Votre chaîne n°1 » : celle de vos chaînes suivies en direct que vous regardez le plus — à défaut, celle qui a le plus de spectateurs —, à la place du carrousel de Twitch, sur toute la largeur ; le carrousel revient quand aucune de vos chaînes suivies n'est en direct. « Rien » retire le carrousel et arrête sa vidéo."
+  },
+  "optAccueilVideo": {
+    "message": "Vidéo de votre chaîne n°1"
+  },
+  "optDescAccueilVideo": {
+    "message": "Le direct se lance dans le bandeau, muet et sans publicité, comme l'aperçu au survol : l'image d'abord, la vidéo ensuite, et le fond en prend les couleurs. Il s'arrête quand le bandeau sort de l'écran ou que l'onglet est caché. Coupé : l'image seule, rafraîchie chaque minute."
+  },
+  "optAccueilUne": {
+    "message": "À la une"
+  },
+  "optDescAccueilUne": {
+    "message": "Les directs du carrousel de Twitch, en rayon, quand il est masqué — par la bannière, ou par « Rien ». Leurs cartes passent par la demande que la barre fait déjà, le temps qu'elles sont à l'écran."
+  },
+  "optAccueilTop": {
+    "message": "Top 10"
+  },
+  "optDescAccueilTop": {
+    "message": "Les dix premières places du classement exact de Top Chaînes, en grands chiffres. Une flèche dit ce qui a bougé en trente minutes, ou depuis votre arrivée sur l'accueil si c'est plus récent. Calculé seulement pendant que l'accueil est affiché."
+  },
+  "optAccueilTopLangue": {
+    "message": "Langue du Top 10"
+  },
+  "optDescAccueilTopLangue": {
+    "message": "« Celle de Twitch » suit la langue de l'interface de Twitch."
+  },
+  "optAccueilTopEcartees": {
+    "message": "Chaînes écartées du Top 10"
+  },
+  "optDescAccueilTopEcartees": {
+    "message": "Les pseudos de cette liste n'entrent pas dans le Top 10, quelle qu'en soit la langue — pour une chaîne qui porte le tag de la langue sans la parler. Top Chaînes, dans la barre, n'en est pas touché. Vingt au plus."
+  },
+  "optListeAjouter": {
+    "message": "Ajouter"
+  },
+  "optListeRetirer": {
+    "message": "Retirer $1"
+  },
+  "optListeRefus": {
+    "message": "Pas un pseudo Twitch : $1 — des lettres, des chiffres et _, comme dans l'adresse de la chaîne."
+  },
+  "optListeDeja": {
+    "message": "Déjà dans la liste : $1"
+  },
+  "optListePleine": {
+    "message": "$1 au plus : retirez-en une pour en ajouter une autre."
+  },
+  "optAccueilApercu": {
+    "message": "Aperçu au survol sur l'accueil"
+  },
+  "optDescAccueilApercu": {
+    "message": "L'aperçu de la barre, sur les cartes de l'accueil : celles de l'extension comme celles de Twitch. Suit aussi « Afficher l'aperçu »."
+  },
+  "optAccueilDebut": {
+    "message": "« Depuis le début »"
+  },
+  "optDescAccueilDebut": {
+    "message": "Sur les cartes de l'extension, un bouton qui ouvre la rediffusion du direct en cours à sa première seconde. Seulement quand vous pouvez la voir : la chaîne garde ses rediffusions et les ouvre à tous, ou vous y êtes abonné."
+  },
+  "optAccueilRdv": {
+    "message": "Vos rendez-vous"
+  },
+  "optDescAccueilRdv": {
+    "message": "Ce que vos chaînes suivies ont programmé aujourd'hui et demain, avec le temps qu'il reste. « Me prévenir » pose une alerte dans vos onglets Twitch ouverts quand la chaîne passe en direct. Pour une chaîne que vous regardez et qui n'a rien programmé : l'heure à laquelle ses derniers directs ont commencé, quand elle se répète."
+  },
+  "optAccueilEtiquettes": {
+    "message": "Une étiquette par carte"
+  },
+  "optDescAccueilEtiquettes": {
+    "message": "Un fait, un seul, sur chaque carte de l'accueil — celles de l'extension comme celles de Twitch : « De retour après 41 jours », « Vient de commencer », « ↗ +38 % en 10 min »… Pour une chaîne que la barre ne suit pas, ses chiffres sont demandés tant que sa carte est à l'écran."
+  },
+  "optAccueilAbsence": {
+    "message": "Pendant votre absence"
+  },
+  "optDescAccueilAbsence": {
+    "message": "Après vingt-quatre heures sans Twitch à l'écran, un rayon de cartes en bas de l'accueil dit ce que vos chaînes suivies ont diffusé entre-temps : l'image de leur dernière rediffusion, leurs directs, le plus vu de leurs clips, et la dernière rediffusion. Une demande de clips par chaîne et par absence, qui porte aussi l'image."
+  },
+  "optAccueilPourquoi": {
+    "message": "Parce que vous regardez souvent…"
+  },
+  "optDescAccueilPourquoi": {
+    "message": "Pour les chaînes que vous visitez le plus, ce qui est en direct dans leur catégorie habituelle, dans la langue de Twitch, hors de vos suivis — et le titre dit pourquoi. Une requête par rayon, deux rayons au plus."
+  },
+  "optAccueilRanger": {
+    "message": "Ranger l'accueil de Twitch"
+  },
+  "optDescAccueilRanger": {
+    "message": "Sur les rayons de Twitch eux-mêmes : « Masquer » à côté du titre d'un rayon de catégorie, des cartes de directs à la taille de celles de l'extension, et les vignettes « ? » remplacées par la dernière rediffusion ou l'avatar. Ses cartes de directs prennent les marques de celles de l'extension — le badge du direct, le nombre de spectateurs seul, la durée en haut à droite —, leurs chiffres passant par la demande que la barre fait déjà, le temps qu'elles sont à l'écran. Rien n'est retiré de la page."
+  },
+  "optValHeros": {
+    "message": "Votre chaîne n°1"
+  },
+  "optValRien": {
+    "message": "Rien"
+  },
+  "optValInterface": {
+    "message": "Celle de Twitch"
+  },
+  "optValToutes": {
+    "message": "Toutes les langues"
+  },
+  "optSansEffet": {
+    "message": "Sans effet tant que « $1 » est coupé"
+  },
   "optAbonnes": {
     "message": "L'or des abonnements"
   },
@@ -869,7 +1007,7 @@
     "message": "Remettre tous les réglages par défaut ?"
   },
   "optResetText": {
-    "message": "Les vingt et un réglages de cette page reviendront à leur valeur d'origine. Vos données — visites, abonnements, chaînes suivies — ne sont pas touchées."
+    "message": "Les trente-six réglages de cette page reviendront à leur valeur d'origine. Vos données — visites, abonnements, chaînes suivies — ne sont pas touchées."
   },
   "optValPlein": {
     "message": "Complet"
@@ -932,6 +1070,6 @@
     "message": "Tout se règle, et tout se coupe"
   },
   "guideReglagesTexte": {
-    "message": "« Réglages » commande tout ce que ce guide présente. Rien n'est imposé : ce qui vous gêne s'éteint, et un point violet marque ce que vous avez changé.\n• Un aperçu trop lourd ? Baissez la qualité, ou coupez la vidéo : il garde sa miniature, ses badges et sa frise.\n• L'or trop voyant ? « Discret » garde la couleur et retire le reflet.\n• La salle multistream et son alignement automatique s'éteignent chacun de leur côté.\n• Le relevé des abonnements peut s'espacer jusqu'à une fois par jour.\n• Chaque mémoire — visites, abonnements, chaînes connues — s'efface à part.\n• Vos réglages s'exportent et s'importent ; un bouton les remet tous d'origine."
+    "message": "« Réglages » commande tout ce que ce guide présente. Rien n'est imposé : ce qui vous gêne s'éteint, et un point violet marque ce que vous avez changé. Une ligne grisée dépend d'un réglage coupé : elle reste modifiable, et dit lequel quand on la survole.\n• Un aperçu trop lourd ? Baissez la qualité, ou coupez la vidéo : il garde sa miniature, ses badges et sa frise.\n• L'or trop voyant ? « Discret » garde la couleur et retire le reflet.\n• La salle multistream et son alignement automatique s'éteignent chacun de leur côté.\n• Le relevé des abonnements peut s'espacer jusqu'à une fois par jour.\n• Chaque mémoire — visites, abonnements, chaînes connues — s'efface à part.\n• Vos réglages s'exportent et s'importent ; un bouton les remet tous d'origine."
   }
 }

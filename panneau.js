@@ -579,11 +579,14 @@ const GUIDE = [
       'costream', 'guideBadgeCostream') },
 
   { titre: 'guideSalleTitre',    texte: 'guideSalleTexte' },
+  { titre: 'guideZapTitre',      texte: 'guideZapTexte' },
   { titre: 'guideBadgesTitre',   texte: 'guideBadgesTexte',   demo: () => demoBadges() },
   { titre: 'guideTriTitre',      texte: 'guideTriTexte' },
 
   { titre: 'guideViteTitre',     texte: 'guideViteTexte', renvoi: 'guideBadgesTitre' },
   { titre: 'guideTopTitre',      texte: 'guideTopTexte',      demo: () => demoOnglets() },
+
+  { titre: 'guideAccueilTitre',  texte: 'guideAccueilTexte' },
 
   { titre: 'guidePanneauTitre',  texte: 'guidePanneauTexte', renvoi: ['guideAgendaTitre', 'guideHorsLigneTitre'] },
   { titre: 'guideReglagesTitre', texte: 'guideReglagesTexte' },
@@ -762,6 +765,11 @@ const GROUPES_OPT = [
   ['optGrpApercu',  ['apercu', 'apercuVideo', 'apercuQualite', 'apercuTaille']],
 
   ['optGrpMultistream', ['salle', 'salleAuto']],
+
+  ['optGrpZapping', ['zapping']],
+
+  ['optGrpAccueil', ['accueil', 'accueilTete', 'accueilVideo', 'accueilUne', 'accueilTop',
+                     'accueilTopLangue', 'accueilTopEcartees', 'accueilPourquoi', 'accueilApercu', 'accueilDebut', 'accueilRdv', 'accueilEtiquettes', 'accueilAbsence', 'accueilRanger']],
   ['optGrpBadges',  ['badges']],
   ['optGrpCarte',   ['duree', 'dureeFormat', 'fresh', 'abonnes', 'subathonJour']],
   ['optGrpListe',   ['tris', 'filtreCategorie', 'filtreLangue', 'topOnglet', 'topN']],
@@ -790,6 +798,8 @@ const MOTS_VALEUR = {
   petit: 'optValPetit',   normal: 'optValNormal',   grand: 'optValGrand',
   auto: 'optValAuto',     dark: 'optValDark',       light: 'optValLight',
   twitch: 'optValTwitch', integree: 'optValIntegree', masquee: 'optValMasquee',
+  heros: 'optValHeros',   rien: 'optValRien',
+  interface: 'optValInterface', toutes: 'optValToutes',
 };
 const EXEMPLES_DUREE = { hm: '4h19', colon: '4:19', min: '259 min' };
 
@@ -857,6 +867,81 @@ const cases = (jeu, membres, actifs, surChangement) => {
   return hote;
 };
 
+const RE_LOGIN = /^[a-z0-9_]{1,25}$/;
+const loginTape = (brut) => {
+  let m = String(brut || '').trim();
+  const adresse = /^(?:https?:\/\/)?(?:www\.|m\.)?twitch\.tv\/([^/?#\s]+)/i.exec(m);
+  if (adresse) m = adresse[1];
+  m = m.replace(/^@/, '').toLowerCase();
+  return RE_LOGIN.test(m) ? m : null;
+};
+
+let suiteListe = null;
+
+const liste = (id, d, v) => {
+  const hote = div('reg-liste');
+  const plein = v.length >= d.max;
+  const pleine = T('optListePleine', String(d.max));
+  const suite = suiteListe && suiteListe.id === id ? suiteListe : null;
+  if (suite) suiteListe = null;
+  const saisie = div('reg-liste-saisie');
+  const champ = document.createElement('input');
+  champ.type = 'text';
+  champ.className = 'reg-liste-champ';
+  champ.spellcheck = false;
+  champ.autocomplete = 'off';
+  champ.setAttribute('aria-label', T('opt' + MAJ(id)));
+  champ.value = suite ? suite.reste : '';
+  champ.disabled = plein;
+  const bouton = elt('button', 'reg-liste-ajouter', T('optListeAjouter'));
+  bouton.type = 'button';
+  bouton.disabled = plein;
+  const ajouter = () => {
+    const pris = [], refuses = [], deja = [];
+    for (const brut of champ.value.split(/[\s,;]+/)) {
+      if (!brut) continue;
+      const l = loginTape(brut);
+      if (!l) refuses.push(brut);
+      else if (v.includes(l) || pris.includes(l)) deja.push(l);
+      else pris.push(l);
+    }
+    const place = Math.max(0, d.max - v.length);
+    const gardes = pris.slice(0, place), deborde = pris.slice(place);
+    const messages = [];
+    if (refuses.length) messages.push(T('optListeRefus', refuses.join(', ')));
+    if (deja.length) messages.push(T('optListeDeja', deja.join(', ')));
+    if (deborde.length) messages.push(pleine);
+    suiteListe = { id, messages, reste: [...refuses, ...deborde].join(' ') };
+    if (gardes.length) poserOption(id, [...v, ...gardes]);
+    else peindreReglages();
+  };
+  champ.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    ajouter();
+  });
+  bouton.addEventListener('click', ajouter);
+  saisie.append(champ, bouton);
+  hote.appendChild(saisie);
+  const messages = suite ? suite.messages.slice() : [];
+  if (plein && !messages.includes(pleine)) messages.push(pleine);
+  for (const m of messages) hote.appendChild(elt('p', 'reg-liste-message', m));
+  if (v.length) {
+    const puces = elt('ul', 'reg-liste-puces');
+    for (const l of v) {
+      const p = elt('li', 'reg-liste-puce');
+      const x = elt('button', 'reg-liste-retirer', '×');
+      x.type = 'button';
+      x.setAttribute('aria-label', T('optListeRetirer', l));
+      x.addEventListener('click', () => poserOption(id, v.filter((y) => y !== l)));
+      p.append(elt('span', 'reg-liste-nom', l), x);
+      puces.appendChild(p);
+    }
+    hote.appendChild(puces);
+  }
+  return hote;
+};
+
 let etatOpt = null;
 
 const poserOption = async (id, valeur) => {
@@ -871,6 +956,12 @@ const ligneReglage = (id) => {
   if (!d) return null;
   const v = etatOpt.valeurs[id];
   const ligne = div('reg-ligne' + (etatOpt.modifies.includes(id) ? ' reg-ligne--modifie' : ''));
+
+  const coupePar = (Array.isArray(d.sous) ? d.sous : []).filter((p) => etatOpt.valeurs[p] === false);
+  if (coupePar.length) {
+    ligne.classList.add('reg-ligne--sans-effet');
+    ligne.title = T('optSansEffet', coupePar.map((p) => T('opt' + MAJ(p))).join(', '));
+  }
   const texte = div('reg-texte');
   texte.appendChild(elt('span', 'reg-nom', T('opt' + MAJ(id))));
   const desc = T('optDesc' + MAJ(id));
@@ -889,6 +980,9 @@ const ligneReglage = (id) => {
     ligne.classList.add('reg-ligne--large');
     ctrl.appendChild(cases(id, d.valeurs, actifs,
       (gardes) => poserOption(id, d.valeurs.filter((m) => !gardes.includes(m)))));
+  } else if (d.type === 'liste') {
+    ligne.classList.add('reg-ligne--large');
+    ctrl.appendChild(liste(id, d, Array.isArray(v) ? v : []));
   }
   ligne.appendChild(ctrl);
   return ligne;
@@ -1956,6 +2050,16 @@ const construireRapport = (r, transport, fond) => {
   L.push(...bloc('TOP CHAÎNES / TOP CHANNELS', aplatir(r.global)));
 
   L.push(...bloc('AGENDA', aplatir(r.agenda)));
+
+  const acc = r.accueil;
+  L.push(...bloc('ACCUEIL / HOME PAGE', !acc ? ['  (absent)'] : aplatir({
+    ...acc,
+    heros: acc.heros ? {
+      ...acc.heros,
+      rejets: (acc.heros.rejets || []).map((x) =>
+        `${x.place}:${x.raison} (${x.largeur}/${x.plein} px, ${x.parent || '—'})`),
+    } : acc.heros,
+  })));
 
   L.push(...blocErreurs(r.erreurs, '', r.bilanErreurs, r.exemplaire));
 

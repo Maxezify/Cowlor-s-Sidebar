@@ -623,6 +623,12 @@
   "guideSalleTexte": {
     "message": "The “▶” cursor on a co-stream's bar opens its streams side by side, on the page — each in its own tile.\n• Hover it: it says what it opens — “Watch all 3”. Faces at its end? Members you do not follow: move onto them to add them. Shift+click opens the whole co-stream straight away.\n• Click a tile to give it the sound — keys 1 to 6 work too — and the chat follows the sound. Without Shared Chat, tabs above the chat show another one without changing the sound.\n• Six streams at most on screen: the others wait below, and a click brings them in.\n• The streams line themselves up on their common sound, in about a minute of listening; with no common sound, nothing moves. “Automatic alignment” can be switched off in “Settings”.\n• To the left of “Hide the chat”, two lines say where the alignment stands: which tile it aligns on, then the state of each other one — “listening 2/6” (the sound calculations that count, out of those needed), “behind 0.30 s, to confirm”, “checking”, then “All aligned”. The dot is green when everything is aligned, amber while the alignment works or waits, red when a tile cannot be corrected, grey when paused or off; the tooltip gives the details, tile by tile.\n• The room earns no channel points, and Twitch's ads play there as anywhere else.\n• To close it: Escape, or a click on the cursor, now a “■”."
   },
+  "guideZapTitre": {
+    "message": "Zapping"
+  },
+  "guideZapTexte": {
+    "message": "The button to the right of the search magnifier opens your followed channels that are live, full screen, in the sidebar's order.\n• ↑ and ↓ switch channels; past the end, you start again from the top. A click in the right-hand column goes to that channel.\n• The channels before and after are already loaded — each one “preloaded” —: they show at once.\n• The screen goes full screen; leaving it, or opening the room, gives the window back.\n• A few seconds without moving the mouse and only the picture remains; a move or a key brings the rest back.\n• Enter opens the channel; Escape closes, and the page's video resumes.\n• S adds the channel to the room, O opens the room once there are two — six at most. A room already open closes when zapping opens; its streams stay in the selection.\n• “Sound from …”, bottom right, mutes and unmutes.\n• “Zapping” can be turned off in “Settings”."
+  },
   "guideDebutTitre": {
     "message": "Starts, and comebacks"
   },
@@ -646,6 +652,12 @@
   },
   "guideTopTexte": {
     "message": "The “Top Channels” tab, at the top of the sidebar, swaps your followed channels for the most-watched channels on all of Twitch, live — thirty by default, ten or fifty if you prefer.\n• Pick a category or a language in the filters: you get its real ranking.\n• Preview, uptime, badges, co-streams: these are cards like any other.\n“Followed Channels” takes you back; your list has not moved."
+  },
+  "guideAccueilTitre": {
+    "message": "Twitch's home page"
+  },
+  "guideAccueilTexte": {
+    "message": "On Twitch's home page, the extension adds its own rows above Twitch's, in the same column and lined up with them. They are set in “Settings”, under “Home page”.\n• “Your #1 channel, live”: the live followed channel you watch the most — failing that, the one with the most viewers — takes the place of Twitch's carousel, across the whole width. First its picture, then its stream, muted and ad-free, like the hover preview; the background takes on its colours. When none of your followed channels is live, the carousel comes back. “As on Twitch” always keeps it; “Nothing” removes it and stops its video.\n• “Featured”: the streams of Twitch's carousel, as a row, when the banner — or “Nothing” — hides it, without the banner's channel. Their cards go through the request the sidebar already makes. As a ribbon: the centre card straight, its neighbours turned; two arrows scroll it, and a click on a side card brings it to the centre.\n• “Top 10”: the first ten places of Top Channels, in the language of Twitch's interface or in all languages, in big numbers. Right of the name, an arrow shows the places gained or lost over thirty minutes, or since you arrived on the home page; “New” marks a channel that wasn't in the Top 10. The channels in “Channels removed from the Top 10”, in “Settings”, do not enter it, whatever the language — for a channel that carries the language's tag without speaking it. Top Channels is not affected. A co-stream takes a single place, as on Twitch: the name, “+ 2” and an arrow; hover the arrow to see its members, each with their own viewers.\n• “Because you often watch…”: for the channel you visited the most in thirty days — three visits at least —, a row shows what is live in its usual category, in Twitch's language, outside your followed channels. The title says why: “14 visits in 30 days · Just Chatting, in English”. Two rows at most.\n• “Your scheduled streams”: what your followed channels have scheduled for today and tomorrow, with the time left. “Remind me” puts an alert in your open Twitch tabs when the channel goes live — not a system notification. Just below, “No schedule”: for a channel you watch that has nothing scheduled, the time its last streams started, when it repeats — what it did, not what it will do. These channels are sorted by the nearest time to come.\n• One label per card, at the bottom right of the thumbnail, on the extension's cards and Twitch's alike: one fact, just one, the first true one in this list — “Back after 41 days”, “Subathon • DAY 9”, “Just started”, “Switched to Elden Ring”, “↗ +38% in 10 min”, “#3 in English”, “Co-stream of 3 channels”. Nothing guessed: no fact seen, no label.\n• “While you were away”: after twenty-four hours without Twitch on screen, a row below the others shows what your followed channels — the ones you watch — streamed in the meantime, one card per channel: the last replay's picture, “3 streams” and how long, when the last one ended, the most viewed of their clips, and “Watch the last one” when the replay is open. Closed, it is closed in every tab.\n• Each row shows one line; “Show all”, in the middle of the rule below it, unrolls the rest. “Featured”, a ribbon, does not fold.\n• “From the start” opens the replay of the stream in progress at its first second. It only appears when you can watch it: the channel keeps its replays and opens them to everyone, or you are subscribed to it.\n• The hover preview also opens on the home page's cards: the extension's and Twitch's alike. On hover, the thumbnail lifts as on Twitch, in the channel's colour.\n• “Tidy Twitch's home page”: on Twitch's own rows. “Hide”, right of a category row's title, folds it into one line — “Show again” brings it back; the category stays hidden the following days. Their live cards take the size of the extension's. And a stream Twitch has no picture for yet shows the channel's last replay, or its avatar, instead of the “?”. Its live cards also take the extension's marks: the live badge in their style, the viewer count without the word, the stream's duration top right."
   },
   "guideViteTitre": {
     "message": "Quicker than Twitch, and tidier"
@@ -843,6 +855,132 @@
   "optDescSalleAuto": {
     "message": "The streams are synced by their shared sound — each stream's lips on its voice as you hear it. It takes about a minute of listening; without shared sound, nothing moves. Off: nothing moves on its own."
   },
+  "optGrpZapping": {
+    "message": "Zapping"
+  },
+  "optZapping": {
+    "message": "Zapping"
+  },
+  "optDescZapping": {
+    "message": "A button to the right of the search magnifier opens your followed channels that are live, full screen, one after another: ↑ and ↓ to switch, Enter to open the channel, S to add it to the room, O to open the room, Esc to exit. The previous and next ones are already loaded; when the mouse stops moving, the interface fades away. The page's video pauses while you zap; an open room closes, and its streams are kept to reopen. Off: no button, no screen."
+  },
+  "optGrpAccueil": {
+    "message": "Home page"
+  },
+  "optAccueil": {
+    "message": "Enhance Twitch's home page"
+  },
+  "optDescAccueil": {
+    "message": "Above Twitch's rows: the carousel's streams, “Featured”, and the Top 10 in your language; at the top, the channel you watch the most. Off: the home page is Twitch's, as is, and nothing runs."
+  },
+  "optAccueilTete": {
+    "message": "Top of the home page"
+  },
+  "optDescAccueilTete": {
+    "message": "“Your #1 channel”: the live followed channel you watch the most — failing that, the one with the most viewers —, in place of Twitch's carousel, across the whole width; the carousel comes back when none of your followed channels is live. “Nothing” removes the carousel and stops its video."
+  },
+  "optAccueilVideo": {
+    "message": "Video of your #1 channel"
+  },
+  "optDescAccueilVideo": {
+    "message": "The stream starts in the banner, muted and ad-free, like the hover preview: the picture first, then the video, and the background takes on its colours. It stops when the banner leaves the screen or the tab is hidden. Off: the picture alone, refreshed every minute."
+  },
+  "optAccueilUne": {
+    "message": "Featured"
+  },
+  "optDescAccueilUne": {
+    "message": "The streams of Twitch's carousel, as a row, when it is hidden — by the banner, or by “Nothing”. Their cards go through the request the sidebar already makes, while they are on screen."
+  },
+  "optAccueilTop": {
+    "message": "Top 10"
+  },
+  "optDescAccueilTop": {
+    "message": "The first ten places of Top Channels' exact ranking, in big numbers. An arrow shows what moved over thirty minutes, or since you arrived on the home page if that is more recent. Computed only while the home page is on screen."
+  },
+  "optAccueilTopLangue": {
+    "message": "Top 10 language"
+  },
+  "optDescAccueilTopLangue": {
+    "message": "“Twitch's” follows the language of Twitch's interface."
+  },
+  "optAccueilTopEcartees": {
+    "message": "Channels removed from the Top 10"
+  },
+  "optDescAccueilTopEcartees": {
+    "message": "The usernames on this list do not enter the Top 10, whatever its language — for a channel that carries the language's tag without speaking it. Top Channels, in the sidebar, is not affected. Twenty at most."
+  },
+  "optListeAjouter": {
+    "message": "Add"
+  },
+  "optListeRetirer": {
+    "message": "Remove $1"
+  },
+  "optListeRefus": {
+    "message": "Not a Twitch username: $1 — letters, digits and _, as in the channel's address."
+  },
+  "optListeDeja": {
+    "message": "Already on the list: $1"
+  },
+  "optListePleine": {
+    "message": "$1 at most: remove one to add another."
+  },
+  "optAccueilApercu": {
+    "message": "Hover preview on the home page"
+  },
+  "optDescAccueilApercu": {
+    "message": "The sidebar's preview, on the home page cards: the extension's and Twitch's. Also follows “Show the preview”."
+  },
+  "optAccueilDebut": {
+    "message": "“From the start”"
+  },
+  "optDescAccueilDebut": {
+    "message": "On the extension's cards, a button that opens the replay of the stream in progress at its first second. Only when you can watch it: the channel keeps its replays and opens them to everyone, or you are subscribed to it."
+  },
+  "optAccueilRdv": {
+    "message": "Your scheduled streams"
+  },
+  "optDescAccueilRdv": {
+    "message": "What your followed channels have scheduled for today and tomorrow, with the time left. “Remind me” puts an alert in your open Twitch tabs when the channel goes live. For a channel you watch that has nothing scheduled: the time its last streams started, when it repeats."
+  },
+  "optAccueilEtiquettes": {
+    "message": "One label per card"
+  },
+  "optDescAccueilEtiquettes": {
+    "message": "One fact, just one, on each home page card — the extension's and Twitch's alike: “Back after 41 days”, “Just started”, “↗ +38% in 10 min”… For a channel the sidebar doesn't follow, its numbers are requested while its card is on screen."
+  },
+  "optAccueilAbsence": {
+    "message": "While you were away"
+  },
+  "optDescAccueilAbsence": {
+    "message": "After twenty-four hours without Twitch on screen, a row of cards at the bottom of the home page says what your followed channels streamed in the meantime: their last replay's picture, their streams, the most viewed of their clips, and the last replay. One clips request per channel and per absence, which also carries the picture."
+  },
+  "optAccueilPourquoi": {
+    "message": "Because you often watch…"
+  },
+  "optDescAccueilPourquoi": {
+    "message": "For the channels you visit the most, what is live in their usual category, in Twitch's language, outside your follows — and the title says why. One request per row, two rows at most."
+  },
+  "optAccueilRanger": {
+    "message": "Tidy Twitch's home page"
+  },
+  "optDescAccueilRanger": {
+    "message": "On Twitch's own rows: “Hide” next to the title of a category row, live cards the size of the extension's, and the “?” thumbnails replaced by the last replay or the avatar. Its live cards take the extension's marks — the live badge, the viewer count alone, the duration top right —, their figures going through the request the sidebar already makes, while they are on screen. Nothing is removed from the page."
+  },
+  "optValHeros": {
+    "message": "Your #1 channel"
+  },
+  "optValRien": {
+    "message": "Nothing"
+  },
+  "optValInterface": {
+    "message": "Twitch's"
+  },
+  "optValToutes": {
+    "message": "All languages"
+  },
+  "optSansEffet": {
+    "message": "No effect while “$1” is off"
+  },
   "optAbonnes": {
     "message": "Subscription gold"
   },
@@ -985,7 +1123,7 @@
     "message": "Reset every setting to its default?"
   },
   "optResetText": {
-    "message": "All twenty-one settings on this page will return to their original value. Your data — visits, subscriptions, followed channels — is untouched."
+    "message": "All thirty-six settings on this page will return to their original value. Your data — visits, subscriptions, followed channels — is untouched."
   },
   "optValPlein": {
     "message": "Full"
@@ -1048,6 +1186,6 @@
     "message": "Everything adjusts, everything switches off"
   },
   "guideReglagesTexte": {
-    "message": "“Settings” controls everything this guide presents. Nothing is imposed: what bothers you switches off, and a purple dot marks what you changed.\n• Preview too heavy? Lower the quality, or cut the video: it keeps its thumbnail, its badges and its timeline.\n• Gold too loud? “Subtle” keeps the colour and drops the shimmer.\n• The multistream room and its automatic alignment switch off separately.\n• The subscriptions sweep can be spaced out to once a day.\n• Each memory — visits, subscriptions, known channels — can be erased on its own.\n• Your settings export and import; one button restores them all."
+    "message": "“Settings” controls everything this guide presents. Nothing is imposed: what bothers you switches off, and a purple dot marks what you changed. A greyed-out line depends on a setting that is off: it stays editable, and says which one when you hover it.\n• Preview too heavy? Lower the quality, or cut the video: it keeps its thumbnail, its badges and its timeline.\n• Gold too loud? “Subtle” keeps the colour and drops the shimmer.\n• The multistream room and its automatic alignment switch off separately.\n• The subscriptions sweep can be spaced out to once a day.\n• Each memory — visits, subscriptions, known channels — can be erased on its own.\n• Your settings export and import; one button restores them all."
   }
 }
