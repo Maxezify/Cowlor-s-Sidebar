@@ -1978,7 +1978,19 @@ if (location.pathname === '/' && window.__accueil) {
           img.src = c.sans ? 'https://static-cdn.jtvnw.net/ttv-static/404_preview-440x248.jpg'
                            : 'https://static-cdn.jtvnw.net/previews-ttv/live_user_' + c.login + '-440x248.jpg';
           img.style.cssText = 'display:block;width:100%;height:100%';
-          lien.appendChild(img);
+          /* `e.enLigne` (4.33.0.5) : le lien tel que le vrai Twitch le pose —
+             EN LIGNE, sans position, autour d'un bloc, la vignette. Ses coins
+             se posent alors sur la carte, que Twitch positionne. Un lien en
+             ligne qui contient un bloc : c'est sous cette forme que Firefox
+             prenait pour cadre une boîte de largeur nulle (cf. content.js). */
+          if (e.enLigne) {
+            lien.style.cssText = '';
+            art.style.position = 'relative';
+            const vis = el('div', 'ScAspectRatio');
+            vis.style.cssText = 'aspect-ratio:16/9';
+            vis.appendChild(img);
+            lien.appendChild(vis);
+          } else lien.appendChild(img);
           /* LES COINS D'UNE CARTE DE DIRECT (4.32.0.4), relevés sur la page
              enregistrée : « LIVE » en haut à gauche, le compteur — « 67
              spectateurs » — en bas à gauche, chacun dans un coin posé en
@@ -1991,7 +2003,7 @@ if (location.pathname === '/' && window.__accueil) {
              le badge de durée que l'extension 7TV pose dans la carte, en bas
              à droite. */
           if (e.natifs) {
-            lien.style.position = 'relative';
+            if (!e.enLigne) lien.style.position = 'relative';
             const coin = (ou) => {
               const d = el('div', 'ScPositionCorner');
               d.style.cssText = 'position:absolute;' + ou + ':0;left:0;margin:10px';

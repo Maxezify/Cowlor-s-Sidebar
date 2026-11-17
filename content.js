@@ -9644,7 +9644,21 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       0%, 100% { color: #ff8f8f; } 12.5% { color: #ffe38f; } 25% { color: #c7ff8f; } 37.5% { color: #8fffb4; }
       50% { color: #8ffdff; } 62.5% { color: #8fabff; } 75% { color: #c78fff; } 87.5% { color: #ff8fe3; }
     }
-    main a[data-a-target="preview-card-image-link"][data-tse-etiquette] { position: relative; }
+    /* UN LIEN EN LIGNE N'EST PAS UN CADRE (4.33.0.5). « Les pastilles sur ce
+       type de liste ont un problème — seulement sur Firefox » : la durée à
+       gauche de sa carte, hors d'elle, l'étiquette réduite à son point, le
+       compteur d'un co-stream qui rogne son icône. Le lien de la carte de
+       Twitch est EN LIGNE, et il contient un bloc, la vignette. Positionné
+       pour porter la durée et l'étiquette, il devient leur cadre — et celui
+       des coins de Twitch qu'il contient. Chrome prend alors pour cadre la
+       boîte de la vignette ; Firefox, celle des fragments en ligne du lien,
+       avant et après le bloc : une boîte de largeur nulle au bord gauche de
+       la carte. La durée, à huit pixels de son bord droit, sortait à gauche ;
+       l'étiquette, bornée à 55 % de rien, n'avait plus que son point ; un
+       coin, sans largeur où s'étendre, prenait sa largeur minimale. En bloc,
+       le lien a la boîte de la vignette sous les deux moteurs ; autour d'un
+       bloc seul, rien ne bouge dans la carte. */
+    main a[data-a-target="preview-card-image-link"][data-tse-etiquette] { position: relative; display: block !important; }
     /* RANGER L'ACCUEIL DE TWITCH (4.32.0, cf. RANGER). Des attributs sur ses
        nœuds, et ces règles : rien de retiré, rien d'ajouté. Le « Masquer »
        d'un titre est son ::after, posé juste à droite du titre — le clic
@@ -9737,7 +9751,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     html[data-tse-ranger] main a[data-a-target="preview-card-image-link"] .tw-media-card-stat[data-tse-spect]:has(svg, img)::before {
       margin-right: 4px;
     }
-    html[data-tse-ranger] main a[data-a-target="preview-card-image-link"][data-tse-duree] { position: relative; }
+    html[data-tse-ranger] main a[data-a-target="preview-card-image-link"][data-tse-duree] { position: relative; display: block !important; }
     html[data-tse-ranger] main a[data-a-target="preview-card-image-link"][data-tse-duree]::before {
       content: attr(data-tse-duree); position: absolute; top: 8px; right: 8px; z-index: 3; padding: 0 5px; border-radius: 4px;
       background: rgba(0, 0, 0, 0.62); color: #fff; font-family: inherit; font-size: 12px; font-weight: 600; line-height: 18px;
@@ -17314,7 +17328,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
                         hauteur: null, qualite: null, auto: null,
                         // L'échelle que la chaîne sert au lecteur, et la hauteur décodée (4.32.0.2).
                         echelle: null, decodee: null },
-               ambiance: { demandes: 0, images: 0, rejets: 0 } },
+               ambiance: { demandes: 0, images: 0, rejets: 0, faussees: 0 } },
       /* `ecartees` (4.32.0.4) : la liste du réglage, et combien de ses chaînes
          le classement portait — et a donc retirées. Des comptes. */
       top: { source: null, instantanes: 0, ecartees: 0, retirees: 0,
@@ -19216,6 +19230,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        saut. Ce qui arrive est vérifié avant d'être lu — dimensions bornées,
        longueur exacte —, et seul le lecteur de ce héros peut l'envoyer. */
     const peindreAmbiance = (d) => {
+      // Une lecture falsifiée, que le lecteur a reconnue (cf. cadres.js) : rien à peindre, l'image floutée reste.
+      if (d?.faussee === true) { bilan.heros.ambiance.faussees++; return; }
       const w = d?.w, h = d?.h, px = d?.px;
       if (!Number.isInteger(w) || !Number.isInteger(h) || w < 1 || h < 1 || w > 64 || h > 64
           || !px || px.length !== w * h * 4) { bilan.heros.ambiance.rejets++; return; }

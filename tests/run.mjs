@@ -38722,7 +38722,7 @@ const TOP_ACCUEIL = ['zephyr', 'aldric', 'mirelle', 'tavor', 'solenne', 'brune',
    lève pas, et pas de vidéo. L'INSTANCE DU LECTEUR DE TWITCH (4.32.0.1), là
    où le pont la cherche (cf. 175) : l'échelle de qualités d'une chaîne, en
    automatique tant que personne ne pose de qualité. */
-const lecteurAccueil = ({ porte = false } = {}) => `<!doctype html><html><body>
+const lecteurAccueil = ({ porte = false, faussee = false } = {}) => `<!doctype html><html><body>
     <div id="root"></div>
     <script>
       window.__clics = 0;
@@ -38740,6 +38740,17 @@ const lecteurAccueil = ({ porte = false } = {}) => `<!doctype html><html><body>
     ${porte ? `<div data-a-target="content-classification-gate-overlay">
       <button data-a-target="content-classification-gate-overlay-start-watching-button"
               onclick="window.__clics++" style="width:200px;height:40px">Commencer</button></div>` : ''}
+    ${faussee ? `<script>
+      /* La lecture d'une toile falsifiée (4.33.0.5), comme la rend la
+         protection de Firefox contre le pistage par empreinte : des valeurs
+         sans rapport avec ce qui est peint, alpha compris. */
+      const lire = CanvasRenderingContext2D.prototype.getImageData;
+      CanvasRenderingContext2D.prototype.getImageData = function (...a) {
+        const im = lire.apply(this, a);
+        for (let i = 0; i < im.data.length; i++) im.data[i] = (i * 97 + 31) % 256;
+        return im;
+      };
+    </script>` : ''}
     <script src="/adblock.test.js"></script>
     <script src="/cadres.test.js"></script>
     <script>
@@ -38761,8 +38772,13 @@ const lecteurAccueil = ({ porte = false } = {}) => `<!doctype html><html><body>
 async function ouvrirAccueil({ decor = {}, options = null, visites = null, abos = null, chemin = '/',
                                lecteur = '<!doctype html><html><body>x</body></html>' } = {}) {
   const cfg = { decor: decor === false ? null : { rayons: RAYONS_ACCUEIL, ...decor }, options, visites, abos };
+  /* L'AMORCE NE REMPLIT LE STOCKAGE QUE DANS LA PAGE (4.33.0.5).
+     addInitScript tourne dans chaque cadre, et un cadre about:blank a
+     l'origine de la page : le lecteur du héros, ôté, y est renvoyé. L'amorce
+     y réécrivait les réglages de départ — au 218, « Depuis le début », coupé
+     par le test, se rallumait, une fois sur trois au banc complet. */
   const init = `(() => { const c = ${JSON.stringify(cfg)}; const n = Date.now();
-    try {
+    if (window === window.top) try {
       localStorage.setItem('tse:roue', 'vu'); localStorage.setItem('tse:indice', 'vu');
       if (c.options) localStorage.setItem('tse:options', JSON.stringify(c.options));
       if (c.visites) localStorage.setItem('tse:visits', JSON.stringify(Object.fromEntries(
@@ -39302,6 +39318,30 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
   });
   ok('…une image hors bornes du lecteur est écartée ; celle d\'un autre lecteur n\'est pas lue',
      faux.rejets === avantFaux.rejets + 1 && !faux.vert, JSON.stringify({ avant: avantFaux, faux }));
+  /* UNE LECTURE FALSIFIÉE SE TAIT (4.33.0.5). « La couleur de fond à gauche
+     sur le héros bug — seulement sur Firefox » : sa protection contre le
+     pistage par empreinte falsifie la lecture d'une toile, et le fond peignait
+     des couleurs au hasard. Le lecteur relit d'abord un motif connu : faux,
+     il le dit une fois et se tait ; rien n'est peint, l'image floutée du
+     direct reste. Mutants — le motif jamais relu (des bandes au hasard) ; le
+     pont qui continue après l'avoir dit. */
+  const faussee = await ouvrirAccueil({ visites: { korbek: [1, 3] }, options: { accueilTop: false, accueilDebut: false },
+                                        lecteur: lecteurAccueil({ faussee: true }) });
+  await faussee.evaluate(() => {
+    window.__pontHeros = [];
+    addEventListener('message', (e) => { if (typeof e.data?.tse === 'string' && e.origin === 'https://player.twitch.tv') window.__pontHeros.push(e.data.tse); });
+  });
+  await plateauAccueil(faussee);
+  await attendre(faussee, () => window.tse.accueil.rapport().heros.ambiance.faussees >= 1, 8000);
+  await wait(faussee, 2500);
+  const fa = await faussee.evaluate(() => ({ ...window.tse.accueil.rapport().heros.ambiance,
+    px: window.__pontHeros.filter((m) => m === 'tse:ambiance-px').length,
+    vues: document.querySelectorAll('#tse-accueil-heros .tse-acc-heros-ambiance--vue').length,
+    image: !!document.querySelector('#tse-accueil-heros .tse-acc-heros-reflet img')?.getAttribute('src') }));
+  ok('…une lecture de toile falsifiée (la protection de Firefox contre le pistage) : le lecteur le dit une fois et se tait, le fond garde l\'image du direct',
+     fa.demandes === 1 && fa.faussees === 1 && fa.images === 0 && fa.rejets === 0 && fa.px === 1 && fa.vues === 0 && fa.image,
+     JSON.stringify(fa));
+  await faussee.close();
   /* j') LA QUALITÉ DU DIRECT (4.32.0.1, « augmente la qualité du stream
      présenté sur la bannière »). L'URL n'est qu'une préférence que
      l'adaptation de débit passe : le héros dit à son lecteur la hauteur que
@@ -40347,8 +40387,9 @@ async function ouvrirDemblee({ decor = {}, visites = { korbek: [1, 3] }, suivies
       __cats: [{ name: 'Just Chatting', viewers: 400000 }, { name: 'VALORANT', viewers: 250000 }],
     },
   };
+  // Le stockage, dans la page seulement (4.33.0.5, cf. ouvrirAccueil).
   const init = `(() => { const c = ${JSON.stringify(cfg)}; const n = Date.now();
-    try {
+    if (window === window.top) try {
       localStorage.setItem('tse:roue', 'vu'); localStorage.setItem('tse:indice', 'vu');
       localStorage.setItem('tse:options', JSON.stringify(c.options));
       if (c.visites) localStorage.setItem('tse:visits', JSON.stringify(Object.fromEntries(
@@ -41337,7 +41378,8 @@ const lireImages = (page) => page.evaluate(() => {
     const ctx = await browser.newContext({ viewport: { width: largeur, height: 1000 } });
     await ctx.addInitScript(([rayons, presenceH, absence, options, visites]) => {
       const n = Date.now(), h = 3600e3;
-      try {
+      // Le stockage, dans chaque onglet mais pas dans ses cadres (4.33.0.5, cf. ouvrirAccueil).
+      if (window === window.top) try {
         localStorage.setItem('tse:roue', 'vu');
         localStorage.setItem('tse:indice', 'vu');
         if (!localStorage.getItem('tse:visits')) {
@@ -42465,7 +42507,11 @@ const lireImages = (page) => page.evaluate(() => {
   const ETAGERE = [{ id: 'e-nat', nom: 'Chaînes live qui pourraient vous plaire', natifs: true,
                      cartes: [{ login: 'xray', vues: 67 }, { login: 'quebec', vues: 1200, septv: '38:55' }, { login: 'zinnia', vues: 12, icone: 'bloc' },
                               { login: 'ombelle', vues: 12400, icone: 'bloc' }, { login: 'pivoine', vues: 9600, icone: 'enveloppe' },
-                              { login: 'rhizome', vues: 7000, icone: 'ratio' }] }];
+                              { login: 'rhizome', vues: 7000, icone: 'ratio' }] },
+                   /* Le lien EN LIGNE autour d'un bloc, comme sur le vrai Twitch
+                      (4.33.0.5, cf. page.html, `enLigne`). */
+                   { id: 'e-lig', nom: 'Jeux récents', natifs: true, enLigne: true,
+                     cartes: [{ login: 'xray', vues: 67 }, { login: 'quebec', vues: 1200 }] }];
   const ouvrir = async (options) => {
     const p = await ouvrirAccueil({ decor: { etageres: ETAGERE }, visites: { korbek: [1] }, options: { accueilDebut: false, ...options } });
     await plateauAccueil(p);
@@ -42585,6 +42631,32 @@ const lireImages = (page) => page.evaluate(() => {
   ok('i) l\'icône d\'un co-stream sur la ligne du nombre, centrée, à quatre pixels de lui, sous les trois formes ; le texte de Twitch aussi',
      ['ombelle', 'pivoine', 'rhizome'].every((l) => ic[l].spect && uneLigne(ic[l]) && Math.abs(ic[l].ecart - 4) <= 0.75 && Math.abs(ic[l].fin) <= 0.75)
      && /^12,4\s?k$/.test(ic.ombelle.spect) && ic.zinnia.spect === null && uneLigne(ic.zinnia), JSON.stringify(ic));
+  /* j) UN LIEN EN LIGNE N'EST PAS UN CADRE (4.33.0.5). « Les pastilles sur
+     ce type de liste ont un problème — seulement sur Firefox » : la durée
+     sortait à gauche de sa carte, l'étiquette n'avait plus que son point. Le
+     lien de Twitch, en ligne autour de la vignette, devient le cadre de nos
+     pseudo-éléments ; Firefox en prend les fragments en ligne, une boîte
+     sans largeur. Chromium, lui, place bien : ce que le banc peut tenir ici,
+     c'est la cause — le lien habillé passe en bloc, à la boîte de sa
+     vignette, la durée et l'étiquette à huit pixels de ses coins. Mutant —
+     le lien laissé en ligne. */
+  await attendre(p, () => !!document.querySelector('[aria-labelledby="e-lig"] a[href="/xray"][data-tse-duree]')
+    && !!document.querySelector('[aria-labelledby="e-lig"] a[href="/quebec"][data-tse-etiquette]'), 10_000);
+  const lig = await p.evaluate(() => Object.fromEntries(['xray', 'quebec'].map((l) => {
+    const a = document.querySelector(`[aria-labelledby="e-lig"] a[href="/${l}"]`);
+    const ra = a.getBoundingClientRect(), rv = a.firstElementChild.getBoundingClientRect();
+    const av = getComputedStyle(a, '::before'), ap = getComputedStyle(a, '::after');
+    return [l, { display: getComputedStyle(a).display, position: getComputedStyle(a).position,
+                 l: Math.round(ra.width - rv.width), h: Math.round(ra.height - rv.height), x: Math.round(ra.left - rv.left), y: Math.round(ra.top - rv.top),
+                 duree: a.getAttribute('data-tse-duree'), avant: [av.top, av.right],
+                 etiq: a.getAttribute('data-tse-etiquette'), apres: [ap.bottom, ap.right], coin: a.getAttribute('data-tse-etiq-coin') }];
+  })));
+  ok('j) le lien de Twitch, en ligne autour de sa vignette, passe en bloc à la boîte de la vignette : la durée et l\'étiquette à huit pixels de ses coins',
+     ['xray', 'quebec'].every((l) => lig[l].display === 'block' && lig[l].position === 'relative'
+       && lig[l].l === 0 && lig[l].h === 0 && lig[l].x === 0 && lig[l].y === 0)
+     && /^1h0[89]$/.test(lig.xray.duree || '') && lig.xray.avant.join() === '8px,8px'
+     && lig.quebec.etiq === 'Vient de commencer' && lig.quebec.coin === null && lig.quebec.apres.join() === '8px,8px',
+     JSON.stringify(lig));
   await p.close();
   /* f) « DURÉE DU DIRECT » COUPÉ, comme sur nos cartes : notre durée ne se
      montre pas, celle de 7TV reste, et l'étiquette monte en haut à droite —
@@ -42607,6 +42679,19 @@ const lireImages = (page) => page.evaluate(() => {
   ok('h) « Ranger l\'accueil de Twitch » coupé : ni durée, ni nombre seul, « Live » et 7TV tels que Twitch et 7TV les posent',
      h.xray.duree === null && h.xray.spect === null && h.xray.live.marge === '8px 8px' && h.xray.live.mot === '13px' && h.xray.stat.texte === '13px'
      && h.quebec.sept !== 'none' && h.quebec.etiq.coin === 'haut', JSON.stringify({ xray: h.xray, quebec: h.quebec }));
+  /* …et le lien EN LIGNE qui ne porte que l'étiquette — pas de durée sans le
+     réglage — passe en bloc lui aussi (4.33.0.5, cf. j). Mutant — le bloc
+     posé pour la durée seulement. */
+  await attendre(q, () => !!document.querySelector('[aria-labelledby="e-lig"] a[href="/quebec"][data-tse-etiquette]'), 10_000);
+  const hl = await q.evaluate(() => {
+    const a = document.querySelector('[aria-labelledby="e-lig"] a[href="/quebec"]');
+    const ra = a.getBoundingClientRect(), rv = a.firstElementChild.getBoundingClientRect();
+    return { display: getComputedStyle(a).display, duree: a.getAttribute('data-tse-duree'), etiq: a.getAttribute('data-tse-etiquette'),
+             l: Math.round(ra.width - rv.width), apres: [getComputedStyle(a, '::after').bottom, getComputedStyle(a, '::after').right] };
+  });
+  ok('…le lien en ligne qui ne porte que l\'étiquette passe en bloc aussi, l\'étiquette à huit pixels du coin',
+     hl.display === 'block' && hl.duree === null && hl.etiq === 'Vient de commencer' && hl.l === 0 && hl.apres.join() === '8px,8px',
+     JSON.stringify(hl));
   /* …PUIS ALLUMÉ : la durée paraît, 7TV s'efface, et l'étiquette — posée
      en haut faute de place en bas — redescend : son coin se recalcule quand
      notre durée paraît. Mutant — le coin calculé une fois pour toutes. */
