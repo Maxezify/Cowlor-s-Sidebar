@@ -100,6 +100,22 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
     };
 
     const AMBIANCE_W = 16, AMBIANCE_H = 9, AMBIANCE_MS = 1000;
+
+    const MOTIF = [[255, 0, 0], [0, 255, 0], [0, 0, 255]];
+    const LECTURE_ECART = 8;
+    const lectureFidele = (ctx) => {
+      for (let x = 0; x < AMBIANCE_W; x++) {
+        ctx.fillStyle = `rgb(${MOTIF[x % 3].join(',')})`;
+        ctx.fillRect(x, 0, 1, AMBIANCE_H);
+      }
+      const d = ctx.getImageData(0, 0, AMBIANCE_W, AMBIANCE_H).data;
+      for (let i = 0; i < d.length; i += 4) {
+        const m = MOTIF[(i / 4) % AMBIANCE_W % 3];
+        if (Math.abs(d[i] - m[0]) > LECTURE_ECART || Math.abs(d[i + 1] - m[1]) > LECTURE_ECART
+            || Math.abs(d[i + 2] - m[2]) > LECTURE_ECART) return false;
+      }
+      return true;
+    };
     let ambiance = null;
     window.addEventListener('message', (e) => {
       if (e.source !== window.parent || !TSE_PREVIEW_PARENTS.includes(e.origin)) return;
@@ -115,6 +131,11 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         const v = document.querySelector('video');
         if (!v || v.readyState < 2 || !v.videoWidth) return;
         try {
+          if (!lectureFidele(ctx)) {
+            clearInterval(ambiance);
+            window.parent.postMessage({ tse: TSE_AMBIANCE_PX_MSG, faussee: true }, origine);
+            return;
+          }
           ctx.drawImage(v, 0, 0, AMBIANCE_W, AMBIANCE_H);
           const px = ctx.getImageData(0, 0, AMBIANCE_W, AMBIANCE_H).data;
           window.parent.postMessage({ tse: TSE_AMBIANCE_PX_MSG, w: AMBIANCE_W, h: AMBIANCE_H, px }, origine);

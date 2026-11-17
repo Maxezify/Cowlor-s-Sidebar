@@ -6174,7 +6174,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       0%, 100% { color: #ff8f8f; } 12.5% { color: #ffe38f; } 25% { color: #c7ff8f; } 37.5% { color: #8fffb4; }
       50% { color: #8ffdff; } 62.5% { color: #8fabff; } 75% { color: #c78fff; } 87.5% { color: #ff8fe3; }
     }
-    main a[data-a-target="preview-card-image-link"][data-tse-etiquette] { position: relative; }
+    
+    main a[data-a-target="preview-card-image-link"][data-tse-etiquette] { position: relative; display: block !important; }
     
     html[data-tse-ranger] main h2[data-tse-masquable] { position: relative; width: fit-content; }
     html[data-tse-ranger] main h2[data-tse-masquable]::after {
@@ -6250,7 +6251,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     html[data-tse-ranger] main a[data-a-target="preview-card-image-link"] .tw-media-card-stat[data-tse-spect]:has(svg, img)::before {
       margin-right: 4px;
     }
-    html[data-tse-ranger] main a[data-a-target="preview-card-image-link"][data-tse-duree] { position: relative; }
+    html[data-tse-ranger] main a[data-a-target="preview-card-image-link"][data-tse-duree] { position: relative; display: block !important; }
     html[data-tse-ranger] main a[data-a-target="preview-card-image-link"][data-tse-duree]::before {
       content: attr(data-tse-duree); position: absolute; top: 8px; right: 8px; z-index: 3; padding: 0 5px; border-radius: 4px;
       background: rgba(0, 0, 0, 0.62); color: #fff; font-family: inherit; font-size: 12px; font-weight: 600; line-height: 18px;
@@ -10239,7 +10240,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
                         hauteur: null, qualite: null, auto: null,
 
                         echelle: null, decodee: null },
-               ambiance: { demandes: 0, images: 0, rejets: 0 } },
+               ambiance: { demandes: 0, images: 0, rejets: 0, faussees: 0 } },
 
       top: { source: null, instantanes: 0, ecartees: 0, retirees: 0,
 
@@ -11727,6 +11728,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     };
 
     const peindreAmbiance = (d) => {
+
+      if (d?.faussee === true) { bilan.heros.ambiance.faussees++; return; }
       const w = d?.w, h = d?.h, px = d?.px;
       if (!Number.isInteger(w) || !Number.isInteger(h) || w < 1 || h < 1 || w > 64 || h > 64
           || !px || px.length !== w * h * 4) { bilan.heros.ambiance.rejets++; return; }
