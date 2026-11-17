@@ -343,13 +343,13 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 2285 Ko | 1080 Ko | 4 788 → **2** |
-| `cadres.js` | 74 Ko | 34 Ko | 170 → **0** |
+| `content.js` | 2287 Ko | 1080 Ko | 4 789 → **2** |
+| `cadres.js` | 76 Ko | 35 Ko | 171 → **0** |
 | `adblock.js` | 126 Ko | 101 Ko | 301 → **2** |
 | `panneau.js` | 166 Ko | 85 Ko | 227 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 26 → **0** |
 | `background.js` | 10 Ko | 2 Ko | 22 → **0** |
-| **les six** | **2676 Ko** | **1306 Ko** | **−51 %** |
+| **les six** | **2679 Ko** | **1307 Ko** | **−51 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
@@ -2627,6 +2627,148 @@ Un sous-test qui modélisait un cas impossible — un direct qui rajeunit sans
 changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'il
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
+
+## Firefox : les cartes de Twitch et le fond du héros (v4.33.0.5)
+
+Trois retours, sur Firefox seulement, captures à l'appui. Publiée sur
+`claude/chrome-homepage` et `claude/firefox-homepage` : le code est le même
+sur les deux.
+
+| signalé | ce qui a été fait |
+| --- | --- |
+| « les pastilles sur ce type de liste ont un problème, pareil pour certains éléments sur les visuels » ; « j'ai aussi ce souci » (une durée hors de sa carte) | le lien de la carte de Twitch passe en bloc quand nous l'habillons |
+| « la couleur de fond à gauche sur le héros bug » | le lecteur vérifie qu'une toile se relit fidèlement avant d'en envoyer les couleurs |
+| « je ne vois pas "Parce que vous regardez souvent", ni "Sans planning", ni "Pendant votre absence" ; sûrement faute de mémoire » | vérifié : c'est bien la mémoire, rien à corriger (ci-dessous) |
+
+### Les cartes de Twitch : un lien en ligne n'est pas un cadre
+
+Les captures montrent quatre défauts :
+
+- la durée « 3h52 » est à gauche de sa carte, hors d'elle ;
+- dans un rayon, chaque durée tombe en haut à droite de la carte précédente ;
+- l'étiquette est réduite à « ● N » et coupée au bord ;
+- l'icône d'un co-stream est rognée après « 11,5 k ».
+
+**Une seule cause.** Pour poser la durée et l'étiquette, des
+pseudo-éléments, nous mettons `position: relative` sur le lien de la carte.
+Ce lien est en ligne et contient un bloc, la vignette. Mesuré sur le Firefox
+de l'utilisateur, `getComputedStyle(lien).display` rend `inline`. Le cadre
+d'un élément en ligne positionné ne se calcule pas de la même façon partout.
+Chrome prend la boîte de la vignette. Firefox prend les fragments en ligne du
+lien, avant et après le bloc : une boîte sans largeur, au bord gauche de la
+carte. Ce qui s'en déduit, et que les captures montrent :
+
+- la durée, à huit pixels du bord droit de cette boîte, sort à gauche de sa
+  carte ; dans un rayon, elle tombe sur la carte précédente ;
+- l'étiquette, bornée à `calc(55% - 8px)` de rien, n'a plus que ses marges :
+  son point et le début de son texte ;
+- le lien devient aussi le cadre des coins de Twitch, qui n'ont plus de
+  largeur où s'étendre. Le compteur prend sa largeur minimale, et l'icône
+  d'un co-stream, qui n'en a pas, est rognée.
+
+**Le correctif :** `display: block` sur le lien habillé, dans les deux
+règles qui le positionnent. Autour d'un bloc seul, un lien en bloc a la boîte
+de la vignette sous les deux moteurs, et rien ne bouge dans la carte.
+
+### Le fond du héros : une lecture falsifiée
+
+Chaque seconde, le lecteur du héros relève les couleurs de la vidéo en 16 × 9
+pixels. Le fond les reprend en miroir. Un diagnostic lancé dans le Firefox de
+l'utilisateur (Firefox 160) a dessiné un rouge et un bleu purs sur une toile
+de 2 × 1, puis les a relus. Ils sont revenus en « 87,137,55,236 » et
+« 58,162,237,69 » au lieu de « 255,0,0,255 » et « 0,0,255,255 ». La
+protection de Firefox contre le pistage par empreinte falsifie la lecture
+d'une toile, et le fond peignait donc des couleurs au hasard : les bandes.
+
+**Le correctif.** Avant chaque relevé, le lecteur peint un motif connu sur la
+même toile, des colonnes rouge, vert et bleu, et en relit les couleurs à huit
+près. Un arrondi passe, une lecture au hasard non : un pixel au hasard tombe
+dans la tolérance une fois sur (256/17)³, plus de trois mille fois, et la
+toile en compte cent quarante-quatre. Si la lecture est falsifiée, le lecteur
+le dit une fois, puis se tait : le fond garde l'image floutée du direct, le
+repli prévu. Le rapport compte ces refus
+(`heros.ambiance.faussees`).
+
+Un seul endroit de l'extension relit des pixels : ce relevé.
+
+### Les trois rayons absents : la mémoire, vérifiée
+
+Chacun des trois rayons demande une mémoire propre à ce navigateur, gardée
+dans le stockage de twitch.tv :
+
+- **« Sans planning »** : une chaîne suivie, sans direct ni créneau à venir,
+  déjà regardée dans ce navigateur (son score de visites dépasse zéro), et
+  dont quatre au moins des six derniers directs ont commencé dans la même
+  demi-heure ;
+- **« Parce que vous regardez souvent »** : trois visites d'une même chaîne
+  en trente jours, dans ce navigateur, et sa catégorie habituelle, celle de
+  deux directs archivés au moins ;
+- **« Pendant votre absence »** : vingt-quatre heures sans onglet de Twitch
+  à l'écran, comptées depuis une présence que ce navigateur a notée. Au
+  premier lancement, il n'en a noté aucune.
+
+Un Firefox neuf n'a donc rien à montrer. Ces rayons viendront avec l'usage, et
+il n'y a rien à corriger.
+
+### Ce qui n'a pas pu être vérifié ici
+
+- **Firefox lui-même.** Le téléchargement de sa version de test est refusé par
+  le réseau de cet environnement. Les deux causes ont été mesurées sur le
+  Firefox de l'utilisateur, par le diagnostic, et les correctifs sont
+  vérifiés sous Chromium avec la même situation reproduite. Le rendu final
+  sous Firefox reste à voir chez l'utilisateur.
+- **Le réglage de Firefox** qui falsifie la lecture : la falsification est
+  mesurée, le réglage qui la déclenche ne l'est pas.
+- **Le balisage du compteur d'un co-stream** sur la vraie page n'a pas été
+  relevé. Que l'icône rognée vienne de la boîte sans largeur se déduit des
+  captures et de la cause mesurée ; c'est le même correctif qui la règle.
+
+### Le banc
+
+Chromium plaçait déjà bien les pastilles. Ce que le banc peut tenir, c'est la
+cause.
+
+- **230 j)** : un rayon dont le lien est en ligne autour d'un bloc, comme sur
+  le vrai Twitch (le faux le posait en bloc, d'où un banc aveugle). Le lien
+  habillé passe en bloc, à la boîte de sa vignette, et la durée et l'étiquette
+  se posent à huit pixels de ses coins. Le même lien qui ne porte que
+  l'étiquette, « Ranger l'accueil de Twitch » coupé, passe en bloc lui aussi.
+- **216** : une lecture de toile falsifiée, injectée dans le faux lecteur.
+  Le lecteur le dit une fois et se tait, rien n'est peint, et l'image floutée
+  du direct reste.
+
+**Le banc complet a pris un défaut du banc, pas de l'extension.** Au 218,
+« Depuis le début », coupé par le test, se rallumait : un bouton reparaissait
+et une demande partait. L'amorce de la page (`addInitScript`) tourne dans
+chaque cadre, et un cadre `about:blank` a l'origine de la page : le lecteur
+du héros, ôté, y est renvoyé. L'amorce y réécrivait les réglages de départ.
+Mesuré : aux deux échecs instrumentés, l'amorce a tourné dans un
+`about:blank` moins d'une demi-seconde après la coupure, et les réglages
+étaient revenus à ceux du départ. Trois amorces du même modèle ne remplissent
+plus le stockage que dans la page. Rejoué seul, le 218 a échoué trois fois en
+neuf passages avant le correctif, et aucune fois en six après.
+
+**Cinq mutants nommés, tous pris.**
+
+| mutant | ce qui tombe |
+| --- | --- |
+| le bloc posé pour l'étiquette seulement | 230 j) |
+| le bloc posé pour la durée seulement | 230 h) (le lien qui ne porte que l'étiquette) |
+| le motif jamais relu | 216 (la lecture falsifiée) |
+| le pont qui continue après l'avoir dit | 216 (la lecture falsifiée) |
+| le refus non compté | 216 (la lecture falsifiée) |
+
+`npm run check`, sur l'arbre Firefox : 2349 assertions vertes sur 2350. La
+rouge est au 188, le calage par le son : sa troisième source n'a pas rendu son
+verdict dans les 200 secondes que le test lui laisse. Ce que cette version
+change n'est pas sur son chemin. Le relevé des couleurs ne tourne que dans le
+lecteur du héros, et les règles du lien que sur les cartes de l'accueil ; le
+188 ouvre une salle sur `/directory`, sans l'un ni l'autre. Rejoué seul : cinq
+passages verts sur six sur cette version, six sur six sur la 4.33.0.4, et il
+avait passé aux six passages précédents du banc. C'est un aléa du 188,
+antérieur à cette version, relevé pour être repris à part. Le banc complet du
+paquet de production, sur le même code, est l'autre preuve : il ne publie
+rien si une seule assertion tombe.
 
 ## Le code mort, vérifié (v4.33.0.4)
 
@@ -26089,7 +26231,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | les six fichiers JavaScript livrés — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le manifeste Firefox : les invariants du dépôt, **puis** l'`addons-linter` de Mozilla — celui qu'AMO applique à la soumission |
-| `npm test` | le harnais Playwright : 231 scénarios, 2347 assertions |
+| `npm test` | le harnais Playwright : 231 scénarios, 2350 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il

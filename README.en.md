@@ -331,13 +331,13 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 2285 KB | 1080 KB | 4,788 → **2** |
-| `cadres.js` | 74 KB | 34 KB | 170 → **0** |
+| `content.js` | 2287 KB | 1080 KB | 4,789 → **2** |
+| `cadres.js` | 76 KB | 35 KB | 171 → **0** |
 | `adblock.js` | 126 KB | 101 KB | 301 → **2** |
 | `panneau.js` | 166 KB | 85 KB | 227 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 26 → **0** |
 | `background.js` | 10 KB | 2 KB | 22 → **0** |
-| **all six** | **2676 KB** | **1306 KB** | **−51 %** |
+| **all six** | **2679 KB** | **1307 KB** | **−51 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are
@@ -2494,6 +2494,146 @@ A sub-test that modelled an impossible case — a stream growing younger without
 changing id — was replaced along the way by the ordinary case that was actually
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
+
+## Firefox: Twitch's cards and the hero's background (v4.33.0.5)
+
+Three reports, on Firefox only, with screenshots. Published on
+`claude/chrome-homepage` and `claude/firefox-homepage`: the code is the same
+on both.
+
+| reported | what was done |
+| --- | --- |
+| "the pills on this kind of list have a problem, same for some elements on the visuals"; "I also have this issue" (a duration outside its card) | Twitch's card link becomes a block when we dress it |
+| "the background colour on the left of the hero is broken" | the player checks that a canvas reads back faithfully before sending its colours |
+| "I don't see 'Because you often watch', 'No schedule' or 'While you were away'; probably for lack of memory" | checked: it is the memory, nothing to fix (below) |
+
+### Twitch's cards: an inline link is not a frame
+
+The screenshots show four defects:
+
+- the duration "3h52" sits to the left of its card, outside it;
+- in a row, each duration lands at the top right of the previous card;
+- the label is reduced to "● N" and cut at the edge;
+- a co-stream's icon is clipped after "11,5 k".
+
+**One cause.** To place the duration and the label, which are
+pseudo-elements, we put `position: relative` on the card's link. That link is
+inline and contains a block, the thumbnail. Measured on the user's Firefox,
+`getComputedStyle(link).display` returns `inline`. The frame of a positioned
+inline element is not computed the same way everywhere. Chrome takes the
+thumbnail's box. Firefox takes the link's inline fragments, before and after
+the block: a box with no width, at the card's left edge. What follows from
+this, and what the screenshots show:
+
+- the duration, eight pixels from that box's right edge, leaves its card on
+  the left; in a row, it lands on the previous card;
+- the label, capped at `calc(55% - 8px)` of nothing, keeps only its padding:
+  its dot and the start of its text;
+- the link also becomes the frame of Twitch's corners, which have no width
+  left to spread into. The counter takes its minimum width, and a co-stream's
+  icon, which has none, is clipped.
+
+**The fix:** `display: block` on the dressed link, in both rules that
+position it. Around a single block, a block link has the thumbnail's box in
+both engines, and nothing moves in the card.
+
+### The hero's background: a falsified read
+
+Every second, the hero's player samples the video's colours at 16 × 9
+pixels, and the background mirrors them. A diagnostic run in the user's
+Firefox (Firefox 160) drew pure red and pure blue on a 2 × 1 canvas, then
+read them back. They came back as "87,137,55,236" and "58,162,237,69" instead
+of "255,0,0,255" and "0,0,255,255". Firefox's protection against
+fingerprinting falsifies canvas reads, so the background was painting random
+colours: the stripes.
+
+**The fix.** Before each sample, the player paints a known pattern on the
+same canvas, red, green and blue columns, and reads its colours back within
+eight. Rounding passes, a random read does not: a random pixel falls within
+the tolerance once in (256/17)³, more than three thousand times, and the
+canvas holds a hundred and forty-four. If the read is falsified, the player
+says so once, then stays silent: the background keeps the blurred image of
+the stream, the planned fallback. The report counts these refusals
+(`heros.ambiance.faussees`).
+
+Only one place in the extension reads pixels back: this sample.
+
+### The three missing rows: the memory, checked
+
+Each of the three rows needs a memory specific to this browser, kept in
+twitch.tv's storage:
+
+- **"No schedule"**: a followed channel, with no stream or slot coming up,
+  already watched in this browser (its visit score is above zero), and at
+  least four of whose last six streams started within the same half hour;
+- **"Because you often watch"**: three visits to the same channel in thirty
+  days, in this browser, and its usual category, that of at least two
+  archived streams;
+- **"While you were away"**: twenty-four hours without a Twitch tab on
+  screen, counted from a presence this browser recorded. On first launch, it
+  has recorded none.
+
+A fresh Firefox therefore has nothing to show. These rows will come with use,
+and there is nothing to fix.
+
+### What could not be checked here
+
+- **Firefox itself.** This environment's network refuses the download of its
+  test build. Both causes were measured on the user's Firefox, through the
+  diagnostic, and the fixes are checked under Chromium with the same
+  situation reproduced. The final rendering under Firefox remains to be seen
+  on the user's side.
+- **The Firefox setting** that falsifies the read: the falsification is
+  measured, the setting that triggers it is not.
+- **The markup of a co-stream's counter** on the real page was not
+  recorded. That the clipped icon comes from the widthless box is deduced
+  from the screenshots and the measured cause; the same fix resolves it.
+
+### The bench
+
+Chromium already placed the pills correctly. What the bench can hold is the
+cause.
+
+- **230 j)**: a row whose link is inline around a block, as on the real
+  Twitch (the fake set it as a block, hence a blind bench). The dressed link
+  becomes a block, with its thumbnail's box, and the duration and the label
+  sit eight pixels from its corners. The same link carrying only the label,
+  with "Tidy Twitch's home page" off, becomes a block too.
+- **216**: a falsified canvas read, injected into the fake player. The player
+  says so once and stays silent, nothing is painted, and the stream's blurred
+  image remains.
+
+**The full bench caught a defect in the bench, not in the extension.** In
+218, "From the start", switched off by the test, came back on: a button
+reappeared and a request went out. The page's bootstrap (`addInitScript`)
+runs in every frame, and an `about:blank` frame has the page's origin: the
+hero's player, once removed, is sent there. The bootstrap rewrote the starting
+settings in it. Measured: in both instrumented failures, the bootstrap ran in
+an `about:blank` less than half a second after the switch-off, and the
+settings were back to the starting ones. Three bootstraps of the same kind now
+fill the storage in the page only. Replayed alone, 218 failed three times in
+nine runs before the fix, and not once in six after.
+
+**Five named mutants, all caught.**
+
+| mutant | what fails |
+| --- | --- |
+| the block set for the label only | 230 j) |
+| the block set for the duration only | 230 h) (the link carrying only the label) |
+| the pattern never read back | 216 (the falsified read) |
+| the bridge that keeps going after saying so | 216 (the falsified read) |
+| the refusal not counted | 216 (the falsified read) |
+
+`npm run check`, on the Firefox tree: 2349 of 2350 assertions green. The red
+one is in 188, the sound-based alignment: its third source did not give its
+verdict within the 200 seconds the test allows. Nothing this version changes
+is on its path. The colour sample only runs in the hero's player, and the link
+rules only on the home page's cards; 188 opens a room on `/directory`, with
+neither. Replayed alone: five green runs out of six on this version, six out
+of six on 4.33.0.4, and it had passed the bench's six previous runs. It is a
+randomness in 188 that predates this version, noted to be taken up
+separately. The full bench of the production package, on the same code, is
+the other proof: it publishes nothing if a single assertion fails.
 
 ## Dead code, checked (v4.33.0.4)
 
@@ -25352,7 +25492,7 @@ Four independent checks:
 | `npm run lint` | the six shipped JavaScript files — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the Firefox manifest: this repository's invariants, **then** Mozilla's `addons-linter` — the one AMO runs on submission |
-| `npm test` | the Playwright harness: 231 scenarios, 2347 assertions |
+| `npm test` | the Playwright harness: 231 scenarios, 2350 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
