@@ -314,6 +314,35 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
        le pont se tait pour de bon : le héros garde son image floutée. Rien ne
        se relève tant que l'onglet est caché, ni avant qu'une image existe. */
     const AMBIANCE_W = 16, AMBIANCE_H = 9, AMBIANCE_MS = 1000;
+    /* UNE LECTURE FALSIFIÉE SE TAIT (4.33.0.5). « La couleur de fond à gauche
+       sur le héros bug — seulement sur Firefox » : des bandes de toutes les
+       couleurs. La protection de Firefox contre le pistage par empreinte
+       falsifie la lecture d'une toile : relus chez l'utilisateur, un rouge et
+       un bleu purs revenaient « 87,137,55,236 » et « 58,162,237,69 ». Avant
+       chaque relevé, la toile reçoit donc un motif connu — des colonnes
+       rouge, vert, bleu — et en relit les couleurs, à huit près (l'alpha, le
+       héros le pose lui-même) : un arrondi passe, une lecture au hasard non —
+       un pixel au hasard tombe dans la tolérance une fois sur (256/17)³, plus
+       de trois mille, et il y en a cent quarante-quatre. Falsifiée, le pont
+       le dit et se tait pour de bon, comme devant une image protégée : le
+       héros garde son image floutée. La même toile, aux mêmes dimensions que
+       le relevé : une règle qui ne falsifierait que certaines tailles serait
+       prise aussi. */
+    const MOTIF = [[255, 0, 0], [0, 255, 0], [0, 0, 255]];
+    const LECTURE_ECART = 8;
+    const lectureFidele = (ctx) => {
+      for (let x = 0; x < AMBIANCE_W; x++) {
+        ctx.fillStyle = `rgb(${MOTIF[x % 3].join(',')})`;
+        ctx.fillRect(x, 0, 1, AMBIANCE_H);
+      }
+      const d = ctx.getImageData(0, 0, AMBIANCE_W, AMBIANCE_H).data;
+      for (let i = 0; i < d.length; i += 4) {
+        const m = MOTIF[(i / 4) % AMBIANCE_W % 3];
+        if (Math.abs(d[i] - m[0]) > LECTURE_ECART || Math.abs(d[i + 1] - m[1]) > LECTURE_ECART
+            || Math.abs(d[i + 2] - m[2]) > LECTURE_ECART) return false;
+      }
+      return true;
+    };
     let ambiance = null;
     window.addEventListener('message', (e) => {
       if (e.source !== window.parent || !TSE_PREVIEW_PARENTS.includes(e.origin)) return;
@@ -329,6 +358,11 @@ const TSE_PUB_REPERES = '[data-a-target="video-ad-label"], [data-a-target="video
         const v = document.querySelector('video');
         if (!v || v.readyState < 2 || !v.videoWidth) return;
         try {
+          if (!lectureFidele(ctx)) {
+            clearInterval(ambiance);
+            window.parent.postMessage({ tse: TSE_AMBIANCE_PX_MSG, faussee: true }, origine);
+            return;
+          }
           ctx.drawImage(v, 0, 0, AMBIANCE_W, AMBIANCE_H);
           const px = ctx.getImageData(0, 0, AMBIANCE_W, AMBIANCE_H).data;
           window.parent.postMessage({ tse: TSE_AMBIANCE_PX_MSG, w: AMBIANCE_W, h: AMBIANCE_H, px }, origine);
