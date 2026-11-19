@@ -2064,6 +2064,166 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## Labels bounce, and tell their place elsewhere (v4.33.0.6)
+
+Two requests about the labels on home page cards (v4.28.0). Published on
+`claude/chrome-homepage` only: the other branches will follow on request.
+
+| requested | what was done |
+| --- | --- |
+| "for the pills on content lists, I'd like a bounce animation, so they stand out a little from the content's visuals" | a bounce every five seconds, staggered from card to card, and a setting to turn it off |
+| "also possible to add pills for the worldwide Tops and the Tops of other languages?" | "#3 worldwide" and "#2 in English", with the same proofs as the Top 10 place |
+
+### The bounce
+
+On a moving thumbnail, a still pill blends into the picture. At the start of
+each five-second cycle, the label makes two damped hops, six pixels then two,
+and stays still for the rest of the cycle (85%). Only the transform: the
+compositor takes it, like the other decorations (213).
+
+**Cards don't jump together.** Each label takes one slot out of five, one
+second apart, in the order it appears (`data-tse-etiq-temps`). Labels painted
+together therefore jump one after the other; a label that comes later starts
+from its own instant.
+
+The subathon keeps its blinking, and bounces too. The **"Labels bounce"**
+setting, under "One label per card", is on by default; off, it gives back the
+previous stylesheet. Like the extension's other animations, the bounce does
+not read `prefers-reduced-motion`: the setting is what turns it off.
+
+### Places elsewhere
+
+The home Top 10 is one language's, usually yours. A channel in another
+language, or the first of all of Twitch, had no place to tell. The order of
+facts becomes:
+
+| | fact |
+| --- | --- |
+| 1 to 5 | the return, the subathon, the start, the switch, the rise (unchanged) |
+| 6 | **"#3 worldwide"**: the place in the Top 10 of all of Twitch, when the home one is a language's |
+| 7 | "#3 in English": the place in the home Top 10 (unchanged) |
+| 8 | **"#2 in French"**: the place in the Top 10 of another language, one the channel carries as a tag |
+| 9 | "Co-stream of 3 channels" (unchanged) |
+
+- **The world comes before your language**: it is rarer. In "All
+  languages", the Top 10 is the world, and its place is already told ("#3 in
+  the Top 10"): no separate world ranking.
+- **Your language comes before another.** A channel carrying several
+  languages tells its best place among the others. In "All languages", your
+  language becomes another language.
+- **The language's name** is the one the browser gives in the interface
+  language (`Intl.DisplayNames`): "English", "anglais", "Englisch". Polish and
+  Russian decline it from the adjective: "Nr 2 po angielsku", "№ 2 на
+  английском". A name of another form is written as is, after a middle dot.
+  Without a name, Twitch's tag.
+- **Which languages:** the three most frequent among the home page's cards
+  whose stream is known, painted within the last minute, without the Top 10's
+  own. Ties are broken by name.
+- **Colours:** another language, the gold of places; the world, a warmer gold
+  (`#ffb35c`).
+
+**A place is only written once proven,** as in the Top 10: a resolved
+ranking, complete according to its report, whose proof covers the ten places.
+A language Twitch does not filter itself (tag refused, broadcast code unknown)
+falls back on the tags read: an approximate ranking, which tells no place.
+Co-stream members share a place, as in the Top 10 and Top Channels. The
+channels you excluded from the Top 10 change nothing here: they are your
+list, not a fact of Twitch's ranking.
+
+### What it costs
+
+Each extra ranking is the Top 10's engine (and Top Channels'), at its pace:
+
+| ranking | pace and cost |
+| --- | --- |
+| the world | a light pass every 30 s (~11 operations), the category descent at most every 2 min 30 (~64 operations). **Nothing** when the sidebar already serves the same question: Top Channels open, no category, all languages |
+| each other language, three at most | a light pass every 30 s (~11 operations), a walk at most every 2 min 30: one `TseTagTop`. **Nothing** when Top Channels already serves that language |
+
+None is sent when the home page is not on screen, when "One label per card"
+is off, or **when the Top 10 is off**: its places, from here or elsewhere, are
+the Top 10's, and turning it off means paying for none (217 already held it:
+Top 10 off, nothing else is sent). At most six rankings stay in memory. The
+report describes them (`etiquettes.ailleurs`): the wanted scopes, where each
+comes from (the home page or the sidebar), whether it is proven, how many
+channels hold a place in it, and the walks and operations of each. That is
+what will tell, on the real Twitch, what they cost.
+
+### What could not be checked here
+
+- **The real Twitch.** The world is Top Channels' descent, the languages the
+  tag path: two paths already published. The real cost of three more
+  languages will be read in the report.
+- **A co-stream at the top of the world** only shares a place if its session
+  is known, as in Top Channels. Until one of its members has been queried,
+  each counts as one place, and the following places shift accordingly.
+- **Firefox**: its test download is still refused by this environment's
+  network. The bounce only uses `transform`, and `Intl.DisplayNames` exists in
+  Firefox, but nothing was seen there.
+- **The language names** were read back under Chromium for Twitch's 31
+  language tags, in Polish and Russian; not under Firefox.
+
+### The bench
+
+- **117**: thirty-seven settings. The panel's sentence that resets them all
+  and the Store sheets say so, in the twelve languages. The first full bench
+  is what recalled it: they still said thirty-six.
+- **222 a'), a'')**: the bounce is now the labels' animation, and the
+  subathon carries both.
+- **233**, new:
+  - a) the world before your language ("#9 worldwide" on the third in
+    French), your language outside the world, your language before another
+    (a channel that also speaks English), "#6 in English"; a world co-stream,
+    one place; the world on a card of the Top 10 itself;
+  - b) the colours;
+  - c) three languages at most, the most frequent, the name on ties; neither
+    Italian, fourth, nor French, the Top 10's, is requested;
+  - d) the bounce on our cards and Twitch's: its animation, its cycle, its
+    six pixels, its delay following its slot, at least four distinct slots,
+    and the movement read on screen;
+  - e) the setting off: no bounce left, the labels stay, the subathon still
+    blinks;
+  - f) the shared sidebar: the place is read from Top Channels, and the home
+    ranking sends no more operations;
+  - g) "All languages";
+  - h) the Top 10 off: no place left, no ranking requested;
+  - i) a world resolved but not complete (a hundred categories above the
+    threshold): no place;
+  - j) a language Twitch does not filter itself: no place.
+- **The fake Twitch** logs the tag of each `TseTagTop` (`tagLangs`).
+
+**Twenty-two named mutants, all caught.**
+
+| mutant | what fails |
+| --- | --- |
+| one slot for all | 233 d) (the slots) |
+| the delay forgotten | 233 d) |
+| no bounce on Twitch's cards | 233 d), and the movement |
+| a still bounce | 233 d), and the movement |
+| the setting without its stylesheet token | 233 e) |
+| the subathon no longer blinking while it bounces | 222 a''), 233 d) |
+| your language's place before the world | 233 a), b), f) |
+| another language before yours | 233 a), g) |
+| the world never requested | 233 a), b), c), d), f), i) |
+| the world kept in "All languages" | 233 g) |
+| the language cap raised | 233 c), g) |
+| the least frequent languages first | 233 a), b), c), f), g), i) |
+| ties broken backwards | 233 c), j) |
+| the Top 10's language counted among the others | 233 c), g), j) |
+| a place without proof | 233 i), j) |
+| the report's completeness forgotten | 233 j) |
+| one place per channel, co-streams included | 233 a), f), g), j) |
+| the sidebar never shared | 233 f) |
+| places elsewhere without the Top 10 | 217 b), 233 h) |
+| the language's name taken from the tag | 233 a), g), i), j) |
+| another language never told | 233 a), b), g), i), j) |
+| a bilingual channel's best place forgotten | 233 g) |
+
+The proof's two guards overlap for the world: an incomplete ranking has no
+proof (`prouve` is 0). The report's completeness only differs from it in a
+language Twitch does not filter itself, and j) is what holds it.
+
+`npm run check` is green: 232 scenarios, 2362 assertions.
+
 ## Firefox: Twitch's cards and the hero's background (v4.33.0.5)
 
 Three reports, on Firefox only, with screenshots. Published on
@@ -25060,7 +25220,7 @@ Four independent checks:
 | `npm run lint` | the six shipped JavaScript files — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the package: assembled from an allowlist, complete, and nothing more |
-| `npm test` | the Playwright harness: 231 scenarios, 2350 assertions |
+| `npm test` | the Playwright harness: 232 scenarios, 2362 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
@@ -25107,13 +25267,13 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 2287 KB | 1080 KB | 4,789 → **2** |
+| `content.js` | 2301 KB | 1088 KB | 4,807 → **2** |
 | `cadres.js` | 76 KB | 35 KB | 171 → **0** |
 | `adblock.js` | 126 KB | 101 KB | 301 → **2** |
 | `panneau.js` | 166 KB | 85 KB | 227 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 26 → **0** |
 | `background.js` | 10 KB | 2 KB | 22 → **0** |
-| **all six** | **2679 KB** | **1307 KB** | **−51 %** |
+| **all six** | **2693 KB** | **1315 KB** | **−51 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are

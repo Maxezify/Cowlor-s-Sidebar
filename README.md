@@ -2183,6 +2183,171 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## Les étiquettes rebondissent, et disent leur place ailleurs (v4.33.0.6)
+
+Deux demandes, sur les étiquettes des cartes de l'accueil (v4.28.0). Publiée
+sur `claude/chrome-homepage` seulement : les autres branches suivront à la
+demande.
+
+| demandé | ce qui a été fait |
+| --- | --- |
+| « pour les pastilles sur les listes de contenus, je souhaite qu'il puisse y avoir une animation bounce, pour qu'elles se démarquent un peu du visuel des contenus » | un rebond toutes les cinq secondes, décalé d'une carte à l'autre, et un réglage pour le couper |
+| « également possible de mettre des pastilles des Top mondiaux et des tops des autres langues ? » | « N°3 mondial » et « N°2 en anglais », aux mêmes preuves que la place du Top 10 |
+
+### Le rebond
+
+Sur une vignette qui bouge, une pastille immobile se fond dans l'image. Au
+début de chaque cycle de cinq secondes, l'étiquette fait deux sauts amortis,
+six pixels puis deux, et reste immobile le reste du cycle (85 %). Rien que la
+transformation : le compositeur la prend, comme les autres décorations (213).
+
+**Les cartes ne sautent pas ensemble.** Chaque étiquette prend un temps parmi
+cinq, une seconde d'écart, dans l'ordre où elle paraît
+(`data-tse-etiq-temps`). Celles d'une même peinture sautent donc l'une après
+l'autre ; une étiquette venue plus tard part de son propre instant.
+
+Le subathon garde son clignotement, et rebondit avec. Le réglage **« Les
+étiquettes rebondissent »**, sous « Une étiquette par carte », est allumé par
+défaut ; coupé, il rend la feuille d'avant. Comme les autres animations de
+l'extension, le rebond ne lit pas `prefers-reduced-motion` : c'est le réglage
+qui le coupe.
+
+### Les places d'ailleurs
+
+Le Top 10 de l'accueil est celui d'une langue, la vôtre d'ordinaire. Une
+chaîne d'une autre langue, ou la première de tout Twitch, n'avait aucune place
+à dire. L'ordre des faits devient :
+
+| | fait |
+| --- | --- |
+| 1 à 5 | le retour, le subathon, le début, le basculement, la hausse (inchangés) |
+| 6 | **« N°3 mondial »** : la place au Top 10 de tout Twitch, quand celui de l'accueil est celui d'une langue |
+| 7 | « N°3 en français » : la place au Top 10 de l'accueil (inchangé) |
+| 8 | **« N°2 en anglais »** : la place au Top 10 d'une autre langue, celle que la chaîne porte en tag |
+| 9 | « Co-stream à 3 » (inchangé) |
+
+- **Le monde passe avant votre langue** : il est plus rare. En « Toutes les
+  langues », le Top 10 est le monde, et sa place se dit déjà (« N°3 du Top
+  10 ») : pas de classement du monde à part.
+- **Votre langue passe avant une autre.** Une chaîne qui porte plusieurs
+  langues dit sa meilleure place parmi les autres. En « Toutes les langues »,
+  votre langue devient une autre langue : « N°4 en français ».
+- **Le nom de la langue** est celui que le navigateur donne dans la langue de
+  l'interface (`Intl.DisplayNames`) : « anglais », « Englisch », « inglés ».
+  Le polonais et le russe le déclinent à partir de l'adjectif : « Nr 2 po
+  angielsku », « № 2 на английском ». Un nom d'une autre forme s'écrit tel
+  quel, après un point médian. Faute de nom, le tag de Twitch.
+- **Quelles langues :** les trois plus nombreuses parmi les cartes de l'accueil
+  dont le direct est connu, peintes dans la dernière minute, sans celle du Top
+  10. À égalité, le nom départage.
+- **Couleurs :** une autre langue, l'or des places ; le monde, un or plus
+  chaud (`#ffb35c`).
+
+**Une place ne s'écrit que prouvée,** comme au Top 10 : un classement résolu,
+complet selon son rapport, dont la preuve couvre les dix places. Une langue
+que Twitch ne filtre pas lui-même (tag refusé, code de diffusion inconnu)
+retombe sur les tags lus : un classement approché, qui ne dit aucune place.
+Les membres d'un co-stream partagent une place, comme au Top 10 et dans Top
+Chaînes. Les chaînes que vous avez écartées du Top 10 n'y changent rien : elles
+sont votre liste, pas un fait du classement de Twitch.
+
+### Ce que ça coûte
+
+Chaque classement de plus est le moteur du Top 10 (et de Top Chaînes), à son
+rythme :
+
+| classement | cadence et coût |
+| --- | --- |
+| le monde | une passe légère toutes les 30 s (~11 opérations), la descente des catégories au plus toutes les 2 min 30 (~64 opérations). **Rien** quand la barre sert déjà la même question : Top Chaînes ouvert, sans catégorie, toutes langues |
+| chaque autre langue, trois au plus | une passe légère toutes les 30 s (~11 opérations), une marche au plus toutes les 2 min 30 : un `TseTagTop`. **Rien** quand Top Chaînes sert déjà cette langue |
+
+Aucun ne part quand l'accueil n'est pas à l'écran, quand « Une étiquette par
+carte » est coupé, ou **quand le Top 10 est coupé** : ses places, d'ici ou
+d'ailleurs, sont celles du Top 10, et le couper, c'est n'en plus payer aucune
+(le 217 le tenait déjà : Top 10 coupé, rien d'autre ne part). Six classements
+au plus restent en mémoire. Le rapport les décrit (`etiquettes.ailleurs`) :
+les portées voulues, d'où vient chacune (l'accueil ou la barre), si elle est
+prouvée, combien de chaînes y ont une place, et les marches et opérations de
+chacune. C'est ce qui dira, sur le vrai Twitch, ce qu'elles coûtent.
+
+### Ce qui n'a pas pu être vérifié ici
+
+- **Le vrai Twitch.** Le monde est la descente de Top Chaînes, les langues la
+  voie du tag : deux chemins déjà publiés. Le coût réel de trois langues de
+  plus se lira dans le rapport.
+- **Un co-stream du sommet du monde** ne partage une place que si sa session
+  est connue, comme dans Top Chaînes. Tant qu'aucun de ses membres n'a été
+  interrogé, chacun compte pour une place, et les places suivantes en sont
+  décalées d'autant.
+- **Firefox** : son téléchargement de test est toujours refusé par le réseau
+  de cet environnement. Le rebond n'utilise que `transform`, et
+  `Intl.DisplayNames` existe dans Firefox, mais rien n'y a été vu.
+- **Les noms de langue** ont été relus sous Chromium pour les 31 tags de
+  langue de Twitch, en polonais et en russe ; pas sous Firefox.
+
+### Le banc
+
+- **117** : trente-sept réglages. La phrase du panneau qui remet tout par
+  défaut et les fiches du Store le disent, dans les douze langues. C'est le
+  premier banc complet qui l'a rappelé : elles disaient encore trente-six.
+- **222 a'), a'')** : le rebond est désormais l'animation des étiquettes, et
+  le subathon porte les deux.
+- **233**, nouveau :
+  - a) le monde avant votre langue (« N°9 mondial » sur la troisième en
+    français), votre langue hors du monde, votre langue avant une autre (une
+    chaîne qui parle aussi anglais), « N°6 en anglais » ; un co-stream du
+    monde, une place ; le monde sur une carte du Top 10 lui-même ;
+  - b) les couleurs ;
+  - c) trois langues au plus, les plus nombreuses, le nom à égalité ; ni
+    l'italien, quatrième, ni le français, celui du Top 10, ne sont demandés ;
+  - d) le rebond sur nos cartes et sur celles de Twitch : son animation, son
+    cycle, ses six pixels, son retard qui suit le temps, au moins quatre temps
+    distincts, et le mouvement lu sur l'image ;
+  - e) le réglage coupé : plus un rebond, les étiquettes restent, le subathon
+    clignote encore ;
+  - f) la barre partagée : la place se lit sur Top Chaînes, et le classement
+    de l'accueil n'envoie plus une opération ;
+  - g) « Toutes les langues » ;
+  - h) le Top 10 coupé : plus une place, plus un classement demandé ;
+  - i) un monde résolu mais pas complet (cent catégories au-dessus du seuil) :
+    aucune place ;
+  - j) une langue que Twitch ne filtre pas lui-même : aucune place.
+- **Le faux Twitch** journalise le tag de chaque `TseTagTop` (`tagLangs`).
+
+**Vingt-deux mutants nommés, tous pris.**
+
+| mutant | ce qui tombe |
+| --- | --- |
+| un seul temps pour toutes | 233 d) (les temps) |
+| le retard oublié | 233 d) |
+| le rebond absent des cartes de Twitch | 233 d), et le mouvement |
+| un rebond immobile | 233 d), et le mouvement |
+| le réglage sans jeton de feuille | 233 e) |
+| le subathon qui ne clignote plus en rebondissant | 222 a''), 233 d) |
+| la place de votre langue avant le monde | 233 a), b), f) |
+| une autre langue avant la vôtre | 233 a), g) |
+| le monde jamais demandé | 233 a), b), c), d), f), i) |
+| le monde gardé en « Toutes les langues » | 233 g) |
+| le plafond des langues levé | 233 c), g) |
+| les langues les moins nombreuses d'abord | 233 a), b), c), f), g), i) |
+| l'égalité départagée à l'envers | 233 c), j) |
+| la langue du Top 10 comptée parmi les autres | 233 c), g), j) |
+| une place sans preuve | 233 i), j) |
+| la complétude du rapport oubliée | 233 j) |
+| une place par chaîne, co-stream compris | 233 a), f), g), j) |
+| la barre jamais partagée | 233 f) |
+| les places d'ailleurs sans le Top 10 | 217 b), 233 h) |
+| le nom de la langue pris au tag | 233 a), g), i), j) |
+| une autre langue jamais dite | 233 a), b), g), i), j) |
+| la meilleure place d'une chaîne bilingue oubliée | 233 g) |
+
+Les deux gardes de la preuve se recouvrent pour le monde : un classement
+incomplet n'a pas de preuve (`prouve` vaut 0). La complétude du rapport ne
+s'en sépare que dans une langue que Twitch ne filtre pas lui-même, et c'est
+le j) qui la tient.
+
+`npm run check` est vert : 232 scénarios, 2362 assertions.
+
 ## Firefox : les cartes de Twitch et le fond du héros (v4.33.0.5)
 
 Trois retours, sur Firefox seulement, captures à l'appui. Publiée sur
@@ -25784,7 +25949,7 @@ Quatre vérifications, indépendantes :
 | `npm run lint` | les six fichiers JavaScript livrés — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | les cinq blocs de traduction portent exactement les mêmes clés |
 | `npm run addon` | le paquet : assemblé depuis une liste blanche, complet, et rien de plus |
-| `npm test` | le harnais Playwright : 231 scénarios, 2350 assertions |
+| `npm test` | le harnais Playwright : 232 scénarios, 2362 assertions |
 | `npm run test-firefox` | les mêmes, sous Gecko (`TSE_MOTEUR=firefox`) |
 
 Ces deux nombres-là ne sont pas décoratifs : `run.mjs` les confronte à ce qu'il
@@ -25833,13 +25998,13 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 2287 Ko | 1080 Ko | 4 789 → **2** |
+| `content.js` | 2301 Ko | 1088 Ko | 4 807 → **2** |
 | `cadres.js` | 76 Ko | 35 Ko | 171 → **0** |
 | `adblock.js` | 126 Ko | 101 Ko | 301 → **2** |
 | `panneau.js` | 166 Ko | 85 Ko | 227 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 26 → **0** |
 | `background.js` | 10 Ko | 2 Ko | 22 → **0** |
-| **les six** | **2679 Ko** | **1307 Ko** | **−51 %** |
+| **les six** | **2693 Ko** | **1315 Ko** | **−51 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se

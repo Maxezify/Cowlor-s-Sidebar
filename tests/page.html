@@ -700,6 +700,9 @@ window.fetch = async (url, opt) => {
                         // demandés là où Twitch en accorde trente.
                         tagN: body.filter(o => o.operationName === 'TseTagTop')
                                   .map(o => o.variables?.n),
+                        // Et le tag demandé (4.33.0.6) : les places d'ailleurs en demandent d'autres que le vôtre.
+                        tagLangs: body.filter(o => o.operationName === 'TseTagTop')
+                                      .map(o => o.variables?.tag),
                         // Codes de langue interpolés dans le texte de la
                         // requête : c'est là qu'on peut les compter.
                         langs: body.flatMap(o =>
