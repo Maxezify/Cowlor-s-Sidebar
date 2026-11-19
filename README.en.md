@@ -2064,6 +2064,52 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The pill pulses (v4.33.0.7)
+
+"The pill should pulse: its size grows and shrinks." The 4.33.0.6 bounce
+becomes a pulse. Published on the four branches, together with 4.33.0.6:
+`claude/chrome-homepage`, `claude/chrome-prod`, `claude/firefox-homepage`
+and `claude/firefox-prod`.
+
+- **One pulse per five-second cycle.** The pill grows to 1.14 times its
+  size, then returns to its own, in 0.7 s (14% of the cycle). It stays still
+  for the rest of the cycle.
+- **It grows from its right edge, at mid-height.** It is anchored to the
+  right of the thumbnail, and stays there: it does not overflow the edge, and
+  does not move.
+- **The rest does not change.** Five one-second slots, in the order the
+  labels appear: labels painted together pulse one after the other. The
+  subathon keeps its blinking, and pulses too. Only the transform, which the
+  compositor takes (213).
+- **The setting becomes "Labels pulse"** (`accueilPulsation`), in the twelve
+  languages. An "off" set on 4.33.0.6 is not carried over: the setting was
+  renamed, and 4.33.0.6 only lived on `claude/chrome-homepage`.
+
+### The bench
+
+- **233 d)**: each visible label pulses, on our cards and Twitch's: its
+  animation, its cycle, its keyframes (1 and 1.14, nothing else), its origin
+  at the right edge and mid-height, its delay following its slot. The
+  movement is read on screen: the pill grows, returns to its size, and never
+  moves.
+- **233 e), 222 a') and a'')**: the new names.
+
+**Nine named mutants, all caught.**
+
+| mutant | what fails |
+| --- | --- |
+| one slot for all | 233 d) (the slots) |
+| the delay forgotten | 233 d) |
+| no pulse on Twitch's cards | 233 d), and the movement |
+| a still pulse | 233 d), and the movement |
+| the old bounce | 233 d), and the movement |
+| the origin at the centre | 233 d) |
+| a barely visible pulse (1.04) | 233 d), and the movement |
+| the setting without its stylesheet token | 233 e) |
+| the subathon no longer blinking while it pulses | 222 a''), 233 d) |
+
+`npm run check` is green: 232 scenarios, 2362 assertions.
+
 ## Labels bounce, and tell their place elsewhere (v4.33.0.6)
 
 Two requests about the labels on home page cards (v4.28.0). Published on
@@ -2075,6 +2121,8 @@ Two requests about the labels on home page cards (v4.28.0). Published on
 | "also possible to add pills for the worldwide Tops and the Tops of other languages?" | "#3 worldwide" and "#2 in English", with the same proofs as the Top 10 place |
 
 ### The bounce
+
+Replaced in 4.33.0.7 by a pulse (above).
 
 On a moving thumbnail, a still pill blends into the picture. At the start of
 each five-second cycle, the label makes two damped hops, six pixels then two,
@@ -25273,7 +25321,7 @@ the assembled code:
 | `panneau.js` | 166 KB | 85 KB | 227 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 26 → **0** |
 | `background.js` | 10 KB | 2 KB | 22 → **0** |
-| **all six** | **2693 KB** | **1315 KB** | **−51 %** |
+| **all six** | **2694 KB** | **1315 KB** | **−51 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are

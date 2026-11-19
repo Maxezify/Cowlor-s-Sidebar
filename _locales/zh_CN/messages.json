@@ -832,11 +832,11 @@
   "optDescAccueilEtiquettes": {
     "message": "首页的每张卡片（扩展的和 Twitch 的）上只显示一条事实：「时隔 41 天回归」「刚刚开播」「↗ 10 分钟内 +38%」「全球第 3 名」……侧边栏未关注的频道，只在其卡片显示在屏幕上时请求数据；全球和其他语言的排名按前 10 名的节奏获取。"
   },
-  "optAccueilRebond": {
-    "message": "标签跳动"
+  "optAccueilPulsation": {
+    "message": "标签脉动"
   },
-  "optDescAccueilRebond": {
-    "message": "每五秒轻轻跳一下，各卡片错开时间，让标签从缩略图中脱颖而出。"
+  "optDescAccueilPulsation": {
+    "message": "每五秒脉动一次——标签先放大，再恢复原来的大小——各卡片错开时间，让标签从缩略图中脱颖而出。"
   },
   "optAccueilAbsence": {
     "message": "你不在的时候"

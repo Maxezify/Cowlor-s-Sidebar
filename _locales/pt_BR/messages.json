@@ -832,11 +832,11 @@
   "optDescAccueilEtiquettes": {
     "message": "Um fato, só um, em cada card da página inicial — os da extensão e os da Twitch: «De volta após 41 dias», «Acabou de começar», «↗ +38% em 10 min», «Nº 3 mundial»… Para um canal que a barra não segue, os números são pedidos enquanto o card estiver na tela; as posições mundiais e de outros idiomas, no ritmo do Top 10."
   },
-  "optAccueilRebond": {
-    "message": "As etiquetas quicam"
+  "optAccueilPulsation": {
+    "message": "As etiquetas pulsam"
   },
-  "optDescAccueilRebond": {
-    "message": "Um pequeno quique a cada cinco segundos, defasado de um card para outro, para que a etiqueta se destaque da miniatura."
+  "optDescAccueilPulsation": {
+    "message": "Uma pulsação a cada cinco segundos — a etiqueta cresce e depois volta ao tamanho —, defasada de um card para outro, para que se destaque da miniatura."
   },
   "optAccueilAbsence": {
     "message": "Enquanto você esteve fora"

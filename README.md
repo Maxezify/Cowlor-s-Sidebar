@@ -2183,6 +2183,53 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## La pastille bat (v4.33.0.7)
+
+« La pastille devrait faire une pulsation : sa taille grossit et rapetisse. »
+Le rebond de la 4.33.0.6 devient une pulsation. Publiée sur les quatre
+branches, avec la 4.33.0.6 : `claude/chrome-homepage`, `claude/chrome-prod`,
+`claude/firefox-homepage` et `claude/firefox-prod`.
+
+- **Une pulsation par cycle de cinq secondes.** La pastille grossit jusqu'à
+  1,14 fois sa taille, puis revient à la sienne, en 0,7 s (14 % du cycle).
+  Elle reste immobile le reste du cycle.
+- **Elle grossit depuis son bord droit, à mi-hauteur.** Elle est calée à
+  droite de la vignette, et y reste : elle ne déborde pas du bord, et ne se
+  déplace pas.
+- **Le reste ne change pas.** Cinq temps d'une seconde, dans l'ordre où les
+  étiquettes paraissent : celles d'une même peinture battent l'une après
+  l'autre. Le subathon garde son clignotement, et bat avec. Rien que la
+  transformation, que le compositeur prend (213).
+- **Le réglage devient « Les étiquettes pulsent »** (`accueilPulsation`),
+  dans les douze langues. Un « coupé » posé sur la 4.33.0.6 ne se reporte
+  pas : le réglage a changé de nom, et la 4.33.0.6 n'a vécu que sur
+  `claude/chrome-homepage`.
+
+### Le banc
+
+- **233 d)** : chaque étiquette visible bat, sur nos cartes comme sur celles
+  de Twitch : son animation, son cycle, ses images (1 et 1,14, rien
+  d'autre), son origine au bord droit et à mi-hauteur, son retard qui suit
+  son temps. Le mouvement est lu sur l'image : la pastille grossit, revient à
+  sa taille, et ne se déplace jamais.
+- **233 e), 222 a') et a'')** : les nouveaux noms.
+
+**Neuf mutants nommés, tous pris.**
+
+| mutant | ce qui tombe |
+| --- | --- |
+| un seul temps pour toutes | 233 d) (les temps) |
+| le retard oublié | 233 d) |
+| la pulsation absente des cartes de Twitch | 233 d), et le mouvement |
+| une pulsation immobile | 233 d), et le mouvement |
+| l'ancien rebond | 233 d), et le mouvement |
+| l'origine au centre | 233 d) |
+| une pulsation à peine visible (1,04) | 233 d), et le mouvement |
+| le réglage sans jeton de feuille | 233 e) |
+| le subathon qui ne clignote plus en battant | 222 a''), 233 d) |
+
+`npm run check` est vert : 232 scénarios, 2362 assertions.
+
 ## Les étiquettes rebondissent, et disent leur place ailleurs (v4.33.0.6)
 
 Deux demandes, sur les étiquettes des cartes de l'accueil (v4.28.0). Publiée
@@ -2195,6 +2242,8 @@ demande.
 | « également possible de mettre des pastilles des Top mondiaux et des tops des autres langues ? » | « N°3 mondial » et « N°2 en anglais », aux mêmes preuves que la place du Top 10 |
 
 ### Le rebond
+
+Remplacé à la 4.33.0.7 par une pulsation (ci-dessus).
 
 Sur une vignette qui bouge, une pastille immobile se fond dans l'image. Au
 début de chaque cycle de cinq secondes, l'étiquette fait deux sauts amortis,
@@ -26004,7 +26053,7 @@ assemblé :
 | `panneau.js` | 166 Ko | 85 Ko | 227 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 26 → **0** |
 | `background.js` | 10 Ko | 2 Ko | 22 → **0** |
-| **les six** | **2693 Ko** | **1315 Ko** | **−51 %** |
+| **les six** | **2694 Ko** | **1315 Ko** | **−51 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se

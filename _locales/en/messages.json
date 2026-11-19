@@ -948,11 +948,11 @@
   "optDescAccueilEtiquettes": {
     "message": "One fact, just one, on each home page card — the extension's and Twitch's alike: “Back after 41 days”, “Just started”, “↗ +38% in 10 min”, “#3 worldwide”… For a channel the sidebar doesn't follow, its numbers are requested while its card is on screen; worldwide and other-language places at the Top 10's pace."
   },
-  "optAccueilRebond": {
-    "message": "Labels bounce"
+  "optAccueilPulsation": {
+    "message": "Labels pulse"
   },
-  "optDescAccueilRebond": {
-    "message": "A small bounce every five seconds, staggered from card to card, so the label stands out from the thumbnail."
+  "optDescAccueilPulsation": {
+    "message": "A pulse every five seconds — the label grows, then returns to its size — staggered from card to card, so it stands out from the thumbnail."
   },
   "optAccueilAbsence": {
     "message": "While you were away"
