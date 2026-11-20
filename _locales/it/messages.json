@@ -836,7 +836,7 @@
     "message": "Le etichette pulsano"
   },
   "optDescAccueilPulsation": {
-    "message": "Una pulsazione ogni cinque secondi — l'etichetta si ingrandisce, poi torna alla sua misura —, sfalsata da una scheda all'altra, perché si stacchi dalla miniatura."
+    "message": "Una pulsazione discreta e continua — l'etichetta si ingrandisce e si rimpicciolisce senza sosta —, sfalsata da una scheda all'altra, perché si stacchi dalla miniatura."
   },
   "optAccueilAbsence": {
     "message": "Mentre eri via"

@@ -952,7 +952,7 @@
     "message": "Labels pulse"
   },
   "optDescAccueilPulsation": {
-    "message": "A pulse every five seconds — the label grows, then returns to its size — staggered from card to card, so it stands out from the thumbnail."
+    "message": "A subtle, continuous pulse — the label keeps growing and shrinking — staggered from card to card, so it stands out from the thumbnail."
   },
   "optAccueilAbsence": {
     "message": "While you were away"

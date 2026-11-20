@@ -836,7 +836,7 @@
     "message": "标签脉动"
   },
   "optDescAccueilPulsation": {
-    "message": "每五秒脉动一次——标签先放大，再恢复原来的大小——各卡片错开时间，让标签从缩略图中脱颖而出。"
+    "message": "轻微而持续的脉动——标签不停地放大、缩小——各卡片错开时间，让标签从缩略图中脱颖而出。"
   },
   "optAccueilAbsence": {
     "message": "你不在的时候"

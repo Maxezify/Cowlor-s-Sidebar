@@ -836,7 +836,7 @@
     "message": "As etiquetas pulsam"
   },
   "optDescAccueilPulsation": {
-    "message": "Uma pulsação a cada cinco segundos — a etiqueta cresce e depois volta ao tamanho —, desfasada de um cartão para outro, para que se destaque da miniatura."
+    "message": "Uma pulsação discreta e contínua — a etiqueta cresce e diminui sem parar —, desfasada de um cartão para outro, para que se destaque da miniatura."
   },
   "optAccueilAbsence": {
     "message": "Enquanto estiveste fora"

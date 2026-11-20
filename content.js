@@ -4838,12 +4838,13 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     ETIQ_TENDANCE_MIN:      50,
     ETIQ_HISTO_MAX:         400,
     ETIQ_TWITCH_MAX:        60,
-    /* LA PULSATION (4.33.0.7, cf. ETIQUETTES) : une pulsation par cycle de
-       cinq secondes, et cinq temps décalés d'un cinquième de cycle, pour que
-       les cartes ne battent pas ensemble. La taille au plus fort. */
-    ETIQ_PULSATION_MS:      5000,
+    /* LA PULSATION (4.33.0.8, cf. ETIQUETTES) : continue — une période,
+       grossir et rapetisser, de deux secondes —, et discrète : la taille au
+       plus fort. Cinq phases décalées d'un cinquième de période, pour que les
+       cartes ne battent pas ensemble. */
+    ETIQ_PULSATION_MS:      2000,
     ETIQ_PULSATION_TEMPS:   5,
-    ETIQ_PULSATION_ECHELLE: 1.14,
+    ETIQ_PULSATION_ECHELLE: 1.06,
     /* LES PLACES D'AILLEURS (4.33.0.6, cf. ETIQUETTES). Le Top 10 mondial, et
        celui des autres langues des cartes de l'accueil : trois langues au plus
        à la fois — les plus nombreuses —, chacune au rythme du Top 10 (une
@@ -5013,9 +5014,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        déjà posés restent, jusqu'à leur heure. */
     accueilRdv:      { defaut: true,      type: 'bool', sous: ['accueil'] },
     accueilEtiquettes: { defaut: true,    type: 'bool', sous: ['accueil'] },
-    /* La pulsation des étiquettes (4.33.0.7 ; un rebond à la 4.33.0.6) : un
-       jeton de la feuille, comme la durée — la feuille seule l'anime, et la
-       coupe. */
+    /* La pulsation des étiquettes (4.33.0.8, continue ; un rebond à la
+       4.33.0.6) : un jeton de la feuille, comme la durée — la feuille seule
+       l'anime, et la coupe. */
     accueilPulsation: { defaut: true,     type: 'bool', sous: ['accueil', 'accueilEtiquettes'], css: true },
     accueilAbsence:  { defaut: true,      type: 'bool', sous: ['accueil'] },
     accueilPourquoi: { defaut: true,      type: 'bool', sous: ['accueil'] },
@@ -9692,41 +9693,46 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       0%, 100% { color: #ff8f8f; } 12.5% { color: #ffe38f; } 25% { color: #c7ff8f; } 37.5% { color: #8fffb4; }
       50% { color: #8ffdff; } 62.5% { color: #8fabff; } 75% { color: #c78fff; } 87.5% { color: #ff8fe3; }
     }
-    /* LA PULSATION (4.33.0.7 ; un rebond à la 4.33.0.6). « Pour les
-       pastilles sur les listes de contenus, je souhaite qu'il puisse y avoir
-       une animation bounce, pour qu'elles se démarquent un peu du visuel des
-       contenus » : sur une vignette qui bouge, une pastille immobile se fond
-       dans l'image. Puis « la pastille devrait faire une pulsation, sa taille
-       grossit et rapetisse » : le rebond de la 4.33.0.6 devient une
-       pulsation. Une fois par cycle, la pastille grossit jusqu'à
-       ETIQ_PULSATION_ECHELLE, et revient à sa taille ; rien le reste du temps.
+    /* LA PULSATION (4.33.0.8 ; un rebond à la 4.33.0.6, une pulsation par
+       cycle de cinq secondes à la 4.33.0.7). « Pour les pastilles sur les
+       listes de contenus, je souhaite qu'il puisse y avoir une animation
+       bounce, pour qu'elles se démarquent un peu du visuel des contenus » :
+       sur une vignette qui bouge, une pastille immobile se fond dans l'image.
+       Puis « la pastille devrait faire une pulsation, sa taille grossit et
+       rapetisse », et enfin « c'est une pulsation infinie et plus discrète
+       que j'aimerais, pas une animation toutes les cinq secondes : il faut
+       que ce soit tout le temps en mouvement ». La pastille grossit jusqu'à
+       ETIQ_PULSATION_ECHELLE et rapetisse jusqu'à sa taille, sans repos, sur
+       une période de ETIQ_PULSATION_MS ; ease-in-out sur chaque moitié : elle
+       ne s'arrête qu'à l'instant où elle change de sens.
        ELLE GROSSIT DEPUIS SON BORD DROIT : la pastille est calée à droite de
        la vignette, et y reste — elle ne déborde ni sur le bord ni sur ce
        qui la borde.
-       LES CARTES NE BATTENT PAS ENSEMBLE : chacune prend un temps parmi cinq,
-       dans l'ordre où ses étiquettes paraissent (data-tse-etiq-temps) : celles
-       d'une même peinture battent l'une après l'autre, à une seconde d'écart,
-       et une étiquette venue plus tard part de son propre instant. Une
-       variable posée sur la carte, que son ::after hérite, comme la couleur.
-       Rien que la transformation : le compositeur la prend (213). Le subathon
-       garde son clignotement, et bat avec — la seconde règle, plus loin dans
-       la feuille, l'emporte à précision égale. « Les étiquettes pulsent »,
-       coupé, rend la feuille d'avant. */
+       LES CARTES NE BATTENT PAS ENSEMBLE : chacune prend une phase parmi cinq,
+       dans l'ordre où ses étiquettes paraissent (data-tse-etiq-temps). La
+       phase est un retard NÉGATIF : l'animation part déjà avancée d'un, deux…
+       cinquièmes de période — un retard positif laisserait la pastille
+       immobile le temps de l'attendre. Une variable posée sur la carte, que
+       son ::after hérite, comme la couleur. Rien que la transformation : le
+       compositeur la prend (213). Le subathon garde son clignotement, et bat
+       avec — la seconde règle, plus loin dans la feuille, l'emporte à
+       précision égale. « Les étiquettes pulsent », coupé, rend la feuille
+       d'avant. */
     html:not([data-tse-off~="accueilPulsation"]) .tse-acc-vignette[data-tse-etiquette]::after,
     html:not([data-tse-off~="accueilPulsation"]) main a[data-a-target="preview-card-image-link"][data-tse-etiquette]::after {
       transform-origin: right center;
-      animation: tse-acc-etiq-pulsation ${CFG.ETIQ_PULSATION_MS}ms ease-in-out var(--tse-etiq-retard, 0ms) infinite;
+      animation: tse-acc-etiq-pulsation ${CFG.ETIQ_PULSATION_MS}ms ease-in-out var(--tse-etiq-phase, 0ms) infinite;
     }
     html:not([data-tse-off~="accueilPulsation"]) .tse-acc-vignette[data-tse-etiq="subathon"]::after,
     html:not([data-tse-off~="accueilPulsation"]) main a[data-a-target="preview-card-image-link"][data-tse-etiq="subathon"]::after {
       animation: tse-acc-etiq-subathon 1.5s linear infinite,
-                 tse-acc-etiq-pulsation ${CFG.ETIQ_PULSATION_MS}ms ease-in-out var(--tse-etiq-retard, 0ms) infinite;
+                 tse-acc-etiq-pulsation ${CFG.ETIQ_PULSATION_MS}ms ease-in-out var(--tse-etiq-phase, 0ms) infinite;
     }
     ${Array.from({ length: CFG.ETIQ_PULSATION_TEMPS - 1 }, (_, i) =>
-      `[data-tse-etiq-temps="${i + 1}"] { --tse-etiq-retard: ${Math.round((i + 1) * CFG.ETIQ_PULSATION_MS / CFG.ETIQ_PULSATION_TEMPS)}ms; }`).join('\n    ')}
+      `[data-tse-etiq-temps="${i + 1}"] { --tse-etiq-phase: -${Math.round((i + 1) * CFG.ETIQ_PULSATION_MS / CFG.ETIQ_PULSATION_TEMPS)}ms; }`).join('\n    ')}
     @keyframes tse-acc-etiq-pulsation {
-      0%, 14%, 100% { transform: scale(1); }
-      7% { transform: scale(${CFG.ETIQ_PULSATION_ECHELLE}); }
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(${CFG.ETIQ_PULSATION_ECHELLE}); }
     }
     /* UN LIEN EN LIGNE N'EST PAS UN CADRE (4.33.0.5). « Les pastilles sur ce
        type de liste ont un problème — seulement sur Firefox » : la durée à
@@ -17437,7 +17443,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
                  clips: { demandes: 0, servis: 0, refus: 0, plusVus: 0 } },
       // Une étiquette par carte (4.28.0) : combien de chaque sorte, et ce que les cartes de Twitch ont coûté.
       etiquettes: { posees: {}, demandes: 0, coins: { haut: 0, aucun: 0 }, twitch: { cartes: 0, vues: 0, etiquetees: 0, habillees: 0, durees: 0 },
-                    // Les places d'ailleurs (4.33.0.6) : les portées voulues, d'où vient chacune, si elle est prouvée, combien de chaînes y ont une place.
+                    // Les places d'ailleurs (4.33.0.6) : les portées voulues, d'où vient chacune, si elle est résolue, prouvée, combien de chaînes y ont une place.
                     ailleurs: { portees: [], sources: {}, gardes: 0 } },
       // Ranger l'accueil de Twitch (4.32.0) : ce qui a été masqué, remplacé, et d'où.
       ranger: { titres: 0, masquables: 0, masques: 0, clics: 0, vignettes: { rediffusion: 0, avatar: 0, sans: 0 } },
@@ -18500,8 +18506,10 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         if (!a.voulu) continue;
         const partage = partageAilleurs(a.cle);
         if (!partage) a.classement.tick();
-        const places = placesProuvees(partage ? globalChannels : a.classement);
-        sources[a.cle] = { source: partage ? 'barre' : 'accueil', prouve: !!places, chaines: places ? places.size : 0 };
+        const src = partage ? globalChannels : a.classement;
+        const places = placesProuvees(src);
+        // Résolu sans être prouvé : un classement qui a parlé, et dont aucune place ne s'écrit.
+        sources[a.cle] = { source: partage ? 'barre' : 'accueil', resolu: src.resolu(), prouve: !!places, chaines: places ? places.size : 0 };
         if (places) rangs.set(a.cle, places);
       }
       rangsAilleurs = rangs;
@@ -18581,7 +18589,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     };
     const etiquetees = new Set();   // les cartes de Twitch qui portent la nôtre
     const coinsPour = new WeakMap();  // carte → ce pour quoi son coin a été calculé
-    // Le temps de la pulsation (4.33.0.7, cf. la feuille) : donné à la carte quand son étiquette paraît.
+    // La phase de la pulsation (4.33.0.8, cf. la feuille) : donnée à la carte quand son étiquette paraît.
     let tempsSuivant = 0;
     const poserEtiquette = (n, et, twitch = false) => {
       if (!et) {
