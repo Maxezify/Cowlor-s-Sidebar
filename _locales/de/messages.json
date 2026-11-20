@@ -830,7 +830,13 @@
     "message": "Ein Etikett pro Karte"
   },
   "optDescAccueilEtiquettes": {
-    "message": "Eine Tatsache, nur eine, auf jeder Karte der Startseite – denen der Erweiterung wie denen von Twitch: „Zurück nach 41 Tagen“, „Gerade gestartet“, „↗ +38 % in 10 Min.“… Für einen Kanal, dem die Seitenleiste nicht folgt, werden die Zahlen abgefragt, solange seine Karte zu sehen ist."
+    "message": "Eine Tatsache, nur eine, auf jeder Karte der Startseite – denen der Erweiterung wie denen von Twitch: „Zurück nach 41 Tagen“, „Gerade gestartet“, „↗ +38 % in 10 Min.“, „Platz 3 weltweit“… Für einen Kanal, dem die Seitenleiste nicht folgt, werden die Zahlen abgefragt, solange seine Karte zu sehen ist; die Plätze weltweit und in anderen Sprachen im Takt der Top 10."
+  },
+  "optAccueilPulsation": {
+    "message": "Etiketten pulsieren"
+  },
+  "optDescAccueilPulsation": {
+    "message": "Ein dezentes, fortwährendes Pulsieren – das Etikett wird ständig größer und wieder kleiner –, von Karte zu Karte versetzt, damit es sich vom Vorschaubild abhebt."
   },
   "optAccueilAbsence": {
     "message": "Während du weg warst"
@@ -1007,7 +1013,7 @@
     "message": "Alle Einstellungen zurücksetzen?"
   },
   "optResetText": {
-    "message": "Alle sechsunddreißig Einstellungen dieser Seite kehren zu ihrem ursprünglichen Wert zurück. Deine Daten — Besuche, Abonnements, gefolgte Kanäle — bleiben unberührt."
+    "message": "Alle siebenunddreißig Einstellungen dieser Seite kehren zu ihrem ursprünglichen Wert zurück. Deine Daten — Besuche, Abonnements, gefolgte Kanäle — bleiben unberührt."
   },
   "optValPlein": {
     "message": "Voll"

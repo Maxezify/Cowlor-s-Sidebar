@@ -830,7 +830,13 @@
     "message": "Jedna etykieta na kartę"
   },
   "optDescAccueilEtiquettes": {
-    "message": "Jeden fakt, tylko jeden, na każdej karcie strony głównej — rozszerzenia i Twitcha: „Wraca po 41 dniach”, „Właśnie wystartował”, „↗ +38% w 10 min”… Dla kanału, którego pasek nie śledzi, liczby są pobierane, dopóki jego karta jest na ekranie."
+    "message": "Jeden fakt, tylko jeden, na każdej karcie strony głównej — rozszerzenia i Twitcha: „Wraca po 41 dniach”, „Właśnie wystartował”, „↗ +38% w 10 min”, „Nr 3 na świecie”… Dla kanału, którego pasek nie śledzi, liczby są pobierane, dopóki jego karta jest na ekranie; miejsca światowe i w innych językach — w rytmie Top 10."
+  },
+  "optAccueilPulsation": {
+    "message": "Etykiety pulsują"
+  },
+  "optDescAccueilPulsation": {
+    "message": "Dyskretne, nieustanne pulsowanie — etykieta bez przerwy rośnie i maleje — przesunięte między kartami, żeby odcinała się od miniatury."
   },
   "optAccueilAbsence": {
     "message": "Podczas twojej nieobecności"
@@ -1007,7 +1013,7 @@
     "message": "Przywrócić wszystkie ustawienia domyślne?"
   },
   "optResetText": {
-    "message": "Na tej stronie trzydzieści sześć ustawień wróci do wartości pierwotnych. Twoje dane — wizyty, subskrypcje, obserwowane kanały — pozostają nietknięte."
+    "message": "Na tej stronie trzydzieści siedem ustawień wróci do wartości pierwotnych. Twoje dane — wizyty, subskrypcje, obserwowane kanały — pozostają nietknięte."
   },
   "optValPlein": {
     "message": "Pełne"

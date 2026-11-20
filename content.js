@@ -217,6 +217,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiEtiqRetour:              (j) => `De retour après ${j} jours`,
       uiEtiqTendance:            (p, m) => `↗ +${p} % en ${m} min`,
       uiEtiqRangLangue:          (n) => `N°${n} en français`,
+      uiEtiqRangMonde:           (n) => `N°${n} mondial`,
+      uiEtiqRangAutre:           (n, langue) => `N°${n} en ${langue}`,
       uiEtiqBascule:             (jeu) => `Va sur ${jeu}`,
       uiEtiqCostream:            (n) => `Co-stream à ${n}`,
 
@@ -495,6 +497,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiEtiqRetour:              (j) => `Back after ${j} days`,
       uiEtiqTendance:            (p, m) => `↗ +${p}% in ${m} min`,
       uiEtiqRangLangue:          (n, langue) => `#${n} in ${langue || 'English'}`,
+      uiEtiqRangMonde:           (n) => `#${n} worldwide`,
+      uiEtiqRangAutre:           (n, langue) => `#${n} in ${langue}`,
       uiEtiqBascule:             (jeu) => `Switched to ${jeu}`,
       uiEtiqCostream:            (n) => `Co-stream of ${n} channels`,
       uiAbsTitre:                'While you were away',
@@ -766,6 +770,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiEtiqRetour:              (j) => `Zurück nach ${j} Tagen`,
       uiEtiqTendance:            (p, m) => `↗ +${p} % in ${m} Min.`,
       uiEtiqRangLangue:          (n) => `Platz ${n} auf Deutsch`,
+      uiEtiqRangMonde:           (n) => `Platz ${n} weltweit`,
+      uiEtiqRangAutre:           (n, langue) => `Platz ${n} auf ${langue}`,
       uiEtiqBascule:             (jeu) => `Wechselt zu ${jeu}`,
       uiEtiqCostream:            (n) => `Co-Stream mit ${n} Kanälen`,
       uiAbsTitre:                'Während du weg warst',
@@ -1037,6 +1043,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiEtiqRetour:              (j) => `De vuelta tras ${j} días`,
       uiEtiqTendance:            (p, m) => `↗ +${p} % en ${m} min`,
       uiEtiqRangLangue:          (n) => `N.º ${n} en español`,
+      uiEtiqRangMonde:           (n) => `N.º ${n} mundial`,
+      uiEtiqRangAutre:           (n, langue) => `N.º ${n} en ${langue}`,
       uiEtiqBascule:             (jeu) => `Pasa a ${jeu}`,
       uiEtiqCostream:            (n) => `Co-stream de ${n} canales`,
       uiAbsTitre:                'Mientras no estabas',
@@ -1308,6 +1316,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiEtiqRetour:              (j) => `De volta após ${j} dias`,
       uiEtiqTendance:            (p, m) => `↗ +${p}% em ${m} min`,
       uiEtiqRangLangue:          (n) => `Nº ${n} em português`,
+      uiEtiqRangMonde:           (n) => `Nº ${n} mundial`,
+      uiEtiqRangAutre:           (n, langue) => `Nº ${n} em ${langue}`,
       uiEtiqBascule:             (jeu) => `Vai para ${jeu}`,
       uiEtiqCostream:            (n) => `Co-stream com ${n} canais`,
       uiAbsTitre:                'Enquanto você esteve fora',
@@ -1579,6 +1589,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiEtiqRetour:              (j) => `Di ritorno dopo ${j} giorni`,
       uiEtiqTendance:            (p, m) => `↗ +${p}% in ${m} min`,
       uiEtiqRangLangue:          (n) => `N. ${n} in italiano`,
+      uiEtiqRangMonde:           (n) => `N. ${n} al mondo`,
+      uiEtiqRangAutre:           (n, langue) => `N. ${n} in ${langue}`,
       uiEtiqBascule:             (jeu) => `Passa a ${jeu}`,
       uiEtiqCostream:            (n) => `Co-stream con ${n} canali`,
       uiAbsTitre:                'Mentre eri via',
@@ -1851,6 +1863,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiEtiqRetour:              (j) => `Wraca po ${j} dniach`,
       uiEtiqTendance:            (p, m) => `↗ +${p}% w ${m} min`,
       uiEtiqRangLangue:          (n) => `Nr ${n} po polsku`,
+      uiEtiqRangMonde:           (n) => `Nr ${n} na świecie`,
+      uiEtiqRangAutre:           (n, langue) => (/(?:sk|ck|zk)i$/.test(langue) ? `Nr ${n} po ${langue.replace(/i$/, 'u')}` : `Nr ${n} · ${langue}`),
       uiEtiqBascule:             (jeu) => `Przechodzi na ${jeu}`,
       uiEtiqCostream:            (n) => `Co-stream: ${n} ${plurielSlave(n, ['kanał', 'kanały', 'kanałów'])}`,
       uiAbsTitre:                'Podczas twojej nieobecności',
@@ -2127,6 +2141,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiEtiqRetour:              (j) => `Вернулся спустя ${j} ${plurielSlave(j, ['день', 'дня', 'дней'])}`,
       uiEtiqTendance:            (p, m) => `↗ +${p}% за ${m} мин`,
       uiEtiqRangLangue:          (n) => `№ ${n} на русском`,
+      uiEtiqRangMonde:           (n) => `№ ${n} в мире`,
+      uiEtiqRangAutre:           (n, langue) => (/(?:ий|ый|ой)$/.test(langue) ? `№ ${n} на ${langue.replace(/(?:ий|ый|ой)$/, 'ом')}` : `№ ${n} · ${langue}`),
       uiEtiqBascule:             (jeu) => `Переходит на ${jeu}`,
       uiEtiqCostream:            (n) => `Совместный стрим: ${n} ${plurielSlave(n, ['канал', 'канала', 'каналов'])}`,
       uiAbsTitre:                'Пока вас не было',
@@ -2401,6 +2417,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiEtiqRetour:              (j) => `${j} 日ぶりの配信`,
       uiEtiqTendance:            (p, m) => `↗ ${m} 分で +${p}%`,
       uiEtiqRangLangue:          (n) => `日本語で ${n} 位`,
+      uiEtiqRangMonde:           (n) => `世界で ${n} 位`,
+      uiEtiqRangAutre:           (n, langue) => `${langue}で ${n} 位`,
       uiEtiqBascule:             (jeu) => `${jeu} に切り替え`,
       uiEtiqCostream:            (n) => `${n} チャンネルでコラボ配信`,
       uiAbsTitre:                'お留守の間に',
@@ -2669,6 +2687,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiEtiqRetour:              (j) => `时隔 ${j} 天回归`,
       uiEtiqTendance:            (p, m) => `↗ ${m} 分钟内 +${p}%`,
       uiEtiqRangLangue:          (n) => `中文第 ${n} 名`,
+      uiEtiqRangMonde:           (n) => `全球第 ${n} 名`,
+      uiEtiqRangAutre:           (n, langue) => `${langue}第 ${n} 名`,
       uiEtiqBascule:             (jeu) => `转到 ${jeu}`,
       uiEtiqCostream:            (n) => `${n} 个频道联合直播`,
       uiAbsTitre:                '你不在的时候',
@@ -3408,6 +3428,13 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     ETIQ_HISTO_MAX:         400,
     ETIQ_TWITCH_MAX:        60,
 
+    ETIQ_PULSATION_MS:      2000,
+    ETIQ_PULSATION_TEMPS:   5,
+    ETIQ_PULSATION_ECHELLE: 1.06,
+
+    ETIQ_LANGUES_MAX:       3,
+    ETIQ_CLASSEMENTS_MAX:   6,
+
     ABSENCE_MIN_MS:         24 * 3_600_000,
     ABSENCE_GARDE_MS:       12 * 3_600_000,
     ABSENCE_PRESENCE_MS:    60_000,
@@ -3473,6 +3500,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
 
     accueilRdv:      { defaut: true,      type: 'bool', sous: ['accueil'] },
     accueilEtiquettes: { defaut: true,    type: 'bool', sous: ['accueil'] },
+
+    accueilPulsation: { defaut: true,     type: 'bool', sous: ['accueil', 'accueilEtiquettes'], css: true },
     accueilAbsence:  { defaut: true,      type: 'bool', sous: ['accueil'] },
     accueilPourquoi: { defaut: true,      type: 'bool', sous: ['accueil'] },
     accueilRanger:   { defaut: true,      type: 'bool', sous: ['accueil'] },
@@ -6166,6 +6195,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     [data-tse-etiq="rang"]     { --tse-etiq-couleur: #ffd68a; }
     [data-tse-etiq="costream"] { --tse-etiq-couleur: #8fc7ff; }
     
+    [data-tse-etiq="langue"]   { --tse-etiq-couleur: #ffd68a; }
+    [data-tse-etiq="monde"]    { --tse-etiq-couleur: #ffb35c; }
+    
     .tse-acc-vignette[data-tse-etiq="subathon"]::after,
     main a[data-a-target="preview-card-image-link"][data-tse-etiq="subathon"]::after {
       animation: tse-acc-etiq-subathon 1.5s linear infinite;
@@ -6173,6 +6205,23 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     @keyframes tse-acc-etiq-subathon {
       0%, 100% { color: #ff8f8f; } 12.5% { color: #ffe38f; } 25% { color: #c7ff8f; } 37.5% { color: #8fffb4; }
       50% { color: #8ffdff; } 62.5% { color: #8fabff; } 75% { color: #c78fff; } 87.5% { color: #ff8fe3; }
+    }
+    
+    html:not([data-tse-off~="accueilPulsation"]) .tse-acc-vignette[data-tse-etiquette]::after,
+    html:not([data-tse-off~="accueilPulsation"]) main a[data-a-target="preview-card-image-link"][data-tse-etiquette]::after {
+      transform-origin: center;
+      animation: tse-acc-etiq-pulsation ${CFG.ETIQ_PULSATION_MS}ms ease-in-out var(--tse-etiq-phase, 0ms) infinite;
+    }
+    html:not([data-tse-off~="accueilPulsation"]) .tse-acc-vignette[data-tse-etiq="subathon"]::after,
+    html:not([data-tse-off~="accueilPulsation"]) main a[data-a-target="preview-card-image-link"][data-tse-etiq="subathon"]::after {
+      animation: tse-acc-etiq-subathon 1.5s linear infinite,
+                 tse-acc-etiq-pulsation ${CFG.ETIQ_PULSATION_MS}ms ease-in-out var(--tse-etiq-phase, 0ms) infinite;
+    }
+    ${Array.from({ length: CFG.ETIQ_PULSATION_TEMPS - 1 }, (_, i) =>
+      `[data-tse-etiq-temps="${i + 1}"] { --tse-etiq-phase: -${Math.round((i + 1) * CFG.ETIQ_PULSATION_MS / CFG.ETIQ_PULSATION_TEMPS)}ms; }`).join('\n    ')}
+    @keyframes tse-acc-etiq-pulsation {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(${CFG.ETIQ_PULSATION_ECHELLE}); }
     }
     
     main a[data-a-target="preview-card-image-link"][data-tse-etiquette] { position: relative; display: block !important; }
@@ -10258,7 +10307,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       absence: { lectures: 0, chaines: 0, montre: false, enCours: false, fermetures: 0, synchros: 0, vignettes: 0,
                  clips: { demandes: 0, servis: 0, refus: 0, plusVus: 0 } },
 
-      etiquettes: { posees: {}, demandes: 0, coins: { haut: 0, aucun: 0 }, twitch: { cartes: 0, vues: 0, etiquetees: 0, habillees: 0, durees: 0 } },
+      etiquettes: { posees: {}, demandes: 0, coins: { haut: 0, aucun: 0 }, twitch: { cartes: 0, vues: 0, etiquetees: 0, habillees: 0, durees: 0 },
+
+                    ailleurs: { portees: [], sources: {}, gardes: 0 } },
 
       ranger: { titres: 0, masquables: 0, masques: 0, clics: 0, vignettes: { rediffusion: 0, avatar: 0, sans: 0 } },
     };
@@ -10978,10 +11029,103 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       }
       return S.uiAccRang(n);
     };
+
+    const MONDE = '*';
+    const ailleurs = new Map();
+    let rangsAilleurs = new Map();
+    const vusEtiquettes = new Map();
+
+    const ailleursActif = () => topActif() && options.get('accueilEtiquettes');
+    const partageAilleurs = (cle) => !!state.globalMode && !state.categoryFilter
+      && (state.languageFilter || null) === (cle === MONDE ? null : cle);
+    const instanceAilleurs = (cle) => {
+      let a = ailleurs.get(cle);
+      if (!a) {
+        a = { cle, voulu: false, classement: null };
+        a.classement = creerClassement(() => ({
+          actif: a.voulu && ailleursActif() && !partageAilleurs(cle),
+          lang: cle === MONDE ? null : cle, categorie: null, n: CFG.ACCUEIL_TOP_N,
+        }), false);
+        ailleurs.set(cle, a);
+      }
+      return a;
+    };
+
+    const languesAilleurs = () => {
+      const propre = langueVoulue();
+      const depuis = Date.now() - 2 * CFG.LIVE_TTL;
+      const compte = new Map();
+      for (const [login, ts] of vusEtiquettes) {
+        if (ts < depuis) continue;
+        for (const l of langStore.getLangs(login) || []) if (l !== propre) compte.set(l, (compte.get(l) || 0) + 1);
+      }
+      return [...compte].sort((x, y) => (y[1] - x[1]) || (x[0] < y[0] ? -1 : 1))
+        .slice(0, CFG.ETIQ_LANGUES_MAX).map(([l]) => l);
+    };
+
+    const placesProuvees = (src) => {
+      const r = src.report();
+      if (!src.resolu() || !r.complete || r.prouve < CFG.ACCUEIL_TOP_N) return null;
+      const places = new Map();
+      const out = new Map();
+      for (const rec of src.top(CFG.ACCUEIL_TOP_N)) {
+        const k = sessionDuMembre(rec.login) || ('s:' + rec.login);
+        if (!places.has(k)) places.set(k, places.size + 1);
+        const n = places.get(k);
+        if (n <= CFG.ACCUEIL_TOP_N && !out.has(rec.login)) out.set(rec.login, n);
+      }
+      return out;
+    };
+    const majAilleurs = () => {
+      const voulues = ailleursActif() ? [...(langueVoulue() ? [MONDE] : []), ...languesAilleurs()] : [];
+      for (const a of ailleurs.values()) a.voulu = voulues.includes(a.cle);
+
+      for (const cle of voulues) {
+        const a = instanceAilleurs(cle);
+        a.voulu = true;
+        ailleurs.delete(cle);
+        ailleurs.set(cle, a);
+      }
+
+      for (const [cle, a] of ailleurs) {
+        if (ailleurs.size <= CFG.ETIQ_CLASSEMENTS_MAX) break;
+        if (!a.voulu) ailleurs.delete(cle);
+      }
+      const rangs = new Map();
+      const sources = {};
+      for (const a of ailleurs.values()) {
+        if (!a.voulu) continue;
+        const partage = partageAilleurs(a.cle);
+        if (!partage) a.classement.tick();
+        const src = partage ? globalChannels : a.classement;
+        const places = placesProuvees(src);
+
+        sources[a.cle] = { source: partage ? 'barre' : 'accueil', resolu: src.resolu(), prouve: !!places, chaines: places ? places.size : 0 };
+        if (places) rangs.set(a.cle, places);
+      }
+      rangsAilleurs = rangs;
+      bilan.etiquettes.ailleurs = { portees: voulues, sources, gardes: ailleurs.size };
+      while (vusEtiquettes.size > CFG.ETIQ_HISTO_MAX) vusEtiquettes.delete(vusEtiquettes.keys().next().value);
+    };
+
+    const nomsLangues = new Map();
+    const nomLangue = (tag) => {
+      const cle = `${S.locale}|${tag}`;
+      if (nomsLangues.has(cle)) return nomsLangues.get(cle);
+      const code = String(LANG_API[tag] || '').toLowerCase();
+      let nom = null;
+      try { nom = code ? new Intl.DisplayNames([S.locale], { type: 'language' }).of(code) : null; } catch { nom = null; }
+      const dit = nom && nom.toLowerCase() !== code ? nom : tag;
+      nomsLangues.set(cle, dit);
+      return dit;
+    };
     const etiquetteDe = (login, { rang = true } = {}) => {
       if (!options.get('accueilEtiquettes')) return null;
       const e = cache.get(login);
       if (!e || !e.stream || Date.now() - (e.ts || 0) > 2 * CFG.LIVE_TTL) return null;
+
+      vusEtiquettes.delete(login);
+      vusEtiquettes.set(login, Date.now());
       const r = agenda.retour(login, e.stream);
       if (r) return { type: 'retour', texte: S.uiEtiqRetour(r.jours) };
       if (e.subathon) return { type: 'subathon', texte: S.uiBadgeSubathon(e.subathon.jour) };
@@ -10993,8 +11137,17 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       if (jeu) return { type: 'bascule', texte: S.uiEtiqBascule(jeu) };
       const t = tendanceDe(login, e);
       if (t) return { type: 'tendance', texte: S.uiEtiqTendance(t.pct, Math.max(1, t.min)) };
+      const monde = langueVoulue() ? rangsAilleurs.get(MONDE)?.get(login) : undefined;
+      if (monde) return { type: 'monde', texte: S.uiEtiqRangMonde(monde) };
       const n = rang && rangsTop ? rangsTop.get(login) : undefined;
       if (n) return { type: 'rang', texte: rangDit(n) };
+      let autre = null;
+      for (const l of langStore.getLangs(login) || []) {
+        if (l === langueVoulue()) continue;
+        const p = rangsAilleurs.get(l)?.get(login);
+        if (p && (!autre || p < autre.p)) autre = { p, l };
+      }
+      if (autre) return { type: 'langue', texte: S.uiEtiqRangAutre(autre.p, nomLangue(autre.l)) };
       const k = camaradesDe(login).length;
       if (k > 0) return { type: 'costream', texte: S.uiEtiqCostream(k + 1) };
       return null;
@@ -11019,16 +11172,23 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     };
     const etiquetees = new Set();
     const coinsPour = new WeakMap();
+
+    let tempsSuivant = 0;
     const poserEtiquette = (n, et, twitch = false) => {
       if (!et) {
         if (n.hasAttribute('data-tse-etiquette')) {
           n.removeAttribute('data-tse-etiquette');
           n.removeAttribute('data-tse-etiq');
           n.removeAttribute('data-tse-etiq-coin');
+          n.removeAttribute('data-tse-etiq-temps');
         }
         coinsPour.delete(n);
         etiquetees.delete(n);
         return;
+      }
+      if (!n.hasAttribute('data-tse-etiq-temps')) {
+        n.setAttribute('data-tse-etiq-temps', String(tempsSuivant));
+        tempsSuivant = (tempsSuivant + 1) % CFG.ETIQ_PULSATION_TEMPS;
       }
 
       const pour = et.texte + (twitch && dureeMontree(n) ? '|d' : '');
@@ -12764,6 +12924,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         if (!actif()) { if (pose() || observateur || voile) retirer(); return; }
         verifier();
         if (topActif() && !partage()) classement.tick();
+        majAilleurs();
         peindre();
 
         if (voile && decidable()) leverVoile('reveil');
@@ -12812,7 +12973,14 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         pourquoi: { ...bilan.pourquoi, rayons: bilan.pourquoi.rayons.map((x) => ({ ...x })) },
         ranger: { ...bilan.ranger, vignettes: { ...bilan.ranger.vignettes }, retenus: [...lireMasques()] },
         etiquettes: { ...bilan.etiquettes, posees: { ...bilan.etiquettes.posees }, coins: { ...bilan.etiquettes.coins },
-                      twitch: { ...bilan.etiquettes.twitch }, active: !!options.get('accueilEtiquettes') },
+                      twitch: { ...bilan.etiquettes.twitch }, active: !!options.get('accueilEtiquettes'),
+
+                      ailleurs: (() => {
+                        const r = [...ailleurs].map(([k, a]) => [k, a.classement.report()]);
+                        return { ...bilan.etiquettes.ailleurs,
+                                 marches: Object.fromEntries(r.map(([k, x]) => [k, x.walks])),
+                                 operations: Object.fromEntries(r.map(([k, x]) => [k, x.ops])) };
+                      })() },
         rappels: rappels.rapport(),
       }),
 
