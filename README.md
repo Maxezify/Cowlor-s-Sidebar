@@ -2183,12 +2183,78 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## La pastille bat sans cesse (v4.33.0.8)
+
+« C'est une pulsation infinie et plus discrète que j'aimerais avoir, pas une
+animation toutes les cinq secondes : il faut que ce soit tout le temps en
+mouvement. » Publiée sur les quatre branches, avec la 4.33.0.6 :
+`claude/chrome-homepage`, `claude/chrome-prod`, `claude/firefox-homepage` et
+`claude/firefox-prod`.
+
+- **Continue.** La pastille grossit jusqu'à 1,06 fois sa taille (1,14 à la
+  4.33.0.7) et rapetisse jusqu'à la sienne, sans repos, sur une période de
+  deux secondes. Chaque moitié est adoucie (`ease-in-out`) : elle ne
+  s'arrête qu'à l'instant où elle change de sens.
+- **Toujours depuis son bord droit, à mi-hauteur**, et sans se déplacer.
+- **Les phases.** Cinq phases, à un cinquième de période d'écart, dans
+  l'ordre où les étiquettes paraissent : celles d'une même peinture ne
+  battent pas ensemble. La phase est un retard **négatif** : l'animation part
+  déjà avancée. Un retard positif aurait laissé la pastille immobile le temps
+  de l'attendre.
+- Le subathon garde son clignotement, et bat avec. Rien que la
+  transformation, que le compositeur prend (213). Le réglage reste « Les
+  étiquettes pulsent » ; sa description dit la pulsation continue, dans les
+  douze langues.
+
+### Le banc
+
+- **233 d)** : l'amplitude (1 et 1,06, trois images), la période de deux
+  secondes, la phase en retard négatif (−0,4 s, −0,8 s…), l'origine au bord
+  droit. Le mouvement est lu image après image, sur un peu plus d'une
+  période : la pastille atteint 1,06, revient à 1, ne reste jamais 200 ms sur
+  la même taille, et ne se déplace pas. Mesuré : la taille change à chaque
+  image.
+- **222 a'')** : la durée de la pulsation, à côté de celle du subathon.
+
+**Douze mutants nommés, tous pris.**
+
+| mutant | ce qui tombe |
+| --- | --- |
+| une seule phase pour toutes | 233 d) (les phases) |
+| le retard positif (la pastille attend, immobile) | 233 d) |
+| la phase oubliée | 233 d) |
+| la pulsation absente des cartes de Twitch | 233 d), et le mouvement |
+| une pulsation immobile | 233 d), et le mouvement |
+| la pulsation par à-coups (celle de la 4.33.0.7) | 233 d), et le mouvement |
+| l'ancien rebond | 233 d), et le mouvement |
+| l'origine au centre | 233 d) |
+| l'ancienne amplitude (1,14) | 233 d), et le mouvement |
+| l'ancienne période (cinq secondes) | 233 d) |
+| le réglage sans jeton de feuille | 233 e) |
+| le subathon qui ne clignote plus en battant | 222 a''), 233 d) |
+
+**Une course du banc, corrigée.** Pendant la campagne, 233 a) est tombée une
+fois avec le mutant de la période, qui ne touche pas aux places ; rejoué seul,
+ce mutant ne fait tomber que d). L'attente de a) ne portait que sur quelques
+étiquettes, et l'assertion en vérifie davantage : la place française de
+brune, le compte du classement anglais, le Top 10. Les classements arrivent
+chacun à son heure, et a) pouvait lire un état à moitié fait. a), c) et g)
+attendent désormais tout ce qu'elles vérifient (vingt secondes au plus ; un
+défaut les fait toujours tomber). De même, i) et j) disaient « aucune place »
+sans savoir si le classement avait déjà parlé : le mutant qui ôte la preuve
+ne tombait plus, à ce rejeu, que par j). Le rapport dit désormais si chaque
+classement est résolu (`etiquettes.ailleurs.sources[…].resolu`), et i) et j)
+l'attendent. Les seize mutants des places de la 4.33.0.6, rejoués sur cette
+forme : tous pris, et celui-là par i) comme par j).
+
+`npm run check` est vert : 232 scénarios, 2362 assertions.
+
 ## La pastille bat (v4.33.0.7)
 
 « La pastille devrait faire une pulsation : sa taille grossit et rapetisse. »
-Le rebond de la 4.33.0.6 devient une pulsation. Publiée sur les quatre
-branches, avec la 4.33.0.6 : `claude/chrome-homepage`, `claude/chrome-prod`,
-`claude/firefox-homepage` et `claude/firefox-prod`.
+Le rebond de la 4.33.0.6 devient une pulsation. Publiée sur
+`claude/chrome-homepage` seulement : remplacée par la pulsation continue de
+la 4.33.0.8 (ci-dessus) avant de partir sur les autres branches.
 
 - **Une pulsation par cycle de cinq secondes.** La pastille grossit jusqu'à
   1,14 fois sa taille, puis revient à la sienne, en 0,7 s (14 % du cycle).
@@ -26047,7 +26113,7 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 2301 Ko | 1088 Ko | 4 807 → **2** |
+| `content.js` | 2302 Ko | 1088 Ko | 4 808 → **2** |
 | `cadres.js` | 76 Ko | 35 Ko | 171 → **0** |
 | `adblock.js` | 126 Ko | 101 Ko | 301 → **2** |
 | `panneau.js` | 166 Ko | 85 Ko | 227 → **0** |

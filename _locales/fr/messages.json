@@ -836,7 +836,7 @@
     "message": "Les étiquettes pulsent"
   },
   "optDescAccueilPulsation": {
-    "message": "Une pulsation toutes les cinq secondes — l'étiquette grossit, puis reprend sa taille —, décalée d'une carte à l'autre, pour qu'elle se détache de la vignette."
+    "message": "Une pulsation discrète et continue — l'étiquette grossit et rapetisse sans cesse —, décalée d'une carte à l'autre, pour qu'elle se détache de la vignette."
   },
   "optAccueilAbsence": {
     "message": "Pendant votre absence"

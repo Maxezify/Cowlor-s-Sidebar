@@ -836,7 +836,7 @@
     "message": "Las etiquetas laten"
   },
   "optDescAccueilPulsation": {
-    "message": "Un latido cada cinco segundos —la etiqueta crece y vuelve a su tamaño—, desfasado de una tarjeta a otra, para que destaque sobre la miniatura."
+    "message": "Un latido discreto y continuo —la etiqueta crece y se encoge sin parar—, desfasado de una tarjeta a otra, para que destaque sobre la miniatura."
   },
   "optAccueilAbsence": {
     "message": "Mientras no estabas"

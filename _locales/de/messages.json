@@ -836,7 +836,7 @@
     "message": "Etiketten pulsieren"
   },
   "optDescAccueilPulsation": {
-    "message": "Ein Pulsschlag alle fünf Sekunden – das Etikett wird größer und dann wieder so groß wie vorher –, von Karte zu Karte versetzt, damit es sich vom Vorschaubild abhebt."
+    "message": "Ein dezentes, fortwährendes Pulsieren – das Etikett wird ständig größer und wieder kleiner –, von Karte zu Karte versetzt, damit es sich vom Vorschaubild abhebt."
   },
   "optAccueilAbsence": {
     "message": "Während du weg warst"

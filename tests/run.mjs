@@ -41186,7 +41186,7 @@ const lireImages = (page) => page.evaluate(() => {
     const eux = (l) => st(document.querySelector(`main a[data-a-target="preview-card-image-link"][href="/${l}"]`));
     return { aurore: nous('aurore'), brisa: nous('brisa'), cendre: nous('cendre'), houle: nous('houle'), xray: eux('xray'), aeltris: eux('aeltris') };
   });
-  /* La pulsation (4.33.0.7, cf. 233) est leur seule animation : aucune autre
+  /* La pulsation (4.33.0.8, continue, cf. 233) est leur seule animation : aucune autre
      sorte que le subathon ne change de couleur. */
   const teinte = (x, rgb) => x.c === rgb && x.bord === rgb && x.rond === '999px' && x.point && x.anim === 'tse-acc-etiq-pulsation';
   ok('a\') chaque sorte de fait a sa couleur, celle de la maquette — le retour en vert, le début en rouge, le co-stream en bleu, la place en or',
@@ -41222,7 +41222,7 @@ const lireImages = (page) => page.evaluate(() => {
     return [a, lu()];
   });
   ok('a\'\') le subathon clignote comme ailleurs : les huit teintes de la pastille, un tour d\'une seconde et demie, le bord et le point avec le texte — et il bat avec les autres',
-     couleurs.brisa.anim === 'tse-acc-etiq-subathon, tse-acc-etiq-pulsation' && couleurs.brisa.duree === '1.5s, 5s' && couleurs.brisa.point
+     couleurs.brisa.anim === 'tse-acc-etiq-subathon, tse-acc-etiq-pulsation' && couleurs.brisa.duree === '1.5s, 2s' && couleurs.brisa.point
      && brisa2[0].c !== brisa2[1].c && brisa2.every((x) => x.bord === x.c && surLeChemin(x.c)),
      JSON.stringify({ brisa: couleurs.brisa, brisa2 }));
 
@@ -43565,7 +43565,7 @@ const lireZap = (page) => page.evaluate(() => {
 }
 
 {
-  titre('233. Les places d\'ailleurs (4.33.0.6) et la pulsation (4.33.0.7) — « N°9 mondial », « N°5 en anglais », prouvées ; trois langues au plus ; la barre partagée ; des étiquettes qui battent l\'une après l\'autre');
+  titre('233. Les places d\'ailleurs (4.33.0.6) et la pulsation (4.33.0.8) — « N°9 mondial », « N°5 en anglais », prouvées ; trois langues au plus ; la barre partagée ; des étiquettes qui battent l\'une après l\'autre');
   /* LE DÉCOR. L'interface est française, le Top 10 de l'accueil aussi : celui
      du plateau, par la voie du tag. Tout Twitch, lui, se lit en descendant
      les catégories — une seule compte, « Just Chatting », dont le sommet
@@ -43643,14 +43643,31 @@ const lireZap = (page) => page.evaluate(() => {
              demandes: Object.fromEntries(['Français', 'English', 'Español', 'Deutsch', 'Italiano'].map((t) => [t, tags.filter((x) => x === t).length])) };
   });
   const tx = (e, l) => e.twitch[l]?.texte ?? null;
+  /* L'ÉTAT ENTIER, PAS SES PREMIERS SIGNES. Les classements arrivent chacun à
+     son heure — le Top 10 français, le monde, l'anglais, la session du
+     co-stream — et une attente posée sur quelques étiquettes laissait
+     l'assertion lire un état à moitié fait : une fois, sous la charge d'une
+     campagne de mutants, a) est tombée sur un code juste. On relit donc
+     jusqu'à ce que TOUT ce qu'une assertion vérifie soit là, ou vingt
+     secondes : un défaut la fait toujours tomber, il ne fait qu'attendre. */
+  const jusqua = async (p, cond, ms = 20_000) => {
+    let e = await lire(p);
+    for (const t0 = Date.now(); !cond(e) && Date.now() - t0 < ms; e = await lire(p)) await wait(p, 200);
+    return e;
+  };
 
+  const condA = (e) => tx(e, 'aeltris') === 'N°9 mondial' && e.twitch.aeltris?.sorte === 'monde'
+    && tx(e, 'tavor') === 'N°4 en français' && e.twitch.tavor?.sorte === 'rang' && tx(e, 'brune') === 'N°6 en français'
+    && tx(e, 'yarrow') === 'N°6 en anglais' && e.twitch.yarrow?.sorte === 'langue'
+    && tx(e, 'kestrel') === 'N°2 mondial' && tx(e, 'nadir') === 'N°3 mondial' && tx(e, 'vesna') === 'N°6 mondial'
+    && e.ailleurs.sources['*']?.chaines === 11 && e.ailleurs.sources.English?.chaines === 7
+    && e.top.zephyr === 'N°7 mondial' && e.top.tavor === null;
+  const condC = (e) => JSON.stringify(e.ailleurs.portees) === '["*","English","Español","Deutsch"]'
+    && e.demandes.Italiano === 0 && e.demandes.English > 0 && e.demandes.Deutsch > 0
+    && Object.keys(e.ailleurs.marches || {}).sort().join() === '*,Deutsch,English,Español'
+    && ['*', 'English', 'Español', 'Deutsch'].every((k) => e.ailleurs.sources[k]?.source === 'accueil' && e.ailleurs.sources[k]?.prouve);
   const pa = await ouvrir();
-  await attendre(pa, () => {
-    const t = (l) => document.querySelector(`main a[data-a-target="preview-card-image-link"][href="/${l}"]`)?.getAttribute('data-tse-etiquette');
-    return t('aeltris') === 'N°9 mondial' && t('yarrow') === 'N°6 en anglais' && t('nadir') === 'N°3 mondial' && t('ulric') === 'N°5 mondial'
-      && /^Subathon/.test(t('quinto') || '') && window.tse.accueil.rapport().etiquettes.ailleurs.sources['*']?.chaines === 11;
-  }, 20_000);
-  const e1 = await lire(pa);
+  const e1 = await jusqua(pa, (e) => condA(e) && condC(e) && /^Subathon/.test(tx(e, 'quinto') || ''));
   /* a) LE MONDE, PUIS LA VÔTRE, PUIS UNE AUTRE. aeltris, troisième en
      français, est neuvième de tout Twitch : le monde passe devant. tavor,
      hors du monde, garde sa place française ; brune aussi, qui parle
@@ -43663,12 +43680,7 @@ const lireZap = (page) => page.evaluate(() => {
      française avant le monde ; l'autre langue avant la vôtre ; le monde
      jamais demandé ; une place par chaîne, co-stream compris. */
   ok('a) « N°9 mondial » avant « N°3 en français », « N°4 en français » hors du monde, « N°6 en anglais » pour une chaîne anglaise ; un co-stream, une place ; le monde aussi sur le Top 10',
-     tx(e1, 'aeltris') === 'N°9 mondial' && e1.twitch.aeltris?.sorte === 'monde'
-     && tx(e1, 'tavor') === 'N°4 en français' && e1.twitch.tavor?.sorte === 'rang' && tx(e1, 'brune') === 'N°6 en français'
-     && tx(e1, 'yarrow') === 'N°6 en anglais' && e1.twitch.yarrow?.sorte === 'langue'
-     && tx(e1, 'kestrel') === 'N°2 mondial' && tx(e1, 'nadir') === 'N°3 mondial' && tx(e1, 'vesna') === 'N°6 mondial'
-     && e1.ailleurs.sources['*']?.chaines === 11 && e1.ailleurs.sources.English?.chaines === 7
-     && e1.top.zephyr === 'N°7 mondial' && e1.top.tavor === null,
+     condA(e1),
      JSON.stringify({ twitch: e1.twitch, top: e1.top, sources: e1.ailleurs.sources }));
   /* b) LEURS COULEURS : l'or des places pour une autre langue, un or plus
      chaud pour le monde. */
@@ -43683,24 +43695,24 @@ const lireZap = (page) => page.evaluate(() => {
      plafond levé ; les moins nombreuses d'abord ; la langue du Top 10
      comptée. */
   ok('c) trois langues au plus — les plus nombreuses à l\'écran, le nom à égalité — et le monde : l\'italien jamais demandé, le français pas deux fois',
-     JSON.stringify(e1.ailleurs.portees) === '["*","English","Español","Deutsch"]'
-     && e1.demandes.Italiano === 0 && e1.demandes.English > 0 && e1.demandes.Deutsch > 0
-     && Object.keys(e1.ailleurs.marches || {}).sort().join() === '*,Deutsch,English,Español'
-     && ['*', 'English', 'Español', 'Deutsch'].every((k) => e1.ailleurs.sources[k]?.source === 'accueil' && e1.ailleurs.sources[k]?.prouve),
+     condC(e1),
      JSON.stringify(e1));
 
-  /* d) LA PULSATION (4.33.0.7 ; un rebond à la 4.33.0.6 : « la pastille
-     devrait faire une pulsation, sa taille grossit et rapetisse »). Chaque
-     étiquette, sur nos cartes comme sur celles de Twitch, bat une fois par
-     cycle de cinq secondes : elle grossit jusqu'à 1,14 fois sa taille, et
-     revient à la sienne. Depuis son bord droit, où elle est calée : le
-     point d'origine est au bord droit, à mi-hauteur. Chacune a son temps
-     parmi cinq, et son retard est celui de son temps — les étiquettes d'une
-     même peinture ne battent pas ensemble. Le subathon garde son
-     clignotement, et bat avec. Lu sur les animations du document : celles
-     des pseudo-éléments y sont. Mutants — un seul temps pour toutes ; le
-     retard oublié ; la pulsation absente des cartes de Twitch ; une
-     pulsation immobile ; l'ancien rebond ; l'origine au centre. */
+  /* d) LA PULSATION (4.33.0.8 ; un rebond à la 4.33.0.6, une pulsation
+     toutes les cinq secondes à la 4.33.0.7 — « c'est une pulsation infinie
+     et plus discrète que j'aimerais : il faut que ce soit tout le temps en
+     mouvement »). Chaque étiquette, sur nos cartes comme sur celles de
+     Twitch, bat sans repos : elle grossit jusqu'à 1,06 fois sa taille et
+     rapetisse jusqu'à la sienne, sur une période de deux secondes. Depuis
+     son bord droit, où elle est calée : le point d'origine est au bord
+     droit, à mi-hauteur. Chacune a sa phase parmi cinq — un retard négatif
+     d'un cinquième de période par phase, pour qu'aucune n'attende immobile —
+     et les étiquettes d'une même peinture ne battent pas ensemble. Le
+     subathon garde son clignotement, et bat avec. Lu sur les animations du
+     document : celles des pseudo-éléments y sont. Mutants — une seule phase
+     pour toutes ; le retard positif ; la pulsation absente des cartes de
+     Twitch ; une pulsation immobile ; la pulsation des cinq secondes ;
+     l'ancien rebond ; l'origine au centre ; l'ancienne amplitude. */
   const pulsation = await pa.evaluate(() => {
     const anims = document.getAnimations().filter((a) => a.animationName === 'tse-acc-etiq-pulsation');
     // Une place que le Top 10 ne montre pas (au-delà de ce que la largeur tient) ne s'anime pas : on lit celles qui se voient.
@@ -43721,36 +43733,45 @@ const lireZap = (page) => page.evaluate(() => {
   const bien = (r) => {
     const subathon = r.nom.startsWith('tse-acc-etiq-subathon, ');
     const t = Number(r.temps);
-    return /^[0-4]$/.test(r.temps) && r.court === 'running' && r.delai === t * 1000 && r.plus === 1.14 && r.moins === 1
-      && r.origine.droite && r.origine.milieu
-      && (subathon ? r.nom === 'tse-acc-etiq-subathon, tse-acc-etiq-pulsation' && r.duree === '1.5s, 5s' && r.retard === `0s, ${t}s`
-                   : r.nom === 'tse-acc-etiq-pulsation' && r.duree === '5s' && r.fois === 'infinite' && r.retard === `${t}s`);
+    // La phase : un retard négatif d'un cinquième de période (400 ms) par temps — « -1.2s » au troisième.
+    const phase = `${-t * 400 / 1000}s`;
+    return /^[0-4]$/.test(r.temps) && r.court === 'running' && r.delai === -t * 400 && r.plus === 1.06 && r.moins === 1
+      && r.images.length === 3 && r.origine.droite && r.origine.milieu
+      && (subathon ? r.nom === 'tse-acc-etiq-subathon, tse-acc-etiq-pulsation' && r.duree === '1.5s, 2s' && r.retard === `0s, ${phase}`
+                   : r.nom === 'tse-acc-etiq-pulsation' && r.duree === '2s' && r.fois === 'infinite' && r.retard === phase);
   };
   const temps = new Set(pulsation.map((r) => r.temps));
-  ok('d) chaque étiquette bat — elle grossit jusqu\'à 1,14 fois sa taille et revient à la sienne, depuis son bord droit, un cycle de cinq secondes, sans fin —, sur nos cartes comme sur celles de Twitch, le subathon avec son clignotement',
+  ok('d) chaque étiquette bat sans repos — elle grossit jusqu\'à 1,06 fois sa taille et rapetisse jusqu\'à la sienne, depuis son bord droit, une période de deux secondes, sans fin —, sur nos cartes comme sur celles de Twitch, le subathon avec son clignotement',
      pulsation.length >= 8 && pulsation.every(bien) && pulsation.some((r) => r.twitch) && pulsation.some((r) => !r.twitch)
      && pulsation.some((r) => r.nom.startsWith('tse-acc-etiq-subathon')),
      JSON.stringify(pulsation));
-  ok('…chacune à son temps parmi cinq, et son retard le suit : les étiquettes ne battent pas ensemble',
+  ok('…chacune à sa phase parmi cinq, un retard négatif qui la suit : les étiquettes ne battent pas ensemble, et aucune n\'attend',
      temps.size >= 4, JSON.stringify([...temps]));
-  /* Le mouvement lui-même, lu sur l'image : la pastille d'aeltris grossit,
-     et revient à sa taille, dans un cycle — sans jamais se déplacer. */
+  /* Le mouvement lui-même, lu sur l'image, image après image, une période
+     et un peu plus : la pastille d'aeltris grossit jusqu'à 1,06 et revient à
+     sa taille, ne reste jamais deux cents millisecondes sur la même taille —
+     elle ne s'arrête qu'à l'instant où elle change de sens —, et ne se
+     déplace jamais. */
   const mouvement = await pa.evaluate(async () => {
     const el = document.querySelector('main a[data-a-target="preview-card-image-link"][href="/aeltris"]');
-    const vus = new Set();
-    let deplace = false;
+    let plus = 0, moins = Infinity, deplace = false, palier = 0, avant = null, depuis = performance.now();
     const t0 = performance.now();
-    while (performance.now() - t0 < 5_600 && vus.size < 2) {
+    while (performance.now() - t0 < 2_400) {
       const m = getComputedStyle(el, '::after').transform;
       const v = m === 'none' ? [1, 0, 0, 1, 0, 0] : (m.match(/-?[\d.]+(?:e-?\d+)?/g) || []).map(Number);
+      const t = performance.now();
       if (Math.abs(v[4]) > 0.01 || Math.abs(v[5]) > 0.01 || Math.abs(v[0] - v[3]) > 0.001) deplace = true;
-      if (v[0] >= 1.07) vus.add('grande'); else if (Math.abs(v[0] - 1) < 0.001) vus.add('repos');
+      plus = Math.max(plus, v[0]);
+      moins = Math.min(moins, v[0]);
+      if (v[0] !== avant) { avant = v[0]; depuis = t; }
+      palier = Math.max(palier, t - depuis);
       await new Promise((r) => requestAnimationFrame(r));
     }
-    return { vus: [...vus].sort(), deplace };
+    return { plus, moins, palier: Math.round(palier), deplace };
   });
-  ok('…et elle bat : la pastille grossit, puis revient à sa taille, dans un même cycle — sans se déplacer',
-     mouvement.vus.join() === 'grande,repos' && !mouvement.deplace, JSON.stringify(mouvement));
+  ok('…et elle bat tout le temps : la pastille grossit jusqu\'à 1,06, revient à sa taille, ne s\'arrête jamais deux cents millisecondes — sans se déplacer',
+     mouvement.plus >= 1.05 && mouvement.plus <= 1.0601 && mouvement.moins <= 1.005 && mouvement.palier < 200 && !mouvement.deplace,
+     JSON.stringify(mouvement));
   /* e) « LES ÉTIQUETTES PULSENT », COUPÉ : plus une étiquette ne bat, et le
      subathon clignote encore. Les étiquettes, elles, restent. */
   await pa.evaluate(() => window.tse.options.poser('accueilPulsation', false));
@@ -43787,15 +43808,12 @@ const lireZap = (page) => page.evaluate(() => {
      place en français ; brune, sa meilleure, en anglais. Mutant — le monde
      gardé. */
   await pa.evaluate(() => window.tse.options.poser('accueilTopLangue', 'toutes'));
-  await attendre(pa, () => {
-    const t = (l) => document.querySelector(`main a[data-a-target="preview-card-image-link"][href="/${l}"]`)?.getAttribute('data-tse-etiquette');
-    return t('aeltris') === 'N°9 du Top 10' && t('tavor') === 'N°4 en français';
-  }, 20_000);
-  const e3 = await lire(pa);
+  const condG = (e) => tx(e, 'aeltris') === 'N°9 du Top 10' && e.twitch.aeltris?.sorte === 'rang'
+    && tx(e, 'tavor') === 'N°4 en français' && e.twitch.tavor?.sorte === 'langue' && tx(e, 'brune') === 'N°5 en anglais'
+    && JSON.stringify(e.ailleurs.portees) === '["Français","English","Español"]' && !('*' in e.ailleurs.sources);
+  const e3 = await jusqua(pa, condG);
   ok('g) « Toutes les langues » : « N°9 du Top 10 », plus de classement du monde à part ; le français devient une autre langue — « N°4 en français »',
-     tx(e3, 'aeltris') === 'N°9 du Top 10' && e3.twitch.aeltris?.sorte === 'rang'
-     && tx(e3, 'tavor') === 'N°4 en français' && e3.twitch.tavor?.sorte === 'langue' && tx(e3, 'brune') === 'N°5 en anglais'
-     && JSON.stringify(e3.ailleurs.portees) === '["Français","English","Español"]' && !('*' in e3.ailleurs.sources),
+     condG(e3),
      JSON.stringify({ twitch: e3.twitch, ailleurs: e3.ailleurs }));
   /* h) LE TOP 10 COUPÉ : aucune place, d'ici ni d'ailleurs, et plus un
      classement ne part. */
@@ -43820,12 +43838,14 @@ const lireZap = (page) => page.evaluate(() => {
     const a = window.tse.accueil.rapport().etiquettes.ailleurs;
     const t = (l) => document.querySelector(`main a[data-a-target="preview-card-image-link"][href="/${l}"]`)?.getAttribute('data-tse-etiquette');
     // Le Top 10 français et la place anglaise arrivent chacun à son heure : on attend les deux.
-    return a.marches['*'] >= 1 && a.sources.English?.prouve && !!t('kestrel') && t('aeltris') === 'N°3 en français';
+    // Le monde RÉSOLU : sans quoi « aucune place » ne dirait rien de la preuve.
+    return a.sources['*']?.resolu && a.sources.English?.prouve && !!t('kestrel') && t('aeltris') === 'N°3 en français';
   }, 25_000);
   const e5 = await lire(pi);
   await pi.close();
   ok('i) le monde résolu mais pas complet ne dit aucune place — kestrel dit la sienne en anglais, prouvée',
-     e5.ailleurs.sources['*']?.prouve === false && tx(e5, 'kestrel') === 'N°2 en anglais' && tx(e5, 'aeltris') === 'N°3 en français',
+     e5.ailleurs.sources['*']?.resolu === true && e5.ailleurs.sources['*']?.prouve === false
+     && tx(e5, 'kestrel') === 'N°2 en anglais' && tx(e5, 'aeltris') === 'N°3 en français',
      JSON.stringify({ ailleurs: e5.ailleurs, twitch: e5.twitch }));
 
   /* j) UNE LANGUE QUE TWITCH NE FILTRE PAS LUI-MÊME. ulric parle italien
@@ -43844,14 +43864,15 @@ const lireZap = (page) => page.evaluate(() => {
   });
   await attendre(pj, () => {
     const a = window.tse.accueil.rapport().etiquettes.ailleurs;
-    return a.marches.Italiano >= 2 && a.sources.English?.prouve && a.sources['*']?.prouve;
+    return a.marches.Italiano >= 2 && a.sources.Italiano?.resolu && a.sources.English?.prouve && a.sources['*']?.prouve;
   }, 20_000);
   await wait(pj, 1_000);
   const e6 = await lire(pj);
   await pj.close();
   ok('j) une langue que Twitch ne filtre pas lui-même — un classement approché — ne dit aucune place',
      JSON.stringify(e6.ailleurs.portees) === '["*","English","Español","Italiano"]' && e6.ailleurs.marches.Italiano >= 2
-     && e6.ailleurs.sources.Italiano?.prouve === false && tx(e6, 'quinto') === null && tx(e6, 'yarrow') === 'N°6 en anglais',
+     && e6.ailleurs.sources.Italiano?.resolu === true && e6.ailleurs.sources.Italiano?.prouve === false
+     && tx(e6, 'quinto') === null && tx(e6, 'yarrow') === 'N°6 en anglais',
      JSON.stringify({ ailleurs: e6.ailleurs, quinto: e6.twitch.quinto, yarrow: e6.twitch.yarrow }));
 }
 

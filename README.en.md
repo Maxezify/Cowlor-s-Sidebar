@@ -2064,12 +2064,73 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The pill keeps pulsing (v4.33.0.8)
+
+"It's an endless, subtler pulse I'd like, not an animation every five
+seconds: it has to be moving all the time." Published on the four branches,
+together with 4.33.0.6: `claude/chrome-homepage`, `claude/chrome-prod`,
+`claude/firefox-homepage` and `claude/firefox-prod`.
+
+- **Continuous.** The pill grows to 1.06 times its size (1.14 in 4.33.0.7)
+  and shrinks back to its own, without rest, over a two-second period. Each
+  half is eased (`ease-in-out`): it only stops at the instant it turns.
+- **Still from its right edge, at mid-height**, and without moving.
+- **The phases.** Five phases, a fifth of a period apart, in the order the
+  labels appear: labels painted together do not pulse together. The phase is
+  a **negative** delay: the animation starts already advanced. A positive
+  delay would have left the pill still while waiting for it.
+- The subathon keeps its blinking, and pulses too. Only the transform, which
+  the compositor takes (213). The setting stays "Labels pulse"; its
+  description tells of the continuous pulse, in the twelve languages.
+
+### The bench
+
+- **233 d)**: the amplitude (1 and 1.06, three keyframes), the two-second
+  period, the phase as a negative delay (−0.4 s, −0.8 s…), the origin at the
+  right edge. The movement is read frame after frame, over a little more
+  than a period: the pill reaches 1.06, returns to 1, never stays 200 ms at
+  the same size, and does not move. Measured: the size changes on every
+  frame.
+- **222 a'')**: the pulse's duration, next to the subathon's.
+
+**Twelve named mutants, all caught.**
+
+| mutant | what fails |
+| --- | --- |
+| one phase for all | 233 d) (the phases) |
+| the positive delay (the pill waits, still) | 233 d) |
+| the phase forgotten | 233 d) |
+| no pulse on Twitch's cards | 233 d), and the movement |
+| a still pulse | 233 d), and the movement |
+| the jerky pulse (4.33.0.7's) | 233 d), and the movement |
+| the old bounce | 233 d), and the movement |
+| the origin at the centre | 233 d) |
+| the old amplitude (1.14) | 233 d), and the movement |
+| the old period (five seconds) | 233 d) |
+| the setting without its stylesheet token | 233 e) |
+| the subathon no longer blinking while it pulses | 222 a''), 233 d) |
+
+**A bench race, fixed.** During the campaign, 233 a) failed once with the
+period mutant, which does not touch the places; replayed alone, that mutant
+only fails d). a)'s wait covered only a few labels, while the assertion checks
+more: brune's French place, the English ranking's count, the Top 10. The
+rankings each arrive in their own time, and a) could read a half-built state.
+a), c) and g) now wait for everything they check (twenty seconds at most; a
+defect still makes them fail). Likewise, i) and j) said "no place" without
+knowing whether the ranking had spoken yet: the mutant that removes the proof
+only failed j) on that replay. The report now tells whether each ranking is
+resolved (`etiquettes.ailleurs.sources[…].resolu`), and i) and j) wait for
+it. The sixteen place mutants of 4.33.0.6, replayed on this form: all
+caught, and that one by i) as well as j).
+
+`npm run check` is green: 232 scenarios, 2362 assertions.
+
 ## The pill pulses (v4.33.0.7)
 
 "The pill should pulse: its size grows and shrinks." The 4.33.0.6 bounce
-becomes a pulse. Published on the four branches, together with 4.33.0.6:
-`claude/chrome-homepage`, `claude/chrome-prod`, `claude/firefox-homepage`
-and `claude/firefox-prod`.
+becomes a pulse. Published on `claude/chrome-homepage` only: replaced by
+the continuous pulse of 4.33.0.8 (above) before it went to the other
+branches.
 
 - **One pulse per five-second cycle.** The pill grows to 1.14 times its
   size, then returns to its own, in 0.7 s (14% of the cycle). It stays still
@@ -25315,7 +25376,7 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 2301 KB | 1088 KB | 4,807 → **2** |
+| `content.js` | 2302 KB | 1088 KB | 4,808 → **2** |
 | `cadres.js` | 76 KB | 35 KB | 171 → **0** |
 | `adblock.js` | 126 KB | 101 KB | 301 → **2** |
 | `panneau.js` | 166 KB | 85 KB | 227 → **0** |
