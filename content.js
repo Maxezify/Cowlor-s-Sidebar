@@ -4838,11 +4838,12 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     ETIQ_TENDANCE_MIN:      50,
     ETIQ_HISTO_MAX:         400,
     ETIQ_TWITCH_MAX:        60,
-    /* LE REBOND (4.33.0.6, cf. ETIQUETTES) : un rebond par cycle de cinq
-       secondes, et cinq temps décalés d'un cinquième de cycle, pour que les
-       cartes ne sautent pas ensemble. */
-    ETIQ_REBOND_MS:         5000,
-    ETIQ_REBOND_TEMPS:      5,
+    /* LA PULSATION (4.33.0.7, cf. ETIQUETTES) : une pulsation par cycle de
+       cinq secondes, et cinq temps décalés d'un cinquième de cycle, pour que
+       les cartes ne battent pas ensemble. La taille au plus fort. */
+    ETIQ_PULSATION_MS:      5000,
+    ETIQ_PULSATION_TEMPS:   5,
+    ETIQ_PULSATION_ECHELLE: 1.14,
     /* LES PLACES D'AILLEURS (4.33.0.6, cf. ETIQUETTES). Le Top 10 mondial, et
        celui des autres langues des cartes de l'accueil : trois langues au plus
        à la fois — les plus nombreuses —, chacune au rythme du Top 10 (une
@@ -5012,9 +5013,10 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        déjà posés restent, jusqu'à leur heure. */
     accueilRdv:      { defaut: true,      type: 'bool', sous: ['accueil'] },
     accueilEtiquettes: { defaut: true,    type: 'bool', sous: ['accueil'] },
-    /* Le rebond des étiquettes (4.33.0.6) : un jeton de la feuille, comme la
-       durée — la feuille seule l'anime, et le coupe. */
-    accueilRebond:   { defaut: true,      type: 'bool', sous: ['accueil', 'accueilEtiquettes'], css: true },
+    /* La pulsation des étiquettes (4.33.0.7 ; un rebond à la 4.33.0.6) : un
+       jeton de la feuille, comme la durée — la feuille seule l'anime, et la
+       coupe. */
+    accueilPulsation: { defaut: true,     type: 'bool', sous: ['accueil', 'accueilEtiquettes'], css: true },
     accueilAbsence:  { defaut: true,      type: 'bool', sous: ['accueil'] },
     accueilPourquoi: { defaut: true,      type: 'bool', sous: ['accueil'] },
     accueilRanger:   { defaut: true,      type: 'bool', sous: ['accueil'] },
@@ -9690,37 +9692,41 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       0%, 100% { color: #ff8f8f; } 12.5% { color: #ffe38f; } 25% { color: #c7ff8f; } 37.5% { color: #8fffb4; }
       50% { color: #8ffdff; } 62.5% { color: #8fabff; } 75% { color: #c78fff; } 87.5% { color: #ff8fe3; }
     }
-    /* LE REBOND (4.33.0.6). « Pour les pastilles sur les listes de contenus,
-       je souhaite qu'il puisse y avoir une animation bounce, pour qu'elles se
-       démarquent un peu du visuel des contenus » : sur une vignette qui
-       bouge, une pastille immobile se fond dans l'image. Deux sauts amortis —
-       six pixels, puis deux — une fois par cycle, et rien le reste du temps.
-       LES CARTES NE SAUTENT PAS ENSEMBLE : chacune prend un temps parmi cinq,
+    /* LA PULSATION (4.33.0.7 ; un rebond à la 4.33.0.6). « Pour les
+       pastilles sur les listes de contenus, je souhaite qu'il puisse y avoir
+       une animation bounce, pour qu'elles se démarquent un peu du visuel des
+       contenus » : sur une vignette qui bouge, une pastille immobile se fond
+       dans l'image. Puis « la pastille devrait faire une pulsation, sa taille
+       grossit et rapetisse » : le rebond de la 4.33.0.6 devient une
+       pulsation. Une fois par cycle, la pastille grossit jusqu'à
+       ETIQ_PULSATION_ECHELLE, et revient à sa taille ; rien le reste du temps.
+       ELLE GROSSIT DEPUIS SON BORD DROIT : la pastille est calée à droite de
+       la vignette, et y reste — elle ne déborde ni sur le bord ni sur ce
+       qui la borde.
+       LES CARTES NE BATTENT PAS ENSEMBLE : chacune prend un temps parmi cinq,
        dans l'ordre où ses étiquettes paraissent (data-tse-etiq-temps) : celles
-       d'une même peinture sautent l'une après l'autre, à une seconde d'écart,
+       d'une même peinture battent l'une après l'autre, à une seconde d'écart,
        et une étiquette venue plus tard part de son propre instant. Une
-       variable posée sur la carte,
-       que son ::after hérite, comme la couleur. Rien que la transformation :
-       le compositeur la prend (213). Le subathon garde son clignotement, et
-       rebondit avec — la seconde règle, plus loin dans la feuille, l'emporte
-       à précision égale. « Les étiquettes rebondissent », coupé, rend la
-       feuille d'avant. */
-    html:not([data-tse-off~="accueilRebond"]) .tse-acc-vignette[data-tse-etiquette]::after,
-    html:not([data-tse-off~="accueilRebond"]) main a[data-a-target="preview-card-image-link"][data-tse-etiquette]::after {
-      animation: tse-acc-etiq-rebond ${CFG.ETIQ_REBOND_MS}ms cubic-bezier(0.3, 0, 0.3, 1) var(--tse-etiq-retard, 0ms) infinite;
+       variable posée sur la carte, que son ::after hérite, comme la couleur.
+       Rien que la transformation : le compositeur la prend (213). Le subathon
+       garde son clignotement, et bat avec — la seconde règle, plus loin dans
+       la feuille, l'emporte à précision égale. « Les étiquettes pulsent »,
+       coupé, rend la feuille d'avant. */
+    html:not([data-tse-off~="accueilPulsation"]) .tse-acc-vignette[data-tse-etiquette]::after,
+    html:not([data-tse-off~="accueilPulsation"]) main a[data-a-target="preview-card-image-link"][data-tse-etiquette]::after {
+      transform-origin: right center;
+      animation: tse-acc-etiq-pulsation ${CFG.ETIQ_PULSATION_MS}ms ease-in-out var(--tse-etiq-retard, 0ms) infinite;
     }
-    html:not([data-tse-off~="accueilRebond"]) .tse-acc-vignette[data-tse-etiq="subathon"]::after,
-    html:not([data-tse-off~="accueilRebond"]) main a[data-a-target="preview-card-image-link"][data-tse-etiq="subathon"]::after {
+    html:not([data-tse-off~="accueilPulsation"]) .tse-acc-vignette[data-tse-etiq="subathon"]::after,
+    html:not([data-tse-off~="accueilPulsation"]) main a[data-a-target="preview-card-image-link"][data-tse-etiq="subathon"]::after {
       animation: tse-acc-etiq-subathon 1.5s linear infinite,
-                 tse-acc-etiq-rebond ${CFG.ETIQ_REBOND_MS}ms cubic-bezier(0.3, 0, 0.3, 1) var(--tse-etiq-retard, 0ms) infinite;
+                 tse-acc-etiq-pulsation ${CFG.ETIQ_PULSATION_MS}ms ease-in-out var(--tse-etiq-retard, 0ms) infinite;
     }
-    ${Array.from({ length: CFG.ETIQ_REBOND_TEMPS - 1 }, (_, i) =>
-      `[data-tse-etiq-temps="${i + 1}"] { --tse-etiq-retard: ${Math.round((i + 1) * CFG.ETIQ_REBOND_MS / CFG.ETIQ_REBOND_TEMPS)}ms; }`).join('\n    ')}
-    @keyframes tse-acc-etiq-rebond {
-      0%, 15%, 100% { transform: translateY(0); }
-      4% { transform: translateY(-6px); }
-      8% { transform: translateY(0); }
-      11% { transform: translateY(-2px); }
+    ${Array.from({ length: CFG.ETIQ_PULSATION_TEMPS - 1 }, (_, i) =>
+      `[data-tse-etiq-temps="${i + 1}"] { --tse-etiq-retard: ${Math.round((i + 1) * CFG.ETIQ_PULSATION_MS / CFG.ETIQ_PULSATION_TEMPS)}ms; }`).join('\n    ')}
+    @keyframes tse-acc-etiq-pulsation {
+      0%, 14%, 100% { transform: scale(1); }
+      7% { transform: scale(${CFG.ETIQ_PULSATION_ECHELLE}); }
     }
     /* UN LIEN EN LIGNE N'EST PAS UN CADRE (4.33.0.5). « Les pastilles sur ce
        type de liste ont un problème — seulement sur Firefox » : la durée à
@@ -18575,7 +18581,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     };
     const etiquetees = new Set();   // les cartes de Twitch qui portent la nôtre
     const coinsPour = new WeakMap();  // carte → ce pour quoi son coin a été calculé
-    // Le temps du rebond (4.33.0.6, cf. la feuille) : donné à la carte quand son étiquette paraît.
+    // Le temps de la pulsation (4.33.0.7, cf. la feuille) : donné à la carte quand son étiquette paraît.
     let tempsSuivant = 0;
     const poserEtiquette = (n, et, twitch = false) => {
       if (!et) {
@@ -18591,7 +18597,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       }
       if (!n.hasAttribute('data-tse-etiq-temps')) {
         n.setAttribute('data-tse-etiq-temps', String(tempsSuivant));
-        tempsSuivant = (tempsSuivant + 1) % CFG.ETIQ_REBOND_TEMPS;
+        tempsSuivant = (tempsSuivant + 1) % CFG.ETIQ_PULSATION_TEMPS;
       }
       /* LE COIN SE RECALCULE quand le texte change, et quand notre durée
          paraît ou s'en va (4.32.0.4) : elle prend le haut, et la sienne — celle

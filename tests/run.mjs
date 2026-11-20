@@ -16721,7 +16721,8 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
      vous regardez souvent… » ; trente-quatre depuis la 4.32.0 : « Ranger
      l'accueil de Twitch » ; trente-cinq depuis la 4.32.0.4 : « Chaînes
      écartées du Top 10 » ; trente-six depuis la 4.33.0 : « Zapping » ;
-     trente-sept depuis la 4.33.0.6 : « Les étiquettes rebondissent ». En
+     trente-sept depuis la 4.33.0.6 : « Les étiquettes rebondissent », qui
+     pulsent depuis la 4.33.0.7. En
      polonais et en russe, à partir de cinq, le génitif pluriel — et, en
      polonais, le verbe au singulier. */
   const TRENTE_SEPT = { de: 'siebenunddreißig Einstellungen', en: 'thirty-seven settings',
@@ -41185,9 +41186,9 @@ const lireImages = (page) => page.evaluate(() => {
     const eux = (l) => st(document.querySelector(`main a[data-a-target="preview-card-image-link"][href="/${l}"]`));
     return { aurore: nous('aurore'), brisa: nous('brisa'), cendre: nous('cendre'), houle: nous('houle'), xray: eux('xray'), aeltris: eux('aeltris') };
   });
-  /* Le rebond (4.33.0.6, cf. 233) est leur seule animation : aucune autre
+  /* La pulsation (4.33.0.7, cf. 233) est leur seule animation : aucune autre
      sorte que le subathon ne change de couleur. */
-  const teinte = (x, rgb) => x.c === rgb && x.bord === rgb && x.rond === '999px' && x.point && x.anim === 'tse-acc-etiq-rebond';
+  const teinte = (x, rgb) => x.c === rgb && x.bord === rgb && x.rond === '999px' && x.point && x.anim === 'tse-acc-etiq-pulsation';
   ok('a\') chaque sorte de fait a sa couleur, celle de la maquette — le retour en vert, le début en rouge, le co-stream en bleu, la place en or',
      teinte(couleurs.aurore, 'rgb(107, 219, 157)') && teinte(couleurs.cendre, 'rgb(255, 107, 98)')
      && teinte(couleurs.houle, 'rgb(143, 199, 255)') && teinte(couleurs.xray, 'rgb(255, 107, 98)')
@@ -41220,8 +41221,8 @@ const lireImages = (page) => page.evaluate(() => {
     await new Promise((r) => setTimeout(r, 375));
     return [a, lu()];
   });
-  ok('a\'\') le subathon clignote comme ailleurs : les huit teintes de la pastille, un tour d\'une seconde et demie, le bord et le point avec le texte — et il rebondit avec les autres',
-     couleurs.brisa.anim === 'tse-acc-etiq-subathon, tse-acc-etiq-rebond' && couleurs.brisa.duree === '1.5s, 5s' && couleurs.brisa.point
+  ok('a\'\') le subathon clignote comme ailleurs : les huit teintes de la pastille, un tour d\'une seconde et demie, le bord et le point avec le texte — et il bat avec les autres',
+     couleurs.brisa.anim === 'tse-acc-etiq-subathon, tse-acc-etiq-pulsation' && couleurs.brisa.duree === '1.5s, 5s' && couleurs.brisa.point
      && brisa2[0].c !== brisa2[1].c && brisa2.every((x) => x.bord === x.c && surLeChemin(x.c)),
      JSON.stringify({ brisa: couleurs.brisa, brisa2 }));
 
@@ -43564,7 +43565,7 @@ const lireZap = (page) => page.evaluate(() => {
 }
 
 {
-  titre('233. Les places d\'ailleurs et le rebond (4.33.0.6) — « N°9 mondial », « N°5 en anglais », prouvées ; trois langues au plus ; la barre partagée ; des étiquettes qui rebondissent l\'une après l\'autre');
+  titre('233. Les places d\'ailleurs (4.33.0.6) et la pulsation (4.33.0.7) — « N°9 mondial », « N°5 en anglais », prouvées ; trois langues au plus ; la barre partagée ; des étiquettes qui battent l\'une après l\'autre');
   /* LE DÉCOR. L'interface est française, le Top 10 de l'accueil aussi : celui
      du plateau, par la voie du tag. Tout Twitch, lui, se lit en descendant
      les catégories — une seule compte, « Just Chatting », dont le sommet
@@ -43688,69 +43689,80 @@ const lireZap = (page) => page.evaluate(() => {
      && ['*', 'English', 'Español', 'Deutsch'].every((k) => e1.ailleurs.sources[k]?.source === 'accueil' && e1.ailleurs.sources[k]?.prouve),
      JSON.stringify(e1));
 
-  /* d) LE REBOND. Chaque étiquette, sur nos cartes comme sur celles de
-     Twitch, rebondit une fois par cycle de cinq secondes : six pixels, puis
-     deux, et le repos. Chacune a son temps parmi cinq, et son retard est
-     celui de son temps — les étiquettes d'une même peinture ne sautent pas
-     ensemble. Le subathon garde son clignotement, et rebondit avec. Lu sur
-     les animations du document : celles des pseudo-éléments y sont.
-     Mutants — un seul temps pour toutes ; le retard oublié ; le rebond
-     absent des cartes de Twitch ; un rebond immobile. */
-  const rebond = await pa.evaluate(() => {
-    const anims = document.getAnimations().filter((a) => a.animationName === 'tse-acc-etiq-rebond');
+  /* d) LA PULSATION (4.33.0.7 ; un rebond à la 4.33.0.6 : « la pastille
+     devrait faire une pulsation, sa taille grossit et rapetisse »). Chaque
+     étiquette, sur nos cartes comme sur celles de Twitch, bat une fois par
+     cycle de cinq secondes : elle grossit jusqu'à 1,14 fois sa taille, et
+     revient à la sienne. Depuis son bord droit, où elle est calée : le
+     point d'origine est au bord droit, à mi-hauteur. Chacune a son temps
+     parmi cinq, et son retard est celui de son temps — les étiquettes d'une
+     même peinture ne battent pas ensemble. Le subathon garde son
+     clignotement, et bat avec. Lu sur les animations du document : celles
+     des pseudo-éléments y sont. Mutants — un seul temps pour toutes ; le
+     retard oublié ; la pulsation absente des cartes de Twitch ; une
+     pulsation immobile ; l'ancien rebond ; l'origine au centre. */
+  const pulsation = await pa.evaluate(() => {
+    const anims = document.getAnimations().filter((a) => a.animationName === 'tse-acc-etiq-pulsation');
     // Une place que le Top 10 ne montre pas (au-delà de ce que la largeur tient) ne s'anime pas : on lit celles qui se voient.
     return [...document.querySelectorAll('[data-tse-etiquette]')].filter((el) => el.checkVisibility()).map((el) => {
       const st = getComputedStyle(el, '::after');
       const a = anims.find((x) => x.effect.target === el && x.effect.pseudoElement === '::after');
-      const ys = a ? a.effect.getKeyframes().map((k) => Number((/translateY\((-?[\d.]+)px\)/.exec(k.transform || '') || [0, 0])[1])) : [];
+      const images = a ? a.effect.getKeyframes().map((k) => k.transform || '') : [];
+      const echelles = images.map((t) => Number((/^scale\(([\d.]+)\)$/.exec(t) || [0, NaN])[1]));
+      const [ox, oy] = st.transformOrigin.split(' ').map(parseFloat);
       return { login: el.closest('[data-tse-cle]')?.dataset.tseCle || el.getAttribute('href'), twitch: !el.closest('#tse-accueil'),
                temps: el.getAttribute('data-tse-etiq-temps'), nom: st.animationName, duree: st.animationDuration, fois: st.animationIterationCount,
                retard: st.animationDelay, court: a ? a.playState : null, delai: a ? a.effect.getTiming().delay : null,
-               haut: ys.length ? Math.min(...ys) : null };
+               images, plus: echelles.length && echelles.every(Number.isFinite) ? Math.max(...echelles) : null,
+               moins: echelles.length && echelles.every(Number.isFinite) ? Math.min(...echelles) : null,
+               origine: { droite: Math.abs(ox - parseFloat(st.width)) <= 0.5, milieu: Math.abs(oy - parseFloat(st.height) / 2) <= 0.5, brut: st.transformOrigin, l: st.width, h: st.height } };
     });
   });
   const bien = (r) => {
     const subathon = r.nom.startsWith('tse-acc-etiq-subathon, ');
     const t = Number(r.temps);
-    return /^[0-4]$/.test(r.temps) && r.court === 'running' && r.delai === t * 1000 && r.haut === -6
-      && (subathon ? r.nom === 'tse-acc-etiq-subathon, tse-acc-etiq-rebond' && r.duree === '1.5s, 5s' && r.retard === `0s, ${t}s`
-                   : r.nom === 'tse-acc-etiq-rebond' && r.duree === '5s' && r.fois === 'infinite' && r.retard === `${t}s`);
+    return /^[0-4]$/.test(r.temps) && r.court === 'running' && r.delai === t * 1000 && r.plus === 1.14 && r.moins === 1
+      && r.origine.droite && r.origine.milieu
+      && (subathon ? r.nom === 'tse-acc-etiq-subathon, tse-acc-etiq-pulsation' && r.duree === '1.5s, 5s' && r.retard === `0s, ${t}s`
+                   : r.nom === 'tse-acc-etiq-pulsation' && r.duree === '5s' && r.fois === 'infinite' && r.retard === `${t}s`);
   };
-  const temps = new Set(rebond.map((r) => r.temps));
-  ok('d) chaque étiquette rebondit — six pixels, un cycle de cinq secondes, sans fin —, sur nos cartes comme sur celles de Twitch, le subathon avec son clignotement',
-     rebond.length >= 8 && rebond.every(bien) && rebond.some((r) => r.twitch) && rebond.some((r) => !r.twitch)
-     && rebond.some((r) => r.nom.startsWith('tse-acc-etiq-subathon')),
-     JSON.stringify(rebond));
-  ok('…chacune à son temps parmi cinq, et son retard le suit : les étiquettes ne sautent pas ensemble',
+  const temps = new Set(pulsation.map((r) => r.temps));
+  ok('d) chaque étiquette bat — elle grossit jusqu\'à 1,14 fois sa taille et revient à la sienne, depuis son bord droit, un cycle de cinq secondes, sans fin —, sur nos cartes comme sur celles de Twitch, le subathon avec son clignotement',
+     pulsation.length >= 8 && pulsation.every(bien) && pulsation.some((r) => r.twitch) && pulsation.some((r) => !r.twitch)
+     && pulsation.some((r) => r.nom.startsWith('tse-acc-etiq-subathon')),
+     JSON.stringify(pulsation));
+  ok('…chacune à son temps parmi cinq, et son retard le suit : les étiquettes ne battent pas ensemble',
      temps.size >= 4, JSON.stringify([...temps]));
-  /* Le mouvement lui-même, lu sur l'image : la pastille d'aeltris monte, et
-     revient au repos, dans un cycle. */
+  /* Le mouvement lui-même, lu sur l'image : la pastille d'aeltris grossit,
+     et revient à sa taille, dans un cycle — sans jamais se déplacer. */
   const mouvement = await pa.evaluate(async () => {
     const el = document.querySelector('main a[data-a-target="preview-card-image-link"][href="/aeltris"]');
     const vus = new Set();
+    let deplace = false;
     const t0 = performance.now();
     while (performance.now() - t0 < 5_600 && vus.size < 2) {
       const m = getComputedStyle(el, '::after').transform;
-      const y = m === 'none' ? 0 : Number((m.match(/-?[\d.]+(?:e-?\d+)?/g) || [])[5]);
-      if (y <= -3) vus.add('haut'); else if (Math.abs(y) < 0.01) vus.add('repos');
+      const v = m === 'none' ? [1, 0, 0, 1, 0, 0] : (m.match(/-?[\d.]+(?:e-?\d+)?/g) || []).map(Number);
+      if (Math.abs(v[4]) > 0.01 || Math.abs(v[5]) > 0.01 || Math.abs(v[0] - v[3]) > 0.001) deplace = true;
+      if (v[0] >= 1.07) vus.add('grande'); else if (Math.abs(v[0] - 1) < 0.001) vus.add('repos');
       await new Promise((r) => requestAnimationFrame(r));
     }
-    return [...vus].sort();
+    return { vus: [...vus].sort(), deplace };
   });
-  ok('…et elle bouge : la pastille monte, puis revient au repos, dans un même cycle',
-     mouvement.join() === 'haut,repos', JSON.stringify(mouvement));
-  /* e) « LES ÉTIQUETTES REBONDISSENT », COUPÉ : plus une étiquette ne bouge,
-     et le subathon clignote encore. Les étiquettes, elles, restent. */
-  await pa.evaluate(() => window.tse.options.poser('accueilRebond', false));
-  await attendre(pa, () => (document.documentElement.getAttribute('data-tse-off') || '').split(' ').includes('accueilRebond'), 3_000);
+  ok('…et elle bat : la pastille grossit, puis revient à sa taille, dans un même cycle — sans se déplacer',
+     mouvement.vus.join() === 'grande,repos' && !mouvement.deplace, JSON.stringify(mouvement));
+  /* e) « LES ÉTIQUETTES PULSENT », COUPÉ : plus une étiquette ne bat, et le
+     subathon clignote encore. Les étiquettes, elles, restent. */
+  await pa.evaluate(() => window.tse.options.poser('accueilPulsation', false));
+  await attendre(pa, () => (document.documentElement.getAttribute('data-tse-off') || '').split(' ').includes('accueilPulsation'), 3_000);
   const coupe = await pa.evaluate(() => ({
-    rebonds: document.getAnimations().filter((a) => a.animationName === 'tse-acc-etiq-rebond').length,
+    pulsations: document.getAnimations().filter((a) => a.animationName === 'tse-acc-etiq-pulsation').length,
     noms: [...new Set([...document.querySelectorAll('[data-tse-etiquette]')].map((el) => getComputedStyle(el, '::after').animationName))].sort(),
     poses: document.querySelectorAll('[data-tse-etiquette]').length,
     quinto: getComputedStyle(document.querySelector('main a[data-a-target="preview-card-image-link"][href="/quinto"]'), '::after').animationName,
   }));
-  ok('e) « Les étiquettes rebondissent » coupé : plus un rebond, les étiquettes restent, le subathon clignote encore',
-     coupe.rebonds === 0 && coupe.noms.join() === 'none,tse-acc-etiq-subathon' && coupe.poses >= 8 && coupe.quinto === 'tse-acc-etiq-subathon',
+  ok('e) « Les étiquettes pulsent » coupé : plus une pulsation, les étiquettes restent, le subathon clignote encore',
+     coupe.pulsations === 0 && coupe.noms.join() === 'none,tse-acc-etiq-subathon' && coupe.poses >= 8 && coupe.quinto === 'tse-acc-etiq-subathon',
      JSON.stringify(coupe));
 
   /* f) LA BARRE SERT DÉJÀ LE MONDE : Top Chaînes ouvert, sans catégorie,

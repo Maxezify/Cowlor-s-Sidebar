@@ -832,11 +832,11 @@
   "optDescAccueilEtiquettes": {
     "message": "Jeden fakt, tylko jeden, na każdej karcie strony głównej — rozszerzenia i Twitcha: „Wraca po 41 dniach”, „Właśnie wystartował”, „↗ +38% w 10 min”, „Nr 3 na świecie”… Dla kanału, którego pasek nie śledzi, liczby są pobierane, dopóki jego karta jest na ekranie; miejsca światowe i w innych językach — w rytmie Top 10."
   },
-  "optAccueilRebond": {
-    "message": "Etykiety podskakują"
+  "optAccueilPulsation": {
+    "message": "Etykiety pulsują"
   },
-  "optDescAccueilRebond": {
-    "message": "Mały podskok co pięć sekund, przesunięty między kartami, żeby etykieta odcinała się od miniatury."
+  "optDescAccueilPulsation": {
+    "message": "Pulsowanie co pięć sekund — etykieta rośnie, a potem wraca do swojego rozmiaru — przesunięte między kartami, żeby odcinała się od miniatury."
   },
   "optAccueilAbsence": {
     "message": "Podczas twojej nieobecności"

@@ -832,11 +832,11 @@
   "optDescAccueilEtiquettes": {
     "message": "ホームの各カード（拡張機能のものも Twitch のものも）に、事実をひとつだけ：「41 日ぶりの配信」「配信開始直後」「↗ 10 分で +38%」「世界で 3 位」… サイドバーが追っていないチャンネルは、カードが画面にある間だけ数値を問い合わせます。世界と他の言語の順位は、トップ 10 と同じ間隔で取得します。"
   },
-  "optAccueilRebond": {
-    "message": "ラベルを弾ませる"
+  "optAccueilPulsation": {
+    "message": "ラベルを脈打たせる"
   },
-  "optDescAccueilRebond": {
-    "message": "5 秒ごとに小さく弾みます（カードごとにタイミングをずらして）。ラベルがサムネイルから浮き立つように。"
+  "optDescAccueilPulsation": {
+    "message": "5 秒ごとにラベルが一度ふくらみ、元の大きさに戻ります（カードごとにタイミングをずらして）。サムネイルから浮き立つように。"
   },
   "optAccueilAbsence": {
     "message": "お留守の間に"

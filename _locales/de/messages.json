@@ -832,11 +832,11 @@
   "optDescAccueilEtiquettes": {
     "message": "Eine Tatsache, nur eine, auf jeder Karte der Startseite – denen der Erweiterung wie denen von Twitch: „Zurück nach 41 Tagen“, „Gerade gestartet“, „↗ +38 % in 10 Min.“, „Platz 3 weltweit“… Für einen Kanal, dem die Seitenleiste nicht folgt, werden die Zahlen abgefragt, solange seine Karte zu sehen ist; die Plätze weltweit und in anderen Sprachen im Takt der Top 10."
   },
-  "optAccueilRebond": {
-    "message": "Etiketten hüpfen"
+  "optAccueilPulsation": {
+    "message": "Etiketten pulsieren"
   },
-  "optDescAccueilRebond": {
-    "message": "Ein kleiner Hüpfer alle fünf Sekunden, von Karte zu Karte versetzt, damit sich das Etikett vom Vorschaubild abhebt."
+  "optDescAccueilPulsation": {
+    "message": "Ein Pulsschlag alle fünf Sekunden – das Etikett wird größer und dann wieder so groß wie vorher –, von Karte zu Karte versetzt, damit es sich vom Vorschaubild abhebt."
   },
   "optAccueilAbsence": {
     "message": "Während du weg warst"

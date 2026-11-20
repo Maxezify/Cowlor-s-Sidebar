@@ -832,11 +832,11 @@
   "optDescAccueilEtiquettes": {
     "message": "Un fatto, uno solo, su ogni scheda della home — quelle dell'estensione come quelle di Twitch: «Di ritorno dopo 41 giorni», «Appena iniziato», «↗ +38% in 10 min», «N. 3 al mondo»… Per un canale che la barra non segue, i suoi numeri vengono chiesti finché la sua scheda è sullo schermo; le posizioni mondiali e delle altre lingue, al ritmo della Top 10."
   },
-  "optAccueilRebond": {
-    "message": "Le etichette rimbalzano"
+  "optAccueilPulsation": {
+    "message": "Le etichette pulsano"
   },
-  "optDescAccueilRebond": {
-    "message": "Un piccolo rimbalzo ogni cinque secondi, sfalsato da una scheda all'altra, perché l'etichetta si stacchi dalla miniatura."
+  "optDescAccueilPulsation": {
+    "message": "Una pulsazione ogni cinque secondi — l'etichetta si ingrandisce, poi torna alla sua misura —, sfalsata da una scheda all'altra, perché si stacchi dalla miniatura."
   },
   "optAccueilAbsence": {
     "message": "Mentre eri via"
