@@ -2183,13 +2183,52 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## La pastille bat depuis son centre (v4.33.0.9)
+
+« Peux-tu faire une pulsation centrée, et pas qui s'élargit sur le côté
+gauche ? » Publiée sur les quatre branches, avec les 4.33.0.6 à 4.33.0.8 :
+`claude/chrome-homepage`, `claude/chrome-prod`, `claude/firefox-homepage` et
+`claude/firefox-prod`.
+
+- **Depuis son centre.** Jusqu'ici, la pastille grossissait depuis son bord
+  droit, et donc vers la gauche seulement. Elle grossit maintenant autant de
+  chaque côté : 3 % de sa largeur et de sa hauteur au plus fort (1,06 fois sa
+  taille). Le reste de la 4.33.0.8 ne change pas : continue, discrète, une
+  période de deux secondes, cinq phases.
+- **Elle reste dans sa vignette.** Sa marge est de 8 px. Sa largeur étant
+  bornée à 55 % de la vignette moins 8 px, elle déborde au plus fort de
+  0,03 × (0,55 × la largeur de la vignette − 8) px de chaque côté : moins que
+  sa marge tant que la vignette fait moins de 500 px de large. Sur sa hauteur
+  (22 px), moins d'un pixel.
+- **Vu à l'écran.** Les animations figées au repos puis au plus fort, une
+  carte de Twitch photographiée : la pastille dépasse d'autant à gauche qu'à
+  droite, et reste dans sa vignette.
+
+### Le banc
+
+- **233 d)** : l'origine au centre, à mi-largeur et à mi-hauteur ; et, pour
+  chaque étiquette visible, des marges plus grandes que ce qu'elle déborde au
+  plus fort (3 % de sa taille).
+
+**Trois mutants nommés, tous pris.**
+
+| mutant | ce qui tombe |
+| --- | --- |
+| l'ancienne origine, au bord droit | 233 d) |
+| l'origine dans le coin | 233 d) |
+| une pastille collée au bord, qui déborde en battant | 233 d) |
+
+Ôter `transform-origin: center` ne change rien : c'est la valeur par défaut.
+Elle est écrite pour se lire, et le banc la vérifie sur la valeur calculée.
+
+`npm run check` est vert : 232 scénarios, 2362 assertions.
+
 ## La pastille bat sans cesse (v4.33.0.8)
 
 « C'est une pulsation infinie et plus discrète que j'aimerais avoir, pas une
 animation toutes les cinq secondes : il faut que ce soit tout le temps en
-mouvement. » Publiée sur les quatre branches, avec la 4.33.0.6 :
-`claude/chrome-homepage`, `claude/chrome-prod`, `claude/firefox-homepage` et
-`claude/firefox-prod`.
+mouvement. » Publiée sur `claude/chrome-homepage` seulement : centrée à la
+4.33.0.9 (ci-dessus) avant de partir sur les autres branches.
 
 - **Continue.** La pastille grossit jusqu'à 1,06 fois sa taille (1,14 à la
   4.33.0.7) et rapetisse jusqu'à la sienne, sans repos, sur une période de

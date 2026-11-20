@@ -2064,12 +2064,51 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The pill pulses from its centre (v4.33.0.9)
+
+"Can you make the pulse centred, and not widening to the left?" Published on
+the four branches, together with 4.33.0.6 to 4.33.0.8:
+`claude/chrome-homepage`, `claude/chrome-prod`, `claude/firefox-homepage` and
+`claude/firefox-prod`.
+
+- **From its centre.** Until now, the pill grew from its right edge, so only
+  to the left. It now grows as much on each side: 3% of its width and height
+  at its peak (1.06 times its size). The rest of 4.33.0.8 does not change:
+  continuous, subtle, a two-second period, five phases.
+- **It stays inside its thumbnail.** Its margin is 8 px. Its width being
+  capped at 55% of the thumbnail minus 8 px, at its peak it overflows by
+  0.03 × (0.55 × the thumbnail's width − 8) px on each side: less than its
+  margin as long as the thumbnail is under 500 px wide. Vertically (22 px),
+  less than a pixel.
+- **Seen on screen.** Animations frozen at rest then at their peak, a Twitch
+  card photographed: the pill overflows as much on the left as on the right,
+  and stays inside its thumbnail.
+
+### The bench
+
+- **233 d)**: the origin at the centre, at mid-width and mid-height; and, for
+  each visible label, margins larger than what it overflows at its peak (3%
+  of its size).
+
+**Three named mutants, all caught.**
+
+| mutant | what fails |
+| --- | --- |
+| the old origin, at the right edge | 233 d) |
+| the origin in the corner | 233 d) |
+| a pill stuck to the edge, overflowing as it pulses | 233 d) |
+
+Removing `transform-origin: center` changes nothing: it is the default value.
+It is written to be read, and the bench checks it on the computed value.
+
+`npm run check` is green: 232 scenarios, 2362 assertions.
+
 ## The pill keeps pulsing (v4.33.0.8)
 
 "It's an endless, subtler pulse I'd like, not an animation every five
-seconds: it has to be moving all the time." Published on the four branches,
-together with 4.33.0.6: `claude/chrome-homepage`, `claude/chrome-prod`,
-`claude/firefox-homepage` and `claude/firefox-prod`.
+seconds: it has to be moving all the time." Published on
+`claude/chrome-homepage` only: centred in 4.33.0.9 (above) before it went to
+the other branches.
 
 - **Continuous.** The pill grows to 1.06 times its size (1.14 in 4.33.0.7)
   and shrinks back to its own, without rest, over a two-second period. Each

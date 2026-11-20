@@ -43565,7 +43565,7 @@ const lireZap = (page) => page.evaluate(() => {
 }
 
 {
-  titre('233. Les places d\'ailleurs (4.33.0.6) et la pulsation (4.33.0.8) — « N°9 mondial », « N°5 en anglais », prouvées ; trois langues au plus ; la barre partagée ; des étiquettes qui battent l\'une après l\'autre');
+  titre('233. Les places d\'ailleurs (4.33.0.6) et la pulsation (4.33.0.9) — « N°9 mondial », « N°5 en anglais », prouvées ; trois langues au plus ; la barre partagée ; des étiquettes qui battent l\'une après l\'autre');
   /* LE DÉCOR. L'interface est française, le Top 10 de l'accueil aussi : celui
      du plateau, par la voie du tag. Tout Twitch, lui, se lit en descendant
      les catégories — une seule compte, « Just Chatting », dont le sommet
@@ -43704,15 +43704,16 @@ const lireZap = (page) => page.evaluate(() => {
      mouvement »). Chaque étiquette, sur nos cartes comme sur celles de
      Twitch, bat sans repos : elle grossit jusqu'à 1,06 fois sa taille et
      rapetisse jusqu'à la sienne, sur une période de deux secondes. Depuis
-     son bord droit, où elle est calée : le point d'origine est au bord
-     droit, à mi-hauteur. Chacune a sa phase parmi cinq — un retard négatif
+     son centre (4.33.0.9, « une pulsation centrée, et pas qui s'élargit sur
+     le côté gauche ») : elle grossit autant de chaque côté, et au plus fort
+     ses marges la tiennent dans sa vignette. Chacune a sa phase parmi cinq — un retard négatif
      d'un cinquième de période par phase, pour qu'aucune n'attende immobile —
      et les étiquettes d'une même peinture ne battent pas ensemble. Le
      subathon garde son clignotement, et bat avec. Lu sur les animations du
      document : celles des pseudo-éléments y sont. Mutants — une seule phase
      pour toutes ; le retard positif ; la pulsation absente des cartes de
      Twitch ; une pulsation immobile ; la pulsation des cinq secondes ;
-     l'ancien rebond ; l'origine au centre ; l'ancienne amplitude. */
+     l'ancien rebond ; l'origine au bord droit ; l'ancienne amplitude. */
   const pulsation = await pa.evaluate(() => {
     const anims = document.getAnimations().filter((a) => a.animationName === 'tse-acc-etiq-pulsation');
     // Une place que le Top 10 ne montre pas (au-delà de ce que la largeur tient) ne s'anime pas : on lit celles qui se voient.
@@ -43727,7 +43728,9 @@ const lireZap = (page) => page.evaluate(() => {
                retard: st.animationDelay, court: a ? a.playState : null, delai: a ? a.effect.getTiming().delay : null,
                images, plus: echelles.length && echelles.every(Number.isFinite) ? Math.max(...echelles) : null,
                moins: echelles.length && echelles.every(Number.isFinite) ? Math.min(...echelles) : null,
-               origine: { droite: Math.abs(ox - parseFloat(st.width)) <= 0.5, milieu: Math.abs(oy - parseFloat(st.height) / 2) <= 0.5, brut: st.transformOrigin, l: st.width, h: st.height } };
+               origine: { centre: Math.abs(ox - parseFloat(st.width) / 2) <= 0.5, milieu: Math.abs(oy - parseFloat(st.height) / 2) <= 0.5, brut: st.transformOrigin, l: st.width, h: st.height },
+               // Ses marges dans la vignette : à droite, et en bas (ou en haut, quand elle y monte).
+               marges: { h: parseFloat(st.right), v: st.bottom === 'auto' ? parseFloat(st.top) : parseFloat(st.bottom) } };
     });
   });
   const bien = (r) => {
@@ -43736,12 +43739,14 @@ const lireZap = (page) => page.evaluate(() => {
     // La phase : un retard négatif d'un cinquième de période (400 ms) par temps — « -1.2s » au troisième.
     const phase = `${-t * 400 / 1000}s`;
     return /^[0-4]$/.test(r.temps) && r.court === 'running' && r.delai === -t * 400 && r.plus === 1.06 && r.moins === 1
-      && r.images.length === 3 && r.origine.droite && r.origine.milieu
+      && r.images.length === 3 && r.origine.centre && r.origine.milieu
+      // Au plus fort, elle déborde de (1,06 − 1) / 2 de sa taille de chaque côté : moins que sa marge.
+      && r.marges.h >= parseFloat(r.origine.l) * 0.03 && r.marges.v >= parseFloat(r.origine.h) * 0.03
       && (subathon ? r.nom === 'tse-acc-etiq-subathon, tse-acc-etiq-pulsation' && r.duree === '1.5s, 2s' && r.retard === `0s, ${phase}`
                    : r.nom === 'tse-acc-etiq-pulsation' && r.duree === '2s' && r.fois === 'infinite' && r.retard === phase);
   };
   const temps = new Set(pulsation.map((r) => r.temps));
-  ok('d) chaque étiquette bat sans repos — elle grossit jusqu\'à 1,06 fois sa taille et rapetisse jusqu\'à la sienne, depuis son bord droit, une période de deux secondes, sans fin —, sur nos cartes comme sur celles de Twitch, le subathon avec son clignotement',
+  ok('d) chaque étiquette bat sans repos — elle grossit jusqu\'à 1,06 fois sa taille et rapetisse jusqu\'à la sienne, depuis son centre et dans sa vignette, une période de deux secondes, sans fin —, sur nos cartes comme sur celles de Twitch, le subathon avec son clignotement',
      pulsation.length >= 8 && pulsation.every(bien) && pulsation.some((r) => r.twitch) && pulsation.some((r) => !r.twitch)
      && pulsation.some((r) => r.nom.startsWith('tse-acc-etiq-subathon')),
      JSON.stringify(pulsation));
