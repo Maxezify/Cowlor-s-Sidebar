@@ -9705,9 +9705,12 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        ETIQ_PULSATION_ECHELLE et rapetisse jusqu'à sa taille, sans repos, sur
        une période de ETIQ_PULSATION_MS ; ease-in-out sur chaque moitié : elle
        ne s'arrête qu'à l'instant où elle change de sens.
-       ELLE GROSSIT DEPUIS SON BORD DROIT : la pastille est calée à droite de
-       la vignette, et y reste — elle ne déborde ni sur le bord ni sur ce
-       qui la borde.
+       ELLE BAT DEPUIS SON CENTRE (4.33.0.9, « une pulsation centrée, et pas
+       qui s'élargit sur le côté gauche ») : elle grossit autant de chaque
+       côté, (ETIQ_PULSATION_ECHELLE − 1) / 2 de sa largeur et de sa hauteur —
+       3 %. Sa marge en fait 8 px : sa largeur étant bornée à 55 % de la
+       vignette moins 8 px, elle reste dans la vignette tant que celle-ci fait
+       moins de 500 px de large.
        LES CARTES NE BATTENT PAS ENSEMBLE : chacune prend une phase parmi cinq,
        dans l'ordre où ses étiquettes paraissent (data-tse-etiq-temps). La
        phase est un retard NÉGATIF : l'animation part déjà avancée d'un, deux…
@@ -9720,7 +9723,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        d'avant. */
     html:not([data-tse-off~="accueilPulsation"]) .tse-acc-vignette[data-tse-etiquette]::after,
     html:not([data-tse-off~="accueilPulsation"]) main a[data-a-target="preview-card-image-link"][data-tse-etiquette]::after {
-      transform-origin: right center;
+      transform-origin: center;
       animation: tse-acc-etiq-pulsation ${CFG.ETIQ_PULSATION_MS}ms ease-in-out var(--tse-etiq-phase, 0ms) infinite;
     }
     html:not([data-tse-off~="accueilPulsation"]) .tse-acc-vignette[data-tse-etiq="subathon"]::after,
