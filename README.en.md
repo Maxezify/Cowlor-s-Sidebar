@@ -331,13 +331,13 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 2287 KB | 1080 KB | 4,789 → **2** |
+| `content.js` | 2302 KB | 1088 KB | 4,808 → **2** |
 | `cadres.js` | 76 KB | 35 KB | 171 → **0** |
 | `adblock.js` | 126 KB | 101 KB | 301 → **2** |
 | `panneau.js` | 166 KB | 85 KB | 227 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 26 → **0** |
 | `background.js` | 10 KB | 2 KB | 22 → **0** |
-| **all six** | **2679 KB** | **1307 KB** | **−51 %** |
+| **all six** | **2694 KB** | **1315 KB** | **−51 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are
@@ -2494,6 +2494,314 @@ A sub-test that modelled an impossible case — a stream growing younger without
 changing id — was replaced along the way by the ordinary case that was actually
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
+
+## The pill pulses from its centre (v4.33.0.9)
+
+"Can you make the pulse centred, and not widening to the left?" Published on
+the four branches, together with 4.33.0.6 to 4.33.0.8:
+`claude/chrome-homepage`, `claude/chrome-prod`, `claude/firefox-homepage` and
+`claude/firefox-prod`.
+
+- **From its centre.** Until now, the pill grew from its right edge, so only
+  to the left. It now grows as much on each side: 3% of its width and height
+  at its peak (1.06 times its size). The rest of 4.33.0.8 does not change:
+  continuous, subtle, a two-second period, five phases.
+- **It stays inside its thumbnail.** Its margin is 8 px. Its width being
+  capped at 55% of the thumbnail minus 8 px, at its peak it overflows by
+  0.03 × (0.55 × the thumbnail's width − 8) px on each side: less than its
+  margin as long as the thumbnail is under 500 px wide. Vertically (22 px),
+  less than a pixel.
+- **Seen on screen.** Animations frozen at rest then at their peak, a Twitch
+  card photographed: the pill overflows as much on the left as on the right,
+  and stays inside its thumbnail.
+
+### The bench
+
+- **233 d)**: the origin at the centre, at mid-width and mid-height; and, for
+  each visible label, margins larger than what it overflows at its peak (3%
+  of its size).
+
+**Three named mutants, all caught.**
+
+| mutant | what fails |
+| --- | --- |
+| the old origin, at the right edge | 233 d) |
+| the origin in the corner | 233 d) |
+| a pill stuck to the edge, overflowing as it pulses | 233 d) |
+
+Removing `transform-origin: center` changes nothing: it is the default value.
+It is written to be read, and the bench checks it on the computed value.
+
+`npm run check` is green: 232 scenarios, 2362 assertions.
+
+## The pill keeps pulsing (v4.33.0.8)
+
+"It's an endless, subtler pulse I'd like, not an animation every five
+seconds: it has to be moving all the time." Published on
+`claude/chrome-homepage` only: centred in 4.33.0.9 (above) before it went to
+the other branches.
+
+- **Continuous.** The pill grows to 1.06 times its size (1.14 in 4.33.0.7)
+  and shrinks back to its own, without rest, over a two-second period. Each
+  half is eased (`ease-in-out`): it only stops at the instant it turns.
+- **Still from its right edge, at mid-height**, and without moving.
+- **The phases.** Five phases, a fifth of a period apart, in the order the
+  labels appear: labels painted together do not pulse together. The phase is
+  a **negative** delay: the animation starts already advanced. A positive
+  delay would have left the pill still while waiting for it.
+- The subathon keeps its blinking, and pulses too. Only the transform, which
+  the compositor takes (213). The setting stays "Labels pulse"; its
+  description tells of the continuous pulse, in the twelve languages.
+
+### The bench
+
+- **233 d)**: the amplitude (1 and 1.06, three keyframes), the two-second
+  period, the phase as a negative delay (−0.4 s, −0.8 s…), the origin at the
+  right edge. The movement is read frame after frame, over a little more
+  than a period: the pill reaches 1.06, returns to 1, never stays 200 ms at
+  the same size, and does not move. Measured: the size changes on every
+  frame.
+- **222 a'')**: the pulse's duration, next to the subathon's.
+
+**Twelve named mutants, all caught.**
+
+| mutant | what fails |
+| --- | --- |
+| one phase for all | 233 d) (the phases) |
+| the positive delay (the pill waits, still) | 233 d) |
+| the phase forgotten | 233 d) |
+| no pulse on Twitch's cards | 233 d), and the movement |
+| a still pulse | 233 d), and the movement |
+| the jerky pulse (4.33.0.7's) | 233 d), and the movement |
+| the old bounce | 233 d), and the movement |
+| the origin at the centre | 233 d) |
+| the old amplitude (1.14) | 233 d), and the movement |
+| the old period (five seconds) | 233 d) |
+| the setting without its stylesheet token | 233 e) |
+| the subathon no longer blinking while it pulses | 222 a''), 233 d) |
+
+**A bench race, fixed.** During the campaign, 233 a) failed once with the
+period mutant, which does not touch the places; replayed alone, that mutant
+only fails d). a)'s wait covered only a few labels, while the assertion checks
+more: brune's French place, the English ranking's count, the Top 10. The
+rankings each arrive in their own time, and a) could read a half-built state.
+a), c) and g) now wait for everything they check (twenty seconds at most; a
+defect still makes them fail). Likewise, i) and j) said "no place" without
+knowing whether the ranking had spoken yet: the mutant that removes the proof
+only failed j) on that replay. The report now tells whether each ranking is
+resolved (`etiquettes.ailleurs.sources[…].resolu`), and i) and j) wait for
+it. The sixteen place mutants of 4.33.0.6, replayed on this form: all
+caught, and that one by i) as well as j).
+
+`npm run check` is green: 232 scenarios, 2362 assertions.
+
+## The pill pulses (v4.33.0.7)
+
+"The pill should pulse: its size grows and shrinks." The 4.33.0.6 bounce
+becomes a pulse. Published on `claude/chrome-homepage` only: replaced by
+the continuous pulse of 4.33.0.8 (above) before it went to the other
+branches.
+
+- **One pulse per five-second cycle.** The pill grows to 1.14 times its
+  size, then returns to its own, in 0.7 s (14% of the cycle). It stays still
+  for the rest of the cycle.
+- **It grows from its right edge, at mid-height.** It is anchored to the
+  right of the thumbnail, and stays there: it does not overflow the edge, and
+  does not move.
+- **The rest does not change.** Five one-second slots, in the order the
+  labels appear: labels painted together pulse one after the other. The
+  subathon keeps its blinking, and pulses too. Only the transform, which the
+  compositor takes (213).
+- **The setting becomes "Labels pulse"** (`accueilPulsation`), in the twelve
+  languages. An "off" set on 4.33.0.6 is not carried over: the setting was
+  renamed, and 4.33.0.6 only lived on `claude/chrome-homepage`.
+
+### The bench
+
+- **233 d)**: each visible label pulses, on our cards and Twitch's: its
+  animation, its cycle, its keyframes (1 and 1.14, nothing else), its origin
+  at the right edge and mid-height, its delay following its slot. The
+  movement is read on screen: the pill grows, returns to its size, and never
+  moves.
+- **233 e), 222 a') and a'')**: the new names.
+
+**Nine named mutants, all caught.**
+
+| mutant | what fails |
+| --- | --- |
+| one slot for all | 233 d) (the slots) |
+| the delay forgotten | 233 d) |
+| no pulse on Twitch's cards | 233 d), and the movement |
+| a still pulse | 233 d), and the movement |
+| the old bounce | 233 d), and the movement |
+| the origin at the centre | 233 d) |
+| a barely visible pulse (1.04) | 233 d), and the movement |
+| the setting without its stylesheet token | 233 e) |
+| the subathon no longer blinking while it pulses | 222 a''), 233 d) |
+
+`npm run check` is green: 232 scenarios, 2362 assertions.
+
+## Labels bounce, and tell their place elsewhere (v4.33.0.6)
+
+Two requests about the labels on home page cards (v4.28.0). Published on
+`claude/chrome-homepage` only: the other branches will follow on request.
+
+| requested | what was done |
+| --- | --- |
+| "for the pills on content lists, I'd like a bounce animation, so they stand out a little from the content's visuals" | a bounce every five seconds, staggered from card to card, and a setting to turn it off |
+| "also possible to add pills for the worldwide Tops and the Tops of other languages?" | "#3 worldwide" and "#2 in English", with the same proofs as the Top 10 place |
+
+### The bounce
+
+Replaced in 4.33.0.7 by a pulse (above).
+
+On a moving thumbnail, a still pill blends into the picture. At the start of
+each five-second cycle, the label makes two damped hops, six pixels then two,
+and stays still for the rest of the cycle (85%). Only the transform: the
+compositor takes it, like the other decorations (213).
+
+**Cards don't jump together.** Each label takes one slot out of five, one
+second apart, in the order it appears (`data-tse-etiq-temps`). Labels painted
+together therefore jump one after the other; a label that comes later starts
+from its own instant.
+
+The subathon keeps its blinking, and bounces too. The **"Labels bounce"**
+setting, under "One label per card", is on by default; off, it gives back the
+previous stylesheet. Like the extension's other animations, the bounce does
+not read `prefers-reduced-motion`: the setting is what turns it off.
+
+### Places elsewhere
+
+The home Top 10 is one language's, usually yours. A channel in another
+language, or the first of all of Twitch, had no place to tell. The order of
+facts becomes:
+
+| | fact |
+| --- | --- |
+| 1 to 5 | the return, the subathon, the start, the switch, the rise (unchanged) |
+| 6 | **"#3 worldwide"**: the place in the Top 10 of all of Twitch, when the home one is a language's |
+| 7 | "#3 in English": the place in the home Top 10 (unchanged) |
+| 8 | **"#2 in French"**: the place in the Top 10 of another language, one the channel carries as a tag |
+| 9 | "Co-stream of 3 channels" (unchanged) |
+
+- **The world comes before your language**: it is rarer. In "All
+  languages", the Top 10 is the world, and its place is already told ("#3 in
+  the Top 10"): no separate world ranking.
+- **Your language comes before another.** A channel carrying several
+  languages tells its best place among the others. In "All languages", your
+  language becomes another language.
+- **The language's name** is the one the browser gives in the interface
+  language (`Intl.DisplayNames`): "English", "anglais", "Englisch". Polish and
+  Russian decline it from the adjective: "Nr 2 po angielsku", "№ 2 на
+  английском". A name of another form is written as is, after a middle dot.
+  Without a name, Twitch's tag.
+- **Which languages:** the three most frequent among the home page's cards
+  whose stream is known, painted within the last minute, without the Top 10's
+  own. Ties are broken by name.
+- **Colours:** another language, the gold of places; the world, a warmer gold
+  (`#ffb35c`).
+
+**A place is only written once proven,** as in the Top 10: a resolved
+ranking, complete according to its report, whose proof covers the ten places.
+A language Twitch does not filter itself (tag refused, broadcast code unknown)
+falls back on the tags read: an approximate ranking, which tells no place.
+Co-stream members share a place, as in the Top 10 and Top Channels. The
+channels you excluded from the Top 10 change nothing here: they are your
+list, not a fact of Twitch's ranking.
+
+### What it costs
+
+Each extra ranking is the Top 10's engine (and Top Channels'), at its pace:
+
+| ranking | pace and cost |
+| --- | --- |
+| the world | a light pass every 30 s (~11 operations), the category descent at most every 2 min 30 (~64 operations). **Nothing** when the sidebar already serves the same question: Top Channels open, no category, all languages |
+| each other language, three at most | a light pass every 30 s (~11 operations), a walk at most every 2 min 30: one `TseTagTop`. **Nothing** when Top Channels already serves that language |
+
+None is sent when the home page is not on screen, when "One label per card"
+is off, or **when the Top 10 is off**: its places, from here or elsewhere, are
+the Top 10's, and turning it off means paying for none (217 already held it:
+Top 10 off, nothing else is sent). At most six rankings stay in memory. The
+report describes them (`etiquettes.ailleurs`): the wanted scopes, where each
+comes from (the home page or the sidebar), whether it is proven, how many
+channels hold a place in it, and the walks and operations of each. That is
+what will tell, on the real Twitch, what they cost.
+
+### What could not be checked here
+
+- **The real Twitch.** The world is Top Channels' descent, the languages the
+  tag path: two paths already published. The real cost of three more
+  languages will be read in the report.
+- **A co-stream at the top of the world** only shares a place if its session
+  is known, as in Top Channels. Until one of its members has been queried,
+  each counts as one place, and the following places shift accordingly.
+- **Firefox**: its test download is still refused by this environment's
+  network. The bounce only uses `transform`, and `Intl.DisplayNames` exists in
+  Firefox, but nothing was seen there.
+- **The language names** were read back under Chromium for Twitch's 31
+  language tags, in Polish and Russian; not under Firefox.
+
+### The bench
+
+- **117**: thirty-seven settings. The panel's sentence that resets them all
+  and the Store sheets say so, in the twelve languages. The first full bench
+  is what recalled it: they still said thirty-six.
+- **222 a'), a'')**: the bounce is now the labels' animation, and the
+  subathon carries both.
+- **233**, new:
+  - a) the world before your language ("#9 worldwide" on the third in
+    French), your language outside the world, your language before another
+    (a channel that also speaks English), "#6 in English"; a world co-stream,
+    one place; the world on a card of the Top 10 itself;
+  - b) the colours;
+  - c) three languages at most, the most frequent, the name on ties; neither
+    Italian, fourth, nor French, the Top 10's, is requested;
+  - d) the bounce on our cards and Twitch's: its animation, its cycle, its
+    six pixels, its delay following its slot, at least four distinct slots,
+    and the movement read on screen;
+  - e) the setting off: no bounce left, the labels stay, the subathon still
+    blinks;
+  - f) the shared sidebar: the place is read from Top Channels, and the home
+    ranking sends no more operations;
+  - g) "All languages";
+  - h) the Top 10 off: no place left, no ranking requested;
+  - i) a world resolved but not complete (a hundred categories above the
+    threshold): no place;
+  - j) a language Twitch does not filter itself: no place.
+- **The fake Twitch** logs the tag of each `TseTagTop` (`tagLangs`).
+
+**Twenty-two named mutants, all caught.**
+
+| mutant | what fails |
+| --- | --- |
+| one slot for all | 233 d) (the slots) |
+| the delay forgotten | 233 d) |
+| no bounce on Twitch's cards | 233 d), and the movement |
+| a still bounce | 233 d), and the movement |
+| the setting without its stylesheet token | 233 e) |
+| the subathon no longer blinking while it bounces | 222 a''), 233 d) |
+| your language's place before the world | 233 a), b), f) |
+| another language before yours | 233 a), g) |
+| the world never requested | 233 a), b), c), d), f), i) |
+| the world kept in "All languages" | 233 g) |
+| the language cap raised | 233 c), g) |
+| the least frequent languages first | 233 a), b), c), f), g), i) |
+| ties broken backwards | 233 c), j) |
+| the Top 10's language counted among the others | 233 c), g), j) |
+| a place without proof | 233 i), j) |
+| the report's completeness forgotten | 233 j) |
+| one place per channel, co-streams included | 233 a), f), g), j) |
+| the sidebar never shared | 233 f) |
+| places elsewhere without the Top 10 | 217 b), 233 h) |
+| the language's name taken from the tag | 233 a), g), i), j) |
+| another language never told | 233 a), b), g), i), j) |
+| a bilingual channel's best place forgotten | 233 g) |
+
+The proof's two guards overlap for the world: an incomplete ranking has no
+proof (`prouve` is 0). The report's completeness only differs from it in a
+language Twitch does not filter itself, and j) is what holds it.
+
+`npm run check` is green: 232 scenarios, 2362 assertions.
 
 ## Firefox: Twitch's cards and the hero's background (v4.33.0.5)
 
@@ -25492,7 +25800,7 @@ Four independent checks:
 | `npm run lint` | the six shipped JavaScript files — no-undef, `require-atomic-updates`, etc. |
 | `npm run parity` | all five translation blocks carry exactly the same keys |
 | `npm run addon` | the Firefox manifest: this repository's invariants, **then** Mozilla's `addons-linter` — the one AMO runs on submission |
-| `npm test` | the Playwright harness: 231 scenarios, 2350 assertions |
+| `npm test` | the Playwright harness: 232 scenarios, 2362 assertions |
 | `npm run test-firefox` | the same, under Gecko (`TSE_MOTEUR=firefox`) |
 
 Those two numbers are not decoration: `run.mjs` checks them against what it has
