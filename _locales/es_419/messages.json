@@ -830,7 +830,13 @@
     "message": "Una etiqueta por tarjeta"
   },
   "optDescAccueilEtiquettes": {
-    "message": "Un dato, uno solo, en cada tarjeta del inicio —las de la extensión y las de Twitch—: «De vuelta tras 41 días», «Acaba de empezar», «↗ +38 % en 10 min»… Para un canal que la barra no sigue, sus cifras se piden mientras su tarjeta está en pantalla."
+    "message": "Un dato, uno solo, en cada tarjeta del inicio —las de la extensión y las de Twitch—: «De vuelta tras 41 días», «Acaba de empezar», «↗ +38 % en 10 min», «N.º 3 mundial»… Para un canal que la barra no sigue, sus cifras se piden mientras su tarjeta está en pantalla; los puestos mundiales y de otros idiomas, al ritmo del Top 10."
+  },
+  "optAccueilRebond": {
+    "message": "Las etiquetas rebotan"
+  },
+  "optDescAccueilRebond": {
+    "message": "Un pequeño rebote cada cinco segundos, desfasado de una tarjeta a otra, para que la etiqueta destaque sobre la miniatura."
   },
   "optAccueilAbsence": {
     "message": "Mientras no estabas"
@@ -1007,7 +1013,7 @@
     "message": "¿Restablecer todos los ajustes?"
   },
   "optResetText": {
-    "message": "Los treinta y seis ajustes de esta página volverán a su valor original. Tus datos —visitas, suscripciones, canales seguidos— no se tocan."
+    "message": "Los treinta y siete ajustes de esta página volverán a su valor original. Tus datos —visitas, suscripciones, canales seguidos— no se tocan."
   },
   "optValPlein": {
     "message": "Completo"

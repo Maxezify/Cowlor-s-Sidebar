@@ -568,7 +568,12 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
          `p` : un pourcentage entier, arrondi vers le bas ; `m` : des minutes ;
          `n` : une place, ou un nombre de chaînes. Le subathon reprend le
          badge de l'aperçu (uiBadgeSubathon), la place celle du Top 10 quand il
-         est mondial. LE BASCULEMENT A SON TEXTE (4.32.0.4) : celui de
+         est mondial. LES PLACES D'AILLEURS (4.33.0.6) : le monde, et une autre
+         langue, nommée dans celle de l'interface par le navigateur
+         (Intl.DisplayNames) — « anglais », « Englisch ». Le polonais et le
+         russe déclinent : « po angielsku », « на английском » se forment sur
+         l'adjectif que le navigateur rend ; un nom d'une autre forme s'écrit
+         tel quel, après un point médian. LE BASCULEMENT A SON TEXTE (4.32.0.4) : celui de
          l'aperçu, « Vient de passer sur … », ne laissait au jeu que sa
          première lettre dans une pastille d'une demi-vignette — « dis plutôt
          "Va sur VALORANT" ». Plus court, dans chaque langue. */
@@ -576,6 +581,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiEtiqRetour:              (j) => `De retour après ${j} jours`,
       uiEtiqTendance:            (p, m) => `↗ +${p} % en ${m} min`,
       uiEtiqRangLangue:          (n) => `N°${n} en français`,
+      uiEtiqRangMonde:           (n) => `N°${n} mondial`,
+      uiEtiqRangAutre:           (n, langue) => `N°${n} en ${langue}`,
       uiEtiqBascule:             (jeu) => `Va sur ${jeu}`,
       uiEtiqCostream:            (n) => `Co-stream à ${n}`,
       /* PENDANT VOTRE ABSENCE (4.30.0, cf. ABSENCE). `j` : des jours ; `borne` :
@@ -876,6 +883,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiEtiqRetour:              (j) => `Back after ${j} days`,
       uiEtiqTendance:            (p, m) => `↗ +${p}% in ${m} min`,
       uiEtiqRangLangue:          (n, langue) => `#${n} in ${langue || 'English'}`,
+      uiEtiqRangMonde:           (n) => `#${n} worldwide`,
+      uiEtiqRangAutre:           (n, langue) => `#${n} in ${langue}`,
       uiEtiqBascule:             (jeu) => `Switched to ${jeu}`,
       uiEtiqCostream:            (n) => `Co-stream of ${n} channels`,
       uiAbsTitre:                'While you were away',
@@ -1147,6 +1156,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiEtiqRetour:              (j) => `Zurück nach ${j} Tagen`,
       uiEtiqTendance:            (p, m) => `↗ +${p} % in ${m} Min.`,
       uiEtiqRangLangue:          (n) => `Platz ${n} auf Deutsch`,
+      uiEtiqRangMonde:           (n) => `Platz ${n} weltweit`,
+      uiEtiqRangAutre:           (n, langue) => `Platz ${n} auf ${langue}`,
       uiEtiqBascule:             (jeu) => `Wechselt zu ${jeu}`,
       uiEtiqCostream:            (n) => `Co-Stream mit ${n} Kanälen`,
       uiAbsTitre:                'Während du weg warst',
@@ -1418,6 +1429,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiEtiqRetour:              (j) => `De vuelta tras ${j} días`,
       uiEtiqTendance:            (p, m) => `↗ +${p} % en ${m} min`,
       uiEtiqRangLangue:          (n) => `N.º ${n} en español`,
+      uiEtiqRangMonde:           (n) => `N.º ${n} mundial`,
+      uiEtiqRangAutre:           (n, langue) => `N.º ${n} en ${langue}`,
       uiEtiqBascule:             (jeu) => `Pasa a ${jeu}`,
       uiEtiqCostream:            (n) => `Co-stream de ${n} canales`,
       uiAbsTitre:                'Mientras no estabas',
@@ -1689,6 +1702,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiEtiqRetour:              (j) => `De volta após ${j} dias`,
       uiEtiqTendance:            (p, m) => `↗ +${p}% em ${m} min`,
       uiEtiqRangLangue:          (n) => `Nº ${n} em português`,
+      uiEtiqRangMonde:           (n) => `Nº ${n} mundial`,
+      uiEtiqRangAutre:           (n, langue) => `Nº ${n} em ${langue}`,
       uiEtiqBascule:             (jeu) => `Vai para ${jeu}`,
       uiEtiqCostream:            (n) => `Co-stream com ${n} canais`,
       uiAbsTitre:                'Enquanto você esteve fora',
@@ -1960,6 +1975,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiEtiqRetour:              (j) => `Di ritorno dopo ${j} giorni`,
       uiEtiqTendance:            (p, m) => `↗ +${p}% in ${m} min`,
       uiEtiqRangLangue:          (n) => `N. ${n} in italiano`,
+      uiEtiqRangMonde:           (n) => `N. ${n} al mondo`,
+      uiEtiqRangAutre:           (n, langue) => `N. ${n} in ${langue}`,
       uiEtiqBascule:             (jeu) => `Passa a ${jeu}`,
       uiEtiqCostream:            (n) => `Co-stream con ${n} canali`,
       uiAbsTitre:                'Mentre eri via',
@@ -2232,6 +2249,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiEtiqRetour:              (j) => `Wraca po ${j} dniach`,
       uiEtiqTendance:            (p, m) => `↗ +${p}% w ${m} min`,
       uiEtiqRangLangue:          (n) => `Nr ${n} po polsku`,
+      uiEtiqRangMonde:           (n) => `Nr ${n} na świecie`,
+      uiEtiqRangAutre:           (n, langue) => (/(?:sk|ck|zk)i$/.test(langue) ? `Nr ${n} po ${langue.replace(/i$/, 'u')}` : `Nr ${n} · ${langue}`),
       uiEtiqBascule:             (jeu) => `Przechodzi na ${jeu}`,
       uiEtiqCostream:            (n) => `Co-stream: ${n} ${plurielSlave(n, ['kanał', 'kanały', 'kanałów'])}`,
       uiAbsTitre:                'Podczas twojej nieobecności',
@@ -2508,6 +2527,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiEtiqRetour:              (j) => `Вернулся спустя ${j} ${plurielSlave(j, ['день', 'дня', 'дней'])}`,
       uiEtiqTendance:            (p, m) => `↗ +${p}% за ${m} мин`,
       uiEtiqRangLangue:          (n) => `№ ${n} на русском`,
+      uiEtiqRangMonde:           (n) => `№ ${n} в мире`,
+      uiEtiqRangAutre:           (n, langue) => (/(?:ий|ый|ой)$/.test(langue) ? `№ ${n} на ${langue.replace(/(?:ий|ый|ой)$/, 'ом')}` : `№ ${n} · ${langue}`),
       uiEtiqBascule:             (jeu) => `Переходит на ${jeu}`,
       uiEtiqCostream:            (n) => `Совместный стрим: ${n} ${plurielSlave(n, ['канал', 'канала', 'каналов'])}`,
       uiAbsTitre:                'Пока вас не было',
@@ -2782,6 +2803,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiEtiqRetour:              (j) => `${j} 日ぶりの配信`,
       uiEtiqTendance:            (p, m) => `↗ ${m} 分で +${p}%`,
       uiEtiqRangLangue:          (n) => `日本語で ${n} 位`,
+      uiEtiqRangMonde:           (n) => `世界で ${n} 位`,
+      uiEtiqRangAutre:           (n, langue) => `${langue}で ${n} 位`,
       uiEtiqBascule:             (jeu) => `${jeu} に切り替え`,
       uiEtiqCostream:            (n) => `${n} チャンネルでコラボ配信`,
       uiAbsTitre:                'お留守の間に',
@@ -3050,6 +3073,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiEtiqRetour:              (j) => `时隔 ${j} 天回归`,
       uiEtiqTendance:            (p, m) => `↗ ${m} 分钟内 +${p}%`,
       uiEtiqRangLangue:          (n) => `中文第 ${n} 名`,
+      uiEtiqRangMonde:           (n) => `全球第 ${n} 名`,
+      uiEtiqRangAutre:           (n, langue) => `${langue}第 ${n} 名`,
       uiEtiqBascule:             (jeu) => `转到 ${jeu}`,
       uiEtiqCostream:            (n) => `${n} 个频道联合直播`,
       uiAbsTitre:                '你不在的时候',
@@ -4813,6 +4838,20 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     ETIQ_TENDANCE_MIN:      50,
     ETIQ_HISTO_MAX:         400,
     ETIQ_TWITCH_MAX:        60,
+    /* LE REBOND (4.33.0.6, cf. ETIQUETTES) : un rebond par cycle de cinq
+       secondes, et cinq temps décalés d'un cinquième de cycle, pour que les
+       cartes ne sautent pas ensemble. */
+    ETIQ_REBOND_MS:         5000,
+    ETIQ_REBOND_TEMPS:      5,
+    /* LES PLACES D'AILLEURS (4.33.0.6, cf. ETIQUETTES). Le Top 10 mondial, et
+       celui des autres langues des cartes de l'accueil : trois langues au plus
+       à la fois — les plus nombreuses —, chacune au rythme du Top 10 (une
+       passe légère toutes les 30 s, une marche au plus toutes les 2 min 30).
+       Six classements gardés en mémoire au plus ; une carte compte pour sa
+       langue tant qu'elle a été peinte, son direct connu, depuis deux durées
+       de vie du cache (une minute). */
+    ETIQ_LANGUES_MAX:       3,
+    ETIQ_CLASSEMENTS_MAX:   6,
     /* PENDANT VOTRE ABSENCE (4.30.0, cf. ABSENCE). Une absence, c'est vingt-
        quatre heures sans un onglet de Twitch à l'écran ; son bandeau reste
        douze heures, ou jusqu'à ce qu'on le ferme. La présence s'écrit au plus
@@ -4973,6 +5012,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        déjà posés restent, jusqu'à leur heure. */
     accueilRdv:      { defaut: true,      type: 'bool', sous: ['accueil'] },
     accueilEtiquettes: { defaut: true,    type: 'bool', sous: ['accueil'] },
+    /* Le rebond des étiquettes (4.33.0.6) : un jeton de la feuille, comme la
+       durée — la feuille seule l'anime, et le coupe. */
+    accueilRebond:   { defaut: true,      type: 'bool', sous: ['accueil', 'accueilEtiquettes'], css: true },
     accueilAbsence:  { defaut: true,      type: 'bool', sous: ['accueil'] },
     accueilPourquoi: { defaut: true,      type: 'bool', sous: ['accueil'] },
     accueilRanger:   { defaut: true,      type: 'bool', sous: ['accueil'] },
@@ -9625,6 +9667,10 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     [data-tse-etiq="tendance"] { --tse-etiq-couleur: #6bdb9d; }
     [data-tse-etiq="rang"]     { --tse-etiq-couleur: #ffd68a; }
     [data-tse-etiq="costream"] { --tse-etiq-couleur: #8fc7ff; }
+    /* Les places d'ailleurs (4.33.0.6) : une autre langue est une place comme
+       la vôtre, de la même couleur ; le monde, plus rare, d'un or plus chaud. */
+    [data-tse-etiq="langue"]   { --tse-etiq-couleur: #ffd68a; }
+    [data-tse-etiq="monde"]    { --tse-etiq-couleur: #ffb35c; }
     /* LE SUBATHON CLIGNOTE COMME AILLEURS (4.32.0.4, « fais la pastille
        Subathon qui clignote comme ailleurs ») : les huit teintes de la
        pastille de la barre et du badge de l'aperçu, au même tour d'une
@@ -9643,6 +9689,38 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     @keyframes tse-acc-etiq-subathon {
       0%, 100% { color: #ff8f8f; } 12.5% { color: #ffe38f; } 25% { color: #c7ff8f; } 37.5% { color: #8fffb4; }
       50% { color: #8ffdff; } 62.5% { color: #8fabff; } 75% { color: #c78fff; } 87.5% { color: #ff8fe3; }
+    }
+    /* LE REBOND (4.33.0.6). « Pour les pastilles sur les listes de contenus,
+       je souhaite qu'il puisse y avoir une animation bounce, pour qu'elles se
+       démarquent un peu du visuel des contenus » : sur une vignette qui
+       bouge, une pastille immobile se fond dans l'image. Deux sauts amortis —
+       six pixels, puis deux — une fois par cycle, et rien le reste du temps.
+       LES CARTES NE SAUTENT PAS ENSEMBLE : chacune prend un temps parmi cinq,
+       dans l'ordre où ses étiquettes paraissent (data-tse-etiq-temps) : celles
+       d'une même peinture sautent l'une après l'autre, à une seconde d'écart,
+       et une étiquette venue plus tard part de son propre instant. Une
+       variable posée sur la carte,
+       que son ::after hérite, comme la couleur. Rien que la transformation :
+       le compositeur la prend (213). Le subathon garde son clignotement, et
+       rebondit avec — la seconde règle, plus loin dans la feuille, l'emporte
+       à précision égale. « Les étiquettes rebondissent », coupé, rend la
+       feuille d'avant. */
+    html:not([data-tse-off~="accueilRebond"]) .tse-acc-vignette[data-tse-etiquette]::after,
+    html:not([data-tse-off~="accueilRebond"]) main a[data-a-target="preview-card-image-link"][data-tse-etiquette]::after {
+      animation: tse-acc-etiq-rebond ${CFG.ETIQ_REBOND_MS}ms cubic-bezier(0.3, 0, 0.3, 1) var(--tse-etiq-retard, 0ms) infinite;
+    }
+    html:not([data-tse-off~="accueilRebond"]) .tse-acc-vignette[data-tse-etiq="subathon"]::after,
+    html:not([data-tse-off~="accueilRebond"]) main a[data-a-target="preview-card-image-link"][data-tse-etiq="subathon"]::after {
+      animation: tse-acc-etiq-subathon 1.5s linear infinite,
+                 tse-acc-etiq-rebond ${CFG.ETIQ_REBOND_MS}ms cubic-bezier(0.3, 0, 0.3, 1) var(--tse-etiq-retard, 0ms) infinite;
+    }
+    ${Array.from({ length: CFG.ETIQ_REBOND_TEMPS - 1 }, (_, i) =>
+      `[data-tse-etiq-temps="${i + 1}"] { --tse-etiq-retard: ${Math.round((i + 1) * CFG.ETIQ_REBOND_MS / CFG.ETIQ_REBOND_TEMPS)}ms; }`).join('\n    ')}
+    @keyframes tse-acc-etiq-rebond {
+      0%, 15%, 100% { transform: translateY(0); }
+      4% { transform: translateY(-6px); }
+      8% { transform: translateY(0); }
+      11% { transform: translateY(-2px); }
     }
     /* UN LIEN EN LIGNE N'EST PAS UN CADRE (4.33.0.5). « Les pastilles sur ce
        type de liste ont un problème — seulement sur Firefox » : la durée à
@@ -17352,7 +17430,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       absence: { lectures: 0, chaines: 0, montre: false, enCours: false, fermetures: 0, synchros: 0, vignettes: 0,
                  clips: { demandes: 0, servis: 0, refus: 0, plusVus: 0 } },
       // Une étiquette par carte (4.28.0) : combien de chaque sorte, et ce que les cartes de Twitch ont coûté.
-      etiquettes: { posees: {}, demandes: 0, coins: { haut: 0, aucun: 0 }, twitch: { cartes: 0, vues: 0, etiquetees: 0, habillees: 0, durees: 0 } },
+      etiquettes: { posees: {}, demandes: 0, coins: { haut: 0, aucun: 0 }, twitch: { cartes: 0, vues: 0, etiquetees: 0, habillees: 0, durees: 0 },
+                    // Les places d'ailleurs (4.33.0.6) : les portées voulues, d'où vient chacune, si elle est prouvée, combien de chaînes y ont une place.
+                    ailleurs: { portees: [], sources: {}, gardes: 0 } },
       // Ranger l'accueil de Twitch (4.32.0) : ce qui a été masqué, remplacé, et d'où.
       ranger: { titres: 0, masquables: 0, masques: 0, clics: 0, vignettes: { rediffusion: 0, avatar: 0, sans: 0 } },
     };
@@ -18293,9 +18373,13 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
             relevés, ou daté par les chapitres que l'aperçu a déjà lus ;
          5. « ↗ +38 % en 10 min » — deux relevés du même direct (cf.
             tendanceDe) ;
-         6. « N°3 en français » — la place au Top 10 exact de l'accueil ; pas
+         6. « N°3 mondial » — la place au Top 10 de tout Twitch (4.33.0.6,
+            cf. AILLEURS), quand celui de l'accueil est celui d'une langue ;
+         7. « N°3 en français » — la place au Top 10 exact de l'accueil ; pas
             sur le Top 10 lui-même, qui l'écrit déjà en grand ;
-         7. « Co-stream à 3 » — la session que Guest Star décrit.
+         8. « N°2 en anglais » — la place au Top 10 d'une AUTRE langue, celle
+            que la chaîne porte en tag (4.33.0.6, cf. AILLEURS) ;
+         9. « Co-stream à 3 » — la session que Guest Star décrit.
        Ce qu'on ne sait pas ne s'écrit pas : une carte sans fait reste nue. */
     const rangDit = (n) => {
       const lang = langueVoulue();
@@ -18311,10 +18395,134 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       }
       return S.uiAccRang(n);
     };
+    /* ══ LES PLACES D'AILLEURS (4.33.0.6) ══════════════════════════════════
+       « Est-il possible de mettre des pastilles des Top mondiaux et des tops
+       des autres langues ? » Le Top 10 de l'accueil est celui d'UNE langue —
+       la vôtre, d'ordinaire —, et une chaîne d'une autre langue, ou la
+       première de tout Twitch, n'y avait aucune place à dire. Deux sortes de
+       classements s'y ajoutent, du même moteur que le Top 10 (cf.
+       creerClassement), et aux mêmes preuves :
+         — LE MONDE, toutes langues, quand le Top 10 est celui d'une langue
+           (sinon le Top 10 EST le monde, et sa place se dit déjà) ;
+         — LES AUTRES LANGUES DES CARTES DE L'ACCUEIL, celles que leurs
+           chaînes portent en tag (cf. langStore), pour les cartes dont le
+           direct est connu — celles qu'on a vues à l'écran, d'ordinaire : les
+           ETIQ_LANGUES_MAX plus nombreuses.
+       CHACUN COÛTE CE QUE COÛTE LE TOP 10 : une passe légère toutes les 30 s
+       (la liste des catégories et le sommet des dix premières, ~11
+       opérations), et une marche au plus toutes les 2 min 30 — un TseTagTop
+       dans une langue, la descente des catégories (~64 opérations) pour le
+       monde. Le rapport compte les opérations de chacun (`operations`).
+       Aucun ne part quand la barre sert déjà la même question
+       (Top Chaînes ouvert, sans catégorie, dans la même langue), quand
+       l'accueil n'est pas à l'écran, ou quand les étiquettes ou le Top 10
+       sont coupés.
+       UNE PLACE NE S'ÉCRIT QUE PROUVÉE, comme au Top 10 : un classement
+       résolu, complet selon son rapport, et dont la preuve couvre ses dix
+       places. Une langue que Twitch ne filtre pas lui-même retombe sur les
+       tags lus : approchée, elle ne dit rien. Les places
+       d'une session de co-stream sont une, comme au Top 10 ; les chaînes
+       écartées du Top 10 n'y changent rien — elles sont VOTRE liste, pas un
+       fait du classement de Twitch. */
+    const MONDE = '*';
+    const ailleurs = new Map();        // portée ('*' ou un tag de langue) -> { cle, voulu, classement }
+    let rangsAilleurs = new Map();     // portée -> Map(login -> place), places prouvées seulement
+    const vusEtiquettes = new Map();   // login -> instant où sa carte a été peinte, son direct connu
+    /* LE TOP 10 COUPÉ, AUCUNE PLACE NE SE DIT, ni d'ici ni d'ailleurs : ses
+       classements sont ceux du Top 10, et le couper, c'est n'en plus payer
+       aucun (cf. 217). */
+    const ailleursActif = () => topActif() && options.get('accueilEtiquettes');
+    const partageAilleurs = (cle) => !!state.globalMode && !state.categoryFilter
+      && (state.languageFilter || null) === (cle === MONDE ? null : cle);
+    const instanceAilleurs = (cle) => {
+      let a = ailleurs.get(cle);
+      if (!a) {
+        a = { cle, voulu: false, classement: null };
+        a.classement = creerClassement(() => ({
+          actif: a.voulu && ailleursActif() && !partageAilleurs(cle),
+          lang: cle === MONDE ? null : cle, categorie: null, n: CFG.ACCUEIL_TOP_N,
+        }), false);
+        ailleurs.set(cle, a);
+      }
+      return a;
+    };
+    // Les langues des cartes vues, sauf celle du Top 10 : les plus nombreuses d'abord, à égalité le nom.
+    const languesAilleurs = () => {
+      const propre = langueVoulue();
+      const depuis = Date.now() - 2 * CFG.LIVE_TTL;
+      const compte = new Map();
+      for (const [login, ts] of vusEtiquettes) {
+        if (ts < depuis) continue;
+        for (const l of langStore.getLangs(login) || []) if (l !== propre) compte.set(l, (compte.get(l) || 0) + 1);
+      }
+      return [...compte].sort((x, y) => (y[1] - x[1]) || (x[0] < y[0] ? -1 : 1))
+        .slice(0, CFG.ETIQ_LANGUES_MAX).map(([l]) => l);
+    };
+    /* Une place par session, comme au Top 10 (cf. enPlaces) : tous ses membres
+       la portent. La tête que le Top 10 élit ne sert qu'à son affichage. */
+    const placesProuvees = (src) => {
+      const r = src.report();
+      if (!src.resolu() || !r.complete || r.prouve < CFG.ACCUEIL_TOP_N) return null;
+      const places = new Map();
+      const out = new Map();
+      for (const rec of src.top(CFG.ACCUEIL_TOP_N)) {
+        const k = sessionDuMembre(rec.login) || ('s:' + rec.login);
+        if (!places.has(k)) places.set(k, places.size + 1);
+        const n = places.get(k);
+        if (n <= CFG.ACCUEIL_TOP_N && !out.has(rec.login)) out.set(rec.login, n);
+      }
+      return out;
+    };
+    const majAilleurs = () => {
+      const voulues = ailleursActif() ? [...(langueVoulue() ? [MONDE] : []), ...languesAilleurs()] : [];
+      for (const a of ailleurs.values()) a.voulu = voulues.includes(a.cle);
+      // Une portée voulue repasse en dernier : l'ordre de la table est celui du dernier service.
+      for (const cle of voulues) {
+        const a = instanceAilleurs(cle);
+        a.voulu = true;
+        ailleurs.delete(cle);
+        ailleurs.set(cle, a);
+      }
+      // Au-delà du plafond, les classements qui ne servent plus s'oublient, les moins récemment servis d'abord.
+      for (const [cle, a] of ailleurs) {
+        if (ailleurs.size <= CFG.ETIQ_CLASSEMENTS_MAX) break;
+        if (!a.voulu) ailleurs.delete(cle);
+      }
+      const rangs = new Map();
+      const sources = {};
+      for (const a of ailleurs.values()) {
+        if (!a.voulu) continue;
+        const partage = partageAilleurs(a.cle);
+        if (!partage) a.classement.tick();
+        const places = placesProuvees(partage ? globalChannels : a.classement);
+        sources[a.cle] = { source: partage ? 'barre' : 'accueil', prouve: !!places, chaines: places ? places.size : 0 };
+        if (places) rangs.set(a.cle, places);
+      }
+      rangsAilleurs = rangs;
+      bilan.etiquettes.ailleurs = { portees: voulues, sources, gardes: ailleurs.size };
+      while (vusEtiquettes.size > CFG.ETIQ_HISTO_MAX) vusEtiquettes.delete(vusEtiquettes.keys().next().value);
+    };
+    /* LA LANGUE DITE DANS LA LANGUE DE L'INTERFACE : « en anglais », « auf
+       Englisch ». Son nom vient du navigateur (Intl.DisplayNames) d'après le
+       code du tag ; faute de nom, le tag lui-même, tel que Twitch l'écrit. */
+    const nomsLangues = new Map();     // 'locale|tag' -> nom : la langue de l'interface peut changer en cours de route
+    const nomLangue = (tag) => {
+      const cle = `${S.locale}|${tag}`;
+      if (nomsLangues.has(cle)) return nomsLangues.get(cle);
+      const code = String(LANG_API[tag] || '').toLowerCase();
+      let nom = null;
+      try { nom = code ? new Intl.DisplayNames([S.locale], { type: 'language' }).of(code) : null; } catch { nom = null; }
+      const dit = nom && nom.toLowerCase() !== code ? nom : tag;
+      nomsLangues.set(cle, dit);
+      return dit;
+    };
     const etiquetteDe = (login, { rang = true } = {}) => {
       if (!options.get('accueilEtiquettes')) return null;
       const e = cache.get(login);
       if (!e || !e.stream || Date.now() - (e.ts || 0) > 2 * CFG.LIVE_TTL) return null;
+      // Une carte dont on connaît le direct compte pour sa langue (cf. languesAilleurs).
+      vusEtiquettes.delete(login);
+      vusEtiquettes.set(login, Date.now());
       const r = agenda.retour(login, e.stream);
       if (r) return { type: 'retour', texte: S.uiEtiqRetour(r.jours) };
       if (e.subathon) return { type: 'subathon', texte: S.uiBadgeSubathon(e.subathon.jour) };
@@ -18326,8 +18534,17 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       if (jeu) return { type: 'bascule', texte: S.uiEtiqBascule(jeu) };
       const t = tendanceDe(login, e);
       if (t) return { type: 'tendance', texte: S.uiEtiqTendance(t.pct, Math.max(1, t.min)) };
+      const monde = langueVoulue() ? rangsAilleurs.get(MONDE)?.get(login) : undefined;
+      if (monde) return { type: 'monde', texte: S.uiEtiqRangMonde(monde) };
       const n = rang && rangsTop ? rangsTop.get(login) : undefined;
       if (n) return { type: 'rang', texte: rangDit(n) };
+      let autre = null;
+      for (const l of langStore.getLangs(login) || []) {
+        if (l === langueVoulue()) continue;
+        const p = rangsAilleurs.get(l)?.get(login);
+        if (p && (!autre || p < autre.p)) autre = { p, l };
+      }
+      if (autre) return { type: 'langue', texte: S.uiEtiqRangAutre(autre.p, nomLangue(autre.l)) };
       const k = camaradesDe(login).length;
       if (k > 0) return { type: 'costream', texte: S.uiEtiqCostream(k + 1) };
       return null;
@@ -18358,16 +18575,23 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     };
     const etiquetees = new Set();   // les cartes de Twitch qui portent la nôtre
     const coinsPour = new WeakMap();  // carte → ce pour quoi son coin a été calculé
+    // Le temps du rebond (4.33.0.6, cf. la feuille) : donné à la carte quand son étiquette paraît.
+    let tempsSuivant = 0;
     const poserEtiquette = (n, et, twitch = false) => {
       if (!et) {
         if (n.hasAttribute('data-tse-etiquette')) {
           n.removeAttribute('data-tse-etiquette');
           n.removeAttribute('data-tse-etiq');
           n.removeAttribute('data-tse-etiq-coin');
+          n.removeAttribute('data-tse-etiq-temps');
         }
         coinsPour.delete(n);
         etiquetees.delete(n);
         return;
+      }
+      if (!n.hasAttribute('data-tse-etiq-temps')) {
+        n.setAttribute('data-tse-etiq-temps', String(tempsSuivant));
+        tempsSuivant = (tempsSuivant + 1) % CFG.ETIQ_REBOND_TEMPS;
       }
       /* LE COIN SE RECALCULE quand le texte change, et quand notre durée
          paraît ou s'en va (4.32.0.4) : elle prend le haut, et la sienne — celle
@@ -20467,6 +20691,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         if (!actif()) { if (pose() || observateur || voile) retirer(); return; }
         verifier();
         if (topActif() && !partage()) classement.tick();
+        majAilleurs();
         peindre();
         // Filet : une réponse dont on n'aurait pas été prévenu ne laisse pas le voile en place.
         if (voile && decidable()) leverVoile('reveil');
@@ -20519,7 +20744,15 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         pourquoi: { ...bilan.pourquoi, rayons: bilan.pourquoi.rayons.map((x) => ({ ...x })) },
         ranger: { ...bilan.ranger, vignettes: { ...bilan.ranger.vignettes }, retenus: [...lireMasques()] },
         etiquettes: { ...bilan.etiquettes, posees: { ...bilan.etiquettes.posees }, coins: { ...bilan.etiquettes.coins },
-                      twitch: { ...bilan.etiquettes.twitch }, active: !!options.get('accueilEtiquettes') },
+                      twitch: { ...bilan.etiquettes.twitch }, active: !!options.get('accueilEtiquettes'),
+                      /* Les places d'ailleurs (4.33.0.6) : les marches et les opérations de chaque classement gardé —
+                         le sien, pas celui de la barre. Ce que coûtent les places d'ailleurs, lu sur le vrai Twitch. */
+                      ailleurs: (() => {
+                        const r = [...ailleurs].map(([k, a]) => [k, a.classement.report()]);
+                        return { ...bilan.etiquettes.ailleurs,
+                                 marches: Object.fromEntries(r.map(([k, x]) => [k, x.walks])),
+                                 operations: Object.fromEntries(r.map(([k, x]) => [k, x.ops])) };
+                      })() },
         rappels: rappels.rapport(),
       }),
       // Surface de vérification : le classement propre à l'accueil.

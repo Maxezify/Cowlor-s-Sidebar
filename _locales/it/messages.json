@@ -830,7 +830,13 @@
     "message": "Un'etichetta per scheda"
   },
   "optDescAccueilEtiquettes": {
-    "message": "Un fatto, uno solo, su ogni scheda della home — quelle dell'estensione come quelle di Twitch: «Di ritorno dopo 41 giorni», «Appena iniziato», «↗ +38% in 10 min»… Per un canale che la barra non segue, i suoi numeri vengono chiesti finché la sua scheda è sullo schermo."
+    "message": "Un fatto, uno solo, su ogni scheda della home — quelle dell'estensione come quelle di Twitch: «Di ritorno dopo 41 giorni», «Appena iniziato», «↗ +38% in 10 min», «N. 3 al mondo»… Per un canale che la barra non segue, i suoi numeri vengono chiesti finché la sua scheda è sullo schermo; le posizioni mondiali e delle altre lingue, al ritmo della Top 10."
+  },
+  "optAccueilRebond": {
+    "message": "Le etichette rimbalzano"
+  },
+  "optDescAccueilRebond": {
+    "message": "Un piccolo rimbalzo ogni cinque secondi, sfalsato da una scheda all'altra, perché l'etichetta si stacchi dalla miniatura."
   },
   "optAccueilAbsence": {
     "message": "Mentre eri via"
@@ -1007,7 +1013,7 @@
     "message": "Ripristinare tutte le impostazioni?"
   },
   "optResetText": {
-    "message": "Le trentasei impostazioni di questa pagina torneranno al loro valore originale. I tuoi dati — visite, abbonamenti, canali seguiti — non vengono toccati."
+    "message": "Le trentasette impostazioni di questa pagina torneranno al loro valore originale. I tuoi dati — visite, abbonamenti, canali seguiti — non vengono toccati."
   },
   "optValPlein": {
     "message": "Completo"

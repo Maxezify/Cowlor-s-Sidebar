@@ -16689,7 +16689,7 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
     return { n: Object.keys(defs).length, horsListe, jeuxNonVides,
              cle: localStorage.getItem('tse:options') };
   });
-  ok('la table porte ses trente-six réglages', table.n === 36, String(table.n));
+  ok('la table porte ses trente-sept réglages', table.n === 37, String(table.n));
   /* CELUI-CI A UNE CIBLE PRÉCISE : trois défauts sont lus dans CFG plutôt que
      recopiés — apercuQualite, abosPeriode et topN. Changer une de ces trois
      constantes sans toucher à la liste des valeurs permises rendrait le
@@ -16720,22 +16720,23 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
      « Pendant votre absence » ; trente-trois depuis la 4.31.0 : « Parce que
      vous regardez souvent… » ; trente-quatre depuis la 4.32.0 : « Ranger
      l'accueil de Twitch » ; trente-cinq depuis la 4.32.0.4 : « Chaînes
-     écartées du Top 10 » ; trente-six depuis la 4.33.0 : « Zapping ». En
+     écartées du Top 10 » ; trente-six depuis la 4.33.0 : « Zapping » ;
+     trente-sept depuis la 4.33.0.6 : « Les étiquettes rebondissent ». En
      polonais et en russe, à partir de cinq, le génitif pluriel — et, en
      polonais, le verbe au singulier. */
-  const TRENTE_SIX = { de: 'sechsunddreißig Einstellungen', en: 'thirty-six settings',
-                       es: 'treinta y seis ajustes', es_419: 'treinta y seis ajustes', fr: 'trente-six réglages',
-                       it: 'trentasei impostazioni', ja: '36 個の設定', pl: 'trzydzieści sześć ustawień',
-                       pt_BR: 'trinta e seis configurações', pt_PT: 'trinta e seis definições',
-                       ru: 'тридцать шесть настроек', zh_CN: '三十六项设置' };
-  const muettes = Object.entries(TRENTE_SIX).flatMap(([loc, mot]) => [
+  const TRENTE_SEPT = { de: 'siebenunddreißig Einstellungen', en: 'thirty-seven settings',
+                        es: 'treinta y siete ajustes', es_419: 'treinta y siete ajustes', fr: 'trente-sept réglages',
+                        it: 'trentasette impostazioni', ja: '37 個の設定', pl: 'trzydzieści siedem ustawień',
+                        pt_BR: 'trinta e sete configurações', pt_PT: 'trinta e sete definições',
+                        ru: 'тридцать семь настроек', zh_CN: '三十七项设置' };
+  const muettes = Object.entries(TRENTE_SEPT).flatMap(([loc, mot]) => [
     JSON.parse(readFileSync(join(ICI, '..', '_locales', loc, 'messages.json'), 'utf8'))
       .optResetText.message.includes(mot) ? null : `panneau ${loc}`,
     readFileSync(join(ICI, '..', 'store', `description-${loc.replace('_', '-')}.txt`), 'utf8')
       .includes(mot) ? null : `fiche ${loc}`,
   ]).filter(Boolean);
   ok('…et le panneau comme la fiche du Store en annoncent autant, dans les douze langues',
-     table.n === 36 && muettes.length === 0, muettes.join(', ') || String(table.n));
+     table.n === 37 && muettes.length === 0, muettes.join(', ') || String(table.n));
   /* CELLE-CI SE LIT SUR LE FICHIER SOURCE, et c'est le fond du sujet : la
      constante de production vaut six heures, mais tests/build.mjs la réécrit à
      quatre secondes pour que le relevé des abonnements soit éprouvable. La
@@ -41184,7 +41185,9 @@ const lireImages = (page) => page.evaluate(() => {
     const eux = (l) => st(document.querySelector(`main a[data-a-target="preview-card-image-link"][href="/${l}"]`));
     return { aurore: nous('aurore'), brisa: nous('brisa'), cendre: nous('cendre'), houle: nous('houle'), xray: eux('xray'), aeltris: eux('aeltris') };
   });
-  const teinte = (x, rgb) => x.c === rgb && x.bord === rgb && x.rond === '999px' && x.point && x.anim === 'none';
+  /* Le rebond (4.33.0.6, cf. 233) est leur seule animation : aucune autre
+     sorte que le subathon ne change de couleur. */
+  const teinte = (x, rgb) => x.c === rgb && x.bord === rgb && x.rond === '999px' && x.point && x.anim === 'tse-acc-etiq-rebond';
   ok('a\') chaque sorte de fait a sa couleur, celle de la maquette — le retour en vert, le début en rouge, le co-stream en bleu, la place en or',
      teinte(couleurs.aurore, 'rgb(107, 219, 157)') && teinte(couleurs.cendre, 'rgb(255, 107, 98)')
      && teinte(couleurs.houle, 'rgb(143, 199, 255)') && teinte(couleurs.xray, 'rgb(255, 107, 98)')
@@ -41217,8 +41220,8 @@ const lireImages = (page) => page.evaluate(() => {
     await new Promise((r) => setTimeout(r, 375));
     return [a, lu()];
   });
-  ok('a\'\') le subathon clignote comme ailleurs : les huit teintes de la pastille, un tour d\'une seconde et demie, le bord et le point avec le texte',
-     couleurs.brisa.anim === 'tse-acc-etiq-subathon' && couleurs.brisa.duree === '1.5s' && couleurs.brisa.point
+  ok('a\'\') le subathon clignote comme ailleurs : les huit teintes de la pastille, un tour d\'une seconde et demie, le bord et le point avec le texte — et il rebondit avec les autres',
+     couleurs.brisa.anim === 'tse-acc-etiq-subathon, tse-acc-etiq-rebond' && couleurs.brisa.duree === '1.5s, 5s' && couleurs.brisa.point
      && brisa2[0].c !== brisa2[1].c && brisa2.every((x) => x.bord === x.c && surLeChemin(x.c)),
      JSON.stringify({ brisa: couleurs.brisa, brisa2 }));
 
@@ -43558,6 +43561,286 @@ const lireZap = (page) => page.evaluate(() => {
   ok('f) le Top 10 coupé : la fenêtre épinglée se ferme, rien ne reste par-dessus la page',
      epinglee && coupe.ouvertes === 0 && !coupe.cs.ouverte, JSON.stringify({ epinglee, ...coupe }));
   await page.close();
+}
+
+{
+  titre('233. Les places d\'ailleurs et le rebond (4.33.0.6) — « N°9 mondial », « N°5 en anglais », prouvées ; trois langues au plus ; la barre partagée ; des étiquettes qui rebondissent l\'une après l\'autre');
+  /* LE DÉCOR. L'interface est française, le Top 10 de l'accueil aussi : celui
+     du plateau, par la voie du tag. Tout Twitch, lui, se lit en descendant
+     les catégories — une seule compte, « Just Chatting », dont le sommet
+     mêle les langues :
+       orsay 120 000 (anglais) ; kestrel 95 000 et kite 15 000 (anglais),
+       en co-stream — 110 000 à eux deux, une seule place, comme au Top 10 ;
+       nadir 80 000 (espagnol), tamsin 70 000 (anglais), ulric 60 000
+       (allemand), vesna 55 000 (espagnol), zephyr, aldric et aeltris — les
+       trois premiers du Top 10 français : 40 000, 37 000, 34 000 —, wren
+       33 000 (anglais) : dix places, onze chaînes. Puis tavor, quatrième en
+       français à 31 000, et brune, sixième, qui parle aussi anglais :
+       hors du monde.
+     Les rayons de Twitch, à l'écran : aeltris, tavor, yarrow (anglais,
+     20 000 : sixième en anglais, loin du monde), kestrel, brune ; nadir,
+     vesna, ulric et quinto (italien, en subathon). Quatre langues
+     étrangères : trois cartes en anglais, deux en espagnol, une en
+     allemand, une en italien — à égalité, le nom départage, et l'italien
+     reste sans classement. Chaque langue a le sien chez Twitch : rien, dans
+     le décor, n'empêcherait d'en demander un de trop. */
+  const TOP = ['zephyr', 'aldric', 'aeltris', 'tavor', 'solenne', 'brune', 'gaspard', 'hestia', 'mirelle', 'oriane'];
+  const RAYONS = [['Chaînes live qui pourraient vous plaire', ['aeltris', 'tavor', 'yarrow', 'kestrel', 'brune']],
+                  ['D\'ailleurs', ['nadir', 'vesna', 'ulric', 'quinto']]];
+  const MONDE = [['orsay', 120000, ['English']], ['kestrel', 95000, ['English']], ['nadir', 80000, ['Español']],
+                 ['tamsin', 70000, ['English']], ['ulric', 60000, ['Deutsch']], ['vesna', 55000, ['Español']],
+                 ['zephyr', 40000, ['Français']], ['aldric', 37000, ['Français']], ['aeltris', 34000, ['Français']],
+                 ['wren', 33000, ['English']], ['tavor', 31000, ['Français']], ['brune', 25000, ['Français', 'English']],
+                 ['yarrow', 20000, ['English']], ['kite', 15000, ['English']], ['quinto', 9000, ['Italiano']]];
+  /* `cats` : la marche du monde. Par défaut, la catégorie du sommet, et une
+     seconde sous le seuil — la descente s'arrête en sachant qu'elle est
+     complète. « fenetre » : cent catégories, TOUTES au-dessus du seuil (cf.
+     81, e bis) — rien ne prouve qu'une cent unième n'abrite pas un membre du
+     top : résolu, mais pas complet. */
+  const decorAilleurs = (p, cats = 'sommet') => p.evaluate(([monde, cats]) => {
+    const h = (m) => new Date(Date.now() - m * 60_000).toISOString();
+    const streams = monde.map(([login, viewers, tags]) => ({ login, viewers, tags, createdAt: h(90) }));
+    window.__cats = cats === 'fenetre'
+      ? [...Array(100)].map((_, i) => ({ name: 'w' + i, viewers: 200000,
+          streams: i === 0 ? streams : [5000, 4900].map((v, k) => ({ login: `w${i}x${k}`, viewers: v, tags: ['English'] })) }))
+      : [{ name: 'Just Chatting', viewers: 900000, streams },
+         { name: 'VALORANT', viewers: 20000, streams: [{ login: 'brenvik', viewers: 2600, tags: ['Français'] }] }];
+    for (const tag of ['English', 'Español', 'Deutsch', 'Italiano']) {
+      window.__tagTop[tag] = monde.filter((x) => x[2].includes(tag)).map(([login, viewers, tags]) => ({
+        login, nom: login.charAt(0).toUpperCase() + login.slice(1), viewers, createdAt: h(90), game: 'Just Chatting', tags }));
+    }
+    // En direct depuis une heure et demie, rien d'autre à dire que leur place — sauf quinto, en subathon.
+    for (const [i, [login, viewers, tags]] of monde.entries()) {
+      window.__fx[login] = { id: String(8300 + i), createdAt: h(90), viewers, game: 'Just Chatting', tags,
+                             title: login === 'quinto' ? 'Subathon jour 3 !' : 'Direct ' + login };
+    }
+    const id = (l) => window.__fx[l].id;
+    const session = { hostId: id('kestrel'), hostLogin: 'kestrel', guests: [
+      { id: id('kestrel'), login: 'kestrel', viewers: 95000, combined: 110000 },
+      { id: id('kite'), login: 'kite', viewers: 15000, combined: 110000 }] };
+    window.__gs = { [id('kestrel')]: session, [id('kite')]: session };
+  }, [MONDE, cats]);
+  const ouvrir = async ({ options = null, cats } = {}) => {
+    const p = await ouvrirAccueil({ decor: { rayons: RAYONS }, options });
+    await plateauAccueil(p, { top: TOP });
+    await decorAilleurs(p, cats);
+    await attendre(p, () => [...document.querySelectorAll('h2')].some((h) => h.textContent === 'D\'ailleurs'), 6_000);
+    await attendre(p, () => !!document.querySelector('#tse-accueil .tse-acc-place'), 10_000);
+    await p.evaluate(() => [...document.querySelectorAll('h2')].find((h) => h.textContent === 'Chaînes live qui pourraient vous plaire')
+      .scrollIntoView({ block: 'start' }));
+    return p;
+  };
+  const lire = (p) => p.evaluate(() => {
+    const twitch = Object.fromEntries([...document.querySelectorAll('main a[data-a-target="preview-card-image-link"]')]
+      .filter((a) => !a.closest('#tse-accueil, #tse-accueil-heros'))
+      .map((a) => [a.getAttribute('href').slice(1), { texte: a.getAttribute('data-tse-etiquette'), sorte: a.getAttribute('data-tse-etiq'),
+                                                      couleur: getComputedStyle(a, '::after').color }]));
+    const top = Object.fromEntries([...document.querySelectorAll('#tse-accueil .tse-acc-place')]
+      .map((c) => [c.dataset.tseCle, c.querySelector('.tse-acc-vignette')?.getAttribute('data-tse-etiquette') ?? null]));
+    const tags = window.__calls.flatMap((c) => c.tagLangs || []);
+    return { twitch, top, ailleurs: window.tse.accueil.rapport().etiquettes.ailleurs,
+             demandes: Object.fromEntries(['Français', 'English', 'Español', 'Deutsch', 'Italiano'].map((t) => [t, tags.filter((x) => x === t).length])) };
+  });
+  const tx = (e, l) => e.twitch[l]?.texte ?? null;
+
+  const pa = await ouvrir();
+  await attendre(pa, () => {
+    const t = (l) => document.querySelector(`main a[data-a-target="preview-card-image-link"][href="/${l}"]`)?.getAttribute('data-tse-etiquette');
+    return t('aeltris') === 'N°9 mondial' && t('yarrow') === 'N°6 en anglais' && t('nadir') === 'N°3 mondial' && t('ulric') === 'N°5 mondial'
+      && /^Subathon/.test(t('quinto') || '') && window.tse.accueil.rapport().etiquettes.ailleurs.sources['*']?.chaines === 11;
+  }, 20_000);
+  const e1 = await lire(pa);
+  /* a) LE MONDE, PUIS LA VÔTRE, PUIS UNE AUTRE. aeltris, troisième en
+     français, est neuvième de tout Twitch : le monde passe devant. tavor,
+     hors du monde, garde sa place française ; brune aussi, qui parle
+     anglais — la vôtre avant une autre. yarrow, hors du monde et anglaise,
+     dit sa place en anglais — le nom de la langue, celui que le navigateur
+     donne en français. kestrel, deuxième du monde ET en anglais, en
+     co-stream : le monde passe devant le co-stream. Le co-stream est UNE
+     place : nadir est troisième, pas quatrième. Une chaîne du Top 10
+     lui-même dit sa place mondiale, qu'il n'écrit pas. Mutants — la place
+     française avant le monde ; l'autre langue avant la vôtre ; le monde
+     jamais demandé ; une place par chaîne, co-stream compris. */
+  ok('a) « N°9 mondial » avant « N°3 en français », « N°4 en français » hors du monde, « N°6 en anglais » pour une chaîne anglaise ; un co-stream, une place ; le monde aussi sur le Top 10',
+     tx(e1, 'aeltris') === 'N°9 mondial' && e1.twitch.aeltris?.sorte === 'monde'
+     && tx(e1, 'tavor') === 'N°4 en français' && e1.twitch.tavor?.sorte === 'rang' && tx(e1, 'brune') === 'N°6 en français'
+     && tx(e1, 'yarrow') === 'N°6 en anglais' && e1.twitch.yarrow?.sorte === 'langue'
+     && tx(e1, 'kestrel') === 'N°2 mondial' && tx(e1, 'nadir') === 'N°3 mondial' && tx(e1, 'vesna') === 'N°6 mondial'
+     && e1.ailleurs.sources['*']?.chaines === 11 && e1.ailleurs.sources.English?.chaines === 7
+     && e1.top.zephyr === 'N°7 mondial' && e1.top.tavor === null,
+     JSON.stringify({ twitch: e1.twitch, top: e1.top, sources: e1.ailleurs.sources }));
+  /* b) LEURS COULEURS : l'or des places pour une autre langue, un or plus
+     chaud pour le monde. */
+  ok('…le monde d\'un or plus chaud, une autre langue de l\'or des places',
+     e1.twitch.aeltris?.couleur === 'rgb(255, 179, 92)' && e1.twitch.yarrow?.couleur === 'rgb(255, 214, 138)'
+     && e1.twitch.tavor?.couleur === 'rgb(255, 214, 138)',
+     JSON.stringify({ aeltris: e1.twitch.aeltris?.couleur, yarrow: e1.twitch.yarrow?.couleur, tavor: e1.twitch.tavor?.couleur }));
+  /* c) TROIS LANGUES AU PLUS, LES PLUS NOMBREUSES. L'anglais, trois cartes ;
+     l'espagnol, deux ; l'allemand et l'italien, une — le nom départage.
+     L'italien n'est pas demandé, et quinto ne dit que son subathon. Le
+     français, celui du Top 10, n'a pas de classement de plus. Mutants — le
+     plafond levé ; les moins nombreuses d'abord ; la langue du Top 10
+     comptée. */
+  ok('c) trois langues au plus — les plus nombreuses à l\'écran, le nom à égalité — et le monde : l\'italien jamais demandé, le français pas deux fois',
+     JSON.stringify(e1.ailleurs.portees) === '["*","English","Español","Deutsch"]'
+     && e1.demandes.Italiano === 0 && e1.demandes.English > 0 && e1.demandes.Deutsch > 0
+     && Object.keys(e1.ailleurs.marches || {}).sort().join() === '*,Deutsch,English,Español'
+     && ['*', 'English', 'Español', 'Deutsch'].every((k) => e1.ailleurs.sources[k]?.source === 'accueil' && e1.ailleurs.sources[k]?.prouve),
+     JSON.stringify(e1));
+
+  /* d) LE REBOND. Chaque étiquette, sur nos cartes comme sur celles de
+     Twitch, rebondit une fois par cycle de cinq secondes : six pixels, puis
+     deux, et le repos. Chacune a son temps parmi cinq, et son retard est
+     celui de son temps — les étiquettes d'une même peinture ne sautent pas
+     ensemble. Le subathon garde son clignotement, et rebondit avec. Lu sur
+     les animations du document : celles des pseudo-éléments y sont.
+     Mutants — un seul temps pour toutes ; le retard oublié ; le rebond
+     absent des cartes de Twitch ; un rebond immobile. */
+  const rebond = await pa.evaluate(() => {
+    const anims = document.getAnimations().filter((a) => a.animationName === 'tse-acc-etiq-rebond');
+    // Une place que le Top 10 ne montre pas (au-delà de ce que la largeur tient) ne s'anime pas : on lit celles qui se voient.
+    return [...document.querySelectorAll('[data-tse-etiquette]')].filter((el) => el.checkVisibility()).map((el) => {
+      const st = getComputedStyle(el, '::after');
+      const a = anims.find((x) => x.effect.target === el && x.effect.pseudoElement === '::after');
+      const ys = a ? a.effect.getKeyframes().map((k) => Number((/translateY\((-?[\d.]+)px\)/.exec(k.transform || '') || [0, 0])[1])) : [];
+      return { login: el.closest('[data-tse-cle]')?.dataset.tseCle || el.getAttribute('href'), twitch: !el.closest('#tse-accueil'),
+               temps: el.getAttribute('data-tse-etiq-temps'), nom: st.animationName, duree: st.animationDuration, fois: st.animationIterationCount,
+               retard: st.animationDelay, court: a ? a.playState : null, delai: a ? a.effect.getTiming().delay : null,
+               haut: ys.length ? Math.min(...ys) : null };
+    });
+  });
+  const bien = (r) => {
+    const subathon = r.nom.startsWith('tse-acc-etiq-subathon, ');
+    const t = Number(r.temps);
+    return /^[0-4]$/.test(r.temps) && r.court === 'running' && r.delai === t * 1000 && r.haut === -6
+      && (subathon ? r.nom === 'tse-acc-etiq-subathon, tse-acc-etiq-rebond' && r.duree === '1.5s, 5s' && r.retard === `0s, ${t}s`
+                   : r.nom === 'tse-acc-etiq-rebond' && r.duree === '5s' && r.fois === 'infinite' && r.retard === `${t}s`);
+  };
+  const temps = new Set(rebond.map((r) => r.temps));
+  ok('d) chaque étiquette rebondit — six pixels, un cycle de cinq secondes, sans fin —, sur nos cartes comme sur celles de Twitch, le subathon avec son clignotement',
+     rebond.length >= 8 && rebond.every(bien) && rebond.some((r) => r.twitch) && rebond.some((r) => !r.twitch)
+     && rebond.some((r) => r.nom.startsWith('tse-acc-etiq-subathon')),
+     JSON.stringify(rebond));
+  ok('…chacune à son temps parmi cinq, et son retard le suit : les étiquettes ne sautent pas ensemble',
+     temps.size >= 4, JSON.stringify([...temps]));
+  /* Le mouvement lui-même, lu sur l'image : la pastille d'aeltris monte, et
+     revient au repos, dans un cycle. */
+  const mouvement = await pa.evaluate(async () => {
+    const el = document.querySelector('main a[data-a-target="preview-card-image-link"][href="/aeltris"]');
+    const vus = new Set();
+    const t0 = performance.now();
+    while (performance.now() - t0 < 5_600 && vus.size < 2) {
+      const m = getComputedStyle(el, '::after').transform;
+      const y = m === 'none' ? 0 : Number((m.match(/-?[\d.]+(?:e-?\d+)?/g) || [])[5]);
+      if (y <= -3) vus.add('haut'); else if (Math.abs(y) < 0.01) vus.add('repos');
+      await new Promise((r) => requestAnimationFrame(r));
+    }
+    return [...vus].sort();
+  });
+  ok('…et elle bouge : la pastille monte, puis revient au repos, dans un même cycle',
+     mouvement.join() === 'haut,repos', JSON.stringify(mouvement));
+  /* e) « LES ÉTIQUETTES REBONDISSENT », COUPÉ : plus une étiquette ne bouge,
+     et le subathon clignote encore. Les étiquettes, elles, restent. */
+  await pa.evaluate(() => window.tse.options.poser('accueilRebond', false));
+  await attendre(pa, () => (document.documentElement.getAttribute('data-tse-off') || '').split(' ').includes('accueilRebond'), 3_000);
+  const coupe = await pa.evaluate(() => ({
+    rebonds: document.getAnimations().filter((a) => a.animationName === 'tse-acc-etiq-rebond').length,
+    noms: [...new Set([...document.querySelectorAll('[data-tse-etiquette]')].map((el) => getComputedStyle(el, '::after').animationName))].sort(),
+    poses: document.querySelectorAll('[data-tse-etiquette]').length,
+    quinto: getComputedStyle(document.querySelector('main a[data-a-target="preview-card-image-link"][href="/quinto"]'), '::after').animationName,
+  }));
+  ok('e) « Les étiquettes rebondissent » coupé : plus un rebond, les étiquettes restent, le subathon clignote encore',
+     coupe.rebonds === 0 && coupe.noms.join() === 'none,tse-acc-etiq-subathon' && coupe.poses >= 8 && coupe.quinto === 'tse-acc-etiq-subathon',
+     JSON.stringify(coupe));
+
+  /* f) LA BARRE SERT DÉJÀ LE MONDE : Top Chaînes ouvert, sans catégorie,
+     toutes langues. Les places mondiales se lisent sur son classement, et
+     celui de l'accueil ne marche plus. Mutant — le partage jamais vrai. */
+  await pa.evaluate(() => window.tse.global.on());
+  await attendre(pa, () => window.tse.accueil.rapport().etiquettes.ailleurs.sources['*']?.source === 'barre', 6_000);
+  const { marches: { '*': m0 }, operations: { '*': o0 } } = (await lire(pa)).ailleurs;
+  await wait(pa, 4_000);
+  const e2 = await lire(pa);
+  ok('f) la barre sert déjà le monde : la place se lit sur son classement, et celui de l\'accueil ne demande plus rien',
+     e2.ailleurs.sources['*']?.source === 'barre' && e2.ailleurs.sources['*']?.prouve
+     && e2.ailleurs.marches['*'] === m0 && e2.ailleurs.operations['*'] === o0
+     && tx(e2, 'aeltris') === 'N°9 mondial' && e2.ailleurs.sources.English?.source === 'accueil'
+     && e2.ailleurs.operations.English > 0,
+     JSON.stringify({ m0, o0, ailleurs: e2.ailleurs, aeltris: tx(e2, 'aeltris') }));
+
+  /* g) « TOUTES LES LANGUES » : le Top 10 EST le monde — sa place se dit
+     « du Top 10 », et le monde n'a plus de classement à lui. Le français
+     devient une autre langue : la plus nombreuse à l'écran, il prend la
+     première, et l'allemand sort des trois. tavor, hors du monde, dit sa
+     place en français ; brune, sa meilleure, en anglais. Mutant — le monde
+     gardé. */
+  await pa.evaluate(() => window.tse.options.poser('accueilTopLangue', 'toutes'));
+  await attendre(pa, () => {
+    const t = (l) => document.querySelector(`main a[data-a-target="preview-card-image-link"][href="/${l}"]`)?.getAttribute('data-tse-etiquette');
+    return t('aeltris') === 'N°9 du Top 10' && t('tavor') === 'N°4 en français';
+  }, 20_000);
+  const e3 = await lire(pa);
+  ok('g) « Toutes les langues » : « N°9 du Top 10 », plus de classement du monde à part ; le français devient une autre langue — « N°4 en français »',
+     tx(e3, 'aeltris') === 'N°9 du Top 10' && e3.twitch.aeltris?.sorte === 'rang'
+     && tx(e3, 'tavor') === 'N°4 en français' && e3.twitch.tavor?.sorte === 'langue' && tx(e3, 'brune') === 'N°5 en anglais'
+     && JSON.stringify(e3.ailleurs.portees) === '["Français","English","Español"]' && !('*' in e3.ailleurs.sources),
+     JSON.stringify({ twitch: e3.twitch, ailleurs: e3.ailleurs }));
+  /* h) LE TOP 10 COUPÉ : aucune place, d'ici ni d'ailleurs, et plus un
+     classement ne part. */
+  await pa.evaluate(() => { window.tse.global.off(); window.tse.options.poser('accueilTop', false); });
+  await attendre(pa, () => ![...document.querySelectorAll('[data-tse-etiq]')].some((n) => /^(rang|langue|monde)$/.test(n.getAttribute('data-tse-etiq'))), 5_000);
+  const t0 = await pa.evaluate(() => window.__calls.filter((c) => c.names.some((n) => /^TseTagTop$|^TseCategories$|^TseCategoryTop$/.test(n))).length);
+  await wait(pa, 3_000);
+  const e4 = await lire(pa);
+  const t1 = await pa.evaluate(() => window.__calls.filter((c) => c.names.some((n) => /^TseTagTop$|^TseCategories$|^TseCategoryTop$/.test(n))).length);
+  ok('h) le Top 10 coupé : plus une place, ni d\'ici ni d\'ailleurs, et plus un classement demandé',
+     e4.ailleurs.portees.length === 0 && Object.values(e4.twitch).every((x) => !/^(rang|langue|monde)$/.test(x.sorte || ''))
+     && /^Subathon/.test(tx(e4, 'quinto') || '') && t1 === t0,
+     JSON.stringify({ t0, t1, ailleurs: e4.ailleurs, twitch: e4.twitch }));
+  await pa.close();
+
+  /* i) UNE PLACE NE S'ÉCRIT QUE PROUVÉE. Le monde résolu mais pas complet —
+     cent catégories au-dessus du seuil : kestrel y est deuxième, et ne le
+     dit pas ; sa place en anglais, prouvée, se dit. Mutant — la complétude
+     oubliée : « N°2 mondial ». */
+  const pi = await ouvrir({ cats: 'fenetre' });
+  await attendre(pi, () => {
+    const a = window.tse.accueil.rapport().etiquettes.ailleurs;
+    const t = (l) => document.querySelector(`main a[data-a-target="preview-card-image-link"][href="/${l}"]`)?.getAttribute('data-tse-etiquette');
+    // Le Top 10 français et la place anglaise arrivent chacun à son heure : on attend les deux.
+    return a.marches['*'] >= 1 && a.sources.English?.prouve && !!t('kestrel') && t('aeltris') === 'N°3 en français';
+  }, 25_000);
+  const e5 = await lire(pi);
+  await pi.close();
+  ok('i) le monde résolu mais pas complet ne dit aucune place — kestrel dit la sienne en anglais, prouvée',
+     e5.ailleurs.sources['*']?.prouve === false && tx(e5, 'kestrel') === 'N°2 en anglais' && tx(e5, 'aeltris') === 'N°3 en français',
+     JSON.stringify({ ailleurs: e5.ailleurs, twitch: e5.twitch }));
+
+  /* j) UNE LANGUE QUE TWITCH NE FILTRE PAS LUI-MÊME. ulric parle italien
+     ici, comme quinto : l'italien est la troisième langue. Twitch refuse son
+     tag, et ne connaît pas son code de diffusion : le classement retombe sur
+     les tags lus — un classement approché, que le rapport ne dit pas
+     complet. Aucune place ne s'en écrit : quinto, qui n'a de place que
+     dans celui-là, reste nue. Mutant — la complétude du rapport oubliée :
+     « N°2 en italien », d'un classement approché. */
+  const pj = await ouvrir();
+  await pj.evaluate(() => {
+    window.__fx.ulric = { ...window.__fx.ulric, tags: ['Italiano'] };
+    window.__fx.quinto = { ...window.__fx.quinto, title: 'Direct quinto' };
+    window.__cats[0].streams.find((x) => x.login === 'ulric').tags = ['Italiano'];
+    window.__tagTop.Italiano = 'erreur';
+  });
+  await attendre(pj, () => {
+    const a = window.tse.accueil.rapport().etiquettes.ailleurs;
+    return a.marches.Italiano >= 2 && a.sources.English?.prouve && a.sources['*']?.prouve;
+  }, 20_000);
+  await wait(pj, 1_000);
+  const e6 = await lire(pj);
+  await pj.close();
+  ok('j) une langue que Twitch ne filtre pas lui-même — un classement approché — ne dit aucune place',
+     JSON.stringify(e6.ailleurs.portees) === '["*","English","Español","Italiano"]' && e6.ailleurs.marches.Italiano >= 2
+     && e6.ailleurs.sources.Italiano?.prouve === false && tx(e6, 'quinto') === null && tx(e6, 'yarrow') === 'N°6 en anglais',
+     JSON.stringify({ ailleurs: e6.ailleurs, quinto: e6.twitch.quinto, yarrow: e6.twitch.yarrow }));
 }
 
 {

@@ -1283,7 +1283,7 @@ const GROUPES_OPT = [
   ['optGrpZapping', ['zapping']],
   // L'accueil de Twitch (4.26.0) : le maître d'abord, ce qu'il gouverne ensuite.
   ['optGrpAccueil', ['accueil', 'accueilTete', 'accueilVideo', 'accueilUne', 'accueilTop',
-                     'accueilTopLangue', 'accueilTopEcartees', 'accueilPourquoi', 'accueilApercu', 'accueilDebut', 'accueilRdv', 'accueilEtiquettes', 'accueilAbsence', 'accueilRanger']],
+                     'accueilTopLangue', 'accueilTopEcartees', 'accueilPourquoi', 'accueilApercu', 'accueilDebut', 'accueilRdv', 'accueilEtiquettes', 'accueilRebond', 'accueilAbsence', 'accueilRanger']],
   ['optGrpBadges',  ['badges']],
   ['optGrpCarte',   ['duree', 'dureeFormat', 'fresh', 'abonnes', 'subathonJour']],
   ['optGrpListe',   ['tris', 'filtreCategorie', 'filtreLangue', 'topOnglet', 'topN']],

@@ -830,7 +830,13 @@
     "message": "Une étiquette par carte"
   },
   "optDescAccueilEtiquettes": {
-    "message": "Un fait, un seul, sur chaque carte de l'accueil — celles de l'extension comme celles de Twitch : « De retour après 41 jours », « Vient de commencer », « ↗ +38 % en 10 min »… Pour une chaîne que la barre ne suit pas, ses chiffres sont demandés tant que sa carte est à l'écran."
+    "message": "Un fait, un seul, sur chaque carte de l'accueil — celles de l'extension comme celles de Twitch : « De retour après 41 jours », « Vient de commencer », « ↗ +38 % en 10 min », « N°3 mondial »… Pour une chaîne que la barre ne suit pas, ses chiffres sont demandés tant que sa carte est à l'écran ; les places du monde et des autres langues, au rythme du Top 10."
+  },
+  "optAccueilRebond": {
+    "message": "Les étiquettes rebondissent"
+  },
+  "optDescAccueilRebond": {
+    "message": "Un petit rebond toutes les cinq secondes, décalé d'une carte à l'autre, pour que l'étiquette se détache de la vignette."
   },
   "optAccueilAbsence": {
     "message": "Pendant votre absence"
@@ -1007,7 +1013,7 @@
     "message": "Remettre tous les réglages par défaut ?"
   },
   "optResetText": {
-    "message": "Les trente-six réglages de cette page reviendront à leur valeur d'origine. Vos données — visites, abonnements, chaînes suivies — ne sont pas touchées."
+    "message": "Les trente-sept réglages de cette page reviendront à leur valeur d'origine. Vos données — visites, abonnements, chaînes suivies — ne sont pas touchées."
   },
   "optValPlein": {
     "message": "Complet"
