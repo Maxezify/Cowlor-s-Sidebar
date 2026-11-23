@@ -3717,6 +3717,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     
     :root {
       
+      --tse-schema:       dark;
+      
       --tse-encre:        255, 255, 255;
       
       --tse-frais:        var(--tse-direct, #eb0400);
@@ -3739,6 +3741,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       --tse-decoupe:      #1f1f23;
     }
     html[data-tse-theme="light"] {
+      --tse-schema:       light;
       --tse-encre:        0, 0, 0;
       --tse-surface:      var(--color-background-alt, #ffffff);
       --tse-surface-2:    var(--color-background-alt-2, #f7f7f8);
@@ -4795,6 +4798,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       display: none;
       position: absolute; top: calc(100% + 4px); z-index: 9999;
       min-width: 100%; max-height: 260px; overflow-y: auto; padding: 4px;
+      color-scheme: var(--tse-schema);
       background: var(--tse-surface); border: 1px solid rgba(var(--tse-encre), 0.12);
       border-radius: 6px; box-shadow: 0 4px 16px var(--tse-ombre-menu);
     }
@@ -5700,6 +5704,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       display: flex; flex-direction: column;
       background: var(--color-background-base, #0e0e10);
       color: var(--tse-texte);
+      color-scheme: var(--tse-schema);
       font-size: 13px; line-height: 1.4;
     }
     html[data-tse-theme="light"] #tse-salle { background: var(--color-background-base, #f7f7f8); }
@@ -6993,9 +6998,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     return NETWORK_ERROR;
   };
 
-  const post = (payload) => {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), CFG.GQL_TIMEOUT);
+  const post = (payload, { fond = false } = {}) => {
     reseau.appels++;
     return fetch(CFG.GQL_URL, {
       method: 'POST',
@@ -7003,7 +7006,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
                  'Accept-Language': localeTwitch() },
       body: JSON.stringify(payload),
       credentials: 'omit',
-      signal: controller.signal
+      signal: AbortSignal.timeout(CFG.GQL_TIMEOUT),
+      ...(fond || document.hidden ? { priority: 'low' } : {}),
     })
 
       .then(
@@ -7032,11 +7036,10 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
             () => echecReseau('corps illisible (JSON)', ''));
         },
         (e) => echecReseau(
-          e && e.name === 'AbortError'
+          e && e.name === 'TimeoutError'
             ? `abandon après ${CFG.GQL_TIMEOUT} ms`
             : 'échec de fetch',
-          (e && (e.name || e.message)) || ''))
-      .finally(() => clearTimeout(timer));
+          (e && (e.name || e.message)) || ''));
   };
 
   const RE_SUBATHON_NOM = /(?<![\p{L}])sub[\s._-]*(?:a[\s._-]*)?thon(?![\p{L}])/iu;
@@ -7280,15 +7283,16 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     if (Date.now() < gqlCooldownUntil) {
       return Promise.resolve(cache.get(login) ?? UPTIME_UNKNOWN);
     }
-    return new Promise(resolve => {
-      const arr = queue.get(login) || [];
-      arr.push(resolve);
-      queue.set(login, arr);
-      queueTimer ??= setTimeout(flushQueue, CFG.BATCH_DELAY);
-    });
+
+    const { promise, resolve } = Promise.withResolvers();
+    const arr = queue.get(login) || [];
+    arr.push(resolve);
+    queue.set(login, arr);
+    queueTimer ??= setTimeout(flushQueue, CFG.BATCH_DELAY);
+    return promise;
   };
 
-  const creerClassement = (lire, mesures = true) => {
+  const creerClassement = (lire, mesures = true, fond = false) => {
 
     const CATEGORIES_QUERY =
       'query TseCategories($n: Int!) {' +
@@ -7352,7 +7356,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       if (!ops.length) return { out: [], transport: false };
       const slices = chunk(ops, CFG.GLOBAL_BATCH_OPS);
       stats.ops += ops.length;
-      const responses = await Promise.all(slices.map(s => post(s)));
+      const responses = await Promise.all(slices.map(s => post(s, { fond })));
       const out = [];
 
       const erreurs = [];
@@ -8276,7 +8280,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
 
           if (want.key !== scope) return [];
           if (scopeDirty) {
-            scopeRanking = scopeRanking.slice().sort((a, b) => b.viewers - a.viewers);
+            scopeRanking = scopeRanking.toSorted((a, b) => b.viewers - a.viewers);
             scopeDirty = false;
           }
           return scopeRanking;
@@ -8284,7 +8288,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
 
         if ((wantedLang()?.lang || null) !== worldLang) return [];
         if (rankingDirty) {
-          ranking = ranking.slice().sort((a, b) => b.viewers - a.viewers);
+          ranking = ranking.toSorted((a, b) => b.viewers - a.viewers);
           rankingDirty = false;
         }
         return ranking;
@@ -8539,6 +8543,15 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       return frag;
     };
   })();
+
+  const deplacer = (parent, noeud, avant = null) => {
+    if (typeof parent.moveBefore === 'function' && noeud.isConnected && parent.isConnected
+        && noeud.ownerDocument === parent.ownerDocument) {
+      try { parent.moveBefore(noeud, avant); return; }
+      catch {   }
+    }
+    parent.insertBefore(noeud, avant);
+  };
 
   const FENTE = '\u0000';
 
@@ -10607,7 +10620,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         if (!c) continue;
         if (blocHeros.dataset.tsePlace !== place) blocHeros.dataset.tsePlace = place;
         if (blocHeros.parentElement !== c.parent || blocHeros.nextElementSibling !== c.avant) {
-          c.parent.insertBefore(blocHeros, c.avant);
+          deplacer(c.parent, blocHeros, c.avant);
           placeVue = false;
         }
         bilan.heros.place = place;
@@ -10688,12 +10701,14 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       const contenu = [...racine.querySelectorAll(SEL_CONTENU)].find((n) => !exclu(n) && n.parentElement);
       bilan.ancre = contenu ? 'contenu' : carrousel ? 'carrousel' : 'conteneur';
       if (contenu) {
-        if (contenu.previousElementSibling !== section) contenu.before(section);
+        if (contenu.previousElementSibling !== section) deplacer(contenu.parentNode, section, contenu);
       } else if (carrousel) {
-        if (carrousel.bloc.nextElementSibling !== section) carrousel.bloc.after(section);
+        if (carrousel.bloc.nextElementSibling !== section) {
+          deplacer(carrousel.bloc.parentNode, section, carrousel.bloc.nextSibling);
+        }
       } else {
         const c = conteneurDe(racine);
-        if (c.firstElementChild !== section) c.prepend(section);
+        if (c.firstElementChild !== section) deplacer(c, section, c.firstChild);
       }
       poserHeros(racine);
       if (!etait) {
@@ -10772,7 +10787,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       const repere = auCentre(liste);
       const avant = ecartAuMilieu(liste, repere);
       const bougees = decalage > 0 ? cartes.slice(0, decalage) : cartes.slice(n + decalage);
-      if (decalage > 0) liste.append(...bougees); else liste.prepend(...bougees);
+      const tete = decalage > 0 ? null : liste.firstChild;
+      for (const c of bougees) deplacer(liste, c, tete);
       liste.scrollLeft += ecartAuMilieu(liste, repere) - avant;
       for (const c of bougees) entrerEnFondu(c);
       bilan.une.tours++;
@@ -11042,10 +11058,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       let a = ailleurs.get(cle);
       if (!a) {
         a = { cle, voulu: false, classement: null };
+
         a.classement = creerClassement(() => ({
           actif: a.voulu && ailleursActif() && !partageAilleurs(cle),
           lang: cle === MONDE ? null : cle, categorie: null, n: CFG.ACCUEIL_TOP_N,
-        }), false);
+        }), false, true);
         ailleurs.set(cle, a);
       }
       return a;
@@ -11698,7 +11715,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         if (n) restants.delete(k); else n = fabriquer(it);
         maj(n, it);
         const attendu = prec ? prec.nextSibling : liste.firstChild;
-        if (n !== attendu) liste.insertBefore(n, attendu);
+        if (n !== attendu) deplacer(liste, n, attendu);
         prec = n;
       }
       for (const n of restants.values()) n.remove();
@@ -12240,7 +12257,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       bilan.debut.demandes += lot.length;
       const q = 'query TseAccueilDebut {' + lot.map(([l], i) =>
         ` a${i}: user(login: ${JSON.stringify(l)}) { stream { id archiveVideo { id } } }`).join('') + ' }';
-      const res = await post([{ operationName: 'TseAccueilDebut', query: q }]);
+      const res = await post([{ operationName: 'TseAccueilDebut', query: q }], { fond: true });
 
       const r0 = Array.isArray(res) ? res[0] : null;
       if (!r0 || !r0.data) {
@@ -12272,7 +12289,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     const lireAcces = async (ids) => {
       const q = 'query TseAccueilAcces {' + ids.map(([, id], i) =>
         ` a${i}: videoPlaybackAccessToken(id: ${JSON.stringify(id)}, params: ${PARAMS_JETON}) { value }`).join('') + ' }';
-      const res = await post([{ operationName: 'TseAccueilAcces', query: q }]);
+      const res = await post([{ operationName: 'TseAccueilAcces', query: q }], { fond: true });
       const r0 = Array.isArray(res) ? res[0] : null;
       if (!r0 || !r0.data) { bilan.debut.reseau++; return; }
       bilan.debut.jetons++;
@@ -13477,7 +13494,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     const fini = (x) => (typeof x === 'number' && Number.isFinite(x) ? x : null);
     const mediane = (l) => {
       if (!l.length) return null;
-      const s = [...l].sort((a, b) => a - b);
+      const s = l.toSorted((a, b) => a - b);
       const m = Math.floor(s.length / 2);
       return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
     };
@@ -13823,8 +13840,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     };
     const correler = (ea, eb) => {
       if (ea.length < 3 || eb.length < 3) return null;
-      const A = [...ea].sort((p, q) => p[0] - q[0]);
-      const Bv = [...eb].sort((p, q) => p[0] - q[0]);
+      const A = ea.toSorted((p, q) => p[0] - q[0]);
+      const Bv = eb.toSorted((p, q) => p[0] - q[0]);
       const pas = CFG.SALLE_ECOUTE_PAS_MS;
       const fin = Math.min(A[A.length - 1][0], Bv[Bv.length - 1][0]);
       const debut = Math.max(A[0][0], Bv[0][0], fin - CFG.SALLE_ECOUTE_FENETRE_MS);
@@ -14241,7 +14258,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       .filter((ms) => ms !== null && !auBord(h, ms));
 
     const grouper = (vals, cle = (x) => x) => {
-      const v = [...vals].sort((x, y) => cle(x) - cle(y));
+      const v = vals.toSorted((x, y) => cle(x) - cle(y));
       const groupes = v.length ? [[v[0]]] : [];
       for (const x of v.slice(1)) {
         const g = groupes[groupes.length - 1];
@@ -15058,7 +15075,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       const ancre = L > 0 ? bas : L < 0 ? haut : null;
       const ou = `${secondes(L)} ${L > 0 ? 'derrière' : 'devant'} sa place`;
       const bougent = plan.filter((p) => Math.abs(r3(p.dl - L)) >= CALAGE.SEUIL_S);
-      for (const p of [...plan].sort((u, v) => (v === ancre) - (u === ancre))) {
+      for (const p of plan.toSorted((u, v) => (v === ancre) - (u === ancre))) {
         const n = p.t.chaine;
 
         const m = r3(p.dl - L);
@@ -16328,7 +16345,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     const carteVers = new Map();
     let proche = null;
 
-    const cleDe = (membres) => [...membres].sort().join(' ');
+    const cleDe = (membres) => membres.toSorted().join(' ');
 
     const ecrire = (el, texte) => { if (el.textContent !== texte) el.textContent = texte; };
     const enfoncer = (el, oui) => {
@@ -16977,11 +16994,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m${String(s % 60).padStart(2, '0')}`;
       };
       const median = (arr) => {
-        const a = arr.slice().sort((x, y) => x - y);
+        const a = arr.toSorted((x, y) => x - y);
         return a[Math.floor(a.length / 2)];
       };
       const pct = (arr, q) => {
-        const a = arr.slice().sort((x, y) => x - y);
+        const a = arr.toSorted((x, y) => x - y);
         return a[Math.min(a.length - 1, Math.floor(a.length * q))];
       };
       const lags = samples.map(s => s.lag);
@@ -17941,7 +17958,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
 
     const directsDe = (videos) => {
       const out = [];
-      for (const v of [...videos].sort((a, b) => a.debut - b.debut)) {
+      for (const v of videos.toSorted((a, b) => a.debut - b.debut)) {
         const prec = out[out.length - 1];
         if (prec && v.debut - prec.fin < MEME_DIRECT_MS) { prec.fin = Math.max(prec.fin, finVideo(v)); continue; }
         out.push({ debut: v.debut, fin: finVideo(v) });
@@ -17960,7 +17977,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       }
       if (meilleur.ecarts.length < CFG.ACCUEIL_HABITUDE_MIN) return null;
 
-      const e = [...meilleur.ecarts].sort((a, b) => a - b);
+      const e = meilleur.ecarts.toSorted((a, b) => a - b);
       const mediane = e.length % 2 ? e[(e.length - 1) / 2] : (e[e.length / 2 - 1] + e[e.length / 2]) / 2;
       const vers = (Math.round((meilleur.m0 + mediane) / 15) * 15) % 1440;
       return { k: meilleur.ecarts.length, n: derniers.length, vers };
@@ -18416,12 +18433,12 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
 
         const quantile = (arr, q) => {
           if (!arr.length) return null;
-          const a = arr.slice().sort((x, y) => x - y);
+          const a = arr.toSorted((x, y) => x - y);
           return a[Math.min(a.length - 1, Math.floor(a.length * q))];
         };
         return {
           colonnes: ['login', 'lag', 'gain', 'ts'],
-          lignes: echantillons.slice().reverse(),
+          lignes: echantillons.toReversed(),
           resume: { mesures: echantillons.length,
                     medianeLag: quantile(lags, 0.5), p90Lag: quantile(lags, 0.9),
                     gains: gains.length, medianeGain: quantile(gains, 0.5) },
@@ -18494,7 +18511,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       const lags = mesures.map(m => m.lag).filter(Number.isFinite);
       const quantile = (arr, q) => {
         if (!arr.length) return null;
-        const a = arr.slice().sort((x, y) => x - y);
+        const a = arr.toSorted((x, y) => x - y);
         return a[Math.min(a.length - 1, Math.floor(a.length * q))];
       };
       const maintenant = Date.now();
@@ -18831,7 +18848,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
                       decors: 0, intrus: 0, logos: 0,
                       ecartNomPx: null, ecartHauteurPx: null, squelette: {} };
           const gauche = (c, e) => e.getBoundingClientRect().left - c.getBoundingClientRect().left;
-          const mediane = (v) => { const s = v.slice().sort((a, b) => a - b);
+          const mediane = (v) => { const s = v.toSorted((a, b) => a - b);
                                    return s.length ? s[Math.floor(s.length / 2)] : null; };
           for (const c of liste) {
             const av = avatarOf(c), nom = cardNameEl(c), cat = cardCategoryEl(c);
@@ -21158,7 +21175,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       let repliees = [];
       if (f.categories.length > MAX_LIGNES) {
         const gardees = new Set(f.categories.filter(c => c.encours).map(c => c.jeu));
-        for (const c of f.categories.slice().sort((a, b) => b.dureeMs - a.dureeMs)) {
+        for (const c of f.categories.toSorted((a, b) => b.dureeMs - a.dureeMs)) {
           if (gardees.size >= MAX_LIGNES) break;
           gardees.add(c.jeu);
         }
@@ -21449,6 +21466,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
 
       const iframe = document.createElement('iframe');
       iframe.className = 'tse-preview__iframe';
+
+      iframe.setAttribute('aria-hidden', 'true');
+      iframe.tabIndex = -1;
 
       iframe.name = TSE_PREVIEW_FRAME_NAME;
       iframe.src = buildIframeUrl(login);
@@ -23351,17 +23371,20 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     return hit ? hit.hostId : undefined;
   };
 
-  const requestGuestStar = (channelId) => new Promise(resolve => {
-    if (!channelId) return resolve(null);
+  const requestGuestStar = (channelId) => {
+    if (!channelId) return Promise.resolve(null);
     const hit = gsCache.get(channelId);
-    if (hit && Date.now() - hit.ts < CFG.GUEST_STAR_TTL) return resolve(hit);
-    if (Date.now() < gsCooldownUntil) return resolve(hit || null);
+    if (hit && Date.now() - hit.ts < CFG.GUEST_STAR_TTL) return Promise.resolve(hit);
+    if (Date.now() < gsCooldownUntil) return Promise.resolve(hit || null);
+
+    const { promise, resolve } = Promise.withResolvers();
     let arr = gsWaiters.get(channelId);
     if (!arr) gsWaiters.set(channelId, arr = []);
     arr.push(resolve);
     gsQueue.add(channelId);
     gsTimer ??= setTimeout(flushGuestStar, CFG.GUEST_STAR_DEBOUNCE);
-  });
+    return promise;
+  };
 
   const getCollabViewers = (channelId) => {
     if (!channelId) return null;
@@ -23383,7 +23406,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     const cle = logins.length >= 2
       ? (typeof entry.hostId === 'string' && entry.hostId
           ? 'gs:' + entry.hostId
-          : 'gs:' + [...logins].sort().join(','))
+          : 'gs:' + logins.toSorted().join(','))
       : null;
     if (cle) {
       membresDeSession.delete(cle);
@@ -23993,7 +24016,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     let sorted;
     if (sortMode === 'uptime') {
 
-      sorted = [...cards].sort((a, b) => {
+      sorted = cards.toSorted((a, b) => {
         const ta = new Date(a.dataset.tseStartedAt || 0).getTime() || 0;
         const tb = new Date(b.dataset.tseStartedAt || 0).getTime() || 0;
         return tb - ta;
@@ -24011,7 +24034,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         const cle = card.dataset.tseCostreamKey;
         return cle ? (audienceDuGroupe.get(cle) || 0) : getCardViewers(card);
       };
-      sorted = [...cards].sort((a, b) => {
+      sorted = cards.toSorted((a, b) => {
         const d = rangDe(b) - rangDe(a);
         if (d) return d;
 
@@ -24028,7 +24051,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         if (!key) return;
         groupViewers.set(key, Math.max(groupViewers.get(key) || 0, getCardViewers(card)));
       });
-      sorted = [...cards].sort((a, b) => {
+      sorted = cards.toSorted((a, b) => {
         const ka = a.dataset.tseCostreamKey || null;
         const kb = b.dataset.tseCostreamKey || null;
         if (ka && !kb) return -1;
@@ -24044,7 +24067,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       });
     } else if (sortMode === 'subs') {
 
-      sorted = [...cards].sort((a, b) => {
+      sorted = cards.toSorted((a, b) => {
         const sa = subs.isSub(getCardLogin(a)) ? 1 : 0;
         const sb = subs.isSub(getCardLogin(b)) ? 1 : 0;
         if (sa !== sb) return sb - sa;
@@ -24056,7 +24079,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       });
     } else if (sortMode === 'popular') {
 
-      sorted = [...cards].sort((a, b) => {
+      sorted = cards.toSorted((a, b) => {
         const sa = visits.scoreFor(getCardLogin(a));
         const sb = visits.scoreFor(getCardLogin(b));
         if (sb !== sa) return sb - sa;
@@ -24066,12 +24089,12 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       });
     } else if (sortMode === 'alpha') {
 
-      sorted = [...cards].sort((a, b) => {
+      sorted = cards.toSorted((a, b) => {
         return getCardLogin(a).localeCompare(getCardLogin(b), S.locale, { sensitivity: 'base' });
       });
     } else {
 
-      sorted = [...cards].sort((a, b) => {
+      sorted = cards.toSorted((a, b) => {
         const oa = parseInt(a.dataset.tseTwitchOrder ?? '999', 10);
         const ob = parseInt(b.dataset.tseTwitchOrder ?? '999', 10);
         return oa - ob;
@@ -24092,7 +24115,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       if (!parParent.has(p)) parParent.set(p, []);
       parParent.get(p).push(e);
     }
-    for (const [p, voulues] of parParent) voulues.forEach((e) => p.appendChild(e));
+    for (const [p, voulues] of parParent) voulues.forEach((e) => deplacer(p, e));
   }
 
   const GLOBAL_BANNER_ID = 'tse-global-partial';

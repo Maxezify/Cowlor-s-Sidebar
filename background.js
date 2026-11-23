@@ -42,12 +42,13 @@ chrome.runtime.onConnect.addListener((port) => {
 
 const PROMESSE = typeof browser !== 'undefined' && !!browser.runtime;
 
-const traiter = (msg) => new Promise((repondre) => {
+const traiter = (msg) => {
+  const { promise, resolve: repondre } = Promise.withResolvers();
 
   if (msg.type === CANAL + '-etat') {
     repondre({ ok: true, ponts: [...ports.keys()], enVol: enVol.size,
                workerMs: Date.now() - NE });
-    return;
+    return promise;
   }
 
   const port = ports.get(msg.tabId);
@@ -56,7 +57,7 @@ const traiter = (msg) => new Promise((repondre) => {
     repondre({ ok: false, erreur: 'absent',
                detail: `onglet ${msg.tabId} — ponts connus : `
                      + ([...ports.keys()].join(', ') || 'aucun') });
-    return;
+    return promise;
   }
 
   const reqId = ++suivant;
@@ -78,7 +79,8 @@ const traiter = (msg) => new Promise((repondre) => {
     clearTimeout(minuteur);
     repondre({ ok: false, erreur: 'absent' });
   }
-});
+  return promise;
+};
 
 chrome.runtime.onMessage.addListener((msg, _expediteur, repondre) => {
   if (!msg || (msg.type !== CANAL && msg.type !== CANAL + '-etat')) return false;

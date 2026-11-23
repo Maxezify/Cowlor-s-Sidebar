@@ -34,6 +34,10 @@ const LOCALE = (() => {
 })();
 const NOMBRE = new Intl.NumberFormat(LOCALE);
 
+const DUREE = typeof Intl.DurationFormat === 'function'
+  ? new Intl.DurationFormat(LOCALE, { style: 'short' }) : null;
+const DUREE_NULLE = DUREE ? new Intl.DurationFormat(LOCALE, { style: 'short', secondsDisplay: 'always' }) : null;
+
 const fmt = {
   texte: (v) => (v === null || v === undefined || v === '' ? '—' : String(v)),
   nombre: (v) => (Number.isFinite(v) ? NOMBRE.format(v) : '—'),
@@ -49,8 +53,13 @@ const fmt = {
   duree: (ms) => {
     if (!Number.isFinite(ms)) return '—';
     const s = Math.round(ms / 1000);
-    return s < 60 ? `${s} s` : `${Math.floor(s / 60)} min ${String(s % 60).padStart(2, '0')}`;
+    const d = s < 60 ? { seconds: s } : { minutes: Math.floor(s / 60), seconds: s % 60 };
+    if (DUREE) return (s === 0 ? DUREE_NULLE : DUREE).format(d);
+    return s < 60 ? `${s} s` : `${d.minutes} min ${String(d.seconds).padStart(2, '0')}`;
   },
+
+  dureeRonde: (n, unite) => (DUREE ? DUREE.format({ [unite === 'h' ? 'hours' : 'minutes']: n })
+                                   : `${n} ${unite}`),
   dureeSec: (s) => (Number.isFinite(s) ? fmt.duree(s * 1000) : '—'),
   oui: (v) => (v ? T('valYes') : T('valNo')),
 
@@ -323,8 +332,8 @@ const dessinLag = (paquet) => {
                               'text-anchor': x < gx + 20 ? 'start'
                                            : x > dx - 30 ? 'end' : 'middle' });
 
-    t.textContent = ms >= 3600e3 && ms % 3600e3 === 0 ? `${ms / 3600e3} h`
-                  : ms >= 60e3 && ms % 60e3 === 0 ? `${ms / 60e3} min`
+    t.textContent = ms >= 3600e3 && ms % 3600e3 === 0 ? fmt.dureeRonde(ms / 3600e3, 'h')
+                  : ms >= 60e3 && ms % 60e3 === 0 ? fmt.dureeRonde(ms / 60e3, 'min')
                   : fmt.duree(ms);
     svg.appendChild(t);
   }
@@ -662,6 +671,8 @@ const posterAuParent = (message) => {
 window.addEventListener('message', (e) => {
 
   if (e.source !== window.parent) return;
+
+  if (!ORIGINES_PARENT.includes(e.origin)) return;
   const d = e.data;
   if (!d || d.tse !== INCRUSTE_RES || typeof d.id !== 'number') return;
   const attente = attentesCadre.get(d.id);
@@ -673,7 +684,9 @@ window.addEventListener('message', (e) => {
   attente.resoudre(reponse);
 });
 
-const demanderCadre = (charge) => new Promise((resoudre) => {
+const demanderCadre = (charge) => {
+
+  const { promise, resolve: resoudre } = Promise.withResolvers();
   const id = ++suivantCadre;
   const minuteur = setTimeout(() => {
     attentesCadre.delete(id);
@@ -687,7 +700,8 @@ const demanderCadre = (charge) => new Promise((resoudre) => {
     attentesCadre.delete(id);
     resoudre({ ok: false, erreur: 'absent', detail: 'parent inatteignable' });
   }
-});
+  return promise;
+};
 
 const ATTENTES = [250, 750, 1800];
 
@@ -915,8 +929,9 @@ const liste = (id, d, v) => {
     if (gardes.length) poserOption(id, [...v, ...gardes]);
     else peindreReglages();
   };
+
   champ.addEventListener('keydown', (e) => {
-    if (e.key !== 'Enter') return;
+    if (e.key !== 'Enter' || e.isComposing) return;
     e.preventDefault();
     ajouter();
   });
@@ -1549,7 +1564,7 @@ const entrerAgenda = (id) => {
 
 const remplirMenu = (b, quitte = false) => {
   const { chaines, chaine } = etatAgenda.menu;
-  const liste = chaines.slice().sort((x, y) => ORDRE_NOMS.compare(x.nom, y.nom));
+  const liste = chaines.toSorted((x, y) => ORDRE_NOMS.compare(x.nom, y.nom));
 
   if (chaine && !liste.some((c) => c.login === chaine)) liste.unshift({ login: chaine, nom: chaine });
   const sig = liste.map((c) => `${c.login}\u0001${c.nom}`).join('\u0002');
@@ -2199,7 +2214,8 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.addEventListener('keydown', (e) => {
-    if (e.key !== 'Escape') return;
+
+    if (e.key !== 'Escape' || e.isComposing) return;
     if (!$('voile').hidden) { $('voile').hidden = true; aConfirmer = null; return; }
     if (!$('rapport').hidden) { fermerRapport(); return; }
 
