@@ -113,6 +113,15 @@ const LOCALE = (() => {
   return ui.split('-')[0].toLowerCase() === servie.toLowerCase() ? ui : servie;
 })();
 const NOMBRE = new Intl.NumberFormat(LOCALE);
+/* LES DURÉES DANS LA LANGUE DU PANNEAU (4.33.0.10). « 3 min 07 » s'écrivait
+   à la française dans les douze langues ; Intl.DurationFormat l'écrit comme
+   chacune l'écrit — « 3 min, 7 sec », « 3 分 7 秒 », « 3 мин 7 с » (Modern Web
+   Guidance, « calculate-event-differentials »). Une durée nulle, il la rend
+   VIDE : la seconde y est donc toujours dite. Un navigateur qui ne le connaît
+   pas (Chrome avant la 129) garde l'écriture d'avant. */
+const DUREE = typeof Intl.DurationFormat === 'function'
+  ? new Intl.DurationFormat(LOCALE, { style: 'short' }) : null;
+const DUREE_NULLE = DUREE ? new Intl.DurationFormat(LOCALE, { style: 'short', secondsDisplay: 'always' }) : null;
 
 /* ── Mise en forme des valeurs ───────────────────────────────────────────── */
 const fmt = {
@@ -132,8 +141,13 @@ const fmt = {
   duree: (ms) => {
     if (!Number.isFinite(ms)) return '—';
     const s = Math.round(ms / 1000);
-    return s < 60 ? `${s} s` : `${Math.floor(s / 60)} min ${String(s % 60).padStart(2, '0')}`;
+    const d = s < 60 ? { seconds: s } : { minutes: Math.floor(s / 60), seconds: s % 60 };
+    if (DUREE) return (s === 0 ? DUREE_NULLE : DUREE).format(d);
+    return s < 60 ? `${s} s` : `${d.minutes} min ${String(d.seconds).padStart(2, '0')}`;
   },
+  // Une graduation ronde : « 2 h », « 5 min », dans la langue du panneau.
+  dureeRonde: (n, unite) => (DUREE ? DUREE.format({ [unite === 'h' ? 'hours' : 'minutes']: n })
+                                   : `${n} ${unite}`),
   dureeSec: (s) => (Number.isFinite(s) ? fmt.duree(s * 1000) : '—'),
   oui: (v) => (v ? T('valYes') : T('valNo')),
   // Un jour, sans heure : une échéance tombe un jour, pas à une minute.
@@ -549,8 +563,8 @@ const dessinLag = (paquet) => {
     /* « 1 min 00 » sur un axe est une graduation qui bafouille. Les paliers
        au-delà de la minute sont tous ronds : on les écrit comme tels, et
        `fmt.duree` garde les secondes, où la précision compte. */
-    t.textContent = ms >= 3600e3 && ms % 3600e3 === 0 ? `${ms / 3600e3} h`
-                  : ms >= 60e3 && ms % 60e3 === 0 ? `${ms / 60e3} min`
+    t.textContent = ms >= 3600e3 && ms % 3600e3 === 0 ? fmt.dureeRonde(ms / 3600e3, 'h')
+                  : ms >= 60e3 && ms % 60e3 === 0 ? fmt.dureeRonde(ms / 60e3, 'min')
                   : fmt.duree(ms);
     svg.appendChild(t);
   }
@@ -1094,6 +1108,11 @@ window.addEventListener('message', (e) => {
      émis. Un script de la page peut poster ce qu'il veut ; il ne peut pas
      deviner un compteur qu'il ne voit pas passer. */
   if (e.source !== window.parent) return;
+  /* ET DE L'UNE DE SES DEUX ORIGINES (4.33.0.10). La source suffisait tant que
+     seul twitch.tv peut nous encadrer (cf. web_accessible_resources) ; le
+     guide demande de le vérifier aussi à la réception, par égalité stricte
+     contre la liste (Modern Web Guidance, « validate-origins »). */
+  if (!ORIGINES_PARENT.includes(e.origin)) return;
   const d = e.data;
   if (!d || d.tse !== INCRUSTE_RES || typeof d.id !== 'number') return;
   const attente = attentesCadre.get(d.id);
@@ -1107,7 +1126,9 @@ window.addEventListener('message', (e) => {
   attente.resoudre(reponse);
 });
 
-const demanderCadre = (charge) => new Promise((resoudre) => {
+const demanderCadre = (charge) => {
+  // Le résolveur attend dans attentesCadre : Promise.withResolvers (4.33.0.10).
+  const { promise, resolve: resoudre } = Promise.withResolvers();
   const id = ++suivantCadre;
   const minuteur = setTimeout(() => {
     attentesCadre.delete(id);
@@ -1121,7 +1142,8 @@ const demanderCadre = (charge) => new Promise((resoudre) => {
     attentesCadre.delete(id);
     resoudre({ ok: false, erreur: 'absent', detail: 'parent inatteignable' });
   }
-});
+  return promise;
+};
 
 /* L'ÉCHELLE DE RÉESSAIS, ET POURQUOI ELLE NE PEUT PAS ÊTRE UN SEUL DÉLAI.
 
@@ -1463,8 +1485,12 @@ const liste = (id, d, v) => {
     if (gardes.length) poserOption(id, [...v, ...gardes]);
     else peindreReglages();
   };
+  /* ENTRÉE QUI VALIDE UNE COMPOSITION N'AJOUTE RIEN (4.33.0.10). En japonais
+     ou en chinois, Entrée confirme les caractères qu'une méthode de saisie
+     compose ; c'est `isComposing` qui le dit (Modern Web Guidance,
+     « ime-safe-enter-submit »). */
   champ.addEventListener('keydown', (e) => {
-    if (e.key !== 'Enter') return;
+    if (e.key !== 'Enter' || e.isComposing) return;
     e.preventDefault();
     ajouter();
   });
@@ -2273,7 +2299,7 @@ const entrerAgenda = (id) => {
    choses. */
 const remplirMenu = (b, quitte = false) => {
   const { chaines, chaine } = etatAgenda.menu;
-  const liste = chaines.slice().sort((x, y) => ORDRE_NOMS.compare(x.nom, y.nom));
+  const liste = chaines.toSorted((x, y) => ORDRE_NOMS.compare(x.nom, y.nom));
   // Une chaîne choisie que la liste n'a pas encore lue y garde sa ligne : le menu dit ce que la vue montre.
   if (chaine && !liste.some((c) => c.login === chaine)) liste.unshift({ login: chaine, nom: chaine });
   const sig = liste.map((c) => `${c.login}\u0001${c.nom}`).join('\u0002');
@@ -3181,7 +3207,8 @@ document.addEventListener('DOMContentLoaded', () => {
      confirmation est POSÉE SUR le rapport, et refermer le rapport d'abord
      laisserait une boîte flottant sur un panneau qu'elle ne concerne plus. */
   document.addEventListener('keydown', (e) => {
-    if (e.key !== 'Escape') return;
+    // Échap pendant une composition l'annule, et rien d'autre (cf. le champ de liste).
+    if (e.key !== 'Escape' || e.isComposing) return;
     if (!$('voile').hidden) { $('voile').hidden = true; aConfirmer = null; return; }
     if (!$('rapport').hidden) { fermerRapport(); return; }
     /* ── ÉCHAP DANS UN CADRE FERME LE CADRE ────────────────────────────────

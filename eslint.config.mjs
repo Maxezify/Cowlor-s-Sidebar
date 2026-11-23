@@ -43,7 +43,11 @@ export default [{
       // `browser` : le namespace de Firefox, celui qui rend des promesses.
       // Chrome ne le définit pas — d'où les gardes `typeof browser` dans
       // panneau.js et background.js, et d'où sa présence ici.
-      browser:'readonly' }
+      browser:'readonly',
+      // AbortSignal : le délai des requêtes GQL est un signal (4.33.0.10,
+      // AbortSignal.timeout), et non plus un AbortController qu'un minuteur
+      // abandonne.
+      AbortSignal:'readonly' }
   },
   linterOptions: { reportUnusedDisableDirectives: true },
   rules: {
