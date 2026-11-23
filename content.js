@@ -5396,6 +5396,12 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        s'accroche pas au « data-a-theme » de Twitch — quatre versions ont
        appris ce que coûte une règle suspendue à un attribut de l'hôte. */
     :root {
+      /* LE SCHÉMA DE NOS SURFACES (4.33.0.10). Une zone qui défile porte une
+         barre que le NAVIGATEUR dessine, claire ou sombre selon
+         « color-scheme » — pas selon nos variables. Sans lui, nos menus et la
+         salle héritaient de celui de Twitch, quel qu'il soit ; avec lui, ils
+         suivent notre thème (Modern Web Guidance, « dark-mode »). */
+      --tse-schema:       dark;
       /* ── L'ENCRE, ET CE QU'ELLE ÉVITE ─────────────────────────────────
          Une trentaine de couleurs de cette feuille sont du BLANC à une
          opacité donnée : un texte à 0,42, un filet à 0,17, une hachure à
@@ -5438,6 +5444,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       --tse-decoupe:      #1f1f23;
     }
     html[data-tse-theme="light"] {
+      --tse-schema:       light;
       --tse-encre:        0, 0, 0;
       --tse-surface:      var(--color-background-alt, #ffffff);
       --tse-surface-2:    var(--color-background-alt-2, #f7f7f8);
@@ -7408,6 +7415,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       display: none;
       position: absolute; top: calc(100% + 4px); z-index: 9999;
       min-width: 100%; max-height: 260px; overflow-y: auto; padding: 4px;
+      color-scheme: var(--tse-schema);
       background: var(--tse-surface); border: 1px solid rgba(var(--tse-encre), 0.12);
       border-radius: 6px; box-shadow: 0 4px 16px var(--tse-ombre-menu);
     }
@@ -9034,6 +9042,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       display: flex; flex-direction: column;
       background: var(--color-background-base, #0e0e10);
       color: var(--tse-texte);
+      color-scheme: var(--tse-schema);
       font-size: 13px; line-height: 1.4;
     }
     html[data-tse-theme="light"] #tse-salle { background: var(--color-background-base, #f7f7f8); }
@@ -11251,9 +11260,22 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     return NETWORK_ERROR;
   };
 
-  const post = (payload) => {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), CFG.GQL_TIMEOUT);
+  /* ── LE DÉLAI EST UN SIGNAL, PAS UN MINUTEUR (4.33.0.10) ──────────────────
+     `AbortSignal.timeout()` remplace le trio AbortController + setTimeout +
+     clearTimeout (Modern Web Guidance, « js ») : rien à nettoyer, rien à
+     oublier. Il abandonne avec une TimeoutError, et non plus une AbortError :
+     c'est elle que la ligne « abandon après … ms » reconnaît. Une AbortError
+     viendrait d'ailleurs — la page qui s'en va — et se dit « échec de fetch ».
+
+     LA PRIORITÉ (4.33.0.10). Ces requêtes partagent le réseau avec celles de
+     Twitch, sur le même hôte. Celles dont rien n'attend la réponse à l'écran
+     passent en `priority: 'low'` (« deprioritize-background-fetches ») :
+     tout ce qui part d'un onglet caché, et les compléments que l'appelant
+     désigne (`fond`) — les places d'ailleurs, « Depuis le début ». Jamais ce
+     qui tient le voile ou peint une carte : le guide l'interdit, et c'est
+     ce que l'utilisateur attend. Un navigateur qui ne connaît pas l'option
+     l'ignore. */
+  const post = (payload, { fond = false } = {}) => {
     reseau.appels++;
     return fetch(CFG.GQL_URL, {
       method: 'POST',
@@ -11261,7 +11283,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
                  'Accept-Language': localeTwitch() },
       body: JSON.stringify(payload),
       credentials: 'omit',
-      signal: controller.signal
+      signal: AbortSignal.timeout(CFG.GQL_TIMEOUT),
+      ...(fond || document.hidden ? { priority: 'low' } : {}),
     })
       /* Deux arguments à `then` plutôt qu'un `.catch` en aval : le second ne
          voit QUE le rejet de fetch. Un `.catch` terminal attraperait aussi ce
@@ -11306,11 +11329,10 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
             () => echecReseau('corps illisible (JSON)', ''));
         },
         (e) => echecReseau(
-          e && e.name === 'AbortError'
+          e && e.name === 'TimeoutError'
             ? `abandon après ${CFG.GQL_TIMEOUT} ms`
             : 'échec de fetch',
-          (e && (e.name || e.message)) || ''))
-      .finally(() => clearTimeout(timer));
+          (e && (e.name || e.message)) || ''));
   };
 
   /* ══════════════════════════════════════════════════════════════════════════
@@ -11809,12 +11831,13 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     if (Date.now() < gqlCooldownUntil) {
       return Promise.resolve(cache.get(login) ?? UPTIME_UNKNOWN);
     }
-    return new Promise(resolve => {
-      const arr = queue.get(login) || [];
-      arr.push(resolve);
-      queue.set(login, arr);
-      queueTimer ??= setTimeout(flushQueue, CFG.BATCH_DELAY);
-    });
+    // Le résolveur attend dans la file : Promise.withResolvers (4.33.0.10).
+    const { promise, resolve } = Promise.withResolvers();
+    const arr = queue.get(login) || [];
+    arr.push(resolve);
+    queue.set(login, arr);
+    queueTimer ??= setTimeout(flushQueue, CFG.BATCH_DELAY);
+    return promise;
   };
 
   /* ============================================================
@@ -11874,7 +11897,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
      passe exactement ce qu'elle lisait — son comportement est le même octet
      pour octet. Les mesures des menus de la barre (`mesures`) n'ont de sens
      que pour elle : l'accueil ne les demande pas. */
-  const creerClassement = (lire, mesures = true) => {
+  const creerClassement = (lire, mesures = true, fond = false) => {
     /* Requêtes INLINE, sans sha256Hash : ce module ne dépend d'AUCUNE
        persisted query, comme le reste de la sidebar. Anonymes (post() pose
        credentials: 'omit' et le Client-ID public), sur des données strictement
@@ -12058,7 +12081,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       if (!ops.length) return { out: [], transport: false };
       const slices = chunk(ops, CFG.GLOBAL_BATCH_OPS);
       stats.ops += ops.length;
-      const responses = await Promise.all(slices.map(s => post(s)));
+      const responses = await Promise.all(slices.map(s => post(s, { fond })));
       const out = [];
       // Par opération : le serveur a-t-il répondu par une ERREUR ? C'est ce
       // qui distingue un refus du schéma d'une réponse vide (4.24.0.40).
@@ -13889,7 +13912,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
           // avec son choix. On rend une liste vide, le voile couvre.
           if (want.key !== scope) return [];
           if (scopeDirty) {
-            scopeRanking = scopeRanking.slice().sort((a, b) => b.viewers - a.viewers);
+            scopeRanking = scopeRanking.toSorted((a, b) => b.viewers - a.viewers);
             scopeDirty = false;
           }
           return scopeRanking;
@@ -13901,7 +13924,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         // test ne peut pas se bloquer sur une descente irréalisable.
         if ((wantedLang()?.lang || null) !== worldLang) return [];
         if (rankingDirty) {
-          ranking = ranking.slice().sort((a, b) => b.viewers - a.viewers);
+          ranking = ranking.toSorted((a, b) => b.viewers - a.viewers);
           rankingDirty = false;
         }
         return ranking;
@@ -14478,6 +14501,27 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       return frag;
     };
   })();
+
+  /* ── DÉPLACER SANS DÉFAIRE (4.33.0.10) ───────────────────────────────────
+     Un nœud déplacé par insertBefore ou appendChild est RETIRÉ puis REPOSÉ,
+     et le navigateur le traite comme neuf : ses animations CSS repartent de
+     zéro — la pastille qui bat sautait à chaque réordonnancement du Top 10,
+     les lueurs de la barre à chaque tri — et une iframe se recharge — la
+     vidéo du héros repartait du noir quand on le reposait. `moveBefore()`
+     déplace sans retirer (Modern Web Guidance, « move-dom-element-without-
+     losing-state ») : mesuré dans Chromium, une animation à 600 ms repart à
+     0 sous insertBefore, et continue sous moveBefore.
+     IL NE DÉPLACE QU'UN NŒUD DÉJÀ DANS LA PAGE, vers un parent qui y est
+     aussi, dans le même document. Un nœud neuf, un parent pas encore posé,
+     un navigateur qui ne le connaît pas : insertBefore, comme avant. */
+  const deplacer = (parent, noeud, avant = null) => {
+    if (typeof parent.moveBefore === 'function' && noeud.isConnected && parent.isConnected
+        && noeud.ownerDocument === parent.ownerDocument) {
+      try { parent.moveBefore(noeud, avant); return; }
+      catch { /* refusé par un cas limite du DOM : le déplacement d'avant */ }
+    }
+    parent.insertBefore(noeud, avant);
+  };
 
   /* La FENTE des phrases traduites.
      Les libellés d'interface portaient leur `<strong>` dans la traduction :
@@ -17865,7 +17909,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         if (!c) continue;
         if (blocHeros.dataset.tsePlace !== place) blocHeros.dataset.tsePlace = place;
         if (blocHeros.parentElement !== c.parent || blocHeros.nextElementSibling !== c.avant) {
-          c.parent.insertBefore(blocHeros, c.avant);
+          deplacer(c.parent, blocHeros, c.avant);   // sa vidéo ne se recharge pas
           placeVue = false;
         }
         bilan.heros.place = place;
@@ -17959,12 +18003,14 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       const contenu = [...racine.querySelectorAll(SEL_CONTENU)].find((n) => !exclu(n) && n.parentElement);
       bilan.ancre = contenu ? 'contenu' : carrousel ? 'carrousel' : 'conteneur';
       if (contenu) {
-        if (contenu.previousElementSibling !== section) contenu.before(section);
+        if (contenu.previousElementSibling !== section) deplacer(contenu.parentNode, section, contenu);
       } else if (carrousel) {
-        if (carrousel.bloc.nextElementSibling !== section) carrousel.bloc.after(section);
+        if (carrousel.bloc.nextElementSibling !== section) {
+          deplacer(carrousel.bloc.parentNode, section, carrousel.bloc.nextSibling);
+        }
       } else {
         const c = conteneurDe(racine);
-        if (c.firstElementChild !== section) c.prepend(section);
+        if (c.firstElementChild !== section) deplacer(c, section, c.firstChild);
       }
       poserHeros(racine);
       if (!etait) {
@@ -18100,7 +18146,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       const repere = auCentre(liste);
       const avant = ecartAuMilieu(liste, repere);
       const bougees = decalage > 0 ? cartes.slice(0, decalage) : cartes.slice(n + decalage);
-      if (decalage > 0) liste.append(...bougees); else liste.prepend(...bougees);
+      const tete = decalage > 0 ? null : liste.firstChild;
+      for (const c of bougees) deplacer(liste, c, tete);
       liste.scrollLeft += ecartAuMilieu(liste, repere) - avant;
       for (const c of bougees) entrerEnFondu(c);
       bilan.une.tours++;
@@ -18453,10 +18500,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       let a = ailleurs.get(cle);
       if (!a) {
         a = { cle, voulu: false, classement: null };
+        // Un complément de l'étiquette, que rien n'attend : de fond (cf. post).
         a.classement = creerClassement(() => ({
           actif: a.voulu && ailleursActif() && !partageAilleurs(cle),
           lang: cle === MONDE ? null : cle, categorie: null, n: CFG.ACCUEIL_TOP_N,
-        }), false);
+        }), false, true);
         ailleurs.set(cle, a);
       }
       return a;
@@ -19222,7 +19270,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         if (n) restants.delete(k); else n = fabriquer(it);
         maj(n, it);
         const attendu = prec ? prec.nextSibling : liste.firstChild;
-        if (n !== attendu) liste.insertBefore(n, attendu);
+        if (n !== attendu) deplacer(liste, n, attendu);
         prec = n;
       }
       for (const n of restants.values()) n.remove();
@@ -19894,7 +19942,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       bilan.debut.demandes += lot.length;
       const q = 'query TseAccueilDebut {' + lot.map(([l], i) =>
         ` a${i}: user(login: ${JSON.stringify(l)}) { stream { id archiveVideo { id } } }`).join('') + ' }';
-      const res = await post([{ operationName: 'TseAccueilDebut', query: q }]);
+      const res = await post([{ operationName: 'TseAccueilDebut', query: q }], { fond: true });
       /* DEUX ÉCHECS QU'IL FAUT SÉPARER (cf. fetchChapitres). Une réponse
          arrivée SANS données, avec des erreurs, dit quelque chose de la
          FORME : trois d'affilée, et l'on se tait pour la session. Une coupure
@@ -19931,7 +19979,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     const lireAcces = async (ids) => {
       const q = 'query TseAccueilAcces {' + ids.map(([, id], i) =>
         ` a${i}: videoPlaybackAccessToken(id: ${JSON.stringify(id)}, params: ${PARAMS_JETON}) { value }`).join('') + ' }';
-      const res = await post([{ operationName: 'TseAccueilAcces', query: q }]);
+      const res = await post([{ operationName: 'TseAccueilAcces', query: q }], { fond: true });
       const r0 = Array.isArray(res) ? res[0] : null;
       if (!r0 || !r0.data) { bilan.debut.reseau++; return; }
       bilan.debut.jetons++;
@@ -21445,7 +21493,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     const fini = (x) => (typeof x === 'number' && Number.isFinite(x) ? x : null);
     const mediane = (l) => {
       if (!l.length) return null;
-      const s = [...l].sort((a, b) => a - b);
+      const s = l.toSorted((a, b) => a - b);
       const m = Math.floor(s.length / 2);
       return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
     };
@@ -21967,8 +22015,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     };
     const correler = (ea, eb) => {
       if (ea.length < 3 || eb.length < 3) return null;
-      const A = [...ea].sort((p, q) => p[0] - q[0]);
-      const Bv = [...eb].sort((p, q) => p[0] - q[0]);
+      const A = ea.toSorted((p, q) => p[0] - q[0]);
+      const Bv = eb.toSorted((p, q) => p[0] - q[0]);
       const pas = CFG.SALLE_ECOUTE_PAS_MS;
       const fin = Math.min(A[A.length - 1][0], Bv[Bv.length - 1][0]);
       const debut = Math.max(A[0][0], Bv[0][0], fin - CFG.SALLE_ECOUTE_FENETRE_MS);
@@ -22515,7 +22563,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     // de plus de 80 ms — dans l'ordre croissant. `cle` : la valeur d'un objet
     // (cf. mesurerSon, qui garde le poids de chaque pic).
     const grouper = (vals, cle = (x) => x) => {
-      const v = [...vals].sort((x, y) => cle(x) - cle(y));
+      const v = vals.toSorted((x, y) => cle(x) - cle(y));
       const groupes = v.length ? [[v[0]]] : [];
       for (const x of v.slice(1)) {
         const g = groupes[groupes.length - 1];
@@ -23677,7 +23725,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       const ancre = L > 0 ? bas : L < 0 ? haut : null;
       const ou = `${secondes(L)} ${L > 0 ? 'derrière' : 'devant'} sa place`;
       const bougent = plan.filter((p) => Math.abs(r3(p.dl - L)) >= CALAGE.SEUIL_S);
-      for (const p of [...plan].sort((u, v) => (v === ancre) - (u === ancre))) {
+      for (const p of plan.toSorted((u, v) => (v === ancre) - (u === ancre))) {
         const n = p.t.chaine;
         // Positif : vers le direct, une avance ; négatif : loin de lui, un recul.
         const m = r3(p.dl - L);
@@ -25222,7 +25270,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     const carteVers = new Map();
     let proche = null;            // la clé du co-stream que le pointeur survole
 
-    const cleDe = (membres) => [...membres].sort().join(' ');
+    const cleDe = (membres) => membres.toSorted().join(' ');
     // Un texte qui ne change pas ne se réécrit pas : réécrit, il remplacerait
     // son nœud texte, et l'observateur de la barre verrait un enfant changer.
     const ecrire = (el, texte) => { if (el.textContent !== texte) el.textContent = texte; };
@@ -25997,11 +26045,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m${String(s % 60).padStart(2, '0')}`;
       };
       const median = (arr) => {
-        const a = arr.slice().sort((x, y) => x - y);
+        const a = arr.toSorted((x, y) => x - y);
         return a[Math.floor(a.length / 2)];
       };
       const pct = (arr, q) => {
-        const a = arr.slice().sort((x, y) => x - y);
+        const a = arr.toSorted((x, y) => x - y);
         return a[Math.min(a.length - 1, Math.floor(a.length * q))];
       };
       const lags = samples.map(s => s.lag);
@@ -27340,7 +27388,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        de l'autre sont un seul direct, qui a commencé à la première. */
     const directsDe = (videos) => {
       const out = [];
-      for (const v of [...videos].sort((a, b) => a.debut - b.debut)) {
+      for (const v of videos.toSorted((a, b) => a.debut - b.debut)) {
         const prec = out[out.length - 1];
         if (prec && v.debut - prec.fin < MEME_DIRECT_MS) { prec.fin = Math.max(prec.fin, finVideo(v)); continue; }
         out.push({ debut: v.debut, fin: finVideo(v) });
@@ -27359,7 +27407,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       }
       if (meilleur.ecarts.length < CFG.ACCUEIL_HABITUDE_MIN) return null;
       // Leur médiane, au quart d'heure : « vers 20:00 », pas « vers 19:58 ».
-      const e = [...meilleur.ecarts].sort((a, b) => a - b);
+      const e = meilleur.ecarts.toSorted((a, b) => a - b);
       const mediane = e.length % 2 ? e[(e.length - 1) / 2] : (e[e.length / 2 - 1] + e[e.length / 2]) / 2;
       const vers = (Math.round((meilleur.m0 + mediane) / 15) * 15) % 1440;
       return { k: meilleur.ecarts.length, n: derniers.length, vers };
@@ -27957,12 +28005,12 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
            implémentations du même quantile finissent par diverger d'un indice. */
         const quantile = (arr, q) => {
           if (!arr.length) return null;
-          const a = arr.slice().sort((x, y) => x - y);
+          const a = arr.toSorted((x, y) => x - y);
           return a[Math.min(a.length - 1, Math.floor(a.length * q))];
         };
         return {
           colonnes: ['login', 'lag', 'gain', 'ts'],
-          lignes: echantillons.slice().reverse(),
+          lignes: echantillons.toReversed(),
           resume: { mesures: echantillons.length,
                     medianeLag: quantile(lags, 0.5), p90Lag: quantile(lags, 0.9),
                     gains: gains.length, medianeGain: quantile(gains, 0.5) },
@@ -28077,7 +28125,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       const lags = mesures.map(m => m.lag).filter(Number.isFinite);
       const quantile = (arr, q) => {
         if (!arr.length) return null;
-        const a = arr.slice().sort((x, y) => x - y);
+        const a = arr.toSorted((x, y) => x - y);
         return a[Math.min(a.length - 1, Math.floor(a.length * q))];
       };
       const maintenant = Date.now();
@@ -28590,7 +28638,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
                       decors: 0, intrus: 0, logos: 0,
                       ecartNomPx: null, ecartHauteurPx: null, squelette: {} };
           const gauche = (c, e) => e.getBoundingClientRect().left - c.getBoundingClientRect().left;
-          const mediane = (v) => { const s = v.slice().sort((a, b) => a - b);
+          const mediane = (v) => { const s = v.toSorted((a, b) => a - b);
                                    return s.length ? s[Math.floor(s.length / 2)] : null; };
           for (const c of liste) {
             const av = avatarOf(c), nom = cardNameEl(c), cat = cardCategoryEl(c);
@@ -33103,7 +33151,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       let repliees = [];
       if (f.categories.length > MAX_LIGNES) {
         const gardees = new Set(f.categories.filter(c => c.encours).map(c => c.jeu));
-        for (const c of f.categories.slice().sort((a, b) => b.dureeMs - a.dureeMs)) {
+        for (const c of f.categories.toSorted((a, b) => b.dureeMs - a.dureeMs)) {
           if (gardees.size >= MAX_LIGNES) break;
           gardees.add(c.jeu);
         }
@@ -33660,6 +33708,13 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
 
       const iframe = document.createElement('iframe');
       iframe.className = 'tse-preview__iframe';
+      /* UNE IMAGE QUI BOUGE, RIEN À ATTEINDRE (4.33.0.10), comme la vidéo du
+         héros : elle ne prend pas les clics (cf. la feuille), le texte de
+         l'aperçu dit la chaîne. Une iframe sans titre se lisait « cadre » sans
+         nom ; masquée aux lecteurs d'écran et hors de l'ordre du clavier, elle
+         n'en a pas besoin (Modern Web Guidance, « accessibility »). */
+      iframe.setAttribute('aria-hidden', 'true');
+      iframe.tabIndex = -1;
       // Le nom qui fait de ce lecteur l'aperçu, et de lui seul : le pont et
       // l'anti-pub ne s'éveillent que dans une frame qui le porte (cf.
       // TSE_PREVIEW_FRAME_NAME). Posé avant l'adresse, donc avant la frame.
@@ -37288,17 +37343,20 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
   // scan ne parcourt pas — masquée, ou pas encore vue. Depuis la 4.24.0.30, le
   // scan interroge aussi les sections de recommandation visibles (cf.
   // detectCoStreams), et la réponse est alors souvent déjà là.
-  const requestGuestStar = (channelId) => new Promise(resolve => {
-    if (!channelId) return resolve(null);
+  const requestGuestStar = (channelId) => {
+    if (!channelId) return Promise.resolve(null);
     const hit = gsCache.get(channelId);
-    if (hit && Date.now() - hit.ts < CFG.GUEST_STAR_TTL) return resolve(hit);
-    if (Date.now() < gsCooldownUntil) return resolve(hit || null); // best-effort en cooldown
+    if (hit && Date.now() - hit.ts < CFG.GUEST_STAR_TTL) return Promise.resolve(hit);
+    if (Date.now() < gsCooldownUntil) return Promise.resolve(hit || null); // best-effort en cooldown
+    // Le résolveur attend dans la file : Promise.withResolvers (4.33.0.10).
+    const { promise, resolve } = Promise.withResolvers();
     let arr = gsWaiters.get(channelId);
     if (!arr) gsWaiters.set(channelId, arr = []);
     arr.push(resolve);
     gsQueue.add(channelId);
     gsTimer ??= setTimeout(flushGuestStar, CFG.GUEST_STAR_DEBOUNCE);
-  });
+    return promise;
+  };
 
   // Compteur combiné du co-stream pour cette chaîne, ou null si elle n'est pas
   // en session (ou si on n'a rien appris d'elle). Lecture PURE, sans fetch : le
@@ -37359,7 +37417,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     const cle = logins.length >= 2
       ? (typeof entry.hostId === 'string' && entry.hostId
           ? 'gs:' + entry.hostId
-          : 'gs:' + [...logins].sort().join(','))
+          : 'gs:' + logins.toSorted().join(','))
       : null;
     if (cle) {
       membresDeSession.delete(cle);
@@ -38487,7 +38545,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     let sorted;
     if (sortMode === 'uptime') {
       // createdAt DESC → stream le plus récent en premier (uptime le plus court)
-      sorted = [...cards].sort((a, b) => {
+      sorted = cards.toSorted((a, b) => {
         const ta = new Date(a.dataset.tseStartedAt || 0).getTime() || 0;
         const tb = new Date(b.dataset.tseStartedAt || 0).getTime() || 0;
         return tb - ta;
@@ -38522,7 +38580,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         const cle = card.dataset.tseCostreamKey;
         return cle ? (audienceDuGroupe.get(cle) || 0) : getCardViewers(card);
       };
-      sorted = [...cards].sort((a, b) => {
+      sorted = cards.toSorted((a, b) => {
         const d = rangDe(b) - rangDe(a);
         if (d) return d;
         /* À rang de groupe ÉGAL, deux cas : les membres d'un même groupe — on
@@ -38551,7 +38609,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         if (!key) return;
         groupViewers.set(key, Math.max(groupViewers.get(key) || 0, getCardViewers(card)));
       });
-      sorted = [...cards].sort((a, b) => {
+      sorted = cards.toSorted((a, b) => {
         const ka = a.dataset.tseCostreamKey || null;
         const kb = b.dataset.tseCostreamKey || null;
         if (ka && !kb) return -1;       // a en groupe, b solo → a en premier
@@ -38569,7 +38627,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       // Abonnements en tête. À l'intérieur de chaque groupe, on retombe sur
       // le nombre de spectateurs décroissant — le tri par défaut, donc celui
       // que l'œil attend — puis sur l'ordre Twitch pour rester déterministe.
-      sorted = [...cards].sort((a, b) => {
+      sorted = cards.toSorted((a, b) => {
         const sa = subs.isSub(getCardLogin(a)) ? 1 : 0;
         const sb = subs.isSub(getCardLogin(b)) ? 1 : 0;
         if (sa !== sb) return sb - sa;
@@ -38584,7 +38642,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       // À égalité (ou si aucune donnée encore), on tombe sur l'ordre Twitch
       // pour rester déterministe — au début de l'usage la plupart des
       // streamers auront score=0 et ce fallback évite un ordre aléatoire.
-      sorted = [...cards].sort((a, b) => {
+      sorted = cards.toSorted((a, b) => {
         const sa = visits.scoreFor(getCardLogin(a));
         const sb = visits.scoreFor(getCardLogin(b));
         if (sb !== sa) return sb - sa;
@@ -38594,12 +38652,12 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       });
     } else if (sortMode === 'alpha') {
       // Pseudo ASC (insensible à la casse, locale fr pour les accents)
-      sorted = [...cards].sort((a, b) => {
+      sorted = cards.toSorted((a, b) => {
         return getCardLogin(a).localeCompare(getCardLogin(b), S.locale, { sensitivity: 'base' });
       });
     } else {
       // Restauration de l'ordre Twitch
-      sorted = [...cards].sort((a, b) => {
+      sorted = cards.toSorted((a, b) => {
         const oa = parseInt(a.dataset.tseTwitchOrder ?? '999', 10);
         const ob = parseInt(b.dataset.tseTwitchOrder ?? '999', 10);
         return oa - ob;
@@ -38626,7 +38684,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       if (!parParent.has(p)) parParent.set(p, []);
       parParent.get(p).push(e);
     }
-    for (const [p, voulues] of parParent) voulues.forEach((e) => p.appendChild(e));
+    for (const [p, voulues] of parParent) voulues.forEach((e) => deplacer(p, e));
   }
 
   /* ============================================================

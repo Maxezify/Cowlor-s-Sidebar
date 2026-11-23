@@ -80,9 +80,10 @@ de Twitch, miniatures, lecteur `player.twitch.tv` pour l'aperçu).
 
 ## Compatibilité
 
-- **Chrome 111 ou supérieur** (et tout navigateur Chromium récent : Edge, Brave,
-  Opera, Vivaldi, Arc). La version 111 est le minimum car le content script
-  utilise `"world": "MAIN"`, introduit à cette version.
+- **Chrome 119 ou supérieur** (et tout navigateur Chromium récent : Edge, Brave,
+  Opera, Vivaldi, Arc). Le content script utilise `"world": "MAIN"`, introduit
+  à la 111, et `Promise.withResolvers`, introduit à la 119 (4.33.0.10) : le
+  manifeste le déclare (`minimum_chrome_version`).
 - **Firefox** : le MV3 de Firefox prend en charge `"world": "MAIN"` sur les
   versions récentes, mais quelques différences de timing d'injection peuvent
   exister. Le portage cible Chromium ; sous Firefox, la version userscript
@@ -2182,6 +2183,167 @@ Un sous-test qui modélisait un cas impossible — un direct qui rajeunit sans
 changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'il
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
+
+## À jour selon Modern Web Guidance (v4.33.0.10)
+
+« Voici Modern Web Guidance : je souhaite que tu l'utilises pour vérifier que
+tu es bien à jour selon ce guide. » Le guide de GoogleChrome
+(`modern-web-guidance-src`, commit du 22 novembre 2026) a passé l'extension au
+crible. Les cinquante règles de son scanner ont été lues et appliquées à la
+main au code : le scanner lui-même, un paquet téléchargé, n'a pas été lancé.
+S'y ajoutent une trentaine de ses guides et les références de sa partie
+« extensions Chrome ». Ce qui était déjà conforme ne change pas : MV3 sans
+aucune permission, aucun `eval`, les textes de Twitch posés en `textContent`,
+des récepteurs de messages qui vérifient source et origine, les masques
+doublés de leur forme standard, les barres de défilement en `scrollbar-width`.
+Voici ce qui a changé.
+
+### Ce qui se voit
+
+- **Le panneau sombre a des commandes sombres.** Une barre de défilement, une
+  case, un menu sont dessinés par le navigateur, clairs ou sombres selon
+  `color-scheme`, et non selon nos couleurs. Le panneau ne le disait pas : en
+  thème sombre, sa barre de défilement restait claire, et une case non cochée
+  était un carré blanc (vu au rendu). La racine dit désormais `light dark` et
+  suit le système tant que le thème de Twitch n'est pas appris, comme les
+  couleurs ; `data-theme` tranche ensuite. Une balise
+  `<meta name="color-scheme">` le dit dès la première image.
+- **Ce qui bat continue de battre.** Un nœud déplacé par `insertBefore` est
+  retiré puis reposé : ses animations repartent de zéro, et une iframe se
+  recharge. Le Top 10 qui se réordonne faisait ainsi sauter la pastille qui
+  bat. La barre qui se retrie relançait toutes ses lueurs. Le héros reposé
+  rechargeait sa vidéo. `moveBefore()` déplace sans retirer : mesuré dans
+  Chromium, une animation à 600 ms repart à 0 sous `insertBefore` et continue
+  sous `moveBefore`. Il sert aux places du Top 10, à la section de l'accueil,
+  au héros, au ruban « À la une » et au tri de la barre. Un nœud neuf, ou un
+  navigateur qui ne le connaît pas, passe par `insertBefore`, comme avant.
+- **Le japonais et le chinois.** En saisie par méthode de composition, Entrée
+  confirme les caractères composés. Le champ de la liste des chaînes écartées
+  les ajoutait en pleine composition, et Échap fermait le panneau incrusté au
+  lieu d'annuler la composition. Les deux touches ne font plus rien tant que
+  `isComposing` est vrai. Le zapping le faisait déjà.
+- **Les durées du panneau dans sa langue.** « 3 min 07 » s'écrivait à la
+  française dans les douze langues. `Intl.DurationFormat` écrit désormais
+  « 3 min et 7 s », « 3 min, 7 sec », « 3 分 7 秒 », et les graduations de la
+  courbe « 2 h », « 2 hr », « 2 時間 ». Une durée nulle, qu'il rendrait vide,
+  est dite « 0 s ». Un Chrome qui ne le connaît pas (avant la 129) garde
+  l'écriture d'avant.
+- **Les menus et la salle suivent notre thème.** Le menu déroulant de Top
+  Chaînes et la salle multistream défilent. Ils portent maintenant le schéma
+  de notre thème, au lieu d'hériter de celui de Twitch, quel qu'il soit.
+- **L'aperçu au survol.** Son iframe, une image qui bouge, est masquée aux
+  lecteurs d'écran et sortie de l'ordre du clavier, comme celle du héros. Elle
+  se lisait « cadre » sans nom.
+
+### Ce qui ne se voit pas
+
+- **Le délai des requêtes est un signal.** `AbortSignal.timeout()` remplace le
+  trio `AbortController` + `setTimeout` + `clearTimeout`. Il abandonne avec une
+  `TimeoutError` : c'est elle que « abandon après … ms » reconnaît. Une
+  `AbortError` d'une autre cause se dit « échec de fetch ».
+- **La priorité basse pour ce que rien n'attend.** Nos requêtes partagent le
+  réseau avec celles de Twitch. Passent en `priority: 'low'` tout ce qui part
+  d'un onglet caché, les classements des places d'ailleurs et « Depuis le
+  début ». Jamais ce qui tient le voile ou peint une carte : la sonde, les
+  durées de la barre, le Top 10.
+- **L'origine des réponses au panneau.** Le panneau incrusté vérifiait la
+  source d'une réponse ; il vérifie aussi qu'elle vient de l'une des deux
+  origines de Twitch.
+- **Le code.** `Promise.withResolvers()` là où un résolveur attend dans une
+  file (quatre endroits, dont le service worker) ; `toSorted()` pour 25 copies
+  triées de tableaux, `toReversed()` pour une. Les quinze copies d'un `Set` ou
+  d'une `Map` restent des copies : le guide l'exige.
+- **Chrome 119 au moins.** `Promise.withResolvers` n'existe pas avant. Le
+  manifeste le déclare (`minimum_chrome_version`), plutôt que de laisser
+  casser un navigateur plus ancien. Firefox 140 a déjà tout.
+
+### Ce qui n'a pas changé, et pourquoi
+
+- **Le mouvement réduit** reste ignoré : un choix du produit. Le guide demande
+  aussi un moyen d'arrêter une animation qui dure : « Les étiquettes
+  pulsent » le donne.
+- **Les couches CSS (`@layer`)**, que le guide préfère aux classes préfixées :
+  notre feuille vit dans la page de Twitch, et une feuille en couche perdrait
+  contre la sienne, qui n'en a pas.
+- **`interestfor`, `popover="hint"`, le positionnement par ancre** : Firefox
+  140 n'en a pas tout. Le JavaScript d'aujourd'hui reste le repli que le guide
+  demanderait de toute façon.
+- **L'aperçu au clavier** : il ne s'ouvre qu'au survol. Le guide voudrait
+  aussi le focus, mais tabuler dans la barre lancerait une vidéo par carte :
+  le survol seul est gardé, décidé à l'audit.
+- **Le démarrage découpé** : mesuré avant de le faire. L'évaluation de
+  content.js prend 30 ms en médiane (de 25 à 33 ms, dans ce conteneur). Son
+  démarrage, 19 ms, dont presque tout est le premier scan de la barre (jusqu'à
+  67 ms sur une grande barre). Céder la main entre les étapes du démarrage ne
+  gagnerait rien ; découper le scan lui-même toucherait au cœur de la barre,
+  et ne se fait pas sans le décider.
+
+### Le banc
+
+- **234, nouveau, de a) à m)** : chaque point se vérifie sur ce qui se voit
+  ou se mesure. Un « témoin », une animation CSS de soixante secondes posée
+  sur chaque nœud que le produit déplace, dit si l'état a survécu au
+  déplacement : places du Top 10, section reposée, ruban, barre retriée. La
+  vidéo du héros ne se recharge pas. Le délai, la priorité selon l'onglet,
+  l'`AbortError` qui n'est pas le délai. Les schémas de couleurs du menu, de
+  la salle et du panneau, avec sa balise. L'iframe de l'aperçu. Les durées
+  en français, en japonais et sans `Intl.DurationFormat`. Échap pendant une
+  composition. Les réponses forgées d'une autre origine, ignorées.
+- **120** : Entrée qui confirme une composition n'ajoute rien à la liste.
+- **218** : « Depuis le début » part en priorité basse, pas les durées des
+  cartes.
+- **233 c bis)** : les classements d'ailleurs partent en priorité basse, pas
+  celui du Top 10.
+- **Le faux Twitch** journalise la priorité et le signal de chaque requête.
+  Il rend au délai la `TimeoutError` du navigateur, et sait rendre une
+  `AbortError` d'une autre cause.
+
+La campagne a aussi trouvé trois défauts du banc, corrigés. Le temps d'une
+animation n'avance qu'à l'image : lue juste après un clic, sans image entre
+les deux, elle disait « égal » au lieu de « continue ». Un panneau qui ne se
+charge pas faisait planter m) au lieu de la faire tomber. Et 211 attendait
+sans fin un worker muet : ses deux demandes sont bornées à dix secondes.
+
+**Trente mutants nommés : vingt-neuf pris, un équivalent.**
+
+| mutant | ce qui tombe |
+| --- | --- |
+| le Top 10 réordonné par insertBefore | 234 a) |
+| la section reposée par before() | 234 b) |
+| le héros reposé par insertBefore : sa vidéo se recharge | 234 c) |
+| le ruban tourné par append() | 234 d) |
+| la barre retriée par appendChild | 234 e) |
+| deplacer sans moveBefore | 234 a) à e) |
+| le délai ôté des requêtes | 234 f) |
+| l'onglet caché ignoré : priorité normale | 234 f) |
+| tout en priorité basse | 218, 234 f) |
+| les classements d'ailleurs sans fond | 233 c bis) |
+| « Depuis le début » sans fond | 218 |
+| le délai reconnu à l'ancienne AbortError | 234 f) |
+| toute AbortError prise pour le délai | 234 f) |
+| le menu déroulant sans schéma | 234 g) |
+| le thème clair sans sa variable de schéma | 234 g) |
+| la racine du panneau sans schéma | 234 i) |
+| le thème sombre appris sans son schéma | 234 i) |
+| la balise color-scheme ôtée | 234 i) |
+| l'iframe de l'aperçu sans aria-hidden ni tabindex | 234 h) |
+| Entrée qui compose ajoute au champ | 120 |
+| Échap qui compose ferme le panneau | 234 k) |
+| la réponse d'une autre origine acceptée | 234 l) |
+| l'écriture d'avant, sans Intl.DurationFormat | 234 j), m) |
+| la durée nulle rendue vide | 234 j), m) |
+| les graduations à l'écriture d'avant | 234 m) |
+| le repli ôté : Intl.DurationFormat supposé | 234 m) |
+| la promesse oubliée : la file des durées rend `undefined` | 234 : une erreur de page par carte, que le banc compte |
+| la demande du panneau incrusté qui ne rend pas sa promesse | 124 |
+| le worker qui ne rend pas sa promesse | 211 |
+| la file des durées qui répond « inconnu » sans attendre | **vivant** : équivalent à l'écran |
+
+Le dernier ne change rien de visible. La réponse arrive quand même, remplit le
+cache, et le balayage suivant la peint : le produit se rattrape de lui-même,
+et seule une mesure de latence l'en distinguerait.
+
+`npm run check` est vert : 233 scénarios, 2382 assertions.
 
 ## La pastille bat depuis son centre (v4.33.0.9)
 
@@ -26152,13 +26314,13 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 2302 Ko | 1088 Ko | 4 808 → **2** |
+| `content.js` | 2306 Ko | 1089 Ko | 4 816 → **2** |
 | `cadres.js` | 76 Ko | 35 Ko | 171 → **0** |
 | `adblock.js` | 126 Ko | 101 Ko | 301 → **2** |
-| `panneau.js` | 166 Ko | 85 Ko | 227 → **0** |
+| `panneau.js` | 168 Ko | 86 Ko | 233 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 26 → **0** |
-| `background.js` | 10 Ko | 2 Ko | 22 → **0** |
-| **les six** | **2694 Ko** | **1315 Ko** | **−51 %** |
+| `background.js` | 10 Ko | 2 Ko | 23 → **0** |
+| **les six** | **2700 Ko** | **1316 Ko** | **−51 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se

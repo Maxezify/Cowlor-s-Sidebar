@@ -11158,8 +11158,9 @@ titre('89. Le panneau dessine — la semaine des visites, la courbe des retards'
   ok('…et deux traînards n\'écrasent pas la masse : la médiane reste lisible',
      cb.verticales.length === 2 && (cb.verticales[0] - 6) / largeur > 0.25,
      JSON.stringify(cb.verticales.map((x) => Math.round((x - 6) / largeur * 100) + ' %')));
+  // Intl.DurationFormat (4.33.0.10) écrit « 1 min » avec une espace insécable : nz la normalise.
   ok('…l\'axe est gradué en durées rondes, pas en puissances de dix',
-     cb.graduations.some((t) => /^1 min$/.test(t)) && !cb.graduations.some((t) => /00$/.test(t)),
+     cb.graduations.some((t) => /^1 min$/.test(nz(t))) && !cb.graduations.some((t) => /00$/.test(t)),
      JSON.stringify(cb.graduations));
 
   /* ── SOUS CINQ RELEVÉS, PAS DE COURBE ──────────────────────────────────── */
@@ -17538,6 +17539,17 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
   ok('la liste des chaînes écartées : un champ, « Ajouter », aucune puce, la ligne non modifiée',
      l0.champ === '' && l0.actif && l0.bouton === 'Ajouter' && l0.puces.length === 0 && !l0.modifie
      && l0.nom === 'Chaînes écartées du Top 10', JSON.stringify(l0));
+  /* L'IME (4.33.0.10) : Entrée qui CONFIRME une composition — japonais,
+     chinois — n'ajoute rien ; c'est `isComposing` qui le dit (Modern Web
+     Guidance, « ime-safe-enter-submit »). Mutant — le test ôté : « kestrel »
+     ajouté en pleine composition. */
+  await page.fill('#reglages [data-reg="accueilTopEcartees"] .reg-liste-champ', 'kestrel');
+  await page.evaluate(() => document.querySelector('#reglages [data-reg="accueilTopEcartees"] .reg-liste-champ')
+    .dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', isComposing: true, bubbles: true, cancelable: true })));
+  await wait(page, 400);
+  const lIme = await liste();
+  ok('…Entrée qui confirme une composition (IME) n\'ajoute rien : « kestrel » reste au champ, rien n\'est envoyé',
+     lIme.champ === 'kestrel' && lIme.puces.length === 0 && lIme.poses.length === 0, JSON.stringify(lIme));
   await page.fill('#reglages [data-reg="accueilTopEcartees"] .reg-liste-champ', '@Tavor, https://www.twitch.tv/Brune/videos zéphyr! tavor');
   await page.press('#reglages [data-reg="accueilTopEcartees"] .reg-liste-champ', 'Enter');
   await attendre(page, () => document.querySelectorAll('#reglages [data-reg="accueilTopEcartees"] .reg-liste-nom').length === 2, 4000);
@@ -37748,9 +37760,13 @@ addEventListener('message', (e) => {
     const popup = await ctx.newPage();
     await popup.goto(`chrome-extension://${new URL(panneau.url()).host}/panneau.html`);
     const viaPont = await popup.evaluate(async () => {
-      const etat = await chrome.runtime.sendMessage({ type: 'tse-panneau-etat' });
+      /* UNE RÉPONSE QUI NE VIENT PAS FAIT TOMBER L'ASSERTION (4.33.0.10), au
+         lieu de tenir le banc jusqu'à son délai : un worker dont la promesse
+         ne se tient jamais laissait sendMessage attendre sans fin. */
+      const borne = (p) => Promise.race([p, new Promise((r) => setTimeout(() => r({ erreur: 'pas de réponse en 10 s' }), 10_000))]);
+      const etat = await borne(chrome.runtime.sendMessage({ type: 'tse-panneau-etat' }));
       const tabId = etat?.ponts?.[0];
-      const r = await chrome.runtime.sendMessage({ type: 'tse-panneau', tabId, section: 'scores' });
+      const r = await borne(chrome.runtime.sendMessage({ type: 'tse-panneau', tabId, section: 'scores' }));
       return { ponts: etat?.ponts, ok: r?.ok, erreur: r?.erreur, donnees: !!r?.data };
     });
     await popup.close();
@@ -40148,6 +40164,17 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
   const acces1 = await opsAccueil(page, '^TseAccueilAcces$');
   ok('une seule demande pour les trois directs, et un seul lot de jetons', d1.length === 1
      && JSON.stringify([...d1[0]].sort()) === '["korbek","nyxaria","velmoria"]' && acces1 === 1, JSON.stringify({ d1, acces1 }));
+  /* DE FOND (4.33.0.10) : « Depuis le début » est un complément que rien
+     n'attend à l'écran — ses demandes et ses jetons partent en priorité
+     basse (Modern Web Guidance, « deprioritize-background-fetches ») ; le
+     Top 10 de la même page, non. Mutant — `{ fond: true }` ôté. */
+  const prios218 = await page.evaluate(() => {
+    const de = (re) => window.__calls.filter((c) => c.names.some((n) => re.test(n))).map((c) => c.prio);
+    return { debut: de(/^TseAccueilDebut$/), acces: de(/^TseAccueilAcces$/), cartes: de(/^TseChannels$/) };
+  });
+  ok('…« Depuis le début » part en priorité basse, demandes et jetons ; les durées des cartes, que l\'écran attend, non',
+     prios218.debut.length >= 1 && prios218.acces.length >= 1 && [...prios218.debut, ...prios218.acces].every((x) => x === 'low')
+     && prios218.cartes.length >= 1 && prios218.cartes.every((x) => x === null), JSON.stringify(prios218));
   /* L'ARCHIVE QUI N'EXISTAIT PAS SE REDEMANDE, ELLE SEULE, au bout de dix
      minutes (deux secondes au banc) — et si elle a paru, le bouton aussi. */
   await page.evaluate(() => { window.__accueilArchives.nyxaria = { id: '903' }; });
@@ -43697,6 +43724,23 @@ const lireZap = (page) => page.evaluate(() => {
   ok('c) trois langues au plus — les plus nombreuses à l\'écran, le nom à égalité — et le monde : l\'italien jamais demandé, le français pas deux fois',
      condC(e1),
      JSON.stringify(e1));
+  /* c bis) DE FOND (4.33.0.10) : les places d'ailleurs complètent une
+     étiquette, rien ne les attend à l'écran. Leurs classements — l'anglais,
+     l'espagnol, l'allemand par le tag ; le monde par les catégories —
+     partent en priorité basse ; celui du Top 10, le français, non. Mutant —
+     le classement d'ailleurs créé sans `fond`. */
+  const prio233 = await pa.evaluate(() => {
+    const tag = (l) => window.__calls.filter((c) => (c.tagLangs || []).includes(l)).map((c) => c.prio);
+    const descentes = window.__calls.filter((c) => !c.pourquoi && c.names.includes('TseCategoryTop'));
+    return { fr: [...tag('Français'), ...descentes.filter((c) => c.langs.includes('fr')).map((c) => c.prio)],
+             en: tag('English'), es: tag('Español'), de: tag('Deutsch'),
+             monde: descentes.filter((c) => !c.langs.length).map((c) => c.prio),
+             // Pour le rapport : chaque appel de catégories, sa langue et sa priorité.
+             liste: window.__calls.filter((c) => c.names.some((n) => /^TseCategor/.test(n))).map((c) => [c.names.join('+'), c.langs.join(','), c.prio]) };
+  });
+  ok('c bis) les classements d\'ailleurs partent en priorité basse — trois langues et le monde ; celui du Top 10, non',
+     prio233.fr.length >= 1 && prio233.fr.every((x) => x === null)
+     && ['en', 'es', 'de', 'monde'].every((k) => prio233[k].length >= 1 && prio233[k].every((x) => x === 'low')), JSON.stringify(prio233));
 
   /* d) LA PULSATION (4.33.0.8 ; un rebond à la 4.33.0.6, une pulsation
      toutes les cinq secondes à la 4.33.0.7 — « c'est une pulsation infinie
@@ -43879,6 +43923,407 @@ const lireZap = (page) => page.evaluate(() => {
      && e6.ailleurs.sources.Italiano?.resolu === true && e6.ailleurs.sources.Italiano?.prouve === false
      && tx(e6, 'quinto') === null && tx(e6, 'yarrow') === 'N°6 en anglais',
      JSON.stringify({ ailleurs: e6.ailleurs, quinto: e6.twitch.quinto, yarrow: e6.twitch.yarrow }));
+}
+
+{
+  titre('234. Modern Web Guidance (4.33.0.10) — déplacer sans défaire, le schéma de couleurs, l\'IME, l\'origine, le délai, la priorité, les durées');
+  /* L'AUDIT DE LA 4.33.0.9 CONTRE MODERN WEB GUIDANCE (GoogleChrome), et ce
+     qu'il a fait corriger. Chaque point se vérifie ici sur ce qui se voit ou
+     se mesure, pas sur le texte du code.
+
+     LE TÉMOIN. Un nœud que le produit déplace garde-t-il son état ? On pose
+     dans chacun un enfant qui porte une animation CSS de soixante secondes,
+     et on lit son temps avant et après : un insertBefore le retire et le
+     repose — l'animation repart de zéro ; moveBefore le déplace sans le
+     retirer — elle continue. Le témoin est un enfant à part, en position
+     absolue : il ne dispute sa propriété `animation` à aucune règle du
+     produit, et ne change aucune mise en page. */
+  /* DEUX FORMES DE TÉMOIN. Sur le nœud LUI-MÊME quand il ne porte aucune
+     animation du produit — les places du Top 10 : son contenu peut être
+     refait sans que le témoin s'en aille. En ENFANT sinon — les cartes de la
+     barre, du ruban, que le produit anime elles-mêmes. */
+  const TEMOIN = '@keyframes tse-temoin { to { opacity: .5; } }'
+    // `!important` : le ruban anime les enfants de ses cartes (cf. 229), et sa règle l'emporterait.
+    + ' [data-tse-temoin] { position: absolute; width: 1px; height: 1px; pointer-events: none; animation: tse-temoin 60s linear infinite !important; }'
+    + ' [data-tse-temoin-hote] { animation: tse-temoin 60s linear infinite; }';
+  const poserTemoins = (p, sel, surLuiMeme = false) => p.evaluate(([sel, css, lui]) => {
+    if (!document.getElementById('tse-temoin-css')) {
+      const s = document.createElement('style'); s.id = 'tse-temoin-css'; s.textContent = css; document.head.appendChild(s);
+    }
+    for (const x of document.querySelectorAll(sel)) {
+      if (lui) { x.setAttribute('data-tse-temoin-hote', ''); continue; }
+      if (x.querySelector(':scope > [data-tse-temoin]')) continue;
+      const i = document.createElement('i'); i.setAttribute('data-tse-temoin', ''); x.appendChild(i);
+    }
+  }, [sel, TEMOIN, surLuiMeme]);
+  // Le temps du témoin de chaque nœud, par clé ; null s'il n'en porte pas.
+  const temps = (p, sel, cle) => p.evaluate(([sel, cle]) => Object.fromEntries([...document.querySelectorAll(sel)].map((x) => {
+    const a = x.hasAttribute('data-tse-temoin-hote')
+      ? x.getAnimations().find((y) => y.animationName === 'tse-temoin')
+      : x.querySelector(':scope > [data-tse-temoin]')?.getAnimations()[0];
+    return [x.getAttribute(cle) || '?', a ? Math.round(a.currentTime) : null];
+  })), [sel, cle]);
+  /* Les nœuds témoins avant ET après — les mêmes nœuds, donc, et non des
+     nœuds refaits ; et ANIMÉS des deux côtés : un nœud replié (`hidden`, les
+     places 6 à 10 du Top 10) n'a pas d'animation, et n'en dit rien. Chacun
+     a continué. Rend la liste de ceux qu'on a pu comparer, ou null si l'un a
+     sauté. */
+  const continuent = (avant, apres) => {
+    const k = Object.keys(avant).filter((x) => avant[x] !== null && apres[x] !== null && apres[x] !== undefined);
+    return k.every((x) => apres[x] > avant[x]) ? k : null;
+  };
+
+  /* ══ L'ACCUEIL ══════════════════════════════════════════════════════════ */
+  const page = await ouvrirAccueil({ visites: { korbek: [1] }, options: { accueilDebut: false } });
+  await plateauAccueil(page);
+  await attendre(page, () => document.querySelectorAll('#tse-accueil .tse-acc-place:not(.tse-acc-place--attente)').length === 10
+    && document.querySelectorAll('#tse-accueil .tse-acc-rayon--une .tse-acc-carte').length === 5, 12_000);
+  const PLACES = '#tse-accueil .tse-acc-place';
+
+  /* a) LE TOP 10 SE RÉORDONNE : Tavor passe de la 4e à la 2e place (cf. 217
+     g). Sa carte est déplacée, pas refaite ; son témoin continue, et la
+     pastille qui bat aussi. Mutant — insertBefore à la place de moveBefore,
+     dans la rangée : le témoin de Tavor repart de zéro. */
+  await poserTemoins(page, PLACES, true);
+  await wait(page, 1500);
+  const pulsations = () => page.evaluate((sel) => Object.fromEntries([...document.querySelectorAll(sel)].map((x) => {
+    const a = x.getAnimations({ subtree: true }).find((y) => y.animationName === 'tse-acc-etiq-pulsation');
+    return [x.dataset.tseCle, a ? Math.round(a.currentTime) : null];
+  }).filter(([, t]) => t !== null)), PLACES);
+  const t0 = await temps(page, PLACES, 'data-tse-cle');
+  const p0 = await pulsations();
+  await page.evaluate(() => {
+    const h = (m) => new Date(Date.now() - m * 60_000).toISOString();
+    const ordre = ['zephyr', 'tavor', 'aldric', 'mirelle', 'hestia', 'solenne', 'brune', 'ildor', 'quill', 'ombre', 'faelan', 'gaspard'];
+    window.__tagTop['Français'] = ordre.map((l, i) => ({ login: l, nom: l.charAt(0).toUpperCase() + l.slice(1),
+                                                       viewers: 40000 - i * 3000, createdAt: h(30 + i * 7),
+                                                       game: 'VALORANT', tags: ['Français'] }));
+  });
+  await attendre(page, () => document.querySelector('#tse-accueil .tse-acc-place:nth-child(2)')?.dataset.tseCle === 'tavor', 12_000);
+  await wait(page, 300);   // des images : le temps d'une animation n'avance qu'à l'image (cf. d)
+  const t1 = await temps(page, PLACES, 'data-tse-cle');
+  const p1 = await pulsations();
+  const ka = continuent(t0, t1);
+  const pulsees = Object.keys(p0).filter((k) => k in p1);
+  ok('a) le Top 10 se réordonne sans défaire : Tavor, montée de la 4e à la 2e place, et chaque place restée gardent leur animation, qui continue',
+     !!ka && ka.includes('tavor') && ka.length >= 4, JSON.stringify({ avant: t0, apres: t1 }));
+  // La pastille ne bat que sur une place qui en porte une : au Top 10, le rang écrit en grand en tient lieu.
+  ok('…et la pastille qui bat ne saute pas, là où une place en porte une',
+     pulsees.every((k) => p1[k] > p0[k]), JSON.stringify({ avant: p0, apres: p1 }));
+
+  /* b) LA SECTION REPOSÉE SANS ÊTRE RETIRÉE : Twitch glisse un bloc entre
+     notre section et son contenu ; la section revient se poser devant lui.
+     Elle est déplacée vivante : les animations de ses places continuent.
+     Mutant — contenu.before(section) : elles repartent toutes de zéro. */
+  const s0 = await temps(page, PLACES, 'data-tse-cle');
+  await page.evaluate(() => {
+    const c = document.querySelector('[data-a-target="front-page-main-content"]');
+    const x = document.createElement('div'); x.id = 'tse-test-intrus'; x.style.height = '1px';
+    c.before(x);
+  });
+  await attendre(page, () => document.getElementById('tse-test-intrus')?.nextElementSibling === document.getElementById('tse-accueil')
+    && document.getElementById('tse-accueil').nextElementSibling === document.querySelector('[data-a-target="front-page-main-content"]'), 6000);
+  await wait(page, 300);
+  const s1 = await temps(page, PLACES, 'data-tse-cle');
+  const place = await page.evaluate(() => ({ intrusAvant: document.getElementById('tse-test-intrus')?.nextElementSibling?.id ?? null,
+    contenuApres: document.getElementById('tse-accueil')?.nextElementSibling === document.querySelector('[data-a-target="front-page-main-content"]') }));
+  const kb = continuent(s0, s1);
+  ok('b) la section reposée devant le contenu de Twitch, vivante : déplacée derrière l\'intrus, les animations de ses places continuent',
+     place.intrusAvant === 'tse-accueil' && place.contenuApres && !!kb && kb.length >= 4, JSON.stringify({ place, avant: s0, apres: s1 }));
+
+  /* c) LE HÉROS REPOSÉ SANS RECHARGER SA VIDÉO : Twitch pose un bloc en tête
+     du défileur ; le héros y reprend la première place. Son lecteur est une
+     iframe : retirée puis reposée, elle se rechargerait — la vidéo repartirait
+     du noir. On compte ses `load` sur une période témoin, puis sur le
+     déplacement. Mutant — insertBefore pour le héros : un chargement. */
+  await attendre(page, () => !!document.querySelector('#tse-accueil-heros iframe.tse-acc-heros-video'), 8000);
+  await wait(page, 1500);
+  await page.evaluate(() => {
+    window.__herosCharges = 0;
+    window.__herosCadre = document.querySelector('#tse-accueil-heros iframe.tse-acc-heros-video');
+    window.__herosCadre.addEventListener('load', () => { window.__herosCharges++; });
+  });
+  await wait(page, 1500);
+  const temoinHeros = await page.evaluate(() => window.__herosCharges);
+  await page.evaluate(() => {
+    const d = document.querySelector('main .root-scrollable__content');
+    const x = document.createElement('div'); x.className = 'tse-test-intrus'; x.style.height = '1px';
+    d.prepend(x);
+  });
+  await attendre(page, () => document.querySelector('main .root-scrollable__content').firstElementChild
+    === document.getElementById('tse-accueil-heros'), 6000);
+  await wait(page, 1500);
+  const heros = await page.evaluate(() => ({ charges: window.__herosCharges, meme: window.__herosCadre.isConnected
+    && document.querySelector('#tse-accueil-heros iframe.tse-acc-heros-video') === window.__herosCadre }));
+  ok('c) le héros reprend sa place en tête du défileur sans recharger sa vidéo : la même iframe, aucun chargement',
+     temoinHeros === 0 && heros.meme && heros.charges === 0, JSON.stringify({ temoinHeros, ...heros }));
+
+  /* d) LE RUBAN TOURNE : « Suivant » fait passer des cartes d'un bout à
+     l'autre de la ligne (cf. 229). Chacune garde son animation. Mutant —
+     liste.append(...bougees) : les cartes passées de l'autre côté repartent
+     de zéro. */
+  const RUBAN = '#tse-accueil .tse-acc-ruban .tse-acc-carte';
+  await page.evaluate(() => document.querySelector('#tse-accueil .tse-acc-rayon--une').scrollIntoView({ block: 'start' }));
+  await poserTemoins(page, RUBAN);
+  await wait(page, 1500);
+  const tours0 = (await rapportAccueil(page)).une.tours;
+  const r0 = await temps(page, RUBAN, 'data-tse-cle');
+  await page.evaluate(() => document.querySelector('#tse-accueil .tse-acc-ruban-fleche--suiv').click());
+  await attendre(page, (n) => window.tse.accueil.rapport().une.tours > n, 6000, tours0);
+  /* Le tour se fait dans le clic, souvent sans une image entre les deux ; et
+     le temps d'une animation n'avance qu'à l'image. On en laisse passer :
+     une animation qui continue lira ~1,8 s, une relancée ~0,3 s. */
+  await wait(page, 300);
+  const r1 = await temps(page, RUBAN, 'data-tse-cle');
+  const kd = continuent(r0, r1);
+  ok('d) le ruban tourne sans défaire : les cinq cartes, celles passées de l\'autre côté comprises, gardent leur animation',
+     !!kd && kd.length === 5, JSON.stringify({ avant: r0, apres: r1 }));
+  await page.close();
+
+  /* ══ LA BARRE LATÉRALE ══════════════════════════════════════════════════ */
+  const barre = await fresh();
+  const h1 = new Date(Date.now() - 60 * 60_000).toISOString();
+  await barre.evaluate((h) => {
+    window.__fx = {
+      gamma: { id: '3', createdAt: h, viewers: 100, game: 'G', tags: [] },
+      alpha: { id: '1', createdAt: h, viewers: 300, game: 'G', tags: [] },
+      beta:  { id: '2', createdAt: h, viewers: 200, game: 'G', tags: [] },
+    };
+    for (const [l, v] of [['gamma', '100'], ['alpha', '300'], ['beta', '200']]) window.__addCard(l, 'G', v);
+  }, h1);
+  const ordre = () => barre.evaluate(() => [...document.querySelectorAll('#cards .side-nav-card')]
+    .map((c) => c.dataset.tseLogin).join(','));
+  await attendre(barre, () => [...document.querySelectorAll('#cards .side-nav-card')]
+    .map((c) => c.dataset.tseLogin).join(',') === 'alpha,beta,gamma', 8000);
+
+  /* e) LE TRI RANGE SANS DÉFAIRE : gamma passe en tête. Le tri replace
+     TOUTES les entrées dans l'ordre voulu : chacune garde son état. Mutant —
+     appendChild : toutes les animations de la barre repartaient de zéro, à
+     chaque changement d'ordre. */
+  /* e) D'ABORD, LA FILE DES DURÉES TIENT SA PROMESSE (Promise.withResolvers,
+     4.33.0.10) : chaque carte affiche la durée que notre requête a rendue —
+     une heure de direct. Mutant — la promesse jamais tenue : aucune durée. */
+  await attendre(barre, () => [...document.querySelectorAll('#cards .side-nav-card .tse-uptime')]
+    .filter((s) => /^1h0\d$/.test(s.textContent)).length === 3, 8000);
+  const dureesCartes = await barre.evaluate(() => [...document.querySelectorAll('#cards .side-nav-card')]
+    .map((c) => c.querySelector('.tse-uptime')?.textContent ?? null));
+  ok('e) d\'abord, la file des durées tient sa promesse : chaque carte porte la durée que notre requête a rendue',
+     dureesCartes.length === 3 && dureesCartes.every((d) => /^1h0\d$/.test(d || '')), JSON.stringify(dureesCartes));
+  const CARTES = '#cards .side-nav-card';
+  await poserTemoins(barre, CARTES);
+  await wait(barre, 1500);
+  const b0 = await temps(barre, CARTES, 'data-tse-login');
+  await barre.evaluate(() => { window.__fx.gamma.viewers = 900; window.tse.rescan(); });
+  await attendre(barre, () => [...document.querySelectorAll('#cards .side-nav-card')]
+    .map((c) => c.dataset.tseLogin).join(',') === 'gamma,alpha,beta', 8000);
+  await wait(barre, 300);
+  const b1 = await temps(barre, CARTES, 'data-tse-login');
+  const ke = continuent(b0, b1);
+  ok('e) la barre se retrie sans défaire : gamma passe en tête, et les trois cartes gardent leur animation',
+     await ordre() === 'gamma,alpha,beta' && !!ke && ke.length === 3, JSON.stringify({ avant: b0, apres: b1 }));
+
+  /* f) LE DÉLAI EST UN SIGNAL, LA PRIORITÉ SUIT L'ÉCRAN. Chaque appel porte
+     un AbortSignal qui n'a pas expiré ; visible, aucune priorité demandée.
+     Onglet caché : la demande part en « low ». Un abandon qui n'est pas le
+     délai — une AbortError — se dit « échec de fetch », et non « abandon
+     après … ms ». Mutants — le signal ôté ; la priorité basse partout, ou
+     jamais ; toute AbortError prise pour le délai. */
+  const appels0 = await barre.evaluate(() => window.__calls.map((c) => ({ signal: c.signal, prio: c.prio })));
+  ok('f) chaque appel porte son délai, un signal qui n\'a pas expiré ; onglet visible, aucune priorité demandée',
+     appels0.length >= 1 && appels0.every((c) => c.signal === true && c.prio === null), JSON.stringify(appels0));
+  await barre.evaluate((h) => {
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
+    window.__fx.omega = { id: '9', createdAt: h, viewers: 50, game: 'G', tags: [] };
+    window.__addCard('omega', 'G', '50');
+    window.tse.rescan();
+  }, h1);
+  await attendre(barre, () => window.__calls.some((c) => c.ops.includes('omega')), 8000);
+  const cache = await barre.evaluate(() => {
+    const c = window.__calls.filter((x) => x.ops.includes('omega'));
+    delete document.hidden;
+    return { prios: c.map((x) => x.prio), visible: !document.hidden };
+  });
+  ok('…onglet caché : la demande part en priorité basse — rien ne l\'attend à l\'écran',
+     cache.prios.length >= 1 && cache.prios.every((p) => p === 'low') && cache.visible, JSON.stringify(cache));
+  await barre.evaluate(() => { window.__abortAutre = true; window.__fx.omega.viewers = 60; window.tse.rescan(); });
+  await attendre(barre, () => window.tse.panneau.rapport().erreurs.some((e) => e.source === 'gql'), 8000);
+  const errs = await barre.evaluate(() => window.tse.panneau.rapport().erreurs.filter((e) => e.source === 'gql')
+    .map((e) => ({ message: e.message, detail: e.detail })));
+  // La tranche qu'il portait est dite inexploitable : c'est sa conséquence ordinaire (cf. 74).
+  ok('…un abandon qui n\'est pas le délai se dit « échec de fetch », et nomme l\'AbortError',
+     errs.some((e) => e.message === 'échec de fetch' && e.detail === 'AbortError') && !errs.some((e) => /^abandon après/.test(e.message)),
+     JSON.stringify(errs));
+
+  /* g) NOS SURFACES QUI DÉFILENT SUIVENT NOTRE THÈME : le menu déroulant et
+     la salle portent le schéma de couleurs du thème, pour que le navigateur
+     y dessine des barres de défilement claires ou sombres comme elles.
+     Mutants — le schéma ôté du menu ; la variable du thème clair ôtée. */
+  const schemas = await barre.evaluate(() => {
+    const m = document.createElement('div'); m.className = 'tse-dd-menu';
+    const s = document.createElement('div'); s.id = 'tse-salle';
+    document.body.append(m, s);
+    const lire = () => [getComputedStyle(m).colorScheme, getComputedStyle(s).colorScheme].join('/');
+    const html = document.documentElement, avant = html.getAttribute('data-tse-theme');
+    html.setAttribute('data-tse-theme', 'dark'); const sombre = lire();
+    html.setAttribute('data-tse-theme', 'light'); const clair = lire();
+    if (avant === null) html.removeAttribute('data-tse-theme'); else html.setAttribute('data-tse-theme', avant);
+    m.remove(); s.remove();
+    return { sombre, clair };
+  });
+  ok('g) le menu déroulant et la salle suivent notre thème : schéma sombre en sombre, clair en clair',
+     schemas.sombre === 'dark/dark' && schemas.clair === 'light/light', JSON.stringify(schemas));
+
+  /* h) L'IFRAME DE L'APERÇU, UNE IMAGE QUI BOUGE : masquée aux lecteurs
+     d'écran et hors de l'ordre du clavier, comme celle du héros. Mutant —
+     les deux attributs ôtés : un cadre sans nom dans l'arbre d'accessibilité. */
+  await hoverLogin(barre, 'alpha');
+  await attendre(barre, () => !!document.querySelector('.tse-preview__iframe'), 8000);
+  const apercu = await barre.evaluate(() => {
+    const f = document.querySelector('.tse-preview__iframe');
+    return { cache: f.getAttribute('aria-hidden'), tab: f.tabIndex };
+  });
+  ok('h) l\'iframe de l\'aperçu est masquée aux lecteurs d\'écran, et hors de l\'ordre du clavier',
+     apercu.cache === 'true' && apercu.tab === -1, JSON.stringify(apercu));
+  await barre.close();
+
+  /* ══ LE PANNEAU ═════════════════════════════════════════════════════════ */
+  const stubPanneau = ([msg, langue]) => {
+    window.chrome = {
+      i18n: { getMessage: (k, sub) => {
+          const m = msg[k] ? msg[k].message : k;
+          if (sub === undefined || sub === null) return m;
+          const args = Array.isArray(sub) ? sub : [sub];
+          return String(m).replace(/\$(\d)/g, (t, i) => (args[i - 1] === undefined ? t : String(args[i - 1])));
+        }, getUILanguage: () => langue },
+      tabs: { query: () => Promise.resolve([]) },
+      runtime: { getManifest: () => ({ version: '9.9.9' }), sendMessage: () => Promise.reject(new Error('worker absent')) },
+    };
+  };
+  const fiche = (loc) => JSON.parse(readFileSync(join(ICI, '..', '_locales', loc, 'messages.json'), 'utf8'));
+  const hote = `<!DOCTYPE html><meta charset="utf-8"><body>
+<iframe id="f" src="/panneau.html" style="width:1100px;height:760px;border:0"></iframe>
+<script>
+window.__fermer = 0;
+addEventListener('message', (e) => {
+  const d = e.data;
+  if (d && d.tse === 'tse-panneau-fermer') { window.__fermer++; return; }
+  if (!d || d.tse !== 'tse-incruste-req') return;
+  e.source.postMessage({ tse: 'tse-incruste-res', id: d.id, ok: true,
+                         data: d.rapport ? { genere: Date.now() } : { colonnes: ['login'], lignes: [], resume: {} } }, '*');
+});
+</script></body>`;
+  const pp = await browser.newPage({ viewport: { width: 1400, height: 900 } });
+  pp.on('pageerror', (e) => { fail++; console.log('  ✗ ERREUR PAGE:', e.message); });
+  await pp.addInitScript(stubPanneau, [fiche('fr'), 'fr']);
+  await hebergerPanneau(pp, hote);
+  await attendre(pp, () => !!document.getElementById('f'), 6000);
+  const cadre = () => pp.frames().find((f) => f.url().includes('panneau.html'));
+  await wait(pp, 1200);
+
+  /* i) LE SCHÉMA DE COULEURS DU PANNEAU : la balise le dit dès la première
+     image, la racine dit les deux et suit le système tant que le thème de
+     Twitch n'est pas appris, « data-theme » tranche ensuite. Mutants — le
+     schéma ôté de la racine (barre de défilement et cases claires sur fond
+     sombre) ; le thème sombre appris sans son schéma ; la balise ôtée. */
+  const schema = async (systeme, theme) => {
+    await pp.emulateMedia({ colorScheme: systeme });
+    return cadre().evaluate((t) => {
+      const html = document.documentElement;
+      if (t === null) html.removeAttribute('data-theme'); else html.setAttribute('data-theme', t);
+      return getComputedStyle(html).colorScheme;
+    }, theme);
+  };
+  const vus = { sombreInconnu: await schema('dark', null), clairInconnu: await schema('light', null),
+                appris: await schema('light', 'dark'), apprisClair: await schema('dark', 'light'),
+                balise: await cadre().evaluate(() => document.querySelector('meta[name="color-scheme"]')?.content ?? null) };
+  await pp.emulateMedia({ colorScheme: 'dark' });
+  ok('i) le panneau dit son schéma : « light dark » tant que le thème est inconnu, clair sous un système clair, celui de Twitch une fois appris ; la balise dès la première image',
+     vus.sombreInconnu === 'light dark' && vus.clairInconnu === 'light' && vus.appris === 'dark' && vus.apprisClair === 'light'
+     && vus.balise === 'light dark', JSON.stringify(vus));
+
+  /* j) LES DURÉES DANS LA LANGUE DU PANNEAU, par Intl.DurationFormat ; une
+     durée nulle dite, pas vide ; les graduations rondes aussi. Mutants —
+     l'écriture d'avant (« 3 min 07 ») ; la durée nulle rendue vide. */
+  const durees = (f) => f.evaluate(() => [fmt.duree(187000), fmt.duree(0), fmt.duree(42000), fmt.dureeRonde(2, 'h'), fmt.dureeRonde(5, 'min')]
+    .map((x) => x.replace(/[  ]/g, ' ')));
+  const dFr = await durees(cadre());
+  ok('j) les durées du panneau en français : « 3 min et 7 s », « 0 s », « 42 s », et les graduations « 2 h », « 5 min »',
+     JSON.stringify(dFr) === JSON.stringify(['3 min et 7 s', '0 s', '42 s', '2 h', '5 min']), JSON.stringify(dFr));
+
+  /* k) ÉCHAP PENDANT UNE COMPOSITION N'EST PAS UN ORDRE : elle annule la
+     composition, et le panneau incrusté reste ouvert ; hors composition, il
+     demande sa fermeture. Mutant — le test d'isComposing ôté. */
+  const echap = (compose) => cadre().evaluate((c) => document.dispatchEvent(
+    new KeyboardEvent('keydown', { key: 'Escape', isComposing: c, bubbles: true, cancelable: true })), compose);
+  await echap(true);
+  await wait(pp, 500);
+  const pendant = await pp.evaluate(() => window.__fermer);
+  await echap(false);
+  await attendre(pp, () => window.__fermer > 0, 4000);
+  const apres = await pp.evaluate(() => window.__fermer);
+  ok('k) Échap pendant une composition (IME) ne ferme pas le panneau incrusté ; hors composition, si',
+     pendant === 0 && apres === 1, JSON.stringify({ pendant, apres }));
+  await pp.close();
+
+  /* l) LA RÉPONSE D'UNE AUTRE ORIGINE EST IGNORÉE. Un parent qui n'est pas
+     Twitch encadre le panneau et lui poste des réponses forgées, aux
+     numéros qu'il devine. Le panneau, qui ne parle qu'aux deux origines de
+     Twitch, ne reçoit rien de vrai et ne prend rien de faux : sa demande
+     reste en attente. Mutant — le test d'origine ôté : la réponse forgée
+     est prise. */
+  const po = await browser.newPage({ viewport: { width: 1400, height: 900 } });
+  po.on('pageerror', (e) => { fail++; console.log('  ✗ ERREUR PAGE:', e.message); });
+  await po.addInitScript(stubPanneau, [fiche('fr'), 'fr']);
+  await po.context().route('https://www.twitch.tv/**', (route) => {
+    const chemin = new URL(route.request().url()).pathname.slice(1);
+    if (PANNEAU_SERVI[chemin]) return route.fulfill({ contentType: PANNEAU_SERVI[chemin], body: readFileSync(join(ICI, '..', chemin)) });
+    return route.fulfill({ contentType: 'text/html; charset=utf-8', body: '<!DOCTYPE html><title>twitch</title>' });
+  });
+  await po.context().route('https://autre.example/**', (route) => route.fulfill({ contentType: 'text/html; charset=utf-8', body:
+    `<!DOCTYPE html><meta charset="utf-8"><body><iframe id="f" src="https://www.twitch.tv/panneau.html" style="width:1100px;height:760px;border:0"></iframe>
+<script>
+window.__forger = () => { const f = document.getElementById('f');
+  for (let i = 1; i <= 40; i++) f.contentWindow.postMessage({ tse: 'tse-incruste-res', id: i, ok: true,
+    data: { colonnes: ['login'], lignes: [], resume: {} } }, '*'); };
+</script></body>` }));
+  await po.goto('https://autre.example/__hote');
+  const cadreO = () => po.frames().find((f) => f.url().includes('panneau.html'));
+  await attendre(po, () => !!document.getElementById('f'), 6000);
+  await wait(po, 1500);
+  await cadreO().evaluate(() => { const b = [...document.querySelectorAll('.rail-item')].find((x) => x.dataset.id === 'roster'); if (b) b.click(); });
+  await wait(po, 500);
+  const enAttente0 = await cadreO().evaluate(() => attentesCadre.size);
+  await po.evaluate(() => window.__forger());
+  await wait(po, 800);
+  const enAttente1 = await cadreO().evaluate(() => ({ attentes: attentesCadre.size, vue: document.documentElement.getAttribute('data-vue') }));
+  ok('l) le panneau encadré par une autre origine ignore ses réponses forgées : sa demande reste en attente',
+     enAttente0 >= 1 && enAttente1.attentes === enAttente0 && enAttente1.vue === 'incruste', JSON.stringify({ enAttente0, ...enAttente1 }));
+  await po.close();
+
+  /* m) EN JAPONAIS, ET SANS Intl.DurationFormat. La même durée dans une autre
+     langue du panneau ; et un navigateur qui ne le connaît pas (Chrome avant
+     la 129) garde l'écriture d'avant. Mutant — le repli ôté : le panneau
+     ne se charge plus sans Intl.DurationFormat. */
+  const panneauSeul = async (loc, langue, sansDuree) => {
+    const p = await browser.newPage();
+    p.on('pageerror', (e) => { fail++; console.log('  ✗ ERREUR PAGE:', e.message); });
+    if (sansDuree) await p.addInitScript(() => { delete Intl.DurationFormat; });
+    await p.addInitScript(stubPanneau, [fiche(loc), langue]);
+    await hebergerPanneau(p, '<!DOCTYPE html><title>hôte</title>');
+    await p.goto('https://www.twitch.tv/panneau.html');
+    /* Un panneau qui n'a pas pu se charger a laissé `fmt` déclaré mais jamais
+       initialisé : même `typeof` lève alors. null, et l'assertion le dit. */
+    const charge = () => { try { return typeof fmt === 'object'; } catch { return false; } };
+    await attendre(p, charge, 6000);
+    const d = await p.evaluate(charge) ? await durees(p.mainFrame()) : null;
+    await p.close();
+    return d;
+  };
+  const dJa = await panneauSeul('ja', 'ja', false);
+  const dSans = await panneauSeul('fr', 'fr', true);
+  ok('m) en japonais : « 3 分 7 秒 », « 0 秒 », les graduations « 2 時間 », « 5 分 » ; sans Intl.DurationFormat, l\'écriture d\'avant : « 3 min 07 », « 0 s », « 2 h »',
+     !!dJa && !!dSans && JSON.stringify(dJa) === JSON.stringify(['3 分 7 秒', '0 秒', '42 秒', '2 時間', '5 分'])
+     && JSON.stringify(dSans) === JSON.stringify(['3 min 07', '0 s', '42 s', '2 h', '5 min']), JSON.stringify({ dJa, dSans }));
 }
 
 {
