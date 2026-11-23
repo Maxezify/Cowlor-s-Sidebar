@@ -331,13 +331,13 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 2302 KB | 1088 KB | 4,808 → **2** |
+| `content.js` | 2306 KB | 1089 KB | 4,816 → **2** |
 | `cadres.js` | 76 KB | 35 KB | 171 → **0** |
 | `adblock.js` | 126 KB | 101 KB | 301 → **2** |
-| `panneau.js` | 166 KB | 85 KB | 227 → **0** |
+| `panneau.js` | 168 KB | 86 KB | 233 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 26 → **0** |
-| `background.js` | 10 KB | 2 KB | 22 → **0** |
-| **all six** | **2694 KB** | **1315 KB** | **−51 %** |
+| `background.js` | 10 KB | 2 KB | 23 → **0** |
+| **all six** | **2700 KB** | **1316 KB** | **−51 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are
@@ -2494,6 +2494,164 @@ A sub-test that modelled an impossible case — a stream growing younger without
 changing id — was replaced along the way by the ordinary case that was actually
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
+
+## Up to date with Modern Web Guidance (v4.33.0.10)
+
+"Here is Modern Web Guidance: I want you to use it to check that you are up to
+date with this guide." GoogleChrome's guide (`modern-web-guidance-src`,
+commit of 22 November 2026) went through the extension. The fifty rules of
+its scanner were read and applied by hand to the code: the scanner itself, a
+downloaded package, was not run. About thirty of its guides and the
+references of its "Chrome extensions" part were added to that. What already
+conformed does not change: MV3 with no permission at all, no `eval`, Twitch's
+text set through `textContent`, message receivers that check source and
+origin, masks doubled with their standard form, scrollbars through
+`scrollbar-width`. Here is what changed.
+
+### What you see
+
+- **The dark panel has dark controls.** A scrollbar, a checkbox, a menu are
+  drawn by the browser, light or dark according to `color-scheme`, not to our
+  colours. The panel did not say it: in the dark theme its scrollbar stayed
+  light, and an unchecked box was a white square (seen when rendered). The
+  root now says `light dark` and follows the system as long as Twitch's theme
+  is not learnt, like the colours; `data-theme` decides afterwards. A
+  `<meta name="color-scheme">` tag says it from the very first frame.
+- **What pulses keeps pulsing.** A node moved by `insertBefore` is removed and
+  put back: its animations restart from zero, and an iframe reloads. A Top 10
+  reordering thus made the pulsing pill jump. A sidebar re-sort restarted all
+  its glows. A re-placed hero reloaded its video. `moveBefore()` moves without
+  removing: measured in Chromium, an animation at 600 ms goes back to 0 under
+  `insertBefore` and carries on under `moveBefore`. It serves the Top 10
+  places, the home section, the hero, the "Featured" ribbon and the sidebar
+  sort. A new node, or a browser that does not know it, goes through
+  `insertBefore`, as before.
+- **Japanese and Chinese.** With an input method, Enter confirms the composed
+  characters. The field of the excluded-channels list added them mid-
+  composition, and Escape closed the embedded panel instead of cancelling the
+  composition. Both keys now do nothing while `isComposing` is true. The
+  zapping already did so.
+- **The panel's durations in its language.** "3 min 07" was written the
+  French way in all twelve languages. `Intl.DurationFormat` now writes
+  "3 min, 7 sec", "3 min et 7 s", "3 分 7 秒", and the curve's ticks "2 hr",
+  "2 h", "2 時間". A zero duration, which it would render empty, is said
+  "0 sec". A Chrome that does not know it (before 129) keeps the former
+  writing.
+- **The menus and the room follow our theme.** The Top Channels drop-down
+  and the multistream room scroll. They now carry our theme's scheme,
+  instead of inheriting Twitch's, whatever it is.
+- **The hover preview.** Its iframe, a moving picture, is hidden from screen
+  readers and taken out of the keyboard order, like the hero's. It read as an
+  unnamed "frame".
+
+### What you do not see
+
+- **The request deadline is a signal.** `AbortSignal.timeout()` replaces the
+  `AbortController` + `setTimeout` + `clearTimeout` trio. It aborts with a
+  `TimeoutError`: that is what "abandon après … ms" recognises. An
+  `AbortError` from another cause is reported as "échec de fetch".
+- **Low priority for what nothing waits for.** Our requests share the network
+  with Twitch's. Everything sent from a hidden tab, the rankings of the
+  places elsewhere and "From the start" go out with `priority: 'low'`. Never
+  what holds the veil or paints a card: the probe, the sidebar's durations,
+  the Top 10.
+- **The origin of the answers to the panel.** The embedded panel checked an
+  answer's source; it now also checks that it comes from one of Twitch's two
+  origins.
+- **The code.** `Promise.withResolvers()` where a resolver waits in a queue
+  (four places, the service worker among them); `toSorted()` for 25 sorted
+  array copies, `toReversed()` for one. The fifteen copies of a `Set` or a
+  `Map` stay copies: the guide requires it.
+- **Chrome 119 at least.** `Promise.withResolvers` does not exist before. The
+  manifest declares it (`minimum_chrome_version`) rather than letting an
+  older browser break. Firefox 140 already has everything.
+
+### What did not change, and why
+
+- **Reduced motion** is still ignored: a product choice. The guide also asks
+  for a way to stop a lasting animation: "Labels pulse" gives it.
+- **CSS cascade layers (`@layer`)**, which the guide prefers to prefixed
+  classes: our stylesheet lives in Twitch's page, and a layered stylesheet
+  would lose against Twitch's, which has none.
+- **`interestfor`, `popover="hint"`, anchor positioning**: Firefox 140 does
+  not have all of them. Today's JavaScript remains the fallback the guide
+  would ask for anyway.
+- **The preview from the keyboard**: it only opens on hover. The guide would
+  also like focus, but tabbing through the sidebar would start one video per
+  card: hover alone is kept, decided at the audit.
+- **A split start-up**: measured before doing it. Evaluating content.js
+  takes 30 ms at the median (25 to 33 ms, in this container). Its start-up,
+  19 ms, almost all of it the sidebar's first scan (up to 67 ms on a large
+  sidebar). Yielding between the start-up steps would gain nothing; splitting
+  the scan itself would touch the heart of the sidebar, and is not done
+  without deciding it.
+
+### The bench
+
+- **234, new, from a) to m)**: each point is checked on what can be seen or
+  measured. A "witness", a sixty-second CSS animation put on each node the
+  product moves, tells whether the state survived the move: Top 10 places,
+  re-placed section, ribbon, re-sorted sidebar. The hero's video does not
+  reload. The deadline, the priority according to the tab, the `AbortError`
+  that is not the deadline. The colour schemes of the menu, the room and the
+  panel, with its tag. The preview's iframe. The durations in French, in
+  Japanese and without `Intl.DurationFormat`. Escape during a composition.
+  Forged answers from another origin, ignored.
+- **120**: Enter that confirms a composition adds nothing to the list.
+- **218**: "From the start" goes out with low priority, the cards' durations
+  do not.
+- **233 c bis)**: the rankings elsewhere go out with low priority, the Top
+  10's does not.
+- **The fake Twitch** logs each request's priority and signal. It returns the
+  browser's `TimeoutError` at the deadline, and can return an `AbortError`
+  from another cause.
+
+The campaign also found three bench defects, fixed. An animation's time
+only moves on a frame: read right after a click, with no frame in between,
+it said "equal" instead of "carries on". A panel that fails to load made m)
+crash instead of fail. And 211 waited forever for a silent worker: its two
+requests are now bounded to ten seconds.
+
+**Thirty named mutants: twenty-nine caught, one equivalent.**
+
+| mutant | what fails |
+| --- | --- |
+| the Top 10 reordered with insertBefore | 234 a) |
+| the section re-placed with before() | 234 b) |
+| the hero re-placed with insertBefore: its video reloads | 234 c) |
+| the ribbon turned with append() | 234 d) |
+| the sidebar re-sorted with appendChild | 234 e) |
+| deplacer without moveBefore | 234 a) to e) |
+| the deadline removed from the requests | 234 f) |
+| the hidden tab ignored: normal priority | 234 f) |
+| everything at low priority | 218, 234 f) |
+| the rankings elsewhere without `fond` | 233 c bis) |
+| "From the start" without `fond` | 218 |
+| the deadline recognised by the old AbortError | 234 f) |
+| any AbortError taken for the deadline | 234 f) |
+| the drop-down without a scheme | 234 g) |
+| the light theme without its scheme variable | 234 g) |
+| the panel's root without a scheme | 234 i) |
+| the learnt dark theme without its scheme | 234 i) |
+| the color-scheme tag removed | 234 i) |
+| the preview's iframe without aria-hidden or tabindex | 234 h) |
+| Enter while composing adds to the field | 120 |
+| Escape while composing closes the panel | 234 k) |
+| an answer from another origin accepted | 234 l) |
+| the former writing, without Intl.DurationFormat | 234 j), m) |
+| the zero duration rendered empty | 234 j), m) |
+| the ticks in the former writing | 234 m) |
+| the fallback removed: Intl.DurationFormat assumed | 234 m) |
+| the forgotten promise: the durations queue returns `undefined` | 234: one page error per card, which the bench counts |
+| the embedded panel's request that never returns its promise | 124 |
+| the worker that never returns its promise | 211 |
+| the durations queue that answers "unknown" without waiting | **alive**: equivalent on screen |
+
+The last one changes nothing visible. The answer still arrives, fills the
+cache, and the next scan paints it: the product catches up by itself, and
+only a latency measurement would tell it apart.
+
+`npm run check` is green: 233 scenarios, 2382 assertions.
 
 ## The pill pulses from its centre (v4.33.0.9)
 
