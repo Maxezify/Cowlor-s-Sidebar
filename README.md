@@ -2184,6 +2184,60 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## Top Chaînes : un filtre vide reste vide (v4.33.0.11)
+
+Signalé, capture à l'appui : « Top Chaînes », la catégorie « Slots »,
+« Aucune chaîne en direct avec ce filtre » — et dessous, la carte d'une chaîne
+suivie, en « Événements spéciaux ». Deux défauts se superposaient.
+
+**Un classement vide rendait la liste suivie.** Le mode n'était « prêt » — les
+cartes de Twitch masquées — que si le classement comptait au moins une chaîne.
+Résolu et vide, il retombait : la liste suivie revenait, sous un titre et un
+message qui disaient le contraire. Et le voile, retenu tant que le mode n'est
+pas prêt, attendait son délai maximal, quinze secondes, pour se lever.
+Désormais, un classement résolu remplace la liste suivie même vide : le message
+dit pourquoi la barre l'est. Pas encore résolu — la première marche, une
+panne —, rien ne la remplace, et la liste suivie reste.
+
+**Les filtres ignoraient la carte sponsorisée.** Les filtres de catégorie et de
+langue ne reconnaissaient une carte suivie qu'au marqueur de son lien,
+`data-test-selector="followed-channel"`. La carte sponsorisée d'une chaîne
+suivie n'en porte pas : son lien est `side-nav-card__link--promoted-followed`.
+Elle restait donc à l'écran sous n'importe quel filtre, en « Chaînes suivies »
+aussi. C'est elle que montrait la capture : les autres cartes suivies
+s'effaçaient sous le filtre de catégorie, ce qui cachait le premier défaut.
+
+**« Slots » vide : pas tranché.** Le réseau de ce conteneur n'atteint pas
+Twitch, et la cause ne se devine pas. Deux lectures sont possibles : Twitch ne
+rend aucune chaîne de cette catégorie à une requête anonyme, ou il en rend et
+la lecture les écarte toutes — une chaîne qui déclare plus de deux tags de
+langue sort du classement. Le rapport le dira : son bloc « Top Chaînes » porte
+désormais `portee`, ce que la dernière passe de catégorie a reçu de Twitch
+(`rendues`) et ce qu'elle a gardé (`retenues`). Un rapport exporté avec
+« Slots » choisi tranchera.
+
+### Le banc
+
+- **86** : sa catégorie vide ne laisse plus rien sous le message — ni la chaîne
+  suivie, ni la sponsorisée —, et le voile n'est plus retenu. Une seconde
+  catégorie, dont Twitch rend trois chaînes toutes écartées pour empilement de
+  langues, donne le même message, sans même la chaîne suivie de cette
+  catégorie, et le rapport dit « 3 rendues, 0 gardée ». Sans classement
+  résolu, la liste suivie reste.
+- **235, nouveau** : la carte sponsorisée obéit aux filtres de catégorie et de
+  langue de la liste suivie.
+
+**Quatre mutants nommés, quatre pris.**
+
+| mutant | ce qui tombe |
+| --- | --- |
+| le classement vide jamais « prêt » | 86 : le voile retenu ; la chaîne suivie de la catégorie vide revenue |
+| le classement vide toujours « prêt », même non résolu | 86 : la liste suivie effacée sur une panne |
+| le filtre qui ignore la carte sponsorisée | 235 b), d) |
+| les arêtes rendues non comptées | 86 : le rapport dit « 0 rendue » |
+
+`npm run check` est vert : 234 scénarios, 2392 assertions.
+
 ## À jour selon Modern Web Guidance (v4.33.0.10)
 
 « Voici Modern Web Guidance : je souhaite que tu l'utilises pour vérifier que
@@ -26314,13 +26368,13 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 2306 Ko | 1089 Ko | 4 816 → **2** |
+| `content.js` | 2310 Ko | 1089 Ko | 4 827 → **2** |
 | `cadres.js` | 76 Ko | 35 Ko | 171 → **0** |
 | `adblock.js` | 126 Ko | 101 Ko | 301 → **2** |
 | `panneau.js` | 168 Ko | 86 Ko | 233 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 26 → **0** |
 | `background.js` | 10 Ko | 2 Ko | 23 → **0** |
-| **les six** | **2700 Ko** | **1316 Ko** | **−51 %** |
+| **les six** | **2704 Ko** | **1317 Ko** | **−51 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se

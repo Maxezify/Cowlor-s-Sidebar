@@ -371,6 +371,13 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     // principe que les stories : le préfixe, jamais le texte, qui se traduit.
     serieSelector:           'a[class*="saveYourStreakSideNavRow"]',
     followedCardSelector:    'a[data-test-selector="followed-channel"]',
+    /* LA CARTE SPONSORISÉE D'UNE CHAÎNE SUIVIE N'A PAS CE MARQUEUR (4.33.0.11).
+       Son lien est `side-nav-card__link--promoted-followed` : la même chaîne
+       suivie, une autre mise en page. Le filtre de la liste ne connaissait que
+       le premier, et la laissait à l'écran sous n'importe quelle catégorie.
+       Même forme que la feuille, qui la redresse : le suffixe lisible, jamais
+       les classes hachées. */
+    promotedFollowedSelector: 'a[class*="--promoted-followed"]',
     // Indicateur de statut live (point coloré) présent sur une carte EN LIGNE,
     // absent d'une carte hors-ligne. Sélecteur Twitch → centralisé ici (utilisé
     // par la détection hors-ligne et par l'auto-diagnostic).
@@ -12553,7 +12560,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
          plus petit compteur rendu — et seulement quand la réponse était
          PLEINE, car une réponse plus courte que demandée est exhaustive. */
       const planchers = new Map();
-      if (!cats.length) return { queried, seen, planchers, done: 0, transport: false };
+      if (!cats.length) return { queried, seen, planchers, done: 0, transport: false, rendues: 0 };
       // Par identifiant quand on l'a et que le schéma ne l'a pas refusé ; par
       // nom sinon (cf. catTopQuery).
       const parId = (c) => !idJeuRefuse && c.id != null && c.id !== '';
@@ -12583,6 +12590,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       }
       const now  = Date.now();
       let done = 0;
+      // Les arêtes RENDUES, avant `readStream` : avec `seen`, ce que la
+      // lecture a gardé, elles disent ce qu'elle a écarté (cf. `portee`).
+      let rendues = 0;
       data.forEach((d, i) => {
         if (d && !d.game) { stats.sansJeu += 1; return; }
         const edges = d?.game?.streams?.edges;
@@ -12598,6 +12608,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         const sienne = formes[i] ? String(g.id) === String(cats[i].id) : g.name === cats[i].name;
         if (!sienne) { stats.homonymes += 1; return; }
         done += 1;
+        rendues += edges.length;
         queried.add(cats[i].name);
         // Total de la catégorie tel que vu à l'instant de la réponse : plus
         // frais que celui de la liste `games`, on en profite.
@@ -12620,7 +12631,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
            exhaustive alors qu'elle était pleine. */
         planchers.set(cats[i].name, plancherReponse(lus, edges.length));
       });
-      return { queried, seen, planchers, done, transport };
+      return { queried, seen, planchers, done, transport, rendues };
     };
 
     // Réconciliation — le cœur de la tolérance à l'échantillonnage.
@@ -13659,6 +13670,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     // Aucune exception n'est possible de ce côté-là.
     let scope        = null;   // nom canonique de la catégorie servie, ou null
     let scopeRanking = [];
+    // La dernière passe de catégorie : reçu, gardé (cf. le rapport, `portee`).
+    let dernierePortee = null;
     let scopeTs      = 0;
     let scopeDirty   = false;
     // Génération de portée. Une passe lit l'état AVANT son aller-retour et
@@ -13774,6 +13787,14 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       reconcile(pool, h.queried, h.seen, started,
                 (rec) => planchers.get(rec.game) || 0);
       scope        = want.key;
+      /* CE QUE LA PASSE A REÇU, ET CE QU'ELLE A GARDÉ (4.33.0.11). Un filtre
+         de catégorie a rendu « Aucune chaîne en direct » sur une catégorie
+         qui en compte : soit Twitch n'en a rendu aucune, soit la lecture les
+         a toutes écartées — les empileurs de tags de langue, par exemple.
+         `tagsEmpiles` est un cardinal de session et ne le dit pas pour une
+         catégorie ; ce relevé-ci le dit pour la dernière. */
+      dernierePortee = { categorie: want.name, langue: want.lang || null,
+                         rendues: h.rendues, retenues: h.seen.size };
       scopeLangApplied = applique;
       scopeRanking = [...pool.values()].map(plusJuste).sort((a, b) => b.viewers - a.viewers);
       scopeDirty   = false;
@@ -14347,6 +14368,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
           language:   lire().actif ? lire().lang : null,
           scope,
           scopeSize:  scopeRanking.length,
+          portee:     dernierePortee,
           /* La pause après échec, RELATIVE à maintenant. Elle vit ici parce
              que c'est ce module qui la pose ; l'exposer ailleurs aurait
              demandé de sortir `cooldownUntil` de sa portée, et un second
@@ -29949,7 +29971,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     // Filtres actifs : seules les cartes de la section followed sont concernées.
     // Détection INDÉPENDANTE DE LA LANGUE : les cartes suivies portent
     // data-test-selector="followed-channel" (recommandées : un autre marqueur).
-    const inFollowed = !!card.querySelector(DOM.followedCardSelector);
+    // Et la carte SPONSORISÉE d'une chaîne suivie, son propre marqueur
+    // (4.33.0.11, cf. DOM.promotedFollowedSelector) : sans lui, elle passait
+    // au travers de tous les filtres.
+    const inFollowed = !!card.querySelector(DOM.followedCardSelector)
+      || !!card.querySelector(DOM.promotedFollowedSelector);
     if (!inFollowed) {
       card.style.display = '';
       return;
@@ -34482,8 +34508,10 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
   /* OÙ LA DERNIÈRE PASSE DU CLASSEMENT S'EST ARRÊTÉE. `modele` disait d'où
      venait le modèle, et `modeleRefus` ce qui manquait au clone — mais aucun
      des deux ne disait à quel MOMENT la passe avait renoncé, et deux rapports
-     de suite se sont lus de deux façons pour cette seule raison. Six valeurs,
-     et elles couvrent toutes les sorties de `syncGlobalCards`. */
+     de suite se sont lus de deux façons pour cette seule raison. Huit valeurs,
+     et elles couvrent toutes les sorties de `syncGlobalCards` — dont, depuis
+     la 4.33.0.11, « vide » (classement résolu, personne) et « en-attente »
+     (pas encore résolu, la liste suivie reste). */
   let sortieGlobale = null;
   // Combien de modèles se sont défaits au clonage avant qu'un tienne.
   let modeleEssais = 0;
@@ -38926,6 +38954,40 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       return;
     }
 
+    /* ── UN CLASSEMENT RÉSOLU ET VIDE EST UN RÉSULTAT (4.33.0.11) ─────────
+       SIGNALÉ, CAPTURE À L'APPUI : « Top Chaînes », une catégorie qui ne
+       rend personne, « Aucune chaîne en direct avec ce filtre » — et dessous,
+       la carte sponsorisée d'une chaîne SUIVIE, d'une autre catégorie.
+
+       `tse-global-ready` ne se posait que sur un classement d'au moins une
+       chaîne. Vide, il tombait : les cartes de Twitch revenaient, sous un
+       titre et un message qui disaient le contraire. Le filtre de catégorie
+       en effaçait la plupart, ce qui cachait le défaut ; pas la carte
+       sponsorisée, qu'il ne reconnaissait pas. Et le voile, retenu tant que
+       le mode n'est pas prêt, attendait son délai maximal pour se lever.
+
+       LA RÈGLE A DEUX MOITIÉS. Résolu, le classement remplace la liste suivie
+       même vide : le message dit pourquoi la barre l'est. Pas encore résolu
+       — la première marche, une panne —, rien ne la remplace, et rien ne
+       dirait pourquoi elle serait vide : la liste suivie reste. Ce cas se
+       traite AVANT le choix d'un modèle, qui n'a rien à fabriquer ici : un
+       utilisateur sans chaîne suivie en direct n'en a pas, et la passe
+       s'arrêtait là sans rien poser. */
+    const top = globalChannels.top(options.get('topN'));
+    if (!top.length) {
+      const resolu = globalChannels.resolu();
+      ready(resolu ? 1 : 0);
+      globalSeed.clear();
+      // Même exception que plus bas : la carte qu'on survole attend la
+      // fermeture de son aperçu.
+      for (const card of existing.values()) {
+        if (preview.ouvert() && card === preview.carte()) continue;
+        releaseGlobalCard(card);
+      }
+      sortieGlobale = resolu ? 'vide' : 'en-attente';
+      return;
+    }
+
     // Même exigence de modèle que pour les cartes en avance : une carte
     // native, en direct, et NEUTRE — cloner une carte décorée transposerait
     // ses marques sur une chaîne qui n'a rien à voir.
@@ -39035,7 +39097,6 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       if (l && !isSynthetic(c) && !c.dataset.tseGlobal && !natives.has(l)) natives.set(l, c);
     }
 
-    const top = globalChannels.top(options.get('topN'));
     const keep = new Set();
     ready(top.length);
     globalSeed.clear();

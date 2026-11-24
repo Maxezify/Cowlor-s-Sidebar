@@ -10414,9 +10414,20 @@ titre('86. Top Chaînes — le filtre qui ne rend personne le DIT');
      donc à chaque clic avant de se démentir. C'est la moitié de ce scénario. */
   const page = await fresh();
   await page.evaluate(() => {
-    window.__fx = { suivi1: { id: 'id-suivi1', createdAt: new Date(Date.now() - 1800_000).toISOString(),
-                              viewers: 400, game: 'Just Chatting', tags: [] } };
+    /* La carte SPONSORISÉE est celle du signalement (4.33.0.11) : son lien
+       ne porte pas le marqueur des cartes suivies, et le filtre de catégorie
+       la laissait passer. La carte ordinaire, elle, s'effaçait sous le
+       filtre — et cachait le défaut au banc. La troisième, `suivi2`, est
+       une chaîne suivie DE la catégorie « empile » : le filtre de catégorie
+       la laisse passer, et seul le mode « prêt » peut la masquer quand le
+       classement de sa catégorie est vide. */
+    const h = new Date(Date.now() - 1800_000).toISOString();
+    window.__fx = { suivi1: { id: 'id-suivi1', createdAt: h, viewers: 400, game: 'Just Chatting', tags: [] },
+                    promo1: { id: 'id-promo1', createdAt: h, viewers: 5400, game: 'Special Events', tags: [] },
+                    suivi2: { id: 'id-suivi2', createdAt: h, viewers: 300, game: 'empile', tags: [] } };
     window.__addCard('suivi1', 'Just Chatting', '400');
+    window.__addPromotedCard('promo1', 'Special Events', '5,4 k', 'Savonia');
+    window.__addCard('suivi2', 'empile', '300');
     const cats = [];
     for (let i = 0; i < 3; i++) {
       const streams = [];
@@ -10427,6 +10438,10 @@ titre('86. Top Chaînes — le filtre qui ne rend personne le DIT');
     }
     // Une catégorie SANS aucun direct : c'est elle qui doit produire le message.
     cats.push({ name: 'desert', viewers: 90_000, streams: [] });
+    /* Et une catégorie dont TOUTES les chaînes empilent trois tags de langue :
+       Twitch en rend, la lecture les écarte toutes (4.33.0.11). */
+    cats.push({ name: 'empile', viewers: 80_000, streams: [0, 1, 2].map((k) =>
+      ({ login: `empile${k}`, viewers: 7000 - k, tags: ['English', 'Deutsch', 'Español'] })) });
     window.__cats = cats;
   });
   await wait(page, 1500);
@@ -10457,6 +10472,53 @@ titre('86. Top Chaînes — le filtre qui ne rend personne le DIT');
      m.apres === 'tse-sort-row', JSON.stringify(m));
   ok('…dans la langue de l\'interface',
      m.texte === 'Aucune chaîne en direct avec ce filtre', JSON.stringify(m));
+
+  /* ── ET SOUS LE MESSAGE, RIEN (4.33.0.11) ──────────────────────────────
+     SIGNALÉ, CAPTURE À L'APPUI : « Top Chaînes », une catégorie qui ne rend
+     personne, le message — et dessous, la carte d'une chaîne SUIVIE, d'une
+     autre catégorie. Les cartes de Twitch ne s'effaçaient que si le
+     classement comptait au moins une chaîne : vide, il rendait la liste
+     suivie, sous un titre et un message qui disaient le contraire. Et le
+     voile, retenu tant que le mode n'était pas « prêt », attendait son
+     délai maximal avant de se lever. */
+  const sous = await page.evaluate(() => {
+    const vues = [...document.querySelectorAll('.side-nav-card')]
+      .filter((c) => c.getClientRects().length > 0);
+    const natives = ['suivi1', 'promo1'].map((l) => [...document.querySelectorAll('.side-nav-card')]
+      .find((c) => c.dataset.tseLogin === l && c.dataset.tseGlobal !== 'true'));
+    return { vues: vues.map((c) => c.dataset.tseLogin || '?'),
+             natives: natives.filter(Boolean).length,
+             verrous: window.tse.verrous() };
+  });
+  ok('…et SOUS le message, aucune carte : ni la chaîne suivie ni la sponsorisée ne reviennent sous « Top Chaînes »',
+     sous.natives === 2 && sous.vues.length === 0, JSON.stringify(sous));
+  ok('…et le voile n\'est plus retenu par le classement : il est résolu, vide',
+     !sous.verrous.includes('global'), JSON.stringify(sous.verrous));
+  /* LE RELEVÉ DE LA PASSE (4.33.0.11) : ce que Twitch a rendu, ce que la
+     lecture a gardé. Ici, rien et rien. */
+  const portee = () => page.evaluate(() => window.tse.global.report().portee);
+  const pDesert = await portee();
+  ok('…et le rapport dit ce que la passe a reçu, et gardé : rien, rien',
+     pDesert?.categorie === 'desert' && pDesert.rendues === 0 && pDesert.retenues === 0,
+     JSON.stringify(pDesert));
+
+  /* LA SECONDE FAÇON DE NE RENDRE PERSONNE : Twitch rend des chaînes, et la
+     lecture les écarte toutes — trois tags de langue chacune. Même message,
+     même barre vide ; le rapport, lui, les distingue. */
+  await attendre(page, () => [...document.querySelectorAll('#tse-cat-dd .tse-dd-opt')]
+    .some(o => o.dataset.value === 'empile'), 9000);
+  await page.evaluate(() => {
+    [...document.querySelectorAll('#tse-cat-dd .tse-dd-opt')]
+      .find(o => o.dataset.value === 'empile').click();
+  });
+  await attendre(page, () => window.tse.global.report().portee?.categorie === 'empile', 9000);
+  const pEmpile = await portee();
+  const vuesEmpile = await page.evaluate(() => ({
+    message: !!document.getElementById('tse-global-empty'),
+    cartes: [...document.querySelectorAll('.side-nav-card')].filter((c) => c.getClientRects().length > 0).length }));
+  ok('…une catégorie dont Twitch rend trois chaînes, toutes écartées pour empilement de langues : le message, aucune carte — pas même la chaîne suivie de cette catégorie —, et le rapport le dit : 3 rendues, 0 gardée',
+     vuesEmpile.message && vuesEmpile.cartes === 0
+     && pEmpile?.rendues === 3 && pEmpile.retenues === 0, JSON.stringify({ vuesEmpile, pEmpile }));
 
   /* IL DISPARAÎT quand la sélection redonne du monde. Sans cette assertion,
      un message qui ne s'effacerait jamais passerait pour un succès. */
@@ -10493,6 +10555,13 @@ titre('86. Top Chaînes — le filtre qui ne rend personne le DIT');
     ok('un classement vide FAUTE DE RÉSEAU ne s\'annonce pas comme un résultat',
        vide === 0 && !(await p2.evaluate(() => !!document.getElementById('tse-global-empty'))),
        'le message est apparu alors qu\'aucune marche n\'a abouti');
+    /* L'AUTRE MOITIÉ DE LA RÈGLE. Sans classement résolu, rien ne remplace la
+       liste suivie, et rien ne dit pourquoi elle serait vide : elle reste. Un
+       correctif qui effacerait les cartes de Twitch dès l'entrée dans le mode
+       viderait la barre sur une panne, sans un mot. */
+    const reste = await p2.evaluate(() => [...document.querySelectorAll('.side-nav-card')]
+      .some((c) => c.dataset.tseLogin === 'suivi1' && c.getClientRects().length > 0));
+    ok('…et la liste suivie reste à l\'écran : rien de résolu ne la remplace', reste);
     await p2.close();
   }
 }
@@ -44324,6 +44393,71 @@ window.__forger = () => { const f = document.getElementById('f');
   ok('m) en japonais : « 3 分 7 秒 », « 0 秒 », les graduations « 2 時間 », « 5 分 » ; sans Intl.DurationFormat, l\'écriture d\'avant : « 3 min 07 », « 0 s », « 2 h »',
      !!dJa && !!dSans && JSON.stringify(dJa) === JSON.stringify(['3 分 7 秒', '0 秒', '42 秒', '2 時間', '5 分'])
      && JSON.stringify(dSans) === JSON.stringify(['3 min 07', '0 s', '42 s', '2 h', '5 min']), JSON.stringify({ dJa, dSans }));
+}
+
+titre('235. La carte sponsorisée obéit aux filtres de la liste suivie (4.33.0.11)');
+{
+  /* LE SECOND DÉFAUT DU SIGNALEMENT. Les filtres de catégorie et de langue
+     ne touchaient qu'aux cartes dont le lien porte le marqueur des chaînes
+     suivies, `data-test-selector="followed-channel"`. La carte sponsorisée
+     d'une chaîne suivie n'en porte pas : son lien est
+     `side-nav-card__link--promoted-followed`. Elle restait donc à l'écran
+     sous n'importe quel filtre — « Slots » choisi, et une chaîne
+     d'« Événements spéciaux » au milieu. */
+  const page = await fresh();
+  await page.evaluate(() => {
+    const h = new Date(Date.now() - 1800_000).toISOString();
+    window.__fx = {
+      suivi1: { id: 'id-s1', createdAt: h, viewers: 400, game: 'Just Chatting', tags: ['Français'] },
+      promo1: { id: 'id-p1', createdAt: h, viewers: 5400, game: 'Special Events', tags: ['English'] },
+    };
+    window.__addCard('suivi1', 'Just Chatting', '400');
+    window.__addPromotedCard('promo1', 'Special Events', '5,4 k', 'Savonia');
+  });
+  await attendre(page, () => ['suivi1', 'promo1'].every((l) =>
+    !!document.querySelector(`.side-nav-card[data-tse-login="${l}"] .tse-uptime`)), 15_000);
+  const vues = () => page.evaluate(() => Object.fromEntries(['suivi1', 'promo1'].map((l) => {
+    const c = document.querySelector(`.side-nav-card[data-tse-login="${l}"]`);
+    return [l, !!c && c.getClientRects().length > 0];
+  })));
+  const choisir = (dd, val) => page.evaluate(([id, v]) => {
+    const opt = [...document.querySelectorAll(`${id} .tse-dd-opt`)].find((o) => (o.dataset.value || '') === v);
+    if (!opt) throw new Error('option absente : ' + JSON.stringify(v));
+    opt.click();
+  }, [dd, val]);
+  const attendreOption = (dd, val) => attendre(page, ([id, v]) =>
+    [...document.querySelectorAll(`${id} .tse-dd-opt`)].some((o) => (o.dataset.value || '') === v), 9000, [dd, val]);
+
+  const avant = await vues();
+  ok('a) sans filtre, les deux cartes sont à l\'écran', avant.suivi1 && avant.promo1, JSON.stringify(avant));
+
+  await attendreOption('#tse-cat-dd', 'Just Chatting');
+  await choisir('#tse-cat-dd', 'Just Chatting');
+  await wait(page, 600);
+  const cat = await vues();
+  ok('b) catégorie « Just Chatting » : la carte sponsorisée, d\'une autre catégorie, s\'efface ; la suivie reste',
+     cat.suivi1 && !cat.promo1, JSON.stringify(cat));
+
+  await attendreOption('#tse-cat-dd', 'Special Events');
+  await choisir('#tse-cat-dd', 'Special Events');
+  await wait(page, 600);
+  const sienne = await vues();
+  ok('c) …et sous sa propre catégorie, c\'est elle qui reste',
+     !sienne.suivi1 && sienne.promo1, JSON.stringify(sienne));
+
+  await choisir('#tse-cat-dd', '');
+  await attendreOption('#tse-lang-dd', 'Français');
+  await choisir('#tse-lang-dd', 'Français');
+  await wait(page, 600);
+  const langue = await vues();
+  ok('d) la langue aussi : sous « Français », la carte sponsorisée en anglais s\'efface',
+     langue.suivi1 && !langue.promo1, JSON.stringify(langue));
+
+  await choisir('#tse-lang-dd', '');
+  await wait(page, 600);
+  const apres = await vues();
+  ok('e) les filtres retirés, elle revient', apres.suivi1 && apres.promo1, JSON.stringify(apres));
+  await page.close();
 }
 
 {
