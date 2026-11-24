@@ -84,6 +84,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     serieSelector:           'a[class*="saveYourStreakSideNavRow"]',
     followedCardSelector:    'a[data-test-selector="followed-channel"]',
 
+    promotedFollowedSelector: 'a[class*="--promoted-followed"]',
+
     liveIndicator:           '.tw-channel-status-indicator',
 
     cardLinkSelector:        'a[data-a-target="side-nav-card"], a.side-nav-card__link, a[href^="/"]',
@@ -7606,7 +7608,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       const queried = new Set(), seen = new Set();
 
       const planchers = new Map();
-      if (!cats.length) return { queried, seen, planchers, done: 0, transport: false };
+      if (!cats.length) return { queried, seen, planchers, done: 0, transport: false, rendues: 0 };
 
       const parId = (c) => !idJeuRefuse && c.id != null && c.id !== '';
       const opDe = (c, avecId) => ({
@@ -7631,6 +7633,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       }
       const now  = Date.now();
       let done = 0;
+
+      let rendues = 0;
       data.forEach((d, i) => {
         if (d && !d.game) { stats.sansJeu += 1; return; }
         const edges = d?.game?.streams?.edges;
@@ -7640,6 +7644,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         const sienne = formes[i] ? String(g.id) === String(cats[i].id) : g.name === cats[i].name;
         if (!sienne) { stats.homonymes += 1; return; }
         done += 1;
+        rendues += edges.length;
         queried.add(cats[i].name);
 
         if (Number.isFinite(d.game?.viewersCount)) cats[i].viewers = d.game.viewersCount;
@@ -7656,7 +7661,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
 
         planchers.set(cats[i].name, plancherReponse(lus, edges.length));
       });
-      return { queried, seen, planchers, done, transport };
+      return { queried, seen, planchers, done, transport, rendues };
     };
 
     const reconcile = (pool, queried, seen, now, plancherDe = () => 0) => {
@@ -8104,6 +8109,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
 
     let scope        = null;
     let scopeRanking = [];
+
+    let dernierePortee = null;
     let scopeTs      = 0;
     let scopeDirty   = false;
 
@@ -8165,6 +8172,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       reconcile(pool, h.queried, h.seen, started,
                 (rec) => planchers.get(rec.game) || 0);
       scope        = want.key;
+
+      dernierePortee = { categorie: want.name, langue: want.lang || null,
+                         rendues: h.rendues, retenues: h.seen.size };
       scopeLangApplied = applique;
       scopeRanking = [...pool.values()].map(plusJuste).sort((a, b) => b.viewers - a.viewers);
       scopeDirty   = false;
@@ -8466,6 +8476,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
           language:   lire().actif ? lire().lang : null,
           scope,
           scopeSize:  scopeRanking.length,
+          portee:     dernierePortee,
 
           pauseMs:    Math.max(0, cooldownUntil - Date.now()),
           degraded,
@@ -19575,7 +19586,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       return;
     }
 
-    const inFollowed = !!card.querySelector(DOM.followedCardSelector);
+    const inFollowed = !!card.querySelector(DOM.followedCardSelector)
+      || !!card.querySelector(DOM.promotedFollowedSelector);
     if (!inFollowed) {
       card.style.display = '';
       return;
@@ -24242,6 +24254,20 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       return;
     }
 
+    const top = globalChannels.top(options.get('topN'));
+    if (!top.length) {
+      const resolu = globalChannels.resolu();
+      ready(resolu ? 1 : 0);
+      globalSeed.clear();
+
+      for (const card of existing.values()) {
+        if (preview.ouvert() && card === preview.carte()) continue;
+        releaseGlobalCard(card);
+      }
+      sortieGlobale = resolu ? 'vide' : 'en-attente';
+      return;
+    }
+
     const neutres = [];
     let repli = null;
     for (const c of section.querySelectorAll('.side-nav-card')) {
@@ -24291,7 +24317,6 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       if (l && !isSynthetic(c) && !c.dataset.tseGlobal && !natives.has(l)) natives.set(l, c);
     }
 
-    const top = globalChannels.top(options.get('topN'));
     const keep = new Set();
     ready(top.length);
     globalSeed.clear();
