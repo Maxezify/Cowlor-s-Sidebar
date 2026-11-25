@@ -3648,6 +3648,17 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     HEALTH_CONFIRM:       2,
     HEALTH_RECHECK:       5_000,
     SCAN_DEBOUNCE:  250,
+    /* LA BARRE QUI GLISSE (4.33.0.12, cf. mouvementBarre). Un trajet de
+       carte, une arrivée, le temps laissé à la place pour s'ouvrir, et
+       l'écart entre deux arrivées du même balayage — au plus cinq écarts :
+       une sixième arrivée part avec la cinquième. Assez court pour ne
+       jamais faire attendre une lecture, assez long pour que l'œil suive
+       la carte qu'il regardait. */
+    BARRE_GLISSE_MS:       320,
+    BARRE_ENTREE_MS:       260,
+    BARRE_ENTREE_DELAI_MS: 120,
+    BARRE_ECHELON_MS:       40,
+    BARRE_ECHELONS_MAX:      5,
     /* Cadence maximale du relevé « sidebar réduite ? » hors mutation de la
        barre. La détection coûte 130 µs (sélecteur de classe sans
        correspondance = parcours du document entier) et se faisait à chaque lot
@@ -4819,6 +4830,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     ACCUEIL_RDV_RECUL_MS:   7 * 86_400_000,
     ACCUEIL_RDV_DEMANDE_MS: 2 * 60_000,
     ACCUEIL_RDV_MAX:        12,
+    /* Un créneau commencé sans la chaîne dit « pas encore en direct » ; deux
+       heures après son heure, toujours personne, il quitte l'accueil
+       (4.33.0.12, cf. agenda.rendezVous). L'agenda du panneau, lui, le garde :
+       c'est la semaine telle qu'elle était prévue. */
+    ACCUEIL_RDV_RETARD_MAX_MS: 2 * 3_600_000,
     ACCUEIL_HABITUDE_N:     6,
     ACCUEIL_HABITUDE_MIN:   4,
     ACCUEIL_HABITUDE_FENETRE_MIN: 30,
@@ -14544,6 +14560,281 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     }
     parent.insertBefore(noeud, avant);
   };
+
+  /* ============================================================
+   *  LA BARRE QUI GLISSE (4.33.0.12)
+   *  -------------------------------------------------------------
+   *  Signalé : « lorsque la sidebar s'actualise, il n'y a pas
+   *  d'animation […] une animation progressive et discrète ». Le
+   *  balayage range la barre d'un coup : une chaîne dépasse sa voisine
+   *  et les deux cartes échangent leur place, une chaîne démarre et tout
+   *  ce qui suit descend d'un cran, une autre s'arrête et tout remonte.
+   *  L'œil voit un saut, et doit relire la liste pour savoir ce qui a
+   *  changé.
+   *
+   *  LA TECHNIQUE DES LISTES QUI BOUGENT BIEN (« FLIP ») : on relève où
+   *  chaque chose EST à l'écran avant le balayage, on le laisse tout
+   *  ranger d'un coup, on mesure où chaque chose a atterri, et on la fait
+   *  partir de son ancienne place vers la neuve. Rien n'est retardé : la
+   *  liste est juste dès la fin du balayage, pour le DOM comme pour qui le
+   *  lit. Seul le TRAJET se voit.
+   *
+   *  CE QUI BOUGE : les cartes affichées ; les sections entières — une
+   *  carte de plus dans la liste suivie pousse « Chaînes live » vers le
+   *  bas, et la section glisse avec — ; les curseurs ▶ de la salle, qui
+   *  suivent leur barre. UN ENFANT NE REFAIT PAS LE TRAJET DE SON PARENT :
+   *  une carte dans une section qui descend ne bouge que de ce qui la
+   *  concerne.
+   *
+   *  CE QUI ARRIVE se pose APRÈS que la place s'est ouverte : un fondu
+   *  depuis zéro, et plusieurs arrivées l'une après l'autre, de haut en
+   *  bas. CE QUI PART n'a pas de sortie : la carte est déjà
+   *  retirée par Twitch, ou masquée par la feuille, et la refaire paraître
+   *  pour l'effacer mentirait sur l'état. Ses voisines referment la place.
+   *
+   *  RIEN QUE LE COMPOSITEUR : `translate` et `opacity`, qu'il anime seul
+   *  (cf. scénario 213). `translate` et non `transform` : la propriété
+   *  individuelle s'AJOUTE au `transform` d'un élément — la gélule du
+   *  curseur porte le sien, translateY(-50%) et son échelle — au lieu de
+   *  le remplacer le temps du trajet.
+   *
+   *  CE QUI NE S'ANIME PAS, et pourquoi :
+   *   — sous le voile : la levée doit montrer une liste posée ;
+   *   — un onglet caché : personne ne regarde ;
+   *   — le balayage qui suit un changement de largeur de la barre (repli,
+   *     dépli, fenêtre) ou de mode (Top Chaînes) : tout a bougé, rien n'a
+   *     de sens à suivre ;
+   *   — un repeuplement : plus de trois arrivées et plus du tiers des
+   *     cartes. Ce n'est pas une actualisation, c'est une autre liste ;
+   *   — LES CHIFFRES. Les compteurs changent à presque chaque relevé, sur
+   *     presque chaque carte : les animer ferait clignoter la barre
+   *     entière toutes les trente secondes, l'inverse de discret. Ils se
+   *     mettent à jour sur place ; le mouvement est réservé à l'ordre.
+   *
+   *  UN BALAYAGE EN PLEIN TRAJET : le relevé est pris à l'écran, trajet
+   *  en vol compris, puis les trajets sont SUSPENDUS avant que le balayage
+   *  ne mesure quoi que ce soit — les liaisons de co-stream et le
+   *  placement des curseurs lisent la mise en page, pas une image en vol.
+   *  À la fin, un trajet dont la destination n'a pas bougé reprend à
+   *  l'instant où il en était ; une destination qui a changé part de là
+   *  où la carte est à l'écran. Le balayage est synchrone : entre la
+   *  suspension et la reprise, aucune image n'est peinte. Ce qui mesure HORS du
+   *  balayage — l'aperçu qui se place, le curseur qu'un ResizeObserver
+   *  replace — passe par `posee`, qui retire le trajet en vol.
+   * ============================================================ */
+  const mouvementBarre = (() => {
+    const GLISSE = 'cubic-bezier(0.2, 0, 0, 1)';   // part franchement, se pose doucement
+    const ENTREE = 'cubic-bezier(0, 0, 0.2, 1)';   // décélère, sans dépasser
+    /* Ce qui est en vol : par élément, son trajet (`glisse`) et son arrivée
+       (`entree`) — deux animations distinctes, sur deux propriétés distinctes,
+       qui ne se remplacent donc pas l'une l'autre. Chacune garde ses images et
+       ses réglages : c'est ce qui permet de la REPRENDRE à l'identique. */
+    const enVol = new Map();
+    let releve = null;
+    /* La largeur de la barre et le mode, au balayage précédent : un repli, un
+       dépli, une fenêtre redimensionnée, une bascule en Top Chaînes ont lieu
+       AVANT le balayage qui les range — c'est donc au précédent qu'on compare. */
+    let largeurVue = null, modeVu = null;
+    const bilan = { releves: 0, glisses: 0, repris: 0, entrees: 0, retenus: {}, dernier: null };
+    /* UN RELEVÉ OUVERT PAR UNE RÉPONSE DE TWITCH SERT À TOUTES CELLES DU MÊME
+       LOT (cf. `lot`) : la seconde doit repartir de l'écran d'AVANT la
+       première, pas de la mise en page que la première a déjà changée. Au-delà
+       de cent millisecondes, un relevé resté ouvert — une erreur entre les
+       deux — ne dit plus l'écran. */
+    const OUVERT_MS = 100;
+    const ouvert = () => !!releve && performance.now() - releve.t < OUVERT_MS;
+    const noterRetenue = (raison) => { bilan.retenus[raison] = (bilan.retenus[raison] || 0) + 1; };
+    const estCarte = (el) => el.classList.contains('side-nav-card');
+    const estSection = (el) => el.classList.contains('side-nav-section');
+
+    /* Ce qui peut bouger : les sections, leurs cartes affichées — sans le
+       <a> interne du mode réduit, qui porte la même classe —, et le calque
+       des curseurs. */
+    const mobiles = (nav) => [
+      ...nav.querySelectorAll('.side-nav-section'),
+      ...[...nav.querySelectorAll('.side-nav-card')]
+        .filter((c) => !c.parentElement?.closest('.side-nav-card') && cardShown(c)),
+      ...nav.querySelectorAll('.tse-noeuds > *'),
+    ];
+    const lire = (els) => {
+      const m = new Map();
+      for (const el of els) {
+        const r = el.getBoundingClientRect();
+        if (r.width || r.height) m.set(el, { x: r.left, y: r.top });
+      }
+      return m;
+    };
+    const calme = () => !document.hidden && !loadingOverlay.enCycle();
+
+    const lancer = (el, sorte, images, options, t = null) => {
+      if (!(options.duration > 0) || typeof el.animate !== 'function') return;
+      const a = el.animate(images, options);
+      if (t !== null) a.currentTime = t;
+      const v = enVol.get(el) || {};
+      v[sorte] = { a, images, options };
+      enVol.set(el, v);
+      const fin = () => {
+        const w = enVol.get(el);
+        if (!w || w[sorte]?.a !== a) return;
+        delete w[sorte];
+        if (!w.glisse && !w.entree) enVol.delete(el);
+      };
+      a.addEventListener('finish', fin);
+      a.addEventListener('cancel', fin);
+    };
+
+    const avant = () => {
+      const nav = document.querySelector(DOM.sidebarRoot);
+      const largeur = nav ? nav.getBoundingClientRect().width : null;
+      const elargie = largeurVue !== null && largeur !== null && Math.abs(largeur - largeurVue) > 0.5;
+      const bascule = modeVu !== null && modeVu !== state.globalMode;
+      largeurVue = largeur;
+      modeVu = state.globalMode;
+      bilan.releves += 1;
+      // À l'écran, trajets en vol compris : c'est de là qu'on repartira.
+      const vus = nav && calme() ? lire(mobiles(nav)) : null;
+      if (nav && !vus) noterRetenue('voile');
+      /* LES TRAJETS SONT SUSPENDUS, pas oubliés : chacun garde l'instant où il
+         en était. Le balayage mesure ensuite une mise en page sans image en
+         vol ; à la fin, un trajet dont la destination n'a pas bougé reprend
+         à cet instant précis — même courbe, même vitesse. Relancé depuis le
+         point atteint, il repartirait vite : un à-coup à chaque balayage qui
+         tombe en plein trajet. */
+      const suspendus = new Map();
+      for (const [el, v] of enVol) {
+        const s = {};
+        for (const sorte of ['glisse', 'entree']) {
+          if (!v[sorte]) continue;
+          s[sorte] = { images: v[sorte].images, options: v[sorte].options, t: v[sorte].a.currentTime };
+          v[sorte].a.cancel();
+        }
+        suspendus.set(el, s);
+      }
+      enVol.clear();
+      releve = null;
+      if (!vus) return;
+      // Où chaque chose est POSÉE : l'écran, sauf pour ce qui volait — relu, l'envol suspendu.
+      const poses = new Map(vus);
+      for (const [el, p] of lire([...suspendus.keys()].filter((el) => vus.has(el)))) poses.set(el, p);
+      releve = { t: performance.now(), nav, vus, poses, suspendus, elargie, bascule };
+    };
+
+    const apres = () => {
+      const r = releve;
+      releve = null;
+      if (!r) return;
+      const nav = document.querySelector(DOM.sidebarRoot);
+      if (nav !== r.nav || !calme()) return noterRetenue('voile');
+      if (r.bascule) return noterRetenue('mode');
+      if (r.elargie) return noterRetenue('largeur');
+      const ici = lire(mobiles(nav));
+      /* CE QUI ÉTAIT À L'ÉCRAN repart de là où il était ; une carte qui n'y
+         était pas ARRIVE. Une carte que Twitch a posée ou reconstruite entre
+         deux balayages est déjà peinte quand celui-ci commence : elle est
+         dans le relevé, et ne fait que le trajet qui la range. */
+      const deja = [];
+      const arrivees = [];
+      let cartes = 0, nouvellesCartes = 0;
+      for (const el of ici.keys()) {
+        if (estCarte(el)) cartes += 1;
+        if (r.vus.has(el)) deja.push(el);
+        else if (estCarte(el) || estSection(el)) {
+          arrivees.push(el);
+          if (estCarte(el)) nouvellesCartes += 1;
+        }
+      }
+      if (nouvellesCartes > 3 && nouvellesCartes * 3 > cartes) return noterRetenue('repeuplement');
+      const porteur = (el) => {
+        for (let p = el.parentElement; p && p !== nav; p = p.parentElement) if (ici.has(p)) return p;
+        return null;
+      };
+      const ZERO = { x: 0, y: 0 };
+      // De l'écran d'avant à la place d'aujourd'hui ; et de la place d'avant à celle d'aujourd'hui.
+      const vol = (el) => { const p = ici.get(el), v = r.vus.get(el);
+        return v ? { x: v.x - p.x, y: v.y - p.y } : ZERO; };
+      const pas = (el) => { const p = ici.get(el), q = r.poses.get(el);
+        return q ? { x: p.x - q.x, y: p.y - q.y } : ZERO; };
+      let glisses = 0, repris = 0, plusLong = 0;
+      for (const el of deja) {
+        const pa = porteur(el);
+        // UN ENFANT NE REFAIT PAS LE TRAJET DE SON PARENT : le sien, moins celui du porteur.
+        const v = vol(el), vp = pa ? vol(pa) : ZERO;
+        const x = Math.round((v.x - vp.x) * 10) / 10, y = Math.round((v.y - vp.y) * 10) / 10;
+        const s = r.suspendus.get(el);
+        const p = pas(el), pp = pa ? pas(pa) : ZERO;
+        const immobile = Math.abs(p.x - pp.x) < 0.5 && Math.abs(p.y - pp.y) < 0.5;
+        if (s?.glisse && immobile) {
+          lancer(el, 'glisse', s.glisse.images, s.glisse.options, s.glisse.t);
+          repris += 1;
+        } else if (Math.abs(x) >= 0.5 || Math.abs(y) >= 0.5) {
+          lancer(el, 'glisse', [{ translate: `${x}px ${y}px` }, { translate: '0px 0px' }],
+            { duration: CFG.BARRE_GLISSE_MS, easing: GLISSE });
+          glisses += 1;
+          plusLong = Math.max(plusLong, Math.abs(y));
+        }
+        // Une arrivée en cours se poursuit, où que la carte aille.
+        if (s?.entree) lancer(el, 'entree', s.entree.images, s.entree.options, s.entree.t);
+      }
+      /* LA PLACE S'OUVRE D'ABORD, la carte s'y pose ensuite : un fondu, après
+         un temps, de haut en bas et l'une après l'autre. Un fondu seulement —
+         un décalage en plus serait une seconde propriété `translate` sur la
+         même carte, que le trajet d'un balayage suivant remplacerait. Une
+         section qui reparaît fond entière, et ses cartes avec elle : elles
+         ne fondent pas une seconde fois. */
+      const nouveaux = new Set(arrivees);
+      const fondre = arrivees.filter((el) => !nouveaux.has(porteur(el)))
+        .sort((a, b) => ici.get(a).y - ici.get(b).y);
+      fondre.forEach((el, i) => {
+        const opacite = getComputedStyle(el).opacity;
+        lancer(el, 'entree', [{ opacity: 0 }, { opacity: opacite }],
+          { duration: CFG.BARRE_ENTREE_MS, easing: ENTREE, fill: 'backwards',
+            delay: CFG.BARRE_ENTREE_DELAI_MS + Math.min(i, CFG.BARRE_ECHELONS_MAX) * CFG.BARRE_ECHELON_MS });
+      });
+      bilan.glisses += glisses;
+      bilan.repris += repris;
+      bilan.entrees += fondre.length;
+      if (glisses || fondre.length) {
+        bilan.dernier = { glisses, entrees: fondre.length, plusLong: Math.round(plusLong) };
+      }
+    };
+
+    /* CE QUI CHANGE LA BARRE HORS BALAYAGE — la réponse de Twitch qui
+       arrive, et masque une chaîne qui a coupé ou rend celle qui revient —
+       ouvre un relevé avant de toucher à quoi que ce soit, et les trajets
+       partent DANS LA MÊME TÂCHE, une fois appliquées toutes les réponses du
+       lot : celles-ci se résolvent ensemble, et leurs suites passent avant
+       la microtâche qui ferme le relevé. Pas à l'image suivante : un rappel
+       d'image passé avant le nôtre lirait une carte rendue mais pas encore
+       en fondu — jamais peinte, mais lue. Une suite plus tardive ouvre son
+       propre relevé, toujours avant que rien ne soit peint. */
+    const lot = () => {
+      if (ouvert()) return;
+      avant();
+      if (releve) Promise.resolve().then(() => apres());   // une microtâche : après les suites du lot, avant toute image
+    };
+
+    /* OÙ L'ÉLÉMENT EST POSÉ, sans le trajet en vol — le sien et celui de ses
+       ancêtres. Pour ce qui mesure hors du balayage. */
+    const posee = (el) => {
+      const b = el.getBoundingClientRect();
+      let x = 0, y = 0;
+      for (let p = el; p; p = p.parentElement) {
+        if (!enVol.get(p)?.glisse) continue;
+        const m = /^(-?[\d.]+(?:e-?\d+)?)px(?:\s+(-?[\d.]+(?:e-?\d+)?)px)?/.exec(getComputedStyle(p).translate || '');
+        if (m) { x += Number(m[1]); y += Number(m[2] || 0); }
+      }
+      if (!x && !y) return b;
+      const left = b.left - x, top = b.top - y;
+      return { x: left, y: top, left, top, right: left + b.width, bottom: top + b.height,
+               width: b.width, height: b.height };
+    };
+
+    return {
+      avant, apres, lot, posee,
+      // Des comptes, jamais un pseudo ; et ce qui est en vol à cet instant.
+      rapport: () => ({ ...bilan, retenus: { ...bilan.retenus }, enVol: enVol.size }),
+    };
+  })();
 
   /* La FENTE des phrases traduites.
      Les libellés d'interface portaient leur `<strong>` dans la traduction :
@@ -25749,7 +26040,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       const origineDe = (el) => {
         const couche = el.parentElement;
         if (!couche || !couche.isConnected) return null;
-        if (!origines.has(couche)) origines.set(couche, couche.getBoundingClientRect());
+        if (!origines.has(couche)) origines.set(couche, mouvementBarre.posee(couche));
         return origines.get(couche);
       };
       for (const [cle, { barre }] of voulues) {
@@ -25758,8 +26049,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         if (!st || !barre.every((c) => c.isConnected)) continue;
         const origine = origineDe(st.n);
         if (!origine) continue;
-        const haut = barre[0].getBoundingClientRect();
-        const bas = barre[barre.length - 1].getBoundingClientRect();
+        // Où les cartes sont POSÉES : un trajet en vol finit là (cf. mouvementBarre).
+        const haut = mouvementBarre.posee(barre[0]);
+        const bas = mouvementBarre.posee(barre[barre.length - 1]);
         // La couleur de la barre telle qu'elle est PEINTE : celle du groupe,
         // son ton approfondi en clair, ou le rouge d'un direct qui vient de
         // démarrer, qui l'emporte.
@@ -27457,6 +27749,14 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         for (const s of (f.planning && f.planning.creneaux) || []) {
           if (s.annule || s.debut < debut || s.debut >= fin || finCreneau(s) <= maintenant) continue;
           if (direct && s.debut <= maintenant) continue;   // c'est le direct en cours
+          /* DEUX HEURES DE RETARD, ET LE CRÉNEAU S'EFFACE (4.33.0.12). Demandé :
+             « si le streamer n'a toujours pas commencé son live après 2h sur son
+             planning, retire-le ». Il restait jusqu'à la fin du créneau, « pas
+             encore en direct » : une soirée entière pour un créneau de six heures
+             que la chaîne n'a pas tenu. Passé deux heures, ce n'est plus un
+             retard, c'est un rendez-vous manqué. Une chaîne en direct n'est pas
+             concernée : son créneau commencé est écarté juste au-dessus. */
+          if (maintenant - s.debut >= CFG.ACCUEIL_RDV_RETARD_MAX_MS) continue;
           prevu = true;
           creneaux.push({ login, nom: f.nom || login, avatar: f.avatar || null, id: s.id, titre: s.titre,
                           debut: s.debut, fin: s.fin, jeu: s.jeu, libelle: s.libelle });
@@ -28200,6 +28500,10 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
              et ceux masqués à cet instant. Des comptes, jamais un pseudo. */
           doublons: { natifs: bilanDoublons.natifs, fabriques: bilanDoublons.fabriques,
                       masques: cartes.filter(c => c.dataset.tseDoublon === 'true').length },
+          /* LA BARRE QUI GLISSE (4.33.0.12) : depuis le démarrage, les balayages
+             relevés, les trajets et les arrivées animés, ceux qu'on n'a pas
+             animés et pourquoi ; le dernier balayage ; ce qui est en vol. */
+          mouvement: mouvementBarre.rapport(),
           /* LA FORME DE LA LISTE SUIVIE (4.24.0.38, cf. entreesDe) : ses
              cartes, celles dont l'entrée est une enveloppe, la profondeur de
              l'enveloppe, et le nombre de parents de ces entrées — 1 pour une
@@ -32566,7 +32870,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       // Twitch a retiré la carte) : getBoundingClientRect() renverrait un rect
       // à zéro → le popup sauterait dans le coin (8,8). On ferme plutôt.
       if (!card || !card.isConnected) { close(); return; }
-      const cardRect = card.getBoundingClientRect();
+      const cardRect = mouvementBarre.posee(card);  // la place d'arrivée, si la carte glisse
       const margin = 8;
       const popupWidth = el.offsetWidth;
       const popupHeight = el.offsetHeight;
@@ -34125,6 +34429,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         // carte offline (le CSS la masquera), on retire le popup, et on
         // invalide l'entrée pour que le prochain scan reparte sur du frais.
         if (meta.offline) {
+          mouvementBarre.lot();   // ses voisines referment la place en glissant
           card.dataset.tseGqlOffline = 'true';
           card.dataset.tseOffline = 'true';
           cache.delete(login);
@@ -34802,6 +35107,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     if (!document.contains(card)) return;
     // La carte a pu être recyclée sur une autre chaîne pendant l'attente.
     if (card.dataset.tseLogin !== login) return;
+    // Hors balayage : la chaîne qui coupe s'efface, celle qui revient arrive (cf. mouvementBarre).
+    mouvementBarre.lot();
     applyChannelData(card, data);
   }
 
@@ -35638,6 +35945,10 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
   function onFilterChange(facet, value) {
     const cur = facet === 'category' ? state.categoryFilter : state.languageFilter;
     if (value === cur) return;
+    /* UN FILTRE CHOISI S'APPLIQUE SUR-LE-CHAMP, hors balayage : les cartes
+       qui restent referment la place en glissant, celles qui reviennent
+       arrivent (cf. mouvementBarre). */
+    mouvementBarre.avant();
     if (facet === 'category') {
       state.categoryFilter = value;
       state.filterDriver = value ? 'category' : (state.languageFilter ? 'language' : null);
@@ -35670,6 +35981,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       }
     }
     recomputeFilters();
+    mouvementBarre.apres();
   }
 
   /* ============================================================
@@ -35796,7 +36108,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         state.sortMode = mode;
         state.sortWish = mode;   // c'est un CHOIX : il survit à une indisponibilité
         refreshPressed();
+        mouvementBarre.avant();
         applySorting();
+        mouvementBarre.apres();
       });
     });
   }
@@ -39620,6 +39934,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
 
   const scanSidebar = erreurs.garde('balayage', () => {
     noterBalayage();
+    mouvementBarre.avant();  // où chaque chose est à l'écran, avant que rien ne bouge
     // Re-évaluer la langue en premier : auto-correction si LANG
     // initial était erroné (DOM Twitch pas encore prêt au boot).
     refreshLanguage();
@@ -39665,6 +39980,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     // tout le co-stream, et le « ▶ » des cartes seules.
     noeudsSalle.maj(entreesSalle(applyCostreamJoins()));
     autoExpandFollowed();
+    mouvementBarre.apres();  // tout est rangé : chaque chose part de là où elle était
 
     // Ce scan a-t-il masqué de nouvelles cartes "Déconnecté(e)" ?
     const hadOfflineActivity = offlineTransitionsThisScan > 0;

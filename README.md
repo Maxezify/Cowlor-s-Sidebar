@@ -2184,6 +2184,120 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## La barre glisse, et un rendez-vous manqué quitte l'accueil (v4.33.0.12)
+
+### La barre qui glisse
+
+Demandé : « lorsque la sidebar s'actualise, il n'y a pas d'animation […] une
+animation progressive et discrète ». Chaque actualisation rangeait la barre
+d'un coup : une chaîne dépasse sa voisine et les deux cartes échangent leur
+place, une chaîne démarre et tout ce qui suit descend d'un cran, une autre
+coupe et tout remonte. L'œil voyait un saut, et devait relire la liste pour
+savoir ce qui avait changé.
+
+**Chaque chose part de là où elle était.** Avant que rien ne bouge, la place de
+chaque carte, de chaque section et de chaque curseur ▶ de la salle est relevée
+à l'écran ; tout se range d'un coup ; chacun part alors de son ancienne place
+vers la neuve. Rien n'est retardé : la liste est juste dès la fin du
+rangement, seul le trajet se voit. 320 ms, une courbe qui part franchement et
+se pose doucement.
+
+- **Ce qui bouge** : une carte qui change de rang ; la section d'en dessous
+  quand la liste suivie grandit ou rétrécit — ses cartes ne refont pas son
+  trajet — ; le curseur ▶, qui suit sa barre.
+- **Ce qui arrive** — une chaîne qui démarre ou revient, une carte que le
+  filtre rend — fond depuis zéro, 260 ms, après 120 ms : la place s'ouvre
+  d'abord, la carte s'y pose ensuite. Plusieurs arrivées se suivent, 40 ms
+  d'écart, de haut en bas. Une section qui reparaît fond d'un bloc, ses cartes
+  avec elle.
+- **Ce qui part** n'a pas de sortie : la carte est déjà retirée, ou masquée.
+  Ses voisines referment la place en glissant.
+- **Ce qui ne bouge pas** : les chiffres — les compteurs changent sur presque
+  chaque carte à chaque relevé, les animer ferait clignoter la barre entière —
+  ; tout ce qui se passe sous le voile ou dans un onglet caché ; le passage qui
+  suit un changement de largeur de la barre ou une bascule en Top Chaînes ; un
+  repeuplement, plus de trois cartes et plus du tiers de la liste qui arrivent
+  d'un coup.
+
+**Toutes les actualisations.** Le balayage, le tri choisi d'un clic, un filtre
+choisi ou retiré, et les réponses de Twitch qui arrivent entre deux balayages
+— c'est par elles qu'une chaîne qui coupe s'efface, ou qu'une chaîne qui
+revient réapparaît. Les réponses d'un même lot partagent un relevé : deux
+chaînes qui coupent ensemble font un seul trajet de deux places, et pas un
+bond suivi d'un trajet.
+
+**Un balayage en plein trajet ne le relance pas.** Les trajets en vol sont
+suspendus le temps que le balayage mesure la mise en page — les liaisons de
+co-stream et le placement des curseurs ne lisent jamais une image en vol — puis
+reprennent à l'instant exact où ils en étaient si leur destination n'a pas
+changé : même courbe, même vitesse. Relancés depuis le point atteint, ils
+repartiraient vite à chaque balayage.
+
+**Rien que le compositeur.** `translate` et `opacity`, deux propriétés qu'il
+anime seul. `translate` plutôt que `transform` : la propriété individuelle
+s'ajoute à la transformation d'un élément au lieu de la remplacer — le curseur
+▶ porte la sienne. Chrome connaît `translate` depuis la 104, Firefox depuis la
+72, sous les planchers du manifeste (119 et 140). Ce qui mesure hors du
+balayage, l'aperçu qui se place et le curseur qu'un `ResizeObserver` replace,
+retire le trajet en vol et vise la place d'arrivée.
+
+Le rapport compte, sous `page.mouvement`, les relevés, les trajets, les
+reprises, les arrivées, ce qui n'a pas été animé et pourquoi, le dernier
+mouvement et ce qui est en vol. Des comptes, jamais un pseudo.
+
+### Un rendez-vous manqué quitte l'accueil
+
+Demandé : « dans l'accueil, la section planning, si le streamer n'a toujours
+pas commencé son live après 2h sur son planning, retire-le ». Un créneau
+commencé sans la chaîne disait « pas encore en direct » jusqu'à sa fin : une
+soirée entière pour un créneau de six heures que la chaîne n'a pas tenu.
+Désormais, deux heures après son heure, toujours hors ligne, il quitte « Vos
+rendez-vous », de lui-même, sans rechargement. Avant les deux heures, il reste,
+et dit toujours « pas encore en direct ». L'agenda du panneau, lui, garde la
+semaine telle qu'elle était prévue.
+
+### Le banc
+
+- **236, nouveau** : trois volets. Au banc ordinaire, durées à zéro, le plan :
+  rien sous le voile, trois trajets quand une chaîne passe en tête, le tri d'un
+  clic, une arrivée quand une chaîne revient, la section qui reparaît d'un
+  bloc, deux coupures d'un même lot en un seul relevé, et rien au repeuplement,
+  au changement de largeur ni à la bascule de mode. Aux durées de production,
+  relevés à 100 ms, chaque image : le trajet d'une traite et en 320 ms malgré
+  les balayages tombés en plein vol, la section qui glisse sans que sa carte
+  refasse le trajet, l'arrivée invisible pendant que la place s'ouvre. Au
+  réveil de production, le curseur ▶ au milieu de sa barre à chaque image, et
+  un placement rejoué en plein trajet qui vise la place d'arrivée.
+- **237, nouveau** : dix minutes de retard, le créneau reste ; deux heures et
+  cinq, il n'y est pas ; un troisième franchit les deux heures sous les yeux et
+  part de lui-même, pas avant ; l'agenda du panneau garde les quatre.
+
+**Dix-neuf mutants nommés, dix-neuf pris.**
+
+| mutant | ce qui tombe |
+| --- | --- |
+| l'enfant refait le trajet de son parent | 236 : la carte de la section glisse en plus ; les comptes de trajets |
+| le trajet relancé au lieu d'être repris | 236 : le trajet dure plus de 320 ms |
+| le voile oublié | 236 a) |
+| l'arrivée sans attente | 236 h) : l'attente, et la carte visible avant que la place s'ouvre |
+| `transform` au lieu de `translate` | 236 f) |
+| le curseur placé sur une image en vol | 236 i) : le curseur loin de sa barre, une fois le trajet fini |
+| le curseur hors du relevé | 236 i) : le curseur saute pendant que sa barre glisse |
+| le repeuplement animé | 236 d), et la bascule de mode |
+| la bascule de mode animée | 236 : la bascule |
+| le changement de largeur animé | 236 e) |
+| les réponses de Twitch hors relevé | 236 c), g), h), et les deux coupures |
+| le filtre hors relevé | 236 : la section qui reparaît, d) |
+| le tri d'un clic hors relevé | 236 : le tri d'un clic |
+| la section qui fond, et ses cartes encore | 236 : la section qui reparaît |
+| le relevé fermé à l'image suivante | 236 h) : la carte lue pleine avant son fondu |
+| un relevé par réponse | 236 c), et les deux coupures d'un même lot |
+| le planning sans la règle | 237 a), b) |
+| deux minutes au lieu de deux heures | 237 a), b) |
+| la règle appliquée aussi à l'agenda | 237 c) |
+
+`npm run check` est vert : 236 scénarios, 2417 assertions.
+
 ## Top Chaînes : un filtre vide reste vide (v4.33.0.11)
 
 Signalé, capture à l'appui : « Top Chaînes », la catégorie « Slots »,
@@ -26368,13 +26482,13 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 2310 Ko | 1089 Ko | 4 827 → **2** |
+| `content.js` | 2327 Ko | 1097 Ko | 4 857 → **2** |
 | `cadres.js` | 76 Ko | 35 Ko | 171 → **0** |
 | `adblock.js` | 126 Ko | 101 Ko | 301 → **2** |
 | `panneau.js` | 168 Ko | 86 Ko | 233 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 26 → **0** |
 | `background.js` | 10 Ko | 2 Ko | 23 → **0** |
-| **les six** | **2704 Ko** | **1317 Ko** | **−51 %** |
+| **les six** | **2721 Ko** | **1324 Ko** | **−51 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se

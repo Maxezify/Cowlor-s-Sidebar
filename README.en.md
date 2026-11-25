@@ -2065,6 +2065,118 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The sidebar glides, and a missed slot leaves the home page (v4.33.0.12)
+
+### The sidebar that glides
+
+Requested: "when the sidebar refreshes, there is no animation […] a
+progressive and discreet animation". Every refresh rearranged the sidebar in
+one go: a channel overtakes its neighbour and the two cards swap places, a
+channel starts and everything below drops a row, another stops and everything
+moves up. The eye saw a jump, and had to read the list again to know what had
+changed.
+
+**Everything leaves from where it was.** Before anything moves, the position
+of every card, every section and every ▶ cursor of the multistream room is
+read on screen; everything is put in order at once; each then travels from its
+old place to the new one. Nothing is delayed: the list is right as soon as it
+is sorted, only the journey shows. 320 ms, a curve that leaves briskly and
+settles gently.
+
+- **What moves**: a card that changes rank; the section below when the
+  followed list grows or shrinks — its cards do not repeat its journey —; the
+  ▶ cursor, which follows its bar.
+- **What arrives** — a channel that starts or comes back, a card the filter
+  gives back — fades in from zero, 260 ms, after 120 ms: the space opens first,
+  then the card settles into it. Several arrivals follow one another, 40 ms
+  apart, top to bottom. A section that reappears fades in as one block, its
+  cards with it.
+- **What leaves** has no exit: the card is already removed, or hidden. Its
+  neighbours close the gap by gliding.
+- **What does not move**: the numbers — the counters change on almost every
+  card at every reading, animating them would make the whole sidebar flicker
+  —; anything that happens under the veil or in a hidden tab; the pass that
+  follows a change of the sidebar's width or a switch to Top Channels; a
+  repopulation, more than three cards and more than a third of the list
+  arriving at once.
+
+**Every refresh.** The scan, the sort chosen with a click, a filter chosen or
+removed, and Twitch's answers arriving between two scans — that is how a
+channel that stops disappears, or a channel that comes back reappears. The
+answers of one batch share one reading: two channels stopping together make a
+single two-row journey, not a jump followed by a journey.
+
+**A scan in mid-journey does not restart it.** Journeys in flight are
+suspended while the scan measures the layout — co-stream joins and cursor
+placement never read a frame in flight — and resume at the exact instant they
+had reached if their destination has not changed: same curve, same speed.
+Restarted from the point reached, they would set off fast again at every scan.
+
+**Only the compositor.** `translate` and `opacity`, two properties it animates
+on its own. `translate` rather than `transform`: the individual property adds
+to an element's transform instead of replacing it — the ▶ cursor carries its
+own. Chrome has had `translate` since 104, Firefox since 72, below the
+manifest's floors (119 and 140). What measures outside the scan, the preview
+placing itself and the cursor a `ResizeObserver` places again, removes the
+journey in flight and aims at the arrival place.
+
+The report counts, under `page.mouvement`, the readings, the journeys, the
+resumptions, the arrivals, what was not animated and why, the last movement
+and what is in flight. Counts, never a username.
+
+### A missed slot leaves the home page
+
+Requested: "on the home page, the schedule section, if the streamer still
+hasn't started their stream 2 hours after their schedule, remove it". A slot
+that had started without the channel said "not live yet" until its end: a
+whole evening for a six-hour slot the channel did not keep. Now, two hours
+after its time, still offline, it leaves "Your scheduled streams", on its own,
+without a reload. Before the two hours, it stays, and still says "not live
+yet". The panel's agenda keeps the week as it was scheduled.
+
+### The bench
+
+- **236, new**: three parts. On the ordinary bench, durations at zero, the
+  plan: nothing under the veil, three journeys when a channel takes the lead,
+  the sort chosen with a click, one arrival when a channel comes back, the
+  section that reappears as one block, two stops of one batch in a single
+  reading, and nothing on a repopulation, a width change or a mode switch. At
+  production durations, readings every 100 ms, every frame: the journey in one
+  go and in 320 ms despite the scans falling mid-flight, the section that
+  glides without its card repeating the journey, the arrival invisible while
+  the space opens. At the production wake-up, the ▶ cursor in the middle of its
+  bar at every frame, and a placement replayed mid-journey that aims at the
+  arrival place.
+- **237, new**: ten minutes late, the slot stays; two hours and five, it is not
+  there; a third crosses the two hours in front of you and leaves on its own,
+  not before; the panel's agenda keeps all four.
+
+**Nineteen named mutants, nineteen caught.**
+
+| mutant | what fails |
+| --- | --- |
+| the child repeats its parent's journey | 236: the section's card glides as well; the journey counts |
+| the journey restarted instead of resumed | 236: the journey lasts more than 320 ms |
+| the veil forgotten | 236 a) |
+| the arrival without the wait | 236 h): the wait, and the card visible before the space opens |
+| `transform` instead of `translate` | 236 f) |
+| the cursor placed on a frame in flight | 236 i): the cursor away from its bar once the journey is over |
+| the cursor left out of the reading | 236 i): the cursor jumps while its bar glides |
+| the repopulation animated | 236 d), and the mode switch |
+| the mode switch animated | 236: the switch |
+| the width change animated | 236 e) |
+| Twitch's answers outside the reading | 236 c), g), h), and the two stops |
+| the filter outside the reading | 236: the section that reappears, d) |
+| the click sort outside the reading | 236: the click sort |
+| the section fades, and its cards again | 236: the section that reappears |
+| the reading closed at the next frame | 236 h): the card read opaque before its fade |
+| one reading per answer | 236 c), and the two stops of one batch |
+| the schedule without the rule | 237 a), b) |
+| two minutes instead of two hours | 237 a), b) |
+| the rule applied to the agenda too | 237 c) |
+
+`npm run check` is green: 236 scenarios, 2417 assertions.
+
 ## Top Channels: an empty filter stays empty (v4.33.0.11)
 
 Reported, with a screenshot: "Top Channels", the "Slots" category, "No live
@@ -25628,13 +25740,13 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 2310 KB | 1089 KB | 4,827 → **2** |
+| `content.js` | 2327 KB | 1097 KB | 4,857 → **2** |
 | `cadres.js` | 76 KB | 35 KB | 171 → **0** |
 | `adblock.js` | 126 KB | 101 KB | 301 → **2** |
 | `panneau.js` | 168 KB | 86 KB | 233 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 26 → **0** |
 | `background.js` | 10 KB | 2 KB | 23 → **0** |
-| **all six** | **2704 KB** | **1317 KB** | **−51 %** |
+| **all six** | **2721 KB** | **1324 KB** | **−51 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are

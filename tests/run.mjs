@@ -44460,6 +44460,450 @@ titre('235. La carte sponsorisée obéit aux filtres de la liste suivie (4.33.0.
   await page.close();
 }
 
+titre('236. La barre qui glisse — chaque carte part d\'où elle était, l\'arrivée se pose après, rien sous le voile (4.33.0.12)');
+{
+  /* LE SIGNALEMENT : « lorsque la sidebar s'actualise, il n'y a pas
+     d'animation […] une animation progressive et discrète ». Le balayage
+     rangeait la barre d'un coup. Trois volets :
+       — le banc ordinaire, durées à zéro (cf. build.mjs) : ce que le plan
+         décide, compté au rapport — ce qui part, ce qui arrive, ce qui ne
+         s'anime pas et pourquoi ;
+       — les durées de production, les relevés à 100 ms : les trajets eux-
+         mêmes, à chaque image, à travers des balayages qui tombent en plein
+         vol ; la section qui glisse sans que ses cartes refassent son
+         trajet ; l'arrivée qui attend que la place s'ouvre ;
+       — le réveil de production : le curseur ▶ de la salle suit sa barre,
+         et un placement rejoué en plein trajet vise la place d'arrivée. */
+  const DUREES = Object.fromEntries(['BARRE_GLISSE_MS', 'BARRE_ENTREE_MS', 'BARRE_ENTREE_DELAI_MS']
+    .map((k) => [k, Number(new RegExp(`${k}:\\s*(\\d+)`).exec(readFileSync(join(ICI, '..', 'content.js'), 'utf8'))[1])]));
+  const decor = (page, avecVoisins = true) => page.evaluate((voisins) => {
+    const h = new Date(Date.now() - 1800_000).toISOString();
+    const f = (id, v, game) => ({ id, createdAt: h, viewers: v, game, tags: [] });
+    window.__fx = { haut: f('id-g1', 3000, 'Just Chatting'), milieu: f('id-g2', 2000, 'Valheim'),
+                    bas: f('id-g3', 1000, 'Just Chatting'), voisin: f('id-g4', 800, 'Just Chatting') };
+    window.__addCard('haut', 'Just Chatting', '3 000');
+    window.__addCard('milieu', 'Valheim', '2 000');
+    window.__addCard('bas', 'Just Chatting', '1 000');
+    if (voisins) window.__addReco('voisin', 'Just Chatting', '800');
+  }, avecVoisins);
+  const pret = (page, logins) => attendre(page, (ls) => !document.body.classList.contains('tse-loading')
+    && ls.every((l) => document.querySelector(`.side-nav-card[data-tse-login="${l}"] .tse-uptime`)), 15_000, logins);
+  const mvt = (page) => page.evaluate(() => window.tse.panneau.rapport().page.mouvement);
+  const ordre = (page) => page.evaluate(() => [...document.querySelectorAll('#cards .side-nav-card')]
+    .filter((c) => c.getClientRects().length).map((c) => c.dataset.tseLogin));
+  const pasDe = (page) => page.evaluate(() => {
+    const c = [...document.querySelectorAll('#cards .side-nav-card')].filter((x) => x.getClientRects().length);
+    return c[1].getBoundingClientRect().top - c[0].getBoundingClientRect().top;
+  });
+  const choisir = (page, dd, val) => page.evaluate(([id, v]) => {
+    const opt = [...document.querySelectorAll(`${id} .tse-dd-opt`)].find((o) => (o.dataset.value || '') === v);
+    if (!opt) throw new Error('option absente : ' + JSON.stringify(v));
+    opt.click();
+  }, [dd, val]);
+  const attendreOption = (page, dd, val) => attendre(page, ([id, v]) =>
+    [...document.querySelectorAll(`${id} .tse-dd-opt`)].some((o) => (o.dataset.value || '') === v), 9000, [dd, val]);
+
+  /* ── I. LE PLAN, AU BANC ORDINAIRE ─────────────────────────────────────── */
+  {
+    const page = await fresh();
+    await decor(page);
+    await pret(page, ['haut', 'milieu', 'bas', 'voisin']);
+    await wait(page, 400);
+    const m0 = await mvt(page);
+    ok('a) sous le voile, rien ne part — et une liste posée ne bouge pas : aucun trajet, aucune arrivée',
+       (m0.retenus.voile || 0) >= 1 && m0.releves >= 1 && m0.glisses === 0 && m0.entrees === 0,
+       JSON.stringify(m0));
+
+    // Le tri choisi d'un clic : l'ordre alphabétique, puis le retour aux spectateurs.
+    const trier = (mode) => page.evaluate((m) => document.querySelector(`#tse-sort-row button[data-tse-sort-mode="${m}"]`).click(), mode);
+    await trier('alpha');
+    await attendre(page, () => [...document.querySelectorAll('#cards .side-nav-card')][0]?.dataset.tseLogin === 'bas', 5000);
+    await wait(page, 300);
+    const t1 = await mvt(page);
+    await trier('viewers');
+    await attendre(page, () => [...document.querySelectorAll('#cards .side-nav-card')][0]?.dataset.tseLogin === 'haut', 5000);
+    await wait(page, 300);
+    const t2 = await mvt(page);
+    ok('…le tri choisi d\'un clic glisse aussi : trois trajets vers l\'ordre alphabétique, trois pour en revenir',
+       t1.glisses - m0.glisses === 3 && t2.glisses - t1.glisses === 3 && t2.entrees === m0.entrees,
+       JSON.stringify({ m0, t1, t2 }));
+
+    const pas = await pasDe(page);
+    await page.evaluate(() => { window.__fx.bas.viewers = 5000; });
+    await attendre(page, () => [...document.querySelectorAll('#cards .side-nav-card')][0]?.dataset.tseLogin === 'bas', 9000);
+    await wait(page, 300);
+    const m1 = await mvt(page);
+    ok('b) « bas » passe en tête : trois trajets — elle monte de deux places, les deux autres descendent d\'une —, aucune arrivée',
+       JSON.stringify(await ordre(page)) === '["bas","haut","milieu"]'
+       && m1.glisses - t2.glisses === 3 && m1.entrees === t2.entrees
+       && Math.abs(m1.dernier.plusLong - 2 * pas) <= 1,
+       JSON.stringify({ t2, m1, pas }));
+
+    // « milieu » coupe, puis revient : une carte qui part, puis une qui arrive.
+    const garde = await page.evaluate(() => { const f = window.__fx.milieu; window.__fx.milieu = null; return f; });
+    await attendre(page, () => !document.querySelector('.side-nav-card[data-tse-login="milieu"]').getClientRects().length, 9000);
+    await wait(page, 300);
+    const m2 = await mvt(page);
+    await page.evaluate((f) => { window.__fx.milieu = f; }, garde);
+    await attendre(page, () => document.querySelector('.side-nav-card[data-tse-login="milieu"]').getClientRects().length > 0, 9000);
+    await wait(page, 300);
+    const m3 = await mvt(page);
+    ok('c) une chaîne qui revient ARRIVE — une arrivée, une seule ; celle qui coupe n\'en est pas une, et la section d\'en dessous remonte puis redescend',
+       m2.entrees === m1.entrees && m2.glisses - m1.glisses === 1
+       && m3.entrees - m2.entrees === 1 && m3.dernier.entrees === 1 && m3.glisses - m2.glisses === 1,
+       JSON.stringify({ m1, m2, m3 }));
+
+    /* Un filtre efface la section des recommandées ENTIÈRE ; retiré, elle
+       reparaît et fond d'un bloc — sa carte ne fond pas une seconde fois. Deux
+       arrivées : « milieu », hors de la catégorie, et la section. */
+    await attendreOption(page, '#tse-cat-dd', 'Just Chatting');
+    await choisir(page, '#tse-cat-dd', 'Just Chatting');
+    await attendre(page, () => !document.getElementById('reco').getClientRects().length, 5000);
+    await wait(page, 300);
+    const s1 = await mvt(page);
+    await choisir(page, '#tse-cat-dd', '');
+    await attendre(page, () => document.getElementById('reco').getClientRects().length > 0, 5000);
+    await wait(page, 300);
+    const s2 = await mvt(page);
+    ok('…une section qui reparaît fond d\'un bloc : deux arrivées, « milieu » et la section — pas sa carte en plus',
+       s2.entrees - s1.entrees === 2 && s2.dernier.entrees === 2, JSON.stringify({ s1, s2 }));
+
+    /* DEUX CHAÎNES QUI COUPENT DANS LA MÊME RÉPONSE : un seul relevé pour les
+       deux. La section d'en dessous remonte de DEUX places d'un trajet — un
+       second relevé, pris après la première coupure, n'en verrait qu'une, et
+       la première place se refermerait d'un bond. Puis les deux reviennent. */
+    const gardes = await page.evaluate(() => {
+      const g = { haut: window.__fx.haut, milieu: window.__fx.milieu };
+      window.__fx.haut = null; window.__fx.milieu = null;
+      return g;
+    });
+    await attendre(page, () => ['haut', 'milieu'].every((l) =>
+      !document.querySelector(`.side-nav-card[data-tse-login="${l}"]`).getClientRects().length), 9000);
+    await wait(page, 300);
+    const d1 = await mvt(page);
+    await page.evaluate((g) => Object.assign(window.__fx, g), gardes);
+    await attendre(page, () => ['haut', 'milieu'].every((l) =>
+      document.querySelector(`.side-nav-card[data-tse-login="${l}"]`).getClientRects().length > 0), 9000);
+    await wait(page, 300);
+    const d2 = await mvt(page);
+    ok('…deux chaînes qui coupent dans la même réponse : un seul relevé — la section remonte de deux places d\'un trajet ; revenues, deux arrivées',
+       d1.glisses - s2.glisses === 1 && Math.abs(d1.dernier.plusLong - 2 * pas) <= 1
+       && d2.entrees - d1.entrees === 2 && d2.dernier.entrees === 2,
+       JSON.stringify({ s2, d1, d2, pas }));
+
+    // Cinq chaînes de plus, de la catégorie de « milieu » : un filtre en efface six sur neuf.
+    await page.evaluate(() => {
+      const h = new Date(Date.now() - 1800_000).toISOString();
+      for (let i = 1; i <= 5; i++) {
+        window.__fx['val' + i] = { id: 'id-v' + i, createdAt: h, viewers: 100 - i, game: 'Valheim', tags: [] };
+        window.__addCard('val' + i, 'Valheim', String(100 - i));
+      }
+    });
+    await pret(page, ['val1', 'val2', 'val3', 'val4', 'val5']);
+    await wait(page, 300);
+    await choisir(page, '#tse-cat-dd', 'Just Chatting');
+    await attendre(page, () => !document.querySelector('.side-nav-card[data-tse-login="val1"]').getClientRects().length, 5000);
+    await wait(page, 300);
+    const m4 = await mvt(page);
+    await choisir(page, '#tse-cat-dd', '');
+    await attendre(page, () => document.querySelector('.side-nav-card[data-tse-login="val1"]').getClientRects().length > 0, 5000);
+    await wait(page, 300);
+    const m5 = await mvt(page);
+    ok('d) six cartes qui reviennent d\'un coup sur neuf, au filtre retiré : un repeuplement, pas une actualisation — rien ne part',
+       m5.entrees === m4.entrees && (m5.retenus.repeuplement || 0) - (m4.retenus.repeuplement || 0) >= 1,
+       JSON.stringify({ m4, m5 }));
+
+    const g0 = await mvt(page);
+    await page.evaluate(() => { document.getElementById('side-nav').style.width = '320px'; });
+    await attendre(page, (n) => (window.tse.panneau.rapport().page.mouvement.retenus.largeur || 0) > n, 5000,
+      g0.retenus.largeur || 0);
+    const g1 = await mvt(page);
+    ok('e) la barre qui change de largeur : tout bouge, rien n\'a de sens à suivre — rien ne part',
+       (g1.retenus.largeur || 0) > (g0.retenus.largeur || 0) && g1.glisses === g0.glisses && g1.entrees === g0.entrees,
+       JSON.stringify({ g0, g1 }));
+
+    // Le retour de Top Chaînes : la liste suivie revient entière — une autre liste.
+    await page.evaluate(() => {
+      window.__cats = [{ name: 'g1', viewers: 90_000, streams: [
+        { login: 'alpha', viewers: 50_000 }, { login: 'bravo', viewers: 30_000 }] }];
+    });
+    const mode = (m) => page.evaluate((x) => document.querySelector(`#tse-mode-row [data-tse-mode="${x}"]`).click(), m);
+    await mode('global');
+    await attendre(page, () => document.body.classList.contains('tse-global-ready')
+      && !document.body.classList.contains('tse-loading'), 9000);
+    await wait(page, 400);
+    const b0 = await mvt(page);
+    await mode('followed');
+    await attendre(page, () => !document.body.classList.contains('tse-global-ready')
+      && document.querySelector('.side-nav-card[data-tse-login="haut"]').getClientRects().length > 0, 9000);
+    await wait(page, 400);
+    const b1 = await mvt(page);
+    ok('…ni le balayage qui suit une bascule de mode : la liste suivie revient d\'un coup, sans arrivées',
+       (b1.retenus.mode || 0) > (b0.retenus.mode || 0) && b1.entrees === b0.entrees,
+       JSON.stringify({ b0, b1 }));
+    await page.close();
+  }
+
+  /* ── II. LES TRAJETS, AUX DURÉES DE PRODUCTION ─────────────────────────── */
+  {
+    const { page, ratees } = await pageVariante([
+      [/BARRE_GLISSE_MS:\s*0\b/, `BARRE_GLISSE_MS: ${DUREES.BARRE_GLISSE_MS}`],
+      [/BARRE_ENTREE_MS:\s*0\b/, `BARRE_ENTREE_MS: ${DUREES.BARRE_ENTREE_MS}`],
+    ]);
+    await decor(page);
+    await pret(page, ['haut', 'milieu', 'bas', 'voisin']);
+    await wait(page, 400);
+    const pas = await pasDe(page);
+    /* LE RELEVÉ À CHAQUE IMAGE : la position À L'ÉCRAN de chaque carte, de la
+       section « Chaînes live », et l'opacité de « milieu » ; et les
+       animations en cours sur chacune, avec leurs images-clés. Les relevés à
+       100 ms font tomber trois balayages dans chaque trajet. */
+    const filmer = (ms) => page.evaluate((duree) => new Promise((fin) => {
+      const el = (l) => document.querySelector(`.side-nav-card[data-tse-login="${l}"]`);
+      const reco = document.getElementById('reco').closest('.side-nav-section');
+      const images = [];
+      const t0 = performance.now();
+      const anims = (x) => x.getAnimations().filter((a) => a instanceof CSSAnimation === false
+        && a instanceof CSSTransition === false).map((a) => ({
+          props: [...new Set(a.effect.getKeyframes().flatMap((k) => Object.keys(k)
+            .filter((p) => !['offset', 'computedOffset', 'easing', 'composite'].includes(p))))].sort(),
+          debut: a.effect.getKeyframes()[0], duree: a.effect.getTiming().duration,
+          delai: a.effect.getTiming().delay, courbe: a.effect.getTiming().easing,
+          remplissage: a.effect.getTiming().fill }));
+      const pas = () => {
+        const t = performance.now() - t0;
+        const im = { t: Math.round(t) };
+        for (const l of ['haut', 'milieu', 'bas', 'voisin']) {
+          const c = el(l);
+          const r = c && c.getClientRects().length ? c.getBoundingClientRect() : null;
+          im[l] = r ? Math.round(r.top * 10) / 10 : null;
+          im[l + 'A'] = c ? anims(c) : [];
+        }
+        im.recoY = Math.round(reco.getBoundingClientRect().top * 10) / 10;
+        im.recoA = anims(reco);
+        const m = el('milieu');
+        im.opMilieu = m ? Number(getComputedStyle(m).opacity) : null;
+        images.push(im);
+        if (t < duree) requestAnimationFrame(pas); else fin(images);
+      };
+      requestAnimationFrame(pas);
+    }), ms);
+
+    // f) « bas » passe en tête.
+    const film1 = filmer(1200);
+    await page.evaluate(() => { window.__fx.bas.viewers = 5000; });
+    const f1 = await film1;
+    const vol = f1.filter((im) => im.basA.length);
+    const premiere = vol[0];
+    const basY = f1.map((im) => im.bas);
+    const monte = basY.every((y, i) => i === 0 || y <= basY[i - 1] + 0.5);
+    const debut = f1.findIndex((im, i) => i > 0 && im.bas < f1[0].bas - 0.5);
+    const finI = f1.findIndex((im, i) => i > debut && Math.abs(im.bas - basY[basY.length - 1]) < 0.5
+      && f1.slice(i).every((x) => Math.abs(x.bas - basY[basY.length - 1]) < 0.5));
+    const saut = Math.max(...basY.slice(1).map((y, i) => Math.abs(y - basY[i])));
+    ok('la variante porte les durées de production', ratees.length === 0, JSON.stringify(ratees));
+    ok(`f) « bas » monte de deux places EN GLISSANT : un trajet « translate » seul, de +${2 * pas} px à 0, ${DUREES.BARRE_GLISSE_MS} ms, courbe cubic-bezier(0.2, 0, 0, 1)`,
+       !!premiere && premiere.basA.length === 1 && JSON.stringify(premiere.basA[0].props) === '["translate"]'
+       && /^0px\s+/.test(premiere.basA[0].debut.translate)
+       && Math.abs(parseFloat(premiere.basA[0].debut.translate.split(/\s+/)[1]) - 2 * pas) <= 1
+       && premiere.basA[0].duree === DUREES.BARRE_GLISSE_MS
+       && premiere.basA[0].courbe === 'cubic-bezier(0.2, 0, 0, 1)',
+       JSON.stringify(premiere || f1.slice(0, 3)));
+    ok('…à l\'écran, d\'une traite : jamais en arrière, aucun bond d\'une image à l\'autre de plus d\'un tiers du trajet',
+       monte && debut > 0 && saut <= (2 * pas) / 3, JSON.stringify({ saut, basY }));
+    ok(`…et en ${DUREES.BARRE_GLISSE_MS} ms, pas davantage : les balayages tombés en plein vol l\'ont REPRIS à l\'instant où il en était, sans le relancer`,
+       finI > debut && f1[finI].t - f1[debut].t <= DUREES.BARRE_GLISSE_MS + 80,
+       JSON.stringify({ debut: f1[debut]?.t, fin: f1[finI]?.t, rapport: await mvt(page) }));
+    const haut1 = f1.find((im) => im.hautA.length)?.hautA[0];
+    ok('…« haut » et « milieu » descendent d\'une place, chacune son trajet, de −pas à 0',
+       !!haut1 && Math.abs(parseFloat(haut1.debut.translate.split(/\s+/)[1]) + pas) <= 1
+       && f1.some((im) => im.milieuA.length && Math.abs(parseFloat(im.milieuA[0].debut.translate.split(/\s+/)[1]) + pas) <= 1),
+       JSON.stringify(haut1));
+
+    // g) « milieu » coupe : la section d'en dessous remonte, sa carte avec elle.
+    const garde = await page.evaluate(() => { const f = window.__fx.milieu; window.__fx.milieu = null; return f; });
+    const film2 = filmer(4000);
+    const f2 = (await film2).filter((im, i, t) => i >= t.findIndex((x) => x.milieu === null) - 1);
+    const recoVol = f2.find((im) => im.recoA.length);
+    const voisinSeul = f2.filter((im) => im.voisinA.length);
+    const ecartVoisin = f2.map((im) => Math.round((im.voisin - im.recoY) * 10) / 10);
+    ok('g) « milieu » coupe : la section d\'en dessous remonte d\'une place en glissant — un trajet sur la section, de +pas à 0',
+       !!recoVol && JSON.stringify(recoVol.recoA[0].props) === '["translate"]'
+       && Math.abs(parseFloat(recoVol.recoA[0].debut.translate.split(/\s+/)[1]) - pas) <= 1,
+       JSON.stringify(recoVol || f2.slice(0, 2)));
+    ok('…et sa carte NE REFAIT PAS le trajet : aucun sur « voisin », qui reste à sa place DANS la section à chaque image',
+       voisinSeul.length === 0 && ecartVoisin.every((e) => Math.abs(e - ecartVoisin[0]) <= 0.5),
+       JSON.stringify({ voisinSeul: voisinSeul.slice(0, 2), ecartVoisin }));
+
+    // h) « milieu » revient : elle ARRIVE, après que la place s'est ouverte.
+    await wait(page, 400);
+    const film3 = filmer(4000);
+    await page.evaluate((f) => { window.__fx.milieu = f; }, garde);
+    const f3 = (await film3).filter((im, i, t) => i >= t.findIndex((x) => x.milieu !== null) - 1);
+    const vue = f3.findIndex((im) => im.milieu !== null);
+    const arrivee = f3.find((im) => im.milieuA.length)?.milieuA[0];
+    const ouvre = f3.find((im) => im.recoA.length)?.recoA[0];
+    ok(`h) « milieu » arrive en fondu : l'opacité seule, de 0, ${DUREES.BARRE_ENTREE_MS} ms après ${DUREES.BARRE_ENTREE_DELAI_MS} ms d'attente, tenue à 0 pendant l'attente`,
+       !!arrivee && JSON.stringify(arrivee.props) === '["opacity"]' && Number(arrivee.debut.opacity) === 0
+       && arrivee.duree === DUREES.BARRE_ENTREE_MS && arrivee.delai === DUREES.BARRE_ENTREE_DELAI_MS
+       && arrivee.remplissage === 'backwards',
+       JSON.stringify(arrivee || f3.slice(vue, vue + 2)));
+    const pendantAttente = f3.filter((im, i) => i >= vue && im.t - f3[vue].t < DUREES.BARRE_ENTREE_DELAI_MS - 30);
+    ok('…invisible tant que la place s\'ouvre — la section d\'en dessous glisse vers le bas pendant ce temps —, puis pleinement visible',
+       vue >= 0 && pendantAttente.length >= 1 && pendantAttente.every((im) => im.opMilieu === 0)
+       && !!ouvre && Math.abs(parseFloat(ouvre.debut.translate.split(/\s+/)[1]) + pas) <= 1
+       && f3[f3.length - 1].opMilieu === 1,
+       JSON.stringify({ pendantAttente: pendantAttente.map((im) => [im.t, im.opMilieu]), ouvre, derniere: f3[f3.length - 1].opMilieu }));
+    await wait(page, 300);
+    const fin = await mvt(page);
+    ok('…et tout est posé : plus rien en vol, et le rapport a compté des reprises en plein vol',
+       fin.enVol === 0 && fin.repris >= 1, JSON.stringify(fin));
+    await page.close();
+  }
+
+  /* ── III. LE CURSEUR SUIT SA BARRE, AU RÉVEIL DE PRODUCTION ──────────────── */
+  {
+    const { page, ratees } = await pageVariante([
+      [/BARRE_GLISSE_MS:\s*0\b/, `BARRE_GLISSE_MS: ${DUREES.BARRE_GLISSE_MS}`],
+      [/BARRE_ENTREE_MS:\s*0\b/, `BARRE_ENTREE_MS: ${DUREES.BARRE_ENTREE_MS}`],
+      [/REFRESH_TICK:\s*100\b/, 'REFRESH_TICK:   2_000'],
+    ]);
+    await page.addStyleTag({ content: '#side-nav { width: 240px; overflow-x: hidden; }' });
+    await page.evaluate(() => {
+      const h = new Date(Date.now() - 1800_000).toISOString();
+      const c = (id, v) => ({ id, createdAt: h, viewers: v, game: 'Valheim', tags: [] });
+      window.__fx = { solo: c('7801', 20000), duo1: c('7811', 5000), duo2: c('7812', 4900) };
+      const duo = [['7811', 'duo1', 5000], ['7812', 'duo2', 4900]]
+        .map(([id, login, viewers]) => ({ id, login, viewers, combined: 9900 }));
+      window.__gs = {};
+      for (const g of duo) window.__gs[g.id] = { hostId: '7811', hostLogin: 'duo1', guests: duo };
+      window.__addCard('solo', 'Valheim', '20 000');
+      window.__addCard('duo1', 'Valheim', '9,9 k');
+      window.__addCard('duo2', 'Valheim', '9,9 k');
+    });
+    await attendre(page, () => !document.body.classList.contains('tse-loading')
+      && document.querySelectorAll('#tse-noeuds .tse-noeud').length === 1
+      && [...document.querySelectorAll('#cards .side-nav-card')][0]?.dataset.tseLogin === 'solo', 15_000);
+    await wait(page, 500);
+    /* À chaque image : le milieu de la barre du duo, tel qu'il est À L'ÉCRAN,
+       et celui de la gélule. Et, 170 ms après le changement d'ordre — en
+       plein trajet, sans balayage —, un placement rejoué : le changement de
+       thème le rejoue (cf. noeudsSalle, l'observateur de data-tse-theme). */
+    const releve = await page.evaluate(() => new Promise((fin) => {
+      const carte = (l) => document.querySelector(`.side-nav-card[data-tse-login="${l}"]`);
+      const images = [];
+      let t0 = null, rejoue = false;
+      const pas = () => {
+        const n = document.querySelector('#tse-noeuds .tse-noeud');
+        const a = carte('duo1').getBoundingClientRect(), b = carte('duo2').getBoundingClientRect();
+        const r = n.getBoundingClientRect();
+        const premier = [...document.querySelectorAll('#cards .side-nav-card')][0]?.dataset.tseLogin;
+        if (t0 === null && premier === 'duo1') t0 = performance.now();
+        const t = t0 === null ? null : performance.now() - t0;
+        if (t !== null && !rejoue && t >= 170) {
+          rejoue = true;
+          const h = document.documentElement;
+          h.setAttribute('data-tse-theme', h.getAttribute('data-tse-theme') === 'light' ? 'dark' : 'light');
+        }
+        images.push({ t: t === null ? null : Math.round(t), barre: Math.round(((a.top + b.bottom) / 2) * 10) / 10,
+                      noeud: Math.round(((r.top + r.bottom) / 2) * 10) / 10,
+                      vole: carte('duo1').getAnimations().some((x) => !(x instanceof CSSAnimation) && !(x instanceof CSSTransition)) });
+        if (t !== null && t > 900) fin(images); else requestAnimationFrame(pas);
+      };
+      requestAnimationFrame(pas);
+      window.__fx.solo.viewers = 1000;
+    }));
+    const apres = releve.filter((im) => im.t !== null);
+    const enVol = apres.filter((im) => im.vole);
+    const ecarts = enVol.map((im) => Math.abs(im.noeud - im.barre));
+    ok('la variante porte les durées et un réveil lent', ratees.length === 0, JSON.stringify(ratees));
+    ok('i) le duo monte d\'une place EN GLISSANT, et sa gélule avec lui : à chaque image du trajet, au milieu de sa barre à 1,5 px près',
+       enVol.length >= 5 && ecarts.every((e) => e <= 1.5),
+       JSON.stringify({ enVol: enVol.slice(0, 8), debut: apres.slice(0, 4), rapport: await mvt(page) }));
+    const posee = apres[apres.length - 1];
+    ok('…un placement rejoué EN PLEIN TRAJET vise la place d\'arrivée : le trajet fini, la gélule est au milieu de la barre posée',
+       Math.abs(posee.noeud - posee.barre) <= 1.5 && !posee.vole, JSON.stringify(posee));
+    await page.close();
+  }
+}
+
+titre('237. Vos rendez-vous — deux heures après son heure, sans la chaîne, le créneau quitte l\'accueil (4.33.0.12)');
+{
+  /* DEMANDÉ : « dans l'accueil, la section planning, si le streamer n'a
+     toujours pas commencé son live après 2h sur son planning, retire-le ».
+     Un créneau commencé sans la chaîne disait « pas encore en direct »
+     jusqu'à sa FIN — une soirée entière pour un créneau de six heures.
+     Trois créneaux commencés, une chaîne hors ligne chacun : dix minutes de
+     retard (il reste), deux heures et cinq (il est parti), et un troisième
+     à vingt-cinq secondes des deux heures, qui doit partir de lui-même, sans
+     rechargement. L'agenda du panneau, lui, garde la semaine telle qu'elle
+     était prévue. MIDI À L'ONGLET (cf. 221) : deux heures plus tôt, c'est
+     encore aujourd'hui. */
+  const decalage = 12 - new Date().getUTCHours();
+  const fuseauMidi = decalage === 0 ? 'Etc/UTC' : decalage > 0 ? `Etc/GMT-${decalage}` : `Etc/GMT+${-decalage}`;
+  const ctx = await browser.newContext({ viewport: { width: 1600, height: 1000 }, timezoneId: fuseauMidi });
+  await ctx.addInitScript((rayons) => {
+    try { localStorage.setItem('tse:roue', 'vu'); localStorage.setItem('tse:indice', 'vu'); } catch { /* stockage refusé */ }
+    window.__accueil = { rayons };
+  }, RAYONS_ACCUEIL);
+  const p = await ctx.newPage();
+  p.on('pageerror', (e) => { fail++; console.log('  ✗ ERREUR PAGE:', e.message); });
+  await p.route('https://www.twitch.tv/**', (route) => {
+    const nom = route.request().url().split('/').pop().split('?')[0];
+    if (nom.endsWith('.js')) return route.fulfill({ contentType: 'application/javascript; charset=utf-8', body: fileText(nom) });
+    return route.fulfill({ contentType: 'text/html; charset=utf-8', body: fileText('page.html') });
+  });
+  await p.route('https://player.twitch.tv/**', (route) => route.fulfill({ contentType: 'text/html', body: '<!doctype html><html><body>x</body></html>' }));
+  await p.route('https://static-cdn.jtvnw.net/**', (route) => route.fulfill({ contentType: 'image/png', body: PIXEL }));
+  await p.goto('https://www.twitch.tv/');
+  await plateauAccueil(p);
+  const { cobalt, j0 } = await p.evaluate(() => {
+    const H = 3_600_000, M = 60_000, now = Date.now();
+    const iso = (t) => new Date(t).toISOString();
+    const A = {};
+    const avec = (l, debut, titre) => {
+      A[l] = { nom: l.charAt(0).toUpperCase() + l.slice(1), titre: '', videos: [], dernier: { id: 'd-' + l, fin: iso(now - 20 * H) },
+               creneaux: [{ id: l + '1', debut: iso(debut), fin: iso(now + 3 * H), titre }] };
+    };
+    avec('cendre', now - 10 * M, 'Dix minutes de retard');
+    avec('cobalt', now - 2 * H + 25_000, 'Bientôt deux heures');
+    avec('braise', now - 2 * H - 5 * M, 'Deux heures passées');
+    avec('aurore', now + 2 * H, 'Plus tard');
+    window.__agenda = A;
+    for (const l of Object.keys(A)) window.__addCard(l, '', '', false);
+    const d = new Date(); d.setHours(0, 0, 0, 0);
+    return { cobalt: Date.parse(A.cobalt.creneaux[0].debut), j0: d.getTime() };
+  });
+  const lire = () => p.evaluate(() => {
+    const r = document.querySelector('.tse-acc-rayon--rdv');
+    return {
+      montre: !!r && !r.hidden, maintenant: Date.now(),
+      cartes: r ? [...r.querySelectorAll('.tse-acc-rdv:not(.tse-acc-rdv--attente)')].map((c) => ({
+        cle: c.dataset.tseCle, reste: c.querySelector('.tse-acc-rdv-reste')?.textContent })) : [],
+      rapport: window.tse.accueil.rapport().rdv,
+    };
+  });
+  await attendre(p, () => window.tse.accueil.rapport().rdv.enCours === false
+    && document.querySelectorAll('.tse-acc-rayon--rdv .tse-acc-rdv:not(.tse-acc-rdv--attente)').length >= 3, 20_000);
+  const a = await lire();
+  ok('a) dix minutes de retard et une heure cinquante-neuf : le créneau reste, « pas encore en direct » ; deux heures et cinq : il n\'y est pas',
+     JSON.stringify(a.cartes.map((c) => c.cle)) === '["cobalt|cobalt1","cendre|cendre1","aurore|aurore1"]'
+     && a.cartes.slice(0, 2).every((c) => c.reste === 'pas encore en direct') && a.maintenant < cobalt + 2 * 3_600_000,
+     JSON.stringify(a));
+  // Le cap des deux heures franchi, la page ouverte : le réveil de l'accueil repeint le rayon.
+  await attendre(p, () => !document.querySelector('.tse-acc-rayon--rdv [data-tse-cle="cobalt|cobalt1"]'), 45_000);
+  const b = await lire();
+  ok('b) …et celui qui franchit les deux heures sous les yeux part de lui-même, sans rechargement — pas avant',
+     JSON.stringify(b.cartes.map((c) => c.cle)) === '["cendre|cendre1","aurore|aurore1"]'
+     && b.maintenant >= cobalt + 2 * 3_600_000,
+     JSON.stringify({ b, cap: cobalt + 2 * 3_600_000 }));
+  const semaine = await p.evaluate((d) => window.tse.panneau('semaine', { debut: d, fin: d + 86_400_000 }).entrees
+    .filter((e) => e.type === 'prevu').map((e) => e.login).sort(), j0);
+  ok('c) l\'agenda du panneau, lui, garde la journée telle qu\'elle était prévue : les quatre créneaux y sont',
+     JSON.stringify(semaine) === '["aurore","braise","cendre","cobalt"]', JSON.stringify(semaine));
+  await ctx.close();
+}
+
 {
   titre('68. Le banc — sa taille est celle que les README annoncent');
   const total = pass + fail + 1;          // +1 : cette assertion-ci

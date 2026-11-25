@@ -35,6 +35,12 @@ const subs = [
   [/LOADING_STABILITY_MS:\s*1_500/, 'LOADING_STABILITY_MS: 300'],
   [/MAINTENANCE_TICK: 30_000/,     'MAINTENANCE_TICK: 1_200'],
   [/LAG_SETTLE_MS:\s*60_000/,      'LAG_SETTLE_MS:        700'],
+  // La barre qui glisse (4.33.0.12) : à zéro, aucun trajet ne part — le relevé
+  // et le plan se font, et se comptent au rapport, mais aucune carte n'est
+  // en vol quand un scénario mesure la mise en page. Le scénario 236 sert le
+  // script avec les durées de production pour voir les trajets eux-mêmes.
+  [/BARRE_GLISSE_MS:\s*320/,        'BARRE_GLISSE_MS:       0'],
+  [/BARRE_ENTREE_MS:\s*260/,        'BARRE_ENTREE_MS:       0'],
   // Tranche de cache des miniatures : 2 min 30 en production. Réduite ici pour
   // qu'un changement de tranche — et donc la purge du registre de préchargement
   // — se produise pendant un test au lieu d'après.
