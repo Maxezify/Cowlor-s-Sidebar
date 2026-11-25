@@ -2184,6 +2184,122 @@ changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'i
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
 
+## Le Top 15, rangé comme un rayon de Twitch ; « À la une » sans trou (v4.33.0.13)
+
+### L'accueil à toutes les largeurs
+
+Signalé, capture à l'appui : « le top 10 n'est pas responsive […] prends
+exemple sur une liste Twitch native ». Le Top gardait cinq places par rangée
+à toutes les largeurs. Mesuré à onze largeurs, de 1 920 à 375 pixels : une
+place de 179 pixels à 1 024 — « Depuis le début » sorti de sa carte —, des
+noms coupés dès 768, des places de 49 pixels à 375, et la page entière qui
+défilait de côté sous 900.
+
+- **La grille des rayons, et celle que prennent les rayons de Twitch.**
+  Autant de colonnes que la liste tient de places de 290 pixels, quatorze
+  d'écart — les colonnes s'alignent d'un rayon à l'autre —, et cinq au plus.
+  Cinq sur grand écran, trois sur un portable de 1 024, une sur un téléphone.
+- **Replié, la première rangée**, comme un rayon de Twitch : 1 à 5 sur grand
+  écran, comme avant ; 1 à 3, 1 à 2 ou la première seule quand la place
+  manque. Le pliage suit la largeur qui change.
+- **« Depuis le début » ne dépasse plus jamais sa carte** : au plus sa
+  largeur, le libellé abrégé plutôt que sorti ; son infobulle dit
+  toujours ce qu'il fait.
+- Le reste de l'accueil, mesuré aux mêmes largeurs, tenait déjà : rien ne sort
+  plus d'une carte ni d'un rayon, et la page ne défile plus de côté.
+
+### Le Top 15
+
+Demandé : « peux-tu aller jusqu'au Top 15 sur l'accueil ? ». Quinze places au
+lieu de dix — trois rangées pleines de cinq, cinq de trois —, prouvées comme
+avant : le classement en demande autant de plus que la liste des chaînes
+écartées en compte. Ce qui suivait le nombre suit : l'évolution sur trente
+minutes, « Nouveau » pour une chaîne hors du Top 15, les places dites
+ailleurs — « N°12 mondial », « N°14 en anglais » —, celle de la bannière.
+Les libellés dans les dix langues, le guide et les réglages du panneau, les
+fiches du Store.
+
+**Les chaînes écartées : quinze au plus**, et non plus vingt. Le nombre n'est
+pas choisi : le Top se prouve sur la réponse du tag de langue, qui porte
+trente chaînes. Une liste plus longue, enregistrée avant, garde ses quinze
+premières.
+
+### « À la une » sans trou
+
+Signalé, capture à l'appui : « de temps en temps, "À la une" manque un live
+[…] il faut à tout prix un live s'il en manque un et que ce n'est pas
+symétrique ». Une carte au centre, une à sa gauche, deux à sa droite. Une
+chaîne du carrousel ne se montrait pas : celle de la bannière, déjà juste
+au-dessus ; une chaîne que Twitch dit hors ligne ; une réponse qui ne vient
+pas. Ou le carrousel n'en portait que quatre. Un rechargement le faisait
+souvent disparaître : la chaîne de la bannière, ou celle qui était hors
+ligne, n'était plus la même.
+
+- **Une place par chaîne du carrousel, et un nombre impair.** La place d'une
+  chaîne qui ne peut pas se montrer est comblée par un autre direct, à
+  l'endroit même du trou ; un carrousel pair reçoit une place de plus.
+- **Le direct qui comble** vient de ce que l'accueil sait déjà, rien de
+  deviné : le classement du Top, puis vos chaînes suivies en direct. Il doit
+  être en direct d'après TseChannels ; une chaîne déjà à l'écran n'est pas
+  reprise.
+- **Il garde sa place** tant qu'il est en direct, même si le classement
+  change : pas une carte remplacée à chaque peinture. Sa place à lui — celle
+  de la chaîne qu'il remplace — : un trou qui s'ouvre plus tôt dans la boucle
+  ne le déplace pas. Quand la chaîne du carrousel revient, elle reprend sa
+  place, et il s'en va.
+- **Une réponse attendue n'est pas un trou** pendant les huit premières
+  secondes : sa chaîne viendra prendre sa place.
+- **Sans direct à mettre**, le trou reste : rien n'est inventé.
+
+Le rapport dit, sous `accueil.une`, combien de places manquaient, combien ont
+été comblées, et pourquoi chacune manquait — la bannière, une chaîne hors
+ligne, une réponse qui n'est pas venue, un carrousel pair. Si un trou se
+revoit, un rapport exporté dira lequel.
+
+### Le banc
+
+- **238, nouveau** : sept largeurs, de 1 920 à 375. Les colonnes que la liste
+  tient, cinq au plus, une sur téléphone ; les quatorze pixels des rayons ;
+  les quinze places en rangées pleines, aucun nom coupé ; rien hors de sa
+  carte ni de son rayon, et la page jamais en défilement de côté ;
+  « Depuis le début » dans sa carte ; replié, la première rangée seule.
+- **239, nouveau** : la place de la bannière comblée, à sa place, par le
+  premier du Top en direct — une chaîne du classement hors ligne sautée ; le
+  direct qui comble qui garde sa place quand le classement change ; un trou
+  qui s'ouvre plus tôt dans la boucle, comblé du Top avant les suivies, sans
+  déplacer le premier ; la chaîne revenue qui reprend sa place ; sans Top en
+  direct, une suivie ; un carrousel de quatre porté à cinq, sans y reprendre
+  la bannière ; et, sans direct à mettre, le trou qui reste.
+- **Le banc entier à quinze places** : le jeu d'essai du Top passe à
+  dix-huit chaînes inventées. 217 vérifie le trou de la bannière comblé, et
+  le Top qui suit la largeur — il vérifiait jusqu'ici cinq places à toutes les
+  tailles. 216 posait la bannière troisième du classement à 34 000
+  spectateurs, quand la lecture en direct en disait 2 310 : la plus fraîche
+  la faisait tomber quelques secondes plus tard, et le banc lisait la place
+  dans l'instant d'avant. Elle est désormais à la place que ses spectateurs
+  lui donnent. 233 ajoute cinq chaînes sans langue au monde, pour qu'une
+  chaîne hors du Top 15 mondial dise encore sa place française.
+
+**Treize mutants nommés, treize pris.**
+
+| mutant | ce qui échoue |
+| --- | --- |
+| le Top à cinq colonnes fixes | 238 : tout — a) à e), et les écarts |
+| le Top sans plafond de cinq colonnes | 217 : à 2 560 pixels, plus de cinq places par rangée |
+| le Top à seize pixels d'écart | 238 a), e) et les écarts |
+| « Depuis le début » sans borne de largeur | 238 d) |
+| le Top ramené à dix places | 238 b) |
+| le trou laissé | 239 a), b), c), c bis), d) |
+| le direct qui comble posé au bout | 239 c) |
+| une chaîne prise sans être en direct | 239 a), c), c bis) |
+| le carrousel pair laissé pair | 239 d) |
+| le direct qui comble changé à chaque peinture | 239 b), c) |
+| les directs redistribués dans l'ordre des trous | 239 c) |
+| les suivies avant le Top | 239 c) |
+| la bannière reprise | 239 d) |
+
+`npm run check` est vert : 238 scénarios, 2429 assertions.
+
 ## La barre glisse, et un rendez-vous manqué quitte l'accueil (v4.33.0.12)
 
 ### La barre qui glisse
@@ -26482,13 +26598,13 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 2327 Ko | 1097 Ko | 4 857 → **2** |
+| `content.js` | 2333 Ko | 1101 Ko | 4 865 → **2** |
 | `cadres.js` | 76 Ko | 35 Ko | 171 → **0** |
 | `adblock.js` | 126 Ko | 101 Ko | 301 → **2** |
 | `panneau.js` | 168 Ko | 86 Ko | 233 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 26 → **0** |
 | `background.js` | 10 Ko | 2 Ko | 23 → **0** |
-| **les six** | **2721 Ko** | **1324 Ko** | **−51 %** |
+| **les six** | **2727 Ko** | **1329 Ko** | **−51 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se

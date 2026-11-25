@@ -17558,7 +17558,7 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
      10 » coupé, accueil rallumé, ne grise que la langue du Top et ses chaînes
      écartées (4.32.0.4). Mutants — la
      ligne grisée par le seul premier parent de `sous` (la langue du Top reste
-     vive sous « Top 10 » coupé) ; le titre qui nomme l'identifiant au lieu du
+     vive sous « Top 15 » coupé) ; le titre qui nomme l'identifiant au lieu du
      libellé (« accueil »). */
   const grises = () => page.evaluate(() => Object.fromEntries([...document.querySelectorAll('#reglages .reg-ligne--sans-effet')]
     .map((l) => [l.dataset.reg, l.title])));
@@ -17582,9 +17582,9 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
   await page.evaluate(() => document.querySelector('#reglages [data-reg="accueilTop"] input').click());
   await attendre(page, () => document.querySelectorAll('#reglages .reg-ligne--sans-effet').length > 0, 4000);
   const g2 = await grises();
-  ok('« Top 10 » coupé, accueil allumé : seules la langue du Top et ses chaînes écartées se grisent',
-     JSON.stringify(g2) === JSON.stringify({ accueilTopLangue: 'Sans effet tant que « Top 10 » est coupé',
-                                             accueilTopEcartees: 'Sans effet tant que « Top 10 » est coupé' }), JSON.stringify(g2));
+  ok('« Top 15 » coupé, accueil allumé : seules la langue du Top et ses chaînes écartées se grisent',
+     JSON.stringify(g2) === JSON.stringify({ accueilTopLangue: 'Sans effet tant que « Top 15 » est coupé',
+                                             accueilTopEcartees: 'Sans effet tant que « Top 15 » est coupé' }), JSON.stringify(g2));
   await page.evaluate(() => document.querySelector('#reglages [data-reg="accueilTop"] input').click());
   await attendre(page, () => document.querySelectorAll('#reglages .reg-ligne--sans-effet').length === 0, 4000);
 
@@ -17607,7 +17607,7 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
   const l0 = await liste();
   ok('la liste des chaînes écartées : un champ, « Ajouter », aucune puce, la ligne non modifiée',
      l0.champ === '' && l0.actif && l0.bouton === 'Ajouter' && l0.puces.length === 0 && !l0.modifie
-     && l0.nom === 'Chaînes écartées du Top 10', JSON.stringify(l0));
+     && l0.nom === 'Chaînes écartées du Top 15', JSON.stringify(l0));
   /* L'IME (4.33.0.10) : Entrée qui CONFIRME une composition — japonais,
      chinois — n'ajoute rien ; c'est `isComposing` qui le dit (Modern Web
      Guidance, « ime-safe-enter-submit »). Mutant — le test ôté : « kestrel »
@@ -38785,7 +38785,7 @@ addEventListener('message', (e) => {
    trouve en ouvrant Twitch.
 
    Les chaînes sont inventées. Les suivies portent `__fx` (la barre les
-   interroge) ; le Top 10 vient de `__tagTop` (la voie du tag de Top
+   interroge) ; le Top 15 vient de `__tagTop` (la voie du tag de Top
    Chaînes) ; les archives du direct en cours, de `__accueilArchives`. */
 const RAYONS_ACCUEIL = [['Chaînes live qui pourraient vous plaire', ['aeltris', 'brenvik', 'xray', 'quebec']],
                         ['Juste à côté', ['lima', 'mike', 'oscar']]];
@@ -38798,9 +38798,15 @@ const SUIVIES_ACCUEIL = {
    dans l'ordre de la page (left-2, left-1, center, right-1, right-2). Aucun
    n'est suivi ; ils sont en direct, comme sur le vrai carrousel. */
 const UNE_ACCUEIL = ['solvane', 'orvik', 'tessaly', 'marbek', 'ilyan'];
-// Le Top 10 : douze chaînes, aucune suivie — leurs compteurs ne bougent donc que par le décor.
+/* Le Top : dix-huit chaînes inventées, aucune suivie — leurs compteurs ne
+   bougent donc que par le décor. Quinze places (4.33.0.13), et trois de plus
+   pour celles qu'un scénario écarte (cf. 227). Leurs audiences (cf.
+   plateauAccueil) : 40 000, puis 3 000 de moins à chaque rang jusqu'à la
+   treizième, 4 000 ; puis 1 300, et 100 de moins à chaque rang, jusqu'à 900.
+   Les douze premières sont celles du Top 10 d'avant, aux mêmes audiences. */
 const TOP_ACCUEIL = ['zephyr', 'aldric', 'mirelle', 'tavor', 'solenne', 'brune',
-                     'ildor', 'quill', 'ombre', 'faelan', 'gaspard', 'hestia'];
+                     'ildor', 'quill', 'ombre', 'faelan', 'gaspard', 'hestia',
+                     'iliane', 'jorvik', 'kaelis', 'lysandre', 'morwen', 'nolwenn'];
 /* LE LECTEUR DU HÉROS (4.26.0.2), servi à la vraie origine player.twitch.tv
    comme celui de l'aperçu (cf. 30) : l'anti-pub et le pont chargés dans
    l'ordre du manifeste, et une vraie vidéo — un canvas capturé — rouge à
@@ -38886,7 +38892,7 @@ const plateauAccueil = (page, { suivies = SUIVIES_ACCUEIL, top = TOP_ACCUEIL, ar
     for (const [l, x] of Object.entries(s)) window.__addCard(l, x.jeu, String(x.v));
     window.__cats = [{ name: 'Just Chatting', viewers: 400000 }, { name: 'VALORANT', viewers: 250000 }];
     window.__tagTop = { 'Français': t.map((l, i) => ({ login: l, nom: l.charAt(0).toUpperCase() + l.slice(1),
-                                                       viewers: 40000 - i * 3000, createdAt: h(30 + i * 7),
+                                                       viewers: Math.max(40000 - i * 3000, 2600 - i * 100), createdAt: h(30 + i * 7),
                                                        game: i % 2 ? 'Just Chatting' : 'VALORANT', tags: ['Français'] })) };
     // Les chaînes des rayons de Twitch sont en direct, comme sur le vrai accueil : l'aperçu a de quoi s'ouvrir.
     for (const [i, l] of ['aeltris', 'brenvik', 'xray', 'quebec'].entries()) {
@@ -38908,7 +38914,7 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
      autres scénarios. Rien ne doit s'y poser ni partir : c'est la garantie
      que les scénarios qui tournent à « / » — la plupart — ne voient pas ce
      module. Mutant — à défaut du défileur, le <body> — : la section se pose
-     en tête du faux Twitch, et le Top 10 part. */
+     en tête du faux Twitch, et le Top 15 part. */
   const nu = await ouvrirAccueil({ decor: false });
   await plateauAccueil(nu);
   await wait(nu, 2500);
@@ -39241,7 +39247,14 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
      à 2560, ce qui s'y pose a des marges, le héros non — et les rayons, eux,
      restent alignés dans la colonne. Mutant — le héros rendu à la section. */
   const pano = await ouvrirAccueil({ decor: { colonneMax: 1800 }, visites: { korbek: [1, 3] }, abos: { korbek: 14 } });
-  await plateauAccueil(pano, { top: ['zephyr', 'aldric', 'korbek', 'mirelle', 'tavor', 'solenne', 'brune', 'ildor', 'quill', 'ombre', 'faelan'] });
+  /* KORBEK À LA PLACE QUE SES SPECTATEURS LUI DONNENT (4.33.0.13). Il était
+     troisième du classement à 34 000, et 2 310 en direct : la lecture en
+     direct, plus fraîche, l'en faisait tomber quelques secondes plus tard —
+     onzième, hors du Top 10 —, et le banc lisait la place dans l'instant
+     d'avant. Ici, treizième à 4 000 dans le classement, et toujours
+     treizième à 2 310 : la place ne dépend plus de qui répond le premier. */
+  await plateauAccueil(pano, { top: ['zephyr', 'aldric', 'mirelle', 'tavor', 'solenne', 'brune', 'ildor', 'quill', 'ombre', 'faelan',
+                                     'gaspard', 'hestia', 'korbek', 'iliane', 'jorvik', 'kaelis'] });
   await attendre(pano, () => !!document.querySelector('#tse-accueil-heros .tse-acc-heros:not([hidden]) .tse-acc-heros-rang:not([hidden])'), 10_000);
   const mesurer = () => pano.evaluate(() => {
     const q = (sel) => document.querySelector('#tse-accueil-heros ' + sel);
@@ -39290,17 +39303,17 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
      && Math.abs(geo2.h - hauteurDue(geo2)) <= 1 && geo2.h > geo.h && geo2.mh === geo2.h && geo2.droite === 0, JSON.stringify(geo2));
   await pano.setViewportSize({ width: 1600, height: 1000 });
   /* CE QUE DIT LA LIGNE DU DESSOUS : la catégorie, l'audience, depuis quand,
-     et la place au Top 10 — que le classement exact de l'accueil donne, ici
-     la troisième. Mutant — la place lue avant que le Top 10 ne soit peint —
+     et la place au Top 15 — que le classement exact de l'accueil donne, ici
+     la treizième. Mutant — la place lue avant que le Top 15 ne soit peint —
      ne change rien qu'on voie : on éprouve la place, pas l'ordre. */
   const ligne = await pano.evaluate(() => ({
     meta: [...document.querySelectorAll('#tse-accueil-heros .tse-acc-heros-meta > span')].map((x) => (x.hidden ? null : x.textContent)),
     l1: [...document.querySelectorAll('#tse-accueil-heros .tse-acc-heros-l1 > span')].map((x) => x.textContent),
     abo: (() => { const a = document.querySelector('#tse-accueil-heros .tse-acc-heros-abo'); return a.hidden ? null : a.textContent; })(),
   }));
-  ok('…la ligne du direct, la catégorie dans la langue de Twitch : « Discussions · 2,3 k spectateurs · en direct depuis 42m · N°3 du Top 10 »',
+  ok('…la ligne du direct, la catégorie dans la langue de Twitch : « Discussions · 2,3 k spectateurs · en direct depuis 42m · N°13 du Top 15 »',
      ligne.meta[0] === 'Discussions' && nz(ligne.meta[1] || '') === '2,3 k spectateurs'
-     && /^en direct depuis 4\dm$/.test(ligne.meta[2] || '') && ligne.meta[3] === 'N°3 du Top 10'
+     && /^en direct depuis 4\dm$/.test(ligne.meta[2] || '') && ligne.meta[3] === 'N°13 du Top 15'
      && JSON.stringify(ligne.l1) === '["Live","Votre chaîne n°1 en direct"]', JSON.stringify(ligne));
   /* L'ANCIENNETÉ D'ABONNEMENT, connue, dans l'or de l'aperçu ; et elle suit
      le réglage du badge d'abonnement. Mutant — la règle CSS du badge
@@ -39760,7 +39773,7 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
 }
 
 {
-  titre('217. « À la une » et le Top 10 — les directs du carrousel, la langue de Twitch, un classement partagé, l\'évolution');
+  titre('217. « À la une » et le Top 15 — les directs du carrousel, la langue de Twitch, un classement partagé, l\'évolution');
   /* a) « À LA UNE » (4.32.0.3) — « retire "Vos chaînes suivies en direct",
      elle est de trop avec la barre sur le côté ; à la place, ajoute les
      streamers du carrousel ». Le faux carrousel pose ses cinq directs dans
@@ -39768,12 +39781,16 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
      solvane, orvik, tessaly, korbek, marbek. Le rayon prend l'ordre du
      carrousel : le centre, ce qui vient à sa droite, puis, en bout de
      boucle, ce qui est à sa gauche. Korbek, la bannière, n'y est pas deux
-     fois. Mutants — l'ordre de la page ; la bannière gardée dans le rayon. */
+     fois — ET SA PLACE N'EST PAS UN TROU (4.33.0.13, « il faut à tout prix un
+     live s'il en manque un et que ce n'est pas symétrique ») : un autre
+     direct la prend, le Top étant coupé ici, la première suivie en direct
+     après lui — nyxaria. Mutants — l'ordre de la page ; la bannière gardée
+     dans le rayon ; la place laissée vide. */
   const page = await ouvrirAccueil({ visites: { korbek: [1, 2, 3] },
                                     decor: { carrouselChaines: ['solvane', 'orvik', 'tessaly', 'korbek', 'marbek'] },
                                     options: { accueilTop: false, accueilDebut: false } });
   await plateauAccueil(page);
-  await attendre(page, () => document.querySelectorAll('#tse-accueil .tse-acc-rayon--une .tse-acc-carte').length === 4
+  await attendre(page, () => document.querySelectorAll('#tse-accueil .tse-acc-rayon--une .tse-acc-carte').length === 5
     && !!document.querySelector('#tse-accueil-heros .tse-acc-heros:not([hidden])'), 6000);
   /* L'ORDRE SE LIT DEPUIS LA CARTE DE TÊTE, vers la droite, en bouclant
      (4.33.0.1) : le ruban tourne pour garder sa carte du centre entourée,
@@ -39795,16 +39812,18 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
              rapport: window.tse.accueil.rapport().une };
   });
   const r1 = await rayon();
-  ok('« À la une » : les directs du carrousel, dans son ordre — le centre, sa droite, puis sa gauche —, sans la chaîne de la bannière',
-     JSON.stringify(r1.ordre) === '["tessaly","marbek","solvane","orvik"]' && r1.heros === 'korbek' && !r1.cache
-     && r1.titre === 'À la une' && r1.rapport.voie === 'places' && r1.rapport.lues === 5 && r1.rapport.montrees === 4, JSON.stringify(r1));
+  ok('« À la une » : les directs du carrousel, dans son ordre — le centre, sa droite, puis sa gauche —, sans la chaîne de la bannière, dont la place est comblée',
+     JSON.stringify(r1.ordre) === '["tessaly","nyxaria","marbek","solvane","orvik"]' && r1.heros === 'korbek' && !r1.cache
+     && r1.titre === 'À la une' && r1.rapport.voie === 'places' && r1.rapport.lues === 5 && r1.rapport.montrees === 5
+     && r1.rapport.trous === 1 && r1.rapport.comblees === 1
+     && JSON.stringify(r1.rapport.raisons) === '{"banniere":1,"horsLigne":0,"sansReponse":0,"pair":0}', JSON.stringify(r1));
   ok('…en tête de nos rayons, à la place de « Vos chaînes suivies en direct », qui n\'est plus',
      r1.premier && r1.suivis === 0, JSON.stringify({ premier: r1.premier, suivis: r1.suivis }));
   ok('…chaque carte dit le nom, le titre, la catégorie, l\'audience et la durée, comme la barre',
      r1.carte && r1.carte.href === '/tessaly' && r1.carte.nom === 'Tessaly' && r1.carte.titre === 'À la une tessaly'
      && r1.carte.jeu === 'Discussions' && nz(r1.carte.spect) === '7,6 k' && r1.carte.duree === '47m' && r1.carte.direct === 'Live',
      JSON.stringify(r1.carte));
-  /* b) CE QU'IL COÛTE : rien qu'une place dans le lot commun. Top 10 et
+  /* b) CE QU'IL COÛTE : rien qu'une place dans le lot commun. Top 15 et
      « Depuis le début » coupés, l'accueil ne demande rien d'autre ; les
      chaînes du carrousel, que la barre ne suit pas, sont entrées dans
      TseChannels. Mutant — une opération à part pour le rayon. */
@@ -39826,11 +39845,17 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
   });
   ok('le rayon se met à jour sans recréer ses cartes', meme.meme && nz(meme.spect) === '1,5 k', JSON.stringify(meme));
   /* UN DIRECT DU CARROUSEL QUI S'ARRÊTE quitte le rayon ; les autres restent,
-     dans leur ordre. Mutant — le cache lu sans regarder s'il y a un direct. */
+     dans leur ordre — et sa place se comble à son tour, de la suivie en
+     direct suivante, velmoria ; nyxaria garde la sienne. Mutants — le cache
+     lu sans regarder s'il y a un direct ; le direct qui comble changé à
+     chaque peinture. */
   await page.evaluate(() => { window.__fx.solvane = null; });
   await attendre(page, () => !document.querySelector('#tse-accueil .tse-acc-rayon--une [data-tse-cle="solvane"]'), 4000);
-  ok('…un direct qui s\'arrête quitte le rayon, les autres gardent leur ordre',
-     JSON.stringify((await rayon()).ordre) === '["tessaly","marbek","orvik"]');
+  await wait(page, 600);
+  const r2 = await rayon();
+  ok('…un direct qui s\'arrête quitte le rayon, les autres gardent leur ordre, et sa place se comble à son tour',
+     JSON.stringify(r2.ordre) === '["tessaly","nyxaria","marbek","velmoria","orvik"]'
+     && JSON.stringify(r2.rapport.raisons) === '{"banniere":1,"horsLigne":1,"sansReponse":0,"pair":0}', JSON.stringify(r2));
   /* c) LE CARROUSEL MONTRÉ, LE RAYON CACHÉ : « Comme Twitch », ce serait deux
      fois les mêmes directs, l'un sous l'autre. « Rien » masque le carrousel :
      le rayon revient — korbek avec lui, puisqu'il n'y a plus de bannière.
@@ -39843,9 +39868,9 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
   ok('« Comme Twitch » : le carrousel est là, le rayon se cache — pas deux fois les mêmes directs', c1.cache && c1.rapport.lues === 0,
      JSON.stringify(c1.rapport));
   await page.evaluate(() => window.tse.options.poser('accueilTete', 'rien'));
-  await attendre(page, () => document.querySelectorAll('#tse-accueil .tse-acc-rayon--une .tse-acc-carte').length === 4, 4000);
-  ok('« Rien » : le carrousel masqué, le rayon revient, la chaîne de la bannière à sa place dans l\'ordre du carrousel',
-     JSON.stringify((await rayon()).ordre) === '["tessaly","korbek","marbek","orvik"]'
+  await attendre(page, () => !!document.querySelector('#tse-accueil .tse-acc-rayon--une .tse-acc-carte[data-tse-cle="korbek"]'), 4000);
+  ok('« Rien » : le carrousel masqué, le rayon revient, la chaîne de la bannière à sa place dans l\'ordre du carrousel, et le direct qui comblait reste à la place de celui qui s\'est arrêté',
+     JSON.stringify((await rayon()).ordre) === '["tessaly","korbek","marbek","nyxaria","orvik"]'
      && await page.evaluate(() => document.getElementById('tse-accueil-heros')?.hidden === true));
   // Rayon coupé : il disparaît, le reste demeure.
   await page.evaluate(() => window.tse.options.poser('accueilUne', false));
@@ -39883,7 +39908,7 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
      JSON.stringify(e1.une));
   await tard.close();
   /* e') EN L'ATTENDANT, SA PLACE : une rangée de cartes vides, à la hauteur
-     des vraies — le Top 10 ne descend pas quand le rayon arrive. Mais pas
+     des vraies — le Top 15 ne descend pas quand le rayon arrive. Mais pas
      indéfiniment : sans carrousel, au bout du délai (quatre secondes au
      banc, huit en vrai), elle s'en va. Mutants — la place jamais gardée ; la
      place gardée sans fin. */
@@ -39906,11 +39931,12 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
   ok('…et sans carrousel, la place s\'en va au bout du délai', fin.cache && fin.r.reserve === false, JSON.stringify(fin));
   await sansCar.close();
 
-  /* f) LE TOP 10 DANS LA LANGUE DE TWITCH : <html lang="fr">, donc le tag
-     « Français », la voie du tag, dix places sur douze, en grands chiffres. */
+  /* f) LE TOP 15 DANS LA LANGUE DE TWITCH : <html lang="fr">, donc le tag
+     « Français », la voie du tag, quinze places sur dix-sept, en grands
+     chiffres. */
   const top = await ouvrirAccueil({ options: { accueilDebut: false, accueilUne: false, accueilTete: 'twitch' } });
   await plateauAccueil(top, { suivies: {} });
-  await attendre(top, () => document.querySelectorAll('#tse-accueil .tse-acc-place').length === 10, 10_000);
+  await attendre(top, () => document.querySelectorAll('#tse-accueil .tse-acc-place').length === 15, 10_000);
   const lireTop = () => top.evaluate(() => {
     const z = document.querySelector('#tse-accueil .tse-acc-rayon--top');
     return { titre: z.querySelector('.tse-acc-titre span').textContent, langue: z.querySelector('.tse-acc-langue').textContent,
@@ -39924,25 +39950,26 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
   });
   const t1 = await lireTop();
   const rt = await rapportAccueil(top);
-  ok('le Top 10 suit la langue de Twitch : « Français », drapeau compris', t1.titre === 'Top 10' && t1.langue === 'Français'
+  ok('le Top 15 suit la langue de Twitch : « Français », drapeau compris', t1.titre === 'Top 15' && t1.langue === 'Français'
      && t1.drapeau && rt.top.langue === 'Français' && rt.top.classement.worldLang === 'Français', JSON.stringify({ t1, lang: rt.top }));
-  ok('…dix places sur douze, dans l\'ordre du classement, numérotées en grand',
-     JSON.stringify(t1.places) === JSON.stringify(TOP_ACCUEIL.slice(0, 10))
-     && t1.rangs.join(',') === '1,2,3,4,5,6,7,8,9,10' && t1.aria === 'Place 1 : Zephyr', JSON.stringify(t1));
+  ok('…quinze places sur dix-sept, dans l\'ordre du classement, numérotées en grand',
+     JSON.stringify(t1.places) === JSON.stringify(TOP_ACCUEIL.slice(0, 15))
+     && t1.rangs.join(',') === '1,2,3,4,5,6,7,8,9,10,11,12,13,14,15' && t1.aria === 'Place 1 : Zephyr', JSON.stringify(t1));
   ok('…servi par son propre classement, par la voie du tag', rt.top.source === 'accueil' && rt.top.classement.tags.servis >= 1,
      JSON.stringify({ source: rt.top.source, tags: rt.top.classement.tags }));
   // Avant deux minutes (1,5 s au banc) : aucune flèche, rien à comparer.
   ok('…et pas encore de flèche : la référence est trop jeune', t1.evol.every((e) => e === null), JSON.stringify(t1.evol));
 
-  /* g) L'ÉVOLUTION : Tavor passe de la 4e à la 2e place, Hestia (12e) entre
-     dans le Top 10, Zephyr ne bouge pas. Mutants — une flèche sur un rang
-     inconnu (Hestia comptée onzième : « ▲ 6 »), le sens inversé. */
+  /* g) L'ÉVOLUTION : Tavor passe de la 4e à la 2e place, Morwen (17e) entre
+     dans le Top 15, Zephyr ne bouge pas. Mutants — une flèche sur un rang
+     inconnu (Morwen comptée seizième : « ▲ 11 »), le sens inversé. */
   await wait(top, 1800);
   await top.evaluate(() => {
     const h = (m) => new Date(Date.now() - m * 60_000).toISOString();
-    const ordre = ['zephyr', 'tavor', 'aldric', 'mirelle', 'hestia', 'solenne', 'brune', 'ildor', 'quill', 'ombre', 'faelan', 'gaspard'];
+    const ordre = ['zephyr', 'tavor', 'aldric', 'mirelle', 'morwen', 'solenne', 'brune', 'ildor', 'quill', 'ombre', 'faelan', 'gaspard',
+                   'hestia', 'iliane', 'jorvik', 'kaelis', 'lysandre'];
     window.__tagTop['Français'] = ordre.map((l, i) => ({ login: l, nom: l.charAt(0).toUpperCase() + l.slice(1),
-                                                       viewers: 40000 - i * 3000, createdAt: h(30 + i * 7),
+                                                       viewers: Math.max(40000 - i * 3000, 2600 - i * 100), createdAt: h(30 + i * 7),
                                                        game: 'VALORANT', tags: ['Français'] }));
   });
   await attendre(top, () => document.querySelector('#tse-accueil .tse-acc-place:nth-child(2)')?.dataset.tseCle === 'tavor'
@@ -39952,15 +39979,15 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
   ok('l\'évolution sur la période : Tavor ▲ 2, Zephyr à sa place', ev('tavor')?.t === '▲ 2' && ev('tavor')?.c === 'hausse'
      && /^2 places gagnées en \d+ min$/.test(ev('tavor')?.titre || '') && ev('zephyr')?.t === '=' && ev('zephyr')?.c === 'stable',
      JSON.stringify({ tavor: ev('tavor'), zephyr: ev('zephyr') }));
-  ok('…Aldric ▼ 1, et Hestia, absente du Top 10, « Nouveau » plutôt qu\'un rang inventé',
-     ev('aldric')?.t === '▼ 1' && ev('aldric')?.c === 'baisse' && ev('hestia')?.t === 'Nouveau' && ev('hestia')?.c === 'nouveau'
-     && /^Hors du Top 10 il y a \d+ min$/.test(ev('hestia')?.titre || ''), JSON.stringify({ aldric: ev('aldric'), hestia: ev('hestia') }));
-  ok('…les cartes ont suivi leur chaîne, et rien n\'a été recréé pour rien', t2.places.length === 10 && t2.places[4] === 'hestia');
+  ok('…Aldric ▼ 1, et Morwen, absente du Top 15, « Nouveau » plutôt qu\'un rang inventé',
+     ev('aldric')?.t === '▼ 1' && ev('aldric')?.c === 'baisse' && ev('morwen')?.t === 'Nouveau' && ev('morwen')?.c === 'nouveau'
+     && /^Hors du Top 15 il y a \d+ min$/.test(ev('morwen')?.titre || ''), JSON.stringify({ aldric: ev('aldric'), morwen: ev('morwen') }));
+  ok('…les cartes ont suivi leur chaîne, et rien n\'a été recréé pour rien', t2.places.length === 15 && t2.places[4] === 'morwen');
   /* « JUSTE À DROITE DU PSEUDO » (4.26.0.2) : l'évolution, et « Nouveau »
      avec elle, était posée sous le chiffre, dans la marge de la carte —
      « mal placée ». Elle partage maintenant la ligne du nom. Mutant —
      l'évolution rendue au pied du chiffre. */
-  const placeEvol = await top.evaluate(() => Object.fromEntries(['tavor', 'hestia'].map((l) => {
+  const placeEvol = await top.evaluate(() => Object.fromEntries(['tavor', 'morwen'].map((l) => {
     const p = document.querySelector(`#tse-accueil .tse-acc-place[data-tse-cle="${l}"]`);
     const e = p.querySelector('.tse-acc-evol'), n = p.querySelector('.tse-acc-nom');
     const re = e.getBoundingClientRect(), rn = n.getBoundingClientRect(), rc = p.querySelector('.tse-acc-carte').getBoundingClientRect();
@@ -39969,7 +39996,7 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
       dedans: re.right <= rc.right + 0.5 }];
   })));
   ok('…l\'évolution et « Nouveau » se lisent juste à droite du nom, sur sa ligne',
-     ['tavor', 'hestia'].every((l) => placeEvol[l].ligne === 'tse-acc-nom-ligne' && placeEvol[l].avant)
+     ['tavor', 'morwen'].every((l) => placeEvol[l].ligne === 'tse-acc-nom-ligne' && placeEvol[l].avant)
      && placeEvol.tavor.vu && placeEvol.tavor.ecart >= 4 && placeEvol.tavor.ecart <= 12 && Math.abs(placeEvol.tavor.dy) <= 2
      && placeEvol.tavor.dedans, JSON.stringify(placeEvol));
 
@@ -39994,7 +40021,7 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
      JSON.stringify({ source: rt3.top.source, avant: marchesAvant, apres: rt3.top.classement.walks }));
   await top.evaluate(() => window.tse.options.poser('accueilTop', false));
   await attendre(top, () => document.querySelector('#tse-accueil .tse-acc-rayon--top')?.hidden, 3000);
-  ok('Top 10 coupé : le rayon disparaît', await top.evaluate(() => document.querySelector('#tse-accueil .tse-acc-rayon--top').hidden
+  ok('Top 15 coupé : le rayon disparaît', await top.evaluate(() => document.querySelector('#tse-accueil .tse-acc-rayon--top').hidden
     || !document.getElementById('tse-accueil') || document.getElementById('tse-accueil').hidden));
   await top.close();
 
@@ -40024,7 +40051,7 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
      /^Classement partiel/.test(p1.note || '') && p1.fleches === 0 && p1.instantanes === 0, JSON.stringify(p1));
   await partiel.evaluate((t) => {
     window.__cats = [{ name: 'Just Chatting', viewers: 900000,
-                       streams: t.map((l, i) => ({ login: l, viewers: 40000 - i * 3000 })) }];
+                       streams: t.map((l, i) => ({ login: l, viewers: Math.max(40000 - i * 3000, 2600 - i * 100) })) }];
   }, TOP_ACCUEIL);
   await attendre(partiel, () => document.querySelector('#tse-accueil .tse-acc-note').hidden, 15_000);
   const p2 = await lirePartiel();
@@ -40043,7 +40070,7 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
      change pas. */
   const rang = await ouvrirAccueil({ options: { accueilDebut: false, accueilUne: false, accueilTete: 'twitch' } });
   await plateauAccueil(rang, { suivies: {} });
-  await attendre(rang, () => document.querySelectorAll('#tse-accueil .tse-acc-place').length === 10
+  await attendre(rang, () => document.querySelectorAll('#tse-accueil .tse-acc-place').length === 15
     && !document.querySelector('#tse-accueil .tse-acc-rayon--top .tse-acc-plus').hidden, 10_000);
   const lireRang = () => rang.evaluate(() => {
     const z = document.querySelector('#tse-accueil .tse-acc-rayon--top');
@@ -40054,7 +40081,7 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
     const vues = places.filter((p) => !p.hidden);
     const b = z.querySelector('.tse-acc-plus');
     const pied = z.querySelector('.tse-acc-pied');
-    return { cols, vues: vues.map((p) => p.dataset.tseCle), cachees: places.filter((p) => p.hidden).length,
+    return { cols, lw: lr.width, vues: vues.map((p) => p.dataset.tseCle), cachees: places.filter((p) => p.hidden).length,
              coupees: vues.filter((p) => { const r = p.getBoundingClientRect(); return r.left < lr.left - 0.5 || r.right > lr.right + 0.5; }).length,
              deborde: liste.scrollWidth > liste.clientWidth + 1,
              lignes: [...new Set(vues.map((p) => Math.round(p.getBoundingClientRect().top)))].length,
@@ -40066,19 +40093,21 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
              chiffres: vues.map((p) => { const c = p.querySelector('.tse-acc-rang').getBoundingClientRect();
                const v = p.querySelector('.tse-acc-vignette').getBoundingClientRect();
                return Math.abs(c.height - v.height) <= 1 && Math.abs(c.bottom - v.bottom) <= 1; }).every(Boolean),
-             double: places[9]?.querySelector('.tse-acc-rang').classList.contains('tse-acc-rang--double'),
+             double: [9, 14].every((i) => places[i]?.querySelector('.tse-acc-rang').classList.contains('tse-acc-rang--double')),
              // Ce que le chiffre dessine au-delà du bord gauche de sa place (px) : rien, ou il mord sur la voisine.
              mord: Math.max(0, ...vues.map((p) => { const rg = document.createRange();
                rg.selectNodeContents(p.querySelector('.tse-acc-rang'));
                return Math.round((p.getBoundingClientRect().left - rg.getBoundingClientRect().left) * 10) / 10; })) };
   });
-  /* CINQ PLACES PAR RANGÉE, À TOUTES LES TAILLES (4.26.0.3) : « la taille
-     de liste de base doit être de 5 » — à 2560, la grille en alignait six.
-     Mutant — la grille rendue à la largeur — : six ou sept à 2560 (cf. plus
-     bas). */
+  /* CINQ PLACES PAR RANGÉE AU PLUS (4.26.0.3) : « la taille de liste de
+     base doit être de 5 » — à 2560, la grille en alignait six ; ET MOINS
+     QUAND LA LARGEUR NE LES TIENT PAS (4.33.0.13, « le top 10 n'est pas
+     responsive ») : la grille des autres rayons, une place de 290 pixels au
+     moins (cf. plus bas). À 1600, cinq. Mutants — six ou sept à 2560 ;
+     cinq à toutes les largeurs (cf. plus bas). */
   const h1 = await lireRang();
-  ok('le Top 10 tient dans la largeur : une rangée de cinq places entières, aucune coupée au bord',
-     h1.cols === 5 && h1.vues.length === 5 && h1.cachees === 5 && h1.coupees === 0
+  ok('le Top 15 tient dans la largeur : une rangée de cinq places entières, aucune coupée au bord',
+     h1.cols === 5 && h1.vues.length === 5 && h1.cachees === 10 && h1.coupees === 0
      && !h1.deborde && h1.lignes === 1 && JSON.stringify(h1.vues) === JSON.stringify(TOP_ACCUEIL.slice(0, 5)), JSON.stringify(h1));
   /* LE PIED DE TWITCH, ET LUI SEUL : pas de filet au-dessus du premier rayon
      (4.26.0.3, « retire-le » — sous le héros, il le coupait de la liste) ;
@@ -40098,20 +40127,23 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
     return c;
   });
   ok('…et le violet des liens de Twitch quand la page le donne', violetTwitch === 'rgb(169, 112, 255)', violetTwitch);
-  ok('…et chaque chiffre a la hauteur de sa vignette, « 10 » resserré', h1.chiffres && h1.double, JSON.stringify(h1));
+  ok('…et chaque chiffre a la hauteur de sa vignette, « 10 » à « 15 » resserrés', h1.chiffres && h1.double, JSON.stringify(h1));
   await rang.evaluate(() => document.querySelector('#tse-accueil .tse-acc-rayon--top .tse-acc-plus').click());
   const h2 = await lireRang();
-  ok('« Afficher tout » : les dix places, en rangées sous la première, et « Afficher moins »',
-     h2.vues.length === 10 && h2.cachees === 0 && h2.coupees === 0 && h2.lignes === Math.ceil(10 / h2.cols)
+  ok('« Afficher tout » : les quinze places, en rangées sous la première, et « Afficher moins »',
+     h2.vues.length === 15 && h2.cachees === 0 && h2.coupees === 0 && h2.lignes === Math.ceil(15 / h2.cols)
      && h2.bouton?.texte === 'Afficher moins' && h2.bouton?.ouvert === 'true', JSON.stringify(h2));
   await wait(rang, 600);   // plusieurs peintures : le rayon reste déplié
-  ok('…et le rayon reste déplié d\'une peinture à l\'autre', (await lireRang()).vues.length === 10);
+  ok('…et le rayon reste déplié d\'une peinture à l\'autre', (await lireRang()).vues.length === 15);
   await rang.evaluate(() => document.querySelector('#tse-accueil .tse-acc-rayon--top .tse-acc-plus').click());
   const h3 = await lireRang();
   ok('« Afficher moins » : de nouveau une rangée', h3.vues.length === h3.cols && h3.bouton?.texte === 'Afficher tout',
      JSON.stringify(h3));
-  /* LA LARGEUR CHANGE, LA RANGÉE RESTE À CINQ : à 1100 comme à 2560 px,
-     cinq places entières, le chiffre toujours à la hauteur de sa vignette. */
+  /* LA LARGEUR CHANGE, LA RANGÉE AUSSI (4.33.0.13) : à 2560 px, cinq places ;
+     à 1100, ce qu'en tient la liste — des places de 290 pixels au moins,
+     quatorze d'écart, comme les autres rayons —, entières, le chiffre
+     toujours à la hauteur de sa vignette. La rangée de cinq à toutes les
+     largeurs, c'était des places de 179 pixels à 1 024, et des noms coupés. */
   const largeurTop = () => rang.evaluate(() => Math.round(document.querySelector('#tse-accueil .tse-acc-rayon--top .tse-acc-liste').getBoundingClientRect().width));
   const l1 = await largeurTop();
   await rang.setViewportSize({ width: 1100, height: 900 });
@@ -40130,15 +40162,17 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
   await attendre(rang, (l) => Math.round(document.querySelector('#tse-accueil .tse-acc-rayon--top .tse-acc-liste').getBoundingClientRect().width) > l + 600, 4000, l1);
   await wait(rang, 300);
   const h5 = await deuxEtats();
-  /* « 10 » RESSERRÉ, À TOUTES LES TAILLES : deux chiffres à la hauteur de la
-     vignette dépasseraient la place par la gauche et mordraient sur la
-     voisine. Mutant — « 10 » à la taille d'un chiffre seul. */
-  ok('à 1100 comme à 2560 px, toujours cinq places par rangée, entières, le chiffre à la hauteur de sa vignette, sans mordre sur la voisine',
-     [h4.replie, h5.replie].every((h) => h.cols === 5 && h.vues.length === 5 && h.coupees === 0 && !h.deborde && h.chiffres)
-     && [h2, h4.deplie, h5.deplie].every((h) => h.cols === 5 && h.vues.length === 10 && h.lignes === 2 && h.coupees === 0
+  /* « 10 » À « 15 » RESSERRÉS, À TOUTES LES TAILLES : deux chiffres à la
+     hauteur de la vignette dépasseraient la place par la gauche et
+     mordraient sur la voisine. Mutant — deux chiffres à la taille d'un seul. */
+  const voulues = (lw) => Math.min(5, Math.max(1, Math.floor((lw + 14) / (290 + 14))));
+  ok('à 1100 px, les places que la largeur tient, à 2560 cinq ; entières, le chiffre à la hauteur de sa vignette, sans mordre sur la voisine',
+     h4.replie.cols === voulues(h4.replie.lw) && h4.replie.cols < 5 && h5.replie.cols === 5
+     && [h4.replie, h5.replie].every((h) => h.vues.length === h.cols && h.coupees === 0 && !h.deborde && h.chiffres)
+     && [h2, h4.deplie, h5.deplie].every((h) => h.vues.length === 15 && h.lignes === Math.ceil(15 / h.cols) && h.coupees === 0
        && h.chiffres && h.mord === 0),
-     JSON.stringify({ h2: [h2.mord], h4: [h4.replie.cols, h4.replie.vues.length, h4.replie.coupees, h4.replie.chiffres, h4.deplie.lignes, h4.deplie.mord],
-                      h5: [h5.replie.cols, h5.replie.vues.length, h5.replie.coupees, h5.replie.chiffres, h5.deplie.lignes, h5.deplie.mord] }));
+     JSON.stringify({ h2: [h2.mord], h4: [h4.replie.lw, h4.replie.cols, h4.replie.vues.length, h4.replie.coupees, h4.replie.chiffres, h4.deplie.lignes, h4.deplie.mord],
+                      h5: [h5.replie.lw, h5.replie.cols, h5.replie.vues.length, h5.replie.coupees, h5.replie.chiffres, h5.deplie.lignes, h5.deplie.mord] }));
   await rang.close();
 
   /* l) « À LA UNE » EN RUBAN (4.32.0.4, cf. 229) : ses cinq directs sur une
@@ -40150,7 +40184,7 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
   await plateauAccueil(ray);
   await ray.setViewportSize({ width: 1200, height: 900 });
   await attendre(ray, () => document.querySelectorAll('#tse-accueil .tse-acc-rayon--une .tse-acc-carte').length === 5
-    && document.querySelectorAll('#tse-accueil .tse-acc-place').length === 10, 10_000);
+    && document.querySelectorAll('#tse-accueil .tse-acc-place').length === 15, 10_000);
   await wait(ray, 400);
   const u1 = await ray.evaluate(() => {
     const z = document.querySelector('#tse-accueil .tse-acc-rayon--une'), t = document.querySelector('#tse-accueil .tse-acc-rayon--top');
@@ -40236,7 +40270,7 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
   /* DE FOND (4.33.0.10) : « Depuis le début » est un complément que rien
      n'attend à l'écran — ses demandes et ses jetons partent en priorité
      basse (Modern Web Guidance, « deprioritize-background-fetches ») ; le
-     Top 10 de la même page, non. Mutant — `{ fond: true }` ôté. */
+     Top 15 de la même page, non. Mutant — `{ fond: true }` ôté. */
   const prios218 = await page.evaluate(() => {
     const de = (re) => window.__calls.filter((c) => c.names.some((n) => re.test(n))).map((c) => c.prio);
     return { debut: de(/^TseAccueilDebut$/), acces: de(/^TseAccueilAcces$/), cartes: de(/^TseChannels$/) };
@@ -40258,7 +40292,7 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
      hauteurs.nyxaria === hauteurs.velmoria && hauteurs.nyxaria > 0, JSON.stringify(hauteurs));
   /* LA MÉMOIRE SE VIDE DE CE QUI N'EST PLUS À L'ÉCRAN (4.26.0.5). Une réponse
      par direct affiché, gardée pour ne pas la redemander — mais rien n'en
-     sortait, et le Top 10 change toute la journée. Velmoria s'arrête : sa
+     sortait, et le Top 15 change toute la journée. Velmoria s'arrête : sa
      réponse s'oublie une demi-heure plus tard (trois secondes au banc).
      Mutant — rien n'est oublié. */
   const connus0 = (await rapportAccueil(page)).debut.connus;
@@ -40299,22 +40333,22 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
      JSON.stringify(ba));
   await abo.close();
 
-  /* PAR LOTS DE QUINZE : seize directs à l'écran — la bannière, les cinq à
-     la une, les dix du Top 10 —, et le faux Twitch refuse tout envoi de plus
-     de quinze alias, comme le vrai. Mutant — le lot à vingt-cinq — : tout est
-     refusé, aucun bouton. */
+  /* PAR LOTS DE QUINZE : vingt et un directs à l'écran — la bannière, les
+     cinq à la une, les quinze du Top 15 —, et le faux Twitch refuse tout
+     envoi de plus de quinze alias, comme le vrai. Mutant — le lot à
+     vingt-cinq — : tout est refusé, aucun bouton. */
   const seize = ['korbek', ...UNE_ACCUEIL, ...TOP_ACCUEIL];
   const lots = await ouvrirAccueil({ visites: { korbek: [1] }, options: { accueilDebut: false } });
   await plateauAccueil(lots, { archives: Object.fromEntries(seize.map((l, i) => [l, { id: String(500 + i) }])) });
   // Les seize à l'écran d'abord, « Depuis le début » ensuite : ils sont demandés à la même peinture.
   await attendre(lots, () => document.querySelectorAll('#tse-accueil .tse-acc-rayon--une .tse-acc-carte').length === 5
-    && document.querySelectorAll('#tse-accueil .tse-acc-place:not(.tse-acc-place--attente)').length === 10, 10_000);
+    && document.querySelectorAll('#tse-accueil .tse-acc-place:not(.tse-acc-place--attente)').length === 15, 10_000);
   await lots.evaluate(() => window.tse.options.poser('accueilDebut', true));
   const BOUTONS_VUS = '#tse-accueil .tse-acc-debut:not([hidden]):not([data-tse-reserve]), #tse-accueil-heros .tse-acc-debut:not([hidden]):not([data-tse-reserve])';
-  await attendre(lots, (sel) => document.querySelectorAll(sel).length === 16, 10_000, BOUTONS_VUS);
+  await attendre(lots, (sel) => document.querySelectorAll(sel).length === 21, 10_000, BOUTONS_VUS);
   const dl = await lots.evaluate(() => window.__accueilDemandes || []);
-  ok('seize directs : deux envois de quinze au plus, chacun demandé une fois', dl.length === 2 && dl.every((d) => d.length <= 15)
-     && new Set(dl.flat()).size === 16 && dl.flat().length === 16, JSON.stringify(dl.map((d) => d.length)));
+  ok('vingt et un directs : deux envois de quinze au plus, chacun demandé une fois', dl.length === 2 && dl.every((d) => d.length <= 15)
+     && new Set(dl.flat()).size === 21 && dl.flat().length === 21, JSON.stringify(dl.map((d) => d.length)));
   await lots.close();
 
   /* TROIS REFUS DE FORME, ET LA VOIE SE TAIT POUR LA SESSION — une pause
@@ -40481,7 +40515,7 @@ async function ouvrirDemblee({ decor = {}, visites = { korbek: [1, 3] }, suivies
     depart: {
       __fx: fx, __retardOp: retard,
       __tagTop: { 'Français': top.map((l, i) => ({ login: l, nom: l.charAt(0).toUpperCase() + l.slice(1),
-        viewers: 40000 - i * 3000, createdAt: h(30 + i * 7), game: i % 2 ? 'Just Chatting' : 'VALORANT', tags: ['Français'] })) },
+        viewers: Math.max(40000 - i * 3000, 2600 - i * 100), createdAt: h(30 + i * 7), game: i % 2 ? 'Just Chatting' : 'VALORANT', tags: ['Français'] })) },
       __cats: [{ name: 'Just Chatting', viewers: 400000 }, { name: 'VALORANT', viewers: 250000 }],
     },
   };
@@ -40618,9 +40652,9 @@ const lireImages = (page) => page.evaluate(() => {
      apres.remplace && apres.parDonnees >= 1, JSON.stringify(apres));
   await c.close();
 
-  /* d) LE TOP 10 EN ATTENTE DE SON CLASSEMENT : ses cinq premières places,
+  /* d) LE TOP 15 EN ATTENTE DE SON CLASSEMENT : ses cinq premières places,
      vides, à leur taille exacte. Les places arrivent sans que le rayon change
-     de hauteur — le bouton « Afficher tout » compris, que dix places pour
+     de hauteur — le bouton « Afficher tout » compris, que quinze places pour
      cinq colonnes font paraître —, et les rayons de Twitch, dessous, ne
      bougent pas. Avec « Depuis le début », qui garde sa place. Mutants — pas
      de places en attente ; le pied sans sa hauteur. */
@@ -40629,7 +40663,7 @@ const lireImages = (page) => page.evaluate(() => {
   await attendre(d, () => window.__images.some((x) => x.places >= 5), 12_000);
   await wait(d, 1500);
   const id = await lireImages(d);
-  ok('le Top 10 en attente : cinq places vides, puis les vraies, et le rayon garde sa hauteur au pixel',
+  ok('le Top 15 en attente : cinq places vides, puis les vraies, et le rayon garde sa hauteur au pixel',
      id.attente > 5 && id.places >= 5 && id.hauteursTop.length === 1 && id.decalage !== null && id.decalage < 0.005,
      JSON.stringify({ attente: id.attente, places: id.places, h: id.hauteursTop, d: id.decalage, s: id.sources }));
   await d.close();
@@ -41158,9 +41192,9 @@ const lireImages = (page) => page.evaluate(() => {
                  ne dit quand il était là avant — pas de « De retour » ;
        mica    — son direct d'avant a fini il y a trois jours : pas assez.
      Nos cartes (4.32.0.3) : les huit premières à la une — le carrousel les
-     porte —, ilot, lys et mica au Top 10, septième, huitième et neuvième :
+     porte —, ilot, lys et mica au Top 15, septième, huitième et neuvième :
      leur audience, que TseChannels verse au classement, les y tient.
-     Les rayons de Twitch : aeltris est troisième du Top 10, xray et quebec
+     Les rayons de Twitch : aeltris est troisième du Top 15, xray et quebec
      viennent de commencer — sur quebec, une autre extension a déjà posé son
      badge en bas à droite —, brenvik n'a rien, et zulu, tout en bas, n'est
      jamais à l'écran. */
@@ -41205,7 +41239,7 @@ const lireImages = (page) => page.evaluate(() => {
       { id: '7008', login: 'houle', viewers: 2000, combined: 2600 },
       { id: '7010', login: 'iode', viewers: 400, combined: 2600 },
       { id: '7011', login: 'jais', viewers: 200, combined: 2600 }] } };
-    /* aeltris, troisième du Top 10 : sa carte de Twitch dit la même audience
+    /* aeltris, troisième du Top 15 : sa carte de Twitch dit la même audience
        que le classement — le lot commun la lui verse (cf. flushQueue). */
     window.__fx.aeltris = { ...window.__fx.aeltris, viewers: 34000 };
     window.__fx.xray = { ...window.__fx.xray, createdAt: iso(now - 2 * M) };
@@ -41349,8 +41383,8 @@ const lireImages = (page) => page.evaluate(() => {
      JSON.stringify({ eole: e3.nos.eole, fjord: e3.nos.fjord, gale: e3.nos.gale }));
 
   /* d) LES CARTES DE TWITCH. Une chaîne qu'on ne suit pas est demandée, et
-     seulement si sa carte est à l'écran. La place au Top 10 s'écrit sur la
-     carte de Twitch, pas sur celle du Top 10 lui-même. */
+     seulement si sa carte est à l'écran. La place au Top 15 s'écrit sur la
+     carte de Twitch, pas sur celle du Top 15 lui-même. */
   const e4 = await lireEtiq(pe);
   ok('d) sur les cartes de Twitch : « Vient de commencer » pour une chaîne qu\'on ne suit pas, « N°3 en français », rien pour une carte sans fait',
      e4.twitch.xray.texte === 'Vient de commencer' && e4.twitch.aeltris.texte === 'N°3 en français' && e4.twitch.brenvik.texte === null
@@ -41891,7 +41925,7 @@ const lireImages = (page) => page.evaluate(() => {
      && JSON.stringify(v[1].cartes) === '["mousse","ortie"]', JSON.stringify(v[1]));
   ok('…et pas plus de deux rayons : renard, troisième, n\'est pas demandé',
      v.length === 2 && v.filter((x) => x.montre).length === 2, JSON.stringify(v.map((x) => x.graine)));
-  ok('…juste après le Top 10, avant « Vos rendez-vous »',
+  ok('…juste après le Top 15, avant « Vos rendez-vous »',
      JSON.stringify(ordre.slice(ordre.indexOf('top'), ordre.indexOf('top') + 4)) === '["top","pourquoi-0","pourquoi-1","rdv"]', JSON.stringify(ordre));
   const c1 = await appels(page);
   await page.evaluate(() => { document.dispatchEvent(new Event('visibilitychange')); });
@@ -42086,13 +42120,13 @@ const lireImages = (page) => page.evaluate(() => {
 }
 
 {
-  titre('227. Les chaînes écartées du Top 10 — une liste de pseudos dans les Réglages, toutes langues, la dixième place prouvée, d\'un onglet à l\'autre');
+  titre('227. Les chaînes écartées du Top 15 — une liste de pseudos dans les Réglages, toutes langues, la quinzième place prouvée, d\'un onglet à l\'autre');
   /* « POUR LE "ÉCARTER", RETIRE-LE ; METS-LE DANS LES OPTIONS, ON MET LE
      PSEUDO DU STREAMER. SI PLUSIEURS, IL EST AJOUTÉ À LA LISTE. ET LES PSEUDOS
-     DE CETTE LISTE SONT ÉCARTÉS DU TOP 10. » (4.32.0.4) — le bouton de la
+     DE CETTE LISTE SONT ÉCARTÉS DU TOP 10. » (4.32.0.4) — du Top 15 depuis la 4.33.0.13 — le bouton de la
      4.32.0.3 s'en va, la liste est un réglage, `accueilTopEcartees`. Tavor et
      Brune, quatrième et sixième, en font office. */
-  const PLACES = (sans) => TOP_ACCUEIL.filter((l) => !sans.includes(l)).slice(0, 10);
+  const PLACES = (sans) => TOP_ACCUEIL.filter((l) => !sans.includes(l)).slice(0, 15);
   /* SANS RÉGLAGES POSÉS PAR L'AMORCE : elle les réécrit dans chaque document
      de l'origine — un cadre de twitch.tv chargé plus tard aussi —, et c'est
      un « storage » pour la page : la liste migrée y était effacée par le
@@ -42105,7 +42139,7 @@ const lireImages = (page) => page.evaluate(() => {
   await page.reload();
   await page.evaluate(() => { window.tse.options.poser('accueilDebut', false); window.tse.options.poser('accueilUne', false); });
   await plateauAccueil(page);
-  await attendre(page, () => document.querySelectorAll('#tse-accueil .tse-acc-place:not(.tse-acc-place--attente)').length === 10, 10_000);
+  await attendre(page, () => document.querySelectorAll('#tse-accueil .tse-acc-place:not(.tse-acc-place--attente)').length === 15, 10_000);
   const lire = () => page.evaluate(() => {
     const z = document.querySelector('#tse-accueil .tse-acc-rayon--top');
     const r = window.tse.accueil.rapport().top;
@@ -42119,64 +42153,64 @@ const lireImages = (page) => page.evaluate(() => {
   const a1 = await lire();
   ok('a) la liste de la 4.32.0.3 passe au réglage, une fois, toutes langues réunies ; un login mal formé ignoré ; l\'ancienne clé s\'en va',
      JSON.stringify(a1.liste) === '["tavor","brune"]' && a1.ancienne === null, JSON.stringify(a1));
-  /* b) ÉCARTÉES DU TOP 10, AVANT LES PLACES : dix places, la onzième et la
-     douzième montent ; plus de bouton sur les places, plus de ligne sous le
-     Top 10. Le rapport compte, sans nommer. Mutants — le filtre posé après
-     les places (huit places) ; le bouton gardé. */
-  ok('b) écartées du Top 10 : toujours dix places, les suivantes montent ; ni bouton sur les places, ni ligne dessous ; le rapport compte sans nommer',
+  /* b) ÉCARTÉES DU TOP 15, AVANT LES PLACES : quinze places, la seizième et
+     la dix-septième montent ; plus de bouton sur les places, plus de ligne
+     sous le Top 15. Le rapport compte, sans nommer. Mutants — le filtre posé
+     après les places (treize places) ; le bouton gardé. */
+  ok('b) écartées du Top 15 : toujours quinze places, les suivantes montent ; ni bouton sur les places, ni ligne dessous ; le rapport compte sans nommer',
      JSON.stringify(a1.places) === JSON.stringify(PLACES(['tavor', 'brune'])) && a1.boutons === 0 && !a1.ligne
      && a1.rapport.ecartees === 2 && a1.rapport.retirees === 2 && !JSON.stringify(a1.rapport).includes('tavor'),
      JSON.stringify(a1));
-  /* c) LA DIXIÈME PLACE EST PROUVÉE comme les autres : le classement en
-     demande deux de plus, et sa preuve les couvre — le Top 10 ne se dit pas
+  /* c) LA QUINZIÈME PLACE EST PROUVÉE comme les autres : le classement en
+     demande deux de plus, et sa preuve les couvre — le Top 15 ne se dit pas
      partiel. En toutes langues aussi : la liste n'a pas de langue. Mutants —
-     le classement qui n'en demande que dix (« partiel ») ; la liste tenue
-     pour la seule langue de Twitch. */
-  ok('c) la dixième place prouvée : la preuve couvre douze chaînes au moins, et le Top 10 ne se dit pas partiel',
-     a1.rapport.prouve >= 12 && a1.note === null && a1.rapport.source === 'accueil', JSON.stringify(a1.rapport));
+     le classement qui n'en demande que quinze (« partiel ») ; la liste
+     tenue pour la seule langue de Twitch. */
+  ok('c) la quinzième place prouvée : la preuve couvre dix-sept chaînes au moins, et le Top 15 ne se dit pas partiel',
+     a1.rapport.prouve >= 17 && a1.note === null && a1.rapport.source === 'accueil', JSON.stringify(a1.rapport));
   await page.evaluate((t) => {
-    window.__cats = [{ name: 'Just Chatting', viewers: 900000, streams: t.map((l, i) => ({ login: l, viewers: 40000 - i * 3000 })) }];
+    window.__cats = [{ name: 'Just Chatting', viewers: 900000, streams: t.map((l, i) => ({ login: l, viewers: Math.max(40000 - i * 3000, 2600 - i * 100) })) }];
     window.tse.options.poser('accueilTopLangue', 'toutes');
   }, TOP_ACCUEIL);
   await attendre(page, () => window.tse.accueil.rapport().top.langue === 'toutes'
-    && document.querySelectorAll('#tse-accueil .tse-acc-place:not(.tse-acc-place--attente)').length === 10
-    && window.tse.accueil.rapport().top.classement.prouve >= 12
+    && document.querySelectorAll('#tse-accueil .tse-acc-place:not(.tse-acc-place--attente)').length === 15
+    && window.tse.accueil.rapport().top.classement.prouve >= 17
     && document.querySelector('#tse-accueil .tse-acc-rayon--top .tse-acc-note').hidden, 12_000);
   const c1 = await lire();
   ok('…en toutes langues aussi : la liste n\'a pas de langue, et la preuve suit',
      JSON.stringify(c1.places) === JSON.stringify(PLACES(['tavor', 'brune'])) && c1.note === null, JSON.stringify(c1));
   /* d) UNE CHAÎNE DE PLUS, ET LA PREUVE SE REFAIT AUSSITÔT — sans attendre
-     la marche suivante (deux minutes et demie en vrai) : la treizième
+     la marche suivante (deux minutes et demie en vrai) : la dix-huitième
      chaîne n'était pas prouvée. Mutant — la marche attendue (la preuve reste
-     à douze jusqu'à la marche suivante). D'abord, l'évolution a de quoi se
+     à dix-sept jusqu'à la marche suivante). D'abord, l'évolution a de quoi se
      dire (1,5 s au banc) : tout est stable.
      « Sans attendre » se MESURE : le banc mène la marche complète toutes les
      3 s (GLOBAL_FULL_WALK_MS, tests/build.mjs), assez vite pour qu'une
      attente de quelques secondes ne distingue rien. La liste est donc posée
-     juste après une marche (`walkAge`), et la preuve doit couvrir treize
+     juste après une marche (`walkAge`), et la preuve doit couvrir dix-huit
      chaînes AVANT que la suivante soit due : âge de la marche au moment de
      poser + délai < 3 s. Le mutant ne peut relancer qu'à 3 s révolues. */
   await wait(page, 2500);
   const d0 = await lire();
   await attendre(page, () => {
     const c = window.tse.accueil.rapport().top.classement;
-    return c.walkAge !== null && c.walkAge < 400 && c.prouve >= 12;
+    return c.walkAge !== null && c.walkAge < 400 && c.prouve >= 17;
   }, 8_000);
   const dT = await page.evaluate(async () => {
     const age0 = window.tse.accueil.rapport().top.classement.walkAge;
     const t0 = performance.now();
     window.tse.options.poser('accueilTopEcartees', ['tavor', 'brune', 'aldric']);
-    while (window.tse.accueil.rapport().top.classement.prouve < 13 && performance.now() - t0 < 8000) {
+    while (window.tse.accueil.rapport().top.classement.prouve < 18 && performance.now() - t0 < 8000) {
       await new Promise((r) => setTimeout(r, 20));
     }
     return { age0, delai: Math.round(performance.now() - t0) };
   });
-  await attendre(page, () => window.tse.accueil.rapport().top.classement.prouve >= 13
+  await attendre(page, () => window.tse.accueil.rapport().top.classement.prouve >= 18
     && !document.querySelector('#tse-accueil .tse-acc-place[data-tse-cle="aldric"]')
     && document.querySelector('#tse-accueil .tse-acc-rayon--top .tse-acc-note').hidden, 8_000);
   const d1 = await lire();
-  ok('d) une chaîne de plus : elle quitte le Top 10 aussitôt, et la preuve se refait sans attendre la marche suivante',
-     JSON.stringify(d1.places) === JSON.stringify(PLACES(['tavor', 'brune', 'aldric'])) && d1.rapport.prouve >= 13 && d1.note === null
+  ok('d) une chaîne de plus : elle quitte le Top 15 aussitôt, et la preuve se refait sans attendre la marche suivante',
+     JSON.stringify(d1.places) === JSON.stringify(PLACES(['tavor', 'brune', 'aldric'])) && d1.rapport.prouve >= 18 && d1.note === null
      && dT.age0 + dT.delai < 3000,
      JSON.stringify({ ...d1, temps: dT }));
   /* …ET PERSONNE N'A « GAGNÉ UNE PLACE » : celles d'en dessous sont montées
@@ -42191,9 +42225,9 @@ const lireImages = (page) => page.evaluate(() => {
      JSON.stringify({ avant: d0.evol, apres: d2.evol }));
   await page.evaluate(() => window.tse.options.poser('accueilTopLangue', 'interface'));
   await attendre(page, () => window.tse.accueil.rapport().top.langue !== 'toutes'
-    && document.querySelectorAll('#tse-accueil .tse-acc-place:not(.tse-acc-place--attente)').length === 10, 8_000);
+    && document.querySelectorAll('#tse-accueil .tse-acc-place:not(.tse-acc-place--attente)').length === 15, 8_000);
   /* e) TOP CHAÎNES, DANS LA BARRE, N'EN SAIT RIEN : la liste vaut pour le Top
-     10 de l'accueil. Et l'accueil qui lit le classement de la barre — même
+     15 de l'accueil. Et l'accueil qui lit le classement de la barre — même
      langue, trente places — en écarte toujours les siennes. Mutants — la
      barre filtrée elle aussi ; l'accueil qui lit la barre sans sa liste. */
   await page.evaluate(() => document.querySelector('#tse-mode-row [data-tse-mode="global"]').click());
@@ -42246,7 +42280,8 @@ const lireImages = (page) => page.evaluate(() => {
   await page.evaluate(() => { window.tse.options.poser('accueilDebut', false); window.tse.options.poser('accueilUne', false); });
   /* g) CE QUI ENTRE EST REVU (`propre`) : la casse repliée, les espaces ôtés,
      un doublon compté une fois, ce qui n'a pas la forme d'un login ignoré ;
-     vingt au plus — dix places de plus que la réponse du tag n'en porte pas.
+     quinze au plus — quinze places de plus que la réponse du tag n'en porte
+     pas (vingt avant la 4.33.0.13, pour un Top 10).
      Mutants — la casse gardée ; le doublon gardé ; la borne ignorée. */
   const g1 = await page.evaluate(() => {
     window.tse.options.poser('accueilTopEcartees', ['  Zephyr ', 'zephyr', 'Zéphyr', 'mal formé', 42, 'x'.repeat(26), 'aldric']);
@@ -42256,8 +42291,8 @@ const lireImages = (page) => page.evaluate(() => {
     window.tse.options.poser('accueilTopEcartees', []);
     return { a, b: b.length, dernier: b[b.length - 1] };
   });
-  ok('g) ce qui entre est revu : casse repliée, espaces ôtés, doublon compté une fois, forme d\'un login exigée ; vingt au plus, les premiers',
-     JSON.stringify(g1.a) === '["zephyr","aldric"]' && g1.b === 20 && g1.dernier === 'plein19', JSON.stringify(g1));
+  ok('g) ce qui entre est revu : casse repliée, espaces ôtés, doublon compté une fois, forme d\'un login exigée ; quinze au plus, les premiers',
+     JSON.stringify(g1.a) === '["zephyr","aldric"]' && g1.b === 15 && g1.dernier === 'plein14', JSON.stringify(g1));
   await page.close();
 }
 
@@ -43457,7 +43492,7 @@ const lireZap = (page) => page.evaluate(() => {
      JSON.stringify({ rang: ordreGuide.indexOf('guideZapTitre'), citesZap }));
 }
 
-/* ═════════ 232. LE CO-STREAM D'UNE PLACE DU TOP 10 (4.33.0.2) ═════════
+/* ═════════ 232. LE CO-STREAM D'UNE PLACE DU TOP 15 (4.33.0.2) ═════════
    « Dans le Top 10, on peut voir des costreams, faudrait prendre le même
    système que le natif, à savoir "le nom d'un streamer" suivi d'un + et le
    nombre dans le costream. En passant la souris sur la flèche à côté, on a
@@ -43470,7 +43505,7 @@ const lireZap = (page) => page.evaluate(() => {
    même combiné, rend Tourbe d'abord (4.33.0.3) : la carte doit pourtant être
    celle de Vortex, le plus regardé. Les noms sont inventés. */
 {
-  titre('232. Le co-stream d\'une place du Top 10 — « Nom + 3 ⌄ », et au survol la fenêtre des membres, chacun avec ses spectateurs');
+  titre('232. Le co-stream d\'une place du Top 15 — « Nom + 3 ⌄ », et au survol la fenêtre des membres, chacun avec ses spectateurs');
   const TOP_CS = ['tourbe', 'vortex', 'sillage', ...TOP_ACCUEIL.slice(0, 9)];
   const page = await ouvrirAccueil({ options: { accueilDebut: false } });
   await plateauAccueil(page, { top: TOP_CS });
@@ -43645,7 +43680,7 @@ const lireZap = (page) => page.evaluate(() => {
      JSON.stringify({ g1, g2, g2b, g3 }));
   await page.evaluate((sel) => document.querySelector(sel)?.scrollIntoView({ block: 'center' }), BOUTON);
   await wait(page, 300);
-  /* f) LE TOP 10 COUPÉ ferme la fenêtre ouverte, et ne laisse rien dans la
+  /* f) LE TOP 15 COUPÉ ferme la fenêtre ouverte, et ne laisse rien dans la
      couche supérieure. Épinglée d'un clic : ouverte au survol, elle se
      fermerait de toute façon, le bouton parti de sous le pointeur — et le
      mutant vivait. Mutant — la fenêtre orpheline. */
@@ -43655,25 +43690,28 @@ const lireZap = (page) => page.evaluate(() => {
   await page.evaluate(() => window.tse.options.poser('accueilTop', false));
   await wait(page, 600);
   const coupe = await page.evaluate(() => ({ ouvertes: document.querySelectorAll(':popover-open').length, cs: window.tse.accueil.rapport().top.cs }));
-  ok('f) le Top 10 coupé : la fenêtre épinglée se ferme, rien ne reste par-dessus la page',
+  ok('f) le Top 15 coupé : la fenêtre épinglée se ferme, rien ne reste par-dessus la page',
      epinglee && coupe.ouvertes === 0 && !coupe.cs.ouverte, JSON.stringify({ epinglee, ...coupe }));
   await page.close();
 }
 
 {
   titre('233. Les places d\'ailleurs (4.33.0.6) et la pulsation (4.33.0.9) — « N°9 mondial », « N°5 en anglais », prouvées ; trois langues au plus ; la barre partagée ; des étiquettes qui battent l\'une après l\'autre');
-  /* LE DÉCOR. L'interface est française, le Top 10 de l'accueil aussi : celui
+  /* LE DÉCOR. L'interface est française, le Top 15 de l'accueil aussi : celui
      du plateau, par la voie du tag. Tout Twitch, lui, se lit en descendant
      les catégories — une seule compte, « Just Chatting », dont le sommet
      mêle les langues :
        orsay 120 000 (anglais) ; kestrel 95 000 et kite 15 000 (anglais),
-       en co-stream — 110 000 à eux deux, une seule place, comme au Top 10 ;
+       en co-stream — 110 000 à eux deux, une seule place, comme au Top 15 ;
        nadir 80 000 (espagnol), tamsin 70 000 (anglais), ulric 60 000
        (allemand), vesna 55 000 (espagnol), zephyr, aldric et aeltris — les
-       trois premiers du Top 10 français : 40 000, 37 000, 34 000 —, wren
-       33 000 (anglais) : dix places, onze chaînes. Puis tavor, quatrième en
-       français à 31 000, et brune, sixième, qui parle aussi anglais :
-       hors du monde.
+       trois premiers du Top 15 français : 40 000, 37 000, 34 000 —, wren
+       33 000 (anglais) : dix places, onze chaînes ; et, pour le Top 15
+       (4.33.0.13), cinq chaînes sans tag de langue juste au-dessous —
+       ysolde, zelia, cyra, dario, egon, de 32 900 à 32 500 ; sans langue,
+       elles ne comptent pour aucune et ne changent rien aux autres
+       classements — : quinze places, seize chaînes. Puis tavor, quatrième en français à 31 000, et brune,
+       sixième, qui parle aussi anglais : hors du monde.
      Les rayons de Twitch, à l'écran : aeltris, tavor, yarrow (anglais,
      20 000 : sixième en anglais, loin du monde), kestrel, brune ; nadir,
      vesna, ulric et quinto (italien, en subathon). Quatre langues
@@ -43681,13 +43719,16 @@ const lireZap = (page) => page.evaluate(() => {
      allemand, une en italien — à égalité, le nom départage, et l'italien
      reste sans classement. Chaque langue a le sien chez Twitch : rien, dans
      le décor, n'empêcherait d'en demander un de trop. */
-  const TOP = ['zephyr', 'aldric', 'aeltris', 'tavor', 'solenne', 'brune', 'gaspard', 'hestia', 'mirelle', 'oriane'];
+  const TOP = ['zephyr', 'aldric', 'aeltris', 'tavor', 'solenne', 'brune', 'gaspard', 'hestia', 'mirelle', 'oriane',
+               'iliane', 'jorvik', 'lysandre', 'morwen', 'nolwenn', 'faelan', 'ombre'];
   const RAYONS = [['Chaînes live qui pourraient vous plaire', ['aeltris', 'tavor', 'yarrow', 'kestrel', 'brune']],
                   ['D\'ailleurs', ['nadir', 'vesna', 'ulric', 'quinto']]];
   const MONDE = [['orsay', 120000, ['English']], ['kestrel', 95000, ['English']], ['nadir', 80000, ['Español']],
                  ['tamsin', 70000, ['English']], ['ulric', 60000, ['Deutsch']], ['vesna', 55000, ['Español']],
                  ['zephyr', 40000, ['Français']], ['aldric', 37000, ['Français']], ['aeltris', 34000, ['Français']],
-                 ['wren', 33000, ['English']], ['tavor', 31000, ['Français']], ['brune', 25000, ['Français', 'English']],
+                 ['wren', 33000, ['English']], ['ysolde', 32900, []], ['zelia', 32800, []],
+                 ['cyra', 32700, []], ['dario', 32600, []], ['egon', 32500, []],
+                 ['tavor', 31000, ['Français']], ['brune', 25000, ['Français', 'English']],
                  ['yarrow', 20000, ['English']], ['kite', 15000, ['English']], ['quinto', 9000, ['Italiano']]];
   /* `cats` : la marche du monde. Par défaut, la catégorie du sommet, et une
      seconde sous le seuil — la descente s'arrête en sachant qu'elle est
@@ -43740,7 +43781,7 @@ const lireZap = (page) => page.evaluate(() => {
   });
   const tx = (e, l) => e.twitch[l]?.texte ?? null;
   /* L'ÉTAT ENTIER, PAS SES PREMIERS SIGNES. Les classements arrivent chacun à
-     son heure — le Top 10 français, le monde, l'anglais, la session du
+     son heure — le Top 15 français, le monde, l'anglais, la session du
      co-stream — et une attente posée sur quelques étiquettes laissait
      l'assertion lire un état à moitié fait : une fois, sous la charge d'une
      campagne de mutants, a) est tombée sur un code juste. On relit donc
@@ -43756,7 +43797,7 @@ const lireZap = (page) => page.evaluate(() => {
     && tx(e, 'tavor') === 'N°4 en français' && e.twitch.tavor?.sorte === 'rang' && tx(e, 'brune') === 'N°6 en français'
     && tx(e, 'yarrow') === 'N°6 en anglais' && e.twitch.yarrow?.sorte === 'langue'
     && tx(e, 'kestrel') === 'N°2 mondial' && tx(e, 'nadir') === 'N°3 mondial' && tx(e, 'vesna') === 'N°6 mondial'
-    && e.ailleurs.sources['*']?.chaines === 11 && e.ailleurs.sources.English?.chaines === 7
+    && e.ailleurs.sources['*']?.chaines === 16 && e.ailleurs.sources.English?.chaines === 7
     && e.top.zephyr === 'N°7 mondial' && e.top.tavor === null;
   const condC = (e) => JSON.stringify(e.ailleurs.portees) === '["*","English","Español","Deutsch"]'
     && e.demandes.Italiano === 0 && e.demandes.English > 0 && e.demandes.Deutsch > 0
@@ -43771,11 +43812,11 @@ const lireZap = (page) => page.evaluate(() => {
      dit sa place en anglais — le nom de la langue, celui que le navigateur
      donne en français. kestrel, deuxième du monde ET en anglais, en
      co-stream : le monde passe devant le co-stream. Le co-stream est UNE
-     place : nadir est troisième, pas quatrième. Une chaîne du Top 10
+     place : nadir est troisième, pas quatrième. Une chaîne du Top 15
      lui-même dit sa place mondiale, qu'il n'écrit pas. Mutants — la place
      française avant le monde ; l'autre langue avant la vôtre ; le monde
      jamais demandé ; une place par chaîne, co-stream compris. */
-  ok('a) « N°9 mondial » avant « N°3 en français », « N°4 en français » hors du monde, « N°6 en anglais » pour une chaîne anglaise ; un co-stream, une place ; le monde aussi sur le Top 10',
+  ok('a) « N°9 mondial » avant « N°3 en français », « N°4 en français » hors du monde, « N°6 en anglais » pour une chaîne anglaise ; un co-stream, une place ; le monde aussi sur le Top 15',
      condA(e1),
      JSON.stringify({ twitch: e1.twitch, top: e1.top, sources: e1.ailleurs.sources }));
   /* b) LEURS COULEURS : l'or des places pour une autre langue, un or plus
@@ -43787,8 +43828,8 @@ const lireZap = (page) => page.evaluate(() => {
   /* c) TROIS LANGUES AU PLUS, LES PLUS NOMBREUSES. L'anglais, trois cartes ;
      l'espagnol, deux ; l'allemand et l'italien, une — le nom départage.
      L'italien n'est pas demandé, et quinto ne dit que son subathon. Le
-     français, celui du Top 10, n'a pas de classement de plus. Mutants — le
-     plafond levé ; les moins nombreuses d'abord ; la langue du Top 10
+     français, celui du Top 15, n'a pas de classement de plus. Mutants — le
+     plafond levé ; les moins nombreuses d'abord ; la langue du Top 15
      comptée. */
   ok('c) trois langues au plus — les plus nombreuses à l\'écran, le nom à égalité — et le monde : l\'italien jamais demandé, le français pas deux fois',
      condC(e1),
@@ -43796,7 +43837,7 @@ const lireZap = (page) => page.evaluate(() => {
   /* c bis) DE FOND (4.33.0.10) : les places d'ailleurs complètent une
      étiquette, rien ne les attend à l'écran. Leurs classements — l'anglais,
      l'espagnol, l'allemand par le tag ; le monde par les catégories —
-     partent en priorité basse ; celui du Top 10, le français, non. Mutant —
+     partent en priorité basse ; celui du Top 15, le français, non. Mutant —
      le classement d'ailleurs créé sans `fond`. */
   const prio233 = await pa.evaluate(() => {
     const tag = (l) => window.__calls.filter((c) => (c.tagLangs || []).includes(l)).map((c) => c.prio);
@@ -43807,7 +43848,7 @@ const lireZap = (page) => page.evaluate(() => {
              // Pour le rapport : chaque appel de catégories, sa langue et sa priorité.
              liste: window.__calls.filter((c) => c.names.some((n) => /^TseCategor/.test(n))).map((c) => [c.names.join('+'), c.langs.join(','), c.prio]) };
   });
-  ok('c bis) les classements d\'ailleurs partent en priorité basse — trois langues et le monde ; celui du Top 10, non',
+  ok('c bis) les classements d\'ailleurs partent en priorité basse — trois langues et le monde ; celui du Top 15, non',
      prio233.fr.length >= 1 && prio233.fr.every((x) => x === null)
      && ['en', 'es', 'de', 'monde'].every((k) => prio233[k].length >= 1 && prio233[k].every((x) => x === 'low')), JSON.stringify(prio233));
 
@@ -43829,7 +43870,7 @@ const lireZap = (page) => page.evaluate(() => {
      l'ancien rebond ; l'origine au bord droit ; l'ancienne amplitude. */
   const pulsation = await pa.evaluate(() => {
     const anims = document.getAnimations().filter((a) => a.animationName === 'tse-acc-etiq-pulsation');
-    // Une place que le Top 10 ne montre pas (au-delà de ce que la largeur tient) ne s'anime pas : on lit celles qui se voient.
+    // Une place que le Top 15 ne montre pas (au-delà de ce que la largeur tient) ne s'anime pas : on lit celles qui se voient.
     return [...document.querySelectorAll('[data-tse-etiquette]')].filter((el) => el.checkVisibility()).map((el) => {
       const st = getComputedStyle(el, '::after');
       const a = anims.find((x) => x.effect.target === el && x.effect.pseudoElement === '::after');
@@ -43919,21 +43960,21 @@ const lireZap = (page) => page.evaluate(() => {
      && e2.ailleurs.operations.English > 0,
      JSON.stringify({ m0, o0, ailleurs: e2.ailleurs, aeltris: tx(e2, 'aeltris') }));
 
-  /* g) « TOUTES LES LANGUES » : le Top 10 EST le monde — sa place se dit
-     « du Top 10 », et le monde n'a plus de classement à lui. Le français
+  /* g) « TOUTES LES LANGUES » : le Top 15 EST le monde — sa place se dit
+     « du Top 15 », et le monde n'a plus de classement à lui. Le français
      devient une autre langue : la plus nombreuse à l'écran, il prend la
      première, et l'allemand sort des trois. tavor, hors du monde, dit sa
      place en français ; brune, sa meilleure, en anglais. Mutant — le monde
      gardé. */
   await pa.evaluate(() => window.tse.options.poser('accueilTopLangue', 'toutes'));
-  const condG = (e) => tx(e, 'aeltris') === 'N°9 du Top 10' && e.twitch.aeltris?.sorte === 'rang'
+  const condG = (e) => tx(e, 'aeltris') === 'N°9 du Top 15' && e.twitch.aeltris?.sorte === 'rang'
     && tx(e, 'tavor') === 'N°4 en français' && e.twitch.tavor?.sorte === 'langue' && tx(e, 'brune') === 'N°5 en anglais'
     && JSON.stringify(e.ailleurs.portees) === '["Français","English","Español"]' && !('*' in e.ailleurs.sources);
   const e3 = await jusqua(pa, condG);
-  ok('g) « Toutes les langues » : « N°9 du Top 10 », plus de classement du monde à part ; le français devient une autre langue — « N°4 en français »',
+  ok('g) « Toutes les langues » : « N°9 du Top 15 », plus de classement du monde à part ; le français devient une autre langue — « N°4 en français »',
      condG(e3),
      JSON.stringify({ twitch: e3.twitch, ailleurs: e3.ailleurs }));
-  /* h) LE TOP 10 COUPÉ : aucune place, d'ici ni d'ailleurs, et plus un
+  /* h) LE TOP 15 COUPÉ : aucune place, d'ici ni d'ailleurs, et plus un
      classement ne part. */
   await pa.evaluate(() => { window.tse.global.off(); window.tse.options.poser('accueilTop', false); });
   await attendre(pa, () => ![...document.querySelectorAll('[data-tse-etiq]')].some((n) => /^(rang|langue|monde)$/.test(n.getAttribute('data-tse-etiq'))), 5_000);
@@ -43941,7 +43982,7 @@ const lireZap = (page) => page.evaluate(() => {
   await wait(pa, 3_000);
   const e4 = await lire(pa);
   const t1 = await pa.evaluate(() => window.__calls.filter((c) => c.names.some((n) => /^TseTagTop$|^TseCategories$|^TseCategoryTop$/.test(n))).length);
-  ok('h) le Top 10 coupé : plus une place, ni d\'ici ni d\'ailleurs, et plus un classement demandé',
+  ok('h) le Top 15 coupé : plus une place, ni d\'ici ni d\'ailleurs, et plus un classement demandé',
      e4.ailleurs.portees.length === 0 && Object.values(e4.twitch).every((x) => !/^(rang|langue|monde)$/.test(x.sorte || ''))
      && /^Subathon/.test(tx(e4, 'quinto') || '') && t1 === t0,
      JSON.stringify({ t0, t1, ailleurs: e4.ailleurs, twitch: e4.twitch }));
@@ -43955,7 +43996,7 @@ const lireZap = (page) => page.evaluate(() => {
   await attendre(pi, () => {
     const a = window.tse.accueil.rapport().etiquettes.ailleurs;
     const t = (l) => document.querySelector(`main a[data-a-target="preview-card-image-link"][href="/${l}"]`)?.getAttribute('data-tse-etiquette');
-    // Le Top 10 français et la place anglaise arrivent chacun à son heure : on attend les deux.
+    // Le Top 15 français et la place anglaise arrivent chacun à son heure : on attend les deux.
     // Le monde RÉSOLU : sans quoi « aucune place » ne dirait rien de la preuve.
     return a.sources['*']?.resolu && a.sources.English?.prouve && !!t('kestrel') && t('aeltris') === 'N°3 en français';
   }, 25_000);
@@ -44008,7 +44049,7 @@ const lireZap = (page) => page.evaluate(() => {
      absolue : il ne dispute sa propriété `animation` à aucune règle du
      produit, et ne change aucune mise en page. */
   /* DEUX FORMES DE TÉMOIN. Sur le nœud LUI-MÊME quand il ne porte aucune
-     animation du produit — les places du Top 10 : son contenu peut être
+     animation du produit — les places du Top 15 : son contenu peut être
      refait sans que le témoin s'en aille. En ENFANT sinon — les cartes de la
      barre, du ruban, que le produit anime elles-mêmes. */
   const TEMOIN = '@keyframes tse-temoin { to { opacity: .5; } }'
@@ -44034,7 +44075,7 @@ const lireZap = (page) => page.evaluate(() => {
   })), [sel, cle]);
   /* Les nœuds témoins avant ET après — les mêmes nœuds, donc, et non des
      nœuds refaits ; et ANIMÉS des deux côtés : un nœud replié (`hidden`, les
-     places 6 à 10 du Top 10) n'a pas d'animation, et n'en dit rien. Chacun
+     places repliées du Top 15) n'a pas d'animation, et n'en dit rien. Chacun
      a continué. Rend la liste de ceux qu'on a pu comparer, ou null si l'un a
      sauté. */
   const continuent = (avant, apres) => {
@@ -44049,7 +44090,7 @@ const lireZap = (page) => page.evaluate(() => {
     && document.querySelectorAll('#tse-accueil .tse-acc-rayon--une .tse-acc-carte').length === 5, 12_000);
   const PLACES = '#tse-accueil .tse-acc-place';
 
-  /* a) LE TOP 10 SE RÉORDONNE : Tavor passe de la 4e à la 2e place (cf. 217
+  /* a) LE TOP 15 SE RÉORDONNE : Tavor passe de la 4e à la 2e place (cf. 217
      g). Sa carte est déplacée, pas refaite ; son témoin continue, et la
      pastille qui bat aussi. Mutant — insertBefore à la place de moveBefore,
      dans la rangée : le témoin de Tavor repart de zéro. */
@@ -44063,9 +44104,10 @@ const lireZap = (page) => page.evaluate(() => {
   const p0 = await pulsations();
   await page.evaluate(() => {
     const h = (m) => new Date(Date.now() - m * 60_000).toISOString();
-    const ordre = ['zephyr', 'tavor', 'aldric', 'mirelle', 'hestia', 'solenne', 'brune', 'ildor', 'quill', 'ombre', 'faelan', 'gaspard'];
+    const ordre = ['zephyr', 'tavor', 'aldric', 'mirelle', 'hestia', 'solenne', 'brune', 'ildor', 'quill', 'ombre', 'faelan', 'gaspard',
+                   'iliane', 'jorvik', 'kaelis', 'lysandre', 'morwen'];
     window.__tagTop['Français'] = ordre.map((l, i) => ({ login: l, nom: l.charAt(0).toUpperCase() + l.slice(1),
-                                                       viewers: 40000 - i * 3000, createdAt: h(30 + i * 7),
+                                                       viewers: Math.max(40000 - i * 3000, 2600 - i * 100), createdAt: h(30 + i * 7),
                                                        game: 'VALORANT', tags: ['Français'] }));
   });
   await attendre(page, () => document.querySelector('#tse-accueil .tse-acc-place:nth-child(2)')?.dataset.tseCle === 'tavor', 12_000);
@@ -44074,9 +44116,9 @@ const lireZap = (page) => page.evaluate(() => {
   const p1 = await pulsations();
   const ka = continuent(t0, t1);
   const pulsees = Object.keys(p0).filter((k) => k in p1);
-  ok('a) le Top 10 se réordonne sans défaire : Tavor, montée de la 4e à la 2e place, et chaque place restée gardent leur animation, qui continue',
+  ok('a) le Top 15 se réordonne sans défaire : Tavor, montée de la 4e à la 2e place, et chaque place restée gardent leur animation, qui continue',
      !!ka && ka.includes('tavor') && ka.length >= 4, JSON.stringify({ avant: t0, apres: t1 }));
-  // La pastille ne bat que sur une place qui en porte une : au Top 10, le rang écrit en grand en tient lieu.
+  // La pastille ne bat que sur une place qui en porte une : au Top 15, le rang écrit en grand en tient lieu.
   ok('…et la pastille qui bat ne saute pas, là où une place en porte une',
      pulsees.every((k) => p1[k] > p0[k]), JSON.stringify({ avant: p0, apres: p1 }));
 
@@ -44902,6 +44944,218 @@ titre('237. Vos rendez-vous — deux heures après son heure, sans la chaîne, l
   ok('c) l\'agenda du panneau, lui, garde la journée telle qu\'elle était prévue : les quatre créneaux y sont',
      JSON.stringify(semaine) === '["aurore","braise","cendre","cobalt"]', JSON.stringify(semaine));
   await ctx.close();
+}
+
+{
+  titre('238. L\'accueil à toutes les largeurs — le Top 15 rangé comme un rayon de Twitch, rien qui déborde (4.33.0.13)');
+  /* SIGNALÉ, CAPTURE À L'APPUI : « le top 10 n'est pas responsive […] prends
+     exemple sur une liste Twitch native ». Cinq places par rangée à toutes les
+     largeurs : à 1 024 pixels, des places de 179 — « Depuis le début » sorti
+     de sa carte —, à 375, de 49, et la page entière défilait de côté. Le Top
+     15 prend la grille des rayons — celle que prennent aussi les rayons de
+     Twitch (cf. RANGER) : une place de 290 pixels au moins, quatorze
+     d'écart, cinq au plus. Sept largeurs, du grand écran au téléphone ; le
+     Top déplié, « Depuis le début » sur chaque place.
+     Mutants — cinq colonnes à toutes les largeurs (la grille d'avant) ; la
+     grille sans plafond (six à 1 920) ; l'écart d'avant (seize pixels) ; le
+     bouton laissé à sa largeur de contenu. */
+  const page = await ouvrirAccueil({ visites: { korbek: [1] }, options: { accueilUne: false } });
+  await plateauAccueil(page, { archives: Object.fromEntries(TOP_ACCUEIL.map((l, i) => [l, { id: String(700 + i) }])) });
+  await attendre(page, () => document.querySelectorAll('#tse-accueil .tse-acc-place:not(.tse-acc-place--attente)').length === 15
+    && document.querySelectorAll('#tse-accueil .tse-acc-rayon--top .tse-acc-debut:not([hidden]):not([data-tse-reserve])').length === 15, 12_000);
+  await page.evaluate(() => document.querySelector('#tse-accueil .tse-acc-rayon--top .tse-acc-plus').click());
+  const COL_MIN = 290, ECART = 14;
+  const voulues = (lw) => Math.min(5, Math.max(1, Math.floor((lw + ECART) / (COL_MIN + ECART))));
+  const mesurer = () => page.evaluate(() => {
+    const racine = document.getElementById('tse-accueil');
+    const liste = racine.querySelector('.tse-acc-rayon--top .tse-acc-liste');
+    const lr = liste.getBoundingClientRect();
+    const boites = '.tse-acc-place, .tse-acc-carte, .tse-acc-rdv, .tse-acc-rayon';
+    const debords = [];
+    for (const el of racine.querySelectorAll('*')) {
+      if (!el.getClientRects().length || el.closest('.tse-acc-ruban') || el.closest('[popover]')) continue;
+      const r = el.getBoundingClientRect();
+      if (!r.width) continue;
+      const boite = el.parentElement?.closest(boites);
+      const B = (boite || racine).getBoundingClientRect();
+      if (r.right > B.right + 0.5 || r.left < B.left - 0.5) debords.push((el.className || el.localName) + ' ' + Math.round(r.left) + '–' + Math.round(r.right));
+    }
+    const places = [...liste.children];
+    const vues = places.filter((p) => !p.hidden);
+    const debut = vues.map((p) => p.querySelector('.tse-acc-debut')).filter((d) => d && !d.hidden);
+    return {
+      lw: lr.width, cols: getComputedStyle(liste).gridTemplateColumns.split(/\s+/).filter((t) => /px$/.test(t)).length,
+      ecart: getComputedStyle(liste).columnGap, vues: vues.length,
+      lignes: new Set(vues.map((p) => Math.round(p.getBoundingClientRect().top))).size,
+      placeMin: Math.min(...vues.map((p) => p.getBoundingClientRect().width)),
+      nomsCoupes: vues.filter((p) => { const n = p.querySelector('.tse-acc-nom'); return n.scrollWidth > n.clientWidth + 1; }).length,
+      debutDehors: debut.filter((d) => { const c = d.closest('.tse-acc-carte').getBoundingClientRect(), r = d.getBoundingClientRect();
+        return r.right > c.right + 0.5; }).length,
+      debutRegle: debut.length > 0 && debut.every((d) => getComputedStyle(d).maxWidth === '100%'
+        && getComputedStyle(d.lastElementChild).textOverflow === 'ellipsis'),
+      debords: debords.slice(0, 4), nDebords: debords.length,
+      pageDeborde: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+    };
+  });
+  const releves = {};
+  for (const w of [1920, 1600, 1366, 1024, 768, 600, 375]) {
+    await page.setViewportSize({ width: w, height: 1000 });
+    await wait(page, 500);
+    releves[w] = await mesurer();
+  }
+  const R = Object.entries(releves);
+  ok('a) autant de colonnes que la liste tient de places de 290 pixels, cinq au plus : 5 sur grand écran, 1 sur téléphone, et chaque largeur entre les deux',
+     R.every(([, r]) => r.cols === voulues(r.lw)) && releves[1920].cols === 5 && releves[375].cols === 1
+     && new Set(R.map(([, r]) => r.cols)).size >= 4,
+     JSON.stringify(R.map(([w, r]) => [w, Math.round(r.lw), r.cols, voulues(r.lw)])));
+  ok('…les écarts des autres rayons — quatorze pixels — et jamais une place plus étroite que 290, sauf sur une liste qui ne les a pas',
+     R.every(([, r]) => r.ecart === ECART + 'px' && (r.placeMin >= COL_MIN - 0.5 || (r.cols === 1 && Math.abs(r.placeMin - r.lw) <= 0.5))),
+     JSON.stringify(R.map(([w, r]) => [w, r.ecart, Math.round(r.placeMin)])));
+  ok('b) dépliées, les quinze places en rangées pleines de la largeur — trois de cinq, cinq de trois —, aucun nom coupé',
+     R.every(([, r]) => r.vues === 15 && r.lignes === Math.ceil(15 / r.cols) && r.nomsCoupes === 0),
+     JSON.stringify(R.map(([w, r]) => [w, r.vues, r.lignes, r.nomsCoupes])));
+  ok('c) rien ne sort de sa carte ni de son rayon, et la page ne défile jamais de côté — à aucune des sept largeurs',
+     R.every(([, r]) => r.nDebords === 0 && !r.pageDeborde),
+     JSON.stringify(R.filter(([, r]) => r.nDebords || r.pageDeborde).map(([w, r]) => [w, r.debords, r.pageDeborde])));
+  ok('d) « Depuis le début » ne dépasse jamais sa carte : au plus sa largeur, et son libellé s\'abrège plutôt que de sortir',
+     R.every(([, r]) => r.debutDehors === 0 && r.debutRegle), JSON.stringify(R.map(([w, r]) => [w, r.debutDehors, r.debutRegle])));
+  // Replié : la première rangée seule, comme un rayon de Twitch — 1 à 5 sur grand écran, 1 à 3 sur un portable.
+  await page.evaluate(() => document.querySelector('#tse-accueil .tse-acc-rayon--top .tse-acc-plus').click());
+  const replie = {};
+  for (const w of [1920, 1024, 375]) {
+    await page.setViewportSize({ width: w, height: 1000 });
+    await wait(page, 500);
+    replie[w] = await mesurer();
+  }
+  ok('e) replié, la première rangée seule, à chaque largeur — et le pliage suit la largeur qui change',
+     Object.values(replie).every((r) => r.vues === r.cols && r.lignes === 1) && replie[1920].vues === 5 && replie[375].vues === 1,
+     JSON.stringify(Object.entries(replie).map(([w, r]) => [w, r.cols, r.vues, r.lignes])));
+  await page.close();
+}
+
+{
+  titre('239. « À la une » — jamais de trou, toujours symétrique : la place qui manque se comble d\'un autre direct (4.33.0.13)');
+  /* SIGNALÉ, CAPTURE À L'APPUI : « de temps en temps, "À la une" manque un
+     live dans le carrousel […] il faut à tout prix un live s'il en manque un
+     et que ce n'est pas symétrique ». Une carte au centre, une à sa gauche,
+     deux à sa droite : une chaîne du carrousel ne pouvait pas se montrer —
+     celle de la bannière, une chaîne hors ligne, une réponse qui ne vient
+     pas —, ou le carrousel n'en portait que quatre.
+     Une place par chaîne du carrousel, un nombre impair : le trou se comble
+     d'un autre direct, à sa place ; d'abord le classement du Top, en direct
+     d'après TseChannels, puis les suivies en direct. Le direct qui comble
+     garde sa place ; il la rend quand la chaîne revient. Rien d'inventé :
+     sans direct à mettre, le trou reste, et le rapport le dit.
+     Mutants — le trou laissé ; le direct qui comble posé au bout plutôt qu'à
+     la place du trou ; une chaîne du classement prise sans être en direct ;
+     le carrousel pair laissé pair ; le direct qui comble changé à chaque
+     peinture ; les directs qui comblent redistribués dans l'ordre des trous ;
+     les suivies avant le Top. */
+  const lire = (p) => p.evaluate(() => {
+    const z = document.querySelector('#tse-accueil .tse-acc-rayon--une');
+    const cartes = [...z.querySelectorAll('.tse-acc-carte')];
+    const cles = cartes.map((c) => c.dataset.tseCle);
+    const r = window.tse.accueil.rapport().une;
+    const t = cles.indexOf(r.tete);
+    const tete = cartes[t];
+    const mx = (c) => { const b = c.getBoundingClientRect(); return b.left + b.width / 2; };
+    return { ordre: t < 0 ? cles : [...cles.slice(t), ...cles.slice(0, t)], n: cles.length,
+             gauche: tete ? cartes.filter((c) => mx(c) < mx(tete) - 1).length : null,
+             droite: tete ? cartes.filter((c) => mx(c) > mx(tete) + 1).length : null,
+             trous: r.trous, comblees: r.comblees, raisons: r.raisons };
+  });
+  /* a) LA BANNIÈRE DANS LE CARROUSEL, LE TOP EN MARCHE : korbek, la bannière,
+     est la gauche du centre, et la seule suivie — seul le Top peut combler.
+     L'extension lit la boucle depuis le centre, la droite, puis la gauche
+     (cf. chainesCarrousel) : tessaly, orvik, marbek, solvane, korbek — la
+     place de korbek est la dernière de la boucle.
+     Son premier, zephyr, est hors ligne d'après TseChannels : il ne comble
+     pas ; aldric, le suivant, en direct, si, à la place de korbek. Cinq
+     cartes, deux de chaque côté. Au faux Twitch, TseChannels omet une chaîne
+     du classement que `__fx` ne connaît pas : on pose celles qu'il faut. */
+  const pa = await ouvrirAccueil({ visites: { korbek: [1, 2, 3] }, options: { accueilDebut: false },
+                                   decor: { carrouselChaines: ['solvane', 'korbek', 'tessaly', 'orvik', 'marbek'] } });
+  await plateauAccueil(pa, { suivies: { korbek: SUIVIES_ACCUEIL.korbek } });
+  await pa.evaluate(() => {
+    const h = (m) => new Date(Date.now() - m * 60_000).toISOString();
+    window.__fx.zephyr = null;
+    window.__fx.aldric = { id: '7101', createdAt: h(37), viewers: 37000, game: 'Just Chatting', tags: ['Français'], title: 'Direct aldric' };
+  });
+  await attendre(pa, () => document.querySelectorAll('#tse-accueil .tse-acc-rayon--une .tse-acc-carte').length === 5
+    && document.querySelectorAll('#tse-accueil .tse-acc-place:not(.tse-acc-place--attente)').length === 15, 12_000);
+  await wait(pa, 600);
+  const a1 = await lire(pa);
+  ok('a) la place de la bannière comblée, à sa place, par le premier du Top EN DIRECT — aldric, zephyr étant hors ligne — : cinq cartes, deux de chaque côté du centre',
+     JSON.stringify(a1.ordre) === '["tessaly","orvik","marbek","solvane","aldric"]' && a1.gauche === 2 && a1.droite === 2
+     && a1.trous === 1 && a1.comblees === 1 && a1.raisons.banniere === 1, JSON.stringify(a1));
+  /* b) IL GARDE SA PLACE : zephyr revient en direct — aldric n'est plus le
+     premier du Top en direct —, le rayon ne bouge pas. */
+  await pa.evaluate(() => { window.__fx.zephyr = { ...window.__fx.aldric, id: '7999', title: 'Direct zephyr' }; });
+  await wait(pa, 2500);
+  const b1 = await lire(pa);
+  ok('b) le direct qui comble garde sa place quand le classement change : pas une carte de remplacée à chaque peinture',
+     JSON.stringify(b1.ordre) === JSON.stringify(a1.ordre) && b1.comblees === 1, JSON.stringify(b1));
+  /* c) UN TROU PLUS TÔT DANS LA BOUCLE, AU MILIEU : une suivie passe en
+     direct, puis orvik, la droite du centre — deuxième de la boucle, bien
+     avant korbek —, s'arrête. Sa place se comble, à l'endroit même, du
+     premier du Top en direct qui n'est pas à l'écran — zephyr, et non
+     nyxaria, la suivie : le Top d'abord —, et aldric GARDE la place de
+     korbek : le trou nouveau ne le déplace pas. Elle revient : elle reprend
+     sa place, zephyr s'en va, aldric reste. */
+  await pa.evaluate(() => {
+    const h = (m) => new Date(Date.now() - m * 60_000).toISOString();
+    window.__fx.nyxaria = { id: '11', createdAt: h(185), viewers: 18234, game: 'Elden Ring', tags: ['Français'], title: 'Boss final sans mourir' };
+    window.__addCard('nyxaria', 'Elden Ring', '18234');
+  });
+  await attendre(pa, () => !!document.querySelector('.side-nav-card[data-tse-login="nyxaria"][data-tse-started-at]'), 8000);
+  await wait(pa, 600);
+  await pa.evaluate(() => { window.__orvik = window.__fx.orvik; window.__fx.orvik = null; });
+  await attendre(pa, () => !document.querySelector('#tse-accueil .tse-acc-rayon--une [data-tse-cle="orvik"]'), 6000);
+  await wait(pa, 600);
+  const c1 = await lire(pa);
+  await pa.evaluate(() => { window.__fx.orvik = window.__orvik; });
+  await attendre(pa, () => !!document.querySelector('#tse-accueil .tse-acc-rayon--une [data-tse-cle="orvik"]'), 8000);
+  await wait(pa, 600);
+  const c2 = await lire(pa);
+  ok('c) un trou plus tôt dans la boucle : comblé du Top avant les suivies, et le direct qui comblait garde SA place ; revenue, la chaîne reprend la sienne',
+     JSON.stringify(c1.ordre) === '["tessaly","zephyr","marbek","solvane","aldric"]' && c1.gauche === 2 && c1.droite === 2
+     && c1.trous === 2 && c1.comblees === 2 && c1.raisons.horsLigne === 1 && c1.raisons.banniere === 1
+     && JSON.stringify(c2.ordre) === JSON.stringify(a1.ordre) && c2.comblees === 1, JSON.stringify({ c1, c2 }));
+  /* c bis) SANS TOP EN DIRECT À METTRE, LES SUIVIES : zephyr et aldric
+     s'arrêtent — la place de korbek se comble de nyxaria. */
+  await pa.evaluate(() => { window.__fx.zephyr = null; window.__fx.aldric = null; });
+  await attendre(pa, () => !document.querySelector('#tse-accueil .tse-acc-rayon--une [data-tse-cle="aldric"]'), 6000);
+  await wait(pa, 600);
+  const c3 = await lire(pa);
+  ok('c bis) aucun direct du Top à mettre : la place se comble d\'une suivie en direct',
+     JSON.stringify(c3.ordre) === '["tessaly","orvik","marbek","solvane","nyxaria"]' && c3.comblees === 1, JSON.stringify(c3));
+  await pa.close();
+  /* d) UN CARROUSEL DE QUATRE : une place de plus, au bout de la boucle —
+     à la gauche du centre —, et le compte est impair. La bannière, korbek,
+     n'est pas au carrousel, et c'est la suivie la plus regardée : elle n'est
+     pas reprise pour autant — elle est déjà juste au-dessus. */
+  const pd = await ouvrirAccueil({ visites: { korbek: [1] }, options: { accueilDebut: false },
+                                   decor: { carrouselChaines: ['solvane', 'orvik', 'tessaly', 'marbek'] } });
+  await plateauAccueil(pd);
+  await attendre(pd, () => document.querySelectorAll('#tse-accueil .tse-acc-rayon--une .tse-acc-carte').length === 5, 12_000);
+  await wait(pd, 600);
+  const d1 = await lire(pd);
+  ok('d) un carrousel de quatre : une cinquième place — la bannière n\'y est pas reprise —, et deux cartes de chaque côté du centre',
+     d1.n === 5 && d1.gauche === 2 && d1.droite === 2 && d1.raisons.pair === 1 && d1.comblees === 1
+     && JSON.stringify(d1.ordre.slice(0, 2)) === '["tessaly","marbek"]' && !d1.ordre.includes('korbek'), JSON.stringify(d1));
+  await pd.close();
+  /* e) RIEN D'INVENTÉ : le Top coupé, et pour suivie en direct la seule
+     bannière. Le trou reste, et le rapport le dit. */
+  const pe = await ouvrirAccueil({ visites: { korbek: [1] }, options: { accueilDebut: false, accueilTop: false },
+                                   decor: { carrouselChaines: ['solvane', 'orvik', 'tessaly', 'korbek', 'marbek'] } });
+  await plateauAccueil(pe, { suivies: { korbek: SUIVIES_ACCUEIL.korbek } });
+  await attendre(pe, () => document.querySelectorAll('#tse-accueil .tse-acc-rayon--une .tse-acc-carte').length === 4
+    && !!document.querySelector('#tse-accueil-heros .tse-acc-heros:not([hidden])'), 12_000);
+  await wait(pe, 1500);
+  const e1 = await lire(pe);
+  ok('e) sans direct à mettre — le Top coupé, la bannière seule suivie en direct —, le trou reste : rien d\'inventé, et le rapport le compte',
+     e1.n === 4 && e1.trous === 1 && e1.comblees === 0 && e1.raisons.banniere === 1, JSON.stringify(e1));
+  await pe.close();
 }
 
 {

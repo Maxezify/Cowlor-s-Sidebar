@@ -2065,6 +2065,118 @@ changing id — was replaced along the way by the ordinary case that was actuall
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
 
+## The Top 15, laid out like a Twitch row; "Featured" without a gap (v4.33.0.13)
+
+### The home page at every width
+
+Reported, with a screenshot: "the top 10 is not responsive […] take a native
+Twitch list as an example". The Top kept five places per row at every width.
+Measured at eleven widths, from 1,920 down to 375 pixels: a 179-pixel place
+at 1,024 — "From the start" out of its card —, names cut from 768, 49-pixel
+places at 375, and the whole page scrolling sideways below 900.
+
+- **The grid of the rows, the one Twitch's rows take.** As many columns as
+  the list holds 290-pixel places, fourteen apart — the columns line up from
+  one row to the next —, and five at most. Five on a large screen, three on a
+  1,024 laptop, one on a phone.
+- **Folded, the first row**, like a Twitch row: 1 to 5 on a large screen, as
+  before; 1 to 3, 1 to 2 or the first alone when space runs short. Folding
+  follows the width as it changes.
+- **"From the start" never leaves its card again**: at most its width, the
+  label shortened rather than spilling out; its tooltip still says what
+  it does.
+- The rest of the home page, measured at the same widths, already held:
+  nothing leaves a card or a row any more, and the page no longer scrolls
+  sideways.
+
+### The Top 15
+
+Requested: "can you go up to the Top 15 on the home page?". Fifteen places
+instead of ten — three full rows of five, five of three —, proven as before:
+the ranking asks for as many more as the list of excluded channels holds.
+What followed the number follows it: the thirty-minute trend, "New" for a
+channel from outside the Top 15, the places given elsewhere — "#12
+worldwide", "#14 in English" —, the banner's. The labels in the ten
+languages, the guide and the panel's settings, the Store listings.
+
+**Excluded channels: fifteen at most**, no longer twenty. The number is not
+chosen: the Top is proven on the language tag's answer, which carries thirty
+channels. A longer list, saved before, keeps its first fifteen.
+
+### "Featured" without a gap
+
+Reported, with a screenshot: "now and then, 'Featured' is missing a live
+[…] there must absolutely be a live if one is missing and it's not
+symmetrical". One card in the centre, one on its left, two on its right. A
+carousel channel did not show: the banner's, already just above; a channel
+Twitch says is offline; an answer that does not come. Or the carousel only
+carried four. A reload often made it go away: the banner's channel, or the
+offline one, was no longer the same.
+
+- **One place per carousel channel, and an odd number.** The place of a
+  channel that cannot show is filled by another live, at the very spot of the
+  gap; an even carousel gets one more place.
+- **The live that fills** comes from what the home page already knows,
+  nothing guessed: the Top ranking, then your followed channels that are
+  live. It must be live according to TseChannels; a channel already on screen
+  is not taken again.
+- **It keeps its place** as long as it is live, even if the ranking changes:
+  not a card replaced at every paint. Its own place — that of the channel it
+  stands in for —: a gap opening earlier in the loop does not move it. When
+  the carousel's channel comes back, it takes its place back, and the filler
+  leaves.
+- **An awaited answer is not a gap** during the first eight seconds: its
+  channel will come and take its place.
+- **With no live to put there**, the gap stays: nothing is invented.
+
+The report says, under `accueil.une`, how many places were missing, how many
+were filled, and why each was missing — the banner, an offline channel, an
+answer that did not come, an even carousel. If a gap shows up again, an
+exported report will say which.
+
+### The bench
+
+- **238, new**: seven widths, from 1,920 down to 375. The columns the list
+  holds, five at most, one on a phone; the rows' fourteen pixels; the fifteen
+  places in full rows, no name cut; nothing outside its card or its row, and
+  the page never scrolling sideways; "From the start" inside its card;
+  folded, the first row alone.
+- **239, new**: the banner's place filled, at its spot, by the first live of
+  the Top — an offline channel of the ranking skipped; the filler keeping its
+  place when the ranking changes; a gap opening earlier in the loop, filled
+  from the Top before followed channels, without moving the first filler; the
+  channel back, taking its place again; with no live in the Top, a followed
+  channel; a carousel of four taken to five, without reusing the banner; and,
+  with no live to put there, the gap that stays.
+- **The whole bench at fifteen places**: the Top's test data grows to
+  eighteen invented channels. 217 checks the banner's gap filled, and the
+  Top following the width — until now it checked five places at every size.
+  216 put the banner third in the ranking at 34,000 viewers, when the live
+  reading said 2,310: the fresher one made it drop a few seconds later, and
+  the bench read the place in the instant before. It now sits at the place
+  its viewers give it. 233 adds five channels with no language to the world,
+  so that a channel outside the worldwide Top 15 still gives its French place.
+
+**Thirteen named mutants, thirteen caught.**
+
+| mutant | what fails |
+| --- | --- |
+| the Top at five fixed columns | 238: everything — a) to e), and the gaps |
+| the Top without its five-column cap | 217: at 2,560 pixels, more than five places per row |
+| the Top with sixteen-pixel gaps | 238 a), e) and the gaps |
+| "From the start" with no width bound | 238 d) |
+| the Top back to ten places | 238 b) |
+| the gap left | 239 a), b), c), c bis), d) |
+| the filler put at the end | 239 c) |
+| a channel taken without being live | 239 a), c), c bis) |
+| the even carousel left even | 239 d) |
+| the filler changed at every paint | 239 b), c) |
+| the fillers redistributed in the order of the gaps | 239 c) |
+| followed channels before the Top | 239 c) |
+| the banner reused | 239 d) |
+
+`npm run check` is green: 238 scenarios, 2429 assertions.
+
 ## The sidebar glides, and a missed slot leaves the home page (v4.33.0.12)
 
 ### The sidebar that glides
@@ -25740,13 +25852,13 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 2327 KB | 1097 KB | 4,857 → **2** |
+| `content.js` | 2333 KB | 1101 KB | 4,865 → **2** |
 | `cadres.js` | 76 KB | 35 KB | 171 → **0** |
 | `adblock.js` | 126 KB | 101 KB | 301 → **2** |
 | `panneau.js` | 168 KB | 86 KB | 233 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 26 → **0** |
 | `background.js` | 10 KB | 2 KB | 23 → **0** |
-| **all six** | **2721 KB** | **1324 KB** | **−51 %** |
+| **all six** | **2727 KB** | **1329 KB** | **−51 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are

@@ -532,7 +532,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccUne:                  'À la une',
       uiAccPrecedent:            'Précédent',
       uiAccSuivant:              'Suivant',
-      uiAccTop:                  'Top 10',
+      uiAccTop:                  'Top 15',
       uiAccDirect:               'Live',
       uiAccDebut:                'Depuis le début',
       uiAccDebutTitre:           (nom) => `Revoir le direct de ${nom} depuis sa première seconde`,
@@ -541,14 +541,14 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccHausse:               (n, m) => `${n} place${n > 1 ? 's' : ''} gagnée${n > 1 ? 's' : ''} en ${m} min`,
       uiAccBaisse:               (n, m) => `${n} place${n > 1 ? 's' : ''} perdue${n > 1 ? 's' : ''} en ${m} min`,
       uiAccStable:               (m) => `Même place qu\'il y a ${m} min`,
-      uiAccEntree:               (m) => `Hors du Top 10 il y a ${m} min`,
+      uiAccEntree:               (m) => `Hors du Top 15 il y a ${m} min`,
       uiAccAttente:              'Classement en cours…',
       uiAccVide:                 'Aucune chaîne à classer pour l\'instant',
       uiAccCsAvec:               'En live avec :',
       uiAccCsPhrase:             (nom, liste) => `${nom} est en live avec ${liste}`,
       uiAccPlace:                (n, nom) => `Place ${n} : ${nom}`,
       uiAccDepuis:               (d) => `en direct depuis ${d}`,
-      uiAccRang:                 (n) => `N°${n} du Top 10`,
+      uiAccRang:                 (n) => `N°${n} du Top 15`,
       uiAccAfficherTout:         'Afficher tout',
       uiAccAfficherMoins:        'Afficher moins',
       /* VOS RENDEZ-VOUS (4.27.0, cf. RENDEZ_VOUS). `d` : une durée déjà écrite
@@ -574,7 +574,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       /* UNE ÉTIQUETTE PAR CARTE (4.28.0, cf. ETIQUETTES). `j` : des jours ;
          `p` : un pourcentage entier, arrondi vers le bas ; `m` : des minutes ;
          `n` : une place, ou un nombre de chaînes. Le subathon reprend le
-         badge de l'aperçu (uiBadgeSubathon), la place celle du Top 10 quand il
+         badge de l'aperçu (uiBadgeSubathon), la place celle du Top 15 quand il
          est mondial. LES PLACES D'AILLEURS (4.33.0.6) : le monde, et une autre
          langue, nommée dans celle de l'interface par le navigateur
          (Intl.DisplayNames) — « anglais », « Englisch ». Le polonais et le
@@ -852,7 +852,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccUne:                  'Featured',
       uiAccPrecedent:            'Previous',
       uiAccSuivant:              'Next',
-      uiAccTop:                  'Top 10',
+      uiAccTop:                  'Top 15',
       uiAccDirect:               'Live',
       uiAccDebut:                'From the start',
       uiAccDebutTitre:           (nom) => `Watch ${nom}\'s stream from its very first second`,
@@ -861,14 +861,14 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccHausse:               (n, m) => `Up ${n} place${n === 1 ? '' : 's'} in ${m} min`,
       uiAccBaisse:               (n, m) => `Down ${n} place${n === 1 ? '' : 's'} in ${m} min`,
       uiAccStable:               (m) => `Same place as ${m} min ago`,
-      uiAccEntree:               (m) => `Outside the Top 10 ${m} min ago`,
+      uiAccEntree:               (m) => `Outside the Top 15 ${m} min ago`,
       uiAccAttente:              'Ranking in progress…',
       uiAccVide:                 'No channel to rank right now',
       uiAccCsAvec:               'Live with:',
       uiAccCsPhrase:             (nom, liste) => `${nom} is live with ${liste}`,
       uiAccPlace:                (n, nom) => `Rank ${n}: ${nom}`,
       uiAccDepuis:               (d) => `live for ${d}`,
-      uiAccRang:                 (n) => `#${n} in the Top 10`,
+      uiAccRang:                 (n) => `#${n} in the Top 15`,
       uiAccAfficherTout:         'Show all',
       uiAccAfficherMoins:        'Show less',
       uiAccRdv:                  'Your scheduled streams',
@@ -1125,7 +1125,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccUne:                  'Empfohlen',
       uiAccPrecedent:            'Zurück',
       uiAccSuivant:              'Weiter',
-      uiAccTop:                  'Top 10',
+      uiAccTop:                  'Top 15',
       uiAccDirect:               'Live',
       uiAccDebut:                'Von Anfang an',
       uiAccDebutTitre:           (nom) => `Den Stream von ${nom} ab der ersten Sekunde ansehen`,
@@ -1134,14 +1134,14 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccHausse:               (n, m) => `${n} ${n === 1 ? 'Platz' : 'Plätze'} gewonnen in ${m} Min.`,
       uiAccBaisse:               (n, m) => `${n} ${n === 1 ? 'Platz' : 'Plätze'} verloren in ${m} Min.`,
       uiAccStable:               (m) => `Gleicher Platz wie vor ${m} Min.`,
-      uiAccEntree:               (m) => `Vor ${m} Min. nicht in den Top 10`,
+      uiAccEntree:               (m) => `Vor ${m} Min. nicht in den Top 15`,
       uiAccAttente:              'Rangliste wird erstellt …',
       uiAccVide:                 'Gerade kein Kanal einzuordnen',
       uiAccCsAvec:               'Live mit:',
       uiAccCsPhrase:             (nom, liste) => `${nom} ist live mit ${liste}`,
       uiAccPlace:                (n, nom) => `Platz ${n}: ${nom}`,
       uiAccDepuis:               (d) => `seit ${d} live`,
-      uiAccRang:                 (n) => `Platz ${n} der Top 10`,
+      uiAccRang:                 (n) => `Platz ${n} der Top 15`,
       uiAccAfficherTout:         'Alle anzeigen',
       uiAccAfficherMoins:        'Weniger anzeigen',
       uiAccRdv:                  'Deine geplanten Streams',
@@ -1398,7 +1398,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccUne:                  'Destacados',
       uiAccPrecedent:            'Anterior',
       uiAccSuivant:              'Siguiente',
-      uiAccTop:                  'Top 10',
+      uiAccTop:                  'Top 15',
       uiAccDirect:               'En directo',
       uiAccDebut:                'Desde el principio',
       uiAccDebutTitre:           (nom) => `Ver el directo de ${nom} desde su primer segundo`,
@@ -1407,14 +1407,14 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccHausse:               (n, m) => `Sube ${n} puesto${n === 1 ? '' : 's'} en ${m} min`,
       uiAccBaisse:               (n, m) => `Baja ${n} puesto${n === 1 ? '' : 's'} en ${m} min`,
       uiAccStable:               (m) => `Mismo puesto que hace ${m} min`,
-      uiAccEntree:               (m) => `Fuera del Top 10 hace ${m} min`,
+      uiAccEntree:               (m) => `Fuera del Top 15 hace ${m} min`,
       uiAccAttente:              'Clasificación en curso…',
       uiAccVide:                 'Ningún canal que clasificar por ahora',
       uiAccCsAvec:               'En vivo con:',
       uiAccCsPhrase:             (nom, liste) => `${nom} está en vivo con ${liste}`,
       uiAccPlace:                (n, nom) => `Puesto ${n}: ${nom}`,
       uiAccDepuis:               (d) => `en directo desde hace ${d}`,
-      uiAccRang:                 (n) => `N.º ${n} del Top 10`,
+      uiAccRang:                 (n) => `N.º ${n} del Top 15`,
       uiAccAfficherTout:         'Mostrar todo',
       uiAccAfficherMoins:        'Mostrar menos',
       uiAccRdv:                  'Tus directos programados',
@@ -1671,7 +1671,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccUne:                  'Em destaque',
       uiAccPrecedent:            'Anterior',
       uiAccSuivant:              'Seguinte',
-      uiAccTop:                  'Top 10',
+      uiAccTop:                  'Top 15',
       uiAccDirect:               'Ao vivo',
       uiAccDebut:                'Desde o início',
       uiAccDebutTitre:           (nom) => `Assistir à transmissão de ${nom} desde o primeiro segundo`,
@@ -1680,14 +1680,14 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccHausse:               (n, m) => `Sobe ${n} posiç${n === 1 ? 'ão' : 'ões'} em ${m} min`,
       uiAccBaisse:               (n, m) => `Desce ${n} posiç${n === 1 ? 'ão' : 'ões'} em ${m} min`,
       uiAccStable:               (m) => `Mesma posição de ${m} min atrás`,
-      uiAccEntree:               (m) => `Fora do Top 10 ${m} min atrás`,
+      uiAccEntree:               (m) => `Fora do Top 15 ${m} min atrás`,
       uiAccAttente:              'Classificação em andamento…',
       uiAccVide:                 'Nenhum canal para classificar no momento',
       uiAccCsAvec:               'Ao vivo com:',
       uiAccCsPhrase:             (nom, liste) => `${nom} está ao vivo com ${liste}`,
       uiAccPlace:                (n, nom) => `Posição ${n}: ${nom}`,
       uiAccDepuis:               (d) => `ao vivo há ${d}`,
-      uiAccRang:                 (n) => `Nº ${n} do Top 10`,
+      uiAccRang:                 (n) => `Nº ${n} do Top 15`,
       uiAccAfficherTout:         'Mostrar tudo',
       uiAccAfficherMoins:        'Mostrar menos',
       uiAccRdv:                  'Suas transmissões programadas',
@@ -1944,7 +1944,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccUne:                  'In primo piano',
       uiAccPrecedent:            'Precedente',
       uiAccSuivant:              'Successivo',
-      uiAccTop:                  'Top 10',
+      uiAccTop:                  'Top 15',
       uiAccDirect:               'Live',
       uiAccDebut:                'Dall\'inizio',
       uiAccDebutTitre:           (nom) => `Guarda la diretta di ${nom} dal primo secondo`,
@@ -1953,14 +1953,14 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccHausse:               (n, m) => `Sale di ${n} posizion${n === 1 ? 'e' : 'i'} in ${m} min`,
       uiAccBaisse:               (n, m) => `Scende di ${n} posizion${n === 1 ? 'e' : 'i'} in ${m} min`,
       uiAccStable:               (m) => `Stessa posizione di ${m} min fa`,
-      uiAccEntree:               (m) => `Fuori dalla Top 10 ${m} min fa`,
+      uiAccEntree:               (m) => `Fuori dalla Top 15 ${m} min fa`,
       uiAccAttente:              'Classifica in corso…',
       uiAccVide:                 'Nessun canale da classificare per ora',
       uiAccCsAvec:               'In diretta con:',
       uiAccCsPhrase:             (nom, liste) => `${nom} è in diretta con ${liste}`,
       uiAccPlace:                (n, nom) => `Posizione ${n}: ${nom}`,
       uiAccDepuis:               (d) => `in diretta da ${d}`,
-      uiAccRang:                 (n) => `N. ${n} della Top 10`,
+      uiAccRang:                 (n) => `N. ${n} della Top 15`,
       uiAccAfficherTout:         'Mostra tutto',
       uiAccAfficherMoins:        'Mostra meno',
       uiAccRdv:                  'Le tue dirette in programma',
@@ -2217,7 +2217,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccUne:                  'Polecane',
       uiAccPrecedent:            'Poprzedni',
       uiAccSuivant:              'Następny',
-      uiAccTop:                  'Top 10',
+      uiAccTop:                  'Top 15',
       uiAccDirect:               'Na żywo',
       uiAccDebut:                'Od początku',
       uiAccDebutTitre:           (nom) => `Obejrzyj transmisję ${nom} od pierwszej sekundy`,
@@ -2226,14 +2226,14 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccHausse:               (n, m) => `W górę o ${n} ${(n === 1 ? 'miejsce' : ([2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? 'miejsca' : 'miejsc'))} w ${m} min`,
       uiAccBaisse:               (n, m) => `W dół o ${n} ${(n === 1 ? 'miejsce' : ([2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? 'miejsca' : 'miejsc'))} w ${m} min`,
       uiAccStable:               (m) => `To samo miejsce co ${m} min temu`,
-      uiAccEntree:               (m) => `Poza Top 10 ${m} min temu`,
+      uiAccEntree:               (m) => `Poza Top 15 ${m} min temu`,
       uiAccAttente:              'Trwa układanie rankingu…',
       uiAccVide:                 'Na razie brak kanałów do sklasyfikowania',
       uiAccCsAvec:               'Na żywo z:',
       uiAccCsPhrase:             (nom, liste) => `${nom} — na żywo z ${liste}`,
       uiAccPlace:                (n, nom) => `Miejsce ${n}: ${nom}`,
       uiAccDepuis:               (d) => `na żywo od ${d}`,
-      uiAccRang:                 (n) => `Nr ${n} w Top 10`,
+      uiAccRang:                 (n) => `Nr ${n} w Top 15`,
       uiAccAfficherTout:         'Pokaż wszystko',
       uiAccAfficherMoins:        'Pokaż mniej',
       uiAccRdv:                  'Zaplanowane transmisje',
@@ -2495,7 +2495,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccUne:                  'Рекомендуемые',
       uiAccPrecedent:            'Назад',
       uiAccSuivant:              'Вперёд',
-      uiAccTop:                  'Топ-10',
+      uiAccTop:                  'Топ-15',
       uiAccDirect:               'В эфире',
       uiAccDebut:                'С самого начала',
       uiAccDebutTitre:           (nom) => `Смотреть трансляцию ${nom} с первой секунды`,
@@ -2504,14 +2504,14 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccHausse:               (n, m) => `Вверх на ${n} ${(n % 10 === 1 && n % 100 !== 11 ? 'место' : ([2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? 'места' : 'мест'))} за ${m} мин`,
       uiAccBaisse:               (n, m) => `Вниз на ${n} ${(n % 10 === 1 && n % 100 !== 11 ? 'место' : ([2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? 'места' : 'мест'))} за ${m} мин`,
       uiAccStable:               (m) => `То же место, что ${m} мин назад`,
-      uiAccEntree:               (m) => `${m} мин назад — вне топ-10`,
+      uiAccEntree:               (m) => `${m} мин назад — вне топ-15`,
       uiAccAttente:              'Рейтинг составляется…',
       uiAccVide:                 'Пока нечего ранжировать',
       uiAccCsAvec:               'В эфире с:',
       uiAccCsPhrase:             (nom, liste) => `${nom} — в эфире с ${liste}`,
       uiAccPlace:                (n, nom) => `Место ${n}: ${nom}`,
       uiAccDepuis:               (d) => `в эфире ${d}`,
-      uiAccRang:                 (n) => `№ ${n} в Топ-10`,
+      uiAccRang:                 (n) => `№ ${n} в Топ-15`,
       uiAccAfficherTout:         'Показать все',
       uiAccAfficherMoins:        'Показать меньше',
       uiAccRdv:                  'Запланированные трансляции',
@@ -2772,7 +2772,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccUne:                  'おすすめ',
       uiAccPrecedent:            '前へ',
       uiAccSuivant:              '次へ',
-      uiAccTop:                  'トップ 10',
+      uiAccTop:                  'トップ 15',
       uiAccDirect:               'ライブ',
       uiAccDebut:                '最初から',
       uiAccDebutTitre:           (nom) => `${nom} の配信を最初の1秒から見る`,
@@ -2781,14 +2781,14 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccHausse:               (n, m) => `${m} 分で ${n} 位上昇`,
       uiAccBaisse:               (n, m) => `${m} 分で ${n} 位下降`,
       uiAccStable:               (m) => `${m} 分前と同じ順位`,
-      uiAccEntree:               (m) => `${m} 分前はトップ10圏外`,
+      uiAccEntree:               (m) => `${m} 分前はトップ15圏外`,
       uiAccAttente:              'ランキングを作成中…',
       uiAccVide:                 '現在ランキングできるチャンネルはありません',
       uiAccCsAvec:               '一緒に配信中：',
       uiAccCsPhrase:             (nom, liste) => `${nom} は ${liste} と配信中`,
       uiAccPlace:                (n, nom) => `${n} 位：${nom}`,
       uiAccDepuis:               (d) => `配信開始から ${d}`,
-      uiAccRang:                 (n) => `トップ 10 の ${n} 位`,
+      uiAccRang:                 (n) => `トップ 15 の ${n} 位`,
       uiAccAfficherTout:         'すべて表示',
       uiAccAfficherMoins:        '表示を減らす',
       uiAccRdv:                  '予定されている配信',
@@ -3042,7 +3042,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccUne:                  '精选',
       uiAccPrecedent:            '上一个',
       uiAccSuivant:              '下一个',
-      uiAccTop:                  '前 10 名',
+      uiAccTop:                  '前 15 名',
       uiAccDirect:               '直播',
       uiAccDebut:                '从头观看',
       uiAccDebutTitre:           (nom) => `从第一秒开始观看 ${nom} 的直播`,
@@ -3051,14 +3051,14 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccHausse:               (n, m) => `${m} 分钟内上升 ${n} 名`,
       uiAccBaisse:               (n, m) => `${m} 分钟内下降 ${n} 名`,
       uiAccStable:               (m) => `与 ${m} 分钟前名次相同`,
-      uiAccEntree:               (m) => `${m} 分钟前未进入前 10 名`,
+      uiAccEntree:               (m) => `${m} 分钟前未进入前 15 名`,
       uiAccAttente:              '排名生成中…',
       uiAccVide:                 '目前没有可排名的频道',
       uiAccCsAvec:               '一起直播：',
       uiAccCsPhrase:             (nom, liste) => `${nom} 正在与 ${liste} 直播`,
       uiAccPlace:                (n, nom) => `第 ${n} 名：${nom}`,
       uiAccDepuis:               (d) => `已直播 ${d}`,
-      uiAccRang:                 (n) => `前 10 名中第 ${n} 名`,
+      uiAccRang:                 (n) => `前 15 名中第 ${n} 名`,
       uiAccAfficherTout:         '显示全部',
       uiAccAfficherMoins:        '收起',
       uiAccRdv:                  '计划中的直播',
@@ -4728,9 +4728,14 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     AGENDA_ECRITURE_REPRISE_MS: 60_000,
 
     /* === La page d'accueil de Twitch (4.26.0) ===
-       Cf. le module pageAccueil. Le Top 10 est une seconde instance du moteur
-       de Top Chaînes : ses cadences sont les siennes (GLOBAL_*). */
-    ACCUEIL_TOP_N:          10,
+       Cf. le module pageAccueil. Le Top 15 est une seconde instance du moteur
+       de Top Chaînes : ses cadences sont les siennes (GLOBAL_*). QUINZE PLACES
+       (4.33.0.13, « peux-tu aller jusqu'au Top 15 sur l'accueil ? ») ; DIX
+       jusque-là. Cinq colonnes au plus, comme avant, mais moins quand la
+       largeur ne tient pas cinq places d'une carte de rayon (cf. la feuille,
+       `.tse-acc-liste--top`) : trois rangées pleines de cinq, cinq de trois. */
+    ACCUEIL_TOP_N:          15,
+    ACCUEIL_TOP_COLONNES:   5,
     /* « À LA UNE » (4.32.0.3) : les chaînes du carrousel de Twitch, en
        rayon, quand la bannière le masque — il en porte cinq. Huit au plus,
        si Twitch en pose davantage. */
@@ -4760,7 +4765,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        donnée (un défilement doux en prend moins d'une seconde) : passé, un
        défilement qui finit ailleurs est réputé fait à la main. */
     ACCUEIL_RUBAN_MENE_MS: 1_500,
-    /* LE CO-STREAM D'UNE PLACE DU TOP 10 (4.33.0.2) : sa fenêtre s'ouvre
+    /* LE CO-STREAM D'UNE PLACE DU TOP 15 (4.33.0.2) : sa fenêtre s'ouvre
        quand le pointeur s'attarde sur « + N ⌄ » — un passage ne l'ouvre
        pas —, et se ferme quand il a quitté le bouton ET la fenêtre depuis
        ce délai : de quoi franchir l'écart qui les sépare. */
@@ -4783,7 +4788,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        aussi depuis la 4.32.0.2 (cf. RANGER). */
     ACCUEIL_CARTE_MIN:      290,
     ACCUEIL_ECARTS:         '20px 14px',
-    // L'évolution du Top 10 : trente minutes au plus, deux au moins, un instantané par minute.
+    // L'évolution du Top 15 : trente minutes au plus, deux au moins, un instantané par minute.
     ACCUEIL_EVOLUTION_MS:   30 * 60_000,
     ACCUEIL_EVOLUTION_MIN_MS: 2 * 60_000,
     ACCUEIL_INSTANTANE_MS:  60_000,
@@ -4868,9 +4873,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     ETIQ_PULSATION_MS:      2000,
     ETIQ_PULSATION_TEMPS:   5,
     ETIQ_PULSATION_ECHELLE: 1.06,
-    /* LES PLACES D'AILLEURS (4.33.0.6, cf. ETIQUETTES). Le Top 10 mondial, et
+    /* LES PLACES D'AILLEURS (4.33.0.6, cf. ETIQUETTES). Le Top 15 mondial, et
        celui des autres langues des cartes de l'accueil : trois langues au plus
-       à la fois — les plus nombreuses —, chacune au rythme du Top 10 (une
+       à la fois — les plus nombreuses —, chacune au rythme du Top 15 (une
        passe légère toutes les 30 s, une marche au plus toutes les 2 min 30).
        Six classements gardés en mémoire au plus ; une carte compte pour sa
        langue tant qu'elle a été peinte, son direct connu, depuis deux durées
@@ -5012,16 +5017,17 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        de nos libellés (cf. localeTwitch) ; « toutes » : le classement mondial. */
     accueilTopLangue: { defaut: 'interface', type: 'choix',
                        valeurs: ['interface', 'toutes'], sous: ['accueil', 'accueilTop'] },
-    /* LES CHAÎNES ÉCARTÉES DU TOP 10 (4.32.0.4) : des pseudos, tapés dans les
+    /* LES CHAÎNES ÉCARTÉES DU TOP 15 (4.32.0.4) : des pseudos, tapés dans les
        Réglages — « retire le bouton ; mets-le dans les options, on met le
        pseudo du streamer ». Une chaîne qui porte le tag d'une langue sans la
        parler, par exemple : rien ne le dit sans deviner, c'est vous qui le
-       dites. Écartées du Top 10 de l'accueil, quelle qu'en soit la langue ;
+       dites. Écartées du Top 15 de l'accueil, quelle qu'en soit la langue ;
        Top Chaînes, dans la barre, n'en sait rien.
 
        UN TYPE NEUF, « liste » : des logins, en minuscules, dans l'ordre où
-       on les a ajoutés. VINGT AU PLUS, et le nombre n'est pas choisi : le
-       Top 10 se prouve sur dix places de plus que la liste (cf. pageAccueil,
+       on les a ajoutés. QUINZE AU PLUS (vingt avant la 4.33.0.13), et le
+       nombre n'est pas choisi : le Top 15 se prouve sur quinze places de plus
+       que la liste (cf. pageAccueil,
        `nPreuve`), et la réponse du tag de langue, qui le prouve d'une seule
        requête, en porte trente (GLOBAL_TAG_MAX). Au-delà, chaque marche
        redescendrait toutes les catégories. */
@@ -5336,7 +5342,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
 
   /* LES ÉCARTÉES DE LA 4.32.0.3 PASSENT AU RÉGLAGE (4.32.0.4), une fois. Elles
      vivaient sous « tse:ecartees », langue → logins, posées par un bouton sur
-     les places du Top 10 ; le bouton s'en va, la liste est désormais un
+     les places du Top 15 ; le bouton s'en va, la liste est désormais un
      réglage, et sans langue. Ce que vous aviez écarté le reste, toutes
      langues réunies, revu par `propre` comme tout ce qui entre ; puis la clé
      s'en va. Deux onglets qui chargent ensemble font deux fois la même
@@ -9460,8 +9466,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       display: grid; grid-template-columns: repeat(auto-fill, minmax(min(var(--tse-col), 100%), 1fr));
       gap: ${CFG.ACCUEIL_ECARTS}; margin: 0; padding: 0; list-style: none;
     }
-    /* La hauteur du bouton même sans bouton (4.26.0.5) : le Top 10 l'obtient
-       en arrivant — dix places pour cinq colonnes —, et tout ce qui suit
+    /* La hauteur du bouton même sans bouton (4.26.0.5) : le Top l'obtient
+       en arrivant — plus de places que de colonnes —, et tout ce qui suit
        descendait d'autant. */
     .tse-acc-pied { display: flex; align-items: center; min-height: 30px; margin: 14px 0 4px; }
     .tse-acc-plus {
@@ -9895,7 +9901,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     .tse-acc-infos { display: flex; gap: 10px; min-width: 0; padding-top: 8px; }
     .tse-acc-avatar { flex: 0 0 40px; width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: var(--tse-surface-2); }
     .tse-acc-textes { flex: 1 1 auto; min-width: 0; }
-    /* Le nom, et juste à sa droite l'évolution du Top 10. */
+    /* Le nom, et juste à sa droite l'évolution du Top 15. */
     .tse-acc-nom-ligne { display: flex; align-items: center; gap: 8px; min-width: 0; }
     .tse-acc-nom {
       flex: 0 1 auto; min-width: 0; color: var(--tse-texte); font-size: 14px; font-weight: 600; line-height: 1.3;
@@ -9958,6 +9964,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       font-size: 12px; font-weight: 600; line-height: 24px; text-decoration: none; white-space: nowrap;
     }
     .tse-acc-debut:hover { background: rgba(var(--tse-encre), 0.18); }
+    /* JAMAIS PLUS LARGE QUE SA CARTE (4.33.0.13) : à sa largeur de contenu, il
+       sortait d'une carte étroite — et la page défilait de côté. Le libellé
+       s'abrège ; son infobulle dit toujours ce qu'il fait. */
+    .tse-acc-debut { max-width: 100%; }
+    .tse-acc-debut > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
     /* SA PLACE, GARDÉE (4.26.0.5). L'archive se demande après la peinture,
        et le bouton paraissait une seconde plus tard : la rangée grandissait
        d'une ligne, et tout ce qui suit descendait. Tant que « Depuis le
@@ -9965,7 +9976,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        la place, invisible. */
     .tse-acc-debut[data-tse-reserve] { visibility: hidden; }
     .tse-acc-debut { min-height: 24px; box-sizing: border-box; }
-    /* Le Top 10 en attente de son classement : ses cinq premières places,
+    /* Le Top 15 en attente de son classement : ses cinq premières places,
        vides, à leur taille exacte — les chiffres, les vignettes, les lignes. */
     .tse-acc-carte-attente { min-width: 0; }
     .tse-acc-place--attente .tse-acc-vignette, .tse-acc-place--attente .tse-acc-avatar, .tse-acc-os,
@@ -10233,15 +10244,30 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       .tse-acc-heros-infos { width: min(560px, 72%); }
     }
 
-    /* ── Le Top 10 ───────────────────────────────────────────────────────
-       CINQ PLACES PAR RANGÉE, À TOUTES LES TAILLES (4.26.0.3) : « la taille
-       de liste de base doit être de 5 » — 1 à 5, puis 6 à 10 sous « Afficher
-       tout ». Le chiffre en creux, à gauche de la vignette qui le recouvre en
-       partie, et son pied aligné sur le bas de la vignette. Tout se mesure
-       en largeur de place : le chiffre en prend 28 %, la vignette les 79 %
-       qui restent sous lui, et le chiffre en prend la hauteur — une place
-       étroite garde ses proportions. */
-    .tse-acc-liste--top { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 22px 16px; }
+    /* ── Le Top 15 ───────────────────────────────────────────────────────
+       COMME UN RAYON DE TWITCH (4.33.0.13). Signalé, capture à l'appui :
+       « le top 10 n'est pas responsive ». Cinq places par rangée À TOUTES LES
+       TAILLES (4.26.0.3) : à 1 024 pixels, une place en faisait 179 — des
+       noms abrégés en trois lettres, « Depuis le début » sorti de sa carte —,
+       à 375, 49, et la page entière défilait de côté. La grille est désormais
+       celle des autres rayons, et celle que prennent les rayons de Twitch
+       (cf. RANGER) : autant de colonnes que tient une place de
+       ${CFG.ACCUEIL_CARTE_MIN} pixels, les mêmes écarts entre colonnes — les
+       colonnes s'alignent d'un rayon à l'autre —, et ${CFG.ACCUEIL_TOP_COLONNES}
+       au plus : la largeur minimale d'une colonne est aussi le cinquième de la
+       liste. Replié, la première rangée, comme un rayon (cf. \`plier\`) : 1 à
+       5 sur un grand écran — « la taille de liste de base doit être de 5 » —,
+       1 à 3, 1 à 2 ou la première seule quand la place manque.
+       Le chiffre en creux, à gauche de la vignette qui le recouvre en partie,
+       et son pied aligné sur le bas de la vignette. Tout se mesure en largeur
+       de place : le chiffre en prend 28 %, la vignette les 79 % qui restent
+       sous lui, et le chiffre en prend la hauteur — une place étroite garde
+       ses proportions. */
+    .tse-acc-liste--top {
+      grid-template-columns: repeat(auto-fill, minmax(max(min(${CFG.ACCUEIL_CARTE_MIN}px, 100%),
+        calc((100% - ${CFG.ACCUEIL_TOP_COLONNES - 1} * ${CFG.ACCUEIL_ECARTS.split(' ')[1]}) / ${CFG.ACCUEIL_TOP_COLONNES})), 1fr));
+      gap: 22px ${CFG.ACCUEIL_ECARTS.split(' ')[1]};
+    }
     .tse-acc-place { container-type: inline-size; display: flex; align-items: flex-start; min-width: 0; }
     .tse-acc-rang {
       --tse-vignette-h: calc(79cqw * 9 / 16);
@@ -14004,7 +14030,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       // Et cela ne coûte AUCUNE requête : les tags de langue voyagent déjà
       // dans chaque réponse de la marche.
       /* `exclues` (4.32.0.4) : des logins que ce classement-ci ne montre pas
-         — les chaînes écartées du Top 10 de l'accueil. Retirées AVANT les
+         — les chaînes écartées du Top 15 de l'accueil. Retirées AVANT les
          places : le classement garde ses dix, et la onzième monte. La barre
          ne passe rien. */
       top(n = lire().n, exclues = null) {
@@ -14543,7 +14569,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
   /* ── DÉPLACER SANS DÉFAIRE (4.33.0.10) ───────────────────────────────────
      Un nœud déplacé par insertBefore ou appendChild est RETIRÉ puis REPOSÉ,
      et le navigateur le traite comme neuf : ses animations CSS repartent de
-     zéro — la pastille qui bat sautait à chaque réordonnancement du Top 10,
+     zéro — la pastille qui bat sautait à chaque réordonnancement du Top 15,
      les lueurs de la barre à chaque tri — et une iframe se recharge — la
      vidéo du héros repartait du noir quand on le reposait. `moveBefore()`
      déplace sans retirer (Modern Web Guidance, « move-dom-element-without-
@@ -17640,7 +17666,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
    *    — « À la une » : les directs du carrousel de Twitch, que
    *      la bannière masque, en rayon (4.32.0.3 — il remplace
    *      vos chaînes suivies en direct, que la barre montre déjà) ;
-   *    — le Top 10 de votre langue, tiré du classement exact de
+   *    — le Top 15 de votre langue, tiré du classement exact de
    *      Top Chaînes, en grands chiffres.
    *
    *  RIEN N'EST INVENTÉ ICI. La bannière lit ce que la barre sait
@@ -17648,7 +17674,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
    *  ne coûte aucune requête de plus : l'amorce
    *  (4.26.0.5, cf. VOILE_ACCUEIL) demande au démarrage ce que la
    *  barre demanderait à son premier balayage, et la barre ne le
-   *  redemande pas. Le Top 10 est une
+   *  redemande pas. Le Top 15 est une
    *  seconde instance du moteur de Top Chaînes (creerClassement),
    *  qui ne tourne que pendant que l'accueil est à l'écran et se
    *  tait quand la barre sert déjà la même question. « Depuis le
@@ -17739,7 +17765,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     let refusSuite = 0;
     let debutPause = 0;
     let z = null;                // les zones de la section, une fois construite
-    let rangsTop = null;         // login → place, quand le Top 10 affiché est exact
+    let rangsTop = null;         // login → place, quand le Top 15 affiché est exact
     const ouverts = new Set();   // les rayons dépliés par « Afficher tout » : 'une', 'top'…
     let mesureur = null;         // ResizeObserver de la section : le nombre de colonnes
     let herosCourant = null;     // { login, cle } : le héros peint, et le début de son direct
@@ -17791,7 +17817,12 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
          porte, combien se montrent, combien attendent leur réponse. */
       une: { voie: null, lues: 0, montrees: 0, attente: 0, reserve: false, demandes: 0, relectures: 0, centrages: 0,
              // Le ruban circulaire (4.33.0.1) : la carte du centre, et les tours faits pour la garder entourée.
-             tete: null, tours: 0 },
+             tete: null, tours: 0,
+             /* Ses trous (4.33.0.13), au dernier passage : combien de places à combler,
+                combien l'ont été, et pourquoi chacune manquait — la chaîne de la
+                bannière, une chaîne hors ligne, une réponse qui n'est pas venue,
+                ou un carrousel pair. Des comptes, jamais un pseudo. */
+             trous: 0, comblees: 0, raisons: { banniere: 0, horsLigne: 0, sansReponse: 0, pair: 0 } },
       debut: { envois: 0, demandes: 0, archives: 0, sansArchive: 0, sansStream: 0,
                jetons: 0, fermees: 0, illisibles: 0, refus: 0, reseau: 0 },
       // Vos rendez-vous (4.27.0) : ce qui est montré, et si l'agenda tourne encore.
@@ -17818,7 +17849,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     const SEL_EXCLU = `#${ID}, #${ID_HEROS}, ${DOM.sidebarRoot}, .tse-preview`;
     const exclu = (n) => !!n.closest?.(SEL_EXCLU);
 
-    /* ── LE TOP 10 : LA LANGUE, ET LE MOTEUR QUI LE SERT ─────────────────────
+    /* ── LE TOP 15 : LA LANGUE, ET LE MOTEUR QUI LE SERT ─────────────────────
        « Celle de Twitch » se lit sur <html lang>, que Twitch pose d'après la
        langue de son interface, et se traduit en NOM DE TAG — la clé du
        moteur (cf. LANG_API). Une langue sans tag connu se dit « toutes les
@@ -17838,10 +17869,10 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        catégorie, dans la même langue. Son classement porte au moins dix
        places (topN vaut 10, 30 ou 50), et on le lit au lieu d'en payer un
        second. */
-    /* LES CHAÎNES ÉCARTÉES DU TOP 10 (4.32.0.4, cf. OPT_DEFS), en ensemble.
+    /* LES CHAÎNES ÉCARTÉES DU TOP 15 (4.32.0.4, cf. OPT_DEFS), en ensemble.
        Retirées avant les places, elles laissent monter les suivantes : le Top
-       10 en demande donc autant de plus au classement, pour que la dixième
-       place soit PROUVÉE comme les neuf autres (cf. `nPreuve`). La barre ne
+       15 en demande donc autant de plus au classement, pour que la dernière
+       place soit PROUVÉE comme les autres (cf. `nPreuve`). La barre ne
        se partage qu'à cette condition : son Top Chaînes doit en porter assez. */
     let ecarteesCle = null;
     let ecarteesJeu = new Set();
@@ -18640,7 +18671,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       const note = elt('p', 'tse-acc-note');
       note.hidden = true;
       lTop.after(note);
-      // Des rayons qui disent pourquoi (4.31.0), juste après le Top 10 (cf. POURQUOI).
+      // Des rayons qui disent pourquoi (4.31.0), juste après le Top 15 (cf. POURQUOI).
       const pq = Array.from({ length: CFG.POURQUOI_RAYONS }, (_, i) => {
         const h = elt('h2', 'tse-acc-titre');
         h.append(elt('span'), elt('span', 'tse-acc-sous-titre'));
@@ -18748,11 +18779,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
             relevés, ou daté par les chapitres que l'aperçu a déjà lus ;
          5. « ↗ +38 % en 10 min » — deux relevés du même direct (cf.
             tendanceDe) ;
-         6. « N°3 mondial » — la place au Top 10 de tout Twitch (4.33.0.6,
+         6. « N°3 mondial » — la place au Top 15 de tout Twitch (4.33.0.6,
             cf. AILLEURS), quand celui de l'accueil est celui d'une langue ;
-         7. « N°3 en français » — la place au Top 10 exact de l'accueil ; pas
-            sur le Top 10 lui-même, qui l'écrit déjà en grand ;
-         8. « N°2 en anglais » — la place au Top 10 d'une AUTRE langue, celle
+         7. « N°3 en français » — la place au Top 15 exact de l'accueil ; pas
+            sur le Top 15 lui-même, qui l'écrit déjà en grand ;
+         8. « N°2 en anglais » — la place au Top 15 d'une AUTRE langue, celle
             que la chaîne porte en tag (4.33.0.6, cf. AILLEURS) ;
          9. « Co-stream à 3 » — la session que Guest Star décrit.
        Ce qu'on ne sait pas ne s'écrit pas : une carte sans fait reste nue. */
@@ -18772,39 +18803,39 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     };
     /* ══ LES PLACES D'AILLEURS (4.33.0.6) ══════════════════════════════════
        « Est-il possible de mettre des pastilles des Top mondiaux et des tops
-       des autres langues ? » Le Top 10 de l'accueil est celui d'UNE langue —
+       des autres langues ? » Le Top 15 de l'accueil est celui d'UNE langue —
        la vôtre, d'ordinaire —, et une chaîne d'une autre langue, ou la
        première de tout Twitch, n'y avait aucune place à dire. Deux sortes de
-       classements s'y ajoutent, du même moteur que le Top 10 (cf.
+       classements s'y ajoutent, du même moteur que le Top 15 (cf.
        creerClassement), et aux mêmes preuves :
-         — LE MONDE, toutes langues, quand le Top 10 est celui d'une langue
-           (sinon le Top 10 EST le monde, et sa place se dit déjà) ;
+         — LE MONDE, toutes langues, quand le Top 15 est celui d'une langue
+           (sinon le Top 15 EST le monde, et sa place se dit déjà) ;
          — LES AUTRES LANGUES DES CARTES DE L'ACCUEIL, celles que leurs
            chaînes portent en tag (cf. langStore), pour les cartes dont le
            direct est connu — celles qu'on a vues à l'écran, d'ordinaire : les
            ETIQ_LANGUES_MAX plus nombreuses.
-       CHACUN COÛTE CE QUE COÛTE LE TOP 10 : une passe légère toutes les 30 s
+       CHACUN COÛTE CE QUE COÛTE LE TOP 15 : une passe légère toutes les 30 s
        (la liste des catégories et le sommet des dix premières, ~11
        opérations), et une marche au plus toutes les 2 min 30 — un TseTagTop
        dans une langue, la descente des catégories (~64 opérations) pour le
        monde. Le rapport compte les opérations de chacun (`operations`).
        Aucun ne part quand la barre sert déjà la même question
        (Top Chaînes ouvert, sans catégorie, dans la même langue), quand
-       l'accueil n'est pas à l'écran, ou quand les étiquettes ou le Top 10
+       l'accueil n'est pas à l'écran, ou quand les étiquettes ou le Top 15
        sont coupés.
-       UNE PLACE NE S'ÉCRIT QUE PROUVÉE, comme au Top 10 : un classement
+       UNE PLACE NE S'ÉCRIT QUE PROUVÉE, comme au Top 15 : un classement
        résolu, complet selon son rapport, et dont la preuve couvre ses dix
        places. Une langue que Twitch ne filtre pas lui-même retombe sur les
        tags lus : approchée, elle ne dit rien. Les places
-       d'une session de co-stream sont une, comme au Top 10 ; les chaînes
-       écartées du Top 10 n'y changent rien — elles sont VOTRE liste, pas un
+       d'une session de co-stream sont une, comme au Top 15 ; les chaînes
+       écartées du Top 15 n'y changent rien — elles sont VOTRE liste, pas un
        fait du classement de Twitch. */
     const MONDE = '*';
     const ailleurs = new Map();        // portée ('*' ou un tag de langue) -> { cle, voulu, classement }
     let rangsAilleurs = new Map();     // portée -> Map(login -> place), places prouvées seulement
     const vusEtiquettes = new Map();   // login -> instant où sa carte a été peinte, son direct connu
-    /* LE TOP 10 COUPÉ, AUCUNE PLACE NE SE DIT, ni d'ici ni d'ailleurs : ses
-       classements sont ceux du Top 10, et le couper, c'est n'en plus payer
+    /* LE TOP 15 COUPÉ, AUCUNE PLACE NE SE DIT, ni d'ici ni d'ailleurs : ses
+       classements sont ceux du Top 15, et le couper, c'est n'en plus payer
        aucun (cf. 217). */
     const ailleursActif = () => topActif() && options.get('accueilEtiquettes');
     const partageAilleurs = (cle) => !!state.globalMode && !state.categoryFilter
@@ -18822,7 +18853,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       }
       return a;
     };
-    // Les langues des cartes vues, sauf celle du Top 10 : les plus nombreuses d'abord, à égalité le nom.
+    // Les langues des cartes vues, sauf celle du Top 15 : les plus nombreuses d'abord, à égalité le nom.
     const languesAilleurs = () => {
       const propre = langueVoulue();
       const depuis = Date.now() - 2 * CFG.LIVE_TTL;
@@ -18834,8 +18865,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       return [...compte].sort((x, y) => (y[1] - x[1]) || (x[0] < y[0] ? -1 : 1))
         .slice(0, CFG.ETIQ_LANGUES_MAX).map(([l]) => l);
     };
-    /* Une place par session, comme au Top 10 (cf. enPlaces) : tous ses membres
-       la portent. La tête que le Top 10 élit ne sert qu'à son affichage. */
+    /* Une place par session, comme au Top 15 (cf. enPlaces) : tous ses membres
+       la portent. La tête que le Top 15 élit ne sert qu'à son affichage. */
     const placesProuvees = (src) => {
       const r = src.report();
       if (!src.resolu() || !r.complete || r.prouve < CFG.ACCUEIL_TOP_N) return null;
@@ -18991,7 +19022,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       if (twitch) etiquetees.add(n);
     };
     /* CE QU'UNE CARTE COÛTE. Une chaîne que la barre suit est déjà lue toutes
-       les trente secondes. Les autres — celles du Top 10 et des rayons de
+       les trente secondes. Les autres — celles du Top 15 et des rayons de
        Twitch — entrent dans le lot commun de TseChannels tant que leur carte
        est à l'écran, et seulement elles. */
     /* UNE CHAÎNE QUE TWITCH OMET — renommée, bannie — ne laisse rien dans le
@@ -19450,7 +19481,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       return [b, fen];
     };
     /* Le bouton d'une carte : posé, mis à jour, retiré. Juste après le nom,
-       comme sur la carte de Twitch ; l'évolution du Top 10 vient après lui. */
+       comme sur la carte de Twitch ; l'évolution du Top 15 vient après lui. */
     const majCs = (ligne, cs) => {
       const b = ligne.querySelector(':scope > .tse-acc-cs');
       if (!cs || !cs.autres.length) {
@@ -19473,7 +19504,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       if (!POPOVER) attrSi(bouton, 'title', phrase);
       if (csOuvert && csOuvert.bouton === bouton) remplirCs(csOuvert.fen, cs);
     };
-    /* APRÈS CHAQUE PEINTURE DU TOP 10. Une place qui change de rang est
+    /* APRÈS CHAQUE PEINTURE DU TOP 15. Une place qui change de rang est
        déplacée dans la liste, et un `popover` déplacé se referme : s'il était
        ouvert, il se rouvre à sa place. Un bouton parti emporte la sienne. */
     const suivreCs = () => {
@@ -19485,7 +19516,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     };
 
     /* Une carte : la vignette (cible de l'aperçu), puis l'avatar et les textes.
-       Le nom partage sa ligne avec l'évolution du Top 10 : « juste à droite du
+       Le nom partage sa ligne avec l'évolution du Top 15 : « juste à droite du
        pseudo », comme demandé — sur une chaîne suivie, elle reste vide.
 
        LE RELIEF AU SURVOL (4.32.0.3), celui des cartes de Twitch : « le
@@ -19541,7 +19572,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     /* `d` : { login, nom, avatar, titre, jeu, spect, debutLive, cs, couleur }
        — tout ce qui a été lu, rien de deviné. Un champ absent laisse sa ligne
        vide ; une couleur inconnue laisse celle de Twitch. `cs` : le
-       co-stream d'une place du Top 10 (cf. CO-STREAM). */
+       co-stream d'une place du Top 15 (cf. CO-STREAM). */
     const majCarte = (carte, d) => {
       const [relief, infos] = carte.children;
       const vig = relief.lastChild;
@@ -19570,7 +19601,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       texteSi(jeu, d.jeu || '');
       jeu.hidden = !d.jeu;
       majDebut(debut, d.login, d.nom, true);
-      // Sur le Top 10, la place s'écrit déjà en grand à côté : pas deux fois.
+      // Sur le Top 15, la place s'écrit déjà en grand à côté : pas deux fois.
       poserEtiquette(vig, etiquetteDe(d.login, { rang: !d.top }));
     };
     // Une rangée tenue par clé : les cartes restent, se mettent à jour, se réordonnent.
@@ -19623,7 +19654,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
 
        Ce qu'il dit, il le sait : la catégorie, l'audience et la durée du cache
        de la barre, l'ancienneté d'abonnement que l'aperçu affiche déjà, la
-       place au Top 10 quand le classement exact de l'accueil la donne. Le
+       place au Top 15 quand le classement exact de l'accueil la donne. Le
        choix de la tête, posé en haut à droite en 4.26.0.1, est retiré à la
        demande : il se fait dans « Réglages ». */
     const fabriquerHeros = (login) => {
@@ -19924,13 +19955,13 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        de l'accueil est « rien » : le carrousel affiché, ce serait deux fois
        les mêmes directs. Sans la chaîne de la bannière, qui est juste
        au-dessus. Ce qu'une carte dit vient de TseChannels, comme pour le Top
-       10 : une chaîne que la barre ne suit pas entre dans le lot commun le
+       15 : une chaîne que la barre ne suit pas entre dans le lot commun le
        temps qu'elle est à la une. Une chaîne dont la réponse n'est pas encore
        là attend ; une chaîne que Twitch dit hors ligne ne se montre pas. */
-    /* EN ATTENDANT, SA PLACE (cf. le Top 10, 4.26.0.5). Le carrousel arrive
+    /* EN ATTENDANT, SA PLACE (cf. le Top 15, 4.26.0.5). Le carrousel arrive
        après notre première image — c'était lui qu'on voyait « quelques
        secondes » avant le héros —, et ses chaînes, une réponse plus tard.
-       Le rayon paraissait alors au-dessus du Top 10, qui descendait d'une
+       Le rayon paraissait alors au-dessus du Top 15, qui descendait d'une
        rangée sous vos yeux : le banc l'a pris, « rien ne bouge en
        arrivant ». Tant qu'on attend le carrousel ou ses réponses, une rangée
        de cartes vides tient sa place, à la taille exacte des vraies — huit
@@ -19955,19 +19986,86 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       return carte;
     };
     let uneLue = '';             // les chaînes du carrousel à la dernière lecture (cf. suivreUne)
+    /* JAMAIS DE TROU, TOUJOURS SYMÉTRIQUE (4.33.0.13). Signalé, capture à
+       l'appui : « de temps en temps, "À la une" manque un live […] il faut à
+       tout prix un live s'il en manque un et que ce n'est pas symétrique ».
+       Une carte du centre, une à sa gauche, deux à sa droite. Une chaîne du
+       carrousel sautait — celle de la bannière, déjà juste au-dessus ; une
+       chaîne que Twitch dit hors ligne ; une réponse qui ne vient pas — ou le
+       carrousel n'en portait que quatre, et le ruban, centré sur sa tête,
+       penchait d'un côté.
+       UNE PLACE PAR CHAÎNE DU CARROUSEL, ET UN NOMBRE IMPAIR : la place d'une
+       chaîne qui ne peut pas se montrer est COMBLÉE, à l'endroit même du trou,
+       par un autre direct ; un carrousel pair reçoit une place de plus, au
+       bout. Le direct qui comble vient de ce que l'accueil sait déjà, rien de
+       deviné : le classement du Top, puis vos chaînes suivies en direct ; une
+       chaîne déjà à l'écran — au carrousel, à la bannière — n'est pas reprise.
+       Il doit être EN DIRECT d'après TseChannels : une chaîne du classement
+       dont la réponse manque est demandée, et servira au passage suivant.
+       IL GARDE SA PLACE tant qu'il est en direct : une carte qui en remplace
+       une autre à chaque peinture, ce serait le ruban qui clignote. SA place,
+       et non la première venue : chaque direct qui comble est attaché à la
+       chaîne qu'il remplace — ou à la place qui rend le compte impair —, et
+       un trou qui s'ouvre plus tôt dans la boucle ne le déplace pas.
+       Une réponse attendue n'est pas un trou tant que l'arrivée est récente
+       (cf. ACCUEIL_UNE_ATTENTE_MS) : sa chaîne viendra prendre sa place. */
+    // À la peinture d'avant : la place — la chaîne du carrousel qu'il remplace, '' pour celle du compte impair — → le direct qui la comblait.
+    let combleurs = new Map();
     const peindreUne = (heros) => {
       const voulu = !!options.get('accueilUne') && masquerVoulu;
       const { logins, voie } = voulu ? chainesCarrousel() : { logins: [], voie: null };
       uneLue = logins.join(',');
       const items = [];
+      const trous = [];          // { ou : sa position dans `items`, cle : la chaîne du carrousel qui manque }
       let attente = 0;
+      const patient = performance.now() - arrivee < CFG.ACCUEIL_UNE_ATTENTE_MS;
+      const raisons = { banniere: 0, horsLigne: 0, sansReponse: 0, pair: 0 };
       for (const login of logins) {
-        if (heros && login === heros.login) continue;
+        const trou = (raison) => { trous.push({ ou: items.length, cle: login }); raisons[raison]++; };
+        if (heros && login === heros.login) { trou('banniere'); continue; }
         demander(login, bilan.une);
         const e = cache.get(login);
-        if (!e) { attente++; continue; }
-        if (e.stream) items.push({ login, e });
+        if (!e) { attente++; if (!patient) trou('sansReponse'); continue; }
+        if (e.stream) items.push({ login, e }); else trou('horsLigne');
       }
+      // Un carrousel pair : une place de plus, au bout de la boucle.
+      if (logins.length % 2) raisons.pair = 0;
+      else if (logins.length) { trous.push({ ou: items.length, cle: '' }); raisons.pair = 1; }
+      bilan.une.raisons = raisons;
+      bilan.une.trous = trous.length;
+      bilan.une.comblees = 0;
+      if (trous.length && items.length) {
+        const deja = new Set([...logins, ...(heros ? [heros.login] : [])]);
+        const enDirect = (login) => { const e = cache.get(login); return e && e.stream ? e : null; };
+        const choisis = trous.map(() => null);
+        // D'abord, chaque place garde le direct qui la comblait.
+        trous.forEach((t, i) => {
+          const login = combleurs.get(t.cle);
+          const e = login && !deja.has(login) && enDirect(login);
+          if (e) { choisis[i] = { login, e }; deja.add(login); }
+        });
+        // Puis les places restées vides, dans l'ordre de la boucle : le Top, puis les suivies.
+        let k = choisis.indexOf(null);
+        if (k >= 0) {
+          const candidats = [...sourceTop().top(CFG.ACCUEIL_TOP_N, ecarteesTop()).map((r) => String(r.login).toLowerCase()),
+                             ...suiviesEnDirect().map((x) => x.login)];
+          for (const login of candidats) {
+            if (k < 0) break;
+            if (deja.has(login) || !RE_LOGIN.test(login)) continue;
+            deja.add(login);
+            const e = cache.get(login);
+            if (!e) { demander(login, bilan.une); continue; }
+            if (!e.stream) continue;
+            choisis[k] = { login, e };
+            k = choisis.indexOf(null, k + 1);
+          }
+        }
+        // Chacun à l'endroit même de son trou.
+        let poses = 0;
+        trous.forEach((t, i) => { if (choisis[i]) items.splice(t.ou + poses++, 0, choisis[i]); });
+        combleurs = new Map(trous.flatMap((t, i) => (choisis[i] ? [[t.cle, choisis[i].login]] : [])));
+        bilan.une.comblees = poses;
+      } else if (!trous.length) combleurs = new Map();
       for (const x of items) noterAffiche(x.login, x.e.stream?.createdAt);
       /* On attend : le carrousel n'est pas encore là, ou ses chaînes n'ont pas
          répondu — et l'arrivée est récente. Un carrousel lu dont aucune chaîne
@@ -20014,7 +20112,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       Object.assign(bilan.une, { voie, lues: logins.length, montrees: items.length, attente, reserve });
     };
 
-    /* ── LE TOP 10 ───────────────────────────────────────────────────────────
+    /* ── LE TOP 15 ───────────────────────────────────────────────────────────
        Une place par co-stream, comme dans Top Chaînes : la carte d'un de ses
        membres, et les autres derrière « + N » (cf. CO-STREAM).
 
@@ -20066,7 +20164,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        Un instantané par minute, gardé trente minutes ; la référence est le
        plus ancien. En deçà de deux minutes, aucune flèche : du bruit. Une
        chaîne absente de la référence n'a pas « gagné douze places » — on ne
-       savait pas où elle était — : elle est « nouvelle » dans le Top 10. */
+       savait pas où elle était — : elle est « nouvelle » dans le Top 15. */
     const noterInstantane = (places, cle) => {
       const now = Date.now();
       while (instantanes.length && now - instantanes[0].ts > CFG.ACCUEIL_EVOLUTION_MS) instantanes.shift();
@@ -20104,9 +20202,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     };
     /* Une place en attente : le chiffre, la vignette, l'avatar, deux lignes —
        et la place du bouton « Depuis le début » si le réglage est en marche,
-       comme sur les vraies (cf. majDebut). Cinq : les colonnes du Top 10 (cf.
-       la feuille, `.tse-acc-liste--top`). */
-    const PLACES_ATTENTE = 5;
+       comme sur les vraies (cf. majDebut). Autant que de colonnes au plus :
+       le pliage n'en montre que la première rangée (cf. `plier`). */
+    const PLACES_ATTENTE = CFG.ACCUEIL_TOP_COLONNES;
     const fabriquerAttente = (n) => {
       const li = elt('li', 'tse-acc-place tse-acc-place--attente');
       li.dataset.tseCle = 'attente:' + n;
@@ -20134,7 +20232,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       const r = p.tete;
       const [chiffre, carte] = li.children;
       /* LE DÉBUT DU DIRECT, UN SEUL PAR CHAÎNE. Une chaîne suivie peut être
-         aussi au Top 10 : la barre et le classement la décrivent chacun, et
+         aussi au Top 15 : la barre et le classement la décrivent chacun, et
          deux clés pour un même direct feraient redemander son archive à
          chaque peinture. Le cache de la barre prime : c'est TseChannels, la
          voix la plus autorisée sur une chaîne. */
@@ -20154,7 +20252,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       }
       /* LE SPECTATEUR DU CLASSEMENT EST CELUI DU CLASSEMENT. Il a servi à
          trier ; en montrer un autre ferait voir un dixième au-dessus d'un
-         neuvième. */
+         neuvième — un quinzième au-dessus d'un quatorzième. */
       majCarte(carte, {
         login: r.login, nom: r.name || r.login, avatar: r.avatar,
         titre: cache.get(r.login)?.stream?.title || '', jeu: r.gameLabel || r.game || '',
@@ -20195,7 +20293,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       /* COMPLET, ET JUSQU'À LA DIXIÈME PLACE (4.32.0.4) : une chaîne écartée
          fait monter la onzième, que la dernière marche n'a peut-être pas
          prouvée — elle l'avait été pour dix. Jusqu'à la marche suivante, que
-         le classement lance aussitôt (cf. `nPreuve`), le Top 10 se dit
+         le classement lance aussitôt (cf. `nPreuve`), le Top 15 se dit
          partiel et ne compte pas d'évolution. */
       const rapportTop = src.report();
       const complet = resolu && rapportTop.complete && rapportTop.prouve >= placesVoulues();
@@ -20208,7 +20306,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       const ref = complet ? reference(cleEvol) : null;
       rangsTop = complet && places.length ? new Map() : null;
       if (rangsTop) places.forEach((p, i) => { for (const r of [p.tete, ...p.membres]) rangsTop.set(r.login, i + 1); });
-      /* EN ATTENDANT LE CLASSEMENT, SES PLACES (4.26.0.5). Le Top 10 se calcule
+      /* EN ATTENDANT LE CLASSEMENT, SES PLACES (4.26.0.5). Le Top 15 se calcule
          en plusieurs requêtes : plusieurs secondes. Une ligne « Classement en
          cours… » tenait sa place, et le rayon grandissait de toute une
          rangée à l'arrivée des places — tout ce qui suit descendait. Les cinq
@@ -20311,7 +20409,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       const now = Date.now();
       /* LA MÉMOIRE SE VIDE DE CE QUI N'EST PLUS À L'ÉCRAN. Une réponse par
          direct affiché, gardée pour ne pas la redemander à chaque peinture —
-         mais le Top 10 change toute la journée, et rien n'en sortait : une
+         mais le Top 15 change toute la journée, et rien n'en sortait : une
          entrée de plus par chaîne passée, pour la vie de la page. Ce qui n'est
          plus affiché depuis une demi-heure part. */
       for (const [login, d] of debuts) {
@@ -20697,7 +20795,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       if (options.get('accueilPourquoi')) {
         const lang = tagInterface();
         const code = lang ? LANG_API[lang] || null : null;
-        // La langue dite comme celle du Top 10 (cf. rangDit) : la sienne, ou nommée en anglais, ou tue.
+        // La langue dite comme celle du Top 15 (cf. rangDit) : la sienne, ou nommée en anglais, ou tue.
         const propre = String(S.locale || '').split('-')[0].toLowerCase();
         let langue = null;
         if (code && code.toLowerCase() === propre) langue = '';
@@ -20746,7 +20844,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     /* UNE CARTE PAR CHAÎNE (4.33.0.3). « Je suis pas très fan de la partie
        "Pendant votre absence" ; propose une UX/UI qui correspond bien au reste
        de la page » — deux maquettes, la voie des cartes choisie. Les nôtres,
-       celles du Top 10, mais d'une archive :
+       celles du Top 15, mais d'une archive :
        — la vignette est celle de la dernière archive de l'absence, que
          l'agenda a déjà lue ; sans elle, l'avatar flouté. Elle ouvre la
          rediffusion quand on peut la voir (cf. `ouverte`), la chaîne sinon ;
@@ -29276,7 +29374,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
            contre le vrai Twitch ; ces lignes sont la mesure qu'on en aura. */
         agenda: agenda.bilan(),
         /* L'ACCUEIL (4.26.0) : où il s'est posé, comment le carrousel a été
-           trouvé — par repère, par forme, ou pas —, qui sert le Top 10, et
+           trouvé — par repère, par forme, ou pas —, qui sert le Top 15, et
            ce que « Depuis le début » a demandé. Rien de tout cela n'a pu être
            vu sur le vrai Twitch ; ces lignes en seront la mesure. */
         accueil: pageAccueil.bilan(),
