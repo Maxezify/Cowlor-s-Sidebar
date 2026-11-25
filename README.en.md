@@ -331,13 +331,13 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 2306 KB | 1089 KB | 4,816 → **2** |
+| `content.js` | 2310 KB | 1089 KB | 4,827 → **2** |
 | `cadres.js` | 76 KB | 35 KB | 171 → **0** |
 | `adblock.js` | 126 KB | 101 KB | 301 → **2** |
 | `panneau.js` | 168 KB | 86 KB | 233 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 26 → **0** |
 | `background.js` | 10 KB | 2 KB | 23 → **0** |
-| **all six** | **2700 KB** | **1316 KB** | **−51 %** |
+| **all six** | **2704 KB** | **1317 KB** | **−51 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are
@@ -2494,6 +2494,60 @@ A sub-test that modelled an impossible case — a stream growing younger without
 changing id — was replaced along the way by the ordinary case that was actually
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
+
+## Top Channels: an empty filter stays empty (v4.33.0.11)
+
+Reported, with a screenshot: "Top Channels", the "Slots" category, "No live
+channel matches this filter" — and underneath, the card of a followed channel,
+in "Special Events". Two defects were stacked.
+
+**An empty ranking brought the followed list back.** The mode was only "ready"
+— Twitch's cards hidden — when the ranking held at least one channel. Resolved
+and empty, it fell back: the followed list returned, under a title and a
+message that said the opposite. And the veil, held as long as the mode is not
+ready, waited for its maximum delay, fifteen seconds, before lifting. Now a
+resolved ranking replaces the followed list even when empty: the message says
+why the sidebar is. Not resolved yet — the first walk, an outage —, nothing
+replaces it, and the followed list stays.
+
+**The filters ignored the sponsored card.** The category and language filters
+only recognised a followed card by the marker on its link,
+`data-test-selector="followed-channel"`. The sponsored card of a followed
+channel does not carry it: its link is `side-nav-card__link--promoted-followed`.
+So it stayed on screen under any filter, in "Followed Channels" too. It is the
+one the screenshot showed: the other followed cards were hidden by the category
+filter, which hid the first defect.
+
+**"Slots" empty: not settled.** This container's network does not reach
+Twitch, and the cause cannot be guessed. Two readings are possible: Twitch
+returns no channel of that category to an anonymous request, or it returns
+some and the reading drops them all — a channel declaring more than two
+language tags leaves the ranking. The report will tell: its "Top Channels"
+block now carries `portee`, what the last category pass received from Twitch
+(`rendues`) and what it kept (`retenues`). A report exported with "Slots"
+selected will settle it.
+
+### The bench
+
+- **86**: its empty category leaves nothing under the message any more —
+  neither the followed channel nor the sponsored one —, and the veil is no
+  longer held. A second category, where Twitch returns three channels all
+  dropped for stacking languages, gives the same message, without even the
+  followed channel of that category, and the report says "3 returned, 0 kept".
+  Without a resolved ranking, the followed list stays.
+- **235, new**: the sponsored card obeys the followed list's category and
+  language filters.
+
+**Four named mutants, four caught.**
+
+| mutant | what fails |
+| --- | --- |
+| the empty ranking never "ready" | 86: the veil held; the followed channel of the empty category back |
+| the empty ranking always "ready", even unresolved | 86: the followed list wiped on an outage |
+| the filter that ignores the sponsored card | 235 b), d) |
+| the returned edges not counted | 86: the report says "0 returned" |
+
+`npm run check` is green: 234 scenarios, 2392 assertions.
 
 ## Up to date with Modern Web Guidance (v4.33.0.10)
 
