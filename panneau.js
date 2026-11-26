@@ -34,9 +34,8 @@ const LOCALE = (() => {
 })();
 const NOMBRE = new Intl.NumberFormat(LOCALE);
 
-const DUREE = typeof Intl.DurationFormat === 'function'
-  ? new Intl.DurationFormat(LOCALE, { style: 'short' }) : null;
-const DUREE_NULLE = DUREE ? new Intl.DurationFormat(LOCALE, { style: 'short', secondsDisplay: 'always' }) : null;
+const DUREE = new Intl.DurationFormat(LOCALE, { style: 'short' });
+const DUREE_NULLE = new Intl.DurationFormat(LOCALE, { style: 'short', secondsDisplay: 'always' });
 
 const fmt = {
   texte: (v) => (v === null || v === undefined || v === '' ? '—' : String(v)),
@@ -54,12 +53,10 @@ const fmt = {
     if (!Number.isFinite(ms)) return '—';
     const s = Math.round(ms / 1000);
     const d = s < 60 ? { seconds: s } : { minutes: Math.floor(s / 60), seconds: s % 60 };
-    if (DUREE) return (s === 0 ? DUREE_NULLE : DUREE).format(d);
-    return s < 60 ? `${s} s` : `${d.minutes} min ${String(d.seconds).padStart(2, '0')}`;
+    return (s === 0 ? DUREE_NULLE : DUREE).format(d);
   },
 
-  dureeRonde: (n, unite) => (DUREE ? DUREE.format({ [unite === 'h' ? 'hours' : 'minutes']: n })
-                                   : `${n} ${unite}`),
+  dureeRonde: (n, unite) => DUREE.format({ [unite === 'h' ? 'hours' : 'minutes']: n }),
   dureeSec: (s) => (Number.isFinite(s) ? fmt.duree(s * 1000) : '—'),
   oui: (v) => (v ? T('valYes') : T('valNo')),
 
@@ -482,12 +479,8 @@ const carteEtBadge = (carte, mod, cle) => {
 
 const HEURE_MS = 3_600_000;
 const DIRECT_DEMO_MS = 107 * 60_000;
-const jourDemo = (maintenant, j, h, m) => {
-  const d = new Date(minuitDe(maintenant));
-  d.setDate(d.getDate() + j);
-  d.setHours(h, m, 0, 0);
-  return d.getTime();
-};
+const jourDemo = (maintenant, j, h, m) => jourCivil(maintenant).add({ days: j })
+  .toPlainDateTime({ hour: h, minute: m }).toZonedDateTime(fuseau()).epochMilliseconds;
 const prochainDemo = (maintenant) => {
   const d = new Date(maintenant + 2 * HEURE_MS);
   d.setMinutes(0, 0, 0);
@@ -836,20 +829,29 @@ const ecrireLocal = (cle, v) => {
 const diagVisible = () => lireLocal(DIAG_CLE, 'non') === 'oui';
 const themePanneau = () => lireLocal(THEME_CLE, 'auto');
 
-const interrupteur = (coche, surChangement) => {
-  const l = elt('label', 'reg-bascule');
-  const i = document.createElement('input');
-  i.type = 'checkbox';
-  i.checked = coche;
-  i.addEventListener('change', () => surChangement(i.checked));
-  const piste = elt('span', 'reg-piste');
-  l.append(i, piste);
-  return l;
+const relier = (ctrl, liens) => {
+  if (!liens) return;
+  if (liens.nom) ctrl.setAttribute('aria-labelledby', liens.nom);
+  if (liens.desc) ctrl.setAttribute('aria-describedby', liens.desc);
 };
 
-const menu = (valeurs, courante, libelle, surChangement) => {
+const SWITCH_NATIF = 'switch' in document.createElement('input');
+const interrupteur = (coche, surChangement, liens) => {
+  const i = document.createElement('input');
+  i.type = 'checkbox';
+  i.className = 'reg-bascule';
+  i.setAttribute('switch', '');
+  if (!SWITCH_NATIF) i.setAttribute('role', 'switch');
+  i.checked = coche;
+  relier(i, liens);
+  i.addEventListener('change', () => surChangement(i.checked));
+  return i;
+};
+
+const menu = (valeurs, courante, libelle, surChangement, liens) => {
   const sel = document.createElement('select');
   sel.className = 'reg-menu';
+  relier(sel, liens);
   for (const v of valeurs) {
     const o = document.createElement('option');
 
@@ -864,8 +866,10 @@ const menu = (valeurs, courante, libelle, surChangement) => {
   return sel;
 };
 
-const cases = (jeu, membres, actifs, surChangement) => {
+const cases = (jeu, membres, actifs, surChangement, liens) => {
   const hote = div('reg-cases');
+  hote.setAttribute('role', 'group');
+  relier(hote, liens);
   for (const m of membres) {
     const l = elt('label', 'reg-case');
     const i = document.createElement('input');
@@ -892,7 +896,7 @@ const loginTape = (brut) => {
 
 let suiteListe = null;
 
-const liste = (id, d, v) => {
+const liste = (id, d, v, liens) => {
   const hote = div('reg-liste');
   const plein = v.length >= d.max;
   const pleine = T('optListePleine', String(d.max));
@@ -902,9 +906,13 @@ const liste = (id, d, v) => {
   const champ = document.createElement('input');
   champ.type = 'text';
   champ.className = 'reg-liste-champ';
+
   champ.spellcheck = false;
   champ.autocomplete = 'off';
-  champ.setAttribute('aria-label', T('opt' + MAJ(id)));
+  champ.autocapitalize = 'none';
+  champ.setAttribute('autocorrect', 'off');
+  champ.enterKeyHint = 'enter';
+  relier(champ, liens);
   champ.value = suite ? suite.reste : '';
   champ.disabled = plein;
   const bouton = elt('button', 'reg-liste-ajouter', T('optListeAjouter'));
@@ -977,27 +985,44 @@ const ligneReglage = (id) => {
     ligne.classList.add('reg-ligne--sans-effet');
     ligne.title = T('optSansEffet', coupePar.map((p) => T('opt' + MAJ(p))).join(', '));
   }
+  const liens = { nom: 'reg-nom-' + id, desc: null };
   const texte = div('reg-texte');
-  texte.appendChild(elt('span', 'reg-nom', T('opt' + MAJ(id))));
+  const nom = elt('span', 'reg-nom', T('opt' + MAJ(id)));
+  nom.id = liens.nom;
+  texte.appendChild(nom);
   const desc = T('optDesc' + MAJ(id));
 
-  if (desc !== 'optDesc' + MAJ(id)) texte.appendChild(elt('span', 'reg-desc', desc));
+  const decrits = [];
+  if (desc !== 'optDesc' + MAJ(id)) {
+    const dd = elt('span', 'reg-desc', desc);
+    dd.id = 'reg-desc-' + id;
+    decrits.push(dd.id);
+    texte.appendChild(dd);
+  }
+
+  if (ligne.title) {
+    const raison = elt('span', 'lecteur-seul', ligne.title);
+    raison.id = 'reg-sans-effet-' + id;
+    decrits.push(raison.id);
+    texte.appendChild(raison);
+  }
+  liens.desc = decrits.join(' ') || null;
   ligne.appendChild(texte);
 
   const ctrl = div('reg-ctrl');
   if (d.type === 'bool') {
-    ctrl.appendChild(interrupteur(v, (b) => poserOption(id, b)));
+    ctrl.appendChild(interrupteur(v, (b) => poserOption(id, b), liens));
   } else if (d.type === 'choix') {
-    ctrl.appendChild(menu(d.valeurs, v, (x) => libelleValeur(id, x), (x) => poserOption(id, x)));
+    ctrl.appendChild(menu(d.valeurs, v, (x) => libelleValeur(id, x), (x) => poserOption(id, x), liens));
   } else if (d.type === 'jeu') {
 
     const actifs = d.valeurs.filter((m) => !v.includes(m));
     ligne.classList.add('reg-ligne--large');
     ctrl.appendChild(cases(id, d.valeurs, actifs,
-      (gardes) => poserOption(id, d.valeurs.filter((m) => !gardes.includes(m)))));
+      (gardes) => poserOption(id, d.valeurs.filter((m) => !gardes.includes(m))), liens));
   } else if (d.type === 'liste') {
     ligne.classList.add('reg-ligne--large');
-    ctrl.appendChild(liste(id, d, Array.isArray(v) ? v : []));
+    ctrl.appendChild(liste(id, d, Array.isArray(v) ? v : [], liens));
   }
   ligne.appendChild(ctrl);
   return ligne;
@@ -1010,8 +1035,11 @@ const groupeLocal = () => {
 
   const ligneTheme = div('reg-ligne');
   const tt = div('reg-texte');
-  tt.appendChild(elt('span', 'reg-nom', T('optPanneauTheme')));
-  tt.appendChild(elt('span', 'reg-desc', T('optDescPanneauTheme')));
+  const nTheme = elt('span', 'reg-nom', T('optPanneauTheme'));
+  nTheme.id = 'reg-nom-panneauTheme';
+  const dTheme = elt('span', 'reg-desc', T('optDescPanneauTheme'));
+  dTheme.id = 'reg-desc-panneauTheme';
+  tt.append(nTheme, dTheme);
   ligneTheme.appendChild(tt);
   const ct = div('reg-ctrl');
   ct.appendChild(menu(['auto', 'dark', 'light'], themePanneau(),
@@ -1021,20 +1049,23 @@ const groupeLocal = () => {
         document.documentElement.removeAttribute('data-theme');
         try { localStorage.removeItem(THEME_CLE); } catch {   }
       } else { appliquerThemePanneau(v); }
-    }));
+    }, { nom: nTheme.id, desc: dTheme.id }));
   ligneTheme.appendChild(ct);
   sec.appendChild(ligneTheme);
 
   const ligneDiag = div('reg-ligne');
   const td = div('reg-texte');
-  td.appendChild(elt('span', 'reg-nom', T('optPanneauDiag')));
-  td.appendChild(elt('span', 'reg-desc', T('optDescPanneauDiag')));
+  const nDiag = elt('span', 'reg-nom', T('optPanneauDiag'));
+  nDiag.id = 'reg-nom-panneauDiag';
+  const dDiag = elt('span', 'reg-desc', T('optDescPanneauDiag'));
+  dDiag.id = 'reg-desc-panneauDiag';
+  td.append(nDiag, dDiag);
   ligneDiag.appendChild(td);
   const cd = div('reg-ctrl');
   cd.appendChild(interrupteur(diagVisible(), (b) => {
     ecrireLocal(DIAG_CLE, b ? 'oui' : 'non');
     appliquerDiag();
-  }));
+  }, { nom: nDiag.id, desc: dDiag.id }));
   ligneDiag.appendChild(cd);
   sec.appendChild(ligneDiag);
   return sec;
@@ -1241,9 +1272,11 @@ const peindre = (section, paquet) => {
   if ($('tableau-cadre').hidden) return;
 
   const affichees = colonnes.filter((c) => COL[c]);
+  $('tableau-legende').textContent = $('vue-titre').textContent;
   const tr = document.createElement('tr');
   for (const c of affichees) {
     const th = document.createElement('th');
+    th.scope = 'col';
     th.textContent = T(COL[c].cle);
     if (COL[c].num) th.className = 'num';
     tr.appendChild(th);
@@ -1353,37 +1386,32 @@ const dureeHms = (s) => {
   return `${h}:${String(m).padStart(2, '0')}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 };
 
-const minuitDe = (t) => { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); };
+const fuseau = () => Temporal.Now.timeZoneId();
+const jourCivil = (t) => Temporal.Instant.fromEpochMilliseconds(t).toZonedDateTimeISO(fuseau()).toPlainDate();
+const minuitDuJour = (jour) => jour.toZonedDateTime(fuseau()).epochMilliseconds;
+const minuitDe = (t) => minuitDuJour(jourCivil(t));
 
 const ilYa = (t, maintenant) => {
   const ecart = maintenant - t;
   if (ecart < 3_600_000) return RELATIF.format(-Math.max(1, Math.round(ecart / 60_000)), 'minute');
   if (ecart < 86_400_000) return RELATIF.format(-Math.round(ecart / 3_600_000), 'hour');
-  const jours = Math.max(1, Math.round((minuitDe(maintenant) - minuitDe(t)) / 86_400_000));
+  const jours = Math.max(1, jourCivil(t).until(jourCivil(maintenant)).days);
   if (jours < 7) return RELATIF.format(-jours, 'day');
   if (jours < 35) return RELATIF.format(-Math.round(jours / 7), 'week');
   return RELATIF.format(-Math.round(jours / 30), 'month');
 };
 
+const debutSemaine = (jour) => jour.subtract({ days: (jour.dayOfWeek % 7 - PREMIER_JOUR + 7) % 7 });
 const bornesSemaine = (decalage) => {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  d.setDate(d.getDate() - ((d.getDay() - PREMIER_JOUR + 7) % 7) + 7 * decalage);
-  const f = new Date(d);
-  f.setDate(f.getDate() + 7);
-  return { debut: d.getTime(), fin: f.getTime() };
+  const d = debutSemaine(jourCivil(Date.now())).add({ weeks: decalage });
+  return { debut: minuitDuJour(d), fin: minuitDuJour(d.add({ weeks: 1 })) };
 };
-const jourDe = (debut, i) => { const d = new Date(debut); d.setDate(d.getDate() + i); return d.getTime(); };
+const jourDe = (debut, i) => minuitDuJour(jourCivil(debut).add({ days: i }));
 
-const decalageDe = (t) => {
-  const d = new Date(t);
-  d.setHours(0, 0, 0, 0);
-  d.setDate(d.getDate() - ((d.getDay() - PREMIER_JOUR + 7) % 7));
-  return Math.round((d.getTime() - bornesSemaine(0).debut) / 604_800_000);
-};
+const decalageDe = (t) =>
+  debutSemaine(jourCivil(Date.now())).until(debutSemaine(jourCivil(t))).days / 7;
 const plageSemaine = (debut, fin) => {
-  const dernier = new Date(fin);
-  dernier.setDate(dernier.getDate() - 1);
+  const dernier = new Date(minuitDuJour(jourCivil(fin).subtract({ days: 1 })));
   try { return daterPlage(DATE_PLAGE, new Date(debut), dernier); }
   catch { return `${dater(DATE_PLAGE, debut)} – ${dater(DATE_PLAGE, dernier)}`; }
 };
@@ -2100,14 +2128,13 @@ const noter = (texte, erreur) => {
   const n = $('rapport-note');
   n.textContent = texte;
   n.className = 'pied-note' + (erreur ? ' pied-note--erreur' : '');
-  n.hidden = false;
 };
 
 const remplirRapport = async () => {
   const zone = $('rapport-zone');
   const boutons = [$('rapport-copier'), $('rapport-actualiser')];
   boutons.forEach(b => { b.disabled = true; });
-  $('rapport-note').hidden = true;
+  $('rapport-note').textContent = '';
   zone.value = T('stateLoading');
   const onglet = await idOnglet();
 
@@ -2121,14 +2148,14 @@ const remplirRapport = async () => {
 };
 
 const ouvrirRapport = async () => {
-  $('rapport').hidden = false;
+  if (!$('rapport').open) $('rapport').showModal();
   $('rapport-fermer').focus();
   await remplirRapport();
 };
 
 const fermerRapport = () => {
-  $('rapport').hidden = true;
-  $('rapport-note').hidden = true;
+  if ($('rapport').open) $('rapport').close();
+  $('rapport-note').textContent = '';
   $('btn-rapport').focus();
 };
 
@@ -2154,7 +2181,7 @@ const confirmer = (titre, texte, suite) => {
   aConfirmer = suite;
   $('boite-titre').textContent = T(titre);
   $('boite-texte').textContent = T(texte);
-  $('voile').hidden = false;
+  if (!$('voile').open) $('voile').showModal();
   $('boite-ok').focus();
 };
 
@@ -2200,24 +2227,25 @@ document.addEventListener('DOMContentLoaded', () => {
   $('agenda').addEventListener('scroll', suivreDefilement, { passive: true });
   $('btn-rescan').addEventListener('click', () => lancer('rescan', $('btn-rescan')));
   $('btn-rapport').addEventListener('click', ouvrirRapport);
-  $('rapport-fermer').addEventListener('click', fermerRapport);
   $('rapport-copier').addEventListener('click', copierRapport);
   $('rapport-actualiser').addEventListener('click', remplirRapport);
   $('btn-reset').addEventListener('click', () =>
     confirmer('resetTitle', 'resetText', () => lancer('reset', $('btn-reset'))));
 
-  $('boite-annuler').addEventListener('click', () => { $('voile').hidden = true; aConfirmer = null; });
+  $('voile').addEventListener('close', () => { aConfirmer = null; });
+  $('rapport').addEventListener('close', () => { $('rapport-note').textContent = ''; });
   $('boite-ok').addEventListener('click', () => {
     const suite = aConfirmer;
-    $('voile').hidden = true; aConfirmer = null;
+    $('voile').close(); aConfirmer = null;
     if (suite) suite();
   });
 
   document.addEventListener('keydown', (e) => {
 
     if (e.key !== 'Escape' || e.isComposing) return;
-    if (!$('voile').hidden) { $('voile').hidden = true; aConfirmer = null; return; }
-    if (!$('rapport').hidden) { fermerRapport(); return; }
+
+    if ($('voile').open) { e.preventDefault(); $('voile').close(); aConfirmer = null; return; }
+    if ($('rapport').open) { e.preventDefault(); fermerRapport(); return; }
 
     if (document.documentElement.getAttribute('data-vue') !== 'incruste') return;
 
