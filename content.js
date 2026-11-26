@@ -7525,7 +7525,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     .tse-dd-opt:hover,
     .tse-dd-opt:focus-visible { background: rgba(145, 71, 255, 0.25); }
     .tse-dd-opt:focus-visible { outline: 2px solid ${CFG.PURPLE}; outline-offset: -2px; }
-    .tse-dd-opt:checked { background: rgba(145, 71, 255, 0.4); }
+    .tse-dd-opt:checked,
+    .tse-dd-opt[aria-selected="true"] { background: rgba(145, 71, 255, 0.4); }
     .tse-dd-n { flex: 0 0 auto; color: var(--tse-texte-doux); font-variant-numeric: tabular-nums; }
 
     /* Catégorie : prend la place, bouton tronqué « … », liste alignée à
@@ -7542,13 +7543,61 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     .tse-dd--lang .tse-dd-btn::picker(select) { position-area: block-end span-inline-start; min-width: 64px; }
     .tse-dd--lang .tse-dd-opt { justify-content: center; }
 
-    /* LE <select> ORDINAIRE N'A QUE DU TEXTE (Firefox) : « Toutes les
-       langues » ne tient pas dans cinquante pixels, faits pour un drapeau.
-       Les deux filtres s'y partagent la ligne à parts égales, et chacun
-       montre ce que son texte peut montrer. */
-    .tse-filter[data-tse-select="natif"] .tse-filter-field { flex: 1 1 0; min-width: 0; margin-left: 0; }
-    .tse-filter[data-tse-select="natif"] .tse-dd--lang { width: 100%; }
-    .tse-filter[data-tse-select="natif"] .tse-dd-btn { display: block; }
+    /* LE <select> ORDINAIRE PREND L'ASPECT DU PERSONNALISÉ (4.33.0.15).
+       Firefox n'a pas base-select : son <select> ne montre que du texte, et
+       la 4.33.0.14 y partageait la ligne à parts égales — « Toutes les cat »,
+       « Toutes les lan », la flèche du système. Signalé capture à l'appui :
+       « on doit retrouver la même disposition, avec le globe, et "Toutes les
+       catégories" plus grande ». La boîte reste la même, aux mêmes largeurs
+       — la langue à cinquante pixels, la catégorie sur le reste. Son texte
+       est tu et sa flèche ôtée ; par-dessus, le bouton de Chrome — mêmes
+       classes, donc mêmes règles — montre l'option choisie, recopiée (cf.
+       recopierChoix) : le globe, le drapeau, le nom de la catégorie. Les
+       clics le traversent : c'est le <select> qui les reçoit, ouvre sa
+       liste, prend le focus et son liseré. La liste, elle, reste celle du
+       système, en texte — « 12 | Français » —, et ses options gardent leur
+       couleur : elles la posent elles-mêmes (.tse-dd-opt). */
+    .tse-filter[data-tse-select="natif"] .tse-dd { position: relative; }
+    .tse-filter[data-tse-select="natif"] .tse-dd-btn { display: block; appearance: none; color: transparent; }
+    .tse-filter[data-tse-select="natif"] .tse-dd-bouton {
+      position: absolute; inset: 1px; height: auto; padding: 0 8px; box-sizing: border-box;
+      pointer-events: none;
+      color: var(--color-text-base, #efeff1); font-size: 1.15rem;
+      transition: opacity 0.15s;
+    }
+    /* Grisé avec sa boîte : l'opacité du <select> ne descend pas sur un
+       voisin. */
+    .tse-filter[data-tse-select="natif"] .tse-dd-btn:disabled + .tse-dd-bouton { opacity: 0.45; }
+    /* SA LISTE AUSSI, DRAPEAUX COMPRIS (4.33.0.15). « Pas oublier que les
+       langues en cliquant on a pas les drapeaux sur Firefox » : la liste du
+       système n'écrit que du texte. Au clic, au clavier, c'est donc la nôtre
+       qui s'ouvre (cf. ouvrirListe) — un popover, posé au-dessus de tout
+       comme celle de Chrome, et qui en recopie les déclarations : une liste
+       de sélecteurs qui nommerait ::picker(select), inconnu de Firefox,
+       serait jetée tout entière. Ses lignes sont des .tse-dd-opt : les règles
+       des options valent pour elles. Le côté où elle s'aligne est dit ici
+       (--tse-dd-cote) ; le script la pose d'après la boîte du <select>,
+       Firefox 150 n'ayant pas le positionnement par ancre. */
+    .tse-dd-liste {
+      position: fixed; inset: auto; margin: 0;
+      box-sizing: content-box; min-width: var(--tse-ancre-l, 0px);
+      max-height: 260px; overflow-y: auto; padding: 4px;
+      background: var(--tse-surface); color: var(--tse-texte);
+      border: 1px solid rgba(var(--tse-encre), 0.12);
+      border-radius: 6px; box-shadow: 0 4px 16px var(--tse-ombre-menu);
+      color-scheme: var(--tse-schema);
+      --tse-dd-cote: debut;
+    }
+    .tse-dd--cat .tse-dd-liste { width: max-content; max-width: 208px; }
+    .tse-dd--lang .tse-dd-liste { min-width: 64px; --tse-dd-cote: fin; }
+    /* Ouverte à la souris, la ligne qui prend le focus ne porte pas son
+       anneau — comme chez Chrome —, sauf si la boîte portait déjà le sien :
+       on vient du clavier. La première touche le rend. */
+    .tse-dd-liste[data-tse-souris] .tse-dd-opt:focus-visible { outline: none; }
+    /* Ouverte, sa boîte prend le liseré du menu ouvert, comme :open — et à
+       la même force : « :where » ne compte pas, si bien que le survol, plus
+       fort que :open chez Chrome, l'emporte ici aussi sur le cadre. */
+    :where(.tse-dd:has(> .tse-dd-liste:popover-open)) > .tse-dd-btn { border-color: ${CFG.PURPLE}; box-shadow: 0 0 0 1px ${CFG.PURPLE}; }
     .tse-lang-code  { font-weight: 600; }
     /* ── LE DRAPEAU D'UN CO-STREAMER D'UNE AUTRE LANGUE ────────────────────
        DEMANDÉ APRÈS LE FILTRE DE LANGUE : un membre de session qui ne porte
@@ -9054,6 +9103,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
          (left: 0; right: 0). */
       position-area: block-end span-inline-end;
       box-sizing: border-box; width: anchor-size(width); min-width: 0;
+    }
+    html[data-tse-off~="filtreCategorie"] .tse-dd--lang .tse-dd-liste {
+      --tse-dd-cote: debut; box-sizing: border-box; width: var(--tse-ancre-l); min-width: 0;
     }
     html[data-tse-off~="filtreCategorie"] .tse-dd--lang .tse-dd-opt { justify-content: flex-start; }
     html[data-tse-off~="filtreLangue"] .tse-filter-field--cat { flex: 1 1 auto; }
@@ -35652,12 +35704,13 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
      clic extérieur ou à Échap — disparaît avec lui.
 
      LÀ OÙ IL N'EXISTE PAS — Firefox à ce jour —, le même élément est un
-     <select> ordinaire : il montre le TEXTE de ses options, sans drapeau. Le
-     texte de chaque option est donc écrit pour se lire seul (« 12 |
-     Français », pas « 12 |Français »), et le bouton qui porte le contenu
-     choisi n'est posé que là où il sert. La barre dit lequel des deux elle
-     a reçu (data-tse-select), pour que la feuille donne au <select> ordinaire
-     la place que son texte demande. */
+     <select> ordinaire : sa liste montre le TEXTE de ses options, sans
+     drapeau. Le texte de chaque option est donc écrit pour se lire seul
+     (« 12 | Français », pas « 12 |Français »). Son bouton, lui, garde
+     l'aspect de Chrome depuis la 4.33.0.15 : posé par-dessus le <select>,
+     il montre le globe ou le drapeau choisi (cf. ddSquelette). La barre dit
+     lequel des deux elle a reçu (data-tse-select), pour que la feuille pose
+     ce bouton. */
   // `globalThis.CSS` : dans ce fichier, `CSS` est notre feuille de style.
   const SELECT_RICHE = globalThis.CSS.supports('appearance', 'base-select');
 
@@ -35700,11 +35753,159 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     return hote;
   };
 
+  /* LE <selectedcontent> DU <select> ORDINAIRE (4.33.0.15). Là où le
+     <select> ne se personnalise pas, rien ne recopie l'option choisie dans
+     le bouton : on fait ce travail. La copie est ENTIÈRE, comme celle du
+     navigateur — le compteur y est, et la même règle le tait
+     (.tse-dd-current .tse-dd-n). Une option déjà recopiée ne l'est pas
+     deux fois : le menu se recalcule à chaque balayage, et ses options ne
+     changent que lorsque sa signature change (cf. rebuildDropdown). */
+  const recopiees = new WeakMap();
+  const recopierChoix = (dd) => {
+    const choix = dd.querySelector(':scope > select');
+    const courant = dd.querySelector(':scope > .tse-dd-bouton > .tse-dd-current');
+    if (!choix || !courant) return;
+    const option = choix.selectedOptions[0] ?? null;
+    if (recopiees.get(courant) === option) return;
+    recopiees.set(courant, option);
+    courant.replaceChildren(...(option ? [...option.childNodes].map((n) => n.cloneNode(true)) : []));
+  };
+
+  /* ── LA LISTE DU <select> ORDINAIRE, DRAPEAUX COMPRIS (4.33.0.15) ──────
+     La liste que Firefox ouvre pour un <select> n'écrit que du texte :
+     « 26 | Français », sans drapeau, quand Chrome montre le drapeau. Au clic
+     et aux touches qui ouvrent une liste, c'est donc la nôtre qui s'ouvre :
+     un popover — posé au-dessus de tout, hors de la barre qui le rognerait —
+     dont chaque ligne recopie une option ENTIÈRE, comme le bouton.
+
+     LE <select> RESTE LE CONTRÔLE. Il garde le focus hors de la liste, son
+     nom, sa valeur, ses touches qui changent le choix sans l'ouvrir (Début,
+     Fin, une lettre), et le choix passe toujours par lui : une ligne choisie
+     pose sa valeur et envoie « input » puis « change », comme le
+     navigateur. La liste se lit comme une liste d'options — chacune nommée
+     par le texte de son option, « 26 | Français », que le drapeau ne dit
+     pas —, se parcourt aux flèches, Début et Fin, se choisit à Entrée ou à
+     l'espace, se ferme à Échap, au clic dehors, à Tab, et rend alors le
+     focus au <select>. */
+  const fermeturesListe = new WeakMap();
+  const peuplerListe = (dd) => {
+    const choix = dd.querySelector(':scope > select');
+    const liste = dd.querySelector(':scope > .tse-dd-liste');
+    liste.replaceChildren(...[...choix.options].map((o) => {
+      const ligne = document.createElement('div');
+      ligne.className = 'tse-dd-opt';
+      ligne.setAttribute('role', 'option');
+      ligne.tabIndex = -1;
+      ligne.dataset.value = o.value;
+      ligne.setAttribute('aria-selected', String(o.selected));
+      ligne.setAttribute('aria-label', o.text);
+      if (o.title) ligne.title = o.title;
+      ligne.append(...[...o.childNodes].map((n) => n.cloneNode(true)));
+      return ligne;
+    }));
+  };
+  /* Sous la boîte à quatre pixels, comme celle de Chrome, ou au-dessus quand
+     la place manque dessous. Le côté qu'elle suit est celui que la feuille
+     dit (--tse-dd-cote) : le début de la boîte, ou sa fin pour la langue,
+     dont la liste déborde vers la gauche. */
+  const placerListe = (dd) => {
+    const choix = dd.querySelector(':scope > select');
+    const liste = dd.querySelector(':scope > .tse-dd-liste');
+    const b = choix.getBoundingClientRect();
+    liste.style.setProperty('--tse-ancre-l', b.width + 'px');
+    const l = liste.getBoundingClientRect();
+    const fin = getComputedStyle(liste).getPropertyValue('--tse-dd-cote').trim() === 'fin';
+    const dessous = b.bottom + 4;
+    const haut = dessous + l.height > window.innerHeight && b.top - 4 - l.height >= 0 ? b.top - 4 - l.height : dessous;
+    liste.style.left = (fin ? b.right - l.width : b.left) + 'px';
+    liste.style.top = haut + 'px';
+  };
+  /* Ouverte, elle suit sa boîte — la barre défile, la fenêtre change ; les
+     deux écoutes ne vivent que le temps qu'elle l'est. */
+  const suivisListe = new WeakMap();
+  const ouvrirListe = (dd, parSouris) => {
+    const liste = dd.querySelector(':scope > .tse-dd-liste');
+    if (liste.matches(':popover-open')) return;
+    liste.toggleAttribute('data-tse-souris', parSouris);
+    peuplerListe(dd);
+    liste.showPopover();
+    placerListe(dd);
+    const suivi = new AbortController();
+    suivisListe.set(liste, suivi);
+    window.addEventListener('scroll', (e) => { if (!liste.contains(e.target)) placerListe(dd); },
+      { capture: true, passive: true, signal: suivi.signal });
+    window.addEventListener('resize', () => placerListe(dd), { passive: true, signal: suivi.signal });
+    const ligne = liste.querySelector('[aria-selected="true"]') || liste.firstElementChild;
+    ligne?.focus({ preventScroll: true });
+    ligne?.scrollIntoView({ block: 'nearest' });
+  };
+  const choisirDansListe = (dd, valeur) => {
+    const choix = dd.querySelector(':scope > select');
+    dd.querySelector(':scope > .tse-dd-liste').hidePopover();
+    if (choix.value === valeur) return;
+    choix.value = valeur;
+    choix.dispatchEvent(new window.Event('input', { bubbles: true }));
+    choix.dispatchEvent(new window.Event('change', { bubbles: true }));
+  };
+  const equiperListe = (dd, choix, liste) => {
+    // Les touches qui ouvrent la liste d'un <select> ; les autres changent le
+    // choix sans l'ouvrir, et restent au navigateur.
+    const OUVRANTES = new Set([' ', 'Enter', 'ArrowDown', 'ArrowUp', 'F4']);
+    /* LA LISTE DU SYSTÈME NE S'OUVRE PAS : le navigateur l'ouvre à
+       l'enfoncement du bouton, qu'on retient. La nôtre s'ouvre au CLIC, et
+       pas avant : ouverte à l'enfoncement, elle serait refermée au
+       relâchement par le clic même — commencé hors d'elle, il compte pour
+       un clic dehors. Ce même clic dehors referme, juste avant, une liste
+       déjà ouverte : un clic sur la boîte la referme donc, sans la rouvrir. */
+    choix.addEventListener('mousedown', (e) => {
+      if (e.button === 0 && !choix.disabled) e.preventDefault();
+    });
+    choix.addEventListener('click', (e) => {
+      if (e.button !== 0 || choix.disabled) return;
+      if (liste.matches(':popover-open')) liste.hidePopover();
+      else if (performance.now() - (fermeturesListe.get(liste) ?? -Infinity) > 250) ouvrirListe(dd, !choix.matches(':focus-visible'));
+    });
+    choix.addEventListener('keydown', (e) => {
+      if (choix.disabled || e.ctrlKey || e.metaKey || !OUVRANTES.has(e.key)) return;
+      e.preventDefault();
+      ouvrirListe(dd, false);
+    });
+    liste.addEventListener('click', (e) => {
+      const ligne = e.target.closest('.tse-dd-opt');
+      if (ligne) choisirDansListe(dd, ligne.dataset.value);
+    });
+    liste.addEventListener('keydown', (e) => {
+      liste.removeAttribute('data-tse-souris');
+      const lignes = [...liste.querySelectorAll('.tse-dd-opt')];
+      const i = lignes.indexOf(document.activeElement);
+      const aller = (j) => { const l = lignes[Math.max(0, Math.min(lignes.length - 1, j))]; l?.focus({ preventScroll: true }); l?.scrollIntoView({ block: 'nearest' }); };
+      if (e.key === 'ArrowDown') aller(i + 1);
+      else if (e.key === 'ArrowUp') aller(i - 1);
+      else if (e.key === 'Home') aller(0);
+      else if (e.key === 'End') aller(lignes.length - 1);
+      else if ((e.key === 'Enter' || e.key === ' ') && i >= 0) choisirDansListe(dd, lignes[i].dataset.value);
+      else if (e.key === 'Tab') liste.hidePopover();
+      else return;
+      e.preventDefault();
+    });
+    // Fermée — par un choix, Échap, Tab ou un clic dehors —, elle rend le
+    // focus au <select> s'il était chez elle, et pas s'il est allé ailleurs.
+    liste.addEventListener('beforetoggle', (e) => {
+      if (e.newState !== 'closed') return;
+      fermeturesListe.set(liste, performance.now());
+      suivisListe.get(liste)?.abort();
+      if (liste.contains(document.activeElement)) choix.focus({ preventScroll: true });
+    });
+  };
+
   /* L'ossature d'un filtre : un <select>, sa facette, son nom accessible, et
-     l'option « toutes » en attendant le premier calcul. Là où le <select>
-     se personnalise, un bouton en tête : le contenu de l'option choisie
-     (<selectedcontent>, que le navigateur recopie à chaque choix) et la
-     flèche. Le choix part par « change » — clavier ou souris, c'est le même
+     l'option « toutes » en attendant le premier calcul. Puis le bouton : le
+     contenu de l'option choisie et la flèche. Là où le <select> se
+     personnalise, il est en tête du <select>, et le contenu est un
+     <selectedcontent>, que le navigateur recopie à chaque choix. Ailleurs, il
+     est posé PAR-DESSUS le <select>, muet pour les lecteurs d'écran — le
+     <select> dit déjà son choix —, et recopierChoix le tient à jour. Le
+     choix part par « change » — clavier ou souris, c'est le même
      événement. */
   const ddSquelette = (id, facet, modifier, ariaLabel, kind) => {
     const dd = document.createElement('div');
@@ -35714,26 +35915,38 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     const choix = document.createElement('select');
     choix.className = 'tse-dd-btn';
     choix.setAttribute('aria-label', ariaLabel);
-    if (SELECT_RICHE) {
-      const bouton = document.createElement('button');
-      bouton.type = 'button';
-      bouton.className = 'tse-dd-bouton';
-      const courant = document.createElement('selectedcontent');
-      courant.className = 'tse-dd-current';
-      const fleche = document.createElement('span');
-      fleche.className = 'tse-dd-caret';
-      fleche.setAttribute('aria-hidden', 'true');
-      bouton.append(courant, fleche);
-      choix.append(bouton);
-    }
+    const bouton = document.createElement(SELECT_RICHE ? 'button' : 'span');
+    bouton.className = 'tse-dd-bouton';
+    if (SELECT_RICHE) bouton.type = 'button';
+    else bouton.setAttribute('aria-hidden', 'true');
+    const courant = document.createElement(SELECT_RICHE ? 'selectedcontent' : 'span');
+    courant.className = 'tse-dd-current';
+    const fleche = document.createElement('span');
+    fleche.className = 'tse-dd-caret';
+    fleche.setAttribute('aria-hidden', 'true');
+    bouton.append(courant, fleche);
+    if (SELECT_RICHE) choix.append(bouton);
     const tous = document.createElement('option');
     tous.className = 'tse-dd-opt';
     tous.value = '';
     tous.dataset.value = '';
     tous.append(contenuTous(kind));
     choix.append(tous);
-    choix.addEventListener('change', () => onFilterChange(facet, choix.value || null));
+    choix.addEventListener('change', () => {
+      if (!SELECT_RICHE) recopierChoix(dd);
+      onFilterChange(facet, choix.value || null);
+    });
     dd.append(choix);
+    if (!SELECT_RICHE) {
+      const liste = document.createElement('div');
+      liste.className = 'tse-dd-liste';
+      liste.popover = 'auto';
+      liste.setAttribute('role', 'listbox');
+      liste.setAttribute('aria-label', ariaLabel);
+      dd.append(bouton, liste);
+      equiperListe(dd, choix, liste);
+      recopierChoix(dd);
+    }
     return dd;
   };
 
@@ -37232,6 +37445,23 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        resynchronisation ici ne servait jamais — un mutant qui l'ôtait ne
        changeait rien (4.33.0.14). */
     choix.disabled = disabled;
+    // Le <select> ordinaire n'a pas de <selectedcontent> (cf. recopierChoix),
+    // et sa liste ouverte est la nôtre : elle suit les options, et se ferme
+    // avec le filtre grisé, comme celle du navigateur (cf. plus bas).
+    if (!bouton) {
+      recopierChoix(dd);
+      const liste = dd.querySelector(':scope > .tse-dd-liste');
+      if (liste?.matches(':popover-open')) {
+        if (disabled) liste.hidePopover();
+        else if (liste.dataset.tseSig !== sig) {
+          const focusee = liste.contains(document.activeElement) ? document.activeElement.dataset.value : null;
+          peuplerListe(dd);
+          placerListe(dd);
+          if (focusee != null) [...liste.children].find((l) => l.dataset.value === focusee)?.focus({ preventScroll: true });
+        }
+      }
+      if (liste) liste.dataset.tseSig = sig;
+    }
     /* Le NOM ne porte plus le choix : un <select> l'annonce lui-même, comme
        sa valeur. Le bouton d'avant n'en avait pas, d'où « Filtrer : X ». */
     const base = kind === 'lang' ? S.uiFilterLangAriaLabel : S.uiFilterAriaLabel;
