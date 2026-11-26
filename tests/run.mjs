@@ -45456,8 +45456,7 @@ titre('237. Vos rendez-vous — deux heures après son heure, sans la chaîne, l
      drapeaux compris (mesuré contre la version précédente, au pixel) ; un
      navigateur sans base-select montre le texte des options. Trois chaînes
      suivies : deux en français, une en anglais, sur deux catégories. */
-  const pf = await fresh();
-  await pf.evaluate(() => {
+  const peuplerFiltres = (p) => p.evaluate(() => {
     const t = new Date(Date.now() - 1800_000).toISOString();
     window.__fx = {
       orvik:   { id: 'id-orvik',   createdAt: t, viewers: 900, game: 'Just Chatting', tags: ['Français'] },
@@ -45468,6 +45467,8 @@ titre('237. Vos rendez-vous — deux heures après son heure, sans la chaîne, l
     window.__addCard('tessaly', 'Just Chatting', '500');
     window.__addCard('marbek', 'Minecraft', '300');
   });
+  const pf = await fresh();
+  await peuplerFiltres(pf);
   await attendre(pf, () => document.querySelectorAll('#tse-cat-dd option').length === 3
     && document.querySelectorAll('#tse-lang-dd option').length === 3, 12_000);
   await wait(pf, 600);
@@ -45566,23 +45567,240 @@ titre('237. Vos rendez-vous — deux heures après son heure, sans la chaîne, l
   await pf.evaluate(() => { const s = document.querySelector('#tse-cat-dd select'); s.value = ''; s.dispatchEvent(new Event('change', { bubbles: true })); });
   await wait(pf, 400);
 
-  /* a5) LE <select> ORDINAIRE (Firefox) : rendu ici en ôtant base-select, et
-     la barre dit « natif ». Les deux filtres se partagent la ligne, rien ne
-     déborde. Mutant — la règle du partage ôtée : la langue garde ses
-     cinquante pixels, « Toutes les langues » n'y tient pas. */
-  const natif = await pf.evaluate(() => {
-    document.getElementById('tse-filter').dataset.tseSelect = 'natif';
-    const st = document.createElement('style'); st.id = 'tse-natif';
-    st.textContent = '.tse-dd-btn, .tse-dd-btn::picker(select) { appearance: auto !important; }';
-    document.head.append(st);
-    const l = (id) => Math.round(document.querySelector('#' + id + ' select').getBoundingClientRect().width);
-    const rangee = document.querySelector('.tse-filter-row');
-    const r = { cat: l('tse-cat-dd'), lang: l('tse-lang-dd'), deborde: rangee.scrollWidth > rangee.clientWidth };
-    st.remove(); document.getElementById('tse-filter').dataset.tseSelect = 'riche';
-    return r;
+  /* a5) LE <select> ORDINAIRE (Firefox) A L'ASPECT DU PERSONNALISÉ, SA LISTE
+     COMPRISE (4.33.0.15). Signalé capture à l'appui : sous Firefox, « Toutes
+     les cat » et « Toutes les lan » à parts égales, la flèche du système —
+     « on doit retrouver la même disposition, avec le globe » —, puis : « les
+     langues, en cliquant, on n'a pas les drapeaux ». La 4.33.0.14 l'éprouvait
+     en ôtant base-select d'une page déjà construite pour lui : le bouton de
+     Chrome y restait, et la voie de Firefox ne tournait jamais. Ici, elle
+     tourne : des pages où le navigateur ne connaît pas base-select dès
+     l'amorce, face à des pages qui le connaissent, au même décor — en
+     sombre, en clair, et le filtre catégorie coupé. Les captures se
+     prennent une fois que plus rien n'y bouge : le voile de la barre se
+     lève en fondu. */
+  const ouvrirFiltres = async (natif, { clair = false, off = null } = {}) => {
+    const p = await browser.newPage();
+    p.on('pageerror', e => { fail++; console.log('  ✗ ERREUR PAGE:', e.message); });
+    await p.addInitScript((natif) => {
+      try { localStorage.setItem('tse:roue', 'vu'); } catch { /* stockage refusé */ }
+      if (!natif) return;
+      const vrai = CSS.supports.bind(CSS);
+      CSS.supports = (...a) => ((a.length === 2 ? a[0] === 'appearance' && /base-select/.test(a[1])
+        : /appearance\s*:\s*base-select/.test(a[0])) ? false : vrai(...a));
+    }, natif);
+    await p.goto(URL_PAGE);
+    await p.evaluate(() => { try { localStorage.setItem('tse:indice', 'vu'); } catch { /* stockage refusé */ } });
+    if (off) await p.evaluate((k) => window.tse.options.poser(k, false), off);
+    if (clair) {
+      await p.evaluate(() => document.documentElement.setAttribute('data-a-theme', 'light'));
+      await attendre(p, () => document.documentElement.getAttribute('data-tse-theme') === 'light', 5_000);
+    }
+    await peuplerFiltres(p);
+    await attendre(p, () => document.querySelectorAll('#tse-cat-dd option').length === 3
+      && document.querySelectorAll('#tse-lang-dd option').length === 3, 12_000);
+    await attendre(p, () => document.getAnimations().every((a) => a.playState !== 'running'), 10_000);
+    return p;
+  };
+  const paire = async (opts) => [await ouvrirFiltres(false, opts), await ouvrirFiltres(true, opts)];
+  // La boîte d'un filtre et ce qui pend dessous : sa liste, ouverte.
+  const zone = (p, id) => p.evaluate((id) => {
+    const b = document.querySelector('#' + id + ' select').getBoundingClientRect();
+    const x = Math.max(0, b.left - 90);
+    return { x, y: b.top - 3, width: Math.min(innerWidth - x, b.width + 100), height: 150 };
+  }, id);
+  const capture = async (p, clip) => (clip ? await p.screenshot({ clip }) : await (await p.$('.tse-filter-row')).screenshot()).toString('base64');
+  const comparer = (p, a, b) => p.evaluate(async ([a, b]) => {
+    const pixels = async (b64) => {
+      const im = new Image(); im.src = 'data:image/png;base64,' + b64; await im.decode();
+      const cv = document.createElement('canvas'); cv.width = im.width; cv.height = im.height;
+      const ctx = cv.getContext('2d'); ctx.drawImage(im, 0, 0);
+      return { l: im.width, h: im.height, d: ctx.getImageData(0, 0, im.width, im.height).data };
+    };
+    const [x, y] = [await pixels(a), await pixels(b)];
+    if (x.l !== y.l || x.h !== y.h) return { tailles: [x.l, x.h, y.l, y.h] };
+    let n = 0, max = 0;
+    for (let i = 0; i < x.d.length; i += 4) {
+      const e = Math.max(Math.abs(x.d[i] - y.d[i]), Math.abs(x.d[i + 1] - y.d[i + 1]), Math.abs(x.d[i + 2] - y.d[i + 2]), Math.abs(x.d[i + 3] - y.d[i + 3]));
+      if (e) { n++; max = Math.max(max, e); }
+    }
+    return { differents: n, ecartMax: max };
+  }, [a, b]);
+  const memes = async (pr, pn, clip) => comparer(pn, await capture(pr, clip), await capture(pn, clip));
+  const geometrie = (p) => p.evaluate(() => {
+    const l = (id) => { const r = document.querySelector('#' + id + ' select').getBoundingClientRect(); return [Math.round(r.left), Math.round(r.width)]; };
+    return { mode: document.getElementById('tse-filter').dataset.tseSelect, cat: l('tse-cat-dd'), lang: l('tse-lang-dd'),
+             apparence: getComputedStyle(document.querySelector('#tse-cat-dd select')).appearance };
   });
-  ok('a) le <select> ordinaire d\'un navigateur sans base-select : les deux filtres se partagent la ligne, sans déborder',
-     Math.abs(natif.cat - natif.lang) <= 1 && natif.lang > 80 && !natif.deborde, JSON.stringify(natif));
+  // Ouvrir la liste d'un filtre à la souris, dans les deux pages, puis la fermer.
+  const listesOuvertes = async (pr, pn, id) => {
+    /* Au moment du clic, côté Firefox : le <select> n'a pas pris le focus,
+       et sa liste du système ne s'est pas ouverte — l'enfoncement est
+       retenu. Sans quoi elle s'ouvrirait, puis se refermerait dès que la
+       nôtre prend le focus : un éclair, que seul ce relevé voit. */
+    await pn.evaluate((id) => {
+      const s = document.querySelector('#' + id + ' select');
+      window.__auClic = null;
+      document.addEventListener('click', () => { window.__auClic = { focus: document.activeElement === s, systeme: s.matches(':open') }; },
+        { capture: true, once: true });
+    }, id);
+    for (const p of [pr, pn]) { await p.click('#' + id + ' select', { timeout: 5_000 }); await wait(p, 400); }
+    const clip = await zone(pn, id);
+    const ecart = await memes(pr, pn, clip);
+    const lue = await pn.evaluate((id) => {
+      const s = document.querySelector('#' + id + ' select'), l = document.querySelector('#' + id + ' .tse-dd-liste');
+      return { ouverte: l.matches(':popover-open'), systeme: s.matches(':open'), role: l.getAttribute('role'), nom: l.getAttribute('aria-label'),
+               lignes: [...l.children].map((o) => [o.getAttribute('role'), o.getAttribute('aria-label'), o.getAttribute('aria-selected')].join('|')),
+               drapeaux: [l.querySelectorAll('.tse-dd-opt .tse-flag svg').length, s.querySelectorAll('option .tse-flag svg').length],
+               focus: document.activeElement.getAttribute('aria-label'), auClic: window.__auClic };
+    }, id);
+    // Refermée à la souris : aucune touche ne doit précéder la capture
+    // suivante (cf. l'anneau, plus bas).
+    for (const p of [pr, pn]) { await p.click('#' + id + ' select', { timeout: 5_000 }); await wait(p, 300); }
+    return { ecart, lue };
+  };
+
+  /* LA BARRE FERMÉE. Mutants — le bouton de surface absent ; la flèche du
+     système gardée ; le texte du <select> laissé visible sous le bouton ;
+     l'ancien partage à parts égales ; le bouton qui prend les clics ; le
+     bouton dit aux lecteurs d'écran. */
+  const [pr, pn] = await paire();
+  const [pc, pcn] = await paire({ clair: true });
+  const [ps, psn] = await paire({ off: 'filtreCategorie' });
+  const [gr, gn] = [await geometrie(pr), await geometrie(pn)];
+  const fermees = { sombre: await memes(pr, pn), clair: await memes(pc, pcn), sansCategorie: await memes(ps, psn) };
+  /* Le bouton de surface est muet — le <select> dit déjà son choix — et
+     les clics le traversent : au milieu de chaque filtre, c'est le <select>
+     qu'on touche. Relevé avant tout clic : un bouton qui prendrait les clics
+     les retiendrait, et le banc attendrait. Le texte du <select> est tu ;
+     ses options se lisent. */
+  const surface = await pn.evaluate(() => {
+    const dd = (id) => document.getElementById(id);
+    const centre = (id) => { const r = dd(id).getBoundingClientRect(); return document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); };
+    const s = document.querySelector('#tse-lang-dd select');
+    return { muets: [...document.querySelectorAll('.tse-dd > .tse-dd-bouton')].map((b) => b.getAttribute('aria-hidden')),
+             dedans: !!document.querySelector('.tse-dd select button, .tse-dd select selectedcontent'),
+             touches: ['tse-cat-dd', 'tse-lang-dd'].map((id) => centre(id) === dd(id).querySelector('select')),
+             texteSelect: getComputedStyle(s).color, texteOption: getComputedStyle(s.options[1]).color };
+  });
+  ok('a) le <select> ordinaire (Firefox) a l\'aspect du personnalisé : la langue à cinquante pixels, le globe, la catégorie sur le reste — au pixel, dans les deux thèmes et la catégorie coupée ; son bouton, muet, que les clics traversent',
+     gr.mode === 'riche' && gn.mode === 'natif' && gn.apparence === 'none' && gn.lang[1] === 50
+     && JSON.stringify(gr.cat) === JSON.stringify(gn.cat) && JSON.stringify(gr.lang) === JSON.stringify(gn.lang)
+     && Object.values(fermees).every((e) => e.differents === 0)
+     && JSON.stringify(surface.muets) === '["true","true"]' && !surface.dedans && surface.touches.every(Boolean)
+     && surface.texteSelect === 'rgba(0, 0, 0, 0)' && surface.texteOption !== 'rgba(0, 0, 0, 0)',
+     JSON.stringify({ gr, gn, fermees, surface }));
+
+  /* LA LISTE, DRAPEAUX COMPRIS. Ouverte à la souris, celle de chaque filtre
+     est celle de Chrome au pixel — sa place, sa largeur, ses lignes, les
+     drapeaux, l'option choisie, le cadre de la boîte ouverte —, et pas celle
+     du système, qui ne s'ouvre pas même un instant. Elle se lit comme une
+     liste d'options, chacune nommée par le texte de son option. Mutants —
+     les lignes en texte seul ; la liste du système ouverte aussi ; la liste
+     de la langue alignée à gauche ;
+     l'anneau du focus ouvert à la souris ; le cadre ouvert plus fort que le
+     survol ; des lignes sans nom. */
+  const ouvertes = {
+    langue: await listesOuvertes(pr, pn, 'tse-lang-dd'),
+    categorie: await listesOuvertes(pr, pn, 'tse-cat-dd'),
+    langueClair: await listesOuvertes(pc, pcn, 'tse-lang-dd'),
+    langueSeule: await listesOuvertes(ps, psn, 'tse-lang-dd'),
+  };
+  const lueLangue = ouvertes.langue.lue;
+  ok('a) …sa liste aussi, drapeaux compris : celle de Chrome au pixel, pour chaque filtre, dans les deux thèmes et la catégorie coupée — et une liste d\'options nommées, pas celle du système',
+     Object.values(ouvertes).every((o) => o.ecart.differents === 0 && o.lue.ouverte && !o.lue.systeme
+       && o.lue.auClic && !o.lue.auClic.focus && !o.lue.auClic.systeme)
+     && lueLangue.role === 'listbox' && lueLangue.nom === 'Filtrer les chaînes suivies par langue'
+     && lueLangue.drapeaux[0] === lueLangue.drapeaux[1] && lueLangue.drapeaux[0] >= 3
+     && JSON.stringify(lueLangue.lignes) === '["option|Toutes les langues|true","option|2 | Français|false","option|1 | English|false"]'
+     && lueLangue.focus === 'Toutes les langues',
+     JSON.stringify(ouvertes));
+  for (const p of [pc, pcn, ps, psn]) await p.close();
+
+  /* LE <select> RESTE LE CONTRÔLE. Au clavier : Entrée ouvre la liste, le
+     focus sur l'option choisie et son anneau ; ↓ puis Entrée choisit
+     « Français », le filtre s'applique, la liste se ferme et rend le focus
+     au <select>. L'espace l'ouvre, Échap la ferme sans rien changer ; Tab
+     aussi. À la souris : un clic l'ouvre, un second la ferme, un clic dehors
+     la ferme sans prendre le focus à ce qui l'a reçu, un clic sur une ligne
+     choisit. Mutants — la liste ouverte à l'enfoncement ; le focus gardé
+     par la liste fermée ; Tab qui laisse la liste ouverte. */
+  const lire5 = () => pn.evaluate(() => {
+    const s = document.querySelector('#tse-lang-dd select'), l = document.querySelector('#tse-lang-dd .tse-dd-liste'), a = document.activeElement;
+    return { valeur: s.value, ouverte: l.matches(':popover-open'),
+             focus: a === s ? 'select' : (a.getAttribute('aria-label') ?? a.localName),
+             anneau: l.contains(a) && a.matches(':focus-visible') ? getComputedStyle(a).outlineStyle : null,
+             visibles: [...document.querySelectorAll('.side-nav-card')].filter((c) => c.style.display !== 'none').map((c) => c.dataset.tseLogin).filter(Boolean).sort().join() };
+  });
+  const parcours = {};
+  await pn.evaluate(() => document.querySelector('#tse-lang-dd select').focus());
+  await pn.keyboard.press('Enter'); await wait(pn, 200); parcours.entree = await lire5();
+  await pn.keyboard.press('ArrowDown'); await wait(pn, 150); parcours.bas = await lire5();
+  await pn.keyboard.press('Enter'); await wait(pn, 600); parcours.choisi = await lire5();
+  await pn.keyboard.press(' '); await wait(pn, 200); await pn.keyboard.press('ArrowDown');
+  await pn.keyboard.press('Escape'); await wait(pn, 300); parcours.echap = await lire5();
+  await pn.keyboard.press('ArrowDown'); await wait(pn, 200); await pn.keyboard.press('Tab'); await wait(pn, 300); parcours.tab = await lire5();
+  /* À la souris, sans anneau, comme chez Chrome — sauf quand la boîte
+     portait déjà le sien, venue du clavier : on la quitte d'abord. */
+  await pn.evaluate(() => document.activeElement?.blur());
+  await pn.click('#tse-lang-dd select', { timeout: 5_000 }); await wait(pn, 300); parcours.clic = await lire5();
+  await pn.click('#tse-lang-dd select', { timeout: 5_000 }); await wait(pn, 300); parcours.reclic = await lire5();
+  await pn.click('#tse-lang-dd select', { timeout: 5_000 }); await wait(pn, 300);
+  // Un clic dehors : dans la marge de la barre de filtres, où rien ne se choisit.
+  const marge = await pn.evaluate(() => { const r = document.getElementById('tse-filter').getBoundingClientRect(); return [r.left + 2, r.top + 2]; });
+  await pn.mouse.click(...marge); await wait(pn, 300);
+  parcours.dehors = { ...(await lire5()), actif: await pn.evaluate(() => document.activeElement.localName) };
+  await pn.click('#tse-lang-dd select', { timeout: 5_000 }); await wait(pn, 300);
+  await pn.click('#tse-lang-dd .tse-dd-liste .tse-dd-opt:nth-child(3)', { timeout: 5_000 }); await wait(pn, 600); parcours.ligne = await lire5();
+  const p5 = parcours;
+  ok('a) …le <select> reste le contrôle : la liste s\'ouvre et se parcourt au clavier, se ferme à Échap, à Tab, au clic, et rend le focus',
+     p5.entree.ouverte && p5.entree.focus === 'Toutes les langues' && p5.entree.anneau === 'solid'
+     && p5.bas.focus === '2 | Français'
+     && p5.choisi.valeur === 'Français' && !p5.choisi.ouverte && p5.choisi.focus === 'select' && p5.choisi.visibles === 'marbek,orvik'
+     && p5.echap.valeur === 'Français' && !p5.echap.ouverte && p5.echap.focus === 'select'
+     && !p5.tab.ouverte && p5.tab.focus === 'select' && p5.tab.valeur === 'Français'
+     && p5.clic.ouverte && p5.clic.focus === '2 | Français' && p5.clic.anneau !== 'solid'
+     && !p5.reclic.ouverte && p5.reclic.focus === 'select'
+     && !p5.dehors.ouverte && p5.dehors.actif === 'body'
+     && p5.ligne.valeur === 'English' && !p5.ligne.ouverte && p5.ligne.visibles === 'tessaly',
+     JSON.stringify(parcours));
+
+  /* LE BOUTON SUIT LE CHOIX. Une langue choisie : son drapeau, recopié de
+     l'option, au pixel de Chrome. « Minecraft » choisi pendant que la liste
+     des langues est ouverte : la seule langue qui reste se pose d'elle-même
+     — sans « change », c'est le recalcul qui la pose, et le bouton suit —,
+     le filtre se grise, son bouton aussi, et sa liste se ferme, comme celle
+     du système. Mutants — la recopie oubliée au recalcul ; le bouton non
+     grisé ; la liste laissée ouverte sur un filtre grisé. */
+  for (const p of [pr, pn]) {
+    await p.evaluate(() => { const s = document.querySelector('#tse-lang-dd select'); s.value = 'Français'; s.dispatchEvent(new Event('change', { bubbles: true })); });
+  }
+  await wait(pn, 600);
+  // Le même état autour : ni focus — les deux pages n'ont pas eu le même
+  // parcours —, ni souris sur une boîte.
+  for (const p of [pr, pn]) { await p.evaluate(() => document.activeElement?.blur()); await p.mouse.move(0, 0); }
+  await wait(pn, 300);
+  const ecartFr = await memes(pr, pn);
+  await pn.evaluate(() => { const s = document.querySelector('#tse-lang-dd select'); s.value = ''; s.dispatchEvent(new Event('change', { bubbles: true })); });
+  await wait(pn, 400);
+  await pn.click('#tse-lang-dd select', { timeout: 5_000 }); await wait(pn, 300);
+  const ouverteAvant = await pn.evaluate(() => document.querySelector('#tse-lang-dd .tse-dd-liste').matches(':popover-open'));
+  await pn.evaluate(() => { const s = document.querySelector('#tse-cat-dd select'); s.value = 'Minecraft'; s.dispatchEvent(new Event('change', { bubbles: true })); });
+  await attendre(pn, () => document.querySelector('#tse-lang-dd select').disabled, 5_000);
+  await wait(pn, 400);
+  const minecraft = await pn.evaluate(() => {
+    const lang = document.querySelector('#tse-lang-dd select'), cur = document.querySelector('#tse-lang-dd .tse-dd-current');
+    const choisie = lang.selectedOptions[0];
+    return { valeur: lang.value, inactif: lang.disabled, liste: document.querySelector('#tse-lang-dd .tse-dd-liste').matches(':popover-open'),
+             recopie: !!choisie && cur.innerHTML === choisie.innerHTML,
+             cat: document.querySelector('#tse-cat-dd .tse-dd-current').innerText.trim(),
+             grise: getComputedStyle(document.querySelector('#tse-lang-dd .tse-dd-bouton')).opacity };
+  });
+  ok('a) …son bouton suit le choix : le drapeau choisi au pixel de Chrome ; la langue posée par le recalcul, grisée avec son filtre, sa liste refermée',
+     ecartFr.differents === 0 && ouverteAvant
+     && minecraft.valeur === 'Français' && minecraft.inactif && !minecraft.liste && minecraft.recopie && minecraft.cat === 'Minecraft' && minecraft.grise === '0.45',
+     JSON.stringify({ ecartFr, ouverteAvant, minecraft }));
+  await pr.close(); await pn.close();
 
   /* a6) LE CHOIX RESTE AU MENU QUAND LE MENU NE LE CONNAÎT PAS. « Minecraft »
      choisi dans la liste suivie, on passe en Top Chaînes : la catégorie tient

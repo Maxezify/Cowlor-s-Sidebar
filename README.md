@@ -89,7 +89,9 @@ de Twitch, miniatures, lecteur `player.twitch.tv` pour l'aperçu).
 - **L'édition Firefox** (branches `claude/firefox-*`) : **Firefox 150 ou
   supérieur**, le même plancher, choisi lui aussi (4.33.0.14). Le contrôle du
   paquet l'exige de son manifeste ; ce que Firefox 150 n'a pas — le
-  `<select>` personnalisable — y prend un repli natif.
+  `<select>` personnalisable — y prend un repli qui en garde l'aspect : un
+  `<select>` ordinaire, sous le bouton et la liste de l'extension, drapeaux
+  compris (4.33.0.15).
 
 ---
 
@@ -2185,6 +2187,124 @@ Un sous-test qui modélisait un cas impossible — un direct qui rajeunit sans
 changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'il
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
+
+## Firefox : les filtres ont l'aspect de Chrome, drapeaux compris (v4.33.0.15)
+
+Signalé, captures à l'appui : sous Firefox, la barre montrait « Toutes les
+cat » et « Toutes les lan », à parts égales, avec la flèche du système — « on
+doit retrouver la même disposition, avec le globe, et "Toutes les catégories"
+plus grande ». Puis : « pas oublier que les langues, en cliquant, on n'a pas
+les drapeaux sur Firefox ».
+
+**La cause.** Depuis la 4.33.0.14, les deux filtres sont des `<select>`. Chrome
+les personnalise (`appearance: base-select`) : son bouton recopie l'option
+choisie — le globe, le drapeau — et sa liste porte les drapeaux. Firefox 150
+n'a pas le `<select>` personnalisable (`web-features` 3.47.0) : son `<select>`
+n'écrit que le texte de l'option choisie, et sa liste, dessinée par le
+système, n'écrit que du texte. La 4.33.0.14 en avait pris acte en
+partageant la ligne à parts égales, pour que ce texte tienne.
+
+### Ce qui se voit
+
+- **La barre fermée est celle de Chrome.** La langue tient de nouveau dans
+  cinquante pixels, avec le globe ou le drapeau choisi ; la catégorie prend le
+  reste. Par-dessus le `<select>`, le bouton de Chrome — mêmes classes, donc
+  mêmes règles — montre l'option choisie, recopiée comme le fait
+  `<selectedcontent>` ; le texte du `<select>` est tu, sa flèche ôtée.
+- **Sa liste aussi, drapeaux compris.** Au clic, et aux touches qui ouvrent
+  une liste (Entrée, espace, ↓, ↑, F4), c'est la liste de l'extension qui
+  s'ouvre et non celle du système : un popover, posé au-dessus de tout comme
+  celle de Chrome, dont chaque ligne recopie une option entière — drapeau,
+  compteur, nom. Elle s'aligne comme celle de Chrome : sous la boîte à quatre
+  pixels, à gauche pour la catégorie, à droite pour la langue, sur toute la
+  ligne quand le filtre catégorie est coupé.
+- **Comparé au pixel.** Sous Chromium, la voie de Firefox forcée — le
+  navigateur prié de ne pas connaître `base-select` dès l'amorce — rend la
+  barre fermée et chaque liste ouverte exactement comme la voie de Chrome :
+  zéro pixel d'écart, en sombre, en clair, et le filtre catégorie coupé. Seul
+  le filtre grisé diffère, de deux niveaux de couleur au plus : l'opacité de
+  la boîte et celle du bouton posé dessus se composent l'une sur l'autre.
+
+### Ce qui ne se voit pas
+
+- **Le `<select>` reste le contrôle.** Il garde le focus hors de la liste, son
+  nom, sa valeur, et les touches qui changent le choix sans l'ouvrir (Début,
+  Fin, une lettre). Le choix passe toujours par lui : une ligne choisie pose
+  sa valeur et envoie `input` puis `change`, comme le navigateur. Le bouton de
+  surface est muet pour les lecteurs d'écran — le `<select>` dit déjà son
+  choix — et les clics le traversent.
+- **La liste se lit et se pilote.** Une liste d'options (`listbox`), chacune
+  nommée par le texte de son option — « 2 | Français », que le drapeau ne dit
+  pas. Les flèches, Début et Fin la parcourent ; Entrée ou l'espace
+  choisissent ; Échap, Tab, un clic dehors ou sur la boîte la ferment, et le
+  focus revient au `<select>` s'il était chez elle. Ouverte à la souris, la
+  ligne qui prend le focus ne porte pas son anneau, sauf si la boîte portait
+  déjà le sien.
+- **Elle s'ouvre au clic, pas à l'enfoncement.** L'enfoncement est retenu,
+  pour que la liste du système ne s'ouvre pas. Ouverte à ce moment-là, la
+  nôtre aurait été refermée au relâchement par le clic même, compté comme un
+  clic dehors.
+- **Elle suit la barre.** Placée d'après la boîte du `<select>` — Firefox 150
+  n'a pas le positionnement par ancre —, elle se replace quand la barre
+  défile ou que la fenêtre change, écoutes posées le temps qu'elle est
+  ouverte. Ses lignes suivent les options quand le menu se recalcule ; elle
+  se ferme quand son filtre se grise, comme celle du système.
+- **Le cadre de la boîte ouverte suit Chrome jusque dans sa cascade.** Chez
+  Chrome, le survol l'emporte sur `:open` : la règle de la boîte ouverte est
+  donc écrite sous `:where()`, pour n'avoir que la force d'une classe.
+- **Chrome n'est pas touché.** Là où `base-select` existe, rien de ceci n'est
+  construit : le bouton reste dans le `<select>`, et sa liste est celle du
+  navigateur.
+
+### Ce qui n'est pas vérifié
+
+Ce conteneur n'a pas de Firefox : le téléchargement de Mozilla y est refusé
+par le réseau. Tout ce qui précède est mesuré sous Chromium, la voie de Firefox
+forcée. Elle n'emploie que ce que Firefox 150 connaît d'après `web-features`
+3.47.0 — `appearance: none`, le popover (125), `:has()` (121),
+`:focus-visible` (85) —, mais le rendu dans Firefox lui-même, et le toucher
+sous Firefox pour Android, restent à voir.
+
+### Le banc
+
+- **240 a)** : l'ancienne assertion du `<select>` ordinaire ôtait
+  `base-select` d'une page déjà construite pour Chrome : le bouton de Chrome y
+  restait, et la voie de Firefox ne tournait jamais. Elle est remplacée par
+  quatre assertions sur des pages où le navigateur ne connaît pas
+  `base-select` dès l'amorce, face à des pages qui le connaissent : la barre
+  fermée au pixel ; chaque liste ouverte au pixel, et lue comme une liste
+  d'options ; le clavier et la souris ; le bouton qui suit le choix, jusqu'à
+  la langue posée par le recalcul et la liste refermée sur un filtre grisé.
+
+**Dix-huit mutants nommés, dix-huit pris.** Le premier passage en laissait
+un vivant et un en erreur : la liste du système, ouverte un instant puis
+refermée dès que la nôtre prend le focus, ne se voyait plus à la mesure ; et
+un bouton qui retenait les clics faisait attendre le banc avant qu'une
+assertion ne tombe. Le banc relève désormais l'état au moment même du clic,
+et vérifie que les clics traversent le bouton avant d'en donner aucun.
+
+| mutant | ce qui tombe |
+| --- | --- |
+| le bouton de surface absent | 240 a), barre fermée, liste ouverte |
+| la flèche du système gardée | 240 a), barre fermée |
+| le texte du `<select>` laissé visible sous le bouton | 240 a), barre fermée, liste ouverte, le choix suivi |
+| l'ancien partage à parts égales | 240 a), barre fermée, liste ouverte, le choix suivi |
+| la recopie oubliée au recalcul | 240 a), le choix suivi |
+| le bouton qui prend les clics | 240 a), barre fermée |
+| le bouton non grisé | 240 a), le choix suivi |
+| le bouton dit aux lecteurs d'écran | 240 a), barre fermée |
+| les lignes en texte seul | 240 a), liste ouverte |
+| la liste du système ouverte aussi | 240 a), liste ouverte |
+| la liste ouverte à l'enfoncement | 240 a), liste ouverte |
+| le focus gardé par la liste fermée | 240 a), clavier et souris |
+| la liste de la langue alignée à gauche | 240 a), liste ouverte |
+| l'anneau du focus, ouverte à la souris | 240 a), liste ouverte, clavier et souris |
+| le cadre ouvert plus fort que le survol | 240 a), liste ouverte |
+| des lignes sans nom | 240 a), liste ouverte, clavier et souris |
+| la liste laissée ouverte sur un filtre grisé | 240 a), le choix suivi |
+| Tab qui laisse la liste ouverte | 240 a), clavier et souris |
+
+`npm run check` est vert : 239 scénarios, 2456 assertions.
 
 ## Encore Modern Web Guidance, aux planchers Chrome 150 et Firefox 150 (v4.33.0.14)
 
@@ -26825,13 +26945,13 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 2346 Ko | 1103 Ko | 4 878 → **2** |
+| `content.js` | 2358 Ko | 1111 Ko | 4 890 → **2** |
 | `cadres.js` | 76 Ko | 35 Ko | 171 → **0** |
 | `adblock.js` | 126 Ko | 101 Ko | 301 → **2** |
 | `panneau.js` | 171 Ko | 87 Ko | 240 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 26 → **0** |
 | `background.js` | 10 Ko | 2 Ko | 23 → **0** |
-| **les six** | **2744 Ko** | **1332 Ko** | **−51 %** |
+| **les six** | **2756 Ko** | **1340 Ko** | **−51 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se

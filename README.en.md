@@ -83,7 +83,9 @@ API, thumbnails, `player.twitch.tv` for previews).
 - **The Firefox edition** (`claude/firefox-*` branches): **Firefox 150 or
   higher**, the same floor, chosen as well (4.33.0.14). The package check
   requires it of its manifest; what Firefox 150 lacks — the customizable
-  `<select>` — gets a native fallback there.
+  `<select>` — gets a fallback there that keeps its look: an ordinary
+  `<select>`, under the extension's button and list, flags included
+  (4.33.0.15).
 
 ---
 
@@ -2067,6 +2069,120 @@ A sub-test that modelled an impossible case — a stream growing younger without
 changing id — was replaced along the way by the ordinary case that was actually
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
+
+## Firefox: the filters look like Chrome's, flags included (v4.33.0.15)
+
+Reported, screenshots attached: on Firefox, the bar showed "Toutes les cat"
+and "Toutes les lan", in equal halves, with the system arrow — "we should get
+the same layout back, with the globe, and 'Toutes les catégories' wider".
+Then: "don't forget that the languages, when you click, have no flags on
+Firefox".
+
+**The cause.** Since 4.33.0.14, both filters are `<select>` elements. Chrome
+customizes them (`appearance: base-select`): its button copies the chosen
+option — the globe, the flag — and its list carries the flags. Firefox 150
+lacks the customizable `<select>` (`web-features` 3.47.0): its `<select>`
+writes only the text of the chosen option, and its list, drawn by the
+system, writes only text. 4.33.0.14 had taken note of that by splitting the
+row in equal halves, so that the text would fit.
+
+### What you can see
+
+- **The closed bar is Chrome's.** The language fits in fifty pixels again,
+  with the globe or the chosen flag; the category takes the rest. On top of
+  the `<select>`, Chrome's button — same classes, hence same rules — shows the
+  chosen option, copied the way `<selectedcontent>` does; the `<select>`'s own
+  text is silenced, its arrow removed.
+- **Its list too, flags included.** On click, and on the keys that open a
+  list (Enter, Space, ↓, ↑, F4), the extension's list opens instead of the
+  system's: a popover, laid over everything like Chrome's, each row copying a
+  whole option — flag, count, name. It aligns like Chrome's: four pixels below
+  the box, to the left for the category, to the right for the language,
+  across the whole row when the category filter is off.
+- **Compared to the pixel.** Under Chromium, the Firefox path forced — the
+  browser told from the first script that it does not know `base-select` —
+  renders the closed bar and each open list exactly like the Chrome path:
+  zero pixels of difference, dark, light, and with the category filter off.
+  Only the greyed filter differs, by two colour levels at most: the opacity of
+  the box and that of the button laid on it compose one over the other.
+
+### What you can't see
+
+- **The `<select>` stays the control.** It keeps the focus outside the list,
+  its name, its value, and the keys that change the choice without opening it
+  (Home, End, a letter). The choice always goes through it: a chosen row sets
+  its value and sends `input` then `change`, like the browser. The overlay
+  button is silent for screen readers — the `<select>` already says its
+  choice — and clicks go through it.
+- **The list reads and steers.** A list of options (`listbox`), each named by
+  its option's text — "2 | Français", which the flag doesn't say. The arrows,
+  Home and End move through it; Enter or Space choose; Escape, Tab, a click
+  outside or on the box close it, and the focus returns to the `<select>` if
+  it was inside. Opened with the mouse, the row that takes the focus shows no
+  ring, unless the box already showed its own.
+- **It opens on click, not on press.** The press is held back, so that the
+  system's list does not open. Opened at that moment, ours would have been
+  closed on release by the very same click, counted as a click outside.
+- **It follows the bar.** Placed from the `<select>`'s box — Firefox 150 has
+  no anchor positioning —, it moves back into place when the bar scrolls or
+  the window changes, with listeners set only while it is open. Its rows
+  follow the options when the menu is recomputed; it closes when its filter
+  greys out, like the system's.
+- **The open box's border follows Chrome down to its cascade.** In Chrome,
+  hover beats `:open`: the open-box rule is therefore written under
+  `:where()`, so as to weigh no more than a class.
+- **Chrome is untouched.** Where `base-select` exists, none of this is built:
+  the button stays inside the `<select>`, and its list is the browser's.
+
+### What isn't verified
+
+This container has no Firefox: Mozilla's download is refused by its network.
+Everything above is measured under Chromium, with the Firefox path forced. It
+uses only what Firefox 150 knows according to `web-features` 3.47.0 —
+`appearance: none`, the popover (125), `:has()` (121), `:focus-visible`
+(85) —, but the rendering in Firefox itself, and touch on Firefox for
+Android, remain to be seen.
+
+### The test bench
+
+- **240 a)**: the old assertion on the ordinary `<select>` removed
+  `base-select` from a page already built for Chrome: Chrome's button stayed
+  in it, and the Firefox path never ran. It is replaced by four assertions on
+  pages where the browser doesn't know `base-select` from the first script,
+  against pages where it does: the closed bar to the pixel; each open list to
+  the pixel, and read as a list of options; keyboard and mouse; the button
+  following the choice, down to the language set by the recomputation and the
+  list closed on a greyed filter.
+
+**Eighteen named mutants, eighteen caught.** The first pass left one alive
+and one in error: the system's list, opened for an instant then closed as
+soon as ours takes the focus, no longer showed in the measurement; and a
+button holding back the clicks made the bench wait before any assertion
+fell. The bench now records the state at the very moment of the click, and
+checks that clicks go through the button before giving any.
+
+| mutant | what falls |
+| --- | --- |
+| the overlay button missing | 240 a), closed bar, open list |
+| the system arrow kept | 240 a), closed bar |
+| the `<select>`'s text left visible under the button | 240 a), closed bar, open list, choice followed |
+| the old equal split | 240 a), closed bar, open list, choice followed |
+| the copy forgotten on recomputation | 240 a), choice followed |
+| the button catching the clicks | 240 a), closed bar |
+| the button not greyed | 240 a), choice followed |
+| the button told to screen readers | 240 a), closed bar |
+| text-only rows | 240 a), open list |
+| the system's list opening too | 240 a), open list |
+| the list opened on press | 240 a), open list |
+| the focus kept by the closed list | 240 a), keyboard and mouse |
+| the language's list aligned left | 240 a), open list |
+| the focus ring, opened with the mouse | 240 a), open list, keyboard and mouse |
+| the open border stronger than hover | 240 a), open list |
+| unnamed rows | 240 a), open list, keyboard and mouse |
+| the list left open on a greyed filter | 240 a), choice followed |
+| Tab leaving the list open | 240 a), keyboard and mouse |
+
+`npm run check` is green: 239 scenarios, 2456 assertions.
 
 ## Modern Web Guidance again, at the Chrome 150 and Firefox 150 floors (v4.33.0.14)
 
@@ -26063,13 +26179,13 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 2346 KB | 1103 KB | 4,878 → **2** |
+| `content.js` | 2358 KB | 1111 KB | 4,890 → **2** |
 | `cadres.js` | 76 KB | 35 KB | 171 → **0** |
 | `adblock.js` | 126 KB | 101 KB | 301 → **2** |
 | `panneau.js` | 171 KB | 87 KB | 240 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 26 → **0** |
 | `background.js` | 10 KB | 2 KB | 23 → **0** |
-| **all six** | **2744 KB** | **1332 KB** | **−51 %** |
+| **all six** | **2756 KB** | **1340 KB** | **−51 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are
