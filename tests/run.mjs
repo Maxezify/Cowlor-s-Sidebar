@@ -44137,7 +44137,7 @@ const lireZap = (page) => page.evaluate(() => {
      l'ancien rebond ; l'origine au bord droit ; l'ancienne amplitude. */
   const pulsation = await pa.evaluate(() => {
     const anims = document.getAnimations().filter((a) => a.animationName === 'tse-acc-etiq-pulsation');
-    // Une place que le Top 15 ne montre pas (au-delà de ce que la largeur tient) ne s'anime pas : on lit celles qui se voient.
+    // Une place que le Top 15 ne montre pas (au-delà de ce que la largeur tient) ne se peint pas : on lit celles qui se voient (cf. e).
     return [...document.querySelectorAll('[data-tse-etiquette]')].filter((el) => el.checkVisibility()).map((el) => {
       const st = getComputedStyle(el, '::after');
       const a = anims.find((x) => x.effect.target === el && x.effect.pseudoElement === '::after');
@@ -44199,17 +44199,37 @@ const lireZap = (page) => page.evaluate(() => {
      mouvement.plus >= 1.05 && mouvement.plus <= 1.0601 && mouvement.moins <= 1.005 && mouvement.palier < 200 && !mouvement.deplace,
      JSON.stringify(mouvement));
   /* e) « LES ÉTIQUETTES PULSENT », COUPÉ : plus une étiquette ne bat, et le
-     subathon clignote encore. Les étiquettes, elles, restent. */
+     subathon clignote encore. Les étiquettes, elles, restent.
+     UNE PLACE REPLIÉE GARDE SON ANIMATION TANT QU'ON NE LA REGARDE PAS. Depuis
+     la 4.33.0.14, une place repliée porte hidden="until-found" — c'est-à-dire
+     content-visibility: hidden, et non plus display: none, qui annulait ses
+     animations. Chromium ne recalcule plus son style : l'animation qu'elle
+     portait reste dans document.getAnimations() après la coupure, et n'en sort
+     qu'au premier calcul de son style — une lecture, ou le dépli. Une place
+     repliée avant d'avoir été stylée n'en a, elle, jamais eu. Rejoué dans une
+     page nue, sous Chromium 153 : deux cartes qui battent, l'une repliée,
+     l'option coupée — une animation reste, sur la repliée ; son style lu,
+     « none », et plus aucune. Ici, brune, sixième du Top et repliée à
+     1 600 px, a sa pastille peinte avant le repli ou après selon la course :
+     l'ancienne lecture tombait une fois sur deux, sur un produit juste. On
+     compte donc ce qui se peint ; puis, chaque étiquette lue, ce qui reste
+     dans tout le document — repliées comprises, et qui doit être rien. */
   await pa.evaluate(() => window.tse.options.poser('accueilPulsation', false));
   await attendre(pa, () => (document.documentElement.getAttribute('data-tse-off') || '').split(' ').includes('accueilPulsation'), 3_000);
-  const coupe = await pa.evaluate(() => ({
-    pulsations: document.getAnimations().filter((a) => a.animationName === 'tse-acc-etiq-pulsation').length,
-    noms: [...new Set([...document.querySelectorAll('[data-tse-etiquette]')].map((el) => getComputedStyle(el, '::after').animationName))].sort(),
-    poses: document.querySelectorAll('[data-tse-etiquette]').length,
-    quinto: getComputedStyle(document.querySelector('main a[data-a-target="preview-card-image-link"][href="/quinto"]'), '::after').animationName,
-  }));
+  const coupe = await pa.evaluate(() => {
+    const pulsations = () => document.getAnimations().filter((a) => a.animationName === 'tse-acc-etiq-pulsation');
+    const peintes = pulsations().filter((a) => !a.effect.target.closest('[hidden="until-found"]')).length;
+    const noms = [...new Set([...document.querySelectorAll('[data-tse-etiquette]')].map((el) => getComputedStyle(el, '::after').animationName))].sort();
+    return {
+      pulsations: peintes, restantes: pulsations().length, noms,
+      repliees: document.querySelectorAll('[hidden="until-found"] [data-tse-etiquette]').length,
+      poses: document.querySelectorAll('[data-tse-etiquette]').length,
+      quinto: getComputedStyle(document.querySelector('main a[data-a-target="preview-card-image-link"][href="/quinto"]'), '::after').animationName,
+    };
+  });
   ok('e) « Les étiquettes pulsent » coupé : plus une pulsation, les étiquettes restent, le subathon clignote encore',
-     coupe.pulsations === 0 && coupe.noms.join() === 'none,tse-acc-etiq-subathon' && coupe.poses >= 8 && coupe.quinto === 'tse-acc-etiq-subathon',
+     coupe.pulsations === 0 && coupe.restantes === 0 && coupe.noms.join() === 'none,tse-acc-etiq-subathon' && coupe.poses >= 8
+     && coupe.quinto === 'tse-acc-etiq-subathon',
      JSON.stringify(coupe));
 
   /* f) LA BARRE SERT DÉJÀ LE MONDE : Top Chaînes ouvert, sans catégorie,
