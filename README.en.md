@@ -78,22 +78,26 @@ API, thumbnails, `player.twitch.tv` for previews).
 
 ## Compatibility
 
-- **Firefox 140 or higher.** The floor is not picked, it is **derived** from
-  two manifest keys, and the more recent one wins:
+- **Firefox 150 or higher.** A chosen floor (4.33.0.14), declared by the
+  manifest (`strict_min_version`) and required by the package check: the code
+  relies with no fallback on what Firefox 150 knows — Temporal (139),
+  `<dialog>`, `moveBefore()` (144), `command="close"` commands (144),
+  `hidden="until-found"` (148), Trusted Types (148). What it lacks — the
+  customizable `<select>` — takes a native fallback there. Until then, the
+  floor was **derived** from two manifest keys, the more recent one winning:
 
   | What we declare | Since |
   | --- | --- |
   | `"world": "MAIN"` in `content_scripts` | Firefox **128** |
   | `browser_specific_settings.gecko.data_collection_permissions` | Firefox **140** |
 
-  Hence 140. Dropping to 128 would make the manifest inconsistent with itself,
-  and Mozilla's `addons-linter` says so in as many words. The cost is nil: ESR
-  128 went out of support on 16 September 2025 and the active ESR is 140 — the
-  128-139 range is no longer inhabited by any maintained build.
-- **Firefox for Android 142 or higher** (`gecko_android`), the data-collection
-  key having landed there two versions later. Note that the followed-channels
-  sidebar does not exist on mobile Twitch: compatibility is declared there for
-  consistency, not for usefulness.
+  Hence 140, up to 4.33.0.13. Both keys remain covered.
+- **Firefox for Android 150 or higher** (`gecko_android`), the same floor:
+  `web-features` dates each of these features to the same version there as on
+  desktop. It was 142, the data-collection key having landed there two
+  versions later. Note that the followed-channels sidebar does not exist on
+  mobile Twitch: compatibility is declared there for consistency, not for
+  usefulness.
 - For **Chrome, Edge, Brave, Opera, Vivaldi, Arc**, see the `claude/chrome`
   branch: same code, manifest without the `browser_specific_settings` block.
 
@@ -331,13 +335,13 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 2310 KB | 1089 KB | 4,827 → **2** |
+| `content.js` | 2346 KB | 1103 KB | 4,878 → **2** |
 | `cadres.js` | 76 KB | 35 KB | 171 → **0** |
 | `adblock.js` | 126 KB | 101 KB | 301 → **2** |
-| `panneau.js` | 168 KB | 86 KB | 233 → **0** |
+| `panneau.js` | 171 KB | 87 KB | 240 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 26 → **0** |
 | `background.js` | 10 KB | 2 KB | 23 → **0** |
-| **all six** | **2704 KB** | **1317 KB** | **−51 %** |
+| **all six** | **2744 KB** | **1332 KB** | **−51 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are
@@ -2494,6 +2498,438 @@ A sub-test that modelled an impossible case — a stream growing younger without
 changing id — was replaced along the way by the ordinary case that was actually
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
+
+## Modern Web Guidance again, at the Chrome 150 and Firefox 150 floors (v4.33.0.14)
+
+"Run modern-web-guidance-src over chrome/homepage once more, to be sure you
+really missed nothing […] Be rigorous." Then, along the way: "Chrome floor
+up to 150", and "you can set the Firefox floor to version 150".
+
+**The method.** GoogleChrome's repository at commit `d6b5df9` of 25 November
+2026: the 41 deterministic rules of its scanner (`legacy-scan`, 37 guides),
+read and applied by hand to the code — the scanner, a downloaded package, was
+not run. Then its 255 guides, sorted one by one: 119 out of scope (on-device
+AI, payments, account forms, caching service workers… each with its reason),
+136 read. Every feature those 136 guides recommend was checked against both
+floors with `web-features` 3.47.0: in both, apply it with no fallback; in
+one, apply it with a fallback or leave it, and say why; in neither, leave it.
+The sort was redone each time a floor rose — Chrome from 119 to 150, Firefox
+from 140 to 150 — and what it changed is told below.
+
+**The floors.** Chrome 150, declared by the manifest
+(`minimum_chrome_version`). Firefox 150: the Firefox edition's manifest
+declares it (`strict_min_version`), and the package check, shared by both
+editions, now requires it. The code keeps no fallback for what both know.
+
+### What you can see
+
+- **The category and language filters can be chosen from the keyboard.** The
+  home-made menu opened from the keyboard, but nothing in it could be chosen:
+  its options took no focus. They are now `<select>` elements: Enter opens,
+  the arrows move, Enter chooses, Escape closes, and the browser announces
+  the filter and its value. On Chrome, `appearance: base-select` keeps the
+  previous look, flags and counts included — compared with the previous
+  version pixel for pixel, in both themes, menus open and closed. One
+  deliberate difference: the box label takes the page's font, like the
+  "Followed Channels / Top Channels" tabs right above; the old button took
+  the buttons' font. Firefox has no customizable `<select>`: it shows the
+  options' text ("12 | Français"), written to read on its own, and the two
+  filters share the row there. Focus is visible, which it was not.
+- **The windows are `<dialog>` elements.** The embedded panel, channel
+  surfing, the report and the confirmation: the browser makes what lies
+  beneath inert, and Escape closes them. The code that pulled focus back into
+  channel surfing, and the one that watched for Escape around the embedded
+  panel, are gone. In the panel, "Close" and "Cancel" are commands
+  (`command="close"`, Chrome 135, Firefox 144), no longer listeners.
+- **The panel, readable by a screen reader.** Each setting is named by its
+  label and described by its sentence (`aria-labelledby`,
+  `aria-describedby`), and says when it has no effect. The switches are
+  checkboxes with the "switch" role, drawn in CSS. In forced colors, the
+  browser repainted their track and thumb the same color: the thumb
+  vanished, checked or not (found by the test bench). They now paint their
+  system colors themselves there. The table has its caption and column headers, and its scrolling area is
+  named and takes focus.
+- **Every text meets its contrast threshold**, measured on what is painted,
+  in both themes, in the panel, on the home page and in the sidebar:
+  gradients stop by stop, translucent badges on their composited background.
+  What fell short:
+  - the active tab, white on a light purple: 3.26:1 at the top of its
+    gradient. It now runs from Twitch's purple (4.62) to #772ce8 (6.34);
+  - the "=" of a steady Top 15 place: 3.83:1 in dark, now in the soft grey;
+  - in the panel's light theme, the diagnostics "OK" label (4.48), a tinted
+    card's duration (4.24), the category of the guide's tinted cards (3.8;
+    4.38 in dark), and that of the "subscribed" card, in the dark theme's
+    pale gold: 1.18:1. It takes the shade the product gives that category.
+    The badge palette sits on the surface where the product shows badges: on
+    the frame's darker inset, "Former sub" dropped to 4.13. The mock
+    tab is painted like the sidebar's.
+  The panel's colors are no longer written twice: `light-dark()` carries
+  them, and `color-scheme` picks.
+- **"Featured" says it is a carousel.** A region named by its title, with
+  the role description "carousel"; each card, a "2 of 5" slide, numbered in
+  the carousel's order — the ribbon turns, the numbers stay. An arrow, a
+  click: a polite announcement names the centre card, "2 of 5: Nyxaria". In
+  all ten languages.
+- **Ctrl+F finds what a folded row hides.** The cards below the first row
+  carry `hidden="until-found"` (Chrome 102, Firefox 148): the page search
+  finds them, and the row unfolds entirely, "Show less" on its button.
+  Folded, they take no room.
+- **Headings that wrap** break into even lines (`text-wrap: balance`).
+
+### What you cannot see
+
+- **Calendar days through Temporal.** Local midnight, "today", "tomorrow",
+  "3 days ago", subscription due dates, the agenda's weeks: calendar days,
+  no longer milliseconds divided then rounded. The results are the previous
+  ones, tested on two traps — Paris's 167-hour daylight-saving week, and
+  Santiago's Sunday without a midnight. The instant still comes from
+  `Date.now()`: that is the clock the test bench freezes, and `Temporal.Now`
+  does not follow it.
+- **Trusted Types on the extension's pages.** The panel never writes HTML
+  from a string; the manifest now requires it of the browser
+  (`require-trusted-types-for 'script'`, no policy allowed). An assignment
+  to `innerHTML` would be refused there. Chrome 83, Firefox 148.
+- **The fallbacks that left with the floors.** The `moveBefore` detection
+  (Chrome 133, Firefox 144), the `popover` detection and its fallback
+  tooltip, the `Intl.DurationFormat` fallback, the `IntersectionObserver`
+  and `ResizeObserver` checks, the `-webkit-` prefixes of masks, text
+  clipping, scrollbars and backdrop blur. `100vh` becomes `100dvh` where
+  the screen height matters. `toSorted()` for one more sorted copy.
+
+### What did not change, and why
+
+- **What Firefox 150 lacks**: the customizable `<select>` (native fallback,
+  above), `interestfor`, `focusgroup`, scroll-method promises, scroll-snap
+  events, `scroll-initial-target`, element-scoped view transitions,
+  `field-sizing`, `interpolate-size`, `sibling-index()`. Today's code is
+  what they would replace, and works in both.
+- **What Chrome 150 lacks**: `popover="hint"` (151), anchor positioning as
+  `web-features` declares it complete (157), the `switch` attribute.
+- **Document view transitions**, in both: they would freeze all of Twitch's
+  page for the length of a sort. The sidebar slides through its own
+  animations.
+- **`closedby`**: our full-screen windows have no "outside" to click, and a
+  confirmation does not close from a click beside it. Escape already closes
+  them.
+- **`ariaNotify()`**, in both: the carousel announces through a live region,
+  which every screen reader reads and the test bench checks.
+- **Channel surfing's Tab cycle**: a `<dialog>` makes what lies beneath
+  inert, but Tab would leave for the browser's toolbar. The full screen keeps
+  focus looping.
+- **Compact durations** ("1:23:07" on agenda thumbnails): Twitch's format,
+  the same in every language; `Intl.DurationFormat`'s "digital" style would
+  change separators with the language.
+- **`adblock.js`**, vendored third-party code: not ours to modernize.
+- **`@scope`, `@layer`, logical properties**: our prefixed classes already
+  isolate the stylesheet, a layered stylesheet would lose to Twitch's, and
+  the extension's ten languages are all written left to right.
+- **`contrast-color()`, the Sanitizer API**: no text sits on a color coming
+  from Twitch, and no HTML from Twitch is parsed.
+- **`<meta name="text-scale">`** (Chrome 146 only): it would require moving
+  the stylesheet to `rem`. A proposal, not done.
+- **Reduced motion** stays ignored: a product choice.
+- **`content-visibility` on the home page rows**, asked for "only if the
+  measurement shows a gain": measured three times each way, the home page
+  load and six scroll steps. Layout goes from 68 to 37 ms over the session,
+  but style recalculation from 43 to 53, and total task time from 673 to
+  761: no sure gain. An estimated height per row would also make the page
+  jump each time a row is drawn. Not done.
+- **Breaking up the scan (`scheduler.yield()`)**, in both: measured, a scan
+  of 150 channels takes 8 to 15 ms, far from the 50 ms of a long task. The
+  only two long frames (83 and 120 ms), at load, carry no script over 5 ms:
+  that is rendering. Nothing to break up.
+
+### The test bench
+
+- **240, new**: the filters as `<select>` — their shape, their options'
+  text, the keyboard (Enter, arrow, Enter, Escape), visible focus, an open
+  list whose filter is lost and which closes, the plain `<select>` that
+  shares the row, the choice the menu does not know yet and keeps; the carousel — region, slides, numbers that survive the
+  turning ribbon, an arrow's announcement; the folded row — `until-found`,
+  no room taken, a page search that unfolds it; every text on the home page
+  and in the sidebar at its threshold, in both themes.
+- **70**: every text of the panel at its threshold, in its thirty views and
+  both themes. **120**: the settings named, the switches in forced colors.
+  **208 r)**: the weeks of a clock change, in Paris, Santiago and New
+  York. The filter scenarios choose an option the way the browser does;
+  the window scenarios read `:modal`.
+- **The contrast measure** is shared by the bench (`mesurerContrastes`): it
+  reads gradients stop by stop, measures outlined text by its stroke, and
+  returns what it sets aside — a disabled control, text over a video, a
+  color emoji — so that no exclusion hides anything silently. The previous
+  probe measured the active tab as white on white.
+
+**Thirty-five named mutants, thirty-five caught.** A thirty-sixth removed
+the line that resynchronized a filter's value: it changed nothing, and no
+path led to it — a choice always changes the state, and the state rebuilds
+the menu. The line is gone. Two others first survived, and made their test
+be written: the choice kept in the menu (240 a6), and the days counted in
+milliseconds — invisible in a week that starts on Monday, they double the
+Sunday of an American week when winter time returns (208 r, New York).
+
+| mutant | what falls |
+| --- | --- |
+| the count glued to the name ("2 |Français") | 240 a) |
+| the flag left to screen readers | 240 a) |
+| the browser's arrow on top of ours | 240 a) |
+| the browser's option height kept (36 px) | 240 a) |
+| the list sized border included | 240 a) |
+| the focus ring removed | 240 a) |
+| a disabled list left open | 240 a) |
+| the plain `<select>` not sharing the row | 240 a) |
+| the choice missing from the menu forgotten | 240 a) |
+| the carousel without an announcement on arrow | 240 b) |
+| slides numbered in the ribbon's order | 240 b) |
+| an `<article>` as a slide | 240 b) |
+| the folded box kept in the grid | 240 b) |
+| the card found, the row not unfolded | 240 b) |
+| the sovereign rule hiding `until-found` too | 240 b) |
+| a bare `hidden` instead of `until-found` | 240 b) |
+| the active tab back to its former gradient | 240 b) |
+| "=" back to the faint grey | 240 b) |
+| the panel's former green | 70 |
+| the dark theme's pale gold kept in light | 70 |
+| the badge palette back on the inset | 70 |
+| the cards' category in the faint grey | 70 |
+| the former light purple | 70 |
+| "Cancel" without its command | 70 |
+| "Close" without its command | 70 |
+| the report not modal | 70 |
+| the table caption empty | 70 |
+| a switch without a name | 120 |
+| the switch without the "switch" role | 120 |
+| forced colors repainted by the browser | 120 |
+| the end of the week in milliseconds | 208 r) |
+| the days of the week in milliseconds | 208 r), in New York |
+| the embedded panel not modal | 122 |
+| channel surfing not modal | 231 |
+| Trusted Types removed from the manifest | the package check |
+
+`npm run check` is green: 239 scenarios, 2453 assertions.
+
+## The Top 15, laid out like a Twitch row; "Featured" without a gap (v4.33.0.13)
+
+### The home page at every width
+
+Reported, with a screenshot: "the top 10 is not responsive […] take a native
+Twitch list as an example". The Top kept five places per row at every width.
+Measured at eleven widths, from 1,920 down to 375 pixels: a 179-pixel place
+at 1,024 — "From the start" out of its card —, names cut from 768, 49-pixel
+places at 375, and the whole page scrolling sideways below 900.
+
+- **The grid of the rows, the one Twitch's rows take.** As many columns as
+  the list holds 290-pixel places, fourteen apart — the columns line up from
+  one row to the next —, and five at most. Five on a large screen, three on a
+  1,024 laptop, one on a phone.
+- **Folded, the first row**, like a Twitch row: 1 to 5 on a large screen, as
+  before; 1 to 3, 1 to 2 or the first alone when space runs short. Folding
+  follows the width as it changes.
+- **"From the start" never leaves its card again**: at most its width, the
+  label shortened rather than spilling out; its tooltip still says what
+  it does.
+- The rest of the home page, measured at the same widths, already held:
+  nothing leaves a card or a row any more, and the page no longer scrolls
+  sideways.
+
+### The Top 15
+
+Requested: "can you go up to the Top 15 on the home page?". Fifteen places
+instead of ten — three full rows of five, five of three —, proven as before:
+the ranking asks for as many more as the list of excluded channels holds.
+What followed the number follows it: the thirty-minute trend, "New" for a
+channel from outside the Top 15, the places given elsewhere — "#12
+worldwide", "#14 in English" —, the banner's. The labels in the ten
+languages, the guide and the panel's settings, the Store listings.
+
+**Excluded channels: fifteen at most**, no longer twenty. The number is not
+chosen: the Top is proven on the language tag's answer, which carries thirty
+channels. A longer list, saved before, keeps its first fifteen.
+
+### "Featured" without a gap
+
+Reported, with a screenshot: "now and then, 'Featured' is missing a live
+[…] there must absolutely be a live if one is missing and it's not
+symmetrical". One card in the centre, one on its left, two on its right. A
+carousel channel did not show: the banner's, already just above; a channel
+Twitch says is offline; an answer that does not come. Or the carousel only
+carried four. A reload often made it go away: the banner's channel, or the
+offline one, was no longer the same.
+
+- **One place per carousel channel, and an odd number.** The place of a
+  channel that cannot show is filled by another live, at the very spot of the
+  gap; an even carousel gets one more place.
+- **The live that fills** comes from what the home page already knows,
+  nothing guessed: the Top ranking, then your followed channels that are
+  live. It must be live according to TseChannels; a channel already on screen
+  is not taken again.
+- **It keeps its place** as long as it is live, even if the ranking changes:
+  not a card replaced at every paint. Its own place — that of the channel it
+  stands in for —: a gap opening earlier in the loop does not move it. When
+  the carousel's channel comes back, it takes its place back, and the filler
+  leaves.
+- **An awaited answer is not a gap** during the first eight seconds: its
+  channel will come and take its place.
+- **With no live to put there**, the gap stays: nothing is invented.
+
+The report says, under `accueil.une`, how many places were missing, how many
+were filled, and why each was missing — the banner, an offline channel, an
+answer that did not come, an even carousel. If a gap shows up again, an
+exported report will say which.
+
+### The bench
+
+- **238, new**: seven widths, from 1,920 down to 375. The columns the list
+  holds, five at most, one on a phone; the rows' fourteen pixels; the fifteen
+  places in full rows, no name cut; nothing outside its card or its row, and
+  the page never scrolling sideways; "From the start" inside its card;
+  folded, the first row alone.
+- **239, new**: the banner's place filled, at its spot, by the first live of
+  the Top — an offline channel of the ranking skipped; the filler keeping its
+  place when the ranking changes; a gap opening earlier in the loop, filled
+  from the Top before followed channels, without moving the first filler; the
+  channel back, taking its place again; with no live in the Top, a followed
+  channel; a carousel of four taken to five, without reusing the banner; and,
+  with no live to put there, the gap that stays.
+- **The whole bench at fifteen places**: the Top's test data grows to
+  eighteen invented channels. 217 checks the banner's gap filled, and the
+  Top following the width — until now it checked five places at every size.
+  216 put the banner third in the ranking at 34,000 viewers, when the live
+  reading said 2,310: the fresher one made it drop a few seconds later, and
+  the bench read the place in the instant before. It now sits at the place
+  its viewers give it. 233 adds five channels with no language to the world,
+  so that a channel outside the worldwide Top 15 still gives its French place.
+
+**Thirteen named mutants, thirteen caught.**
+
+| mutant | what fails |
+| --- | --- |
+| the Top at five fixed columns | 238: everything — a) to e), and the gaps |
+| the Top without its five-column cap | 217: at 2,560 pixels, more than five places per row |
+| the Top with sixteen-pixel gaps | 238 a), e) and the gaps |
+| "From the start" with no width bound | 238 d) |
+| the Top back to ten places | 238 b) |
+| the gap left | 239 a), b), c), c bis), d) |
+| the filler put at the end | 239 c) |
+| a channel taken without being live | 239 a), c), c bis) |
+| the even carousel left even | 239 d) |
+| the filler changed at every paint | 239 b), c) |
+| the fillers redistributed in the order of the gaps | 239 c) |
+| followed channels before the Top | 239 c) |
+| the banner reused | 239 d) |
+
+`npm run check` is green: 238 scenarios, 2429 assertions.
+
+## The sidebar glides, and a missed slot leaves the home page (v4.33.0.12)
+
+### The sidebar that glides
+
+Requested: "when the sidebar refreshes, there is no animation […] a
+progressive and discreet animation". Every refresh rearranged the sidebar in
+one go: a channel overtakes its neighbour and the two cards swap places, a
+channel starts and everything below drops a row, another stops and everything
+moves up. The eye saw a jump, and had to read the list again to know what had
+changed.
+
+**Everything leaves from where it was.** Before anything moves, the position
+of every card, every section and every ▶ cursor of the multistream room is
+read on screen; everything is put in order at once; each then travels from its
+old place to the new one. Nothing is delayed: the list is right as soon as it
+is sorted, only the journey shows. 320 ms, a curve that leaves briskly and
+settles gently.
+
+- **What moves**: a card that changes rank; the section below when the
+  followed list grows or shrinks — its cards do not repeat its journey —; the
+  ▶ cursor, which follows its bar.
+- **What arrives** — a channel that starts or comes back, a card the filter
+  gives back — fades in from zero, 260 ms, after 120 ms: the space opens first,
+  then the card settles into it. Several arrivals follow one another, 40 ms
+  apart, top to bottom. A section that reappears fades in as one block, its
+  cards with it.
+- **What leaves** has no exit: the card is already removed, or hidden. Its
+  neighbours close the gap by gliding.
+- **What does not move**: the numbers — the counters change on almost every
+  card at every reading, animating them would make the whole sidebar flicker
+  —; anything that happens under the veil or in a hidden tab; the pass that
+  follows a change of the sidebar's width or a switch to Top Channels; a
+  repopulation, more than three cards and more than a third of the list
+  arriving at once.
+
+**Every refresh.** The scan, the sort chosen with a click, a filter chosen or
+removed, and Twitch's answers arriving between two scans — that is how a
+channel that stops disappears, or a channel that comes back reappears. The
+answers of one batch share one reading: two channels stopping together make a
+single two-row journey, not a jump followed by a journey.
+
+**A scan in mid-journey does not restart it.** Journeys in flight are
+suspended while the scan measures the layout — co-stream joins and cursor
+placement never read a frame in flight — and resume at the exact instant they
+had reached if their destination has not changed: same curve, same speed.
+Restarted from the point reached, they would set off fast again at every scan.
+
+**Only the compositor.** `translate` and `opacity`, two properties it animates
+on its own. `translate` rather than `transform`: the individual property adds
+to an element's transform instead of replacing it — the ▶ cursor carries its
+own. Chrome has had `translate` since 104, Firefox since 72, below the
+manifest's floors (119 and 140). What measures outside the scan, the preview
+placing itself and the cursor a `ResizeObserver` places again, removes the
+journey in flight and aims at the arrival place.
+
+The report counts, under `page.mouvement`, the readings, the journeys, the
+resumptions, the arrivals, what was not animated and why, the last movement
+and what is in flight. Counts, never a username.
+
+### A missed slot leaves the home page
+
+Requested: "on the home page, the schedule section, if the streamer still
+hasn't started their stream 2 hours after their schedule, remove it". A slot
+that had started without the channel said "not live yet" until its end: a
+whole evening for a six-hour slot the channel did not keep. Now, two hours
+after its time, still offline, it leaves "Your scheduled streams", on its own,
+without a reload. Before the two hours, it stays, and still says "not live
+yet". The panel's agenda keeps the week as it was scheduled.
+
+### The bench
+
+- **236, new**: three parts. On the ordinary bench, durations at zero, the
+  plan: nothing under the veil, three journeys when a channel takes the lead,
+  the sort chosen with a click, one arrival when a channel comes back, the
+  section that reappears as one block, two stops of one batch in a single
+  reading, and nothing on a repopulation, a width change or a mode switch. At
+  production durations, readings every 100 ms, every frame: the journey in one
+  go and in 320 ms despite the scans falling mid-flight, the section that
+  glides without its card repeating the journey, the arrival invisible while
+  the space opens. At the production wake-up, the ▶ cursor in the middle of its
+  bar at every frame, and a placement replayed mid-journey that aims at the
+  arrival place.
+- **237, new**: ten minutes late, the slot stays; two hours and five, it is not
+  there; a third crosses the two hours in front of you and leaves on its own,
+  not before; the panel's agenda keeps all four.
+
+**Nineteen named mutants, nineteen caught.**
+
+| mutant | what fails |
+| --- | --- |
+| the child repeats its parent's journey | 236: the section's card glides as well; the journey counts |
+| the journey restarted instead of resumed | 236: the journey lasts more than 320 ms |
+| the veil forgotten | 236 a) |
+| the arrival without the wait | 236 h): the wait, and the card visible before the space opens |
+| `transform` instead of `translate` | 236 f) |
+| the cursor placed on a frame in flight | 236 i): the cursor away from its bar once the journey is over |
+| the cursor left out of the reading | 236 i): the cursor jumps while its bar glides |
+| the repopulation animated | 236 d), and the mode switch |
+| the mode switch animated | 236: the switch |
+| the width change animated | 236 e) |
+| Twitch's answers outside the reading | 236 c), g), h), and the two stops |
+| the filter outside the reading | 236: the section that reappears, d) |
+| the click sort outside the reading | 236: the click sort |
+| the section fades, and its cards again | 236: the section that reappears |
+| the reading closed at the next frame | 236 h): the card read opaque before its fade |
+| one reading per answer | 236 c), and the two stops of one batch |
+| the schedule without the rule | 237 a), b) |
+| two minutes instead of two hours | 237 a), b) |
+| the rule applied to the agenda too | 237 c) |
+
+`npm run check` is green: 236 scenarios, 2417 assertions.
 
 ## Top Channels: an empty filter stays empty (v4.33.0.11)
 

@@ -51,6 +51,89 @@ const attendre = (p, fn, ms = 10_000, arg = null) =>
 // on normalise avant comparaison, l'espace exacte n'est pas l'objet du test.
 const nz = (s) => (s ?? '').replace(/[\u00a0\u202f\u2009]/g, ' ');
 
+/* ── CHAQUE TEXTE AU SEUIL AA, MESURÉ SUR CE QUI EST PEINT (4.33.0.14) ──
+   Une fonction de PAGE, passée telle quelle à page.evaluate : elle parcourt
+   tous les éléments de `selecteur` qui portent du texte à eux, et rend ceux
+   qui passent sous le seuil — 4,5:1, ou 3:1 pour un grand texte (24 px, ou
+   18,66 px en gras).
+
+   LE FOND SE REMONTE, COUCHE PAR COUCHE, jusqu'à la première opaque : un
+   badge translucide ne se juge pas contre sa propre déclaration. UN DÉGRADÉ
+   EST UNE COUCHE À PLUSIEURS COULEURS : chacun de ses arrêts est un fond
+   possible, et le texte doit tenir sur le pire. La sonde d'avant prenait le
+   fond SOUS le dégradé — l'onglet actif, blanc sur violet, s'y mesurait
+   blanc sur blanc.
+
+   UN TEXTE EN CONTOUR (remplissage transparent) se mesure par son trait.
+   Ce qu'on ne mesure pas, et pourquoi — la liste est rendue, pour qu'une
+   exclusion ne cache jamais rien en silence :
+     - un contrôle désactivé : WCAG 1.4.3 l'exempte ;
+     - un texte d'un pixel, découpé : il est lu, pas vu ;
+     - un emoji en couleur : sa teinte vient de la police, pas de `color` ;
+     - `exclus` : des sélecteurs nommés par l'appelant, chacun avec sa
+       raison (un texte posé sur une vidéo, par exemple). */
+const mesurerContrastes = ({ selecteur, exclus = [] }) => {
+  const rgb = (s) => { const m = /rgba?\(([^)]+)\)/.exec(s || ''); if (!m) return null;
+    const p = m[1].split(/[ ,/]+/).filter(Boolean).map(Number); return [p[0], p[1], p[2], p.length > 3 ? p[3] : 1]; };
+  const lum = ([r, g, b]) => { const f = (x) => { x /= 255; return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; };
+    return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b); };
+  const sur = (h, b) => [0, 1, 2].map((i) => h[i] * h[3] + b[i] * (1 - h[3])).concat(1);
+  const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+  // Les fonds possibles sous `el` : une liste de couleurs opaques.
+  const fonds = (el) => {
+    const couches = [];
+    for (let e = el; e; e = e.parentElement) {
+      const cs = getComputedStyle(e);
+      const img = cs.backgroundImage;
+      if (img && img !== 'none') {
+        if (/url\(/.test(img)) return null;   // une image : rien à calculer
+        const arrets = (img.match(/rgba?\([^)]*\)/g) || []).map(rgb).filter(Boolean);
+        if (arrets.length) couches.push(arrets);
+      }
+      const c = rgb(cs.backgroundColor);
+      if (c && c[3] > 0) { couches.push([c]); if (c[3] >= 1) break; }
+    }
+    const racine = rgb(getComputedStyle(document.documentElement).backgroundColor);
+    let base = [racine && racine[3] >= 1 ? racine : [255, 255, 255, 1]];
+    for (let i = couches.length - 1; i >= 0; i--) {
+      const suivants = [];
+      for (const b of base) for (const c of couches[i]) suivants.push(sur(c, b));
+      base = suivants.slice(0, 64);
+    }
+    return base;
+  };
+  const echecs = [], ecartes = {};
+  let mesures = 0;
+  const ecarter = (r) => { ecartes[r] = (ecartes[r] || 0) + 1; };
+  for (const el of document.querySelectorAll(selecteur)) {
+    if (!el.getClientRects().length || !el.checkVisibility({ opacityProperty: true, visibilityProperty: true })) continue;
+    const texte = [...el.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent.trim()).join('');
+    if (!texte) continue;
+    const ex = exclus.find(([s]) => el.closest(s));
+    if (ex) { ecarter(ex[1]); continue; }
+    if (el.closest(':disabled')) { ecarter('désactivé'); continue; }
+    const r0 = el.getBoundingClientRect();
+    if (r0.width <= 1 && r0.height <= 1) { ecarter('lu, pas vu'); continue; }
+    if (/^\p{Extended_Pictographic}️?$/u.test(texte)) { ecarter('emoji en couleur'); continue; }
+    const cs = getComputedStyle(el);
+    const remplissage = rgb(cs.webkitTextFillColor);
+    const contour = remplissage && remplissage[3] === 0 && parseFloat(cs.webkitTextStrokeWidth) > 0;
+    const f = rgb(contour ? cs.webkitTextStrokeColor : (remplissage && remplissage[3] > 0 ? cs.webkitTextFillColor : cs.color));
+    if (!f || f[3] === 0) { ecarter('sans encre'); continue; }
+    const bs = fonds(el);
+    if (!bs) { ecarter('sur une image'); continue; }
+    const px = parseFloat(cs.fontSize), gras = Number(cs.fontWeight) >= 700;
+    const seuil = contour || px >= 24 || (gras && px >= 18.66) ? 3 : 4.5;
+    const pire = Math.min(...bs.map((b) => ratio(sur(f, b), b)));
+    mesures++;
+    if (pire < seuil) {
+      echecs.push({ classe: (typeof el.className === 'string' ? el.className : el.localName).slice(0, 50),
+                    texte: texte.slice(0, 30), r: Math.round(pire * 100) / 100, seuil });
+    }
+  }
+  return { mesures, echecs, ecartes };
+};
+
 
 // Survol synthétique : l'extension écoute mouseenter/mouseleave en phase de
 // CAPTURE sur document, donc un événement dispatché sur la carte l'atteint.
@@ -1350,7 +1433,7 @@ titre('25. Aucun hash — le module sidebar n\'a plus de persisted query');
   await attendre(page, () => document.querySelector('.side-nav-card[data-tse-login="hctuan"]')?.dataset.tseCategory === 'Fortnite', 10_000);
   await page.evaluate(() => {
     const cat = document.querySelector('.side-nav-card[data-tse-login="mastu"]').dataset.tseCategory;
-    [...document.querySelectorAll('#tse-cat-dd .tse-dd-opt')].find((o) => o.dataset.value === cat)?.click();
+    ((o) => { if (o) { o.selected = true; o.parentElement.dispatchEvent(new Event('change', { bubbles: true })); } })([...document.querySelectorAll('#tse-cat-dd .tse-dd-opt')].find((x) => x.dataset.value === cat));
   });
   await attendre(page, () => document.querySelector('.side-nav-card[data-tse-login="hctuan"]')?.style.display === 'none', 5000);
   await wait(page, 600);
@@ -2776,7 +2859,7 @@ titre('36. Catégories — choisir, ce n\'est pas filtrer');
     const opt = [...document.querySelectorAll('#tse-cat-dd .tse-dd-opt')]
       .find(o => (o.dataset.value || '') === v);
     if (!opt) throw new Error('option absente : ' + JSON.stringify(v));
-    opt.click();
+    opt.selected = true; opt.parentElement.dispatchEvent(new Event('change', { bubbles: true }));
   }, val);
   const logins = (page) => page.evaluate(() =>
     [...document.querySelectorAll('.side-nav-card[data-tse-global="true"]')]
@@ -3030,7 +3113,7 @@ titre('38. Monde + langue — descendre en langue, pas filtrer un pool');
     const opt = [...document.querySelectorAll('#tse-lang-dd .tse-dd-opt')]
       .find(o => (o.dataset.value || '') === v);
     if (!opt) throw new Error('langue absente : ' + JSON.stringify(v));
-    opt.click();
+    opt.selected = true; opt.parentElement.dispatchEvent(new Event('change', { bubbles: true }));
   }, val);
 
   const page = await fresh();
@@ -3160,7 +3243,7 @@ titre('39. Catégorie + langue — demander, pas filtrer');
     const opt = [...document.querySelectorAll(s + ' .tse-dd-opt')]
       .find(o => (o.dataset.value || '') === v);
     if (!opt) throw new Error('option absente : ' + v);
-    opt.click();
+    opt.selected = true; opt.parentElement.dispatchEvent(new Event('change', { bubbles: true }));
   }, [sel, val]);
 
   const page = await fresh();
@@ -3329,7 +3412,7 @@ titre('40. Top Chaînes — ce qui est demandé s\'affiche, et rien ne déborde'
     const opt = [...document.querySelectorAll('#tse-lang-dd .tse-dd-opt')]
       .find(o => (o.dataset.value || '') === 'Français');
     if (!opt) throw new Error('« Français » absent de la liste des langues');
-    opt.click();
+    opt.selected = true; opt.parentElement.dispatchEvent(new Event('change', { bubbles: true }));
   });
   await wait(page, 2500);
 
@@ -3512,7 +3595,7 @@ titre('41. Cache — le mode global ne doit rien laisser derrière lui');
     const opt = [...document.querySelectorAll('#tse-lang-dd .tse-dd-opt')]
       .find(o => (o.dataset.value || '') === 'Français');
     if (!opt) throw new Error('« Français » absent de la liste des langues');
-    opt.click();
+    opt.selected = true; opt.parentElement.dispatchEvent(new Event('change', { bubbles: true }));
   });
   await wait(page, 2500);
   const cartes = await page.evaluate(() =>
@@ -6339,7 +6422,7 @@ titre('65. Catégories — l\'identité décide, la traduction s\'affiche');
     const o = [...document.querySelectorAll('#tse-cat-dd .tse-dd-opt')]
       .find(x => x.dataset.value === 'Just Chatting');
     if (!o) throw new Error('option « Just Chatting » absente');
-    o.click();
+    o.selected = true; o.parentElement.dispatchEvent(new Event('change', { bubbles: true }));
   });
   await wait(page, 600);
   const visibles = await page.evaluate(() =>
@@ -6348,7 +6431,7 @@ titre('65. Catégories — l\'identité décide, la traduction s\'affiche');
   ok('choisir la catégorie traduite filtre bien sur son identité',
      visibles.length === 1 && visibles[0] === 'alpha', JSON.stringify(visibles));
   await page.evaluate(() => {
-    document.querySelector('#tse-cat-dd .tse-dd-opt[data-value=""]')?.click();
+    ((o) => { if (o) { o.selected = true; o.parentElement.dispatchEvent(new Event('change', { bubbles: true })); } })(document.querySelector('#tse-cat-dd .tse-dd-opt[data-value=""]'));
   });
   await wait(page, 600);
 
@@ -7482,7 +7565,8 @@ titre('70. Panneau — la page rendue, mesurée');
   const place = (s) => page.evaluate((sel) => {
     const e = document.querySelector(sel);
     const r = e.getBoundingClientRect();
-    return { attribut: e.hidden, hauteur: Math.round(r.height) };
+    // Un <dialog> (4.33.0.14) dit « fermé » par `open`, le reste par `hidden`.
+    return { attribut: e.localName === 'dialog' ? !e.open : e.hidden, hauteur: Math.round(r.height) };
   }, s);
 
   const msgAvecTableau = await place('#message');
@@ -7572,6 +7656,21 @@ titre('70. Panneau — la page rendue, mesurée');
   ok('Échap referme la confirmation sans rien effacer',
      fermee.attribut === true && fermee.hauteur === 0, JSON.stringify(fermee));
 
+  /* « ANNULER » EST UNE COMMANDE (4.33.0.14) : command="close", exécutée par
+     le navigateur — plus un écouteur. La boîte est une fenêtre modale, le
+     focus sur « Confirmer ». Mutant — la commande ôtée du bouton : il ne
+     fait plus rien. */
+  await page.evaluate(() => document.getElementById('btn-reset').click());
+  const modale = await page.evaluate(() => ({ modale: document.getElementById('voile').matches(':modal'),
+    focus: document.activeElement?.id, role: document.getElementById('voile').getAttribute('role') }));
+  await page.evaluate(() => document.getElementById('boite-annuler').click());
+  await wait(page, 100);
+  const annulee = await place('#voile');
+  const envoisAnnules = await page.evaluate(() => window.__envois.filter(m => m.action === 'reset').length);
+  ok('« Annuler » referme la confirmation — une fenêtre modale, « Confirmer » au focus — sans rien effacer',
+     modale.modale && modale.focus === 'boite-ok' && modale.role === 'alertdialog'
+     && annulee.attribut === true && envoisAnnules === 0, JSON.stringify({ modale, annulee, envoisAnnules }));
+
   await page.evaluate(() => {
     document.getElementById('btn-reset').click();
     document.getElementById('boite-ok').click();
@@ -7633,7 +7732,7 @@ titre('70. Panneau — la page rendue, mesurée');
     }
     const r = document.getElementById('rapport');
     return {
-      ouverte: !r.hidden && Math.round(r.getBoundingClientRect().height) > 0,
+      ouverte: r.open && r.matches(':modal') && Math.round(r.getBoundingClientRect().height) > 0,
       texte: zone.value,
       titre: document.getElementById('rapport-titre').textContent,
       desc: document.querySelector('.rapport-desc').textContent,
@@ -7874,8 +7973,8 @@ titre('70. Panneau — la page rendue, mesurée');
     };
     document.getElementById('rapport-copier').click();
     for (let i = 0; i < 40 && copie === null; i++) await new Promise(r => setTimeout(r, 50));
-    return { copie, note: document.getElementById('rapport-note').textContent,
-             visible: !document.getElementById('rapport-note').hidden };
+    const n = document.getElementById('rapport-note');
+    return { copie, note: n.textContent, visible: n.getClientRects().length > 0 && n.checkVisibility() };
   });
   ok('« Copier » met le rapport ENTIER dans le presse-papier, et le confirme',
      copie.copie === vue.texte && copie.visible && copie.note.length > 0,
@@ -7903,7 +8002,7 @@ titre('70. Panneau — la page rendue, mesurée');
     document.getElementById('rapport-fermer').click();
     await new Promise(r => setTimeout(r, 50));
     const r = document.getElementById('rapport');
-    return { attribut: r.hidden, hauteur: Math.round(r.getBoundingClientRect().height) };
+    return { attribut: !r.open, hauteur: Math.round(r.getBoundingClientRect().height) };
   });
   ok('« Fermer » rend le panneau, et la vue n\'occupe plus aucune place',
      rapportFerme.attribut === true && rapportFerme.hauteur === 0,
@@ -7963,6 +8062,54 @@ titre('70. Panneau — la page rendue, mesurée');
      /page — jalon \/ marker\s+i18n/.test(sansBoot)
      && /page — readyState\s+loading/.test(sansBoot),
      JSON.stringify((sansBoot.match(/page — jalon.*/) || [])[0]));
+
+
+  /* ── CHAQUE TEXTE DU PANNEAU AU SEUIL AA, DANS LES DEUX THÈMES (4.33.0.14) ──
+     Toutes les vues du rail, le mode d'emploi compris, en clair puis en
+     sombre, par la mesure commune (cf. mesurerContrastes) : les dégradés
+     arrêt par arrêt, les badges translucides sur leur fond composé. Cette
+     mesure a trouvé, en clair, la catégorie de la carte « abonné » du mode
+     d'emploi à 1,18:1, l'étiquette « OK » à 4,48, la palette des badges
+     posée sur un fond plus sombre que celui où le produit les montre (4,13),
+     l'onglet actif de la maquette à 4,48. Mutants — le vert d'avant (#1b6b6b)
+     ; l'or pâle du sombre gardé en clair ; la palette remise sur le creux. */
+  await page.evaluate(() => { const r = document.getElementById('rapport'); if (r?.open) r.close(); });
+  const contrastesPanneau = {};
+  for (const theme of ['light', 'dark']) {
+    await page.evaluate((x) => document.documentElement.setAttribute('data-theme', x), theme);
+    const vues = await page.evaluate(() => [...document.querySelectorAll('.rail-item')].map((b) => b.dataset.id));
+    for (const id of vues) {
+      await page.evaluate((x) => [...document.querySelectorAll('.rail-item')].find((b) => b.dataset.id === x).click(), id);
+      await wait(page, 500);
+      const m = await page.evaluate(mesurerContrastes, { selecteur: 'body *' });
+      contrastesPanneau[theme + ' ' + id] = m;
+    }
+  }
+  const echecsPanneau = Object.entries(contrastesPanneau).flatMap(([k, m]) => m.echecs.map((e) => ({ vue: k, ...e })));
+  const mesuresPanneau = Object.values(contrastesPanneau).reduce((n, m) => n + m.mesures, 0);
+  ok('chaque texte du panneau tient le seuil AA, dans chaque vue et les deux thèmes — dégradés lus arrêt par arrêt',
+     Object.keys(contrastesPanneau).length >= 20 && mesuresPanneau > 500 && echecsPanneau.length === 0,
+     JSON.stringify({ vues: Object.keys(contrastesPanneau).length, mesures: mesuresPanneau, echecs: echecsPanneau.slice(0, 8),
+                      ecartes: Object.values(contrastesPanneau).reduce((o, m) => { for (const [k, v] of Object.entries(m.ecartes)) o[k] = (o[k] || 0) + v; return o; }, {}) }));
+
+
+  /* ── LE TABLEAU, LU PAR UN LECTEUR D'ÉCRAN (4.33.0.14) ────────────────────
+     Sa légende — le titre de la vue —, ses en-têtes de colonne, une zone
+     nommée qui prend le focus pour défiler au clavier. Mutant — la légende
+     vide. (Les réglages, nommés et en « switch », se vérifient au 120, qui
+     sert leurs données.) */
+  await page.evaluate(() => [...document.querySelectorAll('.rail-item')].find((b) => b.dataset.id === 'scores').click());
+  await attendre(page, () => document.querySelectorAll('#tableau th').length > 0, 5000);
+  const tableau = await page.evaluate(() => {
+    const cadre = document.getElementById('tableau-cadre');
+    return { legende: document.querySelector('#tableau caption')?.textContent ?? null, titre: document.getElementById('vue-titre').textContent,
+             portees: [...document.querySelectorAll('#tableau th')].map((th) => th.scope),
+             region: cadre.getAttribute('role'), nom: document.getElementById(cadre.getAttribute('aria-labelledby'))?.textContent ?? null,
+             focus: cadre.tabIndex };
+  });
+  ok('un tableau a sa légende — le titre de la vue —, ses en-têtes de colonne, et sa zone nommée prend le focus',
+     !!tableau.legende && tableau.legende === tableau.titre && tableau.portees.length > 0 && tableau.portees.every((s) => s === 'col')
+     && tableau.region === 'region' && tableau.nom === tableau.titre && tableau.focus === 0, JSON.stringify(tableau));
 
   await page.close();
 }
@@ -9841,7 +9988,7 @@ titre('81. Top Chaînes — le classement par TAG de langue');
     const opt = [...document.querySelectorAll('#tse-lang-dd .tse-dd-opt')]
       .find(o => (o.dataset.value || '') === v);
     if (!opt) throw new Error('langue absente : ' + JSON.stringify(v));
-    opt.click();
+    opt.selected = true; opt.parentElement.dispatchEvent(new Event('change', { bubbles: true }));
   }, val);
   const opsTag = (page) => page.evaluate(() =>
     window.__calls.flatMap(c => c.names || []).filter(n => n === 'TseTagTop').length);
@@ -10225,7 +10372,7 @@ titre('84. Filtres — deux menus indépendants, et des spectateurs plutôt que 
     const opt = [...document.querySelectorAll('#' + id + ' .tse-dd-opt')]
       .find(o => (o.dataset.value || '') === v);
     if (!opt) throw new Error('option absente de #' + id + ' : ' + JSON.stringify(v));
-    opt.click();
+    opt.selected = true; opt.parentElement.dispatchEvent(new Event('change', { bubbles: true }));
   }, [dd, val]);
 
   const page = await fresh();
@@ -10461,8 +10608,8 @@ titre('86. Top Chaînes — le filtre qui ne rend personne le DIT');
   await attendre(page, () => [...document.querySelectorAll('#tse-cat-dd .tse-dd-opt')]
     .some(o => o.dataset.value === 'desert'), 9000);
   await page.evaluate(() => {
-    [...document.querySelectorAll('#tse-cat-dd .tse-dd-opt')]
-      .find(o => o.dataset.value === 'desert').click();
+    ((o) => { if (o) { o.selected = true; o.parentElement.dispatchEvent(new Event('change', { bubbles: true })); } })([...document.querySelectorAll('#tse-cat-dd .tse-dd-opt')]
+      .find((x) => x.dataset.value === 'desert'));
   });
   await attendre(page, () => !!document.getElementById('tse-global-empty'), 9000);
   const m = await message();
@@ -10508,8 +10655,8 @@ titre('86. Top Chaînes — le filtre qui ne rend personne le DIT');
   await attendre(page, () => [...document.querySelectorAll('#tse-cat-dd .tse-dd-opt')]
     .some(o => o.dataset.value === 'empile'), 9000);
   await page.evaluate(() => {
-    [...document.querySelectorAll('#tse-cat-dd .tse-dd-opt')]
-      .find(o => o.dataset.value === 'empile').click();
+    ((o) => { if (o) { o.selected = true; o.parentElement.dispatchEvent(new Event('change', { bubbles: true })); } })([...document.querySelectorAll('#tse-cat-dd .tse-dd-opt')]
+      .find((x) => x.dataset.value === 'empile'));
   });
   await attendre(page, () => window.tse.global.report().portee?.categorie === 'empile', 9000);
   const pEmpile = await portee();
@@ -10525,7 +10672,7 @@ titre('86. Top Chaînes — le filtre qui ne rend personne le DIT');
   await page.evaluate(() => {
     const opt = [...document.querySelectorAll('#tse-cat-dd .tse-dd-opt')]
       .find(o => (o.dataset.value || '') === '');
-    opt.click();
+    opt.selected = true; opt.parentElement.dispatchEvent(new Event('change', { bubbles: true }));
   });
   await attendre(page, () => !document.getElementById('tse-global-empty'), 9000);
   ok('…et il s\'efface dès que la sélection redonne des chaînes',
@@ -10591,7 +10738,7 @@ titre('86bis. Filtres — le tri, la symétrie, et ce qu\'une sélection apprend
     const opt = [...document.querySelectorAll('#' + id + ' .tse-dd-opt')]
       .find(o => (o.dataset.value || '') === v);
     if (!opt) throw new Error('option absente de #' + id + ' : ' + JSON.stringify(v));
-    opt.click();
+    opt.selected = true; opt.parentElement.dispatchEvent(new Event('change', { bubbles: true }));
   }, [dd, val]);
 
   const page = await fresh();
@@ -14263,7 +14410,7 @@ titre('98. Les tags de langue empilés — dix langues n\'en font parler aucune'
     const opt = [...document.querySelectorAll('#tse-lang-dd .tse-dd-opt')]
       .find(o => (o.dataset.value || '') === 'Français');
     if (!opt) throw new Error('langue absente du menu');
-    opt.click();
+    opt.selected = true; opt.parentElement.dispatchEvent(new Event('change', { bubbles: true }));
   });
   await attendre(page,
     () => window.tse.global.top(30).some(r => r.login === 'tagPropre'), 9000);
@@ -17510,7 +17657,7 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
        plus haut aurait fait cliquer sur autre chose, et l'assertion aurait
        échoué en accusant le mauvais coupable. */
     document.querySelector('#reglages [data-grp="panneau"]')
-      .querySelectorAll('.reg-bascule input')[0].click();
+      .querySelectorAll('input.reg-bascule')[0].click();
     return { avant, apres: { items: visible(), titre: titres() } };
   });
   ok('les cinq chapitres de diagnostic sont masqués d\'emblée, titre compris',
@@ -17558,7 +17705,7 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
      10 » coupé, accueil rallumé, ne grise que la langue du Top et ses chaînes
      écartées (4.32.0.4). Mutants — la
      ligne grisée par le seul premier parent de `sous` (la langue du Top reste
-     vive sous « Top 10 » coupé) ; le titre qui nomme l'identifiant au lieu du
+     vive sous « Top 15 » coupé) ; le titre qui nomme l'identifiant au lieu du
      libellé (« accueil »). */
   const grises = () => page.evaluate(() => Object.fromEntries([...document.querySelectorAll('#reglages .reg-ligne--sans-effet')]
     .map((l) => [l.dataset.reg, l.title])));
@@ -17582,9 +17729,9 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
   await page.evaluate(() => document.querySelector('#reglages [data-reg="accueilTop"] input').click());
   await attendre(page, () => document.querySelectorAll('#reglages .reg-ligne--sans-effet').length > 0, 4000);
   const g2 = await grises();
-  ok('« Top 10 » coupé, accueil allumé : seules la langue du Top et ses chaînes écartées se grisent',
-     JSON.stringify(g2) === JSON.stringify({ accueilTopLangue: 'Sans effet tant que « Top 10 » est coupé',
-                                             accueilTopEcartees: 'Sans effet tant que « Top 10 » est coupé' }), JSON.stringify(g2));
+  ok('« Top 15 » coupé, accueil allumé : seules la langue du Top et ses chaînes écartées se grisent',
+     JSON.stringify(g2) === JSON.stringify({ accueilTopLangue: 'Sans effet tant que « Top 15 » est coupé',
+                                             accueilTopEcartees: 'Sans effet tant que « Top 15 » est coupé' }), JSON.stringify(g2));
   await page.evaluate(() => document.querySelector('#reglages [data-reg="accueilTop"] input').click());
   await attendre(page, () => document.querySelectorAll('#reglages .reg-ligne--sans-effet').length === 0, 4000);
 
@@ -17607,7 +17754,7 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
   const l0 = await liste();
   ok('la liste des chaînes écartées : un champ, « Ajouter », aucune puce, la ligne non modifiée',
      l0.champ === '' && l0.actif && l0.bouton === 'Ajouter' && l0.puces.length === 0 && !l0.modifie
-     && l0.nom === 'Chaînes écartées du Top 10', JSON.stringify(l0));
+     && l0.nom === 'Chaînes écartées du Top 15', JSON.stringify(l0));
   /* L'IME (4.33.0.10) : Entrée qui CONFIRME une composition — japonais,
      chinois — n'ajoute rien ; c'est `isComposing` qui le dit (Modern Web
      Guidance, « ime-safe-enter-submit »). Mutant — le test ôté : « kestrel »
@@ -17651,6 +17798,47 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
   const l4 = await liste();
   ok('…vingt au plus : le champ se ferme, et le dit', !l4.actif && JSON.stringify(l4.messages) === '["20 au plus : retirez-en une pour en ajouter une autre."]',
      JSON.stringify({ actif: l4.actif, messages: l4.messages }));
+
+  /* ── LES RÉGLAGES, LUS PAR UN LECTEUR D'ÉCRAN (4.33.0.14) ─────────────────
+     Chaque réglage est nommé par son libellé et décrit par sa phrase ; les
+     interrupteurs sont des « switch », visibles en couleurs forcées.
+     Mutants — le nom ôté d'un interrupteur ; le rôle « switch » ôté ; la
+     règle des couleurs forcées ôtée. */
+  await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'dark'));
+  await page.evaluate(() => document.querySelector('.rail-item[data-id="options"]').click());
+  await attendre(page, () => document.querySelectorAll('#reglages .reg-ligne').length > 10, 4000);
+  const reglages = await page.evaluate(() => {
+    const texte = (ids) => (ids || '').split(/\s+/).filter(Boolean).map((i) => document.getElementById(i)?.textContent.trim() || '').join(' ').trim();
+    const ctrls = [...document.querySelectorAll('.reg-ligne input, .reg-ligne select, .reg-ligne [role="group"]')]
+      .filter((c) => !c.closest('[role="group"]') || c.getAttribute('role') === 'group');
+    return { n: ctrls.length,
+             sansNom: ctrls.filter((c) => !texte(c.getAttribute('aria-labelledby'))).map((c) => c.outerHTML.slice(0, 80)),
+             sansDesc: ctrls.filter((c) => c.hasAttribute('aria-describedby') && !texte(c.getAttribute('aria-describedby'))).length,
+             bascules: document.querySelectorAll('input.reg-bascule').length };
+  });
+  const interrupteurs = await page.getByRole('switch').count();
+  const nommes = await page.evaluate(() => [...document.querySelectorAll('input.reg-bascule')]
+    .every((i) => i.getAttribute('role') === 'switch' || 'switch' in i));
+  ok('chaque réglage est nommé par son libellé, décrit par sa phrase ; les interrupteurs sont des « switch »',
+     reglages.n >= 20 && reglages.sansNom.length === 0 && reglages.sansDesc === 0
+     && reglages.bascules >= 10 && interrupteurs === reglages.bascules && nommes,
+     JSON.stringify({ ...reglages, interrupteurs }));
+  /* En couleurs forcées, le navigateur repeint fonds et cadres aux couleurs
+     du système — et le curseur, un pseudo-élément, prendrait le fond de la
+     piste : invisible. Il doit se distinguer de la piste, et une case cochée
+     d'une case qui ne l'est pas. */
+  await page.emulateMedia({ forcedColors: 'active' });
+  const force = await page.evaluate(() => {
+    const lire = (i) => ({ piste: getComputedStyle(i).backgroundColor, cadre: getComputedStyle(i).borderTopColor,
+                           curseur: getComputedStyle(i, '::after').backgroundColor });
+    const toutes = [...document.querySelectorAll('input.reg-bascule')];
+    const oui = toutes.find((i) => i.checked), non = toutes.find((i) => !i.checked);
+    return { oui: oui && lire(oui), non: non && lire(non) };
+  });
+  await page.emulateMedia({ forcedColors: 'none' });
+  ok('…et en couleurs forcées, le curseur de l\'interrupteur se voit sur sa piste, et coché se distingue de non coché',
+     !!force.oui && !!force.non && force.oui.curseur !== force.oui.piste && force.non.curseur !== force.non.piste
+     && force.oui.piste !== force.non.piste && force.non.cadre !== force.non.piste, JSON.stringify(force));
   await page.close();
 }
 
@@ -17858,8 +18046,8 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
     const st = cadre && getComputedStyle(cadre);
     return { ouvert: !!v, src: f && f.getAttribute('src'),
              largeur: st && st.width, hauteur: st && st.height,
-             role: v && v.getAttribute('role'),
-             modal: v && v.getAttribute('aria-modal'),
+             role: v && v.localName,
+             modal: v && v.matches(':modal'),
              nomme: !!(v && v.getAttribute('aria-label')),
              croix: !!(v && v.querySelector('.tse-incruste-croix')),
              /* Le bac à sable retirerait au cadre son origine d'extension,
@@ -17885,7 +18073,7 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
      /html\[data-vue="incruste"\][\s\S]{0,120}width: 100%; height: 100%/
        .test(readFileSync(join(ICI, '..', 'panneau.css'), 'utf8')));
   ok('…annoncé comme fenêtre modale et nommé, et sans croix',
-     ouvert.role === 'dialog' && ouvert.modal === 'true'
+     ouvert.role === 'dialog' && ouvert.modal === true
      && ouvert.nomme === true && ouvert.croix === false, JSON.stringify(ouvert));
   ok('…et sans bac à sable, qui lui retirerait son origine d\'extension',
      ouvert.bacASable === false, JSON.stringify(ouvert));
@@ -17916,7 +18104,13 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
     const v = document.getElementById('tse-incruste');
     const f = v.querySelector('iframe');
     if (g === 'echap') {
-      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      /* Une VRAIE touche (4.33.0.14) : c'est le navigateur qui ferme un
+         <dialog> sur Échap, et un événement fabriqué ne le fait pas. Le focus
+         est posé sur le dialogue lui-même — dans le cadre, la touche irait au
+         panneau, qui a son propre chemin (« message », plus bas). */
+      v.tabIndex = -1;
+      v.focus();
+      return 'touche';
     } else if (g === 'voile') {
       v.click();
     } else if (g === 'cadre') {
@@ -17945,7 +18139,12 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
     }
     await new Promise((r) => setTimeout(r, 80));
     return !document.getElementById('tse-incruste');
-  }, geste);
+  }, geste).then(async (r) => {
+    if (r !== 'touche') return r;
+    await page.keyboard.press('Escape');
+    await wait(page, 120);
+    return page.evaluate(() => !document.getElementById('tse-incruste'));
+  });
 
   ok('le clic DANS le cadre ne ferme pas', (await sortir('cadre')) === false);
   ok('un message de fermeture venu de la page est ignoré',
@@ -17973,7 +18172,8 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
     for (let i = 0; i < 4; i++) {
       document.getElementById('tse-roue').click();
       await new Promise((r) => setTimeout(r, 40));
-      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      // Fermé comme Échap le ferme : par le <dialog> lui-même, qui prévient (« close »).
+      document.getElementById('tse-incruste')?.close();
       await new Promise((r) => setTimeout(r, 40));
     }
     return { voiles: document.querySelectorAll('.tse-incruste').length,
@@ -18575,7 +18775,7 @@ addEventListener('message', (e) => {
   await page.evaluate(() => {
     const opt = [...document.querySelectorAll('#tse-lang-dd .tse-dd-opt')]
       .find(o => (o.dataset.value || '') === 'Français');
-    if (opt) opt.click();
+    if (opt) { opt.selected = true; opt.parentElement.dispatchEvent(new Event('change', { bubbles: true })); }
   });
   await wait(page, 3500);
 
@@ -20053,7 +20253,7 @@ addEventListener('message', (e) => {
     const opt = [...document.querySelectorAll('#tse-lang-dd .tse-dd-opt')]
       .find((o) => (o.dataset.value || '') === 'Français');
     if (!opt) return false;
-    opt.click();
+    opt.selected = true; opt.parentElement.dispatchEvent(new Event('change', { bubbles: true }));
     return true;
   });
   ok('le menu offre bien la langue, et le clic porte',
@@ -21953,7 +22153,7 @@ async function sousLeVoileDuDemarrage(poser) {
     const opt = [...document.querySelectorAll('#tse-lang-dd .tse-dd-opt')]
       .find((o) => (o.dataset.value || '') === 'Français');
     if (!opt) throw new Error('« Français » absent de la liste des langues');
-    opt.click();
+    opt.selected = true; opt.parentElement.dispatchEvent(new Event('change', { bubbles: true }));
   });
   await attendre(page, () => !!document.querySelector('.tse-lang-mark'), 10_000);
   await wait(page, 800);
@@ -23344,7 +23544,7 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
     const opt = [...document.querySelectorAll('#tse-lang-dd .tse-dd-opt')]
       .find((o) => (o.dataset.value || '') === 'Français');
     if (!opt) throw new Error('« Français » absent de la liste des langues');
-    opt.click();
+    opt.selected = true; opt.parentElement.dispatchEvent(new Event('change', { bubbles: true }));
   });
   await attendre(page, () => !!document.querySelector('.tse-lang-mark'), 10_000);
   await wait(page, 500);
@@ -23597,7 +23797,7 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
     const opt = [...document.querySelectorAll('#tse-cat-dd .tse-dd-opt')]
       .find((o) => (o.dataset.value || '') === 'Rust');
     if (!opt) throw new Error('« Rust » absent de la liste des catégories');
-    opt.click();
+    opt.selected = true; opt.parentElement.dispatchEvent(new Event('change', { bubbles: true }));
   });
   await attendre(page, (n) => (window.tse.panneau.rapport().global.scoped || 0) >= n + 2
     && window.tse.global.top(10).some((r) => r.login === 'voisin1' && r.viewers === 4800), 15_000, avantScope);
@@ -32289,12 +32489,12 @@ const S_LECTEUR_SONDE = () => {
      JSON.stringify({ o1, o2 }));
 
   // ── Un filtre de catégorie masque « Chaînes live » : rien n'y reste ───────
-  await page.evaluate(() => [...document.querySelectorAll('#tse-cat-dd .tse-dd-opt')]
-    .find((x) => x.dataset.value === 'Rust')?.click());
+  await page.evaluate(() => ((o) => { if (o) { o.selected = true; o.parentElement.dispatchEvent(new Event('change', { bubbles: true })); } })([...document.querySelectorAll('#tse-cat-dd .tse-dd-opt')]
+    .find((x) => x.dataset.value === 'Rust')));
   await attendre(page, () => getComputedStyle(document.querySelector('.side-nav-section[aria-label="Chaînes live"]')).display === 'none', 6000);
   await wait(page, 600);
   const f1 = await lire();
-  await page.evaluate(() => document.querySelector('#tse-cat-dd .tse-dd-opt[data-value=""]')?.click());
+  await page.evaluate(() => ((o) => { if (o) { o.selected = true; o.parentElement.dispatchEvent(new Event('change', { bubbles: true })); } })(document.querySelector('#tse-cat-dd .tse-dd-opt[data-value=""]')));
   await wait(page, 600);
   /* Mutant — les sections masquées parcourues : des nœuds et des barres
      seules posés pour des cartes qu'on ne voit pas. */
@@ -33409,7 +33609,7 @@ const S_LECTEUR_SONDE = () => {
     await page.evaluate(() => document.querySelector('#tse-mode-row [data-tse-mode="global"]').click());
     await attendre(page, () => !!document.querySelector('#tse-cat-dd .tse-dd-opt[data-value="SILENT HILL 2"]'), 8000);
     const avant = await page.evaluate(() => window.tse.global.report().homonymes);
-    await page.evaluate(() => document.querySelector('#tse-cat-dd .tse-dd-opt[data-value="SILENT HILL 2"]').click());
+    await page.evaluate(() => ((o) => { if (o) { o.selected = true; o.parentElement.dispatchEvent(new Event('change', { bubbles: true })); } })(document.querySelector('#tse-cat-dd .tse-dd-opt[data-value="SILENT HILL 2"]')));
     await attendre(page, () => (window.tse.global.report().scope || '').startsWith('SILENT HILL 2')
       && window.tse.global.top(30).length > 0, 8000);
     await wait(page, 1500);
@@ -33458,13 +33658,13 @@ const S_LECTEUR_SONDE = () => {
   const choisirLangue = (page, v) => page.evaluate((x) => {
     const opt = [...document.querySelectorAll('#tse-lang-dd .tse-dd-opt')].find((o) => (o.dataset.value || '') === x);
     if (!opt) return false;
-    opt.click();
+    opt.selected = true; opt.parentElement.dispatchEvent(new Event('change', { bubbles: true }));
     return true;
   }, v);
   const menu = (page) => page.evaluate(() => {
     const opts = [...document.querySelectorAll('#tse-lang-dd .tse-dd-opt')];
     return { offertes: opts.map((o) => o.dataset.value).filter(Boolean),
-             choisie: opts.find((o) => o.getAttribute('aria-selected') === 'true')?.dataset.value || '' };
+             choisie: opts.find((o) => o.selected)?.dataset.value || '' };
   });
   const cartes = (page) => page.evaluate(() =>
     [...document.querySelectorAll('.side-nav-card[data-tse-global="true"]')].map((c) => c.dataset.tseLogin));
@@ -34557,7 +34757,7 @@ const S_LECTEUR_SONDE = () => {
     window.__addCard('deux', 'H', '800');
   });
   await attendre(p4, () => !!document.querySelector('#tse-cat-dd .tse-dd-opt[data-value="G"]'), 10_000);
-  await p4.evaluate(() => document.querySelector('#tse-cat-dd .tse-dd-opt[data-value="G"]').click());
+  await p4.evaluate(() => ((o) => { if (o) { o.selected = true; o.parentElement.dispatchEvent(new Event('change', { bubbles: true })); } })(document.querySelector('#tse-cat-dd .tse-dd-opt[data-value="G"]')));
   await wait(p4, 800);
   const section = await p4.evaluate(() => {
     const s = document.querySelector('#cards').closest('.side-nav-section');
@@ -37180,6 +37380,73 @@ addEventListener('message', (e) => {
      sGb.lang === 'en-GB' && sGb.titres[0] === 'Monday 26 October' && sGb.titres[6] === 'Sunday 1 November',
      JSON.stringify(sGb));
   await qGb.close();
+
+  /* ── r) LES SEMAINES D'UN CHANGEMENT D'HEURE, PAR TEMPORAL (4.33.0.14) ───
+     Les bornes d'une semaine, ses jours, la semaine suivante : des jours de
+     calendrier, plus des millisecondes. Deux fuseaux, deux pièges. À Paris,
+     la nuit du 28 au 29 mars 2026 perd une heure : la semaine du lundi 23
+     dure 167 heures, et la suivante commence le lundi 30 à minuit — pas à
+     1 h. À Santiago, le dimanche 6 septembre 2026 n'a pas de minuit : il
+     commence à 1 h, et c'est encore un dimanche. Les instants attendus
+     sont écrits à la main, en UTC, d'après les règles des deux fuseaux.
+     Et une semaine qui commence le DIMANCHE (en-US), à New York, celle où
+     l'heure d'hiver revient : le dimanche 1er novembre 2026 dure 25 heures,
+     et des jours comptés en millisecondes feraient commencer « lundi » le
+     dimanche à 23 h — deux dimanches dans la semaine. Les semaines de
+     Paris et de Santiago commencent le lundi, et ne pouvaient pas le voir.
+     Mutants — la fin de semaine comptée en millisecondes (début + 7 × 24 h) ;
+     les jours de la semaine comptés de même. */
+  const ouvrirFuseau = async (fuseau, instant, loc = 'fr', ui = 'fr') => {
+    const ctx = await browser.newContext({ viewport: { width: 760, height: 580 }, timezoneId: fuseau });
+    const p = await ctx.newPage();
+    p.on('pageerror', (e) => { fail++; console.log('  ✗ ERREUR PAGE:', e.message); });
+    await p.route('https://static-cdn.jtvnw.net/**', (route) => route.fulfill({ contentType: 'image/png', body: PIXEL }));
+    await p.route('http://insecure.example/**', (route) => route.fulfill({ contentType: 'image/png', body: PIXEL }));
+    await p.clock.setFixedTime(new Date(instant));
+    await p.addInitScript(stub, [fiche(loc), ui]);
+    await p.goto(pathToFileURL(join(ICI, '..', 'panneau.html')).href);
+    await attendre(p, () => document.querySelectorAll('.rail-item').length > 0);
+    return { p, ctx };
+  };
+  const semaineIci = async (p, suivante = false) => {
+    if (suivante) {
+      const avant = await p.evaluate(() => window.__envois.length);
+      await p.click(`#agenda button[aria-label="${Tfr('btnWeekNext')}"]`);
+      await attendre(p, (n) => window.__envois.length > n, 5000, avant);
+    } else {
+      await p.click('.rail-item[data-id="semaine"]');
+    }
+    await attendre(p, () => document.querySelectorAll('#agenda .ag-jour').length === 7, 5000);
+    await wait(p, 300);
+    return p.evaluate(() => {
+      const arg = window.__envois.filter((m) => m.section === 'semaine').pop().arg;
+      return { debut: new Date(arg.debut).toISOString(), fin: new Date(arg.fin).toISOString(),
+               titres: [...document.querySelectorAll('#agenda .ag-jour-titre')].map((h) => h.firstChild.textContent) };
+    });
+  };
+  const paris = await ouvrirFuseau('Europe/Paris', '2026-03-25T12:00:00+01:00');
+  const rP1 = await semaineIci(paris.p);
+  const rP2 = await semaineIci(paris.p, true);
+  await paris.ctx.close();
+  ok('r) Paris : la semaine du changement d\'heure va du lundi 23 à minuit au lundi 30 à minuit — 167 heures',
+     rP1.debut === '2026-03-22T23:00:00.000Z' && rP1.fin === '2026-03-29T22:00:00.000Z'
+     && rP1.titres[0] === 'lundi 23 mars' && rP1.titres[6] === 'dimanche 29 mars', JSON.stringify(rP1));
+  ok('r) …et la suivante commence le lundi 30 à minuit, à l\'heure d\'été',
+     rP2.debut === '2026-03-29T22:00:00.000Z' && rP2.fin === '2026-04-05T22:00:00.000Z'
+     && rP2.titres[0] === 'lundi 30 mars' && rP2.titres[6] === 'dimanche 5 avril', JSON.stringify(rP2));
+  const santiago = await ouvrirFuseau('America/Santiago', '2026-09-04T12:00:00-04:00');
+  const rS = await semaineIci(santiago.p);
+  await santiago.ctx.close();
+  ok('r) Santiago : le dimanche sans minuit est un dimanche — la semaine finit le lundi 7 à minuit, heure d\'été',
+     rS.debut === '2026-08-31T04:00:00.000Z' && rS.fin === '2026-09-07T03:00:00.000Z'
+     && rS.titres[5] === 'samedi 5 septembre' && rS.titres[6] === 'dimanche 6 septembre', JSON.stringify(rS));
+  const newYork = await ouvrirFuseau('America/New_York', '2026-11-04T12:00:00-05:00', 'en', 'en');
+  const rN = await semaineIci(newYork.p);
+  await newYork.ctx.close();
+  ok('r) New York, semaine du dimanche : le jour de 25 heures n\'en fait pas deux — dimanche 1er, puis lundi 2, jusqu\'au dimanche 8 à minuit',
+     rN.debut === '2026-11-01T04:00:00.000Z' && rN.fin === '2026-11-08T05:00:00.000Z' && new Set(rN.titres).size === 7
+     && /Sunday/.test(rN.titres[0]) && /November 1\b/.test(rN.titres[0])
+     && /Monday/.test(rN.titres[1]) && /November 2\b/.test(rN.titres[1]) && /Saturday/.test(rN.titres[6]), JSON.stringify(rN));
 }
 
 /* ═════════ LE RELEVÉ DES CHAÎNES SUIVIES (4.25.0.3) ════════════════════════
@@ -38785,7 +39052,7 @@ addEventListener('message', (e) => {
    trouve en ouvrant Twitch.
 
    Les chaînes sont inventées. Les suivies portent `__fx` (la barre les
-   interroge) ; le Top 10 vient de `__tagTop` (la voie du tag de Top
+   interroge) ; le Top 15 vient de `__tagTop` (la voie du tag de Top
    Chaînes) ; les archives du direct en cours, de `__accueilArchives`. */
 const RAYONS_ACCUEIL = [['Chaînes live qui pourraient vous plaire', ['aeltris', 'brenvik', 'xray', 'quebec']],
                         ['Juste à côté', ['lima', 'mike', 'oscar']]];
@@ -38798,9 +39065,15 @@ const SUIVIES_ACCUEIL = {
    dans l'ordre de la page (left-2, left-1, center, right-1, right-2). Aucun
    n'est suivi ; ils sont en direct, comme sur le vrai carrousel. */
 const UNE_ACCUEIL = ['solvane', 'orvik', 'tessaly', 'marbek', 'ilyan'];
-// Le Top 10 : douze chaînes, aucune suivie — leurs compteurs ne bougent donc que par le décor.
+/* Le Top : dix-huit chaînes inventées, aucune suivie — leurs compteurs ne
+   bougent donc que par le décor. Quinze places (4.33.0.13), et trois de plus
+   pour celles qu'un scénario écarte (cf. 227). Leurs audiences (cf.
+   plateauAccueil) : 40 000, puis 3 000 de moins à chaque rang jusqu'à la
+   treizième, 4 000 ; puis 1 300, et 100 de moins à chaque rang, jusqu'à 900.
+   Les douze premières sont celles du Top 10 d'avant, aux mêmes audiences. */
 const TOP_ACCUEIL = ['zephyr', 'aldric', 'mirelle', 'tavor', 'solenne', 'brune',
-                     'ildor', 'quill', 'ombre', 'faelan', 'gaspard', 'hestia'];
+                     'ildor', 'quill', 'ombre', 'faelan', 'gaspard', 'hestia',
+                     'iliane', 'jorvik', 'kaelis', 'lysandre', 'morwen', 'nolwenn'];
 /* LE LECTEUR DU HÉROS (4.26.0.2), servi à la vraie origine player.twitch.tv
    comme celui de l'aperçu (cf. 30) : l'anti-pub et le pont chargés dans
    l'ordre du manifeste, et une vraie vidéo — un canvas capturé — rouge à
@@ -38886,7 +39159,7 @@ const plateauAccueil = (page, { suivies = SUIVIES_ACCUEIL, top = TOP_ACCUEIL, ar
     for (const [l, x] of Object.entries(s)) window.__addCard(l, x.jeu, String(x.v));
     window.__cats = [{ name: 'Just Chatting', viewers: 400000 }, { name: 'VALORANT', viewers: 250000 }];
     window.__tagTop = { 'Français': t.map((l, i) => ({ login: l, nom: l.charAt(0).toUpperCase() + l.slice(1),
-                                                       viewers: 40000 - i * 3000, createdAt: h(30 + i * 7),
+                                                       viewers: Math.max(40000 - i * 3000, 2600 - i * 100), createdAt: h(30 + i * 7),
                                                        game: i % 2 ? 'Just Chatting' : 'VALORANT', tags: ['Français'] })) };
     // Les chaînes des rayons de Twitch sont en direct, comme sur le vrai accueil : l'aperçu a de quoi s'ouvrir.
     for (const [i, l] of ['aeltris', 'brenvik', 'xray', 'quebec'].entries()) {
@@ -38908,7 +39181,7 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
      autres scénarios. Rien ne doit s'y poser ni partir : c'est la garantie
      que les scénarios qui tournent à « / » — la plupart — ne voient pas ce
      module. Mutant — à défaut du défileur, le <body> — : la section se pose
-     en tête du faux Twitch, et le Top 10 part. */
+     en tête du faux Twitch, et le Top 15 part. */
   const nu = await ouvrirAccueil({ decor: false });
   await plateauAccueil(nu);
   await wait(nu, 2500);
@@ -39241,7 +39514,14 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
      à 2560, ce qui s'y pose a des marges, le héros non — et les rayons, eux,
      restent alignés dans la colonne. Mutant — le héros rendu à la section. */
   const pano = await ouvrirAccueil({ decor: { colonneMax: 1800 }, visites: { korbek: [1, 3] }, abos: { korbek: 14 } });
-  await plateauAccueil(pano, { top: ['zephyr', 'aldric', 'korbek', 'mirelle', 'tavor', 'solenne', 'brune', 'ildor', 'quill', 'ombre', 'faelan'] });
+  /* KORBEK À LA PLACE QUE SES SPECTATEURS LUI DONNENT (4.33.0.13). Il était
+     troisième du classement à 34 000, et 2 310 en direct : la lecture en
+     direct, plus fraîche, l'en faisait tomber quelques secondes plus tard —
+     onzième, hors du Top 10 —, et le banc lisait la place dans l'instant
+     d'avant. Ici, treizième à 4 000 dans le classement, et toujours
+     treizième à 2 310 : la place ne dépend plus de qui répond le premier. */
+  await plateauAccueil(pano, { top: ['zephyr', 'aldric', 'mirelle', 'tavor', 'solenne', 'brune', 'ildor', 'quill', 'ombre', 'faelan',
+                                     'gaspard', 'hestia', 'korbek', 'iliane', 'jorvik', 'kaelis'] });
   await attendre(pano, () => !!document.querySelector('#tse-accueil-heros .tse-acc-heros:not([hidden]) .tse-acc-heros-rang:not([hidden])'), 10_000);
   const mesurer = () => pano.evaluate(() => {
     const q = (sel) => document.querySelector('#tse-accueil-heros ' + sel);
@@ -39290,17 +39570,17 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
      && Math.abs(geo2.h - hauteurDue(geo2)) <= 1 && geo2.h > geo.h && geo2.mh === geo2.h && geo2.droite === 0, JSON.stringify(geo2));
   await pano.setViewportSize({ width: 1600, height: 1000 });
   /* CE QUE DIT LA LIGNE DU DESSOUS : la catégorie, l'audience, depuis quand,
-     et la place au Top 10 — que le classement exact de l'accueil donne, ici
-     la troisième. Mutant — la place lue avant que le Top 10 ne soit peint —
+     et la place au Top 15 — que le classement exact de l'accueil donne, ici
+     la treizième. Mutant — la place lue avant que le Top 15 ne soit peint —
      ne change rien qu'on voie : on éprouve la place, pas l'ordre. */
   const ligne = await pano.evaluate(() => ({
     meta: [...document.querySelectorAll('#tse-accueil-heros .tse-acc-heros-meta > span')].map((x) => (x.hidden ? null : x.textContent)),
     l1: [...document.querySelectorAll('#tse-accueil-heros .tse-acc-heros-l1 > span')].map((x) => x.textContent),
     abo: (() => { const a = document.querySelector('#tse-accueil-heros .tse-acc-heros-abo'); return a.hidden ? null : a.textContent; })(),
   }));
-  ok('…la ligne du direct, la catégorie dans la langue de Twitch : « Discussions · 2,3 k spectateurs · en direct depuis 42m · N°3 du Top 10 »',
+  ok('…la ligne du direct, la catégorie dans la langue de Twitch : « Discussions · 2,3 k spectateurs · en direct depuis 42m · N°13 du Top 15 »',
      ligne.meta[0] === 'Discussions' && nz(ligne.meta[1] || '') === '2,3 k spectateurs'
-     && /^en direct depuis 4\dm$/.test(ligne.meta[2] || '') && ligne.meta[3] === 'N°3 du Top 10'
+     && /^en direct depuis 4\dm$/.test(ligne.meta[2] || '') && ligne.meta[3] === 'N°13 du Top 15'
      && JSON.stringify(ligne.l1) === '["Live","Votre chaîne n°1 en direct"]', JSON.stringify(ligne));
   /* L'ANCIENNETÉ D'ABONNEMENT, connue, dans l'or de l'aperçu ; et elle suit
      le réglage du badge d'abonnement. Mutant — la règle CSS du badge
@@ -39760,7 +40040,7 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
 }
 
 {
-  titre('217. « À la une » et le Top 10 — les directs du carrousel, la langue de Twitch, un classement partagé, l\'évolution');
+  titre('217. « À la une » et le Top 15 — les directs du carrousel, la langue de Twitch, un classement partagé, l\'évolution');
   /* a) « À LA UNE » (4.32.0.3) — « retire "Vos chaînes suivies en direct",
      elle est de trop avec la barre sur le côté ; à la place, ajoute les
      streamers du carrousel ». Le faux carrousel pose ses cinq directs dans
@@ -39768,12 +40048,16 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
      solvane, orvik, tessaly, korbek, marbek. Le rayon prend l'ordre du
      carrousel : le centre, ce qui vient à sa droite, puis, en bout de
      boucle, ce qui est à sa gauche. Korbek, la bannière, n'y est pas deux
-     fois. Mutants — l'ordre de la page ; la bannière gardée dans le rayon. */
+     fois — ET SA PLACE N'EST PAS UN TROU (4.33.0.13, « il faut à tout prix un
+     live s'il en manque un et que ce n'est pas symétrique ») : un autre
+     direct la prend, le Top étant coupé ici, la première suivie en direct
+     après lui — nyxaria. Mutants — l'ordre de la page ; la bannière gardée
+     dans le rayon ; la place laissée vide. */
   const page = await ouvrirAccueil({ visites: { korbek: [1, 2, 3] },
                                     decor: { carrouselChaines: ['solvane', 'orvik', 'tessaly', 'korbek', 'marbek'] },
                                     options: { accueilTop: false, accueilDebut: false } });
   await plateauAccueil(page);
-  await attendre(page, () => document.querySelectorAll('#tse-accueil .tse-acc-rayon--une .tse-acc-carte').length === 4
+  await attendre(page, () => document.querySelectorAll('#tse-accueil .tse-acc-rayon--une .tse-acc-carte').length === 5
     && !!document.querySelector('#tse-accueil-heros .tse-acc-heros:not([hidden])'), 6000);
   /* L'ORDRE SE LIT DEPUIS LA CARTE DE TÊTE, vers la droite, en bouclant
      (4.33.0.1) : le ruban tourne pour garder sa carte du centre entourée,
@@ -39795,16 +40079,18 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
              rapport: window.tse.accueil.rapport().une };
   });
   const r1 = await rayon();
-  ok('« À la une » : les directs du carrousel, dans son ordre — le centre, sa droite, puis sa gauche —, sans la chaîne de la bannière',
-     JSON.stringify(r1.ordre) === '["tessaly","marbek","solvane","orvik"]' && r1.heros === 'korbek' && !r1.cache
-     && r1.titre === 'À la une' && r1.rapport.voie === 'places' && r1.rapport.lues === 5 && r1.rapport.montrees === 4, JSON.stringify(r1));
+  ok('« À la une » : les directs du carrousel, dans son ordre — le centre, sa droite, puis sa gauche —, sans la chaîne de la bannière, dont la place est comblée',
+     JSON.stringify(r1.ordre) === '["tessaly","nyxaria","marbek","solvane","orvik"]' && r1.heros === 'korbek' && !r1.cache
+     && r1.titre === 'À la une' && r1.rapport.voie === 'places' && r1.rapport.lues === 5 && r1.rapport.montrees === 5
+     && r1.rapport.trous === 1 && r1.rapport.comblees === 1
+     && JSON.stringify(r1.rapport.raisons) === '{"banniere":1,"horsLigne":0,"sansReponse":0,"pair":0}', JSON.stringify(r1));
   ok('…en tête de nos rayons, à la place de « Vos chaînes suivies en direct », qui n\'est plus',
      r1.premier && r1.suivis === 0, JSON.stringify({ premier: r1.premier, suivis: r1.suivis }));
   ok('…chaque carte dit le nom, le titre, la catégorie, l\'audience et la durée, comme la barre',
      r1.carte && r1.carte.href === '/tessaly' && r1.carte.nom === 'Tessaly' && r1.carte.titre === 'À la une tessaly'
      && r1.carte.jeu === 'Discussions' && nz(r1.carte.spect) === '7,6 k' && r1.carte.duree === '47m' && r1.carte.direct === 'Live',
      JSON.stringify(r1.carte));
-  /* b) CE QU'IL COÛTE : rien qu'une place dans le lot commun. Top 10 et
+  /* b) CE QU'IL COÛTE : rien qu'une place dans le lot commun. Top 15 et
      « Depuis le début » coupés, l'accueil ne demande rien d'autre ; les
      chaînes du carrousel, que la barre ne suit pas, sont entrées dans
      TseChannels. Mutant — une opération à part pour le rayon. */
@@ -39826,11 +40112,17 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
   });
   ok('le rayon se met à jour sans recréer ses cartes', meme.meme && nz(meme.spect) === '1,5 k', JSON.stringify(meme));
   /* UN DIRECT DU CARROUSEL QUI S'ARRÊTE quitte le rayon ; les autres restent,
-     dans leur ordre. Mutant — le cache lu sans regarder s'il y a un direct. */
+     dans leur ordre — et sa place se comble à son tour, de la suivie en
+     direct suivante, velmoria ; nyxaria garde la sienne. Mutants — le cache
+     lu sans regarder s'il y a un direct ; le direct qui comble changé à
+     chaque peinture. */
   await page.evaluate(() => { window.__fx.solvane = null; });
   await attendre(page, () => !document.querySelector('#tse-accueil .tse-acc-rayon--une [data-tse-cle="solvane"]'), 4000);
-  ok('…un direct qui s\'arrête quitte le rayon, les autres gardent leur ordre',
-     JSON.stringify((await rayon()).ordre) === '["tessaly","marbek","orvik"]');
+  await wait(page, 600);
+  const r2 = await rayon();
+  ok('…un direct qui s\'arrête quitte le rayon, les autres gardent leur ordre, et sa place se comble à son tour',
+     JSON.stringify(r2.ordre) === '["tessaly","nyxaria","marbek","velmoria","orvik"]'
+     && JSON.stringify(r2.rapport.raisons) === '{"banniere":1,"horsLigne":1,"sansReponse":0,"pair":0}', JSON.stringify(r2));
   /* c) LE CARROUSEL MONTRÉ, LE RAYON CACHÉ : « Comme Twitch », ce serait deux
      fois les mêmes directs, l'un sous l'autre. « Rien » masque le carrousel :
      le rayon revient — korbek avec lui, puisqu'il n'y a plus de bannière.
@@ -39843,9 +40135,9 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
   ok('« Comme Twitch » : le carrousel est là, le rayon se cache — pas deux fois les mêmes directs', c1.cache && c1.rapport.lues === 0,
      JSON.stringify(c1.rapport));
   await page.evaluate(() => window.tse.options.poser('accueilTete', 'rien'));
-  await attendre(page, () => document.querySelectorAll('#tse-accueil .tse-acc-rayon--une .tse-acc-carte').length === 4, 4000);
-  ok('« Rien » : le carrousel masqué, le rayon revient, la chaîne de la bannière à sa place dans l\'ordre du carrousel',
-     JSON.stringify((await rayon()).ordre) === '["tessaly","korbek","marbek","orvik"]'
+  await attendre(page, () => !!document.querySelector('#tse-accueil .tse-acc-rayon--une .tse-acc-carte[data-tse-cle="korbek"]'), 4000);
+  ok('« Rien » : le carrousel masqué, le rayon revient, la chaîne de la bannière à sa place dans l\'ordre du carrousel, et le direct qui comblait reste à la place de celui qui s\'est arrêté',
+     JSON.stringify((await rayon()).ordre) === '["tessaly","korbek","marbek","nyxaria","orvik"]'
      && await page.evaluate(() => document.getElementById('tse-accueil-heros')?.hidden === true));
   // Rayon coupé : il disparaît, le reste demeure.
   await page.evaluate(() => window.tse.options.poser('accueilUne', false));
@@ -39883,7 +40175,7 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
      JSON.stringify(e1.une));
   await tard.close();
   /* e') EN L'ATTENDANT, SA PLACE : une rangée de cartes vides, à la hauteur
-     des vraies — le Top 10 ne descend pas quand le rayon arrive. Mais pas
+     des vraies — le Top 15 ne descend pas quand le rayon arrive. Mais pas
      indéfiniment : sans carrousel, au bout du délai (quatre secondes au
      banc, huit en vrai), elle s'en va. Mutants — la place jamais gardée ; la
      place gardée sans fin. */
@@ -39906,11 +40198,12 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
   ok('…et sans carrousel, la place s\'en va au bout du délai', fin.cache && fin.r.reserve === false, JSON.stringify(fin));
   await sansCar.close();
 
-  /* f) LE TOP 10 DANS LA LANGUE DE TWITCH : <html lang="fr">, donc le tag
-     « Français », la voie du tag, dix places sur douze, en grands chiffres. */
+  /* f) LE TOP 15 DANS LA LANGUE DE TWITCH : <html lang="fr">, donc le tag
+     « Français », la voie du tag, quinze places sur dix-sept, en grands
+     chiffres. */
   const top = await ouvrirAccueil({ options: { accueilDebut: false, accueilUne: false, accueilTete: 'twitch' } });
   await plateauAccueil(top, { suivies: {} });
-  await attendre(top, () => document.querySelectorAll('#tse-accueil .tse-acc-place').length === 10, 10_000);
+  await attendre(top, () => document.querySelectorAll('#tse-accueil .tse-acc-place').length === 15, 10_000);
   const lireTop = () => top.evaluate(() => {
     const z = document.querySelector('#tse-accueil .tse-acc-rayon--top');
     return { titre: z.querySelector('.tse-acc-titre span').textContent, langue: z.querySelector('.tse-acc-langue').textContent,
@@ -39924,25 +40217,26 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
   });
   const t1 = await lireTop();
   const rt = await rapportAccueil(top);
-  ok('le Top 10 suit la langue de Twitch : « Français », drapeau compris', t1.titre === 'Top 10' && t1.langue === 'Français'
+  ok('le Top 15 suit la langue de Twitch : « Français », drapeau compris', t1.titre === 'Top 15' && t1.langue === 'Français'
      && t1.drapeau && rt.top.langue === 'Français' && rt.top.classement.worldLang === 'Français', JSON.stringify({ t1, lang: rt.top }));
-  ok('…dix places sur douze, dans l\'ordre du classement, numérotées en grand',
-     JSON.stringify(t1.places) === JSON.stringify(TOP_ACCUEIL.slice(0, 10))
-     && t1.rangs.join(',') === '1,2,3,4,5,6,7,8,9,10' && t1.aria === 'Place 1 : Zephyr', JSON.stringify(t1));
+  ok('…quinze places sur dix-sept, dans l\'ordre du classement, numérotées en grand',
+     JSON.stringify(t1.places) === JSON.stringify(TOP_ACCUEIL.slice(0, 15))
+     && t1.rangs.join(',') === '1,2,3,4,5,6,7,8,9,10,11,12,13,14,15' && t1.aria === 'Place 1 : Zephyr', JSON.stringify(t1));
   ok('…servi par son propre classement, par la voie du tag', rt.top.source === 'accueil' && rt.top.classement.tags.servis >= 1,
      JSON.stringify({ source: rt.top.source, tags: rt.top.classement.tags }));
   // Avant deux minutes (1,5 s au banc) : aucune flèche, rien à comparer.
   ok('…et pas encore de flèche : la référence est trop jeune', t1.evol.every((e) => e === null), JSON.stringify(t1.evol));
 
-  /* g) L'ÉVOLUTION : Tavor passe de la 4e à la 2e place, Hestia (12e) entre
-     dans le Top 10, Zephyr ne bouge pas. Mutants — une flèche sur un rang
-     inconnu (Hestia comptée onzième : « ▲ 6 »), le sens inversé. */
+  /* g) L'ÉVOLUTION : Tavor passe de la 4e à la 2e place, Morwen (17e) entre
+     dans le Top 15, Zephyr ne bouge pas. Mutants — une flèche sur un rang
+     inconnu (Morwen comptée seizième : « ▲ 11 »), le sens inversé. */
   await wait(top, 1800);
   await top.evaluate(() => {
     const h = (m) => new Date(Date.now() - m * 60_000).toISOString();
-    const ordre = ['zephyr', 'tavor', 'aldric', 'mirelle', 'hestia', 'solenne', 'brune', 'ildor', 'quill', 'ombre', 'faelan', 'gaspard'];
+    const ordre = ['zephyr', 'tavor', 'aldric', 'mirelle', 'morwen', 'solenne', 'brune', 'ildor', 'quill', 'ombre', 'faelan', 'gaspard',
+                   'hestia', 'iliane', 'jorvik', 'kaelis', 'lysandre'];
     window.__tagTop['Français'] = ordre.map((l, i) => ({ login: l, nom: l.charAt(0).toUpperCase() + l.slice(1),
-                                                       viewers: 40000 - i * 3000, createdAt: h(30 + i * 7),
+                                                       viewers: Math.max(40000 - i * 3000, 2600 - i * 100), createdAt: h(30 + i * 7),
                                                        game: 'VALORANT', tags: ['Français'] }));
   });
   await attendre(top, () => document.querySelector('#tse-accueil .tse-acc-place:nth-child(2)')?.dataset.tseCle === 'tavor'
@@ -39952,15 +40246,15 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
   ok('l\'évolution sur la période : Tavor ▲ 2, Zephyr à sa place', ev('tavor')?.t === '▲ 2' && ev('tavor')?.c === 'hausse'
      && /^2 places gagnées en \d+ min$/.test(ev('tavor')?.titre || '') && ev('zephyr')?.t === '=' && ev('zephyr')?.c === 'stable',
      JSON.stringify({ tavor: ev('tavor'), zephyr: ev('zephyr') }));
-  ok('…Aldric ▼ 1, et Hestia, absente du Top 10, « Nouveau » plutôt qu\'un rang inventé',
-     ev('aldric')?.t === '▼ 1' && ev('aldric')?.c === 'baisse' && ev('hestia')?.t === 'Nouveau' && ev('hestia')?.c === 'nouveau'
-     && /^Hors du Top 10 il y a \d+ min$/.test(ev('hestia')?.titre || ''), JSON.stringify({ aldric: ev('aldric'), hestia: ev('hestia') }));
-  ok('…les cartes ont suivi leur chaîne, et rien n\'a été recréé pour rien', t2.places.length === 10 && t2.places[4] === 'hestia');
+  ok('…Aldric ▼ 1, et Morwen, absente du Top 15, « Nouveau » plutôt qu\'un rang inventé',
+     ev('aldric')?.t === '▼ 1' && ev('aldric')?.c === 'baisse' && ev('morwen')?.t === 'Nouveau' && ev('morwen')?.c === 'nouveau'
+     && /^Hors du Top 15 il y a \d+ min$/.test(ev('morwen')?.titre || ''), JSON.stringify({ aldric: ev('aldric'), morwen: ev('morwen') }));
+  ok('…les cartes ont suivi leur chaîne, et rien n\'a été recréé pour rien', t2.places.length === 15 && t2.places[4] === 'morwen');
   /* « JUSTE À DROITE DU PSEUDO » (4.26.0.2) : l'évolution, et « Nouveau »
      avec elle, était posée sous le chiffre, dans la marge de la carte —
      « mal placée ». Elle partage maintenant la ligne du nom. Mutant —
      l'évolution rendue au pied du chiffre. */
-  const placeEvol = await top.evaluate(() => Object.fromEntries(['tavor', 'hestia'].map((l) => {
+  const placeEvol = await top.evaluate(() => Object.fromEntries(['tavor', 'morwen'].map((l) => {
     const p = document.querySelector(`#tse-accueil .tse-acc-place[data-tse-cle="${l}"]`);
     const e = p.querySelector('.tse-acc-evol'), n = p.querySelector('.tse-acc-nom');
     const re = e.getBoundingClientRect(), rn = n.getBoundingClientRect(), rc = p.querySelector('.tse-acc-carte').getBoundingClientRect();
@@ -39969,7 +40263,7 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
       dedans: re.right <= rc.right + 0.5 }];
   })));
   ok('…l\'évolution et « Nouveau » se lisent juste à droite du nom, sur sa ligne',
-     ['tavor', 'hestia'].every((l) => placeEvol[l].ligne === 'tse-acc-nom-ligne' && placeEvol[l].avant)
+     ['tavor', 'morwen'].every((l) => placeEvol[l].ligne === 'tse-acc-nom-ligne' && placeEvol[l].avant)
      && placeEvol.tavor.vu && placeEvol.tavor.ecart >= 4 && placeEvol.tavor.ecart <= 12 && Math.abs(placeEvol.tavor.dy) <= 2
      && placeEvol.tavor.dedans, JSON.stringify(placeEvol));
 
@@ -39994,7 +40288,7 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
      JSON.stringify({ source: rt3.top.source, avant: marchesAvant, apres: rt3.top.classement.walks }));
   await top.evaluate(() => window.tse.options.poser('accueilTop', false));
   await attendre(top, () => document.querySelector('#tse-accueil .tse-acc-rayon--top')?.hidden, 3000);
-  ok('Top 10 coupé : le rayon disparaît', await top.evaluate(() => document.querySelector('#tse-accueil .tse-acc-rayon--top').hidden
+  ok('Top 15 coupé : le rayon disparaît', await top.evaluate(() => document.querySelector('#tse-accueil .tse-acc-rayon--top').hidden
     || !document.getElementById('tse-accueil') || document.getElementById('tse-accueil').hidden));
   await top.close();
 
@@ -40024,7 +40318,7 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
      /^Classement partiel/.test(p1.note || '') && p1.fleches === 0 && p1.instantanes === 0, JSON.stringify(p1));
   await partiel.evaluate((t) => {
     window.__cats = [{ name: 'Just Chatting', viewers: 900000,
-                       streams: t.map((l, i) => ({ login: l, viewers: 40000 - i * 3000 })) }];
+                       streams: t.map((l, i) => ({ login: l, viewers: Math.max(40000 - i * 3000, 2600 - i * 100) })) }];
   }, TOP_ACCUEIL);
   await attendre(partiel, () => document.querySelector('#tse-accueil .tse-acc-note').hidden, 15_000);
   const p2 = await lirePartiel();
@@ -40043,7 +40337,7 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
      change pas. */
   const rang = await ouvrirAccueil({ options: { accueilDebut: false, accueilUne: false, accueilTete: 'twitch' } });
   await plateauAccueil(rang, { suivies: {} });
-  await attendre(rang, () => document.querySelectorAll('#tse-accueil .tse-acc-place').length === 10
+  await attendre(rang, () => document.querySelectorAll('#tse-accueil .tse-acc-place').length === 15
     && !document.querySelector('#tse-accueil .tse-acc-rayon--top .tse-acc-plus').hidden, 10_000);
   const lireRang = () => rang.evaluate(() => {
     const z = document.querySelector('#tse-accueil .tse-acc-rayon--top');
@@ -40054,7 +40348,7 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
     const vues = places.filter((p) => !p.hidden);
     const b = z.querySelector('.tse-acc-plus');
     const pied = z.querySelector('.tse-acc-pied');
-    return { cols, vues: vues.map((p) => p.dataset.tseCle), cachees: places.filter((p) => p.hidden).length,
+    return { cols, lw: lr.width, vues: vues.map((p) => p.dataset.tseCle), cachees: places.filter((p) => p.hidden).length,
              coupees: vues.filter((p) => { const r = p.getBoundingClientRect(); return r.left < lr.left - 0.5 || r.right > lr.right + 0.5; }).length,
              deborde: liste.scrollWidth > liste.clientWidth + 1,
              lignes: [...new Set(vues.map((p) => Math.round(p.getBoundingClientRect().top)))].length,
@@ -40066,19 +40360,21 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
              chiffres: vues.map((p) => { const c = p.querySelector('.tse-acc-rang').getBoundingClientRect();
                const v = p.querySelector('.tse-acc-vignette').getBoundingClientRect();
                return Math.abs(c.height - v.height) <= 1 && Math.abs(c.bottom - v.bottom) <= 1; }).every(Boolean),
-             double: places[9]?.querySelector('.tse-acc-rang').classList.contains('tse-acc-rang--double'),
+             double: [9, 14].every((i) => places[i]?.querySelector('.tse-acc-rang').classList.contains('tse-acc-rang--double')),
              // Ce que le chiffre dessine au-delà du bord gauche de sa place (px) : rien, ou il mord sur la voisine.
              mord: Math.max(0, ...vues.map((p) => { const rg = document.createRange();
                rg.selectNodeContents(p.querySelector('.tse-acc-rang'));
                return Math.round((p.getBoundingClientRect().left - rg.getBoundingClientRect().left) * 10) / 10; })) };
   });
-  /* CINQ PLACES PAR RANGÉE, À TOUTES LES TAILLES (4.26.0.3) : « la taille
-     de liste de base doit être de 5 » — à 2560, la grille en alignait six.
-     Mutant — la grille rendue à la largeur — : six ou sept à 2560 (cf. plus
-     bas). */
+  /* CINQ PLACES PAR RANGÉE AU PLUS (4.26.0.3) : « la taille de liste de
+     base doit être de 5 » — à 2560, la grille en alignait six ; ET MOINS
+     QUAND LA LARGEUR NE LES TIENT PAS (4.33.0.13, « le top 10 n'est pas
+     responsive ») : la grille des autres rayons, une place de 290 pixels au
+     moins (cf. plus bas). À 1600, cinq. Mutants — six ou sept à 2560 ;
+     cinq à toutes les largeurs (cf. plus bas). */
   const h1 = await lireRang();
-  ok('le Top 10 tient dans la largeur : une rangée de cinq places entières, aucune coupée au bord',
-     h1.cols === 5 && h1.vues.length === 5 && h1.cachees === 5 && h1.coupees === 0
+  ok('le Top 15 tient dans la largeur : une rangée de cinq places entières, aucune coupée au bord',
+     h1.cols === 5 && h1.vues.length === 5 && h1.cachees === 10 && h1.coupees === 0
      && !h1.deborde && h1.lignes === 1 && JSON.stringify(h1.vues) === JSON.stringify(TOP_ACCUEIL.slice(0, 5)), JSON.stringify(h1));
   /* LE PIED DE TWITCH, ET LUI SEUL : pas de filet au-dessus du premier rayon
      (4.26.0.3, « retire-le » — sous le héros, il le coupait de la liste) ;
@@ -40098,20 +40394,23 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
     return c;
   });
   ok('…et le violet des liens de Twitch quand la page le donne', violetTwitch === 'rgb(169, 112, 255)', violetTwitch);
-  ok('…et chaque chiffre a la hauteur de sa vignette, « 10 » resserré', h1.chiffres && h1.double, JSON.stringify(h1));
+  ok('…et chaque chiffre a la hauteur de sa vignette, « 10 » à « 15 » resserrés', h1.chiffres && h1.double, JSON.stringify(h1));
   await rang.evaluate(() => document.querySelector('#tse-accueil .tse-acc-rayon--top .tse-acc-plus').click());
   const h2 = await lireRang();
-  ok('« Afficher tout » : les dix places, en rangées sous la première, et « Afficher moins »',
-     h2.vues.length === 10 && h2.cachees === 0 && h2.coupees === 0 && h2.lignes === Math.ceil(10 / h2.cols)
+  ok('« Afficher tout » : les quinze places, en rangées sous la première, et « Afficher moins »',
+     h2.vues.length === 15 && h2.cachees === 0 && h2.coupees === 0 && h2.lignes === Math.ceil(15 / h2.cols)
      && h2.bouton?.texte === 'Afficher moins' && h2.bouton?.ouvert === 'true', JSON.stringify(h2));
   await wait(rang, 600);   // plusieurs peintures : le rayon reste déplié
-  ok('…et le rayon reste déplié d\'une peinture à l\'autre', (await lireRang()).vues.length === 10);
+  ok('…et le rayon reste déplié d\'une peinture à l\'autre', (await lireRang()).vues.length === 15);
   await rang.evaluate(() => document.querySelector('#tse-accueil .tse-acc-rayon--top .tse-acc-plus').click());
   const h3 = await lireRang();
   ok('« Afficher moins » : de nouveau une rangée', h3.vues.length === h3.cols && h3.bouton?.texte === 'Afficher tout',
      JSON.stringify(h3));
-  /* LA LARGEUR CHANGE, LA RANGÉE RESTE À CINQ : à 1100 comme à 2560 px,
-     cinq places entières, le chiffre toujours à la hauteur de sa vignette. */
+  /* LA LARGEUR CHANGE, LA RANGÉE AUSSI (4.33.0.13) : à 2560 px, cinq places ;
+     à 1100, ce qu'en tient la liste — des places de 290 pixels au moins,
+     quatorze d'écart, comme les autres rayons —, entières, le chiffre
+     toujours à la hauteur de sa vignette. La rangée de cinq à toutes les
+     largeurs, c'était des places de 179 pixels à 1 024, et des noms coupés. */
   const largeurTop = () => rang.evaluate(() => Math.round(document.querySelector('#tse-accueil .tse-acc-rayon--top .tse-acc-liste').getBoundingClientRect().width));
   const l1 = await largeurTop();
   await rang.setViewportSize({ width: 1100, height: 900 });
@@ -40130,15 +40429,17 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
   await attendre(rang, (l) => Math.round(document.querySelector('#tse-accueil .tse-acc-rayon--top .tse-acc-liste').getBoundingClientRect().width) > l + 600, 4000, l1);
   await wait(rang, 300);
   const h5 = await deuxEtats();
-  /* « 10 » RESSERRÉ, À TOUTES LES TAILLES : deux chiffres à la hauteur de la
-     vignette dépasseraient la place par la gauche et mordraient sur la
-     voisine. Mutant — « 10 » à la taille d'un chiffre seul. */
-  ok('à 1100 comme à 2560 px, toujours cinq places par rangée, entières, le chiffre à la hauteur de sa vignette, sans mordre sur la voisine',
-     [h4.replie, h5.replie].every((h) => h.cols === 5 && h.vues.length === 5 && h.coupees === 0 && !h.deborde && h.chiffres)
-     && [h2, h4.deplie, h5.deplie].every((h) => h.cols === 5 && h.vues.length === 10 && h.lignes === 2 && h.coupees === 0
+  /* « 10 » À « 15 » RESSERRÉS, À TOUTES LES TAILLES : deux chiffres à la
+     hauteur de la vignette dépasseraient la place par la gauche et
+     mordraient sur la voisine. Mutant — deux chiffres à la taille d'un seul. */
+  const voulues = (lw) => Math.min(5, Math.max(1, Math.floor((lw + 14) / (290 + 14))));
+  ok('à 1100 px, les places que la largeur tient, à 2560 cinq ; entières, le chiffre à la hauteur de sa vignette, sans mordre sur la voisine',
+     h4.replie.cols === voulues(h4.replie.lw) && h4.replie.cols < 5 && h5.replie.cols === 5
+     && [h4.replie, h5.replie].every((h) => h.vues.length === h.cols && h.coupees === 0 && !h.deborde && h.chiffres)
+     && [h2, h4.deplie, h5.deplie].every((h) => h.vues.length === 15 && h.lignes === Math.ceil(15 / h.cols) && h.coupees === 0
        && h.chiffres && h.mord === 0),
-     JSON.stringify({ h2: [h2.mord], h4: [h4.replie.cols, h4.replie.vues.length, h4.replie.coupees, h4.replie.chiffres, h4.deplie.lignes, h4.deplie.mord],
-                      h5: [h5.replie.cols, h5.replie.vues.length, h5.replie.coupees, h5.replie.chiffres, h5.deplie.lignes, h5.deplie.mord] }));
+     JSON.stringify({ h2: [h2.mord], h4: [h4.replie.lw, h4.replie.cols, h4.replie.vues.length, h4.replie.coupees, h4.replie.chiffres, h4.deplie.lignes, h4.deplie.mord],
+                      h5: [h5.replie.lw, h5.replie.cols, h5.replie.vues.length, h5.replie.coupees, h5.replie.chiffres, h5.deplie.lignes, h5.deplie.mord] }));
   await rang.close();
 
   /* l) « À LA UNE » EN RUBAN (4.32.0.4, cf. 229) : ses cinq directs sur une
@@ -40150,7 +40451,7 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
   await plateauAccueil(ray);
   await ray.setViewportSize({ width: 1200, height: 900 });
   await attendre(ray, () => document.querySelectorAll('#tse-accueil .tse-acc-rayon--une .tse-acc-carte').length === 5
-    && document.querySelectorAll('#tse-accueil .tse-acc-place').length === 10, 10_000);
+    && document.querySelectorAll('#tse-accueil .tse-acc-place').length === 15, 10_000);
   await wait(ray, 400);
   const u1 = await ray.evaluate(() => {
     const z = document.querySelector('#tse-accueil .tse-acc-rayon--une'), t = document.querySelector('#tse-accueil .tse-acc-rayon--top');
@@ -40236,7 +40537,7 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
   /* DE FOND (4.33.0.10) : « Depuis le début » est un complément que rien
      n'attend à l'écran — ses demandes et ses jetons partent en priorité
      basse (Modern Web Guidance, « deprioritize-background-fetches ») ; le
-     Top 10 de la même page, non. Mutant — `{ fond: true }` ôté. */
+     Top 15 de la même page, non. Mutant — `{ fond: true }` ôté. */
   const prios218 = await page.evaluate(() => {
     const de = (re) => window.__calls.filter((c) => c.names.some((n) => re.test(n))).map((c) => c.prio);
     return { debut: de(/^TseAccueilDebut$/), acces: de(/^TseAccueilAcces$/), cartes: de(/^TseChannels$/) };
@@ -40258,7 +40559,7 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
      hauteurs.nyxaria === hauteurs.velmoria && hauteurs.nyxaria > 0, JSON.stringify(hauteurs));
   /* LA MÉMOIRE SE VIDE DE CE QUI N'EST PLUS À L'ÉCRAN (4.26.0.5). Une réponse
      par direct affiché, gardée pour ne pas la redemander — mais rien n'en
-     sortait, et le Top 10 change toute la journée. Velmoria s'arrête : sa
+     sortait, et le Top 15 change toute la journée. Velmoria s'arrête : sa
      réponse s'oublie une demi-heure plus tard (trois secondes au banc).
      Mutant — rien n'est oublié. */
   const connus0 = (await rapportAccueil(page)).debut.connus;
@@ -40299,22 +40600,22 @@ const opsAccueil = (page, motif) => page.evaluate((m) => window.__calls.filter((
      JSON.stringify(ba));
   await abo.close();
 
-  /* PAR LOTS DE QUINZE : seize directs à l'écran — la bannière, les cinq à
-     la une, les dix du Top 10 —, et le faux Twitch refuse tout envoi de plus
-     de quinze alias, comme le vrai. Mutant — le lot à vingt-cinq — : tout est
-     refusé, aucun bouton. */
+  /* PAR LOTS DE QUINZE : vingt et un directs à l'écran — la bannière, les
+     cinq à la une, les quinze du Top 15 —, et le faux Twitch refuse tout
+     envoi de plus de quinze alias, comme le vrai. Mutant — le lot à
+     vingt-cinq — : tout est refusé, aucun bouton. */
   const seize = ['korbek', ...UNE_ACCUEIL, ...TOP_ACCUEIL];
   const lots = await ouvrirAccueil({ visites: { korbek: [1] }, options: { accueilDebut: false } });
   await plateauAccueil(lots, { archives: Object.fromEntries(seize.map((l, i) => [l, { id: String(500 + i) }])) });
   // Les seize à l'écran d'abord, « Depuis le début » ensuite : ils sont demandés à la même peinture.
   await attendre(lots, () => document.querySelectorAll('#tse-accueil .tse-acc-rayon--une .tse-acc-carte').length === 5
-    && document.querySelectorAll('#tse-accueil .tse-acc-place:not(.tse-acc-place--attente)').length === 10, 10_000);
+    && document.querySelectorAll('#tse-accueil .tse-acc-place:not(.tse-acc-place--attente)').length === 15, 10_000);
   await lots.evaluate(() => window.tse.options.poser('accueilDebut', true));
   const BOUTONS_VUS = '#tse-accueil .tse-acc-debut:not([hidden]):not([data-tse-reserve]), #tse-accueil-heros .tse-acc-debut:not([hidden]):not([data-tse-reserve])';
-  await attendre(lots, (sel) => document.querySelectorAll(sel).length === 16, 10_000, BOUTONS_VUS);
+  await attendre(lots, (sel) => document.querySelectorAll(sel).length === 21, 10_000, BOUTONS_VUS);
   const dl = await lots.evaluate(() => window.__accueilDemandes || []);
-  ok('seize directs : deux envois de quinze au plus, chacun demandé une fois', dl.length === 2 && dl.every((d) => d.length <= 15)
-     && new Set(dl.flat()).size === 16 && dl.flat().length === 16, JSON.stringify(dl.map((d) => d.length)));
+  ok('vingt et un directs : deux envois de quinze au plus, chacun demandé une fois', dl.length === 2 && dl.every((d) => d.length <= 15)
+     && new Set(dl.flat()).size === 21 && dl.flat().length === 21, JSON.stringify(dl.map((d) => d.length)));
   await lots.close();
 
   /* TROIS REFUS DE FORME, ET LA VOIE SE TAIT POUR LA SESSION — une pause
@@ -40481,7 +40782,7 @@ async function ouvrirDemblee({ decor = {}, visites = { korbek: [1, 3] }, suivies
     depart: {
       __fx: fx, __retardOp: retard,
       __tagTop: { 'Français': top.map((l, i) => ({ login: l, nom: l.charAt(0).toUpperCase() + l.slice(1),
-        viewers: 40000 - i * 3000, createdAt: h(30 + i * 7), game: i % 2 ? 'Just Chatting' : 'VALORANT', tags: ['Français'] })) },
+        viewers: Math.max(40000 - i * 3000, 2600 - i * 100), createdAt: h(30 + i * 7), game: i % 2 ? 'Just Chatting' : 'VALORANT', tags: ['Français'] })) },
       __cats: [{ name: 'Just Chatting', viewers: 400000 }, { name: 'VALORANT', viewers: 250000 }],
     },
   };
@@ -40618,9 +40919,9 @@ const lireImages = (page) => page.evaluate(() => {
      apres.remplace && apres.parDonnees >= 1, JSON.stringify(apres));
   await c.close();
 
-  /* d) LE TOP 10 EN ATTENTE DE SON CLASSEMENT : ses cinq premières places,
+  /* d) LE TOP 15 EN ATTENTE DE SON CLASSEMENT : ses cinq premières places,
      vides, à leur taille exacte. Les places arrivent sans que le rayon change
-     de hauteur — le bouton « Afficher tout » compris, que dix places pour
+     de hauteur — le bouton « Afficher tout » compris, que quinze places pour
      cinq colonnes font paraître —, et les rayons de Twitch, dessous, ne
      bougent pas. Avec « Depuis le début », qui garde sa place. Mutants — pas
      de places en attente ; le pied sans sa hauteur. */
@@ -40629,7 +40930,7 @@ const lireImages = (page) => page.evaluate(() => {
   await attendre(d, () => window.__images.some((x) => x.places >= 5), 12_000);
   await wait(d, 1500);
   const id = await lireImages(d);
-  ok('le Top 10 en attente : cinq places vides, puis les vraies, et le rayon garde sa hauteur au pixel',
+  ok('le Top 15 en attente : cinq places vides, puis les vraies, et le rayon garde sa hauteur au pixel',
      id.attente > 5 && id.places >= 5 && id.hauteursTop.length === 1 && id.decalage !== null && id.decalage < 0.005,
      JSON.stringify({ attente: id.attente, places: id.places, h: id.hauteursTop, d: id.decalage, s: id.sources }));
   await d.close();
@@ -41158,9 +41459,9 @@ const lireImages = (page) => page.evaluate(() => {
                  ne dit quand il était là avant — pas de « De retour » ;
        mica    — son direct d'avant a fini il y a trois jours : pas assez.
      Nos cartes (4.32.0.3) : les huit premières à la une — le carrousel les
-     porte —, ilot, lys et mica au Top 10, septième, huitième et neuvième :
+     porte —, ilot, lys et mica au Top 15, septième, huitième et neuvième :
      leur audience, que TseChannels verse au classement, les y tient.
-     Les rayons de Twitch : aeltris est troisième du Top 10, xray et quebec
+     Les rayons de Twitch : aeltris est troisième du Top 15, xray et quebec
      viennent de commencer — sur quebec, une autre extension a déjà posé son
      badge en bas à droite —, brenvik n'a rien, et zulu, tout en bas, n'est
      jamais à l'écran. */
@@ -41205,7 +41506,7 @@ const lireImages = (page) => page.evaluate(() => {
       { id: '7008', login: 'houle', viewers: 2000, combined: 2600 },
       { id: '7010', login: 'iode', viewers: 400, combined: 2600 },
       { id: '7011', login: 'jais', viewers: 200, combined: 2600 }] } };
-    /* aeltris, troisième du Top 10 : sa carte de Twitch dit la même audience
+    /* aeltris, troisième du Top 15 : sa carte de Twitch dit la même audience
        que le classement — le lot commun la lui verse (cf. flushQueue). */
     window.__fx.aeltris = { ...window.__fx.aeltris, viewers: 34000 };
     window.__fx.xray = { ...window.__fx.xray, createdAt: iso(now - 2 * M) };
@@ -41349,8 +41650,8 @@ const lireImages = (page) => page.evaluate(() => {
      JSON.stringify({ eole: e3.nos.eole, fjord: e3.nos.fjord, gale: e3.nos.gale }));
 
   /* d) LES CARTES DE TWITCH. Une chaîne qu'on ne suit pas est demandée, et
-     seulement si sa carte est à l'écran. La place au Top 10 s'écrit sur la
-     carte de Twitch, pas sur celle du Top 10 lui-même. */
+     seulement si sa carte est à l'écran. La place au Top 15 s'écrit sur la
+     carte de Twitch, pas sur celle du Top 15 lui-même. */
   const e4 = await lireEtiq(pe);
   ok('d) sur les cartes de Twitch : « Vient de commencer » pour une chaîne qu\'on ne suit pas, « N°3 en français », rien pour une carte sans fait',
      e4.twitch.xray.texte === 'Vient de commencer' && e4.twitch.aeltris.texte === 'N°3 en français' && e4.twitch.brenvik.texte === null
@@ -41891,7 +42192,7 @@ const lireImages = (page) => page.evaluate(() => {
      && JSON.stringify(v[1].cartes) === '["mousse","ortie"]', JSON.stringify(v[1]));
   ok('…et pas plus de deux rayons : renard, troisième, n\'est pas demandé',
      v.length === 2 && v.filter((x) => x.montre).length === 2, JSON.stringify(v.map((x) => x.graine)));
-  ok('…juste après le Top 10, avant « Vos rendez-vous »',
+  ok('…juste après le Top 15, avant « Vos rendez-vous »',
      JSON.stringify(ordre.slice(ordre.indexOf('top'), ordre.indexOf('top') + 4)) === '["top","pourquoi-0","pourquoi-1","rdv"]', JSON.stringify(ordre));
   const c1 = await appels(page);
   await page.evaluate(() => { document.dispatchEvent(new Event('visibilitychange')); });
@@ -42086,13 +42387,13 @@ const lireImages = (page) => page.evaluate(() => {
 }
 
 {
-  titre('227. Les chaînes écartées du Top 10 — une liste de pseudos dans les Réglages, toutes langues, la dixième place prouvée, d\'un onglet à l\'autre');
+  titre('227. Les chaînes écartées du Top 15 — une liste de pseudos dans les Réglages, toutes langues, la quinzième place prouvée, d\'un onglet à l\'autre');
   /* « POUR LE "ÉCARTER", RETIRE-LE ; METS-LE DANS LES OPTIONS, ON MET LE
      PSEUDO DU STREAMER. SI PLUSIEURS, IL EST AJOUTÉ À LA LISTE. ET LES PSEUDOS
-     DE CETTE LISTE SONT ÉCARTÉS DU TOP 10. » (4.32.0.4) — le bouton de la
+     DE CETTE LISTE SONT ÉCARTÉS DU TOP 10. » (4.32.0.4) — du Top 15 depuis la 4.33.0.13 — le bouton de la
      4.32.0.3 s'en va, la liste est un réglage, `accueilTopEcartees`. Tavor et
      Brune, quatrième et sixième, en font office. */
-  const PLACES = (sans) => TOP_ACCUEIL.filter((l) => !sans.includes(l)).slice(0, 10);
+  const PLACES = (sans) => TOP_ACCUEIL.filter((l) => !sans.includes(l)).slice(0, 15);
   /* SANS RÉGLAGES POSÉS PAR L'AMORCE : elle les réécrit dans chaque document
      de l'origine — un cadre de twitch.tv chargé plus tard aussi —, et c'est
      un « storage » pour la page : la liste migrée y était effacée par le
@@ -42105,7 +42406,7 @@ const lireImages = (page) => page.evaluate(() => {
   await page.reload();
   await page.evaluate(() => { window.tse.options.poser('accueilDebut', false); window.tse.options.poser('accueilUne', false); });
   await plateauAccueil(page);
-  await attendre(page, () => document.querySelectorAll('#tse-accueil .tse-acc-place:not(.tse-acc-place--attente)').length === 10, 10_000);
+  await attendre(page, () => document.querySelectorAll('#tse-accueil .tse-acc-place:not(.tse-acc-place--attente)').length === 15, 10_000);
   const lire = () => page.evaluate(() => {
     const z = document.querySelector('#tse-accueil .tse-acc-rayon--top');
     const r = window.tse.accueil.rapport().top;
@@ -42119,64 +42420,64 @@ const lireImages = (page) => page.evaluate(() => {
   const a1 = await lire();
   ok('a) la liste de la 4.32.0.3 passe au réglage, une fois, toutes langues réunies ; un login mal formé ignoré ; l\'ancienne clé s\'en va',
      JSON.stringify(a1.liste) === '["tavor","brune"]' && a1.ancienne === null, JSON.stringify(a1));
-  /* b) ÉCARTÉES DU TOP 10, AVANT LES PLACES : dix places, la onzième et la
-     douzième montent ; plus de bouton sur les places, plus de ligne sous le
-     Top 10. Le rapport compte, sans nommer. Mutants — le filtre posé après
-     les places (huit places) ; le bouton gardé. */
-  ok('b) écartées du Top 10 : toujours dix places, les suivantes montent ; ni bouton sur les places, ni ligne dessous ; le rapport compte sans nommer',
+  /* b) ÉCARTÉES DU TOP 15, AVANT LES PLACES : quinze places, la seizième et
+     la dix-septième montent ; plus de bouton sur les places, plus de ligne
+     sous le Top 15. Le rapport compte, sans nommer. Mutants — le filtre posé
+     après les places (treize places) ; le bouton gardé. */
+  ok('b) écartées du Top 15 : toujours quinze places, les suivantes montent ; ni bouton sur les places, ni ligne dessous ; le rapport compte sans nommer',
      JSON.stringify(a1.places) === JSON.stringify(PLACES(['tavor', 'brune'])) && a1.boutons === 0 && !a1.ligne
      && a1.rapport.ecartees === 2 && a1.rapport.retirees === 2 && !JSON.stringify(a1.rapport).includes('tavor'),
      JSON.stringify(a1));
-  /* c) LA DIXIÈME PLACE EST PROUVÉE comme les autres : le classement en
-     demande deux de plus, et sa preuve les couvre — le Top 10 ne se dit pas
+  /* c) LA QUINZIÈME PLACE EST PROUVÉE comme les autres : le classement en
+     demande deux de plus, et sa preuve les couvre — le Top 15 ne se dit pas
      partiel. En toutes langues aussi : la liste n'a pas de langue. Mutants —
-     le classement qui n'en demande que dix (« partiel ») ; la liste tenue
-     pour la seule langue de Twitch. */
-  ok('c) la dixième place prouvée : la preuve couvre douze chaînes au moins, et le Top 10 ne se dit pas partiel',
-     a1.rapport.prouve >= 12 && a1.note === null && a1.rapport.source === 'accueil', JSON.stringify(a1.rapport));
+     le classement qui n'en demande que quinze (« partiel ») ; la liste
+     tenue pour la seule langue de Twitch. */
+  ok('c) la quinzième place prouvée : la preuve couvre dix-sept chaînes au moins, et le Top 15 ne se dit pas partiel',
+     a1.rapport.prouve >= 17 && a1.note === null && a1.rapport.source === 'accueil', JSON.stringify(a1.rapport));
   await page.evaluate((t) => {
-    window.__cats = [{ name: 'Just Chatting', viewers: 900000, streams: t.map((l, i) => ({ login: l, viewers: 40000 - i * 3000 })) }];
+    window.__cats = [{ name: 'Just Chatting', viewers: 900000, streams: t.map((l, i) => ({ login: l, viewers: Math.max(40000 - i * 3000, 2600 - i * 100) })) }];
     window.tse.options.poser('accueilTopLangue', 'toutes');
   }, TOP_ACCUEIL);
   await attendre(page, () => window.tse.accueil.rapport().top.langue === 'toutes'
-    && document.querySelectorAll('#tse-accueil .tse-acc-place:not(.tse-acc-place--attente)').length === 10
-    && window.tse.accueil.rapport().top.classement.prouve >= 12
+    && document.querySelectorAll('#tse-accueil .tse-acc-place:not(.tse-acc-place--attente)').length === 15
+    && window.tse.accueil.rapport().top.classement.prouve >= 17
     && document.querySelector('#tse-accueil .tse-acc-rayon--top .tse-acc-note').hidden, 12_000);
   const c1 = await lire();
   ok('…en toutes langues aussi : la liste n\'a pas de langue, et la preuve suit',
      JSON.stringify(c1.places) === JSON.stringify(PLACES(['tavor', 'brune'])) && c1.note === null, JSON.stringify(c1));
   /* d) UNE CHAÎNE DE PLUS, ET LA PREUVE SE REFAIT AUSSITÔT — sans attendre
-     la marche suivante (deux minutes et demie en vrai) : la treizième
+     la marche suivante (deux minutes et demie en vrai) : la dix-huitième
      chaîne n'était pas prouvée. Mutant — la marche attendue (la preuve reste
-     à douze jusqu'à la marche suivante). D'abord, l'évolution a de quoi se
+     à dix-sept jusqu'à la marche suivante). D'abord, l'évolution a de quoi se
      dire (1,5 s au banc) : tout est stable.
      « Sans attendre » se MESURE : le banc mène la marche complète toutes les
      3 s (GLOBAL_FULL_WALK_MS, tests/build.mjs), assez vite pour qu'une
      attente de quelques secondes ne distingue rien. La liste est donc posée
-     juste après une marche (`walkAge`), et la preuve doit couvrir treize
+     juste après une marche (`walkAge`), et la preuve doit couvrir dix-huit
      chaînes AVANT que la suivante soit due : âge de la marche au moment de
      poser + délai < 3 s. Le mutant ne peut relancer qu'à 3 s révolues. */
   await wait(page, 2500);
   const d0 = await lire();
   await attendre(page, () => {
     const c = window.tse.accueil.rapport().top.classement;
-    return c.walkAge !== null && c.walkAge < 400 && c.prouve >= 12;
+    return c.walkAge !== null && c.walkAge < 400 && c.prouve >= 17;
   }, 8_000);
   const dT = await page.evaluate(async () => {
     const age0 = window.tse.accueil.rapport().top.classement.walkAge;
     const t0 = performance.now();
     window.tse.options.poser('accueilTopEcartees', ['tavor', 'brune', 'aldric']);
-    while (window.tse.accueil.rapport().top.classement.prouve < 13 && performance.now() - t0 < 8000) {
+    while (window.tse.accueil.rapport().top.classement.prouve < 18 && performance.now() - t0 < 8000) {
       await new Promise((r) => setTimeout(r, 20));
     }
     return { age0, delai: Math.round(performance.now() - t0) };
   });
-  await attendre(page, () => window.tse.accueil.rapport().top.classement.prouve >= 13
+  await attendre(page, () => window.tse.accueil.rapport().top.classement.prouve >= 18
     && !document.querySelector('#tse-accueil .tse-acc-place[data-tse-cle="aldric"]')
     && document.querySelector('#tse-accueil .tse-acc-rayon--top .tse-acc-note').hidden, 8_000);
   const d1 = await lire();
-  ok('d) une chaîne de plus : elle quitte le Top 10 aussitôt, et la preuve se refait sans attendre la marche suivante',
-     JSON.stringify(d1.places) === JSON.stringify(PLACES(['tavor', 'brune', 'aldric'])) && d1.rapport.prouve >= 13 && d1.note === null
+  ok('d) une chaîne de plus : elle quitte le Top 15 aussitôt, et la preuve se refait sans attendre la marche suivante',
+     JSON.stringify(d1.places) === JSON.stringify(PLACES(['tavor', 'brune', 'aldric'])) && d1.rapport.prouve >= 18 && d1.note === null
      && dT.age0 + dT.delai < 3000,
      JSON.stringify({ ...d1, temps: dT }));
   /* …ET PERSONNE N'A « GAGNÉ UNE PLACE » : celles d'en dessous sont montées
@@ -42191,15 +42492,15 @@ const lireImages = (page) => page.evaluate(() => {
      JSON.stringify({ avant: d0.evol, apres: d2.evol }));
   await page.evaluate(() => window.tse.options.poser('accueilTopLangue', 'interface'));
   await attendre(page, () => window.tse.accueil.rapport().top.langue !== 'toutes'
-    && document.querySelectorAll('#tse-accueil .tse-acc-place:not(.tse-acc-place--attente)').length === 10, 8_000);
+    && document.querySelectorAll('#tse-accueil .tse-acc-place:not(.tse-acc-place--attente)').length === 15, 8_000);
   /* e) TOP CHAÎNES, DANS LA BARRE, N'EN SAIT RIEN : la liste vaut pour le Top
-     10 de l'accueil. Et l'accueil qui lit le classement de la barre — même
+     15 de l'accueil. Et l'accueil qui lit le classement de la barre — même
      langue, trente places — en écarte toujours les siennes. Mutants — la
      barre filtrée elle aussi ; l'accueil qui lit la barre sans sa liste. */
   await page.evaluate(() => document.querySelector('#tse-mode-row [data-tse-mode="global"]').click());
   await attendre(page, () => document.querySelectorAll('.side-nav-card[data-tse-global="true"]').length > 0, 10_000);
   await attendre(page, () => [...document.querySelectorAll('#tse-lang-dd .tse-dd-opt')].some((o) => o.dataset.value === 'Français'), 10_000);
-  await page.evaluate(() => [...document.querySelectorAll('#tse-lang-dd .tse-dd-opt')].find((o) => o.dataset.value === 'Français').click());
+  await page.evaluate(() => ((o) => { if (o) { o.selected = true; o.parentElement.dispatchEvent(new Event('change', { bubbles: true })); } })([...document.querySelectorAll('#tse-lang-dd .tse-dd-opt')].find((x) => x.dataset.value === 'Français')));
   await attendre(page, () => window.tse.accueil.rapport().top.source === 'barre'
     && [...document.querySelectorAll('.side-nav-card[data-tse-global="true"]')].some((x) => x.dataset.tseLogin === 'tavor'), 10_000);
   await wait(page, 600);
@@ -42246,7 +42547,8 @@ const lireImages = (page) => page.evaluate(() => {
   await page.evaluate(() => { window.tse.options.poser('accueilDebut', false); window.tse.options.poser('accueilUne', false); });
   /* g) CE QUI ENTRE EST REVU (`propre`) : la casse repliée, les espaces ôtés,
      un doublon compté une fois, ce qui n'a pas la forme d'un login ignoré ;
-     vingt au plus — dix places de plus que la réponse du tag n'en porte pas.
+     quinze au plus — quinze places de plus que la réponse du tag n'en porte
+     pas (vingt avant la 4.33.0.13, pour un Top 10).
      Mutants — la casse gardée ; le doublon gardé ; la borne ignorée. */
   const g1 = await page.evaluate(() => {
     window.tse.options.poser('accueilTopEcartees', ['  Zephyr ', 'zephyr', 'Zéphyr', 'mal formé', 42, 'x'.repeat(26), 'aldric']);
@@ -42256,8 +42558,8 @@ const lireImages = (page) => page.evaluate(() => {
     window.tse.options.poser('accueilTopEcartees', []);
     return { a, b: b.length, dernier: b[b.length - 1] };
   });
-  ok('g) ce qui entre est revu : casse repliée, espaces ôtés, doublon compté une fois, forme d\'un login exigée ; vingt au plus, les premiers',
-     JSON.stringify(g1.a) === '["zephyr","aldric"]' && g1.b === 20 && g1.dernier === 'plein19', JSON.stringify(g1));
+  ok('g) ce qui entre est revu : casse repliée, espaces ôtés, doublon compté une fois, forme d\'un login exigée ; quinze au plus, les premiers',
+     JSON.stringify(g1.a) === '["zephyr","aldric"]' && g1.b === 15 && g1.dernier === 'plein14', JSON.stringify(g1));
   await page.close();
 }
 
@@ -42983,7 +43285,7 @@ const lireZap = (page) => page.evaluate(() => {
     st.remove();
     return { couvre: pts.every(([x, y]) => z.contains(document.elementFromPoint(x, y))), plein: r.width === innerWidth && r.height === innerHeight,
              compteurDessus: !!dessus && !!dessus.closest('.tse-zap__compteur'),
-             capot: document.elementFromPoint(innerWidth / 2, innerHeight / 2).className, role: z.getAttribute('role'), modal: z.getAttribute('aria-modal'),
+             capot: document.elementFromPoint(innerWidth / 2, innerHeight / 2).className, role: z.parentElement.localName, modal: z.parentElement.matches(':modal'),
              focus: z.contains(document.activeElement), barre: [...document.querySelectorAll('.side-nav-card')].map((c) => c.dataset.tseLogin),
              videoPage: document.getElementById('video-page').paused, pleinEcran: document.fullscreenElement === z };
   });
@@ -42995,7 +43297,7 @@ const lireZap = (page) => page.evaluate(() => {
      o.pleinEcran && z1.rapport.pleinEcran && z1.rapport.ouvertPar === 'bouton' && z1.rapport.pleinsEcrans === 1,
      JSON.stringify({ pleinEcran: o.pleinEcran, rapport: { pe: z1.rapport.pleinEcran, par: z1.rapport.ouvertPar, n: z1.rapport.pleinsEcrans } }));
   ok('c) l\'écran plein, devant la barre du haut, modal, le focus dedans ; les sept chaînes dans l\'ordre de la barre (ici alphabétique) ; un capot devant les lecteurs ; la vidéo de la page en pause',
-     o.couvre && o.plein && o.capot === 'tse-zap__capot' && o.compteurDessus && o.role === 'dialog' && o.modal === 'true' && o.focus && o.videoPage
+     o.couvre && o.plein && o.capot === 'tse-zap__capot' && o.compteurDessus && o.role === 'dialog' && o.modal === true && o.focus && o.videoPage
      && JSON.stringify(z1.liste) === JSON.stringify(o.barre) && z1.liste.length === 7 && z1.rang === '1 / 7' && z1.titre === 'Zapping · vos suivis en direct'
      && z1.courante === 'brenvik', JSON.stringify({ o, liste: z1.liste, rang: z1.rang }));
   /* d) LE COURANT : un lecteur intégré, au nom qui éveille le pont, muet à
@@ -43457,7 +43759,7 @@ const lireZap = (page) => page.evaluate(() => {
      JSON.stringify({ rang: ordreGuide.indexOf('guideZapTitre'), citesZap }));
 }
 
-/* ═════════ 232. LE CO-STREAM D'UNE PLACE DU TOP 10 (4.33.0.2) ═════════
+/* ═════════ 232. LE CO-STREAM D'UNE PLACE DU TOP 15 (4.33.0.2) ═════════
    « Dans le Top 10, on peut voir des costreams, faudrait prendre le même
    système que le natif, à savoir "le nom d'un streamer" suivi d'un + et le
    nombre dans le costream. En passant la souris sur la flèche à côté, on a
@@ -43470,7 +43772,7 @@ const lireZap = (page) => page.evaluate(() => {
    même combiné, rend Tourbe d'abord (4.33.0.3) : la carte doit pourtant être
    celle de Vortex, le plus regardé. Les noms sont inventés. */
 {
-  titre('232. Le co-stream d\'une place du Top 10 — « Nom + 3 ⌄ », et au survol la fenêtre des membres, chacun avec ses spectateurs');
+  titre('232. Le co-stream d\'une place du Top 15 — « Nom + 3 ⌄ », et au survol la fenêtre des membres, chacun avec ses spectateurs');
   const TOP_CS = ['tourbe', 'vortex', 'sillage', ...TOP_ACCUEIL.slice(0, 9)];
   const page = await ouvrirAccueil({ options: { accueilDebut: false } });
   await plateauAccueil(page, { top: TOP_CS });
@@ -43645,7 +43947,7 @@ const lireZap = (page) => page.evaluate(() => {
      JSON.stringify({ g1, g2, g2b, g3 }));
   await page.evaluate((sel) => document.querySelector(sel)?.scrollIntoView({ block: 'center' }), BOUTON);
   await wait(page, 300);
-  /* f) LE TOP 10 COUPÉ ferme la fenêtre ouverte, et ne laisse rien dans la
+  /* f) LE TOP 15 COUPÉ ferme la fenêtre ouverte, et ne laisse rien dans la
      couche supérieure. Épinglée d'un clic : ouverte au survol, elle se
      fermerait de toute façon, le bouton parti de sous le pointeur — et le
      mutant vivait. Mutant — la fenêtre orpheline. */
@@ -43655,25 +43957,28 @@ const lireZap = (page) => page.evaluate(() => {
   await page.evaluate(() => window.tse.options.poser('accueilTop', false));
   await wait(page, 600);
   const coupe = await page.evaluate(() => ({ ouvertes: document.querySelectorAll(':popover-open').length, cs: window.tse.accueil.rapport().top.cs }));
-  ok('f) le Top 10 coupé : la fenêtre épinglée se ferme, rien ne reste par-dessus la page',
+  ok('f) le Top 15 coupé : la fenêtre épinglée se ferme, rien ne reste par-dessus la page',
      epinglee && coupe.ouvertes === 0 && !coupe.cs.ouverte, JSON.stringify({ epinglee, ...coupe }));
   await page.close();
 }
 
 {
   titre('233. Les places d\'ailleurs (4.33.0.6) et la pulsation (4.33.0.9) — « N°9 mondial », « N°5 en anglais », prouvées ; trois langues au plus ; la barre partagée ; des étiquettes qui battent l\'une après l\'autre');
-  /* LE DÉCOR. L'interface est française, le Top 10 de l'accueil aussi : celui
+  /* LE DÉCOR. L'interface est française, le Top 15 de l'accueil aussi : celui
      du plateau, par la voie du tag. Tout Twitch, lui, se lit en descendant
      les catégories — une seule compte, « Just Chatting », dont le sommet
      mêle les langues :
        orsay 120 000 (anglais) ; kestrel 95 000 et kite 15 000 (anglais),
-       en co-stream — 110 000 à eux deux, une seule place, comme au Top 10 ;
+       en co-stream — 110 000 à eux deux, une seule place, comme au Top 15 ;
        nadir 80 000 (espagnol), tamsin 70 000 (anglais), ulric 60 000
        (allemand), vesna 55 000 (espagnol), zephyr, aldric et aeltris — les
-       trois premiers du Top 10 français : 40 000, 37 000, 34 000 —, wren
-       33 000 (anglais) : dix places, onze chaînes. Puis tavor, quatrième en
-       français à 31 000, et brune, sixième, qui parle aussi anglais :
-       hors du monde.
+       trois premiers du Top 15 français : 40 000, 37 000, 34 000 —, wren
+       33 000 (anglais) : dix places, onze chaînes ; et, pour le Top 15
+       (4.33.0.13), cinq chaînes sans tag de langue juste au-dessous —
+       ysolde, zelia, cyra, dario, egon, de 32 900 à 32 500 ; sans langue,
+       elles ne comptent pour aucune et ne changent rien aux autres
+       classements — : quinze places, seize chaînes. Puis tavor, quatrième en français à 31 000, et brune,
+       sixième, qui parle aussi anglais : hors du monde.
      Les rayons de Twitch, à l'écran : aeltris, tavor, yarrow (anglais,
      20 000 : sixième en anglais, loin du monde), kestrel, brune ; nadir,
      vesna, ulric et quinto (italien, en subathon). Quatre langues
@@ -43681,13 +43986,16 @@ const lireZap = (page) => page.evaluate(() => {
      allemand, une en italien — à égalité, le nom départage, et l'italien
      reste sans classement. Chaque langue a le sien chez Twitch : rien, dans
      le décor, n'empêcherait d'en demander un de trop. */
-  const TOP = ['zephyr', 'aldric', 'aeltris', 'tavor', 'solenne', 'brune', 'gaspard', 'hestia', 'mirelle', 'oriane'];
+  const TOP = ['zephyr', 'aldric', 'aeltris', 'tavor', 'solenne', 'brune', 'gaspard', 'hestia', 'mirelle', 'oriane',
+               'iliane', 'jorvik', 'lysandre', 'morwen', 'nolwenn', 'faelan', 'ombre'];
   const RAYONS = [['Chaînes live qui pourraient vous plaire', ['aeltris', 'tavor', 'yarrow', 'kestrel', 'brune']],
                   ['D\'ailleurs', ['nadir', 'vesna', 'ulric', 'quinto']]];
   const MONDE = [['orsay', 120000, ['English']], ['kestrel', 95000, ['English']], ['nadir', 80000, ['Español']],
                  ['tamsin', 70000, ['English']], ['ulric', 60000, ['Deutsch']], ['vesna', 55000, ['Español']],
                  ['zephyr', 40000, ['Français']], ['aldric', 37000, ['Français']], ['aeltris', 34000, ['Français']],
-                 ['wren', 33000, ['English']], ['tavor', 31000, ['Français']], ['brune', 25000, ['Français', 'English']],
+                 ['wren', 33000, ['English']], ['ysolde', 32900, []], ['zelia', 32800, []],
+                 ['cyra', 32700, []], ['dario', 32600, []], ['egon', 32500, []],
+                 ['tavor', 31000, ['Français']], ['brune', 25000, ['Français', 'English']],
                  ['yarrow', 20000, ['English']], ['kite', 15000, ['English']], ['quinto', 9000, ['Italiano']]];
   /* `cats` : la marche du monde. Par défaut, la catégorie du sommet, et une
      seconde sous le seuil — la descente s'arrête en sachant qu'elle est
@@ -43740,7 +44048,7 @@ const lireZap = (page) => page.evaluate(() => {
   });
   const tx = (e, l) => e.twitch[l]?.texte ?? null;
   /* L'ÉTAT ENTIER, PAS SES PREMIERS SIGNES. Les classements arrivent chacun à
-     son heure — le Top 10 français, le monde, l'anglais, la session du
+     son heure — le Top 15 français, le monde, l'anglais, la session du
      co-stream — et une attente posée sur quelques étiquettes laissait
      l'assertion lire un état à moitié fait : une fois, sous la charge d'une
      campagne de mutants, a) est tombée sur un code juste. On relit donc
@@ -43756,7 +44064,7 @@ const lireZap = (page) => page.evaluate(() => {
     && tx(e, 'tavor') === 'N°4 en français' && e.twitch.tavor?.sorte === 'rang' && tx(e, 'brune') === 'N°6 en français'
     && tx(e, 'yarrow') === 'N°6 en anglais' && e.twitch.yarrow?.sorte === 'langue'
     && tx(e, 'kestrel') === 'N°2 mondial' && tx(e, 'nadir') === 'N°3 mondial' && tx(e, 'vesna') === 'N°6 mondial'
-    && e.ailleurs.sources['*']?.chaines === 11 && e.ailleurs.sources.English?.chaines === 7
+    && e.ailleurs.sources['*']?.chaines === 16 && e.ailleurs.sources.English?.chaines === 7
     && e.top.zephyr === 'N°7 mondial' && e.top.tavor === null;
   const condC = (e) => JSON.stringify(e.ailleurs.portees) === '["*","English","Español","Deutsch"]'
     && e.demandes.Italiano === 0 && e.demandes.English > 0 && e.demandes.Deutsch > 0
@@ -43771,11 +44079,11 @@ const lireZap = (page) => page.evaluate(() => {
      dit sa place en anglais — le nom de la langue, celui que le navigateur
      donne en français. kestrel, deuxième du monde ET en anglais, en
      co-stream : le monde passe devant le co-stream. Le co-stream est UNE
-     place : nadir est troisième, pas quatrième. Une chaîne du Top 10
+     place : nadir est troisième, pas quatrième. Une chaîne du Top 15
      lui-même dit sa place mondiale, qu'il n'écrit pas. Mutants — la place
      française avant le monde ; l'autre langue avant la vôtre ; le monde
      jamais demandé ; une place par chaîne, co-stream compris. */
-  ok('a) « N°9 mondial » avant « N°3 en français », « N°4 en français » hors du monde, « N°6 en anglais » pour une chaîne anglaise ; un co-stream, une place ; le monde aussi sur le Top 10',
+  ok('a) « N°9 mondial » avant « N°3 en français », « N°4 en français » hors du monde, « N°6 en anglais » pour une chaîne anglaise ; un co-stream, une place ; le monde aussi sur le Top 15',
      condA(e1),
      JSON.stringify({ twitch: e1.twitch, top: e1.top, sources: e1.ailleurs.sources }));
   /* b) LEURS COULEURS : l'or des places pour une autre langue, un or plus
@@ -43787,8 +44095,8 @@ const lireZap = (page) => page.evaluate(() => {
   /* c) TROIS LANGUES AU PLUS, LES PLUS NOMBREUSES. L'anglais, trois cartes ;
      l'espagnol, deux ; l'allemand et l'italien, une — le nom départage.
      L'italien n'est pas demandé, et quinto ne dit que son subathon. Le
-     français, celui du Top 10, n'a pas de classement de plus. Mutants — le
-     plafond levé ; les moins nombreuses d'abord ; la langue du Top 10
+     français, celui du Top 15, n'a pas de classement de plus. Mutants — le
+     plafond levé ; les moins nombreuses d'abord ; la langue du Top 15
      comptée. */
   ok('c) trois langues au plus — les plus nombreuses à l\'écran, le nom à égalité — et le monde : l\'italien jamais demandé, le français pas deux fois',
      condC(e1),
@@ -43796,7 +44104,7 @@ const lireZap = (page) => page.evaluate(() => {
   /* c bis) DE FOND (4.33.0.10) : les places d'ailleurs complètent une
      étiquette, rien ne les attend à l'écran. Leurs classements — l'anglais,
      l'espagnol, l'allemand par le tag ; le monde par les catégories —
-     partent en priorité basse ; celui du Top 10, le français, non. Mutant —
+     partent en priorité basse ; celui du Top 15, le français, non. Mutant —
      le classement d'ailleurs créé sans `fond`. */
   const prio233 = await pa.evaluate(() => {
     const tag = (l) => window.__calls.filter((c) => (c.tagLangs || []).includes(l)).map((c) => c.prio);
@@ -43807,7 +44115,7 @@ const lireZap = (page) => page.evaluate(() => {
              // Pour le rapport : chaque appel de catégories, sa langue et sa priorité.
              liste: window.__calls.filter((c) => c.names.some((n) => /^TseCategor/.test(n))).map((c) => [c.names.join('+'), c.langs.join(','), c.prio]) };
   });
-  ok('c bis) les classements d\'ailleurs partent en priorité basse — trois langues et le monde ; celui du Top 10, non',
+  ok('c bis) les classements d\'ailleurs partent en priorité basse — trois langues et le monde ; celui du Top 15, non',
      prio233.fr.length >= 1 && prio233.fr.every((x) => x === null)
      && ['en', 'es', 'de', 'monde'].every((k) => prio233[k].length >= 1 && prio233[k].every((x) => x === 'low')), JSON.stringify(prio233));
 
@@ -43829,7 +44137,7 @@ const lireZap = (page) => page.evaluate(() => {
      l'ancien rebond ; l'origine au bord droit ; l'ancienne amplitude. */
   const pulsation = await pa.evaluate(() => {
     const anims = document.getAnimations().filter((a) => a.animationName === 'tse-acc-etiq-pulsation');
-    // Une place que le Top 10 ne montre pas (au-delà de ce que la largeur tient) ne s'anime pas : on lit celles qui se voient.
+    // Une place que le Top 15 ne montre pas (au-delà de ce que la largeur tient) ne se peint pas : on lit celles qui se voient (cf. e).
     return [...document.querySelectorAll('[data-tse-etiquette]')].filter((el) => el.checkVisibility()).map((el) => {
       const st = getComputedStyle(el, '::after');
       const a = anims.find((x) => x.effect.target === el && x.effect.pseudoElement === '::after');
@@ -43891,17 +44199,37 @@ const lireZap = (page) => page.evaluate(() => {
      mouvement.plus >= 1.05 && mouvement.plus <= 1.0601 && mouvement.moins <= 1.005 && mouvement.palier < 200 && !mouvement.deplace,
      JSON.stringify(mouvement));
   /* e) « LES ÉTIQUETTES PULSENT », COUPÉ : plus une étiquette ne bat, et le
-     subathon clignote encore. Les étiquettes, elles, restent. */
+     subathon clignote encore. Les étiquettes, elles, restent.
+     UNE PLACE REPLIÉE GARDE SON ANIMATION TANT QU'ON NE LA REGARDE PAS. Depuis
+     la 4.33.0.14, une place repliée porte hidden="until-found" — c'est-à-dire
+     content-visibility: hidden, et non plus display: none, qui annulait ses
+     animations. Chromium ne recalcule plus son style : l'animation qu'elle
+     portait reste dans document.getAnimations() après la coupure, et n'en sort
+     qu'au premier calcul de son style — une lecture, ou le dépli. Une place
+     repliée avant d'avoir été stylée n'en a, elle, jamais eu. Rejoué dans une
+     page nue, sous Chromium 153 : deux cartes qui battent, l'une repliée,
+     l'option coupée — une animation reste, sur la repliée ; son style lu,
+     « none », et plus aucune. Ici, brune, sixième du Top et repliée à
+     1 600 px, a sa pastille peinte avant le repli ou après selon la course :
+     l'ancienne lecture tombait une fois sur deux, sur un produit juste. On
+     compte donc ce qui se peint ; puis, chaque étiquette lue, ce qui reste
+     dans tout le document — repliées comprises, et qui doit être rien. */
   await pa.evaluate(() => window.tse.options.poser('accueilPulsation', false));
   await attendre(pa, () => (document.documentElement.getAttribute('data-tse-off') || '').split(' ').includes('accueilPulsation'), 3_000);
-  const coupe = await pa.evaluate(() => ({
-    pulsations: document.getAnimations().filter((a) => a.animationName === 'tse-acc-etiq-pulsation').length,
-    noms: [...new Set([...document.querySelectorAll('[data-tse-etiquette]')].map((el) => getComputedStyle(el, '::after').animationName))].sort(),
-    poses: document.querySelectorAll('[data-tse-etiquette]').length,
-    quinto: getComputedStyle(document.querySelector('main a[data-a-target="preview-card-image-link"][href="/quinto"]'), '::after').animationName,
-  }));
+  const coupe = await pa.evaluate(() => {
+    const pulsations = () => document.getAnimations().filter((a) => a.animationName === 'tse-acc-etiq-pulsation');
+    const peintes = pulsations().filter((a) => !a.effect.target.closest('[hidden="until-found"]')).length;
+    const noms = [...new Set([...document.querySelectorAll('[data-tse-etiquette]')].map((el) => getComputedStyle(el, '::after').animationName))].sort();
+    return {
+      pulsations: peintes, restantes: pulsations().length, noms,
+      repliees: document.querySelectorAll('[hidden="until-found"] [data-tse-etiquette]').length,
+      poses: document.querySelectorAll('[data-tse-etiquette]').length,
+      quinto: getComputedStyle(document.querySelector('main a[data-a-target="preview-card-image-link"][href="/quinto"]'), '::after').animationName,
+    };
+  });
   ok('e) « Les étiquettes pulsent » coupé : plus une pulsation, les étiquettes restent, le subathon clignote encore',
-     coupe.pulsations === 0 && coupe.noms.join() === 'none,tse-acc-etiq-subathon' && coupe.poses >= 8 && coupe.quinto === 'tse-acc-etiq-subathon',
+     coupe.pulsations === 0 && coupe.restantes === 0 && coupe.noms.join() === 'none,tse-acc-etiq-subathon' && coupe.poses >= 8
+     && coupe.quinto === 'tse-acc-etiq-subathon',
      JSON.stringify(coupe));
 
   /* f) LA BARRE SERT DÉJÀ LE MONDE : Top Chaînes ouvert, sans catégorie,
@@ -43919,21 +44247,21 @@ const lireZap = (page) => page.evaluate(() => {
      && e2.ailleurs.operations.English > 0,
      JSON.stringify({ m0, o0, ailleurs: e2.ailleurs, aeltris: tx(e2, 'aeltris') }));
 
-  /* g) « TOUTES LES LANGUES » : le Top 10 EST le monde — sa place se dit
-     « du Top 10 », et le monde n'a plus de classement à lui. Le français
+  /* g) « TOUTES LES LANGUES » : le Top 15 EST le monde — sa place se dit
+     « du Top 15 », et le monde n'a plus de classement à lui. Le français
      devient une autre langue : la plus nombreuse à l'écran, il prend la
      première, et l'allemand sort des trois. tavor, hors du monde, dit sa
      place en français ; brune, sa meilleure, en anglais. Mutant — le monde
      gardé. */
   await pa.evaluate(() => window.tse.options.poser('accueilTopLangue', 'toutes'));
-  const condG = (e) => tx(e, 'aeltris') === 'N°9 du Top 10' && e.twitch.aeltris?.sorte === 'rang'
+  const condG = (e) => tx(e, 'aeltris') === 'N°9 du Top 15' && e.twitch.aeltris?.sorte === 'rang'
     && tx(e, 'tavor') === 'N°4 en français' && e.twitch.tavor?.sorte === 'langue' && tx(e, 'brune') === 'N°5 en anglais'
     && JSON.stringify(e.ailleurs.portees) === '["Français","English","Español"]' && !('*' in e.ailleurs.sources);
   const e3 = await jusqua(pa, condG);
-  ok('g) « Toutes les langues » : « N°9 du Top 10 », plus de classement du monde à part ; le français devient une autre langue — « N°4 en français »',
+  ok('g) « Toutes les langues » : « N°9 du Top 15 », plus de classement du monde à part ; le français devient une autre langue — « N°4 en français »',
      condG(e3),
      JSON.stringify({ twitch: e3.twitch, ailleurs: e3.ailleurs }));
-  /* h) LE TOP 10 COUPÉ : aucune place, d'ici ni d'ailleurs, et plus un
+  /* h) LE TOP 15 COUPÉ : aucune place, d'ici ni d'ailleurs, et plus un
      classement ne part. */
   await pa.evaluate(() => { window.tse.global.off(); window.tse.options.poser('accueilTop', false); });
   await attendre(pa, () => ![...document.querySelectorAll('[data-tse-etiq]')].some((n) => /^(rang|langue|monde)$/.test(n.getAttribute('data-tse-etiq'))), 5_000);
@@ -43941,7 +44269,7 @@ const lireZap = (page) => page.evaluate(() => {
   await wait(pa, 3_000);
   const e4 = await lire(pa);
   const t1 = await pa.evaluate(() => window.__calls.filter((c) => c.names.some((n) => /^TseTagTop$|^TseCategories$|^TseCategoryTop$/.test(n))).length);
-  ok('h) le Top 10 coupé : plus une place, ni d\'ici ni d\'ailleurs, et plus un classement demandé',
+  ok('h) le Top 15 coupé : plus une place, ni d\'ici ni d\'ailleurs, et plus un classement demandé',
      e4.ailleurs.portees.length === 0 && Object.values(e4.twitch).every((x) => !/^(rang|langue|monde)$/.test(x.sorte || ''))
      && /^Subathon/.test(tx(e4, 'quinto') || '') && t1 === t0,
      JSON.stringify({ t0, t1, ailleurs: e4.ailleurs, twitch: e4.twitch }));
@@ -43955,7 +44283,7 @@ const lireZap = (page) => page.evaluate(() => {
   await attendre(pi, () => {
     const a = window.tse.accueil.rapport().etiquettes.ailleurs;
     const t = (l) => document.querySelector(`main a[data-a-target="preview-card-image-link"][href="/${l}"]`)?.getAttribute('data-tse-etiquette');
-    // Le Top 10 français et la place anglaise arrivent chacun à son heure : on attend les deux.
+    // Le Top 15 français et la place anglaise arrivent chacun à son heure : on attend les deux.
     // Le monde RÉSOLU : sans quoi « aucune place » ne dirait rien de la preuve.
     return a.sources['*']?.resolu && a.sources.English?.prouve && !!t('kestrel') && t('aeltris') === 'N°3 en français';
   }, 25_000);
@@ -44008,7 +44336,7 @@ const lireZap = (page) => page.evaluate(() => {
      absolue : il ne dispute sa propriété `animation` à aucune règle du
      produit, et ne change aucune mise en page. */
   /* DEUX FORMES DE TÉMOIN. Sur le nœud LUI-MÊME quand il ne porte aucune
-     animation du produit — les places du Top 10 : son contenu peut être
+     animation du produit — les places du Top 15 : son contenu peut être
      refait sans que le témoin s'en aille. En ENFANT sinon — les cartes de la
      barre, du ruban, que le produit anime elles-mêmes. */
   const TEMOIN = '@keyframes tse-temoin { to { opacity: .5; } }'
@@ -44034,7 +44362,7 @@ const lireZap = (page) => page.evaluate(() => {
   })), [sel, cle]);
   /* Les nœuds témoins avant ET après — les mêmes nœuds, donc, et non des
      nœuds refaits ; et ANIMÉS des deux côtés : un nœud replié (`hidden`, les
-     places 6 à 10 du Top 10) n'a pas d'animation, et n'en dit rien. Chacun
+     places repliées du Top 15) n'a pas d'animation, et n'en dit rien. Chacun
      a continué. Rend la liste de ceux qu'on a pu comparer, ou null si l'un a
      sauté. */
   const continuent = (avant, apres) => {
@@ -44049,7 +44377,7 @@ const lireZap = (page) => page.evaluate(() => {
     && document.querySelectorAll('#tse-accueil .tse-acc-rayon--une .tse-acc-carte').length === 5, 12_000);
   const PLACES = '#tse-accueil .tse-acc-place';
 
-  /* a) LE TOP 10 SE RÉORDONNE : Tavor passe de la 4e à la 2e place (cf. 217
+  /* a) LE TOP 15 SE RÉORDONNE : Tavor passe de la 4e à la 2e place (cf. 217
      g). Sa carte est déplacée, pas refaite ; son témoin continue, et la
      pastille qui bat aussi. Mutant — insertBefore à la place de moveBefore,
      dans la rangée : le témoin de Tavor repart de zéro. */
@@ -44063,9 +44391,10 @@ const lireZap = (page) => page.evaluate(() => {
   const p0 = await pulsations();
   await page.evaluate(() => {
     const h = (m) => new Date(Date.now() - m * 60_000).toISOString();
-    const ordre = ['zephyr', 'tavor', 'aldric', 'mirelle', 'hestia', 'solenne', 'brune', 'ildor', 'quill', 'ombre', 'faelan', 'gaspard'];
+    const ordre = ['zephyr', 'tavor', 'aldric', 'mirelle', 'hestia', 'solenne', 'brune', 'ildor', 'quill', 'ombre', 'faelan', 'gaspard',
+                   'iliane', 'jorvik', 'kaelis', 'lysandre', 'morwen'];
     window.__tagTop['Français'] = ordre.map((l, i) => ({ login: l, nom: l.charAt(0).toUpperCase() + l.slice(1),
-                                                       viewers: 40000 - i * 3000, createdAt: h(30 + i * 7),
+                                                       viewers: Math.max(40000 - i * 3000, 2600 - i * 100), createdAt: h(30 + i * 7),
                                                        game: 'VALORANT', tags: ['Français'] }));
   });
   await attendre(page, () => document.querySelector('#tse-accueil .tse-acc-place:nth-child(2)')?.dataset.tseCle === 'tavor', 12_000);
@@ -44074,9 +44403,9 @@ const lireZap = (page) => page.evaluate(() => {
   const p1 = await pulsations();
   const ka = continuent(t0, t1);
   const pulsees = Object.keys(p0).filter((k) => k in p1);
-  ok('a) le Top 10 se réordonne sans défaire : Tavor, montée de la 4e à la 2e place, et chaque place restée gardent leur animation, qui continue',
+  ok('a) le Top 15 se réordonne sans défaire : Tavor, montée de la 4e à la 2e place, et chaque place restée gardent leur animation, qui continue',
      !!ka && ka.includes('tavor') && ka.length >= 4, JSON.stringify({ avant: t0, apres: t1 }));
-  // La pastille ne bat que sur une place qui en porte une : au Top 10, le rang écrit en grand en tient lieu.
+  // La pastille ne bat que sur une place qui en porte une : au Top 15, le rang écrit en grand en tient lieu.
   ok('…et la pastille qui bat ne saute pas, là où une place en porte une',
      pulsees.every((k) => p1[k] > p0[k]), JSON.stringify({ avant: p0, apres: p1 }));
 
@@ -44225,10 +44554,12 @@ const lireZap = (page) => page.evaluate(() => {
 
   /* g) NOS SURFACES QUI DÉFILENT SUIVENT NOTRE THÈME : le menu déroulant et
      la salle portent le schéma de couleurs du thème, pour que le navigateur
-     y dessine des barres de défilement claires ou sombres comme elles.
+     y dessine des barres de défilement claires ou sombres comme elles. Le
+     menu est un <select> depuis 4.33.0.14 : le schéma est posé sur lui, et
+     sa liste en hérite.
      Mutants — le schéma ôté du menu ; la variable du thème clair ôtée. */
   const schemas = await barre.evaluate(() => {
-    const m = document.createElement('div'); m.className = 'tse-dd-menu';
+    const m = document.createElement('select'); m.className = 'tse-dd-btn';
     const s = document.createElement('div'); s.id = 'tse-salle';
     document.body.append(m, s);
     const lire = () => [getComputedStyle(m).colorScheme, getComputedStyle(s).colorScheme].join('/');
@@ -44291,23 +44622,27 @@ addEventListener('message', (e) => {
 
   /* i) LE SCHÉMA DE COULEURS DU PANNEAU : la balise le dit dès la première
      image, la racine dit les deux et suit le système tant que le thème de
-     Twitch n'est pas appris, « data-theme » tranche ensuite. Mutants — le
-     schéma ôté de la racine (barre de défilement et cases claires sur fond
-     sombre) ; le thème sombre appris sans son schéma ; la balise ôtée. */
+     Twitch n'est pas appris, « data-theme » tranche ensuite. Depuis la
+     4.33.0.14, les couleurs sont des light-dark() : la racine garde « light
+     dark » sous un système clair, et c'est le RENDU qui suit le système — on
+     lit donc aussi le fond du corps. Mutants — le schéma ôté de la racine
+     (barre de défilement et cases claires sur fond sombre) ; le thème sombre
+     appris sans son schéma ; la balise ôtée. */
   const schema = async (systeme, theme) => {
     await pp.emulateMedia({ colorScheme: systeme });
     return cadre().evaluate((t) => {
       const html = document.documentElement;
       if (t === null) html.removeAttribute('data-theme'); else html.setAttribute('data-theme', t);
-      return getComputedStyle(html).colorScheme;
+      return getComputedStyle(html).colorScheme + ' / ' + getComputedStyle(document.body).backgroundColor;
     }, theme);
   };
   const vus = { sombreInconnu: await schema('dark', null), clairInconnu: await schema('light', null),
                 appris: await schema('light', 'dark'), apprisClair: await schema('dark', 'light'),
                 balise: await cadre().evaluate(() => document.querySelector('meta[name="color-scheme"]')?.content ?? null) };
   await pp.emulateMedia({ colorScheme: 'dark' });
-  ok('i) le panneau dit son schéma : « light dark » tant que le thème est inconnu, clair sous un système clair, celui de Twitch une fois appris ; la balise dès la première image',
-     vus.sombreInconnu === 'light dark' && vus.clairInconnu === 'light' && vus.appris === 'dark' && vus.apprisClair === 'light'
+  ok('i) le panneau dit son schéma : « light dark » tant que le thème est inconnu — et se peint clair sous un système clair —, celui de Twitch une fois appris ; la balise dès la première image',
+     vus.sombreInconnu === 'light dark / rgb(14, 14, 16)' && vus.clairInconnu === 'light dark / rgb(247, 247, 248)'
+     && vus.appris === 'dark / rgb(14, 14, 16)' && vus.apprisClair === 'light / rgb(247, 247, 248)'
      && vus.balise === 'light dark', JSON.stringify(vus));
 
   /* j) LES DURÉES DANS LA LANGUE DU PANNEAU, par Intl.DurationFormat ; une
@@ -44369,14 +44704,12 @@ window.__forger = () => { const f = document.getElementById('f');
      enAttente0 >= 1 && enAttente1.attentes === enAttente0 && enAttente1.vue === 'incruste', JSON.stringify({ enAttente0, ...enAttente1 }));
   await po.close();
 
-  /* m) EN JAPONAIS, ET SANS Intl.DurationFormat. La même durée dans une autre
-     langue du panneau ; et un navigateur qui ne le connaît pas (Chrome avant
-     la 129) garde l'écriture d'avant. Mutant — le repli ôté : le panneau
-     ne se charge plus sans Intl.DurationFormat. */
-  const panneauSeul = async (loc, langue, sansDuree) => {
+  /* m) EN JAPONAIS. La même durée dans une autre langue du panneau. Le repli
+     pour un navigateur sans Intl.DurationFormat est parti à la 4.33.0.14 :
+     les deux planchers le connaissent (Chrome 129, Firefox 136). */
+  const panneauSeul = async (loc, langue) => {
     const p = await browser.newPage();
     p.on('pageerror', (e) => { fail++; console.log('  ✗ ERREUR PAGE:', e.message); });
-    if (sansDuree) await p.addInitScript(() => { delete Intl.DurationFormat; });
     await p.addInitScript(stubPanneau, [fiche(loc), langue]);
     await hebergerPanneau(p, '<!DOCTYPE html><title>hôte</title>');
     await p.goto('https://www.twitch.tv/panneau.html');
@@ -44388,11 +44721,9 @@ window.__forger = () => { const f = document.getElementById('f');
     await p.close();
     return d;
   };
-  const dJa = await panneauSeul('ja', 'ja', false);
-  const dSans = await panneauSeul('fr', 'fr', true);
-  ok('m) en japonais : « 3 分 7 秒 », « 0 秒 », les graduations « 2 時間 », « 5 分 » ; sans Intl.DurationFormat, l\'écriture d\'avant : « 3 min 07 », « 0 s », « 2 h »',
-     !!dJa && !!dSans && JSON.stringify(dJa) === JSON.stringify(['3 分 7 秒', '0 秒', '42 秒', '2 時間', '5 分'])
-     && JSON.stringify(dSans) === JSON.stringify(['3 min 07', '0 s', '42 s', '2 h', '5 min']), JSON.stringify({ dJa, dSans }));
+  const dJa = await panneauSeul('ja', 'ja');
+  ok('m) en japonais : « 3 分 7 秒 », « 0 秒 », les graduations « 2 時間 », « 5 分 »',
+     !!dJa && JSON.stringify(dJa) === JSON.stringify(['3 分 7 秒', '0 秒', '42 秒', '2 時間', '5 分']), JSON.stringify({ dJa }));
 }
 
 titre('235. La carte sponsorisée obéit aux filtres de la liste suivie (4.33.0.11)');
@@ -44423,7 +44754,7 @@ titre('235. La carte sponsorisée obéit aux filtres de la liste suivie (4.33.0.
   const choisir = (dd, val) => page.evaluate(([id, v]) => {
     const opt = [...document.querySelectorAll(`${id} .tse-dd-opt`)].find((o) => (o.dataset.value || '') === v);
     if (!opt) throw new Error('option absente : ' + JSON.stringify(v));
-    opt.click();
+    opt.selected = true; opt.parentElement.dispatchEvent(new Event('change', { bubbles: true }));
   }, [dd, val]);
   const attendreOption = (dd, val) => attendre(page, ([id, v]) =>
     [...document.querySelectorAll(`${id} .tse-dd-opt`)].some((o) => (o.dataset.value || '') === v), 9000, [dd, val]);
@@ -44458,6 +44789,920 @@ titre('235. La carte sponsorisée obéit aux filtres de la liste suivie (4.33.0.
   const apres = await vues();
   ok('e) les filtres retirés, elle revient', apres.suivi1 && apres.promo1, JSON.stringify(apres));
   await page.close();
+}
+
+titre('236. La barre qui glisse — chaque carte part d\'où elle était, l\'arrivée se pose après, rien sous le voile (4.33.0.12)');
+{
+  /* LE SIGNALEMENT : « lorsque la sidebar s'actualise, il n'y a pas
+     d'animation […] une animation progressive et discrète ». Le balayage
+     rangeait la barre d'un coup. Trois volets :
+       — le banc ordinaire, durées à zéro (cf. build.mjs) : ce que le plan
+         décide, compté au rapport — ce qui part, ce qui arrive, ce qui ne
+         s'anime pas et pourquoi ;
+       — les durées de production, les relevés à 100 ms : les trajets eux-
+         mêmes, à chaque image, à travers des balayages qui tombent en plein
+         vol ; la section qui glisse sans que ses cartes refassent son
+         trajet ; l'arrivée qui attend que la place s'ouvre ;
+       — le réveil de production : le curseur ▶ de la salle suit sa barre,
+         et un placement rejoué en plein trajet vise la place d'arrivée. */
+  const DUREES = Object.fromEntries(['BARRE_GLISSE_MS', 'BARRE_ENTREE_MS', 'BARRE_ENTREE_DELAI_MS']
+    .map((k) => [k, Number(new RegExp(`${k}:\\s*(\\d+)`).exec(readFileSync(join(ICI, '..', 'content.js'), 'utf8'))[1])]));
+  const decor = (page, avecVoisins = true) => page.evaluate((voisins) => {
+    const h = new Date(Date.now() - 1800_000).toISOString();
+    const f = (id, v, game) => ({ id, createdAt: h, viewers: v, game, tags: [] });
+    window.__fx = { haut: f('id-g1', 3000, 'Just Chatting'), milieu: f('id-g2', 2000, 'Valheim'),
+                    bas: f('id-g3', 1000, 'Just Chatting'), voisin: f('id-g4', 800, 'Just Chatting') };
+    window.__addCard('haut', 'Just Chatting', '3 000');
+    window.__addCard('milieu', 'Valheim', '2 000');
+    window.__addCard('bas', 'Just Chatting', '1 000');
+    if (voisins) window.__addReco('voisin', 'Just Chatting', '800');
+  }, avecVoisins);
+  const pret = (page, logins) => attendre(page, (ls) => !document.body.classList.contains('tse-loading')
+    && ls.every((l) => document.querySelector(`.side-nav-card[data-tse-login="${l}"] .tse-uptime`)), 15_000, logins);
+  const mvt = (page) => page.evaluate(() => window.tse.panneau.rapport().page.mouvement);
+  const ordre = (page) => page.evaluate(() => [...document.querySelectorAll('#cards .side-nav-card')]
+    .filter((c) => c.getClientRects().length).map((c) => c.dataset.tseLogin));
+  const pasDe = (page) => page.evaluate(() => {
+    const c = [...document.querySelectorAll('#cards .side-nav-card')].filter((x) => x.getClientRects().length);
+    return c[1].getBoundingClientRect().top - c[0].getBoundingClientRect().top;
+  });
+  const choisir = (page, dd, val) => page.evaluate(([id, v]) => {
+    const opt = [...document.querySelectorAll(`${id} .tse-dd-opt`)].find((o) => (o.dataset.value || '') === v);
+    if (!opt) throw new Error('option absente : ' + JSON.stringify(v));
+    opt.selected = true; opt.parentElement.dispatchEvent(new Event('change', { bubbles: true }));
+  }, [dd, val]);
+  const attendreOption = (page, dd, val) => attendre(page, ([id, v]) =>
+    [...document.querySelectorAll(`${id} .tse-dd-opt`)].some((o) => (o.dataset.value || '') === v), 9000, [dd, val]);
+
+  /* ── I. LE PLAN, AU BANC ORDINAIRE ─────────────────────────────────────── */
+  {
+    const page = await fresh();
+    await decor(page);
+    await pret(page, ['haut', 'milieu', 'bas', 'voisin']);
+    await wait(page, 400);
+    const m0 = await mvt(page);
+    ok('a) sous le voile, rien ne part — et une liste posée ne bouge pas : aucun trajet, aucune arrivée',
+       (m0.retenus.voile || 0) >= 1 && m0.releves >= 1 && m0.glisses === 0 && m0.entrees === 0,
+       JSON.stringify(m0));
+
+    // Le tri choisi d'un clic : l'ordre alphabétique, puis le retour aux spectateurs.
+    const trier = (mode) => page.evaluate((m) => document.querySelector(`#tse-sort-row button[data-tse-sort-mode="${m}"]`).click(), mode);
+    await trier('alpha');
+    await attendre(page, () => [...document.querySelectorAll('#cards .side-nav-card')][0]?.dataset.tseLogin === 'bas', 5000);
+    await wait(page, 300);
+    const t1 = await mvt(page);
+    await trier('viewers');
+    await attendre(page, () => [...document.querySelectorAll('#cards .side-nav-card')][0]?.dataset.tseLogin === 'haut', 5000);
+    await wait(page, 300);
+    const t2 = await mvt(page);
+    ok('…le tri choisi d\'un clic glisse aussi : trois trajets vers l\'ordre alphabétique, trois pour en revenir',
+       t1.glisses - m0.glisses === 3 && t2.glisses - t1.glisses === 3 && t2.entrees === m0.entrees,
+       JSON.stringify({ m0, t1, t2 }));
+
+    const pas = await pasDe(page);
+    await page.evaluate(() => { window.__fx.bas.viewers = 5000; });
+    await attendre(page, () => [...document.querySelectorAll('#cards .side-nav-card')][0]?.dataset.tseLogin === 'bas', 9000);
+    await wait(page, 300);
+    const m1 = await mvt(page);
+    ok('b) « bas » passe en tête : trois trajets — elle monte de deux places, les deux autres descendent d\'une —, aucune arrivée',
+       JSON.stringify(await ordre(page)) === '["bas","haut","milieu"]'
+       && m1.glisses - t2.glisses === 3 && m1.entrees === t2.entrees
+       && Math.abs(m1.dernier.plusLong - 2 * pas) <= 1,
+       JSON.stringify({ t2, m1, pas }));
+
+    // « milieu » coupe, puis revient : une carte qui part, puis une qui arrive.
+    const garde = await page.evaluate(() => { const f = window.__fx.milieu; window.__fx.milieu = null; return f; });
+    await attendre(page, () => !document.querySelector('.side-nav-card[data-tse-login="milieu"]').getClientRects().length, 9000);
+    await wait(page, 300);
+    const m2 = await mvt(page);
+    await page.evaluate((f) => { window.__fx.milieu = f; }, garde);
+    await attendre(page, () => document.querySelector('.side-nav-card[data-tse-login="milieu"]').getClientRects().length > 0, 9000);
+    await wait(page, 300);
+    const m3 = await mvt(page);
+    ok('c) une chaîne qui revient ARRIVE — une arrivée, une seule ; celle qui coupe n\'en est pas une, et la section d\'en dessous remonte puis redescend',
+       m2.entrees === m1.entrees && m2.glisses - m1.glisses === 1
+       && m3.entrees - m2.entrees === 1 && m3.dernier.entrees === 1 && m3.glisses - m2.glisses === 1,
+       JSON.stringify({ m1, m2, m3 }));
+
+    /* Un filtre efface la section des recommandées ENTIÈRE ; retiré, elle
+       reparaît et fond d'un bloc — sa carte ne fond pas une seconde fois. Deux
+       arrivées : « milieu », hors de la catégorie, et la section. */
+    await attendreOption(page, '#tse-cat-dd', 'Just Chatting');
+    await choisir(page, '#tse-cat-dd', 'Just Chatting');
+    await attendre(page, () => !document.getElementById('reco').getClientRects().length, 5000);
+    await wait(page, 300);
+    const s1 = await mvt(page);
+    await choisir(page, '#tse-cat-dd', '');
+    await attendre(page, () => document.getElementById('reco').getClientRects().length > 0, 5000);
+    await wait(page, 300);
+    const s2 = await mvt(page);
+    ok('…une section qui reparaît fond d\'un bloc : deux arrivées, « milieu » et la section — pas sa carte en plus',
+       s2.entrees - s1.entrees === 2 && s2.dernier.entrees === 2, JSON.stringify({ s1, s2 }));
+
+    /* DEUX CHAÎNES QUI COUPENT DANS LA MÊME RÉPONSE : un seul relevé pour les
+       deux. La section d'en dessous remonte de DEUX places d'un trajet — un
+       second relevé, pris après la première coupure, n'en verrait qu'une, et
+       la première place se refermerait d'un bond. Puis les deux reviennent. */
+    const gardes = await page.evaluate(() => {
+      const g = { haut: window.__fx.haut, milieu: window.__fx.milieu };
+      window.__fx.haut = null; window.__fx.milieu = null;
+      return g;
+    });
+    await attendre(page, () => ['haut', 'milieu'].every((l) =>
+      !document.querySelector(`.side-nav-card[data-tse-login="${l}"]`).getClientRects().length), 9000);
+    await wait(page, 300);
+    const d1 = await mvt(page);
+    await page.evaluate((g) => Object.assign(window.__fx, g), gardes);
+    await attendre(page, () => ['haut', 'milieu'].every((l) =>
+      document.querySelector(`.side-nav-card[data-tse-login="${l}"]`).getClientRects().length > 0), 9000);
+    await wait(page, 300);
+    const d2 = await mvt(page);
+    ok('…deux chaînes qui coupent dans la même réponse : un seul relevé — la section remonte de deux places d\'un trajet ; revenues, deux arrivées',
+       d1.glisses - s2.glisses === 1 && Math.abs(d1.dernier.plusLong - 2 * pas) <= 1
+       && d2.entrees - d1.entrees === 2 && d2.dernier.entrees === 2,
+       JSON.stringify({ s2, d1, d2, pas }));
+
+    // Cinq chaînes de plus, de la catégorie de « milieu » : un filtre en efface six sur neuf.
+    await page.evaluate(() => {
+      const h = new Date(Date.now() - 1800_000).toISOString();
+      for (let i = 1; i <= 5; i++) {
+        window.__fx['val' + i] = { id: 'id-v' + i, createdAt: h, viewers: 100 - i, game: 'Valheim', tags: [] };
+        window.__addCard('val' + i, 'Valheim', String(100 - i));
+      }
+    });
+    await pret(page, ['val1', 'val2', 'val3', 'val4', 'val5']);
+    await wait(page, 300);
+    await choisir(page, '#tse-cat-dd', 'Just Chatting');
+    await attendre(page, () => !document.querySelector('.side-nav-card[data-tse-login="val1"]').getClientRects().length, 5000);
+    await wait(page, 300);
+    const m4 = await mvt(page);
+    await choisir(page, '#tse-cat-dd', '');
+    await attendre(page, () => document.querySelector('.side-nav-card[data-tse-login="val1"]').getClientRects().length > 0, 5000);
+    await wait(page, 300);
+    const m5 = await mvt(page);
+    ok('d) six cartes qui reviennent d\'un coup sur neuf, au filtre retiré : un repeuplement, pas une actualisation — rien ne part',
+       m5.entrees === m4.entrees && (m5.retenus.repeuplement || 0) - (m4.retenus.repeuplement || 0) >= 1,
+       JSON.stringify({ m4, m5 }));
+
+    const g0 = await mvt(page);
+    await page.evaluate(() => { document.getElementById('side-nav').style.width = '320px'; });
+    await attendre(page, (n) => (window.tse.panneau.rapport().page.mouvement.retenus.largeur || 0) > n, 5000,
+      g0.retenus.largeur || 0);
+    const g1 = await mvt(page);
+    ok('e) la barre qui change de largeur : tout bouge, rien n\'a de sens à suivre — rien ne part',
+       (g1.retenus.largeur || 0) > (g0.retenus.largeur || 0) && g1.glisses === g0.glisses && g1.entrees === g0.entrees,
+       JSON.stringify({ g0, g1 }));
+
+    // Le retour de Top Chaînes : la liste suivie revient entière — une autre liste.
+    await page.evaluate(() => {
+      window.__cats = [{ name: 'g1', viewers: 90_000, streams: [
+        { login: 'alpha', viewers: 50_000 }, { login: 'bravo', viewers: 30_000 }] }];
+    });
+    const mode = (m) => page.evaluate((x) => document.querySelector(`#tse-mode-row [data-tse-mode="${x}"]`).click(), m);
+    await mode('global');
+    await attendre(page, () => document.body.classList.contains('tse-global-ready')
+      && !document.body.classList.contains('tse-loading'), 9000);
+    await wait(page, 400);
+    const b0 = await mvt(page);
+    await mode('followed');
+    await attendre(page, () => !document.body.classList.contains('tse-global-ready')
+      && document.querySelector('.side-nav-card[data-tse-login="haut"]').getClientRects().length > 0, 9000);
+    await wait(page, 400);
+    const b1 = await mvt(page);
+    ok('…ni le balayage qui suit une bascule de mode : la liste suivie revient d\'un coup, sans arrivées',
+       (b1.retenus.mode || 0) > (b0.retenus.mode || 0) && b1.entrees === b0.entrees,
+       JSON.stringify({ b0, b1 }));
+    await page.close();
+  }
+
+  /* ── II. LES TRAJETS, AUX DURÉES DE PRODUCTION ─────────────────────────── */
+  {
+    const { page, ratees } = await pageVariante([
+      [/BARRE_GLISSE_MS:\s*0\b/, `BARRE_GLISSE_MS: ${DUREES.BARRE_GLISSE_MS}`],
+      [/BARRE_ENTREE_MS:\s*0\b/, `BARRE_ENTREE_MS: ${DUREES.BARRE_ENTREE_MS}`],
+    ]);
+    await decor(page);
+    await pret(page, ['haut', 'milieu', 'bas', 'voisin']);
+    await wait(page, 400);
+    const pas = await pasDe(page);
+    /* LE RELEVÉ À CHAQUE IMAGE : la position À L'ÉCRAN de chaque carte, de la
+       section « Chaînes live », et l'opacité de « milieu » ; et les
+       animations en cours sur chacune, avec leurs images-clés. Les relevés à
+       100 ms font tomber trois balayages dans chaque trajet. */
+    const filmer = (ms) => page.evaluate((duree) => new Promise((fin) => {
+      const el = (l) => document.querySelector(`.side-nav-card[data-tse-login="${l}"]`);
+      const reco = document.getElementById('reco').closest('.side-nav-section');
+      const images = [];
+      const t0 = performance.now();
+      const anims = (x) => x.getAnimations().filter((a) => a instanceof CSSAnimation === false
+        && a instanceof CSSTransition === false).map((a) => ({
+          props: [...new Set(a.effect.getKeyframes().flatMap((k) => Object.keys(k)
+            .filter((p) => !['offset', 'computedOffset', 'easing', 'composite'].includes(p))))].sort(),
+          debut: a.effect.getKeyframes()[0], duree: a.effect.getTiming().duration,
+          delai: a.effect.getTiming().delay, courbe: a.effect.getTiming().easing,
+          remplissage: a.effect.getTiming().fill }));
+      const pas = () => {
+        const t = performance.now() - t0;
+        const im = { t: Math.round(t) };
+        for (const l of ['haut', 'milieu', 'bas', 'voisin']) {
+          const c = el(l);
+          const r = c && c.getClientRects().length ? c.getBoundingClientRect() : null;
+          im[l] = r ? Math.round(r.top * 10) / 10 : null;
+          im[l + 'A'] = c ? anims(c) : [];
+        }
+        im.recoY = Math.round(reco.getBoundingClientRect().top * 10) / 10;
+        im.recoA = anims(reco);
+        const m = el('milieu');
+        im.opMilieu = m ? Number(getComputedStyle(m).opacity) : null;
+        images.push(im);
+        if (t < duree) requestAnimationFrame(pas); else fin(images);
+      };
+      requestAnimationFrame(pas);
+    }), ms);
+
+    // f) « bas » passe en tête.
+    const film1 = filmer(1200);
+    await page.evaluate(() => { window.__fx.bas.viewers = 5000; });
+    const f1 = await film1;
+    const vol = f1.filter((im) => im.basA.length);
+    const premiere = vol[0];
+    const basY = f1.map((im) => im.bas);
+    const monte = basY.every((y, i) => i === 0 || y <= basY[i - 1] + 0.5);
+    const debut = f1.findIndex((im, i) => i > 0 && im.bas < f1[0].bas - 0.5);
+    const finI = f1.findIndex((im, i) => i > debut && Math.abs(im.bas - basY[basY.length - 1]) < 0.5
+      && f1.slice(i).every((x) => Math.abs(x.bas - basY[basY.length - 1]) < 0.5));
+    const saut = Math.max(...basY.slice(1).map((y, i) => Math.abs(y - basY[i])));
+    ok('la variante porte les durées de production', ratees.length === 0, JSON.stringify(ratees));
+    ok(`f) « bas » monte de deux places EN GLISSANT : un trajet « translate » seul, de +${2 * pas} px à 0, ${DUREES.BARRE_GLISSE_MS} ms, courbe cubic-bezier(0.2, 0, 0, 1)`,
+       !!premiere && premiere.basA.length === 1 && JSON.stringify(premiere.basA[0].props) === '["translate"]'
+       && /^0px\s+/.test(premiere.basA[0].debut.translate)
+       && Math.abs(parseFloat(premiere.basA[0].debut.translate.split(/\s+/)[1]) - 2 * pas) <= 1
+       && premiere.basA[0].duree === DUREES.BARRE_GLISSE_MS
+       && premiere.basA[0].courbe === 'cubic-bezier(0.2, 0, 0, 1)',
+       JSON.stringify(premiere || f1.slice(0, 3)));
+    ok('…à l\'écran, d\'une traite : jamais en arrière, aucun bond d\'une image à l\'autre de plus d\'un tiers du trajet',
+       monte && debut > 0 && saut <= (2 * pas) / 3, JSON.stringify({ saut, basY }));
+    ok(`…et en ${DUREES.BARRE_GLISSE_MS} ms, pas davantage : les balayages tombés en plein vol l\'ont REPRIS à l\'instant où il en était, sans le relancer`,
+       finI > debut && f1[finI].t - f1[debut].t <= DUREES.BARRE_GLISSE_MS + 80,
+       JSON.stringify({ debut: f1[debut]?.t, fin: f1[finI]?.t, rapport: await mvt(page) }));
+    const haut1 = f1.find((im) => im.hautA.length)?.hautA[0];
+    ok('…« haut » et « milieu » descendent d\'une place, chacune son trajet, de −pas à 0',
+       !!haut1 && Math.abs(parseFloat(haut1.debut.translate.split(/\s+/)[1]) + pas) <= 1
+       && f1.some((im) => im.milieuA.length && Math.abs(parseFloat(im.milieuA[0].debut.translate.split(/\s+/)[1]) + pas) <= 1),
+       JSON.stringify(haut1));
+
+    // g) « milieu » coupe : la section d'en dessous remonte, sa carte avec elle.
+    const garde = await page.evaluate(() => { const f = window.__fx.milieu; window.__fx.milieu = null; return f; });
+    const film2 = filmer(4000);
+    const f2 = (await film2).filter((im, i, t) => i >= t.findIndex((x) => x.milieu === null) - 1);
+    const recoVol = f2.find((im) => im.recoA.length);
+    const voisinSeul = f2.filter((im) => im.voisinA.length);
+    const ecartVoisin = f2.map((im) => Math.round((im.voisin - im.recoY) * 10) / 10);
+    ok('g) « milieu » coupe : la section d\'en dessous remonte d\'une place en glissant — un trajet sur la section, de +pas à 0',
+       !!recoVol && JSON.stringify(recoVol.recoA[0].props) === '["translate"]'
+       && Math.abs(parseFloat(recoVol.recoA[0].debut.translate.split(/\s+/)[1]) - pas) <= 1,
+       JSON.stringify(recoVol || f2.slice(0, 2)));
+    ok('…et sa carte NE REFAIT PAS le trajet : aucun sur « voisin », qui reste à sa place DANS la section à chaque image',
+       voisinSeul.length === 0 && ecartVoisin.every((e) => Math.abs(e - ecartVoisin[0]) <= 0.5),
+       JSON.stringify({ voisinSeul: voisinSeul.slice(0, 2), ecartVoisin }));
+
+    // h) « milieu » revient : elle ARRIVE, après que la place s'est ouverte.
+    await wait(page, 400);
+    const film3 = filmer(4000);
+    await page.evaluate((f) => { window.__fx.milieu = f; }, garde);
+    const f3 = (await film3).filter((im, i, t) => i >= t.findIndex((x) => x.milieu !== null) - 1);
+    const vue = f3.findIndex((im) => im.milieu !== null);
+    const arrivee = f3.find((im) => im.milieuA.length)?.milieuA[0];
+    const ouvre = f3.find((im) => im.recoA.length)?.recoA[0];
+    ok(`h) « milieu » arrive en fondu : l'opacité seule, de 0, ${DUREES.BARRE_ENTREE_MS} ms après ${DUREES.BARRE_ENTREE_DELAI_MS} ms d'attente, tenue à 0 pendant l'attente`,
+       !!arrivee && JSON.stringify(arrivee.props) === '["opacity"]' && Number(arrivee.debut.opacity) === 0
+       && arrivee.duree === DUREES.BARRE_ENTREE_MS && arrivee.delai === DUREES.BARRE_ENTREE_DELAI_MS
+       && arrivee.remplissage === 'backwards',
+       JSON.stringify(arrivee || f3.slice(vue, vue + 2)));
+    const pendantAttente = f3.filter((im, i) => i >= vue && im.t - f3[vue].t < DUREES.BARRE_ENTREE_DELAI_MS - 30);
+    ok('…invisible tant que la place s\'ouvre — la section d\'en dessous glisse vers le bas pendant ce temps —, puis pleinement visible',
+       vue >= 0 && pendantAttente.length >= 1 && pendantAttente.every((im) => im.opMilieu === 0)
+       && !!ouvre && Math.abs(parseFloat(ouvre.debut.translate.split(/\s+/)[1]) + pas) <= 1
+       && f3[f3.length - 1].opMilieu === 1,
+       JSON.stringify({ pendantAttente: pendantAttente.map((im) => [im.t, im.opMilieu]), ouvre, derniere: f3[f3.length - 1].opMilieu }));
+    await wait(page, 300);
+    const fin = await mvt(page);
+    ok('…et tout est posé : plus rien en vol, et le rapport a compté des reprises en plein vol',
+       fin.enVol === 0 && fin.repris >= 1, JSON.stringify(fin));
+    await page.close();
+  }
+
+  /* ── III. LE CURSEUR SUIT SA BARRE, AU RÉVEIL DE PRODUCTION ──────────────── */
+  {
+    const { page, ratees } = await pageVariante([
+      [/BARRE_GLISSE_MS:\s*0\b/, `BARRE_GLISSE_MS: ${DUREES.BARRE_GLISSE_MS}`],
+      [/BARRE_ENTREE_MS:\s*0\b/, `BARRE_ENTREE_MS: ${DUREES.BARRE_ENTREE_MS}`],
+      [/REFRESH_TICK:\s*100\b/, 'REFRESH_TICK:   2_000'],
+    ]);
+    await page.addStyleTag({ content: '#side-nav { width: 240px; overflow-x: hidden; }' });
+    await page.evaluate(() => {
+      const h = new Date(Date.now() - 1800_000).toISOString();
+      const c = (id, v) => ({ id, createdAt: h, viewers: v, game: 'Valheim', tags: [] });
+      window.__fx = { solo: c('7801', 20000), duo1: c('7811', 5000), duo2: c('7812', 4900) };
+      const duo = [['7811', 'duo1', 5000], ['7812', 'duo2', 4900]]
+        .map(([id, login, viewers]) => ({ id, login, viewers, combined: 9900 }));
+      window.__gs = {};
+      for (const g of duo) window.__gs[g.id] = { hostId: '7811', hostLogin: 'duo1', guests: duo };
+      window.__addCard('solo', 'Valheim', '20 000');
+      window.__addCard('duo1', 'Valheim', '9,9 k');
+      window.__addCard('duo2', 'Valheim', '9,9 k');
+    });
+    await attendre(page, () => !document.body.classList.contains('tse-loading')
+      && document.querySelectorAll('#tse-noeuds .tse-noeud').length === 1
+      && [...document.querySelectorAll('#cards .side-nav-card')][0]?.dataset.tseLogin === 'solo', 15_000);
+    await wait(page, 500);
+    /* À chaque image : le milieu de la barre du duo, tel qu'il est À L'ÉCRAN,
+       et celui de la gélule. Et, 170 ms après le changement d'ordre — en
+       plein trajet, sans balayage —, un placement rejoué : le changement de
+       thème le rejoue (cf. noeudsSalle, l'observateur de data-tse-theme). */
+    const releve = await page.evaluate(() => new Promise((fin) => {
+      const carte = (l) => document.querySelector(`.side-nav-card[data-tse-login="${l}"]`);
+      const images = [];
+      let t0 = null, rejoue = false;
+      const pas = () => {
+        const n = document.querySelector('#tse-noeuds .tse-noeud');
+        const a = carte('duo1').getBoundingClientRect(), b = carte('duo2').getBoundingClientRect();
+        const r = n.getBoundingClientRect();
+        const premier = [...document.querySelectorAll('#cards .side-nav-card')][0]?.dataset.tseLogin;
+        if (t0 === null && premier === 'duo1') t0 = performance.now();
+        const t = t0 === null ? null : performance.now() - t0;
+        if (t !== null && !rejoue && t >= 170) {
+          rejoue = true;
+          const h = document.documentElement;
+          h.setAttribute('data-tse-theme', h.getAttribute('data-tse-theme') === 'light' ? 'dark' : 'light');
+        }
+        images.push({ t: t === null ? null : Math.round(t), barre: Math.round(((a.top + b.bottom) / 2) * 10) / 10,
+                      noeud: Math.round(((r.top + r.bottom) / 2) * 10) / 10,
+                      vole: carte('duo1').getAnimations().some((x) => !(x instanceof CSSAnimation) && !(x instanceof CSSTransition)) });
+        if (t !== null && t > 900) fin(images); else requestAnimationFrame(pas);
+      };
+      requestAnimationFrame(pas);
+      window.__fx.solo.viewers = 1000;
+    }));
+    const apres = releve.filter((im) => im.t !== null);
+    const enVol = apres.filter((im) => im.vole);
+    const ecarts = enVol.map((im) => Math.abs(im.noeud - im.barre));
+    ok('la variante porte les durées et un réveil lent', ratees.length === 0, JSON.stringify(ratees));
+    ok('i) le duo monte d\'une place EN GLISSANT, et sa gélule avec lui : à chaque image du trajet, au milieu de sa barre à 1,5 px près',
+       enVol.length >= 5 && ecarts.every((e) => e <= 1.5),
+       JSON.stringify({ enVol: enVol.slice(0, 8), debut: apres.slice(0, 4), rapport: await mvt(page) }));
+    const posee = apres[apres.length - 1];
+    ok('…un placement rejoué EN PLEIN TRAJET vise la place d\'arrivée : le trajet fini, la gélule est au milieu de la barre posée',
+       Math.abs(posee.noeud - posee.barre) <= 1.5 && !posee.vole, JSON.stringify(posee));
+    await page.close();
+  }
+}
+
+titre('237. Vos rendez-vous — deux heures après son heure, sans la chaîne, le créneau quitte l\'accueil (4.33.0.12)');
+{
+  /* DEMANDÉ : « dans l'accueil, la section planning, si le streamer n'a
+     toujours pas commencé son live après 2h sur son planning, retire-le ».
+     Un créneau commencé sans la chaîne disait « pas encore en direct »
+     jusqu'à sa FIN — une soirée entière pour un créneau de six heures.
+     Trois créneaux commencés, une chaîne hors ligne chacun : dix minutes de
+     retard (il reste), deux heures et cinq (il est parti), et un troisième
+     à vingt-cinq secondes des deux heures, qui doit partir de lui-même, sans
+     rechargement. L'agenda du panneau, lui, garde la semaine telle qu'elle
+     était prévue. MIDI À L'ONGLET (cf. 221) : deux heures plus tôt, c'est
+     encore aujourd'hui. */
+  const decalage = 12 - new Date().getUTCHours();
+  const fuseauMidi = decalage === 0 ? 'Etc/UTC' : decalage > 0 ? `Etc/GMT-${decalage}` : `Etc/GMT+${-decalage}`;
+  const ctx = await browser.newContext({ viewport: { width: 1600, height: 1000 }, timezoneId: fuseauMidi });
+  await ctx.addInitScript((rayons) => {
+    try { localStorage.setItem('tse:roue', 'vu'); localStorage.setItem('tse:indice', 'vu'); } catch { /* stockage refusé */ }
+    window.__accueil = { rayons };
+  }, RAYONS_ACCUEIL);
+  const p = await ctx.newPage();
+  p.on('pageerror', (e) => { fail++; console.log('  ✗ ERREUR PAGE:', e.message); });
+  await p.route('https://www.twitch.tv/**', (route) => {
+    const nom = route.request().url().split('/').pop().split('?')[0];
+    if (nom.endsWith('.js')) return route.fulfill({ contentType: 'application/javascript; charset=utf-8', body: fileText(nom) });
+    return route.fulfill({ contentType: 'text/html; charset=utf-8', body: fileText('page.html') });
+  });
+  await p.route('https://player.twitch.tv/**', (route) => route.fulfill({ contentType: 'text/html', body: '<!doctype html><html><body>x</body></html>' }));
+  await p.route('https://static-cdn.jtvnw.net/**', (route) => route.fulfill({ contentType: 'image/png', body: PIXEL }));
+  await p.goto('https://www.twitch.tv/');
+  await plateauAccueil(p);
+  const { cobalt, j0 } = await p.evaluate(() => {
+    const H = 3_600_000, M = 60_000, now = Date.now();
+    const iso = (t) => new Date(t).toISOString();
+    const A = {};
+    const avec = (l, debut, titre) => {
+      A[l] = { nom: l.charAt(0).toUpperCase() + l.slice(1), titre: '', videos: [], dernier: { id: 'd-' + l, fin: iso(now - 20 * H) },
+               creneaux: [{ id: l + '1', debut: iso(debut), fin: iso(now + 3 * H), titre }] };
+    };
+    avec('cendre', now - 10 * M, 'Dix minutes de retard');
+    avec('cobalt', now - 2 * H + 25_000, 'Bientôt deux heures');
+    avec('braise', now - 2 * H - 5 * M, 'Deux heures passées');
+    avec('aurore', now + 2 * H, 'Plus tard');
+    window.__agenda = A;
+    for (const l of Object.keys(A)) window.__addCard(l, '', '', false);
+    const d = new Date(); d.setHours(0, 0, 0, 0);
+    return { cobalt: Date.parse(A.cobalt.creneaux[0].debut), j0: d.getTime() };
+  });
+  const lire = () => p.evaluate(() => {
+    const r = document.querySelector('.tse-acc-rayon--rdv');
+    return {
+      montre: !!r && !r.hidden, maintenant: Date.now(),
+      cartes: r ? [...r.querySelectorAll('.tse-acc-rdv:not(.tse-acc-rdv--attente)')].map((c) => ({
+        cle: c.dataset.tseCle, reste: c.querySelector('.tse-acc-rdv-reste')?.textContent })) : [],
+      rapport: window.tse.accueil.rapport().rdv,
+    };
+  });
+  await attendre(p, () => window.tse.accueil.rapport().rdv.enCours === false
+    && document.querySelectorAll('.tse-acc-rayon--rdv .tse-acc-rdv:not(.tse-acc-rdv--attente)').length >= 3, 20_000);
+  const a = await lire();
+  ok('a) dix minutes de retard et une heure cinquante-neuf : le créneau reste, « pas encore en direct » ; deux heures et cinq : il n\'y est pas',
+     JSON.stringify(a.cartes.map((c) => c.cle)) === '["cobalt|cobalt1","cendre|cendre1","aurore|aurore1"]'
+     && a.cartes.slice(0, 2).every((c) => c.reste === 'pas encore en direct') && a.maintenant < cobalt + 2 * 3_600_000,
+     JSON.stringify(a));
+  // Le cap des deux heures franchi, la page ouverte : le réveil de l'accueil repeint le rayon.
+  await attendre(p, () => !document.querySelector('.tse-acc-rayon--rdv [data-tse-cle="cobalt|cobalt1"]'), 45_000);
+  const b = await lire();
+  ok('b) …et celui qui franchit les deux heures sous les yeux part de lui-même, sans rechargement — pas avant',
+     JSON.stringify(b.cartes.map((c) => c.cle)) === '["cendre|cendre1","aurore|aurore1"]'
+     && b.maintenant >= cobalt + 2 * 3_600_000,
+     JSON.stringify({ b, cap: cobalt + 2 * 3_600_000 }));
+  const semaine = await p.evaluate((d) => window.tse.panneau('semaine', { debut: d, fin: d + 86_400_000 }).entrees
+    .filter((e) => e.type === 'prevu').map((e) => e.login).sort(), j0);
+  ok('c) l\'agenda du panneau, lui, garde la journée telle qu\'elle était prévue : les quatre créneaux y sont',
+     JSON.stringify(semaine) === '["aurore","braise","cendre","cobalt"]', JSON.stringify(semaine));
+  await ctx.close();
+}
+
+{
+  titre('238. L\'accueil à toutes les largeurs — le Top 15 rangé comme un rayon de Twitch, rien qui déborde (4.33.0.13)');
+  /* SIGNALÉ, CAPTURE À L'APPUI : « le top 10 n'est pas responsive […] prends
+     exemple sur une liste Twitch native ». Cinq places par rangée à toutes les
+     largeurs : à 1 024 pixels, des places de 179 — « Depuis le début » sorti
+     de sa carte —, à 375, de 49, et la page entière défilait de côté. Le Top
+     15 prend la grille des rayons — celle que prennent aussi les rayons de
+     Twitch (cf. RANGER) : une place de 290 pixels au moins, quatorze
+     d'écart, cinq au plus. Sept largeurs, du grand écran au téléphone ; le
+     Top déplié, « Depuis le début » sur chaque place.
+     Mutants — cinq colonnes à toutes les largeurs (la grille d'avant) ; la
+     grille sans plafond (six à 1 920) ; l'écart d'avant (seize pixels) ; le
+     bouton laissé à sa largeur de contenu. */
+  const page = await ouvrirAccueil({ visites: { korbek: [1] }, options: { accueilUne: false } });
+  await plateauAccueil(page, { archives: Object.fromEntries(TOP_ACCUEIL.map((l, i) => [l, { id: String(700 + i) }])) });
+  await attendre(page, () => document.querySelectorAll('#tse-accueil .tse-acc-place:not(.tse-acc-place--attente)').length === 15
+    && document.querySelectorAll('#tse-accueil .tse-acc-rayon--top .tse-acc-debut:not([hidden]):not([data-tse-reserve])').length === 15, 12_000);
+  await page.evaluate(() => document.querySelector('#tse-accueil .tse-acc-rayon--top .tse-acc-plus').click());
+  const COL_MIN = 290, ECART = 14;
+  const voulues = (lw) => Math.min(5, Math.max(1, Math.floor((lw + ECART) / (COL_MIN + ECART))));
+  const mesurer = () => page.evaluate(() => {
+    const racine = document.getElementById('tse-accueil');
+    const liste = racine.querySelector('.tse-acc-rayon--top .tse-acc-liste');
+    const lr = liste.getBoundingClientRect();
+    const boites = '.tse-acc-place, .tse-acc-carte, .tse-acc-rdv, .tse-acc-rayon';
+    const debords = [];
+    for (const el of racine.querySelectorAll('*')) {
+      if (!el.getClientRects().length || el.closest('.tse-acc-ruban') || el.closest('[popover]')) continue;
+      const r = el.getBoundingClientRect();
+      if (!r.width) continue;
+      const boite = el.parentElement?.closest(boites);
+      const B = (boite || racine).getBoundingClientRect();
+      if (r.right > B.right + 0.5 || r.left < B.left - 0.5) debords.push((el.className || el.localName) + ' ' + Math.round(r.left) + '–' + Math.round(r.right));
+    }
+    const places = [...liste.children];
+    const vues = places.filter((p) => !p.hidden);
+    const debut = vues.map((p) => p.querySelector('.tse-acc-debut')).filter((d) => d && !d.hidden);
+    return {
+      lw: lr.width, cols: getComputedStyle(liste).gridTemplateColumns.split(/\s+/).filter((t) => /px$/.test(t)).length,
+      ecart: getComputedStyle(liste).columnGap, vues: vues.length,
+      lignes: new Set(vues.map((p) => Math.round(p.getBoundingClientRect().top))).size,
+      placeMin: Math.min(...vues.map((p) => p.getBoundingClientRect().width)),
+      nomsCoupes: vues.filter((p) => { const n = p.querySelector('.tse-acc-nom'); return n.scrollWidth > n.clientWidth + 1; }).length,
+      debutDehors: debut.filter((d) => { const c = d.closest('.tse-acc-carte').getBoundingClientRect(), r = d.getBoundingClientRect();
+        return r.right > c.right + 0.5; }).length,
+      debutRegle: debut.length > 0 && debut.every((d) => getComputedStyle(d).maxWidth === '100%'
+        && getComputedStyle(d.lastElementChild).textOverflow === 'ellipsis'),
+      debords: debords.slice(0, 4), nDebords: debords.length,
+      pageDeborde: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+    };
+  });
+  const releves = {};
+  for (const w of [1920, 1600, 1366, 1024, 768, 600, 375]) {
+    await page.setViewportSize({ width: w, height: 1000 });
+    await wait(page, 500);
+    releves[w] = await mesurer();
+  }
+  const R = Object.entries(releves);
+  ok('a) autant de colonnes que la liste tient de places de 290 pixels, cinq au plus : 5 sur grand écran, 1 sur téléphone, et chaque largeur entre les deux',
+     R.every(([, r]) => r.cols === voulues(r.lw)) && releves[1920].cols === 5 && releves[375].cols === 1
+     && new Set(R.map(([, r]) => r.cols)).size >= 4,
+     JSON.stringify(R.map(([w, r]) => [w, Math.round(r.lw), r.cols, voulues(r.lw)])));
+  ok('…les écarts des autres rayons — quatorze pixels — et jamais une place plus étroite que 290, sauf sur une liste qui ne les a pas',
+     R.every(([, r]) => r.ecart === ECART + 'px' && (r.placeMin >= COL_MIN - 0.5 || (r.cols === 1 && Math.abs(r.placeMin - r.lw) <= 0.5))),
+     JSON.stringify(R.map(([w, r]) => [w, r.ecart, Math.round(r.placeMin)])));
+  ok('b) dépliées, les quinze places en rangées pleines de la largeur — trois de cinq, cinq de trois —, aucun nom coupé',
+     R.every(([, r]) => r.vues === 15 && r.lignes === Math.ceil(15 / r.cols) && r.nomsCoupes === 0),
+     JSON.stringify(R.map(([w, r]) => [w, r.vues, r.lignes, r.nomsCoupes])));
+  ok('c) rien ne sort de sa carte ni de son rayon, et la page ne défile jamais de côté — à aucune des sept largeurs',
+     R.every(([, r]) => r.nDebords === 0 && !r.pageDeborde),
+     JSON.stringify(R.filter(([, r]) => r.nDebords || r.pageDeborde).map(([w, r]) => [w, r.debords, r.pageDeborde])));
+  ok('d) « Depuis le début » ne dépasse jamais sa carte : au plus sa largeur, et son libellé s\'abrège plutôt que de sortir',
+     R.every(([, r]) => r.debutDehors === 0 && r.debutRegle), JSON.stringify(R.map(([w, r]) => [w, r.debutDehors, r.debutRegle])));
+  // Replié : la première rangée seule, comme un rayon de Twitch — 1 à 5 sur grand écran, 1 à 3 sur un portable.
+  await page.evaluate(() => document.querySelector('#tse-accueil .tse-acc-rayon--top .tse-acc-plus').click());
+  const replie = {};
+  for (const w of [1920, 1024, 375]) {
+    await page.setViewportSize({ width: w, height: 1000 });
+    await wait(page, 500);
+    replie[w] = await mesurer();
+  }
+  ok('e) replié, la première rangée seule, à chaque largeur — et le pliage suit la largeur qui change',
+     Object.values(replie).every((r) => r.vues === r.cols && r.lignes === 1) && replie[1920].vues === 5 && replie[375].vues === 1,
+     JSON.stringify(Object.entries(replie).map(([w, r]) => [w, r.cols, r.vues, r.lignes])));
+  await page.close();
+}
+
+{
+  titre('239. « À la une » — jamais de trou, toujours symétrique : la place qui manque se comble d\'un autre direct (4.33.0.13)');
+  /* SIGNALÉ, CAPTURE À L'APPUI : « de temps en temps, "À la une" manque un
+     live dans le carrousel […] il faut à tout prix un live s'il en manque un
+     et que ce n'est pas symétrique ». Une carte au centre, une à sa gauche,
+     deux à sa droite : une chaîne du carrousel ne pouvait pas se montrer —
+     celle de la bannière, une chaîne hors ligne, une réponse qui ne vient
+     pas —, ou le carrousel n'en portait que quatre.
+     Une place par chaîne du carrousel, un nombre impair : le trou se comble
+     d'un autre direct, à sa place ; d'abord le classement du Top, en direct
+     d'après TseChannels, puis les suivies en direct. Le direct qui comble
+     garde sa place ; il la rend quand la chaîne revient. Rien d'inventé :
+     sans direct à mettre, le trou reste, et le rapport le dit.
+     Mutants — le trou laissé ; le direct qui comble posé au bout plutôt qu'à
+     la place du trou ; une chaîne du classement prise sans être en direct ;
+     le carrousel pair laissé pair ; le direct qui comble changé à chaque
+     peinture ; les directs qui comblent redistribués dans l'ordre des trous ;
+     les suivies avant le Top. */
+  const lire = (p) => p.evaluate(() => {
+    const z = document.querySelector('#tse-accueil .tse-acc-rayon--une');
+    const cartes = [...z.querySelectorAll('.tse-acc-carte')];
+    const cles = cartes.map((c) => c.dataset.tseCle);
+    const r = window.tse.accueil.rapport().une;
+    const t = cles.indexOf(r.tete);
+    const tete = cartes[t];
+    const mx = (c) => { const b = c.getBoundingClientRect(); return b.left + b.width / 2; };
+    return { ordre: t < 0 ? cles : [...cles.slice(t), ...cles.slice(0, t)], n: cles.length,
+             gauche: tete ? cartes.filter((c) => mx(c) < mx(tete) - 1).length : null,
+             droite: tete ? cartes.filter((c) => mx(c) > mx(tete) + 1).length : null,
+             trous: r.trous, comblees: r.comblees, raisons: r.raisons };
+  });
+  /* a) LA BANNIÈRE DANS LE CARROUSEL, LE TOP EN MARCHE : korbek, la bannière,
+     est la gauche du centre, et la seule suivie — seul le Top peut combler.
+     L'extension lit la boucle depuis le centre, la droite, puis la gauche
+     (cf. chainesCarrousel) : tessaly, orvik, marbek, solvane, korbek — la
+     place de korbek est la dernière de la boucle.
+     Son premier, zephyr, est hors ligne d'après TseChannels : il ne comble
+     pas ; aldric, le suivant, en direct, si, à la place de korbek. Cinq
+     cartes, deux de chaque côté. Au faux Twitch, TseChannels omet une chaîne
+     du classement que `__fx` ne connaît pas : on pose celles qu'il faut. */
+  const pa = await ouvrirAccueil({ visites: { korbek: [1, 2, 3] }, options: { accueilDebut: false },
+                                   decor: { carrouselChaines: ['solvane', 'korbek', 'tessaly', 'orvik', 'marbek'] } });
+  await plateauAccueil(pa, { suivies: { korbek: SUIVIES_ACCUEIL.korbek } });
+  await pa.evaluate(() => {
+    const h = (m) => new Date(Date.now() - m * 60_000).toISOString();
+    window.__fx.zephyr = null;
+    window.__fx.aldric = { id: '7101', createdAt: h(37), viewers: 37000, game: 'Just Chatting', tags: ['Français'], title: 'Direct aldric' };
+  });
+  await attendre(pa, () => document.querySelectorAll('#tse-accueil .tse-acc-rayon--une .tse-acc-carte').length === 5
+    && document.querySelectorAll('#tse-accueil .tse-acc-place:not(.tse-acc-place--attente)').length === 15, 12_000);
+  await wait(pa, 600);
+  const a1 = await lire(pa);
+  ok('a) la place de la bannière comblée, à sa place, par le premier du Top EN DIRECT — aldric, zephyr étant hors ligne — : cinq cartes, deux de chaque côté du centre',
+     JSON.stringify(a1.ordre) === '["tessaly","orvik","marbek","solvane","aldric"]' && a1.gauche === 2 && a1.droite === 2
+     && a1.trous === 1 && a1.comblees === 1 && a1.raisons.banniere === 1, JSON.stringify(a1));
+  /* b) IL GARDE SA PLACE : zephyr revient en direct — aldric n'est plus le
+     premier du Top en direct —, le rayon ne bouge pas. */
+  await pa.evaluate(() => { window.__fx.zephyr = { ...window.__fx.aldric, id: '7999', title: 'Direct zephyr' }; });
+  await wait(pa, 2500);
+  const b1 = await lire(pa);
+  ok('b) le direct qui comble garde sa place quand le classement change : pas une carte de remplacée à chaque peinture',
+     JSON.stringify(b1.ordre) === JSON.stringify(a1.ordre) && b1.comblees === 1, JSON.stringify(b1));
+  /* c) UN TROU PLUS TÔT DANS LA BOUCLE, AU MILIEU : une suivie passe en
+     direct, puis orvik, la droite du centre — deuxième de la boucle, bien
+     avant korbek —, s'arrête. Sa place se comble, à l'endroit même, du
+     premier du Top en direct qui n'est pas à l'écran — zephyr, et non
+     nyxaria, la suivie : le Top d'abord —, et aldric GARDE la place de
+     korbek : le trou nouveau ne le déplace pas. Elle revient : elle reprend
+     sa place, zephyr s'en va, aldric reste. */
+  await pa.evaluate(() => {
+    const h = (m) => new Date(Date.now() - m * 60_000).toISOString();
+    window.__fx.nyxaria = { id: '11', createdAt: h(185), viewers: 18234, game: 'Elden Ring', tags: ['Français'], title: 'Boss final sans mourir' };
+    window.__addCard('nyxaria', 'Elden Ring', '18234');
+  });
+  await attendre(pa, () => !!document.querySelector('.side-nav-card[data-tse-login="nyxaria"][data-tse-started-at]'), 8000);
+  await wait(pa, 600);
+  await pa.evaluate(() => { window.__orvik = window.__fx.orvik; window.__fx.orvik = null; });
+  await attendre(pa, () => !document.querySelector('#tse-accueil .tse-acc-rayon--une [data-tse-cle="orvik"]'), 6000);
+  await wait(pa, 600);
+  const c1 = await lire(pa);
+  await pa.evaluate(() => { window.__fx.orvik = window.__orvik; });
+  await attendre(pa, () => !!document.querySelector('#tse-accueil .tse-acc-rayon--une [data-tse-cle="orvik"]'), 8000);
+  await wait(pa, 600);
+  const c2 = await lire(pa);
+  ok('c) un trou plus tôt dans la boucle : comblé du Top avant les suivies, et le direct qui comblait garde SA place ; revenue, la chaîne reprend la sienne',
+     JSON.stringify(c1.ordre) === '["tessaly","zephyr","marbek","solvane","aldric"]' && c1.gauche === 2 && c1.droite === 2
+     && c1.trous === 2 && c1.comblees === 2 && c1.raisons.horsLigne === 1 && c1.raisons.banniere === 1
+     && JSON.stringify(c2.ordre) === JSON.stringify(a1.ordre) && c2.comblees === 1, JSON.stringify({ c1, c2 }));
+  /* c bis) SANS TOP EN DIRECT À METTRE, LES SUIVIES : zephyr et aldric
+     s'arrêtent — la place de korbek se comble de nyxaria. */
+  await pa.evaluate(() => { window.__fx.zephyr = null; window.__fx.aldric = null; });
+  await attendre(pa, () => !document.querySelector('#tse-accueil .tse-acc-rayon--une [data-tse-cle="aldric"]'), 6000);
+  await wait(pa, 600);
+  const c3 = await lire(pa);
+  ok('c bis) aucun direct du Top à mettre : la place se comble d\'une suivie en direct',
+     JSON.stringify(c3.ordre) === '["tessaly","orvik","marbek","solvane","nyxaria"]' && c3.comblees === 1, JSON.stringify(c3));
+  await pa.close();
+  /* d) UN CARROUSEL DE QUATRE : une place de plus, au bout de la boucle —
+     à la gauche du centre —, et le compte est impair. La bannière, korbek,
+     n'est pas au carrousel, et c'est la suivie la plus regardée : elle n'est
+     pas reprise pour autant — elle est déjà juste au-dessus. */
+  const pd = await ouvrirAccueil({ visites: { korbek: [1] }, options: { accueilDebut: false },
+                                   decor: { carrouselChaines: ['solvane', 'orvik', 'tessaly', 'marbek'] } });
+  await plateauAccueil(pd);
+  await attendre(pd, () => document.querySelectorAll('#tse-accueil .tse-acc-rayon--une .tse-acc-carte').length === 5, 12_000);
+  await wait(pd, 600);
+  const d1 = await lire(pd);
+  ok('d) un carrousel de quatre : une cinquième place — la bannière n\'y est pas reprise —, et deux cartes de chaque côté du centre',
+     d1.n === 5 && d1.gauche === 2 && d1.droite === 2 && d1.raisons.pair === 1 && d1.comblees === 1
+     && JSON.stringify(d1.ordre.slice(0, 2)) === '["tessaly","marbek"]' && !d1.ordre.includes('korbek'), JSON.stringify(d1));
+  await pd.close();
+  /* e) RIEN D'INVENTÉ : le Top coupé, et pour suivie en direct la seule
+     bannière. Le trou reste, et le rapport le dit. */
+  const pe = await ouvrirAccueil({ visites: { korbek: [1] }, options: { accueilDebut: false, accueilTop: false },
+                                   decor: { carrouselChaines: ['solvane', 'orvik', 'tessaly', 'korbek', 'marbek'] } });
+  await plateauAccueil(pe, { suivies: { korbek: SUIVIES_ACCUEIL.korbek } });
+  await attendre(pe, () => document.querySelectorAll('#tse-accueil .tse-acc-rayon--une .tse-acc-carte').length === 4
+    && !!document.querySelector('#tse-accueil-heros .tse-acc-heros:not([hidden])'), 12_000);
+  await wait(pe, 1500);
+  const e1 = await lire(pe);
+  ok('e) sans direct à mettre — le Top coupé, la bannière seule suivie en direct —, le trou reste : rien d\'inventé, et le rapport le compte',
+     e1.n === 4 && e1.trous === 1 && e1.comblees === 0 && e1.raisons.banniere === 1, JSON.stringify(e1));
+  await pe.close();
+}
+
+{
+  titre('240. 4.33.0.14 — les filtres sont des <select>, le carrousel se dit, Ctrl+F déplie, chaque texte tient son seuil');
+  /* ══ a) LES DEUX FILTRES SONT DES <select> ═══════════════════════════════
+     Le menu maison s'ouvrait au clavier, mais on n'y pouvait rien choisir :
+     ses options ne prenaient pas le focus. Le <select> personnalisable rend
+     le clavier, les rôles et la liste au navigateur ; Chrome garde l'aspect,
+     drapeaux compris (mesuré contre la version précédente, au pixel) ; un
+     navigateur sans base-select montre le texte des options. Trois chaînes
+     suivies : deux en français, une en anglais, sur deux catégories. */
+  const pf = await fresh();
+  await pf.evaluate(() => {
+    const t = new Date(Date.now() - 1800_000).toISOString();
+    window.__fx = {
+      orvik:   { id: 'id-orvik',   createdAt: t, viewers: 900, game: 'Just Chatting', tags: ['Français'] },
+      tessaly: { id: 'id-tessaly', createdAt: t, viewers: 500, game: 'Just Chatting', tags: ['English'] },
+      marbek:  { id: 'id-marbek',  createdAt: t, viewers: 300, game: 'Minecraft',     tags: ['Français'] },
+    };
+    window.__addCard('orvik', 'Just Chatting', '900');
+    window.__addCard('tessaly', 'Just Chatting', '500');
+    window.__addCard('marbek', 'Minecraft', '300');
+  });
+  await attendre(pf, () => document.querySelectorAll('#tse-cat-dd option').length === 3
+    && document.querySelectorAll('#tse-lang-dd option').length === 3, 12_000);
+  await wait(pf, 600);
+  const choix = (id) => pf.evaluate((x) => { const s = document.querySelector('#' + x + ' select');
+    return { v: s.value, ouvert: s.matches(':open'), focus: document.activeElement === s, inactif: s.disabled,
+             anneau: getComputedStyle(s).boxShadow }; }, id);
+  const visibles = () => pf.evaluate(() => [...document.querySelectorAll('.side-nav-card')]
+    .filter((c) => c.style.display !== 'none').map((c) => c.dataset.tseLogin).filter(Boolean).sort());
+
+  /* a1) LA FORME. Mutants — l'espace texte entre compteur et nom ôté ; le
+     drapeau laissé aux lecteurs d'écran. */
+  const forme = await pf.evaluate(() => {
+    const cat = document.querySelector('#tse-cat-dd select'), lang = document.querySelector('#tse-lang-dd select');
+    return {
+      balises: [cat.className, lang.className],
+      apparence: getComputedStyle(cat).appearance,
+      noms: [cat.getAttribute('aria-label'), lang.getAttribute('aria-label')],
+      bouton: !!cat.querySelector(':scope > button > selectedcontent') && !!lang.querySelector(':scope > button > selectedcontent'),
+      cats: [...cat.options].map((o) => o.text),
+      langues: [...lang.options].map((o) => o.text),
+      drapeaux: [...lang.querySelectorAll('option .tse-flag')].map((f) => f.getAttribute('aria-hidden')),
+      flechesNavigateur: getComputedStyle(cat, '::picker-icon').display,
+    };
+  });
+  ok('a) les deux filtres sont des <select> personnalisés, nommés, leur bouton recopie le choix',
+     JSON.stringify(forme.balises) === '["tse-dd-btn","tse-dd-btn"]' && forme.apparence === 'base-select'
+     && forme.noms[0] === 'Filtrer les chaînes suivies par catégorie' && forme.noms[1] === 'Filtrer les chaînes suivies par langue'
+     && forme.bouton && forme.flechesNavigateur === 'none', JSON.stringify(forme));
+  /* L'ASPECT D'AVANT, MESURÉ CONTRE LA 4.33.0.13 : des lignes de 24 px — la
+     taille de cible minimale —, la liste à 4 px sous la boîte, large de la
+     boîte et de son cadre. Mutants — la hauteur d'option du navigateur
+     gardée (36 px) ; la boîte de la liste comptée cadre compris. */
+  await pf.click('#tse-cat-dd select');
+  await wait(pf, 300);
+  const liste = await pf.evaluate(() => {
+    const s = document.querySelector('#tse-cat-dd select');
+    const b = s.getBoundingClientRect();
+    const o = [...s.options].map((x) => x.getBoundingClientRect());
+    return { ouvert: s.matches(':open'), hauteurs: o.map((r) => Math.round(r.height)),
+             ecart: Math.round(o[0].top - b.bottom), gauche: Math.round(o[0].left - b.left), largeur: Math.round(o[0].width), boite: Math.round(b.width) };
+  });
+  await pf.keyboard.press('Escape');
+  await wait(pf, 200);
+  ok('a) …la liste a l\'aspect d\'avant : des lignes de 24 px, à 4 px sous la boîte, aussi large qu\'elle',
+     liste.ouvert && liste.hauteurs.every((h) => h === 24) && liste.ecart === 9 && liste.gauche === 5 && liste.largeur === liste.boite,
+     JSON.stringify(liste));
+  ok('a) …le texte de chaque option se lit seul — « 2 | Français » —, et le drapeau est tu',
+     JSON.stringify(forme.cats) === '["Toutes les catégories","2 | Discussions","1 | Minecraft"]'
+     && JSON.stringify(forme.langues) === '["Toutes les langues","2 | Français","1 | English"]'
+     && forme.drapeaux.length === 3 && forme.drapeaux.every((x) => x === 'true'), JSON.stringify(forme));
+
+  /* a2) LE CLAVIER, ce qui manquait : Entrée ouvre, la flèche descend, Entrée
+     choisit — et le filtre s'applique. Le focus reste sur le filtre, et se
+     voit. Mutant — le liseré du focus ôté. */
+  await pf.focus('#tse-cat-dd select');
+  await pf.keyboard.press('Enter');
+  await wait(pf, 200);
+  const ouvertClavier = await choix('tse-cat-dd');
+  await pf.keyboard.press('ArrowDown');
+  await pf.keyboard.press('Enter');
+  await attendre(pf, () => document.querySelector('.side-nav-card[data-tse-login="marbek"]')?.style.display === 'none', 5000);
+  await wait(pf, 400);
+  const apresClavier = await choix('tse-cat-dd');
+  const cartesJc = await visibles();
+  ok('a) au clavier : Entrée ouvre la liste, ↓ puis Entrée choisit « Discussions », et le filtre s\'applique',
+     ouvertClavier.ouvert === true && apresClavier.v === 'Just Chatting' && apresClavier.ouvert === false
+     && JSON.stringify(cartesJc) === '["orvik","tessaly"]', JSON.stringify({ ouvertClavier, apresClavier, cartesJc }));
+  ok('a) …le focus est resté sur le filtre, et son liseré violet se voit',
+     apresClavier.focus === true && /145, 71, 255/.test(apresClavier.anneau), JSON.stringify(apresClavier));
+
+  /* a3) ÉCHAP referme sans choisir. */
+  await pf.keyboard.press('Enter');
+  await wait(pf, 200);
+  await pf.keyboard.press('ArrowDown');
+  await pf.keyboard.press('Escape');
+  await wait(pf, 300);
+  const apresEchap = await choix('tse-cat-dd');
+  ok('a) Échap referme la liste sans rien choisir',
+     apresEchap.ouvert === false && apresEchap.v === 'Just Chatting', JSON.stringify(apresEchap));
+
+  /* a4) DÉSACTIVÉ PENDANT QU'IL EST OUVERT, il se ferme. Un <select> garde sa
+     liste ouverte, inerte, quand on le désactive ; le produit la ferme. La
+     langue ouverte, on choisit « Minecraft » — qui n'a que du français : la
+     langue n'a plus de choix, elle se grise. Mutant — la fermeture ôtée. */
+  await pf.evaluate(() => { const s = document.querySelector('#tse-cat-dd select'); s.value = ''; s.dispatchEvent(new Event('change', { bubbles: true })); });
+  await wait(pf, 400);
+  await pf.click('#tse-lang-dd select');
+  await wait(pf, 200);
+  const langOuverte = await choix('tse-lang-dd');
+  await pf.evaluate(() => { const s = document.querySelector('#tse-cat-dd select'); s.value = 'Minecraft'; s.dispatchEvent(new Event('change', { bubbles: true })); });
+  await wait(pf, 400);
+  const langGrisee = await choix('tse-lang-dd');
+  ok('a) une liste ouverte que son filtre perd se referme : la langue, grisée par « Minecraft », n\'est plus ouverte',
+     langOuverte.ouvert === true && langGrisee.inactif === true && langGrisee.ouvert === false && langGrisee.v === 'Français',
+     JSON.stringify({ langOuverte, langGrisee }));
+  await pf.evaluate(() => { const s = document.querySelector('#tse-cat-dd select'); s.value = ''; s.dispatchEvent(new Event('change', { bubbles: true })); });
+  await wait(pf, 400);
+
+  /* a5) LE <select> ORDINAIRE (Firefox) : rendu ici en ôtant base-select, et
+     la barre dit « natif ». Les deux filtres se partagent la ligne, rien ne
+     déborde. Mutant — la règle du partage ôtée : la langue garde ses
+     cinquante pixels, « Toutes les langues » n'y tient pas. */
+  const natif = await pf.evaluate(() => {
+    document.getElementById('tse-filter').dataset.tseSelect = 'natif';
+    const st = document.createElement('style'); st.id = 'tse-natif';
+    st.textContent = '.tse-dd-btn, .tse-dd-btn::picker(select) { appearance: auto !important; }';
+    document.head.append(st);
+    const l = (id) => Math.round(document.querySelector('#' + id + ' select').getBoundingClientRect().width);
+    const rangee = document.querySelector('.tse-filter-row');
+    const r = { cat: l('tse-cat-dd'), lang: l('tse-lang-dd'), deborde: rangee.scrollWidth > rangee.clientWidth };
+    st.remove(); document.getElementById('tse-filter').dataset.tseSelect = 'riche';
+    return r;
+  });
+  ok('a) le <select> ordinaire d\'un navigateur sans base-select : les deux filtres se partagent la ligne, sans déborder',
+     Math.abs(natif.cat - natif.lang) <= 1 && natif.lang > 80 && !natif.deborde, JSON.stringify(natif));
+
+  /* a6) LE CHOIX RESTE AU MENU QUAND LE MENU NE LE CONNAÎT PAS. « Minecraft »
+     choisi dans la liste suivie, on passe en Top Chaînes : la catégorie tient
+     — elle dit ce qu'on demande à Twitch —, et la liste des catégories n'est
+     pas encore là. Le bouton d'avant affichait le choix quoi qu'il arrive ;
+     un <select> n'affiche que ses options : sans elle, il dirait « Toutes
+     les catégories » pendant que le filtre tient. Mutant — le choix absent
+     du menu oublié. */
+  await pf.evaluate(() => { const s = document.querySelector('#tse-cat-dd select'); s.value = 'Minecraft'; s.dispatchEvent(new Event('change', { bubbles: true })); });
+  await wait(pf, 400);
+  await pf.evaluate(() => document.querySelector('#tse-mode-row [data-tse-mode="global"]').click());
+  await wait(pf, 400);
+  const garde = await pf.evaluate(() => { const s = document.querySelector('#tse-cat-dd select');
+    return { v: s.value, options: [...s.options].map((o) => o.value), affiche: s.querySelector('selectedcontent')?.textContent ?? null }; });
+  ok('a) une catégorie choisie que le menu ne connaît pas encore reste au menu, choisie, et le bouton la montre',
+     garde.v === 'Minecraft' && garde.options.includes('Minecraft') && /Minecraft/.test(garde.affiche || ''), JSON.stringify(garde));
+  await pf.close();
+
+  /* ══ b) L'ACCUEIL ══════════════════════════════════════════════════════ */
+  const pa = await ouvrirAccueil({ visites: { korbek: [1] }, options: { accueilDebut: false } });
+  await plateauAccueil(pa);
+  await attendre(pa, () => document.querySelectorAll('#tse-accueil .tse-acc-rayon--une .tse-acc-carte').length === 5
+    && document.querySelectorAll('#tse-accueil .tse-acc-liste--top > .tse-acc-place:not(.tse-acc-place--attente)').length >= 10, 15_000);
+  await wait(pa, 1200);
+
+  /* b1) « À LA UNE » EST UN CARROUSEL, ET IL LE DIT : une région nommée par
+     son titre, des diapositives « N sur 5 » numérotées dans l'ordre du
+     carrousel — le ruban tourne, les numéros restent. Rien n'est annoncé à
+     la peinture. Mutants — l'ordre du ruban à la place de celui du carrousel ;
+     une <article> au lieu d'un <div> pour une diapositive. */
+  const lireUne = () => pa.evaluate(() => {
+    const cadre = document.querySelector('#tse-accueil .tse-acc-ruban-cadre');
+    const titre = document.getElementById(cadre.getAttribute('aria-labelledby'));
+    const cartes = [...cadre.querySelectorAll('.tse-acc-ruban > .tse-acc-carte')];
+    return { role: cadre.getAttribute('role'), desc: cadre.getAttribute('aria-roledescription'), titre: titre?.textContent ?? null,
+             diapos: Object.fromEntries(cartes.map((c) => [c.dataset.tseCle, [c.localName, c.getAttribute('role'),
+               c.getAttribute('aria-roledescription'), c.getAttribute('aria-label')].join('|')])),
+             annonce: cadre.querySelector(':scope > .tse-acc-annonce[role="status"]')?.textContent ?? null,
+             ordreDom: cartes.map((c) => c.dataset.tseCle) };
+  });
+  const u1 = await lireUne();
+  const etiquettes = Object.values(u1.diapos).map((x) => x.split('|')[3]).sort();
+  ok('b) « À la une » est une région « carrousel » nommée par son titre ; ses cartes, des diapositives « N sur 5 »',
+     u1.role === 'region' && u1.desc === 'carrousel' && u1.titre === 'À la une'
+     && Object.values(u1.diapos).every((x) => /^div\|group\|diapositive\|[1-5] sur 5$/.test(x))
+     && JSON.stringify(etiquettes) === '["1 sur 5","2 sur 5","3 sur 5","4 sur 5","5 sur 5"]' && u1.annonce === '',
+     JSON.stringify(u1));
+  /* b2) UNE FLÈCHE, ET L'ANNONCE DIT LA CARTE DU CENTRE : « k sur 5 : Nom ».
+     Les numéros n'ont pas bougé avec le ruban. Mutant — l'annonce ôtée. */
+  await pa.click('#tse-accueil .tse-acc-ruban-fleche--suiv');
+  await attendre(pa, () => !!document.querySelector('#tse-accueil .tse-acc-annonce')?.textContent, 6000);
+  await wait(pa, 800);
+  const u2 = await lireUne();
+  const centre = await pa.evaluate(() => {
+    const tete = window.tse.accueil.rapport().une.tete;
+    const c = document.querySelector(`#tse-accueil .tse-acc-ruban > [data-tse-cle="${tete}"]`);
+    return { tete, label: c?.getAttribute('aria-label'), nom: c?.querySelector('.tse-acc-nom')?.textContent,
+             annonces: window.tse.accueil.rapport().une.annonces };
+  });
+  ok('b) …une flèche : l\'annonce polie dit la diapositive du centre et sa chaîne, une fois',
+     !!centre.label && u2.annonce === `${centre.label} : ${centre.nom}` && centre.annonces === 1,
+     JSON.stringify({ annonce: u2.annonce, centre }));
+  ok('b) …et chaque chaîne a gardé son numéro, le ruban ayant tourné',
+     JSON.stringify(Object.entries(u2.diapos).sort()) === JSON.stringify(Object.entries(u1.diapos).sort())
+     && JSON.stringify(u2.ordreDom) !== JSON.stringify(u1.ordreDom), JSON.stringify({ avant: u1, apres: u2 }));
+
+  /* b3) REPLIÉES, MAIS TROUVABLES. Les places du Top 15 sous la première
+     rangée portent hidden="until-found" et ne prennent aucune place. Une
+     recherche dans la page — ici un fragment de texte, la même mécanique que
+     Ctrl+F — trouve le nom d'une chaîne repliée : le navigateur envoie
+     « beforematch », et le rayon se déplie tout entier. Mutants — la boîte
+     repliée laissée dans la grille ; le dépliage à la recherche ôté. */
+  const pli = await pa.evaluate(() => {
+    const l = document.querySelector('#tse-accueil .tse-acc-liste--top');
+    const places = [...l.children];
+    const cachees = places.filter((p) => p.getAttribute('hidden') === 'until-found');
+    const vu = document.body.innerText;
+    const cible = cachees.map((p) => p.querySelector('.tse-acc-nom')?.textContent || '')
+      .find((n) => n.length >= 4 && !vu.includes(n)) || null;
+    return { n: places.length, cachees: cachees.length, autres: places.filter((p) => p.hasAttribute('hidden') && p.getAttribute('hidden') !== 'until-found').length,
+             hauteur: Math.round(l.getBoundingClientRect().height), premiere: Math.round(places[0].getBoundingClientRect().height), cible };
+  });
+  ok('b) le Top 15 replié : les places sous la première rangée portent hidden="until-found", sans prendre de place',
+     pli.cachees >= 5 && pli.autres === 0 && pli.hauteur <= pli.premiere + 2 && !!pli.cible, JSON.stringify(pli));
+  if (pli.cible) await pa.goto(pa.url().split('#')[0] + '#:~:text=' + encodeURIComponent(pli.cible));
+  await attendre(pa, () => window.tse.accueil.rapport().plisTrouves > 0, 6000);
+  await wait(pa, 600);
+  const trouve = await pa.evaluate(() => {
+    const r = document.querySelector('#tse-accueil .tse-acc-rayon--top');
+    const b = r.querySelector('.tse-acc-plus');
+    const rp = window.tse.accueil.rapport();
+    return { cachees: [...r.querySelectorAll('.tse-acc-liste--top > [hidden]')].length, bouton: b.textContent.trim(),
+             etendu: b.getAttribute('aria-expanded'), ouverts: rp.rayons.ouverts, trouves: rp.plisTrouves };
+  });
+  ok('b) …une recherche trouve une chaîne repliée : le rayon se déplie tout entier, « Afficher moins » au bouton',
+     trouve.cachees === 0 && trouve.bouton === 'Afficher moins' && trouve.etendu === 'true'
+     && trouve.ouverts.includes('top') && trouve.trouves === 1, JSON.stringify({ cible: pli.cible, trouve }));
+
+  /* b4) CHAQUE TEXTE DE L'ACCUEIL ET DE LA BARRE AU SEUIL, dans les deux
+     thèmes, par la mesure commune. Le héros est écarté : son texte est posé
+     sur une vidéo, que la mesure ne lit pas. Les rangs du Top se mesurent par
+     leur trait. Mutants — l'onglet actif rendu à son dégradé d'avant (3,26:1
+     à son sommet) ; « = » rendu au gris faible (3,83:1). */
+  await pa.evaluate(() => document.querySelectorAll('#tse-accueil .tse-acc-plus[aria-expanded="false"]').forEach((b) => b.click()));
+  await wait(pa, 400);
+  const contrastesAccueil = {};
+  for (const theme of ['dark', 'light']) {
+    await pa.evaluate((x) => document.documentElement.setAttribute('data-a-theme', x), theme);
+    await attendre(pa, (x) => document.documentElement.getAttribute('data-tse-theme') === x, 5000, theme);
+    await wait(pa, 600);
+    contrastesAccueil[theme] = await pa.evaluate(mesurerContrastes, {
+      selecteur: '#tse-accueil *, #tse-filter *, #tse-mode-row *, nav .side-nav-card *',
+      exclus: [['#tse-accueil-heros', 'posé sur la vidéo du héros']] });
+  }
+  ok('b) chaque texte de l\'accueil et de la barre tient son seuil, dans les deux thèmes',
+     contrastesAccueil.dark.mesures > 100 && contrastesAccueil.light.mesures > 100
+     && contrastesAccueil.dark.echecs.length === 0 && contrastesAccueil.light.echecs.length === 0,
+     JSON.stringify({ sombre: { n: contrastesAccueil.dark.mesures, echecs: contrastesAccueil.dark.echecs.slice(0, 6), ecartes: contrastesAccueil.dark.ecartes },
+                      clair: { n: contrastesAccueil.light.mesures, echecs: contrastesAccueil.light.echecs.slice(0, 6), ecartes: contrastesAccueil.light.ecartes } }));
+  await pa.close();
 }
 
 {

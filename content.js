@@ -532,7 +532,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccUne:                  'À la une',
       uiAccPrecedent:            'Précédent',
       uiAccSuivant:              'Suivant',
-      uiAccTop:                  'Top 10',
+      uiAccCarrousel:            'carrousel',
+      uiAccDiapo:                'diapositive',
+      uiAccDiapoN:               (n, m) => `${n} sur ${m}`,
+      uiAccAnnonce:              (n, m, nom) => `${n} sur ${m} : ${nom}`,
+      uiAccTop:                  'Top 15',
       uiAccDirect:               'Live',
       uiAccDebut:                'Depuis le début',
       uiAccDebutTitre:           (nom) => `Revoir le direct de ${nom} depuis sa première seconde`,
@@ -541,14 +545,14 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccHausse:               (n, m) => `${n} place${n > 1 ? 's' : ''} gagnée${n > 1 ? 's' : ''} en ${m} min`,
       uiAccBaisse:               (n, m) => `${n} place${n > 1 ? 's' : ''} perdue${n > 1 ? 's' : ''} en ${m} min`,
       uiAccStable:               (m) => `Même place qu\'il y a ${m} min`,
-      uiAccEntree:               (m) => `Hors du Top 10 il y a ${m} min`,
+      uiAccEntree:               (m) => `Hors du Top 15 il y a ${m} min`,
       uiAccAttente:              'Classement en cours…',
       uiAccVide:                 'Aucune chaîne à classer pour l\'instant',
       uiAccCsAvec:               'En live avec :',
       uiAccCsPhrase:             (nom, liste) => `${nom} est en live avec ${liste}`,
       uiAccPlace:                (n, nom) => `Place ${n} : ${nom}`,
       uiAccDepuis:               (d) => `en direct depuis ${d}`,
-      uiAccRang:                 (n) => `N°${n} du Top 10`,
+      uiAccRang:                 (n) => `N°${n} du Top 15`,
       uiAccAfficherTout:         'Afficher tout',
       uiAccAfficherMoins:        'Afficher moins',
       /* VOS RENDEZ-VOUS (4.27.0, cf. RENDEZ_VOUS). `d` : une durée déjà écrite
@@ -574,7 +578,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       /* UNE ÉTIQUETTE PAR CARTE (4.28.0, cf. ETIQUETTES). `j` : des jours ;
          `p` : un pourcentage entier, arrondi vers le bas ; `m` : des minutes ;
          `n` : une place, ou un nombre de chaînes. Le subathon reprend le
-         badge de l'aperçu (uiBadgeSubathon), la place celle du Top 10 quand il
+         badge de l'aperçu (uiBadgeSubathon), la place celle du Top 15 quand il
          est mondial. LES PLACES D'AILLEURS (4.33.0.6) : le monde, et une autre
          langue, nommée dans celle de l'interface par le navigateur
          (Intl.DisplayNames) — « anglais », « Englisch ». Le polonais et le
@@ -852,7 +856,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccUne:                  'Featured',
       uiAccPrecedent:            'Previous',
       uiAccSuivant:              'Next',
-      uiAccTop:                  'Top 10',
+      uiAccCarrousel:            'carousel',
+      uiAccDiapo:                'slide',
+      uiAccDiapoN:               (n, m) => `${n} of ${m}`,
+      uiAccAnnonce:              (n, m, nom) => `${n} of ${m}: ${nom}`,
+      uiAccTop:                  'Top 15',
       uiAccDirect:               'Live',
       uiAccDebut:                'From the start',
       uiAccDebutTitre:           (nom) => `Watch ${nom}\'s stream from its very first second`,
@@ -861,14 +869,14 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccHausse:               (n, m) => `Up ${n} place${n === 1 ? '' : 's'} in ${m} min`,
       uiAccBaisse:               (n, m) => `Down ${n} place${n === 1 ? '' : 's'} in ${m} min`,
       uiAccStable:               (m) => `Same place as ${m} min ago`,
-      uiAccEntree:               (m) => `Outside the Top 10 ${m} min ago`,
+      uiAccEntree:               (m) => `Outside the Top 15 ${m} min ago`,
       uiAccAttente:              'Ranking in progress…',
       uiAccVide:                 'No channel to rank right now',
       uiAccCsAvec:               'Live with:',
       uiAccCsPhrase:             (nom, liste) => `${nom} is live with ${liste}`,
       uiAccPlace:                (n, nom) => `Rank ${n}: ${nom}`,
       uiAccDepuis:               (d) => `live for ${d}`,
-      uiAccRang:                 (n) => `#${n} in the Top 10`,
+      uiAccRang:                 (n) => `#${n} in the Top 15`,
       uiAccAfficherTout:         'Show all',
       uiAccAfficherMoins:        'Show less',
       uiAccRdv:                  'Your scheduled streams',
@@ -1125,7 +1133,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccUne:                  'Empfohlen',
       uiAccPrecedent:            'Zurück',
       uiAccSuivant:              'Weiter',
-      uiAccTop:                  'Top 10',
+      uiAccCarrousel:            'Karussell',
+      uiAccDiapo:                'Folie',
+      uiAccDiapoN:               (n, m) => `${n} von ${m}`,
+      uiAccAnnonce:              (n, m, nom) => `${n} von ${m}: ${nom}`,
+      uiAccTop:                  'Top 15',
       uiAccDirect:               'Live',
       uiAccDebut:                'Von Anfang an',
       uiAccDebutTitre:           (nom) => `Den Stream von ${nom} ab der ersten Sekunde ansehen`,
@@ -1134,14 +1146,14 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccHausse:               (n, m) => `${n} ${n === 1 ? 'Platz' : 'Plätze'} gewonnen in ${m} Min.`,
       uiAccBaisse:               (n, m) => `${n} ${n === 1 ? 'Platz' : 'Plätze'} verloren in ${m} Min.`,
       uiAccStable:               (m) => `Gleicher Platz wie vor ${m} Min.`,
-      uiAccEntree:               (m) => `Vor ${m} Min. nicht in den Top 10`,
+      uiAccEntree:               (m) => `Vor ${m} Min. nicht in den Top 15`,
       uiAccAttente:              'Rangliste wird erstellt …',
       uiAccVide:                 'Gerade kein Kanal einzuordnen',
       uiAccCsAvec:               'Live mit:',
       uiAccCsPhrase:             (nom, liste) => `${nom} ist live mit ${liste}`,
       uiAccPlace:                (n, nom) => `Platz ${n}: ${nom}`,
       uiAccDepuis:               (d) => `seit ${d} live`,
-      uiAccRang:                 (n) => `Platz ${n} der Top 10`,
+      uiAccRang:                 (n) => `Platz ${n} der Top 15`,
       uiAccAfficherTout:         'Alle anzeigen',
       uiAccAfficherMoins:        'Weniger anzeigen',
       uiAccRdv:                  'Deine geplanten Streams',
@@ -1398,7 +1410,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccUne:                  'Destacados',
       uiAccPrecedent:            'Anterior',
       uiAccSuivant:              'Siguiente',
-      uiAccTop:                  'Top 10',
+      uiAccCarrousel:            'carrusel',
+      uiAccDiapo:                'diapositiva',
+      uiAccDiapoN:               (n, m) => `${n} de ${m}`,
+      uiAccAnnonce:              (n, m, nom) => `${n} de ${m}: ${nom}`,
+      uiAccTop:                  'Top 15',
       uiAccDirect:               'En directo',
       uiAccDebut:                'Desde el principio',
       uiAccDebutTitre:           (nom) => `Ver el directo de ${nom} desde su primer segundo`,
@@ -1407,14 +1423,14 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccHausse:               (n, m) => `Sube ${n} puesto${n === 1 ? '' : 's'} en ${m} min`,
       uiAccBaisse:               (n, m) => `Baja ${n} puesto${n === 1 ? '' : 's'} en ${m} min`,
       uiAccStable:               (m) => `Mismo puesto que hace ${m} min`,
-      uiAccEntree:               (m) => `Fuera del Top 10 hace ${m} min`,
+      uiAccEntree:               (m) => `Fuera del Top 15 hace ${m} min`,
       uiAccAttente:              'Clasificación en curso…',
       uiAccVide:                 'Ningún canal que clasificar por ahora',
       uiAccCsAvec:               'En vivo con:',
       uiAccCsPhrase:             (nom, liste) => `${nom} está en vivo con ${liste}`,
       uiAccPlace:                (n, nom) => `Puesto ${n}: ${nom}`,
       uiAccDepuis:               (d) => `en directo desde hace ${d}`,
-      uiAccRang:                 (n) => `N.º ${n} del Top 10`,
+      uiAccRang:                 (n) => `N.º ${n} del Top 15`,
       uiAccAfficherTout:         'Mostrar todo',
       uiAccAfficherMoins:        'Mostrar menos',
       uiAccRdv:                  'Tus directos programados',
@@ -1671,7 +1687,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccUne:                  'Em destaque',
       uiAccPrecedent:            'Anterior',
       uiAccSuivant:              'Seguinte',
-      uiAccTop:                  'Top 10',
+      uiAccCarrousel:            'carrossel',
+      uiAccDiapo:                'diapositivo',
+      uiAccDiapoN:               (n, m) => `${n} de ${m}`,
+      uiAccAnnonce:              (n, m, nom) => `${n} de ${m}: ${nom}`,
+      uiAccTop:                  'Top 15',
       uiAccDirect:               'Ao vivo',
       uiAccDebut:                'Desde o início',
       uiAccDebutTitre:           (nom) => `Assistir à transmissão de ${nom} desde o primeiro segundo`,
@@ -1680,14 +1700,14 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccHausse:               (n, m) => `Sobe ${n} posiç${n === 1 ? 'ão' : 'ões'} em ${m} min`,
       uiAccBaisse:               (n, m) => `Desce ${n} posiç${n === 1 ? 'ão' : 'ões'} em ${m} min`,
       uiAccStable:               (m) => `Mesma posição de ${m} min atrás`,
-      uiAccEntree:               (m) => `Fora do Top 10 ${m} min atrás`,
+      uiAccEntree:               (m) => `Fora do Top 15 ${m} min atrás`,
       uiAccAttente:              'Classificação em andamento…',
       uiAccVide:                 'Nenhum canal para classificar no momento',
       uiAccCsAvec:               'Ao vivo com:',
       uiAccCsPhrase:             (nom, liste) => `${nom} está ao vivo com ${liste}`,
       uiAccPlace:                (n, nom) => `Posição ${n}: ${nom}`,
       uiAccDepuis:               (d) => `ao vivo há ${d}`,
-      uiAccRang:                 (n) => `Nº ${n} do Top 10`,
+      uiAccRang:                 (n) => `Nº ${n} do Top 15`,
       uiAccAfficherTout:         'Mostrar tudo',
       uiAccAfficherMoins:        'Mostrar menos',
       uiAccRdv:                  'Suas transmissões programadas',
@@ -1944,7 +1964,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccUne:                  'In primo piano',
       uiAccPrecedent:            'Precedente',
       uiAccSuivant:              'Successivo',
-      uiAccTop:                  'Top 10',
+      uiAccCarrousel:            'carosello',
+      uiAccDiapo:                'diapositiva',
+      uiAccDiapoN:               (n, m) => `${n} di ${m}`,
+      uiAccAnnonce:              (n, m, nom) => `${n} di ${m}: ${nom}`,
+      uiAccTop:                  'Top 15',
       uiAccDirect:               'Live',
       uiAccDebut:                'Dall\'inizio',
       uiAccDebutTitre:           (nom) => `Guarda la diretta di ${nom} dal primo secondo`,
@@ -1953,14 +1977,14 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccHausse:               (n, m) => `Sale di ${n} posizion${n === 1 ? 'e' : 'i'} in ${m} min`,
       uiAccBaisse:               (n, m) => `Scende di ${n} posizion${n === 1 ? 'e' : 'i'} in ${m} min`,
       uiAccStable:               (m) => `Stessa posizione di ${m} min fa`,
-      uiAccEntree:               (m) => `Fuori dalla Top 10 ${m} min fa`,
+      uiAccEntree:               (m) => `Fuori dalla Top 15 ${m} min fa`,
       uiAccAttente:              'Classifica in corso…',
       uiAccVide:                 'Nessun canale da classificare per ora',
       uiAccCsAvec:               'In diretta con:',
       uiAccCsPhrase:             (nom, liste) => `${nom} è in diretta con ${liste}`,
       uiAccPlace:                (n, nom) => `Posizione ${n}: ${nom}`,
       uiAccDepuis:               (d) => `in diretta da ${d}`,
-      uiAccRang:                 (n) => `N. ${n} della Top 10`,
+      uiAccRang:                 (n) => `N. ${n} della Top 15`,
       uiAccAfficherTout:         'Mostra tutto',
       uiAccAfficherMoins:        'Mostra meno',
       uiAccRdv:                  'Le tue dirette in programma',
@@ -2217,7 +2241,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccUne:                  'Polecane',
       uiAccPrecedent:            'Poprzedni',
       uiAccSuivant:              'Następny',
-      uiAccTop:                  'Top 10',
+      uiAccCarrousel:            'karuzela',
+      uiAccDiapo:                'slajd',
+      uiAccDiapoN:               (n, m) => `${n} z ${m}`,
+      uiAccAnnonce:              (n, m, nom) => `${n} z ${m}: ${nom}`,
+      uiAccTop:                  'Top 15',
       uiAccDirect:               'Na żywo',
       uiAccDebut:                'Od początku',
       uiAccDebutTitre:           (nom) => `Obejrzyj transmisję ${nom} od pierwszej sekundy`,
@@ -2226,14 +2254,14 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccHausse:               (n, m) => `W górę o ${n} ${(n === 1 ? 'miejsce' : ([2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? 'miejsca' : 'miejsc'))} w ${m} min`,
       uiAccBaisse:               (n, m) => `W dół o ${n} ${(n === 1 ? 'miejsce' : ([2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? 'miejsca' : 'miejsc'))} w ${m} min`,
       uiAccStable:               (m) => `To samo miejsce co ${m} min temu`,
-      uiAccEntree:               (m) => `Poza Top 10 ${m} min temu`,
+      uiAccEntree:               (m) => `Poza Top 15 ${m} min temu`,
       uiAccAttente:              'Trwa układanie rankingu…',
       uiAccVide:                 'Na razie brak kanałów do sklasyfikowania',
       uiAccCsAvec:               'Na żywo z:',
       uiAccCsPhrase:             (nom, liste) => `${nom} — na żywo z ${liste}`,
       uiAccPlace:                (n, nom) => `Miejsce ${n}: ${nom}`,
       uiAccDepuis:               (d) => `na żywo od ${d}`,
-      uiAccRang:                 (n) => `Nr ${n} w Top 10`,
+      uiAccRang:                 (n) => `Nr ${n} w Top 15`,
       uiAccAfficherTout:         'Pokaż wszystko',
       uiAccAfficherMoins:        'Pokaż mniej',
       uiAccRdv:                  'Zaplanowane transmisje',
@@ -2495,7 +2523,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccUne:                  'Рекомендуемые',
       uiAccPrecedent:            'Назад',
       uiAccSuivant:              'Вперёд',
-      uiAccTop:                  'Топ-10',
+      uiAccCarrousel:            'карусель',
+      uiAccDiapo:                'слайд',
+      uiAccDiapoN:               (n, m) => `${n} из ${m}`,
+      uiAccAnnonce:              (n, m, nom) => `${n} из ${m}: ${nom}`,
+      uiAccTop:                  'Топ-15',
       uiAccDirect:               'В эфире',
       uiAccDebut:                'С самого начала',
       uiAccDebutTitre:           (nom) => `Смотреть трансляцию ${nom} с первой секунды`,
@@ -2504,14 +2536,14 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccHausse:               (n, m) => `Вверх на ${n} ${(n % 10 === 1 && n % 100 !== 11 ? 'место' : ([2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? 'места' : 'мест'))} за ${m} мин`,
       uiAccBaisse:               (n, m) => `Вниз на ${n} ${(n % 10 === 1 && n % 100 !== 11 ? 'место' : ([2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? 'места' : 'мест'))} за ${m} мин`,
       uiAccStable:               (m) => `То же место, что ${m} мин назад`,
-      uiAccEntree:               (m) => `${m} мин назад — вне топ-10`,
+      uiAccEntree:               (m) => `${m} мин назад — вне топ-15`,
       uiAccAttente:              'Рейтинг составляется…',
       uiAccVide:                 'Пока нечего ранжировать',
       uiAccCsAvec:               'В эфире с:',
       uiAccCsPhrase:             (nom, liste) => `${nom} — в эфире с ${liste}`,
       uiAccPlace:                (n, nom) => `Место ${n}: ${nom}`,
       uiAccDepuis:               (d) => `в эфире ${d}`,
-      uiAccRang:                 (n) => `№ ${n} в Топ-10`,
+      uiAccRang:                 (n) => `№ ${n} в Топ-15`,
       uiAccAfficherTout:         'Показать все',
       uiAccAfficherMoins:        'Показать меньше',
       uiAccRdv:                  'Запланированные трансляции',
@@ -2772,7 +2804,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccUne:                  'おすすめ',
       uiAccPrecedent:            '前へ',
       uiAccSuivant:              '次へ',
-      uiAccTop:                  'トップ 10',
+      uiAccCarrousel:            'カルーセル',
+      uiAccDiapo:                'スライド',
+      uiAccDiapoN:               (n, m) => `${m}件中${n}件目`,
+      uiAccAnnonce:              (n, m, nom) => `${m}件中${n}件目：${nom}`,
+      uiAccTop:                  'トップ 15',
       uiAccDirect:               'ライブ',
       uiAccDebut:                '最初から',
       uiAccDebutTitre:           (nom) => `${nom} の配信を最初の1秒から見る`,
@@ -2781,14 +2817,14 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccHausse:               (n, m) => `${m} 分で ${n} 位上昇`,
       uiAccBaisse:               (n, m) => `${m} 分で ${n} 位下降`,
       uiAccStable:               (m) => `${m} 分前と同じ順位`,
-      uiAccEntree:               (m) => `${m} 分前はトップ10圏外`,
+      uiAccEntree:               (m) => `${m} 分前はトップ15圏外`,
       uiAccAttente:              'ランキングを作成中…',
       uiAccVide:                 '現在ランキングできるチャンネルはありません',
       uiAccCsAvec:               '一緒に配信中：',
       uiAccCsPhrase:             (nom, liste) => `${nom} は ${liste} と配信中`,
       uiAccPlace:                (n, nom) => `${n} 位：${nom}`,
       uiAccDepuis:               (d) => `配信開始から ${d}`,
-      uiAccRang:                 (n) => `トップ 10 の ${n} 位`,
+      uiAccRang:                 (n) => `トップ 15 の ${n} 位`,
       uiAccAfficherTout:         'すべて表示',
       uiAccAfficherMoins:        '表示を減らす',
       uiAccRdv:                  '予定されている配信',
@@ -3042,7 +3078,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccUne:                  '精选',
       uiAccPrecedent:            '上一个',
       uiAccSuivant:              '下一个',
-      uiAccTop:                  '前 10 名',
+      uiAccCarrousel:            '轮播',
+      uiAccDiapo:                '幻灯片',
+      uiAccDiapoN:               (n, m) => `第${n}个，共${m}个`,
+      uiAccAnnonce:              (n, m, nom) => `第${n}个，共${m}个：${nom}`,
+      uiAccTop:                  '前 15 名',
       uiAccDirect:               '直播',
       uiAccDebut:                '从头观看',
       uiAccDebutTitre:           (nom) => `从第一秒开始观看 ${nom} 的直播`,
@@ -3051,14 +3091,14 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccHausse:               (n, m) => `${m} 分钟内上升 ${n} 名`,
       uiAccBaisse:               (n, m) => `${m} 分钟内下降 ${n} 名`,
       uiAccStable:               (m) => `与 ${m} 分钟前名次相同`,
-      uiAccEntree:               (m) => `${m} 分钟前未进入前 10 名`,
+      uiAccEntree:               (m) => `${m} 分钟前未进入前 15 名`,
       uiAccAttente:              '排名生成中…',
       uiAccVide:                 '目前没有可排名的频道',
       uiAccCsAvec:               '一起直播：',
       uiAccCsPhrase:             (nom, liste) => `${nom} 正在与 ${liste} 直播`,
       uiAccPlace:                (n, nom) => `第 ${n} 名：${nom}`,
       uiAccDepuis:               (d) => `已直播 ${d}`,
-      uiAccRang:                 (n) => `前 10 名中第 ${n} 名`,
+      uiAccRang:                 (n) => `前 15 名中第 ${n} 名`,
       uiAccAfficherTout:         '显示全部',
       uiAccAfficherMoins:        '收起',
       uiAccRdv:                  '计划中的直播',
@@ -3648,6 +3688,17 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     HEALTH_CONFIRM:       2,
     HEALTH_RECHECK:       5_000,
     SCAN_DEBOUNCE:  250,
+    /* LA BARRE QUI GLISSE (4.33.0.12, cf. mouvementBarre). Un trajet de
+       carte, une arrivée, le temps laissé à la place pour s'ouvrir, et
+       l'écart entre deux arrivées du même balayage — au plus cinq écarts :
+       une sixième arrivée part avec la cinquième. Assez court pour ne
+       jamais faire attendre une lecture, assez long pour que l'œil suive
+       la carte qu'il regardait. */
+    BARRE_GLISSE_MS:       320,
+    BARRE_ENTREE_MS:       260,
+    BARRE_ENTREE_DELAI_MS: 120,
+    BARRE_ECHELON_MS:       40,
+    BARRE_ECHELONS_MAX:      5,
     /* Cadence maximale du relevé « sidebar réduite ? » hors mutation de la
        barre. La détection coûte 130 µs (sélecteur de classe sans
        correspondance = parcours du document entier) et se faisait à chaque lot
@@ -4717,9 +4768,14 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     AGENDA_ECRITURE_REPRISE_MS: 60_000,
 
     /* === La page d'accueil de Twitch (4.26.0) ===
-       Cf. le module pageAccueil. Le Top 10 est une seconde instance du moteur
-       de Top Chaînes : ses cadences sont les siennes (GLOBAL_*). */
-    ACCUEIL_TOP_N:          10,
+       Cf. le module pageAccueil. Le Top 15 est une seconde instance du moteur
+       de Top Chaînes : ses cadences sont les siennes (GLOBAL_*). QUINZE PLACES
+       (4.33.0.13, « peux-tu aller jusqu'au Top 15 sur l'accueil ? ») ; DIX
+       jusque-là. Cinq colonnes au plus, comme avant, mais moins quand la
+       largeur ne tient pas cinq places d'une carte de rayon (cf. la feuille,
+       `.tse-acc-liste--top`) : trois rangées pleines de cinq, cinq de trois. */
+    ACCUEIL_TOP_N:          15,
+    ACCUEIL_TOP_COLONNES:   5,
     /* « À LA UNE » (4.32.0.3) : les chaînes du carrousel de Twitch, en
        rayon, quand la bannière le masque — il en porte cinq. Huit au plus,
        si Twitch en pose davantage. */
@@ -4749,7 +4805,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        donnée (un défilement doux en prend moins d'une seconde) : passé, un
        défilement qui finit ailleurs est réputé fait à la main. */
     ACCUEIL_RUBAN_MENE_MS: 1_500,
-    /* LE CO-STREAM D'UNE PLACE DU TOP 10 (4.33.0.2) : sa fenêtre s'ouvre
+    /* LE CO-STREAM D'UNE PLACE DU TOP 15 (4.33.0.2) : sa fenêtre s'ouvre
        quand le pointeur s'attarde sur « + N ⌄ » — un passage ne l'ouvre
        pas —, et se ferme quand il a quitté le bouton ET la fenêtre depuis
        ce délai : de quoi franchir l'écart qui les sépare. */
@@ -4772,7 +4828,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        aussi depuis la 4.32.0.2 (cf. RANGER). */
     ACCUEIL_CARTE_MIN:      290,
     ACCUEIL_ECARTS:         '20px 14px',
-    // L'évolution du Top 10 : trente minutes au plus, deux au moins, un instantané par minute.
+    // L'évolution du Top 15 : trente minutes au plus, deux au moins, un instantané par minute.
     ACCUEIL_EVOLUTION_MS:   30 * 60_000,
     ACCUEIL_EVOLUTION_MIN_MS: 2 * 60_000,
     ACCUEIL_INSTANTANE_MS:  60_000,
@@ -4819,6 +4875,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     ACCUEIL_RDV_RECUL_MS:   7 * 86_400_000,
     ACCUEIL_RDV_DEMANDE_MS: 2 * 60_000,
     ACCUEIL_RDV_MAX:        12,
+    /* Un créneau commencé sans la chaîne dit « pas encore en direct » ; deux
+       heures après son heure, toujours personne, il quitte l'accueil
+       (4.33.0.12, cf. agenda.rendezVous). L'agenda du panneau, lui, le garde :
+       c'est la semaine telle qu'elle était prévue. */
+    ACCUEIL_RDV_RETARD_MAX_MS: 2 * 3_600_000,
     ACCUEIL_HABITUDE_N:     6,
     ACCUEIL_HABITUDE_MIN:   4,
     ACCUEIL_HABITUDE_FENETRE_MIN: 30,
@@ -4852,9 +4913,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     ETIQ_PULSATION_MS:      2000,
     ETIQ_PULSATION_TEMPS:   5,
     ETIQ_PULSATION_ECHELLE: 1.06,
-    /* LES PLACES D'AILLEURS (4.33.0.6, cf. ETIQUETTES). Le Top 10 mondial, et
+    /* LES PLACES D'AILLEURS (4.33.0.6, cf. ETIQUETTES). Le Top 15 mondial, et
        celui des autres langues des cartes de l'accueil : trois langues au plus
-       à la fois — les plus nombreuses —, chacune au rythme du Top 10 (une
+       à la fois — les plus nombreuses —, chacune au rythme du Top 15 (une
        passe légère toutes les 30 s, une marche au plus toutes les 2 min 30).
        Six classements gardés en mémoire au plus ; une carte compte pour sa
        langue tant qu'elle a été peinte, son direct connu, depuis deux durées
@@ -4996,16 +5057,17 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        de nos libellés (cf. localeTwitch) ; « toutes » : le classement mondial. */
     accueilTopLangue: { defaut: 'interface', type: 'choix',
                        valeurs: ['interface', 'toutes'], sous: ['accueil', 'accueilTop'] },
-    /* LES CHAÎNES ÉCARTÉES DU TOP 10 (4.32.0.4) : des pseudos, tapés dans les
+    /* LES CHAÎNES ÉCARTÉES DU TOP 15 (4.32.0.4) : des pseudos, tapés dans les
        Réglages — « retire le bouton ; mets-le dans les options, on met le
        pseudo du streamer ». Une chaîne qui porte le tag d'une langue sans la
        parler, par exemple : rien ne le dit sans deviner, c'est vous qui le
-       dites. Écartées du Top 10 de l'accueil, quelle qu'en soit la langue ;
+       dites. Écartées du Top 15 de l'accueil, quelle qu'en soit la langue ;
        Top Chaînes, dans la barre, n'en sait rien.
 
        UN TYPE NEUF, « liste » : des logins, en minuscules, dans l'ordre où
-       on les a ajoutés. VINGT AU PLUS, et le nombre n'est pas choisi : le
-       Top 10 se prouve sur dix places de plus que la liste (cf. pageAccueil,
+       on les a ajoutés. QUINZE AU PLUS (vingt avant la 4.33.0.13), et le
+       nombre n'est pas choisi : le Top 15 se prouve sur quinze places de plus
+       que la liste (cf. pageAccueil,
        `nPreuve`), et la réponse du tag de langue, qui le prouve d'une seule
        requête, en porte trente (GLOBAL_TAG_MAX). Au-delà, chaque marche
        redescendrait toutes les catégories. */
@@ -5320,7 +5382,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
 
   /* LES ÉCARTÉES DE LA 4.32.0.3 PASSENT AU RÉGLAGE (4.32.0.4), une fois. Elles
      vivaient sous « tse:ecartees », langue → logins, posées par un bouton sur
-     les places du Top 10 ; le bouton s'en va, la liste est désormais un
+     les places du Top 15 ; le bouton s'en va, la liste est désormais un
      réglage, et sans langue. Ce que vous aviez écarté le reste, toutes
      langues réunies, revu par `propre` comme tout ce qui entre ; puis la clé
      s'en va. Deux onglets qui chargent ensemble font deux fois la même
@@ -6456,8 +6518,6 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     .tse-noeud__anneau {
       position: absolute; inset: 0; border-radius: inherit; padding: 1.5px; opacity: 0; pointer-events: none;
       background: conic-gradient(from var(--tse-tour), var(--tse-noeud-encre, #0e0e10) 0 28%, transparent 28% 100%);
-      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-      -webkit-mask-composite: xor;
       mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
       transition: opacity 120ms linear;
     }
@@ -6773,34 +6833,30 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     .side-nav-card.tse-sub .tse-sub-cat {
       color: #e6c68d;
     }
-    @supports (-webkit-background-clip: text) or (background-clip: text) {
-      .side-nav-card.tse-sub p.tse-nom {
-        background: linear-gradient(100deg,
-          #ffc86e   0%,
-          #fff6dc  32%,
-          #ffb3d9  46%,
-          #ffc86e  64%,
-          #ffc86e 100%) 0 0 / 300% 100%;
-        -webkit-background-clip: text;
-        background-clip: text;
-        -webkit-text-fill-color: transparent;
-        /* Le halo est posé par un filtre, non par text-shadow : avec un
-           remplissage transparent, une ombre de texte se verrait AU TRAVERS
-           des lettres, en double flou. Le filtre, lui, s'applique au résultat
-           déjà découpé — il entoure les lettres au lieu de les traverser. */
-        filter: drop-shadow(0 0 3.5px rgba(255, 214, 142, 0.375));
-      }
-      .side-nav-card.tse-sub .tse-sub-cat {
-        background: linear-gradient(100deg,
-          #d4b076   0%,
-          #f4e3c2  34%,
-          #dcb4c6  47%,
-          #d4b076  64%,
-          #d4b076 100%) 0 0 / 300% 100%;
-        -webkit-background-clip: text;
-        background-clip: text;
-        -webkit-text-fill-color: transparent;
-      }
+    .side-nav-card.tse-sub p.tse-nom {
+      background: linear-gradient(100deg,
+        #ffc86e   0%,
+        #fff6dc  32%,
+        #ffb3d9  46%,
+        #ffc86e  64%,
+        #ffc86e 100%) 0 0 / 300% 100%;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      /* Le halo est posé par un filtre, non par text-shadow : avec un
+         remplissage transparent, une ombre de texte se verrait AU TRAVERS
+         des lettres, en double flou. Le filtre, lui, s'applique au résultat
+         déjà découpé — il entoure les lettres au lieu de les traverser. */
+      filter: drop-shadow(0 0 3.5px rgba(255, 214, 142, 0.375));
+    }
+    .side-nav-card.tse-sub .tse-sub-cat {
+      background: linear-gradient(100deg,
+        #d4b076   0%,
+        #f4e3c2  34%,
+        #dcb4c6  47%,
+        #d4b076  64%,
+        #d4b076 100%) 0 0 / 300% 100%;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
     }
 
     /* L'AVATAR — seul élément qui subsiste en mode réduit, donc le seul qui
@@ -6877,28 +6933,26 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        Seule l'IMAGE change entre les thèmes. On ne pose donc qu'elle ; la
        découpe, la taille (300 %) et la position restent celles des règles du
        sombre. Le scénario 115 lit désormais la découpe calculée. */
-    @supports (-webkit-background-clip: text) or (background-clip: text) {
-      html[data-tse-theme="light"] .side-nav-card.tse-sub p.tse-nom {
-        background-image: linear-gradient(100deg,
-          #8a5900   0%,
-          #7a4e00  32%,
-          #9c4f6b  46%,
-          #8a5900  64%,
-          #8a5900 100%);
-        /* LE HALO PART EN CLAIR. C'est un filtre de lueur, pensé pour détacher
-           des lettres claires d'un fond noir ; sur du blanc il ne détache
-           rien et salit les contours. */
-        filter: none;
-      }
-      html[data-tse-theme="light"] .side-nav-card.tse-sub .tse-sub-cat {
-        background-image: linear-gradient(100deg,
-          #7c5a1e   0%,
-          #6b4700  34%,
-          #8f3f63  47%,
-          #7c5a1e  64%,
-          #7c5a1e 100%);
-        filter: none;
-      }
+    html[data-tse-theme="light"] .side-nav-card.tse-sub p.tse-nom {
+      background-image: linear-gradient(100deg,
+        #8a5900   0%,
+        #7a4e00  32%,
+        #9c4f6b  46%,
+        #8a5900  64%,
+        #8a5900 100%);
+      /* LE HALO PART EN CLAIR. C'est un filtre de lueur, pensé pour détacher
+         des lettres claires d'un fond noir ; sur du blanc il ne détache
+         rien et salit les contours. */
+      filter: none;
+    }
+    html[data-tse-theme="light"] .side-nav-card.tse-sub .tse-sub-cat {
+      background-image: linear-gradient(100deg,
+        #7c5a1e   0%,
+        #6b4700  34%,
+        #8f3f63  47%,
+        #7c5a1e  64%,
+        #7c5a1e 100%);
+      filter: none;
     }
     /* LA LUEUR DE FOND S'INVERSE AUSSI. Quatre nappes de blanc crème à 13 %
        sur du noir font une carte qui respire ; les mêmes sur du blanc ne font
@@ -7038,8 +7092,6 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
          entière ; leur DIFFÉRENCE ne laisse que l'anneau du padding. C'est ce
          qui fait un dégradé conique en bordure, chose qu'aucune propriété
          « border » ne sait faire. */
-      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-      -webkit-mask-composite: xor;
       mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
       mask-composite: exclude;
     }
@@ -7394,62 +7446,109 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     .tse-filter-field { display: flex; align-items: center; }
     .tse-filter-field--cat  { flex: 1 1 auto; min-width: 0; }       /* place restante */
     .tse-filter-field--lang { flex: 0 0 auto; margin-left: auto; }  /* compacte, à droite */
-    /* === Dropdowns personnalisés (catégorie + langue), même structure ===
-       On n'utilise plus de <select> natif : un <option> ne peut afficher que
-       du texte (pas les drapeaux SVG) et on veut une mise en forme homogène.  */
-    .tse-dd { position: relative; width: 100%; }
+    /* === Les deux filtres : des <select> (4.33.0.14) ===
+       La boîte est le <select> lui-même. Là où il se personnalise
+       (appearance: base-select), son bouton et sa liste prennent l'aspect du
+       menu d'avant, drapeaux compris ; la liste est posée par le navigateur
+       au-dessus de tout, sans z-index. Ailleurs, la même boîte, et la liste
+       du système. Le schéma de couleurs est posé sur la boîte : la liste en
+       hérite, et ses barres de défilement suivent notre thème. */
+    .tse-dd { width: 100%; min-width: 0; }
     .tse-dd-btn {
       display: flex; align-items: center; gap: 4px;
-      width: 100%; height: 28px; padding: 0 8px;
+      width: 100%; height: 28px; margin: 0; padding: 0 8px;
       background-color: var(--tse-champ);
       border: 1px solid rgba(var(--tse-encre), 0.08); border-radius: 4px;
       color: var(--color-text-base, #efeff1);
-      font-size: 1.15rem;                /* agrandi pour la lisibilité */
+      font: inherit; font-size: 1.15rem;  /* agrandi pour la lisibilité */
+      color-scheme: var(--tse-schema);
       cursor: pointer; outline: none; box-sizing: border-box;
       transition: border-color 0.15s, box-shadow 0.15s, opacity 0.15s;
     }
+    .tse-dd-btn, .tse-dd-btn::picker(select) { appearance: base-select; }
+    /* La flèche est la nôtre (.tse-dd-caret) : celle du navigateur ferait
+       double emploi. */
+    .tse-dd-btn::picker-icon { display: none; }
     .tse-dd-btn:hover:not(:disabled) { border-color: rgba(145, 71, 255, 0.5); }
-    .tse-dd.tse-open .tse-dd-btn { border-color: ${CFG.PURPLE}; box-shadow: 0 0 0 1px ${CFG.PURPLE}; }
+    /* LE FOCUS SE VOIT. Le bouton d'avant ôtait le contour et n'en rendait
+       aucun : au clavier, on ne savait pas où l'on était. Il prend le liseré
+       du menu ouvert. */
+    .tse-dd-btn:open,
+    .tse-dd-btn:focus-visible { border-color: ${CFG.PURPLE}; box-shadow: 0 0 0 1px ${CFG.PURPLE}; }
     .tse-dd-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    /* Le bouton du <select> personnalisé : transparent, il remplit la boîte.
+       Le libellé y reste CENTRÉ, comme dans le <button> d'avant.
+
+       SA POLICE EST CELLE DE LA PAGE, comme celle des onglets « Chaînes
+       suivies / Top Chaînes » juste au-dessus, à la même taille. Le bouton
+       d'avant ne la posait pas : il prenait celle que le navigateur — ou la
+       page — donne aux boutons. Le navigateur fait hériter le bouton d'un
+       <select> ; la boîte hérite de la page, la liste de la boîte, comme le
+       menu d'avant, qui était un <div>. Mesuré contre la version
+       précédente : le seul écart est là. */
+    .tse-dd-bouton {
+      display: flex; align-items: center; gap: 4px;
+      flex: 1 1 auto; min-width: 0; height: 100%;
+      margin: 0; padding: 0; border: 0; background: none;
+      color: inherit; font: inherit; text-align: center; cursor: inherit;
+    }
     .tse-dd-current { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; }
+    /* <selectedcontent> recopie l'option choisie ENTIÈRE ; le compteur n'a
+       rien à faire dans le bouton, il n'y était pas. */
+    .tse-dd-current .tse-dd-n { display: none; }
     .tse-dd-caret {
       flex: 0 0 auto; width: 0; height: 0;
       border-left: 4px solid transparent; border-right: 4px solid transparent;
       border-top: 5px solid var(--tse-texte-doux);
     }
-    /* Menu déroulant : popup sous le bouton, scrollable. */
-    .tse-dd-menu {
-      display: none;
-      position: absolute; top: calc(100% + 4px); z-index: 9999;
-      min-width: 100%; max-height: 260px; overflow-y: auto; padding: 4px;
-      color-scheme: var(--tse-schema);
-      background: var(--tse-surface); border: 1px solid rgba(var(--tse-encre), 0.12);
+    /* La liste : sous le bouton, à quatre pixels, défilante. Mesurée contre
+       le menu d'avant : sa largeur minimale était celle du bouton PLUS son
+       cadre — d'où « content-box », la boîte du navigateur comptant le cadre
+       dedans. */
+    .tse-dd-btn::picker(select) {
+      box-sizing: content-box; min-width: anchor-size(width);
+      margin-block: 4px; max-height: 260px; overflow-y: auto; padding: 4px;
+      background: var(--tse-surface); color: var(--tse-texte);
+      border: 1px solid rgba(var(--tse-encre), 0.12);
       border-radius: 6px; box-shadow: 0 4px 16px var(--tse-ombre-menu);
     }
-    .tse-dd.tse-open .tse-dd-menu { display: block; }
+    /* « min-height: 0 » : le navigateur donne 24 px de CONTENU à une option,
+       qui en faisait 36 avec nos marges. La ligne d'avant faisait 24 px en
+       tout — la taille de cible minimale, qu'elle garde. */
     .tse-dd-opt {
-      display: flex; align-items: center; gap: 6px;
+      display: flex; align-items: center; gap: 6px; min-height: 0;
       padding: 6px 8px; border-radius: 4px; cursor: pointer;
       font-size: 1.15rem; color: var(--tse-texte); white-space: nowrap;
     }
-    .tse-dd-opt:hover { background: rgba(145, 71, 255, 0.25); }
-    .tse-dd-opt[aria-selected="true"] { background: rgba(145, 71, 255, 0.4); }
+    /* L'option choisie se dit par son fond, comme avant : pas de coche. */
+    .tse-dd-opt::checkmark { display: none; }
+    .tse-dd-opt:hover,
+    .tse-dd-opt:focus-visible { background: rgba(145, 71, 255, 0.25); }
+    .tse-dd-opt:focus-visible { outline: 2px solid ${CFG.PURPLE}; outline-offset: -2px; }
+    .tse-dd-opt:checked { background: rgba(145, 71, 255, 0.4); }
     .tse-dd-n { flex: 0 0 auto; color: var(--tse-texte-doux); font-variant-numeric: tabular-nums; }
 
-    /* Catégorie : prend la place, bouton tronqué « … », menu aligné à gauche
-       et élargi au contenu (noms lisibles), plafonné à la largeur sidebar. */
+    /* Catégorie : prend la place, bouton tronqué « … », liste alignée à
+       gauche et élargie au contenu (noms lisibles), plafonnée à la largeur
+       de la sidebar. */
     .tse-dd--cat .tse-dd-current { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .tse-dd--cat .tse-dd-menu { left: 0; right: auto; width: max-content; max-width: 208px; }
+    .tse-dd--cat .tse-dd-btn::picker(select) { width: max-content; max-width: 208px; }
     .tse-dd--cat .tse-dd-name { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 
-    /* Langue : compacte, menu aligné à droite. Le bouton est inchangé (caret
-       conservé, juste l'emoji globe passé en SVG). Le centrage demandé ne
-       concerne QUE le menu : chaque ligne y est centrée (option « toutes les
-       langues » = globe seul, options de langue = « N | drapeau »). */
+    /* Langue : compacte, liste alignée à droite. Chaque ligne y est centrée
+       (« toutes les langues » = globe seul, une langue = « N | drapeau »). */
     .tse-dd--lang { width: 50px; }
     .tse-dd--lang .tse-dd-current { justify-content: center; }
-    .tse-dd--lang .tse-dd-menu { right: 0; left: auto; min-width: 64px; }
+    .tse-dd--lang .tse-dd-btn::picker(select) { position-area: block-end span-inline-start; min-width: 64px; }
     .tse-dd--lang .tse-dd-opt { justify-content: center; }
+
+    /* LE <select> ORDINAIRE N'A QUE DU TEXTE (Firefox) : « Toutes les
+       langues » ne tient pas dans cinquante pixels, faits pour un drapeau.
+       Les deux filtres s'y partagent la ligne à parts égales, et chacun
+       montre ce que son texte peut montrer. */
+    .tse-filter[data-tse-select="natif"] .tse-filter-field { flex: 1 1 0; min-width: 0; margin-left: 0; }
+    .tse-filter[data-tse-select="natif"] .tse-dd--lang { width: 100%; }
+    .tse-filter[data-tse-select="natif"] .tse-dd-btn { display: block; }
     .tse-lang-code  { font-weight: 600; }
     /* ── LE DRAPEAU D'UN CO-STREAMER D'UNE AUTRE LANGUE ────────────────────
        DEMANDÉ APRÈS LE FILTRE DE LANGUE : un membre de session qui ne porte
@@ -7758,13 +7857,18 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       box-shadow: 0 0 0 1px ${CFG.PURPLE};
     }
     /* Curseur actif : dégradé vertical léger et ombre portée courte, pour
-       qu'il se lise POSÉ SUR la piste et non découpé dedans. */
+       qu'il se lise POSÉ SUR la piste et non découpé dedans.
+       UN CRAN PLUS SOMBRE (4.33.0.14). Le dégradé partait du violet du
+       survol, #a970ff : le blanc n'y tenait que 3,26:1, sous les 4,5 d'un
+       texte de cette taille. Il part maintenant du violet de Twitch (4,62:1)
+       et descend vers #772ce8 (6,35:1) — la même pente, une teinte plus bas.
+       Le survol prend le violet de Twitch, lui aussi au-dessus du seuil. */
     .tse-mode-tab[aria-pressed="true"] {
-      background: linear-gradient(180deg, ${CFG.PURPLE_HOVER} 0%, ${CFG.PURPLE} 100%);
+      background: linear-gradient(180deg, ${CFG.PURPLE} 0%, #772ce8 100%);
       color: #fff;
       box-shadow: 0 1px 2px var(--tse-ombre-portee);
     }
-    .tse-mode-tab[aria-pressed="true"]:hover { background: ${CFG.PURPLE_HOVER}; }
+    .tse-mode-tab[aria-pressed="true"]:hover { background: ${CFG.PURPLE}; }
 
     /* ── LA ROUE CRANTÉE, DANS LE TITRE DE TWITCH ──────────────────────────
        LE TITRE N'EST PASSÉ EN « flex » QUE LÀ OÙ NOUS AVONS POSÉ QUELQUE
@@ -7989,7 +8093,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
          ne vaut pas ce qu'il dit finit toujours par tromper le calcul d'à
          côté. */
       box-sizing: border-box;
-      width: 330px; max-width: calc(100vw - 24px);
+      width: 330px; max-width: calc(100dvw - 24px);
       padding: 14px 14px 15px;
       border-radius: 10px;
       border: 1px solid var(--tse-anneau);
@@ -8074,11 +8178,19 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        qu'un panneau flottant : il n'y a rien à cliquer derrière, donc rien à
        cliquer par erreur. Le z-index est au-dessus de celui des modales de
        Twitch, sans quoi leur propre couche passerait devant la nôtre. */
+    /* UN <dialog> (4.33.0.14) : la couche supérieure le pose au-dessus de
+       tout, sans z-index. Il couvre l'écran lui-même — c'est son fond qui fait
+       le voile —, sans les marges ni la bordure que le navigateur lui donne. */
     .tse-incruste {
-      position: fixed; inset: 0; z-index: 2147483000;
-      display: flex; align-items: center; justify-content: center;
+      position: fixed; inset: 0;
+      width: 100%; height: 100%; max-width: none; max-height: none;
+      margin: 0; padding: 0; border: 0;
+      align-items: center; justify-content: center;
       background: rgba(0, 0, 0, 0.55);
+      overscroll-behavior: contain;
     }
+    .tse-incruste[open] { display: flex; }
+    .tse-incruste::backdrop { background: transparent; }
     /* LES DEUX NOMBRES SONT CEUX DE LA POPUP DE BARRE D'OUTILS. Les deux
        chemins mènent au même panneau ; ils doivent y mener à la même taille,
        sans quoi les captures d'écran d'un rapport ne se comparent plus.
@@ -8087,7 +8199,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     .tse-incruste-cadre {
       position: relative;
       width: ${CFG.INCRUSTE_W}px; height: ${CFG.INCRUSTE_H}px;
-      max-width: calc(100vw - 24px); max-height: calc(100vh - 24px);
+      max-width: calc(100dvw - 24px); max-height: calc(100dvh - 24px);
       border-radius: 8px;
       box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
       /* PAS D'« overflow: hidden » ICI, et c'est ce qui permet à la croix de
@@ -8937,8 +9049,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     }
     html[data-tse-off~="filtreCategorie"] .tse-dd--lang { width: auto; flex: 1 1 auto; }
     html[data-tse-off~="filtreCategorie"] .tse-dd--lang .tse-dd-current { justify-content: flex-start; }
-    html[data-tse-off~="filtreCategorie"] .tse-dd--lang .tse-dd-menu {
-      left: 0; right: 0; min-width: 0;
+    html[data-tse-off~="filtreCategorie"] .tse-dd--lang .tse-dd-btn::picker(select) {
+      /* La largeur de la boîte, cadre compris — celle du menu d'avant
+         (left: 0; right: 0). */
+      position-area: block-end span-inline-end;
+      box-sizing: border-box; width: anchor-size(width); min-width: 0;
     }
     html[data-tse-off~="filtreCategorie"] .tse-dd--lang .tse-dd-opt { justify-content: flex-start; }
     html[data-tse-off~="filtreLangue"] .tse-filter-field--cat { flex: 1 1 auto; }
@@ -9219,6 +9334,15 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     .tse-zap-bouton:hover { background: var(--color-background-button-secondary-hover, rgba(83, 83, 95, 0.48)); }
     .tse-zap-bouton:focus-visible { outline: 2px solid #9147ff; outline-offset: 2px; }
     .tse-zap-bouton svg { width: 20px; height: 20px; fill: currentColor; }
+    /* Le <dialog> qui l'enveloppe (4.33.0.14) : tout l'écran, noir, sans les
+       marges ni la bordure du navigateur. */
+    .tse-zap-dialogue {
+      position: fixed; inset: 0;
+      width: 100%; height: 100%; max-width: none; max-height: none;
+      margin: 0; padding: 0; border: 0;
+      background: #000; overflow: hidden; overscroll-behavior: contain;
+    }
+    .tse-zap-dialogue::backdrop { background: #000; }
     #tse-zap {
       position: fixed; inset: 0; z-index: 9000; overflow: hidden; background: #000; color: #fff;
       font-family: Inter, Roobert, "Helvetica Neue", Helvetica, Arial, sans-serif; line-height: 1.35;
@@ -9228,7 +9352,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     /* La scène isole ses lecteurs : leurs plans (courant, sortant, en attente) ne passent pas devant l'écran. */
     .tse-zap__scene { position: absolute; inset: 0; z-index: 0; }
     .tse-zap__lecteur {
-      position: absolute; left: 50%; top: 50%; width: max(100vw, 177.78vh); height: max(100vh, 56.25vw);
+      position: absolute; left: 50%; top: 50%; width: max(100dvw, 177.78dvh); height: max(100dvh, 56.25dvw);
       transform: translate(-50%, -50%); border: 0; opacity: 0; pointer-events: none;
       transition: opacity ${CFG.ZAP_FONDU_MS}ms ease;
     }
@@ -9255,7 +9379,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     .tse-zap__rang { font-size: 28px; font-weight: 700; color: #fff; font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
     .tse-zap__aide {
       position: absolute; right: var(--tse-zap-marge); top: 44px; display: flex; align-items: center; flex-wrap: wrap;
-      gap: 8px 18px; padding: 10px 16px; max-width: calc(100vw - 2 * var(--tse-zap-marge) - 360px);
+      gap: 8px 18px; padding: 10px 16px; max-width: calc(100dvw - 2 * var(--tse-zap-marge) - 360px);
       font-size: 14px; color: #e5e5ea;
     }
     .tse-zap__groupe { display: inline-flex; align-items: center; gap: 6px; }
@@ -9281,9 +9405,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       position: absolute; right: calc(var(--tse-zap-marge) - 12px); top: 140px; bottom: 140px; width: calc(var(--tse-zap-colonne) + 24px);
       box-sizing: border-box; margin: 0; padding: 10px 12px 28px; list-style: none; display: flex; flex-direction: column; gap: 10px;
       overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none;
-      -webkit-mask-image: linear-gradient(#000 calc(100% - 28px), transparent); mask-image: linear-gradient(#000 calc(100% - 28px), transparent);
+      mask-image: linear-gradient(#000 calc(100% - 28px), transparent);
     }
-    .tse-zap__liste::-webkit-scrollbar { display: none; }
     .tse-zap__item { flex: 0 0 auto; }
     .tse-zap__chaine {
       display: flex; align-items: center; gap: 12px; width: 100%; padding: 8px; border: 0; text-align: left;
@@ -9401,8 +9524,17 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     }
     /* L'attribut « hidden » se perd sous un « display » posé par une classe :
        on le rend souverain dans tout ce que nous peignons. */
-    #tse-accueil[hidden], #tse-accueil [hidden],
+    #tse-accueil[hidden], #tse-accueil [hidden]:not([hidden="until-found"]),
     #tse-accueil-heros[hidden], #tse-accueil-heros [hidden] { display: none !important; }
+    /* REPLIÉES, MAIS TROUVABLES (4.33.0.14). Les cartes d'un rayon replié
+       portent hidden="until-found" : Ctrl+F y cherche, et le navigateur
+       déplie ce qu'il trouve (cf. plier). Il ne masque pourtant que leur
+       CONTENU — la boîte, elle, garde sa place dans la grille, et une rangée
+       repliée resterait là, vide. Sortie du flux et ramenée à rien, elle ne
+       prend plus de place ; son texte reste cherchable. */
+    #tse-accueil .tse-acc-liste > [hidden="until-found"] {
+      position: absolute; width: 0; height: 0; margin: 0; padding: 0; border: 0; overflow: hidden;
+    }
     /* Le carrousel de Twitch, quand on le masque. Sa vidéo est arrêtée à part. */
     .tse-acc-masque { display: none !important; }
     /* D'EMBLÉE (4.26.0.5) : « un décalage avec la homepage native pendant
@@ -9444,8 +9576,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       display: grid; grid-template-columns: repeat(auto-fill, minmax(min(var(--tse-col), 100%), 1fr));
       gap: ${CFG.ACCUEIL_ECARTS}; margin: 0; padding: 0; list-style: none;
     }
-    /* La hauteur du bouton même sans bouton (4.26.0.5) : le Top 10 l'obtient
-       en arrivant — dix places pour cinq colonnes —, et tout ce qui suit
+    /* La hauteur du bouton même sans bouton (4.26.0.5) : le Top l'obtient
+       en arrivant — plus de places que de colonnes —, et tout ce qui suit
        descendait d'autant. */
     .tse-acc-pied { display: flex; align-items: center; min-height: 30px; margin: 14px 0 4px; }
     .tse-acc-plus {
@@ -9512,10 +9644,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       display: flex; gap: ${CFG.ACCUEIL_ECARTS.split(' ')[1]}; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain;
       scroll-snap-type: x mandatory; scrollbar-width: none;
       padding: var(--tse-ruban-haut) calc(50cqw - var(--tse-ruban-carte) / 2) 28px;
-      -webkit-mask-image: linear-gradient(90deg, transparent, #000 var(--tse-ruban-fondu), #000 calc(100% - var(--tse-ruban-fondu)), transparent);
       mask-image: linear-gradient(90deg, transparent, #000 var(--tse-ruban-fondu), #000 calc(100% - var(--tse-ruban-fondu)), transparent);
     }
-    .tse-acc-ruban::-webkit-scrollbar { display: none; }
     /* Le temps d'un chemin mené par nous, l'aimant se tait (cf. allerA). */
     .tse-acc-liste.tse-acc-ruban.tse-acc-ruban--mene { scroll-snap-type: none; }
     .tse-acc-ruban > .tse-acc-carte, .tse-acc-ruban > .tse-acc-carte-attente {
@@ -9618,7 +9748,15 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       display: inline-flex; align-items: center; justify-content: center;
       background: rgba(14, 14, 16, 0.72); color: #fff; transition: opacity 0.15s ease, background 0.15s ease;
       box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12), 0 6px 18px rgba(0, 0, 0, 0.45);
-      -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+      backdrop-filter: blur(8px);
+    }
+    /* L'annonce du carrousel : lue, pas vue. */
+    /* Les titres des rayons se coupent en lignes égales quand ils passent à
+       la ligne (4.33.0.14). */
+    #tse-accueil .tse-acc-titre { text-wrap: balance; }
+    .tse-acc-annonce {
+      position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0;
+      overflow: hidden; clip-path: inset(50%); white-space: nowrap;
     }
     .tse-acc-ruban-fleche--prec { left: 8px; }
     .tse-acc-ruban-fleche--suiv { right: 8px; }
@@ -9879,7 +10017,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     .tse-acc-infos { display: flex; gap: 10px; min-width: 0; padding-top: 8px; }
     .tse-acc-avatar { flex: 0 0 40px; width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: var(--tse-surface-2); }
     .tse-acc-textes { flex: 1 1 auto; min-width: 0; }
-    /* Le nom, et juste à sa droite l'évolution du Top 10. */
+    /* Le nom, et juste à sa droite l'évolution du Top 15. */
     .tse-acc-nom-ligne { display: flex; align-items: center; gap: 8px; min-width: 0; }
     .tse-acc-nom {
       flex: 0 1 auto; min-width: 0; color: var(--tse-texte); font-size: 14px; font-weight: 600; line-height: 1.3;
@@ -9908,7 +10046,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        qui la cache quand elle est fermée. */
     .tse-acc-cs-fen {
       position: fixed; inset: auto; margin: 0; box-sizing: border-box;
-      min-width: 200px; max-width: min(320px, calc(100vw - 16px)); padding: 6px; overflow: visible;
+      min-width: 200px; max-width: min(320px, calc(100dvw - 16px)); padding: 6px; overflow: visible;
       border: 1px solid rgba(var(--tse-encre), 0.12); border-radius: 6px;
       background: var(--tse-surface); color: var(--tse-texte); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
       font-size: 13px; line-height: 18px; text-align: left;
@@ -9942,6 +10080,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       font-size: 12px; font-weight: 600; line-height: 24px; text-decoration: none; white-space: nowrap;
     }
     .tse-acc-debut:hover { background: rgba(var(--tse-encre), 0.18); }
+    /* JAMAIS PLUS LARGE QUE SA CARTE (4.33.0.13) : à sa largeur de contenu, il
+       sortait d'une carte étroite — et la page défilait de côté. Le libellé
+       s'abrège ; son infobulle dit toujours ce qu'il fait. */
+    .tse-acc-debut { max-width: 100%; }
+    .tse-acc-debut > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
     /* SA PLACE, GARDÉE (4.26.0.5). L'archive se demande après la peinture,
        et le bouton paraissait une seconde plus tard : la rangée grandissait
        d'une ligne, et tout ce qui suit descendait. Tant que « Depuis le
@@ -9949,7 +10092,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        la place, invisible. */
     .tse-acc-debut[data-tse-reserve] { visibility: hidden; }
     .tse-acc-debut { min-height: 24px; box-sizing: border-box; }
-    /* Le Top 10 en attente de son classement : ses cinq premières places,
+    /* Le Top 15 en attente de son classement : ses cinq premières places,
        vides, à leur taille exacte — les chiffres, les vignettes, les lignes. */
     .tse-acc-carte-attente { min-width: 0; }
     .tse-acc-place--attente .tse-acc-vignette, .tse-acc-place--attente .tse-acc-avatar, .tse-acc-os,
@@ -10014,7 +10157,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        sombre sinon. */
     #tse-rappels {
       position: fixed; left: 16px; bottom: 16px; z-index: 6000; display: flex; flex-direction: column; gap: 8px;
-      width: min(360px, calc(100vw - 32px)); pointer-events: none;
+      width: min(360px, calc(100dvw - 32px)); pointer-events: none;
     }
     .tse-rappel {
       pointer-events: auto; display: flex; align-items: center; gap: 10px; padding: 10px 8px 10px 12px;
@@ -10066,7 +10209,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     #tse-accueil-heros[data-tse-place="section"] .tse-acc-heros-cadre { border-radius: 10px; }
     .tse-acc-heros { container: tse-heros / inline-size; margin: 0; }
     .tse-acc-heros-cadre {
-      --tse-heros-h: clamp(320px, min(27.78cqw, 60vh), 720px);
+      --tse-heros-h: clamp(320px, min(27.78cqw, 60dvh), 720px);
       /* Le fondu prend le quart du cadre, à toutes les tailles : 80 px sur
          320, 121 sur 484 (une fenêtre de 2000 px), 180 sur 720. */
       --tse-fondu: calc(var(--tse-heros-h) * 0.25);
@@ -10078,12 +10221,6 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        deux bords. */
     .tse-acc-heros-scene {
       position: absolute; inset: 0; z-index: 0; overflow: hidden; background: #0e0e10;
-      -webkit-mask-image: linear-gradient(0deg, transparent 0,
-        rgba(0, 0, 0, 0.028) calc(var(--tse-fondu) * 0.1), rgba(0, 0, 0, 0.104) calc(var(--tse-fondu) * 0.2),
-        rgba(0, 0, 0, 0.216) calc(var(--tse-fondu) * 0.3), rgba(0, 0, 0, 0.352) calc(var(--tse-fondu) * 0.4),
-        rgba(0, 0, 0, 0.5) calc(var(--tse-fondu) * 0.5), rgba(0, 0, 0, 0.648) calc(var(--tse-fondu) * 0.6),
-        rgba(0, 0, 0, 0.784) calc(var(--tse-fondu) * 0.7), rgba(0, 0, 0, 0.896) calc(var(--tse-fondu) * 0.8),
-        rgba(0, 0, 0, 0.972) calc(var(--tse-fondu) * 0.9), #000 var(--tse-fondu));
       mask-image: linear-gradient(0deg, transparent 0,
         rgba(0, 0, 0, 0.028) calc(var(--tse-fondu) * 0.1), rgba(0, 0, 0, 0.104) calc(var(--tse-fondu) * 0.2),
         rgba(0, 0, 0, 0.216) calc(var(--tse-fondu) * 0.3), rgba(0, 0, 0, 0.352) calc(var(--tse-fondu) * 0.4),
@@ -10110,7 +10247,6 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     .tse-acc-heros-media {
       position: absolute; top: 0; right: 0; z-index: 1; height: 100%;
       aspect-ratio: 16 / 9; max-width: 100%; overflow: hidden;
-      -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 24%);
       mask-image: linear-gradient(90deg, transparent 0, #000 24%);
     }
     .tse-acc-heros-img, .tse-acc-heros-video {
@@ -10203,7 +10339,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       height: clamp(36px, 1.8cqw, 42px); margin: 0; padding: 0 16px; border-radius: 6px; line-height: 1;
       font-size: clamp(14px, 0.72cqw, 16px);
       background: rgba(255, 255, 255, 0.16); color: #fff;
-      -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+      backdrop-filter: blur(8px);
     }
     .tse-acc-heros .tse-acc-debut:hover { background: rgba(255, 255, 255, 0.24); }
     /* Étroit : la vidéo prend plus de la moitié du cadre, le texte passe sur
@@ -10217,15 +10353,30 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       .tse-acc-heros-infos { width: min(560px, 72%); }
     }
 
-    /* ── Le Top 10 ───────────────────────────────────────────────────────
-       CINQ PLACES PAR RANGÉE, À TOUTES LES TAILLES (4.26.0.3) : « la taille
-       de liste de base doit être de 5 » — 1 à 5, puis 6 à 10 sous « Afficher
-       tout ». Le chiffre en creux, à gauche de la vignette qui le recouvre en
-       partie, et son pied aligné sur le bas de la vignette. Tout se mesure
-       en largeur de place : le chiffre en prend 28 %, la vignette les 79 %
-       qui restent sous lui, et le chiffre en prend la hauteur — une place
-       étroite garde ses proportions. */
-    .tse-acc-liste--top { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 22px 16px; }
+    /* ── Le Top 15 ───────────────────────────────────────────────────────
+       COMME UN RAYON DE TWITCH (4.33.0.13). Signalé, capture à l'appui :
+       « le top 10 n'est pas responsive ». Cinq places par rangée À TOUTES LES
+       TAILLES (4.26.0.3) : à 1 024 pixels, une place en faisait 179 — des
+       noms abrégés en trois lettres, « Depuis le début » sorti de sa carte —,
+       à 375, 49, et la page entière défilait de côté. La grille est désormais
+       celle des autres rayons, et celle que prennent les rayons de Twitch
+       (cf. RANGER) : autant de colonnes que tient une place de
+       ${CFG.ACCUEIL_CARTE_MIN} pixels, les mêmes écarts entre colonnes — les
+       colonnes s'alignent d'un rayon à l'autre —, et ${CFG.ACCUEIL_TOP_COLONNES}
+       au plus : la largeur minimale d'une colonne est aussi le cinquième de la
+       liste. Replié, la première rangée, comme un rayon (cf. \`plier\`) : 1 à
+       5 sur un grand écran — « la taille de liste de base doit être de 5 » —,
+       1 à 3, 1 à 2 ou la première seule quand la place manque.
+       Le chiffre en creux, à gauche de la vignette qui le recouvre en partie,
+       et son pied aligné sur le bas de la vignette. Tout se mesure en largeur
+       de place : le chiffre en prend 28 %, la vignette les 79 % qui restent
+       sous lui, et le chiffre en prend la hauteur — une place étroite garde
+       ses proportions. */
+    .tse-acc-liste--top {
+      grid-template-columns: repeat(auto-fill, minmax(max(min(${CFG.ACCUEIL_CARTE_MIN}px, 100%),
+        calc((100% - ${CFG.ACCUEIL_TOP_COLONNES - 1} * ${CFG.ACCUEIL_ECARTS.split(' ')[1]}) / ${CFG.ACCUEIL_TOP_COLONNES})), 1fr));
+      gap: 22px ${CFG.ACCUEIL_ECARTS.split(' ')[1]};
+    }
     .tse-acc-place { container-type: inline-size; display: flex; align-items: flex-start; min-width: 0; }
     .tse-acc-rang {
       --tse-vignette-h: calc(79cqw * 9 / 16);
@@ -10243,7 +10394,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     }
     .tse-acc-evol--hausse { color: var(--tse-hausse); }
     .tse-acc-evol--baisse { color: var(--tse-baisse); }
-    .tse-acc-evol--stable { color: var(--tse-texte-faible); }
+    /* « = » est un texte, et dit quelque chose : la place n'a pas bougé. Le
+       gris faible de Twitch n'y tenait que 3,83:1 en sombre (4.33.0.14). */
+    .tse-acc-evol--stable { color: var(--tse-texte-doux); }
     .tse-acc-evol--nouveau { padding: 0 6px; border-radius: 4px; background: #9147ff; color: #fff; font-size: 11px; }
     .tse-acc-note { margin: 2px 0 0; font-size: 12px; color: var(--tse-texte-doux); }
   `;
@@ -13988,7 +14141,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       // Et cela ne coûte AUCUNE requête : les tags de langue voyagent déjà
       // dans chaque réponse de la marche.
       /* `exclues` (4.32.0.4) : des logins que ce classement-ci ne montre pas
-         — les chaînes écartées du Top 10 de l'accueil. Retirées AVANT les
+         — les chaînes écartées du Top 15 de l'accueil. Retirées AVANT les
          places : le classement garde ses dix, et la onzième monte. La barre
          ne passe rien. */
       top(n = lire().n, exclues = null) {
@@ -14527,23 +14680,299 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
   /* ── DÉPLACER SANS DÉFAIRE (4.33.0.10) ───────────────────────────────────
      Un nœud déplacé par insertBefore ou appendChild est RETIRÉ puis REPOSÉ,
      et le navigateur le traite comme neuf : ses animations CSS repartent de
-     zéro — la pastille qui bat sautait à chaque réordonnancement du Top 10,
+     zéro — la pastille qui bat sautait à chaque réordonnancement du Top 15,
      les lueurs de la barre à chaque tri — et une iframe se recharge — la
      vidéo du héros repartait du noir quand on le reposait. `moveBefore()`
      déplace sans retirer (Modern Web Guidance, « move-dom-element-without-
      losing-state ») : mesuré dans Chromium, une animation à 600 ms repart à
      0 sous insertBefore, et continue sous moveBefore.
      IL NE DÉPLACE QU'UN NŒUD DÉJÀ DANS LA PAGE, vers un parent qui y est
-     aussi, dans le même document. Un nœud neuf, un parent pas encore posé,
-     un navigateur qui ne le connaît pas : insertBefore, comme avant. */
+     aussi, dans le même document. Un nœud neuf, un parent pas encore posé :
+     insertBefore, comme avant. Les deux planchers le connaissent (Chrome
+     133, Firefox 144) : on ne demande plus au navigateur s'il l'a
+     (4.33.0.14). */
   const deplacer = (parent, noeud, avant = null) => {
-    if (typeof parent.moveBefore === 'function' && noeud.isConnected && parent.isConnected
-        && noeud.ownerDocument === parent.ownerDocument) {
+    if (noeud.isConnected && parent.isConnected && noeud.ownerDocument === parent.ownerDocument) {
       try { parent.moveBefore(noeud, avant); return; }
       catch { /* refusé par un cas limite du DOM : le déplacement d'avant */ }
     }
     parent.insertBefore(noeud, avant);
   };
+
+  /* ============================================================
+   *  LA BARRE QUI GLISSE (4.33.0.12)
+   *  -------------------------------------------------------------
+   *  Signalé : « lorsque la sidebar s'actualise, il n'y a pas
+   *  d'animation […] une animation progressive et discrète ». Le
+   *  balayage range la barre d'un coup : une chaîne dépasse sa voisine
+   *  et les deux cartes échangent leur place, une chaîne démarre et tout
+   *  ce qui suit descend d'un cran, une autre s'arrête et tout remonte.
+   *  L'œil voit un saut, et doit relire la liste pour savoir ce qui a
+   *  changé.
+   *
+   *  LA TECHNIQUE DES LISTES QUI BOUGENT BIEN (« FLIP ») : on relève où
+   *  chaque chose EST à l'écran avant le balayage, on le laisse tout
+   *  ranger d'un coup, on mesure où chaque chose a atterri, et on la fait
+   *  partir de son ancienne place vers la neuve. Rien n'est retardé : la
+   *  liste est juste dès la fin du balayage, pour le DOM comme pour qui le
+   *  lit. Seul le TRAJET se voit.
+   *
+   *  CE QUI BOUGE : les cartes affichées ; les sections entières — une
+   *  carte de plus dans la liste suivie pousse « Chaînes live » vers le
+   *  bas, et la section glisse avec — ; les curseurs ▶ de la salle, qui
+   *  suivent leur barre. UN ENFANT NE REFAIT PAS LE TRAJET DE SON PARENT :
+   *  une carte dans une section qui descend ne bouge que de ce qui la
+   *  concerne.
+   *
+   *  CE QUI ARRIVE se pose APRÈS que la place s'est ouverte : un fondu
+   *  depuis zéro, et plusieurs arrivées l'une après l'autre, de haut en
+   *  bas. CE QUI PART n'a pas de sortie : la carte est déjà
+   *  retirée par Twitch, ou masquée par la feuille, et la refaire paraître
+   *  pour l'effacer mentirait sur l'état. Ses voisines referment la place.
+   *
+   *  RIEN QUE LE COMPOSITEUR : `translate` et `opacity`, qu'il anime seul
+   *  (cf. scénario 213). `translate` et non `transform` : la propriété
+   *  individuelle s'AJOUTE au `transform` d'un élément — la gélule du
+   *  curseur porte le sien, translateY(-50%) et son échelle — au lieu de
+   *  le remplacer le temps du trajet.
+   *
+   *  CE QUI NE S'ANIME PAS, et pourquoi :
+   *   — sous le voile : la levée doit montrer une liste posée ;
+   *   — un onglet caché : personne ne regarde ;
+   *   — le balayage qui suit un changement de largeur de la barre (repli,
+   *     dépli, fenêtre) ou de mode (Top Chaînes) : tout a bougé, rien n'a
+   *     de sens à suivre ;
+   *   — un repeuplement : plus de trois arrivées et plus du tiers des
+   *     cartes. Ce n'est pas une actualisation, c'est une autre liste ;
+   *   — LES CHIFFRES. Les compteurs changent à presque chaque relevé, sur
+   *     presque chaque carte : les animer ferait clignoter la barre
+   *     entière toutes les trente secondes, l'inverse de discret. Ils se
+   *     mettent à jour sur place ; le mouvement est réservé à l'ordre.
+   *
+   *  UN BALAYAGE EN PLEIN TRAJET : le relevé est pris à l'écran, trajet
+   *  en vol compris, puis les trajets sont SUSPENDUS avant que le balayage
+   *  ne mesure quoi que ce soit — les liaisons de co-stream et le
+   *  placement des curseurs lisent la mise en page, pas une image en vol.
+   *  À la fin, un trajet dont la destination n'a pas bougé reprend à
+   *  l'instant où il en était ; une destination qui a changé part de là
+   *  où la carte est à l'écran. Le balayage est synchrone : entre la
+   *  suspension et la reprise, aucune image n'est peinte. Ce qui mesure HORS du
+   *  balayage — l'aperçu qui se place, le curseur qu'un ResizeObserver
+   *  replace — passe par `posee`, qui retire le trajet en vol.
+   * ============================================================ */
+  const mouvementBarre = (() => {
+    const GLISSE = 'cubic-bezier(0.2, 0, 0, 1)';   // part franchement, se pose doucement
+    const ENTREE = 'cubic-bezier(0, 0, 0.2, 1)';   // décélère, sans dépasser
+    /* Ce qui est en vol : par élément, son trajet (`glisse`) et son arrivée
+       (`entree`) — deux animations distinctes, sur deux propriétés distinctes,
+       qui ne se remplacent donc pas l'une l'autre. Chacune garde ses images et
+       ses réglages : c'est ce qui permet de la REPRENDRE à l'identique. */
+    const enVol = new Map();
+    let releve = null;
+    /* La largeur de la barre et le mode, au balayage précédent : un repli, un
+       dépli, une fenêtre redimensionnée, une bascule en Top Chaînes ont lieu
+       AVANT le balayage qui les range — c'est donc au précédent qu'on compare. */
+    let largeurVue = null, modeVu = null;
+    const bilan = { releves: 0, glisses: 0, repris: 0, entrees: 0, retenus: {}, dernier: null };
+    /* UN RELEVÉ OUVERT PAR UNE RÉPONSE DE TWITCH SERT À TOUTES CELLES DU MÊME
+       LOT (cf. `lot`) : la seconde doit repartir de l'écran d'AVANT la
+       première, pas de la mise en page que la première a déjà changée. Au-delà
+       de cent millisecondes, un relevé resté ouvert — une erreur entre les
+       deux — ne dit plus l'écran. */
+    const OUVERT_MS = 100;
+    const ouvert = () => !!releve && performance.now() - releve.t < OUVERT_MS;
+    const noterRetenue = (raison) => { bilan.retenus[raison] = (bilan.retenus[raison] || 0) + 1; };
+    const estCarte = (el) => el.classList.contains('side-nav-card');
+    const estSection = (el) => el.classList.contains('side-nav-section');
+
+    /* Ce qui peut bouger : les sections, leurs cartes affichées — sans le
+       <a> interne du mode réduit, qui porte la même classe —, et le calque
+       des curseurs. */
+    const mobiles = (nav) => [
+      ...nav.querySelectorAll('.side-nav-section'),
+      ...[...nav.querySelectorAll('.side-nav-card')]
+        .filter((c) => !c.parentElement?.closest('.side-nav-card') && cardShown(c)),
+      ...nav.querySelectorAll('.tse-noeuds > *'),
+    ];
+    const lire = (els) => {
+      const m = new Map();
+      for (const el of els) {
+        const r = el.getBoundingClientRect();
+        if (r.width || r.height) m.set(el, { x: r.left, y: r.top });
+      }
+      return m;
+    };
+    const calme = () => !document.hidden && !loadingOverlay.enCycle();
+
+    const lancer = (el, sorte, images, options, t = null) => {
+      if (!(options.duration > 0)) return;
+      const a = el.animate(images, options);
+      if (t !== null) a.currentTime = t;
+      const v = enVol.get(el) || {};
+      v[sorte] = { a, images, options };
+      enVol.set(el, v);
+      const fin = () => {
+        const w = enVol.get(el);
+        if (!w || w[sorte]?.a !== a) return;
+        delete w[sorte];
+        if (!w.glisse && !w.entree) enVol.delete(el);
+      };
+      a.addEventListener('finish', fin);
+      a.addEventListener('cancel', fin);
+    };
+
+    const avant = () => {
+      const nav = document.querySelector(DOM.sidebarRoot);
+      const largeur = nav ? nav.getBoundingClientRect().width : null;
+      const elargie = largeurVue !== null && largeur !== null && Math.abs(largeur - largeurVue) > 0.5;
+      const bascule = modeVu !== null && modeVu !== state.globalMode;
+      largeurVue = largeur;
+      modeVu = state.globalMode;
+      bilan.releves += 1;
+      // À l'écran, trajets en vol compris : c'est de là qu'on repartira.
+      const vus = nav && calme() ? lire(mobiles(nav)) : null;
+      if (nav && !vus) noterRetenue('voile');
+      /* LES TRAJETS SONT SUSPENDUS, pas oubliés : chacun garde l'instant où il
+         en était. Le balayage mesure ensuite une mise en page sans image en
+         vol ; à la fin, un trajet dont la destination n'a pas bougé reprend
+         à cet instant précis — même courbe, même vitesse. Relancé depuis le
+         point atteint, il repartirait vite : un à-coup à chaque balayage qui
+         tombe en plein trajet. */
+      const suspendus = new Map();
+      for (const [el, v] of enVol) {
+        const s = {};
+        for (const sorte of ['glisse', 'entree']) {
+          if (!v[sorte]) continue;
+          s[sorte] = { images: v[sorte].images, options: v[sorte].options, t: v[sorte].a.currentTime };
+          v[sorte].a.cancel();
+        }
+        suspendus.set(el, s);
+      }
+      enVol.clear();
+      releve = null;
+      if (!vus) return;
+      // Où chaque chose est POSÉE : l'écran, sauf pour ce qui volait — relu, l'envol suspendu.
+      const poses = new Map(vus);
+      for (const [el, p] of lire([...suspendus.keys()].filter((el) => vus.has(el)))) poses.set(el, p);
+      releve = { t: performance.now(), nav, vus, poses, suspendus, elargie, bascule };
+    };
+
+    const apres = () => {
+      const r = releve;
+      releve = null;
+      if (!r) return;
+      const nav = document.querySelector(DOM.sidebarRoot);
+      if (nav !== r.nav || !calme()) return noterRetenue('voile');
+      if (r.bascule) return noterRetenue('mode');
+      if (r.elargie) return noterRetenue('largeur');
+      const ici = lire(mobiles(nav));
+      /* CE QUI ÉTAIT À L'ÉCRAN repart de là où il était ; une carte qui n'y
+         était pas ARRIVE. Une carte que Twitch a posée ou reconstruite entre
+         deux balayages est déjà peinte quand celui-ci commence : elle est
+         dans le relevé, et ne fait que le trajet qui la range. */
+      const deja = [];
+      const arrivees = [];
+      let cartes = 0, nouvellesCartes = 0;
+      for (const el of ici.keys()) {
+        if (estCarte(el)) cartes += 1;
+        if (r.vus.has(el)) deja.push(el);
+        else if (estCarte(el) || estSection(el)) {
+          arrivees.push(el);
+          if (estCarte(el)) nouvellesCartes += 1;
+        }
+      }
+      if (nouvellesCartes > 3 && nouvellesCartes * 3 > cartes) return noterRetenue('repeuplement');
+      const porteur = (el) => {
+        for (let p = el.parentElement; p && p !== nav; p = p.parentElement) if (ici.has(p)) return p;
+        return null;
+      };
+      const ZERO = { x: 0, y: 0 };
+      // De l'écran d'avant à la place d'aujourd'hui ; et de la place d'avant à celle d'aujourd'hui.
+      const vol = (el) => { const p = ici.get(el), v = r.vus.get(el);
+        return v ? { x: v.x - p.x, y: v.y - p.y } : ZERO; };
+      const pas = (el) => { const p = ici.get(el), q = r.poses.get(el);
+        return q ? { x: p.x - q.x, y: p.y - q.y } : ZERO; };
+      let glisses = 0, repris = 0, plusLong = 0;
+      for (const el of deja) {
+        const pa = porteur(el);
+        // UN ENFANT NE REFAIT PAS LE TRAJET DE SON PARENT : le sien, moins celui du porteur.
+        const v = vol(el), vp = pa ? vol(pa) : ZERO;
+        const x = Math.round((v.x - vp.x) * 10) / 10, y = Math.round((v.y - vp.y) * 10) / 10;
+        const s = r.suspendus.get(el);
+        const p = pas(el), pp = pa ? pas(pa) : ZERO;
+        const immobile = Math.abs(p.x - pp.x) < 0.5 && Math.abs(p.y - pp.y) < 0.5;
+        if (s?.glisse && immobile) {
+          lancer(el, 'glisse', s.glisse.images, s.glisse.options, s.glisse.t);
+          repris += 1;
+        } else if (Math.abs(x) >= 0.5 || Math.abs(y) >= 0.5) {
+          lancer(el, 'glisse', [{ translate: `${x}px ${y}px` }, { translate: '0px 0px' }],
+            { duration: CFG.BARRE_GLISSE_MS, easing: GLISSE });
+          glisses += 1;
+          plusLong = Math.max(plusLong, Math.abs(y));
+        }
+        // Une arrivée en cours se poursuit, où que la carte aille.
+        if (s?.entree) lancer(el, 'entree', s.entree.images, s.entree.options, s.entree.t);
+      }
+      /* LA PLACE S'OUVRE D'ABORD, la carte s'y pose ensuite : un fondu, après
+         un temps, de haut en bas et l'une après l'autre. Un fondu seulement —
+         un décalage en plus serait une seconde propriété `translate` sur la
+         même carte, que le trajet d'un balayage suivant remplacerait. Une
+         section qui reparaît fond entière, et ses cartes avec elle : elles
+         ne fondent pas une seconde fois. */
+      const nouveaux = new Set(arrivees);
+      const fondre = arrivees.filter((el) => !nouveaux.has(porteur(el)))
+        .sort((a, b) => ici.get(a).y - ici.get(b).y);
+      fondre.forEach((el, i) => {
+        const opacite = getComputedStyle(el).opacity;
+        lancer(el, 'entree', [{ opacity: 0 }, { opacity: opacite }],
+          { duration: CFG.BARRE_ENTREE_MS, easing: ENTREE, fill: 'backwards',
+            delay: CFG.BARRE_ENTREE_DELAI_MS + Math.min(i, CFG.BARRE_ECHELONS_MAX) * CFG.BARRE_ECHELON_MS });
+      });
+      bilan.glisses += glisses;
+      bilan.repris += repris;
+      bilan.entrees += fondre.length;
+      if (glisses || fondre.length) {
+        bilan.dernier = { glisses, entrees: fondre.length, plusLong: Math.round(plusLong) };
+      }
+    };
+
+    /* CE QUI CHANGE LA BARRE HORS BALAYAGE — la réponse de Twitch qui
+       arrive, et masque une chaîne qui a coupé ou rend celle qui revient —
+       ouvre un relevé avant de toucher à quoi que ce soit, et les trajets
+       partent DANS LA MÊME TÂCHE, une fois appliquées toutes les réponses du
+       lot : celles-ci se résolvent ensemble, et leurs suites passent avant
+       la microtâche qui ferme le relevé. Pas à l'image suivante : un rappel
+       d'image passé avant le nôtre lirait une carte rendue mais pas encore
+       en fondu — jamais peinte, mais lue. Une suite plus tardive ouvre son
+       propre relevé, toujours avant que rien ne soit peint. */
+    const lot = () => {
+      if (ouvert()) return;
+      avant();
+      if (releve) Promise.resolve().then(() => apres());   // une microtâche : après les suites du lot, avant toute image
+    };
+
+    /* OÙ L'ÉLÉMENT EST POSÉ, sans le trajet en vol — le sien et celui de ses
+       ancêtres. Pour ce qui mesure hors du balayage. */
+    const posee = (el) => {
+      const b = el.getBoundingClientRect();
+      let x = 0, y = 0;
+      for (let p = el; p; p = p.parentElement) {
+        if (!enVol.get(p)?.glisse) continue;
+        const m = /^(-?[\d.]+(?:e-?\d+)?)px(?:\s+(-?[\d.]+(?:e-?\d+)?)px)?/.exec(getComputedStyle(p).translate || '');
+        if (m) { x += Number(m[1]); y += Number(m[2] || 0); }
+      }
+      if (!x && !y) return b;
+      const left = b.left - x, top = b.top - y;
+      return { x: left, y: top, left, top, right: left + b.width, bottom: top + b.height,
+               width: b.width, height: b.height };
+    };
+
+    return {
+      avant, apres, lot, posee,
+      // Des comptes, jamais un pseudo ; et ce qui est en vol à cet instant.
+      rapport: () => ({ ...bilan, retenus: { ...bilan.retenus }, enVol: enVol.size }),
+    };
+  })();
 
   /* La FENTE des phrases traduites.
      Les libellés d'interface portaient leur `<strong>` dans la traduction :
@@ -15206,11 +15635,27 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
    *  une fin, comme il l'était.
    *  Effaçable par tse.reset(), comme le reste.
    * ============================================================ */
-  /* Minuit local d'un instant, et l'écart en jours de calendrier jusqu'à une
-     date. Arrondi, et non tronqué : un jour de changement d'heure dure 23 ou
-     25 heures, et le calendrier, lui, n'en saute aucun. */
-  const minuitLocal = (t) => { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); };
-  const joursJusqua = (t) => Math.round((minuitLocal(t) - minuitLocal(Date.now())) / 86_400_000);
+  /* ── LES JOURS CIVILS, PAR TEMPORAL (4.33.0.14) ────────────────────────
+     Le jour civil d'un instant, son minuit local, l'écart en jours de
+     calendrier, le minuit de N jours plus tard. Date ne savait que des
+     millisecondes : l'écart se divisait par 86 400 000 et s'ARRONDISSAIT —
+     un jour de changement d'heure dure 23 ou 25 heures —, et l'on avançait
+     d'un jour par setDate. Temporal compte en jours de calendrier, et le
+     minuit d'un jour sans minuit (Santiago, le jour du passage à l'heure
+     d'été, commence à 01:00) est le premier instant de ce jour, comme
+     setHours(0) le donnait. Les résultats sont ceux d'avant ; ils ne
+     tiennent plus à un arrondi.
+
+     L'INSTANT VIENT DE Date.now(), pas de Temporal.Now : c'est l'horloge
+     que le banc fige, et Temporal.Now ne la suit pas. Le fuseau est celui du
+     système — celui de Date, et celui que le banc émule. */
+  const jourCivil = (t) => Temporal.Instant.fromEpochMilliseconds(t)
+    .toZonedDateTimeISO(Temporal.Now.timeZoneId()).toPlainDate();
+  const minuitDuJour = (jour) => jour.toZonedDateTime(Temporal.Now.timeZoneId()).epochMilliseconds;
+  const minuitLocal = (t) => minuitDuJour(jourCivil(t));
+  const joursJusqua = (t) => jourCivil(Date.now()).until(jourCivil(t)).days;
+  // Le minuit local du n-ième jour après celui de `t` (aujourd'hui par défaut).
+  const minuitDans = (n, t = Date.now()) => minuitDuJour(jourCivil(t).add({ days: n }));
 
   const subs = {
     // login -> { sub, ts, m?, ex?, src?, ech? } (cf. l'en-tête)
@@ -15705,9 +16150,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       try {
         const formats = FORMES_DATE.map((o) => new Intl.DateTimeFormat(langue, o));
         for (let i = 0; i <= CFG.SUBS_DUE_HORIZON_DAYS; i++) {
-          const d = new Date(jour);
-          d.setDate(d.getDate() + i);
-          for (const f of formats) cles.push([normaliser(f.format(d)), d.getTime()]);
+          const ms = minuitDans(i, jour);
+          for (const f of formats) cles.push([normaliser(f.format(ms)), ms]);
         }
       } catch { /* langue qu'Intl ne connaît pas : aucune date, aucun badge */ }
       candidates = { langue, jour, cles };
@@ -15773,9 +16217,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       const u = unite(f[i + 1]?.t || '');
       const v = f.slice(0, i).find((x) => (x.t.match(/\d+/g) || []).length === 1 && unite(x.t) !== u);
       if (!v) return { mois: m, ech: 0, ecrite };
-      const d = new Date(minuitLocal(Date.now()));
-      d.setDate(d.getDate() + parseInt(/\d+/.exec(v.t)[0], 10));
-      return { mois: m, ech: d.getTime(), ecrite };
+      return { mois: m, ech: minuitDans(parseInt(/\d+/.exec(v.t)[0], 10)), ecrite };
     };
 
     /* L'horodatage porte la VERSION DU LECTEUR qui l'a produit, pas seulement
@@ -16190,7 +16632,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       /* ET SI LES CARTES SONT EXACTEMENT CELLES DE L'ONGLET D'AVANT, on les
          veut stables bien plus longtemps avant d'y croire : c'est l'image
          d'une page qui n'a pas encore redessiné, bien plus qu'une coïncidence. */
-      const avant = [...(precedents || [])].sort().join(',');
+      const avant = (precedents || []).toSorted().join(',');
       const refuser = (trouve, stableMs) => !!avant
         && trouve.map(x => x.login).sort().join(',') === avant
         && stableMs < CFG.SUBS_PAGE_SETTLE;
@@ -16951,7 +17393,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
            paraître dans la fenêtre de la page, et une fenêtre plus basse que le
            cadre le cachait — le banc, à 720 px, n'en lisait que la première
            page. */
-        cadre.style.cssText = 'position:fixed;left:0;top:0;width:1280px;height:100vh;'
+        cadre.style.cssText = 'position:fixed;left:0;top:0;width:1280px;height:100dvh;'
           + 'opacity:0;pointer-events:none;border:0;z-index:-1';
         const charge = new Promise((r) => cadre.addEventListener('load', () => r(true), { once: true }));
         cadre.src = location.origin + CHEMIN;
@@ -17349,7 +17791,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
    *    — « À la une » : les directs du carrousel de Twitch, que
    *      la bannière masque, en rayon (4.32.0.3 — il remplace
    *      vos chaînes suivies en direct, que la barre montre déjà) ;
-   *    — le Top 10 de votre langue, tiré du classement exact de
+   *    — le Top 15 de votre langue, tiré du classement exact de
    *      Top Chaînes, en grands chiffres.
    *
    *  RIEN N'EST INVENTÉ ICI. La bannière lit ce que la barre sait
@@ -17357,7 +17799,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
    *  ne coûte aucune requête de plus : l'amorce
    *  (4.26.0.5, cf. VOILE_ACCUEIL) demande au démarrage ce que la
    *  barre demanderait à son premier balayage, et la barre ne le
-   *  redemande pas. Le Top 10 est une
+   *  redemande pas. Le Top 15 est une
    *  seconde instance du moteur de Top Chaînes (creerClassement),
    *  qui ne tourne que pendant que l'accueil est à l'écran et se
    *  tait quand la barre sert déjà la même question. « Depuis le
@@ -17448,7 +17890,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     let refusSuite = 0;
     let debutPause = 0;
     let z = null;                // les zones de la section, une fois construite
-    let rangsTop = null;         // login → place, quand le Top 10 affiché est exact
+    let rangsTop = null;         // login → place, quand le Top 15 affiché est exact
     const ouverts = new Set();   // les rayons dépliés par « Afficher tout » : 'une', 'top'…
     let mesureur = null;         // ResizeObserver de la section : le nombre de colonnes
     let herosCourant = null;     // { login, cle } : le héros peint, et le début de son direct
@@ -17469,6 +17911,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
 
     const bilan = {
       poses: 0, reposes: 0, retraits: 0, peintures: 0, relangues: 0, reveils: 0, ancre: null,
+      // Les rayons repliés que Ctrl+F a dépliés (4.33.0.14, cf. PLI_CACHE).
+      plisTrouves: 0,
       /* LE TEMPS DE L'ACCUEIL (4.26.0.5), en millisecondes depuis le début de
          la page : quand le défileur de Twitch est apparu, quand la section s'y
          est posée, quand le héros a été peint, quand le voile s'est levé,
@@ -17500,7 +17944,14 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
          porte, combien se montrent, combien attendent leur réponse. */
       une: { voie: null, lues: 0, montrees: 0, attente: 0, reserve: false, demandes: 0, relectures: 0, centrages: 0,
              // Le ruban circulaire (4.33.0.1) : la carte du centre, et les tours faits pour la garder entourée.
-             tete: null, tours: 0 },
+             tete: null, tours: 0,
+             /* Ses trous (4.33.0.13), au dernier passage : combien de places à combler,
+                combien l'ont été, et pourquoi chacune manquait — la chaîne de la
+                bannière, une chaîne hors ligne, une réponse qui n'est pas venue,
+                ou un carrousel pair. Des comptes, jamais un pseudo. */
+             trous: 0, comblees: 0, raisons: { banniere: 0, horsLigne: 0, sansReponse: 0, pair: 0 },
+             // Les annonces du carrousel (4.33.0.14) : combien de fois la carte du centre a été dite.
+             annonces: 0 },
       debut: { envois: 0, demandes: 0, archives: 0, sansArchive: 0, sansStream: 0,
                jetons: 0, fermees: 0, illisibles: 0, refus: 0, reseau: 0 },
       // Vos rendez-vous (4.27.0) : ce qui est montré, et si l'agenda tourne encore.
@@ -17527,7 +17978,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     const SEL_EXCLU = `#${ID}, #${ID_HEROS}, ${DOM.sidebarRoot}, .tse-preview`;
     const exclu = (n) => !!n.closest?.(SEL_EXCLU);
 
-    /* ── LE TOP 10 : LA LANGUE, ET LE MOTEUR QUI LE SERT ─────────────────────
+    /* ── LE TOP 15 : LA LANGUE, ET LE MOTEUR QUI LE SERT ─────────────────────
        « Celle de Twitch » se lit sur <html lang>, que Twitch pose d'après la
        langue de son interface, et se traduit en NOM DE TAG — la clé du
        moteur (cf. LANG_API). Une langue sans tag connu se dit « toutes les
@@ -17547,10 +17998,10 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        catégorie, dans la même langue. Son classement porte au moins dix
        places (topN vaut 10, 30 ou 50), et on le lit au lieu d'en payer un
        second. */
-    /* LES CHAÎNES ÉCARTÉES DU TOP 10 (4.32.0.4, cf. OPT_DEFS), en ensemble.
+    /* LES CHAÎNES ÉCARTÉES DU TOP 15 (4.32.0.4, cf. OPT_DEFS), en ensemble.
        Retirées avant les places, elles laissent monter les suivantes : le Top
-       10 en demande donc autant de plus au classement, pour que la dixième
-       place soit PROUVÉE comme les neuf autres (cf. `nPreuve`). La barre ne
+       15 en demande donc autant de plus au classement, pour que la dernière
+       place soit PROUVÉE comme les autres (cf. `nPreuve`). La barre ne
        se partage qu'à cette condition : son Top Chaînes doit en porter assez. */
     let ecarteesCle = null;
     let ecarteesJeu = new Set();
@@ -18183,9 +18634,12 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        revient à son terme (cf. finDefilement). */
     const allerA = (liste, carte) => {
       const e = etatRuban(liste);
+      const change = e.tete !== carte.dataset.tseCle;
       e.tete = e.vers = carte.dataset.tseCle;
       e.versT = performance.now();
       bilan.une.tete = e.tete;
+      // Une flèche ou un clic : la carte voulue est connue tout de suite, et se dit.
+      if (change) annoncer(liste, carte);
       liste.classList.add('tse-acc-ruban--mene');
       tourner(liste, carte);
       centrer(liste, carte);
@@ -18231,8 +18685,26 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       if (menePar(e) && c.dataset.tseCle !== e.vers) return;
       e.vers = null;
       liste.classList.remove('tse-acc-ruban--mene');
-      if (c.dataset.tseCle !== e.tete) { e.tete = c.dataset.tseCle; bilan.une.tete = e.tete; }
+      if (c.dataset.tseCle !== e.tete) {
+        e.tete = c.dataset.tseCle;
+        bilan.une.tete = e.tete;
+        annoncer(liste, c);
+      }
       tourner(liste, c);
+    };
+    /* « 2 sur 5 : Nyxaria » — la diapositive au centre, et sa chaîne. Dite
+       quand on la MÈNE (allerA : une flèche, un clic, la carte voulue est
+       connue sur-le-champ) ou quand un défilement à la main s'arrête sur une
+       autre (finDefilement). Jamais deux fois : la tête posée par allerA est
+       celle que la fin du chemin retrouve. */
+    const annoncer = (liste, c) => {
+      const zone = liste.parentElement?.querySelector(':scope > .tse-acc-annonce');
+      const ordre = etatRuban(liste).ordre || [];
+      const i = ordre.indexOf(c.dataset.tseCle);
+      if (!zone || i < 0) return;
+      const nom = c.querySelector('.tse-acc-nom')?.textContent || c.dataset.tseCle;
+      zone.textContent = S.uiAccAnnonce(i + 1, ordre.length, nom);
+      bilan.une.annonces++;
     };
     const majFleches = (liste) => {
       const cadre = liste.parentElement;
@@ -18264,6 +18736,13 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         if (ouverts.has(cle)) ouverts.delete(cle); else ouverts.add(cle);
         plier(r);
       });
+      // Une carte repliée trouvée par Ctrl+F : le rayon se déplie tout entier.
+      r.addEventListener('beforematch', erreurs.garde('accueil', () => {
+        if (ouverts.has(cle)) return;
+        ouverts.add(cle);
+        bilan.plisTrouves++;
+        plier(r);
+      }));
       pied.append(elt('hr', 'tse-acc-filet'), plus, elt('hr', 'tse-acc-filet'));
       r.append(titre, liste, pied);
       r.hidden = true;
@@ -18280,6 +18759,12 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         .filter((t) => /^[\d.]+px$/.test(t)).length;
       return pistes || 0;
     };
+    /* LE PLI QUE Ctrl+F TRAVERSE (4.33.0.14). Une carte repliée porte
+       hidden="until-found" : la recherche de la page la trouve, le navigateur
+       envoie « beforematch » et la montre — et le rayon se déplie avec elle
+       (cf. fabriquerRayon), « Afficher moins » au bouton. Les deux planchers
+       le connaissent (Chrome 102, Firefox 148). */
+    const PLI_CACHE = 'until-found';
     const plier = (r) => {
       const liste = r.querySelector('.tse-acc-liste');
       const plus = r.querySelector('.tse-acc-plus');
@@ -18288,8 +18773,10 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       const cols = colonnes(liste);
       const replie = !ouvert && cols > 0;
       for (let i = 0; i < items.length; i++) {
-        const cache = replie && i >= cols;
-        if (items[i].hidden !== cache) items[i].hidden = cache;
+        const voulu = replie && i >= cols ? PLI_CACHE : null;
+        if (items[i].getAttribute('hidden') !== voulu) {
+          if (voulu === null) items[i].removeAttribute('hidden'); else items[i].setAttribute('hidden', voulu);
+        }
       }
       // Des places vides (cf. peindreUne) ne se déplient pas : il n'y a rien dessous.
       const reste = cols > 0 && items.length > cols && !('tseAttente' in liste.dataset);
@@ -18317,7 +18804,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       blocHeros.append(heros);
       // « À la une » (4.32.0.3), à la place qu'avait « Vos chaînes suivies en direct ».
       const hUne = elt('h2', 'tse-acc-titre');
-      hUne.append(elt('span', null, S.uiAccUne));
+      const tUne = elt('span', null, S.uiAccUne);
+      tUne.id = 'tse-acc-une-titre';
+      hUne.append(tUne);
       // En ruban (4.32.0.4, cf. RUBAN) : la liste défile, deux flèches la mènent.
       const lUne = elt('div', 'tse-acc-liste tse-acc-ruban');
       const cadreUne = elt('div', 'tse-acc-ruban-cadre');
@@ -18332,7 +18821,18 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         b.addEventListener('click', erreurs.garde('accueil', () => mener(lUne, sens)));
         return b;
       };
-      cadreUne.append(flecheUne(-1), lUne, flecheUne(1));
+      /* UN CARROUSEL, ET IL LE DIT (4.33.0.14) : une région nommée par son
+         titre, de rôle décrit « carrousel » ; ses cartes, des diapositives
+         « N sur M » (cf. peindreUne). Quand la carte du centre change — une
+         flèche, un clic, un défilement —, une annonce polie dit laquelle :
+         ce que l'œil voit glisser, l'oreille l'entend. Pas d'annonce à la
+         peinture : rien n'a bougé sous la main de personne. */
+      cadreUne.setAttribute('role', 'region');
+      cadreUne.setAttribute('aria-roledescription', S.uiAccCarrousel);
+      cadreUne.setAttribute('aria-labelledby', tUne.id);
+      const annonceUne = elt('p', 'tse-acc-annonce');
+      annonceUne.setAttribute('role', 'status');
+      cadreUne.append(flecheUne(-1), lUne, flecheUne(1), annonceUne);
       lUne.addEventListener('scroll', () => { etatRuban(lUne).defile = true; }, { passive: true });
       lUne.addEventListener('scrollend', erreurs.garde('accueil', () => finDefilement(lUne)));
       lUne.addEventListener('click', erreurs.garde('accueil', (ev) => centrerAuClic(lUne, ev)), true);
@@ -18349,7 +18849,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       const note = elt('p', 'tse-acc-note');
       note.hidden = true;
       lTop.after(note);
-      // Des rayons qui disent pourquoi (4.31.0), juste après le Top 10 (cf. POURQUOI).
+      // Des rayons qui disent pourquoi (4.31.0), juste après le Top 15 (cf. POURQUOI).
       const pq = Array.from({ length: CFG.POURQUOI_RAYONS }, (_, i) => {
         const h = elt('h2', 'tse-acc-titre');
         h.append(elt('span'), elt('span', 'tse-acc-sous-titre'));
@@ -18387,17 +18887,15 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       z = { heros, une, lUne, top, tTop, lang, lTop, note, pq, rdv, lRdv, hab, lHab, abs, lAbs, langCle: undefined };
       /* LE LECTEUR NE JOUE QU'À L'ÉCRAN. Le héros descendu hors de la vue,
          sa vidéo s'arrête ; elle reprend quand il revient. */
-      if (typeof IntersectionObserver === 'function') {
-        guetteur = new IntersectionObserver(erreurs.garde('accueil', (entrees) => {
-          const vu = entrees[entrees.length - 1].isIntersecting;
-          if (vu === herosVu) return;
-          herosVu = vu;
-          majLecteur();
-        }));
-        guetteur.observe(heros);
-      } else herosVu = true;
+      guetteur = new IntersectionObserver(erreurs.garde('accueil', (entrees) => {
+        const vu = entrees[entrees.length - 1].isIntersecting;
+        if (vu === herosVu) return;
+        herosVu = vu;
+        majLecteur();
+      }));
+      guetteur.observe(heros);
       // Une fenêtre qui change de largeur change le nombre de colonnes.
-      if (typeof ResizeObserver === 'function') {
+      {
         let large = 0;
         mesureur = new ResizeObserver(erreurs.garde('accueil', (entrees) => {
           const l = Math.round(entrees[entrees.length - 1].contentRect.width);
@@ -18457,11 +18955,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
             relevés, ou daté par les chapitres que l'aperçu a déjà lus ;
          5. « ↗ +38 % en 10 min » — deux relevés du même direct (cf.
             tendanceDe) ;
-         6. « N°3 mondial » — la place au Top 10 de tout Twitch (4.33.0.6,
+         6. « N°3 mondial » — la place au Top 15 de tout Twitch (4.33.0.6,
             cf. AILLEURS), quand celui de l'accueil est celui d'une langue ;
-         7. « N°3 en français » — la place au Top 10 exact de l'accueil ; pas
-            sur le Top 10 lui-même, qui l'écrit déjà en grand ;
-         8. « N°2 en anglais » — la place au Top 10 d'une AUTRE langue, celle
+         7. « N°3 en français » — la place au Top 15 exact de l'accueil ; pas
+            sur le Top 15 lui-même, qui l'écrit déjà en grand ;
+         8. « N°2 en anglais » — la place au Top 15 d'une AUTRE langue, celle
             que la chaîne porte en tag (4.33.0.6, cf. AILLEURS) ;
          9. « Co-stream à 3 » — la session que Guest Star décrit.
        Ce qu'on ne sait pas ne s'écrit pas : une carte sans fait reste nue. */
@@ -18481,39 +18979,39 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     };
     /* ══ LES PLACES D'AILLEURS (4.33.0.6) ══════════════════════════════════
        « Est-il possible de mettre des pastilles des Top mondiaux et des tops
-       des autres langues ? » Le Top 10 de l'accueil est celui d'UNE langue —
+       des autres langues ? » Le Top 15 de l'accueil est celui d'UNE langue —
        la vôtre, d'ordinaire —, et une chaîne d'une autre langue, ou la
        première de tout Twitch, n'y avait aucune place à dire. Deux sortes de
-       classements s'y ajoutent, du même moteur que le Top 10 (cf.
+       classements s'y ajoutent, du même moteur que le Top 15 (cf.
        creerClassement), et aux mêmes preuves :
-         — LE MONDE, toutes langues, quand le Top 10 est celui d'une langue
-           (sinon le Top 10 EST le monde, et sa place se dit déjà) ;
+         — LE MONDE, toutes langues, quand le Top 15 est celui d'une langue
+           (sinon le Top 15 EST le monde, et sa place se dit déjà) ;
          — LES AUTRES LANGUES DES CARTES DE L'ACCUEIL, celles que leurs
            chaînes portent en tag (cf. langStore), pour les cartes dont le
            direct est connu — celles qu'on a vues à l'écran, d'ordinaire : les
            ETIQ_LANGUES_MAX plus nombreuses.
-       CHACUN COÛTE CE QUE COÛTE LE TOP 10 : une passe légère toutes les 30 s
+       CHACUN COÛTE CE QUE COÛTE LE TOP 15 : une passe légère toutes les 30 s
        (la liste des catégories et le sommet des dix premières, ~11
        opérations), et une marche au plus toutes les 2 min 30 — un TseTagTop
        dans une langue, la descente des catégories (~64 opérations) pour le
        monde. Le rapport compte les opérations de chacun (`operations`).
        Aucun ne part quand la barre sert déjà la même question
        (Top Chaînes ouvert, sans catégorie, dans la même langue), quand
-       l'accueil n'est pas à l'écran, ou quand les étiquettes ou le Top 10
+       l'accueil n'est pas à l'écran, ou quand les étiquettes ou le Top 15
        sont coupés.
-       UNE PLACE NE S'ÉCRIT QUE PROUVÉE, comme au Top 10 : un classement
+       UNE PLACE NE S'ÉCRIT QUE PROUVÉE, comme au Top 15 : un classement
        résolu, complet selon son rapport, et dont la preuve couvre ses dix
        places. Une langue que Twitch ne filtre pas lui-même retombe sur les
        tags lus : approchée, elle ne dit rien. Les places
-       d'une session de co-stream sont une, comme au Top 10 ; les chaînes
-       écartées du Top 10 n'y changent rien — elles sont VOTRE liste, pas un
+       d'une session de co-stream sont une, comme au Top 15 ; les chaînes
+       écartées du Top 15 n'y changent rien — elles sont VOTRE liste, pas un
        fait du classement de Twitch. */
     const MONDE = '*';
     const ailleurs = new Map();        // portée ('*' ou un tag de langue) -> { cle, voulu, classement }
     let rangsAilleurs = new Map();     // portée -> Map(login -> place), places prouvées seulement
     const vusEtiquettes = new Map();   // login -> instant où sa carte a été peinte, son direct connu
-    /* LE TOP 10 COUPÉ, AUCUNE PLACE NE SE DIT, ni d'ici ni d'ailleurs : ses
-       classements sont ceux du Top 10, et le couper, c'est n'en plus payer
+    /* LE TOP 15 COUPÉ, AUCUNE PLACE NE SE DIT, ni d'ici ni d'ailleurs : ses
+       classements sont ceux du Top 15, et le couper, c'est n'en plus payer
        aucun (cf. 217). */
     const ailleursActif = () => topActif() && options.get('accueilEtiquettes');
     const partageAilleurs = (cle) => !!state.globalMode && !state.categoryFilter
@@ -18531,7 +19029,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       }
       return a;
     };
-    // Les langues des cartes vues, sauf celle du Top 10 : les plus nombreuses d'abord, à égalité le nom.
+    // Les langues des cartes vues, sauf celle du Top 15 : les plus nombreuses d'abord, à égalité le nom.
     const languesAilleurs = () => {
       const propre = langueVoulue();
       const depuis = Date.now() - 2 * CFG.LIVE_TTL;
@@ -18543,8 +19041,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       return [...compte].sort((x, y) => (y[1] - x[1]) || (x[0] < y[0] ? -1 : 1))
         .slice(0, CFG.ETIQ_LANGUES_MAX).map(([l]) => l);
     };
-    /* Une place par session, comme au Top 10 (cf. enPlaces) : tous ses membres
-       la portent. La tête que le Top 10 élit ne sert qu'à son affichage. */
+    /* Une place par session, comme au Top 15 (cf. enPlaces) : tous ses membres
+       la portent. La tête que le Top 15 élit ne sert qu'à son affichage. */
     const placesProuvees = (src) => {
       const r = src.report();
       if (!src.resolu() || !r.complete || r.prouve < CFG.ACCUEIL_TOP_N) return null;
@@ -18700,7 +19198,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       if (twitch) etiquetees.add(n);
     };
     /* CE QU'UNE CARTE COÛTE. Une chaîne que la barre suit est déjà lue toutes
-       les trente secondes. Les autres — celles du Top 10 et des rayons de
+       les trente secondes. Les autres — celles du Top 15 et des rayons de
        Twitch — entrent dans le lot commun de TseChannels tant que leur carte
        est à l'écran, et seulement elles. */
     /* UNE CHAÎNE QUE TWITCH OMET — renommée, bannie — ne laisse rien dans le
@@ -18767,7 +19265,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     const etiquetterTwitch = () => {
       const voulu = options.get('accueilEtiquettes') && pose();
       const habille = options.get('accueilRanger') && pose();
-      if ((voulu || habille) && !guetteurCartes && typeof IntersectionObserver === 'function') {
+      if ((voulu || habille) && !guetteurCartes) {
         guetteurCartes = new IntersectionObserver(erreurs.garde('accueil', (entrees) => {
           for (const en of entrees) {
             if (en.isIntersecting) cartesVues.add(en.target); else cartesVues.delete(en.target);
@@ -18969,9 +19467,10 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        conteneur de requêtes (`container-type`) : elle piège un `position:
        fixed`, et le pli du rayon l'aurait rognée. La couche supérieure n'a
        pas d'ancêtre qui la contienne ; la fenêtre suit pourtant son bouton
-       dans le DOM, et la tabulation y entre juste après lui. Un navigateur
-       sans `popover` garde le bouton, et la phrase en infobulle. */
-    const POPOVER = typeof document.createElement('div').showPopover === 'function';
+       dans le DOM, et la tabulation y entre juste après lui. Les deux
+       planchers connaissent `popover` (Chrome 114, Firefox 125) : le repli
+       sans fenêtre — le bouton seul, la phrase en infobulle — est parti
+       (4.33.0.14). */
     const etatsCs = new WeakMap();   // bouton → { tete: { login, nom, avatar }, autres: [{ login, nom }] }
     let csOuvert = null;             // { bouton, fen, epingle }
     let csMinuteur = 0;
@@ -19125,7 +19624,6 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       const b = elt('button', 'tse-acc-cs');
       b.type = 'button';
       b.append(elt('span', null), noeudStatique(PICTO_CHEVRON));
-      if (!POPOVER) return [b];
       b.setAttribute('aria-expanded', 'false');
       const fen = elt('div', 'tse-acc-cs-fen');
       fen.id = 'tse-acc-cs-' + (++csNumero);
@@ -19159,7 +19657,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       return [b, fen];
     };
     /* Le bouton d'une carte : posé, mis à jour, retiré. Juste après le nom,
-       comme sur la carte de Twitch ; l'évolution du Top 10 vient après lui. */
+       comme sur la carte de Twitch ; l'évolution du Top 15 vient après lui. */
     const majCs = (ligne, cs) => {
       const b = ligne.querySelector(':scope > .tse-acc-cs');
       if (!cs || !cs.autres.length) {
@@ -19179,10 +19677,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       texteSi(bouton.firstChild, `+ ${cs.autres.length}`);
       const phrase = phraseCs(cs);
       attrSi(bouton, 'aria-label', phrase);
-      if (!POPOVER) attrSi(bouton, 'title', phrase);
       if (csOuvert && csOuvert.bouton === bouton) remplirCs(csOuvert.fen, cs);
     };
-    /* APRÈS CHAQUE PEINTURE DU TOP 10. Une place qui change de rang est
+    /* APRÈS CHAQUE PEINTURE DU TOP 15. Une place qui change de rang est
        déplacée dans la liste, et un `popover` déplacé se referme : s'il était
        ouvert, il se rouvre à sa place. Un bouton parti emporte la sienne. */
     const suivreCs = () => {
@@ -19194,7 +19691,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     };
 
     /* Une carte : la vignette (cible de l'aperçu), puis l'avatar et les textes.
-       Le nom partage sa ligne avec l'évolution du Top 10 : « juste à droite du
+       Le nom partage sa ligne avec l'évolution du Top 15 : « juste à droite du
        pseudo », comme demandé — sur une chaîne suivie, elle reste vide.
 
        LE RELIEF AU SURVOL (4.32.0.3), celui des cartes de Twitch : « le
@@ -19209,8 +19706,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        feuille, `.tse-acc-relief`). La couleur est celle de la chaîne —
        `primaryColorHex`, que TseChannels rapporte —, le violet de Twitch à
        défaut. */
-    const fabriquerCarte = (login) => {
-      const carte = elt('article', 'tse-acc-carte');
+    /* Une <article> partout, sauf dans le ruban d'« À la une », où la carte
+       est une DIAPOSITIVE — rôle « group » — et qu'une <article> ne peut pas
+       porter (ARIA in HTML). */
+    const fabriquerCarte = (login, balise = 'article') => {
+      const carte = elt(balise, 'tse-acc-carte');
       carte.dataset.tseCle = login;
       const relief = elt('div', 'tse-acc-relief');
       const accent = elt('span', 'tse-acc-accent');
@@ -19250,7 +19750,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     /* `d` : { login, nom, avatar, titre, jeu, spect, debutLive, cs, couleur }
        — tout ce qui a été lu, rien de deviné. Un champ absent laisse sa ligne
        vide ; une couleur inconnue laisse celle de Twitch. `cs` : le
-       co-stream d'une place du Top 10 (cf. CO-STREAM). */
+       co-stream d'une place du Top 15 (cf. CO-STREAM). */
     const majCarte = (carte, d) => {
       const [relief, infos] = carte.children;
       const vig = relief.lastChild;
@@ -19279,7 +19779,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       texteSi(jeu, d.jeu || '');
       jeu.hidden = !d.jeu;
       majDebut(debut, d.login, d.nom, true);
-      // Sur le Top 10, la place s'écrit déjà en grand à côté : pas deux fois.
+      // Sur le Top 15, la place s'écrit déjà en grand à côté : pas deux fois.
       poserEtiquette(vig, etiquetteDe(d.login, { rang: !d.top }));
     };
     // Une rangée tenue par clé : les cartes restent, se mettent à jour, se réordonnent.
@@ -19332,7 +19832,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
 
        Ce qu'il dit, il le sait : la catégorie, l'audience et la durée du cache
        de la barre, l'ancienneté d'abonnement que l'aperçu affiche déjà, la
-       place au Top 10 quand le classement exact de l'accueil la donne. Le
+       place au Top 15 quand le classement exact de l'accueil la donne. Le
        choix de la tête, posé en haut à droite en 4.26.0.1, est retiré à la
        demande : il se fait dans « Réglages ». */
     const fabriquerHeros = (login) => {
@@ -19512,10 +20012,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       l.t.delai = setTimeout(() => renoncer('delais'), CFG.ACCUEIL_VIDEO_DELAI_MS);
       lecteur = l;
       media.insertBefore(iframe, media.lastChild);
-      if (typeof ResizeObserver === 'function') {
-        l.taille = new ResizeObserver(erreurs.garde('accueil', direHauteur));
-        l.taille.observe(media);
-      }
+      l.taille = new ResizeObserver(erreurs.garde('accueil', direHauteur));
+      l.taille.observe(media);
       bilan.heros.video.poses++;
     };
     const lecteurVoulu = () => !!herosCourant && pose() && options.get('accueilVideo')
@@ -19569,9 +20067,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       ctx.putImageData(image, 0, 0);
       cible.classList.add('tse-acc-heros-ambiance--vue', 'tse-acc-heros-ambiance--dessus');
       dessus.classList.remove('tse-acc-heros-ambiance--dessus');
-      if (typeof cible.animate === 'function') {
-        cible.animate([{ opacity: 0 }, { opacity: 1 }], { duration: CFG.ACCUEIL_AMBIANCE_FONDU_MS, easing: 'ease-out' });
-      }
+      cible.animate([{ opacity: 0 }, { opacity: 1 }], { duration: CFG.ACCUEIL_AMBIANCE_FONDU_MS, easing: 'ease-out' });
       bilan.heros.ambiance.images++;
     };
     // Sans lecteur, le fond revient à l'image du direct.
@@ -19633,13 +20129,13 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        de l'accueil est « rien » : le carrousel affiché, ce serait deux fois
        les mêmes directs. Sans la chaîne de la bannière, qui est juste
        au-dessus. Ce qu'une carte dit vient de TseChannels, comme pour le Top
-       10 : une chaîne que la barre ne suit pas entre dans le lot commun le
+       15 : une chaîne que la barre ne suit pas entre dans le lot commun le
        temps qu'elle est à la une. Une chaîne dont la réponse n'est pas encore
        là attend ; une chaîne que Twitch dit hors ligne ne se montre pas. */
-    /* EN ATTENDANT, SA PLACE (cf. le Top 10, 4.26.0.5). Le carrousel arrive
+    /* EN ATTENDANT, SA PLACE (cf. le Top 15, 4.26.0.5). Le carrousel arrive
        après notre première image — c'était lui qu'on voyait « quelques
        secondes » avant le héros —, et ses chaînes, une réponse plus tard.
-       Le rayon paraissait alors au-dessus du Top 10, qui descendait d'une
+       Le rayon paraissait alors au-dessus du Top 15, qui descendait d'une
        rangée sous vos yeux : le banc l'a pris, « rien ne bouge en
        arrivant ». Tant qu'on attend le carrousel ou ses réponses, une rangée
        de cartes vides tient sa place, à la taille exacte des vraies — huit
@@ -19664,19 +20160,86 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       return carte;
     };
     let uneLue = '';             // les chaînes du carrousel à la dernière lecture (cf. suivreUne)
+    /* JAMAIS DE TROU, TOUJOURS SYMÉTRIQUE (4.33.0.13). Signalé, capture à
+       l'appui : « de temps en temps, "À la une" manque un live […] il faut à
+       tout prix un live s'il en manque un et que ce n'est pas symétrique ».
+       Une carte du centre, une à sa gauche, deux à sa droite. Une chaîne du
+       carrousel sautait — celle de la bannière, déjà juste au-dessus ; une
+       chaîne que Twitch dit hors ligne ; une réponse qui ne vient pas — ou le
+       carrousel n'en portait que quatre, et le ruban, centré sur sa tête,
+       penchait d'un côté.
+       UNE PLACE PAR CHAÎNE DU CARROUSEL, ET UN NOMBRE IMPAIR : la place d'une
+       chaîne qui ne peut pas se montrer est COMBLÉE, à l'endroit même du trou,
+       par un autre direct ; un carrousel pair reçoit une place de plus, au
+       bout. Le direct qui comble vient de ce que l'accueil sait déjà, rien de
+       deviné : le classement du Top, puis vos chaînes suivies en direct ; une
+       chaîne déjà à l'écran — au carrousel, à la bannière — n'est pas reprise.
+       Il doit être EN DIRECT d'après TseChannels : une chaîne du classement
+       dont la réponse manque est demandée, et servira au passage suivant.
+       IL GARDE SA PLACE tant qu'il est en direct : une carte qui en remplace
+       une autre à chaque peinture, ce serait le ruban qui clignote. SA place,
+       et non la première venue : chaque direct qui comble est attaché à la
+       chaîne qu'il remplace — ou à la place qui rend le compte impair —, et
+       un trou qui s'ouvre plus tôt dans la boucle ne le déplace pas.
+       Une réponse attendue n'est pas un trou tant que l'arrivée est récente
+       (cf. ACCUEIL_UNE_ATTENTE_MS) : sa chaîne viendra prendre sa place. */
+    // À la peinture d'avant : la place — la chaîne du carrousel qu'il remplace, '' pour celle du compte impair — → le direct qui la comblait.
+    let combleurs = new Map();
     const peindreUne = (heros) => {
       const voulu = !!options.get('accueilUne') && masquerVoulu;
       const { logins, voie } = voulu ? chainesCarrousel() : { logins: [], voie: null };
       uneLue = logins.join(',');
       const items = [];
+      const trous = [];          // { ou : sa position dans `items`, cle : la chaîne du carrousel qui manque }
       let attente = 0;
+      const patient = performance.now() - arrivee < CFG.ACCUEIL_UNE_ATTENTE_MS;
+      const raisons = { banniere: 0, horsLigne: 0, sansReponse: 0, pair: 0 };
       for (const login of logins) {
-        if (heros && login === heros.login) continue;
+        const trou = (raison) => { trous.push({ ou: items.length, cle: login }); raisons[raison]++; };
+        if (heros && login === heros.login) { trou('banniere'); continue; }
         demander(login, bilan.une);
         const e = cache.get(login);
-        if (!e) { attente++; continue; }
-        if (e.stream) items.push({ login, e });
+        if (!e) { attente++; if (!patient) trou('sansReponse'); continue; }
+        if (e.stream) items.push({ login, e }); else trou('horsLigne');
       }
+      // Un carrousel pair : une place de plus, au bout de la boucle.
+      if (logins.length % 2) raisons.pair = 0;
+      else if (logins.length) { trous.push({ ou: items.length, cle: '' }); raisons.pair = 1; }
+      bilan.une.raisons = raisons;
+      bilan.une.trous = trous.length;
+      bilan.une.comblees = 0;
+      if (trous.length && items.length) {
+        const deja = new Set([...logins, ...(heros ? [heros.login] : [])]);
+        const enDirect = (login) => { const e = cache.get(login); return e && e.stream ? e : null; };
+        const choisis = trous.map(() => null);
+        // D'abord, chaque place garde le direct qui la comblait.
+        trous.forEach((t, i) => {
+          const login = combleurs.get(t.cle);
+          const e = login && !deja.has(login) && enDirect(login);
+          if (e) { choisis[i] = { login, e }; deja.add(login); }
+        });
+        // Puis les places restées vides, dans l'ordre de la boucle : le Top, puis les suivies.
+        let k = choisis.indexOf(null);
+        if (k >= 0) {
+          const candidats = [...sourceTop().top(CFG.ACCUEIL_TOP_N, ecarteesTop()).map((r) => String(r.login).toLowerCase()),
+                             ...suiviesEnDirect().map((x) => x.login)];
+          for (const login of candidats) {
+            if (k < 0) break;
+            if (deja.has(login) || !RE_LOGIN.test(login)) continue;
+            deja.add(login);
+            const e = cache.get(login);
+            if (!e) { demander(login, bilan.une); continue; }
+            if (!e.stream) continue;
+            choisis[k] = { login, e };
+            k = choisis.indexOf(null, k + 1);
+          }
+        }
+        // Chacun à l'endroit même de son trou.
+        let poses = 0;
+        trous.forEach((t, i) => { if (choisis[i]) items.splice(t.ou + poses++, 0, choisis[i]); });
+        combleurs = new Map(trous.flatMap((t, i) => (choisis[i] ? [[t.cle, choisis[i].login]] : [])));
+        bilan.une.comblees = poses;
+      } else if (!trous.length) combleurs = new Map();
       for (const x of items) noterAffiche(x.login, x.e.stream?.createdAt);
       /* On attend : le carrousel n'est pas encore là, ou ses chaînes n'ont pas
          répondu — et l'arrivée est récente. Un carrousel lu dont aucune chaîne
@@ -19711,8 +20274,19 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         const t = cles.indexOf(ruban.tete);
         const d = t < 0 || items.length < 3 ? 0 : t - milieuRuban(items.length);
         const tournes = d ? [...items.slice(d), ...items.slice(0, d)] : items;
-        rangee(z.lUne, tournes, (it) => it.login, (it) => fabriquerCarte(it.login),
+        rangee(z.lUne, tournes, (it) => it.login, (it) => fabriquerCarte(it.login, 'div'),
                (n, it) => majCarte(n, donneesSuivie(it)));
+        /* LES DIAPOSITIVES SE NUMÉROTENT DANS L'ORDRE DU CARROUSEL, pas dans
+           celui du ruban : il tourne pour garder la tête au milieu, et la
+           troisième chaîne de Twitch resterait « 3 sur 5 » où qu'elle soit. */
+        ruban.ordre = cles;
+        for (const c of z.lUne.children) {
+          const i = cles.indexOf(c.dataset.tseCle);
+          if (i < 0) continue;
+          attrSi(c, 'role', 'group');
+          attrSi(c, 'aria-roledescription', S.uiAccDiapo);
+          attrSi(c, 'aria-label', S.uiAccDiapoN(i + 1, cles.length));
+        }
       }
       bilan.une.tete = ruban.tete;
       z.une.hidden = !items.length && !reserve;
@@ -19723,7 +20297,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       Object.assign(bilan.une, { voie, lues: logins.length, montrees: items.length, attente, reserve });
     };
 
-    /* ── LE TOP 10 ───────────────────────────────────────────────────────────
+    /* ── LE TOP 15 ───────────────────────────────────────────────────────────
        Une place par co-stream, comme dans Top Chaînes : la carte d'un de ses
        membres, et les autres derrière « + N » (cf. CO-STREAM).
 
@@ -19775,7 +20349,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        Un instantané par minute, gardé trente minutes ; la référence est le
        plus ancien. En deçà de deux minutes, aucune flèche : du bruit. Une
        chaîne absente de la référence n'a pas « gagné douze places » — on ne
-       savait pas où elle était — : elle est « nouvelle » dans le Top 10. */
+       savait pas où elle était — : elle est « nouvelle » dans le Top 15. */
     const noterInstantane = (places, cle) => {
       const now = Date.now();
       while (instantanes.length && now - instantanes[0].ts > CFG.ACCUEIL_EVOLUTION_MS) instantanes.shift();
@@ -19813,9 +20387,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     };
     /* Une place en attente : le chiffre, la vignette, l'avatar, deux lignes —
        et la place du bouton « Depuis le début » si le réglage est en marche,
-       comme sur les vraies (cf. majDebut). Cinq : les colonnes du Top 10 (cf.
-       la feuille, `.tse-acc-liste--top`). */
-    const PLACES_ATTENTE = 5;
+       comme sur les vraies (cf. majDebut). Autant que de colonnes au plus :
+       le pliage n'en montre que la première rangée (cf. `plier`). */
+    const PLACES_ATTENTE = CFG.ACCUEIL_TOP_COLONNES;
     const fabriquerAttente = (n) => {
       const li = elt('li', 'tse-acc-place tse-acc-place--attente');
       li.dataset.tseCle = 'attente:' + n;
@@ -19843,7 +20417,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       const r = p.tete;
       const [chiffre, carte] = li.children;
       /* LE DÉBUT DU DIRECT, UN SEUL PAR CHAÎNE. Une chaîne suivie peut être
-         aussi au Top 10 : la barre et le classement la décrivent chacun, et
+         aussi au Top 15 : la barre et le classement la décrivent chacun, et
          deux clés pour un même direct feraient redemander son archive à
          chaque peinture. Le cache de la barre prime : c'est TseChannels, la
          voix la plus autorisée sur une chaîne. */
@@ -19863,7 +20437,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       }
       /* LE SPECTATEUR DU CLASSEMENT EST CELUI DU CLASSEMENT. Il a servi à
          trier ; en montrer un autre ferait voir un dixième au-dessus d'un
-         neuvième. */
+         neuvième — un quinzième au-dessus d'un quatorzième. */
       majCarte(carte, {
         login: r.login, nom: r.name || r.login, avatar: r.avatar,
         titre: cache.get(r.login)?.stream?.title || '', jeu: r.gameLabel || r.game || '',
@@ -19904,7 +20478,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       /* COMPLET, ET JUSQU'À LA DIXIÈME PLACE (4.32.0.4) : une chaîne écartée
          fait monter la onzième, que la dernière marche n'a peut-être pas
          prouvée — elle l'avait été pour dix. Jusqu'à la marche suivante, que
-         le classement lance aussitôt (cf. `nPreuve`), le Top 10 se dit
+         le classement lance aussitôt (cf. `nPreuve`), le Top 15 se dit
          partiel et ne compte pas d'évolution. */
       const rapportTop = src.report();
       const complet = resolu && rapportTop.complete && rapportTop.prouve >= placesVoulues();
@@ -19917,7 +20491,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       const ref = complet ? reference(cleEvol) : null;
       rangsTop = complet && places.length ? new Map() : null;
       if (rangsTop) places.forEach((p, i) => { for (const r of [p.tete, ...p.membres]) rangsTop.set(r.login, i + 1); });
-      /* EN ATTENDANT LE CLASSEMENT, SES PLACES (4.26.0.5). Le Top 10 se calcule
+      /* EN ATTENDANT LE CLASSEMENT, SES PLACES (4.26.0.5). Le Top 15 se calcule
          en plusieurs requêtes : plusieurs secondes. Une ligne « Classement en
          cours… » tenait sa place, et le rayon grandissait de toute une
          rangée à l'arrivée des places — tout ce qui suit descendait. Les cinq
@@ -20020,7 +20594,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       const now = Date.now();
       /* LA MÉMOIRE SE VIDE DE CE QUI N'EST PLUS À L'ÉCRAN. Une réponse par
          direct affiché, gardée pour ne pas la redemander à chaque peinture —
-         mais le Top 10 change toute la journée, et rien n'en sortait : une
+         mais le Top 15 change toute la journée, et rien n'en sortait : une
          entrée de plus par chaîne passée, pour la vie de la page. Ce qui n'est
          plus affiché depuis une demi-heure part. */
       for (const [login, d] of debuts) {
@@ -20192,11 +20766,10 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         z.hab.hidden = true;
         return;
       }
-      const j0 = new Date();
-      j0.setHours(0, 0, 0, 0);
-      const debut = j0.getTime();
-      const demain = new Date(j0.getFullYear(), j0.getMonth(), j0.getDate() + 1).getTime();
-      const fin = new Date(j0.getFullYear(), j0.getMonth(), j0.getDate() + CFG.ACCUEIL_RDV_JOURS).getTime();
+      // Aujourd'hui, demain, et la fin de la fenêtre : des minuits locaux.
+      const debut = minuitDans(0);
+      const demain = minuitDans(1);
+      const fin = minuitDans(CFG.ACCUEIL_RDV_JOURS);
       let r;
       try { r = agenda.rendezVous({ debut, fin }); } catch (e) {
         erreurs.noter('accueil', 'rendez-vous : ' + ((e && e.message) || e));
@@ -20406,7 +20979,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       if (options.get('accueilPourquoi')) {
         const lang = tagInterface();
         const code = lang ? LANG_API[lang] || null : null;
-        // La langue dite comme celle du Top 10 (cf. rangDit) : la sienne, ou nommée en anglais, ou tue.
+        // La langue dite comme celle du Top 15 (cf. rangDit) : la sienne, ou nommée en anglais, ou tue.
         const propre = String(S.locale || '').split('-')[0].toLowerCase();
         let langue = null;
         if (code && code.toLowerCase() === propre) langue = '';
@@ -20455,7 +21028,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     /* UNE CARTE PAR CHAÎNE (4.33.0.3). « Je suis pas très fan de la partie
        "Pendant votre absence" ; propose une UX/UI qui correspond bien au reste
        de la page » — deux maquettes, la voie des cartes choisie. Les nôtres,
-       celles du Top 10, mais d'une archive :
+       celles du Top 15, mais d'une archive :
        — la vignette est celle de la dernière archive de l'absence, que
          l'agenda a déjà lue ; sans elle, l'avatar flouté. Elle ouvre la
          rediffusion quand on peut la voir (cf. `ouverte`), la chaîne sinon ;
@@ -24774,17 +25347,26 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       b.appendChild(k);
       return b;
     };
+    /* UN <dialog> MODAL AUTOUR DE L'ÉCRAN (4.33.0.14). L'écran se disait
+       modal (`role="dialog"`, `aria-modal`) et ramenait le focus à la main ;
+       le navigateur le fait mieux : la page dessous inerte pour de bon — au
+       clavier comme pour un lecteur d'écran —, la couche supérieure, sans
+       course au z-index avec Twitch (Modern Web Guidance, « dialog »). Le
+       <dialog> ENVELOPPE l'écran au lieu de l'être : un <dialog> ne peut pas
+       passer en plein écran (« Dialog elements are invalid », mesuré dans
+       Chromium), son enfant si — c'est donc l'écran, comme avant, qui y va. */
     const construire = () => {
+      const dialogue = elt('dialog', 'tse-zap-dialogue');
+      dialogue.setAttribute('aria-labelledby', 'tse-zap-titre');
       const boite = elt('div', '');
       boite.id = 'tse-zap';
-      boite.setAttribute('role', 'dialog');
-      boite.setAttribute('aria-modal', 'true');
       boite.tabIndex = -1;
       const scene = elt('div', 'tse-zap__scene');
       const capot = elt('div', 'tse-zap__capot');
       const trait = elt('div', 'tse-zap__trait');
       const compteur = elt('div', 'tse-zap__compteur');
       const titre = elt('span', 'tse-zap__titre');
+      titre.id = 'tse-zap-titre';
       const rang = elt('b', 'tse-zap__rang');
       compteur.append(titre, rang);
       const aide = elt('div', 'tse-zap__aide');
@@ -24842,7 +25424,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       boite.append(scene, capot, trait, compteur, aide, liste, infos, son, vide, avisEl);
       // La molette ne fait pas défiler la page dessous : seule la colonne défile, et jusqu'à son bout seulement.
       boite.addEventListener('wheel', (e) => { if (!e.target.closest || !e.target.closest('.tse-zap__liste')) e.preventDefault(); }, { passive: false });
-      return { boite, scene, titre, rang, aide, changerTexte, entree, entreeTexte, s, sTexte, o, oTexte, echap, echapTexte,
+      dialogue.append(boite);
+      /* Une demande de fermeture du navigateur (Échap la donne déjà au clavier,
+         cf. surTouche) ferme l'écran par le même chemin que la touche. */
+      dialogue.addEventListener('cancel', (e) => { e.preventDefault(); fermer('echap'); });
+      return { dialogue, boite, scene, titre, rang, aide, changerTexte, entree, entreeTexte, s, sTexte, o, oTexte, echap, echapTexte,
                precedente, suivante, liste, infos, visage, visageImg, nom, jour, titreDirect, direct, metaTexte,
                son, sonIcone, sonTexte, vide, avis: avisEl };
     };
@@ -25058,11 +25644,6 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         for (const l of lecteurs(c)) if (l.qualite) envoyer(l, 'qualite', { hauteur: h });
       }), CFG.ZAP_REDIM_MS);
     };
-    // Le focus qui s'échapperait (un clic hors des boutons, un lecteur) revient à l'écran.
-    const surFocus = (e) => {
-      const c = z;
-      if (c && e.target instanceof Node && !c.boite.contains(e.target)) c.boite.focus({ preventScroll: true });
-    };
     // L'onglet caché : les préchargés se mettent en pause ; le courant, lui, garde le son qu'on écoute.
     const surVisibilite = () => {
       const c = z;
@@ -25156,14 +25737,14 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         retour: document.activeElement && typeof document.activeElement.focus === 'function' ? document.activeElement : null, minuteur: null,
         pleinEcran: false, bouge: 0, reposT: null, souris: { x: null, y: null }, tailleT: null,
       };
-      document.body.appendChild(refs.boite);
+      document.body.appendChild(refs.dialogue);
+      refs.dialogue.showModal();
       // Le geste qui ouvre donne le droit au plein écran : on le demande avant tout ce qui pourrait le faire perdre.
       pleinEcran(z);
       // Sur la fenêtre, en capture : le tout premier relais d'une touche, avant le document et tout ce qu'il porte.
       window.addEventListener('keydown', surTouche, true);
       window.addEventListener('keyup', surToucheAutre, true);
       window.addEventListener('keypress', surToucheAutre, true);
-      document.addEventListener('focusin', surFocus, true);
       document.addEventListener('visibilitychange', surVisibilite);
       document.addEventListener('fullscreenchange', surPleinEcran);
       window.addEventListener('message', surMessage);
@@ -25191,7 +25772,6 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       window.removeEventListener('keydown', surTouche, true);
       window.removeEventListener('keyup', surToucheAutre, true);
       window.removeEventListener('keypress', surToucheAutre, true);
-      document.removeEventListener('focusin', surFocus, true);
       document.removeEventListener('visibilitychange', surVisibilite);
       document.removeEventListener('fullscreenchange', surPleinEcran);
       window.removeEventListener('message', surMessage);
@@ -25202,7 +25782,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
          navigateur sort du plein écran — son élément a quitté la page —, avant
          que la salle ne s'ouvre ou que la page ne reprenne. Un appel de plus à
          `exitFullscreen` ne changeait rien : un mutant l'a montré. */
-      c.boite.remove();
+      if (c.refs.dialogue.open) c.refs.dialogue.close();
+      c.refs.dialogue.remove();
       bilan.fermetures[raison] = (bilan.fermetures[raison] || 0) + 1;
       if (!navigue) {
         // La page reprend là où le zapping l'avait arrêtée — si elle est encore là.
@@ -25749,7 +26330,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       const origineDe = (el) => {
         const couche = el.parentElement;
         if (!couche || !couche.isConnected) return null;
-        if (!origines.has(couche)) origines.set(couche, couche.getBoundingClientRect());
+        if (!origines.has(couche)) origines.set(couche, mouvementBarre.posee(couche));
         return origines.get(couche);
       };
       for (const [cle, { barre }] of voulues) {
@@ -25758,8 +26339,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         if (!st || !barre.every((c) => c.isConnected)) continue;
         const origine = origineDe(st.n);
         if (!origine) continue;
-        const haut = barre[0].getBoundingClientRect();
-        const bas = barre[barre.length - 1].getBoundingClientRect();
+        // Où les cartes sont POSÉES : un trajet en vol finit là (cf. mouvementBarre).
+        const haut = mouvementBarre.posee(barre[0]);
+        const bas = mouvementBarre.posee(barre[barre.length - 1]);
         // La couleur de la barre telle qu'elle est PEINTE : celle du groupe,
         // son ton approfondi en clair, ou le rouge d'un direct qui vient de
         // démarrer, qui l'emporte.
@@ -27457,6 +28039,14 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         for (const s of (f.planning && f.planning.creneaux) || []) {
           if (s.annule || s.debut < debut || s.debut >= fin || finCreneau(s) <= maintenant) continue;
           if (direct && s.debut <= maintenant) continue;   // c'est le direct en cours
+          /* DEUX HEURES DE RETARD, ET LE CRÉNEAU S'EFFACE (4.33.0.12). Demandé :
+             « si le streamer n'a toujours pas commencé son live après 2h sur son
+             planning, retire-le ». Il restait jusqu'à la fin du créneau, « pas
+             encore en direct » : une soirée entière pour un créneau de six heures
+             que la chaîne n'a pas tenu. Passé deux heures, ce n'est plus un
+             retard, c'est un rendez-vous manqué. Une chaîne en direct n'est pas
+             concernée : son créneau commencé est écarté juste au-dessus. */
+          if (maintenant - s.debut >= CFG.ACCUEIL_RDV_RETARD_MAX_MS) continue;
           prevu = true;
           creneaux.push({ login, nom: f.nom || login, avatar: f.avatar || null, id: s.id, titre: s.titre,
                           debut: s.debut, fin: s.fin, jeu: s.jeu, libelle: s.libelle });
@@ -28200,6 +28790,10 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
              et ceux masqués à cet instant. Des comptes, jamais un pseudo. */
           doublons: { natifs: bilanDoublons.natifs, fabriques: bilanDoublons.fabriques,
                       masques: cartes.filter(c => c.dataset.tseDoublon === 'true').length },
+          /* LA BARRE QUI GLISSE (4.33.0.12) : depuis le démarrage, les balayages
+             relevés, les trajets et les arrivées animés, ceux qu'on n'a pas
+             animés et pourquoi ; le dernier balayage ; ce qui est en vol. */
+          mouvement: mouvementBarre.rapport(),
           /* LA FORME DE LA LISTE SUIVIE (4.24.0.38, cf. entreesDe) : ses
              cartes, celles dont l'entrée est une enveloppe, la profondeur de
              l'enveloppe, et le nombre de parents de ces entrées — 1 pour une
@@ -28972,7 +29566,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
            contre le vrai Twitch ; ces lignes sont la mesure qu'on en aura. */
         agenda: agenda.bilan(),
         /* L'ACCUEIL (4.26.0) : où il s'est posé, comment le carrousel a été
-           trouvé — par repère, par forme, ou pas —, qui sert le Top 10, et
+           trouvé — par repère, par forme, ou pas —, qui sert le Top 15, et
            ce que « Depuis le début » a demandé. Rien de tout cela n'a pu être
            vu sur le vrai Twitch ; ces lignes en seront la mesure. */
         accueil: pageAccueil.bilan(),
@@ -30340,10 +30934,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
   const poserLibelle = (puce, libelle) => {
     let texte = puce.querySelector(':scope > .tse-subathon-libelle');
     if (!texte) {
-      puce.textContent = '';
       texte = document.createElement('span');
       texte.className = 'tse-subathon-libelle';
-      puce.appendChild(texte);
+      puce.replaceChildren(texte);
     }
     setText(texte, libelle);
     let teintes = puce.querySelector(':scope > .tse-subathon-teintes');
@@ -30849,7 +31442,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       // createElement plutôt que new Image() : strictement équivalent, et
       // cohérent avec le reste du fichier.
       const img = document.createElement('img');
-      try { img.fetchPriority = 'low'; } catch { /* attribut non géré */ }
+      img.fetchPriority = 'low';
       const finish = () => { inFlight--; pump(); };
       img.addEventListener('load', finish, { once: true });
       img.addEventListener('error', finish, { once: true });
@@ -32566,7 +33159,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       // Twitch a retiré la carte) : getBoundingClientRect() renverrait un rect
       // à zéro → le popup sauterait dans le coin (8,8). On ferme plutôt.
       if (!card || !card.isConnected) { close(); return; }
-      const cardRect = card.getBoundingClientRect();
+      const cardRect = mouvementBarre.posee(card);  // la place d'arrivée, si la carte glisse
       const margin = 8;
       const popupWidth = el.offsetWidth;
       const popupHeight = el.offsetHeight;
@@ -34125,6 +34718,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         // carte offline (le CSS la masquera), on retire le popup, et on
         // invalide l'entrée pour que le prochain scan reparte sur du frais.
         if (meta.offline) {
+          mouvementBarre.lot();   // ses voisines referment la place en glissant
           card.dataset.tseGqlOffline = 'true';
           card.dataset.tseOffline = 'true';
           cache.delete(login);
@@ -34802,6 +35396,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     if (!document.contains(card)) return;
     // La carte a pu être recyclée sur une autre chaîne pendant l'attente.
     if (card.dataset.tseLogin !== login) return;
+    // Hors balayage : la chaîne qui coupe s'efface, celle qui revient arrive (cf. mouvementBarre).
+    mouvementBarre.lot();
     applyChannelData(card, data);
   }
 
@@ -35042,76 +35638,107 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
   const LANG_DD_ID = 'tse-lang-dd';
   // getAllLabel() lu dynamiquement pour suivre LANG si elle bascule.
   const getAllLabel = () => S.uiFilterAllCategories;
-  // Les DEUX filtres sont des dropdowns personnalisés (et non des <select>
-  // natifs) : un <option> ne peut afficher que du texte (pas les drapeaux SVG)
-  // et on veut une présentation homogène (compteurs, libellés, états).
+  /* ── DEUX <select>, ET PLUS DE MENU MAISON (4.33.0.14) ─────────────────
+     Les deux filtres étaient des menus construits à la main — un bouton, une
+     liste de <div role="option"> — parce qu'un <option> ne savait montrer que
+     du texte, et qu'on voulait les drapeaux. Ce menu s'ouvrait au clavier,
+     mais on n'y pouvait rien choisir : ses options ne prenaient pas le focus.
 
-  // Ferme tous les menus ouverts sauf, éventuellement, celui passé en argument.
-  function closeMenus(except) {
-    document.querySelectorAll('.tse-dd.tse-open').forEach(dd => {
-      if (dd === except) return;
-      dd.classList.remove('tse-open');
-      const btn = dd.querySelector('.tse-dd-btn');
-      if (btn) btn.setAttribute('aria-expanded', 'false');
-    });
-  }
-  // Clic extérieur / Échap → ferme les menus (lié une seule fois, global).
-  let ddBound = false;
-  function bindDropdownsGlobal() {
-    if (ddBound) return;
-    ddBound = true;
-    // Capture : exécuté avant les handlers de bouton ; on ferme tous les menus
-    // sauf celui dans lequel on clique (son propre handler gère sa bascule).
-    document.addEventListener('click', (e) => closeMenus(e.target.closest('.tse-dd')), true);
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenus(); });
-  }
-  // Branche un dropdown : bascule au clic sur le bouton, sélection au clic sur
-  // une option (délégation). La facette est lue sur data-facet.
-  function wireDropdown(dd) {
-    const btn  = dd.querySelector('.tse-dd-btn');
-    const menu = dd.querySelector('.tse-dd-menu');
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (btn.disabled) return;
-      const open = dd.classList.toggle('tse-open');
-      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
-    });
-    menu.addEventListener('click', (e) => {
-      const opt = e.target.closest('.tse-dd-opt');
-      if (!opt) return;
-      e.stopPropagation();
-      closeMenus();
-      onFilterChange(dd.dataset.facet, opt.dataset.value || null);
-    });
-  }
+     Le <select> personnalisable (appearance: base-select, Chrome 135) lève
+     l'obstacle : une option y porte des éléments — drapeau, compteur — et le
+     navigateur fait le reste. Focus, flèches, Entrée, Échap, clic au dehors,
+     la liste posée au-dessus de tout, les rôles que lisent les lecteurs
+     d'écran : tout ce qu'on écrivait ici — un menu ouvert à la fois, fermé au
+     clic extérieur ou à Échap — disparaît avec lui.
 
-  // Squelette d'un dropdown personnalisé (bouton + menu). `initialCurrent` est
-  // le contenu affiché par défaut (libellé « toutes » de la facette).
-  /* L'ossature d'une liste déroulante. Le squelette est un littéral ; l'id, la
-     facette, le libellé accessible et le contenu initial sont posés après, par
-     attribut ou par nœud. `initialCurrent` est une FONCTION qui fabrique un
-     nœud — le drapeau/globe est du balisage statique, le libellé « toutes
-     catégories » est du texte : les deux savent se produire eux-mêmes. */
-  const ddSquelette = (id, facet, modifier, ariaLabel, fabriquerCourant) => {
-    const frag = noeudStatique(
-      '<div class="tse-dd">'
-      + '<button type="button" class="tse-dd-btn" aria-haspopup="listbox" aria-expanded="false">'
-      + '<span class="tse-dd-current"></span>'
-      + '<span class="tse-dd-caret" aria-hidden="true"></span>'
-      + '</button>'
-      + '<div class="tse-dd-menu" role="listbox"></div>'
-      + '</div>');
-    const dd = frag.firstElementChild;
-    dd.id = id;
-    dd.classList.add(modifier);
-    dd.dataset.facet = facet;
-    dd.querySelector('.tse-dd-btn').setAttribute('aria-label', ariaLabel);
-    dd.querySelector('.tse-dd-current').appendChild(fabriquerCourant());
-    return frag;
+     LÀ OÙ IL N'EXISTE PAS — Firefox à ce jour —, le même élément est un
+     <select> ordinaire : il montre le TEXTE de ses options, sans drapeau. Le
+     texte de chaque option est donc écrit pour se lire seul (« 12 |
+     Français », pas « 12 |Français »), et le bouton qui porte le contenu
+     choisi n'est posé que là où il sert. La barre dit lequel des deux elle
+     a reçu (data-tse-select), pour que la feuille donne au <select> ordinaire
+     la place que son texte demande. */
+  // `globalThis.CSS` : dans ce fichier, `CSS` est notre feuille de style.
+  const SELECT_RICHE = globalThis.CSS.supports('appearance', 'base-select');
+
+  // Le drapeau d'une option est un décor : le nom de la langue est écrit à
+  // côté, en texte. Un SVG sans nom annoncé « image » n'apprendrait rien.
+  const decor = (noeud) => {
+    const el = noeud.nodeType === Node.DOCUMENT_FRAGMENT_NODE ? noeud.firstElementChild : noeud;
+    el?.setAttribute('aria-hidden', 'true');
+    return noeud;
   };
 
-  // Crée la barre de filtre : UNE ligne avec deux dropdowns personnalisés
-  // identiques — catégorie (extensible, libellé tronqué « … ») à gauche,
+  // L'option « toutes » d'une facette : le libellé de la catégorie est du
+  // texte ; celui de la langue, le globe et son nom (que la feuille ne montre
+  // que là où il y a la place).
+  const contenuTous = (kind) => {
+    if (kind !== 'lang') return document.createTextNode(getAllLabel());
+    return avecNomLangue(noeudStatique(GLOBE_MARKUP), S.uiFilterAllLanguages);
+  };
+  /* ── LE NOM À CÔTÉ DU DRAPEAU ─────────────────────────────────────────
+     Le menu langue ne montrait qu'un drapeau parce qu'il tenait dans
+     cinquante pixels. Quand le filtre catégorie est coupé, il prend toute
+     la ligne — et un drapeau seul au milieu de deux cents pixels vides se
+     lit comme un défaut. On construit donc TOUJOURS le nom ; la feuille le
+     montre là où il y a la place.
+
+     LE NOM CANONIQUE EST DÉJÀ CE QU'ON AFFICHE : « Français », « English ».
+     Rien à traduire, rien à mapper — c'est la valeur elle-même, celle qui
+     sert de clé de filtre. Une table de correspondance aurait été une
+     seconde source pour la même chaîne.
+
+     C'est aussi, depuis le <select>, le texte de l'option : celui que lit un
+     lecteur d'écran, et le seul que montre un <select> ordinaire. */
+  const avecNomLangue = (noeud, texte) => {
+    const hote = document.createElement('span');
+    hote.className = 'tse-dd-lang';
+    const nom = document.createElement('span');
+    nom.className = 'tse-dd-nom';
+    nom.textContent = texte;
+    hote.append(decor(noeud), nom);
+    return hote;
+  };
+
+  /* L'ossature d'un filtre : un <select>, sa facette, son nom accessible, et
+     l'option « toutes » en attendant le premier calcul. Là où le <select>
+     se personnalise, un bouton en tête : le contenu de l'option choisie
+     (<selectedcontent>, que le navigateur recopie à chaque choix) et la
+     flèche. Le choix part par « change » — clavier ou souris, c'est le même
+     événement. */
+  const ddSquelette = (id, facet, modifier, ariaLabel, kind) => {
+    const dd = document.createElement('div');
+    dd.className = 'tse-dd ' + modifier;
+    dd.id = id;
+    dd.dataset.facet = facet;
+    const choix = document.createElement('select');
+    choix.className = 'tse-dd-btn';
+    choix.setAttribute('aria-label', ariaLabel);
+    if (SELECT_RICHE) {
+      const bouton = document.createElement('button');
+      bouton.type = 'button';
+      bouton.className = 'tse-dd-bouton';
+      const courant = document.createElement('selectedcontent');
+      courant.className = 'tse-dd-current';
+      const fleche = document.createElement('span');
+      fleche.className = 'tse-dd-caret';
+      fleche.setAttribute('aria-hidden', 'true');
+      bouton.append(courant, fleche);
+      choix.append(bouton);
+    }
+    const tous = document.createElement('option');
+    tous.className = 'tse-dd-opt';
+    tous.value = '';
+    tous.dataset.value = '';
+    tous.append(contenuTous(kind));
+    choix.append(tous);
+    choix.addEventListener('change', () => onFilterChange(facet, choix.value || null));
+    dd.append(choix);
+    return dd;
+  };
+
+  // Crée la barre de filtre : UNE ligne avec deux <select> de même facture
+  // — catégorie (extensible, libellé tronqué « … ») à gauche,
   // langue (drapeaux, compacte) collée à droite — puis (via ensureSortRow) la
   // rangée de tri centrée dessous. Idempotent ; recréé tel quel au re-mount.
   function ensureFilterBar() {
@@ -35134,17 +35761,12 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       + '<div class="tse-filter-field tse-filter-field--cat"></div>'
       + '<div class="tse-filter-field tse-filter-field--lang"></div>'
       + '</div>'));
+    wrap.dataset.tseSelect = SELECT_RICHE ? 'riche' : 'natif';
     wrap.querySelector('.tse-filter-field--cat').appendChild(
-      ddSquelette(CAT_DD_ID, 'category', 'tse-dd--cat', S.uiFilterAriaLabel,
-                  () => document.createTextNode(getAllLabel())));
+      ddSquelette(CAT_DD_ID, 'category', 'tse-dd--cat', S.uiFilterAriaLabel, 'cat'));
     wrap.querySelector('.tse-filter-field--lang').appendChild(
-      ddSquelette(LANG_DD_ID, 'language', 'tse-dd--lang', S.uiFilterLangAriaLabel,
-                  () => noeudStatique(GLOBE_MARKUP)));
+      ddSquelette(LANG_DD_ID, 'language', 'tse-dd--lang', S.uiFilterLangAriaLabel, 'lang'));
     section.parentElement.insertBefore(wrap, section);
-
-    wireDropdown(wrap.querySelector(`#${CAT_DD_ID}`));
-    wireDropdown(wrap.querySelector(`#${LANG_DD_ID}`));
-    bindDropdownsGlobal();
   }
 
   /* ── LE ROUGE DU DIRECT, MESURÉ (4.24.0) ────────────────────────────────
@@ -35295,14 +35917,15 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     if (document.getElementById(INCRUSTE_ID)) return;
     if (!urlPanneau) { demanderUrl(); return; }
 
-    const voile = document.createElement('div');
+    /* UN VRAI <dialog>, OUVERT PAR showModal() (4.33.0.14). Il se disait
+       modal (`role="dialog"`, `aria-modal`) sans l'être : la tabulation en
+       sortait vers la page de Twitch derrière lui. Le navigateur, lui, rend
+       la page inerte, garde le focus dedans, le pose dans la couche
+       supérieure — au-dessus des modales de Twitch sans course au z-index — et
+       le ferme sur Échap (Modern Web Guidance, « dialog »). */
+    const voile = document.createElement('dialog');
     voile.id = INCRUSTE_ID;
     voile.className = 'tse-incruste';
-    /* `dialog` + `aria-modal` : ce qui est derrière n'est plus atteignable, et
-       il faut le DIRE — un lecteur d'écran continuerait sinon d'annoncer la
-       barre latérale par-dessus laquelle le cadre est posé. */
-    voile.setAttribute('role', 'dialog');
-    voile.setAttribute('aria-modal', 'true');
     voile.setAttribute('aria-label', S.uiRoueTitre);
 
     const cadre = document.createElement('div');
@@ -35328,7 +35951,6 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     cadre.appendChild(frame);
     voile.appendChild(cadre);
 
-    const surTouche = (ev) => { if (ev.key === 'Escape') fermerIncruste?.(); };
     /* LE PANNEAU EST DANS UNE AUTRE ORIGINE : la touche Échap frappée à
        l'intérieur du cadre ne remonte pas jusqu'ici. C'est panneau.js qui
        l'écoute et nous le poste — d'où ce second chemin, qui n'est pas un
@@ -35382,10 +36004,10 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     };
 
     fermerIncruste = () => {
-      document.removeEventListener('keydown', surTouche, true);
       window.removeEventListener('message', surMessage);
-      voile.remove();
       fermerIncruste = null;
+      if (voile.open) voile.close();
+      voile.remove();
       /* Le focus retourne d'où il vient. Sans ça, fermer au clavier laisse le
          focus sur le corps du document, et la tabulation suivante repart du
          haut de Twitch — l'utilisateur perd sa place pour avoir fermé une
@@ -35397,11 +36019,14 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        compare la cible au voile lui-même plutôt que d'arrêter la propagation
        depuis le cadre : un `stopPropagation` posé sur le cadre aurait aussi
        mangé les clics que Twitch écoute au-dessus. */
-    voile.addEventListener('click', (ev) => { if (ev.target === voile) fermerIncruste(); });
-    document.addEventListener('keydown', surTouche, true);
+    voile.addEventListener('click', (ev) => { if (ev.target === voile) fermerIncruste?.(); });
+    /* Échap, et toute demande de fermeture du navigateur, ferment le
+       <dialog> de lui-même : on suit, pour défaire le reste. */
+    voile.addEventListener('close', () => fermerIncruste?.());
     window.addEventListener('message', surMessage);
 
     document.body.appendChild(voile);
+    voile.showModal();
   }
 
   /* ── LA ROUE CRANTÉE ──────────────────────────────────────────────────────
@@ -35638,6 +36263,10 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
   function onFilterChange(facet, value) {
     const cur = facet === 'category' ? state.categoryFilter : state.languageFilter;
     if (value === cur) return;
+    /* UN FILTRE CHOISI S'APPLIQUE SUR-LE-CHAMP, hors balayage : les cartes
+       qui restent referment la place en glissant, celles qui reviennent
+       arrivent (cf. mouvementBarre). */
+    mouvementBarre.avant();
     if (facet === 'category') {
       state.categoryFilter = value;
       state.filterDriver = value ? 'category' : (state.languageFilter ? 'language' : null);
@@ -35670,6 +36299,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       }
     }
     recomputeFilters();
+    mouvementBarre.apres();
   }
 
   /* ============================================================
@@ -35796,7 +36426,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         state.sortMode = mode;
         state.sortWish = mode;   // c'est un CHOIX : il survit à une indisponibilité
         refreshPressed();
+        mouvementBarre.avant();
         applySorting();
+        mouvementBarre.apres();
       });
     });
   }
@@ -36515,36 +37147,14 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
      toujours sur l'identité, jamais sur la traduction. */
   function rebuildDropdown(dd, values, counts, current, disabled, kind,
                            fmt = String, libelle = String) {
-    const btn  = dd.querySelector('.tse-dd-btn');
-    const cur  = dd.querySelector('.tse-dd-current');
-    const menu = dd.querySelector('.tse-dd-menu');
+    const choix  = dd.querySelector('select');
+    const bouton = choix.querySelector(':scope > button');   // absent du <select> ordinaire
 
-    /* Chaque libellé se fabrique en NŒUD. Côté langue c'est un drapeau ou le
-       code à deux lettres ; côté catégorie, le nom que Twitch renvoie — et
-       celui-là ne passe que par textContent. */
-    /* ── LE NOM À CÔTÉ DU DRAPEAU ─────────────────────────────────────────
-       Le menu langue ne montrait qu'un drapeau parce qu'il tenait dans
-       cinquante pixels. Quand le filtre catégorie est coupé, il prend toute
-       la ligne — et un drapeau seul au milieu de deux cents pixels vides se
-       lit comme un défaut. On construit donc TOUJOURS le nom ; la feuille le
-       montre là où il y a la place.
-
-       LE NOM CANONIQUE EST DÉJÀ CE QU'ON AFFICHE : « Français », « English ».
-       Rien à traduire, rien à mapper — c'est la valeur elle-même, celle qui
-       sert de clé de filtre. Une table de correspondance aurait été une
-       seconde source pour la même chaîne. */
-    const avecNom = (noeud, texte) => {
-      if (kind !== 'lang') return noeud;
-      const hote = document.createElement('span');
-      hote.className = 'tse-dd-lang';
-      const nom = document.createElement('span');
-      nom.className = 'tse-dd-nom';
-      nom.textContent = texte;
-      hote.append(noeud, nom);
-      return hote;
-    };
+    /* Chaque libellé se fabrique en NŒUD. Côté langue c'est un drapeau et
+       le nom ; côté catégorie, le nom que Twitch renvoie — et celui-là ne
+       passe que par textContent. */
     const itemLabel = (v) => {
-      if (kind === 'lang') return avecNom(langIcon(v), v);
+      if (kind === 'lang') return avecNomLangue(langIcon(v), v);
       const sp = document.createElement('span');
       sp.className = 'tse-dd-name';
       sp.textContent = libelle(v);
@@ -36553,12 +37163,16 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     /* LE GLOBE PREND LE LIBELLÉ QU'IL PORTAIT DÉJÀ EN INFOBULLE. « Toutes les
        langues » est traduit dans les dix tables depuis toujours ; inventer un
        second mot pour la même chose — « Monde » — aurait fait deux chaînes à
-       tenir d'accord, et l'infobulle aurait fini par contredire l'étiquette. */
-    const allLabel = () => kind === 'lang'
-      ? avecNom(noeudStatique(GLOBE_MARKUP), S.uiFilterAllLanguages)
-      : document.createTextNode(getAllLabel());
+       tenir d'accord, et l'infobulle aurait fini par contredire l'étiquette.
+       (contenuTous) */
     const allTitle  = kind === 'lang' ? S.uiFilterAllLanguages : S.uiFilterAllCategories;
 
+    /* LE CHOIX RESTE AU MENU, même quand le menu ne le connaît plus : au
+       premier balayage la liste des catégories peut être vide, et une mesure
+       évincée retire une langue. Le bouton d'avant affichait le choix quoi
+       qu'il arrive ; un <select> n'affiche que ses options — sans elle, il
+       montrerait « toutes » pendant que le filtre, lui, tient. */
+    if (current && !values.includes(current)) values = [...values, current];
     // Le libellé entre dans la signature, et pas seulement la valeur : au
     // changement de langue de l'interface, les catégories et leurs compteurs
     // sont les mêmes et seuls les libellés bougent. Sans eux ici, le menu
@@ -36577,19 +37191,17 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
                     + (counts.has(v) ? counts.get(v) : 'ø')).join('\u00A7');
     if (dd.dataset.tseSig !== sig) {
       dd.dataset.tseSig = sig;
-      cur.replaceChildren(current ? itemLabel(current) : allLabel());
-
       const option = (valeur, selectionnee, titre, contenu) => {
-        const o = document.createElement('div');
+        const o = document.createElement('option');
         o.className = 'tse-dd-opt';
-        o.setAttribute('role', 'option');
+        o.value = valeur;
         o.dataset.value = valeur;
-        o.setAttribute('aria-selected', String(selectionnee));
-        if (titre != null) o.setAttribute('title', titre);
-        o.appendChild(contenu);
+        o.selected = selectionnee;
+        if (titre != null) o.title = titre;
+        o.append(contenu);
         return o;
       };
-      const lignes = [option('', !current, allTitle, allLabel())];
+      const lignes = [option('', !current, allTitle, contenuTous(kind))];
       for (const v of values) {
         const o = option(v, v === current, null, itemLabel(v));
         /* ABSENT ET ZÉRO NE SE VALENT PAS, et le formateur doit pouvoir les
@@ -36604,19 +37216,31 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
           const c = document.createElement('span');
           c.className = 'tse-dd-n';
           c.textContent = `${n} |`;
-          o.insertBefore(c, o.firstChild);
+          /* L'espace entre le compteur et le nom est un NŒUD TEXTE, pas une
+             marge : la rangée flex de l'option l'ignore — l'écart y est
+             déjà —, mais le <select> ordinaire, qui n'affiche que le texte,
+             en a besoin pour écrire « 12 | Français ». */
+          o.prepend(c, ' ');
         }
         lignes.push(o);
       }
-      menu.replaceChildren(...lignes);
+      choix.replaceChildren(...(bouton ? [bouton] : []), ...lignes);
     }
-    btn.disabled = disabled;
+    /* La valeur montrée est celle de l'état sans qu'on la repose : un choix
+       fait dans le menu change toujours l'état (onFilterChange), l'état entre
+       dans la signature, et le menu se reconstruit avec l'option choisie. Une
+       resynchronisation ici ne servait jamais — un mutant qui l'ôtait ne
+       changeait rien (4.33.0.14). */
+    choix.disabled = disabled;
+    /* Le NOM ne porte plus le choix : un <select> l'annonce lui-même, comme
+       sa valeur. Le bouton d'avant n'en avait pas, d'où « Filtrer : X ». */
     const base = kind === 'lang' ? S.uiFilterLangAriaLabel : S.uiFilterAriaLabel;
-    btn.setAttribute('aria-label', current ? `${base} : ${libelle(current)}` : base);
-    if (disabled && dd.classList.contains('tse-open')) {  // ferme uniquement CE menu
-      dd.classList.remove('tse-open');
-      btn.setAttribute('aria-expanded', 'false');
-    }
+    if (choix.getAttribute('aria-label') !== base) choix.setAttribute('aria-label', base);
+    /* Désactivé pendant que sa liste est ouverte, un <select> la laisse
+       ouverte — et inerte : Chromium n'y prend plus aucun choix. Aucune
+       méthode ne ferme la liste d'un <select> ; le retirer et le remettre à
+       sa place, si. Le menu d'avant se fermait de même, et seul. */
+    if (disabled && choix.matches(':open')) dd.insertBefore(choix, choix.nextSibling);
   }
 
   /**
@@ -39620,6 +40244,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
 
   const scanSidebar = erreurs.garde('balayage', () => {
     noterBalayage();
+    mouvementBarre.avant();  // où chaque chose est à l'écran, avant que rien ne bouge
     // Re-évaluer la langue en premier : auto-correction si LANG
     // initial était erroné (DOM Twitch pas encore prêt au boot).
     refreshLanguage();
@@ -39665,6 +40290,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     // tout le co-stream, et le « ▶ » des cartes seules.
     noeudsSalle.maj(entreesSalle(applyCostreamJoins()));
     autoExpandFollowed();
+    mouvementBarre.apres();  // tout est rangé : chaque chose part de là où elle était
 
     // Ce scan a-t-il masqué de nouvelles cartes "Déconnecté(e)" ?
     const hadOfflineActivity = offlineTransitionsThisScan > 0;

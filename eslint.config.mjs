@@ -23,6 +23,9 @@ export default [{
       // (cf. noeudStatique). Tout ce qui vient de Twitch passe par
       // textContent ou setAttribute.
       DOMParser:'readonly',
+      // Temporal : les jours civils (4.33.0.14). Chrome 144, Firefox 139 —
+      // sous les planchers du manifeste.
+      Temporal:'readonly',
       // PerformanceObserver : la sonde de la salle (4.24.0.3) y compte les
       // tâches longues de la page, là où le navigateur les expose.
       PerformanceObserver:'readonly',

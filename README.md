@@ -85,22 +85,26 @@ de Twitch, miniatures, lecteur `player.twitch.tv` pour l'aperçu).
 
 ## Compatibilité
 
-- **Firefox 140 ou supérieur.** Le plancher n'est pas choisi, il est **déduit**
-  de deux clés du manifeste, et c'est la plus récente qui commande :
+- **Firefox 150 ou supérieur.** Un plancher choisi (4.33.0.14), déclaré par le
+  manifeste (`strict_min_version`) et exigé par le contrôle du paquet : le code
+  s'appuie sans repli sur ce que Firefox 150 connaît — Temporal (139),
+  `<dialog>`, `moveBefore()` (144), les commandes `command="close"` (144),
+  `hidden="until-found"` (148), Trusted Types (148). Ce qu'il n'a pas — le
+  `<select>` personnalisable — y prend un repli natif. Jusque-là, le plancher
+  était **déduit** de deux clés du manifeste, la plus récente commandant :
 
   | Ce qu'on déclare | Depuis |
   | --- | --- |
   | `"world": "MAIN"` dans `content_scripts` | Firefox **128** |
   | `browser_specific_settings.gecko.data_collection_permissions` | Firefox **140** |
 
-  D'où 140. Descendre à 128 rendrait le manifeste incohérent avec lui-même, et
-  l'`addons-linter` de Mozilla le dit mot pour mot. Le coût est nul : l'ESR 128
-  est hors support depuis le 16 septembre 2025, et l'ESR actif est le 140 — la
-  plage 128-139 n'est plus habitée par aucune version maintenue.
-- **Firefox pour Android 142 ou supérieur** (`gecko_android`), la clé de
-  collecte de données y étant arrivée deux versions plus tard. À noter que la
-  sidebar des chaînes suivies n'existe pas sur le Twitch mobile : la
-  compatibilité y est déclarée par cohérence, pas par utilité.
+  D'où 140, jusqu'à la 4.33.0.13. Les deux clés restent couvertes.
+- **Firefox pour Android 150 ou supérieur** (`gecko_android`), le même
+  plancher : `web-features` y date chacune de ces fonctions de la même version
+  que sur ordinateur. Il était à 142, la clé de collecte de données y étant
+  arrivée deux versions plus tard. À noter que la sidebar des chaînes suivies
+  n'existe pas sur le Twitch mobile : la compatibilité y est déclarée par
+  cohérence, pas par utilité.
 - Pour **Chrome, Edge, Brave, Opera, Vivaldi, Arc**, voir la branche
   `claude/chrome` : même code, manifeste sans le bloc `browser_specific_settings`.
 
@@ -343,13 +347,13 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 2310 Ko | 1089 Ko | 4 827 → **2** |
+| `content.js` | 2346 Ko | 1103 Ko | 4 878 → **2** |
 | `cadres.js` | 76 Ko | 35 Ko | 171 → **0** |
 | `adblock.js` | 126 Ko | 101 Ko | 301 → **2** |
-| `panneau.js` | 168 Ko | 86 Ko | 233 → **0** |
+| `panneau.js` | 171 Ko | 87 Ko | 240 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 26 → **0** |
 | `background.js` | 10 Ko | 2 Ko | 23 → **0** |
-| **les six** | **2704 Ko** | **1317 Ko** | **−51 %** |
+| **les six** | **2744 Ko** | **1332 Ko** | **−51 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
@@ -2627,6 +2631,461 @@ Un sous-test qui modélisait un cas impossible — un direct qui rajeunit sans
 changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'il
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
+
+## Encore Modern Web Guidance, aux planchers Chrome 150 et Firefox 150 (v4.33.0.14)
+
+« Fais encore un coup de modern-web-guidance-src sur le chrome/homepage,
+histoire d'être sûr que tu n'as vraiment rien oublié […] Sois rigoureux. »
+Puis, en cours de route : « Plancher Chrome jusqu'à 150 », et « tu peux
+mettre le palier Firefox à la version 150 ».
+
+**La méthode.** Le dépôt de GoogleChrome au commit `d6b5df9` du 25 novembre
+2026 : les 41 règles déterministes de son scanner (`legacy-scan`, 37 guides),
+lues et appliquées à la main au code — le scanner, un paquet téléchargé, n'a
+pas été lancé. Puis ses 255 guides, triés un à un : 119 hors sujet (IA
+embarquée, paiements, formulaires de compte, service workers de cache… chacun
+avec sa raison), 136 lus. Chaque fonction que ces 136 guides recommandent a
+été confrontée aux deux planchers d'après `web-features` 3.47.0 : présente
+dans les deux, l'appliquer sans repli ; présente dans un seul, l'appliquer
+avec repli ou la laisser, et dire pourquoi ; absente, la laisser. Le tri a
+été refait à chaque plancher relevé — Chrome de 119 à 150, Firefox de 140 à
+150 — et ce qu'il a changé est dit plus bas.
+
+**Les planchers.** Chrome 150, déclaré par le manifeste
+(`minimum_chrome_version`). Firefox 150 : c'est le manifeste de l'édition
+Firefox qui le déclare (`strict_min_version`), et le contrôle du paquet,
+commun aux deux éditions, l'exige désormais. Le code ne garde plus de repli
+pour ce que les deux connaissent.
+
+### Ce qui se voit
+
+- **Les filtres catégorie et langue se choisissent au clavier.** Le menu
+  maison s'ouvrait au clavier, mais on n'y pouvait rien choisir : ses options
+  ne prenaient pas le focus. Ce sont maintenant des `<select>` : Entrée ouvre,
+  les flèches parcourent, Entrée choisit, Échap referme, et le navigateur
+  annonce le filtre et sa valeur. Sous Chrome, `appearance: base-select`
+  garde l'aspect d'avant, drapeaux et compteurs compris — comparé à la
+  version précédente au pixel près, dans les deux thèmes, menus ouverts et
+  fermés. Un seul écart, voulu : le libellé de la boîte prend la police de la
+  page, comme les onglets « Chaînes suivies / Top Chaînes » juste au-dessus ;
+  l'ancien bouton prenait celle des boutons. Firefox n'a pas de `<select>`
+  personnalisable : il montre le texte des options (« 12 | Français »),
+  écrit pour se lire seul, et les deux filtres s'y partagent la ligne. Le
+  focus se voit, ce qu'il ne faisait pas.
+- **Les fenêtres sont des `<dialog>`.** Le panneau incrusté, le zapping, le
+  rapport et la confirmation : le navigateur rend inerte ce qui est dessous,
+  et Échap les ferme. Le code qui ramenait le focus dans le zapping, et
+  celui qui guettait Échap autour du panneau incrusté, sont partis. Dans le panneau, « Fermer » et « Annuler » sont
+  des commandes (`command="close"`, Chrome 135, Firefox 144), plus des
+  écouteurs.
+- **Le panneau lisible par un lecteur d'écran.** Chaque réglage est nommé
+  par son libellé et décrit par sa phrase (`aria-labelledby`,
+  `aria-describedby`), et dit quand il est sans effet. Les interrupteurs
+  sont des cases rôle « switch », dessinées en CSS. En couleurs forcées,
+  le navigateur repeignait leur piste et leur curseur de la même couleur :
+  le curseur disparaissait, coché ou non (trouvé par le banc). Ils y
+  peignent maintenant eux-mêmes leurs couleurs système. Le tableau a sa légende, ses en-têtes de colonne, et sa zone de
+  défilement se nomme et prend le focus.
+- **Chaque texte tient son seuil de contraste**, mesuré sur ce qui est peint,
+  dans les deux thèmes, dans le panneau, sur l'accueil et dans la barre : les
+  dégradés arrêt par arrêt, les badges translucides sur leur fond composé.
+  Ce qui passait dessous :
+  - l'onglet actif, blanc sur un violet clair : 3,26:1 au sommet de son
+    dégradé. Il part maintenant du violet de Twitch (4,62) vers #772ce8
+    (6,34) ;
+  - le « = » d'une place stable du Top 15 : 3,83:1 en sombre, maintenant
+    dans le gris doux ;
+  - dans le panneau en clair, l'étiquette « OK » du diagnostic (4,48), la
+    durée d'une carte teintée (4,24), la catégorie des cartes teintées du
+    mode d'emploi (3,8 ; 4,38 en sombre), et celle de la carte « abonné »,
+    dans l'or pâle du sombre : 1,18:1. Elle prend la teinte que le produit
+    donne à cette catégorie. La palette des badges est posée sur la surface
+    où le produit les montre : sur le creux du cadre, plus sombre, « Ancien
+    abonné » tombait à 4,13. L'onglet de la maquette est peint comme celui
+    de la barre.
+  Les couleurs du panneau ne sont plus écrites deux fois : `light-dark()`
+  les porte, et `color-scheme` choisit.
+- **« À la une » se dit carrousel.** Une région nommée par son titre, de rôle
+  décrit « carrousel » ; chaque carte, une diapositive « 2 sur 5 », numérotée
+  dans l'ordre du carrousel — le ruban tourne, les numéros restent. Une
+  flèche, un clic : une annonce polie dit la carte du centre, « 2 sur 5 :
+  Nyxaria ». Dans les dix langues.
+- **Ctrl+F trouve ce qu'un rayon replié cache.** Les cartes sous la première
+  rangée portent `hidden="until-found"` (Chrome 102, Firefox 148) : la
+  recherche de la page les trouve, et le rayon se déplie tout entier,
+  « Afficher moins » au bouton. Repliées, elles ne prennent aucune place.
+- **Les titres qui passent à la ligne** se coupent en lignes égales
+  (`text-wrap: balance`).
+
+### Ce qui ne se voit pas
+
+- **Les jours civils par Temporal.** Minuit local, « aujourd'hui »,
+  « demain », « il y a 3 jours », les échéances d'abonnement, les semaines de
+  l'agenda : des jours de calendrier, plus des millisecondes divisées puis
+  arrondies. Les résultats sont ceux d'avant, éprouvés sur deux pièges — la
+  semaine de 167 heures du passage à l'heure d'été à Paris, et le dimanche
+  sans minuit de Santiago. L'instant vient toujours de `Date.now()` : c'est
+  l'horloge que le banc fige, et `Temporal.Now` ne la suit pas.
+- **Trusted Types sur les pages de l'extension.** Le panneau n'écrit jamais
+  de HTML par chaîne ; le manifeste l'exige maintenant du navigateur
+  (`require-trusted-types-for 'script'`, aucune politique admise). Une
+  affectation à `innerHTML` y serait refusée. Chrome 83, Firefox 148.
+- **Les replis partis avec les planchers.** La détection de `moveBefore`
+  (Chrome 133, Firefox 144), celle de `popover` et son infobulle de secours,
+  le repli d'`Intl.DurationFormat`, les tests de `IntersectionObserver` et
+  `ResizeObserver`, les préfixes `-webkit-` des masques, du découpage au
+  texte, des barres de défilement et du flou d'arrière-plan. `100vh` devient
+  `100dvh` là où la hauteur de l'écran compte. `toSorted()` pour une copie
+  triée de plus.
+
+### Ce qui n'a pas changé, et pourquoi
+
+- **Ce que Firefox 150 n'a pas** : le `<select>` personnalisable (repli
+  natif, ci-dessus), `interestfor`, `focusgroup`, les promesses des méthodes
+  de défilement, les événements d'accroche du défilement,
+  `scroll-initial-target`, les transitions de vue limitées à un élément,
+  `field-sizing`, `interpolate-size`, `sibling-index()`. Le code
+  d'aujourd'hui reste ce qu'ils remplaceraient, et marche dans les deux.
+- **Ce que Chrome 150 n'a pas** : `popover="hint"` (151), le positionnement
+  par ancre tel que `web-features` le déclare complet (157), l'attribut
+  `switch`.
+- **Les transitions de vue du document**, présentes dans les deux : elles
+  figeraient toute la page de Twitch le temps d'un tri. La barre glisse par
+  ses propres animations.
+- **`closedby`** : nos fenêtres plein écran n'ont pas de « dehors » où
+  cliquer, et une confirmation ne se referme pas d'un clic à côté. Échap les
+  ferme déjà.
+- **`ariaNotify()`**, dans les deux : le carrousel annonce par une région
+  vivante, que tout lecteur d'écran lit et que le banc vérifie.
+- **Le cycle de Tab du zapping** : un `<dialog>` rend inerte ce qui est
+  dessous, mais Tab sortirait vers la barre du navigateur. L'écran plein
+  garde le focus en boucle.
+- **Les durées compactes** (« 1:23:07 » sur les vignettes de l'agenda) : le
+  format de Twitch, le même dans toutes les langues ; le style « digital »
+  d'`Intl.DurationFormat` changerait de séparateur selon la langue.
+- **`adblock.js`**, code tiers vendorisé : il n'est pas à nous de le
+  moderniser.
+- **`@scope`, `@layer`, les propriétés logiques** : nos classes préfixées
+  isolent déjà la feuille, une feuille en couche perdrait contre celle de
+  Twitch, et les dix langues de l'extension s'écrivent de gauche à droite.
+- **`contrast-color()`, la Sanitizer API** : aucun texte n'est posé sur une
+  couleur venue de Twitch, et aucun HTML de Twitch n'est analysé.
+- **`<meta name="text-scale">`** (Chrome 146 seulement) : il demanderait de
+  passer la feuille en `rem`. Une proposition, pas faite.
+- **Le mouvement réduit** reste ignoré : un choix du produit.
+- **`content-visibility` sur les rayons de l'accueil**, demandé « seulement
+  si la mesure montre un gain » : mesuré trois fois de chaque côté, le
+  chargement de l'accueil et six pas de défilement. La mise en page passe de
+  68 à 37 ms sur la séance, mais le calcul des styles de 43 à 53, et le
+  temps total des tâches de 673 à 761 : aucun gain sûr. Une hauteur estimée
+  par rayon ferait de plus sauter la page à chaque rayon qui se dessine. Pas
+  fait.
+- **Découper le balayage (`scheduler.yield()`)**, présent dans les deux :
+  mesuré, un balayage de 150 chaînes prend de 8 à 15 ms, loin des 50 ms
+  d'une tâche longue. Les deux seules images longues (83 et 120 ms), au
+  chargement, ne portent aucun script de plus de 5 ms : c'est du rendu. Rien
+  à découper.
+
+### Le banc
+
+- **240, nouveau** : les filtres en `<select>` — leur forme, le texte de
+  leurs options, le clavier (Entrée, flèche, Entrée, Échap), le focus
+  visible, une liste ouverte que son filtre perd et qui se referme, le
+  `<select>` ordinaire qui partage la ligne, le choix que le menu ne
+  connaît pas encore et qu'il garde ; le carrousel — région,
+  diapositives, numéros qui survivent au ruban qui tourne, l'annonce d'une
+  flèche ; le rayon replié — `until-found`, aucune place prise, une
+  recherche dans la page qui le déplie ; chaque texte de l'accueil et de la
+  barre au seuil, dans les deux thèmes.
+- **70** : chaque texte du panneau au seuil, dans ses trente vues et les deux
+  thèmes. **120** : les réglages nommés, les interrupteurs en couleurs
+  forcées. **208 r)** : les semaines d'un changement d'heure, à Paris, à
+  Santiago et à New York. Les scénarios des filtres choisissent une option comme le fait le
+  navigateur ; ceux des fenêtres lisent `:modal`.
+- **La mesure des contrastes** est commune au banc (`mesurerContrastes`) :
+  elle lit les dégradés arrêt par arrêt, mesure un texte en contour par son
+  trait, et rend ce qu'elle écarte — un contrôle désactivé, un texte posé sur
+  une vidéo, un emoji en couleur —, pour qu'une exclusion ne cache rien en
+  silence. La sonde d'avant mesurait l'onglet actif blanc sur blanc.
+
+**Trente-cinq mutants nommés, trente-cinq pris.** Un trente-sixième ôtait
+la ligne qui resynchronisait la valeur d'un filtre : il ne changeait rien,
+et aucun chemin n'y menait — un choix change toujours l'état, et l'état
+reconstruit le menu. La ligne est partie. Deux autres avaient d'abord
+survécu, et ont fait écrire leur test : le choix gardé au menu (240 a6), et
+les jours comptés en millisecondes — invisibles dans une semaine qui
+commence le lundi, ils doublent le dimanche d'une semaine américaine à
+l'heure d'hiver (208 r, New York).
+
+| mutant | ce qui tombe |
+| --- | --- |
+| le compteur collé au nom (« 2 |Français ») | 240 a) |
+| le drapeau laissé aux lecteurs d'écran | 240 a) |
+| la flèche du navigateur en plus de la nôtre | 240 a) |
+| la hauteur d'option du navigateur gardée (36 px) | 240 a) |
+| la liste comptée cadre compris | 240 a) |
+| le liseré du focus ôté | 240 a) |
+| une liste désactivée laissée ouverte | 240 a) |
+| le `<select>` ordinaire sans partage de la ligne | 240 a) |
+| le choix absent du menu oublié | 240 a) |
+| le carrousel sans annonce à la flèche | 240 b) |
+| les diapositives numérotées dans l'ordre du ruban | 240 b) |
+| une `<article>` pour diapositive | 240 b) |
+| la boîte repliée gardée dans la grille | 240 b) |
+| la carte trouvée, le rayon pas déplié | 240 b) |
+| la règle souveraine qui masque aussi `until-found` | 240 b) |
+| un `hidden` nu au lieu d'`until-found` | 240 b) |
+| l'onglet actif rendu à son dégradé d'avant | 240 b) |
+| « = » rendu au gris faible | 240 b) |
+| le vert d'avant dans le panneau | 70 |
+| l'or pâle du sombre gardé en clair | 70 |
+| la palette des badges remise sur le creux | 70 |
+| la catégorie des cartes au gris faible | 70 |
+| le violet clair d'avant | 70 |
+| « Annuler » sans sa commande | 70 |
+| « Fermer » sans sa commande | 70 |
+| le rapport non modal | 70 |
+| la légende du tableau vide | 70 |
+| un interrupteur sans nom | 120 |
+| l'interrupteur sans rôle « switch » | 120 |
+| les couleurs forcées repeintes par le navigateur | 120 |
+| la fin de semaine en millisecondes | 208 r) |
+| les jours de la semaine en millisecondes | 208 r), à New York |
+| le panneau incrusté non modal | 122 |
+| le zapping non modal | 231 |
+| Trusted Types ôté du manifeste | le contrôle du paquet |
+
+`npm run check` est vert : 239 scénarios, 2453 assertions.
+
+## Le Top 15, rangé comme un rayon de Twitch ; « À la une » sans trou (v4.33.0.13)
+
+### L'accueil à toutes les largeurs
+
+Signalé, capture à l'appui : « le top 10 n'est pas responsive […] prends
+exemple sur une liste Twitch native ». Le Top gardait cinq places par rangée
+à toutes les largeurs. Mesuré à onze largeurs, de 1 920 à 375 pixels : une
+place de 179 pixels à 1 024 — « Depuis le début » sorti de sa carte —, des
+noms coupés dès 768, des places de 49 pixels à 375, et la page entière qui
+défilait de côté sous 900.
+
+- **La grille des rayons, et celle que prennent les rayons de Twitch.**
+  Autant de colonnes que la liste tient de places de 290 pixels, quatorze
+  d'écart — les colonnes s'alignent d'un rayon à l'autre —, et cinq au plus.
+  Cinq sur grand écran, trois sur un portable de 1 024, une sur un téléphone.
+- **Replié, la première rangée**, comme un rayon de Twitch : 1 à 5 sur grand
+  écran, comme avant ; 1 à 3, 1 à 2 ou la première seule quand la place
+  manque. Le pliage suit la largeur qui change.
+- **« Depuis le début » ne dépasse plus jamais sa carte** : au plus sa
+  largeur, le libellé abrégé plutôt que sorti ; son infobulle dit
+  toujours ce qu'il fait.
+- Le reste de l'accueil, mesuré aux mêmes largeurs, tenait déjà : rien ne sort
+  plus d'une carte ni d'un rayon, et la page ne défile plus de côté.
+
+### Le Top 15
+
+Demandé : « peux-tu aller jusqu'au Top 15 sur l'accueil ? ». Quinze places au
+lieu de dix — trois rangées pleines de cinq, cinq de trois —, prouvées comme
+avant : le classement en demande autant de plus que la liste des chaînes
+écartées en compte. Ce qui suivait le nombre suit : l'évolution sur trente
+minutes, « Nouveau » pour une chaîne hors du Top 15, les places dites
+ailleurs — « N°12 mondial », « N°14 en anglais » —, celle de la bannière.
+Les libellés dans les dix langues, le guide et les réglages du panneau, les
+fiches du Store.
+
+**Les chaînes écartées : quinze au plus**, et non plus vingt. Le nombre n'est
+pas choisi : le Top se prouve sur la réponse du tag de langue, qui porte
+trente chaînes. Une liste plus longue, enregistrée avant, garde ses quinze
+premières.
+
+### « À la une » sans trou
+
+Signalé, capture à l'appui : « de temps en temps, "À la une" manque un live
+[…] il faut à tout prix un live s'il en manque un et que ce n'est pas
+symétrique ». Une carte au centre, une à sa gauche, deux à sa droite. Une
+chaîne du carrousel ne se montrait pas : celle de la bannière, déjà juste
+au-dessus ; une chaîne que Twitch dit hors ligne ; une réponse qui ne vient
+pas. Ou le carrousel n'en portait que quatre. Un rechargement le faisait
+souvent disparaître : la chaîne de la bannière, ou celle qui était hors
+ligne, n'était plus la même.
+
+- **Une place par chaîne du carrousel, et un nombre impair.** La place d'une
+  chaîne qui ne peut pas se montrer est comblée par un autre direct, à
+  l'endroit même du trou ; un carrousel pair reçoit une place de plus.
+- **Le direct qui comble** vient de ce que l'accueil sait déjà, rien de
+  deviné : le classement du Top, puis vos chaînes suivies en direct. Il doit
+  être en direct d'après TseChannels ; une chaîne déjà à l'écran n'est pas
+  reprise.
+- **Il garde sa place** tant qu'il est en direct, même si le classement
+  change : pas une carte remplacée à chaque peinture. Sa place à lui — celle
+  de la chaîne qu'il remplace — : un trou qui s'ouvre plus tôt dans la boucle
+  ne le déplace pas. Quand la chaîne du carrousel revient, elle reprend sa
+  place, et il s'en va.
+- **Une réponse attendue n'est pas un trou** pendant les huit premières
+  secondes : sa chaîne viendra prendre sa place.
+- **Sans direct à mettre**, le trou reste : rien n'est inventé.
+
+Le rapport dit, sous `accueil.une`, combien de places manquaient, combien ont
+été comblées, et pourquoi chacune manquait — la bannière, une chaîne hors
+ligne, une réponse qui n'est pas venue, un carrousel pair. Si un trou se
+revoit, un rapport exporté dira lequel.
+
+### Le banc
+
+- **238, nouveau** : sept largeurs, de 1 920 à 375. Les colonnes que la liste
+  tient, cinq au plus, une sur téléphone ; les quatorze pixels des rayons ;
+  les quinze places en rangées pleines, aucun nom coupé ; rien hors de sa
+  carte ni de son rayon, et la page jamais en défilement de côté ;
+  « Depuis le début » dans sa carte ; replié, la première rangée seule.
+- **239, nouveau** : la place de la bannière comblée, à sa place, par le
+  premier du Top en direct — une chaîne du classement hors ligne sautée ; le
+  direct qui comble qui garde sa place quand le classement change ; un trou
+  qui s'ouvre plus tôt dans la boucle, comblé du Top avant les suivies, sans
+  déplacer le premier ; la chaîne revenue qui reprend sa place ; sans Top en
+  direct, une suivie ; un carrousel de quatre porté à cinq, sans y reprendre
+  la bannière ; et, sans direct à mettre, le trou qui reste.
+- **Le banc entier à quinze places** : le jeu d'essai du Top passe à
+  dix-huit chaînes inventées. 217 vérifie le trou de la bannière comblé, et
+  le Top qui suit la largeur — il vérifiait jusqu'ici cinq places à toutes les
+  tailles. 216 posait la bannière troisième du classement à 34 000
+  spectateurs, quand la lecture en direct en disait 2 310 : la plus fraîche
+  la faisait tomber quelques secondes plus tard, et le banc lisait la place
+  dans l'instant d'avant. Elle est désormais à la place que ses spectateurs
+  lui donnent. 233 ajoute cinq chaînes sans langue au monde, pour qu'une
+  chaîne hors du Top 15 mondial dise encore sa place française.
+
+**Treize mutants nommés, treize pris.**
+
+| mutant | ce qui échoue |
+| --- | --- |
+| le Top à cinq colonnes fixes | 238 : tout — a) à e), et les écarts |
+| le Top sans plafond de cinq colonnes | 217 : à 2 560 pixels, plus de cinq places par rangée |
+| le Top à seize pixels d'écart | 238 a), e) et les écarts |
+| « Depuis le début » sans borne de largeur | 238 d) |
+| le Top ramené à dix places | 238 b) |
+| le trou laissé | 239 a), b), c), c bis), d) |
+| le direct qui comble posé au bout | 239 c) |
+| une chaîne prise sans être en direct | 239 a), c), c bis) |
+| le carrousel pair laissé pair | 239 d) |
+| le direct qui comble changé à chaque peinture | 239 b), c) |
+| les directs redistribués dans l'ordre des trous | 239 c) |
+| les suivies avant le Top | 239 c) |
+| la bannière reprise | 239 d) |
+
+`npm run check` est vert : 238 scénarios, 2429 assertions.
+
+## La barre glisse, et un rendez-vous manqué quitte l'accueil (v4.33.0.12)
+
+### La barre qui glisse
+
+Demandé : « lorsque la sidebar s'actualise, il n'y a pas d'animation […] une
+animation progressive et discrète ». Chaque actualisation rangeait la barre
+d'un coup : une chaîne dépasse sa voisine et les deux cartes échangent leur
+place, une chaîne démarre et tout ce qui suit descend d'un cran, une autre
+coupe et tout remonte. L'œil voyait un saut, et devait relire la liste pour
+savoir ce qui avait changé.
+
+**Chaque chose part de là où elle était.** Avant que rien ne bouge, la place de
+chaque carte, de chaque section et de chaque curseur ▶ de la salle est relevée
+à l'écran ; tout se range d'un coup ; chacun part alors de son ancienne place
+vers la neuve. Rien n'est retardé : la liste est juste dès la fin du
+rangement, seul le trajet se voit. 320 ms, une courbe qui part franchement et
+se pose doucement.
+
+- **Ce qui bouge** : une carte qui change de rang ; la section d'en dessous
+  quand la liste suivie grandit ou rétrécit — ses cartes ne refont pas son
+  trajet — ; le curseur ▶, qui suit sa barre.
+- **Ce qui arrive** — une chaîne qui démarre ou revient, une carte que le
+  filtre rend — fond depuis zéro, 260 ms, après 120 ms : la place s'ouvre
+  d'abord, la carte s'y pose ensuite. Plusieurs arrivées se suivent, 40 ms
+  d'écart, de haut en bas. Une section qui reparaît fond d'un bloc, ses cartes
+  avec elle.
+- **Ce qui part** n'a pas de sortie : la carte est déjà retirée, ou masquée.
+  Ses voisines referment la place en glissant.
+- **Ce qui ne bouge pas** : les chiffres — les compteurs changent sur presque
+  chaque carte à chaque relevé, les animer ferait clignoter la barre entière —
+  ; tout ce qui se passe sous le voile ou dans un onglet caché ; le passage qui
+  suit un changement de largeur de la barre ou une bascule en Top Chaînes ; un
+  repeuplement, plus de trois cartes et plus du tiers de la liste qui arrivent
+  d'un coup.
+
+**Toutes les actualisations.** Le balayage, le tri choisi d'un clic, un filtre
+choisi ou retiré, et les réponses de Twitch qui arrivent entre deux balayages
+— c'est par elles qu'une chaîne qui coupe s'efface, ou qu'une chaîne qui
+revient réapparaît. Les réponses d'un même lot partagent un relevé : deux
+chaînes qui coupent ensemble font un seul trajet de deux places, et pas un
+bond suivi d'un trajet.
+
+**Un balayage en plein trajet ne le relance pas.** Les trajets en vol sont
+suspendus le temps que le balayage mesure la mise en page — les liaisons de
+co-stream et le placement des curseurs ne lisent jamais une image en vol — puis
+reprennent à l'instant exact où ils en étaient si leur destination n'a pas
+changé : même courbe, même vitesse. Relancés depuis le point atteint, ils
+repartiraient vite à chaque balayage.
+
+**Rien que le compositeur.** `translate` et `opacity`, deux propriétés qu'il
+anime seul. `translate` plutôt que `transform` : la propriété individuelle
+s'ajoute à la transformation d'un élément au lieu de la remplacer — le curseur
+▶ porte la sienne. Chrome connaît `translate` depuis la 104, Firefox depuis la
+72, sous les planchers du manifeste (119 et 140). Ce qui mesure hors du
+balayage, l'aperçu qui se place et le curseur qu'un `ResizeObserver` replace,
+retire le trajet en vol et vise la place d'arrivée.
+
+Le rapport compte, sous `page.mouvement`, les relevés, les trajets, les
+reprises, les arrivées, ce qui n'a pas été animé et pourquoi, le dernier
+mouvement et ce qui est en vol. Des comptes, jamais un pseudo.
+
+### Un rendez-vous manqué quitte l'accueil
+
+Demandé : « dans l'accueil, la section planning, si le streamer n'a toujours
+pas commencé son live après 2h sur son planning, retire-le ». Un créneau
+commencé sans la chaîne disait « pas encore en direct » jusqu'à sa fin : une
+soirée entière pour un créneau de six heures que la chaîne n'a pas tenu.
+Désormais, deux heures après son heure, toujours hors ligne, il quitte « Vos
+rendez-vous », de lui-même, sans rechargement. Avant les deux heures, il reste,
+et dit toujours « pas encore en direct ». L'agenda du panneau, lui, garde la
+semaine telle qu'elle était prévue.
+
+### Le banc
+
+- **236, nouveau** : trois volets. Au banc ordinaire, durées à zéro, le plan :
+  rien sous le voile, trois trajets quand une chaîne passe en tête, le tri d'un
+  clic, une arrivée quand une chaîne revient, la section qui reparaît d'un
+  bloc, deux coupures d'un même lot en un seul relevé, et rien au repeuplement,
+  au changement de largeur ni à la bascule de mode. Aux durées de production,
+  relevés à 100 ms, chaque image : le trajet d'une traite et en 320 ms malgré
+  les balayages tombés en plein vol, la section qui glisse sans que sa carte
+  refasse le trajet, l'arrivée invisible pendant que la place s'ouvre. Au
+  réveil de production, le curseur ▶ au milieu de sa barre à chaque image, et
+  un placement rejoué en plein trajet qui vise la place d'arrivée.
+- **237, nouveau** : dix minutes de retard, le créneau reste ; deux heures et
+  cinq, il n'y est pas ; un troisième franchit les deux heures sous les yeux et
+  part de lui-même, pas avant ; l'agenda du panneau garde les quatre.
+
+**Dix-neuf mutants nommés, dix-neuf pris.**
+
+| mutant | ce qui tombe |
+| --- | --- |
+| l'enfant refait le trajet de son parent | 236 : la carte de la section glisse en plus ; les comptes de trajets |
+| le trajet relancé au lieu d'être repris | 236 : le trajet dure plus de 320 ms |
+| le voile oublié | 236 a) |
+| l'arrivée sans attente | 236 h) : l'attente, et la carte visible avant que la place s'ouvre |
+| `transform` au lieu de `translate` | 236 f) |
+| le curseur placé sur une image en vol | 236 i) : le curseur loin de sa barre, une fois le trajet fini |
+| le curseur hors du relevé | 236 i) : le curseur saute pendant que sa barre glisse |
+| le repeuplement animé | 236 d), et la bascule de mode |
+| la bascule de mode animée | 236 : la bascule |
+| le changement de largeur animé | 236 e) |
+| les réponses de Twitch hors relevé | 236 c), g), h), et les deux coupures |
+| le filtre hors relevé | 236 : la section qui reparaît, d) |
+| le tri d'un clic hors relevé | 236 : le tri d'un clic |
+| la section qui fond, et ses cartes encore | 236 : la section qui reparaît |
+| le relevé fermé à l'image suivante | 236 h) : la carte lue pleine avant son fondu |
+| un relevé par réponse | 236 c), et les deux coupures d'un même lot |
+| le planning sans la règle | 237 a), b) |
+| deux minutes au lieu de deux heures | 237 a), b) |
+| la règle appliquée aussi à l'agenda | 237 c) |
+
+`npm run check` est vert : 236 scénarios, 2417 assertions.
 
 ## Top Chaînes : un filtre vide reste vide (v4.33.0.11)
 

@@ -117,11 +117,11 @@ const NOMBRE = new Intl.NumberFormat(LOCALE);
    à la française dans les douze langues ; Intl.DurationFormat l'écrit comme
    chacune l'écrit — « 3 min, 7 sec », « 3 分 7 秒 », « 3 мин 7 с » (Modern Web
    Guidance, « calculate-event-differentials »). Une durée nulle, il la rend
-   VIDE : la seconde y est donc toujours dite. Un navigateur qui ne le connaît
-   pas (Chrome avant la 129) garde l'écriture d'avant. */
-const DUREE = typeof Intl.DurationFormat === 'function'
-  ? new Intl.DurationFormat(LOCALE, { style: 'short' }) : null;
-const DUREE_NULLE = DUREE ? new Intl.DurationFormat(LOCALE, { style: 'short', secondsDisplay: 'always' }) : null;
+   VIDE : la seconde y est donc toujours dite. Plus de repli depuis la
+   4.33.0.14 : les deux planchers le connaissent (Chrome 129, Firefox 136 —
+   le manifeste dit 150 et 140). */
+const DUREE = new Intl.DurationFormat(LOCALE, { style: 'short' });
+const DUREE_NULLE = new Intl.DurationFormat(LOCALE, { style: 'short', secondsDisplay: 'always' });
 
 /* ── Mise en forme des valeurs ───────────────────────────────────────────── */
 const fmt = {
@@ -142,12 +142,10 @@ const fmt = {
     if (!Number.isFinite(ms)) return '—';
     const s = Math.round(ms / 1000);
     const d = s < 60 ? { seconds: s } : { minutes: Math.floor(s / 60), seconds: s % 60 };
-    if (DUREE) return (s === 0 ? DUREE_NULLE : DUREE).format(d);
-    return s < 60 ? `${s} s` : `${d.minutes} min ${String(d.seconds).padStart(2, '0')}`;
+    return (s === 0 ? DUREE_NULLE : DUREE).format(d);
   },
   // Une graduation ronde : « 2 h », « 5 min », dans la langue du panneau.
-  dureeRonde: (n, unite) => (DUREE ? DUREE.format({ [unite === 'h' ? 'hours' : 'minutes']: n })
-                                   : `${n} ${unite}`),
+  dureeRonde: (n, unite) => DUREE.format({ [unite === 'h' ? 'hours' : 'minutes']: n }),
   dureeSec: (s) => (Number.isFinite(s) ? fmt.duree(s * 1000) : '—'),
   oui: (v) => (v ? T('valYes') : T('valNo')),
   // Un jour, sans heure : une échéance tombe un jour, pas à une minute.
@@ -820,12 +818,8 @@ const carteEtBadge = (carte, mod, cle) => {
    abonnés, donc son cadenas — dans la semaine comme hors ligne. */
 const HEURE_MS = 3_600_000;
 const DIRECT_DEMO_MS = 107 * 60_000;
-const jourDemo = (maintenant, j, h, m) => {
-  const d = new Date(minuitDe(maintenant));
-  d.setDate(d.getDate() + j);
-  d.setHours(h, m, 0, 0);
-  return d.getTime();
-};
+const jourDemo = (maintenant, j, h, m) => jourCivil(maintenant).add({ days: j })
+  .toPlainDateTime({ hour: h, minute: m }).toZonedDateTime(fuseau()).epochMilliseconds;
 const prochainDemo = (maintenant) => {
   const d = new Date(maintenant + 2 * HEURE_MS);
   d.setMinutes(0, 0, 0);
@@ -1378,20 +1372,41 @@ const diagVisible = () => lireLocal(DIAG_CLE, 'non') === 'oui';
 const themePanneau = () => lireLocal(THEME_CLE, 'auto');
 
 /* ── Les trois fabriques de contrôles ────────────────────────────────────── */
-const interrupteur = (coche, surChangement) => {
-  const l = elt('label', 'reg-bascule');
+/* LEUR NOM, CELUI DE LA LIGNE (4.33.0.14). Le nom d'un réglage est écrit à
+   gauche, dans sa ligne ; le contrôle, à droite, n'en portait aucun : un
+   lecteur d'écran annonçait « case à cocher, non cochée » sans dire laquelle
+   (Modern Web Guidance, « accessibility », « forms »). Chaque contrôle est
+   désormais nommé par le nom de sa ligne, et décrit par sa description — et,
+   quand la ligne est grisée, par ce qui la rend sans effet. */
+const relier = (ctrl, liens) => {
+  if (!liens) return;
+  if (liens.nom) ctrl.setAttribute('aria-labelledby', liens.nom);
+  if (liens.desc) ctrl.setAttribute('aria-describedby', liens.desc);
+};
+/* L'INTERRUPTEUR, UNE CASE QUI SE DESSINE ELLE-MÊME (4.33.0.14). La case
+   était rendue invisible et posée sur une piste voisine qui faisait le
+   dessin ; c'est la case elle-même qui le fait maintenant (`appearance:
+   none`, cf. la feuille). L'attribut `switch` est celui du HTML ; là où le
+   navigateur ne le connaît pas — Chrome et Firefox aujourd'hui —, le rôle
+   `switch` dit la même chose aux lecteurs d'écran (Modern Web Guidance,
+   « switch », « checkbox »). */
+const SWITCH_NATIF = 'switch' in document.createElement('input');
+const interrupteur = (coche, surChangement, liens) => {
   const i = document.createElement('input');
   i.type = 'checkbox';
+  i.className = 'reg-bascule';
+  i.setAttribute('switch', '');
+  if (!SWITCH_NATIF) i.setAttribute('role', 'switch');
   i.checked = coche;
+  relier(i, liens);
   i.addEventListener('change', () => surChangement(i.checked));
-  const piste = elt('span', 'reg-piste');
-  l.append(i, piste);
-  return l;
+  return i;
 };
 
-const menu = (valeurs, courante, libelle, surChangement) => {
+const menu = (valeurs, courante, libelle, surChangement, liens) => {
   const sel = document.createElement('select');
   sel.className = 'reg-menu';
+  relier(sel, liens);
   for (const v of valeurs) {
     const o = document.createElement('option');
     /* La valeur d'un <option> est TOUJOURS une chaîne, et « 30 » n'est pas 30 :
@@ -1409,8 +1424,10 @@ const menu = (valeurs, courante, libelle, surChangement) => {
   return sel;
 };
 
-const cases = (jeu, membres, actifs, surChangement) => {
+const cases = (jeu, membres, actifs, surChangement, liens) => {
   const hote = div('reg-cases');
+  hote.setAttribute('role', 'group');
+  relier(hote, liens);
   for (const m of membres) {
     const l = elt('label', 'reg-case');
     const i = document.createElement('input');
@@ -1448,7 +1465,7 @@ const loginTape = (brut) => {
    ligne, et avec elle ses messages et ce qu'on a rendu au champ. Lu une fois. */
 let suiteListe = null;
 
-const liste = (id, d, v) => {
+const liste = (id, d, v, liens) => {
   const hote = div('reg-liste');
   const plein = v.length >= d.max;
   const pleine = T('optListePleine', String(d.max));
@@ -1458,9 +1475,14 @@ const liste = (id, d, v) => {
   const champ = document.createElement('input');
   champ.type = 'text';
   champ.className = 'reg-liste-champ';
+  /* Un identifiant, pas un texte : ni correction, ni majuscule, ni
+     orthographe (Modern Web Guidance, « forms »). */
   champ.spellcheck = false;
   champ.autocomplete = 'off';
-  champ.setAttribute('aria-label', T('opt' + MAJ(id)));
+  champ.autocapitalize = 'none';
+  champ.setAttribute('autocorrect', 'off');
+  champ.enterKeyHint = 'enter';
+  relier(champ, liens);
   champ.value = suite ? suite.reste : '';
   champ.disabled = plein;
   const bouton = elt('button', 'reg-liste-ajouter', T('optListeAjouter'));
@@ -1540,31 +1562,48 @@ const ligneReglage = (id) => {
     ligne.classList.add('reg-ligne--sans-effet');
     ligne.title = T('optSansEffet', coupePar.map((p) => T('opt' + MAJ(p))).join(', '));
   }
+  const liens = { nom: 'reg-nom-' + id, desc: null };
   const texte = div('reg-texte');
-  texte.appendChild(elt('span', 'reg-nom', T('opt' + MAJ(id))));
+  const nom = elt('span', 'reg-nom', T('opt' + MAJ(id)));
+  nom.id = liens.nom;
+  texte.appendChild(nom);
   const desc = T('optDesc' + MAJ(id));
   /* T() rend la CLÉ quand le message n'existe pas : c'est ce qui permet de
      n'écrire une description que là où elle apporte quelque chose, sans avoir
      à tenir une liste de « ceux qui en ont une ». La clé rendue telle quelle
      serait illisible, donc on ne l'affiche pas. */
-  if (desc !== 'optDesc' + MAJ(id)) texte.appendChild(elt('span', 'reg-desc', desc));
+  const decrits = [];
+  if (desc !== 'optDesc' + MAJ(id)) {
+    const dd = elt('span', 'reg-desc', desc);
+    dd.id = 'reg-desc-' + id;
+    decrits.push(dd.id);
+    texte.appendChild(dd);
+  }
+  // La raison d'une ligne grisée : son infobulle ne se lit qu'à la souris.
+  if (ligne.title) {
+    const raison = elt('span', 'lecteur-seul', ligne.title);
+    raison.id = 'reg-sans-effet-' + id;
+    decrits.push(raison.id);
+    texte.appendChild(raison);
+  }
+  liens.desc = decrits.join(' ') || null;
   ligne.appendChild(texte);
 
   const ctrl = div('reg-ctrl');
   if (d.type === 'bool') {
-    ctrl.appendChild(interrupteur(v, (b) => poserOption(id, b)));
+    ctrl.appendChild(interrupteur(v, (b) => poserOption(id, b), liens));
   } else if (d.type === 'choix') {
-    ctrl.appendChild(menu(d.valeurs, v, (x) => libelleValeur(id, x), (x) => poserOption(id, x)));
+    ctrl.appendChild(menu(d.valeurs, v, (x) => libelleValeur(id, x), (x) => poserOption(id, x), liens));
   } else if (d.type === 'jeu') {
     /* Le stockage dit ce qu'on RETIRE ; la case dit ce qu'on GARDE. Le
        retournement se fait ici, une fois, et pas dans la tête du lecteur. */
     const actifs = d.valeurs.filter((m) => !v.includes(m));
     ligne.classList.add('reg-ligne--large');
     ctrl.appendChild(cases(id, d.valeurs, actifs,
-      (gardes) => poserOption(id, d.valeurs.filter((m) => !gardes.includes(m)))));
+      (gardes) => poserOption(id, d.valeurs.filter((m) => !gardes.includes(m))), liens));
   } else if (d.type === 'liste') {
     ligne.classList.add('reg-ligne--large');
-    ctrl.appendChild(liste(id, d, Array.isArray(v) ? v : []));
+    ctrl.appendChild(liste(id, d, Array.isArray(v) ? v : [], liens));
   }
   ligne.appendChild(ctrl);
   return ligne;
@@ -1577,8 +1616,11 @@ const groupeLocal = () => {
 
   const ligneTheme = div('reg-ligne');
   const tt = div('reg-texte');
-  tt.appendChild(elt('span', 'reg-nom', T('optPanneauTheme')));
-  tt.appendChild(elt('span', 'reg-desc', T('optDescPanneauTheme')));
+  const nTheme = elt('span', 'reg-nom', T('optPanneauTheme'));
+  nTheme.id = 'reg-nom-panneauTheme';
+  const dTheme = elt('span', 'reg-desc', T('optDescPanneauTheme'));
+  dTheme.id = 'reg-desc-panneauTheme';
+  tt.append(nTheme, dTheme);
   ligneTheme.appendChild(tt);
   const ct = div('reg-ctrl');
   ct.appendChild(menu(['auto', 'dark', 'light'], themePanneau(),
@@ -1588,20 +1630,23 @@ const groupeLocal = () => {
         document.documentElement.removeAttribute('data-theme');
         try { localStorage.removeItem(THEME_CLE); } catch { /* stockage refusé */ }
       } else { appliquerThemePanneau(v); }
-    }));
+    }, { nom: nTheme.id, desc: dTheme.id }));
   ligneTheme.appendChild(ct);
   sec.appendChild(ligneTheme);
 
   const ligneDiag = div('reg-ligne');
   const td = div('reg-texte');
-  td.appendChild(elt('span', 'reg-nom', T('optPanneauDiag')));
-  td.appendChild(elt('span', 'reg-desc', T('optDescPanneauDiag')));
+  const nDiag = elt('span', 'reg-nom', T('optPanneauDiag'));
+  nDiag.id = 'reg-nom-panneauDiag';
+  const dDiag = elt('span', 'reg-desc', T('optDescPanneauDiag'));
+  dDiag.id = 'reg-desc-panneauDiag';
+  td.append(nDiag, dDiag);
   ligneDiag.appendChild(td);
   const cd = div('reg-ctrl');
   cd.appendChild(interrupteur(diagVisible(), (b) => {
     ecrireLocal(DIAG_CLE, b ? 'oui' : 'non');
     appliquerDiag();
-  }));
+  }, { nom: nDiag.id, desc: dDiag.id }));
   ligneDiag.appendChild(cd);
   sec.appendChild(ligneDiag);
   return sec;
@@ -1855,9 +1900,11 @@ const peindre = (section, paquet) => {
   if ($('tableau-cadre').hidden) return;
 
   const affichees = colonnes.filter((c) => COL[c]);
+  $('tableau-legende').textContent = $('vue-titre').textContent;
   const tr = document.createElement('tr');
   for (const c of affichees) {
     const th = document.createElement('th');
+    th.scope = 'col';
     th.textContent = T(COL[c].cle);
     if (COL[c].num) th.className = 'num';
     tr.appendChild(th);
@@ -2033,7 +2080,16 @@ const dureeHms = (s) => {
   return `${h}:${String(m).padStart(2, '0')}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 };
 
-const minuitDe = (t) => { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); };
+/* ── LES JOURS CIVILS, PAR TEMPORAL (4.33.0.14) ──────────────────────────
+   Le jour civil d'un instant et son minuit local ; les semaines et les écarts
+   se comptent en jours de calendrier, non en millisecondes divisées puis
+   arrondies (un jour de changement d'heure dure 23 ou 25 heures). L'instant
+   vient toujours de Date.now() ou d'une date reçue — l'horloge que le banc
+   fige ; le fuseau est celui du système, que Date suivait aussi. */
+const fuseau = () => Temporal.Now.timeZoneId();
+const jourCivil = (t) => Temporal.Instant.fromEpochMilliseconds(t).toZonedDateTimeISO(fuseau()).toPlainDate();
+const minuitDuJour = (jour) => jour.toZonedDateTime(fuseau()).epochMilliseconds;
+const minuitDe = (t) => minuitDuJour(jourCivil(t));
 /* « il y a 4 heures », « hier », « il y a 3 jours » : en heures sous la
    journée, comme la page Programme de Twitch, en jours CIVILS au-delà — c'est
    ce qui fait dire « hier » à ce qui s'est passé hier, et non à ce qui a
@@ -2042,34 +2098,28 @@ const ilYa = (t, maintenant) => {
   const ecart = maintenant - t;
   if (ecart < 3_600_000) return RELATIF.format(-Math.max(1, Math.round(ecart / 60_000)), 'minute');
   if (ecart < 86_400_000) return RELATIF.format(-Math.round(ecart / 3_600_000), 'hour');
-  const jours = Math.max(1, Math.round((minuitDe(maintenant) - minuitDe(t)) / 86_400_000));
+  const jours = Math.max(1, jourCivil(t).until(jourCivil(maintenant)).days);
   if (jours < 7) return RELATIF.format(-jours, 'day');
   if (jours < 35) return RELATIF.format(-Math.round(jours / 7), 'week');
   return RELATIF.format(-Math.round(jours / 30), 'month');
 };
 
-/* LES BORNES D'UNE SEMAINE, à minuit local. `setDate` et non une addition de
-   millisecondes : un passage à l'heure d'été ferait sinon commencer la semaine
-   suivante à 23 h ou à 1 h. Les jours se comptent de même (`jourDe`). */
+/* LES BORNES D'UNE SEMAINE, à minuit local, en jours de calendrier : un
+   passage à l'heure d'été ne fait pas commencer la semaine suivante à 23 h
+   ou à 1 h. Les jours se comptent de même (`jourDe`). PREMIER_JOUR suit la
+   convention de getDay (0 = dimanche) ; Temporal compte de 1 (lundi) à 7
+   (dimanche) — d'où le modulo 7. */
+const debutSemaine = (jour) => jour.subtract({ days: (jour.dayOfWeek % 7 - PREMIER_JOUR + 7) % 7 });
 const bornesSemaine = (decalage) => {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  d.setDate(d.getDate() - ((d.getDay() - PREMIER_JOUR + 7) % 7) + 7 * decalage);
-  const f = new Date(d);
-  f.setDate(f.getDate() + 7);
-  return { debut: d.getTime(), fin: f.getTime() };
+  const d = debutSemaine(jourCivil(Date.now())).add({ weeks: decalage });
+  return { debut: minuitDuJour(d), fin: minuitDuJour(d.add({ weeks: 1 })) };
 };
-const jourDe = (debut, i) => { const d = new Date(debut); d.setDate(d.getDate() + i); return d.getTime(); };
+const jourDe = (debut, i) => minuitDuJour(jourCivil(debut).add({ days: i }));
 // La semaine qui contient l'instant `t`, comptée depuis la semaine courante.
-const decalageDe = (t) => {
-  const d = new Date(t);
-  d.setHours(0, 0, 0, 0);
-  d.setDate(d.getDate() - ((d.getDay() - PREMIER_JOUR + 7) % 7));
-  return Math.round((d.getTime() - bornesSemaine(0).debut) / 604_800_000);
-};
+const decalageDe = (t) =>
+  debutSemaine(jourCivil(Date.now())).until(debutSemaine(jourCivil(t))).days / 7;
 const plageSemaine = (debut, fin) => {
-  const dernier = new Date(fin);
-  dernier.setDate(dernier.getDate() - 1);
+  const dernier = new Date(minuitDuJour(jourCivil(fin).subtract({ days: 1 })));
   try { return daterPlage(DATE_PLAGE, new Date(debut), dernier); }
   catch { return `${dater(DATE_PLAGE, debut)} – ${dater(DATE_PLAGE, dernier)}`; }
 };
@@ -3070,7 +3120,6 @@ const noter = (texte, erreur) => {
   const n = $('rapport-note');
   n.textContent = texte;
   n.className = 'pied-note' + (erreur ? ' pied-note--erreur' : '');
-  n.hidden = false;
 };
 
 /* Le rapport est reconstruit à CHAQUE ouverture et à chaque actualisation :
@@ -3081,7 +3130,7 @@ const remplirRapport = async () => {
   const zone = $('rapport-zone');
   const boutons = [$('rapport-copier'), $('rapport-actualiser')];
   boutons.forEach(b => { b.disabled = true; });
-  $('rapport-note').hidden = true;
+  $('rapport-note').textContent = '';
   zone.value = T('stateLoading');
   const onglet = await idOnglet();
   /* Les deux en parallèle : l'état du worker ne dépend pas de la page, et
@@ -3097,14 +3146,14 @@ const remplirRapport = async () => {
 };
 
 const ouvrirRapport = async () => {
-  $('rapport').hidden = false;
+  if (!$('rapport').open) $('rapport').showModal();
   $('rapport-fermer').focus();
   await remplirRapport();
 };
 
 const fermerRapport = () => {
-  $('rapport').hidden = true;
-  $('rapport-note').hidden = true;
+  if ($('rapport').open) $('rapport').close();
+  $('rapport-note').textContent = '';
   $('btn-rapport').focus();
 };
 
@@ -3140,7 +3189,7 @@ const confirmer = (titre, texte, suite) => {
   aConfirmer = suite;
   $('boite-titre').textContent = T(titre);
   $('boite-texte').textContent = T(texte);
-  $('voile').hidden = false;
+  if (!$('voile').open) $('voile').showModal();
   $('boite-ok').focus();
 };
 
@@ -3191,16 +3240,19 @@ document.addEventListener('DOMContentLoaded', () => {
   $('agenda').addEventListener('scroll', suivreDefilement, { passive: true });
   $('btn-rescan').addEventListener('click', () => lancer('rescan', $('btn-rescan')));
   $('btn-rapport').addEventListener('click', ouvrirRapport);
-  $('rapport-fermer').addEventListener('click', fermerRapport);
   $('rapport-copier').addEventListener('click', copierRapport);
   $('rapport-actualiser').addEventListener('click', remplirRapport);
   $('btn-reset').addEventListener('click', () =>
     confirmer('resetTitle', 'resetText', () => lancer('reset', $('btn-reset'))));
 
-  $('boite-annuler').addEventListener('click', () => { $('voile').hidden = true; aConfirmer = null; });
+  /* « Fermer » et « Annuler » sont des commandes (cf. panneau.html) : le
+     navigateur ferme. Fermés par lui — une commande, une demande de
+     fermeture —, ils remettent leur état comme s'ils l'avaient été par nous. */
+  $('voile').addEventListener('close', () => { aConfirmer = null; });
+  $('rapport').addEventListener('close', () => { $('rapport-note').textContent = ''; });
   $('boite-ok').addEventListener('click', () => {
     const suite = aConfirmer;
-    $('voile').hidden = true; aConfirmer = null;
+    $('voile').close(); aConfirmer = null;
     if (suite) suite();
   });
   /* Échap ferme ce qui est ouvert, en commençant par le plus haut : la
@@ -3209,8 +3261,11 @@ document.addEventListener('DOMContentLoaded', () => {
   document.addEventListener('keydown', (e) => {
     // Échap pendant une composition l'annule, et rien d'autre (cf. le champ de liste).
     if (e.key !== 'Escape' || e.isComposing) return;
-    if (!$('voile').hidden) { $('voile').hidden = true; aConfirmer = null; return; }
-    if (!$('rapport').hidden) { fermerRapport(); return; }
+    /* Les deux sont des <dialog> : Échap les fermerait de lui-même, le plus
+       haut d'abord. On le fait ici, dans le même ordre, et on le dit au
+       navigateur (preventDefault) pour qu'il n'en ferme pas un second. */
+    if ($('voile').open) { e.preventDefault(); $('voile').close(); aConfirmer = null; return; }
+    if ($('rapport').open) { e.preventDefault(); fermerRapport(); return; }
     /* ── ÉCHAP DANS UN CADRE FERME LE CADRE ────────────────────────────────
        Rien de plus haut n'est ouvert ici, et il reste pourtant une couche
        au-dessus : le cadre lui-même, posé par la barre latérale. Une touche
