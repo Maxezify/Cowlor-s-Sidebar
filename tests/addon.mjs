@@ -366,10 +366,12 @@ if (gecko) {
      typeof gecko.id === 'string' && /^[a-zA-Z0-9\-._]*@[a-zA-Z0-9\-._]+$/.test(gecko.id),
      gecko.id ?? '(absent)');
 
-  /* Le plancher est DÉDUIT : world:"MAIN" demande 128,
-     data_collection_permissions demande 140. C'est donc 140 qui commande. */
-  ok('le plancher Firefox couvre la clé la plus récente du manifeste',
-     parseInt(gecko.strict_min_version, 10) >= 140, gecko.strict_min_version ?? '(absent)');
+  /* Le plancher était DÉDUIT : world:"MAIN" demande 128,
+     data_collection_permissions demande 140. Il est CHOISI depuis la
+     4.33.0.14 : 150, comme celui de Chrome — le code ne garde plus de repli
+     pour ce que Firefox 150 connaît (moveBefore, until-found, popover). */
+  ok('le plancher Firefox est celui que le code suppose : 150',
+     parseInt(gecko.strict_min_version, 10) >= 150, gecko.strict_min_version ?? '(absent)');
 
   /* Obligatoire pour toute NOUVELLE extension depuis le 3 novembre 2025. La
      valeur honnête est « none » : rien n'est collecté, rien ne sort. */
@@ -383,6 +385,17 @@ if (gecko) {
   ok('aucune clé Firefox ne traîne dans un manifeste Chrome',
      !man.browser_specific_settings, JSON.stringify(man.browser_specific_settings));
 }
+
+/* TRUSTED TYPES SUR LES PAGES DE L'EXTENSION (4.33.0.14). Le panneau n'écrit
+   jamais de HTML par chaîne — textContent partout, des éléments construits —
+   et le manifeste l'exige désormais du navigateur : une affectation à
+   innerHTML y serait refusée, et aucune politique ne peut être créée pour la
+   permettre (« trusted-types 'none' »). Chrome 83, Firefox 148. Les scripts
+   de contenu n'y sont pas soumis : ils vivent dans la page de Twitch. */
+const csp = man.content_security_policy?.extension_pages || '';
+ok('les pages de l\'extension exigent Trusted Types, et n\'admettent aucune politique',
+   /require-trusted-types-for 'script'/.test(csp) && /trusted-types 'none'/.test(csp)
+   && /script-src 'self'/.test(csp) && !/unsafe/.test(csp), csp || '(absent)');
 
 ok('aucune permission n\'est demandée, comme sur l\'autre branche',
    !man.permissions && !man.host_permissions && !man.optional_permissions,

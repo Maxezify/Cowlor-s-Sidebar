@@ -41,28 +41,46 @@ html[data-vue="incruste"] body { width: 100%; height: 100%; }
    jetons ; « data-theme » tranche ensuite (Modern Web Guidance, « dark-mode »). */
 :root {
   color-scheme: light dark;
-  --fond:        #0e0e10;   /* le fond de Twitch, celui de la sidebar */
-  --fond-2:      #18181b;   /* les surfaces posées dessus */
-  --fond-creux:  rgba(0, 0, 0, 0.4);
-  --filet:       rgba(255, 255, 255, 0.08);
-  --filet-fort:  rgba(255, 255, 255, 0.16);
-  --texte:       #efeff1;
-  --texte-doux:  #adadb8;
-  --texte-faible:#7d7d8a;
+  /* UNE VALEUR PAR JETON, LES DEUX THÈMES DEDANS (4.33.0.14). Chaque jeton
+     était écrit trois fois : en sombre ici, en clair pour « data-theme »,
+     et en clair encore pour la préférence du système — deux copies à tenir
+     égales à la main. light-dark() les réunit : c'est « color-scheme » qui
+     choisit, et il suit déjà les deux mécanismes (Modern Web Guidance,
+     « dark-mode », « component-specific-light-dark-theme »). Les valeurs
+     sont celles d'avant, à deux près, mesurées : le texte faible passait
+     sous 4,5:1 dans les deux thèmes (scénario 70). */
+  --fond:        light-dark(#f7f7f8, #0e0e10);   /* le fond de Twitch, celui de la sidebar */
+  --fond-2:      light-dark(#ffffff, #18181b);   /* les surfaces posées dessus */
+  --fond-creux:  light-dark(rgba(0, 0, 0, 0.06), rgba(0, 0, 0, 0.4));
+  --filet:       light-dark(rgba(0, 0, 0, 0.10), rgba(255, 255, 255, 0.08));
+  --filet-fort:  light-dark(rgba(0, 0, 0, 0.20), rgba(255, 255, 255, 0.16));
+  --texte:       light-dark(#0e0e10, #efeff1);
+  --texte-doux:  light-dark(#53535f, #adadb8);
+  --texte-faible:light-dark(#5f5f6b, #8e8e9a);
   --violet:      #9147ff;
-  --violet-doux: rgba(145, 71, 255, 0.5);
+  --violet-doux: light-dark(rgba(145, 71, 255, 0.35), rgba(145, 71, 255, 0.5));
   /* Le rouge du direct de Twitch : celui de la barre d'un direct qui vient
      de commencer (4.24.0). Le même dans les deux thèmes — Twitch ne
      l'assombrit pas, et une barre n'a pas de contraste de texte à tenir. */
   --direct:      #eb0400;
-  --or:          #ffc45c;
-  --rouge:       #ec4c4c;
-  --vert:        #3ea6a6;
+  /* LES ACCENTS NE S'INVERSENT PAS, ILS S'ASSOMBRISSENT : le violet, l'or, le
+     rouge et le vert gardent leur teinte — c'est elle qui porte le sens d'une
+     surface à l'autre — à la clarté qu'il faut pour se lire sur du blanc. */
+  --or:          light-dark(#8a5900, #ffc45c);
+  --rouge:       light-dark(#b3202b, #ec4c4c);
+  /* #196363 en clair (4.33.0.14) : l'étiquette « OK » du diagnostic, sur sa
+     teinte posée dans un tableau, n'avait que 4,48:1 avec #1b6b6b. */
+  --vert:        light-dark(#196363, #3ea6a6);
   /* L'agenda (4.25.0) : le violet ÉCRIT — catégories, prochain direct — et le
      voile du survol d'une ligne. Deux jetons, parce que ni l'un ni l'autre ne
      se lit de la même façon sur un fond clair. */
-  --violet-texte:#bf94ff;
-  --survol:      rgba(255, 255, 255, 0.045);
+  --violet-texte:light-dark(#6c2bd9, #bf94ff);
+  /* Le violet clair des numéros du guide et de sa carte d'exemple : il
+     n'avait pas de valeur claire, et tombait à 1,5:1 sur du blanc. */
+  /* #6224c4 (4.33.0.14) : la durée d'une carte teintée de rouge tombait à
+     4,24:1 avec #6c2bd9. */
+  --violet-clair:light-dark(#6224c4, #c9a6ff);
+  --survol:      light-dark(rgba(0, 0, 0, 0.04), rgba(255, 255, 255, 0.045));
   --r-petit:     4px;
   --r-grand:     6px;
 }
@@ -73,52 +91,12 @@ html[data-vue="incruste"] body { width: 100%; height: 100%; }
    latérale. Il l'apprend autrement — le rapport de la page le porte depuis la
    4.8, et panneau.js le retient d'une ouverture à l'autre.
 
-   AVANT DE L'AVOIR APPRIS, il suit la préférence du système. C'est le meilleur
-   pari disponible, et il est explicitement borné : dès qu'un rapport arrive,
-   « data-theme » tranche et la préférence du système ne décide plus rien. Les
-   deux mécanismes sont écrits séparément pour cette raison — « html:not([data-theme]) »
-   ne s'applique QUE tant qu'on ne sait pas.
-
-   LES ACCENTS NE S'INVERSENT PAS, ILS S'ASSOMBRISSENT : le violet, l'or, le
-   rouge et le vert gardent leur teinte — c'est elle qui porte le sens d'une
-   surface à l'autre — à la clarté qu'il faut pour se lire sur du blanc. */
-html[data-theme="light"] {
-  --fond:        #f7f7f8;
-  --fond-2:      #ffffff;
-  --fond-creux:  rgba(0, 0, 0, 0.06);
-  --filet:       rgba(0, 0, 0, 0.10);
-  --filet-fort:  rgba(0, 0, 0, 0.20);
-  --texte:       #0e0e10;
-  --texte-doux:  #53535f;
-  --texte-faible:#6e6e7a;
-  --violet-doux: rgba(145, 71, 255, 0.35);
-  --or:          #8a5900;
-  --rouge:       #b3202b;
-  --vert:        #1b6b6b;
-  --violet-texte:#6c2bd9;
-  --survol:      rgba(0, 0, 0, 0.04);
-  color-scheme: light;
-}
-html[data-theme="dark"] { color-scheme: dark; }
-@media (prefers-color-scheme: light) {
-  html:not([data-theme="dark"]):not([data-theme="light"]) {
-    --fond:        #f7f7f8;
-    --fond-2:      #ffffff;
-    --fond-creux:  rgba(0, 0, 0, 0.06);
-    --filet:       rgba(0, 0, 0, 0.10);
-    --filet-fort:  rgba(0, 0, 0, 0.20);
-    --texte:       #0e0e10;
-    --texte-doux:  #53535f;
-    --texte-faible:#6e6e7a;
-    --violet-doux: rgba(145, 71, 255, 0.35);
-    --or:          #8a5900;
-    --rouge:       #b3202b;
-    --vert:        #1b6b6b;
-    --violet-texte:#6c2bd9;
-    --survol:      rgba(0, 0, 0, 0.04);
-    color-scheme: light;
-  }
-}
+   AVANT DE L'AVOIR APPRIS, il suit la préférence du système : la racine dit
+   « light dark », et light-dark() suit le système. C'est le meilleur pari
+   disponible, et il est explicitement borné : dès qu'un rapport arrive,
+   « data-theme » tranche et la préférence du système ne décide plus rien. */
+html[data-theme="light"] { color-scheme: light; }
+html[data-theme="dark"]  { color-scheme: dark; }
 
 
 * { box-sizing: border-box; }
@@ -206,7 +184,7 @@ html, body {
   font: inherit; font-size: 12.5px; cursor: pointer;
   transition: background-color 0.12s, color 0.12s, border-color 0.12s;
 }
-.rail-item:hover { background: rgba(255, 255, 255, 0.04); color: var(--texte); }
+.rail-item:hover { background: var(--survol); color: var(--texte); }
 .rail-item[aria-current="true"] {
   background: rgba(145, 71, 255, 0.14);
   border-left-color: var(--violet);
@@ -272,7 +250,7 @@ html, body {
    sait lire « mardi, 21 h » sans compter les cases. */
 .rythme-case {
   height: 19px; border-radius: 3px;
-  background: rgba(255, 255, 255, 0.045);
+  background: var(--survol);
 }
 /* QUATRE PALIERS, ET NON UN DÉGRADÉ CONTINU. Une échelle continue oblige à
    comparer deux violets pour deux valeurs : personne ne le fait. Quatre
@@ -326,7 +304,7 @@ html, body {
 .courbe { display: block; width: 100%; height: auto; }
 .courbe-aire   { fill: url(#tse-degrade-courbe); }
 .courbe-trait  { fill: none; stroke: #a970ff; stroke-width: 1.6; stroke-linejoin: round; }
-.courbe-repere { stroke: rgba(255, 255, 255, 0.20); stroke-width: 1; stroke-dasharray: 2 3; }
+.courbe-repere { stroke: light-dark(rgba(0, 0, 0, 0.25), rgba(255, 255, 255, 0.20)); stroke-width: 1; stroke-dasharray: 2 3; }
 .courbe-axe    { stroke: var(--filet); stroke-width: 1; }
 .courbe-texte  { fill: var(--texte-faible); font-size: 9.5px; font-variant-numeric: tabular-nums; }
 
@@ -375,7 +353,7 @@ html, body {
 .guide-num {
   flex: 0 0 auto;
   width: 18px; height: 18px; border-radius: 50%;
-  background: rgba(145, 71, 255, 0.18); color: #c9a6ff;
+  background: rgba(145, 71, 255, 0.18); color: var(--violet-clair);
   font-size: 10.5px; font-weight: 700; line-height: 18px; text-align: center;
   font-variant-numeric: tabular-nums;
 }
@@ -409,6 +387,11 @@ html, body {
   border-radius: var(--r-grand);
 }
 .d-pile { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+/* LA PALETTE DES BADGES SUR LA SURFACE OÙ LE PRODUIT LES POSE (4.33.0.14) :
+   celle de l'aperçu, où leurs teintes ont été mesurées. Sur le creux du cadre,
+   plus sombre, « Ancien abonné » tombait à 4,13:1 et « Hype Train » à 4,49 en
+   clair ; sur la surface de l'aperçu, 4,96 et 5,29. */
+.d-cadre:has(> .d-badges) { background: var(--fond-2); }
 
 /* ── L'agenda, en petit (4.25.0.11) ──────────────────────────────────────────
    Les deux vues de l'agenda, dessinées par leur propre code et habillées par
@@ -472,7 +455,11 @@ html, body {
   display: flex; align-items: center; gap: 5px;
   font-size: 12px; font-weight: 600; color: var(--texte);
 }
-.d-cat { font-size: 11px; color: var(--texte-faible); }
+/* La catégorie d'une carte, dans le gris où Twitch l'écrit — le texte doux.
+   Le gris faible ne tenait pas sur les cartes teintées (4.33.0.14) : 3,8:1
+   en clair sur le rouge d'un direct qui commence, 4,38 en sombre sur l'or
+   d'un co-stream. */
+.d-cat { font-size: 11px; color: var(--texte-doux); }
 .d-droite { flex: 0 0 auto; text-align: right; }
 .d-vues {
   display: flex; align-items: center; justify-content: flex-end; gap: 4px;
@@ -483,7 +470,7 @@ html, body {
    l'accent. « Terminé » passe en italique atone — l'information reste, le
    signal s'éteint. */
 .d-uptime {
-  font-size: 11px; font-weight: 600; color: #c9a6ff;
+  font-size: 11px; font-weight: 600; color: var(--violet-clair);
   font-variant-numeric: tabular-nums;
 }
 .d-uptime--fini { color: var(--texte-faible); font-weight: 400; font-style: italic; }
@@ -517,7 +504,10 @@ html, body {
     rgba(255, 196, 92, 0.12) 0%, rgba(255, 196, 92, 0.04) 55%, transparent 100%);
 }
 .d-carte--or .d-nom { color: var(--or); }
-.d-carte--or .d-cat { color: rgba(255, 196, 92, 0.62); }
+.d-carte--or .d-cat { color: light-dark(#7c5a1e, rgba(255, 196, 92, 0.62)); }
+/* L'or pâle de la catégorie est celui du SOMBRE : sur du blanc, il tombait à
+   1,18:1 (4.33.0.14). Le clair prend la teinte que le produit donne à la
+   catégorie d'une chaîne abonnée (content.js : #7c5a1e, mesurée). */
 .d-carte--or .d-avatar {
   box-shadow: 0 0 0 2px var(--or), 0 0 9px rgba(255, 196, 92, 0.45);
 }
@@ -665,7 +655,7 @@ html[data-theme="light"] .d-jour {
 .d-frise { width: 320px; }
 .d-ruban {
   display: flex; height: 9px; border-radius: 3px; overflow: hidden;
-  margin-bottom: 8px; background: rgba(255, 255, 255, 0.05);
+  margin-bottom: 8px; background: light-dark(rgba(0, 0, 0, 0.05), rgba(255, 255, 255, 0.05));
 }
 .d-bande { height: 100%; }
 .d-frise-ligne {
@@ -684,9 +674,13 @@ html[data-theme="light"] .d-jour {
 .d-onglet {
   padding: 4px 10px; border-radius: var(--r-petit);
   font-size: 11px; font-weight: 600; color: var(--texte-faible);
-  background: rgba(255, 255, 255, 0.04);
+  background: light-dark(rgba(0, 0, 0, 0.04), rgba(255, 255, 255, 0.04));
 }
-.d-onglet--actif { background: rgba(145, 71, 255, 0.20); color: #c9a6ff; }
+/* L'onglet actif, TEL QUE LE PRODUIT LE PEINT (4.33.0.14) : blanc sur le
+   dégradé du violet de Twitch à #772ce8 (4,62 puis 6,34:1). La maquette en
+   faisait un violet sur voile violet — 4,48:1 en clair, et pas ce qu'on voit
+   dans la barre. */
+.d-onglet--actif { background: linear-gradient(180deg, #9147ff 0%, #772ce8 100%); color: #fff; }
 
 /* ── Tableau ─────────────────────────────────────────────────────────────── */
 .tableau-cadre {
@@ -695,20 +689,23 @@ html[data-theme="light"] .d-jour {
   border: 1px solid var(--filet); border-radius: var(--r-grand);
   background: var(--fond-creux);
 }
+.tableau-cadre:focus-visible { outline: 2px solid var(--violet); outline-offset: -2px; }
 .tableau { width: 100%; border-collapse: collapse; font-size: 12px; }
 .tableau thead th {
   position: sticky; top: 0; z-index: 1;
-  background: #1f1f23;
+  /* L'en-tête collant a son fond à lui, opaque — sombre, il restait sombre
+     en thème clair sous un texte foncé : 2,17:1 (4.33.0.14). */
+  background: light-dark(#ececef, #1f1f23);
   text-align: left; font-weight: 600; font-size: 10.5px;
   letter-spacing: 0.4px; text-transform: uppercase; color: var(--texte-doux);
   padding: 7px 10px; border-bottom: 1px solid var(--filet); white-space: nowrap;
 }
 .tableau tbody td {
-  padding: 6px 10px; border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  padding: 6px 10px; border-bottom: 1px solid light-dark(rgba(0, 0, 0, 0.06), rgba(255, 255, 255, 0.04));
   color: var(--texte); vertical-align: top;
 }
 .tableau tbody tr:last-child td { border-bottom: 0; }
-.tableau tbody tr:hover td { background: rgba(255, 255, 255, 0.03); }
+.tableau tbody tr:hover td { background: light-dark(rgba(0, 0, 0, 0.03), rgba(255, 255, 255, 0.03)); }
 /* Les nombres s'alignent sur leurs chiffres : sans chasse fixe, une colonne de
    compteurs se lit de travers dès qu'un ordre de grandeur change. */
 .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -723,7 +720,7 @@ html[data-theme="light"] .d-jour {
 }
 .etiq--ok     { background: rgba(62, 166, 166, 0.16); color: var(--vert); }
 .etiq--broken { background: rgba(236, 76, 76, 0.16);  color: var(--rouge); }
-.etiq--na     { background: rgba(255, 255, 255, 0.06); color: var(--texte-faible); }
+.etiq--na     { background: light-dark(rgba(0, 0, 0, 0.06), rgba(255, 255, 255, 0.06)); color: var(--texte-faible); }
 
 /* ── Messages (vide, chargement, erreur) ─────────────────────────────────── */
 .message[hidden] { display: none; }
@@ -766,7 +763,6 @@ html[data-theme="light"] .d-jour {
 .pied .bouton--danger { margin-left: auto; }
 /* La confirmation d'export, à côté des boutons. `hidden` a besoin d'être
    redit ici comme partout où l'on déclare un display — cf. .message. */
-.pied-note[hidden] { display: none; }
 .pied-note {
   display: inline-block; min-width: 0;
   font-size: 11px; color: var(--vert);
@@ -777,12 +773,20 @@ html[data-theme="light"] .d-jour {
 /* ── Le rapport, en plein panneau ────────────────────────────────────────── */
 /* `hidden` a besoin d'être redit partout où l'on déclare un display : la règle
    du navigateur perd contre une règle d'auteur. Cf. .message, .voile. */
-.rapport[hidden] { display: none; }
+/* Un <dialog> modal (4.33.0.14) : le navigateur le pose dans la couche
+   supérieure avec ses marges et sa bordure à lui ; on les retire pour qu'il
+   couvre tout le panneau, comme avant. Fermé, il n'est pas affiché — c'est
+   la feuille du navigateur qui le dit, et le `display` ne se pose qu'ouvert. */
 .rapport {
-  position: fixed; inset: 0; z-index: 20;
-  display: flex; flex-direction: column;
-  background: var(--fond);
+  position: fixed; inset: 0;
+  width: 100%; height: 100%; max-width: none; max-height: none;
+  margin: 0; padding: 0; border: 0;
+  flex-direction: column;
+  background: var(--fond); color: inherit;
+  overflow: hidden; overscroll-behavior: contain;
 }
+.rapport[open] { display: flex; }
+.rapport::backdrop { background: transparent; }
 .rapport-tete {
   flex: 0 0 auto;
   display: flex; align-items: flex-start; gap: 10px;
@@ -814,12 +818,18 @@ html[data-theme="light"] .d-jour {
 }
 
 /* ── Confirmation ────────────────────────────────────────────────────────── */
+/* La confirmation, un <dialog> modal elle aussi (4.33.0.14) : le voile est
+   le dialogue lui-même, plein panneau, la boîte au centre. */
 .voile {
-  position: fixed; inset: 0; z-index: 10;
-  display: flex; align-items: center; justify-content: center;
-  background: rgba(0, 0, 0, 0.6);
+  position: fixed; inset: 0;
+  width: 100%; height: 100%; max-width: none; max-height: none;
+  margin: 0; padding: 0; border: 0;
+  align-items: center; justify-content: center;
+  background: rgba(0, 0, 0, 0.6); color: inherit;
+  overscroll-behavior: contain;
 }
-.voile[hidden] { display: none; }
+.voile[open] { display: flex; }
+.voile::backdrop { background: transparent; }
 .boite {
   width: 340px; padding: 16px;
   background: var(--fond-2); border: 1px solid var(--filet-fort);
@@ -921,14 +931,16 @@ html[data-theme="light"] .d-jour {
 .reg-ligne--sans-effet .reg-texte,
 .reg-ligne--sans-effet .reg-ctrl { opacity: 0.5; }
 
-.reg-texte { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.reg-texte { display: flex; flex-direction: column; gap: 2px; min-width: 0; position: relative; }
 .reg-nom   { color: var(--texte); font-size: 13px; }
 .reg-desc  { color: var(--texte-doux); font-size: 11.5px; line-height: 1.45; }
 .reg-ctrl  { flex: none; }
 
 /* ── L'interrupteur ──────────────────────────────────────────────────────── */
-/* « position: relative », ET C'EST LE VRAI DÉFAUT DE LA 4.10.0. La case est
-   posée en absolu par-dessus la piste ; sans ancêtre positionné, « absolu »
+/* « position: relative », ET C'EST LE VRAI DÉFAUT DE LA 4.10.0 (la case
+   ne se pose plus par-dessus une piste depuis la 4.33.0.14, mais la leçon
+   vaut pour tout ce qui se pose en absolu ici). La case était posée en
+   absolu par-dessus la piste ; sans ancêtre positionné, « absolu »
    se rapporte au BLOC CONTENEUR INITIAL, c'est-à-dire au document. Les dix-
    neuf cases se retrouvaient donc empilées à des centaines de pixels du
    haut de la page : « documentElement.scrollHeight » passait de 580 à 2033,
@@ -940,26 +952,26 @@ html[data-theme="light"] .d-jour {
    « min-height: 0 » du conteneur, ce qui était nécessaire mais ne changeait
    rien à ce chiffre-là. Une case invisible qui déborde ne se voit pas ; elle
    se mesure. */
-.reg-bascule { display: inline-flex; cursor: pointer; position: relative; }
-/* La case reste dans le document et garde le focus clavier : la masquer avec
-   « display: none » l'aurait sortie de l'ordre de tabulation, c'est-à-dire
-   rendu l'onglet inutilisable sans souris. */
-.reg-bascule input {
-  position: absolute;
-  opacity: 0;
+/* LA CASE SE DESSINE ELLE-MÊME (4.33.0.14). Elle était rendue invisible
+   (`opacity: 0`) et posée sur une piste voisine qui faisait le dessin — le
+   motif que Modern Web Guidance retire (« checkbox », « switch ») : c'est
+   maintenant la case, `appearance: none`, qui est la piste, et son
+   `::after` le curseur. Mêmes mesures, mêmes couleurs, même course. Elle
+   reste une vraie case : focus, clavier, état, et son nom vient de sa ligne
+   (cf. relier). */
+input.reg-bascule {
+  appearance: none;
+  flex: none;
+  position: relative;
   width: 34px; height: 20px;
   margin: 0;
-  cursor: pointer;
-}
-.reg-piste {
-  width: 34px; height: 20px;
   border-radius: 10px;
   background: var(--fond-creux);
   border: 1px solid var(--filet-fort);
-  position: relative;
+  cursor: pointer;
   transition: background 0.15s ease, border-color 0.15s ease;
 }
-.reg-piste::after {
+input.reg-bascule::after {
   content: '';
   position: absolute;
   top: 2px; left: 2px;
@@ -968,17 +980,46 @@ html[data-theme="light"] .d-jour {
   background: var(--texte-doux);
   transition: transform 0.15s ease, background 0.15s ease;
 }
-.reg-bascule input:checked + .reg-piste {
+input.reg-bascule:checked {
   background: var(--violet);
   border-color: var(--violet);
 }
-.reg-bascule input:checked + .reg-piste::after {
+input.reg-bascule:checked::after {
   transform: translateX(14px);
   background: #ffffff;
 }
-.reg-bascule input:focus-visible + .reg-piste {
+input.reg-bascule:focus-visible {
   outline: 2px solid var(--violet);
   outline-offset: 2px;
+}
+/* EN COULEURS FORCÉES, le navigateur repeint fonds et cadres — même aux
+   couleurs système qu'on lui demande : la piste devenait Canvas, le curseur
+   aussi, et l'interrupteur n'avait plus de curseur visible, coché ou non
+   (mesuré au banc, 4.33.0.14). « forced-color-adjust: none » le laisse
+   peindre ce qui suit, qui n'est fait QUE de couleurs du système, celles du
+   thème que l'utilisateur a choisi : le curseur prend la couleur du texte ;
+   coché, la piste prend celle de la sélection (Modern Web Guidance,
+   « color »). */
+@media (forced-colors: active) {
+  input.reg-bascule, input.reg-bascule::after { forced-color-adjust: none; }
+  input.reg-bascule { background: Canvas; border-color: CanvasText; }
+  input.reg-bascule::after { background: CanvasText; }
+  input.reg-bascule:checked { background: Highlight; border-color: Highlight; }
+  input.reg-bascule:checked::after { background: HighlightText; }
+}
+
+/* Ce qui ne s'écrit qu'aux lecteurs d'écran : la raison d'une ligne grisée,
+   que son infobulle ne donne qu'à la souris. */
+/* LES TITRES SE COUPENT EN LIGNES ÉGALES (4.33.0.14) : un titre qui passe à
+   la ligne n'y laisse plus un mot seul — « text-wrap: balance », Chrome 114,
+   Firefox 121. Sans effet sur un titre qui tient sur une ligne. */
+.tete-titre, .vue-titre, .rapport-titre, .boite-titre, .guide-titre, .reg-titre { text-wrap: balance; }
+.lecteur-seul {
+  position: absolute;
+  width: 1px; height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 /* ── Le menu ─────────────────────────────────────────────────────────────── */

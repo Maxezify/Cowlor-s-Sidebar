@@ -51,6 +51,89 @@ const attendre = (p, fn, ms = 10_000, arg = null) =>
 // on normalise avant comparaison, l'espace exacte n'est pas l'objet du test.
 const nz = (s) => (s ?? '').replace(/[\u00a0\u202f\u2009]/g, ' ');
 
+/* ── CHAQUE TEXTE AU SEUIL AA, MESURÉ SUR CE QUI EST PEINT (4.33.0.14) ──
+   Une fonction de PAGE, passée telle quelle à page.evaluate : elle parcourt
+   tous les éléments de `selecteur` qui portent du texte à eux, et rend ceux
+   qui passent sous le seuil — 4,5:1, ou 3:1 pour un grand texte (24 px, ou
+   18,66 px en gras).
+
+   LE FOND SE REMONTE, COUCHE PAR COUCHE, jusqu'à la première opaque : un
+   badge translucide ne se juge pas contre sa propre déclaration. UN DÉGRADÉ
+   EST UNE COUCHE À PLUSIEURS COULEURS : chacun de ses arrêts est un fond
+   possible, et le texte doit tenir sur le pire. La sonde d'avant prenait le
+   fond SOUS le dégradé — l'onglet actif, blanc sur violet, s'y mesurait
+   blanc sur blanc.
+
+   UN TEXTE EN CONTOUR (remplissage transparent) se mesure par son trait.
+   Ce qu'on ne mesure pas, et pourquoi — la liste est rendue, pour qu'une
+   exclusion ne cache jamais rien en silence :
+     - un contrôle désactivé : WCAG 1.4.3 l'exempte ;
+     - un texte d'un pixel, découpé : il est lu, pas vu ;
+     - un emoji en couleur : sa teinte vient de la police, pas de `color` ;
+     - `exclus` : des sélecteurs nommés par l'appelant, chacun avec sa
+       raison (un texte posé sur une vidéo, par exemple). */
+const mesurerContrastes = ({ selecteur, exclus = [] }) => {
+  const rgb = (s) => { const m = /rgba?\(([^)]+)\)/.exec(s || ''); if (!m) return null;
+    const p = m[1].split(/[ ,/]+/).filter(Boolean).map(Number); return [p[0], p[1], p[2], p.length > 3 ? p[3] : 1]; };
+  const lum = ([r, g, b]) => { const f = (x) => { x /= 255; return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; };
+    return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b); };
+  const sur = (h, b) => [0, 1, 2].map((i) => h[i] * h[3] + b[i] * (1 - h[3])).concat(1);
+  const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+  // Les fonds possibles sous `el` : une liste de couleurs opaques.
+  const fonds = (el) => {
+    const couches = [];
+    for (let e = el; e; e = e.parentElement) {
+      const cs = getComputedStyle(e);
+      const img = cs.backgroundImage;
+      if (img && img !== 'none') {
+        if (/url\(/.test(img)) return null;   // une image : rien à calculer
+        const arrets = (img.match(/rgba?\([^)]*\)/g) || []).map(rgb).filter(Boolean);
+        if (arrets.length) couches.push(arrets);
+      }
+      const c = rgb(cs.backgroundColor);
+      if (c && c[3] > 0) { couches.push([c]); if (c[3] >= 1) break; }
+    }
+    const racine = rgb(getComputedStyle(document.documentElement).backgroundColor);
+    let base = [racine && racine[3] >= 1 ? racine : [255, 255, 255, 1]];
+    for (let i = couches.length - 1; i >= 0; i--) {
+      const suivants = [];
+      for (const b of base) for (const c of couches[i]) suivants.push(sur(c, b));
+      base = suivants.slice(0, 64);
+    }
+    return base;
+  };
+  const echecs = [], ecartes = {};
+  let mesures = 0;
+  const ecarter = (r) => { ecartes[r] = (ecartes[r] || 0) + 1; };
+  for (const el of document.querySelectorAll(selecteur)) {
+    if (!el.getClientRects().length || !el.checkVisibility({ opacityProperty: true, visibilityProperty: true })) continue;
+    const texte = [...el.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent.trim()).join('');
+    if (!texte) continue;
+    const ex = exclus.find(([s]) => el.closest(s));
+    if (ex) { ecarter(ex[1]); continue; }
+    if (el.closest(':disabled')) { ecarter('désactivé'); continue; }
+    const r0 = el.getBoundingClientRect();
+    if (r0.width <= 1 && r0.height <= 1) { ecarter('lu, pas vu'); continue; }
+    if (/^\p{Extended_Pictographic}️?$/u.test(texte)) { ecarter('emoji en couleur'); continue; }
+    const cs = getComputedStyle(el);
+    const remplissage = rgb(cs.webkitTextFillColor);
+    const contour = remplissage && remplissage[3] === 0 && parseFloat(cs.webkitTextStrokeWidth) > 0;
+    const f = rgb(contour ? cs.webkitTextStrokeColor : (remplissage && remplissage[3] > 0 ? cs.webkitTextFillColor : cs.color));
+    if (!f || f[3] === 0) { ecarter('sans encre'); continue; }
+    const bs = fonds(el);
+    if (!bs) { ecarter('sur une image'); continue; }
+    const px = parseFloat(cs.fontSize), gras = Number(cs.fontWeight) >= 700;
+    const seuil = contour || px >= 24 || (gras && px >= 18.66) ? 3 : 4.5;
+    const pire = Math.min(...bs.map((b) => ratio(sur(f, b), b)));
+    mesures++;
+    if (pire < seuil) {
+      echecs.push({ classe: (typeof el.className === 'string' ? el.className : el.localName).slice(0, 50),
+                    texte: texte.slice(0, 30), r: Math.round(pire * 100) / 100, seuil });
+    }
+  }
+  return { mesures, echecs, ecartes };
+};
+
 
 // Survol synthétique : l'extension écoute mouseenter/mouseleave en phase de
 // CAPTURE sur document, donc un événement dispatché sur la carte l'atteint.
@@ -1350,7 +1433,7 @@ titre('25. Aucun hash — le module sidebar n\'a plus de persisted query');
   await attendre(page, () => document.querySelector('.side-nav-card[data-tse-login="hctuan"]')?.dataset.tseCategory === 'Fortnite', 10_000);
   await page.evaluate(() => {
     const cat = document.querySelector('.side-nav-card[data-tse-login="mastu"]').dataset.tseCategory;
-    [...document.querySelectorAll('#tse-cat-dd .tse-dd-opt')].find((o) => o.dataset.value === cat)?.click();
+    ((o) => { if (o) { o.selected = true; o.parentElement.dispatchEvent(new Event('change', { bubbles: true })); } })([...document.querySelectorAll('#tse-cat-dd .tse-dd-opt')].find((x) => x.dataset.value === cat));
   });
   await attendre(page, () => document.querySelector('.side-nav-card[data-tse-login="hctuan"]')?.style.display === 'none', 5000);
   await wait(page, 600);
@@ -2776,7 +2859,7 @@ titre('36. Catégories — choisir, ce n\'est pas filtrer');
     const opt = [...document.querySelectorAll('#tse-cat-dd .tse-dd-opt')]
       .find(o => (o.dataset.value || '') === v);
     if (!opt) throw new Error('option absente : ' + JSON.stringify(v));
-    opt.click();
+    opt.selected = true; opt.parentElement.dispatchEvent(new Event('change', { bubbles: true }));
   }, val);
   const logins = (page) => page.evaluate(() =>
     [...document.querySelectorAll('.side-nav-card[data-tse-global="true"]')]
@@ -3030,7 +3113,7 @@ titre('38. Monde + langue — descendre en langue, pas filtrer un pool');
     const opt = [...document.querySelectorAll('#tse-lang-dd .tse-dd-opt')]
       .find(o => (o.dataset.value || '') === v);
     if (!opt) throw new Error('langue absente : ' + JSON.stringify(v));
-    opt.click();
+    opt.selected = true; opt.parentElement.dispatchEvent(new Event('change', { bubbles: true }));
   }, val);
 
   const page = await fresh();
@@ -3160,7 +3243,7 @@ titre('39. Catégorie + langue — demander, pas filtrer');
     const opt = [...document.querySelectorAll(s + ' .tse-dd-opt')]
       .find(o => (o.dataset.value || '') === v);
     if (!opt) throw new Error('option absente : ' + v);
-    opt.click();
+    opt.selected = true; opt.parentElement.dispatchEvent(new Event('change', { bubbles: true }));
   }, [sel, val]);
 
   const page = await fresh();
@@ -3329,7 +3412,7 @@ titre('40. Top Chaînes — ce qui est demandé s\'affiche, et rien ne déborde'
     const opt = [...document.querySelectorAll('#tse-lang-dd .tse-dd-opt')]
       .find(o => (o.dataset.value || '') === 'Français');
     if (!opt) throw new Error('« Français » absent de la liste des langues');
-    opt.click();
+    opt.selected = true; opt.parentElement.dispatchEvent(new Event('change', { bubbles: true }));
   });
   await wait(page, 2500);
 
@@ -3512,7 +3595,7 @@ titre('41. Cache — le mode global ne doit rien laisser derrière lui');
     const opt = [...document.querySelectorAll('#tse-lang-dd .tse-dd-opt')]
       .find(o => (o.dataset.value || '') === 'Français');
     if (!opt) throw new Error('« Français » absent de la liste des langues');
-    opt.click();
+    opt.selected = true; opt.parentElement.dispatchEvent(new Event('change', { bubbles: true }));
   });
   await wait(page, 2500);
   const cartes = await page.evaluate(() =>
@@ -6339,7 +6422,7 @@ titre('65. Catégories — l\'identité décide, la traduction s\'affiche');
     const o = [...document.querySelectorAll('#tse-cat-dd .tse-dd-opt')]
       .find(x => x.dataset.value === 'Just Chatting');
     if (!o) throw new Error('option « Just Chatting » absente');
-    o.click();
+    o.selected = true; o.parentElement.dispatchEvent(new Event('change', { bubbles: true }));
   });
   await wait(page, 600);
   const visibles = await page.evaluate(() =>
@@ -6348,7 +6431,7 @@ titre('65. Catégories — l\'identité décide, la traduction s\'affiche');
   ok('choisir la catégorie traduite filtre bien sur son identité',
      visibles.length === 1 && visibles[0] === 'alpha', JSON.stringify(visibles));
   await page.evaluate(() => {
-    document.querySelector('#tse-cat-dd .tse-dd-opt[data-value=""]')?.click();
+    ((o) => { if (o) { o.selected = true; o.parentElement.dispatchEvent(new Event('change', { bubbles: true })); } })(document.querySelector('#tse-cat-dd .tse-dd-opt[data-value=""]'));
   });
   await wait(page, 600);
 
@@ -7482,7 +7565,8 @@ titre('70. Panneau — la page rendue, mesurée');
   const place = (s) => page.evaluate((sel) => {
     const e = document.querySelector(sel);
     const r = e.getBoundingClientRect();
-    return { attribut: e.hidden, hauteur: Math.round(r.height) };
+    // Un <dialog> (4.33.0.14) dit « fermé » par `open`, le reste par `hidden`.
+    return { attribut: e.localName === 'dialog' ? !e.open : e.hidden, hauteur: Math.round(r.height) };
   }, s);
 
   const msgAvecTableau = await place('#message');
@@ -7572,6 +7656,21 @@ titre('70. Panneau — la page rendue, mesurée');
   ok('Échap referme la confirmation sans rien effacer',
      fermee.attribut === true && fermee.hauteur === 0, JSON.stringify(fermee));
 
+  /* « ANNULER » EST UNE COMMANDE (4.33.0.14) : command="close", exécutée par
+     le navigateur — plus un écouteur. La boîte est une fenêtre modale, le
+     focus sur « Confirmer ». Mutant — la commande ôtée du bouton : il ne
+     fait plus rien. */
+  await page.evaluate(() => document.getElementById('btn-reset').click());
+  const modale = await page.evaluate(() => ({ modale: document.getElementById('voile').matches(':modal'),
+    focus: document.activeElement?.id, role: document.getElementById('voile').getAttribute('role') }));
+  await page.evaluate(() => document.getElementById('boite-annuler').click());
+  await wait(page, 100);
+  const annulee = await place('#voile');
+  const envoisAnnules = await page.evaluate(() => window.__envois.filter(m => m.action === 'reset').length);
+  ok('« Annuler » referme la confirmation — une fenêtre modale, « Confirmer » au focus — sans rien effacer',
+     modale.modale && modale.focus === 'boite-ok' && modale.role === 'alertdialog'
+     && annulee.attribut === true && envoisAnnules === 0, JSON.stringify({ modale, annulee, envoisAnnules }));
+
   await page.evaluate(() => {
     document.getElementById('btn-reset').click();
     document.getElementById('boite-ok').click();
@@ -7633,7 +7732,7 @@ titre('70. Panneau — la page rendue, mesurée');
     }
     const r = document.getElementById('rapport');
     return {
-      ouverte: !r.hidden && Math.round(r.getBoundingClientRect().height) > 0,
+      ouverte: r.open && r.matches(':modal') && Math.round(r.getBoundingClientRect().height) > 0,
       texte: zone.value,
       titre: document.getElementById('rapport-titre').textContent,
       desc: document.querySelector('.rapport-desc').textContent,
@@ -7874,8 +7973,8 @@ titre('70. Panneau — la page rendue, mesurée');
     };
     document.getElementById('rapport-copier').click();
     for (let i = 0; i < 40 && copie === null; i++) await new Promise(r => setTimeout(r, 50));
-    return { copie, note: document.getElementById('rapport-note').textContent,
-             visible: !document.getElementById('rapport-note').hidden };
+    const n = document.getElementById('rapport-note');
+    return { copie, note: n.textContent, visible: n.getClientRects().length > 0 && n.checkVisibility() };
   });
   ok('« Copier » met le rapport ENTIER dans le presse-papier, et le confirme',
      copie.copie === vue.texte && copie.visible && copie.note.length > 0,
@@ -7903,7 +8002,7 @@ titre('70. Panneau — la page rendue, mesurée');
     document.getElementById('rapport-fermer').click();
     await new Promise(r => setTimeout(r, 50));
     const r = document.getElementById('rapport');
-    return { attribut: r.hidden, hauteur: Math.round(r.getBoundingClientRect().height) };
+    return { attribut: !r.open, hauteur: Math.round(r.getBoundingClientRect().height) };
   });
   ok('« Fermer » rend le panneau, et la vue n\'occupe plus aucune place',
      rapportFerme.attribut === true && rapportFerme.hauteur === 0,
@@ -7963,6 +8062,54 @@ titre('70. Panneau — la page rendue, mesurée');
      /page — jalon \/ marker\s+i18n/.test(sansBoot)
      && /page — readyState\s+loading/.test(sansBoot),
      JSON.stringify((sansBoot.match(/page — jalon.*/) || [])[0]));
+
+
+  /* ── CHAQUE TEXTE DU PANNEAU AU SEUIL AA, DANS LES DEUX THÈMES (4.33.0.14) ──
+     Toutes les vues du rail, le mode d'emploi compris, en clair puis en
+     sombre, par la mesure commune (cf. mesurerContrastes) : les dégradés
+     arrêt par arrêt, les badges translucides sur leur fond composé. Cette
+     mesure a trouvé, en clair, la catégorie de la carte « abonné » du mode
+     d'emploi à 1,18:1, l'étiquette « OK » à 4,48, la palette des badges
+     posée sur un fond plus sombre que celui où le produit les montre (4,13),
+     l'onglet actif de la maquette à 4,48. Mutants — le vert d'avant (#1b6b6b)
+     ; l'or pâle du sombre gardé en clair ; la palette remise sur le creux. */
+  await page.evaluate(() => { const r = document.getElementById('rapport'); if (r?.open) r.close(); });
+  const contrastesPanneau = {};
+  for (const theme of ['light', 'dark']) {
+    await page.evaluate((x) => document.documentElement.setAttribute('data-theme', x), theme);
+    const vues = await page.evaluate(() => [...document.querySelectorAll('.rail-item')].map((b) => b.dataset.id));
+    for (const id of vues) {
+      await page.evaluate((x) => [...document.querySelectorAll('.rail-item')].find((b) => b.dataset.id === x).click(), id);
+      await wait(page, 500);
+      const m = await page.evaluate(mesurerContrastes, { selecteur: 'body *' });
+      contrastesPanneau[theme + ' ' + id] = m;
+    }
+  }
+  const echecsPanneau = Object.entries(contrastesPanneau).flatMap(([k, m]) => m.echecs.map((e) => ({ vue: k, ...e })));
+  const mesuresPanneau = Object.values(contrastesPanneau).reduce((n, m) => n + m.mesures, 0);
+  ok('chaque texte du panneau tient le seuil AA, dans chaque vue et les deux thèmes — dégradés lus arrêt par arrêt',
+     Object.keys(contrastesPanneau).length >= 20 && mesuresPanneau > 500 && echecsPanneau.length === 0,
+     JSON.stringify({ vues: Object.keys(contrastesPanneau).length, mesures: mesuresPanneau, echecs: echecsPanneau.slice(0, 8),
+                      ecartes: Object.values(contrastesPanneau).reduce((o, m) => { for (const [k, v] of Object.entries(m.ecartes)) o[k] = (o[k] || 0) + v; return o; }, {}) }));
+
+
+  /* ── LE TABLEAU, LU PAR UN LECTEUR D'ÉCRAN (4.33.0.14) ────────────────────
+     Sa légende — le titre de la vue —, ses en-têtes de colonne, une zone
+     nommée qui prend le focus pour défiler au clavier. Mutant — la légende
+     vide. (Les réglages, nommés et en « switch », se vérifient au 120, qui
+     sert leurs données.) */
+  await page.evaluate(() => [...document.querySelectorAll('.rail-item')].find((b) => b.dataset.id === 'scores').click());
+  await attendre(page, () => document.querySelectorAll('#tableau th').length > 0, 5000);
+  const tableau = await page.evaluate(() => {
+    const cadre = document.getElementById('tableau-cadre');
+    return { legende: document.querySelector('#tableau caption')?.textContent ?? null, titre: document.getElementById('vue-titre').textContent,
+             portees: [...document.querySelectorAll('#tableau th')].map((th) => th.scope),
+             region: cadre.getAttribute('role'), nom: document.getElementById(cadre.getAttribute('aria-labelledby'))?.textContent ?? null,
+             focus: cadre.tabIndex };
+  });
+  ok('un tableau a sa légende — le titre de la vue —, ses en-têtes de colonne, et sa zone nommée prend le focus',
+     !!tableau.legende && tableau.legende === tableau.titre && tableau.portees.length > 0 && tableau.portees.every((s) => s === 'col')
+     && tableau.region === 'region' && tableau.nom === tableau.titre && tableau.focus === 0, JSON.stringify(tableau));
 
   await page.close();
 }
@@ -9841,7 +9988,7 @@ titre('81. Top Chaînes — le classement par TAG de langue');
     const opt = [...document.querySelectorAll('#tse-lang-dd .tse-dd-opt')]
       .find(o => (o.dataset.value || '') === v);
     if (!opt) throw new Error('langue absente : ' + JSON.stringify(v));
-    opt.click();
+    opt.selected = true; opt.parentElement.dispatchEvent(new Event('change', { bubbles: true }));
   }, val);
   const opsTag = (page) => page.evaluate(() =>
     window.__calls.flatMap(c => c.names || []).filter(n => n === 'TseTagTop').length);
@@ -10225,7 +10372,7 @@ titre('84. Filtres — deux menus indépendants, et des spectateurs plutôt que 
     const opt = [...document.querySelectorAll('#' + id + ' .tse-dd-opt')]
       .find(o => (o.dataset.value || '') === v);
     if (!opt) throw new Error('option absente de #' + id + ' : ' + JSON.stringify(v));
-    opt.click();
+    opt.selected = true; opt.parentElement.dispatchEvent(new Event('change', { bubbles: true }));
   }, [dd, val]);
 
   const page = await fresh();
@@ -10461,8 +10608,8 @@ titre('86. Top Chaînes — le filtre qui ne rend personne le DIT');
   await attendre(page, () => [...document.querySelectorAll('#tse-cat-dd .tse-dd-opt')]
     .some(o => o.dataset.value === 'desert'), 9000);
   await page.evaluate(() => {
-    [...document.querySelectorAll('#tse-cat-dd .tse-dd-opt')]
-      .find(o => o.dataset.value === 'desert').click();
+    ((o) => { if (o) { o.selected = true; o.parentElement.dispatchEvent(new Event('change', { bubbles: true })); } })([...document.querySelectorAll('#tse-cat-dd .tse-dd-opt')]
+      .find((x) => x.dataset.value === 'desert'));
   });
   await attendre(page, () => !!document.getElementById('tse-global-empty'), 9000);
   const m = await message();
@@ -10508,8 +10655,8 @@ titre('86. Top Chaînes — le filtre qui ne rend personne le DIT');
   await attendre(page, () => [...document.querySelectorAll('#tse-cat-dd .tse-dd-opt')]
     .some(o => o.dataset.value === 'empile'), 9000);
   await page.evaluate(() => {
-    [...document.querySelectorAll('#tse-cat-dd .tse-dd-opt')]
-      .find(o => o.dataset.value === 'empile').click();
+    ((o) => { if (o) { o.selected = true; o.parentElement.dispatchEvent(new Event('change', { bubbles: true })); } })([...document.querySelectorAll('#tse-cat-dd .tse-dd-opt')]
+      .find((x) => x.dataset.value === 'empile'));
   });
   await attendre(page, () => window.tse.global.report().portee?.categorie === 'empile', 9000);
   const pEmpile = await portee();
@@ -10525,7 +10672,7 @@ titre('86. Top Chaînes — le filtre qui ne rend personne le DIT');
   await page.evaluate(() => {
     const opt = [...document.querySelectorAll('#tse-cat-dd .tse-dd-opt')]
       .find(o => (o.dataset.value || '') === '');
-    opt.click();
+    opt.selected = true; opt.parentElement.dispatchEvent(new Event('change', { bubbles: true }));
   });
   await attendre(page, () => !document.getElementById('tse-global-empty'), 9000);
   ok('…et il s\'efface dès que la sélection redonne des chaînes',
@@ -10591,7 +10738,7 @@ titre('86bis. Filtres — le tri, la symétrie, et ce qu\'une sélection apprend
     const opt = [...document.querySelectorAll('#' + id + ' .tse-dd-opt')]
       .find(o => (o.dataset.value || '') === v);
     if (!opt) throw new Error('option absente de #' + id + ' : ' + JSON.stringify(v));
-    opt.click();
+    opt.selected = true; opt.parentElement.dispatchEvent(new Event('change', { bubbles: true }));
   }, [dd, val]);
 
   const page = await fresh();
@@ -14263,7 +14410,7 @@ titre('98. Les tags de langue empilés — dix langues n\'en font parler aucune'
     const opt = [...document.querySelectorAll('#tse-lang-dd .tse-dd-opt')]
       .find(o => (o.dataset.value || '') === 'Français');
     if (!opt) throw new Error('langue absente du menu');
-    opt.click();
+    opt.selected = true; opt.parentElement.dispatchEvent(new Event('change', { bubbles: true }));
   });
   await attendre(page,
     () => window.tse.global.top(30).some(r => r.login === 'tagPropre'), 9000);
@@ -17510,7 +17657,7 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
        plus haut aurait fait cliquer sur autre chose, et l'assertion aurait
        échoué en accusant le mauvais coupable. */
     document.querySelector('#reglages [data-grp="panneau"]')
-      .querySelectorAll('.reg-bascule input')[0].click();
+      .querySelectorAll('input.reg-bascule')[0].click();
     return { avant, apres: { items: visible(), titre: titres() } };
   });
   ok('les cinq chapitres de diagnostic sont masqués d\'emblée, titre compris',
@@ -17651,6 +17798,47 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
   const l4 = await liste();
   ok('…vingt au plus : le champ se ferme, et le dit', !l4.actif && JSON.stringify(l4.messages) === '["20 au plus : retirez-en une pour en ajouter une autre."]',
      JSON.stringify({ actif: l4.actif, messages: l4.messages }));
+
+  /* ── LES RÉGLAGES, LUS PAR UN LECTEUR D'ÉCRAN (4.33.0.14) ─────────────────
+     Chaque réglage est nommé par son libellé et décrit par sa phrase ; les
+     interrupteurs sont des « switch », visibles en couleurs forcées.
+     Mutants — le nom ôté d'un interrupteur ; le rôle « switch » ôté ; la
+     règle des couleurs forcées ôtée. */
+  await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'dark'));
+  await page.evaluate(() => document.querySelector('.rail-item[data-id="options"]').click());
+  await attendre(page, () => document.querySelectorAll('#reglages .reg-ligne').length > 10, 4000);
+  const reglages = await page.evaluate(() => {
+    const texte = (ids) => (ids || '').split(/\s+/).filter(Boolean).map((i) => document.getElementById(i)?.textContent.trim() || '').join(' ').trim();
+    const ctrls = [...document.querySelectorAll('.reg-ligne input, .reg-ligne select, .reg-ligne [role="group"]')]
+      .filter((c) => !c.closest('[role="group"]') || c.getAttribute('role') === 'group');
+    return { n: ctrls.length,
+             sansNom: ctrls.filter((c) => !texte(c.getAttribute('aria-labelledby'))).map((c) => c.outerHTML.slice(0, 80)),
+             sansDesc: ctrls.filter((c) => c.hasAttribute('aria-describedby') && !texte(c.getAttribute('aria-describedby'))).length,
+             bascules: document.querySelectorAll('input.reg-bascule').length };
+  });
+  const interrupteurs = await page.getByRole('switch').count();
+  const nommes = await page.evaluate(() => [...document.querySelectorAll('input.reg-bascule')]
+    .every((i) => i.getAttribute('role') === 'switch' || 'switch' in i));
+  ok('chaque réglage est nommé par son libellé, décrit par sa phrase ; les interrupteurs sont des « switch »',
+     reglages.n >= 20 && reglages.sansNom.length === 0 && reglages.sansDesc === 0
+     && reglages.bascules >= 10 && interrupteurs === reglages.bascules && nommes,
+     JSON.stringify({ ...reglages, interrupteurs }));
+  /* En couleurs forcées, le navigateur repeint fonds et cadres aux couleurs
+     du système — et le curseur, un pseudo-élément, prendrait le fond de la
+     piste : invisible. Il doit se distinguer de la piste, et une case cochée
+     d'une case qui ne l'est pas. */
+  await page.emulateMedia({ forcedColors: 'active' });
+  const force = await page.evaluate(() => {
+    const lire = (i) => ({ piste: getComputedStyle(i).backgroundColor, cadre: getComputedStyle(i).borderTopColor,
+                           curseur: getComputedStyle(i, '::after').backgroundColor });
+    const toutes = [...document.querySelectorAll('input.reg-bascule')];
+    const oui = toutes.find((i) => i.checked), non = toutes.find((i) => !i.checked);
+    return { oui: oui && lire(oui), non: non && lire(non) };
+  });
+  await page.emulateMedia({ forcedColors: 'none' });
+  ok('…et en couleurs forcées, le curseur de l\'interrupteur se voit sur sa piste, et coché se distingue de non coché',
+     !!force.oui && !!force.non && force.oui.curseur !== force.oui.piste && force.non.curseur !== force.non.piste
+     && force.oui.piste !== force.non.piste && force.non.cadre !== force.non.piste, JSON.stringify(force));
   await page.close();
 }
 
@@ -17858,8 +18046,8 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
     const st = cadre && getComputedStyle(cadre);
     return { ouvert: !!v, src: f && f.getAttribute('src'),
              largeur: st && st.width, hauteur: st && st.height,
-             role: v && v.getAttribute('role'),
-             modal: v && v.getAttribute('aria-modal'),
+             role: v && v.localName,
+             modal: v && v.matches(':modal'),
              nomme: !!(v && v.getAttribute('aria-label')),
              croix: !!(v && v.querySelector('.tse-incruste-croix')),
              /* Le bac à sable retirerait au cadre son origine d'extension,
@@ -17885,7 +18073,7 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
      /html\[data-vue="incruste"\][\s\S]{0,120}width: 100%; height: 100%/
        .test(readFileSync(join(ICI, '..', 'panneau.css'), 'utf8')));
   ok('…annoncé comme fenêtre modale et nommé, et sans croix',
-     ouvert.role === 'dialog' && ouvert.modal === 'true'
+     ouvert.role === 'dialog' && ouvert.modal === true
      && ouvert.nomme === true && ouvert.croix === false, JSON.stringify(ouvert));
   ok('…et sans bac à sable, qui lui retirerait son origine d\'extension',
      ouvert.bacASable === false, JSON.stringify(ouvert));
@@ -17916,7 +18104,13 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
     const v = document.getElementById('tse-incruste');
     const f = v.querySelector('iframe');
     if (g === 'echap') {
-      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      /* Une VRAIE touche (4.33.0.14) : c'est le navigateur qui ferme un
+         <dialog> sur Échap, et un événement fabriqué ne le fait pas. Le focus
+         est posé sur le dialogue lui-même — dans le cadre, la touche irait au
+         panneau, qui a son propre chemin (« message », plus bas). */
+      v.tabIndex = -1;
+      v.focus();
+      return 'touche';
     } else if (g === 'voile') {
       v.click();
     } else if (g === 'cadre') {
@@ -17945,7 +18139,12 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
     }
     await new Promise((r) => setTimeout(r, 80));
     return !document.getElementById('tse-incruste');
-  }, geste);
+  }, geste).then(async (r) => {
+    if (r !== 'touche') return r;
+    await page.keyboard.press('Escape');
+    await wait(page, 120);
+    return page.evaluate(() => !document.getElementById('tse-incruste'));
+  });
 
   ok('le clic DANS le cadre ne ferme pas', (await sortir('cadre')) === false);
   ok('un message de fermeture venu de la page est ignoré',
@@ -17973,7 +18172,8 @@ titre('104. Top Chaînes avec une seule chaîne suivie, et elle est décorée');
     for (let i = 0; i < 4; i++) {
       document.getElementById('tse-roue').click();
       await new Promise((r) => setTimeout(r, 40));
-      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      // Fermé comme Échap le ferme : par le <dialog> lui-même, qui prévient (« close »).
+      document.getElementById('tse-incruste')?.close();
       await new Promise((r) => setTimeout(r, 40));
     }
     return { voiles: document.querySelectorAll('.tse-incruste').length,
@@ -18575,7 +18775,7 @@ addEventListener('message', (e) => {
   await page.evaluate(() => {
     const opt = [...document.querySelectorAll('#tse-lang-dd .tse-dd-opt')]
       .find(o => (o.dataset.value || '') === 'Français');
-    if (opt) opt.click();
+    if (opt) { opt.selected = true; opt.parentElement.dispatchEvent(new Event('change', { bubbles: true })); }
   });
   await wait(page, 3500);
 
@@ -20053,7 +20253,7 @@ addEventListener('message', (e) => {
     const opt = [...document.querySelectorAll('#tse-lang-dd .tse-dd-opt')]
       .find((o) => (o.dataset.value || '') === 'Français');
     if (!opt) return false;
-    opt.click();
+    opt.selected = true; opt.parentElement.dispatchEvent(new Event('change', { bubbles: true }));
     return true;
   });
   ok('le menu offre bien la langue, et le clic porte',
@@ -21953,7 +22153,7 @@ async function sousLeVoileDuDemarrage(poser) {
     const opt = [...document.querySelectorAll('#tse-lang-dd .tse-dd-opt')]
       .find((o) => (o.dataset.value || '') === 'Français');
     if (!opt) throw new Error('« Français » absent de la liste des langues');
-    opt.click();
+    opt.selected = true; opt.parentElement.dispatchEvent(new Event('change', { bubbles: true }));
   });
   await attendre(page, () => !!document.querySelector('.tse-lang-mark'), 10_000);
   await wait(page, 800);
@@ -23344,7 +23544,7 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
     const opt = [...document.querySelectorAll('#tse-lang-dd .tse-dd-opt')]
       .find((o) => (o.dataset.value || '') === 'Français');
     if (!opt) throw new Error('« Français » absent de la liste des langues');
-    opt.click();
+    opt.selected = true; opt.parentElement.dispatchEvent(new Event('change', { bubbles: true }));
   });
   await attendre(page, () => !!document.querySelector('.tse-lang-mark'), 10_000);
   await wait(page, 500);
@@ -23597,7 +23797,7 @@ const pageVariante = async (substitutions, init = null, chemin = '/') => {
     const opt = [...document.querySelectorAll('#tse-cat-dd .tse-dd-opt')]
       .find((o) => (o.dataset.value || '') === 'Rust');
     if (!opt) throw new Error('« Rust » absent de la liste des catégories');
-    opt.click();
+    opt.selected = true; opt.parentElement.dispatchEvent(new Event('change', { bubbles: true }));
   });
   await attendre(page, (n) => (window.tse.panneau.rapport().global.scoped || 0) >= n + 2
     && window.tse.global.top(10).some((r) => r.login === 'voisin1' && r.viewers === 4800), 15_000, avantScope);
@@ -32289,12 +32489,12 @@ const S_LECTEUR_SONDE = () => {
      JSON.stringify({ o1, o2 }));
 
   // ── Un filtre de catégorie masque « Chaînes live » : rien n'y reste ───────
-  await page.evaluate(() => [...document.querySelectorAll('#tse-cat-dd .tse-dd-opt')]
-    .find((x) => x.dataset.value === 'Rust')?.click());
+  await page.evaluate(() => ((o) => { if (o) { o.selected = true; o.parentElement.dispatchEvent(new Event('change', { bubbles: true })); } })([...document.querySelectorAll('#tse-cat-dd .tse-dd-opt')]
+    .find((x) => x.dataset.value === 'Rust')));
   await attendre(page, () => getComputedStyle(document.querySelector('.side-nav-section[aria-label="Chaînes live"]')).display === 'none', 6000);
   await wait(page, 600);
   const f1 = await lire();
-  await page.evaluate(() => document.querySelector('#tse-cat-dd .tse-dd-opt[data-value=""]')?.click());
+  await page.evaluate(() => ((o) => { if (o) { o.selected = true; o.parentElement.dispatchEvent(new Event('change', { bubbles: true })); } })(document.querySelector('#tse-cat-dd .tse-dd-opt[data-value=""]')));
   await wait(page, 600);
   /* Mutant — les sections masquées parcourues : des nœuds et des barres
      seules posés pour des cartes qu'on ne voit pas. */
@@ -33409,7 +33609,7 @@ const S_LECTEUR_SONDE = () => {
     await page.evaluate(() => document.querySelector('#tse-mode-row [data-tse-mode="global"]').click());
     await attendre(page, () => !!document.querySelector('#tse-cat-dd .tse-dd-opt[data-value="SILENT HILL 2"]'), 8000);
     const avant = await page.evaluate(() => window.tse.global.report().homonymes);
-    await page.evaluate(() => document.querySelector('#tse-cat-dd .tse-dd-opt[data-value="SILENT HILL 2"]').click());
+    await page.evaluate(() => ((o) => { if (o) { o.selected = true; o.parentElement.dispatchEvent(new Event('change', { bubbles: true })); } })(document.querySelector('#tse-cat-dd .tse-dd-opt[data-value="SILENT HILL 2"]')));
     await attendre(page, () => (window.tse.global.report().scope || '').startsWith('SILENT HILL 2')
       && window.tse.global.top(30).length > 0, 8000);
     await wait(page, 1500);
@@ -33458,13 +33658,13 @@ const S_LECTEUR_SONDE = () => {
   const choisirLangue = (page, v) => page.evaluate((x) => {
     const opt = [...document.querySelectorAll('#tse-lang-dd .tse-dd-opt')].find((o) => (o.dataset.value || '') === x);
     if (!opt) return false;
-    opt.click();
+    opt.selected = true; opt.parentElement.dispatchEvent(new Event('change', { bubbles: true }));
     return true;
   }, v);
   const menu = (page) => page.evaluate(() => {
     const opts = [...document.querySelectorAll('#tse-lang-dd .tse-dd-opt')];
     return { offertes: opts.map((o) => o.dataset.value).filter(Boolean),
-             choisie: opts.find((o) => o.getAttribute('aria-selected') === 'true')?.dataset.value || '' };
+             choisie: opts.find((o) => o.selected)?.dataset.value || '' };
   });
   const cartes = (page) => page.evaluate(() =>
     [...document.querySelectorAll('.side-nav-card[data-tse-global="true"]')].map((c) => c.dataset.tseLogin));
@@ -34557,7 +34757,7 @@ const S_LECTEUR_SONDE = () => {
     window.__addCard('deux', 'H', '800');
   });
   await attendre(p4, () => !!document.querySelector('#tse-cat-dd .tse-dd-opt[data-value="G"]'), 10_000);
-  await p4.evaluate(() => document.querySelector('#tse-cat-dd .tse-dd-opt[data-value="G"]').click());
+  await p4.evaluate(() => ((o) => { if (o) { o.selected = true; o.parentElement.dispatchEvent(new Event('change', { bubbles: true })); } })(document.querySelector('#tse-cat-dd .tse-dd-opt[data-value="G"]')));
   await wait(p4, 800);
   const section = await p4.evaluate(() => {
     const s = document.querySelector('#cards').closest('.side-nav-section');
@@ -37180,6 +37380,73 @@ addEventListener('message', (e) => {
      sGb.lang === 'en-GB' && sGb.titres[0] === 'Monday 26 October' && sGb.titres[6] === 'Sunday 1 November',
      JSON.stringify(sGb));
   await qGb.close();
+
+  /* ── r) LES SEMAINES D'UN CHANGEMENT D'HEURE, PAR TEMPORAL (4.33.0.14) ───
+     Les bornes d'une semaine, ses jours, la semaine suivante : des jours de
+     calendrier, plus des millisecondes. Deux fuseaux, deux pièges. À Paris,
+     la nuit du 28 au 29 mars 2026 perd une heure : la semaine du lundi 23
+     dure 167 heures, et la suivante commence le lundi 30 à minuit — pas à
+     1 h. À Santiago, le dimanche 6 septembre 2026 n'a pas de minuit : il
+     commence à 1 h, et c'est encore un dimanche. Les instants attendus
+     sont écrits à la main, en UTC, d'après les règles des deux fuseaux.
+     Et une semaine qui commence le DIMANCHE (en-US), à New York, celle où
+     l'heure d'hiver revient : le dimanche 1er novembre 2026 dure 25 heures,
+     et des jours comptés en millisecondes feraient commencer « lundi » le
+     dimanche à 23 h — deux dimanches dans la semaine. Les semaines de
+     Paris et de Santiago commencent le lundi, et ne pouvaient pas le voir.
+     Mutants — la fin de semaine comptée en millisecondes (début + 7 × 24 h) ;
+     les jours de la semaine comptés de même. */
+  const ouvrirFuseau = async (fuseau, instant, loc = 'fr', ui = 'fr') => {
+    const ctx = await browser.newContext({ viewport: { width: 760, height: 580 }, timezoneId: fuseau });
+    const p = await ctx.newPage();
+    p.on('pageerror', (e) => { fail++; console.log('  ✗ ERREUR PAGE:', e.message); });
+    await p.route('https://static-cdn.jtvnw.net/**', (route) => route.fulfill({ contentType: 'image/png', body: PIXEL }));
+    await p.route('http://insecure.example/**', (route) => route.fulfill({ contentType: 'image/png', body: PIXEL }));
+    await p.clock.setFixedTime(new Date(instant));
+    await p.addInitScript(stub, [fiche(loc), ui]);
+    await p.goto(pathToFileURL(join(ICI, '..', 'panneau.html')).href);
+    await attendre(p, () => document.querySelectorAll('.rail-item').length > 0);
+    return { p, ctx };
+  };
+  const semaineIci = async (p, suivante = false) => {
+    if (suivante) {
+      const avant = await p.evaluate(() => window.__envois.length);
+      await p.click(`#agenda button[aria-label="${Tfr('btnWeekNext')}"]`);
+      await attendre(p, (n) => window.__envois.length > n, 5000, avant);
+    } else {
+      await p.click('.rail-item[data-id="semaine"]');
+    }
+    await attendre(p, () => document.querySelectorAll('#agenda .ag-jour').length === 7, 5000);
+    await wait(p, 300);
+    return p.evaluate(() => {
+      const arg = window.__envois.filter((m) => m.section === 'semaine').pop().arg;
+      return { debut: new Date(arg.debut).toISOString(), fin: new Date(arg.fin).toISOString(),
+               titres: [...document.querySelectorAll('#agenda .ag-jour-titre')].map((h) => h.firstChild.textContent) };
+    });
+  };
+  const paris = await ouvrirFuseau('Europe/Paris', '2026-03-25T12:00:00+01:00');
+  const rP1 = await semaineIci(paris.p);
+  const rP2 = await semaineIci(paris.p, true);
+  await paris.ctx.close();
+  ok('r) Paris : la semaine du changement d\'heure va du lundi 23 à minuit au lundi 30 à minuit — 167 heures',
+     rP1.debut === '2026-03-22T23:00:00.000Z' && rP1.fin === '2026-03-29T22:00:00.000Z'
+     && rP1.titres[0] === 'lundi 23 mars' && rP1.titres[6] === 'dimanche 29 mars', JSON.stringify(rP1));
+  ok('r) …et la suivante commence le lundi 30 à minuit, à l\'heure d\'été',
+     rP2.debut === '2026-03-29T22:00:00.000Z' && rP2.fin === '2026-04-05T22:00:00.000Z'
+     && rP2.titres[0] === 'lundi 30 mars' && rP2.titres[6] === 'dimanche 5 avril', JSON.stringify(rP2));
+  const santiago = await ouvrirFuseau('America/Santiago', '2026-09-04T12:00:00-04:00');
+  const rS = await semaineIci(santiago.p);
+  await santiago.ctx.close();
+  ok('r) Santiago : le dimanche sans minuit est un dimanche — la semaine finit le lundi 7 à minuit, heure d\'été',
+     rS.debut === '2026-08-31T04:00:00.000Z' && rS.fin === '2026-09-07T03:00:00.000Z'
+     && rS.titres[5] === 'samedi 5 septembre' && rS.titres[6] === 'dimanche 6 septembre', JSON.stringify(rS));
+  const newYork = await ouvrirFuseau('America/New_York', '2026-11-04T12:00:00-05:00', 'en', 'en');
+  const rN = await semaineIci(newYork.p);
+  await newYork.ctx.close();
+  ok('r) New York, semaine du dimanche : le jour de 25 heures n\'en fait pas deux — dimanche 1er, puis lundi 2, jusqu\'au dimanche 8 à minuit',
+     rN.debut === '2026-11-01T04:00:00.000Z' && rN.fin === '2026-11-08T05:00:00.000Z' && new Set(rN.titres).size === 7
+     && /Sunday/.test(rN.titres[0]) && /November 1\b/.test(rN.titres[0])
+     && /Monday/.test(rN.titres[1]) && /November 2\b/.test(rN.titres[1]) && /Saturday/.test(rN.titres[6]), JSON.stringify(rN));
 }
 
 /* ═════════ LE RELEVÉ DES CHAÎNES SUIVIES (4.25.0.3) ════════════════════════
@@ -42233,7 +42500,7 @@ const lireImages = (page) => page.evaluate(() => {
   await page.evaluate(() => document.querySelector('#tse-mode-row [data-tse-mode="global"]').click());
   await attendre(page, () => document.querySelectorAll('.side-nav-card[data-tse-global="true"]').length > 0, 10_000);
   await attendre(page, () => [...document.querySelectorAll('#tse-lang-dd .tse-dd-opt')].some((o) => o.dataset.value === 'Français'), 10_000);
-  await page.evaluate(() => [...document.querySelectorAll('#tse-lang-dd .tse-dd-opt')].find((o) => o.dataset.value === 'Français').click());
+  await page.evaluate(() => ((o) => { if (o) { o.selected = true; o.parentElement.dispatchEvent(new Event('change', { bubbles: true })); } })([...document.querySelectorAll('#tse-lang-dd .tse-dd-opt')].find((x) => x.dataset.value === 'Français')));
   await attendre(page, () => window.tse.accueil.rapport().top.source === 'barre'
     && [...document.querySelectorAll('.side-nav-card[data-tse-global="true"]')].some((x) => x.dataset.tseLogin === 'tavor'), 10_000);
   await wait(page, 600);
@@ -43018,7 +43285,7 @@ const lireZap = (page) => page.evaluate(() => {
     st.remove();
     return { couvre: pts.every(([x, y]) => z.contains(document.elementFromPoint(x, y))), plein: r.width === innerWidth && r.height === innerHeight,
              compteurDessus: !!dessus && !!dessus.closest('.tse-zap__compteur'),
-             capot: document.elementFromPoint(innerWidth / 2, innerHeight / 2).className, role: z.getAttribute('role'), modal: z.getAttribute('aria-modal'),
+             capot: document.elementFromPoint(innerWidth / 2, innerHeight / 2).className, role: z.parentElement.localName, modal: z.parentElement.matches(':modal'),
              focus: z.contains(document.activeElement), barre: [...document.querySelectorAll('.side-nav-card')].map((c) => c.dataset.tseLogin),
              videoPage: document.getElementById('video-page').paused, pleinEcran: document.fullscreenElement === z };
   });
@@ -43030,7 +43297,7 @@ const lireZap = (page) => page.evaluate(() => {
      o.pleinEcran && z1.rapport.pleinEcran && z1.rapport.ouvertPar === 'bouton' && z1.rapport.pleinsEcrans === 1,
      JSON.stringify({ pleinEcran: o.pleinEcran, rapport: { pe: z1.rapport.pleinEcran, par: z1.rapport.ouvertPar, n: z1.rapport.pleinsEcrans } }));
   ok('c) l\'écran plein, devant la barre du haut, modal, le focus dedans ; les sept chaînes dans l\'ordre de la barre (ici alphabétique) ; un capot devant les lecteurs ; la vidéo de la page en pause',
-     o.couvre && o.plein && o.capot === 'tse-zap__capot' && o.compteurDessus && o.role === 'dialog' && o.modal === 'true' && o.focus && o.videoPage
+     o.couvre && o.plein && o.capot === 'tse-zap__capot' && o.compteurDessus && o.role === 'dialog' && o.modal === true && o.focus && o.videoPage
      && JSON.stringify(z1.liste) === JSON.stringify(o.barre) && z1.liste.length === 7 && z1.rang === '1 / 7' && z1.titre === 'Zapping · vos suivis en direct'
      && z1.courante === 'brenvik', JSON.stringify({ o, liste: z1.liste, rang: z1.rang }));
   /* d) LE COURANT : un lecteur intégré, au nom qui éveille le pont, muet à
@@ -44267,10 +44534,12 @@ const lireZap = (page) => page.evaluate(() => {
 
   /* g) NOS SURFACES QUI DÉFILENT SUIVENT NOTRE THÈME : le menu déroulant et
      la salle portent le schéma de couleurs du thème, pour que le navigateur
-     y dessine des barres de défilement claires ou sombres comme elles.
+     y dessine des barres de défilement claires ou sombres comme elles. Le
+     menu est un <select> depuis 4.33.0.14 : le schéma est posé sur lui, et
+     sa liste en hérite.
      Mutants — le schéma ôté du menu ; la variable du thème clair ôtée. */
   const schemas = await barre.evaluate(() => {
-    const m = document.createElement('div'); m.className = 'tse-dd-menu';
+    const m = document.createElement('select'); m.className = 'tse-dd-btn';
     const s = document.createElement('div'); s.id = 'tse-salle';
     document.body.append(m, s);
     const lire = () => [getComputedStyle(m).colorScheme, getComputedStyle(s).colorScheme].join('/');
@@ -44333,23 +44602,27 @@ addEventListener('message', (e) => {
 
   /* i) LE SCHÉMA DE COULEURS DU PANNEAU : la balise le dit dès la première
      image, la racine dit les deux et suit le système tant que le thème de
-     Twitch n'est pas appris, « data-theme » tranche ensuite. Mutants — le
-     schéma ôté de la racine (barre de défilement et cases claires sur fond
-     sombre) ; le thème sombre appris sans son schéma ; la balise ôtée. */
+     Twitch n'est pas appris, « data-theme » tranche ensuite. Depuis la
+     4.33.0.14, les couleurs sont des light-dark() : la racine garde « light
+     dark » sous un système clair, et c'est le RENDU qui suit le système — on
+     lit donc aussi le fond du corps. Mutants — le schéma ôté de la racine
+     (barre de défilement et cases claires sur fond sombre) ; le thème sombre
+     appris sans son schéma ; la balise ôtée. */
   const schema = async (systeme, theme) => {
     await pp.emulateMedia({ colorScheme: systeme });
     return cadre().evaluate((t) => {
       const html = document.documentElement;
       if (t === null) html.removeAttribute('data-theme'); else html.setAttribute('data-theme', t);
-      return getComputedStyle(html).colorScheme;
+      return getComputedStyle(html).colorScheme + ' / ' + getComputedStyle(document.body).backgroundColor;
     }, theme);
   };
   const vus = { sombreInconnu: await schema('dark', null), clairInconnu: await schema('light', null),
                 appris: await schema('light', 'dark'), apprisClair: await schema('dark', 'light'),
                 balise: await cadre().evaluate(() => document.querySelector('meta[name="color-scheme"]')?.content ?? null) };
   await pp.emulateMedia({ colorScheme: 'dark' });
-  ok('i) le panneau dit son schéma : « light dark » tant que le thème est inconnu, clair sous un système clair, celui de Twitch une fois appris ; la balise dès la première image',
-     vus.sombreInconnu === 'light dark' && vus.clairInconnu === 'light' && vus.appris === 'dark' && vus.apprisClair === 'light'
+  ok('i) le panneau dit son schéma : « light dark » tant que le thème est inconnu — et se peint clair sous un système clair —, celui de Twitch une fois appris ; la balise dès la première image',
+     vus.sombreInconnu === 'light dark / rgb(14, 14, 16)' && vus.clairInconnu === 'light dark / rgb(247, 247, 248)'
+     && vus.appris === 'dark / rgb(14, 14, 16)' && vus.apprisClair === 'light / rgb(247, 247, 248)'
      && vus.balise === 'light dark', JSON.stringify(vus));
 
   /* j) LES DURÉES DANS LA LANGUE DU PANNEAU, par Intl.DurationFormat ; une
@@ -44411,14 +44684,12 @@ window.__forger = () => { const f = document.getElementById('f');
      enAttente0 >= 1 && enAttente1.attentes === enAttente0 && enAttente1.vue === 'incruste', JSON.stringify({ enAttente0, ...enAttente1 }));
   await po.close();
 
-  /* m) EN JAPONAIS, ET SANS Intl.DurationFormat. La même durée dans une autre
-     langue du panneau ; et un navigateur qui ne le connaît pas (Chrome avant
-     la 129) garde l'écriture d'avant. Mutant — le repli ôté : le panneau
-     ne se charge plus sans Intl.DurationFormat. */
-  const panneauSeul = async (loc, langue, sansDuree) => {
+  /* m) EN JAPONAIS. La même durée dans une autre langue du panneau. Le repli
+     pour un navigateur sans Intl.DurationFormat est parti à la 4.33.0.14 :
+     les deux planchers le connaissent (Chrome 129, Firefox 136). */
+  const panneauSeul = async (loc, langue) => {
     const p = await browser.newPage();
     p.on('pageerror', (e) => { fail++; console.log('  ✗ ERREUR PAGE:', e.message); });
-    if (sansDuree) await p.addInitScript(() => { delete Intl.DurationFormat; });
     await p.addInitScript(stubPanneau, [fiche(loc), langue]);
     await hebergerPanneau(p, '<!DOCTYPE html><title>hôte</title>');
     await p.goto('https://www.twitch.tv/panneau.html');
@@ -44430,11 +44701,9 @@ window.__forger = () => { const f = document.getElementById('f');
     await p.close();
     return d;
   };
-  const dJa = await panneauSeul('ja', 'ja', false);
-  const dSans = await panneauSeul('fr', 'fr', true);
-  ok('m) en japonais : « 3 分 7 秒 », « 0 秒 », les graduations « 2 時間 », « 5 分 » ; sans Intl.DurationFormat, l\'écriture d\'avant : « 3 min 07 », « 0 s », « 2 h »',
-     !!dJa && !!dSans && JSON.stringify(dJa) === JSON.stringify(['3 分 7 秒', '0 秒', '42 秒', '2 時間', '5 分'])
-     && JSON.stringify(dSans) === JSON.stringify(['3 min 07', '0 s', '42 s', '2 h', '5 min']), JSON.stringify({ dJa, dSans }));
+  const dJa = await panneauSeul('ja', 'ja');
+  ok('m) en japonais : « 3 分 7 秒 », « 0 秒 », les graduations « 2 時間 », « 5 分 »',
+     !!dJa && JSON.stringify(dJa) === JSON.stringify(['3 分 7 秒', '0 秒', '42 秒', '2 時間', '5 分']), JSON.stringify({ dJa }));
 }
 
 titre('235. La carte sponsorisée obéit aux filtres de la liste suivie (4.33.0.11)');
@@ -44465,7 +44734,7 @@ titre('235. La carte sponsorisée obéit aux filtres de la liste suivie (4.33.0.
   const choisir = (dd, val) => page.evaluate(([id, v]) => {
     const opt = [...document.querySelectorAll(`${id} .tse-dd-opt`)].find((o) => (o.dataset.value || '') === v);
     if (!opt) throw new Error('option absente : ' + JSON.stringify(v));
-    opt.click();
+    opt.selected = true; opt.parentElement.dispatchEvent(new Event('change', { bubbles: true }));
   }, [dd, val]);
   const attendreOption = (dd, val) => attendre(page, ([id, v]) =>
     [...document.querySelectorAll(`${id} .tse-dd-opt`)].some((o) => (o.dataset.value || '') === v), 9000, [dd, val]);
@@ -44540,7 +44809,7 @@ titre('236. La barre qui glisse — chaque carte part d\'où elle était, l\'arr
   const choisir = (page, dd, val) => page.evaluate(([id, v]) => {
     const opt = [...document.querySelectorAll(`${id} .tse-dd-opt`)].find((o) => (o.dataset.value || '') === v);
     if (!opt) throw new Error('option absente : ' + JSON.stringify(v));
-    opt.click();
+    opt.selected = true; opt.parentElement.dispatchEvent(new Event('change', { bubbles: true }));
   }, [dd, val]);
   const attendreOption = (page, dd, val) => attendre(page, ([id, v]) =>
     [...document.querySelectorAll(`${id} .tse-dd-opt`)].some((o) => (o.dataset.value || '') === v), 9000, [dd, val]);
@@ -45156,6 +45425,264 @@ titre('237. Vos rendez-vous — deux heures après son heure, sans la chaîne, l
   ok('e) sans direct à mettre — le Top coupé, la bannière seule suivie en direct —, le trou reste : rien d\'inventé, et le rapport le compte',
      e1.n === 4 && e1.trous === 1 && e1.comblees === 0 && e1.raisons.banniere === 1, JSON.stringify(e1));
   await pe.close();
+}
+
+{
+  titre('240. 4.33.0.14 — les filtres sont des <select>, le carrousel se dit, Ctrl+F déplie, chaque texte tient son seuil');
+  /* ══ a) LES DEUX FILTRES SONT DES <select> ═══════════════════════════════
+     Le menu maison s'ouvrait au clavier, mais on n'y pouvait rien choisir :
+     ses options ne prenaient pas le focus. Le <select> personnalisable rend
+     le clavier, les rôles et la liste au navigateur ; Chrome garde l'aspect,
+     drapeaux compris (mesuré contre la version précédente, au pixel) ; un
+     navigateur sans base-select montre le texte des options. Trois chaînes
+     suivies : deux en français, une en anglais, sur deux catégories. */
+  const pf = await fresh();
+  await pf.evaluate(() => {
+    const t = new Date(Date.now() - 1800_000).toISOString();
+    window.__fx = {
+      orvik:   { id: 'id-orvik',   createdAt: t, viewers: 900, game: 'Just Chatting', tags: ['Français'] },
+      tessaly: { id: 'id-tessaly', createdAt: t, viewers: 500, game: 'Just Chatting', tags: ['English'] },
+      marbek:  { id: 'id-marbek',  createdAt: t, viewers: 300, game: 'Minecraft',     tags: ['Français'] },
+    };
+    window.__addCard('orvik', 'Just Chatting', '900');
+    window.__addCard('tessaly', 'Just Chatting', '500');
+    window.__addCard('marbek', 'Minecraft', '300');
+  });
+  await attendre(pf, () => document.querySelectorAll('#tse-cat-dd option').length === 3
+    && document.querySelectorAll('#tse-lang-dd option').length === 3, 12_000);
+  await wait(pf, 600);
+  const choix = (id) => pf.evaluate((x) => { const s = document.querySelector('#' + x + ' select');
+    return { v: s.value, ouvert: s.matches(':open'), focus: document.activeElement === s, inactif: s.disabled,
+             anneau: getComputedStyle(s).boxShadow }; }, id);
+  const visibles = () => pf.evaluate(() => [...document.querySelectorAll('.side-nav-card')]
+    .filter((c) => c.style.display !== 'none').map((c) => c.dataset.tseLogin).filter(Boolean).sort());
+
+  /* a1) LA FORME. Mutants — l'espace texte entre compteur et nom ôté ; le
+     drapeau laissé aux lecteurs d'écran. */
+  const forme = await pf.evaluate(() => {
+    const cat = document.querySelector('#tse-cat-dd select'), lang = document.querySelector('#tse-lang-dd select');
+    return {
+      balises: [cat.className, lang.className],
+      apparence: getComputedStyle(cat).appearance,
+      noms: [cat.getAttribute('aria-label'), lang.getAttribute('aria-label')],
+      bouton: !!cat.querySelector(':scope > button > selectedcontent') && !!lang.querySelector(':scope > button > selectedcontent'),
+      cats: [...cat.options].map((o) => o.text),
+      langues: [...lang.options].map((o) => o.text),
+      drapeaux: [...lang.querySelectorAll('option .tse-flag')].map((f) => f.getAttribute('aria-hidden')),
+      flechesNavigateur: getComputedStyle(cat, '::picker-icon').display,
+    };
+  });
+  ok('a) les deux filtres sont des <select> personnalisés, nommés, leur bouton recopie le choix',
+     JSON.stringify(forme.balises) === '["tse-dd-btn","tse-dd-btn"]' && forme.apparence === 'base-select'
+     && forme.noms[0] === 'Filtrer les chaînes suivies par catégorie' && forme.noms[1] === 'Filtrer les chaînes suivies par langue'
+     && forme.bouton && forme.flechesNavigateur === 'none', JSON.stringify(forme));
+  /* L'ASPECT D'AVANT, MESURÉ CONTRE LA 4.33.0.13 : des lignes de 24 px — la
+     taille de cible minimale —, la liste à 4 px sous la boîte, large de la
+     boîte et de son cadre. Mutants — la hauteur d'option du navigateur
+     gardée (36 px) ; la boîte de la liste comptée cadre compris. */
+  await pf.click('#tse-cat-dd select');
+  await wait(pf, 300);
+  const liste = await pf.evaluate(() => {
+    const s = document.querySelector('#tse-cat-dd select');
+    const b = s.getBoundingClientRect();
+    const o = [...s.options].map((x) => x.getBoundingClientRect());
+    return { ouvert: s.matches(':open'), hauteurs: o.map((r) => Math.round(r.height)),
+             ecart: Math.round(o[0].top - b.bottom), gauche: Math.round(o[0].left - b.left), largeur: Math.round(o[0].width), boite: Math.round(b.width) };
+  });
+  await pf.keyboard.press('Escape');
+  await wait(pf, 200);
+  ok('a) …la liste a l\'aspect d\'avant : des lignes de 24 px, à 4 px sous la boîte, aussi large qu\'elle',
+     liste.ouvert && liste.hauteurs.every((h) => h === 24) && liste.ecart === 9 && liste.gauche === 5 && liste.largeur === liste.boite,
+     JSON.stringify(liste));
+  ok('a) …le texte de chaque option se lit seul — « 2 | Français » —, et le drapeau est tu',
+     JSON.stringify(forme.cats) === '["Toutes les catégories","2 | Discussions","1 | Minecraft"]'
+     && JSON.stringify(forme.langues) === '["Toutes les langues","2 | Français","1 | English"]'
+     && forme.drapeaux.length === 3 && forme.drapeaux.every((x) => x === 'true'), JSON.stringify(forme));
+
+  /* a2) LE CLAVIER, ce qui manquait : Entrée ouvre, la flèche descend, Entrée
+     choisit — et le filtre s'applique. Le focus reste sur le filtre, et se
+     voit. Mutant — le liseré du focus ôté. */
+  await pf.focus('#tse-cat-dd select');
+  await pf.keyboard.press('Enter');
+  await wait(pf, 200);
+  const ouvertClavier = await choix('tse-cat-dd');
+  await pf.keyboard.press('ArrowDown');
+  await pf.keyboard.press('Enter');
+  await attendre(pf, () => document.querySelector('.side-nav-card[data-tse-login="marbek"]')?.style.display === 'none', 5000);
+  await wait(pf, 400);
+  const apresClavier = await choix('tse-cat-dd');
+  const cartesJc = await visibles();
+  ok('a) au clavier : Entrée ouvre la liste, ↓ puis Entrée choisit « Discussions », et le filtre s\'applique',
+     ouvertClavier.ouvert === true && apresClavier.v === 'Just Chatting' && apresClavier.ouvert === false
+     && JSON.stringify(cartesJc) === '["orvik","tessaly"]', JSON.stringify({ ouvertClavier, apresClavier, cartesJc }));
+  ok('a) …le focus est resté sur le filtre, et son liseré violet se voit',
+     apresClavier.focus === true && /145, 71, 255/.test(apresClavier.anneau), JSON.stringify(apresClavier));
+
+  /* a3) ÉCHAP referme sans choisir. */
+  await pf.keyboard.press('Enter');
+  await wait(pf, 200);
+  await pf.keyboard.press('ArrowDown');
+  await pf.keyboard.press('Escape');
+  await wait(pf, 300);
+  const apresEchap = await choix('tse-cat-dd');
+  ok('a) Échap referme la liste sans rien choisir',
+     apresEchap.ouvert === false && apresEchap.v === 'Just Chatting', JSON.stringify(apresEchap));
+
+  /* a4) DÉSACTIVÉ PENDANT QU'IL EST OUVERT, il se ferme. Un <select> garde sa
+     liste ouverte, inerte, quand on le désactive ; le produit la ferme. La
+     langue ouverte, on choisit « Minecraft » — qui n'a que du français : la
+     langue n'a plus de choix, elle se grise. Mutant — la fermeture ôtée. */
+  await pf.evaluate(() => { const s = document.querySelector('#tse-cat-dd select'); s.value = ''; s.dispatchEvent(new Event('change', { bubbles: true })); });
+  await wait(pf, 400);
+  await pf.click('#tse-lang-dd select');
+  await wait(pf, 200);
+  const langOuverte = await choix('tse-lang-dd');
+  await pf.evaluate(() => { const s = document.querySelector('#tse-cat-dd select'); s.value = 'Minecraft'; s.dispatchEvent(new Event('change', { bubbles: true })); });
+  await wait(pf, 400);
+  const langGrisee = await choix('tse-lang-dd');
+  ok('a) une liste ouverte que son filtre perd se referme : la langue, grisée par « Minecraft », n\'est plus ouverte',
+     langOuverte.ouvert === true && langGrisee.inactif === true && langGrisee.ouvert === false && langGrisee.v === 'Français',
+     JSON.stringify({ langOuverte, langGrisee }));
+  await pf.evaluate(() => { const s = document.querySelector('#tse-cat-dd select'); s.value = ''; s.dispatchEvent(new Event('change', { bubbles: true })); });
+  await wait(pf, 400);
+
+  /* a5) LE <select> ORDINAIRE (Firefox) : rendu ici en ôtant base-select, et
+     la barre dit « natif ». Les deux filtres se partagent la ligne, rien ne
+     déborde. Mutant — la règle du partage ôtée : la langue garde ses
+     cinquante pixels, « Toutes les langues » n'y tient pas. */
+  const natif = await pf.evaluate(() => {
+    document.getElementById('tse-filter').dataset.tseSelect = 'natif';
+    const st = document.createElement('style'); st.id = 'tse-natif';
+    st.textContent = '.tse-dd-btn, .tse-dd-btn::picker(select) { appearance: auto !important; }';
+    document.head.append(st);
+    const l = (id) => Math.round(document.querySelector('#' + id + ' select').getBoundingClientRect().width);
+    const rangee = document.querySelector('.tse-filter-row');
+    const r = { cat: l('tse-cat-dd'), lang: l('tse-lang-dd'), deborde: rangee.scrollWidth > rangee.clientWidth };
+    st.remove(); document.getElementById('tse-filter').dataset.tseSelect = 'riche';
+    return r;
+  });
+  ok('a) le <select> ordinaire d\'un navigateur sans base-select : les deux filtres se partagent la ligne, sans déborder',
+     Math.abs(natif.cat - natif.lang) <= 1 && natif.lang > 80 && !natif.deborde, JSON.stringify(natif));
+
+  /* a6) LE CHOIX RESTE AU MENU QUAND LE MENU NE LE CONNAÎT PAS. « Minecraft »
+     choisi dans la liste suivie, on passe en Top Chaînes : la catégorie tient
+     — elle dit ce qu'on demande à Twitch —, et la liste des catégories n'est
+     pas encore là. Le bouton d'avant affichait le choix quoi qu'il arrive ;
+     un <select> n'affiche que ses options : sans elle, il dirait « Toutes
+     les catégories » pendant que le filtre tient. Mutant — le choix absent
+     du menu oublié. */
+  await pf.evaluate(() => { const s = document.querySelector('#tse-cat-dd select'); s.value = 'Minecraft'; s.dispatchEvent(new Event('change', { bubbles: true })); });
+  await wait(pf, 400);
+  await pf.evaluate(() => document.querySelector('#tse-mode-row [data-tse-mode="global"]').click());
+  await wait(pf, 400);
+  const garde = await pf.evaluate(() => { const s = document.querySelector('#tse-cat-dd select');
+    return { v: s.value, options: [...s.options].map((o) => o.value), affiche: s.querySelector('selectedcontent')?.textContent ?? null }; });
+  ok('a) une catégorie choisie que le menu ne connaît pas encore reste au menu, choisie, et le bouton la montre',
+     garde.v === 'Minecraft' && garde.options.includes('Minecraft') && /Minecraft/.test(garde.affiche || ''), JSON.stringify(garde));
+  await pf.close();
+
+  /* ══ b) L'ACCUEIL ══════════════════════════════════════════════════════ */
+  const pa = await ouvrirAccueil({ visites: { korbek: [1] }, options: { accueilDebut: false } });
+  await plateauAccueil(pa);
+  await attendre(pa, () => document.querySelectorAll('#tse-accueil .tse-acc-rayon--une .tse-acc-carte').length === 5
+    && document.querySelectorAll('#tse-accueil .tse-acc-liste--top > .tse-acc-place:not(.tse-acc-place--attente)').length >= 10, 15_000);
+  await wait(pa, 1200);
+
+  /* b1) « À LA UNE » EST UN CARROUSEL, ET IL LE DIT : une région nommée par
+     son titre, des diapositives « N sur 5 » numérotées dans l'ordre du
+     carrousel — le ruban tourne, les numéros restent. Rien n'est annoncé à
+     la peinture. Mutants — l'ordre du ruban à la place de celui du carrousel ;
+     une <article> au lieu d'un <div> pour une diapositive. */
+  const lireUne = () => pa.evaluate(() => {
+    const cadre = document.querySelector('#tse-accueil .tse-acc-ruban-cadre');
+    const titre = document.getElementById(cadre.getAttribute('aria-labelledby'));
+    const cartes = [...cadre.querySelectorAll('.tse-acc-ruban > .tse-acc-carte')];
+    return { role: cadre.getAttribute('role'), desc: cadre.getAttribute('aria-roledescription'), titre: titre?.textContent ?? null,
+             diapos: Object.fromEntries(cartes.map((c) => [c.dataset.tseCle, [c.localName, c.getAttribute('role'),
+               c.getAttribute('aria-roledescription'), c.getAttribute('aria-label')].join('|')])),
+             annonce: cadre.querySelector(':scope > .tse-acc-annonce[role="status"]')?.textContent ?? null,
+             ordreDom: cartes.map((c) => c.dataset.tseCle) };
+  });
+  const u1 = await lireUne();
+  const etiquettes = Object.values(u1.diapos).map((x) => x.split('|')[3]).sort();
+  ok('b) « À la une » est une région « carrousel » nommée par son titre ; ses cartes, des diapositives « N sur 5 »',
+     u1.role === 'region' && u1.desc === 'carrousel' && u1.titre === 'À la une'
+     && Object.values(u1.diapos).every((x) => /^div\|group\|diapositive\|[1-5] sur 5$/.test(x))
+     && JSON.stringify(etiquettes) === '["1 sur 5","2 sur 5","3 sur 5","4 sur 5","5 sur 5"]' && u1.annonce === '',
+     JSON.stringify(u1));
+  /* b2) UNE FLÈCHE, ET L'ANNONCE DIT LA CARTE DU CENTRE : « k sur 5 : Nom ».
+     Les numéros n'ont pas bougé avec le ruban. Mutant — l'annonce ôtée. */
+  await pa.click('#tse-accueil .tse-acc-ruban-fleche--suiv');
+  await attendre(pa, () => !!document.querySelector('#tse-accueil .tse-acc-annonce')?.textContent, 6000);
+  await wait(pa, 800);
+  const u2 = await lireUne();
+  const centre = await pa.evaluate(() => {
+    const tete = window.tse.accueil.rapport().une.tete;
+    const c = document.querySelector(`#tse-accueil .tse-acc-ruban > [data-tse-cle="${tete}"]`);
+    return { tete, label: c?.getAttribute('aria-label'), nom: c?.querySelector('.tse-acc-nom')?.textContent,
+             annonces: window.tse.accueil.rapport().une.annonces };
+  });
+  ok('b) …une flèche : l\'annonce polie dit la diapositive du centre et sa chaîne, une fois',
+     !!centre.label && u2.annonce === `${centre.label} : ${centre.nom}` && centre.annonces === 1,
+     JSON.stringify({ annonce: u2.annonce, centre }));
+  ok('b) …et chaque chaîne a gardé son numéro, le ruban ayant tourné',
+     JSON.stringify(Object.entries(u2.diapos).sort()) === JSON.stringify(Object.entries(u1.diapos).sort())
+     && JSON.stringify(u2.ordreDom) !== JSON.stringify(u1.ordreDom), JSON.stringify({ avant: u1, apres: u2 }));
+
+  /* b3) REPLIÉES, MAIS TROUVABLES. Les places du Top 15 sous la première
+     rangée portent hidden="until-found" et ne prennent aucune place. Une
+     recherche dans la page — ici un fragment de texte, la même mécanique que
+     Ctrl+F — trouve le nom d'une chaîne repliée : le navigateur envoie
+     « beforematch », et le rayon se déplie tout entier. Mutants — la boîte
+     repliée laissée dans la grille ; le dépliage à la recherche ôté. */
+  const pli = await pa.evaluate(() => {
+    const l = document.querySelector('#tse-accueil .tse-acc-liste--top');
+    const places = [...l.children];
+    const cachees = places.filter((p) => p.getAttribute('hidden') === 'until-found');
+    const vu = document.body.innerText;
+    const cible = cachees.map((p) => p.querySelector('.tse-acc-nom')?.textContent || '')
+      .find((n) => n.length >= 4 && !vu.includes(n)) || null;
+    return { n: places.length, cachees: cachees.length, autres: places.filter((p) => p.hasAttribute('hidden') && p.getAttribute('hidden') !== 'until-found').length,
+             hauteur: Math.round(l.getBoundingClientRect().height), premiere: Math.round(places[0].getBoundingClientRect().height), cible };
+  });
+  ok('b) le Top 15 replié : les places sous la première rangée portent hidden="until-found", sans prendre de place',
+     pli.cachees >= 5 && pli.autres === 0 && pli.hauteur <= pli.premiere + 2 && !!pli.cible, JSON.stringify(pli));
+  if (pli.cible) await pa.goto(pa.url().split('#')[0] + '#:~:text=' + encodeURIComponent(pli.cible));
+  await attendre(pa, () => window.tse.accueil.rapport().plisTrouves > 0, 6000);
+  await wait(pa, 600);
+  const trouve = await pa.evaluate(() => {
+    const r = document.querySelector('#tse-accueil .tse-acc-rayon--top');
+    const b = r.querySelector('.tse-acc-plus');
+    const rp = window.tse.accueil.rapport();
+    return { cachees: [...r.querySelectorAll('.tse-acc-liste--top > [hidden]')].length, bouton: b.textContent.trim(),
+             etendu: b.getAttribute('aria-expanded'), ouverts: rp.rayons.ouverts, trouves: rp.plisTrouves };
+  });
+  ok('b) …une recherche trouve une chaîne repliée : le rayon se déplie tout entier, « Afficher moins » au bouton',
+     trouve.cachees === 0 && trouve.bouton === 'Afficher moins' && trouve.etendu === 'true'
+     && trouve.ouverts.includes('top') && trouve.trouves === 1, JSON.stringify({ cible: pli.cible, trouve }));
+
+  /* b4) CHAQUE TEXTE DE L'ACCUEIL ET DE LA BARRE AU SEUIL, dans les deux
+     thèmes, par la mesure commune. Le héros est écarté : son texte est posé
+     sur une vidéo, que la mesure ne lit pas. Les rangs du Top se mesurent par
+     leur trait. Mutants — l'onglet actif rendu à son dégradé d'avant (3,26:1
+     à son sommet) ; « = » rendu au gris faible (3,83:1). */
+  await pa.evaluate(() => document.querySelectorAll('#tse-accueil .tse-acc-plus[aria-expanded="false"]').forEach((b) => b.click()));
+  await wait(pa, 400);
+  const contrastesAccueil = {};
+  for (const theme of ['dark', 'light']) {
+    await pa.evaluate((x) => document.documentElement.setAttribute('data-a-theme', x), theme);
+    await attendre(pa, (x) => document.documentElement.getAttribute('data-tse-theme') === x, 5000, theme);
+    await wait(pa, 600);
+    contrastesAccueil[theme] = await pa.evaluate(mesurerContrastes, {
+      selecteur: '#tse-accueil *, #tse-filter *, #tse-mode-row *, nav .side-nav-card *',
+      exclus: [['#tse-accueil-heros', 'posé sur la vidéo du héros']] });
+  }
+  ok('b) chaque texte de l\'accueil et de la barre tient son seuil, dans les deux thèmes',
+     contrastesAccueil.dark.mesures > 100 && contrastesAccueil.light.mesures > 100
+     && contrastesAccueil.dark.echecs.length === 0 && contrastesAccueil.light.echecs.length === 0,
+     JSON.stringify({ sombre: { n: contrastesAccueil.dark.mesures, echecs: contrastesAccueil.dark.echecs.slice(0, 6), ecartes: contrastesAccueil.dark.ecartes },
+                      clair: { n: contrastesAccueil.light.mesures, echecs: contrastesAccueil.light.echecs.slice(0, 6), ecartes: contrastesAccueil.light.ecartes } }));
+  await pa.close();
 }
 
 {

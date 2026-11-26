@@ -532,6 +532,10 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccUne:                  'À la une',
       uiAccPrecedent:            'Précédent',
       uiAccSuivant:              'Suivant',
+      uiAccCarrousel:            'carrousel',
+      uiAccDiapo:                'diapositive',
+      uiAccDiapoN:               (n, m) => `${n} sur ${m}`,
+      uiAccAnnonce:              (n, m, nom) => `${n} sur ${m} : ${nom}`,
       uiAccTop:                  'Top 15',
       uiAccDirect:               'Live',
       uiAccDebut:                'Depuis le début',
@@ -852,6 +856,10 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccUne:                  'Featured',
       uiAccPrecedent:            'Previous',
       uiAccSuivant:              'Next',
+      uiAccCarrousel:            'carousel',
+      uiAccDiapo:                'slide',
+      uiAccDiapoN:               (n, m) => `${n} of ${m}`,
+      uiAccAnnonce:              (n, m, nom) => `${n} of ${m}: ${nom}`,
       uiAccTop:                  'Top 15',
       uiAccDirect:               'Live',
       uiAccDebut:                'From the start',
@@ -1125,6 +1133,10 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccUne:                  'Empfohlen',
       uiAccPrecedent:            'Zurück',
       uiAccSuivant:              'Weiter',
+      uiAccCarrousel:            'Karussell',
+      uiAccDiapo:                'Folie',
+      uiAccDiapoN:               (n, m) => `${n} von ${m}`,
+      uiAccAnnonce:              (n, m, nom) => `${n} von ${m}: ${nom}`,
       uiAccTop:                  'Top 15',
       uiAccDirect:               'Live',
       uiAccDebut:                'Von Anfang an',
@@ -1398,6 +1410,10 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccUne:                  'Destacados',
       uiAccPrecedent:            'Anterior',
       uiAccSuivant:              'Siguiente',
+      uiAccCarrousel:            'carrusel',
+      uiAccDiapo:                'diapositiva',
+      uiAccDiapoN:               (n, m) => `${n} de ${m}`,
+      uiAccAnnonce:              (n, m, nom) => `${n} de ${m}: ${nom}`,
       uiAccTop:                  'Top 15',
       uiAccDirect:               'En directo',
       uiAccDebut:                'Desde el principio',
@@ -1671,6 +1687,10 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccUne:                  'Em destaque',
       uiAccPrecedent:            'Anterior',
       uiAccSuivant:              'Seguinte',
+      uiAccCarrousel:            'carrossel',
+      uiAccDiapo:                'diapositivo',
+      uiAccDiapoN:               (n, m) => `${n} de ${m}`,
+      uiAccAnnonce:              (n, m, nom) => `${n} de ${m}: ${nom}`,
       uiAccTop:                  'Top 15',
       uiAccDirect:               'Ao vivo',
       uiAccDebut:                'Desde o início',
@@ -1944,6 +1964,10 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccUne:                  'In primo piano',
       uiAccPrecedent:            'Precedente',
       uiAccSuivant:              'Successivo',
+      uiAccCarrousel:            'carosello',
+      uiAccDiapo:                'diapositiva',
+      uiAccDiapoN:               (n, m) => `${n} di ${m}`,
+      uiAccAnnonce:              (n, m, nom) => `${n} di ${m}: ${nom}`,
       uiAccTop:                  'Top 15',
       uiAccDirect:               'Live',
       uiAccDebut:                'Dall\'inizio',
@@ -2217,6 +2241,10 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccUne:                  'Polecane',
       uiAccPrecedent:            'Poprzedni',
       uiAccSuivant:              'Następny',
+      uiAccCarrousel:            'karuzela',
+      uiAccDiapo:                'slajd',
+      uiAccDiapoN:               (n, m) => `${n} z ${m}`,
+      uiAccAnnonce:              (n, m, nom) => `${n} z ${m}: ${nom}`,
       uiAccTop:                  'Top 15',
       uiAccDirect:               'Na żywo',
       uiAccDebut:                'Od początku',
@@ -2495,6 +2523,10 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccUne:                  'Рекомендуемые',
       uiAccPrecedent:            'Назад',
       uiAccSuivant:              'Вперёд',
+      uiAccCarrousel:            'карусель',
+      uiAccDiapo:                'слайд',
+      uiAccDiapoN:               (n, m) => `${n} из ${m}`,
+      uiAccAnnonce:              (n, m, nom) => `${n} из ${m}: ${nom}`,
       uiAccTop:                  'Топ-15',
       uiAccDirect:               'В эфире',
       uiAccDebut:                'С самого начала',
@@ -2772,6 +2804,10 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccUne:                  'おすすめ',
       uiAccPrecedent:            '前へ',
       uiAccSuivant:              '次へ',
+      uiAccCarrousel:            'カルーセル',
+      uiAccDiapo:                'スライド',
+      uiAccDiapoN:               (n, m) => `${m}件中${n}件目`,
+      uiAccAnnonce:              (n, m, nom) => `${m}件中${n}件目：${nom}`,
       uiAccTop:                  'トップ 15',
       uiAccDirect:               'ライブ',
       uiAccDebut:                '最初から',
@@ -3042,6 +3078,10 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccUne:                  '精选',
       uiAccPrecedent:            '上一个',
       uiAccSuivant:              '下一个',
+      uiAccCarrousel:            '轮播',
+      uiAccDiapo:                '幻灯片',
+      uiAccDiapoN:               (n, m) => `第${n}个，共${m}个`,
+      uiAccAnnonce:              (n, m, nom) => `第${n}个，共${m}个：${nom}`,
       uiAccTop:                  '前 15 名',
       uiAccDirect:               '直播',
       uiAccDebut:                '从头观看',
@@ -6478,8 +6518,6 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     .tse-noeud__anneau {
       position: absolute; inset: 0; border-radius: inherit; padding: 1.5px; opacity: 0; pointer-events: none;
       background: conic-gradient(from var(--tse-tour), var(--tse-noeud-encre, #0e0e10) 0 28%, transparent 28% 100%);
-      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-      -webkit-mask-composite: xor;
       mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
       transition: opacity 120ms linear;
     }
@@ -6795,34 +6833,30 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     .side-nav-card.tse-sub .tse-sub-cat {
       color: #e6c68d;
     }
-    @supports (-webkit-background-clip: text) or (background-clip: text) {
-      .side-nav-card.tse-sub p.tse-nom {
-        background: linear-gradient(100deg,
-          #ffc86e   0%,
-          #fff6dc  32%,
-          #ffb3d9  46%,
-          #ffc86e  64%,
-          #ffc86e 100%) 0 0 / 300% 100%;
-        -webkit-background-clip: text;
-        background-clip: text;
-        -webkit-text-fill-color: transparent;
-        /* Le halo est posé par un filtre, non par text-shadow : avec un
-           remplissage transparent, une ombre de texte se verrait AU TRAVERS
-           des lettres, en double flou. Le filtre, lui, s'applique au résultat
-           déjà découpé — il entoure les lettres au lieu de les traverser. */
-        filter: drop-shadow(0 0 3.5px rgba(255, 214, 142, 0.375));
-      }
-      .side-nav-card.tse-sub .tse-sub-cat {
-        background: linear-gradient(100deg,
-          #d4b076   0%,
-          #f4e3c2  34%,
-          #dcb4c6  47%,
-          #d4b076  64%,
-          #d4b076 100%) 0 0 / 300% 100%;
-        -webkit-background-clip: text;
-        background-clip: text;
-        -webkit-text-fill-color: transparent;
-      }
+    .side-nav-card.tse-sub p.tse-nom {
+      background: linear-gradient(100deg,
+        #ffc86e   0%,
+        #fff6dc  32%,
+        #ffb3d9  46%,
+        #ffc86e  64%,
+        #ffc86e 100%) 0 0 / 300% 100%;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      /* Le halo est posé par un filtre, non par text-shadow : avec un
+         remplissage transparent, une ombre de texte se verrait AU TRAVERS
+         des lettres, en double flou. Le filtre, lui, s'applique au résultat
+         déjà découpé — il entoure les lettres au lieu de les traverser. */
+      filter: drop-shadow(0 0 3.5px rgba(255, 214, 142, 0.375));
+    }
+    .side-nav-card.tse-sub .tse-sub-cat {
+      background: linear-gradient(100deg,
+        #d4b076   0%,
+        #f4e3c2  34%,
+        #dcb4c6  47%,
+        #d4b076  64%,
+        #d4b076 100%) 0 0 / 300% 100%;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
     }
 
     /* L'AVATAR — seul élément qui subsiste en mode réduit, donc le seul qui
@@ -6899,28 +6933,26 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        Seule l'IMAGE change entre les thèmes. On ne pose donc qu'elle ; la
        découpe, la taille (300 %) et la position restent celles des règles du
        sombre. Le scénario 115 lit désormais la découpe calculée. */
-    @supports (-webkit-background-clip: text) or (background-clip: text) {
-      html[data-tse-theme="light"] .side-nav-card.tse-sub p.tse-nom {
-        background-image: linear-gradient(100deg,
-          #8a5900   0%,
-          #7a4e00  32%,
-          #9c4f6b  46%,
-          #8a5900  64%,
-          #8a5900 100%);
-        /* LE HALO PART EN CLAIR. C'est un filtre de lueur, pensé pour détacher
-           des lettres claires d'un fond noir ; sur du blanc il ne détache
-           rien et salit les contours. */
-        filter: none;
-      }
-      html[data-tse-theme="light"] .side-nav-card.tse-sub .tse-sub-cat {
-        background-image: linear-gradient(100deg,
-          #7c5a1e   0%,
-          #6b4700  34%,
-          #8f3f63  47%,
-          #7c5a1e  64%,
-          #7c5a1e 100%);
-        filter: none;
-      }
+    html[data-tse-theme="light"] .side-nav-card.tse-sub p.tse-nom {
+      background-image: linear-gradient(100deg,
+        #8a5900   0%,
+        #7a4e00  32%,
+        #9c4f6b  46%,
+        #8a5900  64%,
+        #8a5900 100%);
+      /* LE HALO PART EN CLAIR. C'est un filtre de lueur, pensé pour détacher
+         des lettres claires d'un fond noir ; sur du blanc il ne détache
+         rien et salit les contours. */
+      filter: none;
+    }
+    html[data-tse-theme="light"] .side-nav-card.tse-sub .tse-sub-cat {
+      background-image: linear-gradient(100deg,
+        #7c5a1e   0%,
+        #6b4700  34%,
+        #8f3f63  47%,
+        #7c5a1e  64%,
+        #7c5a1e 100%);
+      filter: none;
     }
     /* LA LUEUR DE FOND S'INVERSE AUSSI. Quatre nappes de blanc crème à 13 %
        sur du noir font une carte qui respire ; les mêmes sur du blanc ne font
@@ -7060,8 +7092,6 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
          entière ; leur DIFFÉRENCE ne laisse que l'anneau du padding. C'est ce
          qui fait un dégradé conique en bordure, chose qu'aucune propriété
          « border » ne sait faire. */
-      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-      -webkit-mask-composite: xor;
       mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
       mask-composite: exclude;
     }
@@ -7416,62 +7446,109 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     .tse-filter-field { display: flex; align-items: center; }
     .tse-filter-field--cat  { flex: 1 1 auto; min-width: 0; }       /* place restante */
     .tse-filter-field--lang { flex: 0 0 auto; margin-left: auto; }  /* compacte, à droite */
-    /* === Dropdowns personnalisés (catégorie + langue), même structure ===
-       On n'utilise plus de <select> natif : un <option> ne peut afficher que
-       du texte (pas les drapeaux SVG) et on veut une mise en forme homogène.  */
-    .tse-dd { position: relative; width: 100%; }
+    /* === Les deux filtres : des <select> (4.33.0.14) ===
+       La boîte est le <select> lui-même. Là où il se personnalise
+       (appearance: base-select), son bouton et sa liste prennent l'aspect du
+       menu d'avant, drapeaux compris ; la liste est posée par le navigateur
+       au-dessus de tout, sans z-index. Ailleurs, la même boîte, et la liste
+       du système. Le schéma de couleurs est posé sur la boîte : la liste en
+       hérite, et ses barres de défilement suivent notre thème. */
+    .tse-dd { width: 100%; min-width: 0; }
     .tse-dd-btn {
       display: flex; align-items: center; gap: 4px;
-      width: 100%; height: 28px; padding: 0 8px;
+      width: 100%; height: 28px; margin: 0; padding: 0 8px;
       background-color: var(--tse-champ);
       border: 1px solid rgba(var(--tse-encre), 0.08); border-radius: 4px;
       color: var(--color-text-base, #efeff1);
-      font-size: 1.15rem;                /* agrandi pour la lisibilité */
+      font: inherit; font-size: 1.15rem;  /* agrandi pour la lisibilité */
+      color-scheme: var(--tse-schema);
       cursor: pointer; outline: none; box-sizing: border-box;
       transition: border-color 0.15s, box-shadow 0.15s, opacity 0.15s;
     }
+    .tse-dd-btn, .tse-dd-btn::picker(select) { appearance: base-select; }
+    /* La flèche est la nôtre (.tse-dd-caret) : celle du navigateur ferait
+       double emploi. */
+    .tse-dd-btn::picker-icon { display: none; }
     .tse-dd-btn:hover:not(:disabled) { border-color: rgba(145, 71, 255, 0.5); }
-    .tse-dd.tse-open .tse-dd-btn { border-color: ${CFG.PURPLE}; box-shadow: 0 0 0 1px ${CFG.PURPLE}; }
+    /* LE FOCUS SE VOIT. Le bouton d'avant ôtait le contour et n'en rendait
+       aucun : au clavier, on ne savait pas où l'on était. Il prend le liseré
+       du menu ouvert. */
+    .tse-dd-btn:open,
+    .tse-dd-btn:focus-visible { border-color: ${CFG.PURPLE}; box-shadow: 0 0 0 1px ${CFG.PURPLE}; }
     .tse-dd-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    /* Le bouton du <select> personnalisé : transparent, il remplit la boîte.
+       Le libellé y reste CENTRÉ, comme dans le <button> d'avant.
+
+       SA POLICE EST CELLE DE LA PAGE, comme celle des onglets « Chaînes
+       suivies / Top Chaînes » juste au-dessus, à la même taille. Le bouton
+       d'avant ne la posait pas : il prenait celle que le navigateur — ou la
+       page — donne aux boutons. Le navigateur fait hériter le bouton d'un
+       <select> ; la boîte hérite de la page, la liste de la boîte, comme le
+       menu d'avant, qui était un <div>. Mesuré contre la version
+       précédente : le seul écart est là. */
+    .tse-dd-bouton {
+      display: flex; align-items: center; gap: 4px;
+      flex: 1 1 auto; min-width: 0; height: 100%;
+      margin: 0; padding: 0; border: 0; background: none;
+      color: inherit; font: inherit; text-align: center; cursor: inherit;
+    }
     .tse-dd-current { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; }
+    /* <selectedcontent> recopie l'option choisie ENTIÈRE ; le compteur n'a
+       rien à faire dans le bouton, il n'y était pas. */
+    .tse-dd-current .tse-dd-n { display: none; }
     .tse-dd-caret {
       flex: 0 0 auto; width: 0; height: 0;
       border-left: 4px solid transparent; border-right: 4px solid transparent;
       border-top: 5px solid var(--tse-texte-doux);
     }
-    /* Menu déroulant : popup sous le bouton, scrollable. */
-    .tse-dd-menu {
-      display: none;
-      position: absolute; top: calc(100% + 4px); z-index: 9999;
-      min-width: 100%; max-height: 260px; overflow-y: auto; padding: 4px;
-      color-scheme: var(--tse-schema);
-      background: var(--tse-surface); border: 1px solid rgba(var(--tse-encre), 0.12);
+    /* La liste : sous le bouton, à quatre pixels, défilante. Mesurée contre
+       le menu d'avant : sa largeur minimale était celle du bouton PLUS son
+       cadre — d'où « content-box », la boîte du navigateur comptant le cadre
+       dedans. */
+    .tse-dd-btn::picker(select) {
+      box-sizing: content-box; min-width: anchor-size(width);
+      margin-block: 4px; max-height: 260px; overflow-y: auto; padding: 4px;
+      background: var(--tse-surface); color: var(--tse-texte);
+      border: 1px solid rgba(var(--tse-encre), 0.12);
       border-radius: 6px; box-shadow: 0 4px 16px var(--tse-ombre-menu);
     }
-    .tse-dd.tse-open .tse-dd-menu { display: block; }
+    /* « min-height: 0 » : le navigateur donne 24 px de CONTENU à une option,
+       qui en faisait 36 avec nos marges. La ligne d'avant faisait 24 px en
+       tout — la taille de cible minimale, qu'elle garde. */
     .tse-dd-opt {
-      display: flex; align-items: center; gap: 6px;
+      display: flex; align-items: center; gap: 6px; min-height: 0;
       padding: 6px 8px; border-radius: 4px; cursor: pointer;
       font-size: 1.15rem; color: var(--tse-texte); white-space: nowrap;
     }
-    .tse-dd-opt:hover { background: rgba(145, 71, 255, 0.25); }
-    .tse-dd-opt[aria-selected="true"] { background: rgba(145, 71, 255, 0.4); }
+    /* L'option choisie se dit par son fond, comme avant : pas de coche. */
+    .tse-dd-opt::checkmark { display: none; }
+    .tse-dd-opt:hover,
+    .tse-dd-opt:focus-visible { background: rgba(145, 71, 255, 0.25); }
+    .tse-dd-opt:focus-visible { outline: 2px solid ${CFG.PURPLE}; outline-offset: -2px; }
+    .tse-dd-opt:checked { background: rgba(145, 71, 255, 0.4); }
     .tse-dd-n { flex: 0 0 auto; color: var(--tse-texte-doux); font-variant-numeric: tabular-nums; }
 
-    /* Catégorie : prend la place, bouton tronqué « … », menu aligné à gauche
-       et élargi au contenu (noms lisibles), plafonné à la largeur sidebar. */
+    /* Catégorie : prend la place, bouton tronqué « … », liste alignée à
+       gauche et élargie au contenu (noms lisibles), plafonnée à la largeur
+       de la sidebar. */
     .tse-dd--cat .tse-dd-current { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .tse-dd--cat .tse-dd-menu { left: 0; right: auto; width: max-content; max-width: 208px; }
+    .tse-dd--cat .tse-dd-btn::picker(select) { width: max-content; max-width: 208px; }
     .tse-dd--cat .tse-dd-name { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 
-    /* Langue : compacte, menu aligné à droite. Le bouton est inchangé (caret
-       conservé, juste l'emoji globe passé en SVG). Le centrage demandé ne
-       concerne QUE le menu : chaque ligne y est centrée (option « toutes les
-       langues » = globe seul, options de langue = « N | drapeau »). */
+    /* Langue : compacte, liste alignée à droite. Chaque ligne y est centrée
+       (« toutes les langues » = globe seul, une langue = « N | drapeau »). */
     .tse-dd--lang { width: 50px; }
     .tse-dd--lang .tse-dd-current { justify-content: center; }
-    .tse-dd--lang .tse-dd-menu { right: 0; left: auto; min-width: 64px; }
+    .tse-dd--lang .tse-dd-btn::picker(select) { position-area: block-end span-inline-start; min-width: 64px; }
     .tse-dd--lang .tse-dd-opt { justify-content: center; }
+
+    /* LE <select> ORDINAIRE N'A QUE DU TEXTE (Firefox) : « Toutes les
+       langues » ne tient pas dans cinquante pixels, faits pour un drapeau.
+       Les deux filtres s'y partagent la ligne à parts égales, et chacun
+       montre ce que son texte peut montrer. */
+    .tse-filter[data-tse-select="natif"] .tse-filter-field { flex: 1 1 0; min-width: 0; margin-left: 0; }
+    .tse-filter[data-tse-select="natif"] .tse-dd--lang { width: 100%; }
+    .tse-filter[data-tse-select="natif"] .tse-dd-btn { display: block; }
     .tse-lang-code  { font-weight: 600; }
     /* ── LE DRAPEAU D'UN CO-STREAMER D'UNE AUTRE LANGUE ────────────────────
        DEMANDÉ APRÈS LE FILTRE DE LANGUE : un membre de session qui ne porte
@@ -7780,13 +7857,18 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       box-shadow: 0 0 0 1px ${CFG.PURPLE};
     }
     /* Curseur actif : dégradé vertical léger et ombre portée courte, pour
-       qu'il se lise POSÉ SUR la piste et non découpé dedans. */
+       qu'il se lise POSÉ SUR la piste et non découpé dedans.
+       UN CRAN PLUS SOMBRE (4.33.0.14). Le dégradé partait du violet du
+       survol, #a970ff : le blanc n'y tenait que 3,26:1, sous les 4,5 d'un
+       texte de cette taille. Il part maintenant du violet de Twitch (4,62:1)
+       et descend vers #772ce8 (6,35:1) — la même pente, une teinte plus bas.
+       Le survol prend le violet de Twitch, lui aussi au-dessus du seuil. */
     .tse-mode-tab[aria-pressed="true"] {
-      background: linear-gradient(180deg, ${CFG.PURPLE_HOVER} 0%, ${CFG.PURPLE} 100%);
+      background: linear-gradient(180deg, ${CFG.PURPLE} 0%, #772ce8 100%);
       color: #fff;
       box-shadow: 0 1px 2px var(--tse-ombre-portee);
     }
-    .tse-mode-tab[aria-pressed="true"]:hover { background: ${CFG.PURPLE_HOVER}; }
+    .tse-mode-tab[aria-pressed="true"]:hover { background: ${CFG.PURPLE}; }
 
     /* ── LA ROUE CRANTÉE, DANS LE TITRE DE TWITCH ──────────────────────────
        LE TITRE N'EST PASSÉ EN « flex » QUE LÀ OÙ NOUS AVONS POSÉ QUELQUE
@@ -8011,7 +8093,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
          ne vaut pas ce qu'il dit finit toujours par tromper le calcul d'à
          côté. */
       box-sizing: border-box;
-      width: 330px; max-width: calc(100vw - 24px);
+      width: 330px; max-width: calc(100dvw - 24px);
       padding: 14px 14px 15px;
       border-radius: 10px;
       border: 1px solid var(--tse-anneau);
@@ -8096,11 +8178,19 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        qu'un panneau flottant : il n'y a rien à cliquer derrière, donc rien à
        cliquer par erreur. Le z-index est au-dessus de celui des modales de
        Twitch, sans quoi leur propre couche passerait devant la nôtre. */
+    /* UN <dialog> (4.33.0.14) : la couche supérieure le pose au-dessus de
+       tout, sans z-index. Il couvre l'écran lui-même — c'est son fond qui fait
+       le voile —, sans les marges ni la bordure que le navigateur lui donne. */
     .tse-incruste {
-      position: fixed; inset: 0; z-index: 2147483000;
-      display: flex; align-items: center; justify-content: center;
+      position: fixed; inset: 0;
+      width: 100%; height: 100%; max-width: none; max-height: none;
+      margin: 0; padding: 0; border: 0;
+      align-items: center; justify-content: center;
       background: rgba(0, 0, 0, 0.55);
+      overscroll-behavior: contain;
     }
+    .tse-incruste[open] { display: flex; }
+    .tse-incruste::backdrop { background: transparent; }
     /* LES DEUX NOMBRES SONT CEUX DE LA POPUP DE BARRE D'OUTILS. Les deux
        chemins mènent au même panneau ; ils doivent y mener à la même taille,
        sans quoi les captures d'écran d'un rapport ne se comparent plus.
@@ -8109,7 +8199,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     .tse-incruste-cadre {
       position: relative;
       width: ${CFG.INCRUSTE_W}px; height: ${CFG.INCRUSTE_H}px;
-      max-width: calc(100vw - 24px); max-height: calc(100vh - 24px);
+      max-width: calc(100dvw - 24px); max-height: calc(100dvh - 24px);
       border-radius: 8px;
       box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
       /* PAS D'« overflow: hidden » ICI, et c'est ce qui permet à la croix de
@@ -8959,8 +9049,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     }
     html[data-tse-off~="filtreCategorie"] .tse-dd--lang { width: auto; flex: 1 1 auto; }
     html[data-tse-off~="filtreCategorie"] .tse-dd--lang .tse-dd-current { justify-content: flex-start; }
-    html[data-tse-off~="filtreCategorie"] .tse-dd--lang .tse-dd-menu {
-      left: 0; right: 0; min-width: 0;
+    html[data-tse-off~="filtreCategorie"] .tse-dd--lang .tse-dd-btn::picker(select) {
+      /* La largeur de la boîte, cadre compris — celle du menu d'avant
+         (left: 0; right: 0). */
+      position-area: block-end span-inline-end;
+      box-sizing: border-box; width: anchor-size(width); min-width: 0;
     }
     html[data-tse-off~="filtreCategorie"] .tse-dd--lang .tse-dd-opt { justify-content: flex-start; }
     html[data-tse-off~="filtreLangue"] .tse-filter-field--cat { flex: 1 1 auto; }
@@ -9241,6 +9334,15 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     .tse-zap-bouton:hover { background: var(--color-background-button-secondary-hover, rgba(83, 83, 95, 0.48)); }
     .tse-zap-bouton:focus-visible { outline: 2px solid #9147ff; outline-offset: 2px; }
     .tse-zap-bouton svg { width: 20px; height: 20px; fill: currentColor; }
+    /* Le <dialog> qui l'enveloppe (4.33.0.14) : tout l'écran, noir, sans les
+       marges ni la bordure du navigateur. */
+    .tse-zap-dialogue {
+      position: fixed; inset: 0;
+      width: 100%; height: 100%; max-width: none; max-height: none;
+      margin: 0; padding: 0; border: 0;
+      background: #000; overflow: hidden; overscroll-behavior: contain;
+    }
+    .tse-zap-dialogue::backdrop { background: #000; }
     #tse-zap {
       position: fixed; inset: 0; z-index: 9000; overflow: hidden; background: #000; color: #fff;
       font-family: Inter, Roobert, "Helvetica Neue", Helvetica, Arial, sans-serif; line-height: 1.35;
@@ -9250,7 +9352,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     /* La scène isole ses lecteurs : leurs plans (courant, sortant, en attente) ne passent pas devant l'écran. */
     .tse-zap__scene { position: absolute; inset: 0; z-index: 0; }
     .tse-zap__lecteur {
-      position: absolute; left: 50%; top: 50%; width: max(100vw, 177.78vh); height: max(100vh, 56.25vw);
+      position: absolute; left: 50%; top: 50%; width: max(100dvw, 177.78dvh); height: max(100dvh, 56.25dvw);
       transform: translate(-50%, -50%); border: 0; opacity: 0; pointer-events: none;
       transition: opacity ${CFG.ZAP_FONDU_MS}ms ease;
     }
@@ -9277,7 +9379,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     .tse-zap__rang { font-size: 28px; font-weight: 700; color: #fff; font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
     .tse-zap__aide {
       position: absolute; right: var(--tse-zap-marge); top: 44px; display: flex; align-items: center; flex-wrap: wrap;
-      gap: 8px 18px; padding: 10px 16px; max-width: calc(100vw - 2 * var(--tse-zap-marge) - 360px);
+      gap: 8px 18px; padding: 10px 16px; max-width: calc(100dvw - 2 * var(--tse-zap-marge) - 360px);
       font-size: 14px; color: #e5e5ea;
     }
     .tse-zap__groupe { display: inline-flex; align-items: center; gap: 6px; }
@@ -9303,9 +9405,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       position: absolute; right: calc(var(--tse-zap-marge) - 12px); top: 140px; bottom: 140px; width: calc(var(--tse-zap-colonne) + 24px);
       box-sizing: border-box; margin: 0; padding: 10px 12px 28px; list-style: none; display: flex; flex-direction: column; gap: 10px;
       overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none;
-      -webkit-mask-image: linear-gradient(#000 calc(100% - 28px), transparent); mask-image: linear-gradient(#000 calc(100% - 28px), transparent);
+      mask-image: linear-gradient(#000 calc(100% - 28px), transparent);
     }
-    .tse-zap__liste::-webkit-scrollbar { display: none; }
     .tse-zap__item { flex: 0 0 auto; }
     .tse-zap__chaine {
       display: flex; align-items: center; gap: 12px; width: 100%; padding: 8px; border: 0; text-align: left;
@@ -9423,8 +9524,17 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     }
     /* L'attribut « hidden » se perd sous un « display » posé par une classe :
        on le rend souverain dans tout ce que nous peignons. */
-    #tse-accueil[hidden], #tse-accueil [hidden],
+    #tse-accueil[hidden], #tse-accueil [hidden]:not([hidden="until-found"]),
     #tse-accueil-heros[hidden], #tse-accueil-heros [hidden] { display: none !important; }
+    /* REPLIÉES, MAIS TROUVABLES (4.33.0.14). Les cartes d'un rayon replié
+       portent hidden="until-found" : Ctrl+F y cherche, et le navigateur
+       déplie ce qu'il trouve (cf. plier). Il ne masque pourtant que leur
+       CONTENU — la boîte, elle, garde sa place dans la grille, et une rangée
+       repliée resterait là, vide. Sortie du flux et ramenée à rien, elle ne
+       prend plus de place ; son texte reste cherchable. */
+    #tse-accueil .tse-acc-liste > [hidden="until-found"] {
+      position: absolute; width: 0; height: 0; margin: 0; padding: 0; border: 0; overflow: hidden;
+    }
     /* Le carrousel de Twitch, quand on le masque. Sa vidéo est arrêtée à part. */
     .tse-acc-masque { display: none !important; }
     /* D'EMBLÉE (4.26.0.5) : « un décalage avec la homepage native pendant
@@ -9534,10 +9644,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       display: flex; gap: ${CFG.ACCUEIL_ECARTS.split(' ')[1]}; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain;
       scroll-snap-type: x mandatory; scrollbar-width: none;
       padding: var(--tse-ruban-haut) calc(50cqw - var(--tse-ruban-carte) / 2) 28px;
-      -webkit-mask-image: linear-gradient(90deg, transparent, #000 var(--tse-ruban-fondu), #000 calc(100% - var(--tse-ruban-fondu)), transparent);
       mask-image: linear-gradient(90deg, transparent, #000 var(--tse-ruban-fondu), #000 calc(100% - var(--tse-ruban-fondu)), transparent);
     }
-    .tse-acc-ruban::-webkit-scrollbar { display: none; }
     /* Le temps d'un chemin mené par nous, l'aimant se tait (cf. allerA). */
     .tse-acc-liste.tse-acc-ruban.tse-acc-ruban--mene { scroll-snap-type: none; }
     .tse-acc-ruban > .tse-acc-carte, .tse-acc-ruban > .tse-acc-carte-attente {
@@ -9640,7 +9748,15 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       display: inline-flex; align-items: center; justify-content: center;
       background: rgba(14, 14, 16, 0.72); color: #fff; transition: opacity 0.15s ease, background 0.15s ease;
       box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12), 0 6px 18px rgba(0, 0, 0, 0.45);
-      -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+      backdrop-filter: blur(8px);
+    }
+    /* L'annonce du carrousel : lue, pas vue. */
+    /* Les titres des rayons se coupent en lignes égales quand ils passent à
+       la ligne (4.33.0.14). */
+    #tse-accueil .tse-acc-titre { text-wrap: balance; }
+    .tse-acc-annonce {
+      position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0;
+      overflow: hidden; clip-path: inset(50%); white-space: nowrap;
     }
     .tse-acc-ruban-fleche--prec { left: 8px; }
     .tse-acc-ruban-fleche--suiv { right: 8px; }
@@ -9930,7 +10046,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        qui la cache quand elle est fermée. */
     .tse-acc-cs-fen {
       position: fixed; inset: auto; margin: 0; box-sizing: border-box;
-      min-width: 200px; max-width: min(320px, calc(100vw - 16px)); padding: 6px; overflow: visible;
+      min-width: 200px; max-width: min(320px, calc(100dvw - 16px)); padding: 6px; overflow: visible;
       border: 1px solid rgba(var(--tse-encre), 0.12); border-radius: 6px;
       background: var(--tse-surface); color: var(--tse-texte); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
       font-size: 13px; line-height: 18px; text-align: left;
@@ -10041,7 +10157,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        sombre sinon. */
     #tse-rappels {
       position: fixed; left: 16px; bottom: 16px; z-index: 6000; display: flex; flex-direction: column; gap: 8px;
-      width: min(360px, calc(100vw - 32px)); pointer-events: none;
+      width: min(360px, calc(100dvw - 32px)); pointer-events: none;
     }
     .tse-rappel {
       pointer-events: auto; display: flex; align-items: center; gap: 10px; padding: 10px 8px 10px 12px;
@@ -10093,7 +10209,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     #tse-accueil-heros[data-tse-place="section"] .tse-acc-heros-cadre { border-radius: 10px; }
     .tse-acc-heros { container: tse-heros / inline-size; margin: 0; }
     .tse-acc-heros-cadre {
-      --tse-heros-h: clamp(320px, min(27.78cqw, 60vh), 720px);
+      --tse-heros-h: clamp(320px, min(27.78cqw, 60dvh), 720px);
       /* Le fondu prend le quart du cadre, à toutes les tailles : 80 px sur
          320, 121 sur 484 (une fenêtre de 2000 px), 180 sur 720. */
       --tse-fondu: calc(var(--tse-heros-h) * 0.25);
@@ -10105,12 +10221,6 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        deux bords. */
     .tse-acc-heros-scene {
       position: absolute; inset: 0; z-index: 0; overflow: hidden; background: #0e0e10;
-      -webkit-mask-image: linear-gradient(0deg, transparent 0,
-        rgba(0, 0, 0, 0.028) calc(var(--tse-fondu) * 0.1), rgba(0, 0, 0, 0.104) calc(var(--tse-fondu) * 0.2),
-        rgba(0, 0, 0, 0.216) calc(var(--tse-fondu) * 0.3), rgba(0, 0, 0, 0.352) calc(var(--tse-fondu) * 0.4),
-        rgba(0, 0, 0, 0.5) calc(var(--tse-fondu) * 0.5), rgba(0, 0, 0, 0.648) calc(var(--tse-fondu) * 0.6),
-        rgba(0, 0, 0, 0.784) calc(var(--tse-fondu) * 0.7), rgba(0, 0, 0, 0.896) calc(var(--tse-fondu) * 0.8),
-        rgba(0, 0, 0, 0.972) calc(var(--tse-fondu) * 0.9), #000 var(--tse-fondu));
       mask-image: linear-gradient(0deg, transparent 0,
         rgba(0, 0, 0, 0.028) calc(var(--tse-fondu) * 0.1), rgba(0, 0, 0, 0.104) calc(var(--tse-fondu) * 0.2),
         rgba(0, 0, 0, 0.216) calc(var(--tse-fondu) * 0.3), rgba(0, 0, 0, 0.352) calc(var(--tse-fondu) * 0.4),
@@ -10137,7 +10247,6 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     .tse-acc-heros-media {
       position: absolute; top: 0; right: 0; z-index: 1; height: 100%;
       aspect-ratio: 16 / 9; max-width: 100%; overflow: hidden;
-      -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 24%);
       mask-image: linear-gradient(90deg, transparent 0, #000 24%);
     }
     .tse-acc-heros-img, .tse-acc-heros-video {
@@ -10230,7 +10339,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       height: clamp(36px, 1.8cqw, 42px); margin: 0; padding: 0 16px; border-radius: 6px; line-height: 1;
       font-size: clamp(14px, 0.72cqw, 16px);
       background: rgba(255, 255, 255, 0.16); color: #fff;
-      -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+      backdrop-filter: blur(8px);
     }
     .tse-acc-heros .tse-acc-debut:hover { background: rgba(255, 255, 255, 0.24); }
     /* Étroit : la vidéo prend plus de la moitié du cadre, le texte passe sur
@@ -10285,7 +10394,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     }
     .tse-acc-evol--hausse { color: var(--tse-hausse); }
     .tse-acc-evol--baisse { color: var(--tse-baisse); }
-    .tse-acc-evol--stable { color: var(--tse-texte-faible); }
+    /* « = » est un texte, et dit quelque chose : la place n'a pas bougé. Le
+       gris faible de Twitch n'y tenait que 3,83:1 en sombre (4.33.0.14). */
+    .tse-acc-evol--stable { color: var(--tse-texte-doux); }
     .tse-acc-evol--nouveau { padding: 0 6px; border-radius: 4px; background: #9147ff; color: #fff; font-size: 11px; }
     .tse-acc-note { margin: 2px 0 0; font-size: 12px; color: var(--tse-texte-doux); }
   `;
@@ -14576,11 +14687,12 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
      losing-state ») : mesuré dans Chromium, une animation à 600 ms repart à
      0 sous insertBefore, et continue sous moveBefore.
      IL NE DÉPLACE QU'UN NŒUD DÉJÀ DANS LA PAGE, vers un parent qui y est
-     aussi, dans le même document. Un nœud neuf, un parent pas encore posé,
-     un navigateur qui ne le connaît pas : insertBefore, comme avant. */
+     aussi, dans le même document. Un nœud neuf, un parent pas encore posé :
+     insertBefore, comme avant. Les deux planchers le connaissent (Chrome
+     133, Firefox 144) : on ne demande plus au navigateur s'il l'a
+     (4.33.0.14). */
   const deplacer = (parent, noeud, avant = null) => {
-    if (typeof parent.moveBefore === 'function' && noeud.isConnected && parent.isConnected
-        && noeud.ownerDocument === parent.ownerDocument) {
+    if (noeud.isConnected && parent.isConnected && noeud.ownerDocument === parent.ownerDocument) {
       try { parent.moveBefore(noeud, avant); return; }
       catch { /* refusé par un cas limite du DOM : le déplacement d'avant */ }
     }
@@ -14693,7 +14805,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     const calme = () => !document.hidden && !loadingOverlay.enCycle();
 
     const lancer = (el, sorte, images, options, t = null) => {
-      if (!(options.duration > 0) || typeof el.animate !== 'function') return;
+      if (!(options.duration > 0)) return;
       const a = el.animate(images, options);
       if (t !== null) a.currentTime = t;
       const v = enVol.get(el) || {};
@@ -15523,11 +15635,27 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
    *  une fin, comme il l'était.
    *  Effaçable par tse.reset(), comme le reste.
    * ============================================================ */
-  /* Minuit local d'un instant, et l'écart en jours de calendrier jusqu'à une
-     date. Arrondi, et non tronqué : un jour de changement d'heure dure 23 ou
-     25 heures, et le calendrier, lui, n'en saute aucun. */
-  const minuitLocal = (t) => { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); };
-  const joursJusqua = (t) => Math.round((minuitLocal(t) - minuitLocal(Date.now())) / 86_400_000);
+  /* ── LES JOURS CIVILS, PAR TEMPORAL (4.33.0.14) ────────────────────────
+     Le jour civil d'un instant, son minuit local, l'écart en jours de
+     calendrier, le minuit de N jours plus tard. Date ne savait que des
+     millisecondes : l'écart se divisait par 86 400 000 et s'ARRONDISSAIT —
+     un jour de changement d'heure dure 23 ou 25 heures —, et l'on avançait
+     d'un jour par setDate. Temporal compte en jours de calendrier, et le
+     minuit d'un jour sans minuit (Santiago, le jour du passage à l'heure
+     d'été, commence à 01:00) est le premier instant de ce jour, comme
+     setHours(0) le donnait. Les résultats sont ceux d'avant ; ils ne
+     tiennent plus à un arrondi.
+
+     L'INSTANT VIENT DE Date.now(), pas de Temporal.Now : c'est l'horloge
+     que le banc fige, et Temporal.Now ne la suit pas. Le fuseau est celui du
+     système — celui de Date, et celui que le banc émule. */
+  const jourCivil = (t) => Temporal.Instant.fromEpochMilliseconds(t)
+    .toZonedDateTimeISO(Temporal.Now.timeZoneId()).toPlainDate();
+  const minuitDuJour = (jour) => jour.toZonedDateTime(Temporal.Now.timeZoneId()).epochMilliseconds;
+  const minuitLocal = (t) => minuitDuJour(jourCivil(t));
+  const joursJusqua = (t) => jourCivil(Date.now()).until(jourCivil(t)).days;
+  // Le minuit local du n-ième jour après celui de `t` (aujourd'hui par défaut).
+  const minuitDans = (n, t = Date.now()) => minuitDuJour(jourCivil(t).add({ days: n }));
 
   const subs = {
     // login -> { sub, ts, m?, ex?, src?, ech? } (cf. l'en-tête)
@@ -16022,9 +16150,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       try {
         const formats = FORMES_DATE.map((o) => new Intl.DateTimeFormat(langue, o));
         for (let i = 0; i <= CFG.SUBS_DUE_HORIZON_DAYS; i++) {
-          const d = new Date(jour);
-          d.setDate(d.getDate() + i);
-          for (const f of formats) cles.push([normaliser(f.format(d)), d.getTime()]);
+          const ms = minuitDans(i, jour);
+          for (const f of formats) cles.push([normaliser(f.format(ms)), ms]);
         }
       } catch { /* langue qu'Intl ne connaît pas : aucune date, aucun badge */ }
       candidates = { langue, jour, cles };
@@ -16090,9 +16217,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       const u = unite(f[i + 1]?.t || '');
       const v = f.slice(0, i).find((x) => (x.t.match(/\d+/g) || []).length === 1 && unite(x.t) !== u);
       if (!v) return { mois: m, ech: 0, ecrite };
-      const d = new Date(minuitLocal(Date.now()));
-      d.setDate(d.getDate() + parseInt(/\d+/.exec(v.t)[0], 10));
-      return { mois: m, ech: d.getTime(), ecrite };
+      return { mois: m, ech: minuitDans(parseInt(/\d+/.exec(v.t)[0], 10)), ecrite };
     };
 
     /* L'horodatage porte la VERSION DU LECTEUR qui l'a produit, pas seulement
@@ -16507,7 +16632,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       /* ET SI LES CARTES SONT EXACTEMENT CELLES DE L'ONGLET D'AVANT, on les
          veut stables bien plus longtemps avant d'y croire : c'est l'image
          d'une page qui n'a pas encore redessiné, bien plus qu'une coïncidence. */
-      const avant = [...(precedents || [])].sort().join(',');
+      const avant = (precedents || []).toSorted().join(',');
       const refuser = (trouve, stableMs) => !!avant
         && trouve.map(x => x.login).sort().join(',') === avant
         && stableMs < CFG.SUBS_PAGE_SETTLE;
@@ -17268,7 +17393,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
            paraître dans la fenêtre de la page, et une fenêtre plus basse que le
            cadre le cachait — le banc, à 720 px, n'en lisait que la première
            page. */
-        cadre.style.cssText = 'position:fixed;left:0;top:0;width:1280px;height:100vh;'
+        cadre.style.cssText = 'position:fixed;left:0;top:0;width:1280px;height:100dvh;'
           + 'opacity:0;pointer-events:none;border:0;z-index:-1';
         const charge = new Promise((r) => cadre.addEventListener('load', () => r(true), { once: true }));
         cadre.src = location.origin + CHEMIN;
@@ -17786,6 +17911,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
 
     const bilan = {
       poses: 0, reposes: 0, retraits: 0, peintures: 0, relangues: 0, reveils: 0, ancre: null,
+      // Les rayons repliés que Ctrl+F a dépliés (4.33.0.14, cf. PLI_CACHE).
+      plisTrouves: 0,
       /* LE TEMPS DE L'ACCUEIL (4.26.0.5), en millisecondes depuis le début de
          la page : quand le défileur de Twitch est apparu, quand la section s'y
          est posée, quand le héros a été peint, quand le voile s'est levé,
@@ -17822,7 +17949,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
                 combien l'ont été, et pourquoi chacune manquait — la chaîne de la
                 bannière, une chaîne hors ligne, une réponse qui n'est pas venue,
                 ou un carrousel pair. Des comptes, jamais un pseudo. */
-             trous: 0, comblees: 0, raisons: { banniere: 0, horsLigne: 0, sansReponse: 0, pair: 0 } },
+             trous: 0, comblees: 0, raisons: { banniere: 0, horsLigne: 0, sansReponse: 0, pair: 0 },
+             // Les annonces du carrousel (4.33.0.14) : combien de fois la carte du centre a été dite.
+             annonces: 0 },
       debut: { envois: 0, demandes: 0, archives: 0, sansArchive: 0, sansStream: 0,
                jetons: 0, fermees: 0, illisibles: 0, refus: 0, reseau: 0 },
       // Vos rendez-vous (4.27.0) : ce qui est montré, et si l'agenda tourne encore.
@@ -18505,9 +18634,12 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        revient à son terme (cf. finDefilement). */
     const allerA = (liste, carte) => {
       const e = etatRuban(liste);
+      const change = e.tete !== carte.dataset.tseCle;
       e.tete = e.vers = carte.dataset.tseCle;
       e.versT = performance.now();
       bilan.une.tete = e.tete;
+      // Une flèche ou un clic : la carte voulue est connue tout de suite, et se dit.
+      if (change) annoncer(liste, carte);
       liste.classList.add('tse-acc-ruban--mene');
       tourner(liste, carte);
       centrer(liste, carte);
@@ -18553,8 +18685,26 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       if (menePar(e) && c.dataset.tseCle !== e.vers) return;
       e.vers = null;
       liste.classList.remove('tse-acc-ruban--mene');
-      if (c.dataset.tseCle !== e.tete) { e.tete = c.dataset.tseCle; bilan.une.tete = e.tete; }
+      if (c.dataset.tseCle !== e.tete) {
+        e.tete = c.dataset.tseCle;
+        bilan.une.tete = e.tete;
+        annoncer(liste, c);
+      }
       tourner(liste, c);
+    };
+    /* « 2 sur 5 : Nyxaria » — la diapositive au centre, et sa chaîne. Dite
+       quand on la MÈNE (allerA : une flèche, un clic, la carte voulue est
+       connue sur-le-champ) ou quand un défilement à la main s'arrête sur une
+       autre (finDefilement). Jamais deux fois : la tête posée par allerA est
+       celle que la fin du chemin retrouve. */
+    const annoncer = (liste, c) => {
+      const zone = liste.parentElement?.querySelector(':scope > .tse-acc-annonce');
+      const ordre = etatRuban(liste).ordre || [];
+      const i = ordre.indexOf(c.dataset.tseCle);
+      if (!zone || i < 0) return;
+      const nom = c.querySelector('.tse-acc-nom')?.textContent || c.dataset.tseCle;
+      zone.textContent = S.uiAccAnnonce(i + 1, ordre.length, nom);
+      bilan.une.annonces++;
     };
     const majFleches = (liste) => {
       const cadre = liste.parentElement;
@@ -18586,6 +18736,13 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         if (ouverts.has(cle)) ouverts.delete(cle); else ouverts.add(cle);
         plier(r);
       });
+      // Une carte repliée trouvée par Ctrl+F : le rayon se déplie tout entier.
+      r.addEventListener('beforematch', erreurs.garde('accueil', () => {
+        if (ouverts.has(cle)) return;
+        ouverts.add(cle);
+        bilan.plisTrouves++;
+        plier(r);
+      }));
       pied.append(elt('hr', 'tse-acc-filet'), plus, elt('hr', 'tse-acc-filet'));
       r.append(titre, liste, pied);
       r.hidden = true;
@@ -18602,6 +18759,12 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         .filter((t) => /^[\d.]+px$/.test(t)).length;
       return pistes || 0;
     };
+    /* LE PLI QUE Ctrl+F TRAVERSE (4.33.0.14). Une carte repliée porte
+       hidden="until-found" : la recherche de la page la trouve, le navigateur
+       envoie « beforematch » et la montre — et le rayon se déplie avec elle
+       (cf. fabriquerRayon), « Afficher moins » au bouton. Les deux planchers
+       le connaissent (Chrome 102, Firefox 148). */
+    const PLI_CACHE = 'until-found';
     const plier = (r) => {
       const liste = r.querySelector('.tse-acc-liste');
       const plus = r.querySelector('.tse-acc-plus');
@@ -18610,8 +18773,10 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       const cols = colonnes(liste);
       const replie = !ouvert && cols > 0;
       for (let i = 0; i < items.length; i++) {
-        const cache = replie && i >= cols;
-        if (items[i].hidden !== cache) items[i].hidden = cache;
+        const voulu = replie && i >= cols ? PLI_CACHE : null;
+        if (items[i].getAttribute('hidden') !== voulu) {
+          if (voulu === null) items[i].removeAttribute('hidden'); else items[i].setAttribute('hidden', voulu);
+        }
       }
       // Des places vides (cf. peindreUne) ne se déplient pas : il n'y a rien dessous.
       const reste = cols > 0 && items.length > cols && !('tseAttente' in liste.dataset);
@@ -18639,7 +18804,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       blocHeros.append(heros);
       // « À la une » (4.32.0.3), à la place qu'avait « Vos chaînes suivies en direct ».
       const hUne = elt('h2', 'tse-acc-titre');
-      hUne.append(elt('span', null, S.uiAccUne));
+      const tUne = elt('span', null, S.uiAccUne);
+      tUne.id = 'tse-acc-une-titre';
+      hUne.append(tUne);
       // En ruban (4.32.0.4, cf. RUBAN) : la liste défile, deux flèches la mènent.
       const lUne = elt('div', 'tse-acc-liste tse-acc-ruban');
       const cadreUne = elt('div', 'tse-acc-ruban-cadre');
@@ -18654,7 +18821,18 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         b.addEventListener('click', erreurs.garde('accueil', () => mener(lUne, sens)));
         return b;
       };
-      cadreUne.append(flecheUne(-1), lUne, flecheUne(1));
+      /* UN CARROUSEL, ET IL LE DIT (4.33.0.14) : une région nommée par son
+         titre, de rôle décrit « carrousel » ; ses cartes, des diapositives
+         « N sur M » (cf. peindreUne). Quand la carte du centre change — une
+         flèche, un clic, un défilement —, une annonce polie dit laquelle :
+         ce que l'œil voit glisser, l'oreille l'entend. Pas d'annonce à la
+         peinture : rien n'a bougé sous la main de personne. */
+      cadreUne.setAttribute('role', 'region');
+      cadreUne.setAttribute('aria-roledescription', S.uiAccCarrousel);
+      cadreUne.setAttribute('aria-labelledby', tUne.id);
+      const annonceUne = elt('p', 'tse-acc-annonce');
+      annonceUne.setAttribute('role', 'status');
+      cadreUne.append(flecheUne(-1), lUne, flecheUne(1), annonceUne);
       lUne.addEventListener('scroll', () => { etatRuban(lUne).defile = true; }, { passive: true });
       lUne.addEventListener('scrollend', erreurs.garde('accueil', () => finDefilement(lUne)));
       lUne.addEventListener('click', erreurs.garde('accueil', (ev) => centrerAuClic(lUne, ev)), true);
@@ -18709,17 +18887,15 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       z = { heros, une, lUne, top, tTop, lang, lTop, note, pq, rdv, lRdv, hab, lHab, abs, lAbs, langCle: undefined };
       /* LE LECTEUR NE JOUE QU'À L'ÉCRAN. Le héros descendu hors de la vue,
          sa vidéo s'arrête ; elle reprend quand il revient. */
-      if (typeof IntersectionObserver === 'function') {
-        guetteur = new IntersectionObserver(erreurs.garde('accueil', (entrees) => {
-          const vu = entrees[entrees.length - 1].isIntersecting;
-          if (vu === herosVu) return;
-          herosVu = vu;
-          majLecteur();
-        }));
-        guetteur.observe(heros);
-      } else herosVu = true;
+      guetteur = new IntersectionObserver(erreurs.garde('accueil', (entrees) => {
+        const vu = entrees[entrees.length - 1].isIntersecting;
+        if (vu === herosVu) return;
+        herosVu = vu;
+        majLecteur();
+      }));
+      guetteur.observe(heros);
       // Une fenêtre qui change de largeur change le nombre de colonnes.
-      if (typeof ResizeObserver === 'function') {
+      {
         let large = 0;
         mesureur = new ResizeObserver(erreurs.garde('accueil', (entrees) => {
           const l = Math.round(entrees[entrees.length - 1].contentRect.width);
@@ -19089,7 +19265,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     const etiquetterTwitch = () => {
       const voulu = options.get('accueilEtiquettes') && pose();
       const habille = options.get('accueilRanger') && pose();
-      if ((voulu || habille) && !guetteurCartes && typeof IntersectionObserver === 'function') {
+      if ((voulu || habille) && !guetteurCartes) {
         guetteurCartes = new IntersectionObserver(erreurs.garde('accueil', (entrees) => {
           for (const en of entrees) {
             if (en.isIntersecting) cartesVues.add(en.target); else cartesVues.delete(en.target);
@@ -19291,9 +19467,10 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        conteneur de requêtes (`container-type`) : elle piège un `position:
        fixed`, et le pli du rayon l'aurait rognée. La couche supérieure n'a
        pas d'ancêtre qui la contienne ; la fenêtre suit pourtant son bouton
-       dans le DOM, et la tabulation y entre juste après lui. Un navigateur
-       sans `popover` garde le bouton, et la phrase en infobulle. */
-    const POPOVER = typeof document.createElement('div').showPopover === 'function';
+       dans le DOM, et la tabulation y entre juste après lui. Les deux
+       planchers connaissent `popover` (Chrome 114, Firefox 125) : le repli
+       sans fenêtre — le bouton seul, la phrase en infobulle — est parti
+       (4.33.0.14). */
     const etatsCs = new WeakMap();   // bouton → { tete: { login, nom, avatar }, autres: [{ login, nom }] }
     let csOuvert = null;             // { bouton, fen, epingle }
     let csMinuteur = 0;
@@ -19447,7 +19624,6 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       const b = elt('button', 'tse-acc-cs');
       b.type = 'button';
       b.append(elt('span', null), noeudStatique(PICTO_CHEVRON));
-      if (!POPOVER) return [b];
       b.setAttribute('aria-expanded', 'false');
       const fen = elt('div', 'tse-acc-cs-fen');
       fen.id = 'tse-acc-cs-' + (++csNumero);
@@ -19501,7 +19677,6 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       texteSi(bouton.firstChild, `+ ${cs.autres.length}`);
       const phrase = phraseCs(cs);
       attrSi(bouton, 'aria-label', phrase);
-      if (!POPOVER) attrSi(bouton, 'title', phrase);
       if (csOuvert && csOuvert.bouton === bouton) remplirCs(csOuvert.fen, cs);
     };
     /* APRÈS CHAQUE PEINTURE DU TOP 15. Une place qui change de rang est
@@ -19531,8 +19706,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        feuille, `.tse-acc-relief`). La couleur est celle de la chaîne —
        `primaryColorHex`, que TseChannels rapporte —, le violet de Twitch à
        défaut. */
-    const fabriquerCarte = (login) => {
-      const carte = elt('article', 'tse-acc-carte');
+    /* Une <article> partout, sauf dans le ruban d'« À la une », où la carte
+       est une DIAPOSITIVE — rôle « group » — et qu'une <article> ne peut pas
+       porter (ARIA in HTML). */
+    const fabriquerCarte = (login, balise = 'article') => {
+      const carte = elt(balise, 'tse-acc-carte');
       carte.dataset.tseCle = login;
       const relief = elt('div', 'tse-acc-relief');
       const accent = elt('span', 'tse-acc-accent');
@@ -19834,10 +20012,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       l.t.delai = setTimeout(() => renoncer('delais'), CFG.ACCUEIL_VIDEO_DELAI_MS);
       lecteur = l;
       media.insertBefore(iframe, media.lastChild);
-      if (typeof ResizeObserver === 'function') {
-        l.taille = new ResizeObserver(erreurs.garde('accueil', direHauteur));
-        l.taille.observe(media);
-      }
+      l.taille = new ResizeObserver(erreurs.garde('accueil', direHauteur));
+      l.taille.observe(media);
       bilan.heros.video.poses++;
     };
     const lecteurVoulu = () => !!herosCourant && pose() && options.get('accueilVideo')
@@ -19891,9 +20067,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       ctx.putImageData(image, 0, 0);
       cible.classList.add('tse-acc-heros-ambiance--vue', 'tse-acc-heros-ambiance--dessus');
       dessus.classList.remove('tse-acc-heros-ambiance--dessus');
-      if (typeof cible.animate === 'function') {
-        cible.animate([{ opacity: 0 }, { opacity: 1 }], { duration: CFG.ACCUEIL_AMBIANCE_FONDU_MS, easing: 'ease-out' });
-      }
+      cible.animate([{ opacity: 0 }, { opacity: 1 }], { duration: CFG.ACCUEIL_AMBIANCE_FONDU_MS, easing: 'ease-out' });
       bilan.heros.ambiance.images++;
     };
     // Sans lecteur, le fond revient à l'image du direct.
@@ -20100,8 +20274,19 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         const t = cles.indexOf(ruban.tete);
         const d = t < 0 || items.length < 3 ? 0 : t - milieuRuban(items.length);
         const tournes = d ? [...items.slice(d), ...items.slice(0, d)] : items;
-        rangee(z.lUne, tournes, (it) => it.login, (it) => fabriquerCarte(it.login),
+        rangee(z.lUne, tournes, (it) => it.login, (it) => fabriquerCarte(it.login, 'div'),
                (n, it) => majCarte(n, donneesSuivie(it)));
+        /* LES DIAPOSITIVES SE NUMÉROTENT DANS L'ORDRE DU CARROUSEL, pas dans
+           celui du ruban : il tourne pour garder la tête au milieu, et la
+           troisième chaîne de Twitch resterait « 3 sur 5 » où qu'elle soit. */
+        ruban.ordre = cles;
+        for (const c of z.lUne.children) {
+          const i = cles.indexOf(c.dataset.tseCle);
+          if (i < 0) continue;
+          attrSi(c, 'role', 'group');
+          attrSi(c, 'aria-roledescription', S.uiAccDiapo);
+          attrSi(c, 'aria-label', S.uiAccDiapoN(i + 1, cles.length));
+        }
       }
       bilan.une.tete = ruban.tete;
       z.une.hidden = !items.length && !reserve;
@@ -20581,11 +20766,10 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         z.hab.hidden = true;
         return;
       }
-      const j0 = new Date();
-      j0.setHours(0, 0, 0, 0);
-      const debut = j0.getTime();
-      const demain = new Date(j0.getFullYear(), j0.getMonth(), j0.getDate() + 1).getTime();
-      const fin = new Date(j0.getFullYear(), j0.getMonth(), j0.getDate() + CFG.ACCUEIL_RDV_JOURS).getTime();
+      // Aujourd'hui, demain, et la fin de la fenêtre : des minuits locaux.
+      const debut = minuitDans(0);
+      const demain = minuitDans(1);
+      const fin = minuitDans(CFG.ACCUEIL_RDV_JOURS);
       let r;
       try { r = agenda.rendezVous({ debut, fin }); } catch (e) {
         erreurs.noter('accueil', 'rendez-vous : ' + ((e && e.message) || e));
@@ -25163,17 +25347,26 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       b.appendChild(k);
       return b;
     };
+    /* UN <dialog> MODAL AUTOUR DE L'ÉCRAN (4.33.0.14). L'écran se disait
+       modal (`role="dialog"`, `aria-modal`) et ramenait le focus à la main ;
+       le navigateur le fait mieux : la page dessous inerte pour de bon — au
+       clavier comme pour un lecteur d'écran —, la couche supérieure, sans
+       course au z-index avec Twitch (Modern Web Guidance, « dialog »). Le
+       <dialog> ENVELOPPE l'écran au lieu de l'être : un <dialog> ne peut pas
+       passer en plein écran (« Dialog elements are invalid », mesuré dans
+       Chromium), son enfant si — c'est donc l'écran, comme avant, qui y va. */
     const construire = () => {
+      const dialogue = elt('dialog', 'tse-zap-dialogue');
+      dialogue.setAttribute('aria-labelledby', 'tse-zap-titre');
       const boite = elt('div', '');
       boite.id = 'tse-zap';
-      boite.setAttribute('role', 'dialog');
-      boite.setAttribute('aria-modal', 'true');
       boite.tabIndex = -1;
       const scene = elt('div', 'tse-zap__scene');
       const capot = elt('div', 'tse-zap__capot');
       const trait = elt('div', 'tse-zap__trait');
       const compteur = elt('div', 'tse-zap__compteur');
       const titre = elt('span', 'tse-zap__titre');
+      titre.id = 'tse-zap-titre';
       const rang = elt('b', 'tse-zap__rang');
       compteur.append(titre, rang);
       const aide = elt('div', 'tse-zap__aide');
@@ -25231,7 +25424,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       boite.append(scene, capot, trait, compteur, aide, liste, infos, son, vide, avisEl);
       // La molette ne fait pas défiler la page dessous : seule la colonne défile, et jusqu'à son bout seulement.
       boite.addEventListener('wheel', (e) => { if (!e.target.closest || !e.target.closest('.tse-zap__liste')) e.preventDefault(); }, { passive: false });
-      return { boite, scene, titre, rang, aide, changerTexte, entree, entreeTexte, s, sTexte, o, oTexte, echap, echapTexte,
+      dialogue.append(boite);
+      /* Une demande de fermeture du navigateur (Échap la donne déjà au clavier,
+         cf. surTouche) ferme l'écran par le même chemin que la touche. */
+      dialogue.addEventListener('cancel', (e) => { e.preventDefault(); fermer('echap'); });
+      return { dialogue, boite, scene, titre, rang, aide, changerTexte, entree, entreeTexte, s, sTexte, o, oTexte, echap, echapTexte,
                precedente, suivante, liste, infos, visage, visageImg, nom, jour, titreDirect, direct, metaTexte,
                son, sonIcone, sonTexte, vide, avis: avisEl };
     };
@@ -25447,11 +25644,6 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         for (const l of lecteurs(c)) if (l.qualite) envoyer(l, 'qualite', { hauteur: h });
       }), CFG.ZAP_REDIM_MS);
     };
-    // Le focus qui s'échapperait (un clic hors des boutons, un lecteur) revient à l'écran.
-    const surFocus = (e) => {
-      const c = z;
-      if (c && e.target instanceof Node && !c.boite.contains(e.target)) c.boite.focus({ preventScroll: true });
-    };
     // L'onglet caché : les préchargés se mettent en pause ; le courant, lui, garde le son qu'on écoute.
     const surVisibilite = () => {
       const c = z;
@@ -25545,14 +25737,14 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         retour: document.activeElement && typeof document.activeElement.focus === 'function' ? document.activeElement : null, minuteur: null,
         pleinEcran: false, bouge: 0, reposT: null, souris: { x: null, y: null }, tailleT: null,
       };
-      document.body.appendChild(refs.boite);
+      document.body.appendChild(refs.dialogue);
+      refs.dialogue.showModal();
       // Le geste qui ouvre donne le droit au plein écran : on le demande avant tout ce qui pourrait le faire perdre.
       pleinEcran(z);
       // Sur la fenêtre, en capture : le tout premier relais d'une touche, avant le document et tout ce qu'il porte.
       window.addEventListener('keydown', surTouche, true);
       window.addEventListener('keyup', surToucheAutre, true);
       window.addEventListener('keypress', surToucheAutre, true);
-      document.addEventListener('focusin', surFocus, true);
       document.addEventListener('visibilitychange', surVisibilite);
       document.addEventListener('fullscreenchange', surPleinEcran);
       window.addEventListener('message', surMessage);
@@ -25580,7 +25772,6 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       window.removeEventListener('keydown', surTouche, true);
       window.removeEventListener('keyup', surToucheAutre, true);
       window.removeEventListener('keypress', surToucheAutre, true);
-      document.removeEventListener('focusin', surFocus, true);
       document.removeEventListener('visibilitychange', surVisibilite);
       document.removeEventListener('fullscreenchange', surPleinEcran);
       window.removeEventListener('message', surMessage);
@@ -25591,7 +25782,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
          navigateur sort du plein écran — son élément a quitté la page —, avant
          que la salle ne s'ouvre ou que la page ne reprenne. Un appel de plus à
          `exitFullscreen` ne changeait rien : un mutant l'a montré. */
-      c.boite.remove();
+      if (c.refs.dialogue.open) c.refs.dialogue.close();
+      c.refs.dialogue.remove();
       bilan.fermetures[raison] = (bilan.fermetures[raison] || 0) + 1;
       if (!navigue) {
         // La page reprend là où le zapping l'avait arrêtée — si elle est encore là.
@@ -30742,10 +30934,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
   const poserLibelle = (puce, libelle) => {
     let texte = puce.querySelector(':scope > .tse-subathon-libelle');
     if (!texte) {
-      puce.textContent = '';
       texte = document.createElement('span');
       texte.className = 'tse-subathon-libelle';
-      puce.appendChild(texte);
+      puce.replaceChildren(texte);
     }
     setText(texte, libelle);
     let teintes = puce.querySelector(':scope > .tse-subathon-teintes');
@@ -31251,7 +31442,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       // createElement plutôt que new Image() : strictement équivalent, et
       // cohérent avec le reste du fichier.
       const img = document.createElement('img');
-      try { img.fetchPriority = 'low'; } catch { /* attribut non géré */ }
+      img.fetchPriority = 'low';
       const finish = () => { inFlight--; pump(); };
       img.addEventListener('load', finish, { once: true });
       img.addEventListener('error', finish, { once: true });
@@ -35447,76 +35638,107 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
   const LANG_DD_ID = 'tse-lang-dd';
   // getAllLabel() lu dynamiquement pour suivre LANG si elle bascule.
   const getAllLabel = () => S.uiFilterAllCategories;
-  // Les DEUX filtres sont des dropdowns personnalisés (et non des <select>
-  // natifs) : un <option> ne peut afficher que du texte (pas les drapeaux SVG)
-  // et on veut une présentation homogène (compteurs, libellés, états).
+  /* ── DEUX <select>, ET PLUS DE MENU MAISON (4.33.0.14) ─────────────────
+     Les deux filtres étaient des menus construits à la main — un bouton, une
+     liste de <div role="option"> — parce qu'un <option> ne savait montrer que
+     du texte, et qu'on voulait les drapeaux. Ce menu s'ouvrait au clavier,
+     mais on n'y pouvait rien choisir : ses options ne prenaient pas le focus.
 
-  // Ferme tous les menus ouverts sauf, éventuellement, celui passé en argument.
-  function closeMenus(except) {
-    document.querySelectorAll('.tse-dd.tse-open').forEach(dd => {
-      if (dd === except) return;
-      dd.classList.remove('tse-open');
-      const btn = dd.querySelector('.tse-dd-btn');
-      if (btn) btn.setAttribute('aria-expanded', 'false');
-    });
-  }
-  // Clic extérieur / Échap → ferme les menus (lié une seule fois, global).
-  let ddBound = false;
-  function bindDropdownsGlobal() {
-    if (ddBound) return;
-    ddBound = true;
-    // Capture : exécuté avant les handlers de bouton ; on ferme tous les menus
-    // sauf celui dans lequel on clique (son propre handler gère sa bascule).
-    document.addEventListener('click', (e) => closeMenus(e.target.closest('.tse-dd')), true);
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenus(); });
-  }
-  // Branche un dropdown : bascule au clic sur le bouton, sélection au clic sur
-  // une option (délégation). La facette est lue sur data-facet.
-  function wireDropdown(dd) {
-    const btn  = dd.querySelector('.tse-dd-btn');
-    const menu = dd.querySelector('.tse-dd-menu');
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (btn.disabled) return;
-      const open = dd.classList.toggle('tse-open');
-      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
-    });
-    menu.addEventListener('click', (e) => {
-      const opt = e.target.closest('.tse-dd-opt');
-      if (!opt) return;
-      e.stopPropagation();
-      closeMenus();
-      onFilterChange(dd.dataset.facet, opt.dataset.value || null);
-    });
-  }
+     Le <select> personnalisable (appearance: base-select, Chrome 135) lève
+     l'obstacle : une option y porte des éléments — drapeau, compteur — et le
+     navigateur fait le reste. Focus, flèches, Entrée, Échap, clic au dehors,
+     la liste posée au-dessus de tout, les rôles que lisent les lecteurs
+     d'écran : tout ce qu'on écrivait ici — un menu ouvert à la fois, fermé au
+     clic extérieur ou à Échap — disparaît avec lui.
 
-  // Squelette d'un dropdown personnalisé (bouton + menu). `initialCurrent` est
-  // le contenu affiché par défaut (libellé « toutes » de la facette).
-  /* L'ossature d'une liste déroulante. Le squelette est un littéral ; l'id, la
-     facette, le libellé accessible et le contenu initial sont posés après, par
-     attribut ou par nœud. `initialCurrent` est une FONCTION qui fabrique un
-     nœud — le drapeau/globe est du balisage statique, le libellé « toutes
-     catégories » est du texte : les deux savent se produire eux-mêmes. */
-  const ddSquelette = (id, facet, modifier, ariaLabel, fabriquerCourant) => {
-    const frag = noeudStatique(
-      '<div class="tse-dd">'
-      + '<button type="button" class="tse-dd-btn" aria-haspopup="listbox" aria-expanded="false">'
-      + '<span class="tse-dd-current"></span>'
-      + '<span class="tse-dd-caret" aria-hidden="true"></span>'
-      + '</button>'
-      + '<div class="tse-dd-menu" role="listbox"></div>'
-      + '</div>');
-    const dd = frag.firstElementChild;
-    dd.id = id;
-    dd.classList.add(modifier);
-    dd.dataset.facet = facet;
-    dd.querySelector('.tse-dd-btn').setAttribute('aria-label', ariaLabel);
-    dd.querySelector('.tse-dd-current').appendChild(fabriquerCourant());
-    return frag;
+     LÀ OÙ IL N'EXISTE PAS — Firefox à ce jour —, le même élément est un
+     <select> ordinaire : il montre le TEXTE de ses options, sans drapeau. Le
+     texte de chaque option est donc écrit pour se lire seul (« 12 |
+     Français », pas « 12 |Français »), et le bouton qui porte le contenu
+     choisi n'est posé que là où il sert. La barre dit lequel des deux elle
+     a reçu (data-tse-select), pour que la feuille donne au <select> ordinaire
+     la place que son texte demande. */
+  // `globalThis.CSS` : dans ce fichier, `CSS` est notre feuille de style.
+  const SELECT_RICHE = globalThis.CSS.supports('appearance', 'base-select');
+
+  // Le drapeau d'une option est un décor : le nom de la langue est écrit à
+  // côté, en texte. Un SVG sans nom annoncé « image » n'apprendrait rien.
+  const decor = (noeud) => {
+    const el = noeud.nodeType === Node.DOCUMENT_FRAGMENT_NODE ? noeud.firstElementChild : noeud;
+    el?.setAttribute('aria-hidden', 'true');
+    return noeud;
   };
 
-  // Crée la barre de filtre : UNE ligne avec deux dropdowns personnalisés
-  // identiques — catégorie (extensible, libellé tronqué « … ») à gauche,
+  // L'option « toutes » d'une facette : le libellé de la catégorie est du
+  // texte ; celui de la langue, le globe et son nom (que la feuille ne montre
+  // que là où il y a la place).
+  const contenuTous = (kind) => {
+    if (kind !== 'lang') return document.createTextNode(getAllLabel());
+    return avecNomLangue(noeudStatique(GLOBE_MARKUP), S.uiFilterAllLanguages);
+  };
+  /* ── LE NOM À CÔTÉ DU DRAPEAU ─────────────────────────────────────────
+     Le menu langue ne montrait qu'un drapeau parce qu'il tenait dans
+     cinquante pixels. Quand le filtre catégorie est coupé, il prend toute
+     la ligne — et un drapeau seul au milieu de deux cents pixels vides se
+     lit comme un défaut. On construit donc TOUJOURS le nom ; la feuille le
+     montre là où il y a la place.
+
+     LE NOM CANONIQUE EST DÉJÀ CE QU'ON AFFICHE : « Français », « English ».
+     Rien à traduire, rien à mapper — c'est la valeur elle-même, celle qui
+     sert de clé de filtre. Une table de correspondance aurait été une
+     seconde source pour la même chaîne.
+
+     C'est aussi, depuis le <select>, le texte de l'option : celui que lit un
+     lecteur d'écran, et le seul que montre un <select> ordinaire. */
+  const avecNomLangue = (noeud, texte) => {
+    const hote = document.createElement('span');
+    hote.className = 'tse-dd-lang';
+    const nom = document.createElement('span');
+    nom.className = 'tse-dd-nom';
+    nom.textContent = texte;
+    hote.append(decor(noeud), nom);
+    return hote;
+  };
+
+  /* L'ossature d'un filtre : un <select>, sa facette, son nom accessible, et
+     l'option « toutes » en attendant le premier calcul. Là où le <select>
+     se personnalise, un bouton en tête : le contenu de l'option choisie
+     (<selectedcontent>, que le navigateur recopie à chaque choix) et la
+     flèche. Le choix part par « change » — clavier ou souris, c'est le même
+     événement. */
+  const ddSquelette = (id, facet, modifier, ariaLabel, kind) => {
+    const dd = document.createElement('div');
+    dd.className = 'tse-dd ' + modifier;
+    dd.id = id;
+    dd.dataset.facet = facet;
+    const choix = document.createElement('select');
+    choix.className = 'tse-dd-btn';
+    choix.setAttribute('aria-label', ariaLabel);
+    if (SELECT_RICHE) {
+      const bouton = document.createElement('button');
+      bouton.type = 'button';
+      bouton.className = 'tse-dd-bouton';
+      const courant = document.createElement('selectedcontent');
+      courant.className = 'tse-dd-current';
+      const fleche = document.createElement('span');
+      fleche.className = 'tse-dd-caret';
+      fleche.setAttribute('aria-hidden', 'true');
+      bouton.append(courant, fleche);
+      choix.append(bouton);
+    }
+    const tous = document.createElement('option');
+    tous.className = 'tse-dd-opt';
+    tous.value = '';
+    tous.dataset.value = '';
+    tous.append(contenuTous(kind));
+    choix.append(tous);
+    choix.addEventListener('change', () => onFilterChange(facet, choix.value || null));
+    dd.append(choix);
+    return dd;
+  };
+
+  // Crée la barre de filtre : UNE ligne avec deux <select> de même facture
+  // — catégorie (extensible, libellé tronqué « … ») à gauche,
   // langue (drapeaux, compacte) collée à droite — puis (via ensureSortRow) la
   // rangée de tri centrée dessous. Idempotent ; recréé tel quel au re-mount.
   function ensureFilterBar() {
@@ -35539,17 +35761,12 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       + '<div class="tse-filter-field tse-filter-field--cat"></div>'
       + '<div class="tse-filter-field tse-filter-field--lang"></div>'
       + '</div>'));
+    wrap.dataset.tseSelect = SELECT_RICHE ? 'riche' : 'natif';
     wrap.querySelector('.tse-filter-field--cat').appendChild(
-      ddSquelette(CAT_DD_ID, 'category', 'tse-dd--cat', S.uiFilterAriaLabel,
-                  () => document.createTextNode(getAllLabel())));
+      ddSquelette(CAT_DD_ID, 'category', 'tse-dd--cat', S.uiFilterAriaLabel, 'cat'));
     wrap.querySelector('.tse-filter-field--lang').appendChild(
-      ddSquelette(LANG_DD_ID, 'language', 'tse-dd--lang', S.uiFilterLangAriaLabel,
-                  () => noeudStatique(GLOBE_MARKUP)));
+      ddSquelette(LANG_DD_ID, 'language', 'tse-dd--lang', S.uiFilterLangAriaLabel, 'lang'));
     section.parentElement.insertBefore(wrap, section);
-
-    wireDropdown(wrap.querySelector(`#${CAT_DD_ID}`));
-    wireDropdown(wrap.querySelector(`#${LANG_DD_ID}`));
-    bindDropdownsGlobal();
   }
 
   /* ── LE ROUGE DU DIRECT, MESURÉ (4.24.0) ────────────────────────────────
@@ -35700,14 +35917,15 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     if (document.getElementById(INCRUSTE_ID)) return;
     if (!urlPanneau) { demanderUrl(); return; }
 
-    const voile = document.createElement('div');
+    /* UN VRAI <dialog>, OUVERT PAR showModal() (4.33.0.14). Il se disait
+       modal (`role="dialog"`, `aria-modal`) sans l'être : la tabulation en
+       sortait vers la page de Twitch derrière lui. Le navigateur, lui, rend
+       la page inerte, garde le focus dedans, le pose dans la couche
+       supérieure — au-dessus des modales de Twitch sans course au z-index — et
+       le ferme sur Échap (Modern Web Guidance, « dialog »). */
+    const voile = document.createElement('dialog');
     voile.id = INCRUSTE_ID;
     voile.className = 'tse-incruste';
-    /* `dialog` + `aria-modal` : ce qui est derrière n'est plus atteignable, et
-       il faut le DIRE — un lecteur d'écran continuerait sinon d'annoncer la
-       barre latérale par-dessus laquelle le cadre est posé. */
-    voile.setAttribute('role', 'dialog');
-    voile.setAttribute('aria-modal', 'true');
     voile.setAttribute('aria-label', S.uiRoueTitre);
 
     const cadre = document.createElement('div');
@@ -35733,7 +35951,6 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     cadre.appendChild(frame);
     voile.appendChild(cadre);
 
-    const surTouche = (ev) => { if (ev.key === 'Escape') fermerIncruste?.(); };
     /* LE PANNEAU EST DANS UNE AUTRE ORIGINE : la touche Échap frappée à
        l'intérieur du cadre ne remonte pas jusqu'ici. C'est panneau.js qui
        l'écoute et nous le poste — d'où ce second chemin, qui n'est pas un
@@ -35787,10 +36004,10 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     };
 
     fermerIncruste = () => {
-      document.removeEventListener('keydown', surTouche, true);
       window.removeEventListener('message', surMessage);
-      voile.remove();
       fermerIncruste = null;
+      if (voile.open) voile.close();
+      voile.remove();
       /* Le focus retourne d'où il vient. Sans ça, fermer au clavier laisse le
          focus sur le corps du document, et la tabulation suivante repart du
          haut de Twitch — l'utilisateur perd sa place pour avoir fermé une
@@ -35802,11 +36019,14 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
        compare la cible au voile lui-même plutôt que d'arrêter la propagation
        depuis le cadre : un `stopPropagation` posé sur le cadre aurait aussi
        mangé les clics que Twitch écoute au-dessus. */
-    voile.addEventListener('click', (ev) => { if (ev.target === voile) fermerIncruste(); });
-    document.addEventListener('keydown', surTouche, true);
+    voile.addEventListener('click', (ev) => { if (ev.target === voile) fermerIncruste?.(); });
+    /* Échap, et toute demande de fermeture du navigateur, ferment le
+       <dialog> de lui-même : on suit, pour défaire le reste. */
+    voile.addEventListener('close', () => fermerIncruste?.());
     window.addEventListener('message', surMessage);
 
     document.body.appendChild(voile);
+    voile.showModal();
   }
 
   /* ── LA ROUE CRANTÉE ──────────────────────────────────────────────────────
@@ -36927,36 +37147,14 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
      toujours sur l'identité, jamais sur la traduction. */
   function rebuildDropdown(dd, values, counts, current, disabled, kind,
                            fmt = String, libelle = String) {
-    const btn  = dd.querySelector('.tse-dd-btn');
-    const cur  = dd.querySelector('.tse-dd-current');
-    const menu = dd.querySelector('.tse-dd-menu');
+    const choix  = dd.querySelector('select');
+    const bouton = choix.querySelector(':scope > button');   // absent du <select> ordinaire
 
-    /* Chaque libellé se fabrique en NŒUD. Côté langue c'est un drapeau ou le
-       code à deux lettres ; côté catégorie, le nom que Twitch renvoie — et
-       celui-là ne passe que par textContent. */
-    /* ── LE NOM À CÔTÉ DU DRAPEAU ─────────────────────────────────────────
-       Le menu langue ne montrait qu'un drapeau parce qu'il tenait dans
-       cinquante pixels. Quand le filtre catégorie est coupé, il prend toute
-       la ligne — et un drapeau seul au milieu de deux cents pixels vides se
-       lit comme un défaut. On construit donc TOUJOURS le nom ; la feuille le
-       montre là où il y a la place.
-
-       LE NOM CANONIQUE EST DÉJÀ CE QU'ON AFFICHE : « Français », « English ».
-       Rien à traduire, rien à mapper — c'est la valeur elle-même, celle qui
-       sert de clé de filtre. Une table de correspondance aurait été une
-       seconde source pour la même chaîne. */
-    const avecNom = (noeud, texte) => {
-      if (kind !== 'lang') return noeud;
-      const hote = document.createElement('span');
-      hote.className = 'tse-dd-lang';
-      const nom = document.createElement('span');
-      nom.className = 'tse-dd-nom';
-      nom.textContent = texte;
-      hote.append(noeud, nom);
-      return hote;
-    };
+    /* Chaque libellé se fabrique en NŒUD. Côté langue c'est un drapeau et
+       le nom ; côté catégorie, le nom que Twitch renvoie — et celui-là ne
+       passe que par textContent. */
     const itemLabel = (v) => {
-      if (kind === 'lang') return avecNom(langIcon(v), v);
+      if (kind === 'lang') return avecNomLangue(langIcon(v), v);
       const sp = document.createElement('span');
       sp.className = 'tse-dd-name';
       sp.textContent = libelle(v);
@@ -36965,12 +37163,16 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     /* LE GLOBE PREND LE LIBELLÉ QU'IL PORTAIT DÉJÀ EN INFOBULLE. « Toutes les
        langues » est traduit dans les dix tables depuis toujours ; inventer un
        second mot pour la même chose — « Monde » — aurait fait deux chaînes à
-       tenir d'accord, et l'infobulle aurait fini par contredire l'étiquette. */
-    const allLabel = () => kind === 'lang'
-      ? avecNom(noeudStatique(GLOBE_MARKUP), S.uiFilterAllLanguages)
-      : document.createTextNode(getAllLabel());
+       tenir d'accord, et l'infobulle aurait fini par contredire l'étiquette.
+       (contenuTous) */
     const allTitle  = kind === 'lang' ? S.uiFilterAllLanguages : S.uiFilterAllCategories;
 
+    /* LE CHOIX RESTE AU MENU, même quand le menu ne le connaît plus : au
+       premier balayage la liste des catégories peut être vide, et une mesure
+       évincée retire une langue. Le bouton d'avant affichait le choix quoi
+       qu'il arrive ; un <select> n'affiche que ses options — sans elle, il
+       montrerait « toutes » pendant que le filtre, lui, tient. */
+    if (current && !values.includes(current)) values = [...values, current];
     // Le libellé entre dans la signature, et pas seulement la valeur : au
     // changement de langue de l'interface, les catégories et leurs compteurs
     // sont les mêmes et seuls les libellés bougent. Sans eux ici, le menu
@@ -36989,19 +37191,17 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
                     + (counts.has(v) ? counts.get(v) : 'ø')).join('\u00A7');
     if (dd.dataset.tseSig !== sig) {
       dd.dataset.tseSig = sig;
-      cur.replaceChildren(current ? itemLabel(current) : allLabel());
-
       const option = (valeur, selectionnee, titre, contenu) => {
-        const o = document.createElement('div');
+        const o = document.createElement('option');
         o.className = 'tse-dd-opt';
-        o.setAttribute('role', 'option');
+        o.value = valeur;
         o.dataset.value = valeur;
-        o.setAttribute('aria-selected', String(selectionnee));
-        if (titre != null) o.setAttribute('title', titre);
-        o.appendChild(contenu);
+        o.selected = selectionnee;
+        if (titre != null) o.title = titre;
+        o.append(contenu);
         return o;
       };
-      const lignes = [option('', !current, allTitle, allLabel())];
+      const lignes = [option('', !current, allTitle, contenuTous(kind))];
       for (const v of values) {
         const o = option(v, v === current, null, itemLabel(v));
         /* ABSENT ET ZÉRO NE SE VALENT PAS, et le formateur doit pouvoir les
@@ -37016,19 +37216,31 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
           const c = document.createElement('span');
           c.className = 'tse-dd-n';
           c.textContent = `${n} |`;
-          o.insertBefore(c, o.firstChild);
+          /* L'espace entre le compteur et le nom est un NŒUD TEXTE, pas une
+             marge : la rangée flex de l'option l'ignore — l'écart y est
+             déjà —, mais le <select> ordinaire, qui n'affiche que le texte,
+             en a besoin pour écrire « 12 | Français ». */
+          o.prepend(c, ' ');
         }
         lignes.push(o);
       }
-      menu.replaceChildren(...lignes);
+      choix.replaceChildren(...(bouton ? [bouton] : []), ...lignes);
     }
-    btn.disabled = disabled;
+    /* La valeur montrée est celle de l'état sans qu'on la repose : un choix
+       fait dans le menu change toujours l'état (onFilterChange), l'état entre
+       dans la signature, et le menu se reconstruit avec l'option choisie. Une
+       resynchronisation ici ne servait jamais — un mutant qui l'ôtait ne
+       changeait rien (4.33.0.14). */
+    choix.disabled = disabled;
+    /* Le NOM ne porte plus le choix : un <select> l'annonce lui-même, comme
+       sa valeur. Le bouton d'avant n'en avait pas, d'où « Filtrer : X ». */
     const base = kind === 'lang' ? S.uiFilterLangAriaLabel : S.uiFilterAriaLabel;
-    btn.setAttribute('aria-label', current ? `${base} : ${libelle(current)}` : base);
-    if (disabled && dd.classList.contains('tse-open')) {  // ferme uniquement CE menu
-      dd.classList.remove('tse-open');
-      btn.setAttribute('aria-expanded', 'false');
-    }
+    if (choix.getAttribute('aria-label') !== base) choix.setAttribute('aria-label', base);
+    /* Désactivé pendant que sa liste est ouverte, un <select> la laisse
+       ouverte — et inerte : Chromium n'y prend plus aucun choix. Aucune
+       méthode ne ferme la liste d'un <select> ; le retirer et le remettre à
+       sa place, si. Le menu d'avant se fermait de même, et seul. */
+    if (disabled && choix.matches(':open')) dd.insertBefore(choix, choix.nextSibling);
   }
 
   /**

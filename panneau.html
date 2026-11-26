@@ -78,8 +78,13 @@
            l'emportant sinon sur celle du navigateur. -->
       <div class="visuel" id="visuel" hidden></div>
 
-      <div class="tableau-cadre" id="tableau-cadre">
+      <!-- Un tableau de DONNÉES (4.33.0.14) : sa légende — le titre de la
+           vue — le nomme, ses en-têtes disent leur colonne, et son cadre, qui
+           défile, est une région nommée qu'on atteint au clavier (Modern Web
+           Guidance, « accessibility », « responsive-table »). -->
+      <div class="tableau-cadre" id="tableau-cadre" role="region" aria-labelledby="vue-titre" tabindex="0">
         <table class="tableau" id="tableau">
+          <caption class="lecteur-seul" id="tableau-legende"></caption>
           <thead id="tableau-tete"></thead>
           <tbody id="tableau-corps"></tbody>
         </table>
@@ -98,19 +103,25 @@
     <button class="bouton bouton--danger" id="btn-reset" data-i18n="btnReset"></button>
   </footer>
 
-  <!-- LE RAPPORT, EN PLEIN PANNEAU. Une vue qui recouvre tout plutôt qu'un
+  <!-- LE RAPPORT, EN PLEIN PANNEAU. Un <dialog> ouvert par showModal()
+       (4.33.0.14) : il tient le focus, rend le reste inerte, et Échap le ferme
+       — c'est le navigateur qui le fait (Modern Web Guidance, « dialog »).
+       Il se déclarait modal sans l'être : la tabulation en sortait.  Une vue qui recouvre tout plutôt qu'un
        fichier téléchargé : ce qu'on fait d'un rapport, c'est le coller dans une
        conversation, pas l'attacher. Et une zone de texte qu'on peut lire avant
        de copier est la seule façon de VÉRIFIER ce qu'on envoie — le fichier ne
        faisait que le promettre. -->
-  <section class="rapport" id="rapport" hidden role="dialog" aria-modal="true"
-           aria-labelledby="rapport-titre">
+  <dialog class="rapport" id="rapport" aria-labelledby="rapport-titre">
     <header class="rapport-tete">
       <div class="rapport-texte-tete">
         <h2 class="rapport-titre" id="rapport-titre" data-i18n="reportTitle"></h2>
         <p class="rapport-desc" data-i18n="reportDesc"></p>
       </div>
-      <button class="bouton bouton--fantome" id="rapport-fermer" data-i18n="btnClose"></button>
+      <!-- Une COMMANDE, et plus un écouteur (4.33.0.14) : « close » sur le
+           rapport, que le navigateur exécute — Chrome 135, Firefox 144. La
+           fermeture remet le focus au bouton qui l'a ouvert, et l'écouteur
+           « close » du rapport efface sa note. -->
+      <button class="bouton bouton--fantome" id="rapport-fermer" command="close" commandfor="rapport" data-i18n="btnClose"></button>
     </header>
     <!-- readonly, pas disabled : un champ désactivé n'est ni sélectionnable ni
          copiable, et c'est tout ce qu'on lui demande. -->
@@ -119,23 +130,28 @@
     <footer class="rapport-pied">
       <button class="bouton" id="rapport-copier" data-i18n="btnCopy"></button>
       <button class="bouton bouton--fantome" id="rapport-actualiser" data-i18n="btnRefresh"></button>
-      <span class="pied-note" id="rapport-note" hidden></span>
+      <!-- Ce que « Copier » a fait, dit aussi aux lecteurs d'écran : une
+           région vivante, toujours là, vide tant qu'il n'y a rien à dire
+           (Modern Web Guidance, « copy-button »). -->
+      <span class="pied-note" id="rapport-note" role="status"></span>
     </footer>
-  </section>
+  </dialog>
 
   <!-- Confirmation des actions irréversibles. Une boîte dans le panneau et non
        un confirm() natif : confirm() est bloquant, non traduisible, et son
        apparence n'appartient à personne. -->
-  <div class="voile" id="voile" hidden>
-    <div class="boite" role="alertdialog" aria-modal="true" aria-labelledby="boite-titre">
+  <dialog class="voile" id="voile" role="alertdialog" aria-labelledby="boite-titre" aria-describedby="boite-texte">
+    <div class="boite">
       <h3 id="boite-titre" class="boite-titre"></h3>
       <p class="boite-texte" id="boite-texte"></p>
       <div class="boite-pied">
-        <button class="bouton" id="boite-annuler" data-i18n="btnCancel"></button>
+        <!-- Annuler n'est qu'une fermeture : une commande, comme « Fermer » du
+             rapport. L'écouteur « close » oublie l'action en attente. -->
+        <button class="bouton" id="boite-annuler" command="close" commandfor="voile" data-i18n="btnCancel"></button>
         <button class="bouton bouton--danger" id="boite-ok" data-i18n="btnConfirm"></button>
       </div>
     </div>
-  </div>
+  </dialog>
 
   <script src="panneau.js"></script>
 </body>

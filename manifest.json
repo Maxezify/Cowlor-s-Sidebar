@@ -2,8 +2,8 @@
   "manifest_version": 3,
   "name": "__MSG_extName__",
   "short_name": "__MSG_extShortName__",
-  "version": "4.33.0.13",
-  "minimum_chrome_version": "119",
+  "version": "4.33.0.14",
+  "minimum_chrome_version": "150",
   "default_locale": "en",
   "description": "__MSG_extDescription__",
   "icons": {
@@ -22,6 +22,9 @@
   },
   "background": {
     "service_worker": "background.js"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; require-trusted-types-for 'script'; trusted-types 'none'"
   },
   "web_accessible_resources": [
     {

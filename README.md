@@ -80,14 +80,16 @@ de Twitch, miniatures, lecteur `player.twitch.tv` pour l'aperçu).
 
 ## Compatibilité
 
-- **Chrome 119 ou supérieur** (et tout navigateur Chromium récent : Edge, Brave,
-  Opera, Vivaldi, Arc). Le content script utilise `"world": "MAIN"`, introduit
-  à la 111, et `Promise.withResolvers`, introduit à la 119 (4.33.0.10) : le
-  manifeste le déclare (`minimum_chrome_version`).
-- **Firefox** : le MV3 de Firefox prend en charge `"world": "MAIN"` sur les
-  versions récentes, mais quelques différences de timing d'injection peuvent
-  exister. Le portage cible Chromium ; sous Firefox, la version userscript
-  d'origine (via Violentmonkey) reste l'option la plus sûre.
+- **Chrome 150 ou supérieur** (et tout navigateur Chromium récent : Edge, Brave,
+  Opera, Vivaldi, Arc). Un plancher choisi (4.33.0.14), déclaré par le
+  manifeste (`minimum_chrome_version`) : le code s'appuie sans repli sur ce
+  que Chrome 150 connaît — Temporal, `<dialog>`, `moveBefore()`,
+  `hidden="until-found"`, le `<select>` personnalisable, Trusted Types. Il
+  était à 119 (`Promise.withResolvers`, 4.33.0.10).
+- **L'édition Firefox** (branches `claude/firefox-*`) : **Firefox 150 ou
+  supérieur**, le même plancher, choisi lui aussi (4.33.0.14). Le contrôle du
+  paquet l'exige de son manifeste ; ce que Firefox 150 n'a pas — le
+  `<select>` personnalisable — y prend un repli natif.
 
 ---
 
@@ -2183,6 +2185,231 @@ Un sous-test qui modélisait un cas impossible — un direct qui rajeunit sans
 changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'il
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
+
+## Encore Modern Web Guidance, aux planchers Chrome 150 et Firefox 150 (v4.33.0.14)
+
+« Fais encore un coup de modern-web-guidance-src sur le chrome/homepage,
+histoire d'être sûr que tu n'as vraiment rien oublié […] Sois rigoureux. »
+Puis, en cours de route : « Plancher Chrome jusqu'à 150 », et « tu peux
+mettre le palier Firefox à la version 150 ».
+
+**La méthode.** Le dépôt de GoogleChrome au commit `d6b5df9` du 25 novembre
+2026 : les 41 règles déterministes de son scanner (`legacy-scan`, 37 guides),
+lues et appliquées à la main au code — le scanner, un paquet téléchargé, n'a
+pas été lancé. Puis ses 255 guides, triés un à un : 119 hors sujet (IA
+embarquée, paiements, formulaires de compte, service workers de cache… chacun
+avec sa raison), 136 lus. Chaque fonction que ces 136 guides recommandent a
+été confrontée aux deux planchers d'après `web-features` 3.47.0 : présente
+dans les deux, l'appliquer sans repli ; présente dans un seul, l'appliquer
+avec repli ou la laisser, et dire pourquoi ; absente, la laisser. Le tri a
+été refait à chaque plancher relevé — Chrome de 119 à 150, Firefox de 140 à
+150 — et ce qu'il a changé est dit plus bas.
+
+**Les planchers.** Chrome 150, déclaré par le manifeste
+(`minimum_chrome_version`). Firefox 150 : c'est le manifeste de l'édition
+Firefox qui le déclare (`strict_min_version`), et le contrôle du paquet,
+commun aux deux éditions, l'exige désormais. Le code ne garde plus de repli
+pour ce que les deux connaissent.
+
+### Ce qui se voit
+
+- **Les filtres catégorie et langue se choisissent au clavier.** Le menu
+  maison s'ouvrait au clavier, mais on n'y pouvait rien choisir : ses options
+  ne prenaient pas le focus. Ce sont maintenant des `<select>` : Entrée ouvre,
+  les flèches parcourent, Entrée choisit, Échap referme, et le navigateur
+  annonce le filtre et sa valeur. Sous Chrome, `appearance: base-select`
+  garde l'aspect d'avant, drapeaux et compteurs compris — comparé à la
+  version précédente au pixel près, dans les deux thèmes, menus ouverts et
+  fermés. Un seul écart, voulu : le libellé de la boîte prend la police de la
+  page, comme les onglets « Chaînes suivies / Top Chaînes » juste au-dessus ;
+  l'ancien bouton prenait celle des boutons. Firefox n'a pas de `<select>`
+  personnalisable : il montre le texte des options (« 12 | Français »),
+  écrit pour se lire seul, et les deux filtres s'y partagent la ligne. Le
+  focus se voit, ce qu'il ne faisait pas.
+- **Les fenêtres sont des `<dialog>`.** Le panneau incrusté, le zapping, le
+  rapport et la confirmation : le navigateur rend inerte ce qui est dessous,
+  et Échap les ferme. Le code qui ramenait le focus dans le zapping, et
+  celui qui guettait Échap autour du panneau incrusté, sont partis. Dans le panneau, « Fermer » et « Annuler » sont
+  des commandes (`command="close"`, Chrome 135, Firefox 144), plus des
+  écouteurs.
+- **Le panneau lisible par un lecteur d'écran.** Chaque réglage est nommé
+  par son libellé et décrit par sa phrase (`aria-labelledby`,
+  `aria-describedby`), et dit quand il est sans effet. Les interrupteurs
+  sont des cases rôle « switch », dessinées en CSS. En couleurs forcées,
+  le navigateur repeignait leur piste et leur curseur de la même couleur :
+  le curseur disparaissait, coché ou non (trouvé par le banc). Ils y
+  peignent maintenant eux-mêmes leurs couleurs système. Le tableau a sa légende, ses en-têtes de colonne, et sa zone de
+  défilement se nomme et prend le focus.
+- **Chaque texte tient son seuil de contraste**, mesuré sur ce qui est peint,
+  dans les deux thèmes, dans le panneau, sur l'accueil et dans la barre : les
+  dégradés arrêt par arrêt, les badges translucides sur leur fond composé.
+  Ce qui passait dessous :
+  - l'onglet actif, blanc sur un violet clair : 3,26:1 au sommet de son
+    dégradé. Il part maintenant du violet de Twitch (4,62) vers #772ce8
+    (6,34) ;
+  - le « = » d'une place stable du Top 15 : 3,83:1 en sombre, maintenant
+    dans le gris doux ;
+  - dans le panneau en clair, l'étiquette « OK » du diagnostic (4,48), la
+    durée d'une carte teintée (4,24), la catégorie des cartes teintées du
+    mode d'emploi (3,8 ; 4,38 en sombre), et celle de la carte « abonné »,
+    dans l'or pâle du sombre : 1,18:1. Elle prend la teinte que le produit
+    donne à cette catégorie. La palette des badges est posée sur la surface
+    où le produit les montre : sur le creux du cadre, plus sombre, « Ancien
+    abonné » tombait à 4,13. L'onglet de la maquette est peint comme celui
+    de la barre.
+  Les couleurs du panneau ne sont plus écrites deux fois : `light-dark()`
+  les porte, et `color-scheme` choisit.
+- **« À la une » se dit carrousel.** Une région nommée par son titre, de rôle
+  décrit « carrousel » ; chaque carte, une diapositive « 2 sur 5 », numérotée
+  dans l'ordre du carrousel — le ruban tourne, les numéros restent. Une
+  flèche, un clic : une annonce polie dit la carte du centre, « 2 sur 5 :
+  Nyxaria ». Dans les dix langues.
+- **Ctrl+F trouve ce qu'un rayon replié cache.** Les cartes sous la première
+  rangée portent `hidden="until-found"` (Chrome 102, Firefox 148) : la
+  recherche de la page les trouve, et le rayon se déplie tout entier,
+  « Afficher moins » au bouton. Repliées, elles ne prennent aucune place.
+- **Les titres qui passent à la ligne** se coupent en lignes égales
+  (`text-wrap: balance`).
+
+### Ce qui ne se voit pas
+
+- **Les jours civils par Temporal.** Minuit local, « aujourd'hui »,
+  « demain », « il y a 3 jours », les échéances d'abonnement, les semaines de
+  l'agenda : des jours de calendrier, plus des millisecondes divisées puis
+  arrondies. Les résultats sont ceux d'avant, éprouvés sur deux pièges — la
+  semaine de 167 heures du passage à l'heure d'été à Paris, et le dimanche
+  sans minuit de Santiago. L'instant vient toujours de `Date.now()` : c'est
+  l'horloge que le banc fige, et `Temporal.Now` ne la suit pas.
+- **Trusted Types sur les pages de l'extension.** Le panneau n'écrit jamais
+  de HTML par chaîne ; le manifeste l'exige maintenant du navigateur
+  (`require-trusted-types-for 'script'`, aucune politique admise). Une
+  affectation à `innerHTML` y serait refusée. Chrome 83, Firefox 148.
+- **Les replis partis avec les planchers.** La détection de `moveBefore`
+  (Chrome 133, Firefox 144), celle de `popover` et son infobulle de secours,
+  le repli d'`Intl.DurationFormat`, les tests de `IntersectionObserver` et
+  `ResizeObserver`, les préfixes `-webkit-` des masques, du découpage au
+  texte, des barres de défilement et du flou d'arrière-plan. `100vh` devient
+  `100dvh` là où la hauteur de l'écran compte. `toSorted()` pour une copie
+  triée de plus.
+
+### Ce qui n'a pas changé, et pourquoi
+
+- **Ce que Firefox 150 n'a pas** : le `<select>` personnalisable (repli
+  natif, ci-dessus), `interestfor`, `focusgroup`, les promesses des méthodes
+  de défilement, les événements d'accroche du défilement,
+  `scroll-initial-target`, les transitions de vue limitées à un élément,
+  `field-sizing`, `interpolate-size`, `sibling-index()`. Le code
+  d'aujourd'hui reste ce qu'ils remplaceraient, et marche dans les deux.
+- **Ce que Chrome 150 n'a pas** : `popover="hint"` (151), le positionnement
+  par ancre tel que `web-features` le déclare complet (157), l'attribut
+  `switch`.
+- **Les transitions de vue du document**, présentes dans les deux : elles
+  figeraient toute la page de Twitch le temps d'un tri. La barre glisse par
+  ses propres animations.
+- **`closedby`** : nos fenêtres plein écran n'ont pas de « dehors » où
+  cliquer, et une confirmation ne se referme pas d'un clic à côté. Échap les
+  ferme déjà.
+- **`ariaNotify()`**, dans les deux : le carrousel annonce par une région
+  vivante, que tout lecteur d'écran lit et que le banc vérifie.
+- **Le cycle de Tab du zapping** : un `<dialog>` rend inerte ce qui est
+  dessous, mais Tab sortirait vers la barre du navigateur. L'écran plein
+  garde le focus en boucle.
+- **Les durées compactes** (« 1:23:07 » sur les vignettes de l'agenda) : le
+  format de Twitch, le même dans toutes les langues ; le style « digital »
+  d'`Intl.DurationFormat` changerait de séparateur selon la langue.
+- **`adblock.js`**, code tiers vendorisé : il n'est pas à nous de le
+  moderniser.
+- **`@scope`, `@layer`, les propriétés logiques** : nos classes préfixées
+  isolent déjà la feuille, une feuille en couche perdrait contre celle de
+  Twitch, et les dix langues de l'extension s'écrivent de gauche à droite.
+- **`contrast-color()`, la Sanitizer API** : aucun texte n'est posé sur une
+  couleur venue de Twitch, et aucun HTML de Twitch n'est analysé.
+- **`<meta name="text-scale">`** (Chrome 146 seulement) : il demanderait de
+  passer la feuille en `rem`. Une proposition, pas faite.
+- **Le mouvement réduit** reste ignoré : un choix du produit.
+- **`content-visibility` sur les rayons de l'accueil**, demandé « seulement
+  si la mesure montre un gain » : mesuré trois fois de chaque côté, le
+  chargement de l'accueil et six pas de défilement. La mise en page passe de
+  68 à 37 ms sur la séance, mais le calcul des styles de 43 à 53, et le
+  temps total des tâches de 673 à 761 : aucun gain sûr. Une hauteur estimée
+  par rayon ferait de plus sauter la page à chaque rayon qui se dessine. Pas
+  fait.
+- **Découper le balayage (`scheduler.yield()`)**, présent dans les deux :
+  mesuré, un balayage de 150 chaînes prend de 8 à 15 ms, loin des 50 ms
+  d'une tâche longue. Les deux seules images longues (83 et 120 ms), au
+  chargement, ne portent aucun script de plus de 5 ms : c'est du rendu. Rien
+  à découper.
+
+### Le banc
+
+- **240, nouveau** : les filtres en `<select>` — leur forme, le texte de
+  leurs options, le clavier (Entrée, flèche, Entrée, Échap), le focus
+  visible, une liste ouverte que son filtre perd et qui se referme, le
+  `<select>` ordinaire qui partage la ligne, le choix que le menu ne
+  connaît pas encore et qu'il garde ; le carrousel — région,
+  diapositives, numéros qui survivent au ruban qui tourne, l'annonce d'une
+  flèche ; le rayon replié — `until-found`, aucune place prise, une
+  recherche dans la page qui le déplie ; chaque texte de l'accueil et de la
+  barre au seuil, dans les deux thèmes.
+- **70** : chaque texte du panneau au seuil, dans ses trente vues et les deux
+  thèmes. **120** : les réglages nommés, les interrupteurs en couleurs
+  forcées. **208 r)** : les semaines d'un changement d'heure, à Paris, à
+  Santiago et à New York. Les scénarios des filtres choisissent une option comme le fait le
+  navigateur ; ceux des fenêtres lisent `:modal`.
+- **La mesure des contrastes** est commune au banc (`mesurerContrastes`) :
+  elle lit les dégradés arrêt par arrêt, mesure un texte en contour par son
+  trait, et rend ce qu'elle écarte — un contrôle désactivé, un texte posé sur
+  une vidéo, un emoji en couleur —, pour qu'une exclusion ne cache rien en
+  silence. La sonde d'avant mesurait l'onglet actif blanc sur blanc.
+
+**Trente-cinq mutants nommés, trente-cinq pris.** Un trente-sixième ôtait
+la ligne qui resynchronisait la valeur d'un filtre : il ne changeait rien,
+et aucun chemin n'y menait — un choix change toujours l'état, et l'état
+reconstruit le menu. La ligne est partie. Deux autres avaient d'abord
+survécu, et ont fait écrire leur test : le choix gardé au menu (240 a6), et
+les jours comptés en millisecondes — invisibles dans une semaine qui
+commence le lundi, ils doublent le dimanche d'une semaine américaine à
+l'heure d'hiver (208 r, New York).
+
+| mutant | ce qui tombe |
+| --- | --- |
+| le compteur collé au nom (« 2 |Français ») | 240 a) |
+| le drapeau laissé aux lecteurs d'écran | 240 a) |
+| la flèche du navigateur en plus de la nôtre | 240 a) |
+| la hauteur d'option du navigateur gardée (36 px) | 240 a) |
+| la liste comptée cadre compris | 240 a) |
+| le liseré du focus ôté | 240 a) |
+| une liste désactivée laissée ouverte | 240 a) |
+| le `<select>` ordinaire sans partage de la ligne | 240 a) |
+| le choix absent du menu oublié | 240 a) |
+| le carrousel sans annonce à la flèche | 240 b) |
+| les diapositives numérotées dans l'ordre du ruban | 240 b) |
+| une `<article>` pour diapositive | 240 b) |
+| la boîte repliée gardée dans la grille | 240 b) |
+| la carte trouvée, le rayon pas déplié | 240 b) |
+| la règle souveraine qui masque aussi `until-found` | 240 b) |
+| un `hidden` nu au lieu d'`until-found` | 240 b) |
+| l'onglet actif rendu à son dégradé d'avant | 240 b) |
+| « = » rendu au gris faible | 240 b) |
+| le vert d'avant dans le panneau | 70 |
+| l'or pâle du sombre gardé en clair | 70 |
+| la palette des badges remise sur le creux | 70 |
+| la catégorie des cartes au gris faible | 70 |
+| le violet clair d'avant | 70 |
+| « Annuler » sans sa commande | 70 |
+| « Fermer » sans sa commande | 70 |
+| le rapport non modal | 70 |
+| la légende du tableau vide | 70 |
+| un interrupteur sans nom | 120 |
+| l'interrupteur sans rôle « switch » | 120 |
+| les couleurs forcées repeintes par le navigateur | 120 |
+| la fin de semaine en millisecondes | 208 r) |
+| les jours de la semaine en millisecondes | 208 r), à New York |
+| le panneau incrusté non modal | 122 |
+| le zapping non modal | 231 |
+| Trusted Types ôté du manifeste | le contrôle du paquet |
+
+`npm run check` est vert : 239 scénarios, 2453 assertions.
 
 ## Le Top 15, rangé comme un rayon de Twitch ; « À la une » sans trou (v4.33.0.13)
 
@@ -26598,13 +26825,13 @@ assemblé :
 
 | Fichier | Avant | Après | Commentaires |
 | --- | --- | --- | --- |
-| `content.js` | 2333 Ko | 1101 Ko | 4 865 → **2** |
+| `content.js` | 2346 Ko | 1103 Ko | 4 878 → **2** |
 | `cadres.js` | 76 Ko | 35 Ko | 171 → **0** |
 | `adblock.js` | 126 Ko | 101 Ko | 301 → **2** |
-| `panneau.js` | 168 Ko | 86 Ko | 233 → **0** |
+| `panneau.js` | 171 Ko | 87 Ko | 240 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 26 → **0** |
 | `background.js` | 10 Ko | 2 Ko | 23 → **0** |
-| **les six** | **2727 Ko** | **1329 Ko** | **−51 %** |
+| **les six** | **2744 Ko** | **1332 Ko** | **−51 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se

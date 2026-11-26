@@ -74,13 +74,16 @@ API, thumbnails, `player.twitch.tv` for previews).
 
 ## Compatibility
 
-- **Chrome 119 or higher** (and any recent Chromium-based browser: Edge, Brave,
-  Opera, Vivaldi, Arc). The content script uses `"world": "MAIN"`, introduced
-  in 111, and `Promise.withResolvers`, introduced in 119 (4.33.0.10): the
-  manifest declares it (`minimum_chrome_version`).
-- **Firefox**: recent Firefox MV3 supports `"world": "MAIN"`, but there can be
-  subtle injection-timing differences. The port targets Chromium; on Firefox,
-  the original userscript (via Violentmonkey) remains the safest option.
+- **Chrome 150 or higher** (and any recent Chromium-based browser: Edge, Brave,
+  Opera, Vivaldi, Arc). A chosen floor (4.33.0.14), declared by the manifest
+  (`minimum_chrome_version`): the code relies, with no fallback, on what
+  Chrome 150 knows — Temporal, `<dialog>`, `moveBefore()`,
+  `hidden="until-found"`, the customizable `<select>`, Trusted Types. It was
+  119 (`Promise.withResolvers`, 4.33.0.10).
+- **The Firefox edition** (`claude/firefox-*` branches): **Firefox 150 or
+  higher**, the same floor, chosen as well (4.33.0.14). The package check
+  requires it of its manifest; what Firefox 150 lacks — the customizable
+  `<select>` — gets a native fallback there.
 
 ---
 
@@ -2064,6 +2067,214 @@ A sub-test that modelled an impossible case — a stream growing younger without
 changing id — was replaced along the way by the ordinary case that was actually
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
+
+## Modern Web Guidance again, at the Chrome 150 and Firefox 150 floors (v4.33.0.14)
+
+"Run modern-web-guidance-src over chrome/homepage once more, to be sure you
+really missed nothing […] Be rigorous." Then, along the way: "Chrome floor
+up to 150", and "you can set the Firefox floor to version 150".
+
+**The method.** GoogleChrome's repository at commit `d6b5df9` of 25 November
+2026: the 41 deterministic rules of its scanner (`legacy-scan`, 37 guides),
+read and applied by hand to the code — the scanner, a downloaded package, was
+not run. Then its 255 guides, sorted one by one: 119 out of scope (on-device
+AI, payments, account forms, caching service workers… each with its reason),
+136 read. Every feature those 136 guides recommend was checked against both
+floors with `web-features` 3.47.0: in both, apply it with no fallback; in
+one, apply it with a fallback or leave it, and say why; in neither, leave it.
+The sort was redone each time a floor rose — Chrome from 119 to 150, Firefox
+from 140 to 150 — and what it changed is told below.
+
+**The floors.** Chrome 150, declared by the manifest
+(`minimum_chrome_version`). Firefox 150: the Firefox edition's manifest
+declares it (`strict_min_version`), and the package check, shared by both
+editions, now requires it. The code keeps no fallback for what both know.
+
+### What you can see
+
+- **The category and language filters can be chosen from the keyboard.** The
+  home-made menu opened from the keyboard, but nothing in it could be chosen:
+  its options took no focus. They are now `<select>` elements: Enter opens,
+  the arrows move, Enter chooses, Escape closes, and the browser announces
+  the filter and its value. On Chrome, `appearance: base-select` keeps the
+  previous look, flags and counts included — compared with the previous
+  version pixel for pixel, in both themes, menus open and closed. One
+  deliberate difference: the box label takes the page's font, like the
+  "Followed Channels / Top Channels" tabs right above; the old button took
+  the buttons' font. Firefox has no customizable `<select>`: it shows the
+  options' text ("12 | Français"), written to read on its own, and the two
+  filters share the row there. Focus is visible, which it was not.
+- **The windows are `<dialog>` elements.** The embedded panel, channel
+  surfing, the report and the confirmation: the browser makes what lies
+  beneath inert, and Escape closes them. The code that pulled focus back into
+  channel surfing, and the one that watched for Escape around the embedded
+  panel, are gone. In the panel, "Close" and "Cancel" are commands
+  (`command="close"`, Chrome 135, Firefox 144), no longer listeners.
+- **The panel, readable by a screen reader.** Each setting is named by its
+  label and described by its sentence (`aria-labelledby`,
+  `aria-describedby`), and says when it has no effect. The switches are
+  checkboxes with the "switch" role, drawn in CSS. In forced colors, the
+  browser repainted their track and thumb the same color: the thumb
+  vanished, checked or not (found by the test bench). They now paint their
+  system colors themselves there. The table has its caption and column headers, and its scrolling area is
+  named and takes focus.
+- **Every text meets its contrast threshold**, measured on what is painted,
+  in both themes, in the panel, on the home page and in the sidebar:
+  gradients stop by stop, translucent badges on their composited background.
+  What fell short:
+  - the active tab, white on a light purple: 3.26:1 at the top of its
+    gradient. It now runs from Twitch's purple (4.62) to #772ce8 (6.34);
+  - the "=" of a steady Top 15 place: 3.83:1 in dark, now in the soft grey;
+  - in the panel's light theme, the diagnostics "OK" label (4.48), a tinted
+    card's duration (4.24), the category of the guide's tinted cards (3.8;
+    4.38 in dark), and that of the "subscribed" card, in the dark theme's
+    pale gold: 1.18:1. It takes the shade the product gives that category.
+    The badge palette sits on the surface where the product shows badges: on
+    the frame's darker inset, "Former sub" dropped to 4.13. The mock
+    tab is painted like the sidebar's.
+  The panel's colors are no longer written twice: `light-dark()` carries
+  them, and `color-scheme` picks.
+- **"Featured" says it is a carousel.** A region named by its title, with
+  the role description "carousel"; each card, a "2 of 5" slide, numbered in
+  the carousel's order — the ribbon turns, the numbers stay. An arrow, a
+  click: a polite announcement names the centre card, "2 of 5: Nyxaria". In
+  all ten languages.
+- **Ctrl+F finds what a folded row hides.** The cards below the first row
+  carry `hidden="until-found"` (Chrome 102, Firefox 148): the page search
+  finds them, and the row unfolds entirely, "Show less" on its button.
+  Folded, they take no room.
+- **Headings that wrap** break into even lines (`text-wrap: balance`).
+
+### What you cannot see
+
+- **Calendar days through Temporal.** Local midnight, "today", "tomorrow",
+  "3 days ago", subscription due dates, the agenda's weeks: calendar days,
+  no longer milliseconds divided then rounded. The results are the previous
+  ones, tested on two traps — Paris's 167-hour daylight-saving week, and
+  Santiago's Sunday without a midnight. The instant still comes from
+  `Date.now()`: that is the clock the test bench freezes, and `Temporal.Now`
+  does not follow it.
+- **Trusted Types on the extension's pages.** The panel never writes HTML
+  from a string; the manifest now requires it of the browser
+  (`require-trusted-types-for 'script'`, no policy allowed). An assignment
+  to `innerHTML` would be refused there. Chrome 83, Firefox 148.
+- **The fallbacks that left with the floors.** The `moveBefore` detection
+  (Chrome 133, Firefox 144), the `popover` detection and its fallback
+  tooltip, the `Intl.DurationFormat` fallback, the `IntersectionObserver`
+  and `ResizeObserver` checks, the `-webkit-` prefixes of masks, text
+  clipping, scrollbars and backdrop blur. `100vh` becomes `100dvh` where
+  the screen height matters. `toSorted()` for one more sorted copy.
+
+### What did not change, and why
+
+- **What Firefox 150 lacks**: the customizable `<select>` (native fallback,
+  above), `interestfor`, `focusgroup`, scroll-method promises, scroll-snap
+  events, `scroll-initial-target`, element-scoped view transitions,
+  `field-sizing`, `interpolate-size`, `sibling-index()`. Today's code is
+  what they would replace, and works in both.
+- **What Chrome 150 lacks**: `popover="hint"` (151), anchor positioning as
+  `web-features` declares it complete (157), the `switch` attribute.
+- **Document view transitions**, in both: they would freeze all of Twitch's
+  page for the length of a sort. The sidebar slides through its own
+  animations.
+- **`closedby`**: our full-screen windows have no "outside" to click, and a
+  confirmation does not close from a click beside it. Escape already closes
+  them.
+- **`ariaNotify()`**, in both: the carousel announces through a live region,
+  which every screen reader reads and the test bench checks.
+- **Channel surfing's Tab cycle**: a `<dialog>` makes what lies beneath
+  inert, but Tab would leave for the browser's toolbar. The full screen keeps
+  focus looping.
+- **Compact durations** ("1:23:07" on agenda thumbnails): Twitch's format,
+  the same in every language; `Intl.DurationFormat`'s "digital" style would
+  change separators with the language.
+- **`adblock.js`**, vendored third-party code: not ours to modernize.
+- **`@scope`, `@layer`, logical properties**: our prefixed classes already
+  isolate the stylesheet, a layered stylesheet would lose to Twitch's, and
+  the extension's ten languages are all written left to right.
+- **`contrast-color()`, the Sanitizer API**: no text sits on a color coming
+  from Twitch, and no HTML from Twitch is parsed.
+- **`<meta name="text-scale">`** (Chrome 146 only): it would require moving
+  the stylesheet to `rem`. A proposal, not done.
+- **Reduced motion** stays ignored: a product choice.
+- **`content-visibility` on the home page rows**, asked for "only if the
+  measurement shows a gain": measured three times each way, the home page
+  load and six scroll steps. Layout goes from 68 to 37 ms over the session,
+  but style recalculation from 43 to 53, and total task time from 673 to
+  761: no sure gain. An estimated height per row would also make the page
+  jump each time a row is drawn. Not done.
+- **Breaking up the scan (`scheduler.yield()`)**, in both: measured, a scan
+  of 150 channels takes 8 to 15 ms, far from the 50 ms of a long task. The
+  only two long frames (83 and 120 ms), at load, carry no script over 5 ms:
+  that is rendering. Nothing to break up.
+
+### The test bench
+
+- **240, new**: the filters as `<select>` — their shape, their options'
+  text, the keyboard (Enter, arrow, Enter, Escape), visible focus, an open
+  list whose filter is lost and which closes, the plain `<select>` that
+  shares the row, the choice the menu does not know yet and keeps; the carousel — region, slides, numbers that survive the
+  turning ribbon, an arrow's announcement; the folded row — `until-found`,
+  no room taken, a page search that unfolds it; every text on the home page
+  and in the sidebar at its threshold, in both themes.
+- **70**: every text of the panel at its threshold, in its thirty views and
+  both themes. **120**: the settings named, the switches in forced colors.
+  **208 r)**: the weeks of a clock change, in Paris, Santiago and New
+  York. The filter scenarios choose an option the way the browser does;
+  the window scenarios read `:modal`.
+- **The contrast measure** is shared by the bench (`mesurerContrastes`): it
+  reads gradients stop by stop, measures outlined text by its stroke, and
+  returns what it sets aside — a disabled control, text over a video, a
+  color emoji — so that no exclusion hides anything silently. The previous
+  probe measured the active tab as white on white.
+
+**Thirty-five named mutants, thirty-five caught.** A thirty-sixth removed
+the line that resynchronized a filter's value: it changed nothing, and no
+path led to it — a choice always changes the state, and the state rebuilds
+the menu. The line is gone. Two others first survived, and made their test
+be written: the choice kept in the menu (240 a6), and the days counted in
+milliseconds — invisible in a week that starts on Monday, they double the
+Sunday of an American week when winter time returns (208 r, New York).
+
+| mutant | what falls |
+| --- | --- |
+| the count glued to the name ("2 |Français") | 240 a) |
+| the flag left to screen readers | 240 a) |
+| the browser's arrow on top of ours | 240 a) |
+| the browser's option height kept (36 px) | 240 a) |
+| the list sized border included | 240 a) |
+| the focus ring removed | 240 a) |
+| a disabled list left open | 240 a) |
+| the plain `<select>` not sharing the row | 240 a) |
+| the choice missing from the menu forgotten | 240 a) |
+| the carousel without an announcement on arrow | 240 b) |
+| slides numbered in the ribbon's order | 240 b) |
+| an `<article>` as a slide | 240 b) |
+| the folded box kept in the grid | 240 b) |
+| the card found, the row not unfolded | 240 b) |
+| the sovereign rule hiding `until-found` too | 240 b) |
+| a bare `hidden` instead of `until-found` | 240 b) |
+| the active tab back to its former gradient | 240 b) |
+| "=" back to the faint grey | 240 b) |
+| the panel's former green | 70 |
+| the dark theme's pale gold kept in light | 70 |
+| the badge palette back on the inset | 70 |
+| the cards' category in the faint grey | 70 |
+| the former light purple | 70 |
+| "Cancel" without its command | 70 |
+| "Close" without its command | 70 |
+| the report not modal | 70 |
+| the table caption empty | 70 |
+| a switch without a name | 120 |
+| the switch without the "switch" role | 120 |
+| forced colors repainted by the browser | 120 |
+| the end of the week in milliseconds | 208 r) |
+| the days of the week in milliseconds | 208 r), in New York |
+| the embedded panel not modal | 122 |
+| channel surfing not modal | 231 |
+| Trusted Types removed from the manifest | the package check |
+
+`npm run check` is green: 239 scenarios, 2453 assertions.
 
 ## The Top 15, laid out like a Twitch row; "Featured" without a gap (v4.33.0.13)
 
@@ -25852,13 +26063,13 @@ the assembled code:
 
 | File | Before | After | Comments |
 | --- | --- | --- | --- |
-| `content.js` | 2333 KB | 1101 KB | 4,865 → **2** |
+| `content.js` | 2346 KB | 1103 KB | 4,878 → **2** |
 | `cadres.js` | 76 KB | 35 KB | 171 → **0** |
 | `adblock.js` | 126 KB | 101 KB | 301 → **2** |
-| `panneau.js` | 168 KB | 86 KB | 233 → **0** |
+| `panneau.js` | 171 KB | 87 KB | 240 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 26 → **0** |
 | `background.js` | 10 KB | 2 KB | 23 → **0** |
-| **all six** | **2727 KB** | **1329 KB** | **−51 %** |
+| **all six** | **2744 KB** | **1332 KB** | **−51 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are
