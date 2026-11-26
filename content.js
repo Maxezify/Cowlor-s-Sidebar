@@ -179,7 +179,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccUne:                  'À la une',
       uiAccPrecedent:            'Précédent',
       uiAccSuivant:              'Suivant',
-      uiAccTop:                  'Top 10',
+      uiAccCarrousel:            'carrousel',
+      uiAccDiapo:                'diapositive',
+      uiAccDiapoN:               (n, m) => `${n} sur ${m}`,
+      uiAccAnnonce:              (n, m, nom) => `${n} sur ${m} : ${nom}`,
+      uiAccTop:                  'Top 15',
       uiAccDirect:               'Live',
       uiAccDebut:                'Depuis le début',
       uiAccDebutTitre:           (nom) => `Revoir le direct de ${nom} depuis sa première seconde`,
@@ -188,14 +192,14 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccHausse:               (n, m) => `${n} place${n > 1 ? 's' : ''} gagnée${n > 1 ? 's' : ''} en ${m} min`,
       uiAccBaisse:               (n, m) => `${n} place${n > 1 ? 's' : ''} perdue${n > 1 ? 's' : ''} en ${m} min`,
       uiAccStable:               (m) => `Même place qu\'il y a ${m} min`,
-      uiAccEntree:               (m) => `Hors du Top 10 il y a ${m} min`,
+      uiAccEntree:               (m) => `Hors du Top 15 il y a ${m} min`,
       uiAccAttente:              'Classement en cours…',
       uiAccVide:                 'Aucune chaîne à classer pour l\'instant',
       uiAccCsAvec:               'En live avec :',
       uiAccCsPhrase:             (nom, liste) => `${nom} est en live avec ${liste}`,
       uiAccPlace:                (n, nom) => `Place ${n} : ${nom}`,
       uiAccDepuis:               (d) => `en direct depuis ${d}`,
-      uiAccRang:                 (n) => `N°${n} du Top 10`,
+      uiAccRang:                 (n) => `N°${n} du Top 15`,
       uiAccAfficherTout:         'Afficher tout',
       uiAccAfficherMoins:        'Afficher moins',
 
@@ -461,7 +465,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccUne:                  'Featured',
       uiAccPrecedent:            'Previous',
       uiAccSuivant:              'Next',
-      uiAccTop:                  'Top 10',
+      uiAccCarrousel:            'carousel',
+      uiAccDiapo:                'slide',
+      uiAccDiapoN:               (n, m) => `${n} of ${m}`,
+      uiAccAnnonce:              (n, m, nom) => `${n} of ${m}: ${nom}`,
+      uiAccTop:                  'Top 15',
       uiAccDirect:               'Live',
       uiAccDebut:                'From the start',
       uiAccDebutTitre:           (nom) => `Watch ${nom}\'s stream from its very first second`,
@@ -470,14 +478,14 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccHausse:               (n, m) => `Up ${n} place${n === 1 ? '' : 's'} in ${m} min`,
       uiAccBaisse:               (n, m) => `Down ${n} place${n === 1 ? '' : 's'} in ${m} min`,
       uiAccStable:               (m) => `Same place as ${m} min ago`,
-      uiAccEntree:               (m) => `Outside the Top 10 ${m} min ago`,
+      uiAccEntree:               (m) => `Outside the Top 15 ${m} min ago`,
       uiAccAttente:              'Ranking in progress…',
       uiAccVide:                 'No channel to rank right now',
       uiAccCsAvec:               'Live with:',
       uiAccCsPhrase:             (nom, liste) => `${nom} is live with ${liste}`,
       uiAccPlace:                (n, nom) => `Rank ${n}: ${nom}`,
       uiAccDepuis:               (d) => `live for ${d}`,
-      uiAccRang:                 (n) => `#${n} in the Top 10`,
+      uiAccRang:                 (n) => `#${n} in the Top 15`,
       uiAccAfficherTout:         'Show all',
       uiAccAfficherMoins:        'Show less',
       uiAccRdv:                  'Your scheduled streams',
@@ -734,7 +742,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccUne:                  'Empfohlen',
       uiAccPrecedent:            'Zurück',
       uiAccSuivant:              'Weiter',
-      uiAccTop:                  'Top 10',
+      uiAccCarrousel:            'Karussell',
+      uiAccDiapo:                'Folie',
+      uiAccDiapoN:               (n, m) => `${n} von ${m}`,
+      uiAccAnnonce:              (n, m, nom) => `${n} von ${m}: ${nom}`,
+      uiAccTop:                  'Top 15',
       uiAccDirect:               'Live',
       uiAccDebut:                'Von Anfang an',
       uiAccDebutTitre:           (nom) => `Den Stream von ${nom} ab der ersten Sekunde ansehen`,
@@ -743,14 +755,14 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccHausse:               (n, m) => `${n} ${n === 1 ? 'Platz' : 'Plätze'} gewonnen in ${m} Min.`,
       uiAccBaisse:               (n, m) => `${n} ${n === 1 ? 'Platz' : 'Plätze'} verloren in ${m} Min.`,
       uiAccStable:               (m) => `Gleicher Platz wie vor ${m} Min.`,
-      uiAccEntree:               (m) => `Vor ${m} Min. nicht in den Top 10`,
+      uiAccEntree:               (m) => `Vor ${m} Min. nicht in den Top 15`,
       uiAccAttente:              'Rangliste wird erstellt …',
       uiAccVide:                 'Gerade kein Kanal einzuordnen',
       uiAccCsAvec:               'Live mit:',
       uiAccCsPhrase:             (nom, liste) => `${nom} ist live mit ${liste}`,
       uiAccPlace:                (n, nom) => `Platz ${n}: ${nom}`,
       uiAccDepuis:               (d) => `seit ${d} live`,
-      uiAccRang:                 (n) => `Platz ${n} der Top 10`,
+      uiAccRang:                 (n) => `Platz ${n} der Top 15`,
       uiAccAfficherTout:         'Alle anzeigen',
       uiAccAfficherMoins:        'Weniger anzeigen',
       uiAccRdv:                  'Deine geplanten Streams',
@@ -1007,7 +1019,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccUne:                  'Destacados',
       uiAccPrecedent:            'Anterior',
       uiAccSuivant:              'Siguiente',
-      uiAccTop:                  'Top 10',
+      uiAccCarrousel:            'carrusel',
+      uiAccDiapo:                'diapositiva',
+      uiAccDiapoN:               (n, m) => `${n} de ${m}`,
+      uiAccAnnonce:              (n, m, nom) => `${n} de ${m}: ${nom}`,
+      uiAccTop:                  'Top 15',
       uiAccDirect:               'En directo',
       uiAccDebut:                'Desde el principio',
       uiAccDebutTitre:           (nom) => `Ver el directo de ${nom} desde su primer segundo`,
@@ -1016,14 +1032,14 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccHausse:               (n, m) => `Sube ${n} puesto${n === 1 ? '' : 's'} en ${m} min`,
       uiAccBaisse:               (n, m) => `Baja ${n} puesto${n === 1 ? '' : 's'} en ${m} min`,
       uiAccStable:               (m) => `Mismo puesto que hace ${m} min`,
-      uiAccEntree:               (m) => `Fuera del Top 10 hace ${m} min`,
+      uiAccEntree:               (m) => `Fuera del Top 15 hace ${m} min`,
       uiAccAttente:              'Clasificación en curso…',
       uiAccVide:                 'Ningún canal que clasificar por ahora',
       uiAccCsAvec:               'En vivo con:',
       uiAccCsPhrase:             (nom, liste) => `${nom} está en vivo con ${liste}`,
       uiAccPlace:                (n, nom) => `Puesto ${n}: ${nom}`,
       uiAccDepuis:               (d) => `en directo desde hace ${d}`,
-      uiAccRang:                 (n) => `N.º ${n} del Top 10`,
+      uiAccRang:                 (n) => `N.º ${n} del Top 15`,
       uiAccAfficherTout:         'Mostrar todo',
       uiAccAfficherMoins:        'Mostrar menos',
       uiAccRdv:                  'Tus directos programados',
@@ -1280,7 +1296,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccUne:                  'Em destaque',
       uiAccPrecedent:            'Anterior',
       uiAccSuivant:              'Seguinte',
-      uiAccTop:                  'Top 10',
+      uiAccCarrousel:            'carrossel',
+      uiAccDiapo:                'diapositivo',
+      uiAccDiapoN:               (n, m) => `${n} de ${m}`,
+      uiAccAnnonce:              (n, m, nom) => `${n} de ${m}: ${nom}`,
+      uiAccTop:                  'Top 15',
       uiAccDirect:               'Ao vivo',
       uiAccDebut:                'Desde o início',
       uiAccDebutTitre:           (nom) => `Assistir à transmissão de ${nom} desde o primeiro segundo`,
@@ -1289,14 +1309,14 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccHausse:               (n, m) => `Sobe ${n} posiç${n === 1 ? 'ão' : 'ões'} em ${m} min`,
       uiAccBaisse:               (n, m) => `Desce ${n} posiç${n === 1 ? 'ão' : 'ões'} em ${m} min`,
       uiAccStable:               (m) => `Mesma posição de ${m} min atrás`,
-      uiAccEntree:               (m) => `Fora do Top 10 ${m} min atrás`,
+      uiAccEntree:               (m) => `Fora do Top 15 ${m} min atrás`,
       uiAccAttente:              'Classificação em andamento…',
       uiAccVide:                 'Nenhum canal para classificar no momento',
       uiAccCsAvec:               'Ao vivo com:',
       uiAccCsPhrase:             (nom, liste) => `${nom} está ao vivo com ${liste}`,
       uiAccPlace:                (n, nom) => `Posição ${n}: ${nom}`,
       uiAccDepuis:               (d) => `ao vivo há ${d}`,
-      uiAccRang:                 (n) => `Nº ${n} do Top 10`,
+      uiAccRang:                 (n) => `Nº ${n} do Top 15`,
       uiAccAfficherTout:         'Mostrar tudo',
       uiAccAfficherMoins:        'Mostrar menos',
       uiAccRdv:                  'Suas transmissões programadas',
@@ -1553,7 +1573,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccUne:                  'In primo piano',
       uiAccPrecedent:            'Precedente',
       uiAccSuivant:              'Successivo',
-      uiAccTop:                  'Top 10',
+      uiAccCarrousel:            'carosello',
+      uiAccDiapo:                'diapositiva',
+      uiAccDiapoN:               (n, m) => `${n} di ${m}`,
+      uiAccAnnonce:              (n, m, nom) => `${n} di ${m}: ${nom}`,
+      uiAccTop:                  'Top 15',
       uiAccDirect:               'Live',
       uiAccDebut:                'Dall\'inizio',
       uiAccDebutTitre:           (nom) => `Guarda la diretta di ${nom} dal primo secondo`,
@@ -1562,14 +1586,14 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccHausse:               (n, m) => `Sale di ${n} posizion${n === 1 ? 'e' : 'i'} in ${m} min`,
       uiAccBaisse:               (n, m) => `Scende di ${n} posizion${n === 1 ? 'e' : 'i'} in ${m} min`,
       uiAccStable:               (m) => `Stessa posizione di ${m} min fa`,
-      uiAccEntree:               (m) => `Fuori dalla Top 10 ${m} min fa`,
+      uiAccEntree:               (m) => `Fuori dalla Top 15 ${m} min fa`,
       uiAccAttente:              'Classifica in corso…',
       uiAccVide:                 'Nessun canale da classificare per ora',
       uiAccCsAvec:               'In diretta con:',
       uiAccCsPhrase:             (nom, liste) => `${nom} è in diretta con ${liste}`,
       uiAccPlace:                (n, nom) => `Posizione ${n}: ${nom}`,
       uiAccDepuis:               (d) => `in diretta da ${d}`,
-      uiAccRang:                 (n) => `N. ${n} della Top 10`,
+      uiAccRang:                 (n) => `N. ${n} della Top 15`,
       uiAccAfficherTout:         'Mostra tutto',
       uiAccAfficherMoins:        'Mostra meno',
       uiAccRdv:                  'Le tue dirette in programma',
@@ -1826,7 +1850,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccUne:                  'Polecane',
       uiAccPrecedent:            'Poprzedni',
       uiAccSuivant:              'Następny',
-      uiAccTop:                  'Top 10',
+      uiAccCarrousel:            'karuzela',
+      uiAccDiapo:                'slajd',
+      uiAccDiapoN:               (n, m) => `${n} z ${m}`,
+      uiAccAnnonce:              (n, m, nom) => `${n} z ${m}: ${nom}`,
+      uiAccTop:                  'Top 15',
       uiAccDirect:               'Na żywo',
       uiAccDebut:                'Od początku',
       uiAccDebutTitre:           (nom) => `Obejrzyj transmisję ${nom} od pierwszej sekundy`,
@@ -1835,14 +1863,14 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccHausse:               (n, m) => `W górę o ${n} ${(n === 1 ? 'miejsce' : ([2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? 'miejsca' : 'miejsc'))} w ${m} min`,
       uiAccBaisse:               (n, m) => `W dół o ${n} ${(n === 1 ? 'miejsce' : ([2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? 'miejsca' : 'miejsc'))} w ${m} min`,
       uiAccStable:               (m) => `To samo miejsce co ${m} min temu`,
-      uiAccEntree:               (m) => `Poza Top 10 ${m} min temu`,
+      uiAccEntree:               (m) => `Poza Top 15 ${m} min temu`,
       uiAccAttente:              'Trwa układanie rankingu…',
       uiAccVide:                 'Na razie brak kanałów do sklasyfikowania',
       uiAccCsAvec:               'Na żywo z:',
       uiAccCsPhrase:             (nom, liste) => `${nom} — na żywo z ${liste}`,
       uiAccPlace:                (n, nom) => `Miejsce ${n}: ${nom}`,
       uiAccDepuis:               (d) => `na żywo od ${d}`,
-      uiAccRang:                 (n) => `Nr ${n} w Top 10`,
+      uiAccRang:                 (n) => `Nr ${n} w Top 15`,
       uiAccAfficherTout:         'Pokaż wszystko',
       uiAccAfficherMoins:        'Pokaż mniej',
       uiAccRdv:                  'Zaplanowane transmisje',
@@ -2104,7 +2132,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccUne:                  'Рекомендуемые',
       uiAccPrecedent:            'Назад',
       uiAccSuivant:              'Вперёд',
-      uiAccTop:                  'Топ-10',
+      uiAccCarrousel:            'карусель',
+      uiAccDiapo:                'слайд',
+      uiAccDiapoN:               (n, m) => `${n} из ${m}`,
+      uiAccAnnonce:              (n, m, nom) => `${n} из ${m}: ${nom}`,
+      uiAccTop:                  'Топ-15',
       uiAccDirect:               'В эфире',
       uiAccDebut:                'С самого начала',
       uiAccDebutTitre:           (nom) => `Смотреть трансляцию ${nom} с первой секунды`,
@@ -2113,14 +2145,14 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccHausse:               (n, m) => `Вверх на ${n} ${(n % 10 === 1 && n % 100 !== 11 ? 'место' : ([2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? 'места' : 'мест'))} за ${m} мин`,
       uiAccBaisse:               (n, m) => `Вниз на ${n} ${(n % 10 === 1 && n % 100 !== 11 ? 'место' : ([2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100) ? 'места' : 'мест'))} за ${m} мин`,
       uiAccStable:               (m) => `То же место, что ${m} мин назад`,
-      uiAccEntree:               (m) => `${m} мин назад — вне топ-10`,
+      uiAccEntree:               (m) => `${m} мин назад — вне топ-15`,
       uiAccAttente:              'Рейтинг составляется…',
       uiAccVide:                 'Пока нечего ранжировать',
       uiAccCsAvec:               'В эфире с:',
       uiAccCsPhrase:             (nom, liste) => `${nom} — в эфире с ${liste}`,
       uiAccPlace:                (n, nom) => `Место ${n}: ${nom}`,
       uiAccDepuis:               (d) => `в эфире ${d}`,
-      uiAccRang:                 (n) => `№ ${n} в Топ-10`,
+      uiAccRang:                 (n) => `№ ${n} в Топ-15`,
       uiAccAfficherTout:         'Показать все',
       uiAccAfficherMoins:        'Показать меньше',
       uiAccRdv:                  'Запланированные трансляции',
@@ -2381,7 +2413,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccUne:                  'おすすめ',
       uiAccPrecedent:            '前へ',
       uiAccSuivant:              '次へ',
-      uiAccTop:                  'トップ 10',
+      uiAccCarrousel:            'カルーセル',
+      uiAccDiapo:                'スライド',
+      uiAccDiapoN:               (n, m) => `${m}件中${n}件目`,
+      uiAccAnnonce:              (n, m, nom) => `${m}件中${n}件目：${nom}`,
+      uiAccTop:                  'トップ 15',
       uiAccDirect:               'ライブ',
       uiAccDebut:                '最初から',
       uiAccDebutTitre:           (nom) => `${nom} の配信を最初の1秒から見る`,
@@ -2390,14 +2426,14 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccHausse:               (n, m) => `${m} 分で ${n} 位上昇`,
       uiAccBaisse:               (n, m) => `${m} 分で ${n} 位下降`,
       uiAccStable:               (m) => `${m} 分前と同じ順位`,
-      uiAccEntree:               (m) => `${m} 分前はトップ10圏外`,
+      uiAccEntree:               (m) => `${m} 分前はトップ15圏外`,
       uiAccAttente:              'ランキングを作成中…',
       uiAccVide:                 '現在ランキングできるチャンネルはありません',
       uiAccCsAvec:               '一緒に配信中：',
       uiAccCsPhrase:             (nom, liste) => `${nom} は ${liste} と配信中`,
       uiAccPlace:                (n, nom) => `${n} 位：${nom}`,
       uiAccDepuis:               (d) => `配信開始から ${d}`,
-      uiAccRang:                 (n) => `トップ 10 の ${n} 位`,
+      uiAccRang:                 (n) => `トップ 15 の ${n} 位`,
       uiAccAfficherTout:         'すべて表示',
       uiAccAfficherMoins:        '表示を減らす',
       uiAccRdv:                  '予定されている配信',
@@ -2651,7 +2687,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccUne:                  '精选',
       uiAccPrecedent:            '上一个',
       uiAccSuivant:              '下一个',
-      uiAccTop:                  '前 10 名',
+      uiAccCarrousel:            '轮播',
+      uiAccDiapo:                '幻灯片',
+      uiAccDiapoN:               (n, m) => `第${n}个，共${m}个`,
+      uiAccAnnonce:              (n, m, nom) => `第${n}个，共${m}个：${nom}`,
+      uiAccTop:                  '前 15 名',
       uiAccDirect:               '直播',
       uiAccDebut:                '从头观看',
       uiAccDebutTitre:           (nom) => `从第一秒开始观看 ${nom} 的直播`,
@@ -2660,14 +2700,14 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       uiAccHausse:               (n, m) => `${m} 分钟内上升 ${n} 名`,
       uiAccBaisse:               (n, m) => `${m} 分钟内下降 ${n} 名`,
       uiAccStable:               (m) => `与 ${m} 分钟前名次相同`,
-      uiAccEntree:               (m) => `${m} 分钟前未进入前 10 名`,
+      uiAccEntree:               (m) => `${m} 分钟前未进入前 15 名`,
       uiAccAttente:              '排名生成中…',
       uiAccVide:                 '目前没有可排名的频道',
       uiAccCsAvec:               '一起直播：',
       uiAccCsPhrase:             (nom, liste) => `${nom} 正在与 ${liste} 直播`,
       uiAccPlace:                (n, nom) => `第 ${n} 名：${nom}`,
       uiAccDepuis:               (d) => `已直播 ${d}`,
-      uiAccRang:                 (n) => `前 10 名中第 ${n} 名`,
+      uiAccRang:                 (n) => `前 15 名中第 ${n} 名`,
       uiAccAfficherTout:         '显示全部',
       uiAccAfficherMoins:        '收起',
       uiAccRdv:                  '计划中的直播',
@@ -3028,6 +3068,12 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     HEALTH_RECHECK:       5_000,
     SCAN_DEBOUNCE:  250,
 
+    BARRE_GLISSE_MS:       320,
+    BARRE_ENTREE_MS:       260,
+    BARRE_ENTREE_DELAI_MS: 120,
+    BARRE_ECHELON_MS:       40,
+    BARRE_ECHELONS_MAX:      5,
+
     COLLAPSE_POLL_MS: 1_000,
     FRESH_MAX_MIN:  10,
     GQL_TIMEOUT:    15_000,
@@ -3355,7 +3401,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
 
     AGENDA_ECRITURE_REPRISE_MS: 60_000,
 
-    ACCUEIL_TOP_N:          10,
+    ACCUEIL_TOP_N:          15,
+    ACCUEIL_TOP_COLONNES:   5,
 
     ACCUEIL_UNE_MAX:        8,
 
@@ -3411,6 +3458,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     ACCUEIL_RDV_RECUL_MS:   7 * 86_400_000,
     ACCUEIL_RDV_DEMANDE_MS: 2 * 60_000,
     ACCUEIL_RDV_MAX:        12,
+
+    ACCUEIL_RDV_RETARD_MAX_MS: 2 * 3_600_000,
     ACCUEIL_HABITUDE_N:     6,
     ACCUEIL_HABITUDE_MIN:   4,
     ACCUEIL_HABITUDE_FENETRE_MIN: 30,
@@ -4296,8 +4345,6 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     .tse-noeud__anneau {
       position: absolute; inset: 0; border-radius: inherit; padding: 1.5px; opacity: 0; pointer-events: none;
       background: conic-gradient(from var(--tse-tour), var(--tse-noeud-encre, #0e0e10) 0 28%, transparent 28% 100%);
-      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-      -webkit-mask-composite: xor;
       mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
       transition: opacity 120ms linear;
     }
@@ -4474,31 +4521,27 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     .side-nav-card.tse-sub .tse-sub-cat {
       color: #e6c68d;
     }
-    @supports (-webkit-background-clip: text) or (background-clip: text) {
-      .side-nav-card.tse-sub p.tse-nom {
-        background: linear-gradient(100deg,
-          #ffc86e   0%,
-          #fff6dc  32%,
-          #ffb3d9  46%,
-          #ffc86e  64%,
-          #ffc86e 100%) 0 0 / 300% 100%;
-        -webkit-background-clip: text;
-        background-clip: text;
-        -webkit-text-fill-color: transparent;
-        
-        filter: drop-shadow(0 0 3.5px rgba(255, 214, 142, 0.375));
-      }
-      .side-nav-card.tse-sub .tse-sub-cat {
-        background: linear-gradient(100deg,
-          #d4b076   0%,
-          #f4e3c2  34%,
-          #dcb4c6  47%,
-          #d4b076  64%,
-          #d4b076 100%) 0 0 / 300% 100%;
-        -webkit-background-clip: text;
-        background-clip: text;
-        -webkit-text-fill-color: transparent;
-      }
+    .side-nav-card.tse-sub p.tse-nom {
+      background: linear-gradient(100deg,
+        #ffc86e   0%,
+        #fff6dc  32%,
+        #ffb3d9  46%,
+        #ffc86e  64%,
+        #ffc86e 100%) 0 0 / 300% 100%;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      
+      filter: drop-shadow(0 0 3.5px rgba(255, 214, 142, 0.375));
+    }
+    .side-nav-card.tse-sub .tse-sub-cat {
+      background: linear-gradient(100deg,
+        #d4b076   0%,
+        #f4e3c2  34%,
+        #dcb4c6  47%,
+        #d4b076  64%,
+        #d4b076 100%) 0 0 / 300% 100%;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
     }
 
     
@@ -4515,26 +4558,24 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     html[data-tse-theme="light"] .side-nav-card.tse-sub p.tse-nom { color: #8a5900; }
     html[data-tse-theme="light"] .side-nav-card.tse-sub .tse-sub-cat { color: #7c5a1e; }
     
-    @supports (-webkit-background-clip: text) or (background-clip: text) {
-      html[data-tse-theme="light"] .side-nav-card.tse-sub p.tse-nom {
-        background-image: linear-gradient(100deg,
-          #8a5900   0%,
-          #7a4e00  32%,
-          #9c4f6b  46%,
-          #8a5900  64%,
-          #8a5900 100%);
-        
-        filter: none;
-      }
-      html[data-tse-theme="light"] .side-nav-card.tse-sub .tse-sub-cat {
-        background-image: linear-gradient(100deg,
-          #7c5a1e   0%,
-          #6b4700  34%,
-          #8f3f63  47%,
-          #7c5a1e  64%,
-          #7c5a1e 100%);
-        filter: none;
-      }
+    html[data-tse-theme="light"] .side-nav-card.tse-sub p.tse-nom {
+      background-image: linear-gradient(100deg,
+        #8a5900   0%,
+        #7a4e00  32%,
+        #9c4f6b  46%,
+        #8a5900  64%,
+        #8a5900 100%);
+      
+      filter: none;
+    }
+    html[data-tse-theme="light"] .side-nav-card.tse-sub .tse-sub-cat {
+      background-image: linear-gradient(100deg,
+        #7c5a1e   0%,
+        #6b4700  34%,
+        #8f3f63  47%,
+        #7c5a1e  64%,
+        #7c5a1e 100%);
+      filter: none;
     }
     
     html[data-tse-theme="light"] .tse-lueur-deco > span:nth-child(1) {
@@ -4615,8 +4656,6 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       
       overflow: hidden;
       
-      -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-      -webkit-mask-composite: xor;
       mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
       mask-composite: exclude;
     }
@@ -4775,55 +4814,78 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     .tse-filter-field--cat  { flex: 1 1 auto; min-width: 0; }       
     .tse-filter-field--lang { flex: 0 0 auto; margin-left: auto; }  
     
-    .tse-dd { position: relative; width: 100%; }
+    .tse-dd { width: 100%; min-width: 0; }
     .tse-dd-btn {
       display: flex; align-items: center; gap: 4px;
-      width: 100%; height: 28px; padding: 0 8px;
+      width: 100%; height: 28px; margin: 0; padding: 0 8px;
       background-color: var(--tse-champ);
       border: 1px solid rgba(var(--tse-encre), 0.08); border-radius: 4px;
       color: var(--color-text-base, #efeff1);
-      font-size: 1.15rem;                
+      font: inherit; font-size: 1.15rem;  
+      color-scheme: var(--tse-schema);
       cursor: pointer; outline: none; box-sizing: border-box;
       transition: border-color 0.15s, box-shadow 0.15s, opacity 0.15s;
     }
+    .tse-dd-btn, .tse-dd-btn::picker(select) { appearance: base-select; }
+    
+    .tse-dd-btn::picker-icon { display: none; }
     .tse-dd-btn:hover:not(:disabled) { border-color: rgba(145, 71, 255, 0.5); }
-    .tse-dd.tse-open .tse-dd-btn { border-color: ${CFG.PURPLE}; box-shadow: 0 0 0 1px ${CFG.PURPLE}; }
+    
+    .tse-dd-btn:open,
+    .tse-dd-btn:focus-visible { border-color: ${CFG.PURPLE}; box-shadow: 0 0 0 1px ${CFG.PURPLE}; }
     .tse-dd-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    
+    .tse-dd-bouton {
+      display: flex; align-items: center; gap: 4px;
+      flex: 1 1 auto; min-width: 0; height: 100%;
+      margin: 0; padding: 0; border: 0; background: none;
+      color: inherit; font: inherit; text-align: center; cursor: inherit;
+    }
     .tse-dd-current { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; }
+    
+    .tse-dd-current .tse-dd-n { display: none; }
     .tse-dd-caret {
       flex: 0 0 auto; width: 0; height: 0;
       border-left: 4px solid transparent; border-right: 4px solid transparent;
       border-top: 5px solid var(--tse-texte-doux);
     }
     
-    .tse-dd-menu {
-      display: none;
-      position: absolute; top: calc(100% + 4px); z-index: 9999;
-      min-width: 100%; max-height: 260px; overflow-y: auto; padding: 4px;
-      color-scheme: var(--tse-schema);
-      background: var(--tse-surface); border: 1px solid rgba(var(--tse-encre), 0.12);
+    .tse-dd-btn::picker(select) {
+      box-sizing: content-box; min-width: anchor-size(width);
+      margin-block: 4px; max-height: 260px; overflow-y: auto; padding: 4px;
+      background: var(--tse-surface); color: var(--tse-texte);
+      border: 1px solid rgba(var(--tse-encre), 0.12);
       border-radius: 6px; box-shadow: 0 4px 16px var(--tse-ombre-menu);
     }
-    .tse-dd.tse-open .tse-dd-menu { display: block; }
+    
     .tse-dd-opt {
-      display: flex; align-items: center; gap: 6px;
+      display: flex; align-items: center; gap: 6px; min-height: 0;
       padding: 6px 8px; border-radius: 4px; cursor: pointer;
       font-size: 1.15rem; color: var(--tse-texte); white-space: nowrap;
     }
-    .tse-dd-opt:hover { background: rgba(145, 71, 255, 0.25); }
-    .tse-dd-opt[aria-selected="true"] { background: rgba(145, 71, 255, 0.4); }
+    
+    .tse-dd-opt::checkmark { display: none; }
+    .tse-dd-opt:hover,
+    .tse-dd-opt:focus-visible { background: rgba(145, 71, 255, 0.25); }
+    .tse-dd-opt:focus-visible { outline: 2px solid ${CFG.PURPLE}; outline-offset: -2px; }
+    .tse-dd-opt:checked { background: rgba(145, 71, 255, 0.4); }
     .tse-dd-n { flex: 0 0 auto; color: var(--tse-texte-doux); font-variant-numeric: tabular-nums; }
 
     
     .tse-dd--cat .tse-dd-current { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .tse-dd--cat .tse-dd-menu { left: 0; right: auto; width: max-content; max-width: 208px; }
+    .tse-dd--cat .tse-dd-btn::picker(select) { width: max-content; max-width: 208px; }
     .tse-dd--cat .tse-dd-name { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 
     
     .tse-dd--lang { width: 50px; }
     .tse-dd--lang .tse-dd-current { justify-content: center; }
-    .tse-dd--lang .tse-dd-menu { right: 0; left: auto; min-width: 64px; }
+    .tse-dd--lang .tse-dd-btn::picker(select) { position-area: block-end span-inline-start; min-width: 64px; }
     .tse-dd--lang .tse-dd-opt { justify-content: center; }
+
+    
+    .tse-filter[data-tse-select="natif"] .tse-filter-field { flex: 1 1 0; min-width: 0; margin-left: 0; }
+    .tse-filter[data-tse-select="natif"] .tse-dd--lang { width: 100%; }
+    .tse-filter[data-tse-select="natif"] .tse-dd-btn { display: block; }
     .tse-lang-code  { font-weight: 600; }
     
     
@@ -5011,11 +5073,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     }
     
     .tse-mode-tab[aria-pressed="true"] {
-      background: linear-gradient(180deg, ${CFG.PURPLE_HOVER} 0%, ${CFG.PURPLE} 100%);
+      background: linear-gradient(180deg, ${CFG.PURPLE} 0%, #772ce8 100%);
       color: #fff;
       box-shadow: 0 1px 2px var(--tse-ombre-portee);
     }
-    .tse-mode-tab[aria-pressed="true"]:hover { background: ${CFG.PURPLE_HOVER}; }
+    .tse-mode-tab[aria-pressed="true"]:hover { background: ${CFG.PURPLE}; }
 
     
     ${DOM.sidebarRoot} .side-nav__title[data-tse-roue] {
@@ -5145,7 +5207,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       z-index: 9000;
       
       box-sizing: border-box;
-      width: 330px; max-width: calc(100vw - 24px);
+      width: 330px; max-width: calc(100dvw - 24px);
       padding: 14px 14px 15px;
       border-radius: 10px;
       border: 1px solid var(--tse-anneau);
@@ -5212,16 +5274,22 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     }
 
     
+    
     .tse-incruste {
-      position: fixed; inset: 0; z-index: 2147483000;
-      display: flex; align-items: center; justify-content: center;
+      position: fixed; inset: 0;
+      width: 100%; height: 100%; max-width: none; max-height: none;
+      margin: 0; padding: 0; border: 0;
+      align-items: center; justify-content: center;
       background: rgba(0, 0, 0, 0.55);
+      overscroll-behavior: contain;
     }
+    .tse-incruste[open] { display: flex; }
+    .tse-incruste::backdrop { background: transparent; }
     
     .tse-incruste-cadre {
       position: relative;
       width: ${CFG.INCRUSTE_W}px; height: ${CFG.INCRUSTE_H}px;
-      max-width: calc(100vw - 24px); max-height: calc(100vh - 24px);
+      max-width: calc(100dvw - 24px); max-height: calc(100dvh - 24px);
       border-radius: 8px;
       box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
       
@@ -5623,8 +5691,10 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     }
     html[data-tse-off~="filtreCategorie"] .tse-dd--lang { width: auto; flex: 1 1 auto; }
     html[data-tse-off~="filtreCategorie"] .tse-dd--lang .tse-dd-current { justify-content: flex-start; }
-    html[data-tse-off~="filtreCategorie"] .tse-dd--lang .tse-dd-menu {
-      left: 0; right: 0; min-width: 0;
+    html[data-tse-off~="filtreCategorie"] .tse-dd--lang .tse-dd-btn::picker(select) {
+      
+      position-area: block-end span-inline-end;
+      box-sizing: border-box; width: anchor-size(width); min-width: 0;
     }
     html[data-tse-off~="filtreCategorie"] .tse-dd--lang .tse-dd-opt { justify-content: flex-start; }
     html[data-tse-off~="filtreLangue"] .tse-filter-field--cat { flex: 1 1 auto; }
@@ -5846,6 +5916,14 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     .tse-zap-bouton:hover { background: var(--color-background-button-secondary-hover, rgba(83, 83, 95, 0.48)); }
     .tse-zap-bouton:focus-visible { outline: 2px solid #9147ff; outline-offset: 2px; }
     .tse-zap-bouton svg { width: 20px; height: 20px; fill: currentColor; }
+    
+    .tse-zap-dialogue {
+      position: fixed; inset: 0;
+      width: 100%; height: 100%; max-width: none; max-height: none;
+      margin: 0; padding: 0; border: 0;
+      background: #000; overflow: hidden; overscroll-behavior: contain;
+    }
+    .tse-zap-dialogue::backdrop { background: #000; }
     #tse-zap {
       position: fixed; inset: 0; z-index: 9000; overflow: hidden; background: #000; color: #fff;
       font-family: Inter, Roobert, "Helvetica Neue", Helvetica, Arial, sans-serif; line-height: 1.35;
@@ -5855,7 +5933,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     
     .tse-zap__scene { position: absolute; inset: 0; z-index: 0; }
     .tse-zap__lecteur {
-      position: absolute; left: 50%; top: 50%; width: max(100vw, 177.78vh); height: max(100vh, 56.25vw);
+      position: absolute; left: 50%; top: 50%; width: max(100dvw, 177.78dvh); height: max(100dvh, 56.25dvw);
       transform: translate(-50%, -50%); border: 0; opacity: 0; pointer-events: none;
       transition: opacity ${CFG.ZAP_FONDU_MS}ms ease;
     }
@@ -5882,7 +5960,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     .tse-zap__rang { font-size: 28px; font-weight: 700; color: #fff; font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
     .tse-zap__aide {
       position: absolute; right: var(--tse-zap-marge); top: 44px; display: flex; align-items: center; flex-wrap: wrap;
-      gap: 8px 18px; padding: 10px 16px; max-width: calc(100vw - 2 * var(--tse-zap-marge) - 360px);
+      gap: 8px 18px; padding: 10px 16px; max-width: calc(100dvw - 2 * var(--tse-zap-marge) - 360px);
       font-size: 14px; color: #e5e5ea;
     }
     .tse-zap__groupe { display: inline-flex; align-items: center; gap: 6px; }
@@ -5906,9 +5984,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       position: absolute; right: calc(var(--tse-zap-marge) - 12px); top: 140px; bottom: 140px; width: calc(var(--tse-zap-colonne) + 24px);
       box-sizing: border-box; margin: 0; padding: 10px 12px 28px; list-style: none; display: flex; flex-direction: column; gap: 10px;
       overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none;
-      -webkit-mask-image: linear-gradient(#000 calc(100% - 28px), transparent); mask-image: linear-gradient(#000 calc(100% - 28px), transparent);
+      mask-image: linear-gradient(#000 calc(100% - 28px), transparent);
     }
-    .tse-zap__liste::-webkit-scrollbar { display: none; }
     .tse-zap__item { flex: 0 0 auto; }
     .tse-zap__chaine {
       display: flex; align-items: center; gap: 12px; width: 100%; padding: 8px; border: 0; text-align: left;
@@ -6010,8 +6087,12 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       --tse-hausse: #0a7a4b; --tse-baisse: #c62828; --tse-violet-texte: #772ce8;
     }
     
-    #tse-accueil[hidden], #tse-accueil [hidden],
+    #tse-accueil[hidden], #tse-accueil [hidden]:not([hidden="until-found"]),
     #tse-accueil-heros[hidden], #tse-accueil-heros [hidden] { display: none !important; }
+    
+    #tse-accueil .tse-acc-liste > [hidden="until-found"] {
+      position: absolute; width: 0; height: 0; margin: 0; padding: 0; border: 0; overflow: hidden;
+    }
     
     .tse-acc-masque { display: none !important; }
     
@@ -6090,10 +6171,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       display: flex; gap: ${CFG.ACCUEIL_ECARTS.split(' ')[1]}; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain;
       scroll-snap-type: x mandatory; scrollbar-width: none;
       padding: var(--tse-ruban-haut) calc(50cqw - var(--tse-ruban-carte) / 2) 28px;
-      -webkit-mask-image: linear-gradient(90deg, transparent, #000 var(--tse-ruban-fondu), #000 calc(100% - var(--tse-ruban-fondu)), transparent);
       mask-image: linear-gradient(90deg, transparent, #000 var(--tse-ruban-fondu), #000 calc(100% - var(--tse-ruban-fondu)), transparent);
     }
-    .tse-acc-ruban::-webkit-scrollbar { display: none; }
     
     .tse-acc-liste.tse-acc-ruban.tse-acc-ruban--mene { scroll-snap-type: none; }
     .tse-acc-ruban > .tse-acc-carte, .tse-acc-ruban > .tse-acc-carte-attente {
@@ -6147,7 +6226,14 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       display: inline-flex; align-items: center; justify-content: center;
       background: rgba(14, 14, 16, 0.72); color: #fff; transition: opacity 0.15s ease, background 0.15s ease;
       box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12), 0 6px 18px rgba(0, 0, 0, 0.45);
-      -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+      backdrop-filter: blur(8px);
+    }
+    
+    
+    #tse-accueil .tse-acc-titre { text-wrap: balance; }
+    .tse-acc-annonce {
+      position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0;
+      overflow: hidden; clip-path: inset(50%); white-space: nowrap;
     }
     .tse-acc-ruban-fleche--prec { left: 8px; }
     .tse-acc-ruban-fleche--suiv { right: 8px; }
@@ -6349,7 +6435,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     
     .tse-acc-cs-fen {
       position: fixed; inset: auto; margin: 0; box-sizing: border-box;
-      min-width: 200px; max-width: min(320px, calc(100vw - 16px)); padding: 6px; overflow: visible;
+      min-width: 200px; max-width: min(320px, calc(100dvw - 16px)); padding: 6px; overflow: visible;
       border: 1px solid rgba(var(--tse-encre), 0.12); border-radius: 6px;
       background: var(--tse-surface); color: var(--tse-texte); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
       font-size: 13px; line-height: 18px; text-align: left;
@@ -6380,6 +6466,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       font-size: 12px; font-weight: 600; line-height: 24px; text-decoration: none; white-space: nowrap;
     }
     .tse-acc-debut:hover { background: rgba(var(--tse-encre), 0.18); }
+    
+    .tse-acc-debut { max-width: 100%; }
+    .tse-acc-debut > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
     
     .tse-acc-debut[data-tse-reserve] { visibility: hidden; }
     .tse-acc-debut { min-height: 24px; box-sizing: border-box; }
@@ -6438,7 +6527,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     
     #tse-rappels {
       position: fixed; left: 16px; bottom: 16px; z-index: 6000; display: flex; flex-direction: column; gap: 8px;
-      width: min(360px, calc(100vw - 32px)); pointer-events: none;
+      width: min(360px, calc(100dvw - 32px)); pointer-events: none;
     }
     .tse-rappel {
       pointer-events: auto; display: flex; align-items: center; gap: 10px; padding: 10px 8px 10px 12px;
@@ -6468,7 +6557,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     #tse-accueil-heros[data-tse-place="section"] .tse-acc-heros-cadre { border-radius: 10px; }
     .tse-acc-heros { container: tse-heros / inline-size; margin: 0; }
     .tse-acc-heros-cadre {
-      --tse-heros-h: clamp(320px, min(27.78cqw, 60vh), 720px);
+      --tse-heros-h: clamp(320px, min(27.78cqw, 60dvh), 720px);
       
       --tse-fondu: calc(var(--tse-heros-h) * 0.25);
       position: relative; isolation: isolate; overflow: hidden; height: var(--tse-heros-h);
@@ -6477,12 +6566,6 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     
     .tse-acc-heros-scene {
       position: absolute; inset: 0; z-index: 0; overflow: hidden; background: #0e0e10;
-      -webkit-mask-image: linear-gradient(0deg, transparent 0,
-        rgba(0, 0, 0, 0.028) calc(var(--tse-fondu) * 0.1), rgba(0, 0, 0, 0.104) calc(var(--tse-fondu) * 0.2),
-        rgba(0, 0, 0, 0.216) calc(var(--tse-fondu) * 0.3), rgba(0, 0, 0, 0.352) calc(var(--tse-fondu) * 0.4),
-        rgba(0, 0, 0, 0.5) calc(var(--tse-fondu) * 0.5), rgba(0, 0, 0, 0.648) calc(var(--tse-fondu) * 0.6),
-        rgba(0, 0, 0, 0.784) calc(var(--tse-fondu) * 0.7), rgba(0, 0, 0, 0.896) calc(var(--tse-fondu) * 0.8),
-        rgba(0, 0, 0, 0.972) calc(var(--tse-fondu) * 0.9), #000 var(--tse-fondu));
       mask-image: linear-gradient(0deg, transparent 0,
         rgba(0, 0, 0, 0.028) calc(var(--tse-fondu) * 0.1), rgba(0, 0, 0, 0.104) calc(var(--tse-fondu) * 0.2),
         rgba(0, 0, 0, 0.216) calc(var(--tse-fondu) * 0.3), rgba(0, 0, 0, 0.352) calc(var(--tse-fondu) * 0.4),
@@ -6507,7 +6590,6 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     .tse-acc-heros-media {
       position: absolute; top: 0; right: 0; z-index: 1; height: 100%;
       aspect-ratio: 16 / 9; max-width: 100%; overflow: hidden;
-      -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 24%);
       mask-image: linear-gradient(90deg, transparent 0, #000 24%);
     }
     .tse-acc-heros-img, .tse-acc-heros-video {
@@ -6589,7 +6671,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       height: clamp(36px, 1.8cqw, 42px); margin: 0; padding: 0 16px; border-radius: 6px; line-height: 1;
       font-size: clamp(14px, 0.72cqw, 16px);
       background: rgba(255, 255, 255, 0.16); color: #fff;
-      -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+      backdrop-filter: blur(8px);
     }
     .tse-acc-heros .tse-acc-debut:hover { background: rgba(255, 255, 255, 0.24); }
     
@@ -6602,8 +6684,30 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       .tse-acc-heros-infos { width: min(560px, 72%); }
     }
 
-    
-    .tse-acc-liste--top { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 22px 16px; }
+    /* ── Le Top 15 ───────────────────────────────────────────────────────
+       COMME UN RAYON DE TWITCH (4.33.0.13). Signalé, capture à l'appui :
+       « le top 10 n'est pas responsive ». Cinq places par rangée À TOUTES LES
+       TAILLES (4.26.0.3) : à 1 024 pixels, une place en faisait 179 — des
+       noms abrégés en trois lettres, « Depuis le début » sorti de sa carte —,
+       à 375, 49, et la page entière défilait de côté. La grille est désormais
+       celle des autres rayons, et celle que prennent les rayons de Twitch
+       (cf. RANGER) : autant de colonnes que tient une place de
+       ${CFG.ACCUEIL_CARTE_MIN} pixels, les mêmes écarts entre colonnes — les
+       colonnes s'alignent d'un rayon à l'autre —, et ${CFG.ACCUEIL_TOP_COLONNES}
+       au plus : la largeur minimale d'une colonne est aussi le cinquième de la
+       liste. Replié, la première rangée, comme un rayon (cf. \`plier\`) : 1 à
+       5 sur un grand écran — « la taille de liste de base doit être de 5 » —,
+       1 à 3, 1 à 2 ou la première seule quand la place manque.
+       Le chiffre en creux, à gauche de la vignette qui le recouvre en partie,
+       et son pied aligné sur le bas de la vignette. Tout se mesure en largeur
+       de place : le chiffre en prend 28 %, la vignette les 79 % qui restent
+       sous lui, et le chiffre en prend la hauteur — une place étroite garde
+       ses proportions. */
+    .tse-acc-liste--top {
+      grid-template-columns: repeat(auto-fill, minmax(max(min(${CFG.ACCUEIL_CARTE_MIN}px, 100%),
+        calc((100% - ${CFG.ACCUEIL_TOP_COLONNES - 1} * ${CFG.ACCUEIL_ECARTS.split(' ')[1]}) / ${CFG.ACCUEIL_TOP_COLONNES})), 1fr));
+      gap: 22px ${CFG.ACCUEIL_ECARTS.split(' ')[1]};
+    }
     .tse-acc-place { container-type: inline-size; display: flex; align-items: flex-start; min-width: 0; }
     .tse-acc-rang {
       --tse-vignette-h: calc(79cqw * 9 / 16);
@@ -6621,7 +6725,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     }
     .tse-acc-evol--hausse { color: var(--tse-hausse); }
     .tse-acc-evol--baisse { color: var(--tse-baisse); }
-    .tse-acc-evol--stable { color: var(--tse-texte-faible); }
+    
+    .tse-acc-evol--stable { color: var(--tse-texte-doux); }
     .tse-acc-evol--nouveau { padding: 0 6px; border-radius: 4px; background: #9147ff; color: #fff; font-size: 11px; }
     .tse-acc-note { margin: 2px 0 0; font-size: 12px; color: var(--tse-texte-doux); }
   `;
@@ -8556,13 +8661,190 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
   })();
 
   const deplacer = (parent, noeud, avant = null) => {
-    if (typeof parent.moveBefore === 'function' && noeud.isConnected && parent.isConnected
-        && noeud.ownerDocument === parent.ownerDocument) {
+    if (noeud.isConnected && parent.isConnected && noeud.ownerDocument === parent.ownerDocument) {
       try { parent.moveBefore(noeud, avant); return; }
       catch {   }
     }
     parent.insertBefore(noeud, avant);
   };
+
+  const mouvementBarre = (() => {
+    const GLISSE = 'cubic-bezier(0.2, 0, 0, 1)';
+    const ENTREE = 'cubic-bezier(0, 0, 0.2, 1)';
+
+    const enVol = new Map();
+    let releve = null;
+
+    let largeurVue = null, modeVu = null;
+    const bilan = { releves: 0, glisses: 0, repris: 0, entrees: 0, retenus: {}, dernier: null };
+
+    const OUVERT_MS = 100;
+    const ouvert = () => !!releve && performance.now() - releve.t < OUVERT_MS;
+    const noterRetenue = (raison) => { bilan.retenus[raison] = (bilan.retenus[raison] || 0) + 1; };
+    const estCarte = (el) => el.classList.contains('side-nav-card');
+    const estSection = (el) => el.classList.contains('side-nav-section');
+
+    const mobiles = (nav) => [
+      ...nav.querySelectorAll('.side-nav-section'),
+      ...[...nav.querySelectorAll('.side-nav-card')]
+        .filter((c) => !c.parentElement?.closest('.side-nav-card') && cardShown(c)),
+      ...nav.querySelectorAll('.tse-noeuds > *'),
+    ];
+    const lire = (els) => {
+      const m = new Map();
+      for (const el of els) {
+        const r = el.getBoundingClientRect();
+        if (r.width || r.height) m.set(el, { x: r.left, y: r.top });
+      }
+      return m;
+    };
+    const calme = () => !document.hidden && !loadingOverlay.enCycle();
+
+    const lancer = (el, sorte, images, options, t = null) => {
+      if (!(options.duration > 0)) return;
+      const a = el.animate(images, options);
+      if (t !== null) a.currentTime = t;
+      const v = enVol.get(el) || {};
+      v[sorte] = { a, images, options };
+      enVol.set(el, v);
+      const fin = () => {
+        const w = enVol.get(el);
+        if (!w || w[sorte]?.a !== a) return;
+        delete w[sorte];
+        if (!w.glisse && !w.entree) enVol.delete(el);
+      };
+      a.addEventListener('finish', fin);
+      a.addEventListener('cancel', fin);
+    };
+
+    const avant = () => {
+      const nav = document.querySelector(DOM.sidebarRoot);
+      const largeur = nav ? nav.getBoundingClientRect().width : null;
+      const elargie = largeurVue !== null && largeur !== null && Math.abs(largeur - largeurVue) > 0.5;
+      const bascule = modeVu !== null && modeVu !== state.globalMode;
+      largeurVue = largeur;
+      modeVu = state.globalMode;
+      bilan.releves += 1;
+
+      const vus = nav && calme() ? lire(mobiles(nav)) : null;
+      if (nav && !vus) noterRetenue('voile');
+
+      const suspendus = new Map();
+      for (const [el, v] of enVol) {
+        const s = {};
+        for (const sorte of ['glisse', 'entree']) {
+          if (!v[sorte]) continue;
+          s[sorte] = { images: v[sorte].images, options: v[sorte].options, t: v[sorte].a.currentTime };
+          v[sorte].a.cancel();
+        }
+        suspendus.set(el, s);
+      }
+      enVol.clear();
+      releve = null;
+      if (!vus) return;
+
+      const poses = new Map(vus);
+      for (const [el, p] of lire([...suspendus.keys()].filter((el) => vus.has(el)))) poses.set(el, p);
+      releve = { t: performance.now(), nav, vus, poses, suspendus, elargie, bascule };
+    };
+
+    const apres = () => {
+      const r = releve;
+      releve = null;
+      if (!r) return;
+      const nav = document.querySelector(DOM.sidebarRoot);
+      if (nav !== r.nav || !calme()) return noterRetenue('voile');
+      if (r.bascule) return noterRetenue('mode');
+      if (r.elargie) return noterRetenue('largeur');
+      const ici = lire(mobiles(nav));
+
+      const deja = [];
+      const arrivees = [];
+      let cartes = 0, nouvellesCartes = 0;
+      for (const el of ici.keys()) {
+        if (estCarte(el)) cartes += 1;
+        if (r.vus.has(el)) deja.push(el);
+        else if (estCarte(el) || estSection(el)) {
+          arrivees.push(el);
+          if (estCarte(el)) nouvellesCartes += 1;
+        }
+      }
+      if (nouvellesCartes > 3 && nouvellesCartes * 3 > cartes) return noterRetenue('repeuplement');
+      const porteur = (el) => {
+        for (let p = el.parentElement; p && p !== nav; p = p.parentElement) if (ici.has(p)) return p;
+        return null;
+      };
+      const ZERO = { x: 0, y: 0 };
+
+      const vol = (el) => { const p = ici.get(el), v = r.vus.get(el);
+        return v ? { x: v.x - p.x, y: v.y - p.y } : ZERO; };
+      const pas = (el) => { const p = ici.get(el), q = r.poses.get(el);
+        return q ? { x: p.x - q.x, y: p.y - q.y } : ZERO; };
+      let glisses = 0, repris = 0, plusLong = 0;
+      for (const el of deja) {
+        const pa = porteur(el);
+
+        const v = vol(el), vp = pa ? vol(pa) : ZERO;
+        const x = Math.round((v.x - vp.x) * 10) / 10, y = Math.round((v.y - vp.y) * 10) / 10;
+        const s = r.suspendus.get(el);
+        const p = pas(el), pp = pa ? pas(pa) : ZERO;
+        const immobile = Math.abs(p.x - pp.x) < 0.5 && Math.abs(p.y - pp.y) < 0.5;
+        if (s?.glisse && immobile) {
+          lancer(el, 'glisse', s.glisse.images, s.glisse.options, s.glisse.t);
+          repris += 1;
+        } else if (Math.abs(x) >= 0.5 || Math.abs(y) >= 0.5) {
+          lancer(el, 'glisse', [{ translate: `${x}px ${y}px` }, { translate: '0px 0px' }],
+            { duration: CFG.BARRE_GLISSE_MS, easing: GLISSE });
+          glisses += 1;
+          plusLong = Math.max(plusLong, Math.abs(y));
+        }
+
+        if (s?.entree) lancer(el, 'entree', s.entree.images, s.entree.options, s.entree.t);
+      }
+
+      const nouveaux = new Set(arrivees);
+      const fondre = arrivees.filter((el) => !nouveaux.has(porteur(el)))
+        .sort((a, b) => ici.get(a).y - ici.get(b).y);
+      fondre.forEach((el, i) => {
+        const opacite = getComputedStyle(el).opacity;
+        lancer(el, 'entree', [{ opacity: 0 }, { opacity: opacite }],
+          { duration: CFG.BARRE_ENTREE_MS, easing: ENTREE, fill: 'backwards',
+            delay: CFG.BARRE_ENTREE_DELAI_MS + Math.min(i, CFG.BARRE_ECHELONS_MAX) * CFG.BARRE_ECHELON_MS });
+      });
+      bilan.glisses += glisses;
+      bilan.repris += repris;
+      bilan.entrees += fondre.length;
+      if (glisses || fondre.length) {
+        bilan.dernier = { glisses, entrees: fondre.length, plusLong: Math.round(plusLong) };
+      }
+    };
+
+    const lot = () => {
+      if (ouvert()) return;
+      avant();
+      if (releve) Promise.resolve().then(() => apres());
+    };
+
+    const posee = (el) => {
+      const b = el.getBoundingClientRect();
+      let x = 0, y = 0;
+      for (let p = el; p; p = p.parentElement) {
+        if (!enVol.get(p)?.glisse) continue;
+        const m = /^(-?[\d.]+(?:e-?\d+)?)px(?:\s+(-?[\d.]+(?:e-?\d+)?)px)?/.exec(getComputedStyle(p).translate || '');
+        if (m) { x += Number(m[1]); y += Number(m[2] || 0); }
+      }
+      if (!x && !y) return b;
+      const left = b.left - x, top = b.top - y;
+      return { x: left, y: top, left, top, right: left + b.width, bottom: top + b.height,
+               width: b.width, height: b.height };
+    };
+
+    return {
+      avant, apres, lot, posee,
+
+      rapport: () => ({ ...bilan, retenus: { ...bilan.retenus }, enVol: enVol.size }),
+    };
+  })();
 
   const FENTE = '\u0000';
 
@@ -8915,8 +9197,13 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     }
   };
 
-  const minuitLocal = (t) => { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); };
-  const joursJusqua = (t) => Math.round((minuitLocal(t) - minuitLocal(Date.now())) / 86_400_000);
+  const jourCivil = (t) => Temporal.Instant.fromEpochMilliseconds(t)
+    .toZonedDateTimeISO(Temporal.Now.timeZoneId()).toPlainDate();
+  const minuitDuJour = (jour) => jour.toZonedDateTime(Temporal.Now.timeZoneId()).epochMilliseconds;
+  const minuitLocal = (t) => minuitDuJour(jourCivil(t));
+  const joursJusqua = (t) => jourCivil(Date.now()).until(jourCivil(t)).days;
+
+  const minuitDans = (n, t = Date.now()) => minuitDuJour(jourCivil(t).add({ days: n }));
 
   const subs = {
 
@@ -9175,9 +9462,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       try {
         const formats = FORMES_DATE.map((o) => new Intl.DateTimeFormat(langue, o));
         for (let i = 0; i <= CFG.SUBS_DUE_HORIZON_DAYS; i++) {
-          const d = new Date(jour);
-          d.setDate(d.getDate() + i);
-          for (const f of formats) cles.push([normaliser(f.format(d)), d.getTime()]);
+          const ms = minuitDans(i, jour);
+          for (const f of formats) cles.push([normaliser(f.format(ms)), ms]);
         }
       } catch {   }
       candidates = { langue, jour, cles };
@@ -9227,9 +9513,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       const u = unite(f[i + 1]?.t || '');
       const v = f.slice(0, i).find((x) => (x.t.match(/\d+/g) || []).length === 1 && unite(x.t) !== u);
       if (!v) return { mois: m, ech: 0, ecrite };
-      const d = new Date(minuitLocal(Date.now()));
-      d.setDate(d.getDate() + parseInt(/\d+/.exec(v.t)[0], 10));
-      return { mois: m, ech: d.getTime(), ecrite };
+      return { mois: m, ech: minuitDans(parseInt(/\d+/.exec(v.t)[0], 10)), ecrite };
     };
 
     const LECTEUR = 2;
@@ -9489,7 +9773,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         return true;
       };
 
-      const avant = [...(precedents || [])].sort().join(',');
+      const avant = (precedents || []).toSorted().join(',');
       const refuser = (trouve, stableMs) => !!avant
         && trouve.map(x => x.login).sort().join(',') === avant
         && stableMs < CFG.SUBS_PAGE_SETTLE;
@@ -9939,7 +10223,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         cadre.setAttribute('aria-hidden', 'true');
         cadre.setAttribute('tabindex', '-1');
 
-        cadre.style.cssText = 'position:fixed;left:0;top:0;width:1280px;height:100vh;'
+        cadre.style.cssText = 'position:fixed;left:0;top:0;width:1280px;height:100dvh;'
           + 'opacity:0;pointer-events:none;border:0;z-index:-1';
         const charge = new Promise((r) => cadre.addEventListener('load', () => r(true), { once: true }));
         cadre.src = location.origin + CHEMIN;
@@ -10300,6 +10584,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     const bilan = {
       poses: 0, reposes: 0, retraits: 0, peintures: 0, relangues: 0, reveils: 0, ancre: null,
 
+      plisTrouves: 0,
+
       chrono: { arrivee: null, defileur: null, pose: null, heros: null, voile: null, vue: null, carrousel: null },
 
       peintureMaxMs: 0, peinturesMs: 0, peinturesDonnees: 0,
@@ -10321,7 +10607,11 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
 
       une: { voie: null, lues: 0, montrees: 0, attente: 0, reserve: false, demandes: 0, relectures: 0, centrages: 0,
 
-             tete: null, tours: 0 },
+             tete: null, tours: 0,
+
+             trous: 0, comblees: 0, raisons: { banniere: 0, horsLigne: 0, sansReponse: 0, pair: 0 },
+
+             annonces: 0 },
       debut: { envois: 0, demandes: 0, archives: 0, sansArchive: 0, sansStream: 0,
                jetons: 0, fermees: 0, illisibles: 0, refus: 0, reseau: 0 },
 
@@ -10807,9 +11097,12 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
 
     const allerA = (liste, carte) => {
       const e = etatRuban(liste);
+      const change = e.tete !== carte.dataset.tseCle;
       e.tete = e.vers = carte.dataset.tseCle;
       e.versT = performance.now();
       bilan.une.tete = e.tete;
+
+      if (change) annoncer(liste, carte);
       liste.classList.add('tse-acc-ruban--mene');
       tourner(liste, carte);
       centrer(liste, carte);
@@ -10847,8 +11140,22 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       if (menePar(e) && c.dataset.tseCle !== e.vers) return;
       e.vers = null;
       liste.classList.remove('tse-acc-ruban--mene');
-      if (c.dataset.tseCle !== e.tete) { e.tete = c.dataset.tseCle; bilan.une.tete = e.tete; }
+      if (c.dataset.tseCle !== e.tete) {
+        e.tete = c.dataset.tseCle;
+        bilan.une.tete = e.tete;
+        annoncer(liste, c);
+      }
       tourner(liste, c);
+    };
+
+    const annoncer = (liste, c) => {
+      const zone = liste.parentElement?.querySelector(':scope > .tse-acc-annonce');
+      const ordre = etatRuban(liste).ordre || [];
+      const i = ordre.indexOf(c.dataset.tseCle);
+      if (!zone || i < 0) return;
+      const nom = c.querySelector('.tse-acc-nom')?.textContent || c.dataset.tseCle;
+      zone.textContent = S.uiAccAnnonce(i + 1, ordre.length, nom);
+      bilan.une.annonces++;
     };
     const majFleches = (liste) => {
       const cadre = liste.parentElement;
@@ -10880,6 +11187,13 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         if (ouverts.has(cle)) ouverts.delete(cle); else ouverts.add(cle);
         plier(r);
       });
+
+      r.addEventListener('beforematch', erreurs.garde('accueil', () => {
+        if (ouverts.has(cle)) return;
+        ouverts.add(cle);
+        bilan.plisTrouves++;
+        plier(r);
+      }));
       pied.append(elt('hr', 'tse-acc-filet'), plus, elt('hr', 'tse-acc-filet'));
       r.append(titre, liste, pied);
       r.hidden = true;
@@ -10892,6 +11206,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         .filter((t) => /^[\d.]+px$/.test(t)).length;
       return pistes || 0;
     };
+
+    const PLI_CACHE = 'until-found';
     const plier = (r) => {
       const liste = r.querySelector('.tse-acc-liste');
       const plus = r.querySelector('.tse-acc-plus');
@@ -10900,8 +11216,10 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       const cols = colonnes(liste);
       const replie = !ouvert && cols > 0;
       for (let i = 0; i < items.length; i++) {
-        const cache = replie && i >= cols;
-        if (items[i].hidden !== cache) items[i].hidden = cache;
+        const voulu = replie && i >= cols ? PLI_CACHE : null;
+        if (items[i].getAttribute('hidden') !== voulu) {
+          if (voulu === null) items[i].removeAttribute('hidden'); else items[i].setAttribute('hidden', voulu);
+        }
       }
 
       const reste = cols > 0 && items.length > cols && !('tseAttente' in liste.dataset);
@@ -10929,7 +11247,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       blocHeros.append(heros);
 
       const hUne = elt('h2', 'tse-acc-titre');
-      hUne.append(elt('span', null, S.uiAccUne));
+      const tUne = elt('span', null, S.uiAccUne);
+      tUne.id = 'tse-acc-une-titre';
+      hUne.append(tUne);
 
       const lUne = elt('div', 'tse-acc-liste tse-acc-ruban');
       const cadreUne = elt('div', 'tse-acc-ruban-cadre');
@@ -10944,7 +11264,13 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         b.addEventListener('click', erreurs.garde('accueil', () => mener(lUne, sens)));
         return b;
       };
-      cadreUne.append(flecheUne(-1), lUne, flecheUne(1));
+
+      cadreUne.setAttribute('role', 'region');
+      cadreUne.setAttribute('aria-roledescription', S.uiAccCarrousel);
+      cadreUne.setAttribute('aria-labelledby', tUne.id);
+      const annonceUne = elt('p', 'tse-acc-annonce');
+      annonceUne.setAttribute('role', 'status');
+      cadreUne.append(flecheUne(-1), lUne, flecheUne(1), annonceUne);
       lUne.addEventListener('scroll', () => { etatRuban(lUne).defile = true; }, { passive: true });
       lUne.addEventListener('scrollend', erreurs.garde('accueil', () => finDefilement(lUne)));
       lUne.addEventListener('click', erreurs.garde('accueil', (ev) => centrerAuClic(lUne, ev)), true);
@@ -10996,17 +11322,15 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       section.append(une, top, ...pq.map((x) => x.r), rdv, hab, abs);
       z = { heros, une, lUne, top, tTop, lang, lTop, note, pq, rdv, lRdv, hab, lHab, abs, lAbs, langCle: undefined };
 
-      if (typeof IntersectionObserver === 'function') {
-        guetteur = new IntersectionObserver(erreurs.garde('accueil', (entrees) => {
-          const vu = entrees[entrees.length - 1].isIntersecting;
-          if (vu === herosVu) return;
-          herosVu = vu;
-          majLecteur();
-        }));
-        guetteur.observe(heros);
-      } else herosVu = true;
+      guetteur = new IntersectionObserver(erreurs.garde('accueil', (entrees) => {
+        const vu = entrees[entrees.length - 1].isIntersecting;
+        if (vu === herosVu) return;
+        herosVu = vu;
+        majLecteur();
+      }));
+      guetteur.observe(heros);
 
-      if (typeof ResizeObserver === 'function') {
+      {
         let large = 0;
         mesureur = new ResizeObserver(erreurs.garde('accueil', (entrees) => {
           const l = Math.round(entrees[entrees.length - 1].contentRect.width);
@@ -11281,7 +11605,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     const etiquetterTwitch = () => {
       const voulu = options.get('accueilEtiquettes') && pose();
       const habille = options.get('accueilRanger') && pose();
-      if ((voulu || habille) && !guetteurCartes && typeof IntersectionObserver === 'function') {
+      if ((voulu || habille) && !guetteurCartes) {
         guetteurCartes = new IntersectionObserver(erreurs.garde('accueil', (entrees) => {
           for (const en of entrees) {
             if (en.isIntersecting) cartesVues.add(en.target); else cartesVues.delete(en.target);
@@ -11437,7 +11761,6 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       cartesVues.clear();
     };
 
-    const POPOVER = typeof document.createElement('div').showPopover === 'function';
     const etatsCs = new WeakMap();
     let csOuvert = null;
     let csMinuteur = 0;
@@ -11581,7 +11904,6 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       const b = elt('button', 'tse-acc-cs');
       b.type = 'button';
       b.append(elt('span', null), noeudStatique(PICTO_CHEVRON));
-      if (!POPOVER) return [b];
       b.setAttribute('aria-expanded', 'false');
       const fen = elt('div', 'tse-acc-cs-fen');
       fen.id = 'tse-acc-cs-' + (++csNumero);
@@ -11634,7 +11956,6 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       texteSi(bouton.firstChild, `+ ${cs.autres.length}`);
       const phrase = phraseCs(cs);
       attrSi(bouton, 'aria-label', phrase);
-      if (!POPOVER) attrSi(bouton, 'title', phrase);
       if (csOuvert && csOuvert.bouton === bouton) remplirCs(csOuvert.fen, cs);
     };
 
@@ -11646,8 +11967,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       placerCs();
     };
 
-    const fabriquerCarte = (login) => {
-      const carte = elt('article', 'tse-acc-carte');
+    const fabriquerCarte = (login, balise = 'article') => {
+      const carte = elt(balise, 'tse-acc-carte');
       carte.dataset.tseCle = login;
       const relief = elt('div', 'tse-acc-relief');
       const accent = elt('span', 'tse-acc-accent');
@@ -11896,10 +12217,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       l.t.delai = setTimeout(() => renoncer('delais'), CFG.ACCUEIL_VIDEO_DELAI_MS);
       lecteur = l;
       media.insertBefore(iframe, media.lastChild);
-      if (typeof ResizeObserver === 'function') {
-        l.taille = new ResizeObserver(erreurs.garde('accueil', direHauteur));
-        l.taille.observe(media);
-      }
+      l.taille = new ResizeObserver(erreurs.garde('accueil', direHauteur));
+      l.taille.observe(media);
       bilan.heros.video.poses++;
     };
     const lecteurVoulu = () => !!herosCourant && pose() && options.get('accueilVideo')
@@ -11944,9 +12263,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       ctx.putImageData(image, 0, 0);
       cible.classList.add('tse-acc-heros-ambiance--vue', 'tse-acc-heros-ambiance--dessus');
       dessus.classList.remove('tse-acc-heros-ambiance--dessus');
-      if (typeof cible.animate === 'function') {
-        cible.animate([{ opacity: 0 }, { opacity: 1 }], { duration: CFG.ACCUEIL_AMBIANCE_FONDU_MS, easing: 'ease-out' });
-      }
+      cible.animate([{ opacity: 0 }, { opacity: 1 }], { duration: CFG.ACCUEIL_AMBIANCE_FONDU_MS, easing: 'ease-out' });
       bilan.heros.ambiance.images++;
     };
 
@@ -12022,19 +12339,63 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       return carte;
     };
     let uneLue = '';
+
+    let combleurs = new Map();
     const peindreUne = (heros) => {
       const voulu = !!options.get('accueilUne') && masquerVoulu;
       const { logins, voie } = voulu ? chainesCarrousel() : { logins: [], voie: null };
       uneLue = logins.join(',');
       const items = [];
+      const trous = [];
       let attente = 0;
+      const patient = performance.now() - arrivee < CFG.ACCUEIL_UNE_ATTENTE_MS;
+      const raisons = { banniere: 0, horsLigne: 0, sansReponse: 0, pair: 0 };
       for (const login of logins) {
-        if (heros && login === heros.login) continue;
+        const trou = (raison) => { trous.push({ ou: items.length, cle: login }); raisons[raison]++; };
+        if (heros && login === heros.login) { trou('banniere'); continue; }
         demander(login, bilan.une);
         const e = cache.get(login);
-        if (!e) { attente++; continue; }
-        if (e.stream) items.push({ login, e });
+        if (!e) { attente++; if (!patient) trou('sansReponse'); continue; }
+        if (e.stream) items.push({ login, e }); else trou('horsLigne');
       }
+
+      if (logins.length % 2) raisons.pair = 0;
+      else if (logins.length) { trous.push({ ou: items.length, cle: '' }); raisons.pair = 1; }
+      bilan.une.raisons = raisons;
+      bilan.une.trous = trous.length;
+      bilan.une.comblees = 0;
+      if (trous.length && items.length) {
+        const deja = new Set([...logins, ...(heros ? [heros.login] : [])]);
+        const enDirect = (login) => { const e = cache.get(login); return e && e.stream ? e : null; };
+        const choisis = trous.map(() => null);
+
+        trous.forEach((t, i) => {
+          const login = combleurs.get(t.cle);
+          const e = login && !deja.has(login) && enDirect(login);
+          if (e) { choisis[i] = { login, e }; deja.add(login); }
+        });
+
+        let k = choisis.indexOf(null);
+        if (k >= 0) {
+          const candidats = [...sourceTop().top(CFG.ACCUEIL_TOP_N, ecarteesTop()).map((r) => String(r.login).toLowerCase()),
+                             ...suiviesEnDirect().map((x) => x.login)];
+          for (const login of candidats) {
+            if (k < 0) break;
+            if (deja.has(login) || !RE_LOGIN.test(login)) continue;
+            deja.add(login);
+            const e = cache.get(login);
+            if (!e) { demander(login, bilan.une); continue; }
+            if (!e.stream) continue;
+            choisis[k] = { login, e };
+            k = choisis.indexOf(null, k + 1);
+          }
+        }
+
+        let poses = 0;
+        trous.forEach((t, i) => { if (choisis[i]) items.splice(t.ou + poses++, 0, choisis[i]); });
+        combleurs = new Map(trous.flatMap((t, i) => (choisis[i] ? [[t.cle, choisis[i].login]] : [])));
+        bilan.une.comblees = poses;
+      } else if (!trous.length) combleurs = new Map();
       for (const x of items) noterAffiche(x.login, x.e.stream?.createdAt);
 
       const reserve = voulu && !items.length && (!logins.length || attente > 0)
@@ -12063,8 +12424,17 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         const t = cles.indexOf(ruban.tete);
         const d = t < 0 || items.length < 3 ? 0 : t - milieuRuban(items.length);
         const tournes = d ? [...items.slice(d), ...items.slice(0, d)] : items;
-        rangee(z.lUne, tournes, (it) => it.login, (it) => fabriquerCarte(it.login),
+        rangee(z.lUne, tournes, (it) => it.login, (it) => fabriquerCarte(it.login, 'div'),
                (n, it) => majCarte(n, donneesSuivie(it)));
+
+        ruban.ordre = cles;
+        for (const c of z.lUne.children) {
+          const i = cles.indexOf(c.dataset.tseCle);
+          if (i < 0) continue;
+          attrSi(c, 'role', 'group');
+          attrSi(c, 'aria-roledescription', S.uiAccDiapo);
+          attrSi(c, 'aria-label', S.uiAccDiapoN(i + 1, cles.length));
+        }
       }
       bilan.une.tete = ruban.tete;
       z.une.hidden = !items.length && !reserve;
@@ -12146,7 +12516,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       return li;
     };
 
-    const PLACES_ATTENTE = 5;
+    const PLACES_ATTENTE = CFG.ACCUEIL_TOP_COLONNES;
     const fabriquerAttente = (n) => {
       const li = elt('li', 'tse-acc-place tse-acc-place--attente');
       li.dataset.tseCle = 'attente:' + n;
@@ -12468,11 +12838,10 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         z.hab.hidden = true;
         return;
       }
-      const j0 = new Date();
-      j0.setHours(0, 0, 0, 0);
-      const debut = j0.getTime();
-      const demain = new Date(j0.getFullYear(), j0.getMonth(), j0.getDate() + 1).getTime();
-      const fin = new Date(j0.getFullYear(), j0.getMonth(), j0.getDate() + CFG.ACCUEIL_RDV_JOURS).getTime();
+
+      const debut = minuitDans(0);
+      const demain = minuitDans(1);
+      const fin = minuitDans(CFG.ACCUEIL_RDV_JOURS);
       let r;
       try { r = agenda.rendezVous({ debut, fin }); } catch (e) {
         erreurs.noter('accueil', 'rendez-vous : ' + ((e && e.message) || e));
@@ -15922,17 +16291,19 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       b.appendChild(k);
       return b;
     };
+
     const construire = () => {
+      const dialogue = elt('dialog', 'tse-zap-dialogue');
+      dialogue.setAttribute('aria-labelledby', 'tse-zap-titre');
       const boite = elt('div', '');
       boite.id = 'tse-zap';
-      boite.setAttribute('role', 'dialog');
-      boite.setAttribute('aria-modal', 'true');
       boite.tabIndex = -1;
       const scene = elt('div', 'tse-zap__scene');
       const capot = elt('div', 'tse-zap__capot');
       const trait = elt('div', 'tse-zap__trait');
       const compteur = elt('div', 'tse-zap__compteur');
       const titre = elt('span', 'tse-zap__titre');
+      titre.id = 'tse-zap-titre';
       const rang = elt('b', 'tse-zap__rang');
       compteur.append(titre, rang);
       const aide = elt('div', 'tse-zap__aide');
@@ -15990,7 +16361,10 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       boite.append(scene, capot, trait, compteur, aide, liste, infos, son, vide, avisEl);
 
       boite.addEventListener('wheel', (e) => { if (!e.target.closest || !e.target.closest('.tse-zap__liste')) e.preventDefault(); }, { passive: false });
-      return { boite, scene, titre, rang, aide, changerTexte, entree, entreeTexte, s, sTexte, o, oTexte, echap, echapTexte,
+      dialogue.append(boite);
+
+      dialogue.addEventListener('cancel', (e) => { e.preventDefault(); fermer('echap'); });
+      return { dialogue, boite, scene, titre, rang, aide, changerTexte, entree, entreeTexte, s, sTexte, o, oTexte, echap, echapTexte,
                precedente, suivante, liste, infos, visage, visageImg, nom, jour, titreDirect, direct, metaTexte,
                son, sonIcone, sonTexte, vide, avis: avisEl };
     };
@@ -16194,11 +16568,6 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       }), CFG.ZAP_REDIM_MS);
     };
 
-    const surFocus = (e) => {
-      const c = z;
-      if (c && e.target instanceof Node && !c.boite.contains(e.target)) c.boite.focus({ preventScroll: true });
-    };
-
     const surVisibilite = () => {
       const c = z;
       if (!c) return;
@@ -16265,14 +16634,14 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         retour: document.activeElement && typeof document.activeElement.focus === 'function' ? document.activeElement : null, minuteur: null,
         pleinEcran: false, bouge: 0, reposT: null, souris: { x: null, y: null }, tailleT: null,
       };
-      document.body.appendChild(refs.boite);
+      document.body.appendChild(refs.dialogue);
+      refs.dialogue.showModal();
 
       pleinEcran(z);
 
       window.addEventListener('keydown', surTouche, true);
       window.addEventListener('keyup', surToucheAutre, true);
       window.addEventListener('keypress', surToucheAutre, true);
-      document.addEventListener('focusin', surFocus, true);
       document.addEventListener('visibilitychange', surVisibilite);
       document.addEventListener('fullscreenchange', surPleinEcran);
       window.addEventListener('message', surMessage);
@@ -16300,7 +16669,6 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       window.removeEventListener('keydown', surTouche, true);
       window.removeEventListener('keyup', surToucheAutre, true);
       window.removeEventListener('keypress', surToucheAutre, true);
-      document.removeEventListener('focusin', surFocus, true);
       document.removeEventListener('visibilitychange', surVisibilite);
       document.removeEventListener('fullscreenchange', surPleinEcran);
       window.removeEventListener('message', surMessage);
@@ -16308,7 +16676,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       window.removeEventListener('resize', surTaille);
       clearTimeout(c.tailleT);
 
-      c.boite.remove();
+      if (c.refs.dialogue.open) c.refs.dialogue.close();
+      c.refs.dialogue.remove();
       bilan.fermetures[raison] = (bilan.fermetures[raison] || 0) + 1;
       if (!navigue) {
 
@@ -16736,7 +17105,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       const origineDe = (el) => {
         const couche = el.parentElement;
         if (!couche || !couche.isConnected) return null;
-        if (!origines.has(couche)) origines.set(couche, couche.getBoundingClientRect());
+        if (!origines.has(couche)) origines.set(couche, mouvementBarre.posee(couche));
         return origines.get(couche);
       };
       for (const [cle, { barre }] of voulues) {
@@ -16745,8 +17114,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         if (!st || !barre.every((c) => c.isConnected)) continue;
         const origine = origineDe(st.n);
         if (!origine) continue;
-        const haut = barre[0].getBoundingClientRect();
-        const bas = barre[barre.length - 1].getBoundingClientRect();
+
+        const haut = mouvementBarre.posee(barre[0]);
+        const bas = mouvementBarre.posee(barre[barre.length - 1]);
 
         const couleur = getComputedStyle(barre[0], '::before').backgroundColor;
         const encre = encreSur(couleur);
@@ -18016,6 +18386,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         for (const s of (f.planning && f.planning.creneaux) || []) {
           if (s.annule || s.debut < debut || s.debut >= fin || finCreneau(s) <= maintenant) continue;
           if (direct && s.debut <= maintenant) continue;
+
+          if (maintenant - s.debut >= CFG.ACCUEIL_RDV_RETARD_MAX_MS) continue;
           prevu = true;
           creneaux.push({ login, nom: f.nom || login, avatar: f.avatar || null, id: s.id, titre: s.titre,
                           debut: s.debut, fin: s.fin, jeu: s.jeu, libelle: s.libelle });
@@ -18559,6 +18931,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
 
           doublons: { natifs: bilanDoublons.natifs, fabriques: bilanDoublons.fabriques,
                       masques: cartes.filter(c => c.dataset.tseDoublon === 'true').length },
+
+          mouvement: mouvementBarre.rapport(),
 
           liste: (() => {
             const sec = followedSection();
@@ -19804,10 +20178,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
   const poserLibelle = (puce, libelle) => {
     let texte = puce.querySelector(':scope > .tse-subathon-libelle');
     if (!texte) {
-      puce.textContent = '';
       texte = document.createElement('span');
       texte.className = 'tse-subathon-libelle';
-      puce.appendChild(texte);
+      puce.replaceChildren(texte);
     }
     setText(texte, libelle);
     let teintes = puce.querySelector(':scope > .tse-subathon-teintes');
@@ -20041,7 +20414,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       inFlight++;
 
       const img = document.createElement('img');
-      try { img.fetchPriority = 'low'; } catch {   }
+      img.fetchPriority = 'low';
       const finish = () => { inFlight--; pump(); };
       img.addEventListener('load', finish, { once: true });
       img.addEventListener('error', finish, { once: true });
@@ -20881,7 +21254,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       if (!el) return;
 
       if (!card || !card.isConnected) { close(); return; }
-      const cardRect = card.getBoundingClientRect();
+      const cardRect = mouvementBarre.posee(card);
       const margin = 8;
       const popupWidth = el.offsetWidth;
       const popupHeight = el.offsetHeight;
@@ -21697,6 +22070,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         if (!meta) return;
 
         if (meta.offline) {
+          mouvementBarre.lot();
           card.dataset.tseGqlOffline = 'true';
           card.dataset.tseOffline = 'true';
           cache.delete(login);
@@ -21998,6 +22372,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     if (!document.contains(card)) return;
 
     if (card.dataset.tseLogin !== login) return;
+
+    mouvementBarre.lot();
     applyChannelData(card, data);
   }
 
@@ -22141,58 +22517,58 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
 
   const getAllLabel = () => S.uiFilterAllCategories;
 
-  function closeMenus(except) {
-    document.querySelectorAll('.tse-dd.tse-open').forEach(dd => {
-      if (dd === except) return;
-      dd.classList.remove('tse-open');
-      const btn = dd.querySelector('.tse-dd-btn');
-      if (btn) btn.setAttribute('aria-expanded', 'false');
-    });
-  }
+  const SELECT_RICHE = globalThis.CSS.supports('appearance', 'base-select');
 
-  let ddBound = false;
-  function bindDropdownsGlobal() {
-    if (ddBound) return;
-    ddBound = true;
+  const decor = (noeud) => {
+    const el = noeud.nodeType === Node.DOCUMENT_FRAGMENT_NODE ? noeud.firstElementChild : noeud;
+    el?.setAttribute('aria-hidden', 'true');
+    return noeud;
+  };
 
-    document.addEventListener('click', (e) => closeMenus(e.target.closest('.tse-dd')), true);
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenus(); });
-  }
+  const contenuTous = (kind) => {
+    if (kind !== 'lang') return document.createTextNode(getAllLabel());
+    return avecNomLangue(noeudStatique(GLOBE_MARKUP), S.uiFilterAllLanguages);
+  };
 
-  function wireDropdown(dd) {
-    const btn  = dd.querySelector('.tse-dd-btn');
-    const menu = dd.querySelector('.tse-dd-menu');
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (btn.disabled) return;
-      const open = dd.classList.toggle('tse-open');
-      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
-    });
-    menu.addEventListener('click', (e) => {
-      const opt = e.target.closest('.tse-dd-opt');
-      if (!opt) return;
-      e.stopPropagation();
-      closeMenus();
-      onFilterChange(dd.dataset.facet, opt.dataset.value || null);
-    });
-  }
+  const avecNomLangue = (noeud, texte) => {
+    const hote = document.createElement('span');
+    hote.className = 'tse-dd-lang';
+    const nom = document.createElement('span');
+    nom.className = 'tse-dd-nom';
+    nom.textContent = texte;
+    hote.append(decor(noeud), nom);
+    return hote;
+  };
 
-  const ddSquelette = (id, facet, modifier, ariaLabel, fabriquerCourant) => {
-    const frag = noeudStatique(
-      '<div class="tse-dd">'
-      + '<button type="button" class="tse-dd-btn" aria-haspopup="listbox" aria-expanded="false">'
-      + '<span class="tse-dd-current"></span>'
-      + '<span class="tse-dd-caret" aria-hidden="true"></span>'
-      + '</button>'
-      + '<div class="tse-dd-menu" role="listbox"></div>'
-      + '</div>');
-    const dd = frag.firstElementChild;
+  const ddSquelette = (id, facet, modifier, ariaLabel, kind) => {
+    const dd = document.createElement('div');
+    dd.className = 'tse-dd ' + modifier;
     dd.id = id;
-    dd.classList.add(modifier);
     dd.dataset.facet = facet;
-    dd.querySelector('.tse-dd-btn').setAttribute('aria-label', ariaLabel);
-    dd.querySelector('.tse-dd-current').appendChild(fabriquerCourant());
-    return frag;
+    const choix = document.createElement('select');
+    choix.className = 'tse-dd-btn';
+    choix.setAttribute('aria-label', ariaLabel);
+    if (SELECT_RICHE) {
+      const bouton = document.createElement('button');
+      bouton.type = 'button';
+      bouton.className = 'tse-dd-bouton';
+      const courant = document.createElement('selectedcontent');
+      courant.className = 'tse-dd-current';
+      const fleche = document.createElement('span');
+      fleche.className = 'tse-dd-caret';
+      fleche.setAttribute('aria-hidden', 'true');
+      bouton.append(courant, fleche);
+      choix.append(bouton);
+    }
+    const tous = document.createElement('option');
+    tous.className = 'tse-dd-opt';
+    tous.value = '';
+    tous.dataset.value = '';
+    tous.append(contenuTous(kind));
+    choix.append(tous);
+    choix.addEventListener('change', () => onFilterChange(facet, choix.value || null));
+    dd.append(choix);
+    return dd;
   };
 
   function ensureFilterBar() {
@@ -22212,17 +22588,12 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       + '<div class="tse-filter-field tse-filter-field--cat"></div>'
       + '<div class="tse-filter-field tse-filter-field--lang"></div>'
       + '</div>'));
+    wrap.dataset.tseSelect = SELECT_RICHE ? 'riche' : 'natif';
     wrap.querySelector('.tse-filter-field--cat').appendChild(
-      ddSquelette(CAT_DD_ID, 'category', 'tse-dd--cat', S.uiFilterAriaLabel,
-                  () => document.createTextNode(getAllLabel())));
+      ddSquelette(CAT_DD_ID, 'category', 'tse-dd--cat', S.uiFilterAriaLabel, 'cat'));
     wrap.querySelector('.tse-filter-field--lang').appendChild(
-      ddSquelette(LANG_DD_ID, 'language', 'tse-dd--lang', S.uiFilterLangAriaLabel,
-                  () => noeudStatique(GLOBE_MARKUP)));
+      ddSquelette(LANG_DD_ID, 'language', 'tse-dd--lang', S.uiFilterLangAriaLabel, 'lang'));
     section.parentElement.insertBefore(wrap, section);
-
-    wireDropdown(wrap.querySelector(`#${CAT_DD_ID}`));
-    wireDropdown(wrap.querySelector(`#${LANG_DD_ID}`));
-    bindDropdownsGlobal();
   }
 
   function mesurerRougeDirect() {
@@ -22280,12 +22651,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     if (document.getElementById(INCRUSTE_ID)) return;
     if (!urlPanneau) { demanderUrl(); return; }
 
-    const voile = document.createElement('div');
+    const voile = document.createElement('dialog');
     voile.id = INCRUSTE_ID;
     voile.className = 'tse-incruste';
-
-    voile.setAttribute('role', 'dialog');
-    voile.setAttribute('aria-modal', 'true');
     voile.setAttribute('aria-label', S.uiRoueTitre);
 
     const cadre = document.createElement('div');
@@ -22302,8 +22670,6 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
 
     cadre.appendChild(frame);
     voile.appendChild(cadre);
-
-    const surTouche = (ev) => { if (ev.key === 'Escape') fermerIncruste?.(); };
 
     const surMessage = (ev) => {
       if (ev.source !== frame.contentWindow) return;
@@ -22328,19 +22694,21 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
     };
 
     fermerIncruste = () => {
-      document.removeEventListener('keydown', surTouche, true);
       window.removeEventListener('message', surMessage);
-      voile.remove();
       fermerIncruste = null;
+      if (voile.open) voile.close();
+      voile.remove();
 
       document.getElementById(ROUE_ID)?.focus?.();
     };
 
-    voile.addEventListener('click', (ev) => { if (ev.target === voile) fermerIncruste(); });
-    document.addEventListener('keydown', surTouche, true);
+    voile.addEventListener('click', (ev) => { if (ev.target === voile) fermerIncruste?.(); });
+
+    voile.addEventListener('close', () => fermerIncruste?.());
     window.addEventListener('message', surMessage);
 
     document.body.appendChild(voile);
+    voile.showModal();
   }
 
   const ROUE_ID = 'tse-roue';
@@ -22483,6 +22851,8 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
   function onFilterChange(facet, value) {
     const cur = facet === 'category' ? state.categoryFilter : state.languageFilter;
     if (value === cur) return;
+
+    mouvementBarre.avant();
     if (facet === 'category') {
       state.categoryFilter = value;
       state.filterDriver = value ? 'category' : (state.languageFilter ? 'language' : null);
@@ -22503,6 +22873,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
       }
     }
     recomputeFilters();
+    mouvementBarre.apres();
   }
 
   const SORT_ROW_ID = 'tse-sort-row';
@@ -22593,7 +22964,9 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
         state.sortMode = mode;
         state.sortWish = mode;
         refreshPressed();
+        mouvementBarre.avant();
         applySorting();
+        mouvementBarre.apres();
       });
     });
   }
@@ -22991,32 +23364,20 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
 
   function rebuildDropdown(dd, values, counts, current, disabled, kind,
                            fmt = String, libelle = String) {
-    const btn  = dd.querySelector('.tse-dd-btn');
-    const cur  = dd.querySelector('.tse-dd-current');
-    const menu = dd.querySelector('.tse-dd-menu');
+    const choix  = dd.querySelector('select');
+    const bouton = choix.querySelector(':scope > button');
 
-    const avecNom = (noeud, texte) => {
-      if (kind !== 'lang') return noeud;
-      const hote = document.createElement('span');
-      hote.className = 'tse-dd-lang';
-      const nom = document.createElement('span');
-      nom.className = 'tse-dd-nom';
-      nom.textContent = texte;
-      hote.append(noeud, nom);
-      return hote;
-    };
     const itemLabel = (v) => {
-      if (kind === 'lang') return avecNom(langIcon(v), v);
+      if (kind === 'lang') return avecNomLangue(langIcon(v), v);
       const sp = document.createElement('span');
       sp.className = 'tse-dd-name';
       sp.textContent = libelle(v);
       return sp;
     };
 
-    const allLabel = () => kind === 'lang'
-      ? avecNom(noeudStatique(GLOBE_MARKUP), S.uiFilterAllLanguages)
-      : document.createTextNode(getAllLabel());
     const allTitle  = kind === 'lang' ? S.uiFilterAllLanguages : S.uiFilterAllCategories;
+
+    if (current && !values.includes(current)) values = [...values, current];
 
     const sig = `${kind}|${disabled ? 'D' : ''}|cur=${current || ''}|` +
 
@@ -23024,19 +23385,17 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
                     + (counts.has(v) ? counts.get(v) : 'ø')).join('\u00A7');
     if (dd.dataset.tseSig !== sig) {
       dd.dataset.tseSig = sig;
-      cur.replaceChildren(current ? itemLabel(current) : allLabel());
-
       const option = (valeur, selectionnee, titre, contenu) => {
-        const o = document.createElement('div');
+        const o = document.createElement('option');
         o.className = 'tse-dd-opt';
-        o.setAttribute('role', 'option');
+        o.value = valeur;
         o.dataset.value = valeur;
-        o.setAttribute('aria-selected', String(selectionnee));
-        if (titre != null) o.setAttribute('title', titre);
-        o.appendChild(contenu);
+        o.selected = selectionnee;
+        if (titre != null) o.title = titre;
+        o.append(contenu);
         return o;
       };
-      const lignes = [option('', !current, allTitle, allLabel())];
+      const lignes = [option('', !current, allTitle, contenuTous(kind))];
       for (const v of values) {
         const o = option(v, v === current, null, itemLabel(v));
 
@@ -23046,19 +23405,20 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
           const c = document.createElement('span');
           c.className = 'tse-dd-n';
           c.textContent = `${n} |`;
-          o.insertBefore(c, o.firstChild);
+
+          o.prepend(c, ' ');
         }
         lignes.push(o);
       }
-      menu.replaceChildren(...lignes);
+      choix.replaceChildren(...(bouton ? [bouton] : []), ...lignes);
     }
-    btn.disabled = disabled;
+
+    choix.disabled = disabled;
+
     const base = kind === 'lang' ? S.uiFilterLangAriaLabel : S.uiFilterAriaLabel;
-    btn.setAttribute('aria-label', current ? `${base} : ${libelle(current)}` : base);
-    if (disabled && dd.classList.contains('tse-open')) {
-      dd.classList.remove('tse-open');
-      btn.setAttribute('aria-expanded', 'false');
-    }
+    if (choix.getAttribute('aria-label') !== base) choix.setAttribute('aria-label', base);
+
+    if (disabled && choix.matches(':open')) dd.insertBefore(choix, choix.nextSibling);
   }
 
   function recomputeFilters() {
@@ -24586,6 +24946,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
 
   const scanSidebar = erreurs.garde('balayage', () => {
     noterBalayage();
+    mouvementBarre.avant();
 
     refreshLanguage();
     refreshSidebarCollapsed();
@@ -24625,6 +24986,7 @@ const TSE_SUIVIES_MSG = 'tse:suivies';
 
     noeudsSalle.maj(entreesSalle(applyCostreamJoins()));
     autoExpandFollowed();
+    mouvementBarre.apres();
 
     const hadOfflineActivity = offlineTransitionsThisScan > 0;
 
