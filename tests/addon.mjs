@@ -61,7 +61,10 @@ const LIVRE = ['manifest.json', 'content.js', 'cadres.js', 'adblock.js', 'icons'
                // relient à la page. Voir bridge.js pour la raison d'être de
                // ce découpage en trois fichiers.
                'bridge.js', 'background.js',
-               'panneau.html', 'panneau.css', 'panneau.js'];
+               'panneau.html', 'panneau.css', 'panneau.js',
+               // Le mode d'emploi (4.33.0.16) : sa feuille, et un fichier par
+               // traduction, que le panneau lit pour la sienne (cf. tests/guide.mjs).
+               'guide.css', 'guide'];
 
 /* Les fichiers JavaScript du paquet, dans l'ordre où on veut les voir passer.
    Tout ce qui est ici est dégraissé de ses commentaires à l'assemblage ET

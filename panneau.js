@@ -611,34 +611,34 @@ const dessinLag = (paquet) => {
 };
 
 /* ════════════════════════════════════════════════════════════════════════════
-   LE MODE D'EMPLOI
+   LE MODE D'EMPLOI (4.33.0.16)
    ────────────────────────────────────────────────────────────────────────────
-   Ce qui manquait n'était pas un écran de préférences — les réglages ont le
-   leur —, c'était la LISTE DE CE QUI EXISTE, et de quoi s'en servir : la
-   moitié de ce que le produit ajoute ne se découvre qu'en posant le pointeur
-   au bon endroit, et rien nulle part ne disait de le faire. EXPLIQUER N'EST
-   PAS DÉCRIRE (4.24.0.37) : chaque chapitre dit ce qu'on y fait et ce que ça
-   veut dire, pas comment c'est dessiné.
+   UN GUIDE ÉCRIT, ET NON PLUS COMPOSÉ ICI. Jusqu'à la 4.33.0.15, ce fichier
+   fabriquait le mode d'emploi : vingt chapitres en clés de traduction, et
+   leurs maquettes dessinées par du code. Il a été réécrit hors du dépôt —
+   vingt et un chapitres, un sommaire, des renvois qu'on suit d'un clic, des
+   maquettes nouvelles —, en douze pages HTML, une par traduction, et il est
+   repris tel quel, à la demande : « remplace-le parfaitement et entièrement,
+   sans retravailler sur son contenu ». tests/guide.mjs relève chaque page en
+   un arbre, guide/<locale>.json ; ce bloc le construit.
 
    IL NE DEMANDE RIEN À LA PAGE, et c'est ce qui le rend lisible le premier
-   jour. Les douze autres sections passent par le pont, donc par un onglet
-   Twitch au premier plan ; celle-ci s'affiche toujours, y compris sur un
-   navigateur qui n'a pas encore rouvert Twitch depuis l'installation.
+   jour. Les autres sections passent par le pont, donc par un onglet Twitch au
+   premier plan ; celle-ci lit un fichier de l'extension, et s'affiche
+   toujours, y compris sur un navigateur qui n'a pas encore rouvert Twitch
+   depuis l'installation.
 
-   LES EXEMPLES SONT DESSINÉS, PAS DÉCRITS. Une pastille dorée, un ruban de
-   catégories, une barre violette qui respire : ces choses-là se reconnaissent
-   à l'œil et se racontent mal. Les maquettes qui suivent reprennent la
-   géométrie et la palette de la barre latérale, à l'échelle du panneau, et
-   elles sont `aria-hidden` — le texte de chaque chapitre dit la même chose en
-   toutes lettres, comme la frise et la grille du rythme le font déjà.
+   CONSTRUIT NŒUD À NŒUD, JAMAIS PAR CHAÎNE. Les pages de l'extension exigent
+   Trusted Types sans aucune politique (4.33.0.14) : ni innerHTML, ni
+   DOMParser. Un nœud de l'arbre est un texte, ou [nom, attributs | 0,
+   ...enfants] ; un <svg> et tout ce qu'il contient naissent dans l'espace de
+   noms SVG. Le relevé a refusé ce qui exécute, charge ou mène hors du guide
+   (cf. tests/guide.mjs) : il n'arrive ici que des éléments, des classes, des
+   styles et des ancres vers ses chapitres.
 
-   LES NOMS DE CHAÎNES SONT INVENTÉS, et les catégories choisies parmi celles
-   que Twitch NE traduit PAS. Citer de vrais streamers dans une maquette les
-   ferait paraître partenaires de l'extension — c'est la règle des captures de
-   la fiche, et elle vaut ici. Quant aux catégories : « Just Chatting » devient
-   « Discussions » en français, et une maquette qui l'afficherait en anglais au
-   milieu d'un texte français se lirait comme un oubli de traduction. Les noms
-   de jeux, eux, sont les mêmes dans les douze langues.
+   DANS LA LANGUE DU PANNEAU, celle que le navigateur sert (`panelLocale`),
+   comme tout le reste. Le sélecteur de langue des pages n'est pas repris, ni
+   leur en-tête et leur pied : le panneau a les siens.
    ══════════════════════════════════════════════════════════════════════════ */
 
 const elt = (nom, classe, texte) => {
@@ -648,387 +648,26 @@ const elt = (nom, classe, texte) => {
   return e;
 };
 
-/* LA PALETTE DES BADGES EST RECOPIÉE DANS LA FEUILLE DU PANNEAU, et c'est la
-   même frontière que pour les libellés : cette page n'a pas le CSS de
-   content.js, qui vit dans la barre latérale de Twitch. On recopie donc les
-   modificateurs, et le scénario 96 vérifie qu'ils ne se sont pas mis à rendre
-   tous la même couleur — une maquette de badges monochrome n'expliquerait
-   plus rien. Un badge SANS modificateur est légitime : c'est le badge neutre,
-   celui qui reprend une mention de Twitch telle quelle. */
-const badgeDemo = (mod, cle) =>
-  elt('span', 'd-badge' + (mod ? ' d-badge--' + mod : ''), T(cle));
-
-/* LA CARTE DE LA BARRE LATÉRALE, EN PETIT. Cinq chapitres en montrent une, et
-   chacun n'en change qu'un détail : la durée, la pastille de jour, la barre du
-   co-stream et son « ▶ », la barre rouge, l'or de l'abonnement. Une seule
-   maquette paramétrée plutôt que six recopiées — sans quoi la cinquième aurait
-   fini par ne plus ressembler aux quatre autres. */
-const demoCarte = (o) => {
-  const carte = div('d-carte' + (o.frais ? ' d-carte--frais' : '')
-                              + (o.or ? ' d-carte--or' : '')
-                              + (o.costream ? ' d-carte--costream' : ''));
-  /* LE CO-STREAM, depuis la 4.24.0.33 : plus de pastille sur l'avatar, la
-     barre de la carte, et au milieu le curseur de la salle — une chaîne
-     seule de son co-stream dans la liste, comme celle que la carte réelle
-     montre. La gélule au repos depuis la 4.24.0.34, son ▶ découpé comme
-     dans content.js. */
-  if (o.costream) {
-    const noeud = div('d-noeud');
-    noeud.appendChild(elt('span', ''));
-    carte.appendChild(noeud);
-  }
-  carte.appendChild(div('d-avatar'));
-
-  const texte = div('d-carte-texte');
-  const nom = div('d-nom');
-  nom.appendChild(document.createTextNode(o.nom));
-  if (o.jour) nom.appendChild(elt('span', 'd-jour', T('guideDemoJour')));
-  texte.append(nom, div('d-cat', o.cat));
-  carte.appendChild(texte);
-
-  const droite = div('d-droite');
-  const vues = div('d-vues');
-  vues.append(elt('span', 'd-point'), document.createTextNode(NOMBRE.format(o.vues)));
-  droite.append(vues, div('d-uptime' + (o.fini ? ' d-uptime--fini' : ''),
-                          o.fini ? T('guideDemoEnded') : o.duree));
-  carte.appendChild(droite);
-  return carte;
+const SVG_NS = 'http://www.w3.org/2000/svg';
+const noeudGuide = (n, espace = null) => {
+  if (typeof n === 'string') return document.createTextNode(n);
+  const [nom, attrs, ...enfants] = n;
+  const ns = nom === 'svg' ? SVG_NS : espace;
+  const el = ns ? document.createElementNS(ns, nom) : document.createElement(nom);
+  for (const [k, v] of Object.entries(attrs || {})) el.setAttribute(k, v);
+  el.append(...enfants.map((e) => noeudGuide(e, ns)));
+  return el;
 };
 
-const demoApercu = () => {
-  const hote = div('d-apercu');
-  const video = div('d-video');
-  /* « LIVE » n'est pas un libellé du produit mais la pastille que Twitch pose
-     sur ses propres vignettes : elle n'a pas de clé, et n'en veut pas. */
-  video.appendChild(elt('span', 'd-live', 'LIVE'));
-  hote.append(video, elt('p', 'd-titre', T('guideDemoTitre')));
-  const rangee = div('d-badges');
-  rangee.append(badgeDemo('switch', 'guideBadgeSwitch'),
-                badgeDemo('sub', 'guideBadgeSub'));
-  hote.appendChild(rangee);
-  return hote;
-};
-
-/* TOUS les badges que l'aperçu sait poser, dans l'ordre où on les explique :
-   l'étiquette de classification d'abord — elle se lit avant de regarder —
-   puis les deux nouvelles qui s'effacent d'elles-mêmes, puis le contexte, et
-   le subathon en dernier parce qu'il traverse toutes les couleurs.
-
-   IL EN MANQUAIT DEUX, et c'est un signalement qui l'a dit : « indique tous
-   les badges possibles ». L'ANCIEN ABONNÉ a sa propre teinte — le même or,
-   désaturé — et n'était pas montré ; le badge NEUTRE non plus, alors que
-   c'est celui qu'on voit le plus souvent après les autres, puisqu'il reprend
-   telle quelle n'importe quelle mention que Twitch ajoute et que l'extension
-   ne traduit pas. Le neutre n'a pas de modificateur : c'est l'absence de
-   couleur qui LE définit, et lui en donner une serait le trahir. */
-const BADGES_DEMO = [
-  ['ccl',      'guideBadgeCcl'],
-  ['reprise',  'guideBadgeReprise'],
-  ['switch',   'guideBadgeSwitch'],
-  ['costream', 'guideBadgeCostream'],
-  ['squad',    'guideBadgeSquad'],
-  // Le gris des membres qui ne diffusent pas (4.24.0.37) : le treizième, qui manquait à « tous ».
-  ['muet',     'guideBadgeMuet'],
-  ['sub',      'guideBadgeSub'],
-  ['exsub',    'guideBadgeExsub'],
-  ['sponsor',  'guideBadgeSponsor'],
-  ['hype',     'guideBadgeHype'],
-  ['discount', 'guideBadgeDiscount'],
-  ['',         'guideBadgeAutre'],
-  ['subathon', 'guideBadgeSubathon'],
-];
-
-const demoBadges = () => {
-  const rangee = div('d-badges');
-  for (const [mod, cle] of BADGES_DEMO) rangee.appendChild(badgeDemo(mod, cle));
-  return rangee;
-};
-
-/* LE RUBAN DE LA FRISE. Les largeurs sont celles des durées écrites en face —
-   2 h 10, 1 h 05, 55 min sur 4 h 10 au total — parce qu'une maquette « à
-   l'échelle » qui ne le serait pas contredirait le chapitre qu'elle illustre.
-   La dernière bande est celle qui court : elle s'estompe, et sa durée porte le
-   « ~ » que le produit met quand il ne connaît pas l'heure exacte du passage. */
-const FRISE_DEMO = [
-  { jeu: 'Elden Ring', part: 52, duree: '2h10', teinte: '#9147ff' },
-  { jeu: 'Valorant',   part: 26, duree: '1h05', fois: 3, teinte: '#1f69ff' },
-  { jeu: 'Minecraft',  part: 22, duree: '~55m', flou: true, teinte: '#00b85a' },
-];
-
-const demoFrise = () => {
-  const hote = div('d-frise');
-  const ruban = div('d-ruban');
-  for (const b of FRISE_DEMO) {
-    const bande = div('d-bande' + (b.flou ? ' d-bande--flou' : ''));
-    bande.style.width = b.part + '%';
-    bande.style.background = b.flou
-      ? `linear-gradient(90deg, ${b.teinte}, rgba(0, 0, 0, 0))` : b.teinte;
-    ruban.appendChild(bande);
-  }
-  hote.appendChild(ruban);
-  for (const b of FRISE_DEMO) {
-    const ligne = div('d-frise-ligne');
-    const pastille = div('d-puce');
-    pastille.style.background = b.teinte;
-    ligne.append(pastille,
-                 div('d-frise-jeu', b.jeu + (b.fois ? ` ×${b.fois}` : '')),
-                 div('d-frise-duree', b.flou ? `${b.duree} · ${T('guideDemoEnCours')}` : b.duree));
-    hote.appendChild(ligne);
-  }
-  return hote;
-};
-
-const demoOnglets = () => {
-  const hote = div('d-onglets');
-  hote.append(elt('span', 'd-onglet', T('guideDemoSuivies')),
-              elt('span', 'd-onglet d-onglet--actif', T('grpGlobal')));
-  return hote;
-};
-
-/* Une maquette qui porte une carte ET le badge que l'aperçu montrerait dessus.
-   Les deux ensemble, parce que c'est ainsi qu'on les rencontre : le signal
-   discret dans la liste, et la phrase entière au survol. */
-const carteEtBadge = (carte, mod, cle) => {
-  const hote = div('d-pile');
-  hote.append(carte, badgeDemo(mod, cle));
-  return hote;
-};
-
-/* ── L'AGENDA, EN PETIT (4.25.0.11) ─────────────────────────────────────────
-   DEMANDÉ AINSI : « tu montres des exemples visuels comme certains chapitres
-   précédents, car là c'est juste un gros paragraphe peu compréhensible ».
-
-   CE N'EST PAS UNE COPIE DE LA VUE, C'EST ELLE : chaque entrée passe par
-   `entreeAgenda`, chaque ligne par `ligneHorsLigne`, en mode maquette — sans
-   lien, sans bouton, sans infobulle. La feuille de la vue les habille ; une
-   maquette recopiée aurait cessé de lui ressembler à la première retouche.
-
-   LES DATES SONT CELLES DE CETTE SEMAINE-CI, et non d'un exemple figé : une
-   pastille « Aujourd'hui » posée sur un jeudi de mars, lue un mercredi
-   d'octobre, se lirait comme une erreur. Les heures, elles, sont fixes —
-   sauf le direct en cours, parti il y a 1 h 47 (la durée que la carte de
-   Korbek porte au chapitre des co-streams), et le prochain direct, à la
-   première heure pleine deux heures après maintenant. Chaque entrée tombe
-   au jour où elle commence, comme dans la vue : passé minuit, le direct
-   d'avant-hier soir reste à avant-hier.
-
-   LES MÊMES CHAÎNES DANS LES DEUX : Korbek est en direct, donc absente de
-   « Hors ligne » ; le dernier direct d'Aeltris est celui qui n'a pas de
-   rediffusion, donc pas de « Revoir » ; celui de Velmoria est réservé aux
-   abonnés, donc son cadenas — dans la semaine comme hors ligne. */
-const HEURE_MS = 3_600_000;
-const DIRECT_DEMO_MS = 107 * 60_000;
-const jourDemo = (maintenant, j, h, m) => jourCivil(maintenant).add({ days: j })
-  .toPlainDateTime({ hour: h, minute: m }).toZonedDateTime(fuseau()).epochMilliseconds;
-const prochainDemo = (maintenant) => {
-  const d = new Date(maintenant + 2 * HEURE_MS);
-  d.setMinutes(0, 0, 0);
-  return d.getTime() + HEURE_MS;
-};
-const demoEntrees = (maintenant) => {
-  const j = (n, h, m = 0) => jourDemo(maintenant, n, h, m);
-  const prochain = prochainDemo(maintenant);
-  return [
-    { type: 'rediffusion', nom: 'Nyxaria', libelle: 'Elden Ring', titre: T('guideDemoTitre'),
-      debut: j(-2, 20, 2), fin: j(-1, 0, 14), duree: 4 * 3600 + 12 * 60 + 9, vues: 12400, id: '1' },
-    { type: 'sansRediffusion', nom: 'Aeltris', libelle: 'Elden Ring', titre: T('guideDemoAgendaSans'),
-      debut: j(-1, 9, 30), fin: j(-1, 11, 5) },
-    { type: 'rediffusion', nom: 'Velmoria', libelle: 'Minecraft', titre: T('guideDemoAgendaSub'),
-      debut: j(-1, 14, 0), fin: j(-1, 18, 31), duree: 4 * 3600 + 31 * 60, vues: 3100, id: '2',
-      restreinte: true, abonne: false },
-    { type: 'direct', nom: 'Korbek', libelle: 'Valorant', titre: T('guideDemoAgendaDirect'),
-      debut: Math.floor((maintenant - DIRECT_DEMO_MS) / 60_000) * 60_000, spectateurs: 962 },
-    { type: 'prevu', nom: 'Aeltris', libelle: 'Elden Ring', titre: T('guideDemoAgendaPrevu'),
-      debut: prochain, fin: prochain + 3 * HEURE_MS },
-  ];
-};
-const dessinBouton = (texte, classe = '') => elt('span', 'bouton bouton--fantome' + classe, texte);
-
-const demoSemaine = (maintenant = Date.now()) => {
-  const hote = div('d-agenda');
-  const barre = div('ag-barre');
-  barre.append(dessinBouton(T('btnToday')), dessinBouton('‹', ' ag-fleche'), dessinBouton('›', ' ag-fleche'),
-               elt('span', 'reg-menu ag-chaine d-menu', T('valAllChannels')));
-  hote.appendChild(barre);
-  const entrees = demoEntrees(maintenant);
-  const jours = [...new Set(entrees.map((e) => minuitDe(e.debut)))].sort((a, b) => a - b);
-  const auj = minuitDe(maintenant);
-  for (const jour of jours) {
-    const section = div('ag-jour' + (jour === auj ? ' ag-jour--auj' : ''));
-    section.appendChild(titreJour('div', jour, jour === auj));
-    for (const e of entrees.filter((x) => minuitDe(x.debut) === jour).sort((a, b) => a.debut - b.debut)) {
-      section.appendChild(entreeAgenda(e, e.nom, true));
-    }
-    hote.appendChild(section);
-  }
-  return hote;
-};
-
-const demoHorsLigne = (maintenant = Date.now()) => {
-  const e = demoEntrees(maintenant);
-  const [nyx, aeltris, velmoria, , prevu] = e;
-  const derniere = (x) => ({ id: x.id, titre: x.titre, libelle: x.libelle, duree: x.duree,
-                             restreinte: !!x.restreinte });
-  // Dans l'ordre de la vue : la programmée, puis la plus récemment partie, puis l'indisponible.
-  const lignes = [
-    { nom: aeltris.nom, titre: aeltris.titre, dernier: { t: aeltris.fin, debut: aeltris.debut, revoir: false },
-      prochain: { debut: prevu.debut, titre: prevu.titre } },
-    { nom: velmoria.nom, titre: velmoria.titre, dernier: { t: velmoria.fin, debut: velmoria.debut, revoir: true },
-      derniere: derniere(velmoria), abonne: false },
-    { nom: nyx.nom, titre: nyx.titre, dernier: { t: nyx.fin, debut: nyx.debut, revoir: true }, derniere: derniere(nyx) },
-    { nom: 'Brenvik', indisponible: maintenant - 5 * 24 * HEURE_MS },
-  ];
-  const liste = div('hl-liste d-agenda');
-  let avant = null;
-  for (const l of lignes) {
-    const el = ligneHorsLigne(l, quandHorsLigne(l, maintenant), true);
-    el.classList.toggle('hl-ligne--suite', !!(avant && groupeHorsLigne(avant) !== groupeHorsLigne(l)));
-    liste.appendChild(el);
-    avant = l;
-  }
-  return liste;
-};
-
-/* L'ORDRE : CHAQUE CHAPITRE NE S'APPUIE QUE SUR CEUX QUI LE PRÉCÈDENT
-   (4.25.0.11). Il était celui de la rencontre — ce qui s'impose à l'œil,
-   puis ce qu'on déclenche, puis ce qu'on règle —, et un signalement en a dit
-   le défaut : « Plus rapide que Twitch » parlait de Hype Trains et de badges
-   de l'aperçu au deuxième chapitre, « Les débuts » d'un aperçu, d'un badge et
-   d'une frise au quatrième, alors que l'aperçu n'arrivait qu'au neuvième, ses
-   badges au dixième, la frise au onzième. On lisait les mots avant leur sens.
-
-   D'OÙ CET ORDRE-CI :
-     — la roue, qui ouvre ce panneau ; la carte et sa durée, qui disent ce
-       qu'est une carte ;
-     — l'aperçu au survol, puis sa frise : tout ce qui suit parle de ses
-       badges ;
-     — les marques des cartes, chacune avec son badge : les débuts (la durée,
-       le badge, la frise servent déjà), l'or, le subathon, le co-stream et la
-       salle qu'il ouvre ;
-     — TOUS les badges, réunis quand on en a déjà vu la moitié ;
-     — les tris (l'or et les co-streams y servent), puis ce que l'extension
-       retire de la barre — ses Hype Trains reviennent en badge, sa série et
-       ses stories avec les tris —, puis Top Chaînes, puis l'accueil de
-       Twitch, dont le Top 10 est le sien ;
-     — ce panneau, ses réglages, l'agenda en deux vues, la vie privée.
-   Ce qu'un chapitre annonce sans l'expliquer porte le numéro de celui qui le
-   fait (`renvoi`), et le banc tient la table des dépendances (96). */
-const GUIDE = [
-  { titre: 'guideRoueTitre',     texte: 'guideRoueTexte', renvoi: 'guidePanneauTitre' },
-  { titre: 'guideDureeTitre',    texte: 'guideDureeTexte',
-    demo: () => {
-      const hote = div('d-pile');
-      hote.append(demoCarte({ nom: 'Nyxaria', cat: 'Elden Ring', vues: 1243, duree: '4h19' }),
-                  demoCarte({ nom: 'Korbek', cat: 'Minecraft', vues: 318, fini: true }));
-      return hote;
-    } },
-  // Il annonce les badges, que les chapitres suivants présentent un à un, et que celui-ci réunit.
-  { titre: 'guideHoverTitre',    texte: 'guideHoverTexte', renvoi: 'guideBadgesTitre', demo: () => demoApercu() },
-  { titre: 'guideFriseTitre',    texte: 'guideFriseTexte',    demo: () => demoFrise() },
-  { titre: 'guideDebutTitre',    texte: 'guideDebutTexte',
-    demo: () => carteEtBadge(
-      demoCarte({ nom: 'Aeltris', cat: 'Elden Ring', vues: 87, duree: '4m', frais: true }),
-      'reprise', 'guideBadgeReprise') },
-  { titre: 'guideAboTitre',      texte: 'guideAboTexte',
-    demo: () => carteEtBadge(
-      demoCarte({ nom: 'Nyxaria', cat: 'Elden Ring', vues: 1243, duree: '4h19', or: true }),
-      'sub', 'guideBadgeSub') },
-  { titre: 'guideSubathonTitre', texte: 'guideSubathonTexte',
-    demo: () => carteEtBadge(
-      demoCarte({ nom: 'Velmoria', cat: 'Minecraft', vues: 4820, duree: '61h04', jour: true }),
-      'subathon', 'guideBadgeSubathon') },
-  /* LE RENVOI VERS LES TRIS PORTE UN NUMÉRO, ET CE NUMÉRO SE CALCULE. Il était
-     recopié en toutes lettres dans les douze fiches — « chapitre 9 » — et le
-     remaniement de l'ordre l'a laissé pointer sur « Les badges de l'aperçu »
-     dans les douze langues d'un coup. Rien ne l'aurait dit : une traduction
-     juste peut porter un renvoi faux. Il devient donc une substitution, servie
-     par `renvoi`, et le prochain remaniement le corrigera tout seul. */
-  /* LE BADGE BLEU, ET NON PLUS LE VIOLET (4.24.0.37) : la maquette posait
-     « En live avec Korbek » sur la carte de Korbek — un streamer en direct avec
-     lui-même. Le bleu dit de qui c'est le co-stream, ce que la carte montre. */
-  { titre: 'guideCostreamTitre', texte: 'guideCostreamTexte', renvoi: 'guideTriTitre',
-    demo: () => carteEtBadge(
-      demoCarte({ nom: 'Korbek', cat: 'Valorant', vues: 962, duree: '1h47', costream: true }),
-      'costream', 'guideBadgeCostream') },
-  /* LA SALLE A SON CHAPITRE (4.24.0.37), juste après les co-streams qui
-     l'ouvrent — leur chapitre dit « chapitre suivant ». Elle tenait en une
-     phrase au bout du leur : ni le son aux touches, ni le chat qu'on choisit,
-     ni l'alignement, ni les points de chaîne qu'on n'y gagne pas. */
-  { titre: 'guideSalleTitre',    texte: 'guideSalleTexte' },
-  { titre: 'guideZapTitre',      texte: 'guideZapTexte' },
-  { titre: 'guideBadgesTitre',   texte: 'guideBadgesTexte',   demo: () => demoBadges() },
-  { titre: 'guideTriTitre',      texte: 'guideTriTexte' },
-  // Ce que la barre retire revient en badge : le renvoi mène, en arrière, au chapitre qui les montre tous.
-  { titre: 'guideViteTitre',     texte: 'guideViteTexte', renvoi: 'guideBadgesTitre' },
-  { titre: 'guideTopTitre',      texte: 'guideTopTexte',      demo: () => demoOnglets() },
-  /* L'ACCUEIL DE TWITCH (4.26.0), juste après Top Chaînes : son Top 10 en
-     est le classement, ses cartes ouvrent l'aperçu, et il ne nomme rien de
-     ce qui vient après. */
-  { titre: 'guideAccueilTitre',  texte: 'guideAccueilTexte' },
-  // Il présente les six groupes, et renvoie aux deux chapitres de l'agenda.
-  { titre: 'guidePanneauTitre',  texte: 'guidePanneauTexte', renvoi: ['guideAgendaTitre', 'guideHorsLigneTitre'] },
-  { titre: 'guideReglagesTitre', texte: 'guideReglagesTexte' },
-  /* L'AGENDA EN DEUX CHAPITRES, CHACUN SA MAQUETTE (4.25.0.11) : ses deux
-     vues, dessinées par leur propre code (cf. demoSemaine). Il tenait en un
-     paragraphe de dix-sept lignes. */
-  { titre: 'guideAgendaTitre',   texte: 'guideAgendaTexte',   plein: true, demo: () => demoSemaine() },
-  { titre: 'guideHorsLigneTitre', texte: 'guideHorsLigneTexte', plein: true, demo: () => demoHorsLigne() },
-  { titre: 'guideVieTitre',      texte: 'guideVieTexte' },
-];
-
-/* LE CORPS D'UN CHAPITRE EST UN SEUL MESSAGE, retours à la ligne compris, et
-   ce n'est pas de la paresse : découper chaque puce en sa propre clé aurait
-   donné cent soixante entrées de plus dans douze fichiers, et surtout aurait
-   figé le NOMBRE de puces — une langue qui a besoin de deux phrases là où le
-   français en met une n'aurait pas eu où les mettre. Une ligne qui commence
-   par « • » est une puce, les autres sont des paragraphes ; c'est toute la
-   grammaire, et elle tient dans la tête de qui traduit. */
-const corpsGuide = (texte) => {
-  const out = [];
-  let liste = null;
-  for (const brut of String(texte).split('\n')) {
-    const ligne = brut.trim();
-    if (!ligne) continue;
-    if (ligne.startsWith('•')) {
-      if (!liste) { liste = elt('ul', 'guide-liste'); out.push(liste); }
-      liste.appendChild(elt('li', '', ligne.replace(/^•\s*/, '')));
-      continue;
-    }
-    liste = null;
-    out.push(elt('p', 'guide-p', ligne));
-  }
-  return out;
-};
-
-const construireGuide = () => {
-  const blocs = [elt('p', 'guide-intro', T('guideIntro'))];
-  GUIDE.forEach((chapitre, i) => {
-    const section = elt('section', 'guide-chapitre');
-    const titre = elt('h3', 'guide-titre');
-    titre.append(elt('span', 'guide-num', String(i + 1)),
-                 document.createTextNode(T(chapitre.titre)));
-    section.appendChild(titre);
-    if (chapitre.demo) {
-      // Une vue entière du panneau (l'agenda) prend la largeur ; une carte se serre sur elle-même.
-      const cadre = div('d-cadre' + (chapitre.plein ? ' d-cadre--plein' : ''));
-      cadre.setAttribute('aria-hidden', 'true');
-      cadre.appendChild(chapitre.demo());
-      section.appendChild(cadre);
-    }
-    /* Le rang du chapitre VISÉ, lu dans la table au moment du rendu — jamais
-       la position de celui qu'on est en train de peindre. Plusieurs renvois
-       (4.25.0.11) : $1, $2, dans l'ordre de la table du chapitre. */
-    const vises = [].concat(chapitre.renvoi || [])
-      .map((cle) => String(GUIDE.findIndex((c) => c.titre === cle) + 1));
-    /* La clé et les renvois, sur la section : le banc y lit l'ordre et les
-       dépendances sans dépendre de la langue de la vue (96). */
-    section.dataset.cle = chapitre.titre;
-    if (vises.length) section.dataset.renvois = vises.join(',');
-    section.append(...corpsGuide(T(chapitre.texte, vises.length ? vises : undefined)));
-    blocs.push(section);
-  });
-  return blocs;
-};
+/* La traduction servie, en fichier : « es-419 » → guide/es_419.json, à côté
+   de cette page. On garde la PROMESSE, comme celle de l'onglet : deux vues
+   ouvertes coup sur coup ne lisent le fichier qu'une fois. Un échec, lui,
+   n'est pas gardé — la vue suivante réessaie. */
+const GUIDE_URL = `guide/${((API.i18n.getMessage && API.i18n.getMessage('panelLocale')) || 'en').replace('-', '_')}.json`;
+let guideP = null;
+const chargerGuide = () => (guideP ??= fetch(GUIDE_URL)
+  .then((r) => { if (!r.ok) throw new Error(`${GUIDE_URL} : ${r.status}`); return r.json(); })
+  .catch((e) => { guideP = null; throw e; }));
 
 /* ── Transport ───────────────────────────────────────────────────────────── */
 /* On mémorise la PROMESSE, pas la valeur. Deux sections chargées coup sur
@@ -1308,18 +947,17 @@ const GROUPES_OPT = [
   ['optGrpTheme',   ['theme']],
 ];
 
-/* LES MEMBRES D'UN JEU EMPRUNTENT LEURS LIBELLÉS AU MODE D'EMPLOI, et ce
-   n'est pas une économie de clés : c'est une garantie. La case à cocher
-   affiche EXACTEMENT le badge que le chapitre des badges dessine et que la carte
-   montre. Onze clés de plus auraient pu dériver de celles-là ; celles-là ne
-   peuvent pas dériver d'elles-mêmes. */
+/* LES MEMBRES D'UN JEU ONT LEUR LIBELLÉ : pour les badges, le badge tel que la
+   carte le montre. Ces onze clés venaient du mode d'emploi, qui les dessinait
+   (guideBadge…) ; depuis qu'il est écrit hors du panneau (4.33.0.16), elles
+   ne servent plus qu'ici, et elles en portent le nom. */
 const LIBELLE_MEMBRE = {
-  ccl: 'guideBadgeCcl',         costream: 'guideBadgeCostream',
-  squad: 'guideBadgeSquad',     sub: 'guideBadgeSub',
-  exsub: 'guideBadgeExsub',     sponsor: 'guideBadgeSponsor',
-  hype: 'guideBadgeHype',       discount: 'guideBadgeDiscount',
-  switch: 'guideBadgeSwitch',   reprise: 'guideBadgeReprise',
-  subathon: 'guideBadgeSubathon',
+  ccl: 'optBadgeCcl',           costream: 'optBadgeCostream',
+  squad: 'optBadgeSquad',       sub: 'optBadgeSub',
+  exsub: 'optBadgeExsub',       sponsor: 'optBadgeSponsor',
+  hype: 'optBadgeHype',         discount: 'optBadgeDiscount',
+  switch: 'optBadgeSwitch',     reprise: 'optBadgeReprise',
+  subathon: 'optBadgeSubathon',
   viewers: 'optTriViewers',     subs: 'optTriSubs',
   popular: 'optTriPopular',     uptime: 'optTriUptime',
   alpha: 'optTriAlpha',         costream_tri: 'optTriCostream',
@@ -1805,16 +1443,24 @@ const appliquerDiag = () => {
   document.documentElement.toggleAttribute('data-sans-diag', !diagVisible());
 };
 
-const montrerGuide = () => {
+const montrerGuide = async () => {
   $('message').hidden = true;
   $('resume').replaceChildren();
   $('visuel').hidden = true;
   $('visuel').replaceChildren();
   $('tableau-cadre').hidden = true;
+  let guide;
+  try { guide = await chargerGuide(); }
+  catch (e) { if (courante === 'guide') montrerMessage('stateGuideMissing', null, String(e && e.message || e)); return; }
+  // On a pu changer de vue pendant la lecture du fichier.
+  if (courante !== 'guide') return;
   const g = $('guide');
-  g.replaceChildren(...construireGuide());
+  g.replaceChildren(...guide.contenu.map((n) => noeudGuide(n)));
   g.hidden = false;
-  g.scrollTop = 0;
+  /* En haut, et d'un coup. Le guide garde sa position quand on le range, et
+     son défilement est doux (guide.css, pour les renvois) : `scrollTop = 0`
+     le ferait remonter à vue de toute sa hauteur. */
+  g.scrollTo({ top: 0, behavior: 'instant' });
 };
 
 /* Quel message pour quel échec. Une seule table, deux appelants — sans elle,
@@ -2089,7 +1735,6 @@ const dureeHms = (s) => {
 const fuseau = () => Temporal.Now.timeZoneId();
 const jourCivil = (t) => Temporal.Instant.fromEpochMilliseconds(t).toZonedDateTimeISO(fuseau()).toPlainDate();
 const minuitDuJour = (jour) => jour.toZonedDateTime(fuseau()).epochMilliseconds;
-const minuitDe = (t) => minuitDuJour(jourCivil(t));
 /* « il y a 4 heures », « hier », « il y a 3 jours » : en heures sous la
    journée, comme la page Programme de Twitch, en jours CIVILS au-delà — c'est
    ce qui fait dire « hier » à ce qui s'est passé hier, et non à ce qui a
@@ -2182,12 +1827,11 @@ const imageAgenda = (src, classe) => {
    mettre un cadenas ». Le mot reste pour qui ne voit pas l'icône — le nom
    accessible —, et l'infobulle dit le reste. */
 const fermee = (v, abonne) => !!(v && v.restreinte) && abonne !== true;
-// Dans une maquette du mode d'emploi (4.25.0.11), pas d'infobulle : le chapitre dit ce que le cadenas veut dire.
-const pastilleAbonnes = (maquette = false) => {
+const pastilleAbonnes = () => {
   const p = elt('span', 'ag-abo');
   p.setAttribute('role', 'img');
   p.setAttribute('aria-label', T('valSubOnly'));
-  if (!maquette) p.title = T('valSubOnlyLocked');
+  p.title = T('valSubOnlyLocked');
   const svg = svgEl('svg', { class: 'ag-cadenas', viewBox: '0 0 12 12', 'aria-hidden': 'true' });
   svg.append(
     svgEl('path', { d: 'M3.5 5.5V3.75a2.5 2.5 0 0 1 5 0V5.5',
@@ -2204,11 +1848,8 @@ const plageHoraire = (e) => {
   return e.fin > e.debut ? `${de} – ${HEURE.format(e.fin)}` : de;
 };
 
-/* `maquette` (4.25.0.11) : la même entrée, pour le mode d'emploi — sans lien
-   ni infobulle. C'est CE rendu-ci que le guide montre, et non une copie : une
-   maquette recopiée cesserait un jour de ressembler à la vue. */
-const entreeAgenda = (e, nom, maquette = false) => {
-  const lien = maquette ? null : lienAgenda(e);
+const entreeAgenda = (e, nom) => {
+  const lien = lienAgenda(e);
   const el = document.createElement(lien ? 'a' : 'div');
   el.className = 'ag-ent ag-ent--' + e.type;
   if (lien) poserLien(el, lien, e.type === 'rediffusion');
@@ -2226,7 +1867,7 @@ const entreeAgenda = (e, nom, maquette = false) => {
   l1.appendChild(elt('span', 'ag-heure', plageHoraire(e)));
   const l2 = div('ag-l2');
   l2.appendChild(elt('span', 'ag-titre', e.titre || '—'));
-  if (e.type === 'rediffusion' && fermee(e, e.abonne)) l2.appendChild(pastilleAbonnes(maquette));
+  if (e.type === 'rediffusion' && fermee(e, e.abonne)) l2.appendChild(pastilleAbonnes());
   if (e.type === 'rediffusion' && Number.isFinite(e.vues)) {
     l2.appendChild(elt('span', 'ag-meta', vuesTexte(e.vues)));
   } else if (e.type === 'direct' && Number.isFinite(e.spectateurs)) {
@@ -2237,7 +1878,7 @@ const entreeAgenda = (e, nom, maquette = false) => {
   const corps = div('ag-corps');
   corps.append(l1, l2);
   el.append(vig, corps);
-  if (!maquette) el.title = [e.titre, dater(DATE_COMPLETE, e.debut)].filter(Boolean).join('\n');
+  el.title = [e.titre, dater(DATE_COMPLETE, e.debut)].filter(Boolean).join('\n');
   return el;
 };
 
@@ -2419,8 +2060,7 @@ const charpente = (vue) => {
   return etatAgenda.charpente;
 };
 
-/* Le titre d'un jour, et la pastille du jour même — la vue et sa maquette
-   (4.25.0.11) le dessinent par ici. */
+/* Le titre d'un jour, et la pastille du jour même. */
 const titreJour = (balise, jour, auj) => {
   const titre = elt(balise, 'ag-jour-titre', dater(JOUR_TITRE, jour));
   if (auj) titre.appendChild(elt('span', 'ag-auj', T('btnToday')));
@@ -2479,10 +2119,7 @@ const voirSemaineDe = (l) => {
    EST le dernier direct — sinon le bouton mènerait, sans le dire, à un direct
    plus ancien. Une chaîne indisponible (4.25.0.2) ne dit que cela, et depuis
    quand : son nom, et rien sur quoi cliquer qui mènerait à une page fermée. */
-/* `maquette` (4.25.0.11) : la ligne du mode d'emploi — ses boutons ne sont que
-   leur dessin, et aucune infobulle. Un vrai « Sa semaine » dans une image
-   mènerait la vue à la semaine d'une chaîne inventée. */
-const ligneHorsLigne = (l, quand, maquette = false) => {
+const ligneHorsLigne = (l, quand) => {
   const ligne = div('hl-ligne' + (l.indisponible ? ' hl-ligne--indisponible' : ''));
   const avatar = imageAgenda(l.avatar, 'hl-avatar') || div('hl-avatar');
   const corps = div('hl-corps');
@@ -2490,14 +2127,14 @@ const ligneHorsLigne = (l, quand, maquette = false) => {
   l1.appendChild(elt('span', 'hl-nom', l.nom));
   const q = elt('span', 'hl-quand', quand);
   if (l.indisponible) {
-    if (!maquette) q.title = T('valUnavailableTip', dater(DATE_COMPLETE, l.indisponible));
+    q.title = T('valUnavailableTip', dater(DATE_COMPLETE, l.indisponible));
     l1.appendChild(q);
     corps.appendChild(l1);
     ligne.append(avatar, corps);
     return ligne;
   }
   // Le début n'est connu que par la rediffusion, ou parce qu'on l'a vu en cours ; sinon, la fin seule.
-  if (l.dernier && !maquette) {
+  if (l.dernier) {
     q.title = l.dernier.debut !== null
       ? `${dater(DATE_COMPLETE, l.dernier.debut)} – ${HEURE.format(l.dernier.t)}`
       : `– ${dater(DATE_COMPLETE, l.dernier.t)}`;
@@ -2506,7 +2143,7 @@ const ligneHorsLigne = (l, quand, maquette = false) => {
   corps.appendChild(l1);
   const revoir = !!(l.dernier && l.dernier.revoir && l.derniere);
   // Deux lignes que la largeur coupe : l'infobulle les rend entières.
-  const enEntier = (classe, texte) => { const e = elt('div', classe, texte); if (!maquette) e.title = texte; return e; };
+  const enEntier = (classe, texte) => { const e = elt('div', classe, texte); e.title = texte; return e; };
   const sous = [l.titre, revoir ? l.derniere.libelle : null].filter(Boolean).join(' · ');
   if (sous) corps.appendChild(enEntier('hl-titre', sous));
   if (l.prochain) {
@@ -2515,23 +2152,19 @@ const ligneHorsLigne = (l, quand, maquette = false) => {
       T('valNext', quandProchain + (l.prochain.titre ? ` — ${l.prochain.titre}` : ''))));
   }
   const actions = div('hl-actions');
-  const dessin = (texte) => elt('span', 'bouton bouton--fantome', texte);
   if (revoir && /^\d+$/.test(l.derniere.id || '')) {
-    if (fermee(l.derniere, l.abonne)) actions.appendChild(pastilleAbonnes(maquette));
-    if (maquette) actions.appendChild(dessin(T('btnReplay')));
-    else {
-      const a = elt('a', 'bouton bouton--fantome', T('btnReplay'));
-      poserLien(a, `https://www.twitch.tv/videos/${l.derniere.id}`, true);
-      a.title = [l.derniere.titre, dureeHms(l.derniere.duree)].filter(Boolean).join(' · ');
-      actions.appendChild(a);
-    }
+    if (fermee(l.derniere, l.abonne)) actions.appendChild(pastilleAbonnes());
+    const a = elt('a', 'bouton bouton--fantome', T('btnReplay'));
+    poserLien(a, `https://www.twitch.tv/videos/${l.derniere.id}`, true);
+    a.title = [l.derniere.titre, dureeHms(l.derniere.duree)].filter(Boolean).join(' · ');
+    actions.appendChild(a);
   }
-  actions.appendChild(maquette ? dessin(T('btnSeeWeek')) : boutonAgenda(T('btnSeeWeek'), () => voirSemaineDe(l)));
+  actions.appendChild(boutonAgenda(T('btnSeeWeek'), () => voirSemaineDe(l)));
   ligne.append(avatar, corps, actions);
   return ligne;
 };
 /* Le groupe d'une ligne — programmée, partie, indisponible — et ce que dit son
-   « quand » : la vue et sa maquette (4.25.0.11) les lisent ici. */
+   « quand ». */
 const groupeHorsLigne = (l) => (l.indisponible ? 2 : l.prochain ? 0 : 1);
 const quandHorsLigne = (l, maintenant) => (l.indisponible ? T('valUnavailable')
   : l.dernier ? T('valLastLive', ilYa(l.dernier.t, maintenant)) : T('valLastLiveUnknown'));

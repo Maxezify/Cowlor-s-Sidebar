@@ -1808,7 +1808,11 @@ and the fourth form does exist — but no assertion will claim to exercise them.
 The same measurement shows that scenario 76's "a card detached and reattached
 does not close the preview" touches nothing either.
 
-## The user guide (v3.98)
+## The user guide (v3.98, replaced in v4.33.0.16)
+
+> Since 4.33.0.16, the user guide is the delivered guide, shipped as is, in
+> twenty-one chapters (see "The new user guide, shipped as delivered"). What
+> follows describes the previous one.
 
 The extension has no settings. No options, no switches, no account: it works
 from the first Twitch reload, and that has held since version one. What it was
@@ -2069,6 +2073,167 @@ A sub-test that modelled an impossible case — a stream growing younger without
 changing id — was replaced along the way by the ordinary case that was actually
 worth keeping: **a channel going live for the first time must keep its "just
 went live" bar**.
+
+## The new user guide, shipped as delivered (v4.33.0.16)
+
+"Here is a zip with a brand-new user guide that I think is spot on. Replace
+the old one with it, perfectly and entirely, without reworking its content.
+You also have the translations."
+
+The guide was written outside the panel, as twelve HTML pages — one per
+translation — and a stylesheet, `page.css`. It replaces the old one end to
+end: text, order, mock-ups, colours. Nothing in it was rewritten.
+
+### What you see
+
+- **The delivered guide, and only it.** Twenty-one chapters in five parts, a
+  table of contents, twenty-one mock-ups, tips and drawn keys. Chapters refer
+  to one another through links: a click on "chapter 12", or on a contents
+  entry, scrolls the guide smoothly to that chapter; neither the view's title
+  nor the rail moves.
+- **In the panel's language.** The delivered page had its own language
+  picker; the panel follows the browser's, like the rest of the extension.
+  The page's header and footer are not there either: the panel has its own.
+- **Under the delivered page's title.** The view's title and description are
+  the page's, in every language. The title therefore changes in the rail for
+  six translations: "Manual de uso" (es, pt-BR), "Guía de uso" (es-419),
+  "Instrukcja obsługi" (pl), "Manual de utilização" (pt-PT),
+  "Руководство пользователя" (ru).
+- **Coming back to the guide puts it back at the top, at once.** It keeps
+  its position when you leave it, and its scrolling is smooth: merely reset
+  to the top, it rolled back up through its whole height in plain view — the
+  test bench caught it (see below).
+- **The twelve store listings** announce twenty-one chapters.
+
+### What you don't see
+
+- **Why JSON, and not the HTML.** The extension's pages require Trusted Types
+  with no policy at all (4.33.0.14): the panel can neither assign `innerHTML`
+  nor parse a string of HTML. `tests/guide.mjs` therefore opens each delivered
+  page in Chromium — the same parser the panel has — and records its tree as
+  is in `guide/<locale>.json`: a node is a text, or
+  `[name, attributes, ...children]`. Only two things don't make it through,
+  and neither shows: comments, and runs of whitespace, collapsed to one space
+  — the guide only has collapsing whitespace, and the script checks it. It
+  rejects the whole page at the slightest thing that runs, loads or submits,
+  at a link that doesn't point to a chapter, at a duplicate id, at a
+  language that isn't the translation's.
+- **The panel builds every node itself** (`noeudGuide`): `createElement`,
+  `setAttribute`, and `createElementNS` for the drawings — a `<path>` created
+  as HTML doesn't draw, and doesn't throw.
+- **The file is read once, through `fetch`.** The one for the panel's
+  language ("es-419" → `guide/es_419.json`); the promise is kept, like the
+  tab's. A failure says so — "The guide couldn't be loaded.", followed by the
+  browser's reason, word for word — and is not kept: coming back retries.
+  Left before the file arrives, the guide doesn't land on the section you
+  picked, whether it failed or succeeded.
+- **The stylesheet.** `guide.css` is the second part of `page.css`, from
+  "Structure pédagogique du mode d'emploi" to the end, copied as is and loaded after
+  `panneau.css`, as `page.css` was: the mock-ups still borrow `panneau.css`'s
+  cards, badges and schedule. What differs sits in its last block, "Dans le
+  panneau": the page scrolled as a whole under a 66 px sticky header; in the
+  panel, the guide is what scrolls, and a chapter you jump to stops 8 px from
+  its edge.
+- **The translation files lose the old guide.** Its sixty-three `guide*` keys
+  are removed from all twelve. Eleven of them still served the settings — the
+  preview's badge labels — and stay, renamed `optBadge*`.
+  `stateGuideMissing` arrives. Parity: 306 keys in each of the twelve.
+- **`panneau.js` loses the old guide**: the chapter table, the bullet
+  grammar, the computed cross-references, and the "mock-up mode" of three
+  panel functions that drew the schedule's mock-ups themselves
+  (`pastilleAbonnes`, `entreeAgenda`, `ligneHorsLigne`), along with
+  `minuitDe`. It goes from 171 to 152 KB in the repository, from 87 to 77 KB
+  in the package.
+- **The package** carries `guide.css` and `guide/`, added to the allowlist:
+  1,064 KB of JSON for the twelve languages, 33 KB of stylesheet — shipped
+  with its comments, like `panneau.css`. The translation files, for their
+  part, go from 629 to 345 KB.
+
+### What the delivered guide doesn't meet, recorded and not corrected
+
+The content is not touched: what follows is recorded, required as is by the
+test bench — no more, no less — and left for a decision.
+
+- **European Portuguese names two home shelves its own way**: "canal n.º 1"
+  and "Enquanto estiveste fora", where the page — which has only one
+  Portuguese — writes "Seu canal nº 1 ao vivo" and "Enquanto você esteve
+  fora".
+- **Contrasts under the AA threshold**, measured in the panel as in the
+  delivered page, to the hundredth: fourteen texts in light, three in dark.
+  The home hero's come from the measurement, which keeps the worst stop of
+  each gradient — on a screenshot, the text sits on the dark part. The others
+  are real: the avatars' white letter on green `#00966e` (3.76, in both
+  themes), the Top 15's outlined ranks (2.19 for 3), "▲ 2" (4.41), "7 🔥"
+  (4.29) and the "Ancien abonné" badge on its card (4.13), in light.
+- **Chapter titles are `<h2>`**, like the view's title above them: kept as
+  delivered.
+
+### The test bench
+
+Only the benches this addition concerns were run, as asked: lint, parity,
+store listings, package, and scenarios 69, 70, 77, 89, 96, 120, 122, 124,
+208, 211, 212, 231 and 234. Not the full bench.
+
+- **96, rewritten** (33 → 28 assertions). It no longer judges the writing,
+  which isn't its own: it requires that what is shown be **what was
+  delivered**, node for node, in all twelve languages, each reading its own
+  file; under the page's title and description; twenty-one anchored,
+  numbered chapters, which the contents follow and the listings announce; no
+  key name; every link to a chapter of the guide, every cross-reference
+  showing the number it points to; a click that brings the chapter without
+  moving the frame. The tie to the product, no longer guaranteed by
+  construction, is checked: labels quoted word for word, the rail's six
+  groups in the rail's order, the multistream room and the home page quoted
+  as the page writes them. Then what still held from the old one: the
+  palette, the "Auto" theme, the pulsing bar, the live red, the co-stream —
+  now two cards welded by one bar —, the rainbow, scrolling, coming back. And
+  what is new: the file that doesn't come, and the one that arrives after
+  you left.
+- **70** serves the guide to the page and measures it whole — twenty-one
+  chapters, in both themes —, its recorded deviations and only them.
+- **211**: the guide loads and builds in the real embedded frame and in the
+  popup, under the real policy, without a single violation (+2). The
+  extension allowlist it mounts is now **read** from `tests/addon.mjs`:
+  copied, it had forgotten the guide.
+- **231 s)** reads the zapping chapter from `guide/<locale>.json`, right
+  after the room's.
+- The scenarios' embedded panel serves `guide.css` and `guide/`.
+
+**What the bench found.** The visible roll back to the top, first: the guide
+keeps its position when put away, and `scrollTop = 0` went through smooth
+scrolling — it is now put back at the top at once. Then 211, whose mounted
+extension looked for the guide in vain.
+
+**Seventeen named mutants, seventeen caught.**
+
+| mutant | what falls |
+| --- | --- |
+| an `<svg>`'s children created as HTML | 96 the delivered file; 211 the embedded frame, the popup |
+| `aria-hidden` lost while building | 96 the delivered file, the silent mock-ups |
+| a text trimmed while building | 96 the delivered file |
+| the locale taken as is ("es-419") | 96 the delivered file, the chapters, the cross-references, the quoted labels, the rail's groups, the room and the home page |
+| the English file for every language | 96 the delivered file, the quoted labels, the rail's groups, the room and the home page |
+| the failure kept in memory | 96 failure then retry, leaving before it arrives |
+| a success arriving after you left, taking over | 96 leaving before it arrives |
+| a failure arriving after you left, showing | 96 leaving before it arrives |
+| the previous section's message left under the guide | 96 coming back, failure then retry |
+| the visible roll back to the top | 96 coming back |
+| the guide put back where it was left | 96 coming back |
+| the guide's stylesheet removed from `panneau.html` | 96 the anchors, the co-stream; 211 the embedded frame, the popup |
+| `innerHTML` on the guide's path | 211 the embedded frame, the popup |
+| the anchor flush with the container | 96 the anchors; 211 the embedded frame, the popup |
+| "préchargée" reworded in `content.js` alone | 231 d), s) |
+| one more contrast deviation in the guide | 70 the contrasts |
+| a rail group renamed in one translation file | 96 the quoted labels, the rail's groups |
+
+`innerHTML` only falls in 211, on purpose: 96 opens the panel over `file://`,
+without the extension's policy; only 211 carries it.
+
+Run together on the shipped tree, the thirteen scenarios give **286
+assertions out of 286**; lint, parity, listings and package are green. 231
+failed once in five passes, on three zapping assertions — keyboard focus,
+the wheel, the reopened room —, unrelated to the guide; green on the other
+four, two of them run alone. The full bench was not run.
 
 ## Firefox: the filters look like Chrome's, flags included (v4.33.0.15)
 
@@ -26182,10 +26347,10 @@ the assembled code:
 | `content.js` | 2358 KB | 1111 KB | 4,890 → **2** |
 | `cadres.js` | 76 KB | 35 KB | 171 → **0** |
 | `adblock.js` | 126 KB | 101 KB | 301 → **2** |
-| `panneau.js` | 171 KB | 87 KB | 240 → **0** |
+| `panneau.js` | 152 KB | 77 KB | 217 → **0** |
 | `bridge.js` | 15 KB | 3 KB | 26 → **0** |
 | `background.js` | 10 KB | 2 KB | 23 → **0** |
-| **all six** | **2756 KB** | **1340 KB** | **−51 %** |
+| **all six** | **2737 KB** | **1329 KB** | **−51 %** |
 
 These figures are **checked against the measurement** on every assembly, here
 as in `README.md` and `store/README.md`. They are not computed, they are

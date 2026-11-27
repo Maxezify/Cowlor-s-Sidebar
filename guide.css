@@ -1,0 +1,697 @@
+/* ════════════════════════════════════════════════════════════════════════════
+   LA FEUILLE DU MODE D'EMPLOI (4.33.0.16)
+   ────────────────────────────────────────────────────────────────────────────
+   Le mode d'emploi a été écrit hors du panneau, en douze pages HTML ; sa
+   feuille, page.css, en avait deux parties : la page elle-même — son corps,
+   son en-tête collant, son sélecteur de langue, son pied —, et le guide. Le
+   panneau a déjà sa page : seule la seconde partie est ici, et elle est
+   recopiée TELLE QUELLE, de « Structure pédagogique du mode d'emploi » à
+   la fin. Elle vient après panneau.css, comme page.css venait après lui —
+   les maquettes du guide empruntent encore à panneau.css ses cartes, ses
+   badges et son agenda.
+
+   Ce qui diffère du panneau à la page tient dans le dernier bloc, « Dans le
+   panneau », et nulle part ailleurs.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ════════════════════════════════════════════════════════════════════════════
+   STRUCTURE PÉDAGOGIQUE DU MODE D'EMPLOI
+   ────────────────────────────────────────────────────────────────────────────
+   S'appuie uniquement sur les jetons de panneau.css (--fond, --fond-2,
+   --fond-creux, --filet, --texte, --violet, --or, --direct, etc.) pour rester
+   fidèle au panneau en thème sombre comme en thème clair.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Ancrage des chapitres : laisse la place à l'en-tête collant (.tete). */
+.guide-chapitre { scroll-margin-top: 66px; margin: 0 0 24px; }
+.guide-chapitre p.guide-p { line-height: 1.55; margin: 0 0 8px; }
+.guide-chapitre .guide-liste { margin: 0 0 8px; }
+.guide-chapitre .guide-liste li { line-height: 1.52; margin-bottom: 5px; }
+.guide-chapitre .guide-liste li strong,
+.guide-chapitre .guide-p strong { color: var(--texte); font-weight: 600; }
+
+/* Sous-titre de partie à l'intérieur d'un chapitre riche. */
+.guide-sous {
+  margin: 12px 0 5px;
+  font-size: 12.5px; font-weight: 700; color: var(--texte);
+}
+
+/* Séparateur de grande partie (Progression : Bases → Aperçu → Avancé → Accueil/Agenda → Panneau). */
+.guide-partie {
+  display: flex; align-items: center; gap: 10px;
+  margin: 26px 0 14px;
+  font-size: 10.5px; font-weight: 700; letter-spacing: 0.7px;
+  text-transform: uppercase; color: var(--violet-texte);
+}
+.guide-partie::after {
+  content: ''; flex: 1 1 auto; height: 1px; background: var(--filet-fort);
+}
+
+/* Encart de conseil ou de mise en garde pour débutant. */
+.guide-astuce {
+  margin: 8px 0 10px; padding: 8px 11px;
+  border: 1px solid var(--filet); border-left: 2px solid var(--violet);
+  border-radius: var(--r-petit);
+  background: light-dark(rgba(145, 71, 255, 0.05), rgba(145, 71, 255, 0.08));
+  font-size: 12px; line-height: 1.5; color: var(--texte-doux);
+}
+.guide-astuce strong { color: var(--texte); font-weight: 600; }
+.guide-astuce--note {
+  border-left-color: var(--or);
+  background: light-dark(rgba(138, 89, 0, 0.06), rgba(255, 196, 92, 0.07));
+}
+
+/* Touche clavier et renvoi cliquable entre chapitres. */
+.guide-kbd {
+  display: inline-block; padding: 0 5px; min-width: 18px; text-align: center;
+  border: 1px solid var(--filet-fort); border-bottom-width: 2px;
+  border-radius: var(--r-petit); background: var(--fond-2);
+  font-family: inherit; font-size: 11px; font-weight: 700; line-height: 1.45;
+  color: var(--texte); vertical-align: 1px;
+}
+.guide-ref {
+  color: var(--violet-texte); text-decoration: none; font-weight: 600;
+  border-bottom: 1px dotted var(--violet-doux);
+}
+.guide-ref:hover { border-bottom-style: solid; }
+.guide-ref:focus-visible { outline: 2px solid var(--violet); outline-offset: 2px; border-radius: 2px; }
+
+/* ── Sommaire cliquable ──────────────────────────────────────────────────── */
+.guide-sommaire {
+  margin: 0 0 18px; padding: 12px 14px;
+  border: 1px solid var(--filet); border-radius: var(--r-grand);
+  background: var(--fond-2);
+}
+.guide-sommaire-titre {
+  margin: 0 0 10px; font-size: 11px; font-weight: 700;
+  letter-spacing: 0.7px; text-transform: uppercase; color: var(--texte-faible);
+}
+.guide-sommaire-grille {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 16px;
+}
+.guide-sommaire-bloc-titre {
+  margin: 0 0 4px; font-size: 10.5px; font-weight: 700; color: var(--violet-texte);
+}
+.guide-sommaire-liste { margin: 0; padding: 0; list-style: none; }
+.guide-sommaire-liste li { margin: 2px 0; font-size: 11.5px; line-height: 1.4; }
+.guide-sommaire-liste a {
+  display: inline-flex; align-items: baseline; gap: 5px;
+  color: var(--texte-doux); text-decoration: none;
+}
+.guide-sommaire-liste a:hover { color: var(--texte); text-decoration: underline; }
+.guide-sommaire-liste a:focus-visible { outline: 2px solid var(--violet); outline-offset: 1px; border-radius: 2px; }
+.guide-sommaire-n {
+  flex: 0 0 auto; min-width: 16px; font-size: 10.5px; font-weight: 700;
+  color: var(--texte-faible); font-variant-numeric: tabular-nums;
+}
+@media (max-width: 520px) {
+  .guide-sommaire-grille { grid-template-columns: 1fr; }
+}
+
+/* Légende discrète sous ou dans une maquette. */
+.d-legende {
+  margin: 7px 0 0; font-size: 11px; line-height: 1.4; color: var(--texte-faible);
+}
+.d-etiquette-bloc {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.4px;
+  text-transform: uppercase; color: var(--texte-faible); margin: 0 0 4px;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   MAQUETTES HTML/CSS DES CHAPITRES (non interactives, aria-hidden)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Ch. 1 : La roue ⚙️ et la bulle de bienvenue ────────────────────────── */
+.d-roue-scene { display: flex; flex-direction: column; gap: 10px; max-width: 340px; }
+.d-roue-barre {
+  position: relative; z-index: 2;
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 10px; border-radius: var(--r-petit);
+  background: var(--fond-2); border: 1px solid var(--filet);
+}
+.d-roue-h3 {
+  font-size: 11.5px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.4px; color: var(--texte);
+}
+.d-roue-btn {
+  position: relative; flex: 0 0 auto;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; border-radius: 4px;
+  background: var(--violet); color: #fff; font-size: 13px; line-height: 1;
+  box-shadow: 0 0 0 4px rgba(145, 71, 255, 0.25);
+}
+.d-roue-btn::after {
+  content: ''; position: absolute; left: 50%; top: calc(100% + 12px);
+  width: 11px; height: 11px; background: var(--fond-2);
+  border-left: 3px solid var(--violet); border-top: 3px solid var(--violet);
+  transform: translateX(-50%) rotate(45deg); border-radius: 2px 0 0 0;
+  pointer-events: none;
+}
+.d-bulle {
+  position: relative; z-index: 1; padding: 11px 12px 12px;
+  border-radius: 8px; border: 1px solid var(--filet-fort);
+  border-top: 3px solid var(--violet);
+  background: var(--fond-2);
+  box-shadow: 0 6px 18px light-dark(rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0.4));
+}
+.d-bulle-fleche { display: none; }
+.d-bulle-tete { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+.d-bulle-pastille {
+  flex: 0 0 auto; width: 22px; height: 22px; border-radius: 50%;
+  background: var(--violet); color: #fff; font-size: 12px;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.d-bulle-titre { font-size: 12px; font-weight: 700; color: var(--texte); flex: 1; }
+.d-bulle-croix { font-size: 14px; color: var(--texte-faible); line-height: 1; }
+.d-bulle-texte { margin: 0; font-size: 11.5px; line-height: 1.45; color: var(--texte-doux); }
+
+/* ── Ch. 2 : Formats de durée ────────────────────────────────────────────── */
+.d-formats {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  padding-top: 6px; border-top: 1px solid var(--filet);
+  font-size: 11px; color: var(--texte-faible);
+}
+.d-format-puce {
+  padding: 1px 7px; border-radius: var(--r-petit);
+  background: var(--fond-2); border: 1px solid var(--filet);
+  color: var(--violet-clair); font-weight: 600; font-variant-numeric: tabular-nums;
+}
+
+/* ── Ch. 3 : Barre plus rapide et plus propre (puces série & stories) ───── */
+.d-propre { display: flex; flex-direction: column; gap: 8px; width: 320px; max-width: 100%; }
+.d-puce-twitch {
+  display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 8px 0 5px;
+  border-radius: var(--r-petit); background: var(--fond-2); border: 1px solid var(--filet);
+  font-size: 11.5px; font-weight: 600; color: var(--texte);
+}
+.d-serie-av {
+  width: 18px; height: 18px; border-radius: 50%; flex: 0 0 auto;
+  background: linear-gradient(135deg, #4b3d6e, #24242c);
+  box-shadow: 0 0 0 1.5px #ffb018;
+}
+.d-puce-txt { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.d-serie-flamme {
+  display: inline-flex; align-items: center; gap: 3px;
+  color: light-dark(#b36800, #ffb018); font-size: 11px; font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.d-stories-pile {
+  display: inline-flex; padding: 1.5px; border-radius: 999px;
+  background: linear-gradient(200deg, #9147ff 25%, #0bc1f6 85%);
+}
+.d-stories-av {
+  width: 14px; height: 14px; border-radius: 50%;
+  background: linear-gradient(135deg, #4a4a56, #26262e);
+  box-shadow: 0 0 0 1px var(--fond-2);
+}
+.d-stories-av + .d-stories-av { margin-left: -6px; }
+.d-stories-nb {
+  min-width: 16px; height: 16px; padding: 0 4px; border-radius: 999px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--violet); color: #fff; font-size: 9.5px; font-weight: 800;
+}
+.d-vitesse {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px;
+  margin-top: 2px;
+}
+.d-vitesse-col {
+  padding: 6px 8px; border-radius: var(--r-petit);
+  background: var(--fond-2); border: 1px solid var(--filet);
+}
+.d-vitesse-col--ext { border-color: var(--violet-doux); }
+.d-vitesse-t { font-size: 10px; font-weight: 700; text-transform: uppercase; color: var(--texte-faible); }
+.d-vitesse-v { font-size: 12px; font-weight: 700; color: var(--texte); margin-top: 1px; }
+.d-vitesse-col--ext .d-vitesse-v { color: var(--violet-texte); }
+.d-vitesse-s { font-size: 10.5px; color: var(--texte-doux); }
+
+/* ── Ch. 4 : Filtres & 6 boutons de tri ──────────────────────────────────── */
+.d-tri-bloc { display: flex; flex-direction: column; gap: 7px; width: 300px; max-width: 100%; }
+.d-filtre-rangee { display: flex; align-items: center; gap: 6px; }
+.d-select {
+  display: inline-flex; align-items: center; justify-content: space-between; gap: 6px;
+  height: 28px; padding: 0 8px; border-radius: var(--r-petit);
+  background: var(--fond-2); border: 1px solid var(--filet-fort);
+  font-size: 11.5px; color: var(--texte);
+}
+.d-select--cat { flex: 1 1 auto; min-width: 0; }
+.d-select--lang { flex: 0 0 auto; width: 52px; justify-content: center; gap: 4px; }
+.d-caret { font-size: 9px; color: var(--texte-faible); }
+.d-drapeau {
+  display: inline-flex; width: 18px; height: 13px; border-radius: 2px; overflow: hidden;
+  border: 1px solid var(--filet);
+}
+.d-drapeau--mini { width: 13px; height: 10px; vertical-align: middle; margin-left: 2px; }
+.d-tri-rangee { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.d-tri-btn {
+  position: relative; flex: 1 1 0; height: 28px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: var(--r-petit); background: var(--fond-2);
+  border: 1px solid var(--filet); color: var(--texte-doux);
+}
+.d-tri-btn svg { width: 15px; height: 15px; fill: currentColor; }
+.d-tri-btn--actif {
+  background: var(--violet); border-color: var(--violet); color: #fff;
+}
+.d-tri-compte {
+  position: absolute; right: -4px; bottom: -4px;
+  min-width: 15px; height: 15px; padding: 0 3px; border-radius: 999px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: #fff; color: var(--violet); border: 1.5px solid var(--violet);
+  font-size: 8.5px; font-weight: 800; line-height: 1;
+}
+.d-tri-legende {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 3px 10px; padding-top: 4px; border-top: 1px solid var(--filet);
+  font-size: 10.5px; color: var(--texte-doux);
+}
+.d-tri-leg-item { display: inline-flex; align-items: center; gap: 5px; }
+.d-tri-leg-item svg { width: 12px; height: 12px; fill: var(--texte-faible); flex: 0 0 auto; }
+.d-tri-leg-item--actif { color: var(--texte); font-weight: 600; }
+.d-tri-leg-item--actif svg { fill: var(--violet-texte); }
+
+/* ── Ch. 5 : Aperçu enrichi avec mini-frise ──────────────────────────────── */
+.d-apercu-frise {
+  padding: 6px 9px 8px; border-top: 1px solid var(--filet);
+}
+.d-apercu-frise-tete {
+  display: flex; align-items: baseline; justify-content: space-between;
+  font-size: 9px; letter-spacing: 0.05em; text-transform: uppercase;
+  color: var(--texte-faible); margin-bottom: 4px;
+}
+
+/* ── Ch. 6 : Frise enrichie (en-tête + entaille de coupure ambre) ────────── */
+.d-frise-tete {
+  display: flex; align-items: baseline; gap: 6px; margin-bottom: 6px;
+  font-size: 9.5px; font-weight: 700; letter-spacing: 0.05em;
+  text-transform: uppercase; color: var(--texte-faible);
+}
+.d-frise-coupures {
+  margin-left: auto; text-transform: none; letter-spacing: 0; font-weight: 600;
+  color: var(--or); font-variant-numeric: tabular-nums;
+}
+.d-frise-total {
+  text-transform: none; letter-spacing: 0; font-weight: 600;
+  color: var(--texte-faible); font-variant-numeric: tabular-nums;
+}
+.d-ruban--coupure { position: relative; overflow: visible; }
+.d-ruban-clip {
+  display: flex; width: 100%; height: 100%; border-radius: 3px; overflow: hidden;
+}
+.d-entaille {
+  position: absolute; top: -2px; bottom: -2px; left: 37%; width: 4px;
+  border-radius: 1px; background: var(--fond);
+  box-shadow: inset 1px 0 0 var(--or), inset -1px 0 0 var(--or);
+}
+
+/* ── Ch. 10 : Deux cartes co-stream soudées par une seule barre ──────────── */
+.d-cs-bloc {
+  position: relative; display: flex; flex-direction: column; width: 300px; max-width: 100%;
+}
+.d-cs-bloc .d-carte--costream::before { display: none; }
+.d-cs-barre {
+  position: absolute; left: 0; top: 4px; bottom: 4px; width: 3px; z-index: 1;
+  border-radius: 0 3px 3px 0; background: #f5c518;
+  box-shadow: 0 0 6px #f5c518, 0 0 2px #f5c518;
+}
+.d-cs-bloc .d-noeud { z-index: 2; }
+
+/* ── Ch. 13 : Pilule co-stream qui s'étire & Salle multistream ───────────── */
+.d-pilule-etapes {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px;
+}
+.d-pilule-pas { display: flex; flex-direction: column; gap: 4px; }
+.d-pilule-ligne { display: flex; align-items: center; gap: 4px; }
+.d-pilule {
+  display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 9px;
+  border-radius: 11px; background: #f5c518; color: #0e0e10;
+  font-size: 11px; font-weight: 700; white-space: nowrap;
+}
+.d-pilule--soudee { border-radius: 11px 0 0 11px; padding-right: 7px; }
+.d-visages-bulle {
+  display: inline-flex; align-items: center; gap: 2px; height: 22px; padding: 0 6px;
+  border-radius: 11px; background: #f5c518; color: #0e0e10;
+  font-size: 11px; font-weight: 700;
+}
+.d-visages-bulle--soudee { border-radius: 0 11px 11px 0; margin-left: -4px; padding-left: 3px; }
+.d-visage {
+  width: 15px; height: 15px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 8px; font-weight: 700; color: #fff;
+  box-shadow: 0 0 0 1.5px #f5c518;
+}
+.d-visage + .d-visage { margin-left: -4px; }
+.d-fleche-etape { font-size: 13px; color: var(--texte-faible); font-weight: 700; }
+
+/* Salle multistream complète en miniature */
+.d-salle {
+  width: 100%; border-radius: var(--r-grand); overflow: hidden;
+  border: 1px solid var(--filet-fort); background: var(--fond);
+}
+.d-salle-haut {
+  display: flex; align-items: center; gap: 8px; padding: 6px 9px;
+  background: var(--fond-2); border-bottom: 1px solid var(--filet);
+}
+.d-salle-titre { font-size: 11px; font-weight: 700; color: var(--texte); white-space: nowrap; }
+.d-salle-cal {
+  margin-left: auto; display: flex; align-items: center; gap: 6px; min-width: 0;
+}
+.d-cal-point {
+  width: 7px; height: 7px; border-radius: 50%; flex: 0 0 auto; background: #00c86f;
+}
+.d-cal-txt { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
+.d-cal-l1 { font-size: 10px; font-weight: 700; color: var(--texte); white-space: nowrap; }
+.d-cal-l2 { font-size: 9.5px; color: var(--texte-faible); white-space: nowrap; }
+.d-salle-btn {
+  padding: 2px 7px; border-radius: var(--r-petit);
+  background: var(--fond-creux); border: 1px solid var(--filet);
+  font-size: 10px; font-weight: 600; color: var(--texte); white-space: nowrap;
+}
+.d-salle-corps { display: grid; grid-template-columns: minmax(0, 1fr) 142px; }
+.d-salle-grille {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px; padding: 6px;
+}
+.d-tuile-vid {
+  position: relative; aspect-ratio: 16 / 9; border-radius: 4px; overflow: hidden;
+  background: linear-gradient(135deg, #2b2b36 0%, #17171d 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex; align-items: flex-end; justify-content: space-between; padding: 4px 6px;
+}
+.d-tuile-vid--son {
+  box-shadow: inset 0 0 0 1.5px var(--violet);
+  background: linear-gradient(135deg, #352754 0%, #17171d 100%);
+}
+.d-tuile-num {
+  position: absolute; top: 4px; left: 5px;
+  padding: 0 4px; border-radius: 3px; background: rgba(0, 0, 0, 0.65);
+  color: #fff; font-size: 9px; font-weight: 700;
+}
+.d-tuile-son {
+  position: absolute; top: 4px; right: 5px;
+  padding: 0 5px; border-radius: 3px; background: var(--violet);
+  color: #fff; font-size: 8.5px; font-weight: 700;
+}
+.d-tuile-nom { font-size: 10px; font-weight: 600; color: #efeff1; }
+.d-salle-chat {
+  display: flex; flex-direction: column;
+  background: var(--fond-2); border-left: 1px solid var(--filet);
+}
+.d-salle-chat-tete {
+  padding: 5px 7px; font-size: 10px; font-weight: 700; color: var(--texte);
+  border-bottom: 1px solid var(--filet);
+}
+.d-salle-onglets {
+  display: flex; gap: 2px; padding: 2px 5px 0; border-bottom: 1px solid var(--filet);
+  font-size: 9.5px; color: var(--texte-faible);
+}
+.d-salle-ong { padding: 3px 5px; border-bottom: 2px solid transparent; font-weight: 600; }
+.d-salle-ong--actif { color: var(--texte); border-bottom-color: var(--violet); }
+.d-salle-msgs {
+  padding: 6px 7px; display: flex; flex-direction: column; gap: 4px;
+  font-size: 9.5px; color: var(--texte-doux);
+}
+.d-salle-msg b { color: var(--violet-texte); font-weight: 600; }
+.d-cal-points {
+  display: flex; flex-wrap: wrap; gap: 6px 12px; margin-top: 7px;
+  font-size: 10.5px; color: var(--texte-doux);
+}
+.d-cal-pt-item { display: inline-flex; align-items: center; gap: 5px; }
+.d-cal-pt { width: 7px; height: 7px; border-radius: 50%; flex: 0 0 auto; }
+
+/* ── Ch. 14 : Le Zapping (plein écran TV sombre dans les deux thèmes) ────── */
+.d-zap {
+  position: relative; width: 100%; border-radius: var(--r-grand); overflow: hidden;
+  background: radial-gradient(circle at 35% 45%, #2b2042 0%, #121216 62%, #0a0a0d 100%);
+  color: #efeff1; padding: 12px 10px 10px; border: 1px solid var(--filet-fort);
+}
+.d-zap-trait {
+  position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, #e9407a, #9147ff 50%, #3d7cff);
+}
+.d-zap-haut {
+  display: flex; align-items: center; justify-content: space-between; gap: 6px;
+  margin-bottom: 10px;
+}
+.d-zap-cpt {
+  display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px;
+  border-radius: 6px; background: rgba(14, 14, 16, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.08); font-size: 10px; color: #dedee3;
+}
+.d-zap-cpt b { font-size: 13px; color: #fff; font-variant-numeric: tabular-nums; }
+.d-zap-aide {
+  display: flex; flex-wrap: wrap; gap: 5px 8px; padding: 4px 7px;
+  border-radius: 6px; background: rgba(14, 14, 16, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.08); font-size: 9.5px; color: #e5e5ea;
+}
+.d-zap-k {
+  display: inline-block; padding: 0 4px; border-radius: 3px; margin-right: 2px;
+  background: rgba(255, 255, 255, 0.14); border: 1px solid rgba(255, 255, 255, 0.22);
+  font-size: 9px; font-weight: 700; color: #fff;
+}
+.d-zap-corps {
+  display: grid; grid-template-columns: minmax(0, 1fr) 172px; gap: 10px; align-items: end;
+}
+.d-zap-infos { display: flex; flex-direction: column; gap: 4px; }
+.d-zap-nom { font-size: 17px; font-weight: 800; color: #fff; line-height: 1.1; }
+.d-zap-titre { font-size: 11px; font-weight: 600; color: #efeff1; }
+.d-zap-meta { display: flex; align-items: center; gap: 5px; font-size: 10px; color: #d0d0d8; }
+.d-zap-live {
+  padding: 0 5px; border-radius: 3px; background: #eb0400; color: #fff;
+  font-size: 9px; font-weight: 700; text-transform: uppercase;
+}
+.d-zap-liste { display: flex; flex-direction: column; gap: 5px; }
+.d-zap-item {
+  display: flex; align-items: center; gap: 6px; padding: 5px 6px;
+  border-radius: 6px; background: rgba(14, 14, 16, 0.84);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.d-zap-item--actif {
+  box-shadow: inset 0 0 0 1.5px #a970ff, 0 0 12px rgba(145, 71, 255, 0.45);
+}
+.d-zap-vig {
+  width: 36px; height: 21px; border-radius: 3px; flex: 0 0 auto;
+  background: linear-gradient(135deg, #3c3c48, #202028);
+}
+.d-zap-itxt { min-width: 0; flex: 1; }
+.d-zap-inom { font-size: 10.5px; font-weight: 700; color: #fff; }
+.d-zap-tags { display: flex; gap: 3px; margin-top: 2px; flex-wrap: wrap; }
+.d-zap-tag {
+  padding: 0 5px; border-radius: 999px; font-size: 8.5px; font-weight: 700; line-height: 1.45;
+}
+.d-zap-tag--pre { color: #3ccf7e; box-shadow: inset 0 0 0 1px #3ccf7e; }
+.d-zap-tag--sal { color: #c8a6ff; box-shadow: inset 0 0 0 1px #a970ff; }
+.d-zap-son {
+  align-self: flex-end; margin-top: 4px; padding: 3px 8px; border-radius: 6px;
+  background: rgba(14, 14, 16, 0.86); border: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 10px; font-weight: 600; color: #fff;
+}
+
+/* ── Ch. 15 : Accueil (1/2) — Héros + Top 15 ────────────────────────────── */
+.d-heros {
+  position: relative; width: 100%; border-radius: var(--r-grand); overflow: hidden;
+  padding: 12px 14px; color: #efeff1;
+  background:
+    linear-gradient(90deg, rgba(14, 14, 16, 0.92) 0%, rgba(14, 14, 16, 0.72) 52%, rgba(14, 14, 16, 0.25) 100%),
+    radial-gradient(circle at 82% 45%, rgba(145, 71, 255, 0.55) 0%, rgba(255, 165, 70, 0.35) 38%, #16161c 75%);
+  border: 1px solid var(--filet-fort);
+}
+.d-heros-l1 { display: flex; align-items: center; gap: 6px; font-size: 10px; color: rgba(255, 255, 255, 0.8); }
+.d-heros-nom-row { display: flex; align-items: center; gap: 7px; margin: 6px 0 3px; flex-wrap: wrap; }
+.d-cadre .d-heros .d-badge.d-badge--sub {
+  color: #ffe28a;
+  background: rgba(255, 201, 102, 0.24);
+  border: 1px solid rgba(255, 201, 102, 0.35);
+}
+.d-heros-nom { font-size: 18px; font-weight: 800; color: #fff; line-height: 1.1; }
+.d-heros-titre { font-size: 11.5px; font-weight: 600; color: #fff; margin: 0 0 3px; }
+.d-heros-meta { font-size: 10.5px; color: rgba(255, 255, 255, 0.78); margin: 0 0 9px; }
+.d-heros-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.d-heros-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 10px; border-radius: var(--r-petit);
+  font-size: 11px; font-weight: 600; color: #fff;
+}
+.d-heros-btn--pri { background: #9147ff; }
+.d-heros-btn--sec { background: rgba(255, 255, 255, 0.16); }
+
+.d-top15 {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; width: 100%;
+}
+.d-top-place { display: flex; align-items: flex-start; min-width: 0; }
+.d-top-rang {
+  flex: 0 0 auto; font-size: 40px; font-weight: 900; line-height: 0.85;
+  margin-right: -7px; margin-top: 22px; user-select: none;
+  color: transparent;
+  -webkit-text-stroke: 2px light-dark(rgba(0, 0, 0, 0.32), rgba(255, 255, 255, 0.36));
+}
+.d-top-carte { position: relative; z-index: 1; flex: 1 1 auto; min-width: 0; }
+.d-top-vig {
+  position: relative; aspect-ratio: 16 / 9; border-radius: 3px; overflow: hidden;
+  background: linear-gradient(135deg, #32323d, #1c1c22);
+  border: 1px solid var(--filet);
+}
+.d-top-live {
+  position: absolute; top: 4px; left: 4px; padding: 0 4px; border-radius: 2px;
+  background: #eb0400; color: #fff; font-size: 8px; font-weight: 700; text-transform: uppercase;
+}
+.d-top-duree {
+  position: absolute; top: 4px; right: 4px; padding: 0 4px; border-radius: 2px;
+  background: rgba(0, 0, 0, 0.65); color: #fff; font-size: 8.5px; font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.d-top-spect {
+  position: absolute; bottom: 4px; left: 4px; padding: 0 4px; border-radius: 2px;
+  background: rgba(0, 0, 0, 0.65); color: #fff; font-size: 8.5px; font-variant-numeric: tabular-nums;
+}
+.d-top-l1 {
+  display: flex; align-items: center; gap: 4px; margin-top: 4px;
+  font-size: 11px; font-weight: 700; color: var(--texte);
+}
+.d-top-evol { font-size: 9.5px; font-weight: 700; white-space: nowrap; }
+.d-top-evol--h { color: light-dark(#0a7a4b, #3ccf91); }
+.d-top-evol--n { padding: 0 4px; border-radius: 3px; background: var(--violet); color: #fff; font-size: 8.5px; }
+.d-top-evol--s { color: var(--texte-faible); }
+.d-top-cs {
+  font-size: 9.5px; font-weight: 600; color: var(--violet-texte); white-space: nowrap;
+}
+.d-top-jeu { font-size: 10px; color: var(--texte-faible); }
+
+/* ── Ch. 16 : Accueil (2/2) — Rendez-vous + Alerte + Étiquettes ──────────── */
+.d-rdv-paire {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; width: 100%;
+}
+.d-rdv-carte {
+  display: flex; gap: 8px; padding: 9px; border-radius: var(--r-grand);
+  background: var(--fond-2); border: 1px solid var(--filet);
+}
+.d-rdv-corps { min-width: 0; flex: 1; }
+.d-rdv-nom { font-size: 11.5px; font-weight: 700; color: var(--texte); }
+.d-rdv-quand { font-size: 10.5px; font-weight: 600; color: var(--texte); margin-top: 2px; }
+.d-rdv-reste { font-size: 10.5px; font-weight: 600; color: var(--violet-texte); }
+.d-rdv-btn {
+  display: inline-flex; align-items: center; gap: 4px; margin-top: 6px;
+  padding: 2px 8px; border-radius: var(--r-petit);
+  background: var(--violet); color: #fff; font-size: 10px; font-weight: 600;
+}
+.d-toast {
+  display: flex; align-items: center; gap: 8px; padding: 9px 10px;
+  border-radius: var(--r-grand); background: var(--fond-2);
+  border: 1px solid var(--violet);
+  box-shadow: 0 4px 14px light-dark(rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0.4));
+  align-self: center;
+}
+.d-toast-txt { min-width: 0; flex: 1; }
+.d-toast-l1 { font-size: 11px; font-weight: 700; color: var(--texte); }
+.d-toast-l2 { font-size: 10px; color: var(--texte-doux); }
+.d-toast-btn {
+  padding: 3px 8px; border-radius: var(--r-petit);
+  background: var(--violet); color: #fff; font-size: 10px; font-weight: 600; white-space: nowrap;
+}
+
+.d-etiq-galerie { display: flex; flex-wrap: wrap; gap: 6px; }
+.d-etiq {
+  display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 9px 0 8px;
+  border-radius: 999px; background: rgba(14, 14, 16, 0.88);
+  border: 1px solid currentColor; font-size: 10.5px; font-weight: 700; line-height: 1;
+  white-space: nowrap;
+}
+.d-etiq::before {
+  content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex: 0 0 auto;
+}
+.d-etiq--retour   { color: #6bdb9d; }
+.d-etiq--subathon { color: #ffe38f; animation: d-etiq-arc 1.5s linear infinite; }
+.d-etiq--commence { color: #ff6b62; }
+.d-etiq--bascule  { color: #bf94ff; }
+.d-etiq--tendance { color: #6bdb9d; }
+.d-etiq--monde    { color: #ffb35c; }
+.d-etiq--rang     { color: #ffd68a; }
+.d-etiq--costream { color: #8fc7ff; }
+@keyframes d-etiq-arc {
+  0%, 100% { color: #ff8f8f; } 12.5% { color: #ffe38f; } 25% { color: #c7ff8f; }
+  37.5% { color: #8fffb4; } 50% { color: #8ffdff; } 62.5% { color: #8fabff; }
+  75% { color: #c78fff; } 87.5% { color: #ff8fe3; }
+}
+
+/* ── Ch. 19 : Le panneau (rail 6 groupes + mini grille Rythme) ───────────── */
+.d-panneau {
+  display: grid; grid-template-columns: 158px minmax(0, 1fr); gap: 10px; width: 100%;
+}
+.d-rail {
+  padding: 6px 0; border-radius: var(--r-grand);
+  background: var(--fond-2); border: 1px solid var(--filet);
+}
+.d-rail-g {
+  padding: 5px 10px 2px; font-size: 9px; font-weight: 700;
+  letter-spacing: 0.6px; text-transform: uppercase; color: var(--texte-faible);
+}
+.d-rail-i {
+  padding: 3px 10px; font-size: 11px; color: var(--texte-doux);
+  border-left: 2px solid transparent;
+}
+.d-rail-i--actif {
+  background: rgba(145, 71, 255, 0.14); border-left-color: var(--violet);
+  color: var(--texte); font-weight: 600;
+}
+.d-rail-i--cache { opacity: 0.55; font-style: italic; }
+.d-rythme-box {
+  padding: 9px 10px; border-radius: var(--r-grand);
+  background: var(--fond-2); border: 1px solid var(--filet);
+  display: flex; flex-direction: column; justify-content: center; gap: 6px;
+}
+.d-rythme-mini {
+  display: grid; grid-template-columns: 24px repeat(12, minmax(0, 1fr)); gap: 2px; align-items: center;
+}
+.d-rythme-mini .rythme-jour { font-size: 9px; padding-right: 4px; }
+.d-rythme-mini .rythme-case { height: 12px; border-radius: 2px; }
+
+/* ── Ch. 20 : Maquette des Réglages (point violet + ligne grisée) ────────── */
+.d-reg {
+  width: 100%; padding: 8px 12px; border-radius: var(--r-grand);
+  background: var(--fond-2); border: 1px solid var(--filet);
+}
+.d-reg .reg-ligne { padding: 7px 0; }
+.d-reg .reg-nom { font-size: 12px; }
+.d-reg .reg-desc { font-size: 10.5px; }
+.d-bascule {
+  position: relative; display: inline-block; width: 32px; height: 18px;
+  border-radius: 9px; background: var(--fond-creux); border: 1px solid var(--filet-fort);
+  flex: 0 0 auto;
+}
+.d-bascule::after {
+  content: ''; position: absolute; top: 2px; left: 2px;
+  width: 12px; height: 12px; border-radius: 50%; background: var(--texte-doux);
+}
+.d-bascule--on { background: var(--violet); border-color: var(--violet); }
+.d-bascule--on::after { transform: translateX(14px); background: #fff; }
+
+/* ── Ch. 21 : Résumé visuel Vie privée ───────────────────────────────────── */
+.d-privee {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; width: 100%;
+}
+.d-privee-tuile {
+  padding: 8px 10px; border-radius: var(--r-grand);
+  background: var(--fond-2); border: 1px solid var(--filet);
+}
+.d-privee-val { font-size: 13.5px; font-weight: 700; color: var(--vert); }
+.d-privee-cle { font-size: 10.5px; color: var(--texte-doux); margin-top: 2px; line-height: 1.35; }
+
+/* Adaptation petits écrans (< 460px) */
+@media (max-width: 460px) {
+  .d-salle-corps, .d-zap-corps, .d-rdv-paire, .d-panneau, .d-top15, .d-privee {
+    grid-template-columns: 1fr;
+  }
+  .d-salle-chat { border-left: 0; border-top: 1px solid var(--filet); }
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   DANS LE PANNEAU
+   ────────────────────────────────────────────────────────────────────────────
+   La page défilait tout entière, sous un en-tête collant de 66 px : d'où son
+   défilement doux posé sur <html>, et ses chapitres qui s'arrêtaient 66 px
+   sous le bord. Dans le panneau, c'est le guide qui défile, et rien ne le
+   recouvre : le défilement doux est le sien, et un chapitre qu'on rejoint
+   s'arrête au bord du guide, à la marge près.
+   ══════════════════════════════════════════════════════════════════════════ */
+.guide { scroll-behavior: smooth; }
+.guide .guide-chapitre { scroll-margin-top: 8px; }
