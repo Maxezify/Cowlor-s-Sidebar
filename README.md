@@ -352,10 +352,10 @@ assemblé :
 | `content.js` | 2358 Ko | 1111 Ko | 4 890 → **2** |
 | `cadres.js` | 76 Ko | 35 Ko | 171 → **0** |
 | `adblock.js` | 126 Ko | 101 Ko | 301 → **2** |
-| `panneau.js` | 171 Ko | 87 Ko | 240 → **0** |
+| `panneau.js` | 152 Ko | 77 Ko | 217 → **0** |
 | `bridge.js` | 15 Ko | 3 Ko | 26 → **0** |
 | `background.js` | 10 Ko | 2 Ko | 23 → **0** |
-| **les six** | **2756 Ko** | **1340 Ko** | **−51 %** |
+| **les six** | **2737 Ko** | **1329 Ko** | **−51 %** |
 
 Ces chiffres sont **confrontés à la mesure** à chaque assemblage, ici comme
 dans `README.en.md` et `store/README.md`. Ils ne se calculent pas, ils se
@@ -2365,7 +2365,11 @@ coûtent une ligne chacun et la quatrième forme, elle, existe — mais aucune
 assertion ne prétendra les éprouver. Le même relevé montre que l'assertion « une
 carte détachée puis rattachée ne referme pas l'aperçu » du scénario 76 ne touche
 rien non plus.
-## Le mode d'emploi (v3.98)
+## Le mode d'emploi (v3.98, remplacé en v4.33.0.16)
+
+> Depuis la 4.33.0.16, le mode d'emploi est le guide livré tel quel, en
+> vingt et un chapitres (cf. « Le nouveau mode d'emploi, livré tel quel »).
+> Ce qui suit décrit celui d'avant.
 
 L'extension n'a aucun réglage. Pas d'options, pas d'interrupteurs, pas de
 compte : elle travaille dès le premier rechargement de Twitch, et c'est un parti
@@ -2633,6 +2637,178 @@ Un sous-test qui modélisait un cas impossible — un direct qui rajeunit sans
 changer d'identifiant — a été remplacé au passage par le cas ordinaire qu'il
 fallait vraiment garder : **une chaîne qui passe en direct pour la première fois
 doit garder sa barre « vient de démarrer »**.
+
+## Le nouveau mode d'emploi, livré tel quel (v4.33.0.16)
+
+« Voici un zip contenant un tout nouveau mode d'emploi que je trouve nickel.
+Remplace-le parfaitement et entièrement, à la place de l'ancien, sans
+retravailler sur son contenu. Tu as également les traductions. »
+
+Le guide a été écrit hors du panneau, en douze pages HTML — une par
+traduction — et une feuille, `page.css`. Il remplace l'ancien de bout en bout :
+texte, ordre, maquettes, couleurs. Rien n'y a été réécrit.
+
+### Ce qui se voit
+
+- **Le guide livré, et lui seul.** Vingt et un chapitres en cinq parties, un
+  sommaire, vingt et une maquettes, des astuces et des touches dessinées. Les
+  chapitres se renvoient l'un à l'autre par des liens : un clic sur
+  « chapitre 12 », ou sur une entrée du sommaire, fait défiler le guide
+  jusqu'au chapitre, en douceur ; ni le titre de la vue ni le rail ne bougent.
+- **Dans la langue du panneau.** La page livrée avait son sélecteur de
+  langue ; le panneau suit celle du navigateur, comme tout le reste de
+  l'extension. L'en-tête et le pied de la page n'y sont pas non plus : le
+  panneau a les siens.
+- **Sous le titre de la page livrée.** Le titre et la description de la vue
+  sont ceux de la page, dans chaque langue. Le titre change donc dans le rail
+  pour six traductions : « Manual de uso » (es, pt-BR), « Guía de uso »
+  (es-419), « Instrukcja obsługi » (pl), « Manual de utilização » (pt-PT),
+  « Руководство пользователя » (ru).
+- **Revenir au guide le repose en haut, d'un coup.** Il garde sa position
+  quand on le quitte, et son défilement est doux : remis en haut sans plus,
+  il remontait à vue de toute sa hauteur — le banc l'a vu (cf. plus bas).
+- **Les douze fiches du Store** annoncent vingt et un chapitres.
+
+### Ce qui ne se voit pas
+
+- **Pourquoi du JSON, et pas le HTML.** Les pages de l'extension exigent
+  Trusted Types sans aucune politique (4.33.0.14) : le panneau ne peut ni
+  affecter `innerHTML`, ni analyser une chaîne de HTML. `tests/guide.mjs` ouvre
+  donc chaque page livrée dans Chromium — le même analyseur que le panneau — et
+  en relève l'arbre tel quel dans `guide/<locale>.json` : un nœud est un texte,
+  ou `[nom, attributs, ...enfants]`. Deux choses seulement n'y passent pas, et
+  aucune ne se voit : les commentaires, et les suites de blancs, réduites à
+  une espace — le guide n'a que des blancs qui se replient, et le script le
+  vérifie. Il refuse la page entière à la moindre chose qui exécute, charge ou
+  soumet, à un lien qui ne vise pas un chapitre, à un identifiant en double, à
+  une langue qui n'est pas celle de la traduction.
+- **Le panneau construit chaque nœud lui-même** (`noeudGuide`) :
+  `createElement`, `setAttribute`, et `createElementNS` pour les tracés — un
+  `<path>` créé en HTML ne se dessine pas, et ne lève rien.
+- **Le fichier se lit une fois, par `fetch`.** Celui de la langue du panneau
+  (« es-419 » → `guide/es_419.json`) ; la promesse est gardée, comme celle de
+  l'onglet. Un échec se dit — « Le mode d'emploi n'a pas pu se charger », suivi
+  du motif du navigateur, mot pour mot — et n'est pas gardé : y revenir
+  réessaie. Quitté avant que le fichier arrive, le guide ne se pose pas sur la
+  section choisie, en échec comme en succès.
+- **La feuille.** `guide.css` est la seconde partie de `page.css`, de
+  « Structure pédagogique du mode d'emploi » à la fin, recopiée telle quelle et posée après
+  `panneau.css`, comme `page.css` l'était : les maquettes empruntent encore à
+  `panneau.css` ses cartes, ses badges et son agenda. Ce qui diffère tient dans
+  son dernier bloc, « Dans le panneau » : la page défilait tout entière sous un
+  en-tête collant de 66 px ; dans le panneau, c'est le guide qui défile, et un
+  chapitre rejoint s'arrête à 8 px de son bord.
+- **Les fiches de traduction perdent l'ancien guide.** Ses soixante-trois clés
+  `guide*` sont retirées des douze fiches. Onze d'entre elles servaient encore
+  aux réglages — les libellés des badges de l'aperçu — et restent, renommées
+  `optBadge*`. `stateGuideMissing` arrive. Parité : 306 clés dans chacune des
+  douze.
+- **`panneau.js` perd l'ancien guide** : la table des chapitres, la grammaire
+  des puces, les renvois calculés, et le « mode maquette » de trois fonctions
+  du panneau qui dessinaient elles-mêmes les maquettes de l'agenda
+  (`pastilleAbonnes`, `entreeAgenda`, `ligneHorsLigne`), avec `minuitDe`. Il
+  passe de 171 à 152 Ko dans le dépôt, de 87 à 77 Ko dans le paquet.
+- **Le paquet** emporte `guide.css` et `guide/`, inscrits à la liste blanche :
+  1 064 Ko de JSON pour les douze langues, 33 Ko de feuille — qui part avec ses
+  commentaires, comme `panneau.css`. Les fiches de traduction, elles, passent
+  de 629 à 345 Ko.
+
+### Ce que le guide livré ne tient pas, consigné et non corrigé
+
+Le contenu n'est pas retouché : ce qui suit est relevé, exigé tel quel par le
+banc — ni plus, ni moins —, et laissé à la décision.
+
+- **Le portugais d'Europe nomme deux rayons de l'accueil à sa façon** :
+  « canal n.º 1 » et « Enquanto estiveste fora », là où la page — qui n'a
+  qu'un portugais — écrit « Seu canal nº 1 ao vivo » et « Enquanto você esteve
+  fora ».
+- **Des contrastes sous le seuil AA**, mesurés dans le panneau comme dans la
+  page livrée, au centième près : quatorze textes en clair, trois en sombre.
+  Ceux du héros de l'accueil tiennent à la mesure, qui retient le pire arrêt
+  de chaque dégradé — sur capture, le texte est posé sur la partie sombre.
+  Les autres sont réels : la lettre blanche des avatars sur le vert `#00966e`
+  (3,76, dans les deux thèmes), les rangs en contour du Top 15 (2,19 pour 3),
+  « ▲ 2 » (4,41), « 7 🔥 » (4,29) et le badge « Ancien abonné » sur sa carte
+  (4,13), en clair.
+- **Les titres de chapitre sont des `<h2>`**, comme le titre de la vue au-dessus
+  d'eux : gardés tels que livrés.
+
+### Le banc
+
+Seuls les bancs que l'ajout concerne ont tourné, à la demande : lint, parité,
+fiches, paquet, et les scénarios 69, 70, 77, 89, 96, 120, 122, 124, 208, 211,
+212, 231 et 234. Le banc complet, non.
+
+- **96, réécrit** (33 → 28 assertions). Il ne juge plus la rédaction, qui
+  n'est pas la sienne : il exige que ce qui s'affiche soit **ce qui a été
+  livré**, nœud pour nœud, dans les douze langues, chacune lisant son fichier ;
+  sous le titre et la description de la page ; vingt et un chapitres ancrés et
+  numérotés, que le sommaire suit et que les fiches annoncent ; aucun nom de
+  clé ; chaque lien vers un chapitre du guide, chaque renvoi affichant le
+  numéro qu'il vise ; un clic qui amène le chapitre sans bouger le décor. Le
+  lien au produit, qui n'est plus garanti par construction, se vérifie : les
+  libellés cités au mot près, les six groupes du rail dans l'ordre du rail,
+  la salle et l'accueil cités comme la page les écrit. Puis ce qui restait
+  vrai de l'ancien : la palette, le thème « Auto », la barre qui bat, le rouge
+  du direct, le co-stream — désormais deux cartes soudées par une barre —,
+  l'arc-en-ciel, le défilement, le retour. Et ce qui est neuf : le fichier qui
+  ne vient pas, et celui qui arrive après qu'on est parti.
+- **70** sert le guide à la page et le mesure entier — vingt et un chapitres,
+  dans les deux thèmes —, ses écarts consignés et eux seuls.
+- **211** : le guide se charge et se construit dans le vrai cadre incrusté et
+  dans la popup, sous la vraie politique, sans une violation (+2). La liste
+  blanche de l'extension qu'il monte est désormais **lue** dans
+  `tests/addon.mjs` : recopiée, elle avait oublié le guide.
+- **231 s)** lit le chapitre du zapping dans `guide/<locale>.json`, juste
+  après celui de la salle.
+- Le panneau incrusté des scénarios sert `guide.css` et `guide/`.
+
+**Ce que le banc a trouvé.** Le retour en haut à vue, d'abord : le guide garde
+sa position quand on le range, et `scrollTop = 0` passait par le défilement
+doux — il est désormais remis en haut d'un coup. Puis le 211, dont l'extension
+montée cherchait le guide en vain.
+
+**Dix-sept mutants nommés, dix-sept pris.**
+
+| mutant | ce qui tombe |
+| --- | --- |
+| les enfants d'un `<svg>` créés en HTML | 96 le fichier livré ; 211 le cadre incrusté, la popup |
+| `aria-hidden` perdu à la construction | 96 le fichier livré, les maquettes muettes |
+| un texte rogné à la construction | 96 le fichier livré |
+| la locale prise telle quelle (« es-419 ») | 96 le fichier livré, les chapitres, les renvois, les libellés cités, les groupes du rail, la salle et l'accueil |
+| le fichier anglais pour toutes les langues | 96 le fichier livré, les libellés cités, les groupes du rail, la salle et l'accueil |
+| l'échec gardé en mémoire | 96 l'échec puis la reprise, le départ avant l'arrivée |
+| un succès arrivé après le départ, qui s'impose | 96 le départ avant l'arrivée |
+| un échec arrivé après le départ, qui s'affiche | 96 le départ avant l'arrivée |
+| le message de la section d'avant laissé sous le guide | 96 le retour, l'échec puis la reprise |
+| le retour en haut fait à vue | 96 le retour |
+| le guide reposé là où on l'avait laissé | 96 le retour |
+| la feuille du guide retirée de `panneau.html` | 96 les ancres, le co-stream ; 211 le cadre incrusté, la popup |
+| `innerHTML` sur le chemin du guide | 211 le cadre incrusté, la popup |
+| l'ancre posée au ras du conteneur | 96 les ancres ; 211 le cadre incrusté, la popup |
+| « préchargée » reformulé dans `content.js` seul | 231 d), s) |
+| un écart de contraste de plus dans le guide | 70 les contrastes |
+| un groupe du rail renommé dans une fiche | 96 les libellés cités, les groupes du rail |
+
+`innerHTML` ne tombe qu'au 211, et c'est voulu : le 96 ouvre le panneau en
+`file://`, sans la politique de l'extension ; seul le 211 la porte.
+
+Rejoués ensemble sur l'arbre livré, les treize scénarios donnent **286
+assertions sur 286** ; lint, parité, fiches et paquet sont verts. Le 231 a
+échoué une fois en cinq passages, sur trois assertions du zapping — le
+focus au clavier, la molette, la salle rouverte —, sans rapport avec le
+guide ; vert aux quatre autres, dont deux où il tournait seul. Le banc
+complet n'a pas tourné.
+
+Le banc compte désormais 239 scénarios, 2453 assertions — cinq de moins au
+96, deux de plus au 211.
+
+Passé ensuite en entier sur le code livré, par `tests/prod.mjs`, il a rendu
+2449 assertions sur 2453 : ce compte-ci, que la section n'annonçait pas
+encore (68), et trois assertions de minutage, dans du code que la 4.33.0.16
+ne touche pas — l'en-tête du calage (183), la grande vignette de « Pendant
+votre absence » (224) —, jamais tombées en une trentaine de bancs, vertes
+rejouées seules, deux fois sur deux, sur le même code.
 
 ## Firefox : les filtres ont l'aspect de Chrome, drapeaux compris (v4.33.0.15)
 

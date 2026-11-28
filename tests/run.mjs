@@ -284,9 +284,32 @@ noter({ type: 'moteur', moteur: MOTEUR, version: browser.version() });
    https://www.twitch.tv/panneau.html. Même origine que l'hôte, et ça ne change
    rien à ce qu'on éprouve : le panneau se sait encadré à `window.top !==
    window`, et c'est l'origine de son PARENT qu'il nomme. Tout autre chemin
-   rend une page vide — ce qu'un clic sur un lien ouvrirait. */
+   rend une page vide — ce qu'un clic sur un lien ouvrirait. Le mode d'emploi
+   (4.33.0.16) a sa feuille et un fichier par langue : ils sont servis avec
+   le panneau, comme l'extension les sert. */
 const PANNEAU_SERVI = { 'panneau.html': 'text/html; charset=utf-8', 'panneau.css': 'text/css; charset=utf-8',
-                        'panneau.js': 'application/javascript; charset=utf-8', 'icons/icon48.png': 'image/png' };
+                        'guide.css': 'text/css; charset=utf-8',
+                        'panneau.js': 'application/javascript; charset=utf-8', 'icons/icon48.png': 'image/png',
+                        ...Object.fromEntries(readdirSync(join(ICI, '..', 'guide'))
+                          .map((f) => [`guide/${f}`, 'application/json; charset=utf-8'])) };
+/* LE MODE D'EMPLOI EN file:// (4.33.0.16). Le panneau lit
+   guide/<locale>.json par fetch, que Chromium refuse en file:// — l'extension,
+   elle, le sert. Ce bouchon, posé avant la page, sert les fichiers du dépôt à
+   l'adresse demandée, et un 404 à toute autre : un nom mal formé échoue ici
+   comme il échouerait dans l'extension. Le scénario 96 a le sien, qui compte
+   les demandes et sait échouer. */
+const GUIDES_DU_DEPOT = () => Object.fromEntries(readdirSync(join(ICI, '..', 'guide'))
+  .map((f) => [`guide/${f}`, readFileSync(join(ICI, '..', 'guide', f), 'utf8')]));
+function servirGuide(guides) {
+  const vrai = window.fetch.bind(window);
+  window.fetch = async (entree, init) => {
+    const u = new URL(typeof entree === 'string' ? entree : entree.url, location.href);
+    const m = /\/(guide\/[^/]+)$/.exec(u.pathname);
+    if (u.protocol !== 'file:' || !m) return vrai(entree, init);
+    return guides[m[1]] ? new Response(guides[m[1]], { status: 200, headers: { 'content-type': 'application/json' } })
+                        : new Response('', { status: 404 });
+  };
+}
 async function hebergerPanneau(page, hote) {
   await page.context().route('https://www.twitch.tv/**', (route) => {
     const chemin = new URL(route.request().url()).pathname.slice(1);
@@ -7525,6 +7548,8 @@ titre('70. Panneau — la page rendue, mesurée');
 
   const page = await browser.newPage({ viewport: { width: 760, height: 580 } });
   page.on('pageerror', e => { fail++; console.log('  ✗ ERREUR PAGE:', e.message); });
+  // Le mode d'emploi se mesure aussi : il lui faut son fichier (cf. servirGuide).
+  await page.addInitScript(servirGuide, GUIDES_DU_DEPOT());
   await page.addInitScript(stub, messages);
   await page.goto(pathToFileURL(join(ICI, '..', 'panneau.html')).href);
   await attendre(page, () => document.querySelectorAll('.rail-item').length > 0);
@@ -8075,21 +8100,58 @@ titre('70. Panneau — la page rendue, mesurée');
      ; l'or pâle du sombre gardé en clair ; la palette remise sur le creux. */
   await page.evaluate(() => { const r = document.getElementById('rapport'); if (r?.open) r.close(); });
   const contrastesPanneau = {};
+  /* LE GUIDE MESURÉ EST LE GUIDE ENTIER (4.33.0.16) : il se charge par fetch,
+     et une mesure prise sur un message d'erreur passerait sans rien dire. */
+  const guideMesure = {};
   for (const theme of ['light', 'dark']) {
     await page.evaluate((x) => document.documentElement.setAttribute('data-theme', x), theme);
     const vues = await page.evaluate(() => [...document.querySelectorAll('.rail-item')].map((b) => b.dataset.id));
     for (const id of vues) {
       await page.evaluate((x) => [...document.querySelectorAll('.rail-item')].find((b) => b.dataset.id === x).click(), id);
       await wait(page, 500);
+      if (id === 'guide') guideMesure[theme] = await page.evaluate(() => document.querySelectorAll('#guide:not([hidden]) .guide-chapitre').length);
       const m = await page.evaluate(mesurerContrastes, { selecteur: 'body *' });
       contrastesPanneau[theme + ' ' + id] = m;
     }
   }
-  const echecsPanneau = Object.entries(contrastesPanneau).flatMap(([k, m]) => m.echecs.map((e) => ({ vue: k, ...e })));
+  /* LE MODE D'EMPLOI LIVRÉ (4.33.0.16) A SES ÉCARTS, CONSIGNÉS UN À UN. Il
+     est livré tel quel, maquettes et couleurs comprises, et rendu ici comme
+     dans sa propre page (mêmes mesures, au centième). La mesure y trouve
+     quatorze textes sous le seuil en clair, trois en sombre :
+       - le héros de l'accueil (« Votre chaîne n°1 en direct », le nom, le
+         titre, la ligne du jeu, « Depuis le début », le badge « Abonné ») :
+         la mesure retient le PIRE arrêt de chaque dégradé, et celui-ci
+         s'éclaircit à droite en clair, là où rien n'est écrit — vu sur
+         capture, le texte est posé sur la partie sombre ;
+       - réels, eux : la lettre blanche des avatars sur le vert #00966e
+         (3,76, dans les deux thèmes), les rangs en contour du Top 15 (2,19
+         pour 3), la flèche « ▲ 2 » (4,41), la série « 7 🔥 » (4,29), le
+         badge « Ancien abonné » sur sa carte (4,13).
+     Le contenu livré n'est pas retouché par le banc : la liste est exigée
+     telle quelle, ni plus ni moins. Un écart de plus fait tomber la ligne ;
+     un écart corrigé aussi, pour qu'on le retire d'ici. Les autres vues
+     n'en ont aucun. */
+  const ECARTS_GUIDE = {
+    light: ['d-serie-flamme|7 🔥|4.29', 'd-badge d-badge--exsub|Ancien abonné • 4 MOIS|4.13', 'd-visage|V|3.76', 'd-visage|V|3.76',
+            '|Votre chaîne n°1 en direct|1.35', 'd-heros-nom|Nyxaria|1.46', 'd-badge d-badge--sub|Abonné • 9 MOIS|1.16',
+            'd-heros-titre|On finit le donjon, puis quest|1.46', 'd-heros-meta|Elden Ring · 1\u00a0243 spectateurs|1.34',
+            'd-heros-btn d-heros-btn--sec|⏮ Depuis le début|1.37', 'd-top-rang|1|2.19', 'd-top-rang|2|2.19', 'd-top-rang|3|2.19',
+            'd-top-evol d-top-evol--h|▲ 2|4.41'],
+    dark: ['d-visage|V|3.76', 'd-visage|V|3.76', 'd-badge d-badge--sub|Abonné • 9 MOIS|4.43'],
+  };
+  const signe = (e) => `${e.classe}|${e.texte}|${e.r}`;
+  const ecartsGuide = Object.fromEntries(['light', 'dark'].map((th) =>
+    [th, (contrastesPanneau[`${th} guide`]?.echecs || []).map(signe).sort()]));
+  const ecartsConformes = ['light', 'dark'].every((th) =>
+    JSON.stringify(ecartsGuide[th]) === JSON.stringify([...ECARTS_GUIDE[th]].sort()));
+  const echecsPanneau = Object.entries(contrastesPanneau).filter(([k]) => !k.endsWith(' guide'))
+    .flatMap(([k, m]) => m.echecs.map((e) => ({ vue: k, ...e })));
   const mesuresPanneau = Object.values(contrastesPanneau).reduce((n, m) => n + m.mesures, 0);
-  ok('chaque texte du panneau tient le seuil AA, dans chaque vue et les deux thèmes — dégradés lus arrêt par arrêt',
-     Object.keys(contrastesPanneau).length >= 20 && mesuresPanneau > 500 && echecsPanneau.length === 0,
-     JSON.stringify({ vues: Object.keys(contrastesPanneau).length, mesures: mesuresPanneau, echecs: echecsPanneau.slice(0, 8),
+  ok('chaque texte du panneau tient le seuil AA, dans chaque vue et les deux thèmes — dégradés lus arrêt par arrêt ; le mode d\'emploi livré, ses écarts consignés et eux seuls',
+     Object.keys(contrastesPanneau).length >= 20 && mesuresPanneau > 500 && echecsPanneau.length === 0
+     && guideMesure.light === 21 && guideMesure.dark === 21 && ecartsConformes,
+     JSON.stringify({ vues: Object.keys(contrastesPanneau).length, mesures: mesuresPanneau, guideMesure, echecs: echecsPanneau.slice(0, 8),
+                      ecartsGuide: ecartsConformes ? 'conformes' : ecartsGuide,
                       ecartes: Object.values(contrastesPanneau).reduce((o, m) => { for (const [k, v] of Object.entries(m.ecartes)) o[k] = (o[k] || 0) + v; return o; }, {}) }));
 
 
@@ -13267,41 +13329,68 @@ titre('96. Le mode d\'emploi — la première vue, et la seule qui n\'ait besoin
      scénario 69 vérifie que la page rend bien les colonnes que panneau.js sait
      peindre, et la parité vérifie que chaque clé demandée existe dans les
      douze fiches. Ni l'un ni l'autre n'ouvre la page. Personne, donc, ne
-     regardait ce que panneau.html affiche — et un mode d'emploi de treize
-     chapitres est précisément le genre de chose qui peut se casser en silence :
-     une clé oubliée rend une chaîne VIDE, un chapitre mal formé rend un bloc
-     blanc, et rien n'écrit en console.
+     regardait ce que panneau.html affiche — et un mode d'emploi est
+     précisément le genre de chose qui peut se casser en silence : un nœud
+     perdu ne lève rien, un chapitre vide rend un bloc blanc.
 
      On l'ouvre donc pour de vrai, en remplaçant `chrome.*` par un bouchon qui
      lit les VRAIES fiches de _locales. Le bouchon n'a aucun onglet à offrir,
      ce qui est le cas de figure exact que cette vue existe pour couvrir :
-     quelqu'un qui vient d'installer l'extension et clique sur son icône. */
+     quelqu'un qui vient d'installer l'extension et clique sur son icône.
+
+     LE GUIDE DE LA 4.33.0.16 N'EST PLUS DANS LES FICHES. Il a été écrit d'un
+     bloc, en douze pages HTML, et il est livré tel quel : tests/guide.mjs en
+     relève l'arbre dans guide/<locale>.json, que le panneau construit nœud
+     par nœud (Trusted Types lui interdit d'analyser du HTML). Ce scénario ne
+     juge donc plus la rédaction, qui n'est pas la sienne : il exige que ce qui
+     s'affiche soit CE QUI A ÉTÉ LIVRÉ, nœud pour nœud, dans les douze
+     langues — et que ce texte reste lié au produit qu'il décrit. */
   const URL_PANNEAU = pathToFileURL(join(ICI, '..', 'panneau.html')).href;
   const fiche = (loc) => JSON.parse(
     readFileSync(join(ICI, '..', '_locales', loc, 'messages.json'), 'utf8'));
+  const LOCALES = readdirSync(join(ICI, '..', '_locales')).sort();
+  const GUIDES = Object.fromEntries(LOCALES.map((loc) => [`guide/${loc}.json`,
+    readFileSync(join(ICI, '..', 'guide', `${loc}.json`), 'utf8')]));
+  const guideDe = (loc) => JSON.parse(GUIDES[`guide/${loc}.json`]);
 
-  const ouvrirPanneau = async (loc) => {
+  /* LE GUIDE SE CHARGE PAR fetch, ET CHROMIUM REFUSE fetch EN file://. Le
+     bouchon sert donc les fichiers du dépôt eux-mêmes, lus au lancement, à
+     l'adresse que le panneau demande — et à celle-là seulement : un nom de
+     fichier mal formé (« es-419 » au lieu de « es_419 ») reçoit un 404, comme
+     il le recevrait de l'extension. Chaque demande est notée. `echecs` fait
+     échouer les N premières, `delai` les retarde. */
+  const ouvrirPanneau = async (loc, { echecs = 0, delai = 0, attendreGuide = true } = {}) => {
     const p = await browser.newPage({ viewport: { width: 760, height: 600 } });
     p.on('pageerror', (e) => { fail++; console.log('  ✗ ERREUR PAGE:', e.message); });
     /* Le mouvement est refusé pour la durée du relevé de couleurs : l'arc-en-ciel
        du subathon traverse toutes les teintes, et comparer dix badges pendant
-       qu'un onzième change rendrait le résultat dépendant de l'instant. La
-       feuille honore `prefers-reduced-motion`, on s'en sert. */
+       qu'un onzième change rendrait le résultat dépendant de l'instant. Le
+       relevé fige lui-même les animations (cf. plus bas). */
     await p.emulateMedia({ reducedMotion: 'reduce' });
     await p.addInitScript((d) => {
       /* Le compteur d'appels est le vrai sujet de la deuxième assertion : il
          dit si cette vue a demandé quoi que ce soit au navigateur. */
       window.__queries = 0;
+      window.__guideDemandes = [];
+      let echecs = d.echecs;
+      const vrai = window.fetch.bind(window);
+      window.fetch = async (entree, init) => {
+        const u = new URL(typeof entree === 'string' ? entree : entree.url, location.href);
+        const m = /\/(guide\/[^/]+)$/.exec(u.pathname);
+        if (u.protocol !== 'file:' || !m) return vrai(entree, init);
+        window.__guideDemandes.push(m[1]);
+        if (d.delai) await new Promise((r) => setTimeout(r, d.delai));
+        if (echecs > 0) { echecs--; return new Response('', { status: 404 }); }
+        const t = d.guides[m[1]];
+        return t ? new Response(t, { status: 200, headers: { 'content-type': 'application/json' } })
+                 : new Response('', { status: 404 });
+      };
       const table = d.table;
       window.chrome = {
-        /* LA SUBSTITUTION EST CELLE DE CHROME, et ce bouchon ne la faisait pas.
-           `chrome.i18n.getMessage(cle, sub)` remplace « $1 » … « $9 » par les
-           arguments ; le bouchon rendait le message brut. Le banc n'avait donc
-           JAMAIS vu un message substitué — ni le renvoi de chapitre, ni le
-           « $1 h » des réglages — et l'assertion du renvoi, écrite d'abord
-           contre ce bouchon, lisait « (chapter $1) » sans rien dire de plus.
-           Un bouchon plus simple que la chose qu'il remplace rend vertes des
-           assertions que le produit ferait tomber. */
+        /* LA SUBSTITUTION EST CELLE DE CHROME : `chrome.i18n.getMessage(cle,
+           sub)` remplace « $1 » … « $9 » par les arguments. Un bouchon plus
+           simple que la chose qu'il remplace rend vertes des assertions que
+           le produit ferait tomber. */
         i18n: { getMessage: (k, sub) => {
           const m = table[k] ? table[k].message : '';
           if (sub === undefined || sub === null) return m;
@@ -13314,10 +13403,67 @@ titre('96. Le mode d\'emploi — la première vue, et la seule qui n\'ait besoin
         runtime: { sendMessage: async () => ({ ok: false, erreur: 'absent' }),
                    getManifest: () => ({ version: '0.0.0', action: {}, permissions: [] }) },
       };
-    }, { table: fiche(loc), loc });
+    }, { table: fiche(loc), loc, guides: GUIDES, echecs, delai });
     await p.goto(URL_PANNEAU);
-    await attendre(p, () => !document.getElementById('guide').hidden, 5000);
+    if (attendreGuide) await attendre(p, () => !document.getElementById('guide').hidden, 5000);
     return p;
+  };
+
+  /* LE RELEVÉ D'UNE PAGE OUVERTE : l'arbre du guide tel que le DOM le porte,
+     dans la forme même du fichier (un texte, ou [nom, attributs | 0,
+     ...enfants]), les éléments qui ne sont pas dans leur espace de noms — un
+     <path> créé en HTML ne se dessine pas, et ne lève rien —, et ce qu'il faut
+     pour lier le texte au produit. La « prose » est le texte hors des
+     maquettes : c'est là que le guide nomme ce qu'on voit. */
+  const relever = (p) => p.evaluate(() => {
+    const SVG = 'http://www.w3.org/2000/svg', HTML = 'http://www.w3.org/1999/xhtml';
+    const g = document.getElementById('guide');
+    const arbre = (n) => (n.nodeType === Node.TEXT_NODE ? n.data
+      : n.nodeType !== Node.ELEMENT_NODE ? null
+      : [n.localName, n.attributes.length ? Object.fromEntries([...n.attributes].map((a) => [a.name, a.value])) : 0,
+         ...[...n.childNodes].map(arbre).filter((x) => x !== null)]);
+    const horsEspace = [...g.querySelectorAll('*')].filter((e) =>
+      e.namespaceURI !== (e.closest('svg') ? SVG : HTML)).map((e) => e.localName);
+    const prose = (racine, sansTitre = false) => {
+      const c = racine.cloneNode(true);
+      c.querySelectorAll(sansTitre ? '.d-cadre, h2' : '.d-cadre').forEach((x) => x.remove());
+      return c.textContent;
+    };
+    const chaps = [...g.querySelectorAll('.guide-chapitre')];
+    return {
+      arbre: [...g.childNodes].map(arbre).filter((x) => x !== null),
+      horsEspace,
+      titre: document.getElementById('vue-titre').textContent,
+      desc: document.getElementById('vue-desc').textContent,
+      chapitres: chaps.map((c) => ({ id: c.id, num: (c.querySelector('.guide-num') || {}).textContent || '',
+                                     titre: (c.querySelector('h2') || {}).textContent || '',
+                                     corps: prose(c, true) })),
+      sommaire: [...g.querySelectorAll('.guide-sommaire a')].map((a) => ({
+        href: a.getAttribute('href'), n: (a.querySelector('.guide-sommaire-n') || {}).textContent || '' })),
+      refs: [...g.querySelectorAll('a.guide-ref')].map((a) => ({ href: a.getAttribute('href'), texte: a.textContent })),
+      liensPerdus: [...g.querySelectorAll('a[href]')].filter((a) => {
+        const h = a.getAttribute('href');
+        const cible = h.startsWith('#') ? document.getElementById(h.slice(1)) : null;
+        return !cible || !g.contains(cible) || !cible.classList.contains('guide-chapitre');
+      }).map((a) => a.getAttribute('href')),
+      prose: prose(g),
+      texte: g.textContent,
+      groupes: [...document.querySelectorAll('#rail .rail-groupe')].map((h) => h.textContent.trim()).filter(Boolean),
+      puces: [...g.querySelectorAll('.guide-p, .guide-liste > li')].filter((e) => e.textContent.trim().startsWith('•')).length,
+      lisVides: [...g.querySelectorAll('.guide-liste > li')].filter((e) => !e.textContent.trim()).length,
+      largeurPage: document.documentElement.scrollWidth,
+      largeurGuide: [g.scrollWidth, g.clientWidth],
+    };
+  });
+  /* Le premier écart entre deux arbres, désigné par son chemin : « égal ou
+     pas » ne dirait pas où chercher dans mille nœuds. */
+  const ecart = (a, b, chemin = '') => {
+    if (typeof a === 'string' || typeof b === 'string') return a === b ? null : `${chemin} : ${JSON.stringify(a).slice(0, 60)} ≠ ${JSON.stringify(b).slice(0, 60)}`;
+    if (!Array.isArray(a) || !Array.isArray(b)) return `${chemin} : nœud absent`;
+    if (a[0] !== b[0] || JSON.stringify(a[1]) !== JSON.stringify(b[1])) return `${chemin}/${a[0]} : ${JSON.stringify(a[1])} ≠ ${b[0]} ${JSON.stringify(b[1])}`;
+    if (a.length !== b.length) return `${chemin}/${a[0]} : ${a.length - 2} enfants ≠ ${b.length - 2}`;
+    for (let i = 2; i < a.length; i++) { const e = ecart(a[i], b[i], `${chemin}/${a[0]}[${i - 2}]`); if (e) return e; }
+    return null;
   };
 
   const page = await ouvrirPanneau('en');
@@ -13343,447 +13489,263 @@ titre('96. Le mode d\'emploi — la première vue, et la seule qui n\'ait besoin
      chose que fait `demander` — avant même d'envoyer quoi que ce soit au
      service worker. Un court-circuit oublié se voit donc ici, et nulle part
      ailleurs : le panneau afficherait « ouvrez un onglet twitch.tv » en guise
-     de bienvenue, ce qui est un message parfaitement fonctionnel. */
-  const q = await page.evaluate(() => ({ n: window.__queries,
+     de bienvenue, ce qui est un message parfaitement fonctionnel. Le seul
+     fichier qu'il lit est le sien, celui de sa langue, une fois. */
+  const q = await page.evaluate(() => ({ n: window.__queries, demandes: window.__guideDemandes,
                                          message: !document.getElementById('message').hidden }));
-  ok('…sans interroger le navigateur, et sans réclamer d\'onglet Twitch',
-     q.n === 0 && q.message === false, JSON.stringify(q));
+  ok('…sans interroger le navigateur, sans réclamer d\'onglet Twitch, en ne lisant que guide/en.json',
+     q.n === 0 && q.message === false && JSON.stringify(q.demandes) === '["guide/en.json"]', JSON.stringify(q));
 
-  /* ── 3. LES VINGT CHAPITRES (la salle a le sien depuis la 4.24.0.37,
-        l'agenda depuis la 4.25.0, ses deux vues chacune le leur depuis la
-        4.25.0.11, l'accueil de Twitch depuis la 4.26.0, le zapping depuis
-        la 4.33.0) ─────────────────────────────────────────────────────────── */
-  const plan = await page.evaluate(() => {
-    const chaps = [...document.querySelectorAll('#guide .guide-chapitre')];
-    return {
-      n: chaps.length,
-      nums: chaps.map(c => c.querySelector('.guide-num').textContent),
-      titres: chaps.map(c => c.querySelector('.guide-titre').textContent
-                              .replace(/^\d+/, '').trim()),
-      sansCorps: chaps.filter(c => !c.querySelector('.guide-p, .guide-liste li')).length,
-      intro: (document.querySelector('#guide .guide-intro') || {}).textContent || '',
-      cles: chaps.map(c => c.dataset.cle || ''),
-    };
-  });
-  ok('vingt chapitres, numérotés de 1 à 20, chacun avec un titre et du texte',
-     plan.n === 20
-     && plan.nums.join(',') === Array.from({ length: 20 }, (_, i) => i + 1).join(',')
-     && plan.titres.every(t => t.length > 2)
-     && plan.sansCorps === 0
-     && plan.intro.length > 40,
-     JSON.stringify({ n: plan.n, nums: plan.nums, sansCorps: plan.sansCorps }));
+  /* ── 3. CE QUI S'AFFICHE EST CE QUI A ÉTÉ LIVRÉ, DANS LES DOUZE LANGUES ───
+     L'arbre du DOM est comparé à celui du fichier, nœud pour nœud, attribut
+     pour attribut, texte pour texte : rien d'ajouté, rien de perdu, rien de
+     réordonné. Le titre et la description de la vue sont ceux de la page
+     livrée (navGuide, descGuide). Chaque page ouverte l'est dans sa langue,
+     avec sa fiche : c'est ainsi qu'on voit qu'elle demande le BON fichier —
+     « es-419 » se demande « es_419 ». Le japonais et le chinois sont les cas
+     les plus éloignés de l'anglais (pas d'espaces entre les mots) : la
+     largeur est relevée partout. */
+  const releves = {};
+  const ecarts = [], entetes = [], debords = [], demandesFausses = [];
+  for (const loc of LOCALES) {
+    const p = loc === 'en' ? page : await ouvrirPanneau(loc);
+    const r = await relever(p);
+    const g = guideDe(loc), f = fiche(loc);
+    releves[loc] = r;
+    const e = ecart(['guide', 0, ...r.arbre], ['guide', 0, ...g.contenu]);
+    if (e || r.horsEspace.length) ecarts.push(`${loc} ${e || ''} ${r.horsEspace.length ? 'hors de leur espace : ' + r.horsEspace.slice(0, 5).join(',') : ''}`);
+    if (r.titre !== f.navGuide.message || r.titre !== g.titre || r.desc !== f.descGuide.message || r.desc !== g.description) {
+      entetes.push(`${loc} « ${r.titre} » / « ${r.desc.slice(0, 40)} »`);
+    }
+    if (r.largeurPage > 760 || r.largeurGuide[0] > r.largeurGuide[1] + 1) debords.push(`${loc} ${r.largeurPage} ${r.largeurGuide}`);
+    const dem = await p.evaluate(() => window.__guideDemandes);
+    if (JSON.stringify(dem) !== JSON.stringify([`guide/${loc}.json`])) demandesFausses.push(`${loc} ${JSON.stringify(dem)}`);
+    if (p !== page) await p.close();
+  }
+  ok('le guide affiché est le fichier livré, nœud pour nœud, dans les douze langues — chacune lit le sien',
+     LOCALES.length === 12 && ecarts.length === 0 && demandesFausses.length === 0,
+     [...ecarts, ...demandesFausses].join(' · '));
+  ok('…sous le titre et la description de la page livrée, dans chaque langue',
+     entetes.length === 0, entetes.join(' · '));
+  ok('…et rien ne déborde en largeur, japonais et chinois compris',
+     debords.length === 0, debords.join(' · '));
+
+  /* ── 4. VINGT ET UN CHAPITRES, DANS LEUR ORDRE, ET LEUR SOMMAIRE ──────────
+     Chaque chapitre porte son ancre (chap-N), son numéro et un titre, et du
+     texte hors de sa maquette ; le sommaire les désigne tous, dans l'ordre,
+     sous le même numéro. Les douze langues ont la même charpente : un
+     renvoi « chapitre 12 » vise le même chapitre partout. */
+  const charpentes = [];
+  for (const loc of LOCALES) {
+    const r = releves[loc];
+    const bons = r.chapitres.length === 21
+      && r.chapitres.every((c, i) => c.id === `chap-${i + 1}` && c.num.trim() === String(i + 1)
+                                     && c.titre.replace(/^\d+/, '').trim().length > 2 && c.corps.trim().length > 40)
+      && r.sommaire.length === 21
+      && r.sommaire.every((s, i) => s.href === `#chap-${i + 1}` && s.n.trim() === String(i + 1));
+    if (!bons) charpentes.push(`${loc} ${r.chapitres.length} chapitres, ${r.sommaire.length} entrées`);
+  }
+  ok('vingt et un chapitres, numérotés et ancrés de 1 à 21, chacun avec un titre et du texte, et le sommaire les suit',
+     charpentes.length === 0, charpentes.join(' · '));
   /* LES DOUZE FICHES DU STORE ANNONCENT CE NOMBRE, en toutes lettres. Il y
      était recopié à la main, et rien ne liait la phrase au guide : on le lie
      ici, comme le compte des réglages (117). Le mot change avec le nombre ;
      un chapitre ajouté sans toucher aux fiches fait tomber cette ligne. */
-  const VINGT = { de: 'zwanzig Kapiteln', en: 'twenty-chapter', es: 'veinte capítulos',
-                  es_419: 'veinte capítulos', fr: 'vingt chapitres', it: 'venti capitoli',
-                  ja: '二十章', pl: 'dwudziestu rozdziałach', pt_BR: 'vinte capítulos',
-                  pt_PT: 'vinte capítulos', ru: 'двадцати глав', zh_CN: '二十章' };
-  const fichesMuettes = Object.entries(VINGT).filter(([loc, mot]) => !readFileSync(
+  const VINGT_ET_UN = { de: 'einundzwanzig Kapiteln', en: 'twenty-one-chapter', es: 'veintiún capítulos',
+                        es_419: 'veintiún capítulos', fr: 'vingt et un chapitres', it: 'ventuno capitoli',
+                        ja: '二十一章', pl: 'dwudziestu jeden rozdziałach', pt_BR: 'vinte e um capítulos',
+                        pt_PT: 'vinte e um capítulos', ru: 'двадцати одной главы', zh_CN: '二十一章' };
+  const fichesMuettes = Object.entries(VINGT_ET_UN).filter(([loc, mot]) => !readFileSync(
     join(ICI, '..', 'store', `description-${loc.replace('_', '-')}.txt`), 'utf8').includes(mot)).map(([loc]) => loc);
   ok('…et les douze fiches du Store annoncent ce nombre de chapitres',
-     plan.n === 20 && Object.keys(VINGT).length === readdirSync(join(ICI, '..', '_locales')).length
-     && fichesMuettes.length === 0, fichesMuettes.join(', ') || String(plan.n));
+     releves.en.chapitres.length === 21 && Object.keys(VINGT_ET_UN).length === LOCALES.length
+     && fichesMuettes.length === 0, fichesMuettes.join(', ') || String(releves.en.chapitres.length));
 
-  /* ── 4. AUCUN LIBELLÉ MANQUANT ────────────────────────────────────────────
-     `chrome.i18n.getMessage` d'une clé inconnue ne lève pas : elle rend la
-     chaîne vide, et `T` rend alors le NOM DE LA CLÉ. Un libellé oublié
-     s'affiche donc en clair — « guideAboTitre » au milieu du texte — sans
-     erreur et sans console. On cherche les cent cinquante-cinq noms de clés
-     dans ce qui est rendu : aucun n'a le droit d'y être. */
-  const rendu = await page.evaluate(() => document.getElementById('guide').textContent);
-  const fuites = Object.keys(en).filter(k => rendu.includes(k));
-  ok('aucun nom de clé ne s\'affiche à la place de son libellé',
-     fuites.length === 0, fuites.join(', '));
+  /* ── 5. AUCUN NOM DE CLÉ, AUCUNE PUCE RECOPIÉE ────────────────────────────
+     Le titre et la description passent encore par les fiches : une clé
+     inconnue s'afficherait par son nom, sans erreur et sans console. Le
+     corps n'en lit plus aucune, et c'est ce qu'on vérifie aussi — un nom de
+     clé dans le texte serait un reste de l'ancien guide. Les listes sont de
+     vraies listes : pas de « • » écrit à la main, pas d'élément vide. */
+  const fuites = [];
+  for (const loc of LOCALES) {
+    const r = releves[loc];
+    const k = Object.keys(fiche(loc)).filter((c) => r.texte.includes(c) || r.titre.includes(c) || r.desc.includes(c));
+    if (k.length || r.puces || r.lisVides) fuites.push(`${loc} ${k.join(',')} puces ${r.puces} vides ${r.lisVides}`);
+  }
+  ok('aucun nom de clé ne s\'affiche, et les listes sont des listes, dans les douze langues',
+     fuites.length === 0, fuites.join(' · '));
 
-  /* ── 5. LES PUCES SONT DES PUCES ──────────────────────────────────────────
-     Le corps d'un chapitre est un seul message à retours à la ligne : une
-     ligne qui commence par « • » devient un élément de liste, les autres des
-     paragraphes. Si cette grammaire cesse d'être appliquée, le texte s'affiche
-     quand même — avec ses puces en caractères, dans des paragraphes. C'est le
-     genre de régression qu'on ne voit pas en relisant le code. */
-  const puces = await page.evaluate(() => ({
-    items: document.querySelectorAll('#guide .guide-liste li').length,
-    paraAvecPuce: [...document.querySelectorAll('#guide .guide-p')]
-      .filter(p => p.textContent.trim().startsWith('•')).length,
-    itemAvecPuce: [...document.querySelectorAll('#guide .guide-liste li')]
-      .filter(li => li.textContent.trim().startsWith('•')).length,
-    vides: [...document.querySelectorAll('#guide .guide-liste li, #guide .guide-p')]
-      .filter(e => !e.textContent.trim()).length,
-  }));
-  /* LE PLANCHER EST BAS EXPRÈS. Ce qu'il attrape n'est pas « trop peu de
-     puces » — leur nombre change à chaque relecture du guide, et une borne
-     serrée se contenterait de casser le banc au premier paragraphe retiré.
-     Ce qu'il attrape, c'est ZÉRO : le jour où la grammaire des corps cesse
-     d'être appliquée, il n'y a plus une seule puce dans les vingt chapitres. */
-  ok('les puces sont devenues des éléments de liste, marqueur retiré',
-     puces.items >= 20 && puces.paraAvecPuce === 0 && puces.itemAvecPuce === 0
-     && puces.vides === 0,
-     JSON.stringify(puces));
-
-  /* ── 5 bis. LE CHAPITRE DU PANNEAU DÉCRIT LE RAIL QUI EST À CÔTÉ ─────────
-     TROUVÉ EN RELISANT LE GUIDE, PAS EN LISANT LE CODE : le chapitre annonce
-     « cinq groupes, à gauche » et les énumère — et il en donnait deux dans un
-     ordre que le rail n'a jamais eu. Personne ne l'aurait vu en relisant la
-     traduction : il faut avoir les deux sous les yeux.
-
-     LA PROSE SE LIE DONC AU PRODUIT. Les intitulés de groupe du rail sont lus
-     dans leur ordre d'affichage, et on exige qu'ils apparaissent dans CET
-     ordre dans le chapitre. Déplacer une section sans toucher au texte fait
-     tomber cette ligne, et c'est exactement ce qu'on veut : une liste qui ne
-     correspond plus à ce qu'on a sous les yeux vaut moins que pas de liste. */
-  const railEtTexte = await page.evaluate(() => {
-    const groupes = [...document.querySelectorAll('#rail .rail-groupe')]
-      .map((h) => h.textContent.trim()).filter(Boolean);
-    /* LE CHAPITRE SE DÉSIGNE PAR SON CONTENU, pas par son rang : il est le
-       seul à nommer les SIX intitulés. Le numéroter ici obligerait à revenir
-       dans ce fichier au prochain remaniement de l'ordre des chapitres, ce
-       qui est exactement la dette que ce scénario existe pour éviter. */
-    const chap = [...document.querySelectorAll('#guide .guide-chapitre')]
-      .find((c) => groupes.length && groupes.every((g) => c.textContent.includes(g)));
-    return { groupes, texte: chap ? chap.textContent : '' };
-  });
-  const places = railEtTexte.groupes.map((g) => railEtTexte.texte.indexOf(g));
-  ok('le chapitre du panneau nomme les six groupes du rail, et dans l\'ordre du rail',
-     railEtTexte.groupes.length === 6 && places.every((i) => i >= 0)
-     && places.every((v, i) => i === 0 || v > places[i - 1]),
-     JSON.stringify({ groupes: railEtTexte.groupes, places }));
-
-  /* ── 5 ter. LE RENVOI D'UN CHAPITRE À L'AUTRE DÉSIGNE LE BON ────────────
-     MÊME ESPÈCE DE DÉFAUT QUE CI-DESSUS, ET TROUVÉ DE LA MÊME FAÇON : le
-     chapitre des co-streams renvoie aux tris par son NUMÉRO. Le numéro était
-     recopié dans les douze fiches, et le remaniement de l'ordre l'a laissé
-     pointer deux chapitres trop haut — dans les douze langues à la fois.
-     Depuis, il se calcule (`renvoi` dans panneau.js).
-
-     LA SECTION DIT CE QU'ELLE EST (4.25.0.11) : sa clé (`data-cle`) et les
-     rangs qu'elle vise (`data-renvois`). Ce relevé ne lisait jusqu'ici que
-     les chiffres entre parenthèses, et deux renvois sur six n'en ont plus —
-     « présentés au chapitre 14 », « chapitres 16 et 17 ». La clé, elle, se
-     lie au titre affiché : sans quoi elle pourrait mentir sans que rien ne
-     le voie. */
-  const sections = await page.evaluate(() =>
-    [...document.querySelectorAll('#guide .guide-chapitre')].map((c) => ({
-      cle: c.dataset.cle || '',
-      renvois: c.dataset.renvois ? c.dataset.renvois.split(',').map(Number) : [],
-      titre: c.querySelector('.guide-titre').textContent.replace(/^\d+/, '').trim(),
-      corps: [...c.querySelectorAll('.guide-p, .guide-liste li')].map((e) => e.textContent).join('\n'),
-    })));
-  const rangDe = (cle) => sections.findIndex((x) => x.cle === cle) + 1;
-  ok('chaque chapitre porte sa clé, et c\'est celle du titre affiché',
-     sections.length === 20 && new Set(sections.map((x) => x.cle)).size === 20
-     && sections.every((x) => en[x.cle] && x.titre === en[x.cle].message),
-     JSON.stringify(sections.map((x) => [x.cle, x.titre])));
-  /* LA TABLE DES RENVOIS, ÉCRITE ICI ET NON RELUE DANS LE CODE : chacun, sa
-     cible et son SENS. Un renvoi en avant annonce (« présentés au chapitre
-     14 ») ; un renvoi en arrière rappelle. Celui de la vitesse est en
-     arrière, et c'est le signalement de la 4.25.0.11 : il parlait des badges
-     de l'aperçu sept chapitres avant qu'on les ait vus. */
-  const RENVOIS = {
-    guideRoueTitre: [['guidePanneauTitre', 'avant']],
-    guideHoverTitre: [['guideBadgesTitre', 'avant']],
-    guideCostreamTitre: [['guideTriTitre', 'avant']],
-    guideViteTitre: [['guideBadgesTitre', 'arriere']],
-    guidePanneauTitre: [['guideAgendaTitre', 'avant'], ['guideHorsLigneTitre', 'avant']],
-  };
+  /* ── 6. LES RENVOIS SONT DES LIENS, ET DÉSIGNENT LE BON CHAPITRE ──────────
+     Le guide renvoie d'un chapitre à l'autre par des liens (#chap-N) : chacun
+     doit viser un chapitre du guide — pas une ancre perdue, pas une page —, et
+     afficher le numéro qu'il vise. Un renvoi « chapitre 12 » qui mène au 11
+     est pire qu'un renvoi sans lien. */
   const renvoisFaux = [];
-  sections.forEach((x, i) => {
-    const attendus = RENVOIS[x.cle] || [];
-    const vises = attendus.map(([cle]) => rangDe(cle));
-    if (x.renvois.join(',') !== vises.join(',')) renvoisFaux.push(`${x.cle} vise ${x.renvois} au lieu de ${vises}`);
-    attendus.forEach(([cle, sens], k) => {
-      if (vises[k] < 1) renvoisFaux.push(`${x.cle} → ${cle} : chapitre absent`);
-      else if ((sens === 'avant') !== (vises[k] > i + 1)) renvoisFaux.push(`${x.cle} → ${cle} : pas ${sens === 'avant' ? 'en avant' : 'en arrière'}`);
-    });
-    /* LE NUMÉRO EST DANS LE TEXTE, en chiffres isolés : un renvoi calculé que
-       la phrase oublierait d'afficher ne renverrait à rien. */
-    for (const n of x.renvois) {
-      if (!new RegExp(`(^|\\D)${n}(\\D|$)`).test(x.corps)) renvoisFaux.push(`${x.cle} n'affiche pas ${n}`);
-    }
-  });
-  ok('chaque renvoi vise le chapitre attendu, dans le sens attendu, et son numéro s\'affiche',
-     renvoisFaux.length === 0 && Object.keys(RENVOIS).every((c) => rangDe(c) >= 1),
-     renvoisFaux.join(' · '));
-  /* DANS LES DOUZE FICHES, LE NUMÉRO EST UNE SUBSTITUTION, jamais un chiffre
-     recopié : autant de « $n » que de renvois, et aucun ailleurs. Une
-     traduction qui écrirait « chapitre 14 » en toutes lettres serait juste
-     aujourd'hui et fausse au prochain remaniement. */
-  const substFausses = [];
-  for (const loc of readdirSync(join(ICI, '..', '_locales'))) {
-    const f = fiche(loc);
-    for (const x of sections) {
-      const texte = f[x.cle.replace(/Titre$/, 'Texte')].message;
-      const n = (RENVOIS[x.cle] || []).length;
-      const vus = [...new Set([...texte.matchAll(/\$(\d)/g)].map((m) => Number(m[1])))].sort();
-      if (vus.join(',') !== Array.from({ length: n }, (_, k) => k + 1).join(',')) {
-        substFausses.push(`${loc} ${x.cle} : ${vus.map((v) => '$' + v).join(',') || '—'}`);
-      }
+  for (const loc of LOCALES) {
+    const r = releves[loc];
+    if (r.liensPerdus.length) renvoisFaux.push(`${loc} perdus ${r.liensPerdus.join(',')}`);
+    if (r.refs.length < 20) renvoisFaux.push(`${loc} ${r.refs.length} renvois`);
+    for (const x of r.refs) {
+      const n = (/^#chap-(\d+)$/.exec(x.href) || [])[1];
+      if (!n || !new RegExp(`(^|\\D)${n}(\\D|$)`).test(x.texte)) renvoisFaux.push(`${loc} ${x.href} « ${x.texte} »`);
     }
   }
-  ok('…et dans les douze fiches, chaque renvoi est un « $n », sans chiffre recopié',
-     substFausses.length === 0, substFausses.slice(0, 10).join(' · '));
+  ok('chaque lien du guide vise un de ses chapitres, et chaque renvoi affiche le numéro qu\'il vise',
+     renvoisFaux.length === 0, renvoisFaux.slice(0, 10).join(' · '));
 
-  /* ── 5 ter A. ON NE LIT JAMAIS UN MOT AVANT SON SENS (4.25.0.11) ─────────
-     LE SIGNALEMENT : « Plus rapide que Twitch » parlait de Hype Trains et du
-     « badge dans l'aperçu » au deuxième chapitre ; « Les débuts » d'un
-     aperçu, d'un badge et d'une frise au quatrième — expliqués au neuvième,
-     au dixième, au onzième. Chaque chapitre, pris seul, était juste ; c'est
-     leur ORDRE qui ne l'était pas, et aucune relecture d'un chapitre ne le
-     voit.
-
-     LA TABLE DES NOTIONS : chacune, le motif qui la nomme dans la fiche
-     française — la langue d'écriture du guide, que les onze autres suivent
-     chapitre pour chapitre — et le chapitre qui l'explique. Un chapitre qui
-     la nomme AVANT celui-là doit y renvoyer par son numéro, ou dire
-     « chapitre suivant » s'il le précède immédiatement. Le chapitre qui
-     l'explique doit la nommer, sans quoi la table mentirait. « Réglages »
-     est situé par l'introduction (rang 0). */
-  const fr = fiche('fr');
-  const NOTIONS = [
-    ['ce panneau', /\bpanneau\b/i, 'guideRoueTitre'],
-    ['la carte', /\bcartes?\b/i, 'guideDureeTitre'],
-    ['la durée', /\bdurée\b/i, 'guideDureeTitre'],
-    ['l\'aperçu', /\baperçu\b/i, 'guideHoverTitre'],
-    ['les badges', /\bbadges?\b/i, 'guideHoverTitre'],
-    ['la frise', /\bfrise\b/i, 'guideFriseTitre'],
-    ['la reprise après coupure', /\breprise après coupure|coupe et revient/i, 'guideDebutTitre'],
-    ['l\'or des abonnements', /\bor\b/i, 'guideAboTitre'],
-    ['le subathon', /\bsubathons?\b/i, 'guideSubathonTitre'],
-    ['le co-stream', /\bco-streams?\b/i, 'guideCostreamTitre'],
-    ['la salle multistream', /\bsalles?\b/i, 'guideSalleTitre'],
-    ['le calage', /\bcal(age|ée?s?)\b/i, 'guideSalleTitre'],
-    ['les tris et les filtres', /\btri(s|er)?\b|\bfiltres?\b/i, 'guideTriTitre'],
-    ['le Hype Train', /\bhype trains?\b/i, 'guideBadgesTitre'],
-    ['l\'abonnement à prix réduit', /\bprix réduit|\bréduction/i, 'guideBadgesTitre'],
-    ['Top Chaînes', /\bTop Chaînes\b/, 'guideTopTitre'],
-    ['l\'accueil de Twitch', /\baccueil\b/i, 'guideAccueilTitre'],
-    ['l\'agenda', /\bagenda\b/i, 'guideAgendaTitre'],
-    ['« Réglages »', new RegExp(fr.grpOptions.message), 'guideIntro'],
-  ];
-  const texteFr = sections.map((x) => fr[x.cle.replace(/Titre$/, 'Texte')].message
-    .replace(/\$(\d)/g, (_, k) => String(x.renvois[k - 1])));
-  const avantSonSens = [];
-  for (const [nom, motif, cle] of NOTIONS) {
-    const r = cle === 'guideIntro' ? 0 : rangDe(cle);
-    if (cle !== 'guideIntro' && r < 1) { avantSonSens.push(`${nom} : ${cle} absent`); continue; }
-    if (!motif.test(r === 0 ? fr.guideIntro.message : texteFr[r - 1])) avantSonSens.push(`${nom} : pas nommée au chapitre ${r}`);
-    texteFr.forEach((t, i) => {
-      if (i + 1 >= r || !motif.test(t)) return;
-      const annoncee = sections[i].renvois.includes(r) || (r === i + 2 && /chapitre suivant/i.test(t));
-      if (!annoncee) avantSonSens.push(`${nom} : nommée au chapitre ${i + 1}, expliquée au ${r}`);
-    });
-  }
-  ok('aucun chapitre ne nomme une notion expliquée plus loin sans renvoyer à son chapitre',
-     avantSonSens.length === 0, avantSonSens.join(' · '));
-  /* « CHAPITRE SUIVANT » N'EST VRAI QUE S'IL SUIT, dans les douze langues à
-     la fois puisque l'ordre est le même : l'aperçu avant sa frise, les
-     co-streams avant la salle qu'ils ouvrent, ce panneau avant ses réglages
-     — et les deux vues de l'agenda l'une après l'autre. Le français ne dit
-     « chapitre suivant » que là. */
-  const SUIVANTS = [['guideHoverTitre', 'guideFriseTitre'], ['guideCostreamTitre', 'guideSalleTitre'],
-                    ['guidePanneauTitre', 'guideReglagesTitre'], ['guideAgendaTitre', 'guideHorsLigneTitre']];
-  const disentSuivant = sections.filter((x, i) => /chapitre suivant/i.test(texteFr[i])).map((x) => x.cle);
-  ok('…et chaque « chapitre suivant » précède bien le chapitre qu\'il annonce',
-     SUIVANTS.every(([a, b]) => rangDe(a) >= 1 && rangDe(b) === rangDe(a) + 1)
-     && disentSuivant.join(',') === SUIVANTS.slice(0, 3).map(([a]) => a).join(','),
-     JSON.stringify({ rangs: SUIVANTS.map(([a, b]) => [rangDe(a), rangDe(b)]), disentSuivant }));
-  /* LA MAQUETTE DU CO-STREAM porte le badge bleu, celui de l'hôte, et non le
-     violet : « En live avec Korbek » sur la carte de Korbek serait un
-     streamer en direct avec lui-même. */
-  const coBadges = await page.evaluate(() => {
-    const c = document.querySelector('#guide .guide-chapitre[data-cle="guideCostreamTitre"]');
-    return { bleu: !!c?.querySelector('.d-cadre .d-badge--costream'), violet: !!c?.querySelector('.d-cadre .d-badge--squad') };
+  /* ── 6 bis. UN CLIC SUR UN RENVOI MÈNE AU CHAPITRE, DANS LE GUIDE ─────────
+     L'ancre fait défiler le conteneur du guide — et lui seul. Une ancre
+     défile aussi les ancêtres qui coupent ce qui dépasse : si la vue ou la
+     page bougeait, le titre et le rail glisseraient hors du panneau, sans
+     barre pour les ramener. On mesure donc la cible ET le décor. */
+  const decor = () => page.evaluate(() => {
+    const g = document.getElementById('guide');
+    const anc = [];
+    for (let e = g.parentElement; e; e = e.parentElement) if (e.scrollTop || e.scrollLeft) anc.push(`${e.localName}#${e.id}`);
+    return { titre: Math.round(document.getElementById('vue-titre').getBoundingClientRect().top),
+             rail: Math.round(document.getElementById('rail').getBoundingClientRect().top),
+             fenetre: [scrollX, scrollY], ancetres: anc };
   });
-  ok('…et la maquette du co-stream porte le badge bleu, plus « En live avec » sur la carte du même streamer',
-     coBadges.bleu && !coBadges.violet, JSON.stringify(coBadges));
+  const enTete = (id) => page.evaluate((i) => {
+    const g = document.getElementById('guide'), c = document.getElementById(i);
+    return Math.round(c.getBoundingClientRect().top - g.getBoundingClientRect().top);
+  }, id);
+  const decorAvant = await decor();
+  await page.click('#guide .guide-sommaire a[href="#chap-12"]');
+  await attendre(page, () => {
+    const g = document.getElementById('guide'), c = document.getElementById('chap-12');
+    return Math.abs(c.getBoundingClientRect().top - g.getBoundingClientRect().top - 8) <= 2;
+  }, 5000).catch(() => {});
+  const sommaireVers12 = await enTete('chap-12');
+  const decorApres = await decor();
+  /* Un renvoi du corps, vers un chapitre plus haut : le défilement remonte. */
+  const ref = await page.evaluate(() => {
+    const a = [...document.querySelectorAll('#chap-12 a.guide-ref, #chap-13 a.guide-ref, #chap-14 a.guide-ref')]
+      .find((x) => Number(x.getAttribute('href').slice(6)) < 12);
+    return a ? a.getAttribute('href') : null;
+  });
+  let refVers = null;
+  if (ref) {
+    await page.click(`#guide :is(#chap-12, #chap-13, #chap-14) a.guide-ref[href="${ref}"] >> nth=0`);
+    await attendre(page, (h) => {
+      const g = document.getElementById('guide'), c = document.querySelector(h);
+      return Math.abs(c.getBoundingClientRect().top - g.getBoundingClientRect().top - 8) <= 2;
+    }, 5000, ref).catch(() => {});
+    refVers = await enTete(ref.slice(1));
+  }
+  const decorFin = await decor();
+  ok('un clic au sommaire ou sur un renvoi amène le chapitre en haut du guide, sans bouger ni le titre ni le rail',
+     Math.abs(sommaireVers12 - 8) <= 2 && !!ref && Math.abs(refVers - 8) <= 2
+     && JSON.stringify(decorApres) === JSON.stringify(decorAvant)
+     && JSON.stringify(decorFin) === JSON.stringify(decorAvant) && decorAvant.ancetres.length === 0,
+     JSON.stringify({ sommaireVers12, ref, refVers, decorAvant, decorApres, decorFin }));
+  await page.evaluate(() => document.getElementById('guide').scrollTo({ top: 0, behavior: 'instant' }));
 
-  /* ── 5 quater. LE GUIDE NOMME CE QU'ON VOIT, AU MOT PRÈS (4.24.0.37) ──────
-     TROUVÉ EN RELISANT LES DOUZE FICHES : le chapitre du panneau disait
-     « Clear history » à côté d'un bouton « Erase history », « Limpar o
-     histórico » à côté d'« Apagar o histórico », « Esporta un rapporto » à
-     côté d'« Esporta un report » ; le portugais d'Europe renvoyait à des
-     « Configurações » que son rail appelle « Definições ». Une traduction
-     juste d'un libellé qu'on ne trouve pas à l'écran n'aide personne.
-     Les libellés sont désormais repris des fiches elles-mêmes, et chaque
-     chapitre qui cite un bouton, un groupe ou un tri doit le citer tel quel. */
-  /* L'AGENDA (4.25.0) entre au contrat par les deux bouts : le chapitre du
-     panneau nomme son groupe, et le sien cite ses deux vues, le retour à
-     aujourd'hui, « Sa semaine » ; depuis la 4.25.0.2, la chaîne indisponible
-     et le direct sans rediffusion — tels que chaque langue les affiche. La
-     pastille « Abonnés » de la 4.25.0.1 en est sortie à la 4.25.0.4 : le
-     cadenas s'affiche seul, sans mot à citer. Depuis la 4.25.0.11, chaque
-     vue a son chapitre et sa maquette : la semaine cite ses trois marques
-     (« En direct », « Prévu », « Sans rediffusion ») telles que la maquette
-     les montre, « Hors ligne » ses deux boutons et ce qu'il dit d'une chaîne
-     disparue — et renvoie à « Semaine », la vue que « Sa semaine » ouvre. */
-  const CITES = {
-    guidePanneauTexte: ['grpGuide', 'grpOptions', 'grpAgenda', 'grpData', 'grpDiag', 'grpGlobal', 'btnReport', 'btnReset'],
-    guideAgendaTexte: ['grpAgenda', 'navSemaine', 'btnToday', 'valNoReplay', 'valLive', 'valPlanned'],
-    guideHorsLigneTexte: ['navHorsLigne', 'navSemaine', 'btnReplay', 'btnSeeWeek', 'valUnavailable'],
-    guideAboTexte: ['btnRefreshSubs', 'grpData', 'navSubs'],
-    guideSalleTexte: ['optSalleAuto', 'grpOptions'],
-    // Le zapping (4.33.0) : son réglage, et où il se coupe.
-    guideZapTexte: ['optZapping', 'grpOptions'],
-    guideReglagesTexte: ['grpOptions', 'optValDiscret'],
-    guideTriTexte: ['optTriViewers', 'optTriSubs', 'optTriPopular', 'optTriUptime', 'optTriAlpha', 'optTriCostream'],
-    guideTopTexte: ['grpGlobal', 'guideDemoSuivies'],
-    guideAccueilTexte: ['grpOptions', 'optGrpAccueil', 'optValTwitch', 'optValRien'],
-    guideIntro: ['grpOptions'],
-  };
+  /* ── 7. LE GUIDE NOMME CE QU'ON VOIT, AU MOT PRÈS ─────────────────────────
+     Une traduction juste d'un libellé qu'on ne trouve pas à l'écran n'aide
+     personne. Le guide est livré tel quel et ne lit plus les fiches : ce lien
+     n'est plus garanti par construction, il se VÉRIFIE. Chaque groupe du
+     rail, chaque bouton et chaque tri que le guide cite doit l'être tel que
+     le panneau l'affiche — dans sa prose, hors des maquettes, dans chaque
+     langue. */
+  const CITES = ['grpGuide', 'grpOptions', 'grpAgenda', 'grpData', 'grpDiag', 'grpGlobal', 'btnReport', 'btnReset',
+    'navSemaine', 'navHorsLigne', 'navSubs', 'btnToday', 'btnReplay', 'btnSeeWeek', 'btnRefreshSubs',
+    'valNoReplay', 'valLive', 'valPlanned', 'valUnavailable', 'optSalleAuto', 'optZapping', 'optValDiscret',
+    'optTriViewers', 'optTriSubs', 'optTriPopular', 'optTriUptime', 'optTriAlpha', 'optTriCostream',
+    'optGrpAccueil', 'optValTwitch', 'optValRien'];
   const absents = [];
-  for (const loc of readdirSync(join(ICI, '..', '_locales'))) {
+  for (const loc of LOCALES) {
     const f = fiche(loc);
-    for (const [cle, libelles] of Object.entries(CITES)) {
-      for (const l of libelles) {
-        if (!f[cle].message.includes(f[l].message)) absents.push(`${loc} ${cle} → « ${f[l].message} »`);
-      }
-    }
+    for (const k of CITES) if (!releves[loc].prose.includes(f[k].message)) absents.push(`${loc} ${k} « ${f[k].message} »`);
   }
-  ok('dans les douze fiches, le guide cite chaque groupe, bouton et tri par son libellé exact',
+  ok('dans les douze langues, le guide cite chaque groupe, bouton et tri par son libellé exact',
      absents.length === 0, absents.slice(0, 12).join(' · '));
+  /* LE CHAPITRE DU PANNEAU DÉCRIT LE RAIL QUI EST À CÔTÉ : il annonce six
+     groupes « dans cet ordre » et les énumère. Les intitulés sont lus dans le
+     rail, dans leur ordre d'affichage, et le chapitre — désigné par son
+     contenu, le seul à les nommer tous — doit les citer dans CET ordre,
+     titre exclu. Déplacer une section sans toucher au texte fait tomber
+     cette ligne : une liste qui ne correspond plus à l'écran vaut moins que
+     pas de liste. */
+  const railFaux = [];
+  for (const loc of LOCALES) {
+    const r = releves[loc];
+    const chap = r.chapitres.find((c) => r.groupes.length && r.groupes.every((x) => c.corps.includes(x)));
+    let pos = -1;
+    const places = chap ? r.groupes.map((x) => (pos = chap.corps.indexOf(x, pos + 1))) : [];
+    if (r.groupes.length !== 6 || !chap || places.some((x) => x < 0)) railFaux.push(`${loc} ${chap ? chap.id : 'aucun chapitre'} ${JSON.stringify(places)}`);
+  }
+  ok('le chapitre du panneau nomme les six groupes du rail, et dans l\'ordre du rail, dans chaque langue',
+     railFaux.length === 0, railFaux.join(' · '));
 
-  /* LA SALLE CITE SON EN-TÊTE AU MOT PRÈS (4.25.0.11, revu en 4.25.0.12) :
-     son chapitre situe l'état du calage à gauche du bouton du chat, et
-     recopie quatre de ses états tels que la salle les écrit en deux lignes —
-     « à l'écoute 2/6 », « retard 0,30 s, à confirmer », « vérification »,
-     « Tout est calé ». Ceux-là vivent dans content.js, dans la langue de
-     Twitch, et non dans les fiches : la citation pourrait dériver sans que
-     la parité le voie. On les rend donc ici avec les fonctions mêmes de
-     content.js, pour la langue que chaque fiche sert (« es_419 » → « es »,
-     « pt_PT » → « pt »), nombre compris — 0,30 ou 0.30 selon la locale. */
+  /* LA SALLE, LE ZAPPING ET L'ACCUEIL CITENT LA PAGE. Leurs libellés vivent
+     dans content.js, dans la langue de Twitch, et non dans les fiches : la
+     citation pourrait dériver sans que la parité le voie. On les rend donc
+     avec les fonctions mêmes de content.js, pour la langue que chaque fiche
+     sert (« es_419 » → « es », « pt_PT » → « pt »), nombre compris — 0,30 ou
+     0.30 selon la locale. Le bouton du chat et quatre états du calage, dans
+     UN chapitre, celui de la salle ; les rayons, les boutons et « Nouveau »
+     de l'accueil, dans la prose du guide — il les répartit entre ses deux
+     chapitres de l'accueil. Le zapping est éprouvé avec lui (scénario 231,
+     s).
+
+     UN ÉCART CONNU, CONSIGNÉ ET NON CORRIGÉ : le guide livré en portugais
+     d'Europe nomme deux rayons à sa façon (« canal n.º 1 », « Enquanto
+     estiveste fora ») là où la page, qui n'a qu'un portugais, écrit
+     « Seu canal nº 1 ao vivo » et « Enquanto você esteve fora ». Le contenu
+     du guide n'est pas retouché par le banc : l'écart est exigé tel quel,
+     ni plus ni moins, et le jour où il disparaît, cette ligne demande qu'on
+     retire l'exception. */
   const blocStrings = readFileSync(join(ICI, '..', 'content.js'), 'utf8')
     .match(/const STRINGS = Object\.freeze\(\{[\s\S]*?\n {2}\}\);/)[0];
   const STRINGS_CJ = new Function(`${blocStrings}; return STRINGS;`)();
-  const citesCalage = [];
-  for (const loc of readdirSync(join(ICI, '..', '_locales'))) {
+  const ECARTS_CONNUS = { pt_PT: ['uiAccHeros', 'uiAbsTitre'] };
+  const citesPage = [];
+  for (const loc of LOCALES) {
     const s = STRINGS_CJ[loc.split('_')[0]];
-    if (!s) { citesCalage.push(`${loc} : pas de langue dans content.js`); continue; }
+    if (!s) { citesPage.push(`${loc} : pas de langue dans content.js`); continue; }
     const nb = new Intl.NumberFormat(s.locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(0.3);
-    const texte = fiche(loc).guideSalleTexte.message;
-    const cites = [s.uiSalleChatMasquer, s.uiCalCourt({ cause: 'ecoute', x: 2, m: 6 }),
-                   s.uiCalCourt({ cause: 'confirmer', s: nb, avance: false }), s.uiCalCourt({ cause: 'verif' }), s.uiCalToutCourt];
-    for (const c of cites) if (!c || !texte.includes(c)) citesCalage.push(`${loc} « ${c} »`);
-  }
-  ok('…et le chapitre de la salle cite le bouton du chat et les états du calage tels que la salle les écrit, dans chaque langue',
-     citesCalage.length === 0, citesCalage.join(' · '));
-
-  /* L'ACCUEIL AUSSI (4.26.0) : son chapitre nomme ses rayons et son bouton
-     tels que la page les écrit — dans la langue de Twitch, donc depuis
-     content.js. Un titre de rayon reformulé dans content.js sans toucher au
-     guide ferait chercher à l'utilisateur un « Votre chaîne préférée » qui
-     n'existe pas. */
-  const citesAccueil = [];
-  for (const loc of readdirSync(join(ICI, '..', '_locales'))) {
-    const s = STRINGS_CJ[loc.split('_')[0]];
-    if (!s) { citesAccueil.push(`${loc} : pas de langue dans content.js`); continue; }
-    const texte = fiche(loc).guideAccueilTexte.message;
-    // « Pendant votre absence » et son « Revoir le dernier » (4.30.0), « Masquer » et « Réafficher » (4.32.0) aussi.
-    for (const c of [s.uiAccHeros, s.uiAccUne, s.uiAccTop, s.uiAccDebut, s.uiAccNouveau, s.uiAccAfficherTout,
-                     s.uiAbsTitre, s.uiAbsRevoir, s.uiRangerMasquer, s.uiRangerReafficher]) {
-      if (!c || !texte.includes(c)) citesAccueil.push(`${loc} « ${c} »`);
+    const groupes = {
+      salle: { uiSalleChatMasquer: s.uiSalleChatMasquer, ecoute: s.uiCalCourt({ cause: 'ecoute', x: 2, m: 6 }),
+               confirmer: s.uiCalCourt({ cause: 'confirmer', s: nb, avance: false }),
+               verif: s.uiCalCourt({ cause: 'verif' }), uiCalToutCourt: s.uiCalToutCourt },
+      accueil: Object.fromEntries(['uiAccHeros', 'uiAccUne', 'uiAccTop', 'uiAccDebut', 'uiAccNouveau', 'uiAccAfficherTout',
+                                   'uiAbsTitre', 'uiAbsRevoir', 'uiRangerMasquer', 'uiRangerReafficher'].map((k) => [k, s[k]])),
+    };
+    for (const [nom, cites] of Object.entries(groupes)) {
+      const chaps = releves[loc].chapitres;
+      const manquants = (c) => Object.keys(cites).filter((k) => !cites[k] || !c.corps.includes(cites[k]));
+      const meilleur = nom === 'salle'
+        ? chaps.map(manquants).sort((a, b) => a.length - b.length)[0] || Object.keys(cites)
+        : manquants({ corps: releves[loc].prose });
+      const attendus = nom === 'accueil' ? (ECARTS_CONNUS[loc] || []) : [];
+      if (meilleur.join(',') !== attendus.join(',')) citesPage.push(`${loc} ${nom} : ${meilleur.map((k) => `« ${cites[k]} »`).join(' ') || 'rien ne manque, retirer l\'exception'}`);
     }
   }
-  ok('…et celui de l\'accueil cite ses rayons, ses boutons et « Nouveau » tels que la page les écrit, dans chaque langue',
-     citesAccueil.length === 0, citesAccueil.join(' · '));
+  ok('…et les chapitres de la salle et de l\'accueil citent la page telle qu\'elle s\'écrit, dans chaque langue (écart pt_PT consigné)',
+     citesPage.length === 0, citesPage.join(' · '));
 
-  /* ── 5 quinquies. L'AGENDA SE MONTRE, DESSINÉ PAR SON PROPRE CODE ────────
-     (4.25.0.11) Le chapitre de l'agenda était un paragraphe de dix-sept
-     lignes, sans une image, quand tous ceux d'avant en ont une. Ses deux vues
-     sont désormais dessinées par les fonctions mêmes de la vue
-     (`entreeAgenda`, `ligneHorsLigne`) en mode maquette : mêmes classes, même
-     feuille, donc même aspect — ce qui change dans la vue change ici. On
-     vérifie ce que le texte promet de montrer, et qu'une image ne se clique
-     pas : un vrai « Sa semaine » dans une maquette mènerait la vue à la
-     semaine d'une chaîne inventée. */
-  const agenda = await page.evaluate(() => {
-    const cadre = (cle) => document.querySelector(`#guide .guide-chapitre[data-cle="${cle}"] .d-cadre`);
-    const cs = cadre('guideAgendaTitre'), ch = cadre('guideHorsLigneTitre');
-    const lire = (c) => (c ? {
-      plein: c.classList.contains('d-cadre--plein'),
-      focusables: c.querySelectorAll('a, button, select, input, textarea, [tabindex], [href]').length,
-      infobulles: c.querySelectorAll('[title]').length,
-      deborde: c.scrollWidth > c.clientWidth + 1,
-    } : null);
-    const jours = cs ? [...cs.querySelectorAll('.ag-jour')].map((j) => ({
-      auj: j.classList.contains('ag-jour--auj'),
-      pastille: j.querySelector('.ag-jour-titre .ag-auj')?.textContent ?? null,
-      entrees: [...j.querySelectorAll('.ag-ent')].map((e) => ({
-        type: (e.className.match(/ag-ent--(\S+)/) || [])[1],
-        nom: e.querySelector('.ag-nom')?.textContent,
-        duree: e.querySelector('.ag-duree')?.textContent ?? null,
-        marque: e.querySelector('.ag-marque')?.textContent ?? null,
-        cadenas: !!e.querySelector('.ag-abo .ag-cadenas'),
-        point: !!e.querySelector('.ag-meta .ag-point'),
-      })),
-    })) : [];
-    const lignes = ch ? [...ch.querySelectorAll('.hl-ligne')].map((l) => ({
-      nom: l.querySelector('.hl-nom')?.textContent,
-      quand: l.querySelector('.hl-quand')?.textContent,
-      suite: l.classList.contains('hl-ligne--suite'),
-      indispo: l.classList.contains('hl-ligne--indisponible'),
-      prochain: !!l.querySelector('.hl-prochain'),
-      boutons: [...l.querySelectorAll('.hl-actions .bouton')].map((b) => b.textContent),
-      cadenas: !!l.querySelector('.ag-abo .ag-cadenas'),
-    })) : [];
-    return { semaine: lire(cs), horsLigne: lire(ch), jours, lignes,
-             barre: cs ? [...cs.querySelectorAll('.ag-barre > *')].map((b) => b.textContent) : [] };
+  /* ── 8. LES MAQUETTES NE SE LISENT NI NE SE CLIQUENT ──────────────────────
+     Même règle que la frise et la grille du rythme : la forme pour l'œil, le
+     texte pour l'information. Une maquette lue par une synthèse vocale ne
+     donnerait qu'une bouillie de pseudos inventés et de durées, et le
+     chapitre dit déjà tout en toutes lettres. Une image ne se clique pas non
+     plus : un vrai bouton dans une maquette mènerait quelque part. */
+  const muettes = await page.evaluate(() => {
+    const cadres = [...document.querySelectorAll('#guide .d-cadre')];
+    return { n: cadres.length,
+             nues: cadres.filter(c => c.getAttribute('aria-hidden') !== 'true').length,
+             focusables: cadres.reduce((s, c) => s + c.querySelectorAll('a, button, select, input, textarea, [tabindex], [href], [contenteditable]').length, 0),
+             infobulles: cadres.reduce((s, c) => s + c.querySelectorAll('[title]').length, 0),
+             texteDedans: cadres.some(c => c.querySelector('.guide-p, .guide-liste')) };
   });
-  const entrees = agenda.jours.flatMap((j, i) => j.entrees.map((e) => ({ ...e, jour: i })));
-  const de = (nom, type) => entrees.find((e) => e.nom === nom && e.type === type);
-  const nyx = de('Nyxaria', 'rediffusion'), vel = de('Velmoria', 'rediffusion');
-  const sans = de('Aeltris', 'sansRediffusion'), direct = de('Korbek', 'direct'), prevu = de('Aeltris', 'prevu');
-  ok('la semaine en maquette : pleine largeur, rien à cliquer ni à survoler, sa barre comme la vraie',
-     !!agenda.semaine && agenda.semaine.plein && agenda.semaine.focusables === 0
-     && agenda.semaine.infobulles === 0 && !agenda.semaine.deborde
-     && agenda.barre.join('|') === [en.btnToday.message, '‹', '›', en.valAllChannels.message].join('|'),
-     JSON.stringify({ semaine: agenda.semaine, barre: agenda.barre }));
-  /* LES QUATRE ESPÈCES D'ENTRÉES, chacune avec ce qui la distingue : la
-     rediffusion sa durée (H:MM:SS) et pas de marque, les trois autres leur
-     marque et pas de durée ; le cadenas sur la seule rediffusion réservée aux
-     abonnés ; le point rouge des spectateurs sur le seul direct. */
-  ok('…ses quatre espèces d\'entrées, chacune avec sa marque, sa durée, son cadenas ou ses spectateurs',
-     entrees.length === 5 && !!nyx && !!vel && !!sans && !!direct && !!prevu
-     && [nyx, vel].every((e) => /^\d+:\d\d:\d\d$/.test(e.duree || '') && e.marque === null)
-     && sans.marque === en.valNoReplay.message && direct.marque === en.valLive.message
-     && prevu.marque === en.valPlanned.message
-     && [sans, direct, prevu].every((e) => e.duree === null)
-     && entrees.filter((e) => e.cadenas).length === 1 && vel.cadenas
-     && entrees.filter((e) => e.point).length === 1 && direct.point,
-     JSON.stringify(entrees));
-  /* AUJOURD'HUI A SA PASTILLE, ET LUI SEUL ; LES JOURS SE SUIVENT. Le direct
-     de Korbek a commencé il y a 1 h 47 et le prévu d'Aeltris est dans deux
-     heures au moins : l'un des deux tombe aujourd'hui à toute heure du jour,
-     et c'est le jour qui porte la pastille. Le direct de Nyxaria, parti à
-     20 h 02 et fini à 0 h 14, reste au jour où il a COMMENCÉ — avant-hier,
-     donc avant celui d'Aeltris et de Velmoria, qui est hier. */
-  const jourAuj = agenda.jours.findIndex((j) => j.auj);
-  ok('…aujourd\'hui porte la pastille, lui seul, et le direct passé minuit reste au jour où il a commencé',
-     agenda.jours.filter((j) => j.auj).length === 1
-     && agenda.jours.every((j) => (j.pastille === null) === !j.auj)
-     && agenda.jours[jourAuj].pastille === en.btnToday.message
-     && (direct.jour === jourAuj || prevu.jour === jourAuj)
-     && nyx.jour + 1 === sans.jour && sans.jour === vel.jour && vel.jour < jourAuj,
-     JSON.stringify(agenda.jours.map((j) => ({ auj: j.auj, noms: j.entrees.map((e) => e.nom) }))));
-  /* HORS LIGNE : les mêmes chaînes, vues d'ailleurs. Korbek, en direct, n'y
-     est pas ; les groupes dans l'ordre de la vue — la programmée, les
-     parties, l'indisponible — séparés d'un filet ; « Revoir » seulement là
-     où le dernier direct a sa rediffusion, et le cadenas avec lui. */
-  const [hlA, hlV, hlN, hlB] = agenda.lignes;
-  ok('« Hors ligne » en maquette : les mêmes chaînes, ses trois groupes et leurs filets, ses boutons dessinés',
-     !!agenda.horsLigne && agenda.horsLigne.plein && agenda.horsLigne.focusables === 0
-     && agenda.horsLigne.infobulles === 0
-     && agenda.lignes.length === 4 && !agenda.lignes.some((l) => l.nom === 'Korbek')
-     && hlA.nom === 'Aeltris' && hlA.prochain && !hlA.suite && hlA.boutons.join('|') === en.btnSeeWeek.message
-     && hlV.nom === 'Velmoria' && hlV.suite && hlV.cadenas
-     && hlV.boutons.join('|') === [en.btnReplay.message, en.btnSeeWeek.message].join('|')
-     && hlN.nom === 'Nyxaria' && !hlN.suite && !hlN.cadenas
-     && hlN.boutons.join('|') === [en.btnReplay.message, en.btnSeeWeek.message].join('|')
-     && hlB.nom === 'Brenvik' && hlB.indispo && hlB.suite && hlB.quand === en.valUnavailable.message
-     && hlB.boutons.length === 0,
-     JSON.stringify(agenda.lignes));
+  ok('les maquettes sont masquées à la synthèse vocale, sans rien à cliquer ni à survoler, et ne portent aucun texte du guide',
+     muettes.n === 21 && muettes.nues === 0 && muettes.focusables === 0 && muettes.infobulles === 0
+     && muettes.texteDedans === false,
+     JSON.stringify(muettes));
 
-  /* ── 6. LA PALETTE DES BADGES ─────────────────────────────────────────────
+  /* ── 9. LA PALETTE DES BADGES ─────────────────────────────────────────────
      Treize badges, DOUZE modificateurs, ONZE couleurs, et les deux exceptions
      sont le sujet de l'assertion. Le treizième (4.24.0.37) est le gris de ceux
      qui sont de la session sans diffuser : il manquait au chapitre qui
@@ -13965,30 +13927,36 @@ titre('96. Le mode d\'emploi — la première vue, et la seule qui n\'ait besoin
      && rougeMaquette.lavis.includes('rgba(235, 4, 0, 0.06) 40%'),
      JSON.stringify(rougeMaquette));
   /* LE CO-STREAM COMME LE PRODUIT (4.24.0.33) : plus de pastille sur
-     l'avatar ; la barre de la carte et, au milieu, son curseur — depuis la
-     4.24.0.34, la gélule au repos de la barre latérale, sa forme, sa couleur
-     et son ▶ découpé. Une maquette qui garderait la pastille, ou la
-     languette, expliquerait ce qui n'est plus. */
+     l'avatar ; la barre et, au milieu, son curseur — depuis la 4.24.0.34, la
+     gélule au repos de la barre latérale, sa forme, sa couleur et son ▶
+     découpé. Une maquette qui garderait la pastille, ou la languette,
+     expliquerait ce qui n'est plus. Le guide de la 4.33.0.16 montre le
+     groupe : deux cartes soudées par UNE barre, la leur effacée, et la
+     gélule posée au milieu du bloc. */
   const coMaquette = await page.evaluate(() => {
-    const e = document.querySelector('#guide .d-carte--costream');
-    const n = e?.querySelector('.d-noeud');
-    if (!e || !n) return { carte: !!e, noeud: !!n, pastilles: document.querySelectorAll('#guide .d-collab').length };
-    const rc = e.getBoundingClientRect(), rn = n.getBoundingClientRect(), cs = getComputedStyle(n);
-    return { carte: true, noeud: true, pastilles: document.querySelectorAll('#guide .d-collab').length,
-             barre: getComputedStyle(e, '::before').backgroundColor, fond: cs.backgroundColor,
+    const b = document.querySelector('#guide .d-cs-bloc');
+    const n = b?.querySelector(':scope > .d-noeud'), barre = b?.querySelector(':scope > .d-cs-barre');
+    const cartes = b ? [...b.querySelectorAll(':scope > .d-carte--costream')] : [];
+    const pastilles = document.querySelectorAll('#guide .d-collab').length;
+    if (!b || !n || !barre) return { bloc: !!b, noeud: !!n, barre: !!barre, pastilles };
+    const rb = b.getBoundingClientRect(), rn = n.getBoundingClientRect(), cs = getComputedStyle(n);
+    return { bloc: true, noeud: true, pastilles, cartes: cartes.length,
+             barresCartes: cartes.map((c) => getComputedStyle(c, '::before').display),
+             barre: getComputedStyle(barre).backgroundColor, fond: cs.backgroundColor,
              forme: `${rn.width}×${rn.height} ${cs.borderTopLeftRadius} ${cs.borderTopRightRadius}`,
-             gauche: rn.left - rc.left, milieu: (rn.top + rn.bottom) / 2 - (rc.top + rc.bottom) / 2,
+             gauche: rn.left - rb.left, milieu: (rn.top + rn.bottom) / 2 - (rb.top + rb.bottom) / 2,
              triangle: n.firstElementChild ? getComputedStyle(n.firstElementChild).clipPath : null };
   });
-  ok('…et le co-stream s\'y montre comme dans la barre : sa barre, la gélule « ▶ » au milieu, plus de pastille',
-     coMaquette.carte && coMaquette.noeud && coMaquette.pastilles === 0
+  ok('…et le co-stream s\'y montre comme dans la barre : deux cartes, une seule barre, la gélule « ▶ » au milieu, plus de pastille',
+     coMaquette.bloc && coMaquette.noeud && coMaquette.pastilles === 0
+     && coMaquette.cartes === 2 && coMaquette.barresCartes.every((d) => d === 'none')
      && coMaquette.barre === 'rgb(245, 197, 24)' && coMaquette.fond === coMaquette.barre
      && coMaquette.forme === '9×18 4.5px 4.5px' && Math.abs(coMaquette.gauche) <= 0.5
      && Math.abs(coMaquette.milieu) <= 0.5 && coMaquette.triangle === 'polygon(16% 6%, 96% 50%, 96% 50%, 16% 94%)',
      JSON.stringify(coMaquette));
   await page.emulateMedia({ reducedMotion: 'reduce' });
 
-  /* ── 7. L'ARC-EN-CIEL COURT VRAIMENT ──────────────────────────────────────
+  /* ── 10. L'ARC-EN-CIEL COURT VRAIMENT ─────────────────────────────────────
      Le badge de subathon est le seul qui n'ait pas de couleur : il les
      traverse toutes. Au repos — mouvement refusé — il vaut le cyan qu'on vient
      de compter ; mouvement autorisé, il doit CHANGER. Sans cette assertion, une
@@ -14003,22 +13971,7 @@ titre('96. Le mode d\'emploi — la première vue, et la seule qui n\'ait besoin
      t1 !== t2, `${t1} → ${t2}`);
   await page.emulateMedia({ reducedMotion: 'reduce' });
 
-  /* ── 8. LES MAQUETTES NE SE LISENT PAS À VOIX HAUTE ───────────────────────
-     Même règle que la frise et la grille du rythme : la forme pour l'œil, le
-     texte pour l'information. Une maquette lue par une synthèse vocale ne
-     donnerait qu'une bouillie de pseudos inventés et de durées, et le chapitre
-     dit déjà tout en toutes lettres. */
-  const muettes = await page.evaluate(() => {
-    const cadres = [...document.querySelectorAll('#guide .d-cadre')];
-    return { n: cadres.length,
-             nues: cadres.filter(c => c.getAttribute('aria-hidden') !== 'true').length,
-             texteDedans: cadres.some(c => c.querySelector('.guide-p, .guide-liste')) };
-  });
-  ok('les maquettes sont masquées à la synthèse vocale, et ne portent aucun texte du guide',
-     muettes.n >= 8 && muettes.nues === 0 && muettes.texteDedans === false,
-     JSON.stringify(muettes));
-
-  /* ── 9. ÇA DÉFILE DEDANS, PAS DEHORS ──────────────────────────────────────
+  /* ── 11. ÇA DÉFILE DEDANS, PAS DEHORS ─────────────────────────────────────
      Une popup de barre d'outils ne défile pas : elle est bornée par le
      navigateur, et ce qui dépasse est simplement coupé — sans barre, sans
      erreur, sans rien. Un guide de trois mille pixels de haut dans un conteneur
@@ -14035,11 +13988,17 @@ titre('96. Le mode d\'emploi — la première vue, et la seule qui n\'ait besoin
      && defile.largeurPage <= 760 && defile.largeurGuide[0] <= defile.largeurGuide[1] + 1,
      JSON.stringify(defile));
 
-  /* ── 10. IL SE RANGE, ET IL REVIENT ───────────────────────────────────────
+  /* ── 12. IL SE RANGE, ET IL REVIENT ───────────────────────────────────────
      Le guide est posé dans la même vue que les tableaux. S'il ne se range pas
      en partant, il resterait affiché SOUS la section suivante — et comme
      celle-ci échoue faute d'onglet, on aurait un message d'erreur posé sur un
-     mode d'emploi. */
+     mode d'emploi. Revenir ne relit pas le fichier : il a été lu une fois,
+     et le repose en haut — on le quitte descendu à mi-hauteur. */
+  const descendu = await page.evaluate(() => {
+    const g = document.getElementById('guide');
+    g.scrollTo({ top: g.scrollHeight / 2, behavior: 'instant' });
+    return g.scrollTop;
+  });
   await page.click('.rail-item[data-id="scores"]');
   await attendre(page, () => document.getElementById('guide').hidden, 5000);
   const parti = await page.evaluate(() => ({
@@ -14053,39 +14012,87 @@ titre('96. Le mode d\'emploi — la première vue, et la seule qui n\'ait besoin
     guide: !document.getElementById('guide').hidden,
     chapitres: document.querySelectorAll('#guide .guide-chapitre').length,
     message: !document.getElementById('message').hidden,
+    haut: document.getElementById('guide').scrollTop,
+    demandes: window.__guideDemandes.length,
   }));
-  ok('une autre section le range et demande la page ; y revenir le repose intact',
+  ok('une autre section le range et demande la page ; y revenir le repose intact, en haut, sans relire le fichier',
      parti.guide === true && parti.message === true && parti.queries > 0
-     && revenu.guide === true && revenu.chapitres === 20 && revenu.message === false,
-     JSON.stringify({ parti, revenu }));
+     && revenu.guide === true && revenu.chapitres === 21 && revenu.message === false
+     && descendu > 0 && revenu.haut === 0 && revenu.demandes === 1,
+     JSON.stringify({ descendu, parti, revenu }));
   await page.close();
 
-  /* ── 11. LES DOUZE FICHES, ET PAS SEULEMENT L'ANGLAISE ────────────────────
-     La parité garantit que les douze fiches portent les mêmes clés, non
-     vides ; elle ne peut pas dire si le RENDU tient dans une autre langue. Le
-     japonais est le cas le plus éloigné de l'anglais qu'on ait : pas d'espaces
-     entre les mots, des chiffres à chasse pleine, et des puces écrites de la
-     même main que le reste. S'il passe, la grammaire du corps ne dépend pas de
-     la langue. */
-  const pageJa = await ouvrirPanneau('ja');
-  const ja = fiche('ja');
-  const rendJa = await pageJa.evaluate(() => {
-    const g = document.getElementById('guide');
-    return { titre: document.getElementById('vue-titre').textContent,
-             chapitres: g.querySelectorAll('.guide-chapitre').length,
-             items: g.querySelectorAll('.guide-liste li').length,
-             puces: [...g.querySelectorAll('.guide-p, .guide-liste li')]
-               .filter(e => e.textContent.trim().startsWith('•')).length,
-             texte: g.textContent,
-             largeur: document.documentElement.scrollWidth };
-  });
-  ok('le mode d\'emploi se rend aussi en japonais, sans clé nue ni débordement',
-     rendJa.titre === ja.navGuide.message && rendJa.chapitres === 20
-     && rendJa.items >= 20 && rendJa.puces === 0 && rendJa.largeur <= 760
-     && !Object.keys(ja).some(k => rendJa.texte.includes(k)),
-     JSON.stringify({ titre: rendJa.titre, chapitres: rendJa.chapitres,
-                      items: rendJa.items, puces: rendJa.puces, largeur: rendJa.largeur }));
-  await pageJa.close();
+
+  /* ── 13. UN FICHIER QUI NE VIENT PAS SE DIT, ET SE REDEMANDE ──────────────
+     Le guide est le seul texte du panneau qui ne soit pas dans les fiches :
+     s'il ne se charge pas, la première vue serait une page blanche, sans
+     erreur ni console. Le panneau dit donc ce qui manque — le message de la
+     fiche, suivi du motif du navigateur, mot pour mot — et ne garde pas
+     l'échec en mémoire : y revenir redemande le fichier. Sans exception qui
+     remonte : le compteur de `pageerror` est celui du scénario. */
+  const pe = await ouvrirPanneau('en', { echecs: 1, attendreGuide: false });
+  await attendre(pe, () => !document.getElementById('message').hidden, 5000).catch(() => {});
+  const echoue = await pe.evaluate(() => ({
+    message: document.getElementById('message').hidden ? null : document.getElementById('message-texte').textContent,
+    bouton: !document.getElementById('message-bouton').hidden,
+    guide: !document.getElementById('guide').hidden,
+    enfants: document.getElementById('guide').childElementCount,
+    courant: document.querySelector('.rail-item[aria-current="true"]')?.dataset.id,
+    queries: window.__queries,
+  }));
+  ok('le guide qui ne se charge pas le dit, avec le motif, sans exception ni demande à la page',
+     echoue.message === `${en.stateGuideMissing.message} (guide/en.json : 404)` && !echoue.bouton
+     && !echoue.guide && echoue.enfants === 0 && echoue.courant === 'guide' && echoue.queries === 0,
+     JSON.stringify(echoue));
+  await pe.click('.rail-item[data-id="scores"]');
+  await attendre(pe, () => document.getElementById('message-texte').textContent !== '' && document.querySelector('.rail-item[aria-current="true"]')?.dataset.id === 'scores', 5000);
+  await pe.click('.rail-item[data-id="guide"]');
+  await attendre(pe, () => !document.getElementById('guide').hidden, 5000).catch(() => {});
+  const repris = await pe.evaluate(() => ({
+    guide: !document.getElementById('guide').hidden,
+    chapitres: document.querySelectorAll('#guide .guide-chapitre').length,
+    message: !document.getElementById('message').hidden,
+    demandes: window.__guideDemandes,
+  }));
+  ok('…et y revenir le redemande, et l\'affiche',
+     repris.guide && repris.chapitres === 21 && !repris.message
+     && JSON.stringify(repris.demandes) === '["guide/en.json","guide/en.json"]',
+     JSON.stringify(repris));
+  await pe.close();
+
+  /* ── 14. PARTI AVANT QU'IL ARRIVE, IL NE S'IMPOSE PAS ─────────────────────
+     Le fichier arrive après coup. Qui a cliqué une autre section entre-temps
+     doit la garder : un guide qui se poserait par-dessus une section choisie
+     — ou un « mode d'emploi introuvable » sur la mauvaise vue — serait une
+     vue qui change sous les yeux. Les deux issues sont jouées : un échec
+     arrivé après le départ, puis, revenu et reparti aussitôt, un succès
+     arrivé après le départ. Revenir enfin l'affiche sans le relire. */
+  const pr = await ouvrirPanneau('en', { delai: 700, echecs: 1, attendreGuide: false });
+  const vue = () => pr.evaluate(() => ({
+    guide: !document.getElementById('guide').hidden,
+    enfants: document.getElementById('guide').childElementCount,
+    courant: document.querySelector('.rail-item[aria-current="true"]')?.dataset.id,
+    titre: document.getElementById('vue-titre').textContent,
+    message: document.getElementById('message-texte').textContent,
+    demandes: window.__guideDemandes.length,
+  }));
+  await pr.click('.rail-item[data-id="scores"]');
+  await wait(pr, 1200);
+  const apresEchec = await vue();
+  await pr.click('.rail-item[data-id="guide"]');
+  await pr.click('.rail-item[data-id="scores"]');
+  await wait(pr, 1200);
+  const apresSucces = await vue();
+  await pr.click('.rail-item[data-id="guide"]');
+  await attendre(pr, () => !document.getElementById('guide').hidden, 5000).catch(() => {});
+  const ensuite = await vue();
+  const resteSurScores = (v, n) => !v.guide && v.enfants === 0 && v.courant === 'scores'
+    && v.titre === en.navScores.message && !v.message.includes(en.stateGuideMissing.message) && v.demandes === n;
+  ok('un guide arrivé après qu\'on est parti — en échec ou en succès — ne se pose pas sur la section choisie ; y revenir l\'affiche sans le relire',
+     resteSurScores(apresEchec, 1) && resteSurScores(apresSucces, 2)
+     && ensuite.guide && ensuite.enfants > 0 && ensuite.courant === 'guide' && ensuite.demandes === 2,
+     JSON.stringify({ apresEchec, apresSucces, ensuite }));
+  await pr.close();
 }
 
 titre('97. Le passé d\'avant la coupure, et le basculement qu\'on n\'a pas vu passer');
@@ -37977,11 +37984,12 @@ addEventListener('message', (e) => {
   const dossier = mkdtempSync(join(tmpdir(), 'tse-extension-'));
   const ext = join(dossier, 'extension');
   mkdirSync(ext);
-  // La liste blanche du paquet (cf. tests/addon.mjs) : ce qui part, et rien d'autre.
-  for (const f of ['manifest.json', 'content.js', 'cadres.js', 'adblock.js', 'icons', '_locales',
-                   'bridge.js', 'background.js', 'panneau.html', 'panneau.css', 'panneau.js']) {
-    cpSync(join(RACINE, f), join(ext, f), { recursive: true });
-  }
+  /* La liste blanche du paquet : ce qui part, et rien d'autre. LUE DANS
+     tests/addon.mjs, ET NON RECOPIÉE (4.33.0.16) : la copie avait oublié le
+     mode d'emploi, et l'extension montée ici le cherchait en vain. */
+  const LIVRE = new Function(`return ${readFileSync(join(ICI, 'addon.mjs'), 'utf8')
+    .match(/const LIVRE = (\[[\s\S]*?\]);/)[1]};`)();
+  for (const f of LIVRE) cpSync(join(RACINE, f), join(ext, f), { recursive: true });
   const man = JSON.parse(readFileSync(join(ext, 'manifest.json'), 'utf8'));
   if (man.background?.scripts) man.background = { service_worker: man.background.scripts[0] };
   delete man.browser_specific_settings;
@@ -38061,6 +38069,31 @@ addEventListener('message', (e) => {
         if (e.data?.tse === 'tse-incruste-req') window.__demandes.push({ id: e.data.id, origin: e.origin });
       });
     });
+    /* ── LE MODE D'EMPLOI, DANS LES DEUX CADRES RÉELS (4.33.0.16) ────────
+       Le guide se lit par fetch dans guide/<locale>.json et se construit
+       nœud par nœud, sa feuille à part : ceci n'est éprouvé nulle part
+       ailleurs sous la vraie politique des pages de l'extension — Trusted
+       Types sans politique, script-src 'self'. Le cadre incrusté s'ouvre sur
+       lui, et seule panneau.html est accessible au web : ses sous-ressources
+       sont demandées par la page de l'extension elle-même, rien de plus n'a
+       à être ouvert. Le SVG doit être dans son espace de noms — un <path>
+       créé en HTML ne se dessine pas, et ne lève rien. Mutants — le guide
+       posé par innerHTML ; la feuille du guide retirée de panneau.html. */
+    const guideDans = (f) => f.evaluate(async () => {
+      for (let i = 0; i < 100 && document.getElementById('guide')?.hidden !== false; i++) await new Promise((r) => setTimeout(r, 50));
+      const g = document.getElementById('guide');
+      const trace = g.querySelector('svg path');
+      return { visible: g.hidden === false, chapitres: g.querySelectorAll('.guide-chapitre').length,
+               feuille: getComputedStyle(g.querySelector('.guide-chapitre') || g).scrollMarginTop,
+               svg: !!trace && trace.namespaceURI === 'http://www.w3.org/2000/svg' && trace.getBBox().width > 0,
+               message: document.getElementById('message').hidden ? null : document.getElementById('message-texte').textContent,
+               violations: window.__violations || null };
+    });
+    const guideIncruste = panneau ? await guideDans(panneau) : null;
+    ok('le mode d\'emploi se charge et se construit dans le vrai cadre incrusté : vingt et un chapitres, sa feuille, ses tracés',
+       !!guideIncruste && guideIncruste.visible && guideIncruste.chapitres === 21 && guideIncruste.feuille === '8px'
+       && guideIncruste.svg && guideIncruste.message === null,
+       JSON.stringify(guideIncruste));
     const recu = panneau ? await panneau.evaluate(async () => {
       const recus = [];
       addEventListener('message', (e) => { if (e.data?.tse === 'tse-incruste-res') recus.push({ origin: e.origin, ok: e.data.ok }); });
@@ -38094,7 +38127,19 @@ addEventListener('message', (e) => {
        page de l'extension tient le rôle de la popup. Mutants — l'un ou
        l'autre envoi visant une origine qui n'est pas celle de la page. */
     const popup = await ctx.newPage();
+    const erreursPopup = [];
+    popup.on('pageerror', (e) => erreursPopup.push(e.message));
+    await popup.addInitScript(() => {
+      window.__violations = [];
+      addEventListener('securitypolicyviolation', (e) => window.__violations.push(`${e.violatedDirective} ${e.blockedURI}`));
+    });
     await popup.goto(`chrome-extension://${new URL(panneau.url()).host}/panneau.html`);
+    const guidePopup = await guideDans(popup);
+    ok('…et dans la popup, sous la même politique, sans une violation ni une erreur',
+       guidePopup.visible && guidePopup.chapitres === 21 && guidePopup.feuille === '8px' && guidePopup.svg
+       && guidePopup.message === null && Array.isArray(guidePopup.violations) && guidePopup.violations.length === 0
+       && erreursPopup.length === 0,
+       JSON.stringify({ guidePopup, erreursPopup }));
     const viaPont = await popup.evaluate(async () => {
       /* UNE RÉPONSE QUI NE VIENT PAS FAIT TOMBER L'ASSERTION (4.33.0.10), au
          lieu de tenir le banc jusqu'à son délai : un worker dont la promesse
@@ -43744,19 +43789,30 @@ const lireZap = (page) => page.evaluate(() => {
   /* s) LE MODE D'EMPLOI a son chapitre, juste après celui de la salle, et
      y cite ce que l'écran affiche, tel que la page l'écrit dans la langue de
      chaque fiche — « préchargée », « Son de … » —, comme le chapitre de
-     l'accueil cite ses rayons. Mutant — un libellé reformulé d'un seul côté. */
+     l'accueil cite ses rayons. Depuis la 4.33.0.16, le guide est livré dans
+     guide/<locale>.json : ses chapitres s'y lisent dans leur ordre, hors des
+     maquettes, celui de la salle désigné par ce qu'il cite (« Tout est
+     calé »), celui du zapping par « préchargée ». Mutant — un libellé
+     reformulé d'un seul côté. */
   const blocZ = srcC.match(/const STRINGS = Object\.freeze\(\{[\s\S]*?\n {2}\}\);/)[0];
   const STRZ = new Function(`${blocZ}; return STRINGS;`)();
-  const ordreGuide = [...readFileSync(join(ICI, '..', 'panneau.js'), 'utf8').matchAll(/\{ titre: '(guide[A-Za-z]+Titre)'/g)].map((m) => m[1]);
-  const citesZap = [];
+  const proseZ = (n) => (typeof n === 'string' ? n
+    : ((n[1] && n[1].class) || '').split(/\s+/).includes('d-cadre') ? '' : n.slice(2).map(proseZ).join(''));
+  const citesZap = [], rangsZap = [];
   for (const loc of readdirSync(join(ICI, '..', '_locales'))) {
     const s = STRZ[loc.split('_')[0]];
-    const texte = JSON.parse(readFileSync(join(ICI, '..', '_locales', loc, 'messages.json'), 'utf8')).guideZapTexte?.message || '';
-    for (const c of [s.uiZapPrechargee, s.uiSalleChatSon('…')]) if (!c || !texte.includes(c)) citesZap.push(`${loc} « ${c} »`);
+    const g = JSON.parse(readFileSync(join(ICI, '..', 'guide', `${loc}.json`), 'utf8'));
+    const chaps = g.contenu.filter((n) => Array.isArray(n) && n[0] === 'section'
+      && ((n[1] && n[1].class) || '').split(/\s+/).includes('guide-chapitre')).map(proseZ);
+    const salle = chaps.findIndex((x) => x.includes(s.uiCalToutCourt));
+    const zap = chaps.findIndex((x) => x.includes(s.uiZapPrechargee));
+    rangsZap.push(`${loc} ${salle + 1}→${zap + 1}`);
+    if (salle < 0 || zap !== salle + 1) citesZap.push(`${loc} : salle au ${salle + 1}, zapping au ${zap + 1}`);
+    for (const c of [s.uiZapPrechargee, s.uiSalleChatSon('…')]) if (!c || zap < 0 || !chaps[zap].includes(c)) citesZap.push(`${loc} « ${c} »`);
   }
   ok('s) le mode d\'emploi a son chapitre, après celui de la salle, et cite « préchargée » et « Son de … » tels que la page les écrit, dans les douze langues',
-     ordreGuide.indexOf('guideZapTitre') === ordreGuide.indexOf('guideSalleTitre') + 1 && citesZap.length === 0,
-     JSON.stringify({ rang: ordreGuide.indexOf('guideZapTitre'), citesZap }));
+     rangsZap.length === 12 && citesZap.length === 0,
+     JSON.stringify({ rangs: rangsZap, citesZap }));
 }
 
 /* ═════════ 232. LE CO-STREAM D'UNE PLACE DU TOP 15 (4.33.0.2) ═════════
