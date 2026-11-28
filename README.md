@@ -2354,6 +2354,16 @@ focus au clavier, la molette, la salle rouverte —, sans rapport avec le
 guide ; vert aux quatre autres, dont deux où il tournait seul. Le banc
 complet n'a pas tourné.
 
+Le banc compte désormais 239 scénarios, 2453 assertions — cinq de moins au
+96, deux de plus au 211.
+
+Passé ensuite en entier sur le code livré, par `tests/prod.mjs`, il a rendu
+2449 assertions sur 2453 : ce compte-ci, que la section n'annonçait pas
+encore (68), et trois assertions de minutage, dans du code que la 4.33.0.16
+ne touche pas — l'en-tête du calage (183), la grande vignette de « Pendant
+votre absence » (224) —, jamais tombées en une trentaine de bancs, vertes
+rejouées seules, deux fois sur deux, sur le même code.
+
 ## Firefox : les filtres ont l'aspect de Chrome, drapeaux compris (v4.33.0.15)
 
 Signalé, captures à l'appui : sous Firefox, la barre montrait « Toutes les

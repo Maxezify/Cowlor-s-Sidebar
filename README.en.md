@@ -2235,6 +2235,16 @@ failed once in five passes, on three zapping assertions — keyboard focus,
 the wheel, the reopened room —, unrelated to the guide; green on the other
 four, two of them run alone. The full bench was not run.
 
+The bench now counts 239 scenarios, 2453 assertions — five fewer in 96,
+two more in 211.
+
+Run in full afterwards on the shipped code, through `tests/prod.mjs`, it
+gave 2449 assertions out of 2453: this very count, which the section did
+not announce yet (68), and three timing assertions, in code 4.33.0.16
+doesn't touch — the sync header (183), the large thumbnail of "While you
+were away" (224) —, never fallen in some thirty benches, green when run
+alone, twice out of twice, on the same code.
+
 ## Firefox: the filters look like Chrome's, flags included (v4.33.0.15)
 
 Reported, screenshots attached: on Firefox, the bar showed "Toutes les cat"
