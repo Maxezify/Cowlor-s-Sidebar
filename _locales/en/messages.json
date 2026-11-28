@@ -39,7 +39,7 @@
     "description": "Section : le mode d'emploi, première vue du panneau"
   },
   "descGuide": {
-    "message": "What the extension adds to Twitch, and how to use it. Nothing to set up — it is already on.",
+    "message": "Everything the extension adds to Twitch, explained step by step with visual examples. Nothing to set up: everything works right away.",
     "description": "Description de la section mode d'emploi"
   },
   "navScores": {
@@ -360,6 +360,9 @@
     "message": "The page could not answer.",
     "description": "État : la page n'a pas pu répondre"
   },
+  "stateGuideMissing": {
+    "message": "The guide couldn't be loaded."
+  },
   "stateTimeout": {
     "message": "The page took too long to answer.",
     "description": "État : la page a mis trop de temps"
@@ -577,199 +580,6 @@
   "btnClose": {
     "message": "Close",
     "description": "Bouton : referme la vue du rapport"
-  },
-  "guideIntro": {
-    "message": "This guide tells you what the extension adds to Twitch and how to use it. Read it in order: each chapter builds only on the ones before it, and whatever a chapter mentions without explaining carries the number of the chapter that does. Everything works as soon as you reload a Twitch page, with nothing to configure — and everything can be adjusted, or switched off, from “Settings” just below."
-  },
-  "guideHoverTitre": {
-    "message": "The hover preview"
-  },
-  "guideHoverTexte": {
-    "message": "Leave the pointer on a card for a moment: a window opens beside it — the preview —, with the live video and its full title.\n• Under the title, badges: short labels that give the stream's context at a glance. The next chapters present them along with what they flag; chapter $1 gathers them all.\n• At the very bottom, the timeline of what happened before you arrived: that is the next chapter.\n• It works on every channel in the sidebar, your followed channels and recommendations alike.\n• No ads in the preview. The stream you open afterwards is left untouched.\n• Too heavy? In “Settings”: its width, the stream quality, or the preview without video."
-  },
-  "guideDureeTitre": {
-    "message": "How long they have been live"
-  },
-  "guideDureeTexte": {
-    "message": "Every live channel takes up a card in the sidebar: its avatar, its username, its category, and on the right the viewer count. Under that count, the extension adds how long the stream has been live, kept up to date without opening the channel.\n• A stream that stops shows “Ended” while its card leaves the list.\n• Three formats to choose from in “Settings”: 4h19, 4:19 or 259 min."
-  },
-  "guideBadgesTitre": {
-    "message": "All the preview badges"
-  },
-  "guideBadgesTexte": {
-    "message": "Here are all the badges the preview can show; each colour has a single meaning. You have already met the drop, the gold, the rainbow and the co-stream ones.\n• Red: Twitch's content labels — mature games, violence, gambling… You know before you watch.\n• Lime green: news — the channel just switched category, or came back after a drop. It fades after ten minutes.\n• Blue, purple, grey: the co-stream — who hosts it, who else is live, who is in it without streaming.\n• Gold: your subscription, and what comes next; pale gold: a subscription that has ended.\n• Green, orange, pink: the stream's sponsor, a Hype Train under way, a discounted subscription.\n• No colour: a note from Twitch, carried over as is.\n• Rainbow: a subathon, and its day."
-  },
-  "guideFriseTitre": {
-    "message": "Earlier on this stream"
-  },
-  "guideFriseTexte": {
-    "message": "Walking in halfway through an eight-hour stream? The preview's timeline shows what happened before: one band per category, to scale, and the list underneath.\n• “×3”: the streamer came back to that category three times.\n• A channel that does not archive its streams? The timeline is rebuilt from the clips, and says so.\n• A “~” before a duration, a colour that fades: the exact time is not known. Nothing is made up."
-  },
-  "guideSubathonTitre": {
-    "message": "Subathons"
-  },
-  "guideSubathonTexte": {
-    "message": "A subathon is that stream subscriptions keep extending without end — days, sometimes weeks.\n• A pill to the right of the username says which day the event is on; in the preview, a rainbow-coloured badge repeats it."
-  },
-  "guideCostreamTitre": {
-    "message": "Co-streams"
-  },
-  "guideCostreamTexte": {
-    "message": "A steady coloured bar on the left edge of the card: this channel is streaming with others, in a co-stream — one colour per co-stream. Several members in a row in the list share a single bar.\n• In the preview, the blue badge says who is hosting — “Host Stream”, or “Co-stream of …”; the purple one names members live outside your list; the grey one, those who are part of it without streaming.\n• A sort groups them at the top of the list (chapter $1).\n• The small “▶” cursor on the bar opens their streams together, in the multistream room: that is the next chapter."
-  },
-  "guideSalleTitre": {
-    "message": "The multistream room"
-  },
-  "guideSalleTexte": {
-    "message": "The “▶” cursor on a co-stream's bar opens its streams side by side, on the page — each in its own tile.\n• Hover it: it says what it opens — “Watch all 3”. Faces at its end? Members you do not follow: move onto them to add them. Shift+click opens the whole co-stream straight away.\n• Click a tile to give it the sound — keys 1 to 6 work too — and the chat follows the sound. Without Shared Chat, tabs above the chat show another one without changing the sound.\n• Six streams at most on screen: the others wait below, and a click brings them in.\n• The streams line themselves up on their common sound, in about a minute of listening; with no common sound, nothing moves. “Automatic alignment” can be switched off in “Settings”.\n• To the left of “Hide the chat”, two lines say where the alignment stands: which tile it aligns on, then the state of each other one — “listening 2/6” (the sound calculations that count, out of those needed), “behind 0.30 s, to confirm”, “checking”, then “All aligned”. The dot is green when everything is aligned, amber while the alignment works or waits, red when a tile cannot be corrected, grey when paused or off; the tooltip gives the details, tile by tile.\n• The room earns no channel points, and Twitch's ads play there as anywhere else.\n• To close it: Escape, or a click on the cursor, now a “■”."
-  },
-  "guideZapTitre": {
-    "message": "Zapping"
-  },
-  "guideZapTexte": {
-    "message": "The button to the right of the search magnifier opens your followed channels that are live, full screen, in the sidebar's order.\n• ↑ and ↓ switch channels; past the end, you start again from the top. A click in the right-hand column goes to that channel.\n• The channels before and after are already loaded — each one “preloaded” —: they show at once.\n• The screen goes full screen; leaving it, or opening the room, gives the window back.\n• A few seconds without moving the mouse and only the picture remains; a move or a key brings the rest back.\n• Enter opens the channel; Escape closes, and the page's video resumes.\n• S adds the channel to the room, O opens the room once there are two — six at most. A room already open closes when zapping opens; its streams stay in the selection.\n• “Sound from …”, bottom right, mutes and unmutes.\n• “Zapping” can be turned off in “Settings”."
-  },
-  "guideDebutTitre": {
-    "message": "Starts, and comebacks"
-  },
-  "guideDebutTexte": {
-    "message": "A red bar beating on the left edge of a card: that stream started less than ten minutes ago. It goes out on its own.\n• The streamer drops and comes back within ten minutes? The bar does not light up again, and the uptime keeps counting the whole stream, outage included.\n• Their preview then carries the “Back after a drop” badge for ten minutes, and its timeline shows where the stream cut out."
-  },
-  "guideAboTitre": {
-    "message": "Your subscriptions, in gold"
-  },
-  "guideAboTexte": {
-    "message": "The channels you subscribe to are in gold in the list.\n• Nothing to do: while you are signed in to Twitch, the extension reads your subscriptions page every six hours by default. A brand-new subscription? Open the channel, or click “Sweep now”: “Your data” group of this panel, under “Subscriptions”.\n• In the preview, the gold badge says how many months you have supported the channel, then what comes next: “Next anniversary” if it renews, “Expires in …” if it is about to end — a gifted sub, or one you no longer renew.\n• Once the subscription has ended, the gold goes out and the badge says “Former sub”.\n• Paid, gifted or mobile: all three count."
-  },
-  "guideTriTitre": {
-    "message": "Sorting and filtering"
-  },
-  "guideTriTexte": {
-    "message": "Six buttons at the top of the list reorder it:\n• Viewers — Twitch's own order.\n• Subscriptions — yours first, with their number, offline ones included, on a pill.\n• Personal popularity — from your own visits, kept on your machine.\n• Stream uptime — the newest streams first, to catch beginnings.\n• Alphabetical — by username.\n• Co-streams — grouped at the top.\nBelow, two filters: category and language. They only offer what your channels are streaming right now.\n• Buttons you do not use can be removed in “Settings”."
-  },
-  "guideTopTitre": {
-    "message": "Top Channels"
-  },
-  "guideTopTexte": {
-    "message": "The “Top Channels” tab, at the top of the sidebar, swaps your followed channels for the most-watched channels on all of Twitch, live — thirty by default, ten or fifty if you prefer.\n• Pick a category or a language in the filters: you get its real ranking.\n• Preview, uptime, badges, co-streams: these are cards like any other.\n“Followed Channels” takes you back; your list has not moved."
-  },
-  "guideAccueilTitre": {
-    "message": "Twitch's home page"
-  },
-  "guideAccueilTexte": {
-    "message": "On Twitch's home page, the extension adds its own rows above Twitch's, in the same column and lined up with them. They are set in “Settings”, under “Home page”.\n• “Your #1 channel, live”: the live followed channel you watch the most — failing that, the one with the most viewers — takes the place of Twitch's carousel, across the whole width. First its picture, then its stream, muted and ad-free, like the hover preview; the background takes on its colours. When none of your followed channels is live, the carousel comes back. “As on Twitch” always keeps it; “Nothing” removes it and stops its video.\n• “Featured”: the streams of Twitch's carousel, as a row, when the banner — or “Nothing” — hides it, without the banner's channel. Their cards go through the request the sidebar already makes. As a ribbon: the centre card straight, its neighbours turned; two arrows scroll it, and a click on a side card brings it to the centre.\n• “Top 15”: the first fifteen places of Top Channels, in the language of Twitch's interface or in all languages, in big numbers. Right of the name, an arrow shows the places gained or lost over thirty minutes, or since you arrived on the home page; “New” marks a channel that wasn't in the Top 15. The channels in “Channels removed from the Top 15”, in “Settings”, do not enter it, whatever the language — for a channel that carries the language's tag without speaking it. Top Channels is not affected. A co-stream takes a single place, as on Twitch: the name, “+ 2” and an arrow; hover the arrow to see its members, each with their own viewers.\n• “Because you often watch…”: for the channel you visited the most in thirty days — three visits at least —, a row shows what is live in its usual category, in Twitch's language, outside your followed channels. The title says why: “14 visits in 30 days · Just Chatting, in English”. Two rows at most.\n• “Your scheduled streams”: what your followed channels have scheduled for today and tomorrow, with the time left. “Remind me” puts an alert in your open Twitch tabs when the channel goes live — not a system notification. Just below, “No schedule”: for a channel you watch that has nothing scheduled, the time its last streams started, when it repeats — what it did, not what it will do. These channels are sorted by the nearest time to come.\n• One label per card, at the bottom right of the thumbnail, on the extension's cards and Twitch's alike: one fact, just one, the first true one in this list — “Back after 41 days”, “Subathon • DAY 9”, “Just started”, “Switched to Elden Ring”, “↗ +38% in 10 min”, “#3 in English”, “Co-stream of 3 channels”. Nothing guessed: no fact seen, no label.\n• “While you were away”: after twenty-four hours without Twitch on screen, a row below the others shows what your followed channels — the ones you watch — streamed in the meantime, one card per channel: the last replay's picture, “3 streams” and how long, when the last one ended, the most viewed of their clips, and “Watch the last one” when the replay is open. Closed, it is closed in every tab.\n• Each row shows one line; “Show all”, in the middle of the rule below it, unrolls the rest. “Featured”, a ribbon, does not fold.\n• “From the start” opens the replay of the stream in progress at its first second. It only appears when you can watch it: the channel keeps its replays and opens them to everyone, or you are subscribed to it.\n• The hover preview also opens on the home page's cards: the extension's and Twitch's alike. On hover, the thumbnail lifts as on Twitch, in the channel's colour.\n• “Tidy Twitch's home page”: on Twitch's own rows. “Hide”, right of a category row's title, folds it into one line — “Show again” brings it back; the category stays hidden the following days. Their live cards take the size of the extension's. And a stream Twitch has no picture for yet shows the channel's last replay, or its avatar, instead of the “?”. Its live cards also take the extension's marks: the live badge in their style, the viewer count without the word, the stream's duration top right."
-  },
-  "guideViteTitre": {
-    "message": "Quicker than Twitch, and tidier"
-  },
-  "guideViteTexte": {
-    "message": "Twitch takes two to four minutes to show a channel that goes live, and keeps one that stops for five to ten. The extension refreshes the sidebar itself, every thirty seconds: viewers, category, uptime, arrivals and departures.\n• Every followed channel that is live is unfolded for you, and offline ones never show: no more “Show more” to click.\n• Hype Trains, discount banners, sponsor strips and empty sections leave the sidebar; what they said can be read in the preview badges (chapter $1).\n• Your watch streak and Twitch's stories row are tucked in with the sorts and filters, at the top of the list. Prefer them as Twitch shows them, or hidden? That is in “Settings”."
-  },
-  "guidePanneauTitre": {
-    "message": "This panel"
-  },
-  "guidePanneauTexte": {
-    "message": "Six groups, on the left:\n• “Get started” — this guide, readable even with no Twitch tab open.\n• “Settings” — everything the extension lets you choose; that is the next chapter.\n• “Schedule” — your followed channels' streams, past, live and scheduled, with their replays; chapters $1 and $2.\n• “Your data” — what it has remembered: the channels you visit most, at what times, your subscriptions, the channels it knows.\n• “Diagnostics” — only useful when something goes wrong; it can be hidden in the settings.\n• “Top Channels” — the state of the ranking and its categories.\nEvery section other than this guide reads the frontmost Twitch tab; without one, they say so.\n• Something wrong? “Export a report” writes a text to read before sending it: counts, no lists — neither your channels nor your subscriptions.\n• “Erase history” erases everything the extension has remembered, for good; your settings stay."
-  },
-  "guideAgendaTitre": {
-    "message": "The schedule: the week"
-  },
-  "guideAgendaTexte": {
-    "message": "The “Schedule” group of this panel does for all your followed channels at once what a channel's schedule page does on Twitch for just one. Its first view, “The week”, sorts three kinds of streams day by day.\n• Past streams, with the thumbnail and length of their replay: one click opens it in a new tab.\n• Live streams, marked “Live”, with their viewers.\n• Scheduled streams, marked “Scheduled”, in a dashed frame.\nThe example above also shows:\n• The view opens on today, with the past days above. A stream that runs past midnight stays on the day it started: Nyxaria's, which began the evening before yesterday, stays there.\n• A padlock marks a replay reserved for the channel's subscribers, when the extension doesn't know you're subscribed; subscribed, nothing shows: it is open to you.\n• “No replay”: a past stream of which no recording remains. It only gets a place in the week if the extension saw it live: Twitch only gives its end time.\nThe arrows change week, up to eight back and two ahead; “Today” brings you back to the day itself. The menu, on the right, keeps a single channel. A replay exists only if the channel keeps its broadcasts, and for as long as Twitch keeps them; a scheduled stream, only if it keeps its schedule on Twitch."
-  },
-  "guideHorsLigneTitre": {
-    "message": "The schedule: offline"
-  },
-  "guideHorsLigneTexte": {
-    "message": "The schedule's second view, “Offline”, gives a row to every followed channel that is not live — hence no Korbek, live in the previous example. Three groups, separated by a rule:\n• First, the channels that have scheduled their next stream, the soonest on top.\n• Then the others, the most recently gone first.\n• At the bottom, those Twitch no longer serves — account suspended, renamed or closed —, marked “Unavailable on Twitch”: they do not vanish from the list.\nEach row says when the channel last streamed, and its next stream if one is scheduled.\n• “Replay” opens the replay of its last stream in a new tab; the subscribers' padlock shows there too. No “Replay” when that stream has no replay, like Aeltris's.\n• “Their week” opens “The week” on the week of that last stream, for that channel alone.\n• A scheduled channel that has not streamed for three months is left out, and so is its slot in the week: that is the schedule Twitch keeps for a channel that no longer streams.\nBoth views cover all your followed channels: since Twitch's sidebar shows only a hundred, the extension rereads the full list on your Following page, in an invisible frame, every twelve hours. The schedule asks nothing of Twitch until you open it, and what it has read stays in your browser: a reload only asks again for what has aged."
-  },
-  "guideVieTitre": {
-    "message": "Privacy, in plain words"
-  },
-  "guideVieTexte": {
-    "message": "• No third-party server: the extension only talks to Twitch, through the public API the page already uses.\n• Those calls are anonymous: no session token, no cookie. They cannot be tied to your account.\n• Two exceptions, said out loud: to know your subscriptions, the extension opens YOUR twitch.tv/subscriptions page in an invisible frame — every six hours by default, or as your setting says, sooner only after a sweep that found nothing or when you ask, and never when you are signed out. To know all the channels you follow, it opens your Following page the same way, every twelve hours. Your browser authenticates them as if you had clicked the link; the extension neither reads nor passes on your token.\n• Your visits, your subscriptions and their tenure, the channels you follow and what the schedule has read stay in your browser. Clear twitch.tv's site data, and nothing is left.\n• No permission requested, no tracker, no telemetry. The extension only runs on twitch.tv."
-  },
-  "guideBadgeCcl": {
-    "message": "Mature-rated game",
-    "description": "Maquette : badge d'étiquette de classification"
-  },
-  "guideBadgeReprise": {
-    "message": "Back after a drop",
-    "description": "Maquette : badge de reprise après coupure"
-  },
-  "guideBadgeSwitch": {
-    "message": "Just switched to Elden Ring",
-    "description": "Maquette : badge de basculement de catégorie"
-  },
-  "guideBadgeCostream": {
-    "message": "Co-stream of Nyxaria",
-    "description": "Maquette : badge de co-stream"
-  },
-  "guideBadgeSquad": {
-    "message": "Live with Korbek and 3 others",
-    "description": "Maquette : badge « En live avec »"
-  },
-  "guideBadgeMuet": {
-    "message": "In the session, not streaming: Velmoria",
-    "description": "Maquette : badge des membres de la session qui ne diffusent pas"
-  },
-  "guideBadgeSub": {
-    "message": "Subscribed • 9 MONTHS",
-    "description": "Maquette : badge d'abonnement"
-  },
-  "guideBadgeExsub": {
-    "message": "Former sub • 4 MONTHS"
-  },
-  "guideBadgeSponsor": {
-    "message": "Sponsored by Norvex",
-    "description": "Maquette : badge de stream sponsorisé"
-  },
-  "guideBadgeHype": {
-    "message": "Hype Train",
-    "description": "Maquette : badge de hype train"
-  },
-  "guideBadgeDiscount": {
-    "message": "Discounted sub",
-    "description": "Maquette : badge de réduction d'abonnement"
-  },
-  "guideBadgeAutre": {
-    "message": "Another Twitch note"
-  },
-  "guideBadgeSubathon": {
-    "message": "Subathon • DAY 10",
-    "description": "Maquette : badge de subathon"
-  },
-  "guideDemoTitre": {
-    "message": "Finishing the dungeon, then Q&A",
-    "description": "Maquette : titre de direct inventé"
-  },
-  "guideDemoEnded": {
-    "message": "Ended",
-    "description": "Maquette : compteur d'un direct terminé"
-  },
-  "guideDemoJour": {
-    "message": "D9",
-    "description": "Maquette : pastille de jour de subathon"
-  },
-  "guideDemoSuivies": {
-    "message": "Followed Channels",
-    "description": "Maquette : onglet des chaînes suivies"
-  },
-  "guideDemoEnCours": {
-    "message": "ongoing",
-    "description": "Maquette : segment de frise en cours"
-  },
-  "guideDemoAgendaSans": {
-    "message": "Coffee and questions"
-  },
-  "guideDemoAgendaSub": {
-    "message": "Building the underwater base"
-  },
-  "guideDemoAgendaDirect": {
-    "message": "Ranked up to Immortal"
-  },
-  "guideDemoAgendaPrevu": {
-    "message": "Elden Ring blind run, episode 12"
   },
   "grpOptions": {
     "message": "Settings"
@@ -1161,6 +971,49 @@
   "optHeures": {
     "message": "$1 h"
   },
+  "optBadgeCcl": {
+    "message": "Mature-rated game",
+    "description": "Maquette : badge d'étiquette de classification"
+  },
+  "optBadgeCostream": {
+    "message": "Co-stream of Nyxaria",
+    "description": "Maquette : badge de co-stream"
+  },
+  "optBadgeSquad": {
+    "message": "Live with Korbek and 3 others",
+    "description": "Maquette : badge « En live avec »"
+  },
+  "optBadgeSub": {
+    "message": "Subscribed • 9 MONTHS",
+    "description": "Maquette : badge d'abonnement"
+  },
+  "optBadgeExsub": {
+    "message": "Former sub • 4 MONTHS"
+  },
+  "optBadgeSponsor": {
+    "message": "Sponsored by Norvex",
+    "description": "Maquette : badge de stream sponsorisé"
+  },
+  "optBadgeHype": {
+    "message": "Hype Train",
+    "description": "Maquette : badge de hype train"
+  },
+  "optBadgeDiscount": {
+    "message": "Discounted sub",
+    "description": "Maquette : badge de réduction d'abonnement"
+  },
+  "optBadgeSwitch": {
+    "message": "Just switched to Elden Ring",
+    "description": "Maquette : badge de basculement de catégorie"
+  },
+  "optBadgeReprise": {
+    "message": "Back after a drop",
+    "description": "Maquette : badge de reprise après coupure"
+  },
+  "optBadgeSubathon": {
+    "message": "Subathon • DAY 10",
+    "description": "Maquette : badge de subathon"
+  },
   "optTriViewers": {
     "message": "Viewers"
   },
@@ -1181,17 +1034,5 @@
   },
   "extActionTitle": {
     "message": "Cowlor's Sidebar — your data and your settings"
-  },
-  "guideRoueTitre": {
-    "message": "The gear, and this panel"
-  },
-  "guideRoueTexte": {
-    "message": "A ⚙️ gear sits to the right of the sidebar title. One click opens this panel on top of Twitch, without leaving the page.\n• The extension icon, in the browser toolbar, opens the same panel.\n• To close it: the Escape key, or a click outside.\n• Its six groups, on the left, are presented in chapter $1."
-  },
-  "guideReglagesTitre": {
-    "message": "Everything adjusts, everything switches off"
-  },
-  "guideReglagesTexte": {
-    "message": "“Settings” controls everything this guide presents. Nothing is imposed: what bothers you switches off, and a purple dot marks what you changed. A greyed-out line depends on a setting that is off: it stays editable, and says which one when you hover it.\n• Preview too heavy? Lower the quality, or cut the video: it keeps its thumbnail, its badges and its timeline.\n• Gold too loud? “Subtle” keeps the colour and drops the shimmer.\n• The multistream room and its automatic alignment switch off separately.\n• The subscriptions sweep can be spaced out to once a day.\n• Each memory — visits, subscriptions, known channels — can be erased on its own.\n• Your settings export and import; one button restores them all."
   }
 }

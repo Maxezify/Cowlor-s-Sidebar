@@ -31,10 +31,10 @@
     "message": "Najpopularniejsze kanały"
   },
   "navGuide": {
-    "message": "Jak to działa"
+    "message": "Instrukcja obsługi"
   },
   "descGuide": {
-    "message": "Co rozszerzenie dodaje do Twitcha i jak z tego korzystać. Nic do ustawiania — już działa."
+    "message": "Wszystko, co rozszerzenie dodaje do Twitcha, wyjaśnione krok po kroku na wizualnych przykładach. Nic nie trzeba konfigurować — wszystko już działa."
   },
   "navScores": {
     "message": "Wyniki popularności"
@@ -282,6 +282,9 @@
   "stateError": {
     "message": "Strona nie mogła odpowiedzieć."
   },
+  "stateGuideMissing": {
+    "message": "Nie udało się wczytać instrukcji obsługi."
+  },
   "stateTimeout": {
     "message": "Strona odpowiadała zbyt długo."
   },
@@ -477,183 +480,6 @@
   },
   "btnClose": {
     "message": "Zamknij"
-  },
-  "guideIntro": {
-    "message": "Ten przewodnik mówi, co rozszerzenie dodaje do Twitcha i jak z tego korzystać. Czyta się go po kolei: każdy rozdział opiera się tylko na poprzednich, a to, o czym rozdział wspomina bez wyjaśnienia, nosi numer rozdziału, który to wyjaśnia. Wszystko działa, gdy tylko odświeżysz stronę Twitcha, bez żadnej konfiguracji — i wszystko da się ustawić lub wyłączyć w sekcji „Ustawienia” tuż poniżej."
-  },
-  "guideHoverTitre": {
-    "message": "Podgląd po najechaniu"
-  },
-  "guideHoverTexte": {
-    "message": "Zatrzymaj wskaźnik na chwilę na karcie: obok otworzy się okno — podgląd — z transmisją na żywo i jej pełnym tytułem.\n• Pod tytułem odznaki: krótkie etykiety, które na pierwszy rzut oka podają kontekst transmisji. Kolejne rozdziały przedstawiają je razem z tym, co sygnalizują; rozdział $1 zbiera je wszystkie.\n• Na samym dole oś czasu tego, co działo się przed twoim przybyciem: to następny rozdział.\n• Działa na wszystkich kanałach paska bocznego, zarówno obserwowanych, jak i polecanych.\n• Żadnych reklam w podglądzie. Transmisja, którą potem otworzysz, pozostaje nietknięta.\n• Za ciężki? W sekcji „Ustawienia”: jego szerokość, jakość transmisji albo podgląd bez wideo."
-  },
-  "guideDureeTitre": {
-    "message": "Od jak dawna nadaje"
-  },
-  "guideDureeTexte": {
-    "message": "Każdy kanał na żywo zajmuje w pasku bocznym kartę: jego awatar, nazwa, kategoria, a po prawej liczba widzów. Pod tą liczbą rozszerzenie dodaje, jak długo trwa transmisja — na bieżąco, bez otwierania kanału.\n• Transmisja, która się kończy, pokazuje „Zakończono”, zanim jej karta zniknie z listy.\n• Trzy formaty do wyboru w sekcji „Ustawienia”: 4h19, 4:19 lub 259 min."
-  },
-  "guideBadgesTitre": {
-    "message": "Wszystkie odznaki podglądu"
-  },
-  "guideBadgesTexte": {
-    "message": "Oto wszystkie odznaki, które może pokazać podgląd; każdy kolor ma jedno znaczenie. Odznakę powrotu, złoto, tęczę i odznaki co-streamu już znasz.\n• Czerwony: etykiety treści Twitcha — gry dla dorosłych, przemoc, hazard… Wiesz, zanim obejrzysz.\n• Limonkowy: nowina — kanał właśnie zmienił kategorię albo wrócił po przerwaniu. Znika po dziesięciu minutach.\n• Niebieski, fioletowy, szary: co-stream — kto go organizuje, kto jeszcze jest na żywo, kto w nim jest bez nadawania.\n• Złoty: twoja subskrypcja i co dalej; blade złoto: subskrypcja zakończona.\n• Zielony, pomarańczowy, różowy: sponsor transmisji, trwający Hype Train, subskrypcja w obniżonej cenie.\n• Bez koloru: wzmianka Twitcha, przejęta dosłownie.\n• Tęcza: subathon i jego dzień."
-  },
-  "guideFriseTitre": {
-    "message": "Wcześniej na tej transmisji"
-  },
-  "guideFriseTexte": {
-    "message": "Wchodzisz w połowie ośmiogodzinnej transmisji? Oś czasu w podglądzie pokazuje, co było wcześniej: jeden pas na kategorię, w skali, a pod spodem lista.\n• „×3”: streamer wrócił do tej kategorii trzy razy.\n• Kanał, który nie archiwizuje transmisji? Oś czasu jest odtwarzana z klipów i to mówi.\n• „~” przed czasem, kolor, który się rozmywa: dokładna godzina nie jest znana. Nic nie jest zmyślone."
-  },
-  "guideSubathonTitre": {
-    "message": "Subathony"
-  },
-  "guideSubathonTexte": {
-    "message": "Subathon to transmisja, którą subskrypcje przedłużają bez końca — dni, czasem tygodnie.\n• Plakietka na prawo od nazwy mówi, który to dzień wydarzenia; w podglądzie powtarza to odznaka w kolorach tęczy."
-  },
-  "guideCostreamTitre": {
-    "message": "Co-streamy"
-  },
-  "guideCostreamTexte": {
-    "message": "Nieruchomy kolorowy pasek przy lewej krawędzi karty: ten kanał nadaje z innymi, w co-streamie — jeden kolor na co-stream. Kilku uczestników po kolei na liście dzieli jeden pasek.\n• W podglądzie niebieska odznaka mówi, kto organizuje — „Kanał gospodarza” albo „Co-stream u …”; fioletowa wymienia uczestników na żywo spoza twojej listy; szara — tych, którzy w nim są, ale nie nadają.\n• Sortowanie zbiera je na górze listy (rozdział $1).\n• Mały kursor „▶” na pasku otwiera ich transmisje razem, w sali multistream: to następny rozdział."
-  },
-  "guideSalleTitre": {
-    "message": "Sala multistream"
-  },
-  "guideSalleTexte": {
-    "message": "Kursor „▶” na pasku co-streamu otwiera jego transmisje obok siebie, na stronie — każdą w jej kafelku.\n• Najedź na niego: mówi, co otworzy — „Oglądaj 3 naraz”. Twarze na jego końcu? To uczestnicy, których nie obserwujesz: najedź na nich, aby ich dodać. Shift+klik otwiera od razu cały co-stream.\n• Kliknięcie kafelka daje mu dźwięk — klawisze od 1 do 6 też — a czat podąża za dźwiękiem. Bez wspólnego czatu zakładki nad czatem pokazują inny, nie zmieniając dźwięku.\n• Najwyżej sześć transmisji na ekranie: pozostałe czekają pod spodem, a kliknięcie je wprowadza.\n• Transmisje same wyrównują się do wspólnego dźwięku, po mniej więcej minucie słuchania; bez wspólnego dźwięku nic się nie rusza. „Automatyczne wyrównanie” wyłączysz w sekcji „Ustawienia”.\n• Na lewo od „Ukryj czat” dwa wiersze mówią, na jakim etapie jest wyrównanie: do którego kafelka się wyrównuje, a potem stan każdego innego — „nasłuch 2/6” (liczące się obliczenia dźwięku spośród potrzebnych), „z tyłu o 0,30 s, do potwierdzenia”, „sprawdzanie”, a na koniec „Wszystko wyrównane”. Kropka jest zielona, gdy wszystko jest wyrównane, bursztynowa, gdy wyrównanie pracuje lub czeka, czerwona, gdy kafelka nie da się poprawić, szara w pauzie lub po wyłączeniu; podpowiedź podaje szczegóły, kafelek po kafelku.\n• Sala nie daje punktów kanału, a reklamy Twitcha lecą w niej jak wszędzie.\n• Aby ją zamknąć: Esc albo kliknięcie kursora, który zmienił się w „■”."
-  },
-  "guideZapTitre": {
-    "message": "Zapping"
-  },
-  "guideZapTexte": {
-    "message": "Przycisk na prawo od lupy wyszukiwania otwiera obserwowane kanały, które nadają na żywo, na pełnym ekranie, w kolejności z paska bocznego.\n• ↑ i ↓ zmieniają kanał; po ostatnim wraca się do pierwszego. Kliknięcie w prawej kolumnie prowadzi do danego kanału.\n• Poprzedni i następny kanał są już wczytane — każdy oznaczony jako „wczytany” —: pojawiają się od razu.\n• Ekran przechodzi w tryb pełnoekranowy; wyjście lub otwarcie sali przywraca okno.\n• Kilka sekund bez ruchu myszy i zostaje sam obraz; ruch lub klawisz przywraca resztę.\n• Enter otwiera kanał; Esc zamyka, a wideo strony rusza dalej.\n• S dodaje kanał do sali, O otwiera salę od dwóch kanałów — najwyżej sześciu. Otwarta już sala zamyka się przy otwarciu zappingu; jej streamy zostają w wyborze.\n• „Dźwięk: …” w prawym dolnym rogu wyłącza i włącza dźwięk.\n• „Zapping” wyłącza się w „Ustawieniach”."
-  },
-  "guideDebutTitre": {
-    "message": "Początki i powroty"
-  },
-  "guideDebutTexte": {
-    "message": "Pulsujący czerwony pasek przy lewej krawędzi karty: ta transmisja zaczęła się mniej niż dziesięć minut temu. Gaśnie sam.\n• Streamer stracił połączenie i wrócił w ciągu dziesięciu minut? Pasek nie zapala się ponownie, a czas trwania liczy dalej całą transmisję, razem z przerwą.\n• Jego podgląd ma wtedy przez dziesięć minut odznakę „Powrót po przerwaniu”, a oś czasu pokazuje, gdzie transmisja się urwała."
-  },
-  "guideAboTitre": {
-    "message": "Twoje subskrypcje, na złoto"
-  },
-  "guideAboTexte": {
-    "message": "Kanały, które subskrybujesz, są na liście złote.\n• Nic nie trzeba robić: gdy jesteś zalogowany na Twitchu, rozszerzenie domyślnie co sześć godzin odczytuje twoją stronę subskrypcji. Świeża subskrypcja? Otwórz kanał albo kliknij „Odczytaj teraz”: grupa „Twoje dane” tego panelu, sekcja „Subskrypcje”.\n• W podglądzie złota odznaka mówi, od ilu miesięcy wspierasz kanał, i co dalej: „Następna rocznica”, jeśli się odnawia, „Wygasa za …”, jeśli się kończy — subskrypcja podarowana albo taka, której już nie odnawiasz.\n• Gdy subskrypcja się skończy, złoto gaśnie, a odznaka mówi „Dawna subskrypcja”.\n• Płatna, podarowana czy mobilna: liczą się wszystkie trzy."
-  },
-  "guideTriTitre": {
-    "message": "Sortowanie i filtrowanie"
-  },
-  "guideTriTexte": {
-    "message": "Sześć przycisków nad listą zmienia jej kolejność:\n• Widzowie — kolejność Twitcha.\n• Subskrypcje — twoje na górze, z ich liczbą, także offline, na plakietce.\n• Osobista popularność — według twoich własnych wizyt, przechowywanych na twoim komputerze.\n• Czas trwania transmisji — najnowsze transmisje na górze, by złapać początki.\n• Alfabetycznie — według nazwy kanału.\n• Co-streamy — zgrupowane na górze.\nPod spodem dwa filtry: kategoria i język. Proponują tylko to, co twoje kanały nadają w tej chwili.\n• Przyciski, z których nie korzystasz, usuniesz w sekcji „Ustawienia”."
-  },
-  "guideTopTitre": {
-    "message": "Najpopularniejsze kanały"
-  },
-  "guideTopTexte": {
-    "message": "Zakładka „Najpopularniejsze kanały” u góry paska bocznego zamienia twoje obserwowane kanały na najchętniej oglądane kanały całego Twitcha, na żywo — domyślnie trzydzieści, do wyboru dziesięć lub pięćdziesiąt.\n• Wybierz kategorię lub język w filtrach: dostajesz jej prawdziwy ranking.\n• Podgląd, czas trwania, odznaki, co-streamy: to karty jak wszystkie inne.\nKliknięcie „Obserwowane kanały” zabiera cię z powrotem; twoja lista się nie ruszyła."
-  },
-  "guideAccueilTitre": {
-    "message": "Strona główna Twitcha"
-  },
-  "guideAccueilTexte": {
-    "message": "Na stronie głównej Twitcha rozszerzenie umieszcza własne rzędy nad rzędami Twitcha, w tej samej kolumnie i wyrównane z nimi. Ustawia się je w sekcji „Ustawienia”, w grupie „Strona główna”.\n• „Twój kanał nr 1 na żywo”: obserwowany kanał na żywo, który oglądasz najczęściej — a jeśli takiego nie ma, ten z największą liczbą widzów — zajmuje miejsce karuzeli Twitcha, na całą szerokość. Najpierw jego obraz, potem transmisja, bez dźwięku i bez reklam, jak podgląd po najechaniu; tło przejmuje jej kolory. Gdy żaden z obserwowanych kanałów nie nadaje, karuzela wraca. „Jak na Twitchu” zawsze ją zostawia; „Nic” usuwa ją i zatrzymuje jej wideo.\n• „Polecane”: transmisje z karuzeli Twitcha, w jednym rzędzie, gdy baner — albo „Nic” — ją ukrywa, bez kanału z banera. Ich karty przechodzą przez zapytanie, które pasek i tak wysyła. Jako wstęga: karta pośrodku prosto, sąsiednie obrócone; dwie strzałki ją przewijają, a kliknięcie karty z boku przenosi ją na środek.\n• „Top 15”: pierwsze piętnaście miejsc listy „Najpopularniejsze kanały”, w języku interfejsu Twitcha albo we wszystkich językach, dużymi cyframi. Tuż na prawo od nazwy strzałka pokazuje miejsca zyskane lub stracone w ciągu trzydziestu minut — albo od wejścia na stronę główną; „Nowość” oznacza kanał, którego nie było w Top 15. Kanały z „Kanały usunięte z Top 15” w sekcji „Ustawienia” do niego nie trafiają, niezależnie od języka — dla kanału, który ma tag języka, ale nim nie mówi. Nie dotyczy to listy „Najpopularniejsze kanały”. Co-stream zajmuje jedno miejsce, jak na Twitchu: nazwa, „+ 2” i strzałka; po najechaniu na strzałkę widać jego uczestników, każdego z własną liczbą widzów.\n• „Bo często oglądasz…”: dla kanału, który najczęściej odwiedzałeś w ciągu trzydziestu dni — co najmniej trzy wizyty —, rząd pokazuje, co nadaje na żywo w jego zwykłej kategorii, w języku Twitcha, poza obserwowanymi kanałami. Tytuł mówi dlaczego: „14 wizyt w ciągu 30 dni · Just Chatting, po polsku”. Najwyżej dwa rzędy.\n• „Zaplanowane transmisje”: to, co obserwowane kanały zaplanowały na dziś i jutro, z czasem do rozpoczęcia. „Przypomnij mi” pokazuje powiadomienie w otwartych kartach Twitcha, gdy kanał zacznie transmisję — nie powiadomienie systemowe. Tuż pod spodem „Bez harmonogramu”: dla oglądanego kanału, który niczego nie zaplanował, godzina, o której zaczynały się jego ostatnie transmisje, jeśli się powtarza — to, co robił, a nie to, co zrobi. Te kanały układają się od najbliższego w przyszłości.\n• Jedna etykieta na kartę, w prawym dolnym rogu miniatury, na kartach rozszerzenia i na kartach Twitcha: jeden fakt, tylko jeden — pierwszy prawdziwy z tej listy: „Wraca po 41 dniach”, „Subathon • DZIEŃ 9”, „Właśnie wystartował”, „Przechodzi na Elden Ring”, „↗ +38% w 10 min”, „Nr 3 po polsku”, „Co-stream: 3 kanały”. Nic zgadywanego: bez zaobserwowanego faktu nie ma etykiety.\n• „Podczas twojej nieobecności”: po dwudziestu czterech godzinach bez Twitcha na ekranie rząd pod pozostałymi pokazuje, co w tym czasie nadawały obserwowane kanały — te, które oglądasz — jedna karta na kanał: obraz ostatniej powtórki, „3 transmisje” i ich długość, kiedy skończyła się ostatnia, najczęściej oglądany klip i „Obejrzyj ostatnią”, gdy powtórka jest otwarta. Zamknięty zamyka się we wszystkich kartach.\n• Każdy rząd pokazuje jedną linię; „Pokaż wszystko” pośrodku kreski pod nim rozwija resztę. „Polecane” to wstęga i się nie zwija.\n• „Od początku” otwiera powtórkę trwającej transmisji od jej pierwszej sekundy. Pojawia się tylko wtedy, gdy możesz ją obejrzeć: kanał zachowuje powtórki i udostępnia je wszystkim — albo go subskrybujesz.\n• Podgląd po najechaniu otwiera się też na kartach strony głównej: zarówno tych z rozszerzenia, jak i tych z Twitcha. Po najechaniu miniatura unosi się jak na Twitchu, w kolorze kanału.\n• „Uporządkuj stronę główną Twitcha”: na rzędach samego Twitcha. „Ukryj”, na prawo od tytułu rzędu kategorii, zwija go do jednej linii — „Pokaż ponownie” go przywraca; kategoria pozostaje ukryta także w kolejne dni. Karty transmisji mają tam wielkość kart rozszerzenia. A transmisja, dla której Twitch nie ma jeszcze obrazu, pokazuje zamiast „?” ostatnią powtórkę kanału albo jego awatar. Karty transmisji dostają tam też znaki kart rozszerzenia: plakietkę na żywo w ich stylu, liczbę widzów bez słowa, czas trwania transmisji w prawym górnym rogu."
-  },
-  "guideViteTitre": {
-    "message": "Szybciej niż Twitch i czyściej"
-  },
-  "guideViteTexte": {
-    "message": "Twitch potrzebuje od dwóch do czterech minut, by pokazać kanał, który rusza, a ten, który skończył, trzyma jeszcze pięć do dziesięciu minut. Rozszerzenie samo odświeża pasek boczny co trzydzieści sekund: widzowie, kategoria, czas trwania, przybycia i odejścia.\n• Wszystkie obserwowane kanały na żywo rozwijają się same, a kanały offline nigdy się nie pojawiają: koniec z „Pokaż więcej”.\n• Hype Trainy, paski zniżek, belki sponsorskie i puste sekcje znikają z paska; to, co mówiły, można przeczytać w odznakach podglądu (rozdział $1).\n• Twoja seria oglądania i sekcja Stories Twitcha trafiają do sortowań i filtrów, na górze listy. Wolisz je tak, jak pokazuje Twitch, albo ukryte? To w sekcji „Ustawienia”."
-  },
-  "guidePanneauTitre": {
-    "message": "Ten panel"
-  },
-  "guidePanneauTexte": {
-    "message": "Sześć grup, po lewej:\n• „Na początek” — ten przewodnik, czytelny nawet bez otwartej karty Twitcha.\n• „Ustawienia” — wszystko, co rozszerzenie pozwala wybrać; to następny rozdział.\n• „Harmonogram” — transmisje obserwowanych kanałów, minione, trwające i zaplanowane, z ich powtórkami; rozdziały $1 i $2.\n• „Twoje dane” — co zapamiętało: kanały, które odwiedzasz najczęściej, o jakich porach, twoje subskrypcje, znane kanały.\n• „Diagnostyka” — przydaje się tylko, gdy coś nie gra; można ją ukryć w ustawieniach.\n• „Najpopularniejsze kanały” — stan rankingu i jego kategorii.\nSekcje inne niż ten przewodnik czytają pierwszoplanową kartę Twitcha; bez niej mówią o tym.\n• Coś nie działa? „Eksportuj raport” zapisuje tekst do przeczytania przed wysłaniem: liczby, żadnych list — ani twoich kanałów, ani subskrypcji.\n• „Wyczyść historię” usuwa wszystko, co rozszerzenie zapamiętało, nieodwracalnie; twoje ustawienia zostają."
-  },
-  "guideAgendaTitre": {
-    "message": "Harmonogram: tydzień"
-  },
-  "guideAgendaTexte": {
-    "message": "Grupa „Harmonogram” tego panelu robi dla wszystkich obserwowanych kanałów naraz to, co strona harmonogramu kanału robi na Twitchu dla jednego. Jej pierwszy widok, „Tydzień”, układa dzień po dniu trzy rodzaje transmisji.\n• Minione transmisje, z miniaturą i długością ich powtórki: kliknięcie otwiera ją w nowej karcie.\n• Trwające transmisje, oznaczone „Na żywo”, z liczbą widzów.\n• Zaplanowane transmisje, oznaczone „Zaplanowana”, w przerywanej ramce.\nPrzykład powyżej pokazuje też:\n• Widok otwiera się na dzisiejszym dniu, z minionymi dniami powyżej. Transmisja, która trwa po północy, zostaje w dniu, w którym się zaczęła: ta Nyxarii, rozpoczęta przedwczoraj wieczorem, zostaje tam.\n• Kłódka oznacza powtórkę zarezerwowaną dla subskrybentów kanału, gdy rozszerzenie nie wie, że masz subskrypcję; z subskrypcją nic się nie pojawia: powtórka jest dla ciebie otwarta.\n• „Bez powtórki”: miniona transmisja, po której nie zostało nagranie. Ma miejsce w tygodniu tylko wtedy, gdy rozszerzenie widziało ją na żywo: Twitch podaje tylko godzinę jej końca.\nStrzałki zmieniają tydzień, do ośmiu wstecz i dwóch naprzód; „Dziś” wraca do dzisiejszego dnia. Menu po prawej zostawia jeden kanał. Powtórka istnieje tylko wtedy, gdy kanał zapisuje transmisje, i tylko tak długo, jak Twitch je przechowuje; zaplanowana transmisja — tylko jeśli kanał prowadzi harmonogram na Twitchu."
-  },
-  "guideHorsLigneTitre": {
-    "message": "Harmonogram: offline"
-  },
-  "guideHorsLigneTexte": {
-    "message": "Drugi widok harmonogramu, „Offline”, daje wiersz każdemu obserwowanemu kanałowi, który nie nadaje — dlatego nie ma tu Korbeka, który w poprzednim przykładzie jest na żywo. Trzy grupy, oddzielone linią:\n• Najpierw kanały, które zaplanowały następną transmisję, najbliższa na górze.\n• Potem pozostałe, od tego, który skończył najpóźniej.\n• Na samym dole te, których Twitch już nie udostępnia — konto zawieszone, przemianowane lub zamknięte —, oznaczone „Niedostępny na Twitchu”: nie znikają z listy.\nKażdy wiersz mówi, kiedy kanał nadawał ostatnio, i podaje jego następną transmisję, jeśli jest zaplanowana.\n• „Obejrzyj” otwiera w nowej karcie powtórkę jego ostatniej transmisji; kłódka subskrybentów pojawia się i tu. Nie ma „Obejrzyj”, gdy ta transmisja nie ma powtórki, jak u Aeltris.\n• „Pokaż tydzień” otwiera „Tydzień” na tygodniu tej ostatniej transmisji, tylko dla tego kanału.\n• Kanał z zaplanowaną transmisją, który nie nadawał od trzech miesięcy, nie pojawia się tutaj, a jego termin — w tygodniu: to harmonogram, który Twitch zachowuje dla kanału, który już nie nadaje.\nOba widoki obejmują wszystkie obserwowane kanały: pasek boczny Twitcha pokazuje tylko sto, więc rozszerzenie co dwanaście godzin odczytuje pełną listę ze strony obserwowanych, w niewidocznej ramce. Harmonogram nic nie wysyła do Twitcha, dopóki go nie otworzysz, a to, co odczytał, zostaje w twojej przeglądarce: po przeładowaniu pyta ponownie tylko o to, co się zestarzało."
-  },
-  "guideVieTitre": {
-    "message": "Prywatność, wprost"
-  },
-  "guideVieTexte": {
-    "message": "• Żadnego zewnętrznego serwera: rozszerzenie rozmawia tylko z Twitchem, przez publiczne API, którego strona i tak używa.\n• Te wywołania są anonimowe: bez tokena sesji, bez ciasteczek. Nie da się ich powiązać z twoim kontem.\n• Dwa wyjątki, powiedziane głośno: aby poznać twoje subskrypcje, rozszerzenie otwiera TWOJĄ stronę twitch.tv/subscriptions w niewidocznej ramce — domyślnie raz na sześć godzin albo zgodnie z twoim ustawieniem, wcześniej tylko po odczycie, który niczego nie znalazł, albo na twoje żądanie, i nigdy, gdy jesteś wylogowany. Aby poznać wszystkie obserwowane kanały, w ten sam sposób otwiera twoją stronę obserwowanych kanałów, co dwanaście godzin. Twoja przeglądarka uwierzytelnia je tak, jakbyś kliknął link; rozszerzenie nie czyta twojego tokena ani go nie przekazuje.\n• Twoje wizyty, subskrypcje i ich staż, obserwowane kanały i to, co odczytał harmonogram, zostają w twojej przeglądarce. Wyczyść dane witryny twitch.tv, a nic z nich nie zostanie.\n• Żadnych uprawnień, żadnych trackerów, żadnej telemetrii. Rozszerzenie działa tylko na twitch.tv."
-  },
-  "guideBadgeCcl": {
-    "message": "Gra dla dorosłych"
-  },
-  "guideBadgeReprise": {
-    "message": "Powrót po przerwaniu"
-  },
-  "guideBadgeSwitch": {
-    "message": "Właśnie przeszedł na Elden Ring"
-  },
-  "guideBadgeCostream": {
-    "message": "Co-stream u Nyxaria"
-  },
-  "guideBadgeSquad": {
-    "message": "Na żywo z Korbek i jeszcze 3"
-  },
-  "guideBadgeMuet": {
-    "message": "W sesji, bez transmisji: Velmoria"
-  },
-  "guideBadgeSub": {
-    "message": "Subskrypcja • 9 MIESIĘCY"
-  },
-  "guideBadgeExsub": {
-    "message": "Dawna subskrypcja • 4 MIESIĄCE"
-  },
-  "guideBadgeSponsor": {
-    "message": "Sponsorowane przez Norvex"
-  },
-  "guideBadgeHype": {
-    "message": "Hype Train"
-  },
-  "guideBadgeDiscount": {
-    "message": "Subskrypcja ze zniżką"
-  },
-  "guideBadgeAutre": {
-    "message": "Inna wzmianka Twitcha"
-  },
-  "guideBadgeSubathon": {
-    "message": "Subathon • DZIEŃ 10"
-  },
-  "guideDemoTitre": {
-    "message": "Kończymy loch, potem pytania"
-  },
-  "guideDemoEnded": {
-    "message": "Zakończono"
-  },
-  "guideDemoJour": {
-    "message": "D9"
-  },
-  "guideDemoSuivies": {
-    "message": "Obserwowane kanały"
-  },
-  "guideDemoEnCours": {
-    "message": "trwa"
-  },
-  "guideDemoAgendaSans": {
-    "message": "Kawa i pytania"
-  },
-  "guideDemoAgendaSub": {
-    "message": "Budowa podwodnej bazy"
-  },
-  "guideDemoAgendaDirect": {
-    "message": "Rankingowe aż do Immortala"
-  },
-  "guideDemoAgendaPrevu": {
-    "message": "Elden Ring na ślepo, odcinek 12"
   },
   "grpOptions": {
     "message": "Ustawienia"
@@ -1045,6 +871,39 @@
   "optHeures": {
     "message": "$1 godz."
   },
+  "optBadgeCcl": {
+    "message": "Gra dla dorosłych"
+  },
+  "optBadgeCostream": {
+    "message": "Co-stream u Nyxaria"
+  },
+  "optBadgeSquad": {
+    "message": "Na żywo z Korbek i jeszcze 3"
+  },
+  "optBadgeSub": {
+    "message": "Subskrypcja • 9 MIESIĘCY"
+  },
+  "optBadgeExsub": {
+    "message": "Dawna subskrypcja • 4 MIESIĄCE"
+  },
+  "optBadgeSponsor": {
+    "message": "Sponsorowane przez Norvex"
+  },
+  "optBadgeHype": {
+    "message": "Hype Train"
+  },
+  "optBadgeDiscount": {
+    "message": "Subskrypcja ze zniżką"
+  },
+  "optBadgeSwitch": {
+    "message": "Właśnie przeszedł na Elden Ring"
+  },
+  "optBadgeReprise": {
+    "message": "Powrót po przerwaniu"
+  },
+  "optBadgeSubathon": {
+    "message": "Subathon • DZIEŃ 10"
+  },
   "optTriViewers": {
     "message": "Widzowie"
   },
@@ -1065,17 +924,5 @@
   },
   "extActionTitle": {
     "message": "Cowlor's Sidebar — Twoje dane i ustawienia"
-  },
-  "guideRoueTitre": {
-    "message": "Kółko zębate i ten panel"
-  },
-  "guideRoueTexte": {
-    "message": "Kółko zębate ⚙️ stoi na prawo od tytułu paska bocznego. Kliknięcie otwiera ten panel nad Twitchem, bez opuszczania strony.\n• Ikona rozszerzenia na pasku narzędzi przeglądarki otwiera ten sam panel.\n• Aby go zamknąć: klawisz Esc albo kliknięcie obok.\n• Jego sześć grup po lewej przedstawia rozdział $1."
-  },
-  "guideReglagesTitre": {
-    "message": "Wszystko da się ustawić, wszystko wyłączyć"
-  },
-  "guideReglagesTexte": {
-    "message": "Sekcja „Ustawienia” steruje wszystkim, co pokazuje ten przewodnik. Nic nie jest narzucone: co przeszkadza, wyłączysz, a fioletowa kropka oznacza to, co zmieniłeś. Wyszarzony wiersz zależy od wyłączonego ustawienia: nadal można go zmienić, a po najechaniu mówi, od którego.\n• Podgląd za ciężki? Obniż jakość albo wyłącz wideo: zachowa miniaturę, odznaki i oś czasu.\n• Złoto zbyt krzykliwe? „Dyskretne” zostawia kolor, zabiera połysk.\n• Salę multistream i jej automatyczne wyrównanie wyłącza się osobno.\n• Odczyt subskrypcji można rozrzedzić do raz na dobę.\n• Każdą pamięć — wizyty, subskrypcje, znane kanały — czyści się osobno.\n• Twoje ustawienia można wyeksportować i zaimportować; jeden przycisk przywraca wszystkie domyślne."
   }
 }
